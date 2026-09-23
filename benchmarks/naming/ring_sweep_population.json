@@ -1,0 +1,12784 @@
+{
+ "n_rings": 371,
+ "population_sha256": "5f6e40881b413b7e95926883d4878d074d053adcc07aca9801e8be73eddd84e9",
+ "purpose": "the frozen ring denominator for tools/naming_ring_locant_sweep.py (naming round 13)",
+ "rings": [
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "1,3,2-benzodioxaborole",
+   "sites": [
+    3,
+    4,
+    5,
+    6
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     7
+    ],
+    "heteroatom": [
+     0,
+     1,
+     8
+    ]
+   },
+   "smiles": "B1Oc2ccccc2O1"
+  },
+  {
+   "atoms": 3,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "silacycloprop-2-yne",
+   "sites": [],
+   "skipped": {
+    "heteroatom": [
+     2
+    ],
+    "no_free_hydrogen": [
+     0,
+     1
+    ]
+   },
+   "smiles": "C1#C[SiH2]1"
+  },
+  {
+   "atoms": 8,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+   ],
+   "name": "cubane",
+   "sites": [],
+   "skipped": {
+    "fusion_atom": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7
+    ]
+   },
+   "smiles": "C12C3C4C1C1C2C3C41"
+  },
+  {
+   "atoms": 23,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "corrin",
+   "sites": [
+    0,
+    2,
+    3,
+    6,
+    8,
+    9,
+    13,
+    14,
+    17,
+    19,
+    20
+   ],
+   "skipped": {
+    "fusion_atom": [
+     1,
+     4,
+     7,
+     10,
+     12,
+     15,
+     18,
+     21
+    ],
+    "heteroatom": [
+     5,
+     11,
+     16,
+     22
+    ]
+   },
+   "smiles": "C1=C2CCC(=N2)C=C2CCC(N2)C2CCC(=N2)C=C2CCC1=N2"
+  },
+  {
+   "atoms": 17,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16
+   ],
+   "name": "1,2,6,7,8,11,12,13,14,15,16,17-dodecahydro-3H-cyclopenta[a]phenanthrene",
+   "sites": [
+    0,
+    2,
+    3,
+    7,
+    8,
+    9,
+    10,
+    11,
+    13,
+    14,
+    15
+   ],
+   "skipped": {
+    "fusion_atom": [
+     1,
+     4,
+     5,
+     6,
+     12,
+     16
+    ]
+   },
+   "smiles": "C1=C2CCC3C(=C2CCC1)CCC1CCCC13"
+  },
+  {
+   "atoms": 17,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16
+   ],
+   "name": "1,2,6,7,8,9,10,11,12,13,14,15,16,17-tetradecahydro-3H-cyclopenta[a]phenanthrene",
+   "sites": [
+    0,
+    2,
+    3,
+    6,
+    7,
+    8,
+    10,
+    11,
+    14,
+    15,
+    16
+   ],
+   "skipped": {
+    "fusion_atom": [
+     1,
+     4,
+     5,
+     9,
+     12,
+     13
+    ]
+   },
+   "smiles": "C1=C2CCC3C4CCCC4CCC3C2CCC1"
+  },
+  {
+   "atoms": 16,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    3,
+    4,
+    5,
+    7,
+    8,
+    12,
+    13,
+    14,
+    15
+   ],
+   "name": "4,6,6a,7,8,9-hexahydroindolo[4,3-fg]quinoline",
+   "sites": [
+    0,
+    3,
+    4,
+    5,
+    8,
+    11,
+    14,
+    15
+   ],
+   "skipped": {
+    "fusion_atom": [
+     1,
+     2,
+     6,
+     9,
+     10,
+     12
+    ],
+    "heteroatom": [
+     7,
+     13
+    ]
+   },
+   "smiles": "C1=C2c3cccc4[nH]cc(c34)CC2NCC1"
+  },
+  {
+   "atoms": 17,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16
+   ],
+   "name": "4a,5,9,10,11,12-hexahydro-6H-[1]benzofuro[3a,3,2-ef][2]benzazepine",
+   "sites": [
+    0,
+    1,
+    3,
+    4,
+    6,
+    8,
+    9,
+    10,
+    15,
+    16
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     7,
+     11,
+     12,
+     14
+    ],
+    "heteroatom": [
+     5,
+     13
+    ]
+   },
+   "smiles": "C1=CC23CCNCc4cccc(c42)OC3CC1"
+  },
+  {
+   "atoms": 8,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+   ],
+   "name": "pentalene",
+   "sites": [
+    0,
+    1,
+    3,
+    4,
+    5,
+    7
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     6
+    ]
+   },
+   "smiles": "C1=CC2=CC=CC2=C1"
+  },
+  {
+   "atoms": 17,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16
+   ],
+   "name": "6,7,8,9,10,11,12,13,14,15,16,17-dodecahydro-3H-cyclopenta[a]phenanthrene",
+   "sites": [
+    0,
+    1,
+    4,
+    5,
+    6,
+    7,
+    10,
+    11,
+    12,
+    14,
+    15
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     3,
+     8,
+     9,
+     13,
+     16
+    ]
+   },
+   "smiles": "C1=CC2C(=CC1)CCC1C3CCCC3CCC21"
+  },
+  {
+   "atoms": 17,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+   ],
+   "name": "1,2,8,9,10,11,12,13,14,15,16,17-dodecahydro-3H-cyclopenta[a]phenanthrene",
+   "sites": [
+    0,
+    1,
+    4,
+    5,
+    6,
+    8,
+    9,
+    12,
+    13,
+    14,
+    15
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     3,
+     7,
+     10,
+     11,
+     16
+    ]
+   },
+   "smiles": "C1=CC2C3CCCC3CCC2C2CCCC=C12"
+  },
+  {
+   "atoms": 7,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "name": "bicyclo[3.2.0]hepta-2,6-diene",
+   "sites": [
+    0,
+    1,
+    3,
+    4,
+    6
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     5
+    ]
+   },
+   "smiles": "C1=CC2C=CC2C1"
+  },
+  {
+   "atoms": 17,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    12,
+    13,
+    14,
+    15,
+    16
+   ],
+   "name": "2,3,4,7,8,9,10,11,12,13,14,15-dodecahydro-1H-cyclopenta[a]phenanthrene",
+   "sites": [
+    0,
+    1,
+    3,
+    4,
+    7,
+    8,
+    9,
+    10,
+    12,
+    13,
+    16
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     5,
+     6,
+     11,
+     14,
+     15
+    ]
+   },
+   "smiles": "C1=CC2CCC3C4CCCCC4=CCC3C2C1"
+  },
+  {
+   "atoms": 19,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    8,
+    9,
+    10,
+    11,
+    14,
+    15,
+    17,
+    18
+   ],
+   "name": "3a,4,5,5a,6,11,12,13-octahydro-1H-indolizino[8,1-cd]carbazole",
+   "sites": [
+    0,
+    1,
+    3,
+    4,
+    8,
+    9,
+    10,
+    11,
+    14,
+    15,
+    17
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     5,
+     7,
+     12,
+     13,
+     18
+    ],
+    "heteroatom": [
+     6,
+     16
+    ]
+   },
+   "smiles": "C1=CC2CCC3Nc4ccccc4C34CCN(C1)C24"
+  },
+  {
+   "atoms": 8,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+   ],
+   "name": "2,3,5,7a-tetrahydro-1H-pyrrolizine",
+   "sites": [
+    0,
+    1,
+    3,
+    4,
+    5,
+    7
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2
+    ],
+    "heteroatom": [
+     6
+    ]
+   },
+   "smiles": "C1=CC2CCCN2C1"
+  },
+  {
+   "atoms": 12,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "name": "heptalene",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    5,
+    6,
+    7,
+    8,
+    10,
+    11
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     9
+    ]
+   },
+   "smiles": "C1=CC=C2C=CC=CC=C2C=C1"
+  },
+  {
+   "atoms": 16,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "[16]annulene",
+   "sites": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+   ],
+   "skipped": {},
+   "smiles": "C1=CC=CC=CC=CC=CC=CC=CC=C1"
+  },
+  {
+   "atoms": 20,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "[20]annulene",
+   "sites": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19
+   ],
+   "skipped": {},
+   "smiles": "C1=CC=CC=CC=CC=CC=CC=CC=CC=CC=C1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "pyridinium",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    5
+   ],
+   "skipped": {
+    "heteroatom": [
+     3
+    ]
+   },
+   "smiles": "C1=CC=[N+]C=C1"
+  },
+  {
+   "atoms": 8,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+   ],
+   "name": "bicyclo[4.2.0]octa-3,5-diene",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    5,
+    7
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     6
+    ]
+   },
+   "smiles": "C1=CCC2CCC2=C1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "3a,4,7,7a-tetrahydro-2H-isoindole",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    6,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     5
+    ]
+   },
+   "smiles": "C1=CCC2CNCC2C1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "name": "2,5-dihydro-1H-pyrrole",
+   "sites": [
+    0,
+    1,
+    2,
+    4
+   ],
+   "skipped": {
+    "heteroatom": [
+     3
+    ]
+   },
+   "smiles": "C1=CCNC1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "name": "1,2,3,6-tetrahydropyridine",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    5
+   ],
+   "skipped": {
+    "heteroatom": [
+     3
+    ]
+   },
+   "smiles": "C1=CCNCC1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "name": "2,5-dihydrofuran",
+   "sites": [
+    0,
+    1,
+    2,
+    4
+   ],
+   "skipped": {
+    "heteroatom": [
+     3
+    ]
+   },
+   "smiles": "C1=CCOC1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "name": "2H-pyran",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    5
+   ],
+   "skipped": {
+    "heteroatom": [
+     3
+    ]
+   },
+   "smiles": "C1=CCOC=C1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "name": "3,6-dihydro-2H-pyran",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    5
+   ],
+   "skipped": {
+    "heteroatom": [
+     3
+    ]
+   },
+   "smiles": "C1=CCOCC1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "name": "2H-thiopyran",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    5
+   ],
+   "skipped": {
+    "heteroatom": [
+     3
+    ]
+   },
+   "smiles": "C1=CCSC=C1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "name": "2H-selenopyran",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    5
+   ],
+   "skipped": {
+    "heteroatom": [
+     3
+    ]
+   },
+   "smiles": "C1=CC[Se]C=C1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "name": "2H-telluropyran",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    5
+   ],
+   "skipped": {
+    "heteroatom": [
+     3
+    ]
+   },
+   "smiles": "C1=CC[Te]C=C1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "1,4-dihydronaphthalene",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    5,
+    6,
+    7,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ]
+   },
+   "smiles": "C1=CCc2ccccc2C1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "name": "1,4-dihydropyridine",
+   "sites": [
+    0,
+    1,
+    3,
+    4,
+    5
+   ],
+   "skipped": {
+    "heteroatom": [
+     2
+    ]
+   },
+   "smiles": "C1=CNC=CC1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "name": "2,3-dihydro-1H-pyrrole",
+   "sites": [
+    0,
+    1,
+    3,
+    4
+   ],
+   "skipped": {
+    "heteroatom": [
+     2
+    ]
+   },
+   "smiles": "C1=CNCC1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "name": "2,3-dihydro-1H-pyrazole",
+   "sites": [
+    0,
+    1,
+    4
+   ],
+   "skipped": {
+    "heteroatom": [
+     2,
+     3
+    ]
+   },
+   "smiles": "C1=CNNC1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "name": "4H-pyran",
+   "sites": [
+    0,
+    1,
+    3,
+    4,
+    5
+   ],
+   "skipped": {
+    "heteroatom": [
+     2
+    ]
+   },
+   "smiles": "C1=COC=CC1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "name": "2,3-dihydrofuran",
+   "sites": [
+    0,
+    1,
+    3,
+    4
+   ],
+   "skipped": {
+    "heteroatom": [
+     2
+    ]
+   },
+   "smiles": "C1=COCC1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "name": "3,4-dihydro-2H-pyran",
+   "sites": [
+    0,
+    1,
+    3,
+    4,
+    5
+   ],
+   "skipped": {
+    "heteroatom": [
+     2
+    ]
+   },
+   "smiles": "C1=COCCC1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "4H-chromene",
+   "sites": [
+    0,
+    1,
+    4,
+    5,
+    6,
+    7,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     2
+    ]
+   },
+   "smiles": "C1=COc2ccccc2C1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "name": "4H-thiopyran",
+   "sites": [
+    0,
+    1,
+    3,
+    4,
+    5
+   ],
+   "skipped": {
+    "heteroatom": [
+     2
+    ]
+   },
+   "smiles": "C1=CSC=CC1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "name": "2,3-dihydrothiophene",
+   "sites": [
+    0,
+    1,
+    3,
+    4
+   ],
+   "skipped": {
+    "heteroatom": [
+     2
+    ]
+   },
+   "smiles": "C1=CSCC1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "name": "3,4-dihydro-2H-thiopyran",
+   "sites": [
+    0,
+    1,
+    3,
+    4,
+    5
+   ],
+   "skipped": {
+    "heteroatom": [
+     2
+    ]
+   },
+   "smiles": "C1=CSCCC1"
+  },
+  {
+   "atoms": 17,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16
+   ],
+   "name": "15H-cyclopenta[a]phenanthrene",
+   "sites": [
+    0,
+    1,
+    3,
+    4,
+    7,
+    8,
+    10,
+    11,
+    12,
+    13,
+    16
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     5,
+     6,
+     9,
+     14,
+     15
+    ]
+   },
+   "smiles": "C1=Cc2ccc3c(ccc4ccccc43)c2C1"
+  },
+  {
+   "atoms": 15,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+   ],
+   "name": "5H-dibenzo[a,d][7]annulene",
+   "sites": [
+    0,
+    1,
+    3,
+    4,
+    5,
+    6,
+    8,
+    10,
+    11,
+    12,
+    13
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     7,
+     9,
+     14
+    ]
+   },
+   "smiles": "C1=Cc2ccccc2Cc2ccccc21"
+  },
+  {
+   "atoms": 15,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+   ],
+   "name": "5H-dibenz[b,f]azepine",
+   "sites": [
+    0,
+    1,
+    3,
+    4,
+    5,
+    6,
+    10,
+    11,
+    12,
+    13
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     7,
+     9,
+     14
+    ],
+    "heteroatom": [
+     8
+    ]
+   },
+   "smiles": "C1=Cc2ccccc2Nc2ccccc21"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "2H-chromene",
+   "sites": [
+    0,
+    1,
+    3,
+    4,
+    5,
+    6,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     7
+    ],
+    "heteroatom": [
+     8
+    ]
+   },
+   "smiles": "C1=Cc2ccccc2OC1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "2H-1,2-benzothiazine",
+   "sites": [
+    0,
+    1,
+    3,
+    4,
+    5,
+    6
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     7
+    ],
+    "heteroatom": [
+     8,
+     9
+    ]
+   },
+   "smiles": "C1=Cc2ccccc2SN1"
+  },
+  {
+   "atoms": 18,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    10,
+    12,
+    13,
+    14,
+    15,
+    16
+   ],
+   "name": "9,13b-dihydro-1H-dibenzo[c,f]imidazo[1,5-a]azepine",
+   "sites": [
+    0,
+    2,
+    5,
+    6,
+    7,
+    8,
+    10,
+    12,
+    13,
+    14,
+    15
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     9,
+     11,
+     16
+    ],
+    "heteroatom": [
+     1,
+     17
+    ]
+   },
+   "smiles": "C1=NCC2c3ccccc3Cc3ccccc3N12"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "name": "3,4-dihydro-2H-pyrrole",
+   "sites": [
+    0,
+    2,
+    3,
+    4
+   ],
+   "skipped": {
+    "heteroatom": [
+     1
+    ]
+   },
+   "smiles": "C1=NCCC1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "name": "3,4,5,6-tetrahydropyridine",
+   "sites": [
+    0,
+    2,
+    3,
+    4,
+    5
+   ],
+   "skipped": {
+    "heteroatom": [
+     1
+    ]
+   },
+   "smiles": "C1=NCCCC1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "name": "1,4,5,6-tetrahydropyrimidine",
+   "sites": [
+    0,
+    2,
+    3,
+    4
+   ],
+   "skipped": {
+    "heteroatom": [
+     1,
+     5
+    ]
+   },
+   "smiles": "C1=NCCCN1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "name": "4,5-dihydro-1H-imidazole",
+   "sites": [
+    0,
+    2,
+    3
+   ],
+   "skipped": {
+    "heteroatom": [
+     1,
+     4
+    ]
+   },
+   "smiles": "C1=NCCN1"
+  },
+  {
+   "atoms": 11,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "name": "2,3-dihydro-1H-1,4-benzodiazepine",
+   "sites": [
+    0,
+    2,
+    3,
+    6,
+    7,
+    8,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     5,
+     10
+    ],
+    "heteroatom": [
+     1,
+     4
+    ]
+   },
+   "smiles": "C1=NCCNc2ccccc21"
+  },
+  {
+   "atoms": 14,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13
+   ],
+   "name": "4H-[1,2,4]triazolo[4,3-a][1,4]benzodiazepine",
+   "sites": [
+    0,
+    2,
+    6,
+    9,
+    10,
+    11,
+    12
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8,
+     13
+    ],
+    "heteroatom": [
+     1,
+     4,
+     5,
+     7
+    ]
+   },
+   "smiles": "C1=NCc2nncn2-c2ccccc21"
+  },
+  {
+   "atoms": 11,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "name": "5H-2,3-benzodiazepine",
+   "sites": [
+    0,
+    3,
+    5,
+    6,
+    7,
+    8,
+    10
+   ],
+   "skipped": {
+    "fusion_atom": [
+     4,
+     9
+    ],
+    "heteroatom": [
+     1,
+     2
+    ]
+   },
+   "smiles": "C1=NN=Cc2ccccc2C1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "name": "4,5-dihydro-1H-pyrazole",
+   "sites": [
+    0,
+    3,
+    4
+   ],
+   "skipped": {
+    "heteroatom": [
+     1,
+     2
+    ]
+   },
+   "smiles": "C1=NNCC1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "name": "1,4,5,6-tetrahydropyridazine",
+   "sites": [
+    0,
+    3,
+    4,
+    5
+   ],
+   "skipped": {
+    "heteroatom": [
+     1,
+     2
+    ]
+   },
+   "smiles": "C1=NNCCC1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "4H-1,2,4-benzothiadiazine",
+   "sites": [
+    0,
+    4,
+    5,
+    6,
+    7
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     1,
+     2,
+     9
+    ]
+   },
+   "smiles": "C1=NSc2ccccc2N1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "3,6,7,8-tetrahydroimidazo[4,5-d][1,3]diazepine",
+   "sites": [
+    0,
+    4,
+    7,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     6
+    ],
+    "heteroatom": [
+     1,
+     3,
+     5,
+     9
+    ]
+   },
+   "smiles": "C1=Nc2[nH]cnc2CCN1"
+  },
+  {
+   "atoms": 16,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    3,
+    4,
+    5,
+    9,
+    11,
+    12,
+    13,
+    14
+   ],
+   "name": "indolo[4,3-fg]quinoline",
+   "sites": [
+    0,
+    3,
+    4,
+    5,
+    9,
+    12,
+    13,
+    14
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     6,
+     7,
+     8,
+     10,
+     15
+    ],
+    "heteroatom": [
+     1,
+     11
+    ]
+   },
+   "smiles": "C1=Nc2cccc3c2c1cc1ncccc13"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "2H-1,2,4-benzothiadiazine",
+   "sites": [
+    0,
+    3,
+    4,
+    5,
+    6
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     7
+    ],
+    "heteroatom": [
+     1,
+     8,
+     9
+    ]
+   },
+   "smiles": "C1=Nc2ccccc2SN1"
+  },
+  {
+   "atoms": 4,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "1,3-disilacyclobutatetraene",
+   "sites": [],
+   "skipped": {
+    "heteroatom": [
+     1,
+     3
+    ],
+    "no_free_hydrogen": [
+     0,
+     2
+    ]
+   },
+   "smiles": "C1=[Si]=C=[Si]=1"
+  },
+  {
+   "atoms": 7,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "name": "tricyclo[2.2.1.0^{2,6}]heptane",
+   "sites": [],
+   "skipped": {
+    "fusion_atom": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ]
+   },
+   "smiles": "C1C2CC3C1C3C2"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "adamantane",
+   "sites": [],
+   "skipped": {
+    "fusion_atom": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9
+    ]
+   },
+   "smiles": "C1C2CC3CC1CC(C2)C3"
+  },
+  {
+   "atoms": 3,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "cyclopropane",
+   "sites": [
+    0,
+    1,
+    2
+   ],
+   "skipped": {},
+   "smiles": "C1CC1"
+  },
+  {
+   "atoms": 12,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    5,
+    6,
+    8,
+    9,
+    11
+   ],
+   "name": "octahydro-8H-oxazolo[3,2-a]pyrrolo[2,1-c]pyrazine",
+   "sites": [
+    0,
+    1,
+    5,
+    6,
+    8,
+    9,
+    11
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     3
+    ],
+    "heteroatom": [
+     4,
+     7,
+     10
+    ]
+   },
+   "smiles": "C1CC2C3OCCN3CCN2C1"
+  },
+  {
+   "atoms": 8,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+   ],
+   "name": "octahydropentalene",
+   "sites": [
+    0,
+    1,
+    3,
+    4,
+    5,
+    7
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     6
+    ]
+   },
+   "smiles": "C1CC2CCCC2C1"
+  },
+  {
+   "atoms": 8,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+   ],
+   "name": "hexahydro-1H-pyrrolizine",
+   "sites": [
+    0,
+    1,
+    3,
+    4,
+    5,
+    7
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2
+    ],
+    "heteroatom": [
+     6
+    ]
+   },
+   "smiles": "C1CC2CCCN2C1"
+  },
+  {
+   "atoms": 8,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+   ],
+   "name": "octahydrocyclopenta[b]pyrrole",
+   "sites": [
+    0,
+    1,
+    3,
+    4,
+    7
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     6
+    ],
+    "heteroatom": [
+     5
+    ]
+   },
+   "smiles": "C1CC2CCNC2C1"
+  },
+  {
+   "atoms": 8,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+   ],
+   "name": "hexahydrocyclopenta[b]furan",
+   "sites": [
+    0,
+    1,
+    3,
+    4,
+    7
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     6
+    ],
+    "heteroatom": [
+     5
+    ]
+   },
+   "smiles": "C1CC2CCOC2C1"
+  },
+  {
+   "atoms": 8,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+   ],
+   "name": "hexahydrofuro[2,3-b]furan",
+   "sites": [
+    0,
+    1,
+    3,
+    4
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     6
+    ],
+    "heteroatom": [
+     5,
+     7
+    ]
+   },
+   "smiles": "C1CC2CCOC2O1"
+  },
+  {
+   "atoms": 8,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+   ],
+   "name": "octahydrocyclopenta[c]pyrrole",
+   "sites": [
+    0,
+    1,
+    3,
+    5,
+    7
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     6
+    ],
+    "heteroatom": [
+     4
+    ]
+   },
+   "smiles": "C1CC2CNCC2C1"
+  },
+  {
+   "atoms": 8,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+   ],
+   "name": "hexahydrofuro[3,2-b]furan",
+   "sites": [
+    0,
+    1,
+    4,
+    5
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     6
+    ],
+    "heteroatom": [
+     3,
+     7
+    ]
+   },
+   "smiles": "C1CC2OCCC2O1"
+  },
+  {
+   "atoms": 4,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "cyclobutane",
+   "sites": [
+    0,
+    1,
+    2,
+    3
+   ],
+   "skipped": {},
+   "smiles": "C1CCC1"
+  },
+  {
+   "atoms": 17,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16
+   ],
+   "name": "hexadecahydro-1H-cyclopenta[a]phenanthrene",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7,
+    10,
+    11,
+    12,
+    14,
+    15
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     8,
+     9,
+     13,
+     16
+    ]
+   },
+   "smiles": "C1CCC2C(C1)CCC1C3CCCC3CCC21"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "octahydro-1H-indene",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    5,
+    6,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ]
+   },
+   "smiles": "C1CCC2CCCC2C1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "decalin",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    5,
+    6,
+    7,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ]
+   },
+   "smiles": "C1CCC2CCCCC2C1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "octahydro-1H-isoindole",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    6,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     5
+    ]
+   },
+   "smiles": "C1CCC2CNCC2C1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "decahydroisoquinoline",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    6,
+    7,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     5
+    ]
+   },
+   "smiles": "C1CCC2CNCCC2C1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "octahydro-1H-indole",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     4
+    ]
+   },
+   "smiles": "C1CCC2NCCC2C1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "decahydroquinoline",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     4
+    ]
+   },
+   "smiles": "C1CCC2NCCCC2C1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "cyclopentane",
+   "sites": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "skipped": {},
+   "smiles": "C1CCCC1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "cyclohexane",
+   "sites": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "skipped": {},
+   "smiles": "C1CCCCC1"
+  },
+  {
+   "atoms": 7,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "cycloheptane",
+   "sites": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "skipped": {},
+   "smiles": "C1CCCCCC1"
+  },
+  {
+   "atoms": 8,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "cyclooctane",
+   "sites": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+   ],
+   "skipped": {},
+   "smiles": "C1CCCCCCC1"
+  },
+  {
+   "atoms": 7,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "azepane",
+   "sites": [
+    0,
+    1,
+    2,
+    3,
+    5,
+    6
+   ],
+   "skipped": {
+    "heteroatom": [
+     4
+    ]
+   },
+   "smiles": "C1CCCNCC1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "quinolizidine",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    5,
+    6,
+    7,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     8
+    ],
+    "heteroatom": [
+     3
+    ]
+   },
+   "smiles": "C1CCN2CCCCC2C1"
+  },
+  {
+   "atoms": 11,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "octahydropyridazino[1,2-a][1,2]diazepine",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    5,
+    6,
+    7,
+    9,
+    10
+   ],
+   "skipped": {
+    "heteroatom": [
+     3,
+     8
+    ]
+   },
+   "smiles": "C1CCN2CCCCN2CC1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "piperidine",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    5
+   ],
+   "skipped": {
+    "heteroatom": [
+     3
+    ]
+   },
+   "smiles": "C1CCNCC1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "1,2-diazinane",
+   "sites": [
+    0,
+    1,
+    2,
+    5
+   ],
+   "skipped": {
+    "heteroatom": [
+     3,
+     4
+    ]
+   },
+   "smiles": "C1CCNNC1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "oxolane",
+   "sites": [
+    0,
+    1,
+    2,
+    4
+   ],
+   "skipped": {
+    "heteroatom": [
+     3
+    ]
+   },
+   "smiles": "C1CCOC1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "6,7,8,9-tetrahydro-5H-tetrazolo[1,5-a]azepine",
+   "sites": [
+    0,
+    1,
+    2,
+    8,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3
+    ],
+    "heteroatom": [
+     4,
+     5,
+     6,
+     7
+    ]
+   },
+   "smiles": "C1CCc2nnnn2CC1"
+  },
+  {
+   "atoms": 7,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    3,
+    4,
+    5,
+    6
+   ],
+   "name": "tetrahydroazeto[2,1-b][1,3]oxazole",
+   "sites": [
+    0,
+    1,
+    3,
+    4
+   ],
+   "skipped": {
+    "fusion_atom": [
+     5
+    ],
+    "heteroatom": [
+     2,
+     6
+    ]
+   },
+   "smiles": "C1CN2CCC2O1"
+  },
+  {
+   "atoms": 8,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+   ],
+   "name": "2,3,5,6-tetrahydroimidazo[2,1-b][1,3]thiazole",
+   "sites": [
+    0,
+    1,
+    3,
+    4
+   ],
+   "skipped": {
+    "fusion_atom": [
+     6
+    ],
+    "heteroatom": [
+     2,
+     5,
+     7
+    ]
+   },
+   "smiles": "C1CN2CCSC2=N1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "octahydro-1H-pyrrolo[3,4-b]pyridine",
+   "sites": [
+    0,
+    1,
+    4,
+    6,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     2,
+     5
+    ]
+   },
+   "smiles": "C1CNC2CNCC2C1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "piperazine",
+   "sites": [
+    0,
+    1,
+    3,
+    4
+   ],
+   "skipped": {
+    "heteroatom": [
+     2,
+     5
+    ]
+   },
+   "smiles": "C1CNCCN1"
+  },
+  {
+   "atoms": 7,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "1,4-diazepane",
+   "sites": [
+    0,
+    1,
+    3,
+    4,
+    6
+   ],
+   "skipped": {
+    "heteroatom": [
+     2,
+     5
+    ]
+   },
+   "smiles": "C1CNCCNC1"
+  },
+  {
+   "atoms": 7,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "1,4-oxazepane",
+   "sites": [
+    0,
+    1,
+    3,
+    4,
+    6
+   ],
+   "skipped": {
+    "heteroatom": [
+     2,
+     5
+    ]
+   },
+   "smiles": "C1CNCCOC1"
+  },
+  {
+   "atoms": 7,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "name": "1,4-thiazepane",
+   "sites": [
+    0,
+    1,
+    3,
+    4,
+    6
+   ],
+   "skipped": {
+    "heteroatom": [
+     2,
+     5
+    ]
+   },
+   "smiles": "C1CNCCSC1"
+  },
+  {
+   "atoms": 7,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "name": "1,4-selenazepane",
+   "sites": [
+    0,
+    1,
+    3,
+    4,
+    6
+   ],
+   "skipped": {
+    "heteroatom": [
+     2,
+     5
+    ]
+   },
+   "smiles": "C1CNCC[Se]C1"
+  },
+  {
+   "atoms": 7,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "name": "1,4-tellurazepane",
+   "sites": [
+    0,
+    1,
+    3,
+    4,
+    6
+   ],
+   "skipped": {
+    "heteroatom": [
+     2,
+     5
+    ]
+   },
+   "smiles": "C1CNCC[Te]C1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "1,3-diazinane",
+   "sites": [
+    0,
+    1,
+    3,
+    5
+   ],
+   "skipped": {
+    "heteroatom": [
+     2,
+     4
+    ]
+   },
+   "smiles": "C1CNCNC1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "octahydropyrano[3,2-b]pyran",
+   "sites": [
+    0,
+    1,
+    4,
+    5,
+    6,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     2,
+     7
+    ]
+   },
+   "smiles": "C1COC2CCCOC2C1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "morpholine",
+   "sites": [
+    0,
+    1,
+    3,
+    4
+   ],
+   "skipped": {
+    "heteroatom": [
+     2,
+     5
+    ]
+   },
+   "smiles": "C1COCCN1"
+  },
+  {
+   "atoms": 8,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "hexahydrothieno[3,4-d]imidazole",
+   "sites": [
+    0,
+    3,
+    5
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     6
+    ],
+    "heteroatom": [
+     1,
+     4,
+     7
+    ]
+   },
+   "smiles": "C1NC2CSCC2N1"
+  },
+  {
+   "atoms": 8,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+   ],
+   "name": "hexahydrofuro[3,4-c]furan",
+   "sites": [
+    0,
+    2,
+    4,
+    6
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     1,
+     5
+    ]
+   },
+   "smiles": "C1OCC2COCC12"
+  },
+  {
+   "atoms": 11,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "guanine",
+   "sites": [
+    5
+   ],
+   "skipped": {
+    "exocyclic": [
+     0,
+     9
+    ],
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     2,
+     4,
+     6,
+     10
+    ],
+    "no_free_hydrogen": [
+     1,
+     8
+    ]
+   },
+   "smiles": "Nc1nc2[nH]cnc2c(=O)[nH]1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "adenine",
+   "sites": [
+    3,
+    7
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     5,
+     9
+    ],
+    "heteroatom": [
+     2,
+     4,
+     6,
+     8
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "Nc1ncnc2[nH]cnc12"
+  },
+  {
+   "atoms": 20,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19
+   ],
+   "name": "4a,5a,6,12a-tetrahydrotetracene-1,11(4H,5H)-dione",
+   "sites": [
+    3,
+    7,
+    8,
+    9,
+    11,
+    13,
+    15,
+    16,
+    17,
+    18
+   ],
+   "skipped": {
+    "exocyclic": [
+     0,
+     6
+    ],
+    "fusion_atom": [
+     2,
+     4,
+     10,
+     12,
+     14,
+     19
+    ],
+    "no_free_hydrogen": [
+     1,
+     5
+    ]
+   },
+   "smiles": "O=C1C2=CC3C(=O)C=CCC3CC2Cc2ccccc21"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "5,6,7,7a-tetrahydrobenzofuran-2(4H)-one",
+   "sites": [
+    2,
+    4,
+    5,
+    6,
+    7
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     9
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=C1C=C2CCCCC2O1"
+  },
+  {
+   "atoms": 7,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "name": "5,6-dihydro-2H-pyran-2-one",
+   "sites": [
+    2,
+    3,
+    4,
+    5
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "heteroatom": [
+     6
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=C1C=CCCO1"
+  },
+  {
+   "atoms": 21,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    5,
+    6,
+    7,
+    8,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20
+   ],
+   "name": "4a,5a,6,12a-tetrahydrotetracene-1,3,11(2H,4H,5H)-trione",
+   "sites": [
+    2,
+    6,
+    11,
+    12,
+    13,
+    14,
+    16,
+    18,
+    20
+   ],
+   "skipped": {
+    "exocyclic": [
+     0,
+     4,
+     9
+    ],
+    "fusion_atom": [
+     5,
+     7,
+     10,
+     15,
+     17,
+     19
+    ],
+    "no_free_hydrogen": [
+     1,
+     3,
+     8
+    ]
+   },
+   "smiles": "O=C1CC(=O)C2C=C3C(=O)c4ccccc4CC3CC2C1"
+  },
+  {
+   "atoms": 8,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+   ],
+   "name": "carbapenem",
+   "sites": [
+    2,
+    4,
+    5,
+    6
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     3
+    ],
+    "heteroatom": [
+     7
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=C1CC2CC=CN12"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "1-azabicyclo[4.2.0]oct-2-en-8-one",
+   "sites": [
+    2,
+    4,
+    5,
+    6,
+    7
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     3
+    ],
+    "heteroatom": [
+     8
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=C1CC2CCC=CN12"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "hexahydrocyclopenta[c]pyran-3(1H)-one",
+   "sites": [
+    2,
+    4,
+    5,
+    6,
+    8
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     9
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=C1CC2CCCC2CO1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "hexahydrocyclopenta[b]pyran-6(2H)-one",
+   "sites": [
+    2,
+    4,
+    5,
+    6,
+    9
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     7
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=C1CC2CCCOC2C1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "5-oxa-1-azabicyclo[4.2.0]oct-2-en-8-one",
+   "sites": [
+    2,
+    5,
+    6,
+    7
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     3
+    ],
+    "heteroatom": [
+     4,
+     8
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=C1CC2OCC=CN12"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "cephem",
+   "sites": [
+    2,
+    5,
+    6,
+    7
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     3
+    ],
+    "heteroatom": [
+     4,
+     8
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=C1CC2SCC=CN12"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "cepham",
+   "sites": [
+    2,
+    5,
+    6,
+    7
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     3
+    ],
+    "heteroatom": [
+     4,
+     8
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=C1CC2SCCCN12"
+  },
+  {
+   "atoms": 8,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+   ],
+   "name": "penam",
+   "sites": [
+    2,
+    5,
+    6
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     3
+    ],
+    "heteroatom": [
+     4,
+     7
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=C1CC2SCCN12"
+  },
+  {
+   "atoms": 7,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "name": "3,6-dihydro-2H-pyran-2-one",
+   "sites": [
+    2,
+    3,
+    4,
+    5
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "heteroatom": [
+     6
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=C1CC=CCO1"
+  },
+  {
+   "atoms": 7,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "name": "3,4-dihydro-2H-pyran-2-one",
+   "sites": [
+    2,
+    3,
+    4,
+    5
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "heteroatom": [
+     6
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=C1CCC=CO1"
+  },
+  {
+   "atoms": 12,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "name": "1,3,4,5-tetrahydro-2H-1-benzazepin-2-one",
+   "sites": [
+    2,
+    3,
+    4,
+    6,
+    7,
+    8,
+    9
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     5,
+     10
+    ],
+    "heteroatom": [
+     11
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=C1CCCc2ccccc2N1"
+  },
+  {
+   "atoms": 15,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    5,
+    6,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+   ],
+   "name": "1,3,4,6,7,11b-hexahydro-2H-pyrido[2,1-a]isoquinolin-2-one",
+   "sites": [
+    2,
+    3,
+    5,
+    6,
+    8,
+    9,
+    10,
+    11,
+    14
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     7,
+     12,
+     13
+    ],
+    "heteroatom": [
+     4
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=C1CCN2CCc3ccccc3C2C1"
+  },
+  {
+   "atoms": 11,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "name": "3,4-dihydroquinolin-2(1H)-one",
+   "sites": [
+    2,
+    3,
+    5,
+    6,
+    7,
+    8
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     4,
+     9
+    ],
+    "heteroatom": [
+     10
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=C1CCc2ccccc2N1"
+  },
+  {
+   "atoms": 11,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "name": "5,8-dihydropyrido[2,3-d]pyrimidin-7(6H)-one",
+   "sites": [
+    2,
+    3,
+    5,
+    7
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     4,
+     9
+    ],
+    "heteroatom": [
+     6,
+     8,
+     10
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=C1CCc2cncnc2N1"
+  },
+  {
+   "atoms": 14,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13
+   ],
+   "name": "1,5-dihydroimidazo[2,1-b]quinazolin-2(3H)-one",
+   "sites": [
+    2,
+    4,
+    6,
+    7,
+    8,
+    9
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     5,
+     10,
+     12
+    ],
+    "heteroatom": [
+     3,
+     11,
+     13
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=C1CN2Cc3ccccc3N=C2N1"
+  },
+  {
+   "atoms": 12,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "name": "1,3-dihydro-2H-1,4-benzodiazepin-2-one",
+   "sites": [
+    2,
+    4,
+    6,
+    7,
+    8,
+    9
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     5,
+     10
+    ],
+    "heteroatom": [
+     3,
+     11
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=C1CN=Cc2ccccc2N1"
+  },
+  {
+   "atoms": 11,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "name": "1,3-dihydro-2H-thieno[2,3-e][1,4]diazepin-2-one",
+   "sites": [
+    2,
+    4,
+    6,
+    7
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     5,
+     9
+    ],
+    "heteroatom": [
+     3,
+     8,
+     10
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=C1CN=Cc2ccsc2N1"
+  },
+  {
+   "atoms": 15,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+   ],
+   "name": "1,2,3,6,7,11b-hexahydro-4H-pyrazino[2,1-a]isoquinolin-4-one",
+   "sites": [
+    2,
+    4,
+    7,
+    8,
+    9,
+    10,
+    12,
+    13
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     5,
+     6,
+     11
+    ],
+    "heteroatom": [
+     3,
+     14
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=C1CNCC2c3ccccc3CCN12"
+  },
+  {
+   "atoms": 23,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    4,
+    6,
+    7,
+    10,
+    12,
+    14,
+    16,
+    17,
+    18,
+    19,
+    21
+   ],
+   "name": "1,12-dihydro-14H-pyrano[3',4':6,7]indolizino[1,2-b]quinoline-3,14(4H)-dione",
+   "sites": [
+    2,
+    4,
+    10,
+    12,
+    14,
+    16,
+    17,
+    18,
+    19
+   ],
+   "skipped": {
+    "exocyclic": [
+     0,
+     8
+    ],
+    "fusion_atom": [
+     3,
+     5,
+     9,
+     13,
+     15,
+     20,
+     22
+    ],
+    "heteroatom": [
+     6,
+     11,
+     21
+    ],
+    "no_free_hydrogen": [
+     1,
+     7
+    ]
+   },
+   "smiles": "O=C1Cc2cc3n(c(=O)c2CO1)Cc1cc2ccccc2nc1-3"
+  },
+  {
+   "atoms": 14,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13
+   ],
+   "name": "2,3,4,9-tetrahydro-1H-pyrido[3,4-b]indol-1-one",
+   "sites": [
+    3,
+    4,
+    9,
+    10,
+    11,
+    12
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     5,
+     6,
+     8,
+     13
+    ],
+    "heteroatom": [
+     2,
+     7
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=C1NCCc2c1[nH]c1ccccc21"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "1,4,5,6-tetrahydro-7H-pyrazolo[3,4-c]pyridin-7-one",
+   "sites": [
+    3,
+    4,
+    6
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     5,
+     9
+    ],
+    "heteroatom": [
+     2,
+     7,
+     8
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=C1NCCc2cn[nH]c21"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "6,7-dihydro-5H-pyrrolo[3,4-b]pyrazin-5-one",
+   "sites": [
+    3,
+    6,
+    7
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     4,
+     9
+    ],
+    "heteroatom": [
+     2,
+     5,
+     8
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=C1NCc2nccnc21"
+  },
+  {
+   "atoms": 11,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "name": "1,4-dihydro-2H-3,1-benzoxazin-2-one",
+   "sites": [
+    4,
+    5,
+    6,
+    7,
+    9
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     2,
+     10
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=C1Nc2ccccc2CO1"
+  },
+  {
+   "atoms": 16,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+   ],
+   "name": "5,11-dihydro-6H-dipyrido[3,2-b:2',3'-e][1,4]diazepin-6-one",
+   "sites": [
+    4,
+    5,
+    6,
+    12,
+    13,
+    14
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     3,
+     8,
+     10,
+     15
+    ],
+    "heteroatom": [
+     2,
+     7,
+     9,
+     11
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=C1Nc2cccnc2Nc2ncccc21"
+  },
+  {
+   "atoms": 11,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "name": "3a,4,5,7a-tetrahydroisobenzofuran-1,3-dione",
+   "sites": [
+    6,
+    7,
+    8,
+    9
+   ],
+   "skipped": {
+    "exocyclic": [
+     0,
+     4
+    ],
+    "fusion_atom": [
+     5,
+     10
+    ],
+    "heteroatom": [
+     2
+    ],
+    "no_free_hydrogen": [
+     1,
+     3
+    ]
+   },
+   "smiles": "O=C1OC(=O)C2CCC=CC12"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "5,6,7,7a-tetrahydrocyclopenta[c]pyran-1(4aH)-one",
+   "sites": [
+    3,
+    4,
+    6,
+    7,
+    8
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     5,
+     9
+    ],
+    "heteroatom": [
+     2
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=C1OC=CC2CCCC12"
+  },
+  {
+   "atoms": 17,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    12,
+    13
+   ],
+   "name": "5,8,8a,9-tetrahydrofuro[3',4':6,7]naphtho[2,3-d][1,3]dioxol-6(5aH)-one",
+   "sites": [
+    3,
+    5,
+    7,
+    10,
+    12,
+    15
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     4,
+     6,
+     8,
+     9,
+     11,
+     13
+    ],
+    "heteroatom": [
+     2,
+     14,
+     16
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=C1OCC2Cc3cc4c(cc3CC12)OCO4"
+  },
+  {
+   "atoms": 20,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19
+   ],
+   "name": "7,8,9,10-tetrahydrotetracene-5,12-dione",
+   "sites": [
+    3,
+    4,
+    5,
+    6,
+    11,
+    14,
+    16,
+    17,
+    18,
+    19
+   ],
+   "skipped": {
+    "exocyclic": [
+     0,
+     9
+    ],
+    "fusion_atom": [
+     2,
+     7,
+     10,
+     12,
+     13,
+     15
+    ],
+    "no_free_hydrogen": [
+     1,
+     8
+    ]
+   },
+   "smiles": "O=C1c2ccccc2C(=O)c2cc3c(cc21)CCCC3"
+  },
+  {
+   "atoms": 11,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "xanthine",
+   "sites": [
+    7
+   ],
+   "skipped": {
+    "exocyclic": [
+     0,
+     4
+    ],
+    "fusion_atom": [
+     5,
+     9
+    ],
+    "heteroatom": [
+     2,
+     6,
+     8,
+     10
+    ],
+    "no_free_hydrogen": [
+     1,
+     3
+    ]
+   },
+   "smiles": "O=c1[nH]c(=O)c2[nH]cnc2[nH]1"
+  },
+  {
+   "atoms": 11,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "xanthine",
+   "sites": [
+    7
+   ],
+   "skipped": {
+    "exocyclic": [
+     0,
+     4
+    ],
+    "fusion_atom": [
+     5,
+     9
+    ],
+    "heteroatom": [
+     2,
+     6,
+     8,
+     10
+    ],
+    "no_free_hydrogen": [
+     1,
+     3
+    ]
+   },
+   "smiles": "O=c1[nH]c(=O)c2nc[nH]c2[nH]1"
+  },
+  {
+   "atoms": 12,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    11
+   ],
+   "name": "2H-3,1-benzoxazine-2,4(1H)-dione",
+   "sites": [
+    4,
+    5,
+    6,
+    7
+   ],
+   "skipped": {
+    "exocyclic": [
+     0,
+     10
+    ],
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     2,
+     11
+    ],
+    "no_free_hydrogen": [
+     1,
+     9
+    ]
+   },
+   "smiles": "O=c1[nH]c2ccccc2c(=O)o1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "hypoxanthine",
+   "sites": [
+    3,
+    7
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     5,
+     9
+    ],
+    "heteroatom": [
+     2,
+     4,
+     6,
+     8
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=c1[nH]cnc2[nH]cnc12"
+  },
+  {
+   "atoms": 11,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "name": "7,8-dihydropteridin-4(3H)-one",
+   "sites": [
+    3,
+    8,
+    9
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     5,
+     6
+    ],
+    "heteroatom": [
+     2,
+     4,
+     7,
+     10
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=c1[nH]cnc2c1N=CCN2"
+  },
+  {
+   "atoms": 11,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "name": "5,6,7,8-tetrahydropteridin-4(3H)-one",
+   "sites": [
+    3,
+    8,
+    9
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     5,
+     6
+    ],
+    "heteroatom": [
+     2,
+     4,
+     7,
+     10
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=c1[nH]cnc2c1NCCN2"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "1,6-dihydro-7H-pyrazolo[4,3-d]pyrimidin-7-one",
+   "sites": [
+    3,
+    6
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     5,
+     9
+    ],
+    "heteroatom": [
+     2,
+     4,
+     7,
+     8
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=c1[nH]cnc2cn[nH]c12"
+  },
+  {
+   "atoms": 11,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "name": "pteridin-4(3H)-one",
+   "sites": [
+    3,
+    7,
+    8
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     5,
+     10
+    ],
+    "heteroatom": [
+     2,
+     4,
+     6,
+     9
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=c1[nH]cnc2nccnc12"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "imidazo[5,1-f][1,2,4]triazin-4(3H)-one",
+   "sites": [
+    3,
+    6,
+    8
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     9
+    ],
+    "heteroatom": [
+     2,
+     4,
+     5,
+     7
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=c1[nH]cnn2cncc12"
+  },
+  {
+   "atoms": 15,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+   ],
+   "name": "9H-xanthen-9-one",
+   "sites": [
+    3,
+    4,
+    5,
+    6,
+    10,
+    11,
+    12,
+    13
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     2,
+     7,
+     9,
+     14
+    ],
+    "heteroatom": [
+     8
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=c1c2ccccc2oc2ccccc12"
+  },
+  {
+   "atoms": 15,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+   ],
+   "name": "5H-chromeno[2,3-b]pyridin-5-one",
+   "sites": [
+    3,
+    4,
+    5,
+    6,
+    11,
+    12,
+    13
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     2,
+     7,
+     9,
+     14
+    ],
+    "heteroatom": [
+     8,
+     10
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=c1c2ccccc2oc2ncccc12"
+  },
+  {
+   "atoms": 15,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+   ],
+   "name": "9H-thioxanthen-9-one",
+   "sites": [
+    3,
+    4,
+    5,
+    6,
+    10,
+    11,
+    12,
+    13
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     2,
+     7,
+     9,
+     14
+    ],
+    "heteroatom": [
+     8
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=c1c2ccccc2sc2ccccc12"
+  },
+  {
+   "atoms": 16,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    13,
+    14,
+    15
+   ],
+   "name": "4H-pyrano[3,2-g]quinoline-4,6(9H)-dione",
+   "sites": [
+    2,
+    3,
+    6,
+    9,
+    10,
+    14
+   ],
+   "skipped": {
+    "exocyclic": [
+     0,
+     12
+    ],
+    "fusion_atom": [
+     5,
+     7,
+     13,
+     15
+    ],
+    "heteroatom": [
+     4,
+     8
+    ],
+    "no_free_hydrogen": [
+     1,
+     11
+    ]
+   },
+   "smiles": "O=c1cc[nH]c2cc3occc(=O)c3cc12"
+  },
+  {
+   "atoms": 14,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13
+   ],
+   "name": "7H-furo[3,2-g]chromen-7-one",
+   "sites": [
+    2,
+    3,
+    5,
+    7,
+    8,
+    11
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     4,
+     6,
+     10,
+     12
+    ],
+    "heteroatom": [
+     9,
+     13
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=c1ccc2cc3ccoc3cc2o1"
+  },
+  {
+   "atoms": 11,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "name": "coumarin",
+   "sites": [
+    2,
+    3,
+    5,
+    6,
+    7,
+    8
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     4,
+     9
+    ],
+    "heteroatom": [
+     10
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=c1ccc2ccccc2o1"
+  },
+  {
+   "atoms": 14,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    7,
+    8,
+    9,
+    12,
+    13
+   ],
+   "name": "2,3-dihydropyrido[1,2,3-de][1,4]benzoxazin-7(4H)-one",
+   "sites": [
+    2,
+    3,
+    7,
+    8,
+    9,
+    12,
+    13
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     5,
+     6,
+     10
+    ],
+    "heteroatom": [
+     4,
+     11
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=c1ccn2c3c(cccc13)OCC2"
+  },
+  {
+   "atoms": 11,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "name": "4H-pyrido[1,2-a]pyrimidin-4-one",
+   "sites": [
+    2,
+    3,
+    6,
+    7,
+    8,
+    9
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     5
+    ],
+    "heteroatom": [
+     4,
+     10
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=c1ccnc2ccccn12"
+  },
+  {
+   "atoms": 11,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "name": "6,7,8,9-tetrahydro-4H-pyrido[1,2-a]pyrimidin-4-one",
+   "sites": [
+    2,
+    3,
+    7,
+    8,
+    9,
+    10
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     5
+    ],
+    "heteroatom": [
+     4,
+     6
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=c1ccnc2n1CCCC2"
+  },
+  {
+   "atoms": 11,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "name": "chromone",
+   "sites": [
+    2,
+    3,
+    6,
+    7,
+    8,
+    9
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     5,
+     10
+    ],
+    "heteroatom": [
+     4
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=c1ccoc2ccccc12"
+  },
+  {
+   "atoms": 7,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "name": "4H-pyran-4-one",
+   "sites": [
+    2,
+    3,
+    5,
+    6
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "heteroatom": [
+     4
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=c1ccocc1"
+  },
+  {
+   "atoms": 7,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "name": "4H-thiopyran-4-one",
+   "sites": [
+    2,
+    3,
+    5,
+    6
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "heteroatom": [
+     4
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=c1ccscc1"
+  },
+  {
+   "atoms": 11,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "name": "5,6,7,8-tetrahydropteridin-4(1H)-one",
+   "sites": [
+    3,
+    8,
+    9
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     5,
+     6
+    ],
+    "heteroatom": [
+     2,
+     4,
+     7,
+     10
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=c1nc[nH]c2c1NCCN2"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "2,4-dihydro-7H-pyrazolo[4,3-d]pyrimidin-7-one",
+   "sites": [
+    3,
+    6
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     5,
+     9
+    ],
+    "heteroatom": [
+     2,
+     4,
+     7,
+     8
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=c1nc[nH]c2c[nH]nc12"
+  },
+  {
+   "atoms": 11,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "name": "pteridin-4(1H)-one",
+   "sites": [
+    3,
+    7,
+    8
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     5,
+     10
+    ],
+    "heteroatom": [
+     2,
+     4,
+     6,
+     9
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=c1nc[nH]c2nccnc12"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "imidazo[5,1-f][1,2,4]triazin-4(1H)-one",
+   "sites": [
+    3,
+    6,
+    8
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     9
+    ],
+    "heteroatom": [
+     2,
+     4,
+     5,
+     7
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=c1nc[nH]n2cncc12"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "1,2-dihydro-4H-pyrazolo[3,4-d]pyrimidin-4-one",
+   "sites": [
+    3,
+    8
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     5,
+     9
+    ],
+    "heteroatom": [
+     2,
+     4,
+     6,
+     7
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=c1ncnc2[nH][nH]cc1-2"
+  },
+  {
+   "atoms": 11,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "name": "isocoumarin",
+   "sites": [
+    3,
+    4,
+    6,
+    7,
+    8,
+    9
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     5,
+     10
+    ],
+    "heteroatom": [
+     2
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=c1occc2ccccc12"
+  },
+  {
+   "atoms": 14,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13
+   ],
+   "name": "2H-[1,3]dithiolo[4,5-b]quinoxalin-2-one",
+   "sites": [
+    6,
+    7,
+    8,
+    9
+   ],
+   "skipped": {
+    "exocyclic": [
+     0
+    ],
+    "fusion_atom": [
+     3,
+     5,
+     10,
+     12
+    ],
+    "heteroatom": [
+     2,
+     4,
+     11,
+     13
+    ],
+    "no_free_hydrogen": [
+     1
+    ]
+   },
+   "smiles": "O=c1sc2nc3ccccc3nc2s1"
+  },
+  {
+   "atoms": 4,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "1,2,3-trigermacyclobutatetraene",
+   "sites": [],
+   "skipped": {
+    "heteroatom": [
+     1,
+     2,
+     3
+    ],
+    "no_free_hydrogen": [
+     0
+    ]
+   },
+   "smiles": "[C]1=[Ge]=[Ge]=[Ge]=1"
+  },
+  {
+   "atoms": 20,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19
+   ],
+   "name": "1,2,3,3a,3b,4,5,5a,6,8,10,10a,10b,11,12,12a-hexadecahydrocyclopenta[5,6]naphtho[1,2-f]indazole",
+   "sites": [
+    0,
+    5,
+    8,
+    9,
+    12,
+    13,
+    14,
+    16,
+    17,
+    19
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     6,
+     7,
+     10,
+     11,
+     15,
+     18
+    ],
+    "heteroatom": [
+     1,
+     2
+    ]
+   },
+   "smiles": "c1[nH]nc2c1CC1C(CCC3C4CCCC4CCC13)C2"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "name": "pyrazine",
+   "sites": [
+    0,
+    1,
+    3,
+    4
+   ],
+   "skipped": {
+    "heteroatom": [
+     2,
+     5
+    ]
+   },
+   "smiles": "c1c[nH+]ccn1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "1H-imidazole",
+   "sites": [
+    0,
+    1,
+    3
+   ],
+   "skipped": {
+    "heteroatom": [
+     2,
+     4
+    ]
+   },
+   "smiles": "c1c[nH]cn1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "1H-1,2,3-triazole",
+   "sites": [
+    0,
+    1
+   ],
+   "skipped": {
+    "heteroatom": [
+     2,
+     3,
+     4
+    ]
+   },
+   "smiles": "c1c[nH]nn1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "1H-pyrrolo[3,2-c]pyridine",
+   "sites": [
+    0,
+    1,
+    4,
+    5,
+    7
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     6
+    ],
+    "heteroatom": [
+     3,
+     8
+    ]
+   },
+   "smiles": "c1cc2[nH]ccc2cn1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "1H-imidazo[4,5-c]pyridine",
+   "sites": [
+    0,
+    1,
+    4,
+    7
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     6
+    ],
+    "heteroatom": [
+     3,
+     5,
+     8
+    ]
+   },
+   "smiles": "c1cc2[nH]cnc2cn1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "1,3-dihydrofuro[3,4-c]pyridine",
+   "sites": [
+    0,
+    1,
+    4,
+    6,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     3
+    ],
+    "heteroatom": [
+     5,
+     7
+    ]
+   },
+   "smiles": "c1cc2c(cn1)COC2"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "1,3-dihydrothieno[3,4-c]pyridine",
+   "sites": [
+    0,
+    1,
+    4,
+    6,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     3
+    ],
+    "heteroatom": [
+     5,
+     7
+    ]
+   },
+   "smiles": "c1cc2c(cn1)CSC2"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "4,5,6,7-tetrahydrothieno[3,2-c]pyridine",
+   "sites": [
+    0,
+    1,
+    5,
+    6,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     3
+    ],
+    "heteroatom": [
+     4,
+     7
+    ]
+   },
+   "smiles": "c1cc2c(s1)CCNC2"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "3,4-dihydro-2H-thieno[2,3-e][1,2]thiazine",
+   "sites": [
+    0,
+    1,
+    5,
+    6
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     3
+    ],
+    "heteroatom": [
+     4,
+     7,
+     8
+    ]
+   },
+   "smiles": "c1cc2c(s1)CCNS2"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "4,5,6,7-tetrahydrothieno[2,3-b]thiopyran",
+   "sites": [
+    0,
+    1,
+    6,
+    7,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     3
+    ],
+    "heteroatom": [
+     4,
+     5
+    ]
+   },
+   "smiles": "c1cc2c(s1)SCCC2"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "3,4-dihydro-2H-thieno[3,2-e][1,2]thiazine",
+   "sites": [
+    0,
+    1,
+    7,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     3
+    ],
+    "heteroatom": [
+     4,
+     5,
+     6
+    ]
+   },
+   "smiles": "c1cc2c(s1)SNCC2"
+  },
+  {
+   "atoms": 13,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "name": "2,3,3a,4,5,6-hexahydro-1H-benz[de]isoquinoline",
+   "sites": [
+    0,
+    1,
+    5,
+    6,
+    8,
+    10,
+    11,
+    12
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     3,
+     4,
+     9
+    ],
+    "heteroatom": [
+     7
+    ]
+   },
+   "smiles": "c1cc2c3c(c1)CNCC3CCC2"
+  },
+  {
+   "atoms": 16,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    5,
+    6,
+    8,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+   ],
+   "name": "4,6,6a,7,8,9,10,10a-octahydroindolo[4,3-fg]quinoline",
+   "sites": [
+    0,
+    1,
+    5,
+    8,
+    9,
+    12,
+    13,
+    14
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     3,
+     4,
+     7,
+     10,
+     15
+    ],
+    "heteroatom": [
+     6,
+     11
+    ]
+   },
+   "smiles": "c1cc2c3c(c[nH]c3c1)CC1NCCCC21"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "3H-pyrrolo[2,3-d]pyrimidine",
+   "sites": [
+    0,
+    1,
+    3,
+    5
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     7
+    ],
+    "heteroatom": [
+     4,
+     6,
+     8
+    ]
+   },
+   "smiles": "c1cc2c[nH]cnc-2n1"
+  },
+  {
+   "atoms": 13,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "name": "[1,3]dioxolo[4,5-g]cinnoline",
+   "sites": [
+    0,
+    1,
+    3,
+    6,
+    11
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     4,
+     5,
+     7
+    ],
+    "heteroatom": [
+     8,
+     9,
+     10,
+     12
+    ]
+   },
+   "smiles": "c1cc2cc3c(cc2nn1)OCO3"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "1H-pyrrolo[2,3-c]pyridine",
+   "sites": [
+    0,
+    1,
+    3,
+    4,
+    7
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     6
+    ],
+    "heteroatom": [
+     5,
+     8
+    ]
+   },
+   "smiles": "c1cc2cc[nH]c2cn1"
+  },
+  {
+   "atoms": 16,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+   ],
+   "name": "pyrene",
+   "sites": [
+    0,
+    1,
+    3,
+    4,
+    6,
+    7,
+    8,
+    10,
+    11,
+    13
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     5,
+     9,
+     12,
+     14,
+     15
+    ]
+   },
+   "smiles": "c1cc2ccc3cccc4ccc(c1)c2c34"
+  },
+  {
+   "atoms": 20,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19
+   ],
+   "name": "perylene",
+   "sites": [
+    0,
+    1,
+    3,
+    4,
+    5,
+    8,
+    9,
+    10,
+    12,
+    13,
+    14,
+    17
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     6,
+     7,
+     11,
+     15,
+     16,
+     18,
+     19
+    ]
+   },
+   "smiles": "c1cc2cccc3c4cccc5cccc(c(c1)c23)c54"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "2,7-naphthyridine",
+   "sites": [
+    0,
+    1,
+    3,
+    4,
+    6,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     7
+    ],
+    "heteroatom": [
+     5,
+     9
+    ]
+   },
+   "smiles": "c1cc2ccncc2cn1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "1H-pyrrolo[2,3-d]pyrimidine",
+   "sites": [
+    0,
+    1,
+    3,
+    5
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     7
+    ],
+    "heteroatom": [
+     4,
+     6,
+     8
+    ]
+   },
+   "smiles": "c1cc2cnc[nH]c-2n1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "2,6-naphthyridine",
+   "sites": [
+    0,
+    1,
+    3,
+    5,
+    6,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     7
+    ],
+    "heteroatom": [
+     4,
+     9
+    ]
+   },
+   "smiles": "c1cc2cnccc2cn1"
+  },
+  {
+   "atoms": 8,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+   ],
+   "name": "2,3-dihydro-1H-pyrrolizine",
+   "sites": [
+    0,
+    1,
+    4,
+    5,
+    6,
+    7
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2
+    ],
+    "heteroatom": [
+     3
+    ]
+   },
+   "smiles": "c1cc2n(c1)CCC2"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "3H-imidazo[4,5-c]pyridine",
+   "sites": [
+    0,
+    1,
+    4,
+    7
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     6
+    ],
+    "heteroatom": [
+     3,
+     5,
+     8
+    ]
+   },
+   "smiles": "c1cc2nc[nH]c2cn1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "name": "pyridine",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    5
+   ],
+   "skipped": {
+    "heteroatom": [
+     3
+    ]
+   },
+   "smiles": "c1cc[nH+]cc1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "name": "pyridazine",
+   "sites": [
+    0,
+    1,
+    2,
+    5
+   ],
+   "skipped": {
+    "heteroatom": [
+     3,
+     4
+    ]
+   },
+   "smiles": "c1cc[nH+]nc1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "1H-pyrrole",
+   "sites": [
+    0,
+    1,
+    2,
+    4
+   ],
+   "skipped": {
+    "heteroatom": [
+     3
+    ]
+   },
+   "smiles": "c1cc[nH]c1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "quinoline",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     4
+    ]
+   },
+   "smiles": "c1ccc2[nH+]cccc2c1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    4,
+    5,
+    6,
+    8
+   ],
+   "name": "1H-indole",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     4
+    ]
+   },
+   "smiles": "c1ccc2[nH]ccc2c1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "1H-benzimidazole",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     4,
+     6
+    ]
+   },
+   "smiles": "c1ccc2[nH]cnc2c1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    4,
+    5,
+    6,
+    8
+   ],
+   "name": "1H-indazole",
+   "sites": [
+    0,
+    1,
+    2,
+    6,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     4,
+     5
+    ]
+   },
+   "smiles": "c1ccc2[nH]ncc2c1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "1H-benzotriazole",
+   "sites": [
+    0,
+    1,
+    2,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     4,
+     5,
+     6
+    ]
+   },
+   "smiles": "c1ccc2[nH]nnc2c1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "chromenylium",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     4
+    ]
+   },
+   "smiles": "c1ccc2[o+]cccc2c1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "thiochromenylium",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     4
+    ]
+   },
+   "smiles": "c1ccc2[s+]cccc2c1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "selenochromenylium",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     4
+    ]
+   },
+   "smiles": "c1ccc2[se+]cccc2c1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "tellurochromenylium",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     4
+    ]
+   },
+   "smiles": "c1ccc2[te+]cccc2c1"
+  },
+  {
+   "atoms": 12,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "name": "biphenylene",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    7,
+    8,
+    9,
+    10
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     6,
+     11
+    ]
+   },
+   "smiles": "c1ccc2c(c1)-c1ccccc1-2"
+  },
+  {
+   "atoms": 13,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "name": "2,3,4,9-tetrahydro-1H-indeno[2,1-c]pyridine",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    9,
+    10,
+    12
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     7,
+     8
+    ],
+    "heteroatom": [
+     11
+    ]
+   },
+   "smiles": "c1ccc2c(c1)CC1=C2CCNC1"
+  },
+  {
+   "atoms": 13,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "name": "1,2,3,4,5,6-hexahydro-2,6-methano-3-benzazocine",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    10,
+    11
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     7,
+     8,
+     9
+    ],
+    "heteroatom": [
+     12
+    ]
+   },
+   "smiles": "c1ccc2c(c1)CC1CC2CCN1"
+  },
+  {
+   "atoms": 17,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16
+   ],
+   "name": "morphinan",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    9,
+    10,
+    12,
+    13,
+    14,
+    15
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     7,
+     11,
+     16
+    ],
+    "heteroatom": [
+     8
+    ]
+   },
+   "smiles": "c1ccc2c(c1)CC1NCCC23CCCCC13"
+  },
+  {
+   "atoms": 17,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16
+   ],
+   "name": "6,7,8,9,11,12,13,14,15,16-decahydro-17H-cyclopenta[a]phenanthrene",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7,
+    10,
+    11,
+    13,
+    14,
+    15
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     8,
+     9,
+     12,
+     16
+    ]
+   },
+   "smiles": "c1ccc2c(c1)CCC1C2CCC2CCCC21"
+  },
+  {
+   "atoms": 14,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13
+   ],
+   "name": "1,2,3,4,4a,9,10,10a-octahydrophenanthrene",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7,
+    9,
+    10,
+    11,
+    12
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     8,
+     13
+    ]
+   },
+   "smiles": "c1ccc2c(c1)CCC1CCCCC21"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "indane",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4
+    ]
+   },
+   "smiles": "c1ccc2c(c1)CCC2"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "tetraline",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4
+    ]
+   },
+   "smiles": "c1ccc2c(c1)CCCC2"
+  },
+  {
+   "atoms": 11,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "name": "2,3,4,5-tetrahydro-1H-1-benzazepine",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4
+    ],
+    "heteroatom": [
+     10
+    ]
+   },
+   "smiles": "c1ccc2c(c1)CCCCN2"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "1,2,3,4-tetrahydroquinoline",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4
+    ],
+    "heteroatom": [
+     9
+    ]
+   },
+   "smiles": "c1ccc2c(c1)CCCN2"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "chroman",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4
+    ],
+    "heteroatom": [
+     9
+    ]
+   },
+   "smiles": "c1ccc2c(c1)CCCO2"
+  },
+  {
+   "atoms": 14,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    5,
+    6,
+    7,
+    9,
+    10,
+    11,
+    12,
+    13
+   ],
+   "name": "1,3,4,6,7,11b-hexahydro-2H-pyrido[2,1-a]isoquinoline",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7,
+    9,
+    10,
+    11,
+    12
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     13
+    ],
+    "heteroatom": [
+     8
+    ]
+   },
+   "smiles": "c1ccc2c(c1)CCN1CCCCC21"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "2,3-dihydro-1H-indole",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4
+    ],
+    "heteroatom": [
+     8
+    ]
+   },
+   "smiles": "c1ccc2c(c1)CCN2"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "1,2,3,4-tetrahydroisoquinoline",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4
+    ],
+    "heteroatom": [
+     8
+    ]
+   },
+   "smiles": "c1ccc2c(c1)CCNC2"
+  },
+  {
+   "atoms": 11,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "name": "2,3,4,5-tetrahydro-1H-3-benzazepine",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7,
+    9,
+    10
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4
+    ],
+    "heteroatom": [
+     8
+    ]
+   },
+   "smiles": "c1ccc2c(c1)CCNCC2"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "2,3-dihydro-1-benzofuran",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4
+    ],
+    "heteroatom": [
+     8
+    ]
+   },
+   "smiles": "c1ccc2c(c1)CCO2"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "isochroman",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4
+    ],
+    "heteroatom": [
+     8
+    ]
+   },
+   "smiles": "c1ccc2c(c1)CCOC2"
+  },
+  {
+   "atoms": 15,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+   ],
+   "name": "10,11-dihydro-5H-dibenzo[a,d]cycloheptene",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7,
+    9,
+    10,
+    11,
+    12,
+    14
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     8,
+     13
+    ]
+   },
+   "smiles": "c1ccc2c(c1)CCc1ccccc1C2"
+  },
+  {
+   "atoms": 15,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+   ],
+   "name": "10,11-dihydro-5H-dibenz[b,f]azepine",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7,
+    9,
+    10,
+    11,
+    12
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     8,
+     13
+    ],
+    "heteroatom": [
+     14
+    ]
+   },
+   "smiles": "c1ccc2c(c1)CCc1ccccc1N2"
+  },
+  {
+   "atoms": 15,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+   ],
+   "name": "6,11-dihydro-5H-benzo[5,6]cyclohepta[1,2-b]pyridine",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7,
+    9,
+    10,
+    11,
+    14
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     8,
+     13
+    ],
+    "heteroatom": [
+     12
+    ]
+   },
+   "smiles": "c1ccc2c(c1)CCc1cccnc1C2"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "isoindoline",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4
+    ],
+    "heteroatom": [
+     7
+    ]
+   },
+   "smiles": "c1ccc2c(c1)CNC2"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "1,2,3,4-tetrahydroquinazoline",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4
+    ],
+    "heteroatom": [
+     7,
+     9
+    ]
+   },
+   "smiles": "c1ccc2c(c1)CNCN2"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "2,3-dihydro-1,2-benzothiazole",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4
+    ],
+    "heteroatom": [
+     7,
+     8
+    ]
+   },
+   "smiles": "c1ccc2c(c1)CNS2"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "3,4-dihydro-1H-2,1,3-benzothiadiazine",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4
+    ],
+    "heteroatom": [
+     7,
+     8,
+     9
+    ]
+   },
+   "smiles": "c1ccc2c(c1)CNSN2"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "1,3-dihydro-2-benzofuran",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4
+    ],
+    "heteroatom": [
+     7
+    ]
+   },
+   "smiles": "c1ccc2c(c1)COC2"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "4H-1,3,2-benzodioxaphosphinine",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4
+    ],
+    "heteroatom": [
+     7,
+     8,
+     9
+    ]
+   },
+   "smiles": "c1ccc2c(c1)COPO2"
+  },
+  {
+   "atoms": 14,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13
+   ],
+   "name": "xanthene",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    8,
+    9,
+    10,
+    11
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     7,
+     12
+    ],
+    "heteroatom": [
+     13
+    ]
+   },
+   "smiles": "c1ccc2c(c1)Cc1ccccc1O2"
+  },
+  {
+   "atoms": 14,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13
+   ],
+   "name": "thioxanthene",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    8,
+    9,
+    10,
+    11
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     7,
+     12
+    ],
+    "heteroatom": [
+     13
+    ]
+   },
+   "smiles": "c1ccc2c(c1)Cc1ccccc1S2"
+  },
+  {
+   "atoms": 11,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "name": "2,3,4,5-tetrahydro-1H-1,5-benzodiazepine",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    7,
+    8,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4
+    ],
+    "heteroatom": [
+     6,
+     10
+    ]
+   },
+   "smiles": "c1ccc2c(c1)NCCCN2"
+  },
+  {
+   "atoms": 11,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "name": "2,3,4,5-tetrahydro-1,5-benzothiazepine",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    7,
+    8,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4
+    ],
+    "heteroatom": [
+     6,
+     10
+    ]
+   },
+   "smiles": "c1ccc2c(c1)NCCCS2"
+  },
+  {
+   "atoms": 14,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13
+   ],
+   "name": "3,4,5,6-tetrahydroimidazo[4,5-d][1]benzazepine",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    7,
+    8,
+    11
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     9,
+     13
+    ],
+    "heteroatom": [
+     6,
+     10,
+     12
+    ]
+   },
+   "smiles": "c1ccc2c(c1)NCCc1[nH]cnc1-2"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "3,4-dihydro-2H-1,2,4-benzothiadiazine",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    7
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4
+    ],
+    "heteroatom": [
+     6,
+     8,
+     9
+    ]
+   },
+   "smiles": "c1ccc2c(c1)NCNS2"
+  },
+  {
+   "atoms": 14,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    8,
+    9,
+    10,
+    11,
+    13
+   ],
+   "name": "phenoxazine",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    8,
+    9,
+    10,
+    11
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     7,
+     12
+    ],
+    "heteroatom": [
+     6,
+     13
+    ]
+   },
+   "smiles": "c1ccc2c(c1)Nc1ccccc1O2"
+  },
+  {
+   "atoms": 14,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    8,
+    9,
+    10,
+    11,
+    13
+   ],
+   "name": "phenothiazine",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    8,
+    9,
+    10,
+    11
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     7,
+     12
+    ],
+    "heteroatom": [
+     6,
+     13
+    ]
+   },
+   "smiles": "c1ccc2c(c1)Nc1ccccc1S2"
+  },
+  {
+   "atoms": 14,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13
+   ],
+   "name": "5H-phenarsazine",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    8,
+    9,
+    10,
+    11
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     7,
+     12
+    ],
+    "heteroatom": [
+     6,
+     13
+    ]
+   },
+   "smiles": "c1ccc2c(c1)Nc1ccccc1[AsH]2"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "2,3-dihydro-1,4-benzodioxine",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    7,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4
+    ],
+    "heteroatom": [
+     6,
+     9
+    ]
+   },
+   "smiles": "c1ccc2c(c1)OCCO2"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "1,3-benzodioxole",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    7
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4
+    ],
+    "heteroatom": [
+     6,
+     8
+    ]
+   },
+   "smiles": "c1ccc2c(c1)OCO2"
+  },
+  {
+   "atoms": 18,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    5,
+    8,
+    9,
+    10,
+    11,
+    13,
+    14,
+    15,
+    16,
+    17
+   ],
+   "name": "2,3,3a,12b-tetrahydro-1H-dibenzo[2,3:6,7]oxepino[4,5-c]pyrrole",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    8,
+    9,
+    10,
+    11,
+    14,
+    16
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     7,
+     12,
+     13,
+     17
+    ],
+    "heteroatom": [
+     6,
+     15
+    ]
+   },
+   "smiles": "c1ccc2c(c1)Oc1ccccc1C1CNCC21"
+  },
+  {
+   "atoms": 14,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13
+   ],
+   "name": "5H-phenoxarsine",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    8,
+    9,
+    10,
+    11
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     7,
+     12
+    ],
+    "heteroatom": [
+     6,
+     13
+    ]
+   },
+   "smiles": "c1ccc2c(c1)Oc1ccccc1[AsH]2"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "2,3-dihydro-1,4-benzodithiine",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    7,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4
+    ],
+    "heteroatom": [
+     6,
+     9
+    ]
+   },
+   "smiles": "c1ccc2c(c1)SCCS2"
+  },
+  {
+   "atoms": 13,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "name": "9H-carbazole",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    8,
+    9,
+    10,
+    11
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     7,
+     12
+    ],
+    "heteroatom": [
+     6
+    ]
+   },
+   "smiles": "c1ccc2c(c1)[nH]c1ccccc12"
+  },
+  {
+   "atoms": 13,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "name": "9H-beta-carboline",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    8,
+    10,
+    11
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     7,
+     12
+    ],
+    "heteroatom": [
+     6,
+     9
+    ]
+   },
+   "smiles": "c1ccc2c(c1)[nH]c1cnccc12"
+  },
+  {
+   "atoms": 13,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "name": "dibenzoselenophene",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    8,
+    9,
+    10,
+    11
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     7,
+     12
+    ],
+    "heteroatom": [
+     6
+    ]
+   },
+   "smiles": "c1ccc2c(c1)[se]c1ccccc12"
+  },
+  {
+   "atoms": 18,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17
+   ],
+   "name": "triphenylene",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    7,
+    8,
+    9,
+    10,
+    13,
+    14,
+    15,
+    16
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     6,
+     11,
+     12,
+     17
+    ]
+   },
+   "smiles": "c1ccc2c(c1)c1ccccc1c1ccccc21"
+  },
+  {
+   "atoms": 22,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21
+   ],
+   "name": "dibenz[a,h]anthracene",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7,
+    9,
+    12,
+    13,
+    15,
+    16,
+    17,
+    18,
+    20
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     8,
+     10,
+     11,
+     14,
+     19,
+     21
+    ]
+   },
+   "smiles": "c1ccc2c(c1)ccc1cc3c(ccc4ccccc43)cc12"
+  },
+  {
+   "atoms": 34,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "octahelicene",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7,
+    9,
+    10,
+    12,
+    13,
+    15,
+    16,
+    18,
+    19,
+    21,
+    22,
+    24,
+    25,
+    26,
+    27
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     8,
+     11,
+     14,
+     17,
+     20,
+     23,
+     28,
+     29,
+     30,
+     31,
+     32,
+     33
+    ]
+   },
+   "smiles": "c1ccc2c(c1)ccc1ccc3ccc4ccc5ccc6ccc7ccccc7c6c5c4c3c12"
+  },
+  {
+   "atoms": 30,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "heptahelicene",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7,
+    9,
+    10,
+    12,
+    13,
+    15,
+    16,
+    18,
+    19,
+    21,
+    22,
+    23,
+    24
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     8,
+     11,
+     14,
+     17,
+     20,
+     25,
+     26,
+     27,
+     28,
+     29
+    ]
+   },
+   "smiles": "c1ccc2c(c1)ccc1ccc3ccc4ccc5ccc6ccccc6c5c4c3c12"
+  },
+  {
+   "atoms": 26,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "hexahelicene",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7,
+    9,
+    10,
+    12,
+    13,
+    15,
+    16,
+    18,
+    19,
+    20,
+    21
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     8,
+     11,
+     14,
+     17,
+     22,
+     23,
+     24,
+     25
+    ]
+   },
+   "smiles": "c1ccc2c(c1)ccc1ccc3ccc4ccc5ccccc5c4c3c12"
+  },
+  {
+   "atoms": 22,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "pentahelicene",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7,
+    9,
+    10,
+    12,
+    13,
+    15,
+    16,
+    17,
+    18
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     8,
+     11,
+     14,
+     19,
+     20,
+     21
+    ]
+   },
+   "smiles": "c1ccc2c(c1)ccc1ccc3ccc4ccccc4c3c12"
+  },
+  {
+   "atoms": 14,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13
+   ],
+   "name": "phenanthridine",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    9,
+    10,
+    11,
+    12
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     8,
+     13
+    ],
+    "heteroatom": [
+     7
+    ]
+   },
+   "smiles": "c1ccc2c(c1)cnc1ccccc12"
+  },
+  {
+   "atoms": 13,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "name": "1H-imidazo[4,5-c]quinoline",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    7,
+    10
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     8,
+     12
+    ],
+    "heteroatom": [
+     6,
+     9,
+     11
+    ]
+   },
+   "smiles": "c1ccc2c(c1)ncc1nc[nH]c12"
+  },
+  {
+   "atoms": 13,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "name": "dibenzofuran",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    8,
+    9,
+    10,
+    11
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     7,
+     12
+    ],
+    "heteroatom": [
+     6
+    ]
+   },
+   "smiles": "c1ccc2c(c1)oc1ccccc12"
+  },
+  {
+   "atoms": 13,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "name": "dibenzothiophene",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    8,
+    9,
+    10,
+    11
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     7,
+     12
+    ],
+    "heteroatom": [
+     6
+    ]
+   },
+   "smiles": "c1ccc2c(c1)sc1ccccc12"
+  },
+  {
+   "atoms": 12,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    5
+   ],
+   "name": "[1,2,4]triazolo[3,4-b][1,3]benzothiazole",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    10
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     7
+    ],
+    "heteroatom": [
+     6,
+     8,
+     9,
+     11
+    ]
+   },
+   "smiles": "c1ccc2c(c1)sc1nncn12"
+  },
+  {
+   "atoms": 19,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    6,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    16,
+    17,
+    18
+   ],
+   "name": "5,6,6a,7,8,9,10,12,13-nonahydro-6,9-methanopyrido[1',2':1,2]azepino[4,5-b]indole",
+   "sites": [
+    0,
+    1,
+    2,
+    8,
+    16,
+    17
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     5,
+     7,
+     9,
+     10,
+     11,
+     12,
+     13,
+     14,
+     18
+    ],
+    "heteroatom": [
+     6,
+     15
+    ]
+   },
+   "smiles": "c1ccc2c3c([nH]c2c1)C1CC2CCC1N(CC3)C2"
+  },
+  {
+   "atoms": 21,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20
+   ],
+   "name": "1,2,3,4,4a,5,7,8,13,14-decahydroindolo[2',3':3,4]pyrido[1,2-b]isoquinoline",
+   "sites": [
+    0,
+    1,
+    2,
+    8,
+    10,
+    12,
+    13,
+    14,
+    15,
+    17,
+    19,
+    20
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     5,
+     7,
+     9,
+     11,
+     16
+    ],
+    "heteroatom": [
+     6,
+     18
+    ]
+   },
+   "smiles": "c1ccc2c3c([nH]c2c1)C1CC2CCCCC2CN1CC3"
+  },
+  {
+   "atoms": 19,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18
+   ],
+   "name": "1,4,5,6,7,8,9,10-octahydro-2H-3,7-methano[1]azacycloundecino[5,4-b]indole",
+   "sites": [
+    0,
+    1,
+    2,
+    8,
+    9,
+    10,
+    12,
+    13,
+    14,
+    16,
+    17
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     5,
+     7,
+     11,
+     18
+    ],
+    "heteroatom": [
+     6,
+     15
+    ]
+   },
+   "smiles": "c1ccc2c3c([nH]c2c1)CCC1CCCN(CC3)C1"
+  },
+  {
+   "atoms": 18,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17
+   ],
+   "name": "2,3,4,5,6,7,8,9-octahydro-1H-2,6-methanoazecino[5,4-b]indole",
+   "sites": [
+    0,
+    1,
+    2,
+    8,
+    9,
+    10,
+    12,
+    13,
+    16
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     5,
+     7,
+     11,
+     15,
+     17
+    ],
+    "heteroatom": [
+     6,
+     14
+    ]
+   },
+   "smiles": "c1ccc2c3c([nH]c2c1)CCC1CCNC(C3)C1"
+  },
+  {
+   "atoms": 13,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "name": "tryptolin",
+   "sites": [
+    0,
+    1,
+    2,
+    8,
+    9,
+    11,
+    12
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4,
+     5,
+     7
+    ],
+    "heteroatom": [
+     6,
+     10
+    ]
+   },
+   "smiles": "c1ccc2c3c([nH]c2c1)CNCC3"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    4,
+    5,
+    6,
+    7,
+    9
+   ],
+   "name": "isoquinoline",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    6,
+    7,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     5
+    ]
+   },
+   "smiles": "c1ccc2c[nH+]ccc2c1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    4,
+    5,
+    6,
+    8
+   ],
+   "name": "2H-isoindole",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    6,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     5
+    ]
+   },
+   "smiles": "c1ccc2c[nH]cc2c1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "isochromenylium",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    6,
+    7,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     5
+    ]
+   },
+   "smiles": "c1ccc2c[o+]ccc2c1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "isothiochromenylium",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    6,
+    7,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     5
+    ]
+   },
+   "smiles": "c1ccc2c[s+]ccc2c1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "isoselenochromenylium",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    6,
+    7,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     5
+    ]
+   },
+   "smiles": "c1ccc2c[se+]ccc2c1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "isotellurochromenylium",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    6,
+    7,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     5
+    ]
+   },
+   "smiles": "c1ccc2c[te+]ccc2c1"
+  },
+  {
+   "atoms": 22,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "pentaphene",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    7,
+    8,
+    10,
+    12,
+    13,
+    14,
+    15,
+    17,
+    19,
+    21
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     5,
+     6,
+     9,
+     11,
+     16,
+     18,
+     20
+    ]
+   },
+   "smiles": "c1ccc2cc3c(ccc4cc5ccccc5cc43)cc2c1"
+  },
+  {
+   "atoms": 18,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17
+   ],
+   "name": "benz[a]anthracene",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    7,
+    8,
+    10,
+    11,
+    12,
+    13,
+    15,
+    17
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     5,
+     6,
+     9,
+     14,
+     16
+    ]
+   },
+   "smiles": "c1ccc2cc3c(ccc4ccccc43)cc2c1"
+  },
+  {
+   "atoms": 30,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "heptaphene",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    6,
+    9,
+    10,
+    12,
+    14,
+    16,
+    17,
+    18,
+    19,
+    21,
+    23,
+    25,
+    27,
+    29
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     5,
+     7,
+     8,
+     11,
+     13,
+     15,
+     20,
+     22,
+     24,
+     26,
+     28
+    ]
+   },
+   "smiles": "c1ccc2cc3cc4c(ccc5cc6cc7ccccc7cc6cc54)cc3cc2c1"
+  },
+  {
+   "atoms": 26,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "hexaphene",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    6,
+    9,
+    10,
+    12,
+    14,
+    15,
+    16,
+    17,
+    19,
+    21,
+    23,
+    25
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     5,
+     7,
+     8,
+     11,
+     13,
+     18,
+     20,
+     22,
+     24
+    ]
+   },
+   "smiles": "c1ccc2cc3cc4c(ccc5cc6ccccc6cc54)cc3cc2c1"
+  },
+  {
+   "atoms": 34,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "octaphene",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    6,
+    8,
+    11,
+    12,
+    14,
+    16,
+    18,
+    19,
+    20,
+    21,
+    23,
+    25,
+    27,
+    29,
+    31,
+    33
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     5,
+     7,
+     9,
+     10,
+     13,
+     15,
+     17,
+     22,
+     24,
+     26,
+     28,
+     30,
+     32
+    ]
+   },
+   "smiles": "c1ccc2cc3cc4cc5c(ccc6cc7cc8ccccc8cc7cc65)cc4cc3cc2c1"
+  },
+  {
+   "atoms": 38,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "nonacene",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    6,
+    8,
+    10,
+    12,
+    14,
+    16,
+    18,
+    19,
+    20,
+    21,
+    23,
+    25,
+    27,
+    29,
+    31,
+    33,
+    35,
+    37
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     5,
+     7,
+     9,
+     11,
+     13,
+     15,
+     17,
+     22,
+     24,
+     26,
+     28,
+     30,
+     32,
+     34,
+     36
+    ]
+   },
+   "smiles": "c1ccc2cc3cc4cc5cc6cc7cc8cc9ccccc9cc8cc7cc6cc5cc4cc3cc2c1"
+  },
+  {
+   "atoms": 34,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "octacene",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    6,
+    8,
+    10,
+    12,
+    14,
+    16,
+    17,
+    18,
+    19,
+    21,
+    23,
+    25,
+    27,
+    29,
+    31,
+    33
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     5,
+     7,
+     9,
+     11,
+     13,
+     15,
+     20,
+     22,
+     24,
+     26,
+     28,
+     30,
+     32
+    ]
+   },
+   "smiles": "c1ccc2cc3cc4cc5cc6cc7cc8ccccc8cc7cc6cc5cc4cc3cc2c1"
+  },
+  {
+   "atoms": 30,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "heptacene",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    6,
+    8,
+    10,
+    12,
+    14,
+    15,
+    16,
+    17,
+    19,
+    21,
+    23,
+    25,
+    27,
+    29
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     5,
+     7,
+     9,
+     11,
+     13,
+     18,
+     20,
+     22,
+     24,
+     26,
+     28
+    ]
+   },
+   "smiles": "c1ccc2cc3cc4cc5cc6cc7ccccc7cc6cc5cc4cc3cc2c1"
+  },
+  {
+   "atoms": 26,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25
+   ],
+   "name": "hexacene",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    6,
+    8,
+    10,
+    12,
+    13,
+    14,
+    15,
+    17,
+    19,
+    21,
+    23,
+    25
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     5,
+     7,
+     9,
+     11,
+     16,
+     18,
+     20,
+     22,
+     24
+    ]
+   },
+   "smiles": "c1ccc2cc3cc4cc5cc6ccccc6cc5cc4cc3cc2c1"
+  },
+  {
+   "atoms": 22,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21
+   ],
+   "name": "pentacene",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    6,
+    8,
+    10,
+    11,
+    12,
+    13,
+    15,
+    17,
+    19,
+    21
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     5,
+     7,
+     9,
+     14,
+     16,
+     18,
+     20
+    ]
+   },
+   "smiles": "c1ccc2cc3cc4cc5ccccc5cc4cc3cc2c1"
+  },
+  {
+   "atoms": 14,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13
+   ],
+   "name": "anthracene",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    6,
+    7,
+    8,
+    9,
+    11,
+    13
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     5,
+     10,
+     12
+    ]
+   },
+   "smiles": "c1ccc2cc3ccccc3cc2c1"
+  },
+  {
+   "atoms": 14,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13
+   ],
+   "name": "benzo[g]quinoxaline",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    7,
+    8,
+    11,
+    13
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     5,
+     10,
+     12
+    ],
+    "heteroatom": [
+     6,
+     9
+    ]
+   },
+   "smiles": "c1ccc2cc3nccnc3cc2c1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "naphthalene",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    5,
+    6,
+    7,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ]
+   },
+   "smiles": "c1ccc2ccccc2c1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    4,
+    5,
+    6,
+    7,
+    9
+   ],
+   "name": "isoquinoline",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    6,
+    7,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     5
+    ]
+   },
+   "smiles": "c1ccc2cnccc2c1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    4,
+    5,
+    6,
+    7,
+    9
+   ],
+   "name": "phthalazine",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    7,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     5,
+     6
+    ]
+   },
+   "smiles": "c1ccc2cnncc2c1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    4,
+    5,
+    6,
+    8
+   ],
+   "name": "2-benzofuran",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    6,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     5
+    ]
+   },
+   "smiles": "c1ccc2cocc2c1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    4,
+    5,
+    6,
+    8
+   ],
+   "name": "2H-indazole",
+   "sites": [
+    0,
+    1,
+    2,
+    6,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     4,
+     5
+    ]
+   },
+   "smiles": "c1ccc2n[nH]cc2c1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "2H-benzotriazole",
+   "sites": [
+    0,
+    1,
+    2,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     4,
+     5,
+     6
+    ]
+   },
+   "smiles": "c1ccc2n[nH]nc2c1"
+  },
+  {
+   "atoms": 14,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13
+   ],
+   "name": "acridine",
+   "sites": [
+    0,
+    1,
+    2,
+    6,
+    7,
+    8,
+    9,
+    11,
+    13
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     5,
+     10,
+     12
+    ],
+    "heteroatom": [
+     4
+    ]
+   },
+   "smiles": "c1ccc2nc3ccccc3cc2c1"
+  },
+  {
+   "atoms": 14,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    4,
+    6,
+    7,
+    8,
+    9,
+    11,
+    13
+   ],
+   "name": "phenazine",
+   "sites": [
+    0,
+    1,
+    2,
+    6,
+    7,
+    8,
+    9,
+    13
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     5,
+     10,
+     12
+    ],
+    "heteroatom": [
+     4,
+     11
+    ]
+   },
+   "smiles": "c1ccc2nc3ccccc3nc2c1"
+  },
+  {
+   "atoms": 14,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13
+   ],
+   "name": "benzo[g]pteridine",
+   "sites": [
+    0,
+    1,
+    2,
+    7,
+    9,
+    13
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     5,
+     10,
+     12
+    ],
+    "heteroatom": [
+     4,
+     6,
+     8,
+     11
+    ]
+   },
+   "smiles": "c1ccc2nc3ncncc3nc2c1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "quinoline",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    7,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     4
+    ]
+   },
+   "smiles": "c1ccc2ncccc2c1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "quinoxaline",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     4,
+     7
+    ]
+   },
+   "smiles": "c1ccc2nccnc2c1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "quinazoline",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    7,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     4,
+     6
+    ]
+   },
+   "smiles": "c1ccc2ncncc2c1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "cinnoline",
+   "sites": [
+    0,
+    1,
+    2,
+    6,
+    7,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     4,
+     5
+    ]
+   },
+   "smiles": "c1ccc2nnccc2c1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "1,2,3-benzotriazine",
+   "sites": [
+    0,
+    1,
+    2,
+    7,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     4,
+     5,
+     6
+    ]
+   },
+   "smiles": "c1ccc2nnncc2c1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "1,2,3,4-benzotetrazine",
+   "sites": [
+    0,
+    1,
+    2,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     4,
+     5,
+     6,
+     7
+    ]
+   },
+   "smiles": "c1ccc2nnnnc2c1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "2,1,3-benzoxadiazole",
+   "sites": [
+    0,
+    1,
+    2,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     4,
+     5,
+     6
+    ]
+   },
+   "smiles": "c1ccc2nonc2c1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    4,
+    5,
+    6,
+    8
+   ],
+   "name": "1-benzofuran",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     4
+    ]
+   },
+   "smiles": "c1ccc2occc2c1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    4,
+    5,
+    6,
+    8
+   ],
+   "name": "1,3-benzoxazole",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     4,
+     6
+    ]
+   },
+   "smiles": "c1ccc2ocnc2c1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    4,
+    5,
+    6,
+    8
+   ],
+   "name": "benzisoxazole",
+   "sites": [
+    0,
+    1,
+    2,
+    6,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     4,
+     5
+    ]
+   },
+   "smiles": "c1ccc2oncc2c1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    4,
+    5,
+    6,
+    8
+   ],
+   "name": "1-benzothiophene",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     4
+    ]
+   },
+   "smiles": "c1ccc2sccc2c1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    4,
+    5,
+    6,
+    8
+   ],
+   "name": "1,3-benzothiazole",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     4,
+     6
+    ]
+   },
+   "smiles": "c1ccc2scnc2c1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    4,
+    5,
+    6,
+    8
+   ],
+   "name": "benzisothiazole",
+   "sites": [
+    0,
+    1,
+    2,
+    6,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     4,
+     5
+    ]
+   },
+   "smiles": "c1ccc2sncc2c1"
+  },
+  {
+   "atoms": 8,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    7
+   ],
+   "name": "1,2-benzodithiete",
+   "sites": [
+    0,
+    1,
+    2,
+    7
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     6
+    ],
+    "heteroatom": [
+     4,
+     5
+    ]
+   },
+   "smiles": "c1ccc2ssc2c1"
+  },
+  {
+   "atoms": 14,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13
+   ],
+   "name": "octalene",
+   "sites": [
+    0,
+    1,
+    2,
+    3,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    12,
+    13
+   ],
+   "skipped": {
+    "fusion_atom": [
+     4,
+     11
+    ]
+   },
+   "smiles": "c1cccc2ccccccc-2cc1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "benzene",
+   "sites": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "skipped": {},
+   "smiles": "c1ccccc1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "[10]annulene",
+   "sites": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "skipped": {},
+   "smiles": "c1ccccccccc1"
+  },
+  {
+   "atoms": 14,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "[14]annulene",
+   "sites": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13
+   ],
+   "skipped": {},
+   "smiles": "c1ccccccccccccc1"
+  },
+  {
+   "atoms": 18,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "[18]annulene",
+   "sites": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17
+   ],
+   "skipped": {},
+   "smiles": "c1ccccccccccccccccc1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "imidazo[1,2-a]pyridine",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    5,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     7
+    ],
+    "heteroatom": [
+     3,
+     6
+    ]
+   },
+   "smiles": "c1ccn2ccnc2c1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "imidazo[1,5-a]pyridine",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    6,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     7
+    ],
+    "heteroatom": [
+     3,
+     5
+    ]
+   },
+   "smiles": "c1ccn2cncc2c1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "[1,2,4]triazolo[4,3-a]pyridine",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     7
+    ],
+    "heteroatom": [
+     3,
+     5,
+     6
+    ]
+   },
+   "smiles": "c1ccn2cnnc2c1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "pyrazolo[1,5-a]pyridine",
+   "sites": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     7
+    ],
+    "heteroatom": [
+     3,
+     4
+    ]
+   },
+   "smiles": "c1ccn2nccc2c1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "tetrazolo[1,5-a]pyridine",
+   "sites": [
+    0,
+    1,
+    2,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     7
+    ],
+    "heteroatom": [
+     3,
+     4,
+     5,
+     6
+    ]
+   },
+   "smiles": "c1ccn2nnnc2c1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "name": "pyridine",
+   "sites": [
+    0,
+    1,
+    2,
+    4,
+    5
+   ],
+   "skipped": {
+    "heteroatom": [
+     3
+    ]
+   },
+   "smiles": "c1ccncc1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "name": "pyridazine",
+   "sites": [
+    0,
+    1,
+    2,
+    5
+   ],
+   "skipped": {
+    "heteroatom": [
+     3,
+     4
+    ]
+   },
+   "smiles": "c1ccnnc1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "furan",
+   "sites": [
+    0,
+    1,
+    2,
+    4
+   ],
+   "skipped": {
+    "heteroatom": [
+     3
+    ]
+   },
+   "smiles": "c1ccoc1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "thiophene",
+   "sites": [
+    0,
+    1,
+    2,
+    4
+   ],
+   "skipped": {
+    "heteroatom": [
+     3
+    ]
+   },
+   "smiles": "c1ccsc1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "1H-pyrazole",
+   "sites": [
+    0,
+    1,
+    4
+   ],
+   "skipped": {
+    "heteroatom": [
+     2,
+     3
+    ]
+   },
+   "smiles": "c1cn[nH]c1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "2H-1,2,3-triazole",
+   "sites": [
+    0,
+    1
+   ],
+   "skipped": {
+    "heteroatom": [
+     2,
+     3,
+     4
+    ]
+   },
+   "smiles": "c1cn[nH]n1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "1H-pyrrolo[2,3-b]pyridine",
+   "sites": [
+    0,
+    1,
+    5,
+    6,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     2,
+     4
+    ]
+   },
+   "smiles": "c1cnc2[nH]ccc2c1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "3H-imidazo[4,5-b]pyridine",
+   "sites": [
+    0,
+    1,
+    5,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     2,
+     4,
+     6
+    ]
+   },
+   "smiles": "c1cnc2[nH]cnc2c1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "3H-[1,2,3]triazolo[4,5-b]pyridine",
+   "sites": [
+    0,
+    1,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     2,
+     4,
+     5,
+     6
+    ]
+   },
+   "smiles": "c1cnc2[nH]nnc2c1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "5,7-dihydrofuro[3,4-b]pyrazine",
+   "sites": [
+    0,
+    1,
+    6,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4
+    ],
+    "heteroatom": [
+     2,
+     5,
+     7
+    ]
+   },
+   "smiles": "c1cnc2c(n1)COC2"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "5,7-dihydrothieno[3,4-b]pyrazine",
+   "sites": [
+    0,
+    1,
+    6,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4
+    ],
+    "heteroatom": [
+     2,
+     5,
+     7
+    ]
+   },
+   "smiles": "c1cnc2c(n1)CSC2"
+  },
+  {
+   "atoms": 16,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    2,
+    4,
+    7,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+   ],
+   "name": "7,8,9,10-tetrahydro-6H-6,10-methanoazepino[4,5-g]quinoxaline",
+   "sites": [
+    0,
+    1,
+    4,
+    7,
+    11,
+    13
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     5,
+     6,
+     8,
+     10,
+     14,
+     15
+    ],
+    "heteroatom": [
+     2,
+     9,
+     12
+    ]
+   },
+   "smiles": "c1cnc2cc3c(cc2n1)C1CNCC3C1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "1H-pyrrolo[3,2-b]pyridine",
+   "sites": [
+    0,
+    1,
+    4,
+    5,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     2,
+     6
+    ]
+   },
+   "smiles": "c1cnc2cc[nH]c2c1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "1,5-naphthyridine",
+   "sites": [
+    0,
+    1,
+    4,
+    5,
+    6,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     2,
+     7
+    ]
+   },
+   "smiles": "c1cnc2cccnc2c1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "1,6-naphthyridine",
+   "sites": [
+    0,
+    1,
+    4,
+    5,
+    7,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     2,
+     6
+    ]
+   },
+   "smiles": "c1cnc2ccncc2c1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    4,
+    5,
+    8
+   ],
+   "name": "pyrazolo[1,5-a]pyrimidine",
+   "sites": [
+    0,
+    1,
+    4,
+    5,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3
+    ],
+    "heteroatom": [
+     2,
+     6,
+     7
+    ]
+   },
+   "smiles": "c1cnc2ccnn2c1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "1,7-naphthyridine",
+   "sites": [
+    0,
+    1,
+    4,
+    6,
+    7,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     2,
+     5
+    ]
+   },
+   "smiles": "c1cnc2cnccc2c1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "1H-imidazo[4,5-b]pyridine",
+   "sites": [
+    0,
+    1,
+    5,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     2,
+     4,
+     6
+    ]
+   },
+   "smiles": "c1cnc2nc[nH]c2c1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "1,8-naphthyridine",
+   "sites": [
+    0,
+    1,
+    5,
+    6,
+    7,
+    9
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     2,
+     4
+    ]
+   },
+   "smiles": "c1cnc2ncccc2c1"
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "pteridine",
+   "sites": [
+    0,
+    1,
+    5,
+    7
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     2,
+     4,
+     6,
+     9
+    ]
+   },
+   "smiles": "c1cnc2ncncc2n1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "1H-[1,2,3]triazolo[4,5-b]pyridine",
+   "sites": [
+    0,
+    1,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     2,
+     4,
+     5,
+     6
+    ]
+   },
+   "smiles": "c1cnc2nn[nH]c2c1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "name": "pyrimidine",
+   "sites": [
+    0,
+    1,
+    3,
+    5
+   ],
+   "skipped": {
+    "heteroatom": [
+     2,
+     4
+    ]
+   },
+   "smiles": "c1cnc[nH+]c1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "name": "pyrazine",
+   "sites": [
+    0,
+    1,
+    3,
+    4
+   ],
+   "skipped": {
+    "heteroatom": [
+     2,
+     5
+    ]
+   },
+   "smiles": "c1cnccn1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "name": "pyrimidine",
+   "sites": [
+    0,
+    1,
+    3,
+    5
+   ],
+   "skipped": {
+    "heteroatom": [
+     2,
+     4
+    ]
+   },
+   "smiles": "c1cncnc1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "imidazo[1,2-b]pyridazine",
+   "sites": [
+    0,
+    1,
+    4,
+    5,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     7
+    ],
+    "heteroatom": [
+     2,
+     3,
+     6
+    ]
+   },
+   "smiles": "c1cnn2ccnc2c1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "1,2,4-triazine",
+   "sites": [
+    0,
+    1,
+    4
+   ],
+   "skipped": {
+    "heteroatom": [
+     2,
+     3,
+     5
+    ]
+   },
+   "smiles": "c1cnncn1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "1,2,3-triazine",
+   "sites": [
+    0,
+    1,
+    5
+   ],
+   "skipped": {
+    "heteroatom": [
+     2,
+     3,
+     4
+    ]
+   },
+   "smiles": "c1cnnnc1"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "1,2,3,4-tetrazine",
+   "sites": [
+    0,
+    1
+   ],
+   "skipped": {
+    "heteroatom": [
+     2,
+     3,
+     4,
+     5
+    ]
+   },
+   "smiles": "c1cnnnn1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "name": "1,2-oxazole",
+   "sites": [
+    0,
+    1,
+    4
+   ],
+   "skipped": {
+    "heteroatom": [
+     2,
+     3
+    ]
+   },
+   "smiles": "c1cnoc1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "1,2-thiazole",
+   "sites": [
+    0,
+    1,
+    4
+   ],
+   "skipped": {
+    "heteroatom": [
+     2,
+     3
+    ]
+   },
+   "smiles": "c1cnsc1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "1,2,5-thiadiazole",
+   "sites": [
+    0,
+    1
+   ],
+   "skipped": {
+    "heteroatom": [
+     2,
+     3,
+     4
+    ]
+   },
+   "smiles": "c1cnsn1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "name": "1,3-oxazole",
+   "sites": [
+    0,
+    1,
+    3
+   ],
+   "skipped": {
+    "heteroatom": [
+     2,
+     4
+    ]
+   },
+   "smiles": "c1cocn1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "1,2,5-oxadiazole",
+   "sites": [
+    0,
+    1
+   ],
+   "skipped": {
+    "heteroatom": [
+     2,
+     3,
+     4
+    ]
+   },
+   "smiles": "c1conn1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "name": "1,3-thiazole",
+   "sites": [
+    0,
+    1,
+    3
+   ],
+   "skipped": {
+    "heteroatom": [
+     2,
+     4
+    ]
+   },
+   "smiles": "c1cscn1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "4,5,6,7-tetrahydro-1,3-benzothiazole",
+   "sites": [
+    0,
+    5,
+    6,
+    7,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     3
+    ],
+    "heteroatom": [
+     1,
+     4
+    ]
+   },
+   "smiles": "c1nc2c(s1)CCCC2"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "9H-purine",
+   "sites": [
+    0,
+    3,
+    5
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     7
+    ],
+    "heteroatom": [
+     1,
+     4,
+     6,
+     8
+    ]
+   },
+   "smiles": "c1nc2c[nH]cnc-2n1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "9H-purine",
+   "sites": [
+    0,
+    3,
+    5
+   ],
+   "skipped": {
+    "fusion_atom": [
+     2,
+     7
+    ],
+    "heteroatom": [
+     1,
+     4,
+     6,
+     8
+    ]
+   },
+   "smiles": "c1nc2cnc[nH]c-2n1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "name": "1H-1,2,4-triazole",
+   "sites": [
+    0,
+    2
+   ],
+   "skipped": {
+    "heteroatom": [
+     1,
+     3,
+     4
+    ]
+   },
+   "smiles": "c1nc[nH]n1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "9H-purine",
+   "sites": [
+    0,
+    2,
+    5
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     1,
+     4,
+     6,
+     8
+    ]
+   },
+   "smiles": "c1ncc2[nH]cnc2n1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "5,7-dihydrofuro[3,4-d]pyrimidine",
+   "sites": [
+    0,
+    2,
+    6,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4
+    ],
+    "heteroatom": [
+     1,
+     5,
+     7
+    ]
+   },
+   "smiles": "c1ncc2c(n1)COC2"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "5,7-dihydrothieno[3,4-d]pyrimidine",
+   "sites": [
+    0,
+    2,
+    6,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     4
+    ],
+    "heteroatom": [
+     1,
+     5,
+     7
+    ]
+   },
+   "smiles": "c1ncc2c(n1)CSC2"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "7H-pyrrolo[2,3-d]pyrimidine",
+   "sites": [
+    0,
+    2,
+    4,
+    5
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     1,
+     6,
+     8
+    ]
+   },
+   "smiles": "c1ncc2cc[nH]c2n1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "9H-purine",
+   "sites": [
+    0,
+    2,
+    5
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     1,
+     4,
+     6,
+     8
+    ]
+   },
+   "smiles": "c1ncc2nc[nH]c2n1"
+  },
+  {
+   "atoms": 0,
+   "name": "9H-purine",
+   "smiles": "c1ncc2ncnc2n1",
+   "unreadable": true
+  },
+  {
+   "atoms": 10,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "name": "pyrimido[5,4-d]pyrimidine",
+   "sites": [
+    0,
+    2,
+    5,
+    7
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     8
+    ],
+    "heteroatom": [
+     1,
+     4,
+     6,
+     9
+    ]
+   },
+   "smiles": "c1ncc2ncncc2n1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    2,
+    5
+   ],
+   "name": "thiazolo[5,4-d]pyrimidine",
+   "sites": [
+    0,
+    2,
+    5
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     1,
+     4,
+     6,
+     8
+    ]
+   },
+   "smiles": "c1ncc2ncsc2n1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "3H-[1,2,3]triazolo[4,5-d]pyrimidine",
+   "sites": [
+    0,
+    2
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3,
+     7
+    ],
+    "heteroatom": [
+     1,
+     4,
+     5,
+     6,
+     8
+    ]
+   },
+   "smiles": "c1ncc2nn[nH]c2n1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "imidazo[5,1-d][1,2,3,5]tetrazine",
+   "sites": [
+    0,
+    2,
+    4
+   ],
+   "skipped": {
+    "fusion_atom": [
+     8
+    ],
+    "heteroatom": [
+     1,
+     3,
+     5,
+     6,
+     7
+    ]
+   },
+   "smiles": "c1ncn2cnnnc12"
+  },
+  {
+   "atoms": 6,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "1,3,5-triazine",
+   "sites": [
+    0,
+    2,
+    4
+   ],
+   "skipped": {
+    "heteroatom": [
+     1,
+     3,
+     5
+    ]
+   },
+   "smiles": "c1ncncn1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "1,2,4-oxadiazole",
+   "sites": [
+    0,
+    2
+   ],
+   "skipped": {
+    "heteroatom": [
+     1,
+     3,
+     4
+    ]
+   },
+   "smiles": "c1ncon1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "1,2,4-thiadiazole",
+   "sites": [
+    0,
+    2
+   ],
+   "skipped": {
+    "heteroatom": [
+     1,
+     3,
+     4
+    ]
+   },
+   "smiles": "c1ncsn1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "2H-tetrazole",
+   "sites": [
+    0
+   ],
+   "skipped": {
+    "heteroatom": [
+     1,
+     2,
+     3,
+     4
+    ]
+   },
+   "smiles": "c1nn[nH]n1"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "5,6,7,8-tetrahydro-[1,2,4]triazolo[4,3-a]pyridine",
+   "sites": [
+    0,
+    5,
+    6,
+    7,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3
+    ],
+    "heteroatom": [
+     1,
+     2,
+     4
+    ]
+   },
+   "smiles": "c1nnc2n1CCCC2"
+  },
+  {
+   "atoms": 9,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    5,
+    6,
+    7,
+    8
+   ],
+   "name": "5,6,7,8-tetrahydro-[1,2,4]triazolo[4,3-a]pyrazine",
+   "sites": [
+    0,
+    5,
+    6,
+    8
+   ],
+   "skipped": {
+    "fusion_atom": [
+     3
+    ],
+    "heteroatom": [
+     1,
+     2,
+     4,
+     7
+    ]
+   },
+   "smiles": "c1nnc2n1CCNC2"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "name": "4H-1,2,4-triazole",
+   "sites": [
+    0,
+    3
+   ],
+   "skipped": {
+    "heteroatom": [
+     1,
+     2,
+     4
+    ]
+   },
+   "smiles": "c1nnc[nH]1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "1,3,4-oxadiazole",
+   "sites": [
+    0,
+    3
+   ],
+   "skipped": {
+    "heteroatom": [
+     1,
+     2,
+     4
+    ]
+   },
+   "smiles": "c1nnco1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "1,3,4-thiadiazole",
+   "sites": [
+    0,
+    3
+   ],
+   "skipped": {
+    "heteroatom": [
+     1,
+     2,
+     4
+    ]
+   },
+   "smiles": "c1nncs1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": false,
+   "locant_atoms": [],
+   "name": "1H-tetrazole",
+   "sites": [
+    0
+   ],
+   "skipped": {
+    "heteroatom": [
+     1,
+     2,
+     3,
+     4
+    ]
+   },
+   "smiles": "c1nnn[nH]1"
+  }
+ ],
+ "second_substituent_cap": 3
+}

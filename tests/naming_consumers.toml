@@ -195,6 +195,12 @@ scope = "benchmark"
 owner = "benchmarks"
 
 [[consumer]]
+file = "tests/test_naming_ring_locant_sweep.py"
+why = "the ring-locant sweep tool: its attachable-site predicate, the frozen ring population and its hash, the cases and the report"
+scope = "benchmark"
+owner = "benchmarks"
+
+[[consumer]]
 file = "tests/test_naming_census_scan.py"
 why = "the census scan tool: its classes, its refusal to scan a sample that does not match its meta hash, and the report"
 scope = "benchmark"
