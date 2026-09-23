@@ -66,8 +66,39 @@ def large_fused_polycyclic_aromatic(mol: Chem.Mol) -> bool:
     return max(groups.values(), default=0) >= 5
 
 
+def multiparent_fusion_hub(mol: Chem.Mol) -> bool:
+    """True if any ring is edge-fused to 3 or more OTHER rings.
+
+    A proxy for the "multiparent fusion" shape (round 5's open list, e.g.
+    "benzo[1,2-b:4,5-c']difuran", p. 234) -- naming a fused system with no
+    single dominant component requires MULTIPARENT nomenclature. The true
+    condition is about nomenclature seniority (no base component senior
+    enough to be THE parent), which this predicate does not decide; a
+    ring fused to 3+ others (a "hub", not a simple ortho-fused chain where
+    every ring has fusion-graph degree <= 2) is a structural precondition
+    for that ambiguity to arise, and a cheap, well-defined upper bound on
+    it -- not an exact count, same convention as this file's other
+    prevalence-only predicates and this project's other census SMARTS.
+    Not expressible as a fixed-size SMARTS for the same reason as
+    ``large_fused_polycyclic_aromatic``: the ring count is the variable.
+    """
+    ring_info = mol.GetRingInfo()
+    rings = [set(r) for r in ring_info.AtomRings()]
+    if len(rings) < 3:
+        return False
+    for i, ri in enumerate(rings):
+        fused_partners = sum(
+            1 for j, rj in enumerate(rings)
+            if j != i and len(ri & rj) >= 2
+        )
+        if fused_partners >= 3:
+            return True
+    return False
+
+
 PYTHON_PREDICATES = {
     "large_fused_polycyclic_aromatic": large_fused_polycyclic_aromatic,
+    "multiparent_fusion_hub": multiparent_fusion_hub,
 }
 
 

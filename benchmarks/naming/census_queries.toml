@@ -88,3 +88,47 @@ version = 1
 python_predicate = "large_fused_polycyclic_aromatic"
 definition = "RDKit ring perception: an aromatic ring system (all bonds in the fused set aromatic) spanning 5 or more fused SSSR rings -- coronene-class systems, the shape that both hung the engine (bb-ad1954622ac3, before the per-row timeout fix) and, separately, made the von Baeyer fallback drop all ring unsaturation (B1 bucket B). Not expressible as a fixed-size SMARTS because the ring count is the variable being measured."
 source = "B1 bucket B, and the coronene ring-decomposition hang naming_stage_artifact.py's timeout fix was built for"
+
+# --- Naming round 10 (B3 extension): census queries for the round 5-8 backlog. ---
+# Reuses the FROZEN census_sample.json unchanged (no redraw) and this same versioned
+# registry. Discovery-only: no fix is attempted this round for any of these; the
+# counts are input to a future round's admissions ledger, exactly as this file's
+# round-9 queries fed round 10's ledger. Each entry below is verified against a
+# stated positive and negative SMILES before its count is trusted (naming_census_count.py
+# tests only run the count; the check itself is this file's own documentation).
+
+[query.multiparent_fusion_hub]
+version = 1
+python_predicate = "multiparent_fusion_hub"
+definition = "A ring edge-fused to 3 or more OTHER rings (a 'hub', not a simple ortho-fused chain where every ring has fusion-graph degree <= 2) -- a structural precondition for the round-5 'multiparent fusion' open item ('benzo[1,2-b:4,5-c']difuran', p. 234: no single component senior enough to be THE parent). An upper bound on that shape, not an exact count: the true condition is about nomenclature seniority, which this predicate does not decide. Verified: triphenylene and pyrene match (True), anthracene/naphthalene/benzene do not (False)."
+source = "round 5's open list, 'multiparent systems'"
+
+[query.aba_silicon_chain]
+version = 1
+smarts = "[SiX4][NX3][SiX4]"
+definition = "A silicon-nitrogen-silicon (Si-NH-Si) chain motif -- the a(ba)n heterounit shape from D-089u (Si-NH-Si, 'disilaazane'/'N-silylsilanamine'). Verified: 'C[SiH2]N[SiH2]C' matches; a bare silane ('C[SiH3]') or a single Si-N bond with no second Si ('CN[SiH3]') does not."
+source = "round 5/6's open list, D-089u (Si-NH-Si)"
+
+[query.ring_nitrogen_acyl_on_chain]
+version = 1
+smarts = "[#7;R][CX3](=O)[#6;!R]"
+definition = "A ring nitrogen acylated by a chain (non-ring) carbonyl carbon -- the round-8 'ring-N-amide acyl prefix' shape (a formyl/acyl group on a ring nitrogen named on the methane parent rather than as a ring-N-carbonyl prefix, e.g. piperidine-1-carbonyl). Verified: N-acetylpiperidine matches; acetanilide (N attached to but not IN a ring) and a plain chain amide do not."
+source = "round 8's open list, 'the acyl prefix of a RING-nitrogen amide on a ring or chain parent'"
+
+[query.symmetric_12_diketone]
+version = 1
+smarts = "[cX3][CX3](=O)[CX3](=O)[cX3]"
+definition = "A 1,2-diketone flanked by aromatic rings on both carbonyls (the benzil shape, round 8's open item: the book omits the locants of a symmetrical ethane-1,2-dione and the rule is not built). Verified: benzil itself matches; an aliphatic 1,2-diketone (biacetyl) and a mono-aryl ketone do not."
+source = "round 8's open list, 'benzil'"
+
+[query.diacyl_peroxide]
+version = 1
+smarts = "[CX3](=O)[OX2][OX2][CX3](=O)"
+definition = "A diacyl peroxide (R-C(=O)-O-O-C(=O)-R), round 8's open item ('diacetyl peroxide', found by probing, not investigated). Verified: diacetyl peroxide matches; a plain ester and a dialkyl peroxide (no carbonyl) do not."
+source = "round 8's open list, 'diacyl peroxides, xanthate esters'"
+
+[query.xanthate_ester]
+version = 1
+smarts = "[SX2][CX3](=[SX1])[OX2]"
+definition = "A xanthate ester (R-O-C(=S)-S-R'), round 8's open item ('O-ethyl S-methyl carbonodithioate', found by probing, not investigated). Verified: O-ethyl S-methyl xanthate matches; a plain carbonate ester and a dialkyl sulfide do not."
+source = "round 8's open list, 'diacyl peroxides, xanthate esters'"
