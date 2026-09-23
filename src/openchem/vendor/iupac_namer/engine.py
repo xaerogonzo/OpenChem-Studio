@@ -5003,15 +5003,27 @@ def _name_single_fg_substituent(
                     except Exception as e_azo:
                         logger.debug("diazenyl naming failed: %s", e_azo)
 
-    # Special case: N'-substituted carbamimidoyl substituent (C as attachment).
-    # Fragment pattern: R-C(=N-X)(NH2) with free valence at C and an X
-    # substituent (acyl, alkyl, ...) on the imino N. Emit
-    # "N'-(name_of_X)carbamimidoyl" (P-66.4.1.2 / P-56.3 imidamide).
-    # Without this handler the carved fragment has SMILES != "N=CN" so the
-    # small-fragment lookup misses; the generic substituent path then walks
-    # the ester chain and produces the wrong-topology
-    # "[(...)methylimino]aminomethan-1-yl" prefix that OPSIN re-reads as
-    # an azo-linked structure.
+    # Special case: N'- and/or N,N-substituted carbamimidoyl substituent (C as attachment).
+    # Fragment pattern: R-C(=N-X)(NH-Y)(-Y') with free valence at C, an optional X on the
+    # imino N ("N'-...") and 0/1/2 optional substituents on the amino N ("N-..."/"N,N-...").
+    # Emits "N'-(X)-N,N-di(Y)carbamimidoyl"-style prefixes (P-66.4.1.2 / P-56.3 imidamide,
+    # book p. 676: "4-(N'-ethyl-N,N-dimethylcarbamimidoyl)benzoic acid").
+    # Without this handler the carved fragment has SMILES != "N=CN" so the small-fragment
+    # lookup misses; the generic substituent path then walks the ester chain and produces the
+    # wrong-topology "[(...)methylimino]aminomethan-1-yl" prefix that OPSIN re-reads as an
+    # azo-linked structure -- naming round 11 (round 8's own open list, D-091v: the census
+    # measured this shape at 4.05% of the frequency sample, the third most common open shape
+    # in the whole backlog).
+    #
+    # naming round 11 note: this used to require the amino N to be a bare, unsubstituted NH2
+    # (TotalNumHs == 2, Degree == 1) -- so it only ever built "N'-(X)carbamimidoyl". That
+    # missed BOTH the amino-only-substituted case ("N,N-dimethylcarbamimidoyl", imino bare)
+    # AND the round-8 open row's own case (both substituted at once). Generalized below to
+    # carve 0, 1 or 2 substituents off EACH nitrogen independently. Two DISTINCT substituents
+    # on the same nitrogen (as opposed to two identical ones, "N,N-dimethyl") are deliberately
+    # declined here, not attempted: which one is cited "N-" first is a separate alphanumerical
+    # question this fix does not answer, and it is rare enough (not measured above the
+    # frequency floor) not to hold up the common case.
     att_atom_cm = mol.GetAtomWithIdx(attachment_idx)
     if (
         att_atom_cm.GetAtomicNum() == 6
@@ -5029,11 +5041,9 @@ def _name_single_fg_substituent(
                 if bond_cm is None:
                     continue
                 bo_cm = bond_cm.GetBondTypeAsDouble()
-                if bo_cm == 2.0 and nb_cm.GetTotalNumHs() == 0:
-                    # Imino N with a heavy substituent (no H)
+                if bo_cm == 2.0:
                     n_imino = nb_cm
-                elif bo_cm == 1.0 and nb_cm.GetTotalNumHs() == 2 and nb_cm.GetDegree() == 1:
-                    # Amino N (NH2) with no other heavy neighbours
+                elif bo_cm == 1.0:
                     n_amino = nb_cm
             if (
                 n_amino is not None
@@ -5041,75 +5051,147 @@ def _name_single_fg_substituent(
                 and not n_imino.IsInRing()
                 and not n_amino.IsInRing()
             ):
-                # X = imino N's other heavy neighbour (must exist; non-H)
-                _imino_other = [
-                    nb for nb in n_imino.GetNeighbors()
-                    if nb.GetIdx() != attachment_idx and nb.GetAtomicNum() > 1
-                ]
-                if len(_imino_other) == 1:
-                    x_root = _imino_other[0]
-                    # Carve X: all atoms reachable from x_root excluding the
-                    # carbamimidoyl atoms (attachment C, amino N, imino N).
-                    forbidden_cm = {attachment_idx, n_amino.GetIdx(), n_imino.GetIdx()}
-                    visited_cm = {x_root.GetIdx()}
-                    stack_cm = [x_root.GetIdx()]
-                    while stack_cm:
-                        cur_cm = stack_cm.pop()
-                        for nb2_cm in mol.GetAtomWithIdx(cur_cm).GetNeighbors():
-                            if nb2_cm.GetAtomicNum() == 1:
+                from openchem.vendor.iupac_namer.assembly import assemble
+                from openchem.vendor.iupac_namer.data_loader import get_multiplier
+
+                def _carve_and_name_cm(
+                    root_idx: int, parent_idx: int, forbidden: set[int], role: str,
+                ) -> str | None:
+                    """Carve+name the substituent rooted at root_idx (hanging off parent_idx,
+                    one of the carbamimidoyl's own two nitrogens), excluding forbidden (the
+                    carbamimidoyl's own C/N/N atoms). Returns the assembled name, or None on
+                    any failure -- the caller treats None as "decline this shape"."""
+                    visited = {root_idx}
+                    stack = [root_idx]
+                    while stack:
+                        cur = stack.pop()
+                        for nb2 in mol.GetAtomWithIdx(cur).GetNeighbors():
+                            if nb2.GetAtomicNum() == 1:
                                 continue
-                            if nb2_cm.GetIdx() in forbidden_cm:
+                            if nb2.GetIdx() in forbidden or nb2.GetIdx() in visited:
                                 continue
-                            if nb2_cm.GetIdx() in visited_cm:
-                                continue
-                            visited_cm.add(nb2_cm.GetIdx())
-                            stack_cm.append(nb2_cm.GetIdx())
-                    x_atoms = frozenset(visited_cm)
+                            visited.add(nb2.GetIdx())
+                            stack.append(nb2.GetIdx())
+                    atoms = frozenset(visited)
                     try:
-                        x_mol, x_att_in_frag, _ = carve_substituent(
-                            mol, x_atoms,
-                            (n_imino.GetIdx(), x_root.GetIdx()),
+                        frag_mol, att_in_frag, _ = carve_substituent(
+                            mol, atoms, (parent_idx, root_idx),
                         )
-                        x_fv = FreeValenceInfo(
+                        frag_fv = FreeValenceInfo(
                             bond_orders=(1,),
-                            method=_select_substituent_method(x_mol, x_att_in_frag),
-                            attachment_atoms_in_fragment=(x_att_in_frag,),
-                            elide_locant_one=_fvi_elide_locant_one(x_mol, x_att_in_frag),
+                            method=_select_substituent_method(frag_mol, att_in_frag),
+                            attachment_atoms_in_fragment=(att_in_frag,),
+                            elide_locant_one=_fvi_elide_locant_one(frag_mol, att_in_frag),
                         )
-                        x_tree = name(
-                            x_mol, strategy, OutputForm.SUBSTITUENT,
-                            free_valence=x_fv,
+                        frag_tree = name(
+                            frag_mol, strategy, OutputForm.SUBSTITUENT,
+                            free_valence=frag_fv,
                             decision_ctx=DecisionContext(
-                                role="n_prime_in_carbamimidoyl",
-                                parent_plan=None,
-                                depth=depth + 1,
+                                role=role, parent_plan=None, depth=depth + 1,
                             ),
                             _session=session,
                             _depth=depth + 1,
                         )
-                        from openchem.vendor.iupac_namer.assembly import assemble
-                        x_name = assemble(x_tree)
-                        if x_name and "[NAMING ERROR" not in x_name:
-                            # Wrap if needed for safe parenthesisation.
-                            wrapped = (
-                                f"({x_name})"
-                                if any(ch in x_name for ch in "(),- ")
-                                else x_name
-                            )
-                            cm_prefix = f"N'-{wrapped}carbamimidoyl"
-                            return LeafTree(
-                                output_form=output_form,
-                                free_valence=free_valence,
-                                choices_made=(Choice(
-                                    type="n_prime_carbamimidoyl_substituent",
-                                    detail=f"x={x_name}",
-                                ),),
-                                decision_ctx=decision_ctx,
-                                validity_warnings=None,
-                                text=cm_prefix,
-                            )
+                        frag_name = assemble(frag_tree)
+                        return frag_name if frag_name and "[NAMING ERROR" not in frag_name else None
                     except Exception as e_cm:
-                        logger.debug("N'-carbamimidoyl naming failed: %s", e_cm)
+                        logger.debug("carbamimidoyl substituent naming failed: %s", e_cm)
+                        return None
+
+                def _wrap_cm(nm: str) -> str:
+                    return f"({nm})" if any(ch in nm for ch in "(),- ") else nm
+
+                _forbidden = {attachment_idx, n_amino.GetIdx(), n_imino.GetIdx()}
+                parts: list[str] = []
+                ok = True
+
+                # N' -- the imino N's substituent (structurally at most one: a
+                # doubly-bonded N has only one other bond to give). REQUIRED to enter this
+                # whole block: an amino-substituted-only, imino-BARE fragment (e.g.
+                # "N,N-dimethylcarbamimidoyl") is deliberately left to the pre-existing
+                # generic path rather than built here, even though it round-trips in
+                # isolation -- measured live (naming round 11) that "carbamimidoyl"
+                # concatenated directly onto a GUANIDINIUM parent is APPEARS_AMBIGUOUS to
+                # OPSIN (two adjacent amidine-like groups), which is exactly the shape
+                # D-103a/c's metformin-cation fixture already chose the decomposed
+                # "(dimethylamino)(imino)methyl"-style prefix for, on purpose, to avoid.
+                # Scoping this whole branch to "imino must be substituted too" keeps that
+                # established, validated choice untouched and still reaches this fix's
+                # actual target (round 8's D-091v: BOTH nitrogens substituted at once).
+                if n_imino.GetTotalNumHs() != 0:
+                    ok = False
+                else:
+                    _imino_other = [
+                        nb for nb in n_imino.GetNeighbors()
+                        if nb.GetIdx() != attachment_idx and nb.GetAtomicNum() > 1
+                    ]
+                    if len(_imino_other) == 1:
+                        x_name = _carve_and_name_cm(
+                            _imino_other[0].GetIdx(), n_imino.GetIdx(), _forbidden,
+                            "n_prime_in_carbamimidoyl",
+                        )
+                        if x_name is not None:
+                            parts.append(f"N'-{_wrap_cm(x_name)}")
+                        else:
+                            ok = False
+                    else:
+                        ok = False
+
+                # N/N,N -- the amino N's substituent(s), if any (0 is allowed: the round-8
+                # target itself, "N'-ethyl-N,N-dimethylcarbamimidoyl", needs 2; an imino-only
+                # substituted amino-bare fragment, N' present and nothing here, is the
+                # pre-existing behavior this block already had before naming round 11).
+                if ok:
+                    _amino_others = [
+                        nb for nb in n_amino.GetNeighbors()
+                        if nb.GetIdx() != attachment_idx and nb.GetAtomicNum() > 1
+                    ]
+                    if len(_amino_others) == 1:
+                        y_name = _carve_and_name_cm(
+                            _amino_others[0].GetIdx(), n_amino.GetIdx(), _forbidden,
+                            "n_in_carbamimidoyl",
+                        )
+                        if y_name is not None:
+                            parts.append(f"N-{_wrap_cm(y_name)}")
+                        else:
+                            ok = False
+                    elif len(_amino_others) == 2:
+                        y_names = [
+                            _carve_and_name_cm(
+                                nb.GetIdx(), n_amino.GetIdx(), _forbidden, "n_in_carbamimidoyl",
+                            )
+                            for nb in _amino_others
+                        ]
+                        if None in y_names:
+                            ok = False
+                        elif y_names[0] == y_names[1]:
+                            y_name = y_names[0]
+                            compound = any(ch in y_name for ch in "(),- ")
+                            multiplier = get_multiplier(2, complex=compound)
+                            parts.append(
+                                f"N,N-{multiplier}({y_name})" if compound
+                                else f"N,N-{multiplier}{y_name}"
+                            )
+                        else:
+                            # Two DISTINCT substituents on one nitrogen: declined, see the
+                            # comment above this block.
+                            ok = False
+                    elif len(_amino_others) > 2:
+                        ok = False
+
+                if ok and parts:
+                    cm_prefix = "-".join(parts) + "carbamimidoyl"
+                    return LeafTree(
+                        output_form=output_form,
+                        free_valence=free_valence,
+                        choices_made=(Choice(
+                            type="n_prime_carbamimidoyl_substituent",
+                            detail="+".join(parts),
+                        ),),
+                        decision_ctx=decision_ctx,
+                        validity_warnings=None,
+                        text=cm_prefix,
+                    )
 
     # Special case: sulfonyl/sulfinyl substituent (S as attachment).
     # Fragment pattern: R-S(=O)(=O)- or R-S(=O)- with free valence at S.
