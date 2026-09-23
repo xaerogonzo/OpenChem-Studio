@@ -12628,6 +12628,22 @@ def _carved_acid_group_fgs(mol, sites) -> tuple:
     return tuple(out)
 
 
+def _substituent_acid_anion_fgs(mol, free_valence) -> tuple:
+    """The typed acid-group FGs of a carved SUBSTITUENT fragment's deprotonated sites (probe)."""
+    if mol is None:
+        return ()
+    from openchem.vendor.iupac_namer.perception.charge_perception import _acidic_anion_site_kind
+
+    sites = frozenset(
+        a.GetIdx() for a in mol.GetAtoms()
+        if a.GetFormalCharge() == -1 and _acidic_anion_site_kind(mol, a) in _ANIONIC_ACID_PREFIX
+    )
+    if not sites:
+        return ()
+    attached = set(free_valence.attachment_atoms_in_fragment or ()) if free_valence else set()
+    return tuple(fg for fg in _carved_acid_group_fgs(mol, sites) if not (set(fg.atoms) & attached))
+
+
 def _synthesise_carved_acid_anion_fgs(interpretation, mol):
     """Return synthetic acid-class :class:`DetectedFG` instances for carved
     deprotonated-acid chalcogen anion sites (``C-O⁻`` / ``C-S⁻`` / …).
@@ -12923,6 +12939,14 @@ class SubstitutivePath:
                 interpretation = _dc.replace(
                     interpretation,
                     fgs=interpretation.fgs + _carved_anion_fgs,
+                )
+        if output_form == OutputForm.SUBSTITUENT:
+            _sub_acid_fgs = _substituent_acid_anion_fgs(mol, free_valence)
+            if _sub_acid_fgs:
+                import dataclasses as _dc
+                interpretation = _dc.replace(
+                    interpretation,
+                    fgs=interpretation.fgs + _sub_acid_fgs,
                 )
         # Detect ring-embedded [N+] atoms once for this molecule.  Per IUPAC
         # P-73 (cation nomenclature) any candidate parent that contains such
