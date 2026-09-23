@@ -343,6 +343,57 @@ Found while checking D-029; predates it.
   non-minimal lambda numbering and three general-nomenclature-only acylium
   names; the engine's output is correct in every case. See `CHANGELOG.md`.
 
+## Open after naming round 11 (2026-09-23)
+
+Round 11 re-verified every round-10 census winner and round 7-8 backlog row it touched directly against
+the current engine BEFORE admitting or dropping anything -- round 9's own lesson (three of its eight seed
+hypotheses were ruled out by live testing) held again here: two of the five candidates this round looked at
+turned out to already be fixed, one narrower than assumed, as side effects of other rounds' general
+improvements, never reflected back into this document until now.
+
+**Fixed this round** (each own commit; see the commit messages for the full diagnosis):
+
+| item | D-row | mechanism | note |
+|---|---|---|---|
+| ketone-parent enclosure | D-143 (FIXED) | `assembly.py`'s `_assemble_substitutive` had two existing one-carbon-parent P-16.5.1.3.1 enclosure rules (a heteroatom-center mononuclear parent; a SUBSTITUENT-form compound prefix) but neither reached a one-carbon KETONE parent in STANDALONE form | mirrored the existing heteroatom-center block, scoped to `suffix_groups` base_form `"one"`. Severity C (OPSIN parses the unbracketed form too); the single most common open shape in the backlog, 8.4% of the census |
+| carbamimidoyl N'/N,N split | D-091v (FIXED, moved from OPEN) | the existing "N'-substituted carbamimidoyl" special case (`engine.py`) required the amino N to be a bare, unsubstituted NH2, so a substituted amino N fell through to the generic recursive path | generalized to carve 0/1/2 substituents off the amino N too, gated to require the imino N ALSO substituted (an amino-only-substituted, imino-bare fragment is deliberately left on the generic path -- measured live it is APPEARS_AMBIGUOUS to OPSIN when attached to a GUANIDINIUM parent, the exact shape D-103a/c's metformin-cation fixture already avoids on purpose; a first version without this gate regressed both, caught before commit) |
+
+**Re-verified and found ALREADY CORRECT, no fix needed** (a legitimate round-9-style finding, not a shortfall):
+
+| item | what round 10's census found | re-test result |
+|---|---|---|
+| ring-nitrogen acyl prefix on a ring/chain parent | `ring_nitrogen_acyl_on_chain`, 2.65% of the census; round 8's own documented repro (`OC(=O)c1ccc(cc1)C(=O)N1CCCCC1` -> wrong `4-[(oxo)(piperidin-1-yl)methyl]benzoic acid`) | now emits the correct `4-(piperidine-1-carbonyl)benzoic acid` directly, verified for piperidine, morpholine and pyrrolidine variants. Fixed as a side effect of other rounds' serialization work, never reflected back into this document. The remaining STANDALONE case with no other senior group (`CCC(=O)N1CCCCC1` -> `1-(piperidin-1-yl)propan-1-one`) round-trips correctly too and has no printed target in this document to hold it to a different form -- not a documented defect |
+| polyacid-anion charge ledger | round 7's own two findings: citrate's trianion named as a wrong-molecule pentanedioate, and the biguanidium dication misnamed as a monocation | citrate's trianion (`[O-]C(=O)CC(O)(CC([O-])=O)C([O-])=O`) now emits the printed PIN, `2-hydroxypropane-1,2,3-tricarboxylate`, verified bare and as the trisodium salt. The biguanidium dication now correctly RAISES (`partial_claim`) instead of silently naming the wrong molecule -- the same refusal-guard class as D-133, converting a would-be wrong structure into a visible, honest failure. Both fixed as side effects of rounds 9/10's own charge-perception work |
+
+**Re-verified, found NARROWER but still genuinely open, re-deferred with a deeper diagnosis than before:**
+
+| item | seed layer | what is known now |
+|---|---|---|
+| charged acid group inside a substituent | serialization | round 8's own row is about a charged acid group *inside a carved substituent tree*, not "any charged acid substituent present" (the general shape round 9's F1 ruled out) -- and it is STILL broken, confirmed on the exact repro. Traced to root cause: `_carved_acid_group_fgs` (`engine.py`) already computes the CORRECT anionic prefix form (`"carboxylato"`, `"sulfonato"`) for a demoted acid-anion site on the "carved" route (`acid_anion_route(mol) == "carved"`), but that `prefix_form` is never threaded into the RECURSIVE substituent-naming call that renders a nested acid-anion group -- the carved fragment's own fresh `Perception()` call does not detect a charged chalcogen as an FG at all (by design, elsewhere), so it falls back to generic atom-by-atom composition (`oxido` + `oxo`/`sulfonyl`), regardless of what the outer call already knew. **This is broader than round 8's row documented**: measured live, it affects a demoted CARBOXYLATE the same way as a demoted SULFONATE (`3-carboxy-4-(carboxylatomethyl)benzoate` reproduces the exact `"3-carboxy-4-(2-oxido-2-oxoethyl)benzoate"` wrong form round 8 recorded only for sulfonate) -- the earlier "already correct" carboxylate spot-check this round ran first (`4-(carboxylatomethyl)benzoate`) turned out to go through a DIFFERENT mechanism entirely (the homogeneous classifier route's blunt string-level `_balance_the_charge_ledger` regex, which only fires when every deprotonated site is the SAME acid class), not the carved route this row is actually about. A real fix needs either threading the outer FG's `prefix_form` into the recursive call, or a second, gated regex-style repair mirroring `_balance_the_charge_ledger` but keyed to the "carved" route's own known FG list -- deliberately not rushed this round given the architectural reach (touches the same recursive substituent-naming path several other special cases, including this round's own carbamimidoyl fix, already sit beside) |
+
+**Census extension B (discovery only, B3 reused; no fix attempted for anything below):**
+
+| shape | frequency | clears 0.5%? | source |
+|---|---|---|---|
+| fused aromatic ring cation | 36/2000 = 1.8% | YES, 3.6x, but coarse proxy -- needs manual ring-table triage before it says anything about the real defect | round 8 open list |
+| N-alkoxy amide / O-alkylhydroxylamine family | 5/2000 = 0.25% | no | round 8 open list |
+| polynitrate ester | 0/2000 | no | round 8 open list |
+| condensed guanidine/urea, n>=5, substituted | 0/2000 | no | round 8 open list |
+| betaine cationic prefix | 0/2000 | no | round 7 open list |
+| zwitterion with a second-class anion | 0/2000 | no | round 7 open list |
+
+Five of the six new queries measured genuinely rare (<=0.25%, several 0 hits) -- real evidence that most of the
+remaining round 7-8 backlog's exotic shapes are uncommon, not just unmeasured. The one that clears the floor
+(fused-ring cations) needs triage work before it is actionable, not a fix directly.
+
+**Not attempted, needs a new subsystem** (carried forward, unchanged -- listed here in one place so a future
+round does not re-discover the shape of this work from scratch): multiparent fusion systems (round 5's open
+list; round 10's own census measured this at 1.15%, `multiparent_fusion_hub`), second-order attached fusion
+components, interior heteroatoms (P-25.3.3.2), 7/8-membered rings fused on three or more sides, rings of more
+than eight members and helicenes, hydro forms of a traditionally numbered retained parent, chiral amino-acid
+anion names (needs a stereo policy decision first), deprotonated phosphonic/phosphoric acid esters (declared
+unsupported scope). None of these are close to a bounded, narrowly-scoped fix the way this round's items were.
+
 ## Open after naming round 10 (2026-09-22)
 
 Round 10 closed all 4 items round 9 deferred (each already diagnosed at round 9's end), then ran a cheap,
