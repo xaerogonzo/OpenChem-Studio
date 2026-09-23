@@ -3944,9 +3944,29 @@ def _build_numbering_from_atom_locants(
         # dihydronaphthalene's sp3 ring carbons): only heteroatoms get the
         # benefit of the doubt, since their aromaticity is genuinely
         # context-dependent while a ring carbon's is structural.
+        #
+        # NARROWED AGAIN (naming round 10, regression on the vendored suite's
+        # own arsanthrene test): a non-aromatic HETEROATOM only gets the
+        # benefit of the doubt when it carries no EXPLICIT double bond in
+        # the curated key. Arsanthrene's key writes its As atoms with a
+        # genuine, structurally meaningful `[As]=c` -- the same class of
+        # concern the ORIGINAL gate's own comment already named for sp3
+        # ring carbons (indene, trindene): "the in-ring double-bond
+        # POSITION IS the structural identity". Bond-generic matching over
+        # that Kekule pattern produced two EXTRA, invalid peri-locant
+        # orientations (measured: {1,4,6,9} where only {1,4} round-trips).
+        # Phenothiazine/phenoxazine's N/S bridges carry no explicit double
+        # bond at all in their own curated keys, so they are unaffected by
+        # this narrowing -- confirmed by re-running D-139/D-140 below.
+        def _heteroatom_ok(a) -> bool:
+            if a.GetAtomicNum() == 6:
+                return a.GetIsAromatic()
+            if a.GetIsAromatic():
+                return True
+            return not any(b.GetBondTypeAsDouble() == 2.0 for b in a.GetBonds())
+
         ring_all_aromatic = ring_mol.GetNumAtoms() > 0 and all(
-            a.GetIsAromatic() or a.GetAtomicNum() != 6
-            for a in ring_mol.GetAtoms()
+            _heteroatom_ok(a) for a in ring_mol.GetAtoms()
         )
         ring_query_generic = None
         if ring_all_aromatic:
