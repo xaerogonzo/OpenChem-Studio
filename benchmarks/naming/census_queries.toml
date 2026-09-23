@@ -132,3 +132,47 @@ version = 1
 smarts = "[SX2][CX3](=[SX1])[OX2]"
 definition = "A xanthate ester (R-O-C(=S)-S-R'), round 8's open item ('O-ethyl S-methyl carbonodithioate', found by probing, not investigated). Verified: O-ethyl S-methyl xanthate matches; a plain carbonate ester and a dialkyl sulfide do not."
 source = "round 8's open list, 'diacyl peroxides, xanthate esters'"
+
+# --- Naming round 11 (B3 extension, round 2): 6 more still-unmeasured shapes from the round 3-8 backlog.
+# Same discipline as round 10: reuses the FROZEN census_sample.json unchanged, discovery-only, each entry
+# verified against a stated positive and negative SMILES before its count is trusted. Deliberately skips
+# shapes round 9/10 already measured (charged_acid_substituent, diaryl_or_dialkyl_enclosed_ketone,
+# substituted_carbamimidoyl, ring_nitrogen_acyl_on_chain, multiparent_fusion_hub, and the four 0-hit rows)
+# even though several of those are still open -- this round's Part B fixes off the EXISTING numbers for
+# those, no re-measurement needed.
+
+[query.nalkoxy_amide_family]
+version = 1
+smarts = ["[NX3]([OX2][#6])[CX3]=O", "[NX3;!$(N[CX3]=[OX1])][OX2][#6]"]
+definition = "An N-alkoxy amide/thioamide (N-OR on an amide nitrogen) OR a bare N-O-C ether not itself part of an amide (an O-alkylhydroxylamine). Verified: N-methoxy-N-methylacetamide and O-methylhydroxylamine both match; plain N,N-dimethylacetamide and methanol do not."
+source = "round 8's open list, 'an N-alkoxy THIOAMIDE, an N,N-dialkoxy amide, O-alkylhydroxylamines'"
+
+[query.polynitrate_ester]
+version = 1
+python_predicate = "polynitrate_ester"
+definition = "Two or more distinct nitrate-ester groups (R-O-[N+](=O)[O-]) on one skeleton -- D-123 only names a single nitrate; a polyol's polynitrate (propane-1,2,3-triyl trinitrate, i.e. nitroglycerin) needs a multivalent organyl. Counts distinct nitrogen atoms across all matches, so it isn't fooled by overlapping substructure matches on the same group. Verified: nitroglycerin's charge-separated SMILES matches; a mono-nitrate ester and ethanol do not."
+source = "round 8's open list, 'several nitrate groups'"
+
+[query.condensed_guanidine_urea_n5]
+version = 1
+smarts = "[NX3]C(=[NX2,OX1])[NX3]C(=[NX2,OX1])[NX3]C(=[NX2,OX1])[NX3]C(=[NX2,OX1])[NX3]"
+definition = "A condensed guanidine/urea chain of 4 linked central carbons (5 nitrogens) -- the round-8 'n >= 5' shape (2,4-diimidotricarbonic diamide and beyond; the substituted variant specifically, since the bare n=5 chain itself was fixed under D-091t). Does not itself test for a substituent on an interior nitrogen -- an upper bound on the shape, same convention as this file's other SMARTS-only queries whose SMARTS can't see a naming-layer fact. Verified: a linear chain of 4 urea units matches; biuret (n=3) and plain urea do not."
+source = "round 8's open list, 'condensed guanidines and ureas with n >= 5 AND substituents'"
+
+[query.betaine_cationic_prefix]
+version = 1
+smarts = "[N+;H0]([#6])([#6])([#6])[CX4][CX3](=O)[O-]"
+definition = "A quaternary (no-H) ammonium bonded through one carbon to a carboxylate -- the betaine shape (round 7's open item, source unresolved between the trimethylazaniumyl and N,N-dimethylmethanaminiumyl prefix forms). Requires H0 on the nitrogen specifically to exclude a plain protonated amino-acid zwitterion, whose ammonium nitrogen carries H. Verified: trimethylglycine (betaine) matches; the glycine zwitterion (NH3+, not quaternary) and choline (no anion) do not."
+source = "round 7's open list, 'a betaine's cationic prefix'"
+
+[query.second_class_zwitterion]
+version = 1
+smarts = "[NX4+][CX4]([CH2][O-])[CX3](=O)[O-]"
+definition = "An ammonium alpha-carbon bearing BOTH a carboxylate and a second anionic group (an alkoxide, via a CH2) -- the serinate shape (round 7's open item: acid_anion_route returns None for two anion classes at once, so the carboxylate is never carved). Verified: serinate (the alkoxide form of serine's zwitterion) matches; the alanine zwitterion (only one anion) and neutral serine (no alkoxide) do not."
+source = "round 7's open list, 'a zwitterion with an anion of ANOTHER class'"
+
+[query.fused_aromatic_ring_cation]
+version = 1
+python_predicate = "fused_aromatic_ring_cation"
+definition = "An aromatic atom carrying a formal positive charge that sits in a ring edge-fused to at least one other ring -- a coarse structural proxy for round 8's 'a fused ring cation with no curated entry' (the imidazo[4,5-d]imidazole cation and similar). Does not check whether the specific ring actually has a curated/retained name; a hit needs manual triage against the ring table before it says anything about THIS defect, more so than this file's other predicates. Verified: an N-methylisoquinolinium cation matches; a single-ring pyridinium and neutral naphthalene do not."
+source = "round 8's open list, 'the imidazo[4,5-d]imidazole cation and other cations of a fused ring with no curated entry'"

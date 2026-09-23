@@ -900,5 +900,84 @@
   "sample_size": 2000,
   "frequency": 0.0,
   "hit_labels": []
+ },
+ "nalkoxy_amide_family": {
+  "hits": 5,
+  "sample_size": 2000,
+  "frequency": 0.0025,
+  "hit_labels": [
+   "census1188625",
+   "census1384625",
+   "census1754625",
+   "census1786625",
+   "census1867625"
+  ]
+ },
+ "polynitrate_ester": {
+  "hits": 0,
+  "sample_size": 2000,
+  "frequency": 0.0,
+  "hit_labels": []
+ },
+ "condensed_guanidine_urea_n5": {
+  "hits": 0,
+  "sample_size": 2000,
+  "frequency": 0.0,
+  "hit_labels": []
+ },
+ "betaine_cationic_prefix": {
+  "hits": 0,
+  "sample_size": 2000,
+  "frequency": 0.0,
+  "hit_labels": []
+ },
+ "second_class_zwitterion": {
+  "hits": 0,
+  "sample_size": 2000,
+  "frequency": 0.0,
+  "hit_labels": []
+ },
+ "fused_aromatic_ring_cation": {
+  "hits": 36,
+  "sample_size": 2000,
+  "frequency": 0.018,
+  "hit_labels": [
+   "census84625",
+   "census105625",
+   "census198625",
+   "census411625",
+   "census415625",
+   "census436625",
+   "census1385625",
+   "census1567625",
+   "census1568625",
+   "census1588625",
+   "census1601625",
+   "census1620625",
+   "census1626625",
+   "census1711625",
+   "census1798625",
+   "census1847625",
+   "census1859625",
+   "census1873625",
+   "census1892625",
+   "census1924625",
+   "census1933625",
+   "census1942625",
+   "census1948625",
+   "census1949625",
+   "census1951625",
+   "census1962625",
+   "census1963625",
+   "census1974625",
+   "census1984625",
+   "census2018625",
+   "census2021625",
+   "census2025625",
+   "census2028625",
+   "census2036625",
+   "census2087625",
+   "census2091625"
+  ]
  }
 }
