@@ -195,6 +195,12 @@ scope = "benchmark"
 owner = "benchmarks"
 
 [[consumer]]
+file = "tests/test_naming_frozen_impact.py"
+why = "the blind frozen-impact check: counts only, never a label or a name, on fake rows and a temp sidecar directory"
+scope = "benchmark"
+owner = "benchmarks"
+
+[[consumer]]
 file = "tests/test_namer_charge_ledger.py"
 why = "the classifier route's site-level charge ledger: what it converts, leaves alone and declines"
 scope = "core"

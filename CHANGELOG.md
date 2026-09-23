@@ -83,6 +83,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   clears the frequency floor but needs ring-table triage before it names an actual defect; the other five are
   genuinely rare. See `src/openchem/vendor/KNOWN_LIMITATIONS.md`, "Open after naming round 11".
 
+### Naming round 12 (branch `naming-round-12`)
+
+- **A charged acid group inside a substituent now keeps its charge in the right words.** A carboxylate or
+  sulfonate on a substituent chain was named atom by atom (`3-carboxy-4-(2-oxido-2-oxoethyl)benzoate`,
+  `4-[(oxidosulfonyl)methyl]benzoate`); it is now `3-carboxy-4-(carboxylatomethyl)benzoate` and
+  `4-(sulfonatomethyl)benzoate` (P-65.6.2.3.1). The information was correct in the outer plan and lost when
+  the substituent was named by a fresh, recursive call; the fix re-derives it from the fragment itself.
+  A first version broke a thiolate-plus-carboxylate case (`D-121u`) and was caught by the known-defects suite
+  before commit. Of 292 charged structures in the census sample, one other name changed (an aminophosphonate
+  zwitterion, now with `carboxylato`), and it reads back.
+- **The fused-ring-cation signal from round 11 was triaged and not admitted:** 8 of its 36 hits (and 6 more
+  cationic ring systems outside the proxy) fail to name, visibly and never as a wrong molecule, but they are
+  spread over about ten different ring systems; the largest is 4 of 2000, under the 10-structure floor.
+- **New tooling:** `tools/naming_stage_artifact.py --frozen-impact <sealed stage>` tells, without revealing a
+  row, whether a change moved any frozen-population name. See
+  `src/openchem/vendor/KNOWN_LIMITATIONS.md`, "Open after naming round 12".
+
 ### Naming round 8 (branch `naming-round-8`)
 
 - **Wrong molecules fixed, each found by a test that could not have passed before:** the trianion of a tricarboxylic

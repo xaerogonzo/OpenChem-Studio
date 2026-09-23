@@ -1587,3 +1587,34 @@ still-unmeasured round 7-8 backlog shapes, same frozen 2000-structure sample. On
 (a fused aromatic ring cation, 1.8%, but a coarse proxy needing manual triage before it names an actual
 defect); the other five are rare (<=0.25%, several 0/2000) -- real evidence most of what remains in the
 round 7-8 backlog is genuinely uncommon.
+
+## 2026-09-23 - naming round 12: a charged acid inside a substituent (D-144), and a triaged census signal
+
+**D-144 (FIXED).** A deprotonated carboxylate or sulfonate on a carved SUBSTITUENT fragment was named
+`2-oxido-2-oxoethyl` / `(oxidosulfonyl)methyl`; it is now `carboxylatomethyl` / `sulfonatomethyl`
+(P-65.6.2.3.1, pdf p. 619). Root cause, from the round-11 trace and confirmed by spying on `_name_bound`:
+on the carved acid-anion route the outer plan holds the right typed FG (`_carved_acid_group_fgs`, with
+`prefix_form` from `_ANIONIC_ACID_PREFIX`), but the group inside a substituent is named by a recursive call
+on the carved fragment (`CC(=O)[O-]`, SUBSTITUENT, attachment atom 0), whose fresh `Perception()` does not
+see a charged chalcogen as an FG. `SubstitutivePath.generate_plans` now adds the same typed FGs for a
+SUBSTITUENT-form fragment (`_substituent_acid_anion_fgs`), from the fragment's own atoms, for exactly the
+classes in `_ANIONIC_ACID_PREFIX` (any other class would drop its charge; phosphonate stays on its declared-
+unsupported path). It skips a group containing the attachment atom: a first version did not and
+double-owned the atom on `[S-]c1ccccc1C(=O)[O-]` (`D-121u`), a failed plan and a NAMING ERROR fall-back.
+Deliberately NOT the round-11 proposal to thread `prefix_form` into the recursive call: both the acid group
+and its attachment carbon are inside the fragment, so nothing needs an outer-to-fragment index map.
+Measured: ref-compare 1712 rows, 0 changed (no corpus row has this shape); 1 of 292 charged census rows
+changes (an aminophosphonate zwitterion, MATCH); frozen impact 1 of 1126 `bluebook_frozen`, 0 of 40
+`heldout_v6`. Tests: 3 FIXED rows (D-144a-c) plus 7 converse/invariant test functions (9 cases) in `test_namer_known_defects.py`;
+six of the twelve cases that target the fix fail with the engine change removed, the other six are the converses and pass either way.
+
+**W2, the fused-aromatic-ring-cation signal (round 11), triaged and NOT admitted.** 36 hits, 36 unique
+structures: 28 name and read back, 8 embed `[NAMING ERROR ...]`. The engine over all 292 charged census rows
+found 6 more cationic ring-system failures outside the proxy, in about ten different ring systems, the
+largest 4/2000 (imidazo[1,2-a]pyridin-4-ium). Neutral parents name; the bridgehead/ring-N cation does not.
+Recorded in `KNOWN_LIMITATIONS.md`, "Open after naming round 12".
+
+**Tooling.** `tools/naming_stage_artifact.py --frozen-impact <sealed stage>` (`frozen_impact()`): names the
+frozen populations with the working tree, compares with the sealed sidecar, prints only `unchanged` or
+`changed_count=N of M`, exits 3 if anything moved. Tests use fake rows and assert nothing identifying is
+printed (`tests/test_naming_frozen_impact.py`).
