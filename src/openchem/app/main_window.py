@@ -427,6 +427,8 @@ class MainWindow(QMainWindow):
         )
         # The footer's "N calculators hidden" link: the window owns the dialogs.
         self._property_panel.settings_requested.connect(self.show_settings)
+        # "About this calculator" on a launcher row: the window owns the help window.
+        self._property_panel.help_requested.connect(self._show_help)
         if services.result_store_service is not None:
             # A retained result is unsaved work: the user asked for results
             # to live in the project file, so one that is not there yet is
@@ -1373,6 +1375,13 @@ class MainWindow(QMainWindow):
         opening an index.
         """
         widget = QApplication.focusWidget()
+        # A calculator's own button or tick box carries which calculator it is:
+        # F1 there opens THAT calculator's section, not the panel's.
+        calculator_id = widget.property("openchem_calculator_id") if widget is not None else None
+        if calculator_id:
+            from openchem.domain.calculator_support import help_anchor_for
+
+            return help_anchor_for(str(calculator_id))
         while widget is not None:
             if isinstance(widget, QDockWidget) and widget.objectName() in HELP_TOPIC_BY_DOCK:
                 return HELP_TOPIC_BY_DOCK[widget.objectName()]

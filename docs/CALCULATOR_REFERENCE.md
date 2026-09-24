@@ -109,6 +109,7 @@ Oxidation state per atom, by the IUPAC electronegativity-partition rule: each bo
 
 Partial charges that depend on the 3D geometry, by one of three models. EEM: Bultinck's electronegativity equalization (2002, part I) with that paper's own parameters for H, C, N, O and F. QEq: Rappé and Goddard's charge equilibration (1991) with lambda = 1/2 and its experimental hydrogen parameters, for the 16 elements of its Table I; it refuses molecules where its iteration does not settle or a charge reaches its bound. Ionescu EEM: Ionescu et al.'s 2013 protein-fragment models (Mulliken, 6-31G* or 6-31G**, gas phase) for H, C, N, O, S and Ca, reported as an extrapolation on anything else; it refuses a sulfur bonded to oxygen and any charge beyond 2.051 e. By default the charges are computed on the stored conformer as it is, with its own hydrogens and net charge. Tick pH-dependent to compute them on the dominant ionization state at that pH instead: the state is carried onto the conformer, every heavy atom and every kept hydrogen holds its coordinates exactly, and only added hydrogens are placed (MMFF94, everything else fixed). Ionization states only, never tautomers, and it refuses rather than choose when a proton leaves an atom whose hydrogens are not equivalent. The result shows the structure it was computed on. Only the sum of the charges equals the net charge. Needs a conformer with explicit hydrogens; an element the chosen method has no parameters for is refused.
 
+- See also: [Comparing partial charge models](USER_GUIDE.md#comparing-partial-charge-models) -- how the models in this family differ.
 - Produces one value per atom, with a depiction coloured by them.
 - Runs on a real 3D conformer -- generate one first.
 - Options:
@@ -123,6 +124,7 @@ Partial charges that depend on the 3D geometry, by one of three models. EEM: Bul
 
 Partial charges, recomputed on the dominant protonation state at a given pH, by Gasteiger's PEOE or by MMFF94's bond-charge increments. The two are different models and give different numbers for the same atom.
 
+- See also: [Comparing partial charge models](USER_GUIDE.md#comparing-partial-charge-models) -- how the models in this family differ.
 - Produces one value per atom, with a depiction coloured by them.
 - Runs on the 2D drawing, so no conformer is needed.
 - Options:

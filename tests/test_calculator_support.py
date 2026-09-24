@@ -15,7 +15,6 @@ import pytest
 from rdkit import Chem
 
 from openchem import help as help_docs
-from openchem.domain.calculator import ServiceExecution
 from openchem.domain.calculator_support import (
     LEGACY_UNCLASSIFIED,
     UNCLASSIFIED,
@@ -218,3 +217,32 @@ def test_a_definition_can_be_replaced_with_a_support_without_mutating_the_origin
     original = _definition_by_id(built_in, "joback_properties")
     swapped = dataclasses.replace(original, support=None)
     assert is_classified(original) and not is_classified(swapped)
+
+
+def test_every_family_guide_link_resolves_to_a_real_guide(built_in):
+    """A "See also" that lands nowhere is worse than none. Both the heading and its
+    GitHub slug must name a real topic, since the same link is read on GitHub and
+    in the help window (`HelpDialog._on_link` matches the slug)."""
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
+    from build_calculator_reference import FAMILY_GUIDES
+
+    from openchem.ui.dialogs.help_dialog import _slug
+
+    ids = {d.calculator_id for d in built_in}
+    topics = help_docs.topics()
+    for calculator_id, (title, slug) in FAMILY_GUIDES.items():
+        assert calculator_id in ids, f"{calculator_id} is not a registered calculator"
+        match = [t for t in topics if t.title == title and t.document == "USER_GUIDE.md"]
+        assert len(match) == 1, f"no single guide headed {title!r}"
+        assert _slug(match[0].title) == slug, (title, slug, _slug(match[0].title))
+
+
+def test_a_family_guide_ranks_nothing():
+    """"Descriptive, never a ranking": no "recommended" without a declared basis.
+    The words that would smuggle one in are refused in the guide itself."""
+    text = help_docs.topic_markdown("charge-models").lower()
+    for word in ("recommended", "best choice", "most accurate", "we recommend", "use this one"):
+        assert word not in text, word

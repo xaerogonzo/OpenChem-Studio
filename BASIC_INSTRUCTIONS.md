@@ -39,6 +39,7 @@
 | README.md | `/README.md` | Project intro, dev setup |
 | docs/ARCHITECTURE.md | `/docs/ARCHITECTURE.md` | Layered architecture, package map, design decisions, known TODOs |
 | docs/ROADMAP.md | `/docs/ROADMAP.md` | Phased development plan, plus resolved investigations (naming) and documented extension points |
+| CALCULATOR_MATURITY.md | `/docs/CALCULATOR_MATURITY.md` | Calculator stages and default visibility, what a declaration obliges, and how a calculator is classified or promoted |
 | CLAUDE.md | `/CLAUDE.md` | How to run the tests here, and the traps that cost real time |
 | VENDORING.md | `/src/openchem/vendor/VENDORING.md` | What is vendored, from where, at which commit, and what was changed |
 | LICENSE | `/LICENSE` | GPL-3.0-or-later (required for optional Open Babel bindings use) |

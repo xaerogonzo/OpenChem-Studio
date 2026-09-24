@@ -1636,6 +1636,14 @@ always right about which panel it belongs to. F1 follows **keyboard
 focus** — so if you click a panel's tab to bring it forward but then press
 F1 without clicking inside it, you get help for whatever you last typed in.
 
+**Each calculator has its own section.** Right-click a calculator's button
+in Properties and choose **About this calculator**, or press **F1** while
+its button or tick box has focus; the dialog every calculator opens has an
+**About this calculator** button too. All of them land on that calculator's
+own section of the [calculator reference](CALCULATOR_REFERENCE.md): what it
+computes, what it needs, what it refuses and why, and — for a limited or
+specialist calculator — its support level and what it covers.
+
 ---
 
 <!-- help:compare -->
@@ -1665,6 +1673,49 @@ which pastes straight into a spreadsheet.
 
 You can also reach this from any report: right-click it and choose
 **Compare with…**.
+
+---
+
+<!-- help:charge-models -->
+## Comparing partial charge models
+
+Four calculators put a charge on each atom, and **they are different models,
+so they give different numbers for the same atom**. This page says what each
+needs and what each refuses. It does not rank them, because nothing in this
+application has validated any of them against *your* molecule: a charge is a
+model output, not a measurement, and only the **sum** of the charges equals
+the net charge.
+
+| Calculator and method | Runs on | Covers | Refuses |
+|---|---|---|---|
+| **Partial Charge (pH-dependent)** — Gasteiger (PEOE) | the 2D drawing, on its dominant protonation state at the pH you give | computed for every structure tried (see below) | nothing in the structures tried |
+| **Partial Charge (pH-dependent)** — MMFF94 bond-charge increments | the 2D drawing, likewise | molecules MMFF94 has atom types for | a structure MMFF94 has no atom type for (boron trifluoride and xenon difluoride, tried) |
+| **Partial Charge (3D)** — EEM (Bultinck 2002, part I) | a real 3D conformer with explicit hydrogens | H, C, N, O and F, with that paper's own parameters | an element outside those five |
+| **Partial Charge (3D)** — QEq (Rappé and Goddard 1991) | a real 3D conformer with explicit hydrogens | the 16 elements of its Table I | a molecule where its iteration does not settle, or where a charge reaches its bound |
+| **Partial Charge (3D)** — Ionescu EEM (2013) | a real 3D conformer with explicit hydrogens | H, C, N, O, S and Ca; anything else is labelled an extrapolation | sulfur bonded to oxygen, and any charge beyond 2.051 e |
+
+"Tried" means measured on 2026-09-24 over ethanol, tetramethylsilane, sodium
+chloride, ferrocene, boron trifluoride, dimethyl sulfoxide and xenon
+difluoride: Gasteiger returned a number for all seven. **That is not a claim
+that the number means anything for a salt or a metal complex** — it is only that
+the model does not refuse them.
+
+Three things worth knowing before comparing:
+
+- **The 2D and 3D calculators answer different questions.** The pH-dependent
+  ones recompute on the protonation state at the pH you choose and need no
+  conformer. The 3D ones use the conformer you have, with its hydrogens and its
+  net charge as stored, unless you tick *pH-dependent* — then they compute on
+  the dominant ionization state, moving only the hydrogens that were added.
+- **A refusal is information.** A method refusing a molecule says the molecule
+  is outside what it was built for; it is not a fault, and another model
+  refusing the same molecule is not a disagreement.
+- **The same atom under two models is two different quantities.** Run each
+  calculator and read them side by side in [Results](#results), or in the
+  Calculator Inspector, which colours the structure by the values.
+
+Each calculator's own section in the [calculator reference](CALCULATOR_REFERENCE.md)
+gives its options and its limits.
 
 ---
 

@@ -39,6 +39,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   hidden and opens **Settings > Calculators**, which names each with the reason, what it covers and a Learn more button to its own reference section; one setting
   offers them all and a tick offers one, and neither runs anything. The calculator reference states each calculator's level. Sixty-six older calculators are
   listed as not yet classified, and a guard lets that list only shrink.
+- **Every calculator has a way to its own help.** Right-click a calculator's button and choose *About this calculator*, press F1 with its button or tick box focused, or use the
+  *About this calculator* button in the dialog every calculator opens -- each lands on that calculator's own section of the reference, where the tooltip used to point at the whole
+  Properties chapter. A limited or specialist calculator also states its support level and reason in its dialog, where a person who enabled it is about to run it. A new guide,
+  *Comparing partial charge models*, says what each of the five charge models needs and refuses; it describes and ranks nothing, and a guard holds it to that.
 - **A failure that repeats no longer fills the log.** A traceback that repeats within 30 seconds is printed once, in the file, the console and the in-app Console alike, and
   the log says it repeated: one line at the first repeat, and a count when the failure next appears. "The same failure" is defined once
   (`failure_log.py`: where it was raised, not what it said) and shared with the driven-run ledger, so a verdict and a log cannot disagree about how many

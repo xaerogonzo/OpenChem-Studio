@@ -134,6 +134,18 @@ _STAGE_WORDS = {
 }
 
 
+#: The calculators that belong to a METHOD FAMILY with a comparison guide in
+#: `docs/USER_GUIDE.md`, by calculator id: (the guide's heading, its GitHub
+#: slug). Both spellings resolve in the help window (`HelpDialog._on_link`
+#: matches the slug), and `tests/test_calculator_support.py` holds each slug
+#: to a real heading. A guide describes and never ranks: no "recommended"
+#: without a declared basis.
+FAMILY_GUIDES = {
+    "geometry_partial_charge": ("Comparing partial charge models", "comparing-partial-charge-models"),
+    "gasteiger_charge_at_ph": ("Comparing partial charge models", "comparing-partial-charge-models"),
+}
+
+
 def _support_lines(definition) -> list[str]:
     """What a person is entitled to know before trusting or looking for it.
 
@@ -184,6 +196,9 @@ def _calculator_section(definition, retired_by_target) -> list[str]:
         ]
 
     lines += _support_lines(definition)
+    guide = FAMILY_GUIDES.get(definition.calculator_id)
+    if guide is not None:
+        lines.append(f"- See also: [{guide[0]}](USER_GUIDE.md#{guide[1]}) -- how the models in this family differ.")
 
     kind = _result_kind(definition)
     produces = _PRODUCES.get(kind)

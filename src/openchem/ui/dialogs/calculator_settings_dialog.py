@@ -13,13 +13,30 @@ from PySide6.QtWidgets import (
     QFormLayout,
     QLabel,
     QLineEdit,
+    QPushButton,
     QSpinBox,
     QVBoxLayout,
     QWidget,
 )
 
 from openchem.domain.calculator import CalculatorDefinition, CalculatorParameter, active_parameters
+from openchem.domain.calculator_support import Visibility, help_anchor_for, is_classified, support_of
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
+
+#: The button that opens this calculator's own section of the reference. One
+#: contract for every calculator's dialog, for the reason the parameter
+#: contracts below are one per KIND: which calculator is what `instance_path`
+#: already says.
+_ABOUT_HELP = HelpTooltip(
+    text=(
+        "Opens the Help section for this calculator: what it computes, what it "
+        "needs, what it refuses and why, and how far its numbers can be trusted."
+    ),
+    tier=1,
+    help_id="calculator.about",
+    topic="properties",
+    help_anchor="properties",
+)
 
 
 #: ONE CONTRACT PER KIND, NOT PER CALCULATOR. `help_id` names a
@@ -252,6 +269,20 @@ class CalculatorSettingsDialog(QDialog):
             description_label = QLabel(definition.description, self)
             description_label.setWordWrap(True)
             layout.addWidget(description_label)
+        # WHERE A PERSON WHO ENABLED A LIMITED CALCULATOR IS ABOUT TO RUN IT. The
+        # Settings page said why it is not offered by default; this is the moment
+        # the reason matters, so it is repeated here rather than left behind.
+        if is_classified(definition):
+            support = support_of(definition)
+            if support.needs_a_reason:
+                hidden = " (hidden by default)" if support.default_visibility is Visibility.HIDDEN else ""
+                banner = QLabel(
+                    f"<b>{support.stage.value.capitalize()}{hidden}.</b> {support.support_reason}", self
+                )
+                banner.setObjectName("calculatorSupportBanner")
+                banner.setWordWrap(True)
+                banner.setStyleSheet("color: #7a5c00;")
+                layout.addWidget(banner)
 
         form = QFormLayout()
         for parameter in definition.parameters:
@@ -276,7 +307,28 @@ class CalculatorSettingsDialog(QDialog):
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
+        about = QPushButton("About this calculator", self)
+        about.setObjectName("aboutCalculator")
+        about.setAutoDefault(False)
+        apply_help_tooltip(about, _ABOUT_HELP)
+        about.clicked.connect(self._on_about_clicked)
+        buttons.addButton(about, QDialogButtonBox.ButtonRole.HelpRole)
+        self._help_window = None
         layout.addWidget(buttons)
+
+    def _on_about_clicked(self, _checked: bool = False) -> None:
+        """Open this calculator's section of the reference, in a window that is a
+        CHILD of this dialog -- a modal dialog blocks input to every other window,
+        so a help window parented anywhere else would open unclickable."""
+        from openchem.ui.dialogs.help_dialog import HelpDialog
+
+        anchor = help_anchor_for(self._definition.calculator_id)
+        if self._help_window is None:
+            self._help_window = HelpDialog(self, anchor)
+        self._help_window.show_topic(anchor)
+        self._help_window.show()
+        self._help_window.raise_()
+        self._help_window.activateWindow()
 
     def _build_widget(self, parameter: CalculatorParameter) -> QWidget:
         if parameter.kind == "float":

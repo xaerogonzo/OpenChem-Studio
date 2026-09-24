@@ -330,3 +330,84 @@ def test_every_row_of_the_page_carries_a_help_contract(qapp):
         contract = help_tooltip_for(control)
         assert contract is not None, control.objectName() or control.text()
         assert placeholder_reason(contract) is None
+
+
+# --- the way in to a calculator's own help ---------------------------------------
+
+
+def test_a_calculators_tooltip_points_at_its_own_section_not_the_panels(qapp):
+    from openchem.ui.panels.property_panel import calculator_help
+
+    definition = _registry().get("everyday")
+    assert calculator_help(definition).help_anchor == help_anchor_for("everyday") == "calc-everyday"
+
+
+def test_the_context_menu_of_a_calculator_button_opens_its_section(qapp):
+    panel, _bus, _service = _panel(qapp)
+    heard: list[str] = []
+    panel.help_requested.connect(heard.append)
+    button = next(
+        b for b in panel.findChildren(QPushButton)
+        if b.property("openchem_calculator_id") == "everyday"
+    )
+    from PySide6.QtCore import Qt
+
+    assert button.contextMenuPolicy() == Qt.ContextMenuPolicy.CustomContextMenu
+
+    menu = panel._about_menu_for("everyday")
+    (action,) = menu.actions()
+    assert action.text() == "About this calculator"
+    action.trigger()
+
+    assert heard == ["calc-everyday"]
+
+
+def test_f1_on_a_calculators_button_opens_that_calculators_section(qapp):
+    """Focus is what F1 asks first, and a row's control says which calculator it is."""
+    from PySide6.QtWidgets import QApplication
+
+    from openchem.app.main_window import MainWindow
+
+    class _Focused:
+        def property(self, name):
+            return "joback_properties" if name == "openchem_calculator_id" else None
+
+    original = QApplication.focusWidget
+    QApplication.focusWidget = staticmethod(lambda: _Focused())
+    try:
+        assert MainWindow._help_topic_for_visible_panel(object()) == "calc-joback-properties"
+    finally:
+        QApplication.focusWidget = original
+
+
+def test_the_calculator_dialog_says_why_a_limited_calculator_is_limited_and_links_to_it(qapp):
+    """Joback from the REAL registry: the banner is where a person who enabled it is
+    about to run it, and About lands on a section that really exists."""
+    from PySide6.QtWidgets import QLabel
+
+    from openchem.bootstrap import build_service_container
+    from openchem.ui.dialogs.calculator_settings_dialog import CalculatorSettingsDialog
+
+    definition = build_service_container().calculator_registry.get("joback_properties")
+    dialog = CalculatorSettingsDialog(definition)
+    banner = dialog.findChild(QLabel, "calculatorSupportBanner")
+    assert banner is not None and "Limited" in banner.text() and "hidden by default" in banner.text()
+    assert "ring nitrogen" in banner.text()
+
+    dialog.findChild(QPushButton, "aboutCalculator").click()
+    window = dialog._help_window
+    try:
+        assert window is not None and window.parent() is dialog, "a child, or a modal dialog blocks it"
+        assert window._current_key == "calc-joback-properties"
+    finally:
+        window.close()
+
+
+def test_the_calculator_dialog_of_an_unclassified_calculator_has_no_banner(qapp):
+    from PySide6.QtWidgets import QLabel
+
+    from openchem.ui.dialogs.calculator_settings_dialog import CalculatorSettingsDialog
+
+    dialog = CalculatorSettingsDialog(_registry().get("everyday"))
+    assert dialog.findChild(QLabel, "calculatorSupportBanner") is None
+    assert dialog.findChild(QPushButton, "aboutCalculator") is not None

@@ -32,7 +32,7 @@ from openchem.domain.calculator import (
     RegistryExecution,
     ServiceExecution,
 )
-from openchem.domain.calculator_support import is_offered_by_default
+from openchem.domain.calculator_support import help_anchor_for, is_offered_by_default
 from openchem.domain.calculator_taxonomy import (
     CATEGORY_LABELS,
     CATEGORY_ORDER,
@@ -381,7 +381,11 @@ def calculator_help(definition: CalculatorDefinition) -> HelpTooltip:
         tier=2,
         help_id=f"calculator.{definition.calculator_id}",
         topic=definition.category,
-        help_anchor="properties",
+        # ITS OWN SECTION. This said "properties" for every one of them while the
+        # reference generator wrote an anchor per calculator that nothing linked
+        # to. A Qt tooltip cannot host a link, so the way in is "About this
+        # calculator" on the button's context menu and F1 with the button focused.
+        help_anchor=help_anchor_for(definition.calculator_id),
     )
 #: ... and which report a "Details..." button opens.
 logger = logging.getLogger("openchem.ui")
@@ -1340,6 +1344,10 @@ class PropertyPanel(QWidget):
     #: the reason `link_activated` is: the window that owns the dialogs routes it.
     settings_requested = Signal(str)
 
+    #: A request to open the Help at a topic, by anchor. Routed by the window, for
+    #: the reason `settings_requested` is.
+    help_requested = Signal(str)
+
     def __init__(
         self,
         event_bus: EventBus,
@@ -1723,6 +1731,10 @@ class PropertyPanel(QWidget):
             # source of truth for what is registered anyway.
             button.setProperty(_CALCULATOR_ID_PROPERTY, definition.calculator_id)
             button.clicked.connect(self._on_calculator_button_clicked)
+            # "About this calculator": a tooltip cannot host a link, and F1 reaches
+            # the same section with the button focused.
+            button.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+            button.customContextMenuRequested.connect(self._on_calculator_button_menu)
 
             # The tick box runs this calculator as part of a batch. The
             # engine has always been able to run several at once --
@@ -2782,6 +2794,31 @@ class PropertyPanel(QWidget):
     def _on_settings_changed(self, event: SettingsChanged) -> None:
         if str(event.key).startswith("calculators/"):
             self._apply_calculator_visibility()
+
+    def _about_menu_for(self, calculator_id: str) -> QMenu:
+        """The context menu of one calculator's button.
+
+        Built apart from showing it, because `QMenu.exec` blocks and cannot be
+        patched: a test drives the action instead, and the wiring is the same
+        bound method a click reaches.
+        """
+        menu = QMenu(self)
+        action = menu.addAction("About this calculator")
+        action.setProperty(_CALCULATOR_ID_PROPERTY, calculator_id)
+        action.triggered.connect(self._on_about_calculator_triggered)
+        return menu
+
+    def _on_calculator_button_menu(self, position) -> None:
+        button = self.sender()
+        calculator_id = button.property(_CALCULATOR_ID_PROPERTY) if button is not None else None
+        if calculator_id:
+            self._about_menu_for(str(calculator_id)).exec(button.mapToGlobal(position))
+
+    def _on_about_calculator_triggered(self, _checked: bool = False) -> None:
+        action = self.sender()
+        calculator_id = action.property(_CALCULATOR_ID_PROPERTY) if action is not None else None
+        if calculator_id:
+            self.help_requested.emit(help_anchor_for(str(calculator_id)))
 
     def _on_hidden_link_clicked(self, _checked: bool = False) -> None:
         self.settings_requested.emit("calculators")
