@@ -43,7 +43,6 @@ import json
 import logging
 import os
 import platform
-import re
 import shutil
 import subprocess
 import sys
@@ -52,6 +51,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
+
+from openchem.failure_log import describe
 
 #: What every driver log line starts with. The whole distinction between the
 #: two kinds of record rests on it, so it is one constant and not a literal
@@ -62,43 +63,6 @@ DRIVER_PREFIX = "OPENCHEM_DRIVE:"
 #: pass must not grow the ledger without bound; the count of what was dropped
 #: is reported, which is the honest half of a cap.
 MAX_ENTRIES = 500
-
-#: A molecule or result uuid, which differs in every occurrence of one defect.
-_UUID = re.compile(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
-#: Any run of digits: an atom index, a count, a step number. Collapsed so the
-#: same defect at atoms [1, 7] and [1, 3] is one entry.
-_NUMBER = re.compile(r"\d+")
-
-
-def _shorten(path: str) -> str:
-    """A path as it should read in a report: from the package down.
-
-    An absolute path names the machine, and the same defect on two machines
-    would then be two entries.
-    """
-    normal = path.replace("\\", "/")
-    marker = "/openchem/"
-    if marker in normal:
-        return "openchem/" + normal.split(marker, 1)[1]
-    return normal.rsplit("/", 1)[-1]
-
-
-def _normalise(text: str) -> str:
-    """The message with what varies between two occurrences of one defect removed."""
-    return _NUMBER.sub("#", _UUID.sub("<uuid>", text))
-
-
-def _origin(record: logging.LogRecord) -> tuple[str, str]:
-    """(exception type, innermost frame) -- or ("", the logging call) for a record without one."""
-    if record.exc_info and record.exc_info[1] is not None:
-        traceback = record.exc_info[2]
-        frame = f"{_shorten(record.pathname)}:{record.lineno}"
-        while traceback is not None:
-            frame = f"{_shorten(traceback.tb_frame.f_code.co_filename)}:{traceback.tb_lineno}"
-            traceback = traceback.tb_next
-        return type(record.exc_info[1]).__name__, frame
-    return "", f"{_shorten(record.pathname)}:{record.lineno}"
-
 
 @dataclass
 class LedgerEntry:
@@ -143,21 +107,18 @@ class ErrorLedger(logging.Handler):
             message = record.getMessage()
         except Exception:  # noqa: BLE001 - a malformed record is still evidence
             message = str(record.msg)
+        description = describe(record)
         if message.startswith(DRIVER_PREFIX):
             if record.levelno >= logging.ERROR:
-                exception, _frame = _origin(record)
                 text = message[len(DRIVER_PREFIX):].strip()
+                exception = description.exception
                 self._driver_failures.append(f"{text} ({exception})" if exception else text)
             return
-        exception, origin = _origin(record)
-        first_line = message.splitlines()[0] if message else ""
-        if record.exc_info and record.exc_info[1] is not None:
-            # The log line is usually the same every time ("Alert computation
-            # failed") and the exception's own text is what says what was wrong.
-            detail = str(record.exc_info[1]).strip().splitlines()
-            if detail:
-                first_line = f"{first_line} | {detail[0]}"
-        key = (record.levelname, record.name, exception, origin, _normalise(first_line))
+        # "The same failure" is defined once, in `openchem.failure_log`, and
+        # shared with the log's own repeat-collapsing so a verdict and a log
+        # cannot disagree about how many problems there were.
+        exception, origin, first_line = description.exception, description.origin, description.first_line
+        key = (record.levelname, record.name, exception, origin, description.message_key)
         entry = self._entries.get(key)
         if entry is not None:
             entry.count += 1

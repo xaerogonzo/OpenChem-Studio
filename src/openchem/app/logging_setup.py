@@ -33,6 +33,8 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from openchem.failure_log import collapse_filter
+
 LOGGER_NAMES = [
     "openchem.ui",
     "openchem.chemistry",
@@ -124,6 +126,10 @@ def configure_logging(level: int = logging.INFO) -> None:
     )
     for name in LOGGER_NAMES:
         logging.getLogger(name).setLevel(level)
+    # The console handler `basicConfig` made. A traceback that repeats is
+    # printed once per window, and SAID to have repeated (`failure_log`).
+    for handler in logging.getLogger().handlers:
+        handler.addFilter(collapse_filter())
 
     _attach_file_handler(level)
 
@@ -159,6 +165,9 @@ def _attach_file_handler(level: int) -> None:
             datefmt="%Y-%m-%d %H:%M:%S",
         )
     )
+    # The SAME filter instance the console handlers use: it remembers its last
+    # decision by record identity, so every handler agrees about one record.
+    handler.addFilter(collapse_filter())
     logger.addHandler(handler)
     _write_session_header()
 

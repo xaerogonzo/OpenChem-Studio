@@ -32,6 +32,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   partial "nothing found" is never read as a complete one; the Results reader says so above the facts. The vocabulary's own tests and the census
   keep the strict detector, so a defect stays loud where it can be fixed. The reader's status line now leads a refusal with its kind
   (“Needs input”, “Needs setup”, “Not applicable”) instead of one sentence for all three.
+- **A failure that repeats no longer fills the log.** A traceback that repeats within 30 seconds is printed once, in the file, the console and the in-app Console alike, and
+  the log says it repeated: one line at the first repeat, and a count when the failure next appears. "The same failure" is defined once
+  (`failure_log.py`: where it was raised, not what it said) and shared with the driven-run ledger, so a verdict and a log cannot disagree about how many
+  problems there were.
 - **A slow calculation can no longer read as current for a structure it was not computed on.** The calculation and the always-on descriptors were handed the live
   molecule on a worker thread, read it at several different moments while the editor went on changing it, and stamped the result with the structure version
   *when the result came back* -- so a value computed for structure A that finished after an edit to B read as current for B (AqSolDB takes about five
