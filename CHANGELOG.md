@@ -66,6 +66,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Several Calculator Inspectors can stand side by side.** The inspector was a modal window, so comparing two charge methods meant closing the first and remembering it. Each result now
   opens its own window (modeless, titled with the calculator and its method), the same result raises the window already open instead of opening a duplicate, and the cap the Batch panel
   already applies (a Chromium process each) holds here too. `expect_inspectors` in the driver counts them.
+- **A "Needs input" or "Needs setup" chip now takes you to where it is fixed.** Those two states say what you have to do, so pressing them no longer just opens a reader that can only
+  describe it: "Needs input" opens the calculator's settings with the missing values named above the form and the cursor on the first (nothing runs until you confirm), and "Needs setup"
+  opens Settings > External Tools on the tab that sets it up. The chip's tooltip says which before you press. A calculator can now declare a parameter `required` (it has no usable default);
+  "Run selected", which uses defaults, skips such a calculator and says what it wants instead of running it to a refusal you did not ask for. Detonation's two inputs, alignment's
+  reference and the Lewis adduct's partner are declared this way, and the last two now name the empty field in their refusal.
 - **The Results "Showing" list is readable.** Its popup took the width of the narrow docked box and elided entries such as "Thermophysical Properties (Joback)"; it is now as wide as its
   longest entry, and each entry carries its full text as a tooltip.
 

@@ -113,6 +113,14 @@ class CalculatorParameter:
     #: not dispatched (`active_parameters`), so an irrelevant setting can
     #: neither change the computation nor be recorded as part of it.
     enabled_by: str | None = None
+    #: True when NO DEFAULT IS USABLE: the value is one only the person can give (a
+    #: measured density, an enthalpy of formation), so the default in `default` is a
+    #: placeholder and a run with it would only refuse. "Run selected" runs with
+    #: defaults, so it skips a calculator with a required parameter and says which
+    #: inputs it wants; the settings dialog is where they are entered. Not a
+    #: validation rule -- the calculator still checks what it is given -- but the
+    #: declaration that lets a launcher act before a refusal instead of after one.
+    required: bool = False
 
     def __post_init__(self) -> None:
         # AT CONSTRUCTION, so a mismatch is a failing import rather than a

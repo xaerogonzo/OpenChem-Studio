@@ -3026,6 +3026,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
                 # stored is SMILES.
                 kind="smiles",
                 default="",
+                required=True,
             ),
             CalculatorParameter(
                 name="role",
@@ -3339,6 +3340,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
                 default=0.0,
                 minimum=0.0,
                 maximum=3.0,
+                required=True,
             ),
             CalculatorParameter(
                 name="enthalpy_of_formation_kcal_mol",
@@ -3347,6 +3349,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
                 default=-1000.0,
                 minimum=-1000.0,
                 maximum=500.0,
+                required=True,
             ),
             CalculatorParameter(
                 name="ruby_correction",
@@ -3640,6 +3643,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
                 label="Reference structure (SMILES)",
                 kind="text",
                 default="",
+                required=True,
             ),
             CalculatorParameter(
                 name="method",

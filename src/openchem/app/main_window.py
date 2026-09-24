@@ -427,6 +427,8 @@ class MainWindow(QMainWindow):
         )
         # The footer's "N calculators hidden" link: the window owns the dialogs.
         self._property_panel.settings_requested.connect(self.show_settings)
+        # A "Needs setup" chip: the External Tools tab that configures that calculator.
+        self._property_panel.tool_setup_requested.connect(self._show_tool_setup)
         # "About this calculator" on a launcher row: the window owns the help window.
         self._property_panel.help_requested.connect(self._show_help)
         if services.result_store_service is not None:
@@ -4568,6 +4570,10 @@ class MainWindow(QMainWindow):
 
     def _show_settings(self) -> None:
         self.show_settings()
+
+    def _show_tool_setup(self, tool: str) -> None:
+        """Open Settings > External Tools on `tool`'s tab (a catalogue key)."""
+        self.show_settings(EXTERNAL_TOOLS, tool)
 
     def _show_external_tools_dialog(self) -> None:
         # Tools > External Tools stays, and opens the Settings window where

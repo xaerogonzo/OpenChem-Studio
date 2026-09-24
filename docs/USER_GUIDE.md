@@ -751,7 +751,12 @@ fault); **Needs input** means it does, and wants a value only you can supply —
 the result names which, with units (Detonation wants a loading density and a
 condensed-phase enthalpy of formation); **Needs setup** means it wants
 something configured on this machine, such as a sidecar under Tools > External
-Tools. Pressing the chip opens that result in Results.
+Tools. Pressing the chip opens that result in Results — except for those two
+states, which say what you have to *do* and so take you there: **Needs input**
+opens the calculator's settings with the missing values named above the form
+and the cursor on the first (nothing runs until you press OK), and **Needs
+setup** opens Settings > External Tools on the tab that sets that calculator up.
+Hover the chip to see what it needs before you press it.
 
 Scalar descriptors still compute eagerly — the whole batch finishes in well
 under a millisecond, so there is no waiting and no lazy-loading complexity —
@@ -938,6 +943,13 @@ Batch runs use each calculator's **declared defaults and open no dialogs**,
 because answering six settings dialogs to avoid six clicks is not a saving.
 No inspector windows open either. Press the calculator's own button when
 you need non-default settings.
+
+A calculator that has **no usable default** — Detonation, which needs a loading
+density and an enthalpy of formation only you can give, or an alignment that
+needs a reference structure — is **skipped, and the status line says so**,
+naming what it wants, rather than being run to produce a refusal you did not
+ask for. Open it from its own button (or its Needs input chip) to enter the
+values.
 
 Each result appears in its own category as a one-line summary
 ("22 atoms, −0.41 to 0.33 e"); press the calculator's button for the full

@@ -97,6 +97,7 @@ Every one is a surface with a *recorded* history of breaking, not a guess.
 | `properties_launcher_after_2c2.json` | the Properties launcher after stage 2c2, at 900 and 1600 px | not recorded here |
 | `properties_launcher_stage2.json` | the Properties panel before stage 2c, at 900 and 1600 px | not recorded here |
 | `results_dock_stage2.json` | Details with the reader hidden, visible, and popped out | not recorded here |
+| `status_chip_routes.json` | where a "Needs input" / "Needs setup" chip press goes: the Detonation chip on the nitramine opens the calculator's settings with the Needs line naming both inputs and the cursor on the loading density; the window's tool-setup route opens Settings > External Tools on the pkasolver, ADMET and NMR-database tabs. The setup half emits the panel's signal rather than pressing a chip, because both tools are installed on the maintainer's machine | those two states used to open a reader that could only describe them |
 | `results_layout_narrow_and_short.json` | the Results dock moved beside and on top, resized | a very short dock scrolled: 234 px needed against a 162 px viewport, 72 of it chrome |
 | `results_reader_memory.json` | the reader's remembered selection across close, reopen and an edit | a reader's position had never had to survive anything |
 | `results_reader_stage1.json` | every result kind reaching the reader, and the selector's search | not recorded here |

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
@@ -21,7 +22,53 @@ from PySide6.QtWidgets import (
 
 from openchem.domain.calculator import CalculatorDefinition, CalculatorParameter, active_parameters
 from openchem.domain.calculator_support import Visibility, help_anchor_for, is_classified, support_of
+from openchem.domain.refusal_kinds import InputProblem, MissingInput
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
+
+#: What is wrong with each kind of named input, in the words a person reads.
+_PROBLEM_WORDS: dict[InputProblem, str] = {
+    InputProblem.MISSING: "",
+    InputProblem.INVALID: " (the value given cannot be used)",
+    InputProblem.OUT_OF_DOMAIN: " (outside the range this method covers)",
+}
+
+
+def plain_label(label: str) -> str:
+    """A parameter's label without its trailing gloss ("... — required, measured").
+
+    For a sentence that is already saying the value is needed, where the gloss would
+    say it twice.
+    """
+    return label.split(" — ")[0].strip()
+
+
+def needed_input_phrases(definition: CalculatorDefinition, needed: Sequence[MissingInput]) -> list[str]:
+    """One readable phrase per input a refusal named, in the order it named them.
+
+    The calculator's own label is the authority for what to call a field -- the
+    refusal names the PARAMETER, so a rewording of the label cannot leave this
+    saying something the dialog does not. The label's trailing gloss (" — required,
+    measured") is dropped: this sentence is already saying it is needed. Units come
+    from the label where it carries any (a parenthesis), and from the refusal where
+    it does not.
+    A name that is not one of the definition's parameters is skipped, because a
+    phrase for a field the dialog does not have would send the person hunting.
+    """
+    labels = {parameter.name: parameter.label for parameter in definition.parameters}
+    phrases: list[str] = []
+    for item in needed:
+        label = labels.get(item.parameter)
+        if label is None:
+            continue
+        head = plain_label(label)
+        # Units from the refusal only when the label has none of its own. Comparing the
+        # two strings does not work: the label says "g/cm³" and the refusal, which also
+        # reaches ASCII-only places, says "g/cm3", so a substring test appended both.
+        if item.units and "(" not in head:
+            head = f"{head} ({item.units})"
+        phrases.append(head + _PROBLEM_WORDS.get(item.problem, ""))
+    return phrases
+
 
 #: The button that opens this calculator's own section of the reference. One
 #: contract for every calculator's dialog, for the reason the parameter
@@ -252,12 +299,17 @@ class CalculatorSettingsDialog(QDialog):
         parent: QWidget | None = None,
         *,
         molecules: Sequence[MoleculeChoice] = (),
+        needed: Sequence[MissingInput] = (),
     ) -> None:
         # KEYWORD-ONLY WITH AN EMPTY DEFAULT, so every existing caller
         # is untouched -- including `ui/dialogs/inventory.py`, which
         # builds this dialog from a definition alone. A `"smiles"`
         # parameter with no molecules supplied degrades to the free-text
         # box this parameter has always been.
+        #
+        # `needed` is what a "Needs input" refusal named: the dialog says so above the
+        # form and puts the cursor on the first of them, so the person is not left to
+        # work out which of six fields the last run was missing.
         super().__init__(parent)
         self._molecules = list(molecules)
         self.setWindowTitle(definition.display_name)
@@ -284,6 +336,14 @@ class CalculatorSettingsDialog(QDialog):
                 banner.setStyleSheet("color: #7a5c00;")
                 layout.addWidget(banner)
 
+        phrases = needed_input_phrases(definition, needed)
+        if phrases:
+            notice = QLabel("<b>Needs:</b> " + "; ".join(html.escape(p) for p in phrases) + ".", self)
+            notice.setObjectName("calculatorNeededInputs")
+            notice.setWordWrap(True)
+            notice.setStyleSheet("color: #7a5c00;")
+            layout.addWidget(notice)
+
         form = QFormLayout()
         for parameter in definition.parameters:
             widget = self._build_widget(parameter)
@@ -303,6 +363,15 @@ class CalculatorSettingsDialog(QDialog):
             if isinstance(controller, QCheckBox):
                 controller.toggled.connect(self._sync_enabled)
         self._sync_enabled()
+        #: The parameter the cursor was put on, or None. Recorded because a dialog that
+        #: has not been shown reports no focus widget, and a driven run needs to ask.
+        self.focus_parameter: str | None = None
+        for item in needed:
+            widget = self._widgets.get(item.parameter)
+            if widget is not None:
+                widget.setFocus()
+                self.focus_parameter = item.parameter
+                break
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
         buttons.accepted.connect(self.accept)

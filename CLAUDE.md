@@ -79,6 +79,10 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           Inspector window -- see below
     {"do": "expect_inspectors", "count": 2, "titles": ["(qeq"]}  how many
                                           inspectors are OPEN side by side
+    {"do": "chip", "calculator": "detonation", "expect": {"status": "needs_input"}}
+                                          PRESS a status chip and assert where
+                                          the press went; `tool_setup` is the
+                                          window half of a "Needs setup" press
     {"do": "inspector_report", "tag": "after-edit"}  the Atom Inspector's
                                           pinned line, HELD results and state
     {"do": "inspect", "id": "geometry_partial_charge", "parameters": {"ph_dependent": true}}

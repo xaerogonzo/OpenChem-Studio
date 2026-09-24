@@ -48,6 +48,7 @@ from openchem.domain.descriptor_aggregate import (
     aggregate_descriptors,
 )
 from openchem.domain.project import ProjectModel
+from openchem.domain.refusal_kinds import MissingInput, missing_inputs_of
 from openchem.domain.reader_state import ReaderMemory
 from openchem.domain.result_status import (
     FAILED,
@@ -92,6 +93,8 @@ from openchem.ui.dialogs.spatial_result_dialog import SpatialResultDialog
 from openchem.ui.dialogs.calculator_settings_dialog import (
     CalculatorSettingsDialog,
     MoleculeChoice,
+    needed_input_phrases,
+    plain_label,
 )
 from openchem.ui.dialogs.nmr_view_dialog import NmrViewDialog
 from openchem.ui.widgets.substance_card import SubstanceCard, card_data_from_report
@@ -226,12 +229,31 @@ _STATUS_CHIP_HELP = HelpTooltip(
         "(the result names which, with units); Needs setup means it wants "
         "something configured on this machine.\n\n"
         "Pressing it shows that result in Results. It computes nothing and "
-        "re-runs nothing; use the calculator's own button to run it again."
+        "re-runs nothing; use the calculator's own button to run it again.\n\n"
+        "Two states go further. Needs input opens the calculator's settings with "
+        "the missing values named and the cursor on the first; nothing runs until "
+        "you confirm. Needs setup opens Settings > External Tools on the tab that "
+        "sets that calculator up."
     ),
     tier=1,
     help_id="properties.result_status",
     topic="results",
 )
+
+
+#: Which External Tools tab sets a calculator up, for the calculators that can read
+#: "Needs setup". The value is a key of `external_tool_catalog`. Measured from the
+#: calculator census (`tests/fixtures/calculator_census_baseline.json`): these are the
+#: six that answer NEEDS_SETUP, and a guard keeps this table equal to that list, so a
+#: seventh cannot be added without saying where its chip goes.
+SETUP_TOOL_FOR_CALCULATOR: dict[str, str] = {
+    "pka": "pkasolver",
+    "pka_microspecies": "pkasolver",
+    "isoelectric_point": "pkasolver",
+    "solubility": "pkasolver",
+    "admet_ml": "admet",
+    "nmr_database": "nmr_index",
+}
 
 
 #: Plain BMP glyphs, not emoji. Qt's emoji rendering on Windows falls back
@@ -1402,6 +1424,12 @@ class PropertyPanel(QWidget):
     #: the reason `link_activated` is: the window that owns the dialogs routes it.
     settings_requested = Signal(str)
 
+    #: A request to open Settings > External Tools on one tool's tab, by catalogue
+    #: key. Routed by the window, for the reason `settings_requested` is; a separate
+    #: signal rather than a second argument, so the one that already exists keeps
+    #: the shape everything connected to it expects.
+    tool_setup_requested = Signal(str)
+
     #: A request to open the Help at a topic, by anchor. Routed by the window, for
     #: the reason `settings_requested` is.
     help_requested = Signal(str)
@@ -2538,7 +2566,33 @@ class PropertyPanel(QWidget):
         # elsewhere in this project is NOT about. A silent no-op would be
         # the third option and is the one 0g exists to forbid.
         chip.setEnabled(result is not None)
+        chip.setToolTip(self._chip_tooltip(calculator_id, status, result))
         chip.setVisible(True)
+
+    def _chip_tooltip(self, calculator_id: str, status: str, result) -> str:
+        """The chip's contract text, plus what THIS press will do in the two states
+        where a press does more than show the result.
+
+        The contract (`_STATUS_CHIP_HELP`) stays what it is -- one meaning across sixty
+        renderings -- and the situational line is appended after it, so what is
+        inventoried and what is read are the same text plus a sentence, never two
+        descriptions that can disagree.
+        """
+        base = _STATUS_CHIP_HELP.text
+        if status == NEEDS_INPUT and result is not None:
+            definition = self._calculator_registry.get(calculator_id)
+            phrases = needed_input_phrases(definition, missing_inputs_of(result)) if definition else []
+            if phrases:
+                return (
+                    f"{base}\n\nNeeds: {'; '.join(phrases)}. Pressing this opens the "
+                    "calculator's settings to enter them; nothing runs until you confirm."
+                )
+        if status == NEEDS_SETUP and calculator_id in SETUP_TOOL_FOR_CALCULATOR:
+            return (
+                f"{base}\n\nPressing this opens Settings > External Tools on the tab "
+                "that sets this calculator up."
+            )
+        return base
 
     def _refresh_status_chips(self) -> None:
         for calculator_id in tuple(self._calculator_status):
@@ -2578,8 +2632,28 @@ class PropertyPanel(QWidget):
         if chip is None:
             return
         calculator_id = str(chip.property(_STATUS_CALCULATOR_PROPERTY) or "")
-        if calculator_id and self._result_for(calculator_id) is not None:
-            self._show_in_reader(focus=calculator_id)
+        result = self._result_for(calculator_id) if calculator_id else None
+        if result is None:
+            return
+        # **TWO STATES ARE AN INSTRUCTION, NOT A RESULT.** "Needs input" and "Needs
+        # setup" say what the person has to DO, so pressing them goes to where it is
+        # done -- the calculator's settings with the missing values named, or the
+        # External Tools tab that configures it -- rather than to a reader that can only
+        # describe it. The reader is still one press away in Results, and a calculator
+        # the routing cannot serve (no parameters to enter, no known tool) falls through
+        # to it instead of doing nothing.
+        status = self._status_for(calculator_id)
+        if status == NEEDS_INPUT:
+            definition = self._calculator_registry.get(calculator_id)
+            if definition is not None and definition.parameters:
+                self._open_calculator(definition, needed=missing_inputs_of(result))
+                return
+        elif status == NEEDS_SETUP:
+            tool = SETUP_TOOL_FOR_CALCULATOR.get(calculator_id)
+            if tool is not None:
+                self.tool_setup_requested.emit(tool)
+                return
+        self._show_in_reader(focus=calculator_id)
 
     def _refresh_reader(self) -> None:
         """Push the currently-held reports into the reader.
@@ -2921,9 +2995,17 @@ class PropertyPanel(QWidget):
             return
 
         started: list[str] = []
+        skipped: list[str] = []
         for calculator_id in self._selected_calculator_ids():
             definition = self._calculator_registry.get(calculator_id)
             if definition is None or not isinstance(definition.execution, RegistryExecution):
+                continue
+            # A calculator with a REQUIRED parameter has no usable default, so running
+            # it here could only produce a refusal -- and a "Needs input" chip the person
+            # did not earn by asking. It is skipped and named, with what it wants.
+            wanted = [plain_label(p.label) for p in definition.parameters if p.required]
+            if wanted:
+                skipped.append(f"{definition.display_name} (needs {', '.join(wanted)})")
                 continue
             # Same calculator ticked and already running is the one
             # re-entrancy worth guarding: the pool would happily run it
@@ -2942,12 +3024,18 @@ class PropertyPanel(QWidget):
             )
             started.append(definition.display_name)
 
+        skipped_note = (
+            f" Skipped, needs your input: {'; '.join(skipped)}. Open the calculator to enter it."
+            if skipped
+            else ""
+        )
         if not started:
-            self._batch_status.setText("Those are already running.")
+            self._batch_status.setText(("Those are already running." if not skipped else "") + skipped_note.strip())
             return
         self._batch_status.setText(
             f"Running {len(started)} with default settings: {', '.join(started[:4])}"
             + ("..." if len(started) > 4 else "")
+            + skipped_note
         )
 
     # --- copying out ---------------------------------------------------------
@@ -3011,7 +3099,9 @@ class PropertyPanel(QWidget):
                 lines.append("")
         return "\n".join(lines).rstrip()
 
-    def _open_calculator(self, definition: CalculatorDefinition) -> None:
+    def _open_calculator(
+        self, definition: CalculatorDefinition, needed: tuple[MissingInput, ...] = ()
+    ) -> None:
         # Says so, rather than returning silently. Clicking an "Open..."
         # button with nothing selected used to do NOTHING AT ALL -- no
         # dialog, no message, no log line -- which is indistinguishable
@@ -3039,7 +3129,10 @@ class PropertyPanel(QWidget):
                 for other in self._project.molecules
                 if other.canonical_smiles
             ]
-            dialog = CalculatorSettingsDialog(definition, self, molecules=choices)
+            # `needed` only when there is something to say, so the ordinary press of a
+            # calculator's own button builds the dialog exactly as it always has.
+            extra = {"needed": needed} if needed else {}
+            dialog = CalculatorSettingsDialog(definition, self, molecules=choices, **extra)
             if dialog.exec() != QDialog.DialogCode.Accepted:
                 return
             parameters = dialog.parameters()

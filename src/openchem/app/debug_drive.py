@@ -104,6 +104,12 @@ The script is a JSON list of steps, run in order:
                                               launcher OFFERS, by row visibility
       {"do": "expect_help",      "topic": "calc-joback-properties"}
                                               which help topic is in FRONT
+      {"do": "chip",             "calculator": "detonation", "expect": {"status": "needs_input"}}
+                                              PRESS a status chip, and assert
+                                              where it went (see `_do_chip`)
+      {"do": "tool_setup",       "tool": "pkasolver"}
+                                              the window half of a "Needs setup"
+                                              press (see `_do_tool_setup`)
       {"do": "expect_inspectors", "count": 2, "titles": ["QEq"], "apart": true}
                                               how many Calculator Inspectors
                                               are OPEN, side by side
@@ -4836,6 +4842,108 @@ class _Driver(QObject):
             logger.warning("OPENCHEM_DRIVE: EXPECT help ok[%s]", tag)
         else:
             logger.error("OPENCHEM_DRIVE: EXPECT help FAILED[%s] -- %s", tag, detail)
+
+    def _do_chip(self, step: dict[str, Any]) -> None:
+        """`{"do": "chip", "calculator": "detonation", "expect": {...}}` -- press one
+        calculator's status chip, and assert WHERE THE PRESS WENT.
+
+            "status"    the launcher word the chip must be showing first
+            "needed"    (needs_input) substrings the settings dialog's "Needs:" line carries
+            "focus"     (needs_input) the parameter the cursor was put on
+            "shot"      a path to photograph the dialog to, before it is closed
+            "tool"      (needs_setup) the External Tools tab Settings must open on
+
+        The chip is a real `QPushButton`, so this presses it (`click()`): the panel's own
+        handler reads `sender()`, and calling the handler directly would prove nothing
+        about the wiring. Pressing opens a MODAL dialog whose `exec()` does not return
+        until it closes, so a timer inspects and closes it -- the same shape as `key`'s
+        `close_modal_after_ms`, for the same reason.
+
+        **THE SETUP CASE IS ONLY AS GOOD AS THE MACHINE**: it needs the calculator to be
+        unconfigured (the experimental NMR database not built, no pKa sidecar). On a
+        machine where it is set up the chip reads Ready and the step fails its `status`
+        check by saying so, which is the truthful answer rather than a skipped one.
+        """
+        tag = str(step.get("tag", ""))
+        calculator_id = str(step["calculator"])
+        expect = dict(step.get("expect") or {})
+        panel = self._window._property_panel
+        chip = panel._calculator_status.get(calculator_id)
+        if chip is None:
+            logger.error("OPENCHEM_DRIVE: chip: no chip for %r", calculator_id)
+            return
+        status = panel._status_for(calculator_id)
+        wanted = expect.get("status")
+        if wanted is not None and status != wanted:
+            detail = f"{calculator_id} chip reads {status!r}, wanted {wanted!r}"
+            self._record_assertion("chip", tag, False, detail)
+            logger.error("OPENCHEM_DRIVE: EXPECT chip FAILED[%s] -- %s", tag, detail)
+            return
+        self._chip_expectation = (tag, calculator_id, expect)
+        QTimer.singleShot(int(step.get("inspect_after_ms", 700)), self._window, self._inspect_chip_modal)
+        chip.click()
+
+    def _do_tool_setup(self, step: dict[str, Any]) -> None:
+        """`{"do": "tool_setup", "tool": "pkasolver"}` -- what a "Needs setup" chip press
+        asks the WINDOW for, without needing a calculator that is actually unconfigured.
+
+        `chip` is the honest test of a press, and it can only assert "Needs setup" on a
+        machine where the calculator is unset-up; here pkasolver and the NMR database are
+        both installed, so the chip reads Ready. This emits the panel's own
+        `tool_setup_requested` -- exactly what the chip's handler emits -- so the WINDOW
+        half is still exercised for real: the signal reaches `MainWindow`, which opens
+        Settings > External Tools on that tab. What it does not prove is the press
+        itself, which `tests/test_status_chip_routes.py` does.
+        """
+        tag = str(step.get("tag", ""))
+        tool = str(step["tool"])
+        self._chip_expectation = (tag, f"tool_setup:{tool}", {"tool": tool})
+        QTimer.singleShot(int(step.get("inspect_after_ms", 700)), self._window, self._inspect_chip_modal)
+        self._window._property_panel.tool_setup_requested.emit(tool)
+
+    def _inspect_chip_modal(self) -> None:
+        """Inspect and close the modal a chip press opened. See `_do_chip`."""
+        from PySide6.QtWidgets import QApplication, QLabel
+
+        tag, calculator_id, expect = self._chip_expectation
+        modal = QApplication.activeModalWidget()
+        problems: list[str] = []
+        kind = type(modal).__name__ if modal is not None else None
+        if modal is None:
+            problems.append("no dialog opened")
+        elif "tool" in expect:
+            tool = modal.external_tools.current_tool() if hasattr(modal, "external_tools") else None
+            if kind != "SettingsDialog":
+                problems.append(f"opened {kind}, wanted SettingsDialog")
+            elif tool != expect["tool"]:
+                problems.append(f"Settings opened on tool {tool!r}, wanted {expect['tool']!r}")
+        else:
+            if kind != "CalculatorSettingsDialog":
+                problems.append(f"opened {kind}, wanted CalculatorSettingsDialog")
+            else:
+                notice = next(
+                    (w for w in modal.findChildren(QLabel) if w.objectName() == "calculatorNeededInputs"), None
+                )
+                text = notice.text() if notice is not None else ""
+                for wanted in expect.get("needed") or []:
+                    if wanted not in text:
+                        problems.append(f"the Needs line lacks {wanted!r} (it says {text!r})")
+                if "focus" in expect and modal.focus_parameter != expect["focus"]:
+                    problems.append(f"cursor on {modal.focus_parameter!r}, wanted {expect['focus']!r}")
+        ok = not problems
+        detail = "as expected" if ok else "; ".join(problems)
+        detail += f" (opened {kind})"
+        if self._record_assertion("chip", tag, ok, detail):
+            logger.warning("OPENCHEM_DRIVE: EXPECT chip ok[%s] %s -> %s", tag, calculator_id, kind)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT chip FAILED[%s] -- %s", tag, detail)
+        if modal is not None and expect.get("shot"):
+            path = Path(str(expect["shot"]))
+            path.parent.mkdir(parents=True, exist_ok=True)
+            modal.grab().save(str(path))
+            logger.warning("OPENCHEM_DRIVE: wrote %s", path)
+        if modal is not None:
+            modal.close()
 
     def _do_expect_inspectors(self, step: dict[str, Any]) -> None:
         """`{"do": "expect_inspectors", "count": 2, "titles": ["QEq", "EEM"], "apart": true}`
