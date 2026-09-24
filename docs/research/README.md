@@ -42,3 +42,9 @@ source reports, a **predicted crystal density** (a method's output, with its tem
 **loading density** (how a particular charge was made, supplied by a person or a source), and a
 **theoretical maximum density** (an explicitly declared reference-state assumption). A predicted crystal
 density is never a loading density.
+
+## `SENSITIVITY.md`
+
+How errors in the two inputs the detonation calculator cannot estimate (a loading density and a condensed
+enthalpy of formation) move its estimate, with the tool that computes it and a worked example. One compound,
+said plainly: a claim about a set waits for the set.
