@@ -719,6 +719,9 @@ Docking via AutoDock Vina. Needs a receptor macromolecule and a search box; run 
 
 Detonation pressure and velocity for a C/H/N/O explosive, by Kamlet and Jacobs' 1968 correlation. REQUIRES two inputs it cannot derive: the initial loading density of the charge, which is not a crystal density and which the pressure depends on as its square, and a measured condensed-phase enthalpy of formation, because the published rule for estimating one from an ideal-gas value excludes every classic energetic material. Without either, it refuses and says which is missing. An empirical correlation fitted to reproduce a 1968 computer code -- not a measurement, and not a safety assessment.
 
+- Support level: **Stable**. Hidden by default; enable it under Settings > Calculators.
+- Why: A specialist estimate. Kamlet-Jacobs needs the loading density of the charge and a measured condensed-phase enthalpy of formation, neither of which can be derived from a structure, and it is stated for C/H/N/O explosives only. Hidden by default so it is not offered to everyone; the arithmetic is checked against the source's own tables.
+- Covers: C/H/N/O explosives whose oxygen content lies in Eq. (12)'s range.
 - Produces a list of facts, each with its own units, basis and evidence.
 - Runs on the 2D drawing, so no conformer is needed.
 - Basis: empirical (fitted to measured data, with real scatter).
@@ -852,6 +855,9 @@ Single-point energy via ORCA. Produces the SCF energy. Needs an ORCA executable 
 
 Eleven pure-component properties from the structure alone, by Joback and Reid's group contributions: normal boiling and freezing points, the three critical constants, standard enthalpy and Gibbs energy of formation, ideal-gas heat capacity, enthalpies of vaporization and fusion, and liquid viscosity. Additive over a COMPLETE decomposition, so a structure carrying an atom in no Joback group is refused with the atom named rather than given a partial sum -- the table has no ring tertiary amine and stops at divalent sulfur. Critical temperature takes a boiling point: supply a measured one where you have it, because the paper warns that estimating it costs several times the error.
 
+- Support level: **Limited**. Hidden by default; enable it under Settings > Calculators.
+- Why: Joback's group table has no group for a ring nitrogen with three heavy neighbours (a ring tertiary amine) and stops at divalent sulfur, so it refuses many drug-like and energetic molecules -- RDX and HMX are refused while TNT and PETN run. That is a limit of the 1987 method, not a fault; it is hidden by default so it does not read as everyday equipment.
+- Covers: molecules whose every atom falls in one of Joback's 41 groups.
 - Produces a list of facts, each with its own units, basis and evidence.
 - Runs on the 2D drawing, so no conformer is needed.
 - Basis: empirical (fitted to measured data, with real scatter).

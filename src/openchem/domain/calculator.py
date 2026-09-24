@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable
 
+from openchem.domain.calculator_support import CalculatorSupport
 from openchem.domain.common import ScientificResult
 
 # Re-exported: every calculator module imports its refusal codes from here.
@@ -358,6 +359,12 @@ class CalculatorDefinition:
     #: Which components, how aggregated, over what domain. `None` is not a
     #: scope: the guard fails on it (see `CalculatorScope`).
     scope: CalculatorScope | None = None
+    #: Declared stage and default visibility, with the reason
+    #: (`domain.calculator_support`). `None` is "nobody decided" and reads as
+    #: STABLE and shown, so a plugin's calculator or a test double behaves as it
+    #: always did; a guard fails a BUILT-IN calculator that is neither classified
+    #: nor named in `LEGACY_UNCLASSIFIED`.
+    support: CalculatorSupport | None = None
 
     def __post_init__(self) -> None:
         # At construction, so a dangling or circular dependency is a failing

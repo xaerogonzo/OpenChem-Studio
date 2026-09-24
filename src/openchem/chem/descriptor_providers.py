@@ -167,6 +167,7 @@ from openchem.domain.common import (
     Provenance,
     declare_total,
 )
+from openchem.domain.calculator_support import CalculatorSupport, SupportStage, Visibility
 from openchem.domain.completeness import completeness_parameters
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.scientific_result import AlertResult, PerAtomDataset
@@ -3312,6 +3313,22 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         ),
         execution=RegistryExecution(compute=compute_detonation),
         prediction_basis="empirical",
+        # STABLE and hidden: the arithmetic is checked against the source's own
+        # tables (`tests/test_energetics.py`), so the STAGE is not in doubt --
+        # but it is a specialist estimate that needs two measured numbers no
+        # structure can supply, so it is not offered to everyone by default.
+        support=CalculatorSupport(
+            SupportStage.STABLE,
+            Visibility.HIDDEN,
+            support_reason=(
+                "A specialist estimate. Kamlet-Jacobs needs the loading density of the charge "
+                "and a measured condensed-phase enthalpy of formation, neither of which can "
+                "be derived from a structure, and it is stated for C/H/N/O explosives only. "
+                "Hidden by default so it is not offered to everyone; the arithmetic is "
+                "checked against the source's own tables."
+            ),
+            scope_note="C/H/N/O explosives whose oxygen content lies in Eq. (12)'s range",
+        ),
         tags=["energetic", "detonation", "kamlet-jacobs", "performance"],
         parameters=[
             decimal_places_parameter(1),
@@ -3445,6 +3462,24 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         ),
         execution=RegistryExecution(compute=compute_joback),
         prediction_basis="empirical",
+        # LIMITED, and hidden by default, on MEASURED evidence rather than a
+        # judgement: on 2026-09-24 this implementation ran on TNT, PETN and
+        # aspirin and refused 1,3-dinitro-1,3-diazetidine, RDX and HMX
+        # (`UNCOVERED_ATOM`: a ring nitrogen with no hydrogen and three heavy
+        # neighbours). Ring tertiary amines are common in drugs, so this is
+        # a real coverage gap of Joback's own table and not a bug here.
+        support=CalculatorSupport(
+            SupportStage.LIMITED,
+            Visibility.HIDDEN,
+            support_reason=(
+                "Joback's group table has no group for a ring nitrogen with three heavy "
+                "neighbours (a ring tertiary amine) and stops at divalent sulfur, so it "
+                "refuses many drug-like and energetic molecules -- RDX and HMX are refused "
+                "while TNT and PETN run. That is a limit of the 1987 method, not a fault; "
+                "it is hidden by default so it does not read as everyday equipment."
+            ),
+            scope_note="molecules whose every atom falls in one of Joback's 41 groups",
+        ),
         tags=["thermophysical", "critical", "boiling", "joback", "group contribution"],
         parameters=[
             decimal_places_parameter(),
