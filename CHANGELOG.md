@@ -91,6 +91,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   **Spread** and each later method's difference from the first. `domain/compare.py` REFUSES what would publish a wrong difference -- a different molecule, an edit between the runs, a
   drawing beside a conformer, one protonation state beside another, different units or atoms, or the same calculation twice -- and the menu never offers a comparison it would refuse.
   Not saved with the project. Driven on ethanol: EEM against QEq disagree most at the oxygen (0.09 e).
+- **A note on what Ketcher already does when drawing** (`docs/KETCHER_SPIKE.md`): hover-aware hotkeys are native to the bundle (hover a bond and press 1/2/3, hover an atom and press an
+  element or `/`), so the proposed click-to-cycle gesture should wait for somebody to check by hand what is already there. A hover could not be produced from automation -- not by DOM
+  events, not by real Qt mouse events -- so it is unverified with a real pointer, and said so.
 - **Right-clicking an atom and choosing Edit... now works.** It opened nothing and logged nothing: the menu dispatched Ketcher's `elementEdit` event itself with a bare object, where
   Ketcher's own callers pass an array of atom objects from the selection and hand the returned promise to an internal function that writes the answer back -- so even a dialog that opened
   could not have applied its result. It now selects the atom and double-clicks it, which runs Ketcher's own path. Driven on the real page: the Atom Properties dialog is up, Cancel leaves the

@@ -4956,6 +4956,62 @@ class _Driver(QObject):
 
         page.runJavaScript(f"(function () {{ try {{ return ({script}); }} catch (e) {{ return 'ERROR: ' + e; }} }})();", report)
 
+    def _do_ketcher_hover(self, step: dict[str, Any]) -> None:
+        """`{"do": "ketcher_hover", "bond": 0}` or `{"do": "ketcher_hover", "atom": 2}` -- put
+        the pointer over one item of the drawing with a REAL Qt mouse-move event delivered to the
+        web view, not a synthetic DOM event.
+
+        Built for the drawing spike, which asks whether Ketcher's hover-aware hotkeys (hover a
+        bond, press 2) reach the page in QtWebEngine at all. A DOM `dispatchEvent` cannot answer
+        that: the page's own handlers may test things a synthetic event does not carry, and the
+        question is about the real route. The item's client position is worked out on the page by
+        inverting `page2obj` at two probe points (as the overlay transform does); the move is then
+        sent with `QTest.mouseMove` to the view's focus proxy, which does not touch the machine's
+        cursor. A `key` step with `"focus": "canvas"` presses the key afterwards.
+
+        `"bond"`/`"atom"` are MOLFILE POSITIONS. Logs the client point it moved to.
+        """
+        from PySide6.QtCore import QPoint
+        from PySide6.QtTest import QTest
+
+        editor = self._window._editor
+        backend = editor._backend
+        view = backend.widget()
+        target = view.focusProxy() or view
+        kind, index = ("bond", int(step["bond"])) if "bond" in step else ("atom", int(step.get("atom", 0)))
+
+        def moved(result) -> None:
+            try:
+                point = json.loads(result)
+            except (TypeError, ValueError):
+                logger.error("OPENCHEM_DRIVE: ketcher_hover: the page answered %r", result)
+                return
+            QTest.mouseMove(target, QPoint(int(point["x"]), int(point["y"])))
+            logger.warning("OPENCHEM_DRIVE: ketcher_hover -> %s %d at (%d, %d)", kind, index, point["x"], point["y"])
+
+        backend._page.runJavaScript(
+            """
+            (function () {
+              var ed = window.ketcher.editor, render = ed.render, struct = ed.struct();
+              var a = render.page2obj({clientX: 0, clientY: 0, pageX: 0, pageY: 0});
+              var b = render.page2obj({clientX: 100, clientY: 100, pageX: 100, pageY: 100});
+              var sx = 100 / (b.x - a.x), sy = 100 / (b.y - a.y);
+              var kind = %s, index = %d, pp;
+              if (kind === 'bond') {
+                var ids = Array.from(struct.bonds.keys());
+                var bond = struct.bonds.get(ids[index]);
+                var p1 = struct.atoms.get(bond.begin).pp, p2 = struct.atoms.get(bond.end).pp;
+                pp = {x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2};
+              } else {
+                var aids = Array.from(struct.atoms.keys());
+                pp = struct.atoms.get(aids[index]).pp;
+              }
+              return JSON.stringify({x: (pp.x - a.x) * sx, y: (pp.y - a.y) * sy});
+            })();
+            """ % (json.dumps(kind), index),
+            moved,
+        )
+
     def _do_atom_editor(self, step: dict[str, Any]) -> None:
         """`{"do": "atom_editor", "atom": 2, "set": {"charge": "1"}, "apply": true, "expect": {...}}`
         -- what the atom right-click menu's "Edit..." does, and WHAT THE PAGE DID ABOUT IT.
