@@ -1,0 +1,504 @@
+# The energetics literature: what is held, what is not, and what it is for.
+#
+# Written by hand from each file's OWN first page (never from its filename), 2026-09-24; see README.md
+# beside this file for the rules. Two kinds of field, kept apart on purpose:
+#
+#   printed.*   what the paper itself says -- DOI, title, venue. Checkable against the file.
+#   assigned.*  OUR reading of what the paper is for. Not evidence about the paper.
+#
+# `file` is a LOCATOR in the maintainer's library and never identity; `sha256` says the file is
+# still the one that was read. `access` is NOT a verdict on the science: a paper we cannot read
+# is not a paper we rejected.
+
+
+[[source]]
+id = "davis2024"
+file = "cm4c01978.pdf"
+sha256 = "7e73abe0c3a7fbdb8b7225015bfb5208b5946c404d688b1b7ee9e72bbf0e3e96"
+pages = 10
+access = "held"
+printed.doi = "10.1021/acs.chemmater.4c01978"
+printed.title = "Machine Learning Models for High Explosive Crystal Density and Performance"
+printed.venue = "Chem. Mater. 2024, 36, 11109-11118"
+assigned.property = "density"
+assigned.role = "candidate_method"
+note = "predicts CRYSTAL density; the plan records its CSD densities as normalised to 200 K"
+
+[[source]]
+id = "jin2023"
+file = "Jin2023.pdf"
+sha256 = "d8e90cc688816aefecd7b2b67d5952cb3aee35afa229632305cff247c5061aa9"
+pages = 13
+access = "held"
+printed.doi = "10.1186/s13321-023-00736-6"
+printed.title = "Force field-inspired transformer network assisted crystal density prediction for energetic materials"
+printed.venue = "J. Cheminform. (2023) 15:65"
+assigned.property = "density"
+assigned.role = "candidate_method"
+note = "open access; the paper prints a CC BY 4.0 licence"
+
+[[source]]
+id = "nguyen2021"
+file = "nguyen2021.pdf"
+sha256 = "c662edf22092cfff11e00adefa35b1d760d4af08218cb3d571a1d878b66a02ef"
+pages = 12
+access = "held"
+printed.doi = "10.1021/acs.jcim.0c01318"
+printed.title = "Predicting Energetics Materials' Crystalline Density from Chemical Structure by Machine Learning"
+assigned.property = "density"
+assigned.role = "candidate_method"
+
+[[source]]
+id = "yang2021"
+file = "yang2021.pdf"
+sha256 = "34de8b2e97cc2fb68c678824f045029129705cdfca75ae2714ae7122bf1b67e6"
+pages = 12
+access = "held"
+printed.doi = "10.1021/acs.jcim.0c01393"
+printed.title = "Density Prediction Models for Energetic Compounds Merely Using Molecular Topology"
+assigned.property = "density"
+assigned.role = "candidate_method"
+
+[[source]]
+id = "tarver1979"
+file = "tarver1979.pdf"
+sha256 = "8d42c444513de266c693ae21c9dbbc466062789aa9805cf995875c3567f32747"
+pages = 10
+access = "held"
+printed.doi = ""
+printed.title = "Density Estimations for Explosives and Related Compounds Using the Group Additivity Approach"
+printed.venue = "J. Chem. Eng. Data, Vol. 24, No. 2, 1979, p. 136"
+assigned.property = "density"
+assigned.role = "candidate_method"
+note = "page 1 of the file opens on the tail of the preceding article; the paper's own title is on it"
+
+[[source]]
+id = "ammon1998"
+file = "ammon1998.pdf"
+sha256 = "f7ada09c50f5b85865856926cba7146f0ebfc9596b69ab95499126fb999ce257"
+pages = 6
+access = "held"
+printed.doi = ""
+printed.title = "A New Atom/Functional Group Volume Additivity Data Base for the Calculation of the Crystal Densities of C, H, N, O and F-Containing Compounds"
+printed.venue = "Propellants, Explosives, Pyrotechnics 23, 260-265 (1998)"
+assigned.property = "density"
+assigned.role = "candidate_method"
+note = "Ammon and Mitchell"
+
+[[source]]
+id = "ammon2001"
+file = "ammon2001.pdf"
+sha256 = "2b92ba58e8b5d0496aaf28a7f49ca2ee9fa91ef1f02ad73a6d67e604bc594aaf"
+pages = 8
+access = "held"
+printed.doi = ""
+printed.title = "New Atom/ Functional Group Volume Additivity Data Bases for the Calculation of the Crystal Densities of C-, H-, N-, O-, F-, S-, P-, Cl-, and Br-Containing Compounds"
+printed.venue = "Structural Chemistry, Vol. 12, Nos. 3/4, 2001, p. 205"
+assigned.property = "density"
+assigned.role = "candidate_method"
+
+[[source]]
+id = "ammon2008"
+file = "ammon2008.pdf"
+sha256 = "c2ae7c79ee3f360344c03afc0501309005342c4aa39e9a972cbca343b32470aa"
+pages = 11
+access = "held"
+printed.doi = "10.1002/prep.200700054"
+printed.title = "Updated Atom/Functional Group and Atom_Code Volume Additivity Parameters for the Calculation of Crystal Densities of Single Molecules, Organic Salts, and Multi-Fragment Materials Containing H, C, B, N, O, F, S, P, Cl, Br, and I"
+assigned.property = "density"
+assigned.role = "candidate_method"
+
+[[source]]
+id = "hofmann2002"
+file = "hofmann2002.pdf"
+sha256 = "3da8bcbe5d0ecac100dc94264410112ae7eac31334886688b67b527267b132e6"
+pages = 5
+access = "held"
+printed.doi = ""
+printed.title = "Fast estimation of crystal densities"
+printed.venue = "Acta Cryst. (2002). B57, 489-493"
+assigned.property = "density"
+assigned.role = "candidate_method"
+
+[[source]]
+id = "beaucamp2003"
+file = "beaucamp2003.pdf"
+sha256 = "321aa8d6dc5c54c5fb79f19d2c8f6cdcaf36285be871b42f243e27bb472b3950"
+pages = 7
+access = "held"
+printed.doi = ""
+printed.title = "Calculation of the crystal densities of molecular salts and hydrates using additive volumes for charged groups"
+printed.venue = "Acta Cryst. (2003). B59, 498-504"
+assigned.property = "density"
+assigned.role = "candidate_method"
+
+[[source]]
+id = "keshavarz2009_nitro"
+file = "keshavarz2009.pdf"
+sha256 = "94c0cccf551bf2a517127a0383f366567d2b78069270bfe1eaa485dd27401fd8"
+pages = 12
+access = "held"
+printed.doi = "10.1016/j.jhazmat.2009.03.091"
+printed.title = "A reliable simple method to estimate density of nitroaliphatics, nitrate esters and nitramines"
+printed.venue = "J. Hazard. Mater. 169 (2009) 158-169"
+assigned.property = "density"
+assigned.role = "candidate_method"
+note = "nitramine-specific"
+
+[[source]]
+id = "keshavarz2009_arene"
+file = "keshavarz2009_II.pdf"
+sha256 = "e0da886d735ada66b0eeee68d969704f615cca3bb224995bd0af2b392b70824c"
+pages = 10
+access = "held"
+printed.doi = "10.1016/j.jhazmat.2008.10.019"
+printed.title = "doi:10.1016/j.jhazmat.2008.10.019"
+printed.venue = "J. Hazard. Mater. 165 (2009) 579-588"
+assigned.property = "density"
+assigned.role = "candidate_method"
+note = "polynitro arenes and heteroarenes"
+
+[[source]]
+id = "rice2007"
+file = "rice2007.pdf"
+sha256 = "6df167ae68d89e95fb8b84880fb080a8d7dbb19da1a75547a60beafb35eed063"
+pages = 6
+access = "held"
+printed.doi = "10.1021/jp073117j"
+printed.title = "Accurate Predictions of Crystal Densities Using Quantum Mechanical Molecular Volumes"
+assigned.property = "density"
+assigned.role = "candidate_method"
+
+[[source]]
+id = "rice2013"
+file = "rice2013.pdf"
+sha256 = "9a6f1a3f69d941c0144ebe6d9e6537264e5fd9dac300cdcea8e14a7ced096be8"
+pages = 6
+access = "held"
+printed.doi = "10.1002/jcc.23369"
+printed.title = "Evaluation of Electrostatic Descriptors for Predicting Crystalline Density"
+assigned.property = "density"
+assigned.role = "candidate_method"
+
+[[source]]
+id = "kim2008"
+file = "kim2008.pdf"
+sha256 = "9b0ade4d5f4f02dae9f07dacd2de9648fbee8d15e7b3a8d1fb4cc9a5da7df00b"
+pages = 7
+access = "held"
+printed.doi = "10.1002/jcc.20943"
+printed.title = "Prediction of Densities for Solid Energetic Molecules with Molecular Surface Electrostatic Potentials"
+assigned.property = "density"
+assigned.role = "candidate_method"
+
+[[source]]
+id = "qiu2007"
+file = "qiu2007.pdf"
+sha256 = "1ecd4d771eb015286d4caad5410c9c43a69fcfd1ae7bcce84c7c6196e483f712"
+pages = 9
+access = "held"
+printed.doi = "10.1016/j.jhazmat.2006.06.135"
+printed.title = "Crystal density predictions for nitramines based on quantum chemistry"
+printed.venue = "J. Hazard. Mater. 141 (2007) 280-288"
+assigned.property = "density"
+assigned.role = "candidate_method"
+note = "nitramine-specific"
+
+[[source]]
+id = "constantinou1994"
+file = "constantinou1994.pdf"
+sha256 = "8c034fbcd5b9baf348313125e8866880a4812217e1eb7d21aaa12499b4f7f90f"
+pages = 14
+access = "held"
+printed.doi = ""
+printed.title = "New Group Contribution Method for Estimating Properties of Pure Compounds"
+printed.venue = "AIChE Journal, October 1994, Vol. 40, No. 10"
+assigned.property = "thermophysical"
+assigned.role = "candidate_method"
+
+[[source]]
+id = "marrero2001"
+file = "marrero2001.pdf"
+sha256 = "6e385835073903686e6c365b488116bf0c9e6bfbab37f80442cc9fc95a03d80d"
+pages = 26
+access = "held"
+printed.doi = ""
+printed.title = "Group-contribution based estimation of pure component properties"
+printed.venue = "Fluid Phase Equilibria 183-184 (2001) 183-208"
+assigned.property = "thermophysical"
+assigned.role = "candidate_method"
+note = "the file prints a PII (S0378-3812(01)00431-9), not a DOI"
+
+[[source]]
+id = "mathieu2018_apc"
+file = "mathieu2018_II.pdf"
+sha256 = "21f2e6750013e38acd03997c2884b98ecdaedc2ac0c587ee10ca7d325dc2fc37"
+pages = 15
+access = "held"
+printed.doi = "10.1021/acs.jcim.7b00613"
+printed.title = "Atom Pair Contribution Method: Fast and General Procedure To Predict Molecular Formation Enthalpies"
+assigned.property = "enthalpy_gas"
+assigned.role = "candidate_method"
+
+[[source]]
+id = "mathieu2018_iecr"
+file = "mathieu2018.pdf"
+sha256 = "c72951524e31aa312ddee4d386bf1d9b4353d3f4309cf3c8768303878a12f2ae"
+pages = 33
+access = "held_accepted_manuscript"
+printed.doi = "10.1021/acs.iecr.8b03001"
+printed.title = "Accurate or Fast Prediction of Solid-State Formation Enthalpies Using Standard Sublimation Enthalpies Derived From Geometrical Fragments"
+printed.venue = "Ind. Eng. Chem. Res., Just Accepted Manuscript, 10 Sep 2018"
+assigned.property = "enthalpy_solid"
+assigned.role = "candidate_method"
+note = "the ACCEPTED MANUSCRIPT, not the version of record"
+
+[[source]]
+id = "mathieu2021"
+file = "mathieu2021.pdf"
+sha256 = "8e537bfa72dc72d6066d684291c196f3b08324019e80205309989cec64e1282c"
+pages = 8
+access = "held"
+printed.doi = "10.1002/minf.202100064"
+printed.title = "Molecular Energies Derived from Deep Learning: Application to the Prediction of Formation Enthalpies Up to High Energy Compounds"
+assigned.property = "enthalpy_gas"
+assigned.role = "candidate_method"
+note = "warns of large errors for energetics from a training-domain gap"
+
+[[source]]
+id = "cawkwell2021"
+file = "cawkwell2021.pdf"
+sha256 = "110afb2bbd0f1a46385632d79f43030996c0e2fc65ef19a1f71763504cc597d8"
+pages = 11
+access = "held"
+printed.doi = "10.1021/acs.jcim.1c00312"
+printed.title = "Atom Equivalent Energies for the Rapid Estimation of the Heat of Formation of Explosive Molecules from Density Functional Tight Binding Theory"
+printed.venue = "J. Chem. Inf. Model. 2021, 61, 3337-3347"
+assigned.property = "enthalpy_gas"
+assigned.role = "candidate_method"
+
+[[source]]
+id = "byrd2005"
+file = "byrd2005.pdf"
+sha256 = "f73a9a99e4ee2f5a5aacae9d11ebb7b46aec03c4178172f852993a278705e955"
+pages = 9
+access = "held"
+printed.doi = "10.1021/jp0536192"
+printed.title = "Improved Prediction of Heats of Formation of Energetic Materials Using Quantum Mechanical Calculations"
+assigned.property = "enthalpy_gas"
+assigned.role = "benchmark_reference"
+note = "the 45-molecule set Cawkwell benchmarks against; file name says 2005 (received 2005), volume year is 2006"
+
+[[source]]
+id = "mathieu2012"
+file = "mathieu2012.pdf"
+sha256 = "d2e815a14bbaa92ed95d5e35bcc208ce9f5d97203ef6d55aa2dfdfbfd01efbac"
+pages = 6
+access = "held"
+printed.doi = "10.1021/ie201995k"
+printed.title = "Simple Alternative to Neural Networks for Predicting Sublimation Enthalpies from Fragment Contributions"
+assigned.property = "enthalpy_sublimation"
+assigned.role = "candidate_method"
+
+[[source]]
+id = "gharagheizi2011_subl"
+file = "gharagheizi2011.pdf"
+sha256 = "209c9f4c3009863de4c6cefca476b3f677209f46b649d952afbd8f36a000f04b"
+pages = 5
+access = "held"
+printed.doi = "10.1021/ie101672j"
+printed.title = "Prediction of Crystal Lattice Energy Using Enthalpy of Sublimation: A Group Contribution-Based Model"
+printed.venue = "Ind. Eng. Chem. Res. 2011, 50, 2482-2486"
+assigned.property = "enthalpy_sublimation"
+assigned.role = "candidate_method"
+
+[[source]]
+id = "gharagheizi2011_fusion"
+file = "gharagheizi2011_II.pdf"
+sha256 = "c3b7cb2132b580ad688f93393dd23f35938950f8d49f7b787734a9de3aad1016"
+pages = 4
+access = "held"
+printed.doi = "10.1016/j.tca.2011.04.001"
+printed.title = "Prediction of enthalpy of fusion of pure compounds using an Artificial Neural Network-Group Contribution method"
+printed.venue = "Thermochimica Acta 521 (2011) 37-40"
+assigned.property = "enthalpy_fusion"
+assigned.role = "candidate_method"
+note = "a DIFFERENT paper from gharagheizi2011_subl, despite the file names"
+
+[[source]]
+id = "gharagheizi2013"
+file = "gharagheizi2013.pdf"
+sha256 = "a188dd05078106511522250b986f1d021386041f5cfc40a996549dc55d95c661"
+pages = 21
+access = "held"
+printed.doi = "10.1016/j.fluid.2013.06.046"
+printed.title = "A group contribution model for determining the sublimation enthalpy of organic compounds at the standard reference temperature of 298 K"
+printed.venue = "Fluid Phase Equilibria 354 (2013) 265-285"
+assigned.property = "enthalpy_sublimation"
+assigned.role = "candidate_method"
+note = "the DOI is printed with a ligature (fl) in the file"
+
+[[source]]
+id = "keshavarz2010"
+file = "keshavarz2010.pdf"
+sha256 = "7abb4681616a5ddbfd9c85b124873ad2eb57f73795304b59c92bfbdca6f2c059"
+pages = 12
+access = "held"
+printed.doi = "10.1016/j.jhazmat.2009.12.081"
+printed.title = "Improved prediction of heats of sublimation of energetic compounds using their molecular structure"
+printed.venue = "J. Hazard. Mater. 177 (2010) 648-659"
+assigned.property = "enthalpy_sublimation"
+assigned.role = "candidate_method"
+
+[[source]]
+id = "acree2010"
+file = "acree2010.pdf"
+sha256 = "00015c282eff49e1d9a0d6f79f51e17fa910bde600962f6f7139bf05e40521c8"
+pages = 942
+access = "held"
+printed.doi = "10.1063/1.3309507"
+printed.title = "Phase Transition Enthalpy Measurements of Organic and Organometallic Compounds. Sublimation, Vaporization and Fusion Enthalpies From 1880 to 2010"
+assigned.property = "data_compendium"
+assigned.role = "data_layer"
+note = "a compendium and a protocol for adjusting to 298.15 K, not a model"
+
+[[source]]
+id = "mathieu2002"
+file = "mathieu2002.pdf"
+sha256 = "47b46c64a7d89188d6f59a318191d3395b83765dd339ec318d71407e1eb9e153"
+pages = 7
+access = "held"
+printed.doi = ""
+printed.title = "Evaluation of solid-state formation enthalpies for energetic materials and related compounds"
+printed.venue = "Thermochimica Acta 384 (2002) 369-375"
+assigned.property = "enthalpy_solid"
+assigned.role = "candidate_method"
+note = "the file prints a PII (S0040-6031(01)00795-X), not a DOI"
+
+[[source]]
+id = "jafari2016"
+file = "jafari2016.pdf"
+sha256 = "2c53c2d04be6c7bcefd6991bb428d146241e830932dc37d24e25b6ee081b8c59"
+pages = 11
+access = "held"
+printed.doi = "10.1002/slct.201601184"
+printed.title = "A Reliable Method for Prediction of the Condensed Phase Enthalpy of Formation of High Nitrogen Content Materials through their Gas Phase Information"
+assigned.property = "enthalpy_solid"
+assigned.role = "candidate_method"
+
+[[source]]
+id = "keshavarz2012"
+file = "keshavarz2012.pdf"
+sha256 = "f1492d1655aeb7ec4e4aa73648216ef462d46bfbcf9c8e03b710a2e3b0b8ad78"
+pages = 8
+access = "held"
+printed.doi = "10.1002/prep.201100156"
+printed.title = "A New Computer Code for Assessment of Energetic Materials with Crystal density, Condensed Phase Enthalpy of Formation, and Activation Energy of Thermolysis"
+assigned.property = "enthalpy_solid"
+assigned.role = "candidate_method"
+note = "code for crystal density and condensed-phase enthalpy"
+
+[[source]]
+id = "keshavarz2021"
+file = "keshavarz2021.pdf"
+sha256 = "25d29a5c5336fbc25861c60e29ca6635aabc6dd9d3486b4de7a6bf2d5f0a350d"
+pages = 34
+access = "held_preproof"
+printed.doi = "10.1016/j.fluid.2020.112913"
+printed.title = "Recent advances for assessment of the condensed phase heat of formation of high-energy content organic compounds and ionic liquids (or salts) to introduce a new computer code for design of desirable compounds"
+printed.venue = "Fluid Phase Equilib. 533, 112913"
+assigned.property = "enthalpy_solid"
+assigned.role = "review"
+note = "the JOURNAL PRE-PROOF, not the version of record"
+
+[[source]]
+id = "kazandjian2006"
+file = "kazandjian2006.pdf"
+sha256 = "1fa058970b1573eefd93c0b5e54816b9400eb6f605778f80be03364784ea4de0"
+pages = 5
+access = "held"
+printed.doi = "10.1002/prep.200600002"
+printed.title = "A Discussion of the Kamlet-Jacobs Formula for the Detonation Pressure"
+assigned.property = "detonation"
+assigned.role = "equation_source"
+note = "derives the pressure form the module's K matches"
+
+[[source]]
+id = "mathieu2017"
+file = "mathieu2017.pdf"
+sha256 = "f57528bf3e8caed39c011cd5e35c7caa19d675ef4532b61b7d40f0e269003bbe"
+pages = 11
+access = "held"
+printed.doi = "10.1021/acs.iecr.7b02021"
+printed.title = "Sensitivity of Energetic Materials: Theoretical Relationships to Detonation Performance and Molecular Structure"
+assigned.property = "sensitivity"
+assigned.role = "context_only"
+note = "about IMPACT sensitivity, not error sensitivity; sensitivity prediction is out of scope"
+
+[[source]]
+id = "elton2018"
+file = "s41598-018-27344-x.pdf"
+sha256 = "a8d2ea9d753699911e74ffea5111ba066a50a889aa7054219dcf15ea3c57ccf4"
+pages = 12
+access = "held"
+printed.doi = "10.1038/s41598-018-27344-x"
+printed.title = "Applying machine learning techniques to predict the properties of energetic materials"
+printed.venue = "Sci. Rep. (2018) 8:9059"
+assigned.property = "ml_general"
+assigned.role = "context_only"
+note = "its supplement is methods only, with no dataset"
+
+[[source]]
+id = "burkhardt2026"
+access = "held_si_only"
+printed.doi = "10.1021/acs.jced.5c00573"
+printed.venue = "J. Chem. Eng. Data 71(1), 6-23 (2026)"
+requested = "2026-09-24"
+assigned.property = "thermophysical"
+assigned.role = "candidate_method"
+note = "the ARTICLE is not held; its SI is (Tb, Tc, Cp(T) only). The SI lists 5,591 Tb and 1,454 Tc substances and a 1,186-row individually-fitted Cp list; the general Cp list is a one-row stub, so that population cannot be enumerated. A DaRUS deposit, doi:10.18419/DARUS-5298, is CC BY 4.0 per DataCite."
+
+[[source]]
+id = "zhong2025"
+access = "not_held"
+printed.doi = "10.1038/s42004-025-01544-9"
+printed.venue = "Commun. Chem. (2025)"
+assigned.property = "enthalpy_solid"
+assigned.role = "candidate_method"
+note = "open access; periodic DFT; the fetch is covered by the standing permission for open-access papers"
+
+[[source]]
+id = "huang_massa2013"
+access = "not_held"
+printed.doi = "10.1615/intjenergeticmaterialschemprop.2013006517"
+printed.venue = "Int. J. Energ. Mater. Chem. Prop. 12, 197-262"
+assigned.property = "density"
+assigned.role = "benchmark_reference"
+note = "the density benchmark Davis uses"
+
+[[source]]
+id = "stine1981"
+access = "not_held"
+printed.doi = ""
+printed.venue = "LANL report (no DOI)"
+assigned.property = "density"
+assigned.role = "candidate_method"
+
+[[source]]
+id = "davis2024_si"
+access = "not_held"
+printed.doi = ""
+printed.venue = "PMC11603605"
+assigned.property = "density"
+assigned.role = "data_layer"
+note = "open access; whether it marks train/test membership is unchecked"
+
+[[source]]
+id = "mathieu2025_misconceptions"
+access = "requested"
+printed.doi = "10.1002/prep.70064"
+printed.venue = "Propellants Explos. Pyrotech. (25 Oct 2025)"
+requested = "2026-09-24"
+assigned.property = "enthalpy_solid"
+assigned.role = "review"
+note = "requested from the authors by Alex on 2026-09-24, giving the name 'Opensource Project'; if a file arrives, identify it from its own text"
