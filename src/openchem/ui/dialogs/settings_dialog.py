@@ -23,6 +23,7 @@ from __future__ import annotations
 
 from PySide6.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QDialog,
     QDialogButtonBox,
     QGridLayout,
@@ -40,11 +41,14 @@ from PySide6.QtWidgets import (
 from openchem.app.settings import (
     MAX_REVISIONS_KEPT,
     RAIL_HIDES_PANELS,
+    RECALC_MODE,
+    RECALC_QUIET_MS,
     RECOVERY_DELAY_SECONDS,
     RECOVERY_ENABLED,
     Preference,
     Settings,
 )
+from openchem.domain.recalc_policy import RecalcMode
 from openchem.ui.dialogs.calculator_visibility_page import CalculatorVisibilityPage
 from openchem.ui.dialogs.external_tools_pages import ExternalToolsPages
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
@@ -55,6 +59,9 @@ PANELS = "panels"
 
 #: Section id of recovery copies.
 RECOVERY = "recovery"
+
+#: Section id of when drawing recomputes results.
+RECALCULATION = "recalculation"
 
 #: Section id of the results kept in memory.
 RESULTS = "results"
@@ -72,6 +79,7 @@ EXTERNAL_TOOLS = "external_tools"
 SECTIONS = (
     (PANELS, "Panels"),
     (RECOVERY, "Recovery"),
+    (RECALCULATION, "Recalculation"),
     (RESULTS, "Results"),
     (CALCULATORS, "Calculators"),
     (FILE_DIALOGS, "File dialogs"),
@@ -147,6 +155,33 @@ _HELP = {
         topic="settings",
         help_anchor="settings",
     ),
+    "recalc_mode": HelpTooltip(
+        text=(
+            "When results are recomputed after you draw.\n\n"
+            "After I pause (the default): once no edit has arrived for the delay below. "
+            "While I draw: as soon as the application is free, at most once per "
+            "moment. Only when I ask: never by itself -- results read Stale until you "
+            "use Tools > Recalculate Now (F5).\n\n"
+            "Results are marked Stale the instant you edit in every mode; this only "
+            "decides when they are refreshed. Undo, redo and importing always "
+            "recompute at once."
+        ),
+        tier=2,
+        help_id="settings.recalc_mode",
+        topic="settings",
+        help_anchor="settings",
+    ),
+    "recalc_delay": HelpTooltip(
+        text=(
+            "How long a pause counts as stopping: 0 to 5000 milliseconds, default 800. "
+            "Every edit restarts the wait, so a burst of edits is one recomputation. "
+            "Used only by After I pause."
+        ),
+        tier=2,
+        help_id="settings.recalc_delay",
+        topic="settings",
+        help_anchor="settings",
+    ),
     "forget_directory": HelpTooltip(
         text=(
             "Forgets the folder these file dialogs last opened in, so the next one "
@@ -215,6 +250,7 @@ class SettingsDialog(QDialog):
         builders = {
             PANELS: self._build_panels_page,
             RECOVERY: self._build_recovery_page,
+            RECALCULATION: self._build_recalculation_page,
             RESULTS: self._build_results_page,
             CALCULATORS: self._build_calculators_page,
             FILE_DIALOGS: self._build_file_dialogs_page,
@@ -351,6 +387,67 @@ class SettingsDialog(QDialog):
 
     def _on_recovery_delay_changed(self, seconds: int) -> None:
         self._store(RECOVERY_DELAY_SECONDS, seconds)
+
+    # --- Recalculation -----------------------------------------------------------
+
+    #: The mode combo's entries, in the order shown: the stored integer and its words.
+    _RECALC_CHOICES = (
+        (RecalcMode.WHILE_DRAWING, "While I draw"),
+        (RecalcMode.AFTER_PAUSE, "After I pause"),
+        (RecalcMode.ON_REQUEST, "Only when I ask"),
+    )
+
+    def _build_recalculation_page(self) -> QWidget:
+        page = QWidget(self)
+        self._recalc_mode = QComboBox(page)
+        self._recalc_mode.setObjectName("recalcMode")
+        for mode, words in self._RECALC_CHOICES:
+            # The integer is what is stored; the words are what is read.
+            self._recalc_mode.addItem(words, int(mode))
+        current = int(self._settings.preference(RECALC_MODE))
+        self._recalc_mode.setCurrentIndex(max(0, self._recalc_mode.findData(current)))
+        apply_help_tooltip(self._recalc_mode, _HELP["recalc_mode"])
+
+        self._recalc_delay = _spin_box(RECALC_QUIET_MS, " ms", page)
+        self._recalc_delay.setObjectName("recalcQuietMs")
+        self._recalc_delay.setSingleStep(100)
+        self._recalc_delay.setValue(int(self._settings.preference(RECALC_QUIET_MS)))
+        self._recalc_delay.setEnabled(current == int(RecalcMode.AFTER_PAUSE))
+        apply_help_tooltip(self._recalc_delay, _HELP["recalc_delay"])
+        self._recalc_mode.currentIndexChanged.connect(self._on_recalc_mode_changed)
+        self._recalc_delay.valueChanged.connect(self._on_recalc_delay_changed)
+
+        mode_row = QHBoxLayout()
+        mode_row.addWidget(QLabel("Recalculate results", page))
+        mode_row.addWidget(self._recalc_mode)
+        mode_row.addStretch(1)
+        delay_row = QHBoxLayout()
+        delay_row.addWidget(QLabel("A pause is", page))
+        delay_row.addWidget(self._recalc_delay)
+        delay_row.addWidget(QLabel("with no edit", page))
+        delay_row.addStretch(1)
+
+        layout = QVBoxLayout(page)
+        layout.addWidget(_heading("Recalculation", page))
+        layout.addLayout(mode_row)
+        layout.addLayout(delay_row)
+        layout.addWidget(_note(
+            "Results are marked Stale the moment you edit, whichever you choose; this decides "
+            "when they are refreshed. Recomputing fifty results for every bond you draw made "
+            "drawing lag. Undo, redo and importing always recompute at once, and Tools > "
+            "Recalculate Now (F5) does it whenever you ask.",
+            page,
+        ))
+        layout.addStretch(1)
+        return page
+
+    def _on_recalc_mode_changed(self, _index: int) -> None:
+        mode = int(self._recalc_mode.currentData())
+        self._recalc_delay.setEnabled(mode == int(RecalcMode.AFTER_PAUSE))
+        self._store(RECALC_MODE, mode)
+
+    def _on_recalc_delay_changed(self, milliseconds: int) -> None:
+        self._store(RECALC_QUIET_MS, milliseconds)
 
     # --- Calculators ---------------------------------------------------------------
 

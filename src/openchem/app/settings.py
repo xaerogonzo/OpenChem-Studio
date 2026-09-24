@@ -8,6 +8,13 @@ from typing import Any
 from PySide6.QtCore import QSettings, QStandardPaths
 
 from openchem.domain.calculator_support import Visibility, is_visible
+from openchem.domain.recalc_policy import (
+    DEFAULT_QUIET_MS,
+    MAX_QUIET_MS,
+    MIN_QUIET_MS,
+    RecalcMode,
+    RecalcPolicy,
+)
 from openchem.domain.result_store import MAX_REVISIONS
 from openchem.events.base import EventBus
 from openchem.events.events import SettingsChanged
@@ -58,11 +65,26 @@ MAX_REVISIONS_KEPT = Preference("results/max_revisions", int, MAX_REVISIONS, min
 #: not everyday equipment. A per-calculator choice overrides it either way.
 SHOW_HIDDEN_CALCULATORS = Preference("calculators/show_hidden", bool, False)
 
+#: When a canvas edit makes the application recompute: a `RecalcMode`, stored as its
+#: integer (0 while drawing, 1 after a pause, 2 only when asked) and never as a label.
+#: The default is the pause: drawing recomputed everything per edit before this existed.
+RECALC_MODE = Preference(
+    "compute/recalc_mode", int, int(RecalcMode.AFTER_PAUSE),
+    minimum=int(min(RecalcMode)), maximum=int(max(RecalcMode)),
+)
+
+#: How long after the latest edit a pause counts, in milliseconds, for the "after I
+#: pause" mode. Every edit restarts it. The bounds are the domain's, so the control and
+#: the policy cannot disagree about what is legal.
+RECALC_QUIET_MS = Preference(
+    "compute/recalc_quiet_ms", int, DEFAULT_QUIET_MS, minimum=MIN_QUIET_MS, maximum=MAX_QUIET_MS
+)
+
 #: Every preference, in the order the Settings window groups them. Tests
 #: iterate this, so a preference added here is covered without a new test.
 PREFERENCES = (
     RAIL_HIDES_PANELS, RECOVERY_ENABLED, RECOVERY_DELAY_SECONDS, MAX_REVISIONS_KEPT,
-    SHOW_HIDDEN_CALCULATORS,
+    SHOW_HIDDEN_CALCULATORS, RECALC_MODE, RECALC_QUIET_MS,
 )
 
 #: Where one calculator's own visibility choice is stored: a plain
@@ -216,6 +238,18 @@ class Settings:
             if self.calculator_override(calculator_id) is not None:
                 self.set_calculator_override(calculator_id, None)
         self.set_preference(SHOW_HIDDEN_CALCULATORS, False)
+
+    def recalc_policy(self) -> RecalcPolicy:
+        """What the person chose about recomputing while they draw.
+
+        Read at every edit by the scheduler, so a change applies to the very next
+        one. A stored value that does not parse falls back to the default inside
+        `preference`, so a damaged setting cannot leave drawing without a policy.
+        """
+        return RecalcPolicy(
+            mode=RecalcMode(int(self.preference(RECALC_MODE))),
+            quiet_ms=int(self.preference(RECALC_QUIET_MS)),
+        )
 
     def set_preference(self, preference: Preference, value: bool | int) -> None:
         """Store `value`. An invalid one RAISES: a control can only produce a

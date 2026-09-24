@@ -78,6 +78,7 @@ from openchem.events.events import (
     MoleculeSelected,
     PerAtomDataComputed,
     PhCurveComputed,
+    RecalculationDue,
     SettingsChanged,
     SpectrumComputed,
     StructureSetComputed,
@@ -1559,6 +1560,12 @@ class PropertyPanel(QWidget):
         #: the reader as one value. `aggregate_descriptors` handles the pair
         #: correctly and never got the chance.
         self._descriptor_values: dict[tuple[str, str], DescriptorValue] = {}
+        #: The structure version each held descriptor was computed for (its dispatch
+        #: version, or arrival time where the producer did not say). The reader's
+        #: "Molecular Properties" entry is only as current as the OLDEST of these: a set
+        #: whose parts describe an earlier structure must not read current because the
+        #: structure has since changed underneath it.
+        self._descriptor_versions: dict[tuple[str, str], int] = {}
         self._reports: dict[str, ReportResult] = {}
         #: The RAW results behind the summaries in `_reports`, so the reader
         #: can open the whole thing.
@@ -1709,6 +1716,7 @@ class PropertyPanel(QWidget):
 
         event_bus.subscribe(MoleculeSelected, self._on_molecule_selected)
         event_bus.subscribe(MoleculeChanged, self._on_molecule_changed)
+        event_bus.subscribe(RecalculationDue, self._on_recalculation_due)
         event_bus.subscribe(DescriptorComputed, self._on_descriptor_computed)
         event_bus.subscribe(AlertComputed, self._on_alert_computed)
         event_bus.subscribe(ReportComputed, self._on_report_computed)
@@ -1749,6 +1757,7 @@ class PropertyPanel(QWidget):
         # reader's "Molecular Properties" entry, so a leftover set would put
         # the previous molecule's descriptors under this one's name.
         self._descriptor_values.clear()
+        self._descriptor_versions.clear()
         # A different molecule has been asked nothing yet.
         self._finished_calculator_ids.clear()
         self._reports.clear()
@@ -2043,7 +2052,18 @@ class PropertyPanel(QWidget):
         # RETAINED, keyed by id so the RUNNING placeholder each descriptor
         # publishes first is replaced by its result rather than accumulating
         # beside it. These are what the reader's aggregate is built from.
-        self._descriptor_values[(descriptor.provider, descriptor.descriptor_id)] = descriptor
+        key = (descriptor.provider, descriptor.descriptor_id)
+        version = (
+            event.structure_version
+            if event.structure_version is not None
+            else self._current_structure_version()
+        )
+        if self._descriptor_versions.get(key, version) > version:
+            # An OLDER run finishing late: runs on a thread pool finish in any order and
+            # there is one slot per descriptor, so it must not replace a newer one.
+            return
+        self._descriptor_values[key] = descriptor
+        self._descriptor_versions[key] = version
         # **AND THE READER IS TOLD, WHICH IT WAS NOT BEFORE.** While the
         # panel rendered these itself the reader could lag a whole batch
         # behind and nobody would see it, because the values were on screen
@@ -2211,15 +2231,27 @@ class PropertyPanel(QWidget):
         # what driving the app showed: `Functional Groups` wore a stale
         # badge alone, from the first molecule, forever.
         #
-        # ARRIVAL TIME rather than compute time, which is the honest
-        # limitation: an edit landing mid-run would make this look
-        # current. It is close enough on this path because the alert
-        # batch is the always-eager perception that re-runs on every
-        # structure change, so an alert arriving now was computed for
-        # the structure now.
+        # **THE VERSION THE RUN WAS DISPATCHED AGAINST, NOT THE ONE NOW.** This used to
+        # stamp ARRIVAL time and said so as its honest limitation -- an edit landing
+        # mid-run made the alert look current -- and called that close enough because the
+        # batch re-ran on every edit. It stopped being close enough when a recompute
+        # waits for a pause: the run finishes AFTER the next edit, and reads current for
+        # a structure it was not computed on. `AlertComputed` now carries the dispatch
+        # version; a producer that does not say (a replay, a test double) falls back to
+        # arrival time.
+        version = (
+            event.structure_version
+            if event.structure_version is not None
+            else self._current_structure_version()
+        )
+        held = self._reports.get(alert.alert_id)
+        if held is not None and held.structure_version > version:
+            # An OLDER run finishing late must not replace a newer result: runs on a
+            # thread pool finish in any order, and there is one slot per alert.
+            return
         self._reports[alert.alert_id] = replace(
             report_from_alert(alert),
-            structure_version=self._current_structure_version(),
+            structure_version=version,
         )
         self._refresh_reader()
         self._focus_requested_result(alert.alert_id)
@@ -2238,9 +2270,23 @@ class PropertyPanel(QWidget):
         """
         if event.molecule_uuid != self._selected_molecule_uuid:
             return
+        if event.during_edit:
+            # A CANVAS EDIT IN PROGRESS: what is held describes a structure that is
+            # already gone, so say so now (the version was bumped before this ran) and
+            # leave the recomputation to `RecalculationDue`.
+            self._refresh_reader()
+            return
+        self._perceive_substance_if_needed(event.molecule_uuid)
+
+    def _on_recalculation_due(self, event: RecalculationDue) -> None:
+        """The quiet period after a canvas edit has passed: perceive the substance again."""
+        if event.molecule_uuid == self._selected_molecule_uuid:
+            self._perceive_substance_if_needed(event.molecule_uuid)
+
+    def _perceive_substance_if_needed(self, molecule_uuid: str) -> None:
         # The same gate as a selection: undoing back to a structure whose
         # perception is retained replays it instead of running it again.
-        if self._substance_perception_needed is None or self._substance_perception_needed(event.molecule_uuid):
+        if self._substance_perception_needed is None or self._substance_perception_needed(molecule_uuid):
             self._request_substance_perception()
 
     def _selected_molecule_name(self) -> str:
@@ -2696,7 +2742,10 @@ class PropertyPanel(QWidget):
                 aggregate_descriptors(
                     self._selected_molecule_uuid or "",
                     self._descriptor_values.values(),
-                    structure_version=version,
+                    # As current as the OLDEST part: after a canvas edit, and until the
+                    # recomputation the pause waits for begins, nothing new has arrived,
+                    # so the set reads stale at once rather than claiming the new structure.
+                    structure_version=min(self._descriptor_versions.values(), default=version),
                 )
             )
         return entries, version

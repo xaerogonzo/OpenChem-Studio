@@ -2469,6 +2469,17 @@ kept, which asks first.
   folder. It is offered back at the next launch if the app closed without
   saving, and saving removes it. Turning copies off stops new ones being
   written; a copy already written is still offered.
+- **Recalculation.** When results are recomputed after you draw. **After I
+  pause** (the default) waits until no edit has arrived for a delay you set
+  (800 ms by default, 0 to 5000; every edit restarts it, so a burst of edits is
+  one recomputation). **While I draw** recomputes as soon as the application
+  is free, at most once per moment. **Only when I ask** never recomputes by
+  itself: results read *Stale* until you use **Tools ▸ Recalculate Now** (F5).
+  In every mode the results are marked *Stale* the instant you edit, because a
+  result for a structure that is gone is not current; this only decides when
+  they are refreshed. Undo, redo and importing always recompute at once, and
+  so does selecting another molecule. Recomputing fifty results for every bond
+  drawn is what made drawing lag.
 - **Results.** How many versions of each molecule keep their results in
   memory, 8 by default. The drawing and its 3D conformers are counted
   separately, so a new conformer search never pushes out the results of the

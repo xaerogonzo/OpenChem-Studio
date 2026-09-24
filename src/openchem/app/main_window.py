@@ -80,6 +80,7 @@ from openchem.events.events import (
     FormulationSelected,
     MoleculeChanged,
     MoleculeSelected,
+    RecalculationDue,
     StructureChecked,
     MoleculeSnapshotUpdated,
     PluginLoaded,
@@ -778,6 +779,10 @@ class MainWindow(QMainWindow):
 
         services.event_bus.subscribe(MoleculeSelected, self._on_molecule_selected)
         services.event_bus.subscribe(MoleculeChanged, self._on_molecule_changed)
+        services.event_bus.subscribe(RecalculationDue, self._on_recalculation_due)
+        self._recalc_hint_shown = False
+        if services.recalc_scheduler is not None:
+            services.recalc_scheduler.pending_changed.connect(self._on_recalc_pending_changed)
         services.event_bus.subscribe(ConformersReady, self._on_conformers_ready)
         services.event_bus.subscribe(ConformersChanged, self._on_conformers_changed)
         services.event_bus.subscribe(DockingResultReady, self._on_docking_result_ready)
@@ -1961,6 +1966,13 @@ class MainWindow(QMainWindow):
     def _build_tools_menu(self) -> None:
         """The Tools menu."""
         tools_menu = self.menuBar().addMenu("&Tools")
+        # The way to ask, in any mode, and the only way in "only when I ask". Enabled
+        # while an edit is waiting to be recalculated (`RecalcScheduler.pending_changed`).
+        self._recalculate_action = tools_menu.addAction("Recalculate Now", self._on_recalculate_now)
+        self._recalculate_action.setShortcut("F5")
+        self._recalculate_action.setEnabled(False)
+        self._document(self._recalculate_action, "recalculate_now")
+        tools_menu.addSeparator()
         self._document(
             tools_menu.addAction("Periodic Table...", self._show_periodic_table),
             "periodic_table",
@@ -3303,15 +3315,52 @@ class MainWindow(QMainWindow):
         self._session.mark_dirty()
         molecule = self._current_molecule()
         if molecule is not None and molecule.uuid == event.molecule_uuid:
-            # The same decision as a selection: an undo back to a structure
-            # whose results are held replays them rather than recomputing.
-            self._restore_or_compute(molecule)
+            # A CANVAS EDIT IN PROGRESS waits for the scheduler (`RecalculationDue`):
+            # the person is drawing, and recomputing fifty results for a structure they
+            # are about to change cost a median 1.1 s an edit. The version has already
+            # been bumped by the structure checker, so what is on screen reads stale.
+            # Without a scheduler (a container built without one) there is nothing to
+            # wait for, so it recomputes as it always did.
+            waits_for_scheduler = event.during_edit and self._services.recalc_scheduler is not None
+            if not waits_for_scheduler:
+                # The same decision as a selection: an undo back to a structure
+                # whose results are held replays them rather than recomputing.
+                self._restore_or_compute(molecule)
             self._publish_molecule_snapshot(molecule)
         # After the snapshot, not before: the service bumps this molecule's
         # version from its own MoleculeChanged subscription, and checking
         # against the version it had a moment ago would produce a result
         # that is stale the instant it is published.
         self._check_current_structure()
+
+    def _on_recalculation_due(self, event: RecalculationDue) -> None:
+        """The quiet period after a canvas edit has passed: recompute what is on screen.
+
+        Reads the CURRENT structure, so a run that fires after a further edit or an undo
+        recomputes what is there now rather than what triggered it.
+        """
+        molecule = self._current_molecule()
+        if molecule is not None and molecule.uuid == event.molecule_uuid:
+            self._restore_or_compute(molecule)
+
+    def _on_recalc_pending_changed(self, pending: bool) -> None:
+        """Enable Recalculate Now while something waits, and say so when it waits for a person."""
+        self._recalculate_action.setEnabled(pending)
+        if pending and self._settings.recalc_policy().delay_ms() is None:
+            self.statusBar().showMessage(
+                "Results are out of date after your edit. Tools > Recalculate Now (F5) updates them.", 0
+            )
+            self._recalc_hint_shown = True
+        elif not pending and self._recalc_hint_shown:
+            # Only the message THIS put up: clearing the bar unconditionally would wipe
+            # an unrelated one on every recompute in the modes that wait a moment.
+            self._recalc_hint_shown = False
+            self.statusBar().clearMessage()
+
+    def _on_recalculate_now(self) -> None:
+        scheduler = self._services.recalc_scheduler
+        if scheduler is None or not scheduler.recalculate_now():
+            self.statusBar().showMessage("Nothing to recalculate: the results are current.", 5000)
 
     # --- retained results -------------------------------------------------------
 

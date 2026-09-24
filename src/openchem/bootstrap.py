@@ -32,6 +32,7 @@ from openchem.services.import_service import ImportService
 from openchem.services.job_manager import JobManager
 from openchem.services.measurement_service import MeasurementService
 from openchem.services.project_service import ProjectService
+from openchem.services.recalc_scheduler import RecalcScheduler
 from openchem.services.result_store_service import ResultStoreService
 from openchem.services.qm_surface_service import QmSurfaceService
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
@@ -339,4 +340,7 @@ def build_service_container() -> ServiceContainer:
         # Subscribes to the result envelopes at construction, so nothing a
         # calculator records can arrive before there is a store to take it.
         result_store_service=ResultStoreService(event_bus, engine, settings),
+        # The policy is read from Settings at every edit, never captured, so changing it
+        # in the Settings window applies to the next edit.
+        recalc_scheduler=RecalcScheduler(event_bus, settings.recalc_policy),
     )

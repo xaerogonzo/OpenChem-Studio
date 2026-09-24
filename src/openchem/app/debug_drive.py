@@ -4650,20 +4650,29 @@ class _Driver(QObject):
         """`{"do": "edit_burst", "structures": ["CCO", "CCCO"], "edits": 20, "gap_ms": 150, "tag": "..."}`
         -- what a person DRAWING costs the application, measured.
 
-        **THIS IS THE BASELINE A DEBOUNCED RECOMPUTE HAS TO BEAT.** Every canvas edit
-        runs the parse, the SMILES, the InChI and InChIKey and then fans
-        `MoleculeChanged` out to every descriptor provider, so drawing a molecule
-        lags. Before that is changed, this records how much: the latency of each edit's
+        **THIS IS THE BASELINE A DEBOUNCED RECOMPUTE HAD TO BEAT, AND NOW THE PROOF
+        THAT IT DID.** Every canvas edit runs the parse, the SMILES, the InChI and
+        InChIKey and used to fan `MoleculeChanged` out to every descriptor provider, so
+        drawing a molecule lagged. This records what that costs: the latency of each edit's
         synchronous part, the longest stretch the event loop was blocked, and how many
         recalculations one burst caused.
 
-        It applies each edit the way `MoleculeEditorWidget._on_editor_edited` does
-        once Ketcher has reported a molfile -- an `EditStructureCommand` pushed on the
-        real undo stack, then the widget's annotation refresh -- alternating between
-        the two `structures`. **WHAT IT DOES NOT MEASURE**: Ketcher's own JS and the
-        bridge back to Python, which a debounce does not touch. Recorded, in the log and
-        in the report's `measurements`; nothing is asserted on a number, because these
-        depend on the machine. The structure is restored afterwards.
+        It applies each edit by calling `MoleculeEditorWidget.apply_edited_molblock` --
+        the very method the editor calls once Ketcher has reported a molfile, so the
+        measurement cannot drift from what drawing does -- either growing a structure
+        (`grow`, a NEW structure each edit: what drawing is) or alternating between
+        `structures` (undo/redo, which the result store replays). **WHAT IT DOES NOT
+        MEASURE**: Ketcher's own JS and the bridge back to Python, which a debounce does
+        not touch. Recorded, in the log and in the report's `measurements`; nothing is
+        asserted on a number, because these depend on the machine. The structure is
+        restored afterwards.
+
+        `"recalc": {"mode": 0, "quiet_ms": 800}` sets the recalculation policy for the
+        burst (0 while drawing, 1 after a pause, 2 only when asked) and RESTORES the
+        person's own setting afterwards; without it the setting in force is measured.
+        After the last edit the step waits out the pause, so the recomputation the burst
+        earned is counted; with "only when I ask" it presses Recalculate Now only if
+        `"then_recalculate": true`.
         """
         import statistics
         import time
@@ -4671,7 +4680,6 @@ class _Driver(QObject):
         from PySide6.QtWidgets import QApplication
 
         from openchem.chem.engine import ChemistryEngine
-        from openchem.commands.molecule_commands import EditStructureCommand
         from openchem.events.events import (
             AlertComputed,
             DescriptorComputed,
@@ -4704,6 +4712,18 @@ class _Driver(QObject):
             return
         molblocks = [engine.mol_to_molblock(engine.mol_from_smiles(smiles)) for smiles in structures]
         gap_s = int(step.get("gap_ms", 150)) / 1000.0
+        # THE PERSON'S OWN SETTING IS PUT BACK. A benchmark that leaves the recalculation
+        # policy changed would change how the application behaves for the next run.
+        from openchem.app.settings import RECALC_MODE, RECALC_QUIET_MS
+
+        settings = window._settings
+        kept_policy = (settings.preference(RECALC_MODE), settings.preference(RECALC_QUIET_MS))
+        wanted = step.get("recalc") or {}
+        if "mode" in wanted:
+            settings.set_preference(RECALC_MODE, int(wanted["mode"]))
+        if "quiet_ms" in wanted:
+            settings.set_preference(RECALC_QUIET_MS, int(wanted["quiet_ms"]))
+        policy = settings.recalc_policy()
         original_molblock = molecule.molblock
         bus = window._services.event_bus
 
@@ -4761,19 +4781,19 @@ class _Driver(QObject):
             last[0] = time.perf_counter()
             for index in range(edits):
                 molblock = molblocks[index] if grow else molblocks[(index + 1) % len(molblocks)]
-                before = molecule.canonical_smiles
                 t0 = time.perf_counter()
-                command = EditStructureCommand(editor._engine, molecule, molblock, editor._event_bus)
-                editor._applying_own_edit = True
-                try:
-                    editor._undo_stack.push(command)
-                finally:
-                    editor._applying_own_edit = False
+                editor.apply_edited_molblock(molblock)
                 pushed += 1
-                editor._synced_smiles = molecule.canonical_smiles
-                editor._refresh_annotations(structure_changed=molecule.canonical_smiles != before)
                 latencies.append((time.perf_counter() - t0) * 1000.0)
                 pump(gap_s)
+            # THE RECOMPUTATION THE BURST EARNED. With a pause it has not started yet when
+            # the last edit lands, so wait the pause out (plus a margin) before counting.
+            delay = policy.delay_ms()
+            scheduler = window._services.recalc_scheduler
+            if delay is None and step.get("then_recalculate") and scheduler is not None:
+                scheduler.recalculate_now()
+            elif delay is not None:
+                pump(delay / 1000.0 + 0.5)
             # What the burst left in flight: worker results still arriving on the GUI thread.
             from PySide6.QtCore import QThreadPool
 
@@ -4781,6 +4801,8 @@ class _Driver(QObject):
             pump(0.5)
         finally:
             heartbeat.stop()
+            settings.set_preference(RECALC_MODE, int(kept_policy[0]))
+            settings.set_preference(RECALC_QUIET_MS, int(kept_policy[1]))
             DescriptorService.request_descriptors = originals["request_descriptors"]
             _DescriptorComputeTask.run = originals["descriptor_tasks"]
             ChemistryEngine.canonicalize = originals["canonicalize"]
@@ -4798,6 +4820,7 @@ class _Driver(QObject):
         stalls = [g - 5.0 for g in gaps if g > 5.0]
         result = {
             "mode": "new structure each edit" if grow else "alternating (results replayed)",
+            "recalc": {"mode": int(policy.mode), "quiet_ms": policy.quiet_ms},
             "edits": edits, "gap_ms": int(step.get("gap_ms", 150)),
             "edit_ms": {
                 "median": round(statistics.median(latencies), 1) if latencies else 0.0,

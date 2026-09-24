@@ -16,6 +16,7 @@ from openchem.services.import_service import ImportService
 from openchem.services.job_manager import JobManager
 from openchem.services.measurement_service import MeasurementService
 from openchem.services.project_service import ProjectService
+from openchem.services.recalc_scheduler import RecalcScheduler
 from openchem.services.qm_surface_service import QmSurfaceService
 from openchem.services.result_store_service import ResultStoreService
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
@@ -64,3 +65,6 @@ class ServiceContainer:
     #: reason: a container without it behaves exactly as before -- every
     #: selection recomputes and nothing is written to the project file.
     result_store_service: ResultStoreService | None = None
+    #: When a canvas edit's recomputation runs. Defaulted for the same reason: a container
+    #: without it recomputes on every edit, as drawing always did.
+    recalc_scheduler: RecalcScheduler | None = None

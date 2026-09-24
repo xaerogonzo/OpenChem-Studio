@@ -584,6 +584,17 @@ MENU_HELP: dict[str, HelpTooltip] = {
         tier=2, help_id="tools.virtual_screening", topic=_M,
         help_anchor="batch",
     ),
+    "recalculate_now": HelpTooltip(
+        text=(
+            "Recomputes the results for the structure you have just drawn, now, "
+            "instead of waiting for the pause.\n\n"
+            "While you draw, results are recomputed once you stop (or, if you chose "
+            "it in Settings, as you draw or only when you ask). Enabled only while an "
+            "edit is waiting; with nothing waiting the results are already current."
+        ),
+        tier=2, help_id="tools.recalculate_now", topic=_M,
+        help_anchor="settings",
+    ),
     "external_tools": HelpTooltip(
         text=(
             "Opens Settings at External tools: the optional external programs, "

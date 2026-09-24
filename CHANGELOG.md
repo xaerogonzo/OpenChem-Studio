@@ -71,6 +71,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   opens Settings > External Tools on the tab that sets it up. The chip's tooltip says which before you press. A calculator can now declare a parameter `required` (it has no usable default);
   "Run selected", which uses defaults, skips such a calculator and says what it wants instead of running it to a refusal you did not ask for. Detonation's two inputs, alignment's
   reference and the Lewis adduct's partner are declared this way, and the last two now name the empty field in their refusal.
+- **Drawing no longer recomputes everything on every edit.** A canvas edit used to fan out to every descriptor provider, a substance perception and a structure check, so drawing
+  lagged (a median 1.1 s per edit on aspirin, the event loop blocked for up to 4 s -- `benchmarks/visual/README.md`). A canvas edit is now `MoleculeChanged(during_edit=True)`: what only has
+  to *know* acts at once (the version bumps, so results read Stale immediately), and what *computes* waits for `RecalculationDue`, published by `RecalcScheduler` under a policy chosen in
+  Settings > Recalculation: after I pause (default, 800 ms, every edit restarts it), while I draw, or only when I ask (Tools > Recalculate Now, F5). Undo, redo, import and selecting another
+  molecule still recompute at once. Two latent races the pause would have widened are closed with it: an alert or descriptor computed for structure A read as current for B whenever an edit
+  landed mid-run (they were stamped with arrival time, not dispatch time), and an older run finishing late could replace a newer result.
 - **The Results "Showing" list is readable.** Its popup took the width of the narrow docked box and elided entries such as "Thermophysical Properties (Joback)"; it is now as wide as its
   longest entry, and each entry carries its full text as a tooltip.
 
