@@ -738,7 +738,7 @@ the thing that needs the room.
 ## Properties
 
 The Properties panel is where a calculation is **started**, and the
-[Results](#results) panel is where one is **read**. It has **20 collapsible
+[Results](#results) panel is where one is **read**. It has **22 collapsible
 categories** covering **59 registered calculators**; Identity is open by
 default.
 
@@ -757,6 +757,16 @@ opens the calculator's settings with the missing values named above the form
 and the cursor on the first (nothing runs until you press OK), and **Needs
 setup** opens Settings > External Tools on the tab that sets that calculator up.
 Hover the chip to see what it needs before you press it.
+
+Calculators that are run from **another panel** — the ORCA jobs (single point,
+optimisation, frequencies, NMR, coupling, Delta-SCF, LED), Hardness/Softness
+and Vina docking — have a row in Properties too, under **Quantum Chemistry**,
+**Lewis Acid/Base** and **Docking**. It is a button, not a launcher: it has no
+tick box and no status chip, it is labelled with the panel it opens ("Single
+Point Energy > Quantum Chemistry panel"), and pressing it shows that panel with
+the calculation already chosen. Nothing runs until you press Run there, because
+those jobs take a charge, a multiplicity and a method, and "Run selected" never
+includes them.
 
 Scalar descriptors still compute eagerly — the whole batch finishes in well
 under a millisecond, so there is no waiting and no lazy-loading complexity —

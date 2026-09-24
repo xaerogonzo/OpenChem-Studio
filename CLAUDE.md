@@ -79,6 +79,9 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           Inspector window -- see below
     {"do": "expect_inspectors", "count": 2, "titles": ["(qeq"]}  how many
                                           inspectors are OPEN side by side
+    {"do": "service_row", "calculator": "orca.nmr", "expect": {"panel": "Quantum_Chemistry"}}
+                                          PRESS a row that opens another panel;
+                                          `reveal_row` scrolls one into a shot
     {"do": "chip", "calculator": "detonation", "expect": {"status": "needs_input"}}
                                           PRESS a status chip and assert where
                                           the press went; `tool_setup` is the
@@ -219,7 +222,11 @@ inside a dispatch is not free.)
 **`erase` is the only step that drives the route `set_molecule` never
 covers** -- the user drawing on the canvas -- so it is what any
 calculated-annotation staleness has to be checked with. It goes through
-Ketcher's own Delete hotkey, synthesised on the page. Pair it with
+Ketcher's own Delete hotkey, synthesised on the page. **A canvas edit
+recomputes after the recalculation pause** (Settings > Recalculation, 800 ms
+by default), so a script that reads results after an `erase` must wait the
+pause AND the computation -- `after_ms` of a few seconds -- and results read
+STALE in between, which is the point. Pair it with
 `report`, whose `undo=` is how "did this display toggle quietly become an
 edit" is answered: measured across a run, `baseline undo=2 -> labels-on
 undo=2 -> after-edit undo=3 -> labels-off undo=3`.

@@ -48,6 +48,12 @@ class ServiceExecution:
 
     service_name: str
     panel_name: str
+    #: The rail id of the panel a calculator is run from (`HELP_TOPIC_BY_DOCK`'s keys:
+    #: "Docking", "Quantum_Chemistry"). Empty for an entry with no panel of its own. It is
+    #: what lets the Properties launcher give the calculator a REAL row that opens it,
+    #: instead of an italic sentence naming a panel; a guard holds each one to a panel
+    #: that exists.
+    panel_id: str = ""
 
 
 CalculatorExecution = RegistryExecution | ServiceExecution

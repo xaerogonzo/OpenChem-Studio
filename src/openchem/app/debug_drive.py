@@ -107,6 +107,10 @@ The script is a JSON list of steps, run in order:
       {"do": "chip",             "calculator": "detonation", "expect": {"status": "needs_input"}}
                                               PRESS a status chip, and assert
                                               where it went (see `_do_chip`)
+      {"do": "service_row",      "calculator": "orca.nmr", "expect": {"panel": "Quantum_Chemistry", "calc_type": "nmr"}}
+                                              PRESS a Properties row that opens
+                                              another panel, and assert which
+                                              panel came forward and what it chose
       {"do": "tool_setup",       "tool": "pkasolver"}
                                               the window half of a "Needs setup"
                                               press (see `_do_tool_setup`)
@@ -4926,6 +4930,72 @@ class _Driver(QObject):
         self._chip_expectation = (tag, calculator_id, expect)
         QTimer.singleShot(int(step.get("inspect_after_ms", 700)), self._window, self._inspect_chip_modal)
         chip.click()
+
+    def _do_reveal_row(self, step: dict[str, Any]) -> None:
+        """`{"do": "reveal_row", "calculator": "orca.nmr"}` -- scroll a Properties row into view.
+
+        A photograph of the launcher shows only what the scroll area does, and the sections at
+        the bottom (Docking, Quantum Chemistry) are below the fold in a docked column. Works for
+        a registry row and for a row that opens another panel; the section is expanded first.
+        """
+        from PySide6.QtWidgets import QScrollArea
+
+        panel = self._window._property_panel
+        calculator_id = str(step["calculator"])
+        widget = panel._service_rows.get(calculator_id) or panel._calculator_rows.get(calculator_id)
+        if widget is None:
+            logger.error("OPENCHEM_DRIVE: reveal_row: no row for %r", calculator_id)
+            return
+        definition = self._window._services.calculator_registry.get(calculator_id)
+        section = panel._sections.get(definition.category) if definition is not None else None
+        if section is not None:
+            section.set_expanded(True)
+        ancestor = widget.parentWidget()
+        while ancestor is not None and not isinstance(ancestor, QScrollArea):
+            ancestor = ancestor.parentWidget()
+        if ancestor is not None:
+            ancestor.ensureWidgetVisible(widget, 0, 40)
+        logger.warning("OPENCHEM_DRIVE: revealed the row of %s", calculator_id)
+
+    def _do_service_row(self, step: dict[str, Any]) -> None:
+        """`{"do": "service_row", "calculator": "orca.nmr", "expect": {"panel": "...", "calc_type": "..."}}`
+        -- press the Properties row of a calculator that is run from another panel, and assert
+        WHERE THE PRESS WENT.
+
+            "panel"      the rail id of the panel that must now be showing
+            "calc_type"  (Quantum_Chemistry) the calculation type code its combo must hold
+
+        A real `click()` on the real button: the panel's handler reads `sender()`, and the
+        window's routing is what is being checked, so calling either directly would prove
+        nothing about the wiring. Nothing is run -- opening the panel is all a row does.
+        """
+        from openchem.ui.panels.quantum_chemistry_panel import CALC_TYPE_LABELS
+
+        tag = str(step.get("tag", ""))
+        calculator_id = str(step["calculator"])
+        expect = dict(step.get("expect") or {})
+        window = self._window
+        button = window._property_panel._service_rows.get(calculator_id)
+        if button is None:
+            logger.error("OPENCHEM_DRIVE: service_row: no row for %r", calculator_id)
+            return
+        button.click()
+        problems: list[str] = []
+        wanted_panel = expect.get("panel")
+        if wanted_panel:
+            dock = window._dock_by_panel_id(str(wanted_panel))
+            if dock is None or dock.isHidden():
+                problems.append(f"panel {wanted_panel!r} is not showing")
+        if "calc_type" in expect:
+            chosen = CALC_TYPE_LABELS.get(window._quantum_chemistry_panel._calc_type_combo.currentText())
+            if chosen != expect["calc_type"]:
+                problems.append(f"the panel holds calculation {chosen!r}, wanted {expect['calc_type']!r}")
+        ok = not problems
+        detail = "as expected" if ok else "; ".join(problems)
+        if self._record_assertion("service_row", tag, ok, detail):
+            logger.warning("OPENCHEM_DRIVE: EXPECT service_row ok[%s] %s", tag, calculator_id)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT service_row FAILED[%s] -- %s", tag, detail)
 
     def _do_tool_setup(self, step: dict[str, Any]) -> None:
         """`{"do": "tool_setup", "tool": "pkasolver"}` -- what a "Needs setup" chip press

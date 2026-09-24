@@ -55,7 +55,9 @@ _EXTERNAL_CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             "search box; run from the Docking panel. Produces ranked poses "
             "with binding scores and interaction analysis."
         ),
-        execution=ServiceExecution(service_name="docking_service", panel_name="Docking panel"),
+        execution=ServiceExecution(
+            service_name="docking_service", panel_name="Docking panel", panel_id="Docking"
+        ),
         parameters=[
             CalculatorParameter(
                 name="num_poses", label="Number of poses", kind="int", default=DEFAULT_NUM_POSES, minimum=1
@@ -112,7 +114,9 @@ for _label, _calc_type in CALC_TYPE_LABELS.items():
                 "3D conformer; run from the Quantum Chemistry panel."
             ),
             execution=ServiceExecution(
-                service_name="quantum_chemistry_service", panel_name="Quantum Chemistry panel"
+                service_name="quantum_chemistry_service",
+                panel_name="Quantum Chemistry panel",
+                panel_id="Quantum_Chemistry",
             ),
             prediction_basis="ab_initio",
             parameters=[
@@ -161,7 +165,9 @@ _EXTERNAL_CALCULATOR_DEFINITIONS.append(
             "which is one of the most-used hard/soft orderings there is."
         ),
         execution=ServiceExecution(
-            service_name="quantum_chemistry_service", panel_name="Quantum Chemistry panel"
+            service_name="quantum_chemistry_service",
+            panel_name="Quantum Chemistry panel",
+            panel_id="Quantum_Chemistry",
         ),
         prediction_basis="ab_initio",
         tags=["lewis", "hsab", "hardness", "softness", "electrophilicity"],

@@ -326,3 +326,38 @@ def test_alignment_and_lewis_name_the_field_that_is_empty():
         result = compute(mol, "u", {})
         assert refusal_kind_of_result(result) is RefusalKind.NEEDS_INPUT
         assert [m.parameter for m in missing_inputs_of(result)] == [parameter]
+
+
+# --- the tick boxes say what they are for ---------------------------------------------------
+
+
+def test_the_status_line_says_what_the_tick_boxes_do_before_anything_else_does(rig):
+    panel, _bus, _molecule, _calls, _reader = rig
+    assert panel._batch_status.text() == "Tick boxes to run several at once"
+
+
+def test_the_hint_counts_what_is_ticked_and_says_defaults(rig):
+    panel, _bus, _molecule, _calls, _reader = rig
+    panel._calculator_ticks[PLAIN].setChecked(True)
+    assert panel._batch_status.text() == "1 ticked - runs with default settings"
+    panel._calculator_ticks[PLAIN].setChecked(False)
+    assert panel._batch_status.text() == "Tick boxes to run several at once"
+
+
+def test_a_real_status_is_never_overwritten_by_the_hint(rig):
+    panel, _bus, _molecule, _calls, _reader = rig
+    panel._calculator_ticks[PLAIN].setChecked(True)
+    panel._on_run_selected()
+    running = panel._batch_status.text()
+    assert running.startswith("Running"), running
+
+    panel._calculator_ticks[SETUP].setChecked(True)
+
+    assert panel._batch_status.text() == running, "a run's status outlives a tick"
+
+
+def test_clearing_the_selection_brings_the_hint_back(rig):
+    panel, _bus, _molecule, _calls, _reader = rig
+    panel._calculator_ticks[PLAIN].setChecked(True)
+    panel._on_clear_selection()
+    assert panel._batch_status.text() == "Tick boxes to run several at once"

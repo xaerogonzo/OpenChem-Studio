@@ -302,6 +302,11 @@ def _without_glyphs(text: str) -> str:
 #: to fall into the recorded set.
 _CALCULATOR_ID_PROPERTY = "openchem_calculator_id"
 
+#: Which service-run calculator a row that opens its panel stands for. Its own property,
+#: not `_CALCULATOR_ID_PROPERTY`, because the handlers that read that one open a settings
+#: dialog and dispatch a registry calculator -- which a service row must never reach.
+_SERVICE_CALCULATOR_PROPERTY = "openchem_service_calculator"
+
 
 #: One concept rendered once per registered calculator, so ONE contract.
 #:
@@ -422,6 +427,27 @@ _HIDDEN_CALCULATORS_HELP = HelpTooltip(
     topic="properties",
     help_anchor="properties",
 )
+
+
+def service_row_help(definition: CalculatorDefinition) -> HelpTooltip:
+    """The contract for a row that OPENS another panel rather than running here.
+
+    Derived from the registration like `calculator_help`, but it must not borrow that one's
+    basis sentence ("runs on the structure as drawn"): these are run by their own service,
+    from their own panel, on a 3D conformer, and saying so about them would be false.
+    """
+    execution = definition.execution
+    return HelpTooltip(
+        text=(
+            f"{definition.description.strip()}\n\n"
+            f"Pressing this opens the {execution.panel_name} with this calculation "
+            "chosen. It runs nothing: you press Run there, with the settings you want."
+        ),
+        tier=2,
+        help_id=f"calculator.{definition.calculator_id}",
+        topic=definition.category,
+        help_anchor=help_anchor_for(definition.calculator_id),
+    )
 
 
 def calculator_help(definition: CalculatorDefinition) -> HelpTooltip:
@@ -1431,6 +1457,11 @@ class PropertyPanel(QWidget):
     #: the shape everything connected to it expects.
     tool_setup_requested = Signal(str)
 
+    #: A request to open the panel a calculator is run from, by rail panel id and
+    #: calculator id. Routed by the window, which owns the panels; the second argument is
+    #: what the panel should have chosen when it appears.
+    service_panel_requested = Signal(str, str)
+
     #: A request to open the Help at a topic, by anchor. Routed by the window, for
     #: the reason `settings_requested` is.
     help_requested = Signal(str)
@@ -1559,6 +1590,10 @@ class PropertyPanel(QWidget):
         #: measured before the fix, two providers publishing one id reached
         #: the reader as one value. `aggregate_descriptors` handles the pair
         #: correctly and never got the chance.
+        #: The rows that open another panel, by calculator id.
+        self._service_rows: dict[str, QPushButton] = {}
+        #: The last hint written to the batch status line (see `_refresh_batch_hint`).
+        self._last_batch_hint = ""
         self._descriptor_values: dict[tuple[str, str], DescriptorValue] = {}
         #: Whether a coalesced `_refresh_reader_soon` is waiting to run.
         self._reader_refresh_scheduled = False
@@ -1711,7 +1746,9 @@ class PropertyPanel(QWidget):
         # ValueError if it somehow got one).
         for category in calculator_registry.categories():
             if any(
-                isinstance(d.execution, RegistryExecution) for d in calculator_registry.by_category(category)
+                isinstance(d.execution, RegistryExecution)
+                or (isinstance(d.execution, ServiceExecution) and d.execution.panel_id)
+                for d in calculator_registry.by_category(category)
             ):
                 self._section_for(category)
         self._apply_calculator_visibility()
@@ -1754,6 +1791,7 @@ class PropertyPanel(QWidget):
         for status in self._calculator_status.values():
             status.setVisible(False)
         self._batch_status.setText("")
+        self._refresh_batch_hint()
         self._value_labels.clear()
         # The VALUES too, not only their labels. They feed the results
         # reader's "Molecular Properties" entry, so a leftover set would put
@@ -1793,8 +1831,13 @@ class PropertyPanel(QWidget):
         self._sections[category] = section
         for definition in self._calculator_registry.by_category(category):
             if not isinstance(definition.execution, RegistryExecution):
-                # ServiceExecution-backed (Docking, QuantumChemistry) --
-                # registered for discovery only, run from their own panel.
+                # ServiceExecution-backed (Docking, QuantumChemistry): run from their own
+                # panel, so the row OPENS it -- a real control where there used to be one
+                # italic sentence naming the panel, which is why a person looking for an
+                # ab initio NMR in Properties found nothing to press. No tick box and no
+                # status chip: nothing here runs, and "Run selected" cannot include it.
+                if isinstance(definition.execution, ServiceExecution) and definition.execution.panel_id:
+                    section.add_calculator_widget(self._service_row(definition, section.content))
                 continue
             # NO "Open " PREFIX. The label used to be `Open {name}...`,
             # which spent about 32 px of a 192 px button on the same five
@@ -1933,6 +1976,38 @@ class PropertyPanel(QWidget):
         self._add_cross_theory_hint(section, category)
         self._reorder_sections()
         return section
+
+    def _service_row(self, definition: CalculatorDefinition, parent: QWidget) -> QWidget:
+        """One row that opens the panel a ServiceExecution calculator is run from.
+
+        The label carries the panel's name -- "Single Point Energy > Quantum Chemistry
+        panel" -- because on a row with no status chip and no tick box that is the only
+        thing distinguishing "opens something else" from "runs here", and it elides in a
+        docked column, so the full sentence is in the tooltip.
+        """
+        execution = definition.execution
+        button = _ElidingPushButton(f"{definition.display_name} > {execution.panel_name}", parent)
+        button.setObjectName("serviceRow")
+        apply_help_tooltip(button, service_row_help(definition))
+        # The two properties do different jobs: the calculator id is what the "About this
+        # calculator" menu reads (shared with the registry rows), and the click below reads
+        # its OWN property so it can never be mistaken for a registry row's `_open_calculator`.
+        button.setProperty(_CALCULATOR_ID_PROPERTY, definition.calculator_id)
+        button.setProperty(_SERVICE_CALCULATOR_PROPERTY, definition.calculator_id)
+        button.clicked.connect(self._on_service_row_clicked)
+        button.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        button.customContextMenuRequested.connect(self._on_calculator_button_menu)
+        self._service_rows[definition.calculator_id] = button
+        return button
+
+    def _on_service_row_clicked(self, _checked: bool = False) -> None:
+        button = self.sender()
+        calculator_id = str(button.property(_SERVICE_CALCULATOR_PROPERTY) or "") if button is not None else ""
+        definition = self._calculator_registry.get(calculator_id) if calculator_id else None
+        if definition is None or not isinstance(definition.execution, ServiceExecution):
+            return
+        if definition.execution.panel_id:
+            self.service_panel_requested.emit(definition.execution.panel_id, definition.calculator_id)
 
     #: Category -> (category it should point at, the sentence to show).
     #: ONE entry, and deliberately not generalised into a registry field.
@@ -3035,6 +3110,24 @@ class PropertyPanel(QWidget):
     def _on_hidden_link_clicked(self, _checked: bool = False) -> None:
         self.settings_requested.emit("calculators")
 
+    def _refresh_batch_hint(self) -> None:
+        """Say, on the status line, what the tick boxes are for, until something else has to be said.
+
+        **THE TICK BOXES HAD NO VISIBLE EXPLANATION**: a tooltip on each, and nothing on
+        screen saying that ticking runs several at once or that they run with default
+        settings. The status line is otherwise empty until a run starts, so it carries the
+        hint -- and gives way to any real status (a run, "Select a molecule first.") and
+        comes back only when the line is empty or still showing the hint it last wrote.
+        """
+        count = len(self._selected_calculator_ids())
+        hint = (
+            f"{count} ticked - runs with default settings" if count else "Tick boxes to run several at once"
+        )
+        if self._batch_status.text() in ("", self._last_batch_hint):
+            self._batch_status.setText(hint)
+            self._batch_status.setToolTip(hint)
+        self._last_batch_hint = hint
+
     def _on_selection_toggled(self, _checked: bool = False) -> None:
         count = len(self._selected_calculator_ids())
         self._run_selected_button.setEnabled(count > 0)
@@ -3042,11 +3135,13 @@ class PropertyPanel(QWidget):
         self._run_selected_button.setText(
             f"Run selected ({count})" if count else "Run selected"
         )
+        self._refresh_batch_hint()
 
     def _on_clear_selection(self, _checked: bool = False) -> None:
         for tick in self._calculator_ticks.values():
             tick.setChecked(False)
         self._batch_status.setText("")
+        self._refresh_batch_hint()
 
     def _on_run_selected(self, _checked: bool = False) -> None:
         """Dispatch every ticked calculator for the selected molecule.

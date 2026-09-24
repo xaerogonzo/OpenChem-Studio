@@ -80,6 +80,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   edits of aspirin, a new structure each: edit latency 1,121 ms -> 18 ms (median), the longest the event loop was blocked 3,993 ms -> 93 ms, full recomputations 12 -> 1. A profile of the
   first "after" run found two more costs, both fixed: the Results reader was rebuilt once per descriptor *event* (now once per turn of the event loop), and the Atom Inspector's atom table
   was rebuilt with IUPAC locants on every edit (now at the pause). Both tables are in `benchmarks/visual/README.md`; Ketcher's own JavaScript is not measured.
+- **Calculators run from another panel have a real row in Properties.** Vina docking, the seven ORCA jobs and Hardness/Softness were skipped by the launcher and represented by one italic
+  sentence naming a panel, so a person looking for an ab initio NMR found a hint and nothing to press. Each now has a row under **Docking**, **Quantum Chemistry** or **Lewis Acid/Base**
+  ("NMR (raw shielding) > Quantum Chemistry panel"): a button with no tick box and no status chip, which shows that panel with the calculation already chosen and runs nothing.
+  `ServiceExecution` gains a `panel_id`, and a guard holds every one to a panel that exists. The status line beside "Run selected" now says what the tick boxes are for ("Tick boxes to run
+  several at once", then "N ticked - runs with default settings") until a real status replaces it. The Properties panel has 22 sections, not 20.
 - **The Results "Showing" list is readable.** Its popup took the width of the narrow docked box and elided entries such as "Thermophysical Properties (Joback)"; it is now as wide as its
   longest entry, and each entry carries its full text as a tooltip.
 

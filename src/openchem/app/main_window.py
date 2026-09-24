@@ -428,6 +428,8 @@ class MainWindow(QMainWindow):
         )
         # The footer's "N calculators hidden" link: the window owns the dialogs.
         self._property_panel.settings_requested.connect(self.show_settings)
+        # A Properties row for a calculator run from another panel: show that panel.
+        self._property_panel.service_panel_requested.connect(self._on_service_panel_requested)
         # A "Needs setup" chip: the External Tools tab that configures that calculator.
         self._property_panel.tool_setup_requested.connect(self._show_tool_setup)
         # "About this calculator" on a launcher row: the window owns the help window.
@@ -4634,6 +4636,16 @@ class MainWindow(QMainWindow):
 
     def _show_settings(self) -> None:
         self.show_settings()
+
+    def _on_service_panel_requested(self, panel_id: str, calculator_id: str) -> None:
+        """Show the panel a Properties row stands for, with its calculation chosen.
+
+        Choosing is all it does: the Quantum Chemistry panel's Run button is still the
+        person's, because it takes a charge, a multiplicity and a method.
+        """
+        self._on_panel_chosen(panel_id)
+        if panel_id == "Quantum_Chemistry" and calculator_id.startswith("orca."):
+            self._quantum_chemistry_panel.select_calculation_type(calculator_id.split(".", 1)[1])
 
     def _show_tool_setup(self, tool: str) -> None:
         """Open Settings > External Tools on `tool`'s tab (a catalogue key)."""

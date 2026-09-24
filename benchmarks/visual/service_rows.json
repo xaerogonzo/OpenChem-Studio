@@ -1,0 +1,19 @@
+[
+  {"do": "smiles", "smiles": "CO", "name": "Methanol", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 4000},
+  {"do": "panel", "id": "Properties", "after_ms": 1500},
+  {"do": "expand", "section": "quantum_chemistry", "after_ms": 800},
+  {"do": "expand", "section": "docking", "after_ms": 800},
+  {"do": "reveal_row", "calculator": "orca.led", "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/service_rows_properties.png", "after_ms": 1000},
+
+  {"do": "service_row", "tag": "nmr", "calculator": "orca.nmr", "expect": {"panel": "Quantum_Chemistry", "calc_type": "nmr"}, "after_ms": 1000},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/service_rows_quantum_panel.png", "after_ms": 1000},
+  {"do": "panel", "id": "Properties", "after_ms": 1000},
+  {"do": "service_row", "tag": "led", "calculator": "orca.led", "expect": {"panel": "Quantum_Chemistry", "calc_type": "led"}, "after_ms": 1000},
+  {"do": "panel", "id": "Properties", "after_ms": 1000},
+  {"do": "service_row", "tag": "docking", "calculator": "docking.vina", "expect": {"panel": "Docking"}, "after_ms": 1000},
+
+  {"do": "expect_clean", "tag": "end"},
+  {"do": "quit"}
+]
