@@ -403,6 +403,45 @@ def test_a_rebound_key_really_fires_the_command_and_the_old_one_no_longer_does(w
     assert len(fired) == 2, "and the new one must start"
 
 
+def test_a_key_pressed_into_the_box_is_recorded_not_run(window, qapp):
+    """The recorder has to take a combination that is ALSO a window shortcut. Were the key to
+    reach the shortcut map first, choosing a new home for Undo would run Undo instead of recording
+    it -- and none of the tests that call `assign` would notice."""
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+
+    from openchem.ui.dialogs.settings_dialog import SettingsDialog
+
+    built, settings = window
+    built.show()
+    built.activateWindow()
+    QTest.qWaitForWindowActive(built, 3000)
+    dialog = SettingsDialog(settings, built, section="keyboard", shortcut_registry=built._shortcuts)
+    dialog.show()
+    dialog.activateWindow()
+    QTest.qWaitForWindowActive(dialog, 3000)
+    try:
+        fired = []
+        _window_action(built, "undo").triggered.connect(lambda *_: fired.append("undo"))
+        page = dialog.keyboard_page
+
+        taken = page._rows["exit"][1]
+        taken.setFocus()
+        QTest.keyClick(taken, Qt.Key.Key_Z, Qt.KeyboardModifier.ControlModifier)
+        QTest.qWait(1300)                    # the box finishes a second after the last key
+        assert fired == [], "the key ran Undo instead of being recorded"
+        assert "already used by Undo" in page.status.text() and page.shortcut_of("exit") == ""
+
+        free = page._rows["rotate_in_3d"][1]
+        free.setFocus()
+        QTest.keyClick(free, Qt.Key.Key_K, Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.AltModifier)
+        QTest.qWait(1300)
+        assert _window_action(built, "rotate_in_3d").shortcut().toString() == "Ctrl+Alt+K"
+        assert page.status.text() == ""
+    finally:
+        dialog.close()
+
+
 def test_settings_is_opened_with_the_windows_registry(window, monkeypatch):
     from openchem.ui.dialogs.settings_dialog import SettingsDialog
 
