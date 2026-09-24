@@ -134,6 +134,11 @@ class Settings:
         self._qsettings.setValue(key, value)
         self._event_bus.publish(SettingsChanged(key=key))
 
+    def remove(self, key: str) -> None:
+        """Forget a stored value, so the key reads as absent (its default) again."""
+        self._qsettings.remove(key)
+        self._event_bus.publish(SettingsChanged(key=key))
+
     @property
     def recent_projects(self) -> list[str]:
         value = self.get("recent_projects", [])

@@ -94,6 +94,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A note on what Ketcher already does when drawing** (`docs/KETCHER_SPIKE.md`): hover-aware hotkeys are native to the bundle (hover a bond and press 1/2/3, hover an atom and press an
   element or `/`), so the proposed click-to-cycle gesture should wait for somebody to check by hand what is already there. A hover could not be produced from automation -- not by DOM
   events, not by real Qt mouse events -- so it is unverified with a real pointer, and said so.
+- **Menu shortcuts can be changed: Settings > Keyboard.** Every command in the menus (and Search facts and the Command Palette) is listed with the shortcut it holds; click a box, press
+  a combination, and it applies at once, survives a restart, and can be cleared or reset per command or all at once. A combination another command holds is refused and names that command
+  rather than being taken from it, and one without Ctrl, Alt or Meta (unless a function key) is refused because the drawing canvas owns the bare letters and digits -- these are the
+  window's shortcuts, not the editor's. A stored choice that collides with a key a later release gives another command yields to the shipped default instead of leaving both dead (Qt
+  runs neither of two actions on one key). Commands are named by the key their menu contract already used, and a key several actions share (every panel's View entry) by title, in a way
+  that does not depend on menu order. Driven in the running app, including the real key press (`benchmarks/visual/keyboard_shortcuts.json`).
 - **The atom right-click menu changes the atom.** Ketcher's own menu had these and ours did not, so replacing it took them away: **Change *X* to** C, N, O, S, P, F, Cl, Br, I or H, **Add
   positive / negative charge**, and **Delete this atom**. Each is an edit of the structure by the chemistry engine pushed as one undoable command (`ChemistryEngine.edit_atom`), so it
   recomputes like any deliberate change, recomputes the hydrogens the new atom needs (an oxygen turned nitrogen gains its hydrogens: `CCO` -> `CCN`), and a change that would not be a

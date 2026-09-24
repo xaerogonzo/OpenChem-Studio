@@ -2542,6 +2542,16 @@ kept, which asks first.
   one, and always wins; **Reset to defaults** forgets both. This changes only
   what is offered — nothing is run or removed, the Help for a hidden
   calculator stays available, and results already computed stay readable.
+- **Keyboard.** Every menu command with the shortcut it holds (Search facts and the
+  Command Palette too). Click a box and press the combination you want; it applies
+  at once and is remembered. The ✕ in the box clears a command's shortcut, **Reset**
+  puts one back to the shortcut it shipped with, and **Reset all to defaults** puts
+  every one back. A combination another command already uses is refused, and the page
+  names that command so you can clear it first; a combination needs Ctrl, Alt or Meta
+  (or is a function key), because the drawing canvas uses the bare letters and digits.
+  These are the window's shortcuts only: the keys typed while drawing belong to the
+  editor and are not changed here. The search box narrows the list by name or by
+  shortcut.
 - **File dialogs.** Each kind of file dialog opens where it was last used:
   projects, molecules, and macromolecules with crystal structures. **Forget**
   sends one back to your Documents folder.

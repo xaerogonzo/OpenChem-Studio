@@ -51,6 +51,7 @@ from openchem.app.settings import (
 from openchem.domain.recalc_policy import RecalcMode
 from openchem.ui.dialogs.calculator_visibility_page import CalculatorVisibilityPage
 from openchem.ui.dialogs.external_tools_pages import ExternalToolsPages
+from openchem.ui.dialogs.keyboard_shortcuts_page import KeyboardShortcutsPage
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
 #: Section id of how the rail treats panels. Callers open the window at a
@@ -69,6 +70,9 @@ RESULTS = "results"
 #: Section id of which calculators the launcher offers, and why some are not.
 CALCULATORS = "calculators"
 
+#: Section id of the menu commands' shortcuts.
+KEYBOARD = "keyboard"
+
 #: Section id of the remembered file-dialog folders.
 FILE_DIALOGS = "file_dialogs"
 
@@ -82,6 +86,7 @@ SECTIONS = (
     (RECALCULATION, "Recalculation"),
     (RESULTS, "Results"),
     (CALCULATORS, "Calculators"),
+    (KEYBOARD, "Keyboard"),
     (FILE_DIALOGS, "File dialogs"),
     (EXTERNAL_TOOLS, "External tools"),
 )
@@ -219,6 +224,7 @@ class SettingsDialog(QDialog):
         tool: str = "vina",
         result_store_service=None,
         calculator_definitions=None,
+        shortcut_registry=None,
     ) -> None:
         """`section` is the section to open at, and `tool` is the External
         Tools tab in front there.
@@ -231,6 +237,10 @@ class SettingsDialog(QDialog):
         `calculator_definitions` is every registered calculator, for the
         Calculators page; only those with a declared support level are
         listed, and none given means an empty list rather than a guess.
+
+        `shortcut_registry` is the main window's, which holds every menu command
+        and its shortcut; without one the Keyboard page says there is nothing to
+        show rather than listing commands this window cannot change.
         """
         super().__init__(parent)
         self.setWindowTitle("Settings")
@@ -238,6 +248,7 @@ class SettingsDialog(QDialog):
         self._settings = settings
         self._result_store_service = result_store_service
         self._calculator_definitions = list(calculator_definitions or [])
+        self._shortcut_registry = shortcut_registry
         self._section_ids: list[str] = []
         # See `_commit_revisions`: its own question moves the focus, which
         # finishes the edit a second time.
@@ -253,6 +264,7 @@ class SettingsDialog(QDialog):
             RECALCULATION: self._build_recalculation_page,
             RESULTS: self._build_results_page,
             CALCULATORS: self._build_calculators_page,
+            KEYBOARD: self._build_keyboard_page,
             FILE_DIALOGS: self._build_file_dialogs_page,
         }
         for section_id, label in SECTIONS:
@@ -457,6 +469,13 @@ class SettingsDialog(QDialog):
             self._settings, self._calculator_definitions, self
         )
         return self.calculators_page
+
+    # --- Keyboard ------------------------------------------------------------------
+
+    def _build_keyboard_page(self) -> QWidget:
+        #: Public so a caller or a test can drive a rebinding.
+        self.keyboard_page = KeyboardShortcutsPage(self._shortcut_registry, self)
+        return self.keyboard_page
 
     # --- Results -----------------------------------------------------------------
 

@@ -161,10 +161,23 @@ def iter_dialog_fixtures() -> Iterator[DialogFixture]:
                     scope_note="nothing",
                 ),
             )]
+        # LIKEWISE A SYNTHETIC REGISTRY, so the Keyboard page has a row -- an edit box and a
+        # Reset button -- for the guard to walk. Empty, its per-row controls would sit outside the
+        # guard's universe, the way the Calculators page's did before it got a stand-in.
+        from PySide6.QtGui import QAction
+
+        from openchem.app.shortcut_registry import ShortcutRegistry
+
+        shortcuts = ShortcutRegistry(context.settings)
+        stand_in = QAction("A stand-in command")
+        stand_in.setShortcut("Ctrl+Alt+Shift+F12")
+        shortcuts.track("synthetic_command", stand_in)
+        shortcuts.apply()
         return SettingsDialog(
             context.settings,
             result_store_service=services.result_store_service if services is not None else None,
             calculator_definitions=definitions,
+            shortcut_registry=shortcuts,
         )
 
     def compare_results(_context: DialogContext):

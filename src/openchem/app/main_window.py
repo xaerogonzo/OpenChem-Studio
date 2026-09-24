@@ -36,6 +36,7 @@ from PySide6.QtWidgets import (
 
 from openchem.app.session import SessionManager
 from openchem.app.menu_help import MENU_HELP
+from openchem.app.shortcut_registry import ShortcutRegistry
 from openchem.app.settings import (
     RAIL_HIDES_PANELS,
     RECOVERY_DELAY_SECONDS,
@@ -334,6 +335,9 @@ class MainWindow(QMainWindow):
         self._services = services
         self._settings = settings
         self._session = session
+        # Before the first `_document`, which registers each action's shortcut with it; the
+        # overrides are put in force once every menu exists (`_shortcuts.apply()`).
+        self._shortcuts = ShortcutRegistry(settings)
         self._undo_stack = QUndoStack(self)
         # Docking state, before any dock exists -- see `_on_dock_moved`.
         # `_arranging` starts True and is cleared at the END of construction:
@@ -586,7 +590,7 @@ class MainWindow(QMainWindow):
         # The RAIL's own show/hide, which is not a panel's -- hiding it
         # removes the navigation rather than a panel, so it gets its own
         # contract rather than sharing `view.panel_visibility`.
-        self._document(rail_bar.toggleViewAction(), "panel_rail_visibility")
+        self._document(rail_bar.toggleViewAction(), "panel_rail_visibility", label="Panel rail (show or hide)")
         rail_bar.setObjectName("Panel_Rail")
         rail_bar.setMovable(False)
         rail_bar.setFloatable(False)
@@ -778,6 +782,9 @@ class MainWindow(QMainWindow):
         self.addAction(palette)
 
         self._build_menus()
+        # Every menu action exists with the shortcut the code gave it: capture those as the
+        # defaults, then put the person's own choices in force.
+        self._shortcuts.apply()
         if not self._restore_window_state():
             self._set_initial_right_dock_width()
         self._restore_pinned_panels()
@@ -2124,14 +2131,20 @@ class MainWindow(QMainWindow):
     # `_duplicate_molecule(molecule=None)` really does receive None -- and
     # only the `toggled`/`triggered` connections below have to take the bool.
 
-    @staticmethod
-    def _document(action: QAction, key: str) -> QAction:
+    def _document(self, action: QAction, key: str, label: str | None = None) -> QAction:
         """Attach the menu contract named by `key` and return the action.
+
+        `label` names the command on the Keyboard page where the action's own text is too bare.
 
         Returns it so a caller can keep chaining -- `setData`, a shortcut,
         or offering the SAME action from a second menu.
+
+        Also where a command becomes rebindable: the key that documents an action is the
+        stable name the Keyboard page and the stored shortcut use, so registering it here
+        means a menu entry cannot exist without being one.
         """
         apply_help_tooltip(action, MENU_HELP[key])
+        self._shortcuts.track(key, action, label)
         return action
 
     def _add_editor_action(
@@ -4723,6 +4736,7 @@ class MainWindow(QMainWindow):
             self,
             section=section,
             tool=tool,
+            shortcut_registry=self._shortcuts,
             result_store_service=self._services.result_store_service,
             calculator_definitions=[
                 d for category in registry.categories() for d in registry.by_category(category)

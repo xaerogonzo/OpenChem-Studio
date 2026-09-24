@@ -1,0 +1,17 @@
+[
+  {"do": "smiles", "smiles": "CCO", "name": "Ethanol", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+
+  {"do": "shortcut", "tag": "rebind Search facts", "command": "search_facts", "sequence": "Ctrl+Alt+F9",
+   "press": true, "after_ms": 1500},
+  {"do": "shortcut", "tag": "the new key is taken", "command": "rotate_in_3d", "sequence": "Ctrl+Alt+F9",
+   "expect": "refused", "after_ms": 500},
+  {"do": "shortcut", "tag": "a bare letter belongs to the canvas", "command": "rotate_in_3d", "sequence": "R",
+   "expect": "refused", "after_ms": 500},
+  {"do": "shortcut", "tag": "clear Recalculate Now", "command": "recalculate_now", "sequence": "", "after_ms": 500},
+  {"do": "shortcut", "tag": "rebind Rotate", "command": "rotate_in_3d", "sequence": "Ctrl+Alt+R", "after_ms": 500},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/keyboard_shortcuts.png", "widget": "dialog", "after_ms": 800},
+
+  {"do": "expect_clean", "tag": "end"},
+  {"do": "quit"}
+]

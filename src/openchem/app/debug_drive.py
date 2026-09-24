@@ -5011,6 +5011,110 @@ class _Driver(QObject):
 
         QTimer.singleShot(int(step.get("settle_ms", 1500)), window, verify)
 
+    def _do_shortcut(self, step: dict[str, Any]) -> None:
+        """`{"do": "shortcut", "command": "search_facts", "sequence": "Ctrl+Alt+F9", "press": true}`
+        -- rebind one menu command through the REAL Settings > Keyboard page, and check what the
+        window's action holds afterwards.
+
+            "command"    the command's name on the page (`ShortcutRegistry`; a help key, or
+                         `key:label` where several actions share one)
+            "sequence"   what to record in its box; "" clears it
+            "expect"     "applied" (the default) or "refused": the page must have said why
+            "press"      also send the REAL new key at the window and count the action's
+                         `triggered`, then the OLD key and count it NOT firing
+            "close"      close the page afterwards (default: leave it up for a `shot`)
+
+        The box is driven through the signal its own recorder emits (`editingFinished`), not the
+        `assign` method behind it, for the reason `jobs_cancel` presses the real button: the wiring
+        is what changed. **What is asserted is the ACTION and the page's status line**, not that a
+        call was made -- a registry can set a shortcut Qt never consults, which is why the real key
+        is pressed, through `QTest.keyClick` (Qt's shortcut map, as `key` does).
+
+        A key is matched only while its window is ACTIVE. A run behind another application has
+        none, so the press is LOGGED as skipped rather than counted as a pass or a failure.
+        """
+        from PySide6.QtGui import QKeySequence
+        from PySide6.QtTest import QTest
+        from PySide6.QtWidgets import QApplication
+
+        from openchem.app.shortcut_registry import PORTABLE
+        from openchem.ui.dialogs.settings_dialog import KEYBOARD, SettingsDialog
+
+        window = self._window
+        tag = str(step.get("tag", ""))
+        command = str(step.get("command", ""))
+        sequence = str(step.get("sequence", ""))
+        wanted = str(step.get("expect", "applied"))
+        registry = window._shortcuts
+        if command not in {e.command_id for e in registry.entries()}:
+            self._record_assertion("shortcut", tag, False, f"no command {command!r}")
+            logger.error("OPENCHEM_DRIVE: EXPECT shortcut FAILED[%s] -- no command %r", tag, command)
+            return
+
+        dialog = getattr(self, "_dialog", None)
+        if not isinstance(dialog, SettingsDialog):
+            if dialog is not None:
+                dialog.close()
+            dialog = SettingsDialog(
+                window._settings, window, section=KEYBOARD, shortcut_registry=registry,
+                result_store_service=window._services.result_store_service,
+            )
+            dialog.setWindowFlag(Qt.WindowType.Dialog, True)
+            dialog.show()
+            self._dialog = dialog
+        page = dialog.keyboard_page
+        action = registry._actions[command]
+        before = registry.entry(command).current
+
+        edit = page._rows[command][1]
+        edit.setKeySequence(QKeySequence.fromString(sequence, PORTABLE))
+        edit.editingFinished.emit()
+        after = registry.entry(command).current
+        message = page.status.text()
+
+        problems: list[str] = []
+        if wanted == "applied":
+            normalised = QKeySequence.fromString(sequence, PORTABLE).toString(PORTABLE)
+            if after != normalised:
+                problems.append(f"the command holds {after!r}, wanted {normalised!r} ({message!r})")
+            if action.shortcut().toString(PORTABLE) != after:
+                problems.append("the page and the action disagree")
+        else:
+            if after != before:
+                problems.append(f"a refused change moved {before!r} to {after!r}")
+            if not message.startswith("Not changed"):
+                problems.append(f"a refusal said nothing ({message!r})")
+        if page.shortcut_of(command) != after:
+            problems.append(f"the box shows {page.shortcut_of(command)!r}, the command holds {after!r}")
+
+        if step.get("press") and wanted == "applied":
+            active = QApplication.activeWindow()
+            if active is None:
+                logger.warning("OPENCHEM_DRIVE: shortcut[%s] press skipped -- no active window", tag)
+            else:
+                fired: list[int] = []
+                action.triggered.connect(lambda *_a: fired.append(1))
+                checks = ([("new", after, 1)] if after else []) + (
+                    [("old", before, 0)] if before and before != after else []
+                )
+                for label, keys, expected in checks:
+                    combination = QKeySequence.fromString(keys, PORTABLE)[0]
+                    fired.clear()
+                    QTest.keyClick(window, combination.key(), combination.keyboardModifiers())
+                    if len(fired) != expected:
+                        problems.append(f"the {label} key {keys} fired the command {len(fired)}x, wanted {expected}")
+                logger.warning("OPENCHEM_DRIVE: shortcut[%s] keys pressed (active window %s)", tag, type(active).__name__)
+
+        ok = not problems
+        detail = ("as expected" if ok else "; ".join(problems)) + f" ({command}: {before!r} -> {after!r})"
+        if self._record_assertion("shortcut", tag, ok, detail):
+            logger.warning("OPENCHEM_DRIVE: EXPECT shortcut ok[%s] %s", tag, detail)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT shortcut FAILED[%s] -- %s", tag, detail)
+        if step.get("close"):
+            dialog.close()
+            self._dialog = None
+
     def _do_ketcher_hover(self, step: dict[str, Any]) -> None:
         """`{"do": "ketcher_hover", "bond": 0}` or `{"do": "ketcher_hover", "atom": 2}` -- put
         the pointer over one item of the drawing with a REAL Qt mouse-move event delivered to the

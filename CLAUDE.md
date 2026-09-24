@@ -90,6 +90,10 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           menu's Edit... on the REAL page, asserted
                                           from the page; `ketcher_eval` runs one
                                           JS expression there and logs its string
+    {"do": "shortcut", "command": "search_facts", "sequence": "Ctrl+Alt+F9",
+     "press": true}                       rebind through the REAL Settings > Keyboard
+                                          page, assert the ACTION and the page's
+                                          status, and press the real new/old keys
     {"do": "compare_results", "property": "geometry_partial_charge",
      "expect": {"columns": 2, "atoms": 9}}     the inspector's REAL "Compare
                                           with..." menu, then the window
