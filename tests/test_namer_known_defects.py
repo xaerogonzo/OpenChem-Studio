@@ -3590,6 +3590,26 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-158b", "CC(=O)NC[C@@H]1CCCO1", "N-{[(2S)-oxolan-2-yl]methyl}acetamide", "N-[(oxolan-2-yl)methyl]acetamide", "the census shape (16 of the 18)"),
     ("D-158c", "OC[C@H]1CCCCN1", "[(2R)-piperidin-2-yl]methanol", "(piperidin-2-yl)methanol", "another retained ring"),
     ("D-158d", "CC(=O)OC[C@H]1CCCO1", "[(2R)-oxolan-2-yl]methyl acetate", "(oxolan-2-yl)methyl acetate", "the ring as the alcohol component of an ester"),
+    # --- D-159 (naming round 14): tetrahedral stereo on a SPIRO parent at a plain locant was dropped -------------------------------------------
+    # `_collect_stereo_descriptors` skipped every spiro parent "pending a separate audit" (Stage 6). Bridged parents were admitted at plain-integer
+    # locants in Stage 22, guarded by the post-assembly OPSIN validation that strips a descriptor OPSIN cannot anchor; a spiro parent is the same
+    # case (the tree check already covers 'bridged_or_spiro'). 3 of the 9 census structures with a spiro parent and a dropped descriptor read back
+    # exact now; the other 6 have their centre at a primed or lettered locant, which stays dropped, so they are unchanged (recorded).
+    ("D-159a", "C1CCC2(CC1)OC[C@@H](CN1CCOCC1)O2", "4-{[(3R)-1,4-dioxaspiro[4.5]decan-3-yl]methyl}morpholine",
+     "4-[(1,4-dioxaspiro[4.5]decan-3-yl)methyl]morpholine", "a stereocentre in the dioxolane ring of a spiro ketal"),
+    ("D-159b", "Cc1ccc2c(c1)C[C@]1(CN2C)C(=O)NC(=O)N(c2ccc(Cl)cc2)C1=O", "(5S)-3-(4-chlorophenyl)-1',6'-dimethylspiro[[1,3]diazinane-5,3'-[1,2,3,4]tetrahydroquinoline]-2,4,6-trione",
+     "3-(4-chlorophenyl)-1',6'-dimethylspiro[[1,3]diazinane-5,3'-[1,2,3,4]tetrahydroquinoline]-2,4,6-trione", "the spiro atom itself is the stereocentre (a barbiturate)"),
+    ("D-159c", "Cc1cc(NC(=O)CN2C(=O)N[C@@]3(CCCc4ccccc43)C2=O)no1", "2-{(4R)-2,5-dioxospiro[[1,3]diazolidine-4,1'-[1,2,3,4]tetrahydronaphthalene]-1-yl}-N-(5-methyl-1,2-oxazol-3-yl)acetamide",
+     "2-{2,5-dioxospiro[[1,3]diazolidine-4,1'-[1,2,3,4]tetrahydronaphthalene]-1-yl}-N-(5-methyl-1,2-oxazol-3-yl)acetamide", "a spiro hydantoin"),
+    # --- D-161 (naming round 14): three partly-numbered or table-less rings gave a wrong locant at some positions (found by the sweep) -----------
+    # octahydro-1H-indole (positions 4, 6 and 7 read as 3, 4 and 5 -- a structural error, the read-back is a different molecule), the biotin
+    # skeleton hexahydrothieno[3,4-d]imidazole, and [1,2,4]triazolo[3,4-b][1,3]benzothiazole, whose four OPSIN-probed positions left the triazole
+    # carbon on the generic numbering (`-5-yl` for C-3: 2 census structures). Each table is the numbering of the mancude parent, derived by
+    # `fusion_general.name_fusion` or taken from the curated indole row, and carried onto the skeleton by graph isomorphism.
+    ("D-161a", "CC(=O)NC1CCC2CCNC2C1", "N-(octahydro-1H-indol-6-yl)acetamide", "N-(octahydro-1H-indol-4-yl)acetamide", "a benzo-ring carbon of octahydroindole"),
+    ("D-161b", "CC(=O)NC1CCCC2NCCC21", "N-(octahydro-1H-indol-4-yl)acetamide", "N-(octahydro-1H-indol-5-yl)acetamide", "the position beside the fusion carbon"),
+    ("D-161c", "CC(=O)NC1NC2CSCC2N1", "N-(hexahydrothieno[3,4-d]imidazol-2-yl)acetamide", "N-(hexahydrothieno[3,4-d]imidazol-5-yl)acetamide", "the imidazolidine carbon (biotin's ring)"),
+    ("D-161d", "CC(=O)Nc1nnc2sc3ccccc3n12", "N-([1,2,4]triazolo[3,4-b][1,3]benzothiazol-3-yl)acetamide", "N-([1,2,4]triazolo[3,4-b][1,3]benzothiazol-5-yl)acetamide", "the triazole carbon (the census shape)"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -4474,4 +4494,49 @@ def test_every_atom_of_a_round_14_ring_cation_is_owned_by_exactly_one_node(smile
     ("CC(=O)NC[C@H]1CCCN1", "N-{[(2R)-pyrrolidin-2-yl]methyl}acetamide"),  # already systematic, unchanged
 ])
 def test_the_retained_substituent_stereo_gate_does_not_move_a_neighbouring_name(smiles, expected):
+    assert name_smiles(smiles) == expected
+
+
+# ---- D-159 converses -------------------------------------------------------------------------------------------------------------------------------
+@pytest.mark.parametrize("smiles, expected", [
+    ("C1CCC2(CC1)OCC(CN1CCOCC1)O2", "4-[(1,4-dioxaspiro[4.5]decan-3-yl)methyl]morpholine"),   # no stereo given: nothing to state
+    ("C1CCC2(CC1)CCCC2", "spiro[4.5]decane"),
+])
+def test_the_spiro_stereo_admission_does_not_move_a_neighbouring_name(smiles, expected):
+    assert name_smiles(smiles) == expected
+
+
+# ---- D-160 (naming round 14): fused all-carbon rings that had no atom_locants ---------------------------------------------------------------------
+# `N-nonacenylacetamide` for every position: a curated `substituent_form` with no locant table returned bare, and the ring-locant sweep found 11 such
+# rings with 638 structurally wrong cases. Seven now have a table, derived from `fusion_general.name_fusion` (P-25.3.3). The four helicenes have none:
+# the orientation module declines them ("a helicene is oriented and numbered by its own rule", P-25.3.3.1.1).
+_ROUND_14_FUSED_TABLE_RINGS = [
+    "c1ccc2cc3cc4cc5ccccc5cc4cc3cc2c1", "c1ccc2cc3cc4cc5cc6ccccc6cc5cc4cc3cc2c1",              # pentacene, hexacene (OPSIN-probed tables)
+    "c1ccc2cc3cc4cc5cc6cc7ccccc7cc6cc5cc4cc3cc2c1", "c1ccc2cc3cc4cc5cc6cc7cc8ccccc8cc7cc6cc5cc4cc3cc2c1",
+    "c1ccc2cc3cc4cc5cc6cc7cc8cc9ccccc9cc8cc7cc6cc5cc4cc3cc2c1",                                   # heptacene, octacene, nonacene
+    "c1ccc2cc3c(ccc4cc5ccccc5cc43)cc2c1", "c1ccc2cc3cc4c(ccc5cc6ccccc6cc54)cc3cc2c1",
+    "c1ccc2cc3cc4c(ccc5cc6cc7ccccc7cc6cc54)cc3cc2c1", "c1ccc2cc3cc4cc5c(ccc6cc7cc8ccccc8cc7cc65)cc4cc3cc2c1",  # pentaphene to octaphene
+]
+
+
+@pytest.mark.parametrize("key", _ROUND_14_FUSED_TABLE_RINGS)
+def test_a_fused_ring_locant_table_is_one_of_the_numberings_the_fusion_rules_derive(key):
+    """The table's provenance is the fusion numbering rules, not OPSIN: it must equal one of `name_fusion`'s numberings (a symmetric ring has several)."""
+    from rdkit import Chem
+    from openchem.vendor.iupac_namer.data_loader import _RING_CURATED_SMILES
+    from openchem.vendor.iupac_namer.ring_naming.fusion_general import name_fusion
+
+    mol = Chem.MolFromSmiles(key)
+    assert Chem.MolToSmiles(mol) == key
+    table = _RING_CURATED_SMILES[key]["atom_locants"]
+    derived = name_fusion(mol, [tuple(r) for r in mol.GetRingInfo().AtomRings()]).numberings
+    assert any(all(str(table[i]) == n.atom_to_locant[i].label for i in table) and len(table) == mol.GetNumAtoms() for n in derived)
+
+
+@pytest.mark.parametrize("smiles, expected", [
+    ("CC(=O)Nc1ccc2cc3cc4cc5cc6cc7ccccc7cc6cc5cc4cc3cc2c1", "N-(heptacen-2-yl)acetamide"),
+    ("CC(=O)Nc1ccc2cc3c(ccc4cc5ccccc5cc43)cc2c1", "N-(pentaphen-3-yl)acetamide"),
+    ("CC(=O)Nc1cc2cc3cc4cc5cc6cc7cc8cc9ccccc9cc8cc7cc6cc5cc4cc3cc2cc1", "N-(nonacen-2-yl)acetamide"),
+])
+def test_a_fused_all_carbon_ring_now_names_its_attachment_locant(smiles, expected):
     assert name_smiles(smiles) == expected

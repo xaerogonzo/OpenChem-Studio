@@ -5886,6 +5886,13 @@ def _collect_stereo_descriptors(
             skip_tetrahedral = True
             if ring_sys.type == "fused":
                 allow_fused_tetrahedral_int_locant = True
+            elif ring_sys.type == "spiro":
+                # Naming round 14: a spiro parent admits tetrahedral R/S at PLAIN-integer locants only, like a bridged one (a primed or lettered
+                # locant is still dropped). The Stage 6 note above skipped spiro "pending a separate audit"; the audit is the census: 3 of the
+                # 9 spiro structures with a dropped descriptor read back exact (spiro[4.5], a hydantoin, a barbiturate), the rest have no plain
+                # locant for their centre and are unchanged, and a spiro parent that OPSIN cannot read with stereo is caught by the same
+                # post-assembly validation that guards the bridged case.
+                allow_bridged_tetrahedral_int_locant = True
             elif ring_sys.type == "bridged":
                 # Stage 22 R22-D: ALSO admit bridged-ring tetrahedral R/S
                 # at plain-integer locants (camphor's ``1R,4R``, norbornene's
