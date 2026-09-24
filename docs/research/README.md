@@ -48,3 +48,12 @@ density is never a loading density.
 How errors in the two inputs the detonation calculator cannot estimate (a loading density and a condensed
 enthalpy of formation) move its estimate, with the tool that computes it and a worked example. One compound,
 said plainly: a claim about a set waits for the set.
+
+## `tools/validation_rows.py`
+
+The row schema and the leakage rule, before any method is compared. A validation row carries its property, value,
+units, source, record id, partition (development, selection or holdout -- three, never two) and its **reference
+temperature and phase**; a row without those stays out of the common evaluation set, and `admit_to_common_set` says
+why. Leakage is judged on chemical identity (the first block of the InChIKey), **per model and per property**, and a
+(model, property) with no recorded fit population is an *error*, not "no leakage": an unenumerated population is
+unknown, and unknown must never read as clean.
