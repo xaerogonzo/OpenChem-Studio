@@ -1,0 +1,25 @@
+{
+ "purpose": "round-14 W0 baselines: the round-13 engine on the frozen census sample and the ring sweep, reconstructed because the r13 scan was never saved",
+ "engine_commit": "a66644c3673eca942b70a9f181849ad1d85a8e05",
+ "census_sample_sha256": "4d97d4c514bcc6456d3b5890c14e0ed1876bb7ca8c6145be733c596e929f5419",
+ "ring_population_file": "benchmarks/naming/ring_sweep_population.json",
+ "ring_population_sha256": "1df22463f7d8c2cb809d0f677d2c826f1f9f6a598224eeeec01409a228c8189a",
+ "versions": {
+  "rdkit": "2025.9.6",
+  "py2opsin": "1.2.0"
+ },
+ "census_totals": {
+  "exact": 1914,
+  "same_connectivity": 35,
+  "mismatch_formula": 13,
+  "mismatch_same_formula": 5,
+  "unparsable": 10,
+  "naming_error": 22,
+  "refused": 1
+ },
+ "row_diff_vs_r12": "47 rows changed class, 0 left exact; 30 mismatch->exact, 14 naming_error->exact, 1 unparsable->exact, 1 naming_error->mismatch_same_formula (D-151), 1 mismatch_same_formula->same_connectivity; sets of row labels identical",
+ "commands": [
+  "tools/naming_census_scan.py --out stages/census_scan_r13-engine.json",
+  "tools/naming_ring_locant_sweep.py --out stages/ring_sweep_r13-engine.json"
+ ]
+}
