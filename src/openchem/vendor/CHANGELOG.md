@@ -1658,3 +1658,32 @@ row. 2 census rows (0.1%). Not fixed.
 back MATCH), 0 violations. Blind frozen impact: 0 for the W1-only engine, so the 1-of-40 (`heldout_v6`) and 1-of-1126 (`bluebook_frozen`) that
 moved are W2's. Tests: 16 FIXED rows (D-145a to D-150c) and 28 converse and invariant cases in `test_namer_known_defects.py`, plus 3 provider
 tests; the mutation checks fail 14 of the 24 W1 cases and 9 of the 20 W2 cases with the engine and data changes removed, the rest being converses.
+
+## 2026-09-24 - naming round 14: ring-nitrogen sulfonamides, ring cations, stereo on retained substituents, derived fused-ring tables
+
+Census 95.70% -> 97.95% exact (0 rows left `exact`), candidate wrong structures 0.90% -> 0.60%, embedded errors and refusals 1.15% -> 0.45%; the ring-locant
+sweep's rings with a structurally wrong case 19 -> 9. Every fix is a cluster with ONE named root mechanism whose members were all re-run.
+
+**D-151 (FIXED, broadened; 7 census rows).** `engine.py` `_compute_prefix_assignments`: a sulfonamide whose nitrogen is a RING atom outside the parent
+(`_sulfonamide_is_ring_nitrogen_prefix`) claimed S, O, O and N and left the ring's carbons unclaimed, so every plan with the other side as parent died and
+the engine named the ring as the parent (an acid lost its suffix, an ester became an ester of the piperidine). It is left to the structural carve, and the
+sulfonyl/sulfinyl route writes `<ring>-N-sulfonyl` (P-65.3.2.3). **D-152 (3 rows).** The sulfamoyl prefix printed one shared `N,N-` block; each
+substituent now carries its own locant.
+
+**D-154..D-157 (9 of 14 ring-cation rows).** (D-154) `fusion_general.name_fusion_parents` refused any charged ring atom; a `_neutral_ring_copy` (same atom
+indices, bicyclic systems only) names the skeleton and the engine adds `-ium` at the charged atom's locant. (D-155) `_shift_bridgehead_cation_charge`: a
+ring-fusion `[n+]` beside an `[nH]` is the `[nH+]` cation. (D-156) `ring_naming/common.py` made a charged N with three ring bonds an indicated-hydrogen
+target; and the curated quinolizidine row (`data_loader.py`) gave its nitrogen `4a` (it is 5). (D-157) `_standalone_or_cation`: the acid recursion for an
+acyl or amido prefix runs at depth > 0, where `name` never promotes STANDALONE to CATION, so the ring cation lost its `-ium`.
+
+**D-158 (18 rows), D-159 (3 rows).** The stereo-drop gate for retained names (`retained_plan_would_drop_stereo`) ran for STANDALONE only and did not read the
+`_ParentCIPCode` stash on a carved fragment; a retained ring substituent (`oxolan-2-yl`) is a LEAF that never reads stereo. `_collect_stereo_descriptors` admits
+tetrahedral stereo on a spiro parent at plain-integer locants, under the existing post-assembly OPSIN validation.
+
+**D-160, D-161, D-153.** Locant tables for heptacene, octacene, nonacene and pentaphene to octaphene (each one of the numberings `fusion_general.name_fusion`
+derives, P-25.3.3, pinned by a test), and for octahydro-1H-indole, hexahydrothieno[3,4-d]imidazole and `[1,2,4]triazolo[3,4-b][1,3]benzothiazole` (the numbering
+of the mancude parent carried onto the skeleton). `monocyclic.name_systematic_monocyclic` recovers the Kekule bonds of an aromatic non-benzene carbocycle:
+tropone was `cycloheptanone`. **D-162 recorded OPEN** (an N-hydroxy-N-alkyl amide in an ester loses its N-substituent).
+
+**Measured.** ref-compare against the round-13 merge: 1712 rows, 1 name changed (`c1c[cH+][cH+]1`, `cyclobutane` -> `cyclobutene`, still not the printed
+bis(ylium)), 0 violations. Blind frozen impact: unchanged for both populations, so no new final evaluation was scored. Driven check: 66/66 rows.

@@ -914,3 +914,69 @@ Architecture, deliberately deferred rather than half-done:
   it, including a source scan against a new construction site.
 * **274 retained-name registry entries have no audited status.** They behave
   exactly as before; `tools/retained_name_audit.py` reports the backlog.
+
+## Open after naming round 14 (2026-09-24)
+
+Round 14 took the measured residue of round 13 and worked it as clusters with one root mechanism each. The census went **95.70% -> 97.95% exact**
+(1914 -> 1959 of 2000; no row LEFT `exact`, checked row by row against the round-13 reconstruction and every intermediate scan); candidate wrong
+structures **0.90% -> 0.60%**; embedded errors and refusals **1.15% -> 0.45%**; the ring-locant sweep's rings with a structurally wrong case **19 -> 9**.
+
+**Definitions (written down this round, because the census classes had been used as if they were self-evident).** `exact`: the InChIKey of the input
+equals the InChIKey of OPSIN's read-back of the name. Formula equality is never treated as correctness. `same_connectivity`: the first InChIKey block
+(connectivity and formula) is equal and the full key is not; the later blocks carry stereo, isotope and protonation/charge, so the bucket holds
+DIFFERENT phenomena. Split by recomputing which InChI layer differs, the 35 round-13 rows were 30 stereo-only, 4 protonation, 1 double-bond stereo. OPSIN
+is a STRUCTURAL oracle only: it is never the authority for a preferred numbering or a PIN.
+
+**The census baseline had to be reconstructed.** The round-13 scan was never saved. `benchmarks/naming/stages/census_scan_r13-engine.json` (with
+`r14-w0-provenance.json`: engine commit, sample hash, RDKit and py2opsin versions) is that reconstruction, and it was checked against the saved r12
+per-row baseline: the same 2000 row labels, 47 rows changed class (exactly the ones round 13 declared: 30 mismatch -> exact, 14 embedded error -> exact,
+1 unparsable -> exact, 1 embedded error -> wrong structure (D-151), 1 wrong structure -> same-connectivity), 0 left `exact`, totals 1914/35/13/5/10/22/1.
+
+**Fixed this round** (each cluster's members were all re-run after the fix, not only a representative; the per-row record is the census `--compare`):
+
+| item | D-row | root mechanism | census rows |
+|---|---|---|---|
+| a sulfonamide on a RING nitrogen | D-151 (FIXED, broadened) | `S(=O)(=O)N<ring>` was detected as a sulfonamide whose demoted prefix claimed S, O, O and N and left the ring's carbons unclaimed, so every plan with the other side as parent died and the engine named the ring as the parent: an acid lost its suffix and an ESTER was named as an ester of the piperidine (a different structure). Left to the structural carve now; the prefix is the sulfonic acid's `<ring>-N-sulfonyl` (P-65.3.2.3; the form of `(propane-1-sulfonyl)benzene`, pdf p. 614) | 7 (+4 silent renames where an acid or amide parent was regained) |
+| sulfamoyl with two different N-substituents | D-152 (FIXED) | one shared `N,N-` locant block: `N,N-cyclohexylmethylsulfamoyl`, which no parser reads. Each substituent carries its own locant | 3 |
+| ring cations with no name | D-154, D-155, D-156, D-157 (FIXED) | FOUR roots, found by naming the cations alone. (D-154) general fusion nomenclature refused any charged ring atom; now described on a neutral copy with the same atom indices, BICYCLIC systems only. (D-155) a ring-fusion `[n+]` beside an `[nH]` is the same cation as the `[nH+]` drawing and has no name of its own; the charge is moved. (D-156) a charged N with three ring bonds was made an indicated-hydrogen target, so a quaternary bridgehead cation with a substituent had no name; and the curated quinolizidine row gave its nitrogen the locant `4a` (it is 5). (D-157) an acyl or amido prefix derives from a recursive call that names the acid, and `name` promotes STANDALONE to CATION only at depth 0, so a ring cation inside an acyl prefix lost its `-ium` | 9 of 14 |
+| stereo lost on a retained ring substituent | D-158 (FIXED) | `(oxolan-2-yl)methyl` comes from a retained LEAF that never reads stereo; the stereo-drop gate for retained names ran for STANDALONE only, and the attachment atom had lost its chiral tag (the descriptor survives as the `_ParentCIPCode` stash, which the gate now reads) | 18 |
+| stereo lost on a spiro parent | D-159 (FIXED) | the Stage 6 skip of every spiro parent "pending a separate audit"; admitted at plain-integer locants like a bridged parent, guarded by the existing post-assembly OPSIN validation | 3 (6 unchanged: their centre has a primed locant) |
+| fused all-carbon rings with a bare `-yl` | D-160 (FIXED for 7 of 11) | heptacene, octacene, nonacene and pentaphene to octaphene now carry a locant table that is one of the numberings `fusion_general.name_fusion` derives under P-25.3.3; pentacene and hexacene's OPSIN-probed tables are one of those too (a test pins every table to the derivation, so provenance is the rules, not OPSIN) | 0 (sweep: 638 wrong cases -> 0 for these rings) |
+| three partial or absent tables | D-161 (FIXED) | octahydro-1H-indole (three attachable positions read as their neighbours), the biotin skeleton, and `[1,2,4]triazolo[3,4-b][1,3]benzothiazole` (the triazole carbon read as `5`); each table is the numbering of the mancude parent carried onto the skeleton | 2 |
+| an aromatic non-benzene carbocycle named saturated | D-153 (FIXED) | tropone came out `cycloheptanone`, hinokitiol `2-hydroxy-5-(propan-2-yl)cycloheptan-1-one`: RDKit marks the ring aromatic, the unsaturation detector returns nothing for an aromatic ring, and the carbocycle branch read that as saturated | 1 (and one tuning row) |
+
+**A wrong claim in the round-14 plan, corrected.** It said 11 all-carbon rings and "about 7" partly hydrogenated fused rings, 18 in all, against
+"15 table-less rings with wrong cases". The re-run sweep gave 19 rings: 11 all-carbon, 4 other table-less, 4 partial-table. The "about 7" was wrong.
+
+**The residue, cluster by cluster (41 rows, 2.05%), and why each is still here.** The 10-structure floor is a prioritisation rule, not a severity rule:
+these are below it or not bounded, and each reason is recorded.
+
+| cluster | rows | why it remains |
+|---|---|---|
+| spiro parents whose centre has a PRIMED or lettered locant | 8 (7 + the spiro cation 1788) | descriptors at a primed locant stay dropped: OPSIN's anchoring of a primed locant on a spiro parent is not established (the reason letter suffixes on a bridged parent are validated, not trusted) |
+| charge or protonation lost (`[S-]` thiolate on a heteroaromatic, `[NH+]=N`) | 4 | the parent is named without its ion; a policy question about the anion path, and only OPSIN's `p` layer differs |
+| tricyclic or amidinium ring cations | 4 (1620, 1641, 1847, 1859) | the neutral copy is verified for BICYCLIC systems only: the purine-fused tricyclic cations got a fusion name OPSIN cannot read where the von Baeyer fallback read back exactly (three exact rows would have left `exact`), so they stay on the fallback; an amidinium `N+=C` at a fusion atom has no neutral counterpart with one valence fewer |
+| neutral fused or spiro polycycles with "no valid plan" | 4 | four different shapes, none with a second member |
+| bridged methano-benzocyclooctenes | 2 | the skeleton is named as the wrong ring system; the same shape twice, not measured further |
+| sulfonamide N- anions and one refused carboxylate | 4 | 2 of these (`...benzene-1-sulfonamidate`) are OPSIN reading an anion name as the neutral sulfonamide, a candidate and not a demonstrated engine defect; one drops the charge inside a `sulfamoyl` prefix; one is a refusal from the charge perception (`acidic_anion_carboxylate`) |
+| single-row structural misnames | 6 | an N-hydroxy-N-alkyl amide in an ester loses its N-substituent (D-162, OPEN, target derived and read back), an acylamidine, an oxime ether of a thioamidine, a purine hydro-prefix, an N vs N' hydrazide locant, a steroid oxime ether |
+| unparsable, other mechanisms | 7 | `N1,N2` oxamide locants, a von Baeyer name, an adamantane, a camphanyl phosphonate, a triazine-dione and a bis-dioxolo: seven different shapes |
+| double-bond stereo omitted | 1 | one row |
+
+**The ring-locant sweep after round 14** (371 curated rings, 7,372 cases; the population was regenerated after the table changes): 9 rings with a structurally
+wrong case (the four helicenes, octahydropyridazino[1,2-a][1,2]diazepine, corrin, and three partial-table rings: two indolo[4,3-fg]quinolines and a
+furo-naphtho-dioxole); 274 wrong cases of 7,372 (from 695). Classified: **STRUCTURAL_FAILURE** (the read-back is a different structure) is the
+`wrong_structure` outcome; every structurally correct case on a table-less ring is **NUMBERING_UNADJUDICATED** (a preferred numbering no source here
+establishes) and is not counted as a defect. The four helicenes stay unnumbered: the orientation module declines them, "a helicene is oriented and
+numbered by its own rule" (P-25.3.3.1.1), which nothing here implements. Sweep runtime about 1,260 s.
+
+**The sweep skips heteroatom sites, and that hid a wrong table.** The curated quinolizidine row gave its bridgehead nitrogen the locant `4a`; every
+carbon locant was right and 651 heteroatom sites are never swept, so nothing saw it until the nitrogen took a substituent. A sweep of heteroatom
+attachments is the next instrument, and its population is not built.
+
+**Frozen populations.** `--frozen-impact r13-final-evaluation` (blind, counts only) reported **unchanged** for `heldout_v6` and `bluebook_frozen`: no frozen
+name moved. The round-13 seal therefore stands and no new `--final-evaluation` was scored (a second exposure of the frozen rows would add nothing).
+
+**One tuning row moved** (ref-compare against the round-13 merge, 1712 structures: 1 name changed, 0 violations): `c1c[cH+][cH+]1`, the printed
+cyclobut-3-ene-1,2-bis(ylium) (p. 822), from `cyclobutane` to `cyclobutene` (D-153's mechanism). Neither is the printed target: the two charges are
+still dropped, so the row is wrong before and after, one step closer. Manifest `stages/manifests/r14-release-candidate.toml`.

@@ -1,0 +1,19 @@
+# Round 14's cumulative ref-compare manifest, against the round-13 merge (a66644c3), over the four sets the tool names (r7, r8, mc and every
+# non-frozen population: 1712 structures).
+#
+# Every W-item touched ZERO tuning rows except one, and it is not one the round was about. Recorded, not excused: the census `--compare` (row label by
+# row label, every row that changed class named, none left `exact`) and the ring-locant sweep are the direct evidence for the workstreams; this
+# manifest says only which tuning row moved and why.
+
+stage = "r14-release-candidate"
+
+# `c1c[cH+][cH+]1`, the Blue Book's cyclobut-3-ene-1,2-bis(ylium) (P-73.2.2.1.2, pdf p. 822). RDKit marks the four-membered ring AROMATIC, so the
+# unsaturation detector reported no double bond and the carbocycle branch wrote the SATURATED 'cyclobutane' (D-153: the same mechanism that named
+# tropone 'cycloheptanone'). It now recovers the Kekule bond and writes 'cyclobutene'. Neither name is the printed target: the two positive charges
+# are still dropped (a separate, older gap in the dication path), so the row is WRONG before and WRONG after, one step closer. Not STRUCTURALLY_EQUIVALENT
+# (neither reads back to the input) and not a row this round claims to have fixed.
+[[expect]]
+id = "pop:bluebook_tuning:bb-70f2eee3ae7e"
+expect = "MUST_CHANGE"
+reason_rule_id = "aromatic all-carbon non-benzene ring keeps its Kekule double bond (D-153)"
+expected_layer = "candidate_assignment"

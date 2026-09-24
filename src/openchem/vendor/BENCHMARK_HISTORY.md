@@ -994,3 +994,65 @@ a better name for a row that was already structurally right (it is not proof of 
   (the silent half of D-150). The documents and this table are right; the message is not, and is left as committed.
 - W2 exposed, and did not create, a wrong-structure path for an ester whose acid carries a ring-nitrogen sulfonamide (D-151). The strict xfail row and a real-OPSIN
   test that uses it as its example will fire together when it is fixed.
+
+## 2026-09-24 -- naming round 14: the measured residue, worked as clusters with one root mechanism each
+
+The round began with a reconstruction, not a fix: the round-13 census scan had never been saved, so it was rebuilt and checked ROW BY ROW against the
+saved r12 per-row baseline (`stages/census_scan_r13-engine.json`, `stages/r14-w0-provenance.json`): the same 2000 row labels, 47 rows changed class
+(exactly the ones round 13 declared), 0 left `exact`, totals 1914/35/13/5/10/22/1. Definitions of `exact`, `same_connectivity` and the wrong-structure
+classes, and the residue table, are in `KNOWN_LIMITATIONS.md`, "Open after naming round 14".
+
+### The census, every row, at each committed step (`naming_census_scan.py`, 2000 rows, each `--compare`d to the step before)
+
+| class | r13 engine | + C1/C2 sulfonyl | + C3 cations | + stereo, spiro, tables | + D-153 (final) |
+|---|---|---|---|---|---|
+| exact | 1914 (95.70%) | 1924 | 1932 | 1958 | **1959 (97.95%)** |
+| same connectivity | 35 | 35 | 37 | 13 | 13 |
+| wrong structure, different formula | 13 | 12 | 12 | 12 | 11 |
+| wrong structure, same formula | 5 | 3 | 3 | 1 | 1 |
+| unparsable | 10 | 7 | 7 | 7 | 7 |
+| embedded engine error | 22 | 18 | 8 | 8 | 8 |
+| refused | 1 | 1 | 1 | 1 | 1 |
+
+One step regressed and was caught by the rule "no row leaves `exact`": the first C3 build gave three tricyclic purine-fused cations a fusion name OPSIN
+cannot read where the von Baeyer fallback had read back exactly (3 rows left `exact`). The fix was to limit the neutral-copy path to bicyclic systems, the
+scope in which it had been verified; the tricyclic cations stay on the fallback. Total: 45 rows to exact, 0 left, 5 exact tricyclic-cation rows changed name only
+(a different resonance drawing gives a different von Baeyer name that reads back exactly).
+
+### The ring-locant sweep, before and after (`naming_ring_locant_sweep.py`; 371 curated rings, 7,372 cases)
+
+| | rings with a structurally wrong case | wrong cases | engine errors |
+|---|---|---|---|
+| before (r13 engine) | 19 (11 all-carbon fused, 4 other table-less, 4 partial) | 695 | 21 |
+| after | 9 (4 helicenes, pyridazino-diazepine, corrin, 3 partial-table) | 274 | 21 |
+
+The round-14 plan's "about 7 partly hydrogenated rings" was wrong; the re-run gave 8 rings that are not all-carbon fused. STRUCTURAL_FAILURE is the `wrong_structure`
+outcome; structurally correct cases on table-less rings are NUMBERING_UNADJUDICATED and are not counted. Sweep runtime about 1,260 s.
+
+### The mechanisms, with the evidence each was found by
+
+- **Ring-nitrogen sulfonyl (D-151, D-152).** `tools/naming_probe.py --failures` showed `leaves heavy atoms [11..15] unclaimed`: the piperidine's carbons. The
+  broadening (the plain acid was misnamed too, silently, because the read-back matched) came from naming the acid beside the ester.
+- **Ring cations (D-154..D-157).** FOUR roots, not one, found by naming the cations ALONE: a `sys.settrace` of `try_retained_name` showed the retained lookup
+  never matching, then `extract_ring_mol` showed the SAME ring key as the neutral molecule, which named fine, which located the refusal in the systematic
+  fusion path (`fusion_general` raised on any charged atom); the bridgehead drawing and the acyl-prefix charge loss were separate, reproduced on their own.
+- **Stereo (D-158, D-159).** A spy on `name` printed the LEAF type: `retained name: oxolan-2-yl` (no stereo) beside `parent=pyrrolidine` (stereo). The pyrrolidine
+  name carried `(2R)`; the oxolane did not, though the two structures are analogues.
+- **A wrong locant hidden by the sweep's own scope.** The quinolizidine nitrogen's locant `4a` (it is 5) was in a table whose every carbon locant was right;
+  651 heteroatom sites are never swept. Found by a quaternary bridgehead cation, not by the instrument built to find wrong locants.
+
+### Gates
+
+- **ref-compare** (`--base a66644c3`, the round-13 merge): 1712 structures, 1 name changed, **0 violations** (`stages/manifests/r14-release-candidate.toml`:
+  `c1c[cH+][cH+]1`, `cyclobutane` -> `cyclobutene`, not the printed bis(ylium)).
+- **Known-defects suite:** 1256 passed, 15 xfailed (14 old + D-162). Each fix was broken once and its new tests failed. **Driven check:** 66/66 rows (16 new).
+- **Frozen populations:** blind `--frozen-impact r13-final-evaluation`: **unchanged** for `heldout_v6` and `bluebook_frozen`, so the round-13 seal stands and no new final
+  evaluation was scored.
+
+### Process notes worth keeping
+
+- The bridgehead-charge drawing (D-155) is one cation with its `[nH+]` drawing (the same InChIKey), but the vendored OPSIN gate compares canonical SMILES, so those
+  two rows live in their own tests. The application's own provider says so with a tautomer note; the driven check records the verdict as TAUTOMER, not MATCH.
+- The sweep's results are READ in three classes (STRUCTURAL_FAILURE, NUMBERING_UNADJUDICATED, CONTESTED); the tool itself still prints `wrong_structure` / `structurally_correct`, so the third class is a reading, not an output, and no ring needed it.
+- The helicenes were not numbered: `fusion_orientation` declines them ("a helicene is oriented and numbered by its own rule"), and no other source for their numbering
+  was at hand. A table that only OPSIN vouched for would have broken the provenance rule adopted this round.
