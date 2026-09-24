@@ -5124,9 +5124,11 @@ class _Driver(QObject):
             "press"           one character to press: "n" (an element), "2" (a bond order), "/" (the
                               properties dialog of whatever is hovered)
             "expect"          {"hovered": true, "bond_type": 1, "atom_label": "N",
-                               "dialog": "bondProps-dialog"} -- `bond_type` and `atom_label` are of
-                              the hovered item's own index; `dialog` is a `data-testid` that must
-                              be on the page
+                               "dialog": "bondProps-dialog", "smiles_equals": "C=C",
+                               "undo_delta": 1} -- `bond_type` and `atom_label` are of the hovered
+                              item's own index; `dialog` is a `data-testid` that must be on the
+                              page; `smiles_equals` and `undo_delta` are the APPLICATION's
+                              molecule and undo stack (a bond order key is answered there)
             "settle_ms"       how long to wait before reading the page (default 900)
 
         **THE HOVER IS SET THROUGH THE EDITOR'S OWN API, NOT BY A POINTER.** The first version sent
@@ -5149,6 +5151,9 @@ class _Driver(QObject):
         expect = dict(step.get("expect") or {})
         press = str(step.get("press", ""))
         page = self._window._editor._backend._page
+        window = self._window
+        molecule_before = window._current_molecule()
+        undo_before = window._undo_stack.count()
 
         script = """
         (function () {
@@ -5219,6 +5224,14 @@ class _Driver(QObject):
                 problems.append(f"atom {index} is {after['atoms'][index]!r}, wanted {expect['atom_label']!r}")
             if "dialog" in expect and expect["dialog"] not in after["testids"]:
                 problems.append(f"no {expect['dialog']!r} on the page")
+            molecule_now = window._current_molecule()
+            smiles_now = molecule_now.canonical_smiles if molecule_now is not None else None
+            if "smiles_equals" in expect and smiles_now != expect["smiles_equals"]:
+                problems.append(f"the molecule is {smiles_now!r}, wanted {expect['smiles_equals']!r}")
+            if "undo_delta" in expect and window._undo_stack.count() - undo_before != int(expect["undo_delta"]):
+                problems.append(
+                    f"the undo stack moved by {window._undo_stack.count() - undo_before}, wanted {expect['undo_delta']}"
+                )
             ok = not problems
             detail = ("as expected" if ok else "; ".join(problems)) + f" (hover {kind} {index}, pressed {press!r}: {first.get('pressed')}; bonds {after['bonds']} atoms {after['atoms']})"
             if self._record_assertion("ketcher_hover", tag, ok, detail):

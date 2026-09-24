@@ -80,11 +80,16 @@ RECALC_QUIET_MS = Preference(
     "compute/recalc_quiet_ms", int, DEFAULT_QUIET_MS, minimum=MIN_QUIET_MS, maximum=MAX_QUIET_MS
 )
 
+#: Whether a number key over a hovered bond sets its order (1 single, 2 double, 3 triple).
+#: On is the default. Off hands the key back to the editor, which does nothing with it over a
+#: bond, so the setting only exists for someone whose own habits use those keys otherwise.
+DRAWING_BOND_KEYS = Preference("drawing/bond_order_keys", bool, True)
+
 #: Every preference, in the order the Settings window groups them. Tests
 #: iterate this, so a preference added here is covered without a new test.
 PREFERENCES = (
     RAIL_HIDES_PANELS, RECOVERY_ENABLED, RECOVERY_DELAY_SECONDS, MAX_REVISIONS_KEPT,
-    SHOW_HIDDEN_CALCULATORS, RECALC_MODE, RECALC_QUIET_MS,
+    SHOW_HIDDEN_CALCULATORS, RECALC_MODE, RECALC_QUIET_MS, DRAWING_BOND_KEYS,
 )
 
 #: Where one calculator's own visibility choice is stored: a plain

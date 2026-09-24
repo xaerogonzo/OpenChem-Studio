@@ -38,6 +38,7 @@ from openchem.app.session import SessionManager
 from openchem.app.menu_help import MENU_HELP
 from openchem.app.shortcut_registry import ShortcutRegistry
 from openchem.app.settings import (
+    DRAWING_BOND_KEYS,
     RAIL_HIDES_PANELS,
     RECOVERY_DELAY_SECONDS,
     RECOVERY_ENABLED,
@@ -83,6 +84,7 @@ from openchem.events.events import (
     MoleculeChanged,
     MoleculeSelected,
     RecalculationDue,
+    SettingsChanged,
     StructureChecked,
     MoleculeSnapshotUpdated,
     PluginLoaded,
@@ -525,6 +527,11 @@ class MainWindow(QMainWindow):
             self._on_inspector_atom_selected
         )
         self._editor.atom_context_menu.connect(self._show_atom_context_menu)
+        self._editor.bond_order_key_pressed.connect(self._on_bond_order_key)
+        # The page swallows the key BEFORE the editor sees it, so the setting has to be known
+        # there: pushed at startup and whenever it changes, never read at the moment of the key.
+        self._editor.set_bond_keys_enabled(bool(settings.preference(DRAWING_BOND_KEYS)))
+        services.event_bus.subscribe(SettingsChanged, self._on_drawing_setting_changed)
         self._atom_inspector_panel.isotopes_requested.connect(
             self._show_isotopes_for_selection
         )
@@ -4060,6 +4067,38 @@ class MainWindow(QMainWindow):
         editor_edit.setData(atom_index)
         editor_edit.triggered.connect(self._on_editor_atom_edit)
         return menu
+
+    def _on_drawing_setting_changed(self, event: SettingsChanged) -> None:
+        if event.key == DRAWING_BOND_KEYS.key:
+            self._editor.set_bond_keys_enabled(bool(self._settings.preference(DRAWING_BOND_KEYS)))
+
+    def _on_bond_order_key(self, bond_index: int, order: int) -> None:
+        """A number key pressed over a hovered bond: set its order, as one undoable edit.
+
+        **THE SAME ROUTE AS THE ATOM MENU'S CHANGES, for the same reasons**: the application
+        makes the change (`ChemistryEngine.edit_bond`) and pushes an `EditStructureCommand`, so it
+        is one entry on the undo stack, recomputes like any deliberate change, and the canvas
+        follows through the reload every undo already uses. Ketcher does nothing with a number key
+        over a bond, and its bond tool cannot be driven by a synthetic event.
+
+        A bond that already has that order is left alone WITHOUT an undo entry. A bond the change
+        cannot honour (aromatic, query, wedge, or one that would break a valence) is left as it
+        was and the reason goes in the status bar; that is a refusal, not an error.
+        """
+        molecule = self._current_molecule()
+        if molecule is None or not molecule.molblock:
+            return
+        engine = self._services.chemistry_engine
+        try:
+            edited = engine.edit_bond(molecule.molblock, int(bond_index), int(order))
+        except StructureEditError as error:
+            self.statusBar().showMessage(str(error), 8000)
+            return
+        if edited == molecule.molblock:
+            return
+        self._undo_stack.push(
+            EditStructureCommand(engine, molecule, edited, self._services.event_bus)
+        )
 
     def _on_atom_change(self, _checked: bool = False) -> None:
         """Apply the change an atom-menu action carries: an undoable edit of the STRUCTURE.

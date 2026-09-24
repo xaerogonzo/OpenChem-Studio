@@ -105,6 +105,7 @@ def test_the_stored_keys_are_stable_names():
         "calculators/show_hidden",
         "compute/recalc_mode",
         "compute/recalc_quiet_ms",
+        "drawing/bond_order_keys",
     }
 
 

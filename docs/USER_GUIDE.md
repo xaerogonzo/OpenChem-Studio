@@ -157,6 +157,15 @@ instead of being drawn. **Edit… (the editor's own)** opens Ketcher's Atom
 Properties dialog for anything else — any element, isotope, alias, query
 properties — and applies it as one edit.
 
+**Pointing at a bond and pressing 1, 2 or 3** makes it single, double or
+triple — Ketcher itself does nothing with those keys over a bond. It is one
+undo step and recalculates like any deliberate edit. A bond that is
+aromatic, a query bond, a wedge or hash bond, or one whose change would break
+a valence (a carbon left with five bonds) is left as it was, and the status bar
+says why; a bond that already has that order is left alone without an undo
+step. Pointing at an *atom* is unaffected — those keys still start a bond from
+it. **Edit ▸ Settings… ▸ Drawing** turns this off.
+
 ### Seeing stereochemistry on the 2D canvas
 
 Three separate things, and they are **not** one "show stereo labels"
@@ -2542,6 +2551,9 @@ kept, which asks first.
   one, and always wins; **Reset to defaults** forgets both. This changes only
   what is offered — nothing is run or removed, the Help for a hidden
   calculator stays available, and results already computed stay readable.
+- **Drawing.** Whether a number key over a hovered bond sets its order (on by
+  default; see the drawing section above). Off hands the keys back to the
+  editor, which does nothing with them over a bond.
 - **Keyboard.** Every menu command with the shortcut it holds (Search facts and the
   Command Palette too). Click a box and press the combination you want; it applies
   at once and is remembered. The ✕ in the box clears a command's shortcut, **Reset**

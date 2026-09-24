@@ -492,9 +492,10 @@ def _plugins_registering_reactions(root: Path) -> list[str]:
 #: silently fall behind the document.
 DEFERRALS: list[Deferral] = [
     Deferral(
-        claim="a bond's order cannot be changed by hovering it and pressing a number, or by clicking it",
-        # Unbuilt while no engine method edits a bond: the route the atom menu took for an atom.
-        unbuilt=lambda: "def edit_bond" not in (_ROOT / "src/openchem/chem/engine.py").read_text(encoding="utf-8"),
+        claim="a bond's order cannot be changed by clicking it",
+        # Unbuilt while the page has no click interceptor for a bond (the number keys are one:
+        # `interceptBondOrderKeys`), which is where a cycling gesture would have to live.
+        unbuilt=lambda: "interceptBondClick" not in (_ROOT / "tools/ketcher-host/src/main.jsx").read_text(encoding="utf-8"),
     ),
     Deferral(
         claim="a coordinate-only edit recomputes every result",

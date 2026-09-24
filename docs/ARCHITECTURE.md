@@ -2277,9 +2277,10 @@ document may cite a file or a test that does not exist.
   exists for. A leg landing in any of the three recorded modes is not
   that, however early the lowest of them looks.
 
-- **OPEN** -- a bond's order cannot be changed by hovering it and pressing a number, or by clicking it.
-  Proposed as "click a bond to cycle, hover and press 1/2/3", on the belief that Ketcher already did the
-  second. **It does not, for a bond, in the vendored bundle** (measured 2026-09-24,
+- **OPEN** -- a bond's order cannot be changed by clicking it. **Hover and press 1/2/3 is built** (2026-09-24:
+  `ChemistryEngine.edit_bond`, `interceptBondOrderKeys` in `main.jsx`, Settings > Drawing,
+  `benchmarks/visual/bond_order_keys.json`); what is left is "click a bond to cycle". It was proposed on the belief
+  that Ketcher already did the number keys. **It does not, for a bond, in the vendored bundle** (measured 2026-09-24,
   `benchmarks/visual/ketcher_hover_keys.json`): hovering an atom and pressing `n` replaces it and `/` over a
   bond opens its properties dialog, but a number over a hovered bond is handled (`preventDefault`) and changes
   nothing -- the bundle's hotkey table has tool handlers for atoms and s-groups and none for bonds. So the
@@ -2290,12 +2291,12 @@ document may cite a file or a test that does not exist.
   position, and the key must be dispatched inside the editor's DOM rather than on `document`. That makes a
   hover gesture regression-testable through `OPENCHEM_DRIVE`.
 
-  The route that fits this codebase is the one the atom menu took: the page reports the hovered bond and the
-  key, and the application makes the change through a `ChemistryEngine` method and an `EditStructureCommand`
-  (one undo entry, recomputed like any deliberate change) rather than through Ketcher's tools, whose synthetic
-  clicks armed the tool and changed nothing. Aromatic, query and wedge bonds are left untouched with a hint.
-  **Click-to-cycle is the contested half**: in the select tool a click on a bond SELECTS it, so cycling on click
-  would take that away, and it needs its own switch, off by default. Nothing here is decided.
+  The number keys took the route the atom menu took: the page reports the hovered bond and the key, and the
+  application makes the change through `edit_bond` and an `EditStructureCommand` (one undo entry, recomputed like
+  any deliberate change) rather than through Ketcher's tools, whose synthetic clicks armed the tool and changed
+  nothing. **Click-to-cycle is the contested half and is not built**: in the select tool a click on a bond SELECTS
+  it, so cycling on click would take that away (and it would have to swallow the mouse-down as well as the click),
+  so it needs its own switch, off by default. Nothing here is decided.
 
 - **DECISION** -- a coordinate-only edit recomputes every result, because the drawing's fingerprint hashes the
   raw molblock. Dragging an atom therefore recomputes results that cannot have changed. The plan gated a

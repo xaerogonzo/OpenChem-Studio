@@ -39,6 +39,7 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.app.settings import (
+    DRAWING_BOND_KEYS,
     MAX_REVISIONS_KEPT,
     RAIL_HIDES_PANELS,
     RECALC_MODE,
@@ -73,6 +74,9 @@ CALCULATORS = "calculators"
 #: Section id of the menu commands' shortcuts.
 KEYBOARD = "keyboard"
 
+#: Section id of how drawing behaves.
+DRAWING = "drawing"
+
 #: Section id of the remembered file-dialog folders.
 FILE_DIALOGS = "file_dialogs"
 
@@ -87,6 +91,7 @@ SECTIONS = (
     (RESULTS, "Results"),
     (CALCULATORS, "Calculators"),
     (KEYBOARD, "Keyboard"),
+    (DRAWING, "Drawing"),
     (FILE_DIALOGS, "File dialogs"),
     (EXTERNAL_TOOLS, "External tools"),
 )
@@ -187,6 +192,20 @@ _HELP = {
         topic="settings",
         help_anchor="settings",
     ),
+    "bond_keys": HelpTooltip(
+        text=(
+            "On (the default): pointing at a bond in the drawing and pressing 1, 2 or 3 makes "
+            "it single, double or triple. It is one undoable edit.\n\n"
+            "A bond that is aromatic, a query bond, a wedge or hash bond, or one whose change "
+            "would break a valence is left as it was, and the status bar says why. Pointing at "
+            "an atom is not affected: those keys still start a bond from it.\n\n"
+            "Off hands the keys back to the editor, which does nothing with them over a bond."
+        ),
+        tier=2,
+        help_id="settings.bond_order_keys",
+        topic="settings",
+        help_anchor="settings",
+    ),
     "forget_directory": HelpTooltip(
         text=(
             "Forgets the folder these file dialogs last opened in, so the next one "
@@ -265,6 +284,7 @@ class SettingsDialog(QDialog):
             RESULTS: self._build_results_page,
             CALCULATORS: self._build_calculators_page,
             KEYBOARD: self._build_keyboard_page,
+            DRAWING: self._build_drawing_page,
             FILE_DIALOGS: self._build_file_dialogs_page,
         }
         for section_id, label in SECTIONS:
@@ -476,6 +496,30 @@ class SettingsDialog(QDialog):
         #: Public so a caller or a test can drive a rebinding.
         self.keyboard_page = KeyboardShortcutsPage(self._shortcut_registry, self)
         return self.keyboard_page
+
+    # --- Drawing -------------------------------------------------------------------
+
+    def _build_drawing_page(self) -> QWidget:
+        page = QWidget(self)
+        self._bond_keys = QCheckBox("A number key over a bond sets its order (1, 2, 3)", page)
+        self._bond_keys.setObjectName("drawingBondKeys")
+        self._bond_keys.setChecked(bool(self._settings.preference(DRAWING_BOND_KEYS)))
+        apply_help_tooltip(self._bond_keys, _HELP["bond_keys"])
+        self._bond_keys.toggled.connect(self._on_bond_keys_toggled)
+
+        layout = QVBoxLayout(page)
+        layout.addWidget(_heading("Drawing", page))
+        layout.addWidget(self._bond_keys)
+        layout.addWidget(_note(
+            "Point at a bond and press 1, 2 or 3 to make it single, double or triple; Ctrl+Z "
+            "undoes it. Aromatic, query and wedge bonds are left as drawn.",
+            page,
+        ))
+        layout.addStretch(1)
+        return page
+
+    def _on_bond_keys_toggled(self, checked: bool) -> None:
+        self._store(DRAWING_BOND_KEYS, checked)
 
     # --- Results -----------------------------------------------------------------
 

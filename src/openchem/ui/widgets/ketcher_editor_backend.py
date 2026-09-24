@@ -52,6 +52,7 @@ class _Bridge(QObject):
         on_atom_context_menu: Callable[[int, int, int], None] | None = None,
         on_bond_selected: Callable[[int], None] | None = None,
         on_editor_action: Callable[[str], None] | None = None,
+        on_bond_order_key: Callable[[int, int], None] | None = None,
         on_rotation_angles: Callable[[float, float], None] | None = None,
         on_rotation_finished: Callable[[], None] | None = None,
         on_rotation_exit: Callable[[bool], None] | None = None,
@@ -68,6 +69,13 @@ class _Bridge(QObject):
         self._on_atom_context_menu = on_atom_context_menu
         self._on_bond_selected = on_bond_selected
         self._on_editor_action = on_editor_action
+        self._on_bond_order_key = on_bond_order_key
+
+    @Slot(int, int)
+    def bondOrderKey(self, bond_index: int, order: int) -> None:  # noqa: N802 - called from JS by this exact name
+        """A number key over a hovered bond: its MOLFILE POSITION and the order asked for."""
+        if self._on_bond_order_key is not None:
+            self._on_bond_order_key(bond_index, order)
 
     @Slot(str)
     def structureEdited(self, molblock: str) -> None:  # noqa: N802 - called from JS by this exact name
@@ -227,6 +235,7 @@ class KetcherEditorBackend(EditorBackend):
             self._on_atom_context_menu_from_page,
             self._on_bond_selected,
             self.editor_action_requested.emit,
+            self.bond_order_key_pressed.emit,
             self.rotation_angles_changed.emit,
             self.rotation_finished.emit,
             self.rotation_exit_requested.emit,
@@ -279,6 +288,9 @@ class KetcherEditorBackend(EditorBackend):
         #: only the second should spend a call on a canvas that has never
         #: shown a label.
         self._pending_cip: bool | None = None
+        #: Whether a number key over a hovered bond is handed to the application. The page
+        #: starts with it on, so only a False has to be sent, and it is sent when ready.
+        self._bond_keys_enabled = True
         #: The last atom-number payload, replayed once the page is ready --
         #: same reason as `_pending_cip`, one row down.
         self._pending_atom_numbers: tuple[dict | None] | None = None
@@ -340,8 +352,15 @@ class KetcherEditorBackend(EditorBackend):
         """
         self.bond_selected.emit(bond_index)
 
+    def set_bond_keys_enabled(self, enabled: bool) -> None:
+        self._bond_keys_enabled = bool(enabled)
+        if self._ketcher_ready:
+            self._page.runJavaScript(f"window.__openchemBondKeys = {str(self._bond_keys_enabled).lower()};")
+
     def _on_ketcher_ready(self) -> None:
         self._ketcher_ready = True
+        if not self._bond_keys_enabled:
+            self._page.runJavaScript("window.__openchemBondKeys = false;")
         # Options before the structure, so it is laid out the way the user
         # asked rather than drawn once and re-rendered a frame later.
         # Applying them to a still-empty canvas holds for whatever is

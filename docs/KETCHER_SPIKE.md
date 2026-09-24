@@ -60,7 +60,7 @@ hover-dependent gesture can now be regression-tested.
 
 ## Consequences for the drawing work
 
-1. Bond gestures are new work. The route that fits is the atom menu's: the page reports the hovered bond
+1. Bond gestures are new work. **Hover + 1/2/3 is built** (`interceptBondOrderKeys`, `edit_bond`); click-to-cycle is not. The route that fits is the atom menu's: the page reports the hovered bond
    and the key, and the application changes the bond through a `ChemistryEngine` method and an
    `EditStructureCommand`, so it is one undo entry and recomputes like any deliberate change.
 2. **Click-to-cycle is the contested half.** In the select tool a click on a bond SELECTS it; cycling on

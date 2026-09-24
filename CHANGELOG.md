@@ -97,6 +97,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   number over a hovered bond changes nothing** -- the bundle's hotkey table has no bond handler. So bond hover+number and click-to-cycle are new work, recorded as an OPEN item in
   `docs/ARCHITECTURE.md`; `benchmarks/visual/ketcher_hover_keys.json` asserts all three facts, so an editor upgrade that makes a number over a bond native fails it. The `ketcher_hover` step
   now sets the hover this way and asserts the result, instead of sending a real mouse move that never registered.
+- **Pointing at a bond and pressing 1, 2 or 3 sets its order.** Ketcher does nothing with those keys over a bond, so the page reports the hovered bond and the key and the
+  application makes the change itself (`ChemistryEngine.edit_bond`, pushed as an `EditStructureCommand`), the way the atom menu's changes are made: one undo step, recalculated
+  like any deliberate edit, every other bond and every coordinate untouched (the molfile is edited as drawn rather than sanitised, which would have rewritten a whole kekulé
+  ring). Aromatic, query and wedge/hash/either bonds, and a change that would break a valence, are refused with the reason in the status bar; the order a bond already has is
+  not an undo entry. Pointing at an atom is untouched. **Settings > Drawing** turns it off. Driven in the running app end to end (`benchmarks/visual/bond_order_keys.json`).
+  The Ketcher bundle was rebuilt for this (the main file differs by the new interceptor and two chunk names). **Click-to-cycle is not built:** a click on a bond selects it.
 - **The gate retries a crashed chunk five times, not three.** The Windows disposal crash in `test_result_presentation` hits that chunk about 30% of the time on master as well (measured 3/10 there,
   2/10 on this branch), so three in a row -- what one gate saw -- is a few percent of gates; five is a fraction of a percent. Only exit 139 is retried; any other non-zero exit is still a result.
 - **Menu shortcuts can be changed: Settings > Keyboard.** Every command in the menus (and Search facts and the Command Palette) is listed with the shortcut it holds; click a box, press

@@ -33,6 +33,10 @@ class EditorBackend(QObject):
     #: `selectionChange` event as atoms; a backend that cannot report bonds
     #: simply never emits it.
     bond_selected = Signal(int)
+    #: A number key (1, 2, 3) was pressed while a bond was hovered: the bond's MOLFILE POSITION and
+    #: the order asked for. The editor does nothing with that key over a bond, so the application
+    #: answers it; a backend with no hover state never emits it.
+    bond_order_key_pressed = Signal(int, int)
     #: The user pressed a control on the editor's OWN toolbar that this
     #: application already provides, and the application should answer it.
     #:
@@ -137,6 +141,14 @@ class EditorBackend(QObject):
         page can refuse a stale set rather than trusting arrival order.
         Concrete and a no-op by default, like `set_electron_overlay`: an
         editor that cannot draw an overlay is not broken.
+        """
+
+    def set_bond_keys_enabled(self, enabled: bool) -> None:
+        """Whether a number key over a hovered bond is handed to the application.
+
+        STATE, so a backend that is not ready must remember it and apply it when it is (the
+        page is on by default, so only "off" has to be replayed). Concrete and a no-op by
+        default, like `set_cip_labels`: an editor without hover keys is not broken.
         """
 
     def set_cip_labels(self, on: bool) -> None:

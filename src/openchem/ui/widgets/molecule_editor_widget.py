@@ -100,6 +100,8 @@ class MoleculeEditorWidget(QWidget):
     atom_context_menu = Signal(int, int, int)
     #: One bond, likewise. Ketcher reports both through the same event.
     bond_selected = Signal(int)
+    #: A number key over a hovered bond: its molfile position and the order asked for.
+    bond_order_key_pressed = Signal(int, int)
     #: The user pressed one of the engine's own controls that this
     #: application already provides. Forwarded so the window can answer
     #: it -- see `EditorBackend.editor_action_requested`.
@@ -213,6 +215,7 @@ class MoleculeEditorWidget(QWidget):
         self._backend.atom_selected.connect(self.atom_selected)
         self._backend.atom_context_menu.connect(self.atom_context_menu)
         self._backend.bond_selected.connect(self.bond_selected)
+        self._backend.bond_order_key_pressed.connect(self.bond_order_key_pressed)
         self._backend.editor_action_requested.connect(self.editor_action_requested)
         # The canvas has to follow changes it did not make. Undo is the one
         # that matters: `EditStructureCommand` reverts the model and
@@ -404,6 +407,10 @@ class MoleculeEditorWidget(QWidget):
         if self._cip_labels:
             self._backend.set_cip_labels(True)
         self._publish_atom_numbers()
+
+    def set_bond_keys_enabled(self, enabled: bool) -> None:
+        """Whether a number key over a hovered bond reaches the application."""
+        self._backend.set_bond_keys_enabled(enabled)
 
     def set_cip_labels(self, on: bool) -> None:
         """Show CIP stereo descriptors on the canvas, or take them off.
