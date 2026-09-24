@@ -79,7 +79,7 @@ Every one is a surface with a *recorded* history of breaking, not a guess.
 
 | `charge_identity_after_edit.json` | the Atom Inspector's 3D charge through an erase, an edit and an undo | ethanol's oxygen showed carbon C1's EEM 3D charge while the result read fresh -- GEOMETRY datasets keyed by the conformer's atoms, read by the drawing's |
 | `charge_species_and_refusals.json` | EEM and QEq on species each model declines | not recorded here |
-| `energetic_nitramine_ledger.json` | a nitramine (1,3-dinitro-1,3-diazetidine) drawn, ESOL solubility and Detonation run, ending in the driven-run VERDICT: the application's log must hold no unexcused ERROR, and Properties must hold the nitro alert, no hydrazine, and Detonation as `needs_input` naming its two missing inputs | `fg:hydrazine` matched every nitramine's N-N bond, so `detect_features` raised `UndeclaredChargeState` once per edit; it was logged and never asserted, so the window looked fine. Reverted, this script exits 1 and names `structural_features.py:352` |
+| `energetic_nitramine_ledger.json` | a nitramine (1,3-dinitro-1,3-diazetidine) drawn, ESOL solubility and Detonation run, ending in the driven-run VERDICT: the application's log must hold no unexcused ERROR, and Properties must hold the nitro alert, no hydrazine, the fragment counts recorded as NOT partial, and Detonation as `needs_input` naming its two missing inputs | `fg:hydrazine` matched every nitramine's N-N bond, so `detect_features` raised `UndeclaredChargeState` once per edit; it was logged and never asserted, so the window looked fine. Reverted, this script exits 1 and names `structural_features.py:352` |
 | `docked_pose_in_6wgt.json` | a real Vina run, the pose shown in Mol* | the pose was retargeted and the receptor left on assembly 1 -- the viewer and the docking showed different chains |
 | `docking_replicates.json` | repeated real docking runs from one panel | not recorded here |
 | `docking_rescore.json` | a pose scored again with Vinardo | not recorded here |
@@ -274,6 +274,13 @@ molecule that breaks it has an empty ledger -- so this one pairs it with
 2026-09-24 with the hydrazine fix reverted: exit 1, one entry,
 `UndeclaredChargeState @ openchem/chem/structural_features.py:352`, and the
 fragment-count facts empty. Restored: PASS, exit 0.
+
+Measured again 2026-09-24, after feature detection became tolerant: with the pre-fix hydrazine pattern
+restored, the run no longer loses every alert. It logs ONE warning naming both skipped instances
+(`fg:hydrazine at atoms [1, 3]; ... [5, 6]`), still counts `nitro (2)`, and exits 1 on
+`fragment_counts: partial is True, wanted False`. `expect_clean` passes there, because a skipped instance is a
+WARNING and `expect_clean` counts errors -- so `partial` is the assertion that catches it, and the census
+(strict over its corpus) is the systematic one.
 
 A scripted run also writes its own log, `drive-<pid>.log`, because two processes
 cannot share one rotating file on Windows (`WinError 32` on every record past the

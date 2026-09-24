@@ -167,6 +167,7 @@ from openchem.domain.common import (
     Provenance,
     declare_total,
 )
+from openchem.domain.completeness import completeness_parameters
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.scientific_result import AlertResult, PerAtomDataset
 from openchem.domain.report import Fact, ReportResult
@@ -532,6 +533,10 @@ def compute_fragment_group_alert(mol: Chem.Mol, molecule_uuid: str) -> AlertResu
                 "vocabulary_version": VOCABULARY_VERSION,
                 "counts": {f"{fid}|{label}": n for (fid, label), n in counted.items()},
                 "rings": rings,
+                # WHAT WAS CHECKED, said explicitly. A count that is missing an
+                # instance the detector had to skip must not read as a complete
+                # count of a molecule that has none.
+                **completeness_parameters(canonical.completeness()),
             },
         ),
         # **`substructure`, MATCHING THE CALCULATOR OF THE SAME ID.** It once

@@ -326,6 +326,37 @@ class UndeclaredChargeState(ValueError):
     declare -- a pattern defect, never something to label by guesswork."""
 
 
+@dataclass(frozen=True)
+class SkippedMatch:
+    """One instance `detect_features_tolerant` could not evaluate."""
+
+    feature_id: str
+    atoms: tuple[int, ...]
+    reason: str
+
+    def name(self) -> str:
+        return f"{self.feature_id} at atoms {list(self.atoms)}"
+
+
+@dataclass(frozen=True)
+class Detection:
+    """What the TOLERANT detector found and what it had to leave out.
+
+    `features` is exactly what the strict detector would have returned for
+    every instance it could evaluate; `skipped` is the rest. A caller that
+    reads `features` as "everything in the molecule" when `skipped` is
+    non-empty is reading a partial answer as a complete one, so `evaluated`
+    and `skipped` travel to the result as `domain.completeness.Completeness`.
+    """
+
+    features: tuple[StructuralFeature, ...]
+    skipped: tuple[SkippedMatch, ...] = ()
+
+    @property
+    def evaluated(self) -> int:
+        return len(self.features) + len(self.skipped)
+
+
 def detect_features(mol: Chem.Mol) -> tuple[StructuralFeature, ...]:
     """Every instance of every feature, in declared vocabulary order.
 
@@ -335,12 +366,41 @@ def detect_features(mol: Chem.Mol) -> tuple[StructuralFeature, ...]:
     Deterministic: sorted by (declared order, component, atoms), so the same
     structure under any atom ordering yields the same instances in the same
     order (the permutation test checks exactly that).
+
+    **STRICT: A PATTERN THAT MATCHES A CHARGE STATE ITS FEATURE DOES NOT
+    DECLARE RAISES `UndeclaredChargeState`.** That is a defect in the
+    vocabulary, and the vocabulary's own tests, the census and the sweeps use
+    this form precisely so the defect is loud where it can be fixed. The
+    application uses `detect_features_tolerant`, so one such defect costs one
+    instance and a recorded `Completeness`, not every feature of the molecule.
     """
+    return _detect(mol, None)
+
+
+def detect_features_tolerant(mol: Chem.Mol) -> Detection:
+    """`detect_features`, except an instance it cannot evaluate is SKIPPED.
+
+    **WHY THE APPLICATION IS NOT STRICT.** Strict is right for a test and
+    wrong for a person drawing a molecule: a nitramine matched `fg:hydrazine`
+    (a vocabulary defect, since fixed), `detect_features` raised, and every
+    functional-group alert for that molecule went with it -- five identical
+    tracebacks in forty seconds while every panel looked fine. The skipped
+    instance is returned, named, so the result built from this can say it is
+    partial rather than reading as a clean bill of health.
+    """
+    skipped: list[SkippedMatch] = []
+    features = _detect(mol, skipped)
+    return Detection(features=features, skipped=tuple(skipped))
+
+
+def _detect(mol: Chem.Mol, skipped: list[SkippedMatch] | None) -> tuple[StructuralFeature, ...]:
+    """The detector. `skipped is None` is strict; a list collects what it skips."""
     component_of: dict[int, int] = {}
     for index, fragment in enumerate(Chem.GetMolFrags(mol)):
         for atom in fragment:
             component_of[atom] = index
     found: dict[tuple, StructuralFeature] = {}
+    passed_over: set[tuple[str, tuple[int, ...]]] = set()
     for feature_id, spec in SPECS.items():
         definition = FEATURE_BY_ID[feature_id]
         for smarts in spec.smarts:
@@ -359,10 +419,20 @@ def detect_features(mol: Chem.Mol) -> tuple[StructuralFeature, ...]:
                     continue
                 state = _charge_state(mol, atoms)
                 if state not in definition.labels:
-                    raise UndeclaredChargeState(
+                    message = (
                         f"{feature_id} matched {state.value} atoms {sorted(atoms)}, "
                         f"a state its definition does not declare"
                     )
+                    if skipped is None:
+                        raise UndeclaredChargeState(message)
+                    # Once per (feature, atoms): the same instance is matched
+                    # again by every alternative SMARTS and by every ordering
+                    # of a symmetric pattern.
+                    marker = (feature_id, tuple(sorted(atoms)))
+                    if marker not in passed_over:
+                        passed_over.add(marker)
+                        skipped.append(SkippedMatch(feature_id, marker[1], message))
+                    continue
                 found[key] = StructuralFeature(
                     feature_id=feature_id,
                     atoms=atoms,

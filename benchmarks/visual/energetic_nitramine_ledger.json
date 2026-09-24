@@ -62,7 +62,8 @@
         ],
         "facts_absent": [
           "hydrazine"
-        ]
+        ],
+        "partial": false
       },
       "detonation": {
         "status": "needs_input",

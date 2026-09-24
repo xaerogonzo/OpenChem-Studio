@@ -4528,6 +4528,9 @@ class _Driver(QObject):
             "missing_inputs" the calculator's own parameter names a NEEDS_INPUT
                             result must name, in any order and no others --
                             what the chip's click target is built from
+            "partial"       true/false: whether the result recorded that it
+                            SKIPPED something (`domain.completeness`); an
+                            entry with no record at all is not partial
             "facts_contain" substrings that must each appear in some `label=value`
             "facts_absent"  substrings that must appear in none
 
@@ -4561,6 +4564,13 @@ class _Driver(QObject):
                 problems.append(
                     f"{calculator_id}: refusal {parameters.get('refusal', '')!r}, wanted {spec['refusal']!r}"
                 )
+            if "partial" in spec:
+                from openchem.domain.completeness import is_partial
+
+                if is_partial(result) != bool(spec["partial"]):
+                    problems.append(
+                        f"{calculator_id}: partial is {is_partial(result)}, wanted {bool(spec['partial'])}"
+                    )
             if "missing_inputs" in spec:
                 from openchem.domain.refusal_kinds import missing_inputs_of
 

@@ -27,6 +27,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A pKa predictor that ran and returned nothing is "no prediction", not "failed".** `PKaStatus.NO_PREDICTION` separates a working predictor with
   no answer for a structure (a limit of the model) from one that crashed (a fault) and from none configured (needs setup). Solubility now says
   which, and the pH-dependent curves refuse instead of drawing a one-species "curve" from an empty list.
+- **A pattern defect now costs one instance, not every feature of the molecule.** The application's feature detection is tolerant: an instance it cannot
+  evaluate is skipped, logged once per structure (not once per edit) and recorded as a `Completeness` on Fragment Counts and Functional Groups, so a
+  partial "nothing found" is never read as a complete one; the Results reader says so above the facts. The vocabulary's own tests and the census
+  keep the strict detector, so a defect stays loud where it can be fixed. The reader's status line now leads a refusal with its kind
+  ("Needs input", "Needs setup", "Not applicable") instead of one sentence for all three.
 
 ### Naming round 14 (branch `naming-round-14`)
 
