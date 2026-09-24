@@ -3546,6 +3546,32 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "4-(N,N-ethylpropylsulfamoyl)benzoic acid", "two acyclic substituents, alphabetical order"),
     ("D-152c", "CC(c1ccccc1)N(CC1CO1)S(=O)(=O)c1ccc(C(=O)N(C)C)cc1", "N,N-dimethyl-4-{N-[(oxiran-2-yl)methyl]-N-(1-phenylethyl)sulfamoyl}benzamide",
      "N,N-dimethyl-4-{N,N-[(oxiran-2-yl)methyl](1-phenylethyl)sulfamoyl}benzamide", "compound substituents keep their brackets"),
+
+    # --- D-154 / D-155 / D-156 (naming round 14): ring cations that had no name --------------------------------------------------------------------
+    # 8 of the 14 census structures with "no valid naming plan" for a cationic ring. THREE roots, not one, found by naming the ring cations alone:
+    # (D-154) general fusion nomenclature refused any charged ring atom, so every fused cation that is not a curated retained ring had no name
+    # ('imidazo[2,1-b][1,3]thiazol-7-ium', a hydro-fused '-6-ium'); a ring cation is named for its NEUTRAL skeleton with '-ium' added at the charged
+    # atom, so the ring is now described on a neutral copy with the same atom indices. (D-155) a ring-fusion '[n+]' drawn beside an '[nH]' is the SAME
+    # cation as the '[nH+]' form (same InChIKey; an imidazo[1,2-a]pyridine protonated on N1), and the bridgehead form has no name; the charge is
+    # moved to the [nH]. (D-156) a charged N with three ring bonds was made an indicated-hydrogen target, so its neutral valence came to four and a
+    # QUATERNARY bridgehead cation carrying a substituent had no name; and the curated quinolizidine row said its nitrogen was '4a' (it is 5), which
+    # no test could see until the nitrogen took a substituent or the '-ium'. Targets are derived (Blue Book P-73.1) and read back exact.
+    ("D-154a", "c1c[nH+]c2sccn12", "imidazo[2,1-b][1,3]thiazol-7-ium",
+     "[NAMING ERROR: No valid naming plan found for c1cn2ccsc2[nH+]1]", "a fused cation that is not a curated retained ring"),
+    ("D-154b", "Nc1ccc(-c2cn3ccsc3[nH+]2)cc1", "6-(4-aminophenyl)imidazo[2,1-b][1,3]thiazol-7-ium",
+     "4-amino-1-{[NAMING ERROR: No valid naming plan found for c1cn2ccsc2[nH+]1]}benzene", "the census shape (its bridgehead-charge drawing is D-155)"),
+    ("D-154c", "C[NH+]1CCc2cc(N)sc2C1", "2-amino-6-methyl-4,5,6,7-tetrahydrothieno[2,3-c]pyridin-6-ium",
+     "{[NAMING ERROR: No valid naming plan found for Nc1cc2c(s1)C[NH2+]CC2]}methane", "a hydro-fused ring with a protonated nitrogen"),
+    ("D-154d", "Cc1nc2n(n1)C[NH+](CCc1ccccc1)CN2", "2-methyl-6-(2-phenylethyl)-4,5,6,7-tetrahydro-[1,2,4]triazolo[1,5-a][1,3,5]triazin-6-ium",
+     "(2-{[NAMING ERROR: No valid naming plan found for Cc1nc2n(n1)C[NH2+]CN2]}ethyl)benzene", "the census shape (a triazolotriazine)"),
+    ("D-156a", "C1CC[NH+]2CCCCC2C1", "quinolizidin-5-ium",
+     "[NAMING ERROR: No valid naming plan found for C1CC[NH+]2CCCCC2C1]", "a protonated bridgehead nitrogen"),
+    ("D-156b", "C[N+]12CCCCC1CCCC2", "5-methylquinolizidin-5-ium",
+     "{[NAMING ERROR: No valid naming plan found for C1CC[NH+]2CCCCC2C1]}methane", "a QUATERNARY bridgehead cation: the substituent on the nitrogen"),
+    ("D-156c", "CC(=O)OCC1CCC[N+]2(C)CCCCC12", "1-[(acetyloxy)methyl]-5-methylquinolizidin-5-ium",
+     "1-({[NAMING ERROR: No valid naming plan found for C[N+]12CCCCC1CCCC2]}methoxy)-1-oxoethane", "the census shape (904): a quinolizidinium ester"),
+    ("D-156d", "C1CCC[NH+]2CCCC2C1", "octahydro-1H-pyrrolo[1,2-a]azepin-4-ium",
+     "[NAMING ERROR: No valid naming plan found for C1CCC2CCC[NH+]2CC1]", "a 5-7 bicyclic bridgehead ammonium"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -4352,5 +4378,70 @@ def test_the_ring_nitrogen_sulfonamide_filter_does_not_move_a_neighbouring_name(
 ])
 def test_every_atom_of_a_round_14_sulfonyl_shape_is_owned_by_exactly_one_node(smiles, monkeypatch):
     """`strict` raises instead of falling to the next plan, so a name returned here had every atom owned once and only once."""
+    monkeypatch.setenv("OPENCHEM_NAMER_OWNERSHIP", "strict")
+    assert "NAMING ERROR" not in name_smiles(smiles)
+
+
+# ---- D-155 (naming round 14): a cation drawn with the charge on the ring-fusion nitrogen -----------------------------------------------------
+# The bridgehead `[n+]` beside an `[nH]` and the `[nH+]` form are ONE cation (the same InChIKey), but OPSIN reads a name back as the `[nH+]` form, so
+# the shared FIXED table (which also compares canonical SMILES) cannot hold the bridgehead drawing. Each row is named, and the target is checked by
+# its InChIKey through the real OPSIN read-back in tests/test_naming_census_scan.py's classifier.
+
+@pytest.mark.parametrize("smiles, expected, old_output", [
+    ("Cc1c[n+]2cccc(C)c2[nH]1", "2,8-dimethylimidazo[1,2-a]pyridin-1-ium",
+     "{[NAMING ERROR: No valid naming plan found for Cc1c[n+]2ccccc2[nH]1]}methane"),
+    ("Nc1ccc(-c2c[n+]3ccsc3[nH]2)cc1", "6-(4-aminophenyl)imidazo[2,1-b][1,3]thiazol-7-ium",
+     "4-amino-1-{[NAMING ERROR: No valid naming plan found for c1c[n+]2ccsc2[nH]1]}benzene"),
+])
+def test_a_bridgehead_charge_drawing_is_named_as_its_protonated_form(smiles, expected, old_output):
+    assert name_smiles(smiles) == expected
+    assert old_output != expected
+
+
+def test_the_bridgehead_charge_drawing_reads_back_to_the_same_cation():
+    """OPSIN's own structure for the name must have the input's InChIKey (a different resonance drawing, one molecule)."""
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
+    import naming_census_scan as scan
+
+    try:
+        back = scan.read_back(["2,8-dimethylimidazo[1,2-a]pyridin-1-ium"])[0]
+    except Exception:  # noqa: BLE001 - no JRE here
+        pytest.skip("OPSIN is not available")
+    if not back:
+        pytest.skip("OPSIN is not available")
+    assert scan.classify("Cc1c[n+]2cccc(C)c2[nH]1", "2,8-dimethylimidazo[1,2-a]pyridin-1-ium", back) == "exact"
+
+
+# ---- D-154 / D-155 / D-156 (naming round 14): converses ------------------------------------------------------------------------------------------
+# The three changes are narrow (a +1 N, O or S in a FUSED system with no retained name; an aromatic bridgehead n+ with exactly one [nH] beside it; a
+# charged non-aromatic N with three ring bonds), so each converse is a cation that must not move: a monocyclic one, a fused one that already had a
+# name, a protonated ring that is drawn in the [nH+] form, and the neutral quinolizidine.
+
+@pytest.mark.parametrize("smiles, expected", [
+    ("C[NH+]1CCCCC1", "1-methylpiperidin-1-ium"),
+    ("c1ccc2[nH+]cccc2c1", "quinolin-1-ium"),
+    ("C[NH+]1CCc2ccccc2C1", "2-methyl-1,2,3,4-tetrahydroisoquinolin-2-ium"),
+    ("c1c[nH+]c2ccccn12", "imidazo[1,2-a]pyridin-1-ium"),                # already the [nH+] drawing, no shift
+    ("Cc1c[nH+]c2c(C)cccn12", "3,8-dimethylimidazo[1,2-a]pyridin-1-ium"),
+    ("C1CCN2CCCCC2C1", "quinolizidine"),
+    ("OC1CCCN2CCCCC12", "quinolizidin-1-ol"),                              # the carbon locants are untouched by the nitrogen's correction
+    ("OC1CCC2CCCCN2C1", "quinolizidin-3-ol"),
+])
+def test_the_ring_cation_changes_do_not_move_a_neighbouring_name(smiles, expected):
+    assert name_smiles(smiles) == expected
+
+
+@pytest.mark.parametrize("smiles", [
+    "c1c[nH+]c2sccn12",
+    "Nc1ccc(-c2c[n+]3ccsc3[nH]2)cc1",
+    "Cc1c[n+]2cccc(C)c2[nH]1",
+    "C[N+]12CCCCC1CCCC2",
+    "CC(=O)OCC1CCC[N+]2(C)CCCCC12",
+    "C[NH+]1CCc2cc(N)sc2C1",
+])
+def test_every_atom_of_a_round_14_ring_cation_is_owned_by_exactly_one_node(smiles, monkeypatch):
     monkeypatch.setenv("OPENCHEM_NAMER_OWNERSHIP", "strict")
     assert "NAMING ERROR" not in name_smiles(smiles)

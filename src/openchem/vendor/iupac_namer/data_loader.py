@@ -956,13 +956,15 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # -----------------------------------------------------------------------
     # Bicyclic N-heterocycles
     # -----------------------------------------------------------------------
-    # quinolizidine (octahydroquinolizine): bridgehead N, positions 1-4,4a,6-9,9a.
-    # RDKit canonical 'C1CCN2CCCCC2C1': N=idx3(pos4a), idx8=pos9a(junction),
+    # quinolizidine (octahydroquinolizine): bridgehead N (position 5), positions 1-4,5(N),6-9,9a.
+    # The row said the nitrogen was '4a' until naming round 14: no carbon was ever tested at 4a (the chloro probing below is all carbon), so it
+    # only showed once the N took a substituent or the '-ium' ('quinolizidin-4a-ium', which OPSIN cannot read: there is no atom 4a).
+    # RDKit canonical 'C1CCN2CCCCC2C1': N=idx3(pos5), idx8=pos9a(junction),
     #   idx9=1, idx0=2, idx1=3, idx2=4, idx4=6, idx5=7, idx6=8, idx7=9
     # Verified via OPSIN chloro probing: 1-Cl->ClC1CCCN2CCCCC12 (idx9), 2-Cl->ClC1CCN2CCCCC2C1 (idx0),
     #   3-Cl->ClC1CCC2CCCCN2C1 (idx1), 4-Cl->ClC1CCCC2CCCCN12 (idx2).
     "C1CCN2CCCCC2C1":  {"name": "quinolizidine", "substituent_form": "quinolizidinyl", "alkyl_stem_ok": False,
-                        "atom_locants": {9: 1, 0: 2, 1: 3, 2: 4, 3: "4a", 4: 6, 5: 7, 6: 8, 7: 9, 8: "9a"}},
+                        "atom_locants": {9: 1, 0: 2, 1: 3, 2: 4, 3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: "9a"}},
 
     # octahydrocyclopenta[b]pyrrole: 5,5-fused saturated bicyclic, N at non-bridgehead.
     # RDKit canonical 'C1CC2CCNC2C1': rings (0,1,2,6,7) and (2,3,4,5,6); junctions = idx2,6.

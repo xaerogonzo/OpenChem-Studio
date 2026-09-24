@@ -8878,6 +8878,45 @@ def _validate_stereo_via_opsin(tree, name: str, *, strip_modes: tuple[str, ...])
     return cur_name
 
 
+def _shift_bridgehead_cation_charge(mol):
+    """Move a ring-fusion ``[n+]``'s charge onto the neighbouring ``[nH]`` it is conjugated with (naming round 14).
+
+    ``Cc1c[n+]2cccc(C)c2[nH]1`` and ``Cc1c[nH+]c2c(C)cccn12`` are ONE cation (an imidazo[1,2-a]pyridine protonated on N1): the same InChIKey, and
+    the name '...imidazo[1,2-a]pyridin-1-ium' reads back to either. The charged bridgehead form has no name (a fusion nitrogen with three ring
+    bonds cannot take the '-ium' hydrogen, and the neutral skeleton with an ``[nH]`` beside it is not a valid aromatic system), so the charge is
+    moved to the ``[nH]``, which is where the '-ium' hydrogen is. Applies only to an aromatic bridgehead ``n+`` with no hydrogen that shares an
+    aromatic carbon with exactly one aromatic ``[nH]``; anything else, or a graph that does not sanitise, is returned unchanged.
+    """
+    ring_info = mol.GetRingInfo()
+    for a in mol.GetAtoms():
+        if not (a.GetAtomicNum() == 7 and a.GetIsAromatic() and a.GetFormalCharge() == 1 and a.GetTotalNumHs() == 0
+                and ring_info.NumAtomRings(a.GetIdx()) == 2):
+            continue
+        partners = set()
+        for c in a.GetNeighbors():
+            if c.GetAtomicNum() != 6 or not c.GetIsAromatic():
+                continue
+            for b in c.GetNeighbors():
+                if (b.GetIdx() != a.GetIdx() and b.GetAtomicNum() == 7 and b.GetIsAromatic()
+                        and b.GetFormalCharge() == 0 and b.GetTotalNumHs() == 1):
+                    partners.add(b.GetIdx())
+        if len(partners) != 1:
+            continue
+        rw = Chem.RWMol(mol)
+        rw.GetAtomWithIdx(a.GetIdx()).SetFormalCharge(0)
+        rw.GetAtomWithIdx(a.GetIdx()).SetNumExplicitHs(0)
+        b = rw.GetAtomWithIdx(next(iter(partners)))
+        b.SetFormalCharge(1)
+        b.SetNumExplicitHs(1)
+        b.SetNoImplicit(True)
+        try:
+            Chem.SanitizeMol(rw)
+        except Exception:  # noqa: BLE001 - keep the graph the caller gave
+            continue
+        return rw.GetMol()
+    return mol
+
+
 def name_smiles(smiles: str, strategy=None) -> str:
     """Name a molecule from SMILES, with *strategy* bound for the whole call
     (every helper reads it through ``active_strategy()``)."""
@@ -8894,6 +8933,7 @@ def _name_smiles_bound(smiles: str, strategy) -> str:
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         raise ValueError(f"Invalid SMILES: {smiles}")
+    mol = _shift_bridgehead_cation_charge(mol)
     # NOTE: the whole-molecule curated-name dispatch (_name_radical_whole_mol /
     # _name_curated_whole_mol) was removed in the anti-pinning cleanup; the
     # backing tables are now empty.  The pipeline below names every molecule
