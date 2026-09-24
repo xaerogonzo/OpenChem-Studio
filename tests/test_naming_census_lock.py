@@ -32,8 +32,13 @@ CENSUS_META = BENCH / "census_sample.meta.json"
 THIS_TEST = "tests/test_naming_census_lock.py"
 #: The census scan (naming round 13's prelude) reads every row to MEASURE the engine's remaining failure rate, never to tune
 #: against it: it writes a class per row, and the census is still not a registered population (test above).
+#: The feature-vocabulary sweep (post-round-14 program, PR-4) reads the census rows as a population of ordinary
+#: structures to MEASURE the structural-alert vocabulary against -- 2,187 structures found eight pattern defects --
+#: never to tune the nomenclature engine, which it does not import. What this lock protects is the engine's
+#: frequency numbers staying unenriched; a detector for alerts cannot enrich them.
 ALLOWED_NAMERS = {
     "tools/naming_census_build.py", "tools/naming_census_count.py", "tools/naming_census_scan.py", THIS_TEST,
+    "tests/test_feature_vocabulary_sweep.py",
 }
 
 EXCLUDE_JSON = (
