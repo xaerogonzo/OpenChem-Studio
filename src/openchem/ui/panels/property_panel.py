@@ -32,6 +32,7 @@ from openchem.domain.calculator import (
     RegistryExecution,
     ServiceExecution,
 )
+from openchem.domain.calculator_support import is_offered_by_default
 from openchem.domain.calculator_taxonomy import (
     CATEGORY_LABELS,
     CATEGORY_ORDER,
@@ -74,6 +75,7 @@ from openchem.events.events import (
     MoleculeSelected,
     PerAtomDataComputed,
     PhCurveComputed,
+    SettingsChanged,
     SpectrumComputed,
     StructureSetComputed,
     TrajectoryComputed,
@@ -319,6 +321,23 @@ _CLEAR_SELECTION_HELP = HelpTooltip(
     ),
     tier=1,
     help_id="properties.clear_selection",
+    topic="properties",
+    help_anchor="properties",
+)
+
+
+#: The footer that says some calculators are not being offered, and where they went.
+_HIDDEN_CALCULATORS_HELP = HelpTooltip(
+    text=(
+        "Some calculators are not offered by default because they are limited, "
+        "experimental or specialist -- they refuse most of what people draw, or need "
+        "inputs no structure can supply. Pressing this opens Settings > Calculators, "
+        "which names each one, says why, and lets you turn it on.\n\n"
+        "Nothing is removed: they stay in the Help, and results already computed stay "
+        "readable."
+    ),
+    tier=1,
+    help_id="properties.hidden_calculators",
     topic="properties",
     help_anchor="properties",
 )
@@ -1317,6 +1336,10 @@ class PropertyPanel(QWidget):
     #: unrouted, which is the silent no-op 0g removed.
     link_activated = Signal(object)
 
+    #: A request to open the Settings window at a section, by id. Re-emitted for
+    #: the reason `link_activated` is: the window that owns the dialogs routes it.
+    settings_requested = Signal(str)
+
     def __init__(
         self,
         event_bus: EventBus,
@@ -1327,8 +1350,24 @@ class PropertyPanel(QWidget):
         on_add_structure: Callable[[str, str], None] | None = None,
         structure_version_of=None,
         substance_perception_needed: Callable[[str], bool] | None = None,
+        settings=None,
     ) -> None:
         super().__init__(parent)
+        #: `app.settings.Settings`, or None in a fixture. With None every
+        #: calculator is offered as its own declaration says (an unclassified
+        #: one is shown), so a panel built on its own behaves as it always did.
+        self._settings = settings
+        #: The row of each calculator, so it can be offered or withdrawn
+        #: without being rebuilt -- this panel's layout is delicate enough that
+        #: adding and deleting rows mid-life is the worse risk.
+        self._calculator_rows: dict[str, QWidget] = {}
+        #: Calculators the launcher is not offering right now
+        #: (`domain.calculator_support`). Their rows are hidden, and they are
+        #: neither ticked nor run by "Run selected".
+        self._hidden_calculator_ids: set[str] = set()
+        #: Each section's calculator ids, for withdrawing a section whose
+        #: every calculator is hidden.
+        self._section_calculators: dict[str, list[str]] = {}
         #: Asked on SELECTION whether the header's one automatic calculator
         #: still has to run, or whether a retained result will be replayed
         #: instead. The host owns that answer because it owns the result
@@ -1533,6 +1572,17 @@ class PropertyPanel(QWidget):
         layout.addWidget(self._substance_card)
         layout.addLayout(batch_row)
         layout.addWidget(scroll_area)
+        #: "N calculators hidden by default -- Settings...". An ELIDING button:
+        #: a plain one reports its whole text as its minimum width, and this
+        #: panel's minimum is measured in a docked column of 170 px.
+        self._hidden_link = _ElidingPushButton("", self)
+        self._hidden_link.setObjectName("hiddenCalculatorsLink")
+        self._hidden_link.setFlat(True)
+        self._hidden_link.setCursor(Qt.CursorShape.PointingHandCursor)
+        apply_help_tooltip(self._hidden_link, _HIDDEN_CALCULATORS_HELP)
+        self._hidden_link.clicked.connect(self._on_hidden_link_clicked)
+        self._hidden_link.setVisible(False)
+        layout.addWidget(self._hidden_link)
 
         # Right-click anywhere to copy. Selecting text with the mouse works
         # too, but a panel of forty short values is
@@ -1557,6 +1607,7 @@ class PropertyPanel(QWidget):
                 isinstance(d.execution, RegistryExecution) for d in calculator_registry.by_category(category)
             ):
                 self._section_for(category)
+        self._apply_calculator_visibility()
 
         event_bus.subscribe(MoleculeSelected, self._on_molecule_selected)
         event_bus.subscribe(MoleculeChanged, self._on_molecule_changed)
@@ -1569,6 +1620,7 @@ class PropertyPanel(QWidget):
         event_bus.subscribe(PhCurveComputed, self._on_ph_curve_computed)
         event_bus.subscribe(TrajectoryComputed, self._on_trajectory_computed)
         event_bus.subscribe(CalculationFinished, self._on_calculation_finished)
+        event_bus.subscribe(SettingsChanged, self._on_settings_changed)
 
     def set_project(self, project: ProjectModel | None) -> None:
         self._project = project
@@ -1733,6 +1785,8 @@ class PropertyPanel(QWidget):
             row_layout.addWidget(status)
             self._refresh_status_chip(definition.calculator_id)
             section.add_calculator_widget(row)
+            self._calculator_rows[definition.calculator_id] = row
+            self._section_calculators.setdefault(category, []).append(definition.calculator_id)
             # Triggered HERE rather than at construction: at startup the
             # panel is empty and every row it could measure does not exist
             # yet.
@@ -2673,7 +2727,64 @@ class PropertyPanel(QWidget):
     # --- running several at once -------------------------------------------
 
     def _selected_calculator_ids(self) -> list[str]:
-        return [cid for cid, tick in self._calculator_ticks.items() if tick.isChecked()]
+        # A calculator the launcher is not offering is not selected, even if it
+        # was ticked before it was withdrawn: "Run selected" must never run
+        # something the person cannot see.
+        return [
+            cid for cid, tick in self._calculator_ticks.items()
+            if tick.isChecked() and cid not in self._hidden_calculator_ids
+        ]
+
+    # --- which calculators are offered ------------------------------------------
+
+    def _is_offered(self, definition) -> bool:
+        """Whether the launcher offers `definition`: its declared default, the master
+        toggle and the person's own choice (`domain.calculator_support.is_visible`)."""
+        if self._settings is not None:
+            return self._settings.calculator_is_visible(definition)
+        return is_offered_by_default(definition)
+
+    def _apply_calculator_visibility(self) -> None:
+        """Offer or withdraw each calculator's row, its section, and the footer.
+
+        **WITHDRAWN, NEVER REMOVED.** The row stays built, so re-offering is
+        instant and nothing in this panel's delicate layout is added or deleted
+        mid-life; a ticked calculator that is withdrawn is unticked, so the
+        selection count never includes something the person cannot see.
+        """
+        hidden: set[str] = set()
+        for category in self._calculator_registry.categories():
+            for definition in self._calculator_registry.by_category(category):
+                if not isinstance(definition.execution, RegistryExecution):
+                    continue
+                if not self._is_offered(definition):
+                    hidden.add(definition.calculator_id)
+        self._hidden_calculator_ids = hidden
+        for calculator_id, row in self._calculator_rows.items():
+            offered = calculator_id not in hidden
+            row.setVisible(offered)
+            if not offered:
+                tick = self._calculator_ticks.get(calculator_id)
+                if tick is not None and tick.isChecked():
+                    tick.setChecked(False)
+        for category, calculator_ids in self._section_calculators.items():
+            section = self._sections.get(category)
+            if section is not None and calculator_ids:
+                # A section with nothing left to offer goes too: an empty
+                # heading is a promise with nothing behind it.
+                section.setVisible(any(cid not in hidden for cid in calculator_ids))
+        count = len(hidden)
+        self._hidden_link.setVisible(count > 0)
+        plural = "" if count == 1 else "s"
+        self._hidden_link.setText(f"{count} calculator{plural} hidden by default -- Settings...")
+        self._on_selection_toggled()
+
+    def _on_settings_changed(self, event: SettingsChanged) -> None:
+        if str(event.key).startswith("calculators/"):
+            self._apply_calculator_visibility()
+
+    def _on_hidden_link_clicked(self, _checked: bool = False) -> None:
+        self.settings_requested.emit("calculators")
 
     def _on_selection_toggled(self, _checked: bool = False) -> None:
         count = len(self._selected_calculator_ids())

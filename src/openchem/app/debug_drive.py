@@ -99,6 +99,9 @@ The script is a JSON list of steps, run in order:
                                             "fragment_counts": {"facts_contain": ["Nitro"]}}}
                                               what the panels HOLD, so a clean
                                               log cannot pass by silence
+      {"do": "expect_offered",   "hidden": ["detonation"], "footer": "1 calculator ..."}
+                                              which calculators the Properties
+                                              launcher OFFERS, by row visibility
       {"do": "quit"}                          ends in a VERDICT and an exit status
     ]
 
@@ -4589,6 +4592,59 @@ class _Driver(QObject):
             logger.warning("OPENCHEM_DRIVE: EXPECT results ok[%s]", tag)
         else:
             logger.error("OPENCHEM_DRIVE: EXPECT results FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
+    def _do_expect_offered(self, step: dict[str, Any]) -> None:
+        """`{"do": "expect_offered", "offered": [...], "hidden": [...], "footer": "..."}`
+        -- which calculators the Properties launcher is OFFERING, asserted.
+
+            "offered"   calculator ids whose row AND section are on offer
+            "hidden"    ids whose row must exist and be withdrawn (or whose
+                        section is)
+            "footer"    the exact text of the "N hidden by default" link, or ""
+                        to assert there is none
+
+        **ON OFFER IS NOT ON SCREEN.** A collapsed section hides its content,
+        so `isVisibleTo` answers "no" for every calculator in a section nobody
+        has expanded -- true, and not what is being asked. This reads the
+        EXPLICIT hide of the row and of its section, which is what withdrawing
+        a calculator sets and collapsing does not.
+        """
+        panel = self._window._property_panel
+        tag = str(step.get("tag", ""))
+
+        def on_offer(calculator_id: str) -> bool | None:
+            row = panel._calculator_rows.get(calculator_id)
+            if row is None:
+                return None
+            for category, ids in panel._section_calculators.items():
+                if calculator_id in ids:
+                    section = panel._sections.get(category)
+                    if section is not None and section.isHidden():
+                        return False
+            return not row.isHidden()
+
+        problems: list[str] = []
+        for calculator_id in step.get("offered") or []:
+            state = on_offer(calculator_id)
+            if state is None:
+                problems.append(f"{calculator_id}: no row at all")
+            elif not state:
+                problems.append(f"{calculator_id}: not offered, wanted offered")
+        for calculator_id in step.get("hidden") or []:
+            state = on_offer(calculator_id)
+            if state is None:
+                problems.append(f"{calculator_id}: no row to be hidden")
+            elif state:
+                problems.append(f"{calculator_id}: offered, wanted hidden")
+        if "footer" in step:
+            link = panel._hidden_link
+            shown = link.text() if not link.isHidden() else ""
+            if shown != step["footer"]:
+                problems.append(f"footer reads {shown!r}, wanted {step['footer']!r}")
+        if self._record_assertion("expect_offered", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT offered ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT offered FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
 
     def _finish(self, *, tolerate_errors: bool = False) -> int:
         """End the run: log the verdict, write the report, return the exit status.

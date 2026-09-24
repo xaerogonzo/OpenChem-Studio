@@ -7,6 +7,7 @@ from typing import Any
 
 from PySide6.QtCore import QSettings, QStandardPaths
 
+from openchem.domain.calculator_support import Visibility, is_visible
 from openchem.domain.result_store import MAX_REVISIONS
 from openchem.events.base import EventBus
 from openchem.events.events import SettingsChanged
@@ -51,9 +52,23 @@ RECOVERY_DELAY_SECONDS = Preference("recovery/delay_seconds", int, 5, minimum=1,
 #: The default is the store's own constant, so the two cannot drift.
 MAX_REVISIONS_KEPT = Preference("results/max_revisions", int, MAX_REVISIONS, minimum=1, maximum=64)
 
+#: Whether the launcher offers the calculators that are hidden by default
+#: (limited, experimental or specialist ones -- `domain.calculator_support`).
+#: Off is the default: a calculator that refuses most of what people draw is
+#: not everyday equipment. A per-calculator choice overrides it either way.
+SHOW_HIDDEN_CALCULATORS = Preference("calculators/show_hidden", bool, False)
+
 #: Every preference, in the order the Settings window groups them. Tests
 #: iterate this, so a preference added here is covered without a new test.
-PREFERENCES = (RAIL_HIDES_PANELS, RECOVERY_ENABLED, RECOVERY_DELAY_SECONDS, MAX_REVISIONS_KEPT)
+PREFERENCES = (
+    RAIL_HIDES_PANELS, RECOVERY_ENABLED, RECOVERY_DELAY_SECONDS, MAX_REVISIONS_KEPT,
+    SHOW_HIDDEN_CALCULATORS,
+)
+
+#: Where one calculator's own visibility choice is stored: a plain
+#: `"shown"`/`"hidden"` under `calculators/override/<calculator id>`. An
+#: absent key means "follow the default", which is different from either.
+_CALCULATOR_OVERRIDE_PREFIX = "calculators/override/"
 
 #: What a remembered file-dialog directory can be ABOUT.
 #:
@@ -156,6 +171,51 @@ class Settings:
             )
             return preference.default
         return value
+
+    # --- calculator visibility ------------------------------------------------
+
+    def calculator_override(self, calculator_id: str) -> Visibility | None:
+        """This person's own choice for one calculator, or None to follow the default.
+
+        A stored value that is not one of the two names is logged and treated
+        as no choice: a damaged setting must not hide or reveal a calculator.
+        """
+        raw = self.get(_CALCULATOR_OVERRIDE_PREFIX + calculator_id, None)
+        if raw is None or str(raw) == "":
+            return None
+        try:
+            return Visibility(str(raw).strip().lower())
+        except ValueError:
+            logger.warning(
+                "Setting %s holds %r, which is not a visibility; following the default",
+                _CALCULATOR_OVERRIDE_PREFIX + calculator_id, raw,
+            )
+            return None
+
+    def set_calculator_override(self, calculator_id: str, visibility: Visibility | None) -> None:
+        """Store the choice, or forget it (`None`) so the calculator follows its default."""
+        key = _CALCULATOR_OVERRIDE_PREFIX + calculator_id
+        if visibility is None:
+            self._qsettings.remove(key)
+            self._event_bus.publish(SettingsChanged(key=key))
+            return
+        self.set(key, visibility.value)
+
+    def calculator_is_visible(self, definition) -> bool:
+        """Whether the launcher offers `definition`: its default, the master
+        toggle, and this person's own choice, in `domain.calculator_support`'s order."""
+        return is_visible(
+            definition,
+            show_hidden=bool(self.preference(SHOW_HIDDEN_CALCULATORS)),
+            override=self.calculator_override(definition.calculator_id),
+        )
+
+    def reset_calculator_visibility(self, calculator_ids) -> None:
+        """Back to the defaults: the master toggle off and every override forgotten."""
+        for calculator_id in calculator_ids:
+            if self.calculator_override(calculator_id) is not None:
+                self.set_calculator_override(calculator_id, None)
+        self.set_preference(SHOW_HIDDEN_CALCULATORS, False)
 
     def set_preference(self, preference: Preference, value: bool | int) -> None:
         """Store `value`. An invalid one RAISES: a control can only produce a

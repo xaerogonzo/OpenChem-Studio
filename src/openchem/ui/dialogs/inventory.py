@@ -137,9 +137,34 @@ def iter_dialog_fixtures() -> Iterator[DialogFixture]:
         # fixture covers both -- there is no second dialog to register.
         _require(context, "settings")
         services = context.services
+        if services is not None:
+            registry = services.calculator_registry
+            definitions = [d for category in registry.categories() for d in registry.by_category(category)]
+        else:
+            # A SYNTHETIC classified calculator when there are no services, so
+            # the Calculators page has a row for the guard to walk. Without one
+            # its per-row controls would sit outside the guard's universe, the
+            # way `calculator_settings` once did behind a `_require`.
+            from openchem.domain.calculator import CalculatorDefinition, RegistryExecution
+            from openchem.domain.calculator_support import (
+                CalculatorSupport,
+                SupportStage,
+                Visibility,
+            )
+
+            definitions = [CalculatorDefinition(
+                calculator_id="synthetic_limited", display_name="A limited calculator",
+                category="test", description="A stand-in with a declared support level.",
+                execution=RegistryExecution(compute=lambda mol, uuid, params: None),
+                support=CalculatorSupport(
+                    SupportStage.LIMITED, Visibility.HIDDEN, support_reason="a stand-in reason",
+                    scope_note="nothing",
+                ),
+            )]
         return SettingsDialog(
             context.settings,
             result_store_service=services.result_store_service if services is not None else None,
+            calculator_definitions=definitions,
         )
 
     def command_palette(_context: DialogContext):

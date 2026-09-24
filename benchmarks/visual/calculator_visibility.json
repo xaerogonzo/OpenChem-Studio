@@ -1,0 +1,22 @@
+[
+  {"do": "smiles", "smiles": "O=[N+]([O-])N1CN([N+](=O)[O-])C1", "name": "1,3-dinitro-1,3-diazetidine", "after_ms": 500},
+  {"do": "select", "molecule": -1, "after_ms": 4000},
+  {"do": "panel", "id": "Properties", "after_ms": 1000},
+  {"do": "expect_offered", "tag": "default", "hidden": ["joback_properties", "detonation"], "offered": ["oxygen_balance", "elemental_analysis"], "footer": "2 calculators hidden by default -- Settings..."},
+  {"do": "shot", "path": "artifacts/visual/calculators_default.png"},
+
+  {"do": "dialog", "name": "SettingsDialog", "section": "calculators", "width": 820, "height": 560, "after_ms": 800},
+  {"do": "shot", "path": "artifacts/visual/calculators_settings.png", "widget": "dialog"},
+  {"do": "control", "name": "showHiddenCalculators", "value": true, "after_ms": 500},
+  {"do": "shot", "path": "artifacts/visual/calculators_settings_on.png", "widget": "dialog"},
+  {"do": "close_dialog", "after_ms": 500},
+  {"do": "expect_offered", "tag": "master-on", "offered": ["joback_properties", "detonation", "oxygen_balance"], "footer": ""},
+  {"do": "shot", "path": "artifacts/visual/calculators_offered.png"},
+
+  {"do": "dialog", "name": "SettingsDialog", "section": "calculators", "after_ms": 500},
+  {"do": "control", "name": "resetCalculatorVisibility", "after_ms": 500},
+  {"do": "close_dialog", "after_ms": 500},
+  {"do": "expect_offered", "tag": "reset", "hidden": ["joback_properties", "detonation"], "offered": ["oxygen_balance"], "footer": "2 calculators hidden by default -- Settings..."},
+  {"do": "expect_clean", "tag": "end"},
+  {"do": "quit"}
+]

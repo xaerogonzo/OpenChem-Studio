@@ -323,10 +323,9 @@ def test_every_row_of_the_page_carries_a_help_contract(qapp):
     from openchem.ui.widgets.help_tooltip import help_tooltip_for, placeholder_reason
 
     page = CalculatorVisibilityPage(Settings(EventBus()), _definitions(_registry()))
-    controls = [
-        w for w in page.findChildren((QCheckBox, QPushButton)) if w.isEnabledTo(page)
-    ]
-    assert len(controls) >= 6
+    controls = list(page.findChildren(QCheckBox)) + list(page.findChildren(QPushButton))
+    # The master toggle and Reset, plus a tick and a Learn more for each of two rows.
+    assert len(controls) == 6
     for control in controls:
         contract = help_tooltip_for(control)
         assert contract is not None, control.objectName() or control.text()

@@ -423,7 +423,10 @@ class MainWindow(QMainWindow):
             # with like rather than two notions of a version.
             structure_version_of=services.structure_check_service.current_version,
             substance_perception_needed=self._substance_perception_needed,
+            settings=self._settings,
         )
+        # The footer's "N calculators hidden" link: the window owns the dialogs.
+        self._property_panel.settings_requested.connect(self.show_settings)
         if services.result_store_service is not None:
             # A retained result is unsaved work: the user asked for results
             # to live in the project file, so one that is not there yet is
@@ -4569,12 +4572,16 @@ class MainWindow(QMainWindow):
         Handed the result store service, so lowering the revisions kept can
         say exactly how much it would remove.
         """
+        registry = self._services.calculator_registry
         dialog = SettingsDialog(
             self._settings,
             self,
             section=section,
             tool=tool,
             result_store_service=self._services.result_store_service,
+            calculator_definitions=[
+                d for category in registry.categories() for d in registry.by_category(category)
+            ],
         )
         dialog.exec()
 

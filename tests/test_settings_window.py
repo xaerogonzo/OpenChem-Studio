@@ -95,6 +95,7 @@ def test_the_stored_keys_are_stable_names():
         "recovery/enabled",
         "recovery/delay_seconds",
         "results/max_revisions",
+        "calculators/show_hidden",
     }
 
 

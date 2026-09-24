@@ -32,6 +32,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   partial "nothing found" is never read as a complete one; the Results reader says so above the facts. The vocabulary's own tests and the census
   keep the strict detector, so a defect stays loud where it can be fixed. The reader's status line now leads a refusal with its kind
   (“Needs input”, “Needs setup”, “Not applicable”) instead of one sentence for all three.
+- **Calculators that refuse most of what people draw are no longer offered as everyday equipment.** Every calculator can now declare its support level
+  (`domain/calculator_support.py`): a stage (experimental, limited or stable -- the maturity of this application's implementation, never a verdict on the published
+  method) and, separately, whether it is offered by default. Thermophysical Properties (Joback) is *limited* and hidden -- measured on 2026-09-24, it refuses
+  RDX, HMX and 1,3-dinitro-1,3-diazetidine and runs TNT and PETN -- and Detonation is *stable* and hidden as a specialist calculator. Properties says how many are
+  hidden and opens **Settings > Calculators**, which names each with the reason, what it covers and a Learn more button to its own reference section; one setting
+  offers them all and a tick offers one, and neither runs anything. The calculator reference states each calculator's level. Sixty-six older calculators are
+  listed as not yet classified, and a guard lets that list only shrink.
 - **A failure that repeats no longer fills the log.** A traceback that repeats within 30 seconds is printed once, in the file, the console and the in-app Console alike, and
   the log says it repeated: one line at the first repeat, and a count when the failure next appears. "The same failure" is defined once
   (`failure_log.py`: where it was raised, not what it said) and shared with the driven-run ledger, so a verdict and a log cannot disagree about how many

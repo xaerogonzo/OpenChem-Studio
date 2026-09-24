@@ -45,6 +45,7 @@ from openchem.app.settings import (
     Preference,
     Settings,
 )
+from openchem.ui.dialogs.calculator_visibility_page import CalculatorVisibilityPage
 from openchem.ui.dialogs.external_tools_pages import ExternalToolsPages
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
@@ -58,6 +59,9 @@ RECOVERY = "recovery"
 #: Section id of the results kept in memory.
 RESULTS = "results"
 
+#: Section id of which calculators the launcher offers, and why some are not.
+CALCULATORS = "calculators"
+
 #: Section id of the remembered file-dialog folders.
 FILE_DIALOGS = "file_dialogs"
 
@@ -69,6 +73,7 @@ SECTIONS = (
     (PANELS, "Panels"),
     (RECOVERY, "Recovery"),
     (RESULTS, "Results"),
+    (CALCULATORS, "Calculators"),
     (FILE_DIALOGS, "File dialogs"),
     (EXTERNAL_TOOLS, "External tools"),
 )
@@ -178,6 +183,7 @@ class SettingsDialog(QDialog):
         section: str = PANELS,
         tool: str = "vina",
         result_store_service=None,
+        calculator_definitions=None,
     ) -> None:
         """`section` is the section to open at, and `tool` is the External
         Tools tab in front there.
@@ -186,12 +192,17 @@ class SettingsDialog(QDialog):
         kept says exactly what would go, and asks nothing when nothing
         would. The panels' Configure buttons open this window without it,
         so there the question is asked every time, in general terms.
+
+        `calculator_definitions` is every registered calculator, for the
+        Calculators page; only those with a declared support level are
+        listed, and none given means an empty list rather than a guess.
         """
         super().__init__(parent)
         self.setWindowTitle("Settings")
         self.resize(780, 520)
         self._settings = settings
         self._result_store_service = result_store_service
+        self._calculator_definitions = list(calculator_definitions or [])
         self._section_ids: list[str] = []
         # See `_commit_revisions`: its own question moves the focus, which
         # finishes the edit a second time.
@@ -205,6 +216,7 @@ class SettingsDialog(QDialog):
             PANELS: self._build_panels_page,
             RECOVERY: self._build_recovery_page,
             RESULTS: self._build_results_page,
+            CALCULATORS: self._build_calculators_page,
             FILE_DIALOGS: self._build_file_dialogs_page,
         }
         for section_id, label in SECTIONS:
@@ -339,6 +351,15 @@ class SettingsDialog(QDialog):
 
     def _on_recovery_delay_changed(self, seconds: int) -> None:
         self._store(RECOVERY_DELAY_SECONDS, seconds)
+
+    # --- Calculators ---------------------------------------------------------------
+
+    def _build_calculators_page(self) -> QWidget:
+        #: Public so a caller or a test can ask what the page offers.
+        self.calculators_page = CalculatorVisibilityPage(
+            self._settings, self._calculator_definitions, self
+        )
+        return self.calculators_page
 
     # --- Results -----------------------------------------------------------------
 

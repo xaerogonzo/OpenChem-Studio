@@ -2406,6 +2406,20 @@ kept, which asks first.
   the older results straight away, after telling you how many. Your
   molecules and undo are not affected. A saved project holds only each
   molecule's current results, whatever this is set to.
+- **Calculators.** Some calculators are not offered in the Properties panel
+  by default, because they refuse most of what people draw or need inputs no
+  structure can supply: **Thermophysical Properties (Joback)** has no group
+  for a ring tertiary amine, so it refuses RDX, HMX and many drugs while
+  running TNT and PETN, and **Detonation** is a specialist estimate that needs
+  a loading density and a measured enthalpy of formation. Properties says how
+  many are hidden ("N calculators hidden by default — Settings…", which opens
+  this page). Here each is named with its support level, **why** it is not
+  offered, what it covers, and a **Learn more** button that opens its own
+  section of the [calculator reference](CALCULATOR_REFERENCE.md). One setting
+  offers all of them; a tick beside a calculator offers or withdraws just that
+  one, and always wins; **Reset to defaults** forgets both. This changes only
+  what is offered — nothing is run or removed, the Help for a hidden
+  calculator stays available, and results already computed stay readable.
 - **File dialogs.** Each kind of file dialog opens where it was last used:
   projects, molecules, and macromolecules with crystal structures. **Forget**
   sends one back to your Documents folder.
