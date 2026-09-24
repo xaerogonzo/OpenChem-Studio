@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming round 13 (branch `naming-round-13`)
+
+- **A wrong ring locant on a heterocyclic substituent, fixed (27 of the 2000 census structures, 1.35%).** `N-(5-methyl-1,3,4-thiadiazol-3-yl)acetamide`
+  is now `...-2-yl...` (a monocyclic ring is numbered with its senior heteroatom at 1; a lower combined heteroatom set had outranked it), a
+  benzodioxine benzo carbon is `-6-yl`/`-5-yl` and no longer `-2-yl`, azepane's carbons are no longer `azepan-1-yl`, and 1,2,3-oxadiazole is no
+  longer named "1,2,5-oxadiazole" (a data row was keyed on the wrong ring; real furazan is now the systematic `1,2,5-oxadiazole`, as the Blue Book
+  gives it). The application already withheld every one of these names; they are now shown.
+- **A demoted ketone no longer claims its aryl carbon, fixed (13 census structures embedded an error, and a silent half no read-back can see).**
+  `4-(2-oxo-2-phenylethoxy)benzoic acid` is now named instead of failing an ownership check, and `4-oxo-4-phenylbutanoic acid` is no longer
+  named `3-carboxy-1-phenylpropan-1-one` (nor its amide `4-amino-4-oxo-1-phenylbutan-1-one`).
+- **Measured, then fixed:** the census went from 93.45% to 95.70% of structures whose name reads back exactly, candidate wrong structures from
+  2.40% to 0.90%, and embedded errors and refusals from 1.90% to 1.15%. A new ring-locant sweep (`tools/naming_ring_locant_sweep.py`) tested all
+  371 curated rings at every attachable position: 295 table-backed rings were clean (0 wrong in 5,681 cases), which located the defects in the
+  numbering code and data and not in the locant tables.
+- **A correction to round 12's documentation:** the application does not show an embedded engine error as an unverified name; it withholds it,
+  and it withholds a name whose read-back is a different structure. Three tests pin each gate on real engine output.
+- **Recorded, not fixed:** an ester of an acid that also carries a ring-nitrogen sulfonamide is named as an ester of the piperidine (2 census
+  rows, D-151); 11 all-carbon fused rings (acenes, phenes, helicenes) are named with a bare `-yl`; and the ring-cation family is now the largest
+  remaining cluster (14 rows, 0.70%). See `src/openchem/vendor/KNOWN_LIMITATIONS.md`, "Open after naming round 13".
+
 ### Naming census scan (branch `naming-census-scan`, before round 13)
 
 - **`tools/naming_census_scan.py` names every row of the 2000-structure census sample and reads each name back through

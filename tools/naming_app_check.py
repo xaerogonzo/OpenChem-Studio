@@ -70,6 +70,24 @@ ROWS = [
     ("carboxylate inside a substituent, beside a neutral acid", "O=C([O-])Cc1ccc(C(=O)[O-])c(C(=O)O)c1", "2-carboxy-4-(carboxylatomethyl)benzoate", "DERIVED (D-144b, P-65.6.2.3.1)", "MATCH", -2, 1),
     ("round 8's recorded repro", "O=C([O-])Cc1ccc(C(=O)[O-])cc1C(=O)O", "3-carboxy-4-(carboxylatomethyl)benzoate", "DERIVED (D-144c, P-65.6.2.3.1)", "MATCH", -2, 1),
     ("homogeneous classifier route (converse of D-144)", "O=C([O-])Cc1ccc(C(=O)[O-])cc1", "4-(carboxylatomethyl)benzoate", "DERIVED (classifier route, unchanged)", "MATCH", -2, 1),
+    # -- naming round 13: a wrong ring locant (D-145..D-148) and a demoted ketone's aryl carbon (D-149, D-150), with their boundaries -----------
+    # Every "withheld before" row below was a NamingError in the application (the read-back mismatch or the embedded error); each now arrives
+    # verified. Shown and verified does not mean the preferred name: the basis column says which rows are derived and which are unadjudicated.
+    ("1,3,4-thiadiazole substituent, senior heteroatom at 1", "Cc1nnc(NC(C)=O)s1", "N-(5-methyl-1,3,4-thiadiazol-2-yl)acetamide", "DERIVED (D-145, Hantzsch-Widman)", "MATCH", 0, 1),
+    ("1,3,4-oxadiazole substituent on a carbon chain", "Cc1nnc(CO)o1", "(5-methyl-1,3,4-oxadiazol-2-yl)methanol", "DERIVED (D-145)", "MATCH", 0, 1),
+    ("benzodioxine benzo carbon", "CC(=O)Nc1ccc2c(c1)OCCO2", "N-(2,3-dihydro-1,4-benzodioxin-6-yl)acetamide", "DERIVED (D-146a, atom_locants)", "MATCH", 0, 1),
+    ("benzodioxine next to the ring fusion", "CC(=O)Nc1cccc2c1OCCO2", "N-(2,3-dihydro-1,4-benzodioxin-5-yl)acetamide", "DERIVED (D-146b)", "MATCH", 0, 1),
+    ("azepane carbon (not its nitrogen)", "CC(=O)NC1CCCCCN1", "N-(azepan-2-yl)acetamide", "DERIVED (D-147a)", "MATCH", 0, 1),
+    ("1,2,3-oxadiazole, no longer called 1,2,5", "c1cnno1", "1,2,3-oxadiazole", "DERIVED (D-148a, data key corrected)", "MATCH", 0, 1),
+    ("phenacyloxy group on a senior parent", "OC(=O)c1ccc(OCC(=O)c2ccccc2)cc1", "4-(2-oxo-2-phenylethoxy)benzoic acid", "DERIVED (D-149a, ownership)", "MATCH", 0, 1),
+    ("coumarin carrying the phenacyloxy group (a census structure)", "Cc1cc(=O)oc2cc(OCC(=O)c3ccc(F)cc3)ccc12", "7-[2-(4-fluorophenyl)-2-oxoethoxy]-4-methyl-2H-1-benzopyran-2-one", "DERIVED (D-149b)", "MATCH", 0, 1),
+    ("aryl ketone beside an acid: the acid is the parent", "OC(=O)CCC(=O)c1ccccc1", "4-oxo-4-phenylbutanoic acid", "DERIVED (D-150a, the silent half)", "MATCH", 0, 1),
+    ("aryl ketone beside an amide: the amide is the parent", "NC(=O)CCC(=O)c1ccccc1", "4-oxo-4-phenylbutanamide", "DERIVED (D-150b)", "MATCH", 0, 1),
+    # boundaries: each must be UNCHANGED by the fixes above
+    ("table-backed ring (converse of D-146)", "CC(=O)Nc1ccc2OCOc2c1", "N-(2H-1,3-benzodioxol-5-yl)acetamide", "DERIVED (table-backed, unchanged)", "MATCH", 0, 1),
+    ("1,2,4-oxadiazole (converse of D-145)", "Cc1noc(NC(C)=O)n1", "N-(3-methyl-1,2,4-oxadiazol-5-yl)acetamide", "DERIVED (unchanged)", "MATCH", 0, 1),
+    ("azepane nitrogen keeps -1-yl (converse of D-147)", "O=C(C)N1CCCCCC1", "1-(azepan-1-yl)ethan-1-one", "DERIVED (unchanged)", "MATCH", 0, 1),
+    ("methyl ketone as a substituent (converse of D-149)", "OC(=O)c1ccc(OCC(C)=O)cc1", "4-(2-oxopropoxy)benzoic acid", "DERIVED (unchanged)", "MATCH", 0, 1),
 ]
 
 
