@@ -123,6 +123,18 @@ def test_the_legacy_flag_still_means_a_limit_when_the_code_is_unknown():
     assert CalculationRefusal("X", "s", "d", inapplicable=False).kind is None
 
 
+def test_a_kind_derived_only_from_the_legacy_flag_says_so():
+    """It still reads as a limit; what changes is that it is NOT counted as
+    classified, so the census can list the code."""
+    assert CalculationRefusal("X", "s", "d", inapplicable=True).classified is False
+    assert CalculationRefusal("X", "s", "d").classified is False
+    assert CalculationRefusal(K.INPUT_REQUIRED, "s", "d").classified is True, "found in the table"
+    assert CalculationRefusal("X", "s", "d", kind=RefusalKind.LIMIT).classified is True, "declared"
+    parameters = refusal_parameters("X", RefusalKind.LIMIT, classified=False)
+    assert parameters["refusal_classified"] is False
+    assert "refusal_classified" not in refusal_parameters("X", RefusalKind.LIMIT)
+
+
 # --- what travels on the result ---------------------------------------------
 
 

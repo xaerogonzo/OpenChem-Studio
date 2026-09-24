@@ -280,6 +280,10 @@ class CalculationRefusal(Exception):
         self.summary = summary
         self.detail = detail
         resolved = kind if kind is not None else refusal_kind_of(code)
+        #: False only when the kind was DERIVED FROM THE LEGACY FLAG: a code nobody
+        #: classified that a producer marked `inapplicable`. It still reads as a
+        #: limit, and the calculator census reports the code so somebody decides.
+        self.classified = resolved is not None
         if resolved is None and inapplicable:
             resolved = RefusalKind.LIMIT
         self.kind = resolved

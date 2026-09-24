@@ -30,17 +30,14 @@ from tests.multicomponent_sweep import classify, load_panel, run_sweep
 
 REGISTRY_DEFINITIONS = [d for d in CALCULATOR_DEFINITIONS if isinstance(d.execution, RegistryExecution)]
 
-#: A FAILED result the panel may carry without it being a finding: a 3D
-#: descriptor asked of the drawing before the conformer run answered it, or an
-#: experimental database this machine has not built.
-#:
-#: **INPUT_REQUIRED AND SIDECAR_NOT_CONFIGURED ARE NO LONGER HERE**, and that
-#: is the tightening: they are refusals of kind NEEDS_INPUT and NEEDS_SETUP
-#: (`domain.refusal_kinds`), which the sweep classifies as their own outcomes
-#: rather than as faults. Left in this set, a table that lost them would still
-#: pass, because "failed with an expected code" was the only thing the guard
-#: could see.
-EXPECTED_FAULTS = {"NEEDS_CONFORMER", "DATABASE_NOT_BUILT"}
+#: A FAILED result the panel may carry without it being a finding. **EMPTY NOW**:
+#: the two that were listed here -- an experimental database this machine has
+#: not built, and a 3D descriptor asked of the drawing before the conformer run
+#: answered it -- are classified refusals (NEEDS_SETUP and NEEDS_INPUT in
+#: `domain.refusal_kinds`), which the sweep counts as their own outcomes. Kept as
+#: a name so the guard below still reads "a failure with an expected code", and
+#: so the next entry has to argue for itself.
+EXPECTED_FAULTS: set[str] = set()
 
 
 def _unscoped(definitions) -> list[str]:

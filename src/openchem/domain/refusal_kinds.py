@@ -83,12 +83,28 @@ class RefusalKind(str, Enum):
     NEEDS_SETUP = "needs_setup"
 
 
+#: Calculator-specific codes that are LIMITS of their method, found by the
+#: calculator census (`tools/calculator_census.py`, 2026-09-24) over the 29-row
+#: panel: every one of them was a refusal a producer had marked "inapplicable"
+#: with no kind, so it read as a limit only by the legacy flag. Each names a
+#: structural condition the method is not defined for; two calculators sharing a
+#: name (`NO_RINGS` in both aromaticity indices, `UNCOVERED_ATOM` in Joback and
+#: Hansen) mean the same thing by it. **A NEW code is not added here by default:**
+#: the census guard fails for an unclassified one, which is the point -- somebody
+#: decides whether it is a limit, a missing input or a missing setup.
+_LIMIT_CODES = (
+    "NO_RINGS", "NO_PI_SYSTEM", "NO_IONIZABLE_CENTRE", "NOT_CHNO", "AMPHOLYTE",
+    "TOO_FEW_CARBONS", "UNCOVERED_ATOM", "NO_DONOR_ATOM", "NO_POLYOXYETHYLENE",
+    "REFUSE_ELEMENT_NOT_PARAMETERISED", "NO_KNOWN_FRAGMENTS",
+)
+
 #: The codes that carry a kind with no producer declaring it. Deliberately
 #: SMALL: only codes whose meaning is the same wherever they are raised.
 #: A calculator-specific enum member (`HansenRefusal.NO_SOLVENT`, ...) is
 #: declared by its producer with `kind=` rather than added here, because a
 #: global table keyed on a bare string would let two calculators' unrelated
-#: codes collide.
+#: codes collide -- except the ones in `_LIMIT_CODES`, which the census showed
+#: mean one thing wherever they appear.
 REFUSAL_KINDS: dict[str, RefusalKind] = {
     MULTICOMPONENT_UNSUPPORTED: RefusalKind.LIMIT,
     METAL_CONTAINING_UNSUPPORTED: RefusalKind.LIMIT,
@@ -99,6 +115,12 @@ REFUSAL_KINDS: dict[str, RefusalKind] = {
     NO_LOADING_DENSITY: RefusalKind.NEEDS_INPUT,
     NO_ENTHALPY_OF_FORMATION: RefusalKind.NEEDS_INPUT,
     SIDECAR_NOT_CONFIGURED: RefusalKind.NEEDS_SETUP,
+    # Two more the census classified. The experimental NMR database has to be
+    # built once under Tools; a 3D descriptor asked of a flat drawing wants a
+    # conformer generating first -- an input the person supplies, not a limit.
+    "DATABASE_NOT_BUILT": RefusalKind.NEEDS_SETUP,
+    "NEEDS_CONFORMER": RefusalKind.NEEDS_INPUT,
+    **{code: RefusalKind.LIMIT for code in _LIMIT_CODES},
 }
 
 
@@ -155,12 +177,20 @@ REFUSAL_KEY = "refusal"
 REFUSAL_KIND_KEY = "refusal_kind"
 #: The inputs a NEEDS_INPUT refusal named, as `MissingInput.to_dict()` rows.
 MISSING_INPUTS_KEY = "missing_inputs"
+#: Written as False when the kind was DERIVED FROM THE LEGACY FLAG rather than
+#: declared or found in the table: a code nobody classified that a producer
+#: marked `inapplicable`. It changes nothing about how the result reads (it is
+#: still a limit), and it is what lets the calculator census say "this code has
+#: not been classified" instead of counting it as one that was.
+REFUSAL_CLASSIFIED_KEY = "refusal_classified"
 
 
 def refusal_parameters(
     code: str,
     kind: RefusalKind | None,
     missing_inputs: tuple[MissingInput, ...] = (),
+    *,
+    classified: bool = True,
 ) -> dict[str, Any]:
     """What a refusal puts in `Provenance.parameters`, assembled in ONE place.
 
@@ -173,6 +203,8 @@ def refusal_parameters(
         parameters[REFUSAL_KIND_KEY] = kind.value
     if missing_inputs:
         parameters[MISSING_INPUTS_KEY] = [item.to_dict() for item in missing_inputs]
+    if not classified:
+        parameters[REFUSAL_CLASSIFIED_KEY] = False
     return parameters
 
 

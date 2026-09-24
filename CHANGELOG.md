@@ -43,6 +43,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   *About this calculator* button in the dialog every calculator opens -- each lands on that calculator's own section of the reference, where the tooltip used to point at the whole
   Properties chapter. A limited or specialist calculator also states its support level and reason in its dialog, where a person who enabled it is about to run it. A new guide,
   *Comparing partial charge models*, says what each of the five charge models needs and refuses; it describes and ranks nothing, and a guard holds it to that.
+- **The calculator census.** `tools/calculator_census.py` runs every registered calculator, and the always-on set, over 29 structures chosen for shape (nitramines, energetic materials,
+  hydrazines, ring tertiary amines, salts, metals, a peptide, a large molecule) through the application's own service, recording what each returned (ready, limit, needs input,
+  needs setup, fault) AND what the application logged while it ran. A guard fails on a fault, an error logged, a calculator that never answered, a refusal code nobody classified, or
+  any cell that differs from the committed baseline. Its first run found the experimental NMR database's "not built" refusal and a 3D descriptor's "needs a conformer" reading as
+  faults, and eleven calculator-specific refusal codes that read as limits only by a legacy flag; all are classified now. It also reports which calculators refuse a quarter or
+  more of the panel as a limit -- a *proposal* for the limited classification, never an assignment.
 - **A failure that repeats no longer fills the log.** A traceback that repeats within 30 seconds is printed once, in the file, the console and the in-app Console alike, and
   the log says it repeated: one line at the first repeat, and a count when the failure next appears. "The same failure" is defined once
   (`failure_log.py`: where it was raised, not what it said) and shared with the driven-run ledger, so a verdict and a log cannot disagree about how many

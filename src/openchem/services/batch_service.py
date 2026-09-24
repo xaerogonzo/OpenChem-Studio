@@ -323,7 +323,8 @@ class _BatchTask(QRunnable):
                         provenance=(
                             Provenance(created_by="core", method=calculator_id,
                                        parameters=refusal_parameters(
-                                           exc.code, exc.kind, exc.missing_inputs))
+                                           exc.code, exc.kind, exc.missing_inputs,
+                                           classified=exc.classified))
                             if refused else None
                         ),
                     ),

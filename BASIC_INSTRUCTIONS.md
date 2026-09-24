@@ -68,6 +68,9 @@ by `tests/test_layering.py`.
 - `src/openchem/chem/naming_providers.py` — structure <-> name; the only entry point to the vendored nomenclature engine
 - `src/openchem/net.py` — every outbound HTTP request, so each one identifies the app (a missing User-Agent is a 403 on some hosts)
 - `src/openchem/chem/periodic_charges.py` — EQeq charges for a crystal; the only calculation here about a periodic solid, reached through `crystal_report.py` rather than the calculator registry (a `CalculationRequest` cannot name a crystal)
+- `src/openchem/domain/refusal_kinds.py` — why a calculator declined (limit / needs input / needs setup); a refusal with no kind is a fault
+- `src/openchem/domain/calculator_support.py` — a calculator's stage (maturity of this implementation) and default visibility, with the reason; `LEGACY_UNCLASSIFIED` only shrinks (see `docs/CALCULATOR_MATURITY.md`)
+- `tools/calculator_census.py` — every calculator over a fixed panel through the app's own path; `tests/test_calculator_census.py` fails on a fault, an error logged, an unclassified refusal code, or a moved cell
 
 ---
 

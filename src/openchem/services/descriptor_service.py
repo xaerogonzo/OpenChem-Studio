@@ -413,7 +413,7 @@ class _CalculationTask(QRunnable):
             self._publish_failed(
                 refusal.detail, summary=refusal.summary, code=refusal.code,
                 inapplicable=refusal.inapplicable, kind=refusal.kind,
-                missing_inputs=refusal.missing_inputs,
+                missing_inputs=refusal.missing_inputs, classified=refusal.classified,
             )
             return
         except Exception as exc:  # noqa: BLE001 - a bad calculator must not kill the pool
@@ -507,6 +507,7 @@ class _CalculationTask(QRunnable):
         inapplicable: bool = False,
         kind: RefusalKind | None = None,
         missing_inputs: tuple[MissingInput, ...] = (),
+        classified: bool = True,
     ) -> None:
         # Empty PerAtomDataset is the only "there was a problem" shape
         # every current consumer (PropertyPanel, Calculator Inspector)
@@ -530,7 +531,7 @@ class _CalculationTask(QRunnable):
             provenance=(
                 Provenance(
                     created_by="core", method=self._request.calculator_id,
-                    parameters=refusal_parameters(code, kind, missing_inputs),
+                    parameters=refusal_parameters(code, kind, missing_inputs, classified=classified),
                 )
                 if code else None
             ),
