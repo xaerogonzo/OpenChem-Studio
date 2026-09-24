@@ -1618,3 +1618,43 @@ Recorded in `KNOWN_LIMITATIONS.md`, "Open after naming round 12".
 frozen populations with the working tree, compares with the sealed sidecar, prints only `unchanged` or
 `changed_count=N of M`, exits 3 if anything moved. Tests use fake rows and assert nothing identifying is
 printed (`tests/test_naming_frozen_impact.py`).
+
+## 2026-09-24 - naming round 13: a wrong ring locant on a heterocyclic substituent, and a demoted ketone that claimed its aryl carbon
+
+Started from a measurement: `tools/naming_census_scan.py` named all 2000 census rows and read each back, and the round's own
+`tools/naming_ring_locant_sweep.py` did the same for every curated ring at every attachable position. Census 93.45% -> 94.80% -> 95.70% exact;
+candidate wrong structures 2.40% -> 0.90%; embedded errors and refusals 1.90% -> 1.15%. Every starting row was WITHHELD by the application (the
+read-back mismatch, or the embedded error), so each fix turns "no name" into a right name.
+
+**D-145 (FIXED, 21 census rows).** `engine.py` `_lowest_free_valence_numberings.hetero_key` ranked the lowest COMBINED heteroatom locant set ahead of
+the senior heteroatom at locant 1. A monocyclic hetero ring is numbered by Hantzsch-Widman (senior heteroatom = 1). For 1,3,4-thiadiazole
+(S1,N3,N4) the alternative N1,N2,S4 has the lower set {1,2,4}, so the substituent was numbered as another heterocycle and its attachment carbon
+came out `-3-yl`. Only a ring that carried a second substituent reached this filter (the bare ring goes through
+`_heteroaryl_substituent_with_locant`, which weights seniority). Fix: for a monocyclic ring rank the senior heteroatom's locant first; a fused ring
+keeps `together` first. 1,2,5-oxadiazole and 1,2,5-thiadiazole had the same shape.
+
+**D-146, D-147 (FIXED, 6 census rows).** A ring with no `atom_locants` and a curated `substituent_form` ending in a digit returned that form
+verbatim for every attachment (`2,3-dihydro-1,4-benzodioxin-2-yl` for any benzo carbon, `azepan-1-yl` for any carbon). The numbering computed just
+above that early return already knew the real locant and discarded it; it is used now when it differs from the curated digit. Benzodioxine is fused
+and the generic numbering mislabels the two positions next to the ring fusion, so it also gets an `atom_locants` table in `data_loader.py`,
+derived from its bond topology as 1,3-benzodioxole's is.
+
+**D-148 (FIXED).** The curated `1,2,5-oxadiazole` row in `data_loader.py` was keyed on `c1conn1`, which is 1,2,3-oxadiazole (the vendored
+`test_retained_rings.py` had pinned the wrong pair). Key corrected to `c1cnon1`; parent and substituent are the systematic `1,2,5-oxadiazole`
+(BlueBookV2.pdf p. 263: "1,2,5-oxadiazole (formerly called furazan)"), where real furazan used to come out `furazan`.
+
+**D-149, D-150 (FIXED, 13 census rows and a silent half).** `_compute_prefix_assignments` Pass 1 built the `oxo` prefix of a DEMOTED ketone (anchor
+already in the parent) from every off-parent atom of the group and dropped only heteroatom context; a ketone matches its two flanking carbons as
+context, and the one off the parent chain (an aryl or cycloalkyl ipso carbon) was claimed by the `oxo` AND by the `phenyl` the structural pass
+carved. `ownership.py`'s exactly-one-owner invariant rejected the plan, correctly. The same double claim silently killed the plan that named an
+acid or amide as the parent, so `4-oxo-4-phenylbutanoic acid` came out `3-carboxy-1-phenylpropan-1-one`. Fix: a non-anchor carbon still in
+`remaining` is not claimed when the group is suffix-eligible and its anchor is in the parent. The ownership check is unchanged.
+
+**D-151 (OPEN, found by exposing it).** An ester of an acid that also carries a ring-nitrogen sulfonamide is named as a functional-class ester of
+the piperidine (`ethyl 1-(4-carboxyphenylsulfonyl)piperidine`). Already there for plain methyl/ethyl esters; W2 stopped masking it for one census
+row. 2 census rows (0.1%). Not fixed.
+
+**Measured.** ref-compare against the pre-round tip: 1712 rows, 1 name changed (an isouronium cation, STRUCTURALLY_EQUIVALENT, both names read
+back MATCH), 0 violations. Blind frozen impact: 0 for the W1-only engine, so the 1-of-40 (`heldout_v6`) and 1-of-1126 (`bluebook_frozen`) that
+moved are W2's. Tests: 16 FIXED rows (D-145a to D-150c) and 28 converse and invariant cases in `test_namer_known_defects.py`, plus 3 provider
+tests; the mutation checks fail 14 of the 24 W1 cases and 9 of the 20 W2 cases with the engine and data changes removed, the rest being converses.

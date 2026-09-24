@@ -34,7 +34,7 @@ from openchem.vendor.iupac_namer.engine import name_smiles
     ("c1ncsn1",     "1,2,4-thiadiazole"),
     ("c1nnco1",     "1,3,4-oxadiazole"),
     ("c1ncon1",     "1,2,4-oxadiazole"),
-    ("c1conn1",     "1,2,5-oxadiazole"),
+    ("c1cnon1",     "1,2,5-oxadiazole"),
     # 6-membered multi-N
     ("c1cnnnc1",    "1,2,3-triazine"),
     ("c1cnncn1",    "1,2,4-triazine"),

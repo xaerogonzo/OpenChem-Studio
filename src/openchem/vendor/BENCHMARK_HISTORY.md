@@ -901,3 +901,96 @@ has to be read. Neutral parents were named for the layer (`imidazo[1,2-a]pyridin
 their cations fail with one plan executed and none valid. The failing fragments were named standalone and by ring system; the per-system
 counts (4 / 2 / 1 / 1 / six singletons) are in `KNOWN_LIMITATIONS.md`, and the largest, 4/2000 = 0.2%, is under the 10-structure floor,
 so nothing was admitted.
+
+## 2026-09-24 -- naming round 13: a wrong ring locant on a heterocyclic substituent, and a demoted ketone that claimed its aryl carbon
+
+The round began with a measurement instead of a backlog: `tools/naming_census_scan.py` (merged before the round) named all 2000 census rows and read
+each back through OPSIN, and the round's `tools/naming_ring_locant_sweep.py` did the same for every curated ring. Full findings:
+`KNOWN_LIMITATIONS.md`, "Open after naming round 13".
+
+### The census, every row, before and after (`naming_census_scan.py`, 2000 rows)
+
+| class | round-12 engine | after W1 | after W2 |
+|---|---|---|---|
+| exact | 1869 (93.45%) | 1896 (94.80%) | **1914 (95.70%)** |
+| same connectivity | 34 | 35 | 35 |
+| wrong structure, different formula | 35 | 13 | 13 |
+| wrong structure, same formula | 13 | 7 | 5 |
+| unparsable | 11 | 11 | 10 |
+| embedded engine error | 37 | 37 | 22 |
+| refused | 1 | 1 | 1 |
+
+Candidate wrong structures 2.40% -> 0.90%; embedded errors and refusals 1.90% -> 1.15%. No row LEFT `exact` at either step. Each of the 27 W1 rows and
+each of the 13 W2 rows was WITHHELD by the application before the fix (`stages/r13-baseline-reproductions.json`: 27 for the read-back mismatch, 13 for
+the embedded error), so the round turned "no name" into a right name and shipped nothing wrong-and-visible. W2 moved 30 names in all: 14 embedded errors,
+3 wrong structures (esters named on a ketone-parent `carboxy` prefix, the silent half) and 1 unparsable name became exact, 11 exact names became better exact names (`2-{...}-1-(4-chlorophenyl)ethan-1-one` ->
+`2-(4-chlorophenyl)-2-oxoethyl 4-(...)benzoate`), and 1 row moved the wrong way (an embedded error to the pre-existing D-151 wrong structure).
+
+### The ring-locant sweep (`naming_ring_locant_sweep.py`; 371 rings, 7,372 cases)
+
+The ring population is committed and hashed BEFORE any result (`benchmarks/naming/ring_sweep_population.json`), and the tool refuses a stale one.
+
+| table state | rings | tested | rings with wrong | wrong / cases | engine errors |
+|---|---|---|---|---|---|
+| table-less, before | 70 | 66 | 23 | 712 / 1578 | 15 |
+| table-less, after | 69 | 65 | 15 | 682 / 1558 | 15 |
+| partial | 6 | 6 | 4 | 13 / 113 | 6 |
+| full, before -> after | 295 -> 296 | 292 -> 293 | 0 | 0 / 5,681 -> 5,701 | 0 |
+
+Sweep cases that got worse after the fixes: 0; that got better: 26. The 682 remaining wrong cases are 638 on 11 all-carbon fused rings (bare `-yl`) and the
+rest on about 7 partly hydrogenated fused rings; neither has a census row. The oracle is structural (read-back), so numbering preference is not adjudicated.
+Time: baseline 939 s (build 1.2 s, naming 889 s, read-back 44 s); the rerun took 1,328 s (naming 1,261 s) because the app gate was running at the same time.
+Skipped and never swept: 906 fusion atoms, 651 heteroatom sites, 78 atoms with no free hydrogen, 73 exocyclic atoms.
+
+### The mechanisms, and the three hypotheses that were wrong
+
+The plan named three suspects for the ring locant (an index-space mismatch, atom-map loss on canonical renumbering, the `min()` over symmetric matches).
+A per-attachment trace refuted all three: the fragment's atom map was intact, and the numbering filter selected among 10 candidate numberings correctly
+BY ITS OWN KEY. The key ranked a lower combined heteroatom set ahead of the senior heteroatom at locant 1 (D-145). A second mechanism was a hard-coded
+locant returned verbatim (D-146, D-147) and a third was a data row keyed on the wrong ring (D-148); the ownership error (D-149, D-150) was a claim
+computed one way in one pass and read another way in the next, with a silent half no read-back can see.
+
+### Gates
+
+- **ref-compare** (`--base d2b95a6`, master before the round): 1712 structures over r7, r8, mc and the tuning populations, 1 name changed, **0 violations**. The
+  one row is an isouronium cation, recorded STRUCTURALLY_EQUIVALENT in `stages/manifests/r13-release-candidate.toml` (both names read back MATCH; the
+  preferred name is not adjudicated). W1 touched no tuning row.
+- **Known-defects suite:** 1170 passed, 15 xfailed (the 14 old plus D-151). Mutation checks: 14 of the 24 W1 cases and 9 of the 20 W2 cases fail with the
+  engine and data changes removed; the rest are converses that pass either way.
+- **Vendored suite** (own pytest session): **5,262 passed, 0 failed**. **App gate**, both shards, in a detached worktree at the W2 commit (`aea95a2c`, no
+  `--out`): **RESULT: PASS**, every chunk on its first attempt. The engine and data are byte-identical from that commit to the final tree (0 diff lines); the
+  later commits are tests, tools and documents, whose guards were re-run (170 passed).
+- **Driven check** (`tools/naming_app_check.py`, the application's own provider): 50/50 rows, 14 of them new (10 repaired shapes and 4 boundaries that must not
+  move), each verified by read-back.
+- **Fork** (`xaerogonzo/open-iupac-namer`, run under the main repository's interpreter): 6,637 passed, 0 failed, 15 xfailed; engine and data numstat +48/-2 on
+  both sides; no `openchem` reference in any `.py` file the round touched.
+
+### The blind frozen impact, and the final evaluation (`r13-final-evaluation`, `heldout_v6` + `bluebook_frozen`)
+
+`--frozen-impact r12-final-evaluation` reported `heldout_v6` 1 of 40 and `bluebook_frozen` 1 of 1126 changed. Run again with the W1-only engine it reported 0 and
+0, so every frozen row that moved is W2's. The frozen set was then scored once, after the gate passed on the final engine.
+
+| population | rows | PubChem string (verbatim) | equivalent | wrong structure |
+|---|---|---|---|---|
+| regression | 187 | 101 | 85 | 0 (1 tautomer) |
+| heldout v1-v5 (tuning) | 40 each | 16/15/14/19/11 | 24/25/26/21/29 | 0 each |
+| heldout v6 (frozen, round 9) | 40 | 13 | 25 | 2 (unchanged) |
+| bluebook tuning | 1129 | 507 | 532 | 15 (58 unparsable, 17 no-prediction) |
+| **bluebook frozen** | **1126** | **505** | **540** | **22 (46 unparsable, 13 no-prediction)** |
+
+Every total is identical to round 12's. Diffed against round 12's sealed records in aggregate, never a row: **`bluebook_frozen` 1 name changed and 0 outcome
+classes changed; `heldout_v6` 1 name changed and 0 outcome classes changed.** The frozen strings moved without moving any structural outcome, which is consistent with
+a better name for a row that was already structurally right (it is not proof of that: no individual frozen row was read). The newly sealed files are committed under this round's own name.
+
+### Process notes worth keeping
+
+- The census scan's classes are what the ENGINE emits, not what a user sees. Round 12's documentation said the application shows an embedded engine error as an
+  unverified name; it withholds it (and any name whose read-back is a different structure). Corrected in `KNOWN_LIMITATIONS.md` and pinned by three tests on
+  real engine output.
+- `naming_probe.py`'s `clean` status under-reports an embedded error (the error is emitted as a NAME, not as a dead plan), and it stops on the first refusal;
+  the census scan reads the name and records a refusal instead.
+- A first draft of the ring-cation count said 19 rows; only 14 of the 19 "no valid plan" rows are cations. Checked before it was written down.
+- The W2 commit message calls the 3 rows that moved from wrong-structure to exact "wrong locants"; they were esters named on a ketone-parent `carboxy` prefix
+  (the silent half of D-150). The documents and this table are right; the message is not, and is left as committed.
+- W2 exposed, and did not create, a wrong-structure path for an ester whose acid carries a ring-nitrogen sulfonamide (D-151). The strict xfail row and a real-OPSIN
+  test that uses it as its example will fire together when it is fixed.

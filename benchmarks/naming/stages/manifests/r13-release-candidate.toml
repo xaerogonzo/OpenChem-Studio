@@ -1,0 +1,22 @@
+# Round 13's cumulative ref-compare manifest, against master's pre-round-13 tip (d2b95a6a), checked over the four sets the tool names
+# (r7, r8, mc and every non-frozen population: 1712 structures).
+#
+# W1 (a wrong ring locant on a heterocyclic substituent, D-145..D-148) touched ZERO rows here: no tuning row has that shape, which is why
+# the census scan and the ring-locant sweep exist. W2 (a demoted ketone claiming its aryl carbon, D-149/D-150) touched ONE row, and it is
+# not a ketone shape. Recorded, not excused: the round-13 census `--compare` and the strict exactly-one-owner tests are the direct evidence
+# for W2; this manifest only says which tuning row moved and why.
+
+stage = "r13-release-candidate"
+
+# An isouronium cation. `_compute_prefix_assignments` Pass 1 no longer claims a non-anchor CARBON context atom that is still unclaimed when a
+# demoted suffix-eligible group's anchor is in the parent (the W2 change). Here that carbon is an N-methyl of the amidine-type group, which is
+# now carved as an N-substituent ("N-methyl") beside "1-(methylazaniumylidene)" instead of being glued into a "methyl[...]azanium" compound.
+# It follows the engine's own NEUTRAL name for the same skeleton, `N-methyl-1-(methylimino)-1-(phenoxy)methanamine`, with `imino` becoming
+# `azaniumylidene`. BOTH names read back through OPSIN to the structure (checked directly: MATCH, MATCH), so this is STRUCTURALLY_EQUIVALENT.
+# NOT adjudicated as preferred: PubChem's `N,N'-dimethyl-O-phenyluronium` is a third form, no printed target exists, and neither engine name
+# matches it. If a later round settles the target for isouronium cations this entry is the place to say so.
+[[expect]]
+id = "pop:bluebook_tuning:bb-7ab2fa8a8dfd"
+expect = "STRUCTURALLY_EQUIVALENT"
+reason_rule_id = "demoted-FG context carbon no longer claimed (W2, D-149/D-150 mechanism)"
+expected_layer = "candidate_assignment"

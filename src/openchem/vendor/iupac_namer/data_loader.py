@@ -1947,7 +1947,11 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # O,N,N
     "c1nnco1":         {"name": "1,3,4-oxadiazole",    "substituent_form": "1,3,4-oxadiazolyl",  "alkyl_stem_ok": False},
     "c1ncon1":         {"name": "1,2,4-oxadiazole",    "substituent_form": "1,2,4-oxadiazolyl",  "alkyl_stem_ok": False},
-    "c1conn1":         {"name": "1,2,5-oxadiazole",    "substituent_form": "furazanyl",           "alkyl_stem_ok": False},
+    # The key WAS `c1conn1`, which is 1,2,3-oxadiazole: the row named 1,2,3-oxadiazole "1,2,5-oxadiazole" (and "furazan-5-yl") and real furazan reached
+    # a different route. Corrected in naming round 13 (found by the ring-locant sweep: every attachment on this ring read back wrong). The Blue Book
+    # (BlueBookV2.pdf p. 263, the ring-seniority list) gives the name as "1,2,5-oxadiazole (formerly called furazan)", so both the parent and the
+    # substituent are the systematic form, not `furazan`/`furazanyl`.
+    "c1cnon1":         {"name": "1,2,5-oxadiazole",    "substituent_form": "1,2,5-oxadiazolyl",   "alkyl_stem_ok": False},
 
     # Four heteroatoms
     "c1nnn[nH]1":      {"name": "1H-tetrazole",        "substituent_form": "tetrazolyl",       "alkyl_stem_ok": False},
@@ -2865,7 +2869,12 @@ _RING_CURATED_SMILES: dict[str, dict] = {
                                                      6: 9, 4: "9a", 7: "9b"}},
 
     # 2,3-dihydro-1,4-benzodioxine
-    "c1ccc2c(c1)OCCO2":  {"name": "2,3-dihydro-1,4-benzodioxine", "substituent_form": "2,3-dihydro-1,4-benzodioxin-2-yl", "alkyl_stem_ok": False},
+    # atom_locants (naming round 13): the row had none and a substituent form ending in a hard-coded `-2-yl`, so EVERY attachment on the benzo ring
+    # was named `-2-yl` (found by the ring-locant sweep: 4 of 20 cases; the census had 6 rows). Derived from the ring's own bond topology, as the
+    # 1,3-benzodioxole row above: canonical 'c1ccc2c(c1)OCCO2' has idx6=O1 (bonded to idx4), idx7=C2, idx8=C3, idx9=O4 (bonded to idx3),
+    # idx3=C4a, idx2=C5, idx1=C6, idx0=C7, idx5=C8, idx4=C8a. Checked by OPSIN read-back of every attachment position.
+    "c1ccc2c(c1)OCCO2":  {"name": "2,3-dihydro-1,4-benzodioxine", "substituent_form": "2,3-dihydro-1,4-benzodioxin-2-yl", "alkyl_stem_ok": False,
+                          "atom_locants": {6: 1, 7: 2, 8: 3, 9: 4, 3: "4a", 2: 5, 1: 6, 0: 7, 5: 8, 4: "8a"}},
 
     # 2,3-dihydropyrido[1,2,3-de][1,4]benzoxazin-7(4H)-one
     # (levofloxacin / ofloxacin tricyclic scaffold: dihydro-oxazine fused with benzene fused

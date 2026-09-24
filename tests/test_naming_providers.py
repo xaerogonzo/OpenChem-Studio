@@ -871,3 +871,58 @@ def test_the_report_line_carries_the_derived_names_note(monkeypatch):
 
     line = next(x for x in result.matched if "Nomenclature engine, derived" in x)
     assert "Not verified" in line
+
+
+# ---- the two ways the app WITHHOLDS an engine name, on REAL engine output (naming round 13) -----------------------------------------------
+# The two tests above use a monkeypatched engine and a monkeypatched verdict, which is right for the mechanism but cannot say that the
+# engine's real output for a real structure reaches the right gate. Naming round 12's docs said the app SHOWS an embedded engine error as an
+# unverified name; it does not, and the census scan's classes (naming_error, mismatch_*) are what the ENGINE emits, not what a user sees.
+# These pin the distinction, one cause each, with the reason text: a structure the engine refuses, and a structure it names wrongly.
+
+def test_a_real_embedded_engine_error_is_withheld_with_the_error_reason():
+    """Cause one. D-133's sulfinimidoyl bromide is a permanent example: the engine DELIBERATELY emits an embedded error (no route exists
+    to name it, and declining to guess is the fix), so this does not depend on a defect staying open."""
+    import openchem.vendor.iupac_namer as namer
+
+    smiles = "CN=S(=O)(Br)NC"
+    engine_output = namer.name_smiles(smiles)
+    assert "NAMING ERROR" in engine_output                       # the engine's output, not the app's
+
+    with pytest.raises(naming_providers.NamingError) as raised:
+        naming_providers.derived_name_for_structure(Chem.MolFromSmiles(smiles))
+    assert "error instead of a name" in str(raised.value)        # this gate's reason ...
+    assert "did not parse back" not in str(raised.value)         # ... and not the other gate's
+
+
+def test_a_real_name_that_reads_back_as_another_structure_is_withheld_with_the_mismatch_reason():
+    """Cause two, with the real OPSIN read-back. D-151 (an OPEN defect: an ester functional-class name whose acid component is a `carboxy`
+    prefix on a piperidine) is a real wrong-structure name that is NOT an embedded error, so it can only be caught by the read-back. When
+    D-151 is fixed this example has to move to another open wrong-structure row -- the strict xfail in test_namer_known_defects.py fires in
+    the same commit, which is the reminder."""
+    if not naming_providers.opsin_available():
+        pytest.skip("the read-back gate needs OPSIN")
+    import openchem.vendor.iupac_namer as namer
+
+    smiles = "O=C(OCC)c1ccc(S(=O)(=O)N2CCCCC2)cc1"
+    engine_output = namer.name_smiles(smiles)
+    assert "NAMING ERROR" not in engine_output                   # a plain-looking name ...
+    assert "carboxyphenylsulfonyl" in engine_output              # ... and the wrong one (D-151's recorded output)
+
+    with pytest.raises(naming_providers.NamingError) as raised:
+        naming_providers.derived_name_for_structure(Chem.MolFromSmiles(smiles))
+    assert "did not parse back to this structure" in str(raised.value)
+    assert "error instead of a name" not in str(raised.value)
+
+
+def test_a_repaired_shape_is_now_shown_not_withheld():
+    """The other direction, for this round's fixes: a structure whose engine name used to read back as a different structure (so the app
+    withheld it) is now shown, verified, and the result says which engine produced it. Shown does not mean preferred: the note stays empty
+    only because the read-back matched."""
+    if not naming_providers.opsin_available():
+        pytest.skip("the read-back gate needs OPSIN")
+
+    result = naming_providers.derived_name_for_structure(Chem.MolFromSmiles("Cc1nnc(NC(C)=O)s1"))
+
+    assert result.name == "N-(5-methyl-1,3,4-thiadiazol-2-yl)acetamide"
+    assert result.source == "Nomenclature engine"
+    assert "not verified" not in result.note.lower()

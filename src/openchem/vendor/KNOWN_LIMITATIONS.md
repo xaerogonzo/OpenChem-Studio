@@ -343,6 +343,98 @@ Found while checking D-029; predates it.
   non-minimal lambda numbering and three general-nomenclature-only acylium
   names; the engine's output is correct in every case. See `CHANGELOG.md`.
 
+## Open after naming round 13 (2026-09-24)
+
+Round 13 started from a measurement, not a backlog: `tools/naming_census_scan.py` named all 2000 census rows and read each back, which found the
+largest wrong-molecule cluster in the census (a wrong ring locant, 1.35%) and a second failure (an ownership error, 0.65%) that no backlog
+had recorded, both old. The census went **93.45% -> 94.80% -> 95.70% exact** (W1, then W2); candidate wrong structures **2.40% -> 0.90%**;
+embedded errors and refusals **1.90% -> 1.15%**.
+
+**What a user sees, which round 12 got wrong.** The census classes are what the ENGINE emits. The application does not show an embedded
+`[NAMING ERROR ...]` name, and it does not show a name whose OPSIN read-back is a different structure:
+`naming_providers.derived_name_for_structure` withholds each, with its own stated reason (only a name OPSIN cannot READ is shown, marked
+unverified). Every one of this round's 27 + 13 starting rows was WITHHELD (`benchmarks/naming/stages/r13-baseline-reproductions.json`), so the
+fixes turn "no name" into a right name; nothing wrong was being shown. Three tests pin each gate on real engine output
+(`tests/test_naming_providers.py`, W3). The engine still emits the embedded string on purpose (D-133's target IS one); only the app withholds.
+
+**Fixed this round:**
+
+| item | D-row | mechanism | note |
+|---|---|---|---|
+| a wrong locant on a 1,3,4-oxa/thiadiazole (and 1,2,5-oxa/thiadiazole) substituent | D-145 (FIXED) | `_lowest_free_valence_numberings` ranked the lowest COMBINED heteroatom locant set ahead of the senior heteroatom at locant 1. A monocyclic hetero ring is numbered by Hantzsch-Widman (senior heteroatom = 1). 1,3,4-thiadiazole (S1,N3,N4) has the alternative N1,N2,S4 with the lower set {1,2,4}, so the substituent was numbered as another heterocycle and its attachment carbon came out `-3-yl` | 21 census rows. Only a ring carrying its OWN second substituent reached this filter (the bare ring goes through `_heteroaryl_substituent_with_locant`, which weights seniority), which is why 4 of 25 such names were right. Fix: for a monocyclic ring the senior heteroatom's locant is ranked first; a fused ring keeps `together` first (its rule, P-25.3.1.3, ranks the combined set first) |
+| a hard-coded curated locant returned for every attachment | D-146, D-147 (FIXED) | a ring with no `atom_locants` and a `substituent_form` ending in a digit (`2,3-dihydro-1,4-benzodioxin-2-yl`, `azepan-1-yl`) returned that form verbatim: the locant its author had in mind, for any attachment. The numbering computed just above the early return already knew the real one and was discarded | 6 census rows (benzodioxine). Fix: use the computed locant when it differs from the curated digit; when they agree the curated form stands. Benzodioxine is FUSED and the generic numbering mislabels positions 5 and 8, so it also gets an `atom_locants` table derived from its bond topology, as 1,3-benzodioxole's is |
+| a data row keyed on the wrong ring | D-148 (FIXED) | the curated `1,2,5-oxadiazole` row was keyed on `c1conn1`, which is 1,2,3-oxadiazole, so 1,2,3-oxadiazole was named "1,2,5-oxadiazole" and real furazan reached another route and came out `furazan`. The vendored suite had pinned the wrong pair | key corrected to `c1cnon1`; parent and substituent are the systematic `1,2,5-oxadiazole`, which BlueBookV2.pdf p. 263 gives as "1,2,5-oxadiazole (formerly called furazan)" |
+| a demoted ketone claimed its aryl carbon | D-149, D-150 (FIXED) | `_compute_prefix_assignments` Pass 1 built the `oxo` prefix of a DEMOTED ketone (anchor already in the parent) from every off-parent atom of the group and dropped only heteroatom context. A ketone matches its two flanking carbons as context; the one off the chain (an aryl or cycloalkyl ipso carbon) was claimed by the `oxo` AND by the `phenyl` the structural pass carved. The ownership invariant (`ownership.py`) was RIGHT and the claim was wrong: the pass above computes it consistently (heteroatoms and the anchor only, into `fg_prefix_atoms`) and Pass 1 read it inconsistently | LOUD half: 13 census rows (0.65%) embedded an error. SILENT half, which no read-back sees: the same double claim killed the plan that named an acid or amide as the parent, and the engine fell to a ketone-parent plan: 4-oxo-4-phenylbutanoic acid was `3-carboxy-1-phenylpropan-1-one`, 4-oxo-4-phenylbutanamide `4-amino-4-oxo-1-phenylbutan-1-one`. Fix: drop a non-anchor carbon still in `remaining` when the anchor is in the parent and the group is suffix-eligible. The ownership check is untouched |
+
+**How the diagnoses were reached, because the hypotheses in the plan were all wrong.** The plan named three suspects for W1 (an index-space
+mismatch between the carved fragment and the ring, atom-map loss on canonical renumbering, and the `min()` over symmetric matches). A
+per-attachment trace (a spy on `_lowest_free_valence_numberings` and on `render_free_valence_suffix`) refuted all three: the fragment's atom
+map was intact, and the filter selected among 10 candidate numberings correctly BY ITS OWN KEY. The key was the defect. Two things made that
+findable: the sweep had already separated the rings by table state (all 295 table-backed rings swept at 0 wrong of 5,681 cases, so the defect
+was not in the tables), and a spy on `_name_bound` showed the carved ring fragment reaching the substituent path with its own methyl still
+inside it, which is what sent the trace to the numbering filter and not the locant lookup. A generic "the fragment lost its context" reading
+(round 12's seam) would have been plausible and wrong here.
+
+**The ring-locant sweep** (`tools/naming_ring_locant_sweep.py`; 371 curated rings, 7,372 cases; the population is committed and hashed before any
+result). Table state, by the correct definition (every attachable site has a locant): before the fixes 295 full, 6 partial, 70 table-less. The
+earlier "104 partial tables" was mostly fusion atoms, which legitimately carry no substituent locant, and is not a defect count.
+
+| | rings | tested | rings with wrong | wrong / cases | engine errors |
+|---|---|---|---|---|---|
+| table-less, before | 70 | 66 | 23 | 712 / 1578 | 15 |
+| table-less, after | 69 | 65 | 15 | 682 / 1558 | 15 |
+| partial | 6 | 6 | 4 | 13 / 113 | 6 |
+| full (table-backed) | 295 -> 296 | 292 -> 293 | 0 | 0 / 5,681 -> 5,701 | 0 |
+
+The oracle is STRUCTURAL: numbering preference is not independently adjudicated for any table-less ring. Sweep runtime 939 s (naming 889 s);
+a rerun under load took 1,328 s. Skipped, never swept: 906 fusion atoms, 651 heteroatom sites, 78 no-free-hydrogen atoms, 73 exocyclic atoms.
+
+**Open, from the sweep (measured, not fixed):**
+- **All-carbon table-less fused rings named with a bare `-yl`** (nonacene, octacene, heptacene, the phenes, the helicenes): 11 rings, 638 of the
+  682 remaining wrong cases; the fallback returns no locant for a carbocycle ("Benzene -> phenyl"), which is wrong for a fused ring with
+  non-equivalent positions. No census row (drug-like molecules do not contain them). A generic fusion numbering is not something topology
+  alone gives; the honest fix is a table or a real fusion-numbering routine.
+- **Partly hydrogenated fused rings on the generic numbering path** (octahydropyridazino[1,2-a][1,2]diazepine 28/34, corrin 10/33,
+  hexahydrothieno[3,4-d]imidazole 3/8, octahydro-1H-indole 3/18, three partial-table polycycles): 7 rings, 0 census rows except
+  `[1,2,4]triazolo[3,4-b][1,3]benzothiazole` (a partial table, 1 of 15 cases wrong), which appears twice in the census.
+- **The ring-cation family is not explained by the locant tables.** The neutral parents of the failing cations (imidazo[1,2-a]pyridine,
+  imidazo[2,1-b]thiazole, quinolizidine) all sweep at 0 wrong; the cation form fails with "no valid naming plan". It is a separate mechanism
+  (the cation layer of a fused system), now **14 census rows (0.70%)** across about ten ring systems: the largest remaining cluster, still
+  not measured as ONE mechanism. Round 14's first question. (The census has 19 "no valid plan" rows in all; the other 5 are not cations: two
+  spiro-oxindole pyrano-pyrazoles, a bis-sulfonyl piperazine and two fused tricycles, each a different shape.)
+
+**Open, found by exposing it (D-151, OPEN):** an ESTER of an acid that also carries a ring-nitrogen sulfonamide is named as a functional-class
+ester of the PIPERIDINE, whose "acid" is a `carboxy` prefix (`ethyl 1-(4-carboxyphenylsulfonyl)piperidine` for the ethyl ester of
+4-(piperidin-1-ylsulfonyl)benzoic acid): the ester group is attached to a name that is not an acid. A wrong structure. It was already there for
+the plain methyl and ethyl esters; W2 only stopped it being masked for the phenacyl ester, which used to die earlier on an ownership error, so
+one census row (`census999625`) moved from an embedded error to this wrong structure (both are withheld by the app). The N,N-dimethylsulfonamide
+of the same acid is named correctly, so the ring nitrogen is the trigger. Before W2 the census had 4 rows with an "ester on a non-acid parent" name; W2's silent-half
+fix repaired three of them (methyl 4-(4-methoxyphenyl)-4-oxobutanamido-benzoate and two others: an ester whose acid was a ketone-parent `carboxy`
+prefix), leaving **2 rows (0.1%, under the 0.5% floor)**, both a ring-nitrogen sulfonamide beside the ester. Target (derived, read back MATCH):
+`ethyl 4-(piperidine-1-sulfonyl)benzoate`.
+
+**Early-return audit** (every exit of the code this round added, and what pins it):
+
+| change | exit | reachable | owner after the exit | pinned by |
+|---|---|---|---|---|
+| D-145, `hetero_key` | ring is not monocyclic, or has no heteroatom | yes: every fused ring | `together` first, as before | `test_the_ring_locant_changes_do_not_move_a_right_name` (benzothiazole, 2,1,3-benzoxadiazole) |
+| D-145, `hetero_key` | monocyclic, one heteroatom element | yes: thiazole, pyridine | the senior locant is then the only heteroatom's, so the order is unchanged | 1,3-thiazole, pyrimidine converses |
+| D-146, computed locant | `_fixed` is None (the form has no trailing `-N-yl`) | rare | the curated form returned, as before | (pre-existing) |
+| D-146, computed locant | computed locant == curated digit | yes: azepan-1-yl on the nitrogen | the curated form stands | `O=C(C)N1CCCCCC1`, the diazepane amide |
+| D-149, Pass 1 | group not suffix-eligible, or anchor not in the parent | yes: halogens, nitro, a demoted multi-acid | unchanged | amine, aldehyde, amide, substituent-ketone converses |
+| D-149, Pass 1 | the context carbon is the anchor, or is not in `remaining` | yes: a methyl ketone in the chain | unchanged | `OC(=O)c1ccc(OCC(C)=O)cc1`, `OC(=O)CCC(=O)CC` |
+
+**Frozen set, blind.** `--frozen-impact r12-final-evaluation` reported `heldout_v6` 1 of 40 and `bluebook_frozen` 1 of 1126 changed. With the
+W1-only engine both are 0, so every frozen row that moved is W2's. The frozen set was then scored once (see `BENCHMARK_HISTORY.md`).
+
+**Tooling added this round:** `tools/naming_census_scan.py` (PR #144, before the round) and `tools/naming_ring_locant_sweep.py`. A ref-compare
+manifest records the one tuning row W2 moved, an isouronium cation, as STRUCTURALLY_EQUIVALENT (both names read back MATCH; the preferred
+name is explicitly not adjudicated, PubChem's `uronium` being a third form).
+
+**Not attempted, carried forward unchanged:** see "Open after naming round 11" (multiparent fusion, second-order attached components, interior
+heteroatoms, 7/8-membered rings fused on three or more sides, helicenes as PARENTS, hydro forms of a traditionally numbered retained parent,
+chiral amino-acid anion names, deprotonated phosphonic/phosphoric esters).
+
 ## Open after naming round 12 (2026-09-23)
 
 Round 12 was deliberately small: one fully diagnosed item (W1) and one census signal that had never been
@@ -397,8 +489,11 @@ sample, because the proxy can miss a shape. 28 of the 36 name and read back MATC
 `[NAMING ERROR ...]` marker (three of those eight report `clean` from `naming_probe.py`'s plan counters, because
 the error is emitted as a NAME, not as a dead plan, so a status counter under-reports it and the name itself
 has to be read). The failures are all
-visible (an embedded `[NAMING ERROR: No valid naming plan found for <fragment>]`, shown by the app as an
-unverified name), none is a wrong molecule, and they fall into several ring systems, not one:
+visible in the ENGINE's output (an embedded `[NAMING ERROR: No valid naming plan found for <fragment>]`), and the
+application does not show such a name: `naming_providers.derived_name_for_structure` withholds any name containing
+`NAMING ERROR`, and any name whose OPSIN read-back is a different structure, with a stated reason (corrected in naming
+round 13; this paragraph used to say the app shows the name as unverified, which was wrong -- only a name OPSIN
+cannot READ is shown unverified). None is a wrong molecule, and they fall into several ring systems, not one:
 
 | ring system of the failing fragment | unique structures | fails standalone too | neutral parent names |
 |---|---|---|---|
