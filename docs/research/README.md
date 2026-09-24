@@ -26,6 +26,10 @@ Rules the file follows, each learned the hard way in this project:
   a pre-proof or a supplement, has not been rejected. There is deliberately no "rejected" state; a
   rejection is a scientific decision that records a reason, and a paywall is never one.
 - **`sha256` says the file is still the one that was read**, nothing more.
+- **This is an inventory, not the provenance registry.** A paper moves into `docs/sources.toml` (with a
+  `used_by`, a verification level and the number it backs) the day something we ship is built from it; until
+  then it is read, not cited. `tests/test_sources_are_current.py` skips this one file for that reason and no
+  other, and still checks any OTHER file that cites one of these DOIs.
 - **Nothing is redistributed.** The papers are not in this repository. Open-access papers still carry
   their own licences; check before transcribing any table (a Creative Commons licence printed in a paper
   is recorded in its note, and only there).
