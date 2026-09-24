@@ -1,0 +1,72 @@
+# Feature-vocabulary defects the sweep found and has NOT fixed. THIS LIST ONLY SHRINKS.
+#
+# Each row is a molecule on which one feature's pattern matched a group in a charge
+# state that feature does not declare (`UndeclaredChargeState`) -- the same class of
+# defect as `fg:hydrazine` matching a nitramine's N-N, which took every functional-group
+# alert for the molecule down with it. The application detects tolerantly now
+# (`detect_features_tolerant`), so each of these costs ONE instance and a recorded
+# `Completeness`, not the whole molecule; the strict detector still raises, which is
+# what `tests/test_feature_vocabulary_sweep.py` uses to find them.
+#
+# Found 2026-09-24 by running the strict detector over 2,187 molecules (the census panel,
+# the naming corpus and the naming census sample) in under five seconds. Fixing one means
+# DECIDING what the vocabulary says about that charge state -- declare a label for it (an
+# anionic sulfonamide is a real, commonly drawn form) or exclude it in the pattern (an
+# acylguanidinium's nitrogen is not an amide nitrogen) -- which is a vocabulary decision,
+# not a patch, so they are listed rather than silently changed. Fix it, delete its row.
+
+[[defect]]
+population = "naming_census"
+label = "census45625"
+feature = "fg:hydroxylamine"
+smiles = "CN(C)c1c2ccccc2nc2cccc([N+](=O)O)c12"
+note = "an N-hydroxy nitrogen drawn as [N+](=O)O (a nitronic-acid form)"
+
+[[defect]]
+population = "naming_census"
+label = "census1758625"
+feature = "fg:hydroxylamine"
+smiles = "CCC(=O)N(C)CCc1cc2c(c(OC)c1/C=[N+](\\C)O)OCO2"
+note = "a protonated oxime, C=[N+](C)O"
+
+[[defect]]
+population = "naming_census"
+label = "census119625"
+feature = "fg:imidate"
+smiles = "CN(C)c1ccc(C=CC2=[N+](C)C(C)(CO)CO2)cc1"
+note = "an oxazolinium: the imidate's nitrogen is the cation"
+
+[[defect]]
+population = "naming_census"
+label = "census1894625"
+feature = "fg:carboxamide"
+smiles = "CCc1ccc(NC(Nc2nc(C)cc(C)n2)=[NH+]C(=O)c2ccccc2)cc1"
+note = "a protonated acylguanidine: the acyl nitrogen is charged, so it is not an amide nitrogen"
+
+[[defect]]
+population = "naming_census"
+label = "census1936625"
+feature = "fg:hydrazide"
+smiles = "COc1ccc(C=[NH+]NC(=O)c2ccc3nc[nH]c3c2)c(OC)c1OC"
+note = "a protonated acylhydrazone"
+
+[[defect]]
+population = "naming_census"
+label = "census1975625"
+feature = "fg:sulfonamide"
+smiles = "CCCn1nc([N-]S(=O)(=O)c2ccc(C)cc2)c2cc3ccccc3nc21"
+note = "a deprotonated sulfonamide, [N-]S(=O)(=O)"
+
+[[defect]]
+population = "naming_census"
+label = "census2059625"
+feature = "fg:sulfonamide"
+smiles = "COC(=O)c1c(C)oc2c1cc([N-]S(=O)(=O)c1ccc(C(C)C)cc1)c1ccccc12"
+note = "a deprotonated sulfonamide"
+
+[[defect]]
+population = "naming_census"
+label = "census2072625"
+feature = "fg:sulfonamide"
+smiles = "Cc1cc(OCC(=O)Nc2ccc(S(=O)(=O)[N-]c3ncccn3)cc2)ccc1[N+](=O)[O-]"
+note = "a deprotonated sulfonamide (a sulfadiazine-type anion)"
