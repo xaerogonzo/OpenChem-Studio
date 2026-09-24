@@ -79,6 +79,10 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           Inspector window -- see below
     {"do": "expect_inspectors", "count": 2, "titles": ["(qeq"]}  how many
                                           inspectors are OPEN side by side
+    {"do": "atom_action", "atom": 2, "submenu": "Change", "text": "N",
+     "expect": {"smiles_equals": "CCN", "undo_delta": 1}}  press an ENTRY of the
+                                          atom menu the app builds, assert the
+                                          structure and the undo stack
     {"do": "ketcher_hover", "bond": 0}    a REAL Qt mouse-move over a bond (it did
                                           NOT register a hover; see docs/KETCHER_SPIKE.md)
     {"do": "atom_editor", "atom": 2, "set": {"charge": "1"}, "apply": true,

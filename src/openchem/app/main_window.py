@@ -46,6 +46,7 @@ from openchem.app.settings import (
     suggested_save_path,
 )
 from openchem.chem.calculation_input import canonical_conformer
+from openchem.chem.engine import StructureEditError
 from openchem.chem.identifiers import identifier_for_molblock
 from openchem.chem.isotopes import IsotopeError, element_at, set_isotope
 from openchem.chem.stereochemistry import StereochemistryConflict
@@ -291,6 +292,10 @@ def _as_bool(value: object) -> bool:
     if isinstance(value, str):
         return value.strip().lower() in ("true", "1", "yes")
     return bool(value)
+
+#: The elements the atom menu offers under "Change X to": the ones drawn most, in the editor's own
+#: order. Anything else is one Edit... away (its Atom Properties dialog takes any symbol).
+_ATOM_MENU_ELEMENTS = ("C", "N", "O", "S", "P", "F", "Cl", "Br", "I", "H")
 
 HELP_TOPIC_BY_DOCK = {
     "Project_Explorer": "projects",
@@ -4010,6 +4015,27 @@ class MainWindow(QMainWindow):
         menu.addAction(self._rotate_action)
         menu.addAction(self._redraw_flat_action)
         menu.addSeparator()
+        # CHANGES TO THE ATOM ITSELF, which Ketcher's own menu had and ours did not: replacing
+        # its menu on an atom took them away. They go through the editor's own tools
+        # (`apply_atom_change`), so each is one edit on its history and recomputes on the pause.
+        # The atom and the change travel on the action, never in a closure (see below).
+        # Created WITH its parent and then added, not `menu.addMenu(title)`: the latter's wrapper
+        # is Python-owned, so when this method returns the submenu's C++ object is deleted and a
+        # caller reading the menu (a test, the driver) meets "already deleted".
+        element_menu = QMenu(f"Change {symbol} to", menu)
+        menu.addMenu(element_menu)
+        for element in _ATOM_MENU_ELEMENTS:
+            action = element_menu.addAction(element)
+            action.setData((atom_index, "element", element))
+            action.triggered.connect(self._on_atom_change)
+        for label, value in (("Add positive charge (+1)", "+1"), ("Add negative charge (\u22121)", "-1")):
+            action = menu.addAction(label)
+            action.setData((atom_index, "charge", value))
+            action.triggered.connect(self._on_atom_change)
+        delete = menu.addAction(f"Delete this {symbol}")
+        delete.setData((atom_index, "delete", ""))
+        delete.triggered.connect(self._on_atom_change)
+        menu.addSeparator()
         # Kept by decision: replacing the menu must not cost the editor's
         # own dialog, which is the one thing it had that we do not.
         editor_edit = menu.addAction("Edit... (the editor's own)")
@@ -4021,6 +4047,34 @@ class MainWindow(QMainWindow):
         editor_edit.setData(atom_index)
         editor_edit.triggered.connect(self._on_editor_atom_edit)
         return menu
+
+    def _on_atom_change(self, _checked: bool = False) -> None:
+        """Apply the change an atom-menu action carries: an undoable edit of the STRUCTURE.
+
+        **APPLICATION-SIDE, NOT THROUGH KETCHER'S TOOLS.** The first attempt armed Ketcher's atom
+        and charge tools and delivered synthetic clicks; the tool armed and the click changed
+        nothing, because its tools read pointer state a synthetic event does not carry (the same
+        wall the hover spike met). The project's own rule is the better route anyway: a
+        structure-modifying action is an `EditStructureCommand`, so it is one undo entry, it goes
+        through the same recompute as any deliberate change, and the canvas follows through the
+        reload every undo already uses. An invalid change (a pentavalent carbon) is REFUSED with
+        the reason in the status bar instead of being drawn.
+        """
+        action = self.sender()
+        payload = action.data() if action is not None else None
+        molecule = self._current_molecule()
+        if not payload or molecule is None or not molecule.molblock:
+            return
+        atom_index, change, value = payload
+        engine = self._services.chemistry_engine
+        try:
+            edited = engine.edit_atom(molecule.molblock, int(atom_index), str(change), str(value))
+        except StructureEditError as error:
+            self.statusBar().showMessage(str(error), 8000)
+            return
+        self._undo_stack.push(
+            EditStructureCommand(engine, molecule, edited, self._services.event_bus)
+        )
 
     def _on_editor_atom_edit(self, _checked: bool = False) -> None:
         """Reads the atom index back off the action that sent it."""

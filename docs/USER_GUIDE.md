@@ -145,6 +145,18 @@ options this app only partly mirrors under View ▸ 2D Structure Display),
 and **polymer mode** — Ketcher can *draw* RNA/DNA/peptides, where the
 Macromolecule Viewer only shows one.
 
+**Right-clicking an atom** opens this application's own menu (off an atom,
+Ketcher's opens instead). It changes the atom without leaving the canvas:
+**Change *X* to** a common element (C, N, O, S, P, F, Cl, Br, I, H),
+**Add positive charge** and **Add negative charge**, and **Delete this
+*atom***. Each is one undo step, recalculates like any deliberate edit, and
+recomputes the hydrogens the new atom needs — an oxygen turned nitrogen gains
+the hydrogen nitrogen wants. A change that would not be a molecule (a
+four-bonded neutral nitrogen, say) is refused with the reason in the status bar
+instead of being drawn. **Edit… (the editor's own)** opens Ketcher's Atom
+Properties dialog for anything else — any element, isotope, alias, query
+properties — and applies it as one edit.
+
 ### Seeing stereochemistry on the 2D canvas
 
 Three separate things, and they are **not** one "show stereo labels"

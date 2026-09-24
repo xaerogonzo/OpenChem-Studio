@@ -94,6 +94,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A note on what Ketcher already does when drawing** (`docs/KETCHER_SPIKE.md`): hover-aware hotkeys are native to the bundle (hover a bond and press 1/2/3, hover an atom and press an
   element or `/`), so the proposed click-to-cycle gesture should wait for somebody to check by hand what is already there. A hover could not be produced from automation -- not by DOM
   events, not by real Qt mouse events -- so it is unverified with a real pointer, and said so.
+- **The atom right-click menu changes the atom.** Ketcher's own menu had these and ours did not, so replacing it took them away: **Change *X* to** C, N, O, S, P, F, Cl, Br, I or H, **Add
+  positive / negative charge**, and **Delete this atom**. Each is an edit of the structure by the chemistry engine pushed as one undoable command (`ChemistryEngine.edit_atom`), so it
+  recomputes like any deliberate change, recomputes the hydrogens the new atom needs (an oxygen turned nitrogen gains its hydrogens: `CCO` -> `CCN`), and a change that would not be a
+  molecule is refused with the reason instead of drawn. A first attempt through Ketcher's own atom and charge tools armed the tool and changed nothing, because its tools read pointer
+  state a synthetic event does not carry; driven through the real menu, all three now work (`benchmarks/visual/atom_menu_changes.json`).
 - **Right-clicking an atom and choosing Edit... now works.** It opened nothing and logged nothing: the menu dispatched Ketcher's `elementEdit` event itself with a bare object, where
   Ketcher's own callers pass an array of atom objects from the selection and hand the returned promise to an internal function that writes the answer back -- so even a dialog that opened
   could not have applied its result. It now selects the atom and double-clicks it, which runs Ketcher's own path. Driven on the real page: the Atom Properties dialog is up, Cancel leaves the

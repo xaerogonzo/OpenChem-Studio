@@ -172,6 +172,10 @@ class InvalidStructureError(ValueError):
     """Raised when a molblock/SMILES cannot be parsed into a valid RDKit Mol."""
 
 
+class StructureEditError(ValueError):
+    """A change to one atom that would not give a valid structure, with the reason as its message."""
+
+
 class ChemistryEngine:
     """The sole RDKit touchpoint for MoleculeModel <-> rdkit.Chem.Mol conversion
     and canonical identity (SMILES/InChI/InChIKey).
@@ -827,6 +831,58 @@ class ChemistryEngine:
         mol = self.mol_from_molblock(molblock)
         model.molblock = Chem.MolToMolBlock(mol)
         return self.canonicalize(model)
+
+    def edit_atom(self, molblock: str, atom_index: int, change: str, value: str = "") -> str:
+        """`molblock` with ONE atom changed -- its element, its charge, or removed -- as a molblock.
+
+        `change` is "element" (`value` a symbol), "charge" (`value` "+1" or "-1", added to the
+        atom's charge) or "delete". `atom_index` is a MOLFILE POSITION, which is exactly an RDKit
+        atom index for a molblock parsed here, so the position the atom menu carries needs no
+        translation. Every other atom keeps its coordinates and its position (after a deletion the
+        later ones shift down by one, as a molfile does).
+
+        **THE RESULT IS SANITISED, AND A CHANGE THAT WOULD NOT BE A MOLECULE IS REFUSED** with a
+        sentence saying why (`StructureEditError`), never quietly produced: a pentavalent carbon
+        from "change N to C" on an amine is a real thing to be told about, not to be drawn. Hydrogen
+        counts are recomputed (`NoImplicit` off, explicit count cleared) so the change reads as it
+        would drawn by hand -- an oxygen turned nitrogen gains the hydrogen nitrogen needs.
+        """
+        mol = Chem.RWMol(self.mol_from_molblock(molblock))
+        if not 0 <= atom_index < mol.GetNumAtoms():
+            raise StructureEditError(f"There is no atom {atom_index + 1} in this structure.")
+        atom = mol.GetAtomWithIdx(atom_index)
+        symbol = atom.GetSymbol()
+        if change == "element":
+            try:
+                atomic_number = Chem.GetPeriodicTable().GetAtomicNumber(value) if value else 0
+            except RuntimeError:
+                # RDKit RAISES for a symbol it does not know rather than returning -1.
+                atomic_number = 0
+            if atomic_number <= 0:
+                raise StructureEditError(f"{value!r} is not an element symbol.")
+            atom.SetAtomicNum(atomic_number)
+            atom.SetNumExplicitHs(0)
+            atom.SetNoImplicit(False)
+            atom.SetIsotope(0)
+        elif change == "charge":
+            delta = 1 if str(value).startswith("+") else -1
+            atom.SetFormalCharge(atom.GetFormalCharge() + delta)
+            atom.SetNumExplicitHs(0)
+            atom.SetNoImplicit(False)
+        elif change == "delete":
+            if mol.GetNumAtoms() == 1:
+                raise StructureEditError("That is the only atom; delete the molecule instead.")
+            mol.RemoveAtom(atom_index)
+        else:
+            raise StructureEditError(f"Unknown atom change {change!r}.")
+        try:
+            edited = mol.GetMol()
+            Chem.SanitizeMol(edited)
+        except Exception as error:  # noqa: BLE001 - RDKit raises several sanitisation types
+            raise StructureEditError(
+                f"That change to atom {atom_index + 1} ({symbol}) is not a valid structure: {error}"
+            ) from error
+        return Chem.MolToMolBlock(edited)
 
     def set_structure_from_smiles(self, model: MoleculeModel, smiles: str) -> MoleculeModel:
         mol = self.mol_from_smiles(smiles)

@@ -4956,6 +4956,61 @@ class _Driver(QObject):
 
         page.runJavaScript(f"(function () {{ try {{ return ({script}); }} catch (e) {{ return 'ERROR: ' + e; }} }})();", report)
 
+    def _do_atom_action(self, step: dict[str, Any]) -> None:
+        """`{"do": "atom_action", "atom": 2, "text": "Add positive charge", "expect": {...}}`
+        -- build the atom right-click menu for one atom, TRIGGER one of its actions by its text
+        (submenus included), and assert what the drawing did.
+
+            "text"       the action's label, or the start of it ("Change O to" > "N": pass
+                         "text": "N" with "submenu": "Change")
+            "submenu"    a submenu whose title starts with this holds the action
+            "expect"     {"smiles_contains": "+", "smiles_equals": "CCN", "undo_delta": 1}
+
+        The menu is the application's own (`build_atom_context_menu`, not shown, exactly as the
+        tests read it), so what is pressed is what a person is offered -- and what is asserted
+        is the STRUCTURE afterwards and the undo stack, not that a call was made: this is the
+        route where a change that Ketcher quietly declined would otherwise read as success.
+        """
+        atom = int(step.get("atom", 0))
+        tag = str(step.get("tag", ""))
+        expect = dict(step.get("expect") or {})
+        window = self._window
+        molecule = window._current_molecule()
+        before = (molecule.canonical_smiles if molecule is not None else None, window._undo_stack.count())
+        menu = window.build_atom_context_menu(atom)
+        wanted = str(step["text"])
+        holder = menu
+        if step.get("submenu"):
+            holder = next(
+                (a.menu() for a in menu.actions() if a.menu() is not None and a.text().startswith(str(step["submenu"]))),
+                None,
+            )
+        action = next((a for a in holder.actions() if a.text().startswith(wanted)), None) if holder else None
+        if action is None:
+            self._record_assertion("atom_action", tag, False, f"no menu action {wanted!r}")
+            logger.error("OPENCHEM_DRIVE: EXPECT atom_action FAILED[%s] -- no menu action %r", tag, wanted)
+            return
+        action.trigger()
+
+        def verify() -> None:
+            molecule_now = window._current_molecule()
+            after = (molecule_now.canonical_smiles if molecule_now is not None else None, window._undo_stack.count())
+            problems: list[str] = []
+            if "smiles_contains" in expect and expect["smiles_contains"] not in str(after[0]):
+                problems.append(f"structure {after[0]!r} lacks {expect['smiles_contains']!r}")
+            if "smiles_equals" in expect and after[0] != expect["smiles_equals"]:
+                problems.append(f"structure {after[0]!r}, wanted {expect['smiles_equals']!r}")
+            if "undo_delta" in expect and after[1] - before[1] != int(expect["undo_delta"]):
+                problems.append(f"undo stack moved by {after[1] - before[1]}, wanted {expect['undo_delta']}")
+            ok = not problems
+            detail = ("as expected" if ok else "; ".join(problems)) + f" ({before} -> {after})"
+            if self._record_assertion("atom_action", tag, ok, detail):
+                logger.warning("OPENCHEM_DRIVE: EXPECT atom_action ok[%s] %s -> %s", tag, before, after)
+            else:
+                logger.error("OPENCHEM_DRIVE: EXPECT atom_action FAILED[%s] -- %s", tag, detail)
+
+        QTimer.singleShot(int(step.get("settle_ms", 1500)), window, verify)
+
     def _do_ketcher_hover(self, step: dict[str, Any]) -> None:
         """`{"do": "ketcher_hover", "bond": 0}` or `{"do": "ketcher_hover", "atom": 2}` -- put
         the pointer over one item of the drawing with a REAL Qt mouse-move event delivered to the
