@@ -1,0 +1,14 @@
+[
+  {"do": "smiles", "smiles": "CC(=O)Oc1ccccc1C(=O)O", "name": "aspirin", "after_ms": 500},
+  {"do": "select", "molecule": -1, "after_ms": 5000},
+  {"do": "panel", "id": "Properties", "after_ms": 1500},
+  {"do": "edit_burst", "tag": "aspirin-drawing", "grow": "CC(=O)Oc1ccccc1C(=O)O", "edits": 12, "gap_ms": 150},
+  {"do": "edit_burst", "tag": "aspirin-undo-redo", "structures": ["CC(=O)Oc1ccccc1C(=O)O", "CC(=O)Oc1ccccc1C(=O)OC"], "edits": 12, "gap_ms": 150},
+
+  {"do": "smiles", "smiles": "O=[N+]([O-])N1CN([N+](=O)[O-])C1", "name": "1,3-dinitro-1,3-diazetidine", "after_ms": 500},
+  {"do": "select", "molecule": -1, "after_ms": 5000},
+  {"do": "edit_burst", "tag": "nitramine-drawing", "grow": "O=[N+]([O-])N1CN([N+](=O)[O-])C1", "edits": 12, "gap_ms": 150},
+
+  {"do": "expect_clean", "tag": "end"},
+  {"do": "quit"}
+]

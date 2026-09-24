@@ -104,6 +104,10 @@ The script is a JSON list of steps, run in order:
                                               launcher OFFERS, by row visibility
       {"do": "expect_help",      "topic": "calc-joback-properties"}
                                               which help topic is in FRONT
+      {"do": "edit_burst",       "grow": "CCO", "edits": 12, "gap_ms": 150}   or   "structures": [a, b]
+                                              what a burst of structural edits
+                                              COSTS the application (recorded,
+                                              never asserted)
       {"do": "quit"}                          ends in a VERDICT and an exit status
     ]
 
@@ -238,6 +242,10 @@ class _Driver(QObject):
         #: The `expect_*` steps' outcomes, kept apart from the ledger: a failed
         #: assertion is the SCRIPT's verdict, not something the application said.
         self._assertions: list[dict[str, Any]] = []
+        #: Numbers a step measured (`edit_burst`), by tag. Not assertions: a baseline
+        #: is recorded so a later change can be compared against it, and nothing here
+        #: passes or fails on a number.
+        self._measurements: dict[str, Any] = {}
         #: Substrings excusing an application ERROR, gathered from every
         #: `expect_clean` and from `quit`.
         self._allow: list[str] = []
@@ -4595,6 +4603,173 @@ class _Driver(QObject):
         else:
             logger.error("OPENCHEM_DRIVE: EXPECT results FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
 
+    def _do_edit_burst(self, step: dict[str, Any]) -> None:
+        """`{"do": "edit_burst", "structures": ["CCO", "CCCO"], "edits": 20, "gap_ms": 150, "tag": "..."}`
+        -- what a person DRAWING costs the application, measured.
+
+        **THIS IS THE BASELINE A DEBOUNCED RECOMPUTE HAS TO BEAT.** Every canvas edit
+        runs the parse, the SMILES, the InChI and InChIKey and then fans
+        `MoleculeChanged` out to every descriptor provider, so drawing a molecule
+        lags. Before that is changed, this records how much: the latency of each edit's
+        synchronous part, the longest stretch the event loop was blocked, and how many
+        recalculations one burst caused.
+
+        It applies each edit the way `MoleculeEditorWidget._on_editor_edited` does
+        once Ketcher has reported a molfile -- an `EditStructureCommand` pushed on the
+        real undo stack, then the widget's annotation refresh -- alternating between
+        the two `structures`. **WHAT IT DOES NOT MEASURE**: Ketcher's own JS and the
+        bridge back to Python, which a debounce does not touch. Recorded, in the log and
+        in the report's `measurements`; nothing is asserted on a number, because these
+        depend on the machine. The structure is restored afterwards.
+        """
+        import statistics
+        import time
+
+        from PySide6.QtWidgets import QApplication
+
+        from openchem.chem.engine import ChemistryEngine
+        from openchem.commands.molecule_commands import EditStructureCommand
+        from openchem.events.events import (
+            AlertComputed,
+            DescriptorComputed,
+            MoleculeChanged,
+            PerAtomDataComputed,
+            ResultRecorded,
+        )
+        from openchem.services.descriptor_service import DescriptorService, _DescriptorComputeTask
+
+        tag = str(step.get("tag", ""))
+        window = self._window
+        editor = window._editor
+        molecule = window._session.project.find_molecule(window._property_panel._selected_molecule_uuid)
+        if molecule is None or not molecule.molblock:
+            logger.error("OPENCHEM_DRIVE: edit_burst needs a selected molecule with a drawing")
+            return
+        engine = window._services.chemistry_engine
+        edits = int(step.get("edits", 20))
+        grow = str(step.get("grow", ""))
+        if grow:
+            # A NEW STRUCTURE EVERY EDIT, which is what drawing is: `base + "C" * n`.
+            # Alternating two structures is dominated by the result store REPLAYING what it
+            # already holds (measured: one recompute for twenty edits), which is undo and
+            # redo, not drawing -- so both are measured, and named for what they are.
+            structures = [grow + "C" * (i + 1) for i in range(edits)]
+        else:
+            structures = [str(x) for x in step.get("structures") or []]
+        if len(structures) < 2:
+            logger.error("OPENCHEM_DRIVE: edit_burst needs two structures to alternate between, or `grow`")
+            return
+        molblocks = [engine.mol_to_molblock(engine.mol_from_smiles(smiles)) for smiles in structures]
+        gap_s = int(step.get("gap_ms", 150)) / 1000.0
+        original_molblock = molecule.molblock
+        bus = window._services.event_bus
+
+        counts = {"molecule_changed": 0, "descriptor_events": 0, "results_recorded": 0}
+        bus.subscribe(MoleculeChanged, lambda e: counts.__setitem__("molecule_changed", counts["molecule_changed"] + 1))
+        for event_type in (DescriptorComputed, AlertComputed, PerAtomDataComputed):
+            bus.subscribe(event_type, lambda e: counts.__setitem__("descriptor_events", counts["descriptor_events"] + 1))
+        bus.subscribe(ResultRecorded, lambda e: counts.__setitem__("results_recorded", counts["results_recorded"] + 1))
+
+        # Counted by wrapping, and put back in the `finally`: the wrappers must not
+        # outlive the measurement.
+        calls = {"request_descriptors": 0, "descriptor_tasks": 0, "canonicalize": 0}
+        originals = {
+            "request_descriptors": DescriptorService.request_descriptors,
+            "descriptor_tasks": _DescriptorComputeTask.run,
+            "canonicalize": ChemistryEngine.canonicalize,
+        }
+
+        def counting(name, function):
+            def wrapper(*args, **kwargs):
+                calls[name] += 1
+                return function(*args, **kwargs)
+            return wrapper
+
+        DescriptorService.request_descriptors = counting("request_descriptors", originals["request_descriptors"])
+        _DescriptorComputeTask.run = counting("descriptor_tasks", originals["descriptor_tasks"])
+        ChemistryEngine.canonicalize = counting("canonicalize", originals["canonicalize"])
+
+        # The event loop's own heartbeat: a 5 ms timer whose gaps say how long the
+        # loop was blocked. Gaps are measured between firings, so a blocked edit shows
+        # as one long gap, which is what "the canvas froze" is.
+        gaps: list[float] = []
+        last = [time.perf_counter()]
+
+        def beat() -> None:
+            now = time.perf_counter()
+            gaps.append((now - last[0]) * 1000.0)
+            last[0] = now
+
+        heartbeat = QTimer()
+        heartbeat.setInterval(5)
+        heartbeat.timeout.connect(beat)
+
+        def pump(seconds: float) -> None:
+            deadline = time.perf_counter() + seconds
+            while time.perf_counter() < deadline:
+                QApplication.processEvents()
+                time.sleep(0.002)
+
+        latencies: list[float] = []
+        pushed = 0
+        started = time.perf_counter()
+        try:
+            heartbeat.start()
+            last[0] = time.perf_counter()
+            for index in range(edits):
+                molblock = molblocks[index] if grow else molblocks[(index + 1) % len(molblocks)]
+                before = molecule.canonical_smiles
+                t0 = time.perf_counter()
+                command = EditStructureCommand(editor._engine, molecule, molblock, editor._event_bus)
+                editor._applying_own_edit = True
+                try:
+                    editor._undo_stack.push(command)
+                finally:
+                    editor._applying_own_edit = False
+                pushed += 1
+                editor._synced_smiles = molecule.canonical_smiles
+                editor._refresh_annotations(structure_changed=molecule.canonical_smiles != before)
+                latencies.append((time.perf_counter() - t0) * 1000.0)
+                pump(gap_s)
+            # What the burst left in flight: worker results still arriving on the GUI thread.
+            from PySide6.QtCore import QThreadPool
+
+            QThreadPool.globalInstance().waitForDone(60_000)
+            pump(0.5)
+        finally:
+            heartbeat.stop()
+            DescriptorService.request_descriptors = originals["request_descriptors"]
+            _DescriptorComputeTask.run = originals["descriptor_tasks"]
+            ChemistryEngine.canonicalize = originals["canonicalize"]
+            for _ in range(pushed):
+                editor._undo_stack.undo()
+            molecule.molblock = original_molblock
+            editor.set_molecule(molecule)
+        total_ms = (time.perf_counter() - started) * 1000.0
+
+        ordered = sorted(latencies)
+
+        def percentile(fraction: float) -> float:
+            return ordered[min(len(ordered) - 1, int(fraction * len(ordered)))] if ordered else 0.0
+
+        stalls = [g - 5.0 for g in gaps if g > 5.0]
+        result = {
+            "mode": "new structure each edit" if grow else "alternating (results replayed)",
+            "edits": edits, "gap_ms": int(step.get("gap_ms", 150)),
+            "edit_ms": {
+                "median": round(statistics.median(latencies), 1) if latencies else 0.0,
+                "p95": round(percentile(0.95), 1), "max": round(max(latencies), 1) if latencies else 0.0,
+            },
+            "loop_blocked_ms": {
+                "max": round(max(stalls), 1) if stalls else 0.0,
+                "over_30ms": sum(1 for g in stalls if g > 30.0),
+                "over_100ms": sum(1 for g in stalls if g > 100.0),
+            },
+            **counts, **calls, "total_ms": round(total_ms),
+        }
+        self._measurements[tag or "edit_burst"] = result
+        logger.warning("OPENCHEM_DRIVE: edit_burst[%s] %s", tag, json.dumps(result))
+
     def _do_expect_help(self, step: dict[str, Any]) -> None:
         """`{"do": "expect_help", "topic": "calc-joback-properties"}` -- which help
         topic is in front, asserted.
@@ -4715,6 +4890,7 @@ class _Driver(QObject):
                     "end": log_file_size(),
                 },
                 "assertions": self._assertions,
+                "measurements": self._measurements,
                 "ledger": self._ledger.to_dict(self._allow),
             }
             if write_report(self._report_path, payload):
