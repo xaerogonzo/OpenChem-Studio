@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Post-round-14 program: nitramine hotfix, driver ledger, refusal kinds (branches `nitramine-hotfix`, `outcome-model`)
+
+- **A nitramine crashed the structural-alert pass and took every alert with it.** `fg:hydrazine` matched the N-N bond of `N-[N+](=O)[O-]`, so
+  `detect_features` raised `UndeclaredChargeState` and dropped all features for the molecule; the alert pass logged and recorded nothing, so no test
+  saw it. A nitramine N-N is no longer a hydrazine, and the same nitro exclusion is applied to the one shared basic-amine SMARTS (which had counted a
+  ring N bonded to a nitro N as a base and sent solubility off to predict a pKa that does not exist). Recorded, not fixed: nitroguanidine's NH2 is
+  still counted as basic.
+- **A driven run now ends in a verdict.** `OPENCHEM_DRIVE` collects every WARNING and traceback the app logs (de-duplicated by logger, exception,
+  origin and message), asserts positive expectations (`expect_results`) as well as the absence of errors (`expect_clean`), writes
+  `<script>.report.json` and exits non-zero on failure. Each scripted run writes its own `drive-<pid>.log`, because two processes rotating one log
+  file is a `PermissionError` on Windows.
+- **"Did not produce an answer" is now three different things.** A refusal has a KIND (`domain/refusal_kinds.py`): *limit* (the method does not
+  cover the molecule), *needs input* (the method covers it and wants a number only you can give) or *needs setup* (this machine lacks something).
+  Two new launcher states, `△ Needs input` and `△ Needs setup`, join the six. Kamlet-Jacobs Detonation, which read "Not applicable" for a method
+  that works, now says which inputs it needs and in what units, and names both at once; a compound the method cannot use at all (nitroglycerin is
+  over-oxidised) is reported as a limit *before* asking for inputs that could not help. A refusal whose code nobody classified is a fault, not a
+  quiet limit.
+
 ### Naming round 14 (branch `naming-round-14`)
 
 - **Census 95.70% -> 97.95% exact** (1914 -> 1959 of 2000 structures; no row left `exact`), candidate wrong structures 0.90% -> 0.60%, embedded errors and

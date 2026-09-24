@@ -18,9 +18,7 @@ from rdkit import Chem
 from openchem.chem import components
 from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
 from openchem.domain.calculator import (
-    INPUT_REQUIRED,
     MULTICOMPONENT_UNSUPPORTED,
-    SIDECAR_NOT_CONFIGURED,
     Aggregation,
     CalculationRefusal,
     CalculatorScope,
@@ -32,11 +30,17 @@ from tests.multicomponent_sweep import classify, load_panel, run_sweep
 
 REGISTRY_DEFINITIONS = [d for d in CALCULATOR_DEFINITIONS if isinstance(d.execution, RegistryExecution)]
 
-#: A FAILED result the panel may carry without it being a finding: the user
-#: must supply an input (a reference, a partner, R-groups), the suite's
-#: isolated settings have no sidecar interpreter, or a 3D descriptor asked
-#: of the drawing before the conformer run answered it.
-EXPECTED_FAULTS = {INPUT_REQUIRED, SIDECAR_NOT_CONFIGURED, "NEEDS_CONFORMER", "DATABASE_NOT_BUILT"}
+#: A FAILED result the panel may carry without it being a finding: a 3D
+#: descriptor asked of the drawing before the conformer run answered it, or an
+#: experimental database this machine has not built.
+#:
+#: **INPUT_REQUIRED AND SIDECAR_NOT_CONFIGURED ARE NO LONGER HERE**, and that
+#: is the tightening: they are refusals of kind NEEDS_INPUT and NEEDS_SETUP
+#: (`domain.refusal_kinds`), which the sweep classifies as their own outcomes
+#: rather than as faults. Left in this set, a table that lost them would still
+#: pass, because "failed with an expected code" was the only thing the guard
+#: could see.
+EXPECTED_FAULTS = {"NEEDS_CONFORMER", "DATABASE_NOT_BUILT"}
 
 
 def _unscoped(definitions) -> list[str]:

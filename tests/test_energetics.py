@@ -481,15 +481,19 @@ def test_the_ruby_correction_does_nothing_below_its_threshold():
 
 
 def test_the_calculator_refuses_until_both_inputs_are_supplied():
-    from openchem.domain.common import CacheState
+    """RAISED as a `CalculationRefusal` of kind NEEDS_INPUT, not returned as a
+    failed report tagged `inapplicable` -- which said a working method "does
+    not apply". `tests/test_refusal_kinds.py` covers the kind, the named
+    inputs and the trip to the chip; this pins the sentences."""
+    from openchem.domain.calculator import CalculationRefusal
 
     for params, expected in (
         ({}, "LOADING DENSITY"),
         ({"loading_density_g_cm3": 1.8}, "enthalpy of formation"),
     ):
-        report = E.compute_detonation(_mol(TATB), "uuid-1", params)
-        assert report.cache_state is CacheState.FAILED
-        assert expected in report.error
+        with pytest.raises(CalculationRefusal) as raised:
+            E.compute_detonation(_mol(TATB), "uuid-1", params)
+        assert expected in raised.value.detail
 
 
 def test_a_supplied_enthalpy_of_exactly_zero_is_not_read_as_missing():

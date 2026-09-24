@@ -10,7 +10,7 @@ emptiness as failure would paint two correct answers as broken, which is
 the confusion `AlertResult.severity` had to be introduced to end one layer
 along.
 
-**SIX STATES, CLOSED, AND THE ORDER THEY ARE TESTED IN IS THE DESIGN.**
+**EIGHT STATES, CLOSED, AND THE ORDER THEY ARE TESTED IN IS THE DESIGN.**
 Every pair below is one this application can genuinely be in at once, and
 the order says which the launcher reports:
 
@@ -27,6 +27,14 @@ the order says which the launcher reports:
                                    repository has shipped that once already
                                    and reported it as "some calculator
                                    failures" when neither had.
+    NEEDS_INPUT / NEEDS_SETUP      the other two refusals. They travel as
+      before INAPPLICABLE          FAILED exactly as a limit does, and are
+                                   tested first because "type in a loading
+                                   density" is a different instruction from
+                                   "this method does not cover the molecule";
+                                   `domain.refusal_kinds` says which a
+                                   refusal is, and a result that declared no
+                                   kind is unaffected.
     FAILED before STALE            a stale failure is both, and only one
                                    glyph fits. "It did not run" is the more
                                    actionable of the two, and re-running is
@@ -40,6 +48,7 @@ the panel's resting appearance rather than an exception.
 from __future__ import annotations
 
 from openchem.domain.common import CacheState
+from openchem.domain.refusal_kinds import RefusalKind, refusal_kind_of_result
 from openchem.domain.structure_resolution import is_stale
 
 #: Nothing has been asked of this calculator for this molecule.
@@ -56,12 +65,18 @@ FAILED = "failed"
 #: The method does not cover this molecule. Correct, permanent, and NOT a
 #: fault -- the distinction `DescriptorValue.inapplicable` already carries.
 INAPPLICABLE = "inapplicable"
+#: The method covers this molecule and needs a value only the person can
+#: supply (`RefusalKind.NEEDS_INPUT`). Actionable, and the result names which.
+NEEDS_INPUT = "needs_input"
+#: The method covers this molecule and this machine lacks something it needs
+#: (`RefusalKind.NEEDS_SETUP`): a sidecar that is not configured.
+NEEDS_SETUP = "needs_setup"
 
 #: The closed vocabulary, so a consumer can be total over it. A status
 #: absent from this is a programming error rather than a new kind of
 #: outcome, which is the fail-closed rule `RESULT_KINDS` and
 #: `VISUALIZATION_KINDS` already follow.
-RESULT_STATUSES = (NOT_RUN, RUNNING, READY, STALE, FAILED, INAPPLICABLE)
+RESULT_STATUSES = (NOT_RUN, RUNNING, READY, STALE, FAILED, INAPPLICABLE, NEEDS_INPUT, NEEDS_SETUP)
 
 
 def status_of(result, *, running: bool = False, structure_version: int = 0) -> str:
@@ -81,7 +96,16 @@ def status_of(result, *, running: bool = False, structure_version: int = 0) -> s
         return RUNNING
     if result is None:
         return NOT_RUN
-    if getattr(result, "inapplicable", False):
+    # A refusal's KIND, where one was declared. Before `inapplicable`, because
+    # a NEEDS_* refusal is not a limit of the method and carries
+    # `inapplicable == False`; and after `RUNNING`/`NOT_RUN` for the reason
+    # everything is.
+    kind = refusal_kind_of_result(result)
+    if kind is RefusalKind.NEEDS_INPUT:
+        return NEEDS_INPUT
+    if kind is RefusalKind.NEEDS_SETUP:
+        return NEEDS_SETUP
+    if kind is RefusalKind.LIMIT or getattr(result, "inapplicable", False):
         return INAPPLICABLE
     if getattr(result, "cache_state", None) is CacheState.FAILED:
         return FAILED

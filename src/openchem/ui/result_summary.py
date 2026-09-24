@@ -119,6 +119,18 @@ class ResultSummaryView:
     #: A refusal is not a fault -- the same field, and the same distinction,
     #: `DescriptorValue` already carries.
     inapplicable: bool = False
+    #: The producer's provenance, carried whole for the one thing in it a
+    #: summary cannot re-derive: the REFUSAL (`domain.refusal_kinds` -- its
+    #: code, its kind and the inputs it named).
+    #:
+    #: **WITHOUT IT A NEEDS-INPUT REFUSAL READ AS "FAILED" IN THE RUNNING APP**
+    #: while every unit test was green: the panel files what `summarise`
+    #: returns, and `status_of` reads the kind off `provenance.parameters`,
+    #: which this view did not have. Found by driving Detonation on a nitramine
+    #: (`expect_results`: status 'failed', wanted 'needs_input'). The same
+    #: omission meant a `refusal` expectation could never match a summarised
+    #: result. Carried, never interpreted: nothing here reads it.
+    provenance: Any = None
 
     def by_category(self) -> dict[FactCategory, tuple[Fact, ...]]:
         return group_facts_by_category(self.facts)

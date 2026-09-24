@@ -6,6 +6,19 @@ from typing import Any, Callable
 
 from openchem.domain.common import ScientificResult
 
+# Re-exported: every calculator module imports its refusal codes from here.
+from openchem.domain.refusal_kinds import (  # noqa: F401
+    ELEMENT_OUTSIDE_PARAMETER_SET,
+    INPUT_REQUIRED,
+    METAL_CONTAINING_UNSUPPORTED,
+    MULTICOMPONENT_UNSUPPORTED,
+    NO_ORGANIC_COMPONENT,
+    SIDECAR_NOT_CONFIGURED,
+    MissingInput,
+    RefusalKind,
+    refusal_kind_of,
+)
+
 
 @dataclass(frozen=True, kw_only=True)
 class RegistryExecution:
@@ -230,42 +243,47 @@ class CalculatorScope:
     note: str = ""
 
 
-#: Refusal codes the scope layer itself raises. A calculator's own refusals
-#: keep their own enums (`HansenRefusal`, `AromaticityRefusal`, ...); all of
-#: them reach `provenance.parameters["refusal"]`, the key
-#: `debug_drive.result_report` and the multicomponent guard read.
-MULTICOMPONENT_UNSUPPORTED = "MULTICOMPONENT_UNSUPPORTED"
-#: ChEMBL's exclusion flag: a transition metal or more than seven borons,
-#: so there is no parent molecule to hand a compound-property calculator.
-METAL_CONTAINING_UNSUPPORTED = "METAL_CONTAINING_UNSUPPORTED"
-#: A `MethodDomain.ORGANIC` calculator handed a structure with no carbon.
-NO_ORGANIC_COMPONENT = "NO_ORGANIC_COMPONENT"
-#: An element the method's own table has no parameter for (Jensen's
-#: increments, McGowan's volumes, MMFF/UFF, Lange's radii).
-ELEMENT_OUTSIDE_PARAMETER_SET = "ELEMENT_OUTSIDE_PARAMETER_SET"
-#: Not a limit of the method: the user has to supply something (a reference
-#: structure, a partner molecule). A FAULT in `ScientificResult.inapplicable`'s
-#: sense, so it is raised with `inapplicable=False`.
-INPUT_REQUIRED = "INPUT_REQUIRED"
-#: A sidecar model whose interpreter is not configured on this machine.
-SIDECAR_NOT_CONFIGURED = "SIDECAR_NOT_CONFIGURED"
-
-
 class CalculationRefusal(Exception):
     """A calculator declining a structure, with a stable code.
 
     Raised rather than returned so that every route into a calculator --
     Properties, Batch, the 3D overlay -- gets the same refusal from the same
     place; `DescriptorService` turns it into a FAILED result carrying the
-    code, both sentences and whether it is a limit of the method.
+    code, both sentences and its KIND (`domain.refusal_kinds`).
+
+    **THE KIND IS RESOLVED, NEVER DEFAULTED TO "LIMIT".** In order: the kind
+    the producer declared, then the kind `REFUSAL_KINDS` gives the code, then
+    the legacy `inapplicable` flag if one was passed explicitly (True is a
+    limit). A refusal with none of the three has NO kind, which is a fault:
+    `CalculationRefusal("SOME_NEW_CODE", ...)` used to be silently a permanent
+    limit because `inapplicable` defaulted to True, so a code nobody had
+    classified read as "the method does not apply" and nobody looked at it.
+
+    `inapplicable` stays, derived (`kind is LIMIT`), because every consumer of
+    a refusal already reads it and NEEDS_INPUT / NEEDS_SETUP are, by
+    definition, not limits of the method.
     """
 
-    def __init__(self, code: str, summary: str, detail: str, *, inapplicable: bool = True) -> None:
+    def __init__(
+        self,
+        code: str,
+        summary: str,
+        detail: str,
+        *,
+        inapplicable: bool | None = None,
+        kind: RefusalKind | None = None,
+        missing_inputs: tuple[MissingInput, ...] = (),
+    ) -> None:
         super().__init__(detail)
         self.code = code
         self.summary = summary
         self.detail = detail
-        self.inapplicable = inapplicable
+        resolved = kind if kind is not None else refusal_kind_of(code)
+        if resolved is None and inapplicable:
+            resolved = RefusalKind.LIMIT
+        self.kind = resolved
+        self.inapplicable = resolved is RefusalKind.LIMIT
+        self.missing_inputs = tuple(missing_inputs)
 
 
 @dataclass(frozen=True, kw_only=True)

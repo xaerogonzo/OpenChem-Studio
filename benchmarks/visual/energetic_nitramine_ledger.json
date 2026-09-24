@@ -29,6 +29,18 @@
     "after_ms": 6000
   },
   {
+    "do": "expand",
+    "section": "energetic",
+    "after_ms": 1000
+  },
+  {
+    "do": "calculator",
+    "id": "detonation",
+    "parameters": {},
+    "reveal": false,
+    "after_ms": 3000
+  },
+  {
     "do": "log_report",
     "tag": "after-solubility"
   },
@@ -50,6 +62,13 @@
         ],
         "facts_absent": [
           "hydrazine"
+        ]
+      },
+      "detonation": {
+        "status": "needs_input",
+        "missing_inputs": [
+          "loading_density_g_cm3",
+          "enthalpy_of_formation_kcal_mol"
         ]
       }
     }

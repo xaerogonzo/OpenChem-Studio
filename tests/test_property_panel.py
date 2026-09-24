@@ -963,6 +963,20 @@ def test_a_batch_run_says_when_it_has_finished(qapp):
     assert "Running" not in panel._batch_status.text()
 
 
+def test_every_status_the_vocabulary_can_produce_has_a_chip_appearance():
+    """Total over `RESULT_STATUSES`, because `_refresh_status_chip` indexes
+    the table and a status without a row is a `KeyError` in a paint path.
+    Added with NEEDS_INPUT and NEEDS_SETUP, which had none."""
+    from openchem.domain.result_status import RESULT_STATUSES
+    from openchem.ui.panels.property_panel import _STATUS_APPEARANCE
+
+    assert set(_STATUS_APPEARANCE) == set(RESULT_STATUSES)
+    # And the two actionable ones are not painted as the neutral refusal.
+    assert _STATUS_APPEARANCE["needs_input"][0] != _STATUS_APPEARANCE["inapplicable"][0]
+    assert "Needs input" in _STATUS_APPEARANCE["needs_input"][0]
+    assert "Needs setup" in _STATUS_APPEARANCE["needs_setup"][0]
+
+
 def test_the_status_glyphs_really_render(qapp):
     """A glyph is only accessible if something in the font chain HAS it.
 

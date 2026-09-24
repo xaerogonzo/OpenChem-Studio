@@ -21283,3 +21283,23 @@ and it was never asked about again.
 * **Smaller things measured:** nitroguanidine's two NH2 are still counted as bases (a guanidine N on a nitroimine); the Solubility
   calculator's default `compare_models=True` also runs AqSolDB in the ADMET sidecar, about five minutes, for every default run
   including "Run selected"; and a scripted `calculator` step must set `compare_models: false` to be a quick check.
+
+
+## A REFUSAL WAS CORRECT AT THE SERVICE AND "FAILED" ON SCREEN, BECAUSE THE PANEL FILES A SUMMARY
+
+Measured 2026-09-24 while giving Kamlet-Jacobs Detonation a `NEEDS_INPUT` refusal kind (`domain/refusal_kinds.py`). The calculator raised the
+right refusal, `DescriptorService` published it with the kind and both missing inputs in `provenance.parameters`, and the focused tests
+(`status_of` on the published result: `needs_input`) were green. Driving the real application on the same nitramine and asserting with
+`expect_results` said `detonation: status 'failed', wanted 'needs_input'`.
+
+* **The panel does not hold the result; it holds `summarise(result)`.** `ResultSummaryView` is a fixed projection that carries
+  `cache_state`, `error`, `error_summary` and `inapplicable` and nothing else, so the one place `status_of` looks for a refusal's
+  kind (`provenance.parameters`) was not there. It is the third time a projection has dropped a field the status needed
+  (`report_from_alert` also dropped `inapplicable` and `error_summary`, which is why a refused alert could read as a fault).
+  `ResultSummaryView` now carries `provenance` whole, and `expect_results` gained `missing_inputs`.
+* **A test of the layer that produces a value is not a test of the layer that shows it.** Both regression tests now sit at the
+  projection (`summarise`, `report_from_alert`), and each was broken on purpose before being believed (drop the carried field: the
+  summary test fails on `'failed' == 'needs_input'`).
+* **The `refusal` assertion had the same blind spot for longer.** On a summarised result it read `parameters.get("refusal", "")`
+  from a view with no provenance, so it could only ever match `""` there. Nothing had asserted a refusal code on a per-atom,
+  spectrum, curve or structure-set result.

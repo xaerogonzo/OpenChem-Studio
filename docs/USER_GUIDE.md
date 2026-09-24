@@ -745,8 +745,13 @@ default.
 Each calculator gets a row: a tick box that adds it to a batch run, a
 **button** labelled with its name and a trailing `…`, and a **status chip**
 saying where it stands — `Not run`, `Running…`, `✓ Ready`, `! Stale`,
-`✕ Failed` or `○ Not applicable`. Pressing the chip opens that result in
-Results.
+`✕ Failed`, `○ Not applicable`, `△ Needs input` or `△ Needs setup`. **Not
+applicable** means the method does not cover this molecule (permanent, not a
+fault); **Needs input** means it does, and wants a value only you can supply —
+the result names which, with units (Detonation wants a loading density and a
+condensed-phase enthalpy of formation); **Needs setup** means it wants
+something configured on this machine, such as a sidecar under Tools > External
+Tools. Pressing the chip opens that result in Results.
 
 Scalar descriptors still compute eagerly — the whole batch finishes in well
 under a millisecond, so there is no waiting and no lazy-loading complexity —

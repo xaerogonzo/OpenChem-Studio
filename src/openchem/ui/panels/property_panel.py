@@ -49,6 +49,8 @@ from openchem.domain.reader_state import ReaderMemory
 from openchem.domain.result_status import (
     FAILED,
     INAPPLICABLE,
+    NEEDS_INPUT,
+    NEEDS_SETUP,
     NOT_RUN,
     READY,
     RUNNING,
@@ -184,6 +186,12 @@ _STATUS_APPEARANCE: dict[str, tuple[str, str]] = {
     STALE: (_WARNING_GLYPH + "Stale", _WARNING_STYLE),
     FAILED: (_FAILURE_GLYPH + "Failed", _FAILURE_STYLE),
     INAPPLICABLE: (_INAPPLICABLE_GLYPH + "Not applicable", _INFORMATION_STYLE),
+    # The two refusals a person can ACT on. Same proven glyph as Stale and
+    # the same warning style, because both say "something is needed" rather
+    # than "something is wrong" -- and neither is the neutral "Not
+    # applicable", which is the one thing they must not read as.
+    NEEDS_INPUT: (_WARNING_GLYPH + "Needs input", _WARNING_STYLE),
+    NEEDS_SETUP: (_WARNING_GLYPH + "Needs setup", _WARNING_STYLE),
 }
 
 #: Which calculator a status chip belongs to, carried on the chip.
@@ -201,11 +209,15 @@ _STATUS_CHIP_HELP = HelpTooltip(
     text=(
         "How this calculator's last run for this molecule ended, and a way "
         "to the result.\n\n"
-        "Not run, Running..., Ready, Stale, Failed, or Not applicable. "
+        "Not run, Running..., Ready, Stale, Failed, Not applicable, Needs "
+        "input, or Needs setup. "
         "Ready means the calculation succeeded -- it says nothing about how "
         "much was produced, because a calculator that ran and found nothing "
         "has still answered. Not applicable means the method does not cover "
-        "this molecule: correct, permanent, and not a fault.\n\n"
+        "this molecule: correct, permanent, and not a fault. Needs input "
+        "means the method covers it and wants a value only you can supply "
+        "(the result names which, with units); Needs setup means it wants "
+        "something configured on this machine.\n\n"
         "Pressing it shows that result in Results. It computes nothing and "
         "re-runs nothing; use the calculator's own button to run it again."
     ),

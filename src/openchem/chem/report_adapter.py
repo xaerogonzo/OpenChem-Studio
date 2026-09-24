@@ -148,6 +148,12 @@ def report_from_alert(alert: AlertResult) -> ReportResult:
         facts=facts_from_alert(alert),
         cache_state=alert.cache_state,
         error=alert.error,
+        # THE REST OF THE REFUSAL, which this dropped: a refused alert became a
+        # report that said `inapplicable=False` and had no short form, so a
+        # limit read as a fault in the launcher and the cell showed the whole
+        # sentence. Same three fields `summarise` carries for the other kinds.
+        error_summary=alert.error_summary,
+        inapplicable=alert.inapplicable,
         provenance=alert.provenance,
         # **THE VERDICT TRAVELS.** It used to stop here, and that mattered
         # the moment the results reader became the only renderer: a clean

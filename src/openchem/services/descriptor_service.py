@@ -16,6 +16,7 @@ from openchem.chem.calculation_input import (
 from openchem.chem.descriptor_providers import DescriptorProvider, RDKitDescriptorProvider
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.calculator import DRAWING, CalculationRefusal, CalculationRequest
+from openchem.domain.refusal_kinds import MissingInput, RefusalKind, refusal_parameters
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.molecule import MoleculeModel
@@ -398,12 +399,20 @@ class _CalculationTask(QRunnable):
             # the sixty calculators or in each panel that displays one.
             result = _with_structure_version(result, self._structure_version_of)
         except CalculationRefusal as refusal:
-            # A DECLINE, not a crash: no traceback in the log, and the code
-            # and both sentences reach the result (round 5, branch S2).
-            logger.info("Calculator %s refused: %s", self._request.calculator_id, refusal.code)
+            # A DECLINE, not a crash: no traceback in the log, and the code,
+            # both sentences and the KIND reach the result (round 5, branch
+            # S2). A refusal with no kind is a FAULT (`CalculationRefusal`),
+            # so it is logged as one: a code nobody classified must surface
+            # in a driven run's ledger rather than read as a quiet limit.
+            log = logger.info if refusal.kind is not None else logger.warning
+            log(
+                "Calculator %s refused: %s%s", self._request.calculator_id, refusal.code,
+                "" if refusal.kind is not None else " (no refusal kind -- unclassified code)",
+            )
             self._publish_failed(
                 refusal.detail, summary=refusal.summary, code=refusal.code,
-                inapplicable=refusal.inapplicable,
+                inapplicable=refusal.inapplicable, kind=refusal.kind,
+                missing_inputs=refusal.missing_inputs,
             )
             return
         except Exception as exc:  # noqa: BLE001 - a bad calculator must not kill the pool
@@ -489,7 +498,14 @@ class _CalculationTask(QRunnable):
         )
 
     def _publish_failed(
-        self, message: str, *, summary: str | None = None, code: str = "", inapplicable: bool = False
+        self,
+        message: str,
+        *,
+        summary: str | None = None,
+        code: str = "",
+        inapplicable: bool = False,
+        kind: RefusalKind | None = None,
+        missing_inputs: tuple[MissingInput, ...] = (),
     ) -> None:
         # Empty PerAtomDataset is the only "there was a problem" shape
         # every current consumer (PropertyPanel, Calculator Inspector)
@@ -507,9 +523,14 @@ class _CalculationTask(QRunnable):
             error_summary=summary,
             inapplicable=inapplicable,
             # The refusal CODE where `debug_drive.result_report` and the
-            # multicomponent guard read every other calculator's.
+            # multicomponent guard read every other calculator's -- and its
+            # KIND and any named inputs beside it, assembled by
+            # `refusal_parameters` so a batch cell says the same thing.
             provenance=(
-                Provenance(created_by="core", method=self._request.calculator_id, parameters={"refusal": code})
+                Provenance(
+                    created_by="core", method=self._request.calculator_id,
+                    parameters=refusal_parameters(code, kind, missing_inputs),
+                )
                 if code else None
             ),
         )

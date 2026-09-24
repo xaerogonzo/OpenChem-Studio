@@ -4525,6 +4525,9 @@ class _Driver(QObject):
             "status"        one name or a list, from `RESULT_STATUSES`
             "not_status"    names that must NOT be the status
             "refusal"       the refusal code ("" asserts a computed result)
+            "missing_inputs" the calculator's own parameter names a NEEDS_INPUT
+                            result must name, in any order and no others --
+                            what the chip's click target is built from
             "facts_contain" substrings that must each appear in some `label=value`
             "facts_absent"  substrings that must appear in none
 
@@ -4558,6 +4561,14 @@ class _Driver(QObject):
                 problems.append(
                     f"{calculator_id}: refusal {parameters.get('refusal', '')!r}, wanted {spec['refusal']!r}"
                 )
+            if "missing_inputs" in spec:
+                from openchem.domain.refusal_kinds import missing_inputs_of
+
+                named = sorted(item.parameter for item in missing_inputs_of(result))
+                if named != sorted(spec["missing_inputs"]):
+                    problems.append(
+                        f"{calculator_id}: names missing inputs {named}, wanted {sorted(spec['missing_inputs'])}"
+                    )
             for needle in spec.get("facts_contain") or []:
                 if not any(needle in fact for fact in facts):
                     problems.append(f"{calculator_id}: no fact contains {needle!r} (facts: {facts[:8]})")

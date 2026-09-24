@@ -15,6 +15,8 @@ from openchem.domain.report import ReportResult
 from openchem.domain.result_status import (
     FAILED,
     INAPPLICABLE,
+    NEEDS_INPUT,
+    NEEDS_SETUP,
     NOT_RUN,
     READY,
     RESULT_STATUSES,
@@ -116,4 +118,6 @@ def test_the_vocabulary_has_no_duplicates_and_no_gaps():
     """A change detector on the closed set, in the shape `RESULT_KINDS` and
     `VISUALIZATION_KINDS` already use."""
     assert len(set(RESULT_STATUSES)) == len(RESULT_STATUSES)
-    assert set(RESULT_STATUSES) == {NOT_RUN, RUNNING, READY, STALE, FAILED, INAPPLICABLE}
+    assert set(RESULT_STATUSES) == {
+        NOT_RUN, RUNNING, READY, STALE, FAILED, INAPPLICABLE, NEEDS_INPUT, NEEDS_SETUP,
+    }
