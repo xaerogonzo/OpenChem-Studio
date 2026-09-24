@@ -8,7 +8,7 @@
 #
 # WHY IT EXISTS. Through naming round 8 this lived in a session scratchpad and was rebuilt by hand. The rules it encodes were each paid for:
 #   * The crash is deterministic PER CHUNK COMPOSITION: the same chunk of 25 files crashed identically twice and passed on the third
-#     attempt, and a whole shard crashed at a different test on every run. So a chunk that exits 139 is retried, up to three attempts; ANY
+#     attempt, and a whole shard crashed at a different test on every run. So a chunk that exits 139 is retried, up to FIVE attempts; ANY
 #     other non-zero exit is a real result and is never retried.
 #   * A DETACHED worktree (`git worktree add --detach`) keeps the main tree editable during the ~hour a gate takes. It has no .venv, so the
 #     main checkout's interpreter runs it with PYTHONPATH at the worktree's `src`. Put it at `<drive>:\_scratch\<repo>-<short-sha>` (the
@@ -113,7 +113,10 @@ fi
 run_chunk() {
   local id="$1"; shift
   local attempt rc
-  for attempt in 1 2 3; do
+  # FIVE, NOT THREE: the crash hits the chunk holding test_result_presentation about 30% of the time on master too (measured
+  # 3/10 there, 2/10 on a branch), so three in a row happens in a few percent of gates and reads as a deterministic failure;
+  # five is a fraction of a percent. Only 139 is retried, so this cannot turn a real failure green.
+  for attempt in 1 2 3 4 5; do
     "$PY" -u -m pytest -q -ra -p no:cacheprovider "${DESELECT[@]}" "$@" > "$OUT/$id.attempt$attempt.log" 2>&1
     rc=$?
     echo "$id attempt $attempt exit $rc: $(tail -n 1 "$OUT/$id.attempt$attempt.log" | cut -c1-120)" >> "$OUT/summary.txt"
