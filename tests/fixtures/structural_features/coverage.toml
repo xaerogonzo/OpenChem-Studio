@@ -588,11 +588,20 @@ negative = [
 
 [[feature]]
 id = "fg:hydrazine"
-positive = ["C[NH:1][NH2:1]", "c1ccccc1[NH:1][NH:1]c1ccccc1"]
+positive = [
+  "C[NH:1][NH2:1]",
+  "c1ccccc1[NH:1][NH:1]c1ccccc1",
+  # A nitramine in the SAME molecule is not a second hydrazine: only the marked
+  # pair is expected, and any extra instance fails the test.
+  "C[NH:1][NH2:1].CN(C)[N+](=O)[O-]",
+]
 negative = [
   { smiles = "CC(=O)NN", why = "a hydrazide" },
   { smiles = "CC=NN", why = "a hydrazone" },
   { smiles = "CN=NC", why = "azo" },
+  { smiles = "CN(C)[N+](=O)[O-]", why = "a nitramine: its second N is a nitro group, a net +1 pair the hydrazine feature does not declare (it raised UndeclaredChargeState and took every alert for the molecule with it)" },
+  { smiles = "O=[N+]([O-])N1CN([N+](=O)[O-])C1", why = "1,3-dinitro-1,3-diazetidine, the live-session molecule: two N-nitro groups on a ring" },
+  { smiles = "CN(C)N=O", why = "an N-nitrosamine: its second N is X2, not a hydrazine's" },
 ]
 
 [[feature]]
@@ -622,7 +631,13 @@ charged = [{ smiles = "c1ccccc1[N+:1]#[N:1]", state = "cationic" }]
 
 [[feature]]
 id = "fg:nitro"
-positive = ["C[N+:1](=[O:2])[O-:2]", "c1ccccc1[N+:1]([O-:2])=[O:2]", "CO[N+:1](=[O:2])[O-:2]"]
+positive = [
+  "C[N+:1](=[O:2])[O-:2]",
+  "c1ccccc1[N+:1]([O-:2])=[O:2]",
+  "CO[N+:1](=[O:2])[O-:2]",
+  # N-nitro (a nitramine): still a nitro group, and the only feature on that nitrogen.
+  "CN(C)[N+:1](=[O:2])[O-:2]",
+]
 negative = [
   { smiles = "CN=O", why = "nitroso" },
   { smiles = "C[N+](C)(C)[O-]", why = "an amine oxide" },

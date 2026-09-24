@@ -71,6 +71,37 @@ def test_every_feature_has_exactly_one_spec():
     assert set(SPECS) == {f.feature_id for f in FEATURES}
 
 
+#: Real energetic materials, and whether a hydrazine is among their features.
+#: `detect_features` RAISES when a pattern matches in a charge state its feature
+#: does not declare, so a pattern that is too broad is not a wrong label but the
+#: loss of every functional-group alert for the molecule -- which is what the
+#: nitramine class did until `_NOT_NITRO_N` (RDX, HMX, tetryl and EDNA all
+#: raised; measured). No corpus of energetics was ever run through the
+#: detector, so nothing noticed. This is that corpus in miniature; the full
+#: sweep over the census panel comes with the census.
+_ENERGETIC_MATERIALS = {
+    "1,3-dinitro-1,3-diazetidine": "O=[N+]([O-])N1CN([N+](=O)[O-])C1",
+    "RDX": "O=[N+]([O-])N1CN([N+](=O)[O-])CN([N+](=O)[O-])C1",
+    "HMX": "O=[N+]([O-])N1CN([N+](=O)[O-])CN([N+](=O)[O-])CN([N+](=O)[O-])C1",
+    "tetryl": "CN([N+](=O)[O-])c1c([N+](=O)[O-])cc([N+](=O)[O-])cc1[N+](=O)[O-]",
+    "EDNA": "O=[N+]([O-])NCCN[N+](=O)[O-]",
+    "TNT": "Cc1c([N+](=O)[O-])cc([N+](=O)[O-])cc1[N+](=O)[O-]",
+    "PETN": "O=[N+]([O-])OCC(CO[N+](=O)[O-])(CO[N+](=O)[O-])CO[N+](=O)[O-]",
+    "nitroglycerin": "O=[N+]([O-])OCC(O[N+](=O)[O-])CO[N+](=O)[O-]",
+    "TATB": "Nc1c([N+](=O)[O-])c(N)c([N+](=O)[O-])c(N)c1[N+](=O)[O-]",
+    "nitroguanidine": "NC(=N[N+](=O)[O-])N",
+    "DNAN": "COc1ccc([N+](=O)[O-])cc1[N+](=O)[O-]",
+}
+
+
+@pytest.mark.parametrize("name", list(_ENERGETIC_MATERIALS))
+def test_an_energetic_material_is_detected_without_raising_and_is_no_hydrazine(name):
+    features = detect_features(Chem.MolFromSmiles(_ENERGETIC_MATERIALS[name]))
+    ids = {f.feature_id for f in features}
+    assert "fg:nitro" in ids, f"{name}: the nitro group itself must still be found"
+    assert "fg:hydrazine" not in ids, f"{name}: a nitramine N-N bond is not a hydrazine"
+
+
 def _positive_cases():
     for row in ROWS:
         for smiles in row.get("positive", []):

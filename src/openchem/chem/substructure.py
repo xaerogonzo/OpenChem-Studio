@@ -20,6 +20,7 @@ from typing import Any
 from rdkit import Chem
 
 from openchem.chem.calculator_options import atom_basis_of, decimals
+from openchem.chem.logd import BASIC_AMINE_SMARTS
 from openchem.domain.common import ATOM_BASIS, TOTAL, CacheState, Provenance, declare_total
 from openchem.domain.scientific_result import PerAtomDataset
 
@@ -31,7 +32,7 @@ COMMON_PATTERNS: dict[str, str] = {
     "Ester": "[CX3](=O)[OX2H0][#6]",
     "Amide": "[NX3][CX3](=[OX1])",
     "Primary amine": "[NX3;H2;!$(NC=[O,S]);!$(N=*);!$(Nc)]",
-    "Basic amine (hERG risk pattern)": "[NX3;H2,H1,H0;!$(NC=[O,S]);!$(N=*);!$(NS(=O)=O);!$(Nc);!a]",
+    "Basic amine (hERG risk pattern)": BASIC_AMINE_SMARTS,
     "Alcohol": "[OX2H][CX4]",
     "Phenol": "[OX2H]c",
     "Ether": "[OD2]([#6])[#6]",

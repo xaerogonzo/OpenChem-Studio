@@ -37,6 +37,7 @@ from openchem.chem.geometry_charges import (
     compute_geometry_charges,
 )
 from openchem.chem.interaction_analysis import compute_interaction_analysis
+from openchem.chem.logd import BASIC_AMINE_SMARTS
 from openchem.chem.markush import DEFAULT_MAX_STRUCTURES as MARKUSH_DEFAULT_MAX
 from openchem.chem.calculator_options import (
     EXPLICIT_HYDROGENS,
@@ -549,7 +550,9 @@ def compute_fragment_group_alert(mol: Chem.Mol, molecule_uuid: str) -> AlertResu
 # false-positived here), or aniline (aromatic-attached amine, too weakly
 # basic at physiological pH to count -- an earlier draft false-positived
 # here too).
-_BASIC_AMINE_SMARTS = Chem.MolFromSmarts("[NX3;H2,H1,H0;!$(NC=[O,S]);!$(N=*);!$(NS(=O)=O);!$(Nc);!a]")
+# Imported, not restated: `chem.logd.BASIC_AMINE_SMARTS` is the one definition
+# (and records why N-nitro and N-nitroso are excluded).
+_BASIC_AMINE_SMARTS = Chem.MolFromSmarts(BASIC_AMINE_SMARTS)
 
 _HERG_RISK_NAME = "hERG Risk Factors (not a prediction)"
 

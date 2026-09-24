@@ -10,10 +10,28 @@ from rdkit.Chem import Crippen
 # deliberately narrow -- an unmatched centre is skipped rather than
 # guessed at, which loses a term instead of inventing one.
 _ACID_SMARTS = Chem.MolFromSmarts("[$([CX3](=O)[OX2H1]),$([OX2H1][cX3]),$([SX4](=O)(=O)[OX2H1]),$([PX4](=O)[OX2H1])]")
-# Same basic-amine pattern verified across 9 reference molecules in Phase
-# 20 (matches verapamil/amitriptyline/di- and triethylamine; excludes
-# amides, sulfonamides, aromatic N, and anilines).
-_BASE_SMARTS = Chem.MolFromSmarts("[NX3;H2,H1,H0;!$(NC=[O,S]);!$(N=*);!$(NS(=O)=O);!$(Nc);!a]")
+#: **THE ONE DEFINITION OF "A BASIC AMINE".** Verified across 9 reference
+#: molecules in Phase 20 (matches verapamil/amitriptyline/di- and
+#: triethylamine; excludes amides, sulfonamides, aromatic N, and anilines).
+#:
+#: It was written out three times -- here, in the hERG risk-factor checklist
+#: and in the common-pattern search list -- and the last two now import this
+#: string, so a correction cannot reach one of them and miss the others.
+#:
+#: **N-NITRO AND N-NITROSO ARE EXCLUDED, AND THAT IS WHAT THIS LINE WAS
+#: MISSING.** A nitramine's ring nitrogen has no S=O, no C=O and no aromatic
+#: neighbour, so it passed every exclusion above and was counted as a base:
+#: 1,3-dinitro-1,3-diazetidine read as two basic centres, the pKa predictor
+#: was asked for values it could not give, and solubility, logD and every
+#: pH curve reported a failure for a molecule with nothing to ionise (found
+#: in the live session that also crashed the feature detector on the same
+#: group). The lone pair is delocalised into N=O exactly as an amide's is
+#: into C=O, so the same reasoning that excludes an amide excludes both.
+BASIC_AMINE_SMARTS = (
+    "[NX3;H2,H1,H0;!$(NC=[O,S]);!$(N=*);!$(NS(=O)=O);!$(Nc);!a"
+    ";!$(N[N+](=O)[O-]);!$(NN=O)]"
+)
+_BASE_SMARTS = Chem.MolFromSmarts(BASIC_AMINE_SMARTS)
 #: **THE SAME CENTRES, DRAWN IONISED.** A carboxylate is the acid's conjugate
 #: base and an ammonium the amine's conjugate acid: one ionizable centre each,
 #: whichever form is on the page. Matching only the neutral forms read glycine

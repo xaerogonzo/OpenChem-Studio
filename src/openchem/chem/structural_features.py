@@ -58,6 +58,14 @@ _AMIDE_N = "[#7;!$([#7]-[#7]);!$([#7]-[#8])"
 #: Amine nitrogen exclusions: no non-carbon neighbour (N, O, S, P ...), and no
 #: carbon neighbour that is acyl, thioacyl, imidoyl or a nitrile carbon.
 _AMINE_EXCL = "!a;!$([#7]~[!#6;!#1]);!$([#7][#6]=,#[O,S,#7])"
+#: The nitrogen of a nitro group. **A HYDRAZINE'S NITROGENS ARE NEITHER OF THESE.**
+#: An N-nitro group is X3, has no acyl carbon on it and is not aromatic, so the
+#: hydrazine pattern matched every nitramine's N-N bond (RDX, HMX, CL-20, tetryl):
+#: the pair's net charge is +1, `detect_features` raised
+#: `UndeclaredChargeState`, and one nitramine took every functional-group alert
+#: for its molecule down with it (live session, 1,3-dinitro-1,3-diazetidine).
+#: The nitro group is still found, as `fg:nitro`.
+_NOT_NITRO_N = "!$([#7+](=[#8X1])[#8X1-])"
 
 
 @dataclass(frozen=True)
@@ -189,7 +197,9 @@ SPECS: dict[str, FeatureSpec] = {s.feature_id: s for s in (
     _s("fg:hydroxylamine",
        "[NX3;!a;!$([#7][#6]=[O,S,#7]);!$([#7](-[!#6;!#1])-[!#6;!#1]):1]"
        "-[OX2;$([OH1]),$(O[#6]):2]"),
-    _s("fg:hydrazine", "[NX3;!a;!$([#7][#6]=[O,S,#7]):1]-[NX3;!a;!$([#7][#6]=[O,S,#7]):1]"),
+    _s("fg:hydrazine",
+       f"[NX3;!a;!$([#7][#6]=[O,S,#7]);{_NOT_NITRO_N}:1]-"
+       f"[NX3;!a;!$([#7][#6]=[O,S,#7]);{_NOT_NITRO_N}:1]"),
     _s("fg:azo", "[#6][NX2;!a:1]=[NX2;!a:1][#6]"),
     _s("fg:azide", "[#6][NX2:1]=[NX2+:1]=[NX1-:1]", "[#6][NX2-:1][NX2+:1]#[NX1:1]"),
     _s("fg:diazo", "[#6X3:1]=[NX2+:2]=[NX1-:2]", "[#6X3-:1][NX2+:2]#[NX1:2]"),

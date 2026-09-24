@@ -87,6 +87,50 @@ def test_classify_ignores_amides_and_aromatic_nitrogen():
     assert classify_ionizable_centres(Chem.MolFromSmiles("c1ccncc1"))[1] == 0
 
 
+@pytest.mark.parametrize(
+    "smiles",
+    [
+        "CN(C)[N+](=O)[O-]",                                   # dimethylnitramine
+        "O=[N+]([O-])N1CN([N+](=O)[O-])C1",                    # 1,3-dinitro-1,3-diazetidine
+        "O=[N+]([O-])N1CN([N+](=O)[O-])CN([N+](=O)[O-])C1",    # RDX
+        "CN(C)N=O",                                            # N-nitrosodimethylamine
+        "O=NN1CCCCC1",                                         # N-nitrosopiperidine
+    ],
+)
+def test_an_n_nitro_or_n_nitroso_nitrogen_is_not_a_basic_centre(smiles):
+    """Live session: 1,3-dinitro-1,3-diazetidine read as TWO basic centres, so
+    the pKa predictor was asked for values it could not give and solubility,
+    logD and the pH curves reported a failure for a molecule with nothing to
+    ionise. The lone pair sits in N=O exactly as an amide's sits in C=O."""
+    assert classify_ionizable_centres(Chem.MolFromSmiles(smiles)) == (0, 0)
+
+
+@pytest.mark.parametrize(
+    "smiles,bases",
+    [
+        ("CCN(CC)CC", 1),                       # triethylamine
+        ("C1CCNCC1", 1),                        # piperidine
+        ("CN1CCNCC1", 2),                       # N-methylpiperazine
+        ("CN(C)CCN(C)[N+](=O)[O-]", 1),         # a real amine beside a nitramine: only it counts
+    ],
+)
+def test_excluding_n_nitro_did_not_cost_a_real_amine(smiles, bases):
+    """The other half of the boundary: the new exclusion must not have
+    removed an amine that is basic."""
+    assert classify_ionizable_centres(Chem.MolFromSmiles(smiles)) == (0, bases)
+
+
+def test_the_basic_amine_pattern_has_one_definition():
+    """It was written out three times and only one was ever corrected. The
+    hERG checklist and the common-pattern search list now import it."""
+    from openchem.chem import descriptor_providers, logd, substructure
+
+    assert substructure.COMMON_PATTERNS["Basic amine (hERG risk pattern)"] == logd.BASIC_AMINE_SMARTS
+    assert Chem.MolToSmarts(descriptor_providers._BASIC_AMINE_SMARTS) == Chem.MolToSmarts(
+        Chem.MolFromSmarts(logd.BASIC_AMINE_SMARTS)
+    )
+
+
 def test_benzene_has_no_ionizable_centre_so_logd_is_none():
     """None means "logD is just logP here" -- the caller should say that
     rather than present an identical number as a separate calculation."""
