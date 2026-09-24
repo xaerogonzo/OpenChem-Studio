@@ -102,6 +102,8 @@ The script is a JSON list of steps, run in order:
       {"do": "expect_offered",   "hidden": ["detonation"], "footer": "1 calculator ..."}
                                               which calculators the Properties
                                               launcher OFFERS, by row visibility
+      {"do": "expect_help",      "topic": "calc-joback-properties"}
+                                              which help topic is in FRONT
       {"do": "quit"}                          ends in a VERDICT and an exit status
     ]
 
@@ -4592,6 +4594,36 @@ class _Driver(QObject):
             logger.warning("OPENCHEM_DRIVE: EXPECT results ok[%s]", tag)
         else:
             logger.error("OPENCHEM_DRIVE: EXPECT results FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
+    def _do_expect_help(self, step: dict[str, Any]) -> None:
+        """`{"do": "expect_help", "topic": "calc-joback-properties"}` -- which help
+        topic is in front, asserted.
+
+        Looks at the help window a Settings page or a calculator dialog opened
+        (a CHILD of that dialog, because a modal dialog blocks any other window),
+        and failing that at the main window's own. "It opened" is not the claim:
+        the claim is that it opened ON the section it should have.
+        """
+        tag = str(step.get("tag", ""))
+        wanted = str(step.get("topic", ""))
+        candidates = []
+        dialog = getattr(self, "_dialog", None)
+        page = getattr(dialog, "calculators_page", None)
+        for owner in (page, dialog, self._window):
+            for attribute in ("_help_window", "_help_dialog"):
+                window = getattr(owner, attribute, None)
+                if window is not None:
+                    candidates.append(window)
+        shown = [w for w in candidates if w.isVisible()]
+        found = str(getattr(shown[0], "_current_key", "")) if shown else ""
+        ok = bool(shown) and found == wanted
+        detail = "as expected" if ok else (
+            f"help window shows {found!r}" if shown else "no help window is open"
+        ) + f", wanted {wanted!r}"
+        if self._record_assertion("expect_help", tag, ok, detail):
+            logger.warning("OPENCHEM_DRIVE: EXPECT help ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT help FAILED[%s] -- %s", tag, detail)
 
     def _do_expect_offered(self, step: dict[str, Any]) -> None:
         """`{"do": "expect_offered", "offered": [...], "hidden": [...], "footer": "..."}`
