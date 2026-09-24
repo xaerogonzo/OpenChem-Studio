@@ -21365,3 +21365,27 @@ back. Fixed by selecting the atom and dispatching a `dblclick` at its position, 
   `QMenu.addMenu(title)` returns a Python-owned wrapper, so the submenu's C++ object is deleted when the builder returns; create it WITH its parent.
 * **A React input needs the native setter, and an INPUT.** Assigning `.value` is ignored by the form, and the native setter throws "Illegal
   invocation" on a wrapper element that carries the same `data-testid`.
+
+
+## A TYPO PARSED AS "NO SHORTCUT", TWO ACTIONS ON ONE KEY RUN NEITHER, AND A GATE'S THREE CRASHES IN A ROW WERE LUCK
+
+Measured 2026-09-24 making menu shortcuts changeable (`ShortcutRegistry`, Settings > Keyboard), and reading the gate that followed.
+
+* **Text Qt cannot read is not an empty sequence.** `QKeySequence.fromString("banana")` has `isEmpty()` false and `count() == 1`: one "unknown" key whose
+  portable text is `""`. The first version normalised the text and THEN validated it, so a typo became `""`, which is the valid request to clear -- a
+  mistyped rebind silently removed the command's shortcut. Found by the test written for "unreadable text is refused", not by reading the code. Validation
+  now judges the text AS GIVEN, and both entry points (a stored value at startup, a person's recording) go through it.
+* **Two actions on one shortcut are ambiguous and Qt runs neither.** A stored choice can collide with the default a later release gives another command,
+  and applying choices one at a time is order-dependent: it either refuses a legitimate swap of two commands' keys (each choice is the other's default)
+  or leaves both dead. Startup now resolves the whole intended map first, drops only the colliding CHOICES (with a warning; the shipped default keeps
+  the key) and repeats until stable, since a returned default can collide in turn. A swap collides with nothing once both apply and is kept whole.
+* **`action.shortcut()` correct says nothing about Qt's shortcut map.** The property the feature is for -- the new key fires the command and the old one
+  no longer does -- is tested by `QTest.keyClick` at the active window, and a driven step presses the real keys in the running app. The first probe
+  "did nothing" for a boring reason: the action chosen (Recalculate Now) is disabled while nothing is pending, and a disabled action ignores its
+  key. The recorder was checked the same way: pressing Ctrl+Z INTO the box records it and names Undo as the holder rather than running Undo.
+* **Three consecutive gate crashes are not a deterministic crash.** The final gate on b3510161 passed everything except chunk s2c7, which died three
+  times running in `test_result_presentation.py::_dispose` (exit 139) -- the known Windows disposal crash, which the gate tool's own comment calls
+  "deterministic per chunk composition". Replaying that exact chunk with the gate's command on an idle machine crashed 2 of 10 on the branch and 3 of
+  10 on a detached MASTER tree's equivalent chunk (same file, plus once `test_screening_service`), and every run that did not crash passed all 673
+  tests. At a rate near 30%, three in a row is a few percent per gate, which is what makes it look deterministic. The attribution took twenty minutes and
+  one worktree; the three-attempt retry is thin for the one chunk that holds this file.
