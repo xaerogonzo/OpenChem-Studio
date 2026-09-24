@@ -508,6 +508,24 @@ _HET_SUBSTITUENT_SUFFIX_SINGLE: dict[int, str] = {
 # and append "amino": "(propan-2-ylidene)amino", "(methylidene)amino", ...
 # Per P-66.4.1.2.
 
+def _sulfonamide_is_ring_nitrogen_prefix(fg, parent_atoms, mol) -> bool:
+    """True for an acyclic-sulfur sulfonamide whose nitrogen is a ring atom that is not in the parent (naming round 14).
+
+    Such a group has no suffix or ``sulfamoyl`` form (there is no N-substituent list to give), so it is left to the structural carve, which names
+    ``S(=O)(=O)N<ring>`` through the sulfonyl/sulfinyl route of `_name_heteroatom_fv_substituent` as ``<ring>-N-sulfonyl``. A cyclic sulfonamide (sulfur in the ring) and a
+    ring that IS the parent are not this case.
+    """
+    if fg.type != "sulfonamide" or fg.anchor in parent_atoms:
+        return False
+    sulfur = mol.GetAtomWithIdx(fg.anchor)
+    if sulfur.GetAtomicNum() != 16 or sulfur.IsInRing():
+        return False
+    return any(
+        nb.GetAtomicNum() == 7 and nb.IsInRing() and nb.GetIdx() not in parent_atoms
+        for nb in sulfur.GetNeighbors()
+    )
+
+
 def _name_ring_nitrogen_acyl_substituent(
     mol,
     output_form: OutputForm,
@@ -5254,6 +5272,13 @@ def _name_single_fg_substituent(
                         if r_name and "[NAMING ERROR" not in r_name:
                             suffix = "sulfonyl" if oxo_count == 2 else "sulfinyl"
                             sulfonyl_prefix = r_name + suffix
+                            # A ring bonded through its NITROGEN takes the sulfonic acid's prefix, 'piperidine-1-sulfonyl' (P-65.3.2.3, the way
+                            # '(propane-1-sulfonyl)benzene' is written, pdf p. 614), not 'piperidin-1-ylsulfonyl' (naming round 14, D-151).
+                            _r_att = mol.GetAtomWithIdx(r_att_atom_idx)
+                            if _r_att.GetAtomicNum() == 7 and _r_att.IsInRing() and _r_att.GetFormalCharge() == 0:
+                                _m_ring = re.fullmatch(r"(.+?)([a-z]*[a-z])-(\d+)-yl", r_name)
+                                if _m_ring is not None and not _m_ring.group(2).endswith("e"):
+                                    sulfonyl_prefix = f"{_m_ring.group(1)}{_m_ring.group(2)}e-{_m_ring.group(3)}-{suffix}"
                             return LeafTree(
                                 output_form=output_form,
                                 free_valence=free_valence,
@@ -14659,6 +14684,10 @@ class SubstitutivePath:
             # prefix form, it claimed atoms nothing could name, the acid plan died with 'heavy atoms unclaimed', and the engine fell back to a hydrazide
             # parent ('3-carboxypropanehydrazide' for '4-hydrazinyl-4-oxobutanoic acid': the hydrazide ABOVE a carboxylic acid, against Table 4.1).
             and not (fg.type == "hydrazide" and not _hydrazide_attaches_through_its_carbonyl(fg, parent_atoms, mol))
+            # A sulfonamide whose nitrogen is a RING atom outside the parent is the prefix '<ring>-N-sulfonyl' (naming round 14, D-151): the group claimed
+            # S, O, O and N and left the ring's carbons unclaimed, so every plan with the sulfonamide's other side as parent died and the engine fell
+            # back to naming the ring as the parent ('1-(4-carboxyphenylsulfonyl)piperidine', an ESTER as 'ethyl 1-(...)piperidine').
+            and not _sulfonamide_is_ring_nitrogen_prefix(fg, parent_atoms, mol)
         ]
 
         # Atoms claimed by non-PCG FGs (but not the parent backbone).
@@ -16369,8 +16398,10 @@ class SubstitutivePath:
                                                 n_sub_names_sf.append("?")
                                         if n_sub_names_sf and "?" not in n_sub_names_sf:
                                             from openchem.vendor.iupac_namer.assembly import merge_identical_prefixes, render_merged_prefixes
+                                            # Each N-substituent carries ITS OWN locant, so different ones read 'N-cyclohexyl-N-methyl' and identical ones
+                                            # 'N,N-dimethyl' (naming round 14: the old shared 'N,N-' block printed 'N,N-cyclohexylmethyl', unparsable).
                                             merged_sf = merge_identical_prefixes(
-                                                [(nm, ()) for nm in n_sub_names_sf]
+                                                [(nm, ("N",)) for nm in n_sub_names_sf]
                                             )
                                             merged_sf.sort(key=lambda m: m.sort_name)
                                             n_prefix_sf = render_merged_prefixes(merged_sf)
@@ -16382,10 +16413,8 @@ class SubstitutivePath:
                                             # collapses identical names into a single
                                             # "diX" / "triX" prefix without adjusting
                                             # the count we need for locants).
-                                            n_locant_count = len(n_sub_names_sf)
-                                            n_locant_block = ",".join(["N"] * n_locant_count)
-                                            # Build "N-methylsulfamoyl" / "N,N-dimethylsulfamoyl" style prefix
-                                            compound_sf_prefix = n_locant_block + "-" + n_prefix_sf + "sulfamoyl"
+                                            # Build "N-methylsulfamoyl" / "N,N-dimethylsulfamoyl" / "N-cyclohexyl-N-methylsulfamoyl" style prefix
+                                            compound_sf_prefix = n_prefix_sf + "sulfamoyl"
                                             sub_tree_sf = LeafTree(
                                                 output_form=OutputForm.SUBSTITUENT,
                                                 free_valence=None,

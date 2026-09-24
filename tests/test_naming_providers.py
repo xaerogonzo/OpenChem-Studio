@@ -895,18 +895,18 @@ def test_a_real_embedded_engine_error_is_withheld_with_the_error_reason():
 
 
 def test_a_real_name_that_reads_back_as_another_structure_is_withheld_with_the_mismatch_reason():
-    """Cause two, with the real OPSIN read-back. D-151 (an OPEN defect: an ester functional-class name whose acid component is a `carboxy`
-    prefix on a piperidine) is a real wrong-structure name that is NOT an embedded error, so it can only be caught by the read-back. When
-    D-151 is fixed this example has to move to another open wrong-structure row -- the strict xfail in test_namer_known_defects.py fires in
-    the same commit, which is the reminder."""
+    """Cause two, with the real OPSIN read-back. D-153 (an OPEN defect: an aromatic tropolone named as a saturated cycloheptanone) is a real
+    wrong-structure name that is NOT an embedded error, so it can only be caught by the read-back. When D-153 is fixed this example has to move
+    to another open wrong-structure row -- the strict xfail in test_namer_known_defects.py fires in the same commit, which is the reminder.
+    (Round 13 used D-151 here; naming round 14 fixed it.)"""
     if not naming_providers.opsin_available():
         pytest.skip("the read-back gate needs OPSIN")
     import openchem.vendor.iupac_namer as namer
 
-    smiles = "O=C(OCC)c1ccc(S(=O)(=O)N2CCCCC2)cc1"
+    smiles = "COc1cccc(O)c(=O)c1"
     engine_output = namer.name_smiles(smiles)
     assert "NAMING ERROR" not in engine_output                   # a plain-looking name ...
-    assert "carboxyphenylsulfonyl" in engine_output              # ... and the wrong one (D-151's recorded output)
+    assert "cycloheptan-1-one" in engine_output                  # ... and the wrong one (D-153's recorded output)
 
     with pytest.raises(naming_providers.NamingError) as raised:
         naming_providers.derived_name_for_structure(Chem.MolFromSmiles(smiles))

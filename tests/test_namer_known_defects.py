@@ -3516,6 +3516,36 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "4-amino-4-oxo-1-phenylbutan-1-one", "SILENT: the amide, named as a ketone with an amino prefix"),
     ("D-150c", "OC(=O)CCC(=O)C1CCCCC1", "4-cyclohexyl-4-oxobutanoic acid",
      "3-carboxy-1-cyclohexylpropan-1-one", "a cycloalkyl ketone, not only an aryl one"),
+
+    # --- D-151 / D-152 (naming round 14): a sulfonamide on a RING nitrogen, and a sulfamoyl with two different N-substituents ------------------------
+    # D-151: `S(=O)(=O)N<ring>` was detected as a sulfonamide whose demoted prefix claimed S, O, O and N and left the ring's carbons unclaimed, so
+    # every plan with the OTHER side as parent died ('leaves heavy atoms unclaimed') and the engine fell back to naming the ring as the parent.
+    # The acid lost its suffix ('1-(4-carboxyphenylsulfonyl)piperidine'), and an ESTER of it was named as an ester of the piperidine
+    # ('ethyl 1-(4-carboxyphenylsulfonyl)piperidine', a different structure). Census: 7 of 2000 structures, 2 of them wrong structures. The group is
+    # now left to the structural carve, and the prefix is the sulfonic acid's '<ring>-N-sulfonyl' (P-65.3.2.3, the form of '(propane-1-sulfonyl)benzene',
+    # pdf p. 614). The old spelling '<ring>-ylsulfonyl' still reads back; it is not the preferred prefix.
+    ("D-151", "O=C(OCC)c1ccc(S(=O)(=O)N2CCCCC2)cc1", "ethyl 4-(piperidine-1-sulfonyl)benzoate",
+     "ethyl 1-(4-carboxyphenylsulfonyl)piperidine", "the ester of an acid with a ring-nitrogen sulfonamide (a different structure)"),
+    ("D-151b", "OC(=O)c1ccc(S(=O)(=O)N2CCCCC2)cc1", "4-(piperidine-1-sulfonyl)benzoic acid",
+     "1-(4-carboxyphenylsulfonyl)piperidine", "SILENT: the acid parent was lost, the read-back still matched"),
+    ("D-151c", "OC(=O)c1ccc(S(=O)(=O)N2CCOCC2)cc1", "4-(morpholine-4-sulfonyl)benzoic acid",
+     "4-(4-carboxyphenylsulfonyl)morpholine", "a morpholine nitrogen (the locant is 4)"),
+    ("D-151d", "OC(=O)c1ccc(S(=O)(=O)N2CCCC2)cc1", "4-(pyrrolidine-1-sulfonyl)benzoic acid",
+     "1-(4-carboxyphenylsulfonyl)pyrrolidine", "a five-membered ring"),
+    ("D-151e", "OC(=O)c1ccc(S(=O)N2CCCCC2)cc1", "4-(piperidine-1-sulfinyl)benzoic acid",
+     "4-(piperidin-1-ylsulfinyl)benzoic acid", "the sulfinyl prefix has the same rule (its old spelling read back)"),
+    ("D-151f", "O=C(OCC(=O)c1ccc(Cl)cc1)c1ccc(S(=O)(=O)N2CCCCC2)cc1", "2-(4-chlorophenyl)-2-oxoethyl 4-(piperidine-1-sulfonyl)benzoate",
+     "2-(4-chlorophenyl)-2-oxoethyl 1-(4-carboxyphenylsulfonyl)piperidine", "the census shape: D-149's phenacyl ester on this acid (a different structure)"),
+    ("D-151g", "CC(=O)Nc1ccc(S(=O)(=O)N2CCCCC2)cc1", "N-[4-(piperidine-1-sulfonyl)phenyl]acetamide",
+     "1-(4-acetamidophenylsulfonyl)piperidine", "SILENT: an amide beside the sulfonyl ring lost its parent role, and the read-back matched"),
+    # D-152: the sulfamoyl prefix printed ONE shared 'N,N-' block for its substituents, so two different ones read 'N,N-cyclohexylmethylsulfamoyl',
+    # which no parser reads (3 census structures, all unparsable). Each substituent carries its own locant now, as an amine's do.
+    ("D-152a", "CN(C1CCCCC1)S(=O)(=O)c1ccc(C(=O)Nc2ccccc2)cc1", "4-(N-cyclohexyl-N-methylsulfamoyl)-N-phenylbenzamide",
+     "4-(N,N-cyclohexylmethylsulfamoyl)-N-phenylbenzamide", "the census shape"),
+    ("D-152b", "OC(=O)c1ccc(S(=O)(=O)N(CC)CCC)cc1", "4-(N-ethyl-N-propylsulfamoyl)benzoic acid",
+     "4-(N,N-ethylpropylsulfamoyl)benzoic acid", "two acyclic substituents, alphabetical order"),
+    ("D-152c", "CC(c1ccccc1)N(CC1CO1)S(=O)(=O)c1ccc(C(=O)N(C)C)cc1", "N,N-dimethyl-4-{N-[(oxiran-2-yl)methyl]-N-(1-phenylethyl)sulfamoyl}benzamide",
+     "N,N-dimethyl-4-{N,N-[(oxiran-2-yl)methyl](1-phenylethyl)sulfamoyl}benzamide", "compound substituents keep their brackets"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -3618,16 +3648,12 @@ OPEN: list[tuple[str, str, str, str, str]] = [
      "-- the WRONG MOLECULE this item was admitted for is fixed, the PIN is "
      "a separate, still-open gap (imine FG perception is empty for this "
      "structure in every context, not only the multiplicative one)"),
-    # Naming round 13: an ESTER of an acid that also carries a ring-nitrogen sulfonamide is named as a functional-class ester of the
-    # PIPERIDINE, whose "acid" is a `carboxy` prefix: the ester group is attached to a name that is not an acid. Wrong structure, and it was
-    # already there for the plain methyl and ethyl esters; naming round 13's W2 only stopped it being MASKED for the phenacyl ester (which used
-    # to die earlier on an ownership error). The N,N-dimethylsulfonamide of the same acid is named correctly, so the ring nitrogen is the
-    # trigger. Census: 4 of 2000 structures (0.2%, under the 0.5% floor) share the "ester on a non-acid parent" shape, in three different
-    # families, so it is recorded here and not fixed. The app withholds the name (the read-back is a different structure). The target is
-    # derived (not printed) and read back through OPSIN.
-    ("D-151", "O=C(OCC)c1ccc(S(=O)(=O)N2CCCCC2)cc1", "ethyl 4-(piperidine-1-sulfonyl)benzoate",
-     "ethyl 1-(4-carboxyphenylsulfonyl)piperidine",
-     "an ester functional-class name whose acid component is a `carboxy` prefix on a ring parent"),
+    # Naming round 14: an aromatic seven-ring ketone with a hydroxyl (a tropolone) is named as the SATURATED cycloheptanone, so the name reads back as a
+    # different structure. One census row (0.05%, under the floor, recorded not fixed); a structural error, not a preference. The target is derived
+    # (the ring is cyclohepta-2,4,6-trien-1-one, lowest locants {2,6}) and both 4- and 6-methoxy numberings read back exact.
+    ("D-153", "COc1cccc(O)c(=O)c1", "2-hydroxy-6-methoxycyclohepta-2,4,6-trien-1-one",
+     "2-hydroxy-6-methoxycycloheptan-1-one",
+     "an aromatic tropolone named as a saturated cycloheptanone (a different structure)"),
 ]
 
 # Observed but NOT tracked here, because this table requires a verified
@@ -4296,5 +4322,35 @@ def test_every_atom_of_a_repaired_shape_is_owned_by_exactly_one_node(smiles, mon
     """`strict` makes the ownership check RAISE instead of falling to the next plan, so a naming that returns here had every atom of every
     level owned once and only once (an atom dropped, an atom claimed twice and an atom owned by the wrong kind of node are all violations
     of that one check). Without this the silent fall-back to another plan would pass a name-equality test for the wrong reason."""
+    monkeypatch.setenv("OPENCHEM_NAMER_OWNERSHIP", "strict")
+    assert "NAMING ERROR" not in name_smiles(smiles)
+
+
+# ---- D-151 / D-152 (naming round 14): converses, and the exactly-one-owner check on the repaired shapes ---------------------------------------
+# The filter is narrow (a sulfonamide whose sulfur is NOT in a ring and whose nitrogen IS a ring atom outside the parent), so each converse is a
+# neighbour that must not move: a ring that IS the parent, a cyclic sulfonamide, an acyclic N, a ring-nitrogen amide, and the unchanged sulfamoyl forms.
+
+@pytest.mark.parametrize("smiles, expected", [
+    ("CS(=O)(=O)N1CCCCC1", "1-(methanesulfonyl)piperidine"),                        # the ring IS the parent
+    ("O=S(=O)(N1CCCCC1)c1ccccc1", "1-(benzenesulfonyl)piperidine"),                 # ... and so is this one
+    ("OC(=O)c1ccc(S(=O)(=O)N(C)C)cc1", "4-(N,N-dimethylsulfamoyl)benzoic acid"),    # an acyclic nitrogen: the sulfamoyl prefix, identical substituents
+    ("OC(=O)c1ccc(S(=O)(=O)NC)cc1", "4-(N-methylsulfamoyl)benzoic acid"),
+    ("OC(=O)c1ccc(S(=O)(=O)N(CCCl)CCCl)cc1", "4-[N,N-bis(2-chloroethyl)sulfamoyl]benzoic acid"),
+    ("OC(=O)c1ccc(C(=O)N2CCCCC2)cc1", "4-(piperidine-1-carbonyl)benzoic acid"),     # the carbonyl twin was already right
+    ("OC(=O)c1ccc(S(=O)(=O)C2CCCCC2)cc1", "4-(cyclohexylsulfonyl)benzoic acid"),     # sulfur on a ring CARBON, no nitrogen (unchanged output)
+])
+def test_the_ring_nitrogen_sulfonamide_filter_does_not_move_a_neighbouring_name(smiles, expected):
+    assert name_smiles(smiles) == expected
+
+
+@pytest.mark.parametrize("smiles", [
+    "O=C(OCC)c1ccc(S(=O)(=O)N2CCCCC2)cc1",
+    "OC(=O)c1ccc(S(=O)(=O)N2CCOCC2)cc1",
+    "O=C(OCC(=O)c1ccc(Cl)cc1)c1ccc(S(=O)(=O)N2CCCCC2)cc1",
+    "CN(C1CCCCC1)S(=O)(=O)c1ccc(C(=O)Nc2ccccc2)cc1",
+    "CC(c1ccccc1)N(CC1CO1)S(=O)(=O)c1ccc(C(=O)N(C)C)cc1",
+])
+def test_every_atom_of_a_round_14_sulfonyl_shape_is_owned_by_exactly_one_node(smiles, monkeypatch):
+    """`strict` raises instead of falling to the next plan, so a name returned here had every atom owned once and only once."""
     monkeypatch.setenv("OPENCHEM_NAMER_OWNERSHIP", "strict")
     assert "NAMING ERROR" not in name_smiles(smiles)
