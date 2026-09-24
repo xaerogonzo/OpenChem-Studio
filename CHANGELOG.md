@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   that works, now says which inputs it needs and in what units, and names both at once; a compound the method cannot use at all (nitroglycerin is
   over-oxidised) is reported as a limit *before* asking for inputs that could not help. A refusal whose code nobody classified is a fault, not a
   quiet limit.
+- **A pKa predictor that ran and returned nothing is "no prediction", not "failed".** `PKaStatus.NO_PREDICTION` separates a working predictor with
+  no answer for a structure (a limit of the model) from one that crashed (a fault) and from none configured (needs setup). Solubility now says
+  which, and the pH-dependent curves refuse instead of drawing a one-species "curve" from an empty list.
 
 ### Naming round 14 (branch `naming-round-14`)
 

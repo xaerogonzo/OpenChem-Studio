@@ -33,6 +33,7 @@ from rdkit.Chem import Crippen, Lipinski
 from openchem.chem.calculator_options import ph_grid_from
 from openchem.domain.calculator import SIDECAR_NOT_CONFIGURED
 from openchem.domain.common import CacheState, Provenance
+from openchem.domain.refusal_kinds import NO_PKA_PREDICTION
 from openchem.domain.report import Basis, Fact, FactCategory
 from openchem.domain.scientific_result import (
     PhCurveResult,
@@ -207,6 +208,17 @@ def _resolve_pkas(
         pairs = compute_pka(mol, interpreter_path) or []
     except RuntimeError as exc:
         return [], n_acids, n_bases, _Refused("", str(exc), False)
+    if not pairs:
+        # RAN AND RETURNED NOTHING for a structure that has an ionizable
+        # centre. This used to fall through with an empty list and draw a
+        # one-species "curve" -- a confident flat line for a molecule the
+        # predictor simply had no answer for. A limit of the model, and said so.
+        return [], n_acids, n_bases, _Refused(
+            NO_PKA_PREDICTION,
+            "The pKa predictor ran but has no prediction for this structure, so there is no "
+            "pH-dependent curve to draw.",
+            True,
+        )
     return sorted(p.value for p in pairs), n_acids, n_bases, None
 
 
