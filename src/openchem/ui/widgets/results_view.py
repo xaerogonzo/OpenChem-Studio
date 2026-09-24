@@ -52,6 +52,7 @@ import logging
 from dataclasses import replace
 
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QFontMetrics
 from PySide6.QtWidgets import (
     QComboBox,
     QHBoxLayout,
@@ -689,7 +690,36 @@ class ResultsView(QWidget):
                     label += STALE_MARK
                 self._focus_box.addItem(label, report.report_id)
         self._focus_box.blockSignals(blocked)
+        self._fit_focus_popup()
         self._sync_focus_box()
+
+    def _fit_focus_popup(self) -> None:
+        """Make the "Showing" list as wide as its longest entry, and say each in full.
+
+        **THE POPUP TOOK THE COMBO'S OWN WIDTH, AND THE COMBO LIVES IN A DOCKED
+        COLUMN.** Measured in the running app: entries like "Thermophysical
+        Properties (Joback)" and "Interaction energy breakdown (LED)" were elided
+        to a fragment in a list that had all the room in the world to be wider than
+        the box that opened it. The closed control stays as narrow as the column
+        needs; only the popup widens, and it never narrows below the control.
+
+        A tooltip carries each entry's full text as well, for the case where even
+        the widened popup is clipped by the edge of the screen.
+        """
+        box = self._focus_box
+        widest = 0
+        for index in range(box.count()):
+            text = box.itemText(index)
+            font = box.font()
+            model = box.model()
+            item = model.item(index) if hasattr(model, "item") else None
+            if item is not None:
+                font = item.font()
+            widest = max(widest, QFontMetrics(font).horizontalAdvance(text))
+            box.setItemData(index, text, Qt.ItemDataRole.ToolTipRole)
+        scrollbar = box.view().verticalScrollBar().sizeHint().width()
+        # The list's own frame and item padding, and room for the scrollbar.
+        box.view().setMinimumWidth(max(box.width(), widest + scrollbar + 32))
 
     def _add_group_heading(self, label: str) -> None:
         """A row that names a section and cannot be chosen.
