@@ -1,0 +1,153 @@
+{
+ "engine_commit": "a66644c3",
+ "sample": "census_sample.json (sha in r14-w0-provenance.json)",
+ "clusters": [
+  {
+   "id": "C1",
+   "name": "ring-nitrogen sulfonamide (S bonded to a ring N) is not carved as a `<ring>-N-sulfonyl` substituent",
+   "status": "candidate: diagnosed in W2 (D-151 broadened)",
+   "rows": [
+    "census558625",
+    "census999625",
+    "census333625",
+    "census60625",
+    "census1174625",
+    "census1288625",
+    "census1435625"
+   ],
+   "note": "558 and 999 read back as WRONG structures (D-151); 60,1174,1288,1435 embed 'leaves heavy atoms unclaimed' / no valid plan; 333 wrong (7-sulfamoyl)"
+  },
+  {
+   "id": "C2",
+   "name": "sulfamoyl with two DIFFERENT N-substituents is written `N,N-<a>(<b>)sulfamoyl` (unparsable) instead of `N-<a>-N-<b>sulfamoyl`",
+   "status": "candidate",
+   "rows": [
+    "census187625",
+    "census1165625",
+    "census1518625"
+   ],
+   "note": "3 unparsable"
+  },
+  {
+   "id": "C3",
+   "name": "ring cations (14): aromatic fused [n+] / [nH]+ and protonated ring amines",
+   "status": "W1: split by root mechanism after tracing",
+   "rows": [
+    "census904625",
+    "census1567625",
+    "census1568625",
+    "census1601625",
+    "census2036625",
+    "census1620625",
+    "census1641625",
+    "census1847625",
+    "census1859625",
+    "census1862625",
+    "census2091625",
+    "census1591625",
+    "census1717625",
+    "census1788625"
+   ]
+  },
+  {
+   "id": "C4",
+   "name": "neutral fused/spiro polycycle with 'No valid naming plan'",
+   "status": "below floor unless a shared root is found",
+   "rows": [
+    "census1044625",
+    "census1202625",
+    "census1852625",
+    "census1968625"
+   ]
+  },
+  {
+   "id": "C5",
+   "name": "fused ring locant / partial table: [1,2,4]triazolo[3,4-b][1,3]benzothiazole (sweep partial-table failure)",
+   "status": "W3 (has 2 census rows)",
+   "rows": [
+    "census736625",
+    "census982625"
+   ]
+  },
+  {
+   "id": "C6",
+   "name": "bridged methano-benzocyclooctene named with wrong skeleton",
+   "status": "below floor",
+   "rows": [
+    "census1027625",
+    "census1746625"
+   ]
+  },
+  {
+   "id": "C7",
+   "name": "anion of a sulfonamide N- : OPSIN candidate mismatch / refused acidic_anion_carboxylate",
+   "status": "candidate; OPSIN reads anions as neutral acids: read rows first",
+   "rows": [
+    "census1975625",
+    "census2059625",
+    "census2072625",
+    "census1754625"
+   ]
+  },
+  {
+   "id": "C8",
+   "name": "single-row structural misnames (tropolone as cycloheptanone, amidine, oxime ether, hydrazide N vs N', acetal-like, indicated hydrogen)",
+   "status": "below floor; recorded",
+   "rows": [
+    "census47625",
+    "census322625",
+    "census325625",
+    "census356625",
+    "census409625",
+    "census1540625",
+    "census1786625",
+    "census923625"
+   ]
+  },
+  {
+   "id": "C9",
+   "name": "unparsable, other mechanisms (oxamide N1/N2, bicyclic von Baeyer, adamantane, camphanyl, triazine-dione, bis-dioxolo)",
+   "status": "below floor; recorded",
+   "rows": [
+    "census150625",
+    "census167625",
+    "census192625",
+    "census561625",
+    "census802625",
+    "census949625",
+    "census1909625"
+   ]
+  },
+  {
+   "id": "C10",
+   "name": "stereocentre inside a substituent (or on a ring not the parent) carries no CIP descriptor: name is less specific, not a wrong structure",
+   "status": "largest cluster (27 rows by layer); diagnosed in W4 for a bounded fix",
+   "rows_layers": "stereo layers m/s/t only: 30 rows (23 mst, 3 mt, 4 t); 12+ carry (oxolan-2-yl)methyl"
+  },
+  {
+   "id": "C11",
+   "name": "charge/protonation lost: [S-], [NH+] not represented (layer p)",
+   "status": "4 rows; policy question (stereo/charge policy), recorded",
+   "rows": [
+    "census445625",
+    "census1607625",
+    "census1629625",
+    "census1936625"
+   ]
+  },
+  {
+   "id": "C12",
+   "name": "double-bond stereo omitted (layer b)",
+   "status": "1 row",
+   "rows": [
+    "census1935625"
+   ]
+  }
+ ],
+ "counts": {
+  "same_connectivity": 35,
+  "of_which_stereo_only": 30,
+  "of_which_protonation": 4,
+  "of_which_double_bond": 1
+ }
+}

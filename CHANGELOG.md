@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming round 14 (branch `naming-round-14`)
+
+- **Census 95.70% -> 97.95% exact** (1914 -> 1959 of 2000 structures; no row left `exact`), candidate wrong structures 0.90% -> 0.60%, embedded errors and
+  refusals 1.15% -> 0.45%. The round-13 scan had never been saved and was reconstructed row by row against the r12 baseline first.
+- **A sulfonamide on a ring nitrogen** (`4-(piperidine-1-sulfonyl)benzoic acid`): an acid lost its suffix and an ester was named as an ester of the
+  piperidine, a different structure. **A sulfamoyl with two different N-substituents** reads `N-cyclohexyl-N-methylsulfamoyl`, not the unparsable
+  `N,N-cyclohexylmethylsulfamoyl`.
+- **Ring cations that had no name** (four separate roots): fused cations that are not retained rings, a cation drawn on the bridgehead nitrogen,
+  a quaternary bridgehead cation with a substituent (and the quinolizidine nitrogen's locant, `4a` -> 5), and a cation inside an acyl prefix that
+  lost its charge. Tricyclic cations are deliberately not covered.
+- **Stereo no longer dropped** on a retained ring substituent (`[(2R)-oxolan-2-yl]methanol`, 18 census structures) or on a spiro parent at a plain
+  locant. **Tropone, tropolone and hinokitiol** are named as the trienones, not as saturated cycloheptanones.
+- **Ring locants:** heptacene to nonacene and the phenes now have tables derived from the fusion numbering rules; octahydroindole, the biotin skeleton
+  and triazolobenzothiazole have complete tables. The four helicenes are still unnumbered.
+- **Recorded, not fixed:** an N-hydroxy-N-alkyl amide inside an ester loses its N-substituent (D-162), and 41 census rows in about ten clusters, each with
+  its reason. See `src/openchem/vendor/KNOWN_LIMITATIONS.md`, "Open after naming round 14".
+
 ### Naming round 13 (branch `naming-round-13`)
 
 - **A wrong ring locant on a heterocyclic substituent, fixed (27 of the 2000 census structures, 1.35%).** `N-(5-methyl-1,3,4-thiadiazol-3-yl)acetamide`

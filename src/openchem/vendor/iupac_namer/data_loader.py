@@ -557,7 +557,10 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # seed).  Canonical SMILES from OPSIN pentacene/hexacene/heptacene etc.
     # via py2opsin + Chem.MolToSmiles.  No atom_locants supplied — these
     # scaffolds are unsubstituted parents (the audit probes only the parent
-    # form); substituent numbering on them is deferred.
+    # form); substituent numbering on them is deferred. (Naming round 14 filled heptacene, octacene, nonacene and the phene series pentaphene to
+    # octaphene, each table one of the numberings `fusion_general.name_fusion` derives under P-25.3.3; the pentacene and hexacene tables below
+    # are one of those too, which is the check that the derivation agrees with the OPSIN-probed ones. The helicenes stay unnumbered: the orientation
+    # module declines them, "a helicene is oriented and numbered by its own rule" (P-25.3.3.1.1), which nothing here implements.)
     # -----------------------------------------------------------------------
     # Pentacene (Stage 14 R14-A-2) — 5-ring linear acene (D2h), 22 atoms:
     # 14 peripheral CH + 8 ring-junction. Canonical (RDKit) key as above.
@@ -612,19 +615,43 @@ _RING_CURATED_SMILES: dict[str, dict] = {
                          20: "6a", 21: 6, 22: "5a", 23: 5,
                          24: "4a", 25: 4},
         "stage2_fusion_base": False},
-    "c1ccc2cc3cc4cc5cc6cc7ccccc7cc6cc5cc4cc3cc2c1":             {"name": "heptacene", "substituent_form": "heptacenyl", "alkyl_stem_ok": False},
-    "c1ccc2cc3cc4cc5cc6cc7cc8ccccc8cc7cc6cc5cc4cc3cc2c1":       {"name": "octacene",  "substituent_form": "octacenyl",  "alkyl_stem_ok": False},
-    "c1ccc2cc3cc4cc5cc6cc7cc8cc9ccccc9cc8cc7cc6cc5cc4cc3cc2c1": {"name": "nonacene",  "substituent_form": "nonacenyl",  "alkyl_stem_ok": False},
+    "c1ccc2cc3cc4cc5cc6cc7ccccc7cc6cc5cc4cc3cc2c1":             {"name": "heptacene", "substituent_form": "heptacenyl", "alkyl_stem_ok": False,
+    "atom_locants": {
+        0: 2, 1: 3, 2: 4, 3: "4a", 4: 5, 5: "5a", 6: 6, 7: "6a", 8: 7, 9: "7a", 10: 8, 11: "8a", 12: 9, 13: "9a", 14: 10, 15: 11, 16: 12, 17: 13,
+        18: "13a", 19: 14, 20: "14a", 21: 15, 22: "15a", 23: 16, 24: "16a", 25: 17, 26: "17a", 27: 18, 28: "18a", 29: 1}},
+    "c1ccc2cc3cc4cc5cc6cc7cc8ccccc8cc7cc6cc5cc4cc3cc2c1":       {"name": "octacene",  "substituent_form": "octacenyl",  "alkyl_stem_ok": False,
+    "atom_locants": {
+        0: 2, 1: 3, 2: 4, 3: "4a", 4: 5, 5: "5a", 6: 6, 7: "6a", 8: 7, 9: "7a", 10: 8, 11: "8a", 12: 9, 13: "9a", 14: 10, 15: "10a", 16: 11, 17: 12,
+        18: 13, 19: 14, 20: "14a", 21: 15, 22: "15a", 23: 16, 24: "16a", 25: 17, 26: "17a", 27: 18, 28: "18a", 29: 19, 30: "19a", 31: 20, 32: "20a",
+        33: 1}},
+    "c1ccc2cc3cc4cc5cc6cc7cc8cc9ccccc9cc8cc7cc6cc5cc4cc3cc2c1": {"name": "nonacene",  "substituent_form": "nonacenyl",  "alkyl_stem_ok": False,
+    "atom_locants": {
+        0: 2, 1: 3, 2: 4, 3: "4a", 4: 5, 5: "5a", 6: 6, 7: "6a", 8: 7, 9: "7a", 10: 8, 11: "8a", 12: 9, 13: "9a", 14: 10, 15: "10a", 16: 11,
+        17: "11a", 18: 12, 19: 13, 20: 14, 21: 15, 22: "15a", 23: 16, 24: "16a", 25: 17, 26: "17a", 27: 18, 28: "18a", 29: 19, 30: "19a", 31: 20,
+        32: "20a", 33: 21, 34: "21a", 35: 22, 36: "22a", 37: 1}},
 
     # -----------------------------------------------------------------------
     # Phene series (OPSIN miscTokens polyphene) — polyphene family with a
     # "bent" linear-fusion pattern (as in phenanthrene extended).  Canonical
     # SMILES from OPSIN pentaphene/hexaphene/heptaphene/octaphene.
     # -----------------------------------------------------------------------
-    "c1ccc2cc3c(ccc4cc5ccccc5cc43)cc2c1":                      {"name": "pentaphene", "substituent_form": "pentaphenyl", "alkyl_stem_ok": False},
-    "c1ccc2cc3cc4c(ccc5cc6ccccc6cc54)cc3cc2c1":                {"name": "hexaphene",  "substituent_form": "hexaphenyl",  "alkyl_stem_ok": False},
-    "c1ccc2cc3cc4c(ccc5cc6cc7ccccc7cc6cc54)cc3cc2c1":          {"name": "heptaphene", "substituent_form": "heptaphenyl", "alkyl_stem_ok": False},
-    "c1ccc2cc3cc4cc5c(ccc6cc7cc8ccccc8cc7cc65)cc4cc3cc2c1":    {"name": "octaphene",  "substituent_form": "octaphenyl",  "alkyl_stem_ok": False},
+    "c1ccc2cc3c(ccc4cc5ccccc5cc43)cc2c1":                      {"name": "pentaphene", "substituent_form": "pentaphenyl", "alkyl_stem_ok": False,
+    "atom_locants": {
+        0: 10, 1: 11, 2: 12, 3: "12a", 4: 13, 5: "13a", 6: "7a", 7: 7, 8: 6, 9: "5a", 10: 5, 11: "4a", 12: 4, 13: 3, 14: 2, 15: 1, 16: "14a", 17: 14,
+        18: "13b", 19: 8, 20: "8a", 21: 9}},
+    "c1ccc2cc3cc4c(ccc5cc6ccccc6cc54)cc3cc2c1":                {"name": "hexaphene",  "substituent_form": "hexaphenyl",  "alkyl_stem_ok": False,
+    "atom_locants": {
+        0: 11, 1: 12, 2: 13, 3: "13a", 4: 14, 5: "14a", 6: 15, 7: "15a", 8: "7a", 9: 7, 10: 6, 11: "5a", 12: 5, 13: "4a", 14: 4, 15: 3, 16: 2, 17: 1,
+        18: "16a", 19: 16, 20: "15b", 21: 8, 22: "8a", 23: 9, 24: "9a", 25: 10}},
+    "c1ccc2cc3cc4c(ccc5cc6cc7ccccc7cc6cc54)cc3cc2c1":          {"name": "heptaphene", "substituent_form": "heptaphenyl", "alkyl_stem_ok": False,
+    "atom_locants": {
+        0: 12, 1: 13, 2: 14, 3: "14a", 4: 15, 5: "15a", 6: 16, 7: "16a", 8: "8a", 9: 8, 10: 7, 11: "6a", 12: 6, 13: "5a", 14: 5, 15: "4a", 16: 4,
+        17: 3, 18: 2, 19: 1, 20: "18a", 21: 18, 22: "17a", 23: 17, 24: "16b", 25: 9, 26: "9a", 27: 10, 28: "10a", 29: 11}},
+    "c1ccc2cc3cc4cc5c(ccc6cc7cc8ccccc8cc7cc65)cc4cc3cc2c1":    {"name": "octaphene",  "substituent_form": "octaphenyl",  "alkyl_stem_ok": False,
+    "atom_locants": {
+        0: 13, 1: 14, 2: 15, 3: "15a", 4: 16, 5: "16a", 6: 17, 7: "17a", 8: 18, 9: "18a", 10: "8a", 11: 8, 12: 7, 13: "6a", 14: 6, 15: "5a", 16: 5,
+        17: "4a", 18: 4, 19: 3, 20: 2, 21: 1, 22: "20a", 23: 20, 24: "19a", 25: 19, 26: "18b", 27: 9, 28: "9a", 29: 10, 30: "10a", 31: 11, 32: "11a",
+        33: 12}},
 
     # -----------------------------------------------------------------------
     # Helicene series (OPSIN miscTokens polyhelicene) — helicoidal ortho-fused
@@ -956,13 +983,15 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # -----------------------------------------------------------------------
     # Bicyclic N-heterocycles
     # -----------------------------------------------------------------------
-    # quinolizidine (octahydroquinolizine): bridgehead N, positions 1-4,4a,6-9,9a.
-    # RDKit canonical 'C1CCN2CCCCC2C1': N=idx3(pos4a), idx8=pos9a(junction),
+    # quinolizidine (octahydroquinolizine): bridgehead N (position 5), positions 1-4,5(N),6-9,9a.
+    # The row said the nitrogen was '4a' until naming round 14: no carbon was ever tested at 4a (the chloro probing below is all carbon), so it
+    # only showed once the N took a substituent or the '-ium' ('quinolizidin-4a-ium', which OPSIN cannot read: there is no atom 4a).
+    # RDKit canonical 'C1CCN2CCCCC2C1': N=idx3(pos5), idx8=pos9a(junction),
     #   idx9=1, idx0=2, idx1=3, idx2=4, idx4=6, idx5=7, idx6=8, idx7=9
     # Verified via OPSIN chloro probing: 1-Cl->ClC1CCCN2CCCCC12 (idx9), 2-Cl->ClC1CCN2CCCCC2C1 (idx0),
     #   3-Cl->ClC1CCC2CCCCN2C1 (idx1), 4-Cl->ClC1CCCC2CCCCN12 (idx2).
     "C1CCN2CCCCC2C1":  {"name": "quinolizidine", "substituent_form": "quinolizidinyl", "alkyl_stem_ok": False,
-                        "atom_locants": {9: 1, 0: 2, 1: 3, 2: 4, 3: "4a", 4: 6, 5: 7, 6: 8, 7: 9, 8: "9a"}},
+                        "atom_locants": {9: 1, 0: 2, 1: 3, 2: 4, 3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: "9a"}},
 
     # octahydrocyclopenta[b]pyrrole: 5,5-fused saturated bicyclic, N at non-bridgehead.
     # RDKit canonical 'C1CC2CCNC2C1': rings (0,1,2,6,7) and (2,3,4,5,6); junctions = idx2,6.
@@ -3422,7 +3451,11 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # Verified: 5-Cl->idx2, 6-Cl->idx1, 7-Cl->idx0, 8-Cl->idx5.
     # Also confirmed via ZT-2407: 5-methyl compound Cc1cccc2sc3nncn3c12 round-trips correctly.
     "c1ccc2c(c1)sc1nncn12": {"name": "[1,2,4]triazolo[3,4-b][1,3]benzothiazole", "substituent_form": "[1,2,4]triazolo[3,4-b][1,3]benzothiazolyl", "alkyl_stem_ok": False,
-                              "atom_locants": {2: 5, 1: 6, 0: 7, 5: 8}},
+                              # Completed in naming round 14: the four benzo carbons above were OPSIN-probed and left every other atom to the generic
+                              # numbering, which gave the triazole carbon '5' as well (`[1,2,4]triazolo[3,4-b][1,3]benzothiazol-5-yl` for a C-3
+                              # attachment). The full table is the fusion numbering `fusion_general.name_fusion` derives (P-25.3.3), which agrees
+                              # with the four probed positions.
+                              "atom_locants": {0: 7, 1: 6, 2: 5, 3: "4a", 4: "8a", 5: 8, 6: 9, 7: "9a", 8: 1, 9: 2, 10: 3, 11: 4}},
 
     # -----------------------------------------------------------------------
     # Partly-saturated fused heterocycles — additions from triage
@@ -4350,18 +4383,25 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # Hexahydrothieno[3,4-d]imidazole: saturated 5+5 — imidazoline
     # fused at edge d (4-5) to thiolane's 3,4-edge.  Canonical 'C1NC2CSCC2N1'.
     # Core scaffold of biotin (vitamin B7).
+    # atom_locants (naming round 14): the numbering of the mancude parent thieno[3,4-d]imidazole, derived by `fusion_general.name_fusion`
+    # (P-25.3.3) and carried onto this skeleton by graph isomorphism; the hydro prefix is the name's own, the locants are the ring's.
     "C1NC2CSCC2N1": {
         "name": "hexahydrothieno[3,4-d]imidazole",
         "substituent_form": "hexahydrothieno[3,4-d]imidazol-N-yl",
-        "alkyl_stem_ok": False},
+        "alkyl_stem_ok": False,
+        "atom_locants": {0: 2, 1: 1, 2: "6a", 3: 6, 4: 5, 5: 4, 6: "3a", 7: 3}},
 
     # Octahydroindole = octahydro-1H-indole: fully saturated indole.
     # Canonical 'C1CCC2NCCC2C1'.  Two cis-fused 5+6 saturated rings with
     # one N at position 1.
+    # atom_locants (naming round 14): indole's numbering (N1, C2, C3, C3a, C4-C7, C7a), carried onto this skeleton by graph isomorphism from the
+    # curated indole row. Without it the generic numbering gave three of the six attachable positions the wrong locant (3, 4 and 5 read as
+    # 4, 3 and 5's neighbours), which the ring-locant sweep found.
     "C1CCC2NCCC2C1": {
         "name": "octahydro-1H-indole",
         "substituent_form": "octahydro-1H-indol-N-yl",
-        "alkyl_stem_ok": False},
+        "alkyl_stem_ok": False,
+        "atom_locants": {0: 5, 1: 6, 2: 7, 3: "7a", 4: 1, 5: 2, 6: 3, 7: "3a", 8: 4}},
 
     # -----------------------------------------------------------------------
     # octahydro-1H-pyrrolo[3,4-b]pyridine (moxifloxacin C7 side chain core).

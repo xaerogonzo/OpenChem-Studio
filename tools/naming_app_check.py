@@ -88,6 +88,27 @@ ROWS = [
     ("1,2,4-oxadiazole (converse of D-145)", "Cc1noc(NC(C)=O)n1", "N-(3-methyl-1,2,4-oxadiazol-5-yl)acetamide", "DERIVED (unchanged)", "MATCH", 0, 1),
     ("azepane nitrogen keeps -1-yl (converse of D-147)", "O=C(C)N1CCCCCC1", "1-(azepan-1-yl)ethan-1-one", "DERIVED (unchanged)", "MATCH", 0, 1),
     ("methyl ketone as a substituent (converse of D-149)", "OC(=O)c1ccc(OCC(C)=O)cc1", "4-(2-oxopropoxy)benzoic acid", "DERIVED (unchanged)", "MATCH", 0, 1),
+    # -- naming round 14: a ring-nitrogen sulfonamide, ring cations, stereo on retained substituents and spiro parents, derived fused-ring tables ------------
+    # Every "withheld before" row was a NamingError in the application (a wrong-structure read-back or an embedded error), or was shown with a name that
+    # read back as the right connectivity and the wrong stereo or charge. Shown and verified is not the preferred name: the basis column says which rows
+    # are derived (P-65.3.2.3 for the sulfonyl prefix, P-73.1 for the -ium) and which are only the engine's reading.
+    ("ester of an acid with a ring-nitrogen sulfonamide (D-151)", "CCOC(=O)c1ccc(S(=O)(=O)N2CCCCC2)cc1", "ethyl 4-(piperidine-1-sulfonyl)benzoate", "DERIVED (D-151, P-65.3.2.3)", "MATCH", 0, 1),
+    ("the acid itself (D-151b)", "OC(=O)c1ccc(S(=O)(=O)N2CCOCC2)cc1", "4-(morpholine-4-sulfonyl)benzoic acid", "DERIVED (D-151c)", "MATCH", 0, 1),
+    ("sulfamoyl with two different N-substituents (D-152)", "CN(C1CCCCC1)S(=O)(=O)c1ccc(C(=O)Nc2ccccc2)cc1", "4-(N-cyclohexyl-N-methylsulfamoyl)-N-phenylbenzamide", "DERIVED (D-152)", "MATCH", 0, 1),
+    ("a fused cation that is not a retained ring (D-154)", "c1c[nH+]c2sccn12", "imidazo[2,1-b][1,3]thiazol-7-ium", "DERIVED (D-154, P-73.1)", "MATCH", 1, 1),
+    ("a cation drawn on the bridgehead nitrogen (D-155)", "Cc1c[n+]2cccc(C)c2[nH]1", "2,8-dimethylimidazo[1,2-a]pyridin-1-ium", "DERIVED (D-155: one cation, its [nH+] drawing; the app says so with a tautomer note)", "TAUTOMER", 1, 1),
+    ("a quaternary bridgehead cation with a substituent (D-156)", "CC(=O)OCC1CCC[N+]2(C)CCCCC12", "1-[(acetyloxy)methyl]-5-methylquinolizidin-5-ium", "DERIVED (D-156)", "MATCH", 1, 1),
+    ("a ring cation inside an acyl prefix (D-157)", "C[NH+](C)CCNC(=O)c1ccc[nH+]c1", "N,N-dimethyl-2-{[(oxo)(pyridinium-3-yl)methyl]amino}ethan-1-aminium", "ENGINE-ADJUDICATED (D-157: structure and charge right, preferred spelling not derived)", "MATCH", 2, 1),
+    ("stereo on a retained ring substituent (D-158)", "CC(=O)NC[C@@H]1CCCO1", "N-{[(2S)-oxolan-2-yl]methyl}acetamide", "DERIVED (D-158)", "MATCH", 0, 1),
+    ("stereo on a spiro parent (D-159)", "C1CCC2(CC1)OC[C@@H](CN1CCOCC1)O2", "4-{[(3R)-1,4-dioxaspiro[4.5]decan-3-yl]methyl}morpholine", "DERIVED (D-159)", "MATCH", 0, 1),
+    ("a derived fused-ring table (D-160)", "CC(=O)Nc1ccc2cc3cc4cc5cc6cc7ccccc7cc6cc5cc4cc3cc2c1", "N-(heptacen-2-yl)acetamide", "DERIVED (D-160, P-25.3.3 numbering)", "MATCH", 0, 1),
+    ("octahydroindole position 6 (D-161)", "CC(=O)NC1CCC2CCNC2C1", "N-(octahydro-1H-indol-6-yl)acetamide", "DERIVED (D-161, indole numbering)", "MATCH", 0, 1),
+    ("tropolone (D-153)", "COc1cccc(O)c(=O)c1", "2-hydroxy-6-methoxycyclohepta-2,4,6-trien-1-one", "DERIVED (D-153)", "MATCH", 0, 1),
+    # boundaries: each must be UNCHANGED by the round's changes
+    ("a tetrahydroisoquinolinium (converse of D-154)", "C[NH+]1CCc2ccccc2C1", "2-methyl-1,2,3,4-tetrahydroisoquinolin-2-ium", "DERIVED (unchanged)", "MATCH", 1, 1),
+    ("a ring that IS the parent (converse of D-151)", "O=S(=O)(N1CCCCC1)c1ccccc1", "1-(benzenesulfonyl)piperidine", "DERIVED (unchanged)", "MATCH", 0, 1),
+    ("unspecified stereo keeps the retained leaf (converse of D-158)", "CC(=O)NCC1CCCO1", "N-[(oxolan-2-yl)methyl]acetamide", "DERIVED (unchanged)", "MATCH", 0, 1),
+    ("benzene is still benzene (converse of D-153)", "c1ccccc1", "benzene", "PRINTED (unchanged)", "MATCH", 0, 1),
 ]
 
 

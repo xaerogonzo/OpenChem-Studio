@@ -3516,6 +3516,109 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "4-amino-4-oxo-1-phenylbutan-1-one", "SILENT: the amide, named as a ketone with an amino prefix"),
     ("D-150c", "OC(=O)CCC(=O)C1CCCCC1", "4-cyclohexyl-4-oxobutanoic acid",
      "3-carboxy-1-cyclohexylpropan-1-one", "a cycloalkyl ketone, not only an aryl one"),
+
+    # --- D-151 / D-152 (naming round 14): a sulfonamide on a RING nitrogen, and a sulfamoyl with two different N-substituents ------------------------
+    # D-151: `S(=O)(=O)N<ring>` was detected as a sulfonamide whose demoted prefix claimed S, O, O and N and left the ring's carbons unclaimed, so
+    # every plan with the OTHER side as parent died ('leaves heavy atoms unclaimed') and the engine fell back to naming the ring as the parent.
+    # The acid lost its suffix ('1-(4-carboxyphenylsulfonyl)piperidine'), and an ESTER of it was named as an ester of the piperidine
+    # ('ethyl 1-(4-carboxyphenylsulfonyl)piperidine', a different structure). Census: 7 of 2000 structures, 2 of them wrong structures. The group is
+    # now left to the structural carve, and the prefix is the sulfonic acid's '<ring>-N-sulfonyl' (P-65.3.2.3, the form of '(propane-1-sulfonyl)benzene',
+    # pdf p. 614). The old spelling '<ring>-ylsulfonyl' still reads back; it is not the preferred prefix.
+    ("D-151", "O=C(OCC)c1ccc(S(=O)(=O)N2CCCCC2)cc1", "ethyl 4-(piperidine-1-sulfonyl)benzoate",
+     "ethyl 1-(4-carboxyphenylsulfonyl)piperidine", "the ester of an acid with a ring-nitrogen sulfonamide (a different structure)"),
+    ("D-151b", "OC(=O)c1ccc(S(=O)(=O)N2CCCCC2)cc1", "4-(piperidine-1-sulfonyl)benzoic acid",
+     "1-(4-carboxyphenylsulfonyl)piperidine", "SILENT: the acid parent was lost, the read-back still matched"),
+    ("D-151c", "OC(=O)c1ccc(S(=O)(=O)N2CCOCC2)cc1", "4-(morpholine-4-sulfonyl)benzoic acid",
+     "4-(4-carboxyphenylsulfonyl)morpholine", "a morpholine nitrogen (the locant is 4)"),
+    ("D-151d", "OC(=O)c1ccc(S(=O)(=O)N2CCCC2)cc1", "4-(pyrrolidine-1-sulfonyl)benzoic acid",
+     "1-(4-carboxyphenylsulfonyl)pyrrolidine", "a five-membered ring"),
+    ("D-151e", "OC(=O)c1ccc(S(=O)N2CCCCC2)cc1", "4-(piperidine-1-sulfinyl)benzoic acid",
+     "4-(piperidin-1-ylsulfinyl)benzoic acid", "the sulfinyl prefix has the same rule (its old spelling read back)"),
+    ("D-151f", "O=C(OCC(=O)c1ccc(Cl)cc1)c1ccc(S(=O)(=O)N2CCCCC2)cc1", "2-(4-chlorophenyl)-2-oxoethyl 4-(piperidine-1-sulfonyl)benzoate",
+     "2-(4-chlorophenyl)-2-oxoethyl 1-(4-carboxyphenylsulfonyl)piperidine", "the census shape: D-149's phenacyl ester on this acid (a different structure)"),
+    ("D-151g", "CC(=O)Nc1ccc(S(=O)(=O)N2CCCCC2)cc1", "N-[4-(piperidine-1-sulfonyl)phenyl]acetamide",
+     "1-(4-acetamidophenylsulfonyl)piperidine", "SILENT: an amide beside the sulfonyl ring lost its parent role, and the read-back matched"),
+    # D-152: the sulfamoyl prefix printed ONE shared 'N,N-' block for its substituents, so two different ones read 'N,N-cyclohexylmethylsulfamoyl',
+    # which no parser reads (3 census structures, all unparsable). Each substituent carries its own locant now, as an amine's do.
+    ("D-152a", "CN(C1CCCCC1)S(=O)(=O)c1ccc(C(=O)Nc2ccccc2)cc1", "4-(N-cyclohexyl-N-methylsulfamoyl)-N-phenylbenzamide",
+     "4-(N,N-cyclohexylmethylsulfamoyl)-N-phenylbenzamide", "the census shape"),
+    ("D-152b", "OC(=O)c1ccc(S(=O)(=O)N(CC)CCC)cc1", "4-(N-ethyl-N-propylsulfamoyl)benzoic acid",
+     "4-(N,N-ethylpropylsulfamoyl)benzoic acid", "two acyclic substituents, alphabetical order"),
+    ("D-152c", "CC(c1ccccc1)N(CC1CO1)S(=O)(=O)c1ccc(C(=O)N(C)C)cc1", "N,N-dimethyl-4-{N-[(oxiran-2-yl)methyl]-N-(1-phenylethyl)sulfamoyl}benzamide",
+     "N,N-dimethyl-4-{N,N-[(oxiran-2-yl)methyl](1-phenylethyl)sulfamoyl}benzamide", "compound substituents keep their brackets"),
+
+    # --- D-154 / D-155 / D-156 (naming round 14): ring cations that had no name --------------------------------------------------------------------
+    # 8 of the 14 census structures with "no valid naming plan" for a cationic ring. THREE roots, not one, found by naming the ring cations alone:
+    # (D-154) general fusion nomenclature refused any charged ring atom, so every fused cation that is not a curated retained ring had no name
+    # ('imidazo[2,1-b][1,3]thiazol-7-ium', a hydro-fused '-6-ium'); a ring cation is named for its NEUTRAL skeleton with '-ium' added at the charged
+    # atom, so the ring is now described on a neutral copy with the same atom indices. (D-155) a ring-fusion '[n+]' drawn beside an '[nH]' is the SAME
+    # cation as the '[nH+]' form (same InChIKey; an imidazo[1,2-a]pyridine protonated on N1), and the bridgehead form has no name; the charge is
+    # moved to the [nH]. (D-156) a charged N with three ring bonds was made an indicated-hydrogen target, so its neutral valence came to four and a
+    # QUATERNARY bridgehead cation carrying a substituent had no name; and the curated quinolizidine row said its nitrogen was '4a' (it is 5), which
+    # no test could see until the nitrogen took a substituent or the '-ium'. Targets are derived (Blue Book P-73.1) and read back exact.
+    ("D-154a", "c1c[nH+]c2sccn12", "imidazo[2,1-b][1,3]thiazol-7-ium",
+     "[NAMING ERROR: No valid naming plan found for c1cn2ccsc2[nH+]1]", "a fused cation that is not a curated retained ring"),
+    ("D-154b", "Nc1ccc(-c2cn3ccsc3[nH+]2)cc1", "6-(4-aminophenyl)imidazo[2,1-b][1,3]thiazol-7-ium",
+     "4-amino-1-{[NAMING ERROR: No valid naming plan found for c1cn2ccsc2[nH+]1]}benzene", "the census shape (its bridgehead-charge drawing is D-155)"),
+    ("D-154c", "C[NH+]1CCc2cc(N)sc2C1", "2-amino-6-methyl-4,5,6,7-tetrahydrothieno[2,3-c]pyridin-6-ium",
+     "{[NAMING ERROR: No valid naming plan found for Nc1cc2c(s1)C[NH2+]CC2]}methane", "a hydro-fused ring with a protonated nitrogen"),
+    ("D-154d", "Cc1nc2n(n1)C[NH+](CCc1ccccc1)CN2", "2-methyl-6-(2-phenylethyl)-4,5,6,7-tetrahydro-[1,2,4]triazolo[1,5-a][1,3,5]triazin-6-ium",
+     "(2-{[NAMING ERROR: No valid naming plan found for Cc1nc2n(n1)C[NH2+]CN2]}ethyl)benzene", "the census shape (a triazolotriazine)"),
+    ("D-156a", "C1CC[NH+]2CCCCC2C1", "quinolizidin-5-ium",
+     "[NAMING ERROR: No valid naming plan found for C1CC[NH+]2CCCCC2C1]", "a protonated bridgehead nitrogen"),
+    ("D-156b", "C[N+]12CCCCC1CCCC2", "5-methylquinolizidin-5-ium",
+     "{[NAMING ERROR: No valid naming plan found for C1CC[NH+]2CCCCC2C1]}methane", "a QUATERNARY bridgehead cation: the substituent on the nitrogen"),
+    ("D-156c", "CC(=O)OCC1CCC[N+]2(C)CCCCC12", "1-[(acetyloxy)methyl]-5-methylquinolizidin-5-ium",
+     "1-({[NAMING ERROR: No valid naming plan found for C[N+]12CCCCC1CCCC2]}methoxy)-1-oxoethane", "the census shape (904): a quinolizidinium ester"),
+    ("D-156d", "C1CCC[NH+]2CCCC2C1", "octahydro-1H-pyrrolo[1,2-a]azepin-4-ium",
+     "[NAMING ERROR: No valid naming plan found for C1CCC2CCC[NH+]2CC1]", "a 5-7 bicyclic bridgehead ammonium"),
+    # D-157: a ring cation INSIDE an acyl or amido prefix lost its charge. The prefix is derived by naming the fragment's ACID with a recursive call,
+    # and `name` promotes STANDALONE to CATION only at depth 0, so 'pyridine-3-carboxamido' was written for a pyridin-1-ium: a name for a different
+    # charge (a same-connectivity read-back, invisible to a structure-only check). The recursion now asks for CATION. The prefix that results is
+    # '[(oxo)(pyridinium-3-yl)methyl]amino', which is right but not the preferred spelling (a cationic acyl prefix is not derived); recorded, not chased.
+    ("D-157a", "C[NH+](C)CCNC(=O)c1ccc[nH+]c1", "N,N-dimethyl-2-{[(oxo)(pyridinium-3-yl)methyl]amino}ethan-1-aminium",
+     "N,N-dimethyl-2-(pyridine-3-carboxamido)ethan-1-aminium", "the amido prefix of a pyridinium acid (structure right, preferred spelling not derived)"),
+    ("D-157b", "C[NH+](C)CCCN1CCC(=O)C1C(=O)c1c[nH+]c2ccccn12", "3-{2-[(imidazo[1,2-a]pyridin-1-ium-3-yl)(oxo)methyl]-3-oxopyrrolidin-1-yl}-N,N-dimethylpropan-1-aminium",
+     "3-[2-(imidazo[1,2-a]pyridine-3-carbonyl)-3-oxopyrrolidin-1-yl]-N,N-dimethylpropan-1-aminium", "the acyl prefix (the census shape, 1567)"),
+    # --- D-158 (naming round 14): a stereocentre on the ATTACHMENT atom of a retained ring substituent was dropped ----------------------------------
+    # 18 census structures (0.9%, the largest non-exact cluster left after round 13). `(oxolan-2-yl)methyl` and `(piperidin-2-yl)methanol` come from
+    # `_execute_retained`, a LEAF that prints the curated substituent form and never reads stereo, and the stereo-drop gate that lets a retained
+    # NAME give way to a systematic one ran for STANDALONE only. The attachment atom lost its chiral tag when the parent-side neighbour became an H,
+    # so the gate could not see it either; the descriptor survives as the `_ParentCIPCode` stash, which the gate now reads. The name is LESS
+    # specific, not a different structure (the read-back is same-connectivity), so the app showed it; it is now the stereo-complete name.
+    ("D-158a", "OC[C@H]1CCCO1", "[(2R)-oxolan-2-yl]methanol", "(oxolan-2-yl)methanol", "tetrahydrofurfuryl alcohol"),
+    ("D-158b", "CC(=O)NC[C@@H]1CCCO1", "N-{[(2S)-oxolan-2-yl]methyl}acetamide", "N-[(oxolan-2-yl)methyl]acetamide", "the census shape (16 of the 18)"),
+    ("D-158c", "OC[C@H]1CCCCN1", "[(2R)-piperidin-2-yl]methanol", "(piperidin-2-yl)methanol", "another retained ring"),
+    ("D-158d", "CC(=O)OC[C@H]1CCCO1", "[(2R)-oxolan-2-yl]methyl acetate", "(oxolan-2-yl)methyl acetate", "the ring as the alcohol component of an ester"),
+    # --- D-159 (naming round 14): tetrahedral stereo on a SPIRO parent at a plain locant was dropped -------------------------------------------
+    # `_collect_stereo_descriptors` skipped every spiro parent "pending a separate audit" (Stage 6). Bridged parents were admitted at plain-integer
+    # locants in Stage 22, guarded by the post-assembly OPSIN validation that strips a descriptor OPSIN cannot anchor; a spiro parent is the same
+    # case (the tree check already covers 'bridged_or_spiro'). 3 of the 9 census structures with a spiro parent and a dropped descriptor read back
+    # exact now; the other 6 have their centre at a primed or lettered locant, which stays dropped, so they are unchanged (recorded).
+    ("D-159a", "C1CCC2(CC1)OC[C@@H](CN1CCOCC1)O2", "4-{[(3R)-1,4-dioxaspiro[4.5]decan-3-yl]methyl}morpholine",
+     "4-[(1,4-dioxaspiro[4.5]decan-3-yl)methyl]morpholine", "a stereocentre in the dioxolane ring of a spiro ketal"),
+    ("D-159b", "Cc1ccc2c(c1)C[C@]1(CN2C)C(=O)NC(=O)N(c2ccc(Cl)cc2)C1=O", "(5S)-3-(4-chlorophenyl)-1',6'-dimethylspiro[[1,3]diazinane-5,3'-[1,2,3,4]tetrahydroquinoline]-2,4,6-trione",
+     "3-(4-chlorophenyl)-1',6'-dimethylspiro[[1,3]diazinane-5,3'-[1,2,3,4]tetrahydroquinoline]-2,4,6-trione", "the spiro atom itself is the stereocentre (a barbiturate)"),
+    ("D-159c", "Cc1cc(NC(=O)CN2C(=O)N[C@@]3(CCCc4ccccc43)C2=O)no1", "2-{(4R)-2,5-dioxospiro[[1,3]diazolidine-4,1'-[1,2,3,4]tetrahydronaphthalene]-1-yl}-N-(5-methyl-1,2-oxazol-3-yl)acetamide",
+     "2-{2,5-dioxospiro[[1,3]diazolidine-4,1'-[1,2,3,4]tetrahydronaphthalene]-1-yl}-N-(5-methyl-1,2-oxazol-3-yl)acetamide", "a spiro hydantoin"),
+    # --- D-161 (naming round 14): three partly-numbered or table-less rings gave a wrong locant at some positions (found by the sweep) -----------
+    # octahydro-1H-indole (positions 4, 6 and 7 read as 3, 4 and 5 -- a structural error, the read-back is a different molecule), the biotin
+    # skeleton hexahydrothieno[3,4-d]imidazole, and [1,2,4]triazolo[3,4-b][1,3]benzothiazole, whose four OPSIN-probed positions left the triazole
+    # carbon on the generic numbering (`-5-yl` for C-3: 2 census structures). Each table is the numbering of the mancude parent, derived by
+    # `fusion_general.name_fusion` or taken from the curated indole row, and carried onto the skeleton by graph isomorphism.
+    ("D-161a", "CC(=O)NC1CCC2CCNC2C1", "N-(octahydro-1H-indol-6-yl)acetamide", "N-(octahydro-1H-indol-4-yl)acetamide", "a benzo-ring carbon of octahydroindole"),
+    ("D-161b", "CC(=O)NC1CCCC2NCCC21", "N-(octahydro-1H-indol-4-yl)acetamide", "N-(octahydro-1H-indol-5-yl)acetamide", "the position beside the fusion carbon"),
+    ("D-161c", "CC(=O)NC1NC2CSCC2N1", "N-(hexahydrothieno[3,4-d]imidazol-2-yl)acetamide", "N-(hexahydrothieno[3,4-d]imidazol-5-yl)acetamide", "the imidazolidine carbon (biotin's ring)"),
+    ("D-161d", "CC(=O)Nc1nnc2sc3ccccc3n12", "N-([1,2,4]triazolo[3,4-b][1,3]benzothiazol-3-yl)acetamide", "N-([1,2,4]triazolo[3,4-b][1,3]benzothiazol-5-yl)acetamide", "the triazole carbon (the census shape)"),
+    # --- D-153 (naming round 14): an aromatic all-carbon ring that is not benzene was named SATURATED ---------------------------------------------------
+    # `O=c1cccccc1` (tropone) came out `cycloheptanone`, tropolone `2-hydroxycycloheptan-1-one` and hinokitiol `2-hydroxy-5-(propan-2-yl)cycloheptan-1-one`:
+    # RDKit marks the ring aromatic, `_detect_ring_unsaturation` returns nothing for an aromatic ring, and the carbocycle branch read that as "saturated".
+    # A different structure (the read-back is the saturated ketone). The Kekule double bonds are recovered as the heteromacrocycle branch already does.
+    ("D-153", "COc1cccc(O)c(=O)c1", "2-hydroxy-6-methoxycyclohepta-2,4,6-trien-1-one",
+     "2-hydroxy-6-methoxycycloheptan-1-one", "the census tropolone"),
+    ("D-153b", "O=c1cccccc1", "cyclohepta-2,4,6-trien-1-one", "cycloheptanone", "tropone"),
+    ("D-153c", "CC(C)c1ccc(O)c(=O)cc1", "2-hydroxy-5-(propan-2-yl)cyclohepta-2,4,6-trien-1-one",
+     "2-hydroxy-5-(propan-2-yl)cycloheptan-1-one", "hinokitiol"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -3618,16 +3721,12 @@ OPEN: list[tuple[str, str, str, str, str]] = [
      "-- the WRONG MOLECULE this item was admitted for is fixed, the PIN is "
      "a separate, still-open gap (imine FG perception is empty for this "
      "structure in every context, not only the multiplicative one)"),
-    # Naming round 13: an ESTER of an acid that also carries a ring-nitrogen sulfonamide is named as a functional-class ester of the
-    # PIPERIDINE, whose "acid" is a `carboxy` prefix: the ester group is attached to a name that is not an acid. Wrong structure, and it was
-    # already there for the plain methyl and ethyl esters; naming round 13's W2 only stopped it being MASKED for the phenacyl ester (which used
-    # to die earlier on an ownership error). The N,N-dimethylsulfonamide of the same acid is named correctly, so the ring nitrogen is the
-    # trigger. Census: 4 of 2000 structures (0.2%, under the 0.5% floor) share the "ester on a non-acid parent" shape, in three different
-    # families, so it is recorded here and not fixed. The app withholds the name (the read-back is a different structure). The target is
-    # derived (not printed) and read back through OPSIN.
-    ("D-151", "O=C(OCC)c1ccc(S(=O)(=O)N2CCCCC2)cc1", "ethyl 4-(piperidine-1-sulfonyl)benzoate",
-     "ethyl 1-(4-carboxyphenylsulfonyl)piperidine",
-     "an ester functional-class name whose acid component is a `carboxy` prefix on a ring parent"),
+    # Naming round 14: an ester whose acid part carries an N-HYDROXY-N-ALKYL amide is named `[(hydroxycarbamoyl)methyl]methyl acetate`, which drops the
+    # N-substituent and reads back as a different structure (formula differs). The hydroxamic acid group is written as if the nitrogen were unsubstituted.
+    # One census structure (0.05%, under the floor), a structural error, recorded not fixed; the target is derived and read back exact. The N-methoxy
+    # analogue (`2-[methoxy(methyl)amino]-2-oxoethyl acetate`) is named correctly, so the N-OH context is the trigger.
+    ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
+     "[(hydroxycarbamoyl)methyl]methyl acetate", "an N-substituted hydroxamic acid inside an ester's acid part loses its N-substituent"),
 ]
 
 # Observed but NOT tracked here, because this table requires a verified
@@ -4298,3 +4397,165 @@ def test_every_atom_of_a_repaired_shape_is_owned_by_exactly_one_node(smiles, mon
     of that one check). Without this the silent fall-back to another plan would pass a name-equality test for the wrong reason."""
     monkeypatch.setenv("OPENCHEM_NAMER_OWNERSHIP", "strict")
     assert "NAMING ERROR" not in name_smiles(smiles)
+
+
+# ---- D-151 / D-152 (naming round 14): converses, and the exactly-one-owner check on the repaired shapes ---------------------------------------
+# The filter is narrow (a sulfonamide whose sulfur is NOT in a ring and whose nitrogen IS a ring atom outside the parent), so each converse is a
+# neighbour that must not move: a ring that IS the parent, a cyclic sulfonamide, an acyclic N, a ring-nitrogen amide, and the unchanged sulfamoyl forms.
+
+@pytest.mark.parametrize("smiles, expected", [
+    ("CS(=O)(=O)N1CCCCC1", "1-(methanesulfonyl)piperidine"),                        # the ring IS the parent
+    ("O=S(=O)(N1CCCCC1)c1ccccc1", "1-(benzenesulfonyl)piperidine"),                 # ... and so is this one
+    ("OC(=O)c1ccc(S(=O)(=O)N(C)C)cc1", "4-(N,N-dimethylsulfamoyl)benzoic acid"),    # an acyclic nitrogen: the sulfamoyl prefix, identical substituents
+    ("OC(=O)c1ccc(S(=O)(=O)NC)cc1", "4-(N-methylsulfamoyl)benzoic acid"),
+    ("OC(=O)c1ccc(S(=O)(=O)N(CCCl)CCCl)cc1", "4-[N,N-bis(2-chloroethyl)sulfamoyl]benzoic acid"),
+    ("OC(=O)c1ccc(C(=O)N2CCCCC2)cc1", "4-(piperidine-1-carbonyl)benzoic acid"),     # the carbonyl twin was already right
+    ("OC(=O)c1ccc(S(=O)(=O)C2CCCCC2)cc1", "4-(cyclohexylsulfonyl)benzoic acid"),     # sulfur on a ring CARBON, no nitrogen (unchanged output)
+])
+def test_the_ring_nitrogen_sulfonamide_filter_does_not_move_a_neighbouring_name(smiles, expected):
+    assert name_smiles(smiles) == expected
+
+
+@pytest.mark.parametrize("smiles", [
+    "O=C(OCC)c1ccc(S(=O)(=O)N2CCCCC2)cc1",
+    "OC(=O)c1ccc(S(=O)(=O)N2CCOCC2)cc1",
+    "O=C(OCC(=O)c1ccc(Cl)cc1)c1ccc(S(=O)(=O)N2CCCCC2)cc1",
+    "CN(C1CCCCC1)S(=O)(=O)c1ccc(C(=O)Nc2ccccc2)cc1",
+    "CC(c1ccccc1)N(CC1CO1)S(=O)(=O)c1ccc(C(=O)N(C)C)cc1",
+])
+def test_every_atom_of_a_round_14_sulfonyl_shape_is_owned_by_exactly_one_node(smiles, monkeypatch):
+    """`strict` raises instead of falling to the next plan, so a name returned here had every atom owned once and only once."""
+    monkeypatch.setenv("OPENCHEM_NAMER_OWNERSHIP", "strict")
+    assert "NAMING ERROR" not in name_smiles(smiles)
+
+
+# ---- D-155 (naming round 14): a cation drawn with the charge on the ring-fusion nitrogen -----------------------------------------------------
+# The bridgehead `[n+]` beside an `[nH]` and the `[nH+]` form are ONE cation (the same InChIKey), but OPSIN reads a name back as the `[nH+]` form, so
+# the shared FIXED table (which also compares canonical SMILES) cannot hold the bridgehead drawing. Each row is named, and the target is checked by
+# its InChIKey through the real OPSIN read-back in tests/test_naming_census_scan.py's classifier.
+
+@pytest.mark.parametrize("smiles, expected, old_output", [
+    ("Cc1c[n+]2cccc(C)c2[nH]1", "2,8-dimethylimidazo[1,2-a]pyridin-1-ium",
+     "{[NAMING ERROR: No valid naming plan found for Cc1c[n+]2ccccc2[nH]1]}methane"),
+    ("Nc1ccc(-c2c[n+]3ccsc3[nH]2)cc1", "6-(4-aminophenyl)imidazo[2,1-b][1,3]thiazol-7-ium",
+     "4-amino-1-{[NAMING ERROR: No valid naming plan found for c1c[n+]2ccsc2[nH]1]}benzene"),
+])
+def test_a_bridgehead_charge_drawing_is_named_as_its_protonated_form(smiles, expected, old_output):
+    assert name_smiles(smiles) == expected
+    assert old_output != expected
+
+
+def test_the_bridgehead_charge_drawing_reads_back_to_the_same_cation():
+    """OPSIN's own structure for the name must have the input's InChIKey (a different resonance drawing, one molecule)."""
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
+    import naming_census_scan as scan
+
+    try:
+        back = scan.read_back(["2,8-dimethylimidazo[1,2-a]pyridin-1-ium"])[0]
+    except Exception:  # noqa: BLE001 - no JRE here
+        pytest.skip("OPSIN is not available")
+    if not back:
+        pytest.skip("OPSIN is not available")
+    assert scan.classify("Cc1c[n+]2cccc(C)c2[nH]1", "2,8-dimethylimidazo[1,2-a]pyridin-1-ium", back) == "exact"
+
+
+# ---- D-154 / D-155 / D-156 (naming round 14): converses ------------------------------------------------------------------------------------------
+# The three changes are narrow (a +1 N, O or S in a FUSED system with no retained name; an aromatic bridgehead n+ with exactly one [nH] beside it; a
+# charged non-aromatic N with three ring bonds), so each converse is a cation that must not move: a monocyclic one, a fused one that already had a
+# name, a protonated ring that is drawn in the [nH+] form, and the neutral quinolizidine.
+
+@pytest.mark.parametrize("smiles, expected", [
+    ("C[NH+]1CCCCC1", "1-methylpiperidin-1-ium"),
+    ("c1ccc2[nH+]cccc2c1", "quinolin-1-ium"),
+    ("C[NH+]1CCc2ccccc2C1", "2-methyl-1,2,3,4-tetrahydroisoquinolin-2-ium"),
+    ("c1c[nH+]c2ccccn12", "imidazo[1,2-a]pyridin-1-ium"),                # already the [nH+] drawing, no shift
+    ("Cc1c[nH+]c2c(C)cccn12", "3,8-dimethylimidazo[1,2-a]pyridin-1-ium"),
+    ("C1CCN2CCCCC2C1", "quinolizidine"),
+    ("OC1CCCN2CCCCC12", "quinolizidin-1-ol"),                              # the carbon locants are untouched by the nitrogen's correction
+    ("OC1CCC2CCCCN2C1", "quinolizidin-3-ol"),
+])
+def test_the_ring_cation_changes_do_not_move_a_neighbouring_name(smiles, expected):
+    assert name_smiles(smiles) == expected
+
+
+@pytest.mark.parametrize("smiles", [
+    "c1c[nH+]c2sccn12",
+    "Nc1ccc(-c2c[n+]3ccsc3[nH]2)cc1",
+    "Cc1c[n+]2cccc(C)c2[nH]1",
+    "C[N+]12CCCCC1CCCC2",
+    "CC(=O)OCC1CCC[N+]2(C)CCCCC12",
+    "C[NH+]1CCc2cc(N)sc2C1",
+])
+def test_every_atom_of_a_round_14_ring_cation_is_owned_by_exactly_one_node(smiles, monkeypatch):
+    monkeypatch.setenv("OPENCHEM_NAMER_OWNERSHIP", "strict")
+    assert "NAMING ERROR" not in name_smiles(smiles)
+
+
+# ---- D-158 converses: no informative stereo, no change ------------------------------------------------------------------------------------------
+@pytest.mark.parametrize("smiles, expected", [
+    ("CC(=O)NCC1CCCO1", "N-[(oxolan-2-yl)methyl]acetamide"),            # a racemic/unspecified centre: the retained leaf stands
+    ("OCC1CCCCN1", "(piperidin-2-yl)methanol"),
+    ("CC(=O)NC[C@H]1CCCCC1", "N-(cyclohexylmethyl)acetamide"),          # cyclohexyl has no stereocentre at all
+    ("OC[C@H]1CCCC1", "cyclopentylmethanol"),
+    ("CC(=O)NC[C@H]1CCCN1", "N-{[(2R)-pyrrolidin-2-yl]methyl}acetamide"),  # already systematic, unchanged
+])
+def test_the_retained_substituent_stereo_gate_does_not_move_a_neighbouring_name(smiles, expected):
+    assert name_smiles(smiles) == expected
+
+
+# ---- D-159 converses -------------------------------------------------------------------------------------------------------------------------------
+@pytest.mark.parametrize("smiles, expected", [
+    ("C1CCC2(CC1)OCC(CN1CCOCC1)O2", "4-[(1,4-dioxaspiro[4.5]decan-3-yl)methyl]morpholine"),   # no stereo given: nothing to state
+    ("C1CCC2(CC1)CCCC2", "spiro[4.5]decane"),
+])
+def test_the_spiro_stereo_admission_does_not_move_a_neighbouring_name(smiles, expected):
+    assert name_smiles(smiles) == expected
+
+
+# ---- D-160 (naming round 14): fused all-carbon rings that had no atom_locants ---------------------------------------------------------------------
+# `N-nonacenylacetamide` for every position: a curated `substituent_form` with no locant table returned bare, and the ring-locant sweep found 11 such
+# rings with 638 structurally wrong cases. Seven now have a table, derived from `fusion_general.name_fusion` (P-25.3.3). The four helicenes have none:
+# the orientation module declines them ("a helicene is oriented and numbered by its own rule", P-25.3.3.1.1).
+_ROUND_14_FUSED_TABLE_RINGS = [
+    "c1ccc2cc3cc4cc5ccccc5cc4cc3cc2c1", "c1ccc2cc3cc4cc5cc6ccccc6cc5cc4cc3cc2c1",              # pentacene, hexacene (OPSIN-probed tables)
+    "c1ccc2cc3cc4cc5cc6cc7ccccc7cc6cc5cc4cc3cc2c1", "c1ccc2cc3cc4cc5cc6cc7cc8ccccc8cc7cc6cc5cc4cc3cc2c1",
+    "c1ccc2cc3cc4cc5cc6cc7cc8cc9ccccc9cc8cc7cc6cc5cc4cc3cc2c1",                                   # heptacene, octacene, nonacene
+    "c1ccc2cc3c(ccc4cc5ccccc5cc43)cc2c1", "c1ccc2cc3cc4c(ccc5cc6ccccc6cc54)cc3cc2c1",
+    "c1ccc2cc3cc4c(ccc5cc6cc7ccccc7cc6cc54)cc3cc2c1", "c1ccc2cc3cc4cc5c(ccc6cc7cc8ccccc8cc7cc65)cc4cc3cc2c1",  # pentaphene to octaphene
+]
+
+
+@pytest.mark.parametrize("key", _ROUND_14_FUSED_TABLE_RINGS)
+def test_a_fused_ring_locant_table_is_one_of_the_numberings_the_fusion_rules_derive(key):
+    """The table's provenance is the fusion numbering rules, not OPSIN: it must equal one of `name_fusion`'s numberings (a symmetric ring has several)."""
+    from rdkit import Chem
+    from openchem.vendor.iupac_namer.data_loader import _RING_CURATED_SMILES
+    from openchem.vendor.iupac_namer.ring_naming.fusion_general import name_fusion
+
+    mol = Chem.MolFromSmiles(key)
+    assert Chem.MolToSmiles(mol) == key
+    table = _RING_CURATED_SMILES[key]["atom_locants"]
+    derived = name_fusion(mol, [tuple(r) for r in mol.GetRingInfo().AtomRings()]).numberings
+    assert any(all(str(table[i]) == n.atom_to_locant[i].label for i in table) and len(table) == mol.GetNumAtoms() for n in derived)
+
+
+@pytest.mark.parametrize("smiles, expected", [
+    ("CC(=O)Nc1ccc2cc3cc4cc5cc6cc7ccccc7cc6cc5cc4cc3cc2c1", "N-(heptacen-2-yl)acetamide"),
+    ("CC(=O)Nc1ccc2cc3c(ccc4cc5ccccc5cc43)cc2c1", "N-(pentaphen-3-yl)acetamide"),
+    ("CC(=O)Nc1cc2cc3cc4cc5cc6cc7cc8cc9ccccc9cc8cc7cc6cc5cc4cc3cc2cc1", "N-(nonacen-2-yl)acetamide"),
+])
+def test_a_fused_all_carbon_ring_now_names_its_attachment_locant(smiles, expected):
+    assert name_smiles(smiles) == expected
+
+
+@pytest.mark.parametrize("smiles, expected", [
+    ("c1ccccc1", "benzene"),
+    ("C1=CC=CC=CC1", "cyclohepta-1,3,5-triene"),
+    ("C1CCCCCC1=O", "cycloheptanone"),
+    ("O=C1C=CC=CC1", "cyclohexa-2,4-dien-1-one"),
+])
+def test_the_aromatic_carbocycle_kekule_recovery_does_not_move_a_neighbouring_name(smiles, expected):
+    assert name_smiles(smiles) == expected

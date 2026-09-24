@@ -368,9 +368,20 @@ def _build_ring_mol_preserving_tautomer(mol, atom_indices: list[int]) -> Chem.Mo
     # parent scaffold.  Likewise a bare [n-] (e.g. pyrrolate's [n-]1cccc1)
     # maps to the indicated-H position of 1H-pyrrole.
     nh_targets: set[int] = set()
+    # A charged N with THREE ring bonds (a ring-fusion ammonium: quinolizidinium, indolizidinium) cannot carry an indicated hydrogen -- the neutral
+    # parent's N is the bare tertiary one -- so it is neutralised below instead of becoming a target (naming round 14). Made a target it got an
+    # explicit H, its neutral valence came to four, the ring did not sanitise, and a quaternary bridgehead cation carrying a substituent had no name.
+    bridgehead_cations = {
+        i for i in atom_indices
+        if mol.GetAtomWithIdx(i).GetAtomicNum() == 7 and mol.GetAtomWithIdx(i).GetFormalCharge() == 1
+        and not mol.GetAtomWithIdx(i).GetIsAromatic()
+        and sum(1 for nb in mol.GetAtomWithIdx(i).GetNeighbors() if nb.GetIdx() in ring_set) >= 3
+    }
     for i in atom_indices:
         a = mol.GetAtomWithIdx(i)
         if a.GetAtomicNum() != 7:
+            continue
+        if i in bridgehead_cations:
             continue
         if a.GetFormalCharge() in (-1, 1) and a.GetTotalNumHs() == 0:
             if a.GetFormalCharge() == 1 and a.GetIsAromatic():
@@ -417,7 +428,7 @@ def _build_ring_mol_preserving_tautomer(mol, atom_indices: list[int]) -> Chem.Mo
         if has_ext:
             nh_targets.add(i)
 
-    if not nh_targets:
+    if not nh_targets and not bridgehead_cations:
         return None  # nothing to preserve; let the default path run.
 
     rw = Chem.RWMol(mol)
@@ -469,8 +480,8 @@ def _build_ring_mol_preserving_tautomer(mol, atom_indices: list[int]) -> Chem.Mo
         if old in nh_targets:
             continue
         source = mol.GetAtomWithIdx(old)
-        if (source.GetAtomicNum() == 7 and source.GetIsAromatic()
-                and source.GetFormalCharge() == 1):
+        if old in bridgehead_cations or (source.GetAtomicNum() == 7 and source.GetIsAromatic()
+                                         and source.GetFormalCharge() == 1):
             # (The strip loop above already left every ring atom with no explicit H and implicit Hs allowed.)
             rw.GetAtomWithIdx(old_to_new[old]).SetFormalCharge(0)
     result = rw.GetMol()

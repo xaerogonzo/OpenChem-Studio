@@ -863,6 +863,37 @@ def _ordered_rings(ring_system, mol) -> list[tuple[int, ...]]:
     return cycles
 
 
+def _neutral_ring_copy(mol, ring_system):
+    """The molecule with the ring system's +1 heteroatoms made neutral, atom indices unchanged (a copy; `mol` itself when nothing is charged).
+
+    The cation's extra hydrogen (an ``[nH+]``, an ``[NH+]`` on a saturated ring) is dropped with the charge, and RDKit re-derives the hydrogen
+    count the neutral valence needs, so a bridgehead ``[NH+]`` becomes the bare tertiary N and an aromatic ``[nH+]`` the pyridine-type ``n``.
+    Raises `Unsupported` for any other charge, or when the neutral graph does not sanitise."""
+    from rdkit import Chem
+
+    charged = [i for i in ring_system.atom_indices if mol.GetAtomWithIdx(i).GetFormalCharge()]
+    if not charged:
+        return mol
+    if len(ring_system.rings) > 2:
+        # Verified for BICYCLIC cations only (8 census structures, each read back). The tricyclic purine-fused cations (imidazo[1,2-g]purin-9-ium
+        # and the pyrimido analogue) got a fusion name OPSIN cannot read, where the von Baeyer fallback they had before read back exactly: three
+        # census rows would have LEFT `exact`, so they stay on that fallback until a tricyclic cation is measured on its own.
+        raise Unsupported("a charged ring system of more than two rings")
+    rw = Chem.RWMol(mol)
+    for i in charged:
+        atom = rw.GetAtomWithIdx(i)
+        if atom.GetFormalCharge() != 1 or atom.GetAtomicNum() not in (7, 8, 16):
+            raise Unsupported("a charged ring atom other than a +1 N, O or S")
+        atom.SetFormalCharge(0)
+        atom.SetNumExplicitHs(0)
+        atom.SetNoImplicit(False)
+    try:
+        Chem.SanitizeMol(rw)
+    except Exception as exc:  # noqa: BLE001
+        raise Unsupported(f"the neutral ring graph does not sanitise ({exc})") from exc
+    return rw.GetMol()
+
+
 def name_fusion_parents(ring_system, candidate, mol) -> list:
     """NamedParents for the system by general fusion, one per numbering that
     survives P-25.3.3, each carrying its hydro and indicated-hydrogen block
@@ -877,8 +908,12 @@ def name_fusion_parents(ring_system, candidate, mol) -> list:
 
     for idx in ring_system.atom_indices:
         atom = mol.GetAtomWithIdx(idx)
-        if atom.GetFormalCharge() or atom.GetNumRadicalElectrons() or atom.GetIsotope():
-            raise Unsupported("a charged, radical or labelled ring atom")
+        if atom.GetNumRadicalElectrons() or atom.GetIsotope():
+            raise Unsupported("a radical or labelled ring atom")
+    # A RING CATION is named for its NEUTRAL skeleton with '-ium' added at the charged atom's locant (P-73.1.1; the engine reads the locant off
+    # the real molecule). Only the graph is needed here, so the ring is described on a neutral copy with the SAME atom indices (naming round
+    # 14): a charged ring atom used to leave every non-retained fused cation with no name at all ('imidazo[2,1-b][1,3]thiazol-7-ium').
+    mol = _neutral_ring_copy(mol, ring_system)
     cycles = _ordered_rings(ring_system, mol)
     fusion = name_fusion(mol, cycles)
     whole_retained = "[" not in fusion.text and fusion.text in POLYCYCLES

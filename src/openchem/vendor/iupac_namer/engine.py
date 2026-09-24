@@ -508,6 +508,24 @@ _HET_SUBSTITUENT_SUFFIX_SINGLE: dict[int, str] = {
 # and append "amino": "(propan-2-ylidene)amino", "(methylidene)amino", ...
 # Per P-66.4.1.2.
 
+def _sulfonamide_is_ring_nitrogen_prefix(fg, parent_atoms, mol) -> bool:
+    """True for an acyclic-sulfur sulfonamide whose nitrogen is a ring atom that is not in the parent (naming round 14).
+
+    Such a group has no suffix or ``sulfamoyl`` form (there is no N-substituent list to give), so it is left to the structural carve, which names
+    ``S(=O)(=O)N<ring>`` through the sulfonyl/sulfinyl route of `_name_heteroatom_fv_substituent` as ``<ring>-N-sulfonyl``. A cyclic sulfonamide (sulfur in the ring) and a
+    ring that IS the parent are not this case.
+    """
+    if fg.type != "sulfonamide" or fg.anchor in parent_atoms:
+        return False
+    sulfur = mol.GetAtomWithIdx(fg.anchor)
+    if sulfur.GetAtomicNum() != 16 or sulfur.IsInRing():
+        return False
+    return any(
+        nb.GetAtomicNum() == 7 and nb.IsInRing() and nb.GetIdx() not in parent_atoms
+        for nb in sulfur.GetNeighbors()
+    )
+
+
 def _name_ring_nitrogen_acyl_substituent(
     mol,
     output_form: OutputForm,
@@ -5254,6 +5272,13 @@ def _name_single_fg_substituent(
                         if r_name and "[NAMING ERROR" not in r_name:
                             suffix = "sulfonyl" if oxo_count == 2 else "sulfinyl"
                             sulfonyl_prefix = r_name + suffix
+                            # A ring bonded through its NITROGEN takes the sulfonic acid's prefix, 'piperidine-1-sulfonyl' (P-65.3.2.3, the way
+                            # '(propane-1-sulfonyl)benzene' is written, pdf p. 614), not 'piperidin-1-ylsulfonyl' (naming round 14, D-151).
+                            _r_att = mol.GetAtomWithIdx(r_att_atom_idx)
+                            if _r_att.GetAtomicNum() == 7 and _r_att.IsInRing() and _r_att.GetFormalCharge() == 0:
+                                _m_ring = re.fullmatch(r"(.+?)([a-z]*[a-z])-(\d+)-yl", r_name)
+                                if _m_ring is not None and not _m_ring.group(2).endswith("e"):
+                                    sulfonyl_prefix = f"{_m_ring.group(1)}{_m_ring.group(2)}e-{_m_ring.group(3)}-{suffix}"
                             return LeafTree(
                                 output_form=output_form,
                                 free_valence=free_valence,
@@ -5356,7 +5381,7 @@ def _name_single_fg_substituent(
                     acid_mol = Chem.MolFromSmiles(acid_smi)
                     if acid_mol is not None:
                         acid_tree = name(
-                            acid_mol, strategy, OutputForm.STANDALONE,
+                            acid_mol, strategy, _standalone_or_cation(acid_mol),
                             decision_ctx=DecisionContext(
                                 role="acid_for_chalcogen_acylamino",
                                 parent_plan=None,
@@ -5442,7 +5467,7 @@ def _name_single_fg_substituent(
                 acid_mol = rw.GetMol()
                 Chem.SanitizeMol(acid_mol)
                 acid_tree = name(
-                    acid_mol, strategy, OutputForm.STANDALONE,
+                    acid_mol, strategy, _standalone_or_cation(acid_mol),
                     decision_ctx=DecisionContext(
                         role="acid_for_acyl_prefix",
                         parent_plan=None,
@@ -5560,7 +5585,7 @@ def _name_single_fg_substituent(
                         )
                     # Fall through to STANDALONE-acid path as best-effort
                 acid_tree = name(
-                    acid_mol, strategy, OutputForm.STANDALONE,
+                    acid_mol, strategy, _standalone_or_cation(acid_mol),
                     decision_ctx=DecisionContext(
                         role="acid_for_acylamino",
                         parent_plan=None,
@@ -5620,7 +5645,7 @@ def _name_single_fg_substituent(
                     acid_mol = rw.GetMol()
                     Chem.SanitizeMol(acid_mol)
                     acid_tree = name(
-                        acid_mol, strategy, OutputForm.STANDALONE,
+                        acid_mol, strategy, _standalone_or_cation(acid_mol),
                         decision_ctx=DecisionContext(
                             role="acid_for_acylamino",
                             parent_plan=None,
@@ -5861,6 +5886,13 @@ def _collect_stereo_descriptors(
             skip_tetrahedral = True
             if ring_sys.type == "fused":
                 allow_fused_tetrahedral_int_locant = True
+            elif ring_sys.type == "spiro":
+                # Naming round 14: a spiro parent admits tetrahedral R/S at PLAIN-integer locants only, like a bridged one (a primed or lettered
+                # locant is still dropped). The Stage 6 note above skipped spiro "pending a separate audit"; the audit is the census: 3 of the
+                # 9 spiro structures with a dropped descriptor read back exact (spiro[4.5], a hydantoin, a barbiturate), the rest have no plain
+                # locant for their centre and are unchanged, and a spiro parent that OPSIN cannot read with stereo is caught by the same
+                # post-assembly validation that guards the bridged case.
+                allow_bridged_tetrahedral_int_locant = True
             elif ring_sys.type == "bridged":
                 # Stage 22 R22-D: ALSO admit bridged-ring tetrahedral R/S
                 # at plain-integer locants (camphor's ``1R,4R``, norbornene's
@@ -8853,6 +8885,58 @@ def _validate_stereo_via_opsin(tree, name: str, *, strip_modes: tuple[str, ...])
     return cur_name
 
 
+def _standalone_or_cation(mol) -> "OutputForm":
+    """CATION for a net-positive molecule with a ring-embedded heteroatom cation, else STANDALONE (naming round 14).
+
+    `name` promotes STANDALONE to CATION only at depth 0, so a recursive call that names the ACID of a fragment (to derive an acyl or amido prefix)
+    lost a ring cation's '-ium': '2-(imidazo[1,2-a]pyridine-3-carbonyl)...' for an imidazo[1,2-a]pyridin-1-ium, a name for a different charge.
+    """
+    if sum(a.GetFormalCharge() for a in mol.GetAtoms()) > 0 and any(
+        a.GetSymbol() in _RING_CATION_IUM_ELEMENTS and a.GetFormalCharge() == 1 and a.IsInRing() for a in mol.GetAtoms()
+    ):
+        return OutputForm.CATION
+    return OutputForm.STANDALONE
+
+
+def _shift_bridgehead_cation_charge(mol):
+    """Move a ring-fusion ``[n+]``'s charge onto the neighbouring ``[nH]`` it is conjugated with (naming round 14).
+
+    ``Cc1c[n+]2cccc(C)c2[nH]1`` and ``Cc1c[nH+]c2c(C)cccn12`` are ONE cation (an imidazo[1,2-a]pyridine protonated on N1): the same InChIKey, and
+    the name '...imidazo[1,2-a]pyridin-1-ium' reads back to either. The charged bridgehead form has no name (a fusion nitrogen with three ring
+    bonds cannot take the '-ium' hydrogen, and the neutral skeleton with an ``[nH]`` beside it is not a valid aromatic system), so the charge is
+    moved to the ``[nH]``, which is where the '-ium' hydrogen is. Applies only to an aromatic bridgehead ``n+`` with no hydrogen that shares an
+    aromatic carbon with exactly one aromatic ``[nH]``; anything else, or a graph that does not sanitise, is returned unchanged.
+    """
+    ring_info = mol.GetRingInfo()
+    for a in mol.GetAtoms():
+        if not (a.GetAtomicNum() == 7 and a.GetIsAromatic() and a.GetFormalCharge() == 1 and a.GetTotalNumHs() == 0
+                and ring_info.NumAtomRings(a.GetIdx()) == 2):
+            continue
+        partners = set()
+        for c in a.GetNeighbors():
+            if c.GetAtomicNum() != 6 or not c.GetIsAromatic():
+                continue
+            for b in c.GetNeighbors():
+                if (b.GetIdx() != a.GetIdx() and b.GetAtomicNum() == 7 and b.GetIsAromatic()
+                        and b.GetFormalCharge() == 0 and b.GetTotalNumHs() == 1):
+                    partners.add(b.GetIdx())
+        if len(partners) != 1:
+            continue
+        rw = Chem.RWMol(mol)
+        rw.GetAtomWithIdx(a.GetIdx()).SetFormalCharge(0)
+        rw.GetAtomWithIdx(a.GetIdx()).SetNumExplicitHs(0)
+        b = rw.GetAtomWithIdx(next(iter(partners)))
+        b.SetFormalCharge(1)
+        b.SetNumExplicitHs(1)
+        b.SetNoImplicit(True)
+        try:
+            Chem.SanitizeMol(rw)
+        except Exception:  # noqa: BLE001 - keep the graph the caller gave
+            continue
+        return rw.GetMol()
+    return mol
+
+
 def name_smiles(smiles: str, strategy=None) -> str:
     """Name a molecule from SMILES, with *strategy* bound for the whole call
     (every helper reads it through ``active_strategy()``)."""
@@ -8869,6 +8953,7 @@ def _name_smiles_bound(smiles: str, strategy) -> str:
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         raise ValueError(f"Invalid SMILES: {smiles}")
+    mol = _shift_bridgehead_cation_charge(mol)
     # NOTE: the whole-molecule curated-name dispatch (_name_radical_whole_mol /
     # _name_curated_whole_mol) was removed in the anti-pinning cleanup; the
     # backing tables are now empty.  The pipeline below names every molecule
@@ -10812,7 +10897,7 @@ def _generate_retained_plans(perception, mol, output_form, free_valence, strateg
         # molecule carries informative stereo markers (chiral tags or
         # E/Z flags) and the retained name is not stereo-capable,
         # disqualify the retained plan so a systematic plan takes over.
-        if output_form == OutputForm.STANDALONE:
+        if output_form in (OutputForm.STANDALONE, OutputForm.SUBSTITUENT):
             from openchem.vendor.iupac_namer.strategy import retained_plan_would_drop_stereo
             if retained_plan_would_drop_stereo(match.get("name", ""), mol):
                 return
@@ -14659,6 +14744,10 @@ class SubstitutivePath:
             # prefix form, it claimed atoms nothing could name, the acid plan died with 'heavy atoms unclaimed', and the engine fell back to a hydrazide
             # parent ('3-carboxypropanehydrazide' for '4-hydrazinyl-4-oxobutanoic acid': the hydrazide ABOVE a carboxylic acid, against Table 4.1).
             and not (fg.type == "hydrazide" and not _hydrazide_attaches_through_its_carbonyl(fg, parent_atoms, mol))
+            # A sulfonamide whose nitrogen is a RING atom outside the parent is the prefix '<ring>-N-sulfonyl' (naming round 14, D-151): the group claimed
+            # S, O, O and N and left the ring's carbons unclaimed, so every plan with the sulfonamide's other side as parent died and the engine fell
+            # back to naming the ring as the parent ('1-(4-carboxyphenylsulfonyl)piperidine', an ESTER as 'ethyl 1-(...)piperidine').
+            and not _sulfonamide_is_ring_nitrogen_prefix(fg, parent_atoms, mol)
         ]
 
         # Atoms claimed by non-PCG FGs (but not the parent backbone).
@@ -16369,8 +16458,10 @@ class SubstitutivePath:
                                                 n_sub_names_sf.append("?")
                                         if n_sub_names_sf and "?" not in n_sub_names_sf:
                                             from openchem.vendor.iupac_namer.assembly import merge_identical_prefixes, render_merged_prefixes
+                                            # Each N-substituent carries ITS OWN locant, so different ones read 'N-cyclohexyl-N-methyl' and identical ones
+                                            # 'N,N-dimethyl' (naming round 14: the old shared 'N,N-' block printed 'N,N-cyclohexylmethyl', unparsable).
                                             merged_sf = merge_identical_prefixes(
-                                                [(nm, ()) for nm in n_sub_names_sf]
+                                                [(nm, ("N",)) for nm in n_sub_names_sf]
                                             )
                                             merged_sf.sort(key=lambda m: m.sort_name)
                                             n_prefix_sf = render_merged_prefixes(merged_sf)
@@ -16382,10 +16473,8 @@ class SubstitutivePath:
                                             # collapses identical names into a single
                                             # "diX" / "triX" prefix without adjusting
                                             # the count we need for locants).
-                                            n_locant_count = len(n_sub_names_sf)
-                                            n_locant_block = ",".join(["N"] * n_locant_count)
-                                            # Build "N-methylsulfamoyl" / "N,N-dimethylsulfamoyl" style prefix
-                                            compound_sf_prefix = n_locant_block + "-" + n_prefix_sf + "sulfamoyl"
+                                            # Build "N-methylsulfamoyl" / "N,N-dimethylsulfamoyl" / "N-cyclohexyl-N-methylsulfamoyl" style prefix
+                                            compound_sf_prefix = n_prefix_sf + "sulfamoyl"
                                             sub_tree_sf = LeafTree(
                                                 output_form=OutputForm.SUBSTITUENT,
                                                 free_valence=None,
