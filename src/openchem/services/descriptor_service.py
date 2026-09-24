@@ -17,6 +17,7 @@ from openchem.chem.descriptor_providers import DescriptorProvider, RDKitDescript
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.calculator import DRAWING, CalculationRefusal, CalculationRequest
 from openchem.domain.refusal_kinds import MissingInput, RefusalKind, refusal_parameters
+from openchem.domain.input_snapshot import InputSnapshot, snapshot_model
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.molecule import MoleculeModel
@@ -587,10 +588,19 @@ class DescriptorService:
         type. Named to avoid colliding with
         `QuantumChemistryService.request_calculation`, an unrelated
         existing ORCA-specific method."""
+        # **FROZEN HERE, ON THE CALLING THREAD, AND THE WORKER READS NOTHING
+        # ELSE.** The task used to be handed the live model and read it at
+        # several moments while the GUI kept editing, then stamped the result
+        # with the structure version as it stood WHEN THE RESULT CAME BACK --
+        # so a value computed for structure A that finished after an edit to B
+        # read as current for B. See `domain.input_snapshot`.
+        snapshot = InputSnapshot.capture(model, self._structure_version_of)
+        dispatched_version = snapshot.structure_version
         self._pool.start(
             _CalculationTask(
-                self._calculator_registry, self._engine, model, request,
-                self._event_bus, self._structure_version_of,
+                self._calculator_registry, self._engine, snapshot.model, request,
+                self._event_bus,
+                (lambda _uuid, _v=dispatched_version: _v) if dispatched_version is not None else None,
                 # BY ID, not by a flag from the caller: seventeen test doubles
                 # implement `run_calculator(model, request)` exactly, and the
                 # fact "this calculator is part of the always-on set" belongs
@@ -652,6 +662,9 @@ class DescriptorService:
             # (see MoleculeEditorWidget -> EditStructureCommand -> the
             # MoleculeChanged handler that re-requests descriptors).
             return
+        # ONE snapshot for the whole request, so every provider describes the
+        # same structure even if the GUI edits between two `pool.start` calls.
+        snapshot = snapshot_model(model)
         for provider in self._providers:
             # `only_providers` is how a partial restore reruns just the part
             # that did not come back, rather than the whole set.
@@ -673,5 +686,5 @@ class DescriptorService:
                     )
                 )
             self._pool.start(
-                _DescriptorComputeTask(provider, self._engine, model, self._event_bus, calculation_input)
+                _DescriptorComputeTask(provider, self._engine, snapshot, self._event_bus, calculation_input)
             )

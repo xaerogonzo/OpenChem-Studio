@@ -31,7 +31,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   evaluate is skipped, logged once per structure (not once per edit) and recorded as a `Completeness` on Fragment Counts and Functional Groups, so a
   partial "nothing found" is never read as a complete one; the Results reader says so above the facts. The vocabulary's own tests and the census
   keep the strict detector, so a defect stays loud where it can be fixed. The reader's status line now leads a refusal with its kind
-  ("Needs input", "Needs setup", "Not applicable") instead of one sentence for all three.
+  (“Needs input”, “Needs setup”, “Not applicable”) instead of one sentence for all three.
+- **A slow calculation can no longer read as current for a structure it was not computed on.** The calculation and the always-on descriptors were handed the live
+  molecule on a worker thread, read it at several different moments while the editor went on changing it, and stamped the result with the structure version
+  *when the result came back* -- so a value computed for structure A that finished after an edit to B read as current for B (AqSolDB takes about five
+  minutes; a pause-then-refresh recompute makes the window routine). The molecule, its conformers and the structure version are now captured on the calling
+  thread (`domain/input_snapshot.py`) and the worker reads nothing else.
 
 ### Naming round 14 (branch `naming-round-14`)
 
