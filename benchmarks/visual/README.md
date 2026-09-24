@@ -79,6 +79,7 @@ Every one is a surface with a *recorded* history of breaking, not a guess.
 
 | `charge_identity_after_edit.json` | the Atom Inspector's 3D charge through an erase, an edit and an undo | ethanol's oxygen showed carbon C1's EEM 3D charge while the result read fresh -- GEOMETRY datasets keyed by the conformer's atoms, read by the drawing's |
 | `charge_species_and_refusals.json` | EEM and QEq on species each model declines | not recorded here |
+| `energetic_nitramine_ledger.json` | a nitramine (1,3-dinitro-1,3-diazetidine) drawn and ESOL solubility run, ending in the driven-run VERDICT: the application's log must hold no unexcused ERROR, and Properties must hold the nitro alert and no hydrazine | `fg:hydrazine` matched every nitramine's N-N bond, so `detect_features` raised `UndeclaredChargeState` once per edit; it was logged and never asserted, so the window looked fine. Reverted, this script exits 1 and names `structural_features.py:352` |
 | `docked_pose_in_6wgt.json` | a real Vina run, the pose shown in Mol* | the pose was retargeted and the receptor left on assembly 1 -- the viewer and the docking showed different chains |
 | `docking_replicates.json` | repeated real docking runs from one panel | not recorded here |
 | `docking_rescore.json` | a pose scored again with Vinardo | not recorded here |
@@ -261,3 +262,21 @@ embeddings, 9 batches, plateau, identical across three runs.
 
 **Slow on purpose**: about 40 s a run against ~8 s before. That is the trade
 for a count that does not move, and it is why the step allows 90 s.
+
+**`energetic_nitramine_ledger.json` ENDS IN A VERDICT, AND SO NOW DOES EVERY RUN.**
+`drive_ledger` keeps every WARNING-and-above record the application logs,
+de-duplicated by (logger, exception, innermost frame, message with its numbers
+collapsed), and the run ends in `VERDICT PASS|FAIL` with an exit status and a
+`<script>.report.json` beside the script (`OPENCHEM_DRIVE_REPORT` names another
+path). `expect_clean` never passes on its own -- a script that never drew the
+molecule that breaks it has an empty ledger -- so this one pairs it with
+`expect_results`, which asserts what Properties actually holds. Measured
+2026-09-24 with the hydrazine fix reverted: exit 1, one entry,
+`UndeclaredChargeState @ openchem/chem/structural_features.py:352`, and the
+fragment-count facts empty. Restored: PASS, exit 0.
+
+A scripted run also writes its own log, `drive-<pid>.log`, because two processes
+cannot share one rotating file on Windows (`WinError 32` on every record past the
+rotation size while a person's own session was open); the newest twenty are kept.
+The ESOL-only parameters are deliberate: the Solubility default also runs the
+AqSolDB comparison in the ADMET sidecar, about five minutes.

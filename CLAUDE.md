@@ -141,7 +141,27 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "dock_float", "panel": "Properties", "on": true}
     {"do": "reset_layout"}                    View > Reset Panel Layout
     {"do": "dock_report", "tag": "after"}     areas, rects, OVERLAPS, placed
+    {"do": "log_report", "tag": "after"}      what the APPLICATION logged
+    {"do": "expect_clean", "allow": ["..."]}  FAILS the run on an unexcused ERROR
+    {"do": "expect_results", "expect": {"solubility": "ready",
+                             "fragment_counts": {"facts_contain": ["nitro (2)"]}}}
+                                          what Properties HOLDS, asserted
     {"do": "wait"} {"do": "quit"}
+
+**A DRIVEN RUN ENDS IN A VERDICT, AND EXITS NON-ZERO WHEN IT FAILED.**
+`src/openchem/app/drive_ledger.py` keeps every WARNING-and-above record the application
+logs, de-duplicated by (logger, exception, innermost frame, message with its
+numbers collapsed), and `quit` prints `VERDICT PASS|FAIL`, writes
+`<script>.report.json` (`OPENCHEM_DRIVE_REPORT` moves it) and sets the exit
+status: a driver failure (`no molecule selected`, `EXPECT ... FAILED`, a step
+that raised), a failed `expect_*`, or an application ERROR nothing in `allow`
+excuses all fail it. `{"do": "quit", "tolerate_errors": true}` opts out for a
+script that provokes an error on purpose. **`expect_clean` IS NEVER A PASS ON ITS
+OWN** -- an empty ledger is what a molecule that never ran the breaking code
+also produces -- so pair it with `expect_results`. A scripted run writes its
+own `drive-<pid>.log`, since two processes cannot share one rotating file on
+Windows. The report records the run's identity (commit, script and lockfile
+hashes, Qt/RDKit/Ketcher versions).
 
 **`OPENCHEM_TRACE_WINDOWS=1` LOGS EVERY TOP-LEVEL WINDOW THAT SHOWS**, with
 its class, its parent chain and a timestamp for every result event. It is
@@ -290,6 +310,7 @@ message — this index is. **If a title below names what you are
 about to touch, read that section before you start.** Headings there
 are verbatim, so grep the file for the line.
 
+- A CRASH WAS LOGGED FIVE TIMES AND NOTHING FAILED, BECAUSE NO RUN ASKED WHAT THE APP SAID
 - THE ORACLE READ EVERY MISSPELLING, AND SIX DEFECTS WERE IN NO CORPUS ROW
 - A ZERO-OWNER HOLE BETWEEN TWO GUARDS, AND AN INVARIANT THAT COULD NOT SEE THE WRONG MOLECULE
 - NO CALCULATOR HAD BEEN ASKED WHICH COMPONENT OF A SALT IT DESCRIBED

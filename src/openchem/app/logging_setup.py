@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import logging
 import logging.handlers
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -66,8 +67,47 @@ def log_directory() -> Path:
     return subdirectory("logs")
 
 
+#: Driven-run logs kept. Each scripted run writes its own file (see
+#: `_log_filename`), so without a cap they would accumulate for as long as
+#: somebody keeps running scripts.
+_DRIVE_LOGS_KEPT = 20
+
+
+def _log_filename() -> str:
+    """The log this PROCESS writes.
+
+    **A SCRIPTED RUN GETS ITS OWN FILE.** Two processes rotating one
+    `RotatingFileHandler` file is not something Windows allows: the rename
+    fails with `PermissionError: [WinError 32]` whenever another process has
+    the file open, so a driven run started while the person's own session is
+    open printed a "--- Logging error ---" block on every record past the
+    rotation size (measured, 2026-09-24). It also made the run's report
+    unscoped -- a byte range in a file two processes are appending to is not
+    the run's output. A file per run answers both, and `RunIdentity` in the
+    report names it.
+    """
+    if os.environ.get("OPENCHEM_DRIVE"):
+        return f"drive-{os.getpid()}.log"
+    return LOG_FILENAME
+
+
 def log_file_path() -> Path:
-    return log_directory() / LOG_FILENAME
+    return log_directory() / _log_filename()
+
+
+def _prune_drive_logs(directory: Path) -> None:
+    """Delete all but the newest `_DRIVE_LOGS_KEPT` driven-run logs (and their rotations)."""
+    try:
+        bases = sorted(
+            (p for p in directory.glob("drive-*.log") if p.is_file()),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+        for stale in bases[_DRIVE_LOGS_KEPT:]:
+            for path in directory.glob(f"{stale.name}*"):
+                path.unlink(missing_ok=True)
+    except OSError:
+        pass  # a log that cannot be pruned is a full disk's problem, not the run's
 
 
 def configure_logging(level: int = logging.INFO) -> None:
@@ -96,8 +136,10 @@ def _attach_file_handler(level: int) -> None:
     try:
         directory = log_directory()
         directory.mkdir(parents=True, exist_ok=True)
+        if os.environ.get("OPENCHEM_DRIVE"):
+            _prune_drive_logs(directory)
         handler = logging.handlers.RotatingFileHandler(
-            directory / LOG_FILENAME,
+            directory / _log_filename(),
             maxBytes=_MAX_BYTES,
             backupCount=_BACKUP_COUNT,
             encoding="utf-8",

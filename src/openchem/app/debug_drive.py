@@ -89,8 +89,29 @@ The script is a JSON list of steps, run in order:
       {"do": "process_report",   "modules": ["openchem.chem.engine"]}  pid,
                                               HEAD, and where each module
                                               was imported from
-      {"do": "quit"}
+      {"do": "log_report",       "tag": "after-draw"}   what the APPLICATION
+                                              logged so far (WARNING and up),
+                                              de-duplicated by where it happened
+      {"do": "expect_clean",     "allow": ["substring"]}   FAILS the run if the
+                                              application logged an unallowed
+                                              ERROR; never a pass on its own
+      {"do": "expect_results",   "expect": {"solubility": "inapplicable",
+                                            "fragment_counts": {"facts_contain": ["Nitro"]}}}
+                                              what the panels HOLD, so a clean
+                                              log cannot pass by silence
+      {"do": "quit"}                          ends in a VERDICT and an exit status
     ]
+
+**THE RUN ENDS IN A VERDICT, NOT A SCREENSHOT.** `drive_ledger` keeps every
+WARNING-and-above record the application logs, de-duplicated by origin, and
+`quit` (or the last step) writes `<script>.report.json` beside the script --
+`OPENCHEM_DRIVE_REPORT` names another path -- and exits non-zero when the run
+failed: a driver failure (`no molecule selected`, `EXPECT ... FAILED`, a step
+that raised), a failed `expect_*`, or an ERROR the application logged that no
+`allow` excuses. `{"do": "quit", "tolerate_errors": true}` opts out of the last
+for a script that provokes an error on purpose. The report carries the run's
+identity (commit, script hash, lockfile hash, Qt/RDKit/Ketcher versions, and the
+byte range of `logs/openchem.log` the run wrote) so two runs cannot be confused.
 
 `after_ms` is how long to wait BEFORE the next step, which is how an
 asynchronous calculator is waited on. Every step defaults to 400 ms.
@@ -111,6 +132,8 @@ from typing import Any
 
 from PySide6.QtCore import QObject, Qt, QTimer
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QWidget
+
+from openchem.app.drive_ledger import ErrorLedger, RunIdentity, log_file_size, write_report
 
 logger = logging.getLogger("openchem.ui")
 
@@ -194,11 +217,27 @@ class _Driver(QObject):
     the one written down.
     """
 
-    def __init__(self, window: QWidget, steps: list[dict[str, Any]]) -> None:
+    def __init__(
+        self, window: QWidget, steps: list[dict[str, Any]], report_path: Path | None = None
+    ) -> None:
         super().__init__()
         self._window = window
         self._steps = steps
         self._index = 0
+        #: What the application logged (see `drive_ledger`). Built here but
+        #: attached to the root logger only in `start()` and only for a real
+        #: scripted run, so constructing a driver in a test leaves nothing
+        #: behind on the process's logging.
+        self._ledger = ErrorLedger()
+        self._identity: RunIdentity | None = None
+        #: The `expect_*` steps' outcomes, kept apart from the ledger: a failed
+        #: assertion is the SCRIPT's verdict, not something the application said.
+        self._assertions: list[dict[str, Any]] = []
+        #: Substrings excusing an application ERROR, gathered from every
+        #: `expect_clean` and from `quit`.
+        self._allow: list[str] = []
+        self._report_path = report_path
+        self._verdict: int | None = None
         #: The Lewis dialog a `lewis` step opened, so a later `shot` can
         #: grab it. Held rather than looked up: it is parented to the
         #: window and finding it by type would be one more place that can
@@ -207,6 +246,14 @@ class _Driver(QObject):
 
     def start(self) -> None:
         logger.warning("OPENCHEM_DRIVE: %d step(s) from %s", len(self._steps), _DRIVE_SCRIPT)
+        if _DRIVE_SCRIPT:
+            # A real scripted run: attach the ledger and say which run this is.
+            self._identity = RunIdentity.capture(_DRIVE_SCRIPT)
+            logging.getLogger().addHandler(self._ledger)
+            if self._report_path is None:
+                self._report_path = Path(
+                    os.environ.get("OPENCHEM_DRIVE_REPORT") or Path(_DRIVE_SCRIPT).with_suffix(".report.json")
+                )
         self._answer_modal_boxes()
         # THE WINDOW IS THE CONTEXT OBJECT, NOT THE DRIVER, and it is the
         # right one for a reason beyond `_Driver` being a plain class Qt
@@ -260,6 +307,9 @@ class _Driver(QObject):
     def _run_next(self) -> None:
         if self._index >= len(self._steps):
             logger.warning("OPENCHEM_DRIVE: script complete")
+            # A script that ends without `quit` still gets its verdict and its
+            # report; the app stays up so somebody can look at the window.
+            self._finish()
             return
         step = self._steps[self._index]
         self._index += 1
@@ -4422,6 +4472,148 @@ class _Driver(QObject):
             except Exception as exc:  # noqa: BLE001
                 logger.error("OPENCHEM_DRIVE: process_report module %s failed: %s", name, exc)
 
+    # -- the verdict ---------------------------------------------------------
+
+    def _record_assertion(self, step: str, tag: str, ok: bool, detail: str) -> bool:
+        self._assertions.append({"step": step, "tag": tag, "ok": ok, "detail": detail})
+        return ok
+
+    def _do_log_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "log_report", "tag": "after-draw"}` -- what the APPLICATION
+        has logged so far, de-duplicated by where it happened.
+
+        Read-only: it asserts nothing. `expect_clean` is the assertion.
+        """
+        logger.warning("OPENCHEM_DRIVE: log_report[%s]", step.get("tag", ""))
+        for line in self._ledger.summary_lines(self._allow):
+            logger.warning("OPENCHEM_DRIVE: ledger %s", line)
+
+    def _do_expect_clean(self, step: dict[str, Any]) -> None:
+        """`{"do": "expect_clean", "allow": ["substring", ...], "warnings": false}`
+        -- FAILS the run if the application has logged an ERROR that nothing in
+        `allow` excuses (with `"warnings": true`, a WARNING too).
+
+        **NEVER A PASS ON ITS OWN.** A ledger is empty when logging is off,
+        when the failing code never ran, and when the script never drew the
+        molecule that breaks it. Pair it with `expect_results`, which asserts
+        what the panels HOLD; together they say "it ran, it produced this, and
+        it said nothing was wrong".
+
+        `allow` accumulates across the run: an excuse given here also covers
+        the final verdict, so a known error is named once.
+        """
+        self._allow.extend(str(a) for a in step.get("allow") or [])
+        unexpected = self._ledger.unexpected(self._allow, include_warnings=bool(step.get("warnings")))
+        tag = str(step.get("tag", ""))
+        if not self._record_assertion(
+            "expect_clean", tag, not unexpected,
+            "; ".join(f"x{e.count} {e.text()}" for e in unexpected) or "no unexpected application errors",
+        ):
+            logger.error(
+                "OPENCHEM_DRIVE: EXPECT clean FAILED[%s] -- %d unexpected: %s",
+                tag, len(unexpected), "; ".join(f"x{e.count} {e.text()}" for e in unexpected)[:600],
+            )
+        else:
+            logger.warning("OPENCHEM_DRIVE: EXPECT clean ok[%s]", tag)
+
+    def _do_expect_results(self, step: dict[str, Any]) -> None:
+        """`{"do": "expect_results", "expect": {"<calculator or alert id>": ...}}`
+        -- what Properties HOLDS for the selected molecule, asserted.
+
+        Each entry is a status name, a list of acceptable ones, or an object:
+
+            "status"        one name or a list, from `RESULT_STATUSES`
+            "not_status"    names that must NOT be the status
+            "refusal"       the refusal code ("" asserts a computed result)
+            "facts_contain" substrings that must each appear in some `label=value`
+            "facts_absent"  substrings that must appear in none
+
+        **THIS IS THE HALF THAT KEEPS `expect_clean` HONEST.** A molecule whose
+        alerts silently never arrived logs an ERROR, but one whose alerts
+        arrive EMPTY logs nothing, and the panel is what shows the difference.
+        A calculator still running is named as such and is not called a failure:
+        give the step before it more `after_ms`.
+        """
+        panel = self._window._property_panel
+        tag = str(step.get("tag", ""))
+        problems: list[str] = []
+        for calculator_id, wanted in (step.get("expect") or {}).items():
+            spec = {"status": wanted} if isinstance(wanted, (str, list)) else dict(wanted)
+            status = panel._status_for(calculator_id)
+            result = panel._result_for(calculator_id)
+            provenance = getattr(result, "provenance", None)
+            parameters = dict(getattr(provenance, "parameters", {}) or {})
+            facts = [
+                f"{getattr(f, 'label', '')}={getattr(f, 'display_value', '')}"
+                for f in (getattr(result, "facts", ()) or ())
+            ]
+            allowed = spec.get("status")
+            allowed = [allowed] if isinstance(allowed, str) else list(allowed or [])
+            if allowed and status not in allowed:
+                hint = " (still running: give the step before this more after_ms)" if status == "running" else ""
+                problems.append(f"{calculator_id}: status {status!r}, wanted {allowed}{hint}")
+            if status in (spec.get("not_status") or []):
+                problems.append(f"{calculator_id}: status is {status!r}, which was ruled out")
+            if "refusal" in spec and parameters.get("refusal", "") != spec["refusal"]:
+                problems.append(
+                    f"{calculator_id}: refusal {parameters.get('refusal', '')!r}, wanted {spec['refusal']!r}"
+                )
+            for needle in spec.get("facts_contain") or []:
+                if not any(needle in fact for fact in facts):
+                    problems.append(f"{calculator_id}: no fact contains {needle!r} (facts: {facts[:8]})")
+            for needle in spec.get("facts_absent") or []:
+                if any(needle in fact for fact in facts):
+                    problems.append(f"{calculator_id}: a fact contains {needle!r}, which was ruled out")
+        if self._record_assertion("expect_results", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT results ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT results FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
+    def _finish(self, *, tolerate_errors: bool = False) -> int:
+        """End the run: log the verdict, write the report, return the exit status.
+
+        Idempotent -- the last step and `quit` both reach it -- and it detaches
+        the ledger, so nothing logged after the verdict is counted against it.
+        """
+        if self._verdict is not None:
+            return self._verdict
+        unexpected = [] if tolerate_errors else self._ledger.unexpected(self._allow)
+        failed = [a for a in self._assertions if not a["ok"]]
+        driver_failures = self._ledger.driver_failures
+        code = 1 if (unexpected or failed or driver_failures) else 0
+        self._verdict = code
+        logging.getLogger().removeHandler(self._ledger)
+        for line in self._ledger.summary_lines(self._allow):
+            logger.warning("OPENCHEM_DRIVE: ledger %s", line)
+        logger.warning(
+            "OPENCHEM_DRIVE: VERDICT %s -- %d unexpected app error(s), %d failed assertion(s) of %d, "
+            "%d driver failure(s)%s",
+            "PASS" if code == 0 else "FAIL", len(unexpected), len(failed), len(self._assertions),
+            len(driver_failures), " (errors tolerated)" if tolerate_errors else "",
+        )
+        if self._report_path is not None:
+            from openchem.app.logging_setup import log_file_path
+
+            identity = (self._identity.to_dict() if self._identity else {})
+            payload = {
+                "verdict": "PASS" if code == 0 else "FAIL",
+                "exit_code": code,
+                "tolerate_errors": tolerate_errors,
+                "run": identity,
+                "steps": {"in_script": len(self._steps), "run": self._index},
+                "log_file": {
+                    "path": str(log_file_path()), "start": identity.get("log_start", 0),
+                    "end": log_file_size(),
+                },
+                "assertions": self._assertions,
+                "ledger": self._ledger.to_dict(self._allow),
+            }
+            if write_report(self._report_path, payload):
+                logger.warning("OPENCHEM_DRIVE: report written to %s", self._report_path)
+            else:
+                logger.warning("OPENCHEM_DRIVE: could not write the report to %s", self._report_path)
+        return code
+
     def _do_wait(self, step: dict[str, Any]) -> None:
         """Nothing; the pause is `after_ms`. Present so a script can say
         it is waiting rather than hiding it in the previous step."""
@@ -4457,8 +4649,12 @@ class _Driver(QObject):
         from PySide6.QtWidgets import QApplication
 
         logger.warning("OPENCHEM_DRIVE: quitting")
+        # The verdict FIRST, while the window and its panels are still there to
+        # be asked, and before anything below can log.
+        self._allow.extend(str(a) for a in step.get("allow") or [])
+        code = self._finish(tolerate_errors=bool(step.get("tolerate_errors")))
         # Nothing is worth saving from a scripted run, and a dirty session
         # is what raises the modal.
         self._window._session.mark_clean()
         self._window._undo_stack.clear()
-        QApplication.instance().exit(0)
+        QApplication.instance().exit(code)

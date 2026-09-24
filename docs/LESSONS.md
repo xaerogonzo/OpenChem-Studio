@@ -21245,3 +21245,41 @@ carboxamide disagreed about indometacin), so the consumer set is a fast loop and
 * A pinned score dict (`{"engine": .., "pubchem": ..}`) is a contract: adding `known_deviation` to it failed one existing test,
   which is the right place to be told.
 * `python3` in a heredoc can hang on this machine (a Store alias); run scripts with `.venv/Scripts/python.exe`.
+
+## A CRASH WAS LOGGED FIVE TIMES AND NOTHING FAILED, BECAUSE NO RUN ASKED WHAT THE APP SAID
+
+Measured 2026-09-24 in a live session on 1,3-dinitro-1,3-diazetidine. The Console held five identical tracebacks in forty seconds, one
+per edit: `fg:hydrazine` matched every nitramine's N-N bond, so `detect_features` raised `UndeclaredChargeState` and one nitramine
+took every functional-group alert for its molecule with it. The window stayed up, every panel rendered, and no driven check this
+project had ever run would have ended in anything but exit code 0 and a screenshot that looked fine. `tests/multicomponent_sweep.py`
+had recorded the same blind spot in its own docstring ("the eager provider LOGS an alert or per-atom failure and records nothing")
+and it was never asked about again.
+
+* **A check that only photographs has no opinion about the log.** The driver could assert on what a panel held and never on what
+  the application said was wrong. `src/openchem/app/drive_ledger.py` now keeps every WARNING-and-above record, and a run ends in a verdict and an
+  exit status. Proven the right way round: with the pattern fix reverted, `benchmarks/visual/energetic_nitramine_ledger.json` exits 1
+  and names `UndeclaredChargeState @ structural_features.py:352`; restored, it passes.
+* **Key a repeated failure by where it happened, not by what it said.** The message changed on every edit (the atom indices), the
+  frame did not. The key is (logger, exception type, innermost frame, message with its numbers collapsed), so two different
+  failures that share a first line stay apart and one failure firing five times is one entry.
+* **The driver's own records are results, not noise, and must not be counted as the application's.** Its WARNING progress lines are
+  dropped; its ERRORs (`no molecule selected`, `EXPECT ... FAILED`) are the run failing to do what the script asked, and until now
+  they were a line in a log with an exit code of 0.
+* **An empty ledger passes for the wrong reason as easily as a full one fails for the right one.** A molecule that never ran the
+  breaking code, or a script that never drew it, also logs nothing. `expect_clean` therefore never stands alone: `expect_results`
+  asserts what Properties actually holds (here the nitro alert and no hydrazine).
+* **The pattern was wrong in three places, and only one was ever corrected.** The basic-amine SMARTS was written out in the pKa/logD
+  code, the hERG checklist and the common-pattern search list. It now has one definition (`logd.BASIC_AMINE_SMARTS`) with a test that the
+  other two import it. The same nitramine nitrogen was also counted as a base, which is why solubility said "Failed" for a molecule
+  with nothing to ionise.
+* **Fixing a refusal can expose the number it was hiding.** With the base count corrected, ESOL now answers for a nitramine; it
+  gives 188 mg/mL for this molecule and 236 mg/mL for RDX, because Crippen logP is negative for them (-1.10 and -1.65). That
+  number was already in the always-on descriptors before the fix, so nothing new was shipped, but the calculator's "Failed" had been
+  covering for it. Recorded for the census, not fixed here: the experimental solubilities were recalled, not sourced, so the size of
+  the error is unverified.
+* **Two processes cannot share one rotating log on Windows.** `RotatingFileHandler` renames the file at 2 MB and the rename fails
+  (`WinError 32`) while another process has it open, so a driven run started beside the person's own session printed a logging error on
+  every record. A scripted run now writes `drive-<pid>.log` (newest twenty kept), which also makes a report's log range the run's own.
+* **Smaller things measured:** nitroguanidine's two NH2 are still counted as bases (a guanidine N on a nitroimine); the Solubility
+  calculator's default `compare_models=True` also runs AqSolDB in the ADMET sidecar, about five minutes, for every default run
+  including "Run selected"; and a scripted `calculator` step must set `compare_models: false` to be a quick check.
