@@ -1122,6 +1122,20 @@ def name_systematic_monocyclic(
     double_bond_locants, triple_bond_locants = _detect_ring_unsaturation(ring_system, mol)
     ring_bond_pairs = get_ring_bond_pairs(ring_system, mol)
 
+    # An all-carbon ring RDKit calls AROMATIC that is not benzene (a tropone or tropolone: `O=c1cccccc1`) reports no double bonds either, and fell
+    # to the saturated branch below: 'cycloheptanone' for tropone, 'hinokitiol' as '2-hydroxy-5-(propan-2-yl)cycloheptan-1-one', a different
+    # structure (naming round 14). Recover the Kekule double bonds, as the heteromacrocycle branch above does, and number them from the ring walk;
+    # the engine recomputes the locants for the real numbering from the stored pairs.
+    if (not double_bond_locants and not triple_bond_locants and not ring_bond_pairs and ring_system.aromatic):
+        _kek = _kekulized_ring_bond_pairs(ring_system, mol)
+        if _kek:
+            from openchem.vendor.iupac_namer.types import Locant as _Locant
+            _cycle = _get_ring_cycle_order(ring_system.atom_indices, mol)
+            ring_bond_pairs = _kek
+            double_bond_locants, triple_bond_locants = compute_ring_unsaturation_locants_from_numbering(
+                _kek, {idx: _Locant.numeric(pos + 1) for pos, idx in enumerate(_cycle)}
+            )
+
     if not double_bond_locants and not triple_bond_locants:
         # Fully saturated (or aromatic — retained names handle benzene etc.)
         name_str = cyclo_prefix + "ane"

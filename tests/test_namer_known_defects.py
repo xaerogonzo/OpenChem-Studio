@@ -3610,6 +3610,15 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-161b", "CC(=O)NC1CCCC2NCCC21", "N-(octahydro-1H-indol-4-yl)acetamide", "N-(octahydro-1H-indol-5-yl)acetamide", "the position beside the fusion carbon"),
     ("D-161c", "CC(=O)NC1NC2CSCC2N1", "N-(hexahydrothieno[3,4-d]imidazol-2-yl)acetamide", "N-(hexahydrothieno[3,4-d]imidazol-5-yl)acetamide", "the imidazolidine carbon (biotin's ring)"),
     ("D-161d", "CC(=O)Nc1nnc2sc3ccccc3n12", "N-([1,2,4]triazolo[3,4-b][1,3]benzothiazol-3-yl)acetamide", "N-([1,2,4]triazolo[3,4-b][1,3]benzothiazol-5-yl)acetamide", "the triazole carbon (the census shape)"),
+    # --- D-153 (naming round 14): an aromatic all-carbon ring that is not benzene was named SATURATED ---------------------------------------------------
+    # `O=c1cccccc1` (tropone) came out `cycloheptanone`, tropolone `2-hydroxycycloheptan-1-one` and hinokitiol `2-hydroxy-5-(propan-2-yl)cycloheptan-1-one`:
+    # RDKit marks the ring aromatic, `_detect_ring_unsaturation` returns nothing for an aromatic ring, and the carbocycle branch read that as "saturated".
+    # A different structure (the read-back is the saturated ketone). The Kekule double bonds are recovered as the heteromacrocycle branch already does.
+    ("D-153", "COc1cccc(O)c(=O)c1", "2-hydroxy-6-methoxycyclohepta-2,4,6-trien-1-one",
+     "2-hydroxy-6-methoxycycloheptan-1-one", "the census tropolone"),
+    ("D-153b", "O=c1cccccc1", "cyclohepta-2,4,6-trien-1-one", "cycloheptanone", "tropone"),
+    ("D-153c", "CC(C)c1ccc(O)c(=O)cc1", "2-hydroxy-5-(propan-2-yl)cyclohepta-2,4,6-trien-1-one",
+     "2-hydroxy-5-(propan-2-yl)cycloheptan-1-one", "hinokitiol"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -3712,12 +3721,12 @@ OPEN: list[tuple[str, str, str, str, str]] = [
      "-- the WRONG MOLECULE this item was admitted for is fixed, the PIN is "
      "a separate, still-open gap (imine FG perception is empty for this "
      "structure in every context, not only the multiplicative one)"),
-    # Naming round 14: an aromatic seven-ring ketone with a hydroxyl (a tropolone) is named as the SATURATED cycloheptanone, so the name reads back as a
-    # different structure. One census row (0.05%, under the floor, recorded not fixed); a structural error, not a preference. The target is derived
-    # (the ring is cyclohepta-2,4,6-trien-1-one, lowest locants {2,6}) and both 4- and 6-methoxy numberings read back exact.
-    ("D-153", "COc1cccc(O)c(=O)c1", "2-hydroxy-6-methoxycyclohepta-2,4,6-trien-1-one",
-     "2-hydroxy-6-methoxycycloheptan-1-one",
-     "an aromatic tropolone named as a saturated cycloheptanone (a different structure)"),
+    # Naming round 14: an ester whose acid part carries an N-HYDROXY-N-ALKYL amide is named `[(hydroxycarbamoyl)methyl]methyl acetate`, which drops the
+    # N-substituent and reads back as a different structure (formula differs). The hydroxamic acid group is written as if the nitrogen were unsubstituted.
+    # One census structure (0.05%, under the floor), a structural error, recorded not fixed; the target is derived and read back exact. The N-methoxy
+    # analogue (`2-[methoxy(methyl)amino]-2-oxoethyl acetate`) is named correctly, so the N-OH context is the trigger.
+    ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
+     "[(hydroxycarbamoyl)methyl]methyl acetate", "an N-substituted hydroxamic acid inside an ester's acid part loses its N-substituent"),
 ]
 
 # Observed but NOT tracked here, because this table requires a verified
@@ -4539,4 +4548,14 @@ def test_a_fused_ring_locant_table_is_one_of_the_numberings_the_fusion_rules_der
     ("CC(=O)Nc1cc2cc3cc4cc5cc6cc7cc8cc9ccccc9cc8cc7cc6cc5cc4cc3cc2cc1", "N-(nonacen-2-yl)acetamide"),
 ])
 def test_a_fused_all_carbon_ring_now_names_its_attachment_locant(smiles, expected):
+    assert name_smiles(smiles) == expected
+
+
+@pytest.mark.parametrize("smiles, expected", [
+    ("c1ccccc1", "benzene"),
+    ("C1=CC=CC=CC1", "cyclohepta-1,3,5-triene"),
+    ("C1CCCCCC1=O", "cycloheptanone"),
+    ("O=C1C=CC=CC1", "cyclohexa-2,4-dien-1-one"),
+])
+def test_the_aromatic_carbocycle_kekule_recovery_does_not_move_a_neighbouring_name(smiles, expected):
     assert name_smiles(smiles) == expected
