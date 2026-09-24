@@ -4936,6 +4936,118 @@ class _Driver(QObject):
         QTimer.singleShot(int(step.get("inspect_after_ms", 700)), self._window, self._inspect_chip_modal)
         chip.click()
 
+    def _do_ketcher_eval(self, step: dict[str, Any]) -> None:
+        """`{"do": "ketcher_eval", "script": "JSON.stringify(...)", "tag": "..."}` -- run one
+        JavaScript EXPRESSION in the Ketcher page and log what it returns.
+
+        A STRING, because `runJavaScript` marshals primitives only (an array or object comes
+        back as ''), so the expression should end in `JSON.stringify(...)`. For a spike and for a
+        probe a run needs -- what does this API return, what is on the page now -- where writing a
+        one-off step for each question would leave a dozen private steps nobody can find.
+        Read-only by convention; nothing here stops a script from mutating the page, so a script
+        that does says so in its tag.
+        """
+        tag = str(step.get("tag", ""))
+        script = str(step["script"])
+        page = self._window._editor._backend._page
+
+        def report(result) -> None:
+            logger.warning("OPENCHEM_DRIVE: ketcher_eval[%s] %s", tag, result)
+
+        page.runJavaScript(f"(function () {{ try {{ return ({script}); }} catch (e) {{ return 'ERROR: ' + e; }} }})();", report)
+
+    def _do_atom_editor(self, step: dict[str, Any]) -> None:
+        """`{"do": "atom_editor", "atom": 2, "set": {"charge": "1"}, "apply": true, "expect": {...}}`
+        -- what the atom right-click menu's "Edit..." does, and WHAT THE PAGE DID ABOUT IT.
+
+            "atom"      the atom's MOLFILE POSITION
+            "set"       {data-testid: text} typed into the dialog's fields (label-input,
+                        charge, isotope, alias)
+            "apply" / "cancel"   press the dialog's own Apply or Cancel
+            "expect"    {"dialog": true, "smiles_contains": "+", "undo_delta": 1,
+                         "unchanged": true}
+
+        Calls the editor's own `open_atom_editor`, the method that menu item is wired to, and
+        then asks the PAGE what is on it. "It opened" is not assumed: the reported defect was
+        that Edit... did nothing at all -- no dialog, and nothing logged -- and a first fix that
+        only checked the dispatch would have passed. What is asserted is Ketcher's own
+        Atom Properties dialog being up, and after Apply, that the structure really changed
+        as ONE edit on the application's undo stack (`undo_delta`), or after Cancel that it did
+        not (`unchanged`).
+
+        The fields are set with the native value setter and an `input` event, because the dialog
+        is a React form and assigning `.value` alone is ignored by it.
+        """
+        atom = int(step.get("atom", 0))
+        tag = str(step.get("tag", ""))
+        expect = dict(step.get("expect") or {})
+        window = self._window
+        editor = window._editor
+        page = editor._backend._page
+        molecule = window._current_molecule()
+        before = (molecule.canonical_smiles if molecule is not None else None, window._undo_stack.count())
+        state: dict[str, Any] = {"dialog": None}
+
+        def verify() -> None:
+            molecule_now = window._current_molecule()
+            after = (molecule_now.canonical_smiles if molecule_now is not None else None, window._undo_stack.count())
+            problems: list[str] = []
+            if expect.get("dialog") and not state["dialog"]:
+                problems.append("Ketcher's Atom Properties dialog did not open")
+            if "smiles_contains" in expect and expect["smiles_contains"] not in str(after[0]):
+                problems.append(f"structure {after[0]!r} lacks {expect['smiles_contains']!r}")
+            if "undo_delta" in expect and after[1] - before[1] != int(expect["undo_delta"]):
+                problems.append(f"undo stack moved by {after[1] - before[1]}, wanted {expect['undo_delta']}")
+            if expect.get("unchanged") and after != before:
+                problems.append(f"the structure changed: {before} -> {after}")
+            ok = not problems
+            detail = ("as expected" if ok else "; ".join(problems)) + f" ({before} -> {after})"
+            if self._record_assertion("atom_editor", tag, ok, detail):
+                logger.warning("OPENCHEM_DRIVE: EXPECT atom_editor ok[%s] %s -> %s", tag, before, after)
+            else:
+                logger.error("OPENCHEM_DRIVE: EXPECT atom_editor FAILED[%s] -- %s", tag, detail)
+
+        def act(result) -> None:
+            state["dialog"] = "Atom Properties" in str(result)
+            logger.warning("OPENCHEM_DRIVE: atom_editor[%s] dialog up: %s", tag, state["dialog"])
+            if not state["dialog"] or not (step.get("apply") or step.get("cancel") or step.get("set")):
+                QTimer.singleShot(200, window, verify)
+                return
+            fields = json.dumps({str(k): str(v) for k, v in dict(step.get("set") or {}).items()})
+            button = "OK" if step.get("apply") else ("Cancel" if step.get("cancel") else "")
+            page.runJavaScript(
+                """
+                (function () {
+                  var fields = %s, button = %s;
+                  var setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+                  Object.keys(fields).forEach(function (tid) {
+                    // An INPUT: a wrapper element can carry the same test id, and the native
+                    // value setter throws "Illegal invocation" on anything that is not one.
+                    var el = document.querySelector('dialog input[data-testid="' + tid + '"]');
+                    if (!el) return;
+                    setter.call(el, fields[tid]);
+                    el.dispatchEvent(new Event('input', {bubbles: true}));
+                    el.dispatchEvent(new Event('change', {bubbles: true}));
+                  });
+                  if (button) {
+                    var b = document.querySelector('dialog [data-testid="' + button + '"]');
+                    if (b) b.click();
+                  }
+                  return 'done';
+                })();
+                """ % (fields, json.dumps(button)),
+                lambda _r: QTimer.singleShot(int(step.get("settle_ms", 1500)), window, verify),
+            )
+
+        def probe() -> None:
+            page.runJavaScript(
+                "(function () { var d = document.querySelector('dialog'); return d ? d.innerText.slice(0, 60) : ''; })();",
+                act,
+            )
+
+        editor.open_atom_editor(atom)
+        QTimer.singleShot(int(step.get("probe_after_ms", 1000)), window, probe)
+
     def _do_compare_results(self, step: dict[str, Any]) -> None:
         """`{"do": "compare_results", "property": "geometry_partial_charge", "expect": {...}}`
         -- open one held result's Calculator Inspector, take "Compare with..." from ITS menu,

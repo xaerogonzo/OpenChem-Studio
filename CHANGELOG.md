@@ -91,6 +91,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   **Spread** and each later method's difference from the first. `domain/compare.py` REFUSES what would publish a wrong difference -- a different molecule, an edit between the runs, a
   drawing beside a conformer, one protonation state beside another, different units or atoms, or the same calculation twice -- and the menu never offers a comparison it would refuse.
   Not saved with the project. Driven on ethanol: EEM against QEq disagree most at the oxygen (0.09 e).
+- **Right-clicking an atom and choosing Edit... now works.** It opened nothing and logged nothing: the menu dispatched Ketcher's `elementEdit` event itself with a bare object, where
+  Ketcher's own callers pass an array of atom objects from the selection and hand the returned promise to an internal function that writes the answer back -- so even a dialog that opened
+  could not have applied its result. It now selects the atom and double-clicks it, which runs Ketcher's own path. Driven on the real page: the Atom Properties dialog is up, Cancel leaves the
+  structure alone, and Apply of a +1 charge turns ethanol into `CC[OH2+]` as one undo entry that Undo reverses.
 - **The Results "Showing" list is readable.** Its popup took the width of the narrow docked box and elided entries such as "Thermophysical Properties (Joback)"; it is now as wide as its
   longest entry, and each entry carries its full text as a tooltip.
 

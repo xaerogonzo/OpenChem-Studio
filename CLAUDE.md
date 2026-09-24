@@ -79,6 +79,11 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           Inspector window -- see below
     {"do": "expect_inspectors", "count": 2, "titles": ["(qeq"]}  how many
                                           inspectors are OPEN side by side
+    {"do": "atom_editor", "atom": 2, "set": {"charge": "1"}, "apply": true,
+     "expect": {"dialog": true, "smiles_contains": "+", "undo_delta": 1}}  the atom
+                                          menu's Edit... on the REAL page, asserted
+                                          from the page; `ketcher_eval` runs one
+                                          JS expression there and logs its string
     {"do": "compare_results", "property": "geometry_partial_charge",
      "expect": {"columns": 2, "atoms": 9}}     the inspector's REAL "Compare
                                           with..." menu, then the window
