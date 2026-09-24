@@ -4776,6 +4776,16 @@ class _Driver(QObject):
         latencies: list[float] = []
         pushed = 0
         started = time.perf_counter()
+        # `"profile": true` runs the burst under cProfile and logs where the time went --
+        # the GUI thread's own work (event delivery, the reader's rebuilds) included,
+        # because that is the thread a person is waiting on. It slows the run, so the
+        # numbers it prints are proportions, not the burst's latency.
+        profiler = None
+        if step.get("profile"):
+            import cProfile
+
+            profiler = cProfile.Profile()
+            profiler.enable()
         try:
             heartbeat.start()
             last[0] = time.perf_counter()
@@ -4800,6 +4810,8 @@ class _Driver(QObject):
             QThreadPool.globalInstance().waitForDone(60_000)
             pump(0.5)
         finally:
+            if profiler is not None:
+                profiler.disable()
             heartbeat.stop()
             settings.set_preference(RECALC_MODE, int(kept_policy[0]))
             settings.set_preference(RECALC_QUIET_MS, int(kept_policy[1]))
@@ -4811,6 +4823,15 @@ class _Driver(QObject):
             molecule.molblock = original_molblock
             editor.set_molecule(molecule)
         total_ms = (time.perf_counter() - started) * 1000.0
+        if profiler is not None:
+            import io
+            import pstats
+
+            for sort, limit in (("cumulative", 45), ("tottime", 20)):
+                out = io.StringIO()
+                stats = pstats.Stats(profiler, stream=out).sort_stats(sort)
+                stats.print_stats("openchem", limit) if sort == "cumulative" else stats.print_stats(limit)
+                logger.warning("OPENCHEM_DRIVE: edit_burst[%s] profile by %s\n%s", tag, sort, out.getvalue())
 
         ordered = sorted(latencies)
 

@@ -781,6 +781,9 @@ class MainWindow(QMainWindow):
         services.event_bus.subscribe(MoleculeChanged, self._on_molecule_changed)
         services.event_bus.subscribe(RecalculationDue, self._on_recalculation_due)
         self._recalc_hint_shown = False
+        #: True between a canvas edit's `MoleculeChanged` and the undo-stack index change
+        #: its push causes. See `_on_undo_index_changed`.
+        self._canvas_edit_pending = False
         if services.recalc_scheduler is not None:
             services.recalc_scheduler.pending_changed.connect(self._on_recalc_pending_changed)
         services.event_bus.subscribe(ConformersReady, self._on_conformers_ready)
@@ -3249,7 +3252,11 @@ class MainWindow(QMainWindow):
         lists has the same hole, and `repopulate` restores the current
         selection by uuid so a spurious refresh costs nothing.
         """
-        self._refresh_molecule_combos()
+        # A canvas edit changes the structure, not which molecules exist, so the one
+        # panel that rebuilds a per-atom table from it can wait for the pause; the
+        # dropdowns cost about a millisecond between them and stay immediate.
+        edit_in_progress, self._canvas_edit_pending = self._canvas_edit_pending, False
+        self._refresh_molecule_combos(defer_atom_table=edit_in_progress)
         # The pose table is not a dropdown and is not rebuilt from the
         # project, so it needs telling separately.
         self._docking_panel.sync_with_project(self._session.project)
@@ -3281,7 +3288,7 @@ class MainWindow(QMainWindow):
             self._macromolecule_viewer.clear()
         self._macromolecule_viewer.apply_visualizations([])
 
-    def _refresh_molecule_combos(self) -> None:
+    def _refresh_molecule_combos(self, defer_atom_table: bool = False) -> None:
         """DockingPanel's receptor/ligand combos and QuantumChemistryPanel's
         molecule combo are only populated when `set_project` runs (project
         open/new) -- confirmed live: a molecule or macromolecule added
@@ -3296,7 +3303,8 @@ class MainWindow(QMainWindow):
         self._quantum_chemistry_panel.set_project(self._session.project)
         self._alignment_panel.set_project(self._session.project)
         self._interactions_panel.set_project(self._session.project)
-        self._atom_inspector_panel.set_project(self._session.project)
+        if not defer_atom_table:
+            self._atom_inspector_panel.set_project(self._session.project)
         self._batch_panel.set_project(self._session.project)
 
     # --- event handlers --------------------------------------------------------
@@ -3313,6 +3321,9 @@ class MainWindow(QMainWindow):
 
     def _on_molecule_changed(self, event: MoleculeChanged) -> None:
         self._session.mark_dirty()
+        # Remembered for `_on_undo_index_changed`, which runs right after the push that
+        # published this: a canvas edit's atom-table rebuild waits for the pause too.
+        self._canvas_edit_pending = event.during_edit and self._services.recalc_scheduler is not None
         molecule = self._current_molecule()
         if molecule is not None and molecule.uuid == event.molecule_uuid:
             # A CANVAS EDIT IN PROGRESS waits for the scheduler (`RecalculationDue`):
@@ -3341,6 +3352,10 @@ class MainWindow(QMainWindow):
         """
         molecule = self._current_molecule()
         if molecule is not None and molecule.uuid == event.molecule_uuid:
+            # The atom table was NOT rebuilt per edit (`_on_undo_index_changed`): it names
+            # every atom with IUPAC locants, which cost ~90 ms an edit and was most of what
+            # an edit still cost once the descriptor fan-out waited. It catches up here.
+            self._atom_inspector_panel.set_project(self._session.project)
             self._restore_or_compute(molecule)
 
     def _on_recalc_pending_changed(self, pending: bool) -> None:

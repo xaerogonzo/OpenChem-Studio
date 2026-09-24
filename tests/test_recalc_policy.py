@@ -489,3 +489,85 @@ def test_asking_with_nothing_waiting_says_the_results_are_current(window_rig):
     window._on_recalculate_now()
     assert "current" in window.statusBar().currentMessage()
     assert calls == []
+
+
+# --- what an edit still cost once the fan-out waited ----------------------------------------
+#
+# Profiled after the debounce (`edit_burst` with "profile": true), the burst that remained was
+# two things: the Results reader rebuilt once per descriptor EVENT (144 rebuilds of about 60 rows,
+# 1.4 s), and the Atom Inspector's atom table rebuilt on every undo-stack index change with IUPAC
+# locants (12 of the 12 edits, ~90 ms each, about 80% of an edit's synchronous cost).
+
+
+def test_a_flood_of_descriptor_events_rebuilds_the_reader_once(panel_rig):
+    panel, bus, molecule, _service, versions = panel_rig
+    rebuilds: list[int] = []
+    original = panel._refresh_reader
+    panel._refresh_reader = lambda: (rebuilds.append(1), original())[1]
+
+    for index in range(41):
+        bus.publish(DescriptorComputed(descriptor=_descriptor(molecule.uuid, f"d{index}")))
+    assert rebuilds == [], "nothing rebuilds while the events are still arriving"
+
+    QCoreApplication.processEvents()
+
+    assert rebuilds == [1], "forty-one events, one rebuild"
+
+
+def test_a_single_report_still_refreshes_the_reader_at_once(panel_rig):
+    """Only the descriptor flood is coalesced: code that reads the reader straight after a
+    calculator's result must find it current."""
+    from openchem.domain.report import Basis, Fact, FactCategory, ReportResult
+    from openchem.events.events import ReportComputed
+
+    panel, bus, molecule, _service, _versions = panel_rig
+    rebuilds: list[int] = []
+    original = panel._refresh_reader
+    panel._refresh_reader = lambda: (rebuilds.append(1), original())[1]
+
+    bus.publish(ReportComputed(report=ReportResult(
+        molecule_uuid=molecule.uuid, report_id="x", name="x", category="topology",
+        facts=(Fact(category=FactCategory.TOPOLOGY, label="x", value=1, display_value="1",
+                    source="t", basis=Basis.DETERMINISTIC),),
+    )))
+
+    assert rebuilds == [1]
+
+
+def test_a_canvas_edit_leaves_the_atom_table_for_the_pause(window_rig):
+    window, services, molecule, _calls, _settings = window_rig
+    rebuilt: list[int] = []
+    window._atom_inspector_panel.set_project = lambda project: rebuilt.append(1)
+
+    services.event_bus.publish(MoleculeChanged(molecule_uuid=molecule.uuid, during_edit=True))
+    window._on_undo_index_changed(1)
+    assert rebuilt == [], "the atom table names every atom with IUPAC locants: not per edit"
+
+    services.recalc_scheduler.recalculate_now()
+    assert rebuilt == [1], "it catches up when the recomputation the pause waited for runs"
+
+
+def test_undo_still_rebuilds_the_atom_table_at_once(window_rig):
+    window, services, molecule, _calls, _settings = window_rig
+    rebuilt: list[int] = []
+    window._atom_inspector_panel.set_project = lambda project: rebuilt.append(1)
+
+    services.event_bus.publish(MoleculeChanged(molecule_uuid=molecule.uuid, during_edit=False))
+    window._on_undo_index_changed(0)
+
+    assert rebuilt == [1]
+
+
+def test_the_edit_flag_does_not_outlive_its_push(window_rig):
+    """One canvas edit defers ONE rebuild. A later index change that published no
+    MoleculeChanged at all -- undoing an imported macromolecule is one -- must not inherit it."""
+    window, services, molecule, _calls, _settings = window_rig
+    rebuilt: list[int] = []
+    window._atom_inspector_panel.set_project = lambda project: rebuilt.append(1)
+
+    services.event_bus.publish(MoleculeChanged(molecule_uuid=molecule.uuid, during_edit=True))
+    window._on_undo_index_changed(1)
+    assert rebuilt == []
+    window._on_undo_index_changed(0)  # no event this time
+
+    assert rebuilt == [1], "the second change is not a canvas edit"

@@ -76,7 +76,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to *know* acts at once (the version bumps, so results read Stale immediately), and what *computes* waits for `RecalculationDue`, published by `RecalcScheduler` under a policy chosen in
   Settings > Recalculation: after I pause (default, 800 ms, every edit restarts it), while I draw, or only when I ask (Tools > Recalculate Now, F5). Undo, redo, import and selecting another
   molecule still recompute at once. Two latent races the pause would have widened are closed with it: an alert or descriptor computed for structure A read as current for B whenever an edit
-  landed mid-run (they were stamped with arrival time, not dispatch time), and an older run finishing late could replace a newer result.
+  landed mid-run (they were stamped with arrival time, not dispatch time), and an older run finishing late could replace a newer result. Measured on the maintainer's machine over twelve
+  edits of aspirin, a new structure each: edit latency 1,121 ms -> 18 ms (median), the longest the event loop was blocked 3,993 ms -> 93 ms, full recomputations 12 -> 1. A profile of the
+  first "after" run found two more costs, both fixed: the Results reader was rebuilt once per descriptor *event* (now once per turn of the event loop), and the Atom Inspector's atom table
+  was rebuilt with IUPAC locants on every edit (now at the pause). Both tables are in `benchmarks/visual/README.md`; Ketcher's own JavaScript is not measured.
 - **The Results "Showing" list is readable.** Its popup took the width of the narrow docked box and elided entries such as "Thermophysical Properties (Joback)"; it is now as wide as its
   longest entry, and each entry carries its full text as a tooltip.
 

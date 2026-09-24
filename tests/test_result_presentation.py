@@ -17,6 +17,7 @@ chemistry. Each has a guard here.
 from __future__ import annotations
 
 import pytest
+from PySide6.QtCore import QCoreApplication
 from PySide6.QtWidgets import QFormLayout, QLabel
 from rdkit import Chem, RDLogger
 from rdkit.Chem import Crippen
@@ -169,6 +170,8 @@ def test_every_descriptor_reaches_the_reader_under_its_display_name_and_units(qa
     for descriptor_id, name, units, category in _DESCRIPTOR_SPECS:
         publish(descriptor_id, name, units, category, CacheState.COMPLETED, 1.0)
 
+    # The reader is refreshed once per turn of the event loop, not once per descriptor.
+    QCoreApplication.processEvents()
     aggregate = reader.merged().report_for("molecular_properties")
     assert aggregate is not None, "the descriptors reached the reader not at all"
     facts = {fact.label: fact for fact in aggregate.facts}
@@ -222,6 +225,8 @@ def test_the_reported_descriptor_reads_logp_rather_than_mol_logp(qapp):
             )
         )
 
+    # The reader is refreshed once per turn of the event loop, not once per descriptor.
+    QCoreApplication.processEvents()
     aggregate = reader.merged().report_for("molecular_properties")
     labels = {fact.label for fact in aggregate.facts}
     assert "LogP" in labels

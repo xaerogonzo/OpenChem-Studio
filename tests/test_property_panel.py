@@ -1297,6 +1297,9 @@ def test_the_substance_card_is_cleared_when_the_molecule_changes(qapp):
 def _aggregate(panel):
     from openchem.domain.descriptor_aggregate import DESCRIPTOR_AGGREGATE_ID
 
+    # A flood of descriptor events refreshes the reader ONCE, on the next turn of the event
+    # loop (`PropertyPanel._refresh_reader_soon`), so the reader is current after it.
+    QCoreApplication.processEvents()
     report = panel._attached_reader.merged().report_for(DESCRIPTOR_AGGREGATE_ID)
     return report
 

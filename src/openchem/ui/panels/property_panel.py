@@ -1560,6 +1560,8 @@ class PropertyPanel(QWidget):
         #: the reader as one value. `aggregate_descriptors` handles the pair
         #: correctly and never got the chance.
         self._descriptor_values: dict[tuple[str, str], DescriptorValue] = {}
+        #: Whether a coalesced `_refresh_reader_soon` is waiting to run.
+        self._reader_refresh_scheduled = False
         #: The structure version each held descriptor was computed for (its dispatch
         #: version, or arrival time where the producer did not say). The reader's
         #: "Molecular Properties" entry is only as current as the OLDEST of these: a set
@@ -2068,7 +2070,14 @@ class PropertyPanel(QWidget):
         # panel rendered these itself the reader could lag a whole batch
         # behind and nobody would see it, because the values were on screen
         # here. With this the only place they appear, a lag IS the bug.
-        self._refresh_reader()
+        #
+        # **ONCE PER TURN OF THE EVENT LOOP, NOT ONCE PER DESCRIPTOR.** Forty-one
+        # descriptors each publish queued, running and completed, and every one of those
+        # rebuilt the whole Results reader: measured under a profiler, 123 descriptor events
+        # cost 1.4 s of the GUI thread -- 144 rebuilds of about 60 rows for a burst that
+        # changes the same handful of values. The events arrive together, so one rebuild
+        # after them shows the same thing.
+        self._refresh_reader_soon()
 
     def _finish_batch_run(self, result_id: str) -> None:
         """A ticked calculator's result arrived, so it is no longer running.
@@ -2700,6 +2709,24 @@ class PropertyPanel(QWidget):
                 self.tool_setup_requested.emit(tool)
                 return
         self._show_in_reader(focus=calculator_id)
+
+    def _refresh_reader_soon(self) -> None:
+        """`_refresh_reader`, once, after the events already queued have been handled.
+
+        For the producers that publish in floods (the descriptors). Every OTHER caller keeps
+        the synchronous `_refresh_reader`: a single report arriving is one refresh, and code
+        that reads the reader straight after it must find it current.
+        """
+        if self._reader_refresh_scheduled:
+            return
+        self._reader_refresh_scheduled = True
+        # `self` is the context object, so the shot is cancelled if the panel is destroyed
+        # first -- and a bound method, never a lambda capturing `self`.
+        QTimer.singleShot(0, self, self._run_scheduled_reader_refresh)
+
+    def _run_scheduled_reader_refresh(self) -> None:
+        self._reader_refresh_scheduled = False
+        self._refresh_reader()
 
     def _refresh_reader(self) -> None:
         """Push the currently-held reports into the reader.

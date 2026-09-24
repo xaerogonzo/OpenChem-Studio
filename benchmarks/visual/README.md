@@ -79,7 +79,7 @@ Every one is a surface with a *recorded* history of breaking, not a guess.
 
 | `charge_identity_after_edit.json` | the Atom Inspector's 3D charge through an erase, an edit and an undo | ethanol's oxygen showed carbon C1's EEM 3D charge while the result read fresh -- GEOMETRY datasets keyed by the conformer's atoms, read by the drawing's |
 | `calculator_visibility.json` | the whole enable path, each step asserted: Joback and Detonation hidden by default with a footer naming them; Settings > Calculators; Learn more landing on Joback's own help section; the master toggle offering them WITHOUT running either; Detonation then run and reading Needs input; Reset withdrawing them again while the stored result stays readable. Restores the setting it changes | the tick beside a row and the launcher reading two different rules for what is offered; the real-registry run is the only place the footer and the eliding button meet a docked column's width |
-| `edit_burst_baseline.json` | what drawing COSTS: twelve structural edits through the real undo stack and annotation refresh, new structure each time and then undo/redo, on an ordinary drug and on the nitramine -- edit latency, the longest the event loop was blocked, and how many recalculations a burst caused. Recorded, never asserted | not applicable: it is the baseline a debounced recompute has to beat (see below) |
+| `edit_burst_baseline.json` | what drawing COSTS: twelve structural edits through the editor's own edit path, a new structure each time, on an ordinary drug and on the nitramine, under each recalculation policy -- edit latency, the longest the event loop was blocked, and how many recalculations a burst caused. Restores the setting it changes. Recorded, never asserted | not applicable: it is the baseline the recalculation policy had to beat, and the table showing that it did (see below) |
 | `charge_species_and_refusals.json` | EEM and QEq on species each model declines | not recorded here |
 | `energetic_nitramine_ledger.json` | a nitramine (1,3-dinitro-1,3-diazetidine) drawn, ESOL solubility and Detonation run, ending in the driven-run VERDICT: the application's log must hold no unexcused ERROR, and Properties must hold the nitro alert, no hydrazine, the fragment counts recorded as NOT partial, and Detonation as `needs_input` naming its two missing inputs | `fg:hydrazine` matched every nitramine's N-N bond, so `detect_features` raised `UndeclaredChargeState` once per edit; it was logged and never asserted, so the window looked fine. Reverted, this script exits 1 and names `structural_features.py:352` |
 | `docked_pose_in_6wgt.json` | a real Vina run, the pose shown in Mol* | the pose was retargeted and the receptor left on assembly 1 -- the viewer and the docking showed different chains |
@@ -293,22 +293,40 @@ The ESOL-only parameters are deliberate: the Solubility default also runs the
 AqSolDB comparison in the ADMET sidecar, about five minutes.
 
 **`edit_burst_baseline.json` IS A BASELINE, NOT A TEST, AND IT MEASURES THE PYTHON SIDE ONLY.**
-Each edit is pushed the way `MoleculeEditorWidget._on_editor_edited` does once Ketcher has reported a
-molfile (an `EditStructureCommand` on the real undo stack, then the annotation refresh); Ketcher's own
-JS and the bridge back to Python are not included, because a debounce does not touch them. Measured
-2026-09-24 on the maintainer's machine, idle, 12 edits 150 ms apart:
+Each edit is applied by `MoleculeEditorWidget.apply_edited_molblock`, the method the editor calls once
+Ketcher has reported a molfile (an `EditStructureCommand` on the real undo stack, then the annotation
+refresh); Ketcher's own JS and the bridge back to Python are not included, because a recompute policy does
+not touch them. Measured 2026-09-24 on the maintainer's machine, idle, 12 edits 150 ms apart, in two
+states of the same code: the profiler's first commit (every edit recomputed everything), and after the
+recalculation policy (`RecalcScheduler`, default "after I pause", 800 ms) with two further reductions found
+by profiling one burst (`"profile": true`).
 
 | burst | edit latency (median / p95) | longest loop block | full descriptor fan-outs | results recorded |
 |---|---|---|---|---|
-| aspirin, a new structure each edit | 1,121 / 1,338 ms | 3,993 ms | 12 (one per edit) | 600 |
-| nitramine, a new structure each edit | 671 / 787 ms | 2,382 ms | 12 | 600 |
-| aspirin, undo/redo between two structures | 1,130 / 1,365 ms | 2,013 ms | 0 (the result store replays) | 0 |
+| **before** -- aspirin, a new structure each edit | 1,121 / 1,338 ms | 3,993 ms | 12 (one per edit) | 600 |
+| **before** -- nitramine, a new structure each edit | 671 / 787 ms | 2,382 ms | 12 | 600 |
+| **before** -- aspirin, undo/redo between two structures | 1,130 / 1,365 ms | 2,013 ms | 0 (the result store replays) | 0 |
+| **after** -- aspirin, after I pause (800 ms) | 18.4 / 23.5 ms | 93 ms | 1 | 50 |
+| **after** -- nitramine, after I pause | 19.3 / 22.1 ms | 86 ms | 1 | 50 |
+| **after** -- aspirin, only when I ask, then Recalculate Now | 19.4 / 23.0 ms | 95 ms | 1 | 50 |
+| **after** -- aspirin, while I draw (a run per turn) | 14.1 / 16.0 ms | 124 ms | 12 | 600 |
+| **after** -- two structures alternated as canvas edits | 17.1 / 20.0 ms | 90 ms | 1 | 50 |
+
+The "while I draw" row is the like-for-like of the old behaviour -- twelve full recomputations, 600
+results -- and its longest block is 124 ms against 3,993 ms, which is what the two reductions below bought
+independently of the pause. **The profile of the first "after" run** (cProfile over the burst, GUI thread)
+named what remained after the pause: the Results reader rebuilt once per descriptor EVENT (144 rebuilds of
+about 60 rows, 1.4 s -- now one per turn of the event loop), and the Atom Inspector's atom table rebuilt on
+every undo-stack index change with IUPAC locants (12 rebuilds, about 90 ms each, 80% of an edit's synchronous
+cost -- now deferred to the pause). 41 descriptors' events flooding the reader is also why a REPLAY used to
+cost 1.1 s with no recomputation at all.
 
 Two things the first run got wrong and the second corrected. **Alternating two structures measures
 the cache, not drawing**: the first version did exactly that and reported one recompute for twenty
 edits, which would have read as "there is already a debounce". The result store simply held both
-structures' results and replayed them. Drawing is a NEW structure each time, hence `grow`. And
-**a replay is not free**: 1.1 s per edit with zero recomputation, because forty-one descriptors'
-worth of events land on the GUI thread on every one. The numbers depend on the machine; what a
-change to the recompute policy has to show is the same table, smaller, run the same way. Record both.
+structures' results and replayed them. Drawing is a NEW structure each time, hence `grow`; and each
+"after" burst starts from a DIFFERENT base structure, because a second burst over the first's structures
+is replayed from the store (its `results_recorded` reads 0) and would flatter the run. The numbers depend
+on the machine; what a change to the recompute policy has to show is the same table, smaller, run the same
+way. Both tables are recorded here.
 
