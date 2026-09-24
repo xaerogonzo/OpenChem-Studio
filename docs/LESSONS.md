@@ -21303,3 +21303,65 @@ right refusal, `DescriptorService` published it with the kind and both missing i
 * **The `refusal` assertion had the same blind spot for longer.** On a summarised result it read `parameters.get("refusal", "")`
   from a view with no provenance, so it could only ever match `""` there. Nothing had asserted a refusal code on a per-atom,
   spectrum, curve or structure-set result.
+
+
+## A DEBOUNCE TURNED "CLOSE ENOUGH" INTO A WRONG ANSWER, AND THE PROFILE FOUND TWO COSTS NOBODY HAD NAMED
+
+Measured 2026-09-24 while making a canvas edit stop recomputing everything (`RecalcScheduler`, `domain/recalc_policy.py`). Twelve edits of
+aspirin cost a median 1.1 s each with the event loop blocked for up to 4 s, because every edit fanned `MoleculeChanged` out to every descriptor
+provider. Deferring that to a pause was the plan; what the measurements added is below.
+
+* **A documented limitation is a promise that its condition holds.** `_on_alert_computed` stamped an alert with the structure version at ARRIVAL and said
+  so: "an edit landing mid-run would make this look current. It is close enough on this path because the alert batch re-runs on every structure
+  change." A recompute that waits for a pause makes the run finish AFTER the next edit, so the comment's own condition stopped being true and the
+  limitation became a wrong answer -- a value computed for structure A reading as current for B. The events now carry the version the run was
+  DISPATCHED against (`AlertComputed.structure_version`, `DescriptorComputed.structure_version`), and a run finishing late can no longer replace a newer
+  one. The same change made the reader's "Molecular Properties" entry as current as its OLDEST part, so it reads Stale during the pause instead of
+  claiming the new structure.
+* **Profile the burst that is left, not the one you expected.** After the pause, cProfile over one burst (`edit_burst` with `"profile": true`, GUI thread
+  included) named two costs the plan had not: the Results reader was rebuilt once per descriptor EVENT (144 rebuilds of ~60 rows, 1.4 s -- also why a
+  REPLAY with zero recomputation cost 1.1 s), and the Atom Inspector rebuilt its atom table with IUPAC locants on every undo-stack index change
+  (12 rebuilds, ~90 ms each, 80% of an edit's synchronous cost). Both are fixed, and the second is why even the "while I draw" mode, the like-for-like of
+  the old behaviour, now blocks the loop 124 ms against 3,993 ms.
+* **A benchmark's second run measures the cache.** The first version alternated two structures and reported one recompute for twenty edits, which
+  would have read as "there is already a debounce"; later bursts over an earlier burst's structures were replayed from the result store and
+  showed `results_recorded` 0. Each recorded burst now starts from a different base structure, and a warm-up burst precedes them.
+* **Coalescing a refresh moves a contract into every test that reads through it.** Fifteen tests published descriptors and read the reader at once; they
+  now let the event loop turn once. That is the documented contract of `_refresh_reader_soon`, and only the descriptor flood is coalesced -- a single
+  report still refreshes synchronously, so the many tests and callers that read straight after one are untouched.
+* **The driven `erase` step now needs `after_ms` for the pause.** A canvas edit recomputes after 800 ms by default, so a script that reads results
+  right after it reads them Stale. Said in CLAUDE.md beside the step.
+
+## THE STORE KEPT ONE RESULT PER CALCULATOR, WHICH WAS THE REAL REASON COMPARING METHODS WAS HARD
+
+Measured 2026-09-24 building the per-atom Compare. "Hard to compare methods" read as a missing window. The result store's slot is
+(result id, calculation input, fingerprint, method version) -- NOT its parameters -- so running a second charge model REPLACED the first, in the
+store and in the panel (`_retained_results[property_id]`). Two methods could never be on screen together.
+
+* **So the first thing built was a pool, and the second was the rule that says when it may be used.** The panel keeps one per-atom result per
+  property, method AND parameters for the selected molecule (memory only, cleared on selection); `domain/compare.py` refuses what would publish a wrong
+  difference (different molecule; an edit between the runs; a drawing beside a conformer; one protonation state beside another, because a
+  microspecies is keyed by its OWN structure; different units or atoms; one calculation twice), and the menu is built from the same rule.
+* **A dataset can carry its own structure, and that must be in the identity.** `PerAtomDataset.structure_fingerprint` exists because the pH-dependent
+  charges are computed on a microspecies whose atoms are renumbered where a proton leaves; two of them at different pH share the drawing's fingerprint
+  and are not comparable. The first draft of the rule missed it, and reading that field's own comment is what found it.
+* **The photograph found what the tests could not.** Forty-character column headings over four-character numbers, and a last column that elided; long
+  names now split at their first parenthesis with the whole text in a tooltip.
+
+## THE FIRST FIX CHECKED THE DISPATCH, THE PAGE HAD NO DIALOG, AND THE SECOND FIX ARMED A TOOL AND CHANGED NOTHING
+
+Measured 2026-09-24 on the atom right-click menu. "Edit... fails" was reported with the cause unproven. A probe of the PAGE (`ketcher_eval`) showed the
+atom was found and no dialog appeared, with nothing logged: the menu dispatched Ketcher's `elementEdit` with a bare object, where Ketcher's own callers
+pass an array of atom objects from the selection and feed the returned promise to an internal `updateSelectedAtoms`, which is what writes the answer
+back. Fixed by selecting the atom and dispatching a `dblclick` at its position, which runs Ketcher's own path.
+
+* **Assert from the page, not from the call.** A check that the dispatch happened would have passed on the broken version. `atom_editor` asserts
+  Ketcher's Atom Properties dialog is up, that Cancel changes nothing, and that Apply of a +1 charge gives `CC[OH2+]` as ONE undo entry.
+* **A synthetic event is not a pointer.** The same route was tried for "Change X to" and "Add charge": the atom/charge tool armed, the delivered
+  click changed nothing, because Ketcher's tools read pointer state (hover, drag context) that a `dispatchEvent` does not carry -- the wall the
+  hover-hotkey spike also met, with both DOM events and real `QTest` mouse events (`docs/KETCHER_SPIKE.md`). That attempt was reverted. The project's own rule
+  was the better route: a structure-modifying action is an `EditStructureCommand`, so the change is made by `ChemistryEngine.edit_atom` and is one undo entry.
+* **Two unrelated traps in the same hour.** RDKit RAISES `RuntimeError` for an element symbol it does not know instead of returning -1, and
+  `QMenu.addMenu(title)` returns a Python-owned wrapper, so the submenu's C++ object is deleted when the builder returns; create it WITH its parent.
+* **A React input needs the native setter, and an INPUT.** Assigning `.value` is ignored by the form, and the native setter throws "Illegal
+  invocation" on a wrapper element that carries the same `data-testid`.
