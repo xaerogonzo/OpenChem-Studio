@@ -1,0 +1,202 @@
+# The calculator census panel (`tools/calculator_census.py`).
+#
+# FIXED BEFORE ANY CALCULATOR WAS RUN OVER IT, and chosen for SHAPE -- what kind
+# of structure it is and what that kind has been known to break -- not for what
+# any calculator does with it. Each row says which live finding put it here.
+# The strata are the ones a result must be reported by: an aggregate over a big
+# ordinary set hides a calculator that fails on exactly one class.
+#
+# The first block is the structures that started this: 1,3-dinitro-1,3-diazetidine
+# crashed the alert pass (a feature pattern matched its N-N bond) and made
+# Solubility fail (its ring N was counted as a base). The rest are the classes a
+# review of that session asked for.
+
+# --- nitramines and nitrosamines ---------------------------------------------
+
+[[row]]
+id = "dinitrodiazetidine"
+smiles = "O=[N+]([O-])N1CN([N+](=O)[O-])C1"
+stratum = "nitramine"
+why = "the live session: fg:hydrazine matched its N-N, the basic-amine SMARTS counted its ring N, Joback refuses it"
+
+[[row]]
+id = "rdx"
+smiles = "O=[N+]([O-])N1CN(CN(C1)[N+](=O)[O-])[N+](=O)[O-]"
+stratum = "nitramine"
+why = "the classic nitramine; Joback refuses its ring nitrogen"
+
+[[row]]
+id = "hmx"
+smiles = "O=[N+]([O-])N1CN(CN(CN(C1)[N+](=O)[O-])[N+](=O)[O-])[N+](=O)[O-]"
+stratum = "nitramine"
+why = "eight-membered ring, four nitramine groups"
+
+[[row]]
+id = "tetryl"
+smiles = "CN(c1c(cc(cc1[N+](=O)[O-])[N+](=O)[O-])[N+](=O)[O-])[N+](=O)[O-]"
+stratum = "nitramine"
+why = "an aromatic nitramine: N-N to an aromatic carbon, so no ring N-N"
+
+[[row]]
+id = "ndma"
+smiles = "CN(C)N=O"
+stratum = "nitrosamine"
+why = "N-nitroso: the sibling of N-nitro that the basic-amine pattern also had to exclude"
+
+# --- other energetic materials -----------------------------------------------
+
+[[row]]
+id = "tnt"
+smiles = "Cc1c(cc(cc1[N+](=O)[O-])[N+](=O)[O-])[N+](=O)[O-]"
+stratum = "energetic"
+why = "the nitroaromatic reference; Joback runs on it"
+
+[[row]]
+id = "petn"
+smiles = "C(C(CO[N+](=O)[O-])(CO[N+](=O)[O-])CO[N+](=O)[O-])O[N+](=O)[O-]"
+stratum = "energetic"
+why = "a nitrate ester; Joback runs on it"
+
+[[row]]
+id = "nitroglycerin"
+smiles = "C(C(CO[N+](=O)[O-])O[N+](=O)[O-])O[N+](=O)[O-]"
+stratum = "energetic"
+why = "over-oxidised: Kamlet-Jacobs refuses it as outside the H2O-CO2 arbitrary before asking for inputs"
+
+[[row]]
+id = "tatb"
+smiles = "Nc1c(N)c([N+](=O)[O-])c(N)c([N+](=O)[O-])c1[N+](=O)[O-]"
+stratum = "energetic"
+why = "the insensitive explosive Kamlet-Jacobs's own tables use; needs a loading density and an enthalpy"
+
+[[row]]
+id = "nitroguanidine"
+smiles = "NC(=N)N[N+](=O)[O-]"
+stratum = "energetic"
+why = "its NH2 groups are still counted as bases (recorded, not fixed)"
+
+[[row]]
+id = "ammonium_nitrate"
+smiles = "[NH4+].[O-][N+](=O)[O-]"
+stratum = "energetic"
+why = "an ionic explosive and two components; the source's own fixture for oxygen balance"
+
+# --- hydrazines (the pattern the nitramine was mistaken for) ------------------
+
+[[row]]
+id = "methylhydrazine"
+smiles = "CNN"
+stratum = "hydrazine"
+why = "a genuine hydrazine: must still be found after the nitramine exclusion"
+
+[[row]]
+id = "phenylhydrazine"
+smiles = "NNc1ccccc1"
+stratum = "hydrazine"
+why = "an aryl hydrazine"
+
+# --- drugs, including ring tertiary amines (Joback's gap) ----------------------
+
+[[row]]
+id = "aspirin"
+smiles = "CC(=O)Oc1ccccc1C(=O)O"
+stratum = "drug"
+why = "the ordinary neutral acid; Joback runs on it"
+
+[[row]]
+id = "caffeine"
+smiles = "Cn1cnc2c1c(=O)n(C)c(=O)n2C"
+stratum = "drug"
+why = "no ionisable centre; aromatic N throughout"
+
+[[row]]
+id = "haloperidol"
+smiles = "OC1(CCN(CCCC(=O)c2ccc(F)cc2)CC1)c1ccc(Cl)cc1"
+stratum = "drug"
+why = "a piperidine tertiary amine in a ring: the group Joback's table does not have"
+
+[[row]]
+id = "imipramine"
+smiles = "CN(C)CCCN1c2ccccc2CCc2ccccc21"
+stratum = "drug"
+why = "a basic tertiary amine and a ring N bonded to an aryl"
+
+[[row]]
+id = "ibuprofen"
+smiles = "CC(C)Cc1ccc(cc1)C(C)C(=O)O"
+stratum = "drug"
+why = "a chiral acid"
+
+# --- ionic and multicomponent --------------------------------------------------
+
+[[row]]
+id = "glycine_zwitterion"
+smiles = "[NH3+]CC([O-])=O"
+stratum = "zwitterion"
+why = "both an acid and a base: solubility refuses an ampholyte"
+
+[[row]]
+id = "sodium_acetate"
+smiles = "CC(=O)[O-].[Na+]"
+stratum = "salt"
+why = "the salt one descriptor raising on took every result down"
+
+[[row]]
+id = "metformin_hcl"
+smiles = "CN(C)C(=N)N=C(N)N.Cl"
+stratum = "salt"
+why = "a drug with a counter-ion"
+
+# --- metals ----------------------------------------------------------------------
+
+[[row]]
+id = "ferrocene"
+smiles = "[Fe+2].[cH-]1cccc1.[cH-]1cccc1"
+stratum = "metal"
+why = "ionic organometallic: the MMFF94 charge sanity check raised a ValueError here"
+
+[[row]]
+id = "cisplatin"
+smiles = "N.N.Cl[Pt]Cl"
+stratum = "metal"
+why = "a coordination compound drawn as separate components"
+
+# --- inorganic and unusual ------------------------------------------------------
+
+[[row]]
+id = "boron_trifluoride"
+smiles = "FB(F)F"
+stratum = "inorganic"
+why = "MMFF94 has no atom type for it: a coded refusal, where ferrocene raised"
+
+[[row]]
+id = "dmso"
+smiles = "CS(C)=O"
+stratum = "sulfur"
+why = "sulfur bonded to oxygen: Ionescu EEM refuses it"
+
+[[row]]
+id = "water"
+smiles = "O"
+stratum = "trivial"
+why = "the smallest structure: one heavy atom"
+
+# --- large and biological ----------------------------------------------------------
+
+[[row]]
+id = "tripeptide"
+smiles = "NCC(=O)NC(C)C(=O)NC(CO)C(=O)O"
+stratum = "peptide"
+why = "Gly-Ala-Ser: several ionisable centres and amide bonds"
+
+[[row]]
+id = "surfactant_c12e6"
+smiles = "CCCCCCCCCCCCOCCOCCOCCOCCOCCO"
+stratum = "surfactant"
+why = "polyoxyethylene: the only kind of structure Griffin's HLB is defined for"
+
+[[row]]
+id = "paclitaxel"
+smiles = "CC1=C2C(C(=O)C3(C(CC4C(C3C(C(C2(C)C)(CC1OC(=O)C(C(C5=CC=CC=C5)NC(=O)C6=CC=CC=C6)O)O)OC(=O)C7=CC=CC=C7)(CO4)OC(=O)C)O)C)OC(=O)C"
+stratum = "large"
+why = "62 heavy atoms of ring systems and stereocentres: the largest structure the panel asks about"

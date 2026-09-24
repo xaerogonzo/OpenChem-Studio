@@ -143,6 +143,7 @@ function tryWireBridge() {
     controlsIntercepted = true
     interceptDuplicatedControls()
     interceptUndoShortcuts()
+    interceptBondOrderKeys()
   }
   try {
     ketcherInstance.editor.subscribe('change', () => {
@@ -384,6 +385,67 @@ function interceptUndoShortcuts() {
         bridgeObject.redoRequested()
       } else {
         bridgeObject.undoRequested()
+      }
+    },
+    true,
+  )
+}
+
+
+// A NUMBER KEY OVER A HOVERED BOND SETS ITS ORDER, and Ketcher does not do that itself.
+//
+// Measured (`benchmarks/visual/ketcher_hover_keys.json`): hovering an ATOM and pressing `n`
+// replaces it, and `/` over a bond opens its properties, but `2` over a hovered bond is
+// handled and changes nothing -- the bundle's hotkey table has tool handlers for atoms and
+// s-groups and none for bonds. So this is ours, and it does not touch the structure here: it
+// reports the bond's MOLFILE POSITION and the order, and the application makes the change as
+// one undoable edit (`ChemistryEngine.edit_bond`). Ketcher's own bond tool cannot be driven
+// by a synthetic event, and its history would grow a second stack.
+//
+// Captured on `document` BEFORE Ketcher's listener (which sits on the editor element), so a
+// key that becomes a bond edit is never also read as an abbreviation lookup. Left alone, so
+// Ketcher answers exactly as it always did: over an ATOM (1/2/3 there start a bond from it),
+// with no hover, with any modifier held, inside a text field or a dialog, and while the
+// setting is off (`window.__openchemBondKeys`, pushed from Python).
+function interceptBondOrderKeys() {
+  const ORDERS = { 1: 1, 2: 2, 3: 3 }
+  document.addEventListener(
+    'keydown',
+    (event) => {
+      if (!bridgeObject || window.__openchemBondKeys === false) return
+      if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return
+      const order = ORDERS[event.key]
+      if (!order) return
+      const target = event.target
+      if (
+        target &&
+        target.closest &&
+        target.closest('input, textarea, select, [contenteditable="true"], [role="dialog"]')
+      ) {
+        return
+      }
+      try {
+        const editor = window.ketcher && window.ketcher.editor
+        if (!editor || !editor.render || !editor.render.ctab) return
+        const ctab = editor.render.ctab
+        // Ketcher hovers ONE item; an atom under the pointer means the key is for the atom.
+        let atomHovered = false
+        ctab.atoms.forEach((item) => {
+          if (item.hover) atomHovered = true
+        })
+        if (atomHovered) return
+        let bondId = null
+        ctab.bonds.forEach((item, id) => {
+          if (item.hover) bondId = id
+        })
+        if (bondId === null) return
+        const position = molfilePosition(editor.struct().bonds, bondId)
+        if (position < 0) return
+        event.preventDefault()
+        event.stopPropagation()
+        bridgeObject.bondOrderKey(position, order)
+      } catch (e) {
+        console.warn('[ketcher-host] bond order key failed', e)
       }
     },
     true,

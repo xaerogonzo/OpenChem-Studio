@@ -64,7 +64,15 @@ from typing import Any
 from rdkit import Chem
 from rdkit.Chem import Descriptors, rdMolDescriptors
 
+from openchem.domain.calculator import CalculationRefusal
 from openchem.domain.common import TOTAL, CacheState, Provenance, decline_total
+from openchem.domain.refusal_kinds import (
+    NO_ENTHALPY_OF_FORMATION,
+    NO_LOADING_DENSITY,
+    InputProblem,
+    MissingInput,
+    RefusalKind,
+)
 
 # IMPORTED RATHER THAN REDECLARED. The same claim -- how far a recipe's
 # stated mass fractions may sum from 1 -- is checked here and on the
@@ -498,11 +506,6 @@ def detonation(
         }.get(balance.refusal, DetonationRefusal.NOT_A_STRUCTURE)
         return Detonation(refusal=mapped, detail=balance.detail)
 
-    if loading_density is None or loading_density <= 0:
-        return Detonation(refusal=DetonationRefusal.NO_LOADING_DENSITY)
-    if enthalpy_kcal_per_mol is None:
-        return Detonation(refusal=DetonationRefusal.NO_ENTHALPY_OF_FORMATION)
-
     a, b, d = balance.carbon, balance.hydrogen, balance.oxygen
     c = _nitrogen_count(mol)
 
@@ -511,6 +514,13 @@ def detonation(
     # carbon to CO2". Outside that, the decomposition it assumes is not the
     # one that happens -- nitroglycerin is over-oxidised and would need an
     # excess-O2 product, which this arbitrary does not model.
+    #
+    # **CHECKED BEFORE THE INPUTS, AND THAT ORDER IS THE DESIGN.** It needs
+    # nothing but the formula, and it is a LIMIT of the method: asking a
+    # person for a loading density and an enthalpy of formation for a
+    # compound the method cannot use would send them off to find two numbers
+    # for nothing. The refusal that is permanent is reported before the one
+    # that is fixable.
     low, high = b / 2, 2 * a + b / 2
     if not (low <= d <= high):
         side = "over-oxidised" if d > high else "too little oxygen to form water"
@@ -518,6 +528,11 @@ def detonation(
             refusal=DetonationRefusal.OUTSIDE_THE_ARBITRARY,
             detail=f"{side}: needs {low:g} <= O <= {high:g}, has {d}",
         )
+
+    if loading_density is None or loading_density <= 0:
+        return Detonation(refusal=DetonationRefusal.NO_LOADING_DENSITY)
+    if enthalpy_kcal_per_mol is None:
+        return Detonation(refusal=DetonationRefusal.NO_ENTHALPY_OF_FORMATION)
 
     n, m = arbitrary_gas(a, b, c, d)
     q = heat_of_detonation(a, b, c, d, enthalpy_kcal_per_mol)
@@ -578,6 +593,65 @@ def detonation_refusal_text(result: Detonation) -> str:
 ENTHALPY_NOT_SUPPLIED = -1000.0
 
 
+#: Kamlet-Jacobs' two required inputs, by the calculator's OWN
+#: `CalculatorParameter` names (`descriptor_providers`) and the units its
+#: equations want -- Eq. (8) takes g/cm3 and Eq. (15b) kcal/mol.
+#: `tests/test_refusal_kinds.py` checks the names still resolve.
+DETONATION_INPUTS: dict[DetonationRefusal, tuple[str, str]] = {
+    DetonationRefusal.NO_LOADING_DENSITY: ("loading_density_g_cm3", "g/cm3"),
+    DetonationRefusal.NO_ENTHALPY_OF_FORMATION: ("enthalpy_of_formation_kcal_mol", "kcal/mol"),
+}
+
+#: The short (cell) form of each refusal; the full sentence is
+#: `detonation_refusal_text`.
+_DETONATION_SUMMARIES = {
+    DetonationRefusal.NOT_A_STRUCTURE: "Could not read the structure",
+    DetonationRefusal.NOT_CHNO: "Not a C/H/N/O compound",
+    DetonationRefusal.OUTSIDE_THE_ARBITRARY: "Outside the H2O-CO2 arbitrary",
+}
+
+
+def _detonation_refusal(
+    result: Detonation, density: float, supplied: float | None
+) -> CalculationRefusal:
+    """Kamlet-Jacobs declining, as a `CalculationRefusal` of the right KIND.
+
+    **BOTH MISSING INPUTS ARE NAMED AT ONCE.** `detonation()` reports the
+    first thing wrong, so a person who had supplied neither was told about the
+    density, supplied one, and was then told about the enthalpy -- two round
+    trips for one dialog. The refusal is built from what is missing NOW, not
+    from which check happened to fire first.
+    """
+    if result.refusal in DETONATION_INPUTS:
+        missing = []
+        if density <= 0:
+            problem = InputProblem.INVALID if density < 0 else InputProblem.MISSING
+            missing.append(MissingInput(*DETONATION_INPUTS[DetonationRefusal.NO_LOADING_DENSITY], problem))
+        if supplied is None:
+            missing.append(MissingInput(*DETONATION_INPUTS[DetonationRefusal.NO_ENTHALPY_OF_FORMATION]))
+        needs = {
+            "loading_density_g_cm3": "a loading density",
+            "enthalpy_of_formation_kcal_mol": "a condensed-phase enthalpy of formation",
+        }
+        summary = "Needs " + " and ".join(needs[item.parameter] for item in missing)
+        sentences = " ".join(
+            detonation_refusal_text(Detonation(refusal=refusal))
+            for refusal, (name, _units) in DETONATION_INPUTS.items()
+            if any(item.parameter == name for item in missing)
+        )
+        code = NO_LOADING_DENSITY if missing[0].parameter == "loading_density_g_cm3" else NO_ENTHALPY_OF_FORMATION
+        return CalculationRefusal(
+            code, summary, sentences,
+            kind=RefusalKind.NEEDS_INPUT, missing_inputs=tuple(missing),
+        )
+    return CalculationRefusal(
+        result.refusal.name if result.refusal else "NOT_A_STRUCTURE",
+        _DETONATION_SUMMARIES.get(result.refusal, "Kamlet-Jacobs does not apply"),
+        detonation_refusal_text(result),
+        kind=RefusalKind.LIMIT,
+    )
+
+
 def compute_detonation(
     mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any] | None = None
 ) -> ReportResult:
@@ -596,6 +670,12 @@ def compute_detonation(
 
     supplied = None if enthalpy <= ENTHALPY_NOT_SUPPLIED else enthalpy
     result = detonation(mol, density or None, supplied, ruby_correction=ruby)
+    if not result.applicable:
+        # RAISED, NOT RETURNED as a failed report. A report cannot say which
+        # of its refusals a person can fix, and this one was tagged
+        # `inapplicable` for both -- so a method that works read as one that
+        # "does not apply" while the truth was "type in two numbers".
+        raise _detonation_refusal(result, density, supplied)
 
     provenance = Provenance(
         created_by="core",
@@ -605,6 +685,15 @@ def compute_detonation(
             "loading_density_g_cm3": density or None,
             "enthalpy_of_formation_kcal_mol": supplied,
             "enthalpy_source": "supplied_by_user" if supplied is not None else None,
+            # THE ORIGIN OF EVERY NUMBER THE ANSWER DEPENDS ON, both of them.
+            # Only one was recorded, and pressure goes as the SQUARE of this one.
+            # Today every value is typed by the person, so there is one origin;
+            # when a literature record can supply one (the known-explosives
+            # table) this is where "literature: <record>" versus an override is
+            # kept apart -- and it must ALSO enter the request parameters, or a
+            # result computed with an override could be replayed as the
+            # literature value's.
+            "loading_density_source": "supplied_by_user" if density else None,
             "ruby_correction": ruby,
             "K": DETONATION_PRESSURE_K,
             "refusal": result.refusal.name if result.refusal else None,
@@ -613,21 +702,6 @@ def compute_detonation(
             ),
         },
     )
-
-    if not result.applicable:
-        return ReportResult(
-            report_id="detonation",
-            name="Detonation (Kamlet-Jacobs)",
-            category="energetic",
-            molecule_uuid=molecule_uuid,
-            cache_state=CacheState.FAILED,
-            error=detonation_refusal_text(result),
-            # Reached only under `if not result.applicable`, so this is a
-            # limit of the method by construction: Kamlet-Jacobs needs a
-            # MEASURED loading density, and no structure can supply one.
-            inapplicable=True,
-            provenance=provenance,
-        )
 
     density_note: tuple[str, ...] = ()
     if density < LOADING_DENSITY_FLOOR:

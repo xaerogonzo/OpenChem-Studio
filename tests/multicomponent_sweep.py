@@ -38,6 +38,7 @@ from openchem.domain.calculator import DRAWING, GEOMETRY, CalculationRequest, Re
 from openchem.domain.common import CacheState
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.molecule import MoleculeModel
+from openchem.domain.refusal_kinds import refusal_kind_of_result
 from openchem.events.events import ResultRecorded
 
 PANEL = Path(__file__).parent / "fixtures" / "multicomponent_panel.toml"
@@ -106,6 +107,10 @@ def _cell(row: PanelRow, stored) -> dict[str, Any]:
         "state": "failed" if failed else "completed",
         "inapplicable": bool(getattr(result, "inapplicable", False)),
         "refusal": parameters.get("refusal", "") or "",
+        # The refusal's KIND (`domain.refusal_kinds`): a NEEDS_INPUT or
+        # NEEDS_SETUP cell is not a fault and not a limit, and used to be
+        # counted as the first because it carries `inapplicable == False`.
+        "kind": kind.value if (kind := refusal_kind_of_result(result)) else "",
         "component_selection": parameters.get("component_selection", ""),
         "components_used": parameters.get("components_used"),
         "method": getattr(result, "method", "") or getattr(provenance, "method", ""),
@@ -228,7 +233,10 @@ def classify(sweep: dict[str, Any], rows: list[PanelRow]) -> list[dict[str, Any]
         f = facts[row.id]
         multi = f["components"] > 1 or f["metal"] or f["formal_charges"] > 0
         if cell["state"] == "failed":
-            outcome = "inapplicable" if cell["inapplicable"] else "failed"
+            if cell.get("kind") in ("needs_input", "needs_setup"):
+                outcome = cell["kind"]
+            else:
+                outcome = "inapplicable" if cell["inapplicable"] else "failed"
         elif row.is_control or not multi or cell.get("component_selection"):
             outcome = "value"
         else:

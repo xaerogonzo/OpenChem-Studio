@@ -36,7 +36,9 @@ from PySide6.QtWidgets import (
 
 from openchem.app.session import SessionManager
 from openchem.app.menu_help import MENU_HELP
+from openchem.app.shortcut_registry import ShortcutRegistry
 from openchem.app.settings import (
+    DRAWING_BOND_KEYS,
     RAIL_HIDES_PANELS,
     RECOVERY_DELAY_SECONDS,
     RECOVERY_ENABLED,
@@ -46,6 +48,7 @@ from openchem.app.settings import (
     suggested_save_path,
 )
 from openchem.chem.calculation_input import canonical_conformer
+from openchem.chem.engine import StructureEditError
 from openchem.chem.identifiers import identifier_for_molblock
 from openchem.chem.isotopes import IsotopeError, element_at, set_isotope
 from openchem.chem.stereochemistry import StereochemistryConflict
@@ -80,6 +83,8 @@ from openchem.events.events import (
     FormulationSelected,
     MoleculeChanged,
     MoleculeSelected,
+    RecalculationDue,
+    SettingsChanged,
     StructureChecked,
     MoleculeSnapshotUpdated,
     PluginLoaded,
@@ -291,6 +296,10 @@ def _as_bool(value: object) -> bool:
         return value.strip().lower() in ("true", "1", "yes")
     return bool(value)
 
+#: The elements the atom menu offers under "Change X to": the ones drawn most, in the editor's own
+#: order. Anything else is one Edit... away (its Atom Properties dialog takes any symbol).
+_ATOM_MENU_ELEMENTS = ("C", "N", "O", "S", "P", "F", "Cl", "Br", "I", "H")
+
 HELP_TOPIC_BY_DOCK = {
     "Project_Explorer": "projects",
     "Properties": "properties",
@@ -328,6 +337,9 @@ class MainWindow(QMainWindow):
         self._services = services
         self._settings = settings
         self._session = session
+        # Before the first `_document`, which registers each action's shortcut with it; the
+        # overrides are put in force once every menu exists (`_shortcuts.apply()`).
+        self._shortcuts = ShortcutRegistry(settings)
         self._undo_stack = QUndoStack(self)
         # Docking state, before any dock exists -- see `_on_dock_moved`.
         # `_arranging` starts True and is cleared at the END of construction:
@@ -423,7 +435,16 @@ class MainWindow(QMainWindow):
             # with like rather than two notions of a version.
             structure_version_of=services.structure_check_service.current_version,
             substance_perception_needed=self._substance_perception_needed,
+            settings=self._settings,
         )
+        # The footer's "N calculators hidden" link: the window owns the dialogs.
+        self._property_panel.settings_requested.connect(self.show_settings)
+        # A Properties row for a calculator run from another panel: show that panel.
+        self._property_panel.service_panel_requested.connect(self._on_service_panel_requested)
+        # A "Needs setup" chip: the External Tools tab that configures that calculator.
+        self._property_panel.tool_setup_requested.connect(self._show_tool_setup)
+        # "About this calculator" on a launcher row: the window owns the help window.
+        self._property_panel.help_requested.connect(self._show_help)
         if services.result_store_service is not None:
             # A retained result is unsaved work: the user asked for results
             # to live in the project file, so one that is not there yet is
@@ -506,6 +527,11 @@ class MainWindow(QMainWindow):
             self._on_inspector_atom_selected
         )
         self._editor.atom_context_menu.connect(self._show_atom_context_menu)
+        self._editor.bond_order_key_pressed.connect(self._on_bond_order_key)
+        # The page swallows the key BEFORE the editor sees it, so the setting has to be known
+        # there: pushed at startup and whenever it changes, never read at the moment of the key.
+        self._editor.set_bond_keys_enabled(bool(settings.preference(DRAWING_BOND_KEYS)))
+        services.event_bus.subscribe(SettingsChanged, self._on_drawing_setting_changed)
         self._atom_inspector_panel.isotopes_requested.connect(
             self._show_isotopes_for_selection
         )
@@ -571,7 +597,7 @@ class MainWindow(QMainWindow):
         # The RAIL's own show/hide, which is not a panel's -- hiding it
         # removes the navigation rather than a panel, so it gets its own
         # contract rather than sharing `view.panel_visibility`.
-        self._document(rail_bar.toggleViewAction(), "panel_rail_visibility")
+        self._document(rail_bar.toggleViewAction(), "panel_rail_visibility", label="Panel rail (show or hide)")
         rail_bar.setObjectName("Panel_Rail")
         rail_bar.setMovable(False)
         rail_bar.setFloatable(False)
@@ -763,6 +789,9 @@ class MainWindow(QMainWindow):
         self.addAction(palette)
 
         self._build_menus()
+        # Every menu action exists with the shortcut the code gave it: capture those as the
+        # defaults, then put the person's own choices in force.
+        self._shortcuts.apply()
         if not self._restore_window_state():
             self._set_initial_right_dock_width()
         self._restore_pinned_panels()
@@ -771,6 +800,13 @@ class MainWindow(QMainWindow):
 
         services.event_bus.subscribe(MoleculeSelected, self._on_molecule_selected)
         services.event_bus.subscribe(MoleculeChanged, self._on_molecule_changed)
+        services.event_bus.subscribe(RecalculationDue, self._on_recalculation_due)
+        self._recalc_hint_shown = False
+        #: True between a canvas edit's `MoleculeChanged` and the undo-stack index change
+        #: its push causes. See `_on_undo_index_changed`.
+        self._canvas_edit_pending = False
+        if services.recalc_scheduler is not None:
+            services.recalc_scheduler.pending_changed.connect(self._on_recalc_pending_changed)
         services.event_bus.subscribe(ConformersReady, self._on_conformers_ready)
         services.event_bus.subscribe(ConformersChanged, self._on_conformers_changed)
         services.event_bus.subscribe(DockingResultReady, self._on_docking_result_ready)
@@ -1370,6 +1406,13 @@ class MainWindow(QMainWindow):
         opening an index.
         """
         widget = QApplication.focusWidget()
+        # A calculator's own button or tick box carries which calculator it is:
+        # F1 there opens THAT calculator's section, not the panel's.
+        calculator_id = widget.property("openchem_calculator_id") if widget is not None else None
+        if calculator_id:
+            from openchem.domain.calculator_support import help_anchor_for
+
+            return help_anchor_for(str(calculator_id))
         while widget is not None:
             if isinstance(widget, QDockWidget) and widget.objectName() in HELP_TOPIC_BY_DOCK:
                 return HELP_TOPIC_BY_DOCK[widget.objectName()]
@@ -1947,6 +1990,13 @@ class MainWindow(QMainWindow):
     def _build_tools_menu(self) -> None:
         """The Tools menu."""
         tools_menu = self.menuBar().addMenu("&Tools")
+        # The way to ask, in any mode, and the only way in "only when I ask". Enabled
+        # while an edit is waiting to be recalculated (`RecalcScheduler.pending_changed`).
+        self._recalculate_action = tools_menu.addAction("Recalculate Now", self._on_recalculate_now)
+        self._recalculate_action.setShortcut("F5")
+        self._recalculate_action.setEnabled(False)
+        self._document(self._recalculate_action, "recalculate_now")
+        tools_menu.addSeparator()
         self._document(
             tools_menu.addAction("Periodic Table...", self._show_periodic_table),
             "periodic_table",
@@ -2088,14 +2138,20 @@ class MainWindow(QMainWindow):
     # `_duplicate_molecule(molecule=None)` really does receive None -- and
     # only the `toggled`/`triggered` connections below have to take the bool.
 
-    @staticmethod
-    def _document(action: QAction, key: str) -> QAction:
+    def _document(self, action: QAction, key: str, label: str | None = None) -> QAction:
         """Attach the menu contract named by `key` and return the action.
+
+        `label` names the command on the Keyboard page where the action's own text is too bare.
 
         Returns it so a caller can keep chaining -- `setData`, a shortcut,
         or offering the SAME action from a second menu.
+
+        Also where a command becomes rebindable: the key that documents an action is the
+        stable name the Keyboard page and the stored shortcut use, so registering it here
+        means a menu entry cannot exist without being one.
         """
         apply_help_tooltip(action, MENU_HELP[key])
+        self._shortcuts.track(key, action, label)
         return action
 
     def _add_editor_action(
@@ -3223,7 +3279,11 @@ class MainWindow(QMainWindow):
         lists has the same hole, and `repopulate` restores the current
         selection by uuid so a spurious refresh costs nothing.
         """
-        self._refresh_molecule_combos()
+        # A canvas edit changes the structure, not which molecules exist, so the one
+        # panel that rebuilds a per-atom table from it can wait for the pause; the
+        # dropdowns cost about a millisecond between them and stay immediate.
+        edit_in_progress, self._canvas_edit_pending = self._canvas_edit_pending, False
+        self._refresh_molecule_combos(defer_atom_table=edit_in_progress)
         # The pose table is not a dropdown and is not rebuilt from the
         # project, so it needs telling separately.
         self._docking_panel.sync_with_project(self._session.project)
@@ -3255,7 +3315,7 @@ class MainWindow(QMainWindow):
             self._macromolecule_viewer.clear()
         self._macromolecule_viewer.apply_visualizations([])
 
-    def _refresh_molecule_combos(self) -> None:
+    def _refresh_molecule_combos(self, defer_atom_table: bool = False) -> None:
         """DockingPanel's receptor/ligand combos and QuantumChemistryPanel's
         molecule combo are only populated when `set_project` runs (project
         open/new) -- confirmed live: a molecule or macromolecule added
@@ -3270,7 +3330,8 @@ class MainWindow(QMainWindow):
         self._quantum_chemistry_panel.set_project(self._session.project)
         self._alignment_panel.set_project(self._session.project)
         self._interactions_panel.set_project(self._session.project)
-        self._atom_inspector_panel.set_project(self._session.project)
+        if not defer_atom_table:
+            self._atom_inspector_panel.set_project(self._session.project)
         self._batch_panel.set_project(self._session.project)
 
     # --- event handlers --------------------------------------------------------
@@ -3287,17 +3348,61 @@ class MainWindow(QMainWindow):
 
     def _on_molecule_changed(self, event: MoleculeChanged) -> None:
         self._session.mark_dirty()
+        # Remembered for `_on_undo_index_changed`, which runs right after the push that
+        # published this: a canvas edit's atom-table rebuild waits for the pause too.
+        self._canvas_edit_pending = event.during_edit and self._services.recalc_scheduler is not None
         molecule = self._current_molecule()
         if molecule is not None and molecule.uuid == event.molecule_uuid:
-            # The same decision as a selection: an undo back to a structure
-            # whose results are held replays them rather than recomputing.
-            self._restore_or_compute(molecule)
+            # A CANVAS EDIT IN PROGRESS waits for the scheduler (`RecalculationDue`):
+            # the person is drawing, and recomputing fifty results for a structure they
+            # are about to change cost a median 1.1 s an edit. The version has already
+            # been bumped by the structure checker, so what is on screen reads stale.
+            # Without a scheduler (a container built without one) there is nothing to
+            # wait for, so it recomputes as it always did.
+            waits_for_scheduler = event.during_edit and self._services.recalc_scheduler is not None
+            if not waits_for_scheduler:
+                # The same decision as a selection: an undo back to a structure
+                # whose results are held replays them rather than recomputing.
+                self._restore_or_compute(molecule)
             self._publish_molecule_snapshot(molecule)
         # After the snapshot, not before: the service bumps this molecule's
         # version from its own MoleculeChanged subscription, and checking
         # against the version it had a moment ago would produce a result
         # that is stale the instant it is published.
         self._check_current_structure()
+
+    def _on_recalculation_due(self, event: RecalculationDue) -> None:
+        """The quiet period after a canvas edit has passed: recompute what is on screen.
+
+        Reads the CURRENT structure, so a run that fires after a further edit or an undo
+        recomputes what is there now rather than what triggered it.
+        """
+        molecule = self._current_molecule()
+        if molecule is not None and molecule.uuid == event.molecule_uuid:
+            # The atom table was NOT rebuilt per edit (`_on_undo_index_changed`): it names
+            # every atom with IUPAC locants, which cost ~90 ms an edit and was most of what
+            # an edit still cost once the descriptor fan-out waited. It catches up here.
+            self._atom_inspector_panel.set_project(self._session.project)
+            self._restore_or_compute(molecule)
+
+    def _on_recalc_pending_changed(self, pending: bool) -> None:
+        """Enable Recalculate Now while something waits, and say so when it waits for a person."""
+        self._recalculate_action.setEnabled(pending)
+        if pending and self._settings.recalc_policy().delay_ms() is None:
+            self.statusBar().showMessage(
+                "Results are out of date after your edit. Tools > Recalculate Now (F5) updates them.", 0
+            )
+            self._recalc_hint_shown = True
+        elif not pending and self._recalc_hint_shown:
+            # Only the message THIS put up: clearing the bar unconditionally would wipe
+            # an unrelated one on every recompute in the modes that wait a moment.
+            self._recalc_hint_shown = False
+            self.statusBar().clearMessage()
+
+    def _on_recalculate_now(self) -> None:
+        scheduler = self._services.recalc_scheduler
+        if scheduler is None or not scheduler.recalculate_now():
+            self.statusBar().showMessage("Nothing to recalculate: the results are current.", 5000)
 
     # --- retained results -------------------------------------------------------
 
@@ -3930,6 +4035,27 @@ class MainWindow(QMainWindow):
         menu.addAction(self._rotate_action)
         menu.addAction(self._redraw_flat_action)
         menu.addSeparator()
+        # CHANGES TO THE ATOM ITSELF, which Ketcher's own menu had and ours did not: replacing
+        # its menu on an atom took them away. They go through the editor's own tools
+        # (`apply_atom_change`), so each is one edit on its history and recomputes on the pause.
+        # The atom and the change travel on the action, never in a closure (see below).
+        # Created WITH its parent and then added, not `menu.addMenu(title)`: the latter's wrapper
+        # is Python-owned, so when this method returns the submenu's C++ object is deleted and a
+        # caller reading the menu (a test, the driver) meets "already deleted".
+        element_menu = QMenu(f"Change {symbol} to", menu)
+        menu.addMenu(element_menu)
+        for element in _ATOM_MENU_ELEMENTS:
+            action = element_menu.addAction(element)
+            action.setData((atom_index, "element", element))
+            action.triggered.connect(self._on_atom_change)
+        for label, value in (("Add positive charge (+1)", "+1"), ("Add negative charge (\u22121)", "-1")):
+            action = menu.addAction(label)
+            action.setData((atom_index, "charge", value))
+            action.triggered.connect(self._on_atom_change)
+        delete = menu.addAction(f"Delete this {symbol}")
+        delete.setData((atom_index, "delete", ""))
+        delete.triggered.connect(self._on_atom_change)
+        menu.addSeparator()
         # Kept by decision: replacing the menu must not cost the editor's
         # own dialog, which is the one thing it had that we do not.
         editor_edit = menu.addAction("Edit... (the editor's own)")
@@ -3941,6 +4067,66 @@ class MainWindow(QMainWindow):
         editor_edit.setData(atom_index)
         editor_edit.triggered.connect(self._on_editor_atom_edit)
         return menu
+
+    def _on_drawing_setting_changed(self, event: SettingsChanged) -> None:
+        if event.key == DRAWING_BOND_KEYS.key:
+            self._editor.set_bond_keys_enabled(bool(self._settings.preference(DRAWING_BOND_KEYS)))
+
+    def _on_bond_order_key(self, bond_index: int, order: int) -> None:
+        """A number key pressed over a hovered bond: set its order, as one undoable edit.
+
+        **THE SAME ROUTE AS THE ATOM MENU'S CHANGES, for the same reasons**: the application
+        makes the change (`ChemistryEngine.edit_bond`) and pushes an `EditStructureCommand`, so it
+        is one entry on the undo stack, recomputes like any deliberate change, and the canvas
+        follows through the reload every undo already uses. Ketcher does nothing with a number key
+        over a bond, and its bond tool cannot be driven by a synthetic event.
+
+        A bond that already has that order is left alone WITHOUT an undo entry. A bond the change
+        cannot honour (aromatic, query, wedge, or one that would break a valence) is left as it
+        was and the reason goes in the status bar; that is a refusal, not an error.
+        """
+        molecule = self._current_molecule()
+        if molecule is None or not molecule.molblock:
+            return
+        engine = self._services.chemistry_engine
+        try:
+            edited = engine.edit_bond(molecule.molblock, int(bond_index), int(order))
+        except StructureEditError as error:
+            self.statusBar().showMessage(str(error), 8000)
+            return
+        if edited == molecule.molblock:
+            return
+        self._undo_stack.push(
+            EditStructureCommand(engine, molecule, edited, self._services.event_bus)
+        )
+
+    def _on_atom_change(self, _checked: bool = False) -> None:
+        """Apply the change an atom-menu action carries: an undoable edit of the STRUCTURE.
+
+        **APPLICATION-SIDE, NOT THROUGH KETCHER'S TOOLS.** The first attempt armed Ketcher's atom
+        and charge tools and delivered synthetic clicks; the tool armed and the click changed
+        nothing, because its tools read pointer state a synthetic event does not carry (the same
+        wall the hover spike met). The project's own rule is the better route anyway: a
+        structure-modifying action is an `EditStructureCommand`, so it is one undo entry, it goes
+        through the same recompute as any deliberate change, and the canvas follows through the
+        reload every undo already uses. An invalid change (a pentavalent carbon) is REFUSED with
+        the reason in the status bar instead of being drawn.
+        """
+        action = self.sender()
+        payload = action.data() if action is not None else None
+        molecule = self._current_molecule()
+        if not payload or molecule is None or not molecule.molblock:
+            return
+        atom_index, change, value = payload
+        engine = self._services.chemistry_engine
+        try:
+            edited = engine.edit_atom(molecule.molblock, int(atom_index), str(change), str(value))
+        except StructureEditError as error:
+            self.statusBar().showMessage(str(error), 8000)
+            return
+        self._undo_stack.push(
+            EditStructureCommand(engine, molecule, edited, self._services.event_bus)
+        )
 
     def _on_editor_atom_edit(self, _checked: bool = False) -> None:
         """Reads the atom index back off the action that sent it."""
@@ -4557,6 +4743,20 @@ class MainWindow(QMainWindow):
     def _show_settings(self) -> None:
         self.show_settings()
 
+    def _on_service_panel_requested(self, panel_id: str, calculator_id: str) -> None:
+        """Show the panel a Properties row stands for, with its calculation chosen.
+
+        Choosing is all it does: the Quantum Chemistry panel's Run button is still the
+        person's, because it takes a charge, a multiplicity and a method.
+        """
+        self._on_panel_chosen(panel_id)
+        if panel_id == "Quantum_Chemistry" and calculator_id.startswith("orca."):
+            self._quantum_chemistry_panel.select_calculation_type(calculator_id.split(".", 1)[1])
+
+    def _show_tool_setup(self, tool: str) -> None:
+        """Open Settings > External Tools on `tool`'s tab (a catalogue key)."""
+        self.show_settings(EXTERNAL_TOOLS, tool)
+
     def _show_external_tools_dialog(self) -> None:
         # Tools > External Tools stays, and opens the Settings window where
         # the tools now live: a menu route people know is not taken away
@@ -4569,12 +4769,17 @@ class MainWindow(QMainWindow):
         Handed the result store service, so lowering the revisions kept can
         say exactly how much it would remove.
         """
+        registry = self._services.calculator_registry
         dialog = SettingsDialog(
             self._settings,
             self,
             section=section,
             tool=tool,
+            shortcut_registry=self._shortcuts,
             result_store_service=self._services.result_store_service,
+            calculator_definitions=[
+                d for category in registry.categories() for d in registry.by_category(category)
+            ],
         )
         dialog.exec()
 

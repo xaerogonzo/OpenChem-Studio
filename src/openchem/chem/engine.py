@@ -172,6 +172,33 @@ class InvalidStructureError(ValueError):
     """Raised when a molblock/SMILES cannot be parsed into a valid RDKit Mol."""
 
 
+class StructureEditError(ValueError):
+    """A change to one atom that would not give a valid structure, with the reason as its message."""
+
+
+def _molblock_bond_stereo_flag(molblock: str, bond_index: int) -> int:
+    """The stereo flag of one bond AS THE MOLFILE WRITES IT: 0 none, 1 wedge, 6 hash, 4 either, 3 a
+    double bond drawn crossed. Read from the text because RDKit does not keep it: parsing a molblock
+    turns a wedge into a chiral tag on the atom and leaves the bond's own direction `NONE` (measured),
+    so asking the parsed molecule would never see a wedge to refuse.
+
+    Handles both dialects. An unreadable block answers 0: the caller has already parsed it, so this is
+    only ever asked about one RDKit accepted.
+    """
+    lines = molblock.splitlines()
+    try:
+        if any("V3000" in line for line in lines[:5]):
+            start = next(i for i, line in enumerate(lines) if line.strip().endswith("BEGIN BOND")) + 1
+            fields = lines[start + bond_index].split()
+            return int(next((f.split("=", 1)[1] for f in fields if f.startswith("CFG=")), 0))
+        counts = lines[3]
+        atoms, bonds = int(counts[0:3]), int(counts[3:6])
+        line = lines[4 + atoms + bond_index]
+        return int(line[9:12]) if bond_index < bonds else 0
+    except (ValueError, IndexError, StopIteration):
+        return 0
+
+
 class ChemistryEngine:
     """The sole RDKit touchpoint for MoleculeModel <-> rdkit.Chem.Mol conversion
     and canonical identity (SMILES/InChI/InChIKey).
@@ -827,6 +854,114 @@ class ChemistryEngine:
         mol = self.mol_from_molblock(molblock)
         model.molblock = Chem.MolToMolBlock(mol)
         return self.canonicalize(model)
+
+    def edit_atom(self, molblock: str, atom_index: int, change: str, value: str = "") -> str:
+        """`molblock` with ONE atom changed -- its element, its charge, or removed -- as a molblock.
+
+        `change` is "element" (`value` a symbol), "charge" (`value` "+1" or "-1", added to the
+        atom's charge) or "delete". `atom_index` is a MOLFILE POSITION, which is exactly an RDKit
+        atom index for a molblock parsed here, so the position the atom menu carries needs no
+        translation. Every other atom keeps its coordinates and its position (after a deletion the
+        later ones shift down by one, as a molfile does).
+
+        **THE RESULT IS SANITISED, AND A CHANGE THAT WOULD NOT BE A MOLECULE IS REFUSED** with a
+        sentence saying why (`StructureEditError`), never quietly produced: a pentavalent carbon
+        from "change N to C" on an amine is a real thing to be told about, not to be drawn. Hydrogen
+        counts are recomputed (`NoImplicit` off, explicit count cleared) so the change reads as it
+        would drawn by hand -- an oxygen turned nitrogen gains the hydrogen nitrogen needs.
+        """
+        mol = Chem.RWMol(self.mol_from_molblock(molblock))
+        if not 0 <= atom_index < mol.GetNumAtoms():
+            raise StructureEditError(f"There is no atom {atom_index + 1} in this structure.")
+        atom = mol.GetAtomWithIdx(atom_index)
+        symbol = atom.GetSymbol()
+        if change == "element":
+            try:
+                atomic_number = Chem.GetPeriodicTable().GetAtomicNumber(value) if value else 0
+            except RuntimeError:
+                # RDKit RAISES for a symbol it does not know rather than returning -1.
+                atomic_number = 0
+            if atomic_number <= 0:
+                raise StructureEditError(f"{value!r} is not an element symbol.")
+            atom.SetAtomicNum(atomic_number)
+            atom.SetNumExplicitHs(0)
+            atom.SetNoImplicit(False)
+            atom.SetIsotope(0)
+        elif change == "charge":
+            delta = 1 if str(value).startswith("+") else -1
+            atom.SetFormalCharge(atom.GetFormalCharge() + delta)
+            atom.SetNumExplicitHs(0)
+            atom.SetNoImplicit(False)
+        elif change == "delete":
+            if mol.GetNumAtoms() == 1:
+                raise StructureEditError("That is the only atom; delete the molecule instead.")
+            mol.RemoveAtom(atom_index)
+        else:
+            raise StructureEditError(f"Unknown atom change {change!r}.")
+        try:
+            edited = mol.GetMol()
+            Chem.SanitizeMol(edited)
+        except Exception as error:  # noqa: BLE001 - RDKit raises several sanitisation types
+            raise StructureEditError(
+                f"That change to atom {atom_index + 1} ({symbol}) is not a valid structure: {error}"
+            ) from error
+        return Chem.MolToMolBlock(edited)
+
+    def edit_bond(self, molblock: str, bond_index: int, order: int) -> str:
+        """`molblock` with ONE bond's order set to `order` (1, 2 or 3), as a molblock.
+
+        `bond_index` is a MOLFILE POSITION, which is exactly an RDKit bond index for a molblock
+        parsed here. The same order asked for again returns the molblock UNCHANGED, so the caller
+        can tell "nothing to do" from a change by comparing.
+
+        **THE MOLBLOCK IS PARSED WITHOUT SANITISING, AND THAT IS THE POINT.** Sanitising perceives
+        aromaticity and rewrites every ring bond, so a kekulé benzene drawn with alternating
+        bonds would come back with all six changed, when the person changed one. Parsed as drawn,
+        the other bonds keep exactly the type they had and every atom keeps its coordinates; a
+        sanitised COPY is what checks that the result is a molecule.
+
+        **REFUSED, WITH A SENTENCE SAYING WHY, rather than guessed at:** an aromatic bond (its
+        order is not a number to set), a query bond (single-or-double and the like have no order
+        to replace), and a wedge, hash or "either" bond (its stereo meaning would be silently
+        lost or made wrong). A change that would break a valence -- a carbon left with five
+        bonds -- is refused the way `edit_atom` refuses one. A hydrogen the drawing carries as
+        an explicit atom is not removed for the person, so a bond to it is refused too.
+        """
+        words = {1: "single", 2: "double", 3: "triple"}
+        if order not in words:
+            raise StructureEditError(f"A bond order is 1, 2 or 3, not {order!r}.")
+        mol = Chem.MolFromMolBlock(molblock, sanitize=False, removeHs=False)
+        if mol is None:
+            raise StructureEditError("The structure could not be read to change a bond.")
+        if not 0 <= bond_index < mol.GetNumBonds():
+            raise StructureEditError(f"There is no bond {bond_index + 1} in this structure.")
+        bond = mol.GetBondWithIdx(bond_index)
+        begin, end = bond.GetBeginAtom(), bond.GetEndAtom()
+        label = f"{begin.GetSymbol()}{begin.GetIdx() + 1}-{end.GetSymbol()}{end.GetIdx() + 1}"
+        if bond.HasQuery():
+            raise StructureEditError(
+                f"Bond {label} is a query bond (it matches more than one order), so a number key "
+                "leaves it as drawn."
+            )
+        if bond.GetBondType() == Chem.BondType.AROMATIC:
+            raise StructureEditError(
+                f"Bond {label} is aromatic, so a number key leaves it as drawn."
+            )
+        if _molblock_bond_stereo_flag(molblock, bond_index):
+            raise StructureEditError(
+                f"Bond {label} is a wedge, hash or either bond, so a number key leaves it as drawn."
+            )
+        target = {1: Chem.BondType.SINGLE, 2: Chem.BondType.DOUBLE, 3: Chem.BondType.TRIPLE}[order]
+        if bond.GetBondType() == target:
+            return molblock
+        bond.SetBondType(target)
+        try:
+            Chem.SanitizeMol(Chem.Mol(mol))
+        except Exception as error:  # noqa: BLE001 - RDKit raises several sanitisation types
+            raise StructureEditError(
+                f"Making bond {label} {words[order]} is not a valid structure: {error}"
+            ) from error
+        return Chem.MolToMolBlock(mol)
 
     def set_structure_from_smiles(self, model: MoleculeModel, smiles: str) -> MoleculeModel:
         mol = self.mol_from_smiles(smiles)

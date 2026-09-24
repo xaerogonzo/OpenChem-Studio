@@ -27,6 +27,8 @@ from openchem.app.settings import (
     MAX_REVISIONS_KEPT,
     PREFERENCES,
     RAIL_HIDES_PANELS,
+    RECALC_MODE,
+    RECALC_QUIET_MS,
     RECOVERY_DELAY_SECONDS,
     RECOVERY_ENABLED,
     Settings,
@@ -34,6 +36,7 @@ from openchem.app.settings import (
 from openchem.domain.calculator import DRAWING, GEOMETRY
 from openchem.domain.common import CacheState
 from openchem.domain.project import ProjectModel
+from openchem.domain.recalc_policy import RecalcMode
 from openchem.domain.result_store import (
     MAX_REVISIONS,
     BundlePart,
@@ -85,6 +88,10 @@ def test_every_default_is_todays_behaviour():
     assert RECOVERY_ENABLED.default is True
     assert RECOVERY_DELAY_SECONDS.default == 5
     assert MAX_REVISIONS_KEPT.default == MAX_REVISIONS == 8
+    # Recalculation is the one setting whose default CHANGES behaviour: drawing used to
+    # recompute on every edit. It is a pause of 800 ms, the plan's stated default.
+    assert RECALC_MODE.default == int(RecalcMode.AFTER_PAUSE)
+    assert RECALC_QUIET_MS.default == 800
 
 
 def test_the_stored_keys_are_stable_names():
@@ -95,6 +102,10 @@ def test_the_stored_keys_are_stable_names():
         "recovery/enabled",
         "recovery/delay_seconds",
         "results/max_revisions",
+        "calculators/show_hidden",
+        "compute/recalc_mode",
+        "compute/recalc_quiet_ms",
+        "drawing/bond_order_keys",
     }
 
 
@@ -513,6 +524,31 @@ def test_each_control_stores_what_it_names(qapp, dialogs):
     assert settings.preference(RAIL_HIDES_PANELS) is False
     assert settings.preference(RECOVERY_ENABLED) is True
     assert settings.preference(RECOVERY_DELAY_SECONDS) == 90
+
+
+def test_the_recalculation_controls_show_and_store_what_they_name(qapp, dialogs):
+    settings = Settings(EventBus())
+    dialog = _dialog(dialogs, settings, section="recalculation")
+    assert dialog._recalc_mode.currentData() == int(RecalcMode.AFTER_PAUSE)
+    assert dialog._recalc_delay.value() == 800 and dialog._recalc_delay.isEnabled()
+    assert (dialog._recalc_delay.minimum(), dialog._recalc_delay.maximum()) == (0, 5000)
+
+    dialog._recalc_delay.setValue(1500)
+    assert settings.preference(RECALC_QUIET_MS) == 1500
+
+    dialog._recalc_mode.setCurrentIndex(dialog._recalc_mode.findData(int(RecalcMode.ON_REQUEST)))
+    assert settings.preference(RECALC_MODE) == int(RecalcMode.ON_REQUEST)
+    assert not dialog._recalc_delay.isEnabled(), "the delay belongs to After I pause only"
+    assert settings.recalc_policy().delay_ms() is None
+
+
+def test_the_recalculation_page_shows_a_stored_choice(qapp, dialogs):
+    settings = Settings(EventBus())
+    settings.set_preference(RECALC_MODE, int(RecalcMode.WHILE_DRAWING))
+    settings.set_preference(RECALC_QUIET_MS, 300)
+    dialog = _dialog(dialogs, settings)
+    assert dialog._recalc_mode.currentData() == int(RecalcMode.WHILE_DRAWING)
+    assert dialog._recalc_delay.value() == 300 and not dialog._recalc_delay.isEnabled()
 
 
 def _asked(monkeypatch, answer=QMessageBox.StandardButton.Yes, during=None):

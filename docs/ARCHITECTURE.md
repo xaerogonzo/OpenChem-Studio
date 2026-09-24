@@ -2276,3 +2276,50 @@ document may cite a file or a test that does not exist.
   the point at which the job stops giving the cross-platform signal it
   exists for. A leg landing in any of the three recorded modes is not
   that, however early the lowest of them looks.
+
+- **OPEN** -- a bond's order cannot be changed by clicking it. **Hover and press 1/2/3 is built** (2026-09-24:
+  `ChemistryEngine.edit_bond`, `interceptBondOrderKeys` in `main.jsx`, Settings > Drawing,
+  `benchmarks/visual/bond_order_keys.json`); what is left is "click a bond to cycle". It was proposed on the belief
+  that Ketcher already did the number keys. **It does not, for a bond, in the vendored bundle** (measured 2026-09-24,
+  `benchmarks/visual/ketcher_hover_keys.json`): hovering an atom and pressing `n` replaces it and `/` over a
+  bond opens its properties dialog, but a number over a hovered bond is handled (`preventDefault`) and changes
+  nothing -- the bundle's hotkey table has tool handlers for atoms and s-groups and none for bonds. So the
+  gestures are new work, and the earlier reading that they might already exist was wrong.
+
+  What was in the way was the belief that a hover cannot be produced from automation. It can: Ketcher's own
+  tools set it with `editor.hover(editor.findItem(event, null), null, event)`, which needs only a client
+  position, and the key must be dispatched inside the editor's DOM rather than on `document`. That makes a
+  hover gesture regression-testable through `OPENCHEM_DRIVE`.
+
+  The number keys took the route the atom menu took: the page reports the hovered bond and the key, and the
+  application makes the change through `edit_bond` and an `EditStructureCommand` (one undo entry, recomputed like
+  any deliberate change) rather than through Ketcher's tools, whose synthetic clicks armed the tool and changed
+  nothing. **Click-to-cycle is the contested half and is not built**: in the select tool a click on a bond SELECTS
+  it, so cycling on click would take that away (and it would have to swallow the mouse-down as well as the click),
+  so it needs its own switch, off by default. Nothing here is decided.
+
+- **DECISION** -- a coordinate-only edit recomputes every result, because the drawing's fingerprint hashes the
+  raw molblock. Dragging an atom therefore recomputes results that cannot have changed. The plan gated a
+  constitution fingerprint (calculators that ignore coordinates keyed on the structure, not its layout) on the
+  profiler showing coordinate-only edits to be a large share of the cost, and it does not: after the pause a
+  whole burst is ONE fan-out of about 50 results, and the longest the event loop is blocked is 93 ms
+  (`benchmarks/visual/README.md`, "after" rows), so a drag costs one background recomputation, not one per
+  mouse-move. Building it would also need a canonicalisation that still moves with stereo (a wedge drag
+  changes the structure), which is the risk the saving does not pay for. Revisit if a slow provider becomes
+  automatic.
+
+- **DECISION** -- recomputation is not demand-driven: every automatic provider runs after each pause whether or
+  not a panel is showing its result. The plan sketched a provider-to-consumer registry, with a consumer's
+  visibility change as its own trigger. The same measurements answer it: one fan-out per pause and a 93 ms
+  worst block leave nothing to save that a user could feel, and the registry would put a second source of
+  truth for "who reads this" beside the panels. Revisit when an automatic provider is slow enough to matter
+  (the Solubility AqSolDB comparison, about 5 minutes, is a manual calculator and does not count).
+
+- **OPEN** -- the Thermophysical chip cannot say a structure is outside Joback's groups before it is run.
+  Joback refuses any molecule with an atom no group covers (`UNCOVERED_ATOM`: a ring tertiary amine is one),
+  which is why it refuses RDX, HMX and dinitrodiazetidine while running TNT, PETN and aspirin. It is hidden by
+  default now, so the surprise of a "Not applicable" after running is confined to someone who turned it on.
+  A pre-flight would call the same `fragment()` when the row is built and show the LIMIT chip, naming the
+  atom, before any run. It needs a decision the code does not make for itself: a calculator would have to
+  declare a cheap pre-flight hook, only one calculator has one, and the chip vocabulary is deliberately
+  closed. Coverage would be worded with its denominator, never as a percentage of molecules.

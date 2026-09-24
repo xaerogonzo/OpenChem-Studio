@@ -825,6 +825,7 @@ def summarise(
         error=getattr(result, "error", None),
         error_summary=getattr(result, "error_summary", None),
         inapplicable=bool(getattr(result, "inapplicable", False)),
+        provenance=getattr(result, "provenance", None),
     )
 
 

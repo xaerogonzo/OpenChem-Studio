@@ -32,6 +32,7 @@ from openchem.services.import_service import ImportService
 from openchem.services.job_manager import JobManager
 from openchem.services.measurement_service import MeasurementService
 from openchem.services.project_service import ProjectService
+from openchem.services.recalc_scheduler import RecalcScheduler
 from openchem.services.result_store_service import ResultStoreService
 from openchem.services.qm_surface_service import QmSurfaceService
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
@@ -54,7 +55,9 @@ _EXTERNAL_CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             "search box; run from the Docking panel. Produces ranked poses "
             "with binding scores and interaction analysis."
         ),
-        execution=ServiceExecution(service_name="docking_service", panel_name="Docking panel"),
+        execution=ServiceExecution(
+            service_name="docking_service", panel_name="Docking panel", panel_id="Docking"
+        ),
         parameters=[
             CalculatorParameter(
                 name="num_poses", label="Number of poses", kind="int", default=DEFAULT_NUM_POSES, minimum=1
@@ -111,7 +114,9 @@ for _label, _calc_type in CALC_TYPE_LABELS.items():
                 "3D conformer; run from the Quantum Chemistry panel."
             ),
             execution=ServiceExecution(
-                service_name="quantum_chemistry_service", panel_name="Quantum Chemistry panel"
+                service_name="quantum_chemistry_service",
+                panel_name="Quantum Chemistry panel",
+                panel_id="Quantum_Chemistry",
             ),
             prediction_basis="ab_initio",
             parameters=[
@@ -160,7 +165,9 @@ _EXTERNAL_CALCULATOR_DEFINITIONS.append(
             "which is one of the most-used hard/soft orderings there is."
         ),
         execution=ServiceExecution(
-            service_name="quantum_chemistry_service", panel_name="Quantum Chemistry panel"
+            service_name="quantum_chemistry_service",
+            panel_name="Quantum Chemistry panel",
+            panel_id="Quantum_Chemistry",
         ),
         prediction_basis="ab_initio",
         tags=["lewis", "hsab", "hardness", "softness", "electrophilicity"],
@@ -339,4 +346,7 @@ def build_service_container() -> ServiceContainer:
         # Subscribes to the result envelopes at construction, so nothing a
         # calculator records can arrive before there is a store to take it.
         result_store_service=ResultStoreService(event_bus, engine, settings),
+        # The policy is read from Settings at every edit, never captured, so changing it
+        # in the Settings window applies to the next edit.
+        recalc_scheduler=RecalcScheduler(event_bus, settings.recalc_policy),
     )

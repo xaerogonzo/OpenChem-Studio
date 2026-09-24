@@ -135,6 +135,7 @@ are kept: they are why the vocabulary could not be the naming engine's.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, replace
 from functools import lru_cache
 from enum import Enum
@@ -150,9 +151,17 @@ from openchem.chem.feature_vocabulary import (
     ObjectTreatment,
     Projection,
 )
-from openchem.chem.structural_features import StructuralFeature, detect_features, project
+from openchem.chem.structural_features import (
+    SkippedMatch,
+    StructuralFeature,
+    detect_features_tolerant,
+    project,
+)
 from openchem.domain.common import CacheState, Provenance
+from openchem.domain.completeness import Completeness, completeness_parameters
 from openchem.domain.scientific_result import PerAtomDataset
+
+logger = logging.getLogger("openchem.chemistry")
 
 
 class LocantSource(str, Enum):
@@ -1080,6 +1089,23 @@ class CanonicalFeatures:
     groups: tuple["AnnotatedGroup", ...] = ()
     #: Set when the engine's perception failed; the v2 features still stand.
     perception_error: str | None = None
+    #: Instances the detector could not evaluate (`detect_features_tolerant`).
+    #: Empty for a complete detection. **A VIEW BUILT FROM THIS MUST SAY SO**:
+    #: an absence in `features` is not evidence of absence in the molecule for
+    #: the features named here.
+    skipped: tuple[SkippedMatch, ...] = ()
+
+    def completeness(self) -> Completeness:
+        """This detection as a `Completeness`, for the result built from it."""
+        return Completeness(
+            evaluated=len(self.features) + len(self.skipped),
+            skipped=tuple(item.name() for item in self.skipped),
+            reason=(
+                "The feature detector could not evaluate these instances (a pattern matched a "
+                "charge state its feature does not declare), so a feature's absence below may "
+                "not be real for them." if self.skipped else ""
+            ),
+        )
 
     def engine_groups_for(self, feature: StructuralFeature) -> list["AnnotatedGroup"]:
         """Engine groups the map allows for this feature, on its atoms."""
@@ -1110,13 +1136,24 @@ def _canonical_features_cached(vocabulary_version: str, molblock: str) -> Canoni
     mol = Chem.MolFromMolBlock(molblock, removeHs=False)
     if mol is None:
         return CanonicalFeatures(perception_error="could not read the structure")
-    features = detect_features(mol)
+    # TOLERANT, unlike the vocabulary's own tests: a defect in one pattern costs
+    # its instance and a recorded `Completeness`, not every feature of the
+    # molecule. Cached per structure, so this warning fires once per structure
+    # per process and not once per edit -- five identical tracebacks in forty
+    # seconds was what the strict form did to a nitramine.
+    detection = detect_features_tolerant(mol)
+    if detection.skipped:
+        logger.warning(
+            "Structural feature detection skipped %d instance(s), so the result is partial: %s",
+            len(detection.skipped), "; ".join(item.name() for item in detection.skipped),
+        )
     annotation = perceive(mol)
     return CanonicalFeatures(
-        features=features,
+        features=detection.features,
         rings=annotation.rings,
         groups=annotation.groups + tuple(_feature_groups(annotation)),
         perception_error=annotation.error,
+        skipped=detection.skipped,
     )
 
 
@@ -1245,6 +1282,7 @@ def compute_functional_groups(
     provenance_parameters["summary"] = _feature_summary(shown, rings)
     if canonical.perception_error:
         provenance_parameters["perception_error"] = canonical.perception_error
+    provenance_parameters.update(completeness_parameters(canonical.completeness()))
 
     return PerAtomDataset(
         property_id="functional_groups",

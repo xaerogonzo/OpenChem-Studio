@@ -1,0 +1,14 @@
+[
+  {"do": "smiles", "smiles": "CCO", "name": "Ethanol", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 5000},
+
+  {"do": "atom_action", "tag": "oxygen to nitrogen", "atom": 2, "submenu": "Change", "text": "N",
+   "expect": {"smiles_equals": "CCN", "undo_delta": 1}, "after_ms": 3500},
+  {"do": "atom_action", "tag": "nitrogen gains a charge", "atom": 2, "text": "Add positive charge",
+   "expect": {"smiles_contains": "+", "undo_delta": 1}, "after_ms": 3500},
+  {"do": "atom_action", "tag": "delete the terminal atom", "atom": 2, "text": "Delete this",
+   "expect": {"smiles_equals": "CC", "undo_delta": 1}, "after_ms": 3500},
+
+  {"do": "expect_clean", "tag": "end"},
+  {"do": "quit"}
+]

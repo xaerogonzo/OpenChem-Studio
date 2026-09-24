@@ -52,6 +52,7 @@ class _Bridge(QObject):
         on_atom_context_menu: Callable[[int, int, int], None] | None = None,
         on_bond_selected: Callable[[int], None] | None = None,
         on_editor_action: Callable[[str], None] | None = None,
+        on_bond_order_key: Callable[[int, int], None] | None = None,
         on_rotation_angles: Callable[[float, float], None] | None = None,
         on_rotation_finished: Callable[[], None] | None = None,
         on_rotation_exit: Callable[[bool], None] | None = None,
@@ -68,6 +69,13 @@ class _Bridge(QObject):
         self._on_atom_context_menu = on_atom_context_menu
         self._on_bond_selected = on_bond_selected
         self._on_editor_action = on_editor_action
+        self._on_bond_order_key = on_bond_order_key
+
+    @Slot(int, int)
+    def bondOrderKey(self, bond_index: int, order: int) -> None:  # noqa: N802 - called from JS by this exact name
+        """A number key over a hovered bond: its MOLFILE POSITION and the order asked for."""
+        if self._on_bond_order_key is not None:
+            self._on_bond_order_key(bond_index, order)
 
     @Slot(str)
     def structureEdited(self, molblock: str) -> None:  # noqa: N802 - called from JS by this exact name
@@ -227,6 +235,7 @@ class KetcherEditorBackend(EditorBackend):
             self._on_atom_context_menu_from_page,
             self._on_bond_selected,
             self.editor_action_requested.emit,
+            self.bond_order_key_pressed.emit,
             self.rotation_angles_changed.emit,
             self.rotation_finished.emit,
             self.rotation_exit_requested.emit,
@@ -279,6 +288,9 @@ class KetcherEditorBackend(EditorBackend):
         #: only the second should spend a call on a canvas that has never
         #: shown a label.
         self._pending_cip: bool | None = None
+        #: Whether a number key over a hovered bond is handed to the application. The page
+        #: starts with it on, so only a False has to be sent, and it is sent when ready.
+        self._bond_keys_enabled = True
         #: The last atom-number payload, replayed once the page is ready --
         #: same reason as `_pending_cip`, one row down.
         self._pending_atom_numbers: tuple[dict | None] | None = None
@@ -340,8 +352,15 @@ class KetcherEditorBackend(EditorBackend):
         """
         self.bond_selected.emit(bond_index)
 
+    def set_bond_keys_enabled(self, enabled: bool) -> None:
+        self._bond_keys_enabled = bool(enabled)
+        if self._ketcher_ready:
+            self._page.runJavaScript(f"window.__openchemBondKeys = {str(self._bond_keys_enabled).lower()};")
+
     def _on_ketcher_ready(self) -> None:
         self._ketcher_ready = True
+        if not self._bond_keys_enabled:
+            self._page.runJavaScript("window.__openchemBondKeys = false;")
         # Options before the structure, so it is laid out the way the user
         # asked rather than drawn once and re-rendered a frame later.
         # Applying them to a still-empty canvas holds for whatever is
@@ -758,16 +777,29 @@ class KetcherEditorBackend(EditorBackend):
         )
 
     def open_atom_editor(self, atom_index: int) -> None:
-        """Open Ketcher's OWN atom-properties dialog for one atom.
+        """Open Ketcher's OWN atom-properties dialog for one atom, and let Ketcher apply the result.
 
         **THE ITEM ALEX ASKED TO KEEP.** Replacing the context menu on an
         atom would otherwise take away the editor's `Edit...`, which was
         an explicit decision to preserve, so our menu offers it back.
 
-        `editor.event.elementEdit` is Ketcher's own hook for that dialog
-        and is what its menu uses; the index is a MOLFILE POSITION on the
-        way in and is translated to a pool id on the page, which is the
-        inverse of the trip every id makes in the other direction.
+        **THE FIRST VERSION DISPATCHED `editor.event.elementEdit` ITSELF, AND IT DID NOTHING
+        VISIBLE** -- measured by driving the app and probing the page: the atom was found, no
+        dialog appeared, and nothing logged. Two things were wrong with the payload. Ketcher's
+        own callers hand `elementEdit` an ARRAY OF ATOM OBJECTS from the current selection
+        (`getSelectedAtoms`), and then feed the promise it returns to an internal
+        `updateSelectedAtoms`, which is what actually writes the result back -- neither of
+        which is reachable from outside the bundle, so even a dialog that opened would have
+        had its answer thrown away.
+
+        So this does what a person does: SELECT the atom and DOUBLE-CLICK it. Ketcher's select
+        tool handles that gesture through exactly its own path (`dblclick` -> `elementEdit` ->
+        `updateSelectedAtoms`), applying the dialog's answer as one edit on its own undo stack.
+        The click position comes from inverting `render.page2obj` at two probe points, the way
+        `electronTransform` does for the overlays, so it is right at any zoom or scroll.
+
+        The index is a MOLFILE POSITION on the way in and is translated to a pool id on the
+        page, the inverse of the trip every id makes in the other direction.
         """
         if not self._ketcher_ready:
             logger.debug("Dropping atom editor request -- Ketcher is not ready")
@@ -780,11 +812,21 @@ class KetcherEditorBackend(EditorBackend):
                 var ids = Array.from(ed.struct().atoms.keys());
                 var poolId = ids[{int(atom_index)}];
                 if (poolId === undefined) return;
-                var atom = ed.struct().atoms.get(poolId);
-                ed.event.elementEdit.dispatch({{
-                  label: atom.label, charge: atom.charge,
-                  isotope: atom.isotope, explicitValence: atom.explicitValence,
-                }});
+                var render = ed.render;
+                // Model -> client pixels, by inverting page2obj at two probe points.
+                var a = render.page2obj({{ clientX: 0, clientY: 0, pageX: 0, pageY: 0 }});
+                var b = render.page2obj({{ clientX: 100, clientY: 100, pageX: 100, pageY: 100 }});
+                var sx = 100 / (b.x - a.x), sy = 100 / (b.y - a.y);
+                var pp = render.ctab.atoms.get(poolId).a.pp;
+                var x = (pp.x - a.x) * sx, y = (pp.y - a.y) * sy;
+                // The select tool is the one whose double-click edits an atom.
+                if (!ed.tool() || ed.tool().constructor.name.indexOf('SelectTool') < 0) ed.tool('select');
+                ed.selection({{ atoms: [poolId] }});
+                var target = render.clientArea.firstChild || render.clientArea;
+                target.dispatchEvent(new MouseEvent('dblclick', {{
+                  clientX: x, clientY: y, screenX: x, screenY: y,
+                  bubbles: true, cancelable: true, view: window, button: 0, detail: 2,
+                }}));
               }} catch (e) {{
                 console.warn('[ketcher-host] could not open the atom editor: ' + e);
               }}

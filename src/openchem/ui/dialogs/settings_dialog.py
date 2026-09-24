@@ -23,6 +23,7 @@ from __future__ import annotations
 
 from PySide6.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QDialog,
     QDialogButtonBox,
     QGridLayout,
@@ -38,14 +39,20 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.app.settings import (
+    DRAWING_BOND_KEYS,
     MAX_REVISIONS_KEPT,
     RAIL_HIDES_PANELS,
+    RECALC_MODE,
+    RECALC_QUIET_MS,
     RECOVERY_DELAY_SECONDS,
     RECOVERY_ENABLED,
     Preference,
     Settings,
 )
+from openchem.domain.recalc_policy import RecalcMode
+from openchem.ui.dialogs.calculator_visibility_page import CalculatorVisibilityPage
 from openchem.ui.dialogs.external_tools_pages import ExternalToolsPages
+from openchem.ui.dialogs.keyboard_shortcuts_page import KeyboardShortcutsPage
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
 #: Section id of how the rail treats panels. Callers open the window at a
@@ -55,8 +62,20 @@ PANELS = "panels"
 #: Section id of recovery copies.
 RECOVERY = "recovery"
 
+#: Section id of when drawing recomputes results.
+RECALCULATION = "recalculation"
+
 #: Section id of the results kept in memory.
 RESULTS = "results"
+
+#: Section id of which calculators the launcher offers, and why some are not.
+CALCULATORS = "calculators"
+
+#: Section id of the menu commands' shortcuts.
+KEYBOARD = "keyboard"
+
+#: Section id of how drawing behaves.
+DRAWING = "drawing"
 
 #: Section id of the remembered file-dialog folders.
 FILE_DIALOGS = "file_dialogs"
@@ -68,7 +87,11 @@ EXTERNAL_TOOLS = "external_tools"
 SECTIONS = (
     (PANELS, "Panels"),
     (RECOVERY, "Recovery"),
+    (RECALCULATION, "Recalculation"),
     (RESULTS, "Results"),
+    (CALCULATORS, "Calculators"),
+    (KEYBOARD, "Keyboard"),
+    (DRAWING, "Drawing"),
     (FILE_DIALOGS, "File dialogs"),
     (EXTERNAL_TOOLS, "External tools"),
 )
@@ -142,6 +165,47 @@ _HELP = {
         topic="settings",
         help_anchor="settings",
     ),
+    "recalc_mode": HelpTooltip(
+        text=(
+            "When results are recomputed after you draw.\n\n"
+            "After I pause (the default): once no edit has arrived for the delay below. "
+            "While I draw: as soon as the application is free, at most once per "
+            "moment. Only when I ask: never by itself -- results read Stale until you "
+            "use Tools > Recalculate Now (F5).\n\n"
+            "Results are marked Stale the instant you edit in every mode; this only "
+            "decides when they are refreshed. Undo, redo and importing always "
+            "recompute at once."
+        ),
+        tier=2,
+        help_id="settings.recalc_mode",
+        topic="settings",
+        help_anchor="settings",
+    ),
+    "recalc_delay": HelpTooltip(
+        text=(
+            "How long a pause counts as stopping: 0 to 5000 milliseconds, default 800. "
+            "Every edit restarts the wait, so a burst of edits is one recomputation. "
+            "Used only by After I pause."
+        ),
+        tier=2,
+        help_id="settings.recalc_delay",
+        topic="settings",
+        help_anchor="settings",
+    ),
+    "bond_keys": HelpTooltip(
+        text=(
+            "On (the default): pointing at a bond in the drawing and pressing 1, 2 or 3 makes "
+            "it single, double or triple. It is one undoable edit.\n\n"
+            "A bond that is aromatic, a query bond, a wedge or hash bond, or one whose change "
+            "would break a valence is left as it was, and the status bar says why. Pointing at "
+            "an atom is not affected: those keys still start a bond from it.\n\n"
+            "Off hands the keys back to the editor, which does nothing with them over a bond."
+        ),
+        tier=2,
+        help_id="settings.bond_order_keys",
+        topic="settings",
+        help_anchor="settings",
+    ),
     "forget_directory": HelpTooltip(
         text=(
             "Forgets the folder these file dialogs last opened in, so the next one "
@@ -178,6 +242,8 @@ class SettingsDialog(QDialog):
         section: str = PANELS,
         tool: str = "vina",
         result_store_service=None,
+        calculator_definitions=None,
+        shortcut_registry=None,
     ) -> None:
         """`section` is the section to open at, and `tool` is the External
         Tools tab in front there.
@@ -186,12 +252,22 @@ class SettingsDialog(QDialog):
         kept says exactly what would go, and asks nothing when nothing
         would. The panels' Configure buttons open this window without it,
         so there the question is asked every time, in general terms.
+
+        `calculator_definitions` is every registered calculator, for the
+        Calculators page; only those with a declared support level are
+        listed, and none given means an empty list rather than a guess.
+
+        `shortcut_registry` is the main window's, which holds every menu command
+        and its shortcut; without one the Keyboard page says there is nothing to
+        show rather than listing commands this window cannot change.
         """
         super().__init__(parent)
         self.setWindowTitle("Settings")
         self.resize(780, 520)
         self._settings = settings
         self._result_store_service = result_store_service
+        self._calculator_definitions = list(calculator_definitions or [])
+        self._shortcut_registry = shortcut_registry
         self._section_ids: list[str] = []
         # See `_commit_revisions`: its own question moves the focus, which
         # finishes the edit a second time.
@@ -204,7 +280,11 @@ class SettingsDialog(QDialog):
         builders = {
             PANELS: self._build_panels_page,
             RECOVERY: self._build_recovery_page,
+            RECALCULATION: self._build_recalculation_page,
             RESULTS: self._build_results_page,
+            CALCULATORS: self._build_calculators_page,
+            KEYBOARD: self._build_keyboard_page,
+            DRAWING: self._build_drawing_page,
             FILE_DIALOGS: self._build_file_dialogs_page,
         }
         for section_id, label in SECTIONS:
@@ -339,6 +419,107 @@ class SettingsDialog(QDialog):
 
     def _on_recovery_delay_changed(self, seconds: int) -> None:
         self._store(RECOVERY_DELAY_SECONDS, seconds)
+
+    # --- Recalculation -----------------------------------------------------------
+
+    #: The mode combo's entries, in the order shown: the stored integer and its words.
+    _RECALC_CHOICES = (
+        (RecalcMode.WHILE_DRAWING, "While I draw"),
+        (RecalcMode.AFTER_PAUSE, "After I pause"),
+        (RecalcMode.ON_REQUEST, "Only when I ask"),
+    )
+
+    def _build_recalculation_page(self) -> QWidget:
+        page = QWidget(self)
+        self._recalc_mode = QComboBox(page)
+        self._recalc_mode.setObjectName("recalcMode")
+        for mode, words in self._RECALC_CHOICES:
+            # The integer is what is stored; the words are what is read.
+            self._recalc_mode.addItem(words, int(mode))
+        current = int(self._settings.preference(RECALC_MODE))
+        self._recalc_mode.setCurrentIndex(max(0, self._recalc_mode.findData(current)))
+        apply_help_tooltip(self._recalc_mode, _HELP["recalc_mode"])
+
+        self._recalc_delay = _spin_box(RECALC_QUIET_MS, " ms", page)
+        self._recalc_delay.setObjectName("recalcQuietMs")
+        self._recalc_delay.setSingleStep(100)
+        self._recalc_delay.setValue(int(self._settings.preference(RECALC_QUIET_MS)))
+        self._recalc_delay.setEnabled(current == int(RecalcMode.AFTER_PAUSE))
+        apply_help_tooltip(self._recalc_delay, _HELP["recalc_delay"])
+        self._recalc_mode.currentIndexChanged.connect(self._on_recalc_mode_changed)
+        self._recalc_delay.valueChanged.connect(self._on_recalc_delay_changed)
+
+        mode_row = QHBoxLayout()
+        mode_row.addWidget(QLabel("Recalculate results", page))
+        mode_row.addWidget(self._recalc_mode)
+        mode_row.addStretch(1)
+        delay_row = QHBoxLayout()
+        delay_row.addWidget(QLabel("A pause is", page))
+        delay_row.addWidget(self._recalc_delay)
+        delay_row.addWidget(QLabel("with no edit", page))
+        delay_row.addStretch(1)
+
+        layout = QVBoxLayout(page)
+        layout.addWidget(_heading("Recalculation", page))
+        layout.addLayout(mode_row)
+        layout.addLayout(delay_row)
+        layout.addWidget(_note(
+            "Results are marked Stale the moment you edit, whichever you choose; this decides "
+            "when they are refreshed. Recomputing fifty results for every bond you draw made "
+            "drawing lag. Undo, redo and importing always recompute at once, and Tools > "
+            "Recalculate Now (F5) does it whenever you ask.",
+            page,
+        ))
+        layout.addStretch(1)
+        return page
+
+    def _on_recalc_mode_changed(self, _index: int) -> None:
+        mode = int(self._recalc_mode.currentData())
+        self._recalc_delay.setEnabled(mode == int(RecalcMode.AFTER_PAUSE))
+        self._store(RECALC_MODE, mode)
+
+    def _on_recalc_delay_changed(self, milliseconds: int) -> None:
+        self._store(RECALC_QUIET_MS, milliseconds)
+
+    # --- Calculators ---------------------------------------------------------------
+
+    def _build_calculators_page(self) -> QWidget:
+        #: Public so a caller or a test can ask what the page offers.
+        self.calculators_page = CalculatorVisibilityPage(
+            self._settings, self._calculator_definitions, self
+        )
+        return self.calculators_page
+
+    # --- Keyboard ------------------------------------------------------------------
+
+    def _build_keyboard_page(self) -> QWidget:
+        #: Public so a caller or a test can drive a rebinding.
+        self.keyboard_page = KeyboardShortcutsPage(self._shortcut_registry, self)
+        return self.keyboard_page
+
+    # --- Drawing -------------------------------------------------------------------
+
+    def _build_drawing_page(self) -> QWidget:
+        page = QWidget(self)
+        self._bond_keys = QCheckBox("A number key over a bond sets its order (1, 2, 3)", page)
+        self._bond_keys.setObjectName("drawingBondKeys")
+        self._bond_keys.setChecked(bool(self._settings.preference(DRAWING_BOND_KEYS)))
+        apply_help_tooltip(self._bond_keys, _HELP["bond_keys"])
+        self._bond_keys.toggled.connect(self._on_bond_keys_toggled)
+
+        layout = QVBoxLayout(page)
+        layout.addWidget(_heading("Drawing", page))
+        layout.addWidget(self._bond_keys)
+        layout.addWidget(_note(
+            "Point at a bond and press 1, 2 or 3 to make it single, double or triple; Ctrl+Z "
+            "undoes it. Aromatic, query and wedge bonds are left as drawn.",
+            page,
+        ))
+        layout.addStretch(1)
+        return page
+
+    def _on_bond_keys_toggled(self, checked: bool) -> None:
+        self._store(DRAWING_BOND_KEYS, checked)
 
     # --- Results -----------------------------------------------------------------
 

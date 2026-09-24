@@ -47,10 +47,14 @@ GENERATED = ROOT / "docs" / "CALCULATOR_REFERENCE.md"
 
 #: A help anchor is `[a-z0-9-]+` -- no underscores -- while a calculator id
 #: uses them. The two therefore differ by separator, and every reference to
-#: one from the other goes through here rather than through a second
-#: `.replace()` somewhere else.
+#: one from the other goes through `domain.calculator_support.help_anchor_for`
+#: rather than through a second `.replace()` somewhere else: the launcher's
+#: "Learn more" resolves through the same function, so a link and its target
+#: cannot use two spellings.
 def anchor_for(calculator_id: str) -> str:
-    return "calc-" + calculator_id.replace("_", "-").replace(".", "-")
+    from openchem.domain.calculator_support import help_anchor_for
+
+    return help_anchor_for(calculator_id)
 
 
 #: What each result kind means to somebody reading it, in the second person.
@@ -123,6 +127,54 @@ def _parameter_line(parameter) -> str:
     return "- " + " ".join(bits)
 
 
+_STAGE_WORDS = {
+    "experimental": "Experimental",
+    "limited": "Limited",
+    "stable": "Stable",
+}
+
+
+#: The calculators that belong to a METHOD FAMILY with a comparison guide in
+#: `docs/USER_GUIDE.md`, by calculator id: (the guide's heading, its GitHub
+#: slug). Both spellings resolve in the help window (`HelpDialog._on_link`
+#: matches the slug), and `tests/test_calculator_support.py` holds each slug
+#: to a real heading. A guide describes and never ranks: no "recommended"
+#: without a declared basis.
+FAMILY_GUIDES = {
+    "geometry_partial_charge": ("Comparing partial charge models", "comparing-partial-charge-models"),
+    "gasteiger_charge_at_ph": ("Comparing partial charge models", "comparing-partial-charge-models"),
+}
+
+
+def _support_lines(definition) -> list[str]:
+    """What a person is entitled to know before trusting or looking for it.
+
+    Written only for a calculator that HAS declared something worth saying:
+    a calculator nobody has classified gets no line, because the reference
+    says nothing it cannot back. "Limited" describes scope and never
+    apologises for it; "Experimental" means this implementation is not yet
+    validated for default use, never that the published method is.
+    """
+    from openchem.domain.calculator_support import (
+        Visibility,
+        is_classified,
+        support_of,
+    )
+
+    if not is_classified(definition):
+        return []
+    support = support_of(definition)
+    hidden = " Hidden by default; enable it under Settings > Calculators." if (
+        support.default_visibility is Visibility.HIDDEN
+    ) else ""
+    lines = [f"- Support level: **{_STAGE_WORDS[support.stage.value]}**.{hidden}"]
+    if support.support_reason:
+        lines.append(f"- Why: {support.support_reason}")
+    if support.scope_note:
+        lines.append(f"- Covers: {support.scope_note}.")
+    return lines
+
+
 def _calculator_section(definition, retired_by_target) -> list[str]:
     from openchem.domain.calculator import ServiceExecution
 
@@ -142,6 +194,11 @@ def _calculator_section(definition, retired_by_target) -> list[str]:
             f"{aliases[0].reason}",
             "",
         ]
+
+    lines += _support_lines(definition)
+    guide = FAMILY_GUIDES.get(definition.calculator_id)
+    if guide is not None:
+        lines.append(f"- See also: [{guide[0]}](USER_GUIDE.md#{guide[1]}) -- how the models in this family differ.")
 
     kind = _result_kind(definition)
     produces = _PRODUCES.get(kind)

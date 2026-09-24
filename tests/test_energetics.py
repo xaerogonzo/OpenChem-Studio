@@ -481,15 +481,19 @@ def test_the_ruby_correction_does_nothing_below_its_threshold():
 
 
 def test_the_calculator_refuses_until_both_inputs_are_supplied():
-    from openchem.domain.common import CacheState
+    """RAISED as a `CalculationRefusal` of kind NEEDS_INPUT, not returned as a
+    failed report tagged `inapplicable` -- which said a working method "does
+    not apply". `tests/test_refusal_kinds.py` covers the kind, the named
+    inputs and the trip to the chip; this pins the sentences."""
+    from openchem.domain.calculator import CalculationRefusal
 
     for params, expected in (
         ({}, "LOADING DENSITY"),
         ({"loading_density_g_cm3": 1.8}, "enthalpy of formation"),
     ):
-        report = E.compute_detonation(_mol(TATB), "uuid-1", params)
-        assert report.cache_state is CacheState.FAILED
-        assert expected in report.error
+        with pytest.raises(CalculationRefusal) as raised:
+            E.compute_detonation(_mol(TATB), "uuid-1", params)
+        assert expected in raised.value.detail
 
 
 def test_a_supplied_enthalpy_of_exactly_zero_is_not_read_as_missing():
@@ -511,6 +515,31 @@ def test_the_report_records_where_the_enthalpy_came_from():
         "loading_density_g_cm3": 1.895, "enthalpy_of_formation_kcal_mol": TATB_ENTHALPY})
     assert report.provenance.parameters["enthalpy_source"] == "supplied_by_user"
     assert report.provenance.parameters["K"] == 15.58
+
+
+def test_the_report_records_where_the_loading_density_came_from_too():
+    """Detonation pressure goes as the SQUARE of the loading density, and only
+    the enthalpy's origin used to be recorded."""
+    report = E.compute_detonation(_mol(TATB), "uuid-1", {
+        "loading_density_g_cm3": 1.895, "enthalpy_of_formation_kcal_mol": TATB_ENTHALPY})
+    assert report.provenance.parameters["loading_density_source"] == "supplied_by_user"
+    assert report.provenance.parameters["enthalpy_source"] == "supplied_by_user"
+
+
+def test_either_input_changes_which_calculation_this_is():
+    """**A NUMERICAL INPUT IS PART OF THE CALCULATION'S IDENTITY.** The identity
+    key is built from the request's parameters, so a result computed with one
+    density is not the result for another, and restoring a value recomputes. The
+    day a literature record can supply an input, its ORIGIN has to enter the
+    request parameters too (see `compute_detonation`), or an override and the
+    literature value with the same number would be one calculation wearing two
+    labels."""
+    from openchem.services.result_cache import parameters_key
+
+    base = {"loading_density_g_cm3": 1.8, "enthalpy_of_formation_kcal_mol": -37.05}
+    assert parameters_key(base) != parameters_key({**base, "loading_density_g_cm3": 1.81})
+    assert parameters_key(base) != parameters_key({**base, "enthalpy_of_formation_kcal_mol": -37.0})
+    assert parameters_key(base) == parameters_key(dict(reversed(list(base.items())))), "order is not identity"
 
 
 def test_the_reported_pressure_and_velocity_carry_their_units():

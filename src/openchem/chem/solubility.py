@@ -77,6 +77,7 @@ from openchem.chem.calculator_options import DEFAULT_PH, ph_grid_from
 from openchem.chem.logd import assign_site_polarity, classify_ionizable_centres, ionization_log_factor
 from openchem.chem.pka_providers import PKaResolution, PKaStatus
 from openchem.domain.calculator import MULTICOMPONENT_UNSUPPORTED, SIDECAR_NOT_CONFIGURED
+from openchem.domain.refusal_kinds import NO_PKA_PREDICTION
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.report import Detail, Fact, FactCategory, Rendering, ReportResult
 from openchem.domain.scientific_result import PhCurveResult
@@ -589,9 +590,14 @@ def resolve_pkas(
     except Exception as exc:  # noqa: BLE001 - report, never crash a panel
         return PKaResolution(status=PKaStatus.FAILED, reason=str(exc))
     if not predictions:
+        # RAN AND RETURNED NOTHING, which is not a crash: the predictor is
+        # installed and working, and has no value for THIS structure.
         return PKaResolution(
-            status=PKaStatus.FAILED,
-            reason="The pKa predictor ran but returned no values for this structure.",
+            status=PKaStatus.NO_PREDICTION,
+            reason=(
+                "The pKa predictor ran but has no prediction for this structure. Type the pKa "
+                "values in yourself, or use a solvent other than water."
+            ),
         )
     return PKaResolution(
         status=PKaStatus.FOUND,
@@ -1199,9 +1205,14 @@ def analyse_solubility(
             refusal_code = MULTICOMPONENT_UNSUPPORTED
         else:
             refusal = resolution.reason or "No pKa values are available for this structure."
-            refusal_code = (
-                SIDECAR_NOT_CONFIGURED if resolution.status is PKaStatus.UNAVAILABLE else "NO_PKA"
-            )
+            # Three different reasons, three different words in the launcher:
+            # nothing configured (needs setup), a working predictor with no
+            # answer (a limit of the model), and a predictor that errored (a
+            # fault, and the only one of the three that should read as one).
+            refusal_code = {
+                PKaStatus.UNAVAILABLE: SIDECAR_NOT_CONFIGURED,
+                PKaStatus.NO_PREDICTION: NO_PKA_PREDICTION,
+            }.get(resolution.status, "PKA_FAILED")
     elif estimate.status is not ModelStatus.AVAILABLE:
         refusal = estimate.reason
         refusal_code = _model_refusal_code(estimate.status)
@@ -1214,7 +1225,9 @@ def analyse_solubility(
 
 
 #: Refusals that are a limit of the method rather than a fault.
-_INAPPLICABLE_REFUSALS = frozenset({"AMPHOLYTE", MULTICOMPONENT_UNSUPPORTED, "SOLVENT_NOT_COVERED"})
+_INAPPLICABLE_REFUSALS = frozenset(
+    {"AMPHOLYTE", MULTICOMPONENT_UNSUPPORTED, "SOLVENT_NOT_COVERED", NO_PKA_PREDICTION}
+)
 
 
 def _model_refusal_code(status: "ModelStatus") -> str:

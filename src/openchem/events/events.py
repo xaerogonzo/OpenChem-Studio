@@ -24,6 +24,31 @@ from openchem.events.base import Event
 
 @dataclass(frozen=True)
 class MoleculeChanged(Event):
+    """A molecule's structure or identity changed.
+
+    `during_edit` is True for a CANVAS EDIT in progress -- the person is drawing and
+    more edits may follow within moments -- and only for that. Everything that wants
+    to recompute because of it waits for `RecalculationDue` instead of acting on this
+    event; everything that only has to KNOW the structure moved (the version bump, the
+    explorer's label, the results going stale) acts on it at once. An undo, a redo, an
+    import, a rename and a conformer command are deliberate single actions and publish
+    it False, so they recompute immediately as they always did.
+    """
+
+    molecule_uuid: str
+    during_edit: bool = False
+
+
+@dataclass(frozen=True)
+class RecalculationDue(Event):
+    """The quiet period after a canvas edit has passed: recompute `molecule_uuid` now.
+
+    Published by `RecalcScheduler`, and by its "recalculate now" for a person who asked
+    for results only on request. It names the molecule and nothing else: a consumer
+    reads the CURRENT structure when it runs, so a run that fires after a further edit
+    or an undo is redundant rather than wrong.
+    """
+
     molecule_uuid: str
 
 
@@ -126,12 +151,32 @@ class DescriptorInvalidated(Event):
 
 @dataclass(frozen=True)
 class DescriptorComputed(Event):
+    """One descriptor's state changed (queued, running, completed or failed).
+
+    `structure_version` is the version the run was dispatched against, for the reason
+    `AlertComputed.structure_version` gives. None means the producer did not say (a
+    replayed result, an ORCA-derived value, a test double).
+    """
+
     descriptor: DescriptorValue
+    structure_version: int | None = None
 
 
 @dataclass(frozen=True)
 class AlertComputed(Event):
+    """An alert catalogue finished.
+
+    `structure_version` is the version the run was DISPATCHED against, read on the
+    calling thread before the worker started. An `AlertResult` has no field to carry it,
+    so it travels here; a consumer that stamped arrival time instead made an alert
+    computed for structure A read as current for B whenever an edit landed mid-run --
+    which a pause-then-refresh recompute makes routine. None means the producer did not
+    say (a replayed result, a test double), and the consumer falls back to the version
+    now.
+    """
+
     alert: AlertResult
+    structure_version: int | None = None
 
 
 @dataclass(frozen=True)

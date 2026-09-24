@@ -75,8 +75,37 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "panel",      "id": "Properties"}
     {"do": "expand",     "section": "admet"}
     {"do": "calculator", "id": "admet_ml", "parameters": {...}}
-    {"do": "calculator", "id": "...", "reveal": false}  no modal Calculator
-                                          Inspector -- see below
+    {"do": "calculator", "id": "...", "reveal": false}  no Calculator
+                                          Inspector window -- see below
+    {"do": "expect_inspectors", "count": 2, "titles": ["(qeq"]}  how many
+                                          inspectors are OPEN side by side
+    {"do": "atom_action", "atom": 2, "submenu": "Change", "text": "N",
+     "expect": {"smiles_equals": "CCN", "undo_delta": 1}}  press an ENTRY of the
+                                          atom menu the app builds, assert the
+                                          structure and the undo stack
+    {"do": "ketcher_hover", "bond": 0, "press": "2", "expect": {"bond_type": 1}}
+                                          set Ketcher's HOVER through its own editor API
+                                          (no pointer), press a key inside the editor,
+                                          assert the page; see docs/KETCHER_SPIKE.md
+    {"do": "atom_editor", "atom": 2, "set": {"charge": "1"}, "apply": true,
+     "expect": {"dialog": true, "smiles_contains": "+", "undo_delta": 1}}  the atom
+                                          menu's Edit... on the REAL page, asserted
+                                          from the page; `ketcher_eval` runs one
+                                          JS expression there and logs its string
+    {"do": "shortcut", "command": "search_facts", "sequence": "Ctrl+Alt+F9",
+     "press": true}                       rebind through the REAL Settings > Keyboard
+                                          page, assert the ACTION and the page's
+                                          status, and press the real new/old keys
+    {"do": "compare_results", "property": "geometry_partial_charge",
+     "expect": {"columns": 2, "atoms": 9}}     the inspector's REAL "Compare
+                                          with..." menu, then the window
+    {"do": "service_row", "calculator": "orca.nmr", "expect": {"panel": "Quantum_Chemistry"}}
+                                          PRESS a row that opens another panel;
+                                          `reveal_row` scrolls one into a shot
+    {"do": "chip", "calculator": "detonation", "expect": {"status": "needs_input"}}
+                                          PRESS a status chip and assert where
+                                          the press went; `tool_setup` is the
+                                          window half of a "Needs setup" press
     {"do": "inspector_report", "tag": "after-edit"}  the Atom Inspector's
                                           pinned line, HELD results and state
     {"do": "inspect", "id": "geometry_partial_charge", "parameters": {"ph_dependent": true}}
@@ -141,7 +170,27 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "dock_float", "panel": "Properties", "on": true}
     {"do": "reset_layout"}                    View > Reset Panel Layout
     {"do": "dock_report", "tag": "after"}     areas, rects, OVERLAPS, placed
+    {"do": "log_report", "tag": "after"}      what the APPLICATION logged
+    {"do": "expect_clean", "allow": ["..."]}  FAILS the run on an unexcused ERROR
+    {"do": "expect_results", "expect": {"solubility": "ready",
+                             "fragment_counts": {"facts_contain": ["nitro (2)"]}}}
+                                          what Properties HOLDS, asserted
     {"do": "wait"} {"do": "quit"}
+
+**A DRIVEN RUN ENDS IN A VERDICT, AND EXITS NON-ZERO WHEN IT FAILED.**
+`src/openchem/app/drive_ledger.py` keeps every WARNING-and-above record the application
+logs, de-duplicated by (logger, exception, innermost frame, message with its
+numbers collapsed), and `quit` prints `VERDICT PASS|FAIL`, writes
+`<script>.report.json` (`OPENCHEM_DRIVE_REPORT` moves it) and sets the exit
+status: a driver failure (`no molecule selected`, `EXPECT ... FAILED`, a step
+that raised), a failed `expect_*`, or an application ERROR nothing in `allow`
+excuses all fail it. `{"do": "quit", "tolerate_errors": true}` opts out for a
+script that provokes an error on purpose. **`expect_clean` IS NEVER A PASS ON ITS
+OWN** -- an empty ledger is what a molecule that never ran the breaking code
+also produces -- so pair it with `expect_results`. A scripted run writes its
+own `drive-<pid>.log`, since two processes cannot share one rotating file on
+Windows. The report records the run's identity (commit, script and lockfile
+hashes, Qt/RDKit/Ketcher versions).
 
 **`OPENCHEM_TRACE_WINDOWS=1` LOGS EVERY TOP-LEVEL WINDOW THAT SHOWS**, with
 its class, its parent chain and a timestamp for every result event. It is
@@ -185,12 +234,19 @@ Inspector inside `EventBus._dispatch`; measured 2026-09-13, Properties held
 `gasteiger_charge_at_ph` 67 s before the Atom Inspector did (at quit). Fixed
 by `PropertyPanel._reveal_after_dispatch`. `inspector_report`'s `held=` is
 what separates "not shown" from "never arrived"; `"reveal": false` keeps an
-unattended run free of an open modal.
+unattended run free of an open inspector window. (The inspector is modeless
+now -- `_open_inspector` shows it, one window per result -- so a reveal no
+longer blocks anything; the deferral stays because building the Chromium view
+inside a dispatch is not free.)
 
 **`erase` is the only step that drives the route `set_molecule` never
 covers** -- the user drawing on the canvas -- so it is what any
 calculated-annotation staleness has to be checked with. It goes through
-Ketcher's own Delete hotkey, synthesised on the page. Pair it with
+Ketcher's own Delete hotkey, synthesised on the page. **A canvas edit
+recomputes after the recalculation pause** (Settings > Recalculation, 800 ms
+by default), so a script that reads results after an `erase` must wait the
+pause AND the computation -- `after_ms` of a few seconds -- and results read
+STALE in between, which is the point. Pair it with
 `report`, whose `undo=` is how "did this display toggle quietly become an
 edit" is answered: measured across a run, `baseline undo=2 -> labels-on
 undo=2 -> after-edit undo=3 -> labels-off undo=3`.
@@ -290,6 +346,13 @@ message — this index is. **If a title below names what you are
 about to touch, read that section before you start.** Headings there
 are verbatim, so grep the file for the line.
 
+- TWO FAILED ROUTES WERE WRITTEN UP AS "IMPOSSIBLE", AND THE FEATURE THE NOTE ASSUMED WAS NOT THERE EITHER
+- A TYPO PARSED AS "NO SHORTCUT", TWO ACTIONS ON ONE KEY RUN NEITHER, AND A GATE'S THREE CRASHES IN A ROW WERE LUCK
+- THE FIRST FIX CHECKED THE DISPATCH, THE PAGE HAD NO DIALOG, AND THE SECOND FIX ARMED A TOOL AND CHANGED NOTHING
+- THE STORE KEPT ONE RESULT PER CALCULATOR, WHICH WAS THE REAL REASON COMPARING METHODS WAS HARD
+- A DEBOUNCE TURNED "CLOSE ENOUGH" INTO A WRONG ANSWER, AND THE PROFILE FOUND TWO COSTS NOBODY HAD NAMED
+- A CRASH WAS LOGGED FIVE TIMES AND NOTHING FAILED, BECAUSE NO RUN ASKED WHAT THE APP SAID
+- A REFUSAL WAS CORRECT AT THE SERVICE AND "FAILED" ON SCREEN, BECAUSE THE PANEL FILES A SUMMARY
 - THE ORACLE READ EVERY MISSPELLING, AND SIX DEFECTS WERE IN NO CORPUS ROW
 - A ZERO-OWNER HOLE BETWEEN TWO GUARDS, AND AN INVARIANT THAT COULD NOT SEE THE WRONG MOLECULE
 - NO CALCULATOR HAD BEEN ASKED WHICH COMPONENT OF A SALT IT DESCRIBED

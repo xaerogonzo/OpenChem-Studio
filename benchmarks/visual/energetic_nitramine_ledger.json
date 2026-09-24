@@ -1,0 +1,80 @@
+[
+  {
+    "do": "smiles",
+    "smiles": "O=[N+]([O-])N1CN([N+](=O)[O-])C1",
+    "name": "1,3-dinitro-1,3-diazetidine"
+  },
+  {
+    "do": "select",
+    "molecule": -1,
+    "after_ms": 5000
+  },
+  {
+    "do": "panel",
+    "id": "Properties"
+  },
+  {
+    "do": "expand",
+    "section": "solubility",
+    "after_ms": 1000
+  },
+  {
+    "do": "calculator",
+    "id": "solubility",
+    "parameters": {
+      "model": "esol",
+      "compare_models": false
+    },
+    "reveal": false,
+    "after_ms": 6000
+  },
+  {
+    "do": "expand",
+    "section": "energetic",
+    "after_ms": 1000
+  },
+  {
+    "do": "calculator",
+    "id": "detonation",
+    "parameters": {},
+    "reveal": false,
+    "after_ms": 3000
+  },
+  {
+    "do": "log_report",
+    "tag": "after-solubility"
+  },
+  {
+    "do": "expect_clean",
+    "tag": "after-solubility"
+  },
+  {
+    "do": "expect_results",
+    "tag": "nitramine",
+    "expect": {
+      "solubility": {
+        "status": "ready"
+      },
+      "fragment_counts": {
+        "facts_contain": [
+          "nitro (2)",
+          "aminal (2)"
+        ],
+        "facts_absent": [
+          "hydrazine"
+        ],
+        "partial": false
+      },
+      "detonation": {
+        "status": "needs_input",
+        "missing_inputs": [
+          "loading_density_g_cm3",
+          "enthalpy_of_formation_kcal_mol"
+        ]
+      }
+    }
+  },
+  {
+    "do": "quit"
+  }
+]

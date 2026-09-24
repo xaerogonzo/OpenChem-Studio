@@ -1,0 +1,16 @@
+[
+  {"do": "smiles", "smiles": "CCO", "name": "Ethanol", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 5000},
+
+  {"do": "atom_editor", "tag": "cancel changes nothing", "atom": 2, "cancel": true,
+   "expect": {"dialog": true, "unchanged": true}, "after_ms": 4000},
+
+  {"do": "atom_editor", "tag": "apply a charge", "atom": 2, "set": {"charge": "1"}, "apply": true,
+   "expect": {"dialog": true, "smiles_contains": "+", "undo_delta": 1}, "after_ms": 4000},
+
+  {"do": "menu", "text": "Undo", "prefix": true, "after_ms": 3000},
+  {"do": "report", "tag": "after-undo", "after_ms": 800},
+
+  {"do": "expect_clean", "tag": "end"},
+  {"do": "quit"}
+]

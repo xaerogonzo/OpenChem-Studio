@@ -4,6 +4,7 @@ from dataclasses import replace
 
 import logging
 import os
+import weakref
 from collections.abc import Callable
 from typing import NamedTuple
 
@@ -16,6 +17,7 @@ from PySide6.QtWidgets import (
     QFormLayout,
     QLabel,
     QMenu,
+    QMessageBox,
     QPushButton,
     QScrollArea,
     QSizePolicy,
@@ -25,6 +27,7 @@ from PySide6.QtWidgets import (
 
 from openchem.chem.calculation_input import canonical_conformer
 from openchem.chem.engine import ChemistryEngine
+from openchem.chem.result_structure import NO_STRUCTURE, display_structure
 from openchem.domain.calculator import (
     GEOMETRY,
     CalculationRequest,
@@ -32,6 +35,7 @@ from openchem.domain.calculator import (
     RegistryExecution,
     ServiceExecution,
 )
+from openchem.domain.calculator_support import help_anchor_for, is_offered_by_default
 from openchem.domain.calculator_taxonomy import (
     CATEGORY_LABELS,
     CATEGORY_ORDER,
@@ -39,16 +43,20 @@ from openchem.domain.calculator_taxonomy import (
     category_sort_key,
 )
 from openchem.domain.common import describe_failure
+from openchem.domain.compare import MAX_COMPARED, ComparedResult, Comparison, CompareRefusal, compare
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.descriptor_aggregate import (
     DESCRIPTOR_AGGREGATE_ID,
     aggregate_descriptors,
 )
 from openchem.domain.project import ProjectModel
+from openchem.domain.refusal_kinds import MissingInput, missing_inputs_of
 from openchem.domain.reader_state import ReaderMemory
 from openchem.domain.result_status import (
     FAILED,
     INAPPLICABLE,
+    NEEDS_INPUT,
+    NEEDS_SETUP,
     NOT_RUN,
     READY,
     RUNNING,
@@ -72,17 +80,26 @@ from openchem.events.events import (
     MoleculeSelected,
     PerAtomDataComputed,
     PhCurveComputed,
+    RecalculationDue,
+    SettingsChanged,
     SpectrumComputed,
     StructureSetComputed,
     TrajectoryComputed,
 )
 from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.descriptor_service import DescriptorService
-from openchem.ui.dialogs.calculator_inspector_dialog import CalculatorInspectorDialog
+from openchem.services.result_cache import parameters_key
+from openchem.ui.dialogs.compare_results_dialog import CompareResultsDialog
+from openchem.ui.dialogs.calculator_inspector_dialog import (
+    CalculatorInspectorDialog,
+    inspector_budget_message,
+)
 from openchem.ui.dialogs.spatial_result_dialog import SpatialResultDialog
 from openchem.ui.dialogs.calculator_settings_dialog import (
     CalculatorSettingsDialog,
     MoleculeChoice,
+    needed_input_phrases,
+    plain_label,
 )
 from openchem.ui.dialogs.nmr_view_dialog import NmrViewDialog
 from openchem.ui.widgets.substance_card import SubstanceCard, card_data_from_report
@@ -184,6 +201,12 @@ _STATUS_APPEARANCE: dict[str, tuple[str, str]] = {
     STALE: (_WARNING_GLYPH + "Stale", _WARNING_STYLE),
     FAILED: (_FAILURE_GLYPH + "Failed", _FAILURE_STYLE),
     INAPPLICABLE: (_INAPPLICABLE_GLYPH + "Not applicable", _INFORMATION_STYLE),
+    # The two refusals a person can ACT on. Same proven glyph as Stale and
+    # the same warning style, because both say "something is needed" rather
+    # than "something is wrong" -- and neither is the neutral "Not
+    # applicable", which is the one thing they must not read as.
+    NEEDS_INPUT: (_WARNING_GLYPH + "Needs input", _WARNING_STYLE),
+    NEEDS_SETUP: (_WARNING_GLYPH + "Needs setup", _WARNING_STYLE),
 }
 
 #: Which calculator a status chip belongs to, carried on the chip.
@@ -201,18 +224,41 @@ _STATUS_CHIP_HELP = HelpTooltip(
     text=(
         "How this calculator's last run for this molecule ended, and a way "
         "to the result.\n\n"
-        "Not run, Running..., Ready, Stale, Failed, or Not applicable. "
+        "Not run, Running..., Ready, Stale, Failed, Not applicable, Needs "
+        "input, or Needs setup. "
         "Ready means the calculation succeeded -- it says nothing about how "
         "much was produced, because a calculator that ran and found nothing "
         "has still answered. Not applicable means the method does not cover "
-        "this molecule: correct, permanent, and not a fault.\n\n"
+        "this molecule: correct, permanent, and not a fault. Needs input "
+        "means the method covers it and wants a value only you can supply "
+        "(the result names which, with units); Needs setup means it wants "
+        "something configured on this machine.\n\n"
         "Pressing it shows that result in Results. It computes nothing and "
-        "re-runs nothing; use the calculator's own button to run it again."
+        "re-runs nothing; use the calculator's own button to run it again.\n\n"
+        "Two states go further. Needs input opens the calculator's settings with "
+        "the missing values named and the cursor on the first; nothing runs until "
+        "you confirm. Needs setup opens Settings > External Tools on the tab that "
+        "sets that calculator up."
     ),
     tier=1,
     help_id="properties.result_status",
     topic="results",
 )
+
+
+#: Which External Tools tab sets a calculator up, for the calculators that can read
+#: "Needs setup". The value is a key of `external_tool_catalog`. Measured from the
+#: calculator census (`tests/fixtures/calculator_census_baseline.json`): these are the
+#: six that answer NEEDS_SETUP, and a guard keeps this table equal to that list, so a
+#: seventh cannot be added without saying where its chip goes.
+SETUP_TOOL_FOR_CALCULATOR: dict[str, str] = {
+    "pka": "pkasolver",
+    "pka_microspecies": "pkasolver",
+    "isoelectric_point": "pkasolver",
+    "solubility": "pkasolver",
+    "admet_ml": "admet",
+    "nmr_database": "nmr_index",
+}
 
 
 #: Plain BMP glyphs, not emoji. Qt's emoji rendering on Windows falls back
@@ -259,6 +305,11 @@ def _without_glyphs(text: str) -> str:
 #: original bare and is caught), and the deletion direction leaves nothing
 #: to fall into the recorded set.
 _CALCULATOR_ID_PROPERTY = "openchem_calculator_id"
+
+#: Which service-run calculator a row that opens its panel stands for. Its own property,
+#: not `_CALCULATOR_ID_PROPERTY`, because the handlers that read that one open a settings
+#: dialog and dispatch a registry calculator -- which a service row must never reach.
+_SERVICE_CALCULATOR_PROPERTY = "openchem_service_calculator"
 
 
 #: One concept rendered once per registered calculator, so ONE contract.
@@ -312,6 +363,108 @@ _CLEAR_SELECTION_HELP = HelpTooltip(
 )
 
 
+def _compare_key(dataset) -> tuple[str, str, str]:
+    """One slot per property, method AND parameters: pH 5 and pH 9 are two results."""
+    provenance = getattr(dataset, "provenance", None)
+    parameters = getattr(provenance, "parameters", None)
+    return (
+        dataset.property_id,
+        dataset.method,
+        parameters_key(parameters if isinstance(parameters, dict) else None),
+    )
+
+
+#: How far each new inspector is offset from the last, in pixels down and to the right.
+INSPECTOR_CASCADE_STEP = 36
+
+
+def cascade_position(
+    previous: tuple[int, int],
+    size: tuple[int, int],
+    available: tuple[int, int, int, int],
+    step: int = INSPECTOR_CASCADE_STEP,
+) -> tuple[int, int]:
+    """Where the next window goes: `step` down and right of `previous`, kept on screen.
+
+    `available` is (left, top, right, bottom) of the usable screen. A window too big
+    for the screen sits at its top-left corner rather than at a negative offset.
+    """
+    left, top, right, bottom = available
+    width, height = size
+    x = min(previous[0] + step, right - width + 1)
+    y = min(previous[1] + step, bottom - height + 1)
+    return max(x, left), max(y, top)
+
+
+def inspector_window_title(result, molecule_name: str) -> str:
+    """The title of a result's inspector: what it shows, on which molecule, by which method.
+
+    The result's own name usually already carries the method's LABEL ("Partial Charge
+    (EEM, Bultinck 2002, 3D)"), and appending the raw id after it read as
+    "... (eem_bultinck2002_part1)" -- noise. The id is added only when NONE of its
+    words appears in the name, which is the case that needs it: two windows of one
+    calculator whose names do not say which method produced them.
+    """
+    name = str(getattr(result, "name", "") or getattr(result, "property_id", "") or "Result")
+    method = str(getattr(result, "method", "") or "")
+    squashed = "".join(ch for ch in name.lower() if ch.isalnum())
+    words = [w for w in method.lower().replace("-", "_").split("_") if len(w) >= 3]
+    title = name
+    if method and not any(w in squashed for w in words):
+        title = f"{name} [{method}]"
+    return f"{title} — {molecule_name}" if molecule_name else title
+
+
+def _window_is_open(window) -> bool:
+    """Whether `window` is still a live, visible window.
+
+    A window deleted on close leaves a Python wrapper whose C++ object is gone, and
+    asking it anything raises; that is "closed", not an error.
+    """
+    try:
+        return bool(window.isVisible())
+    except RuntimeError:
+        return False
+
+
+#: The footer that says some calculators are not being offered, and where they went.
+_HIDDEN_CALCULATORS_HELP = HelpTooltip(
+    text=(
+        "Some calculators are not offered by default because they are limited, "
+        "experimental or specialist -- they refuse most of what people draw, or need "
+        "inputs no structure can supply. Pressing this opens Settings > Calculators, "
+        "which names each one, says why, and lets you turn it on.\n\n"
+        "Nothing is removed: they stay in the Help, and results already computed stay "
+        "readable."
+    ),
+    tier=1,
+    help_id="properties.hidden_calculators",
+    topic="properties",
+    help_anchor="properties",
+)
+
+
+def service_row_help(definition: CalculatorDefinition) -> HelpTooltip:
+    """The contract for a row that OPENS another panel rather than running here.
+
+    Derived from the registration like `calculator_help`, but it must not borrow that one's
+    basis sentence ("runs on the structure as drawn"): these are run by their own service,
+    from their own panel, on a 3D conformer, and saying so about them would be false.
+    """
+    execution = definition.execution
+    return HelpTooltip(
+        text=(
+            f"{definition.description.strip()}\n\n"
+            f"Pressing this opens the {execution.panel_name} with this calculation "
+            "chosen. It runs nothing: you press Run there, with the settings you want."
+        ),
+        tier=2,
+        help_id=f"calculator.{definition.calculator_id}",
+        topic=definition.category,
+        help_anchor=help_anchor_for(definition.calculator_id),
+    )
+
+
 def calculator_help(definition: CalculatorDefinition) -> HelpTooltip:
     """A contract for one calculator's button, DERIVED from its registration.
 
@@ -350,7 +503,11 @@ def calculator_help(definition: CalculatorDefinition) -> HelpTooltip:
         tier=2,
         help_id=f"calculator.{definition.calculator_id}",
         topic=definition.category,
-        help_anchor="properties",
+        # ITS OWN SECTION. This said "properties" for every one of them while the
+        # reference generator wrote an anchor per calculator that nothing linked
+        # to. A Qt tooltip cannot host a link, so the way in is "About this
+        # calculator" on the button's context menu and F1 with the button focused.
+        help_anchor=help_anchor_for(definition.calculator_id),
     )
 #: ... and which report a "Details..." button opens.
 logger = logging.getLogger("openchem.ui")
@@ -1305,6 +1462,25 @@ class PropertyPanel(QWidget):
     #: unrouted, which is the silent no-op 0g removed.
     link_activated = Signal(object)
 
+    #: A request to open the Settings window at a section, by id. Re-emitted for
+    #: the reason `link_activated` is: the window that owns the dialogs routes it.
+    settings_requested = Signal(str)
+
+    #: A request to open Settings > External Tools on one tool's tab, by catalogue
+    #: key. Routed by the window, for the reason `settings_requested` is; a separate
+    #: signal rather than a second argument, so the one that already exists keeps
+    #: the shape everything connected to it expects.
+    tool_setup_requested = Signal(str)
+
+    #: A request to open the panel a calculator is run from, by rail panel id and
+    #: calculator id. Routed by the window, which owns the panels; the second argument is
+    #: what the panel should have chosen when it appears.
+    service_panel_requested = Signal(str, str)
+
+    #: A request to open the Help at a topic, by anchor. Routed by the window, for
+    #: the reason `settings_requested` is.
+    help_requested = Signal(str)
+
     def __init__(
         self,
         event_bus: EventBus,
@@ -1315,8 +1491,28 @@ class PropertyPanel(QWidget):
         on_add_structure: Callable[[str, str], None] | None = None,
         structure_version_of=None,
         substance_perception_needed: Callable[[str], bool] | None = None,
+        settings=None,
     ) -> None:
         super().__init__(parent)
+        #: `app.settings.Settings`, or None in a fixture. With None every
+        #: calculator is offered as its own declaration says (an unclassified
+        #: one is shown), so a panel built on its own behaves as it always did.
+        self._settings = settings
+        #: The row of each calculator, so it can be offered or withdrawn
+        #: without being rebuilt -- this panel's layout is delicate enough that
+        #: adding and deleting rows mid-life is the worse risk.
+        self._calculator_rows: dict[str, QWidget] = {}
+        #: Calculators the launcher is not offering right now
+        #: (`domain.calculator_support`). Their rows are hidden, and they are
+        #: neither ticked nor run by "Run selected".
+        self._hidden_calculator_ids: set[str] = set()
+        #: Each section's calculator ids, for withdrawing a section whose
+        #: every calculator is hidden.
+        self._section_calculators: dict[str, list[str]] = {}
+        #: The inspector windows this panel has opened, by the identity of the RESULT
+        #: they show. Weak: a closed window (deleted on close) must not be kept alive
+        #: by the record that it was opened.
+        self._inspector_windows: dict[int, weakref.ref] = {}
         #: Asked on SELECTION whether the header's one automatic calculator
         #: still has to run, or whether a retained result will be replayed
         #: instead. The host owns that answer because it owns the result
@@ -1409,7 +1605,27 @@ class PropertyPanel(QWidget):
         #: measured before the fix, two providers publishing one id reached
         #: the reader as one value. `aggregate_descriptors` handles the pair
         #: correctly and never got the chance.
+        #: Every per-atom result the selected molecule has produced, ONE PER METHOD AND
+        #: PARAMETERS, with the identity that says what its atoms are. The result store
+        #: keeps one per calculator per structure (a second charge model replaces the
+        #: first), so two methods could never be on screen together; this is the short pool
+        #: a comparison is drawn from. In memory only, and cleared with the selection.
+        self._compare_pool: dict[tuple[str, str, str], ComparedResult] = {}
+        #: The most recent comparison window, for a driven run to ask about.
+        self._last_comparison: weakref.ref | None = None
+        #: The rows that open another panel, by calculator id.
+        self._service_rows: dict[str, QPushButton] = {}
+        #: The last hint written to the batch status line (see `_refresh_batch_hint`).
+        self._last_batch_hint = ""
         self._descriptor_values: dict[tuple[str, str], DescriptorValue] = {}
+        #: Whether a coalesced `_refresh_reader_soon` is waiting to run.
+        self._reader_refresh_scheduled = False
+        #: The structure version each held descriptor was computed for (its dispatch
+        #: version, or arrival time where the producer did not say). The reader's
+        #: "Molecular Properties" entry is only as current as the OLDEST of these: a set
+        #: whose parts describe an earlier structure must not read current because the
+        #: structure has since changed underneath it.
+        self._descriptor_versions: dict[tuple[str, str], int] = {}
         self._reports: dict[str, ReportResult] = {}
         #: The RAW results behind the summaries in `_reports`, so the reader
         #: can open the whole thing.
@@ -1521,6 +1737,17 @@ class PropertyPanel(QWidget):
         layout.addWidget(self._substance_card)
         layout.addLayout(batch_row)
         layout.addWidget(scroll_area)
+        #: "N calculators hidden by default -- Settings...". An ELIDING button:
+        #: a plain one reports its whole text as its minimum width, and this
+        #: panel's minimum is measured in a docked column of 170 px.
+        self._hidden_link = _ElidingPushButton("", self)
+        self._hidden_link.setObjectName("hiddenCalculatorsLink")
+        self._hidden_link.setFlat(True)
+        self._hidden_link.setCursor(Qt.CursorShape.PointingHandCursor)
+        apply_help_tooltip(self._hidden_link, _HIDDEN_CALCULATORS_HELP)
+        self._hidden_link.clicked.connect(self._on_hidden_link_clicked)
+        self._hidden_link.setVisible(False)
+        layout.addWidget(self._hidden_link)
 
         # Right-click anywhere to copy. Selecting text with the mouse works
         # too, but a panel of forty short values is
@@ -1542,12 +1769,16 @@ class PropertyPanel(QWidget):
         # ValueError if it somehow got one).
         for category in calculator_registry.categories():
             if any(
-                isinstance(d.execution, RegistryExecution) for d in calculator_registry.by_category(category)
+                isinstance(d.execution, RegistryExecution)
+                or (isinstance(d.execution, ServiceExecution) and d.execution.panel_id)
+                for d in calculator_registry.by_category(category)
             ):
                 self._section_for(category)
+        self._apply_calculator_visibility()
 
         event_bus.subscribe(MoleculeSelected, self._on_molecule_selected)
         event_bus.subscribe(MoleculeChanged, self._on_molecule_changed)
+        event_bus.subscribe(RecalculationDue, self._on_recalculation_due)
         event_bus.subscribe(DescriptorComputed, self._on_descriptor_computed)
         event_bus.subscribe(AlertComputed, self._on_alert_computed)
         event_bus.subscribe(ReportComputed, self._on_report_computed)
@@ -1557,6 +1788,7 @@ class PropertyPanel(QWidget):
         event_bus.subscribe(PhCurveComputed, self._on_ph_curve_computed)
         event_bus.subscribe(TrajectoryComputed, self._on_trajectory_computed)
         event_bus.subscribe(CalculationFinished, self._on_calculation_finished)
+        event_bus.subscribe(SettingsChanged, self._on_settings_changed)
 
     def set_project(self, project: ProjectModel | None) -> None:
         self._project = project
@@ -1582,11 +1814,14 @@ class PropertyPanel(QWidget):
         for status in self._calculator_status.values():
             status.setVisible(False)
         self._batch_status.setText("")
+        self._refresh_batch_hint()
         self._value_labels.clear()
         # The VALUES too, not only their labels. They feed the results
         # reader's "Molecular Properties" entry, so a leftover set would put
         # the previous molecule's descriptors under this one's name.
         self._descriptor_values.clear()
+        self._descriptor_versions.clear()
+        self._compare_pool.clear()
         # A different molecule has been asked nothing yet.
         self._finished_calculator_ids.clear()
         self._reports.clear()
@@ -1620,8 +1855,13 @@ class PropertyPanel(QWidget):
         self._sections[category] = section
         for definition in self._calculator_registry.by_category(category):
             if not isinstance(definition.execution, RegistryExecution):
-                # ServiceExecution-backed (Docking, QuantumChemistry) --
-                # registered for discovery only, run from their own panel.
+                # ServiceExecution-backed (Docking, QuantumChemistry): run from their own
+                # panel, so the row OPENS it -- a real control where there used to be one
+                # italic sentence naming the panel, which is why a person looking for an
+                # ab initio NMR in Properties found nothing to press. No tick box and no
+                # status chip: nothing here runs, and "Run selected" cannot include it.
+                if isinstance(definition.execution, ServiceExecution) and definition.execution.panel_id:
+                    section.add_calculator_widget(self._service_row(definition, section.content))
                 continue
             # NO "Open " PREFIX. The label used to be `Open {name}...`,
             # which spent about 32 px of a 192 px button on the same five
@@ -1659,6 +1899,10 @@ class PropertyPanel(QWidget):
             # source of truth for what is registered anyway.
             button.setProperty(_CALCULATOR_ID_PROPERTY, definition.calculator_id)
             button.clicked.connect(self._on_calculator_button_clicked)
+            # "About this calculator": a tooltip cannot host a link, and F1 reaches
+            # the same section with the button focused.
+            button.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+            button.customContextMenuRequested.connect(self._on_calculator_button_menu)
 
             # The tick box runs this calculator as part of a batch. The
             # engine has always been able to run several at once --
@@ -1721,6 +1965,8 @@ class PropertyPanel(QWidget):
             row_layout.addWidget(status)
             self._refresh_status_chip(definition.calculator_id)
             section.add_calculator_widget(row)
+            self._calculator_rows[definition.calculator_id] = row
+            self._section_calculators.setdefault(category, []).append(definition.calculator_id)
             # Triggered HERE rather than at construction: at startup the
             # panel is empty and every row it could measure does not exist
             # yet.
@@ -1754,6 +2000,38 @@ class PropertyPanel(QWidget):
         self._add_cross_theory_hint(section, category)
         self._reorder_sections()
         return section
+
+    def _service_row(self, definition: CalculatorDefinition, parent: QWidget) -> QWidget:
+        """One row that opens the panel a ServiceExecution calculator is run from.
+
+        The label carries the panel's name -- "Single Point Energy > Quantum Chemistry
+        panel" -- because on a row with no status chip and no tick box that is the only
+        thing distinguishing "opens something else" from "runs here", and it elides in a
+        docked column, so the full sentence is in the tooltip.
+        """
+        execution = definition.execution
+        button = _ElidingPushButton(f"{definition.display_name} > {execution.panel_name}", parent)
+        button.setObjectName("serviceRow")
+        apply_help_tooltip(button, service_row_help(definition))
+        # The two properties do different jobs: the calculator id is what the "About this
+        # calculator" menu reads (shared with the registry rows), and the click below reads
+        # its OWN property so it can never be mistaken for a registry row's `_open_calculator`.
+        button.setProperty(_CALCULATOR_ID_PROPERTY, definition.calculator_id)
+        button.setProperty(_SERVICE_CALCULATOR_PROPERTY, definition.calculator_id)
+        button.clicked.connect(self._on_service_row_clicked)
+        button.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        button.customContextMenuRequested.connect(self._on_calculator_button_menu)
+        self._service_rows[definition.calculator_id] = button
+        return button
+
+    def _on_service_row_clicked(self, _checked: bool = False) -> None:
+        button = self.sender()
+        calculator_id = str(button.property(_SERVICE_CALCULATOR_PROPERTY) or "") if button is not None else ""
+        definition = self._calculator_registry.get(calculator_id) if calculator_id else None
+        if definition is None or not isinstance(definition.execution, ServiceExecution):
+            return
+        if definition.execution.panel_id:
+            self.service_panel_requested.emit(definition.execution.panel_id, definition.calculator_id)
 
     #: Category -> (category it should point at, the sentence to show).
     #: ONE entry, and deliberately not generalised into a registry field.
@@ -1875,12 +2153,30 @@ class PropertyPanel(QWidget):
         # RETAINED, keyed by id so the RUNNING placeholder each descriptor
         # publishes first is replaced by its result rather than accumulating
         # beside it. These are what the reader's aggregate is built from.
-        self._descriptor_values[(descriptor.provider, descriptor.descriptor_id)] = descriptor
+        key = (descriptor.provider, descriptor.descriptor_id)
+        version = (
+            event.structure_version
+            if event.structure_version is not None
+            else self._current_structure_version()
+        )
+        if self._descriptor_versions.get(key, version) > version:
+            # An OLDER run finishing late: runs on a thread pool finish in any order and
+            # there is one slot per descriptor, so it must not replace a newer one.
+            return
+        self._descriptor_values[key] = descriptor
+        self._descriptor_versions[key] = version
         # **AND THE READER IS TOLD, WHICH IT WAS NOT BEFORE.** While the
         # panel rendered these itself the reader could lag a whole batch
         # behind and nobody would see it, because the values were on screen
         # here. With this the only place they appear, a lag IS the bug.
-        self._refresh_reader()
+        #
+        # **ONCE PER TURN OF THE EVENT LOOP, NOT ONCE PER DESCRIPTOR.** Forty-one
+        # descriptors each publish queued, running and completed, and every one of those
+        # rebuilt the whole Results reader: measured under a profiler, 123 descriptor events
+        # cost 1.4 s of the GUI thread -- 144 rebuilds of about 60 rows for a burst that
+        # changes the same handful of values. The events arrive together, so one rebuild
+        # after them shows the same thing.
+        self._refresh_reader_soon()
 
     def _finish_batch_run(self, result_id: str) -> None:
         """A ticked calculator's result arrived, so it is no longer running.
@@ -2043,15 +2339,27 @@ class PropertyPanel(QWidget):
         # what driving the app showed: `Functional Groups` wore a stale
         # badge alone, from the first molecule, forever.
         #
-        # ARRIVAL TIME rather than compute time, which is the honest
-        # limitation: an edit landing mid-run would make this look
-        # current. It is close enough on this path because the alert
-        # batch is the always-eager perception that re-runs on every
-        # structure change, so an alert arriving now was computed for
-        # the structure now.
+        # **THE VERSION THE RUN WAS DISPATCHED AGAINST, NOT THE ONE NOW.** This used to
+        # stamp ARRIVAL time and said so as its honest limitation -- an edit landing
+        # mid-run made the alert look current -- and called that close enough because the
+        # batch re-ran on every edit. It stopped being close enough when a recompute
+        # waits for a pause: the run finishes AFTER the next edit, and reads current for
+        # a structure it was not computed on. `AlertComputed` now carries the dispatch
+        # version; a producer that does not say (a replay, a test double) falls back to
+        # arrival time.
+        version = (
+            event.structure_version
+            if event.structure_version is not None
+            else self._current_structure_version()
+        )
+        held = self._reports.get(alert.alert_id)
+        if held is not None and held.structure_version > version:
+            # An OLDER run finishing late must not replace a newer result: runs on a
+            # thread pool finish in any order, and there is one slot per alert.
+            return
         self._reports[alert.alert_id] = replace(
             report_from_alert(alert),
-            structure_version=self._current_structure_version(),
+            structure_version=version,
         )
         self._refresh_reader()
         self._focus_requested_result(alert.alert_id)
@@ -2070,9 +2378,23 @@ class PropertyPanel(QWidget):
         """
         if event.molecule_uuid != self._selected_molecule_uuid:
             return
+        if event.during_edit:
+            # A CANVAS EDIT IN PROGRESS: what is held describes a structure that is
+            # already gone, so say so now (the version was bumped before this ran) and
+            # leave the recomputation to `RecalculationDue`.
+            self._refresh_reader()
+            return
+        self._perceive_substance_if_needed(event.molecule_uuid)
+
+    def _on_recalculation_due(self, event: RecalculationDue) -> None:
+        """The quiet period after a canvas edit has passed: perceive the substance again."""
+        if event.molecule_uuid == self._selected_molecule_uuid:
+            self._perceive_substance_if_needed(event.molecule_uuid)
+
+    def _perceive_substance_if_needed(self, molecule_uuid: str) -> None:
         # The same gate as a selection: undoing back to a structure whose
         # perception is retained replays it instead of running it again.
-        if self._substance_perception_needed is None or self._substance_perception_needed(event.molecule_uuid):
+        if self._substance_perception_needed is None or self._substance_perception_needed(molecule_uuid):
             self._request_substance_perception()
 
     def _selected_molecule_name(self) -> str:
@@ -2398,7 +2720,33 @@ class PropertyPanel(QWidget):
         # elsewhere in this project is NOT about. A silent no-op would be
         # the third option and is the one 0g exists to forbid.
         chip.setEnabled(result is not None)
+        chip.setToolTip(self._chip_tooltip(calculator_id, status, result))
         chip.setVisible(True)
+
+    def _chip_tooltip(self, calculator_id: str, status: str, result) -> str:
+        """The chip's contract text, plus what THIS press will do in the two states
+        where a press does more than show the result.
+
+        The contract (`_STATUS_CHIP_HELP`) stays what it is -- one meaning across sixty
+        renderings -- and the situational line is appended after it, so what is
+        inventoried and what is read are the same text plus a sentence, never two
+        descriptions that can disagree.
+        """
+        base = _STATUS_CHIP_HELP.text
+        if status == NEEDS_INPUT and result is not None:
+            definition = self._calculator_registry.get(calculator_id)
+            phrases = needed_input_phrases(definition, missing_inputs_of(result)) if definition else []
+            if phrases:
+                return (
+                    f"{base}\n\nNeeds: {'; '.join(phrases)}. Pressing this opens the "
+                    "calculator's settings to enter them; nothing runs until you confirm."
+                )
+        if status == NEEDS_SETUP and calculator_id in SETUP_TOOL_FOR_CALCULATOR:
+            return (
+                f"{base}\n\nPressing this opens Settings > External Tools on the tab "
+                "that sets this calculator up."
+            )
+        return base
 
     def _refresh_status_chips(self) -> None:
         for calculator_id in tuple(self._calculator_status):
@@ -2438,8 +2786,46 @@ class PropertyPanel(QWidget):
         if chip is None:
             return
         calculator_id = str(chip.property(_STATUS_CALCULATOR_PROPERTY) or "")
-        if calculator_id and self._result_for(calculator_id) is not None:
-            self._show_in_reader(focus=calculator_id)
+        result = self._result_for(calculator_id) if calculator_id else None
+        if result is None:
+            return
+        # **TWO STATES ARE AN INSTRUCTION, NOT A RESULT.** "Needs input" and "Needs
+        # setup" say what the person has to DO, so pressing them goes to where it is
+        # done -- the calculator's settings with the missing values named, or the
+        # External Tools tab that configures it -- rather than to a reader that can only
+        # describe it. The reader is still one press away in Results, and a calculator
+        # the routing cannot serve (no parameters to enter, no known tool) falls through
+        # to it instead of doing nothing.
+        status = self._status_for(calculator_id)
+        if status == NEEDS_INPUT:
+            definition = self._calculator_registry.get(calculator_id)
+            if definition is not None and definition.parameters:
+                self._open_calculator(definition, needed=missing_inputs_of(result))
+                return
+        elif status == NEEDS_SETUP:
+            tool = SETUP_TOOL_FOR_CALCULATOR.get(calculator_id)
+            if tool is not None:
+                self.tool_setup_requested.emit(tool)
+                return
+        self._show_in_reader(focus=calculator_id)
+
+    def _refresh_reader_soon(self) -> None:
+        """`_refresh_reader`, once, after the events already queued have been handled.
+
+        For the producers that publish in floods (the descriptors). Every OTHER caller keeps
+        the synchronous `_refresh_reader`: a single report arriving is one refresh, and code
+        that reads the reader straight after it must find it current.
+        """
+        if self._reader_refresh_scheduled:
+            return
+        self._reader_refresh_scheduled = True
+        # `self` is the context object, so the shot is cancelled if the panel is destroyed
+        # first -- and a bound method, never a lambda capturing `self`.
+        QTimer.singleShot(0, self, self._run_scheduled_reader_refresh)
+
+    def _run_scheduled_reader_refresh(self) -> None:
+        self._reader_refresh_scheduled = False
+        self._refresh_reader()
 
     def _refresh_reader(self) -> None:
         """Push the currently-held reports into the reader.
@@ -2482,7 +2868,10 @@ class PropertyPanel(QWidget):
                 aggregate_descriptors(
                     self._selected_molecule_uuid or "",
                     self._descriptor_values.values(),
-                    structure_version=version,
+                    # As current as the OLDEST part: after a canvas edit, and until the
+                    # recomputation the pause waits for begins, nothing new has arrived,
+                    # so the set reads stale at once rather than claiming the new structure.
+                    structure_version=min(self._descriptor_versions.values(), default=version),
                 )
             )
         return entries, version
@@ -2525,6 +2914,9 @@ class PropertyPanel(QWidget):
         dataset = event.dataset
         self._finish_batch_run(dataset.property_id)
         if dataset.molecule_uuid == self._selected_molecule_uuid:
+            self._compare_pool[_compare_key(dataset)] = ComparedResult(
+                dataset, event.input_fingerprint, event.calculation_input
+            )
             # THE PRODUCER'S DECLARATION WINS, and the registry is the
             # fallback rather than the authority. A dataset from the
             # always-on batch is in no registry, so asking one filed
@@ -2661,7 +3053,107 @@ class PropertyPanel(QWidget):
     # --- running several at once -------------------------------------------
 
     def _selected_calculator_ids(self) -> list[str]:
-        return [cid for cid, tick in self._calculator_ticks.items() if tick.isChecked()]
+        # A calculator the launcher is not offering is not selected, even if it
+        # was ticked before it was withdrawn: "Run selected" must never run
+        # something the person cannot see.
+        return [
+            cid for cid, tick in self._calculator_ticks.items()
+            if tick.isChecked() and cid not in self._hidden_calculator_ids
+        ]
+
+    # --- which calculators are offered ------------------------------------------
+
+    def _is_offered(self, definition) -> bool:
+        """Whether the launcher offers `definition`: its declared default, the master
+        toggle and the person's own choice (`domain.calculator_support.is_visible`)."""
+        if self._settings is not None:
+            return self._settings.calculator_is_visible(definition)
+        return is_offered_by_default(definition)
+
+    def _apply_calculator_visibility(self) -> None:
+        """Offer or withdraw each calculator's row, its section, and the footer.
+
+        **WITHDRAWN, NEVER REMOVED.** The row stays built, so re-offering is
+        instant and nothing in this panel's delicate layout is added or deleted
+        mid-life; a ticked calculator that is withdrawn is unticked, so the
+        selection count never includes something the person cannot see.
+        """
+        hidden: set[str] = set()
+        for category in self._calculator_registry.categories():
+            for definition in self._calculator_registry.by_category(category):
+                if not isinstance(definition.execution, RegistryExecution):
+                    continue
+                if not self._is_offered(definition):
+                    hidden.add(definition.calculator_id)
+        self._hidden_calculator_ids = hidden
+        for calculator_id, row in self._calculator_rows.items():
+            offered = calculator_id not in hidden
+            row.setVisible(offered)
+            if not offered:
+                tick = self._calculator_ticks.get(calculator_id)
+                if tick is not None and tick.isChecked():
+                    tick.setChecked(False)
+        for category, calculator_ids in self._section_calculators.items():
+            section = self._sections.get(category)
+            if section is not None and calculator_ids:
+                # A section with nothing left to offer goes too: an empty
+                # heading is a promise with nothing behind it.
+                section.setVisible(any(cid not in hidden for cid in calculator_ids))
+        count = len(hidden)
+        self._hidden_link.setVisible(count > 0)
+        plural = "" if count == 1 else "s"
+        self._hidden_link.setText(f"{count} calculator{plural} hidden by default -- Settings...")
+        self._on_selection_toggled()
+
+    def _on_settings_changed(self, event: SettingsChanged) -> None:
+        if str(event.key).startswith("calculators/"):
+            self._apply_calculator_visibility()
+
+    def _about_menu_for(self, calculator_id: str) -> QMenu:
+        """The context menu of one calculator's button.
+
+        Built apart from showing it, because `QMenu.exec` blocks and cannot be
+        patched: a test drives the action instead, and the wiring is the same
+        bound method a click reaches.
+        """
+        menu = QMenu(self)
+        action = menu.addAction("About this calculator")
+        action.setProperty(_CALCULATOR_ID_PROPERTY, calculator_id)
+        action.triggered.connect(self._on_about_calculator_triggered)
+        return menu
+
+    def _on_calculator_button_menu(self, position) -> None:
+        button = self.sender()
+        calculator_id = button.property(_CALCULATOR_ID_PROPERTY) if button is not None else None
+        if calculator_id:
+            self._about_menu_for(str(calculator_id)).exec(button.mapToGlobal(position))
+
+    def _on_about_calculator_triggered(self, _checked: bool = False) -> None:
+        action = self.sender()
+        calculator_id = action.property(_CALCULATOR_ID_PROPERTY) if action is not None else None
+        if calculator_id:
+            self.help_requested.emit(help_anchor_for(str(calculator_id)))
+
+    def _on_hidden_link_clicked(self, _checked: bool = False) -> None:
+        self.settings_requested.emit("calculators")
+
+    def _refresh_batch_hint(self) -> None:
+        """Say, on the status line, what the tick boxes are for, until something else has to be said.
+
+        **THE TICK BOXES HAD NO VISIBLE EXPLANATION**: a tooltip on each, and nothing on
+        screen saying that ticking runs several at once or that they run with default
+        settings. The status line is otherwise empty until a run starts, so it carries the
+        hint -- and gives way to any real status (a run, "Select a molecule first.") and
+        comes back only when the line is empty or still showing the hint it last wrote.
+        """
+        count = len(self._selected_calculator_ids())
+        hint = (
+            f"{count} ticked - runs with default settings" if count else "Tick boxes to run several at once"
+        )
+        if self._batch_status.text() in ("", self._last_batch_hint):
+            self._batch_status.setText(hint)
+            self._batch_status.setToolTip(hint)
+        self._last_batch_hint = hint
 
     def _on_selection_toggled(self, _checked: bool = False) -> None:
         count = len(self._selected_calculator_ids())
@@ -2670,11 +3162,13 @@ class PropertyPanel(QWidget):
         self._run_selected_button.setText(
             f"Run selected ({count})" if count else "Run selected"
         )
+        self._refresh_batch_hint()
 
     def _on_clear_selection(self, _checked: bool = False) -> None:
         for tick in self._calculator_ticks.values():
             tick.setChecked(False)
         self._batch_status.setText("")
+        self._refresh_batch_hint()
 
     def _on_run_selected(self, _checked: bool = False) -> None:
         """Dispatch every ticked calculator for the selected molecule.
@@ -2699,9 +3193,17 @@ class PropertyPanel(QWidget):
             return
 
         started: list[str] = []
+        skipped: list[str] = []
         for calculator_id in self._selected_calculator_ids():
             definition = self._calculator_registry.get(calculator_id)
             if definition is None or not isinstance(definition.execution, RegistryExecution):
+                continue
+            # A calculator with a REQUIRED parameter has no usable default, so running
+            # it here could only produce a refusal -- and a "Needs input" chip the person
+            # did not earn by asking. It is skipped and named, with what it wants.
+            wanted = [plain_label(p.label) for p in definition.parameters if p.required]
+            if wanted:
+                skipped.append(f"{definition.display_name} (needs {', '.join(wanted)})")
                 continue
             # Same calculator ticked and already running is the one
             # re-entrancy worth guarding: the pool would happily run it
@@ -2720,12 +3222,18 @@ class PropertyPanel(QWidget):
             )
             started.append(definition.display_name)
 
+        skipped_note = (
+            f" Skipped, needs your input: {'; '.join(skipped)}. Open the calculator to enter it."
+            if skipped
+            else ""
+        )
         if not started:
-            self._batch_status.setText("Those are already running.")
+            self._batch_status.setText(("Those are already running." if not skipped else "") + skipped_note.strip())
             return
         self._batch_status.setText(
             f"Running {len(started)} with default settings: {', '.join(started[:4])}"
             + ("..." if len(started) > 4 else "")
+            + skipped_note
         )
 
     # --- copying out ---------------------------------------------------------
@@ -2789,7 +3297,9 @@ class PropertyPanel(QWidget):
                 lines.append("")
         return "\n".join(lines).rstrip()
 
-    def _open_calculator(self, definition: CalculatorDefinition) -> None:
+    def _open_calculator(
+        self, definition: CalculatorDefinition, needed: tuple[MissingInput, ...] = ()
+    ) -> None:
         # Says so, rather than returning silently. Clicking an "Open..."
         # button with nothing selected used to do NOTHING AT ALL -- no
         # dialog, no message, no log line -- which is indistinguishable
@@ -2817,7 +3327,10 @@ class PropertyPanel(QWidget):
                 for other in self._project.molecules
                 if other.canonical_smiles
             ]
-            dialog = CalculatorSettingsDialog(definition, self, molecules=choices)
+            # `needed` only when there is something to say, so the ordinary press of a
+            # calculator's own button builds the dialog exactly as it always has.
+            extra = {"needed": needed} if needed else {}
+            dialog = CalculatorSettingsDialog(definition, self, molecules=choices, **extra)
             if dialog.exec() != QDialog.DialogCode.Accepted:
                 return
             parameters = dialog.parameters()
@@ -2965,20 +3478,23 @@ class PropertyPanel(QWidget):
     def _reveal_after_dispatch(self, result) -> None:
         """Open the inspector for a just-arrived result ONCE THE BUS IS DONE.
 
-        **A MODAL DIALOG OPENED INSIDE A BUS HANDLER STARVES EVERY LATER
-        SUBSCRIBER.** `_open_inspector` ends in `exec()`, which runs a nested
-        event loop inside `EventBus._dispatch`; the subscribers after this
-        panel for the same event -- the Atom Inspector among them -- were not
-        called until the dialog closed. Measured in a driven run: Properties
+        **A DIALOG OPENED INSIDE A BUS HANDLER STARVES EVERY LATER
+        SUBSCRIBER.** `_open_inspector` used to end in `exec()`, which runs a
+        nested event loop inside `EventBus._dispatch`; the subscribers after
+        this panel for the same event -- the Atom Inspector among them -- were
+        not called until the dialog closed. Measured in a driven run: Properties
         held `gasteiger_charge_at_ph` 67 s before the Atom Inspector did,
-        because nobody closed the dialog until quit.
+        because nobody closed the dialog until quit. The inspector is modeless
+        now, so nothing waits FOR it -- but building one still constructs a
+        Chromium view, which is not free inside the dispatch, so the deferral
+        stays.
 
         A zero-delay shot runs after the current dispatch returns, so every
         subscriber has the result before the dialog opens. Only the latest
         result is kept: `_pending_calculator_id` names one calculator, and a
         second arrival before the shot fires supersedes the first rather than
-        stacking two modal dialogs. The context object cancels the shot if the
-        panel is destroyed first.
+        opening two windows for one request. The context object cancels the shot
+        if the panel is destroyed first.
         """
         self._deferred_reveal = result
         QTimer.singleShot(0, self, self._open_deferred_reveal)
@@ -2989,10 +3505,33 @@ class PropertyPanel(QWidget):
             self._open_inspector(result)
 
     def _open_inspector(self, result: PerAtomDataset | SpectrumResult) -> None:
+        """Open one result's inspector, MODELESS, or bring the one already open forward.
+
+        **SEVERAL CAN STAND SIDE BY SIDE, WHICH IS THE WHOLE REQUEST.** This used to
+        `exec()` -- one modal window, so comparing two results meant closing the first
+        and remembering it. Now each result opens its own window (deleted on close,
+        owned by this panel), the same way the Batch panel opens them, under the same
+        cap (`inspector_budget_message`): every calculator inspector holds a Chromium
+        process, and an unbounded number of them once hung a machine.
+
+        **THE SAME RESULT IS ONE WINDOW.** Asking again for a result whose inspector is
+        already open raises that window rather than opening a duplicate; a re-run makes
+        a new result, and so a new window, which is what somebody comparing a before
+        and an after wants. The title carries the calculator AND its method, so two
+        windows of one calculator with different methods can be told apart.
+        """
         if self._project is None:
             return
         molecule = self._project.find_molecule(result.molecule_uuid)
         if molecule is None:
+            return
+        key = id(result)
+        existing = self._inspector_windows.get(key)
+        window = existing() if existing is not None else None
+        if window is not None and _window_is_open(window):
+            window.show()
+            window.raise_()
+            window.activateWindow()
             return
         best = canonical_conformer(molecule)
         conformer_molblock = best.molblock if best is not None else None
@@ -3002,6 +3541,10 @@ class PropertyPanel(QWidget):
         if isinstance(result, SpectrumResult):
             dialog = NmrViewDialog(self._chemistry_engine, molecule, result, conformer_molblock, parent=self)
         else:
+            refusal = inspector_budget_message()
+            if refusal is not None:
+                QMessageBox.information(self, "Too many inspectors open", refusal)
+                return
             dialog = CalculatorInspectorDialog(
                 self._chemistry_engine,
                 molecule,
@@ -3009,5 +3552,97 @@ class PropertyPanel(QWidget):
                 conformer_molblock,
                 self,
                 on_add_structure=self._on_add_structure,
+                compare_candidates=self.comparable_with,
+                on_compare=self._open_comparison,
             )
-        dialog.exec()
+        dialog.setWindowTitle(inspector_window_title(result, molecule.display_name))
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+        self._cascade_inspector(dialog)
+        dialog.show()
+        self._inspector_windows[key] = weakref.ref(dialog)
+
+    def comparable_with(self, result) -> tuple[ComparedResult, list[ComparedResult]]:
+        """`result` as a `ComparedResult`, and every OTHER held result it can honestly be compared with.
+
+        Each candidate is checked against `result` by the same rule the comparison itself
+        applies (`domain.compare.compare`): a result for a different drawing, atoms, units or
+        protonation state is not offered at all, so the menu never proposes a comparison that
+        would be refused.
+        """
+        anchor = next((c for c in self._compare_pool.values() if c.dataset is result), None)
+        if anchor is None:
+            anchor = ComparedResult(result)
+        others = [
+            candidate
+            for candidate in self._compare_pool.values()
+            if candidate is not anchor and isinstance(compare([anchor, candidate]), Comparison)
+        ]
+        return anchor, others[: MAX_COMPARED - 1]
+
+    def _open_comparison(self, results) -> None:
+        """Open the comparison window for `results`, or say why it cannot be made."""
+        outcome = compare(list(results))
+        if isinstance(outcome, CompareRefusal):
+            QMessageBox.information(self, "Cannot compare", outcome.message)
+            return
+        first = outcome.columns[0]
+        molecule = self._project.find_molecule(first.dataset.molecule_uuid) if self._project else None
+        if molecule is None:
+            return
+        dialog = CompareResultsDialog(
+            outcome, self._symbols_for(molecule, first), molecule.display_name, parent=self
+        )
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+        dialog.show()
+        self._last_comparison = weakref.ref(dialog)
+
+    def _symbols_for(self, molecule, compared: ComparedResult) -> dict[int, str]:
+        """Element symbols for the atoms a result is keyed by, or {} when they cannot be trusted.
+
+        The structure the atoms describe is the one the inspector draws: the result's own (a
+        microspecies), else the conformer for a geometry result, else the drawing. If the
+        indices do not fit it the symbols are dropped rather than put on the wrong atoms.
+        """
+        dataset = compared.dataset
+        molblock, source = display_structure(molecule, dataset)
+        if source == NO_STRUCTURE or not molblock:
+            conformer = canonical_conformer(molecule) if compared.calculation_input == GEOMETRY else None
+            molblock = conformer.molblock if conformer is not None else molecule.molblock
+        if not molblock:
+            return {}
+        try:
+            rows = self._chemistry_engine.atom_rows(molblock)
+        except Exception:  # noqa: BLE001 - symbols are a convenience, never a reason to lose the table
+            return {}
+        if not rows or max(dataset.values, default=-1) >= len(rows):
+            return {}
+        return {index: rows[index][0] for index in dataset.values}
+
+    def _cascade_inspector(self, dialog) -> None:
+        """Offset a new inspector from the newest one still open.
+
+        **TWO WINDOWS AT ONE POSITION ARE ONE WINDOW.** Driven in the running app, both
+        inspectors opened at exactly (360, 128) -- Qt centres every new dialog over its
+        parent -- so the second covered the first completely and "side by side" was a
+        stack a person would take for a single window. Each new one starts a step down
+        and to the right of the newest still-open one, clamped to the screen.
+        """
+        previous = None
+        for reference in reversed(list(self._inspector_windows.values())):
+            window = reference()
+            if window is not None and _window_is_open(window):
+                previous = window
+                break
+        if previous is None:
+            return
+        try:
+            origin = previous.pos()
+            available = self.screen().availableGeometry()
+            target = cascade_position(
+                (origin.x(), origin.y()),
+                (dialog.width(), dialog.height()),
+                (available.left(), available.top(), available.right(), available.bottom()),
+            )
+        except RuntimeError:
+            return  # the previous window went away between the check and the ask
+        dialog.move(*target)

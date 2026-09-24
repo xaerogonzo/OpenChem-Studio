@@ -1104,6 +1104,22 @@ class QuantumChemistryPanel(QWidget):
         )
         return answer == QMessageBox.StandardButton.Yes
 
+    def select_calculation_type(self, calc_type: str) -> bool:
+        """Choose a calculation by its type code ("nmr", "sp", ...), as a click on its
+        Properties row does. Returns whether there was such a calculation, so the caller
+        can say so instead of leaving the combo wherever it was.
+
+        Selects only. Nothing runs: the person still presses Run here, with the charge,
+        multiplicity and method they want.
+        """
+        for label, code in CALC_TYPE_LABELS.items():
+            if code == calc_type:
+                index = self._calc_type_combo.findText(label)
+                if index >= 0:
+                    self._calc_type_combo.setCurrentIndex(index)
+                    return True
+        return False
+
     def _on_calc_type_changed(self, label: str) -> None:
         """Steers NMR runs onto an NMR-appropriate basis.
 

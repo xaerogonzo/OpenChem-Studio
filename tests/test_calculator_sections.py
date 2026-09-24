@@ -20,7 +20,7 @@ import pytest
 
 
 from openchem.bootstrap import build_service_container
-from openchem.domain.calculator import RegistryExecution
+from openchem.domain.calculator import RegistryExecution, ServiceExecution
 from openchem.domain.common import CacheState
 from openchem.ui.panels.property_panel import _CATEGORY_LABELS, _CATEGORY_ORDER
 
@@ -48,7 +48,20 @@ import conftest
 #: beside HOMA and `test_the_declared_singleton_really_is_one` went red until
 #: this name was removed -- which is the guard working, and the second time
 #: that has happened here after `energetic`.
-_ALLOWED_SINGLETONS = {"nmr", "thermophysical"}
+#: `docking` is the third: Vina is the one docking engine, run from its own panel, and its row
+#: opens that panel. A Docking section holding one row is the shape a launcher should have for
+#: one engine; folding it into another heading to flatten a count would hide where docking is.
+_ALLOWED_SINGLETONS = {"nmr", "thermophysical", "docking"}
+
+
+def _puts_a_row_in_a_section(definition) -> bool:
+    """Whether the launcher shows `definition` at all: a registry calculator gets a button that
+    runs it, and a service-run one with a panel gets a row that OPENS that panel. A service-run
+    entry with no panel of its own is the only kind with no row."""
+    execution = definition.execution
+    if isinstance(execution, RegistryExecution):
+        return True
+    return isinstance(execution, ServiceExecution) and bool(execution.panel_id)
 
 
 def _real_registry():
@@ -63,18 +76,17 @@ def registry():
 
 @pytest.fixture(scope="module")
 def button_counts(registry) -> Counter:
-    """Calculators that actually put a BUTTON in a section.
+    """Calculators that actually put a ROW in a section.
 
-    ServiceExecution entries (Docking, Quantum Chemistry) are registered
-    for discovery and run from their own panels, so they are excluded
-    exactly as `_section_for` excludes them.
+    A registry calculator's row runs it. A ServiceExecution one (Docking, Quantum Chemistry)
+    is run from its own panel, and its row OPENS that panel -- `_puts_a_row_in_a_section`.
+    They used to be excluded here exactly as `_section_for` excluded them; it no longer does,
+    so counting them out would have hidden the two new sections from every guard below.
     """
     counts: Counter = Counter()
     for category in registry.categories():
         counts[category] = sum(
-            1
-            for definition in registry.by_category(category)
-            if isinstance(definition.execution, RegistryExecution)
+            1 for definition in registry.by_category(category) if _puts_a_row_in_a_section(definition)
         )
     return counts
 
@@ -111,7 +123,7 @@ def _every_reachable_category() -> set[str]:
         d.category
         for c in registry.categories()
         for d in registry.by_category(c)
-        if isinstance(d.execution, RegistryExecution)
+        if _puts_a_row_in_a_section(d)
     }
 
 
@@ -732,6 +744,27 @@ def test_the_guide_states_the_real_number_of_collapsible_categories():
         f"the guide says {stated.group(1)} collapsible categories and there "
         f"are {len(_every_reachable_category())}"
     )
+
+
+def test_the_built_panel_has_exactly_the_reachable_sections(qapp):
+    """The enumeration the guide is held to, against the panel a user actually gets.
+
+    The guide's own docstring says the claim is about what a user SEES, and until service rows
+    existed nothing built the panel to check: it compared the doc with a re-derivation of the
+    same rule. Adding the Docking and Quantum Chemistry sections made the two able to disagree
+    silently, so this builds the real panel.
+    """
+    from openchem.chem.engine import ChemistryEngine
+    from openchem.events.base import EventBus
+    from openchem.ui.panels.property_panel import PropertyPanel
+    from tests.test_property_panel import _FakeDescriptorService
+
+    registry = _real_registry()
+    panel = PropertyPanel(EventBus(), registry, _FakeDescriptorService(), ChemistryEngine())
+    try:
+        assert set(panel._sections) == _every_reachable_category()
+    finally:
+        conftest.dispose(panel)
 
 
 def test_the_readme_states_the_real_number_of_categories_too():

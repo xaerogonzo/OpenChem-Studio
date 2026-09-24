@@ -39,6 +39,7 @@ from openchem.chem.descriptor_providers import RDKitDescriptorProvider
 from openchem.chem.calculation_input import select_calculation_input
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.calculator import GEOMETRY, CalculationRefusal
+from openchem.domain.refusal_kinds import refusal_parameters
 from openchem.chem.result_reduction import (
     alert_catalog_columns,
     descriptor_cell,
@@ -321,7 +322,9 @@ class _BatchTask(QRunnable):
                         # and a Properties row say WHICH refusal alike.
                         provenance=(
                             Provenance(created_by="core", method=calculator_id,
-                                       parameters={"refusal": exc.code})
+                                       parameters=refusal_parameters(
+                                           exc.code, exc.kind, exc.missing_inputs,
+                                           classified=exc.classified))
                             if refused else None
                         ),
                     ),

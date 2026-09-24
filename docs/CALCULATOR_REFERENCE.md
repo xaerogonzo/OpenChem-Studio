@@ -109,6 +109,7 @@ Oxidation state per atom, by the IUPAC electronegativity-partition rule: each bo
 
 Partial charges that depend on the 3D geometry, by one of three models. EEM: Bultinck's electronegativity equalization (2002, part I) with that paper's own parameters for H, C, N, O and F. QEq: Rappé and Goddard's charge equilibration (1991) with lambda = 1/2 and its experimental hydrogen parameters, for the 16 elements of its Table I; it refuses molecules where its iteration does not settle or a charge reaches its bound. Ionescu EEM: Ionescu et al.'s 2013 protein-fragment models (Mulliken, 6-31G* or 6-31G**, gas phase) for H, C, N, O, S and Ca, reported as an extrapolation on anything else; it refuses a sulfur bonded to oxygen and any charge beyond 2.051 e. By default the charges are computed on the stored conformer as it is, with its own hydrogens and net charge. Tick pH-dependent to compute them on the dominant ionization state at that pH instead: the state is carried onto the conformer, every heavy atom and every kept hydrogen holds its coordinates exactly, and only added hydrogens are placed (MMFF94, everything else fixed). Ionization states only, never tautomers, and it refuses rather than choose when a proton leaves an atom whose hydrogens are not equivalent. The result shows the structure it was computed on. Only the sum of the charges equals the net charge. Needs a conformer with explicit hydrogens; an element the chosen method has no parameters for is refused.
 
+- See also: [Comparing partial charge models](USER_GUIDE.md#comparing-partial-charge-models) -- how the models in this family differ.
 - Produces one value per atom, with a depiction coloured by them.
 - Runs on a real 3D conformer -- generate one first.
 - Options:
@@ -123,6 +124,7 @@ Partial charges that depend on the 3D geometry, by one of three models. EEM: Bul
 
 Partial charges, recomputed on the dominant protonation state at a given pH, by Gasteiger's PEOE or by MMFF94's bond-charge increments. The two are different models and give different numbers for the same atom.
 
+- See also: [Comparing partial charge models](USER_GUIDE.md#comparing-partial-charge-models) -- how the models in this family differ.
 - Produces one value per atom, with a depiction coloured by them.
 - Runs on the 2D drawing, so no conformer is needed.
 - Options:
@@ -719,6 +721,9 @@ Docking via AutoDock Vina. Needs a receptor macromolecule and a search box; run 
 
 Detonation pressure and velocity for a C/H/N/O explosive, by Kamlet and Jacobs' 1968 correlation. REQUIRES two inputs it cannot derive: the initial loading density of the charge, which is not a crystal density and which the pressure depends on as its square, and a measured condensed-phase enthalpy of formation, because the published rule for estimating one from an ideal-gas value excludes every classic energetic material. Without either, it refuses and says which is missing. An empirical correlation fitted to reproduce a 1968 computer code -- not a measurement, and not a safety assessment.
 
+- Support level: **Stable**. Hidden by default; enable it under Settings > Calculators.
+- Why: A specialist estimate. Kamlet-Jacobs needs the loading density of the charge and a measured condensed-phase enthalpy of formation, neither of which can be derived from a structure, and it is stated for C/H/N/O explosives only. Hidden by default so it is not offered to everyone; the arithmetic is checked against the source's own tables.
+- Covers: C/H/N/O explosives whose oxygen content lies in Eq. (12)'s range.
 - Produces a list of facts, each with its own units, basis and evidence.
 - Runs on the 2D drawing, so no conformer is needed.
 - Basis: empirical (fitted to measured data, with real scatter).
@@ -852,6 +857,9 @@ Single-point energy via ORCA. Produces the SCF energy. Needs an ORCA executable 
 
 Eleven pure-component properties from the structure alone, by Joback and Reid's group contributions: normal boiling and freezing points, the three critical constants, standard enthalpy and Gibbs energy of formation, ideal-gas heat capacity, enthalpies of vaporization and fusion, and liquid viscosity. Additive over a COMPLETE decomposition, so a structure carrying an atom in no Joback group is refused with the atom named rather than given a partial sum -- the table has no ring tertiary amine and stops at divalent sulfur. Critical temperature takes a boiling point: supply a measured one where you have it, because the paper warns that estimating it costs several times the error.
 
+- Support level: **Limited**. Hidden by default; enable it under Settings > Calculators.
+- Why: Joback's group table has no group for a ring nitrogen with three heavy neighbours (a ring tertiary amine) and stops at divalent sulfur, so it refuses many drug-like and energetic molecules -- RDX and HMX are refused while TNT and PETN run. That is a limit of the 1987 method, not a fault; it is hidden by default so it does not read as everyday equipment.
+- Covers: molecules whose every atom falls in one of Joback's 41 groups.
 - Produces a list of facts, each with its own units, basis and evidence.
 - Runs on the 2D drawing, so no conformer is needed.
 - Basis: empirical (fitted to measured data, with real scatter).

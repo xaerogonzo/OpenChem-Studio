@@ -5,6 +5,8 @@ import logging
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import QPlainTextEdit, QVBoxLayout, QWidget
 
+from openchem.failure_log import collapse_filter
+
 
 class _QtLogHandler(logging.Handler, QObject):
     """Bridges the `logging` module to a Qt signal.
@@ -42,4 +44,7 @@ class ConsolePanel(QWidget):
             logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s", "%H:%M:%S")
         )
         self._handler.message_logged.connect(self._text.appendPlainText)
+        # Shared with the file and stream handlers: one failure repeating five times
+        # in forty seconds filled this panel once (`openchem.failure_log`).
+        self._handler.addFilter(collapse_filter())
         logging.getLogger().addHandler(self._handler)

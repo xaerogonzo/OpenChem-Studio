@@ -36,6 +36,7 @@ from typing import Any
 
 from openchem.chem.lewis import analyse, pi_donor_atoms
 from openchem.domain.calculator import INPUT_REQUIRED
+from openchem.domain.refusal_kinds import MissingInput, RefusalKind, refusal_parameters
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.lewis import (
     BASIS_DRAGO_TABLE,
@@ -412,7 +413,7 @@ def compute_lewis_adduct(
         return failed(
             "Choose or enter the partner molecule in this calculator's settings. "
             "An adduct needs two molecules and this one only has one.",
-            {"refusal": INPUT_REQUIRED},
+            refusal_parameters(INPUT_REQUIRED, RefusalKind.NEEDS_INPUT, (MissingInput("partner_smiles"),)),
         )
     partner = Chem.MolFromSmiles(partner_smiles)
     if partner is None:

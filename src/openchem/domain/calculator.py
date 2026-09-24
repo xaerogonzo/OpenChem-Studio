@@ -4,7 +4,21 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable
 
+from openchem.domain.calculator_support import CalculatorSupport
 from openchem.domain.common import ScientificResult
+
+# Re-exported: every calculator module imports its refusal codes from here.
+from openchem.domain.refusal_kinds import (  # noqa: F401
+    ELEMENT_OUTSIDE_PARAMETER_SET,
+    INPUT_REQUIRED,
+    METAL_CONTAINING_UNSUPPORTED,
+    MULTICOMPONENT_UNSUPPORTED,
+    NO_ORGANIC_COMPONENT,
+    SIDECAR_NOT_CONFIGURED,
+    MissingInput,
+    RefusalKind,
+    refusal_kind_of,
+)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -34,6 +48,12 @@ class ServiceExecution:
 
     service_name: str
     panel_name: str
+    #: The rail id of the panel a calculator is run from (`HELP_TOPIC_BY_DOCK`'s keys:
+    #: "Docking", "Quantum_Chemistry"). Empty for an entry with no panel of its own. It is
+    #: what lets the Properties launcher give the calculator a REAL row that opens it,
+    #: instead of an italic sentence naming a panel; a guard holds each one to a panel
+    #: that exists.
+    panel_id: str = ""
 
 
 CalculatorExecution = RegistryExecution | ServiceExecution
@@ -99,6 +119,14 @@ class CalculatorParameter:
     #: not dispatched (`active_parameters`), so an irrelevant setting can
     #: neither change the computation nor be recorded as part of it.
     enabled_by: str | None = None
+    #: True when NO DEFAULT IS USABLE: the value is one only the person can give (a
+    #: measured density, an enthalpy of formation), so the default in `default` is a
+    #: placeholder and a run with it would only refuse. "Run selected" runs with
+    #: defaults, so it skips a calculator with a required parameter and says which
+    #: inputs it wants; the settings dialog is where they are entered. Not a
+    #: validation rule -- the calculator still checks what it is given -- but the
+    #: declaration that lets a launcher act before a refusal instead of after one.
+    required: bool = False
 
     def __post_init__(self) -> None:
         # AT CONSTRUCTION, so a mismatch is a failing import rather than a
@@ -230,42 +258,51 @@ class CalculatorScope:
     note: str = ""
 
 
-#: Refusal codes the scope layer itself raises. A calculator's own refusals
-#: keep their own enums (`HansenRefusal`, `AromaticityRefusal`, ...); all of
-#: them reach `provenance.parameters["refusal"]`, the key
-#: `debug_drive.result_report` and the multicomponent guard read.
-MULTICOMPONENT_UNSUPPORTED = "MULTICOMPONENT_UNSUPPORTED"
-#: ChEMBL's exclusion flag: a transition metal or more than seven borons,
-#: so there is no parent molecule to hand a compound-property calculator.
-METAL_CONTAINING_UNSUPPORTED = "METAL_CONTAINING_UNSUPPORTED"
-#: A `MethodDomain.ORGANIC` calculator handed a structure with no carbon.
-NO_ORGANIC_COMPONENT = "NO_ORGANIC_COMPONENT"
-#: An element the method's own table has no parameter for (Jensen's
-#: increments, McGowan's volumes, MMFF/UFF, Lange's radii).
-ELEMENT_OUTSIDE_PARAMETER_SET = "ELEMENT_OUTSIDE_PARAMETER_SET"
-#: Not a limit of the method: the user has to supply something (a reference
-#: structure, a partner molecule). A FAULT in `ScientificResult.inapplicable`'s
-#: sense, so it is raised with `inapplicable=False`.
-INPUT_REQUIRED = "INPUT_REQUIRED"
-#: A sidecar model whose interpreter is not configured on this machine.
-SIDECAR_NOT_CONFIGURED = "SIDECAR_NOT_CONFIGURED"
-
-
 class CalculationRefusal(Exception):
     """A calculator declining a structure, with a stable code.
 
     Raised rather than returned so that every route into a calculator --
     Properties, Batch, the 3D overlay -- gets the same refusal from the same
     place; `DescriptorService` turns it into a FAILED result carrying the
-    code, both sentences and whether it is a limit of the method.
+    code, both sentences and its KIND (`domain.refusal_kinds`).
+
+    **THE KIND IS RESOLVED, NEVER DEFAULTED TO "LIMIT".** In order: the kind
+    the producer declared, then the kind `REFUSAL_KINDS` gives the code, then
+    the legacy `inapplicable` flag if one was passed explicitly (True is a
+    limit). A refusal with none of the three has NO kind, which is a fault:
+    `CalculationRefusal("SOME_NEW_CODE", ...)` used to be silently a permanent
+    limit because `inapplicable` defaulted to True, so a code nobody had
+    classified read as "the method does not apply" and nobody looked at it.
+
+    `inapplicable` stays, derived (`kind is LIMIT`), because every consumer of
+    a refusal already reads it and NEEDS_INPUT / NEEDS_SETUP are, by
+    definition, not limits of the method.
     """
 
-    def __init__(self, code: str, summary: str, detail: str, *, inapplicable: bool = True) -> None:
+    def __init__(
+        self,
+        code: str,
+        summary: str,
+        detail: str,
+        *,
+        inapplicable: bool | None = None,
+        kind: RefusalKind | None = None,
+        missing_inputs: tuple[MissingInput, ...] = (),
+    ) -> None:
         super().__init__(detail)
         self.code = code
         self.summary = summary
         self.detail = detail
-        self.inapplicable = inapplicable
+        resolved = kind if kind is not None else refusal_kind_of(code)
+        #: False only when the kind was DERIVED FROM THE LEGACY FLAG: a code nobody
+        #: classified that a producer marked `inapplicable`. It still reads as a
+        #: limit, and the calculator census reports the code so somebody decides.
+        self.classified = resolved is not None
+        if resolved is None and inapplicable:
+            resolved = RefusalKind.LIMIT
+        self.kind = resolved
+        self.inapplicable = resolved is RefusalKind.LIMIT
+        self.missing_inputs = tuple(missing_inputs)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -340,6 +377,12 @@ class CalculatorDefinition:
     #: Which components, how aggregated, over what domain. `None` is not a
     #: scope: the guard fails on it (see `CalculatorScope`).
     scope: CalculatorScope | None = None
+    #: Declared stage and default visibility, with the reason
+    #: (`domain.calculator_support`). `None` is "nobody decided" and reads as
+    #: STABLE and shown, so a plugin's calculator or a test double behaves as it
+    #: always did; a guard fails a BUILT-IN calculator that is neither classified
+    #: nor named in `LEGACY_UNCLASSIFIED`.
+    support: CalculatorSupport | None = None
 
     def __post_init__(self) -> None:
         # At construction, so a dangling or circular dependency is a failing

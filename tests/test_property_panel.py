@@ -39,6 +39,58 @@ def _descriptor(**overrides) -> DescriptorValue:
     return DescriptorValue(**defaults)
 
 
+class _FakeModelessDialog:
+    """Stands in for an inspector the panel now SHOWS, modeless, rather than `exec()`s.
+
+    Records that it was shown, and answers the few window calls the panel makes
+    (title, delete-on-close, raise). Subclasses add their constructor, as the real
+    dialogs do.
+    """
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+
+    def setAttribute(self, *_args):  # noqa: N802 - Qt's spelling
+        pass
+
+    def setWindowTitle(self, title):  # noqa: N802
+        self.title = title
+
+    def show(self):
+        self.shown = getattr(self, "shown", 0) + 1
+        self.on_show()
+
+    def on_show(self):
+        pass
+
+    def raise_(self):
+        pass
+
+    def activateWindow(self):  # noqa: N802
+        pass
+
+    def isVisible(self):  # noqa: N802
+        return True
+
+    # Placement, for the panel's cascade: a fixed size, and a position that moves.
+    position = (100, 100)
+
+    def pos(self):
+        from PySide6.QtCore import QPoint
+
+        return QPoint(*self.position)
+
+    def move(self, x, y):
+        self.position = (x, y)
+
+    # Small enough to fit the offscreen platform's screen, which is only 800 x 600.
+    def width(self):
+        return 400
+
+    def height(self):
+        return 300
+
+
 class _FakeDescriptorService:
     """Records run_calculator calls instead of scheduling real QRunnable
     work -- these tests are about PropertyPanel's own wiring, not
@@ -334,12 +386,9 @@ def test_cancelling_the_settings_dialog_does_not_run_the_calculator(qapp, monkey
 def test_matching_result_opens_the_inspector_and_clears_pending(qapp, monkeypatch):
     opened = []
 
-    class _FakeInspectorDialog:
+    class _FakeInspectorDialog(_FakeModelessDialog):
         def __init__(self, engine, molecule, result, conformer_molblock, parent=None, **kwargs):
             opened.append((molecule, result))
-
-        def exec(self):
-            return QDialog.DialogCode.Accepted
 
     monkeypatch.setattr(property_panel_module, "CalculatorInspectorDialog", _FakeInspectorDialog)
 
@@ -382,13 +431,12 @@ def test_the_revealed_inspector_does_not_starve_later_subscribers(qapp, monkeypa
     """
     order: list[str] = []
 
-    class _FakeInspectorDialog:
+    class _FakeInspectorDialog(_FakeModelessDialog):
         def __init__(self, engine, molecule, result, conformer_molblock, parent=None, **kwargs):
             pass
 
-        def exec(self):
-            order.append("dialog exec")
-            return QDialog.DialogCode.Accepted
+        def on_show(self):
+            order.append("dialog shown")
 
     monkeypatch.setattr(property_panel_module, "CalculatorInspectorDialog", _FakeInspectorDialog)
 
@@ -406,7 +454,7 @@ def test_the_revealed_inspector_does_not_starve_later_subscribers(qapp, monkeypa
     )))
     QCoreApplication.processEvents()
 
-    assert order == ["later subscriber", "dialog exec"], order
+    assert order == ["later subscriber", "dialog shown"], order
 
 
 def test_matching_spectrum_result_opens_the_nmr_view_and_clears_pending(qapp, monkeypatch):
@@ -425,19 +473,13 @@ def test_matching_spectrum_result_opens_the_nmr_view_and_clears_pending(qapp, mo
     opened = []
     inspector_opened = []
 
-    class _FakeNmrViewDialog:
+    class _FakeNmrViewDialog(_FakeModelessDialog):
         def __init__(self, engine, molecule, result, conformer_molblock, parent=None, **kwargs):
             opened.append((molecule, result))
 
-        def exec(self):
-            return QDialog.DialogCode.Accepted
-
-    class _FakeInspectorDialog:
+    class _FakeInspectorDialog(_FakeModelessDialog):
         def __init__(self, engine, molecule, result, conformer_molblock, parent=None):
             inspector_opened.append(result)
-
-        def exec(self):
-            return QDialog.DialogCode.Accepted
 
     monkeypatch.setattr(property_panel_module, "NmrViewDialog", _FakeNmrViewDialog)
     monkeypatch.setattr(property_panel_module, "CalculatorInspectorDialog", _FakeInspectorDialog)
@@ -478,12 +520,9 @@ def test_unrelated_per_atom_data_does_not_open_the_inspector(qapp, monkeypatch):
     pop a dialog open on its own."""
     opened = []
 
-    class _FakeInspectorDialog:
+    class _FakeInspectorDialog(_FakeModelessDialog):
         def __init__(self, engine, molecule, result, conformer_molblock, parent=None):
             opened.append(result)
-
-        def exec(self):
-            return QDialog.DialogCode.Accepted
 
     monkeypatch.setattr(property_panel_module, "CalculatorInspectorDialog", _FakeInspectorDialog)
 
@@ -963,6 +1002,20 @@ def test_a_batch_run_says_when_it_has_finished(qapp):
     assert "Running" not in panel._batch_status.text()
 
 
+def test_every_status_the_vocabulary_can_produce_has_a_chip_appearance():
+    """Total over `RESULT_STATUSES`, because `_refresh_status_chip` indexes
+    the table and a status without a row is a `KeyError` in a paint path.
+    Added with NEEDS_INPUT and NEEDS_SETUP, which had none."""
+    from openchem.domain.result_status import RESULT_STATUSES
+    from openchem.ui.panels.property_panel import _STATUS_APPEARANCE
+
+    assert set(_STATUS_APPEARANCE) == set(RESULT_STATUSES)
+    # And the two actionable ones are not painted as the neutral refusal.
+    assert _STATUS_APPEARANCE["needs_input"][0] != _STATUS_APPEARANCE["inapplicable"][0]
+    assert "Needs input" in _STATUS_APPEARANCE["needs_input"][0]
+    assert "Needs setup" in _STATUS_APPEARANCE["needs_setup"][0]
+
+
 def test_the_status_glyphs_really_render(qapp):
     """A glyph is only accessible if something in the font chain HAS it.
 
@@ -1244,6 +1297,9 @@ def test_the_substance_card_is_cleared_when_the_molecule_changes(qapp):
 def _aggregate(panel):
     from openchem.domain.descriptor_aggregate import DESCRIPTOR_AGGREGATE_ID
 
+    # A flood of descriptor events refreshes the reader ONCE, on the next turn of the event
+    # loop (`PropertyPanel._refresh_reader_soon`), so the reader is current after it.
+    QCoreApplication.processEvents()
     report = panel._attached_reader.merged().report_for(DESCRIPTOR_AGGREGATE_ID)
     return report
 

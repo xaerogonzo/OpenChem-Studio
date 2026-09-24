@@ -1,0 +1,31 @@
+[
+  {"do": "smiles", "smiles": "CC", "name": "Ethane", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 4000},
+
+  {"do": "ketcher_hover", "tag": "2 over the bond makes it double, as one undo entry",
+   "bond": 0, "press": "2", "settle_ms": 2200,
+   "expect": {"hovered": true, "bond_type": 2, "smiles_equals": "C=C", "undo_delta": 1}, "after_ms": 3000},
+  {"do": "ketcher_hover", "tag": "3 makes it triple",
+   "bond": 0, "press": "3", "settle_ms": 2200,
+   "expect": {"hovered": true, "bond_type": 3, "smiles_equals": "C#C", "undo_delta": 1}, "after_ms": 3000},
+  {"do": "ketcher_hover", "tag": "1 makes it single again",
+   "bond": 0, "press": "1", "settle_ms": 2200,
+   "expect": {"hovered": true, "bond_type": 1, "smiles_equals": "CC", "undo_delta": 1}, "after_ms": 3000},
+  {"do": "ketcher_hover", "tag": "the order it already has is not an edit",
+   "bond": 0, "press": "1", "settle_ms": 1200,
+   "expect": {"hovered": true, "bond_type": 1, "smiles_equals": "CC", "undo_delta": 0}, "after_ms": 2200},
+
+  {"do": "ketcher_eval", "tag": "the setting is off (what Settings > Drawing pushes to the page)",
+   "script": "(function(){window.__openchemBondKeys=false;return 'off'})()", "after_ms": 300},
+  {"do": "ketcher_hover", "tag": "with the setting off the key changes nothing",
+   "bond": 0, "press": "2", "settle_ms": 1200,
+   "expect": {"hovered": true, "bond_type": 1, "smiles_equals": "CC", "undo_delta": 0}, "after_ms": 2200},
+  {"do": "ketcher_eval", "tag": "and back on",
+   "script": "(function(){window.__openchemBondKeys=true;return 'on'})()", "after_ms": 300},
+
+  {"do": "menu", "text": "Undo", "prefix": true, "after_ms": 2500},
+  {"do": "report", "tag": "after undo"},
+
+  {"do": "expect_clean", "tag": "end"},
+  {"do": "quit", "tolerate_errors": true}
+]

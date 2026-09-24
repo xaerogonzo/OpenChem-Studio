@@ -7,6 +7,122 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Post-round-14 program: nitramine hotfix, driver ledger, refusal kinds (branches `nitramine-hotfix`, `outcome-model`)
+
+- **A nitramine crashed the structural-alert pass and took every alert with it.** `fg:hydrazine` matched the N-N bond of `N-[N+](=O)[O-]`, so
+  `detect_features` raised `UndeclaredChargeState` and dropped all features for the molecule; the alert pass logged and recorded nothing, so no test
+  saw it. A nitramine N-N is no longer a hydrazine, and the same nitro exclusion is applied to the one shared basic-amine SMARTS (which had counted a
+  ring N bonded to a nitro N as a base and sent solubility off to predict a pKa that does not exist). Recorded, not fixed: nitroguanidine's NH2 is
+  still counted as basic.
+- **A driven run now ends in a verdict.** `OPENCHEM_DRIVE` collects every WARNING and traceback the app logs (de-duplicated by logger, exception,
+  origin and message), asserts positive expectations (`expect_results`) as well as the absence of errors (`expect_clean`), writes
+  `<script>.report.json` and exits non-zero on failure. Each scripted run writes its own `drive-<pid>.log`, because two processes rotating one log
+  file is a `PermissionError` on Windows.
+- **"Did not produce an answer" is now three different things.** A refusal has a KIND (`domain/refusal_kinds.py`): *limit* (the method does not
+  cover the molecule), *needs input* (the method covers it and wants a number only you can give) or *needs setup* (this machine lacks something).
+  Two new launcher states, `△ Needs input` and `△ Needs setup`, join the six. Kamlet-Jacobs Detonation, which read "Not applicable" for a method
+  that works, now says which inputs it needs and in what units, and names both at once; a compound the method cannot use at all (nitroglycerin is
+  over-oxidised) is reported as a limit *before* asking for inputs that could not help. A refusal whose code nobody classified is a fault, not a
+  quiet limit.
+- **A pKa predictor that ran and returned nothing is "no prediction", not "failed".** `PKaStatus.NO_PREDICTION` separates a working predictor with
+  no answer for a structure (a limit of the model) from one that crashed (a fault) and from none configured (needs setup). Solubility now says
+  which, and the pH-dependent curves refuse instead of drawing a one-species "curve" from an empty list.
+- **A pattern defect now costs one instance, not every feature of the molecule.** The application's feature detection is tolerant: an instance it cannot
+  evaluate is skipped, logged once per structure (not once per edit) and recorded as a `Completeness` on Fragment Counts and Functional Groups, so a
+  partial "nothing found" is never read as a complete one; the Results reader says so above the facts. The vocabulary's own tests and the census
+  keep the strict detector, so a defect stays loud where it can be fixed. The reader's status line now leads a refusal with its kind
+  (“Needs input”, “Needs setup”, “Not applicable”) instead of one sentence for all three.
+- **Calculators that refuse most of what people draw are no longer offered as everyday equipment.** Every calculator can now declare its support level
+  (`domain/calculator_support.py`): a stage (experimental, limited or stable -- the maturity of this application's implementation, never a verdict on the published
+  method) and, separately, whether it is offered by default. Thermophysical Properties (Joback) is *limited* and hidden -- measured on 2026-09-24, it refuses
+  RDX, HMX and 1,3-dinitro-1,3-diazetidine and runs TNT and PETN -- and Detonation is *stable* and hidden as a specialist calculator. Properties says how many are
+  hidden and opens **Settings > Calculators**, which names each with the reason, what it covers and a Learn more button to its own reference section; one setting
+  offers them all and a tick offers one, and neither runs anything. The calculator reference states each calculator's level. Sixty-six older calculators are
+  listed as not yet classified, and a guard lets that list only shrink.
+- **Every calculator has a way to its own help.** Right-click a calculator's button and choose *About this calculator*, press F1 with its button or tick box focused, or use the
+  *About this calculator* button in the dialog every calculator opens -- each lands on that calculator's own section of the reference, where the tooltip used to point at the whole
+  Properties chapter. A limited or specialist calculator also states its support level and reason in its dialog, where a person who enabled it is about to run it. A new guide,
+  *Comparing partial charge models*, says what each of the five charge models needs and refuses; it describes and ranks nothing, and a guard holds it to that.
+- **The calculator census.** `tools/calculator_census.py` runs every registered calculator, and the always-on set, over 29 structures chosen for shape (nitramines, energetic materials,
+  hydrazines, ring tertiary amines, salts, metals, a peptide, a large molecule) through the application's own service, recording what each returned (ready, limit, needs input,
+  needs setup, fault) AND what the application logged while it ran. A guard fails on a fault, an error logged, a calculator that never answered, a refusal code nobody classified, or
+  any cell that differs from the committed baseline. Its first run found the experimental NMR database's "not built" refusal and a 3D descriptor's "needs a conformer" reading as
+  faults, and eleven calculator-specific refusal codes that read as limits only by a legacy flag; all are classified now. It also reports which calculators refuse a quarter or
+  more of the panel as a limit -- a *proposal* for the limited classification, never an assignment.
+- **A failure that repeats no longer fills the log.** A traceback that repeats within 30 seconds is printed once, in the file, the console and the in-app Console alike, and
+  the log says it repeated: one line at the first repeat, and a count when the failure next appears. "The same failure" is defined once
+  (`failure_log.py`: where it was raised, not what it said) and shared with the driven-run ledger, so a verdict and a log cannot disagree about how many
+  problems there were.
+- **A slow calculation can no longer read as current for a structure it was not computed on.** The calculation and the always-on descriptors were handed the live
+  molecule on a worker thread, read it at several different moments while the editor went on changing it, and stamped the result with the structure version
+  *when the result came back* -- so a value computed for structure A that finished after an edit to B read as current for B (AqSolDB takes about five
+  minutes; a pause-then-refresh recompute makes the window routine). The molecule, its conformers and the structure version are now captured on the calling
+  thread (`domain/input_snapshot.py`) and the worker reads nothing else.
+- **Every feature pattern was swept over 2,187 structures, and eight defects came out.** `tests/test_feature_vocabulary_sweep.py` runs each structural-feature pattern over the census
+  and naming corpora with the strict detector; eight patterns misread a sulfonamide anion, protonated acylguanidines, oximes and acylhydrazones, an oxazolinium and an N-hydroxy nitro
+  group. They are recorded in `tests/fixtures/structural_features/known_vocabulary_defects.toml`, which may only shrink; fixing them needs a vocabulary decision and is not done here.
+- **What drawing costs is now measured, before anything is changed.** The driven `edit_burst` step records each structural edit's latency, the longest the event loop was blocked and how
+  many recalculations a burst caused (`benchmarks/visual/edit_burst_baseline.json`). It is a baseline, not a test: it measures the Python side only, not Ketcher's own JavaScript.
+- **Several Calculator Inspectors can stand side by side.** The inspector was a modal window, so comparing two charge methods meant closing the first and remembering it. Each result now
+  opens its own window (modeless, titled with the calculator and its method), the same result raises the window already open instead of opening a duplicate, and the cap the Batch panel
+  already applies (a Chromium process each) holds here too. `expect_inspectors` in the driver counts them.
+- **A "Needs input" or "Needs setup" chip now takes you to where it is fixed.** Those two states say what you have to do, so pressing them no longer just opens a reader that can only
+  describe it: "Needs input" opens the calculator's settings with the missing values named above the form and the cursor on the first (nothing runs until you confirm), and "Needs setup"
+  opens Settings > External Tools on the tab that sets it up. The chip's tooltip says which before you press. A calculator can now declare a parameter `required` (it has no usable default);
+  "Run selected", which uses defaults, skips such a calculator and says what it wants instead of running it to a refusal you did not ask for. Detonation's two inputs, alignment's
+  reference and the Lewis adduct's partner are declared this way, and the last two now name the empty field in their refusal.
+- **Drawing no longer recomputes everything on every edit.** A canvas edit used to fan out to every descriptor provider, a substance perception and a structure check, so drawing
+  lagged (a median 1.1 s per edit on aspirin, the event loop blocked for up to 4 s -- `benchmarks/visual/README.md`). A canvas edit is now `MoleculeChanged(during_edit=True)`: what only has
+  to *know* acts at once (the version bumps, so results read Stale immediately), and what *computes* waits for `RecalculationDue`, published by `RecalcScheduler` under a policy chosen in
+  Settings > Recalculation: after I pause (default, 800 ms, every edit restarts it), while I draw, or only when I ask (Tools > Recalculate Now, F5). Undo, redo, import and selecting another
+  molecule still recompute at once. Two latent races the pause would have widened are closed with it: an alert or descriptor computed for structure A read as current for B whenever an edit
+  landed mid-run (they were stamped with arrival time, not dispatch time), and an older run finishing late could replace a newer result. Measured on the maintainer's machine over twelve
+  edits of aspirin, a new structure each: edit latency 1,121 ms -> 18 ms (median), the longest the event loop was blocked 3,993 ms -> 93 ms, full recomputations 12 -> 1. A profile of the
+  first "after" run found two more costs, both fixed: the Results reader was rebuilt once per descriptor *event* (now once per turn of the event loop), and the Atom Inspector's atom table
+  was rebuilt with IUPAC locants on every edit (now at the pause). Both tables are in `benchmarks/visual/README.md`; Ketcher's own JavaScript is not measured.
+- **Calculators run from another panel have a real row in Properties.** Vina docking, the seven ORCA jobs and Hardness/Softness were skipped by the launcher and represented by one italic
+  sentence naming a panel, so a person looking for an ab initio NMR found a hint and nothing to press. Each now has a row under **Docking**, **Quantum Chemistry** or **Lewis Acid/Base**
+  ("NMR (raw shielding) > Quantum Chemistry panel"): a button with no tick box and no status chip, which shows that panel with the calculation already chosen and runs nothing.
+  `ServiceExecution` gains a `panel_id`, and a guard holds every one to a panel that exists. The status line beside "Run selected" now says what the tick boxes are for ("Tick boxes to run
+  several at once", then "N ticked - runs with default settings") until a real status replaces it. The Properties panel has 22 sections, not 20.
+- **Two charge methods can finally be compared.** The result store keeps one result per calculator per structure, so running a second model replaced the first and the two could never be
+  on screen together -- the reason comparing methods was hard. The Properties panel now keeps a short pool of the per-atom results a molecule has produced (one per method and parameters),
+  and a Calculator Inspector's new **Compare with...** menu offers the others that can honestly be set beside it and opens one table: a row per atom, a column per method, a shaded
+  **Spread** and each later method's difference from the first. `domain/compare.py` REFUSES what would publish a wrong difference -- a different molecule, an edit between the runs, a
+  drawing beside a conformer, one protonation state beside another, different units or atoms, or the same calculation twice -- and the menu never offers a comparison it would refuse.
+  Not saved with the project. Driven on ethanol: EEM against QEq disagree most at the oxygen (0.09 e).
+- **A note on what Ketcher does when drawing** (`docs/KETCHER_SPIKE.md`), **corrected the same day.** It first said hover-aware hotkeys were native (hover a bond and press 1/2/3) and that a hover
+  could not be produced from automation. Both were wrong. A hover CAN be produced: Ketcher's own tools set it with `editor.hover(editor.findItem(event, null), null, event)`, which needs only a
+  client position, and the key has to be dispatched inside the editor's DOM. With that, hovering an atom and pressing `n` replaces it and `/` over a bond opens its properties dialog, **but a
+  number over a hovered bond changes nothing** -- the bundle's hotkey table has no bond handler. So bond hover+number and click-to-cycle are new work, recorded as an OPEN item in
+  `docs/ARCHITECTURE.md`; `benchmarks/visual/ketcher_hover_keys.json` asserts all three facts, so an editor upgrade that makes a number over a bond native fails it. The `ketcher_hover` step
+  now sets the hover this way and asserts the result, instead of sending a real mouse move that never registered.
+- **Pointing at a bond and pressing 1, 2 or 3 sets its order.** Ketcher does nothing with those keys over a bond, so the page reports the hovered bond and the key and the
+  application makes the change itself (`ChemistryEngine.edit_bond`, pushed as an `EditStructureCommand`), the way the atom menu's changes are made: one undo step, recalculated
+  like any deliberate edit, every other bond and every coordinate untouched (the molfile is edited as drawn rather than sanitised, which would have rewritten a whole kekulé
+  ring). Aromatic, query and wedge/hash/either bonds, and a change that would break a valence, are refused with the reason in the status bar; the order a bond already has is
+  not an undo entry. Pointing at an atom is untouched. **Settings > Drawing** turns it off. Driven in the running app end to end (`benchmarks/visual/bond_order_keys.json`).
+  The Ketcher bundle was rebuilt for this (the main file differs by the new interceptor and two chunk names). **Click-to-cycle is not built:** a click on a bond selects it.
+- **The gate retries a crashed chunk five times, not three.** The Windows disposal crash in `test_result_presentation` hits that chunk about 30% of the time on master as well (measured 3/10 there,
+  2/10 on this branch), so three in a row -- what one gate saw -- is a few percent of gates; five is a fraction of a percent. Only exit 139 is retried; any other non-zero exit is still a result.
+- **Menu shortcuts can be changed: Settings > Keyboard.** Every command in the menus (and Search facts and the Command Palette) is listed with the shortcut it holds; click a box, press
+  a combination, and it applies at once, survives a restart, and can be cleared or reset per command or all at once. A combination another command holds is refused and names that command
+  rather than being taken from it, and one without Ctrl, Alt or Meta (unless a function key) is refused because the drawing canvas owns the bare letters and digits -- these are the
+  window's shortcuts, not the editor's. A stored choice that collides with a key a later release gives another command yields to the shipped default instead of leaving both dead (Qt
+  runs neither of two actions on one key). Commands are named by the key their menu contract already used, and a key several actions share (every panel's View entry) by title, in a way
+  that does not depend on menu order. Driven in the running app, including the real key press (`benchmarks/visual/keyboard_shortcuts.json`).
+- **The atom right-click menu changes the atom.** Ketcher's own menu had these and ours did not, so replacing it took them away: **Change *X* to** C, N, O, S, P, F, Cl, Br, I or H, **Add
+  positive / negative charge**, and **Delete this atom**. Each is an edit of the structure by the chemistry engine pushed as one undoable command (`ChemistryEngine.edit_atom`), so it
+  recomputes like any deliberate change, recomputes the hydrogens the new atom needs (an oxygen turned nitrogen gains its hydrogens: `CCO` -> `CCN`), and a change that would not be a
+  molecule is refused with the reason instead of drawn. A first attempt through Ketcher's own atom and charge tools armed the tool and changed nothing, because its tools read pointer
+  state a synthetic event does not carry; driven through the real menu, all three now work (`benchmarks/visual/atom_menu_changes.json`).
+- **Right-clicking an atom and choosing Edit... now works.** It opened nothing and logged nothing: the menu dispatched Ketcher's `elementEdit` event itself with a bare object, where
+  Ketcher's own callers pass an array of atom objects from the selection and hand the returned promise to an internal function that writes the answer back -- so even a dialog that opened
+  could not have applied its result. It now selects the atom and double-clicks it, which runs Ketcher's own path. Driven on the real page: the Atom Properties dialog is up, Cancel leaves the
+  structure alone, and Apply of a +1 charge turns ethanol into `CC[OH2+]` as one undo entry that Undo reverses.
+- **The Results "Showing" list is readable.** Its popup took the width of the narrow docked box and elided entries such as "Thermophysical Properties (Joback)"; it is now as wide as its
+  longest entry, and each entry carries its full text as a tooltip.
+
 ### Naming round 14 (branch `naming-round-14`)
 
 - **Census 95.70% -> 97.95% exact** (1914 -> 1959 of 2000 structures; no row left `exact`), candidate wrong structures 0.90% -> 0.60%, embedded errors and

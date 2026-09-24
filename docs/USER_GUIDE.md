@@ -145,6 +145,27 @@ options this app only partly mirrors under View ▸ 2D Structure Display),
 and **polymer mode** — Ketcher can *draw* RNA/DNA/peptides, where the
 Macromolecule Viewer only shows one.
 
+**Right-clicking an atom** opens this application's own menu (off an atom,
+Ketcher's opens instead). It changes the atom without leaving the canvas:
+**Change *X* to** a common element (C, N, O, S, P, F, Cl, Br, I, H),
+**Add positive charge** and **Add negative charge**, and **Delete this
+*atom***. Each is one undo step, recalculates like any deliberate edit, and
+recomputes the hydrogens the new atom needs — an oxygen turned nitrogen gains
+the hydrogen nitrogen wants. A change that would not be a molecule (a
+four-bonded neutral nitrogen, say) is refused with the reason in the status bar
+instead of being drawn. **Edit… (the editor's own)** opens Ketcher's Atom
+Properties dialog for anything else — any element, isotope, alias, query
+properties — and applies it as one edit.
+
+**Pointing at a bond and pressing 1, 2 or 3** makes it single, double or
+triple — Ketcher itself does nothing with those keys over a bond. It is one
+undo step and recalculates like any deliberate edit. A bond that is
+aromatic, a query bond, a wedge or hash bond, or one whose change would break
+a valence (a carbon left with five bonds) is left as it was, and the status bar
+says why; a bond that already has that order is left alone without an undo
+step. Pointing at an *atom* is unaffected — those keys still start a bond from
+it. **Edit ▸ Settings… ▸ Drawing** turns this off.
+
 ### Seeing stereochemistry on the 2D canvas
 
 Three separate things, and they are **not** one "show stereo labels"
@@ -738,15 +759,35 @@ the thing that needs the room.
 ## Properties
 
 The Properties panel is where a calculation is **started**, and the
-[Results](#results) panel is where one is **read**. It has **20 collapsible
+[Results](#results) panel is where one is **read**. It has **22 collapsible
 categories** covering **59 registered calculators**; Identity is open by
 default.
 
 Each calculator gets a row: a tick box that adds it to a batch run, a
 **button** labelled with its name and a trailing `…`, and a **status chip**
 saying where it stands — `Not run`, `Running…`, `✓ Ready`, `! Stale`,
-`✕ Failed` or `○ Not applicable`. Pressing the chip opens that result in
-Results.
+`✕ Failed`, `○ Not applicable`, `△ Needs input` or `△ Needs setup`. **Not
+applicable** means the method does not cover this molecule (permanent, not a
+fault); **Needs input** means it does, and wants a value only you can supply —
+the result names which, with units (Detonation wants a loading density and a
+condensed-phase enthalpy of formation); **Needs setup** means it wants
+something configured on this machine, such as a sidecar under Tools > External
+Tools. Pressing the chip opens that result in Results — except for those two
+states, which say what you have to *do* and so take you there: **Needs input**
+opens the calculator's settings with the missing values named above the form
+and the cursor on the first (nothing runs until you press OK), and **Needs
+setup** opens Settings > External Tools on the tab that sets that calculator up.
+Hover the chip to see what it needs before you press it.
+
+Calculators that are run from **another panel** — the ORCA jobs (single point,
+optimisation, frequencies, NMR, coupling, Delta-SCF, LED), Hardness/Softness
+and Vina docking — have a row in Properties too, under **Quantum Chemistry**,
+**Lewis Acid/Base** and **Docking**. It is a button, not a launcher: it has no
+tick box and no status chip, it is labelled with the panel it opens ("Single
+Point Energy > Quantum Chemistry panel"), and pressing it shows that panel with
+the calculation already chosen. Nothing runs until you press Run there, because
+those jobs take a charge, a multiplicity and a method, and "Run selected" never
+includes them.
 
 Scalar descriptors still compute eagerly — the whole batch finishes in well
 under a millisecond, so there is no waiting and no lazy-loading complexity —
@@ -771,6 +812,32 @@ bonded to N, O or S; in 3D, on heavy atoms only, with the molecule turned to
 face you. Every other value is in the table, and appears when you **hover**
 over an atom in the 3D view. The panes and the table can be resized by
 dragging the dividers between them, and the Inspector can be maximised.
+
+**Inspectors do not block anything, and you can have several open.** Run the
+same calculator with two methods and each result opens its own Inspector, titled
+with the calculator and the method, so the two can stand side by side. Asking
+again for a result whose Inspector is already open brings that window forward
+rather than opening a copy; running it again makes a new result, and so a new
+window. Each Inspector holds a web view, so the number open at once is capped,
+and past the cap you are told to close one first.
+
+**Comparing two methods.** Run a second method on the same structure (Partial
+Charge (3D) with a different model, say) and open either result's Inspector:
+**Compare with…** lists the other results it can honestly be set beside, and
+opens one table with a row per atom, a column per method, a **Spread** (largest
+minus smallest, shaded so the atoms the methods disagree about stand out) and,
+for each later method, its **difference from the first**, which is the reference.
+Click a heading to sort; **Copy** puts the table on the clipboard as text.
+
+Only results that describe the *same atoms* are offered: the same molecule,
+the same drawing (edit the structure and the earlier runs drop out — run the
+methods again), the same input (a drawing and a 3D conformer have different
+atoms), the same protonation state and the same units. Anything else is not
+listed, and if you ask for one anyway the window says which of those it is.
+The application keeps one result per calculator per structure in its store, so
+the comparison is drawn from a short list the Properties panel keeps of what
+each method produced since you selected the molecule; it is not saved with the
+project.
 
 When a result was computed on a structure other than the one you drew, the
 Inspector shows that structure. Partial Charge (3D) with **pH-dependent**
@@ -925,6 +992,13 @@ Batch runs use each calculator's **declared defaults and open no dialogs**,
 because answering six settings dialogs to avoid six clicks is not a saving.
 No inspector windows open either. Press the calculator's own button when
 you need non-default settings.
+
+A calculator that has **no usable default** — Detonation, which needs a loading
+density and an enthalpy of formation only you can give, or an alignment that
+needs a reference structure — is **skipped, and the status line says so**,
+naming what it wants, rather than being run to produce a refusal you did not
+ask for. Open it from its own button (or its Needs input chip) to enter the
+values.
 
 Each result appears in its own category as a one-line summary
 ("22 atoms, −0.41 to 0.33 e"); press the calculator's button for the full
@@ -1631,6 +1705,14 @@ always right about which panel it belongs to. F1 follows **keyboard
 focus** — so if you click a panel's tab to bring it forward but then press
 F1 without clicking inside it, you get help for whatever you last typed in.
 
+**Each calculator has its own section.** Right-click a calculator's button
+in Properties and choose **About this calculator**, or press **F1** while
+its button or tick box has focus; the dialog every calculator opens has an
+**About this calculator** button too. All of them land on that calculator's
+own section of the [calculator reference](CALCULATOR_REFERENCE.md): what it
+computes, what it needs, what it refuses and why, and — for a limited or
+specialist calculator — its support level and what it covers.
+
 ---
 
 <!-- help:compare -->
@@ -1660,6 +1742,49 @@ which pastes straight into a spreadsheet.
 
 You can also reach this from any report: right-click it and choose
 **Compare with…**.
+
+---
+
+<!-- help:charge-models -->
+## Comparing partial charge models
+
+Four calculators put a charge on each atom, and **they are different models,
+so they give different numbers for the same atom**. This page says what each
+needs and what each refuses. It does not rank them, because nothing in this
+application has validated any of them against *your* molecule: a charge is a
+model output, not a measurement, and only the **sum** of the charges equals
+the net charge.
+
+| Calculator and method | Runs on | Covers | Refuses |
+|---|---|---|---|
+| **Partial Charge (pH-dependent)** — Gasteiger (PEOE) | the 2D drawing, on its dominant protonation state at the pH you give | computed for every structure tried (see below) | nothing in the structures tried |
+| **Partial Charge (pH-dependent)** — MMFF94 bond-charge increments | the 2D drawing, likewise | molecules MMFF94 has atom types for | a structure MMFF94 has no atom type for (boron trifluoride and xenon difluoride, tried) |
+| **Partial Charge (3D)** — EEM (Bultinck 2002, part I) | a real 3D conformer with explicit hydrogens | H, C, N, O and F, with that paper's own parameters | an element outside those five |
+| **Partial Charge (3D)** — QEq (Rappé and Goddard 1991) | a real 3D conformer with explicit hydrogens | the 16 elements of its Table I | a molecule where its iteration does not settle, or where a charge reaches its bound |
+| **Partial Charge (3D)** — Ionescu EEM (2013) | a real 3D conformer with explicit hydrogens | H, C, N, O, S and Ca; anything else is labelled an extrapolation | sulfur bonded to oxygen, and any charge beyond 2.051 e |
+
+"Tried" means measured on 2026-09-24 over ethanol, tetramethylsilane, sodium
+chloride, ferrocene, boron trifluoride, dimethyl sulfoxide and xenon
+difluoride: Gasteiger returned a number for all seven. **That is not a claim
+that the number means anything for a salt or a metal complex** — it is only that
+the model does not refuse them.
+
+Three things worth knowing before comparing:
+
+- **The 2D and 3D calculators answer different questions.** The pH-dependent
+  ones recompute on the protonation state at the pH you choose and need no
+  conformer. The 3D ones use the conformer you have, with its hydrogens and its
+  net charge as stored, unless you tick *pH-dependent* — then they compute on
+  the dominant ionization state, moving only the hydrogens that were added.
+- **A refusal is information.** A method refusing a molecule says the molecule
+  is outside what it was built for; it is not a fault, and another model
+  refusing the same molecule is not a disagreement.
+- **The same atom under two models is two different quantities.** Run each
+  calculator and read them side by side in [Results](#results), or in the
+  Calculator Inspector, which colours the structure by the values.
+
+Each calculator's own section in the [calculator reference](CALCULATOR_REFERENCE.md)
+gives its options and its limits.
 
 ---
 
@@ -2393,6 +2518,17 @@ kept, which asks first.
   folder. It is offered back at the next launch if the app closed without
   saving, and saving removes it. Turning copies off stops new ones being
   written; a copy already written is still offered.
+- **Recalculation.** When results are recomputed after you draw. **After I
+  pause** (the default) waits until no edit has arrived for a delay you set
+  (800 ms by default, 0 to 5000; every edit restarts it, so a burst of edits is
+  one recomputation). **While I draw** recomputes as soon as the application
+  is free, at most once per moment. **Only when I ask** never recomputes by
+  itself: results read *Stale* until you use **Tools ▸ Recalculate Now** (F5).
+  In every mode the results are marked *Stale* the instant you edit, because a
+  result for a structure that is gone is not current; this only decides when
+  they are refreshed. Undo, redo and importing always recompute at once, and
+  so does selecting another molecule. Recomputing fifty results for every bond
+  drawn is what made drawing lag.
 - **Results.** How many versions of each molecule keep their results in
   memory, 8 by default. The drawing and its 3D conformers are counted
   separately, so a new conformer search never pushes out the results of the
@@ -2401,6 +2537,33 @@ kept, which asks first.
   the older results straight away, after telling you how many. Your
   molecules and undo are not affected. A saved project holds only each
   molecule's current results, whatever this is set to.
+- **Calculators.** Some calculators are not offered in the Properties panel
+  by default, because they refuse most of what people draw or need inputs no
+  structure can supply: **Thermophysical Properties (Joback)** has no group
+  for a ring tertiary amine, so it refuses RDX, HMX and many drugs while
+  running TNT and PETN, and **Detonation** is a specialist estimate that needs
+  a loading density and a measured enthalpy of formation. Properties says how
+  many are hidden ("N calculators hidden by default — Settings…", which opens
+  this page). Here each is named with its support level, **why** it is not
+  offered, what it covers, and a **Learn more** button that opens its own
+  section of the [calculator reference](CALCULATOR_REFERENCE.md). One setting
+  offers all of them; a tick beside a calculator offers or withdraws just that
+  one, and always wins; **Reset to defaults** forgets both. This changes only
+  what is offered — nothing is run or removed, the Help for a hidden
+  calculator stays available, and results already computed stay readable.
+- **Drawing.** Whether a number key over a hovered bond sets its order (on by
+  default; see the drawing section above). Off hands the keys back to the
+  editor, which does nothing with them over a bond.
+- **Keyboard.** Every menu command with the shortcut it holds (Search facts and the
+  Command Palette too). Click a box and press the combination you want; it applies
+  at once and is remembered. The ✕ in the box clears a command's shortcut, **Reset**
+  puts one back to the shortcut it shipped with, and **Reset all to defaults** puts
+  every one back. A combination another command already uses is refused, and the page
+  names that command so you can clear it first; a combination needs Ctrl, Alt or Meta
+  (or is a function key), because the drawing canvas uses the bare letters and digits.
+  These are the window's shortcuts only: the keys typed while drawing belong to the
+  editor and are not changed here. The search box narrows the list by name or by
+  shortcut.
 - **File dialogs.** Each kind of file dialog opens where it was last used:
   projects, molecules, and macromolecules with crystal structures. **Forget**
   sends one back to your Documents folder.

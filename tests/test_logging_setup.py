@@ -123,3 +123,51 @@ def test_rotation_is_bounded(isolated_root):
     handler = _file_handlers()[0]
     assert handler.maxBytes > 0
     assert handler.backupCount > 0
+
+
+def test_a_scripted_run_writes_its_own_file_and_leaves_the_sessions_alone(isolated_root, monkeypatch):
+    """Two processes rotating one file fails on Windows (WinError 32), and a
+    byte range in a shared file is not the run's output. A driven run therefore
+    gets `drive-<pid>.log`, and `openchem.log` -- the person's own session --
+    is neither opened nor created."""
+    import os
+
+    monkeypatch.setenv("OPENCHEM_DRIVE", "some-script.json")
+    logging_setup.configure_logging()
+    logging.getLogger("openchem.services").error("a driven record")
+    for handler in _file_handlers():
+        handler.flush()
+
+    path = logging_setup.log_file_path()
+    assert path.name == f"drive-{os.getpid()}.log"
+    assert "a driven record" in path.read_text(encoding="utf-8")
+    assert not (isolated_root / "logs" / logging_setup.LOG_FILENAME).exists()
+
+
+def test_an_ordinary_run_still_writes_openchem_log(isolated_root, monkeypatch):
+    monkeypatch.delenv("OPENCHEM_DRIVE", raising=False)
+    assert logging_setup.log_file_path().name == logging_setup.LOG_FILENAME
+
+
+def test_old_driven_run_logs_are_pruned_and_the_sessions_log_is_never_touched(isolated_root, monkeypatch):
+    import os
+
+    logs = isolated_root / "logs"
+    logs.mkdir(parents=True, exist_ok=True)
+    session = logs / logging_setup.LOG_FILENAME
+    session.write_text("the person's own session", encoding="utf-8")
+    for n in range(25):
+        old = logs / f"drive-{100000 + n}.log"
+        old.write_text("old run", encoding="utf-8")
+        os.utime(old, (1_000_000 + n, 1_000_000 + n))  # a strictly increasing age
+    (logs / "drive-100000.log.1").write_text("its rotation", encoding="utf-8")
+
+    monkeypatch.setenv("OPENCHEM_DRIVE", "some-script.json")
+    logging_setup.configure_logging()
+
+    left = sorted(p.name for p in logs.glob("drive-*.log"))
+    assert len(left) == logging_setup._DRIVE_LOGS_KEPT + 1  # the kept ones plus this run's own
+    assert "drive-100000.log" not in left  # the oldest went
+    assert not (logs / "drive-100000.log.1").exists()  # and took its rotation with it
+    assert f"drive-{100000 + 24}.log" in left  # the newest survived
+    assert session.read_text(encoding="utf-8") == "the person's own session"

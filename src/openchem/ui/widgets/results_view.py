@@ -52,6 +52,7 @@ import logging
 from dataclasses import replace
 
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QFontMetrics
 from PySide6.QtWidgets import (
     QComboBox,
     QHBoxLayout,
@@ -63,6 +64,7 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.domain.common import CacheState, describe_failure
+from openchem.domain.completeness import completeness_of
 from openchem.domain.merged_results import MergedResults, merge_reports
 from openchem.domain.reader_state import (
     NO_MOLECULE,
@@ -70,6 +72,7 @@ from openchem.domain.reader_state import (
     ReaderView,
     reader_state,
 )
+from openchem.domain.refusal_kinds import RefusalKind, refusal_kind_of_result
 from openchem.domain.report import FactLink
 from openchem.domain.result_ordering import grouped_reports, matching_reports
 from openchem.domain.structure_issue import Severity
@@ -687,7 +690,36 @@ class ResultsView(QWidget):
                     label += STALE_MARK
                 self._focus_box.addItem(label, report.report_id)
         self._focus_box.blockSignals(blocked)
+        self._fit_focus_popup()
         self._sync_focus_box()
+
+    def _fit_focus_popup(self) -> None:
+        """Make the "Showing" list as wide as its longest entry, and say each in full.
+
+        **THE POPUP TOOK THE COMBO'S OWN WIDTH, AND THE COMBO LIVES IN A DOCKED
+        COLUMN.** Measured in the running app: entries like "Thermophysical
+        Properties (Joback)" and "Interaction energy breakdown (LED)" were elided
+        to a fragment in a list that had all the room in the world to be wider than
+        the box that opened it. The closed control stays as narrow as the column
+        needs; only the popup widens, and it never narrows below the control.
+
+        A tooltip carries each entry's full text as well, for the case where even
+        the widened popup is clipped by the edge of the screen.
+        """
+        box = self._focus_box
+        widest = 0
+        for index in range(box.count()):
+            text = box.itemText(index)
+            font = box.font()
+            model = box.model()
+            item = model.item(index) if hasattr(model, "item") else None
+            if item is not None:
+                font = item.font()
+            widest = max(widest, QFontMetrics(font).horizontalAdvance(text))
+            box.setItemData(index, text, Qt.ItemDataRole.ToolTipRole)
+        scrollbar = box.view().verticalScrollBar().sizeHint().width()
+        # The list's own frame and item padding, and room for the scrollbar.
+        box.view().setMinimumWidth(max(box.width(), widest + scrollbar + 32))
 
     def _add_group_heading(self, label: str) -> None:
         """A row that names a section and cannot be chosen.
@@ -946,6 +978,7 @@ class ResultsView(QWidget):
                 self._status_line(report),
                 self._verdict_line(report),
                 self._empty_line(report),
+                self._partial_line(report),
                 self._stale_line(report),
             )
             if text
@@ -1036,8 +1069,36 @@ class ResultsView(QWidget):
         _cell, reason = describe_failure(
             getattr(report, "error", None), getattr(report, "error_summary", None)
         )
-        lead = "Not applicable" if getattr(report, "inapplicable", False) else "This did not run"
+        # The KIND of the refusal picks the lead (`domain.refusal_kinds`), so
+        # "type in a loading density" and "this method does not cover the
+        # molecule" no longer open with the same words. Before the legacy flag,
+        # because a needs-input refusal is not a limit and carries none.
+        kind = refusal_kind_of_result(report)
+        if kind is RefusalKind.NEEDS_INPUT:
+            lead = "Needs input"
+        elif kind is RefusalKind.NEEDS_SETUP:
+            lead = "Needs setup"
+        elif kind is RefusalKind.LIMIT or getattr(report, "inapplicable", False):
+            lead = "Not applicable"
+        else:
+            lead = "This did not run"
         return f"{lead}: {reason}"
+
+    def _partial_line(self, report) -> str:
+        """Say that the result skipped something, before anyone reads an absence.
+
+        **A PARTIAL "NOTHING FOUND" MUST NOT READ AS A COMPLETE ONE**
+        (`domain.completeness`). The instances named are the ones the
+        producer could not evaluate, so a feature missing from the facts
+        below may simply not have been checked for them.
+        """
+        completeness = completeness_of(report)
+        if completeness is None or not completeness.partial:
+            return ""
+        shown = ", ".join(completeness.skipped[:3])
+        more = len(completeness.skipped) - 3
+        tail = f" and {more} more" if more > 0 else ""
+        return f"Partial result: could not evaluate {shown}{tail}. {completeness.reason}".rstrip()
 
     def _stale_line(self, report) -> str:
         return (

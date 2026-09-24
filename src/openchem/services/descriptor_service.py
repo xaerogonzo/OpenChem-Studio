@@ -16,6 +16,8 @@ from openchem.chem.calculation_input import (
 from openchem.chem.descriptor_providers import DescriptorProvider, RDKitDescriptorProvider
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.calculator import DRAWING, CalculationRefusal, CalculationRequest
+from openchem.domain.refusal_kinds import MissingInput, RefusalKind, refusal_parameters
+from openchem.domain.input_snapshot import InputSnapshot, snapshot_model
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.molecule import MoleculeModel
@@ -70,12 +72,17 @@ class _DescriptorComputeTask(QRunnable):
         model: MoleculeModel,
         event_bus: EventBus,
         calculation_input: str = DRAWING,
+        structure_version: int | None = None,
     ) -> None:
         super().__init__()
         self._provider = provider
         self._engine = engine
         self._model = model
         self._event_bus = event_bus
+        #: The structure version this run was dispatched against, read on the calling
+        #: thread. Carried on the alerts it publishes (`AlertComputed`), which have no
+        #: field of their own for it.
+        self._structure_version = structure_version
         # WHICH STRUCTURE, stated as a POLICY rather than handed in as a
         # resolved molblock. See DescriptorService.request_descriptors.
         self._calculation_input = calculation_input
@@ -112,7 +119,9 @@ class _DescriptorComputeTask(QRunnable):
             self._fail_descriptors(exc, categories)
         else:
             for value in values:
-                self._event_bus.publish(DescriptorComputed(descriptor=value))
+                self._event_bus.publish(
+                    DescriptorComputed(descriptor=value, structure_version=self._structure_version)
+                )
                 self._record(value)
 
         try:
@@ -122,7 +131,9 @@ class _DescriptorComputeTask(QRunnable):
             self._part_failed = True
         else:
             for alert in alerts:
-                self._event_bus.publish(AlertComputed(alert=alert))
+                self._event_bus.publish(
+                    AlertComputed(alert=alert, structure_version=self._structure_version)
+                )
                 self._record(alert)
 
         try:
@@ -207,7 +218,9 @@ class _DescriptorComputeTask(QRunnable):
             error=error,
             timestamp=time.time(),
         )
-        self._event_bus.publish(DescriptorComputed(descriptor=descriptor))
+        self._event_bus.publish(
+            DescriptorComputed(descriptor=descriptor, structure_version=self._structure_version)
+        )
         # RUNNING placeholders are never recorded: they are a statement about
         # a run in progress, and replaying one would claim work is happening.
         if record:
@@ -398,12 +411,20 @@ class _CalculationTask(QRunnable):
             # the sixty calculators or in each panel that displays one.
             result = _with_structure_version(result, self._structure_version_of)
         except CalculationRefusal as refusal:
-            # A DECLINE, not a crash: no traceback in the log, and the code
-            # and both sentences reach the result (round 5, branch S2).
-            logger.info("Calculator %s refused: %s", self._request.calculator_id, refusal.code)
+            # A DECLINE, not a crash: no traceback in the log, and the code,
+            # both sentences and the KIND reach the result (round 5, branch
+            # S2). A refusal with no kind is a FAULT (`CalculationRefusal`),
+            # so it is logged as one: a code nobody classified must surface
+            # in a driven run's ledger rather than read as a quiet limit.
+            log = logger.info if refusal.kind is not None else logger.warning
+            log(
+                "Calculator %s refused: %s%s", self._request.calculator_id, refusal.code,
+                "" if refusal.kind is not None else " (no refusal kind -- unclassified code)",
+            )
             self._publish_failed(
                 refusal.detail, summary=refusal.summary, code=refusal.code,
-                inapplicable=refusal.inapplicable,
+                inapplicable=refusal.inapplicable, kind=refusal.kind,
+                missing_inputs=refusal.missing_inputs, classified=refusal.classified,
             )
             return
         except Exception as exc:  # noqa: BLE001 - a bad calculator must not kill the pool
@@ -422,7 +443,12 @@ class _CalculationTask(QRunnable):
             # one ever does.
             self._event_bus.publish(ReportComputed(report=result))
         elif isinstance(result, AlertResult):
-            self._event_bus.publish(AlertComputed(alert=result))
+            dispatched = (
+                self._structure_version_of(self._request.molecule_uuid)
+                if self._structure_version_of is not None
+                else None
+            )
+            self._event_bus.publish(AlertComputed(alert=result, structure_version=dispatched))
         elif isinstance(result, SpectrumResult):
             self._event_bus.publish(SpectrumComputed(
                 spectrum=result,
@@ -489,7 +515,15 @@ class _CalculationTask(QRunnable):
         )
 
     def _publish_failed(
-        self, message: str, *, summary: str | None = None, code: str = "", inapplicable: bool = False
+        self,
+        message: str,
+        *,
+        summary: str | None = None,
+        code: str = "",
+        inapplicable: bool = False,
+        kind: RefusalKind | None = None,
+        missing_inputs: tuple[MissingInput, ...] = (),
+        classified: bool = True,
     ) -> None:
         # Empty PerAtomDataset is the only "there was a problem" shape
         # every current consumer (PropertyPanel, Calculator Inspector)
@@ -507,9 +541,14 @@ class _CalculationTask(QRunnable):
             error_summary=summary,
             inapplicable=inapplicable,
             # The refusal CODE where `debug_drive.result_report` and the
-            # multicomponent guard read every other calculator's.
+            # multicomponent guard read every other calculator's -- and its
+            # KIND and any named inputs beside it, assembled by
+            # `refusal_parameters` so a batch cell says the same thing.
             provenance=(
-                Provenance(created_by="core", method=self._request.calculator_id, parameters={"refusal": code})
+                Provenance(
+                    created_by="core", method=self._request.calculator_id,
+                    parameters=refusal_parameters(code, kind, missing_inputs, classified=classified),
+                )
                 if code else None
             ),
         )
@@ -566,10 +605,19 @@ class DescriptorService:
         type. Named to avoid colliding with
         `QuantumChemistryService.request_calculation`, an unrelated
         existing ORCA-specific method."""
+        # **FROZEN HERE, ON THE CALLING THREAD, AND THE WORKER READS NOTHING
+        # ELSE.** The task used to be handed the live model and read it at
+        # several moments while the GUI kept editing, then stamped the result
+        # with the structure version as it stood WHEN THE RESULT CAME BACK --
+        # so a value computed for structure A that finished after an edit to B
+        # read as current for B. See `domain.input_snapshot`.
+        snapshot = InputSnapshot.capture(model, self._structure_version_of)
+        dispatched_version = snapshot.structure_version
         self._pool.start(
             _CalculationTask(
-                self._calculator_registry, self._engine, model, request,
-                self._event_bus, self._structure_version_of,
+                self._calculator_registry, self._engine, snapshot.model, request,
+                self._event_bus,
+                (lambda _uuid, _v=dispatched_version: _v) if dispatched_version is not None else None,
                 # BY ID, not by a flag from the caller: seventeen test doubles
                 # implement `run_calculator(model, request)` exactly, and the
                 # fact "this calculator is part of the always-on set" belongs
@@ -631,6 +679,14 @@ class DescriptorService:
             # (see MoleculeEditorWidget -> EditStructureCommand -> the
             # MoleculeChanged handler that re-requests descriptors).
             return
+        # ONE snapshot for the whole request, so every provider describes the
+        # same structure even if the GUI edits between two `pool.start` calls.
+        snapshot = snapshot_model(model)
+        # Read HERE, on the calling thread, and handed to every task: the version at the
+        # moment of dispatch, which is what the alerts they publish describe.
+        dispatched_version = (
+            int(self._structure_version_of(model.uuid)) if self._structure_version_of is not None else None
+        )
         for provider in self._providers:
             # `only_providers` is how a partial restore reruns just the part
             # that did not come back, rather than the whole set.
@@ -648,9 +704,13 @@ class DescriptorService:
                             provider=provider.provider_id,
                             molecule_uuid=model.uuid,
                             cache_state=CacheState.QUEUED,
-                        )
+                        ),
+                        structure_version=dispatched_version,
                     )
                 )
             self._pool.start(
-                _DescriptorComputeTask(provider, self._engine, model, self._event_bus, calculation_input)
+                _DescriptorComputeTask(
+                    provider, self._engine, snapshot, self._event_bus, calculation_input,
+                    structure_version=dispatched_version,
+                )
             )

@@ -41,6 +41,7 @@ from rdkit.Geometry import Point3D
 from openchem.chem.calculator_options import decimals
 from openchem.domain.alignment import EnsembleEntry
 from openchem.domain.calculator import INPUT_REQUIRED
+from openchem.domain.refusal_kinds import MissingInput, RefusalKind, refusal_parameters
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.scientific_result import StructureEntry, StructureSetResult
 
@@ -661,7 +662,13 @@ def align_ensemble(
     return entries
 
 
-def _failed(molecule_uuid: str, message: str, code: str = "") -> StructureSetResult:
+def _failed(
+    molecule_uuid: str, message: str, code: str = "", missing: tuple[MissingInput, ...] = ()
+) -> StructureSetResult:
+    # `missing` names the calculator's own parameters (see `MissingInput`), so the
+    # launcher can open the settings dialog on the field that is empty rather than
+    # leave the reader to parse the sentence.
+    parameters = refusal_parameters(code, RefusalKind.NEEDS_INPUT if missing else None, missing) if code else {}
     return StructureSetResult(
         set_id="alignment_3d",
         name="3D Alignment",
@@ -672,7 +679,7 @@ def _failed(molecule_uuid: str, message: str, code: str = "") -> StructureSetRes
         error=message,
         # The code a view and the multicomponent guard read; an input the
         # user must supply is INPUT_REQUIRED, a fault they can fix.
-        provenance=Provenance(created_by="core", method="rdkit_o3a", parameters={"refusal": code} if code else {}),
+        provenance=Provenance(created_by="core", method="rdkit_o3a", parameters=parameters),
     )
 
 
@@ -694,6 +701,7 @@ def compute_3d_alignment(
             molecule_uuid,
             "Enter a reference structure as SMILES -- this molecule will be aligned onto it.",
             INPUT_REQUIRED,
+            (MissingInput("reference_smiles"),),
         )
     reference = Chem.MolFromSmiles(reference_smiles)
     if reference is None:

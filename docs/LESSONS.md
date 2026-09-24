@@ -21245,3 +21245,168 @@ carboxamide disagreed about indometacin), so the consumer set is a fast loop and
 * A pinned score dict (`{"engine": .., "pubchem": ..}`) is a contract: adding `known_deviation` to it failed one existing test,
   which is the right place to be told.
 * `python3` in a heredoc can hang on this machine (a Store alias); run scripts with `.venv/Scripts/python.exe`.
+
+## A CRASH WAS LOGGED FIVE TIMES AND NOTHING FAILED, BECAUSE NO RUN ASKED WHAT THE APP SAID
+
+Measured 2026-09-24 in a live session on 1,3-dinitro-1,3-diazetidine. The Console held five identical tracebacks in forty seconds, one
+per edit: `fg:hydrazine` matched every nitramine's N-N bond, so `detect_features` raised `UndeclaredChargeState` and one nitramine
+took every functional-group alert for its molecule with it. The window stayed up, every panel rendered, and no driven check this
+project had ever run would have ended in anything but exit code 0 and a screenshot that looked fine. `tests/multicomponent_sweep.py`
+had recorded the same blind spot in its own docstring ("the eager provider LOGS an alert or per-atom failure and records nothing")
+and it was never asked about again.
+
+* **A check that only photographs has no opinion about the log.** The driver could assert on what a panel held and never on what
+  the application said was wrong. `src/openchem/app/drive_ledger.py` now keeps every WARNING-and-above record, and a run ends in a verdict and an
+  exit status. Proven the right way round: with the pattern fix reverted, `benchmarks/visual/energetic_nitramine_ledger.json` exits 1
+  and names `UndeclaredChargeState @ structural_features.py:352`; restored, it passes.
+* **Key a repeated failure by where it happened, not by what it said.** The message changed on every edit (the atom indices), the
+  frame did not. The key is (logger, exception type, innermost frame, message with its numbers collapsed), so two different
+  failures that share a first line stay apart and one failure firing five times is one entry.
+* **The driver's own records are results, not noise, and must not be counted as the application's.** Its WARNING progress lines are
+  dropped; its ERRORs (`no molecule selected`, `EXPECT ... FAILED`) are the run failing to do what the script asked, and until now
+  they were a line in a log with an exit code of 0.
+* **An empty ledger passes for the wrong reason as easily as a full one fails for the right one.** A molecule that never ran the
+  breaking code, or a script that never drew it, also logs nothing. `expect_clean` therefore never stands alone: `expect_results`
+  asserts what Properties actually holds (here the nitro alert and no hydrazine).
+* **The pattern was wrong in three places, and only one was ever corrected.** The basic-amine SMARTS was written out in the pKa/logD
+  code, the hERG checklist and the common-pattern search list. It now has one definition (`logd.BASIC_AMINE_SMARTS`) with a test that the
+  other two import it. The same nitramine nitrogen was also counted as a base, which is why solubility said "Failed" for a molecule
+  with nothing to ionise.
+* **Fixing a refusal can expose the number it was hiding.** With the base count corrected, ESOL now answers for a nitramine; it
+  gives 188 mg/mL for this molecule and 236 mg/mL for RDX, because Crippen logP is negative for them (-1.10 and -1.65). That
+  number was already in the always-on descriptors before the fix, so nothing new was shipped, but the calculator's "Failed" had been
+  covering for it. Recorded for the census, not fixed here: the experimental solubilities were recalled, not sourced, so the size of
+  the error is unverified.
+* **Two processes cannot share one rotating log on Windows.** `RotatingFileHandler` renames the file at 2 MB and the rename fails
+  (`WinError 32`) while another process has it open, so a driven run started beside the person's own session printed a logging error on
+  every record. A scripted run now writes `drive-<pid>.log` (newest twenty kept), which also makes a report's log range the run's own.
+* **Smaller things measured:** nitroguanidine's two NH2 are still counted as bases (a guanidine N on a nitroimine); the Solubility
+  calculator's default `compare_models=True` also runs AqSolDB in the ADMET sidecar, about five minutes, for every default run
+  including "Run selected"; and a scripted `calculator` step must set `compare_models: false` to be a quick check.
+
+
+## A REFUSAL WAS CORRECT AT THE SERVICE AND "FAILED" ON SCREEN, BECAUSE THE PANEL FILES A SUMMARY
+
+Measured 2026-09-24 while giving Kamlet-Jacobs Detonation a `NEEDS_INPUT` refusal kind (`domain/refusal_kinds.py`). The calculator raised the
+right refusal, `DescriptorService` published it with the kind and both missing inputs in `provenance.parameters`, and the focused tests
+(`status_of` on the published result: `needs_input`) were green. Driving the real application on the same nitramine and asserting with
+`expect_results` said `detonation: status 'failed', wanted 'needs_input'`.
+
+* **The panel does not hold the result; it holds `summarise(result)`.** `ResultSummaryView` is a fixed projection that carries
+  `cache_state`, `error`, `error_summary` and `inapplicable` and nothing else, so the one place `status_of` looks for a refusal's
+  kind (`provenance.parameters`) was not there. It is the third time a projection has dropped a field the status needed
+  (`report_from_alert` also dropped `inapplicable` and `error_summary`, which is why a refused alert could read as a fault).
+  `ResultSummaryView` now carries `provenance` whole, and `expect_results` gained `missing_inputs`.
+* **A test of the layer that produces a value is not a test of the layer that shows it.** Both regression tests now sit at the
+  projection (`summarise`, `report_from_alert`), and each was broken on purpose before being believed (drop the carried field: the
+  summary test fails on `'failed' == 'needs_input'`).
+* **The `refusal` assertion had the same blind spot for longer.** On a summarised result it read `parameters.get("refusal", "")`
+  from a view with no provenance, so it could only ever match `""` there. Nothing had asserted a refusal code on a per-atom,
+  spectrum, curve or structure-set result.
+
+
+## A DEBOUNCE TURNED "CLOSE ENOUGH" INTO A WRONG ANSWER, AND THE PROFILE FOUND TWO COSTS NOBODY HAD NAMED
+
+Measured 2026-09-24 while making a canvas edit stop recomputing everything (`RecalcScheduler`, `domain/recalc_policy.py`). Twelve edits of
+aspirin cost a median 1.1 s each with the event loop blocked for up to 4 s, because every edit fanned `MoleculeChanged` out to every descriptor
+provider. Deferring that to a pause was the plan; what the measurements added is below.
+
+* **A documented limitation is a promise that its condition holds.** `_on_alert_computed` stamped an alert with the structure version at ARRIVAL and said
+  so: "an edit landing mid-run would make this look current. It is close enough on this path because the alert batch re-runs on every structure
+  change." A recompute that waits for a pause makes the run finish AFTER the next edit, so the comment's own condition stopped being true and the
+  limitation became a wrong answer -- a value computed for structure A reading as current for B. The events now carry the version the run was
+  DISPATCHED against (`AlertComputed.structure_version`, `DescriptorComputed.structure_version`), and a run finishing late can no longer replace a newer
+  one. The same change made the reader's "Molecular Properties" entry as current as its OLDEST part, so it reads Stale during the pause instead of
+  claiming the new structure.
+* **Profile the burst that is left, not the one you expected.** After the pause, cProfile over one burst (`edit_burst` with `"profile": true`, GUI thread
+  included) named two costs the plan had not: the Results reader was rebuilt once per descriptor EVENT (144 rebuilds of ~60 rows, 1.4 s -- also why a
+  REPLAY with zero recomputation cost 1.1 s), and the Atom Inspector rebuilt its atom table with IUPAC locants on every undo-stack index change
+  (12 rebuilds, ~90 ms each, 80% of an edit's synchronous cost). Both are fixed, and the second is why even the "while I draw" mode, the like-for-like of
+  the old behaviour, now blocks the loop 124 ms against 3,993 ms.
+* **A benchmark's second run measures the cache.** The first version alternated two structures and reported one recompute for twenty edits, which
+  would have read as "there is already a debounce"; later bursts over an earlier burst's structures were replayed from the result store and
+  showed `results_recorded` 0. Each recorded burst now starts from a different base structure, and a warm-up burst precedes them.
+* **Coalescing a refresh moves a contract into every test that reads through it.** Fifteen tests published descriptors and read the reader at once; they
+  now let the event loop turn once. That is the documented contract of `_refresh_reader_soon`, and only the descriptor flood is coalesced -- a single
+  report still refreshes synchronously, so the many tests and callers that read straight after one are untouched.
+* **The driven `erase` step now needs `after_ms` for the pause.** A canvas edit recomputes after 800 ms by default, so a script that reads results
+  right after it reads them Stale. Said in CLAUDE.md beside the step.
+
+## THE STORE KEPT ONE RESULT PER CALCULATOR, WHICH WAS THE REAL REASON COMPARING METHODS WAS HARD
+
+Measured 2026-09-24 building the per-atom Compare. "Hard to compare methods" read as a missing window. The result store's slot is
+(result id, calculation input, fingerprint, method version) -- NOT its parameters -- so running a second charge model REPLACED the first, in the
+store and in the panel (`_retained_results[property_id]`). Two methods could never be on screen together.
+
+* **So the first thing built was a pool, and the second was the rule that says when it may be used.** The panel keeps one per-atom result per
+  property, method AND parameters for the selected molecule (memory only, cleared on selection); `domain/compare.py` refuses what would publish a wrong
+  difference (different molecule; an edit between the runs; a drawing beside a conformer; one protonation state beside another, because a
+  microspecies is keyed by its OWN structure; different units or atoms; one calculation twice), and the menu is built from the same rule.
+* **A dataset can carry its own structure, and that must be in the identity.** `PerAtomDataset.structure_fingerprint` exists because the pH-dependent
+  charges are computed on a microspecies whose atoms are renumbered where a proton leaves; two of them at different pH share the drawing's fingerprint
+  and are not comparable. The first draft of the rule missed it, and reading that field's own comment is what found it.
+* **The photograph found what the tests could not.** Forty-character column headings over four-character numbers, and a last column that elided; long
+  names now split at their first parenthesis with the whole text in a tooltip.
+
+## THE FIRST FIX CHECKED THE DISPATCH, THE PAGE HAD NO DIALOG, AND THE SECOND FIX ARMED A TOOL AND CHANGED NOTHING
+
+Measured 2026-09-24 on the atom right-click menu. "Edit... fails" was reported with the cause unproven. A probe of the PAGE (`ketcher_eval`) showed the
+atom was found and no dialog appeared, with nothing logged: the menu dispatched Ketcher's `elementEdit` with a bare object, where Ketcher's own callers
+pass an array of atom objects from the selection and feed the returned promise to an internal `updateSelectedAtoms`, which is what writes the answer
+back. Fixed by selecting the atom and dispatching a `dblclick` at its position, which runs Ketcher's own path.
+
+* **Assert from the page, not from the call.** A check that the dispatch happened would have passed on the broken version. `atom_editor` asserts
+  Ketcher's Atom Properties dialog is up, that Cancel changes nothing, and that Apply of a +1 charge gives `CC[OH2+]` as ONE undo entry.
+* **A synthetic event is not a pointer.** The same route was tried for "Change X to" and "Add charge": the atom/charge tool armed, the delivered
+  click changed nothing, because Ketcher's tools read pointer state (hover, drag context) that a `dispatchEvent` does not carry -- the wall the
+  hover-hotkey spike also met, with both DOM events and real `QTest` mouse events (`docs/KETCHER_SPIKE.md`). That attempt was reverted. The project's own rule
+  was the better route: a structure-modifying action is an `EditStructureCommand`, so the change is made by `ChemistryEngine.edit_atom` and is one undo entry.
+* **Two unrelated traps in the same hour.** RDKit RAISES `RuntimeError` for an element symbol it does not know instead of returning -1, and
+  `QMenu.addMenu(title)` returns a Python-owned wrapper, so the submenu's C++ object is deleted when the builder returns; create it WITH its parent.
+* **A React input needs the native setter, and an INPUT.** Assigning `.value` is ignored by the form, and the native setter throws "Illegal
+  invocation" on a wrapper element that carries the same `data-testid`.
+
+
+## A TYPO PARSED AS "NO SHORTCUT", TWO ACTIONS ON ONE KEY RUN NEITHER, AND A GATE'S THREE CRASHES IN A ROW WERE LUCK
+
+Measured 2026-09-24 making menu shortcuts changeable (`ShortcutRegistry`, Settings > Keyboard), and reading the gate that followed.
+
+* **Text Qt cannot read is not an empty sequence.** `QKeySequence.fromString("banana")` has `isEmpty()` false and `count() == 1`: one "unknown" key whose
+  portable text is `""`. The first version normalised the text and THEN validated it, so a typo became `""`, which is the valid request to clear -- a
+  mistyped rebind silently removed the command's shortcut. Found by the test written for "unreadable text is refused", not by reading the code. Validation
+  now judges the text AS GIVEN, and both entry points (a stored value at startup, a person's recording) go through it.
+* **Two actions on one shortcut are ambiguous and Qt runs neither.** A stored choice can collide with the default a later release gives another command,
+  and applying choices one at a time is order-dependent: it either refuses a legitimate swap of two commands' keys (each choice is the other's default)
+  or leaves both dead. Startup now resolves the whole intended map first, drops only the colliding CHOICES (with a warning; the shipped default keeps
+  the key) and repeats until stable, since a returned default can collide in turn. A swap collides with nothing once both apply and is kept whole.
+* **`action.shortcut()` correct says nothing about Qt's shortcut map.** The property the feature is for -- the new key fires the command and the old one
+  no longer does -- is tested by `QTest.keyClick` at the active window, and a driven step presses the real keys in the running app. The first probe
+  "did nothing" for a boring reason: the action chosen (Recalculate Now) is disabled while nothing is pending, and a disabled action ignores its
+  key. The recorder was checked the same way: pressing Ctrl+Z INTO the box records it and names Undo as the holder rather than running Undo.
+* **Three consecutive gate crashes are not a deterministic crash.** The final gate on b3510161 passed everything except chunk s2c7, which died three
+  times running in `test_result_presentation.py::_dispose` (exit 139) -- the known Windows disposal crash, which the gate tool's own comment calls
+  "deterministic per chunk composition". Replaying that exact chunk with the gate's command on an idle machine crashed 2 of 10 on the branch and 3 of
+  10 on a detached MASTER tree's equivalent chunk (same file, plus once `test_screening_service`), and every run that did not crash passed all 673
+  tests. At a rate near 30%, three in a row is a few percent per gate, which is what makes it look deterministic. The attribution took twenty minutes and
+  one worktree; the three-attempt retry was thin for the one chunk that holds this file (the gate now retries five times).
+
+
+## TWO FAILED ROUTES WERE WRITTEN UP AS "IMPOSSIBLE", AND THE FEATURE THE NOTE ASSUMED WAS NOT THERE EITHER
+
+Measured 2026-09-24, revisiting the drawing spike a few hours after writing it. The note said a hover could not be produced from automation and
+that hovering a bond and pressing a number was native to Ketcher. Both were wrong, and each was checkable in twenty minutes.
+
+* **"Neither route I tried worked" is not "it cannot be done".** A synthetic DOM `mousemove` and a real Qt mouse-move both left the `hover` flag false,
+  and the note concluded a hover was unavailable to automation. Ketcher's own tools set the flag with one call (`editor.hover(editor.findItem(event,
+  null), null, event)`), and `findItem` needs only a client position. The wall was that the routes tried went through the browser's pointer plumbing,
+  which is not what the hotkeys read. The step that reads the bundle for how the SAME state is set by its owner comes before the step that tries
+  ways to fake the input.
+* **A claim read from code needs a positive control, and then a negative one.** "Hover-aware hotkeys are native" was read from `handleHotkeyOverItem`
+  and repeated. Once a hover could be produced, the control (hover an atom, press `n` -> nitrogen) passed, and the bond case (hover a bond, press
+  `2`) changed nothing: the key is handled and `getToolHandler` has handlers for atoms and s-groups, none for bonds. Without the control, "the bond
+  did not change" would have read as a broken probe; without the bond case, the control would have confirmed the wrong claim.
+* **The key must be dispatched where the listener is.** Dispatched on `document` the event was never seen (`prevented=false`); dispatched inside the
+  editor's DOM it was (`prevented=true`). The listener is attached to the app's own element, found by reading `initKeydownListener`, not by trying
+  targets.
+* **The note is now a guard.** `benchmarks/visual/ketcher_hover_keys.json` asserts all three facts, so an editor upgrade that makes a number over a
+  bond native fails it and tells whoever is there to stop maintaining a gesture Ketcher now owns.

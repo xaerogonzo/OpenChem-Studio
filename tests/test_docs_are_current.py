@@ -492,6 +492,32 @@ def _plugins_registering_reactions(root: Path) -> list[str]:
 #: silently fall behind the document.
 DEFERRALS: list[Deferral] = [
     Deferral(
+        claim="a bond's order cannot be changed by clicking it",
+        # Unbuilt while the page has no click interceptor for a bond (the number keys are one:
+        # `interceptBondOrderKeys`), which is where a cycling gesture would have to live.
+        unbuilt=lambda: "interceptBondClick" not in (_ROOT / "tools/ketcher-host/src/main.jsx").read_text(encoding="utf-8"),
+    ),
+    Deferral(
+        claim="a coordinate-only edit recomputes every result",
+        unbuilt=lambda: "constitution" not in (_ROOT / "src/openchem/chem/calculation_input.py").read_text(encoding="utf-8").lower(),
+        manual=(
+            "the reason is a measurement (one fan-out per pause, a 93 ms worst block) that only a fresh run of "
+            "benchmarks/visual/edit_burst_baseline.json can refresh; there is nothing countable in the source"
+        ),
+    ),
+    Deferral(
+        claim="recomputation is not demand-driven",
+        unbuilt=lambda: not (_ROOT / "src/openchem/services/provider_consumers.py").exists(),
+        manual=(
+            "the reason is the same edit-burst measurement as the coordinate-only entry; it goes stale when "
+            "an automatic provider becomes slow, which no source-level count can see"
+        ),
+    ),
+    Deferral(
+        claim="the Thermophysical chip cannot say a structure is outside Joback's groups before it is run",
+        unbuilt=lambda: "def preflight" not in (_ROOT / "src/openchem/chem/joback.py").read_text(encoding="utf-8"),
+    ),
+    Deferral(
         claim="a salt with no single ChEMBL parent has no compound",
         # Unbuilt while the parent rule still refuses sodium acetate.
         unbuilt=lambda: _parent_refuses("CC(=O)[O-].[Na+]", "chembl_parent"),
@@ -1571,8 +1597,13 @@ def test_every_committed_drive_script_has_a_row_in_its_readme():
     checked mechanically, which is why that column says `not recorded here`
     rather than guessing.
     """
+    # A driven run writes `<script>.report.json` beside its script (git-ignored). That
+    # is per-run output, not a script; counting it made every driven run fail this
+    # guard until somebody deleted the file.
     scripts = sorted(
-        path.name for path in (_ROOT / "benchmarks" / "visual").glob("*.json")
+        path.name
+        for path in (_ROOT / "benchmarks" / "visual").glob("*.json")
+        if not path.name.endswith(".report.json")
     )
     assert len(scripts) > 20, f"found {len(scripts)} scripts, so it is not walking the directory"
 

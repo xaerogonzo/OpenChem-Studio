@@ -89,8 +89,56 @@ The script is a JSON list of steps, run in order:
       {"do": "process_report",   "modules": ["openchem.chem.engine"]}  pid,
                                               HEAD, and where each module
                                               was imported from
-      {"do": "quit"}
+      {"do": "log_report",       "tag": "after-draw"}   what the APPLICATION
+                                              logged so far (WARNING and up),
+                                              de-duplicated by where it happened
+      {"do": "expect_clean",     "allow": ["substring"]}   FAILS the run if the
+                                              application logged an unallowed
+                                              ERROR; never a pass on its own
+      {"do": "expect_results",   "expect": {"solubility": "inapplicable",
+                                            "fragment_counts": {"facts_contain": ["Nitro"]}}}
+                                              what the panels HOLD, so a clean
+                                              log cannot pass by silence
+      {"do": "expect_offered",   "hidden": ["detonation"], "footer": "1 calculator ..."}
+                                              which calculators the Properties
+                                              launcher OFFERS, by row visibility
+      {"do": "expect_help",      "topic": "calc-joback-properties"}
+                                              which help topic is in FRONT
+      {"do": "chip",             "calculator": "detonation", "expect": {"status": "needs_input"}}
+                                              PRESS a status chip, and assert
+                                              where it went (see `_do_chip`)
+      {"do": "service_row",      "calculator": "orca.nmr", "expect": {"panel": "Quantum_Chemistry", "calc_type": "nmr"}}
+                                              PRESS a Properties row that opens
+                                              another panel, and assert which
+                                              panel came forward and what it chose
+      {"do": "compare_results",  "property": "geometry_partial_charge",
+                                  "expect": {"columns": 2, "atoms": 6}}
+                                              open a Calculator Inspector, take
+                                              "Compare with..." from ITS menu, and
+                                              assert the comparison window
+      {"do": "tool_setup",       "tool": "pkasolver"}
+                                              the window half of a "Needs setup"
+                                              press (see `_do_tool_setup`)
+      {"do": "expect_inspectors", "count": 2, "titles": ["QEq"], "apart": true}
+                                              how many Calculator Inspectors
+                                              are OPEN, side by side
+      {"do": "edit_burst",       "grow": "CCO", "edits": 12, "gap_ms": 150}   or   "structures": [a, b]
+                                              what a burst of structural edits
+                                              COSTS the application (recorded,
+                                              never asserted)
+      {"do": "quit"}                          ends in a VERDICT and an exit status
     ]
+
+**THE RUN ENDS IN A VERDICT, NOT A SCREENSHOT.** `drive_ledger` keeps every
+WARNING-and-above record the application logs, de-duplicated by origin, and
+`quit` (or the last step) writes `<script>.report.json` beside the script --
+`OPENCHEM_DRIVE_REPORT` names another path -- and exits non-zero when the run
+failed: a driver failure (`no molecule selected`, `EXPECT ... FAILED`, a step
+that raised), a failed `expect_*`, or an ERROR the application logged that no
+`allow` excuses. `{"do": "quit", "tolerate_errors": true}` opts out of the last
+for a script that provokes an error on purpose. The report carries the run's
+identity (commit, script hash, lockfile hash, Qt/RDKit/Ketcher versions, and the
+byte range of `logs/openchem.log` the run wrote) so two runs cannot be confused.
 
 `after_ms` is how long to wait BEFORE the next step, which is how an
 asynchronous calculator is waited on. Every step defaults to 400 ms.
@@ -111,6 +159,8 @@ from typing import Any
 
 from PySide6.QtCore import QObject, Qt, QTimer
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QWidget
+
+from openchem.app.drive_ledger import ErrorLedger, RunIdentity, log_file_size, write_report
 
 logger = logging.getLogger("openchem.ui")
 
@@ -194,11 +244,31 @@ class _Driver(QObject):
     the one written down.
     """
 
-    def __init__(self, window: QWidget, steps: list[dict[str, Any]]) -> None:
+    def __init__(
+        self, window: QWidget, steps: list[dict[str, Any]], report_path: Path | None = None
+    ) -> None:
         super().__init__()
         self._window = window
         self._steps = steps
         self._index = 0
+        #: What the application logged (see `drive_ledger`). Built here but
+        #: attached to the root logger only in `start()` and only for a real
+        #: scripted run, so constructing a driver in a test leaves nothing
+        #: behind on the process's logging.
+        self._ledger = ErrorLedger()
+        self._identity: RunIdentity | None = None
+        #: The `expect_*` steps' outcomes, kept apart from the ledger: a failed
+        #: assertion is the SCRIPT's verdict, not something the application said.
+        self._assertions: list[dict[str, Any]] = []
+        #: Numbers a step measured (`edit_burst`), by tag. Not assertions: a baseline
+        #: is recorded so a later change can be compared against it, and nothing here
+        #: passes or fails on a number.
+        self._measurements: dict[str, Any] = {}
+        #: Substrings excusing an application ERROR, gathered from every
+        #: `expect_clean` and from `quit`.
+        self._allow: list[str] = []
+        self._report_path = report_path
+        self._verdict: int | None = None
         #: The Lewis dialog a `lewis` step opened, so a later `shot` can
         #: grab it. Held rather than looked up: it is parented to the
         #: window and finding it by type would be one more place that can
@@ -207,6 +277,14 @@ class _Driver(QObject):
 
     def start(self) -> None:
         logger.warning("OPENCHEM_DRIVE: %d step(s) from %s", len(self._steps), _DRIVE_SCRIPT)
+        if _DRIVE_SCRIPT:
+            # A real scripted run: attach the ledger and say which run this is.
+            self._identity = RunIdentity.capture(_DRIVE_SCRIPT)
+            logging.getLogger().addHandler(self._ledger)
+            if self._report_path is None:
+                self._report_path = Path(
+                    os.environ.get("OPENCHEM_DRIVE_REPORT") or Path(_DRIVE_SCRIPT).with_suffix(".report.json")
+                )
         self._answer_modal_boxes()
         # THE WINDOW IS THE CONTEXT OBJECT, NOT THE DRIVER, and it is the
         # right one for a reason beyond `_Driver` being a plain class Qt
@@ -260,6 +338,9 @@ class _Driver(QObject):
     def _run_next(self) -> None:
         if self._index >= len(self._steps):
             logger.warning("OPENCHEM_DRIVE: script complete")
+            # A script that ends without `quit` still gets its verdict and its
+            # report; the app stays up so somebody can look at the window.
+            self._finish()
             return
         step = self._steps[self._index]
         self._index += 1
@@ -1465,14 +1546,14 @@ class _Driver(QObject):
             return
         parameters: dict[str, Any] = {p.name: p.default for p in definition.parameters}
         parameters.update(step.get("parameters") or {})
-        # `"reveal": false` skips the reveal, so no modal Calculator Inspector
-        # sits open for the rest of an unattended run. It USED to be
-        # load-bearing: the reveal ran `exec()` inside the bus handler and
-        # starved every later subscriber (the Atom Inspector got the dataset
-        # 67 s late, at quit). `PropertyPanel._reveal_after_dispatch` fixed
-        # that; with the reveal on, the Atom Inspector now holds the result
-        # while the dialog is open -- measured, OPENCHEM_TRACE_WINDOWS showing
-        # the dialog.
+        # `"reveal": false` skips the reveal, so no Calculator Inspector window
+        # is left open for the rest of an unattended run. It USED to be
+        # load-bearing for a worse reason: the reveal ran `exec()` inside the
+        # bus handler and starved every later subscriber (the Atom Inspector
+        # got the dataset 67 s late, at quit). `PropertyPanel._reveal_after_dispatch`
+        # fixed that, and the inspector is MODELESS now, so a reveal blocks
+        # nothing -- but each one still opens a window (and a Chromium process),
+        # and `expect_inspectors` is what counts them.
         if step.get("reveal", True):
             panel._pending_calculator_id = calculator_id
         panel._set_running(calculator_id, True)
@@ -1489,10 +1570,12 @@ class _Driver(QObject):
         `{"do": "inspect", "id": "gasteiger_charge_at_ph"}`, then
         `{"do": "shot", "widget": "inspector"}`.
 
-        **`show()`, NEVER `exec()`.** The panel's own `_open_inspector`
-        ends in `exec()`, which spins an event loop inside the handler --
-        the next step is never scheduled and an unattended run stalls on a
-        window with nobody to close it. Same trap `lewis` documents.
+        **`show()`, NEVER `exec()`.** `exec()` spins an event loop inside the
+        handler -- the next step is never scheduled and an unattended run
+        stalls on a window with nobody to close it. Same trap `lewis`
+        documents. (The panel's own `_open_inspector` used to end in `exec()`
+        and is modeless now; this step still builds the dialog itself so it
+        can be photographed without the panel's title, cap and raise logic.)
 
         WHAT THIS DOES AND DOES NOT DRIVE, stated because it matters:
         it builds the real dialog from a real computed result, so what is
@@ -1653,6 +1736,38 @@ class _Driver(QObject):
                 logger.error("OPENCHEM_DRIVE: no inspector open; run {'do': 'inspect', ...}")
                 return
             target = self._inspector
+        elif step.get("widget") == "inspectors":
+            # **EVERY OPEN CALCULATOR INSPECTOR IN ONE PICTURE, AT THEIR REAL RELATIVE
+            # POSITIONS.** A single-widget grab cannot show whether two windows overlap,
+            # which is the whole question when they are meant to stand side by side; a
+            # screen grab would photograph whatever else is on the desktop. Each is
+            # grabbed and painted onto one canvas, oldest first, so the newest is on top.
+            from PySide6.QtGui import QColor, QPainter, QPixmap
+
+            shown = []
+            for reference in self._window._property_panel._inspector_windows.values():
+                window = reference()
+                try:
+                    if window is not None and window.isVisible():
+                        shown.append((window.x(), window.y(), window.grab()))
+                except RuntimeError:
+                    continue
+            if not shown:
+                logger.error("OPENCHEM_DRIVE: no inspector windows open; nothing to photograph")
+                return
+            left = min(x for x, _y, _pic in shown)
+            top = min(y for _x, y, _pic in shown)
+            right = max(x + pic.width() for x, _y, pic in shown)
+            bottom = max(y + pic.height() for _x, y, pic in shown)
+            canvas = QPixmap(right - left, bottom - top)
+            canvas.fill(QColor("#888888"))
+            painter = QPainter(canvas)
+            for x, y, pic in shown:
+                painter.drawPixmap(x - left, y - top, pic)
+            painter.end()
+            canvas.save(str(path))
+            logger.warning("OPENCHEM_DRIVE: wrote %s (%d inspector window(s))", path, len(shown))
+            return
         elif step.get("widget") == "spatial":
             if getattr(self, "_spatial", None) is None:
                 logger.error("OPENCHEM_DRIVE: no spatial dialog open; run {'do': 'spatial'}")
@@ -4422,6 +4537,1153 @@ class _Driver(QObject):
             except Exception as exc:  # noqa: BLE001
                 logger.error("OPENCHEM_DRIVE: process_report module %s failed: %s", name, exc)
 
+    # -- the verdict ---------------------------------------------------------
+
+    def _record_assertion(self, step: str, tag: str, ok: bool, detail: str) -> bool:
+        self._assertions.append({"step": step, "tag": tag, "ok": ok, "detail": detail})
+        return ok
+
+    def _do_log_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "log_report", "tag": "after-draw"}` -- what the APPLICATION
+        has logged so far, de-duplicated by where it happened.
+
+        Read-only: it asserts nothing. `expect_clean` is the assertion.
+        """
+        logger.warning("OPENCHEM_DRIVE: log_report[%s]", step.get("tag", ""))
+        for line in self._ledger.summary_lines(self._allow):
+            logger.warning("OPENCHEM_DRIVE: ledger %s", line)
+
+    def _do_expect_clean(self, step: dict[str, Any]) -> None:
+        """`{"do": "expect_clean", "allow": ["substring", ...], "warnings": false}`
+        -- FAILS the run if the application has logged an ERROR that nothing in
+        `allow` excuses (with `"warnings": true`, a WARNING too).
+
+        **NEVER A PASS ON ITS OWN.** A ledger is empty when logging is off,
+        when the failing code never ran, and when the script never drew the
+        molecule that breaks it. Pair it with `expect_results`, which asserts
+        what the panels HOLD; together they say "it ran, it produced this, and
+        it said nothing was wrong".
+
+        `allow` accumulates across the run: an excuse given here also covers
+        the final verdict, so a known error is named once.
+        """
+        self._allow.extend(str(a) for a in step.get("allow") or [])
+        unexpected = self._ledger.unexpected(self._allow, include_warnings=bool(step.get("warnings")))
+        tag = str(step.get("tag", ""))
+        if not self._record_assertion(
+            "expect_clean", tag, not unexpected,
+            "; ".join(f"x{e.count} {e.text()}" for e in unexpected) or "no unexpected application errors",
+        ):
+            logger.error(
+                "OPENCHEM_DRIVE: EXPECT clean FAILED[%s] -- %d unexpected: %s",
+                tag, len(unexpected), "; ".join(f"x{e.count} {e.text()}" for e in unexpected)[:600],
+            )
+        else:
+            logger.warning("OPENCHEM_DRIVE: EXPECT clean ok[%s]", tag)
+
+    def _do_expect_results(self, step: dict[str, Any]) -> None:
+        """`{"do": "expect_results", "expect": {"<calculator or alert id>": ...}}`
+        -- what Properties HOLDS for the selected molecule, asserted.
+
+        Each entry is a status name, a list of acceptable ones, or an object:
+
+            "status"        one name or a list, from `RESULT_STATUSES`
+            "not_status"    names that must NOT be the status
+            "refusal"       the refusal code ("" asserts a computed result)
+            "missing_inputs" the calculator's own parameter names a NEEDS_INPUT
+                            result must name, in any order and no others --
+                            what the chip's click target is built from
+            "partial"       true/false: whether the result recorded that it
+                            SKIPPED something (`domain.completeness`); an
+                            entry with no record at all is not partial
+            "facts_contain" substrings that must each appear in some `label=value`
+            "facts_absent"  substrings that must appear in none
+
+        **THIS IS THE HALF THAT KEEPS `expect_clean` HONEST.** A molecule whose
+        alerts silently never arrived logs an ERROR, but one whose alerts
+        arrive EMPTY logs nothing, and the panel is what shows the difference.
+        A calculator still running is named as such and is not called a failure:
+        give the step before it more `after_ms`.
+        """
+        panel = self._window._property_panel
+        tag = str(step.get("tag", ""))
+        problems: list[str] = []
+        for calculator_id, wanted in (step.get("expect") or {}).items():
+            spec = {"status": wanted} if isinstance(wanted, (str, list)) else dict(wanted)
+            status = panel._status_for(calculator_id)
+            result = panel._result_for(calculator_id)
+            provenance = getattr(result, "provenance", None)
+            parameters = dict(getattr(provenance, "parameters", {}) or {})
+            facts = [
+                f"{getattr(f, 'label', '')}={getattr(f, 'display_value', '')}"
+                for f in (getattr(result, "facts", ()) or ())
+            ]
+            allowed = spec.get("status")
+            allowed = [allowed] if isinstance(allowed, str) else list(allowed or [])
+            if allowed and status not in allowed:
+                hint = " (still running: give the step before this more after_ms)" if status == "running" else ""
+                problems.append(f"{calculator_id}: status {status!r}, wanted {allowed}{hint}")
+            if status in (spec.get("not_status") or []):
+                problems.append(f"{calculator_id}: status is {status!r}, which was ruled out")
+            if "refusal" in spec and parameters.get("refusal", "") != spec["refusal"]:
+                problems.append(
+                    f"{calculator_id}: refusal {parameters.get('refusal', '')!r}, wanted {spec['refusal']!r}"
+                )
+            if "partial" in spec:
+                from openchem.domain.completeness import is_partial
+
+                if is_partial(result) != bool(spec["partial"]):
+                    problems.append(
+                        f"{calculator_id}: partial is {is_partial(result)}, wanted {bool(spec['partial'])}"
+                    )
+            if "missing_inputs" in spec:
+                from openchem.domain.refusal_kinds import missing_inputs_of
+
+                named = sorted(item.parameter for item in missing_inputs_of(result))
+                if named != sorted(spec["missing_inputs"]):
+                    problems.append(
+                        f"{calculator_id}: names missing inputs {named}, wanted {sorted(spec['missing_inputs'])}"
+                    )
+            for needle in spec.get("facts_contain") or []:
+                if not any(needle in fact for fact in facts):
+                    problems.append(f"{calculator_id}: no fact contains {needle!r} (facts: {facts[:8]})")
+            for needle in spec.get("facts_absent") or []:
+                if any(needle in fact for fact in facts):
+                    problems.append(f"{calculator_id}: a fact contains {needle!r}, which was ruled out")
+        if self._record_assertion("expect_results", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT results ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT results FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
+    def _do_edit_burst(self, step: dict[str, Any]) -> None:
+        """`{"do": "edit_burst", "structures": ["CCO", "CCCO"], "edits": 20, "gap_ms": 150, "tag": "..."}`
+        -- what a person DRAWING costs the application, measured.
+
+        **THIS IS THE BASELINE A DEBOUNCED RECOMPUTE HAD TO BEAT, AND NOW THE PROOF
+        THAT IT DID.** Every canvas edit runs the parse, the SMILES, the InChI and
+        InChIKey and used to fan `MoleculeChanged` out to every descriptor provider, so
+        drawing a molecule lagged. This records what that costs: the latency of each edit's
+        synchronous part, the longest stretch the event loop was blocked, and how many
+        recalculations one burst caused.
+
+        It applies each edit by calling `MoleculeEditorWidget.apply_edited_molblock` --
+        the very method the editor calls once Ketcher has reported a molfile, so the
+        measurement cannot drift from what drawing does -- either growing a structure
+        (`grow`, a NEW structure each edit: what drawing is) or alternating between
+        `structures` (undo/redo, which the result store replays). **WHAT IT DOES NOT
+        MEASURE**: Ketcher's own JS and the bridge back to Python, which a debounce does
+        not touch. Recorded, in the log and in the report's `measurements`; nothing is
+        asserted on a number, because these depend on the machine. The structure is
+        restored afterwards.
+
+        `"recalc": {"mode": 0, "quiet_ms": 800}` sets the recalculation policy for the
+        burst (0 while drawing, 1 after a pause, 2 only when asked) and RESTORES the
+        person's own setting afterwards; without it the setting in force is measured.
+        After the last edit the step waits out the pause, so the recomputation the burst
+        earned is counted; with "only when I ask" it presses Recalculate Now only if
+        `"then_recalculate": true`.
+        """
+        import statistics
+        import time
+
+        from PySide6.QtWidgets import QApplication
+
+        from openchem.chem.engine import ChemistryEngine
+        from openchem.events.events import (
+            AlertComputed,
+            DescriptorComputed,
+            MoleculeChanged,
+            PerAtomDataComputed,
+            ResultRecorded,
+        )
+        from openchem.services.descriptor_service import DescriptorService, _DescriptorComputeTask
+
+        tag = str(step.get("tag", ""))
+        window = self._window
+        editor = window._editor
+        molecule = window._session.project.find_molecule(window._property_panel._selected_molecule_uuid)
+        if molecule is None or not molecule.molblock:
+            logger.error("OPENCHEM_DRIVE: edit_burst needs a selected molecule with a drawing")
+            return
+        engine = window._services.chemistry_engine
+        edits = int(step.get("edits", 20))
+        grow = str(step.get("grow", ""))
+        if grow:
+            # A NEW STRUCTURE EVERY EDIT, which is what drawing is: `base + "C" * n`.
+            # Alternating two structures is dominated by the result store REPLAYING what it
+            # already holds (measured: one recompute for twenty edits), which is undo and
+            # redo, not drawing -- so both are measured, and named for what they are.
+            structures = [grow + "C" * (i + 1) for i in range(edits)]
+        else:
+            structures = [str(x) for x in step.get("structures") or []]
+        if len(structures) < 2:
+            logger.error("OPENCHEM_DRIVE: edit_burst needs two structures to alternate between, or `grow`")
+            return
+        molblocks = [engine.mol_to_molblock(engine.mol_from_smiles(smiles)) for smiles in structures]
+        gap_s = int(step.get("gap_ms", 150)) / 1000.0
+        # THE PERSON'S OWN SETTING IS PUT BACK. A benchmark that leaves the recalculation
+        # policy changed would change how the application behaves for the next run.
+        from openchem.app.settings import RECALC_MODE, RECALC_QUIET_MS
+
+        settings = window._settings
+        kept_policy = (settings.preference(RECALC_MODE), settings.preference(RECALC_QUIET_MS))
+        wanted = step.get("recalc") or {}
+        if "mode" in wanted:
+            settings.set_preference(RECALC_MODE, int(wanted["mode"]))
+        if "quiet_ms" in wanted:
+            settings.set_preference(RECALC_QUIET_MS, int(wanted["quiet_ms"]))
+        policy = settings.recalc_policy()
+        original_molblock = molecule.molblock
+        bus = window._services.event_bus
+
+        counts = {"molecule_changed": 0, "descriptor_events": 0, "results_recorded": 0}
+        bus.subscribe(MoleculeChanged, lambda e: counts.__setitem__("molecule_changed", counts["molecule_changed"] + 1))
+        for event_type in (DescriptorComputed, AlertComputed, PerAtomDataComputed):
+            bus.subscribe(event_type, lambda e: counts.__setitem__("descriptor_events", counts["descriptor_events"] + 1))
+        bus.subscribe(ResultRecorded, lambda e: counts.__setitem__("results_recorded", counts["results_recorded"] + 1))
+
+        # Counted by wrapping, and put back in the `finally`: the wrappers must not
+        # outlive the measurement.
+        calls = {"request_descriptors": 0, "descriptor_tasks": 0, "canonicalize": 0}
+        originals = {
+            "request_descriptors": DescriptorService.request_descriptors,
+            "descriptor_tasks": _DescriptorComputeTask.run,
+            "canonicalize": ChemistryEngine.canonicalize,
+        }
+
+        def counting(name, function):
+            def wrapper(*args, **kwargs):
+                calls[name] += 1
+                return function(*args, **kwargs)
+            return wrapper
+
+        DescriptorService.request_descriptors = counting("request_descriptors", originals["request_descriptors"])
+        _DescriptorComputeTask.run = counting("descriptor_tasks", originals["descriptor_tasks"])
+        ChemistryEngine.canonicalize = counting("canonicalize", originals["canonicalize"])
+
+        # The event loop's own heartbeat: a 5 ms timer whose gaps say how long the
+        # loop was blocked. Gaps are measured between firings, so a blocked edit shows
+        # as one long gap, which is what "the canvas froze" is.
+        gaps: list[float] = []
+        last = [time.perf_counter()]
+
+        def beat() -> None:
+            now = time.perf_counter()
+            gaps.append((now - last[0]) * 1000.0)
+            last[0] = now
+
+        heartbeat = QTimer()
+        heartbeat.setInterval(5)
+        heartbeat.timeout.connect(beat)
+
+        def pump(seconds: float) -> None:
+            deadline = time.perf_counter() + seconds
+            while time.perf_counter() < deadline:
+                QApplication.processEvents()
+                time.sleep(0.002)
+
+        latencies: list[float] = []
+        pushed = 0
+        started = time.perf_counter()
+        # `"profile": true` runs the burst under cProfile and logs where the time went --
+        # the GUI thread's own work (event delivery, the reader's rebuilds) included,
+        # because that is the thread a person is waiting on. It slows the run, so the
+        # numbers it prints are proportions, not the burst's latency.
+        profiler = None
+        if step.get("profile"):
+            import cProfile
+
+            profiler = cProfile.Profile()
+            profiler.enable()
+        try:
+            heartbeat.start()
+            last[0] = time.perf_counter()
+            for index in range(edits):
+                molblock = molblocks[index] if grow else molblocks[(index + 1) % len(molblocks)]
+                t0 = time.perf_counter()
+                editor.apply_edited_molblock(molblock)
+                pushed += 1
+                latencies.append((time.perf_counter() - t0) * 1000.0)
+                pump(gap_s)
+            # THE RECOMPUTATION THE BURST EARNED. With a pause it has not started yet when
+            # the last edit lands, so wait the pause out (plus a margin) before counting.
+            delay = policy.delay_ms()
+            scheduler = window._services.recalc_scheduler
+            if delay is None and step.get("then_recalculate") and scheduler is not None:
+                scheduler.recalculate_now()
+            elif delay is not None:
+                pump(delay / 1000.0 + 0.5)
+            # What the burst left in flight: worker results still arriving on the GUI thread.
+            from PySide6.QtCore import QThreadPool
+
+            QThreadPool.globalInstance().waitForDone(60_000)
+            pump(0.5)
+        finally:
+            if profiler is not None:
+                profiler.disable()
+            heartbeat.stop()
+            settings.set_preference(RECALC_MODE, int(kept_policy[0]))
+            settings.set_preference(RECALC_QUIET_MS, int(kept_policy[1]))
+            DescriptorService.request_descriptors = originals["request_descriptors"]
+            _DescriptorComputeTask.run = originals["descriptor_tasks"]
+            ChemistryEngine.canonicalize = originals["canonicalize"]
+            for _ in range(pushed):
+                editor._undo_stack.undo()
+            molecule.molblock = original_molblock
+            editor.set_molecule(molecule)
+        total_ms = (time.perf_counter() - started) * 1000.0
+        if profiler is not None:
+            import io
+            import pstats
+
+            for sort, limit in (("cumulative", 45), ("tottime", 20)):
+                out = io.StringIO()
+                stats = pstats.Stats(profiler, stream=out).sort_stats(sort)
+                stats.print_stats("openchem", limit) if sort == "cumulative" else stats.print_stats(limit)
+                logger.warning("OPENCHEM_DRIVE: edit_burst[%s] profile by %s\n%s", tag, sort, out.getvalue())
+
+        ordered = sorted(latencies)
+
+        def percentile(fraction: float) -> float:
+            return ordered[min(len(ordered) - 1, int(fraction * len(ordered)))] if ordered else 0.0
+
+        stalls = [g - 5.0 for g in gaps if g > 5.0]
+        result = {
+            "mode": "new structure each edit" if grow else "alternating (results replayed)",
+            "recalc": {"mode": int(policy.mode), "quiet_ms": policy.quiet_ms},
+            "edits": edits, "gap_ms": int(step.get("gap_ms", 150)),
+            "edit_ms": {
+                "median": round(statistics.median(latencies), 1) if latencies else 0.0,
+                "p95": round(percentile(0.95), 1), "max": round(max(latencies), 1) if latencies else 0.0,
+            },
+            "loop_blocked_ms": {
+                "max": round(max(stalls), 1) if stalls else 0.0,
+                "over_30ms": sum(1 for g in stalls if g > 30.0),
+                "over_100ms": sum(1 for g in stalls if g > 100.0),
+            },
+            **counts, **calls, "total_ms": round(total_ms),
+        }
+        self._measurements[tag or "edit_burst"] = result
+        logger.warning("OPENCHEM_DRIVE: edit_burst[%s] %s", tag, json.dumps(result))
+
+    def _do_expect_help(self, step: dict[str, Any]) -> None:
+        """`{"do": "expect_help", "topic": "calc-joback-properties"}` -- which help
+        topic is in front, asserted.
+
+        Looks at the help window a Settings page or a calculator dialog opened
+        (a CHILD of that dialog, because a modal dialog blocks any other window),
+        and failing that at the main window's own. "It opened" is not the claim:
+        the claim is that it opened ON the section it should have.
+        """
+        tag = str(step.get("tag", ""))
+        wanted = str(step.get("topic", ""))
+        candidates = []
+        dialog = getattr(self, "_dialog", None)
+        page = getattr(dialog, "calculators_page", None)
+        for owner in (page, dialog, self._window):
+            for attribute in ("_help_window", "_help_dialog"):
+                window = getattr(owner, attribute, None)
+                if window is not None:
+                    candidates.append(window)
+        shown = [w for w in candidates if w.isVisible()]
+        found = str(getattr(shown[0], "_current_key", "")) if shown else ""
+        ok = bool(shown) and found == wanted
+        detail = "as expected" if ok else (
+            f"help window shows {found!r}" if shown else "no help window is open"
+        ) + f", wanted {wanted!r}"
+        if self._record_assertion("expect_help", tag, ok, detail):
+            logger.warning("OPENCHEM_DRIVE: EXPECT help ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT help FAILED[%s] -- %s", tag, detail)
+
+    def _do_chip(self, step: dict[str, Any]) -> None:
+        """`{"do": "chip", "calculator": "detonation", "expect": {...}}` -- press one
+        calculator's status chip, and assert WHERE THE PRESS WENT.
+
+            "status"    the launcher word the chip must be showing first
+            "needed"    (needs_input) substrings the settings dialog's "Needs:" line carries
+            "focus"     (needs_input) the parameter the cursor was put on
+            "shot"      a path to photograph the dialog to, before it is closed
+            "tool"      (needs_setup) the External Tools tab Settings must open on
+
+        The chip is a real `QPushButton`, so this presses it (`click()`): the panel's own
+        handler reads `sender()`, and calling the handler directly would prove nothing
+        about the wiring. Pressing opens a MODAL dialog whose `exec()` does not return
+        until it closes, so a timer inspects and closes it -- the same shape as `key`'s
+        `close_modal_after_ms`, for the same reason.
+
+        **THE SETUP CASE IS ONLY AS GOOD AS THE MACHINE**: it needs the calculator to be
+        unconfigured (the experimental NMR database not built, no pKa sidecar). On a
+        machine where it is set up the chip reads Ready and the step fails its `status`
+        check by saying so, which is the truthful answer rather than a skipped one.
+        """
+        tag = str(step.get("tag", ""))
+        calculator_id = str(step["calculator"])
+        expect = dict(step.get("expect") or {})
+        panel = self._window._property_panel
+        chip = panel._calculator_status.get(calculator_id)
+        if chip is None:
+            logger.error("OPENCHEM_DRIVE: chip: no chip for %r", calculator_id)
+            return
+        status = panel._status_for(calculator_id)
+        wanted = expect.get("status")
+        if wanted is not None and status != wanted:
+            detail = f"{calculator_id} chip reads {status!r}, wanted {wanted!r}"
+            self._record_assertion("chip", tag, False, detail)
+            logger.error("OPENCHEM_DRIVE: EXPECT chip FAILED[%s] -- %s", tag, detail)
+            return
+        self._chip_expectation = (tag, calculator_id, expect)
+        QTimer.singleShot(int(step.get("inspect_after_ms", 700)), self._window, self._inspect_chip_modal)
+        chip.click()
+
+    def _do_ketcher_eval(self, step: dict[str, Any]) -> None:
+        """`{"do": "ketcher_eval", "script": "JSON.stringify(...)", "tag": "..."}` -- run one
+        JavaScript EXPRESSION in the Ketcher page and log what it returns.
+
+        A STRING, because `runJavaScript` marshals primitives only (an array or object comes
+        back as ''), so the expression should end in `JSON.stringify(...)`. For a spike and for a
+        probe a run needs -- what does this API return, what is on the page now -- where writing a
+        one-off step for each question would leave a dozen private steps nobody can find.
+        Read-only by convention; nothing here stops a script from mutating the page, so a script
+        that does says so in its tag.
+        """
+        tag = str(step.get("tag", ""))
+        script = str(step["script"])
+        page = self._window._editor._backend._page
+
+        def report(result) -> None:
+            logger.warning("OPENCHEM_DRIVE: ketcher_eval[%s] %s", tag, result)
+
+        page.runJavaScript(f"(function () {{ try {{ return ({script}); }} catch (e) {{ return 'ERROR: ' + e; }} }})();", report)
+
+    def _do_atom_action(self, step: dict[str, Any]) -> None:
+        """`{"do": "atom_action", "atom": 2, "text": "Add positive charge", "expect": {...}}`
+        -- build the atom right-click menu for one atom, TRIGGER one of its actions by its text
+        (submenus included), and assert what the drawing did.
+
+            "text"       the action's label, or the start of it ("Change O to" > "N": pass
+                         "text": "N" with "submenu": "Change")
+            "submenu"    a submenu whose title starts with this holds the action
+            "expect"     {"smiles_contains": "+", "smiles_equals": "CCN", "undo_delta": 1}
+
+        The menu is the application's own (`build_atom_context_menu`, not shown, exactly as the
+        tests read it), so what is pressed is what a person is offered -- and what is asserted
+        is the STRUCTURE afterwards and the undo stack, not that a call was made: this is the
+        route where a change that Ketcher quietly declined would otherwise read as success.
+        """
+        atom = int(step.get("atom", 0))
+        tag = str(step.get("tag", ""))
+        expect = dict(step.get("expect") or {})
+        window = self._window
+        molecule = window._current_molecule()
+        before = (molecule.canonical_smiles if molecule is not None else None, window._undo_stack.count())
+        menu = window.build_atom_context_menu(atom)
+        wanted = str(step["text"])
+        holder = menu
+        if step.get("submenu"):
+            holder = next(
+                (a.menu() for a in menu.actions() if a.menu() is not None and a.text().startswith(str(step["submenu"]))),
+                None,
+            )
+        action = next((a for a in holder.actions() if a.text().startswith(wanted)), None) if holder else None
+        if action is None:
+            self._record_assertion("atom_action", tag, False, f"no menu action {wanted!r}")
+            logger.error("OPENCHEM_DRIVE: EXPECT atom_action FAILED[%s] -- no menu action %r", tag, wanted)
+            return
+        action.trigger()
+
+        def verify() -> None:
+            molecule_now = window._current_molecule()
+            after = (molecule_now.canonical_smiles if molecule_now is not None else None, window._undo_stack.count())
+            problems: list[str] = []
+            if "smiles_contains" in expect and expect["smiles_contains"] not in str(after[0]):
+                problems.append(f"structure {after[0]!r} lacks {expect['smiles_contains']!r}")
+            if "smiles_equals" in expect and after[0] != expect["smiles_equals"]:
+                problems.append(f"structure {after[0]!r}, wanted {expect['smiles_equals']!r}")
+            if "undo_delta" in expect and after[1] - before[1] != int(expect["undo_delta"]):
+                problems.append(f"undo stack moved by {after[1] - before[1]}, wanted {expect['undo_delta']}")
+            ok = not problems
+            detail = ("as expected" if ok else "; ".join(problems)) + f" ({before} -> {after})"
+            if self._record_assertion("atom_action", tag, ok, detail):
+                logger.warning("OPENCHEM_DRIVE: EXPECT atom_action ok[%s] %s -> %s", tag, before, after)
+            else:
+                logger.error("OPENCHEM_DRIVE: EXPECT atom_action FAILED[%s] -- %s", tag, detail)
+
+        QTimer.singleShot(int(step.get("settle_ms", 1500)), window, verify)
+
+    def _do_shortcut(self, step: dict[str, Any]) -> None:
+        """`{"do": "shortcut", "command": "search_facts", "sequence": "Ctrl+Alt+F9", "press": true}`
+        -- rebind one menu command through the REAL Settings > Keyboard page, and check what the
+        window's action holds afterwards.
+
+            "command"    the command's name on the page (`ShortcutRegistry`; a help key, or
+                         `key:label` where several actions share one)
+            "sequence"   what to record in its box; "" clears it
+            "expect"     "applied" (the default) or "refused": the page must have said why
+            "press"      also send the REAL new key at the window and count the action's
+                         `triggered`, then the OLD key and count it NOT firing
+            "close"      close the page afterwards (default: leave it up for a `shot`)
+
+        The box is driven through the signal its own recorder emits (`editingFinished`), not the
+        `assign` method behind it, for the reason `jobs_cancel` presses the real button: the wiring
+        is what changed. **What is asserted is the ACTION and the page's status line**, not that a
+        call was made -- a registry can set a shortcut Qt never consults, which is why the real key
+        is pressed, through `QTest.keyClick` (Qt's shortcut map, as `key` does).
+
+        A key is matched only while its window is ACTIVE. A run behind another application has
+        none, so the press is LOGGED as skipped rather than counted as a pass or a failure.
+        """
+        from PySide6.QtGui import QKeySequence
+        from PySide6.QtTest import QTest
+        from PySide6.QtWidgets import QApplication
+
+        from openchem.app.shortcut_registry import PORTABLE
+        from openchem.ui.dialogs.settings_dialog import KEYBOARD, SettingsDialog
+
+        window = self._window
+        tag = str(step.get("tag", ""))
+        command = str(step.get("command", ""))
+        sequence = str(step.get("sequence", ""))
+        wanted = str(step.get("expect", "applied"))
+        registry = window._shortcuts
+        if command not in {e.command_id for e in registry.entries()}:
+            self._record_assertion("shortcut", tag, False, f"no command {command!r}")
+            logger.error("OPENCHEM_DRIVE: EXPECT shortcut FAILED[%s] -- no command %r", tag, command)
+            return
+
+        dialog = getattr(self, "_dialog", None)
+        if not isinstance(dialog, SettingsDialog):
+            if dialog is not None:
+                dialog.close()
+            dialog = SettingsDialog(
+                window._settings, window, section=KEYBOARD, shortcut_registry=registry,
+                result_store_service=window._services.result_store_service,
+            )
+            dialog.setWindowFlag(Qt.WindowType.Dialog, True)
+            dialog.show()
+            self._dialog = dialog
+        page = dialog.keyboard_page
+        action = registry._actions[command]
+        before = registry.entry(command).current
+
+        edit = page._rows[command][1]
+        edit.setKeySequence(QKeySequence.fromString(sequence, PORTABLE))
+        edit.editingFinished.emit()
+        after = registry.entry(command).current
+        message = page.status.text()
+
+        problems: list[str] = []
+        if wanted == "applied":
+            normalised = QKeySequence.fromString(sequence, PORTABLE).toString(PORTABLE)
+            if after != normalised:
+                problems.append(f"the command holds {after!r}, wanted {normalised!r} ({message!r})")
+            if action.shortcut().toString(PORTABLE) != after:
+                problems.append("the page and the action disagree")
+        else:
+            if after != before:
+                problems.append(f"a refused change moved {before!r} to {after!r}")
+            if not message.startswith("Not changed"):
+                problems.append(f"a refusal said nothing ({message!r})")
+        if page.shortcut_of(command) != after:
+            problems.append(f"the box shows {page.shortcut_of(command)!r}, the command holds {after!r}")
+
+        if step.get("press") and wanted == "applied":
+            active = QApplication.activeWindow()
+            if active is None:
+                logger.warning("OPENCHEM_DRIVE: shortcut[%s] press skipped -- no active window", tag)
+            else:
+                fired: list[int] = []
+                action.triggered.connect(lambda *_a: fired.append(1))
+                checks = ([("new", after, 1)] if after else []) + (
+                    [("old", before, 0)] if before and before != after else []
+                )
+                for label, keys, expected in checks:
+                    combination = QKeySequence.fromString(keys, PORTABLE)[0]
+                    fired.clear()
+                    QTest.keyClick(window, combination.key(), combination.keyboardModifiers())
+                    if len(fired) != expected:
+                        problems.append(f"the {label} key {keys} fired the command {len(fired)}x, wanted {expected}")
+                logger.warning("OPENCHEM_DRIVE: shortcut[%s] keys pressed (active window %s)", tag, type(active).__name__)
+
+        ok = not problems
+        detail = ("as expected" if ok else "; ".join(problems)) + f" ({command}: {before!r} -> {after!r})"
+        if self._record_assertion("shortcut", tag, ok, detail):
+            logger.warning("OPENCHEM_DRIVE: EXPECT shortcut ok[%s] %s", tag, detail)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT shortcut FAILED[%s] -- %s", tag, detail)
+        if step.get("close"):
+            dialog.close()
+            self._dialog = None
+
+    def _do_ketcher_hover(self, step: dict[str, Any]) -> None:
+        """`{"do": "ketcher_hover", "bond": 0, "press": "2", "expect": {"bond_type": 1}}` -- put
+        Ketcher's HOVER on one item of the drawing, optionally press a key at the editor, and
+        assert what the page holds afterwards.
+
+            "bond" / "atom"   a MOLFILE POSITION (ids on the page are translated, as elsewhere)
+            "press"           one character to press: "n" (an element), "2" (a bond order), "/" (the
+                              properties dialog of whatever is hovered)
+            "expect"          {"hovered": true, "bond_type": 1, "atom_label": "N",
+                               "dialog": "bondProps-dialog", "smiles_equals": "C=C",
+                               "undo_delta": 1} -- `bond_type` and `atom_label` are of the hovered
+                              item's own index; `dialog` is a `data-testid` that must be on the
+                              page; `smiles_equals` and `undo_delta` are the APPLICATION's
+                              molecule and undo stack (a bond order key is answered there)
+            "settle_ms"       how long to wait before reading the page (default 900)
+
+        **THE HOVER IS SET THROUGH THE EDITOR'S OWN API, NOT BY A POINTER.** The first version sent
+        a real Qt mouse-move (`QTest.mouseMove`) to the web view and a synthetic DOM `mousemove`
+        was tried before it: neither ever set an item's `hover` flag, so a following key press had
+        nothing to act on and the spike concluded a hover could not be produced from automation. It
+        can. Ketcher's own tools set the flag with `editor.hover(editor.findItem(event, null),
+        null, event)`, and `findItem` needs only the event's client position. Doing the same puts
+        the page in exactly the state a real hover produces, and the key is then dispatched INSIDE
+        the editor's DOM, where Ketcher's `keydown` listener lives (dispatched on `document` it is
+        never seen). What this does not exercise is the browser's own mouse-move plumbing, which
+        Ketcher's hotkeys do not read.
+
+        The point of asserting rather than logging: hover+key behaviour was believed native for
+        bonds and is not (see `docs/KETCHER_SPIKE.md`), and only reading the resulting structure
+        says which.
+        """
+        kind, index = ("bond", int(step["bond"])) if "bond" in step else ("atom", int(step.get("atom", 0)))
+        tag = str(step.get("tag", ""))
+        expect = dict(step.get("expect") or {})
+        press = str(step.get("press", ""))
+        page = self._window._editor._backend._page
+        window = self._window
+        molecule_before = window._current_molecule()
+        undo_before = window._undo_stack.count()
+
+        script = """
+        (function () {
+          try {
+            var ed = window.ketcher.editor, render = ed.render, struct = ed.struct();
+            var a = render.page2obj({clientX: 0, clientY: 0, pageX: 0, pageY: 0});
+            var b = render.page2obj({clientX: 100, clientY: 100, pageX: 100, pageY: 100});
+            var sx = 100 / (b.x - a.x), sy = 100 / (b.y - a.y);
+            var kind = %s, index = %d, press = %s, pp, poolId;
+            if (kind === 'bond') {
+              poolId = Array.from(struct.bonds.keys())[index];
+              var bond = struct.bonds.get(poolId);
+              var p1 = struct.atoms.get(bond.begin).pp, p2 = struct.atoms.get(bond.end).pp;
+              pp = {x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2};
+            } else {
+              poolId = Array.from(struct.atoms.keys())[index];
+              pp = struct.atoms.get(poolId).pp;
+            }
+            var x = (pp.x - a.x) * sx, y = (pp.y - a.y) * sy;
+            var ev = {clientX: x, clientY: y, pageX: x, pageY: y, target: render.clientArea};
+            ed.hover(ed.findItem(ev, null), null, ev);
+            var map = kind === 'bond' ? render.ctab.bonds : render.ctab.atoms;
+            var out = {hovered: !!map.get(poolId).hover, pressed: null};
+            if (press) {
+              var upper = press.toUpperCase();
+              var code = /[0-9]/.test(press) ? 'Digit' + press : /[a-z]/i.test(press) ? 'Key' + upper
+                       : press === '/' ? 'Slash' : '';
+              var keyCode = press === '/' ? 191 : upper.charCodeAt(0);
+              var key = new KeyboardEvent('keydown', {key: press, code: code, keyCode: keyCode, which: keyCode,
+                                                      bubbles: true, cancelable: true});
+              (render.clientArea.firstChild || render.clientArea).dispatchEvent(key);
+              out.pressed = {prevented: key.defaultPrevented};
+            }
+            return JSON.stringify(out);
+          } catch (e) { return JSON.stringify({error: String(e)}); }
+        })();
+        """ % (json.dumps(kind), index, json.dumps(press))
+
+        read = """
+        (function () {
+          var ed = window.ketcher.editor, struct = ed.struct();
+          var bonds = Array.from(struct.bonds.values()).map(function (bd) { return bd.type; });
+          var atoms = Array.from(struct.atoms.values()).map(function (at) { return at.label; });
+          var ids = Array.from(document.querySelectorAll('[data-testid]')).map(function (e) {
+            return e.getAttribute('data-testid'); });
+          return JSON.stringify({bonds: bonds, atoms: atoms, testids: ids});
+        })();
+        """
+
+        holder: dict[str, Any] = {}
+
+        def finish(after_text) -> None:
+            try:
+                after = json.loads(after_text)
+                first = holder["first"]
+            except (TypeError, ValueError, KeyError):
+                self._record_assertion("ketcher_hover", tag, False, f"the page answered {after_text!r}")
+                logger.error("OPENCHEM_DRIVE: EXPECT ketcher_hover FAILED[%s] -- unreadable %r", tag, after_text)
+                return
+            problems: list[str] = []
+            if "error" in first:
+                problems.append(f"the hover script raised {first['error']}")
+            if expect.get("hovered") and not first.get("hovered"):
+                problems.append("the item is not hovered")
+            if "bond_type" in expect and kind == "bond" and after["bonds"][index] != expect["bond_type"]:
+                problems.append(f"bond {index} is type {after['bonds'][index]}, wanted {expect['bond_type']}")
+            if "atom_label" in expect and kind == "atom" and after["atoms"][index] != expect["atom_label"]:
+                problems.append(f"atom {index} is {after['atoms'][index]!r}, wanted {expect['atom_label']!r}")
+            if "dialog" in expect and expect["dialog"] not in after["testids"]:
+                problems.append(f"no {expect['dialog']!r} on the page")
+            molecule_now = window._current_molecule()
+            smiles_now = molecule_now.canonical_smiles if molecule_now is not None else None
+            if "smiles_equals" in expect and smiles_now != expect["smiles_equals"]:
+                problems.append(f"the molecule is {smiles_now!r}, wanted {expect['smiles_equals']!r}")
+            if "undo_delta" in expect and window._undo_stack.count() - undo_before != int(expect["undo_delta"]):
+                problems.append(
+                    f"the undo stack moved by {window._undo_stack.count() - undo_before}, wanted {expect['undo_delta']}"
+                )
+            ok = not problems
+            detail = ("as expected" if ok else "; ".join(problems)) + f" (hover {kind} {index}, pressed {press!r}: {first.get('pressed')}; bonds {after['bonds']} atoms {after['atoms']})"
+            if self._record_assertion("ketcher_hover", tag, ok, detail):
+                logger.warning("OPENCHEM_DRIVE: EXPECT ketcher_hover ok[%s] %s", tag, detail)
+            else:
+                logger.error("OPENCHEM_DRIVE: EXPECT ketcher_hover FAILED[%s] -- %s", tag, detail)
+
+        def hovered(first_text) -> None:
+            try:
+                holder["first"] = json.loads(first_text)
+            except (TypeError, ValueError):
+                holder["first"] = {"error": f"unreadable {first_text!r}"}
+            QTimer.singleShot(
+                int(step.get("settle_ms", 900)), self._window,
+                lambda: page.runJavaScript(read, finish),
+            )
+
+        page.runJavaScript(script, hovered)
+
+    def _do_atom_editor(self, step: dict[str, Any]) -> None:
+        """`{"do": "atom_editor", "atom": 2, "set": {"charge": "1"}, "apply": true, "expect": {...}}`
+        -- what the atom right-click menu's "Edit..." does, and WHAT THE PAGE DID ABOUT IT.
+
+            "atom"      the atom's MOLFILE POSITION
+            "set"       {data-testid: text} typed into the dialog's fields (label-input,
+                        charge, isotope, alias)
+            "apply" / "cancel"   press the dialog's own Apply or Cancel
+            "expect"    {"dialog": true, "smiles_contains": "+", "undo_delta": 1,
+                         "unchanged": true}
+
+        Calls the editor's own `open_atom_editor`, the method that menu item is wired to, and
+        then asks the PAGE what is on it. "It opened" is not assumed: the reported defect was
+        that Edit... did nothing at all -- no dialog, and nothing logged -- and a first fix that
+        only checked the dispatch would have passed. What is asserted is Ketcher's own
+        Atom Properties dialog being up, and after Apply, that the structure really changed
+        as ONE edit on the application's undo stack (`undo_delta`), or after Cancel that it did
+        not (`unchanged`).
+
+        The fields are set with the native value setter and an `input` event, because the dialog
+        is a React form and assigning `.value` alone is ignored by it.
+        """
+        atom = int(step.get("atom", 0))
+        tag = str(step.get("tag", ""))
+        expect = dict(step.get("expect") or {})
+        window = self._window
+        editor = window._editor
+        page = editor._backend._page
+        molecule = window._current_molecule()
+        before = (molecule.canonical_smiles if molecule is not None else None, window._undo_stack.count())
+        state: dict[str, Any] = {"dialog": None}
+
+        def verify() -> None:
+            molecule_now = window._current_molecule()
+            after = (molecule_now.canonical_smiles if molecule_now is not None else None, window._undo_stack.count())
+            problems: list[str] = []
+            if expect.get("dialog") and not state["dialog"]:
+                problems.append("Ketcher's Atom Properties dialog did not open")
+            if "smiles_contains" in expect and expect["smiles_contains"] not in str(after[0]):
+                problems.append(f"structure {after[0]!r} lacks {expect['smiles_contains']!r}")
+            if "undo_delta" in expect and after[1] - before[1] != int(expect["undo_delta"]):
+                problems.append(f"undo stack moved by {after[1] - before[1]}, wanted {expect['undo_delta']}")
+            if expect.get("unchanged") and after != before:
+                problems.append(f"the structure changed: {before} -> {after}")
+            ok = not problems
+            detail = ("as expected" if ok else "; ".join(problems)) + f" ({before} -> {after})"
+            if self._record_assertion("atom_editor", tag, ok, detail):
+                logger.warning("OPENCHEM_DRIVE: EXPECT atom_editor ok[%s] %s -> %s", tag, before, after)
+            else:
+                logger.error("OPENCHEM_DRIVE: EXPECT atom_editor FAILED[%s] -- %s", tag, detail)
+
+        def act(result) -> None:
+            state["dialog"] = "Atom Properties" in str(result)
+            logger.warning("OPENCHEM_DRIVE: atom_editor[%s] dialog up: %s", tag, state["dialog"])
+            if not state["dialog"] or not (step.get("apply") or step.get("cancel") or step.get("set")):
+                QTimer.singleShot(200, window, verify)
+                return
+            fields = json.dumps({str(k): str(v) for k, v in dict(step.get("set") or {}).items()})
+            button = "OK" if step.get("apply") else ("Cancel" if step.get("cancel") else "")
+            page.runJavaScript(
+                """
+                (function () {
+                  var fields = %s, button = %s;
+                  var setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+                  Object.keys(fields).forEach(function (tid) {
+                    // An INPUT: a wrapper element can carry the same test id, and the native
+                    // value setter throws "Illegal invocation" on anything that is not one.
+                    var el = document.querySelector('dialog input[data-testid="' + tid + '"]');
+                    if (!el) return;
+                    setter.call(el, fields[tid]);
+                    el.dispatchEvent(new Event('input', {bubbles: true}));
+                    el.dispatchEvent(new Event('change', {bubbles: true}));
+                  });
+                  if (button) {
+                    var b = document.querySelector('dialog [data-testid="' + button + '"]');
+                    if (b) b.click();
+                  }
+                  return 'done';
+                })();
+                """ % (fields, json.dumps(button)),
+                lambda _r: QTimer.singleShot(int(step.get("settle_ms", 1500)), window, verify),
+            )
+
+        def probe() -> None:
+            page.runJavaScript(
+                "(function () { var d = document.querySelector('dialog'); return d ? d.innerText.slice(0, 60) : ''; })();",
+                act,
+            )
+
+        editor.open_atom_editor(atom)
+        QTimer.singleShot(int(step.get("probe_after_ms", 1000)), window, probe)
+
+    def _do_compare_results(self, step: dict[str, Any]) -> None:
+        """`{"do": "compare_results", "property": "geometry_partial_charge", "expect": {...}}`
+        -- open one held result's Calculator Inspector, take "Compare with..." from ITS menu,
+        and assert the comparison window that opens.
+
+            "property"   the per-atom property whose held results are compared
+            "all"        choose "With all N" instead of the first single entry
+            "expect"     {"columns": N, "atoms": N, "refused": "fragment of the message"}
+            "shot"       a path to photograph the comparison window to
+
+        It goes through the REAL route -- the inspector's button menu and its bound
+        `_on_compare_action` -- rather than calling `_open_comparison`, because the wiring
+        (which candidates the menu offers, and what the panel does with the choice) is what
+        the feature is. A comparison the domain refuses raises a message box, which a driven
+        run cannot answer, so `"expect": {"none_offered": true}` asserts the menu OFFERED
+        nothing instead -- the refusal happening a step earlier, in the candidates.
+        """
+        tag = str(step.get("tag", ""))
+        expect = dict(step.get("expect") or {})
+        panel = self._window._property_panel
+        property_id = str(step["property"])
+        held = [c for c in panel._compare_pool.values() if c.dataset.property_id == property_id]
+        if not held:
+            logger.error("OPENCHEM_DRIVE: compare_results: nothing held for %r", property_id)
+            return
+        anchor = held[-1].dataset
+        if not panel.open_result_inspector(anchor):
+            logger.error("OPENCHEM_DRIVE: compare_results: the inspector would not open")
+            return
+        reference = panel._inspector_windows.get(id(anchor))
+        inspector = reference() if reference is not None else None
+        if inspector is None or not hasattr(inspector, "_compare_menu"):
+            self._record_assertion("compare_results", tag, False, "the inspector has no Compare menu")
+            logger.error("OPENCHEM_DRIVE: EXPECT compare_results FAILED[%s] -- no Compare menu", tag)
+            return
+        inspector._rebuild_compare_menu()
+        actions = [a for a in inspector._compare_menu.actions() if a.isEnabled()]
+        problems: list[str] = []
+        offered = [a.text() for a in actions]
+        if expect.get("none_offered"):
+            if offered:
+                problems.append(f"offered {offered}, wanted nothing")
+        elif not actions:
+            problems.append("the menu offered nothing to compare with")
+        else:
+            (actions[-1] if step.get("all") else actions[0]).trigger()
+            reference = panel._last_comparison
+            dialog = reference() if reference is not None else None
+            if dialog is None:
+                problems.append("no comparison window opened")
+            else:
+                table = dialog._table
+                if "columns" in expect and len(dialog._comparison.columns) != int(expect["columns"]):
+                    problems.append(f"{len(dialog._comparison.columns)} results compared, wanted {expect['columns']}")
+                if "atoms" in expect and table.rowCount() != int(expect["atoms"]):
+                    problems.append(f"{table.rowCount()} atom rows, wanted {expect['atoms']}")
+                if step.get("shot"):
+                    path = Path(str(step["shot"]))
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    dialog.grab().save(str(path))
+                    logger.warning("OPENCHEM_DRIVE: wrote %s", path)
+                logger.warning("OPENCHEM_DRIVE: compare summary: %s", dialog._summary.text())
+        ok = not problems
+        detail = ("as expected" if ok else "; ".join(problems)) + f" (menu: {offered})"
+        if self._record_assertion("compare_results", tag, ok, detail):
+            logger.warning("OPENCHEM_DRIVE: EXPECT compare_results ok[%s] %s", tag, offered)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT compare_results FAILED[%s] -- %s", tag, detail)
+
+    def _do_reveal_row(self, step: dict[str, Any]) -> None:
+        """`{"do": "reveal_row", "calculator": "orca.nmr"}` -- scroll a Properties row into view.
+
+        A photograph of the launcher shows only what the scroll area does, and the sections at
+        the bottom (Docking, Quantum Chemistry) are below the fold in a docked column. Works for
+        a registry row and for a row that opens another panel; the section is expanded first.
+        """
+        from PySide6.QtWidgets import QScrollArea
+
+        panel = self._window._property_panel
+        calculator_id = str(step["calculator"])
+        widget = panel._service_rows.get(calculator_id) or panel._calculator_rows.get(calculator_id)
+        if widget is None:
+            logger.error("OPENCHEM_DRIVE: reveal_row: no row for %r", calculator_id)
+            return
+        definition = self._window._services.calculator_registry.get(calculator_id)
+        section = panel._sections.get(definition.category) if definition is not None else None
+        if section is not None:
+            section.set_expanded(True)
+        ancestor = widget.parentWidget()
+        while ancestor is not None and not isinstance(ancestor, QScrollArea):
+            ancestor = ancestor.parentWidget()
+        if ancestor is not None:
+            ancestor.ensureWidgetVisible(widget, 0, 40)
+        logger.warning("OPENCHEM_DRIVE: revealed the row of %s", calculator_id)
+
+    def _do_service_row(self, step: dict[str, Any]) -> None:
+        """`{"do": "service_row", "calculator": "orca.nmr", "expect": {"panel": "...", "calc_type": "..."}}`
+        -- press the Properties row of a calculator that is run from another panel, and assert
+        WHERE THE PRESS WENT.
+
+            "panel"      the rail id of the panel that must now be showing
+            "calc_type"  (Quantum_Chemistry) the calculation type code its combo must hold
+
+        A real `click()` on the real button: the panel's handler reads `sender()`, and the
+        window's routing is what is being checked, so calling either directly would prove
+        nothing about the wiring. Nothing is run -- opening the panel is all a row does.
+        """
+        from openchem.ui.panels.quantum_chemistry_panel import CALC_TYPE_LABELS
+
+        tag = str(step.get("tag", ""))
+        calculator_id = str(step["calculator"])
+        expect = dict(step.get("expect") or {})
+        window = self._window
+        button = window._property_panel._service_rows.get(calculator_id)
+        if button is None:
+            logger.error("OPENCHEM_DRIVE: service_row: no row for %r", calculator_id)
+            return
+        button.click()
+        problems: list[str] = []
+        wanted_panel = expect.get("panel")
+        if wanted_panel:
+            dock = window._dock_by_panel_id(str(wanted_panel))
+            if dock is None or dock.isHidden():
+                problems.append(f"panel {wanted_panel!r} is not showing")
+        if "calc_type" in expect:
+            chosen = CALC_TYPE_LABELS.get(window._quantum_chemistry_panel._calc_type_combo.currentText())
+            if chosen != expect["calc_type"]:
+                problems.append(f"the panel holds calculation {chosen!r}, wanted {expect['calc_type']!r}")
+        ok = not problems
+        detail = "as expected" if ok else "; ".join(problems)
+        if self._record_assertion("service_row", tag, ok, detail):
+            logger.warning("OPENCHEM_DRIVE: EXPECT service_row ok[%s] %s", tag, calculator_id)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT service_row FAILED[%s] -- %s", tag, detail)
+
+    def _do_tool_setup(self, step: dict[str, Any]) -> None:
+        """`{"do": "tool_setup", "tool": "pkasolver"}` -- what a "Needs setup" chip press
+        asks the WINDOW for, without needing a calculator that is actually unconfigured.
+
+        `chip` is the honest test of a press, and it can only assert "Needs setup" on a
+        machine where the calculator is unset-up; here pkasolver and the NMR database are
+        both installed, so the chip reads Ready. This emits the panel's own
+        `tool_setup_requested` -- exactly what the chip's handler emits -- so the WINDOW
+        half is still exercised for real: the signal reaches `MainWindow`, which opens
+        Settings > External Tools on that tab. What it does not prove is the press
+        itself, which `tests/test_status_chip_routes.py` does.
+        """
+        tag = str(step.get("tag", ""))
+        tool = str(step["tool"])
+        self._chip_expectation = (tag, f"tool_setup:{tool}", {"tool": tool})
+        QTimer.singleShot(int(step.get("inspect_after_ms", 700)), self._window, self._inspect_chip_modal)
+        self._window._property_panel.tool_setup_requested.emit(tool)
+
+    def _inspect_chip_modal(self) -> None:
+        """Inspect and close the modal a chip press opened. See `_do_chip`."""
+        from PySide6.QtWidgets import QApplication, QLabel
+
+        tag, calculator_id, expect = self._chip_expectation
+        modal = QApplication.activeModalWidget()
+        problems: list[str] = []
+        kind = type(modal).__name__ if modal is not None else None
+        if modal is None:
+            problems.append("no dialog opened")
+        elif "tool" in expect:
+            tool = modal.external_tools.current_tool() if hasattr(modal, "external_tools") else None
+            if kind != "SettingsDialog":
+                problems.append(f"opened {kind}, wanted SettingsDialog")
+            elif tool != expect["tool"]:
+                problems.append(f"Settings opened on tool {tool!r}, wanted {expect['tool']!r}")
+        else:
+            if kind != "CalculatorSettingsDialog":
+                problems.append(f"opened {kind}, wanted CalculatorSettingsDialog")
+            else:
+                notice = next(
+                    (w for w in modal.findChildren(QLabel) if w.objectName() == "calculatorNeededInputs"), None
+                )
+                text = notice.text() if notice is not None else ""
+                for wanted in expect.get("needed") or []:
+                    if wanted not in text:
+                        problems.append(f"the Needs line lacks {wanted!r} (it says {text!r})")
+                if "focus" in expect and modal.focus_parameter != expect["focus"]:
+                    problems.append(f"cursor on {modal.focus_parameter!r}, wanted {expect['focus']!r}")
+        ok = not problems
+        detail = "as expected" if ok else "; ".join(problems)
+        detail += f" (opened {kind})"
+        if self._record_assertion("chip", tag, ok, detail):
+            logger.warning("OPENCHEM_DRIVE: EXPECT chip ok[%s] %s -> %s", tag, calculator_id, kind)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT chip FAILED[%s] -- %s", tag, detail)
+        if modal is not None and expect.get("shot"):
+            path = Path(str(expect["shot"]))
+            path.parent.mkdir(parents=True, exist_ok=True)
+            modal.grab().save(str(path))
+            logger.warning("OPENCHEM_DRIVE: wrote %s", path)
+        if modal is not None:
+            modal.close()
+
+    def _do_expect_inspectors(self, step: dict[str, Any]) -> None:
+        """`{"do": "expect_inspectors", "count": 2, "titles": ["QEq", "EEM"], "apart": true}`
+        -- how many Calculator Inspector windows are OPEN, and what they say, asserted.
+
+            "count"     exactly this many live, visible inspector windows
+            "titles"    substrings each of which some open window's title carries
+            "apart"     no two open windows share a top-left corner. **TWO WINDOWS AT ONE
+                        POSITION ARE ONE WINDOW**: the first run of this step passed on
+                        count and titles while both opened at (360, 128), the second
+                        covering the first completely.
+
+        The panel keeps its inspectors by result identity in weak references, so this
+        reads what a person would see -- a window that is still visible -- and never
+        counts one that closed. Two windows with the same title are two results
+        opened side by side, which is a pass; one window a second request raised is
+        `count` 1, which is how "the same result is one window" is asserted.
+        """
+        panel = self._window._property_panel
+        tag = str(step.get("tag", ""))
+        titles: list[str] = []
+        corners: list[tuple[int, int]] = []
+        for reference in panel._inspector_windows.values():
+            window = reference()
+            try:
+                if window is not None and window.isVisible():
+                    titles.append(str(window.windowTitle()))
+                    corners.append((window.x(), window.y()))
+            except RuntimeError:
+                continue  # deleted on close
+        problems: list[str] = []
+        if step.get("apart") and len(set(corners)) != len(corners):
+            problems.append(f"windows share a corner: {corners}")
+        if "count" in step and len(titles) != int(step["count"]):
+            problems.append(f"{len(titles)} inspector window(s) open, wanted {int(step['count'])}")
+        for wanted in step.get("titles") or []:
+            if not any(str(wanted) in title for title in titles):
+                problems.append(f"no open inspector titled like {wanted!r}")
+        ok = not problems
+        detail = "as expected" if ok else "; ".join(problems)
+        detail += f" (open: {titles} at {corners})"
+        if self._record_assertion("expect_inspectors", tag, ok, detail):
+            logger.warning("OPENCHEM_DRIVE: EXPECT inspectors ok[%s] %s at %s", tag, titles, corners)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT inspectors FAILED[%s] -- %s", tag, detail)
+
+    def _do_expect_offered(self, step: dict[str, Any]) -> None:
+        """`{"do": "expect_offered", "offered": [...], "hidden": [...], "footer": "..."}`
+        -- which calculators the Properties launcher is OFFERING, asserted.
+
+            "offered"   calculator ids whose row AND section are on offer
+            "hidden"    ids whose row must exist and be withdrawn (or whose
+                        section is)
+            "footer"    the exact text of the "N hidden by default" link, or ""
+                        to assert there is none
+
+        **ON OFFER IS NOT ON SCREEN.** A collapsed section hides its content,
+        so `isVisibleTo` answers "no" for every calculator in a section nobody
+        has expanded -- true, and not what is being asked. This reads the
+        EXPLICIT hide of the row and of its section, which is what withdrawing
+        a calculator sets and collapsing does not.
+        """
+        panel = self._window._property_panel
+        tag = str(step.get("tag", ""))
+
+        def on_offer(calculator_id: str) -> bool | None:
+            row = panel._calculator_rows.get(calculator_id)
+            if row is None:
+                return None
+            for category, ids in panel._section_calculators.items():
+                if calculator_id in ids:
+                    section = panel._sections.get(category)
+                    if section is not None and section.isHidden():
+                        return False
+            return not row.isHidden()
+
+        problems: list[str] = []
+        for calculator_id in step.get("offered") or []:
+            state = on_offer(calculator_id)
+            if state is None:
+                problems.append(f"{calculator_id}: no row at all")
+            elif not state:
+                problems.append(f"{calculator_id}: not offered, wanted offered")
+        for calculator_id in step.get("hidden") or []:
+            state = on_offer(calculator_id)
+            if state is None:
+                problems.append(f"{calculator_id}: no row to be hidden")
+            elif state:
+                problems.append(f"{calculator_id}: offered, wanted hidden")
+        if "footer" in step:
+            link = panel._hidden_link
+            shown = link.text() if not link.isHidden() else ""
+            if shown != step["footer"]:
+                problems.append(f"footer reads {shown!r}, wanted {step['footer']!r}")
+        if self._record_assertion("expect_offered", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT offered ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT offered FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
+    def _finish(self, *, tolerate_errors: bool = False) -> int:
+        """End the run: log the verdict, write the report, return the exit status.
+
+        Idempotent -- the last step and `quit` both reach it -- and it detaches
+        the ledger, so nothing logged after the verdict is counted against it.
+        """
+        if self._verdict is not None:
+            return self._verdict
+        unexpected = [] if tolerate_errors else self._ledger.unexpected(self._allow)
+        failed = [a for a in self._assertions if not a["ok"]]
+        driver_failures = self._ledger.driver_failures
+        code = 1 if (unexpected or failed or driver_failures) else 0
+        self._verdict = code
+        logging.getLogger().removeHandler(self._ledger)
+        for line in self._ledger.summary_lines(self._allow):
+            logger.warning("OPENCHEM_DRIVE: ledger %s", line)
+        logger.warning(
+            "OPENCHEM_DRIVE: VERDICT %s -- %d unexpected app error(s), %d failed assertion(s) of %d, "
+            "%d driver failure(s)%s",
+            "PASS" if code == 0 else "FAIL", len(unexpected), len(failed), len(self._assertions),
+            len(driver_failures), " (errors tolerated)" if tolerate_errors else "",
+        )
+        if self._report_path is not None:
+            from openchem.app.logging_setup import log_file_path
+
+            identity = (self._identity.to_dict() if self._identity else {})
+            payload = {
+                "verdict": "PASS" if code == 0 else "FAIL",
+                "exit_code": code,
+                "tolerate_errors": tolerate_errors,
+                "run": identity,
+                "steps": {"in_script": len(self._steps), "run": self._index},
+                "log_file": {
+                    "path": str(log_file_path()), "start": identity.get("log_start", 0),
+                    "end": log_file_size(),
+                },
+                "assertions": self._assertions,
+                "measurements": self._measurements,
+                "ledger": self._ledger.to_dict(self._allow),
+            }
+            if write_report(self._report_path, payload):
+                logger.warning("OPENCHEM_DRIVE: report written to %s", self._report_path)
+            else:
+                logger.warning("OPENCHEM_DRIVE: could not write the report to %s", self._report_path)
+        return code
+
     def _do_wait(self, step: dict[str, Any]) -> None:
         """Nothing; the pause is `after_ms`. Present so a script can say
         it is waiting rather than hiding it in the previous step."""
@@ -4457,8 +5719,12 @@ class _Driver(QObject):
         from PySide6.QtWidgets import QApplication
 
         logger.warning("OPENCHEM_DRIVE: quitting")
+        # The verdict FIRST, while the window and its panels are still there to
+        # be asked, and before anything below can log.
+        self._allow.extend(str(a) for a in step.get("allow") or [])
+        code = self._finish(tolerate_errors=bool(step.get("tolerate_errors")))
         # Nothing is worth saving from a scripted run, and a dirty session
         # is what raises the modal.
         self._window._session.mark_clean()
         self._window._undo_stack.clear()
-        QApplication.instance().exit(0)
+        QApplication.instance().exit(code)

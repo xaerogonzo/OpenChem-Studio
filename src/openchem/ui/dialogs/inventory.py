@@ -137,10 +137,66 @@ def iter_dialog_fixtures() -> Iterator[DialogFixture]:
         # fixture covers both -- there is no second dialog to register.
         _require(context, "settings")
         services = context.services
+        if services is not None:
+            registry = services.calculator_registry
+            definitions = [d for category in registry.categories() for d in registry.by_category(category)]
+        else:
+            # A SYNTHETIC classified calculator when there are no services, so
+            # the Calculators page has a row for the guard to walk. Without one
+            # its per-row controls would sit outside the guard's universe, the
+            # way `calculator_settings` once did behind a `_require`.
+            from openchem.domain.calculator import CalculatorDefinition, RegistryExecution
+            from openchem.domain.calculator_support import (
+                CalculatorSupport,
+                SupportStage,
+                Visibility,
+            )
+
+            definitions = [CalculatorDefinition(
+                calculator_id="synthetic_limited", display_name="A limited calculator",
+                category="test", description="A stand-in with a declared support level.",
+                execution=RegistryExecution(compute=lambda mol, uuid, params: None),
+                support=CalculatorSupport(
+                    SupportStage.LIMITED, Visibility.HIDDEN, support_reason="a stand-in reason",
+                    scope_note="nothing",
+                ),
+            )]
+        # LIKEWISE A SYNTHETIC REGISTRY, so the Keyboard page has a row -- an edit box and a
+        # Reset button -- for the guard to walk. Empty, its per-row controls would sit outside the
+        # guard's universe, the way the Calculators page's did before it got a stand-in.
+        from PySide6.QtGui import QAction
+
+        from openchem.app.shortcut_registry import ShortcutRegistry
+
+        shortcuts = ShortcutRegistry(context.settings)
+        stand_in = QAction("A stand-in command")
+        stand_in.setShortcut("Ctrl+Alt+Shift+F12")
+        shortcuts.track("synthetic_command", stand_in)
+        shortcuts.apply()
         return SettingsDialog(
             context.settings,
             result_store_service=services.result_store_service if services is not None else None,
+            calculator_definitions=definitions,
+            shortcut_registry=shortcuts,
         )
+
+    def compare_results(_context: DialogContext):
+        from openchem.domain.common import Provenance
+        from openchem.domain.compare import ComparedResult, compare
+        from openchem.domain.scientific_result import PerAtomDataset
+        from openchem.ui.dialogs.compare_results_dialog import CompareResultsDialog
+
+        # SYNTHETIC, so the help-contract guard reaches this window with a bare context: two
+        # invented methods on a three-atom molecule. Nothing here is chemistry.
+        def column(method: str, values: dict[int, float]) -> ComparedResult:
+            return ComparedResult(PerAtomDataset(
+                timestamp=0.0, property_id="partial_charge", name=f"Partial Charge ({method})",
+                units="e", method=method, molecule_uuid="synthetic", values=values,
+                provenance=Provenance(created_by="core", method=method, parameters={}),
+            ))
+
+        outcome = compare([column("method A", {0: -0.4, 1: 0.1, 2: 0.3}), column("method B", {0: -0.5, 1: 0.1, 2: 0.4})])
+        return CompareResultsDialog(outcome, {0: "O", 1: "C", 2: "H"}, "a synthetic molecule")
 
     def command_palette(_context: DialogContext):
         from openchem.ui.dialogs.command_palette import CommandPalette
@@ -314,6 +370,7 @@ def iter_dialog_fixtures() -> Iterator[DialogFixture]:
     yield DialogFixture("PeriodicTableDialog", periodic_table)
     yield DialogFixture("ReceptorLibraryDialog", receptor_library)
     yield DialogFixture("CommandPalette", command_palette)
+    yield DialogFixture("CompareResultsDialog", compare_results)
     yield DialogFixture("SettingsDialog", settings_window, needs="settings")
     yield DialogFixture("StructureLookupDialog", structure_lookup, needs="a molecule")
     yield DialogFixture("CalculatorSettingsDialog", calculator_settings, needs="the registry")

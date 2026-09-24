@@ -106,8 +106,14 @@ class EditStructureCommand(OpenChemCommand):
         molecule: MoleculeModel,
         new_molblock: str,
         event_bus: EventBus,
+        *,
+        during_edit: bool = False,
     ) -> None:
         super().__init__(f"Edit structure '{molecule.display_name}'")
+        #: True when this is a canvas edit the person is still making. It applies to
+        #: the FIRST application only: an undo, or a redo of it, is a deliberate
+        #: single action and recomputes at once (see `MoleculeChanged.during_edit`).
+        self._during_edit = during_edit
         self._engine = engine
         self._molecule = molecule
         self._old_molblock = molecule.molblock
@@ -122,7 +128,8 @@ class EditStructureCommand(OpenChemCommand):
     def redo(self) -> None:
         self._engine.set_structure_from_molblock(self._molecule, self._new_molblock)
         self._invalidate_stale_conformers()
-        self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid))
+        drawing, self._during_edit = self._during_edit, False
+        self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid, during_edit=drawing))
 
     def undo(self) -> None:
         if self._old_molblock is not None:

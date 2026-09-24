@@ -1,0 +1,16 @@
+[
+  {"do": "smiles", "smiles": "CC", "name": "Ethane", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 4000},
+
+  {"do": "ketcher_eval", "tag": "our own bond-order keys are OFF, so this asks what KETCHER does",
+   "script": "(function(){window.__openchemBondKeys=false;return 'off'})()", "after_ms": 300},
+  {"do": "ketcher_hover", "tag": "a bond order key over a hovered BOND changes nothing (Ketcher has no handler)",
+   "bond": 0, "press": "2", "expect": {"hovered": true, "bond_type": 1}, "after_ms": 1500},
+  {"do": "ketcher_hover", "tag": "an element key over a hovered ATOM replaces it (the control)",
+   "atom": 0, "press": "n", "expect": {"hovered": true, "atom_label": "N"}, "after_ms": 1500},
+  {"do": "ketcher_hover", "tag": "/ over a hovered bond opens its properties dialog",
+   "bond": 0, "press": "/", "expect": {"hovered": true, "dialog": "bondProps-dialog"}, "after_ms": 1500},
+
+  {"do": "expect_clean", "tag": "end"},
+  {"do": "quit", "tolerate_errors": true}
+]

@@ -4,7 +4,7 @@ import dataclasses
 import logging
 import math
 import weakref
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 
 from PySide6.QtCore import QSortFilterProxyModel, Qt
 from PySide6.QtGui import QGuiApplication, QStandardItem, QStandardItemModel
@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMenu,
     QPlainTextEdit,
     QPushButton,
     QSplitter,
@@ -31,6 +32,7 @@ from openchem.chem.engine import ChemistryEngine
 from openchem.chem.descriptor_providers import compute_gasteiger_charges
 from openchem.chem.scalar_field import electrostatic_potential_for_conformer
 from openchem.domain.common import EXPLICIT_H, CacheState, ScientificResult
+from openchem.domain.compare import ComparedResult
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.report import ReportResult
 from openchem.domain.scientific_result import (
@@ -911,6 +913,8 @@ class CalculatorInspectorDialog(QDialog):
         conformer_molblock: str | None,
         parent: QWidget | None = None,
         on_add_structure: Callable[[str, str], None] | None = None,
+        compare_candidates: Callable[[ScientificResult], tuple[ComparedResult, Sequence[ComparedResult]]] | None = None,
+        on_compare: Callable[[Sequence[ComparedResult]], None] | None = None,
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle(f"Calculator Inspector — {molecule.display_name}")
@@ -934,6 +938,10 @@ class CalculatorInspectorDialog(QDialog):
         self._engine = engine
         self._result = result
         self._on_add_structure = on_add_structure
+        #: What this result can be compared with (`PropertyPanel.comparable_with`), and what
+        #: to do with a choice. Both or neither; only a per-atom result offers the button.
+        self._compare_candidates = compare_candidates
+        self._on_compare = on_compare
 
         factory = _RESULT_VIEW_FACTORIES.get(type(result), _CalculatorResultView)
         self._view = factory(engine, molecule, result, conformer_molblock, self)
@@ -990,9 +998,56 @@ class CalculatorInspectorDialog(QDialog):
             self._view.structure_selected.connect(self._on_structure_selected)
             self._update_structure_actions()
 
+        if (
+            isinstance(self._result, PerAtomDataset)
+            and self._compare_candidates is not None
+            and self._on_compare is not None
+        ):
+            # A drop-down rather than a dialog: `QPushButton.setMenu` shows its menu without
+            # `exec()`, which a test cannot patch, and the choice is one click either way.
+            self._compare_button = QPushButton("Compare with...", self)
+            self._compare_button.setObjectName("compareWith")
+            self._compare_button.setToolTip(
+                "Set this result beside another method's on the same structure, atom by atom, "
+                "with how much they disagree. Only results for the same molecule, drawing, "
+                "atoms and units are offered; run another method first if there is none."
+            )
+            self._compare_menu = QMenu(self._compare_button)
+            self._compare_menu.aboutToShow.connect(self._rebuild_compare_menu)
+            self._compare_button.setMenu(self._compare_menu)
+            row.addWidget(self._compare_button)
+
         row.addStretch(1)
         row.addWidget(self._status_label)
         return row
+
+    def _rebuild_compare_menu(self) -> None:
+        """Offer what can be compared NOW: another method may have been run since this opened.
+
+        One entry per comparable result, and "all of them" when there are two or more. An
+        empty menu says why instead of being empty.
+        """
+        menu = self._compare_menu
+        menu.clear()
+        anchor, others = self._compare_candidates(self._result) if self._compare_candidates else (None, [])
+        others = list(others)
+        if not others:
+            menu.addAction("Nothing to compare: run another method on this structure").setEnabled(False)
+            return
+        for candidate in others:
+            action = menu.addAction(f"With {candidate.label}")
+            action.setData([anchor, candidate])
+            action.triggered.connect(self._on_compare_action)
+        if len(others) > 1:
+            everyone = menu.addAction(f"With all {len(others)}")
+            everyone.setData([anchor, *others])
+            everyone.triggered.connect(self._on_compare_action)
+
+    def _on_compare_action(self, _checked: bool = False) -> None:
+        action = self.sender()
+        chosen = action.data() if action is not None else None
+        if chosen and self._on_compare is not None:
+            self._on_compare(chosen)
 
     # --- actions ----------------------------------------------------------
 

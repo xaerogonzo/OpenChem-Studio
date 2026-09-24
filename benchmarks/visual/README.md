@@ -78,7 +78,10 @@ Every one is a surface with a *recorded* history of breaking, not a guess.
 | `results_wrapped_row_height.json` | the charges result's Finding row in Results, fentanyl then O1OCN1, docked at the default width and then narrowed and widened | a wrapped value held the height its text needs at 100 px -- six lines in a 272 px row -- and could never shrink back |
 
 | `charge_identity_after_edit.json` | the Atom Inspector's 3D charge through an erase, an edit and an undo | ethanol's oxygen showed carbon C1's EEM 3D charge while the result read fresh -- GEOMETRY datasets keyed by the conformer's atoms, read by the drawing's |
+| `calculator_visibility.json` | the whole enable path, each step asserted: Joback and Detonation hidden by default with a footer naming them; Settings > Calculators; Learn more landing on Joback's own help section; the master toggle offering them WITHOUT running either; Detonation then run and reading Needs input; Reset withdrawing them again while the stored result stays readable. Restores the setting it changes | the tick beside a row and the launcher reading two different rules for what is offered; the real-registry run is the only place the footer and the eliding button meet a docked column's width |
+| `edit_burst_baseline.json` | what drawing COSTS: twelve structural edits through the editor's own edit path, a new structure each time, on an ordinary drug and on the nitramine, under each recalculation policy -- edit latency, the longest the event loop was blocked, and how many recalculations a burst caused. Restores the setting it changes. Recorded, never asserted | not applicable: it is the baseline the recalculation policy had to beat, and the table showing that it did (see below) |
 | `charge_species_and_refusals.json` | EEM and QEq on species each model declines | not recorded here |
+| `energetic_nitramine_ledger.json` | a nitramine (1,3-dinitro-1,3-diazetidine) drawn, ESOL solubility and Detonation run, ending in the driven-run VERDICT: the application's log must hold no unexcused ERROR, and Properties must hold the nitro alert, no hydrazine, the fragment counts recorded as NOT partial, and Detonation as `needs_input` naming its two missing inputs | `fg:hydrazine` matched every nitramine's N-N bond, so `detect_features` raised `UndeclaredChargeState` once per edit; it was logged and never asserted, so the window looked fine. Reverted, this script exits 1 and names `structural_features.py:352` |
 | `docked_pose_in_6wgt.json` | a real Vina run, the pose shown in Mol* | the pose was retargeted and the receptor left on assembly 1 -- the viewer and the docking showed different chains |
 | `docking_replicates.json` | repeated real docking runs from one panel | not recorded here |
 | `docking_rescore.json` | a pose scored again with Vinardo | not recorded here |
@@ -88,11 +91,20 @@ Every one is a surface with a *recorded* history of breaking, not a guess.
 | `lewis_site_depiction.json` | the Lewis acid/base site depiction, two donors and mixed roles | not recorded here |
 | `logd_curve_cursor.json` | the LogD curve in Results, with a real click on the chart | not recorded here |
 | `mass_spectrum_and_merged_details.json` | one, then three calculators in Results, then an edit | not recorded here |
+| `modeless_inspectors.json` | two Calculator Inspectors of one calculator opened by two runs with different methods and asserted OPEN SIDE BY SIDE (`expect_inspectors`: count and titles carrying the method); the first one is still there after the second arrives | the inspector was a modal `exec()`, so a second result meant closing the first and comparing from memory |
 | `periodic_charges.json` | the crystal report's EQeq charges: computed, refused for disorder, and over the atom budget | `units="e"` composed onto a sentence whose value is an atom count, painting "... C +0.062 e"; and the refusal row marked ADVANCED, so a disordered CIF showed NO charge row at all |
 | `powder_pattern_chart.json` | the crystal report's powder chart, truncated and at Cu radiation | a declared chart reached the report and no renderer drew it; seven guards on the builder passed first |
 | `properties_launcher_after_2c2.json` | the Properties launcher after stage 2c2, at 900 and 1600 px | not recorded here |
 | `properties_launcher_stage2.json` | the Properties panel before stage 2c, at 900 and 1600 px | not recorded here |
+| `atom_edit_menu.json` | the atom right-click menu's Edit...: Ketcher's own Atom Properties dialog is up (asserted from the PAGE, not from the dispatch), Cancel leaves the structure exactly as it was, and Apply of a +1 charge turns CCO into CC[OH2+] as ONE undo entry that Undo reverses | Edit... did nothing at all -- no dialog, nothing logged -- because the menu dispatched the dialog's event with a payload Ketcher's own callers never use and could not have applied its answer even if it had opened |
+| `bond_order_keys.json` | a number key over a hovered bond sets its order through the application's own edit: 2 makes ethane C=C, 3 makes it C#C, 1 makes it CC again, each ONE undo entry; the order the bond already has is not an entry; with the setting off the key changes nothing; Undo reverses | Ketcher has no handler for a number over a bond, so the gesture is ours -- and it goes page -> bridge -> engine -> undo stack, a chain no single layer's test covers |
+| `ketcher_hover_keys.json` | Ketcher's hover-aware hotkeys, with the hover set through the editor's own API: an element key over a hovered atom replaces it (the control), `/` over a bond opens its properties dialog, and a number key over a bond changes NOTHING -- so bond hover+number is not native and is ours to build | the drawing spike first said a number over a bond changes it and that no hover could be produced from automation; both were wrong, and a run of this script fails the day an editor upgrade makes the bond case native |
+| `keyboard_shortcuts.json` | rebinding through the real Settings > Keyboard page, asserted on the window's own actions: a rebind takes effect (the REAL new key fires the command and the old one no longer does), a key another command holds is refused with the reason, a bare letter is refused because the canvas owns it, and a shortcut can be cleared | a registry can set a shortcut Qt never consults, and a page can show what it stored rather than what the window does; only pressing the key says which |
+| `atom_menu_changes.json` | the atom right-click menu's own changes, each PRESSED from the menu the application builds and asserted on the structure and the undo stack: an oxygen changed to nitrogen (CCO -> CCN, gaining its hydrogens), that nitrogen given a +1 charge (CC[NH3+]), and the atom deleted (CC), one undo entry each | Ketcher's own menu had these and replacing it took them away; a first attempt through Ketcher's atom and charge tools armed the tool and changed nothing |
+| `compare_methods.json` | two charge models run on ethanol, then the Calculator Inspector's "Compare with..." menu: offering NOTHING while only one method is held, then offering the other and opening the atom-by-atom table (columns, atom rows and the summary asserted, the window photographed) | comparing methods was hard because the store keeps one result per calculator, so a second model replaced the first and the two could never be on screen together |
+| `service_rows.json` | the Properties rows for calculators run from another panel: the Quantum Chemistry and Docking sections revealed and photographed, then the NMR, LED and Vina rows each PRESSED and asserted -- the right panel came forward and, for ORCA, its calculation combo holds that job. Nothing is run | a person looking for an ab initio NMR in Properties found an italic sentence and nothing to press |
 | `results_dock_stage2.json` | Details with the reader hidden, visible, and popped out | not recorded here |
+| `status_chip_routes.json` | where a "Needs input" / "Needs setup" chip press goes: the Detonation chip on the nitramine opens the calculator's settings with the Needs line naming both inputs and the cursor on the loading density; the window's tool-setup route opens Settings > External Tools on the pkasolver, ADMET and NMR-database tabs. The setup half emits the panel's signal rather than pressing a chip, because both tools are installed on the maintainer's machine | those two states used to open a reader that could only describe them |
 | `results_layout_narrow_and_short.json` | the Results dock moved beside and on top, resized | a very short dock scrolled: 234 px needed against a 162 px viewport, 72 of it chrome |
 | `results_reader_memory.json` | the reader's remembered selection across close, reopen and an edit | a reader's position had never had to survive anything |
 | `results_reader_stage1.json` | every result kind reaching the reader, and the selector's search | not recorded here |
@@ -261,3 +273,67 @@ embeddings, 9 batches, plateau, identical across three runs.
 
 **Slow on purpose**: about 40 s a run against ~8 s before. That is the trade
 for a count that does not move, and it is why the step allows 90 s.
+
+**`energetic_nitramine_ledger.json` ENDS IN A VERDICT, AND SO NOW DOES EVERY RUN.**
+`drive_ledger` keeps every WARNING-and-above record the application logs,
+de-duplicated by (logger, exception, innermost frame, message with its numbers
+collapsed), and the run ends in `VERDICT PASS|FAIL` with an exit status and a
+`<script>.report.json` beside the script (`OPENCHEM_DRIVE_REPORT` names another
+path). `expect_clean` never passes on its own -- a script that never drew the
+molecule that breaks it has an empty ledger -- so this one pairs it with
+`expect_results`, which asserts what Properties actually holds. Measured
+2026-09-24 with the hydrazine fix reverted: exit 1, one entry,
+`UndeclaredChargeState @ openchem/chem/structural_features.py:352`, and the
+fragment-count facts empty. Restored: PASS, exit 0.
+
+Measured again 2026-09-24, after feature detection became tolerant: with the pre-fix hydrazine pattern
+restored, the run no longer loses every alert. It logs ONE warning naming both skipped instances
+(`fg:hydrazine at atoms [1, 3]; ... [5, 6]`), still counts `nitro (2)`, and exits 1 on
+`fragment_counts: partial is True, wanted False`. `expect_clean` passes there, because a skipped instance is a
+WARNING and `expect_clean` counts errors -- so `partial` is the assertion that catches it, and the census
+(strict over its corpus) is the systematic one.
+
+A scripted run also writes its own log, `drive-<pid>.log`, because two processes
+cannot share one rotating file on Windows (`WinError 32` on every record past the
+rotation size while a person's own session was open); the newest twenty are kept.
+The ESOL-only parameters are deliberate: the Solubility default also runs the
+AqSolDB comparison in the ADMET sidecar, about five minutes.
+
+**`edit_burst_baseline.json` IS A BASELINE, NOT A TEST, AND IT MEASURES THE PYTHON SIDE ONLY.**
+Each edit is applied by `MoleculeEditorWidget.apply_edited_molblock`, the method the editor calls once
+Ketcher has reported a molfile (an `EditStructureCommand` on the real undo stack, then the annotation
+refresh); Ketcher's own JS and the bridge back to Python are not included, because a recompute policy does
+not touch them. Measured 2026-09-24 on the maintainer's machine, idle, 12 edits 150 ms apart, in two
+states of the same code: the profiler's first commit (every edit recomputed everything), and after the
+recalculation policy (`RecalcScheduler`, default "after I pause", 800 ms) with two further reductions found
+by profiling one burst (`"profile": true`).
+
+| burst | edit latency (median / p95) | longest loop block | full descriptor fan-outs | results recorded |
+|---|---|---|---|---|
+| **before** -- aspirin, a new structure each edit | 1,121 / 1,338 ms | 3,993 ms | 12 (one per edit) | 600 |
+| **before** -- nitramine, a new structure each edit | 671 / 787 ms | 2,382 ms | 12 | 600 |
+| **before** -- aspirin, undo/redo between two structures | 1,130 / 1,365 ms | 2,013 ms | 0 (the result store replays) | 0 |
+| **after** -- aspirin, after I pause (800 ms) | 18.4 / 23.5 ms | 93 ms | 1 | 50 |
+| **after** -- nitramine, after I pause | 19.3 / 22.1 ms | 86 ms | 1 | 50 |
+| **after** -- aspirin, only when I ask, then Recalculate Now | 19.4 / 23.0 ms | 95 ms | 1 | 50 |
+| **after** -- aspirin, while I draw (a run per turn) | 14.1 / 16.0 ms | 124 ms | 12 | 600 |
+| **after** -- two structures alternated as canvas edits | 17.1 / 20.0 ms | 90 ms | 1 | 50 |
+
+The "while I draw" row is the like-for-like of the old behaviour -- twelve full recomputations, 600
+results -- and its longest block is 124 ms against 3,993 ms, which is what the two reductions below bought
+independently of the pause. **The profile of the first "after" run** (cProfile over the burst, GUI thread)
+named what remained after the pause: the Results reader rebuilt once per descriptor EVENT (144 rebuilds of
+about 60 rows, 1.4 s -- now one per turn of the event loop), and the Atom Inspector's atom table rebuilt on
+every undo-stack index change with IUPAC locants (12 rebuilds, about 90 ms each, 80% of an edit's synchronous
+cost -- now deferred to the pause). 41 descriptors' events flooding the reader is also why a REPLAY used to
+cost 1.1 s with no recomputation at all.
+
+Two things the first run got wrong and the second corrected. **Alternating two structures measures
+the cache, not drawing**: the first version did exactly that and reported one recompute for twenty
+edits, which would have read as "there is already a debounce". The result store simply held both
+structures' results and replayed them. Drawing is a NEW structure each time, hence `grow`; and each
+"after" burst starts from a DIFFERENT base structure, because a second burst over the first's structures
+is replayed from the store (its `results_recorded` reads 0) and would flatter the run. The numbers depend
+on the machine; what a change to the recompute policy has to show is the same table, smaller, run the same
+way. Both tables are recorded here.
+

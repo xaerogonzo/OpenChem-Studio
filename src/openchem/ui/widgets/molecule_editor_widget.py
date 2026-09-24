@@ -100,6 +100,8 @@ class MoleculeEditorWidget(QWidget):
     atom_context_menu = Signal(int, int, int)
     #: One bond, likewise. Ketcher reports both through the same event.
     bond_selected = Signal(int)
+    #: A number key over a hovered bond: its molfile position and the order asked for.
+    bond_order_key_pressed = Signal(int, int)
     #: The user pressed one of the engine's own controls that this
     #: application already provides. Forwarded so the window can answer
     #: it -- see `EditorBackend.editor_action_requested`.
@@ -213,6 +215,7 @@ class MoleculeEditorWidget(QWidget):
         self._backend.atom_selected.connect(self.atom_selected)
         self._backend.atom_context_menu.connect(self.atom_context_menu)
         self._backend.bond_selected.connect(self.bond_selected)
+        self._backend.bond_order_key_pressed.connect(self.bond_order_key_pressed)
         self._backend.editor_action_requested.connect(self.editor_action_requested)
         # The canvas has to follow changes it did not make. Undo is the one
         # that matters: `EditStructureCommand` reverts the model and
@@ -321,34 +324,43 @@ class MoleculeEditorWidget(QWidget):
     def _on_editor_edited(self) -> None:
         if self._molecule is None:
             return
+        self._backend.get_molblock(self.apply_edited_molblock)
 
-        def apply(molblock: str | None) -> None:
-            if not molblock or self._molecule is None:
-                return
-            # What the canvas was known to be showing BEFORE this edit --
-            # read now, because the push below overwrites it.
-            was = self._synced_smiles
-            command = EditStructureCommand(self._engine, self._molecule, molblock, self._event_bus)
-            self._applying_own_edit = True
-            try:
-                self._undo_stack.push(command)
-            finally:
-                # In a finally block: leaving this set would make the
-                # canvas permanently deaf to undo, which is the bug this
-                # whole path exists to fix.
-                self._applying_own_edit = False
-            # Recorded AFTER the command runs, so it holds the engine's
-            # canonical form rather than the editor's -- which is what
-            # `_on_molecule_changed` compares against.
-            self._synced_smiles = self._molecule.canonical_smiles
-            # AFTER the push, and the ordering is load-bearing. The command
-            # is what makes the model authoritative; the lone-pair counts
-            # are keyed on MOLFILE POSITION, so refreshing before it would
-            # compute them from the previous structure and put the dots on
-            # the wrong atoms -- the exact failure this call exists to fix.
-            self._refresh_annotations(structure_changed=self._synced_smiles != was)
+    def apply_edited_molblock(self, molblock: str | None) -> None:
+        """Make the canvas's drawing the model's structure: one canvas edit, applied.
 
-        self._backend.get_molblock(apply)
+        Public because it IS the edit path -- the backend hands the new molfile here --
+        and because the driven edit-burst profiler has to measure exactly this rather
+        than a copy of it that drifts. The command is marked `during_edit`: the person is
+        drawing, more edits may follow, and whatever recomputes because of the change
+        waits for the scheduler's `RecalculationDue`.
+        """
+        if not molblock or self._molecule is None:
+            return
+        # What the canvas was known to be showing BEFORE this edit --
+        # read now, because the push below overwrites it.
+        was = self._synced_smiles
+        command = EditStructureCommand(
+            self._engine, self._molecule, molblock, self._event_bus, during_edit=True
+        )
+        self._applying_own_edit = True
+        try:
+            self._undo_stack.push(command)
+        finally:
+            # In a finally block: leaving this set would make the
+            # canvas permanently deaf to undo, which is the bug this
+            # whole path exists to fix.
+            self._applying_own_edit = False
+        # Recorded AFTER the command runs, so it holds the engine's
+        # canonical form rather than the editor's -- which is what
+        # `_on_molecule_changed` compares against.
+        self._synced_smiles = self._molecule.canonical_smiles
+        # AFTER the push, and the ordering is load-bearing. The command
+        # is what makes the model authoritative; the lone-pair counts
+        # are keyed on MOLFILE POSITION, so refreshing before it would
+        # compute them from the previous structure and put the dots on
+        # the wrong atoms -- the exact failure this call exists to fix.
+        self._refresh_annotations(structure_changed=self._synced_smiles != was)
 
     # --- calculated annotations ---------------------------------------------
     #
@@ -395,6 +407,10 @@ class MoleculeEditorWidget(QWidget):
         if self._cip_labels:
             self._backend.set_cip_labels(True)
         self._publish_atom_numbers()
+
+    def set_bond_keys_enabled(self, enabled: bool) -> None:
+        """Whether a number key over a hovered bond reaches the application."""
+        self._backend.set_bond_keys_enabled(enabled)
 
     def set_cip_labels(self, on: bool) -> None:
         """Show CIP stereo descriptors on the canvas, or take them off.
