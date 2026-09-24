@@ -227,6 +227,10 @@ def retained_plan_would_drop_stereo(match_name: str, mol) -> bool:
     for atom in mol.GetAtoms():
         if atom.GetChiralTag() != chi_unspec:
             return True
+        # A carved SUBSTITUENT keeps its parent's CIP code on the atoms that were stereocentres there (the attachment atom lost its chiral tag
+        # when the parent-side neighbour became an H, but the descriptor is still owed: '(2S)-oxolan-2-yl'; naming round 14).
+        if atom.HasProp("_ParentCIPCode") and atom.GetProp("_ParentCIPCode") in ("R", "S", "r", "s"):
+            return True
     for bond in mol.GetBonds():
         if bond.GetStereo() != stereo_none:
             return True

@@ -5381,7 +5381,7 @@ def _name_single_fg_substituent(
                     acid_mol = Chem.MolFromSmiles(acid_smi)
                     if acid_mol is not None:
                         acid_tree = name(
-                            acid_mol, strategy, OutputForm.STANDALONE,
+                            acid_mol, strategy, _standalone_or_cation(acid_mol),
                             decision_ctx=DecisionContext(
                                 role="acid_for_chalcogen_acylamino",
                                 parent_plan=None,
@@ -5467,7 +5467,7 @@ def _name_single_fg_substituent(
                 acid_mol = rw.GetMol()
                 Chem.SanitizeMol(acid_mol)
                 acid_tree = name(
-                    acid_mol, strategy, OutputForm.STANDALONE,
+                    acid_mol, strategy, _standalone_or_cation(acid_mol),
                     decision_ctx=DecisionContext(
                         role="acid_for_acyl_prefix",
                         parent_plan=None,
@@ -5585,7 +5585,7 @@ def _name_single_fg_substituent(
                         )
                     # Fall through to STANDALONE-acid path as best-effort
                 acid_tree = name(
-                    acid_mol, strategy, OutputForm.STANDALONE,
+                    acid_mol, strategy, _standalone_or_cation(acid_mol),
                     decision_ctx=DecisionContext(
                         role="acid_for_acylamino",
                         parent_plan=None,
@@ -5645,7 +5645,7 @@ def _name_single_fg_substituent(
                     acid_mol = rw.GetMol()
                     Chem.SanitizeMol(acid_mol)
                     acid_tree = name(
-                        acid_mol, strategy, OutputForm.STANDALONE,
+                        acid_mol, strategy, _standalone_or_cation(acid_mol),
                         decision_ctx=DecisionContext(
                             role="acid_for_acylamino",
                             parent_plan=None,
@@ -8878,6 +8878,19 @@ def _validate_stereo_via_opsin(tree, name: str, *, strip_modes: tuple[str, ...])
     return cur_name
 
 
+def _standalone_or_cation(mol) -> "OutputForm":
+    """CATION for a net-positive molecule with a ring-embedded heteroatom cation, else STANDALONE (naming round 14).
+
+    `name` promotes STANDALONE to CATION only at depth 0, so a recursive call that names the ACID of a fragment (to derive an acyl or amido prefix)
+    lost a ring cation's '-ium': '2-(imidazo[1,2-a]pyridine-3-carbonyl)...' for an imidazo[1,2-a]pyridin-1-ium, a name for a different charge.
+    """
+    if sum(a.GetFormalCharge() for a in mol.GetAtoms()) > 0 and any(
+        a.GetSymbol() in _RING_CATION_IUM_ELEMENTS and a.GetFormalCharge() == 1 and a.IsInRing() for a in mol.GetAtoms()
+    ):
+        return OutputForm.CATION
+    return OutputForm.STANDALONE
+
+
 def _shift_bridgehead_cation_charge(mol):
     """Move a ring-fusion ``[n+]``'s charge onto the neighbouring ``[nH]`` it is conjugated with (naming round 14).
 
@@ -10877,7 +10890,7 @@ def _generate_retained_plans(perception, mol, output_form, free_valence, strateg
         # molecule carries informative stereo markers (chiral tags or
         # E/Z flags) and the retained name is not stereo-capable,
         # disqualify the retained plan so a systematic plan takes over.
-        if output_form == OutputForm.STANDALONE:
+        if output_form in (OutputForm.STANDALONE, OutputForm.SUBSTITUENT):
             from openchem.vendor.iupac_namer.strategy import retained_plan_would_drop_stereo
             if retained_plan_would_drop_stereo(match.get("name", ""), mol):
                 return

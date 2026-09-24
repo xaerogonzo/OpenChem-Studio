@@ -3572,6 +3572,24 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "1-({[NAMING ERROR: No valid naming plan found for C[N+]12CCCCC1CCCC2]}methoxy)-1-oxoethane", "the census shape (904): a quinolizidinium ester"),
     ("D-156d", "C1CCC[NH+]2CCCC2C1", "octahydro-1H-pyrrolo[1,2-a]azepin-4-ium",
      "[NAMING ERROR: No valid naming plan found for C1CCC2CCC[NH+]2CC1]", "a 5-7 bicyclic bridgehead ammonium"),
+    # D-157: a ring cation INSIDE an acyl or amido prefix lost its charge. The prefix is derived by naming the fragment's ACID with a recursive call,
+    # and `name` promotes STANDALONE to CATION only at depth 0, so 'pyridine-3-carboxamido' was written for a pyridin-1-ium: a name for a different
+    # charge (a same-connectivity read-back, invisible to a structure-only check). The recursion now asks for CATION. The prefix that results is
+    # '[(oxo)(pyridinium-3-yl)methyl]amino', which is right but not the preferred spelling (a cationic acyl prefix is not derived); recorded, not chased.
+    ("D-157a", "C[NH+](C)CCNC(=O)c1ccc[nH+]c1", "N,N-dimethyl-2-{[(oxo)(pyridinium-3-yl)methyl]amino}ethan-1-aminium",
+     "N,N-dimethyl-2-(pyridine-3-carboxamido)ethan-1-aminium", "the amido prefix of a pyridinium acid (structure right, preferred spelling not derived)"),
+    ("D-157b", "C[NH+](C)CCCN1CCC(=O)C1C(=O)c1c[nH+]c2ccccn12", "3-{2-[(imidazo[1,2-a]pyridin-1-ium-3-yl)(oxo)methyl]-3-oxopyrrolidin-1-yl}-N,N-dimethylpropan-1-aminium",
+     "3-[2-(imidazo[1,2-a]pyridine-3-carbonyl)-3-oxopyrrolidin-1-yl]-N,N-dimethylpropan-1-aminium", "the acyl prefix (the census shape, 1567)"),
+    # --- D-158 (naming round 14): a stereocentre on the ATTACHMENT atom of a retained ring substituent was dropped ----------------------------------
+    # 18 census structures (0.9%, the largest non-exact cluster left after round 13). `(oxolan-2-yl)methyl` and `(piperidin-2-yl)methanol` come from
+    # `_execute_retained`, a LEAF that prints the curated substituent form and never reads stereo, and the stereo-drop gate that lets a retained
+    # NAME give way to a systematic one ran for STANDALONE only. The attachment atom lost its chiral tag when the parent-side neighbour became an H,
+    # so the gate could not see it either; the descriptor survives as the `_ParentCIPCode` stash, which the gate now reads. The name is LESS
+    # specific, not a different structure (the read-back is same-connectivity), so the app showed it; it is now the stereo-complete name.
+    ("D-158a", "OC[C@H]1CCCO1", "[(2R)-oxolan-2-yl]methanol", "(oxolan-2-yl)methanol", "tetrahydrofurfuryl alcohol"),
+    ("D-158b", "CC(=O)NC[C@@H]1CCCO1", "N-{[(2S)-oxolan-2-yl]methyl}acetamide", "N-[(oxolan-2-yl)methyl]acetamide", "the census shape (16 of the 18)"),
+    ("D-158c", "OC[C@H]1CCCCN1", "[(2R)-piperidin-2-yl]methanol", "(piperidin-2-yl)methanol", "another retained ring"),
+    ("D-158d", "CC(=O)OC[C@H]1CCCO1", "[(2R)-oxolan-2-yl]methyl acetate", "(oxolan-2-yl)methyl acetate", "the ring as the alcohol component of an ester"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -4445,3 +4463,15 @@ def test_the_ring_cation_changes_do_not_move_a_neighbouring_name(smiles, expecte
 def test_every_atom_of_a_round_14_ring_cation_is_owned_by_exactly_one_node(smiles, monkeypatch):
     monkeypatch.setenv("OPENCHEM_NAMER_OWNERSHIP", "strict")
     assert "NAMING ERROR" not in name_smiles(smiles)
+
+
+# ---- D-158 converses: no informative stereo, no change ------------------------------------------------------------------------------------------
+@pytest.mark.parametrize("smiles, expected", [
+    ("CC(=O)NCC1CCCO1", "N-[(oxolan-2-yl)methyl]acetamide"),            # a racemic/unspecified centre: the retained leaf stands
+    ("OCC1CCCCN1", "(piperidin-2-yl)methanol"),
+    ("CC(=O)NC[C@H]1CCCCC1", "N-(cyclohexylmethyl)acetamide"),          # cyclohexyl has no stereocentre at all
+    ("OC[C@H]1CCCC1", "cyclopentylmethanol"),
+    ("CC(=O)NC[C@H]1CCCN1", "N-{[(2R)-pyrrolidin-2-yl]methyl}acetamide"),  # already systematic, unchanged
+])
+def test_the_retained_substituent_stereo_gate_does_not_move_a_neighbouring_name(smiles, expected):
+    assert name_smiles(smiles) == expected
