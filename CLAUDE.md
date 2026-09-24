@@ -75,8 +75,10 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "panel",      "id": "Properties"}
     {"do": "expand",     "section": "admet"}
     {"do": "calculator", "id": "admet_ml", "parameters": {...}}
-    {"do": "calculator", "id": "...", "reveal": false}  no modal Calculator
-                                          Inspector -- see below
+    {"do": "calculator", "id": "...", "reveal": false}  no Calculator
+                                          Inspector window -- see below
+    {"do": "expect_inspectors", "count": 2, "titles": ["(qeq"]}  how many
+                                          inspectors are OPEN side by side
     {"do": "inspector_report", "tag": "after-edit"}  the Atom Inspector's
                                           pinned line, HELD results and state
     {"do": "inspect", "id": "geometry_partial_charge", "parameters": {"ph_dependent": true}}
@@ -205,7 +207,10 @@ Inspector inside `EventBus._dispatch`; measured 2026-09-13, Properties held
 `gasteiger_charge_at_ph` 67 s before the Atom Inspector did (at quit). Fixed
 by `PropertyPanel._reveal_after_dispatch`. `inspector_report`'s `held=` is
 what separates "not shown" from "never arrived"; `"reveal": false` keeps an
-unattended run free of an open modal.
+unattended run free of an open inspector window. (The inspector is modeless
+now -- `_open_inspector` shows it, one window per result -- so a reveal no
+longer blocks anything; the deferral stays because building the Chromium view
+inside a dispatch is not free.)
 
 **`erase` is the only step that drives the route `set_molecule` never
 covers** -- the user drawing on the canvas -- so it is what any

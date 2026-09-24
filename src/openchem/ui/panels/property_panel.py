@@ -4,6 +4,7 @@ from dataclasses import replace
 
 import logging
 import os
+import weakref
 from collections.abc import Callable
 from typing import NamedTuple
 
@@ -16,6 +17,7 @@ from PySide6.QtWidgets import (
     QFormLayout,
     QLabel,
     QMenu,
+    QMessageBox,
     QPushButton,
     QScrollArea,
     QSizePolicy,
@@ -82,7 +84,10 @@ from openchem.events.events import (
 )
 from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.descriptor_service import DescriptorService
-from openchem.ui.dialogs.calculator_inspector_dialog import CalculatorInspectorDialog
+from openchem.ui.dialogs.calculator_inspector_dialog import (
+    CalculatorInspectorDialog,
+    inspector_budget_message,
+)
 from openchem.ui.dialogs.spatial_result_dialog import SpatialResultDialog
 from openchem.ui.dialogs.calculator_settings_dialog import (
     CalculatorSettingsDialog,
@@ -324,6 +329,59 @@ _CLEAR_SELECTION_HELP = HelpTooltip(
     topic="properties",
     help_anchor="properties",
 )
+
+
+#: How far each new inspector is offset from the last, in pixels down and to the right.
+INSPECTOR_CASCADE_STEP = 36
+
+
+def cascade_position(
+    previous: tuple[int, int],
+    size: tuple[int, int],
+    available: tuple[int, int, int, int],
+    step: int = INSPECTOR_CASCADE_STEP,
+) -> tuple[int, int]:
+    """Where the next window goes: `step` down and right of `previous`, kept on screen.
+
+    `available` is (left, top, right, bottom) of the usable screen. A window too big
+    for the screen sits at its top-left corner rather than at a negative offset.
+    """
+    left, top, right, bottom = available
+    width, height = size
+    x = min(previous[0] + step, right - width + 1)
+    y = min(previous[1] + step, bottom - height + 1)
+    return max(x, left), max(y, top)
+
+
+def inspector_window_title(result, molecule_name: str) -> str:
+    """The title of a result's inspector: what it shows, on which molecule, by which method.
+
+    The result's own name usually already carries the method's LABEL ("Partial Charge
+    (EEM, Bultinck 2002, 3D)"), and appending the raw id after it read as
+    "... (eem_bultinck2002_part1)" -- noise. The id is added only when NONE of its
+    words appears in the name, which is the case that needs it: two windows of one
+    calculator whose names do not say which method produced them.
+    """
+    name = str(getattr(result, "name", "") or getattr(result, "property_id", "") or "Result")
+    method = str(getattr(result, "method", "") or "")
+    squashed = "".join(ch for ch in name.lower() if ch.isalnum())
+    words = [w for w in method.lower().replace("-", "_").split("_") if len(w) >= 3]
+    title = name
+    if method and not any(w in squashed for w in words):
+        title = f"{name} [{method}]"
+    return f"{title} — {molecule_name}" if molecule_name else title
+
+
+def _window_is_open(window) -> bool:
+    """Whether `window` is still a live, visible window.
+
+    A window deleted on close leaves a Python wrapper whose C++ object is gone, and
+    asking it anything raises; that is "closed", not an error.
+    """
+    try:
+        return bool(window.isVisible())
+    except RuntimeError:
+        return False
 
 
 #: The footer that says some calculators are not being offered, and where they went.
@@ -1376,6 +1434,10 @@ class PropertyPanel(QWidget):
         #: Each section's calculator ids, for withdrawing a section whose
         #: every calculator is hidden.
         self._section_calculators: dict[str, list[str]] = {}
+        #: The inspector windows this panel has opened, by the identity of the RESULT
+        #: they show. Weak: a closed window (deleted on close) must not be kept alive
+        #: by the record that it was opened.
+        self._inspector_windows: dict[int, weakref.ref] = {}
         #: Asked on SELECTION whether the header's one automatic calculator
         #: still has to run, or whether a retained result will be replayed
         #: instead. The host owns that answer because it owns the result
@@ -3125,20 +3187,23 @@ class PropertyPanel(QWidget):
     def _reveal_after_dispatch(self, result) -> None:
         """Open the inspector for a just-arrived result ONCE THE BUS IS DONE.
 
-        **A MODAL DIALOG OPENED INSIDE A BUS HANDLER STARVES EVERY LATER
-        SUBSCRIBER.** `_open_inspector` ends in `exec()`, which runs a nested
-        event loop inside `EventBus._dispatch`; the subscribers after this
-        panel for the same event -- the Atom Inspector among them -- were not
-        called until the dialog closed. Measured in a driven run: Properties
+        **A DIALOG OPENED INSIDE A BUS HANDLER STARVES EVERY LATER
+        SUBSCRIBER.** `_open_inspector` used to end in `exec()`, which runs a
+        nested event loop inside `EventBus._dispatch`; the subscribers after
+        this panel for the same event -- the Atom Inspector among them -- were
+        not called until the dialog closed. Measured in a driven run: Properties
         held `gasteiger_charge_at_ph` 67 s before the Atom Inspector did,
-        because nobody closed the dialog until quit.
+        because nobody closed the dialog until quit. The inspector is modeless
+        now, so nothing waits FOR it -- but building one still constructs a
+        Chromium view, which is not free inside the dispatch, so the deferral
+        stays.
 
         A zero-delay shot runs after the current dispatch returns, so every
         subscriber has the result before the dialog opens. Only the latest
         result is kept: `_pending_calculator_id` names one calculator, and a
         second arrival before the shot fires supersedes the first rather than
-        stacking two modal dialogs. The context object cancels the shot if the
-        panel is destroyed first.
+        opening two windows for one request. The context object cancels the shot
+        if the panel is destroyed first.
         """
         self._deferred_reveal = result
         QTimer.singleShot(0, self, self._open_deferred_reveal)
@@ -3149,10 +3214,33 @@ class PropertyPanel(QWidget):
             self._open_inspector(result)
 
     def _open_inspector(self, result: PerAtomDataset | SpectrumResult) -> None:
+        """Open one result's inspector, MODELESS, or bring the one already open forward.
+
+        **SEVERAL CAN STAND SIDE BY SIDE, WHICH IS THE WHOLE REQUEST.** This used to
+        `exec()` -- one modal window, so comparing two results meant closing the first
+        and remembering it. Now each result opens its own window (deleted on close,
+        owned by this panel), the same way the Batch panel opens them, under the same
+        cap (`inspector_budget_message`): every calculator inspector holds a Chromium
+        process, and an unbounded number of them once hung a machine.
+
+        **THE SAME RESULT IS ONE WINDOW.** Asking again for a result whose inspector is
+        already open raises that window rather than opening a duplicate; a re-run makes
+        a new result, and so a new window, which is what somebody comparing a before
+        and an after wants. The title carries the calculator AND its method, so two
+        windows of one calculator with different methods can be told apart.
+        """
         if self._project is None:
             return
         molecule = self._project.find_molecule(result.molecule_uuid)
         if molecule is None:
+            return
+        key = id(result)
+        existing = self._inspector_windows.get(key)
+        window = existing() if existing is not None else None
+        if window is not None and _window_is_open(window):
+            window.show()
+            window.raise_()
+            window.activateWindow()
             return
         best = canonical_conformer(molecule)
         conformer_molblock = best.molblock if best is not None else None
@@ -3162,6 +3250,10 @@ class PropertyPanel(QWidget):
         if isinstance(result, SpectrumResult):
             dialog = NmrViewDialog(self._chemistry_engine, molecule, result, conformer_molblock, parent=self)
         else:
+            refusal = inspector_budget_message()
+            if refusal is not None:
+                QMessageBox.information(self, "Too many inspectors open", refusal)
+                return
             dialog = CalculatorInspectorDialog(
                 self._chemistry_engine,
                 molecule,
@@ -3170,4 +3262,37 @@ class PropertyPanel(QWidget):
                 self,
                 on_add_structure=self._on_add_structure,
             )
-        dialog.exec()
+        dialog.setWindowTitle(inspector_window_title(result, molecule.display_name))
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+        self._cascade_inspector(dialog)
+        dialog.show()
+        self._inspector_windows[key] = weakref.ref(dialog)
+
+    def _cascade_inspector(self, dialog) -> None:
+        """Offset a new inspector from the newest one still open.
+
+        **TWO WINDOWS AT ONE POSITION ARE ONE WINDOW.** Driven in the running app, both
+        inspectors opened at exactly (360, 128) -- Qt centres every new dialog over its
+        parent -- so the second covered the first completely and "side by side" was a
+        stack a person would take for a single window. Each new one starts a step down
+        and to the right of the newest still-open one, clamped to the screen.
+        """
+        previous = None
+        for reference in reversed(list(self._inspector_windows.values())):
+            window = reference()
+            if window is not None and _window_is_open(window):
+                previous = window
+                break
+        if previous is None:
+            return
+        try:
+            origin = previous.pos()
+            available = self.screen().availableGeometry()
+            target = cascade_position(
+                (origin.x(), origin.y()),
+                (dialog.width(), dialog.height()),
+                (available.left(), available.top(), available.right(), available.bottom()),
+            )
+        except RuntimeError:
+            return  # the previous window went away between the check and the ask
+        dialog.move(*target)

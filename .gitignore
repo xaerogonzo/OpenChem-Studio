@@ -98,6 +98,11 @@ pdf-library.json
 # output is not. See benchmarks/visual/README.md.
 artifacts/
 
+# A driven run also writes `<script>.report.json` beside its script (the verdict,
+# the ledger, the measurements). It is per-run output, and the drive-script guard
+# counts every *.json in that directory as a script that needs a README row.
+benchmarks/visual/*.report.json
+
 # `pyscope` maintains this index in the working tree and rewrites it as it
 # runs, so a tracked copy conflicts on every branch switch. It was committed
 # by accident in 0da570c.

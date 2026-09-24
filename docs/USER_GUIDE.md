@@ -777,6 +777,14 @@ face you. Every other value is in the table, and appears when you **hover**
 over an atom in the 3D view. The panes and the table can be resized by
 dragging the dividers between them, and the Inspector can be maximised.
 
+**Inspectors do not block anything, and you can have several open.** Run the
+same calculator with two methods and each result opens its own Inspector, titled
+with the calculator and the method, so the two can stand side by side. Asking
+again for a result whose Inspector is already open brings that window forward
+rather than opening a copy; running it again makes a new result, and so a new
+window. Each Inspector holds a web view, so the number open at once is capped,
+and past the cap you are told to close one first.
+
 When a result was computed on a structure other than the one you drew, the
 Inspector shows that structure. Partial Charge (3D) with **pH-dependent**
 ticked is the case: both pictures show the dominant ionization state at that

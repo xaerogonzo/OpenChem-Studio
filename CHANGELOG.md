@@ -58,6 +58,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   *when the result came back* -- so a value computed for structure A that finished after an edit to B read as current for B (AqSolDB takes about five
   minutes; a pause-then-refresh recompute makes the window routine). The molecule, its conformers and the structure version are now captured on the calling
   thread (`domain/input_snapshot.py`) and the worker reads nothing else.
+- **Every feature pattern was swept over 2,187 structures, and eight defects came out.** `tests/test_feature_vocabulary_sweep.py` runs each structural-feature pattern over the census
+  and naming corpora with the strict detector; eight patterns misread a sulfonamide anion, protonated acylguanidines, oximes and acylhydrazones, an oxazolinium and an N-hydroxy nitro
+  group. They are recorded in `tests/fixtures/structural_features/known_vocabulary_defects.toml`, which may only shrink; fixing them needs a vocabulary decision and is not done here.
+- **What drawing costs is now measured, before anything is changed.** The driven `edit_burst` step records each structural edit's latency, the longest the event loop was blocked and how
+  many recalculations a burst caused (`benchmarks/visual/edit_burst_baseline.json`). It is a baseline, not a test: it measures the Python side only, not Ketcher's own JavaScript.
+- **Several Calculator Inspectors can stand side by side.** The inspector was a modal window, so comparing two charge methods meant closing the first and remembering it. Each result now
+  opens its own window (modeless, titled with the calculator and its method), the same result raises the window already open instead of opening a duplicate, and the cap the Batch panel
+  already applies (a Chromium process each) holds here too. `expect_inspectors` in the driver counts them.
+- **The Results "Showing" list is readable.** Its popup took the width of the narrow docked box and elided entries such as "Thermophysical Properties (Joback)"; it is now as wide as its
+  longest entry, and each entry carries its full text as a tooltip.
 
 ### Naming round 14 (branch `naming-round-14`)
 

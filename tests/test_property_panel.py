@@ -39,6 +39,58 @@ def _descriptor(**overrides) -> DescriptorValue:
     return DescriptorValue(**defaults)
 
 
+class _FakeModelessDialog:
+    """Stands in for an inspector the panel now SHOWS, modeless, rather than `exec()`s.
+
+    Records that it was shown, and answers the few window calls the panel makes
+    (title, delete-on-close, raise). Subclasses add their constructor, as the real
+    dialogs do.
+    """
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+
+    def setAttribute(self, *_args):  # noqa: N802 - Qt's spelling
+        pass
+
+    def setWindowTitle(self, title):  # noqa: N802
+        self.title = title
+
+    def show(self):
+        self.shown = getattr(self, "shown", 0) + 1
+        self.on_show()
+
+    def on_show(self):
+        pass
+
+    def raise_(self):
+        pass
+
+    def activateWindow(self):  # noqa: N802
+        pass
+
+    def isVisible(self):  # noqa: N802
+        return True
+
+    # Placement, for the panel's cascade: a fixed size, and a position that moves.
+    position = (100, 100)
+
+    def pos(self):
+        from PySide6.QtCore import QPoint
+
+        return QPoint(*self.position)
+
+    def move(self, x, y):
+        self.position = (x, y)
+
+    # Small enough to fit the offscreen platform's screen, which is only 800 x 600.
+    def width(self):
+        return 400
+
+    def height(self):
+        return 300
+
+
 class _FakeDescriptorService:
     """Records run_calculator calls instead of scheduling real QRunnable
     work -- these tests are about PropertyPanel's own wiring, not
@@ -334,12 +386,9 @@ def test_cancelling_the_settings_dialog_does_not_run_the_calculator(qapp, monkey
 def test_matching_result_opens_the_inspector_and_clears_pending(qapp, monkeypatch):
     opened = []
 
-    class _FakeInspectorDialog:
+    class _FakeInspectorDialog(_FakeModelessDialog):
         def __init__(self, engine, molecule, result, conformer_molblock, parent=None, **kwargs):
             opened.append((molecule, result))
-
-        def exec(self):
-            return QDialog.DialogCode.Accepted
 
     monkeypatch.setattr(property_panel_module, "CalculatorInspectorDialog", _FakeInspectorDialog)
 
@@ -382,13 +431,12 @@ def test_the_revealed_inspector_does_not_starve_later_subscribers(qapp, monkeypa
     """
     order: list[str] = []
 
-    class _FakeInspectorDialog:
+    class _FakeInspectorDialog(_FakeModelessDialog):
         def __init__(self, engine, molecule, result, conformer_molblock, parent=None, **kwargs):
             pass
 
-        def exec(self):
-            order.append("dialog exec")
-            return QDialog.DialogCode.Accepted
+        def on_show(self):
+            order.append("dialog shown")
 
     monkeypatch.setattr(property_panel_module, "CalculatorInspectorDialog", _FakeInspectorDialog)
 
@@ -406,7 +454,7 @@ def test_the_revealed_inspector_does_not_starve_later_subscribers(qapp, monkeypa
     )))
     QCoreApplication.processEvents()
 
-    assert order == ["later subscriber", "dialog exec"], order
+    assert order == ["later subscriber", "dialog shown"], order
 
 
 def test_matching_spectrum_result_opens_the_nmr_view_and_clears_pending(qapp, monkeypatch):
@@ -425,19 +473,13 @@ def test_matching_spectrum_result_opens_the_nmr_view_and_clears_pending(qapp, mo
     opened = []
     inspector_opened = []
 
-    class _FakeNmrViewDialog:
+    class _FakeNmrViewDialog(_FakeModelessDialog):
         def __init__(self, engine, molecule, result, conformer_molblock, parent=None, **kwargs):
             opened.append((molecule, result))
 
-        def exec(self):
-            return QDialog.DialogCode.Accepted
-
-    class _FakeInspectorDialog:
+    class _FakeInspectorDialog(_FakeModelessDialog):
         def __init__(self, engine, molecule, result, conformer_molblock, parent=None):
             inspector_opened.append(result)
-
-        def exec(self):
-            return QDialog.DialogCode.Accepted
 
     monkeypatch.setattr(property_panel_module, "NmrViewDialog", _FakeNmrViewDialog)
     monkeypatch.setattr(property_panel_module, "CalculatorInspectorDialog", _FakeInspectorDialog)
@@ -478,12 +520,9 @@ def test_unrelated_per_atom_data_does_not_open_the_inspector(qapp, monkeypatch):
     pop a dialog open on its own."""
     opened = []
 
-    class _FakeInspectorDialog:
+    class _FakeInspectorDialog(_FakeModelessDialog):
         def __init__(self, engine, molecule, result, conformer_molblock, parent=None):
             opened.append(result)
-
-        def exec(self):
-            return QDialog.DialogCode.Accepted
 
     monkeypatch.setattr(property_panel_module, "CalculatorInspectorDialog", _FakeInspectorDialog)
 

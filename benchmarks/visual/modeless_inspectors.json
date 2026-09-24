@@ -1,0 +1,14 @@
+[
+  {"do": "smiles", "smiles": "CO", "name": "Methanol", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "conformers", "count": 3, "after_ms": 15000},
+
+  {"do": "calculator", "id": "geometry_partial_charge", "after_ms": 8000},
+  {"do": "expect_inspectors", "tag": "one", "count": 1, "titles": ["EEM"], "after_ms": 500},
+
+  {"do": "calculator", "id": "geometry_partial_charge", "parameters": {"method": "qeq_rg1991_lambda_half_h_experimental"}, "after_ms": 8000},
+  {"do": "expect_inspectors", "tag": "two-side-by-side", "count": 2, "titles": ["EEM", "QEq", "Methanol"], "apart": true, "after_ms": 500},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/modeless_inspectors_two.png", "widget": "inspectors", "after_ms": 1000},
+
+  {"do": "quit"}
+]

@@ -1571,8 +1571,13 @@ def test_every_committed_drive_script_has_a_row_in_its_readme():
     checked mechanically, which is why that column says `not recorded here`
     rather than guessing.
     """
+    # A driven run writes `<script>.report.json` beside its script (git-ignored). That
+    # is per-run output, not a script; counting it made every driven run fail this
+    # guard until somebody deleted the file.
     scripts = sorted(
-        path.name for path in (_ROOT / "benchmarks" / "visual").glob("*.json")
+        path.name
+        for path in (_ROOT / "benchmarks" / "visual").glob("*.json")
+        if not path.name.endswith(".report.json")
     )
     assert len(scripts) > 20, f"found {len(scripts)} scripts, so it is not walking the directory"
 

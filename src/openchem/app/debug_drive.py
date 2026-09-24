@@ -104,6 +104,9 @@ The script is a JSON list of steps, run in order:
                                               launcher OFFERS, by row visibility
       {"do": "expect_help",      "topic": "calc-joback-properties"}
                                               which help topic is in FRONT
+      {"do": "expect_inspectors", "count": 2, "titles": ["QEq"], "apart": true}
+                                              how many Calculator Inspectors
+                                              are OPEN, side by side
       {"do": "edit_burst",       "grow": "CCO", "edits": 12, "gap_ms": 150}   or   "structures": [a, b]
                                               what a burst of structural edits
                                               COSTS the application (recorded,
@@ -1528,14 +1531,14 @@ class _Driver(QObject):
             return
         parameters: dict[str, Any] = {p.name: p.default for p in definition.parameters}
         parameters.update(step.get("parameters") or {})
-        # `"reveal": false` skips the reveal, so no modal Calculator Inspector
-        # sits open for the rest of an unattended run. It USED to be
-        # load-bearing: the reveal ran `exec()` inside the bus handler and
-        # starved every later subscriber (the Atom Inspector got the dataset
-        # 67 s late, at quit). `PropertyPanel._reveal_after_dispatch` fixed
-        # that; with the reveal on, the Atom Inspector now holds the result
-        # while the dialog is open -- measured, OPENCHEM_TRACE_WINDOWS showing
-        # the dialog.
+        # `"reveal": false` skips the reveal, so no Calculator Inspector window
+        # is left open for the rest of an unattended run. It USED to be
+        # load-bearing for a worse reason: the reveal ran `exec()` inside the
+        # bus handler and starved every later subscriber (the Atom Inspector
+        # got the dataset 67 s late, at quit). `PropertyPanel._reveal_after_dispatch`
+        # fixed that, and the inspector is MODELESS now, so a reveal blocks
+        # nothing -- but each one still opens a window (and a Chromium process),
+        # and `expect_inspectors` is what counts them.
         if step.get("reveal", True):
             panel._pending_calculator_id = calculator_id
         panel._set_running(calculator_id, True)
@@ -1552,10 +1555,12 @@ class _Driver(QObject):
         `{"do": "inspect", "id": "gasteiger_charge_at_ph"}`, then
         `{"do": "shot", "widget": "inspector"}`.
 
-        **`show()`, NEVER `exec()`.** The panel's own `_open_inspector`
-        ends in `exec()`, which spins an event loop inside the handler --
-        the next step is never scheduled and an unattended run stalls on a
-        window with nobody to close it. Same trap `lewis` documents.
+        **`show()`, NEVER `exec()`.** `exec()` spins an event loop inside the
+        handler -- the next step is never scheduled and an unattended run
+        stalls on a window with nobody to close it. Same trap `lewis`
+        documents. (The panel's own `_open_inspector` used to end in `exec()`
+        and is modeless now; this step still builds the dialog itself so it
+        can be photographed without the panel's title, cap and raise logic.)
 
         WHAT THIS DOES AND DOES NOT DRIVE, stated because it matters:
         it builds the real dialog from a real computed result, so what is
@@ -1716,6 +1721,38 @@ class _Driver(QObject):
                 logger.error("OPENCHEM_DRIVE: no inspector open; run {'do': 'inspect', ...}")
                 return
             target = self._inspector
+        elif step.get("widget") == "inspectors":
+            # **EVERY OPEN CALCULATOR INSPECTOR IN ONE PICTURE, AT THEIR REAL RELATIVE
+            # POSITIONS.** A single-widget grab cannot show whether two windows overlap,
+            # which is the whole question when they are meant to stand side by side; a
+            # screen grab would photograph whatever else is on the desktop. Each is
+            # grabbed and painted onto one canvas, oldest first, so the newest is on top.
+            from PySide6.QtGui import QColor, QPainter, QPixmap
+
+            shown = []
+            for reference in self._window._property_panel._inspector_windows.values():
+                window = reference()
+                try:
+                    if window is not None and window.isVisible():
+                        shown.append((window.x(), window.y(), window.grab()))
+                except RuntimeError:
+                    continue
+            if not shown:
+                logger.error("OPENCHEM_DRIVE: no inspector windows open; nothing to photograph")
+                return
+            left = min(x for x, _y, _pic in shown)
+            top = min(y for _x, y, _pic in shown)
+            right = max(x + pic.width() for x, _y, pic in shown)
+            bottom = max(y + pic.height() for _x, y, pic in shown)
+            canvas = QPixmap(right - left, bottom - top)
+            canvas.fill(QColor("#888888"))
+            painter = QPainter(canvas)
+            for x, y, pic in shown:
+                painter.drawPixmap(x - left, y - top, pic)
+            painter.end()
+            canvas.save(str(path))
+            logger.warning("OPENCHEM_DRIVE: wrote %s (%d inspector window(s))", path, len(shown))
+            return
         elif step.get("widget") == "spatial":
             if getattr(self, "_spatial", None) is None:
                 logger.error("OPENCHEM_DRIVE: no spatial dialog open; run {'do': 'spatial'}")
@@ -4799,6 +4836,51 @@ class _Driver(QObject):
             logger.warning("OPENCHEM_DRIVE: EXPECT help ok[%s]", tag)
         else:
             logger.error("OPENCHEM_DRIVE: EXPECT help FAILED[%s] -- %s", tag, detail)
+
+    def _do_expect_inspectors(self, step: dict[str, Any]) -> None:
+        """`{"do": "expect_inspectors", "count": 2, "titles": ["QEq", "EEM"], "apart": true}`
+        -- how many Calculator Inspector windows are OPEN, and what they say, asserted.
+
+            "count"     exactly this many live, visible inspector windows
+            "titles"    substrings each of which some open window's title carries
+            "apart"     no two open windows share a top-left corner. **TWO WINDOWS AT ONE
+                        POSITION ARE ONE WINDOW**: the first run of this step passed on
+                        count and titles while both opened at (360, 128), the second
+                        covering the first completely.
+
+        The panel keeps its inspectors by result identity in weak references, so this
+        reads what a person would see -- a window that is still visible -- and never
+        counts one that closed. Two windows with the same title are two results
+        opened side by side, which is a pass; one window a second request raised is
+        `count` 1, which is how "the same result is one window" is asserted.
+        """
+        panel = self._window._property_panel
+        tag = str(step.get("tag", ""))
+        titles: list[str] = []
+        corners: list[tuple[int, int]] = []
+        for reference in panel._inspector_windows.values():
+            window = reference()
+            try:
+                if window is not None and window.isVisible():
+                    titles.append(str(window.windowTitle()))
+                    corners.append((window.x(), window.y()))
+            except RuntimeError:
+                continue  # deleted on close
+        problems: list[str] = []
+        if step.get("apart") and len(set(corners)) != len(corners):
+            problems.append(f"windows share a corner: {corners}")
+        if "count" in step and len(titles) != int(step["count"]):
+            problems.append(f"{len(titles)} inspector window(s) open, wanted {int(step['count'])}")
+        for wanted in step.get("titles") or []:
+            if not any(str(wanted) in title for title in titles):
+                problems.append(f"no open inspector titled like {wanted!r}")
+        ok = not problems
+        detail = "as expected" if ok else "; ".join(problems)
+        detail += f" (open: {titles} at {corners})"
+        if self._record_assertion("expect_inspectors", tag, ok, detail):
+            logger.warning("OPENCHEM_DRIVE: EXPECT inspectors ok[%s] %s at %s", tag, titles, corners)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT inspectors FAILED[%s] -- %s", tag, detail)
 
     def _do_expect_offered(self, step: dict[str, Any]) -> None:
         """`{"do": "expect_offered", "offered": [...], "hidden": [...], "footer": "..."}`

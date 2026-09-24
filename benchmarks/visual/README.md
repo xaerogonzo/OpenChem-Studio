@@ -91,6 +91,7 @@ Every one is a surface with a *recorded* history of breaking, not a guess.
 | `lewis_site_depiction.json` | the Lewis acid/base site depiction, two donors and mixed roles | not recorded here |
 | `logd_curve_cursor.json` | the LogD curve in Results, with a real click on the chart | not recorded here |
 | `mass_spectrum_and_merged_details.json` | one, then three calculators in Results, then an edit | not recorded here |
+| `modeless_inspectors.json` | two Calculator Inspectors of one calculator opened by two runs with different methods and asserted OPEN SIDE BY SIDE (`expect_inspectors`: count and titles carrying the method); the first one is still there after the second arrives | the inspector was a modal `exec()`, so a second result meant closing the first and comparing from memory |
 | `periodic_charges.json` | the crystal report's EQeq charges: computed, refused for disorder, and over the atom budget | `units="e"` composed onto a sentence whose value is an atom count, painting "... C +0.062 e"; and the refusal row marked ADVANCED, so a disordered CIF showed NO charge row at all |
 | `powder_pattern_chart.json` | the crystal report's powder chart, truncated and at Cu radiation | a declared chart reached the report and no renderer drew it; seven guards on the builder passed first |
 | `properties_launcher_after_2c2.json` | the Properties launcher after stage 2c2, at 900 and 1600 px | not recorded here |
