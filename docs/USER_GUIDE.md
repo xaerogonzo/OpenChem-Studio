@@ -800,6 +800,24 @@ rather than opening a copy; running it again makes a new result, and so a new
 window. Each Inspector holds a web view, so the number open at once is capped,
 and past the cap you are told to close one first.
 
+**Comparing two methods.** Run a second method on the same structure (Partial
+Charge (3D) with a different model, say) and open either result's Inspector:
+**Compare with…** lists the other results it can honestly be set beside, and
+opens one table with a row per atom, a column per method, a **Spread** (largest
+minus smallest, shaded so the atoms the methods disagree about stand out) and,
+for each later method, its **difference from the first**, which is the reference.
+Click a heading to sort; **Copy** puts the table on the clipboard as text.
+
+Only results that describe the *same atoms* are offered: the same molecule,
+the same drawing (edit the structure and the earlier runs drop out — run the
+methods again), the same input (a drawing and a 3D conformer have different
+atoms), the same protonation state and the same units. Anything else is not
+listed, and if you ask for one anyway the window says which of those it is.
+The application keeps one result per calculator per structure in its store, so
+the comparison is drawn from a short list the Properties panel keeps of what
+each method produced since you selected the molecule; it is not saved with the
+project.
+
 When a result was computed on a structure other than the one you drew, the
 Inspector shows that structure. Partial Charge (3D) with **pH-dependent**
 ticked is the case: both pictures show the dominant ionization state at that

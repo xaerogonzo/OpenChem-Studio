@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
 
 from openchem.chem.calculation_input import canonical_conformer
 from openchem.chem.engine import ChemistryEngine
+from openchem.chem.result_structure import NO_STRUCTURE, display_structure
 from openchem.domain.calculator import (
     GEOMETRY,
     CalculationRequest,
@@ -42,6 +43,7 @@ from openchem.domain.calculator_taxonomy import (
     category_sort_key,
 )
 from openchem.domain.common import describe_failure
+from openchem.domain.compare import MAX_COMPARED, ComparedResult, Comparison, CompareRefusal, compare
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.descriptor_aggregate import (
     DESCRIPTOR_AGGREGATE_ID,
@@ -86,6 +88,8 @@ from openchem.events.events import (
 )
 from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.descriptor_service import DescriptorService
+from openchem.services.result_cache import parameters_key
+from openchem.ui.dialogs.compare_results_dialog import CompareResultsDialog
 from openchem.ui.dialogs.calculator_inspector_dialog import (
     CalculatorInspectorDialog,
     inspector_budget_message,
@@ -357,6 +361,17 @@ _CLEAR_SELECTION_HELP = HelpTooltip(
     topic="properties",
     help_anchor="properties",
 )
+
+
+def _compare_key(dataset) -> tuple[str, str, str]:
+    """One slot per property, method AND parameters: pH 5 and pH 9 are two results."""
+    provenance = getattr(dataset, "provenance", None)
+    parameters = getattr(provenance, "parameters", None)
+    return (
+        dataset.property_id,
+        dataset.method,
+        parameters_key(parameters if isinstance(parameters, dict) else None),
+    )
 
 
 #: How far each new inspector is offset from the last, in pixels down and to the right.
@@ -1590,6 +1605,14 @@ class PropertyPanel(QWidget):
         #: measured before the fix, two providers publishing one id reached
         #: the reader as one value. `aggregate_descriptors` handles the pair
         #: correctly and never got the chance.
+        #: Every per-atom result the selected molecule has produced, ONE PER METHOD AND
+        #: PARAMETERS, with the identity that says what its atoms are. The result store
+        #: keeps one per calculator per structure (a second charge model replaces the
+        #: first), so two methods could never be on screen together; this is the short pool
+        #: a comparison is drawn from. In memory only, and cleared with the selection.
+        self._compare_pool: dict[tuple[str, str, str], ComparedResult] = {}
+        #: The most recent comparison window, for a driven run to ask about.
+        self._last_comparison: weakref.ref | None = None
         #: The rows that open another panel, by calculator id.
         self._service_rows: dict[str, QPushButton] = {}
         #: The last hint written to the batch status line (see `_refresh_batch_hint`).
@@ -1798,6 +1821,7 @@ class PropertyPanel(QWidget):
         # the previous molecule's descriptors under this one's name.
         self._descriptor_values.clear()
         self._descriptor_versions.clear()
+        self._compare_pool.clear()
         # A different molecule has been asked nothing yet.
         self._finished_calculator_ids.clear()
         self._reports.clear()
@@ -2890,6 +2914,9 @@ class PropertyPanel(QWidget):
         dataset = event.dataset
         self._finish_batch_run(dataset.property_id)
         if dataset.molecule_uuid == self._selected_molecule_uuid:
+            self._compare_pool[_compare_key(dataset)] = ComparedResult(
+                dataset, event.input_fingerprint, event.calculation_input
+            )
             # THE PRODUCER'S DECLARATION WINS, and the registry is the
             # fallback rather than the authority. A dataset from the
             # always-on batch is in no registry, so asking one filed
@@ -3525,12 +3552,71 @@ class PropertyPanel(QWidget):
                 conformer_molblock,
                 self,
                 on_add_structure=self._on_add_structure,
+                compare_candidates=self.comparable_with,
+                on_compare=self._open_comparison,
             )
         dialog.setWindowTitle(inspector_window_title(result, molecule.display_name))
         dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
         self._cascade_inspector(dialog)
         dialog.show()
         self._inspector_windows[key] = weakref.ref(dialog)
+
+    def comparable_with(self, result) -> tuple[ComparedResult, list[ComparedResult]]:
+        """`result` as a `ComparedResult`, and every OTHER held result it can honestly be compared with.
+
+        Each candidate is checked against `result` by the same rule the comparison itself
+        applies (`domain.compare.compare`): a result for a different drawing, atoms, units or
+        protonation state is not offered at all, so the menu never proposes a comparison that
+        would be refused.
+        """
+        anchor = next((c for c in self._compare_pool.values() if c.dataset is result), None)
+        if anchor is None:
+            anchor = ComparedResult(result)
+        others = [
+            candidate
+            for candidate in self._compare_pool.values()
+            if candidate is not anchor and isinstance(compare([anchor, candidate]), Comparison)
+        ]
+        return anchor, others[: MAX_COMPARED - 1]
+
+    def _open_comparison(self, results) -> None:
+        """Open the comparison window for `results`, or say why it cannot be made."""
+        outcome = compare(list(results))
+        if isinstance(outcome, CompareRefusal):
+            QMessageBox.information(self, "Cannot compare", outcome.message)
+            return
+        first = outcome.columns[0]
+        molecule = self._project.find_molecule(first.dataset.molecule_uuid) if self._project else None
+        if molecule is None:
+            return
+        dialog = CompareResultsDialog(
+            outcome, self._symbols_for(molecule, first), molecule.display_name, parent=self
+        )
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+        dialog.show()
+        self._last_comparison = weakref.ref(dialog)
+
+    def _symbols_for(self, molecule, compared: ComparedResult) -> dict[int, str]:
+        """Element symbols for the atoms a result is keyed by, or {} when they cannot be trusted.
+
+        The structure the atoms describe is the one the inspector draws: the result's own (a
+        microspecies), else the conformer for a geometry result, else the drawing. If the
+        indices do not fit it the symbols are dropped rather than put on the wrong atoms.
+        """
+        dataset = compared.dataset
+        molblock, source = display_structure(molecule, dataset)
+        if source == NO_STRUCTURE or not molblock:
+            conformer = canonical_conformer(molecule) if compared.calculation_input == GEOMETRY else None
+            molblock = conformer.molblock if conformer is not None else molecule.molblock
+        if not molblock:
+            return {}
+        try:
+            rows = self._chemistry_engine.atom_rows(molblock)
+        except Exception:  # noqa: BLE001 - symbols are a convenience, never a reason to lose the table
+            return {}
+        if not rows or max(dataset.values, default=-1) >= len(rows):
+            return {}
+        return {index: rows[index][0] for index in dataset.values}
 
     def _cascade_inspector(self, dialog) -> None:
         """Offset a new inspector from the newest one still open.

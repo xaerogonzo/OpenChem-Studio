@@ -1,0 +1,15 @@
+[
+  {"do": "smiles", "smiles": "CCO", "name": "Ethanol", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "conformers", "count": 3, "after_ms": 15000},
+
+  {"do": "calculator", "id": "geometry_partial_charge", "reveal": false, "after_ms": 6000},
+  {"do": "compare_results", "tag": "one method held", "property": "geometry_partial_charge", "expect": {"none_offered": true}, "after_ms": 500},
+
+  {"do": "calculator", "id": "geometry_partial_charge", "parameters": {"method": "qeq_rg1991_lambda_half_h_experimental"}, "reveal": false, "after_ms": 6000},
+  {"do": "compare_results", "tag": "eem beside qeq", "property": "geometry_partial_charge",
+   "expect": {"columns": 2, "atoms": 9}, "shot": "benchmarks/visual/artifacts/compare_methods.png", "after_ms": 1000},
+
+  {"do": "expect_clean", "tag": "end"},
+  {"do": "quit"}
+]

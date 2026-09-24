@@ -85,6 +85,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ("NMR (raw shielding) > Quantum Chemistry panel"): a button with no tick box and no status chip, which shows that panel with the calculation already chosen and runs nothing.
   `ServiceExecution` gains a `panel_id`, and a guard holds every one to a panel that exists. The status line beside "Run selected" now says what the tick boxes are for ("Tick boxes to run
   several at once", then "N ticked - runs with default settings") until a real status replaces it. The Properties panel has 22 sections, not 20.
+- **Two charge methods can finally be compared.** The result store keeps one result per calculator per structure, so running a second model replaced the first and the two could never be
+  on screen together -- the reason comparing methods was hard. The Properties panel now keeps a short pool of the per-atom results a molecule has produced (one per method and parameters),
+  and a Calculator Inspector's new **Compare with...** menu offers the others that can honestly be set beside it and opens one table: a row per atom, a column per method, a shaded
+  **Spread** and each later method's difference from the first. `domain/compare.py` REFUSES what would publish a wrong difference -- a different molecule, an edit between the runs, a
+  drawing beside a conformer, one protonation state beside another, different units or atoms, or the same calculation twice -- and the menu never offers a comparison it would refuse.
+  Not saved with the project. Driven on ethanol: EEM against QEq disagree most at the oxygen (0.09 e).
 - **The Results "Showing" list is readable.** Its popup took the width of the narrow docked box and elided entries such as "Thermophysical Properties (Joback)"; it is now as wide as its
   longest entry, and each entry carries its full text as a tooltip.
 

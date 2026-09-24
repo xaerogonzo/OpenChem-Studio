@@ -111,6 +111,11 @@ The script is a JSON list of steps, run in order:
                                               PRESS a Properties row that opens
                                               another panel, and assert which
                                               panel came forward and what it chose
+      {"do": "compare_results",  "property": "geometry_partial_charge",
+                                  "expect": {"columns": 2, "atoms": 6}}
+                                              open a Calculator Inspector, take
+                                              "Compare with..." from ITS menu, and
+                                              assert the comparison window
       {"do": "tool_setup",       "tool": "pkasolver"}
                                               the window half of a "Needs setup"
                                               press (see `_do_tool_setup`)
@@ -4930,6 +4935,75 @@ class _Driver(QObject):
         self._chip_expectation = (tag, calculator_id, expect)
         QTimer.singleShot(int(step.get("inspect_after_ms", 700)), self._window, self._inspect_chip_modal)
         chip.click()
+
+    def _do_compare_results(self, step: dict[str, Any]) -> None:
+        """`{"do": "compare_results", "property": "geometry_partial_charge", "expect": {...}}`
+        -- open one held result's Calculator Inspector, take "Compare with..." from ITS menu,
+        and assert the comparison window that opens.
+
+            "property"   the per-atom property whose held results are compared
+            "all"        choose "With all N" instead of the first single entry
+            "expect"     {"columns": N, "atoms": N, "refused": "fragment of the message"}
+            "shot"       a path to photograph the comparison window to
+
+        It goes through the REAL route -- the inspector's button menu and its bound
+        `_on_compare_action` -- rather than calling `_open_comparison`, because the wiring
+        (which candidates the menu offers, and what the panel does with the choice) is what
+        the feature is. A comparison the domain refuses raises a message box, which a driven
+        run cannot answer, so `"expect": {"none_offered": true}` asserts the menu OFFERED
+        nothing instead -- the refusal happening a step earlier, in the candidates.
+        """
+        tag = str(step.get("tag", ""))
+        expect = dict(step.get("expect") or {})
+        panel = self._window._property_panel
+        property_id = str(step["property"])
+        held = [c for c in panel._compare_pool.values() if c.dataset.property_id == property_id]
+        if not held:
+            logger.error("OPENCHEM_DRIVE: compare_results: nothing held for %r", property_id)
+            return
+        anchor = held[-1].dataset
+        if not panel.open_result_inspector(anchor):
+            logger.error("OPENCHEM_DRIVE: compare_results: the inspector would not open")
+            return
+        reference = panel._inspector_windows.get(id(anchor))
+        inspector = reference() if reference is not None else None
+        if inspector is None or not hasattr(inspector, "_compare_menu"):
+            self._record_assertion("compare_results", tag, False, "the inspector has no Compare menu")
+            logger.error("OPENCHEM_DRIVE: EXPECT compare_results FAILED[%s] -- no Compare menu", tag)
+            return
+        inspector._rebuild_compare_menu()
+        actions = [a for a in inspector._compare_menu.actions() if a.isEnabled()]
+        problems: list[str] = []
+        offered = [a.text() for a in actions]
+        if expect.get("none_offered"):
+            if offered:
+                problems.append(f"offered {offered}, wanted nothing")
+        elif not actions:
+            problems.append("the menu offered nothing to compare with")
+        else:
+            (actions[-1] if step.get("all") else actions[0]).trigger()
+            reference = panel._last_comparison
+            dialog = reference() if reference is not None else None
+            if dialog is None:
+                problems.append("no comparison window opened")
+            else:
+                table = dialog._table
+                if "columns" in expect and len(dialog._comparison.columns) != int(expect["columns"]):
+                    problems.append(f"{len(dialog._comparison.columns)} results compared, wanted {expect['columns']}")
+                if "atoms" in expect and table.rowCount() != int(expect["atoms"]):
+                    problems.append(f"{table.rowCount()} atom rows, wanted {expect['atoms']}")
+                if step.get("shot"):
+                    path = Path(str(step["shot"]))
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    dialog.grab().save(str(path))
+                    logger.warning("OPENCHEM_DRIVE: wrote %s", path)
+                logger.warning("OPENCHEM_DRIVE: compare summary: %s", dialog._summary.text())
+        ok = not problems
+        detail = ("as expected" if ok else "; ".join(problems)) + f" (menu: {offered})"
+        if self._record_assertion("compare_results", tag, ok, detail):
+            logger.warning("OPENCHEM_DRIVE: EXPECT compare_results ok[%s] %s", tag, offered)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT compare_results FAILED[%s] -- %s", tag, detail)
 
     def _do_reveal_row(self, step: dict[str, Any]) -> None:
         """`{"do": "reveal_row", "calculator": "orca.nmr"}` -- scroll a Properties row into view.

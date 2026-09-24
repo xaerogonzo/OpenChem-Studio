@@ -79,6 +79,9 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           Inspector window -- see below
     {"do": "expect_inspectors", "count": 2, "titles": ["(qeq"]}  how many
                                           inspectors are OPEN side by side
+    {"do": "compare_results", "property": "geometry_partial_charge",
+     "expect": {"columns": 2, "atoms": 9}}     the inspector's REAL "Compare
+                                          with..." menu, then the window
     {"do": "service_row", "calculator": "orca.nmr", "expect": {"panel": "Quantum_Chemistry"}}
                                           PRESS a row that opens another panel;
                                           `reveal_row` scrolls one into a shot

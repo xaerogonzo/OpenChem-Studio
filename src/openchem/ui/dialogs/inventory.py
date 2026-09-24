@@ -167,6 +167,24 @@ def iter_dialog_fixtures() -> Iterator[DialogFixture]:
             calculator_definitions=definitions,
         )
 
+    def compare_results(_context: DialogContext):
+        from openchem.domain.common import Provenance
+        from openchem.domain.compare import ComparedResult, compare
+        from openchem.domain.scientific_result import PerAtomDataset
+        from openchem.ui.dialogs.compare_results_dialog import CompareResultsDialog
+
+        # SYNTHETIC, so the help-contract guard reaches this window with a bare context: two
+        # invented methods on a three-atom molecule. Nothing here is chemistry.
+        def column(method: str, values: dict[int, float]) -> ComparedResult:
+            return ComparedResult(PerAtomDataset(
+                timestamp=0.0, property_id="partial_charge", name=f"Partial Charge ({method})",
+                units="e", method=method, molecule_uuid="synthetic", values=values,
+                provenance=Provenance(created_by="core", method=method, parameters={}),
+            ))
+
+        outcome = compare([column("method A", {0: -0.4, 1: 0.1, 2: 0.3}), column("method B", {0: -0.5, 1: 0.1, 2: 0.4})])
+        return CompareResultsDialog(outcome, {0: "O", 1: "C", 2: "H"}, "a synthetic molecule")
+
     def command_palette(_context: DialogContext):
         from openchem.ui.dialogs.command_palette import CommandPalette
 
@@ -339,6 +357,7 @@ def iter_dialog_fixtures() -> Iterator[DialogFixture]:
     yield DialogFixture("PeriodicTableDialog", periodic_table)
     yield DialogFixture("ReceptorLibraryDialog", receptor_library)
     yield DialogFixture("CommandPalette", command_palette)
+    yield DialogFixture("CompareResultsDialog", compare_results)
     yield DialogFixture("SettingsDialog", settings_window, needs="settings")
     yield DialogFixture("StructureLookupDialog", structure_lookup, needs="a molecule")
     yield DialogFixture("CalculatorSettingsDialog", calculator_settings, needs="the registry")
