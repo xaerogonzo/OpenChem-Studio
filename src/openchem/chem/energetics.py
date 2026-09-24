@@ -685,6 +685,15 @@ def compute_detonation(
             "loading_density_g_cm3": density or None,
             "enthalpy_of_formation_kcal_mol": supplied,
             "enthalpy_source": "supplied_by_user" if supplied is not None else None,
+            # THE ORIGIN OF EVERY NUMBER THE ANSWER DEPENDS ON, both of them.
+            # Only one was recorded, and pressure goes as the SQUARE of this one.
+            # Today every value is typed by the person, so there is one origin;
+            # when a literature record can supply one (the known-explosives
+            # table) this is where "literature: <record>" versus an override is
+            # kept apart -- and it must ALSO enter the request parameters, or a
+            # result computed with an override could be replayed as the
+            # literature value's.
+            "loading_density_source": "supplied_by_user" if density else None,
             "ruby_correction": ruby,
             "K": DETONATION_PRESSURE_K,
             "refusal": result.refusal.name if result.refusal else None,
