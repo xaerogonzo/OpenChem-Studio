@@ -5116,60 +5116,127 @@ class _Driver(QObject):
             self._dialog = None
 
     def _do_ketcher_hover(self, step: dict[str, Any]) -> None:
-        """`{"do": "ketcher_hover", "bond": 0}` or `{"do": "ketcher_hover", "atom": 2}` -- put
-        the pointer over one item of the drawing with a REAL Qt mouse-move event delivered to the
-        web view, not a synthetic DOM event.
+        """`{"do": "ketcher_hover", "bond": 0, "press": "2", "expect": {"bond_type": 1}}` -- put
+        Ketcher's HOVER on one item of the drawing, optionally press a key at the editor, and
+        assert what the page holds afterwards.
 
-        Built for the drawing spike, which asks whether Ketcher's hover-aware hotkeys (hover a
-        bond, press 2) reach the page in QtWebEngine at all. A DOM `dispatchEvent` cannot answer
-        that: the page's own handlers may test things a synthetic event does not carry, and the
-        question is about the real route. The item's client position is worked out on the page by
-        inverting `page2obj` at two probe points (as the overlay transform does); the move is then
-        sent with `QTest.mouseMove` to the view's focus proxy, which does not touch the machine's
-        cursor. A `key` step with `"focus": "canvas"` presses the key afterwards.
+            "bond" / "atom"   a MOLFILE POSITION (ids on the page are translated, as elsewhere)
+            "press"           one character to press: "n" (an element), "2" (a bond order), "/" (the
+                              properties dialog of whatever is hovered)
+            "expect"          {"hovered": true, "bond_type": 1, "atom_label": "N",
+                               "dialog": "bondProps-dialog"} -- `bond_type` and `atom_label` are of
+                              the hovered item's own index; `dialog` is a `data-testid` that must
+                              be on the page
+            "settle_ms"       how long to wait before reading the page (default 900)
 
-        `"bond"`/`"atom"` are MOLFILE POSITIONS. Logs the client point it moved to.
+        **THE HOVER IS SET THROUGH THE EDITOR'S OWN API, NOT BY A POINTER.** The first version sent
+        a real Qt mouse-move (`QTest.mouseMove`) to the web view and a synthetic DOM `mousemove`
+        was tried before it: neither ever set an item's `hover` flag, so a following key press had
+        nothing to act on and the spike concluded a hover could not be produced from automation. It
+        can. Ketcher's own tools set the flag with `editor.hover(editor.findItem(event, null),
+        null, event)`, and `findItem` needs only the event's client position. Doing the same puts
+        the page in exactly the state a real hover produces, and the key is then dispatched INSIDE
+        the editor's DOM, where Ketcher's `keydown` listener lives (dispatched on `document` it is
+        never seen). What this does not exercise is the browser's own mouse-move plumbing, which
+        Ketcher's hotkeys do not read.
+
+        The point of asserting rather than logging: hover+key behaviour was believed native for
+        bonds and is not (see `docs/KETCHER_SPIKE.md`), and only reading the resulting structure
+        says which.
         """
-        from PySide6.QtCore import QPoint
-        from PySide6.QtTest import QTest
-
-        editor = self._window._editor
-        backend = editor._backend
-        view = backend.widget()
-        target = view.focusProxy() or view
         kind, index = ("bond", int(step["bond"])) if "bond" in step else ("atom", int(step.get("atom", 0)))
+        tag = str(step.get("tag", ""))
+        expect = dict(step.get("expect") or {})
+        press = str(step.get("press", ""))
+        page = self._window._editor._backend._page
 
-        def moved(result) -> None:
+        script = """
+        (function () {
+          try {
+            var ed = window.ketcher.editor, render = ed.render, struct = ed.struct();
+            var a = render.page2obj({clientX: 0, clientY: 0, pageX: 0, pageY: 0});
+            var b = render.page2obj({clientX: 100, clientY: 100, pageX: 100, pageY: 100});
+            var sx = 100 / (b.x - a.x), sy = 100 / (b.y - a.y);
+            var kind = %s, index = %d, press = %s, pp, poolId;
+            if (kind === 'bond') {
+              poolId = Array.from(struct.bonds.keys())[index];
+              var bond = struct.bonds.get(poolId);
+              var p1 = struct.atoms.get(bond.begin).pp, p2 = struct.atoms.get(bond.end).pp;
+              pp = {x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2};
+            } else {
+              poolId = Array.from(struct.atoms.keys())[index];
+              pp = struct.atoms.get(poolId).pp;
+            }
+            var x = (pp.x - a.x) * sx, y = (pp.y - a.y) * sy;
+            var ev = {clientX: x, clientY: y, pageX: x, pageY: y, target: render.clientArea};
+            ed.hover(ed.findItem(ev, null), null, ev);
+            var map = kind === 'bond' ? render.ctab.bonds : render.ctab.atoms;
+            var out = {hovered: !!map.get(poolId).hover, pressed: null};
+            if (press) {
+              var upper = press.toUpperCase();
+              var code = /[0-9]/.test(press) ? 'Digit' + press : /[a-z]/i.test(press) ? 'Key' + upper
+                       : press === '/' ? 'Slash' : '';
+              var keyCode = press === '/' ? 191 : upper.charCodeAt(0);
+              var key = new KeyboardEvent('keydown', {key: press, code: code, keyCode: keyCode, which: keyCode,
+                                                      bubbles: true, cancelable: true});
+              (render.clientArea.firstChild || render.clientArea).dispatchEvent(key);
+              out.pressed = {prevented: key.defaultPrevented};
+            }
+            return JSON.stringify(out);
+          } catch (e) { return JSON.stringify({error: String(e)}); }
+        })();
+        """ % (json.dumps(kind), index, json.dumps(press))
+
+        read = """
+        (function () {
+          var ed = window.ketcher.editor, struct = ed.struct();
+          var bonds = Array.from(struct.bonds.values()).map(function (bd) { return bd.type; });
+          var atoms = Array.from(struct.atoms.values()).map(function (at) { return at.label; });
+          var ids = Array.from(document.querySelectorAll('[data-testid]')).map(function (e) {
+            return e.getAttribute('data-testid'); });
+          return JSON.stringify({bonds: bonds, atoms: atoms, testids: ids});
+        })();
+        """
+
+        holder: dict[str, Any] = {}
+
+        def finish(after_text) -> None:
             try:
-                point = json.loads(result)
-            except (TypeError, ValueError):
-                logger.error("OPENCHEM_DRIVE: ketcher_hover: the page answered %r", result)
+                after = json.loads(after_text)
+                first = holder["first"]
+            except (TypeError, ValueError, KeyError):
+                self._record_assertion("ketcher_hover", tag, False, f"the page answered {after_text!r}")
+                logger.error("OPENCHEM_DRIVE: EXPECT ketcher_hover FAILED[%s] -- unreadable %r", tag, after_text)
                 return
-            QTest.mouseMove(target, QPoint(int(point["x"]), int(point["y"])))
-            logger.warning("OPENCHEM_DRIVE: ketcher_hover -> %s %d at (%d, %d)", kind, index, point["x"], point["y"])
+            problems: list[str] = []
+            if "error" in first:
+                problems.append(f"the hover script raised {first['error']}")
+            if expect.get("hovered") and not first.get("hovered"):
+                problems.append("the item is not hovered")
+            if "bond_type" in expect and kind == "bond" and after["bonds"][index] != expect["bond_type"]:
+                problems.append(f"bond {index} is type {after['bonds'][index]}, wanted {expect['bond_type']}")
+            if "atom_label" in expect and kind == "atom" and after["atoms"][index] != expect["atom_label"]:
+                problems.append(f"atom {index} is {after['atoms'][index]!r}, wanted {expect['atom_label']!r}")
+            if "dialog" in expect and expect["dialog"] not in after["testids"]:
+                problems.append(f"no {expect['dialog']!r} on the page")
+            ok = not problems
+            detail = ("as expected" if ok else "; ".join(problems)) + f" (hover {kind} {index}, pressed {press!r}: {first.get('pressed')}; bonds {after['bonds']} atoms {after['atoms']})"
+            if self._record_assertion("ketcher_hover", tag, ok, detail):
+                logger.warning("OPENCHEM_DRIVE: EXPECT ketcher_hover ok[%s] %s", tag, detail)
+            else:
+                logger.error("OPENCHEM_DRIVE: EXPECT ketcher_hover FAILED[%s] -- %s", tag, detail)
 
-        backend._page.runJavaScript(
-            """
-            (function () {
-              var ed = window.ketcher.editor, render = ed.render, struct = ed.struct();
-              var a = render.page2obj({clientX: 0, clientY: 0, pageX: 0, pageY: 0});
-              var b = render.page2obj({clientX: 100, clientY: 100, pageX: 100, pageY: 100});
-              var sx = 100 / (b.x - a.x), sy = 100 / (b.y - a.y);
-              var kind = %s, index = %d, pp;
-              if (kind === 'bond') {
-                var ids = Array.from(struct.bonds.keys());
-                var bond = struct.bonds.get(ids[index]);
-                var p1 = struct.atoms.get(bond.begin).pp, p2 = struct.atoms.get(bond.end).pp;
-                pp = {x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2};
-              } else {
-                var aids = Array.from(struct.atoms.keys());
-                pp = struct.atoms.get(aids[index]).pp;
-              }
-              return JSON.stringify({x: (pp.x - a.x) * sx, y: (pp.y - a.y) * sy});
-            })();
-            """ % (json.dumps(kind), index),
-            moved,
-        )
+        def hovered(first_text) -> None:
+            try:
+                holder["first"] = json.loads(first_text)
+            except (TypeError, ValueError):
+                holder["first"] = {"error": f"unreadable {first_text!r}"}
+            QTimer.singleShot(
+                int(step.get("settle_ms", 900)), self._window,
+                lambda: page.runJavaScript(read, finish),
+            )
+
+        page.runJavaScript(script, hovered)
 
     def _do_atom_editor(self, step: dict[str, Any]) -> None:
         """`{"do": "atom_editor", "atom": 2, "set": {"charge": "1"}, "apply": true, "expect": {...}}`

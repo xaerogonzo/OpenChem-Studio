@@ -492,6 +492,31 @@ def _plugins_registering_reactions(root: Path) -> list[str]:
 #: silently fall behind the document.
 DEFERRALS: list[Deferral] = [
     Deferral(
+        claim="a bond's order cannot be changed by hovering it and pressing a number, or by clicking it",
+        # Unbuilt while no engine method edits a bond: the route the atom menu took for an atom.
+        unbuilt=lambda: "def edit_bond" not in (_ROOT / "src/openchem/chem/engine.py").read_text(encoding="utf-8"),
+    ),
+    Deferral(
+        claim="a coordinate-only edit recomputes every result",
+        unbuilt=lambda: "constitution" not in (_ROOT / "src/openchem/chem/calculation_input.py").read_text(encoding="utf-8").lower(),
+        manual=(
+            "the reason is a measurement (one fan-out per pause, a 93 ms worst block) that only a fresh run of "
+            "benchmarks/visual/edit_burst_baseline.json can refresh; there is nothing countable in the source"
+        ),
+    ),
+    Deferral(
+        claim="recomputation is not demand-driven",
+        unbuilt=lambda: not (_ROOT / "src/openchem/services/provider_consumers.py").exists(),
+        manual=(
+            "the reason is the same edit-burst measurement as the coordinate-only entry; it goes stale when "
+            "an automatic provider becomes slow, which no source-level count can see"
+        ),
+    ),
+    Deferral(
+        claim="the Thermophysical chip cannot say a structure is outside Joback's groups before it is run",
+        unbuilt=lambda: "def preflight" not in (_ROOT / "src/openchem/chem/joback.py").read_text(encoding="utf-8"),
+    ),
+    Deferral(
         claim="a salt with no single ChEMBL parent has no compound",
         # Unbuilt while the parent rule still refuses sodium acetate.
         unbuilt=lambda: _parent_refuses("CC(=O)[O-].[Na+]", "chembl_parent"),

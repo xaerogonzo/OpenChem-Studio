@@ -21388,4 +21388,25 @@ Measured 2026-09-24 making menu shortcuts changeable (`ShortcutRegistry`, Settin
   "deterministic per chunk composition". Replaying that exact chunk with the gate's command on an idle machine crashed 2 of 10 on the branch and 3 of
   10 on a detached MASTER tree's equivalent chunk (same file, plus once `test_screening_service`), and every run that did not crash passed all 673
   tests. At a rate near 30%, three in a row is a few percent per gate, which is what makes it look deterministic. The attribution took twenty minutes and
-  one worktree; the three-attempt retry is thin for the one chunk that holds this file.
+  one worktree; the three-attempt retry was thin for the one chunk that holds this file (the gate now retries five times).
+
+
+## TWO FAILED ROUTES WERE WRITTEN UP AS "IMPOSSIBLE", AND THE FEATURE THE NOTE ASSUMED WAS NOT THERE EITHER
+
+Measured 2026-09-24, revisiting the drawing spike a few hours after writing it. The note said a hover could not be produced from automation and
+that hovering a bond and pressing a number was native to Ketcher. Both were wrong, and each was checkable in twenty minutes.
+
+* **"Neither route I tried worked" is not "it cannot be done".** A synthetic DOM `mousemove` and a real Qt mouse-move both left the `hover` flag false,
+  and the note concluded a hover was unavailable to automation. Ketcher's own tools set the flag with one call (`editor.hover(editor.findItem(event,
+  null), null, event)`), and `findItem` needs only a client position. The wall was that the routes tried went through the browser's pointer plumbing,
+  which is not what the hotkeys read. The step that reads the bundle for how the SAME state is set by its owner comes before the step that tries
+  ways to fake the input.
+* **A claim read from code needs a positive control, and then a negative one.** "Hover-aware hotkeys are native" was read from `handleHotkeyOverItem`
+  and repeated. Once a hover could be produced, the control (hover an atom, press `n` -> nitrogen) passed, and the bond case (hover a bond, press
+  `2`) changed nothing: the key is handled and `getToolHandler` has handlers for atoms and s-groups, none for bonds. Without the control, "the bond
+  did not change" would have read as a broken probe; without the bond case, the control would have confirmed the wrong claim.
+* **The key must be dispatched where the listener is.** Dispatched on `document` the event was never seen (`prevented=false`); dispatched inside the
+  editor's DOM it was (`prevented=true`). The listener is attached to the app's own element, found by reading `initKeydownListener`, not by trying
+  targets.
+* **The note is now a guard.** `benchmarks/visual/ketcher_hover_keys.json` asserts all three facts, so an editor upgrade that makes a number over a
+  bond native fails it and tells whoever is there to stop maintaining a gesture Ketcher now owns.

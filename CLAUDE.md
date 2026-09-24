@@ -83,8 +83,10 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
      "expect": {"smiles_equals": "CCN", "undo_delta": 1}}  press an ENTRY of the
                                           atom menu the app builds, assert the
                                           structure and the undo stack
-    {"do": "ketcher_hover", "bond": 0}    a REAL Qt mouse-move over a bond (it did
-                                          NOT register a hover; see docs/KETCHER_SPIKE.md)
+    {"do": "ketcher_hover", "bond": 0, "press": "2", "expect": {"bond_type": 1}}
+                                          set Ketcher's HOVER through its own editor API
+                                          (no pointer), press a key inside the editor,
+                                          assert the page; see docs/KETCHER_SPIKE.md
     {"do": "atom_editor", "atom": 2, "set": {"charge": "1"}, "apply": true,
      "expect": {"dialog": true, "smiles_contains": "+", "undo_delta": 1}}  the atom
                                           menu's Edit... on the REAL page, asserted
@@ -344,6 +346,7 @@ message — this index is. **If a title below names what you are
 about to touch, read that section before you start.** Headings there
 are verbatim, so grep the file for the line.
 
+- TWO FAILED ROUTES WERE WRITTEN UP AS "IMPOSSIBLE", AND THE FEATURE THE NOTE ASSUMED WAS NOT THERE EITHER
 - A TYPO PARSED AS "NO SHORTCUT", TWO ACTIONS ON ONE KEY RUN NEITHER, AND A GATE'S THREE CRASHES IN A ROW WERE LUCK
 - THE FIRST FIX CHECKED THE DISPATCH, THE PAGE HAD NO DIALOG, AND THE SECOND FIX ARMED A TOOL AND CHANGED NOTHING
 - THE STORE KEPT ONE RESULT PER CALCULATOR, WHICH WAS THE REAL REASON COMPARING METHODS WAS HARD

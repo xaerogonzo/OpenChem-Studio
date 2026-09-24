@@ -91,9 +91,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   **Spread** and each later method's difference from the first. `domain/compare.py` REFUSES what would publish a wrong difference -- a different molecule, an edit between the runs, a
   drawing beside a conformer, one protonation state beside another, different units or atoms, or the same calculation twice -- and the menu never offers a comparison it would refuse.
   Not saved with the project. Driven on ethanol: EEM against QEq disagree most at the oxygen (0.09 e).
-- **A note on what Ketcher already does when drawing** (`docs/KETCHER_SPIKE.md`): hover-aware hotkeys are native to the bundle (hover a bond and press 1/2/3, hover an atom and press an
-  element or `/`), so the proposed click-to-cycle gesture should wait for somebody to check by hand what is already there. A hover could not be produced from automation -- not by DOM
-  events, not by real Qt mouse events -- so it is unverified with a real pointer, and said so.
+- **A note on what Ketcher does when drawing** (`docs/KETCHER_SPIKE.md`), **corrected the same day.** It first said hover-aware hotkeys were native (hover a bond and press 1/2/3) and that a hover
+  could not be produced from automation. Both were wrong. A hover CAN be produced: Ketcher's own tools set it with `editor.hover(editor.findItem(event, null), null, event)`, which needs only a
+  client position, and the key has to be dispatched inside the editor's DOM. With that, hovering an atom and pressing `n` replaces it and `/` over a bond opens its properties dialog, **but a
+  number over a hovered bond changes nothing** -- the bundle's hotkey table has no bond handler. So bond hover+number and click-to-cycle are new work, recorded as an OPEN item in
+  `docs/ARCHITECTURE.md`; `benchmarks/visual/ketcher_hover_keys.json` asserts all three facts, so an editor upgrade that makes a number over a bond native fails it. The `ketcher_hover` step
+  now sets the hover this way and asserts the result, instead of sending a real mouse move that never registered.
+- **The gate retries a crashed chunk five times, not three.** The Windows disposal crash in `test_result_presentation` hits that chunk about 30% of the time on master as well (measured 3/10 there,
+  2/10 on this branch), so three in a row -- what one gate saw -- is a few percent of gates; five is a fraction of a percent. Only exit 139 is retried; any other non-zero exit is still a result.
 - **Menu shortcuts can be changed: Settings > Keyboard.** Every command in the menus (and Search facts and the Command Palette) is listed with the shortcut it holds; click a box, press
   a combination, and it applies at once, survives a restart, and can be cleared or reset per command or all at once. A combination another command holds is refused and names that command
   rather than being taken from it, and one without Ctrl, Alt or Meta (unless a function key) is refused because the drawing canvas owns the bare letters and digits -- these are the
