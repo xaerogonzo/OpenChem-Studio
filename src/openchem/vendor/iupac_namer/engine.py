@@ -14982,9 +14982,19 @@ class SubstitutivePath:
                 # on a secondary_amine FG where only α-CH2 is in fg.atoms).
                 # A declared HETEROATOM context (a pseudoketone's ring or azo nitrogen) is not the group's: the carved substituent owns it.
                 _pass1_ctx = frozenset(fg.get_property("context_atoms") or ())
+                # A CARBON the group's pattern matched as CONTEXT (not its anchor) is not the group's either, when the anchor is already in the
+                # parent and the carbon is still unclaimed: the structural pass carves it (naming round 13). A ketone in the parent chain matches
+                # its two flanking carbons; the one off the chain (an aryl or cycloalkyl ipso carbon) was claimed here by the `oxo` prefix AND by
+                # the `phenyl` the structural pass carved, so the ownership invariant rejected the plan ('atom 8 owned by prefix[0] and prefix[1]').
+                # Its second effect was silent: the plan that named an acid or amide as the parent died the same way, and the engine fell to a
+                # ketone-parent plan, `3-carboxy-1-phenylpropan-1-one` for 4-oxo-4-phenylbutanoic acid. The claim used to be computed
+                # consistently in the pass above (heteroatoms and the anchor only, into `fg_prefix_atoms`) and read inconsistently here. Measured
+                # unchanged by this condition: demoted amines (methylamino, dimethylamino, propan-2-ylamino), amides, aldehydes, methyl ketones.
                 tp_substituent_atoms = frozenset(
                     a for a in fg_atoms_offparent
                     if not (mol.GetAtomWithIdx(a).GetAtomicNum() != 6 and a in _pass1_ctx)
+                    and not (fg.suffix_eligible and fg.anchor in parent_atoms and a != fg.anchor
+                             and mol.GetAtomWithIdx(a).GetAtomicNum() == 6 and a in remaining)
                 ) | _fg_extra.get(id(fg), frozenset())
 
             # Find the atom in tp_substituent_atoms that is bonded to parent

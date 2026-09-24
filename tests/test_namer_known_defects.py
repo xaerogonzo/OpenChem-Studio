@@ -3490,6 +3490,32 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "1,2,5-oxadiazole", "the curated 1,2,5-oxadiazole row was keyed on 1,2,3-oxadiazole's SMILES"),
     ("D-148b", "CC(=O)Nc1cnon1", "N-(1,2,5-oxadiazol-3-yl)acetamide",
      "N-(furazan-3-yl)acetamide", "p. 263: 1,2,5-oxadiazole, formerly called furazan"),
+
+    # --- D-149 / D-150 (naming round 13): a demoted ketone claimed its aryl carbon ---------------------------------------------------
+    # `_compute_prefix_assignments` Pass 1 built the `oxo` prefix of a DEMOTED ketone (its anchor already in the parent) from every off-parent
+    # atom of the group, and dropped only HETEROATOM context. A ketone matches its two flanking carbons as context; the one off the parent
+    # chain (an aryl or cycloalkyl ipso carbon) was claimed by the `oxo` AND by the `phenyl` the structural pass carved, so the ownership
+    # invariant (every atom owned by exactly one node) rejected the plan: `atom 8 owned by prefix[0] and prefix[1]`. The invariant was right
+    # and the claim was wrong -- the pass above computes it consistently (heteroatoms and the anchor, into fg_prefix_atoms) and Pass 1 read it
+    # inconsistently. A methyl ketone never failed because the methyl is in the parent chain.
+    # D-149 is the loud half (13 census structures, 0.65%; the app already withheld each). D-150 is the SILENT half, which the read-back
+    # cannot see: the same double claim killed the plan that named the acid or amide as the parent, and the engine fell to a ketone-parent
+    # plan that reads back correctly and is not the preferred name.
+    ("D-149a", "OC(=O)c1ccc(OCC(=O)c2ccccc2)cc1", "4-(2-oxo-2-phenylethoxy)benzoic acid",
+     "4-({[NAMING ERROR: atom ownership under parent 'ethane': atom 8 owned by prefix[0] and prefix[1]]}oxy)benzoic acid",
+     "the phenacyloxy group as a substituent of a more senior parent"),
+    ("D-149b", "Cc1cc(=O)oc2cc(OCC(=O)c3ccc(F)cc3)ccc12", "7-[2-(4-fluorophenyl)-2-oxoethoxy]-4-methyl-2H-1-benzopyran-2-one",
+     "4-methyl-7-({[NAMING ERROR: atom ownership under parent 'ethane': atom 9 owned by prefix[0] and prefix[1]]}oxy)-2H-1-benzopyran-2-one",
+     "the census structure (a coumarin)"),
+    ("D-149c", "OC(=O)CCC(=O)OCC(=O)c1ccccc1", "4-oxo-4-(2-oxo-2-phenylethoxy)butanoic acid",
+     "4-({[NAMING ERROR: atom ownership under parent 'ethane': atom 8 owned by prefix[0] and prefix[1]]}oxy)-4-oxobutanoic acid",
+     "an ester of an alpha-keto alcohol, the steroid 21-ester shape"),
+    ("D-150a", "OC(=O)CCC(=O)c1ccccc1", "4-oxo-4-phenylbutanoic acid",
+     "3-carboxy-1-phenylpropan-1-one", "SILENT: the acid-parent plan died on the same double claim; a ketone-parent plan won"),
+    ("D-150b", "NC(=O)CCC(=O)c1ccccc1", "4-oxo-4-phenylbutanamide",
+     "4-amino-4-oxo-1-phenylbutan-1-one", "SILENT: the amide, named as a ketone with an amino prefix"),
+    ("D-150c", "OC(=O)CCC(=O)C1CCCCC1", "4-cyclohexyl-4-oxobutanoic acid",
+     "3-carboxy-1-cyclohexylpropan-1-one", "a cycloalkyl ketone, not only an aryl one"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -3592,6 +3618,16 @@ OPEN: list[tuple[str, str, str, str, str]] = [
      "-- the WRONG MOLECULE this item was admitted for is fixed, the PIN is "
      "a separate, still-open gap (imine FG perception is empty for this "
      "structure in every context, not only the multiplicative one)"),
+    # Naming round 13: an ESTER of an acid that also carries a ring-nitrogen sulfonamide is named as a functional-class ester of the
+    # PIPERIDINE, whose "acid" is a `carboxy` prefix: the ester group is attached to a name that is not an acid. Wrong structure, and it was
+    # already there for the plain methyl and ethyl esters; naming round 13's W2 only stopped it being MASKED for the phenacyl ester (which used
+    # to die earlier on an ownership error). The N,N-dimethylsulfonamide of the same acid is named correctly, so the ring nitrogen is the
+    # trigger. Census: 4 of 2000 structures (0.2%, under the 0.5% floor) share the "ester on a non-acid parent" shape, in three different
+    # families, so it is recorded here and not fixed. The app withholds the name (the read-back is a different structure). The target is
+    # derived (not printed) and read back through OPSIN.
+    ("D-151", "O=C(OCC)c1ccc(S(=O)(=O)N2CCCCC2)cc1", "ethyl 4-(piperidine-1-sulfonyl)benzoate",
+     "ethyl 1-(4-carboxyphenylsulfonyl)piperidine",
+     "an ester functional-class name whose acid component is a `carboxy` prefix on a ring parent"),
 ]
 
 # Observed but NOT tracked here, because this table requires a verified
@@ -4228,3 +4264,37 @@ def test_the_curated_furazan_row_is_keyed_on_furazan_not_on_1_2_3_oxadiazole():
     mol = Chem.MolFromSmiles(keys[0])
     assert not mol.HasSubstructMatch(Chem.MolFromSmarts("[#7]~[#7]"))
     assert mol.HasSubstructMatch(Chem.MolFromSmarts("[#7]~[#8]~[#7]"))
+
+
+# ---- D-149 / D-150 (naming round 13): converses, and the exactly-one-owner check on the repaired shapes -------------------------------
+# The condition is narrow (a SUFFIX-ELIGIBLE demoted group whose anchor is IN the parent, and only a non-anchor CARBON still unclaimed), so each
+# converse below is a neighbour that must not move: a methyl ketone (its context carbon is in the chain), demoted amines, an amide, an aldehyde.
+
+@pytest.mark.parametrize("smiles, expected", [
+    ("OC(=O)c1ccc(OCC(C)=O)cc1", "4-(2-oxopropoxy)benzoic acid"),                # a methyl ketone never failed
+    ("OC(=O)CCC(=O)CC", "4-oxohexanoic acid"),                                    # an ethyl ketone in the chain
+    ("OC(=O)CCN(C)C", "3-(dimethylamino)propanoic acid"),                        # a demoted tertiary amine
+    ("OC(=O)CC(NC)c1ccccc1", "3-(methylamino)-3-phenylpropanoic acid"),          # a demoted secondary amine beside a ring
+    ("OC(=O)CCNC(C)C", "3-[(propan-2-yl)amino]propanoic acid"),
+    ("CC(=O)c1ccc(C(=O)O)cc1", "4-acetylbenzoic acid"),                          # the ketone is a SUBSTITUENT, not demoted in a chain
+    ("O=Cc1ccc(C(=O)O)cc1", "4-formylbenzoic acid"),                             # an aldehyde
+    ("OC(=O)CCC(N)=O", "4-amino-4-oxobutanoic acid"),                            # an amide beside an acid, no ketone
+])
+def test_the_demoted_ketone_claim_does_not_move_a_neighbouring_name(smiles, expected):
+    assert name_smiles(smiles) == expected
+
+
+@pytest.mark.parametrize("smiles", [
+    "OC(=O)c1ccc(OCC(=O)c2ccccc2)cc1",
+    "Cc1cc(=O)oc2cc(OCC(=O)c3ccc(F)cc3)ccc12",
+    "OC(=O)CCC(=O)OCC(=O)c1ccccc1",
+    "OC(=O)CCC(=O)c1ccccc1",
+    "NC(=O)CCC(=O)c1ccccc1",
+    "OC(=O)CCC(=O)C1CCCCC1",
+])
+def test_every_atom_of_a_repaired_shape_is_owned_by_exactly_one_node(smiles, monkeypatch):
+    """`strict` makes the ownership check RAISE instead of falling to the next plan, so a naming that returns here had every atom of every
+    level owned once and only once (an atom dropped, an atom claimed twice and an atom owned by the wrong kind of node are all violations
+    of that one check). Without this the silent fall-back to another plan would pass a name-equality test for the wrong reason."""
+    monkeypatch.setenv("OPENCHEM_NAMER_OWNERSHIP", "strict")
+    assert "NAMING ERROR" not in name_smiles(smiles)
