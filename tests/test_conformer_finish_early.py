@@ -409,3 +409,37 @@ def test_the_details_dialog_says_the_experimental_rule_ended_the_run(qapp):
 
     assert note.startswith("Lowest conformers stopped changing (experimental) -- no change in the last 2 batches")
     assert "Settings > Conformers" in note
+
+
+def test_the_options_dialog_carries_the_stop_rule_it_was_built_with(qapp):
+    """The layering rule puts this in the dialog: the viewer widget may not import `chem`, the dialog may."""
+    from openchem.chem.conformer_providers import STOP_RULE_ANY_NEW, STOP_RULE_KEPT_SET
+    from openchem.ui.dialogs.conformer_options_dialog import ConformerOptionsDialog
+
+    assert ConformerOptionsDialog().options().stop_rule == STOP_RULE_ANY_NEW
+    assert ConformerOptionsDialog(early_stop=False).options().stop_rule == STOP_RULE_ANY_NEW
+    assert ConformerOptionsDialog(early_stop=True).options().stop_rule == STOP_RULE_KEPT_SET
+
+
+def test_the_viewer_widget_builds_its_dialog_from_settings(qapp):
+    """The REAL dialog, not a fake: what Settings says is what the options carry."""
+    from openchem.app.settings import CONFORMER_EARLY_STOP, CONFORMER_MAX_EMBEDDINGS, Settings
+    from openchem.chem.conformer_providers import STOP_RULE_KEPT_SET
+    from openchem.services.measurement_service import MeasurementService
+    from openchem.ui.widgets.molecule_viewer3d_widget import MoleculeViewer3DWidget
+    from tests.test_molecule_viewer3d_widget import FakeViewerBackend
+
+    settings = Settings(EventBus())
+    settings.set_preference(CONFORMER_EARLY_STOP, True)
+    settings.set_preference(CONFORMER_MAX_EMBEDDINGS, 500)
+    engine = ChemistryEngine()
+    widget = MoleculeViewer3DWidget(
+        ConformerService(EventBus(), engine), MeasurementService(engine), EventBus(),
+        backend=FakeViewerBackend(), settings=settings,
+    )
+    try:
+        options = widget.options_dialog().options()
+        assert options.stop_rule == STOP_RULE_KEPT_SET
+        assert options.max_embeddings == 500
+    finally:
+        widget.deleteLater()

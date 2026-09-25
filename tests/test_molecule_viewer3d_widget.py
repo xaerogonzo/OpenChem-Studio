@@ -930,7 +930,7 @@ def test_generate_conformers_asks_with_the_ceiling_from_settings(qapp, monkeypat
             return [c.molblock for c in molecule.conformers]
 
     class _Dialog:
-        def __init__(self, parent=None, automatic_embeddings=1000):
+        def __init__(self, parent=None, automatic_embeddings=1000, early_stop=False):
             self._n = automatic_embeddings
 
         def exec(self):
@@ -1004,28 +1004,26 @@ def test_finish_now_ignores_another_molecules_search(qapp):
         widget.deleteLater()
 
 
-@pytest.mark.parametrize("setting_on, expected", [(False, "any_new"), (True, "kept_set")])
-def test_the_experimental_stop_rule_reaches_the_request_only_when_ticked(qapp, monkeypatch, setting_on, expected):
-    """The wiring: Settings > Conformers picks the rule the service is asked to use, and the default is the default."""
+@pytest.mark.parametrize("setting_on", [False, True])
+def test_the_experimental_stop_rule_reaches_the_dialog_only_when_ticked(qapp, monkeypatch, setting_on):
+    """The wiring: Settings > Conformers decides what the dialog is built with, and the default is the default."""
     from openchem.app.settings import CONFORMER_EARLY_STOP, Settings
-    from openchem.chem.conformer_providers import GenerationOptions
     from openchem.ui.widgets import molecule_viewer3d_widget as module
 
     settings = Settings(EventBus())
     settings.set_preference(CONFORMER_EARLY_STOP, setting_on)
+    built = []
 
     class _Service:
-        requests = []
-
         def request_conformers(self, molecule, keep, **kwargs):
-            self.requests.append(kwargs)
+            pass
 
         def display_molblocks(self, molecule):
             return [c.molblock for c in molecule.conformers]
 
     class _Dialog:
-        def __init__(self, parent=None, automatic_embeddings=1000):
-            pass
+        def __init__(self, parent=None, automatic_embeddings=1000, early_stop=False):
+            built.append(early_stop)
 
         def exec(self):
             return module.QDialog.DialogCode.Accepted
@@ -1037,16 +1035,15 @@ def test_the_experimental_stop_rule_reaches_the_request_only_when_ticked(qapp, m
             return 1000
 
         def options(self):
-            return GenerationOptions()
+            return None
 
     monkeypatch.setattr(module, "ConformerOptionsDialog", _Dialog)
-    service = _Service()
     widget = MoleculeViewer3DWidget(
-        service, MeasurementService(ChemistryEngine()), EventBus(), backend=FakeViewerBackend(), settings=settings
+        _Service(), MeasurementService(ChemistryEngine()), EventBus(), backend=FakeViewerBackend(), settings=settings
     )
     try:
         widget.set_molecule(_molecule_with_conformer())
         widget.generate_conformers()
-        assert service.requests[-1]["options"].stop_rule == expected
+        assert built == [setting_on]
     finally:
         widget.deleteLater()

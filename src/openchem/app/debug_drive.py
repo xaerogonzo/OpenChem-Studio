@@ -2065,11 +2065,9 @@ class _Driver(QObject):
             return
         options = None
         if step.get("with_settings"):
-            # What the viewer's button would add from Settings > Conformers (the button itself opens a modal dialog,
-            # which a step must not `exec()`), through the SAME method the button uses.
-            from openchem.chem.conformer_providers import GenerationOptions
-
-            options = window._viewer3d.options_with_settings(GenerationOptions())
+            # What the viewer's button would ask with, from Settings > Conformers: the SAME dialog the button builds,
+            # never shown (a step must not `exec()` a modal).
+            options = window._viewer3d.options_dialog().options()
         window._services.conformer_service.request_conformers(
             molecule,
             num_conformers=int(step.get("count", 3)),
