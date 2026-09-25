@@ -262,3 +262,40 @@ def test_clicking_a_different_group_reopens_a_collapsed_rail(qapp):
     assert rail.is_list_visible()
     assert rail.current_group() == "compute"
     _dispose(rail)
+
+
+def test_the_panel_menu_offers_beside_and_lock_and_reports_them(qapp):
+    """A left click replaces; the menu is the way to ask for the other two things, and the rail only ASKS."""
+    rail = _rail(qapp)
+    beside: list[str] = []
+    locks: list[str] = []
+    rail.panel_chosen_alongside.connect(beside.append)
+    rail.panel_lock_toggled.connect(locks.append)
+    menu, actions = rail.build_panel_menu("Docking")
+
+    actions["alongside"].trigger()
+    actions["lock"].trigger()
+    actions["pin"].trigger()
+
+    assert beside == ["Docking"]
+    assert locks == ["Docking"]
+    assert rail.favourites() == ["Docking"]
+    menu.deleteLater()
+    _dispose(rail)
+
+
+def test_a_locked_panel_shows_its_lock_and_the_menu_offers_the_release(qapp):
+    rail = _rail(qapp)
+    rail._select_group("compute")
+    rail.set_locked_panels({"Docking"})
+
+    labels = [rail._list.item(r).text() for r in range(rail._list.count())]
+    assert any(label.startswith("\U0001F512") and "Docking" in label for label in labels)
+    assert not any(label.startswith("\U0001F512") and "Docking" not in label for label in labels)
+    _menu, actions = rail.build_panel_menu("Docking")
+    assert actions["lock"].text().startswith("Unlock")
+    _menu, other = rail.build_panel_menu("Alignment") if "Alignment" in rail.panel_ids() else rail.build_panel_menu("Docking")
+
+    rail.set_locked_panels(set())
+    assert not any(rail._list.item(r).text().startswith("\U0001F512") for r in range(rail._list.count()))
+    _dispose(rail)
