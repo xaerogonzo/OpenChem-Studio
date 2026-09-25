@@ -90,7 +90,9 @@ _GROUP_HELP = HelpTooltip(
     text=(
         "Show this group's panels in the list beside it.\n\n"
         "One right-hand panel is visible at a time, so choosing a name "
-        "here replaces what is on screen rather than adding to it. "
+        "here replaces what is on screen rather than adding to it. Right-click "
+        "a name to open it beside what is showing instead, or to lock it "
+        "open so a click elsewhere leaves it. "
         "Clicking the group already showing folds the list away and "
         "hands its width back to the panel."
     ),
@@ -169,6 +171,11 @@ class PanelRail(QWidget):
     #: because a signal whose sense is the inverse of the method that
     #: raises it is a place for somebody to drop a `not`.
     list_visibility_changed = Signal(bool)
+    #: A panel was asked for ALONGSIDE what is showing (right-click > Open beside), so nothing else is hidden.
+    panel_chosen_alongside = Signal(str)
+    #: A panel's lock was toggled from its menu. The rail only asks; MainWindow owns which panels are locked
+    #: and tells the rail back through `set_locked_panels`.
+    panel_lock_toggled = Signal(str)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -178,6 +185,8 @@ class PanelRail(QWidget):
         #: `ui/widgets/empty_state.py` for what that cost.
         self._panels: dict[str, tuple[str, str]] = {}
         self._favourites: list[str] = []
+        #: Panels a rail click will not hide. Plain ids, set by MainWindow.
+        self._locked: set[str] = set()
         self._group = next(iter(GROUP_LABELS))
 
         self._buttons = QWidget(self)
@@ -263,6 +272,14 @@ class PanelRail(QWidget):
 
     def favourites(self) -> list[str]:
         return list(self._favourites)
+
+    def set_locked_panels(self, panel_ids) -> None:
+        """Which panels a rail click will leave on screen; shown with a lock in the list."""
+        self._locked = {p for p in panel_ids if p}
+        self._rebuild()
+
+    def locked_panels(self) -> set[str]:
+        return set(self._locked)
 
     def panel_ids(self) -> list[str]:
         return list(self._panels)
@@ -368,9 +385,13 @@ class PanelRail(QWidget):
                 self._add_row(panel_id, title)
 
     def _add_row(self, panel_id: str, label: str) -> None:
-        item = QListWidgetItem(label, self._list)
+        locked = panel_id in self._locked
+        item = QListWidgetItem(f"\U0001F512 {label}" if locked else label, self._list)
         item.setData(_PANEL_ID_ROLE, panel_id)
-        item.setToolTip(label)
+        item.setToolTip(
+            f"{label} -- locked: choosing another panel leaves it on screen. Right-click to unlock."
+            if locked else label
+        )
 
     def _on_item_chosen(self, item: QListWidgetItem) -> None:
         panel_id = item.data(_PANEL_ID_ROLE)
@@ -378,19 +399,45 @@ class PanelRail(QWidget):
             self.panel_chosen.emit(str(panel_id))
 
     def _on_list_menu(self, position) -> None:
-        from PySide6.QtWidgets import QMenu
-
         item = self._list.itemAt(position)
         if item is None:
             return
         panel_id = str(item.data(_PANEL_ID_ROLE) or "")
         if not panel_id:
             return
+        menu, _actions = self.build_panel_menu(panel_id)
+        menu.exec(self._list.mapToGlobal(position))
+
+    def build_panel_menu(self, panel_id: str):
+        """The right-click menu for one panel, and its actions by name.
+
+        A left click REPLACES what is showing (the rail's whole design: one right-hand panel at a time). Right-click is
+        the way to ask for the other things: a panel BESIDE the current one, or a lock so a click elsewhere leaves it
+        on screen. Built apart from `exec` so it can be driven without a real popup, which `QMenu.exec` cannot.
+        """
+        from PySide6.QtWidgets import QMenu
+
         pinned = panel_id in self._favourites
+        locked = panel_id in self._locked
         menu = QMenu(self)
-        action = menu.addAction("Unpin from top" if pinned else "Pin to top")
-        chosen = menu.exec(self._list.mapToGlobal(position))
-        if chosen is action:
+        alongside = menu.addAction("Open beside what is showing")
+        lock = menu.addAction("Unlock (a click elsewhere may replace it)" if locked else "Lock open (a click elsewhere leaves it)")
+        menu.addSeparator()
+        pin = menu.addAction("Unpin from top" if pinned else "Pin to top")
+        # ONE bound method for the whole menu, the action carrying (what, which panel): a lambda closing over `self` here
+        # is the leak this window has paid for before (PySide6 holds a plain callable strongly).
+        for kind, action in (("alongside", alongside), ("lock", lock), ("pin", pin)):
+            action.setData((kind, panel_id))
+        menu.triggered.connect(self._on_panel_menu_triggered)
+        return menu, {"alongside": alongside, "lock": lock, "pin": pin}
+
+    def _on_panel_menu_triggered(self, action) -> None:
+        kind, panel_id = action.data()
+        if kind == "alongside":
+            self.panel_chosen_alongside.emit(panel_id)
+        elif kind == "lock":
+            self.panel_lock_toggled.emit(panel_id)
+        elif kind == "pin":
             self.toggle_favourite(panel_id)
 
     def toggle_favourite(self, panel_id: str) -> None:

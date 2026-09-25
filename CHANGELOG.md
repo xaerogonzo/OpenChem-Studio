@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Post-round-14 program: nitramine hotfix, driver ledger, refusal kinds (branches `nitramine-hotfix`, `outcome-model`)
 
+- **Right-click a panel in the rail to open it beside what is showing, or to lock it open.** A left click still replaces the panel on screen. What was missing was a way to say otherwise: a panel dropped beside another, or in another area, was locked by that drop and then stayed on screen through every later click with nothing saying why, and a click on a locked panel hides nothing. The rail now shows a lock on those panels and its menu has Open beside what is showing, Lock open / Unlock, and Pin to top. Released, a panel stays released until it is moved again.
 - **A nitramine crashed the structural-alert pass and took every alert with it.** `fg:hydrazine` matched the N-N bond of `N-[N+](=O)[O-]`, so
   `detect_features` raised `UndeclaredChargeState` and dropped all features for the molecule; the alert pass logged and recorded nothing, so no test
   saw it. A nitramine N-N is no longer a hydrazine, and the same nitro exclusion is applied to the one shared basic-amine SMARTS (which had counted a
