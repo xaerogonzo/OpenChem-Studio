@@ -143,6 +143,13 @@ class EditorBackend(QObject):
         editor that cannot draw an overlay is not broken.
         """
 
+    def set_bond_click_enabled(self, enabled: bool) -> None:
+        """Whether a click on a bond cycles its order (reported to the application as a bond order edit).
+
+        STATE, off by default on the page, so only "on" has to be sent and replayed when the backend is
+        ready. Concrete and a no-op by default, like `set_bond_keys_enabled`.
+        """
+
     def set_bond_keys_enabled(self, enabled: bool) -> None:
         """Whether a number key over a hovered bond is handed to the application.
 

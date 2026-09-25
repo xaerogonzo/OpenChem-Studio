@@ -291,6 +291,8 @@ class KetcherEditorBackend(EditorBackend):
         #: Whether a number key over a hovered bond is handed to the application. The page
         #: starts with it on, so only a False has to be sent, and it is sent when ready.
         self._bond_keys_enabled = True
+        #: Whether a click on a bond cycles its order. The page starts with it OFF, so only a True is sent.
+        self._bond_click_enabled = False
         #: The last atom-number payload, replayed once the page is ready --
         #: same reason as `_pending_cip`, one row down.
         self._pending_atom_numbers: tuple[dict | None] | None = None
@@ -352,6 +354,11 @@ class KetcherEditorBackend(EditorBackend):
         """
         self.bond_selected.emit(bond_index)
 
+    def set_bond_click_enabled(self, enabled: bool) -> None:
+        self._bond_click_enabled = bool(enabled)
+        if self._ketcher_ready:
+            self._page.runJavaScript(f"window.__openchemBondClick = {str(self._bond_click_enabled).lower()};")
+
     def set_bond_keys_enabled(self, enabled: bool) -> None:
         self._bond_keys_enabled = bool(enabled)
         if self._ketcher_ready:
@@ -361,6 +368,8 @@ class KetcherEditorBackend(EditorBackend):
         self._ketcher_ready = True
         if not self._bond_keys_enabled:
             self._page.runJavaScript("window.__openchemBondKeys = false;")
+        if self._bond_click_enabled:
+            self._page.runJavaScript("window.__openchemBondClick = true;")
         # Options before the structure, so it is laid out the way the user
         # asked rather than drawn once and re-rendered a frame later.
         # Applying them to a still-empty canvas holds for whatever is

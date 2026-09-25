@@ -85,6 +85,11 @@ RECALC_QUIET_MS = Preference(
 #: bond, so the setting only exists for someone whose own habits use those keys otherwise.
 DRAWING_BOND_KEYS = Preference("drawing/bond_order_keys", bool, True)
 
+#: Whether a click on a bond cycles its order (single, double, triple, single). OFF by default and only ever on by
+#: choice: in the Select tool a click on a bond SELECTS it, and cycling takes that away. It changes the bond through
+#: the same edit the number keys use, so it is one undo entry and has the same refusals.
+DRAWING_BOND_CLICK = Preference("drawing/bond_click_cycle", bool, False)
+
 #: The CEILING on starting structures one "Automatic" conformer search tries before it stops. 1000 is the shipped
 #: budget (`chem.conformer_providers.DEFAULT_MAX_EMBEDDINGS`, held equal by a test); lowering it trades completeness
 #: for time. Measured on a flexible drug-like molecule, the conformers within 3 kcal/mol of the best that a search
@@ -99,7 +104,7 @@ CONFORMER_MAX_EMBEDDINGS = Preference(
 PREFERENCES = (
     RAIL_HIDES_PANELS, RECOVERY_ENABLED, RECOVERY_DELAY_SECONDS, MAX_REVISIONS_KEPT,
     SHOW_HIDDEN_CALCULATORS, RECALC_MODE, RECALC_QUIET_MS, DRAWING_BOND_KEYS,
-    CONFORMER_MAX_EMBEDDINGS,
+    CONFORMER_MAX_EMBEDDINGS, DRAWING_BOND_CLICK,
 )
 
 #: Where one calculator's own visibility choice is stored: a plain

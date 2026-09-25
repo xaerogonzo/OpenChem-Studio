@@ -38,6 +38,7 @@ from openchem.app.session import SessionManager
 from openchem.app.menu_help import MENU_HELP
 from openchem.app.shortcut_registry import ShortcutRegistry
 from openchem.app.settings import (
+    DRAWING_BOND_CLICK,
     DRAWING_BOND_KEYS,
     RAIL_HIDES_PANELS,
     RECOVERY_DELAY_SECONDS,
@@ -532,6 +533,7 @@ class MainWindow(QMainWindow):
         # The page swallows the key BEFORE the editor sees it, so the setting has to be known
         # there: pushed at startup and whenever it changes, never read at the moment of the key.
         self._editor.set_bond_keys_enabled(bool(settings.preference(DRAWING_BOND_KEYS)))
+        self._editor.set_bond_click_enabled(bool(settings.preference(DRAWING_BOND_CLICK)))
         services.event_bus.subscribe(SettingsChanged, self._on_drawing_setting_changed)
         self._atom_inspector_panel.isotopes_requested.connect(
             self._show_isotopes_for_selection
@@ -4109,6 +4111,8 @@ class MainWindow(QMainWindow):
     def _on_drawing_setting_changed(self, event: SettingsChanged) -> None:
         if event.key == DRAWING_BOND_KEYS.key:
             self._editor.set_bond_keys_enabled(bool(self._settings.preference(DRAWING_BOND_KEYS)))
+        elif event.key == DRAWING_BOND_CLICK.key:
+            self._editor.set_bond_click_enabled(bool(self._settings.preference(DRAWING_BOND_CLICK)))
 
     def _on_bond_order_key(self, bond_index: int, order: int) -> None:
         """A number key pressed over a hovered bond: set its order, as one undoable edit.

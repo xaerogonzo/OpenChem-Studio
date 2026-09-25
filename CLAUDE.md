@@ -86,7 +86,11 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "ketcher_hover", "bond": 0, "press": "2", "expect": {"bond_type": 1}}
                                           set Ketcher's HOVER through its own editor API
                                           (no pointer), press a key inside the editor,
-                                          assert the page; see docs/KETCHER_SPIKE.md
+                                          assert the page; "click": true sends a mouse-down
+                                          and up instead; see docs/KETCHER_SPIKE.md. A
+                                          script that changes a setting through the REAL
+                                          Settings dialog writes the real store: put it
+                                          back at the end (bond_click_cycle.json does)
     {"do": "atom_editor", "atom": 2, "set": {"charge": "1"}, "apply": true,
      "expect": {"dialog": true, "smiles_contains": "+", "undo_delta": 1}}  the atom
                                           menu's Edit... on the REAL page, asserted

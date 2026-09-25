@@ -144,6 +144,7 @@ function tryWireBridge() {
     interceptDuplicatedControls()
     interceptUndoShortcuts()
     interceptBondOrderKeys()
+    interceptBondClick()
   }
   try {
     ketcherInstance.editor.subscribe('change', () => {
@@ -446,6 +447,79 @@ function interceptBondOrderKeys() {
         bridgeObject.bondOrderKey(position, order)
       } catch (e) {
         console.warn('[ketcher-host] bond order key failed', e)
+      }
+    },
+    true,
+  )
+}
+
+
+// A click on a bond cycles its order: single, double, triple, single. OFF BY DEFAULT and only ever
+// on by choice (`window.__openchemBondClick`, pushed from Python, Settings > Drawing), because a click
+// on a bond in the Select tool SELECTS it and cycling takes that away.
+//
+// What it is and is not: it reads a click and reports the SAME thing the number keys do
+// (`bridgeObject.bondOrderKey(position, order)`), so the change is made by the application as one
+// undoable edit and every refusal (an aromatic bond, a wedge, a valence that would break) is the one
+// the keys already have. Nothing here touches the structure. It does not stop Ketcher's own mouse
+// handling, so the click still selects for the instant before the edit reloads the drawing.
+//
+// Only a CLICK: left button, no modifier, the pointer not moved (a drag is a move or a marquee), on the
+// canvas, in a Select tool (its class is `SelectTool2` in the vendored build and is matched by prefix; a
+// Ketcher upgrade that renames it turns the gesture off rather than into an edit, and
+// `benchmarks/visual/bond_click_cycle.json` fails). With the bond tool, the chain tool or the eraser
+// active a click means something else and is left entirely alone. A bond that is not single, double or
+// triple (aromatic, query, "any") is left alone, and an ATOM under the pointer means the click is for
+// the atom.
+function interceptBondClick() {
+  const NEXT = { 1: 2, 2: 3, 3: 1 }
+  let down = null
+  const editorOf = () => (window.ketcher && window.ketcher.editor) || null
+  const inCanvas = (target) => {
+    const editor = editorOf()
+    return !!(target && editor && editor.render && editor.render.clientArea && editor.render.clientArea.contains(target))
+  }
+  document.addEventListener(
+    'mousedown',
+    (event) => {
+      down = event.button === 0 && inCanvas(event.target) ? { x: event.clientX, y: event.clientY } : null
+    },
+    true,
+  )
+  document.addEventListener(
+    'mouseup',
+    (event) => {
+      const start = down
+      down = null
+      if (!bridgeObject || window.__openchemBondClick !== true || !start) return
+      if (event.button !== 0 || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return
+      if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > 4) return
+      if (!inCanvas(event.target)) return
+      try {
+        const editor = editorOf()
+        const tool = editor.tool && editor.tool()
+        const name = tool && tool.constructor && tool.constructor.name
+        if (!name || !/^SelectTool/.test(name)) return
+        const ctab = editor.render.ctab
+        let atomHovered = false
+        ctab.atoms.forEach((item) => {
+          if (item.hover) atomHovered = true
+        })
+        if (atomHovered) return
+        let bondId = null
+        ctab.bonds.forEach((item, id) => {
+          if (item.hover) bondId = id
+        })
+        if (bondId === null) return
+        const struct = editor.struct()
+        const bond = struct.bonds.get(bondId)
+        const next = bond && NEXT[bond.type]
+        if (!next) return
+        const position = molfilePosition(struct.bonds, bondId)
+        if (position < 0) return
+        bridgeObject.bondOrderKey(position, next)
+      } catch (e) {
+        console.warn('[ketcher-host] bond click failed', e)
       }
     },
     true,

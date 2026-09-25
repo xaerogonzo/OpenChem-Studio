@@ -1,0 +1,160 @@
+[
+ {
+  "do": "smiles",
+  "smiles": "CC",
+  "name": "Ethane",
+  "after_ms": 3000
+ },
+ {
+  "do": "select",
+  "molecule": -1,
+  "after_ms": 4000
+ },
+ {
+  "do": "dialog",
+  "name": "SettingsDialog",
+  "section": "drawing",
+  "after_ms": 1200
+ },
+ {
+  "do": "control",
+  "name": "drawingBondClick",
+  "value": false,
+  "after_ms": 800
+ },
+ {
+  "do": "close_dialog",
+  "after_ms": 800
+ },
+ {
+  "do": "ketcher_hover",
+  "tag": "OFF: a click on the bond changes nothing",
+  "bond": 0,
+  "click": true,
+  "settle_ms": 1500,
+  "expect": {
+   "hovered": true,
+   "bond_type": 1,
+   "smiles_equals": "CC",
+   "undo_delta": 0
+  },
+  "after_ms": 2500
+ },
+ {
+  "do": "dialog",
+  "name": "SettingsDialog",
+  "section": "drawing",
+  "after_ms": 1200
+ },
+ {
+  "do": "control",
+  "name": "drawingBondClick",
+  "value": true,
+  "after_ms": 800
+ },
+ {
+  "do": "close_dialog",
+  "after_ms": 800
+ },
+ {
+  "do": "ketcher_hover",
+  "tag": "ON (through the real Settings checkbox): a click makes it double, one undo entry",
+  "bond": 0,
+  "click": true,
+  "settle_ms": 2200,
+  "expect": {
+   "hovered": true,
+   "bond_type": 2,
+   "smiles_equals": "C=C",
+   "undo_delta": 1
+  },
+  "after_ms": 3000
+ },
+ {
+  "do": "ketcher_hover",
+  "tag": "the next click makes it triple",
+  "bond": 0,
+  "click": true,
+  "settle_ms": 2200,
+  "expect": {
+   "hovered": true,
+   "bond_type": 3,
+   "smiles_equals": "C#C",
+   "undo_delta": 1
+  },
+  "after_ms": 3000
+ },
+ {
+  "do": "ketcher_hover",
+  "tag": "and the next brings it back to single",
+  "bond": 0,
+  "click": true,
+  "settle_ms": 2200,
+  "expect": {
+   "hovered": true,
+   "bond_type": 1,
+   "smiles_equals": "CC",
+   "undo_delta": 1
+  },
+  "after_ms": 3000
+ },
+ {
+  "do": "ketcher_eval",
+  "tag": "the HAND tool is active (an eraser would act on the synthetic click and delete the bond)",
+  "script": "(function(){window.ketcher.editor.tool('hand');return window.ketcher.editor.tool().constructor.name})()",
+  "after_ms": 600
+ },
+ {
+  "do": "ketcher_hover",
+  "tag": "with another tool a click is left entirely alone",
+  "bond": 0,
+  "click": true,
+  "settle_ms": 1500,
+  "expect": {
+   "hovered": true,
+   "bond_type": 1,
+   "smiles_equals": "CC",
+   "undo_delta": 0
+  },
+  "after_ms": 2500
+ },
+ {
+  "do": "ketcher_eval",
+  "tag": "back to the Select tool",
+  "script": "(function(){window.ketcher.editor.tool('select',{});return window.ketcher.editor.tool().constructor.name})()",
+  "after_ms": 600
+ },
+ {
+  "do": "ketcher_hover",
+  "tag": "an ATOM under the pointer is an atom click, not a bond edit",
+  "atom": 0,
+  "click": true,
+  "settle_ms": 1500,
+  "expect": {
+   "hovered": true,
+   "bond_type": 1,
+   "smiles_equals": "CC",
+   "undo_delta": 0
+  },
+  "after_ms": 2500
+ },
+ {
+  "do": "dialog",
+  "name": "SettingsDialog",
+  "section": "drawing",
+  "after_ms": 1200
+ },
+ {
+  "do": "control",
+  "name": "drawingBondClick",
+  "value": false,
+  "after_ms": 800
+ },
+ {
+  "do": "close_dialog",
+  "after_ms": 800
+ },
+ {
+  "do": "quit"
+ }
+]

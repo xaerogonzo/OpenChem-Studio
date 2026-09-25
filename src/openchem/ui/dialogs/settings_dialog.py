@@ -40,6 +40,7 @@ from PySide6.QtWidgets import (
 
 from openchem.app.settings import (
     CONFORMER_MAX_EMBEDDINGS,
+    DRAWING_BOND_CLICK,
     DRAWING_BOND_KEYS,
     MAX_REVISIONS_KEPT,
     RAIL_HIDES_PANELS,
@@ -224,6 +225,20 @@ _HELP = {
         ),
         tier=2,
         help_id="settings.conformer_embeddings",
+        topic="settings",
+        help_anchor="settings",
+    ),
+    "bond_click": HelpTooltip(
+        text=(
+            "Off (the default): a click on a bond selects it, as it always has.\n\n"
+            "On: a click on a bond in the Select tool cycles its order, single, double, triple, single. "
+            "It is one undoable edit, made the way the number keys make it, and a bond that is aromatic, a "
+            "query bond, a wedge or hash bond, or one whose change would break a valence is left as it was.\n\n"
+            "The cost is that a click no longer selects a bond (a drag across it still does). Only the Select "
+            "tool is affected: with the bond tool, the chain tool or the eraser a click means what it did."
+        ),
+        tier=2,
+        help_id="settings.bond_click_cycle",
         topic="settings",
         help_anchor="settings",
     ),
@@ -529,9 +544,16 @@ class SettingsDialog(QDialog):
         apply_help_tooltip(self._bond_keys, _HELP["bond_keys"])
         self._bond_keys.toggled.connect(self._on_bond_keys_toggled)
 
+        self._bond_click = QCheckBox("A click on a bond cycles its order (single, double, triple)", page)
+        self._bond_click.setObjectName("drawingBondClick")
+        self._bond_click.setChecked(bool(self._settings.preference(DRAWING_BOND_CLICK)))
+        apply_help_tooltip(self._bond_click, _HELP["bond_click"])
+        self._bond_click.toggled.connect(self._on_bond_click_toggled)
+
         layout = QVBoxLayout(page)
         layout.addWidget(_heading("Drawing", page))
         layout.addWidget(self._bond_keys)
+        layout.addWidget(self._bond_click)
         layout.addWidget(_note(
             "Point at a bond and press 1, 2 or 3 to make it single, double or triple; Ctrl+Z "
             "undoes it. Aromatic, query and wedge bonds are left as drawn.",
@@ -542,6 +564,9 @@ class SettingsDialog(QDialog):
 
     def _on_bond_keys_toggled(self, checked: bool) -> None:
         self._store(DRAWING_BOND_KEYS, checked)
+
+    def _on_bond_click_toggled(self, checked: bool) -> None:
+        self._store(DRAWING_BOND_CLICK, checked)
 
     # --- Conformers ----------------------------------------------------------------
 

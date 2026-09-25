@@ -5123,6 +5123,9 @@ class _Driver(QObject):
             "bond" / "atom"   a MOLFILE POSITION (ids on the page are translated, as elsewhere)
             "press"           one character to press: "n" (an element), "2" (a bond order), "/" (the
                               properties dialog of whatever is hovered)
+            "click"           true: a left mouse-down and mouse-up, not moved, dispatched inside the editor's
+                              DOM with the hover already set (a click on a bond cycles its order when
+                              Settings > Drawing has that on)
             "expect"          {"hovered": true, "bond_type": 1, "atom_label": "N",
                                "dialog": "bondProps-dialog", "smiles_equals": "C=C",
                                "undo_delta": 1} -- `bond_type` and `atom_label` are of the hovered
@@ -5162,7 +5165,7 @@ class _Driver(QObject):
             var a = render.page2obj({clientX: 0, clientY: 0, pageX: 0, pageY: 0});
             var b = render.page2obj({clientX: 100, clientY: 100, pageX: 100, pageY: 100});
             var sx = 100 / (b.x - a.x), sy = 100 / (b.y - a.y);
-            var kind = %s, index = %d, press = %s, pp, poolId;
+            var kind = %s, index = %d, press = %s, click = %s, pp, poolId;
             if (kind === 'bond') {
               poolId = Array.from(struct.bonds.keys())[index];
               var bond = struct.bonds.get(poolId);
@@ -5187,10 +5190,17 @@ class _Driver(QObject):
               (render.clientArea.firstChild || render.clientArea).dispatchEvent(key);
               out.pressed = {prevented: key.defaultPrevented};
             }
+            if (click) {
+              var target = render.clientArea.firstChild || render.clientArea;
+              ['mousedown', 'mouseup', 'click'].forEach(function (type) {
+                target.dispatchEvent(new MouseEvent(type, {clientX: x, clientY: y, button: 0, bubbles: true, cancelable: true}));
+              });
+              out.clicked = true;
+            }
             return JSON.stringify(out);
           } catch (e) { return JSON.stringify({error: String(e)}); }
         })();
-        """ % (json.dumps(kind), index, json.dumps(press))
+        """ % (json.dumps(kind), index, json.dumps(press), json.dumps(bool(step.get("click"))))
 
         read = """
         (function () {
