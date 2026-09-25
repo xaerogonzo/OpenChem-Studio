@@ -229,3 +229,46 @@ def test_a_side_by_side_split_costs_no_more_than_the_second_panel(window, qapp):
     separator = window.style().pixelMetric(QStyle.PixelMetric.PM_DockWidgetSeparatorExtent, None, window)
     allowed = results.minimumSizeHint().width() + separator
     assert added <= allowed, (before, added, allowed)
+
+
+def test_locking_a_split_panel_keeps_it_and_unlocking_lets_a_click_replace_it(window, qapp):
+    """The reported flow: panels once dropped beside each other stayed on screen through every rail click. The lock is
+    what says so, and what releases them."""
+    results = _dock(window, "Results")
+    window.splitDockWidget(_dock(window, "Properties"), results, Qt.Orientation.Vertical)
+    results.show()
+    _settle(qapp)
+    assert "Results" in window._user_placed_docks, "a drop beside another panel locks it"
+    assert "Results" in window._panel_rail.locked_panels(), "and the rail shows it"
+
+    _choose(window, qapp, "Atom_Inspector")
+    assert _visible(window, "Results")
+
+    window._on_panel_lock_toggled("Results")
+    assert window._panel_rail.locked_panels().isdisjoint({"Results", "Properties"})
+    _choose(window, qapp, "Structure_Check")
+
+    assert _visible(window, "Structure_Check")
+    assert not _visible(window, "Results")
+    assert not _visible(window, "Properties")
+
+
+def test_open_beside_hides_nothing_and_a_plain_click_then_replaces_the_unlocked(window, qapp):
+    window._on_panel_chosen("Properties")
+    _settle(qapp)
+    window._on_panel_chosen_alongside("Results")
+    _settle(qapp)
+    assert _visible(window, "Properties") and _visible(window, "Results")
+
+    _choose(window, qapp, "Atom_Inspector")
+    assert _visible(window, "Atom_Inspector")
+    assert not _visible(window, "Properties") and not _visible(window, "Results")
+
+
+def test_a_locked_panel_survives_a_click_that_would_replace_it(window, qapp):
+    window._on_panel_chosen("Properties")
+    _settle(qapp)
+    window._on_panel_lock_toggled("Properties")
+    _choose(window, qapp, "Results")
+    assert _visible(window, "Properties")
+    assert "Properties" in window._panel_rail.locked_panels()

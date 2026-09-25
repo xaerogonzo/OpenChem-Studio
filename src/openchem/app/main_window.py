@@ -592,6 +592,8 @@ class MainWindow(QMainWindow):
         self._panel_rail = PanelRail(self)
         self._panel_rail.panel_chosen.connect(self._on_panel_chosen)
         self._panel_rail.favourite_toggled.connect(self._on_favourite_toggled)
+        self._panel_rail.panel_chosen_alongside.connect(self._on_panel_chosen_alongside)
+        self._panel_rail.panel_lock_toggled.connect(self._on_panel_lock_toggled)
         self._panel_rail.list_visibility_changed.connect(self._on_rail_fold_changed)
         rail_bar = QToolBar("Panels", self)
         # The RAIL's own show/hide, which is not a panel's -- hiding it
@@ -860,7 +862,7 @@ class MainWindow(QMainWindow):
 
     # --- which right-hand panel is in front ----------------------------------
 
-    def _show_only_right_dock(self, chosen: QDockWidget) -> None:
+    def _show_only_right_dock(self, chosen: QDockWidget, alongside: bool = False) -> None:
         """Exactly one right-hand panel visible, and it is `chosen`.
 
         This replaces `raise_()` on a tabified group. Hiding the rest is
@@ -887,7 +889,7 @@ class MainWindow(QMainWindow):
         exactly one -- construction and Reset Panel Layout run under
         `_arranging` -- or the setting would open eleven panels at launch.
         """
-        if not self._arranging and not self._settings.preference(RAIL_HIDES_PANELS):
+        if not self._arranging and (alongside or not self._settings.preference(RAIL_HIDES_PANELS)):
             chosen.setVisible(True)
             if not chosen.isFloating():
                 chosen.raise_()
@@ -955,6 +957,7 @@ class MainWindow(QMainWindow):
             else:
                 self._user_placed_docks.discard(name)
         self._docks_to_classify.clear()
+        self._sync_rail_locks()
 
     def reset_panel_layout(self) -> None:
         """View > Reset Panel Layout: every dock back where it starts.
@@ -979,6 +982,7 @@ class MainWindow(QMainWindow):
                 self.addDockWidget(area, dock)
                 dock.show()
             self._user_placed_docks.clear()
+            self._sync_rail_locks()
             self._show_only_right_dock(self._properties_dock)
             self._set_initial_right_dock_width()
         finally:
@@ -1078,6 +1082,38 @@ class MainWindow(QMainWindow):
         # from another is on screen. `select_panel` does not re-emit, so
         # this cannot loop.
         self._panel_rail.select_panel(panel_id)
+
+    def _on_panel_chosen_alongside(self, panel_id: str) -> None:
+        """Right-click > Open beside: show the panel and hide nothing.
+
+        A left click replaces the panel showing; this is the other half of the gesture. It does not lock anything, so
+        the next left click elsewhere still replaces the unlocked ones -- lock the ones to keep.
+        """
+        dock = self._dock_by_panel_id(panel_id)
+        if dock is None:
+            return
+        self._show_only_right_dock(dock, alongside=True)
+        dock.setFocus()
+        self._panel_rail.select_panel(panel_id)
+
+    def _on_panel_lock_toggled(self, panel_id: str) -> None:
+        """Lock a panel so a rail click leaves it on screen, or release it.
+
+        "Locked" IS the window's existing notion of a placed panel (`_user_placed_docks`): one the rail will not hide.
+        Dropping a panel beside another, or in another area, locks it by itself, which is why one that was arranged
+        once could stay on screen for good with nothing to say why; this is the control for that, and the rail shows
+        the lock. Released, it stays released until that panel is moved again.
+        """
+        if panel_id in self._user_placed_docks:
+            self._user_placed_docks.discard(panel_id)
+        else:
+            self._user_placed_docks.add(panel_id)
+        self._settings.set(_USER_PLACED_KEY, ",".join(sorted(self._user_placed_docks)))
+        self._sync_rail_locks()
+
+    def _sync_rail_locks(self) -> None:
+        """Tell the rail which panels are locked, so its list shows a lock on each."""
+        self._panel_rail.set_locked_panels(self._user_placed_docks)
 
     def _on_favourite_toggled(self, _panel_id: str = "", _pinned: bool = False) -> None:
         self._settings.set("ui/pinned_panels", ",".join(self._panel_rail.favourites()))
@@ -1525,6 +1561,7 @@ class MainWindow(QMainWindow):
         stored = str(self._settings.get(_USER_PLACED_KEY, "") or "")
         known = set(self._default_dock_areas)
         self._user_placed_docks = {name for name in stored.split(",") if name in known}
+        self._sync_rail_locks()
         return True
 
     def _set_initial_right_dock_width(self) -> None:
