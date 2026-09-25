@@ -1,0 +1,14 @@
+[
+  {"do": "smiles", "smiles": "CCC(=O)N(c1ccccc1)C1CCN(CCc2ccccc2)CC1", "name": "fentanyl", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "conformers", "count": 20, "embeddings": 1000, "after_ms": 25000},
+  {"do": "conformers_finish", "tag": "mid-run", "show": true, "press": false, "expect": {"enabled": true, "readout_contains": ["Sampling shapes", "found"]}, "after_ms": 1500},
+  {"do": "shot", "path": "D:/_scratch/stoprule/finish_now_mid_run.png", "after_ms": 500},
+  {"do": "conformers_finish", "tag": "press", "expect": {"enabled": true}, "after_ms": 20000},
+  {"do": "conformers_provenance", "tag": "after-finish", "expect": {"stop_reason": "finished_early"}, "after_ms": 2000},
+  {"do": "shot", "path": "D:/_scratch/stoprule/finish_now_after.png", "after_ms": 500},
+  {"do": "conformers_finish", "tag": "idle", "expect": {"enabled": false}, "after_ms": 500},
+  {"do": "jobs_report", "tag": "nothing-running"},
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

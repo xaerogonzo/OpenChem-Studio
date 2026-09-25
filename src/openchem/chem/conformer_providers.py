@@ -324,8 +324,25 @@ STOP_PLATEAU = "plateau"
 STOP_BUDGET = "budget"
 #: The clock stopped it. Says nothing about whether more shapes exist.
 STOP_TIME = "time"
+#: EXPERIMENTAL stop: no new shape entered the lowest-`keep` set for the required number of batches (see
+#: `STOP_RULE_KEPT_SET`). Its own reason, not `STOP_PLATEAU`, because the two stop on different evidence and the record
+#: must say which one ended a run.
+STOP_KEPT_SET_STEADY = "kept_set_steady"
 #: The user stopped it from the Jobs panel.
 STOP_CANCELLED = "cancelled"
+#: The user pressed "Finish now": the search ended where it was and what it had found IS the result. Unlike
+#: `STOP_CANCELLED`, which discards the run.
+STOP_USER_FINISHED = "finished_early"
+
+
+#: What makes a batch "quiet" for the plateau stop. The DEFAULT: no candidate matched nothing already known.
+STOP_RULE_ANY_NEW = "any_new"
+#: EXPERIMENTAL, opt-in (Settings > Conformers): no new shape would rank among the `keep` lowest-energy shapes the run
+#: hands back. Never stops later than `STOP_RULE_ANY_NEW`, since a batch quiet under the default is quiet under this one.
+#: Measured by replaying 1000-embedding recordings of three flexible molecules on three seeds against the same seed run
+#: to 1000: about a quarter fewer embeddings for about one slot in twenty of the kept set (worst run 16 of 20). It needs
+#: `keep` to mean anything, so a caller that gives none gets the default rule.
+STOP_RULE_KEPT_SET = "kept_set"
 
 
 @dataclass(frozen=True)
@@ -378,6 +395,8 @@ class GenerationOptions:
     max_embeddings: int = DEFAULT_MAX_EMBEDDINGS
     #: Consecutive batches with nothing unmatched that end the search.
     plateau_batches_required: int = DEFAULT_PLATEAU_BATCHES
+    #: Which evidence makes a batch quiet: `STOP_RULE_ANY_NEW` (default) or the experimental `STOP_RULE_KEPT_SET`.
+    stop_rule: str = STOP_RULE_ANY_NEW
     #: How many embeddings the SEARCH has already attempted, so this batch
     #: seeds from where the last one stopped.
     #:
@@ -845,6 +864,32 @@ def _merge_scan(
     return kept, candidates
 
 
+@dataclass(frozen=True)
+class BatchReport:
+    """What one batch added to the archive."""
+
+    #: Candidates that merged with nothing already known (the plateau signal).
+    unmatched: int
+    #: Of those, the ones that would rank among the `keep` lowest-energy shapes. Zero means the set the run will
+    #: hand back did not change.
+    entered_keep_set: int
+
+
+@dataclass(frozen=True)
+class SearchProgress:
+    """A snapshot of a running search, for a readout. Reported once per batch."""
+
+    attempted: int
+    ceiling: int
+    #: Representatives in the archive so far. A SEARCH count: the authoritative distinct count is taken over the
+    #: whole pool at the end and can differ by a few.
+    shapes: int
+    #: How many the run will hand back (0 when the caller did not say).
+    keep: int
+    #: Embeddings since the `keep` lowest-energy shapes last changed; 0 when the latest batch changed them.
+    unchanged_for: int
+
+
 class SearchArchive:
     """The representatives a batched search has found, and whether a new
     batch added anything to them.
@@ -913,11 +958,32 @@ class SearchArchive:
         count did not rise" -- see the class docstring for the case where
         those two disagree in opposite directions.
         """
-        unmatched = 0
+        return self.add_batch_detailed(results, keep=0).unmatched
+
+    def add_batch_detailed(
+        self, results: list[tuple[Chem.Mol, float | None]], keep: int
+    ) -> "BatchReport":
+        """Absorb a batch and say how many candidates were new AND would rank among the `keep` lowest in energy.
+
+        The second count is what a user of a capped run cares about: the run hands back the `keep` lowest, so a
+        new shape that is higher in energy than all of them changes nothing they will see. It is read against the
+        archive as it stood BEFORE the batch, so one batch cannot raise its own bar. An archive holding fewer than
+        `keep` counts every new shape (the set is not full yet), and a candidate with no energy cannot be ruled out.
+        `keep <= 0` means "no cap known": every new shape counts.
+        """
+        threshold = float("inf")
+        if keep > 0:
+            energies = sorted(e for _m, e in self._kept if e is not None)
+            if len(energies) >= keep:
+                threshold = energies[keep - 1]
+        unmatched = entered = 0
         for mol, energy in results:
-            if not self._absorb(mol, energy):
-                unmatched += 1
-        return unmatched
+            if self._absorb(mol, energy):
+                continue
+            unmatched += 1
+            if keep <= 0 or energy is None or energy < threshold:
+                entered += 1
+        return BatchReport(unmatched=unmatched, entered_keep_set=entered)
 
     def _absorb(self, mol: Chem.Mol, energy: float | None) -> bool:
         """True when this candidate merged into something already here."""
@@ -964,7 +1030,8 @@ class SearchOutcome:
     batches: int = 0
     #: One of `STOP_PLATEAU`, `STOP_BUDGET`, `STOP_TIME`, `STOP_CANCELLED`.
     stop_reason: str = STOP_BUDGET
-    #: How many batches in a row ended with nothing unmatched. Recorded
+    #: How many batches in a row ended quiet BY THE RULE THAT RAN (`GenerationOptions.stop_rule`): nothing unmatched
+    #: for the default, nothing entering the kept set for the experimental one. Recorded
     #: rather than derived, because the threshold it is compared against
     #: is a setting and a stored record must not depend on today's value.
     batches_without_new_candidates: int = 0
@@ -977,9 +1044,18 @@ def search_conformers(
     options: GenerationOptions,
     on_progress: Callable[[int, int], bool | None] | None = None,
     accepts_options: bool = True,
+    keep: int = 0,
+    on_state: Callable[[SearchProgress], None] | None = None,
+    finish_requested: Callable[[], bool] | None = None,
 ) -> SearchOutcome:
     """Embed in batches until the search plateaus, the budget runs out, or
     the time does.
+
+    **`keep`, `on_state`, `finish_requested`** serve a readout and a "Finish now" button. `on_state` gets a
+    `SearchProgress` after every batch. `finish_requested` is asked whenever `on_progress` says stop (or a batch
+    comes back short): if it answers True the stop is `STOP_USER_FINISHED`, the pool so far is the result, and
+    it is not a cancel. None of the three changes what the search DOES until a finish is asked for, so a run
+    nobody interrupts is identical to before.
 
     **REPLACES "embed exactly N once".** One unseeded draw of 100 gave the
     reported molecule 6, then 9, then 8, then 7 -- and the funnel says why:
@@ -1010,11 +1086,14 @@ def search_conformers(
     embedding_failures = convergence_failures = 0
     batches = quiet_batches = 0
     stop_reason = STOP_BUDGET
-    cancelled = False
+    #: `attempted` at the end of the last batch in which the `keep` lowest shapes changed.
+    last_keep_change = 0
 
     batch_size = max(1, options.embedding_batch_size)
     ceiling = max(1, options.max_embeddings)
     required = max(1, options.plateau_batches_required)
+    #: Without a `keep` there is no kept set to watch, so the experimental rule falls back to the default one.
+    kept_set_rule = options.stop_rule == STOP_RULE_KEPT_SET and keep > 0
 
     while attempted < ceiling:
         if deadline is not None and time.monotonic() >= deadline and pool:
@@ -1051,22 +1130,41 @@ def search_conformers(
         pre_optimisation.extend(batch.pre_optimisation)
         pool.extend(batch.results)
 
-        if archive.add_batch(batch.results):
+        report_ = archive.add_batch_detailed(batch.results, keep)
+        # The batch is quiet by the chosen rule. `last_keep_change` below is the readout's and does not depend on it.
+        signal = report_.entered_keep_set if kept_set_rule else report_.unmatched
+        if signal:
             quiet_batches = 0
         else:
             quiet_batches += 1
+        if report_.entered_keep_set:
+            last_keep_change = attempted
+        if on_state is not None:
+            on_state(
+                SearchProgress(
+                    attempted=attempted,
+                    ceiling=ceiling,
+                    shapes=len(archive),
+                    keep=keep,
+                    unchanged_for=attempted - last_keep_change,
+                )
+            )
 
-        if on_progress is not None and on_progress(attempted, ceiling) is False:
-            cancelled = True
-            stop_reason = STOP_CANCELLED
-            break
-        # A batch the provider cut short means it stopped early itself --
-        # its own deadline, or cancellation through `report`.
-        if batch.attempted < size:
-            stop_reason = STOP_TIME if deadline is not None else STOP_CANCELLED
+        told_to_stop = on_progress is not None and on_progress(attempted, ceiling) is False
+        cut_short = batch.attempted < size
+        if told_to_stop or cut_short:
+            # A finish asked for by the user outranks the reason the batch came back short: it stopped BECAUSE
+            # of the request, and the pool it returned is a result rather than debris.
+            if finish_requested is not None and finish_requested():
+                stop_reason = STOP_USER_FINISHED
+            elif told_to_stop:
+                stop_reason = STOP_CANCELLED
+            else:
+                # The provider cut the batch short itself: its own deadline, or cancellation through `report`.
+                stop_reason = STOP_TIME if deadline is not None else STOP_CANCELLED
             break
         if quiet_batches >= required:
-            stop_reason = STOP_PLATEAU
+            stop_reason = STOP_KEPT_SET_STEADY if kept_set_rule else STOP_PLATEAU
             break
 
     return SearchOutcome(

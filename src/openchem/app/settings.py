@@ -99,12 +99,17 @@ CONFORMER_MAX_EMBEDDINGS = Preference(
     "conformers/max_embeddings", int, 1000, minimum=10, maximum=5000
 )
 
+#: EXPERIMENTAL and OFF by default: stop a conformer search when no new shape would rank among the conformers the run
+#: keeps, instead of when no new shape of any energy turns up. It trades a quarter of the embeddings for about one slot in
+#: twenty of the kept set on the flexible molecules measured; see `chem.conformer_providers.STOP_RULE_KEPT_SET`.
+CONFORMER_EARLY_STOP = Preference("conformers/early_stop_kept_set", bool, False)
+
 #: Every preference, in the order the Settings window groups them. Tests
 #: iterate this, so a preference added here is covered without a new test.
 PREFERENCES = (
     RAIL_HIDES_PANELS, RECOVERY_ENABLED, RECOVERY_DELAY_SECONDS, MAX_REVISIONS_KEPT,
     SHOW_HIDDEN_CALCULATORS, RECALC_MODE, RECALC_QUIET_MS, DRAWING_BOND_KEYS,
-    CONFORMER_MAX_EMBEDDINGS, DRAWING_BOND_CLICK,
+    CONFORMER_MAX_EMBEDDINGS, DRAWING_BOND_CLICK, CONFORMER_EARLY_STOP,
 )
 
 #: Where one calculator's own visibility choice is stored: a plain

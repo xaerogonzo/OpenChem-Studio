@@ -39,6 +39,7 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.app.settings import (
+    CONFORMER_EARLY_STOP,
     CONFORMER_MAX_EMBEDDINGS,
     DRAWING_BOND_CLICK,
     DRAWING_BOND_KEYS,
@@ -225,6 +226,26 @@ _HELP = {
         ),
         tier=2,
         help_id="settings.conformer_embeddings",
+        topic="settings",
+        help_anchor="settings",
+    ),
+    "conformer_early_stop": HelpTooltip(
+        text=(
+            "EXPERIMENTAL, off by default. Stop the conformer search when no new shape would rank among the "
+            "lowest conformers this run keeps, instead of when no new shape of ANY energy turns up.\n\n"
+            "The default rule rarely fires on a flexible molecule, because higher-energy shapes keep arriving "
+            "that the run will never show. This one ignores them. Measured by replaying 1000-embedding "
+            "searches of three flexible drug-like molecules on three seeds against the same search run to "
+            "1000: it never stopped later than the default, used about a quarter fewer embeddings, and "
+            "recovered about 18 of the 20 lowest shapes against about 19 for the default (worst run 16 of "
+            "20, with the kept energies about 1 kcal/mol higher on average for that molecule). The single "
+            "lowest-energy shape was the same in every run. Three molecules and three seeds is a small "
+            "sample, which is why it is opt-in.\n\n"
+            "A run ended this way says so in Details. Finish now, next to Generate Conformers, is the manual "
+            "way to stop and keep what has been found."
+        ),
+        tier=2,
+        help_id="settings.conformer_early_stop",
         topic="settings",
         help_anchor="settings",
     ),
@@ -579,6 +600,14 @@ class SettingsDialog(QDialog):
         apply_help_tooltip(self._conformer_embeddings, _HELP["conformer_embeddings"])
         self._conformer_embeddings.valueChanged.connect(self._on_conformer_embeddings_changed)
 
+        self._conformer_early_stop = QCheckBox(
+            "Stop early when the lowest conformers stop changing (experimental)", page
+        )
+        self._conformer_early_stop.setObjectName("conformerEarlyStop")
+        self._conformer_early_stop.setChecked(bool(self._settings.preference(CONFORMER_EARLY_STOP)))
+        apply_help_tooltip(self._conformer_early_stop, _HELP["conformer_early_stop"])
+        self._conformer_early_stop.toggled.connect(self._on_conformer_early_stop_toggled)
+
         row = QHBoxLayout()
         row.addWidget(QLabel("Automatic search tries up to", page))
         row.addWidget(self._conformer_embeddings)
@@ -594,11 +623,20 @@ class SettingsDialog(QDialog):
             "Lower is faster and finds fewer of the higher-energy shapes.",
             page,
         ))
+        layout.addWidget(self._conformer_early_stop)
+        layout.addWidget(_note(
+            "Experimental. Ends a search that keeps finding only higher-energy shapes than the ones it "
+            "will hand back. Faster, at the cost of sometimes missing a shape a full search would find.",
+            page,
+        ))
         layout.addStretch(1)
         return page
 
     def _on_conformer_embeddings_changed(self, value: int) -> None:
         self._store(CONFORMER_MAX_EMBEDDINGS, value)
+
+    def _on_conformer_early_stop_toggled(self, checked: bool) -> None:
+        self._store(CONFORMER_EARLY_STOP, checked)
 
     # --- Results -----------------------------------------------------------------
 

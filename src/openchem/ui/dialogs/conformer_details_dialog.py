@@ -46,6 +46,14 @@ _STOP_REASONS = {
         "candidates. That is a statement about the sampling, not a count of "
         "every shape the molecule has."
     ),
+    "kept_set_steady": (
+        "Lowest conformers stopped changing (experimental)"
+            "\n\n"
+        "The search stopped because no new shape would have ranked among the conformers this run keeps, "
+        "for the last few batches. It is a setting under Settings > Conformers, off by default, and it "
+        "can stop before a full search would: a shape that belongs among the lowest may not have turned "
+        "up yet. Turn it off, or raise the ceiling, for the complete answer."
+    ),
     "budget": (
         "Budget reached"
             "\n\n"
@@ -62,6 +70,13 @@ _STOP_REASONS = {
         "Cancelled"
             "\n\n"
         "The search was stopped before it finished."
+    ),
+    "finished_early": (
+        "Finished early by you"
+            "\n\n"
+        "You pressed Finish now, so the search ended where it was and these are the "
+        "shapes found up to then. A full search may have found more low-energy "
+        "shapes, and asking again without stopping it gives the complete answer."
     ),
 }
 
@@ -166,6 +181,8 @@ class ConformerDetailsDialog(QDialog):
         quiet = parameters.get("batches_without_new_candidates")
         if reason == "plateau" and quiet:
             headline = f"{headline} -- no new conformers in the last {quiet} batches"
+        elif reason == "kept_set_steady" and quiet:
+            headline = f"{headline} -- no change in the last {quiet} batches"
         return f"{headline}." + chr(10) + chr(10) + explanation
 
     @staticmethod

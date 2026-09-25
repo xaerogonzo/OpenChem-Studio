@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from PySide6.QtWidgets import QWidget
 
 from openchem.chem.engine import ChemistryEngine
@@ -929,7 +930,7 @@ def test_generate_conformers_asks_with_the_ceiling_from_settings(qapp, monkeypat
             return [c.molblock for c in molecule.conformers]
 
     class _Dialog:
-        def __init__(self, parent=None, automatic_embeddings=1000):
+        def __init__(self, parent=None, automatic_embeddings=1000, early_stop=False):
             self._n = automatic_embeddings
 
         def exec(self):
@@ -954,5 +955,95 @@ def test_generate_conformers_asks_with_the_ceiling_from_settings(qapp, monkeypat
         widget.set_molecule(_molecule_with_conformer())
         widget.generate_conformers()
         assert service.requests[-1][1]["num_embeddings"] == 500
+    finally:
+        widget.deleteLater()
+
+
+def test_finish_now_follows_the_job_and_keeps_rather_than_cancels(qapp):
+    """Greyed until a search for THIS molecule runs; pressing it asks the service to finish (not cancel) and says so at once."""
+    from openchem.domain.common import CacheState
+    from openchem.events.events import ConformerJobStateChanged
+
+    widget, _backend, bus = _make_widget(qapp)
+    model = _molecule_with_conformer()
+    widget.set_molecule(model)
+    asked = []
+    widget._conformer_service.finish_early = lambda m: asked.append(m) or True
+    try:
+        assert widget._finish_button.isEnabled() is False, "nothing is running"
+
+        bus.publish(ConformerJobStateChanged(molecule_uuid=model.uuid, state=CacheState.RUNNING, message="Sampling shapes 50/1000"))
+        assert widget._finish_button.isEnabled() is True
+
+        widget._finish_button.click()
+        assert asked == [model]
+        assert widget._finish_button.isEnabled() is False
+        assert widget._status_label.text().startswith("Finishing")
+
+        # A progress event already in flight must not re-enable the button or overwrite "Finishing".
+        bus.publish(ConformerJobStateChanged(molecule_uuid=model.uuid, state=CacheState.RUNNING, message="Sampling shapes 60/1000"))
+        assert widget._finish_button.isEnabled() is False
+        assert widget._status_label.text().startswith("Finishing")
+
+        bus.publish(ConformerJobStateChanged(molecule_uuid=model.uuid, state=CacheState.COMPLETED, message="done"))
+        assert widget._finish_button.isEnabled() is False
+    finally:
+        widget.deleteLater()
+
+
+def test_finish_now_ignores_another_molecules_search(qapp):
+    from openchem.domain.common import CacheState
+    from openchem.events.events import ConformerJobStateChanged
+
+    widget, _backend, bus = _make_widget(qapp)
+    widget.set_molecule(_molecule_with_conformer())
+    try:
+        bus.publish(ConformerJobStateChanged(molecule_uuid="someone-else", state=CacheState.RUNNING, message="Sampling shapes 50/1000"))
+        assert widget._finish_button.isEnabled() is False
+    finally:
+        widget.deleteLater()
+
+
+@pytest.mark.parametrize("setting_on", [False, True])
+def test_the_experimental_stop_rule_reaches_the_dialog_only_when_ticked(qapp, monkeypatch, setting_on):
+    """The wiring: Settings > Conformers decides what the dialog is built with, and the default is the default."""
+    from openchem.app.settings import CONFORMER_EARLY_STOP, Settings
+    from openchem.ui.widgets import molecule_viewer3d_widget as module
+
+    settings = Settings(EventBus())
+    settings.set_preference(CONFORMER_EARLY_STOP, setting_on)
+    built = []
+
+    class _Service:
+        def request_conformers(self, molecule, keep, **kwargs):
+            pass
+
+        def display_molblocks(self, molecule):
+            return [c.molblock for c in molecule.conformers]
+
+    class _Dialog:
+        def __init__(self, parent=None, automatic_embeddings=1000, early_stop=False):
+            built.append(early_stop)
+
+        def exec(self):
+            return module.QDialog.DialogCode.Accepted
+
+        def conformers_to_keep(self):
+            return 20
+
+        def embeddings_to_try(self):
+            return 1000
+
+        def options(self):
+            return None
+
+    monkeypatch.setattr(module, "ConformerOptionsDialog", _Dialog)
+    widget = MoleculeViewer3DWidget(
+        _Service(), MeasurementService(ChemistryEngine()), EventBus(), backend=FakeViewerBackend(), settings=settings
+    )
+    try:
+        widget.set_molecule(_molecule_with_conformer())
+        widget.generate_conformers()
+        assert built == [setting_on]
     finally:
         widget.deleteLater()

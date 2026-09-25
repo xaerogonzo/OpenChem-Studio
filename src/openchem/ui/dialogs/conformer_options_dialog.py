@@ -6,6 +6,8 @@ from openchem.chem.conformer_providers import (  # noqa: F401 - re-exported
     DEFAULT_OPTIMISATION_LEVEL,
     DEFAULT_RMS_THRESHOLD,
     OPTIMISATION_LEVELS,
+    STOP_RULE_ANY_NEW,
+    STOP_RULE_KEPT_SET,
     GenerationOptions,
 )
 
@@ -265,10 +267,16 @@ class ConformerOptionsDialog(QDialog):
     """
 
     def __init__(
-        self, parent: QWidget | None = None, automatic_embeddings: int = DEFAULT_EMBEDDINGS_TO_TRY
+        self,
+        parent: QWidget | None = None,
+        automatic_embeddings: int = DEFAULT_EMBEDDINGS_TO_TRY,
+        early_stop: bool = False,
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle("Generate Conformers")
+        #: The EXPERIMENTAL kept-set stop rule (Settings > Conformers, off by default). Here rather than in the viewer
+        #: because this is the layer allowed to name `chem`'s `GenerationOptions`, and the viewer widget is not.
+        self._early_stop = bool(early_stop)
         #: What "Automatic" spends as its ceiling: Settings > Conformers, default the documented budget.
         self._automatic_embeddings = int(automatic_embeddings)
 
@@ -440,5 +448,6 @@ class ConformerOptionsDialog(QDialog):
             diversity_rmsd=self._diversity_spin.value(),
             optimisation=self._optimisation_combo.currentText(),
             enhanced_refinement=self._refine_check.isChecked(),
+            stop_rule=STOP_RULE_KEPT_SET if self._early_stop else STOP_RULE_ANY_NEW,
             **search,
         )

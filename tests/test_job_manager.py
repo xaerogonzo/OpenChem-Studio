@@ -92,3 +92,20 @@ def test_update_message_is_reflected_in_active_jobs():
 def test_update_message_for_inactive_job_is_a_no_op():
     manager = JobManager()
     manager.update_message("conformer", "does-not-exist", "hello")  # must not raise
+
+
+def test_finish_early_calls_the_finish_callback_and_is_not_a_cancel():
+    manager = JobManager()
+    calls = []
+    manager.try_start("conformer", "m", cancel_callback=lambda: calls.append("cancel"), finish_callback=lambda: calls.append("finish"))
+
+    assert manager.finish_early("conformer", "m") is True
+    assert calls == ["finish"]
+
+
+def test_finish_early_is_a_no_op_without_a_callback_or_a_job():
+    manager = JobManager()
+    manager.try_start("docking", "m", cancel_callback=lambda: None)
+
+    assert manager.finish_early("docking", "m") is False, "a job with nothing to keep cannot be finished early"
+    assert manager.finish_early("docking", "absent") is False

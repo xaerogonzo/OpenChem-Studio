@@ -509,6 +509,21 @@ fewer distinct shapes than the limit you set, or it found more and kept
 the lowest-energy ones. A rigid structure genuinely has fewer shapes; the
 generator does not manufacture extras to fill a request.
 
+**Finish now**, beside Generate Conformers, ends a running search and keeps what it has found. It is not Cancel,
+which discards the run: the shapes so far are de-duplicated and ranked like any result, and Details says the run was
+finished early. While a search runs, the readout between the arrows says how many shapes it has found so far and
+whether the lowest ones (as many as you asked to keep) are still changing or have not changed for a number of
+embeddings. That is a sign that waiting is buying less, not a promise: on a flexible molecule the lowest shapes can
+still turn up late, and a search stopped early may miss some that a full one would find. The same button is in the Jobs
+panel, for a search started from the Structure menu while another view is showing.
+
+**Settings > Conformers > Stop early when the lowest conformers stop changing** is experimental and off. On a flexible
+molecule the search rarely stops early by itself, because higher-energy shapes keep turning up that the run will never
+show you. With this on it stops when no new shape would rank among the conformers you keep. Measured on three
+flexible drug-like molecules it used about a quarter fewer embeddings and found about 18 of the 20 lowest shapes
+against about 19; the single lowest was the same every time. Details says when a run ended this way. It is a small
+sample, so it stays opt-in.
+
 **Generate Conformers** asks for the counts, and hides the search
 settings behind **Advanced** — on **Automatic** it spends a documented
 budget, which is what you want unless you have a reason not to. Under
