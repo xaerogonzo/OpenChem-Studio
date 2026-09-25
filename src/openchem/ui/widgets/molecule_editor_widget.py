@@ -408,6 +408,10 @@ class MoleculeEditorWidget(QWidget):
             self._backend.set_cip_labels(True)
         self._publish_atom_numbers()
 
+    def set_bond_click_enabled(self, enabled: bool) -> None:
+        """Whether a click on a bond cycles its order."""
+        self._backend.set_bond_click_enabled(enabled)
+
     def set_bond_keys_enabled(self, enabled: bool) -> None:
         """Whether a number key over a hovered bond reaches the application."""
         self._backend.set_bond_keys_enabled(enabled)

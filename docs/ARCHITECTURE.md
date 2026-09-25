@@ -2277,26 +2277,15 @@ document may cite a file or a test that does not exist.
   exists for. A leg landing in any of the three recorded modes is not
   that, however early the lowest of them looks.
 
-- **OPEN** -- a bond's order cannot be changed by clicking it. **Hover and press 1/2/3 is built** (2026-09-24:
-  `ChemistryEngine.edit_bond`, `interceptBondOrderKeys` in `main.jsx`, Settings > Drawing,
-  `benchmarks/visual/bond_order_keys.json`); what is left is "click a bond to cycle". It was proposed on the belief
-  that Ketcher already did the number keys. **It does not, for a bond, in the vendored bundle** (measured 2026-09-24,
-  `benchmarks/visual/ketcher_hover_keys.json`): hovering an atom and pressing `n` replaces it and `/` over a
-  bond opens its properties dialog, but a number over a hovered bond is handled (`preventDefault`) and changes
-  nothing -- the bundle's hotkey table has tool handlers for atoms and s-groups and none for bonds. So the
-  gestures are new work, and the earlier reading that they might already exist was wrong.
-
-  What was in the way was the belief that a hover cannot be produced from automation. It can: Ketcher's own
-  tools set it with `editor.hover(editor.findItem(event, null), null, event)`, which needs only a client
-  position, and the key must be dispatched inside the editor's DOM rather than on `document`. That makes a
-  hover gesture regression-testable through `OPENCHEM_DRIVE`.
-
-  The number keys took the route the atom menu took: the page reports the hovered bond and the key, and the
-  application makes the change through `edit_bond` and an `EditStructureCommand` (one undo entry, recomputed like
-  any deliberate change) rather than through Ketcher's tools, whose synthetic clicks armed the tool and changed
-  nothing. **Click-to-cycle is the contested half and is not built**: in the select tool a click on a bond SELECTS
-  it, so cycling on click would take that away (and it would have to swallow the mouse-down as well as the click),
-  so it needs its own switch, off by default. Nothing here is decided.
+- Bond gestures: **built** (2026-09-24 and 2026-09-25). Hover and press 1/2/3 (`interceptBondOrderKeys`, `ChemistryEngine.edit_bond`,
+  `benchmarks/visual/bond_order_keys.json`) and click-to-cycle (`interceptBondClick`, `benchmarks/visual/bond_click_cycle.json`), both in
+  `tools/ketcher-host/src/main.jsx` and both ending in the same page -> bridge -> `edit_bond` -> `EditStructureCommand` chain, so a click is
+  one undo entry with the number keys' refusals (aromatic, query, wedge, a broken valence). Ketcher has no handler for a number over a bond
+  (measured, `benchmarks/visual/ketcher_hover_keys.json`), so neither gesture was native. **Click-to-cycle is OFF by default** (Settings >
+  Drawing): in the Select tool a click on a bond SELECTS it and cycling takes that away. It acts only in a Select tool (matched by class-name
+  prefix), on a left click that did not move, with no modifier, on a bond with no atom under the pointer; a bond that is not single, double
+  or triple is left alone. A hover can be produced from automation (`editor.hover(editor.findItem(...))`), which is what makes both
+  gestures regression-testable through `OPENCHEM_DRIVE`.
 
 - **DECISION** -- a coordinate-only edit recomputes every result, because the drawing's fingerprint hashes the
   raw molblock. Dragging an atom therefore recomputes results that cannot have changed. The plan gated a

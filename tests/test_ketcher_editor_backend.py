@@ -1576,3 +1576,28 @@ def test_a_payload_that_does_not_say_which_structure_is_refused(qapp):
     assert _wait_until(qapp, lambda: "does not say" in report().get("reason", ""))
     assert report()["drawn"] == 0
     backend.widget().hide()
+
+
+def test_the_bond_click_switch_is_off_on_the_page_until_it_is_turned_on(qapp):
+    """The page starts with click-to-cycle OFF, so nothing is sent for an unchanged default, and a TRUE set before the
+    page was ready is replayed when it is (a person who ticked it while Ketcher was still booting still gets it)."""
+    backend = KetcherEditorBackend()
+    calls: list[str] = []
+    backend._page.runJavaScript = lambda script, *a, **k: calls.append(script)
+
+    backend._ketcher_ready = True
+    backend._on_ketcher_ready()
+    assert not any("__openchemBondClick" in c for c in calls), "the default was sent"
+
+    backend = KetcherEditorBackend()
+    backend._page.runJavaScript = lambda script, *a, **k: calls.append(script)
+    calls.clear()
+    backend.set_bond_click_enabled(True)
+    assert calls == [], "it ran before the page was ready"
+    backend._ketcher_ready = True
+    backend._on_ketcher_ready()
+    assert any("__openchemBondClick = true" in c for c in calls), calls
+
+    calls.clear()
+    backend.set_bond_click_enabled(False)
+    assert calls == ["window.__openchemBondClick = false;"]

@@ -24,6 +24,7 @@ from PySide6.QtWidgets import QMessageBox
 import conftest
 from openchem.app.settings import (
     CONFORMER_MAX_EMBEDDINGS,
+    DRAWING_BOND_CLICK,
     DIRECTORY_KINDS,
     MAX_REVISIONS_KEPT,
     PREFERENCES,
@@ -108,6 +109,7 @@ def test_the_stored_keys_are_stable_names():
         "compute/recalc_quiet_ms",
         "drawing/bond_order_keys",
         "conformers/max_embeddings",
+        "drawing/bond_click_cycle",
     }
 
 
@@ -564,6 +566,16 @@ def test_the_conformer_ceiling_shows_and_stores_what_it_names(qapp, dialogs):
     dialog._conformer_embeddings.setValue(500)
     assert settings.preference(CONFORMER_MAX_EMBEDDINGS) == 500
     assert _dialog(dialogs, Settings(EventBus()))._conformer_embeddings.value() == 500
+
+
+def test_the_bond_click_switch_is_off_until_ticked_and_is_stored(qapp, dialogs):
+    settings = Settings(EventBus())
+    dialog = _dialog(dialogs, settings, section="drawing")
+    assert dialog._bond_click.isChecked() is False, "a click that changes a bond is opt-in"
+    dialog._bond_click.setChecked(True)
+    assert settings.preference(DRAWING_BOND_CLICK) is True
+    dialog._bond_click.setChecked(False)
+    assert settings.preference(DRAWING_BOND_CLICK) is False
 
 
 def _asked(monkeypatch, answer=QMessageBox.StandardButton.Yes, during=None):
