@@ -2063,11 +2063,19 @@ class _Driver(QObject):
         if molecule is None:
             logger.error("OPENCHEM_DRIVE: no molecule selected for conformers")
             return
+        options = None
+        if step.get("with_settings"):
+            # What the viewer's button would add from Settings > Conformers (the button itself opens a modal dialog,
+            # which a step must not `exec()`), through the SAME method the button uses.
+            from openchem.chem.conformer_providers import GenerationOptions
+
+            options = window._viewer3d.options_with_settings(GenerationOptions())
         window._services.conformer_service.request_conformers(
             molecule,
             num_conformers=int(step.get("count", 3)),
             optimize=bool(step.get("optimize", True)),
             num_embeddings=step.get("embeddings"),
+            options=options,
         )
 
     def _do_conformers_finish(self, step: dict[str, Any]) -> None:

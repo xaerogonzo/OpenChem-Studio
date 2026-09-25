@@ -310,3 +310,102 @@ def test_the_details_dialog_has_words_for_a_run_you_ended(qapp, reason):
 
     assert note.startswith("Finished early by you")
     assert "Finish now" in note
+
+
+# --- the experimental kept-set stop rule (Settings > Conformers) ---------------------------------------------------------
+
+
+def _higher_energy_arrivals():
+    """Three batches, each a NEW shape: the first lowest, the next two HIGHER in energy, then nothing."""
+    a, b, d = _geometries()
+    return [[(a, 3.0)], [(b, 3.4)], [(d, 3.6)], [], [], []]
+
+
+def _rule_options(rule):
+    from openchem.chem.conformer_providers import GenerationOptions
+
+    return GenerationOptions(embedding_batch_size=1, max_embeddings=6, plateau_batches_required=2, stop_rule=rule)
+
+
+def test_the_kept_set_rule_stops_where_the_default_keeps_going():
+    """Shapes that arrive but would not rank among the kept ones are the whole difference between the two rules."""
+    from openchem.chem.conformer_providers import (
+        STOP_KEPT_SET_STEADY,
+        STOP_PLATEAU,
+        STOP_RULE_ANY_NEW,
+        STOP_RULE_KEPT_SET,
+    )
+
+    default = search_conformers(_Scripted(_higher_energy_arrivals()), None, True, _rule_options(STOP_RULE_ANY_NEW), keep=1)
+    kept = search_conformers(_Scripted(_higher_energy_arrivals()), None, True, _rule_options(STOP_RULE_KEPT_SET), keep=1)
+
+    assert (default.stop_reason, default.batches) == (STOP_PLATEAU, 5), "each higher-energy shape is still 'something new'"
+    assert (kept.stop_reason, kept.batches) == (STOP_KEPT_SET_STEADY, 3)
+    assert kept.batches_without_new_candidates == 2
+    assert kept.batches <= default.batches
+
+
+def test_the_kept_set_rule_needs_a_kept_set_to_watch():
+    """A caller that gives no `keep` has no set to watch, so the experimental rule is the default one."""
+    from openchem.chem.conformer_providers import STOP_PLATEAU, STOP_RULE_KEPT_SET
+
+    outcome = search_conformers(_Scripted(_higher_energy_arrivals()), None, True, _rule_options(STOP_RULE_KEPT_SET), keep=0)
+
+    assert (outcome.stop_reason, outcome.batches) == (STOP_PLATEAU, 5)
+
+
+def test_a_new_shape_that_would_be_kept_still_keeps_the_kept_set_rule_searching():
+    """The rule ignores shapes above the kept set, never one that belongs in it."""
+    from openchem.chem.conformer_providers import STOP_RULE_KEPT_SET
+
+    a, b, d = _geometries()
+    lower_last = [[(a, 3.0)], [(b, 3.4)], [(d, 2.0)], [], [], []]
+
+    outcome = search_conformers(_Scripted(lower_last), None, True, _rule_options(STOP_RULE_KEPT_SET), keep=1)
+
+    assert outcome.batches == 5, "the batch that found a lower shape reset the quiet count"
+
+
+def test_the_record_says_which_stop_rule_ran(qapp):
+    from openchem.chem.conformer_providers import RDKitConformerProvider, STOP_RULE_KEPT_SET
+
+    bus = EventBus()
+    engine = ChemistryEngine()
+    service = ConformerService(bus, engine, providers={"rdkit": RDKitConformerProvider(random_seed=0)})
+    model = MoleculeModel()
+    engine.set_structure_from_smiles(model, "OCCO")
+    ready = []
+    bus.subscribe(ConformersReady, ready.append)
+
+    service.request_conformers(
+        model, num_conformers=5, optimize=True, num_embeddings=30, options=GenerationOptions(stop_rule=STOP_RULE_KEPT_SET)
+    )
+    _drain(qapp)
+
+    assert ready[0].conformers[0].provenance.parameters["stop_rule"] == STOP_RULE_KEPT_SET
+
+
+def test_the_default_record_says_the_default_rule(qapp):
+    from openchem.chem.conformer_providers import RDKitConformerProvider, STOP_RULE_ANY_NEW
+
+    bus = EventBus()
+    engine = ChemistryEngine()
+    service = ConformerService(bus, engine, providers={"rdkit": RDKitConformerProvider(random_seed=0)})
+    model = MoleculeModel()
+    engine.set_structure_from_smiles(model, "OCCO")
+    ready = []
+    bus.subscribe(ConformersReady, ready.append)
+
+    service.request_conformers(model, num_conformers=5, optimize=True, num_embeddings=30)
+    _drain(qapp)
+
+    assert ready[0].conformers[0].provenance.parameters["stop_rule"] == STOP_RULE_ANY_NEW
+
+
+def test_the_details_dialog_says_the_experimental_rule_ended_the_run(qapp):
+    from openchem.ui.dialogs.conformer_details_dialog import ConformerDetailsDialog
+
+    note = ConformerDetailsDialog._stop_note({"stop_reason": "kept_set_steady", "batches_without_new_candidates": 2})
+
+    assert note.startswith("Lowest conformers stopped changing (experimental) -- no change in the last 2 batches")
+    assert "Settings > Conformers" in note

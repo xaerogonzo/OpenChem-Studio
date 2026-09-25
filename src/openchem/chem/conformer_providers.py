@@ -324,11 +324,25 @@ STOP_PLATEAU = "plateau"
 STOP_BUDGET = "budget"
 #: The clock stopped it. Says nothing about whether more shapes exist.
 STOP_TIME = "time"
+#: EXPERIMENTAL stop: no new shape entered the lowest-`keep` set for the required number of batches (see
+#: `STOP_RULE_KEPT_SET`). Its own reason, not `STOP_PLATEAU`, because the two stop on different evidence and the record
+#: must say which one ended a run.
+STOP_KEPT_SET_STEADY = "kept_set_steady"
 #: The user stopped it from the Jobs panel.
 STOP_CANCELLED = "cancelled"
 #: The user pressed "Finish now": the search ended where it was and what it had found IS the result. Unlike
 #: `STOP_CANCELLED`, which discards the run.
 STOP_USER_FINISHED = "finished_early"
+
+
+#: What makes a batch "quiet" for the plateau stop. The DEFAULT: no candidate matched nothing already known.
+STOP_RULE_ANY_NEW = "any_new"
+#: EXPERIMENTAL, opt-in (Settings > Conformers): no new shape would rank among the `keep` lowest-energy shapes the run
+#: hands back. Never stops later than `STOP_RULE_ANY_NEW`, since a batch quiet under the default is quiet under this one.
+#: Measured by replaying 1000-embedding recordings of three flexible molecules on three seeds against the same seed run
+#: to 1000: about a quarter fewer embeddings for about one slot in twenty of the kept set (worst run 16 of 20). It needs
+#: `keep` to mean anything, so a caller that gives none gets the default rule.
+STOP_RULE_KEPT_SET = "kept_set"
 
 
 @dataclass(frozen=True)
@@ -381,6 +395,8 @@ class GenerationOptions:
     max_embeddings: int = DEFAULT_MAX_EMBEDDINGS
     #: Consecutive batches with nothing unmatched that end the search.
     plateau_batches_required: int = DEFAULT_PLATEAU_BATCHES
+    #: Which evidence makes a batch quiet: `STOP_RULE_ANY_NEW` (default) or the experimental `STOP_RULE_KEPT_SET`.
+    stop_rule: str = STOP_RULE_ANY_NEW
     #: How many embeddings the SEARCH has already attempted, so this batch
     #: seeds from where the last one stopped.
     #:
@@ -1014,7 +1030,8 @@ class SearchOutcome:
     batches: int = 0
     #: One of `STOP_PLATEAU`, `STOP_BUDGET`, `STOP_TIME`, `STOP_CANCELLED`.
     stop_reason: str = STOP_BUDGET
-    #: How many batches in a row ended with nothing unmatched. Recorded
+    #: How many batches in a row ended quiet BY THE RULE THAT RAN (`GenerationOptions.stop_rule`): nothing unmatched
+    #: for the default, nothing entering the kept set for the experimental one. Recorded
     #: rather than derived, because the threshold it is compared against
     #: is a setting and a stored record must not depend on today's value.
     batches_without_new_candidates: int = 0
@@ -1075,6 +1092,8 @@ def search_conformers(
     batch_size = max(1, options.embedding_batch_size)
     ceiling = max(1, options.max_embeddings)
     required = max(1, options.plateau_batches_required)
+    #: Without a `keep` there is no kept set to watch, so the experimental rule falls back to the default one.
+    kept_set_rule = options.stop_rule == STOP_RULE_KEPT_SET and keep > 0
 
     while attempted < ceiling:
         if deadline is not None and time.monotonic() >= deadline and pool:
@@ -1112,7 +1131,9 @@ def search_conformers(
         pool.extend(batch.results)
 
         report_ = archive.add_batch_detailed(batch.results, keep)
-        if report_.unmatched:
+        # The batch is quiet by the chosen rule. `last_keep_change` below is the readout's and does not depend on it.
+        signal = report_.entered_keep_set if kept_set_rule else report_.unmatched
+        if signal:
             quiet_batches = 0
         else:
             quiet_batches += 1
@@ -1143,7 +1164,7 @@ def search_conformers(
                 stop_reason = STOP_TIME if deadline is not None else STOP_CANCELLED
             break
         if quiet_batches >= required:
-            stop_reason = STOP_PLATEAU
+            stop_reason = STOP_KEPT_SET_STEADY if kept_set_rule else STOP_PLATEAU
             break
 
     return SearchOutcome(

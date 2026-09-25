@@ -1,0 +1,16 @@
+[
+  {"do": "dialog", "name": "SettingsDialog", "section": "conformers", "after_ms": 1500},
+  {"do": "control", "name": "conformerEarlyStop", "value": false, "after_ms": 300},
+  {"do": "control", "name": "conformerEarlyStop", "value": true, "after_ms": 300},
+  {"do": "shot", "path": "D:/_scratch/stoprule/early_stop_settings.png", "widget": "dialog", "after_ms": 500},
+  {"do": "close_dialog", "after_ms": 500},
+  {"do": "smiles", "smiles": "CCC(=O)N(c1ccccc1)C1CCN(CCc2ccccc2)CC1", "name": "fentanyl", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "conformers", "count": 20, "embeddings": 1000, "with_settings": true, "after_ms": 150000},
+  {"do": "conformers_provenance", "tag": "experimental-rule", "expect": {"stop_rule": "kept_set", "stop_reason": "kept_set_steady"}, "after_ms": 1000},
+  {"do": "dialog", "name": "SettingsDialog", "section": "conformers", "after_ms": 1500},
+  {"do": "control", "name": "conformerEarlyStop", "value": false, "after_ms": 300},
+  {"do": "close_dialog", "after_ms": 300},
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

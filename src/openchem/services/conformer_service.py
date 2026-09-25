@@ -290,6 +290,9 @@ class _ConformerGenerationTask(QRunnable):
                 "embedding_batch_size": self._options.embedding_batch_size,
                 "max_embeddings": self._options.max_embeddings,
                 "plateau_batches_required": self._options.plateau_batches_required,
+                # WHICH evidence made a batch quiet: the experimental kept-set rule and the default stop on different
+                # things, and the stop reason alone would not say which setting was on.
+                "stop_rule": self._options.stop_rule,
                 # Recorded rather than derived from the setting above: the
                 # threshold is a setting and a stored record must not start
                 # describing itself with today's value.

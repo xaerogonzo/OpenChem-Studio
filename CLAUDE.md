@@ -164,7 +164,8 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           the REAL Finish now in the 3D viewer, asserted
                                           before it is pressed; "press": false only looks
     {"do": "conformers_provenance", "expect": {"stop_reason": "finished_early"}}  how the
-                                          stored run ended
+                                          stored run ended; `conformers` takes "with_settings":
+                                          true for what Settings > Conformers adds
     {"do": "screen_run",  "receptor": 0}      the REAL Run button, and the
                                               PREP DICT the service got
     {"do": "qc_run", "calc_type": "NMR (raw shielding)", "method": "HF def2-SVP"}

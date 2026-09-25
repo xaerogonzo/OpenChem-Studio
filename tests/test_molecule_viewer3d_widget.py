@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from PySide6.QtWidgets import QWidget
 
 from openchem.chem.engine import ChemistryEngine
@@ -999,5 +1000,53 @@ def test_finish_now_ignores_another_molecules_search(qapp):
     try:
         bus.publish(ConformerJobStateChanged(molecule_uuid="someone-else", state=CacheState.RUNNING, message="Sampling shapes 50/1000"))
         assert widget._finish_button.isEnabled() is False
+    finally:
+        widget.deleteLater()
+
+
+@pytest.mark.parametrize("setting_on, expected", [(False, "any_new"), (True, "kept_set")])
+def test_the_experimental_stop_rule_reaches_the_request_only_when_ticked(qapp, monkeypatch, setting_on, expected):
+    """The wiring: Settings > Conformers picks the rule the service is asked to use, and the default is the default."""
+    from openchem.app.settings import CONFORMER_EARLY_STOP, Settings
+    from openchem.chem.conformer_providers import GenerationOptions
+    from openchem.ui.widgets import molecule_viewer3d_widget as module
+
+    settings = Settings(EventBus())
+    settings.set_preference(CONFORMER_EARLY_STOP, setting_on)
+
+    class _Service:
+        requests = []
+
+        def request_conformers(self, molecule, keep, **kwargs):
+            self.requests.append(kwargs)
+
+        def display_molblocks(self, molecule):
+            return [c.molblock for c in molecule.conformers]
+
+    class _Dialog:
+        def __init__(self, parent=None, automatic_embeddings=1000):
+            pass
+
+        def exec(self):
+            return module.QDialog.DialogCode.Accepted
+
+        def conformers_to_keep(self):
+            return 20
+
+        def embeddings_to_try(self):
+            return 1000
+
+        def options(self):
+            return GenerationOptions()
+
+    monkeypatch.setattr(module, "ConformerOptionsDialog", _Dialog)
+    service = _Service()
+    widget = MoleculeViewer3DWidget(
+        service, MeasurementService(ChemistryEngine()), EventBus(), backend=FakeViewerBackend(), settings=settings
+    )
+    try:
+        widget.set_molecule(_molecule_with_conformer())
+        widget.generate_conformers()
+        assert service.requests[-1]["options"].stop_rule == expected
     finally:
         widget.deleteLater()

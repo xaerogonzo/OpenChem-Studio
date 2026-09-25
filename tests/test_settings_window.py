@@ -110,6 +110,7 @@ def test_the_stored_keys_are_stable_names():
         "drawing/bond_order_keys",
         "conformers/max_embeddings",
         "drawing/bond_click_cycle",
+        "conformers/early_stop_kept_set",
     }
 
 
@@ -822,3 +823,17 @@ def test_the_tools_pages_open_at_any_tool_by_key(qapp, dialogs):
     for key in ("vina", "orca", "pkasolver", "admet", "java", "nmr_index"):
         dialog = _dialog(dialogs, Settings(EventBus()), section=EXTERNAL_TOOLS, tool=key)
         assert dialog.external_tools.current_tool() == key
+
+
+def test_the_experimental_early_stop_is_off_until_ticked_and_is_stored(qapp, dialogs):
+    from openchem.app.settings import CONFORMER_EARLY_STOP
+
+    settings = Settings(EventBus())
+    dialog = _dialog(dialogs, settings, section="conformers")
+    assert dialog._conformer_early_stop.isChecked() is False, "a rule that can lose shapes is opt-in"
+    assert "experimental" in dialog._conformer_early_stop.text().lower()
+    dialog._conformer_early_stop.setChecked(True)
+    assert settings.preference(CONFORMER_EARLY_STOP) is True
+    assert _dialog(dialogs, Settings(EventBus()), section="conformers")._conformer_early_stop.isChecked() is True
+    dialog._conformer_early_stop.setChecked(False)
+    assert settings.preference(CONFORMER_EARLY_STOP) is False

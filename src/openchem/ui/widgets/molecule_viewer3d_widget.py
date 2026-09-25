@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import replace
 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
@@ -27,7 +28,8 @@ from openchem.events.events import (
 )
 from openchem.services.conformer_service import ConformerService
 from openchem.services.measurement_service import MeasurementService
-from openchem.app.settings import CONFORMER_MAX_EMBEDDINGS
+from openchem.app.settings import CONFORMER_EARLY_STOP, CONFORMER_MAX_EMBEDDINGS
+from openchem.chem.conformer_providers import STOP_RULE_KEPT_SET
 from openchem.ui.dialogs.conformer_options_dialog import ConformerOptionsDialog
 from openchem.ui.viewer_backend import ViewerBackend
 from openchem.ui.visualization import (
@@ -636,8 +638,18 @@ class MoleculeViewer3DWidget(QWidget):
             dialog.conformers_to_keep(),
             optimize=True,
             num_embeddings=dialog.embeddings_to_try(),
-            options=dialog.options(),
+            options=self.options_with_settings(dialog.options()),
         )
+
+    def options_with_settings(self, options):
+        """The search options with what Settings > Conformers adds to them.
+
+        EXPERIMENTAL, opt-in: the kept-set stop rule changes WHEN the search stops, never what it samples. Public
+        because a driven run has to reach the same decision the button does without opening the modal dialog.
+        """
+        if self._settings is not None and bool(self._settings.preference(CONFORMER_EARLY_STOP)):
+            return replace(options, stop_rule=STOP_RULE_KEPT_SET)
+        return options
 
     def _on_conformers_changed(self, event: ConformersChanged) -> None:
         if self._molecule is not None and event.molecule_uuid == self._molecule.uuid:

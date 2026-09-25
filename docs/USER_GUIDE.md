@@ -517,6 +517,13 @@ embeddings. That is a sign that waiting is buying less, not a promise: on a flex
 still turn up late, and a search stopped early may miss some that a full one would find. The same button is in the Jobs
 panel, for a search started from the Structure menu while another view is showing.
 
+**Settings > Conformers > Stop early when the lowest conformers stop changing** is experimental and off. On a flexible
+molecule the search rarely stops early by itself, because higher-energy shapes keep turning up that the run will never
+show you. With this on it stops when no new shape would rank among the conformers you keep. Measured on three
+flexible drug-like molecules it used about a quarter fewer embeddings and found about 18 of the 20 lowest shapes
+against about 19; the single lowest was the same every time. Details says when a run ended this way. It is a small
+sample, so it stays opt-in.
+
 **Generate Conformers** asks for the counts, and hides the search
 settings behind **Advanced** — on **Automatic** it spends a documented
 budget, which is what you want unless you have a reason not to. Under
