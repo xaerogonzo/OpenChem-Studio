@@ -92,7 +92,17 @@ SKIP_DIRS = {"vendor", "resources", "dist", "build", "node_modules", ".venv", ".
 #: The registry is the AUTHORITY, not evidence that the authority is
 #: referenced. Sweeping it would make the reverse-DOI and reachability checks
 #: partly self-satisfying.
-SKIP_FILES = {REGISTRY, GENERATED}
+#:
+#: **THE LITERATURE SURVEY'S INVENTORY IS THE SECOND AND LAST FILE HERE, AND IT IS NOT A CITATION.**
+#: `docs/research/literature.toml` lists the papers the survey READS -- each identified from its own
+#: first page, with a hash -- so that "held", "requested" and "not fetched" are recorded somewhere. Nothing
+#: in it backs a number or a behaviour we ship, which is what a registry row asserts (`status`,
+#: `verification`, `used_by`); registering all of them would create rows nobody had verified against
+#: their claims, which is exactly what this backstop says it is not a licence for. A paper moves into
+#: `sources.toml` the day something shipped is built from it. Any OTHER file that cites one of these DOIs
+#: is still swept and still needs the row.
+SURVEY_INVENTORY = ROOT / "docs" / "research" / "literature.toml"
+SKIP_FILES = {REGISTRY, GENERATED, SURVEY_INVENTORY}
 
 #: Files that DEFINE or document the `[source:key]` syntax, and so
 #: necessarily contain examples of it. Explaining a pattern is not citing a
@@ -1322,3 +1332,23 @@ def test_the_producer_walk_still_finds_the_known_surfaces():
 
     # And the universe is of the right ORDER -- 48 when this was written.
     assert len(producers) > 30, f"the producer walk collapsed to {len(producers)}"
+
+
+def test_the_only_files_the_sweep_skips_are_the_registry_its_generated_view_and_the_survey_inventory():
+    """A skip list that grows is how a guard gets hollowed out. This pins it, so a fourth entry needs a
+    reason written where somebody will see it fail."""
+    assert SKIP_FILES == {REGISTRY, GENERATED, SURVEY_INVENTORY}
+    assert SURVEY_INVENTORY.is_file(), "the exemption names a file that is not there, so it exempts nothing"
+
+
+def test_a_doi_in_the_survey_inventory_that_another_file_cites_still_needs_a_registry_row():
+    """The inventory is skipped, its DOIs are not laundered: the same DOI in any other swept file is checked."""
+    inventory_dois = {canonicalise_doi(d) for d in DOI_RE.findall(_read(SURVEY_INVENTORY))}
+    assert inventory_dois, "the inventory has no DOIs, so this guards nothing"
+    known = set(_registry_dois())
+    unregistered_and_cited_elsewhere = {
+        doi: sorted(_rel(p) for p in _swept_files() if doi in {canonicalise_doi(d) for d in DOI_RE.findall(_read(p))})
+        for doi in inventory_dois - known
+    }
+    leaks = {doi: paths for doi, paths in unregistered_and_cited_elsewhere.items() if paths}
+    assert not leaks, f"cited outside the inventory but not registered: {leaks}"
