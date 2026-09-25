@@ -1236,6 +1236,11 @@
             "smarts": "[NX3+](=O)([O-])[#6]"
         },
         {
+            "name": "nitro",
+            "_comment": "Naming round 15: a nitro group on a RING nitrogen (a nitramine: RDX, HMX, 1,3-dinitro-1,3-diazetidine, N-nitropyrrolidine). The pattern above needs a carbon, so this nitrogen was left as an azanium PARENT and the ring came out as a substituent of it: oxido{3-[oxido(oxo)azaniumyl]-1,3-diazetidin-1-yl}(oxo)azanium. It is a SEPARATE entry rather than a wider [#6,#7] on the one above because the attachment carbon is found by a plain [#6] atom in the SMARTS text (perception/fg_detection.py), and any other atom spelling there silently drops the attachment context and breaks C-nitro (measured: 4-(nitromethyl)piperidine stopped naming). Acyclic N-nitro (a nitramide, N-nitrodimethylamine) is NOT covered: the amine there is not an FG the engine can put the prefix on.",
+            "smarts": "[NX3+](=O)([O-])[#7;R]"
+        },
+        {
             "name": "nitroso",
             "smarts": "[NX2](=O)[#6]"
         },
