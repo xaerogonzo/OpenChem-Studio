@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Post-round-14 program: nitramine hotfix, driver ledger, refusal kinds (branches `nitramine-hotfix`, `outcome-model`)
 
+- **Conformer progress no longer says "933/1000 conformers".** The number was embeddings TRIED against the search's ceiling, and a run that read 933 of 1000 and returned 30 looked like a defect. It now reads `Sampling shapes: 933 of up to 1000 starting structures tried`. The search itself is unchanged; see the pull request for what was measured about when it stops.
 - **A nitramine crashed the structural-alert pass and took every alert with it.** `fg:hydrazine` matched the N-N bond of `N-[N+](=O)[O-]`, so
   `detect_features` raised `UndeclaredChargeState` and dropped all features for the molecule; the alert pass logged and recorded nothing, so no test
   saw it. A nitramine N-N is no longer a hydrazine, and the same nitro exclusion is applied to the one shared basic-amine SMARTS (which had counted a
