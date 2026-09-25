@@ -1705,3 +1705,30 @@ changed, every other row identical.
 unchanged). Blind frozen impact: unchanged for both populations, so no new final evaluation was scored. **These three are not evidence for the fix**: none of the
 existing corpora contains a ring N-nitro structure, so they show only that nothing else moved. The evidence is the nine `D-163` rows in
 `tests/test_namer_known_defects.py`, each verified by OPSIN read-back in the vendored suite (5348 passed), and the battery diff above.
+
+## 2026-09-25 -- naming round 16 (D-164, D-165): a nitro or nitroso group on an ACYCLIC nitrogen
+
+Round 15 fixed the ring nitramines and recorded these open. `CN(C)[N+](=O)[O-]` was `(dimethylamino)(oxido)(oxo)azanium`, nitroguanidine was
+`imino{[oxido(oxo)azaniumyl]amino}methanamine`, nitrourea `1-{[oxido(oxo)azaniumyl]amino}methanamide`, NDMA `1,1-dimethyl-2-oxohydrazine`, and
+`CC(=O)N(C)[N+](=O)[O-]` `N-methyl-N'-oxido-N'-oxoacetohydrazide`, which OPSIN cannot read. All but the last read back, which is why no census row moved.
+They are now `N-methyl-N-nitromethanamine`, `N-nitroguanidine`, `N-nitrourea`, `N-methyl-N-nitrosomethanamine` and `N-methyl-N-nitroacetamide`.
+
+**Six changes, none sufficient alone.** (1) `functional_groups.json`: `secondary_amine`/`tertiary_amine` and `secondary_amide`/`tertiary_amide` entries whose nitrogen REQUIRES a
+nitro (`$(N[NX3+](=O)[O-])`) or nitroso (`$(N[NX2]=O)`) neighbour by a recursive constraint. The neighbour must NOT be an atom of the match: as a `context_indices` atom
+(the way the N-alkoxy amines do it) the nitro FG then loses the deconfliction (`Unknown FG overlap: tertiary_amine vs nitro`), and as a plain match atom the amine owns it twice.
+(2) A `nitro` prefix group whose match is the nitro group's own three atoms with the neighbouring nitrogen a recursive constraint; without it the nitro nitrogen is still
+offered as the azanium parent (`dimethyl(oxido)(oxo)azaniumamine`). (3) `engine.py` `_SMALL_FRAGMENT_PREFIXES_BY_ATTACHMENT` gains `("O=[NH+][O-]", "N"): "nitro"`: the
+carve puts a hydrogen on the attachment nitrogen, so the fragment is not the `[N+]` of the fixed table; keyed by attachment element so a nitrate or nitrite fragment
+attached at oxygen cannot take it. (4) A heteroatom-chain (N-N) parent may not take an `-amine` suffix on its own nitrogen: without it diethylnitrosamine was
+`1,1-diethyl-2-oxohydrazin-1-amine`, which OPSIN cannot read. (5)/(6) `_name_urea_functional_parent` and `_name_guanidine_functional_parent` refuse an N-N bond because that
+is a hydrazide; `_is_nitro_or_nitroso_nitrogen` exempts a nitro or nitroso nitrogen, which is a substituent.
+
+**Measured.** Census scan (2000 rows): 97.95% exact before and after, ONE row moved (`census215625`, a nitroguanidine hydrazone, exact both times). ref-compare against the round-15
+merge: 1712 structures, **4 names changed, all in the TUNING population and all N-nitro or N-nitroso** (`{methyl[oxido(oxo)azaniumyl]amino}(oxido)(oxo)azanium` -> `(dinitroamino)methane`,
+`[(chloromethyl)(methyl)amino](oxido)(oxo)azanium` -> `1-chloro-N-methyl-N-nitromethanamine`, ...), each still reading back; listed in
+`benchmarks/naming/stages/manifests/r16-release-candidate.toml`, 0 violations. **The blind frozen impact CHANGED** (`bluebook_frozen` 6 of 1126, `heldout_v6` unchanged), so the
+frozen sets were scored ONCE (`r16-final-evaluation`), in aggregate, never by row: `bluebook_frozen` exact 505 -> 506, equivalent 540 -> 539, wrong_structure 22 -> 22, unparsable 46 -> 46,
+no_prediction 13 -> 13; `heldout_v6` identical (13 exact, 25 equivalent, 2 wrong_structure). One equivalent name became exact and nothing got worse. 64-structure battery against the
+unmodified engine: every N-nitro and N-nitroso row changed, every control row (nitroalkanes, nitroarenes, hydrazines, hydroxylamines, ureas, amidines, ring nitramines) identical.
+**Evidence for the fix is the 18 rows D-164a..D-165h**, each verified by OPSIN read-back in the vendored suite. **Open** (`KNOWN_LIMITATIONS.md`): nitramide itself (D-166) and N-nitro /
+N-nitroso carbamates (D-167).

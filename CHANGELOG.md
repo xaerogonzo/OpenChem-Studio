@@ -104,6 +104,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `1,3,5-trinitro-1,3,5-triazinane`, `1,3,5,7-tetranitro-1,3,5,7-tetraazocane`, `1,3,3-trinitroazetidine`, `1-nitropyrrolidine`, `1-nitro-1H-imidazole`. Acyclic nitramines
   and N-nitroso compounds are not covered and are recorded as open. None of the existing corpora contained a nitramine, so the standing measures (census, ref-compare, frozen
   populations) all report no change and are not evidence for the fix; the nine new `D-163` rows, verified by OPSIN read-back, are.
+- **Nitramines, nitroguanidine, nitrourea and nitrosamines are named with a nitro or nitroso prefix** (naming round 16, D-164, D-165). Round 15 fixed the ring cases; the acyclic ones
+  were `(dimethylamino)(oxido)(oxo)azanium`, `imino{[oxido(oxo)azaniumyl]amino}methanamine` (nitroguanidine) and `1,1-dimethyl-2-oxohydrazine` (NDMA), all of which read back.
+  They are now `N-methyl-N-nitromethanamine`, `N-nitroguanidine`, `N-nitrourea`, `N-methyl-N-nitrosomethanamine`, `N-methyl-N-nitroacetamide`. Nitramide itself and N-nitro carbamates
+  are recorded as open. One census row moved and every other standing measure reports no change, so they are not evidence for the fix; the 18 new rows are.
 - **Pointing at a bond and pressing 1, 2 or 3 sets its order.** Ketcher does nothing with those keys over a bond, so the page reports the hovered bond and the key and the
   application makes the change itself (`ChemistryEngine.edit_bond`, pushed as an `EditStructureCommand`), the way the atom menu's changes are made: one undo step, recalculated
   like any deliberate edit, every other bond and every coordinate untouched (the molfile is edited as drawn rather than sanitised, which would have rewritten a whole kekulé

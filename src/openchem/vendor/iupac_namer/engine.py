@@ -268,6 +268,10 @@ _SMALL_FRAGMENT_PREFIXES_BY_ATTACHMENT: dict[tuple[str, str], str] = {
     # and "cyanosulfanyl".
     ("N#CO",    "O"):   "cyanato",
     ("N#CS",    "S"):   "thiocyanato",
+    # A nitro group on an ACYCLIC nitrogen (naming round 16: N-nitrodimethylamine, nitroguanidine) reaches here as a structurally carved
+    # substituent, not as a nitro FG: the carve puts a hydrogen on the attachment nitrogen, so the fragment is [NH+], not the [N+] of the
+    # fixed-SMILES table above. Keyed by the attachment element so a nitrite or nitrate fragment attached at an OXYGEN can never take it.
+    ("O=[NH+][O-]", "N"): "nitro",
 }
 
 
@@ -1152,6 +1156,28 @@ def _name_heteroatom_fv_substituent(
     return None
 
 
+def _is_nitro_or_nitroso_nitrogen(atom) -> bool:
+    """A nitro (-N(=O)O-) or nitroso (-N=O) NITROGEN: the second nitrogen of an N-nitro or N-nitroso amine, amide, urea or guanidine.
+
+    The urea and guanidine routes refuse an N-N bond because it makes a hydrazide or an amidrazone, which is named on another parent
+    ('hydrazinecarboxamide'). A nitro or nitroso group on the nitrogen is a SUBSTITUENT of that nitrogen ('N-nitroguanidine',
+    'N-nitrosourea'), not a second nitrogen of the core (naming round 16).
+    """
+    if atom.GetAtomicNum() != 7 or atom.IsInRing():
+        return False
+    oxygens = [nb for nb in atom.GetNeighbors() if nb.GetAtomicNum() == 8]
+    if any(nb.GetDegree() != 1 for nb in oxygens):
+        return False
+    heavy = [nb for nb in atom.GetNeighbors() if nb.GetAtomicNum() > 1]
+    orders = sorted(
+        (atom.GetOwningMol().GetBondBetweenAtoms(atom.GetIdx(), nb.GetIdx()).GetBondTypeAsDouble(), nb.GetFormalCharge())
+        for nb in oxygens
+    )
+    if atom.GetFormalCharge() == 1:
+        return len(heavy) == 3 and orders == [(1.0, -1), (2.0, 0)]
+    return atom.GetFormalCharge() == 0 and len(heavy) == 2 and orders == [(2.0, 0)]
+
+
 def _name_urea_functional_parent(
     mol,
     output_form: OutputForm,
@@ -1233,8 +1259,8 @@ def _name_urea_functional_parent(
                     continue
                 if nb.GetAtomicNum() == 1:
                     continue
-                # Block N-N (hydrazide-like)
-                if nb.GetAtomicNum() == 7:
+                # Block N-N (hydrazide-like); a nitro or nitroso group on the nitrogen is its substituent, not a second core nitrogen
+                if nb.GetAtomicNum() == 7 and not _is_nitro_or_nitroso_nitrogen(nb):
                     ok = False
                     break
                 # Block N=anything
@@ -1444,7 +1470,7 @@ def _name_guanidine_functional_parent(
         for nb in atom.GetNeighbors():
             order = mol.GetBondBetweenAtoms(atom.GetIdx(), nb.GetIdx()).GetBondTypeAsDouble()
             if (nb.GetAtomicNum() != 7 or nb.GetFormalCharge() != 0 or nb.IsInRing()
-                    or any(x.GetAtomicNum() == 7 for x in nb.GetNeighbors())):
+                    or any(x.GetAtomicNum() == 7 and not _is_nitro_or_nitroso_nitrogen(x) for x in nb.GetNeighbors())):
                 ok = False  # not all-N, or an N-N bond (amidrazone, hydrazide)
                 break
             if order == 2.0:
@@ -13664,11 +13690,17 @@ class SubstitutivePath:
                         # ranked hydrazine first (round 5, N4). Only that
                         # reading goes: H2N-NH-CO-NH-NH2 keeps the OTHER
                         # hydrazide, "hydrazinecarbohydrazide (PIN)" (p. 671).
+                        # The same holds for an AMINE whose nitrogen the parent contains: '-amine' on a nitrogen of the N-N chain that IS the parent
+                        # is that parent's own atom named twice ('1,1-diethyl-2-oxohydrazin-1-amine', naming round 16). It cannot arise for a carbon
+                        # substituent (the amine patterns need every neighbour carbon), only for N-nitroso and N-nitro amines, whose second nitrogen
+                        # makes the N-N pair a hydrazine chain.
                         pcg_instances_kept_for_suffix = [
                             fg for fg in pcg_instances_kept_for_suffix
                             if not ((frozenset(fg.atoms)
                                      - frozenset(getattr(fg, "context_atoms", ()) or ())
                                      - {fg.anchor}) & named_parent.candidate.atom_indices)
+                            and not (fg.type in ("amine", "secondary_amine", "tertiary_amine")
+                                     and fg.anchor in named_parent.candidate.atom_indices)
                         ]
                     for numbering in self._compute_numberings(
                         named_parent, pcg_instances_kept_for_suffix, interpretation.fgs, mol,
