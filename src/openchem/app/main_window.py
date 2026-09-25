@@ -372,6 +372,7 @@ class MainWindow(QMainWindow):
             services.event_bus,
             parent=self,
             spatial_overlay_service=getattr(services, "spatial_overlay_service", None),
+            settings=settings,
         )
         # The imported unit cell, retained so a click on it can be
         # answered. Deliberately NOT in the project tree -- see

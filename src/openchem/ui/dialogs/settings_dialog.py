@@ -39,6 +39,7 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.app.settings import (
+    CONFORMER_MAX_EMBEDDINGS,
     DRAWING_BOND_KEYS,
     MAX_REVISIONS_KEPT,
     RAIL_HIDES_PANELS,
@@ -77,6 +78,9 @@ KEYBOARD = "keyboard"
 #: Section id of how drawing behaves.
 DRAWING = "drawing"
 
+#: Section id of the 3D conformer search.
+CONFORMERS = "conformers"
+
 #: Section id of the remembered file-dialog folders.
 FILE_DIALOGS = "file_dialogs"
 
@@ -92,6 +96,7 @@ SECTIONS = (
     (CALCULATORS, "Calculators"),
     (KEYBOARD, "Keyboard"),
     (DRAWING, "Drawing"),
+    (CONFORMERS, "Conformers"),
     (FILE_DIALOGS, "File dialogs"),
     (EXTERNAL_TOOLS, "External tools"),
 )
@@ -206,6 +211,22 @@ _HELP = {
         topic="settings",
         help_anchor="settings",
     ),
+    "conformer_embeddings": HelpTooltip(
+        text=(
+            "The most starting structures Generate Conformers > Automatic will try before it stops "
+            "(10 to 5000, default 1000).\n\n"
+            "The search tries them in batches of 50 and can stop sooner, but on a flexible molecule it "
+            "usually does not: new shapes keep turning up. Measured on a flexible drug-like molecule, the "
+            "conformers within 3 kcal/mol of the lowest that it found were 71% of the 1000-embedding "
+            "set at 300, 93% at 500 and all of them at 750, and 1000 took about a minute and a half. "
+            "A lower number is faster and finds fewer of the higher-energy shapes.\n\n"
+            "Not used when Automatic is unticked in the dialog: the number typed there is."
+        ),
+        tier=2,
+        help_id="settings.conformer_embeddings",
+        topic="settings",
+        help_anchor="settings",
+    ),
     "forget_directory": HelpTooltip(
         text=(
             "Forgets the folder these file dialogs last opened in, so the next one "
@@ -285,6 +306,7 @@ class SettingsDialog(QDialog):
             CALCULATORS: self._build_calculators_page,
             KEYBOARD: self._build_keyboard_page,
             DRAWING: self._build_drawing_page,
+            CONFORMERS: self._build_conformers_page,
             FILE_DIALOGS: self._build_file_dialogs_page,
         }
         for section_id, label in SECTIONS:
@@ -520,6 +542,38 @@ class SettingsDialog(QDialog):
 
     def _on_bond_keys_toggled(self, checked: bool) -> None:
         self._store(DRAWING_BOND_KEYS, checked)
+
+    # --- Conformers ----------------------------------------------------------------
+
+    def _build_conformers_page(self) -> QWidget:
+        page = QWidget(self)
+        self._conformer_embeddings = _spin_box(CONFORMER_MAX_EMBEDDINGS, "", page)
+        self._conformer_embeddings.setObjectName("conformerMaxEmbeddings")
+        self._conformer_embeddings.setSingleStep(50)
+        self._conformer_embeddings.setValue(int(self._settings.preference(CONFORMER_MAX_EMBEDDINGS)))
+        apply_help_tooltip(self._conformer_embeddings, _HELP["conformer_embeddings"])
+        self._conformer_embeddings.valueChanged.connect(self._on_conformer_embeddings_changed)
+
+        row = QHBoxLayout()
+        row.addWidget(QLabel("Automatic search tries up to", page))
+        row.addWidget(self._conformer_embeddings)
+        row.addWidget(QLabel("starting structures", page))
+        row.addStretch(1)
+
+        layout = QVBoxLayout(page)
+        layout.addWidget(_heading("Conformers", page))
+        layout.addLayout(row)
+        layout.addWidget(_note(
+            "This is a ceiling, not a count: the search stops earlier when nothing new turns up, and "
+            "what it hands back is the lowest-energy conformers, up to the number you ask to keep. "
+            "Lower is faster and finds fewer of the higher-energy shapes.",
+            page,
+        ))
+        layout.addStretch(1)
+        return page
+
+    def _on_conformer_embeddings_changed(self, value: int) -> None:
+        self._store(CONFORMER_MAX_EMBEDDINGS, value)
 
     # --- Results -----------------------------------------------------------------
 

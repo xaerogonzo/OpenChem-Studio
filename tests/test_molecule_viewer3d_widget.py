@@ -891,3 +891,68 @@ def test_the_geometry_on_screen_is_None_with_nothing_to_show(qapp):
     assert widget.geometry_on_screen(bare) is None
     widget.set_molecule(bare)
     assert widget.geometry_on_screen(bare) is None
+
+
+def test_the_status_says_sampling_shapes_while_a_search_runs(qapp):
+    """A run reports embeddings tried, not conformers, so the readout between the arrows must not call them conformers."""
+    from openchem.domain.common import CacheState
+    from openchem.events.events import ConformerJobStateChanged
+
+    widget, _backend, bus = _make_widget(qapp)
+    model = _molecule_with_conformer()
+    widget.set_molecule(model)
+    try:
+        bus.publish(ConformerJobStateChanged(
+            molecule_uuid=model.uuid, state=CacheState.RUNNING, message="Sampling shapes 250/1000",
+        ))
+        assert widget._status_label.text() == "Sampling shapes 250/1000"
+        assert "conformers" not in widget._status_label.text()
+    finally:
+        widget.deleteLater()
+
+
+def test_generate_conformers_asks_with_the_ceiling_from_settings(qapp, monkeypatch):
+    """The wiring, not the helper: Settings > Conformers reaches the request the service receives."""
+    from openchem.app.settings import CONFORMER_MAX_EMBEDDINGS, Settings
+    from openchem.ui.widgets import molecule_viewer3d_widget as module
+
+    settings = Settings(EventBus())
+    settings.set_preference(CONFORMER_MAX_EMBEDDINGS, 500)
+
+    class _Service:
+        requests = []
+
+        def request_conformers(self, molecule, keep, **kwargs):
+            self.requests.append((keep, kwargs))
+
+        def display_molblocks(self, molecule):
+            return [c.molblock for c in molecule.conformers]
+
+    class _Dialog:
+        def __init__(self, parent=None, automatic_embeddings=1000):
+            self._n = automatic_embeddings
+
+        def exec(self):
+            return module.QDialog.DialogCode.Accepted
+
+        def conformers_to_keep(self):
+            return 30
+
+        def embeddings_to_try(self):
+            return self._n
+
+        def options(self):
+            return None
+
+    monkeypatch.setattr(module, "ConformerOptionsDialog", _Dialog)
+    bus = EventBus()
+    service = _Service()
+    widget = MoleculeViewer3DWidget(
+        service, MeasurementService(ChemistryEngine()), bus, backend=FakeViewerBackend(), settings=settings
+    )
+    try:
+        widget.set_molecule(_molecule_with_conformer())
+        widget.generate_conformers()
+        assert service.requests[-1][1]["num_embeddings"] == 500
+    finally:
+        widget.deleteLater()

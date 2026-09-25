@@ -443,3 +443,35 @@ def test_the_record_says_how_the_search_ended_and_what_it_spent(qapp, tmp_path):
         assert key in parameters, f"provenance never recorded {key}"
     assert parameters["stop_reason"] in ("plateau", "budget", "time", "cancelled")
     assert parameters["batches"] >= 1
+
+
+def test_the_progress_line_does_not_call_embeddings_conformers():
+    """`done` is embeddings tried and `total` the search's ceiling: "933/1000 conformers" ended with 30 and read as a defect."""
+    from openchem.services.conformer_service import _ConformerGenerationTask
+
+    published = []
+
+    class _Bus:
+        def publish(self, event):
+            published.append(event)
+
+    class _Jobs:
+        def update_message(self, *_a):
+            pass
+
+    class _Progress:
+        def is_cancelled(self):
+            return False
+
+    task = _ConformerGenerationTask.__new__(_ConformerGenerationTask)
+    task._job_manager = _Jobs()
+    task._event_bus = _Bus()
+    task._progress = _Progress()
+
+    class _Model:
+        uuid = "u"
+
+    task._model = _Model()
+    assert task._on_progress(633, 1000) is True
+    assert published[-1].message == "Sampling shapes 633/1000"
+    assert "conformers" not in published[-1].message

@@ -85,11 +85,21 @@ RECALC_QUIET_MS = Preference(
 #: bond, so the setting only exists for someone whose own habits use those keys otherwise.
 DRAWING_BOND_KEYS = Preference("drawing/bond_order_keys", bool, True)
 
+#: The CEILING on starting structures one "Automatic" conformer search tries before it stops. 1000 is the shipped
+#: budget (`chem.conformer_providers.DEFAULT_MAX_EMBEDDINGS`, held equal by a test); lowering it trades completeness
+#: for time. Measured on a flexible drug-like molecule, the conformers within 3 kcal/mol of the best that a search
+#: finds: 71% at 300 embeddings, 93% at 500, all of them at 750, and roughly a minute and a half at 1000. A run with
+#: the dialog's Automatic box unticked uses the number typed there instead.
+CONFORMER_MAX_EMBEDDINGS = Preference(
+    "conformers/max_embeddings", int, 1000, minimum=10, maximum=5000
+)
+
 #: Every preference, in the order the Settings window groups them. Tests
 #: iterate this, so a preference added here is covered without a new test.
 PREFERENCES = (
     RAIL_HIDES_PANELS, RECOVERY_ENABLED, RECOVERY_DELAY_SECONDS, MAX_REVISIONS_KEPT,
     SHOW_HIDDEN_CALCULATORS, RECALC_MODE, RECALC_QUIET_MS, DRAWING_BOND_KEYS,
+    CONFORMER_MAX_EMBEDDINGS,
 )
 
 #: Where one calculator's own visibility choice is stored: a plain

@@ -181,3 +181,29 @@ def test_advanced_hands_over_the_fields_the_user_set(qapp):
         assert options.plateau_batches_required == 4
     finally:
         _dispose(dialog)
+
+
+def test_automatic_spends_the_ceiling_it_is_given_and_defaults_to_the_documented_budget(qapp):
+    """Settings > Conformers changes what Automatic tries as its ceiling; with nothing passed it is the
+    documented budget, so a run that never opened Settings behaves exactly as before."""
+    default = ConformerOptionsDialog()
+    lowered = ConformerOptionsDialog(automatic_embeddings=500)
+    try:
+        assert default.embeddings_to_try() == DEFAULT_EMBEDDINGS_TO_TRY
+        assert default.options().max_embeddings == DEFAULT_EMBEDDINGS_TO_TRY
+        assert lowered.is_automatic()
+        assert lowered.embeddings_to_try() == 500
+        assert lowered.options().max_embeddings == 500
+        # Everything else Automatic documents is untouched.
+        assert lowered.options().plateau_batches_required == default.options().plateau_batches_required
+        assert lowered.options().embedding_batch_size == default.options().embedding_batch_size
+    finally:
+        _dispose(default)
+        _dispose(lowered)
+
+
+def test_the_stored_default_is_the_documented_budget():
+    from openchem.app.settings import CONFORMER_MAX_EMBEDDINGS
+    from openchem.chem.conformer_providers import DEFAULT_MAX_EMBEDDINGS
+
+    assert CONFORMER_MAX_EMBEDDINGS.default == DEFAULT_MAX_EMBEDDINGS == DEFAULT_EMBEDDINGS_TO_TRY

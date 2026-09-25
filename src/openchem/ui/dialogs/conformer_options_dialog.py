@@ -264,13 +264,17 @@ class ConformerOptionsDialog(QDialog):
     should not silently pay for 300 of them.
     """
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(
+        self, parent: QWidget | None = None, automatic_embeddings: int = DEFAULT_EMBEDDINGS_TO_TRY
+    ) -> None:
         super().__init__(parent)
         self.setWindowTitle("Generate Conformers")
+        #: What "Automatic" spends as its ceiling: Settings > Conformers, default the documented budget.
+        self._automatic_embeddings = int(automatic_embeddings)
 
         self._embeddings_spin = QSpinBox()
         self._embeddings_spin.setRange(1, MAX_EMBEDDINGS)
-        self._embeddings_spin.setValue(DEFAULT_EMBEDDINGS_TO_TRY)
+        self._embeddings_spin.setValue(self._automatic_embeddings)
         apply_help_tooltip(self._embeddings_spin, _HELP['embeddings'])
 
         self._keep_spin = QSpinBox()
@@ -403,7 +407,7 @@ class ConformerOptionsDialog(QDialog):
     def embeddings_to_try(self) -> int:
         """The search CEILING. Automatic spends the documented budget."""
         if self.is_automatic():
-            return int(AUTOMATIC_SEARCH["max_embeddings"])
+            return self._automatic_embeddings
         return self._embeddings_spin.value()
 
     def conformers_to_keep(self) -> int:
@@ -422,6 +426,8 @@ class ConformerOptionsDialog(QDialog):
             # comment rather than a setting, and the gate that measures it
             # would be measuring something else.
             search = dict(AUTOMATIC_SEARCH)
+            # The ONE number the person can change without leaving Automatic (Settings > Conformers).
+            search["max_embeddings"] = self._automatic_embeddings
         else:
             seconds = self._time_limit_spin.value()
             search = {
