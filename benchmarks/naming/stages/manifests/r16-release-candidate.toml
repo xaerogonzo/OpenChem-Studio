@@ -1,0 +1,36 @@
+# Round 16's full ref-compare manifest, against master's pre-round-16 tip (8b166647): a nitro or nitroso group on an ACYCLIC nitrogen
+# (D-164, D-165). The four rows below are the ONLY ones the round intended to move across r7, r8, mc and pop (1712 structures), and all
+# four are in the TUNING population; none is in a frozen one. Every one carried an N-nitro or N-nitroso group and was named with the
+# nitro nitrogen as an azanium parent or as a hydrazine with an oxo. Each new name reads back to the input (no round-trip violation).
+# NOTE: no corpus row before these four contained an acyclic nitramine or nitrosamine, which is the point of the round's own rows
+# (tests/test_namer_known_defects.py D-164a..D-165h): the standing measures could not have found the defect.
+
+stage = "r16-release-candidate"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-01bb25ba05d3"
+expect = "MUST_CHANGE"
+reason_rule_id = "acyclic-n-nitro-and-n-nitroso-on-guanidine (D-164, D-165)"
+expected_layer = "candidate_generation"
+expected_name = "N'-nitro-N-nitroso-N-propylguanidine"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-78d144495f74"
+expect = "MUST_CHANGE"
+reason_rule_id = "acyclic-n-nitro-on-hydrazine-nitrogen (D-164)"
+expected_layer = "candidate_generation"
+expected_name = "1-nitro-2-(oxomethylidene)hydrazine"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-a7fefa9c35d5"
+expect = "MUST_CHANGE"
+reason_rule_id = "acyclic-n-nitro-dinitramine (D-164)"
+expected_layer = "candidate_generation"
+expected_name = "(dinitroamino)methane"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-c3ec8b4e0fa3"
+expect = "MUST_CHANGE"
+reason_rule_id = "acyclic-n-nitro-tertiary-amine (D-164)"
+expected_layer = "candidate_generation"
+expected_name = "1-chloro-N-methyl-N-nitromethanamine"

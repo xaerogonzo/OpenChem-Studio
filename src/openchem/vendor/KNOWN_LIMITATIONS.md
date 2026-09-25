@@ -343,6 +343,23 @@ Found while checking D-029; predates it.
   non-minimal lambda numbering and three general-nomenclature-only acylium
   names; the engine's output is correct in every case. See `CHANGELOG.md`.
 
+## Open after naming round 16 (2026-09-25)
+
+Round 16 fixed the two cases round 15 left open: a nitro or nitroso group on an ACYCLIC nitrogen (D-164, D-165; `CHANGELOG.md`). Nitramines, nitramides, nitroguanidine,
+nitrourea, nitrosamines and nitrosoamides now name as the amine, amide, urea or guanidine with a nitro or nitroso prefix on the nitrogen. What it leaves open, each
+with a target that OPSIN reads back to the same structure and that is NOT checked against the Blue Book:
+
+* **D-166, nitramide itself** (`N[N+](=O)[O-]`): no plan at all (`[NAMING ERROR: No valid naming plan found ...]`; the app withholds a name). The amine entries need a carbon on the
+  nitrogen, and there is no retained-name entry for the bare parent. Target `nitramide`.
+* **D-167, N-nitro and N-nitroso CARBAMATES** (`CCOC(=O)N[N+](=O)[O-]` is `[(nitroamino)(oxo)methoxy]ethane`, `CCOC(=O)N(C)N=O` is `1-(ethoxycarbonyl)-1-methyl-2-oxohydrazine`;
+  both read back). The functional-class ester route does not take them: its substitutive alternative leaves the nitro group unclaimed. Targets `ethyl nitrocarbamate`,
+  `ethyl methyl(nitroso)carbamate`, in the engine's own carbamate style.
+* **Not measured, so not claimed:** N-nitro or N-nitroso on a hydrazine, on a thioamide, on an amidine that is not a guanidine, and any nitro group attached through a heteroatom other
+  than nitrogen (a nitrate ester is `ethyl nitrate` and was never affected).
+* **The instruments were nearly blind again.** The blind frozen impact did move (6 of 1126 `bluebook_frozen` rows, scored once in aggregate: 1 equivalent to exact, nothing worse), and 4 tuning rows changed; but only a handful of corpus rows held such a structure (the names that moved: 4 tuning, 6 frozen, 1 census), so no aggregate could have shown the defect. One census row moved (`census215625`, a nitroguanidine hydrazone: `...{[oxido(oxo)azaniumyl]amino}methanamine` to
+  `...-N-nitromethanediamine`, exact both before and after, so a reader-back cannot tell the two apart and neither is a confident name). Every other measure reports no change.
+  The 18 D-164/D-165 rows, and a 64-structure battery diffed against the unmodified engine, are the evidence.
+
 ## Open after naming round 15 (2026-09-24)
 
 Round 15 was one defect (D-163, a nitro group on a RING nitrogen), found on the molecule that motivated the whole post-round-14 program rather than on a scan.
@@ -353,15 +370,7 @@ report 0 names changed for the fix, because none of them contains a ring N-nitro
 (`oxido(oxo)(pyrrolidin-1-yl)azanium` was `MATCH`). The next class like this will be found the same way this one was, by naming a battery of compounds one
 knows the names of (`tools/naming_probe.py`), not by a scan.
 
-**Open, ACYCLIC N-nitro (a nitramide).** `CN(C)[N+](=O)[O-]` is `(dimethylamino)(oxido)(oxo)azanium`, `CN[N+](=O)[O-]` is `(methylamino)(oxido)(oxo)azanium`,
-`N[N+](=O)[O-]` (nitramide itself) is `amino(oxido)(oxo)azanium`, and `CC(=O)N(C)[N+](=O)[O-]` is `N-methyl-N'-oxido-N'-oxoacetohydrazide`, which OPSIN cannot
-read (`PARSER_FAILED`; the app shows a name it cannot verify, marked so). The names one would expect (NOT checked against the Blue Book here) are `N-methyl-N-nitromethanamine`,
-`N-methylnitramide`, `nitramide` and `N-methyl-N-nitroacetamide`. Widening the nitro pattern to an acyclic nitrogen does NOT work: the amine nitrogen is then claimed as part of the
-nitro group and dropped (`CN(C)[N+](=O)[O-]` -> `nitromethane`, a different molecule). The amine has to stay an amine FG with the nitro as a prefix on it, which is the
-hydrazine/N-oxide machinery, not a data edit.
-
-**Open, N-NITROSO.** The `nitroso` pattern is `[NX2](=O)[#6]`, carbon only, so `CN(C=O)N=O` is `1-methyl-2-oxohydrazine-1-carbaldehyde` (reads back, is not the
-name) and nitrosamines are affected the same way. Not measured beyond that one row.
+**The acyclic N-nitro and N-nitroso cases this section first listed as open are D-164 and D-165, fixed in round 16 (the section above).**
 
 ## Open after naming round 13 (2026-09-24)
 

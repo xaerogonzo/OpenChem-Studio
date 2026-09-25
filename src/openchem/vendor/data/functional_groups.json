@@ -1123,6 +1123,50 @@
             "elision": true
         },
         {
+            "_comment": "Naming round 16: an amine whose nitrogen carries a NITRO group, 'N-methyl-N-nitromethanamine'. context_indices declares the nitro nitrogen as the ROOT of the N-substituent, as the alkoxy entries above do for the oxygen.",
+            "name": "secondary_amine",
+            "smarts": "[NX3H1;!R;$(N[NX3+](=O)[O-])][#6]",
+            "anchor_index": 0,
+            "seniority": 1900,
+            "bluebook_class": "19",
+            "suffix": "-amine",
+            "prefix": "amino",
+            "elision": true
+        },
+        {
+            "_comment": "Naming round 16: an amine whose nitrogen carries a NITRO group, 'N-methyl-N-nitromethanamine'. context_indices declares the nitro nitrogen as the ROOT of the N-substituent, as the alkoxy entries above do for the oxygen.",
+            "name": "tertiary_amine",
+            "smarts": "[NX3;H0;!R;$(N[NX3+](=O)[O-])]([#6])[#6]",
+            "anchor_index": 0,
+            "seniority": 1900,
+            "bluebook_class": "19",
+            "suffix": "-amine",
+            "prefix": "amino",
+            "elision": true
+        },
+        {
+            "_comment": "Naming round 16: an amine whose nitrogen carries a nitroso group ('N-methyl-N-nitrosomethanamine'). The nitroso group is a recursive constraint on the nitrogen, NOT an atom of the match, so the substituent is carved and named as a prefix rather than claimed by the amine.",
+            "name": "secondary_amine",
+            "smarts": "[NX3H1;!R;$(N[NX2]=O)][#6]",
+            "anchor_index": 0,
+            "seniority": 1900,
+            "bluebook_class": "19",
+            "suffix": "-amine",
+            "prefix": "amino",
+            "elision": true
+        },
+        {
+            "_comment": "Naming round 16: an amine whose nitrogen carries a nitroso group ('N-methyl-N-nitrosomethanamine'). The nitroso group is a recursive constraint on the nitrogen, NOT an atom of the match, so the substituent is carved and named as a prefix rather than claimed by the amine.",
+            "name": "tertiary_amine",
+            "smarts": "[NX3;H0;!R;$(N[NX2]=O)]([#6])[#6]",
+            "anchor_index": 0,
+            "seniority": 1900,
+            "bluebook_class": "19",
+            "suffix": "-amine",
+            "prefix": "amino",
+            "elision": true
+        },
+        {
             "name": "imine",
             "smarts": "[#6]=[NX2H1]",
             "seniority": 2000,
@@ -1190,6 +1234,54 @@
             "elision": true
         },
         {
+            "_comment": "Naming round 16: an amide whose nitrogen carries a nitro group, 'N-methyl-N-nitroacetamide'. The nitro group is a recursive constraint on the nitrogen, not an atom of the match, so it is carved and named as a prefix ('nitro'), as the N-substituent of an ordinary amide is.",
+            "name": "secondary_amide",
+            "smarts": "[CX3;!$([CX3](=O)[OX2]);!$([CX3](=O)([NX3;!R;!$(N[#7])])[NX3;!R;!$(N[#7])])](=O)[NX3H1;!R;$(N[NX3+](=O)[O-])]",
+            "anchor_index": 0,
+            "seniority": 1100,
+            "bluebook_class": "11",
+            "suffix_terminal": "-amide",
+            "suffix_nonterminal": "-carboxamide",
+            "prefix": "carbamoyl",
+            "elision": true
+        },
+        {
+            "_comment": "Naming round 16: an amide whose nitrogen carries a nitro group, 'N-methyl-N-nitroacetamide'. The nitro group is a recursive constraint on the nitrogen, not an atom of the match, so it is carved and named as a prefix ('nitro'), as the N-substituent of an ordinary amide is.",
+            "name": "tertiary_amide",
+            "smarts": "[CX3;!$([CX3](=O)[OX2]);!$([CX3](=O)([NX3;!R;!$(N[#7])])[NX3;!R;!$(N[#7])])](=O)[NX3H0;!R;$(N[NX3+](=O)[O-])][#6]",
+            "anchor_index": 0,
+            "seniority": 1100,
+            "bluebook_class": "11",
+            "suffix_terminal": "-amide",
+            "suffix_nonterminal": "-carboxamide",
+            "prefix": "carbamoyl",
+            "elision": true
+        },
+        {
+            "_comment": "Naming round 16: an amide whose nitrogen carries a nitroso group, 'N-methyl-N-nitrosoacetamide'. The nitroso group is a recursive constraint on the nitrogen, not an atom of the match, so it is carved and named as a prefix ('nitroso'), as the N-substituent of an ordinary amide is.",
+            "name": "secondary_amide",
+            "smarts": "[CX3;!$([CX3](=O)[OX2]);!$([CX3](=O)([NX3;!R;!$(N[#7])])[NX3;!R;!$(N[#7])])](=O)[NX3H1;!R;$(N[NX2]=O)]",
+            "anchor_index": 0,
+            "seniority": 1100,
+            "bluebook_class": "11",
+            "suffix_terminal": "-amide",
+            "suffix_nonterminal": "-carboxamide",
+            "prefix": "carbamoyl",
+            "elision": true
+        },
+        {
+            "_comment": "Naming round 16: an amide whose nitrogen carries a nitroso group, 'N-methyl-N-nitrosoacetamide'. The nitroso group is a recursive constraint on the nitrogen, not an atom of the match, so it is carved and named as a prefix ('nitroso'), as the N-substituent of an ordinary amide is.",
+            "name": "tertiary_amide",
+            "smarts": "[CX3;!$([CX3](=O)[OX2]);!$([CX3](=O)([NX3;!R;!$(N[#7])])[NX3;!R;!$(N[#7])])](=O)[NX3H0;!R;$(N[NX2]=O)][#6]",
+            "anchor_index": 0,
+            "seniority": 1100,
+            "bluebook_class": "11",
+            "suffix_terminal": "-amide",
+            "suffix_nonterminal": "-carboxamide",
+            "prefix": "carbamoyl",
+            "elision": true
+        },
+        {
             "_comment": "Phase 4 secondary_thioamide: parallel of secondary_amide. SMARTS captures the N's carbon substituent so the N-sub atoms participate in suffix-path planning (-thioamide with N-locant) instead of getting carved as a separate substituent.",
             "name": "secondary_thioamide",
             "smarts": "[CX3](=S)[NX3H1]([#6])",
@@ -1239,6 +1331,11 @@
             "name": "nitro",
             "_comment": "Naming round 15: a nitro group on a RING nitrogen (a nitramine: RDX, HMX, 1,3-dinitro-1,3-diazetidine, N-nitropyrrolidine). The pattern above needs a carbon, so this nitrogen was left as an azanium PARENT and the ring came out as a substituent of it: oxido{3-[oxido(oxo)azaniumyl]-1,3-diazetidin-1-yl}(oxo)azanium. It is a SEPARATE entry rather than a wider [#6,#7] on the one above because the attachment carbon is found by a plain [#6] atom in the SMARTS text (perception/fg_detection.py), and any other atom spelling there silently drops the attachment context and breaks C-nitro (measured: 4-(nitromethyl)piperidine stopped naming). Acyclic N-nitro (a nitramide, N-nitrodimethylamine) is NOT covered: the amine there is not an FG the engine can put the prefix on.",
             "smarts": "[NX3+](=O)([O-])[#7;R]"
+        },
+        {
+            "name": "nitro",
+            "_comment": "Naming round 16: a nitro group on an ACYCLIC nitrogen (a nitramine or nitramide: N-nitrodimethylamine, ethylenedinitramine, nitroguanidine). It is a SEPARATE entry for the round-15 reason (the attachment carbon of a prefix-only group is a plain [#6] atom in the SMARTS text, so a wider pattern on the C-nitro entry drops that context) and its match is the nitro group's OWN three atoms, the neighbouring nitrogen being a recursive constraint: were that nitrogen an atom of the match, the nitro prefix would claim it and so would the amine, which owns it. Without this entry the nitro nitrogen is offered as an azanium parent ('dimethyl(oxido)(oxo)azaniumamine'). The nitrogen it sits on is named by an amine entry that requires it.",
+            "smarts": "[NX3+;$([NX3+]([OX1-])(=O)[#7;!R])](=O)[OX1-]"
         },
         {
             "name": "nitroso",

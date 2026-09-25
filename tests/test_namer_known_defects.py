@@ -3626,8 +3626,8 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # the `nitro` group pattern needs a CARBON neighbour, so the nitro nitrogen was in no group at all, perception offered it as a one-atom azanium parent
     # (the acyclic-N+ candidate, +50), and that outranked the ring. A second `nitro` entry with a RING-nitrogen attachment claims the group; the wider
     # `[#6,#7]` on the existing entry was tried first and is WRONG, because the attachment carbon is recognised by a plain `[#6]` atom in the SMARTS text
-    # (perception/fg_detection.py) and any other spelling silently drops the attachment context: 4-(nitromethyl)piperidine stopped naming. Acyclic
-    # N-nitro (a nitramide, N-nitrodimethylamine) is deliberately NOT covered and keeps its old, reading-back name (open, KNOWN_LIMITATIONS).
+    # (perception/fg_detection.py) and any other spelling silently drops the attachment context: 4-(nitromethyl)piperidine stopped naming. The ACYCLIC
+    # N-nitro case was left open here and is D-164 below.
     ("D-163a", "O=[N+]([O-])N1CN([N+](=O)[O-])C1", "1,3-dinitro-1,3-diazetidine",
      "oxido{3-[oxido(oxo)azaniumyl]-1,3-diazetidin-1-yl}(oxo)azanium", "the molecule that started the program; PubChem's name"),
     ("D-163b", "O=[N+]([O-])N1CN([N+](=O)[O-])CN([N+](=O)[O-])C1", "1,3,5-trinitro-1,3,5-triazinane",
@@ -3646,6 +3646,56 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "(1H-imidazol-1-yl)(oxido)(oxo)azanium", "an AROMATIC ring nitrogen"),
     ("D-163i", "O=[N+]([O-])n1ccc2ccccc21", "1-nitro-1H-indole",
      "(1H-indol-1-yl)(oxido)(oxo)azanium", "a fused aromatic ring nitrogen"),
+
+    # --- D-164 (naming round 16): a nitro group on an ACYCLIC nitrogen (a nitramine or nitramide) ----------------------------------------------------
+    # Round 15 fixed the RING nitramines and recorded this open. `CN(C)[N+](=O)[O-]` was `(dimethylamino)(oxido)(oxo)azanium`: the nitro nitrogen was in no group,
+    # so perception offered it as an azanium PARENT (+50), and the amine became its substituent. Nitroguanidine was `imino{[oxido(oxo)azaniumyl]amino}methanamine`
+    # and nitrourea `1-{[oxido(oxo)azaniumyl]amino}methanamide`; every one of these read back, which is why no census row ever moved. THREE parts, none sufficient alone:
+    # (1) amine and amide entries whose nitrogen REQUIRES a nitro neighbour by a recursive constraint, so the parent is the amine or amide and the nitro is a carved
+    # substituent (making the nitro nitrogen an atom of the match instead makes the amine own it twice); (2) a `nitro` prefix group whose match is the nitro group's own
+    # three atoms, without which the nitro nitrogen is still offered as the azanium parent; (3) `_SMALL_FRAGMENT_PREFIXES_BY_ATTACHMENT` gets `O=[NH+][O-]`
+    # (the carve puts a hydrogen on the attachment nitrogen) so the carved group is called `nitro`. The urea and guanidine routes refuse an N-N bond because that
+    # is a hydrazide, so a nitro or nitroso nitrogen is now exempt (`_is_nitro_or_nitroso_nitrogen`), and a heteroatom-chain (N-N) parent may not take an `-amine`
+    # suffix on its own nitrogen (it named diethylnitrosamine `1,1-diethyl-2-oxohydrazin-1-amine`, which OPSIN cannot read).
+    ("D-164a", "CN(C)[N+](=O)[O-]", "N-methyl-N-nitromethanamine",
+     "(dimethylamino)(oxido)(oxo)azanium", "dimethylnitramine, the simplest N-nitro tertiary amine"),
+    ("D-164b", "CN[N+](=O)[O-]", "N-nitromethanamine",
+     "(methylamino)(oxido)(oxo)azanium", "a secondary nitramine"),
+    ("D-164c", "CCN(CC)[N+](=O)[O-]", "N-ethyl-N-nitroethanamine",
+     "(diethylamino)(oxido)(oxo)azanium", "the ethyl homologue: the nitro nitrogen must not be taken for a second parent nitrogen"),
+    ("D-164d", "CN(c1ccccc1)[N+](=O)[O-]", "N-methyl-N-nitroaniline",
+     "[methyl(phenyl)amino](oxido)(oxo)azanium", "an N-aryl nitramine"),
+    ("D-164e", "O=[N+]([O-])NCCN[N+](=O)[O-]", "N1,N2-dinitroethane-1,2-diamine",
+     "oxido[(2-{[oxido(oxo)azaniumyl]amino}ethyl)amino](oxo)azanium", "EDNA, ethylenedinitramine: two secondary nitramines on one parent"),
+    ("D-164f", "CC(=O)N(C)[N+](=O)[O-]", "N-methyl-N-nitroacetamide",
+     "N-methyl-N'-oxido-N'-oxoacetohydrazide", "a tertiary N-nitro amide"),
+    ("D-164g", "CC(=O)N[N+](=O)[O-]", "N-nitroacetamide",
+     "N'-oxido-N'-oxoacetohydrazide", "a secondary N-nitro amide"),
+    ("D-164h", "NC(=N)N[N+](=O)[O-]", "N-nitroguanidine",
+     "imino{[oxido(oxo)azaniumyl]amino}methanamine", "nitroguanidine, an energetic in this program"),
+    ("D-164i", "NC(=O)N[N+](=O)[O-]", "N-nitrourea",
+     "1-{[oxido(oxo)azaniumyl]amino}methanamide", "nitrourea"),
+    ("D-164j", "CN(C)C(=O)N(C)[N+](=O)[O-]", "N,N,N'-trimethyl-N'-nitrourea",
+     "N,N-dimethyl-1-{methyl[oxido(oxo)azaniumyl]amino}methanamide", "a fully substituted nitrourea"),
+
+    # --- D-165 (naming round 16): N-nitroso, acyclic. The hydrazine-plus-oxo reading, `1,1-dimethyl-2-oxohydrazine`, read back and is not what NDMA is called. ----
+    # The same recursive constraint on the amine and amide entries; the `nitroso` fragment `N=O` was already in the small-fragment table.
+    ("D-165a", "CN(C)N=O", "N-methyl-N-nitrosomethanamine",
+     "1,1-dimethyl-2-oxohydrazine", "NDMA, N-nitrosodimethylamine"),
+    ("D-165b", "CCN(CC)N=O", "N-ethyl-N-nitrosoethanamine",
+     "1,1-diethyl-2-oxohydrazine", "N-nitrosodiethylamine"),
+    ("D-165c", "CN(c1ccccc1)N=O", "N-methyl-N-nitrosoaniline",
+     "1-methyl-2-oxo-1-phenylhydrazine", "an N-aryl nitrosamine"),
+    ("D-165d", "CC(C)N(N=O)C(C)C", "N-nitroso-N-(propan-2-yl)propan-2-amine",
+     "2-oxo-1,1-di(propan-2-yl)hydrazine", "a branched nitrosamine"),
+    ("D-165e", "CC(=O)N(C)N=O", "N-methyl-N-nitrosoacetamide",
+     "1-acetyl-1-methyl-2-oxohydrazine", "an N-nitroso amide"),
+    ("D-165f", "CN(C=O)N=O", "N-methyl-N-nitrosoformamide",
+     "1-methyl-2-oxohydrazine-1-carbaldehyde", "an N-nitroso formamide"),
+    ("D-165g", "NC(=O)NN=O", "N-nitrosourea",
+     "2-oxohydrazine-1-carboxamide", "nitrosourea"),
+    ("D-165h", "CNC(=O)N(C)N=O", "N,N'-dimethyl-N-nitrosourea",
+     "N,1-dimethyl-2-oxohydrazine-1-carboxamide", "a dimethylnitrosourea"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -3754,6 +3804,14 @@ OPEN: list[tuple[str, str, str, str, str]] = [
     # analogue (`2-[methoxy(methyl)amino]-2-oxoethyl acetate`) is named correctly, so the N-OH context is the trigger.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate", "an N-substituted hydroxamic acid inside an ester's acid part loses its N-substituent"),
+    # Naming round 16: what the acyclic N-nitro / N-nitroso work did NOT reach. Targets are read back through OPSIN (structure-equal) and follow the engine's own
+    # carbamate style ('ethyl methylcarbamate', 'ethyl hydroxycarbamate'); NEITHER is checked against the Blue Book, so they are queue entries, not PINs.
+    ("D-166", "N[N+](=O)[O-]", "nitramide", "[NAMING ERROR: No valid naming plan found for N[N+](=O)[O-]]",
+     "H2N-NO2 itself: no plan at all. The amine entries need a carbon on the nitrogen and no retained name exists for the bare parent"),
+    ("D-167a", "CCOC(=O)N[N+](=O)[O-]", "ethyl nitrocarbamate", "[(nitroamino)(oxo)methoxy]ethane",
+     "an N-nitro carbamate: the functional-class ester route does not take it (the substitutive plan leaves the nitro group unclaimed), and the fall-back reads back"),
+    ("D-167b", "CCOC(=O)N(C)N=O", "ethyl methyl(nitroso)carbamate", "1-(ethoxycarbonyl)-1-methyl-2-oxohydrazine",
+     "an N-nitroso carbamate: the same route"),
 ]
 
 # Observed but NOT tracked here, because this table requires a verified
