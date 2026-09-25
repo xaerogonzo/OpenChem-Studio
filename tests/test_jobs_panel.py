@@ -124,6 +124,13 @@ def test_an_unchanged_job_list_rebuilds_nothing(qapp, monkeypatch):
                 m.try_start("conformer", "mol-1", cancel_callback=lambda: None),
             ),
         ),
+        (
+            "finishable",
+            lambda m: (
+                m.finish("conformer", "mol-1"),
+                m.try_start("conformer", "mol-1", finish_callback=lambda: None),
+            ),
+        ),
     ],
 )
 def test_a_changed_job_list_does_rebuild(qapp, monkeypatch, field, mutate):
@@ -197,3 +204,36 @@ def test_showing_it_again_resumes_polling_and_catches_up(qapp):
 
     assert panel._timer.isActive()
     assert panel._table.rowCount() == 1, "the panel came back showing what it had before"
+
+
+def test_finish_now_button_only_where_the_job_can_keep_its_work(qapp):
+    job_manager = JobManager()
+    finished = []
+    job_manager.try_start("conformer", "mol-1", cancel_callback=lambda: None, finish_callback=lambda: finished.append(1))
+    job_manager.try_start("docking", "lig-1", cancel_callback=lambda: None)
+    panel = JobsPanel(job_manager)
+    panel.refresh()
+
+    rows = {panel._table.item(r, 0).text(): r for r in range(panel._table.rowCount())}
+    conformer_button = panel._table.cellWidget(rows["conformer"], 4)
+    assert conformer_button is not None and conformer_button.text() == "Finish now"
+    assert panel._table.cellWidget(rows["docking"], 4) is None, "a job with nothing to keep gets no button, not a greyed one"
+
+    conformer_button.click()
+
+    assert finished == [1]
+
+
+def test_finish_now_is_not_cancel(qapp):
+    """Pressing Finish now must not touch the cancel callback, which discards the run."""
+    job_manager = JobManager()
+    calls = []
+    job_manager.try_start(
+        "conformer", "mol-1", cancel_callback=lambda: calls.append("cancel"), finish_callback=lambda: calls.append("finish")
+    )
+    panel = JobsPanel(job_manager)
+    panel.refresh()
+
+    panel._table.cellWidget(0, 4).click()
+
+    assert calls == ["finish"]

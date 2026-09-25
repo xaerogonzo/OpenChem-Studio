@@ -160,6 +160,11 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "report",     "tag": "after"}      conformers, undo depth, SMILES
     {"do": "jobs_report", "tag": "running"}   rows AND whether it is POLLING
     {"do": "jobs_cancel", "row": 0}           the real button in a real row
+    {"do": "conformers_finish", "expect": {"enabled": true, "readout_contains": ["found"]}}
+                                          the REAL Finish now in the 3D viewer, asserted
+                                          before it is pressed; "press": false only looks
+    {"do": "conformers_provenance", "expect": {"stop_reason": "finished_early"}}  how the
+                                          stored run ended
     {"do": "screen_run",  "receptor": 0}      the REAL Run button, and the
                                               PREP DICT the service got
     {"do": "qc_run", "calc_type": "NMR (raw shielding)", "method": "HF def2-SVP"}

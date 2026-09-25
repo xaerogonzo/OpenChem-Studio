@@ -2070,6 +2070,67 @@ class _Driver(QObject):
             num_embeddings=step.get("embeddings"),
         )
 
+    def _do_conformers_finish(self, step: dict[str, Any]) -> None:
+        """Press the REAL "Finish now" button in the 3D viewer, after asserting what it and the readout say.
+
+        `{"do": "conformers_finish", "tag": "mid", "expect": {"enabled": true, "readout_contains": ["found"]}}`
+
+        THE BUTTON, not `ConformerService.finish_early` behind it, for the `jobs_cancel` reason: the wiring from the
+        click to the service is what is under test. The readout and the button state are logged FIRST, as they are the
+        things a screenshot cannot say (a label that reads right and a button that is greyed).
+        """
+        viewer = self._window._viewer3d
+        if step.get("show"):
+            # The 3D TAB, or a shot photographs the 2D editor (the same trap `overlay` documents).
+            tabs = viewer.parent()
+            while tabs is not None and not hasattr(tabs, "setCurrentWidget"):
+                tabs = tabs.parent()
+            if tabs is not None:
+                tabs.setCurrentWidget(viewer)
+        button = viewer._finish_button
+        readout = viewer._status_label.text()
+        tag = step.get("tag", "")
+        logger.warning(
+            "OPENCHEM_DRIVE: conformers_finish %s | enabled=%s | readout=%r", tag, button.isEnabled(), readout
+        )
+        expect = step.get("expect") or {}
+        ok = True
+        if "enabled" in expect and bool(expect["enabled"]) != button.isEnabled():
+            ok = False
+        for needle in expect.get("readout_contains", []):
+            if needle not in readout:
+                ok = False
+        if expect:
+            (logger.warning if ok else logger.error)(
+                "OPENCHEM_DRIVE: EXPECT conformers_finish %s %s", tag, "ok" if ok else "FAILED"
+            )
+        if step.get("press", True) and button.isEnabled():
+            button.click()
+
+    def _do_conformers_provenance(self, step: dict[str, Any]) -> None:
+        """Log how the selected molecule's conformer run ended, from the stored record.
+
+        `{"do": "conformers_provenance", "tag": "after", "expect": {"stop_reason": "finished_early"}}`
+        """
+        window = self._window
+        molecule = window._session.project.find_molecule(window._property_panel._selected_molecule_uuid)
+        tag = step.get("tag", "")
+        if molecule is None or not molecule.conformers or molecule.conformers[0].provenance is None:
+            logger.error("OPENCHEM_DRIVE: conformers_provenance %s -- no conformers with a record", tag)
+            return
+        parameters = molecule.conformers[0].provenance.parameters
+        logger.warning(
+            "OPENCHEM_DRIVE: conformers_provenance %s | stop=%s attempted=%s distinct=%s returned=%s",
+            tag, parameters.get("stop_reason"), parameters.get("conformers_attempted"),
+            parameters.get("conformers_distinct"), parameters.get("conformers_returned"),
+        )
+        for key, value in (step.get("expect") or {}).items():
+            if parameters.get(key) != value:
+                logger.error(
+                    "OPENCHEM_DRIVE: EXPECT conformers_provenance %s FAILED -- %s is %r, wanted %r",
+                    tag, key, parameters.get(key), value,
+                )
+
     def _do_overlay(self, step: dict[str, Any]) -> None:
         """Turn the 3D viewer's shape overlay on, and optionally step.
 

@@ -63,6 +63,13 @@ _STOP_REASONS = {
             "\n\n"
         "The search was stopped before it finished."
     ),
+    "finished_early": (
+        "Finished early by you"
+            "\n\n"
+        "You pressed Finish now, so the search ended where it was and these are the "
+        "shapes found up to then. A full search may have found more low-energy "
+        "shapes, and asking again without stopping it gives the complete answer."
+    ),
 }
 
 #: Shown only when non-zero, since "0 failed" on every ordinary run is

@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
 from openchem.services.job_manager import JobHandle, JobManager
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
-_COLUMNS = ("Kind", "Key", "Status", "")
+_COLUMNS = ("Kind", "Key", "Status", "", "Finish early")
 
 #: FOUR CONCEPTS, and the fourth column has no header TEXT because it holds
 #: a button rather than a value. That is not a reason to leave it
@@ -69,6 +69,18 @@ _COLUMN_HELP = {
         help_id="jobs.cancel",
         topic="jobs",
     ),
+    "Finish early": HelpTooltip(
+        text=(
+            "Ends a job now and KEEPS what it has done so far, where the job can hand back a partial "
+            "result. Today that is conformer generation: the shapes found up to that point are ranked "
+            "and shown as the result.\n\n"
+            "It is not Cancel, which throws the run away. A row has the button only when the job can do "
+            "this; a search ended early may not have found every low-energy shape a full one would."
+        ),
+        tier=2,
+        help_id="jobs.finish_early",
+        topic="jobs",
+    ),
 }
 _POLL_INTERVAL_MS = 500
 
@@ -104,7 +116,10 @@ class JobsPanel(QWidget):
             item = self._table.horizontalHeaderItem(column)
             if item is not None:
                 apply_help_tooltip(item, _COLUMN_HELP[name])
-        self._table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        # STATUS TAKES THE SPARE WIDTH: the conformer readout is a sentence, and equal columns elided it.
+        header = self._table.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
 
         layout = QVBoxLayout(self)
@@ -178,7 +193,13 @@ class JobsPanel(QWidget):
         so a message going from `""` to `None` correctly counts as no
         change -- both paint "running".
         """
-        return (job.kind, job.key, job.message or "running", job.cancel_callback is not None)
+        return (
+            job.kind,
+            job.key,
+            job.message or "running",
+            job.cancel_callback is not None,
+            job.finish_callback is not None,
+        )
 
     def refresh(self) -> None:
         jobs = self._job_manager.active_jobs()
@@ -208,6 +229,17 @@ class JobsPanel(QWidget):
             cancel_button.setProperty(_JOB_KEY_PROPERTY, job.key)
             cancel_button.clicked.connect(self._on_cancel_clicked)
             self._table.setCellWidget(row, 3, cancel_button)
+
+            # ONLY WHERE THERE IS SOMETHING TO KEEP: a greyed button on every docking and ORCA row would read as
+            # broken. Same rule as Cancel for which job it means: it travels on the button.
+            if job.finish_callback is not None:
+                finish_button = QPushButton("Finish now", self)
+                finish_button.setProperty(_JOB_KIND_PROPERTY, job.kind)
+                finish_button.setProperty(_JOB_KEY_PROPERTY, job.key)
+                finish_button.clicked.connect(self._on_finish_clicked)
+                self._table.setCellWidget(row, 4, finish_button)
+            else:
+                self._table.removeCellWidget(row, 4)
 
     def _on_cancel_clicked(self, _checked: bool = False) -> None:
         """Which job travels on the button; `self` never travels in a closure.
@@ -242,3 +274,14 @@ class JobsPanel(QWidget):
         if kind is None or key is None:
             return
         self._job_manager.cancel(str(kind), str(key))
+
+    def _on_finish_clicked(self, _checked: bool = False) -> None:
+        """Which job travels on the button, exactly as for Cancel (no closure over `self`)."""
+        button = self.sender()
+        if button is None:
+            return
+        kind = button.property(_JOB_KIND_PROPERTY)
+        key = button.property(_JOB_KEY_PROPERTY)
+        if kind is None or key is None:
+            return
+        self._job_manager.finish_early(str(kind), str(key))

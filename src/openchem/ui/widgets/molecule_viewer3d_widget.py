@@ -119,6 +119,21 @@ _HELP: dict[str, HelpTooltip] = {
         help_id="viewer3d.generate_conformers",
         topic="3d-viewer",
     ),
+    "finish": HelpTooltip(
+        text=(
+            "Stop the conformer search now and keep what it has found.\n\n"
+            "Greyed unless a search is running for this molecule. It is not a cancel: nothing is "
+            "thrown away, and the shapes found so far are de-duplicated, ranked by energy and shown "
+            "like any finished run. The catch is that a search stopped early may not have found "
+            "every low-energy shape a full one would. The readout beside the arrows says how many "
+            "shapes are found and whether the lowest ones (the number this run keeps) are still "
+            "changing, which is the sign more waiting is not buying much. Details says the run was "
+            "finished early."
+        ),
+        tier=2,
+        help_id="viewer3d.finish_conformers",
+        topic="3d-viewer",
+    ),
     "use_in_editor": HelpTooltip(
         text=(
             "Redraw the 2D structure to match this conformer's geometry, "
@@ -360,6 +375,9 @@ class MoleculeViewer3DWidget(QWidget):
         #: page already draws each cell's own caption beside its arrow.
         self._overlay_value = ""
         self._molecule: MoleculeModel | None = None
+        #: Finish now was pressed and the result has not arrived: progress events already in flight must not
+        #: re-enable the button or overwrite "Finishing".
+        self._finishing = False
         self._conformer_index = 0
         self._selected_atoms: list[int] = []
         # The unit cell currently on screen, or None when this is showing
@@ -403,6 +421,12 @@ class MoleculeViewer3DWidget(QWidget):
         self._generate_button = QPushButton("Generate Conformers...", self)
         self._generate_button.clicked.connect(self._on_generate_clicked)
         apply_help_tooltip(self._generate_button, _HELP['generate'])
+
+        # Enabled only while a search for the molecule on screen is running (see `_on_job_state_changed`).
+        self._finish_button = QPushButton("Finish now", self)
+        self._finish_button.setEnabled(False)
+        self._finish_button.clicked.connect(self._on_finish_clicked)
+        apply_help_tooltip(self._finish_button, _HELP['finish'])
 
         # THE WAY BACK. Structures went one way -- "Send to 3D Viewer Tab"
         # exists and nothing returned -- so a conformer you had generated
@@ -494,6 +518,7 @@ class MoleculeViewer3DWidget(QWidget):
             QLabel("Surface:", toolbar),
             self._surface_combo,
             self._generate_button,
+            self._finish_button,
             self._use_button,
             self._gallery_check,
             self._size_combo,
@@ -622,10 +647,27 @@ class MoleculeViewer3DWidget(QWidget):
     def _on_job_state_changed(self, event: ConformerJobStateChanged) -> None:
         if self._molecule is None or event.molecule_uuid != self._molecule.uuid:
             return
+        in_flight = event.state in (CacheState.QUEUED, CacheState.RUNNING)
+        if not in_flight:
+            self._finishing = False
+        elif self._finishing:
+            return
+        # Finish now is only meaningful while a search is in flight, so it follows the job's state.
+        self._finish_button.setEnabled(in_flight)
         if event.state == CacheState.RUNNING:
             self._status_label.setText(event.message or "Generating...")
         elif event.state == CacheState.FAILED:
             self._status_label.setText(f"Failed: {event.message}")
+
+    def _on_finish_clicked(self) -> None:
+        """End the running search and keep what it found (not a cancel)."""
+        if self._molecule is None:
+            return
+        if self._conformer_service.finish_early(self._molecule):
+            self._finishing = True
+            # The search stops after the embedding in progress; say so at once, since the next event is the result.
+            self._finish_button.setEnabled(False)
+            self._status_label.setText("Finishing - keeping what has been found")
 
     def _show_generation_details(self) -> None:
         """Where this run's candidates went, from the conformer's provenance.

@@ -12,8 +12,10 @@ from openchem.chem.conformer_providers import (
     DEFAULT_ENERGY_WINDOW,
     DEFAULT_RMS_THRESHOLD,
     DEFAULT_SEARCH_SEED,
+    STOP_USER_FINISHED,
     GenerationOptions,
     RDKitConformerProvider,
+    SearchProgress,
     distinct_conformers,
     search_conformers,
     select_for_return,
@@ -43,6 +45,27 @@ def _accepts_options(provider) -> bool:
         return False
 
 logger = logging.getLogger("openchem.chemistry")
+
+
+def format_search_progress(done: int, total: int, state: SearchProgress | None) -> str:
+    """The readout for a running search: what is being counted, what has been found, and whether it is still changing.
+
+    `done`/`total` are embeddings tried against the ceiling, so the line says "shapes", never "conformers" (a run
+    that read "933/1000 conformers" and returned 30 looked like a defect). The rest comes from the last batch's
+    `SearchProgress`, so it moves in steps of a batch and says nothing before the first one ends. "Lowest N" is the N
+    the run will hand back; it is only reported once the archive holds that many, because before that the set is
+    still filling and "unchanged" would mean nothing.
+    """
+    text = f"Sampling shapes {done}/{total}"
+    if state is None:
+        return text
+    text += f" - {state.shapes} found so far"
+    if state.keep > 0 and state.shapes >= state.keep:
+        if state.unchanged_for > 0:
+            text += f" - lowest {state.keep} unchanged for {state.unchanged_for}"
+        else:
+            text += f" - lowest {state.keep} still changing"
+    return text
 
 
 class _ConformerGenerationTask(QRunnable):
@@ -94,6 +117,15 @@ class _ConformerGenerationTask(QRunnable):
         # equivalent: its cancel() must be registered with JobManager
         # ahead of scheduling, not from inside run() on the worker thread.
         self._progress = progress
+        #: The last per-batch snapshot from the search, for the readout. None until the first batch ends.
+        self._search_state: SearchProgress | None = None
+
+    def _on_search_state(self, state: SearchProgress) -> None:
+        self._search_state = state
+
+    def _finish_requested(self) -> bool:
+        """The user pressed Finish now, and did not also cancel (a cancel wins: it discards)."""
+        return self._progress.is_finish_requested() and not self._progress.is_cancelled()
 
     def run(self) -> None:
         self._event_bus.publish(
@@ -125,6 +157,9 @@ class _ConformerGenerationTask(QRunnable):
                 self._options,
                 on_progress=self._on_progress,
                 accepts_options=_accepts_options(self._provider),
+                keep=self._num_conformers,
+                on_state=self._on_search_state,
+                finish_requested=self._finish_requested,
             )
             batch = outcome
             results = outcome.pool
@@ -148,6 +183,19 @@ class _ConformerGenerationTask(QRunnable):
             self._event_bus.publish(
                 ConformerJobStateChanged(
                     molecule_uuid=self._model.uuid, state=CacheState.FAILED, message="Cancelled by user"
+                )
+            )
+            self._job_manager.finish(_JOB_KIND, self._model.uuid)
+            return
+
+        if outcome.stop_reason == STOP_USER_FINISHED and not results:
+            # Finish now before a single conformer converged: there is nothing to keep, and publishing an empty set
+            # would replace whatever the molecule already had with nothing.
+            self._event_bus.publish(
+                ConformerJobStateChanged(
+                    molecule_uuid=self._model.uuid,
+                    state=CacheState.FAILED,
+                    message="Stopped before any conformer had been found",
                 )
             )
             self._job_manager.finish(_JOB_KIND, self._model.uuid)
@@ -335,13 +383,16 @@ class _ConformerGenerationTask(QRunnable):
             failures.append(f"{batch.convergence_failures} failed to converge")
         if failures:
             parts.append("; ".join(failures))
+        if batch.stop_reason == STOP_USER_FINISHED:
+            # Said outright: a run the user ended is not the answer a full search would have given.
+            parts.append(f"finished early after {batch.attempted} of up to {self._options.max_embeddings} embeddings")
         return " - ".join(parts)
 
     def _on_progress(self, done: int, total: int) -> bool | None:
         # `done` counts EMBEDDINGS TRIED and `total` is the search's ceiling, not a number of conformers: a run that reads "933/1000
         # conformers" and ends with 30 looks like a defect (reported 2026-09-25). The search stops early when nothing new turns up,
         # so the ceiling is said to be a ceiling.
-        message = f"Sampling shapes {done}/{total}"
+        message = format_search_progress(done, total, self._search_state)
         self._job_manager.update_message(_JOB_KIND, self._model.uuid, message)
         self._event_bus.publish(
             ConformerJobStateChanged(
@@ -350,7 +401,9 @@ class _ConformerGenerationTask(QRunnable):
                 message=message,
             )
         )
-        return not self._progress.is_cancelled()
+        # False stops the embedding loop after the current one, for a cancel AND for Finish now; the search tells them
+        # apart afterwards through `_finish_requested`.
+        return not (self._progress.is_cancelled() or self._progress.is_finish_requested())
 
 
 class ConformerService:
@@ -425,7 +478,9 @@ class ConformerService:
         # cancel() can be registered with JobManager up front -- same
         # reasoning as DockingService's equivalent.
         progress = ProgressHandle()
-        if not self._job_manager.try_start(_JOB_KIND, model.uuid, cancel_callback=progress.cancel):
+        if not self._job_manager.try_start(
+            _JOB_KIND, model.uuid, cancel_callback=progress.cancel, finish_callback=progress.finish_early
+        ):
             self._event_bus.publish(
                 ConformerJobStateChanged(
                     molecule_uuid=model.uuid,
@@ -451,6 +506,14 @@ class ConformerService:
                 options=options,
             )
         )
+
+    def finish_early(self, model: MoleculeModel) -> bool:
+        """Stop this molecule's search now and KEEP what it has found. False when nothing is running for it.
+
+        Not `JobManager.cancel`, which discards the run; the search ends after the embedding in progress and the
+        conformers so far go through the ordinary de-duplication and are published as the result.
+        """
+        return self._job_manager.finish_early(_JOB_KIND, model.uuid)
 
     def display_molblocks(self, model: MoleculeModel) -> list[str]:
         """This molecule's conformers, superimposed for viewing.

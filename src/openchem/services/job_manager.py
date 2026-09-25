@@ -17,6 +17,8 @@ class JobHandle:
     key: str
     cancel_callback: Callable[[], None] | None = None
     message: str = ""
+    #: Ends the job early and KEEPS its partial result, where the job can. None for a job that has nothing to keep.
+    finish_callback: Callable[[], None] | None = None
 
 
 class JobManager:
@@ -38,7 +40,11 @@ class JobManager:
         self._active: dict[tuple[str, str], JobHandle] = {}
 
     def try_start(
-        self, kind: str, key: str, cancel_callback: Callable[[], None] | None = None
+        self,
+        kind: str,
+        key: str,
+        cancel_callback: Callable[[], None] | None = None,
+        finish_callback: Callable[[], None] | None = None,
     ) -> bool:
         """Registers (kind, key) as active and returns True, unless it's
         already active, in which case this is a no-op and returns False.
@@ -49,7 +55,9 @@ class JobManager:
         job_key = (kind, key)
         if job_key in self._active:
             return False
-        self._active[job_key] = JobHandle(kind=kind, key=key, cancel_callback=cancel_callback)
+        self._active[job_key] = JobHandle(
+            kind=kind, key=key, cancel_callback=cancel_callback, finish_callback=finish_callback
+        )
         return True
 
     def finish(self, kind: str, key: str) -> None:
@@ -75,4 +83,15 @@ class JobManager:
         if handle is None or handle.cancel_callback is None:
             return False
         handle.cancel_callback()
+        return True
+
+    def finish_early(self, kind: str, key: str) -> bool:
+        """Ask a job to stop now and keep what it has. False when it is not active or has nothing it can keep.
+
+        Distinct from `cancel`, which discards: a caller that wants the partial result must use this one.
+        """
+        handle = self._active.get((kind, key))
+        if handle is None or handle.finish_callback is None:
+            return False
+        handle.finish_callback()
         return True

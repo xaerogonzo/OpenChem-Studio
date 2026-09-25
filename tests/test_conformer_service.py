@@ -463,10 +463,14 @@ def test_the_progress_line_does_not_call_embeddings_conformers():
         def is_cancelled(self):
             return False
 
+        def is_finish_requested(self):
+            return False
+
     task = _ConformerGenerationTask.__new__(_ConformerGenerationTask)
     task._job_manager = _Jobs()
     task._event_bus = _Bus()
     task._progress = _Progress()
+    task._search_state = None
 
     class _Model:
         uuid = "u"
