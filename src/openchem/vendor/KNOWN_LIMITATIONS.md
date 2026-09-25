@@ -343,6 +343,26 @@ Found while checking D-029; predates it.
   non-minimal lambda numbering and three general-nomenclature-only acylium
   names; the engine's output is correct in every case. See `CHANGELOG.md`.
 
+## Open after naming round 15 (2026-09-24)
+
+Round 15 was one defect (D-163, a nitro group on a RING nitrogen), found on the molecule that motivated the whole post-round-14 program rather than on a scan.
+It is fixed (`CHANGELOG.md`). What it leaves open, and what it showed about the instruments:
+
+**A NITRAMINE WAS IN NO CORPUS ROW, and every standing measure was blind to it.** The census scan, ref-compare (1712 structures) and both frozen populations
+report 0 names changed for the fix, because none of them contains a ring N-nitro structure. A name that reads back and is silly is exact to all of them
+(`oxido(oxo)(pyrrolidin-1-yl)azanium` was `MATCH`). The next class like this will be found the same way this one was, by naming a battery of compounds one
+knows the names of (`tools/naming_probe.py`), not by a scan.
+
+**Open, ACYCLIC N-nitro (a nitramide).** `CN(C)[N+](=O)[O-]` is `(dimethylamino)(oxido)(oxo)azanium`, `CN[N+](=O)[O-]` is `(methylamino)(oxido)(oxo)azanium`,
+`N[N+](=O)[O-]` (nitramide itself) is `amino(oxido)(oxo)azanium`, and `CC(=O)N(C)[N+](=O)[O-]` is `N-methyl-N'-oxido-N'-oxoacetohydrazide`, which OPSIN cannot
+read (`PARSER_FAILED`; the app shows a name it cannot verify, marked so). The names one would expect (NOT checked against the Blue Book here) are `N-methyl-N-nitromethanamine`,
+`N-methylnitramide`, `nitramide` and `N-methyl-N-nitroacetamide`. Widening the nitro pattern to an acyclic nitrogen does NOT work: the amine nitrogen is then claimed as part of the
+nitro group and dropped (`CN(C)[N+](=O)[O-]` -> `nitromethane`, a different molecule). The amine has to stay an amine FG with the nitro as a prefix on it, which is the
+hydrazine/N-oxide machinery, not a data edit.
+
+**Open, N-NITROSO.** The `nitroso` pattern is `[NX2](=O)[#6]`, carbon only, so `CN(C=O)N=O` is `1-methyl-2-oxohydrazine-1-carbaldehyde` (reads back, is not the
+name) and nitrosamines are affected the same way. Not measured beyond that one row.
+
 ## Open after naming round 13 (2026-09-24)
 
 Round 13 started from a measurement, not a backlog: `tools/naming_census_scan.py` named all 2000 census rows and read each back, which found the

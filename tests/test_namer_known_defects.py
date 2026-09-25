@@ -3619,6 +3619,33 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-153b", "O=c1cccccc1", "cyclohepta-2,4,6-trien-1-one", "cycloheptanone", "tropone"),
     ("D-153c", "CC(C)c1ccc(O)c(=O)cc1", "2-hydroxy-5-(propan-2-yl)cyclohepta-2,4,6-trien-1-one",
      "2-hydroxy-5-(propan-2-yl)cycloheptan-1-one", "hinokitiol"),
+
+    # --- D-163 (naming round 15): a nitro group on a RING NITROGEN (a nitramine) left the nitrogen as an azanium PARENT ---------------------------
+    # Found on the molecule that started the post-round-14 program, 1,3-dinitro-1,3-diazetidine, whose name the app showed as
+    # `oxido{3-[oxido(oxo)azaniumyl]-1,3-diazetidin-1-yl}(oxo)azanium`. It read back (so the census called it exact) and is not the name anybody uses:
+    # the `nitro` group pattern needs a CARBON neighbour, so the nitro nitrogen was in no group at all, perception offered it as a one-atom azanium parent
+    # (the acyclic-N+ candidate, +50), and that outranked the ring. A second `nitro` entry with a RING-nitrogen attachment claims the group; the wider
+    # `[#6,#7]` on the existing entry was tried first and is WRONG, because the attachment carbon is recognised by a plain `[#6]` atom in the SMARTS text
+    # (perception/fg_detection.py) and any other spelling silently drops the attachment context: 4-(nitromethyl)piperidine stopped naming. Acyclic
+    # N-nitro (a nitramide, N-nitrodimethylamine) is deliberately NOT covered and keeps its old, reading-back name (open, KNOWN_LIMITATIONS).
+    ("D-163a", "O=[N+]([O-])N1CN([N+](=O)[O-])C1", "1,3-dinitro-1,3-diazetidine",
+     "oxido{3-[oxido(oxo)azaniumyl]-1,3-diazetidin-1-yl}(oxo)azanium", "the molecule that started the program; PubChem's name"),
+    ("D-163b", "O=[N+]([O-])N1CN([N+](=O)[O-])CN([N+](=O)[O-])C1", "1,3,5-trinitro-1,3,5-triazinane",
+     "{3,5-bis[oxido(oxo)azaniumyl]-1,3,5-triazinan-1-yl}(oxido)(oxo)azanium", "RDX"),
+    ("D-163c", "O=[N+]([O-])N1CN([N+](=O)[O-])CN([N+](=O)[O-])CN([N+](=O)[O-])C1", "1,3,5,7-tetranitro-1,3,5,7-tetraazocane",
+     "oxido(oxo){3,5,7-tris[oxido(oxo)azaniumyl]-1,3,5,7-tetraazocan-1-yl}azanium", "HMX"),
+    ("D-163d", "O=[N+]([O-])N1CC([N+](=O)[O-])([N+](=O)[O-])C1", "1,3,3-trinitroazetidine",
+     "(3,3-dinitroazetidin-1-yl)(oxido)(oxo)azanium", "TNAZ: a nitramine and two C-nitro groups on one ring"),
+    ("D-163e", "O=[N+]([O-])N1CCCC1", "1-nitropyrrolidine",
+     "oxido(oxo)(pyrrolidin-1-yl)azanium", "the simplest ring nitramine"),
+    ("D-163f", "O=[N+]([O-])N1CCOCC1", "4-nitromorpholine",
+     "(morpholin-4-yl)(oxido)(oxo)azanium", "a ring N in a heterocycle with a second heteroatom: the nitro takes the nitrogen's locant"),
+    ("D-163g", "CN1CCN([N+](=O)[O-])CC1", "1-methyl-4-nitropiperazine",
+     "(4-methylpiperazin-1-yl)(oxido)(oxo)azanium", "the ring's other substituent keeps its locant order"),
+    ("D-163h", "O=[N+]([O-])n1ccnc1", "1-nitro-1H-imidazole",
+     "(1H-imidazol-1-yl)(oxido)(oxo)azanium", "an AROMATIC ring nitrogen"),
+    ("D-163i", "O=[N+]([O-])n1ccc2ccccc21", "1-nitro-1H-indole",
+     "(1H-indol-1-yl)(oxido)(oxo)azanium", "a fused aromatic ring nitrogen"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
