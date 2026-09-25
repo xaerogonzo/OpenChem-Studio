@@ -27,6 +27,7 @@ from openchem.events.events import (
 )
 from openchem.services.conformer_service import ConformerService
 from openchem.services.measurement_service import MeasurementService
+from openchem.app.settings import CONFORMER_MAX_EMBEDDINGS
 from openchem.ui.dialogs.conformer_options_dialog import ConformerOptionsDialog
 from openchem.ui.viewer_backend import ViewerBackend
 from openchem.ui.visualization import (
@@ -298,6 +299,7 @@ class MoleculeViewer3DWidget(QWidget):
         backend: ViewerBackend | None = None,
         parent: QWidget | None = None,
         spatial_overlay_service=None,
+        settings=None,
     ) -> None:
         """Built in five steps, in the order they must happen.
 
@@ -316,6 +318,8 @@ class MoleculeViewer3DWidget(QWidget):
         move rather than a behaviour change.
         """
         super().__init__(parent)
+        #: Settings > Conformers; None for a bare widget, which then uses the documented budget.
+        self._settings = settings
         self._init_state(conformer_service, measurement_service, spatial_overlay_service)
         self._init_backend(backend)
         self._build_controls()
@@ -593,7 +597,13 @@ class MoleculeViewer3DWidget(QWidget):
         """
         if self._molecule is None:
             return
-        dialog = ConformerOptionsDialog(self)
+        # Settings > Conformers sets what Automatic tries as its ceiling; with no settings (a test, a bare widget) it is the documented budget.
+        if self._settings is not None:
+            dialog = ConformerOptionsDialog(
+                self, automatic_embeddings=int(self._settings.preference(CONFORMER_MAX_EMBEDDINGS))
+            )
+        else:
+            dialog = ConformerOptionsDialog(self)
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
         self._conformer_service.request_conformers(

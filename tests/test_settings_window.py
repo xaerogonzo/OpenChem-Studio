@@ -23,6 +23,7 @@ from PySide6.QtWidgets import QMessageBox
 
 import conftest
 from openchem.app.settings import (
+    CONFORMER_MAX_EMBEDDINGS,
     DIRECTORY_KINDS,
     MAX_REVISIONS_KEPT,
     PREFERENCES,
@@ -106,6 +107,7 @@ def test_the_stored_keys_are_stable_names():
         "compute/recalc_mode",
         "compute/recalc_quiet_ms",
         "drawing/bond_order_keys",
+        "conformers/max_embeddings",
     }
 
 
@@ -549,6 +551,19 @@ def test_the_recalculation_page_shows_a_stored_choice(qapp, dialogs):
     dialog = _dialog(dialogs, settings)
     assert dialog._recalc_mode.currentData() == int(RecalcMode.WHILE_DRAWING)
     assert dialog._recalc_delay.value() == 300 and not dialog._recalc_delay.isEnabled()
+
+
+def test_the_conformer_ceiling_shows_and_stores_what_it_names(qapp, dialogs):
+    """Automatic's ceiling can be lowered from 1000 in Settings, and what is stored is what the next search uses."""
+    settings = Settings(EventBus())
+    dialog = _dialog(dialogs, settings, section="conformers")
+    assert dialog.current_section() == "conformers"
+    assert dialog._conformer_embeddings.value() == 1000
+    assert (dialog._conformer_embeddings.minimum(), dialog._conformer_embeddings.maximum()) == (10, 5000)
+
+    dialog._conformer_embeddings.setValue(500)
+    assert settings.preference(CONFORMER_MAX_EMBEDDINGS) == 500
+    assert _dialog(dialogs, Settings(EventBus()))._conformer_embeddings.value() == 500
 
 
 def _asked(monkeypatch, answer=QMessageBox.StandardButton.Yes, during=None):

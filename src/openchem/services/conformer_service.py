@@ -341,7 +341,7 @@ class _ConformerGenerationTask(QRunnable):
         # `done` counts EMBEDDINGS TRIED and `total` is the search's ceiling, not a number of conformers: a run that reads "933/1000
         # conformers" and ends with 30 looks like a defect (reported 2026-09-25). The search stops early when nothing new turns up,
         # so the ceiling is said to be a ceiling.
-        message = f"Sampling shapes: {done} of up to {total} starting structures tried"
+        message = f"Sampling shapes {done}/{total}"
         self._job_manager.update_message(_JOB_KIND, self._model.uuid, message)
         self._event_bus.publish(
             ConformerJobStateChanged(
