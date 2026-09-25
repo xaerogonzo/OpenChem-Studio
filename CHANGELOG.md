@@ -97,6 +97,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   number over a hovered bond changes nothing** -- the bundle's hotkey table has no bond handler. So bond hover+number and click-to-cycle are new work, recorded as an OPEN item in
   `docs/ARCHITECTURE.md`; `benchmarks/visual/ketcher_hover_keys.json` asserts all three facts, so an editor upgrade that makes a number over a bond native fails it. The `ketcher_hover` step
   now sets the hover this way and asserts the result, instead of sending a real mouse move that never registered.
+- **A nitro group on a ring nitrogen is named as a nitro prefix** (naming round 15, D-163). 1,3-Dinitro-1,3-diazetidine, the molecule that started the program, was shown as
+  `oxido{3-[oxido(oxo)azaniumyl]-1,3-diazetidin-1-yl}(oxo)azanium`; RDX, HMX, TNAZ, N-nitropyrrolidine and the N-nitro azoles were named the same way. The engine's `nitro`
+  pattern needed a carbon neighbour, so the nitro nitrogen was offered as a one-atom azanium parent that outranked the ring. They are now `1,3-dinitro-1,3-diazetidine`,
+  `1,3,5-trinitro-1,3,5-triazinane`, `1,3,5,7-tetranitro-1,3,5,7-tetraazocane`, `1,3,3-trinitroazetidine`, `1-nitropyrrolidine`, `1-nitro-1H-imidazole`. Acyclic nitramines
+  and N-nitroso compounds are not covered and are recorded as open. None of the existing corpora contained a nitramine, so the standing measures (census, ref-compare, frozen
+  populations) all report no change and are not evidence for the fix; the nine new `D-163` rows, verified by OPSIN read-back, are.
 - **Pointing at a bond and pressing 1, 2 or 3 sets its order.** Ketcher does nothing with those keys over a bond, so the page reports the hovered bond and the key and the
   application makes the change itself (`ChemistryEngine.edit_bond`, pushed as an `EditStructureCommand`), the way the atom menu's changes are made: one undo step, recalculated
   like any deliberate edit, every other bond and every coordinate untouched (the molfile is edited as drawn rather than sanitised, which would have rewritten a whole kekulé

@@ -1687,3 +1687,21 @@ tropone was `cycloheptanone`. **D-162 recorded OPEN** (an N-hydroxy-N-alkyl amid
 
 **Measured.** ref-compare against the round-13 merge: 1712 rows, 1 name changed (`c1c[cH+][cH+]1`, `cyclobutane` -> `cyclobutene`, still not the printed
 bis(ylium)), 0 violations. Blind frozen impact: unchanged for both populations, so no new final evaluation was scored. Driven check: 66/66 rows.
+
+## 2026-09-24 -- naming round 15 (D-163): a nitro group on a ring nitrogen
+
+Found on the molecule that started the post-round-14 program, 1,3-dinitro-1,3-diazetidine, which the app named
+`oxido{3-[oxido(oxo)azaniumyl]-1,3-diazetidin-1-yl}(oxo)azanium`. That name reads back (so the census called it exact) and is not the name anybody uses.
+RDX, HMX, TNAZ, N-nitropyrrolidine and the N-nitro azoles were all named that way.
+
+**Cause.** `functional_groups.json`'s `nitro` pattern is `[NX3+](=O)([O-])[#6]`: it needs a CARBON neighbour, so a nitro nitrogen on a ring nitrogen belonged to
+no group. Perception's acyclic-N+ azanium candidate (`perception/__init__.py`, +50, "yielded BEFORE rings") then offered it as a one-atom parent, and that
+outranked the ring. **Fix.** A second `nitro` entry, `[NX3+](=O)([O-])[#7;R]`. Widening the existing pattern to `[#6,#7]` was tried first and is wrong: the
+attachment carbon of a prefix-only group is found by a plain `[#6]` atom in the SMARTS text (`fg_detection.py`), and any other spelling silently drops the
+attachment context -- `4-(nitromethyl)piperidine` stopped naming. Found by diffing a 20-structure battery against the unmodified engine: 14 ring-nitrogen rows
+changed, every other row identical.
+
+**Measured.** ref-compare against the round-14 merge: 1712 structures, 0 names changed, 0 violations. Census scan: 0 rows changed class or name (97.95% exact,
+unchanged). Blind frozen impact: unchanged for both populations, so no new final evaluation was scored. **These three are not evidence for the fix**: none of the
+existing corpora contains a ring N-nitro structure, so they show only that nothing else moved. The evidence is the nine `D-163` rows in
+`tests/test_namer_known_defects.py`, each verified by OPSIN read-back in the vendored suite (5348 passed), and the battery diff above.
