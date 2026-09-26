@@ -4755,6 +4755,4 @@ def test_the_aromatic_carbocycle_kekule_recovery_does_not_move_a_neighbouring_na
 def test_a_senior_group_or_another_shape_keeps_its_name_over_a_nitric_hydrazide(smiles, expected):
     """The hydrazide route declines for a carbon hydrazide, acid or amide elsewhere, a second nitro on N', a ring nitrogen, a triazane and a hydrazone with no nitro group;
     these are the names rounds 16 to 18 gave them, asserted so a guard cannot loosen unseen (naming round 19)."""
-    from openchem.vendor.iupac_namer import name_smiles
-
     assert name_smiles(smiles) == expected
