@@ -358,7 +358,9 @@ _SIMPLE_PREFIXES = frozenset({
     # FG-derived simple prefixes (P-65.1, P-66.1, etc.)
     "carbamoyl", "thiocarbamoyl", "sulfamoyl", "selenocarbamoyl",
     "carbonyl", "thiocarbonyl",
-    "azido", "diazo", "nitrosoamino",
+    # NOT "nitrosoamino": it is a substituted amino group, so a compound prefix, and the book encloses it (P-67.1.4.3.2, pdf p. 717 lists
+    # "-NH-NO nitrosoamino (preselected prefix)"; P-16.5.1.2 encloses compound prefixes). The allowlist wrote "4-nitrosoaminobenzoic acid" (round 18).
+    "azido", "diazo",
     "phosphono", "phosphino",
     "sulfanyl", "selanyl", "tellanyl",
     "sulfamoyl", "sulfinyl",
@@ -444,7 +446,7 @@ _LEADING_PREFIX_WORDS = (
     "hydroxy", "amino", "imino", "oxo", "thioxo", "carboxy", "sulfo", "sulfanyl",
     "fluoro", "chloro", "bromo", "iodo", "nitro", "nitroso", "cyano", "isocyano",
     "azido", "methoxy", "ethoxy", "propoxy", "butoxy", "phenoxy", "formyl",
-    "acetyl", "carbamoyl", "hydroperoxy", "phosphono", "diazo",
+    "acetyl", "carbamoyl", "hydroperoxy", "phosphono", "diazo", "nitramido",
 )
 
 
@@ -518,6 +520,10 @@ def _preferred_prefix_spelling(name: str) -> str:
         return "benzyl"
     if name == "phenylamino":
         return "anilino"
+    if name == "nitroamino":
+        # "-NH-NO2 nitramido (preselected prefix)" (P-67.1.4.3.2, pdf p. 717): the substituent group of nitramide, named by the general rule for
+        # amides (the final 'e' becomes 'o'). Only the bare word: '(methyl)(nitro)amino' is a substituted amino and stays (naming round 18, D-168).
+        return "nitramido"
     m = _ANILINO.match(name)
     if m:
         return m.group(1)[: -len("phenyl")] + "anilino"

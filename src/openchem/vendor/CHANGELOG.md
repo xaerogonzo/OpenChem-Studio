@@ -1761,3 +1761,30 @@ the rows `D-164a-d` and `D-165a-d` (retargeted to the PINs), `D-166a-h` and `D-1
 
 **Not fixed, found on the way** (`KNOWN_LIMITATIONS.md`): the `-NH-NO2` and `-NH-NO` PREFIXES (D-168: the book prints `nitramido` and `nitrosoamino`, the engine writes `(nitroamino)` and, worse, the unparenthesised
 `4-nitrosoaminobenzoic acid`); the nitric and nitrous HYDRAZIDES the same section names; ethylenedinitramine, whose two nitramide groups are a multiplicative parent; and the hypochlorous and bromous amides on p. 529.
+
+
+## 2026-09-26 -- naming round 18 (D-168): the nitramido and nitrosoamino PREFIXES
+
+Round 17 made the nitramide the PARENT and found, on the way, two prefix defects in the same section of the book. Where a nitramide is NOT the parent (a carboxylic acid or an amide elsewhere outranks it), P-67.1.4.3.2
+(pdf p. 717) names the group: "The amide of nitric acid, O2N-NH2, is named 'nitramide' and the substituent group derived from this amide by the loss of one hydrogen atom is called 'nitramido' by applying
+the general rule for naming amides", printed "-NH-NO2 nitramido (preselected prefix)" and "-NH-NO nitrosoamino (preselected prefix)". `OC(=O)c1ccc(N[N+](=O)[O-])cc1` was `4-(nitroamino)benzoic acid` and is
+`4-nitramidobenzoic acid`; `OC(=O)c1ccc(NN=O)cc1` was `4-nitrosoaminobenzoic acid` and is `4-(nitrosoamino)benzoic acid`; two of either multiply as `3,5-dinitramidobenzoic acid` and
+`3,5-bis(nitrosoamino)benzoic acid` (the second was `3,5-dinitrosoaminobenzoic acid`).
+
+**Three small changes.** (1) `assembly._preferred_prefix_spelling` maps the bare word `nitroamino` to `nitramido`, next to `phenylamino` -> `anilino`, so every route that composes the prefix (an aryl or alkyl parent) gets
+it; and `_name_heteroatom_fv_substituent` returns `nitramido` for a nitro-only N substituent, which is what makes the prefix inside an imino group (`(nitramidoimino)acetic acid`). (2) `nitrosoamino` leaves
+`_SIMPLE_PREFIXES`: it is a substituted amino group and a compound prefix, and the allowlist entry is why it was never enclosed. (3) `nitramido` joins `_LEADING_PREFIX_WORDS`, so a longer word that starts with
+it is compound and enclosed.
+
+**A round-17 guard was too loose, found by probing multiples for this round.** Round 17 let a second nitrogen with any multiple bond through, meaning to admit `isocyanatonitramide`; a HYDRAZONE (`C=N-NH-NO2`)
+has one too, and was named `[(phenylmethylidene)amino]nitramide`. The book names hydrazones of these acids on the HYDRAZIDE (`N'-hexylidenenitrous hydrazide (PIN)`), which is not attempted, so
+`_is_hydrazone_type_nitrogen` (a nitrogen doubly bonded to a carbon with no second double bond) now declines, and the hydrazine name stays: `1-nitro-2-(phenylmethylidene)hydrazine`. Isocyanato and isothiocyanato
+still take the nitramide parent.
+
+**Measured.** Census scan (2000 rows): 97.95% exact before and after, **0 rows changed**. ref-compare against master (`ea2275f`): 1712 structures, **0 names changed**, 0 violations, so no visible population contains either
+prefix. **The blind frozen impact CHANGED**, so the frozen sets were scored ONCE (`r18-final-evaluation`), in aggregate: `bluebook_frozen`, `heldout_v6` and `bluebook_tuning` are IDENTICAL to round 17's
+(`bluebook_frozen` exact 510, equivalent 535, wrong_structure 22, unparsable 46, no_prediction 13), so some frozen names moved and no outcome class did. Vendored suite 5421 passed; the source-scanning test files
+and the naming tests 6995 passed, with two `test_mol3d_viewer_backend.py` WebEngine tests failing during that long mixed run and passing on their own, twice, and on master's code. Each of the five changes was removed in
+turn and a known-defects row failed. The evidence is the rows `D-168a-g` (each verified by OPSIN read-back) and the open rows `D-169a-c`.
+
+**Not fixed** (`KNOWN_LIMITATIONS.md`): the nitric and nitrous HYDRAZIDES, queued as `D-169` with OPSIN-verified targets (`nitric hydrazide`, `nitrous hydrazide`, `N'-benzylidenenitric hydrazide`).
