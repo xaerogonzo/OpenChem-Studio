@@ -851,6 +851,23 @@ def _name_heteroatom_fv_substituent(
                 logger.debug("heteroatom-FV substituent carve/name failed: %s", e)
                 return None
 
+        if element == 7 and sub_names == ["nitro"]:
+            # -NH-NO2 is 'nitramido' (naming round 18, D-168): P-67.1.4.3.2 (pdf p. 717), verbatim "The amide of nitric acid, O2N-NH2, is named
+            # 'nitramide' and the substituent group derived from this amide by the loss of one hydrogen atom is called 'nitramido' by applying the
+            # general rule for naming amides", printed "-NH-NO2 nitramido (preselected prefix)". Only the NH form: with a second substituent on the
+            # nitrogen ('methyl(nitro)amino') the group is a substituted amino and keeps its compound name.
+            return LeafTree(
+                output_form=output_form,
+                free_valence=free_valence,
+                choices_made=(Choice(
+                    type="nitramido_substituent",
+                    detail="-NH-NO2, P-67.1.4.3.2",
+                ),),
+                decision_ctx=decision_ctx,
+                validity_warnings=None,
+                text="nitramido",
+            )
+
         # Disambiguate compound amino sub-names when 2+ N-substituents are
         # present and any carries a locant/hyphen or is already bracketed.
         # Without grouping, "(X)Y-amino" renderings are mis-parsed by OPSIN.
@@ -1157,6 +1174,19 @@ def _name_heteroatom_fv_substituent(
     return None
 
 
+def _is_hydrazone_type_nitrogen(atom) -> bool:
+    """A nitrogen doubly bonded to a carbon whose only double bond that is: the N of a hydrazone or azine (C=N-N), not of an isocyanate (N=C=O)."""
+    for bond in atom.GetBonds():
+        if bond.GetBondTypeAsDouble() != 2.0:
+            continue
+        other = bond.GetOtherAtom(atom)
+        if other.GetAtomicNum() == 6 and not any(
+            b.GetBondTypeAsDouble() == 2.0 and b.GetIdx() != bond.GetIdx() for b in other.GetBonds()
+        ):
+            return True
+    return False
+
+
 def _name_nitramide_functional_parent(
     mol, output_form, decision_ctx, strategy, session, depth, perception=None,
 ) -> LeafTree | None:
@@ -1190,11 +1220,16 @@ def _name_nitramide_functional_parent(
             continue
         if any(
             nb.GetAtomicNum() == 7 and not _is_nitro_or_nitroso_nitrogen(nb)
-            and all(b.GetBondTypeAsDouble() == 1.0 for b in nb.GetBonds())
+            and (
+                all(b.GetBondTypeAsDouble() == 1.0 for b in nb.GetBonds())
+                or _is_hydrazone_type_nitrogen(nb)
+            )
             for nb in amino.GetNeighbors()
         ):
-            # A second, all-single-bonded nitrogen is a hydrazine, not this parent. One that carries a multiple bond is a
-            # substituent group of its own: "isocyanatonitramide (PIN)" for OCN-NH-NO2 (p. 486), an azido or a diazenyl group.
+            # A second, all-single-bonded nitrogen is a hydrazine, and one doubly bonded to a carbon that has no second double bond is a
+            # HYDRAZONE (C=N-NH-NO2): the same section names those on the hydrazide, "N'-hexylidenenitrous hydrazide (PIN)" (p. 709), which is not
+            # attempted, so neither is this parent. A nitrogen with any other multiple bond is a substituent group of its own:
+            # "isocyanatonitramide (PIN)" for OCN-NH-NO2 (p. 486), an isothiocyanato or an azo group. (Round 17 let hydrazones through; round 18 fixed it.)
             return None
         candidates.append((amino, acyl))
     if len(candidates) != 1:

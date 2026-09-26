@@ -3731,6 +3731,28 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "an N-nitro carbamate: an ester of carbonic acid outranks the amide of nitric acid; the target follows the engine's carbamate style ('ethyl methylcarbamate')"),
     ("D-167b", "CCOC(=O)N(C)N=O", "ethyl methyl(nitroso)carbamate", "1-(ethoxycarbonyl)-1-methyl-2-oxohydrazine",
      "an N-nitroso carbamate: the same route"),
+
+    # --- D-168 (naming round 18): the -NH-NO2 and -NH-NO PREFIXES, where a nitramide is NOT the parent --------------------------------------------------------------
+    # P-67.1.4.3.2 (pdf p. 717), verbatim: "The amide of nitric acid, O2N-NH2, is named 'nitramide' and the substituent group derived from this amide by the loss of one
+    # hydrogen atom is called 'nitramido' by applying the general rule for naming amides", printed "-NH-NO2 nitramido (preselected prefix)" and "-NH-NO nitrosoamino
+    # (preselected prefix)". Two causes: `-NH-NO2` was composed as `nitro` + `amino`, spelled in `assembly._preferred_prefix_spelling` (and by
+    # `_name_heteroatom_fv_substituent` inside an imino group) like `phenylamino` -> `anilino`; and `nitrosoamino` sat in `_SIMPLE_PREFIXES`, so it was never enclosed
+    # (`4-nitrosoaminobenzoic acid`, and `3,5-dinitrosoaminobenzoic acid` for two of them, which is not how a multiplied compound prefix is written).
+    ("D-168a", "OC(=O)c1ccc(N[N+](=O)[O-])cc1", "4-nitramidobenzoic acid", "4-(nitroamino)benzoic acid",
+     "the -NH-NO2 prefix is 'nitramido' in the book, not '(nitroamino)'"),
+    ("D-168b", "OC(=O)c1ccc(NN=O)cc1", "4-(nitrosoamino)benzoic acid", "4-nitrosoaminobenzoic acid",
+     "a compound prefix 'nitrosoamino' is enclosed in parentheses; the engine wrote it bare"),
+    ("D-168c", "OC(=O)CCN[N+](=O)[O-]", "3-nitramidopropanoic acid", "3-(nitroamino)propanoic acid", "the same prefix on an alkyl chain"),
+    ("D-168d", "OC(=O)c1cc(N[N+](=O)[O-])cc(N[N+](=O)[O-])c1", "3,5-dinitramidobenzoic acid", "3,5-bis(nitroamino)benzoic acid",
+     "a simple prefix is multiplied with 'di', as 'diacetamido' is"),
+    ("D-168e", "OC(=O)c1cc(NN=O)cc(NN=O)c1", "3,5-bis(nitrosoamino)benzoic acid", "3,5-dinitrosoaminobenzoic acid",
+     "a compound prefix is multiplied with 'bis' and enclosed"),
+    ("D-168f", "OC(=O)C=NN[N+](=O)[O-]", "(nitramidoimino)acetic acid", "(nitroaminoimino)acetic acid",
+     "inside an imino group the prefix is still nitramido, and the word that leads a longer one makes it compound (enclosed)"),
+    # The round-17 guard let a HYDRAZONE of nitramide through as the nitramide parent ("[(phenylmethylidene)amino]nitramide"), found by probing multiples for D-168. The
+    # book names these on the hydrazide (D-169, open), so the hydrazine name stays until then: this row pins that the nitramide route declines, and its target is NOT the PIN.
+    ("D-168g", "O=[N+]([O-])NN=Cc1ccccc1", "1-nitro-2-(phenylmethylidene)hydrazine", "[(phenylmethylidene)amino]nitramide",
+     "a hydrazone of nitramide is not a nitramide with an ylideneamino prefix; kept as the hydrazine name (NOT the PIN, which is on the nitric hydrazide, D-169c)"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -3839,13 +3861,14 @@ OPEN: list[tuple[str, str, str, str, str]] = [
     # analogue (`2-[methoxy(methyl)amino]-2-oxoethyl acetate`) is named correctly, so the N-OH context is the trigger.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate", "an N-substituted hydroxamic acid inside an ester's acid part loses its N-substituent"),
-    # Naming round 17: the two SUBSTITUENT-layer names the same book section prints, found while fixing D-166 and left for the next round. The targets are the
-    # book's (P-67.1.4.3.2, pdf p. 717: "-NH-NO2 nitramido (preselected prefix)", "-NH-NO nitrosoamino (preselected prefix)") and OPSIN reads them back to the input
-    # structure; the parenthesis is P-16.5.1.2's, for a compound prefix. Only where the nitramide is NOT the parent (a carboxylic acid here) does the prefix appear.
-    ("D-168a", "OC(=O)c1ccc(N[N+](=O)[O-])cc1", "4-nitramidobenzoic acid", "4-(nitroamino)benzoic acid",
-     "the -NH-NO2 prefix is 'nitramido' in the book, not '(nitroamino)'"),
-    ("D-168b", "OC(=O)c1ccc(NN=O)cc1", "4-(nitrosoamino)benzoic acid", "4-nitrosoaminobenzoic acid",
-     "a compound prefix 'nitrosoamino' is enclosed in parentheses; the engine wrote it bare"),
+    # Naming round 18: the nitric and nitrous HYDRAZIDES that P-67.1.2.6.3 (pdf p. 708) makes preselected parents ("nitric hydrazide (I) and nitrous hydrazide (II) are
+    # preselected names used as parent structures for generation of preferred IUPAC names"; p. 709 prints "N'-hexylidenenitrous hydrazide (PIN)"). Round 17 declines
+    # a nitramide whose second nitrogen is a hydrazine or hydrazone nitrogen, so these keep hydrazine names. Every target is read back by OPSIN; none is a printed row (the
+    # book's own hexylidene example is in a frozen population and is not used here), so each is derived from the two printed parents.
+    ("D-169a", "O=[N+]([O-])NN", "nitric hydrazide", "nitrohydrazine", "H2N-NH-NO2, the nitric hydrazide"),
+    ("D-169b", "NNN=O", "nitrous hydrazide", "1-amino-2-oxohydrazine", "ON-NH-NH2, the nitrous hydrazide; the hydrazine-plus-oxo reading is the one round 16 fixed for nitrosamines"),
+    ("D-169c", "O=[N+]([O-])NN=Cc1ccccc1", "N'-benzylidenenitric hydrazide", "1-nitro-2-(phenylmethylidene)hydrazine",
+     "a hydrazone of the nitric hydrazide: named on the hydrazide as the book names N'-hexylidenenitrous hydrazide"),
 ]
 
 # Observed but NOT tracked here, because this table requires a verified
