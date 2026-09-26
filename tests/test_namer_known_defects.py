@@ -3748,11 +3748,36 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-168e", "OC(=O)c1cc(NN=O)cc(NN=O)c1", "3,5-bis(nitrosoamino)benzoic acid", "3,5-dinitrosoaminobenzoic acid",
      "a compound prefix is multiplied with 'bis' and enclosed"),
     ("D-168f", "OC(=O)C=NN[N+](=O)[O-]", "(nitramidoimino)acetic acid", "(nitroaminoimino)acetic acid",
-     "inside an imino group the prefix is still nitramido, and the word that leads a longer one makes it compound (enclosed)"),
+     "inside an imino group the prefix is still nitramido, and the word that leads a longer one makes it compound (enclosed); the book's own name for this GROUP is "
+     "'nitrohydrazinylidene' (p. 717), the family D-170 queues, so this target is a derived stopgap and not the PIN"),
     # The round-17 guard let a HYDRAZONE of nitramide through as the nitramide parent ("[(phenylmethylidene)amino]nitramide"), found by probing multiples for D-168. The
     # book names these on the hydrazide (D-169, open), so the hydrazine name stays until then: this row pins that the nitramide route declines, and its target is NOT the PIN.
-    ("D-168g", "O=[N+]([O-])NN=Cc1ccccc1", "1-nitro-2-(phenylmethylidene)hydrazine", "[(phenylmethylidene)amino]nitramide",
-     "a hydrazone of nitramide is not a nitramide with an ylideneamino prefix; kept as the hydrazine name (NOT the PIN, which is on the nitric hydrazide, D-169c)"),
+    ("D-168g", "O=[N+]([O-])NN=Cc1ccccc1", "N'-(phenylmethylidene)nitric hydrazide", "[(phenylmethylidene)amino]nitramide",
+     "a hydrazone of nitramide is not a nitramide with an ylideneamino prefix: round 18 sent it to the hydrazine name as a stopgap, and round 19's hydrazide route (D-169) names it on "
+     "the nitric hydrazide. The ylidene is spelled as the engine spells it ('phenylmethylidene', never 'benzylidene')"),
+
+    # --- D-169 (naming round 19): nitric and nitrous HYDRAZIDES as parents ------------------------------------------------------------------------------------------------
+    # P-67.1.2.6.3 (pdf p. 708), verbatim: "nitric hydrazide (I) and nitrous hydrazide (II) are preselected names used as parent structures for generation of preferred IUPAC
+    # names ... in accordance with the seniority order of classes rather than as nitro and nitroso amines"; p. 709 prints "N'-hexylidenenitrous hydrazide (PIN)" (a frozen-population
+    # row: the rows below use pentylidene and propan-2-ylidene, never that structure). The nitrogen that bears the nitro or nitroso group is N and the terminal one N' (OPSIN reads
+    # 'N'-methylnitric hydrazide' as CNN[N+](=O)[O-]). `_name_nitric_hydrazide_functional_parent` on `_name_n_core_parent`, whose new `allow_ylidene` lets N' carry the double-bonded
+    # substituent of a hydrazone. It declines for a carbon hydrazide, amide, acid or ester elsewhere, a nitrogen on a carbon doubly bonded to N, O or S, a cyano carbon, a triazane
+    # and a ring nitrogen, so those keep the names round 16-18 gave them. A hydrazide OUTRANKS an alcohol (P-41), so `D-169k` was an ethanol before.
+    ("D-169a", "O=[N+]([O-])NN", "nitric hydrazide", "nitrohydrazine", "H2N-NH-NO2, the printed parent"),
+    ("D-169b", "NNN=O", "nitrous hydrazide", "1-amino-2-oxohydrazine", "H2N-NH-NO, the printed parent; the hydrazine-plus-oxo reading is the one round 16 fixed for nitrosamines"),
+    ("D-169c", "CC(C)=NN[N+](=O)[O-]", "N'-(propan-2-ylidene)nitric hydrazide", "1-nitro-2-(propan-2-ylidene)hydrazine",
+     "a hydrazone of nitric hydrazide: the double-bonded substituent is an ylidene on N'"),
+    ("D-169d", "CCCCC=NNN=O", "N'-pentylidenenitrous hydrazide", "1-oxo-2-[(pentylidene)amino]hydrazine",
+     "the pentylidene homologue of the book's printed N'-hexylidenenitrous hydrazide"),
+    ("D-169e", "CNN[N+](=O)[O-]", "N'-methylnitric hydrazide", "1-methyl-2-nitrohydrazine", "a substituent on the terminal nitrogen is N'"),
+    ("D-169f", "CN(N)N=O", "N-methylnitrous hydrazide", "1-amino-1-methyl-2-oxohydrazine", "a substituent on the nitrogen that bears the nitroso group is N"),
+    ("D-169g", "CNN(C)[N+](=O)[O-]", "N,N'-dimethylnitric hydrazide", "1,2-dimethyl-1-nitrohydrazine", "one substituent on each nitrogen"),
+    ("D-169h", "CN(C)N[N+](=O)[O-]", "N',N'-dimethylnitric hydrazide", "1,1-dimethyl-2-nitrohydrazine", "two on the terminal nitrogen"),
+    ("D-169i", "O=NNNc1ccccc1", "N'-phenylnitrous hydrazide", "1-nitroso-2-phenylhydrazine", "an aryl substituent on N'"),
+    ("D-169j", "NN(N=O)[N+](=O)[O-]", "N-nitrosonitric hydrazide", "1-amino-1-nitro-2-oxohydrazine",
+     "nitric acid outranks nitrous, so the nitro group is the parent's and the nitroso group a prefix on N"),
+    ("D-169k", "OCCNN[N+](=O)[O-]", "N'-(2-hydroxyethyl)nitric hydrazide", "2-(2-nitrohydrazinyl)ethan-1-ol",
+     "a hydrazide outranks an alcohol, so the hydroxyl is a prefix and the hydrazide the parent"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -3861,14 +3886,17 @@ OPEN: list[tuple[str, str, str, str, str]] = [
     # analogue (`2-[methoxy(methyl)amino]-2-oxoethyl acetate`) is named correctly, so the N-OH context is the trigger.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate", "an N-substituted hydroxamic acid inside an ester's acid part loses its N-substituent"),
-    # Naming round 18: the nitric and nitrous HYDRAZIDES that P-67.1.2.6.3 (pdf p. 708) makes preselected parents ("nitric hydrazide (I) and nitrous hydrazide (II) are
-    # preselected names used as parent structures for generation of preferred IUPAC names"; p. 709 prints "N'-hexylidenenitrous hydrazide (PIN)"). Round 17 declines
-    # a nitramide whose second nitrogen is a hydrazine or hydrazone nitrogen, so these keep hydrazine names. Every target is read back by OPSIN; none is a printed row (the
-    # book's own hexylidene example is in a frozen population and is not used here), so each is derived from the two printed parents.
-    ("D-169a", "O=[N+]([O-])NN", "nitric hydrazide", "nitrohydrazine", "H2N-NH-NO2, the nitric hydrazide"),
-    ("D-169b", "NNN=O", "nitrous hydrazide", "1-amino-2-oxohydrazine", "ON-NH-NH2, the nitrous hydrazide; the hydrazine-plus-oxo reading is the one round 16 fixed for nitrosamines"),
-    ("D-169c", "O=[N+]([O-])NN=Cc1ccccc1", "N'-benzylidenenitric hydrazide", "1-nitro-2-(phenylmethylidene)hydrazine",
-     "a hydrazone of the nitric hydrazide: named on the hydrazide as the book names N'-hexylidenenitrous hydrazide"),
+    # Naming round 19: the SUBSTITUENT names of a hydrazone or hydrazine, `=N-NH-R` and `-NH-NH-R`. Found while fixing D-169. The book names an `=N-NH2` group "hydrazinylidene"
+    # ("3-amino-3-hydrazinylidenepropanoic acid (PIN)", pdf p. 682, verbatim) and the nitro / nitroso derivatives "nitrosohydrazinylidene (preselected prefix)" (p. 717); the engine writes
+    # "(aminoimino)" and "(R-aminoimino)" for the whole family, of which round 18's "(nitramidoimino)acetic acid" (D-168f) is one member. Every target is read back by OPSIN; the
+    # first is printed, the other two are derived from p. 717's group names. The book also prints "2-nitrohydrazin-1-yl" where the engine writes "2-nitrohydrazinyl", and elsewhere
+    # "hydrazinyl (not hydrazin-1-yl)" (p. 71), so that spelling is left alone.
+    ("D-170a", "OC(=O)CC(N)=NN", "3-amino-3-hydrazinylidenepropanoic acid", "3-amino-3-(aminoimino)propanoic acid",
+     "verbatim 'PIN' (p. 682): an =N-NH2 substituent is 'hydrazinylidene', not '(aminoimino)'"),
+    ("D-170b", "OC(=O)CC(C)=NNN=O", "3-(nitrosohydrazinylidene)butanoic acid", "3-(2-oxohydrazinylimino)butanoic acid",
+     "the group is printed 'nitrosohydrazinylidene (preselected prefix)' (p. 717); the engine reads it as a hydrazine with an oxo"),
+    ("D-170c", "OC(=O)CC(C)=NN[N+](=O)[O-]", "3-(nitrohydrazinylidene)butanoic acid", "3-(nitramidoimino)butanoic acid",
+     "the nitro analogue of the p. 717 group; round 18's own guess, '(nitramidoimino)', is a member of the same wrong family"),
 ]
 
 # Observed but NOT tracked here, because this table requires a verified
@@ -4700,4 +4728,31 @@ def test_a_fused_all_carbon_ring_now_names_its_attachment_locant(smiles, expecte
     ("O=C1C=CC=CC1", "cyclohexa-2,4-dien-1-one"),
 ])
 def test_the_aromatic_carbocycle_kekule_recovery_does_not_move_a_neighbouring_name(smiles, expected):
+    assert name_smiles(smiles) == expected
+
+
+@pytest.mark.parametrize(
+    "smiles, expected",
+    [
+        ("CC(=O)NN[N+](=O)[O-]", "N'-nitroacetohydrazide"),
+        ("OC(=O)CNN[N+](=O)[O-]", "(2-nitrohydrazinyl)acetic acid"),
+        ("NC(=O)CNN[N+](=O)[O-]", "2-(2-nitrohydrazinyl)acetamide"),
+        ("NNC(=O)N[N+](=O)[O-]", "N-nitrohydrazinecarboxamide"),
+        ("O=[N+]([O-])NNN[N+](=O)[O-]", "1-nitramido-2-nitrohydrazine"),
+        ("O=[N+]([O-])NN1CCCC1", "1-nitramidopyrrolidine"),
+        ("CN(N=O)NN", "2-amino-1-methyl-1-nitrosohydrazine"),
+        ("CC=NN(C)C", "2-ethylidene-1,1-dimethylhydrazine"),
+        # a hydrazide-class group ELSEWHERE outranks it (only the seniority limit can see this one: the carbon hydrazide is not next to the nitrohydrazine)
+        ("NNC(=O)CCNN[N+](=O)[O-]", "3-(2-nitrohydrazinyl)propanehydrazide"),
+        # a carbon adjacent to N' that is doubly bonded to N (an amidine), and a hydrazone carbon carrying a heteroatom (a guanidine, an amidine, a hydrazonoyl halide):
+        # derivatives of a carbon acid, which outrank the nitric hydrazide ("nitroaminoguanidine" was "N'-(diaminomethylidene)nitric hydrazide")
+        ("CC(=N)NN[N+](=O)[O-]", "1-(2-nitrohydrazinyl)ethan-1-imine"),
+        ("NC(N)=NN[N+](=O)[O-]", "(nitramidoimino)methanediamine"),
+        ("CC(N)=NN[N+](=O)[O-]", "1-(nitramidoimino)ethan-1-amine"),
+        ("CC(Cl)=NN[N+](=O)[O-]", "1-(1-chloroethylidene)-2-nitrohydrazine"),
+    ],
+)
+def test_a_senior_group_or_another_shape_keeps_its_name_over_a_nitric_hydrazide(smiles, expected):
+    """The hydrazide route declines for a carbon hydrazide, acid or amide elsewhere, a second nitro on N', a ring nitrogen, a triazane and a hydrazone with no nitro group;
+    these are the names rounds 16 to 18 gave them, asserted so a guard cannot loosen unseen (naming round 19)."""
     assert name_smiles(smiles) == expected

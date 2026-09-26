@@ -1277,6 +1277,89 @@ def _name_nitramide_functional_parent(
     )
 
 
+def _name_nitric_hydrazide_functional_parent(
+    mol, output_form, decision_ctx, strategy, session, depth, perception=None,
+) -> LeafTree | None:
+    """Substituted nitric and nitrous HYDRAZIDES, O2N-NH-NH2 and ON-NH-NH2 (naming round 19, D-169).
+
+    P-67.1.2.6.3 (pdf p. 708): "nitric hydrazide (I) and nitrous hydrazide (II) are preselected names used as parent structures for generation of
+    preferred IUPAC names ... in accordance with the seniority order of classes rather than as nitro and nitroso amines", and p. 709 prints
+    "N'-hexylidenenitrous hydrazide (PIN)". The nitrogen that bears the nitro or nitroso group is N and the terminal one N', so a substituent on
+    the first is `N-` and on the second `N'-` (OPSIN reads `N'-methylnitric hydrazide` as CNN[N+](=O)[O-]). N' may carry two single-bonded
+    substituents or ONE double-bonded (a hydrazone, named as an ylidene).
+
+    Declines for a hydrazide-class or senior group elsewhere (a carbon hydrazide, an amide, an acid), for a nitrogen on a carbon doubly bonded to N, O or
+    S, a cyano carbon, a triazane (a third nitrogen), a ring nitrogen, and a second nitro or nitroso group on N'. The nitramide route keeps the molecules
+    whose second nitrogen is not a hydrazine nitrogen. Not claimed: the substituent PREFIXES the same section prints ("2-nitrohydrazin-1-yl",
+    "nitrosohydrazinylidene", p. 717), which are the hydrazinyl and hydrazinylidene family and are recorded as D-170.
+    """
+    def _plain(atom):
+        return atom.GetAtomicNum() == 7 and atom.GetFormalCharge() == 0 and not atom.IsInRing() and not atom.GetIsAromatic()
+
+    def _carbon_acid_neighbour(atom, skip=None):
+        return any(
+            nb.GetAtomicNum() == 6 and nb.GetIdx() != skip and any(
+                b.GetBondTypeAsDouble() == 2.0 and b.GetOtherAtom(nb).GetAtomicNum() in (7, 8, 16)
+                or b.GetBondTypeAsDouble() == 3.0
+                for b in nb.GetBonds()
+            )
+            for nb in atom.GetNeighbors()
+        )
+
+    candidates = []
+    for alpha in mol.GetAtoms():
+        if not _plain(alpha) or any(b.GetBondTypeAsDouble() != 1.0 for b in alpha.GetBonds()):
+            continue
+        acyl = [nb for nb in alpha.GetNeighbors() if _is_nitro_or_nitroso_nitrogen(nb)]
+        betas = [nb for nb in alpha.GetNeighbors() if nb.GetAtomicNum() == 7 and not _is_nitro_or_nitroso_nitrogen(nb)]
+        if not acyl or len(betas) != 1:
+            continue
+        beta = betas[0]
+        if not _plain(beta):
+            return None
+        if any(nb.GetAtomicNum() == 7 and nb.GetIdx() != alpha.GetIdx() for nb in beta.GetNeighbors()):
+            return None  # a triazane, or a second nitro or nitroso group on N'
+        doubles = [b for b in beta.GetBonds() if b.GetBondTypeAsDouble() == 2.0]
+        if any(b.GetBondTypeAsDouble() == 3.0 for b in beta.GetBonds()) or len(doubles) > 1:
+            return None
+        ylidene_c = None
+        if doubles:
+            ylidene_c = doubles[0].GetOtherAtom(beta)
+            if ylidene_c.GetAtomicNum() != 6 or _is_hydrazone_type_nitrogen(beta) is False:
+                return None  # an isocyanate, azo or other group: not a hydrazone (the nitramide route, which runs first, takes those; kept so this function is right on its own)
+            if any(nb.GetIdx() != beta.GetIdx() and nb.GetAtomicNum() not in (1, 6) for nb in ylidene_c.GetNeighbors()):
+                # A heteroatom on the hydrazone carbon makes it an amidine, guanidine, imidate or hydrazonoyl halide, a derivative of a CARBON acid, which outranks
+                # the nitric hydrazide ("nitroaminoguanidine" was "N'-(diaminomethylidene)nitric hydrazide"). An aldehyde or ketone hydrazone carbon has none.
+                return None
+        if _carbon_acid_neighbour(alpha) or _carbon_acid_neighbour(beta, skip=None if ylidene_c is None else ylidene_c.GetIdx()):
+            return None
+        candidates.append((alpha, beta, acyl))
+    if len(candidates) != 1:
+        return None
+    alpha, beta, acyl = candidates[0]
+    core_n = next((nb for nb in acyl if nb.GetFormalCharge() == 1), acyl[0])
+    parent_name = "nitric hydrazide" if core_n.GetFormalCharge() == 1 else "nitrous hydrazide"
+    core = {alpha.GetIdx(), beta.GetIdx(), core_n.GetIdx()} | {
+        nb.GetIdx() for nb in core_n.GetNeighbors() if nb.GetAtomicNum() == 8
+    }
+    heavy = {a.GetIdx() for a in mol.GetAtoms() if a.GetAtomicNum() > 1}
+    if heavy == core:
+        return LeafTree(
+            output_form=output_form,
+            free_valence=None,
+            choices_made=(Choice(type=f"{parent_name.replace(' ', '_')}_functional_parent", detail="bare parent"),),
+            decision_ctx=decision_ctx,
+            validity_warnings=None,
+            text=parent_name,
+        )
+    return _name_n_core_parent(
+        mol, core, free_ns=[], fixed={alpha.GetIdx(): "N", beta.GetIdx(): "N'"}, parent_name=parent_name,
+        output_form=output_form, decision_ctx=decision_ctx, strategy=strategy,
+        session=session, depth=depth, perception=perception,
+        seniority_limit=1201, cite_locants=True, allow_ylidene=True,
+    )
+
+
 def _name_urea_functional_parent(
     mol,
     output_form: OutputForm,
@@ -1410,6 +1493,7 @@ def _name_n_core_parent(
     mol, core_atoms, free_ns, fixed, parent_name, output_form, decision_ctx,
     strategy, session, depth, perception=None,
     seniority_limit=_N_CORE_PARENT_SENIORITY_LIMIT, cite_locants=True,
+    allow_ylidene=False,
 ):
     """Name a retained N-core parent (urea, thiourea, guanidine) substituted
     only on its nitrogens.
@@ -1422,6 +1506,9 @@ def _name_n_core_parent(
     N''). Returns None when the core is not the molecule's parent: an atom
     not reached through a nitrogen, a senior group in a substituent, or no
     substituent at all (the bare parent is a retained-name lookup).
+
+    ``allow_ylidene`` lets a nitrogen carry a DOUBLE-bonded substituent named as an ylidene ("N'-hexylidenenitrous hydrazide (PIN)", p. 709);
+    every other parent here refuses one (naming round 19).
     """
     all_ns = list(free_ns) + [mol.GetAtomWithIdx(i) for i in fixed]
     heavy_atoms = {a.GetIdx() for a in mol.GetAtoms() if a.GetAtomicNum() > 1}
@@ -1458,11 +1545,12 @@ def _name_n_core_parent(
                 (n_atom.GetIdx(), nb.GetIdx()) for nb in n_atom.GetNeighbors()
                 if nb.GetIdx() in comp
             )
-            if mol.GetBondBetweenAtoms(*att).GetBondTypeAsDouble() != 1.0:
+            att_order = mol.GetBondBetweenAtoms(*att).GetBondTypeAsDouble()
+            if att_order != 1.0 and not (allow_ylidene and att_order == 2.0):
                 raise RuntimeError(f"{parent_name} substituent is not single-bonded")
             sub_mol, sub_att, _bo = carve_substituent(mol, comp, att)
             sub_fv = FreeValenceInfo(
-                bond_orders=(1,),
+                bond_orders=(int(att_order),),
                 method=_select_substituent_method(sub_mol, sub_att),
                 attachment_atoms_in_fragment=(sub_att,),
                 elide_locant_one=_fvi_elide_locant_one(sub_mol, sub_att),
@@ -10332,6 +10420,19 @@ def _name_bound(
         if nitramide_tree is not None:
             _session.cache_store(smiles, output_form, fv_bond_orders, nitramide_tree, attachment_indices)
             return nitramide_tree
+
+    # --- Nitric / nitrous hydrazide functional parent (P-67.1.2.6.3) ---
+    # After the nitramide route, which keeps every molecule whose second nitrogen is not a hydrazine or hydrazone nitrogen.
+    if (output_form == OutputForm.STANDALONE
+            and free_valence is None):
+        hydrazide_tree = _name_nitric_hydrazide_functional_parent(
+            mol, output_form, decision_ctx,
+            strategy=strategy, session=_session, depth=_depth,
+            perception=perception,
+        )
+        if hydrazide_tree is not None:
+            _session.cache_store(smiles, output_form, fv_bond_orders, hydrazide_tree, attachment_indices)
+            return hydrazide_tree
 
     # --- Fulminic acid [C-]#[N+]O retained (P-66) ---
     # Hand-emit the correct protomer substituent name for the fulminic

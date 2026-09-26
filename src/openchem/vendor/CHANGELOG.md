@@ -1788,3 +1788,32 @@ and the naming tests 6995 passed, with two `test_mol3d_viewer_backend.py` WebEng
 turn and a known-defects row failed. The evidence is the rows `D-168a-g` (each verified by OPSIN read-back) and the open rows `D-169a-c`.
 
 **Not fixed** (`KNOWN_LIMITATIONS.md`): the nitric and nitrous HYDRAZIDES, queued as `D-169` with OPSIN-verified targets (`nitric hydrazide`, `nitrous hydrazide`, `N'-benzylidenenitric hydrazide`).
+
+
+## 2026-09-26 -- naming round 19 (D-169): nitric and nitrous HYDRAZIDES as parents
+
+Round 17 made the nitramide the parent and left the hydrazides, which the same section makes preselected parents. P-67.1.2.6.3 (pdf p. 708), verbatim: "Similarly, nitric hydrazide (I) and nitrous hydrazide (II) are preselected
+names used as parent structures for generation of preferred IUPAC names", and p. 709 prints `N'-hexylidenenitrous hydrazide (PIN)`. `O2N-NH-NH2` was `nitrohydrazine` and is `nitric hydrazide`; `ON-NH-NH2` was
+`1-amino-2-oxohydrazine` and is `nitrous hydrazide`; `CNN[N+](=O)[O-]` was `1-methyl-2-nitrohydrazine` and is `N'-methylnitric hydrazide`; a hydrazone was a hydrazine with an ylidene (`1-nitro-2-(propan-2-ylidene)hydrazine`)
+and is `N'-(propan-2-ylidene)nitric hydrazide`. **The nitrogen that bears the nitro or nitroso group is N and the terminal one N'** (OPSIN reads `N'-methylnitric hydrazide` as `CNN[N+](=O)[O-]` and
+`N,N'-dimethylnitric hydrazide` as `CN(NC)[N+](=O)[O-]`); N' may carry two single-bonded substituents or ONE double-bonded one, a hydrazone, named as an ylidene. A hydrazide outranks an alcohol (P-41), so
+`OCCNN[N+](=O)[O-]`, an ethanol before, is `N'-(2-hydroxyethyl)nitric hydrazide`.
+
+**One new namer and one extension.** `_name_nitric_hydrazide_functional_parent`, on `_name_n_core_parent` with fixed `N` / `N'` labels, runs after the nitramide route (which keeps every molecule whose second nitrogen is not a hydrazine
+or hydrazone nitrogen). `_name_n_core_parent` gains `allow_ylidene`, so a nitrogen can carry a double-bonded substituent named as an ylidene; every other parent still refuses one. The route declines for a group of the hydrazide
+class or above elsewhere (the limit is 1201: a carbon hydrazide, an amide, an acid, an ester), a nitrogen on a carbon doubly bonded to N, O or S or a cyano carbon, a triazane or a second nitro or nitroso group on N', a ring
+nitrogen, and **a hydrazone whose carbon carries a heteroatom** (an amidine, a guanidine, an imidate or a hydrazonoyl halide, which are derivatives of a carbon acid: the first version named nitroaminoguanidine
+`N'-(diaminomethylidene)nitric hydrazide` and a control row caught it). Seven changes (the ylidene refusal, the hydrazide-class limit, the carbon-acid neighbour, the triazane and second-acyl guard, the hydrazone-carbon heteroatom guard, the nitric-versus-nitrous choice and the dispatch) were each removed in turn and a table row failed; one guard (an isocyanate-type N') is dead behind the
+nitramide route and is kept only so the function is right on its own, measured by removing it and seeing every row pass.
+
+**Measured.** Census scan (2000 rows): 97.95% exact before and after, **0 rows changed class and 1 row changed name** (`census1625`, `CC(C)N(CCCN)N(O)N=O`, a nitrous hydrazide: `3-[2-hydroxy-2-nitroso-1-(propan-2-yl)hydrazinyl]propan-1-amine`
+-> `N'-(3-aminopropyl)-N-hydroxy-N'-(propan-2-yl)nitrous hydrazide`, exact both times). ref-compare against master (`7562a6a`): 1712 structures, **0 names changed**, 0 violations. **The blind frozen impact CHANGED** (`bluebook_frozen`
+1 of 1126, `heldout_v6` unchanged), so the frozen sets were scored ONCE (`r19-final-evaluation`), in aggregate: every population is IDENTICAL to round 18's (`bluebook_frozen` exact 510, equivalent 535, wrong_structure 22,
+unparsable 46, no_prediction 13), so one frozen name moved and no outcome class did. Vendored suite 5443 passed; the source-scanning test files and the naming tests 7021 passed. The evidence is the rows `D-169a-k` and the 13
+control rows (`test_a_senior_group_or_another_shape_keeps_its_name_over_a_nitric_hydrazide`), each fixed row verified by OPSIN read-back; the book's own hexylidene example is a frozen row and is not used.
+
+**Round 18's stopgap is replaced.** `D-168g`, a hydrazone of nitramide, was pinned to the hydrazine name until this route existed; it is now `N'-(phenylmethylidene)nitric hydrazide` (the ylidene is spelled as the engine spells it everywhere,
+`phenylmethylidene`, never `benzylidene`).
+
+**Not fixed, found on the way** (`KNOWN_LIMITATIONS.md`): the SUBSTITUENT names of a hydrazone or hydrazine, queued as `D-170`. The book prints `3-amino-3-hydrazinylidenepropanoic acid (PIN)` (p. 682) and `nitrosohydrazinylidene (preselected
+prefix)` (p. 717); the engine writes `3-amino-3-(aminoimino)propanoic acid` and `(R-aminoimino)` for the whole `=N-NH-R` family, of which round 18's `(nitramidoimino)` is one member.
