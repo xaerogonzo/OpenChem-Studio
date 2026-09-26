@@ -21410,3 +21410,25 @@ that hovering a bond and pressing a number was native to Ketcher. Both were wron
   targets.
 * **The note is now a guard.** `benchmarks/visual/ketcher_hover_keys.json` asserts all three facts, so an editor upgrade that makes a number over a
   bond native fails it and tells whoever is there to stop maintaining a gesture Ketcher now owns.
+
+
+## A TARGET LABELLED "NOT CHECKED AGAINST THE BLUE BOOK" WAS THE BOOK'S NON-PIN NAME
+
+Naming round 16 fixed the acyclic nitramines and nitrosamines and shipped `N-methyl-N-nitromethanamine` and NDMA as `N-methyl-N-nitrosomethanamine`, each verified by OPSIN read-back and
+each recorded, in the table, the changelog and the limitations file, as "NOT checked against the Blue Book". Round 17 started on D-166 (`nitramide`) and searched the PDF for that word once.
+P-67.1.2.6.3 (pdf p. 708) says the preferred names of these compounds are based on nitric and nitrous AMIDE "rather than as nitro and nitroso amines; the latter names can be used in general
+nomenclature", and page 709 prints `(chloromethyl)(methyl)nitramide (PIN)` beside `1-chloro-N-methyl-N-nitromethanamine`. Round 16's eight headline names were the alternative. The PDF was on the
+same machine the whole time.
+
+* **A label that says a check was not done is a work item, not a disclosure.** It was written honestly and then read as a caveat. The check cost one text search across the 1,160 pages
+  (`uvx --with pymupdf`, `re` over `page.get_text()`), found the section, and reversed the round's target. When a target is "derived" or "read back but not checked", the next step is the search
+  that would check it, before the PR and before the round is called done.
+* **A name that reads back is not a name that is right, again, and this time the book was the oracle that disagreed.** OPSIN reads `N-methyl-N-nitromethanamine` and `dimethylnitramide` to the same
+  structure, so no read-back, census or ref-compare could ever rank them. Only the class-seniority rule (P-41: an amide of a mineral acid outranks an amine) can, and that is prose in the book.
+* **The standing measures were blind to a whole class twice running.** No census row and no standing corpus row contained a plain nitramine, so 2000 census rows moved 0 times and the round's only
+  measured effect was three tuning rows and 5 of 1126 frozen ones. What found the defect was the book's own text and examples, not a corpus; three of those examples are tuning rows, and they are exactly the rows the round moved.
+* **A guard the seniority table cannot see must be structural.** The first version declined only for a group of the amide class or above, and one census row moved to `...carbamimidoyl]nitramide`, a
+  wrong parent: the guanidine route declines an amidrazone, so no guanidine group was detected to outrank the nitramide. The census is where it showed, because it is the one standing measure that had
+  a nitro-bearing guanidine at all; the fix is a rule about the nitrogen's carbon neighbour (doubly bonded to N, O or S), which does not depend on what perception detected.
+* **Scope was held on purpose.** The same section prints `nitramido` for `-NH-NO2` and the engine writes `(nitroamino)`; that is the substituent layer, changes names the round did not need to move,
+  and was queued as D-168 with the book's target and the engine's exact current output instead of being folded in before a once-only frozen score.

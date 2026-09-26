@@ -1732,3 +1732,32 @@ no_prediction 13 -> 13; `heldout_v6` identical (13 exact, 25 equivalent, 2 wrong
 unmodified engine: every N-nitro and N-nitroso row changed, every control row (nitroalkanes, nitroarenes, hydrazines, hydroxylamines, ureas, amidines, ring nitramines) identical.
 **Evidence for the fix is the 18 rows D-164a..D-165h**, each verified by OPSIN read-back in the vendored suite. **Open** (`KNOWN_LIMITATIONS.md`): nitramide itself (D-166) and N-nitro /
 N-nitroso carbamates (D-167).
+
+
+## 2026-09-25 -- naming round 17 (D-166, D-167): nitramide and nitrous amide as PARENTS, and N-nitro / N-nitroso carbamates
+
+Round 16 left two cases open, and reading the book for them showed that round 16's own names for the plain nitramines and nitrosamines were the book's NON-PIN alternative. P-67.1.2.6.3
+(pdf p. 708), verbatim: "Nitramines are amides of nitric acid ... The class is composed of 'nitramide' (a shortened form of nitric amide), NO2-NH2, and the names of its derivatives are formed
+by substitution ... Preferred IUPAC names for amides and hydrazides of nitric and nitrous acids are now systematically based on nitric or nitrous amide and hydrazide, in accordance with the
+seniority order of classes rather than as nitro and nitroso amines; the latter names can be used in general nomenclature." Page 709 prints `(chloromethyl)(methyl)nitramide (PIN)` beside
+`1-chloro-N-methyl-N-nitromethanamine`. So `CN(C)[N+](=O)[O-]` is now `dimethylnitramide`, NDMA `dimethylnitrous amide`, `N[N+](=O)[O-]` `nitramide` (it had no plan at all), and the two D-167
+carbamates `ethyl nitrocarbamate` (was `[(nitroamino)(oxo)methoxy]ethane`) and `ethyl methyl(nitroso)carbamate` (was `1-(ethoxycarbonyl)-1-methyl-2-oxohydrazine`). The round-16 targets were
+recorded as "NOT checked against the Blue Book"; the check was one search of the PDF.
+
+**Two changes.** (1) `_name_nitramide_functional_parent`, on `_name_n_core_parent` like the cyanamide and sulfamic acid routes: an acyclic amino nitrogen carrying a nitro or nitroso group is the
+one substitutable position of `nitramide` or `nitrous amide`, so its prefixes take no locant (`methyl(nitro)nitramide`, `bis(2-hydroxyethyl)nitrous amide`); nitric outranks nitrous, so with both on one
+nitrogen the nitro group is the parent's. It declines when a group of the amide class or above sits elsewhere (`_N_CORE_PARENT_SENIORITY_LIMIT`), when the nitrogen is on a carbon doubly bonded to N, O or S
+(an acyl, imidoyl or carbamoyl carbon, which the seniority check cannot always see: the guanidine route declines an amidrazone, and without this guard `census215625` was named `...carbamimidoyl]nitramide`),
+on a cyano carbon (cyanamide), on a second all-single-bonded nitrogen (a hydrazine), and when the molecule has more than one such nitrogen (a multiplicative parent). A ring nitrogen is never this. The bare
+parents are emitted by the same function. (2) `_build_carbamate_decomposition` took the nitro or nitroso nitrogen for the second nitrogen of a CARBAZATE and offered no functional-class plan, the refusal round 16
+lifted for urea and guanidine; the predicate moves to `types.py` as `is_nitro_or_nitroso_nitrogen` (the lowest module both import) and `engine.py` uses the one implementation.
+
+**Measured.** Census scan (2000 rows): 97.95% exact before and after, **0 rows changed** (the guard above was added because the first run moved one). ref-compare against master (`d1c08f3`): 1712 structures,
+**3 names changed, all TUNING, each now equal to the name the book prints for it** (`isocyanatonitramide`, `methyl(nitro)nitramide`, `(chloromethyl)(methyl)nitramide`), listed in
+`benchmarks/naming/stages/manifests/r17-release-candidate.toml`, 0 violations. **The blind frozen impact CHANGED** (`bluebook_frozen` 5 of 1126, `heldout_v6` unchanged), so the frozen sets were scored ONCE
+(`r17-final-evaluation`), in aggregate: `bluebook_frozen` exact 506 -> 510, equivalent 539 -> 535, wrong_structure 22 -> 22, unparsable 46 -> 46, no_prediction 13 -> 13; `heldout_v6` identical; `bluebook_tuning`
+exact 507 -> 510. Four equivalent names became exact and nothing got worse. Vendored suite 5404 passed; the app's source-scanning test files and the known-defects table 6581 passed. The evidence for the fix is
+the rows `D-164a-d` and `D-165a-d` (retargeted to the PINs), `D-166a-h` and `D-167a-b`, each verified by OPSIN read-back, the printed ones quoted from the book.
+
+**Not fixed, found on the way** (`KNOWN_LIMITATIONS.md`): the `-NH-NO2` and `-NH-NO` PREFIXES (D-168: the book prints `nitramido` and `nitrosoamino`, the engine writes `(nitroamino)` and, worse, the unparenthesised
+`4-nitrosoaminobenzoic acid`); the nitric and nitrous HYDRAZIDES the same section names; ethylenedinitramine, whose two nitramide groups are a multiplicative parent; and the hypochlorous and bromous amides on p. 529.

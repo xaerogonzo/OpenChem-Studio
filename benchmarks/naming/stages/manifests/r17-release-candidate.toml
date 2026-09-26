@@ -1,0 +1,30 @@
+# Round 17's full ref-compare manifest, against master's pre-round-17 tip (d1c08f3): nitramide and nitrous amide as PARENTS (D-166) and N-nitro /
+# N-nitroso CARBAMATES (D-167). The three rows below are the ONLY ones the round moved across r7, r8, mc and pop (1712 structures), all in the TUNING
+# population and none in a frozen one. Each is a Blue Book PIN the book prints verbatim (P-67.1.2.6.3, pdf p. 709, and p. 486), and each was named
+# by round 16 as a nitro-substituted amine or hydrazine (the book's non-PIN alternative, or a wrong parent), so each now equals its printed name.
+# Each new name reads back to the input (no round-trip violation).
+# NOTE: as in round 16, no standing corpus row contained a plain dialkyl nitramine or nitrosamine, so the round's own rows (tests/test_namer_known_defects.py
+# D-164a..D-167b) are what exercises the change; the census (2000 rows) moves nothing.
+
+stage = "r17-release-candidate"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-78d144495f74"
+expect = "MUST_CHANGE"
+reason_rule_id = "nitramide-with-an-isocyanato-prefix (D-166)"
+expected_layer = "candidate_generation"
+expected_name = "isocyanatonitramide"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-a7fefa9c35d5"
+expect = "MUST_CHANGE"
+reason_rule_id = "nitramide-with-a-nitro-prefix (D-166)"
+expected_layer = "candidate_generation"
+expected_name = "methyl(nitro)nitramide"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-c3ec8b4e0fa3"
+expect = "MUST_CHANGE"
+reason_rule_id = "substituted-nitramide (D-166)"
+expected_layer = "candidate_generation"
+expected_name = "(chloromethyl)(methyl)nitramide"

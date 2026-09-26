@@ -343,22 +343,26 @@ Found while checking D-029; predates it.
   non-minimal lambda numbering and three general-nomenclature-only acylium
   names; the engine's output is correct in every case. See `CHANGELOG.md`.
 
-## Open after naming round 16 (2026-09-25)
+## Naming round 16's open items are closed (2026-09-25, round 17)
 
-Round 16 fixed the two cases round 15 left open: a nitro or nitroso group on an ACYCLIC nitrogen (D-164, D-165; `CHANGELOG.md`). Nitramines, nitramides, nitroguanidine,
-nitrourea, nitrosamines and nitrosoamides now name as the amine, amide, urea or guanidine with a nitro or nitroso prefix on the nitrogen. What it leaves open, each
-with a target that OPSIN reads back to the same structure and that is NOT checked against the Blue Book:
+D-166 (`nitramide`) and D-167 (N-nitro and N-nitroso carbamates) are fixed, and round 17 changed round 16's own names for the plain nitramines and nitrosamines to the book's
+PINs: P-67.1.2.6.3 (pdf p. 708) makes them SUBSTITUTED NITRAMIDES and NITROUS AMIDES (`dimethylnitramide`, `dimethylnitrous amide`), and the `N-methyl-N-nitromethanamine` form round 16
+wrote is the book's non-PIN alternative. `CHANGELOG.md`, round 17.
 
-* **D-166, nitramide itself** (`N[N+](=O)[O-]`): no plan at all (`[NAMING ERROR: No valid naming plan found ...]`; the app withholds a name). The amine entries need a carbon on the
-  nitrogen, and there is no retained-name entry for the bare parent. Target `nitramide`.
-* **D-167, N-nitro and N-nitroso CARBAMATES** (`CCOC(=O)N[N+](=O)[O-]` is `[(nitroamino)(oxo)methoxy]ethane`, `CCOC(=O)N(C)N=O` is `1-(ethoxycarbonyl)-1-methyl-2-oxohydrazine`;
-  both read back). The functional-class ester route does not take them: its substitutive alternative leaves the nitro group unclaimed. Targets `ethyl nitrocarbamate`,
-  `ethyl methyl(nitroso)carbamate`, in the engine's own carbamate style.
-* **Not measured, so not claimed:** N-nitro or N-nitroso on a hydrazine, on a thioamide, on an amidine that is not a guanidine, and any nitro group attached through a heteroatom other
-  than nitrogen (a nitrate ester is `ethyl nitrate` and was never affected).
-* **The instruments were nearly blind again.** The blind frozen impact did move (6 of 1126 `bluebook_frozen` rows, scored once in aggregate: 1 equivalent to exact, nothing worse), and 4 tuning rows changed; but only a handful of corpus rows held such a structure (the names that moved: 4 tuning, 6 frozen, 1 census), so no aggregate could have shown the defect. One census row moved (`census215625`, a nitroguanidine hydrazone: `...{[oxido(oxo)azaniumyl]amino}methanamine` to
-  `...-N-nitromethanediamine`, exact both before and after, so a reader-back cannot tell the two apart and neither is a confident name). Every other measure reports no change.
-  The 18 D-164/D-165 rows, and a 64-structure battery diffed against the unmodified engine, are the evidence.
+## Open after naming round 17 (2026-09-25)
+
+* **D-168, the substituent prefixes** (`tests/test_namer_known_defects.py`, OPEN): where a nitramide is NOT the parent (a carboxylic acid, an amide, a urea elsewhere), `-NH-NO2` is `(nitroamino)`
+  and the book prints `nitramido` (P-67.1.4.3.2, pdf p. 717); `-NH-NO` is written `4-nitrosoaminobenzoic acid`, without the parentheses a compound prefix needs (`4-(nitrosoamino)benzoic acid`).
+* **Nitric and nitrous HYDRAZIDES** (`O2N-NH-NH2`, `ON-NH-NH2`), which the same section names as parents (`N'-hexylidenenitrous hydrazide (PIN)`). Not attempted: a nitramide route declines any
+  all-single-bonded second nitrogen, so these keep the hydrazine names they had.
+* **Two or more nitramide groups** (ethylenedinitramine, `O=[N+]([O-])NCCN[N+](=O)[O-]`) are a multiplicative parent this route does not build; they keep round 16's amine name
+  `N1,N2-dinitroethane-1,2-diamine`, which is NOT the PIN.
+* **A cyano group on the nitramide nitrogen** (`N#CN(C)[N+](=O)[O-]`) is left to the general path, `[methyl(nitro)amino]methanenitrile`: cyanamide is retained for `NC-NH2` and the book prints no
+  nitro derivative, so no target was derived.
+* **Hypochlorous and bromous amides** (`ethylhypochlorous amide (PIN)`, `methylbromous amide (PIN)`, pdf p. 529) were seen and not measured.
+* **Still not measured, so not claimed:** N-nitro or N-nitroso on a thioamide, and any nitro group attached through a heteroatom other than nitrogen (a nitrate ester is `ethyl nitrate`).
+* **The standing measures were blind to this class again.** No census row contains a plain nitramine or nitrosamine; the three tuning rows that do are the ones the round moved, and the blind frozen
+  set moved on 5 of 1126. The rows in `tests/test_namer_known_defects.py` are the evidence, and the book's own examples were the way to find the defect.
 
 ## Open after naming round 15 (2026-09-24)
 
