@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### NMR: referencing, and what makes it slow (branch `nmr-referencing-and-speed`)
+
+- **A raw NMR result no longer draws as a mirror-image spectrum.** ORCA returns isotropic shielding sigma, and a chemical shift is
+  delta = sigma_ref - sigma, so the two run in opposite directions. Until someone pressed Calibrate, the 1D Signals view drew sigma on the
+  descending delta axis: aliphatic carbons (high sigma) landed downfield and carbonyls upfield, with a "13C d (ppm)" label. A raw result is now
+  drawn ascending, labelled sigma, and its table column says so.
+- **The TMS reference now runs by itself.** After an NMR job with no cached reference for that method/basis, the service runs TMS once and
+  republishes the same result as delta. The raw result still appears first. A refused or failed reference leaves the raw result, labelled sigma.
+- **Recorded, not built: selecting nuclei does not make an NMR run faster.** Measured on Salvinorin A (59 atoms, B3LYP/pcSseg-1, one core,
+  ORCA 6.1.1): all nuclei 743 s, 13C only 883 s, 1H only 784 s. The ground-state SCF is 8 to 10 minutes of that and is the same whichever
+  nuclei are asked for; the shielding tensors themselves take 4 s. A nuclei control was written and removed for that reason. PBE/pcSseg-1
+  took 214 s for 13C (about 4x, accuracy not yet benchmarked).
+- **ORCA now uses several cores (Quantum Chemistry panel: "CPU cores").** It ran on one, which is why NMR took 12 minutes. Measured on the
+  same Salvinorin A job, all nuclei: 1 core 743 s, 8 cores 97 s, 16 cores 111 s, so the automatic choice (half the logical cores) is capped at
+  8; PBE/pcSseg-1 13C on 8 cores took 33 s. Needs Microsoft MPI (`mpiexec`, `winget install Microsoft.msmpi`); without it the box is pinned to 1,
+  because a parallel input with no MPI aborts the job rather than running slowly. Not benchmarked: PBE accuracy, so no "fast" preset yet.
+
 ### Post-round-14 program: nitramine hotfix, driver ledger, refusal kinds (branches `nitramine-hotfix`, `outcome-model`)
 
 - **Settings > Conformers: an EXPERIMENTAL stop rule, off by default.** "Stop early when the lowest conformers stop changing" ends a search when no new shape would rank among the conformers the run keeps, instead of when no new shape of any energy turns up (higher-energy shapes keep arriving on a flexible molecule, which is why the default rarely stops early there). Measured by replaying 1000-embedding searches of ethylmorphine, phenomorphan and fentanyl on three seeds against the same search run to 1000: it never stopped later than the default, used about a quarter fewer embeddings, and recovered about 18 of the 20 lowest shapes against about 19 (worst run 16 of 20; the single lowest-energy shape was the same in every run). Three molecules is a small sample, hence opt-in. The stop is its own reason in the run's record (`kept_set_steady`, with `stop_rule: kept_set`) and Details says so. Driven through the REAL Settings checkbox on fentanyl in the app: stopped at 600 of 1000 embeddings, 331 distinct, 20 kept, `benchmarks/visual/conformers_early_stop.json`, verdict PASS, setting restored; seven guards were each removed to confirm a test fails.

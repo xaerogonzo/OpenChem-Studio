@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import os
 import re
+import shutil
 import time
 from dataclasses import replace
 from pathlib import Path
@@ -414,6 +416,50 @@ NMR_METHOD_BASIS = "B3LYP pcSseg-1"
 SOLVENTS = ["", "Chloroform", "DMSO", "Water", "Methanol", "Acetone", "Toluene", "Benzene"]
 
 
+# Measured on Salvinorin A (59 atoms, B3LYP/pcSseg-1 NMR, this machine, ORCA
+# 6.1.1): 1 core 743 s, 8 cores 97 s, 16 cores 111 s. Past about eight the
+# job stops scaling and starts paying for the extra processes, so the
+# automatic choice is capped there; the setting can still go higher.
+AUTO_CORES_CAP = 8
+_MPI_BIN_DIRS = (r"C:\Program Files\Microsoft MPI\Bin",)
+
+
+def find_mpi_bin() -> str | None:
+    """The directory holding `mpiexec`, or None when no MPI is installed.
+
+    ORCA on Windows starts a parallel job by calling `mpiexec`, and without it
+    aborts in Startup ("'mpiexec' is not recognized") -- so a core count above
+    one is only ever requested when this finds one. The installer puts the
+    directory on the system PATH, but a process started BEFORE the install
+    never sees that, hence the fixed fallback.
+    """
+    found = shutil.which("mpiexec")
+    if found:
+        return str(Path(found).parent)
+    for directory in _MPI_BIN_DIRS:
+        if Path(directory, "mpiexec.exe").is_file():
+            return directory
+    return None
+
+
+def default_cores() -> int:
+    """Half the logical cores, capped at `AUTO_CORES_CAP`, at least one."""
+    return max(1, min(AUTO_CORES_CAP, (os.cpu_count() or 2) // 2))
+
+
+def add_parallel_block(input_text: str, cores: int) -> str:
+    """Puts `%pal nprocs N end` straight after the `!` line. One core adds
+    nothing: a serial job needs no MPI at all."""
+    if cores <= 1:
+        return input_text
+    lines = input_text.split("\n")
+    for index, line in enumerate(lines):
+        if line.lstrip().startswith("!"):
+            lines.insert(index + 1, f"%pal nprocs {cores} end")
+            return "\n".join(lines)
+    return input_text
+
+
 class OrcaOutputError(Exception):
     """Raised when ORCA's output can't be parsed — no SCF energy found
     (job likely failed/didn't converge), or an internal inconsistency.
@@ -423,6 +469,9 @@ class OrcaOutputError(Exception):
 
 class OrcaQuantumEngineProvider(QuantumEngineProvider):
     provider_id = "orca"
+    # The service adds a `%pal` block only for an engine that says it can use
+    # one, so a fake or a future engine is never handed ORCA syntax.
+    supports_parallel = True
 
     def build_input(
         self, mol: Chem.Mol, charge: int, multiplicity: int, method_basis: str, calc_type: str
