@@ -1,0 +1,16 @@
+[
+  {"do": "smiles", "smiles": "CC(=O)OCC", "name": "Ethyl acetate", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "conformers", "count": 1, "after_ms": 20000},
+
+  {"do": "panel", "id": "Quantum_Chemistry", "after_ms": 1500},
+  {"do": "qc_run", "calc_type": "NMR (raw shielding)", "method": "PBE pcSseg-0", "after_ms": 20000},
+  {"do": "qc_nmr_report", "tag": "raw", "after_ms": 500},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/qm_nmr_raw.png", "after_ms": 1000},
+
+  {"do": "wait", "after_ms": 240000},
+  {"do": "qc_nmr_report", "tag": "referenced", "expect": {"referenced": true, "elements": ["C", "H"], "min_shift": 120.0}, "after_ms": 500},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/qm_nmr_referenced.png", "after_ms": 1000},
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

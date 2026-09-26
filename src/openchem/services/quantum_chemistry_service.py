@@ -241,6 +241,9 @@ class QuantumChemistryService(QObject):
         self._boltzmann_runs: dict[str, _BoltzmannRun] = {}
         # Keyed by scaling-job key, one entry per in-flight calibration.
         self._scaling_runs: dict[str, _ScalingRun] = {}
+        # Raw NMR results waiting on the TMS reference for their method/basis,
+        # keyed by the exact method_basis string. See `_await_reference`.
+        self._awaiting_reference: dict[str, list[tuple[object, _ActiveJob]]] = {}
         self._job_manager = job_manager if job_manager is not None else JobManager()
 
     def register_provider(self, provider: QuantumEngineProvider) -> None:
@@ -738,6 +741,9 @@ class QuantumChemistryService(QObject):
         means the next job kind cannot repeat it.
         """
         if job.kind == "reference":
+            # Dropped, not kept for a later success: replaying a stale raw
+            # result over a newer one for the same molecule would be wrong.
+            self._awaiting_reference.pop(job.method_basis, None)
             self._event_bus.publish(
                 NmrReferenceCalibrated(
                     method_basis=job.method_basis,
@@ -836,10 +842,12 @@ class QuantumChemistryService(QObject):
                 else:
                     if couplings is not None:
                         spectrum = dataclasses.replace(spectrum, couplings=couplings)
+                calibrated = self._maybe_calibrate(spectrum, job.method_basis)
                 self._event_bus.publish(self._stamped(
-                    self._maybe_calibrate(spectrum, job.method_basis), job, job.input_fingerprint,
-                    job.calculation_input,
+                    calibrated, job, job.input_fingerprint, job.calculation_input,
                 ))
+                if calibrated.spectrum_type == "nmr_raw_shielding":
+                    self._await_reference(spectrum, job)
         # The vibrational spectrum is a SEPARATE parse and a separate event,
         # not folded into the branch above: an `opt_freq` job produces one
         # and no NMR spectrum, an `nmr` job the reverse, and neither should
@@ -1115,6 +1123,45 @@ class QuantumChemistryService(QObject):
         calibrated = chemical_shift_from_reference(spectrum, reference)
         return calibrated if calibrated is not None else spectrum
 
+    def _await_reference(self, spectrum, job: _ActiveJob) -> None:
+        """Referencing a raw result is not optional, so it is not a button.
+
+        The raw result is published first, so the numbers appear the moment
+        ORCA finishes; this then runs the TMS reference (one small job,
+        cached per method/basis and ORCA version) and republishes the same
+        result as real delta. Before this, referencing waited for a
+        "Calibrate" press nothing prompted, and the default output was
+        shielding sigma -- which runs the OPPOSITE way to delta, so an
+        unreferenced 13C spectrum read as a mirror image of the real one.
+
+        A reference already being computed for this method/basis is joined,
+        not restarted. A failed reference leaves the raw result on screen,
+        which is honest and now labelled as sigma.
+        """
+        waiting = self._awaiting_reference.setdefault(job.method_basis, [])
+        first = not waiting
+        waiting.append((spectrum, job))
+        if _reference_job_key(job.method_basis) in self._active_jobs:
+            return  # already running (e.g. from the Calibrate button): join it
+        if first:
+            self.request_reference_calibration(job.method_basis, job.provider.provider_id)
+            if _reference_job_key(job.method_basis) not in self._active_jobs:
+                # Refused before launch (no executable, unknown engine, a
+                # reference already running from the Calibrate button).
+                # Nothing will call back, so nothing may be left waiting.
+                self._awaiting_reference.pop(job.method_basis, None)
+
+    def _republish_awaiting_reference(self, method_basis: str) -> None:
+        """Called once a reference for `method_basis` is cached (or has
+        failed, in which case the raw results simply stay as published)."""
+        for spectrum, job in self._awaiting_reference.pop(method_basis, []):
+            referenced = self._maybe_calibrate(spectrum, method_basis)
+            if referenced.spectrum_type == "nmr_raw_shielding":
+                continue
+            self._event_bus.publish(
+                self._stamped(referenced, job, job.input_fingerprint, job.calculation_input)
+            )
+
     def _apply_scaling(self, spectrum, factors: dict):
         """Rebuild the spectrum in real ppm, one `spectrum_type` per
         nucleus.
@@ -1175,6 +1222,7 @@ class QuantumChemistryService(QObject):
             spectrum = job.provider.parse_spectrum_output(output_text, job.mol, "__tms_reference__", job.calc_type)
         except Exception as exc:  # noqa: BLE001 - report failure, never crash
             logger.exception("Failed to parse ORCA reference output for %s", method_basis)
+            self._awaiting_reference.pop(method_basis, None)
             self._event_bus.publish(
                 NmrReferenceCalibrated(
                     method_basis=method_basis, provider_id=job.provider.provider_id, values={}, error=str(exc)
@@ -1184,6 +1232,7 @@ class QuantumChemistryService(QObject):
             return
         if spectrum is None:
             message = "ORCA produced no shielding data for the reference calculation."
+            self._awaiting_reference.pop(method_basis, None)
             self._event_bus.publish(
                 NmrReferenceCalibrated(
                     method_basis=method_basis, provider_id=job.provider.provider_id, values={}, error=message
@@ -1200,6 +1249,7 @@ class QuantumChemistryService(QObject):
             NmrReferenceCalibrated(method_basis=method_basis, provider_id=job.provider.provider_id, values=averaged)
         )
         self._publish_state(job.key, CacheState.COMPLETED)
+        self._republish_awaiting_reference(method_basis)
 
     def _retain_wavefunction(self, job: _ActiveJob, output_text: str = "") -> Path | None:
         """Copy this job's wavefunction out of the scratch directory.
