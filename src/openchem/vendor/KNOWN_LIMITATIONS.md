@@ -349,13 +349,16 @@ D-166 (`nitramide`) and D-167 (N-nitro and N-nitroso carbamates) are fixed, and 
 PINs: P-67.1.2.6.3 (pdf p. 708) makes them SUBSTITUTED NITRAMIDES and NITROUS AMIDES (`dimethylnitramide`, `dimethylnitrous amide`), and the `N-methyl-N-nitromethanamine` form round 16
 wrote is the book's non-PIN alternative. `CHANGELOG.md`, round 17.
 
-## Open after naming round 18 (2026-09-26)
+## Open after naming round 19 (2026-09-26)
 
-D-168 (the `nitramido` and `nitrosoamino` prefixes) is fixed; see `CHANGELOG.md`, round 18. Still open, carried from round 17:
+D-169 (the nitric and nitrous hydrazides as parents) is fixed; see `CHANGELOG.md`, round 19. Still open:
 
-* **D-169, the nitric and nitrous HYDRAZIDES** (`O2N-NH-NH2` is `nitrohydrazine`, `ON-NH-NH2` is `1-amino-2-oxohydrazine`, and a hydrazone of either is a hydrazine with an ylidene): the book makes them
-  preselected parents (P-67.1.2.6.3, pdf p. 708) and prints `N'-hexylidenenitrous hydrazide (PIN)`. The nitramide route declines any hydrazine or hydrazone nitrogen, so these keep hydrazine names. OPEN rows
-  `D-169a-c` carry OPSIN-verified targets (`nitric hydrazide`, `nitrous hydrazide`, `N'-benzylidenenitric hydrazide`).
+* **D-170, the substituent names of a hydrazone or hydrazine** (`tests/test_namer_known_defects.py`, OPEN `D-170a-c`): the book prints `=N-NH2` as `hydrazinylidene` ("3-amino-3-hydrazinylidenepropanoic acid (PIN)", pdf p. 682, verbatim)
+  and the nitro and nitroso derivatives as `nitrohydrazinylidene` / `nitrosohydrazinylidene` ("preselected prefix", p. 717); the engine writes `(aminoimino)` and `(R-aminoimino)` for the whole `=N-NH-R` family, and round 18's
+  `(nitramidoimino)acetic acid` (D-168f) is one member, a derived stopgap and not the PIN. The book also prints `2-nitrohydrazin-1-yl` (p. 717) where the engine writes `2-nitrohydrazinyl`, and elsewhere `hydrazinyl (not hydrazin-1-yl)`
+  (p. 71), so that spelling is left alone until the book's own convention is settled.
+* **Hydrazones of carbon acid hydrazides** (`CC(=O)NN=CCCCCC` is `1-acetyl-2-hexylidenehydrazine`, where P-66.3.3 names the hydrazide, `N'-hexylideneacetohydrazide`) were seen while probing and are not measured.
+* **The `benzylidene` spelling:** the engine writes `phenylmethylidene` everywhere (`N'-(phenylmethylidene)nitric hydrazide`); the book's retained prefix is `benzylidene`.
 * **Two or more nitramide groups** (ethylenedinitramine, `O=[N+]([O-])NCCN[N+](=O)[O-]`) are a multiplicative parent this route does not build; they keep round 16's amine name
   `N1,N2-dinitroethane-1,2-diamine`, which is NOT the PIN.
 * **A cyano group on the nitramide nitrogen** (`N#CN(C)[N+](=O)[O-]`) is left to the general path, `[methyl(nitro)amino]methanenitrile`: cyanamide is retained for `NC-NH2` and the book prints no
