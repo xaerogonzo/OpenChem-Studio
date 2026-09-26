@@ -8,7 +8,7 @@
   {"do": "qc_nmr_report", "tag": "raw", "after_ms": 500},
   {"do": "shot", "path": "benchmarks/visual/artifacts/qm_nmr_raw.png", "after_ms": 1000},
 
-  {"do": "wait", "after_ms": 240000},
+  {"do": "wait", "after_ms": 60000},
   {"do": "qc_nmr_report", "tag": "referenced", "expect": {"referenced": true, "elements": ["C", "H"], "min_shift": 120.0}, "after_ms": 500},
   {"do": "shot", "path": "benchmarks/visual/artifacts/qm_nmr_referenced.png", "after_ms": 1000},
   {"do": "expect_clean"},

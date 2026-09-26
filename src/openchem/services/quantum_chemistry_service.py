@@ -3,13 +3,14 @@ from __future__ import annotations
 import dataclasses
 import json
 import logging
+import os
 import shutil
 import tempfile
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from PySide6.QtCore import QObject, QProcess
+from PySide6.QtCore import QObject, QProcess, QProcessEnvironment
 from rdkit import Chem
 
 from openchem.app.settings import Settings
@@ -19,7 +20,13 @@ from openchem.chem.nmr_reference import (
     average_reference_shielding,
     tms_molecule,
 )
-from openchem.chem.orca_engine import OrcaQuantumEngineProvider, parse_frontier_orbitals
+from openchem.chem.orca_engine import (
+    OrcaQuantumEngineProvider,
+    add_parallel_block,
+    default_cores,
+    find_mpi_bin,
+    parse_frontier_orbitals,
+)
 from openchem import paths as app_paths
 from openchem.domain.common import CacheState, Provenance
 from openchem.events.base import EventBus
@@ -612,6 +619,8 @@ class QuantumChemistryService(QObject):
         job_kind_for_manager = _job_manager_kind(kind)
         try:
             input_text = provider.build_input(mol, charge, multiplicity, method_basis, calc_type)
+            if getattr(provider, "supports_parallel", False):
+                input_text = add_parallel_block(input_text, self._effective_cores())
         except Exception as exc:  # noqa: BLE001 - bad input params, report don't crash
             self._cleanup_scratch(scratch_dir)
             self._publish_state(key, CacheState.FAILED, f"Failed to build input: {exc}")
@@ -628,6 +637,12 @@ class QuantumChemistryService(QObject):
         input_path.write_text(input_text, encoding="utf-8")
 
         process = QProcess(self)
+        mpi_bin = find_mpi_bin() if getattr(provider, "supports_parallel", False) else None
+        if mpi_bin:
+            # Not every process sees the installer's PATH change; see find_mpi_bin.
+            environment = QProcessEnvironment.systemEnvironment()
+            environment.insert("PATH", environment.value("PATH") + os.pathsep + mpi_bin)
+            process.setProcessEnvironment(environment)
         args = provider.command_args(executable_path, input_path)
         job = _ActiveJob(
             key=key,
@@ -1427,6 +1442,19 @@ class QuantumChemistryService(QObject):
         self._event_bus.publish(
             QuantumChemistryJobStateChanged(molecule_uuid=molecule_uuid, state=state, message=message)
         )
+
+    def _effective_cores(self) -> int:
+        """How many cores an ORCA job asks for: the `orca/cores` setting, or the
+        automatic choice. ALWAYS 1 when no MPI is installed, because a parallel
+        input without one aborts the job rather than running slowly."""
+        if find_mpi_bin() is None:
+            return 1
+        configured = self._settings.get("orca/cores", 0)
+        try:
+            cores = int(configured)
+        except (TypeError, ValueError):
+            cores = 0
+        return cores if cores >= 1 else default_cores()
 
     def _resolve_executable_path(self) -> str | None:
         """The ORCA executable, in NATIVE separator form.

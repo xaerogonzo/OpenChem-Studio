@@ -18,7 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Recorded, not built: selecting nuclei does not make an NMR run faster.** Measured on Salvinorin A (59 atoms, B3LYP/pcSseg-1, one core,
   ORCA 6.1.1): all nuclei 743 s, 13C only 883 s, 1H only 784 s. The ground-state SCF is 8 to 10 minutes of that and is the same whichever
   nuclei are asked for; the shielding tensors themselves take 4 s. A nuclei control was written and removed for that reason. PBE/pcSseg-1
-  took 214 s for 13C (about 4x, accuracy not yet benchmarked), and `%pal` needs MS-MPI, which is not installed here.
+  took 214 s for 13C (about 4x, accuracy not yet benchmarked).
+- **ORCA now uses several cores (Quantum Chemistry panel: "CPU cores").** It ran on one, which is why NMR took 12 minutes. Measured on the
+  same Salvinorin A job, all nuclei: 1 core 743 s, 8 cores 97 s, 16 cores 111 s, so the automatic choice (half the logical cores) is capped at
+  8; PBE/pcSseg-1 13C on 8 cores took 33 s. Needs Microsoft MPI (`mpiexec`, `winget install Microsoft.msmpi`); without it the box is pinned to 1,
+  because a parallel input with no MPI aborts the job rather than running slowly. Not benchmarked: PBE accuracy, so no "fast" preset yet.
 
 ### Post-round-14 program: nitramine hotfix, driver ledger, refusal kinds (branches `nitramine-hotfix`, `outcome-model`)
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import os
 
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -33,6 +34,8 @@ from openchem.chem.orca_engine import (
     METHOD_BASIS_PRESETS,
     NMR_METHOD_BASIS,
     SOLVENTS,
+    default_cores,
+    find_mpi_bin,
 )
 from openchem.domain.project import ProjectModel
 from openchem.domain.scientific_result import (
@@ -181,6 +184,16 @@ _HELP: dict[str, HelpTooltip] = {
         help_id="quantum.method_basis",
         topic="quantum-chemistry",
         help_anchor="quantum-chemistry",
+    ),
+    "cpu_cores": HelpTooltip(
+        text=(
+            "How many CPU cores ORCA uses for the calculation.\n\n"
+            "Measured on a 59-atom NMR job: 1 core 743 s, 8 cores 97 s, 16 cores 111 s. "
+            "Gains stop at about eight, so the automatic choice is capped there. "
+            "Needs Microsoft MPI."
+        ),
+        tier=2,
+        help_id="quantum.cpu_cores",
     ),
     "solvent_model": HelpTooltip(
         text=(
@@ -595,6 +608,22 @@ class QuantumChemistryPanel(QWidget):
         for solvent in SOLVENTS:
             self._solvent_combo.addItem(solvent or "None (gas phase)", solvent)
 
+        # Stored under `orca/cores`, which the service reads at launch. Without
+        # MPI a parallel job aborts, so the box is pinned to 1 and says why.
+        self._cores_spin = QSpinBox(self)
+        self._cores_spin.setRange(1, max(1, os.cpu_count() or 1))
+        apply_help_tooltip(self._cores_spin, _HELP["cpu_cores"])
+        if find_mpi_bin() is None:
+            self._cores_spin.setValue(1)
+            self._cores_spin.setEnabled(False)
+            self._cores_spin.setToolTip(
+                "Running on more than one core needs Microsoft MPI (mpiexec), which is not installed."
+            )
+        else:
+            stored = self._settings.get("orca/cores", 0)
+            self._cores_spin.setValue(int(stored) if stored and int(stored) >= 1 else default_cores())
+            self._cores_spin.valueChanged.connect(lambda value: self._settings.set("orca/cores", value))
+
         # Opt-in, because it costs one full ORCA run per conformer. Off by
         # default so nobody accidentally turns a 5-minute job into an hour.
         self._boltzmann_check = QCheckBox("Average over all conformers (Boltzmann)", self)
@@ -826,6 +855,7 @@ class QuantumChemistryPanel(QWidget):
         form.addRow("Multiplicity:", self._multiplicity_spin)
         form.addRow("Method/basis:", self._method_combo)
         form.addRow("Solvent (CPCM):", self._solvent_combo)
+        form.addRow("CPU cores:", self._cores_spin)
         form.addRow("", self._boltzmann_check)
 
         # **FIVE BUTTONS, AND A `QHBoxLayout`'s MINIMUM IS THEIR SUM.**
