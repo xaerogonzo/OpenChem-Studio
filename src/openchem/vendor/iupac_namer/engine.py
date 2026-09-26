@@ -11,6 +11,7 @@ from typing import Iterator
 from rdkit import Chem
 
 from openchem.vendor.iupac_namer.types import (
+    is_nitro_or_nitroso_nitrogen as _is_nitro_or_nitroso_nitrogen,
     OutputForm, NamingSession, NameTree, NamingPlan,
     LeafTree, ErrorTree, SaltTree, AdditiveTree, SubstitutiveTree,
     FunctionalClassTree,
@@ -1156,26 +1157,89 @@ def _name_heteroatom_fv_substituent(
     return None
 
 
-def _is_nitro_or_nitroso_nitrogen(atom) -> bool:
-    """A nitro (-N(=O)O-) or nitroso (-N=O) NITROGEN: the second nitrogen of an N-nitro or N-nitroso amine, amide, urea or guanidine.
+def _name_nitramide_functional_parent(
+    mol, output_form, decision_ctx, strategy, session, depth, perception=None,
+) -> LeafTree | None:
+    """Substituted nitramides and nitrous amides, R2N-NO2 and R2N-NO (naming round 17, D-166).
 
-    The urea and guanidine routes refuse an N-N bond because it makes a hydrazide or an amidrazone, which is named on another parent
-    ('hydrazinecarboxamide'). A nitro or nitroso group on the nitrogen is a SUBSTITUENT of that nitrogen ('N-nitroguanidine',
-    'N-nitrosourea'), not a second nitrogen of the core (naming round 16).
+    P-67.1.2.6.3 (pdf p. 708): "Nitramines are amides of nitric acid. The class is composed of 'nitramide' (a shortened form of nitric
+    amide), NO2-NH2, and the names of its derivatives are formed by substitution. Nitrosamines are amides of nitrous acid, NO-NH2 ...
+    Preferred IUPAC names for amides and hydrazides of nitric and nitrous acids are now systematically based on nitric or nitrous amide
+    and hydrazide, in accordance with the seniority order of classes rather than as nitro and nitroso amines; the latter names can be used
+    in general nomenclature." Printed (p. 709): "dipropylnitrous amide (PIN)" beside "N-nitroso-N-propylpropan-1-amine",
+    "(chloromethyl)(methyl)nitramide (PIN)" beside "1-chloro-N-methyl-N-nitromethanamine", "methyl(nitro)nitramide (PIN)" beside
+    "N,N-dinitromethanamine". Round 16 named these as the AMINE with a nitro or nitroso prefix, which is the book's non-PIN alternative.
+
+    The substitutable position is the one amino nitrogen, so its prefixes take no locant, as in the printed examples. Amides outrank
+    amines (P-41), so the parent is the nitramide unless a group of the amide class or above sits elsewhere (a carboxamide, a urea, a
+    carbamate ester, an acid): those are the parent and the nitro or nitroso group is a prefix on their nitrogen, which is what round
+    16 already does and the book prints ("N-methyl-N-nitrosourea (PIN)", "N'-nitro-N-nitroso-N-propylguanidine (PIN)").
+
+    A ring nitrogen is not this: it is the ring's nitro substituent ("1,3-dinitro-1,3-diazetidine"). Left alone, and not claimed either
+    way: more than one such nitrogen (a multiplicative parent, ethylenedinitramine), a cyano group on the nitrogen (cyanamide is retained
+    for it), and the nitric and nitrous HYDRAZIDES the same section names.
     """
-    if atom.GetAtomicNum() != 7 or atom.IsInRing():
-        return False
-    oxygens = [nb for nb in atom.GetNeighbors() if nb.GetAtomicNum() == 8]
-    if any(nb.GetDegree() != 1 for nb in oxygens):
-        return False
-    heavy = [nb for nb in atom.GetNeighbors() if nb.GetAtomicNum() > 1]
-    orders = sorted(
-        (atom.GetOwningMol().GetBondBetweenAtoms(atom.GetIdx(), nb.GetIdx()).GetBondTypeAsDouble(), nb.GetFormalCharge())
-        for nb in oxygens
+    candidates = []
+    for amino in mol.GetAtoms():
+        if (amino.GetAtomicNum() != 7 or amino.GetFormalCharge() != 0 or amino.IsInRing()
+                or amino.GetIsAromatic()
+                or any(b.GetBondTypeAsDouble() != 1.0 for b in amino.GetBonds())):
+            continue
+        acyl = [nb for nb in amino.GetNeighbors() if _is_nitro_or_nitroso_nitrogen(nb)]
+        if not acyl:
+            continue
+        if any(
+            nb.GetAtomicNum() == 7 and not _is_nitro_or_nitroso_nitrogen(nb)
+            and all(b.GetBondTypeAsDouble() == 1.0 for b in nb.GetBonds())
+            for nb in amino.GetNeighbors()
+        ):
+            # A second, all-single-bonded nitrogen is a hydrazine, not this parent. One that carries a multiple bond is a
+            # substituent group of its own: "isocyanatonitramide (PIN)" for OCN-NH-NO2 (p. 486), an azido or a diazenyl group.
+            return None
+        candidates.append((amino, acyl))
+    if len(candidates) != 1:
+        return None
+    amino, acyl = candidates[0]
+    if any(
+        nb.GetAtomicNum() == 6 and any(b.GetBondTypeAsDouble() == 3.0 for b in nb.GetBonds())
+        for nb in amino.GetNeighbors()
+    ):
+        return None
+    if any(
+        nb.GetAtomicNum() == 6 and any(
+            b.GetBondTypeAsDouble() == 2.0 and b.GetOtherAtom(nb).GetAtomicNum() in (7, 8, 16)
+            for b in nb.GetBonds()
+        )
+        for nb in amino.GetNeighbors()
+    ):
+        # The nitrogen is the amide, carbamate, imidamide or guanidine nitrogen of a CARBON acid, which outranks the amide of nitric
+        # acid ("N'-nitro-N-nitroso-N-propylguanidine (PIN)", p. 515). The seniority check below cannot always see it: the guanidine route
+        # declines an amidrazone, so an aminoguanidine hydrazone with a nitro group was named as a nitramide (the one census row this moved).
+        return None
+    # Nitric acid outranks nitrous acid, so with both on one nitrogen the nitro group is the parent's and the nitroso one a prefix.
+    core_n = next((nb for nb in acyl if nb.GetFormalCharge() == 1), acyl[0])
+    parent_name = "nitramide" if core_n.GetFormalCharge() == 1 else "nitrous amide"
+    core = {amino.GetIdx(), core_n.GetIdx()} | {
+        nb.GetIdx() for nb in core_n.GetNeighbors() if nb.GetAtomicNum() == 8
+    }
+    heavy = {a.GetIdx() for a in mol.GetAtoms() if a.GetAtomicNum() > 1}
+    if heavy == core:
+        # The bare parent: a retained-name lookup would be the usual route, but there is no table entry to add for a name the book
+        # derives from the parent's own class, so it is emitted here.
+        return LeafTree(
+            output_form=output_form,
+            free_valence=None,
+            choices_made=(Choice(type=f"{parent_name.replace(' ', '_')}_functional_parent", detail="bare parent"),),
+            decision_ctx=decision_ctx,
+            validity_warnings=None,
+            text=parent_name,
+        )
+    return _name_n_core_parent(
+        mol, core, free_ns=[amino], fixed={}, parent_name=parent_name,
+        output_form=output_form, decision_ctx=decision_ctx, strategy=strategy,
+        session=session, depth=depth, perception=perception,
+        seniority_limit=_N_CORE_PARENT_SENIORITY_LIMIT, cite_locants=False,
     )
-    if atom.GetFormalCharge() == 1:
-        return len(heavy) == 3 and orders == [(1.0, -1), (2.0, 0)]
-    return atom.GetFormalCharge() == 0 and len(heavy) == 2 and orders == [(2.0, 0)]
 
 
 def _name_urea_functional_parent(
@@ -10219,6 +10283,20 @@ def _name_bound(
         if sulfamide_tree is not None:
             _session.cache_store(smiles, output_form, fv_bond_orders, sulfamide_tree, attachment_indices)
             return sulfamide_tree
+
+    # --- Nitramide / nitrous amide functional parent (P-67.1.2.6.3) ---
+    # After urea, guanidine, carbamic acid and the rest, so a carbon parent that outranks the amide of a mineral acid gets the first
+    # refusal; this one declines when anything amide-class or senior sits outside its own atoms.
+    if (output_form == OutputForm.STANDALONE
+            and free_valence is None):
+        nitramide_tree = _name_nitramide_functional_parent(
+            mol, output_form, decision_ctx,
+            strategy=strategy, session=_session, depth=_depth,
+            perception=perception,
+        )
+        if nitramide_tree is not None:
+            _session.cache_store(smiles, output_form, fv_bond_orders, nitramide_tree, attachment_indices)
+            return nitramide_tree
 
     # --- Fulminic acid [C-]#[N+]O retained (P-66) ---
     # Hand-emit the correct protomer substituent name for the fulminic

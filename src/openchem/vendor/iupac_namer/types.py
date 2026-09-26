@@ -788,6 +788,29 @@ def _build_thio_ester_decomposition(
     )
 
 
+def is_nitro_or_nitroso_nitrogen(atom) -> bool:
+    """A nitro (-N(=O)O-) or nitroso (-N=O) NITROGEN: the second nitrogen of an N-nitro or N-nitroso amine, amide, urea, guanidine or carbamate.
+
+    The urea and guanidine routes, and the carbamate ester split, refuse an N-N bond because it makes a hydrazide, an amidrazone or a carbazate,
+    which are named on another parent ('hydrazinecarboxamide', 'hydrazinecarboxylic acid'). A nitro or nitroso group on the nitrogen is a
+    SUBSTITUENT of that nitrogen ('N-nitroguanidine', 'N-nitrosourea', 'ethyl nitrocarbamate'), not a second nitrogen of the core (naming round
+    16 for the first two, round 17 for the carbamate). Lives here, the lowest module both `engine` and the decomposition builders import.
+    """
+    if atom.GetAtomicNum() != 7 or atom.IsInRing():
+        return False
+    oxygens = [nb for nb in atom.GetNeighbors() if nb.GetAtomicNum() == 8]
+    if any(nb.GetDegree() != 1 for nb in oxygens):
+        return False
+    heavy = [nb for nb in atom.GetNeighbors() if nb.GetAtomicNum() > 1]
+    orders = sorted(
+        (atom.GetOwningMol().GetBondBetweenAtoms(atom.GetIdx(), nb.GetIdx()).GetBondTypeAsDouble(), nb.GetFormalCharge())
+        for nb in oxygens
+    )
+    if atom.GetFormalCharge() == 1:
+        return len(heavy) == 3 and orders == [(1.0, -1), (2.0, 0)]
+    return atom.GetFormalCharge() == 0 and len(heavy) == 2 and orders == [(2.0, 0)]
+
+
 def _build_carbamate_decomposition(fg: DetectedFG, mol: Any) -> Decomposition | None:
     """Build a Decomposition for a carbamate FG: R-O-C(=O)-NR'R''.
 
@@ -848,7 +871,8 @@ def _build_carbamate_decomposition(fg: DetectedFG, mol: Any) -> Decomposition | 
     # not a carbamate: "ethyl aminocarbamate" was this split (naming round
     # 5, N4).
     carbazate = any(
-        nb.GetAtomicNum() == 7 for nb in mol.GetAtomWithIdx(n_atom).GetNeighbors()
+        nb.GetAtomicNum() == 7 and not is_nitro_or_nitroso_nitrogen(nb)
+        for nb in mol.GetAtomWithIdx(n_atom).GetNeighbors()
     )
 
     # Find alkyl C — the non-acyl C neighbor of alkyl_o
