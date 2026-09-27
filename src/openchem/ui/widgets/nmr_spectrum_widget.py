@@ -60,15 +60,26 @@ class NmrSpectrumWidget(QWidget):
         super().__init__(parent)
         self._signals: list[NMRSignal] = list(signals or [])
         self._x_label = x_label
+        self._shielding = False
         self._highlighted_atoms: set[int] = set()
         self._frequency_mhz = DEFAULT_FREQUENCY_MHZ
         self._solvent: str | None = None
         self._element = "H"
         self.setMinimumSize(320, 200)
 
-    def set_signals(self, signals: list[NMRSignal], x_label: str = "δ (ppm)") -> None:
+    def set_signals(
+        self, signals: list[NMRSignal], x_label: str = "δ (ppm)", shielding: bool = False
+    ) -> None:
+        """`shielding=True` means the values are isotropic shielding σ, not a
+        chemical shift δ. The two run in OPPOSITE directions (δ = σ_ref − σ),
+        so a raw σ drawn on the descending δ axis is a mirror image of the
+        spectrum a chemist expects: the most shielded carbons (aliphatic,
+        σ high) land on the DOWNFIELD side. σ is therefore drawn ascending
+        left to right, which puts each nucleus where its δ will fall once
+        it is referenced, and the axis says σ so it cannot be read as δ."""
         self._signals = list(signals)
         self._x_label = x_label
+        self._shielding = shielding
         self._element = signals[0].element if signals else "H"
         self._highlighted_atoms.clear()
         self.update()
@@ -88,7 +99,8 @@ class NmrSpectrumWidget(QWidget):
         self.update()
 
     def _solvent_shift(self) -> float | None:
-        if not self._solvent:
+        # A solvent peak is a chemical shift; it has no place on a σ axis.
+        if not self._solvent or self._shielding:
             return None
         return RESIDUAL_SOLVENT_PEAKS.get(self._solvent, {}).get(self._element)
 
@@ -127,8 +139,14 @@ class NmrSpectrumWidget(QWidget):
     def _to_widget_x(self, shift: float, plot_rect: QRectF, x_range: tuple[float, float]) -> float:
         low, high = x_range
         # Descending ppm left-to-right, matching how every published NMR
-        # spectrum is drawn (and NmrCorrelationPlotWidget's axes).
-        fraction = (high - shift) / (high - low) if high != low else 0.5
+        # spectrum is drawn (and NmrCorrelationPlotWidget's axes). Shielding
+        # is the mirror image, see `set_signals`.
+        if high == low:
+            fraction = 0.5
+        elif self._shielding:
+            fraction = (shift - low) / (high - low)
+        else:
+            fraction = (high - shift) / (high - low)
         return plot_rect.left() + fraction * plot_rect.width()
 
     def hit_regions(self) -> list[tuple[QRectF, NMRSignal]]:
@@ -183,15 +201,18 @@ class NmrSpectrumWidget(QWidget):
             return
 
         x_range = self._axis_range()
+        left_value, right_value = (
+            (x_range[0], x_range[1]) if self._shielding else (x_range[1], x_range[0])
+        )
         painter.drawText(
             QRectF(plot_rect.left(), plot_rect.bottom(), 60, self._MARGIN / 2),
             Qt.AlignmentFlag.AlignLeft,
-            f"{x_range[1]:.1f}",
+            f"{left_value:.1f}",
         )
         painter.drawText(
             QRectF(plot_rect.right() - 60, plot_rect.bottom(), 60, self._MARGIN / 2),
             Qt.AlignmentFlag.AlignRight,
-            f"{x_range[0]:.1f}",
+            f"{right_value:.1f}",
         )
 
         # Tallest peak fills the plot area; everything else is proportional

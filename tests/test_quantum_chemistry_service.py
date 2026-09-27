@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import threading
 import sys
+import types
 import time
 from pathlib import Path
 
@@ -703,6 +704,64 @@ def test_calibration_does_not_apply_for_a_different_uncalibrated_method_basis(qa
     assert _wait_until(qapp, lambda: spectra)
 
     assert spectra[0].spectrum_type == "nmr_raw_shielding"  # unchanged, no reference for this method_basis
+
+
+def test_an_unreferenced_nmr_result_is_referenced_without_a_button_press(qapp, tmp_path):
+    """No cached TMS reference: the raw result is published first, then the
+    service runs the reference itself and republishes the SAME result as delta.
+    Before, the raw sigma stayed on screen forever unless someone knew to press
+    Calibrate, and sigma plotted as delta reads as a mirror-image spectrum."""
+    provider = _TmsLikeProvider()
+    service, bus = _make_service(tmp_path, provider)
+
+    spectra = []
+    bus.subscribe(SpectrumComputed, lambda e: spectra.append(e.spectrum))
+    service.request_calculation(
+        mol=Chem.MolFromSmiles("CO"), molecule_uuid="mol-1", calc_type="nmr",
+        charge=0, multiplicity=1, method_basis="B3LYP def2-SVP", provider_id="fake",
+    )
+
+    assert _wait_until(qapp, lambda: len(spectra) >= 2)
+    assert [s.spectrum_type for s in spectra[:2]] == ["nmr_raw_shielding", "nmr_calibrated"]
+    # delta = reference - sigma: C = 190 - 100, H = 30 - 25.
+    assert spectra[1].values == {0: 90.0, 1: 5.0}
+    assert spectra[1].molecule_uuid == "mol-1"
+    assert not service._awaiting_reference
+
+
+def test_a_second_unreferenced_run_does_not_start_a_second_reference(qapp, tmp_path):
+    provider = _TmsLikeProvider()
+    service, bus = _make_service(tmp_path, provider)
+    calibrated = []
+    bus.subscribe(NmrReferenceCalibrated, lambda e: calibrated.append(e))
+
+    service.request_reference_calibration("B3LYP def2-SVP", provider_id="fake")
+    spectrum = SpectrumResult(
+        spectrum_type="nmr_raw_shielding", name="raw", units="ppm", method="fake",
+        molecule_uuid="mol-1", values={0: 100.0}, elements={0: "C"},
+    )
+    job = next(iter(service._active_jobs.values()))
+    service._await_reference(spectrum, job)  # joins the running one
+
+    assert _wait_until(qapp, lambda: calibrated)
+    assert len(calibrated) == 1 and calibrated[0].error is None
+
+
+def test_a_failed_reference_leaves_nothing_waiting(qapp, tmp_path):
+    """A refusal before launch must not leave the raw result parked, or the
+    NEXT success would replay it over a newer result for the same molecule."""
+    provider = _TmsLikeProvider()
+    bus = EventBus()
+    service = QuantumChemistryService(bus, Settings(bus), providers={"fake": provider})  # no executable
+    spectrum = SpectrumResult(
+        spectrum_type="nmr_raw_shielding", name="raw", units="ppm", method="fake",
+        molecule_uuid="mol-1", values={0: 100.0}, elements={0: "C"},
+    )
+    job = types.SimpleNamespace(method_basis="B3LYP def2-SVP", provider=provider)
+
+    service._await_reference(spectrum, job)
+
+    assert not service._awaiting_reference
 
 
 def test_reference_job_and_real_molecule_job_use_separate_job_manager_kinds(qapp, tmp_path):

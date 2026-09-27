@@ -200,13 +200,24 @@ class Mapping:
     closest_pair: float
 
 
-def map_to_atoms(compound: Delta50Compound, our_shieldings: dict[int, float]) -> Mapping | None:
+def map_to_atoms(
+    compound: Delta50Compound, our_shieldings: dict[int, float], remove_offset: bool = False
+) -> Mapping | None:
     """Assign DELTA50's rows to our atom indices via the two calculations.
 
     Both are isotropic shieldings of the same molecule at comparable
     levels, so ordering them and matching in order is a correspondence
     between structures, not between a prediction and an answer. That is
     what keeps the ground truth independent of the lookup.
+
+    `remove_offset` centres the two sets of shieldings before the gap that
+    gates the mapping is measured. DELTA50's shieldings are from one fixed
+    level of theory, and a different method or basis moves EVERY carbon's
+    shielding by roughly the same amount (about 20 ppm from B3LYP/def2-SVP to
+    pcSseg-1), which the unadjusted gap reads as 47 of 47 compounds having no
+    correspondence. A constant offset cannot change the ORDER the atoms are
+    matched in, so the assignment is identical either way; only the gate moves,
+    and it then measures how well the two calculations agree in SPREAD.
     """
     mol = Chem.MolFromSmiles(compound.smiles)
     classes = carbon_classes(mol)
@@ -224,10 +235,13 @@ def map_to_atoms(compound: Delta50Compound, our_shieldings: dict[int, float]) ->
 
     shifts: dict[int, tuple[str, float]] = {}
     worst = 0.0
+    offset = 0.0
+    if remove_offset:
+        offset = sum(o[0] - t[2] for o, t in zip(ours, theirs, strict=True)) / len(ours)
     for (our_shielding, group), (label, experimental, their_shielding) in zip(
         ours, theirs, strict=True
     ):
-        worst = max(worst, abs(our_shielding - their_shielding))
+        worst = max(worst, abs(our_shielding - offset - their_shielding))
         for index in group:
             shifts[index] = (label, experimental)
     gaps = [b[0] - a[0] for a, b in zip(ours, ours[1:], strict=False)]

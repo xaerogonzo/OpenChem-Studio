@@ -24,6 +24,7 @@ every literature shift mapping is keyed to.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -36,7 +37,11 @@ from rdkit.Chem import AllChem
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 from openchem.chem.nmr_scaling import REFERENCE_COMPOUNDS  # noqa: E402
-from openchem.chem.orca_engine import OrcaQuantumEngineProvider  # noqa: E402
+from openchem.chem.orca_engine import (  # noqa: E402
+    OrcaQuantumEngineProvider,
+    add_parallel_block,
+    find_mpi_bin,
+)
 
 ORCA = Path(r"D:\ORCA\orca.exe")
 HERE = Path(__file__).resolve().parent
@@ -47,6 +52,13 @@ GEOMETRIES = HERE / "geometries"
 RAW = Path(r"D:\Random Programs\OpenChemStudio_Data\nmr_bench_raw")
 
 _provider = OrcaQuantumEngineProvider()
+
+#: Cores per job. Shieldings do not depend on it (checked on ethyl acetate: its
+#: highest and lowest carbon agree serial and on 8 cores), so it is not part
+#: of the cache key. 1 when no MPI is installed.
+CORES = int(os.environ.get("OPENCHEM_BENCH_CORES", "8")) if find_mpi_bin() else 1
+if find_mpi_bin():
+    os.environ["PATH"] += os.pathsep + find_mpi_bin()
 
 
 def slug(method_basis: str) -> str:
@@ -86,7 +98,7 @@ def raw_output(job: Job, mol: Chem.Mol, method_basis: str) -> str:
     path = RAW / slug(method_basis) / f"{job.name}.out"
     if path.exists():
         return path.read_text(encoding="utf-8", errors="replace")
-    text = _provider.build_input(mol, 0, 1, method_basis, "nmr")
+    text = add_parallel_block(_provider.build_input(mol, 0, 1, method_basis, "nmr"), CORES)
     # The scratch directory is named after the molecule, and ORCA truncates
     # its input path at the first space -- "Maleic anhydride" died in
     # startup with "Cannot open input file ...nmr_d50_Maleic". Same trap as

@@ -181,3 +181,22 @@ def test_a_molecule_with_no_protons_still_renders(qapp):
     back rather than raise on an empty proton list."""
     view, _backend, _molecule, _spectrum = _make_view(qapp, "ClC(Cl)(Cl)Cl")
     assert view._table.rowCount() == len(view.signals())
+
+
+def test_a_raw_shielding_result_is_labelled_sigma_and_drawn_ascending(qapp):
+    """The header says shielding, so the axis and the table must too: a
+    sigma on a delta axis read as a backwards spectrum."""
+    import dataclasses
+
+    view, _backend, molecule, spectrum = _make_view(qapp)
+    raw = dataclasses.replace(spectrum, spectrum_type="nmr_raw_shielding")
+    view.set_spectrum(molecule.molblock, raw)
+
+    assert view._spectrum_widget._shielding is True
+    assert "σ" in view._spectrum_widget._x_label
+    assert "σ" in view._table.horizontalHeaderItem(0).text()
+
+    view.set_spectrum(molecule.molblock, spectrum)
+    assert view._spectrum_widget._shielding is False
+    assert "δ" in view._spectrum_widget._x_label
+    assert view._table.horizontalHeaderItem(0).text() == "Shift (ppm)"

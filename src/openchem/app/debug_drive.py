@@ -2798,6 +2798,50 @@ class _Driver(QObject):
             )
         logger.warning("OPENCHEM_DRIVE: result %s %s", step.get("tag", ""), json.dumps(rows))
 
+    def _do_qc_nmr_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "qc_nmr_report", "tag": "after", "expect": {"referenced": true,
+        "elements": ["C", "H"], "min_shift": 120.0}}` -- what the Quantum Chemistry
+        panel's 1D Signals view holds: the spectrum type it was handed, whether the
+        axis is the shielding one, and the range of its carbon values.
+
+        **READ OFF THE WIDGET, NOT THE SERVICE.** The referenced spectrum reaches the
+        panel as a SECOND `SpectrumComputed`, after the raw one; a service that
+        published it and a panel that dropped it would log alike from the service's side.
+        """
+        panel = getattr(self._window, "_quantum_chemistry_panel", None)
+        view = getattr(panel, "_nmr_view", None)
+        if view is None or view._spectrum is None:
+            logger.error("OPENCHEM_DRIVE: qc_nmr_report -- the panel holds no NMR spectrum")
+            return
+        spectrum = view._spectrum
+        shifts = sorted(
+            value for index, value in spectrum.values.items() if spectrum.elements.get(index) == "C"
+        )
+        elements = sorted({e for e in spectrum.elements.values()})
+        report = {
+            "spectrum_type": spectrum.spectrum_type,
+            "shielding_axis": view._spectrum_widget._shielding,
+            "x_label": view._spectrum_widget._x_label,
+            "elements": elements,
+            "signals": len(shifts),
+            "carbon_min": shifts[0] if shifts else None,
+            "carbon_max": shifts[-1] if shifts else None,
+            "table_header": view._table.horizontalHeaderItem(0).text(),
+        }
+        logger.warning("OPENCHEM_DRIVE: qc_nmr %s %s", step.get("tag", ""), json.dumps(report))
+        expect = step.get("expect")
+        if expect:
+            failures = []
+            if "referenced" in expect and (spectrum.spectrum_type != "nmr_raw_shielding") != bool(expect["referenced"]):
+                failures.append(f"referenced != {expect['referenced']}")
+            if "elements" in expect and elements != sorted(expect["elements"]):
+                failures.append(f"elements {elements} != {expect['elements']}")
+            if "min_shift" in expect and (not shifts or shifts[-1] < float(expect["min_shift"])):
+                failures.append(f"highest shift {shifts[-1] if shifts else None} < {expect['min_shift']}")
+            (logger.error if failures else logger.warning)(
+                "OPENCHEM_DRIVE: EXPECT qc_nmr %s -- %s", "FAILED" if failures else "ok", "; ".join(failures)
+            )
+
     def _do_inspector_report(self, step: dict[str, Any]) -> None:
         """`{"do": "inspector_report", "tag": "after-edit"}` -- what the Atom
         Inspector is SHOWING for its subject: title, the pinned line, and

@@ -183,14 +183,24 @@ class NmrViewWidget(QWidget):
             return
         element = self._current_element()
         self._signals = build_nmr_signals(self._mol, self._spectrum, element)
+        # σ, not δ, until the result has been referenced: see
+        # `NmrSpectrumWidget.set_signals` for why the two cannot share an axis.
+        shielding = self._spectrum.spectrum_type == "nmr_raw_shielding"
+        symbol = "σ" if shielding else "δ"
         self._spectrum_widget.set_signals(
-            self._signals, x_label=f"{_ELEMENT_LABELS.get(element, element)} δ (ppm)"
+            self._signals,
+            x_label=f"{_ELEMENT_LABELS.get(element, element)} {symbol} (ppm)",
+            shielding=shielding,
         )
         self._populate_table()
         self._render_structure(highlighted=[])
 
     def _populate_table(self) -> None:
         method = self._spectrum.method if self._spectrum is not None else ""
+        raw = self._spectrum is not None and self._spectrum.spectrum_type == "nmr_raw_shielding"
+        self._table.setHorizontalHeaderItem(
+            0, QTableWidgetItem("Shielding σ (ppm)" if raw else _TABLE_COLUMNS[0])
+        )
         self._table.blockSignals(True)
         self._table.setRowCount(len(self._signals))
         for row, signal in enumerate(self._signals):

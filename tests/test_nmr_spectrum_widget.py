@@ -77,6 +77,27 @@ def test_higher_ppm_plots_further_left(qapp):
     assert x_high < x_low
 
 
+def test_shielding_plots_the_opposite_way_to_a_shift(qapp):
+    """sigma is the mirror of delta (delta = sigma_ref - sigma). A raw sigma
+    drawn on the descending delta axis put the most shielded carbons on the
+    downfield side: the Salvinorin A spectrum that looked backwards."""
+    widget = NmrSpectrumWidget()
+    widget.set_signals([_signal(1.0)], x_label="13C sigma (ppm)", shielding=True)
+    plot_rect = widget._plot_rect()
+    x_low = widget._to_widget_x(0.0, plot_rect, (0.0, 10.0))
+    x_high = widget._to_widget_x(10.0, plot_rect, (0.0, 10.0))
+    assert x_high > x_low
+
+
+def test_shielding_ignores_a_solvent_peak_which_is_a_shift(qapp):
+    widget = NmrSpectrumWidget()
+    widget.set_signals([_signal(1.0)], shielding=True)
+    widget.set_solvent("CDCl3")
+    assert widget._solvent_shift() is None
+    widget.set_signals([_signal(1.0)], shielding=False)
+    assert widget._solvent is not None
+
+
 def test_clicking_a_peak_emits_its_atom_indices(qapp):
     widget = NmrSpectrumWidget([_signal(7.2, 2, [11, 12]), _signal(1.4, 3, [20, 21, 22])])
     widget.resize(400, 250)
