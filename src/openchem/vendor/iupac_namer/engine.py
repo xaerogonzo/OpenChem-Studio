@@ -614,6 +614,67 @@ def _name_ring_nitrogen_acyl_substituent(
     )
 
 
+def _hydrazinylidene_prefix(mol, attachment_idx, n2_idx, comp, strategy, session, depth) -> str | None:
+    """The prefix for =N-N(R)(R') on a parent, `hydrazinylidene` and its substituted forms (naming round 20, D-170).
+
+    P-66.4.1.2 / p. 682 (verbatim): "3-amino-3-hydrazinylidenepropanoic acid (PIN)"; p. 717 prints "nitrosohydrazinylidene (preselected prefix)". The
+    engine's general `<R>imino` rule read the whole family as an imino group on an amino group ("(aminoimino)", "(methylaminoimino)"), which OPSIN
+    parses back to the right structure but is not the name. N2's substituents are cited with the locant 2 ("2-methylhydrazinylidene", "2,2-dimethyl-
+    hydrazinylidene"); a lone nitro or nitroso group is written unlocanted, as the book prints it. Returns None (so the caller keeps the imino form)
+    for a second nitrogen on N2 (a triazane), a ring or charged or unsaturated N2, or a substituent that cannot be named.
+    """
+    from openchem.vendor.iupac_namer.perception.extraction import carve_substituent
+    from openchem.vendor.iupac_namer.assembly import (
+        assemble as _assemble,
+        merge_identical_prefixes,
+        render_merged_prefixes,
+    )
+
+    n2 = mol.GetAtomWithIdx(n2_idx)
+    if (n2.GetAtomicNum() != 7 or n2.GetFormalCharge() != 0 or n2.IsInRing() or n2.GetIsAromatic()
+            or n2.GetNumRadicalElectrons() != 0
+            or any(bond.GetBondTypeAsDouble() != 1.0 for bond in n2.GetBonds())):
+        return None
+    pool = set(comp) - {n2_idx}
+    names: list[str] = []
+    for nb in n2.GetNeighbors():
+        if nb.GetIdx() == attachment_idx or nb.GetAtomicNum() == 1:
+            continue
+        if (nb.GetAtomicNum() == 7 and not _is_nitro_or_nitroso_nitrogen(nb)) or nb.GetIdx() not in pool:
+            return None
+        piece = frozenset(_reach_from(nb.GetIdx(), pool, mol))
+        pool -= piece
+        try:
+            frag_mol, att_idx_sub, _ = carve_substituent(mol, piece, (n2_idx, nb.GetIdx()))
+            sub_tree = name(
+                frag_mol, strategy, OutputForm.SUBSTITUENT,
+                free_valence=FreeValenceInfo(
+                    bond_orders=(1,),
+                    method=_select_substituent_method(frag_mol, att_idx_sub),
+                    attachment_atoms_in_fragment=(att_idx_sub,),
+                    elide_locant_one=_fvi_elide_locant_one(frag_mol, att_idx_sub),
+                ),
+                decision_ctx=DecisionContext(role="amino_substituent", parent_plan=None, depth=depth + 1),
+                _session=session, _depth=depth + 1,
+            )
+            sub_name = _assemble(sub_tree)
+        except Exception as e:
+            logger.debug("hydrazinylidene substituent carve/name failed: %s", e)
+            return None
+        if not sub_name or "[NAMING ERROR" in sub_name:
+            return None
+        names.append(sub_name)
+    if pool:
+        return None
+    if not names:
+        return "hydrazinylidene"
+    if names in (["nitro"], ["nitroso"]):
+        return names[0] + "hydrazinylidene"
+    merged = merge_identical_prefixes([(n, (Locant.numeric(2),)) for n in names])
+    merged.sort(key=lambda m: m.sort_name)
+    return render_merged_prefixes(merged).rstrip("-") + "hydrazinylidene"
+
+
 def _name_heteroatom_fv_substituent(
     mol,
     output_form: OutputForm,
@@ -1050,6 +1111,20 @@ def _name_heteroatom_fv_substituent(
             return None
 
         comp, nb_idx = sub_components[0]
+        # =N-N(R)(R') is `hydrazinylidene`, not an imino group on an amino group (naming round 20, D-170).
+        _hyd = _hydrazinylidene_prefix(mol, attachment_idx, nb_idx, comp, strategy, session, depth)
+        if _hyd is not None:
+            return LeafTree(
+                output_form=output_form,
+                free_valence=free_valence,
+                choices_made=(Choice(
+                    type="hydrazinylidene_substituent",
+                    detail=f"prefix={_hyd}, P-66.4.1.2 / p. 682",
+                ),),
+                decision_ctx=decision_ctx,
+                validity_warnings=None,
+                text=_hyd,
+            )
         try:
             frag_mol, att_idx_sub, _ = carve_substituent(
                 mol, comp, (attachment_idx, nb_idx),

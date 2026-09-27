@@ -453,6 +453,10 @@ _LEADING_PREFIX_WORDS = (
 def _is_simple_by_form(name: str) -> bool:
     if not re.fullmatch(r"[a-z]+", name):
         return False
+    if name == "hydrazinylidene":
+        # The book prints the bare group unenclosed: "3-amino-3-hydrazinylidenepropanoic acid (PIN)" (pdf p. 682; naming round 20, D-170). A substituted
+        # one ("2-methylhydrazinylidene") is compound and enclosed as usual, and so are "nitrohydrazinylidene" and "nitrosohydrazinylidene".
+        return True
     if any(token in name for token in _ENCLOSE_ANYWAY):
         return False
     if name == "thiocyanato":

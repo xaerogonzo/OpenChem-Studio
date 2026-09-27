@@ -1817,3 +1817,27 @@ control rows (`test_a_senior_group_or_another_shape_keeps_its_name_over_a_nitric
 
 **Not fixed, found on the way** (`KNOWN_LIMITATIONS.md`): the SUBSTITUENT names of a hydrazone or hydrazine, queued as `D-170`. The book prints `3-amino-3-hydrazinylidenepropanoic acid (PIN)` (p. 682) and `nitrosohydrazinylidene (preselected
 prefix)` (p. 717); the engine writes `3-amino-3-(aminoimino)propanoic acid` and `(R-aminoimino)` for the whole `=N-NH-R` family, of which round 18's `(nitramidoimino)` is one member.
+
+
+## 2026-09-26 -- naming round 20 (D-170): the SUBSTITUENT `hydrazinylidene`
+
+Found while fixing D-169 and queued there. P-66.4.1.2 (pdf p. 682), verbatim: "3-amino-3-hydrazinylidenepropanoic acid (PIN)"; p. 717 prints "nitrosohydrazinylidene (preselected prefix)". The engine's general `<R>imino` rule
+(`_name_heteroatom_fv_substituent`, the `=N-R` case) read the whole `=N-NH-R` family as an imino group on an amino group: `OC(=O)CC(N)=NN` was `3-amino-3-(aminoimino)propanoic acid`, `OC(=O)CC(C)=NNC`
+`3-(methylaminoimino)butanoic acid`, an acyl hydrazone `3-acetamidoiminobutanoic acid`, round 18's `D-168f` `(nitramidoimino)acetic acid`. OPSIN reads every one of them back to the right structure; they are not the name.
+
+**One new helper.** `_hydrazinylidene_prefix` writes `hydrazinylidene` for `=N-N(R)(R')`, with N2's substituents cited at 2 (`2-methylhydrazinylidene`, `2,2-dimethylhydrazinylidene`, `2-ethyl-2-methylhydrazinylidene`,
+`2-(4-chlorophenyl)hydrazinylidene`) and a lone nitro or nitroso group unlocanted, as the book prints it (`nitrosohydrazinylidene`). It returns None, and the imino form stays, for an azine (N2 unsaturated), a ring N2 and a
+triazane. `assembly._is_simple_by_form` leaves the BARE group unenclosed, as the book prints it (`3-amino-3-hydrazinylidenepropanoic acid`); every substituted form is compound and enclosed. The helper's first version
+called `carve_substituent` and `_assemble`, which are LOCAL imports of the function it was written beside: the NameError was swallowed by the helper's own `except Exception: return None`, so it "declined" everything but the
+bare group and the first run looked half-right. Both are imported inside the helper now.
+
+**Measured.** Census scan (2000 rows): 97.95% exact before and after, **0 rows changed class and 19 changed name**, all of them this prefix (acyl hydrazones `4-[(4-methylbenzamidoimino)methyl]phenol` ->
+`4-{[2-(4-methylbenzoyl)hydrazinylidene]methyl}phenol`, aryl hydrazones, a fluorenone hydrazone) and every one exact both times. ref-compare against master (`9f5e745`): 1712 structures, **19 names changed, all in the tuning
+population, all reading back, all listed in `benchmarks/naming/stages/manifests/r20-release-candidate.toml`, 0 violations**. **The blind frozen impact CHANGED** (`bluebook_frozen` 14 of 1126, `heldout_v6` unchanged), so the
+frozen sets were scored ONCE (`r20-final-evaluation`), in aggregate: every population is IDENTICAL to round 19's (`bluebook_frozen` exact 510, equivalent 535, wrong_structure 22, unparsable 46, no_prediction 13). The tuning
+population gained three exact names (`verbatim` 510 -> 513 of 1129), one of them the printed p. 682 PIN. Vendored suite: no failure in the 5450-odd tests (a `-q -q` run prints no summary line, so the count is from the
+progress lines); the naming, docs and source-scanning test files 2378 passed. The evidence is the rows `D-170a-m` and five control rows, each fixed row verified by OPSIN read-back. Nine changes were each removed in turn and a
+row failed for eight (the ring-N2 test alone is an equivalent mutant: a ring N2 is already declined by the substituent walk, and is kept so the function is right on its own).
+
+**Not fixed, found on the way** (`KNOWN_LIMITATIONS.md`): the acyl hydrazones the census shows are named on a prefix here and on the wrong parent for the book (P-66.3.3 names the hydrazide, `N'-...-ylideneacetohydrazide`); an azine
+(`C=N-N=C`) still reads `[(ethylidene)aminoimino]`.
