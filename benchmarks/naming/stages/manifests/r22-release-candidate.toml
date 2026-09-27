@@ -1,0 +1,13 @@
+# Round 22's full ref-compare manifest, against master's pre-round-22 tip (f9370fc8): hydrazones of a carbon-acid hydrazide (D-171). The 1 row below is the
+# ONLY one the round moved across r7, r8, mc and pop (1712 structures), in the heldout_v5 population, not frozen. It is an acylhydrazide-hydrazone that was
+# named as a substituted hydrazine; now the hydrazide is the parent with an N'-ylidene, matching the book's own pattern for the nitric/nitrous hydrazide
+# (D-169). The new name reads back to the input, as did the old one, so the change is the parent choice, never the structure.
+
+stage = "r22-release-candidate"
+
+[[expect]]
+id = "pop:heldout_v5:h5cid39125"
+expect = "MUST_CHANGE"
+reason_rule_id = "hydrazide-hydrazone-ylidene (D-171)"
+expected_layer = "candidate_generation"
+expected_name = "2-{4-bromo-2-[(piperidin-1-yl)methyl]phenoxy}-N'-[(4-methoxyphenyl)methylidene]acetohydrazide"

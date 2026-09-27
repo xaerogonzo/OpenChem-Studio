@@ -3858,6 +3858,25 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "{[NAMING ERROR: No valid naming plan found for N[Cl+]=O]}methane",
      "a CHARGED halogen is not one of the four neutral acids this route recognizes (a formal +1 changes what the oxo count even means); "
      "unaffected, still unnamed, either side of this round"),
+
+    # --- D-171 (naming round 22): hydrazones of a carbon-acid hydrazide, R-C(=O)-NH-N=CR'R'' -----------------------------------------------------------------------------
+    # P-66.3.3 (a hydrazide's own section) prints the pattern already used for the nitric/nitrous hydrazide (round 19), "N'-hexylidenenitrous hydrazide (PIN)" (pdf p.
+    # 709): the hydrazide is the parent and the hydrazone carbon is an N'-ylidene. The `fg:hydrazide` SMARTS (`data/functional_groups.json`) required BOTH nitrogens at
+    # NX3 (three connections), which a hydrazone's terminal =N- (NX2, double-bonded to carbon) failed, so the whole molecule fell through to a substituted-hydrazine
+    # parent instead ("1-acetyl-2-hexylidenehydrazine"). The fix is one recursive SMARTS clause on the terminal nitrogen, `$([NX2;!R]=[#6])`, restricted to a CARBON
+    # partner so a genuine azo/triazene nitrogen (`-NH-N=N-R`, a different class entirely) is not mistaken for a hydrazone. Everything downstream (the N/N' prime
+    # locants, the ylidene substituent naming) was already general machinery (Pass 2.5a's "PCG N-substituents"), built for ordinary N-alkyl/N-aryl hydrazide
+    # substituents and untouched here; it renders a bond-order-2 substituent as an ylidene without any further code change.
+    ("D-171a", "CC(=O)NN=CCCCCC", "N'-hexylideneacetohydrazide", "1-acetyl-2-hexylidenehydrazine", "the pattern itself, on the simplest acyl chain"),
+    ("D-171b", "CC(=O)NN=Cc1ccccc1", "N'-benzylideneacetohydrazide", "1-acetyl-2-(phenylmethylidene)hydrazine",
+     "a phenyl ylidene: the retained 'benzylidene' (round 21, D-173) is reached the same way as any other N'-ylidene"),
+    ("D-171c", "CC(=O)NN=C(C)C", "N'-(propan-2-ylidene)acetohydrazide", "1-acetyl-2-(propan-2-ylidene)hydrazine", "a ketone-derived (disubstituted) ylidene"),
+    ("D-171d", "CC(=O)N(C)N=CC", "N'-ethylidene-N-methylacetohydrazide", "1-acetyl-2-ethylidene-1-methylhydrazine",
+     "N and N' both substituted: the fixed N/N' role primes (P-66.3, `_role_primes`) already handle this, unchanged"),
+    ("D-171e", "CC(=O)NN=C(N)N", "N'-(diaminomethylidene)acetohydrazide", "(2-acetylhydrazinylidene)methanediamine",
+     "a hydrazone carbon bearing two amino groups (a substituted guanidine this engine's guanidine perception does not claim, mirroring the same shape's "
+     "own control row under the nitric hydrazide, D-169): the hydrazide (class 12) now correctly outranks the bare amine that used to be picked as parent"),
+    ("D-171f", "CCCCCC(=O)NN=CC", "N'-ethylidenehexanehydrazide", "1-ethylidene-2-hexanoylhydrazine", "a longer acyl chain names the suffix, not a prefix, on the hydrazide"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -4843,4 +4862,20 @@ def test_a_senior_group_or_another_shape_keeps_its_name_over_a_nitric_hydrazide(
 )
 def test_a_hydrazone_parent_azine_triazane_or_ring_nitrogen_is_not_named_hydrazinylidene(smiles, expected):
     """`_hydrazinylidene_prefix` returns None for an N2 that is unsaturated, a ring member, or bonded to a further nitrogen; these are the names they had (naming round 20)."""
+    assert name_smiles(smiles) == expected
+
+
+@pytest.mark.parametrize(
+    "smiles, expected",
+    [
+        # an AZO/triazene nitrogen (-NH-N=N-R) is NOT a hydrazone: the `fg:hydrazide` SMARTS restricts its new NX2 clause to a =C partner
+        # specifically, so this stays the diazene it was (naming round 22, D-171)
+        ("CC(=O)NN=NC", "1-acetamido-2-methyldiazene"),
+        # a ring N2 on a carbon-acid hydrazide (as opposed to the ylidene case) is a plain N-substituted amide, unaffected
+        ("CC(=O)NN1CCCCC1", "1-acetamidopiperidine"),
+    ],
+)
+def test_an_azo_nitrogen_on_a_hydrazide_is_not_a_hydrazone(smiles, expected):
+    """The hydrazide FG's relaxed terminal-N clause, `$([NX2;!R]=[#6])`, requires the double bond partner to be carbon; an N=N (azo/triazene) shape must keep
+    declining the hydrazide route exactly as it did before round 22 (D-171)."""
     assert name_smiles(smiles) == expected

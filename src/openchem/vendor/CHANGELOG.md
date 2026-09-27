@@ -1910,3 +1910,43 @@ and a row failed for all ten. Evidence: rows `D-178a-m`.
   `3,3'-[ethane-1,2-diylbis(azanylylidene)]dipropanoic acid`); it is not implemented, because nitramide is a hand-built functional parent rather than an
   ordinary suffix, and wiring it into `multiplicative.py`'s machinery is a separate piece of work. Recorded here so the next round starts from a verified
   target rather than a guess.
+
+
+## 2026-09-27 -- naming round 22 (D-171): hydrazones of a carbon-acid hydrazide are named on the hydrazide
+
+Round 21 investigated this and left it open, expecting a broad change to the FG-suffix rendering pipeline. It turned out to be one character.
+
+P-66.3.3 prints the same pattern round 19 built for the nitric/nitrous hydrazide (P-67.1.2.6.3), "N'-hexylidenenitrous hydrazide (PIN)" (pdf p. 709):
+`CC(=O)NN=CCCCCC` was `1-acetyl-2-hexylidenehydrazine` (a substituted hydrazine, the non-preferred general-nomenclature form) and is `N'-hexylideneacetohydrazide`.
+
+**The cause.** The `fg:hydrazide` SMARTS (`data/functional_groups.json`) is
+`[CX3;!R;...](=O)[NX3;!R][NX3;!R]` -- BOTH nitrogens required at `NX3` (three connections). The acyl-adjacent nitrogen of `R-C(=O)-NH-N=CR'R''` is `NX3`
+(bonded to the carbonyl, H, and N), but the terminal nitrogen (`=N-CR'R''`) has only two connections (one single bond to N, one double bond to C) --
+`NX2` -- so the SMARTS never matched a hydrazone at all, and the whole molecule fell through to a substituted-hydrazine parent.
+
+**The fix.** The terminal nitrogen's clause becomes `[$([NX3;!R]),$([NX2;!R]=[#6])]`: NX3 as before, OR NX2 double-bonded specifically to a CARBON. The
+carbon restriction matters: without it, an azo/triazene nitrogen (`-NH-N=N-R`, `NX2` too, but a different functional class entirely) would be
+misclassified as a hydrazide's hydrazone (measured: `CC(=O)NN=NC`, an acylhydrazide-azo compound, briefly became `N'-(methylimino)acetohydrazide`
+before the restriction, structurally correct by OPSIN read-back but the wrong class -- a genuine defect a control row now pins against).
+
+**Nothing downstream needed touching.** Pass 2.5a ("PCG N-substituents"), the general machinery that already carves N-alkyl and N-aryl hydrazide
+substituents and assigns N/N' role primes (`_role_primes`, P-66.3), reads `attachment_bond_order` off the actual bond and was already prepared to render
+a bond-order-2 substituent as an ylidene -- it had simply never been offered one. The retained `benzylidene` spelling (round 21, D-173) is reached the
+same way any other ylidene is, with no special case (`N'-benzylideneacetohydrazide`).
+
+**A genuine bonus fix.** `CC(=O)NN=C(N)N` (a hydrazone carbon bearing two amino groups, the same shape D-169's own control rows pin as "not a guanidine
+this engine's perception claims") was `(2-acetylhydrazinylidene)methanediamine` -- an AMINE chosen as parent over a HYDRAZIDE, which P-41's seniority
+order never allows. It is now `N'-(diaminomethylidene)acetohydrazide`, matching the same amine-not-class-11 pattern D-169 had already established for
+the nitric hydrazide.
+
+**Measured.** Census scan (2000 rows): 97.95% exact before and after, **0 rows changed class and 40 changed name**, all this pattern (39 exact -> exact,
+one same_connectivity -> same_connectivity, unrelated pre-existing stereo issue) -- the family is common in drug-like corpora, not a corner case.
+ref-compare against master (`f9370fc8`): 1712 structures, **1 changed** (a `heldout_v5` row), reading back both ways, listed in
+`benchmarks/naming/stages/manifests/r22-release-candidate.toml`, 0 violations. **The blind frozen impact CHANGED** (`bluebook_frozen` 1 of 1126,
+`heldout_v6` 1 of 40), so the frozen sets were scored ONCE (`r22-final-evaluation`), in aggregate: every population is IDENTICAL to round 21's
+(`bluebook_frozen` exact 511, `heldout_v6` exact 13). Vendored suite: 5488 passed (no fixture regression this round). Naming/docs/source-scanning
+files 2405 passed. Two guards (the ylidene clause itself, the carbon restriction) were each removed in turn and a control row failed for both.
+
+**Also found, not fixed:** plain thiohydrazides (`CC(=S)NN` is `(1-thioxoethyl)hydrazine`, not `acetothiohydrazide`) are a separate, pre-existing defect
+independent of the hydrazone question -- the `fg:hydrazide` SMARTS matches only a carbonyl oxygen, with no generic chalcogen-swap path the way
+carboxamide/carbothioamide share. Recorded in `KNOWN_LIMITATIONS.md`.
