@@ -51,7 +51,7 @@ from openchem.chem import nmr_database  # noqa: E402
 MAX_SHIELDING_GAP = 8.0
 
 
-def build(method: str):
+def build(method: str, remove_offset: bool = False):
     store = json.loads((SHIELDINGS / f"{slug(method)}.json").read_text(encoding="utf-8"))
     factors = sh.calibrate(store, "C")
     inputs, dropped = [], []
@@ -61,7 +61,7 @@ def build(method: str):
             dropped.append((compound.name, "no shieldings"))
             continue
         raw = {int(i): v for i, v in entry["shieldings"].items() if entry["elements"][i] == "C"}
-        mapping = delta50.map_to_atoms(compound, raw)
+        mapping = delta50.map_to_atoms(compound, raw, remove_offset)
         if mapping is None:
             dropped.append((compound.name, "no atom correspondence"))
             continue
@@ -125,8 +125,10 @@ def band_reality_check(inputs) -> str:
 
 
 def main() -> None:
-    method = sys.argv[1] if len(sys.argv) > 1 else "B3LYP def2-SVP"
-    factors, inputs, dropped = build(method)
+    remove_offset = "--remove-offset" in sys.argv
+    argv = [a for a in sys.argv if a != "--remove-offset"]
+    method = argv[1] if len(argv) > 1 else "B3LYP def2-SVP"
+    factors, inputs, dropped = build(method, remove_offset)
     print(f"{method}: slope {factors.slope:.4f}  R^2 {factors.r_squared:.5f}  "
           f"residual RMS {factors.residual_rms:.3f} ppm")
     print(f"{len(inputs)} compounds usable, {len(dropped)} dropped")
@@ -143,7 +145,7 @@ def main() -> None:
     print("Lookup band errors on THIS corpus vs what the strategies assume:")
     print(band_reality_check(everything), "\n")
 
-    out = Path(sys.argv[2]) if len(sys.argv) > 2 else HERE / "reports"
+    out = Path(argv[2]) if len(argv) > 2 else HERE / "reports"
     out.mkdir(parents=True, exist_ok=True)
     sections = []
     for label, subset in (("development", dev), ("held-out", test), ("all", everything)):

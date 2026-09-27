@@ -338,3 +338,20 @@ uv run --no-sync python benchmarks/nmr/run_delta50.py "B3LYP def2-SVP"
 
 The second needs no ORCA install. Reports, per-atom decision matrices and
 SVG plots land in `benchmarks/nmr/reports/`.
+
+# PBE against B3LYP at pcSseg-1, as a candidate "fast" NMR preset
+
+Question: is PBE/pcSseg-1 (33 s against 97 s on 8 cores for a 59-atom molecule, 214 s against 743 s on one) accurate enough to offer as a fast preset?
+
+**Bar, fixed before any number existed:** scaled 13C mean error on DELTA50 within 0.5 ppm of B3LYP/pcSseg-1's.
+
+| method | n | MAE (ppm) | 95% CI | RMSE | worst |
+|---|---|---|---|---|---|
+| B3LYP pcSseg-1 | 209 | 2.64 | 2.28 to 2.99 | 3.29 | 8.45 |
+| PBE pcSseg-1 | 209 | 3.33 | 2.96 to 3.72 | 3.96 | 9.82 |
+
+Both use the same 47 compounds and the same 11 calibration standards (`orca_only` row of `run_delta50.py`, all compounds). The gap is 0.69 ppm and the bar was 0.5, so **no preset**. The mapping and the scaling fit agree closely across the two (residual RMS 2.01 against 2.07 ppm), so the loss is in the shifts and not in the calibration.
+
+**A harness change made after seeing a failure, disclosed.** The first scoring run dropped all 47 compounds for BOTH methods: the atom-correspondence gate compares our shieldings with DELTA50's, which come from another level of theory, and a different basis moves every carbon by about 20 ppm. `--remove-offset` centres the two sets before the gate is measured (worst gap then 6.5 to 6.8 ppm, under the 8 ppm limit). A constant offset cannot change the order the atoms are matched in, so the assignment is unchanged; only the gate moves. It is off by default, so the committed def2-SVP reports are untouched, and it was applied identically to both methods.
+
+Reproduce: `run_shieldings.py "PBE pcSseg-1" --delta50` (and B3LYP), then `run_delta50.py "<method>" <outdir> --remove-offset`. `run_shieldings.py` now runs ORCA on 8 cores when MS-MPI is installed (`OPENCHEM_BENCH_CORES`); shieldings do not depend on core count.

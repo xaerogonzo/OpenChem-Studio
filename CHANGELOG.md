@@ -22,7 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **ORCA now uses several cores (Quantum Chemistry panel: "CPU cores").** It ran on one, which is why NMR took 12 minutes. Measured on the
   same Salvinorin A job, all nuclei: 1 core 743 s, 8 cores 97 s, 16 cores 111 s, so the automatic choice (half the logical cores) is capped at
   8; PBE/pcSseg-1 13C on 8 cores took 33 s. Needs Microsoft MPI (`mpiexec`, `winget install Microsoft.msmpi`); without it the box is pinned to 1,
-  because a parallel input with no MPI aborts the job rather than running slowly. Not benchmarked: PBE accuracy, so no "fast" preset yet.
+  because a parallel input with no MPI aborts the job rather than running slowly. Benchmarked and NOT offered as a "fast" preset: on DELTA50 13C
+  (209 carbons, 47 compounds, scaled against the same 11 standards) PBE/pcSseg-1 has a mean error of 3.33 ppm [95% CI 2.96, 3.72] against
+  2.64 [2.28, 2.99] for B3LYP/pcSseg-1. The bar was set before either number existed: within 0.5 ppm. The 0.69 ppm gap misses it, and with
+  eight cores B3LYP already takes 97 s where PBE takes 33 s.
 
 ### Post-round-14 program: nitramine hotfix, driver ledger, refusal kinds (branches `nitramine-hotfix`, `outcome-model`)
 
