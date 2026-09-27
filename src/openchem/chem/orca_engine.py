@@ -416,11 +416,13 @@ NMR_METHOD_BASIS = "B3LYP pcSseg-1"
 SOLVENTS = ["", "Chloroform", "DMSO", "Water", "Methanol", "Acetone", "Toluene", "Benzene"]
 
 
-# Measured on Salvinorin A (59 atoms, B3LYP/pcSseg-1 NMR, this machine, ORCA
-# 6.1.1): 1 core 743 s, 8 cores 97 s, 16 cores 111 s. Past about eight the
-# job stops scaling and starts paying for the extra processes, so the
-# automatic choice is capped there; the setting can still go higher.
+#: Measured on Salvinorin A (59 atoms, B3LYP/pcSseg-1 NMR, this machine, ORCA
+#: 6.1.1): 1 core 743 s, 8 cores 97 s, 16 cores 111 s. Past about eight the
+#: job stops scaling and starts paying for the extra processes, so the
+#: automatic choice is capped there; the setting can still go higher.
 AUTO_CORES_CAP = 8
+#: Where the MS-MPI installer puts `mpiexec`, for a process started before the
+#: installer changed the system PATH.
 _MPI_BIN_DIRS = (r"C:\Program Files\Microsoft MPI\Bin",)
 
 

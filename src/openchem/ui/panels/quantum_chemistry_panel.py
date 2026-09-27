@@ -622,7 +622,7 @@ class QuantumChemistryPanel(QWidget):
         else:
             stored = self._settings.get("orca/cores", 0)
             self._cores_spin.setValue(int(stored) if stored and int(stored) >= 1 else default_cores())
-            self._cores_spin.valueChanged.connect(lambda value: self._settings.set("orca/cores", value))
+            self._cores_spin.valueChanged.connect(self._on_cores_changed)
 
         # Opt-in, because it costs one full ORCA run per conformer. Off by
         # default so nobody accidentally turns a 5-minute job into an hour.
@@ -1149,6 +1149,9 @@ class QuantumChemistryPanel(QWidget):
                     self._calc_type_combo.setCurrentIndex(index)
                     return True
         return False
+
+    def _on_cores_changed(self, value: int) -> None:
+        self._settings.set("orca/cores", value)
 
     def _on_calc_type_changed(self, label: str) -> None:
         """Steers NMR runs onto an NMR-appropriate basis.
