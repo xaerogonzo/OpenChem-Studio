@@ -788,7 +788,7 @@
         },
         {
             "name": "hydrazide",
-            "smarts": "[CX3;!R;!$([CX3](=O)([!#6;!#1;!R])[!#6;!#1;!R;!$([NX3][NX3])])](=O)[NX3;!R][NX3;!R]",
+            "smarts": "[CX3;!R;!$([CX3](=O)([!#6;!#1;!R])[!#6;!#1;!R;!$([NX3][NX3])])](=O)[NX3;!R][$([NX3;!R]),$([NX2;!R]=[#6])]",
             "seniority": 1200,
             "bluebook_class": "12",
             "suffix_terminal": "-ohydrazide",

@@ -104,7 +104,7 @@ CC(=O)NN(C)C	N',N'-dimethylacetohydrazide
 O=C(NNC(=O)C)c1ccc(cc1)C(N)=O	4-[(2-acetylhydrazinyl)(oxo)methyl]benzamide
 O=C(NNS(=O)(=O)c1ccccc1)c1ccccc1	N-benzamidobenzenesulfonamide
 CC(=O)NNC(=S)N	2-acetylhydrazine-1-carbothioamide
-O=C(NN=Cc1ccccc1)c1ccccc1	1-benzoyl-2-benzylidenehydrazine
+O=C(NN=Cc1ccccc1)c1ccccc1	N'-benzylidenebenzohydrazide
 O=C(NN(C)C)c1ccccc1	N',N'-dimethylbenzohydrazide
 CCOC(=O)NNC(C)=O	N'-[ethoxy(oxo)methyl]acetohydrazide
 C[N+]1(C)CCCCC1	1,1-dimethylpiperidin-1-ium
