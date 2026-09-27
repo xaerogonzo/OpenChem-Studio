@@ -1,0 +1,139 @@
+# Round 20's full ref-compare manifest, against master's pre-round-20 tip (9f5e745): the SUBSTITUENT `hydrazinylidene` (D-170). The 19 rows below are the ONLY ones the round moved
+# across r7, r8, mc and pop (1712 structures), all in the TUNING population and none in a frozen one. Every one is an `=N-NH-R` group that was written `(R-aminoimino)` and is now
+# `hydrazinylidene` (P-66.4.1.2, pdf p. 682: "3-amino-3-hydrazinylidenepropanoic acid (PIN)"), a name the book prints; each new name reads back to the input (head_roundtrips true
+# on all 19). The rows are the ones already read back before the round as well (base_roundtrips true), so the change is the spelling, never the structure.
+
+stage = "r20-release-candidate"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-1f322ddaf477"
+expect = "MUST_CHANGE"
+reason_rule_id = "hydrazinylidene-substituent (D-170)"
+expected_layer = "candidate_generation"
+expected_name = "4-{2-[(dimethylamino)(selenoxo)methyl]hydrazinylidene}heptanedioic acid"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-2d2cc7c19734"
+expect = "MUST_CHANGE"
+reason_rule_id = "hydrazinylidene-substituent (D-170)"
+expected_layer = "candidate_generation"
+expected_name = "2-hydrazinyl-1-hydrazinylidene-2-iminoethan-1-amine"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-525cd67ede4b"
+expect = "MUST_CHANGE"
+reason_rule_id = "hydrazinylidene-substituent (D-170)"
+expected_layer = "candidate_generation"
+expected_name = "1-hydrazinylidenebutane-1-selenol"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-52e45c3af59a"
+expect = "MUST_CHANGE"
+reason_rule_id = "hydrazinylidene-substituent (D-170)"
+expected_layer = "candidate_generation"
+expected_name = "[hydrazinylidene(phenyl)methyl](phenyl)diazene"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-57764df257cb"
+expect = "MUST_CHANGE"
+reason_rule_id = "hydrazinylidene-substituent (D-170)"
+expected_layer = "candidate_generation"
+expected_name = "2-hydrazinylidenepropane-1,3-dinitrile"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-595288fe6ff8"
+expect = "MUST_CHANGE"
+reason_rule_id = "hydrazinylidene-substituent (D-170)"
+expected_layer = "candidate_generation"
+expected_name = "1-{[1-(N'-amino-N-diethylaminocarbamimidoyl)cyclohexyl](hydrazinylidene)methyl}-1,2-dimethylhydrazine"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-5be7375faf87"
+expect = "MUST_CHANGE"
+reason_rule_id = "hydrazinylidene-substituent (D-170)"
+expected_layer = "candidate_generation"
+expected_name = "3-amino-3-hydrazinylidenepropanoic acid"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-63a8d1367950"
+expect = "MUST_CHANGE"
+reason_rule_id = "hydrazinylidene-substituent (D-170)"
+expected_layer = "candidate_generation"
+expected_name = "2-[hydrazinylidene(hydroxy)methyl]cyclopentane-1-carboxylic acid"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-7cc676952a40"
+expect = "MUST_CHANGE"
+reason_rule_id = "hydrazinylidene-substituent (D-170)"
+expected_layer = "candidate_generation"
+expected_name = "1-(phenyldiazenyl)-1-(2-phenylhydrazinylidene)propan-2-one"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-8e55187d73d2"
+expect = "MUST_CHANGE"
+reason_rule_id = "hydrazinylidene-substituent (D-170)"
+expected_layer = "candidate_generation"
+expected_name = "4-(2-phenylhydrazinylidene)cyclohexane-1-carboxylic acid"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-a931d49939d5"
+expect = "MUST_CHANGE"
+reason_rule_id = "hydrazinylidene-substituent (D-170)"
+expected_layer = "candidate_generation"
+expected_name = "5-hydrazinylidene-5-hydroxypentanoic acid"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-b211ee0fdf94"
+expect = "MUST_CHANGE"
+reason_rule_id = "hydrazinylidene-substituent (D-170)"
+expected_layer = "candidate_generation"
+expected_name = "3-[(1-hydrazinylideneethyl)amino]propanoic acid"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-bab9eabbda07"
+expect = "MUST_CHANGE"
+reason_rule_id = "hydrazinylidene-substituent (D-170)"
+expected_layer = "candidate_generation"
+expected_name = "3-hydrazinyl-3-hydrazinylidenepropanoic acid"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-c34322ede190"
+expect = "MUST_CHANGE"
+reason_rule_id = "hydrazinylidene-substituent (D-170)"
+expected_layer = "candidate_generation"
+expected_name = "hydrazinylidenemethanediselenol"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-db699a07f2b6"
+expect = "MUST_CHANGE"
+reason_rule_id = "hydrazinylidene-substituent (D-170)"
+expected_layer = "candidate_generation"
+expected_name = "hydrazinylidene[(hydrazinyl)(imino)methoxy]methanamine"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-e0c90c06147f"
+expect = "MUST_CHANGE"
+reason_rule_id = "hydrazinylidene-substituent (D-170)"
+expected_layer = "candidate_generation"
+expected_name = "(2-hydrazinyl-1,2-dihydrazinylideneethyl)hydrazine"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-ece32f65ae98"
+expect = "MUST_CHANGE"
+reason_rule_id = "hydrazinylidene-substituent (D-170)"
+expected_layer = "candidate_generation"
+expected_name = "1-hydrazinylideneethan-1-amine"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-fae9bd0c12d6"
+expect = "MUST_CHANGE"
+reason_rule_id = "hydrazinylidene-substituent (D-170)"
+expected_layer = "candidate_generation"
+expected_name = "1-({1-(N'-amino-N-diethylaminocarbamimidoyl)-3-[hydrazinylidene(1-methylhydrazinyl)methyl]cyclohexyl}(hydrazinylidene)methyl)-1,2-dimethylhydrazine"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-fffb1bca2612"
+expect = "MUST_CHANGE"
+reason_rule_id = "hydrazinylidene-substituent (D-170)"
+expected_layer = "candidate_generation"
+expected_name = "2-(hydrazinylidene{6-[hydrazinylidene(1-methylhydrazinyl)methyl]-1-methylnaphthalen-2-yl}methyl)-1,1-dimethylhydrazine"
