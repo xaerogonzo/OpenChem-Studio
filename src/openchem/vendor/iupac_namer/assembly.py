@@ -513,6 +513,10 @@ def _preferred_prefix_spelling(name: str) -> str:
     - "benzyl (preferred prefix)" (pdf p. 61), but "not to be substituted"
       (P-29.6.1, p. 312): "2-benzylpyridine (PIN)" beside
       "2-[(4-bromophenyl)methyl]pyridine (PIN)" -- only the bare word.
+      Round 21 (D-173) adds its ylidene and ylidyne kin, same section,
+      same restriction: "benzylidene, benzylidyne are retained preferred
+      prefixes, but are not to be substituted" -- a substituted one stays
+      "carboxy(4-carboxyphenyl)methylidene", p. 314's own example.
     - "anilino (preferred prefix) (full substitution ...) phenylamino"
       (p. 352), so "(4-chlorophenyl)amino" is "4-chloroanilino".
     - "carbamoyl (preferred prefix) (full substitution ...) aminocarbonyl"
@@ -522,6 +526,10 @@ def _preferred_prefix_spelling(name: str) -> str:
     """
     if name == "phenylmethyl":
         return "benzyl"
+    if name == "phenylmethylidene":
+        return "benzylidene"
+    if name == "phenylmethylidyne":
+        return "benzylidyne"
     if name == "phenylamino":
         return "anilino"
     if name == "nitroamino":

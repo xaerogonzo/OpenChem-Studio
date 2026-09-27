@@ -349,6 +349,21 @@ D-166 (`nitramide`) and D-167 (N-nitro and N-nitroso carbamates) are fixed, and 
 PINs: P-67.1.2.6.3 (pdf p. 708) makes them SUBSTITUTED NITRAMIDES and NITROUS AMIDES (`dimethylnitramide`, `dimethylnitrous amide`), and the `N-methyl-N-nitromethanamine` form round 16
 wrote is the book's non-PIN alternative. `CHANGELOG.md`, round 17.
 
+## Open after naming round 21 (2026-09-27)
+
+D-173 (the retained prefixes `benzylidene`/`benzylidyne`) and D-178 (amides of the halogen oxoacids) are fixed; see `CHANGELOG.md`, round 21. Still open, all investigated this round rather than merely carried forward:
+
+* **Hydrazones of carbon acid hydrazides** (`CC(=O)NN=CCCCCC` is `1-acetyl-2-hexylidenehydrazine`, where P-66.3.3 names the hydrazide, `N'-hexylideneacetohydrazide`) were investigated in round 21 and left open: the FG SMARTS (`fg:hydrazide`, `data/functional_groups.json`) requires both nitrogens at `NX3`, which a hydrazone's terminal `=N-` (`NX2`) fails, and loosening it plus rendering an N'-ylidene alongside the `-ohydrazide` suffix touches the general FG-suffix pipeline broadly enough that a self-contained fix was not found. The census shows the family is common (acyl hydrazones of aldehydes and ketones), where round 20's `2-acylhydrazinylidene` prefix on the aldehyde, ring or phenol parent is what ships instead.
+* **Two or more nitramide groups** (ethylenedinitramine, `O=[N+]([O-])NCCN[N+](=O)[O-]`) are a multiplicative parent this route does not build; they keep round 16's amine name
+  `N1,N2-dinitroethane-1,2-diamine`, which is NOT the PIN. Round 21 derived and OPSIN-verified a candidate, `ethane-1,2-diylbis(nitramide)`, matching the book's own multiplicative pattern for other functional-parent pairs (p. 527); not implemented, since nitramide is a hand-built functional parent, not an ordinary suffix `multiplicative.py` already knows how to join.
+* **A cyano group on the nitramide nitrogen** (`N#CN(C)[N+](=O)[O-]`) is left to the general path, `[methyl(nitro)amino]methanenitrile`. P-66.1.6.2 (pdf p. 664) retains `cyanamide` as the PIN for `NC-NH2`, itself a preselected amide-class parent (class 11) at the same seniority as nitramide; the book prints no example resolving which of two competing class-11 parents on one nitrogen wins, and round 21 found none either, so no target is claimed.
+* **Still not measured, so not claimed:** N-nitro or N-nitroso on a thioamide, and any nitro group attached through a heteroatom other than nitrogen (a nitrate ester is `ethyl nitrate`).
+* **The standing measures were blind to this class again.** No census row contains a plain nitramine or nitrosamine; the three tuning rows that do are the ones the round moved, and the blind frozen
+  set moved on 5 of 1126. The rows in `tests/test_namer_known_defects.py` are the evidence, and the book's own examples were the way to find the defect.
+
+
+## Open after naming round 20 (2026-09-26; D-173 and D-178 closed in round 21 above)
+
 ## Open after naming round 20 (2026-09-26)
 
 D-170 (the substituent `hydrazinylidene`) is fixed; see `CHANGELOG.md`, round 20. Still open:

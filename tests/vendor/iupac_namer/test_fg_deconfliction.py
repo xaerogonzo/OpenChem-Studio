@@ -76,7 +76,7 @@ def test_semicarbazone_family_no_duplicate_fg_emission(smiles, forbidden_substri
         # hydrazine-1-carboxamide (PIN)" (P-68.3.1.2.5, pdf p. 758). Still
         # exactly one copy of the (thio)amide.
         ("CC(C)=NNC(=S)N",       ("hydrazine-1-carbothioamide", "propan-2-ylidene")),
-        ("C(c1ccccc1)=NNC(=S)N", ("hydrazine-1-carbothioamide", "phenylmethylidene")),
+        ("C(c1ccccc1)=NNC(=S)N", ("hydrazine-1-carbothioamide", "benzylidene")),  # round 21 (D-173) retargets from "phenylmethylidene"
         # Semicarbazone analog.
         ("CC=NNC(=O)N",          ("hydrazine-1-carboxamide", "ethylidene")),
     ],
