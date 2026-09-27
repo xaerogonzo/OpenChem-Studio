@@ -1968,10 +1968,12 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "rather than the ATTACHMENT atom"),
     ("D-092t", "c1ccc(OC2CCCCC2)cc1", "phenoxycyclohexane", "phenoxycyclohexane",
      "converse: an attachment ON a ring keeps the 'yloxy' form where it applies"),
-    ("D-092u", "O=C1SC(=Cc2ccccc2)C(=O)N1", "5-(phenylmethylidene)-1,3-thiazolidine-2,4-dione",
-     "5-(phenylmethylidene)-1,3-thiazolidine-2,4-dione", "converse to D-092l: "
-     "'phenylmethylidene' is TWO stems, a compound prefix, so it keeps its "
-     "enclosing marks"),
+    ("D-092u", "O=C1SC(=Cc2ccc(Cl)cc2)C(=O)N1", "5-[(4-chlorophenyl)methylidene]-1,3-thiazolidine-2,4-dione",
+     "5-[(4-chlorophenyl)methylidene]-1,3-thiazolidine-2,4-dione", "converse to D-092l: "
+     "'(4-chlorophenyl)methylidene' is TWO stems, a compound prefix, so it keeps its "
+     "enclosing marks. Before round 21 (D-173) this row used the unsubstituted phenyl, 'phenylmethylidene'; that is now the "
+     "retained 'benzylidene' (P-29.6.1, unenclosed), which no longer demonstrates the point, so this row moved to the book's own "
+     "example of the SUBSTITUTED case staying systematic ('carboxy(4-carboxyphenyl)methylidene (preferred prefix)', p. 314)"),
     ("D-092v", "C1CCCCC1OCC(=O)O", "(cyclohexyloxy)acetic acid", "(cyclohexyloxy)acetic acid",
      "converse to D-092s: the ATTACHMENT atom is a ring atom, so no contraction "
      "(P-63.2.2.2 retains only methoxy..butoxy and phenoxy)"),
@@ -3751,9 +3753,9 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "round 18 wrote '(nitramidoimino)', a derived stopgap; the book's own name for this GROUP is 'nitrohydrazinylidene' (p. 717), which round 20 (D-170) now writes"),
     # The round-17 guard let a HYDRAZONE of nitramide through as the nitramide parent ("[(phenylmethylidene)amino]nitramide"), found by probing multiples for D-168. The
     # book names these on the hydrazide (D-169, open), so the hydrazine name stays until then: this row pins that the nitramide route declines, and its target is NOT the PIN.
-    ("D-168g", "O=[N+]([O-])NN=Cc1ccccc1", "N'-(phenylmethylidene)nitric hydrazide", "[(phenylmethylidene)amino]nitramide",
+    ("D-168g", "O=[N+]([O-])NN=Cc1ccccc1", "N'-benzylidenenitric hydrazide", "[(phenylmethylidene)amino]nitramide",
      "a hydrazone of nitramide is not a nitramide with an ylideneamino prefix: round 18 sent it to the hydrazine name as a stopgap, and round 19's hydrazide route (D-169) names it on "
-     "the nitric hydrazide. The ylidene is spelled as the engine spells it ('phenylmethylidene', never 'benzylidene')"),
+     "the nitric hydrazide. Round 20 spelled the ylidene 'phenylmethylidene'; round 21 (D-173) retargets it to 'benzylidene', the book's own retained, unenclosed prefix (P-29.6.1)"),
 
     # --- D-169 (naming round 19): nitric and nitrous HYDRAZIDES as parents ------------------------------------------------------------------------------------------------
     # P-67.1.2.6.3 (pdf p. 708), verbatim: "nitric hydrazide (I) and nitrous hydrazide (II) are preselected names used as parent structures for generation of preferred IUPAC
@@ -3803,6 +3805,59 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-170l", "OC(=O)CC(=NN)CC(=NN)C", "3,5-dihydrazinylidenehexanoic acid", "3,5-bis(aminoimino)hexanoic acid", "two groups are multiplied"),
     ("D-170m", "OC(=O)CC(C)=NN(C)N=O", "3-(2-methyl-2-nitrosohydrazinylidene)butanoic acid", "3-(1-methyl-2-oxohydrazinylimino)butanoic acid",
      "a nitroso group with another substituent on N2 is an ordinary substituent, cited at 2"),
+
+    # --- D-173 (naming round 21): the retained prefixes benzyl, benzylidene, benzylidyne, unenclosed and unsubstituted --------------------------------------------------
+    # P-29.6.1 (pdf p. 312), verbatim: "The traditional prefixes benzyl, benzylidene, benzylidyne are retained preferred prefixes, but are not to be substituted";
+    # printed example "2-benzylpyridine (PIN)" beside "2-(phenylmethyl)pyridine". P-29.6.2.1 (p. 313): substituted, they revert to the systematic form, "carboxy(4-
+    # carboxyphenyl)methylidene (preferred prefix)". `benzyl` ("phenylmethyl") was already handled (`_preferred_prefix_spelling`); this round adds `benzylidene` and
+    # `benzylidyne` ("phenylmethylidene"/"phenylmethylidyne"), and applies the same substitution inside the two hand-built ylidene compound prefixes that never pass
+    # through `merge_identical_prefixes` (the only place the substitution used to run). D-168g and a round-20 control row (`c1ccccc1C=NN`) moved to the new spelling;
+    # D-092u, which demonstrated a two-stem ylidene prefix staying enclosed, moved to a SUBSTITUTED phenyl so it still demonstrates that (an unsubstituted one is now
+    # the retained, unenclosed word).
+    ("D-173a", "c1ccc(Cc2ccccc2)nc1", "2-benzylpyridine", "2-benzylpyridine", "unaffected: 'benzyl' (bond order 1) was already retained"),
+    ("D-173b", "O=[N+]([O-])NN=Cc1ccccc1", "N'-benzylidenenitric hydrazide", "N'-(phenylmethylidene)nitric hydrazide",
+     "a bare hydrazone of nitric hydrazide's N' is the retained 'benzylidene', not 'phenylmethylidene'"),
+    ("D-173c", "NN=Cc1ccccc1", "benzylidenehydrazine", "(phenylmethylidene)hydrazine", "on the hydrazine parent itself"),
+    ("D-173d", "c1ccc(Cc2ccc(Br)cc2)nc1", "2-[(4-bromophenyl)methyl]pyridine", "2-[(4-bromophenyl)methyl]pyridine",
+     "verbatim (p. 312): a RING-substituted benzyl is not the retained prefix even in general nomenclature's unlimited-ring-substitution allowance, "
+     "so the PIN stays systematic ('2-(4-bromobenzyl)pyridine' is not used)"),
+    ("D-173e", "OC(=O)CC(=NCc1ccccc1)C", "3-(benzylimino)butanoic acid", "3-(phenylmethylimino)butanoic acid",
+     "the 'R-imino' compound prefix (PARENT=N-R, R single-bonded) is hand-built and never passes through merge_identical_prefixes, "
+     "so even plain 'benzyl' (not just its ylidene kin) needed the direct call added here"),
+    ("D-173f", "OC(=O)CN=Cc1ccccc1", "[(benzylidene)amino]acetic acid", "[(phenylmethylidene)amino]acetic acid",
+     "the other hand-built compound prefix ('(R-ylidene)amino', PARENT-N=R)"),
+
+    # --- D-178 (naming round 21): amides of the mononuclear halogen oxoacids, R2N-X and its =O homologues ------------------------------------------------------------
+    # P-62.4 (pdf p. 528), verbatim: "compounds such as R-NH-Cl, R-NH-NO, and R-NH-NO2 are now named as derivatives of amides (see P-67.1.2.6)" -- the same
+    # reclassification round 17 built for nitro/nitroso, extended to a halogen. P-67.1.2.2 lists hypohalous, halous, halic and perhalic acid (Cl, Br, F, I) as
+    # preselected names; P-67.1.2.6.1 turns any of them into an amide by replacing 'acid' with 'amide'. Printed (p. 529): "ethylhypochlorous amide (PIN)" beside
+    # "N-chloroethanamine", "methylbromous amide (PIN)" beside "N-bromosylmethanamine". Bromous amide (R-NH-Br=O) is UNREACHABLE through this engine: RDKit's own
+    # valence table refuses a neutral trivalent bromine (or chlorine), so that molecule cannot even be constructed here; iodine's own oxo forms ARE constructible
+    # (RDKit accepts I at valence 1, 3 or 5) and are built by the same rule, unprinted but derived.
+    ("D-178a", "CCNCl", "ethylhypochlorous amide", "(chloroamino)ethane", "the printed example, H shown on N; a bare halogen atom directly on the amine N"),
+    ("D-178b", "CCNBr", "ethylhypobromous amide", "(bromoamino)ethane", "the bromine analogue of the printed example"),
+    ("D-178c", "CNF", "methylhypofluorous amide", "(fluoroamino)methane", "the fluorine analogue; derived, the book prints none"),
+    ("D-178d", "CNI", "methylhypoiodous amide", "(iodoamino)methane", "the iodine analogue; derived, the book prints none"),
+    ("D-178e", "CN(C)Cl", "dimethylhypochlorous amide", "[chloro(methyl)amino]methane", "two substituents on the amine N"),
+    ("D-178f", "CNI=O", "methyliodous amide", "(oxidoiodaniumylamino)methane",
+     "one =O on the halogen (iodine's own oxidation ladder; the printed book example uses bromine, which RDKit cannot build at this valence)"),
+    ("D-178g", "CNI(=O)=O", "methyliodic amide", "{[NAMING ERROR: No valid naming plan found for NI(=O)=O]}methane",
+     "two =O on the halogen; this one had NO name at all before (a NAMING ERROR, not merely a non-PIN one)"),
+    ("D-178h", "CC(=O)NCl", "1-(chloroamino)-1-oxoethane", "1-(chloroamino)-1-oxoethane",
+     "a real carboxamide's own nitrogen outranks this route (mirrors nitramide's own carbon-acid-neighbour guard); the amide-of-acetic-acid naming itself is a "
+     "separate, pre-existing defect (not this round's: 'N-chloroacetamide' is expected), left alone here"),
+    ("D-178i", "CCN(Cl)Br", "[bromo(chloro)amino]ethane", "[bromo(chloro)amino]ethane",
+     "two DIFFERENT halogens on one N is not one of the four acids this route recognizes, so it stays a substituted amino"),
+    ("D-178j", "CC(NCl)NBr", "1-(bromoamino)-1-(chloroamino)ethane", "1-(bromoamino)-1-(chloroamino)ethane",
+     "two SEPARATE qualifying nitrogens in one molecule: declines rather than picking one (mirrors nitramide's own single-candidate cap)"),
+    ("D-178k", "CC[NH][Cl+]C", "(ethylamino)(methyl)chloranium", "(ethylamino)(methyl)chloranium",
+     "a charged halogen is not an acid's own oxidation state; the general chloranium-cation route still names it"),
+    ("D-178l", "C(#[N+]C)c1ccccc1", "benzylidyne(methyl)azanium", "methyl(phenylmethylidyne)azanium",
+     "a substituent triple-bonded (ylidyne) is the retained 'benzylidyne' too (P-29.6.1), not 'phenylmethylidyne' (round 21, D-173)"),
+    ("D-178m", "CN[Cl+]=O", "{[NAMING ERROR: No valid naming plan found for N[Cl+]=O]}methane",
+     "{[NAMING ERROR: No valid naming plan found for N[Cl+]=O]}methane",
+     "a CHARGED halogen is not one of the four neutral acids this route recognizes (a formal +1 changes what the oxo count even means); "
+     "unaffected, still unnamed, either side of this round"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -3816,6 +3871,8 @@ OPSIN_CANNOT_PARSE: dict[str, str] = {
     "D-133": "the target IS an embedded '[NAMING ERROR: ...]' string, deliberately: no route exists to NAME a "
              "sulfinimidoyl/sulfonimidoyl-halide shape, and declining to guess is the fix (RoundTrip.PARSER_FAILED, "
              "never a false MATCH) -- unlike D-089e this is not a gap in OPSIN's grammar, it is the engine refusing",
+    "D-178m": "the target IS an embedded '[NAMING ERROR: ...]' string, deliberately (naming round 21): a charged halogen is not one of the four "
+              "neutral acids the hypohalous-amide route recognizes, and it stays unnamed either side of this round -- a control row, not a fix",
 }
 
 # Measured, reproduced, not yet fixed. Every one of these currently names
@@ -4777,7 +4834,7 @@ def test_a_senior_group_or_another_shape_keeps_its_name_over_a_nitric_hydrazide(
     [
         # a hydrazone that is the PARENT keeps its hydrazine name: only the PREFIX changed
         ("NN=C1CCCCC1", "cyclohexylidenehydrazine"),
-        ("c1ccccc1C=NN", "(phenylmethylidene)hydrazine"),
+        ("c1ccccc1C=NN", "benzylidenehydrazine"),  # round 21 (D-173) retargets this from "(phenylmethylidene)hydrazine"
         # an azine, a triazane and a ring nitrogen on N2 are not `hydrazinylidene` (the helper declines and the imino form stays)
         ("OC(=O)CC(C)=NN=CC", "3-[(ethylidene)aminoimino]butanoic acid"),
         ("OC(=O)CC(C)=NNN", "3-(hydrazinylimino)butanoic acid"),

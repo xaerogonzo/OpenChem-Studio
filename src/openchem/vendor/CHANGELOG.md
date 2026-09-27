@@ -1841,3 +1841,72 @@ row failed for eight (the ring-N2 test alone is an equivalent mutant: a ring N2 
 
 **Not fixed, found on the way** (`KNOWN_LIMITATIONS.md`): the acyl hydrazones the census shows are named on a prefix here and on the wrong parent for the book (P-66.3.3 names the hydrazide, `N'-...-ylideneacetohydrazide`); an azine
 (`C=N-N=C`) still reads `[(ethylidene)aminoimino]`.
+
+
+## 2026-09-27 -- naming round 21 (D-173, D-178): the retained prefixes benzyl/benzylidene/benzylidyne, and amides of the halogen oxoacids
+
+Alex asked to combine the round-20 backlog into one PR where feasible. Investigated all seven items; two had a clean, self-contained, book-verified fix; the
+rest are recorded below with more citation detail than before, deliberately left open rather than guessed.
+
+### D-173: `benzylidene` and `benzylidyne`, unenclosed and unsubstituted-only
+
+P-29.6.1 (pdf p. 312), verbatim: "The traditional prefixes benzyl, benzylidene, benzylidyne are retained preferred prefixes, but are not to be substituted";
+printed "2-benzylpyridine (PIN)" beside "2-(phenylmethyl)pyridine". `benzyl` ("phenylmethyl", bond order 1) was already handled by `_preferred_prefix_spelling`;
+this round adds `benzylidene`/`benzylidyne` ("phenylmethylidene"/"phenylmethylidyne", bond orders 2/3). P-29.6.2.1 (p. 313): substituted (ring OR alpha position),
+they revert to the systematic form, "carboxy(4-carboxyphenyl)methylidene (preferred prefix)".
+
+**Two hand-built compound prefixes never pass through `merge_identical_prefixes`**, the only place `_preferred_prefix_spelling` used to run, so even plain
+`benzyl` needed a direct call added at both sites: the `R-imino` prefix (`PARENT=N-R`, e.g. `3-(phenylmethylimino)butanoic acid` was wrong on its own, not only
+on its ylidene kin) and the `(R-ylidene)amino` prefix (`PARENT-N=R`). D-168g (round 18's stopgap) and a round-20 control row moved to the new spelling; D-092u,
+which demonstrated a two-stem ylidene prefix staying enclosed, moved to a substituted phenyl so it still demonstrates that.
+
+**Measured.** Census scan (2000 rows): 97.95% exact before and after, **0 rows changed class and 10 changed name**, all this family and all exact both times
+(acyl hydrazones, an imidazolone hydrazide, a heptanal ylidene, a benzonitrilium-style cation are among the corpus hits). ref-compare against master
+(`7f2d8d2e`): 1712 structures, **2 changed** (one tuning row, one the `r8:S2-benzonitrilium` reference structure itself -- `benzylidyneazanium` for protonated
+benzonitrile, a real, independently-curated row, not a synthetic test), both reading back, both listed in
+`benchmarks/naming/stages/manifests/r21-release-candidate.toml`, 0 violations. **The blind frozen impact CHANGED** (`bluebook_frozen` 5 of 1126, `heldout_v6`
+unchanged), so the frozen sets were scored ONCE (`r21-final-evaluation`), in aggregate: `bluebook_frozen` exact rose **510 -> 511** (one row moved
+equivalent -> exact), every other bucket (`wrong_structure` 22, `unparsable` 46, `no_prediction` 13) unchanged; `heldout_v6` unaffected. The tuning population
+also gained one exact name. Vendored suite: see below. The evidence is rows `D-173a-f`, each verified by OPSIN read-back; ten guards were each removed in turn
+and a row failed.
+
+### D-178: amides of the mononuclear halogen oxoacids
+
+P-62.4 (pdf p. 528), verbatim: "compounds such as R-NH-Cl, R-NH-NO, and R-NH-NO2 are now named as derivatives of amides (see P-67.1.2.6)" -- the identical
+reclassification rule round 17 built for the nitro and nitroso cases (nitramide, nitrous amide), extended here to a bare halogen. P-67.1.2.2 lists hypohalous,
+halous, halic and perhalic acid (Cl, Br, F, I) as preselected names modified by prefix; P-67.1.2.6.1 turns any of them into an amide by replacing "acid" with
+"amide". Printed (p. 529): "ethylhypochlorous amide (PIN)" beside "N-chloroethanamine", "methylbromous amide (PIN)" beside "N-bromosylmethanamine".
+
+**One new `_name_hypohalous_amide_functional_parent`**, structured exactly like round 17's nitramide function (same carbon-acid-neighbour guard, same
+`_N_CORE_PARENT_SENIORITY_LIMIT`). `CCNCl` was `(chloroamino)ethane` and is `ethylhypochlorous amide`; the fluorine, bromine and iodine analogues follow the
+same rule (derived, not printed, for F and I). **Iodine alone climbs the oxidation ladder**: RDKit's own valence table accepts a neutral tri- or pentavalent
+iodine bonded to an amino nitrogen and one or two double-bonded oxygens (`CNI=O` -> `methyliodous amide`, `CNI(=O)=O` -> `methyliodic amide`, the latter
+previously **a NAMING ERROR with no name at all**), but refuses the identical shape for chlorine or bromine outright
+(`Explicit valence for atom # 2 Cl, 3, is greater than permitted`). **The book's own bromous-amide example is therefore not reachable through this engine at
+all** -- not merely unmeasured, but structurally unbuildable in RDKit's molecule model -- and is not attempted.
+
+**Measured.** Census scan and ref-compare: **0 changes** (no N-halogen structure in either corpus). Ten guards (the formal-charge/ring check, the oxo-count ->
+name table, the carbon-acid-neighbour decline, the per-nitrogen and per-molecule single-candidate caps, and the dispatch call itself) were each removed in turn
+and a row failed for all ten. Evidence: rows `D-178a-m`.
+
+### Investigated, not fixed
+
+- **Hydrazones of carbon-acid hydrazides** (`CC(=O)NN=CCCCCC` is `1-acetyl-2-hexylidenehydrazine`; P-66.3.3 names the hydrazide,
+  `N'-hexylideneacetohydrazide`). Unlike the nitric/nitrous hydrazide route (a self-contained function on `_name_n_core_parent`), a plain carbon acylhydrazide is
+  a genuine FG-suffix (`fg:hydrazide`, seniority 1200, `smarts = "[CX3;!R;...](=O)[NX3;!R][NX3;!R]"` in `data/functional_groups.json`): its SMARTS requires
+  BOTH nitrogens at `NX3` (three connections), which a hydrazone's terminal `=N-` fails (degree 2, `NX2`). Loosening the SMARTS and then rendering an
+  N'-ylidene alongside the `-ohydrazide`/`-carbohydrazide` suffix touches the FG-suffix rendering pipeline broadly (Phase 6 of `_name_bound`, ~line 16097),
+  which is general enough that a narrow, self-contained fix could not be found this round; recorded rather than guessed.
+- **An azine, a triazane or a ring nitrogen on the second nitrogen of an `=N-N` group** still keeps the imino form; no book names for them were found this
+  round either.
+- **The book's own `hydrazin-1-yl` locant** (p. 717 versus p. 71) is left exactly as round 20 left it: an unresolved inconsistency in the source, not a code
+  defect.
+- **A cyano group on the nitramide nitrogen** (`N#CN(C)[N+](=O)[O-]`): P-66.1.6.2 (pdf p. 664), verbatim, retains `cyanamide` as the PIN for `NC-NH2` and
+  permits substitution on the `-NH2`. Cyanamide and nitramide are both preselected amide-class parents (class 11) competing for the SAME nitrogen; the book
+  prints no example resolving which wins, so no target is claimed and the guard that defers to the general path stays.
+- **Ethylenedinitramine** (`O=[N+]([O-])NCCN[N+](=O)[O-]`, two nitramide groups) still keeps round 16's amine name, `N1,N2-dinitroethane-1,2-diamine`, which
+  is NOT the PIN. A candidate PIN was derived and OPSIN-verified this round, `ethane-1,2-diylbis(nitramide)`, using the same multiplicative
+  `<parent>-1,2-diylbis(...)` construction the book itself uses for other functional-parent pairs (p. 527's own
+  `3,3'-[ethane-1,2-diylbis(azanylylidene)]dipropanoic acid`); it is not implemented, because nitramide is a hand-built functional parent rather than an
+  ordinary suffix, and wiring it into `multiplicative.py`'s machinery is a separate piece of work. Recorded here so the next round starts from a verified
+  target rather than a guess.

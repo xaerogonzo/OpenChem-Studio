@@ -1,0 +1,20 @@
+# Round 21's full ref-compare manifest, against master's pre-round-21 tip (7f2d8d2e): the retained prefixes benzylidene and benzylidyne (D-173). The 2 rows below
+# are the ONLY ones the round moved across r7, r8, mc and pop (1712 structures), one in the TUNING population and one in the r8 reference set, neither frozen.
+# Both are `phenylmethylidene`/`phenylmethylidyne` becoming the book's own retained `benzylidene`/`benzylidyne` (P-29.6.1, pdf p. 312); each new name reads
+# back to the input (head_roundtrips true on both), as did the old one (base_roundtrips true), so the change is the spelling, never the structure.
+
+stage = "r21-release-candidate"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-c2904d59015c"
+expect = "MUST_CHANGE"
+reason_rule_id = "benzylidene-benzylidyne-retained-prefix (D-173)"
+expected_layer = "candidate_generation"
+expected_name = "4-[N'-((benzylidene)amino)-N-((benzylidene)amino)carbamimidoyl]-1,3-thiazole"
+
+[[expect]]
+id = "r8:S2-benzonitrilium"
+expect = "MUST_CHANGE"
+reason_rule_id = "benzylidene-benzylidyne-retained-prefix (D-173)"
+expected_layer = "candidate_generation"
+expected_name = "benzylidyneazanium"

@@ -27,7 +27,9 @@ from openchem.vendor.iupac_namer.perception.extraction import (
     carve_substituent, carve_bridging_substituent, strip_additive_atoms,
     carve_fc_fragments, fragment_origin,
 )
-from openchem.vendor.iupac_namer.assembly import assemble, derive_sort_name
+from openchem.vendor.iupac_namer.assembly import (
+    assemble, derive_sort_name, _preferred_prefix_spelling,
+)
 from openchem.vendor.iupac_namer import ownership as _ownership
 from openchem.vendor.iupac_namer.data_loader import (
     get_chain_stem, get_multiplier, lookup_retained_name,
@@ -855,6 +857,9 @@ def _name_heteroatom_fv_substituent(
             except Exception as e:
                 logger.debug("ylidene-amino carve/name failed: %s", e)
                 return None
+            # A hand-built compound prefix never passes through merge_identical_prefixes, so the retained-spelling
+            # substitution it applies (benzylidene, not phenylmethylidene; round 21, D-173) has to be called directly.
+            sub_name = _preferred_prefix_spelling(sub_name)
             # The enclosing mark is one level OUT from whatever the ylidene name already holds (P-16.5.4: parentheses, then
             # square brackets, then braces). A fixed '(' put parentheses inside parentheses once a second prefix was
             # enclosed inside the group (naming round 8, W5): '(amino(sulfanyl)methylidene)amino'.
@@ -1153,7 +1158,9 @@ def _name_heteroatom_fv_substituent(
             logger.debug("imino-prefix carve/name failed: %s", e)
             return None
 
-        compound_prefix = sub_name + "imino"
+        # A hand-built compound prefix never passes through merge_identical_prefixes, so the retained-spelling
+        # substitution it applies (benzylidene, not phenylmethylidene; round 21, D-173) has to be called directly.
+        compound_prefix = _preferred_prefix_spelling(sub_name) + "imino"
 
         return LeafTree(
             output_form=output_form,
@@ -1432,6 +1439,111 @@ def _name_nitric_hydrazide_functional_parent(
         output_form=output_form, decision_ctx=decision_ctx, strategy=strategy,
         session=session, depth=depth, perception=perception,
         seniority_limit=1201, cite_locants=True, allow_ylidene=True,
+    )
+
+
+def _halogen_oxoacid_amide_parent_name(mol, hal_atom) -> str | None:
+    """The preselected acid-amide parent name (P-67.1.2.2, P-67.1.2.6.1) for a halogen atom bonded to the amino nitrogen, or
+    None outside the shapes this recognizes.
+
+    Every double-bonded oxygen on the halogen raises its oxidation state one step: bare X is 'hypohalous amide' (p. 529 prints
+    the Cl case, 'ethylhypochlorous amide (PIN)'), one =O is 'halous amide' (p. 529 prints the Br case, 'methylbromous amide
+    (PIN)', built here for I only -- RDKit's own valence table refuses a neutral tri- or pentavalent Cl or Br, so that shape
+    cannot be built through this engine's molecule model at all for those two, and this function is never reached for them),
+    two is 'halic amide', three 'perhalic amide'. Declines for anything else on the halogen (a charge, a ring, a non-oxygen
+    neighbour, a single-bonded oxygen), which is out of scope.
+    """
+    sym = hal_atom.GetSymbol()
+    if sym not in ("F", "Cl", "Br", "I"):
+        return None
+    if hal_atom.GetFormalCharge() != 0 or hal_atom.IsInRing() or hal_atom.GetIsAromatic():
+        return None
+    n_oxo = 0
+    for nb in hal_atom.GetNeighbors():
+        if nb.GetAtomicNum() == 7:
+            continue
+        if nb.GetAtomicNum() != 8 or nb.GetFormalCharge() != 0 or nb.GetDegree() != 1:
+            return None
+        bond = mol.GetBondBetweenAtoms(hal_atom.GetIdx(), nb.GetIdx())
+        if bond.GetBondTypeAsDouble() != 2.0:
+            return None
+        n_oxo += 1
+    stems = {0: "hypo{}ous amide", 1: "{}ous amide", 2: "{}ic amide", 3: "per{}ic amide"}
+    stem = stems.get(n_oxo)
+    if stem is None:
+        return None
+    element_stem = {"F": "fluor", "Cl": "chlor", "Br": "brom", "I": "iod"}[sym]
+    return stem.format(element_stem)
+
+
+def _name_hypohalous_amide_functional_parent(
+    mol, output_form, decision_ctx, strategy, session, depth, perception=None,
+) -> LeafTree | None:
+    """Amides of the mononuclear halogen oxoacids, R2N-X and its =O homologues (naming round 21, D-178).
+
+    P-62.4 (pdf p. 528): "compounds such as R-NH-Cl, R-NH-NO, and R-NH-NO2 are now named as derivatives of amides (see
+    P-67.1.2.6)" -- the same reclassification round 17 (D-166) built for the nitro and nitroso cases, extended here to the
+    halogen. P-67.1.2.2 lists hypochlorous, chlorous, chloric and perchloric acid (and the fluorine, bromine and iodine
+    analogues) as PRESELECTED names modified by prefix, and P-67.1.2.6.1: "Amides ... are named by functional class
+    nomenclature by replacing the term 'acid' ... by 'amide'". Printed (p. 529): "ethylhypochlorous amide (PIN)" beside
+    "N-chloroethanamine", and "methylbromous amide (PIN)" beside "N-bromosylmethanamine".
+
+    Only the hypohalous case (a bare halogen, no oxygen) is built for all four halogens; F, Cl and Br giving direct examples
+    or trivial letter-substitutions of one. Iodine alone climbs the oxidation ladder (iodous, iodic, periodic amide): RDKit's
+    own valence table accepts a tri- or pentavalent neutral iodine bonded to an amino nitrogen and one or two double-bonded
+    oxygens, but refuses the same shape for chlorine or bromine outright (`Explicit valence ... greater than permitted`), so
+    the book's own bromous example is not reachable through this engine's molecule model and is not attempted.
+
+    Declines for a hydrazide-class or senior group elsewhere (mirrors nitramide's own carbon-acid-neighbour guard), a ring or
+    charged amino nitrogen, and more than one qualifying halogen substituent on one nitrogen.
+    """
+    candidates = []
+    for amino in mol.GetAtoms():
+        if (amino.GetAtomicNum() != 7 or amino.GetFormalCharge() != 0 or amino.IsInRing()
+                or amino.GetIsAromatic() or any(b.GetBondTypeAsDouble() != 1.0 for b in amino.GetBonds())):
+            continue
+        acyl = []
+        for nb in amino.GetNeighbors():
+            if nb.GetAtomicNum() not in (9, 17, 35, 53):
+                continue
+            name = _halogen_oxoacid_amide_parent_name(mol, nb)
+            if name is not None:
+                acyl.append((nb, name))
+        if len(acyl) != 1:
+            continue
+        candidates.append((amino, acyl[0]))
+    if len(candidates) != 1:
+        return None
+    amino, (hal, parent_name) = candidates[0]
+    if any(
+        nb.GetAtomicNum() == 6 and any(
+            b.GetBondTypeAsDouble() == 2.0 and b.GetOtherAtom(nb).GetAtomicNum() in (7, 8, 16)
+            or b.GetBondTypeAsDouble() == 3.0
+            for b in nb.GetBonds()
+        )
+        for nb in amino.GetNeighbors()
+    ):
+        # A carbon acid's amide, carbamate, imidamide or guanidine nitrogen (or a cyano carbon), which outranks this route
+        # exactly as it outranks nitramide (see that function's own comment).
+        return None
+    core = {amino.GetIdx(), hal.GetIdx()} | {
+        nb.GetIdx() for nb in hal.GetNeighbors() if nb.GetAtomicNum() == 8
+    }
+    heavy = {a.GetIdx() for a in mol.GetAtoms() if a.GetAtomicNum() > 1}
+    if heavy == core:
+        return LeafTree(
+            output_form=output_form,
+            free_valence=None,
+            choices_made=(Choice(type=f"{parent_name.replace(' ', '_')}_functional_parent", detail="bare parent"),),
+            decision_ctx=decision_ctx,
+            validity_warnings=None,
+            text=parent_name,
+        )
+    return _name_n_core_parent(
+        mol, core, free_ns=[amino], fixed={}, parent_name=parent_name,
+        output_form=output_form, decision_ctx=decision_ctx, strategy=strategy,
+        session=session, depth=depth, perception=perception,
+        seniority_limit=_N_CORE_PARENT_SENIORITY_LIMIT, cite_locants=False,
     )
 
 
@@ -10508,6 +10620,20 @@ def _name_bound(
         if hydrazide_tree is not None:
             _session.cache_store(smiles, output_form, fv_bond_orders, hydrazide_tree, attachment_indices)
             return hydrazide_tree
+
+    # --- Hypohalous, halous, halic and perhalic amide functional parents (P-67.1.2.2 / P-67.1.2.6.1) ---
+    # After the nitramide and nitric/nitrous hydrazide routes, which this one cannot be confused with (a halogen atom, not a
+    # nitro or nitroso nitrogen, is the acyl neighbour).
+    if (output_form == OutputForm.STANDALONE
+            and free_valence is None):
+        hypohalous_tree = _name_hypohalous_amide_functional_parent(
+            mol, output_form, decision_ctx,
+            strategy=strategy, session=_session, depth=_depth,
+            perception=perception,
+        )
+        if hypohalous_tree is not None:
+            _session.cache_store(smiles, output_form, fv_bond_orders, hypohalous_tree, attachment_indices)
+            return hypohalous_tree
 
     # --- Fulminic acid [C-]#[N+]O retained (P-66) ---
     # Hand-emit the correct protomer substituent name for the fulminic
