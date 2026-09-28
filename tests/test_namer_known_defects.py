@@ -3877,6 +3877,26 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "a hydrazone carbon bearing two amino groups (a substituted guanidine this engine's guanidine perception does not claim, mirroring the same shape's "
      "own control row under the nitric hydrazide, D-169): the hydrazide (class 12) now correctly outranks the bare amine that used to be picked as parent"),
     ("D-171f", "CCCCCC(=O)NN=CC", "N'-ethylidenehexanehydrazide", "1-ethylidene-2-hexanoylhydrazine", "a longer acyl chain names the suffix, not a prefix, on the hydrazide"),
+
+    # --- D-179 (naming round 23): the chalcogen analogue thiohydrazide, R-C(=S)-NH-NH2 --------------------------------------------------------------------------------------
+    # P-66.3.4 (pdf p. 672), verbatim: "Chalcogen analogues of hydrazides are named substitutively using suffixes formed by functional replacement, i.e., 'thiohydrazide',
+    # 'carbothiohydrazide' ..."; printed "propanethiohydrazide (PIN)" and "benzenecarbothiohydrazide (PIN)" (both verbatim below). `fg:hydrazide`'s SMARTS matched only a
+    # carbonyl oxygen, so a thiohydrazide was never recognized as the hydrazide class at all -- structurally a totally different reading (a plain hydrazine with a
+    # "thioxo"-substituted-carbon prefix). One new `thiohydrazide` FG entry mirrors `hydrazide` exactly (`(=S)` for `(=O)`, including round 22's hydrazone-admitting
+    # terminal-nitrogen clause), but three engine.py sites keyed on the literal string "hydrazide" also needed the new type name added: `_N_BEARING_FG_TYPES` (Pass 2.5a's
+    # N-substituent carving, without which every N-substituted or hydrazone form fell back to the pre-round wrong reading), `_role_primes` (without which a single
+    # N'-substituted case got the WRONG prime, "N-" instead of "N'-"), and the anchor-in-parent guard around `_hydrazide_attaches_through_its_carbonyl` plus
+    # `_DEMOTED_AMIDE_TYPES_PREPROC` (without which a thiohydrazide anchored in a longer acid chain double-counted its own carbon, a WRONG STRUCTURE).
+    ("D-179a", "CC(=S)NN", "ethanethiohydrazide", "(1-thioxoethyl)hydrazine", "the simplest case"),
+    ("D-179b", "CCC(=S)NN", "propanethiohydrazide", "(1-thioxopropyl)hydrazine", "verbatim (p. 672): the book's own printed example"),
+    ("D-179c", "C(=S)(NN)c1ccccc1", "benzenecarbothiohydrazide", "[phenyl(thioxo)methyl]hydrazine", "verbatim (p. 672): the book's other printed example, a ring-attached acid stem"),
+    ("D-179d", "CC(=S)NNC", "N'-methylethanethiohydrazide", "1-methyl-2-(1-thioxoethyl)hydrazine", "an N'-substituted case: needs `_role_primes` to know 'thiohydrazide' too"),
+    ("D-179e", "CC(=S)NN=CC", "N'-ethylideneethanethiohydrazide", "1-ethylidene-2-(1-thioxoethyl)hydrazine", "a hydrazone on N', reusing round 22's (D-171) terminal-nitrogen clause"),
+    ("D-179f", "CC(=S)N(C)N=CC", "N'-ethylidene-N-methylethanethiohydrazide", "2-ethylidene-1-methyl-1-(1-thioxoethyl)hydrazine", "N and N' both substituted"),
+    ("D-179g", "S=C(NN)c1ccccc1S(=O)(=O)O", "2-hydrazinecarbonothioylbenzene-1-sulfonic acid", "2-[(hydrazinyl)(thioxo)methyl]benzene-1-sulfonic acid",
+     "the thio analogue of D-087i: a ring-attached thiohydrazide keeps the whole-group prefix 'hydrazinecarbonothioyl', needing `_C_INCLUDING_FG_TYPES` to know the new type too"),
+    ("D-179h", "NNC(=S)c1ccc(cc1)C(=O)O", "4-hydrazinecarbonothioylbenzoic acid", "4-[(hydrazinyl)(thioxo)methyl]benzoic acid",
+     "the thio analogue of D-117y, same reason"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -4878,4 +4898,32 @@ def test_a_hydrazone_parent_azine_triazane_or_ring_nitrogen_is_not_named_hydrazi
 def test_an_azo_nitrogen_on_a_hydrazide_is_not_a_hydrazone(smiles, expected):
     """The hydrazide FG's relaxed terminal-N clause, `$([NX2;!R]=[#6])`, requires the double bond partner to be carbon; an N=N (azo/triazene) shape must keep
     declining the hydrazide route exactly as it did before round 22 (D-171)."""
+    assert name_smiles(smiles) == expected
+
+
+@pytest.mark.parametrize(
+    "smiles, expected",
+    [
+        # the same declines as D-171's own control test, mirrored on the thiohydrazide's terminal nitrogen (naming round 23, D-179)
+        ("CC(=S)NN=NC", "1-(ethanethioylamino)-2-methyldiazene"),
+        ("CC(=S)NN1CCCCC1", "1-(ethanethioylamino)piperidine"),
+    ],
+)
+def test_an_azo_nitrogen_on_a_thiohydrazide_is_not_a_hydrazone(smiles, expected):
+    """Same guard, same reason, on the chalcogen analogue (naming round 23, D-179)."""
+    assert name_smiles(smiles) == expected
+
+
+@pytest.mark.parametrize(
+    "smiles, expected",
+    [
+        ("NNC(=S)CCC(=O)O", "4-hydrazinyl-4-thioxobutanoic acid"),
+        ("OC(=O)CCC(=S)NN", "4-hydrazinyl-4-thioxobutanoic acid"),
+    ],
+)
+def test_a_thiohydrazide_anchored_in_a_longer_acid_chain_does_not_double_count_its_carbon(smiles, expected):
+    """A regression introduced and fixed within round 23 itself: adding `thiohydrazide` as its own FG type, without also widening
+    `_hydrazide_attaches_through_its_carbonyl`'s caller and `_DEMOTED_AMIDE_TYPES_PREPROC`, briefly emitted 'hydrazinecarbonothioylbutanoic acid'
+    (an extra carbon, a WRONG STRUCTURE) or fell back to a thiohydrazide parent outranking the acid ('3-carboxypropanethiohydrazide'), for a
+    molecule the pre-round-23 engine already named correctly by a different, generic route."""
     assert name_smiles(smiles) == expected

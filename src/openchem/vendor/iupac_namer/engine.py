@@ -6145,6 +6145,8 @@ def _name_single_fg_substituent(
         # 668); the whole-fragment test above keeps a substituted hydrazide
         # off this path. Was "(hydrazinyl)(oxo)methyl" (round 5, N4).
         "hydrazide",
+        # -C(=S)-NH-NH2 -> "hydrazinecarbonothioyl" (round 23, D-179), analogous.
+        "thiohydrazide",
     })
     if mol.GetAtomWithIdx(fg.anchor).GetAtomicNum() == 6:
         if fg.type not in _C_INCLUDING_FG_TYPES:
@@ -15054,6 +15056,8 @@ class SubstitutivePath:
             # is carved as an N-prefix: "N-hydroxypropan-1-imine" (p. 98).
             "substituted_imine",
             "hydrazide",
+            # The chalcogen analogue (round 23, D-179) needs its N atoms carved the same way.
+            "thiohydrazide",
             "imidamide",
             "aminium",
         })
@@ -15190,7 +15194,8 @@ class SubstitutivePath:
             # '4-amino-4-oxobutanoic acid'), and attached through a nitrogen it is an N-acyl hydrazine ('2-benzoylhydrazinyl'). In both the group has no
             # prefix form, it claimed atoms nothing could name, the acid plan died with 'heavy atoms unclaimed', and the engine fell back to a hydrazide
             # parent ('3-carboxypropanehydrazide' for '4-hydrazinyl-4-oxobutanoic acid': the hydrazide ABOVE a carboxylic acid, against Table 4.1).
-            and not (fg.type == "hydrazide" and not _hydrazide_attaches_through_its_carbonyl(fg, parent_atoms, mol))
+            # Its chalcogen analogue thiohydrazide (round 23, D-179) needs the identical guard, and the helper is already structural, not FG-type-keyed.
+            and not (fg.type in ("hydrazide", "thiohydrazide") and not _hydrazide_attaches_through_its_carbonyl(fg, parent_atoms, mol))
             # A sulfonamide whose nitrogen is a RING atom outside the parent is the prefix '<ring>-N-sulfonyl' (naming round 14, D-151): the group claimed
             # S, O, O and N and left the ring's carbons unclaimed, so every plan with the sulfonamide's other side as parent died and the engine fell
             # back to naming the ring as the parent ('1-(4-carboxyphenylsulfonyl)piperidine', an ESTER as 'ethyl 1-(...)piperidine').
@@ -16228,6 +16233,12 @@ class SubstitutivePath:
             # adding one phantom C).  Splitting into "oxo" + "hydrazinyl"
             # mirrors the amide → "oxo" + "amino" decomposition.
             "hydrazide",
+            # Its chalcogen analogue (round 23, D-179): the same double-counting bug in principle, splitting into "sulfanylidene" + "hydrazinyl" (the
+            # =O-vs-=S branch below is already keyed on the chalcogen ATOM, not the FG type name). DEAD behind the anchor-in-parent guard above,
+            # measured: every anchor-in-parent thiohydrazide tried (chain, ring, N-substituted, an ester's acid part) already reads correctly without
+            # this entry, because that guard alone keeps the whole-group prefix from firing at all. Kept only so the function is right on its own,
+            # the same reasoning round 19 kept one dead nitric-hydrazide guard for.
+            "thiohydrazide",
             # Round 5 (N6), P-66.4.1.3.2 (pdf p. 676): "When the carbon atom
             # of the H2N-C(=NH)- group terminates a chain, the groups -NH2
             # and =NH are designated by the prefixes 'amino' and 'imino'",
@@ -18862,7 +18873,7 @@ def _n_sub_locant(
 def _role_primes(pcg_instances, parent_atoms, mol) -> dict[int, str]:
     """Primes fixed by a nitrogen's ROLE in its suffix group, not its index.
 
-    Hydrazide (P-66.3.1): the N bonded to the acyl carbon is N, the terminal
+    Hydrazide (P-66.3.1) and its chalcogen analogue thiohydrazide (P-66.3.4, round 23, D-179): the N bonded to the acyl carbon is N, the terminal
     one N'. Amidine (P-66.4.1.4.1): the amino N is N, the imino N is N'. Only groups with a named role scheme appear here; every other
     group keeps the index-order primes of its caller.
 
@@ -18882,7 +18893,7 @@ def _role_primes(pcg_instances, parent_atoms, mol) -> dict[int, str]:
     """
     by_parent_pos: dict[int | None, list] = {}
     for fg in pcg_instances:
-        if fg.type not in ("hydrazide", "imidamide"):
+        if fg.type not in ("hydrazide", "thiohydrazide", "imidamide"):
             continue
         parent_pos = _find_parent_neighbor(fg.anchor, parent_atoms, mol)
         by_parent_pos.setdefault(parent_pos, []).append(fg)
@@ -18896,7 +18907,7 @@ def _role_primes(pcg_instances, parent_atoms, mol) -> dict[int, str]:
                 if mol.GetAtomWithIdx(a).GetAtomicNum() != 7:
                     continue
                 bond = mol.GetBondBetweenAtoms(a, fg.anchor)
-                if fg.type == "hydrazide":
+                if fg.type in ("hydrazide", "thiohydrazide"):
                     primes[a] = shift if bond is not None else shift + "'"
                 elif bond is not None:
                     # P-66.4.1.4.1: "the locant N refers to the amino group and

@@ -1,0 +1,19 @@
+# Round 23's full ref-compare manifest, against master's pre-round-23 tip (a1e623cd): the chalcogen analogue thiohydrazide (D-179). The 2 rows below are
+# the ONLY ones the round moved across r7, r8, mc and pop (1712 structures), both in the TUNING population and both the book's own printed examples
+# ('propanethiohydrazide (PIN)', 'benzenecarbothiohydrazide (PIN)', pdf p. 672, verbatim). Each new name reads back to the input, as did the old one.
+
+stage = "r23-release-candidate"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-07eabedde091"
+expect = "MUST_CHANGE"
+reason_rule_id = "thiohydrazide (D-179)"
+expected_layer = "candidate_generation"
+expected_name = "benzenecarbothiohydrazide"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-da11d157d0c8"
+expect = "MUST_CHANGE"
+reason_rule_id = "thiohydrazide (D-179)"
+expected_layer = "candidate_generation"
+expected_name = "propanethiohydrazide"

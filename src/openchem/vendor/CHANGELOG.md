@@ -1950,3 +1950,44 @@ files 2405 passed. Two guards (the ylidene clause itself, the carbon restriction
 **Also found, not fixed:** plain thiohydrazides (`CC(=S)NN` is `(1-thioxoethyl)hydrazine`, not `acetothiohydrazide`) are a separate, pre-existing defect
 independent of the hydrazone question -- the `fg:hydrazide` SMARTS matches only a carbonyl oxygen, with no generic chalcogen-swap path the way
 carboxamide/carbothioamide share. Recorded in `KNOWN_LIMITATIONS.md`.
+
+
+## 2026-09-27 -- naming round 23 (D-179): the chalcogen analogue thiohydrazide
+
+Round 22 found this while fixing D-171 and left it open. P-66.3.4 (pdf p. 672), verbatim: "Chalcogen analogues of hydrazides are named substitutively
+using suffixes formed by functional replacement, i.e., 'thiohydrazide', 'carbothiohydrazide' ..."; printed "propanethiohydrazide (PIN)" and
+"benzenecarbothiohydrazide (PIN)" (both verbatim, matched exactly). `CC(=S)NN` was `(1-thioxoethyl)hydrazine` and is `ethanethiohydrazide`.
+
+**The cause.** `fg:hydrazide`'s SMARTS matched only a carbonyl oxygen (`(=O)`); other suffix families (amide/thioamide, carboxylic/carbothioic acid)
+already have their own separate chalcogen-analogue FG entries with the identical shape, but hydrazide had none. One new `thiohydrazide` FG entry mirrors
+`hydrazide` exactly, `(=S)` for `(=O)`, keeping round 22's hydrazone-admitting terminal-nitrogen clause unchanged.
+
+**Three more sites needed the new type name, all keyed on the literal string `"hydrazide"`:**
+- `_N_BEARING_FG_TYPES` (Pass 2.5a's N-substituent carving) -- without it, every N-substituted or hydrazone thiohydrazide fell back to the pre-round
+  wrong reading (`CC(=S)NNC` stayed `1-methyl-2-(1-thioxoethyl)hydrazine`).
+- `_role_primes` -- without it, a single N'-substituted case got the WRONG prime, `N-methylethanethiohydrazide` instead of
+  `N'-methylethanethiohydrazide` (the book's own convention, "the N bonded to the acyl carbon is N, the terminal one N'", P-66.3.1, applies unchanged
+  to the chalcogen analogue).
+- The anchor-in-parent guard around `_hydrazide_attaches_through_its_carbonyl` plus `_DEMOTED_AMIDE_TYPES_PREPROC` -- without these, a thiohydrazide
+  anchored inside a longer acid chain (`NNC(=S)CCC(=O)O`) briefly emitted `4-hydrazinecarbonothioylbutanoic acid`, a WRONG STRUCTURE (the whole-group
+  prefix `hydrazinecarbonothioyl` double-counts the anchor carbon when it is already IN the parent chain), caught by testing the anchor-in-parent shape
+  before shipping, not by a printed example.
+
+**One guard measured dead.** `_DEMOTED_AMIDE_TYPES_PREPROC`'s thiohydrazide entry was added for symmetry with `hydrazide`'s own entry, but every
+anchor-in-parent shape tried (a chain, a ring, an N-substituted case, an ester's acid part) already reads correctly from the `_hydrazide_attaches_
+through_its_carbonyl` guard alone; removing this one entry changes no row. Kept only so the function is right on its own, the same reasoning round 19
+kept one dead nitric-hydrazide guard for.
+
+**Measured.** Census scan (2000 rows): 0 rows changed class and 0 changed name -- the family is rare in a drug-like corpus, unlike round 22's
+acylhydrazone-hydrazone family. ref-compare against master (`a1e623cd`): 1712 structures, **2 changed**, both the book's own printed examples
+(`propanethiohydrazide`, `benzenecarbothiohydrazide`), both reading back, listed in `benchmarks/naming/stages/manifests/r23-release-candidate.toml`,
+0 violations. **The blind frozen impact was UNCHANGED** on both `bluebook_frozen` (1126 rows) and `heldout_v6` (40 rows) -- the previous evaluation's
+score (`r22-final-evaluation`) stands without re-scoring. Vendored suite: 5516 passed, no fixture regression. Naming/docs/source-scanning files 2417
+passed. Nine guards (the FG entry itself, the carbon restriction on its hydrazone clause, and the three engine.py sites above, each split into their
+two call sites) were each removed in turn and a row failed for eight of nine; the ninth is the dead preprocessing entry above.
+
+**A cross-session note, not a code change.** A concurrent session was independently editing `docs/research/literature.toml` and adding
+`benchmarks/thermophysical/` in this same working directory while this round measured its "before" baseline via `git stash`; the stash briefly swept
+up their uncommitted work too. Recovered by restoring only this round's three files from the stash (`git checkout stash@{0} -- <path>` per file) and
+diffing the stash against the restored files before dropping it, leaving the other session's newer, larger edit to that file untouched. Future
+"before" baselines in a shared checkout should use a worktree or `git show <ref>:<path>` instead of `git stash`, which operates on the whole tree.
