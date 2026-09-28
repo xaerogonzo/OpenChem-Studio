@@ -116,13 +116,19 @@ def test_nitroguanidine_and_ammonium_nitrate_refuse(rows):
     assert rows["ammonium_nitrate"]["groups"] is None
 
 
-def test_tatb_and_nitroglycerin_are_never_scored_numerically(rows):
+def test_tatb_is_never_scored_numerically(rows):
     """TATB has no measured Tm (Klapoetke: its melting point is an unreached ESTIMATE, not a
-    measurement) and nitroglycerin's wasn't found in either held book this session -- both must stay
-    out of the scored set rather than being silently compared against Joback's Tf or Marrero-Gani's
-    estimate as if a real measurement existed."""
+    measurement) -- it must stay out of the scored set rather than being silently compared against
+    Joback's Tf or Marrero-Gani's estimate as if a real measurement existed."""
     assert rows["tatb"]["scoreable"] is False
-    assert rows["nitroglycerin"]["scoreable"] is False
+
+
+def test_nitroglycerin_is_now_scored_against_a_found_measured_value(rows):
+    """A later session found nitroglycerin's Tm (285.5 K, NIST WebBook citing Acree 1991) where the
+    original pass had come up empty -- Marrero-Gani overestimates it by +19.7 K, a smaller error than
+    PETN's (the other nitrate ester in this corpus), and the row is now scoreable rather than deferred."""
+    assert rows["nitroglycerin"]["scoreable"] is True
+    assert rows["nitroglycerin"]["marrero_gani_error_k"] == pytest.approx(19.7, abs=0.1)
 
 
 def test_tetryls_error_is_positive_unlike_the_ring_nitramines(rows):
