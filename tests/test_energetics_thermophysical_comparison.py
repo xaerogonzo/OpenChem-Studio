@@ -82,3 +82,71 @@ def test_hmx_does_have_a_measured_melting_point(rows):
     Klapoetke's remark was pointing at -- but that is a small gap, not an absent measurement."""
     assert rows["HMX"]["measured_tm_k"] == pytest.approx(548.15)
     assert rows["HMX"]["marrero_gani_error_k"] is not None
+
+
+# --- Track 1: the diagnostic extension from tests/fixtures/census_panel.toml -------------------------
+# Not a blind holdout -- see this file's and compare_energetics.py's module docstrings. These tests guard
+# the extension's own claims: clean decompositions where expected, genuine refusals where expected, and
+# that a decomposition or "estimated" transition is never silently scored as a melting point.
+
+
+def test_every_diagnostic_row_is_covered_by_the_regression_corpus(compare_module):
+    """Every row in compare_energetics.py's diagnostic set really does come from census_panel.toml --
+    guards against silently drifting away from the pre-existing, non-cherry-picked corpus the plan
+    calls for reusing."""
+    import tomllib
+
+    panel = tomllib.loads((ROOT / "tests" / "fixtures" / "census_panel.toml").read_text(encoding="utf-8"))
+    panel_ids = {row["id"] for row in panel["row"]}
+    diagnostic_names = {
+        name for name, spec in compare_module.MOLECULES.items() if spec["role"] == "diagnostic"
+    }
+    assert diagnostic_names <= panel_ids
+
+
+def test_four_diagnostic_rows_decompose_cleanly(rows):
+    for name in ("dinitrodiazetidine", "tetryl", "tatb", "nitroglycerin"):
+        assert rows[name]["groups"] is not None, name
+
+
+def test_nitroguanidine_and_ammonium_nitrate_refuse(rows):
+    """Genuine coverage gaps (a guanidine core; an ionic inorganic salt), not missing SMARTS patterns --
+    tests/test_energetics_groups.py checks the atom-level reason directly."""
+    assert rows["nitroguanidine"]["groups"] is None
+    assert rows["ammonium_nitrate"]["groups"] is None
+
+
+def test_tatb_and_nitroglycerin_are_never_scored_numerically(rows):
+    """TATB has no measured Tm (Klapoetke: its melting point is an unreached ESTIMATE, not a
+    measurement) and nitroglycerin's wasn't found in either held book this session -- both must stay
+    out of the scored set rather than being silently compared against Joback's Tf or Marrero-Gani's
+    estimate as if a real measurement existed."""
+    assert rows["tatb"]["scoreable"] is False
+    assert rows["nitroglycerin"]["scoreable"] is False
+
+
+def test_tetryls_error_is_positive_unlike_the_ring_nitramines(rows):
+    """Track 2b's actual descriptive finding: tetryl is labelled 'nitramine' in census_panel.toml (for
+    a different reason -- it was chosen to test that an aromatic N-N doesn't get mistaken for a ring
+    N-N), but its Marrero-Gani error runs the OPPOSITE direction from RDX/HMX/dinitrodiazetidine's
+    consistent underestimate, and closer in sign and size to the nitroaromatic stratum (TNT). This is
+    exactly why 'nitramine' as a single reporting stratum is misleading here: tetryl's N-NO2 is
+    aromatic-carbon-attached, not ring-nitrogen-attached, and behaves like a different chemical class
+    for this property. Recorded descriptively, not explained -- see the module docstring's caution
+    against inferring a causal correction from a handful of confounded points."""
+    assert rows["tetryl"]["marrero_gani_error_k"] > 0
+    assert rows["RDX"]["marrero_gani_error_k"] < 0
+    assert rows["HMX"]["marrero_gani_error_k"] < 0
+
+
+def test_stratified_report_separates_coverage_from_accuracy(compare_module, rows):
+    report = compare_module.stratified_report(list(rows.values()))
+    # "energetic" stratum (nitroguanidine, ammonium_nitrate): fully refused, zero scoreable -- coverage
+    # failure, not an accuracy number of exactly 0 that would misleadingly look like a perfect score.
+    assert report["energetic"]["total"] == 2
+    assert report["energetic"]["mg_covered"] == 0
+    assert report["energetic"]["mg_scoreable"] == 0
+    assert report["energetic"]["mg_errors"] == []
+    # nitramine stratum has 4 rows but only 3 scoreable (dinitrodiazetidine has no measured Tm yet).
+    assert report["nitramine"]["total"] == 4
+    assert report["nitramine"]["mg_scoreable"] == 3

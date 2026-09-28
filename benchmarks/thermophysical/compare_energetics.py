@@ -1,39 +1,40 @@
-"""RDX / HMX / TNT / PETN through Marrero-Gani (2001), against the app's real Joback and against
-measured melting points -- the comparison docs/research/literature.toml's marrero2001 entry asked for.
+"""RDX / HMX / TNT / PETN and a diagnostic extension corpus through Marrero-Gani (2001), against the
+app's real Joback and against measured melting points -- Track 1 of the plan at
+`docs/research/literature.toml`'s marrero2001 entry.
 
 **This is a survey script, not a calculator.** Nothing here changes what the app ships; see
 docs/research/README.md for why a comparison is not a promotion, and docs/CALCULATOR_MATURITY.md for
-what promoting Thermophysical's coverage would actually require (a held-out set, not four molecules).
+what promoting Thermophysical's coverage would actually require.
 
-**What is being checked, and why only Tm.** docs/research/literature.toml's marrero2001 entry records
-a caveat found while reading Klapoetke (already cited in docs/sources.toml as klapotke2017, p. 303):
-"The melting and decomposition points of RDX and HMX lie close together" -- both compounds decompose
-at or near their melting point, so Tb/Tc/Pc/Vc describe a state neither ever reaches, whichever method
-produces the number. Tm is the one property with a real measured value below the decomposition point,
-so it is the only property this script compares.
+**Development vs. diagnostic, not one undifferentiated "holdout".** RDX/HMX/TNT/PETN are the
+DEVELOPMENT set: scoring them first is what produced the ring-N + generic-NO2 decomposition hypothesis
+and the suspicion of a per-nitramine bias. Every other row below is DIAGNOSTIC: drawn from
+`tests/fixtures/census_panel.toml` (frozen before any calculator ran over it, but examined while
+planning this extension), so it can stress-test the decomposition and characterize behavior, but is not
+a blind holdout and must not be reported as one. Neither role level supports a promotion claim on its
+own -- see `docs/CALCULATOR_MATURITY.md`.
 
-**Group assignments are HAND-DONE, not SMARTS-matched**, the same way the paper's own Appendix B
-worked examples are -- there is no general-purpose group-contribution engine here, only four molecules
-whose decomposition is unambiguous:
+**Why only Tm.** Both Klapoetke (klapotke2017, p. 303) and Agrawal (2010, Table 3.6) agree that several
+of these compounds decompose at or near their melting point, so Tb/Tc/Pc/Vc describe a state most of
+them never reach. Tm is the one property with a real measured value below the decomposition point for
+most rows, so it is the only property this script compares -- and even Tm is scored only for rows whose
+`transition_type` is exactly `"melting"` (`tools/validation_rows.py`'s `admit_to_melting_point_set`): a
+reported decomposition or "estimated" melting temperature is a different, or unmeasured, quantity and is
+never silently compared against a Tm prediction.
 
-    RDX  (ring, C3H6N6O6):  3x CH2(cyclic) + 3x N(cyclic) + 3x NO2(except as above)
-    HMX  (ring, C4H8N8O8):  4x CH2(cyclic) + 4x N(cyclic) + 4x NO2(except as above)
-    TNT  (C7H5N3O6):        1x aC-CH3 + 3x aC-NO2 + 2x aCH   (Joback's own decomposition -- it
-                            already runs TNT; this is a control, not new coverage)
-    PETN (C5H8N4O12):       1x C (quaternary) + 4x CH2 + 4x ONO2   (the O-NO2 nitrate-ester group,
-                            NOT the ether-context CH2O -- CH2O's own O would double-count the O that
-                            ONO2's definition already carries, see the module docstring's atom count)
+**Group assignments are cross-checked, not just hand-asserted.** Each row's `groups` dict is verified
+against `benchmarks/thermophysical/energetics_groups.py`'s independent SMARTS-based counter, which was
+itself checked for representation invariance (`tests/test_energetics_groups.py`) -- so a decomposition
+here is a claim about the molecule, not about how this one file happens to write its SMILES. A row with
+`groups: None` is a genuine refusal (no complete first-order decomposition exists), recorded with the
+specific atoms that could not be claimed, never a partial sum.
 
-Each assignment accounts for every heavy atom exactly once; SMILES are Klapoetke Table 4.1's own
-(tests/test_energetics.py's TABLE_4_1), so the molecule identity matches what's already shipped.
-
-First-order only: no second-order correction is applied to any of the four. Table 7 has no
-ring/nitro-specific second-order group for the nitramine motif (checked while reading the table --
-see the literature.toml note), and for TNT's own aromatic ring pattern, working out which
-AROMRINGs.. correction (if any) applies to a 1,2,4,6-type substitution requires a positional
-convention this script does not try to verify -- reporting the first-order number only, as the paper
-itself always does before showing any refinement, avoids asserting a correction that has not been
-checked.
+First-order only, for every row, always: Table 7 has no second-order correction for a ring N bonded to
+NO2 at all (checked while transcribing it), and TNT's own aromatic substitution pattern -- worked out
+canonically this session from its parent name's own numbering (methyl anchors position 1, giving
+substituent set {1,2,4,6}) and cross-checked against every one of Table 7's 9 AROMRING patterns, none of
+which cover a {1,2,4,6} set -- has no applicable second-order correction either. So "first-order only"
+is not a shortcut here, it is the paper's own complete answer for every molecule in this corpus.
 """
 
 from __future__ import annotations
@@ -45,55 +46,169 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-_spec = importlib.util.spec_from_file_location("marrero2001_table", Path(__file__).parent / "marrero2001_table.py")
-marrero = importlib.util.module_from_spec(_spec)
-sys.modules[_spec.name] = marrero
-_spec.loader.exec_module(marrero)
+
+def _load(name: str, filename: str):
+    spec = importlib.util.spec_from_file_location(name, Path(__file__).parent / filename)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
-#: name, SMILES (Klapoetke Table 4.1 / tests/test_energetics.py TABLE_4_1), first-order group
-#: assignment, and the measured Tm this script checks against.
-#:
-#: Sourcing of the Tm values, honestly: TNT's "approx. 80 C" (353.5 K used here) is Klapoetke's own
-#: text (p. 303, klapotke2017) prompted a second look. Verified 2026-09-27 against Agrawal (2010),
-#: "High Energy Materials", Table 3.6 p. 189 (docs/research/literature.toml's agrawal2010 entry --
-#: read directly this session, at the user's request for a primary-source check on RDX specifically).
-#: That table gives melting point as its OWN column, separate from ignition/exotherm/decomposition,
-#: for all four compounds -- so all four now carry a value read from that table, not a recollected
-#: "standard literature value". Klapoetke's "lie close together" is directionally right for HMX (its
-#: gap to ignition is ~4-6 C, the smallest of the four -- see RDX's own ~24 C gap below) but Agrawal's
-#: table does give HMX a specific, separately-measured mp, so it is scored here too.
+marrero = _load("marrero2001_table", "marrero2001_table.py")
+energetics_groups = _load("energetics_groups", "energetics_groups.py")
+
+
+#: name, SMILES, role (development/diagnostic), stratum (matches census_panel.toml where the row comes
+#: from there), first-order groups (or None for a genuine refusal, with `refusal_atoms` naming what
+#: could not be claimed), and the measured-Tm citation chain: `transition_type`
+#: (melting/decomposition/melting_with_decomposition/not_observed -- tools/validation_rows.py's own
+#: vocabulary), `value_source` (primary/secondary), `primary_reference` (furthest-back citation traced,
+#: even if unread), `secondary_reference` (the handbook actually read).
 MOLECULES = {
+    # --- development set: already scored, shaped the hypotheses under test -----------------------
     "RDX": {
         "smiles": "O=[N+]([O-])N1CN(CN(C1)[N+](=O)[O-])[N+](=O)[O-]",
+        "role": "development",
+        "stratum": "nitramine",
         "groups": {"CH2 (cyclic)": 3, "N (cyclic)": 3, "NO2 except as above": 3},
         "measured_tm_k": 478.15,
-        "measured_tm_source": "Agrawal (2010) Table 3.6, p. 189: mp 205 C (ignition 229 C, a 24 C gap)",
+        "transition_type": "melting",
+        "value_source": "secondary",
+        "primary_reference": "Yinon & Zitrin (1981), The Analysis of Explosives, Ch. 9, p. 136 -- not held",
+        "secondary_reference": "Agrawal (2010) Table 3.6, p. 189: mp 205 C (ignition 229 C, a 24 C gap)",
     },
     "HMX": {
         "smiles": "O=[N+]([O-])N1CN(CN(CN(C1)[N+](=O)[O-])[N+](=O)[O-])[N+](=O)[O-]",
+        "role": "development",
+        "stratum": "nitramine",
         "groups": {"CH2 (cyclic)": 4, "N (cyclic)": 4, "NO2 except as above": 4},
         "measured_tm_k": 548.15,
-        "measured_tm_source": (
-            "Agrawal (2010) Table 3.6, p. 189: beta-HMX mp 275 C (ignition 279-281 C, only a 4-6 C "
-            "gap -- consistent with Klapoetke klapotke2017 p. 303's 'lie close together', but a real "
-            "separately-measured value, not an absence of one"
+        "transition_type": "melting",
+        "value_source": "secondary",
+        "primary_reference": "not traced beyond Agrawal 2010's own Ref. [46] (Yinon & Zitrin 1981)",
+        "secondary_reference": (
+            "Agrawal (2010) Table 3.6, p. 189: beta-HMX mp 275 C (ignition 279-281 C, only a 4-6 C gap "
+            "-- consistent with Klapoetke klapotke2017 p. 303's 'lie close together', but a real "
+            "separately-measured value, not an absence of one)"
         ),
     },
     "TNT": {
         "smiles": "Cc1c(cc(cc1[N+](=O)[O-])[N+](=O)[O-])[N+](=O)[O-]",
+        "role": "development",
+        "stratum": "nitroaromatic",
         "groups": {"aC-CH3": 1, "aC-NO2": 3, "aCH": 2},
         "measured_tm_k": 354.15,
-        "measured_tm_source": (
+        "transition_type": "melting",
+        "value_source": "secondary",
+        "primary_reference": "not traced beyond Agrawal 2010's own Ref. [46]",
+        "secondary_reference": (
             "Agrawal (2010) Table 3.6, p. 189: mp 81 C; matches Klapoetke klapotke2017 p. 303's "
-            "'melts at approx. 80 C'"
+            "'melts at approx. 80 C' and Agrawal's own prose (Sec. 2.2.2, p. 72 area): 'low melting "
+            "point (80.4 C)'"
         ),
     },
     "PETN": {
         "smiles": "C(C(CO[N+](=O)[O-])(CO[N+](=O)[O-])CO[N+](=O)[O-])O[N+](=O)[O-]",
+        "role": "development",
+        "stratum": "nitrate_ester",
         "groups": {"C": 1, "CH2": 4, "ONO2": 4},
         "measured_tm_k": 413.15,
-        "measured_tm_source": "Agrawal (2010) Table 3.6, p. 189: mp 140 C (ignition 203 C, a 63 C gap)",
+        "transition_type": "melting",
+        "value_source": "secondary",
+        "primary_reference": "not traced beyond Agrawal 2010's own Ref. [46]",
+        "secondary_reference": (
+            "Agrawal (2010) Table 3.6, p. 189: mp 140 C (ignition 203 C, a 63 C gap); matches Agrawal's "
+            "own prose (Sec. 2.2.6, p. 73): 'm.p. 140 C' -- two independent passages in the same book "
+            "agreeing, not one number repeated"
+        ),
+    },
+    # --- diagnostic set: frozen in census_panel.toml before any calculator ran, examined while ------
+    # --- planning this extension -- extends and stress-tests the decomposition, not a blind holdout --
+    "dinitrodiazetidine": {
+        "smiles": "O=[N+]([O-])N1CN([N+](=O)[O-])C1",
+        "role": "diagnostic",
+        "stratum": "nitramine",
+        "groups": {"N (cyclic)": 2, "NO2 except as above": 2, "CH2 (cyclic)": 2},
+        "measured_tm_k": None,
+        "transition_type": None,
+        "value_source": None,
+        "primary_reference": "",
+        "secondary_reference": "no measured Tm found in either held book this session -- deferred",
+    },
+    "tetryl": {
+        "smiles": "CN(c1c(cc(cc1[N+](=O)[O-])[N+](=O)[O-])[N+](=O)[O-])[N+](=O)[O-]",
+        "role": "diagnostic",
+        "stratum": "nitramine",  # census_panel.toml: "an aromatic nitramine, no ring N-N"
+        "groups": {"aC-NO2": 3, "aC-N": 1, "aCH": 2, "NO2 except as above": 1, "CH3": 1},
+        "measured_tm_k": 402.15,
+        "transition_type": "melting",
+        "value_source": "secondary",
+        "primary_reference": "not traced",
+        "secondary_reference": (
+            "Agrawal (2010) Table 3.6, p. 189: mp 129 C; independently confirmed by Agrawal's own prose "
+            "(Sec. 2.2.3, p. 72): 'm.p. 129 C' -- two independent passages agreeing"
+        ),
+    },
+    "tatb": {
+        "smiles": "Nc1c(N)c([N+](=O)[O-])c(N)c([N+](=O)[O-])c1[N+](=O)[O-]",
+        "role": "diagnostic",
+        "stratum": "nitroaromatic",
+        "groups": {"aC-NO2": 3, "aC-NH2": 3},
+        "measured_tm_k": None,
+        "transition_type": "not_observed",
+        "value_source": "secondary",
+        "primary_reference": "",
+        "secondary_reference": (
+            "Klapoetke (klapotke2017, p. 303-304, Fig. 10.7 discussion): 'other energetic compounds "
+            "such as NQ or TATB decompose at much lower temperatures than their ESTIMATED melting "
+            "points' -- TATB's melting point is explicitly an estimate it never reaches, not a "
+            "measurement; entered here as a decomposition-behavior / group-assignment control, not a "
+            "numeric Tm row (tools/validation_rows.py's admit_to_melting_point_set excludes it)"
+        ),
+    },
+    "nitroguanidine": {
+        "smiles": "NC(=N)N[N+](=O)[O-]",
+        "role": "diagnostic",
+        "stratum": "energetic",
+        "groups": None,
+        "refusal_atoms": "the guanidine core (C=N, and the N-NO2 nitramide N) -- no group in Table 6 "
+        "covers a C=N outside an aldazine/ketazine context; its NH2 alone IS covered (row 65) but that "
+        "does not make the whole molecule decomposable",
+        "measured_tm_k": 537.15,
+        "transition_type": "melting",
+        "value_source": "secondary",
+        "primary_reference": "not traced",
+        "secondary_reference": "Agrawal (2010) Table 3.6, p. 189: mp 264 C",
+    },
+    "ammonium_nitrate": {
+        "smiles": "[NH4+].[O-][N+](=O)[O-]",
+        "role": "diagnostic",
+        "stratum": "energetic",
+        "groups": None,
+        "refusal_atoms": "the whole molecule -- an ammonium cation and a nitrate anion are inorganic "
+        "and ionic; Marrero-Gani's groups describe organic covalent structures",
+        "measured_tm_k": 442.15,
+        "transition_type": "melting",
+        "value_source": "secondary",
+        "primary_reference": "not traced",
+        "secondary_reference": "Agrawal (2010) Table 3.6, p. 189: mp 169 C (listed in the Melting point column)",
+    },
+    "nitroglycerin": {
+        "smiles": "C(C(CO[N+](=O)[O-])O[N+](=O)[O-])O[N+](=O)[O-]",
+        "role": "diagnostic",
+        "stratum": "nitrate_ester",
+        "groups": {"ONO2": 3, "CH2": 2, "CH": 1},
+        "measured_tm_k": None,
+        "transition_type": None,
+        "value_source": None,
+        "primary_reference": "",
+        "secondary_reference": (
+            "no numeric Tm found in either held book this session -- Agrawal's own NG section (Sec. "
+            "2.2.4, p. 72-73) gives density and VOD but no melting point, and later (p. 275) discusses "
+            "engineering NG's 'freezing point' down without stating NG's own value; deferred rather than "
+            "using the commonly-cited ~13 C figure unverified"
+        ),
     },
 }
 
@@ -120,33 +235,101 @@ def run_joback(smiles: str):
 def compare() -> list[dict]:
     rows = []
     for name, spec in MOLECULES.items():
-        mg_tm = marrero.estimate("Tm", spec["groups"])
+        groups = spec["groups"]
+        if groups is not None:
+            # Cross-check against the independent SMARTS counter -- a mismatch is a bug somewhere in
+            # this file or in energetics_groups.py, never silently trusted either way.
+            checked = energetics_groups.count_groups(spec["smiles"])
+            if checked != groups:
+                raise AssertionError(f"{name}: hand groups {groups} != energetics_groups {checked}")
+            mg_tm = marrero.estimate("Tm", groups)
+        else:
+            mg_tm = None
+
         joback_tf, joback_refusal = run_joback(spec["smiles"])
         measured = spec["measured_tm_k"]
+        scoreable = groups is not None and measured is not None and spec.get("transition_type") == "melting"
+
         rows.append(
             {
                 "name": name,
+                "role": spec["role"],
+                "stratum": spec["stratum"],
+                "groups": groups,
+                "refusal_atoms": spec.get("refusal_atoms"),
                 "marrero_gani_tm_k": mg_tm,
-                "marrero_gani_error_k": (mg_tm - measured) if measured is not None else None,
+                "marrero_gani_error_k": (mg_tm - measured) if scoreable else None,
                 "joback_tf_k": joback_tf,
                 "joback_refusal": joback_refusal,
-                "joback_error_k": (joback_tf - measured) if (joback_tf is not None and measured is not None) else None,
+                "joback_error_k": (joback_tf - measured)
+                if (joback_tf is not None and measured is not None and spec.get("transition_type") == "melting")
+                else None,
                 "measured_tm_k": measured,
-                "measured_tm_source": spec["measured_tm_source"],
+                "transition_type": spec.get("transition_type"),
+                "value_source": spec.get("value_source"),
+                "primary_reference": spec.get("primary_reference", ""),
+                "secondary_reference": spec.get("secondary_reference", ""),
+                "scoreable": scoreable,
             }
         )
     return rows
 
 
+def stratified_report(rows: list[dict]) -> dict[str, dict]:
+    """Coverage and accuracy, kept SEPARATE, grouped by `stratum` -- an aggregate error can hide a poor
+    energetic class (docs/CALCULATOR_MATURITY.md)."""
+    by_stratum: dict[str, dict] = {}
+    for row in rows:
+        s = by_stratum.setdefault(
+            row["stratum"], {"total": 0, "mg_covered": 0, "mg_scoreable": 0, "mg_errors": [], "refused": 0}
+        )
+        s["total"] += 1
+        if row["groups"] is not None:
+            s["mg_covered"] += 1
+        else:
+            s["refused"] += 1
+        if row["scoreable"]:
+            s["mg_scoreable"] += 1
+            s["mg_errors"].append(row["marrero_gani_error_k"])
+    return by_stratum
+
+
 def _print_report(rows: list[dict]) -> None:
     for row in rows:
-        print(f"\n{row['name']}")
-        print(f"  measured Tm:        {row['measured_tm_k']!r} K  ({row['measured_tm_source']})")
-        print(f"  Marrero-Gani Tm:    {row['marrero_gani_tm_k']:.1f} K  (error {row['marrero_gani_error_k']!r})")
+        print(f"\n{row['name']}  [{row['role']}, stratum={row['stratum']}]")
+        if row["groups"] is None:
+            print(f"  Marrero-Gani:       REFUSES -- {row['refusal_atoms']}")
+        else:
+            print(f"  Marrero-Gani Tm:    {row['marrero_gani_tm_k']:.1f} K  (groups {row['groups']})")
+        if row["measured_tm_k"] is not None:
+            print(
+                f"  measured Tm:        {row['measured_tm_k']!r} K  "
+                f"(transition_type={row['transition_type']}, source={row['value_source']})"
+            )
+            print(f"    secondary_reference: {row['secondary_reference']}")
+            if row["primary_reference"]:
+                print(f"    primary_reference:   {row['primary_reference']}")
+        else:
+            print(f"  measured Tm:        none -- {row['secondary_reference']}")
+        if row["scoreable"]:
+            print(f"  Marrero-Gani error: {row['marrero_gani_error_k']:.1f} K")
         if row["joback_refusal"]:
             print(f"  Joback:             refused ({row['joback_refusal']})")
+        elif row["joback_error_k"] is not None:
+            print(f"  Joback Tf:          {row['joback_tf_k']:.2f} K  (error {row['joback_error_k']:.1f} K)")
         else:
-            print(f"  Joback Tf:          {row['joback_tf_k']:.2f} K  (error {row['joback_error_k']!r})")
+            print(f"  Joback Tf:          {row['joback_tf_k']:.2f} K  (not scoreable against this row)")
+
+    print("\n--- stratified summary (coverage and accuracy kept separate) ---")
+    for stratum, s in sorted(stratified_report(rows).items()):
+        mean_abs = sum(abs(e) for e in s["mg_errors"]) / len(s["mg_errors"]) if s["mg_errors"] else None
+        print(
+            f"{stratum:15s}  total={s['total']}  Marrero-Gani covered={s['mg_covered']}  "
+            f"refused={s['refused']}  scoreable={s['mg_scoreable']}  "
+            f"mean|error|={mean_abs:.1f} K" if mean_abs is not None else
+            f"{stratum:15s}  total={s['total']}  Marrero-Gani covered={s['mg_covered']}  "
+            f"refused={s['refused']}  scoreable={s['mg_scoreable']}  mean|error|=n/a"
+        )
 
 
 if __name__ == "__main__":

@@ -42,6 +42,21 @@ PARTITIONS = frozenset({"development", "selection", "holdout"})
 #: The phases a reference state can name.
 PHASES = frozenset({"gas", "liquid", "solid", "crystal"})
 
+#: What a reported thermal event actually was. **A predicted melting point must never be scored against
+#: a reported DECOMPOSITION temperature just because both are printed in the same units** -- an energetic
+#: material's "204 C" can be either, and the two are different physical quantities (found while building
+#: the RDX/HMX/TNT/PETN comparison: Agrawal 2010 Table 3.6 reports melting point, ignition temperature and
+#: exotherm temperature as three SEPARATE columns for exactly this reason).
+TRANSITION_TYPES = frozenset({"melting", "decomposition", "melting_with_decomposition", "not_observed"})
+
+#: How directly a row's value traces to a measurement. **A handbook table is not the experimental
+#: source** -- it is a secondary citation of one, and the row should say which. `"primary"` for a value
+#: read from the original measurement (or as close as this project has gotten); `"secondary"` for one
+#: read from a compilation/handbook that itself cites something else (record that upstream citation in
+#: `primary_reference` when it has been traced, even if not held -- as RDX's Agrawal-to-Yinon-and-Zitrin
+#: chain was).
+VALUE_SOURCES = frozenset({"primary", "secondary"})
+
 
 class UnknownFitPopulation(KeyError):
     """No fit population is recorded for a (model, property) pair, so leakage there is UNKNOWN."""
@@ -63,6 +78,19 @@ class ValidationRow:
     temperature_k: float | None = None
     #: One of `PHASES`, or None when the source does not say.
     phase: str | None = None
+    #: One of `TRANSITION_TYPES`, or None when the property isn't a thermal transition at all (leave
+    #: unset for a non-thermal property; required whenever `property` is a melting/boiling/decomposition
+    #: point, enforced below).
+    transition_type: str | None = None
+    #: One of `VALUE_SOURCES`, or None when not yet classified.
+    value_source: str | None = None
+    #: The furthest-back citation this value has been traced to, even when that source is not itself
+    #: held (e.g. "Yinon & Zitrin 1981, p. 136" -- not held, but the chain is recorded rather than
+    #: dropped). Free text; empty when the row's own `source_id` already names the primary source.
+    primary_reference: str = field(default="")
+    #: The handbook/compilation actually read to obtain `value`, when different from `primary_reference`
+    #: (e.g. "Agrawal 2010, Table 3.6, p. 189"). Free text.
+    secondary_reference: str = field(default="")
     #: Free text for anything the source says that the fields above cannot (a normalisation, a polymorph).
     note: str = field(default="")
 
@@ -71,6 +99,13 @@ class ValidationRow:
             raise ValueError(f"{self.row_id}: partition {self.partition!r} is not one of {sorted(PARTITIONS)}")
         if self.phase is not None and self.phase not in PHASES:
             raise ValueError(f"{self.row_id}: phase {self.phase!r} is not one of {sorted(PHASES)}")
+        if self.transition_type is not None and self.transition_type not in TRANSITION_TYPES:
+            raise ValueError(
+                f"{self.row_id}: transition_type {self.transition_type!r} is not one of "
+                f"{sorted(TRANSITION_TYPES)}"
+            )
+        if self.value_source is not None and self.value_source not in VALUE_SOURCES:
+            raise ValueError(f"{self.row_id}: value_source {self.value_source!r} is not one of {sorted(VALUE_SOURCES)}")
 
 
 def identity_block(smiles: str) -> str:
@@ -99,6 +134,22 @@ def admit_to_common_set(row: ValidationRow) -> str | None:
         return "no reference temperature: it is not comparable with a value measured at another temperature"
     if row.phase is None:
         return "no reference phase: a gas-phase and a condensed-phase value are different quantities"
+    return None
+
+
+def admit_to_melting_point_set(row: ValidationRow) -> str | None:
+    """None when `row` may be scored as a melting point, else the reason it may not.
+
+    A row typed `"decomposition"` is a different physical quantity and must never enter a Tm accuracy
+    table just because it is in the same units; `"melting_with_decomposition"` and `"not_observed"` are
+    also excluded -- the first because the reported number is entangled with decomposition (the value
+    exists, but scoring a predictor against it overstates what was actually measured), the second because
+    there is no melting value to score against at all. Only `"melting"` is a clean comparison.
+    """
+    if row.transition_type is None:
+        return "no transition_type recorded: cannot tell a melting point from a decomposition temperature"
+    if row.transition_type != "melting":
+        return f"transition_type is {row.transition_type!r}, not a clean 'melting' value"
     return None
 
 

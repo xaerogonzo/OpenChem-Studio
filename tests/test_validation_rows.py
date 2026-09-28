@@ -108,3 +108,34 @@ def test_a_partition_and_a_phase_outside_the_vocabulary_are_refused(vr):
 def test_there_are_three_partitions_never_two(vr):
     """Development, selection and holdout are different uses of data."""
     assert vr.PARTITIONS == {"development", "selection", "holdout"}
+
+
+def test_a_transition_type_and_value_source_outside_the_vocabulary_are_refused(vr):
+    with pytest.raises(ValueError, match="transition_type"):
+        _row(vr, "r", "CCO", prop="tm", transition_type="boiling")
+    with pytest.raises(ValueError, match="value_source"):
+        _row(vr, "r", "CCO", prop="tm", value_source="tertiary")
+
+
+def test_a_decomposition_row_never_enters_the_melting_point_set(vr):
+    """The whole reason `transition_type` exists: an energetic material's reported thermal event can be
+    a melting point OR a decomposition temperature, and scoring a Tm predictor against the wrong one
+    silently compares different physical quantities."""
+    row = _row(vr, "r", "CCO", prop="tm", transition_type="decomposition")
+    assert "decomposition" in vr.admit_to_melting_point_set(row)
+
+
+def test_an_untyped_row_never_enters_the_melting_point_set_either(vr):
+    row = _row(vr, "r", "CCO", prop="tm")
+    assert "no transition_type" in vr.admit_to_melting_point_set(row)
+
+
+def test_a_clean_melting_row_may_enter(vr):
+    row = _row(vr, "r", "CCO", prop="tm", transition_type="melting")
+    assert vr.admit_to_melting_point_set(row) is None
+
+
+def test_melting_with_decomposition_and_not_observed_also_stay_out(vr):
+    for t in ("melting_with_decomposition", "not_observed"):
+        row = _row(vr, "r", "CCO", prop="tm", transition_type=t)
+        assert vr.admit_to_melting_point_set(row) is not None
