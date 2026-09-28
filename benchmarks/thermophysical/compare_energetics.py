@@ -134,7 +134,15 @@ MOLECULES = {
         "transition_type": None,
         "value_source": None,
         "primary_reference": "",
-        "secondary_reference": "no measured Tm found in either held book this session -- deferred",
+        "secondary_reference": (
+            "still no measured Tm found. Expanded search 2026-09-28: this compound's actual export- "
+            "control abbreviation is DNAD, not DNAZ (found via a general web search hit on the EU "
+            "Common Military List) -- CAS 78246-06-7. Checked under that identity: NIST Chemistry "
+            "WebBook has no entry for the CAS number or the formula C2H4N4O4 (that formula resolves to "
+            "a different compound, FOX-7/DADNE); ChemicalBook's own data page for CAS 78246-06-7 lists "
+            "only a PREDICTED boiling point and density, no melting point at all, measured or "
+            "predicted. Genuinely deferred, not merely unchecked."
+        ),
     },
     "tetryl": {
         "smiles": "CN(c1c(cc(cc1[N+](=O)[O-])[N+](=O)[O-])[N+](=O)[O-])[N+](=O)[O-]",
@@ -199,15 +207,20 @@ MOLECULES = {
         "role": "diagnostic",
         "stratum": "nitrate_ester",
         "groups": {"ONO2": 3, "CH2": 2, "CH": 1},
-        "measured_tm_k": None,
-        "transition_type": None,
-        "value_source": None,
-        "primary_reference": "",
+        "measured_tm_k": 285.5,
+        "transition_type": "melting",
+        "value_source": "secondary",
+        "primary_reference": (
+            "Acree, W.E. (1991), 'Thermodynamic properties of organic compounds: enthalpy of fusion "
+            "and melting point temperature compilation', Thermochimica Acta 189, 37-56 -- not held"
+        ),
         "secondary_reference": (
-            "no numeric Tm found in either held book this session -- Agrawal's own NG section (Sec. "
-            "2.2.4, p. 72-73) gives density and VOD but no melting point, and later (p. 275) discusses "
-            "engineering NG's 'freezing point' down without stating NG's own value; deferred rather than "
-            "using the commonly-cited ~13 C figure unverified"
+            "NIST Chemistry WebBook (webbook.nist.gov, CAS 55-63-0), Phase change data: DfusH = 21.87 "
+            "kJ/mol AT 285.5 K, citing Acree (1991). Found 2026-09-28 after Agrawal's own NG section "
+            "(Sec. 2.2.4, p. 72-73) turned up density/VOD but no melting point. 285.5 K = 12.35 C is "
+            "close to the commonly-cited ~13 C 'stable' polymorph value, but NIST's own table does not "
+            "say which of NG's two known polymorphs (a labile form near 2 C, a stable form near 13 C) "
+            "this reading is -- recorded as found, not silently assigned to the stable form."
         ),
     },
 }

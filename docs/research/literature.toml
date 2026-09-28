@@ -339,7 +339,13 @@ different root atoms, traversal directions, and nitro-group kekulization forms, 
 counts; tests/test_energetics_groups.py). Results on the diagnostic set:
 
   dinitrodiazetidine (4-ring nitramine): clean decomposition (2x CH2(cyclic)+N(cyclic)+NO2-except),
-    Marrero-Gani Tm = 314.2 K. No measured Tm found in either held book this session -- deferred.
+    Marrero-Gani Tm = 314.2 K. STILL no measured Tm found, after an expanded search (2026-09-28): this
+    compound's own export-control abbreviation is DNAD, not DNAZ (CAS 78246-06-7, found via a general
+    web search hit on the EU Common Military List) -- checked under that identity, NIST Chemistry
+    WebBook has no entry for either the CAS number or its formula (C2H4N4O4 resolves to a different
+    compound, FOX-7/DADNE, in that database), and ChemicalBook's own data page for CAS 78246-06-7 lists
+    only a PREDICTED boiling point and density -- no melting point, measured or predicted, anywhere
+    checked. Genuinely deferred, not merely unchecked.
   tetryl (aromatic nitramine, N-NO2 on an exocyclic N, not a ring N): clean decomposition
     (aC-N + CH3 + NO2-except + 3x aC-NO2 + 2x aCH), Marrero-Gani Tm = 439.7 K vs measured 402.15 K
     (Agrawal Table 3.6 AND Agrawal's own prose, Sec. 2.2.3 -- two independent passages agreeing):
@@ -352,8 +358,14 @@ counts; tests/test_energetics_groups.py). Results on the diagnostic set:
   ammonium_nitrate: REFUSES -- ionic/inorganic, outside the method's organic-covalent scope entirely.
   nitroglycerin: clean decomposition (3x ONO2 + 2x CH2 + 1x CH, NOT the ether-context CH2O -- ONO2
     bundles its own oxygen as a complete terminal unit per row 83's own worked example), Marrero-Gani
-    Tm = 305.2 K. No measured Tm found in either held book this session (Agrawal's own NG section gives
-    density and VOD but not mp) -- deferred.
+    Tm = 305.2 K. **Found 2026-09-28** (the earlier session's deferral resolved): NIST Chemistry
+    WebBook's Phase change data for CAS 55-63-0 gives DfusH = 21.87 kJ/mol at 285.5 K, citing Acree,
+    W.E. (1991), Thermochimica Acta 189, 37-56 (not held) -- Agrawal's own NG section (Sec. 2.2.4, p.
+    72-73) has density/VOD but no melting point, so this required going outside the two held handbooks.
+    285.5 K = 12.35 C sits close to the commonly-cited ~13 C 'stable' NG polymorph, but NIST's own table
+    does not say which of NG's two known polymorphs (a labile form near 2 C, a stable form near 13 C)
+    this reading is -- recorded as found, not silently assigned to the stable form. Marrero-Gani error:
+    +19.7 K (overestimate), a SMALLER error than PETN's, the corpus's other nitrate ester.
 
 **A finding that complicates the RDX/HMX bias, not confirms it as 'nitramine' generally**: tetryl is
 labelled 'nitramine' in census_panel.toml, but for a different reason (testing that an aromatic N-N
@@ -479,7 +491,21 @@ class-specific-calibration hypothesis, explicitly NOT a validated route -- the n
 the literature route has had is a calibration set large enough per compound class to fit with real
 degrees of freedom to spare. Status: CANDIDATE(ORCA atom-equivalent route) -> tried; RDX
 INDEPENDENTLY_VALIDATED against two real comparators; HMX and PETN REJECTED at this calibration size;
-DEFERRED for promotion pending a properly sized, class-stratified calibration set."""
+DEFERRED for promotion pending a properly sized, class-stratified calibration set.
+
+**Consolidation, same session: `benchmarks/thermophysical/compare_enthalpies.py`.** Every enthalpy model
+this session touched (keshavarz_nitroaromatic2009, keshavarz2010_sublimation, mathieu2018_apc,
+orca_atom_equivalents) had been reported only from its own module or an interactive scratch calculation
+-- this script runs all of them over one shared RDX/HMX/PETN/TNT/TATB corpus, stratified the same way
+`compare_energetics.py` stratifies Tm. Building it surfaced a genuinely new result: TNT's own
+mathieu2018_apc + keshavarz2010 combined route (-76.8 kJ/mol) had never actually been computed before --
+only RDX/HMX/PETN's combined route had. It lands 9.7 kJ/mol from Klapoetke's measured TNT value (-67.1),
+independently corroborating `keshavarz_nitroaromatic2009`'s own direct-model result (-68.8, diff 1.7) via
+a completely unrelated computational path (atom-pair-contribution gas-phase model minus a separate
+sublimation model, vs. a single fitted nitroaromatic-specific correlation) -- two routes that share no
+parameters agreeing with each other and with measurement is stronger evidence for the nitroaromatic
+stratum's accuracy than either route alone. `tests/test_compare_enthalpies.py` (7 tests) locks in both
+this and the already-reported RDX/HMX/PETN numbers."""
 
 [[source]]
 id = "mathieu2018_iecr"
