@@ -12,6 +12,50 @@
 
 
 [[source]]
+id = "agrawal2010"
+file = "high-energy-materials-propellants-explosives-and-pyrotechnics.pdf"
+sha256 = "5b3aa9cf2e032912355654a97972c8cc2cb585c96e4aec3dbfc31da77f81d15c"
+pages = 495
+access = "held"
+printed.doi = ""
+printed.title = "High Energy Materials: Propellants, Explosives and Pyrotechnics"
+printed.venue = "Wiley-VCH, Weinheim, 2010. ISBN 978-3-527-32610-5 (no DOI printed)"
+assigned.property = "thermophysical"
+assigned.role = "benchmark_reference"
+note = """read directly 2026-09-27 to verify RDX's melting point (the user asked for a primary-source
+check, not another secondary recitation) for benchmarks/thermophysical/compare_energetics.py. Table 3.6
+(p. 189, 'Thermal data of some explosives', itself citing the book's own Ref. [46] -- one level further
+back than checked here) gives, as four SEPARATE columns (melting point / ignition temperature / exotherm
+temperature / onset of decomposition):
+
+    2,4,6-TNT: mp 81 C, ignition 295-300 C, exotherm 250 C
+    RDX:       mp 205 C, ignition 229 C, exotherm 215 C
+    beta-HMX:  mp 275 C, ignition 279-281 C, exotherm 260 C
+    PETN:      mp 140 C, ignition 203 C, exotherm 160 C
+
+This CORRECTS an over-hasty read of Klapoetke (klapotke2017, p. 303: 'the melting and decomposition
+points of RDX and HMX lie close together') recorded earlier in this file as 'HMX has no clean measured
+Tm'. Klapoetke's own statement is directionally right -- HMX's gap to ignition here is only ~4-6 C,
+the smallest of the four, against RDX's ~24 C and TNT's ~215 C -- but Agrawal's table DOES give HMX a
+specific, separately-measured melting point (275 C), not just a decomposition-adjacent estimate. Use
+275 C / 548.15 K for HMX, not 'no value'.
+
+**Ref. [46] chased 2026-09-27, at the user's request.** Table 3.6's footnote 'a) Based on Ref. [46]'
+resolves, in this chapter's own reference list (p. 206-207), to:
+
+    46. Yinon, J., and Zitrin, S. (1981) The analysis of explosives, in Pergamon Series in Analytical
+        Chemistry, vol. 3 (eds R. Belcher, D. Betteridge and L. Meites), Ch. 9, Pergamon Press,
+        Oxford, UK, p. 136.
+
+NOT held (checked D:\\Xaero Stuff\\Documents\\Sci Downloads\\, no match) -- the chain stops here for
+now. Yinon & Zitrin is ITSELF a secondary compilation (a 1981 forensic/analytical-chemistry text, not
+an experimental measurement paper), so even reaching it would be one step closer to primary, not the
+end of the chain; whatever it cites for these four numbers would be the next link. Use this entry's
+values as 'read from a real, citable table, two citations removed from the original measurement',
+which is materially better-supported than 'standard literature value' but is not itself a primary
+source in the strictest sense."""
+
+[[source]]
 id = "davis2024"
 file = "cm4c01978.pdf"
 sha256 = "7e73abe0c3a7fbdb8b7225015bfb5208b5946c404d688b1b7ee9e72bbf0e3e96"
@@ -227,7 +271,69 @@ printed.title = "Group-contribution based estimation of pure component propertie
 printed.venue = "Fluid Phase Equilibria 183-184 (2001) 183-208"
 assigned.property = "thermophysical"
 assigned.role = "candidate_method"
-note = "the file prints a PII (S0378-3812(01)00431-9), not a DOI"
+note = """the file prints a PII (S0378-3812(01)00431-9), not a DOI. Tables 6-8 (pp. 194-202, first/
+second/third-order groups) have NO text layer -- render at 220+ dpi and read the images, same trap as
+vogel1996.pdf. Checked 2026-09-27: Table 6 (182 first-order groups) has group 176 'N (cyclic)' (example
+N-methylpyrrolidine) and group 81 'NO2 except as above' (example nitrocyclohexane, a C-bound example but
+the group is a generic NO2 substituent fragment by the paper's own group-assignment rules, not restricted
+to a carbon attachment) -- together these plausibly decompose RDX/HMX's ring N-NO2 (nitramine) motif as
+N(cyclic) + NO2(except as above) + CH2(cyclic), where Joback (1987) refuses outright for lack of a ring
+tertiary amine group. Table 7 (122 second-order groups) has no nitramine-specific correction. Table 8
+(third-order, polycyclic) is not expected to apply -- RDX and HMX are each a single ring.
+
+The group tables (this table AND Table 2's universal constants) are now transcribed and CONFIRMED --
+tests/test_marrero2001_table.py reproduces the paper's own Appendix B worked examples (Examples 1, 3, 4)
+to 4 decimal places on the group summation and to 0.02 K on the final Tb/Tm, from
+benchmarks/thermophysical/marrero2001_table.py.
+
+**RDX/HMX/TNT/PETN comparison run 2026-09-27** (benchmarks/thermophysical/compare_energetics.py,
+tests/test_energetics_thermophysical_comparison.py): first-order Marrero-Gani Tm only (no second-order
+correction applied to any of the four -- Table 7 has none for the nitramine motif, and TNT's own
+substitution pattern was not run through the paper's positional convention). Against Joback's real,
+shipped output (compute_joback, actual app code):
+
+  RDX:  Joback refuses (UNCOVERED_ATOM).           Marrero-Gani Tm = 374.0 K vs measured ~477 K (-103 K).
+  HMX:  Joback refuses (UNCOVERED_ATOM).           Marrero-Gani Tm = 416.4 K (no measured value to score
+                                                    against -- Klapoetke p. 303 says HMX's melting and
+                                                    decomposition points lie close together).
+  TNT:  Joback runs, Tf = 663.46 K vs 353.5 K (+310 K, from Klapoetke's own text, p. 303, already cited
+        as klapotke2017).                          Marrero-Gani Tm = 401.6 K vs 353.5 K (+48 K).
+  PETN: Joback runs, Tf = 811.89 K vs 414.45 K (+397 K, standard literature value, not read from a
+        primary source this session).              Marrero-Gani Tm = 359.1 K vs 414.45 K (-55 K).
+
+So: on the two molecules Joback ALREADY claims to cover, its freezing-point estimate is wrong by
+300-400 K (confirms the paper's own 'not accurate... only very approximate' caveat on Tf, and then
+some) while first-order Marrero-Gani lands within 50-60 K on the same two -- a real control result,
+not just 'it gives a number where Joback refuses'. On the two nitramines Joback refuses outright,
+Marrero-Gani underestimates RDX by about 100 K with no way (yet) to correct it: no second-order group
+in Table 7 addresses a ring N bonded to NO2, so the error is a property of the first-order
+decomposition itself, not a missing refinement step. Four molecules is not a held-out set --
+docs/CALCULATOR_MATURITY.md's promotion checklist (a stratified accuracy result, a frozen fixture,
+declared scope) still applies in full before this becomes a calculator, and RDX's ~100 K miss is
+itself a reason it might not clear that bar for the nitramine slice even if TNT/PETN-like molecules
+would.
+
+**A caveat that reframes what 'coverage' should mean here, found 2026-09-27**: most of what Joback and
+this table both estimate -- Tb, Tc, Pc, Vc -- describes a state RDX and HMX never reach: both decompose
+(detonate) well before any normal boiling point, so a numeric Tb for either is not a measurement of
+anything physical, whichever method produces the number. The properties that stay meaningful for a
+compound that decomposes on heating are the ones with a real measured value below the decomposition
+point -- principally Tm. RDX has one (~477 K, a standard literature value, itself not yet checked
+against a primary source); HMX does not even get that far -- Klapoetke (klapotke2017, p. 303, read
+directly this session) says its melting and decomposition points lie too close together to separate,
+so no clean measured Tm exists to compare a method against. Possibly Cp too. So the actual opportunity
+this survey should evaluate is narrower than 'replace
+Joback's 11 outputs for energetics': it is Tm specifically, not the full property battery, and Thermophysical's
+own reported scope note should say so if this is ever promoted.
+
+This also bears on Detonation's missing input, but less directly than it first appears: this table's
+Hf1i/Gf1i columns are the compound's standard enthalpy/Gibbs energy of formation at 298 K, and the
+worked examples are ordinary liquids and gases -- nothing here says whether that basis is gas-phase or
+each compound's own standard state, and Kamlet-Jacobs needs the CONDENSED-phase value specifically
+(Detonation's own support_reason and docs/research/SENSITIVITY.md). That is exactly why the survey
+already tracks a SEPARATE enthalpy_solid line (mathieu2018_iecr, jafari2016, keshavarz2012/2021) rather
+than assuming this table's Hf column would do -- do not substitute one for the other without checking
+the phase basis in Marrero-Gani's own methodology text first."""
 
 [[source]]
 id = "mathieu2018_apc"

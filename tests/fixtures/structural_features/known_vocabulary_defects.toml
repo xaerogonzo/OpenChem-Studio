@@ -52,6 +52,13 @@ note = "a protonated acylhydrazone"
 
 [[defect]]
 population = "naming_census"
+label = "census1577625"
+feature = "fg:thiohydrazide"
+smiles = "CCOc1cc(C=[NH+]NC(N)=S)ccc1OCc1ccc(C)cc1"
+note = "the same class of defect as census1936625 (fg:hydrazide), a protonated acylhydrazone, on the chalcogen analogue (naming round 23, D-179)"
+
+[[defect]]
+population = "naming_census"
 label = "census1975625"
 feature = "fg:sulfonamide"
 smiles = "CCCn1nc([N-]S(=O)(=O)c2ccc(C)cc2)c2cc3ccccc3nc21"

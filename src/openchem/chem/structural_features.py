@@ -134,6 +134,8 @@ SPECS: dict[str, FeatureSpec] = {s.feature_id: s for s in (
     # of every acylhydrazone claimed by nothing (Ertl cross-check, 1.17% of ChEMBL).
     _s("fg:hydrazide", "[#6X3:1](=[OX1:2])[#7:3]-[#7:4]",
        "[#16X4:1](=[OX1:2])(=[OX1:2])[#7:3]-[#7:4]"),
+    # The chalcogen analogue (naming round 23, D-179): same shape, same hydrazone allowance on N:4, just =S at the carbon.
+    _s("fg:thiohydrazide", "[#6X3:1](=[SX1:2])[#7:3]-[#7:4]"),
     _s("fg:aldehyde", "[#6X3;$([#6H1][#6]),$([#6H2]):1]=[OX1:2]"),
     _s("fg:ketone", "[#6X3;$([#6]([#6])([#6])=[OX1]):1]=[OX1:2]"),
     _s("fg:thioketone", "[#6X3;$([#6]([#6])([#6])=[SX1]):1]=[SX1:2]"),

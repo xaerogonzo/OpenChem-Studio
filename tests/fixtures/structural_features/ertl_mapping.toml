@@ -247,7 +247,7 @@ wider = []
 [category."[1*]C(=O)N([1*])C(=S)N([1*])N([1*])C([1*])=O"]
 example = "CCC(=O)N(CC)C(=S)N(CC)N(CC)C(=O)CC"
 count = 1
-features = ["fg:carboxamide", "fg:hydrazide", "fg:thiourea"]
+features = ["fg:carboxamide", "fg:hydrazide", "fg:thiohydrazide", "fg:thiourea"]
 uncovered = []
 wider = []
 
@@ -515,7 +515,7 @@ wider = []
 [category."[1*]N([1*])C(=S)N([1*])N=C"]
 example = "C=NN(CC)C(=S)N(CC)CC"
 count = 1
-features = ["fg:hydrazone", "fg:thiourea"]
+features = ["fg:hydrazone", "fg:thiohydrazide", "fg:thiourea"]
 uncovered = []
 wider = []
 

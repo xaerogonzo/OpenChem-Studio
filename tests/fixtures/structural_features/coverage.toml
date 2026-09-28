@@ -209,6 +209,16 @@ negative = [
   { smiles = "CC(=NN)C", why = "a hydrazone" },
 ]
 
+[[feature]]
+id = "fg:thiohydrazide"
+positive = ["C[C:1](=[S:2])[NH:3][NH2:4]", "c1ccncc1[C:1](=[S:2])[NH:3][NH2:4]", "c1ccccc1[C:1](=[S:2])[NH:3][N:4]=CC"]
+negative = [
+  { smiles = "NN", why = "hydrazine: no acyl group" },
+  { smiles = "CC(=S)NC", why = "a thioamide" },
+  { smiles = "CC(=NN)C", why = "a hydrazone" },
+  { smiles = "CC(=O)NN", why = "the oxo analogue, hydrazide" },
+]
+
 # --- carbonyl and imino carbon -------------------------------------------------
 
 [[feature]]

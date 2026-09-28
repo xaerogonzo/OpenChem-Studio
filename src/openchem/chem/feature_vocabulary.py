@@ -249,6 +249,10 @@ FEATURES: tuple[FeatureDefinition, ...] = (
     _f("fg:hydrazide", "hydrazide", ("carbonyl_c", "carbonyl_o", "amide_n", "terminal_n"),
        _gb("hydrazides", 693, "RC(=O)NHNH2"),
        "Carbohydrazides and sulfonohydrazides; the terminal N single-bonded."),
+    _f("fg:thiohydrazide", "thiohydrazide", ("thiocarbonyl_c", "thiocarbonyl_s", "amide_n", "terminal_n"),
+       _gb("hydrazides", 693, "thio-hydrazides (chalcogen replacement analogues)"),
+       "RC(=S)NHNH2 (naming round 23, D-179): mirrors thioamide's own chalcogen-replacement reuse of the amide entry, "
+       "above, for the same reason (the Gold Book's own page has no separate thio-hydrazide term)."),
     # --- carbonyl and imino carbon ---------------------------------------
     _f("fg:aldehyde", "aldehyde", ("carbonyl_c", "carbonyl_o"),
        _gb("aldehydes", 54, "RC(=O)H"),
@@ -788,6 +792,7 @@ ENGINE_GROUP_MAP: dict[str, tuple[str, ...]] = {
     "tertiary_thioamide": ("fg:thioamide",),
     "hydroxamic_acid": ("fg:hydroxamic_acid",),
     "hydrazide": ("fg:hydrazide",),
+    "thiohydrazide": ("fg:thiohydrazide",),
     "nitrile": ("fg:nitrile",),
     "aldehyde": ("fg:aldehyde",),
     "ketone": ("fg:ketone",),

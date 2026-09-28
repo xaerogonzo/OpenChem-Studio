@@ -797,6 +797,17 @@
             "elision": false
         },
         {
+            "_comment": "P-66.3.4 (pdf p. 672), verbatim: \"Chalcogen analogues of hydrazides are named substitutively using suffixes formed by functional replacement, i.e., 'thiohydrazide', 'carbothiohydrazide' ...\"; printed 'propanethiohydrazide (PIN)' and 'benzenecarbothiohydrazide (PIN)' (naming round 23, D-179). The chalcogen (=S) analogue of 'hydrazide', mirroring thioamide's own split from amide; the terminal-nitrogen clause admitting a hydrazone (round 22, D-171) carries over unchanged.",
+            "name": "thiohydrazide",
+            "smarts": "[CX3;!R;!$([CX3](=S)([!#6;!#1;!R])[!#6;!#1;!R;!$([NX3][NX3])])](=S)[NX3;!R][$([NX3;!R]),$([NX2;!R]=[#6])]",
+            "seniority": 1202,
+            "bluebook_class": "12",
+            "suffix_terminal": "-thiohydrazide",
+            "suffix_nonterminal": "-carbothiohydrazide",
+            "prefix": "hydrazinecarbonothioyl",
+            "elision": false
+        },
+        {
             "_comment": "P-65.3.1.4 / P-66.4: sulfinohydrazonohydrazide R-S(=N-NH2)-NH-NH2 (preselected suffix), the hydrazono-hydrazide of sulfinic acid — a hydrazono =N-NH2 plus a hydrazide -NH-NH2 leaving group on S(IV). Class 12 (hydrazide). Example: benzenesulfinohydrazonohydrazide (PIN).",
             "name": "sulfinohydrazonohydrazide",
             "smarts": "[#6][SX3;!R](=[NX2][NX3H2])[NX3H1][NX3H2]",
