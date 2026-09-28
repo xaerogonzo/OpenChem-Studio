@@ -8,7 +8,7 @@ tests exercised the schema. Two groups, kept apart because they answer different
   that module's own notes).
 * `HF_ROWS` -- condensed- and gas-phase enthalpies of formation used this session to check
   `keshavarz_nitroaromatic2009`, `mathieu2018_apc`, and `orca_atom_equivalents`'s predictions, PLUS the
-  seven compounds `orca_atom_equivalents` was actually calibrated on. The calibration compounds are
+  nine compounds `orca_atom_equivalents` was actually calibrated on. The calibration compounds are
   `partition="development"` -- they are literally inside the fit, not independent evidence -- while
   every compound a route was CHECKED against (TNT, RDX, HMX, PETN) is `partition="selection"`: examined
   while comparing candidate routes, never touched by any fit, but not a genuinely untouched holdout
@@ -247,6 +247,40 @@ HF_ROWS = [
         temperature_k=298.15,
         phase="gas",
         value_source="secondary",
+    ),
+    ValidationRow(
+        row_id="hf_nitropiperidine_gas",
+        smiles="O=[N+]([O-])N1CCCCC1",
+        property="enthalpy_formation_gas",
+        value=-44.0,
+        units="kJ/mol",
+        source_id="nist_webbook",
+        record_id="CAS 7119-94-0",
+        partition="development",
+        temperature_k=298.15,
+        phase="gas",
+        value_source="secondary",
+        primary_reference="Matyushin, V'yunova, Pepekin, Apin (1971), Bull. Acad. Sci. USSR, Div. Chem. Sci., 2320-2323",
+        secondary_reference="NIST Chemistry WebBook, gas phase thermochemistry data, DfH = -44 +/- 3 kJ/mol",
+        note="added to test whether a 6-membered RING nitramine (closer to RDX's own ring than "
+        "dimethylnitramine) improves the fit -- see orca_atom_equivalents.py",
+    ),
+    ValidationRow(
+        row_id="hf_ethyl_nitrate_gas",
+        smiles="CCO[N+](=O)[O-]",
+        property="enthalpy_formation_gas",
+        value=-155.0,
+        units="kJ/mol",
+        source_id="nist_webbook",
+        record_id="CAS 625-58-1",
+        partition="development",
+        temperature_k=298.15,
+        phase="gas",
+        value_source="secondary",
+        primary_reference="Gray, Pratt, Larkin (1956), J. Chem. Soc., 210-212",
+        secondary_reference="NIST Chemistry WebBook, gas phase thermochemistry data, DfH = -155 +/- 3 kJ/mol",
+        note="a second, independent nitrate ester -- PETN's error got WORSE after adding this, not "
+        "better; see orca_atom_equivalents.py's module docstring",
     ),
 ]
 

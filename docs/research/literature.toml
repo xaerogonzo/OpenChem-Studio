@@ -493,6 +493,43 @@ degrees of freedom to spare. Status: CANDIDATE(ORCA atom-equivalent route) -> tr
 INDEPENDENTLY_VALIDATED against two real comparators; HMX and PETN REJECTED at this calibration size;
 DEFERRED for promotion pending a properly sized, class-stratified calibration set.
 
+**Two follow-up checks, later the same session (2026-09-28), asked and answered in that order.**
+
+*Was RDX/HMX's conformer choice hiding a real fixable error?* Every ORCA job so far used one ETKDGv3
+embed (seed 0xC0FFEE, MMFF94 pre-optimized), no conformer search. An 80-conformer MMFF94-ranked search
+found that starting conformer sat mediocre-to-poor for both: RDX's ranked 18th of 35 (7.25 kcal/mol =
+30.3 kJ/mol above the search's own MMFF94 minimum), HMX's 30th of 50 (15.90 kcal/mol = 66.5 kJ/mol
+above). Re-running ORCA's B3LYP/def2-SVP Opt from each molecule's MMFF94 global-minimum conformer
+instead: RDX's converged Etot moved by -4.3 kJ/mol, HMX's by **+6.1 kJ/mol -- the "better" MMFF
+conformer converged to a HIGHER DFT energy**, not lower. Conformer choice, within this search's range,
+is RULED OUT as the source of RDX/HMX's remaining combined-route error -- a real, checked negative
+result, not an assumption. The original single-seed Etot values were kept for the recorded result, for
+consistency with the rest of the (never re-checked this way) calibration set.
+
+*Does more calibration data of the two chemistry classes that mattered actually help?* Added a second
+nitramine, 1-nitropiperidine (a 6-membered RING nitramine, structurally closer to RDX's own ring than
+dimethylnitramine), DfH(gas) = -44 +/- 3 kJ/mol (NIST WebBook, Matyushin et al. 1971, same source series
+as dimethylnitramine), and a second nitrate ester, ethyl nitrate, DfH(gas) = -155 +/- 3 kJ/mol (NIST
+WebBook, Gray/Pratt/Larkin 1956). Refitting on the resulting 9-point set (five degrees of freedom, not
+three):
+
+    compound   6-fit    7-fit(+1 nitramine)   9-fit(+1 more nitramine, +1 more nitrate ester)   measured    best diff
+    RDX         50.1        80.4                    82.9                                       66.6/85.0   2.1 kJ/mol
+    HMX         66.0        87.8                    91.0                                       116.1       25.1 kJ/mol
+    PETN       -482.0      -466.3                  -458.6                                      -539.0       80.4 kJ/mol
+
+RDX improved again -- now within 2.1 kJ/mol of Klapoetke's Table 9.6 value, comfortably inside the
+~21 kJ/mol bar against BOTH of its measured readings, and this is now real evidence (two independent
+refits moving the same direction), not a single lucky point. HMX improved again but remains over the
+bar. **PETN got WORSE a second time, in the same direction both times (46.6 -> 72.7 -> 80.4 kJ/mol),
+despite ethyl nitrate being exactly the additional nitrate-ester data the earlier note called for.** A
+one-point fluke does not repeat in the same direction twice. The more likely explanation, unresolved
+this session: PETN's own structure (a quaternary carbon bearing FOUR -CH2-O-NO2 arms) is not represented
+by methyl/ethyl nitrate's simple primary-alkyl-nitrate chemistry, and a purely elemental atom-equivalent
+scheme has no way to encode that structural difference -- more data of the wrong SHAPE for PETN
+specifically cannot fix this, and did not. Implementation and all nine calibration rows:
+`benchmarks/thermophysical/orca_atom_equivalents.py`, `tests/test_orca_atom_equivalents.py` (8 tests).
+
 **Consolidation, same session: `benchmarks/thermophysical/compare_enthalpies.py`.** Every enthalpy model
 this session touched (keshavarz_nitroaromatic2009, keshavarz2010_sublimation, mathieu2018_apc,
 orca_atom_equivalents) had been reported only from its own module or an interactive scratch calculation
