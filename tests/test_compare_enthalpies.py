@@ -38,13 +38,15 @@ def test_five_compound_corpus(rows):
 
 def test_rdx_hmx_petn_combined_routes_match_this_sessions_recorded_values(rows):
     """Locks in the numbers already reported to the user and recorded in literature.toml -- this module
-    is a NEW wiring around the same computation, and must reproduce it exactly, not approximately."""
+    is a NEW wiring around the same computation, and must reproduce it exactly, not approximately. The
+    ORCA-route numbers reflect orca_atom_equivalents's 9-point calibration set (with nitropiperidine and
+    ethyl nitrate added), not the earlier 7-point fit."""
     assert rows["RDX"]["combined_solid_hf_apc_kj_mol"] == pytest.approx(50.1, abs=0.2)
-    assert rows["RDX"]["combined_solid_hf_orca_kj_mol"] == pytest.approx(80.4, abs=0.2)
+    assert rows["RDX"]["combined_solid_hf_orca_kj_mol"] == pytest.approx(82.8, abs=0.2)
     assert rows["HMX"]["combined_solid_hf_apc_kj_mol"] == pytest.approx(66.0, abs=0.2)
-    assert rows["HMX"]["combined_solid_hf_orca_kj_mol"] == pytest.approx(87.8, abs=0.2)
+    assert rows["HMX"]["combined_solid_hf_orca_kj_mol"] == pytest.approx(91.0, abs=0.2)
     assert rows["PETN"]["combined_solid_hf_apc_kj_mol"] == pytest.approx(-482.0, abs=0.2)
-    assert rows["PETN"]["combined_solid_hf_orca_kj_mol"] == pytest.approx(-466.3, abs=0.2)
+    assert rows["PETN"]["combined_solid_hf_orca_kj_mol"] == pytest.approx(-458.6, abs=0.2)
 
 
 def test_tnts_apc_combined_route_was_never_computed_standalone_before_this_module(rows):

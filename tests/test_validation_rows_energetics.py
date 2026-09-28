@@ -67,19 +67,21 @@ def test_rdx_carries_two_independent_klapotke_readings(vre):
     assert values == [66.6, 85.0]
 
 
-def test_development_rows_are_exactly_the_seven_orca_calibration_compounds(vre):
+def test_development_rows_are_exactly_the_nine_orca_calibration_compounds(vre):
     development_hf = {row.row_id for row in vre.HF_ROWS if row.partition == "development"}
     assert development_hf == {
-        "hf_dimethylnitramine_gas", "hf_methane_gas", "hf_ammonia_gas", "hf_benzene_gas",
-        "hf_methanol_gas", "hf_nitromethane_gas", "hf_methyl_nitrate_gas",
+        "hf_dimethylnitramine_gas", "hf_nitropiperidine_gas", "hf_methane_gas", "hf_ammonia_gas",
+        "hf_benzene_gas", "hf_methanol_gas", "hf_nitromethane_gas", "hf_methyl_nitrate_gas",
+        "hf_ethyl_nitrate_gas",
     }
 
 
 def test_exclude_leaked_separates_the_fit_population_from_what_was_checked(vr, vre):
     """The concrete exercise of exclude_leaked this project has been missing: RDX/HMX/PETN/TNT (checked
-    against orca_atom_equivalents's combined route) must NOT be excluded, and the seven compounds that
-    fit its atom equivalents (dimethylnitramine included) MUST be -- proving the population built from
-    HF_ROWS's own partition field, not a hand-copied list, actually discriminates the two groups."""
+    against orca_atom_equivalents's combined route) must NOT be excluded, and the nine compounds that
+    fit its atom equivalents (dimethylnitramine and nitropiperidine included) MUST be -- proving the
+    population built from HF_ROWS's own partition field, not a hand-copied list, actually discriminates
+    the two groups."""
     populations = {("orca_atom_equivalents", "enthalpy_formation_gas"): vre.orca_atom_equivalents_fit_population()}
     gas_rows = [row for row in vre.HF_ROWS if row.property == "enthalpy_formation_gas"]
     kept, excluded = vr.exclude_leaked(gas_rows, "orca_atom_equivalents", populations)

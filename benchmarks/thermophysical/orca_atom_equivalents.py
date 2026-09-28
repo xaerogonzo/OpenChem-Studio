@@ -22,36 +22,60 @@ Klapoetke condensed-phase values by 71-141 kJ/mol -- worse than `mathieu2018_apc
 **The calibration set had zero nitramine chemistry** (nitromethane's N is bonded to carbon; methyl
 nitrate's N is bonded to an ester oxygen; neither has RDX/HMX's ring-N-N(NO2) linkage). Adding ONE real
 nitramine -- dimethylnitramine (CH3)2N-NO2, DfH(gas) = -5 +/- 1 kJ/mol, NIST WebBook (Matyushin, V'yunova,
-Pepekin, Apin, 1971, combustion calorimetry) -- and refitting all four atom equivalents from the resulting
-7-point set changed the picture substantially:
+Pepekin, Apin, 1971) -- and refitting all four atom equivalents from the resulting 7-point set changed the
+picture substantially: RDX cleared the accuracy bar, HMX's error roughly halved, and PETN got WORSE.
 
-    compound            combined solid DfH, kJ/mol       measured (klapotke2017)     diff, kJ/mol
-    RDX   (6-fit)        50.1 -> (7-fit, w/ nitramine)  80.4    66.6 / 85.0 (p.232/Tab.9.6)   13.8 / 4.6
-    HMX   (6-fit)        66.0 -> (7-fit)                87.8    116.1 (Tab. 9.16a, p.270)      28.3
-    PETN  (6-fit)       -482.0 -> (7-fit)              -466.3   -539.0 (Tab. 9.16b, p.270)      72.7
+**Two follow-ups, same investigation, different questions.**
 
-RDX moved from clearly failing the ~21 kJ/mol (5 kcal/mol) SENSITIVITY.md bar to clearing it against BOTH
-of Klapoetke's own numbers. HMX's error roughly halved (still over the bar). PETN got WORSE, not better --
-a nitrate ester, not a nitramine, and the single added calibration point pulled the fitted N/O atom
-equivalents toward the nitramine's chemistry at nitrate-ester chemistry's expense.
+1. *Was RDX/HMX's own starting conformer the problem?* A single ETKDGv3 embed (seed 0xC0FFEE, MMFF94
+   pre-optimized) was used for every ORCA job, with no conformer search -- and MMFF94 ranked that RDX
+   conformer 18th of 35 (7.25 kcal/mol = 30.3 kJ/mol above an 80-conformer search's own minimum) and
+   HMX's 30th of 50 (15.90 kcal/mol = 66.5 kJ/mol above). Re-running ORCA's B3LYP/def2-SVP Opt from each
+   molecule's MMFF94-global-minimum conformer instead: RDX's converged Etot moved by only -4.3 kJ/mol,
+   nitropiperidine's by -1.8 kJ/mol, and HMX's by **+6.1 kJ/mol -- the "better" MMFF conformer converged
+   to a HIGHER DFT energy**, not a lower one. **Conclusion: conformer choice is NOT the source of
+   RDX/HMX's remaining error.** The large MMFF94 energy gaps do not translate to comparable DFT energy
+   gaps after ORCA's own optimization -- expected, since a force-field ranking is not a DFT ranking, but
+   worth having actually checked rather than assumed. The original single-seed Etot values are kept as
+   the recorded result (below) for consistency with the rest of the calibration set, which was never
+   re-checked this way.
 
-**This is a real, useful, and explicitly NOT a validated result.** Seven calibration compounds fitting
-four free parameters leaves three degrees of freedom -- a fragile fit, and the PETN regression is the
-direct evidence of that fragility, not a coincidence to explain away. The improvement on RDX/HMX is
-consistent with (and strong direct evidence for) a real, structurally grounded hypothesis -- atom
-equivalents fit without any nitramine chemistry cannot describe nitramine chemistry -- but three data
-points (RDX better, HMX better-but-short, PETN worse) is not enough to call the class-specific hypothesis
-proven, and nowhere near enough to promote this route. The clear next step, not taken in this session, is
-a genuinely adequately-sized calibration set per compound class (several nitramines, several nitrate
-esters, fit separately or with enough points overall to support more than 4 free parameters) before this
-could support any accuracy claim stronger than "worth continuing."
+2. *Does more calibration data, specifically more of the two chemistry classes that mattered, help?*
+   Added a second nitramine -- 1-nitropiperidine (a 6-membered RING nitramine, structurally much closer
+   to RDX's own ring than dimethylnitramine was), DfH(gas) = -44 +/- 3 kJ/mol, NIST WebBook (Matyushin et
+   al. 1971, the same source series) -- and a second nitrate ester, ethyl nitrate, DfH(gas) = -155 +/- 3
+   kJ/mol, NIST WebBook (Gray, Pratt, Larkin, 1956). Refitting on the resulting 9-point set:
 
-**Reproducibility note**: the ORCA total energies (`ORCA_ETOT_KJMOL` below) are recorded from real jobs
-run on this machine (ORCA 6.1.1, B3LYP/def2-SVP, RDKit ETKDGv3 + MMFF94 starting geometry, single random
-seed 0xC0FFEE, no conformer search) -- not re-run by the test suite, the same way this project records a
-paper's own printed table values rather than re-deriving them from source data it doesn't hold. A
-different starting conformer, a tighter convergence, or a different functional/basis could move Etot
-enough to matter; this was not checked (no second conformer or method was tried for any molecule here).
+    compound   6-fit    7-fit(+dimethylnitramine)   9-fit(+nitropiperidine,+ethyl_nitrate)   measured         best diff
+    RDX         50.1        80.4                         82.9                               66.6 / 85.0      2.1 kJ/mol
+    HMX         66.0        87.8                         91.0                               116.1            25.1 kJ/mol
+    PETN       -482.0      -466.3                       -458.6                              -539.0           80.4 kJ/mol
+
+   RDX improved again (now within 2.1 kJ/mol of Klapoetke's Table 9.6 value, comfortably inside the
+   ~21 kJ/mol bar against both of its measured readings). HMX improved again but is still over the bar.
+   **PETN got WORSE a second time, monotonically across all three fits (46.6 -> 72.7 -> 80.4 kJ/mol as
+   more nitramine/nitrate-ester data was added)** -- despite ethyl nitrate being exactly the kind of
+   additional nitrate-ester data the earlier writeup called for. A one-point fluke would not do this
+   twice in the same direction. The more likely explanation: PETN's own structure (a quaternary carbon
+   bearing FOUR -CH2-O-NO2 arms) is not well represented by methyl/ethyl nitrate's simple primary
+   alkyl-nitrate chemistry, and a purely elemental atom-equivalent scheme has no way to encode that
+   structural difference -- more data of the WRONG shape for PETN specifically cannot fix this, and did
+   not.
+
+**This is a real, useful, and still explicitly NOT a validated result.** Nine calibration compounds
+fitting four free parameters is a real improvement over seven (five degrees of freedom, not three), and
+RDX's result is now genuinely strong evidence, not a single lucky point. PETN's monotonically worsening
+error across three independent refits is equally real evidence, in the other direction, that a single
+per-element atom-equivalent scheme cannot generalize to its specific structural class without a nitrate
+ester more like it (a branched/quaternary-carbon polyol nitrate, not a simple primary one) in the
+calibration set -- the clear, now more specific, next step for anyone continuing this.
+
+**Reproducibility note**: the ORCA total energies below are recorded from real jobs run on this machine
+(ORCA 6.1.1, B3LYP/def2-SVP) -- not re-run by the test suite, the same way this project records a paper's
+own printed table values rather than re-deriving them from source data it doesn't hold. All calibration
+compounds and RDX/HMX/PETN use the original single ETKDGv3-seed-0xC0FFEE seed; only the conformer CHECK
+above (RDX/HMX/nitropiperidine) used a wider search, and its own result was not substituted in below,
+per the conformer-choice conclusion just above.
 """
 
 from __future__ import annotations
@@ -72,8 +96,12 @@ CALIBRATION_SET = {
     "methanol": ((1, 4, 0, 1), -303417.836, -201.0),
     "nitromethane": ((1, 3, 1, 2), -642477.657, -74.3),
     "methyl_nitrate": ((1, 3, 1, 3), -839635.931, -124.4),
-    # NIST WebBook (Matyushin, V'yunova, Pepekin, Apin, 1971) -- the only nitramine in this set.
+    # NIST WebBook (Matyushin, V'yunova, Pepekin, Apin, 1971) -- two nitramines, one acyclic, one a
+    # 6-membered ring (structurally close to RDX's own ring).
     "dimethylnitramine": ((2, 6, 2, 2), -890642.600, -5.0),
+    "nitropiperidine": ((5, 10, 2, 2), -1196717.858, -44.0),
+    # NIST WebBook (Gray, Pratt, Larkin, 1956) -- a second, simple primary nitrate ester.
+    "ethyl_nitrate": ((2, 5, 1, 3), -942717.292, -155.0),
 }
 
 #: RDX, HMX, PETN Etot from the same real ORCA jobs -- no experimental gas-phase DfH exists to check
