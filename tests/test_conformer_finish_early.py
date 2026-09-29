@@ -36,7 +36,13 @@ from openchem.services.progress import ProgressHandle
 def _geometries():
     """Four hexane geometries far enough apart (RMSD >= 0.5) that none merges with another."""
     base = Chem.AddHs(Chem.MolFromSmiles("CCCCCC"))
-    AllChem.EmbedMolecule(base, AllChem.ETKDGv3())
+    params = AllChem.ETKDGv3()
+    #: Pinned -- see the matching comment in test_conformer_search.py's
+    #: `_three_geometries`: an unseeded embedding here let the RMSD apart
+    #: (the whole point of this fixture) drift with how many other unseeded
+    #: embeddings had already run in the process.
+    params.randomSeed = 0
+    AllChem.EmbedMolecule(base, params)
     AllChem.MMFFOptimizeMolecule(base)
     start = rdMolTransforms.GetDihedralDeg(base.GetConformer(), 0, 1, 2, 3)
 
