@@ -609,8 +609,62 @@ access = "held"
 printed.doi = "10.1021/jp0536192"
 printed.title = "Improved Prediction of Heats of Formation of Energetic Materials Using Quantum Mechanical Calculations"
 assigned.property = "enthalpy_gas"
-assigned.role = "benchmark_reference"
-note = "the 45-molecule set Cawkwell benchmarks against; file name says 2005 (received 2005), volume year is 2006"
+assigned.role = "candidate_method"
+note = """the 45-molecule set Cawkwell benchmarks against; file name says 2005 (received 2005), volume year is
+2006.
+
+**Read in full 2026-09-29 (Track 4, Gate A: is there a usable non-atom-equivalent-route-of-our-own
+condensed-Hf source before patching `orca_atom_equivalents`?).** route = `gas_Hf_plus_sublimation` --
+the same SHAPE as this survey's own `orca_atom_equivalents` + `keshavarz2010_sublimation` combined
+route (QM gas-phase atom/group equivalents, refit here rather than the paper's own numbers, plus a
+separately-fitted sublimation/vaporization term), not a `direct_condensed_Hf` model like
+`keshavarz_sadeghi2009`/Keshavarz 2006.
+
+**Numbers verified against the actual PDF, not carried over from a review's summary**: abstract states
+rms/max, gas 3.2/6.5 kcal/mol, liquid 3.2/7.4, solid 5.6/12.2 kcal/mol (test set, i.e. genuinely
+predicted, not fitted) -- confirmed present verbatim in both the abstract and Section 5 (Summary). A
+prior review of this survey's plan had quoted these same two solid-phase numbers; they check out.
+
+**publication_equation_status = printed.** Unlike `mathieu2018_apc`'s AE1/AE2 procedure (Supporting
+Information only, not held) or `keshavarz_sadeghi2009`'s Eq (1) (printed but does not reproduce), Table 3
+of this paper's OWN main text prints the actual fitted atom/group-equivalent constants in hartree
+(B3LYP/6-311++G(2df,2p)//B3LYP/6-31G* level): C -38.123748, H -0.597580, N -54.785466, O -75.187087,
+C' -38.129456, N' -54.788487, O' -75.186033, C-NO2 -205.160396, C'-NO2 -205.163484, N-NO2 -205.166631,
+O-NO2 -164.364907, C-N3 -129.976691 (their Eq 1: DfH(g) = E - sum(n_j * eps_j), note the MINUS sign,
+opposite convention from this survey's own `orca_atom_equivalents.compute_gas_hf`'s E + sum(n*AE)).
+**reproduction_status = not yet attempted** -- applying these constants correctly requires classifying
+each atom into the paper's seven types (C/H/N/O for single-Lewis-structure atoms vs. C'/N'/O' for
+atoms in "multiple-bonded environments", plus the four listed group equivalents), and the main text does
+not fully specify that classification rule (analogous to `mathieu2018_apc`'s own nitro-bond-order
+ambiguity, which took a three-value cross-check to resolve) -- Table 1S (Supporting Information, NOT
+held) would remove the ambiguity by giving per-molecule assigned values directly, so this is not yet a
+finished reproduction, only a real, well-specified candidate.
+
+**RDX/HMX/PETN's own role in this paper's own corpus** (Tables 1-2, this survey's corpus overlaps
+substantially): RDX is in the TRAINING set with measured g/s/sub data (i.e. RDX's own experimental
+values were used to fit eqs 1/3/4 here -- this paper does not "predict" RDX blind). PETN is in the
+TRAINING set with measured s/sub data only (no gas value listed). beta-HMX is in the TEST set with
+measured s only, i.e. its solid-phase Hf is a genuinely predicted value in this paper's own accounting
+-- but the actual per-molecule number is in Table 1S (SI, not held), so it cannot be read off this main
+text; Table 5's aggregate 49-molecule solid-phase test-set rms/max is the only HMX-relevant number
+available without the SI (6.0/16.7 kcal/mol using atom equivalents; 5.6/12.2 kcal/mol using group
+equivalents -- both include HMX among the 49, not isolated to it).
+
+**A real correction to this paper exists and is NOT yet held or read**: "Correction to 'Improved
+Prediction of Heats of Formation of Energetic Materials Using Quantum Mechanical Calculations'",
+J. Phys. Chem. A 2022, 126(10), 1787, DOI 10.1021/acs.jpca.2c01458, PMID 35258312 (confirmed real via
+web search 2026-09-29, both PubMed and the ACS abstract page resolve). **A prior review of this survey's
+plan claimed this correction's DOI is 10.1021/jp806520b and that it fixes mislabeled group-equivalent
+names in Table 3 -- neither claim checks out**: 10.1021/jp806520b does not resolve to any identifiable
+Byrd/Rice correction in a web search, and the actual correction's own content has not been read (ACS's
+page returns a bot-check wall to automated fetching; the correction is not in Sci Downloads). Do not
+assume the "Table 3 mislabeled" claim is true until the real correction (DOI acs.jpca.2c01458) is
+actually obtained and read -- ask Alex for it directly (paywalled), separately from Keshavarz 2006.
+
+Status: CANDIDATE -> read (main paper only). Its own atom/group equivalents are a genuine,
+independently-specified alternative to this survey's from-scratch `orca_atom_equivalents` fit, worth
+actually running once the atom-classification ambiguity above is resolved -- but not yet attempted, and
+its real 2022 correction is still unread."""
 
 [[source]]
 id = "mathieu2012"
@@ -924,7 +978,41 @@ printed.title = "Recent advances for assessment of the condensed phase heat of f
 printed.venue = "Fluid Phase Equilib. 533, 112913"
 assigned.property = "enthalpy_solid"
 assigned.role = "review"
-note = "the JOURNAL PRE-PROOF, not the version of record"
+note = """the JOURNAL PRE-PROOF, not the version of record.
+
+**Read in full 2026-09-29 (Track 4, Gate A3: does any later paper in this lineage supersede/correct
+`keshavarz_sadeghi2009`'s coefficients?).** `keshavarz_sadeghi2009` is only ref [29] here, and appears
+ONLY in the bibliography (line ~2764 of a full-text extraction) -- **never cited inline in this review's
+main text**, checked by searching every `[29]` occurrence. This review does not address, defend, or
+correct `keshavarz_sadeghi2009`'s specific coefficients at all; A2's NO_CORRECTION_FOUND /
+CORRECTION_FOUND_AND_REPRODUCED / ALTERNATIVE_INTERPRETATION_FOUND question is NOT answered by this
+source.
+
+**What this review presents instead, for the exact functional-group set `keshavarz_sadeghi2009` targets**
+(Sec. 2.2, "-O-O-, N3, ON=O, NO2, ONO2 and NNO2" -- nitro/nitrate-ester/nitramine among others): its own
+Eq. (5), attributed to ref [42] = Nazari, Keshavarz, Hamadanian, Mosavi, Ghaedsharafi, Pouretedal,
+"Reliable prediction of the condensed (solid or liquid) phase enthalpy of formation of organic energetic
+materials at 298 K through their molecular structures", Fluid Phase Equilibria 408 (2016) 248-258, DOI
+10.1016/j.fluid.2015.09.014 -- a DIFFERENT, later (2016), Keshavarz-coauthored paper, not held, not yet
+in this registry. The review states Eq. (5)'s own reported accuracy: **rms 35.9 kJ/mol on 77 energetic
+compounds** (vs. 42.1 kJ/mol for Rice et al.'s QM method and 170.6 kJ/mol for a group-additivity
+comparison on smaller, differently-sized subsets of the same set) -- OVER SENSITIVITY.md's ~21 kJ/mol
+bar, and notably WORSE than `keshavarz_sadeghi2009`'s own three reported table rms values (18.8-29.1
+kJ/mol). **A 2021 review choosing to present a 2016 model over the 2009 one is not itself evidence the
+2009 model was wrong or corrected** -- it may simply reflect broader scope (more functional groups) at
+the cost of accuracy on this survey's specific classes. Eq. (5)'s own coefficients extracted as a
+column of numbers (111.4, 33.11, 28.84, 86.80, 62.03, 79.25, 153.3) from what is clearly a multi-line
+rendered equation/image in the source PDF -- same "multi-column tables need positional extraction" trap
+this project already knows from Ionescu 2013 Table S2; the printed structure of Eq. (5) has NOT been
+reliably transcribed from this text extraction and would need a high-dpi render before any reproduction
+attempt, the same way marrero2001's Tables 6-8 needed.
+
+**Two new, real, not-yet-held candidates identified by this reading, both worth requesting** (see this
+survey's own request to Alex): Nazari et al. 2016 (above, DOI 10.1016/j.fluid.2015.09.014) and Keshavarz
+2006 (10.1016/j.jhazmat.2005.12.006, identified independently via `keshavarz_sadeghi2009`'s own note).
+Neither is a substitute for the other -- 2006 is the oldest paper in this lineage and may be the actual
+source `keshavarz_sadeghi2009` itself built on; 2016 is the newest and is what a 2021 review of the same
+author's own body of work chose to present."""
 
 [[source]]
 id = "kazandjian2006"
