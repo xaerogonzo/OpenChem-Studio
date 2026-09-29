@@ -286,45 +286,112 @@ tests/test_marrero2001_table.py reproduces the paper's own Appendix B worked exa
 to 4 decimal places on the group summation and to 0.02 K on the final Tb/Tm, from
 benchmarks/thermophysical/marrero2001_table.py.
 
-**RDX/HMX/TNT/PETN comparison run 2026-09-27** (benchmarks/thermophysical/compare_energetics.py,
-tests/test_energetics_thermophysical_comparison.py): first-order Marrero-Gani Tm only (no second-order
-correction applied to any of the four -- Table 7 has none for the nitramine motif, and TNT's own
-substitution pattern was not run through the paper's positional convention). Against Joback's real,
-shipped output (compute_joback, actual app code):
+**RDX/HMX/TNT/PETN comparison, run 2026-09-27, numbers corrected 2026-09-28 after the Agrawal
+primary-source check** (benchmarks/thermophysical/compare_energetics.py,
+tests/test_energetics_thermophysical_comparison.py): first-order Marrero-Gani Tm only. Against Joback's
+real, shipped output (compute_joback, actual app code) and against Agrawal (2010) Table 3.6's measured
+values (the `agrawal2010` entry above -- superseding the earlier, less-verified numbers this note
+originally carried):
 
-  RDX:  Joback refuses (UNCOVERED_ATOM).           Marrero-Gani Tm = 374.0 K vs measured ~477 K (-103 K).
-  HMX:  Joback refuses (UNCOVERED_ATOM).           Marrero-Gani Tm = 416.4 K (no measured value to score
-                                                    against -- Klapoetke p. 303 says HMX's melting and
-                                                    decomposition points lie close together).
-  TNT:  Joback runs, Tf = 663.46 K vs 353.5 K (+310 K, from Klapoetke's own text, p. 303, already cited
-        as klapotke2017).                          Marrero-Gani Tm = 401.6 K vs 353.5 K (+48 K).
-  PETN: Joback runs, Tf = 811.89 K vs 414.45 K (+397 K, standard literature value, not read from a
-        primary source this session).              Marrero-Gani Tm = 359.1 K vs 414.45 K (-55 K).
+  RDX:  Joback refuses (UNCOVERED_ATOM).           Marrero-Gani Tm = 374.0 K vs measured 478.15 K (-104 K).
+  HMX:  Joback refuses (UNCOVERED_ATOM).           Marrero-Gani Tm = 416.4 K vs measured 548.15 K (-132 K).
+  TNT:  Joback runs, Tf = 663.46 K vs 354.15 K (+309 K).   Marrero-Gani Tm = 401.6 K vs 354.15 K (+48 K).
+  PETN: Joback runs, Tf = 811.89 K vs 413.15 K (+399 K).   Marrero-Gani Tm = 359.1 K vs 413.15 K (-54 K).
 
 So: on the two molecules Joback ALREADY claims to cover, its freezing-point estimate is wrong by
 300-400 K (confirms the paper's own 'not accurate... only very approximate' caveat on Tf, and then
 some) while first-order Marrero-Gani lands within 50-60 K on the same two -- a real control result,
 not just 'it gives a number where Joback refuses'. On the two nitramines Joback refuses outright,
-Marrero-Gani underestimates RDX by about 100 K with no way (yet) to correct it: no second-order group
+Marrero-Gani underestimates both by 100-130 K with no way (yet) to correct it: no second-order group
 in Table 7 addresses a ring N bonded to NO2, so the error is a property of the first-order
-decomposition itself, not a missing refinement step. Four molecules is not a held-out set --
-docs/CALCULATOR_MATURITY.md's promotion checklist (a stratified accuracy result, a frozen fixture,
-declared scope) still applies in full before this becomes a calculator, and RDX's ~100 K miss is
-itself a reason it might not clear that bar for the nitramine slice even if TNT/PETN-like molecules
-would.
+decomposition itself, not a missing refinement step.
 
 **A caveat that reframes what 'coverage' should mean here, found 2026-09-27**: most of what Joback and
 this table both estimate -- Tb, Tc, Pc, Vc -- describes a state RDX and HMX never reach: both decompose
 (detonate) well before any normal boiling point, so a numeric Tb for either is not a measurement of
 anything physical, whichever method produces the number. The properties that stay meaningful for a
 compound that decomposes on heating are the ones with a real measured value below the decomposition
-point -- principally Tm. RDX has one (~477 K, a standard literature value, itself not yet checked
-against a primary source); HMX does not even get that far -- Klapoetke (klapotke2017, p. 303, read
-directly this session) says its melting and decomposition points lie too close together to separate,
-so no clean measured Tm exists to compare a method against. Possibly Cp too. So the actual opportunity
-this survey should evaluate is narrower than 'replace
+point -- principally Tm. RDX (478.15 K) and HMX (548.15 K) both now have one, from Agrawal Table 3.6's
+own separate melting-point column -- superseding the earlier read of Klapoetke's vaguer prose alone as
+'HMX has no clean value' (klapotke2017's own statement, that RDX/HMX's melting and decomposition points
+'lie close together', is directionally right about HMX specifically having the smallest gap to its own
+ignition temperature of any compound in Agrawal's table, 4-6 C, but a small gap is not an absent
+measurement). So the actual opportunity this survey should evaluate is narrower than 'replace
 Joback's 11 outputs for energetics': it is Tm specifically, not the full property battery, and Thermophysical's
 own reported scope note should say so if this is ever promoted.
+
+**Track 1 -- a diagnostic extension corpus, run 2026-09-28** (benchmarks/thermophysical/
+compare_energetics.py, reusing tests/fixtures/census_panel.toml's pre-existing, non-cherry-picked
+nitramine/energetic rows; tests/test_energetics_thermophysical_comparison.py,
+tests/test_energetics_groups.py). **Named honestly, not called a blind holdout**: RDX/HMX/TNT/PETN
+(above) are the DEVELOPMENT set -- they shaped the hypotheses under test. Everything below is
+DIAGNOSTIC: frozen before any calculator ran, but examined while planning this extension, so useful for
+stress-testing the decomposition and characterizing behavior, never for a clean-holdout accuracy claim.
+`tools/validation_rows.py` gained `transition_type` (melting/decomposition/melting_with_decomposition/
+not_observed) and `value_source`/`primary_reference`/`secondary_reference` fields for exactly this
+track, plus `admit_to_melting_point_set`, so a reported decomposition or an "estimated" melting point
+can never silently enter a Tm accuracy table.
+
+A new, independent SMARTS-based counter (benchmarks/thermophysical/energetics_groups.py, scoped to just
+the ~11 groups this corpus needs) reproduces every hand decomposition above EXACTLY, and was checked for
+representation invariance across 12 randomly-rewritten SMILES per molecule (RDX, TNT, tetryl, PETN --
+different root atoms, traversal directions, and nitro-group kekulization forms, all giving identical
+counts; tests/test_energetics_groups.py). Results on the diagnostic set:
+
+  dinitrodiazetidine (4-ring nitramine): clean decomposition (2x CH2(cyclic)+N(cyclic)+NO2-except),
+    Marrero-Gani Tm = 314.2 K. STILL no measured Tm found, after an expanded search (2026-09-28): this
+    compound's own export-control abbreviation is DNAD, not DNAZ (CAS 78246-06-7, found via a general
+    web search hit on the EU Common Military List) -- checked under that identity, NIST Chemistry
+    WebBook has no entry for either the CAS number or its formula (C2H4N4O4 resolves to a different
+    compound, FOX-7/DADNE, in that database), and ChemicalBook's own data page for CAS 78246-06-7 lists
+    only a PREDICTED boiling point and density -- no melting point, measured or predicted, anywhere
+    checked. Genuinely deferred, not merely unchecked.
+  tetryl (aromatic nitramine, N-NO2 on an exocyclic N, not a ring N): clean decomposition
+    (aC-N + CH3 + NO2-except + 3x aC-NO2 + 2x aCH), Marrero-Gani Tm = 439.7 K vs measured 402.15 K
+    (Agrawal Table 3.6 AND Agrawal's own prose, Sec. 2.2.3 -- two independent passages agreeing):
+    error +37.5 K.
+  tatb (hexasubstituted aromatic, 3x NH2 + 3x NO2): clean decomposition, Marrero-Gani Tm = 474.8 K, but
+    NOT scored -- Klapoetke (p. 303-304) states its melting point is an unreached ESTIMATE, not a
+    measurement.
+  nitroguanidine: REFUSES -- no group covers a C=N outside an aldazine/ketazine context (its own NH2
+    alone IS covered by row 65, which is not enough to decompose the whole molecule).
+  ammonium_nitrate: REFUSES -- ionic/inorganic, outside the method's organic-covalent scope entirely.
+  nitroglycerin: clean decomposition (3x ONO2 + 2x CH2 + 1x CH, NOT the ether-context CH2O -- ONO2
+    bundles its own oxygen as a complete terminal unit per row 83's own worked example), Marrero-Gani
+    Tm = 305.2 K. **Found 2026-09-28** (the earlier session's deferral resolved): NIST Chemistry
+    WebBook's Phase change data for CAS 55-63-0 gives DfusH = 21.87 kJ/mol at 285.5 K, citing Acree,
+    W.E. (1991), Thermochimica Acta 189, 37-56 (not held) -- Agrawal's own NG section (Sec. 2.2.4, p.
+    72-73) has density/VOD but no melting point, so this required going outside the two held handbooks.
+    285.5 K = 12.35 C sits close to the commonly-cited ~13 C 'stable' NG polymorph, but NIST's own table
+    does not say which of NG's two known polymorphs (a labile form near 2 C, a stable form near 13 C)
+    this reading is -- recorded as found, not silently assigned to the stable form. Marrero-Gani error:
+    +19.7 K (overestimate), a SMALLER error than PETN's, the corpus's other nitrate ester.
+
+**A finding that complicates the RDX/HMX bias, not confirms it as 'nitramine' generally**: tetryl is
+labelled 'nitramine' in census_panel.toml, but for a different reason (testing that an aromatic N-N
+isn't mistaken for a ring N-N) than this stratification needs. Its error (+37.5 K) runs the OPPOSITE
+sign from RDX/HMX/dinitrodiazetidine's consistent underestimate, and is close in sign and size to the
+nitroaromatic stratum (TNT, +47.5 K) instead. Recorded descriptively, not explained: with this few
+points, ring size and N-NO2 count are confounded with everything else about each molecule, so the honest
+conclusion is 'no factorized per-nitramine correction was inferred from this sample', not a claim about
+whether the underestimate is roughly constant per ring-nitrogen unit. The three RING nitramines alone
+(RDX 3x N-NO2/6-ring: -104 K, HMX 4x N-NO2/8-ring: -132 K, dinitrodiazetidine 2x N-NO2/4-ring: not yet
+scored) remain the more informative comparison for that question once a measured Tm is found for the
+smallest ring.
+
+**Track 2a -- TNT's (and TATB's) second-order aromatic correction, resolved 2026-09-28**: worked out
+canonically rather than guessed. Per the paper's own numbering rule (marrero2001.txt p. 199: for
+3,5-dimethylaniline, aniline's own parent substituent anchors position 1, and the OTHER substituents are
+numbered by lowest locants from there), TNT's parent name is trinitroTOLUENE, so the methyl-bearing
+carbon is position 1 by the compound's own nomenclature -- confirmed against RDKit's own atom-order
+reading of the real structure, not assumed. That gives substituent set {1,2,4,6} (both numbering
+directions agree, since TNT has a mirror plane through C1/C4). Checked against all 9 AROMRING second-order
+patterns actually in Table 7 (AROMRINGs1s2, s1s3, s1s4, s1s2s3, s1s2s4, s1s3s5, s1s2s3s4, s1s2s3s5,
+s1s2s4s5): none list a position 6, so **none apply to TNT's pattern** -- first-order-only was already the
+paper's own complete answer, not an unchecked shortcut. TATB (fully hexasubstituted, positions 1-6 all
+occupied) likewise matches none of the 9 patterns, which all presume at least one unsubstituted position
+remains. Both conclusions rederived from the complete, already-transcribed Table 7 list
+(marrero2001_table.py's SECOND_ORDER), not from a partial reading.
 
 This also bears on Detonation's missing input, but less directly than it first appears: this table's
 Hf1i/Gf1i columns are the compound's standard enthalpy/Gibbs energy of formation at 298 K, and the
@@ -345,6 +412,137 @@ printed.doi = "10.1021/acs.jcim.7b00613"
 printed.title = "Atom Pair Contribution Method: Fast and General Procedure To Predict Molecular Formation Enthalpies"
 assigned.property = "enthalpy_gas"
 assigned.role = "candidate_method"
+note = """Read and REPRODUCED 2026-09-28 (Track 3, chasing the gas-phase half of the RDX/HMX/PETN combined
+route). All 68 APC parameters are printed in the paper's own MAIN TEXT (Tables 2, 3, 4) -- unlike its own
+AE1/AE2 atom-equivalent DFT procedure, whose calibration constants live only in the Supporting Information
+(not held) -- so, unlike `keshavarz_sadeghi2009`, missing SI was never the blocker here. Transcribed from
+a 350 dpi render of the source PDF (the text layer drops the bond-order symbols ~,:,=,#) and confirmed
+row-by-row against that render.
+
+**One real interpretive finding, verified against three primary-source experimental values (Lange's
+Handbook Table 6.1), not the paper's own claimed statistics** (its training/test sets are Supporting
+Information, not held): the paper defines the nitro-group structural correction as "associated ... with
+two NO bonds" without stating those bonds' order. The natural reading -- RDKit's own default charge-
+separated Lewis structure, one N=O double and one N-O(-) single -- predicts nitromethane's gas DfH at
++250.1 kJ/mol against an experimental -74.3 (Lange's), an error of 300+ kJ/mol. Assigning BOTH N-O bonds
+the N=O (double) category instead -- chemically a "pentavalent-drawn" nitrogen, but consistent with the
+correction's own "two NO bonds" phrasing and the azide correction's parallel "two NN bonds" phrasing --
+closes the gap to a normal-sized residual:
+
+    nitromethane   (CH3-NO2):    computed -41.1,  experimental -74.3   kJ/mol (diff 33.2)
+    methyl nitrate (CH3-O-NO2):  computed -111.0, experimental -124.4  kJ/mol (diff 13.4)
+    benzene        (c1ccccc1):   computed  83.6,  experimental  82.6   kJ/mol (diff  1.0, no nitro group)
+
+Benzene needed no nitro interpretation and matched to within 1 kJ/mol on the first attempt -- strong
+evidence the bond/geminal/atomic-reference transcription itself is right, isolating the finding to this
+one structural correction's bond-order convention. Atomic reference enthalpies DfH(A) (this paper's own
+ref 50) are transcribed from Lange's Handbook Table 6.3 (NBS/JANAF-derived), not assumed from memory.
+Implementation: `benchmarks/thermophysical/mathieu2018_apc.py`, `tests/test_mathieu2018_apc.py` (8 tests).
+
+**The combined route, computed end-to-end for the first time this session** (this model's gas-phase
+DfH, minus `keshavarz2010_sublimation`'s DsubH):
+
+    RDX:  gas 180.5, Hsub 130.4 -> solid  50.1 kJ/mol  (measured: +66.6 kJ/mol, klapotke2017 p.232 prose
+                                                          "+299.7 kJ/kg"; +85 kJ/mol, klapotke2017 Tab. 9.6,
+                                                          p.249 -- diff  16.5 / 34.9)
+    HMX:  gas 240.7, Hsub 174.7 -> solid  66.0 kJ/mol  (measured: +116.1 kJ/mol, klapotke2017 Tab. 9.16a,
+                                                          p.270 -- diff 50.1)
+    PETN: gas -344.0, Hsub 138.0 -> solid -482.0 kJ/mol (measured: -539 kJ/mol, klapotke2017 Tab. 9.16b,
+                                                          p.270 -- diff 57.0)
+
+**Corrects an earlier note in this file** (recorded before either Klapoetke table had actually been
+re-read this session): RDX's two Klapoetke numbers (+299.7 kJ/kg prose, p.232; +85 kJ/mol Table 9.6,
+p.249) were previously called a real disagreement after converting the table value the wrong direction
+for the comparison (382.6 kJ/kg vs. the prose's -299.7 kJ/kg, a ~682 kJ/kg gap that does not exist once
+both are read in the same unit) -- compared correctly, in kJ/mol, they are 66.6 vs. 85, only 18.4 kJ/mol
+apart and consistent in sign and order of magnitude. Not a contradiction needing resolution; a units
+mistake in an earlier pass. HMX's and PETN's Klapoetke values (Table 9.16a/9.16b, p.270) are newly found
+this session, not previously logged anywhere in this file.
+
+**Verdict: REJECTED for a fast/practical route at this accuracy, now confirmed empirically rather than
+only predicted from the two components' own reported errors.** RDX lands within ~17-35 kJ/mol of its two
+measured comparators (borderline against the ~21 kJ/mol/5 kcal/mol SENSITIVITY.md bar); HMX and PETN miss
+by 50 and 57 kJ/mol -- both well over the bar, and both larger than either component model's own reported
+RMSE alone, consistent with the two independent error sources roughly adding rather than canceling for
+this compound class. This empirically confirms what `mathieu2018_iecr`'s and this file's own prior notes
+already predicted from APC's HEDM-45 RMSE (30.8 kJ/mol) alone: the fast/practical combined route does not
+clear the bar for classic nitramines/nitrate esters. Status: CANDIDATE -> read; REPRODUCED; the combined
+route built from it is INDEPENDENTLY_VALIDATED-and-REJECTED (three real held comparators, not zero) --
+strengthens rather than weakens the case for trying this app's own ORCA integration next, since the two
+literature-only components have now actually been tried together and shown insufficient, not just
+suspected of being insufficient.
+
+**Follow-up, same session: the ORCA route was tried.** `benchmarks/thermophysical/orca_atom_equivalents.py`
+runs real ORCA 6.1.1 B3LYP/def2-SVP geometry optimizations (this machine's own install) and fits a
+from-scratch atom-equivalent scheme -- not this paper's AE1/AE2 (whose constants are SI, not held). A
+6-compound non-nitramine calibration set (water excluded from the fit; methane/ammonia/benzene/methanol/
+nitromethane/methyl nitrate) gave an excellent SELF-consistent fit (0.5-11 kJ/mol residuals) but missed
+RDX/HMX/PETN's real measured condensed values by 71-141 kJ/mol when combined with `keshavarz2010`'s
+sublimation model -- WORSE than this module's own literature route, and a clean illustration of why a
+calibration set's chemical coverage matters more than its fit quality on itself. Adding ONE real nitramine
+(dimethylnitramine, DfH(gas)=-5+/-1 kJ/mol, NIST WebBook citing Matyushin et al. 1971) and refitting all
+four atom equivalents on the resulting 7-point set moved RDX's combined estimate from clearly failing to
+CLEARING the ~21 kJ/mol bar against both of Klapoetke's own RDX values (80.4 vs. 66.6/85.0, diff 13.8/4.6),
+roughly halved HMX's error (87.8 vs. 116.1, diff 28.3 -- still over the bar), and made PETN WORSE (-466.3
+vs. -539.0, diff 72.7, up from 46.6) -- a nitrate ester, not a nitramine, paying for a calibration point
+that helped the other two. Seven compounds fitting four free parameters is a fragile fit (PETN's own
+regression is the direct evidence), so this is recorded as a genuine, promising signal for the
+class-specific-calibration hypothesis, explicitly NOT a validated route -- the next step neither this nor
+the literature route has had is a calibration set large enough per compound class to fit with real
+degrees of freedom to spare. Status: CANDIDATE(ORCA atom-equivalent route) -> tried; RDX
+INDEPENDENTLY_VALIDATED against two real comparators; HMX and PETN REJECTED at this calibration size;
+DEFERRED for promotion pending a properly sized, class-stratified calibration set.
+
+**Two follow-up checks, later the same session (2026-09-28), asked and answered in that order.**
+
+*Was RDX/HMX's conformer choice hiding a real fixable error?* Every ORCA job so far used one ETKDGv3
+embed (seed 0xC0FFEE, MMFF94 pre-optimized), no conformer search. An 80-conformer MMFF94-ranked search
+found that starting conformer sat mediocre-to-poor for both: RDX's ranked 18th of 35 (7.25 kcal/mol =
+30.3 kJ/mol above the search's own MMFF94 minimum), HMX's 30th of 50 (15.90 kcal/mol = 66.5 kJ/mol
+above). Re-running ORCA's B3LYP/def2-SVP Opt from each molecule's MMFF94 global-minimum conformer
+instead: RDX's converged Etot moved by -4.3 kJ/mol, HMX's by **+6.1 kJ/mol -- the "better" MMFF
+conformer converged to a HIGHER DFT energy**, not lower. Conformer choice, within this search's range,
+is RULED OUT as the source of RDX/HMX's remaining combined-route error -- a real, checked negative
+result, not an assumption. The original single-seed Etot values were kept for the recorded result, for
+consistency with the rest of the (never re-checked this way) calibration set.
+
+*Does more calibration data of the two chemistry classes that mattered actually help?* Added a second
+nitramine, 1-nitropiperidine (a 6-membered RING nitramine, structurally closer to RDX's own ring than
+dimethylnitramine), DfH(gas) = -44 +/- 3 kJ/mol (NIST WebBook, Matyushin et al. 1971, same source series
+as dimethylnitramine), and a second nitrate ester, ethyl nitrate, DfH(gas) = -155 +/- 3 kJ/mol (NIST
+WebBook, Gray/Pratt/Larkin 1956). Refitting on the resulting 9-point set (five degrees of freedom, not
+three):
+
+    compound   6-fit    7-fit(+1 nitramine)   9-fit(+1 more nitramine, +1 more nitrate ester)   measured    best diff
+    RDX         50.1        80.4                    82.9                                       66.6/85.0   2.1 kJ/mol
+    HMX         66.0        87.8                    91.0                                       116.1       25.1 kJ/mol
+    PETN       -482.0      -466.3                  -458.6                                      -539.0       80.4 kJ/mol
+
+RDX improved again -- now within 2.1 kJ/mol of Klapoetke's Table 9.6 value, comfortably inside the
+~21 kJ/mol bar against BOTH of its measured readings, and this is now real evidence (two independent
+refits moving the same direction), not a single lucky point. HMX improved again but remains over the
+bar. **PETN got WORSE a second time, in the same direction both times (46.6 -> 72.7 -> 80.4 kJ/mol),
+despite ethyl nitrate being exactly the additional nitrate-ester data the earlier note called for.** A
+one-point fluke does not repeat in the same direction twice. The more likely explanation, unresolved
+this session: PETN's own structure (a quaternary carbon bearing FOUR -CH2-O-NO2 arms) is not represented
+by methyl/ethyl nitrate's simple primary-alkyl-nitrate chemistry, and a purely elemental atom-equivalent
+scheme has no way to encode that structural difference -- more data of the wrong SHAPE for PETN
+specifically cannot fix this, and did not. Implementation and all nine calibration rows:
+`benchmarks/thermophysical/orca_atom_equivalents.py`, `tests/test_orca_atom_equivalents.py` (8 tests).
+
+**Consolidation, same session: `benchmarks/thermophysical/compare_enthalpies.py`.** Every enthalpy model
+this session touched (keshavarz_nitroaromatic2009, keshavarz2010_sublimation, mathieu2018_apc,
+orca_atom_equivalents) had been reported only from its own module or an interactive scratch calculation
+-- this script runs all of them over one shared RDX/HMX/PETN/TNT/TATB corpus, stratified the same way
+`compare_energetics.py` stratifies Tm. Building it surfaced a genuinely new result: TNT's own
+mathieu2018_apc + keshavarz2010 combined route (-76.8 kJ/mol) had never actually been computed before --
+only RDX/HMX/PETN's combined route had. It lands 9.7 kJ/mol from Klapoetke's measured TNT value (-67.1),
+independently corroborating `keshavarz_nitroaromatic2009`'s own direct-model result (-68.8, diff 1.7) via
+a completely unrelated computational path (atom-pair-contribution gas-phase model minus a separate
+sublimation model, vs. a single fitted nitroaromatic-specific correlation) -- two routes that share no
+parameters agreeing with each other and with measurement is stronger evidence for the nitroaromatic
+stratum's accuracy than either route alone. `tests/test_compare_enthalpies.py` (7 tests) locks in both
+this and the already-reported RDX/HMX/PETN numbers."""
 
 [[source]]
 id = "mathieu2018_iecr"
@@ -357,7 +555,26 @@ printed.title = "Accurate or Fast Prediction of Solid-State Formation Enthalpies
 printed.venue = "Ind. Eng. Chem. Res., Just Accepted Manuscript, 10 Sep 2018"
 assigned.property = "enthalpy_solid"
 assigned.role = "candidate_method"
-note = "the ACCEPTED MANUSCRIPT, not the version of record"
+note = """the ACCEPTED MANUSCRIPT, not the version of record.
+
+Read 2026-09-28 (Track 3, Detonation's missing condensed-phase enthalpy input). This is the
+gas-phase-plus-sublimation COMBINED route, not a direct empirical correlation: DfH(solid) =
+DfH(gas) - DsubH, using GF0 (this paper's own geometric-fragment sublimation model, fit on 185
+high-nitrogen compounds, SUB-185) for DsubH and one of three options for DfH(gas). Validated on
+SOL-40 (40 high-nitrogen crystals, the same set Suntsova & Dorofeeva used for a G4/mGIPF combination).
+
+    DfH(gas) source          AAD on SOL-40 (excl. 3 dubious experimental values)
+    G4/G4MP2 ab initio       19.5 kJ/mol  -- clears SENSITIVITY.md's ~21 kJ/mol (5 kcal/mol) bar
+    APC (mathieu2018_apc)    59 kJ/mol    -- ~3x over the bar
+    PM3 (semi-empirical)     84 kJ/mol    -- ~4x over the bar
+
+Only the EXPENSIVE ab initio route clears the bar; the two FAST routes this app could actually run
+routinely both miss badly. SOL-40 is also a high-nitrogen-compound set (mostly tetrazines and
+furazans, per the paper's own description) -- not tested against RDX/HMX-type classic nitramines
+specifically, so this candidate's applicability to THIS survey's existing corpus is itself unverified,
+separate from the accuracy question. Status: CANDIDATE -> read; REJECTED for a fast/practical route at
+this accuracy; the ab initio route is SOURCE_VALIDATED but not evaluated further here as G4/G4MP2 is
+not practical for routine use in this app."""
 
 [[source]]
 id = "mathieu2021"
@@ -455,6 +672,35 @@ printed.title = "Improved prediction of heats of sublimation of energetic compou
 printed.venue = "J. Hazard. Mater. 177 (2010) 648-659"
 assigned.property = "enthalpy_sublimation"
 assigned.role = "candidate_method"
+note = """**Read in full 2026-09-28 (Track 3), as the sublimation half of a gas+sublimation combined
+route for RDX/HMX/PETN's class** (the direct condensed-Hf equation, `keshavarz_sadeghi2009`, is a
+confirmed reproduction failure -- see that entry). This paper explicitly covers the right compound
+classes and NAMES its own test compounds: "PETN, TNT, RDX, HMX, TEX, TATB, DATB, tetryl and CL-20" --
+this survey's corpus almost verbatim. Eq. (3): Hsub = 53.74 + 0.2666*MW' + 13.99*CIn - 15.58*CDe, with
+CIn/CDe rules per compound class (Sec. 3.1 nitroaromatics: amino groups CIn=n_NH2 -- TATB named as the
+motivating example; Sec. 3.2 nitramines: C=1.75*n(N-NO2)-4, sign selects CIn vs CDe; Sec. 3.3
+nitroaliphatics: flat CDe=3.0). Reported accuracy: rms 9.9 kJ/mol vs. a QM comparison's 13.8 kJ/mol (15
+compounds); rms 6.9 (Table 1) and 10.4 kJ/mol (Table 3); the full 107-compound set is within
++/-21.0 kJ/mol -- coincidentally close to SENSITIVITY.md's condensed-Hf bar, though sublimation
+enthalpy and condensed-phase Hf are different quantities and this is not itself evidence about a
+combined route's final accuracy.
+
+**Reproduction: one strong check, not yet exhaustive.** `benchmarks/thermophysical/
+keshavarz2010_sublimation.py`, `tests/test_keshavarz2010_sublimation.py` (8/8 passing). Table 1's first
+"cyclic and acyclic nitramines" row (printed Hsub_exp=175.3, Hsub_cal=174.6) is almost certainly HMX by
+magnitude; computing HMX directly (4 N-NO2 groups, C=1.75*4-4=3, CIn=3) gives 174.67 kJ/mol, matching
+the paper's own calculated value almost exactly. Compound names in this paper's tables are structure
+images, not extractable text, so this identification rests on magnitude/class plausibility rather than
+a printed name -- a real, useful check, but not the same confidence as `keshavarz_nitroaromatic2009`'s
+multi-row named reproduction. RDX (130.4), PETN (138.0), TNT (114.3), TATB (164.5) are computed from
+the same equation but NOT YET independently checked against a measured or paper-printed value each.
+
+Status: CANDIDATE -> read; REPRODUCED (one strong check, HMX). The gas-phase half of the combined route,
+`mathieu2018_apc` (68 atom-pair parameters), has now been reproduced and run end-to-end against this
+sublimation model -- see that entry's note for the result: REJECTED for RDX/HMX/PETN specifically (HMX
+and PETN miss their measured Klapoetke values by 50 and 57 kJ/mol; RDX borderline at 16.5-35 kJ/mol),
+confirming rather than just predicting the concern recorded here. This app's own ORCA integration is the
+remaining unexplored option for a gas-phase source accurate enough to pair with this sublimation model."""
 
 [[source]]
 id = "acree2010"
@@ -491,6 +737,14 @@ printed.doi = "10.1002/slct.201601184"
 printed.title = "A Reliable Method for Prediction of the Condensed Phase Enthalpy of Formation of High Nitrogen Content Materials through their Gas Phase Information"
 assigned.property = "enthalpy_solid"
 assigned.role = "candidate_method"
+note = """Read 2026-09-28 (Track 3). Model: DfH(c) = c1 + c2*DfH(g) + c3*(sum IF) + c4*(sum DF), fit on
+119 experimental values / 100 compounds, ALL with N > 50% by mass (Klapoetke's own HNC definition, which
+the paper states explicitly EXCLUDES RDX, HMX and CL-20 -- their N content, ~38% max, falls short).
+Two variants: B3LYP/6-31G* gas-phase input (SD=57.3 kJ/mol, R2=0.974) or PM6 (SD=72.0 kJ/mol,
+R2=0.959) -- both well over SENSITIVITY.md's ~21 kJ/mol (5 kcal/mol) bar even before asking whether the
+domain restriction rules out this survey's existing corpus at all, which it does. Status: CANDIDATE ->
+read; REJECTED, both on domain (wrong compound class for RDX/HMX/TNT/PETN/tetryl) and on its own
+reported accuracy."""
 
 [[source]]
 id = "keshavarz2012"
@@ -502,7 +756,162 @@ printed.doi = "10.1002/prep.201100156"
 printed.title = "A New Computer Code for Assessment of Energetic Materials with Crystal density, Condensed Phase Enthalpy of Formation, and Activation Energy of Thermolysis"
 assigned.property = "enthalpy_solid"
 assigned.role = "candidate_method"
-note = "code for crystal density and condensed-phase enthalpy"
+note = """code for crystal density and condensed-phase enthalpy.
+
+Read 2026-09-28 (Track 3) -- the most promising candidate found so far. "EDPHT 2.0" packages TWO
+separate condensed-Hf sub-models, each with its own lineage this paper's own reference list gives
+(Sec. 2.2.1/2.2.2, refs [13] and [14] -- NOT lineage_parent = self-contained, each is a full model from
+an earlier, dedicated Keshavarz paper -- now both held, Alex having added them the same day, see the
+keshavarz_sadeghi2009 and keshavarz_nitroaromatic2009 entries below):
+
+  Sec 2.2.1, nitramines/nitrate esters/nitroaliphatics (RDX/HMX/PETN's own class): ref [14].
+  Sec 2.2.2, polynitroarenes/heteroarenes (TNT/tetryl/TATB's class): ref [13].
+
+Table 2 (this paper's own held-out test on NEW explosives not in the original 2009 fits, a MIXED set of
+both nitramine-class (TNAZ, Keto RDX) and nitroarene/cage compounds (ONC, CL-20, NTO, FOX-7)) reports
+rms deviation 17.1 kJ/mol for EDPHT 2.0's condensed Hf, against 107.1 kJ/mol for a quantum-mechanical
+route and 95.0 kJ/mol for the Salmon-Dalmazzone method shown in the same table -- 17.1 kJ/mol clears
+SENSITIVITY.md's ~21 kJ/mol bar on THIS small, mixed set. But the two source papers behind EDPHT 2.0's
+two sub-models (`keshavarz_sadeghi2009`, `keshavarz_nitroaromatic2009`, both now read in full) each
+report THEIR OWN broader validation tables running 18.8-29.1 kJ/mol (nitramine class) and 21.8-29.8
+kJ/mol (nitroaromatic class) -- so this paper's 17.1 kJ/mol is drawn from a smaller, more favorable test
+than either source model's own full validation shows, not the typical case. Equation itself set as an
+equation IMAGE in this PDF, not extracted as text, but BOTH source papers' equations (Eq. (1) and Eq.
+(2)) print their coefficients as plain text and are now fully recorded in the two entries above. Status:
+CANDIDATE -> read; SOURCE_VALIDATED on the paper's own reported number, read alongside its own two
+source papers rather than in isolation; NOT YET independently reproduced (the DE/IE structural rules are
+read but not coded) or run against this survey's own held-out set -- both remain before
+INDEPENDENTLY_VALIDATED, let alone PROMOTABLE."""
+
+[[source]]
+id = "keshavarz_sadeghi2009"
+file = "keshavarz_sadeghi2009.pdf"
+sha256 = "355191e9fbb910dec8c517b7c90d2aa5b6449e042f09426c2c0fe10c46585a8a"
+pages = 7
+access = "held"
+printed.doi = "10.1016/j.jhazmat.2009.05.118"
+printed.title = "A new approach to predict the condensed phase heat of formation in acyclic and cyclic nitramines, nitrate esters and nitroaliphatic energetic compounds"
+printed.venue = "J. Hazard. Mater. 171 (2009) 140-146"
+assigned.property = "enthalpy_solid"
+assigned.role = "candidate_method"
+note = """Identified 2026-09-28 as `keshavarz2012`'s own ref [14] -- the actual source of EDPHT 2.0's
+nitramine/nitrate-ester/nitroaliphatic condensed-Hf model, read one level up from `keshavarz2012`
+itself. Alex downloaded this the same day (originally saved as keshavarz2009_III.pdf, download-order
+numbering with no meaning; renamed to this file's own key once confirmed from its own first page,
+matching keshavarz2012's printed citation exactly). NOT to be confused with 10.1016/j.jhazmat.2005.12.006
+("Theoretical prediction of condensed phase heat of formation of nitramines, nitrate esters,
+nitroaliphatics and related energetic compounds", J. Hazard. Mater. 136 (2006) 145-150) -- also a real,
+Crossref-confirmed Keshavarz paper on the same topic, three years earlier, and NOT the one keshavarz2012
+actually cites; not held.
+
+**Read in full 2026-09-28.** The model IS text-extractable, unlike Marrero-Gani's tables: Eq. (1),
+DfH(c) = DfH(c,core) + y1 + y2*n_C + ... with correction terms DE (decreasing, e.g. an -OH/-NO2 ratio
+rule, a >C=O rule) and IE (increasing, e.g. a lone CN(NO2)C fragment, NO2-on-cubane), fit by MLR with
+R2=0.97: y1=9.344, y2=-9.055, y3=23.12, y4=-15.79, y5=51.49, y6=-52.00 (kJ/mol). Three validation
+tables, each against a different compound set, ALL beating the paper's own "previous work" [9] baseline
+by a wide margin, but NOT uniformly clearing SENSITIVITY.md's ~21 kJ/mol bar:
+
+    Table 1 (fitted set; includes PETN itself, dev -25.2 kJ/mol on -538.5 exp; also ONC, CL-20, NTO):
+        rms 18.8 kJ/mol (new method) vs 48.7 (QM) vs 97.4 (previous work) -- CLEARS the bar.
+    Table 2 (different acyclic/cyclic nitramine/nitrate-ester/nitroaliphatic structures):
+        rms 29.1 kJ/mol vs 41.0 (previous work) -- OVER the bar.
+    Table 3 ("well-known energetic compounds", incl. TNAZ dev 15.4 and "Keto RDX" dev 16.2 -- both
+        numbers matching keshavarz2012's own later Table 2 exactly, confirming the lineage directly,
+        not just by citation): rms 28.4 kJ/mol vs 142.7 (previous work) -- OVER the bar.
+
+So `keshavarz2012`'s own headline number (17.1 kJ/mol rms on its selected new-explosive test) is a
+SMALLER, more favorable subset than this source paper's own three broader tables show (18.8-29.1 kJ/mol
+range) -- the method is consistently far better than the alternatives shown alongside it, but "clears
+the ~21 kJ/mol bar" is not a claim this paper's own data supports uniformly.
+
+**Reproduction attempted 2026-09-28 and FAILED -- recorded rather than hidden.** Eq. (1)'s coefficients
+were verified THREE ways (text extraction, a full-page render, and a tight zoomed crop of just the
+coefficient line) -- y1=9.344, y2=-9.055, y3=23.12, y4=-15.79, y5=51.49, y6=-52.00 are exactly as
+printed, no transcription error. But applying DHcore = Sum yj*bj (bj = C,H,N,O atom counts) to Table 1's
+own printed values does not reproduce them, by a margin the DE/IE correction terms cannot explain: Table
+1 has a clean homologous series (nitromethane through three C4 nitroalkane isomers, N=1/O=2 fixed, no
+OH/nitramine/cubane/H-free features to trigger any DE or IE term) whose printed "New method" values step
+by EXACTLY -36.7 kJ/mol per added CH2 (-109.9, -146.6, -183.3, -220.0). That slope must equal
+y_C*1 + y_H*2 under the paper's own equation, but the confirmed coefficients give only -8.77 -- off by
+about 4x, and this check does not depend on any DE/IE rule interpretation, only on arithmetic differences
+between compounds whose correction terms are constant (zero or otherwise) across the series. Table row
+alignment was independently re-checked against a full-page render (compound structures vs. Experiment/
+New method/Dev columns) and matches the text extraction exactly, ruling out a table-parsing shift as the
+cause. No coefficient reassignment among (C,H,N,O) closes this gap either.
+
+**Conclusion: this equation cannot currently be reproduced from what is visible in the paper**, for a
+reason not yet identified (a `bj` definition detail not present in the extracted text, or a genuine
+inconsistency in the source). Status: CANDIDATE -> read; SOURCE_VALIDATED (the paper's own reported
+numbers are recorded and trusted at face value) but explicitly NOT REPRODUCED -- do not write a
+calculator implementation of this equation from this reading. If this candidate is worth pursuing
+further, the next step is external (contacting the authors, or finding an erratum/SI), not another
+attempt to reverse-engineer the coefficients from table arithmetic alone."""
+
+[[source]]
+id = "keshavarz_nitroaromatic2009"
+file = "keshavarz_nitroaromatic2009.pdf"
+sha256 = "7183899a64fd4a1f5966dfe6d275401b9e617ad5b2cf09c1d458a89afaf7f8f2"
+pages = 11
+access = "held"
+printed.doi = "10.1016/j.jhazmat.2009.04.032"
+printed.title = "Predicting condensed phase heat of formation of nitroaromatic compounds"
+printed.venue = "J. Hazard. Mater. 169 (2009) 890-900"
+assigned.property = "enthalpy_solid"
+assigned.role = "candidate_method"
+note = """Identified 2026-09-28 as `keshavarz2012`'s own ref [13] -- the source of EDPHT 2.0's
+polynitroarene/heteroarene condensed-Hf model (TNT/tetryl/TATB's class). Originally saved as
+keshavarz2009_IV.pdf; renamed to this file's own key once confirmed from its own first page. An earlier
+version of the same method is 10.1016/j.jhazmat.2006.01.016 ("A simple procedure for calculating
+condensed phase heat of formation of nitroaromatic energetic materials", J. Hazard. Mater. 136 (2006)
+425-431) -- also real, not the one keshavarz2012 cites; not held.
+
+**Read in full 2026-09-28.** Eq. (2): DfH(c) = core term + z1..z7 adjustable parameters (MLR, R2=0.97),
+DE terms from OH/NHx/C(=O) ratios to nitro-group count (paper's own Sec. 3.2), IE terms from alkyl/
+alkoxy/hydrazine/azo attachment to the ring (Sec. 3.3). Three validation tables, same shape as
+`keshavarz_sadeghi2009`'s, consistently better than the paper's own "previous work" [14] baseline but
+running slightly ABOVE SENSITIVITY.md's ~21 kJ/mol bar rather than under it:
+
+    Table 1: rms 25.7 kJ/mol (new) vs 39.1 (QM, Rice) vs 43.9 (previous work) -- average deviation 19.7.
+    Table 2 (27 nitroaromatics, NIST WebBook values): average deviation 21.8 kJ/mol (no rms given).
+    Table 3 ("well-known explosives", presumably including TNT among unlabeled structure rows --
+        compound names are structure images in this table, not extractable as text): average error
+        23.4 kJ/mol (new) vs 42.7 (previous work); rms 29.8 vs 62.5.
+
+So the nitroaromatic model (TNT/tetryl/TATB's class) sits in roughly the same 20-30 kJ/mol band as the
+nitramine model, consistently on the wrong side of the ~21 kJ/mol screening bar by these papers' own
+broader tables (only `keshavarz_sadeghi2009`'s Table 1, a smaller and more favorable set, clears it
+cleanly) -- both far better than the comparison baselines shown throughout, neither a clean pass.
+
+**REPRODUCED 2026-09-28, unlike the sister paper.** Unlike `keshavarz_sadeghi2009`'s Eq. (1) (a plain
+linear sum that does NOT reproduce that paper's own table -- see that entry), Eq. (2) here IS a ratio,
+divided by `0.0001 * MW`, and DOES reproduce this paper's own printed values within rounding on every
+row checked (`benchmarks/thermophysical/keshavarz_nitroaromatic2009.py`,
+`tests/test_keshavarz_nitroaromatic2009.py`, 8/8 passing):
+
+    1,3-dinitrobenzene (no correction terms):        computed -49.25, printed -49.3
+    dinitrophenol (OH term):                          computed -239.83, printed -240.0
+    2,4-/2,6-dinitrotoluene (alkyl/IFG term):         computed -37.55, printed -37.6
+
+One real bug was FOUND AND FIXED while reproducing this: the DFG/"decreasing" column header literally
+reads "(n_NO2/n_DFG/SP) x E", but the printed values across three independent rows (dinitrophenol,
+an NHx-linked diphenylamine, dinitronaphthalene) show the term equals E alone (or, for naphthalene, the
+paper's own fixed n_DFG/SP=2.0), never E multiplied by any n_NO2/n_DFG/SP ratio -- a first
+implementation using the literal ratio reproduced TATB by coincidence (its own ratio happens to equal 1)
+while missing dinitrophenol by 2x. Recorded in the module's own docstring so this isn't rediscovered the
+hard way twice.
+
+**TNT (this survey's own corpus) cross-checked against an INDEPENDENT primary source, not just this
+paper's own table**: predicted -68.8 kJ/mol; Klapoetke (klapotke2017, p. 243, already cited in
+docs/sources.toml) states TNT's DfH = -295.5 kJ/kg, which converts to -67.1 kJ/mol for TNT's own molar
+mass -- agreement within 1.7 kJ/mol, far inside the ~21 kJ/mol bar. TATB predicted at -68.2 kJ/mol but
+NOT yet checked against any measured value (none found/verified this session). Tetryl is NOT covered:
+its exocyclic N(CH3)(NO2) nitramino substituent matches neither this paper's DFG rules (OH/NHx/carbonyl/
+naphthalene) nor its IFG rules (alkyl/alkoxy/hydrazine/azo) -- an aC-N-type gap, the same shape as
+Marrero-Gani's own aC-N gap for tetryl, and left unscored rather than forced into an ill-fitting rule.
+
+Status: CANDIDATE -> read; REPRODUCED (own table, 3 independent rows); INDEPENDENTLY_VALIDATED for TNT
+specifically (one compound, one external check -- not a held-out set); NOT YET run against a real
+held-out set of this survey's own choosing, which is what a PROMOTABLE verdict would need."""
 
 [[source]]
 id = "keshavarz2021"
