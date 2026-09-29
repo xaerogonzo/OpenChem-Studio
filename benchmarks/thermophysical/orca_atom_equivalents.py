@@ -70,12 +70,61 @@ per-element atom-equivalent scheme cannot generalize to its specific structural 
 ester more like it (a branched/quaternary-carbon polyol nitrate, not a simple primary one) in the
 calibration set -- the clear, now more specific, next step for anyone continuing this.
 
+**RETRACTED 2026-09-29 (Track 4, Gate B): the "RDX clears the bar at 2.1 kJ/mol" conclusion above did
+not survive a fresh, internally-consistent recomputation, and the recorded Etot values above were
+never internally consistent to begin with.** Re-running HMX's exact documented recipe (this SMILES,
+ETKDGv3 seed 0xC0FFEE, MMFF94 pre-optimize, B3LYP/def2-SVP opt) gave an Etot **108 kJ/mol** away from
+the value recorded above -- an order of magnitude bigger than the already-ruled-out conformer-choice
+effect (6.1 kJ/mol), and bigger than the entire ~25 kJ/mol HMX residual this whole module was built to
+explain. Every one of the 12 CALIBRATION_SET/TARGET_ETOT_KJMOL entries showed the same one-directional
+drift when re-run (fresh always higher-energy than recorded), scaling with molecular flexibility:
+0.1-0.8 kJ/mol for the rigid small molecules (methane/ammonia/benzene), 3-13 kJ/mol for the mid-sized
+nitro compounds, 45-108 kJ/mol for RDX/HMX/PETN. **Root cause**: `pyproject.toml` pinned RDKit as
+`>=2024.3.1`, a floating lower bound, and `uv.lock`'s resolved RDKit version changed at least twice
+across this multi-session survey -- ETKDGv3 is only deterministic for a given seed WITHIN one RDKit
+build, so different sessions' "same seed 0xC0FFEE" embeds were silently landing on different starting
+conformers, which converged to different DFT local minima. **The 6/7/9-fit progression's whole narrative
+-- that adding nitramine-specific calibration data systematically helped RDX -- was built on that drift,
+not on real signal**: every compound in the original table above was computed at a different, unrecorded
+point in that drift, so the fit's apparent improvement conflated genuine calibration-chemistry signal
+with environment noise of comparable or larger size. `pyproject.toml` is now pinned exact
+(`rdkit==2025.9.6`) to prevent this recurring.
+
+**All 9 calibration compounds plus RDX/HMX/PETN were re-run fresh, in one sitting, under the pinned
+environment**, and the atom equivalents refit on the internally-consistent result:
+
+    compound   6-fit    7-fit(+dimethylnitramine)   9-fit(+nitropiperidine,+ethyl_nitrate)   measured         best diff
+    RDX         53.4       121.2                        123.4                               66.6 / 85.0      13.2 kJ/mol (6-fit)
+    HMX         68.0       158.4                        161.3                               116.1            42.3 kJ/mol (7-fit)
+    PETN       -479.5      -458.5                       -451.4                              -539.0           59.5 kJ/mol (6-fit)
+
+**The qualitative conclusion is now the OPPOSITE of the original writeup for RDX**: under consistent
+data, adding nitramine/nitrate-ester calibration chemistry makes RDX's combined-route error WORSE,
+monotonically (13.2 -> 36.2 -> 38.4 kJ/mol), not better -- the untargeted 6-compound fit (no nitramine
+data at all) is RDX's best available result, and it is the ONLY one of the three fits that still clears
+SENSITIVITY.md's ~21 kJ/mol bar. HMX is non-monotonic (48.1 -> 42.3 -> 45.2 kJ/mol) and never clears the
+bar in any fit. **PETN's finding is the one part of the original writeup that survives**: its error still
+gets monotonically worse as nitramine/nitrate-ester data is added (59.5 -> 80.5 -> 87.6 kJ/mol), the same
+direction as before, so that specific conclusion (a purely elemental atom-equivalent scheme cannot
+represent PETN's four-arm quaternary-carbon structure without a matching calibration compound) was not
+an artifact of the environment drift -- it reproduces under a consistent recomputation, unlike RDX's.
+
+**This is now, honestly, a worse-performing route than it was reported to be**, and the reason to keep
+this module rather than delete it is that the drift itself -- and PETN's surviving, now doubly-confirmed
+finding -- are real results worth keeping on record. Any further work on this route (a higher level of
+theory, more calibration data) must start from the fresh numbers below, and must re-run the ENTIRE
+calibration set together in one sitting if it changes anything, never add one new compound to the
+existing (already environment-drifted) numbers.
+
 **Reproducibility note**: the ORCA total energies below are recorded from real jobs run on this machine
-(ORCA 6.1.1, B3LYP/def2-SVP) -- not re-run by the test suite, the same way this project records a paper's
-own printed table values rather than re-deriving them from source data it doesn't hold. All calibration
-compounds and RDX/HMX/PETN use the original single ETKDGv3-seed-0xC0FFEE seed; only the conformer CHECK
-above (RDX/HMX/nitropiperidine) used a wider search, and its own result was not substituted in below,
-per the conformer-choice conclusion just above.
+(ORCA 6.1.1, B3LYP/def2-SVP, RDKit 2025.9.6 -- now pinned exact in `pyproject.toml`) -- not re-run by the
+test suite, the same way this project records a paper's own printed table values rather than re-deriving
+them from source data it doesn't hold. All calibration compounds and RDX/HMX/PETN use the same single
+ETKDGv3-seed-0xC0FFEE seed, re-embedded fresh in the current environment; only the conformer CHECK above
+(RDX/HMX/nitropiperidine, from the original, now-superseded numbers) used a wider search, and its own
+qualitative conclusion (conformer choice does not explain RDX/HMX's error) is unaffected by this
+correction -- the 108 kJ/mol drift is roughly 4x that conformer study's own largest gap (30.3 kJ/mol,
+MMFF-ranked) and was traced to the RDKit version, not to conformer choice within one version.
 """
 
 from __future__ import annotations
@@ -84,33 +133,39 @@ import numpy as np
 
 #: (element_counts as (C, H, N, O), Etot from a real ORCA B3LYP/def2-SVP `opt` job, kJ/mol,
 #: experimental gas DfH, kJ/mol -- primary source noted per row).
+#:
+#: RE-RUN FRESH 2026-09-29, all 9 rows plus TARGET_ETOT_KJMOL below, in one sitting under the pinned
+#: environment (RDKit 2025.9.6, ORCA 6.1.1) -- see the module docstring's RETRACTED note. The previous
+#: values were each computed at a different, undocumented point in an RDKit-version drift and were never
+#: internally consistent with each other.
 CALIBRATION_SET = {
     # Lange's Handbook Table 6.1 for all experimental values below. Water was run first as a pipeline
-    # feasibility check (Etot -200381.462 kJ/mol) but deliberately left out of the fit -- an inorganic,
-    # non-hydride-bonded-carbon molecule pulls the O atom equivalent in a direction the fit's actual
-    # use case (organic/energetic C,H,N,O compounds) does not need, and every number in this module's
-    # docstring and the paired tests was computed on the 7-compound organic set below.
-    "methane": ((1, 4, 0, 0), -106206.509, -74.6),
-    "ammonia": ((0, 3, 1, 0), -148270.087, -45.9),
-    "benzene": ((6, 6, 0, 0), -608934.031, 82.6),
-    "methanol": ((1, 4, 0, 1), -303417.836, -201.0),
-    "nitromethane": ((1, 3, 1, 2), -642477.657, -74.3),
-    "methyl_nitrate": ((1, 3, 1, 3), -839635.931, -124.4),
+    # feasibility check but deliberately left out of the fit -- an inorganic, non-hydride-bonded-carbon
+    # molecule pulls the O atom equivalent in a direction the fit's actual use case (organic/energetic
+    # C,H,N,O compounds) does not need, and every number in this module's docstring and the paired tests
+    # was computed on the 7-compound organic set below.
+    "methane": ((1, 4, 0, 0), -106206.299, -74.6),
+    "ammonia": ((0, 3, 1, 0), -148269.955, -45.9),
+    "benzene": ((6, 6, 0, 0), -608933.278, 82.6),
+    "methanol": ((1, 4, 0, 1), -303413.897, -201.0),
+    "nitromethane": ((1, 3, 1, 2), -642474.368, -74.3),
+    "methyl_nitrate": ((1, 3, 1, 3), -839626.586, -124.4),
     # NIST WebBook (Matyushin, V'yunova, Pepekin, Apin, 1971) -- two nitramines, one acyclic, one a
     # 6-membered ring (structurally close to RDX's own ring).
-    "dimethylnitramine": ((2, 6, 2, 2), -890642.600, -5.0),
-    "nitropiperidine": ((5, 10, 2, 2), -1196717.858, -44.0),
+    "dimethylnitramine": ((2, 6, 2, 2), -890629.381, -5.0),
+    "nitropiperidine": ((5, 10, 2, 2), -1196706.729, -44.0),
     # NIST WebBook (Gray, Pratt, Larkin, 1956) -- a second, simple primary nitrate ester.
-    "ethyl_nitrate": ((2, 5, 1, 3), -942717.292, -155.0),
+    "ethyl_nitrate": ((2, 5, 1, 3), -942707.230, -155.0),
 }
 
 #: RDX, HMX, PETN Etot from the same real ORCA jobs -- no experimental gas-phase DfH exists to check
 #: these against directly (both decompose before vaporizing); see the module docstring for how the
 #: COMBINED (gas - Hsub) route was checked instead, against real condensed-phase measured values.
+#: Re-run fresh 2026-09-29 alongside CALIBRATION_SET -- see that note.
 TARGET_ETOT_KJMOL = {
-    "RDX": ((3, 6, 6, 6), -2353293.341),
-    "HMX": ((4, 8, 8, 8), -3137743.152),
-    "PETN": ((5, 8, 4, 12), -3452195.112),
+    "RDX": ((3, 6, 6, 6), -2353224.239),
+    "HMX": ((4, 8, 8, 8), -3137634.721),
+    "PETN": ((5, 8, 4, 12), -3452150.435),
 }
 
 ELEMENTS = ("C", "H", "N", "O")
