@@ -92,7 +92,13 @@ def _three_geometries():
     other, which is exactly the shape that makes a survivor count lie.
     """
     base = Chem.AddHs(Chem.MolFromSmiles("CCCCCC"))
-    AllChem.EmbedMolecule(base, AllChem.ETKDGv3(), )
+    params = AllChem.ETKDGv3()
+    #: Pinned so the measured RMSDs in this docstring hold regardless of how
+    #: many other unseeded embeddings ran earlier in the process -- an
+    #: unseeded draw here made the merge relations depend on test order
+    #: (RMSD(a,b) drifted 0.41-0.69 across otherwise-unrelated prior calls).
+    params.randomSeed = 0
+    AllChem.EmbedMolecule(base, params)
     AllChem.MMFFOptimizeMolecule(base)
     start = rdMolTransforms.GetDihedralDeg(base.GetConformer(), 0, 1, 2, 3)
 
@@ -440,7 +446,11 @@ def _four_geometries():
     every one above the 0.50 threshold.
     """
     base = Chem.AddHs(Chem.MolFromSmiles("CCCCCC"))
-    AllChem.EmbedMolecule(base, AllChem.ETKDGv3())
+    params = AllChem.ETKDGv3()
+    #: Pinned -- see `_three_geometries`: an unseeded embedding here let the
+    #: measured RMSDs in this docstring drift with test order.
+    params.randomSeed = 0
+    AllChem.EmbedMolecule(base, params)
     AllChem.MMFFOptimizeMolecule(base)
     start = rdMolTransforms.GetDihedralDeg(base.GetConformer(), 0, 1, 2, 3)
 
