@@ -154,3 +154,29 @@ def test_conformer_choice_does_not_explain_rdx_hmx_error(oae):
     # both differences are far smaller than the ~25-80 kJ/mol combined-route errors being investigated
     assert abs(best_conformer["RDX"] - original["RDX"]) < 10.0
     assert abs(best_conformer["HMX"] - original["HMX"]) < 10.0
+
+
+def test_hmx_pbe0_tzvp_diagnostic_isolates_electronic_from_geometry_effect(oae):
+    """Gate B diagnostic (2026-09-29, see module docstring): a single-point PBE0/def2-TZVP energy at
+    HMX's fresh B3LYP/def2-SVP geometry isolates a large electronic-level-only shift (-1924.3 kJ/mol) --
+    a full PBE0/def2-TZVP reoptimization from the same starting geometry then adds a much smaller,
+    OPPOSITE-direction geometry-relaxation effect (+96.2 kJ/mol), confirmed as a genuine converged
+    stationary point (ORCA's own "HURRAY", 38 cycles), not an artifact of a stalled optimization.
+
+    This is a real, self-contained finding about HMX's own potential energy surface, but it does NOT by
+    itself say whether the combined-route error improves at this level -- that needs the full
+    calibration set re-run and refit at PBE0/def2-TZVP, not done here (a much larger compute
+    commitment: this single HMX reoptimization alone took over an hour)."""
+    step1_kjmol = -3137634.721  # B3LYP/def2-SVP opt, matches oae.TARGET_ETOT_KJMOL["HMX"] exactly
+    step2_kjmol = -3139558.995  # PBE0/def2-TZVP single point at the SAME geometry
+    step3_kjmol = -3139462.804  # PBE0/def2-TZVP full reoptimization
+
+    counts, etot = oae.TARGET_ETOT_KJMOL["HMX"]
+    assert etot == pytest.approx(step1_kjmol, abs=0.01)
+
+    electronic_only_shift = step2_kjmol - step1_kjmol
+    geometry_relaxation_shift = step3_kjmol - step2_kjmol
+    assert electronic_only_shift == pytest.approx(-1924.274, abs=0.01)
+    assert geometry_relaxation_shift == pytest.approx(96.191, abs=0.01)
+    # the electronic-level effect dominates by an order of magnitude over geometry relaxation
+    assert abs(electronic_only_shift) > 10 * abs(geometry_relaxation_shift)

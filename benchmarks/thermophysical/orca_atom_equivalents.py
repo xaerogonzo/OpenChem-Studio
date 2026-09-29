@@ -125,7 +125,28 @@ ETKDGv3-seed-0xC0FFEE seed, re-embedded fresh in the current environment; only t
 qualitative conclusion (conformer choice does not explain RDX/HMX's error) is unaffected by this
 correction -- the 108 kJ/mol drift is roughly 4x that conformer study's own largest gap (30.3 kJ/mol,
 MMFF-ranked) and was traced to the RDKit version, not to conformer choice within one version.
-"""
+
+**Gate B diagnostic 2026-09-29: does a higher level of theory materially change HMX's residual?** Three
+real ORCA jobs, HMX only, same ETKDGv3-seed-0xC0FFEE starting geometry as the fresh baseline above:
+
+1. B3LYP/def2-SVP opt (reproduction check): Etot = -3137634.721 kJ/mol, diff = 0.000 kJ/mol from the
+   fresh baseline recorded above -- confirms the RDKit pin fix makes this genuinely reproducible now.
+2. PBE0/def2-TZVP single point AT THAT SAME GEOMETRY (isolates the electronic-level effect, no geometry
+   relaxation): Etot = -3139558.995 kJ/mol, a **-1924.3 kJ/mol** shift from step 1 -- large.
+3. PBE0/def2-TZVP full reoptimization from the same starting geometry (adds geometry relaxation on top):
+   converged cleanly (ORCA's own "HURRAY", 38 cycles). Etot = -3139462.804 kJ/mol, **+96.2 kJ/mol** from
+   step 2 (geometry relaxation moved the energy HIGHER, the opposite direction from the electronic-level
+   shift, and small by comparison) -- total PBE0/TZVP shift from step 1: -1828.1 kJ/mol.
+
+**This diagnostic alone does NOT answer whether the combined-route error improves at this level.** A
+shift this large and this uniform-looking is exactly the kind of thing a refit of the atom equivalents
+would absorb -- what matters for the actual residual is how HMX's shift compares to the OTHER
+calibration compounds' shifts at the same level, not its raw magnitude in isolation. That requires
+re-running the full 9-compound calibration set (plus RDX/PETN, for a like-for-like target comparison) at
+PBE0/def2-TZVP and refitting -- not yet done, and a much larger compute commitment: this single HMX
+reoptimization alone took over an hour and needed a raised timeout, and PBE0/def2-TZVP is dramatically
+more expensive than B3LYP/def2-SVP per geometry cycle across the board, not just for HMX. Recorded here
+as a real, useful, and explicitly partial result -- not a substitute for the full refit."""
 
 from __future__ import annotations
 
