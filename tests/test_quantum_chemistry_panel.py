@@ -166,6 +166,23 @@ def test_spectrum_computed_for_a_different_molecule_is_ignored(qapp):
     assert panel._spectrum_table.rowCount() == 0
 
 
+def test_the_more_menu_carries_the_three_setup_buttons(qapp):
+    """Collapsed behind `_more_button` rather than removed -- `Configure
+    ORCA...` / `Calibrate Reference...` / `Calibrate Scaling...` must still
+    be real, clickable `QPushButton`s reachable from the panel, since every
+    other test above (and every help tooltip) targets them directly."""
+    panel, _engine, _service = _make_panel()
+
+    menu_widgets = {
+        action.defaultWidget() for action in panel._more_menu.actions() if action.defaultWidget()
+    }
+
+    assert panel._configure_button in menu_widgets
+    assert panel._calibrate_button in menu_widgets
+    assert panel._scaling_button in menu_widgets
+    assert panel._more_button.menu() is panel._more_menu
+
+
 def test_calibrate_button_calls_request_reference_calibration_with_method_basis(qapp):
     panel, _engine, service = _make_panel()
     panel._method_combo.setCurrentText("B3LYP def2-SVP")

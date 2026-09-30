@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 
 from rdkit import Chem
@@ -373,3 +374,39 @@ def multiplet_lines(
         (signal.shift + (neighbours / 2.0 - index) * spacing_ppm, intensity / total)
         for index, intensity in enumerate(intensities)
     ]
+
+
+# HWHM of the Lorentzian each multiplet line is convolved with in "smooth"
+# display mode. Not a measured linewidth -- real ones vary with shimming and
+# field -- just narrow enough that two signals more than a few tenths of a
+# ppm apart stay resolved, matching how the predicted shifts are normally
+# spaced.
+DEFAULT_LORENTZIAN_HWHM_PPM = 0.012
+
+
+def lorentzian_envelope(
+    signals: list[NMRSignal],
+    xs: list[float],
+    frequency_mhz: float = DEFAULT_FREQUENCY_MHZ,
+    hwhm_ppm: float = DEFAULT_LORENTZIAN_HWHM_PPM,
+) -> list[float]:
+    """Sum, at each point in `xs`, of a unit-area Lorentzian centred on every
+    `multiplet_lines()` position, weighted so each signal's own lines
+    together integrate (over all ppm, not just the sampled `xs`) to that
+    signal's `integration` -- the same quantity stick mode turns into a
+    relative peak height. Two signals of integration 1 and 3 therefore
+    enclose area in a 1:3 ratio under this curve, exactly as their stick
+    heights would be 1:3 of the tallest signal.
+
+    `xs` only decides where the curve is SAMPLED for display; a signal whose
+    tails fall outside `xs` still had its full weight placed on the curve,
+    just not drawn there.
+    """
+    ys = [0.0] * len(xs)
+    for signal in signals:
+        for line_shift, intensity in multiplet_lines(signal, frequency_mhz):
+            weight = signal.integration * intensity
+            for index, x in enumerate(xs):
+                dx = x - line_shift
+                ys[index] += weight * hwhm_ppm / (math.pi * (dx * dx + hwhm_ppm * hwhm_ppm))
+    return ys

@@ -232,6 +232,59 @@ def test_the_widget_paints_a_split_multiplet(qapp):
     assert ink(split) > ink(unsplit)
 
 
+# --- Smooth render mode and the integral overlay --------------------------
+
+
+def test_smooth_mode_paints_something_different_from_sticks(qapp):
+    widget = NmrSpectrumWidget([_signal(3.0, 1, [0]), _signal(7.0, 3, [1])])
+    widget.resize(400, 250)
+    sticks_ink = ink(widget)
+
+    widget.set_render_mode("smooth")
+
+    assert ink(widget) != sticks_ink
+    assert widget.render_mode() == "smooth"
+
+
+def test_smooth_mode_rejects_an_unknown_mode_name(qapp):
+    widget = NmrSpectrumWidget([_signal(3.0)])
+    try:
+        widget.set_render_mode("bars")
+    except ValueError:
+        return
+    raise AssertionError("an unrecognised render mode must raise, not silently no-op")
+
+
+def test_smooth_mode_still_highlights_the_selected_signal(qapp):
+    """Same claim as `test_highlighting_changes_what_is_drawn`, in smooth
+    mode: the highlighted curve is drawn on top in its own colour, not just
+    recorded."""
+    signals = [_signal(3.0, 1, [0]), _signal(7.0, 3, [1, 2, 3])]
+    widget = NmrSpectrumWidget(signals)
+    widget.resize(400, 250)
+    widget.set_render_mode("smooth")
+    plain = ink(widget)
+
+    widget.set_highlighted_atoms([1])
+
+    assert ink(widget) != plain
+
+
+def test_the_integral_overlay_adds_ink_in_either_render_mode(qapp):
+    widget = NmrSpectrumWidget([_signal(3.0, 1, [0]), _signal(7.0, 3, [1])])
+    widget.resize(400, 250)
+    without_integral = ink(widget)
+
+    widget.set_show_integral(True)
+    assert ink(widget) != without_integral
+
+    widget.set_render_mode("smooth")
+    without_integral_smooth = NmrSpectrumWidget([_signal(3.0, 1, [0]), _signal(7.0, 3, [1])])
+    without_integral_smooth.resize(400, 250)
+    without_integral_smooth.set_render_mode("smooth")
+    assert ink(widget) != ink(without_integral_smooth)
+
+
 def test_clicking_anywhere_on_a_split_signal_still_selects_it(qapp):
     """The hit region is anchored on the signal's centre shift, so
     splitting the drawn lines must not make the peak unclickable."""

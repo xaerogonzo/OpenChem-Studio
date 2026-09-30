@@ -2,11 +2,21 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from PySide6.QtCore import QLineF, QRectF, Qt
-from PySide6.QtGui import QColor, QPainter, QPen
+from PySide6.QtCore import QLineF, QPointF, QRectF, Qt
+from PySide6.QtGui import QColor, QMouseEvent, QPainter, QPen, QWheelEvent
 from PySide6.QtWidgets import QWidget
 
 from openchem.ui import contours
+
+#: One wheel notch zooms by this factor (in); the inverse zooms out. Chosen
+#: so a handful of notches comfortably separates two cross peaks a couple
+#: of tenths of a ppm apart without the first notch feeling like nothing
+#: happened.
+_ZOOM_STEP = 0.85
+#: Cannot zoom in past this fraction of the full (padded) data span --
+#: below it the axes stop meaning anything, and contour tracing over a
+#: near-zero range is wasted work.
+_MIN_ZOOM_FRACTION = 0.02
 
 
 @dataclass(frozen=True)
@@ -69,7 +79,35 @@ class NmrCorrelationPlotWidget(QWidget):
         #: panel can name the experiment ("No HSQC cross peaks yet.")
         #: rather than this widget guessing which one it is drawing.
         self._empty_message = "No cross peaks yet."
+        # None means "fit to the data" -- `_axis_ranges()`'s own padded
+        # extent. Set only by zooming/panning, and never by `set_peaks`,
+        # which deliberately leaves a user's zoom alone across a live
+        # re-render (a job finishing while zoomed in must not snap back
+        # out). A brand-new set of peaks from a DIFFERENT run is reset by
+        # the panel calling `reset_view()` itself -- see
+        # `quantum_chemistry_panel._render_run`.
+        self._view_x_range: tuple[float, float] | None = None
+        self._view_y_range: tuple[float, float] | None = None
+        self._panning = False
+        self._pan_last_pos: QPointF | None = None
         self.setMinimumSize(280, 280)
+        self.setMouseTracking(False)
+
+    def view_ranges(self) -> tuple[tuple[float, float], tuple[float, float]]:
+        """The ranges actually drawn -- the zoomed/panned window if one is
+        set, otherwise the full padded data extent."""
+        x_min, x_max, y_min, y_max = self._axis_ranges()
+        x_range = self._view_x_range or (x_min, x_max)
+        y_range = self._view_y_range or (y_min, y_max)
+        return x_range, y_range
+
+    def is_zoomed(self) -> bool:
+        return self._view_x_range is not None or self._view_y_range is not None
+
+    def reset_view(self) -> None:
+        self._view_x_range = None
+        self._view_y_range = None
+        self.update()
 
     def set_empty_message(self, message: str) -> None:
         self._empty_message = message
@@ -132,16 +170,19 @@ class NmrCorrelationPlotWidget(QWidget):
         py = plot_rect.top() + fy * plot_rect.height()
         return px, py
 
-    def paintEvent(self, event) -> None:  # noqa: N802 - Qt override naming
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-
-        plot_rect = QRectF(
+    def _plot_rect(self) -> QRectF:
+        return QRectF(
             self._MARGIN,
             self._MARGIN / 2,
             max(self.width() - 1.5 * self._MARGIN, 1.0),
             max(self.height() - 1.5 * self._MARGIN, 1.0),
         )
+
+    def paintEvent(self, event) -> None:  # noqa: N802 - Qt override naming
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        plot_rect = self._plot_rect()
 
         painter.setPen(QPen(QColor(120, 120, 120)))
         painter.drawRect(plot_rect)
@@ -184,12 +225,18 @@ class NmrCorrelationPlotWidget(QWidget):
             painter.end()
             return
 
-        x_min, x_max, y_min, y_max = self._axis_ranges()
-        x_range, y_range = (x_min, x_max), (y_min, y_max)
+        # The VIEW window (zoomed/panned, or the full padded extent) is
+        # what maps data to pixels; the density grid underneath it keeps
+        # covering the full data extent regardless -- see `_density()`.
+        # Zooming re-maps the same field onto more pixels, it never
+        # recomputes it.
+        x_range, y_range = self.view_ranges()
 
         if self._show_contours:
             self._draw_contours(painter, plot_rect, x_range, y_range)
 
+        painter.save()
+        painter.setClipRect(plot_rect)
         painter.setPen(QPen(self._CONTOUR_COLOUR))
         painter.setBrush(self._CONTOUR_COLOUR)
         for peak in self._peaks:
@@ -201,7 +248,105 @@ class NmrCorrelationPlotWidget(QWidget):
             painter.drawEllipse(QRectF(px - radius, py - radius, radius * 2, radius * 2))
             if peak.label:
                 painter.drawText(QRectF(px + 5, py - 8, 60, 16), Qt.AlignmentFlag.AlignLeft, peak.label)
+        painter.restore()
+
+        if self.is_zoomed():
+            painter.setPen(QPen(QColor(120, 120, 120)))
+            painter.drawText(
+                QRectF(plot_rect.right() - 90, plot_rect.top() - self._MARGIN / 2, 90, self._MARGIN / 2),
+                Qt.AlignmentFlag.AlignRight,
+                "zoomed (double-click to reset)",
+            )
         painter.end()
+
+    def _data_point_at(self, pos: QPointF, plot_rect: QRectF) -> tuple[float, float]:
+        """The inverse of `_to_widget_coords` against the current view."""
+        x_range, y_range = self.view_ranges()
+        x_min, x_max = x_range
+        y_min, y_max = y_range
+        fx = (pos.x() - plot_rect.left()) / plot_rect.width() if plot_rect.width() else 0.5
+        fy = (pos.y() - plot_rect.top()) / plot_rect.height() if plot_rect.height() else 0.5
+        # Inverse of `_to_widget_coords`'s descending-axis mapping.
+        x = x_max - fx * (x_max - x_min)
+        y = y_max - fy * (y_max - y_min)
+        return x, y
+
+    def wheelEvent(self, event: QWheelEvent) -> None:  # noqa: N802 - Qt override naming
+        if not self._peaks:
+            return
+        plot_rect = self._plot_rect()
+        anchor_x, anchor_y = self._data_point_at(event.position(), plot_rect)
+
+        factor = _ZOOM_STEP if event.angleDelta().y() > 0 else 1.0 / _ZOOM_STEP
+        full_x_min, full_x_max, full_y_min, full_y_max = self._axis_ranges()
+        min_x_span = (full_x_max - full_x_min) * _MIN_ZOOM_FRACTION
+        min_y_span = (full_y_max - full_y_min) * _MIN_ZOOM_FRACTION
+
+        (x_min, x_max), (y_min, y_max) = self.view_ranges()
+        new_x_span = min(max((x_max - x_min) * factor, min_x_span), full_x_max - full_x_min)
+        new_y_span = min(max((y_max - y_min) * factor, min_y_span), full_y_max - full_y_min)
+
+        # Keep the point under the cursor fixed, the way every other
+        # scroll-to-zoom view behaves -- zooming in on a cross peak should
+        # bring it toward the centre of attention, not slide it off-screen.
+        fx = (x_max - anchor_x) / (x_max - x_min) if x_max != x_min else 0.5
+        fy = (y_max - anchor_y) / (y_max - y_min) if y_max != y_min else 0.5
+        new_x_max = anchor_x + fx * new_x_span
+        new_x_min = new_x_max - new_x_span
+        new_y_max = anchor_y + fy * new_y_span
+        new_y_min = new_y_max - new_y_span
+
+        # A span that reaches the full data span is the same thing as "not
+        # zoomed" -- drop back to None so `is_zoomed()` and the cached
+        # `_grid` usage both read it as the fit-to-data state again.
+        if new_x_span >= full_x_max - full_x_min and new_y_span >= full_y_max - full_y_min:
+            self.reset_view()
+        else:
+            self._view_x_range = (new_x_min, new_x_max)
+            self._view_y_range = (new_y_min, new_y_max)
+            self.update()
+        event.accept()
+
+    def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802 - Qt override naming
+        self.reset_view()
+        event.accept()
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802 - Qt override naming
+        if event.button() == Qt.MouseButton.LeftButton and self._peaks:
+            self._panning = True
+            self._pan_last_pos = event.position()
+            event.accept()
+        else:
+            super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802 - Qt override naming
+        if not self._panning or self._pan_last_pos is None:
+            super().mouseMoveEvent(event)
+            return
+        plot_rect = self._plot_rect()
+        (x_min, x_max), (y_min, y_max) = self.view_ranges()
+        delta = event.position() - self._pan_last_pos
+        self._pan_last_pos = event.position()
+        if plot_rect.width() and plot_rect.height():
+            # The data point under the OLD cursor position must end up
+            # under the NEW one (a drag grabs the plot, not the axes) --
+            # solving `_data_point_at(new_pos, view + d) ==
+            # _data_point_at(old_pos, view)` for `d` gives this, positive
+            # in both screen directions despite the descending axes.
+            dx = delta.x() / plot_rect.width() * (x_max - x_min)
+            dy = delta.y() / plot_rect.height() * (y_max - y_min)
+            self._view_x_range = (x_min + dx, x_max + dx)
+            self._view_y_range = (y_min + dy, y_max + dy)
+            self.update()
+        event.accept()
+
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802 - Qt override naming
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._panning = False
+            self._pan_last_pos = None
+            event.accept()
+        else:
+            super().mouseReleaseEvent(event)
 
     def _draw_contours(self, painter, plot_rect, x_range, y_range) -> None:
         """Rings from lowest level to highest, darkening as they climb.

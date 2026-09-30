@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QRectF, Qt, Signal
-from PySide6.QtGui import QColor, QPainter, QPen
+from PySide6.QtCore import QPointF, QRectF, Qt, Signal
+from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import QWidget
 
 from openchem.chem.nmr_signals import (
     DEFAULT_FREQUENCY_MHZ,
     RESIDUAL_SOLVENT_PEAKS,
     NMRSignal,
+    lorentzian_envelope,
     multiplet_lines,
 )
 
@@ -15,6 +16,11 @@ _AXIS_COLOR = QColor(120, 120, 120)
 _PEAK_COLOR = QColor(30, 100, 200)
 _HIGHLIGHT_COLOR = QColor(214, 100, 20)
 _SOLVENT_COLOR = QColor(150, 150, 150)
+_INTEGRAL_COLOR = QColor(60, 150, 90)
+#: Points sampled across the plot for the smooth curve and the integral
+#: trace -- fine enough that a Lorentzian at the default HWHM (0.012 ppm)
+#: over a typical 10 ppm span still has several samples under each line.
+_CURVE_SAMPLE_COUNT = 400
 # Half-width of a peak's clickable region, in pixels. Peaks are drawn as
 # 1px vertical lines, which is far too thin to hit with a mouse -- and two
 # diastereotopic protons can share a shift exactly (the predictor splits the
@@ -65,7 +71,26 @@ class NmrSpectrumWidget(QWidget):
         self._frequency_mhz = DEFAULT_FREQUENCY_MHZ
         self._solvent: str | None = None
         self._element = "H"
+        #: "sticks" (the original zero-width lines) or "smooth" (the same
+        #: `multiplet_lines()` positions convolved with a Lorentzian -- see
+        #: `lorentzian_envelope`). Neither is a simulated spectrum; smooth
+        #: just reads more like one.
+        self._render_mode = "sticks"
+        self._show_integral = False
         self.setMinimumSize(320, 200)
+
+    def set_render_mode(self, mode: str) -> None:
+        if mode not in ("sticks", "smooth"):
+            raise ValueError(f"unknown NMR render mode: {mode!r}")
+        self._render_mode = mode
+        self.update()
+
+    def render_mode(self) -> str:
+        return self._render_mode
+
+    def set_show_integral(self, show: bool) -> None:
+        self._show_integral = bool(show)
+        self.update()
 
     def set_signals(
         self, signals: list[NMRSignal], x_label: str = "δ (ppm)", shielding: bool = False
@@ -237,25 +262,111 @@ class NmrSpectrumWidget(QWidget):
                 self._solvent or "",
             )
 
-        for signal in self._signals:
-            highlighted = bool(self._highlighted_atoms & set(signal.atom_indices))
-            full_height = (plot_rect.height() - label_height) * (signal.integration / max_integration)
-            painter.setPen(QPen(_HIGHLIGHT_COLOR if highlighted else _PEAK_COLOR, 3 if highlighted else 1))
-            # Each line of the multiplet carries its share of the signal's
-            # total intensity, so a quartet and a singlet of the same
-            # integration still enclose the same area -- which is what
-            # integration means.
-            for line_shift, intensity in multiplet_lines(signal, self._frequency_mhz):
-                line_x = self._to_widget_x(line_shift, plot_rect, x_range)
-                height = full_height * intensity
-                painter.drawLine(
-                    QRectF(line_x, plot_rect.bottom() - height, 0, height).topLeft(),
-                    QRectF(line_x, plot_rect.bottom() - height, 0, height).bottomLeft(),
+        if self._render_mode == "smooth":
+            self._draw_smooth_curve(painter, plot_rect, x_range, label_height)
+        else:
+            for signal in self._signals:
+                highlighted = bool(self._highlighted_atoms & set(signal.atom_indices))
+                full_height = (plot_rect.height() - label_height) * (signal.integration / max_integration)
+                painter.setPen(QPen(_HIGHLIGHT_COLOR if highlighted else _PEAK_COLOR, 3 if highlighted else 1))
+                # Each line of the multiplet carries its share of the signal's
+                # total intensity, so a quartet and a singlet of the same
+                # integration still enclose the same area -- which is what
+                # integration means.
+                for line_shift, intensity in multiplet_lines(signal, self._frequency_mhz):
+                    line_x = self._to_widget_x(line_shift, plot_rect, x_range)
+                    height = full_height * intensity
+                    painter.drawLine(
+                        QRectF(line_x, plot_rect.bottom() - height, 0, height).topLeft(),
+                        QRectF(line_x, plot_rect.bottom() - height, 0, height).bottomLeft(),
+                    )
+                centre_x = self._to_widget_x(signal.shift, plot_rect, x_range)
+                painter.drawText(
+                    QRectF(centre_x - 30, plot_rect.bottom() - full_height - label_height, 60, label_height),
+                    Qt.AlignmentFlag.AlignCenter,
+                    f"{signal.shift:.2f}",
                 )
-            centre_x = self._to_widget_x(signal.shift, plot_rect, x_range)
-            painter.drawText(
-                QRectF(centre_x - 30, plot_rect.bottom() - full_height - label_height, 60, label_height),
-                Qt.AlignmentFlag.AlignCenter,
-                f"{signal.shift:.2f}",
-            )
+
+        if self._show_integral:
+            self._draw_integral(painter, plot_rect, x_range, label_height)
+
         painter.end()
+
+    def _sample_grid(self, x_range: tuple[float, float], count: int = _CURVE_SAMPLE_COUNT) -> list[float]:
+        """`count` ppm values, in LEFT-TO-RIGHT SCREEN order, spanning
+        `x_range`. Ascending for shielding (drawn ascending left to right,
+        `_to_widget_x`), descending otherwise -- so a caller that walks this
+        list in order is walking the plot in order, which is what the
+        cumulative integral trace needs to rise in the right direction."""
+        low, high = x_range
+        if count < 2 or high == low:
+            return [low]
+        step = (high - low) / (count - 1)
+        if self._shielding:
+            return [low + step * i for i in range(count)]
+        return [high - step * i for i in range(count)]
+
+    def _draw_smooth_curve(
+        self, painter: QPainter, plot_rect: QRectF, x_range: tuple[float, float], label_height: float
+    ) -> None:
+        xs = self._sample_grid(x_range)
+        ys = lorentzian_envelope(self._signals, xs, self._frequency_mhz)
+        scale = (plot_rect.height() - label_height) / (max(ys) or 1.0)
+
+        painter.setPen(QPen(_PEAK_COLOR, 1))
+        painter.drawPath(self._curve_path(xs, ys, plot_rect, x_range, scale))
+
+        highlighted_signals = [
+            signal for signal in self._signals if self._highlighted_atoms & set(signal.atom_indices)
+        ]
+        if highlighted_signals:
+            # Drawn on the SAME scale as the full curve (not renormalised to
+            # its own peak), because the point is "how much of the total
+            # curve is this signal", not "what does this signal look like
+            # alone".
+            highlighted_ys = lorentzian_envelope(highlighted_signals, xs, self._frequency_mhz)
+            painter.setPen(QPen(_HIGHLIGHT_COLOR, 3))
+            painter.drawPath(self._curve_path(xs, highlighted_ys, plot_rect, x_range, scale))
+
+    def _draw_integral(
+        self, painter: QPainter, plot_rect: QRectF, x_range: tuple[float, float], label_height: float
+    ) -> None:
+        """A cumulative trace of the same Lorentzian-convolved intensity
+        smooth mode draws, rising left to right the way a real integral
+        trace does -- available in EITHER render mode, since it needs a
+        continuous curve to integrate regardless of how the peaks above it
+        are drawn."""
+        xs = self._sample_grid(x_range)
+        ys = lorentzian_envelope(self._signals, xs, self._frequency_mhz)
+        cumulative = [0.0] * len(xs)
+        acc = 0.0
+        for index in range(1, len(xs)):
+            acc += (ys[index] + ys[index - 1]) / 2.0 * abs(xs[index] - xs[index - 1])
+            cumulative[index] = acc
+        total = cumulative[-1] or 1.0
+        scale = (plot_rect.height() - label_height) / total
+
+        painter.setPen(QPen(_INTEGRAL_COLOR, 1.5, Qt.PenStyle.DashLine))
+        painter.drawPath(self._curve_path(xs, cumulative, plot_rect, x_range, scale))
+        painter.drawText(
+            QRectF(plot_rect.left(), plot_rect.top() - label_height, 120, label_height),
+            Qt.AlignmentFlag.AlignLeft,
+            "relative integral",
+        )
+
+    def _curve_path(
+        self,
+        xs: list[float],
+        ys: list[float],
+        plot_rect: QRectF,
+        x_range: tuple[float, float],
+        scale: float,
+    ) -> QPainterPath:
+        path = QPainterPath()
+        for index, (x, y) in enumerate(zip(xs, ys)):
+            point = QPointF(self._to_widget_x(x, plot_rect, x_range), plot_rect.bottom() - y * scale)
+            if index == 0:
+                path.moveTo(point)
+            else:
+                path.lineTo(point)
+        return path

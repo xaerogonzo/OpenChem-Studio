@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from PySide6.QtSvgWidgets import QSvgWidget
 from PySide6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QHBoxLayout,
     QHeaderView,
@@ -109,6 +110,16 @@ class NmrViewWidget(QWidget):
             self._solvent_combo.addItem(solvent, solvent)
         self._solvent_combo.currentIndexChanged.connect(self._on_solvent_changed)
 
+        # Sticks are the exact data (zero-width, at each multiplet line);
+        # smooth convolves the same lines with a Lorentzian so the plot
+        # reads like a real trace. Neither is more "correct" -- see
+        # `NmrSpectrumWidget`'s docstring -- so this is a display choice,
+        # not a recompute.
+        self._smooth_check = QCheckBox("Smooth rendering", self)
+        self._smooth_check.toggled.connect(self._on_render_mode_toggled)
+        self._integral_check = QCheckBox("Relative integral", self)
+        self._integral_check.toggled.connect(self._spectrum_widget.set_show_integral)
+
         element_row = QHBoxLayout()
         element_row.addWidget(QLabel("Nucleus:", self))
         element_row.addWidget(self._element_combo)
@@ -116,6 +127,8 @@ class NmrViewWidget(QWidget):
         element_row.addWidget(self._frequency_combo)
         element_row.addWidget(QLabel("Solvent peak:", self))
         element_row.addWidget(self._solvent_combo)
+        element_row.addWidget(self._smooth_check)
+        element_row.addWidget(self._integral_check)
         element_row.addStretch()
 
         structures_row = QHBoxLayout()
@@ -177,6 +190,9 @@ class NmrViewWidget(QWidget):
 
     def _on_solvent_changed(self, _index: int) -> None:
         self._spectrum_widget.set_solvent(self._solvent_combo.currentData())
+
+    def _on_render_mode_toggled(self, smooth: bool) -> None:
+        self._spectrum_widget.set_render_mode("smooth" if smooth else "sticks")
 
     def _rebuild_signals(self) -> None:
         if self._spectrum is None or self._mol is None:

@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QInputDialog,
     QLabel,
+    QMenu,
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
@@ -19,8 +20,10 @@ from PySide6.QtWidgets import (
     QTabWidget,
     QTableWidget,
     QTableWidgetItem,
+    QToolButton,
     QVBoxLayout,
     QWidget,
+    QWidgetAction,
 )
 
 from openchem.chem.calculation_input import (
@@ -723,6 +726,24 @@ class QuantumChemistryPanel(QWidget):
         apply_help_tooltip(self._scaling_button, _HELP["empirical_shift_scaling"])
         self._scaling_button.clicked.connect(self._on_scaling_calibrate_clicked)
 
+        # Three buttons that are set-up-once-and-forget, not part of the
+        # per-run workflow -- collapsed behind one disclosure rather than
+        # sitting in the row every Run/Cancel press has to share space
+        # with. Real `QPushButton`s, not `QAction`s: every test and every
+        # help tooltip above already targets these exact widgets, and a
+        # `QWidgetAction` embeds a widget in a menu unchanged rather than
+        # replacing it with a new control that would need its own wiring.
+        self._more_menu = QMenu(self)
+        for button in (self._configure_button, self._calibrate_button, self._scaling_button):
+            action = QWidgetAction(self._more_menu)
+            action.setDefaultWidget(button)
+            self._more_menu.addAction(action)
+        self._more_button = QToolButton(self)
+        self._more_button.setText("More")
+        self._more_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        self._more_button.setMenu(self._more_menu)
+        self._more_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+
         self._run_button = QPushButton("Run", self)
         apply_help_tooltip(self._run_button, _HELP["run_calculation"])
         self._run_button.clicked.connect(self._on_run_clicked)
@@ -934,7 +955,11 @@ class QuantumChemistryPanel(QWidget):
         # claim as much as a layout one, and every existing tab keeps its
         # index so nothing shifts under somebody who has learned where
         # things are.
-        self._correlation_tabs.addTab(self._output_log, "Log")
+        # "ORCA Log," not "Log" -- the application's own bottom Console is
+        # also a log, and a tab reading just "Log" inside a QC results dock
+        # reads as a duplicate of it rather than what it actually is: this
+        # one job's raw ORCA stdout.
+        self._correlation_tabs.addTab(self._output_log, "ORCA Log")
 
     def _build_form_and_layout(self) -> None:
         """The run form and the vertical layout under it.
@@ -952,25 +977,17 @@ class QuantumChemistryPanel(QWidget):
         form.addRow("CPU cores:", self._cores_spin)
         form.addRow("", self._boltzmann_check)
 
-        # **FIVE BUTTONS, AND A `QHBoxLayout`'s MINIMUM IS THEIR SUM.**
-        # Measured under `offscreen`: 218 + 350 + 434 + 80 + 86 = 1168 px of
-        # buttons, giving the row a minimum of 1192 -- the widest single
-        # thing in the panel, and more than the whole panel is ever given.
-        # The dock opens at 420, so the row was CLIPPED at the panel edge
-        # and "Calibrate Scaling (11 standards)..." rendered as
-        # "Calibrate Scaling (11 s". `FlowLayout.minimumSize` reports the
-        # widest SINGLE child instead and wraps the rest onto another line.
-        #
-        # **THIS IS THE CASE `flow_row` IS FOR, and the distinction matters
-        # because the opposite mistake is also on record**: the Docking
-        # panel's two-checkbox strip was swapped to a `flow_row` on this
-        # rule alone and cost 21 px of dead band for a row that fitted on
-        # one line. A flow row is a cure for a row whose children cannot
-        # fit, not a prophylactic. These five cannot fit.
+        # Used to be five buttons in this row -- measured under `offscreen`:
+        # 218 + 350 + 434 + 80 + 86 = 1168 px, more than the whole panel is
+        # ever given, which is why this was a `flow_row` in the first
+        # place (see git history for the measurement). The three setup-
+        # once buttons are now behind `_more_button`'s menu, so this row is
+        # just "More", Run, Cancel -- narrow enough for a plain
+        # `QHBoxLayout`, but left as `flow_row` anyway: a docked panel can
+        # still be narrower than these three at some DPI, and `flow_row`
+        # costs nothing extra when a row already fits on one line.
         run_row = flow_row(self)
-        run_row.layout().addWidget(self._configure_button)
-        run_row.layout().addWidget(self._calibrate_button)
-        run_row.layout().addWidget(self._scaling_button)
+        run_row.layout().addWidget(self._more_button)
         run_row.layout().addWidget(self._run_button)
         run_row.layout().addWidget(self._cancel_button)
 
@@ -1820,6 +1837,9 @@ class QuantumChemistryPanel(QWidget):
         for correlation_type in self._correlation_tables:
             self._correlation_tables[correlation_type].setRowCount(0)
             self._correlation_plots[correlation_type].set_peaks([])
+            # A zoom window from whatever was on screen before must not
+            # carry over onto a different run's or molecule's data range.
+            self._correlation_plots[correlation_type].reset_view()
         self._hybrid_table.setRowCount(0)
         self._hybrid_summary_label.setText(_HYBRID_UNAVAILABLE_NOTE)
 
