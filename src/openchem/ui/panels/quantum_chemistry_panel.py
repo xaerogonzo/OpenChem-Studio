@@ -1478,6 +1478,23 @@ class QuantumChemistryPanel(QWidget):
             state.setVisible(True)
             for widget in content:
                 widget.setVisible(False)
+        # HSQC/HMBC/COSY and Hybrid are NOT covered by the walk above --
+        # each paints its own "no data yet" message directly into its
+        # content widgets rather than using a placeholder `_content_of`
+        # can discover (`_build_tabs`'s comment on why: a placeholder
+        # WIDGET in a content-bearing tab caused a heap corruption,
+        # measured 5/5). Left unhandled, a job of a different calc_type --
+        # e.g. IR after NMR -- reached `_on_spectrum_computed`'s
+        # `VibrationalSpectrumResult` branch, which returns before ever
+        # touching these tabs, so the PREVIOUS run's HSQC/HMBC/COSY rows
+        # and cross peaks (and the Hybrid table) went on sitting there
+        # under the new run's heading. Confirmed live and by a targeted
+        # test before this fix.
+        for correlation_type in self._correlation_tables:
+            self._correlation_tables[correlation_type].setRowCount(0)
+            self._correlation_plots[correlation_type].set_peaks([])
+        self._hybrid_table.setRowCount(0)
+        self._hybrid_summary_label.setText(_HYBRID_UNAVAILABLE_NOTE)
 
     def _on_qm_surface_computed(self, event) -> None:
         if self._surfaces_view is None:

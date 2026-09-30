@@ -351,6 +351,83 @@ def test_spectrum_computed_populates_correlation_tabs(qapp):
     assert panel._correlation_tables["cosy"].rowCount() > 0
 
 
+def test_running_ir_after_nmr_clears_the_stale_correlation_tables(qapp):
+    """Flagged from real screenshots as a possible regression: NMR
+    populates HSQC/HMBC/COSY, then a separate IR run on the same molecule
+    must not leave the OLD NMR-run rows sitting in those tables under the
+    new run's heading. `_on_run_clicked` already calls
+    `_reset_empty_states()` with a comment saying exactly this must not
+    happen -- this proves whether it still holds."""
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+    from openchem.domain.scientific_result import VibrationalSpectrumResult
+
+    bus = EventBus()
+    engine = ChemistryEngine()
+    settings = Settings(bus)
+    service = _RecordingQuantumChemistryService(bus)
+    panel = QuantumChemistryPanel(service, engine, settings, bus)
+
+    molecule = MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+    mol_3d = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    AllChem.EmbedMolecule(mol_3d, randomSeed=7)
+    molecule.conformers.append(ConformerModel(molblock=Chem.MolToMolBlock(mol_3d), method="rdkit_etkdg"))
+    project = ProjectModel(name="Test")
+    project.molecules.append(molecule)
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+    panel._method_combo.setCurrentText("B3LYP def2-SVP")
+
+    # Run 1: NMR -- populates HSQC/HMBC/COSY.
+    panel._calc_type_combo.setCurrentText("NMR (raw shielding)")
+    panel._on_run_clicked()
+    values = {idx: 100.0 + idx for idx in range(mol_3d.GetNumAtoms())}
+    elements = {idx: atom.GetSymbol() for idx, atom in enumerate(mol_3d.GetAtoms())}
+    panel._on_spectrum_computed(
+        SpectrumComputed(
+            spectrum=NMRSpectrumResult(
+                spectrum_type="nmr_raw_shielding",
+                name="raw",
+                units="ppm",
+                method="orca",
+                molecule_uuid=molecule.uuid,
+                values=values,
+                elements=elements,
+            )
+        )
+    )
+    assert panel._correlation_tables["hsqc"].rowCount() > 0
+    assert panel._correlation_tables["cosy"].rowCount() > 0
+
+    # Run 2: IR -- a separate calculation, no NMR data at all.
+    panel._calc_type_combo.setCurrentText("Optimization + Frequency")
+    panel._on_run_clicked()
+    panel._on_spectrum_computed(
+        SpectrumComputed(
+            spectrum=VibrationalSpectrumResult(
+                spectrum_type="ir",
+                name="IR",
+                units="cm-1",
+                method="orca",
+                molecule_uuid=molecule.uuid,
+                modes=(),
+            )
+        )
+    )
+
+    assert panel._correlation_tables["hsqc"].rowCount() == 0, (
+        "HSQC still shows the previous NMR run's rows after a separate IR run"
+    )
+    assert panel._correlation_tables["cosy"].rowCount() == 0, (
+        "COSY still shows the previous NMR run's rows after a separate IR run"
+    )
+    assert not panel._correlation_plots["hsqc"]._peaks, (
+        "the HSQC plot still holds the previous NMR run's peaks after a separate IR run"
+    )
+    assert not panel._correlation_plots["cosy"]._peaks
+
+
 def test_the_1d_signal_tab_exists_before_any_result_arrives(qapp):
     """The tab is created up front so tab order never shifts under the user;
     only the widget inside it (which owns a QWebEngineView) is deferred."""
