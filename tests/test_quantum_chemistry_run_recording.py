@@ -18,12 +18,18 @@ from rdkit import Chem
 
 from openchem import paths as app_paths
 from openchem.app.settings import Settings
+from openchem.chem.calculation_input import input_fingerprint
+from openchem.chem.engine import ChemistryEngine
+from openchem.domain.calculator import DRAWING
 from openchem.domain.common import CacheState
 from openchem.domain.descriptor import DescriptorValue
+from openchem.domain.molecule import MoleculeModel
+from openchem.domain.project import ProjectModel
 from openchem.domain.quantum_chemistry_run import OutputStatus, RunStatus
 from openchem.domain.scientific_result import NMRSpectrumResult
 from openchem.events.base import EventBus
 from openchem.events.events import (
+    DescriptorComputed,
     NmrReferenceCalibrated,
     QuantumChemistryJobStateChanged,
     QuantumChemistryResultReady,
@@ -31,6 +37,7 @@ from openchem.events.events import (
 )
 from openchem.plugins.interfaces import QuantumEngineProvider
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
+from openchem.services.result_store_service import ResultStoreService
 
 from test_quantum_chemistry_service import FakeQuantumEngineProvider, _wait_until
 
@@ -328,3 +335,60 @@ def test_a_boltzmann_run_publishes_exactly_one_qc_run_not_one_per_conformer(qapp
     assert len(runs) == 1
     assert runs[0].status is RunStatus.COMPLETED
     assert runs[0].calculation_input == ""  # no ensemble identity was passed in this test
+
+
+def test_a_qc_descriptor_survives_replay_after_no_recompute(qapp, tmp_path):
+    """Phase 3: PropertyPanel's 'current/latest value' display for every
+    OTHER calculator already survives a molecule reselection/project
+    reload through `ResultStoreService.replay()`, which republishes
+    whatever the generic `store` holds as ordinary `DescriptorComputed`
+    events. QC's headline numbers (SCF energy, HOMO/LUMO, ...) never
+    reached that store at all before this -- they were live-only even for
+    Results, not just for this panel. This is the mechanism-level proof:
+    submit once, then replay with NO live job involved, and the same
+    descriptor value comes back through the same event PropertyPanel
+    already listens to.
+    """
+    provider = FakeQuantumEngineProvider(stdout_text="hello from fake orca")
+    bus = EventBus()
+    engine = ChemistryEngine()
+    settings = Settings(bus)
+    settings.set("orca/executable_path", sys.executable)
+    service = QuantumChemistryService(bus, settings, providers={"fake": provider})
+    store_service = ResultStoreService(bus, engine, settings)
+
+    molecule = MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+    project = ProjectModel(name="Test")
+    project.molecules.append(molecule)
+    store_service.set_project(project)
+
+    fingerprint = input_fingerprint(engine, molecule, DRAWING)
+    service.request_calculation(
+        mol=Chem.MolFromSmiles("CCO"),
+        molecule_uuid=molecule.uuid,
+        calc_type="sp",
+        charge=0,
+        multiplicity=1,
+        method_basis="B3LYP def2-SVP",
+        provider_id="fake",
+        input_fingerprint=fingerprint,
+        calculation_input=DRAWING,
+    )
+    assert _wait_until(qapp, lambda: store_service.store.molecule_uuids() == [molecule.uuid])
+
+    # Simulate a completely fresh session: a new store built only from the
+    # first one's saved/serialized form, no live job anywhere.
+    from openchem.domain.result_store import SessionResultStore
+
+    reloaded_store = SessionResultStore.from_dict(store_service.store.to_dict(), project.uuid)
+    reloaded_service = ResultStoreService(EventBus(), engine, settings)
+    reloaded_service.set_project(project, reloaded_store)
+
+    received = []
+    reloaded_service._event_bus.subscribe(DescriptorComputed, lambda e: received.append(e.descriptor))
+
+    sent = reloaded_service.replay(molecule)
+
+    assert any(d.descriptor_id == "fake.scf_energy" and d.value == -1.0 for d in received)
+    assert sent

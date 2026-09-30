@@ -35,6 +35,7 @@ from openchem.domain.quantum_chemistry_run import (
     RunStatus,
     new_run_id,
 )
+from openchem.domain.result_store import StoredResult
 from openchem.events.base import EventBus
 from openchem.events.events import (
     NmrScalingCalibrated,
@@ -42,11 +43,13 @@ from openchem.events.events import (
     QuantumChemistryJobStateChanged,
     QuantumChemistryResultReady,
     QuantumChemistryRunCompleted,
+    ResultRecorded,
     SpectrumComputed,
 )
 from openchem.plugins.interfaces import QuantumEngineProvider
 from openchem.services import result_cache
 from openchem.services.job_manager import JobManager
+from openchem.services.result_identity import application_version, make_identity
 
 logger = logging.getLogger("openchem.chemistry")
 
@@ -887,6 +890,7 @@ class QuantumChemistryService(QObject):
         self._event_bus.publish(
             QuantumChemistryResultReady(molecule_uuid=molecule_uuid, descriptors=descriptors, conformer=conformer)
         )
+        self._record_descriptors(descriptors, job)
         run = self._new_run(job, RunStatus.COMPLETED)
         if run is not None:
             run.results["descriptors"] = list(descriptors)
@@ -1158,6 +1162,47 @@ class QuantumChemistryService(QObject):
             return
         run.completed_at = time.time()
         self._event_bus.publish(QuantumChemistryRunCompleted(run=run))
+
+    def _record_descriptors(self, descriptors: list, job: _ActiveJob) -> None:
+        """Wrap each descriptor into the generic revision-cache store too
+        (`ResultRecorded`, the same envelope `descriptor_service._record`
+        publishes for every other calculator) -- SEPARATELY from
+        `QuantumChemistryRunCompleted`/`qc_runs`, and for a different
+        purpose.
+
+        `qc_runs` is durable multi-run HISTORY; the generic `store` is a
+        "current/latest value" cache with no notion of history at all --
+        which is exactly the shape `PropertyPanel` already wants and
+        already gets for every other calculator via
+        `ResultStoreService.replay()` on molecule selection. Without this,
+        QC's SCF/HOMO-LUMO/etc. numbers showed in Results live in the
+        same session a job ran, then vanished from Results specifically
+        (not just from this panel) the moment the molecule was reselected
+        or the project reopened, because nothing had ever recorded them
+        there.
+
+        Only called from the single-job path (`_finish_calculation_job`):
+        a Boltzmann run's per-conformer descriptors are intermediates (see
+        `_finish_conformer_job`) and were never published live either: no
+        behavior change there.
+        """
+        for descriptor in descriptors:
+            try:
+                stored = StoredResult(
+                    identity=make_identity(
+                        molecule_uuid=job.molecule_uuid,
+                        result=descriptor,
+                        calculation_input=job.calculation_input,
+                        input_fingerprint=job.input_fingerprint,
+                        producer=descriptor.provider,
+                    ),
+                    result=descriptor,
+                    application_version=application_version(),
+                )
+            except Exception:  # noqa: BLE001 - retaining a result must never cost the result
+                logger.exception("Could not record a QC descriptor for %s", job.molecule_uuid)
+                continue
+            self._event_bus.publish(ResultRecorded(stored=stored))
 
     def _finish_scaling_job(self, job: _ActiveJob, output_text: str) -> bool:
         """Files one standard's shieldings, then starts the next or fits.
