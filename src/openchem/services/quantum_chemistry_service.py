@@ -14,7 +14,7 @@ from PySide6.QtCore import QObject, QProcess, QProcessEnvironment
 from rdkit import Chem
 
 from openchem.app.settings import Settings
-from openchem.chem.boltzmann import boltzmann_average_spectrum
+from openchem.chem.boltzmann import boltzmann_average_spectrum, boltzmann_weights
 from openchem.chem.nmr_reference import (
     SPECTRUM_TYPE_BY_ELEMENT,
     average_reference_shielding,
@@ -150,6 +150,20 @@ class _BoltzmannRun:
     total: int
     spectra: list = field(default_factory=list)
     energies: list[float] = field(default_factory=list)
+    #: Each conformer's own full descriptor list (SCF energy, HOMO/LUMO,
+    #: dipole, ...), parallel to `energies` and `spectra`. Kept so the
+    #: lowest-energy conformer's descriptors can be published the same way
+    #: `_finish_calculation_job` publishes a single job's -- there is no
+    #: established convention here for AVERAGING a scalar like HOMO/LUMO
+    #: gap across conformers (unlike a spectrum's per-atom shifts, which
+    #: `boltzmann_average_spectrum` already knows how to average), so
+    #: picking the lowest-energy conformer's own values is the one choice
+    #: that needs no new convention. See `_finish_conformer_job`.
+    descriptors: list = field(default_factory=list)
+    #: Each conformer's own optimized geometry, if its provider returned
+    #: one (`None` for the ordinary single-point NMR case) -- parallel to
+    #: `energies`, for the same reason `descriptors` is.
+    conformers: list = field(default_factory=list)
     #: The identity of the conformer SET this run was submitted with, frozen
     #: at submission. Never recomputed from the model when the average
     #: arrives: the conformer list can change while ORCA runs, and a
@@ -984,7 +998,7 @@ class QuantumChemistryService(QObject):
         if run is None:  # cancelled or already torn down
             return False
         try:
-            descriptors, _conformer = job.provider.parse_output(
+            descriptors, conformer = job.provider.parse_output(
                 output_text, job.mol, molecule_uuid, job.calc_type
             )
             spectrum = job.provider.parse_spectrum_output(output_text, job.mol, molecule_uuid, job.calc_type)
@@ -1029,12 +1043,31 @@ class QuantumChemistryService(QObject):
 
         run.spectra.append(spectrum)
         run.energies.append(float(energy))
+        run.descriptors.append(descriptors)
+        run.conformers.append(conformer)
 
         if run.remaining_mols:
             self._launch_next_conformer(run)
             return True
 
         self._boltzmann_runs.pop(molecule_uuid, None)
+
+        # Descriptors are published from the LOWEST-ENERGY conformer, not
+        # averaged -- see `_BoltzmannRun.descriptors`'s docstring for why a
+        # scalar like SCF energy or HOMO/LUMO gap has no averaging
+        # convention here the way a spectrum's per-atom shifts do. This is
+        # the same "current/latest value" wiring `_finish_calculation_job`
+        # uses for a single job, applied to the winning conformer.
+        lowest_index = min(range(len(run.energies)), key=run.energies.__getitem__)
+        lowest_descriptors = run.descriptors[lowest_index]
+        lowest_conformer = run.conformers[lowest_index]
+        self._event_bus.publish(
+            QuantumChemistryResultReady(
+                molecule_uuid=molecule_uuid, descriptors=lowest_descriptors, conformer=lowest_conformer
+            )
+        )
+        self._record_descriptors(lowest_descriptors, job)
+
         averaged = boltzmann_average_spectrum(run.spectra, run.energies)
         # Only the averaged spectrum is published, not one event per
         # conformer: the per-conformer shifts are an intermediate, and
@@ -1048,12 +1081,30 @@ class QuantumChemistryService(QObject):
             calibrated, job, run.input_fingerprint, run.calculation_input,
         ))
         self._publish_state(
-            molecule_uuid, CacheState.COMPLETED, f"Averaged over {run.total} conformer(s)"
+            molecule_uuid,
+            CacheState.COMPLETED,
+            f"Averaged over {run.total} conformer(s) -- descriptors are the lowest-energy conformer's",
         )
         qc_run = self._new_boltzmann_run(run, RunStatus.COMPLETED)
         if qc_run is not None:
             qc_run.results["spectrum"] = calibrated
             qc_run.output_status["spectrum"] = OutputStatus.AVAILABLE
+            qc_run.results["descriptors"] = list(lowest_descriptors)
+            qc_run.output_status["descriptors"] = OutputStatus.AVAILABLE
+            if lowest_conformer is not None:
+                qc_run.output_conformer_id = lowest_conformer.conformer_id
+            # SKELETON ONLY -- see docs/ROADMAP.md ("What is left, and why
+            # each one is left"): a weighted mean over ALL conformers'
+            # energies, using the same weights `boltzmann_average_spectrum`
+            # computed for the spectrum above. Not published as a
+            # `DescriptorValue` and not reachable from PropertyPanel --
+            # only stashed in run history/Compare -- because shipping it
+            # as a descriptor means deciding what every OTHER scalar
+            # (HOMO/LUMO gap, dipole, ...) should do in an averaged run,
+            # which has not been decided yet.
+            qc_run.results["boltzmann_average_scf_energy_hartree"] = sum(
+                weight * energy for weight, energy in zip(boltzmann_weights(run.energies), run.energies)
+            )
             if calibrated.coupling_error:
                 qc_run.warnings.append(calibrated.coupling_error)
                 qc_run.status = RunStatus.COMPLETED_WITH_WARNINGS
@@ -1181,10 +1232,12 @@ class QuantumChemistryService(QObject):
         or the project reopened, because nothing had ever recorded them
         there.
 
-        Only called from the single-job path (`_finish_calculation_job`):
-        a Boltzmann run's per-conformer descriptors are intermediates (see
-        `_finish_conformer_job`) and were never published live either: no
-        behavior change there.
+        Called from both `_finish_calculation_job` (the descriptors it
+        parsed for its one job) and `_finish_conformer_job` (the
+        lowest-energy conformer's descriptors, once the whole Boltzmann
+        sequence finishes) -- a per-conformer INTERMEDIATE descriptor list
+        is never passed here, only the one set that ends up "the" result
+        for the molecule.
         """
         for descriptor in descriptors:
             try:

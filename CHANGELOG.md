@@ -28,6 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a new `OPENCHEM_DRIVE` `wheel_trace` diagnostic that it never reaches a Qt ancestor at all, which no Python-side `wheelEvent` override
   could have fixed. Fixed once, centrally, in `Mol3DViewerBackend`: a wheel over a view that does not have focus scrolls the page instead;
   click into the view first and it zooms, the same two-step gesture every embedded map or 3D view already asks for.
+- **A Boltzmann-averaged QC run's descriptors (SCF energy, HOMO/LUMO, dipole, ...) now reach Results too, from the lowest-energy conformer.**
+  The "current/latest value" store PropertyPanel reads on reselect/reload above only covered a single (non-averaged) job; a Boltzmann
+  sequence discarded every conformer's descriptors once it had used the SCF energy to weight the spectrum. A weighted-average SCF energy is
+  also computed (reusing the same population weights `chem/boltzmann.py` uses for the spectrum) but kept in run history only, not yet
+  published as a descriptor -- see docs/ROADMAP.md ("What is left, and why each one is left") for the open question that is blocking it.
 
 ### NMR: referencing, and what makes it slow (branch `nmr-referencing-and-speed`)
 
