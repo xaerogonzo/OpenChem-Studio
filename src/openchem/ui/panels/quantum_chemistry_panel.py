@@ -272,6 +272,31 @@ _HELP: dict[str, HelpTooltip] = {
         topic="quantum-chemistry",
         help_anchor="limits-nmr",
     ),
+    "tab_help": HelpTooltip(
+        text=(
+            "Opens the documentation for whichever tab is currently active -- "
+            "what HSQC/HMBC/COSY correlate, the difference between raw "
+            "shielding/TMS-referenced/empirically scaled shifts, what the "
+            "Hybrid tab merges, and so on. One button for the whole strip "
+            "rather than one per tab, because it always follows the tab "
+            "you are already looking at."
+        ),
+        tier=1,
+        help_id="quantum.tab_help",
+        topic="quantum-chemistry",
+        help_anchor="quantum-chemistry",
+    ),
+    "more_menu": HelpTooltip(
+        text=(
+            "Configure ORCA, Calibrate Reference and Calibrate Scaling -- set up "
+            "once per method/basis rather than pressed for every run, so they sit "
+            "behind this disclosure instead of crowding Run and Cancel."
+        ),
+        tier=1,
+        help_id="quantum.more_menu",
+        topic="quantum-chemistry",
+        help_anchor="quantum-chemistry",
+    ),
     "run_calculation": HelpTooltip(
         text=(
             "Submits the calculation to ORCA and streams its output into the Log tab "
@@ -322,7 +347,7 @@ _HELP: dict[str, HelpTooltip] = {
         tier=3,
         help_id="quantum.correlation_contours",
         topic="quantum-chemistry",
-        help_anchor="limits-nmr",
+        help_anchor="2d-correlation",
     ),
     # --- the 1D spectrum table, whose first two columns the Hybrid tab shares
     "nmr_atom_index": HelpTooltip(
@@ -572,6 +597,7 @@ class QuantumChemistryPanel(QWidget):
         parent: QWidget | None = None,
         qm_surface_service=None,
         result_store_service=None,
+        open_help=None,
     ) -> None:
         """Built in five steps, in the order they must happen.
 
@@ -590,7 +616,8 @@ class QuantumChemistryPanel(QWidget):
         """
         super().__init__(parent)
         self._init_state(
-            quantum_chemistry_service, chemistry_engine, settings, qm_surface_service, result_store_service
+            quantum_chemistry_service, chemistry_engine, settings, qm_surface_service,
+            result_store_service, open_help,
         )
         self._build_controls()
         self._build_tabs()
@@ -604,11 +631,19 @@ class QuantumChemistryPanel(QWidget):
         settings: Settings,
         qm_surface_service,
         result_store_service=None,
+        open_help=None,
     ) -> None:
         """The services and the state fields, before any widget exists."""
         self._quantum_chemistry_service = quantum_chemistry_service
         self._chemistry_engine = chemistry_engine
         self._settings = settings
+        # `open_help(topic_key)` opens it elsewhere (the app-wide, F1-bound
+        # window); left None, the panel opens a private one of its own --
+        # `CalculatorVisibilityPage`'s exact contract, for the exact same
+        # reason: nothing here requires a MainWindow to exist, which every
+        # test that builds this panel standalone depends on.
+        self._open_help = open_help
+        self._help_window = None
         # Optional, and after `parent` so every existing positional call
         # site keeps working. Without it the Surfaces tab says why it is
         # empty rather than not existing -- a missing tab reads as a
@@ -742,6 +777,7 @@ class QuantumChemistryPanel(QWidget):
         self._more_button.setText("More")
         self._more_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         self._more_button.setMenu(self._more_menu)
+        apply_help_tooltip(self._more_button, _HELP["more_menu"])
         self._more_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
 
         self._run_button = QPushButton("Run", self)
@@ -766,6 +802,15 @@ class QuantumChemistryPanel(QWidget):
         apply_help_tooltip(self._compare_runs_button, _HELP["compare_runs"])
         self._compare_runs_button.clicked.connect(self._on_compare_runs_clicked)
         self._set_runs_controls_enabled(False)
+
+        # ONE affordance for the whole tab strip, not one per tab -- it
+        # follows whichever tab is active (`_tab_help_topics`, resolved at
+        # click time) rather than cluttering eight already-cramped tab
+        # headers with their own help buttons.
+        self._tab_help_button = QPushButton("Help for this tab", self)
+        self._tab_help_button.setAutoDefault(False)
+        apply_help_tooltip(self._tab_help_button, _HELP["tab_help"])
+        self._tab_help_button.clicked.connect(self._on_tab_help_clicked)
 
         self._status_label = QLabel("", self)
         self._output_log = QPlainTextEdit(self)
@@ -809,6 +854,10 @@ class QuantumChemistryPanel(QWidget):
         # entry means no glyph, not a guessed one.
         self._tab_status_titles: dict[int, str] = {}
         self._tab_status_keys: dict[int, str] = {}
+        #: Tab index -> help topic key, read by the one contextual help
+        #: affordance above the tab strip -- it follows whichever tab is
+        #: active rather than needing one help button per tab.
+        self._tab_help_topics: dict[int, str] = {}
         # The 1D view owns a QWebEngineView for its 3D pane, which is
         # expensive enough not to build for every user who never runs an NMR
         # calculation -- the tab exists from the start (so tab order never
@@ -847,6 +896,7 @@ class QuantumChemistryPanel(QWidget):
         self._correlation_tabs.addTab(self._nmr_view_tab, "1D Signals")
         self._tab_status_titles[self._correlation_tabs.indexOf(self._nmr_view_tab)] = "1D Signals"
         self._tab_status_keys[self._correlation_tabs.indexOf(self._nmr_view_tab)] = "spectrum"
+        self._tab_help_topics[self._correlation_tabs.indexOf(self._nmr_view_tab)] = "nmr-referencing"
         self._add_empty_state(
             self._nmr_view_tab,
             self._nmr_view_layout,
@@ -864,6 +914,7 @@ class QuantumChemistryPanel(QWidget):
         self._correlation_tabs.addTab(self._ir_view_tab, "IR")
         self._tab_status_titles[self._correlation_tabs.indexOf(self._ir_view_tab)] = "IR"
         self._tab_status_keys[self._correlation_tabs.indexOf(self._ir_view_tab)] = "vibrational_spectrum"
+        self._tab_help_topics[self._correlation_tabs.indexOf(self._ir_view_tab)] = "ir-spectra"
         self._add_empty_state(
             self._ir_view_tab,
             self._ir_view_layout,
@@ -885,6 +936,7 @@ class QuantumChemistryPanel(QWidget):
         # sentinel key tells `_update_tab_status_indicators` to read
         # `run.surface_cache_key` instead of `run.output_status`.
         self._tab_status_keys[self._correlation_tabs.indexOf(self._surfaces_tab)] = "__surface_cache_key"
+        self._tab_help_topics[self._correlation_tabs.indexOf(self._surfaces_tab)] = "surfaces"
         self._add_empty_state(
             self._surfaces_tab,
             self._surfaces_layout,
@@ -912,6 +964,7 @@ class QuantumChemistryPanel(QWidget):
         self._correlation_tabs.addTab(hybrid_tab, "Hybrid")
         self._tab_status_titles[self._correlation_tabs.indexOf(hybrid_tab)] = "Hybrid"
         self._tab_status_keys[self._correlation_tabs.indexOf(hybrid_tab)] = "spectrum"
+        self._tab_help_topics[self._correlation_tabs.indexOf(hybrid_tab)] = "hybrid-shifts"
         # The hybrid tab needs no placeholder WIDGET: `_hybrid_summary_label`
         # already exists to carry exactly this kind of note, and already
         # shows `_HYBRID_UNAVAILABLE_NOTE` when a run produces no rows. It
@@ -970,6 +1023,7 @@ class QuantumChemistryPanel(QWidget):
             tab_index = self._correlation_tabs.indexOf(tab)
             self._tab_status_titles[tab_index] = correlation_type.upper()
             self._tab_status_keys[tab_index] = "spectrum"
+            self._tab_help_topics[tab_index] = "2d-correlation"
             self._correlation_tables[correlation_type] = table
             self._correlation_plots[correlation_type] = plot
             # Bidirectional, the same shape `NmrViewWidget` already uses
@@ -1003,6 +1057,7 @@ class QuantumChemistryPanel(QWidget):
         # reads as a duplicate of it rather than what it actually is: this
         # one job's raw ORCA stdout.
         self._correlation_tabs.addTab(self._output_log, "ORCA Log")
+        self._tab_help_topics[self._correlation_tabs.indexOf(self._output_log)] = "quantum-chemistry"
 
     def _build_form_and_layout(self) -> None:
         """The run form and the vertical layout under it.
@@ -1077,6 +1132,12 @@ class QuantumChemistryPanel(QWidget):
         layout.addWidget(self._results_label)
         layout.addWidget(self._spectrum_note_label)
         layout.addWidget(self._spectrum_table)
+        # Above the tab strip, not inside any one tab -- see
+        # `_tab_help_button`'s own comment for why one affordance rather
+        # than eight.
+        help_row = flow_row(self)
+        help_row.layout().addWidget(self._tab_help_button)
+        layout.addWidget(help_row)
         layout.addWidget(self._correlation_tabs)
 
         self._reset_empty_states()
@@ -1363,6 +1424,28 @@ class QuantumChemistryPanel(QWidget):
     def _on_configure_clicked(self) -> None:
         dialog = SettingsDialog(self._settings, self, section=EXTERNAL_TOOLS, tool="orca")
         dialog.exec()
+
+    def _on_tab_help_clicked(self) -> None:
+        topic = self._tab_help_topics.get(self._correlation_tabs.currentIndex(), "quantum-chemistry")
+        self._open_help_topic(topic)
+
+    def _open_help_topic(self, topic: str) -> None:
+        """`open_help`'s contract, `CalculatorVisibilityPage.show_help_for`'s
+        exact shape: a caller may supply a callback that opens the app-wide
+        help window (so this panel's button and F1 land on the same
+        window); without one, a private `HelpDialog` is opened instead, so
+        nothing here depends on living inside a `MainWindow`."""
+        if self._open_help is not None:
+            self._open_help(topic)
+            return
+        from openchem.ui.dialogs.help_dialog import HelpDialog
+
+        if self._help_window is None:
+            self._help_window = HelpDialog(self, topic)
+        self._help_window.show_topic(topic)
+        self._help_window.show()
+        self._help_window.raise_()
+        self._help_window.activateWindow()
 
     def _on_run_clicked(self) -> None:
         molecule = self._current_molecule()

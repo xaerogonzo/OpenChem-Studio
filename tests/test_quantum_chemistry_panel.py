@@ -183,6 +183,56 @@ def test_the_more_menu_carries_the_three_setup_buttons(qapp):
     assert panel._more_button.menu() is panel._more_menu
 
 
+def test_the_tab_help_button_opens_the_active_tabs_topic(qapp):
+    """One affordance, following whichever tab is active -- not one help
+    button per tab. Injecting `open_help` (the same optional-callback
+    contract `CalculatorVisibilityPage` uses) keeps this test from needing
+    a real `HelpDialog`/`QApplication` help window."""
+    from openchem.chem.engine import ChemistryEngine as _Engine
+    from openchem.events.base import EventBus as _EventBus
+
+    bus = _EventBus()
+    engine = _Engine()
+    settings = Settings(bus)
+    service = _RecordingQuantumChemistryService(bus)
+    opened: list[str] = []
+    panel = QuantumChemistryPanel(service, engine, settings, bus, open_help=opened.append)
+
+    panel._correlation_tabs.setCurrentWidget(panel._ir_view_tab)
+    panel._on_tab_help_clicked()
+    assert opened == ["ir-spectra"]
+
+    panel._correlation_tabs.setCurrentWidget(panel._nmr_view_tab)
+    panel._on_tab_help_clicked()
+    assert opened == ["ir-spectra", "nmr-referencing"]
+
+
+def test_every_tab_has_a_help_topic_assigned(qapp):
+    """No tab should fall through to a bare "quantum-chemistry" by
+    accident -- the correlation/Hybrid/Surfaces tabs each have a more
+    specific topic, and this catches a future tab added without one
+    (it would silently answer with the general topic, which this test
+    would not have caught without naming every existing tab)."""
+    panel, _engine, _service = _make_panel()
+    expected = {
+        panel._nmr_view_tab: "nmr-referencing",
+        panel._ir_view_tab: "ir-spectra",
+        panel._surfaces_tab: "surfaces",
+    }
+    for tab, topic in expected.items():
+        index = panel._correlation_tabs.indexOf(tab)
+        assert panel._tab_help_topics[index] == topic
+    for correlation_type in ("hsqc", "hmbc", "cosy"):
+        table = panel._correlation_tables[correlation_type]
+        tab = table.parentWidget()
+        index = panel._correlation_tabs.indexOf(tab)
+        assert panel._tab_help_topics[index] == "2d-correlation"
+    hybrid_index = panel._correlation_tabs.indexOf(panel._hybrid_table.parentWidget())
+    assert panel._tab_help_topics[hybrid_index] == "hybrid-shifts"
+    log_index = panel._correlation_tabs.indexOf(panel._output_log)
+    assert panel._tab_help_topics[log_index] == "quantum-chemistry"
+
+
 def test_calibrate_button_calls_request_reference_calibration_with_method_basis(qapp):
     panel, _engine, service = _make_panel()
     panel._method_combo.setCurrentText("B3LYP def2-SVP")

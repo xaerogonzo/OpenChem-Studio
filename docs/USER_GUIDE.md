@@ -1481,6 +1481,93 @@ and shifts drawn on the 2D structure), plus **HSQC / HMBC / COSY** tabs with
 both a cross-peak table and a scatter plot. Clicking a peak highlights the
 atoms; clicking an atom selects the peak.
 
+<!-- help:nmr-referencing -->
+### Raw shielding, TMS-referenced, and empirically scaled shifts
+
+An NMR job always produces **raw shielding** first — ORCA's own isotropic
+shielding constant σ, in ppm, for each nucleus. σ is not a chemical shift:
+it runs in the *opposite* direction (a more shielded, more upfield nucleus
+has a *higher* σ) and its absolute value depends on the method and basis
+set with no external reference point. Every view is labelled "raw
+shielding" rather than "ppm shift" until one of the two steps below has
+run, and the 1D spectrum is drawn on the corresponding axis convention
+(ascending σ, not descending δ) so a raw result cannot be misread as a
+real shift.
+
+**Calibrate Reference (TMS)** runs the same method/basis once on
+tetramethylsilane and subtracts: δ = σ(TMS) − σ(nucleus). That removes the
+offset and gives a real chemical shift, but not the SLOPE error a method
+carries across the shift range — a calculation can systematically
+compress or stretch the shift scale relative to experiment even after
+referencing.
+
+**Calibrate Scaling (11 standards)** fits both a slope and an intercept
+against eleven real experimental compounds at that method/basis, which
+corrects the error TMS referencing alone cannot. Once it has run for a
+method/basis, its factors take priority over plain TMS referencing for
+that method/basis — but the fit is only as good as the eleven standards:
+it does not know whether *your* molecule's environment resembles anything
+in that set.
+
+Spin-spin coupling, when requested, is a separate parse of the same ORCA
+output and can fail (a genuinely different ORCA output layout) without
+losing the shifts themselves — a run like that shows "Spin-spin coupling
+data unavailable" rather than a bare dash that would read as "no coupling
+for this pair."
+
+<!-- help:2d-correlation -->
+### HSQC, HMBC and COSY — connectivity, not a simulated spectrum
+
+**HSQC** pairs a proton with the carbon it is directly bonded to
+(one-bond H–C). **HMBC** pairs a proton with a carbon two or three bonds
+away, which is why it is denser and noisier than HSQC on the same
+molecule. **COSY** pairs protons that are themselves close in the bond
+graph (vicinal or geminal H–H).
+
+**Every cross peak here comes from the molecular graph**
+(`chem/nmr_correlation.py`), using the bonds already drawn plus this
+job's own shift values — not from a simulated two-dimensional pulse
+experiment. A real HSQC/HMBC/COSY spectrum's peak intensity carries
+information: coupling strength, relayed magnetisation pathways, how many
+bonds a correlation survived. None of that is modelled here, which is why
+every predicted peak is drawn at the same weight regardless of how many
+bonds separate the two nuclei — position is real, and intensity is not
+attempted rather than guessed at.
+
+The **contour rendering** is the same convention: rings show position
+only, at a fixed synthetic width and height, because there is no computed
+peak volume to shade them by. The scatter view is genuinely the more
+honest picture when peaks are few and far apart; contours are the more
+readable one once a molecule has enough of them to look like a real
+spectrum.
+
+<!-- help:hybrid-shifts -->
+### The Hybrid tab — merging the calculation with a shift database
+
+The Hybrid tab merges **this calculation's own predicted shift** for each
+carbon with an independent **experimental-shift database lookup**
+(a HOSE-code environment match against measured spectra), atom by atom,
+and reports whichever one a calibration check expects to be less wrong
+for this method/basis.
+
+**The two can disagree, and the disagreement is reported rather than
+hidden.** They are two separate, imperfect estimates of the same physical
+quantity: the calculation carries this method's own systematic and random
+error, and the database lookup is only as reliable as how well this
+atom's environment resembles something actually measured — a resemblance
+that degrades for an unusual substituent pattern with no guarantee the
+degradation is visible in the number alone. A large disagreement on one
+atom is a real finding about that atom, not a bug in the merge.
+
+**Carbon only.** The lookup's per-band accuracy was measured on carbons;
+merging protons on a number nobody measured is exactly the fabricated
+precision this project avoids elsewhere. **Requires empirical linear
+scaling.** A raw-shielding or TMS-only spectrum is refused rather than
+merged — splicing measured-ppm database values with a result that has not
+had its own scale error corrected would introduce a step in the spectrum
+that reads as chemistry and is really two different reference frames
+stitched together.
+
 <!-- help:led -->
 ### Breaking an interaction energy apart (LED)
 
@@ -1540,6 +1627,15 @@ spectrum, and a table of every mode with its wavenumber, IR intensity and
 character (stretch / bend / torsion). Select a mode and press **Animate
 mode** to watch it — the optimised geometry is displaced along that mode's
 eigenvector and played through the 3D viewer.
+
+**The modes describe motion about the OPTIMISED geometry, not the one you
+submitted.** `opt_freq` optimises first and only then computes
+frequencies, so every wavenumber, every mode's character, and every
+thermochemistry number describes the structure the optimisation converged
+to — which can differ from the drawn or embedded starting geometry,
+sometimes by a great deal if the two land in different conformers or
+protonation states. The animation and the 3D pane both show that
+optimised structure for the same reason.
 
 Two things the spectrum shows that are easy to miss elsewhere:
 
