@@ -801,6 +801,14 @@ class QuantumChemistryPanel(QWidget):
         # whether the shift values are raw shielding or TMS-calibrated.
         self._correlation_tabs = QTabWidget(self)
         self._correlation_tabs.setVisible(False)
+        # Per-tab status glyph: base title (set once, below) -> the active
+        # run's `output_status` key it reflects. Populated per-tab as each
+        # is built rather than with a generic wrapper, because several
+        # tabs (Hybrid, Surfaces, the Log) have no `output_status` entry
+        # of their own and are deliberately left out of this dict -- no
+        # entry means no glyph, not a guessed one.
+        self._tab_status_titles: dict[int, str] = {}
+        self._tab_status_keys: dict[int, str] = {}
         # The 1D view owns a QWebEngineView for its 3D pane, which is
         # expensive enough not to build for every user who never runs an NMR
         # calculation -- the tab exists from the start (so tab order never
@@ -837,6 +845,8 @@ class QuantumChemistryPanel(QWidget):
         # MainWindows". A section would be safe now. A tab is still the
         # better answer, so it stays.)
         self._correlation_tabs.addTab(self._nmr_view_tab, "1D Signals")
+        self._tab_status_titles[self._correlation_tabs.indexOf(self._nmr_view_tab)] = "1D Signals"
+        self._tab_status_keys[self._correlation_tabs.indexOf(self._nmr_view_tab)] = "spectrum"
         self._add_empty_state(
             self._nmr_view_tab,
             self._nmr_view_layout,
@@ -852,6 +862,8 @@ class QuantumChemistryPanel(QWidget):
         self._ir_view_tab = QWidget(self._correlation_tabs)
         self._ir_view_layout = QVBoxLayout(self._ir_view_tab)
         self._correlation_tabs.addTab(self._ir_view_tab, "IR")
+        self._tab_status_titles[self._correlation_tabs.indexOf(self._ir_view_tab)] = "IR"
+        self._tab_status_keys[self._correlation_tabs.indexOf(self._ir_view_tab)] = "vibrational_spectrum"
         self._add_empty_state(
             self._ir_view_tab,
             self._ir_view_layout,
@@ -867,6 +879,12 @@ class QuantumChemistryPanel(QWidget):
         self._surfaces_tab = QWidget(self._correlation_tabs)
         self._surfaces_layout = QVBoxLayout(self._surfaces_tab)
         self._correlation_tabs.addTab(self._surfaces_tab, "Surfaces")
+        self._tab_status_titles[self._correlation_tabs.indexOf(self._surfaces_tab)] = "Surfaces"
+        # Surfaces has no `output_status` entry of its own -- a run either
+        # retained a wavefunction to compute one from, or it didn't. This
+        # sentinel key tells `_update_tab_status_indicators` to read
+        # `run.surface_cache_key` instead of `run.output_status`.
+        self._tab_status_keys[self._correlation_tabs.indexOf(self._surfaces_tab)] = "__surface_cache_key"
         self._add_empty_state(
             self._surfaces_tab,
             self._surfaces_layout,
@@ -892,6 +910,8 @@ class QuantumChemistryPanel(QWidget):
         hybrid_layout.addWidget(self._hybrid_summary_label)
         hybrid_layout.addWidget(self._hybrid_table)
         self._correlation_tabs.addTab(hybrid_tab, "Hybrid")
+        self._tab_status_titles[self._correlation_tabs.indexOf(hybrid_tab)] = "Hybrid"
+        self._tab_status_keys[self._correlation_tabs.indexOf(hybrid_tab)] = "spectrum"
         # The hybrid tab needs no placeholder WIDGET: `_hybrid_summary_label`
         # already exists to carry exactly this kind of note, and already
         # shows `_HYBRID_UNAVAILABLE_NOTE` when a run produces no rows. It
@@ -939,6 +959,9 @@ class QuantumChemistryPanel(QWidget):
                 )
             )
             self._correlation_tabs.addTab(tab, correlation_type.upper())
+            tab_index = self._correlation_tabs.indexOf(tab)
+            self._tab_status_titles[tab_index] = correlation_type.upper()
+            self._tab_status_keys[tab_index] = "spectrum"
             self._correlation_tables[correlation_type] = table
             self._correlation_plots[correlation_type] = plot
             # Painted into the plot rather than added as a placeholder
@@ -1218,6 +1241,28 @@ class QuantumChemistryPanel(QWidget):
         self._reset_empty_states()
         self._results_label.setText("")
         self._display_mol = None
+        self._clear_tab_status_indicators()
+
+    def _clear_tab_status_indicators(self) -> None:
+        for index, title in self._tab_status_titles.items():
+            self._correlation_tabs.setTabText(index, title)
+
+    def _update_tab_status_indicators(self, run) -> None:
+        """A cheap per-tab glyph for the active run's `output_status`, so
+        checking why one of eight tabs is empty does not need clicking
+        through all eight -- AVAILABLE/NOT_PRODUCED/FAILED, read off the
+        run record itself rather than from "whatever this tab's widget
+        still happens to contain" (which is exactly the kind of leftover
+        content `_reset_empty_states` exists to prevent)."""
+        glyph = {"available": "✓", "not_produced": "–", "failed": "✗", "inapplicable": "–"}
+        for index, title in self._tab_status_titles.items():
+            key = self._tab_status_keys.get(index)
+            if key == "__surface_cache_key":
+                mark = glyph["available"] if run.surface_cache_key else glyph["not_produced"]
+            else:
+                status = run.output_status.get(key)
+                mark = glyph.get(status.value) if status is not None else None
+            self._correlation_tabs.setTabText(index, f"{title} {mark}" if mark else title)
 
     def _render_run(self, run) -> None:
         """Repaint the panel from a stored `QuantumChemistryRun`, entirely
@@ -1239,6 +1284,7 @@ class QuantumChemistryPanel(QWidget):
         """
         self._active_run = run
         self._reset_empty_states()
+        self._update_tab_status_indicators(run)
         self._display_mol = (
             self._chemistry_engine.mol_from_molblock(run.input_molblock)
             if run.input_molblock

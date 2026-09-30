@@ -544,6 +544,35 @@ def test_selecting_an_older_run_in_the_combo_repaints_the_panel(qapp):
     assert panel._spectrum_table.item(0, 2).text() == f"{10.0:.3f}"
 
 
+def test_tab_titles_carry_a_status_glyph_for_the_active_run(qapp):
+    """The fixture run sets only `output_status["spectrum"]`, the way a
+    hand-built test run does but a real one from the service never would
+    (it always sets every key it touches) -- so spectrum-derived tabs get
+    the available mark, and IR, which this run's `output_status` says
+    nothing about, gets none at all rather than a guessed one. Surfaces
+    always resolves, even to "not produced", because its sentinel reads
+    `run.surface_cache_key` directly rather than a possibly-absent key."""
+    panel, _store, _molecule, _run_older, run_newer = _two_nmr_runs(qapp)
+
+    index_1d = panel._correlation_tabs.indexOf(panel._nmr_view_tab)
+    index_ir = panel._correlation_tabs.indexOf(panel._ir_view_tab)
+    index_surfaces = panel._correlation_tabs.indexOf(panel._surfaces_tab)
+
+    assert panel._correlation_tabs.tabText(index_1d) == "1D Signals ✓"
+    assert panel._correlation_tabs.tabText(index_ir) == "IR"
+    assert panel._correlation_tabs.tabText(index_surfaces) == "Surfaces –"
+
+
+def test_tab_status_glyphs_clear_when_the_run_display_is_cleared(qapp):
+    panel, _store, _molecule, run_older, _run_newer = _two_nmr_runs(qapp)
+    index_1d = panel._correlation_tabs.indexOf(panel._nmr_view_tab)
+    assert panel._correlation_tabs.tabText(index_1d) == "1D Signals ✓"
+
+    panel._clear_run_display()
+
+    assert panel._correlation_tabs.tabText(index_1d) == "1D Signals"
+
+
 def test_deleting_the_active_run_leaves_the_other_one_selectable(qapp):
     panel, store, molecule, run_older, run_newer = _two_nmr_runs(qapp)
     assert panel._active_run is run_newer
