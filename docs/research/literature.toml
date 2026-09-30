@@ -542,7 +542,20 @@ a completely unrelated computational path (atom-pair-contribution gas-phase mode
 sublimation model, vs. a single fitted nitroaromatic-specific correlation) -- two routes that share no
 parameters agreeing with each other and with measurement is stronger evidence for the nitroaromatic
 stratum's accuracy than either route alone. `tests/test_compare_enthalpies.py` (7 tests) locks in both
-this and the already-reported RDX/HMX/PETN numbers."""
+this and the already-reported RDX/HMX/PETN numbers.
+
+**Track 4 closing pointer (2026-09-30)**: this entry's own RDX/HMX/PETN numbers above are now stale --
+`orca_atom_equivalents.py`'s module docstring is the current source of truth, not this note. Three
+gates ran after this entry was written: Gate A found no usable direct-condensed-Hf alternative
+(`keshavarz2006`, `nazari2016`, this survey's own `keshavarz_sadeghi2009` all failed reproduction; a
+freely-available composite-ab-initio benchmark, `manaa2016_composite_qm`, is real but computationally
+infeasible here) -- see that entry's own note. Gate B found a higher level of theory (PBE0/def2-TZVP)
+does not help, and in fact worsens RDX/HMX slightly. Gate C found a SECOND ring nitramine
+(1,4-dinitropiperazine) added to the calibration set clears the ~21 kJ/mol bar for RDX and HMX by
+roughly an order of magnitude (2.2/2.9 kJ/mol), with PETN still failing (69.2 kJ/mol) -- explicitly
+flagged there as promising but not yet validated on one new calibration point alone. Also note: an
+RDKit-version drift silently invalidated every number recorded above BEFORE Gate B's own RETRACTED
+note in `orca_atom_equivalents.py` -- re-run fresh, once, under `rdkit==2025.9.6` (now pinned exact)."""
 
 [[source]]
 id = "mathieu2018_iecr"
@@ -609,8 +622,96 @@ access = "held"
 printed.doi = "10.1021/jp0536192"
 printed.title = "Improved Prediction of Heats of Formation of Energetic Materials Using Quantum Mechanical Calculations"
 assigned.property = "enthalpy_gas"
-assigned.role = "benchmark_reference"
-note = "the 45-molecule set Cawkwell benchmarks against; file name says 2005 (received 2005), volume year is 2006"
+assigned.role = "candidate_method"
+note = """the 45-molecule set Cawkwell benchmarks against; file name says 2005 (received 2005), volume year is
+2006.
+
+**Read in full 2026-09-29 (Track 4, Gate A: is there a usable non-atom-equivalent-route-of-our-own
+condensed-Hf source before patching `orca_atom_equivalents`?).** route = `gas_Hf_plus_sublimation` --
+the same SHAPE as this survey's own `orca_atom_equivalents` + `keshavarz2010_sublimation` combined
+route (QM gas-phase atom/group equivalents, refit here rather than the paper's own numbers, plus a
+separately-fitted sublimation/vaporization term), not a `direct_condensed_Hf` model like
+`keshavarz_sadeghi2009`/Keshavarz 2006.
+
+**Numbers verified against the actual PDF, not carried over from a review's summary**: abstract states
+rms/max, gas 3.2/6.5 kcal/mol, liquid 3.2/7.4, solid 5.6/12.2 kcal/mol (test set, i.e. genuinely
+predicted, not fitted) -- confirmed present verbatim in both the abstract and Section 5 (Summary). A
+prior review of this survey's plan had quoted these same two solid-phase numbers; they check out.
+
+**publication_equation_status = printed.** Unlike `mathieu2018_apc`'s AE1/AE2 procedure (Supporting
+Information only, not held) or `keshavarz_sadeghi2009`'s Eq (1) (printed but does not reproduce), Table 3
+of this paper's OWN main text prints the actual fitted atom/group-equivalent constants in hartree
+(B3LYP/6-311++G(2df,2p)//B3LYP/6-31G* level): C -38.123748, H -0.597580, N -54.785466, O -75.187087,
+C' -38.129456, N' -54.788487, O' -75.186033, C-NO2 -205.160396, C'-NO2 -205.163484, N-NO2 -205.166631,
+O-NO2 -164.364907, C-N3 -129.976691 (their Eq 1: DfH(g) = E - sum(n_j * eps_j), note the MINUS sign,
+opposite convention from this survey's own `orca_atom_equivalents.compute_gas_hf`'s E + sum(n*AE)).
+**reproduction_status = not yet attempted** -- applying these constants correctly requires classifying
+each atom into the paper's seven types (C/H/N/O for single-Lewis-structure atoms vs. C'/N'/O' for
+atoms in "multiple-bonded environments", plus the four listed group equivalents), and the main text does
+not fully specify that classification rule (analogous to `mathieu2018_apc`'s own nitro-bond-order
+ambiguity, which took a three-value cross-check to resolve) -- Table 1S (Supporting Information, NOT
+held) would remove the ambiguity by giving per-molecule assigned values directly, so this is not yet a
+finished reproduction, only a real, well-specified candidate.
+
+**Reproduction ATTEMPTED 2026-09-29 (Track 4, Gate A follow-up) and FAILED -- the third confirmed
+reproduction failure in this survey's literature review** (after `keshavarz_sadeghi2009` and
+`keshavarz2006`). Real ORCA jobs were run at Byrd & Rice's own exact recipe (B3LYP/6-31G(d) geometry
+optimization, single-point at B3LYP/6-311++G(2df,2p) on that geometry) for four validation compounds
+with known real experimental gas DfH already in this survey's own `orca_atom_equivalents.py`
+CALIBRATION_SET (methane, nitromethane, methyl_nitrate, dimethylnitramine -- covering plain atoms and
+all three "X-NO2" group types) before spending compute on RDX/HMX/PETN. Methane alone (no nitro group)
+reproduced with a normal-sized 108.6 kJ/mol residual. Every nitro/nitrate/nitramine compound was off by
+300-500 kJ/mol under EVERY classification scheme tried:
+
+- Sum of plain atom equivalents only (no group term at all): nitromethane off by 306.7 kJ/mol.
+- Group term (C-NO2/O-NO2/N-NO2) REPLACING the attachment atom + N + 2 O as one lump: off by
+  99,785-304,126 kJ/mol -- an absurd, atom-scale error (roughly one whole extra atom's worth of energy
+  unaccounted for), ruled out immediately.
+- Group term used as a SEPARATE fragment (N+2O only) with the attachment atom ALSO counted separately
+  (plain C/O added on top): nitromethane 308.7, dimethylnitramine 475.1 kJ/mol off -- barely different
+  from the no-group case, because the fitted group constants turn out to be numerically almost identical
+  to summing the corresponding plain atom equivalents (C-NO2's -205.160396 Eh vs plain N+2*O's
+  -205.159640 Eh differ by only 0.0008 Eh, ~2 kJ/mol) -- so no interpretation of what the group
+  "includes" changes this outcome; the group correction is essentially inert for this specific check.
+- methyl_nitrate's residual (106,723-304,126 kJ/mol depending on scheme) never dropped to a sane range
+  under any combination tried.
+
+**Conclusion: whatever atom-type classification Byrd & Rice's own paper actually used for nitro-group
+atoms cannot be pinned down from Table 3 and the main text alone** -- the printed atom/group equivalents
+are real and confirmed as printed, but applying them (under every reading of "what a group equivalent
+covers" this session could construct) does not reproduce even the simplest nitro-containing validation
+compound, let alone RDX/HMX/PETN. This is the same missing-Table-1S gap flagged above, now confirmed by
+actual computation rather than left as a hypothetical risk. RDX/HMX/PETN's own computed values from this
+attempt (gas Hf: RDX -430,167, HMX -573,585, PETN -1,216,867 kJ/mol) are physically absurd on their face
+(orders of magnitude off any plausible DfH) and are not being carried forward or compared against
+Klapoetke's measured values -- there is nothing left to compare once the validation step itself fails
+this badly. Status update: reproduction_status = failed (was: not yet attempted).
+
+**RDX/HMX/PETN's own role in this paper's own corpus** (Tables 1-2, this survey's corpus overlaps
+substantially): RDX is in the TRAINING set with measured g/s/sub data (i.e. RDX's own experimental
+values were used to fit eqs 1/3/4 here -- this paper does not "predict" RDX blind). PETN is in the
+TRAINING set with measured s/sub data only (no gas value listed). beta-HMX is in the TEST set with
+measured s only, i.e. its solid-phase Hf is a genuinely predicted value in this paper's own accounting
+-- but the actual per-molecule number is in Table 1S (SI, not held), so it cannot be read off this main
+text; Table 5's aggregate 49-molecule solid-phase test-set rms/max is the only HMX-relevant number
+available without the SI (6.0/16.7 kcal/mol using atom equivalents; 5.6/12.2 kcal/mol using group
+equivalents -- both include HMX among the 49, not isolated to it).
+
+**A real correction to this paper exists and is NOT yet held or read**: "Correction to 'Improved
+Prediction of Heats of Formation of Energetic Materials Using Quantum Mechanical Calculations'",
+J. Phys. Chem. A 2022, 126(10), 1787, DOI 10.1021/acs.jpca.2c01458, PMID 35258312 (confirmed real via
+web search 2026-09-29, both PubMed and the ACS abstract page resolve). **A prior review of this survey's
+plan claimed this correction's DOI is 10.1021/jp806520b and that it fixes mislabeled group-equivalent
+names in Table 3 -- neither claim checks out**: 10.1021/jp806520b does not resolve to any identifiable
+Byrd/Rice correction in a web search, and the actual correction's own content has not been read (ACS's
+page returns a bot-check wall to automated fetching; the correction is not in Sci Downloads). Do not
+assume the "Table 3 mislabeled" claim is true until the real correction (DOI acs.jpca.2c01458) is
+actually obtained and read -- ask Alex for it directly (paywalled), separately from Keshavarz 2006.
+
+Status: CANDIDATE -> read (main paper only). Its own atom/group equivalents are a genuine,
+independently-specified alternative to this survey's from-scratch `orca_atom_equivalents` fit, worth
+actually running once the atom-classification ambiguity above is resolved -- but not yet attempted, and
+its real 2022 correction is still unread."""
 
 [[source]]
 id = "mathieu2012"
@@ -845,7 +946,16 @@ inconsistency in the source). Status: CANDIDATE -> read; SOURCE_VALIDATED (the p
 numbers are recorded and trusted at face value) but explicitly NOT REPRODUCED -- do not write a
 calculator implementation of this equation from this reading. If this candidate is worth pursuing
 further, the next step is external (contacting the authors, or finding an erratum/SI), not another
-attempt to reverse-engineer the coefficients from table arithmetic alone."""
+attempt to reverse-engineer the coefficients from table arithmetic alone.
+
+**Track 4 closing pointer (2026-09-30)**: Gate A's search for an alternative direct-condensed-Hf source
+(this equation's own lineage) found nothing usable -- `keshavarz2006` (the oldest paper in this
+lineage) and `nazari2016` (the newest) both either fail reproduction or were never attempted from a
+reliable table read, and `keshavarz2021`'s own review never cites or corrects this entry's coefficients
+in-text (NO_CORRECTION_FOUND). See `keshavarz2006`'s and `nazari2016`'s own notes for the full findings,
+including a genuine RDX/HMX experimental-value swap shared by both papers' tables. The survey's own
+`orca_atom_equivalents` route (not this direct route) is where real progress happened this session --
+see that module's docstring and `mathieu2018_apc`'s closing pointer above."""
 
 [[source]]
 id = "keshavarz_nitroaromatic2009"
@@ -924,7 +1034,41 @@ printed.title = "Recent advances for assessment of the condensed phase heat of f
 printed.venue = "Fluid Phase Equilib. 533, 112913"
 assigned.property = "enthalpy_solid"
 assigned.role = "review"
-note = "the JOURNAL PRE-PROOF, not the version of record"
+note = """the JOURNAL PRE-PROOF, not the version of record.
+
+**Read in full 2026-09-29 (Track 4, Gate A3: does any later paper in this lineage supersede/correct
+`keshavarz_sadeghi2009`'s coefficients?).** `keshavarz_sadeghi2009` is only ref [29] here, and appears
+ONLY in the bibliography (line ~2764 of a full-text extraction) -- **never cited inline in this review's
+main text**, checked by searching every `[29]` occurrence. This review does not address, defend, or
+correct `keshavarz_sadeghi2009`'s specific coefficients at all; A2's NO_CORRECTION_FOUND /
+CORRECTION_FOUND_AND_REPRODUCED / ALTERNATIVE_INTERPRETATION_FOUND question is NOT answered by this
+source.
+
+**What this review presents instead, for the exact functional-group set `keshavarz_sadeghi2009` targets**
+(Sec. 2.2, "-O-O-, N3, ON=O, NO2, ONO2 and NNO2" -- nitro/nitrate-ester/nitramine among others): its own
+Eq. (5), attributed to ref [42] = Nazari, Keshavarz, Hamadanian, Mosavi, Ghaedsharafi, Pouretedal,
+"Reliable prediction of the condensed (solid or liquid) phase enthalpy of formation of organic energetic
+materials at 298 K through their molecular structures", Fluid Phase Equilibria 408 (2016) 248-258, DOI
+10.1016/j.fluid.2015.09.014 -- a DIFFERENT, later (2016), Keshavarz-coauthored paper, not held, not yet
+in this registry. The review states Eq. (5)'s own reported accuracy: **rms 35.9 kJ/mol on 77 energetic
+compounds** (vs. 42.1 kJ/mol for Rice et al.'s QM method and 170.6 kJ/mol for a group-additivity
+comparison on smaller, differently-sized subsets of the same set) -- OVER SENSITIVITY.md's ~21 kJ/mol
+bar, and notably WORSE than `keshavarz_sadeghi2009`'s own three reported table rms values (18.8-29.1
+kJ/mol). **A 2021 review choosing to present a 2016 model over the 2009 one is not itself evidence the
+2009 model was wrong or corrected** -- it may simply reflect broader scope (more functional groups) at
+the cost of accuracy on this survey's specific classes. Eq. (5)'s own coefficients extracted as a
+column of numbers (111.4, 33.11, 28.84, 86.80, 62.03, 79.25, 153.3) from what is clearly a multi-line
+rendered equation/image in the source PDF -- same "multi-column tables need positional extraction" trap
+this project already knows from Ionescu 2013 Table S2; the printed structure of Eq. (5) has NOT been
+reliably transcribed from this text extraction and would need a high-dpi render before any reproduction
+attempt, the same way marrero2001's Tables 6-8 needed.
+
+**Two new, real, not-yet-held candidates identified by this reading, both worth requesting** (see this
+survey's own request to Alex): Nazari et al. 2016 (above, DOI 10.1016/j.fluid.2015.09.014) and Keshavarz
+2006 (10.1016/j.jhazmat.2005.12.006, identified independently via `keshavarz_sadeghi2009`'s own note).
+Neither is a substitute for the other -- 2006 is the oldest paper in this lineage and may be the actual
+source `keshavarz_sadeghi2009` itself built on; 2016 is the newest and is what a 2021 review of the same
+author's own body of work chose to present."""
 
 [[source]]
 id = "kazandjian2006"
@@ -1017,3 +1161,231 @@ requested = "2026-09-24"
 assigned.property = "enthalpy_solid"
 assigned.role = "review"
 note = "requested from the authors by Alex on 2026-09-24, giving the name 'Opensource Project'; if a file arrives, identify it from its own text"
+
+[[source]]
+id = "keshavarz2006"
+file = "keshavarz2006.pdf"
+sha256 = "b2303db670e0c900eaf2f8e744390446bdab508cdf4675ee29e2e4ccf299778e"
+pages = 6
+access = "held"
+printed.doi = "10.1016/j.jhazmat.2005.12.006"
+printed.title = "Theoretical prediction of condensed phase heat of formation of nitramines, nitrate esters, nitroaliphatics and related energetic compounds"
+printed.venue = "J. Hazard. Mater. A136 (2006) 145-150"
+assigned.property = "enthalpy_solid"
+assigned.role = "candidate_method"
+note = """Requested from Alex 2026-09-29 (Track 4, Gate A1) as the oldest paper in `keshavarz_sadeghi2009`'s
+own lineage, and read in full the same day. route = `direct_condensed_Hf` (unlike this survey's own
+`orca_atom_equivalents` route, no QM or sublimation term needed at all -- a,b,c,d elemental counts plus a
+handful of structural-factor counts).
+
+**Eq. (3)**: DHf(c) = 29.68a - 31.85b + 144.2c - 88.84d - 88.84*nOH - 39.14*nN-NO2 - 45.62*n(C=O) +
+256.3*n(0/1) - 380.5*n(=C<N-N) + 30.20*nO-NO2, where a/b/c/d are C/H/N/O counts, nOH/nN-NO2/n(C=O)/
+nO-NO2 are functional-group counts, n(0/1) = 1 for a hydrogen-free compound else 0, and n(=C<N-N) counts
+a specific =C(-N)(-N) structural moiety (absent from RDX/HMX/PETN). Coefficients confirmed TWICE
+independently -- text extraction and a 250 dpi page render of Eq. (3) itself -- with no discrepancy
+between them, ruling out an OCR/transcription error on this survey's part.
+
+**RDX, HMX, PETN are all THREE in the paper's own Table 1** (fitted/training data, not a holdout),
+directly giving condensed-phase predictions with no combined-route needed:
+Hexahydro-1,3,5-trinitrotriazine (RDX) exp=79.1, New method=101.7, dev=22.6 kJ/mol (borderline over
+SENSITIVITY.md's ~21 kJ/mol bar); Octahydro-1,3,5,7-tetranitro-1,3,5,7-tetrazocine (HMX) exp=75.3, New
+method=135.6, dev=60.3 kJ/mol (well over); Tetranitrate pentaerythritol (PETN) exp=-538.5, New
+method=-497.5, dev=41.0 kJ/mol (well over) -- all worse than this paper's own comparator, Rice/Byrd's
+quantum-mechanical method (dev 28.0/11.7/27.6 kJ/mol for the same three, respectively).
+
+**Reproduction attempted 2026-09-29 and FAILED -- a second, independent case in this exact citation
+lineage** (after `keshavarz_sadeghi2009`'s own confirmed failure): applying Eq. (3) to RDX/HMX/PETN
+using the confirmed coefficients gives 112.7/150.2/-474.9 kJ/mol -- none matching the printed
+101.7/135.6/-497.5 values. This is NOT explained by a missing structural-factor term for these three
+specific compounds (RDX/HMX/PETN have zero OH, zero C=O, zero =C<N-N groups, and the sole applicable
+terms -- nN-NO2=3/4 for RDX/HMX, nO-NO2=4 for PETN -- were included). The equation also fails to
+reproduce the SIMPLEST possible test case in Table 2: row 1, CH3CH2CH(NO2)2 (C3H6N2O4, no special
+functional groups at all, pure elemental terms), printed New method = -176.6 kJ/mol; Eq. (3) with these
+counts gives -169.0 kJ/mol, a 7.6 kJ/mol gap with nothing left to attribute it to. **Whatever is wrong
+is not visible in the printed paper** -- same conclusion as `keshavarz_sadeghi2009`'s own reproduction
+failure, and the same recommendation: this is a real dead end from what is available here, not something
+to keep re-attempting by guessing at term definitions.
+
+**A genuine cross-paper data inconsistency, found while cross-checking against `nazari2016`**: this
+paper's Table 1 gives RDX (row 18) exp=79.1 kJ/mol and HMX (row 17) exp=75.3 kJ/mol. `nazari2016`'s own
+Table 1 (its test-set rows 46-47) gives the SAME two numbers to the SAME two compounds in the OPPOSITE
+assignment: RDX exp=75.3, HMX exp=79.1. Neither 75.3 nor 79.1 is close to Klapoetke's real measured HMX
+value used elsewhere in this survey (116.1 kJ/mol, klapotke2017 Tab. 9.16a) -- both papers appear to be
+drawing from the same (or a related) NIST WebBook-sourced compilation that has these two compounds'
+values transposed, confused, or otherwise wrong for HMX specifically. This does not change this survey's
+own Klapoetke-sourced HMX target value, but it means neither Keshavarz-lineage paper's own RDX/HMX
+comparison table should be read as independent corroboration of anything about HMX -- their own
+"experimental" HMX number is itself suspect.
+
+Status: CANDIDATE -> read; SOURCE_VALIDATED (the paper's own printed equation and tables are recorded
+and trusted at face value) but NOT REPRODUCED. publication_equation_status = printed (confirmed by
+independent render, not just text extraction). reproduction_status = failed."""
+
+[[source]]
+id = "byrd2022"
+file = "byrd2022.pdf"
+sha256 = "59e22cf7ef21395c1a079aeb6d9fdd36f95fef1da77f2c880f34067ca39c3180"
+pages = 1
+access = "held"
+printed.doi = "10.1021/acs.jpca.2c01458"
+printed.title = "Correction to \"Improved Prediction of Heats of Formation of Energetic Materials Using Quantum Mechanical Calculations\""
+printed.venue = "J. Phys. Chem. A 2022, 126, 1787-1787"
+assigned.property = "enthalpy_gas"
+assigned.role = "benchmark_reference"
+note = """Requested from Alex 2026-09-29 (Track 4, Gate A1) as `byrd2005`'s own real correction, and read
+in full the same day (it is one page). **The correction is unrelated to `byrd2005`'s Table 3
+atom/group-equivalent constants and does not affect this survey's interest in reproducing them.** It
+fixes a transcription error in Supporting Information Table 2S (molecular properties used in Byrd &
+Rice's eqs 1, 3, 4 -- the ESP-based sublimation/vaporization model, not the gas-phase atom-equivalent
+scheme): the hundreds place was truncated for every value in Table 2S's sigma^2_tot (kcal/mol) column
+in the PUBLISHED table only. The correction states explicitly: "The transcription error was only in the
+published version of the table and was not present for any of the calculations performed in the paper.
+... None of the calculations or findings presented in the paper were affected by this transcription
+error."
+
+**A prior review of this survey's plan made two specific, checked, and WRONG claims about this
+correction**: (1) it gave the correction's DOI as `10.1021/jp806520b` -- that DOI does not resolve to
+this or any identifiable Byrd/Rice correction in a web search, and is simply wrong (the real DOI,
+confirmed via PubMed PMID 35258312 and the ACS abstract page, is `10.1021/acs.jpca.2c01458`); (2) it
+claimed the correction fixed "mislabeled group-equivalent names in Table 3" -- the actual correction is
+to Table 2S (Supporting Information, not Table 3 of the main text), fixes a numeric truncation (not a
+name mislabeling), and explicitly says it changed no calculation or finding. Recorded here as a concrete
+instance of this project's own house rule (`feedback_answer_review_questions_with_measurements`,
+`feedback_a_source_can_contradict_itself`): a review's specific factual claims about an unread source
+are checked before being trusted, not carried forward."""
+
+[[source]]
+id = "nazari2016"
+file = "nazari2016.pdf"
+sha256 = "c404f1fea7c1fd4c5f6c6faccc6f46a09833eb06a30b9912ac9d636b36ef8468"
+pages = 11
+access = "held"
+printed.doi = "10.1016/j.fluid.2015.09.014"
+printed.title = "Reliable prediction of the condensed (solid or liquid) phase enthalpy of formation of organic energetic materials at 298 K through their molecular structures"
+printed.venue = "Fluid Phase Equilib. 408 (2016) 248-258"
+assigned.property = "enthalpy_solid"
+assigned.role = "candidate_method"
+note = """Requested from Alex 2026-09-29 (Track 4, Gate A1) after `keshavarz2021`'s review presented this
+paper's Eq. (5) (there, transcribed from the review as an equation-image with columnar coefficients) as
+its recommended model for the exact functional-group set `keshavarz_sadeghi2009` targets, rather than
+citing `keshavarz_sadeghi2009` itself in the main text. Read in full 2026-09-29. route =
+`direct_condensed_Hf`, a broader-scope successor covering -O-O-, -N3, -ON=O, -NO2, -ONO2 and -NNO2
+(peroxides and azides in addition to nitro/nitrate/nitramine chemistry).
+
+**`keshavarz2021`'s citation of this paper's own reported accuracy is confirmed EXACT**, checked against
+this paper's own abstract, not just the review's summary: "for further 77 energetic compounds... the rms
+deviations of the new, quantum mechanical (54 compounds) and group additivity (51 compounds) methods
+from the measured data are 35.9, 42.1 and 170.6 kJ/mol, respectively" -- word-for-word what
+`keshavarz2021`'s Sec. 2.2 states. This is WORSE than `keshavarz_sadeghi2009`'s own three reported rms
+values (18.8-29.1 kJ/mol) for a narrower, more directly relevant compound set -- a genuine negative
+finding: the newer (2016), broader-scope paper a 2021 review of this author's own body of work chose to
+present is less accurate on this survey's specific compound classes than the older, narrower paper this
+survey already rejected.
+
+**RDX, HMX, PETN are all three in this paper's own Table 1 test set** (rows 44/46/47), giving:
+PETN exp=538.5, New method=504.0 (dev 34.4 kJ/mol); RDX exp=75.3, New method=71.0 (dev 4.3 kJ/mol); HMX
+exp=79.1, New method=44.5 (dev 34.6 kJ/mol). Not independently reproduced from the printed equation this
+session (Table 2's full correction-term listing was not transcribed in enough detail to attempt it, and
+given `keshavarz2006`'s and `keshavarz_sadeghi2009`'s own confirmed reproduction failures from this same
+research lineage, a reproduction attempt should render Table 2 at high dpi from the start rather than
+trusting text extraction, per this project's own multi-column-table lesson).
+
+**The same RDX/HMX experimental-value swap found in `keshavarz2006` is present here too, in the OPPOSITE
+direction**: this paper's Table 1 gives RDX exp=75.3, HMX exp=79.1 -- `keshavarz2006`'s Table 1 gives the
+identical two numbers to the identical two compounds SWAPPED (RDX=79.1, HMX=75.3). See `keshavarz2006`'s
+own note for the full finding: neither number is close to Klapoetke's real HMX value (116.1 kJ/mol), so
+neither paper's own RDX/HMX table should be read as independent corroboration for HMX specifically.
+
+Status: CANDIDATE -> read; SOURCE_VALIDATED (abstract statistics independently confirmed against the
+PDF). reproduction_status = not attempted (Table 2's correction terms not yet transcribed in enough
+detail; see above)."""
+
+[[source]]
+id = "manaa2016_composite_qm"
+file = "manaa2016_composite_qm.pdf"
+sha256 = "2f11d84223eacb584c10702f1a7c00250cf696edcb1c3eb1fc4237e50dccce89"
+pages = 21
+access = "held_accepted_manuscript"
+printed.doi = ""
+printed.title = "Determination of Enthalpies of Formation of Energetic Molecules with Composite Quantum Chemical Methods"
+printed.venue = "Chemical Physics Letters (submitted 2015-12-17); LLNL-JRNL-680299 (no DOI printed on this manuscript -- carries an LLNL report number instead); M. R. Manaa, L. E. Fried, I-F. W. Kuo, Lawrence Livermore National Laboratory"
+assigned.property = "enthalpy_gas"
+assigned.role = "benchmark_reference"
+note = """Found 2026-09-30 (Track 4, Gate A: searching for an alternative nitramine/nitrate-ester
+condensed-Hf source beyond the Keshavarz lineage already read). Located via web search, fetched directly
+from OSTI.gov (osti.gov/servlets/purl/1245711) -- an LLNL public report, no paywall, so obtained and
+saved here myself rather than requested from Alex (`feedback_fetch_open_access_papers_myself`). This is
+the LLNL author manuscript (carries an LLNL-JRNL report number, not ACS/Elsevier typesetting) -- the
+DOI/venue printed above is the report's own self-identification, not a journal DOI; access recorded as
+`held_accepted_manuscript`, not `held`, for that reason.
+
+route = a fourth, genuinely different category from every route this survey has tried: composite ab
+initio quantum chemistry (Gaussian-n G2/G3/G4, plus a variant of the correlation-consistent Composite
+Approach, ccCA-PS3) computing gas-phase DfH directly from atomization energies (Eqs 1-3, this paper's own
+printed equations, read and confirmed present) -- not DFT + atom-equivalent fitting
+(`orca_atom_equivalents`, Byrd & Rice's own scheme) and not empirical group-additivity
+(`keshavarz_sadeghi2009`/`keshavarz2006`/`nazari2016`). Compounds studied: NTO, DADE, LLM-105, TNT, RDX,
+TATB, HMX, and PETN -- all eight, confirmed from the abstract and Table I (RDX/HMX/PETN's presence
+verified from prose, not just the compound list; Table I/II themselves extracted in garbled,
+positionally-scrambled column order by pymupdf's text layer -- the same multi-column-table trap already
+known from Ionescu 2013's SI -- and NOT relied on here; every number below comes from the paper's own
+prose paragraphs, independently confirmed present in the text, not from re-deriving the tables).
+
+**This route is NOT computationally feasible on this survey's own hardware, at any of the four levels
+tried.** The paper states explicitly: the largest ccCA-PS3 step (a single-point CCSD(T)/cc-pVTZ energy
+on PETN) needed a specialty machine with 500 GB RAM across 32 CPUs for over 21 days; a related NWChem
+coupled-cluster step on HMX/PETN used 6144 processors (1024 nodes) on LLNL's Sierra cluster for 7 hours.
+This survey's own ORCA jobs run on 8 cores locally in minutes to hours (PBE0/def2-TZVP full HMX
+reoptimization: ~1 hour). **This paper is therefore recorded as a benchmark/evidence source, not a
+candidate method to reproduce or adopt** -- there is no version of G2/G3/G4/ccCA-PS3 for a 44-second-atom
+molecule like PETN that this machine could run.
+
+**Its own reported accuracy against experiment, read from the prose (not the garbled tables)**: for RDX,
+ccCA-PS3's calculated gas-phase DfH(298K) = 45.3 kcal/mol vs. the paper's cited experimental gas value
+45.9 kcal/mol (Rosen & Dickinson 1969 / Krien et al. 1973) -- a 0.6 kcal/mol (2.5 kJ/mol) difference,
+far closer than G4's 40.8 kcal/mol. For HMX, ccCA-PS3 = 59.8 kcal/mol vs. two cited experimental gas
+values 58.9 (Rosen & Dickinson / Krien et al.) and 62.9 kcal/mol (Ornellas 1974), clearly closer than G3
+(53.3) or G4 (52.3). For PETN, ccCA-PS3 = -98.0 kcal/mol vs. cited experimental -91.1 kcal/mol (Lau et
+al. 2004 / Ornellas 1966) -- a 6.9 kcal/mol gap, worse than RDX/HMX's own agreement but still much closer
+than G3 (-106.0) or G4 (-105.7). The paper's own conclusion is explicitly NOT a validated success: "a
+consistent predictive methodology with desired chemical accuracy of 1-2 kcal/mol is still lacking for
+energetic systems" -- ccCA-PS3 is simply the least-bad of the four methods tried here, not a solved
+problem, and the paper only claims gas-phase accuracy, never attempting a sublimation/solid-phase step
+itself (it states this explicitly: "We confine the present study to the gas-phase enthalpy of
+formation.").
+
+**Converted to solid-phase DfH using THIS survey's own `keshavarz2010_sublimation` Hsub values (computed
+precisely, not by hand) and compared against Klapoetke's measured values already used throughout this
+survey** -- a comparison the paper itself never makes, since it stops at the gas phase:
+
+    compound   ccCA-PS3 gas (kJ/mol)   -Hsub (kJ/mol)   ccCA-PS3-implied solid   Klapoetke measured   error
+    RDX          189.54                  130.44            59.10                  66.6 / 85.0          7.5 kJ/mol (best)
+    HMX          250.20                  174.67            75.53                  116.1               40.6 kJ/mol
+    PETN        -410.03                  138.02           -548.05                 -539.0               9.1 kJ/mol
+
+**RDX and PETN's ccCA-PS3-implied solid values are, by a wide margin, the best result anywhere in this
+entire survey** (7.5 and 9.1 kJ/mol, vs. this survey's own best atom-equivalent results of 13.2 kJ/mol
+for RDX and 59.5 kJ/mol for PETN) -- genuinely strong evidence that the underlying chemistry IS
+predictable to within this survey's own ~21 kJ/mol bar, and that the accuracy ceiling this survey has
+been hitting (B3LYP/def2-SVP and PBE0/def2-TZVP atom-equivalent fits, Byrd & Rice's own scheme, every
+Keshavarz-lineage empirical equation) is a property of THOSE specific methods, not of RDX/PETN's
+chemistry being unpredictable in principle. **HMX is the exception, and by a lot** (40.6 kJ/mol, worse
+than this survey's own best HMX result of 42.3 kJ/mol only by a hair, but nowhere near RDX/PETN's
+agreement) -- but this may say more about HMX's own cited experimental gas value than about ccCA-PS3
+itself: the paper's cited HMX experimental gas values (58.9/62.9 kcal/mol) rest on the same 1969-1974-era
+primary sources (Rosen & Dickinson 1969, Krien et al. 1973, Ornellas 1974) already flagged elsewhere in
+this survey's Keshavarz-lineage reading as producing RDX/HMX values that do not match Klapoetke's own
+(later, textbook-curated) 116.1 kJ/mol figure -- this is a genuine, unresolved discrepancy, not
+attributed to either source here, and PETN's own cited experimental gas value (Lau et al. 2004 / Ornellas
+1966) converts to -519.2 kJ/mol solid, within 19.8 kJ/mol of Klapoetke's -539.0, so the general pattern
+of old primary sources disagreeing with Klapoetke's curated values by tens of kJ/mol specifically for HMX
+(not RDX, not PETN) continues here, exactly as it did for `keshavarz2006`/`nazari2016`'s own RDX/HMX
+experimental-value swap.
+
+Status: CANDIDATE -> read; SOURCE_VALIDATED (all quoted numbers confirmed present in the paper's own
+prose). Not a candidate METHOD (computationally infeasible here), but a valuable benchmark: real evidence
+that RDX's and PETN's gas-phase DfH are accurately predictable by ab initio methods in principle, that
+this survey's own DFT/atom-equivalent ceiling is a limitation of the METHOD tried, not the chemistry, and
+that HMX's own literature "experimental" values carry a real, still-unexplained spread of several tens of
+kJ/mol depending on which primary source is used -- worth remembering the next time an HMX result looks
+anomalous."""

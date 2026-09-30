@@ -21,7 +21,13 @@ dependencies = [
     "py2opsin>=1.2.0",
     "pyside6>=6.7",
     "pyside6-addons>=6.7",
-    "rdkit>=2024.3.1",
+    # Pinned exact, not >=: a floating lower bound let `uv sync` silently
+    # resolve a newer RDKit partway through the energetics survey, and
+    # ETKDGv3 is only deterministic for a given seed WITHIN one RDKit
+    # build. That drift reproduced HMX's "identical" recorded ORCA job
+    # 108 kJ/mol off from a fresh run under the same documented recipe
+    # (seed 0xC0FFEE) -- see benchmarks/thermophysical/orca_atom_equivalents.py.
+    "rdkit==2025.9.6",
 ]
 
 [project.scripts]

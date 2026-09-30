@@ -877,7 +877,7 @@ requires-dist = [
     { name = "py2opsin", specifier = ">=1.2.0" },
     { name = "pyside6", specifier = ">=6.7" },
     { name = "pyside6-addons", specifier = ">=6.7" },
-    { name = "rdkit", specifier = ">=2024.3.1" },
+    { name = "rdkit", specifier = "==2025.9.6" },
     { name = "requests", marker = "extra == 'network'", specifier = ">=2.32" },
     { name = "vina", marker = "extra == 'docking'", specifier = ">=1.2.5" },
 ]

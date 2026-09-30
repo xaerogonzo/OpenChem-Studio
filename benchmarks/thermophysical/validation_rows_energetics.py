@@ -153,6 +153,24 @@ HF_ROWS = [
         value_source="secondary",
         secondary_reference="klapotke2017 Tab. 9.16b, p.270: DfH = -539 kJ/mol",
     ),
+    ValidationRow(
+        row_id="hf_mtn_solid",
+        smiles="CC(CO[N+](=O)[O-])(CO[N+](=O)[O-])CO[N+](=O)[O-]",
+        property="enthalpy_formation_solid",
+        value=-450.2,
+        units="kJ/mol",
+        source_id="nist_webbook",
+        record_id="CAS 3032-55-1",
+        partition="selection",
+        temperature_k=298.15,
+        phase="solid",
+        value_source="secondary",
+        primary_reference="Tavernier (1956), Mem. Poudres, 301-327",
+        secondary_reference="NIST Chemistry WebBook, condensed phase thermochemistry data, DfH = -450.2 kJ/mol (Ccb)",
+        note="metriol trinitrate (MTN) -- added Track 4 Gate C as a target closer to PETN's own four-arm "
+        "quaternary-carbon topology than methyl/ethyl nitrate; three arms, not four -- see "
+        "orca_atom_equivalents.py's module docstring",
+    ),
     # --- inside orca_atom_equivalents's own fit -- development, not independent evidence ------------
     ValidationRow(
         row_id="hf_dimethylnitramine_gas",
@@ -281,6 +299,24 @@ HF_ROWS = [
         secondary_reference="NIST Chemistry WebBook, gas phase thermochemistry data, DfH = -155 +/- 3 kJ/mol",
         note="a second, independent nitrate ester -- PETN's error got WORSE after adding this, not "
         "better; see orca_atom_equivalents.py's module docstring",
+    ),
+    ValidationRow(
+        row_id="hf_dinitropiperazine_gas",
+        smiles="O=[N+]([O-])N1CCN(CC1)[N+](=O)[O-]",
+        property="enthalpy_formation_gas",
+        value=58.0,
+        units="kJ/mol",
+        source_id="nist_webbook",
+        record_id="CAS 4164-37-8",
+        partition="development",
+        temperature_k=298.15,
+        phase="gas",
+        value_source="secondary",
+        primary_reference="Pepekin, Matyushin, Lebedev (1974), Bull. Acad. Sci. USSR, Div. Chem. Sci., 1707-1710",
+        secondary_reference="NIST Chemistry WebBook, gas phase thermochemistry data, DfH = 58 +/- 3 kJ/mol",
+        note="a THIRD nitramine, and the first with TWO ring N-NO2 sites on one ring (RDX has three, HMX "
+        "has four) -- added Track 4 Gate C; dramatically improved RDX/HMX's combined-route error -- see "
+        "orca_atom_equivalents.py's module docstring for why this is not yet treated as validated",
     ),
 ]
 
