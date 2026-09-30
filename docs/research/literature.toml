@@ -542,7 +542,20 @@ a completely unrelated computational path (atom-pair-contribution gas-phase mode
 sublimation model, vs. a single fitted nitroaromatic-specific correlation) -- two routes that share no
 parameters agreeing with each other and with measurement is stronger evidence for the nitroaromatic
 stratum's accuracy than either route alone. `tests/test_compare_enthalpies.py` (7 tests) locks in both
-this and the already-reported RDX/HMX/PETN numbers."""
+this and the already-reported RDX/HMX/PETN numbers.
+
+**Track 4 closing pointer (2026-09-30)**: this entry's own RDX/HMX/PETN numbers above are now stale --
+`orca_atom_equivalents.py`'s module docstring is the current source of truth, not this note. Three
+gates ran after this entry was written: Gate A found no usable direct-condensed-Hf alternative
+(`keshavarz2006`, `nazari2016`, this survey's own `keshavarz_sadeghi2009` all failed reproduction; a
+freely-available composite-ab-initio benchmark, `manaa2016_composite_qm`, is real but computationally
+infeasible here) -- see that entry's own note. Gate B found a higher level of theory (PBE0/def2-TZVP)
+does not help, and in fact worsens RDX/HMX slightly. Gate C found a SECOND ring nitramine
+(1,4-dinitropiperazine) added to the calibration set clears the ~21 kJ/mol bar for RDX and HMX by
+roughly an order of magnitude (2.2/2.9 kJ/mol), with PETN still failing (69.2 kJ/mol) -- explicitly
+flagged there as promising but not yet validated on one new calibration point alone. Also note: an
+RDKit-version drift silently invalidated every number recorded above BEFORE Gate B's own RETRACTED
+note in `orca_atom_equivalents.py` -- re-run fresh, once, under `rdkit==2025.9.6` (now pinned exact)."""
 
 [[source]]
 id = "mathieu2018_iecr"
@@ -933,7 +946,16 @@ inconsistency in the source). Status: CANDIDATE -> read; SOURCE_VALIDATED (the p
 numbers are recorded and trusted at face value) but explicitly NOT REPRODUCED -- do not write a
 calculator implementation of this equation from this reading. If this candidate is worth pursuing
 further, the next step is external (contacting the authors, or finding an erratum/SI), not another
-attempt to reverse-engineer the coefficients from table arithmetic alone."""
+attempt to reverse-engineer the coefficients from table arithmetic alone.
+
+**Track 4 closing pointer (2026-09-30)**: Gate A's search for an alternative direct-condensed-Hf source
+(this equation's own lineage) found nothing usable -- `keshavarz2006` (the oldest paper in this
+lineage) and `nazari2016` (the newest) both either fail reproduction or were never attempted from a
+reliable table read, and `keshavarz2021`'s own review never cites or corrects this entry's coefficients
+in-text (NO_CORRECTION_FOUND). See `keshavarz2006`'s and `nazari2016`'s own notes for the full findings,
+including a genuine RDX/HMX experimental-value swap shared by both papers' tables. The survey's own
+`orca_atom_equivalents` route (not this direct route) is where real progress happened this session --
+see that module's docstring and `mathieu2018_apc`'s closing pointer above."""
 
 [[source]]
 id = "keshavarz_nitroaromatic2009"
