@@ -38,6 +38,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from openchem.domain.project import ProjectModel
+from openchem.domain.quantum_chemistry_run import QuantumChemistryRunStore
 from openchem.domain.result_store import SessionResultStore
 from openchem.services.project_service import ProjectService
 
@@ -79,12 +80,13 @@ class RecoveryService:
         fingerprints: dict[str, dict[str, str]] | None,
         generation: int,
         source_path: str = "",
+        qc_runs: QuantumChemistryRunStore | None = None,
     ) -> bool:
         """Write a recovery copy, unless it was scheduled before a Save."""
         if generation != self.generation:
             logger.debug("Skipping a recovery write from generation %s (now %s)", generation, self.generation)
             return False
-        document = json.loads(self._project_service.serialise(project, results, fingerprints))
+        document = json.loads(self._project_service.serialise(project, results, fingerprints, qc_runs))
         payload = {
             "recovery_version": RECOVERY_VERSION,
             "generation": generation,
@@ -133,7 +135,7 @@ class RecoveryService:
             if payload.get("recovery_version", 0) > RECOVERY_VERSION:
                 logger.warning("Recovery file %s is from a newer build; not offered", path.name)
                 return None
-            project, _results = self._project_service.parse(payload["document"])
+            project, _results, _qc_runs = self._project_service.parse(payload["document"])
         except Exception as exc:  # noqa: BLE001 - a damaged file is unusable, never a crash
             logger.warning("Recovery file %s is unusable: %s", path.name, exc)
             return None
@@ -150,7 +152,9 @@ class RecoveryService:
             molecule_count=len(project.molecules),
         )
 
-    def load(self, candidate: RecoveryCandidate) -> tuple[ProjectModel, SessionResultStore]:
+    def load(
+        self, candidate: RecoveryCandidate
+    ) -> tuple[ProjectModel, SessionResultStore, QuantumChemistryRunStore]:
         payload = json.loads(candidate.path.read_text(encoding="utf-8"))
         return self._project_service.parse(payload["document"])
 

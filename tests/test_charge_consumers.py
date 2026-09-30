@@ -155,7 +155,7 @@ def test_a_project_saved_by_master_reopens_with_its_gasteiger_dipole_unchanged()
     from openchem.services.project_service import ProjectService
 
     path = pathlib.Path(__file__).resolve().parent / "fixtures" / "projects" / "master_charge_consumers.ocsproj"
-    project, store = ProjectService(EventBus()).load_document(path)
+    project, store, _qc_runs = ProjectService(EventBus()).load_document(path)
     engine = ChemistryEngine()
     (molecule,) = project.molecules
     (conformer,) = molecule.conformers

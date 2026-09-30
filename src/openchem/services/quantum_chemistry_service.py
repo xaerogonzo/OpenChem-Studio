@@ -29,12 +29,19 @@ from openchem.chem.orca_engine import (
 )
 from openchem import paths as app_paths
 from openchem.domain.common import CacheState, Provenance
+from openchem.domain.quantum_chemistry_run import (
+    OutputStatus,
+    QuantumChemistryRun,
+    RunStatus,
+    new_run_id,
+)
 from openchem.events.base import EventBus
 from openchem.events.events import (
     NmrScalingCalibrated,
     NmrReferenceCalibrated,
     QuantumChemistryJobStateChanged,
     QuantumChemistryResultReady,
+    QuantumChemistryRunCompleted,
     SpectrumComputed,
 )
 from openchem.plugins.interfaces import QuantumEngineProvider
@@ -146,6 +153,11 @@ class _BoltzmannRun:
     #: fingerprint taken then would name a set this was not computed over.
     input_fingerprint: str = ""
     calculation_input: str = ""
+    #: Minted once, at submission (`request_boltzmann_nmr`) -- one logical
+    #: user calculation, however many child ORCA jobs it dispatches. Every
+    #: conformer's `_ActiveJob` carries this same id, so QC run history
+    #: shows one entry for the whole averaged run, not one per conformer.
+    run_id: str = ""
 
 
 @dataclass
@@ -201,6 +213,20 @@ class _ActiveJob:
     multiplicity: int = 1
     input_fingerprint: str = ""
     calculation_input: str = ""
+    #: The molblock `mol` was resolved from, if known -- part of a
+    #: `QuantumChemistryRun`'s immutable input snapshot (only set for
+    #: kind == "calculation"; a Boltzmann run's ensemble input is not yet
+    #: captured this way, see `_finish_conformer_job`).
+    input_molblock: str = ""
+    #: Set for kind == "calculation": minted at submission
+    #: (`request_calculation`), so a run that fails to parse still gets a
+    #: terminal QC-history record under the same id a live "Runs..." picker
+    #: would have shown while it was in flight. Empty for "reference"/
+    #: "scaling" jobs, which never become a `QuantumChemistryRun` at all
+    #: (see `quantum_chemistry_run.py`'s module docstring). For
+    #: kind == "conformer", carries `_BoltzmannRun.run_id` instead of its
+    #: own -- one run id per logical Boltzmann sequence, not per conformer.
+    run_id: str = ""
     stdout_chunks: list[str] = field(default_factory=list)
     cancelled: bool = False
 
@@ -314,6 +340,12 @@ class QuantumChemistryService(QObject):
             )
             return
 
+        try:
+            input_molblock = Chem.MolToMolBlock(mol)
+        except Exception:  # noqa: BLE001 - the run's input snapshot is an enhancement, never fatal
+            logger.exception("Could not capture the input molblock for molecule %s", molecule_uuid)
+            input_molblock = ""
+
         self._launch_job(
             key=molecule_uuid,
             mol=mol,
@@ -327,6 +359,8 @@ class QuantumChemistryService(QObject):
             molecule_uuid=molecule_uuid,
             input_fingerprint=input_fingerprint,
             calculation_input=calculation_input,
+            input_molblock=input_molblock,
+            run_id=new_run_id(),
         )
 
     def request_boltzmann_nmr(
@@ -398,6 +432,7 @@ class QuantumChemistryService(QObject):
             total=len(mols),
             input_fingerprint=input_fingerprint,
             calculation_input=calculation_input,
+            run_id=new_run_id(),
         )
         self._boltzmann_runs[molecule_uuid] = run
         self._launch_next_conformer(run)
@@ -422,6 +457,7 @@ class QuantumChemistryService(QObject):
             molecule_uuid=run.molecule_uuid,
             input_fingerprint=run.input_fingerprint,
             calculation_input=run.calculation_input,
+            run_id=run.run_id,
         )
 
     def request_reference_calibration(self, method_basis: str, provider_id: str = "orca") -> None:
@@ -590,6 +626,8 @@ class QuantumChemistryService(QObject):
         compound_name: str = "",
         input_fingerprint: str = "",
         calculation_input: str = "",
+        input_molblock: str = "",
+        run_id: str = "",
     ) -> None:
         """Shared QProcess launch mechanics for both `request_calculation`
         (a real molecule) and `request_reference_calibration` (TMS) --
@@ -659,6 +697,8 @@ class QuantumChemistryService(QObject):
             multiplicity=multiplicity,
             input_fingerprint=input_fingerprint,
             calculation_input=calculation_input,
+            input_molblock=input_molblock,
+            run_id=run_id,
         )
         self._active_jobs[key] = job
 
@@ -778,6 +818,8 @@ class QuantumChemistryService(QObject):
             )
         else:
             self._publish_state(job.key, CacheState.FAILED, message)
+            status = RunStatus.CANCELLED if job.cancelled else RunStatus.FAILED
+            self._record_run(self._new_run(job, status, warnings=[message]))
 
     def _on_finished(self, key: str) -> None:
         job = self._active_jobs.pop(key, None)
@@ -834,22 +876,42 @@ class QuantumChemistryService(QObject):
         # QM surface is plotted from it. Retained even when the parse below
         # fails: a job whose output this version cannot read may still have
         # produced a perfectly good `.gbw`.
-        self._retain_wavefunction(job, output_text)
+        surface_cache_key = self._retain_wavefunction(job, output_text)
         try:
             descriptors, conformer = job.provider.parse_output(output_text, job.mol, molecule_uuid, job.calc_type)
         except Exception as exc:  # noqa: BLE001 - report failure, never crash
             logger.exception("Failed to parse ORCA output for molecule %s", molecule_uuid)
             self._publish_state(molecule_uuid, CacheState.FAILED, str(exc))
+            self._record_run(self._new_run(job, RunStatus.FAILED, warnings=[str(exc)]))
             return
         self._event_bus.publish(
             QuantumChemistryResultReady(molecule_uuid=molecule_uuid, descriptors=descriptors, conformer=conformer)
         )
+        run = self._new_run(job, RunStatus.COMPLETED)
+        if run is not None:
+            run.results["descriptors"] = list(descriptors)
+            run.output_status["descriptors"] = OutputStatus.AVAILABLE
+            run.surface_cache_key = surface_cache_key
+            # `conformer.conformer_id` is generated at construction
+            # (`ConformerModel`'s default_factory), so it's already known
+            # here -- main_window's handler for the `QuantumChemistryResultReady`
+            # event just published above adds this SAME object via
+            # `AddConformerCommand`, unchanged, so this is exactly the id
+            # that ends up in `MoleculeModel.conformers`.
+            if conformer is not None:
+                run.output_conformer_id = conformer.conformer_id
         try:
             spectrum = job.provider.parse_spectrum_output(output_text, job.mol, molecule_uuid, job.calc_type)
-        except Exception:  # noqa: BLE001 - a spectrum is an enhancement, must not fail an otherwise-successful job
+        except Exception as exc:  # noqa: BLE001 - a spectrum is an enhancement, must not fail an otherwise-successful job
             logger.exception("Failed to parse spectrum output for molecule %s", molecule_uuid)
+            if run is not None:
+                run.output_status["spectrum"] = OutputStatus.FAILED
+                run.warnings.append(f"Spectrum output could not be parsed: {exc}")
         else:
-            if spectrum is not None:
+            if spectrum is None:
+                if run is not None:
+                    run.output_status["spectrum"] = OutputStatus.NOT_PRODUCED
+            else:
                 try:
                     couplings = job.provider.parse_spin_spin_coupling(output_text, job.calc_type)
                 except Exception as exc:  # noqa: BLE001 - couplings are an enhancement, must not drop the spectrum above
@@ -860,6 +922,8 @@ class QuantumChemistryService(QObject):
                     # coupling exists for this pair" -- see
                     # NMRSpectrumResult's docstring.
                     spectrum = dataclasses.replace(spectrum, coupling_error=str(exc))
+                    if run is not None:
+                        run.warnings.append(f"Spin-spin coupling output could not be parsed: {exc}")
                 else:
                     if couplings is not None:
                         spectrum = dataclasses.replace(spectrum, couplings=couplings)
@@ -869,6 +933,9 @@ class QuantumChemistryService(QObject):
                 ))
                 if calibrated.spectrum_type == "nmr_raw_shielding":
                     self._await_reference(spectrum, job)
+                if run is not None:
+                    run.results["spectrum"] = calibrated
+                    run.output_status["spectrum"] = OutputStatus.AVAILABLE
         # The vibrational spectrum is a SEPARATE parse and a separate event,
         # not folded into the branch above: an `opt_freq` job produces one
         # and no NMR spectrum, an `nmr` job the reverse, and neither should
@@ -879,16 +946,27 @@ class QuantumChemistryService(QObject):
             vibrational = job.provider.parse_vibrational_spectrum(
                 output_text, job.mol, molecule_uuid, job.calc_type
             )
-        except Exception:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001
             logger.exception(
                 "Failed to parse vibrational spectrum for molecule %s", molecule_uuid
             )
+            if run is not None:
+                run.output_status["vibrational_spectrum"] = OutputStatus.FAILED
+                run.warnings.append(f"Vibrational spectrum output could not be parsed: {exc}")
         else:
             if vibrational is not None and vibrational.modes:
                 self._event_bus.publish(
                     self._stamped(vibrational, job, job.input_fingerprint, job.calculation_input)
                 )
+                if run is not None:
+                    run.results["vibrational_spectrum"] = vibrational
+                    run.output_status["vibrational_spectrum"] = OutputStatus.AVAILABLE
+            elif run is not None:
+                run.output_status["vibrational_spectrum"] = OutputStatus.NOT_PRODUCED
         self._publish_state(molecule_uuid, CacheState.COMPLETED)
+        if run is not None and run.warnings:
+            run.status = RunStatus.COMPLETED_WITH_WARNINGS
+        self._record_run(run)
 
     def _finish_conformer_job(self, job: _ActiveJob, output_text: str) -> bool:
         """Collects one conformer's spectrum + SCF energy, then either
@@ -910,12 +988,13 @@ class QuantumChemistryService(QObject):
             logger.exception("Failed to parse ORCA output for molecule %s", molecule_uuid)
             self._boltzmann_runs.pop(molecule_uuid, None)
             self._publish_state(molecule_uuid, CacheState.FAILED, str(exc))
+            self._record_run(self._new_boltzmann_run(run, RunStatus.FAILED, warnings=[str(exc)]))
             return False
         if spectrum is None:
             self._boltzmann_runs.pop(molecule_uuid, None)
-            self._publish_state(
-                molecule_uuid, CacheState.FAILED, "ORCA produced no shielding data for this conformer."
-            )
+            message = "ORCA produced no shielding data for this conformer."
+            self._publish_state(molecule_uuid, CacheState.FAILED, message)
+            self._record_run(self._new_boltzmann_run(run, RunStatus.FAILED, warnings=[message]))
             return False
 
         # The energy that weights this conformer comes from the SAME run
@@ -930,11 +1009,9 @@ class QuantumChemistryService(QObject):
         energy = next((d.value for d in descriptors if d.descriptor_id == energy_id), None)
         if energy is None:
             self._boltzmann_runs.pop(molecule_uuid, None)
-            self._publish_state(
-                molecule_uuid,
-                CacheState.FAILED,
-                "No SCF energy in ORCA output — cannot weight this conformer.",
-            )
+            message = "No SCF energy in ORCA output — cannot weight this conformer."
+            self._publish_state(molecule_uuid, CacheState.FAILED, message)
+            self._record_run(self._new_boltzmann_run(run, RunStatus.FAILED, warnings=[message]))
             return False
 
         try:
@@ -962,13 +1039,21 @@ class QuantumChemistryService(QObject):
         # Stamped from the RUN, never from `job`: the run is the submission
         # snapshot for the whole set, and its fingerprint names every
         # conformer averaged, where the last job saw only one of them.
+        calibrated = self._maybe_calibrate(averaged, run.method_basis)
         self._event_bus.publish(self._stamped(
-            self._maybe_calibrate(averaged, run.method_basis), job, run.input_fingerprint,
-            run.calculation_input,
+            calibrated, job, run.input_fingerprint, run.calculation_input,
         ))
         self._publish_state(
             molecule_uuid, CacheState.COMPLETED, f"Averaged over {run.total} conformer(s)"
         )
+        qc_run = self._new_boltzmann_run(run, RunStatus.COMPLETED)
+        if qc_run is not None:
+            qc_run.results["spectrum"] = calibrated
+            qc_run.output_status["spectrum"] = OutputStatus.AVAILABLE
+            if calibrated.coupling_error:
+                qc_run.warnings.append(calibrated.coupling_error)
+                qc_run.status = RunStatus.COMPLETED_WITH_WARNINGS
+        self._record_run(qc_run)
         return False
 
     @staticmethod
@@ -1006,6 +1091,73 @@ class QuantumChemistryService(QObject):
             input_fingerprint=input_fingerprint,
             calculation_input=calculation_input,
         )
+
+    @staticmethod
+    def _new_run(
+        job: _ActiveJob, status: RunStatus, warnings: list[str] | None = None
+    ) -> QuantumChemistryRun | None:
+        """A `QuantumChemistryRun` skeleton from `job`'s submission
+        snapshot, or `None` for a job kind that never becomes one --
+        "reference"/"scaling" calibration jobs (TMS and friends) are not a
+        run on the user's molecule; see `quantum_chemistry_run.py`'s
+        module docstring. `job.run_id` is empty for the same reason on
+        those kinds, so checking it alone would already refuse them, but
+        the kind check says WHY rather than just "no id".
+        """
+        if job.kind not in ("calculation", "conformer") or not job.run_id or not job.molecule_uuid:
+            return None
+        return QuantumChemistryRun(
+            run_id=job.run_id,
+            molecule_uuid=job.molecule_uuid,
+            calc_type=job.calc_type,
+            method_basis=job.method_basis,
+            charge=job.charge,
+            multiplicity=job.multiplicity,
+            calculation_input=job.calculation_input,
+            input_fingerprint=job.input_fingerprint,
+            input_molblock=job.input_molblock,
+            status=status,
+            warnings=list(warnings or []),
+        )
+
+    @staticmethod
+    def _new_boltzmann_run(
+        run: _BoltzmannRun, status: RunStatus, warnings: list[str] | None = None
+    ) -> QuantumChemistryRun | None:
+        """The Boltzmann-sequence counterpart of `_new_run` -- built from
+        the `_BoltzmannRun` (one logical calculation) rather than an
+        `_ActiveJob` (one conformer's own submission). `input_molblock` is
+        deliberately left empty: this run's real input is the whole
+        conformer SET `request_boltzmann_nmr` was called with, and neither
+        `_BoltzmannRun` nor `_ActiveJob` currently keeps each conformer's
+        molblock/id once it has been dispatched -- a known simplification,
+        not a claim that this snapshot is complete.
+        """
+        if not run.run_id:
+            return None
+        return QuantumChemistryRun(
+            run_id=run.run_id,
+            molecule_uuid=run.molecule_uuid,
+            calc_type=run.calc_type,
+            method_basis=run.method_basis,
+            charge=run.charge,
+            multiplicity=run.multiplicity,
+            calculation_input=run.calculation_input,
+            input_fingerprint=run.input_fingerprint,
+            input_molblock="",
+            status=status,
+            warnings=list(warnings or []),
+        )
+
+    def _record_run(self, run: QuantumChemistryRun | None) -> None:
+        """The one place a finished `QuantumChemistryRun` reaches the
+        event bus -- `ResultStoreService` is the only subscriber, and
+        writes it into `qc_runs`, never the generic revision-cache `store`
+        (see `QuantumChemistryRunCompleted`'s docstring)."""
+        if run is None:
+            return
+        run.completed_at = time.time()
+        self._event_bus.publish(QuantumChemistryRunCompleted(run=run))
 
     def _finish_scaling_job(self, job: _ActiveJob, output_text: str) -> bool:
         """Files one standard's shieldings, then starts the next or fits.
@@ -1273,8 +1425,13 @@ class QuantumChemistryService(QObject):
         self._publish_state(job.key, CacheState.COMPLETED)
         self._republish_awaiting_reference(method_basis)
 
-    def _retain_wavefunction(self, job: _ActiveJob, output_text: str = "") -> Path | None:
-        """Copy this job's wavefunction out of the scratch directory.
+    def _retain_wavefunction(self, job: _ActiveJob, output_text: str = "") -> str | None:
+        """Copy this job's wavefunction out of the scratch directory, and
+        return the content-addressed `result_cache` key it was stored
+        under -- what a `QuantumChemistryRun.surface_cache_key` needs so a
+        HISTORICAL run's Surfaces tab resolves THIS run's `.gbw`, never
+        "whatever the cache currently holds for this molecule+method" (a
+        later run at a different method/basis would have replaced that).
 
         ORCA 6 splits what used to be one file: the `.gbw` holds the basis
         and orbitals, and the `.densities` container holds the SCF density
@@ -1346,7 +1503,17 @@ class QuantumChemistryService(QObject):
             # rather than by uuid, so it survives the molecule being
             # deleted, hits across projects, and is a re-openable record of
             # what was run. Best-effort -- see `result_cache.store`.
-            result_cache.store(
+            #
+            # charge/multiplicity are part of the key, not just
+            # structure/method_basis/calc_type: they change the electronic
+            # state a wavefunction describes (a cation is not its neutral
+            # parent), and without them two runs on the same structure at
+            # different charge/multiplicity would silently share one cache
+            # entry -- confirmed missing and added here rather than left as
+            # a known gap, since `QuantumChemistryRun.surface_cache_key`
+            # (added alongside this) now depends on this key actually
+            # naming the right electronic state.
+            entry = result_cache.store(
                 "orca_wavefunction",
                 files={
                     path.name: path
@@ -1356,8 +1523,11 @@ class QuantumChemistryService(QObject):
                 structure=_structure_fingerprint(getattr(job, "mol", None)),
                 method_basis=getattr(job, "method_basis", ""),
                 calc_type=getattr(job, "calc_type", ""),
+                charge=getattr(job, "charge", 0),
+                multiplicity=getattr(job, "multiplicity", 1),
+                provider_id=getattr(getattr(job, "provider", None), "provider_id", ""),
             )
-            return destination / "job.gbw"
+            return entry.key if entry is not None else None
         except OSError:
             logger.warning(
                 "Failed to retain the wavefunction for molecule %s", job.molecule_uuid
