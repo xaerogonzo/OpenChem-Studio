@@ -215,6 +215,20 @@ class NmrCorrelationPlotWidget(QWidget):
         painter.setPen(QPen(QColor(120, 120, 120)))
         painter.drawRect(plot_rect)
 
+        # In the plot's OWN header, not just a caption or a hover tooltip
+        # -- these cross peaks come from the molecular graph
+        # (chem/nmr_correlation.py), not a simulated 2D experiment, and a
+        # zoomable contour map that looks like spectrometer software is
+        # exactly the presentation where that distinction most needs
+        # saying where it is being read, not somewhere it has to be
+        # sought out.
+        painter.setPen(QPen(QColor(120, 120, 120)))
+        painter.drawText(
+            QRectF(plot_rect.left(), plot_rect.top() - self._MARGIN / 2, plot_rect.width() - 100, self._MARGIN / 2),
+            Qt.AlignmentFlag.AlignLeft,
+            "connectivity-derived cross peaks, not simulated intensities",
+        )
+
         # The empty state, PAINTED rather than added as a placeholder
         # widget. An empty plot is axes around nothing, which reads as
         # broken; saying so costs one drawText.
