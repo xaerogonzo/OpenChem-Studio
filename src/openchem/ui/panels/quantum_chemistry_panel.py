@@ -524,6 +524,7 @@ class QuantumChemistryPanel(QWidget):
         event_bus: EventBus,
         parent: QWidget | None = None,
         qm_surface_service=None,
+        result_store_service=None,
     ) -> None:
         """Built in five steps, in the order they must happen.
 
@@ -542,14 +543,21 @@ class QuantumChemistryPanel(QWidget):
         """
         super().__init__(parent)
         self._init_state(
-            quantum_chemistry_service, chemistry_engine, settings, qm_surface_service
+            quantum_chemistry_service, chemistry_engine, settings, qm_surface_service, result_store_service
         )
         self._build_controls()
         self._build_tabs()
         self._build_form_and_layout()
         self._subscribe_to_events(event_bus)
 
-    def _init_state(self, quantum_chemistry_service: QuantumChemistryService, chemistry_engine: ChemistryEngine, settings: Settings, qm_surface_service) -> None:
+    def _init_state(
+        self,
+        quantum_chemistry_service: QuantumChemistryService,
+        chemistry_engine: ChemistryEngine,
+        settings: Settings,
+        qm_surface_service,
+        result_store_service=None,
+    ) -> None:
         """The services and the state fields, before any widget exists."""
         self._quantum_chemistry_service = quantum_chemistry_service
         self._chemistry_engine = chemistry_engine
@@ -559,6 +567,11 @@ class QuantumChemistryPanel(QWidget):
         # empty rather than not existing -- a missing tab reads as a
         # version difference, an explained one reads as configuration.
         self._qm_surface_service = qm_surface_service
+        # Optional for the same reason. Without it the panel behaves
+        # exactly as it always did (live results only, nothing survives a
+        # molecule switch or a reload) -- the QC run history it owns
+        # (`.qc_runs`) is what `_refresh_active_run` reads from.
+        self._result_store_service = result_store_service
         self._project: ProjectModel | None = None
         self._pending_molecule_uuid: str | None = None
         self._pending_mol = None  # rdkit.Chem.Mol, set in _on_run_clicked -- needed
@@ -574,6 +587,20 @@ class QuantumChemistryPanel(QWidget):
         #: the submitted one because the normal modes describe motion about
         #: THIS structure, not the one that was sent.
         self._optimized_conformer_molblock: str = ""
+        #: The RDKit Mol `_update_correlation_tabs`/`_update_hybrid_tab`
+        #: compute connectivity against -- separate from `_pending_mol`,
+        #: which means "the job currently in flight this session" and must
+        #: not double as "what is currently displayed" (that conflation is
+        #: exactly why history couldn't be shown before this field existed:
+        #: `_pending_mol` is `None` whenever no job has been submitted this
+        #: session, including right after a project loads). Set from a live
+        #: job's own `_pending_mol` when its result arrives, or from a
+        #: historical run's `input_molblock` by `_render_run`.
+        self._display_mol = None
+        #: The run currently being displayed -- `None` until
+        #: `_refresh_active_run` finds one, or once Phase 2 adds a history
+        #: picker, whichever run the user selected there.
+        self._active_run = None
 
     def _build_controls(self) -> None:
         """Every control above the tabs, in the order it is laid out."""
@@ -925,6 +952,7 @@ class QuantumChemistryPanel(QWidget):
     def set_project(self, project: ProjectModel | None) -> None:
         self._project = project
         self._refresh_molecule_combo()
+        self._refresh_active_run()
 
     def _refresh_molecule_combo(self) -> None:
         molecules = self._project.molecules if self._project is not None else []
@@ -953,6 +981,95 @@ class QuantumChemistryPanel(QWidget):
         molecule = self._current_molecule()
         if molecule is not None and molecule.molblock:
             self._charge_spin.setValue(self._chemistry_engine.formal_charge(molecule))
+        self._refresh_active_run()
+
+    def _refresh_active_run(self) -> None:
+        """Show the newest QC run for the selected molecule, if this
+        session's `ResultStoreService` has history for it.
+
+        This is the panel's only route to "what was already calculated
+        here" outside a live job: `_pending_molecule_uuid` is `None` right
+        after a molecule selection or a project load, which is exactly
+        when a user expects to see a prior result reappear rather than a
+        blank panel.
+        """
+        self._active_run = None
+        molecule = self._current_molecule()
+        if molecule is None or self._result_store_service is None:
+            self._clear_run_display()
+            return
+        runs = self._result_store_service.qc_runs.runs_for(molecule.uuid)
+        if not runs:
+            self._clear_run_display()
+            return
+        self._render_run(runs[0])
+
+    def _clear_run_display(self) -> None:
+        self._reset_empty_states()
+        self._results_label.setText("")
+        self._display_mol = None
+
+    def _render_run(self, run) -> None:
+        """Repaint the panel from a stored `QuantumChemistryRun`, entirely
+        locally.
+
+        **MUST NEVER PUBLISH ONTO THE SHARED EVENT BUS.** PropertyPanel
+        treats `DescriptorComputed` as "the current/latest value" --
+        broadcasting an older run's numbers that way would make Results
+        silently show stale values while this panel displays history. The
+        live/newest-result path (`main_window._on_quantum_chemistry_result_ready`
+        republishing `DescriptorComputed`) is unaffected and keeps working
+        exactly as it always has.
+
+        Reuses the exact rendering `_on_result_ready`/`_on_spectrum_computed`
+        already do for a live job (`_render_nmr_spectrum`, `_update_ir_view`,
+        `_update_surfaces_view`) rather than a second implementation of the
+        same tables/plots, which is what let the NMR/IR tabs drift out of
+        sync with each other in the first place.
+        """
+        self._active_run = run
+        self._reset_empty_states()
+        self._display_mol = (
+            self._chemistry_engine.mol_from_molblock(run.input_molblock)
+            if run.input_molblock
+            else None
+        )
+        # `input_molblock` is the 3D structure actually sent to ORCA (see
+        # `QuantumChemistryService.request_calculation`), the same thing
+        # `_pending_conformer_molblock` holds for a live job -- so the 3D
+        # panes (NMR, IR animation, Surfaces) that already read it work
+        # unchanged. There is no separate 2D depiction recorded for a
+        # historical run, so `_pending_molblock` (the flat drawing) is left
+        # empty; `NmrViewWidget` falls back to deriving one from the 3D
+        # structure when it has no 2D molblock to draw instead.
+        self._pending_molblock = ""
+        self._pending_conformer_molblock = run.input_molblock
+        # THIS run's own optimized geometry, not "whatever the molecule's
+        # latest optimization happens to be" -- a later run at a different
+        # method could have added another conformer since. Resolved by id
+        # rather than trusting conformer LIST POSITION, which is exactly
+        # the trap `canonical_conformer()` exists to avoid for a live job.
+        self._optimized_conformer_molblock = ""
+        molecule = self._current_molecule()
+        if molecule is not None and run.output_conformer_id:
+            for conformer in molecule.conformers:
+                if conformer.conformer_id == run.output_conformer_id:
+                    self._optimized_conformer_molblock = conformer.molblock
+                    break
+
+        descriptors = run.results.get("descriptors") or []
+        lines = [f"{d.name}: {d.value:.6f} {d.units}" for d in descriptors]
+        self._results_label.setText("\n".join(lines))
+
+        spectrum = run.results.get("spectrum")
+        if spectrum is not None:
+            self._render_nmr_spectrum(spectrum)
+
+        vibrational = run.results.get("vibrational_spectrum")
+        if vibrational is not None:
+            self._update_ir_view(vibrational)
+
+        self._update_surfaces_view()
 
     def _on_configure_clicked(self) -> None:
         dialog = SettingsDialog(self._settings, self, section=EXTERNAL_TOOLS, tool="orca")
@@ -1283,6 +1400,23 @@ class QuantumChemistryPanel(QWidget):
         if isinstance(spectrum, VibrationalSpectrumResult):
             self._update_ir_view(spectrum)
             return
+        # This IS the live job's own mol -- `_update_correlation_tabs`/
+        # `_update_hybrid_tab` read `_display_mol`, never `_pending_mol`
+        # directly, so the same assignment covers both a live result and
+        # (in `_render_run`) a historical one. Set only on the NMR path:
+        # IR has no use for it.
+        self._display_mol = self._pending_mol
+        self._render_nmr_spectrum(spectrum)
+
+    def _render_nmr_spectrum(self, spectrum: SpectrumResult) -> None:
+        """The NMR side of `_on_spectrum_computed` -- factored out so
+        `_render_run` can repaint a HISTORICAL spectrum through the exact
+        same code, rather than a second implementation that could drift
+        from what a live result does. Reads `self._display_mol` (via
+        `_update_correlation_tabs`/`_update_hybrid_tab`), never
+        `self._pending_mol` -- the caller is responsible for setting it
+        first, live or historical.
+        """
         referencing = (
             spectrum.provenance.parameters.get("referencing") if spectrum.provenance else None
         )
@@ -1556,7 +1690,7 @@ class QuantumChemistryPanel(QWidget):
         self._correlation_tabs.setVisible(True)
 
     def _update_correlation_tabs(self, spectrum: SpectrumResult) -> None:
-        mol = self._pending_mol
+        mol = self._display_mol
         if mol is None:
             return
         # NMRSpectrumResult.couplings (Phase 22, "NMR + Spin-Spin Coupling"
@@ -1587,7 +1721,7 @@ class QuantumChemistryPanel(QWidget):
         from openchem.chem import nmr_database, nmr_hybrid
         from openchem.domain.nmr import ScalingFactors
 
-        mol = self._pending_mol
+        mol = self._display_mol
         parameters = (spectrum.provenance.parameters if spectrum.provenance else {}) or {}
         if mol is None or parameters.get("referencing") != "empirical_linear_scaling":
             self._hybrid_summary_label.setText(_HYBRID_UNAVAILABLE_NOTE)

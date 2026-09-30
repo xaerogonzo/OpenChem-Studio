@@ -470,6 +470,7 @@ class MainWindow(QMainWindow):
             services.event_bus,
             self,
             qm_surface_service=services.qm_surface_service,
+            result_store_service=services.result_store_service,
         )
         self._alignment_panel = AlignmentPanel(services.alignment_service, services.event_bus, self, settings=settings)
         self._interactions_panel = InteractionsPanel(

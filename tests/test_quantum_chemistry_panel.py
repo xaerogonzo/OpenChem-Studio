@@ -351,6 +351,164 @@ def test_spectrum_computed_populates_correlation_tabs(qapp):
     assert panel._correlation_tables["cosy"].rowCount() > 0
 
 
+def test_a_stored_run_repaints_the_panel_with_no_job_submitted_this_session(qapp):
+    """The actual persistence bug this was all for: `_pending_molecule_uuid`
+    is `None` right after a project loads or a molecule is (re)selected --
+    no job was ever submitted THIS session -- so a naive replay through the
+    live `_on_spectrum_computed`/`_on_result_ready` handlers (gated on
+    `_pending_molecule_uuid`) would be silently ignored. `_refresh_active_run`
+    must reach the panel a different way."""
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+
+    from openchem.chem.engine import ChemistryEngine as _Engine
+    from openchem.domain.descriptor import DescriptorValue
+    from openchem.domain.quantum_chemistry_run import (
+        OutputStatus,
+        QuantumChemistryRun,
+        RunStatus,
+    )
+    from openchem.services.result_store_service import ResultStoreService
+
+    bus = EventBus()
+    engine = _Engine()
+    settings = Settings(bus)
+    service = _RecordingQuantumChemistryService(bus)
+    store_service = ResultStoreService(bus, engine, settings)
+
+    molecule = MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+    mol_3d = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    AllChem.EmbedMolecule(mol_3d, randomSeed=7)
+    molecule.conformers.append(ConformerModel(molblock=Chem.MolToMolBlock(mol_3d), method="rdkit_etkdg"))
+    project = ProjectModel(name="Test")
+    project.molecules.append(molecule)
+    store_service.set_project(project)
+
+    spectrum = NMRSpectrumResult(
+        spectrum_type="nmr_calibrated",
+        name="Chemical Shift",
+        units="ppm",
+        method="orca",
+        molecule_uuid=molecule.uuid,
+        values={idx: 100.0 + idx for idx in range(mol_3d.GetNumAtoms())},
+        elements={idx: atom.GetSymbol() for idx, atom in enumerate(mol_3d.GetAtoms())},
+    )
+    run = QuantumChemistryRun(
+        run_id="run-1",
+        molecule_uuid=molecule.uuid,
+        calc_type="nmr",
+        method_basis="B3LYP def2-SVP",
+        charge=0,
+        multiplicity=1,
+        calculation_input="geometry",
+        input_fingerprint="fp",
+        input_molblock=Chem.MolToMolBlock(mol_3d),
+        status=RunStatus.COMPLETED,
+    )
+    run.results["spectrum"] = spectrum
+    run.output_status["spectrum"] = OutputStatus.AVAILABLE
+    run.results["descriptors"] = [
+        DescriptorValue(
+            descriptor_id="orca.scf_energy",
+            name="SCF Energy",
+            units="Hartree",
+            category="quantum_chemistry",
+            provider="orca",
+            molecule_uuid=molecule.uuid,
+            value=-154.9,
+        )
+    ]
+    store_service.record_quantum_chemistry_run(run)
+
+    # Fresh panel: no job has ever been submitted through it.
+    panel = QuantumChemistryPanel(
+        service, engine, settings, bus, result_store_service=store_service
+    )
+    assert panel._pending_molecule_uuid is None
+
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+
+    assert panel._active_run is run
+    assert "SCF Energy" in panel._results_label.text()
+    assert panel._spectrum_table.rowCount() == mol_3d.GetNumAtoms()
+    assert panel._correlation_tables["hsqc"].rowCount() > 0
+
+
+def test_a_stored_runs_output_conformer_is_resolved_by_id_not_list_position(qapp):
+    """Two conformers exist (e.g. from two different runs' optimizations);
+    selecting the OLDER run must show ITS geometry, not whichever conformer
+    a later run most recently added."""
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+
+    from openchem.chem.engine import ChemistryEngine as _Engine
+    from openchem.domain.quantum_chemistry_run import QuantumChemistryRun, RunStatus
+    from openchem.services.result_store_service import ResultStoreService
+
+    bus = EventBus()
+    engine = _Engine()
+    settings = Settings(bus)
+    service = _RecordingQuantumChemistryService(bus)
+    store_service = ResultStoreService(bus, engine, settings)
+
+    molecule = MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+    mol_3d = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    AllChem.EmbedMolecule(mol_3d, randomSeed=7)
+    old_conformer = ConformerModel(molblock="OLD GEOMETRY", method="orca_opt")
+    new_conformer = ConformerModel(molblock="NEW GEOMETRY", method="orca_opt")
+    molecule.conformers.extend([old_conformer, new_conformer])
+    project = ProjectModel(name="Test")
+    project.molecules.append(molecule)
+    store_service.set_project(project)
+
+    old_run = QuantumChemistryRun(
+        run_id="run-old",
+        molecule_uuid=molecule.uuid,
+        calc_type="opt",
+        method_basis="B3LYP def2-SVP",
+        charge=0,
+        multiplicity=1,
+        calculation_input="geometry",
+        input_fingerprint="fp-a",
+        input_molblock=Chem.MolToMolBlock(mol_3d),
+        output_conformer_id=old_conformer.conformer_id,
+        status=RunStatus.COMPLETED,
+        started_at=1.0,
+    )
+    new_run = QuantumChemistryRun(
+        run_id="run-new",
+        molecule_uuid=molecule.uuid,
+        calc_type="opt",
+        method_basis="B3LYP def2-SVP",
+        charge=0,
+        multiplicity=1,
+        calculation_input="geometry",
+        input_fingerprint="fp-b",
+        input_molblock=Chem.MolToMolBlock(mol_3d),
+        output_conformer_id=new_conformer.conformer_id,
+        status=RunStatus.COMPLETED,
+        started_at=2.0,
+    )
+    store_service.record_quantum_chemistry_run(old_run)
+    store_service.record_quantum_chemistry_run(new_run)
+
+    panel = QuantumChemistryPanel(
+        service, engine, settings, bus, result_store_service=store_service
+    )
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+
+    # Newest run is shown by default.
+    assert panel._active_run is new_run
+    assert panel._optimized_conformer_molblock == "NEW GEOMETRY"
+
+    panel._render_run(old_run)
+    assert panel._optimized_conformer_molblock == "OLD GEOMETRY"
+
+
 def test_running_ir_after_nmr_clears_the_stale_correlation_tables(qapp):
     """Flagged from real screenshots as a possible regression: NMR
     populates HSQC/HMBC/COSY, then a separate IR run on the same molecule
