@@ -146,7 +146,38 @@ re-running the full 9-compound calibration set (plus RDX/PETN, for a like-for-li
 PBE0/def2-TZVP and refitting -- not yet done, and a much larger compute commitment: this single HMX
 reoptimization alone took over an hour and needed a raised timeout, and PBE0/def2-TZVP is dramatically
 more expensive than B3LYP/def2-SVP per geometry cycle across the board, not just for HMX. Recorded here
-as a real, useful, and explicitly partial result -- not a substitute for the full refit."""
+as a real, useful, and explicitly partial result -- not a substitute for the full refit.
+
+**Gate B, full refit 2026-09-30: the full commitment above, actually done.** All 12 compounds (the
+9-point `CALIBRATION_SET` plus RDX/HMX/PETN) re-run fresh, full geometry optimization (not a single
+point), at PBE0/def2-TZVP -- same ETKDGv3 seed 0xC0FFEE, MMFF94 pre-optimize, same SMILES as the
+B3LYP/def2-SVP baseline above. `fit_population` (the 9 calibration compounds) and `target_population`
+(RDX, HMX, PETN) stay disjoint, unchanged from the B3LYP/def2-SVP fit. The refit itself is a reasonable
+fit (RMSE 6.3 kJ/mol, MAE 5.5 kJ/mol, max abs 12.8 kJ/mol on its own 9-compound calibration set --
+comparable quality to the B3LYP/def2-SVP fit, so the new level of theory is not simply failing to
+converge to a sane fit). The combined-route (gas - Hsub, same `keshavarz2010_sublimation` term, held
+fixed) comparison against the existing B3LYP/def2-SVP 9-point fit:
+
+    compound   B3LYP/def2-SVP (9-fit)   PBE0/def2-TZVP (9-fit)   measured    change
+    RDX          38.4 kJ/mol               41.0 kJ/mol            85.0       +2.6 (worse)
+    HMX          45.2 kJ/mol               53.7 kJ/mol            116.1      +8.5 (worse)
+    PETN         87.6 kJ/mol               73.7 kJ/mol           -539.0     -13.9 (improved)
+
+(RDX's two measured readings -- 66.6 and 85.0 -- both worsen at PBE0/def2-TZVP: 41.0 vs 85.0 is still the
+smaller of the pair, so the same reading is used for both levels here.)
+
+**Conclusion: a higher level of theory does NOT materially improve the combined-route error, and makes
+it worse for two of the three targets.** RDX and HMX both get slightly worse at PBE0/def2-TZVP; PETN
+improves by ~14 kJ/mol but remains 73.7 kJ/mol off -- still far outside any usable accuracy bar, and this
+is the first improvement of any kind PETN has shown across every intervention tried in this survey
+(conformer search, more calibration data, now level of theory), yet it does not change PETN's own
+structural diagnosis (a quaternary-carbon four-arm nitrate ester an elemental atom-equivalent scheme
+cannot represent) -- a ~74 kJ/mol error is not a validated result by any measure used elsewhere in this
+module. **Level of theory is ruled out as the fix for RDX/HMX's residual, the same way conformer choice
+was ruled out earlier** (see finding 1 above). `CALIBRATION_SET` and `TARGET_ETOT_KJMOL` below stay at
+B3LYP/def2-SVP, the level this whole module's fit history is built on; the PBE0/def2-TZVP numbers are
+not adopted as the module's data, only recorded here and in the paired locked-in test, since they do not
+represent an improvement worth switching the whole calibration history over to."""
 
 from __future__ import annotations
 

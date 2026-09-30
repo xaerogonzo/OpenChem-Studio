@@ -180,3 +180,65 @@ def test_hmx_pbe0_tzvp_diagnostic_isolates_electronic_from_geometry_effect(oae):
     assert geometry_relaxation_shift == pytest.approx(96.191, abs=0.01)
     # the electronic-level effect dominates by an order of magnitude over geometry relaxation
     assert abs(electronic_only_shift) > 10 * abs(geometry_relaxation_shift)
+
+
+def test_pbe0_tzvp_full_refit_does_not_materially_improve_the_combined_route(oae):
+    """Gate B, full refit (2026-09-30, see module docstring): all 12 compounds (the 9-point calibration
+    set plus RDX/HMX/PETN) re-run fresh, full geometry optimization, at PBE0/def2-TZVP -- same seed,
+    same fit/target population split as the B3LYP/def2-SVP fit. Etot values below are real ORCA output,
+    recorded exactly as CALIBRATION_SET/TARGET_ETOT_KJMOL record the B3LYP/def2-SVP ones; this test does
+    not call oae.CALIBRATION_SET (that stays at B3LYP/def2-SVP -- see module docstring for why the
+    PBE0/def2-TZVP numbers were not adopted as the module's data).
+
+    Locks in the finding: RDX and HMX both get WORSE at the higher level (38.4->41.0, 45.2->53.7 kJ/mol);
+    PETN improves (87.6->73.7 kJ/mol) but remains far outside any usable bar. Level of theory is ruled
+    out as the fix for RDX/HMX, the same way conformer choice was ruled out by
+    test_conformer_choice_does_not_explain_rdx_hmx_error.
+    """
+    fit_set_pbe0_tzvp = {
+        "methane": ((1, 4, 0, 0), -106264.947, -74.6),
+        "ammonia": ((0, 3, 1, 0), -148375.107, -45.9),
+        "benzene": ((6, 6, 0, 0), -609234.402, 82.6),
+        "methanol": ((1, 4, 0, 1), -303603.640, -201.0),
+        "nitromethane": ((1, 3, 1, 2), -642856.247, -74.3),
+        "methyl_nitrate": ((1, 3, 1, 3), -840123.971, -124.4),
+        "dimethylnitramine": ((2, 6, 2, 2), -891147.276, -5.0),
+        "nitropiperidine": ((5, 10, 2, 2), -1197395.990, -44.0),
+        "ethyl_nitrate": ((2, 5, 1, 3), -943261.853, -155.0),
+    }
+    target_etot_pbe0_tzvp = {
+        "RDX": ((3, 6, 6, 6), -2354598.932),
+        "HMX": ((4, 8, 8, 8), -3139462.804),
+        "PETN": ((5, 8, 4, 12), -3454180.391),
+    }
+    # keshavarz2010_sublimation Hsub, this survey's own computed value -- unchanged from the B3LYP/def2-SVP
+    # fit, since Hsub depends only on molar mass and molecular-class correction terms, not on the QM level
+    # the gas-phase Etot was computed at. RDX (130.44) and PETN (138.02) match the earlier-locked 130.4 /
+    # 138.0 values to within rounding; HMX's Hsub (174.67) is computed here for the first time.
+    hsub = {"RDX": 130.44, "HMX": 174.67, "PETN": 138.02}
+    measured = {"RDX": (66.6, 85.0), "HMX": (116.1,), "PETN": (-539.0,)}
+
+    ae = oae.fit_atom_equivalents(fit_set_pbe0_tzvp)
+
+    # the refit itself is a reasonable fit on its own calibration set -- not simply diverging
+    residuals = [
+        oae.compute_gas_hf(counts, etot, ae) - exp
+        for counts, etot, exp in fit_set_pbe0_tzvp.values()
+    ]
+    assert max(abs(r) for r in residuals) < 15.0
+
+    errors = {}
+    for name, (counts, etot) in target_etot_pbe0_tzvp.items():
+        gas = oae.compute_gas_hf(counts, etot, ae)
+        solid = gas - hsub[name]
+        errors[name] = min(abs(solid - m) for m in measured[name])
+
+    assert errors["RDX"] == pytest.approx(41.0, abs=0.5)
+    assert errors["HMX"] == pytest.approx(53.7, abs=0.5)
+    assert errors["PETN"] == pytest.approx(73.7, abs=0.5)
+
+    # the finding that matters: RDX and HMX get WORSE at the higher level, PETN improves but not enough
+    assert errors["RDX"] > 38.4
+    assert errors["HMX"] > 45.2
+    assert errors["PETN"] < 87.6
+    assert errors["PETN"] > 21.0  # still far outside SENSITIVITY.md's ~21 kJ/mol bar
