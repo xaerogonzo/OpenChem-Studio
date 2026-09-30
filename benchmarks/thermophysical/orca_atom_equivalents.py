@@ -177,7 +177,57 @@ module. **Level of theory is ruled out as the fix for RDX/HMX's residual, the sa
 was ruled out earlier** (see finding 1 above). `CALIBRATION_SET` and `TARGET_ETOT_KJMOL` below stay at
 B3LYP/def2-SVP, the level this whole module's fit history is built on; the PBE0/def2-TZVP numbers are
 not adopted as the module's data, only recorded here and in the paired locked-in test, since they do not
-represent an improvement worth switching the whole calibration history over to."""
+represent an improvement worth switching the whole calibration history over to.
+
+**Gate C, 2026-09-30: a second multi-site ring nitramine, and a new PETN-topology target.** A literature
+search for a compound closer to RDX's/HMX's own ring-N-NO2 chemistry than any single-site nitramine
+already in the set found **1,4-dinitropiperazine** (a 6-membered ring bearing TWO N-NO2 groups, one on
+each ring nitrogen) with a real NIST WebBook gas-phase DfH = 58 +/- 3 kJ/mol (Pepekin, Matyushin, Lebedev,
+1974, Bull. Acad. Sci. USSR, Div. Chem. Sci., 1707-1710 -- the same primary-source series already behind
+`dimethylnitramine`/`nitropiperidine`). Run through this module's own real-ORCA recipe (B3LYP/def2-SVP
+opt, ETKDGv3 seed 0xC0FFEE, MMFF94 pre-optimize) and added to `CALIBRATION_SET` as a TENTH point. A
+second search, for a branched/quaternary-carbon nitrate ester closer to PETN's own four-arm topology
+than methyl/ethyl nitrate, again found no usable GAS-phase reference for the two most obvious plain
+candidates (neopentyl nitrate has no thermochemistry on NIST WebBook at all; neopentyl glycol dinitrate
+has only a solid-phase combustion enthalpy, no DfH and no sublimation/vaporization data) -- but found
+**metriol trinitrate** (trimethylolethane trinitrate, MTN, CAS 3032-55-1): a real explosive, a
+quaternary carbon bearing THREE -CH2-ONO2 arms plus one -CH3 (one arm short of PETN's own four), with a
+real NIST WebBook SOLID-phase DfH = -450.2 kJ/mol (Tavernier, 1956, Mem. Poudres, 301-327). Since MTN
+has no gas-phase reference value, it cannot be a `CALIBRATION_SET` fit point -- it becomes a new TARGET,
+combined-route only, exactly the role PETN itself plays (added to `TARGET_ETOT_KJMOL` as `MTN`).
+
+**The refit result is dramatic, and its mechanism was checked, not just accepted.** Refitting on the
+10-point set (adding only dinitropiperazine; MTN is a target, never a fit point) barely moves the atom
+equivalents themselves -- each element's fitted value shifts by only 2-7 kJ/mol from the 9-point fit --
+and the fit quality on its own calibration set is essentially unchanged (RMSE 9.0 -> 9.6 kJ/mol, still a
+normal range, dinitropiperazine's own residual a middling 7.2 kJ/mol, not a near-zero residual bought at
+the expense of the other nine). The design matrix's condition number even improves slightly (13.6 ->
+10.7), so this is not new collinearity or instability. What makes the DOWNSTREAM effect large is that
+RDX and HMX are unusually nitrogen-rich (6 and 8 N atoms respectively) -- a few-kJ/mol shift in the
+nitrogen atom equivalent alone multiplies into tens of kJ/mol for these two specific targets, which is
+exactly the population dinitropiperazine's own N-NO2-ring-nitrogen environment was chosen to inform.
+This is a real, understood mechanism, not an unexplained coincidence.
+
+    compound   9-fit solid (kJ/mol)   10-fit solid (kJ/mol)   measured           9-fit err   10-fit err
+    RDX          123.35                  87.24                 66.6 / 85.0        38.4         2.2 (best)
+    HMX          161.32                 113.18                 116.1              45.2         2.9
+    PETN        -451.45                -469.85                -539.0              87.6        69.2
+    MTN (new)   -440.66 (9-fit)        -451.16 (10-fit)        -450.2               9.5          1.0
+
+RDX and HMX both go from clearly failing SENSITIVITY.md's ~21 kJ/mol bar to clearing it by roughly an
+order of magnitude. PETN improves but still fails badly. **MTN, evaluated as a genuinely new target
+under BOTH the old 9-fit and the new 10-fit, is remarkably well predicted either way** (9.5 kJ/mol at
+the 9-fit, 1.0 kJ/mol at the 10-fit) -- far better than PETN's own result at any fit tried in this
+survey, consistent with this survey's own repeated finding that PETN's specific four-arm topology, not
+nitrate-ester chemistry generally, is what an elemental atom-equivalent scheme cannot represent (MTN has
+only three arms and is well predicted; PETN has four and is not).
+
+**This is genuinely promising, and explicitly NOT yet a validated conclusion.** A single new calibration
+compound moving RDX and HMX this far, even with a checked, sane mechanism behind it, is exactly the
+shape of result this survey has learned not to trust from one point alone (PETN's own monotonic-worsening
+finding was not treated as real until it reproduced across two independent refits under the RDKit-drift
+correction). The next genuinely confirming step is a SECOND multi-site ring nitramine (a 5-membered or
+different-substitution-pattern analogue), not declaring RDX/HMX solved on this one addition."""
 
 from __future__ import annotations
 
@@ -208,6 +258,9 @@ CALIBRATION_SET = {
     "nitropiperidine": ((5, 10, 2, 2), -1196706.729, -44.0),
     # NIST WebBook (Gray, Pratt, Larkin, 1956) -- a second, simple primary nitrate ester.
     "ethyl_nitrate": ((2, 5, 1, 3), -942707.230, -155.0),
+    # NIST WebBook (Pepekin, Matyushin, Lebedev, 1974) -- a THIRD nitramine, and the first with TWO ring
+    # N-NO2 sites on one ring (RDX has three, HMX has four) -- added 2026-09-30, Track 4 Gate C.
+    "dinitropiperazine": ((4, 8, 4, 4), -1774984.380, 58.0),
 }
 
 #: RDX, HMX, PETN Etot from the same real ORCA jobs -- no experimental gas-phase DfH exists to check
@@ -218,6 +271,11 @@ TARGET_ETOT_KJMOL = {
     "RDX": ((3, 6, 6, 6), -2353224.239),
     "HMX": ((4, 8, 8, 8), -3137634.721),
     "PETN": ((5, 8, 4, 12), -3452150.435),
+    # Metriol trinitrate (MTN, trimethylolethane trinitrate) -- a quaternary carbon with THREE
+    # -CH2-ONO2 arms plus one -CH3 (PETN has four arms, no methyl) -- added 2026-09-30, Track 4 Gate C.
+    # No gas-phase reference exists (NIST WebBook gives only a solid-phase DfH), so MTN is a target,
+    # never a CALIBRATION_SET fit point -- the same role PETN itself plays.
+    "MTN": ((5, 9, 3, 9), -2718768.897),
 }
 
 ELEMENTS = ("C", "H", "N", "O")

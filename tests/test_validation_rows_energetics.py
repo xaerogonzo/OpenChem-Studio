@@ -67,12 +67,13 @@ def test_rdx_carries_two_independent_klapotke_readings(vre):
     assert values == [66.6, 85.0]
 
 
-def test_development_rows_are_exactly_the_nine_orca_calibration_compounds(vre):
+def test_development_rows_are_exactly_the_ten_orca_calibration_compounds(vre):
+    """Track 4 Gate C (2026-09-30) added "hf_dinitropiperazine_gas" as a tenth calibration compound."""
     development_hf = {row.row_id for row in vre.HF_ROWS if row.partition == "development"}
     assert development_hf == {
         "hf_dimethylnitramine_gas", "hf_nitropiperidine_gas", "hf_methane_gas", "hf_ammonia_gas",
         "hf_benzene_gas", "hf_methanol_gas", "hf_nitromethane_gas", "hf_methyl_nitrate_gas",
-        "hf_ethyl_nitrate_gas",
+        "hf_ethyl_nitrate_gas", "hf_dinitropiperazine_gas",
     }
 
 

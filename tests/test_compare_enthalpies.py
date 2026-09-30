@@ -32,24 +32,37 @@ def rows(ce):
     return {row["name"]: row for row in ce.compare()}
 
 
-def test_five_compound_corpus(rows):
-    assert set(rows) == {"RDX", "HMX", "PETN", "TNT", "TATB"}
+def test_six_compound_corpus(rows):
+    """Track 4 Gate C (2026-09-30) added MTN (metriol trinitrate) as a sixth corpus member -- a new
+    target for orca_atom_equivalents's combined route, closer to PETN's own four-arm topology than
+    methyl/ethyl nitrate."""
+    assert set(rows) == {"RDX", "HMX", "PETN", "MTN", "TNT", "TATB"}
 
 
 def test_rdx_hmx_petn_combined_routes_match_this_sessions_recorded_values(rows):
     """Locks in the numbers recorded in literature.toml -- this module is a NEW wiring around the same
     computation, and must reproduce it exactly, not approximately. The APC-route numbers are unaffected
-    by orca_atom_equivalents and unchanged from before. The ORCA-route numbers were RE-RUN fresh
-    2026-09-29 after discovering the previous ones were computed at different, undocumented points in an
-    RDKit-version drift across sessions -- see orca_atom_equivalents.py's module docstring RETRACTED
-    note. They reflect the fresh, internally-consistent 9-point calibration set, not the old
-    (drift-affected) one."""
+    by orca_atom_equivalents and unchanged from before. The ORCA-route numbers reflect the ten-point
+    calibration set (Track 4 Gate C, 2026-09-30 -- added 1,4-dinitropiperazine), not the original
+    nine-point one; see orca_atom_equivalents.py's module docstring for the fresh 9->10 point comparison
+    and why the swing is this large."""
     assert rows["RDX"]["combined_solid_hf_apc_kj_mol"] == pytest.approx(50.1, abs=0.2)
-    assert rows["RDX"]["combined_solid_hf_orca_kj_mol"] == pytest.approx(123.3, abs=0.2)
+    assert rows["RDX"]["combined_solid_hf_orca_kj_mol"] == pytest.approx(87.24, abs=0.2)
     assert rows["HMX"]["combined_solid_hf_apc_kj_mol"] == pytest.approx(66.0, abs=0.2)
-    assert rows["HMX"]["combined_solid_hf_orca_kj_mol"] == pytest.approx(161.3, abs=0.2)
+    assert rows["HMX"]["combined_solid_hf_orca_kj_mol"] == pytest.approx(113.18, abs=0.2)
     assert rows["PETN"]["combined_solid_hf_apc_kj_mol"] == pytest.approx(-482.0, abs=0.2)
-    assert rows["PETN"]["combined_solid_hf_orca_kj_mol"] == pytest.approx(-451.4, abs=0.2)
+    assert rows["PETN"]["combined_solid_hf_orca_kj_mol"] == pytest.approx(-469.85, abs=0.2)
+
+
+def test_mtn_combined_route_is_well_predicted(rows):
+    """Track 4 Gate C: MTN's own combined-route prediction against its real measured solid Hf
+    (-450.2 kJ/mol, Tavernier 1956 via NIST WebBook) -- far closer than PETN's own best result anywhere
+    in this survey, consistent with PETN's four-arm topology specifically being the hard case, not
+    nitrate-ester chemistry generally."""
+    measured = rows["MTN"]["measured_solid_hf_kj_mol"][0]
+    assert measured == pytest.approx(-450.2, abs=0.01)
+    assert rows["MTN"]["combined_solid_hf_orca_kj_mol"] == pytest.approx(-451.16, abs=0.2)
+    assert abs(rows["MTN"]["combined_solid_hf_orca_kj_mol"] - measured) <= 21.0
 
 
 def test_tnts_apc_combined_route_was_never_computed_standalone_before_this_module(rows):

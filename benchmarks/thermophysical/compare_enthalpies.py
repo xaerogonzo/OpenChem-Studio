@@ -54,6 +54,7 @@ _HSUB_CORRECTIONS = {
     "RDX": ("nitramine", {"n_n_no2": 3}),
     "HMX": ("nitramine", {"n_n_no2": 4}),
     "PETN": (None, {}),
+    "MTN": (None, {}),
     "TNT": ("nitroaromatic", {"n_r_over_no2": 1 / 3}),
     "TATB": ("nitroaromatic", {"n_nh2": 3}),
 }
@@ -73,6 +74,8 @@ CORPUS = {
             "formula": (4, 8, 8, 8)},
     "PETN": {"smiles": "C(C(CO[N+](=O)[O-])(CO[N+](=O)[O-])CO[N+](=O)[O-])O[N+](=O)[O-]", "stratum": "nitrate_ester",
              "formula": (5, 8, 4, 12)},
+    "MTN": {"smiles": "CC(CO[N+](=O)[O-])(CO[N+](=O)[O-])CO[N+](=O)[O-]", "stratum": "nitrate_ester",
+            "formula": (5, 9, 3, 9)},
     "TNT": {"smiles": "Cc1c(cc(cc1[N+](=O)[O-])[N+](=O)[O-])[N+](=O)[O-]", "stratum": "nitroaromatic",
             "formula": None},
     "TATB": {"smiles": "Nc1c(N)c([N+](=O)[O-])c(N)c([N+](=O)[O-])c1[N+](=O)[O-]", "stratum": "nitroaromatic",
