@@ -1277,3 +1277,93 @@ neither paper's own RDX/HMX table should be read as independent corroboration fo
 Status: CANDIDATE -> read; SOURCE_VALIDATED (abstract statistics independently confirmed against the
 PDF). reproduction_status = not attempted (Table 2's correction terms not yet transcribed in enough
 detail; see above)."""
+
+[[source]]
+id = "manaa2016_composite_qm"
+file = "manaa2016_composite_qm.pdf"
+sha256 = "2f11d84223eacb584c10702f1a7c00250cf696edcb1c3eb1fc4237e50dccce89"
+pages = 21
+access = "held_accepted_manuscript"
+printed.doi = ""
+printed.title = "Determination of Enthalpies of Formation of Energetic Molecules with Composite Quantum Chemical Methods"
+printed.venue = "Chemical Physics Letters (submitted 2015-12-17); LLNL-JRNL-680299 (no DOI printed on this manuscript -- carries an LLNL report number instead); M. R. Manaa, L. E. Fried, I-F. W. Kuo, Lawrence Livermore National Laboratory"
+assigned.property = "enthalpy_gas"
+assigned.role = "benchmark_reference"
+note = """Found 2026-09-30 (Track 4, Gate A: searching for an alternative nitramine/nitrate-ester
+condensed-Hf source beyond the Keshavarz lineage already read). Located via web search, fetched directly
+from OSTI.gov (osti.gov/servlets/purl/1245711) -- an LLNL public report, no paywall, so obtained and
+saved here myself rather than requested from Alex (`feedback_fetch_open_access_papers_myself`). This is
+the LLNL author manuscript (carries an LLNL-JRNL report number, not ACS/Elsevier typesetting) -- the
+DOI/venue printed above is the report's own self-identification, not a journal DOI; access recorded as
+`held_accepted_manuscript`, not `held`, for that reason.
+
+route = a fourth, genuinely different category from every route this survey has tried: composite ab
+initio quantum chemistry (Gaussian-n G2/G3/G4, plus a variant of the correlation-consistent Composite
+Approach, ccCA-PS3) computing gas-phase DfH directly from atomization energies (Eqs 1-3, this paper's own
+printed equations, read and confirmed present) -- not DFT + atom-equivalent fitting
+(`orca_atom_equivalents`, Byrd & Rice's own scheme) and not empirical group-additivity
+(`keshavarz_sadeghi2009`/`keshavarz2006`/`nazari2016`). Compounds studied: NTO, DADE, LLM-105, TNT, RDX,
+TATB, HMX, and PETN -- all eight, confirmed from the abstract and Table I (RDX/HMX/PETN's presence
+verified from prose, not just the compound list; Table I/II themselves extracted in garbled,
+positionally-scrambled column order by pymupdf's text layer -- the same multi-column-table trap already
+known from Ionescu 2013's SI -- and NOT relied on here; every number below comes from the paper's own
+prose paragraphs, independently confirmed present in the text, not from re-deriving the tables).
+
+**This route is NOT computationally feasible on this survey's own hardware, at any of the four levels
+tried.** The paper states explicitly: the largest ccCA-PS3 step (a single-point CCSD(T)/cc-pVTZ energy
+on PETN) needed a specialty machine with 500 GB RAM across 32 CPUs for over 21 days; a related NWChem
+coupled-cluster step on HMX/PETN used 6144 processors (1024 nodes) on LLNL's Sierra cluster for 7 hours.
+This survey's own ORCA jobs run on 8 cores locally in minutes to hours (PBE0/def2-TZVP full HMX
+reoptimization: ~1 hour). **This paper is therefore recorded as a benchmark/evidence source, not a
+candidate method to reproduce or adopt** -- there is no version of G2/G3/G4/ccCA-PS3 for a 44-second-atom
+molecule like PETN that this machine could run.
+
+**Its own reported accuracy against experiment, read from the prose (not the garbled tables)**: for RDX,
+ccCA-PS3's calculated gas-phase DfH(298K) = 45.3 kcal/mol vs. the paper's cited experimental gas value
+45.9 kcal/mol (Rosen & Dickinson 1969 / Krien et al. 1973) -- a 0.6 kcal/mol (2.5 kJ/mol) difference,
+far closer than G4's 40.8 kcal/mol. For HMX, ccCA-PS3 = 59.8 kcal/mol vs. two cited experimental gas
+values 58.9 (Rosen & Dickinson / Krien et al.) and 62.9 kcal/mol (Ornellas 1974), clearly closer than G3
+(53.3) or G4 (52.3). For PETN, ccCA-PS3 = -98.0 kcal/mol vs. cited experimental -91.1 kcal/mol (Lau et
+al. 2004 / Ornellas 1966) -- a 6.9 kcal/mol gap, worse than RDX/HMX's own agreement but still much closer
+than G3 (-106.0) or G4 (-105.7). The paper's own conclusion is explicitly NOT a validated success: "a
+consistent predictive methodology with desired chemical accuracy of 1-2 kcal/mol is still lacking for
+energetic systems" -- ccCA-PS3 is simply the least-bad of the four methods tried here, not a solved
+problem, and the paper only claims gas-phase accuracy, never attempting a sublimation/solid-phase step
+itself (it states this explicitly: "We confine the present study to the gas-phase enthalpy of
+formation.").
+
+**Converted to solid-phase DfH using THIS survey's own `keshavarz2010_sublimation` Hsub values (computed
+precisely, not by hand) and compared against Klapoetke's measured values already used throughout this
+survey** -- a comparison the paper itself never makes, since it stops at the gas phase:
+
+    compound   ccCA-PS3 gas (kJ/mol)   -Hsub (kJ/mol)   ccCA-PS3-implied solid   Klapoetke measured   error
+    RDX          189.54                  130.44            59.10                  66.6 / 85.0          7.5 kJ/mol (best)
+    HMX          250.20                  174.67            75.53                  116.1               40.6 kJ/mol
+    PETN        -410.03                  138.02           -548.05                 -539.0               9.1 kJ/mol
+
+**RDX and PETN's ccCA-PS3-implied solid values are, by a wide margin, the best result anywhere in this
+entire survey** (7.5 and 9.1 kJ/mol, vs. this survey's own best atom-equivalent results of 13.2 kJ/mol
+for RDX and 59.5 kJ/mol for PETN) -- genuinely strong evidence that the underlying chemistry IS
+predictable to within this survey's own ~21 kJ/mol bar, and that the accuracy ceiling this survey has
+been hitting (B3LYP/def2-SVP and PBE0/def2-TZVP atom-equivalent fits, Byrd & Rice's own scheme, every
+Keshavarz-lineage empirical equation) is a property of THOSE specific methods, not of RDX/PETN's
+chemistry being unpredictable in principle. **HMX is the exception, and by a lot** (40.6 kJ/mol, worse
+than this survey's own best HMX result of 42.3 kJ/mol only by a hair, but nowhere near RDX/PETN's
+agreement) -- but this may say more about HMX's own cited experimental gas value than about ccCA-PS3
+itself: the paper's cited HMX experimental gas values (58.9/62.9 kcal/mol) rest on the same 1969-1974-era
+primary sources (Rosen & Dickinson 1969, Krien et al. 1973, Ornellas 1974) already flagged elsewhere in
+this survey's Keshavarz-lineage reading as producing RDX/HMX values that do not match Klapoetke's own
+(later, textbook-curated) 116.1 kJ/mol figure -- this is a genuine, unresolved discrepancy, not
+attributed to either source here, and PETN's own cited experimental gas value (Lau et al. 2004 / Ornellas
+1966) converts to -519.2 kJ/mol solid, within 19.8 kJ/mol of Klapoetke's -539.0, so the general pattern
+of old primary sources disagreeing with Klapoetke's curated values by tens of kJ/mol specifically for HMX
+(not RDX, not PETN) continues here, exactly as it did for `keshavarz2006`/`nazari2016`'s own RDX/HMX
+experimental-value swap.
+
+Status: CANDIDATE -> read; SOURCE_VALIDATED (all quoted numbers confirmed present in the paper's own
+prose). Not a candidate METHOD (computationally infeasible here), but a valuable benchmark: real evidence
+that RDX's and PETN's gas-phase DfH are accurately predictable by ab initio methods in principle, that
+this survey's own DFT/atom-equivalent ceiling is a limitation of the METHOD tried, not the chemistry, and
+that HMX's own literature "experimental" values carry a real, still-unexplained spread of several tens of
+kJ/mol depending on which primary source is used -- worth remembering the next time an HMX result looks
+anomalous."""
