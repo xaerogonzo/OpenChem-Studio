@@ -272,6 +272,90 @@ def test_dragging_pans_the_view_without_changing_its_span(qapp):
     assert (after_x[0], after_x[1]) != (before_x[0], before_x[1])
 
 
+# --- Click-to-select -------------------------------------------------------
+
+
+def _click_event(pos: QPointF, event_type=None):
+    from PySide6.QtCore import Qt
+    from PySide6.QtGui import QMouseEvent
+
+    if event_type is None:
+        event_type = QMouseEvent.Type.MouseButtonPress
+    return QMouseEvent(
+        event_type, pos, pos, Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier,
+    )
+
+
+def test_clicking_a_peak_emits_its_atom_pair(qapp):
+    from PySide6.QtGui import QMouseEvent
+
+    widget = NmrCorrelationPlotWidget(
+        [Peak(x=1.0, y=1.0, atom_a=0, atom_b=1), Peak(x=9.0, y=9.0, atom_a=2, atom_b=3)],
+        show_contours=False,
+    )
+    widget.resize(400, 400)
+    plot_rect = widget._plot_rect()
+    (x_min, x_max), (y_min, y_max) = widget.view_ranges()
+    px, py = widget._to_widget_coords(9.0, 9.0, plot_rect, (x_min, x_max), (y_min, y_max))
+    pos = QPointF(px, py)
+
+    emitted: list[tuple[int, int]] = []
+    widget.peak_selected.connect(lambda a, b: emitted.append((a, b)))
+
+    widget.mousePressEvent(_click_event(pos, QMouseEvent.Type.MouseButtonPress))
+    widget.mouseReleaseEvent(_click_event(pos, QMouseEvent.Type.MouseButtonRelease))
+
+    assert emitted == [(2, 3)]
+    assert widget._highlighted_pair == (2, 3)
+
+
+def test_a_drag_past_the_click_threshold_does_not_select_a_peak(qapp):
+    """The same press-drag-release a pan uses must not ALSO fire a peak
+    selection -- `_CLICK_MAX_DRIFT` is what tells the two apart."""
+    from PySide6.QtGui import QMouseEvent
+
+    widget = NmrCorrelationPlotWidget([Peak(x=1.0, y=1.0, atom_a=0, atom_b=1)])
+    widget.resize(400, 400)
+    plot_rect = widget._plot_rect()
+    start = plot_rect.center()
+    end = QPointF(start.x() + 40, start.y())
+
+    emitted: list[tuple[int, int]] = []
+    widget.peak_selected.connect(lambda a, b: emitted.append((a, b)))
+
+    widget.mousePressEvent(_click_event(start, QMouseEvent.Type.MouseButtonPress))
+    widget.mouseMoveEvent(_click_event(end, QMouseEvent.Type.MouseMove))
+    widget.mouseReleaseEvent(_click_event(end, QMouseEvent.Type.MouseButtonRelease))
+
+    assert emitted == []
+
+
+def test_clicking_empty_space_selects_nothing(qapp):
+    widget = NmrCorrelationPlotWidget([Peak(x=1.0, y=1.0, atom_a=0, atom_b=1)])
+    widget.resize(400, 400)
+    far_corner = QPointF(5.0, 5.0)
+
+    emitted: list[tuple[int, int]] = []
+    widget.peak_selected.connect(lambda a, b: emitted.append((a, b)))
+
+    widget.mousePressEvent(_click_event(far_corner))
+    widget.mouseReleaseEvent(_click_event(far_corner, type(_click_event(far_corner)).Type.MouseButtonRelease))
+
+    assert emitted == []
+    assert widget._highlighted_pair is None
+
+
+def test_set_highlighted_pair_is_the_inbound_half_of_the_link(qapp):
+    """A table-row selection drives this directly -- no click involved."""
+    widget = NmrCorrelationPlotWidget([Peak(x=1.0, y=1.0, atom_a=0, atom_b=1)])
+    widget.set_highlighted_pair(0, 1)
+    assert widget._highlighted_pair == (0, 1)
+
+    widget.set_highlighted_pair(None, None)
+    assert widget._highlighted_pair is None
+
+
 def test_contour_rendering_survives_every_degenerate_case(qapp):
     """Empty, single-peak and identical-position spectra all reach the
     grid code, and a zero-width axis range is the one that would divide

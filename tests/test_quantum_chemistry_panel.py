@@ -367,6 +367,23 @@ def test_spectrum_computed_populates_correlation_tabs(qapp):
     assert len(panel._correlation_plots["hsqc"]._peaks) == 5
     assert panel._correlation_tables["cosy"].rowCount() > 0
 
+    # Bidirectional selection, through (atom_a, atom_b) rather than row
+    # position or coordinates: the table drives the plot...
+    table = panel._correlation_tables["hsqc"]
+    plot = panel._correlation_plots["hsqc"]
+    table.selectRow(2)
+    atom_a = int(table.item(2, 0).text())
+    atom_b = int(table.item(2, 1).text())
+    assert plot._highlighted_pair == (atom_a, atom_b)
+
+    # ...and a peak click drives the table back, landing on the SAME row
+    # regardless of which one was selected a moment ago.
+    other_row = 0 if atom_a != int(table.item(0, 0).text()) else 1
+    panel._on_correlation_peak_selected(
+        "hsqc", int(table.item(other_row, 0).text()), int(table.item(other_row, 1).text())
+    )
+    assert {index.row() for index in table.selectedIndexes()} == {other_row}
+
 
 def test_a_stored_run_repaints_the_panel_with_no_job_submitted_this_session(qapp):
     """The actual persistence bug this was all for: `_pending_molecule_uuid`

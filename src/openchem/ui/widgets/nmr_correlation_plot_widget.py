@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from PySide6.QtCore import QLineF, QPointF, QRectF, Qt
+from PySide6.QtCore import QLineF, QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QMouseEvent, QPainter, QPen, QWheelEvent
 from PySide6.QtWidgets import QWidget
 
@@ -17,20 +17,35 @@ _ZOOM_STEP = 0.85
 #: below it the axes stop meaning anything, and contour tracing over a
 #: near-zero range is wasted work.
 _MIN_ZOOM_FRACTION = 0.02
+#: A press/release pair closer together than this, in pixels, is a CLICK
+#: (resolve the nearest peak) rather than a PAN (the view already moved).
+_CLICK_MAX_DRIFT = 4.0
+#: How close a click has to land to a peak's drawn centre, in pixels, to
+#: select it -- independent of `_CONTOUR_COLOUR`'s drawn dot radius, which
+#: is deliberately tiny so it reads as the exact datum, not a hit target.
+_CLICK_HIT_RADIUS = 10.0
+_HIGHLIGHT_COLOUR = QColor(214, 100, 20)
 
 
 @dataclass(frozen=True)
 class Peak:
     """A single point on a 2D correlation plot.
 
-    Kept to (x, y, optional label) so that the contour renderer added
-    later consumes exactly this, with no data-model change -- which is
-    what Phase 22 predicted when it deferred contours, and it held.
+    `atom_a`/`atom_b` are the cross peak's STABLE identity -- the same
+    pair the table row beside this plot was built from (see
+    `QuantumChemistryPanel._populate_correlation_tab`). A click resolves
+    to a peak, and a peak resolves to a table row and a pair of atoms,
+    through this pair rather than by "whichever row has nearby
+    coordinates": two cross peaks can legitimately share a shift pair
+    (a symmetric molecule, or two diastereotopic protons), where
+    coordinates alone would not tell them apart.
     """
 
     x: float
     y: float
     label: str | None = None
+    atom_a: int | None = None
+    atom_b: int | None = None
 
 
 class NmrCorrelationPlotWidget(QWidget):
@@ -54,6 +69,10 @@ class NmrCorrelationPlotWidget(QWidget):
     one taller feature -- which is true of the drawing and true of a real
     spectrum, and is the one place the shape carries information.
     """
+
+    #: Emits (atom_a, atom_b) of the clicked peak -- the outbound half of
+    #: the bidirectional link to the table beside this plot.
+    peak_selected = Signal(int, int)
 
     _MARGIN = 50.0
     _CONTOUR_COLOUR = QColor(30, 100, 200)
@@ -90,8 +109,17 @@ class NmrCorrelationPlotWidget(QWidget):
         self._view_y_range: tuple[float, float] | None = None
         self._panning = False
         self._pan_last_pos: QPointF | None = None
+        self._press_pos: QPointF | None = None
+        #: The selected (atom_a, atom_b) pair, or None -- the inbound half
+        #: of the link, set by `set_highlighted_pair` when a table row is
+        #: selected instead of a peak clicked directly.
+        self._highlighted_pair: tuple[int, int] | None = None
         self.setMinimumSize(280, 280)
         self.setMouseTracking(False)
+
+    def set_highlighted_pair(self, atom_a: int | None, atom_b: int | None) -> None:
+        self._highlighted_pair = (atom_a, atom_b) if atom_a is not None and atom_b is not None else None
+        self.update()
 
     def view_ranges(self) -> tuple[tuple[float, float], tuple[float, float]]:
         """The ranges actually drawn -- the zoomed/panned window if one is
@@ -237,14 +265,23 @@ class NmrCorrelationPlotWidget(QWidget):
 
         painter.save()
         painter.setClipRect(plot_rect)
-        painter.setPen(QPen(self._CONTOUR_COLOUR))
-        painter.setBrush(self._CONTOUR_COLOUR)
         for peak in self._peaks:
+            highlighted = (
+                self._highlighted_pair is not None
+                and peak.atom_a is not None
+                and (peak.atom_a, peak.atom_b) == self._highlighted_pair
+            )
+            colour = _HIGHLIGHT_COLOUR if highlighted else self._CONTOUR_COLOUR
+            painter.setPen(QPen(colour))
+            painter.setBrush(colour)
             px, py = self._to_widget_coords(peak.x, peak.y, plot_rect, x_range, y_range)
             # A small centre mark stays even under contours: it is the
             # actual datum, and at a low zoom two merged blobs would
-            # otherwise hide how many peaks are really there.
-            radius = 1.5 if self._show_contours else 3.0
+            # otherwise hide how many peaks are really there. A selected
+            # peak is drawn larger rather than just recoloured, the same
+            # "bigger AND a different colour" NmrSpectrumWidget uses for a
+            # highlighted stick.
+            radius = (3.0 if highlighted else 1.5) if self._show_contours else (5.0 if highlighted else 3.0)
             painter.drawEllipse(QRectF(px - radius, py - radius, radius * 2, radius * 2))
             if peak.label:
                 painter.drawText(QRectF(px + 5, py - 8, 60, 16), Qt.AlignmentFlag.AlignLeft, peak.label)
@@ -315,6 +352,7 @@ class NmrCorrelationPlotWidget(QWidget):
         if event.button() == Qt.MouseButton.LeftButton and self._peaks:
             self._panning = True
             self._pan_last_pos = event.position()
+            self._press_pos = event.position()
             event.accept()
         else:
             super().mousePressEvent(event)
@@ -340,10 +378,31 @@ class NmrCorrelationPlotWidget(QWidget):
             self.update()
         event.accept()
 
+    def _peak_near(self, pos: QPointF, plot_rect: QRectF) -> Peak | None:
+        """The nearest peak to `pos`, within `_CLICK_HIT_RADIUS` pixels, or
+        None. Ties (two peaks equidistant, or overlapping) go to whichever
+        was drawn LAST -- the one on top, matching what the eye sees."""
+        x_range, y_range = self.view_ranges()
+        best: tuple[float, Peak] | None = None
+        for peak in self._peaks:
+            px, py = self._to_widget_coords(peak.x, peak.y, plot_rect, x_range, y_range)
+            distance = ((px - pos.x()) ** 2 + (py - pos.y()) ** 2) ** 0.5
+            if distance <= _CLICK_HIT_RADIUS and (best is None or distance <= best[0]):
+                best = (distance, peak)
+        return best[1] if best else None
+
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802 - Qt override naming
         if event.button() == Qt.MouseButton.LeftButton:
             self._panning = False
+            press_pos, self._press_pos = self._press_pos, None
             self._pan_last_pos = None
+            if press_pos is not None:
+                drift = ((event.position().x() - press_pos.x()) ** 2 + (event.position().y() - press_pos.y()) ** 2) ** 0.5
+                if drift <= _CLICK_MAX_DRIFT:
+                    peak = self._peak_near(event.position(), self._plot_rect())
+                    if peak is not None and peak.atom_a is not None and peak.atom_b is not None:
+                        self.set_highlighted_pair(peak.atom_a, peak.atom_b)
+                        self.peak_selected.emit(peak.atom_a, peak.atom_b)
             event.accept()
         else:
             super().mouseReleaseEvent(event)

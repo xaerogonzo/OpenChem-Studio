@@ -932,6 +932,7 @@ class QuantumChemistryPanel(QWidget):
             _document_header(table, _CORRELATION_COLUMN_HELP)
             table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
             table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+            table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
             plot = NmrCorrelationPlotWidget(parent=tab)
             # One checkbox per tab rather than one for the panel: HSQC is
             # sparse enough to read as dots while HMBC on the same molecule
@@ -943,27 +944,46 @@ class QuantumChemistryPanel(QWidget):
             # renderings, told apart by `instance_path`.
             apply_help_tooltip(contour_toggle, _HELP["correlation_contours"])
             contour_toggle.toggled.connect(plot.set_show_contours)
-            tab_layout.addWidget(table)
-            tab_layout.addWidget(contour_toggle)
-            # The plot is the cramped half of this tab -- a contour map in
-            # a 420 px dock under a table -- so it gets a pop-out host.
-            # Wrapping only the PLOT leaves `tab.children()` otherwise
-            # untouched, which is what `_content_of` walks.
-            tab_layout.addWidget(
-                PopOutHost(
-                    plot,
-                    title=f"{correlation_type.upper()} correlations",
-                    settings_id=f"quantum.correlation_{correlation_type}",
-                    settings=self._settings,
-                    parent=tab,
-                )
+            host = PopOutHost(
+                plot,
+                title=f"{correlation_type.upper()} correlations",
+                settings_id=f"quantum.correlation_{correlation_type}",
+                settings=self._settings,
+                parent=tab,
             )
+            # Stretch, not a real QSplitter: `table`, `contour_toggle` and
+            # `host` all stay tab's own DIRECT children, which is what
+            # `_content_of` requires (see its docstring -- a dict keyed by
+            # a QWidget corrupted the heap once already; nesting an
+            # extra container here would just be a different way of
+            # breaking the same invariant, since `host` would no longer
+            # be discoverable at `tab.children()`). The table is the
+            # lookup reference; the plot is what the zoom/pan work above
+            # exists for -- roughly a quarter/three-quarters split, not
+            # equal halves. A user-draggable split was the plan's first
+            # idea, but it costs exactly this invariant for a panel that
+            # already crashed once over it.
+            tab_layout.addWidget(table, 1)
+            tab_layout.addWidget(contour_toggle, 0)
+            tab_layout.addWidget(host, 3)
             self._correlation_tabs.addTab(tab, correlation_type.upper())
             tab_index = self._correlation_tabs.indexOf(tab)
             self._tab_status_titles[tab_index] = correlation_type.upper()
             self._tab_status_keys[tab_index] = "spectrum"
             self._correlation_tables[correlation_type] = table
             self._correlation_plots[correlation_type] = plot
+            # Bidirectional, the same shape `NmrViewWidget` already uses
+            # for the 1D spectrum: a table row selects its peak, a peak
+            # click selects its row -- both through the (atom_a, atom_b)
+            # pair, never coordinates or row position.
+            table.itemSelectionChanged.connect(
+                lambda correlation_type=correlation_type: self._on_correlation_row_selected(correlation_type)
+            )
+            plot.peak_selected.connect(
+                lambda atom_a, atom_b, correlation_type=correlation_type: self._on_correlation_peak_selected(
+                    correlation_type, atom_a, atom_b
+                )
+            )
             # Painted into the plot rather than added as a placeholder
             # widget -- see `ui/widgets/empty_state.py` for the heap
             # corruption that a placeholder in a content-bearing tab
@@ -990,6 +1010,14 @@ class QuantumChemistryPanel(QWidget):
         `form` is built HERE rather than in its own step because it
         is a local read by `layout.addLayout(form)`.
         """
+        # Two distinct sections, not one form that happens to have a
+        # history control at the bottom: selecting an old run in "Currently
+        # viewing" must never read as having changed what "Calculation to
+        # run" is about to submit -- the exact ambiguity a single unlabelled
+        # block would invite.
+        calculation_heading = QLabel("Calculation to run", self)
+        calculation_heading.setStyleSheet("font-weight: bold;")
+
         form = QFormLayout()
         form.addRow("Molecule:", self._molecule_combo)
         form.addRow("Calculation:", self._calc_type_combo)
@@ -1017,6 +1045,9 @@ class QuantumChemistryPanel(QWidget):
         # "Currently viewing," separate from the form above it ("calculation
         # to run"): selecting a run here must never look like it changed
         # what the next Run press will submit, and it does not.
+        viewing_heading = QLabel("Currently viewing", self)
+        viewing_heading.setStyleSheet("font-weight: bold;")
+
         runs_row = flow_row(self)
         runs_row.layout().addWidget(QLabel("Runs:", self))
         runs_row.layout().addWidget(self._runs_combo)
@@ -1037,8 +1068,10 @@ class QuantumChemistryPanel(QWidget):
         # panel during a ten-minute ORCA run reads as a hang.
 
         layout = QVBoxLayout(self)
+        layout.addWidget(calculation_heading)
         layout.addLayout(form)
         layout.addWidget(run_row)
+        layout.addWidget(viewing_heading)
         layout.addWidget(runs_row)
         layout.addWidget(self._status_label)
         layout.addWidget(self._results_label)
@@ -1883,9 +1916,11 @@ class QuantumChemistryPanel(QWidget):
         for correlation_type in self._correlation_tables:
             self._correlation_tables[correlation_type].setRowCount(0)
             self._correlation_plots[correlation_type].set_peaks([])
-            # A zoom window from whatever was on screen before must not
-            # carry over onto a different run's or molecule's data range.
+            # A zoom window -- or a peak selection -- from whatever was on
+            # screen before must not carry over onto a different run's or
+            # molecule's data range.
             self._correlation_plots[correlation_type].reset_view()
+            self._correlation_plots[correlation_type].set_highlighted_pair(None, None)
         self._hybrid_table.setRowCount(0)
         self._hybrid_summary_label.setText(_HYBRID_UNAVAILABLE_NOTE)
 
@@ -2125,5 +2160,37 @@ class QuantumChemistryPanel(QWidget):
             for col, text in enumerate(values):
                 table.setItem(row, col, QTableWidgetItem(text))
             if shift_a is not None and shift_b is not None:
-                peaks.append(Peak(x=shift_a, y=shift_b))
+                peaks.append(Peak(x=shift_a, y=shift_b, atom_a=cross_peak.atom_a, atom_b=cross_peak.atom_b))
         self._correlation_plots[correlation_type].set_peaks(peaks, x_label=x_label, y_label=y_label)
+
+    def _on_correlation_peak_selected(self, correlation_type: str, atom_a: int, atom_b: int) -> None:
+        """A plot click -> the matching table row, by (atom_a, atom_b) --
+        never by nearby coordinates, which two legitimately co-located
+        cross peaks (a symmetric molecule) would resolve to the wrong
+        row for."""
+        table = self._correlation_tables[correlation_type]
+        table.blockSignals(True)
+        for row in range(table.rowCount()):
+            item_a, item_b = table.item(row, 0), table.item(row, 1)
+            if item_a is not None and item_b is not None and (
+                item_a.text(), item_b.text()
+            ) == (str(atom_a), str(atom_b)):
+                table.selectRow(row)
+                break
+        table.blockSignals(False)
+
+    def _on_correlation_row_selected(self, correlation_type: str) -> None:
+        """The inbound half: selecting a table row highlights its peak."""
+        table = self._correlation_tables[correlation_type]
+        rows = {index.row() for index in table.selectedIndexes()}
+        if len(rows) != 1:
+            return
+        row = rows.pop()
+        item_a, item_b = table.item(row, 0), table.item(row, 1)
+        if item_a is None or item_b is None:
+            return
+        try:
+            atom_a, atom_b = int(item_a.text()), int(item_b.text())
+        except ValueError:
+            return
+        self._correlation_plots[correlation_type].set_highlighted_pair(atom_a, atom_b)
