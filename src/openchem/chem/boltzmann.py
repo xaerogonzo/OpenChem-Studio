@@ -118,11 +118,19 @@ def boltzmann_average_spectrum(
                 "boltzmann_temperature_k": temperature_k,
             },
         )
+    coupling_errors = [spectrum.coupling_error for spectrum in spectra if spectrum.coupling_error]
+    coupling_error = (
+        f"Spin-spin coupling could not be parsed for {len(coupling_errors)} of "
+        f"{len(spectra)} conformer(s): {coupling_errors[0]}"
+        if coupling_errors
+        else None
+    )
     return dataclasses.replace(
         base,
         values=averaged,
         elements={index: base.elements[index] for index in averaged if index in base.elements},
         couplings=_average_couplings(spectra, weights),
+        coupling_error=coupling_error,
         provenance=provenance,
     )
 

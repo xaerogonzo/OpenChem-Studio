@@ -852,8 +852,14 @@ class QuantumChemistryService(QObject):
             if spectrum is not None:
                 try:
                     couplings = job.provider.parse_spin_spin_coupling(output_text, job.calc_type)
-                except Exception:  # noqa: BLE001 - couplings are an enhancement, must not drop the spectrum above
+                except Exception as exc:  # noqa: BLE001 - couplings are an enhancement, must not drop the spectrum above
                     logger.exception("Failed to parse spin-spin coupling for molecule %s", molecule_uuid)
+                    # `coupling_error` is what lets the panel say "coupling
+                    # was requested but ORCA's output could not be parsed"
+                    # instead of a bare "—" that reads identically to "no
+                    # coupling exists for this pair" -- see
+                    # NMRSpectrumResult's docstring.
+                    spectrum = dataclasses.replace(spectrum, coupling_error=str(exc))
                 else:
                     if couplings is not None:
                         spectrum = dataclasses.replace(spectrum, couplings=couplings)
@@ -933,8 +939,9 @@ class QuantumChemistryService(QObject):
 
         try:
             couplings = job.provider.parse_spin_spin_coupling(output_text, job.calc_type)
-        except Exception:  # noqa: BLE001 - couplings are an enhancement, must not drop the spectrum
+        except Exception as exc:  # noqa: BLE001 - couplings are an enhancement, must not drop the spectrum
             logger.exception("Failed to parse spin-spin coupling for molecule %s", molecule_uuid)
+            spectrum = dataclasses.replace(spectrum, coupling_error=str(exc))
         else:
             if couplings is not None:
                 spectrum = dataclasses.replace(spectrum, couplings=couplings)

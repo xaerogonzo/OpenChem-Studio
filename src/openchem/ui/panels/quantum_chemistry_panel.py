@@ -93,6 +93,14 @@ _SCALED_NOTE = (
     "Empirically scaled — real δ (ppm), fitted against known compounds at this exact "
     "method/basis. More accurate than TMS referencing alone, which assumes a slope of −1."
 )
+#: Distinct from a bare "—" in a J (Hz) cell, which a user cannot tell apart
+#: from "ORCA reported no coupling for this pair" -- see
+#: NMRSpectrumResult.coupling_error's docstring for the four states this
+#: collapses without it.
+_COUPLING_FAILED_NOTE = (
+    "Spin-spin coupling data unavailable — ORCA's coupling output could not be parsed. "
+    "The chemical shifts above are unaffected."
+)
 # (correlation_type, compute_fn, x_axis_label, y_axis_label) -- HSQC/HMBC
 # always put H first/C second (see chem/nmr_correlation.py), COSY is H-H.
 _CORRELATION_SPECS = (
@@ -1284,6 +1292,9 @@ class QuantumChemistryPanel(QWidget):
             note = _SCALED_NOTE
         else:
             note = _CALIBRATED_NOTE
+        coupling_error = getattr(spectrum, "coupling_error", None)
+        if coupling_error:
+            note = f"{note}\n{_COUPLING_FAILED_NOTE}"
         self._spectrum_note_label.setText(note)
         self._spectrum_note_label.setVisible(True)
         self._spectrum_table.setVisible(True)
