@@ -436,6 +436,237 @@ def test_a_stored_run_repaints_the_panel_with_no_job_submitted_this_session(qapp
     assert panel._correlation_tables["hsqc"].rowCount() > 0
 
 
+def _two_nmr_runs(qapp):
+    """Shared setup for the Phase 2 history-control tests: a panel wired to
+    a real `ResultStoreService`, with two completed NMR runs on one
+    molecule at different (fingerprint, method) so `compare()` accepts
+    them. Returns (panel, store_service, molecule, run_older, run_newer)."""
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+
+    from openchem.chem.engine import ChemistryEngine as _Engine
+    from openchem.domain.quantum_chemistry_run import (
+        OutputStatus,
+        QuantumChemistryRun,
+        RunStatus,
+    )
+    from openchem.services.result_store_service import ResultStoreService
+
+    bus = EventBus()
+    engine = _Engine()
+    settings = Settings(bus)
+    service = _RecordingQuantumChemistryService(bus)
+    store_service = ResultStoreService(bus, engine, settings)
+
+    molecule = MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+    mol_3d = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    AllChem.EmbedMolecule(mol_3d, randomSeed=7)
+    molecule.conformers.append(ConformerModel(molblock=Chem.MolToMolBlock(mol_3d), method="rdkit_etkdg"))
+    project = ProjectModel(name="Test")
+    project.molecules.append(molecule)
+    store_service.set_project(project)
+
+    def _spectrum(offset: float) -> NMRSpectrumResult:
+        return NMRSpectrumResult(
+            spectrum_type="nmr_calibrated",
+            name="Chemical Shift",
+            units="ppm",
+            method="orca",
+            molecule_uuid=molecule.uuid,
+            values={idx: offset + idx for idx in range(mol_3d.GetNumAtoms())},
+            elements={idx: atom.GetSymbol() for idx, atom in enumerate(mol_3d.GetAtoms())},
+        )
+
+    def _run(run_id: str, method_basis: str, started_at: float, offset: float) -> QuantumChemistryRun:
+        run = QuantumChemistryRun(
+            run_id=run_id,
+            molecule_uuid=molecule.uuid,
+            calc_type="nmr",
+            method_basis=method_basis,
+            charge=0,
+            multiplicity=1,
+            calculation_input="geometry",
+            # SAME fingerprint on purpose -- both runs are on the same
+            # structure, which is what makes compare() accept them.
+            input_fingerprint="fp-shared",
+            input_molblock=Chem.MolToMolBlock(mol_3d),
+            status=RunStatus.COMPLETED,
+            started_at=started_at,
+        )
+        run.results["spectrum"] = _spectrum(offset)
+        run.output_status["spectrum"] = OutputStatus.AVAILABLE
+        return run
+
+    run_older = _run("run-older", "B3LYP def2-SVP", 1.0, offset=10.0)
+    run_newer = _run("run-newer", "PBE0 def2-SVP", 2.0, offset=20.0)
+    store_service.record_quantum_chemistry_run(run_older)
+    store_service.record_quantum_chemistry_run(run_newer)
+
+    panel = QuantumChemistryPanel(service, engine, settings, bus, result_store_service=store_service)
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+    return panel, store_service, molecule, run_older, run_newer
+
+
+def test_the_runs_combo_lists_every_run_newest_first(qapp):
+    panel, _store, _molecule, run_older, run_newer = _two_nmr_runs(qapp)
+
+    assert panel._runs_combo.count() == 2
+    assert panel._runs_combo.itemData(0) == run_newer.run_id
+    assert panel._runs_combo.itemData(1) == run_older.run_id
+    assert panel._active_run is run_newer
+
+
+def test_selecting_an_older_run_in_the_combo_repaints_the_panel(qapp):
+    panel, _store, _molecule, run_older, _run_newer = _two_nmr_runs(qapp)
+
+    panel._runs_combo.setCurrentIndex(1)
+
+    assert panel._active_run is run_older
+    assert panel._spectrum_table.item(0, 2).text() == f"{10.0:.3f}"
+
+
+def test_deleting_the_active_run_leaves_the_other_one_selectable(qapp):
+    panel, store, molecule, run_older, run_newer = _two_nmr_runs(qapp)
+    assert panel._active_run is run_newer
+
+    from PySide6.QtWidgets import QMessageBox
+
+    orig_question = QMessageBox.question
+    QMessageBox.question = staticmethod(lambda *a, **k: QMessageBox.StandardButton.Yes)
+    try:
+        panel._on_delete_run_clicked()
+    finally:
+        QMessageBox.question = orig_question
+
+    assert store.qc_runs.get(run_newer.run_id) is None
+    assert store.qc_runs.get(run_older.run_id) is run_older
+    assert panel._runs_combo.count() == 1
+    assert panel._active_run is run_older
+
+
+def test_deleting_a_run_does_not_touch_the_wavefunction_cache(qapp, tmp_path, monkeypatch):
+    """The store-level guarantee (tests/test_quantum_chemistry_run.py) is
+    that delete() only removes the project record; this confirms the panel's
+    Delete button doesn't add its own cache-purging on top of that."""
+    from openchem import paths as app_paths
+
+    cache_root = tmp_path / "cache"
+    cache_root.mkdir()
+    monkeypatch.setattr(app_paths, "cache_root", lambda: cache_root)
+    marker = cache_root / "some_cache_entry"
+    marker.mkdir()
+
+    panel, store, _molecule, _run_older, run_newer = _two_nmr_runs(qapp)
+
+    from PySide6.QtWidgets import QMessageBox
+
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.Yes))
+    panel._on_delete_run_clicked()
+
+    assert marker.exists()
+
+
+def test_compare_runs_opens_a_dialog_for_two_compatible_runs(qapp, monkeypatch):
+    panel, _store, molecule, run_older, run_newer = _two_nmr_runs(qapp)
+
+    import openchem.ui.panels.quantum_chemistry_panel as panel_module
+
+    opened = {}
+
+    class _FakeDialog:
+        def __init__(self, outcome, symbols, molecule_name, parent=None):
+            opened["outcome"] = outcome
+            opened["symbols"] = symbols
+            opened["molecule_name"] = molecule_name
+
+        def setAttribute(self, *_a, **_k):
+            pass
+
+        def show(self):
+            opened["shown"] = True
+
+    monkeypatch.setattr(panel_module, "CompareResultsDialog", _FakeDialog)
+    monkeypatch.setattr(
+        panel_module.QInputDialog, "getItem", staticmethod(lambda *a, **k: (a[3][0], True))
+    )
+    # A real QMessageBox.information() would block forever waiting for a
+    # click nobody sends -- if compare() unexpectedly refuses (this test's
+    # own hang, once, on a real bug: both runs' PerAtomDataset used
+    # method="orca" regardless of method_basis, so compare() saw "the same
+    # result twice"), fail loudly instead of hanging.
+    def _unexpected_refusal(_parent, _title, text):
+        raise AssertionError(f"compare() refused unexpectedly: {text}")
+
+    monkeypatch.setattr(panel_module.QMessageBox, "information", _unexpected_refusal)
+
+    panel._on_compare_runs_clicked()
+
+    assert opened.get("shown") is True
+    assert opened["molecule_name"] == molecule.display_name
+    assert len(opened["outcome"].columns) == 2
+
+
+def test_compare_runs_refuses_when_structures_differ(qapp, monkeypatch):
+    """compare() itself refuses on a fingerprint mismatch -- this proves
+    the panel surfaces that refusal rather than silently comparing the
+    wrong atoms or crashing."""
+    panel, store, molecule, run_older, run_newer = _two_nmr_runs(qapp)
+    from dataclasses import replace
+
+    edited = replace(run_older, input_fingerprint="fp-different")
+    store.qc_runs.delete(run_older.run_id)
+    store.qc_runs.record(edited)
+    panel._refresh_active_run()
+    panel._runs_combo.setCurrentIndex(0)  # newest (run_newer) active
+
+    import openchem.ui.panels.quantum_chemistry_panel as panel_module
+
+    told = []
+    monkeypatch.setattr(
+        panel_module.QMessageBox, "information", lambda parent, title, text: told.append(text)
+    )
+    monkeypatch.setattr(
+        panel_module.QInputDialog, "getItem", staticmethod(lambda *a, **k: (a[3][0], True))
+    )
+
+    panel._on_compare_runs_clicked()
+
+    assert told and "edited" in told[0].lower()
+
+
+def test_compare_runs_refuses_two_runs_at_the_same_method(qapp, monkeypatch):
+    """Two executions of the IDENTICAL calculation (same method/basis) are
+    two separate history entries (run_id), but comparing their NMR shifts
+    is a table of zeros -- compare() should refuse it as the same result
+    twice, and the panel must build the PerAtomDataset so that refusal can
+    actually fire (method=method_basis, not method=provider, which would
+    make EVERY pair of ORCA runs look identical to compare())."""
+    panel, store, molecule, run_older, run_newer = _two_nmr_runs(qapp)
+    from dataclasses import replace
+
+    same_method = replace(run_older, method_basis=run_newer.method_basis)
+    store.qc_runs.delete(run_older.run_id)
+    store.qc_runs.record(same_method)
+    panel._refresh_active_run()
+    panel._runs_combo.setCurrentIndex(0)
+
+    import openchem.ui.panels.quantum_chemistry_panel as panel_module
+
+    told = []
+    monkeypatch.setattr(
+        panel_module.QMessageBox, "information", lambda parent, title, text: told.append(text)
+    )
+    monkeypatch.setattr(
+        panel_module.QInputDialog, "getItem", staticmethod(lambda *a, **k: (a[3][0], True))
+    )
+
+    panel._on_compare_runs_clicked()
+
+    assert told and "twice" in told[0].lower()
+
+
 def test_a_stored_runs_output_conformer_is_resolved_by_id_not_list_position(qapp):
     """Two conformers exist (e.g. from two different runs' optimizations);
     selecting the OLDER run must show ITS geometry, not whichever conformer

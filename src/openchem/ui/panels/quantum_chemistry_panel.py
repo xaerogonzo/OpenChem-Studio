@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import dataclasses
 import os
+import time
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QFormLayout,
     QHeaderView,
+    QInputDialog,
     QLabel,
     QMessageBox,
     QPlainTextEdit,
@@ -37,9 +40,11 @@ from openchem.chem.orca_engine import (
     default_cores,
     find_mpi_bin,
 )
+from openchem.domain.compare import ComparedResult, CompareRefusal, compare
 from openchem.domain.project import ProjectModel
 from openchem.domain.scientific_result import (
     CrossPeak,
+    PerAtomDataset,
     SpectrumResult,
     VibrationalSpectrumResult,
 )
@@ -54,6 +59,7 @@ from openchem.events.events import (
     SpectrumComputed,
 )
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
+from openchem.ui.dialogs.compare_results_dialog import CompareResultsDialog
 from openchem.ui.dialogs.settings_dialog import EXTERNAL_TOOLS, SettingsDialog
 from openchem.ui.molecule_combo import repopulate, select
 from openchem.ui.widgets.empty_state import empty_state, empty_state_text, is_empty_state
@@ -470,6 +476,44 @@ _HELP: dict[str, HelpTooltip] = {
         topic="quantum-chemistry",
         help_anchor="limits-nmr",
     ),
+    "runs_combo": HelpTooltip(
+        text=(
+            "Every retained calculation for this molecule, newest first. Selecting "
+            "one repaints every tab from THAT run -- its spectrum, descriptors, IR "
+            "and surfaces, none of another run's.\n\n"
+            "This only changes what is displayed. It does not change what the next "
+            "press of Run will submit."
+        ),
+        tier=1,
+        help_id="quantum.runs_combo",
+        topic="quantum-chemistry",
+        help_anchor="quantum-chemistry",
+    ),
+    "delete_run": HelpTooltip(
+        text=(
+            "Removes the selected run from this project's history. Only the "
+            "project record is deleted -- a reusable wavefunction it left in the "
+            "quantum-chemistry cache is untouched, and a later identical "
+            "calculation can still reuse it."
+        ),
+        tier=2,
+        help_id="quantum.delete_run",
+        topic="quantum-chemistry",
+        help_anchor="quantum-chemistry",
+    ),
+    "compare_runs": HelpTooltip(
+        text=(
+            "Compares this molecule's retained NMR shifts across two runs, atom "
+            "by atom -- the same dialog the Atom Inspector's \"Compare with...\" "
+            "opens. Refuses when the two runs' atom numbering cannot be safely "
+            "matched (for instance after a structural edit between them), rather "
+            "than silently lining up the wrong atoms."
+        ),
+        tier=2,
+        help_id="quantum.compare_runs",
+        topic="quantum-chemistry",
+        help_anchor="quantum-chemistry",
+    ),
 }
 
 #: Column position -> key in `_HELP`, per table. The correlation tuple is
@@ -686,6 +730,21 @@ class QuantumChemistryPanel(QWidget):
         self._cancel_button.setEnabled(False)
         apply_help_tooltip(self._cancel_button, _HELP["cancel_calculation"])
         self._cancel_button.clicked.connect(self._on_cancel_clicked)
+
+        # One history control for the WHOLE panel, not one per tab -- every
+        # tab repaints from whichever run is selected here. Disabled/empty
+        # until `_refresh_active_run` has something to show (no project, no
+        # molecule, or no QC history for it yet).
+        self._runs_combo = QComboBox(self)
+        apply_help_tooltip(self._runs_combo, _HELP["runs_combo"])
+        self._runs_combo.currentIndexChanged.connect(self._on_runs_combo_changed)
+        self._delete_run_button = QPushButton("Delete Run", self)
+        apply_help_tooltip(self._delete_run_button, _HELP["delete_run"])
+        self._delete_run_button.clicked.connect(self._on_delete_run_clicked)
+        self._compare_runs_button = QPushButton("Compare NMR Shifts...", self)
+        apply_help_tooltip(self._compare_runs_button, _HELP["compare_runs"])
+        self._compare_runs_button.clicked.connect(self._on_compare_runs_clicked)
+        self._set_runs_controls_enabled(False)
 
         self._status_label = QLabel("", self)
         self._output_log = QPlainTextEdit(self)
@@ -915,6 +974,15 @@ class QuantumChemistryPanel(QWidget):
         run_row.layout().addWidget(self._run_button)
         run_row.layout().addWidget(self._cancel_button)
 
+        # "Currently viewing," separate from the form above it ("calculation
+        # to run"): selecting a run here must never look like it changed
+        # what the next Run press will submit, and it does not.
+        runs_row = flow_row(self)
+        runs_row.layout().addWidget(QLabel("Runs:", self))
+        runs_row.layout().addWidget(self._runs_combo)
+        runs_row.layout().addWidget(self._delete_run_button)
+        runs_row.layout().addWidget(self._compare_runs_button)
+
         # THE RESULTS COME FIRST, AND THE LOG IS COLLAPSED UNDERNEATH.
         #
         # `_output_log` is a `QPlainTextEdit`, whose default Expanding
@@ -931,6 +999,7 @@ class QuantumChemistryPanel(QWidget):
         layout = QVBoxLayout(self)
         layout.addLayout(form)
         layout.addWidget(run_row)
+        layout.addWidget(runs_row)
         layout.addWidget(self._status_label)
         layout.addWidget(self._results_label)
         layout.addWidget(self._spectrum_note_label)
@@ -984,8 +1053,9 @@ class QuantumChemistryPanel(QWidget):
         self._refresh_active_run()
 
     def _refresh_active_run(self) -> None:
-        """Show the newest QC run for the selected molecule, if this
-        session's `ResultStoreService` has history for it.
+        """Populate the Runs combo for the selected molecule and show its
+        newest entry, if this session's `ResultStoreService` has history
+        for it.
 
         This is the panel's only route to "what was already calculated
         here" outside a live job: `_pending_molecule_uuid` is `None` right
@@ -995,14 +1065,137 @@ class QuantumChemistryPanel(QWidget):
         """
         self._active_run = None
         molecule = self._current_molecule()
-        if molecule is None or self._result_store_service is None:
-            self._clear_run_display()
-            return
-        runs = self._result_store_service.qc_runs.runs_for(molecule.uuid)
+        runs = (
+            self._result_store_service.qc_runs.runs_for(molecule.uuid)
+            if molecule is not None and self._result_store_service is not None
+            else []
+        )
+        self._runs_combo.blockSignals(True)
+        self._runs_combo.clear()
+        for run in runs:
+            self._runs_combo.addItem(self._run_label(run), run.run_id)
+        self._runs_combo.blockSignals(False)
+        self._set_runs_controls_enabled(bool(runs))
         if not runs:
             self._clear_run_display()
             return
+        self._runs_combo.setCurrentIndex(0)
         self._render_run(runs[0])
+
+    def _run_label(self, run) -> str:
+        when = time.strftime("%Y-%m-%d %H:%M", time.localtime(run.started_at))
+        calc_label = next(
+            (label for label, key in CALC_TYPE_LABELS.items() if key == run.calc_type), run.calc_type
+        )
+        return f"{calc_label} · {run.method_basis} · {when}"
+
+    def _set_runs_controls_enabled(self, enabled: bool) -> None:
+        self._runs_combo.setEnabled(enabled)
+        self._delete_run_button.setEnabled(enabled)
+        self._compare_runs_button.setEnabled(enabled)
+
+    def _on_runs_combo_changed(self, index: int) -> None:
+        if index < 0 or self._result_store_service is None:
+            return
+        run_id = self._runs_combo.itemData(index)
+        if run_id is None:
+            return
+        run = self._result_store_service.qc_runs.get(run_id)
+        if run is not None:
+            self._render_run(run)
+
+    def _on_delete_run_clicked(self) -> None:
+        if self._active_run is None or self._result_store_service is None:
+            return
+        # A project-history delete only -- the underlying `result_cache`
+        # wavefunction this run's `surface_cache_key` points at is
+        # independently managed and NOT purged: it may still be reusable
+        # by a later identical calculation, and this button has no way to
+        # know that and should not guess.
+        choice = QMessageBox.question(
+            self,
+            "Delete run",
+            f"Delete \"{self._run_label(self._active_run)}\" from this project's history?\n\n"
+            "This only removes the project record -- a reusable wavefunction it left "
+            "in the quantum-chemistry cache is not affected.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if choice != QMessageBox.StandardButton.Yes:
+            return
+        self._result_store_service.qc_runs.delete(self._active_run.run_id)
+        self._refresh_active_run()
+
+    def _on_compare_runs_clicked(self) -> None:
+        if self._active_run is None or self._result_store_service is None:
+            return
+        if self._active_run.results.get("spectrum") is None:
+            QMessageBox.information(
+                self, "Cannot compare", "The active run has no NMR spectrum to compare."
+            )
+            return
+        molecule = self._current_molecule()
+        if molecule is None:
+            return
+        candidates = [
+            run
+            for run in self._result_store_service.qc_runs.runs_for(molecule.uuid)
+            if run.run_id != self._active_run.run_id and run.results.get("spectrum") is not None
+        ]
+        if not candidates:
+            QMessageBox.information(
+                self,
+                "Cannot compare",
+                "No other retained run for this molecule has an NMR spectrum to compare against.",
+            )
+            return
+        labels = [self._run_label(run) for run in candidates]
+        choice, ok = QInputDialog.getItem(
+            self, "Compare NMR Shifts", "Compare the active run against:", labels, 0, False
+        )
+        if not ok:
+            return
+        self._open_run_comparison(self._active_run, candidates[labels.index(choice)])
+
+    def _open_run_comparison(self, run_a, run_b) -> None:
+        """Compares two runs' NMR shifts, atom by atom, through the exact
+        same `domain.compare`/`CompareResultsDialog` the Atom Inspector's
+        "Compare with..." already uses -- rather than a QC-specific
+        comparison widget. `compare()` itself refuses (with a reason shown
+        to the user) when the two runs' atom numbering cannot be safely
+        lined up, e.g. a structural edit between them changed the
+        fingerprint; this method does not re-implement that check.
+        """
+        molecule = self._current_molecule()
+        if molecule is None:
+            return
+        compared = []
+        for run in (run_a, run_b):
+            spectrum = run.results["spectrum"]
+            dataset = PerAtomDataset(
+                property_id="nmr_shift",
+                name=f"NMR shift ({run.method_basis}, {self._run_label(run)})",
+                units=spectrum.units,
+                # The method/basis, not `run.provider` ("orca" for every
+                # ORCA run regardless of method) -- `compare()`'s
+                # same_result_as() uses this plus `property_id` to refuse
+                # "the same result twice", and two runs at different
+                # method/basis are NOT the same result. Confirmed live: two
+                # NMR runs both labelled method="orca" were refused as
+                # duplicates even though they were B3LYP and PBE0.
+                method=run.method_basis,
+                molecule_uuid=run.molecule_uuid,
+                values=dict(spectrum.values),
+            )
+            compared.append(ComparedResult(dataset, run.input_fingerprint, run.calculation_input))
+        outcome = compare(compared)
+        if isinstance(outcome, CompareRefusal):
+            QMessageBox.information(self, "Cannot compare", outcome.message)
+            return
+        symbols = dict(run_a.results["spectrum"].elements)
+        dialog = CompareResultsDialog(outcome, symbols, molecule.display_name, parent=self)
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+        dialog.show()
 
     def _clear_run_display(self) -> None:
         self._reset_empty_states()
