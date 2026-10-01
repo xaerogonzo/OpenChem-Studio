@@ -353,17 +353,40 @@ stays well-predicted throughout for the same reason (9.7 kJ/mol, 9-fit). This is
 result in the module: PETN's four-arm quaternary-carbon topology, not an environment bug, is what an
 elemental atom-equivalent scheme cannot represent.
 
-**A striking, and only partially resolved, loose end: the corrected 9-fit numbers above (RDX 2.2, HMX
-25.1, PETN 80.4 kJ/mol) are close to -- in RDX's case, nearly identical to -- the numbers Track 3 reported
-BEFORE Gate B's 2026-09-29 "RDKit-drift" retraction (RDX 2.1, HMX 25.1, PETN 80.4 at the same 9-fit).**
-That retraction concluded a floating RDKit version pin caused a 108 kJ/mol HMX discrepancy between
-sessions. This correction does not re-litigate that diagnosis -- the RDKit pin stays exact, for good
-reason independent of this bug -- but the closeness of these numbers raises a real possibility that this
-SAME parser bug, not RDKit drift, was wholly or partly responsible for that original discrepancy, and the
-RDKit-drift diagnosis may have been chasing a confound. This is recorded as an open question, not a
-further claim: nobody has gone back and re-run the ORIGINAL (pre-drift-fix) RDKit version with the fixed
-parser to check whether it, too, reproduces these numbers. Until that is done, both explanations should
-be treated as live.
+**RESOLVED 2026-10-01: the "RDKit-drift" diagnosis itself was wrong -- there was never a version
+drift.** The open question above (raised earlier the same day) asked whether this parser bug, not RDKit
+drift, was responsible for the original 108 kJ/mol HMX discrepancy. Checked directly rather than left
+open: `git show <commit>:uv.lock` for every commit from Track 3's original computation (`661f370e`)
+through the commit that pinned RDKit exact (`baa99e5a`) shows RDKit resolving to the exact same
+`2025.9.6` at every single one -- the version never changed. (The pin itself only tightened
+pyproject.toml's specifier from a floating `>=2024.3.1` to an exact `==2025.9.6`; `uv.lock`'s actually
+RESOLVED version was already `2025.9.6` before that commit, and stayed `2025.9.6` after.)
+
+Systematically comparing ALL ELEVEN of Track 3's original values (not just HMX) against this session's
+corrected (converged, last-cycle) energies confirms it: every one matches to within 0.002-0.05 kJ/mol --
+noise-level agreement, scaling mildly with molecule size exactly as SCF/geometry convergence-threshold
+differences between independent runs would, and matching NONE of them to the first-cycle numbers.
+
+    compound             Track 3 original    corrected (converged)   diff
+    methane                 -106206.509           -106206.511        0.002
+    ammonia                 -148270.087           -148270.089        0.002
+    benzene                 -608934.031           -608934.040        0.009
+    methanol                -303417.836           -303417.841        0.005
+    nitromethane            -642477.657           -642477.667        0.010
+    methyl_nitrate          -839635.931           -839635.943        0.012
+    dimethylnitramine       -890642.600           -890642.613        0.013
+    nitropiperidine        -1196717.858          -1196717.876        0.018
+    RDX                    -2353293.341          -2353293.377        0.036
+    HMX                    -3137743.152          -3137743.199        0.047
+    PETN                   -3452195.112          -3452195.164        0.052
+
+Track 3's original computation never had this parser bug -- whatever code path it used extracted the
+converged energy correctly. The bug was introduced later, the first time a verification/re-run script
+called the buggy `parse_output` to check the original numbers, and its own (wrong) first-cycle result
+was then misdiagnosed as RDKit version drift because the two numbers genuinely differed by ~108 kJ/mol
+for HMX -- just not for the reason given at the time. **The RDKit pin stays exact regardless** (floating
+lower bounds are still a real reproducibility risk in general, independent of what actually happened
+here) **but its own justifying comment in `pyproject.toml` has been corrected to say so.**
 
 **Everything above (Gates B and C's own now-retracted numbers) is left in place rather than deleted,**
 the same practice this module has followed since the first RDKit-drift retraction: the chronology,
