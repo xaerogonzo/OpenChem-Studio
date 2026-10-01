@@ -67,28 +67,32 @@ def test_rdx_carries_two_independent_klapotke_readings(vre):
     assert values == [66.6, 85.0]
 
 
-def test_development_rows_are_exactly_the_ten_orca_calibration_compounds(vre):
-    """Track 4 Gate C (2026-09-30) added "hf_dinitropiperazine_gas" as a tenth calibration compound."""
+def test_development_rows_are_exactly_the_nine_orca_calibration_compounds(vre):
+    """Track 4 Gate C (2026-09-30) added "hf_dinitropiperazine_gas" as a tenth calibration compound;
+    Track 5 (2026-10-01) found its apparent improvement to RDX/HMX was a parser-bug artifact and
+    repartitioned it to "selection" (tested against, not fit on) -- see
+    orca_atom_equivalents.py's module docstring and this row's own updated note."""
     development_hf = {row.row_id for row in vre.HF_ROWS if row.partition == "development"}
     assert development_hf == {
         "hf_dimethylnitramine_gas", "hf_nitropiperidine_gas", "hf_methane_gas", "hf_ammonia_gas",
         "hf_benzene_gas", "hf_methanol_gas", "hf_nitromethane_gas", "hf_methyl_nitrate_gas",
-        "hf_ethyl_nitrate_gas", "hf_dinitropiperazine_gas",
+        "hf_ethyl_nitrate_gas",
     }
 
 
 def test_exclude_leaked_separates_the_fit_population_from_what_was_checked(vr, vre):
-    """The concrete exercise of exclude_leaked this project has been missing: RDX/HMX/PETN/TNT (checked
-    against orca_atom_equivalents's combined route) must NOT be excluded, and the nine compounds that
-    fit its atom equivalents (dimethylnitramine and nitropiperidine included) MUST be -- proving the
+    """The concrete exercise of exclude_leaked this project has been missing: RDX/HMX/PETN/TNT/MTN
+    (checked against orca_atom_equivalents's combined route) must NOT be excluded, and the nine compounds
+    that fit its atom equivalents (dimethylnitramine and nitropiperidine included) MUST be -- proving the
     population built from HF_ROWS's own partition field, not a hand-copied list, actually discriminates
-    the two groups."""
+    the two groups. `hf_dinitropiperazine_gas` is a gas-property row but partition="selection" (Track 5,
+    2026-10-01) -- it belongs in `kept`, not `excluded`, the same as any other checked-against compound."""
     populations = {("orca_atom_equivalents", "enthalpy_formation_gas"): vre.orca_atom_equivalents_fit_population()}
     gas_rows = [row for row in vre.HF_ROWS if row.property == "enthalpy_formation_gas"]
     kept, excluded = vr.exclude_leaked(gas_rows, "orca_atom_equivalents", populations)
 
-    assert {row.row_id for row in excluded} == {row.row_id for row in gas_rows}
-    assert kept == []
+    assert {row.row_id for row in kept} == {"hf_dinitropiperazine_gas"}
+    assert {row.row_id for row in excluded} == {row.row_id for row in gas_rows if row.row_id != "hf_dinitropiperazine_gas"}
 
 
 def test_exclude_leaked_raises_for_a_solid_phase_property_no_population_was_ever_recorded_for(vr, vre):
