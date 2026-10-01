@@ -39,7 +39,7 @@ def test_a_written_copy_is_offered_with_its_results(qapp, tmp_path):
     assert candidate.project_uuid == project.uuid
     assert candidate.written_at == 1234.0
     assert candidate.molecule_count == 1
-    loaded_project, loaded_results = service.load(candidate)
+    loaded_project, loaded_results, _loaded_qc_runs = service.load(candidate)
     assert loaded_project.name == "unsaved work"
     assert loaded_results.bundle_state("m", "fp", {"rdkit"})[0] is BundleState.COMPLETE
 

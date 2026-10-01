@@ -87,6 +87,68 @@ NMR spin-spin coupling calculation done in   0.0 sec
 Maximum memory used throughout the entire PROP-calculation: 2.2 MB
 """
 
+# A verbatim excerpt from a REAL ORCA 6.1.1 run -- `! HF STO-3G NMR` on
+# ethanol (CCO, AddHs'd and MMFF-embedded) with the same `%eprnmr` block as
+# above. Captured live via the real installed ORCA executable while fixing
+# the ValueError this regresses: formaldehyde's 3-atom coupling matrix fits
+# in one column block, so `parse_spin_spin_coupling` had never been
+# exercised against a WRAPPED matrix -- ethanol's 8 C/H atoms wrap after 6
+# columns, and the previous implementation read the second header line
+# ("7 H        8 H") as a data row, crashing on `float("H")`. Real values
+# sanity-checked: every geminal H-H coupling on C1 (atoms 3,4,5) is in the
+# -30 Hz range typical of this HF/STO-3G level, and 1J(C-H) values (atoms
+# 0-3/4/5, 1-6/7/8) all exceed 100 Hz as expected.
+REAL_ETHANOL_COUPLING_FIXTURE_OUTPUT = """
+                         Program Version 6.1.1  -  RELEASE   -
+
+FINAL SINGLE POINT ENERGY      -152.041078213714
+
+--------------------------------
+CHEMICAL SHIELDING SUMMARY (ppm)
+--------------------------------
+
+
+  Nucleus  Element    Isotropic     Anisotropy
+  -------  -------  ------------   ------------
+      0       C          225.172         18.249
+      1       C          195.296         46.050
+      3       H           32.822         10.934
+      4       H           32.416         12.582
+      5       H           32.112         11.847
+      6       H           31.823         10.191
+      7       H           31.287         10.775
+      8       H           35.145         15.981
+
+
+NMR shielding tensor and spin rotation calculation done in   0.1 sec
+
+-----------------------------------------------------------------------------
+                SUMMARY OF ISOTROPIC COUPLING CONSTANTS J (Hz)
+-----------------------------------------------------------------------------
+                  0 C        1 C        3 H        4 H        5 H        6 H
+      0 C        0.000     41.862    132.613    133.239    134.368     -8.913
+      1 C       41.862      0.000    -11.308    -10.867    -11.625    136.129
+      3 H      132.613    -11.308      0.000    -29.527    -29.864      4.022
+      4 H      133.239    -10.867    -29.527      0.000    -29.682      2.844
+      5 H      134.368    -11.625    -29.864    -29.682      0.000     13.954
+      6 H       -8.913    136.129      4.022      2.844     13.954      0.000
+      7 H       -9.963    141.371     13.238      3.173      4.573    -26.546
+      8 H        0.269     -8.803      1.145     -3.319     -1.026      1.420
+                  7 H        8 H
+      0 C       -9.963      0.269
+      1 C      141.371     -8.803
+      3 H       13.238      1.145
+      4 H        3.173     -3.319
+      5 H        4.573     -1.026
+      6 H      -26.546      1.420
+      7 H        0.000     14.093
+      8 H       14.093      0.000
+
+NMR spin-spin coupling calculation done in   0.0 sec
+
+Maximum memory used throughout the entire PROP-calculation: 3.6 MB
+"""
+
 # Best-effort fixture based on ORCA's documented/widely-referenced output
 # shape (FINAL SINGLE POINT ENERGY, the CARTESIAN COORDINATES (ANGSTROEM)
 # block repeated once per optimization step, and the THERMOCHEMISTRY
@@ -419,6 +481,56 @@ def test_parse_spin_spin_coupling_missing_summary_raises():
 
     with pytest.raises(OrcaOutputError):
         provider.parse_spin_spin_coupling("ORCA crashed, no coupling results here", "nmr_coupling")
+
+
+def test_parse_spin_spin_coupling_handles_a_wrapped_matrix():
+    """Ethanol's 8-atom matrix wraps into two column blocks -- the exact
+    real-output regression for the ValueError this fixes (see the fixture's
+    docstring)."""
+    provider = OrcaQuantumEngineProvider()
+
+    couplings = provider.parse_spin_spin_coupling(
+        REAL_ETHANOL_COUPLING_FIXTURE_OUTPUT, "nmr_coupling"
+    )
+
+    # Every unordered pair among the 8 listed atoms (0,1,3,4,5,6,7,8 --
+    # atom 2 is the oxygen, never requested), from both column blocks.
+    assert couplings == {
+        (0, 1): 41.862,
+        (0, 3): 132.613,
+        (0, 4): 133.239,
+        (0, 5): 134.368,
+        (0, 6): -8.913,
+        (0, 7): -9.963,
+        (0, 8): 0.269,
+        (1, 3): -11.308,
+        (1, 4): -10.867,
+        (1, 5): -11.625,
+        (1, 6): 136.129,
+        (1, 7): 141.371,
+        (1, 8): -8.803,
+        (3, 4): -29.527,
+        (3, 5): -29.864,
+        (3, 6): 4.022,
+        (3, 7): 13.238,
+        (3, 8): 1.145,
+        (4, 5): -29.682,
+        (4, 6): 2.844,
+        (4, 7): 3.173,
+        (4, 8): -3.319,
+        (5, 6): 13.954,
+        (5, 7): 4.573,
+        (5, 8): -1.026,
+        (6, 7): -26.546,
+        (6, 8): 1.42,
+        (7, 8): 14.093,
+    }
+    # A pair split across both column blocks (the second header's columns,
+    # 7 and 8) must be reachable exactly like a pair from the first block --
+    # this is what the previous single-header-line implementation could
+    # never reach at all.
+    assert couplings[(7, 8)] == 14.093
+    assert couplings[(0, 7)] == -9.963
 
 
 # ---------------------------------------------------------------------------

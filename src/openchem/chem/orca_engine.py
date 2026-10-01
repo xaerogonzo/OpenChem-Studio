@@ -1124,6 +1124,32 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
         chemistry: 1J(C-H) >> 2J(H-H), both in the right ballpark for this
         crude minimal-basis method (real values are method/basis-
         dependent, not claimed to be quantitatively accurate at HF/STO-3G).
+
+        **ORCA WRAPS A WIDE MATRIX INTO SEVERAL COLUMN BLOCKS, EACH WITH ITS
+        OWN HEADER LINE.** Formaldehyde's 3-atom matrix fits in one block, so
+        the code above was never exercised against a second one -- confirmed
+        live against a real ORCA 6.1.1 ethanol run (9 atoms, 8 counting only
+        C/H), whose matrix wraps after 6 columns:
+
+            SUMMARY OF ISOTROPIC COUPLING CONSTANTS J (Hz)
+            ...
+                              0 C        1 C        3 H        4 H        5 H        6 H
+                  0 C        0.000     41.862    132.613    133.239    134.368     -8.913
+                  ...
+                  8 H        0.269     -8.803      1.145     -3.319     -1.026      1.420
+                              7 H        8 H
+                  0 C       -9.963      0.269
+                  ...
+                  8 H       14.093      0.000
+
+        Treating every line after the first as a data row (the previous
+        implementation) reads that second header line as a row: `int("7")`
+        parses fine as an atom index, and it crashes on
+        `float("H")` for the coupling value. Every line is now classified by
+        whether its own third token parses as a float -- a data row's first
+        coupling value always does; a header line's second index token never
+        does -- so a matrix wrapped into any number of blocks parses the
+        same way a single-block one does.
         """
         if calc_type != "nmr_coupling":
             return None
@@ -1142,16 +1168,37 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
                 "ORCA's output format may have changed."
             )
 
-        header_tokens = lines[0].split()
-        column_atoms = [int(header_tokens[i]) for i in range(0, len(header_tokens), 2)]
+        def _is_header_line(tokens: list[str]) -> bool:
+            # Token[2] is not the discriminator: a header's second atom
+            # index ("...1 C...") parses as a float just as well as a data
+            # row's first coupling value does. Token[3] is what differs --
+            # a header's second ELEMENT symbol never parses as a float, a
+            # data row's second coupling value always does. A one-column
+            # block has no token[3] at all in either shape, so its length
+            # alone (2 for a header, 3 for a data row) is unambiguous.
+            if len(tokens) < 2:
+                return False
+            if len(tokens) < 4:
+                return len(tokens) == 2
+            try:
+                float(tokens[3])
+            except ValueError:
+                return True
+            return False
 
         couplings: dict[tuple[int, int], float] = {}
-        for line in lines[1:]:
-            parts = line.split()
-            if len(parts) < 2:
+        column_atoms: list[int] = []
+        for line in lines:
+            tokens = line.split()
+            if not tokens:
                 continue
-            row_atom = int(parts[0])
-            values = parts[2:]
+            if _is_header_line(tokens):
+                column_atoms = [int(tokens[i]) for i in range(0, len(tokens), 2)]
+                continue
+            if not column_atoms:
+                continue  # a row before any header has been seen -- unparseable
+            row_atom = int(tokens[0])
+            values = tokens[2:]
             for column_atom, value_text in zip(column_atoms, values):
                 if column_atom == row_atom:
                     continue

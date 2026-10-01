@@ -174,6 +174,46 @@ _DRIVE_SCRIPT = os.environ.get("OPENCHEM_DRIVE")
 _DEFAULT_AFTER_MS = 400
 
 
+class _WheelTracer(QObject):
+    """Logs every `QEvent.Wheel` the application dispatches, at every
+    widget it reaches -- including a hop Qt makes on its own: a widget
+    whose `wheelEvent` ignores the event has it re-delivered to its
+    parent, which is invisible to a filter installed on one widget but not
+    to one installed on the whole `QApplication`.
+
+    Installed only by the `wheel_trace` step, for a diagnostic run --
+    never in a normal one. Never consumes anything (`eventFilter` always
+    returns `False`): it is an observer, and consuming so much as one
+    event here would change the very behaviour it exists to describe.
+    """
+
+    def eventFilter(self, watched, event) -> bool:  # noqa: N802 - Qt override naming
+        from PySide6.QtCore import QEvent
+
+        if event.type() == QEvent.Type.Wheel:
+            chain = []
+            widget = watched
+            while widget is not None:
+                chain.append(type(widget).__name__)
+                widget = widget.parentWidget() if hasattr(widget, "parentWidget") else None
+            object_name = watched.objectName() if hasattr(watched, "objectName") else ""
+            under_mouse = watched.underMouse() if hasattr(watched, "underMouse") else None
+            has_focus = watched.hasFocus() if hasattr(watched, "hasFocus") else None
+            logger.warning(
+                "OPENCHEM_DRIVE: wheel-trace receiver=%s objectName=%r underMouse=%s "
+                "hasFocus=%s angleDelta=%s pos=%s accepted-before=%s parents=%s",
+                type(watched).__name__,
+                object_name,
+                under_mouse,
+                has_focus,
+                (event.angleDelta().x(), event.angleDelta().y()),
+                (event.position().x(), event.position().y()),
+                event.isAccepted(),
+                " < ".join(chain),
+            )
+        return False
+
+
 def start_if_requested(window: QWidget) -> "_Driver | None":
     """Begin driving `window` when `OPENCHEM_DRIVE` names a script.
 
@@ -4557,6 +4597,144 @@ class _Driver(QObject):
             bar.setValue(int(step.get("y", 0)))
         logger.warning(
             "OPENCHEM_DRIVE: scrolled to %d of %d", bar.value(), bar.maximum()
+        )
+
+    def _do_qc_tab(self, step: dict[str, Any]) -> None:
+        """Switch the Quantum Chemistry panel's OWN tab strip by label
+        ("Surfaces", "1D Signals", "HSQC", "ORCA Log", ...) -- `_do_tab`
+        is the centre tabs, a different `QTabWidget` entirely."""
+        panel = getattr(self._window, "_quantum_chemistry_panel", None)
+        if panel is None:
+            logger.error("OPENCHEM_DRIVE: qc_tab -- no Quantum Chemistry panel on this window")
+            return
+        tabs = panel._correlation_tabs
+        wanted = str(step["name"])
+        for index in range(tabs.count()):
+            # `startswith`, not equality: an active run's status glyph
+            # (" ✓"/" –"/" ✗") is appended to the base title.
+            if tabs.tabText(index).startswith(wanted):
+                tabs.setCurrentIndex(index)
+                return
+        logger.error(
+            "OPENCHEM_DRIVE: qc_tab -- no tab %r (have %s)",
+            wanted,
+            [tabs.tabText(i) for i in range(tabs.count())],
+        )
+
+    def _do_wheel_trace(self, step: dict[str, Any]) -> None:
+        """`{"do": "wheel_trace", "on": true}` -- install or remove
+        `_WheelTracer` on the whole application. See its own docstring for
+        why an app-wide filter rather than one per widget."""
+        from PySide6.QtWidgets import QApplication
+
+        app = QApplication.instance()
+        tracer = getattr(self._window, "_wheel_tracer", None)
+        if step.get("on", True):
+            if tracer is None:
+                tracer = _WheelTracer()
+                self._window._wheel_tracer = tracer
+                app.installEventFilter(tracer)
+                logger.warning("OPENCHEM_DRIVE: wheel-trace ON")
+        elif tracer is not None:
+            app.removeEventFilter(tracer)
+            self._window._wheel_tracer = None
+            logger.warning("OPENCHEM_DRIVE: wheel-trace OFF")
+
+    def _do_wheel(self, step: dict[str, Any]) -> None:
+        """Send a REAL `QWheelEvent` at the centre of a widget, the way a
+        mouse at that screen position would -- not by calling a handler
+        directly, which would prove nothing about which widget Qt actually
+        routes the event to.
+
+        `{"do": "wheel", "panel": "Quantum_Chemistry",
+         "child": "EspCompareWidget>QWebEngineView", "delta_y": -120}`
+
+        `panel` names a dock (as `_dock` resolves it); `child` narrows to
+        a descendant of that dock by CLASS NAME, resolved left to right
+        when `>`-separated (each step is the first match inside the one
+        before it) -- needed here because a dock holds more than one
+        `QWebEngineView` and the FIRST one in document order is not
+        necessarily the one at any particular point on screen. Omit
+        `child` to target the dock's own centre.
+        """
+        from PySide6.QtCore import QPoint, QPointF
+        from PySide6.QtGui import QWheelEvent
+        from PySide6.QtWidgets import QApplication
+
+        panel_name = step.get("panel")
+        root = self._dock(str(panel_name)) if panel_name else self._window
+        if root is None:
+            return
+        target = root
+        child_path = step.get("child")
+        if child_path:
+            for child_class in str(child_path).split(">"):
+                target = next(
+                    (w for w in target.findChildren(QWidget) if type(w).__name__ == child_class),
+                    None,
+                )
+                if target is None:
+                    logger.error(
+                        "OPENCHEM_DRIVE: wheel -- no %s under %s", child_class, panel_name
+                    )
+                    return
+        # A form-heavy panel (Quantum Chemistry, Docking) is wrapped in a
+        # `QScrollArea` by `MainWindow._wrap_scrollable`, and a widget
+        # scrolled outside that viewport is not actually on screen even
+        # though Qt still reports a geometry for it.
+        from PySide6.QtWidgets import QScrollArea
+
+        ancestor = target.parentWidget()
+        while ancestor is not None:
+            if isinstance(ancestor, QScrollArea):
+                ancestor.ensureWidgetVisible(target)
+                break
+            ancestor = ancestor.parentWidget()
+
+        # `QApplication.widgetAt` does REAL desktop hit-testing, which
+        # needs this window to be the physically topmost thing on screen
+        # at that point -- exactly what this whole driver exists to NOT
+        # require (`OPENCHEM_DRIVE`'s own module docstring: "the window
+        # can sit behind whatever the user is working in"). Measured: it
+        # returned nothing at three different points on a window that
+        # `shot` photographed perfectly well moments earlier, on a machine
+        # where a browser panel was covering that part of the screen.
+        # `QWidget.childAt` walks the WIDGET TREE instead, recursively, and
+        # needs no compositor -- the same tree a real event would be
+        # delivered through, just asked directly rather than inferred from
+        # pixels.
+        if step.get("focus"):
+            target.setFocus()
+        window_point = target.mapTo(self._window, target.rect().center())
+        receiver = self._window.childAt(window_point) or self._window
+        receiver_local = receiver.mapFrom(self._window, window_point)
+        global_point = self._window.mapToGlobal(window_point)
+        delta_y = int(step.get("delta_y", -120))
+        event = QWheelEvent(
+            QPointF(receiver_local),
+            QPointF(global_point),
+            QPoint(0, 0),
+            QPoint(0, delta_y),
+            Qt.MouseButton.NoButton,
+            Qt.KeyboardModifier.NoModifier,
+            Qt.ScrollPhase.NoScrollPhase,
+            False,
+        )
+        scroll_bar_before = ancestor.verticalScrollBar().value() if ancestor is not None else None
+        accepted = QApplication.sendEvent(receiver, event)
+        scroll_bar_after = ancestor.verticalScrollBar().value() if ancestor is not None else None
+        logger.warning(
+            "OPENCHEM_DRIVE: wheel sent to %s (targeted %s, is_target=%s, hasFocus=%s) "
+            "at window-point %s -- sendEvent=%s isAccepted=%s scrollBar %s->%s",
+            type(receiver).__name__,
+            type(target).__name__,
+            receiver is target,
+            target.hasFocus(),
+            (window_point.x(), window_point.y()),
+            accepted,
+            event.isAccepted(),
+            scroll_bar_before,
+            scroll_bar_after,
         )
 
     def _do_resize(self, step: dict[str, Any]) -> None:

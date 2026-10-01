@@ -117,7 +117,10 @@ def test_retention_keeps_the_densities_container_not_only_the_gbw(tmp_path, monk
     # The bulky ones are NOT kept -- retention is a few hundred kilobytes,
     # not a copy of the scratch directory.
     assert "job.tmp" not in kept
-    assert result is not None and result.name == "job.gbw"
+    # The content-addressed result_cache key this run's wavefunction was
+    # stored under (`QuantumChemistryRun.surface_cache_key`), not a Path --
+    # see `_retain_wavefunction`'s docstring.
+    assert isinstance(result, str) and result
 
 
 def test_retention_records_the_frontier_orbital_indices(tmp_path, monkeypatch):

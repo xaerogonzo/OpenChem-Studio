@@ -9,6 +9,7 @@ from openchem.domain.conformer import ConformerModel
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.docking import DockingResultModel
 from openchem.domain.structure_issue import CheckerResult
+from openchem.domain.quantum_chemistry_run import QuantumChemistryRun
 from openchem.domain.report import ReportResult
 from openchem.domain.result_store import BundlePart, StoredResult
 from openchem.domain.scientific_result import (
@@ -327,6 +328,21 @@ class QuantumChemistryResultReady(Event):
     molecule_uuid: str
     descriptors: list[DescriptorValue]
     conformer: ConformerModel | None
+
+
+@dataclass(frozen=True)
+class QuantumChemistryRunCompleted(Event):
+    """A `QuantumChemistryRun` that reached a terminal status -- the one
+    envelope `ResultStoreService` records into its durable `qc_runs`
+    collection (never `ResultRecorded`, which feeds the bounded revision
+    cache that collection is deliberately kept separate from; see
+    `domain/quantum_chemistry_run.py`). Published beside, not instead of,
+    `SpectrumComputed`/`QuantumChemistryResultReady`/`QuantumChemistryJobStateChanged`
+    -- the live-rendering path for the panel's in-session view is
+    unaffected by this event existing.
+    """
+
+    run: QuantumChemistryRun
 
 
 @dataclass(frozen=True)

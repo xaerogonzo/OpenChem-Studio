@@ -118,10 +118,23 @@ class NMRSpectrumResult(SpectrumResult):
     never populates `ranges`. `couplings` (atom-index-pair -> Hz) is
     populated only by the "nmr_coupling" calc_type's real ab initio
     spin-spin coupling data.
+
+    `couplings`/`coupling_error` together distinguish four states a `—` in
+    a J-coupling cell cannot: not requested (`couplings=None,
+    coupling_error=None` -- any calc_type but "nmr_coupling"), requested
+    and parsed with nothing reported (`couplings={}, coupling_error=None`),
+    available (`couplings={...}`), and requested but the coupling output
+    could not be parsed (`couplings=None, coupling_error="..."`) -- the
+    base spectrum this coupling data would have enhanced is still valid in
+    that last case (`quantum_chemistry_service._finish_calculation_job`
+    catches the parse failure so it never drops the spectrum), so a bare
+    `—` in every cell would read as "no coupling exists here" when the
+    truth is "the whole matrix never parsed."
     """
 
     ranges: dict[int, tuple[float, float]] | None = None
     couplings: dict[tuple[int, int], float] | None = None
+    coupling_error: str | None = None
 
 
 @dataclass(frozen=True, kw_only=True)

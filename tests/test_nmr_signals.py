@@ -11,6 +11,7 @@ from openchem.chem.nmr_signals import (
     are_diastereotopic,
     build_nmr_signals,
     depiction_atoms,
+    lorentzian_envelope,
     RESIDUAL_SOLVENT_PEAKS,
     multiplet_lines,
 )
@@ -378,3 +379,41 @@ def test_residual_solvent_peaks_match_the_published_reference():
     # D2O has no carbon to observe, so it has no 13C entry rather than a
     # placeholder one.
     assert "C" not in RESIDUAL_SOLVENT_PEAKS["D2O"]
+
+
+def _trapezoid_area(xs: list[float], ys: list[float]) -> float:
+    return sum(
+        (ys[i] + ys[i - 1]) / 2.0 * abs(xs[i] - xs[i - 1]) for i in range(1, len(xs))
+    )
+
+
+def test_lorentzian_envelope_area_is_proportional_to_integration():
+    """Smooth-mode's whole point is that it still means what the sticks
+    mean: relative peak AREA equalling relative integration. Two isolated
+    singlets, integration 1 and 3 -- each sampled on its own wide, fine grid
+    so the other's tails cannot leak in -- must integrate in that same 1:3
+    ratio, not just look taller."""
+    small = NMRSignal(shift=1.0, atom_indices=[0], integration=1, multiplicity="s")
+    large = NMRSignal(shift=9.0, atom_indices=[1, 2, 3], integration=3, multiplicity="s")
+
+    xs = [1.0 + 0.001 * i for i in range(-4000, 4001)]
+    small_area = _trapezoid_area(xs, lorentzian_envelope([small], xs))
+
+    xs = [9.0 + 0.001 * i for i in range(-4000, 4001)]
+    large_area = _trapezoid_area(xs, lorentzian_envelope([large], xs))
+
+    assert small_area == pytest.approx(1.0, rel=0.02)
+    assert large_area == pytest.approx(3.0, rel=0.02)
+
+
+def test_lorentzian_envelope_splits_a_multiplets_area_across_its_lines():
+    """A doublet's two lines must still enclose the signal's WHOLE
+    integration between them, not double it or halve it -- the same
+    invariant `multiplet_lines`'s own intensities-sum-to-one test protects,
+    carried through the convolution."""
+    signal = NMRSignal(
+        shift=5.0, atom_indices=[0], integration=2, multiplicity="d", coupling_hz=[7.0]
+    )
+    xs = [5.0 + 0.001 * i for i in range(-8000, 8001)]
+    area = _trapezoid_area(xs, lorentzian_envelope([signal], xs, frequency_mhz=400.0))
+    assert area == pytest.approx(2.0, rel=0.02)

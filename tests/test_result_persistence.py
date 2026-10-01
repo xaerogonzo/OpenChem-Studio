@@ -401,7 +401,7 @@ def test_the_project_file_round_trips_its_results(qapp, tmp_path):
 
     path = tmp_path / "p.ocsproj"
     service.save(project, path, store)
-    loaded_project, loaded = service.load_document(path)
+    loaded_project, loaded, _qc_runs = service.load_document(path)
 
     assert loaded_project.uuid == project.uuid
     assert loaded.bundle_state("m", "fp", {"provider"})[0] is BundleState.COMPLETE
@@ -415,7 +415,7 @@ def test_a_project_saved_before_results_were_kept_still_opens(qapp, tmp_path):
     service.save(project, path)
     assert RESULTS_KEY not in json.loads(path.read_text(encoding="utf-8"))
 
-    loaded_project, loaded = service.load_document(path)
+    loaded_project, loaded, _qc_runs = service.load_document(path)
     assert loaded_project.uuid == project.uuid
     assert loaded.molecule_uuids() == []
 
@@ -515,12 +515,12 @@ def test_saving_and_reopening_shows_results_before_anything_runs(window, qapp, t
     a, _b = _two_molecule_project(window)
     _select(window, qapp, a)
     project = window._session.project
-    results, fingerprints = window._current_results()
+    results, fingerprints, qc_runs = window._current_results()
     path = tmp_path / "saved.ocsproj"
-    window._services.project_service.save(project, path, results, fingerprints)
+    window._services.project_service.save(project, path, results, fingerprints, qc_runs)
 
-    loaded_project, loaded_results = window._services.project_service.load_document(path)
-    window._set_project(loaded_project, loaded_results)
+    loaded_project, loaded_results, loaded_qc_runs = window._services.project_service.load_document(path)
+    window._set_project(loaded_project, loaded_results, loaded_qc_runs)
     calls = _counting(window)
     _select(window, qapp, loaded_project.find_molecule(a.uuid))
 
@@ -562,7 +562,7 @@ def test_unsaved_results_reach_a_recovery_copy_and_save_removes_it(window, qapp,
     _fire_recovery_timer(window, qapp)
 
     [candidate] = service.candidates()
-    _project, results = service.load(candidate)
+    _project, results, _qc_runs = service.load(candidate)
     assert a.uuid in results.molecule_uuids()
 
     window.save_project_to(tmp_path / "saved.ocsproj")

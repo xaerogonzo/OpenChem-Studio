@@ -74,6 +74,7 @@ from openchem.domain.macromolecule import MacromoleculeModel
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.calculator import GEOMETRY, RegistryExecution
 from openchem.domain.project import ProjectModel
+from openchem.domain.quantum_chemistry_run import QuantumChemistryRunStore
 from openchem.domain.result_store import SessionResultStore
 from openchem.events.events import (
     CrystalSelected,
@@ -469,6 +470,7 @@ class MainWindow(QMainWindow):
             services.event_bus,
             self,
             qm_surface_service=services.qm_surface_service,
+            result_store_service=services.result_store_service,
         )
         self._alignment_panel = AlignmentPanel(services.alignment_service, services.event_bus, self, settings=settings)
         self._interactions_panel = InteractionsPanel(
@@ -2554,7 +2556,12 @@ class MainWindow(QMainWindow):
             return
         self._set_project(ProjectModel(name="Untitled project"))
 
-    def _set_project(self, project: ProjectModel, results: SessionResultStore | None = None) -> None:
+    def _set_project(
+        self,
+        project: ProjectModel,
+        results: SessionResultStore | None = None,
+        qc_runs: QuantumChemistryRunStore | None = None,
+    ) -> None:
         # THE UNDO STACK BELONGS TO THE DOCUMENT, and every command holds a
         # direct reference to the project it was built against. Without
         # this, opening a second project left the first one's commands
@@ -2568,7 +2575,7 @@ class MainWindow(QMainWindow):
         # and it is replaced BEFORE any panel is told: a panel may select a
         # molecule, and that selection has to find this project's results.
         if self._services.result_store_service is not None:
-            self._services.result_store_service.set_project(project, results)
+            self._services.result_store_service.set_project(project, results, qc_runs)
         self._project_explorer.set_project(project)
         self._docking_panel.set_project(project)
         self._quantum_chemistry_panel.set_project(project)
@@ -2606,7 +2613,7 @@ class MainWindow(QMainWindow):
         command = OpenProjectCommand(self._services.project_service, Path(path_str))
         self._undo_stack.push(command)
         if command.loaded_project is not None:
-            self._set_project(command.loaded_project, command.loaded_results)
+            self._set_project(command.loaded_project, command.loaded_results, command.loaded_qc_runs)
 
     def _save_project(self) -> bool:
         """True when the project reached disk.
@@ -2640,9 +2647,9 @@ class MainWindow(QMainWindow):
         Everything Save does after the file dialog, so a scripted run saves
         through the same command and the same results the menu does.
         """
-        results, fingerprints = self._current_results()
+        results, fingerprints, qc_runs = self._current_results()
         command = SaveProjectCommand(
-            self._services.project_service, self._session.project, path, results, fingerprints
+            self._services.project_service, self._session.project, path, results, fingerprints, qc_runs
         )
         self._undo_stack.push(command)
         self._session.mark_clean()
@@ -2700,12 +2707,13 @@ class MainWindow(QMainWindow):
             return
         if not self._settings.preference(RECOVERY_ENABLED):
             return
-        results, fingerprints = self._current_results()
+        results, fingerprints, qc_runs = self._current_results()
         try:
             service.write(
                 project, results, fingerprints,
                 getattr(self, "_recovery_generation", service.generation),
                 source_path=getattr(self, "_project_path", ""),
+                qc_runs=qc_runs,
             )
         except Exception:  # noqa: BLE001 - a recovery copy must never interrupt work
             logger.exception("Could not write a recovery copy of %s", project.uuid)
@@ -2748,8 +2756,8 @@ class MainWindow(QMainWindow):
         if choice != QMessageBox.StandardButton.Yes:
             service.discard(newest)
             return False
-        project, results = service.load(newest)
-        self._set_project(project, results)
+        project, results, qc_runs = service.load(newest)
+        self._set_project(project, results, qc_runs)
         self._project_path = newest.source_path
         # Recovered work is unsaved by definition; keep the copy until it is.
         self._session.mark_dirty()
@@ -3513,11 +3521,12 @@ class MainWindow(QMainWindow):
         self._schedule_recovery()
 
     def _current_results(self):
-        """The store and fingerprints a save writes, or (None, None)."""
+        """The store, fingerprints and QC run history a save writes, or
+        (None, None, None)."""
         store_service = self._services.result_store_service
         if store_service is None:
-            return None, None
-        return store_service.store, store_service.project_fingerprints()
+            return None, None, None
+        return store_service.store, store_service.project_fingerprints(), store_service.qc_runs
 
     # --- structure checking ----------------------------------------------------
 

@@ -2,13 +2,17 @@ from __future__ import annotations
 
 import dataclasses
 import os
+import time
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QFormLayout,
     QHeaderView,
+    QInputDialog,
     QLabel,
+    QMenu,
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
@@ -16,8 +20,10 @@ from PySide6.QtWidgets import (
     QTabWidget,
     QTableWidget,
     QTableWidgetItem,
+    QToolButton,
     QVBoxLayout,
     QWidget,
+    QWidgetAction,
 )
 
 from openchem.chem.calculation_input import (
@@ -37,9 +43,11 @@ from openchem.chem.orca_engine import (
     default_cores,
     find_mpi_bin,
 )
+from openchem.domain.compare import ComparedResult, CompareRefusal, compare
 from openchem.domain.project import ProjectModel
 from openchem.domain.scientific_result import (
     CrossPeak,
+    PerAtomDataset,
     SpectrumResult,
     VibrationalSpectrumResult,
 )
@@ -54,6 +62,7 @@ from openchem.events.events import (
     SpectrumComputed,
 )
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
+from openchem.ui.dialogs.compare_results_dialog import CompareResultsDialog
 from openchem.ui.dialogs.settings_dialog import EXTERNAL_TOOLS, SettingsDialog
 from openchem.ui.molecule_combo import repopulate, select
 from openchem.ui.widgets.empty_state import empty_state, empty_state_text, is_empty_state
@@ -92,6 +101,14 @@ _CALIBRATED_NOTE = "Calibrated to TMS — values are real δ (ppm) chemical shif
 _SCALED_NOTE = (
     "Empirically scaled — real δ (ppm), fitted against known compounds at this exact "
     "method/basis. More accurate than TMS referencing alone, which assumes a slope of −1."
+)
+#: Distinct from a bare "—" in a J (Hz) cell, which a user cannot tell apart
+#: from "ORCA reported no coupling for this pair" -- see
+#: NMRSpectrumResult.coupling_error's docstring for the four states this
+#: collapses without it.
+_COUPLING_FAILED_NOTE = (
+    "Spin-spin coupling data unavailable — ORCA's coupling output could not be parsed. "
+    "The chemical shifts above are unaffected."
 )
 # (correlation_type, compute_fn, x_axis_label, y_axis_label) -- HSQC/HMBC
 # always put H first/C second (see chem/nmr_correlation.py), COSY is H-H.
@@ -255,6 +272,31 @@ _HELP: dict[str, HelpTooltip] = {
         topic="quantum-chemistry",
         help_anchor="limits-nmr",
     ),
+    "tab_help": HelpTooltip(
+        text=(
+            "Opens the documentation for whichever tab is currently active -- "
+            "what HSQC/HMBC/COSY correlate, the difference between raw "
+            "shielding/TMS-referenced/empirically scaled shifts, what the "
+            "Hybrid tab merges, and so on. One button for the whole strip "
+            "rather than one per tab, because it always follows the tab "
+            "you are already looking at."
+        ),
+        tier=1,
+        help_id="quantum.tab_help",
+        topic="quantum-chemistry",
+        help_anchor="quantum-chemistry",
+    ),
+    "more_menu": HelpTooltip(
+        text=(
+            "Configure ORCA, Calibrate Reference and Calibrate Scaling -- set up "
+            "once per method/basis rather than pressed for every run, so they sit "
+            "behind this disclosure instead of crowding Run and Cancel."
+        ),
+        tier=1,
+        help_id="quantum.more_menu",
+        topic="quantum-chemistry",
+        help_anchor="quantum-chemistry",
+    ),
     "run_calculation": HelpTooltip(
         text=(
             "Submits the calculation to ORCA and streams its output into the Log tab "
@@ -305,7 +347,7 @@ _HELP: dict[str, HelpTooltip] = {
         tier=3,
         help_id="quantum.correlation_contours",
         topic="quantum-chemistry",
-        help_anchor="limits-nmr",
+        help_anchor="2d-correlation",
     ),
     # --- the 1D spectrum table, whose first two columns the Hybrid tab shares
     "nmr_atom_index": HelpTooltip(
@@ -462,6 +504,44 @@ _HELP: dict[str, HelpTooltip] = {
         topic="quantum-chemistry",
         help_anchor="limits-nmr",
     ),
+    "runs_combo": HelpTooltip(
+        text=(
+            "Every retained calculation for this molecule, newest first. Selecting "
+            "one repaints every tab from THAT run -- its spectrum, descriptors, IR "
+            "and surfaces, none of another run's.\n\n"
+            "This only changes what is displayed. It does not change what the next "
+            "press of Run will submit."
+        ),
+        tier=1,
+        help_id="quantum.runs_combo",
+        topic="quantum-chemistry",
+        help_anchor="quantum-chemistry",
+    ),
+    "delete_run": HelpTooltip(
+        text=(
+            "Removes the selected run from this project's history. Only the "
+            "project record is deleted -- a reusable wavefunction it left in the "
+            "quantum-chemistry cache is untouched, and a later identical "
+            "calculation can still reuse it."
+        ),
+        tier=2,
+        help_id="quantum.delete_run",
+        topic="quantum-chemistry",
+        help_anchor="quantum-chemistry",
+    ),
+    "compare_runs": HelpTooltip(
+        text=(
+            "Compares this molecule's retained NMR shifts across two runs, atom "
+            "by atom -- the same dialog the Atom Inspector's \"Compare with...\" "
+            "opens. Refuses when the two runs' atom numbering cannot be safely "
+            "matched (for instance after a structural edit between them), rather "
+            "than silently lining up the wrong atoms."
+        ),
+        tier=2,
+        help_id="quantum.compare_runs",
+        topic="quantum-chemistry",
+        help_anchor="quantum-chemistry",
+    ),
 }
 
 #: Column position -> key in `_HELP`, per table. The correlation tuple is
@@ -516,6 +596,8 @@ class QuantumChemistryPanel(QWidget):
         event_bus: EventBus,
         parent: QWidget | None = None,
         qm_surface_service=None,
+        result_store_service=None,
+        open_help=None,
     ) -> None:
         """Built in five steps, in the order they must happen.
 
@@ -534,23 +616,44 @@ class QuantumChemistryPanel(QWidget):
         """
         super().__init__(parent)
         self._init_state(
-            quantum_chemistry_service, chemistry_engine, settings, qm_surface_service
+            quantum_chemistry_service, chemistry_engine, settings, qm_surface_service,
+            result_store_service, open_help,
         )
         self._build_controls()
         self._build_tabs()
         self._build_form_and_layout()
         self._subscribe_to_events(event_bus)
 
-    def _init_state(self, quantum_chemistry_service: QuantumChemistryService, chemistry_engine: ChemistryEngine, settings: Settings, qm_surface_service) -> None:
+    def _init_state(
+        self,
+        quantum_chemistry_service: QuantumChemistryService,
+        chemistry_engine: ChemistryEngine,
+        settings: Settings,
+        qm_surface_service,
+        result_store_service=None,
+        open_help=None,
+    ) -> None:
         """The services and the state fields, before any widget exists."""
         self._quantum_chemistry_service = quantum_chemistry_service
         self._chemistry_engine = chemistry_engine
         self._settings = settings
+        # `open_help(topic_key)` opens it elsewhere (the app-wide, F1-bound
+        # window); left None, the panel opens a private one of its own --
+        # `CalculatorVisibilityPage`'s exact contract, for the exact same
+        # reason: nothing here requires a MainWindow to exist, which every
+        # test that builds this panel standalone depends on.
+        self._open_help = open_help
+        self._help_window = None
         # Optional, and after `parent` so every existing positional call
         # site keeps working. Without it the Surfaces tab says why it is
         # empty rather than not existing -- a missing tab reads as a
         # version difference, an explained one reads as configuration.
         self._qm_surface_service = qm_surface_service
+        # Optional for the same reason. Without it the panel behaves
+        # exactly as it always did (live results only, nothing survives a
+        # molecule switch or a reload) -- the QC run history it owns
+        # (`.qc_runs`) is what `_refresh_active_run` reads from.
+        self._result_store_service = result_store_service
         self._project: ProjectModel | None = None
         self._pending_molecule_uuid: str | None = None
         self._pending_mol = None  # rdkit.Chem.Mol, set in _on_run_clicked -- needed
@@ -566,6 +669,20 @@ class QuantumChemistryPanel(QWidget):
         #: the submitted one because the normal modes describe motion about
         #: THIS structure, not the one that was sent.
         self._optimized_conformer_molblock: str = ""
+        #: The RDKit Mol `_update_correlation_tabs`/`_update_hybrid_tab`
+        #: compute connectivity against -- separate from `_pending_mol`,
+        #: which means "the job currently in flight this session" and must
+        #: not double as "what is currently displayed" (that conflation is
+        #: exactly why history couldn't be shown before this field existed:
+        #: `_pending_mol` is `None` whenever no job has been submitted this
+        #: session, including right after a project loads). Set from a live
+        #: job's own `_pending_mol` when its result arrives, or from a
+        #: historical run's `input_molblock` by `_render_run`.
+        self._display_mol = None
+        #: The run currently being displayed -- `None` until
+        #: `_refresh_active_run` finds one, or once Phase 2 adds a history
+        #: picker, whichever run the user selected there.
+        self._active_run = None
 
     def _build_controls(self) -> None:
         """Every control above the tabs, in the order it is laid out."""
@@ -644,6 +761,25 @@ class QuantumChemistryPanel(QWidget):
         apply_help_tooltip(self._scaling_button, _HELP["empirical_shift_scaling"])
         self._scaling_button.clicked.connect(self._on_scaling_calibrate_clicked)
 
+        # Three buttons that are set-up-once-and-forget, not part of the
+        # per-run workflow -- collapsed behind one disclosure rather than
+        # sitting in the row every Run/Cancel press has to share space
+        # with. Real `QPushButton`s, not `QAction`s: every test and every
+        # help tooltip above already targets these exact widgets, and a
+        # `QWidgetAction` embeds a widget in a menu unchanged rather than
+        # replacing it with a new control that would need its own wiring.
+        self._more_menu = QMenu(self)
+        for button in (self._configure_button, self._calibrate_button, self._scaling_button):
+            action = QWidgetAction(self._more_menu)
+            action.setDefaultWidget(button)
+            self._more_menu.addAction(action)
+        self._more_button = QToolButton(self)
+        self._more_button.setText("More")
+        self._more_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        self._more_button.setMenu(self._more_menu)
+        apply_help_tooltip(self._more_button, _HELP["more_menu"])
+        self._more_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+
         self._run_button = QPushButton("Run", self)
         apply_help_tooltip(self._run_button, _HELP["run_calculation"])
         self._run_button.clicked.connect(self._on_run_clicked)
@@ -651,6 +787,30 @@ class QuantumChemistryPanel(QWidget):
         self._cancel_button.setEnabled(False)
         apply_help_tooltip(self._cancel_button, _HELP["cancel_calculation"])
         self._cancel_button.clicked.connect(self._on_cancel_clicked)
+
+        # One history control for the WHOLE panel, not one per tab -- every
+        # tab repaints from whichever run is selected here. Disabled/empty
+        # until `_refresh_active_run` has something to show (no project, no
+        # molecule, or no QC history for it yet).
+        self._runs_combo = QComboBox(self)
+        apply_help_tooltip(self._runs_combo, _HELP["runs_combo"])
+        self._runs_combo.currentIndexChanged.connect(self._on_runs_combo_changed)
+        self._delete_run_button = QPushButton("Delete Run", self)
+        apply_help_tooltip(self._delete_run_button, _HELP["delete_run"])
+        self._delete_run_button.clicked.connect(self._on_delete_run_clicked)
+        self._compare_runs_button = QPushButton("Compare NMR Shifts...", self)
+        apply_help_tooltip(self._compare_runs_button, _HELP["compare_runs"])
+        self._compare_runs_button.clicked.connect(self._on_compare_runs_clicked)
+        self._set_runs_controls_enabled(False)
+
+        # ONE affordance for the whole tab strip, not one per tab -- it
+        # follows whichever tab is active (`_tab_help_topics`, resolved at
+        # click time) rather than cluttering eight already-cramped tab
+        # headers with their own help buttons.
+        self._tab_help_button = QPushButton("Help for this tab", self)
+        self._tab_help_button.setAutoDefault(False)
+        apply_help_tooltip(self._tab_help_button, _HELP["tab_help"])
+        self._tab_help_button.clicked.connect(self._on_tab_help_clicked)
 
         self._status_label = QLabel("", self)
         self._output_log = QPlainTextEdit(self)
@@ -686,6 +846,18 @@ class QuantumChemistryPanel(QWidget):
         # whether the shift values are raw shielding or TMS-calibrated.
         self._correlation_tabs = QTabWidget(self)
         self._correlation_tabs.setVisible(False)
+        # Per-tab status glyph: base title (set once, below) -> the active
+        # run's `output_status` key it reflects. Populated per-tab as each
+        # is built rather than with a generic wrapper, because several
+        # tabs (Hybrid, Surfaces, the Log) have no `output_status` entry
+        # of their own and are deliberately left out of this dict -- no
+        # entry means no glyph, not a guessed one.
+        self._tab_status_titles: dict[int, str] = {}
+        self._tab_status_keys: dict[int, str] = {}
+        #: Tab index -> help topic key, read by the one contextual help
+        #: affordance above the tab strip -- it follows whichever tab is
+        #: active rather than needing one help button per tab.
+        self._tab_help_topics: dict[int, str] = {}
         # The 1D view owns a QWebEngineView for its 3D pane, which is
         # expensive enough not to build for every user who never runs an NMR
         # calculation -- the tab exists from the start (so tab order never
@@ -722,6 +894,9 @@ class QuantumChemistryPanel(QWidget):
         # MainWindows". A section would be safe now. A tab is still the
         # better answer, so it stays.)
         self._correlation_tabs.addTab(self._nmr_view_tab, "1D Signals")
+        self._tab_status_titles[self._correlation_tabs.indexOf(self._nmr_view_tab)] = "1D Signals"
+        self._tab_status_keys[self._correlation_tabs.indexOf(self._nmr_view_tab)] = "spectrum"
+        self._tab_help_topics[self._correlation_tabs.indexOf(self._nmr_view_tab)] = "nmr-referencing"
         self._add_empty_state(
             self._nmr_view_tab,
             self._nmr_view_layout,
@@ -737,6 +912,9 @@ class QuantumChemistryPanel(QWidget):
         self._ir_view_tab = QWidget(self._correlation_tabs)
         self._ir_view_layout = QVBoxLayout(self._ir_view_tab)
         self._correlation_tabs.addTab(self._ir_view_tab, "IR")
+        self._tab_status_titles[self._correlation_tabs.indexOf(self._ir_view_tab)] = "IR"
+        self._tab_status_keys[self._correlation_tabs.indexOf(self._ir_view_tab)] = "vibrational_spectrum"
+        self._tab_help_topics[self._correlation_tabs.indexOf(self._ir_view_tab)] = "ir-spectra"
         self._add_empty_state(
             self._ir_view_tab,
             self._ir_view_layout,
@@ -752,6 +930,13 @@ class QuantumChemistryPanel(QWidget):
         self._surfaces_tab = QWidget(self._correlation_tabs)
         self._surfaces_layout = QVBoxLayout(self._surfaces_tab)
         self._correlation_tabs.addTab(self._surfaces_tab, "Surfaces")
+        self._tab_status_titles[self._correlation_tabs.indexOf(self._surfaces_tab)] = "Surfaces"
+        # Surfaces has no `output_status` entry of its own -- a run either
+        # retained a wavefunction to compute one from, or it didn't. This
+        # sentinel key tells `_update_tab_status_indicators` to read
+        # `run.surface_cache_key` instead of `run.output_status`.
+        self._tab_status_keys[self._correlation_tabs.indexOf(self._surfaces_tab)] = "__surface_cache_key"
+        self._tab_help_topics[self._correlation_tabs.indexOf(self._surfaces_tab)] = "surfaces"
         self._add_empty_state(
             self._surfaces_tab,
             self._surfaces_layout,
@@ -777,6 +962,9 @@ class QuantumChemistryPanel(QWidget):
         hybrid_layout.addWidget(self._hybrid_summary_label)
         hybrid_layout.addWidget(self._hybrid_table)
         self._correlation_tabs.addTab(hybrid_tab, "Hybrid")
+        self._tab_status_titles[self._correlation_tabs.indexOf(hybrid_tab)] = "Hybrid"
+        self._tab_status_keys[self._correlation_tabs.indexOf(hybrid_tab)] = "spectrum"
+        self._tab_help_topics[self._correlation_tabs.indexOf(hybrid_tab)] = "hybrid-shifts"
         # The hybrid tab needs no placeholder WIDGET: `_hybrid_summary_label`
         # already exists to carry exactly this kind of note, and already
         # shows `_HYBRID_UNAVAILABLE_NOTE` when a run produces no rows. It
@@ -793,11 +981,21 @@ class QuantumChemistryPanel(QWidget):
             tab = QWidget(self._correlation_tabs)
             tab_layout = QVBoxLayout(tab)
             table = QTableWidget(0, len(_CORRELATION_COLUMNS), tab)
+            # Read back via `sender()` in the two handlers below, instead
+            # of a lambda closing over `correlation_type` (and, with it,
+            # `self` -- a lambda connected to a child widget's signal is
+            # not disconnected when the panel itself would otherwise be
+            # collected, unlike a bound method, which Qt tracks and
+            # disconnects on its own). `test_qt_object_disposal.py`'s
+            # self-capturing-lambda guard is what caught this.
+            table.setProperty("correlation_type", correlation_type)
             table.setHorizontalHeaderLabels(_CORRELATION_COLUMNS)
             _document_header(table, _CORRELATION_COLUMN_HELP)
             table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
             table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+            table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
             plot = NmrCorrelationPlotWidget(parent=tab)
+            plot.setProperty("correlation_type", correlation_type)
             # One checkbox per tab rather than one for the panel: HSQC is
             # sparse enough to read as dots while HMBC on the same molecule
             # is crowded enough to want contours, so the useful setting
@@ -808,24 +1006,41 @@ class QuantumChemistryPanel(QWidget):
             # renderings, told apart by `instance_path`.
             apply_help_tooltip(contour_toggle, _HELP["correlation_contours"])
             contour_toggle.toggled.connect(plot.set_show_contours)
-            tab_layout.addWidget(table)
-            tab_layout.addWidget(contour_toggle)
-            # The plot is the cramped half of this tab -- a contour map in
-            # a 420 px dock under a table -- so it gets a pop-out host.
-            # Wrapping only the PLOT leaves `tab.children()` otherwise
-            # untouched, which is what `_content_of` walks.
-            tab_layout.addWidget(
-                PopOutHost(
-                    plot,
-                    title=f"{correlation_type.upper()} correlations",
-                    settings_id=f"quantum.correlation_{correlation_type}",
-                    settings=self._settings,
-                    parent=tab,
-                )
+            host = PopOutHost(
+                plot,
+                title=f"{correlation_type.upper()} correlations",
+                settings_id=f"quantum.correlation_{correlation_type}",
+                settings=self._settings,
+                parent=tab,
             )
+            # Stretch, not a real QSplitter: `table`, `contour_toggle` and
+            # `host` all stay tab's own DIRECT children, which is what
+            # `_content_of` requires (see its docstring -- a dict keyed by
+            # a QWidget corrupted the heap once already; nesting an
+            # extra container here would just be a different way of
+            # breaking the same invariant, since `host` would no longer
+            # be discoverable at `tab.children()`). The table is the
+            # lookup reference; the plot is what the zoom/pan work above
+            # exists for -- roughly a quarter/three-quarters split, not
+            # equal halves. A user-draggable split was the plan's first
+            # idea, but it costs exactly this invariant for a panel that
+            # already crashed once over it.
+            tab_layout.addWidget(table, 1)
+            tab_layout.addWidget(contour_toggle, 0)
+            tab_layout.addWidget(host, 3)
             self._correlation_tabs.addTab(tab, correlation_type.upper())
+            tab_index = self._correlation_tabs.indexOf(tab)
+            self._tab_status_titles[tab_index] = correlation_type.upper()
+            self._tab_status_keys[tab_index] = "spectrum"
+            self._tab_help_topics[tab_index] = "2d-correlation"
             self._correlation_tables[correlation_type] = table
             self._correlation_plots[correlation_type] = plot
+            # Bidirectional, the same shape `NmrViewWidget` already uses
+            # for the 1D spectrum: a table row selects its peak, a peak
+            # click selects its row -- both through the (atom_a, atom_b)
+            # pair, never coordinates or row position.
+            table.itemSelectionChanged.connect(self._on_correlation_row_selected)
+            plot.peak_selected.connect(self._on_correlation_peak_selected)
             # Painted into the plot rather than added as a placeholder
             # widget -- see `ui/widgets/empty_state.py` for the heap
             # corruption that a placeholder in a content-bearing tab
@@ -840,7 +1055,12 @@ class QuantumChemistryPanel(QWidget):
         # claim as much as a layout one, and every existing tab keeps its
         # index so nothing shifts under somebody who has learned where
         # things are.
-        self._correlation_tabs.addTab(self._output_log, "Log")
+        # "ORCA Log," not "Log" -- the application's own bottom Console is
+        # also a log, and a tab reading just "Log" inside a QC results dock
+        # reads as a duplicate of it rather than what it actually is: this
+        # one job's raw ORCA stdout.
+        self._correlation_tabs.addTab(self._output_log, "ORCA Log")
+        self._tab_help_topics[self._correlation_tabs.indexOf(self._output_log)] = "quantum-chemistry"
 
     def _build_form_and_layout(self) -> None:
         """The run form and the vertical layout under it.
@@ -848,6 +1068,14 @@ class QuantumChemistryPanel(QWidget):
         `form` is built HERE rather than in its own step because it
         is a local read by `layout.addLayout(form)`.
         """
+        # Two distinct sections, not one form that happens to have a
+        # history control at the bottom: selecting an old run in "Currently
+        # viewing" must never read as having changed what "Calculation to
+        # run" is about to submit -- the exact ambiguity a single unlabelled
+        # block would invite.
+        calculation_heading = QLabel("Calculation to run", self)
+        calculation_heading.setStyleSheet("font-weight: bold;")
+
         form = QFormLayout()
         form.addRow("Molecule:", self._molecule_combo)
         form.addRow("Calculation:", self._calc_type_combo)
@@ -858,27 +1086,31 @@ class QuantumChemistryPanel(QWidget):
         form.addRow("CPU cores:", self._cores_spin)
         form.addRow("", self._boltzmann_check)
 
-        # **FIVE BUTTONS, AND A `QHBoxLayout`'s MINIMUM IS THEIR SUM.**
-        # Measured under `offscreen`: 218 + 350 + 434 + 80 + 86 = 1168 px of
-        # buttons, giving the row a minimum of 1192 -- the widest single
-        # thing in the panel, and more than the whole panel is ever given.
-        # The dock opens at 420, so the row was CLIPPED at the panel edge
-        # and "Calibrate Scaling (11 standards)..." rendered as
-        # "Calibrate Scaling (11 s". `FlowLayout.minimumSize` reports the
-        # widest SINGLE child instead and wraps the rest onto another line.
-        #
-        # **THIS IS THE CASE `flow_row` IS FOR, and the distinction matters
-        # because the opposite mistake is also on record**: the Docking
-        # panel's two-checkbox strip was swapped to a `flow_row` on this
-        # rule alone and cost 21 px of dead band for a row that fitted on
-        # one line. A flow row is a cure for a row whose children cannot
-        # fit, not a prophylactic. These five cannot fit.
+        # Used to be five buttons in this row -- measured under `offscreen`:
+        # 218 + 350 + 434 + 80 + 86 = 1168 px, more than the whole panel is
+        # ever given, which is why this was a `flow_row` in the first
+        # place (see git history for the measurement). The three setup-
+        # once buttons are now behind `_more_button`'s menu, so this row is
+        # just "More", Run, Cancel -- narrow enough for a plain
+        # `QHBoxLayout`, but left as `flow_row` anyway: a docked panel can
+        # still be narrower than these three at some DPI, and `flow_row`
+        # costs nothing extra when a row already fits on one line.
         run_row = flow_row(self)
-        run_row.layout().addWidget(self._configure_button)
-        run_row.layout().addWidget(self._calibrate_button)
-        run_row.layout().addWidget(self._scaling_button)
+        run_row.layout().addWidget(self._more_button)
         run_row.layout().addWidget(self._run_button)
         run_row.layout().addWidget(self._cancel_button)
+
+        # "Currently viewing," separate from the form above it ("calculation
+        # to run"): selecting a run here must never look like it changed
+        # what the next Run press will submit, and it does not.
+        viewing_heading = QLabel("Currently viewing", self)
+        viewing_heading.setStyleSheet("font-weight: bold;")
+
+        runs_row = flow_row(self)
+        runs_row.layout().addWidget(QLabel("Runs:", self))
+        runs_row.layout().addWidget(self._runs_combo)
+        runs_row.layout().addWidget(self._delete_run_button)
+        runs_row.layout().addWidget(self._compare_runs_button)
 
         # THE RESULTS COME FIRST, AND THE LOG IS COLLAPSED UNDERNEATH.
         #
@@ -894,12 +1126,21 @@ class QuantumChemistryPanel(QWidget):
         # panel during a ten-minute ORCA run reads as a hang.
 
         layout = QVBoxLayout(self)
+        layout.addWidget(calculation_heading)
         layout.addLayout(form)
         layout.addWidget(run_row)
+        layout.addWidget(viewing_heading)
+        layout.addWidget(runs_row)
         layout.addWidget(self._status_label)
         layout.addWidget(self._results_label)
         layout.addWidget(self._spectrum_note_label)
         layout.addWidget(self._spectrum_table)
+        # Above the tab strip, not inside any one tab -- see
+        # `_tab_help_button`'s own comment for why one affordance rather
+        # than eight.
+        help_row = flow_row(self)
+        help_row.layout().addWidget(self._tab_help_button)
+        layout.addWidget(help_row)
         layout.addWidget(self._correlation_tabs)
 
         self._reset_empty_states()
@@ -917,6 +1158,7 @@ class QuantumChemistryPanel(QWidget):
     def set_project(self, project: ProjectModel | None) -> None:
         self._project = project
         self._refresh_molecule_combo()
+        self._refresh_active_run()
 
     def _refresh_molecule_combo(self) -> None:
         molecules = self._project.molecules if self._project is not None else []
@@ -945,10 +1187,268 @@ class QuantumChemistryPanel(QWidget):
         molecule = self._current_molecule()
         if molecule is not None and molecule.molblock:
             self._charge_spin.setValue(self._chemistry_engine.formal_charge(molecule))
+        self._refresh_active_run()
+
+    def _refresh_active_run(self) -> None:
+        """Populate the Runs combo for the selected molecule and show its
+        newest entry, if this session's `ResultStoreService` has history
+        for it.
+
+        This is the panel's only route to "what was already calculated
+        here" outside a live job: `_pending_molecule_uuid` is `None` right
+        after a molecule selection or a project load, which is exactly
+        when a user expects to see a prior result reappear rather than a
+        blank panel.
+        """
+        self._active_run = None
+        molecule = self._current_molecule()
+        runs = (
+            self._result_store_service.qc_runs.runs_for(molecule.uuid)
+            if molecule is not None and self._result_store_service is not None
+            else []
+        )
+        self._runs_combo.blockSignals(True)
+        self._runs_combo.clear()
+        for run in runs:
+            self._runs_combo.addItem(self._run_label(run), run.run_id)
+        self._runs_combo.blockSignals(False)
+        self._set_runs_controls_enabled(bool(runs))
+        if not runs:
+            self._clear_run_display()
+            return
+        self._runs_combo.setCurrentIndex(0)
+        self._render_run(runs[0])
+
+    def _run_label(self, run) -> str:
+        when = time.strftime("%Y-%m-%d %H:%M", time.localtime(run.started_at))
+        calc_label = next(
+            (label for label, key in CALC_TYPE_LABELS.items() if key == run.calc_type), run.calc_type
+        )
+        return f"{calc_label} · {run.method_basis} · {when}"
+
+    def _set_runs_controls_enabled(self, enabled: bool) -> None:
+        self._runs_combo.setEnabled(enabled)
+        self._delete_run_button.setEnabled(enabled)
+        self._compare_runs_button.setEnabled(enabled)
+
+    def _on_runs_combo_changed(self, index: int) -> None:
+        if index < 0 or self._result_store_service is None:
+            return
+        run_id = self._runs_combo.itemData(index)
+        if run_id is None:
+            return
+        run = self._result_store_service.qc_runs.get(run_id)
+        if run is not None:
+            self._render_run(run)
+
+    def _on_delete_run_clicked(self) -> None:
+        if self._active_run is None or self._result_store_service is None:
+            return
+        # A project-history delete only -- the underlying `result_cache`
+        # wavefunction this run's `surface_cache_key` points at is
+        # independently managed and NOT purged: it may still be reusable
+        # by a later identical calculation, and this button has no way to
+        # know that and should not guess.
+        choice = QMessageBox.question(
+            self,
+            "Delete run",
+            f"Delete \"{self._run_label(self._active_run)}\" from this project's history?\n\n"
+            "This only removes the project record -- a reusable wavefunction it left "
+            "in the quantum-chemistry cache is not affected.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if choice != QMessageBox.StandardButton.Yes:
+            return
+        self._result_store_service.qc_runs.delete(self._active_run.run_id)
+        self._refresh_active_run()
+
+    def _on_compare_runs_clicked(self) -> None:
+        if self._active_run is None or self._result_store_service is None:
+            return
+        if self._active_run.results.get("spectrum") is None:
+            QMessageBox.information(
+                self, "Cannot compare", "The active run has no NMR spectrum to compare."
+            )
+            return
+        molecule = self._current_molecule()
+        if molecule is None:
+            return
+        candidates = [
+            run
+            for run in self._result_store_service.qc_runs.runs_for(molecule.uuid)
+            if run.run_id != self._active_run.run_id and run.results.get("spectrum") is not None
+        ]
+        if not candidates:
+            QMessageBox.information(
+                self,
+                "Cannot compare",
+                "No other retained run for this molecule has an NMR spectrum to compare against.",
+            )
+            return
+        labels = [self._run_label(run) for run in candidates]
+        choice, ok = QInputDialog.getItem(
+            self, "Compare NMR Shifts", "Compare the active run against:", labels, 0, False
+        )
+        if not ok:
+            return
+        self._open_run_comparison(self._active_run, candidates[labels.index(choice)])
+
+    def _open_run_comparison(self, run_a, run_b) -> None:
+        """Compares two runs' NMR shifts, atom by atom, through the exact
+        same `domain.compare`/`CompareResultsDialog` the Atom Inspector's
+        "Compare with..." already uses -- rather than a QC-specific
+        comparison widget. `compare()` itself refuses (with a reason shown
+        to the user) when the two runs' atom numbering cannot be safely
+        lined up, e.g. a structural edit between them changed the
+        fingerprint; this method does not re-implement that check.
+        """
+        molecule = self._current_molecule()
+        if molecule is None:
+            return
+        compared = []
+        for run in (run_a, run_b):
+            spectrum = run.results["spectrum"]
+            dataset = PerAtomDataset(
+                property_id="nmr_shift",
+                name=f"NMR shift ({run.method_basis}, {self._run_label(run)})",
+                units=spectrum.units,
+                # The method/basis, not `run.provider` ("orca" for every
+                # ORCA run regardless of method) -- `compare()`'s
+                # same_result_as() uses this plus `property_id` to refuse
+                # "the same result twice", and two runs at different
+                # method/basis are NOT the same result. Confirmed live: two
+                # NMR runs both labelled method="orca" were refused as
+                # duplicates even though they were B3LYP and PBE0.
+                method=run.method_basis,
+                molecule_uuid=run.molecule_uuid,
+                values=dict(spectrum.values),
+            )
+            compared.append(ComparedResult(dataset, run.input_fingerprint, run.calculation_input))
+        outcome = compare(compared)
+        if isinstance(outcome, CompareRefusal):
+            QMessageBox.information(self, "Cannot compare", outcome.message)
+            return
+        symbols = dict(run_a.results["spectrum"].elements)
+        dialog = CompareResultsDialog(outcome, symbols, molecule.display_name, parent=self)
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+        dialog.show()
+
+    def _clear_run_display(self) -> None:
+        self._reset_empty_states()
+        self._results_label.setText("")
+        self._display_mol = None
+        self._clear_tab_status_indicators()
+
+    def _clear_tab_status_indicators(self) -> None:
+        for index, title in self._tab_status_titles.items():
+            self._correlation_tabs.setTabText(index, title)
+
+    def _update_tab_status_indicators(self, run) -> None:
+        """A cheap per-tab glyph for the active run's `output_status`, so
+        checking why one of eight tabs is empty does not need clicking
+        through all eight -- AVAILABLE/NOT_PRODUCED/FAILED, read off the
+        run record itself rather than from "whatever this tab's widget
+        still happens to contain" (which is exactly the kind of leftover
+        content `_reset_empty_states` exists to prevent)."""
+        glyph = {"available": "✓", "not_produced": "–", "failed": "✗", "inapplicable": "–"}
+        for index, title in self._tab_status_titles.items():
+            key = self._tab_status_keys.get(index)
+            if key == "__surface_cache_key":
+                mark = glyph["available"] if run.surface_cache_key else glyph["not_produced"]
+            else:
+                status = run.output_status.get(key)
+                mark = glyph.get(status.value) if status is not None else None
+            self._correlation_tabs.setTabText(index, f"{title} {mark}" if mark else title)
+
+    def _render_run(self, run) -> None:
+        """Repaint the panel from a stored `QuantumChemistryRun`, entirely
+        locally.
+
+        **MUST NEVER PUBLISH ONTO THE SHARED EVENT BUS.** PropertyPanel
+        treats `DescriptorComputed` as "the current/latest value" --
+        broadcasting an older run's numbers that way would make Results
+        silently show stale values while this panel displays history. The
+        live/newest-result path (`main_window._on_quantum_chemistry_result_ready`
+        republishing `DescriptorComputed`) is unaffected and keeps working
+        exactly as it always has.
+
+        Reuses the exact rendering `_on_result_ready`/`_on_spectrum_computed`
+        already do for a live job (`_render_nmr_spectrum`, `_update_ir_view`,
+        `_update_surfaces_view`) rather than a second implementation of the
+        same tables/plots, which is what let the NMR/IR tabs drift out of
+        sync with each other in the first place.
+        """
+        self._active_run = run
+        self._reset_empty_states()
+        self._update_tab_status_indicators(run)
+        self._display_mol = (
+            self._chemistry_engine.mol_from_molblock(run.input_molblock)
+            if run.input_molblock
+            else None
+        )
+        # `input_molblock` is the 3D structure actually sent to ORCA (see
+        # `QuantumChemistryService.request_calculation`), the same thing
+        # `_pending_conformer_molblock` holds for a live job -- so the 3D
+        # panes (NMR, IR animation, Surfaces) that already read it work
+        # unchanged. There is no separate 2D depiction recorded for a
+        # historical run, so `_pending_molblock` (the flat drawing) is left
+        # empty; `NmrViewWidget` falls back to deriving one from the 3D
+        # structure when it has no 2D molblock to draw instead.
+        self._pending_molblock = ""
+        self._pending_conformer_molblock = run.input_molblock
+        # THIS run's own optimized geometry, not "whatever the molecule's
+        # latest optimization happens to be" -- a later run at a different
+        # method could have added another conformer since. Resolved by id
+        # rather than trusting conformer LIST POSITION, which is exactly
+        # the trap `canonical_conformer()` exists to avoid for a live job.
+        self._optimized_conformer_molblock = ""
+        molecule = self._current_molecule()
+        if molecule is not None and run.output_conformer_id:
+            for conformer in molecule.conformers:
+                if conformer.conformer_id == run.output_conformer_id:
+                    self._optimized_conformer_molblock = conformer.molblock
+                    break
+
+        descriptors = run.results.get("descriptors") or []
+        lines = [f"{d.name}: {d.value:.6f} {d.units}" for d in descriptors]
+        self._results_label.setText("\n".join(lines))
+
+        spectrum = run.results.get("spectrum")
+        if spectrum is not None:
+            self._render_nmr_spectrum(spectrum)
+
+        vibrational = run.results.get("vibrational_spectrum")
+        if vibrational is not None:
+            self._update_ir_view(vibrational)
+
+        self._update_surfaces_view()
 
     def _on_configure_clicked(self) -> None:
         dialog = SettingsDialog(self._settings, self, section=EXTERNAL_TOOLS, tool="orca")
         dialog.exec()
+
+    def _on_tab_help_clicked(self) -> None:
+        topic = self._tab_help_topics.get(self._correlation_tabs.currentIndex(), "quantum-chemistry")
+        self._open_help_topic(topic)
+
+    def _open_help_topic(self, topic: str) -> None:
+        """`open_help`'s contract, `CalculatorVisibilityPage.show_help_for`'s
+        exact shape: a caller may supply a callback that opens the app-wide
+        help window (so this panel's button and F1 land on the same
+        window); without one, a private `HelpDialog` is opened instead, so
+        nothing here depends on living inside a `MainWindow`."""
+        if self._open_help is not None:
+            self._open_help(topic)
+            return
+        from openchem.ui.dialogs.help_dialog import HelpDialog
+
+        if self._help_window is None:
+            self._help_window = HelpDialog(self, topic)
+        self._help_window.show_topic(topic)
+        self._help_window.show()
+        self._help_window.raise_()
+        self._help_window.activateWindow()
 
     def _on_run_clicked(self) -> None:
         molecule = self._current_molecule()
@@ -1275,6 +1775,23 @@ class QuantumChemistryPanel(QWidget):
         if isinstance(spectrum, VibrationalSpectrumResult):
             self._update_ir_view(spectrum)
             return
+        # This IS the live job's own mol -- `_update_correlation_tabs`/
+        # `_update_hybrid_tab` read `_display_mol`, never `_pending_mol`
+        # directly, so the same assignment covers both a live result and
+        # (in `_render_run`) a historical one. Set only on the NMR path:
+        # IR has no use for it.
+        self._display_mol = self._pending_mol
+        self._render_nmr_spectrum(spectrum)
+
+    def _render_nmr_spectrum(self, spectrum: SpectrumResult) -> None:
+        """The NMR side of `_on_spectrum_computed` -- factored out so
+        `_render_run` can repaint a HISTORICAL spectrum through the exact
+        same code, rather than a second implementation that could drift
+        from what a live result does. Reads `self._display_mol` (via
+        `_update_correlation_tabs`/`_update_hybrid_tab`), never
+        `self._pending_mol` -- the caller is responsible for setting it
+        first, live or historical.
+        """
         referencing = (
             spectrum.provenance.parameters.get("referencing") if spectrum.provenance else None
         )
@@ -1284,6 +1801,9 @@ class QuantumChemistryPanel(QWidget):
             note = _SCALED_NOTE
         else:
             note = _CALIBRATED_NOTE
+        coupling_error = getattr(spectrum, "coupling_error", None)
+        if coupling_error:
+            note = f"{note}\n{_COUPLING_FAILED_NOTE}"
         self._spectrum_note_label.setText(note)
         self._spectrum_note_label.setVisible(True)
         self._spectrum_table.setVisible(True)
@@ -1467,6 +1987,28 @@ class QuantumChemistryPanel(QWidget):
             state.setVisible(True)
             for widget in content:
                 widget.setVisible(False)
+        # HSQC/HMBC/COSY and Hybrid are NOT covered by the walk above --
+        # each paints its own "no data yet" message directly into its
+        # content widgets rather than using a placeholder `_content_of`
+        # can discover (`_build_tabs`'s comment on why: a placeholder
+        # WIDGET in a content-bearing tab caused a heap corruption,
+        # measured 5/5). Left unhandled, a job of a different calc_type --
+        # e.g. IR after NMR -- reached `_on_spectrum_computed`'s
+        # `VibrationalSpectrumResult` branch, which returns before ever
+        # touching these tabs, so the PREVIOUS run's HSQC/HMBC/COSY rows
+        # and cross peaks (and the Hybrid table) went on sitting there
+        # under the new run's heading. Confirmed live and by a targeted
+        # test before this fix.
+        for correlation_type in self._correlation_tables:
+            self._correlation_tables[correlation_type].setRowCount(0)
+            self._correlation_plots[correlation_type].set_peaks([])
+            # A zoom window -- or a peak selection -- from whatever was on
+            # screen before must not carry over onto a different run's or
+            # molecule's data range.
+            self._correlation_plots[correlation_type].reset_view()
+            self._correlation_plots[correlation_type].set_highlighted_pair(None, None)
+        self._hybrid_table.setRowCount(0)
+        self._hybrid_summary_label.setText(_HYBRID_UNAVAILABLE_NOTE)
 
     def _on_qm_surface_computed(self, event) -> None:
         if self._surfaces_view is None:
@@ -1528,7 +2070,7 @@ class QuantumChemistryPanel(QWidget):
         self._correlation_tabs.setVisible(True)
 
     def _update_correlation_tabs(self, spectrum: SpectrumResult) -> None:
-        mol = self._pending_mol
+        mol = self._display_mol
         if mol is None:
             return
         # NMRSpectrumResult.couplings (Phase 22, "NMR + Spin-Spin Coupling"
@@ -1559,7 +2101,7 @@ class QuantumChemistryPanel(QWidget):
         from openchem.chem import nmr_database, nmr_hybrid
         from openchem.domain.nmr import ScalingFactors
 
-        mol = self._pending_mol
+        mol = self._display_mol
         parameters = (spectrum.provenance.parameters if spectrum.provenance else {}) or {}
         if mol is None or parameters.get("referencing") != "empirical_linear_scaling":
             self._hybrid_summary_label.setText(_HYBRID_UNAVAILABLE_NOTE)
@@ -1704,5 +2246,42 @@ class QuantumChemistryPanel(QWidget):
             for col, text in enumerate(values):
                 table.setItem(row, col, QTableWidgetItem(text))
             if shift_a is not None and shift_b is not None:
-                peaks.append(Peak(x=shift_a, y=shift_b))
+                peaks.append(Peak(x=shift_a, y=shift_b, atom_a=cross_peak.atom_a, atom_b=cross_peak.atom_b))
         self._correlation_plots[correlation_type].set_peaks(peaks, x_label=x_label, y_label=y_label)
+
+    def _on_correlation_peak_selected(self, atom_a: int, atom_b: int) -> None:
+        """A plot click -> the matching table row, by (atom_a, atom_b) --
+        never by nearby coordinates, which two legitimately co-located
+        cross peaks (a symmetric molecule) would resolve to the wrong
+        row for. `correlation_type` comes off the plot that emitted this,
+        not a captured closure -- see where this is connected."""
+        correlation_type = self.sender().property("correlation_type")
+        table = self._correlation_tables[correlation_type]
+        table.blockSignals(True)
+        for row in range(table.rowCount()):
+            item_a, item_b = table.item(row, 0), table.item(row, 1)
+            if item_a is not None and item_b is not None and (
+                item_a.text(), item_b.text()
+            ) == (str(atom_a), str(atom_b)):
+                table.selectRow(row)
+                break
+        table.blockSignals(False)
+
+    def _on_correlation_row_selected(self) -> None:
+        """The inbound half: selecting a table row highlights its peak.
+        `correlation_type` comes off the table that emitted this (see
+        where this is connected), not a captured closure."""
+        table = self.sender()
+        correlation_type = table.property("correlation_type")
+        rows = {index.row() for index in table.selectedIndexes()}
+        if len(rows) != 1:
+            return
+        row = rows.pop()
+        item_a, item_b = table.item(row, 0), table.item(row, 1)
+        if item_a is None or item_b is None:
+            return
+        try:
+            atom_a, atom_b = int(item_a.text()), int(item_b.text())
+        except ValueError:
+            return
+        self._correlation_plots[correlation_type].set_highlighted_pair(atom_a, atom_b)

@@ -31,6 +31,7 @@ from openchem.domain.calculator import DRAWING, GEOMETRY
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
+from openchem.domain.quantum_chemistry_run import QuantumChemistryRun, QuantumChemistryRunStore
 from openchem.domain.report import ReportResult, StructureReport
 from openchem.domain.result_store import (
     MAX_REVISIONS,
@@ -55,6 +56,7 @@ from openchem.events.events import (
     DescriptorComputed,
     PerAtomDataComputed,
     PhCurveComputed,
+    QuantumChemistryRunCompleted,
     ReportComputed,
     ResultRecorded,
     SettingsChanged,
@@ -123,6 +125,10 @@ class ResultStoreService:
         self._project: ProjectModel | None = None
         self.store = SessionResultStore("")
         self.store.set_max_revisions(self.revision_limit())
+        #: The durable QC run history -- a separate collection from `store`
+        #: above, deliberately; see `quantum_chemistry_run.py`'s module
+        #: docstring for why a revision cache cannot hold this.
+        self.qc_runs = QuantumChemistryRunStore("")
         #: Called with the molecule uuid whenever a NEW result is retained --
         #: how the session learns it has something unsaved. Plain callables
         #: held here, not Qt connections.
@@ -130,10 +136,16 @@ class ResultStoreService:
         event_bus.subscribe(ResultRecorded, self._on_result_recorded)
         event_bus.subscribe(AutomaticPartFinished, self._on_part_finished)
         event_bus.subscribe(SettingsChanged, self._on_settings_changed)
+        event_bus.subscribe(QuantumChemistryRunCompleted, self._on_quantum_chemistry_run_completed)
 
     # --- lifecycle ----------------------------------------------------------
 
-    def set_project(self, project: ProjectModel | None, store: SessionResultStore | None = None) -> None:
+    def set_project(
+        self,
+        project: ProjectModel | None,
+        store: SessionResultStore | None = None,
+        qc_runs: QuantumChemistryRunStore | None = None,
+    ) -> None:
         """Start a new project's store -- the lifecycle boundary.
 
         A result still in flight from the previous project arrives after
@@ -142,7 +154,8 @@ class ResultStoreService:
         **THE LIMIT IS APPLIED TO A STORE THAT CAME FROM A FILE TOO.**
         `SessionResultStore.from_dict` builds its store with the default, so
         without this an opened project would keep 8 revisions whatever the
-        setting said, until the setting next changed.
+        setting said, until the setting next changed. `qc_runs` has no such
+        limit to apply -- it is retained unconditionally.
         """
         self._project = project
         uuid = project.uuid if project is not None else ""
@@ -153,6 +166,25 @@ class ResultStoreService:
                 logger.warning("Ignoring a result store for project %s", store.project_uuid)
             self.store = SessionResultStore(uuid)
         self.store.set_max_revisions(self.revision_limit())
+        if qc_runs is not None and qc_runs.project_uuid == uuid:
+            self.qc_runs = qc_runs
+        else:
+            if qc_runs is not None:
+                logger.warning("Ignoring quantum chemistry runs for project %s", qc_runs.project_uuid)
+            self.qc_runs = QuantumChemistryRunStore(uuid)
+
+    def record_quantum_chemistry_run(self, run: QuantumChemistryRun) -> None:
+        """The one write path into `qc_runs` -- never `ResultRecorded`
+        (that event feeds `store`, the revision cache this run must not be
+        subject to). Refuses a run for a molecule outside the current
+        project the same way `_on_result_recorded` refuses a stray result.
+        """
+        if self._project is None or self._project.find_molecule(run.molecule_uuid) is None:
+            return
+        self.qc_runs.record(run)
+
+    def _on_quantum_chemistry_run_completed(self, event: QuantumChemistryRunCompleted) -> None:
+        self.record_quantum_chemistry_run(event.run)
 
     def revision_limit(self) -> int:
         """How many revisions of each input the store keeps per molecule."""

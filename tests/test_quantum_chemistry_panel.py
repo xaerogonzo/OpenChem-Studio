@@ -166,6 +166,73 @@ def test_spectrum_computed_for_a_different_molecule_is_ignored(qapp):
     assert panel._spectrum_table.rowCount() == 0
 
 
+def test_the_more_menu_carries_the_three_setup_buttons(qapp):
+    """Collapsed behind `_more_button` rather than removed -- `Configure
+    ORCA...` / `Calibrate Reference...` / `Calibrate Scaling...` must still
+    be real, clickable `QPushButton`s reachable from the panel, since every
+    other test above (and every help tooltip) targets them directly."""
+    panel, _engine, _service = _make_panel()
+
+    menu_widgets = {
+        action.defaultWidget() for action in panel._more_menu.actions() if action.defaultWidget()
+    }
+
+    assert panel._configure_button in menu_widgets
+    assert panel._calibrate_button in menu_widgets
+    assert panel._scaling_button in menu_widgets
+    assert panel._more_button.menu() is panel._more_menu
+
+
+def test_the_tab_help_button_opens_the_active_tabs_topic(qapp):
+    """One affordance, following whichever tab is active -- not one help
+    button per tab. Injecting `open_help` (the same optional-callback
+    contract `CalculatorVisibilityPage` uses) keeps this test from needing
+    a real `HelpDialog`/`QApplication` help window."""
+    from openchem.chem.engine import ChemistryEngine as _Engine
+    from openchem.events.base import EventBus as _EventBus
+
+    bus = _EventBus()
+    engine = _Engine()
+    settings = Settings(bus)
+    service = _RecordingQuantumChemistryService(bus)
+    opened: list[str] = []
+    panel = QuantumChemistryPanel(service, engine, settings, bus, open_help=opened.append)
+
+    panel._correlation_tabs.setCurrentWidget(panel._ir_view_tab)
+    panel._on_tab_help_clicked()
+    assert opened == ["ir-spectra"]
+
+    panel._correlation_tabs.setCurrentWidget(panel._nmr_view_tab)
+    panel._on_tab_help_clicked()
+    assert opened == ["ir-spectra", "nmr-referencing"]
+
+
+def test_every_tab_has_a_help_topic_assigned(qapp):
+    """No tab should fall through to a bare "quantum-chemistry" by
+    accident -- the correlation/Hybrid/Surfaces tabs each have a more
+    specific topic, and this catches a future tab added without one
+    (it would silently answer with the general topic, which this test
+    would not have caught without naming every existing tab)."""
+    panel, _engine, _service = _make_panel()
+    expected = {
+        panel._nmr_view_tab: "nmr-referencing",
+        panel._ir_view_tab: "ir-spectra",
+        panel._surfaces_tab: "surfaces",
+    }
+    for tab, topic in expected.items():
+        index = panel._correlation_tabs.indexOf(tab)
+        assert panel._tab_help_topics[index] == topic
+    for correlation_type in ("hsqc", "hmbc", "cosy"):
+        table = panel._correlation_tables[correlation_type]
+        tab = table.parentWidget()
+        index = panel._correlation_tabs.indexOf(tab)
+        assert panel._tab_help_topics[index] == "2d-correlation"
+    hybrid_index = panel._correlation_tabs.indexOf(panel._hybrid_table.parentWidget())
+    assert panel._tab_help_topics[hybrid_index] == "hybrid-shifts"
+    log_index = panel._correlation_tabs.indexOf(panel._output_log)
+    assert panel._tab_help_topics[log_index] == "quantum-chemistry"
+
+
 def test_calibrate_button_calls_request_reference_calibration_with_method_basis(qapp):
     panel, _engine, service = _make_panel()
     panel._method_combo.setCurrentText("B3LYP def2-SVP")
@@ -349,6 +416,521 @@ def test_spectrum_computed_populates_correlation_tabs(qapp):
     assert panel._correlation_tables["hsqc"].rowCount() == 5
     assert len(panel._correlation_plots["hsqc"]._peaks) == 5
     assert panel._correlation_tables["cosy"].rowCount() > 0
+
+    # Bidirectional selection, through (atom_a, atom_b) rather than row
+    # position or coordinates: the table drives the plot...
+    table = panel._correlation_tables["hsqc"]
+    plot = panel._correlation_plots["hsqc"]
+    table.selectRow(2)
+    atom_a = int(table.item(2, 0).text())
+    atom_b = int(table.item(2, 1).text())
+    assert plot._highlighted_pair == (atom_a, atom_b)
+
+    # ...and a peak click drives the table back, landing on the SAME row
+    # regardless of which one was selected a moment ago. Emitted for real
+    # (not called directly) because the handler reads `correlation_type`
+    # off `self.sender()`, which only resolves during a real signal
+    # dispatch.
+    other_row = 0 if atom_a != int(table.item(0, 0).text()) else 1
+    plot.peak_selected.emit(
+        int(table.item(other_row, 0).text()), int(table.item(other_row, 1).text())
+    )
+    assert {index.row() for index in table.selectedIndexes()} == {other_row}
+
+
+def test_a_stored_run_repaints_the_panel_with_no_job_submitted_this_session(qapp):
+    """The actual persistence bug this was all for: `_pending_molecule_uuid`
+    is `None` right after a project loads or a molecule is (re)selected --
+    no job was ever submitted THIS session -- so a naive replay through the
+    live `_on_spectrum_computed`/`_on_result_ready` handlers (gated on
+    `_pending_molecule_uuid`) would be silently ignored. `_refresh_active_run`
+    must reach the panel a different way."""
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+
+    from openchem.chem.engine import ChemistryEngine as _Engine
+    from openchem.domain.descriptor import DescriptorValue
+    from openchem.domain.quantum_chemistry_run import (
+        OutputStatus,
+        QuantumChemistryRun,
+        RunStatus,
+    )
+    from openchem.services.result_store_service import ResultStoreService
+
+    bus = EventBus()
+    engine = _Engine()
+    settings = Settings(bus)
+    service = _RecordingQuantumChemistryService(bus)
+    store_service = ResultStoreService(bus, engine, settings)
+
+    molecule = MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+    mol_3d = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    AllChem.EmbedMolecule(mol_3d, randomSeed=7)
+    molecule.conformers.append(ConformerModel(molblock=Chem.MolToMolBlock(mol_3d), method="rdkit_etkdg"))
+    project = ProjectModel(name="Test")
+    project.molecules.append(molecule)
+    store_service.set_project(project)
+
+    spectrum = NMRSpectrumResult(
+        spectrum_type="nmr_calibrated",
+        name="Chemical Shift",
+        units="ppm",
+        method="orca",
+        molecule_uuid=molecule.uuid,
+        values={idx: 100.0 + idx for idx in range(mol_3d.GetNumAtoms())},
+        elements={idx: atom.GetSymbol() for idx, atom in enumerate(mol_3d.GetAtoms())},
+    )
+    run = QuantumChemistryRun(
+        run_id="run-1",
+        molecule_uuid=molecule.uuid,
+        calc_type="nmr",
+        method_basis="B3LYP def2-SVP",
+        charge=0,
+        multiplicity=1,
+        calculation_input="geometry",
+        input_fingerprint="fp",
+        input_molblock=Chem.MolToMolBlock(mol_3d),
+        status=RunStatus.COMPLETED,
+    )
+    run.results["spectrum"] = spectrum
+    run.output_status["spectrum"] = OutputStatus.AVAILABLE
+    run.results["descriptors"] = [
+        DescriptorValue(
+            descriptor_id="orca.scf_energy",
+            name="SCF Energy",
+            units="Hartree",
+            category="quantum_chemistry",
+            provider="orca",
+            molecule_uuid=molecule.uuid,
+            value=-154.9,
+        )
+    ]
+    store_service.record_quantum_chemistry_run(run)
+
+    # Fresh panel: no job has ever been submitted through it.
+    panel = QuantumChemistryPanel(
+        service, engine, settings, bus, result_store_service=store_service
+    )
+    assert panel._pending_molecule_uuid is None
+
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+
+    assert panel._active_run is run
+    assert "SCF Energy" in panel._results_label.text()
+    assert panel._spectrum_table.rowCount() == mol_3d.GetNumAtoms()
+    assert panel._correlation_tables["hsqc"].rowCount() > 0
+
+
+def _two_nmr_runs(qapp):
+    """Shared setup for the Phase 2 history-control tests: a panel wired to
+    a real `ResultStoreService`, with two completed NMR runs on one
+    molecule at different (fingerprint, method) so `compare()` accepts
+    them. Returns (panel, store_service, molecule, run_older, run_newer)."""
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+
+    from openchem.chem.engine import ChemistryEngine as _Engine
+    from openchem.domain.quantum_chemistry_run import (
+        OutputStatus,
+        QuantumChemistryRun,
+        RunStatus,
+    )
+    from openchem.services.result_store_service import ResultStoreService
+
+    bus = EventBus()
+    engine = _Engine()
+    settings = Settings(bus)
+    service = _RecordingQuantumChemistryService(bus)
+    store_service = ResultStoreService(bus, engine, settings)
+
+    molecule = MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+    mol_3d = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    AllChem.EmbedMolecule(mol_3d, randomSeed=7)
+    molecule.conformers.append(ConformerModel(molblock=Chem.MolToMolBlock(mol_3d), method="rdkit_etkdg"))
+    project = ProjectModel(name="Test")
+    project.molecules.append(molecule)
+    store_service.set_project(project)
+
+    def _spectrum(offset: float) -> NMRSpectrumResult:
+        return NMRSpectrumResult(
+            spectrum_type="nmr_calibrated",
+            name="Chemical Shift",
+            units="ppm",
+            method="orca",
+            molecule_uuid=molecule.uuid,
+            values={idx: offset + idx for idx in range(mol_3d.GetNumAtoms())},
+            elements={idx: atom.GetSymbol() for idx, atom in enumerate(mol_3d.GetAtoms())},
+        )
+
+    def _run(run_id: str, method_basis: str, started_at: float, offset: float) -> QuantumChemistryRun:
+        run = QuantumChemistryRun(
+            run_id=run_id,
+            molecule_uuid=molecule.uuid,
+            calc_type="nmr",
+            method_basis=method_basis,
+            charge=0,
+            multiplicity=1,
+            calculation_input="geometry",
+            # SAME fingerprint on purpose -- both runs are on the same
+            # structure, which is what makes compare() accept them.
+            input_fingerprint="fp-shared",
+            input_molblock=Chem.MolToMolBlock(mol_3d),
+            status=RunStatus.COMPLETED,
+            started_at=started_at,
+        )
+        run.results["spectrum"] = _spectrum(offset)
+        run.output_status["spectrum"] = OutputStatus.AVAILABLE
+        return run
+
+    run_older = _run("run-older", "B3LYP def2-SVP", 1.0, offset=10.0)
+    run_newer = _run("run-newer", "PBE0 def2-SVP", 2.0, offset=20.0)
+    store_service.record_quantum_chemistry_run(run_older)
+    store_service.record_quantum_chemistry_run(run_newer)
+
+    panel = QuantumChemistryPanel(service, engine, settings, bus, result_store_service=store_service)
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+    return panel, store_service, molecule, run_older, run_newer
+
+
+def test_the_runs_combo_lists_every_run_newest_first(qapp):
+    panel, _store, _molecule, run_older, run_newer = _two_nmr_runs(qapp)
+
+    assert panel._runs_combo.count() == 2
+    assert panel._runs_combo.itemData(0) == run_newer.run_id
+    assert panel._runs_combo.itemData(1) == run_older.run_id
+    assert panel._active_run is run_newer
+
+
+def test_selecting_an_older_run_in_the_combo_repaints_the_panel(qapp):
+    panel, _store, _molecule, run_older, _run_newer = _two_nmr_runs(qapp)
+
+    panel._runs_combo.setCurrentIndex(1)
+
+    assert panel._active_run is run_older
+    assert panel._spectrum_table.item(0, 2).text() == f"{10.0:.3f}"
+
+
+def test_tab_titles_carry_a_status_glyph_for_the_active_run(qapp):
+    """The fixture run sets only `output_status["spectrum"]`, the way a
+    hand-built test run does but a real one from the service never would
+    (it always sets every key it touches) -- so spectrum-derived tabs get
+    the available mark, and IR, which this run's `output_status` says
+    nothing about, gets none at all rather than a guessed one. Surfaces
+    always resolves, even to "not produced", because its sentinel reads
+    `run.surface_cache_key` directly rather than a possibly-absent key."""
+    panel, _store, _molecule, _run_older, run_newer = _two_nmr_runs(qapp)
+
+    index_1d = panel._correlation_tabs.indexOf(panel._nmr_view_tab)
+    index_ir = panel._correlation_tabs.indexOf(panel._ir_view_tab)
+    index_surfaces = panel._correlation_tabs.indexOf(panel._surfaces_tab)
+
+    assert panel._correlation_tabs.tabText(index_1d) == "1D Signals ✓"
+    assert panel._correlation_tabs.tabText(index_ir) == "IR"
+    assert panel._correlation_tabs.tabText(index_surfaces) == "Surfaces –"
+
+
+def test_tab_status_glyphs_clear_when_the_run_display_is_cleared(qapp):
+    panel, _store, _molecule, run_older, _run_newer = _two_nmr_runs(qapp)
+    index_1d = panel._correlation_tabs.indexOf(panel._nmr_view_tab)
+    assert panel._correlation_tabs.tabText(index_1d) == "1D Signals ✓"
+
+    panel._clear_run_display()
+
+    assert panel._correlation_tabs.tabText(index_1d) == "1D Signals"
+
+
+def test_deleting_the_active_run_leaves_the_other_one_selectable(qapp):
+    panel, store, molecule, run_older, run_newer = _two_nmr_runs(qapp)
+    assert panel._active_run is run_newer
+
+    from PySide6.QtWidgets import QMessageBox
+
+    orig_question = QMessageBox.question
+    QMessageBox.question = staticmethod(lambda *a, **k: QMessageBox.StandardButton.Yes)
+    try:
+        panel._on_delete_run_clicked()
+    finally:
+        QMessageBox.question = orig_question
+
+    assert store.qc_runs.get(run_newer.run_id) is None
+    assert store.qc_runs.get(run_older.run_id) is run_older
+    assert panel._runs_combo.count() == 1
+    assert panel._active_run is run_older
+
+
+def test_deleting_a_run_does_not_touch_the_wavefunction_cache(qapp, tmp_path, monkeypatch):
+    """The store-level guarantee (tests/test_quantum_chemistry_run.py) is
+    that delete() only removes the project record; this confirms the panel's
+    Delete button doesn't add its own cache-purging on top of that."""
+    from openchem import paths as app_paths
+
+    cache_root = tmp_path / "cache"
+    cache_root.mkdir()
+    monkeypatch.setattr(app_paths, "cache_root", lambda: cache_root)
+    marker = cache_root / "some_cache_entry"
+    marker.mkdir()
+
+    panel, store, _molecule, _run_older, run_newer = _two_nmr_runs(qapp)
+
+    from PySide6.QtWidgets import QMessageBox
+
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.Yes))
+    panel._on_delete_run_clicked()
+
+    assert marker.exists()
+
+
+def test_compare_runs_opens_a_dialog_for_two_compatible_runs(qapp, monkeypatch):
+    panel, _store, molecule, run_older, run_newer = _two_nmr_runs(qapp)
+
+    import openchem.ui.panels.quantum_chemistry_panel as panel_module
+
+    opened = {}
+
+    class _FakeDialog:
+        def __init__(self, outcome, symbols, molecule_name, parent=None):
+            opened["outcome"] = outcome
+            opened["symbols"] = symbols
+            opened["molecule_name"] = molecule_name
+
+        def setAttribute(self, *_a, **_k):
+            pass
+
+        def show(self):
+            opened["shown"] = True
+
+    monkeypatch.setattr(panel_module, "CompareResultsDialog", _FakeDialog)
+    monkeypatch.setattr(
+        panel_module.QInputDialog, "getItem", staticmethod(lambda *a, **k: (a[3][0], True))
+    )
+    # A real QMessageBox.information() would block forever waiting for a
+    # click nobody sends -- if compare() unexpectedly refuses (this test's
+    # own hang, once, on a real bug: both runs' PerAtomDataset used
+    # method="orca" regardless of method_basis, so compare() saw "the same
+    # result twice"), fail loudly instead of hanging.
+    def _unexpected_refusal(_parent, _title, text):
+        raise AssertionError(f"compare() refused unexpectedly: {text}")
+
+    monkeypatch.setattr(panel_module.QMessageBox, "information", _unexpected_refusal)
+
+    panel._on_compare_runs_clicked()
+
+    assert opened.get("shown") is True
+    assert opened["molecule_name"] == molecule.display_name
+    assert len(opened["outcome"].columns) == 2
+
+
+def test_compare_runs_refuses_when_structures_differ(qapp, monkeypatch):
+    """compare() itself refuses on a fingerprint mismatch -- this proves
+    the panel surfaces that refusal rather than silently comparing the
+    wrong atoms or crashing."""
+    panel, store, molecule, run_older, run_newer = _two_nmr_runs(qapp)
+    from dataclasses import replace
+
+    edited = replace(run_older, input_fingerprint="fp-different")
+    store.qc_runs.delete(run_older.run_id)
+    store.qc_runs.record(edited)
+    panel._refresh_active_run()
+    panel._runs_combo.setCurrentIndex(0)  # newest (run_newer) active
+
+    import openchem.ui.panels.quantum_chemistry_panel as panel_module
+
+    told = []
+    monkeypatch.setattr(
+        panel_module.QMessageBox, "information", lambda parent, title, text: told.append(text)
+    )
+    monkeypatch.setattr(
+        panel_module.QInputDialog, "getItem", staticmethod(lambda *a, **k: (a[3][0], True))
+    )
+
+    panel._on_compare_runs_clicked()
+
+    assert told and "edited" in told[0].lower()
+
+
+def test_compare_runs_refuses_two_runs_at_the_same_method(qapp, monkeypatch):
+    """Two executions of the IDENTICAL calculation (same method/basis) are
+    two separate history entries (run_id), but comparing their NMR shifts
+    is a table of zeros -- compare() should refuse it as the same result
+    twice, and the panel must build the PerAtomDataset so that refusal can
+    actually fire (method=method_basis, not method=provider, which would
+    make EVERY pair of ORCA runs look identical to compare())."""
+    panel, store, molecule, run_older, run_newer = _two_nmr_runs(qapp)
+    from dataclasses import replace
+
+    same_method = replace(run_older, method_basis=run_newer.method_basis)
+    store.qc_runs.delete(run_older.run_id)
+    store.qc_runs.record(same_method)
+    panel._refresh_active_run()
+    panel._runs_combo.setCurrentIndex(0)
+
+    import openchem.ui.panels.quantum_chemistry_panel as panel_module
+
+    told = []
+    monkeypatch.setattr(
+        panel_module.QMessageBox, "information", lambda parent, title, text: told.append(text)
+    )
+    monkeypatch.setattr(
+        panel_module.QInputDialog, "getItem", staticmethod(lambda *a, **k: (a[3][0], True))
+    )
+
+    panel._on_compare_runs_clicked()
+
+    assert told and "twice" in told[0].lower()
+
+
+def test_a_stored_runs_output_conformer_is_resolved_by_id_not_list_position(qapp):
+    """Two conformers exist (e.g. from two different runs' optimizations);
+    selecting the OLDER run must show ITS geometry, not whichever conformer
+    a later run most recently added."""
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+
+    from openchem.chem.engine import ChemistryEngine as _Engine
+    from openchem.domain.quantum_chemistry_run import QuantumChemistryRun, RunStatus
+    from openchem.services.result_store_service import ResultStoreService
+
+    bus = EventBus()
+    engine = _Engine()
+    settings = Settings(bus)
+    service = _RecordingQuantumChemistryService(bus)
+    store_service = ResultStoreService(bus, engine, settings)
+
+    molecule = MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+    mol_3d = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    AllChem.EmbedMolecule(mol_3d, randomSeed=7)
+    old_conformer = ConformerModel(molblock="OLD GEOMETRY", method="orca_opt")
+    new_conformer = ConformerModel(molblock="NEW GEOMETRY", method="orca_opt")
+    molecule.conformers.extend([old_conformer, new_conformer])
+    project = ProjectModel(name="Test")
+    project.molecules.append(molecule)
+    store_service.set_project(project)
+
+    old_run = QuantumChemistryRun(
+        run_id="run-old",
+        molecule_uuid=molecule.uuid,
+        calc_type="opt",
+        method_basis="B3LYP def2-SVP",
+        charge=0,
+        multiplicity=1,
+        calculation_input="geometry",
+        input_fingerprint="fp-a",
+        input_molblock=Chem.MolToMolBlock(mol_3d),
+        output_conformer_id=old_conformer.conformer_id,
+        status=RunStatus.COMPLETED,
+        started_at=1.0,
+    )
+    new_run = QuantumChemistryRun(
+        run_id="run-new",
+        molecule_uuid=molecule.uuid,
+        calc_type="opt",
+        method_basis="B3LYP def2-SVP",
+        charge=0,
+        multiplicity=1,
+        calculation_input="geometry",
+        input_fingerprint="fp-b",
+        input_molblock=Chem.MolToMolBlock(mol_3d),
+        output_conformer_id=new_conformer.conformer_id,
+        status=RunStatus.COMPLETED,
+        started_at=2.0,
+    )
+    store_service.record_quantum_chemistry_run(old_run)
+    store_service.record_quantum_chemistry_run(new_run)
+
+    panel = QuantumChemistryPanel(
+        service, engine, settings, bus, result_store_service=store_service
+    )
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+
+    # Newest run is shown by default.
+    assert panel._active_run is new_run
+    assert panel._optimized_conformer_molblock == "NEW GEOMETRY"
+
+    panel._render_run(old_run)
+    assert panel._optimized_conformer_molblock == "OLD GEOMETRY"
+
+
+def test_running_ir_after_nmr_clears_the_stale_correlation_tables(qapp):
+    """Flagged from real screenshots as a possible regression: NMR
+    populates HSQC/HMBC/COSY, then a separate IR run on the same molecule
+    must not leave the OLD NMR-run rows sitting in those tables under the
+    new run's heading. `_on_run_clicked` already calls
+    `_reset_empty_states()` with a comment saying exactly this must not
+    happen -- this proves whether it still holds."""
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+    from openchem.domain.scientific_result import VibrationalSpectrumResult
+
+    bus = EventBus()
+    engine = ChemistryEngine()
+    settings = Settings(bus)
+    service = _RecordingQuantumChemistryService(bus)
+    panel = QuantumChemistryPanel(service, engine, settings, bus)
+
+    molecule = MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+    mol_3d = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    AllChem.EmbedMolecule(mol_3d, randomSeed=7)
+    molecule.conformers.append(ConformerModel(molblock=Chem.MolToMolBlock(mol_3d), method="rdkit_etkdg"))
+    project = ProjectModel(name="Test")
+    project.molecules.append(molecule)
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+    panel._method_combo.setCurrentText("B3LYP def2-SVP")
+
+    # Run 1: NMR -- populates HSQC/HMBC/COSY.
+    panel._calc_type_combo.setCurrentText("NMR (raw shielding)")
+    panel._on_run_clicked()
+    values = {idx: 100.0 + idx for idx in range(mol_3d.GetNumAtoms())}
+    elements = {idx: atom.GetSymbol() for idx, atom in enumerate(mol_3d.GetAtoms())}
+    panel._on_spectrum_computed(
+        SpectrumComputed(
+            spectrum=NMRSpectrumResult(
+                spectrum_type="nmr_raw_shielding",
+                name="raw",
+                units="ppm",
+                method="orca",
+                molecule_uuid=molecule.uuid,
+                values=values,
+                elements=elements,
+            )
+        )
+    )
+    assert panel._correlation_tables["hsqc"].rowCount() > 0
+    assert panel._correlation_tables["cosy"].rowCount() > 0
+
+    # Run 2: IR -- a separate calculation, no NMR data at all.
+    panel._calc_type_combo.setCurrentText("Optimization + Frequency")
+    panel._on_run_clicked()
+    panel._on_spectrum_computed(
+        SpectrumComputed(
+            spectrum=VibrationalSpectrumResult(
+                spectrum_type="ir",
+                name="IR",
+                units="cm-1",
+                method="orca",
+                molecule_uuid=molecule.uuid,
+                modes=(),
+            )
+        )
+    )
+
+    assert panel._correlation_tables["hsqc"].rowCount() == 0, (
+        "HSQC still shows the previous NMR run's rows after a separate IR run"
+    )
+    assert panel._correlation_tables["cosy"].rowCount() == 0, (
+        "COSY still shows the previous NMR run's rows after a separate IR run"
+    )
+    assert not panel._correlation_plots["hsqc"]._peaks, (
+        "the HSQC plot still holds the previous NMR run's peaks after a separate IR run"
+    )
+    assert not panel._correlation_plots["cosy"]._peaks
 
 
 def test_the_1d_signal_tab_exists_before_any_result_arrives(qapp):
