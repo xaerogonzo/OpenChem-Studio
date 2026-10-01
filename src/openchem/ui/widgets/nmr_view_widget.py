@@ -73,6 +73,18 @@ class NmrViewWidget(QWidget):
         self._header_label = QLabel("", self)
         self._header_label.setWordWrap(True)
 
+        # The honest state of spin-spin coupling for what's on screen --
+        # see `_update_coupling_note`. A spectrum-level note rather than a
+        # per-signal one: more discoverable (a user may never hover a
+        # peak), and it is what distinguishes "this 'd' is unsplit because
+        # no J was ever calculated" from "this 'd' is unsplit because the
+        # coupling output failed to parse" from "real coupling IS being
+        # shown, at this frequency" -- three states that look identical on
+        # the plot otherwise.
+        self._coupling_note_label = QLabel("", self)
+        self._coupling_note_label.setWordWrap(True)
+        self._coupling_note_label.setStyleSheet("color: #666;")
+
         # `make_scroll_safe` on every combo below: confirmed live
         # (OPENCHEM_DRIVE's wheel_trace/wheel steps) that a `QComboBox`
         # accepts a wheel event unconditionally, focus or not -- scrolling
@@ -148,6 +160,7 @@ class NmrViewWidget(QWidget):
 
         layout = QVBoxLayout(self)
         layout.addWidget(self._header_label)
+        layout.addWidget(self._coupling_note_label)
         layout.addLayout(element_row)
         layout.addLayout(structures_row)
         layout.addWidget(self._spectrum_widget)
@@ -198,6 +211,7 @@ class NmrViewWidget(QWidget):
 
     def _on_frequency_changed(self, _index: int) -> None:
         self._spectrum_widget.set_frequency(self._frequency_combo.currentData())
+        self._update_coupling_note()
 
     def _on_solvent_changed(self, _index: int) -> None:
         self._spectrum_widget.set_solvent(self._solvent_combo.currentData())
@@ -221,6 +235,44 @@ class NmrViewWidget(QWidget):
         )
         self._populate_table()
         self._render_structure(highlighted=[])
+        self._update_coupling_note()
+
+    def _update_coupling_note(self) -> None:
+        """Says plainly which of four states this element's signals are
+        in, rather than leaving a "d" next to an unsplit stick to read as
+        a defect. Priority, highest first: a genuine parser failure beats
+        everything (something broke, not "not requested"); a visible
+        non-singlet signal with no real J beats a generic positive
+        message (the gap is the thing worth saying); real coupling data,
+        confirmed present; otherwise nothing to say (every signal here is
+        a genuine singlet, or this element has no multiplet concept at
+        all -- 13C is always reported decoupled).
+        """
+        if self._spectrum is None:
+            self._coupling_note_label.setText("")
+            return
+        coupling_error = getattr(self._spectrum, "coupling_error", None)
+        couplings = getattr(self._spectrum, "couplings", None)
+        if coupling_error:
+            self._coupling_note_label.setText(
+                f"Spin-spin coupling was requested, but ORCA's output could not be "
+                f"parsed ({coupling_error}) -- multiplet spacing is not shown."
+            )
+            return
+        missing = any(signal.multiplicity != "s" and not signal.coupling_hz for signal in self._signals)
+        if missing:
+            self._coupling_note_label.setText(
+                "Multiplicity is predicted from connectivity; spin-spin coupling was "
+                "not calculated for this run, so multiplet spacing is not shown."
+            )
+            return
+        if couplings:
+            self._coupling_note_label.setText(
+                f"Spin-spin coupling calculated; multiplet spacing shown at "
+                f"{self._frequency_combo.currentText()}."
+            )
+            return
+        self._coupling_note_label.setText("")
 
     def _populate_table(self) -> None:
         method = self._spectrum.method if self._spectrum is not None else ""

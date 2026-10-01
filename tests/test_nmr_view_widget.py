@@ -58,6 +58,109 @@ def test_table_lists_one_row_per_signal(qapp):
     assert view._table.rowCount() == len(view.signals()) == 9
 
 
+# --- the coupling note: which of four states is on screen -----------------
+
+
+def test_a_non_singlet_with_no_real_j_gets_the_not_calculated_note(qapp):
+    """`synthetic_nmr_spectrum` carries no coupling data at all, and
+    ibuprofen's isopropyl methyls are a real structural doublet -- exactly
+    the state that used to render as an unexplained unsplit line."""
+    view, _backend, _molecule, _spectrum = _make_view(qapp)
+    assert any(s.multiplicity != "s" for s in view.signals())
+
+    assert "not calculated" in view._coupling_note_label.text()
+    assert "predicted from connectivity" in view._coupling_note_label.text()
+
+
+def test_real_coupling_gets_a_positive_confirmation_naming_the_frequency(qapp):
+    from openchem.chem.engine import ChemistryEngine as _Engine
+    from openchem.domain.molecule import MoleculeModel as _MoleculeModel
+    from openchem.domain.scientific_result import NMRSpectrumResult
+
+    engine = _Engine()
+    molecule = _MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+    mol = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    hydrogens = [a.GetIdx() for a in mol.GetAtoms() if a.GetAtomicNum() == 1]
+    methyl, methylene = hydrogens[:3], hydrogens[3:5]
+    spectrum = NMRSpectrumResult(
+        spectrum_type="nmr_calibrated",
+        name="NMR",
+        units="ppm",
+        method="orca",
+        molecule_uuid=molecule.uuid,
+        values={i: 1.2 for i in methyl} | {i: 3.6 for i in methylene},
+        elements={i: "H" for i in methyl + methylene},
+        couplings={(methyl[0], methylene[0]): 7.05},
+    )
+    view = NmrViewWidget(engine, backend=FakeViewerBackend())
+    view.set_spectrum(molecule.molblock, spectrum)
+
+    note = view._coupling_note_label.text()
+    assert "calculated" in note and "not calculated" not in note
+    assert view._frequency_combo.currentText() in note
+
+
+def test_a_coupling_parse_failure_gets_its_own_note_not_the_generic_one(qapp):
+    from openchem.chem.engine import ChemistryEngine as _Engine
+    from openchem.domain.molecule import MoleculeModel as _MoleculeModel
+    from openchem.domain.scientific_result import NMRSpectrumResult
+
+    engine = _Engine()
+    molecule = _MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+    mol = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    methyl = [a.GetIdx() for a in mol.GetAtoms() if a.GetAtomicNum() == 1][:3]
+    spectrum = NMRSpectrumResult(
+        spectrum_type="nmr_calibrated",
+        name="NMR",
+        units="ppm",
+        method="orca",
+        molecule_uuid=molecule.uuid,
+        values={i: 1.2 for i in methyl},
+        elements={i: "H" for i in methyl},
+        couplings=None,
+        coupling_error="unreadable SPIN-SPIN COUPLING table",
+    )
+    view = NmrViewWidget(engine, backend=FakeViewerBackend())
+    view.set_spectrum(molecule.molblock, spectrum)
+
+    note = view._coupling_note_label.text()
+    assert "could not be parsed" in note
+    assert "unreadable SPIN-SPIN COUPLING table" in note
+
+
+def test_changing_frequency_refreshes_the_notes_stated_frequency(qapp):
+    from openchem.chem.engine import ChemistryEngine as _Engine
+    from openchem.domain.molecule import MoleculeModel as _MoleculeModel
+    from openchem.domain.scientific_result import NMRSpectrumResult
+
+    engine = _Engine()
+    molecule = _MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+    mol = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    hydrogens = [a.GetIdx() for a in mol.GetAtoms() if a.GetAtomicNum() == 1]
+    methyl, methylene = hydrogens[:3], hydrogens[3:5]
+    spectrum = NMRSpectrumResult(
+        spectrum_type="nmr_calibrated",
+        name="NMR",
+        units="ppm",
+        method="orca",
+        molecule_uuid=molecule.uuid,
+        values={i: 1.2 for i in methyl} | {i: 3.6 for i in methylene},
+        elements={i: "H" for i in methyl + methylene},
+        couplings={(methyl[0], methylene[0]): 7.05},
+    )
+    view = NmrViewWidget(engine, backend=FakeViewerBackend())
+    view.set_spectrum(molecule.molblock, spectrum)
+    other_index = 0 if view._frequency_combo.currentIndex() != 0 else 1
+    other_text = view._frequency_combo.itemText(other_index)
+
+    view._frequency_combo.setCurrentIndex(other_index)
+
+    assert other_text in view._coupling_note_label.text()
+
+
 def test_table_columns_have_no_prediction_quality(qapp):
     """Marvin shows a confidence rating here because it has an experimental
     reference database behind every number. Nothing here does, so rating one
