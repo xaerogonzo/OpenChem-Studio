@@ -73,6 +73,7 @@ from openchem.ui.widgets.ir_view_widget import IrViewWidget
 from openchem.ui.widgets.pop_out_host import PopOutHost
 from openchem.ui.widgets.nmr_correlation_plot_widget import NmrCorrelationPlotWidget, Peak
 from openchem.ui.widgets.nmr_view_widget import NmrViewWidget
+from openchem.ui.widgets.sortable_item import SortableItem
 from openchem.ui.widgets.scroll_safe import make_scroll_safe
 
 _NMR_SPECTRUM_COLUMNS = ("Atom", "Element", "Value (ppm)")
@@ -2127,6 +2128,10 @@ class QuantumChemistryPanel(QWidget):
             return
 
         rows: list[tuple[str, ...]] = []
+        # One sort value per column, parallel to `rows` -- `None` for a
+        # text column (Element, Source), which leaves `SORT_ROLE` unset
+        # and falls back to text comparison.
+        row_sort_values: list[tuple[object, ...]] = []
         counts: dict[str, int] = {}
         errors: list[float] = []
         notes: list[str] = []
@@ -2192,6 +2197,19 @@ class QuantumChemistryPanel(QWidget):
                         else "—",
                     )
                 )
+                # "unknown"/"—" both sort BELOW every real value here --
+                # same "no data groups at one end" convention as every
+                # other sortable column in this phase.
+                row_sort_values.append(
+                    (
+                        index,
+                        None,
+                        merged.values[index],
+                        None,
+                        expected if expected is not None else float("-inf"),
+                        detail["disagreement_ppm"] if detail["disagreement_ppm"] else float("-inf"),
+                    )
+                )
 
         if rows:
             totals = "   ".join(f"{count} {source}" for source, count in sorted(counts.items()))
@@ -2204,10 +2222,17 @@ class QuantumChemistryPanel(QWidget):
         # there are rows, or `_HYBRID_UNAVAILABLE_NOTE` when a run
         # produced none, which is a more specific answer than the opening
         # message for somebody who has already run something.
+        self._hybrid_table.setSortingEnabled(False)
         self._hybrid_table.setRowCount(len(rows))
-        for row, values in enumerate(rows):
+        for row, (values, sort_values) in enumerate(zip(rows, row_sort_values)):
             for col, text in enumerate(values):
-                self._hybrid_table.setItem(row, col, QTableWidgetItem(text))
+                sort_value = sort_values[col]
+                item = (
+                    SortableItem(text, sort_value) if sort_value is not None else QTableWidgetItem(text)
+                )
+                self._hybrid_table.setItem(row, col, item)
+        self._hybrid_table.horizontalHeader().setSortIndicator(-1, Qt.SortOrder.AscendingOrder)
+        self._hybrid_table.setSortingEnabled(True)
 
     @staticmethod
     def _hybrid_summary(element: str, details: dict, check) -> str:
@@ -2249,22 +2274,41 @@ class QuantumChemistryPanel(QWidget):
         table = self._correlation_tables[correlation_type]
         # No `_fill_tab` here either -- the plot paints its own empty
         # message and stops as soon as it has peaks.
+        #
+        # OFF during population, like every other sortable table here --
+        # a never-before-sorted `QTableWidget` already has a (section 0,
+        # DESCENDING) sort indicator by Qt's own default, so re-enabling
+        # without resetting it first would sort this table on its very
+        # first population. See docs/gotchas/qt-table-sort-indicator-default.md.
+        table.setSortingEnabled(False)
         table.setRowCount(len(cross_peaks))
         peaks: list[Peak] = []
         for row, cross_peak in enumerate(cross_peaks):
             shift_a = spectrum.values.get(cross_peak.atom_a)
             shift_b = spectrum.values.get(cross_peak.atom_b)
-            values = (
-                str(cross_peak.atom_a),
-                str(cross_peak.atom_b),
-                f"{shift_a:.3f}" if shift_a is not None else "",
-                f"{shift_b:.3f}" if shift_b is not None else "",
-                f"{cross_peak.coupling_hz:.2f}" if cross_peak.coupling_hz is not None else "—",
+            atom_a_item = SortableItem(str(cross_peak.atom_a), cross_peak.atom_a)
+            atom_b_item = SortableItem(str(cross_peak.atom_b), cross_peak.atom_b)
+            shift_a_item = SortableItem(
+                f"{shift_a:.3f}" if shift_a is not None else "", shift_a if shift_a is not None else float("-inf")
             )
-            for col, text in enumerate(values):
-                table.setItem(row, col, QTableWidgetItem(text))
+            shift_b_item = SortableItem(
+                f"{shift_b:.3f}" if shift_b is not None else "", shift_b if shift_b is not None else float("-inf")
+            )
+            # An em dash, not "0": no coupling value reported means no
+            # coupling value reported. Sorts below every real value, the
+            # same convention `NmrViewWidget`'s own coupling column uses.
+            coupling_item = SortableItem(
+                f"{cross_peak.coupling_hz:.2f}" if cross_peak.coupling_hz is not None else "—",
+                cross_peak.coupling_hz if cross_peak.coupling_hz is not None else float("-inf"),
+            )
+            for col, item in enumerate(
+                (atom_a_item, atom_b_item, shift_a_item, shift_b_item, coupling_item)
+            ):
+                table.setItem(row, col, item)
             if shift_a is not None and shift_b is not None:
                 peaks.append(Peak(x=shift_a, y=shift_b, atom_a=cross_peak.atom_a, atom_b=cross_peak.atom_b))
+        table.horizontalHeader().setSortIndicator(-1, Qt.SortOrder.AscendingOrder)
+        table.setSortingEnabled(True)
         self._correlation_plots[correlation_type].set_peaks(peaks, x_label=x_label, y_label=y_label)
 
     def _on_correlation_peak_selected(self, atom_a: int, atom_b: int) -> None:

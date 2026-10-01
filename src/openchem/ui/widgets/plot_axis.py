@@ -21,13 +21,18 @@ nothing.
 **NMR AND IR ARE DELIBERATELY NOT MIGRATED ONTO THIS.** They work, they
 are heavily commented, and their 36 tests are the net for a
 behaviour-preserving change that belongs in its own commit rather than
-riding along with a feature branch.
+riding along with a feature branch. `nice_ticks` is the one exception:
+it is NEW code (neither widget drew intermediate ticks before it), not a
+migration of working geometry, so both adopt it directly rather than
+each growing its own copy.
 
 Qt-only (`QRectF`), no RDKit, no domain types -- `ui/` is the right home
 and `tests/test_layering.py` is what says so.
 """
 
 from __future__ import annotations
+
+import math
 
 from PySide6.QtCore import QRectF
 
@@ -137,3 +142,40 @@ def hit_regions(
         )
         for x in xs
     ]
+
+
+def nice_ticks(low: float, high: float, target_count: int = 5) -> list[float]:
+    """Intermediate tick VALUES across `[low, high]`, at a "nice" spacing
+    (1/2/2.5/5/10 x a power of ten) rather than the raw `span /
+    target_count` -- the standard reason any axis shows 0.5/1.0/1.5
+    instead of 0.4317/0.8634/1.2951. `target_count` picks the spacing,
+    not the exact count: a 4.3 ppm span and a 0.4 ppm zoomed-in span both
+    come out readable, with however many steps of that spacing actually
+    fit.
+
+    New, not extracted -- NMR and IR never drew intermediate ticks before
+    this, so there is no existing behaviour to preserve here the way
+    `plot_rect`/`to_widget_x`/`hit_regions` do. Pure data-space
+    arithmetic; `to_widget_x` turns each value into a screen position, in
+    whichever direction the caller asks for.
+    """
+    if high <= low or target_count < 1:
+        return [low]
+    span = high - low
+    raw_step = span / target_count
+    magnitude = 10.0 ** math.floor(math.log10(raw_step))
+    step = raw_step
+    for candidate in (1.0, 2.0, 2.5, 5.0, 10.0):
+        step = candidate * magnitude
+        if step >= raw_step:
+            break
+    first = math.ceil(low / step) * step
+    ticks = []
+    value = first
+    # A tolerance against float accumulation, not an off-by-one: without
+    # it a span whose edge lands exactly on a step (e.g. 0..10 by 2)
+    # loses its own last tick to rounding.
+    while value <= high + step * 1e-6:
+        ticks.append(value)
+        value += step
+    return ticks

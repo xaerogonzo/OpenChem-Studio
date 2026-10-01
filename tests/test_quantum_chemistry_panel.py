@@ -438,6 +438,206 @@ def test_spectrum_computed_populates_correlation_tabs(qapp):
     assert {index.row() for index in table.selectedIndexes()} == {other_row}
 
 
+# --- Sortable correlation/hybrid tables (Phase E) --------------------------
+
+
+def test_sorting_the_correlation_table_orders_atom_columns_numerically(qapp):
+    from PySide6.QtCore import Qt
+
+    bus = EventBus()
+    engine = ChemistryEngine()
+    panel, molecule, mol_3d = _ethanol_panel(
+        bus, engine, Settings(bus), _RecordingQuantumChemistryService(bus)
+    )
+    values = {idx: 100.0 + idx for idx in range(mol_3d.GetNumAtoms())}
+    elements = {idx: atom.GetSymbol() for idx, atom in enumerate(mol_3d.GetAtoms())}
+    bus.publish(
+        SpectrumComputed(
+            spectrum=NMRSpectrumResult(
+                spectrum_type="nmr_raw_shielding", name="raw", units="ppm", method="orca",
+                molecule_uuid=molecule.uuid, values=values, elements=elements,
+            )
+        )
+    )
+    table = panel._correlation_tables["hsqc"]
+
+    table.sortItems(0, Qt.SortOrder.DescendingOrder)
+
+    shown = [int(table.item(row, 0).text()) for row in range(table.rowCount())]
+    assert shown == sorted(shown, reverse=True)
+
+    table.sortItems(0, Qt.SortOrder.AscendingOrder)
+    shown = [int(table.item(row, 0).text()) for row in range(table.rowCount())]
+    assert shown == sorted(shown)
+
+
+def test_selection_survives_a_correlation_table_sort_through_the_atom_pair(qapp):
+    """The claim this phase relies on rather than re-derives:
+    `_on_correlation_row_selected`/`_on_correlation_peak_selected` already
+    resolve through `(atom_a, atom_b)` text, never row position -- live-
+    checked here AFTER a sort, not assumed from reading the source."""
+    from PySide6.QtCore import Qt
+
+    bus = EventBus()
+    engine = ChemistryEngine()
+    panel, molecule, mol_3d = _ethanol_panel(
+        bus, engine, Settings(bus), _RecordingQuantumChemistryService(bus)
+    )
+    values = {idx: 100.0 + idx for idx in range(mol_3d.GetNumAtoms())}
+    elements = {idx: atom.GetSymbol() for idx, atom in enumerate(mol_3d.GetAtoms())}
+    bus.publish(
+        SpectrumComputed(
+            spectrum=NMRSpectrumResult(
+                spectrum_type="nmr_raw_shielding", name="raw", units="ppm", method="orca",
+                molecule_uuid=molecule.uuid, values=values, elements=elements,
+            )
+        )
+    )
+    table = panel._correlation_tables["hsqc"]
+    plot = panel._correlation_plots["hsqc"]
+
+    table.sortItems(0, Qt.SortOrder.DescendingOrder)
+    table.selectRow(2)
+    atom_a = int(table.item(2, 0).text())
+    atom_b = int(table.item(2, 1).text())
+
+    assert plot._highlighted_pair == (atom_a, atom_b)
+
+    other_row = 0 if atom_a != int(table.item(0, 0).text()) else 1
+    plot.peak_selected.emit(
+        int(table.item(other_row, 0).text()), int(table.item(other_row, 1).text())
+    )
+    assert {index.row() for index in table.selectedIndexes()} == {other_row}
+
+
+def test_sorting_the_correlation_tables_j_column_groups_missing_values(qapp):
+    """A mixed column (real Hz floats alongside the "no coupling reported"
+    em dash) must sort deterministically, not raise."""
+    from PySide6.QtCore import Qt
+
+    from openchem.domain.scientific_result import CrossPeak
+
+    panel, _engine, _service = _make_panel()
+    spectrum = NMRSpectrumResult(
+        spectrum_type="nmr_calibrated", name="n", units="ppm", method="orca",
+        molecule_uuid="uuid", values={0: 1.0, 1: 2.0, 2: 3.0, 3: 4.0},
+    )
+    cross_peaks = [
+        CrossPeak(atom_a=0, atom_b=1, coupling_hz=7.0),
+        CrossPeak(atom_a=2, atom_b=3, coupling_hz=None),
+        CrossPeak(atom_a=1, atom_b=2, coupling_hz=14.0),
+    ]
+    panel._populate_correlation_tab("hsqc", cross_peaks, spectrum, "x", "y")
+    table = panel._correlation_tables["hsqc"]
+
+    table.sortItems(4, Qt.SortOrder.AscendingOrder)
+
+    order = [table.item(row, 4).text() for row in range(table.rowCount())]
+    assert order == ["—", "7.00", "14.00"]
+
+
+def test_a_rerun_resets_the_correlation_tables_sort_order(qapp):
+    from PySide6.QtCore import Qt
+
+    bus = EventBus()
+    engine = ChemistryEngine()
+    panel, molecule, mol_3d = _ethanol_panel(
+        bus, engine, Settings(bus), _RecordingQuantumChemistryService(bus)
+    )
+    values = {idx: 100.0 + idx for idx in range(mol_3d.GetNumAtoms())}
+    elements = {idx: atom.GetSymbol() for idx, atom in enumerate(mol_3d.GetAtoms())}
+
+    def _run():
+        bus.publish(
+            SpectrumComputed(
+                spectrum=NMRSpectrumResult(
+                    spectrum_type="nmr_raw_shielding", name="raw", units="ppm", method="orca",
+                    molecule_uuid=molecule.uuid, values=values, elements=elements,
+                )
+            )
+        )
+
+    _run()
+    table = panel._correlation_tables["hsqc"]
+    natural = [int(table.item(row, 0).text()) for row in range(table.rowCount())]
+
+    table.sortItems(0, Qt.SortOrder.DescendingOrder)
+    descending = [int(table.item(row, 0).text()) for row in range(table.rowCount())]
+    assert descending == sorted(descending, reverse=True)
+
+    panel._on_run_clicked()  # re-arms _pending_molecule_uuid for a second run
+    _run()
+
+    shown = [int(table.item(row, 0).text()) for row in range(table.rowCount())]
+    assert shown == natural
+
+
+def test_sorting_the_hybrid_table_orders_the_shift_column_numerically(qapp, monkeypatch):
+    """The same `SortableItem` mechanism as the other two tables, proven
+    non-lexicographic with values that would misorder as strings: 9 vs 18."""
+    from PySide6.QtCore import Qt
+
+    from openchem.chem import nmr_database
+    from openchem.domain.common import CacheState, Provenance
+
+    bus = EventBus()
+    engine = ChemistryEngine()
+    panel, molecule, mol_3d = _ethanol_panel(
+        bus, engine, Settings(bus), _RecordingQuantumChemistryService(bus)
+    )
+
+    def fake_predict(mol, molecule_uuid, element="C", **kwargs):
+        if element != "C":
+            return NMRSpectrumResult(
+                spectrum_type="nmr_1h", name="H (database)", units="ppm", method="hose_lookup",
+                molecule_uuid=molecule_uuid, cache_state=CacheState.FAILED, error="nothing indexed",
+            )
+        return NMRSpectrumResult(
+            spectrum_type="nmr_13c", name="C (database)", units="ppm", method="hose_lookup",
+            molecule_uuid=molecule_uuid, values={0: 9.0, 1: 58.0}, elements={0: "C", 1: "C"},
+            cache_state=CacheState.COMPLETED,
+            provenance=Provenance(
+                created_by="core", method="hose_lookup",
+                parameters={"per_atom": {
+                    "0": {"quality": "good", "matches": 40, "spheres": 4},
+                    "1": {"quality": "good", "matches": 40, "spheres": 4},
+                }},
+            ),
+        )
+
+    monkeypatch.setattr(nmr_database, "predict_spectrum", fake_predict)
+
+    bus.publish(
+        SpectrumComputed(
+            spectrum=NMRSpectrumResult(
+                spectrum_type="nmr_13c", name="scaled", units="ppm", method="orca",
+                molecule_uuid=molecule.uuid, values={0: 9.3, 1: 58.4}, elements={0: "C", 1: "C"},
+                provenance=Provenance(
+                    created_by="core", method="orca",
+                    parameters={
+                        "referencing": "empirical_linear_scaling",
+                        "scaling_C": {
+                            "slope": -1.0, "intercept": 0.0, "r_squared": 0.999,
+                            "sample_count": 7, "residual_rms": 0.2,
+                        },
+                    },
+                ),
+            )
+        )
+    )
+
+    table = panel._hybrid_table
+    assert table.rowCount() == 2
+
+    table.sortItems(2, Qt.SortOrder.AscendingOrder)
+    shown = [float(table.item(row, 2).text()) for row in range(table.rowCount())]
+    assert shown == sorted(shown)
+
+    table.sortItems(2, Qt.SortOrder.DescendingOrder)
+    shown = [float(table.item(row, 2).text()) for row in range(table.rowCount())]
+    assert shown == sorted(shown, reverse=True)
+
+
 def test_a_stored_run_repaints_the_panel_with_no_job_submitted_this_session(qapp):
     """The actual persistence bug this was all for: `_pending_molecule_uuid`
     is `None` right after a project loads or a molecule is (re)selected --

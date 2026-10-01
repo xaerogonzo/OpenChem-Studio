@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from PySide6.QtCore import Qt
 from PySide6.QtSvgWidgets import QSvgWidget
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -7,6 +8,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
     QLabel,
+    QSplitter,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -29,18 +31,32 @@ from openchem.ui.visualization import VisualizationLayer
 from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
 from openchem.ui.widgets.nmr_spectrum_widget import NmrSpectrumWidget
 from openchem.ui.widgets.scroll_safe import make_scroll_safe
+from openchem.ui.widgets.sortable_item import SortableItem
 
-# Deliberately NO "Prediction quality" column, which is what MarvinSketch
-# shows here. Marvin can rate its own confidence because it has a HOSE-code
-# experimental reference database behind every number; nothing wired up here
-# does, so a rating would be invented rather than measured -- exactly the
-# fabricated precision this project refuses elsewhere (the hERG risk-factor
-# checklist, the BBB/bioavailability approximations). "Method" is the honest
-# substitute: it says where the number came from and lets the reader judge.
+#: Column headers for the signal table, in display order. Deliberately NO
+#: "Prediction quality" column, which is what MarvinSketch shows here.
+#: Marvin can rate its own confidence because it has a HOSE-code
+#: experimental reference database behind every number; nothing wired up
+#: here does, so a rating would be invented rather than measured --
+#: exactly the fabricated precision this project refuses elsewhere (the
+#: hERG risk-factor checklist, the BBB/bioavailability approximations).
+#: "Method" is the honest substitute: it says where the number came from
+#: and lets the reader judge.
 _TABLE_COLUMNS = ("Shift (ppm)", "Integration", "Multiplicity", "Coupling (Hz)", "Method")
+#: Nucleus combo display text, keyed by element symbol.
 _ELEMENT_LABELS = {"H": "¹H", "C": "¹³C"}
+#: The signal a table row, a 3D atom click, or a direct click selected --
+#: the same colour `NmrSpectrumWidget`'s own highlighted-stick pen uses
+#: (`QColor(214, 100, 20)` is this hex value), just as a string for the
+#: SVG/CSS paths here rather than a `QColor`.
 _HIGHLIGHT_COLOR = "#d66414"
+#: An ordinary, unselected signal's atoms in the 3D view and 2D depiction.
 _BASE_COLOR = "#9aa0a6"
+#: A row's stable identity (its signal's atom indices), read back after a
+#: sort to find which row is which -- row index stops meaning "this
+#: signal" the moment `setSortingEnabled(True)` lets a header click
+#: reorder rows out from under `self._signals`'s own order.
+_ROW_IDENTITY_ROLE = Qt.ItemDataRole.UserRole + 2
 
 
 class NmrViewWidget(QWidget):
@@ -97,10 +113,24 @@ class NmrViewWidget(QWidget):
         self._scroll_safe_guards.append(make_scroll_safe(self._element_combo))
 
         self._svg_widget = QSvgWidget(self)
-        self._svg_widget.setMinimumSize(360, 300)
+        # Small enough that the splitter below can give the spectrum --
+        # the primary analytical view -- the majority of the space by
+        # DEFAULT, which a large minimum here would have prevented
+        # regardless of the splitter's own sizing: this was the exact
+        # complaint that started Phase D. Still large enough to read a
+        # modest structure; dragging the splitter can always make it
+        # bigger.
+        self._svg_widget.setMinimumSize(200, 160)
 
         self._backend: ViewerBackend = backend or Mol3DViewerBackend(self)
         self._backend.atoms_selected.connect(self._on_atoms_selected)
+        # Fetched once and reused below (for the minimum size AND the
+        # splitter) rather than calling `.widget()` again -- it is
+        # documented as returning THE underlying widget, singular, but
+        # nothing enforces that a second implementation actually caches
+        # it the way `Mol3DViewerBackend` does.
+        backend_widget = self._backend.widget()
+        backend_widget.setMinimumSize(200, 160)
 
         self._spectrum_widget = NmrSpectrumWidget(parent=self)
         self._spectrum_widget.peak_clicked.connect(self._on_peak_clicked)
@@ -111,6 +141,7 @@ class NmrViewWidget(QWidget):
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self._table.itemSelectionChanged.connect(self._on_table_selection_changed)
+        self._table.setMinimumHeight(80)
 
         # Marvin's own NMR panel offers both. Neither changes a predicted
         # shift -- frequency only sets how far apart a multiplet's lines
@@ -142,6 +173,11 @@ class NmrViewWidget(QWidget):
         self._smooth_check.toggled.connect(self._on_render_mode_toggled)
         self._integral_check = QCheckBox("Relative integral", self)
         self._integral_check.toggled.connect(self._spectrum_widget.set_show_integral)
+        # Default on, matching Marvin's own "Zoom Follows Selection" --
+        # a checkbox rather than always-on so it can be turned off if it
+        # ever feels disruptive rather than helpful.
+        self._zoom_follow_check = QCheckBox("Zoom to selection", self)
+        self._zoom_follow_check.setChecked(True)
 
         element_row = QHBoxLayout()
         element_row.addWidget(QLabel("Nucleus:", self))
@@ -152,19 +188,39 @@ class NmrViewWidget(QWidget):
         element_row.addWidget(self._solvent_combo)
         element_row.addWidget(self._smooth_check)
         element_row.addWidget(self._integral_check)
+        element_row.addWidget(self._zoom_follow_check)
         element_row.addStretch()
 
-        structures_row = QHBoxLayout()
-        structures_row.addWidget(self._svg_widget)
-        structures_row.addWidget(self._backend.widget())
+        # Nested, not one flat splitter: the 2D/3D pair is its own
+        # resizable pair before it is one pane of the outer one, so
+        # either structure view can be widened without stealing space
+        # from the spectrum or the table.
+        self._structures_splitter = QSplitter(Qt.Orientation.Horizontal, self)
+        self._structures_splitter.addWidget(self._svg_widget)
+        self._structures_splitter.addWidget(backend_widget)
+        self._structures_splitter.setChildrenCollapsible(False)
+
+        self._main_splitter = QSplitter(Qt.Orientation.Vertical, self)
+        self._main_splitter.addWidget(self._structures_splitter)
+        self._main_splitter.addWidget(self._spectrum_widget)
+        self._main_splitter.addWidget(self._table)
+        self._main_splitter.setChildrenCollapsible(False)
+        # The spectrum is the primary analytical view; the structure
+        # panes are assignment context and the table is the exact-value
+        # detail layer -- so it gets the majority of both the initial
+        # size AND any extra space from a later resize (`setSizes` fixes
+        # the former, `setStretchFactor` the latter; neither alone
+        # covers both).
+        self._main_splitter.setStretchFactor(0, 1)
+        self._main_splitter.setStretchFactor(1, 3)
+        self._main_splitter.setStretchFactor(2, 1)
+        self._main_splitter.setSizes([220, 480, 160])
 
         layout = QVBoxLayout(self)
         layout.addWidget(self._header_label)
         layout.addWidget(self._coupling_note_label)
         layout.addLayout(element_row)
-        layout.addLayout(structures_row)
-        layout.addWidget(self._spectrum_widget)
-        layout.addWidget(self._table)
+        layout.addWidget(self._main_splitter)
 
     def set_spectrum(
         self,
@@ -281,20 +337,54 @@ class NmrViewWidget(QWidget):
             0, QTableWidgetItem("Shielding σ (ppm)" if raw else _TABLE_COLUMNS[0])
         )
         self._table.blockSignals(True)
+        # OFF during population: Qt would otherwise re-sort after every
+        # single `setItem`, scrambling row/signal correspondence as the
+        # table fills. This also IS the "sort order resets on a new
+        # spectrum" behaviour -- rows are always inserted in
+        # `self._signals`'s own order, so a fresh spectrum starts
+        # unsorted regardless of how the previous one was left.
+        self._table.setSortingEnabled(False)
         self._table.setRowCount(len(self._signals))
         for row, signal in enumerate(self._signals):
-            values = (
-                f"{signal.shift:.2f}",
-                f"{signal.integration}{signal.element}",
-                signal.multiplicity,
-                # An em dash, not "0" or a guessed typical J: no coupling
-                # data means no coupling data.
-                ", ".join(f"{hz:.1f}" for hz in signal.coupling_hz) or "—",
-                method,
+            # No coupling data is an em dash, not "0" or a guessed typical
+            # J -- and sorts BELOW every real value (`-inf`), grouping the
+            # "nothing calculated" rows at one end rather than scattering
+            # them by string order.
+            coupling_text = ", ".join(f"{hz:.1f}" for hz in signal.coupling_hz) or "—"
+            coupling_sort = signal.coupling_hz[0] if signal.coupling_hz else float("-inf")
+
+            shift_item = SortableItem(f"{signal.shift:.2f}", signal.shift)
+            shift_item.setData(_ROW_IDENTITY_ROLE, tuple(signal.atom_indices))
+            items = (
+                shift_item,
+                SortableItem(f"{signal.integration}{signal.element}", signal.integration),
+                QTableWidgetItem(signal.multiplicity),
+                SortableItem(coupling_text, coupling_sort),
+                QTableWidgetItem(method),
             )
-            for column, text in enumerate(values):
-                self._table.setItem(row, column, QTableWidgetItem(text))
+            for column, item in enumerate(items):
+                self._table.setItem(row, column, item)
+        # Without this, `setSortingEnabled(True)` re-applies whatever
+        # sort indicator the header already carries -- measured: a
+        # BRAND NEW `QHeaderView`'s own default is (section 0,
+        # DESCENDING), not "no sort", so a never-before-sorted table's
+        # very first population would otherwise come up sorted anyway.
+        # `-1` means no column, which leaves this population's natural
+        # (`self._signals`'s own) order alone.
+        self._table.horizontalHeader().setSortIndicator(-1, Qt.SortOrder.AscendingOrder)
+        self._table.setSortingEnabled(True)
         self._table.blockSignals(False)
+
+    def _row_for_signal(self, signal: NMRSignal) -> int | None:
+        """The row currently showing `signal`, by its stable identity --
+        never by `self._signals.index(signal)`, which stops meaning
+        anything once a header click has reordered the rows."""
+        target = tuple(signal.atom_indices)
+        for row in range(self._table.rowCount()):
+            item = self._table.item(row, 0)
+            if item is not None and item.data(_ROW_IDENTITY_ROLE) == target:
+                return row
+        return None
 
     def _render_structure(self, highlighted: list[int]) -> None:
         if self._mol is None or not self._molblock:
@@ -343,11 +433,14 @@ class NmrViewWidget(QWidget):
         if signal is None:
             return
         self._spectrum_widget.set_highlighted_atoms(signal.atom_indices)
+        if self._zoom_follow_check.isChecked():
+            self._spectrum_widget.zoom_to_signal(signal)
         self._render_structure(highlighted=signal.atom_indices)
-        row = self._signals.index(signal)
-        self._table.blockSignals(True)
-        self._table.selectRow(row)
-        self._table.blockSignals(False)
+        row = self._row_for_signal(signal)
+        if row is not None:
+            self._table.blockSignals(True)
+            self._table.selectRow(row)
+            self._table.blockSignals(False)
 
     def _signal_owning(self, atom_indices: list[int]) -> NMRSignal | None:
         wanted = set(atom_indices)
@@ -361,8 +454,13 @@ class NmrViewWidget(QWidget):
 
     def _on_table_selection_changed(self) -> None:
         rows = {index.row() for index in self._table.selectedIndexes()}
-        if len(rows) == 1:
-            self._select_signal(self._signals[rows.pop()])
+        if len(rows) != 1:
+            return
+        item = self._table.item(rows.pop(), 0)
+        identity = item.data(_ROW_IDENTITY_ROLE) if item is not None else None
+        signal = next((s for s in self._signals if tuple(s.atom_indices) == identity), None)
+        if signal is not None:
+            self._select_signal(signal)
 
     def _on_atoms_selected(self, atom_indices: list[int]) -> None:
         """A 3D atom click selects the signal that atom belongs to -- the

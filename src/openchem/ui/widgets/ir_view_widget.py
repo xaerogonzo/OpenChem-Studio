@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QMessageBox,
     QPushButton,
+    QSplitter,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -24,8 +25,16 @@ from openchem.domain.scientific_result import VibrationalSpectrumResult
 from openchem.ui.viewer_backend import ViewerBackend
 from openchem.ui.widgets.ir_spectrum_widget import IrSpectrumWidget
 from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
+from openchem.ui.widgets.sortable_item import SortableItem
 
 _TABLE_COLUMNS = ("Wavenumber (cm⁻¹)", "IR intensity (km/mol)", "Character")
+
+#: A row's stable identity: its mode's own position in `spectrum.modes`,
+#: the same number `IrSpectrumWidget.mode_clicked`/`set_highlighted_modes`/
+#: `_start_animation` already mean by "mode index". Read back after a
+#: sort, since the table ROW index stops matching it the moment a header
+#: click reorders the rows.
+_ROW_IDENTITY_ROLE = Qt.ItemDataRole.UserRole + 2
 
 #: Milliseconds between animation frames. 20 frames at 60 ms is a 1.2 s
 #: cycle -- slow enough to follow an individual atom, which is the point,
@@ -82,6 +91,10 @@ class IrViewWidget(QWidget):
         self._warning_label.setVisible(False)
 
         self._backend: ViewerBackend = backend or Mol3DViewerBackend(self)
+        # Fetched once and reused below -- see the identical note in
+        # `NmrViewWidget.__init__`.
+        backend_widget = self._backend.widget()
+        backend_widget.setMinimumSize(200, 160)
 
         self._spectrum_widget = IrSpectrumWidget(parent=self)
         self._spectrum_widget.mode_clicked.connect(self._on_peak_clicked)
@@ -92,6 +105,7 @@ class IrViewWidget(QWidget):
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self._table.itemSelectionChanged.connect(self._on_table_selection_changed)
+        self._table.setMinimumHeight(80)
 
         self._import_button = QPushButton("Overlay measured spectrum...", self)
         self._import_button.setToolTip(
@@ -121,13 +135,25 @@ class IrViewWidget(QWidget):
         controls.addWidget(self._clear_measured_button)
         controls.addStretch()
 
+        # Same structure as `NmrViewWidget`'s own splitter, on purpose --
+        # see this class's docstring. No inner horizontal splitter here:
+        # unlike NMR there is only one structure pane (3D; IR has no 2D
+        # depiction), so the outer vertical one is the whole story.
+        self._main_splitter = QSplitter(Qt.Orientation.Vertical, self)
+        self._main_splitter.addWidget(backend_widget)
+        self._main_splitter.addWidget(self._spectrum_widget)
+        self._main_splitter.addWidget(self._table)
+        self._main_splitter.setChildrenCollapsible(False)
+        self._main_splitter.setStretchFactor(0, 1)
+        self._main_splitter.setStretchFactor(1, 3)
+        self._main_splitter.setStretchFactor(2, 1)
+        self._main_splitter.setSizes([220, 480, 160])
+
         layout = QVBoxLayout(self)
         layout.addWidget(self._header_label)
         layout.addWidget(self._warning_label)
-        layout.addWidget(self._backend.widget())
-        layout.addWidget(self._spectrum_widget)
         layout.addLayout(controls)
-        layout.addWidget(self._table)
+        layout.addWidget(self._main_splitter)
 
     # -- measured overlay ------------------------------------------------
 
@@ -218,35 +244,75 @@ class IrViewWidget(QWidget):
 
     def _populate_table(self, spectrum: VibrationalSpectrumResult) -> None:
         self._table.blockSignals(True)
+        # OFF during population, and resets any earlier sort order the
+        # same way `NmrViewWidget._populate_table` does -- rows are
+        # always (re)inserted in `spectrum.modes`'s own order.
+        self._table.setSortingEnabled(False)
         self._table.setRowCount(len(spectrum.modes))
         for row, mode in enumerate(spectrum.modes):
             # Imaginary modes ARE listed, unlike in the plot. A table is a
             # record of what the calculation found; leaving them out would
             # make the row count disagree with the mode numbering ORCA
-            # itself printed.
-            wavenumber = f"{mode.wavenumber_cm1:.1f}"
+            # itself printed. Sorting by wavenumber still reads sensibly:
+            # a negative (imaginary) wavenumber is a genuinely LOW number,
+            # so it groups at that end ascending without special-casing.
+            wavenumber_text = f"{mode.wavenumber_cm1:.1f}"
             if mode.is_imaginary:
-                wavenumber += "  (imaginary)"
-            intensity = (
+                wavenumber_text += "  (imaginary)"
+            intensity_text = (
                 "—"
                 if mode.ir_intensity_km_mol is None
                 else f"{mode.ir_intensity_km_mol:.2f}"
             )
-            for column, text in enumerate((wavenumber, intensity, mode.character or "—")):
-                item = QTableWidgetItem(text)
+            # Missing intensity sorts BELOW every real value, grouping
+            # the "not reported" rows at one end rather than scattering
+            # them by string order -- same convention as NMR's missing
+            # coupling column.
+            intensity_sort = (
+                float("-inf") if mode.ir_intensity_km_mol is None else mode.ir_intensity_km_mol
+            )
+            wavenumber_item = SortableItem(wavenumber_text, mode.wavenumber_cm1)
+            wavenumber_item.setData(_ROW_IDENTITY_ROLE, row)
+            items = (
+                wavenumber_item,
+                SortableItem(intensity_text, intensity_sort),
+                QTableWidgetItem(mode.character or "—"),
+            )
+            for column, item in enumerate(items):
                 if mode.is_imaginary:
                     item.setForeground(Qt.GlobalColor.red)
                 self._table.setItem(row, column, item)
+        # See the identical comment in `NmrViewWidget._populate_table`:
+        # a fresh `QHeaderView`'s own default sort indicator is (section
+        # 0, DESCENDING), not "no sort", so this table's very first
+        # population would otherwise come up pre-sorted on its own.
+        self._table.horizontalHeader().setSortIndicator(-1, Qt.SortOrder.AscendingOrder)
+        self._table.setSortingEnabled(True)
         self._table.blockSignals(False)
 
     # -- selection -------------------------------------------------------
 
+    def _row_for_mode_index(self, mode_index: int) -> int | None:
+        """The row currently showing mode `mode_index`, by its stable
+        identity -- never by row position, which stops matching the mode
+        list the moment a header click reorders the rows."""
+        for row in range(self._table.rowCount()):
+            item = self._table.item(row, 0)
+            if item is not None and item.data(_ROW_IDENTITY_ROLE) == mode_index:
+                return row
+        return None
+
     def selected_mode(self) -> int | None:
         rows = self._table.selectionModel().selectedRows() if self._table.selectionModel() else []
-        return rows[0].row() if rows else None
+        if not rows:
+            return None
+        item = self._table.item(rows[0].row(), 0)
+        return item.data(_ROW_IDENTITY_ROLE) if item is not None else None
 
     def _on_peak_clicked(self, mode_index: int) -> None:
-        self._table.selectRow(mode_index)
+        row = self._row_for_mode_index(mode_index)
+        if row is not None:
+            self._table.selectRow(row)
 
     def _on_table_selection_changed(self) -> None:
         index = self.selected_mode()

@@ -211,6 +211,55 @@ def test_animation_is_disabled_without_a_conformer(view):
     assert not widget._animate_button.isEnabled()
 
 
+# --- Resizable internal layout (Phase D) --------------------------------
+
+
+def test_the_layout_is_a_single_vertical_splitter(view):
+    """No inner horizontal splitter here, unlike `NmrViewWidget`: IR has
+    only one structure pane (3D; no 2D depiction), so the outer vertical
+    splitter is the whole story -- [3D | spectrum | table]."""
+    from PySide6.QtCore import Qt
+    from PySide6.QtWidgets import QSplitter
+
+    widget, _backend = view
+    assert isinstance(widget._main_splitter, QSplitter)
+    assert widget._main_splitter.orientation() == Qt.Orientation.Vertical
+    assert widget._main_splitter.count() == 3
+    assert widget._main_splitter.widget(1) is widget._spectrum_widget
+    assert widget._main_splitter.widget(2) is widget._table
+
+
+def test_the_splitter_does_not_let_a_pane_collapse_away(view):
+    widget, _backend = view
+    assert widget._main_splitter.childrenCollapsible() is False
+
+
+def test_every_pane_has_a_real_minimum_size(view):
+    widget, _backend = view
+    assert widget._main_splitter.widget(0).minimumSize().width() > 0
+    assert widget._table.minimumHeight() > 0
+
+
+def test_the_table_is_visible_by_default_not_hidden_behind_a_tab(view):
+    widget, _backend = view
+    assert not widget._table.isHidden()
+
+
+def test_the_default_split_favours_the_spectrum(view, qapp):
+    """Resized to a realistic size and laid out for real, the spectrum
+    pane (index 1) must end up taller than either of its siblings."""
+    widget, _backend = view
+    widget.resize(900, 900)
+    widget.show()
+    qapp.processEvents()
+
+    sizes = widget._main_splitter.sizes()
+    assert len(sizes) == 3
+    assert sizes[1] > sizes[0]
+    assert sizes[1] > sizes[2]
+    widget.hide()
+
+
 # ---------------------------------------------------------------------------
 # The panel routing regression
 # ---------------------------------------------------------------------------

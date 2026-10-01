@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QPointF, QRectF, Qt, Signal
-from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen
+from PySide6.QtGui import QColor, QMouseEvent, QPainter, QPainterPath, QPen, QWheelEvent
 from PySide6.QtWidgets import QWidget
 
 from openchem.chem.nmr_signals import (
@@ -11,6 +11,8 @@ from openchem.chem.nmr_signals import (
     lorentzian_envelope,
     multiplet_lines,
 )
+from openchem.ui.widgets import plot_zoom
+from openchem.ui.widgets.plot_axis import nice_ticks
 
 #: The axis line and its tick labels.
 _AXIS_COLOR = QColor(120, 120, 120)
@@ -34,6 +36,15 @@ _CURVE_SAMPLE_COUNT = 400
 #: signal without distinguishing the values), so the regions do sometimes
 #: overlap; the first match wins, deterministically ordered by shift.
 _HIT_HALF_WIDTH = 6.0
+#: One wheel notch zooms by this factor (in); the inverse zooms out. Same
+#: value and reasoning as `NmrCorrelationPlotWidget`'s own constant -- the
+#: two plots should feel the same to scroll.
+_ZOOM_STEP = 0.85
+#: Cannot zoom in past this fraction of the full (padded) axis span.
+_MIN_ZOOM_FRACTION = 0.02
+#: A press/release pair closer together than this, in pixels, is a CLICK
+#: (select the nearest signal) rather than a PAN (the view already moved).
+_CLICK_MAX_DRIFT = 4.0
 
 
 class NmrSpectrumWidget(QWidget):
@@ -84,6 +95,16 @@ class NmrSpectrumWidget(QWidget):
         #: just reads more like one.
         self._render_mode = "sticks"
         self._show_integral = False
+        # None means "fit to the data" -- `_axis_range()`'s own padded
+        # extent. Set only by zooming/panning/`zoom_to_signal`, and
+        # cleared by `set_signals` (a new spectrum resets navigation) but
+        # never by anything else -- render mode, frequency, solvent and
+        # integral visibility are viewer PREFERENCES, not navigation
+        # state, and must survive a zoom untouched.
+        self._view_range: tuple[float, float] | None = None
+        self._panning = False
+        self._pan_last_pos: QPointF | None = None
+        self._press_pos: QPointF | None = None
         self.setMinimumSize(320, 200)
 
     def set_render_mode(self, mode: str) -> None:
@@ -114,6 +135,7 @@ class NmrSpectrumWidget(QWidget):
         self._shielding = shielding
         self._element = signals[0].element if signals else "H"
         self._highlighted_atoms.clear()
+        self._view_range = None
         self.update()
 
     def set_frequency(self, frequency_mhz: float) -> None:
@@ -160,6 +182,46 @@ class NmrSpectrumWidget(QWidget):
         padding = (high - low) * 0.1
         return low - padding, high + padding
 
+    def view_range(self) -> tuple[float, float]:
+        """The range actually drawn -- the zoomed/panned window if one is
+        set, otherwise the full padded data extent. Every consumer --
+        stick/curve drawing, the integral sampling grid, labels, and
+        `hit_regions()` -- reads THIS, never `_axis_range()` directly, so
+        a zoomed plot's click regions track the viewport instead of
+        staying anchored to the old range."""
+        return self._view_range or self._axis_range()
+
+    def is_zoomed(self) -> bool:
+        return self._view_range is not None
+
+    def reset_view(self) -> None:
+        self._view_range = None
+        self.update()
+
+    def zoom_to_signal(self, signal: NMRSignal) -> None:
+        """Centres and zooms the view on `signal`'s full multiplet extent
+        -- not just its nominal shift, since a resolved triplet/quartet
+        can extend visibly away from the centre. Uses the min/max of its
+        own drawn lines (`multiplet_lines`, the same positions the plot
+        itself renders), padded so the whole pattern reads clearly rather
+        than filling the plot edge to edge."""
+        lines = multiplet_lines(signal, self._frequency_mhz)
+        shifts = [ppm for ppm, _intensity in lines]
+        low, high = min(shifts), max(shifts)
+        padding = max((high - low) * 0.75, 0.3)
+        self._view_range = (low - padding, high + padding)
+        self.update()
+
+    def _data_x_at(self, x: float, plot_rect: QRectF) -> float:
+        """The inverse of `_to_widget_x` against the CURRENT view."""
+        low, high = self.view_range()
+        if plot_rect.width() <= 0:
+            return low
+        fraction = (x - plot_rect.left()) / plot_rect.width()
+        if self._shielding:
+            return low + fraction * (high - low)
+        return high - fraction * (high - low)
+
     def _plot_rect(self) -> QRectF:
         return QRectF(
             self._MARGIN,
@@ -188,7 +250,7 @@ class NmrSpectrumWidget(QWidget):
         if not self._signals:
             return []
         plot_rect = self._plot_rect()
-        x_range = self._axis_range()
+        x_range = self.view_range()
         regions = []
         for signal in self._signals:
             x = self._to_widget_x(signal.shift, plot_rect, x_range)
@@ -206,14 +268,86 @@ class NmrSpectrumWidget(QWidget):
                 return signal
         return None
 
-    def mousePressEvent(self, event) -> None:  # noqa: N802 - Qt override naming
-        position = event.position()
-        signal = self.signal_at(position.x(), position.y())
-        if signal is not None:
-            self._highlighted_atoms = set(signal.atom_indices)
+    def wheelEvent(self, event: QWheelEvent) -> None:  # noqa: N802 - Qt override naming
+        """Horizontal-only scroll-to-zoom, around the cursor. No vertical
+        zoom is added: `paintEvent`'s `max_integration` is deliberately
+        the tallest peak across the WHOLE spectrum, not just the zoomed
+        window, so a stick's height keeps meaning the same proton count
+        at every zoom level -- rescaling it to whatever is visible would
+        make relative integration lie as soon as you zoomed into a region
+        without the tallest peak in it."""
+        if not self._signals:
+            return
+        plot_rect = self._plot_rect()
+        anchor = self._data_x_at(event.position().x(), plot_rect)
+        factor = _ZOOM_STEP if event.angleDelta().y() > 0 else 1.0 / _ZOOM_STEP
+        full_range = self._axis_range()
+        new_range = plot_zoom.zoomed_window(self.view_range(), full_range, anchor, factor, _MIN_ZOOM_FRACTION)
+        if plot_zoom.is_full_span(new_range, full_range):
+            self.reset_view()
+        else:
+            self._view_range = new_range
             self.update()
-            self.peak_clicked.emit(list(signal.atom_indices))
-        super().mousePressEvent(event)
+        event.accept()
+
+    def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802 - Qt override naming
+        self.reset_view()
+        event.accept()
+
+    def mousePressEvent(self, event) -> None:  # noqa: N802 - Qt override naming
+        if event.button() == Qt.MouseButton.LeftButton and self._signals:
+            self._panning = True
+            self._pan_last_pos = event.position()
+            self._press_pos = event.position()
+            event.accept()
+        else:
+            super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802 - Qt override naming
+        if not self._panning or self._pan_last_pos is None:
+            super().mouseMoveEvent(event)
+            return
+        plot_rect = self._plot_rect()
+        delta = event.position() - self._pan_last_pos
+        self._pan_last_pos = event.position()
+        if plot_rect.width() > 0:
+            self._view_range = plot_zoom.panned_window(
+                self.view_range(), delta.x(), plot_rect.width(), descending=not self._shielding
+            )
+            self.update()
+        event.accept()
+
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802 - Qt override naming
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._panning = False
+            press_pos, self._press_pos = self._press_pos, None
+            self._pan_last_pos = None
+            if press_pos is not None:
+                drift = plot_zoom.drift(event.position().x() - press_pos.x(), event.position().y() - press_pos.y())
+                if drift <= _CLICK_MAX_DRIFT:
+                    signal = self.signal_at(event.position().x(), event.position().y())
+                    if signal is not None:
+                        self._highlighted_atoms = set(signal.atom_indices)
+                        self.update()
+                        self.peak_clicked.emit(list(signal.atom_indices))
+            event.accept()
+        else:
+            super().mouseReleaseEvent(event)
+
+    def _draw_ticks(self, painter: QPainter, plot_rect: QRectF, x_range: tuple[float, float]) -> None:
+        """Intermediate numeric ticks across the current view, replacing
+        the old two-endpoint-only labels -- spacing is view-range-
+        dependent (`nice_ticks`), so a deep zoom still reads sane ticks
+        instead of two numbers 0.02 ppm apart."""
+        painter.setPen(QPen(_AXIS_COLOR))
+        for value in nice_ticks(*x_range):
+            x = self._to_widget_x(value, plot_rect, x_range)
+            painter.drawLine(QPointF(x, plot_rect.bottom()), QPointF(x, plot_rect.bottom() + 4))
+            painter.drawText(
+                QRectF(x - 30, plot_rect.bottom() + 4, 60, self._MARGIN / 2 - 4),
+                Qt.AlignmentFlag.AlignCenter,
+                f"{value:.4g}",
+            )
 
     def paintEvent(self, event) -> None:  # noqa: N802 - Qt override naming
         painter = QPainter(self)
@@ -232,20 +366,15 @@ class NmrSpectrumWidget(QWidget):
             painter.end()
             return
 
-        x_range = self._axis_range()
-        left_value, right_value = (
-            (x_range[0], x_range[1]) if self._shielding else (x_range[1], x_range[0])
-        )
-        painter.drawText(
-            QRectF(plot_rect.left(), plot_rect.bottom(), 60, self._MARGIN / 2),
-            Qt.AlignmentFlag.AlignLeft,
-            f"{left_value:.1f}",
-        )
-        painter.drawText(
-            QRectF(plot_rect.right() - 60, plot_rect.bottom(), 60, self._MARGIN / 2),
-            Qt.AlignmentFlag.AlignRight,
-            f"{right_value:.1f}",
-        )
+        x_range = self.view_range()
+        self._draw_ticks(painter, plot_rect, x_range)
+        if self.is_zoomed():
+            painter.setPen(QPen(_AXIS_COLOR))
+            painter.drawText(
+                QRectF(plot_rect.right() - 160, plot_rect.top() - self._MARGIN / 2, 160, self._MARGIN / 2),
+                Qt.AlignmentFlag.AlignRight,
+                "zoomed (double-click to reset)",
+            )
 
         # Tallest peak fills the plot area; everything else is proportional
         # to its integration, so relative peak heights ARE relative proton

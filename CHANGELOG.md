@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### NMR/IR viewer quality pass: scroll fix, honest multiplets, 1D zoom (branch `nmr-viewer-quality`)
+
+- **Scrolling past a Nucleus/Frequency/Solvent combo box (or a QC panel spin box) on the way down a pop-out no longer silently changes it.**
+  A second, different scroll-wheel bug from the one fixed on the branch below: an ordinary unfocused `QComboBox`/`QAbstractSpinBox` accepts a
+  wheel event unconditionally in Qt. A new focus-gated `ScrollSafeFilter` lets the event propagate to the parent (so the page scrolls
+  normally) unless the control actually has focus.
+- **Two real bugs were found and fixed behind what first looked like a UX gap: isopropanol's NMR + Spin-Spin Coupling run showed no
+  multiplet splitting at all.** TMS referencing was silently dropping `couplings`/`coupling_error` on every referenced spectrum (a manual
+  dataclass reconstruction that never copied them over); separately, coupling extraction wasn't filtering ORCA's full coupling matrix down to
+  real structural partners, so a signal's `coupling_hz` could carry chemically-irrelevant values (wrong element, wrong bond distance)
+  alongside the real one. Both fixed; the 1D spectrum now states plainly which of three cases is on screen (real coupling, genuinely none
+  calculated, or a parser failure) rather than leaving an unsplit "d" to read as a defect.
+- **The 1D spectrum can now be zoomed and panned**, matching the 2D correlation plots' own interaction (scroll to zoom around the cursor,
+  drag to pan, double-click to reset) via zoom/pan arithmetic extracted into a shared `ui/widgets/plot_zoom.py` that both widgets now use.
+  Selecting a signal (a peak click, a table row, or a 3D atom click) also re-centres and zooms on that signal's full multiplet extent by
+  default ("Zoom to selection", matching Marvin's own "Zoom Follows Selection" -- an opt-out checkbox, not forced). Both the 1D and 2D plots
+  now draw real intermediate numeric ticks at a "nice" spacing instead of only the axis endpoints.
+- **The NMR and IR pop-outs are resizable instead of a fixed stack.** Nested `QSplitter`s (NMR: an inner [2D structure | 3D view] pair inside
+  an outer [structures | spectrum | table]; IR: the same outer three, with no inner pair since IR has only one structure pane) replace the
+  previous plain `QVBoxLayout`/`QHBoxLayout`. The 2D depiction's own large minimum size used to eat most of the default space regardless of
+  how the rest of the window resized -- the default split now favours the spectrum instead, with every pane keeping a real minimum so no
+  handle can be dragged into an unusably tiny sliver.
+- **Every numeric column in the NMR signal table, the IR mode table, and the HSQC/HMBC/COSY and Hybrid tables now sorts by its real value,
+  not its printed text** (`SortableItem`, already used elsewhere in the app -- these tables were simply the ones that hadn't adopted it yet).
+  A "6H"/"12H" integration or a "9.0"/"18.3" ppm pair now sorts numerically rather than by digit order, and a column mixing real numbers with
+  an em dash for "nothing calculated" groups the dashes at one end instead of scattering them by string comparison. Selection survives a sort
+  by the row's own logical identity (an atom set, a mode's position in the spectrum, an atom pair) rather than by row position, which a sort
+  changes out from under it -- the correlation tables already worked this way by construction; the NMR and IR tables needed the same fix.
+  Found and fixed along the way: a freshly created `QHeaderView`'s sort indicator already points at column 0, descending, by Qt's own
+  default -- so `setSortingEnabled(True)` after a table's very first population silently pre-sorted it before anyone had clicked anything
+  (`docs/gotchas/qt-table-sort-indicator-default.md`).
+
 ### Quantum Chemistry panel: run history, chart UX, help, scroll fix (branch `qc-panel-run-history`)
 
 - **A calculation result now survives save/reload, and running a new calc_type no longer discards the last one.** Every ORCA job (NMR,
