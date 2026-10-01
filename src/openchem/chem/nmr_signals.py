@@ -7,12 +7,15 @@ from rdkit import Chem
 
 from openchem.domain.scientific_result import SpectrumResult
 
-# n+1 rule: n equivalent coupling partners split a signal into n+1 lines.
-# Abbreviations are Marvin's own (singlet through septet); anything beyond a
-# septet, or any signal coupling to more than one distinct partner group, is
-# reported as "m" -- see _multiplicity_for's docstring for why that isn't a
-# cop-out but the only honest first-order answer.
+#: n+1 rule: n equivalent coupling partners split a signal into n+1 lines.
+#: Abbreviations are Marvin's own (singlet through septet); anything beyond a
+#: septet, or any signal coupling to more than one distinct partner group, is
+#: reported as "m" -- see _multiplicity_for's docstring for why that isn't a
+#: cop-out but the only honest first-order answer.
 _MULTIPLICITY_BY_LINE_COUNT = {1: "s", 2: "d", 3: "t", 4: "q", 5: "quint", 6: "sx", 7: "sp"}
+#: The structural multiplicity letter for "couples to more than one
+#: distinct partner group" -- a label only; `multiplet_lines` renders from
+#: `coupling_groups`, never from this string.
 _COMPLEX_MULTIPLET = "m"
 
 
@@ -33,9 +36,25 @@ class NMRSignal:
     shift: float  # ppm, the group's mean value
     atom_indices: list[int]
     integration: int  # nuclei contributing; == len(atom_indices)
-    multiplicity: str  # "s"|"d"|"t"|"q"|"quint"|"sx"|"sp"|"m"
+    # "s"|"d"|"t"|"q"|"quint"|"sx"|"sp"|"m" -- descriptive only. Never a
+    # rendering gate: `multiplet_lines` reads `coupling_groups`, not this.
+    multiplicity: str
     coupling_hz: list[float] = field(default_factory=list)
     element: str = "H"
+    #: (partner_count, mean_abs_J_hz) per real equivalence-group coupling
+    #: -- the rendering input for `multiplet_lines`. Populated for every
+    #: signal regardless of `multiplicity`, including simple d/t/q cases;
+    #: empty means "render one line." Deliberately separate from the flat,
+    #: signed, magnitude-deduplicated `coupling_hz` above -- see
+    #: `_coupling_groups_hz`'s docstring for the averaging/symmetry-
+    #: completion rules, which `coupling_hz` does not apply.
+    coupling_groups: tuple[tuple[int, float], ...] = ()
+    #: True if any `coupling_groups` entry used partial-coverage symmetry
+    #: completion (see `_coupling_groups_hz`) -- consumed by
+    #: `NmrViewWidget._update_coupling_note` so a completed value is
+    #: flagged, never silently presented as if every member had been
+    #: directly reported.
+    coupling_groups_inferred: bool = False
 
 
 def align_mol_to_spectrum(mol: Chem.Mol, spectrum: SpectrumResult) -> Chem.Mol:
@@ -256,6 +275,79 @@ def _couplings_for(spectrum: SpectrumResult, group: list[int], partners: set[int
     return sorted(values, reverse=True)
 
 
+def _coupling_value(couplings: dict[tuple[int, int], float], a: int, b: int) -> float | None:
+    """One real J between two atoms, independent of which order the pair
+    was stored in -- `couplings` is conceptually undirected, so a future
+    producer storing both `(a, b)` and `(b, a)` must not be read as two
+    independent values. `None` means "no entry," never a numeric 0.0 --
+    a real reported `J = 0.0` is data, not a missing value, and callers
+    must check `is None`, not falsiness."""
+    if (a, b) in couplings:
+        return couplings[(a, b)]
+    return couplings.get((b, a))
+
+
+def _coupling_groups_hz(
+    spectrum: SpectrumResult,
+    representative: int,
+    partners: set[int],
+    group_of_atom: dict[int, int],
+) -> tuple[tuple[tuple[int, float], ...], bool]:
+    """Real per-partner-GROUP coupling for `multiplet_lines`'s cascade:
+    `(partner_count, mean_abs_J_hz)` for every distinct equivalence group
+    among `partners` with at least one real computed J, plus whether any
+    group needed symmetry completion.
+
+    Grouped, not flattened per atom: truly equivalent nuclei share one
+    real coupling constant by symmetry, so any spread ORCA reports among
+    "equivalent" partners is numerical noise, not distinct chemistry --
+    the same "never invent, only real values" rule `_couplings_for`
+    already states, applied per group instead of pooled into one flat
+    list. `count` is the number of THIS group's own members present in
+    `partners` -- never the group's full global size -- the same
+    pooling-bug precaution `_coupling_partners` already guards against
+    (regression-guarded by
+    `test_para_substituted_ring_protons_are_doublets_not_triplets`).
+
+    Missing-data policy, explicit: every member of a group has a real J ->
+    average `abs()` of all of them. Only some do -> still average the
+    `abs()` of what's there -- this is SYMMETRY COMPLETION (true
+    equivalence means they share one physical J; a partial ORCA report is
+    a reporting gap, not a different value), not invention, but it is
+    flagged via the second return value rather than silently presented as
+    if every member had been directly reported. Zero real values for a
+    group -> the group contributes nothing, same "never invent" rule
+    `_couplings_for` already applies. Reuses the exact `partners` and
+    `group_of_atom` `_multiplicity_for`/`_couplings_for` already use --
+    this never computes its own notion of "partner" or "equivalence
+    group," so it can't silently disagree with the table or the
+    multiplicity letter.
+    """
+    couplings = getattr(spectrum, "couplings", None) or {}
+    by_group: dict[int, list[float]] = {}
+    sizes: dict[int, int] = {}
+    for partner in partners:
+        group_id = group_of_atom.get(partner, -1)
+        sizes[group_id] = sizes.get(group_id, 0) + 1
+        hz = _coupling_value(couplings, representative, partner)
+        if hz is not None:
+            by_group.setdefault(group_id, []).append(hz)
+
+    inferred = False
+    groups: list[tuple[int, float]] = []
+    for group_id, values in by_group.items():
+        count = sizes[group_id]
+        if len(values) < count:
+            inferred = True
+        groups.append((count, sum(abs(v) for v in values) / len(values)))
+
+    # Magnitude descending: determinism/debugging only -- the cascade this
+    # feeds is a commutative product, so group order never changes the
+    # mathematical result.
+    groups.sort(key=lambda item: item[1], reverse=True)
+    return tuple(groups), inferred
+
+
 def build_nmr_signals(
     mol: Chem.Mol, spectrum: SpectrumResult, element: str = "H"
 ) -> list[NMRSignal]:
@@ -314,6 +406,11 @@ def build_nmr_signals(
         # but H, matching the heteronuclear-decoupled-singlet convention
         # the multiplicity branch below already states explicitly.
         partners = set(_coupling_partners(mol, group[0], set(group))) if element == "H" else set()
+        coupling_groups, coupling_groups_inferred = (
+            _coupling_groups_hz(spectrum, group[0], partners, group_of_atom)
+            if element == "H"
+            else ((), False)
+        )
         signals.append(
             NMRSignal(
                 shift=sum(spectrum.values[index] for index in group) / len(group),
@@ -332,15 +429,17 @@ def build_nmr_signals(
                 ),
                 coupling_hz=_couplings_for(spectrum, group, partners),
                 element=element,
+                coupling_groups=coupling_groups,
+                coupling_groups_inferred=coupling_groups_inferred,
             )
         )
     return sorted(signals, key=lambda signal: signal.shift, reverse=True)
 
 
-# Residual solvent 1H/13C shifts, ppm, from Gottlieb, Kotlyar & Nudelman
-# (J. Org. Chem. 1997, 62, 7512) -- the reference table every lab uses.
-# Published values, not predictions, so they are exact in a way nothing
-# else on this screen is.
+#: Residual solvent 1H/13C shifts, ppm, from Gottlieb, Kotlyar & Nudelman
+#: (J. Org. Chem. 1997, 62, 7512) -- the reference table every lab uses.
+#: Published values, not predictions, so they are exact in a way nothing
+#: else on this screen is.
 RESIDUAL_SOLVENT_PEAKS: dict[str, dict[str, float]] = {
     "CDCl3": {"H": 7.26, "C": 77.16},
     "DMSO-d6": {"H": 2.50, "C": 39.52},
@@ -351,16 +450,19 @@ RESIDUAL_SOLVENT_PEAKS: dict[str, dict[str, float]] = {
     "CD3CN": {"H": 1.94, "C": 1.32},
 }
 
-# The common spectrometer field strengths, in MHz for 1H. Frequency does
-# not move a chemical shift -- that is the entire point of the ppm scale --
-# but it does set how far apart a multiplet's lines fall in ppm, which is
-# why the same compound looks resolved at 600 MHz and a blur at 60.
+#: The common spectrometer field strengths, in MHz for 1H. Frequency does
+#: not move a chemical shift -- that is the entire point of the ppm scale --
+#: but it does set how far apart a multiplet's lines fall in ppm, which is
+#: why the same compound looks resolved at 600 MHz and a blur at 60.
 SPECTROMETER_FREQUENCIES_MHZ = (60.0, 100.0, 200.0, 300.0, 400.0, 500.0, 600.0, 800.0)
+#: The UI's default selection from the list above.
 DEFAULT_FREQUENCY_MHZ = 400.0
 
-# Gyromagnetic ratio relative to 1H: a "400 MHz" spectrometer observes
-# carbon near 100 MHz, so a 13C multiplet's lines are ~4x further apart in
-# ppm than a proton multiplet with the same J in Hz.
+#: Gyromagnetic ratio relative to 1H: a "400 MHz" spectrometer observes
+#: carbon near 100 MHz, so a 13C multiplet's lines are ~4x further apart in
+#: ppm than a proton multiplet with the same J in Hz. Also the ppm->Hz
+#: conversion factor every display-unit formatter (`NmrSpectrumWidget.
+#: _observation_mhz`) multiplies the selected frequency by.
 _RELATIVE_FREQUENCY = {"H": 1.0, "C": 0.2514, "F": 0.9407, "P": 0.4048, "N": 0.0721}
 
 
@@ -371,52 +473,104 @@ def _binomial_row(n: int) -> list[float]:
     return row
 
 
+#: Floating-point-scale, never chemistry-scale -- see `_merge_lines`'s
+#: docstring for why a visually-motivated tolerance would be wrong here.
+_LINE_MERGE_TOLERANCE_PPM = 1e-6
+
+
+def _merge_lines(lines: list[tuple[float, float]], tolerance: float = _LINE_MERGE_TOLERANCE_PPM) -> list[tuple[float, float]]:
+    """Combines lines whose ppm position coincides within `tolerance`,
+    summing their intensity.
+
+    Two lines can land on the same position for more than one reason --
+    two coupling groups sharing an (averaged) real J is the common case,
+    but arbitrary sums/differences of DIFFERENT groups' offsets can
+    coincide too -- and this doesn't need to know which; it only checks
+    the final position. `tolerance` stays at floating-point scale, never
+    a chemistry/visual one: merging two genuinely distinct, resolvable
+    lines just because a casual reading of the plot wouldn't separate
+    them would be a real scientific distortion, not a cosmetic one. The
+    merged position is the first-encountered one, not an average -- simple
+    and deterministic, not a second numerical transformation.
+    """
+    merged: list[list[float]] = []
+    for position, intensity in lines:
+        for entry in merged:
+            if abs(entry[0] - position) <= tolerance:
+                entry[1] += intensity
+                break
+        else:
+            merged.append([position, intensity])
+    return [(position, intensity) for position, intensity in merged]
+
+
 def multiplet_lines(
     signal: NMRSignal, frequency_mhz: float = DEFAULT_FREQUENCY_MHZ
 ) -> list[tuple[float, float]]:
-    """(ppm, relative intensity) for each line of a first-order multiplet.
+    """(ppm, relative intensity) for each line of a first-order multiplet,
+    cascaded across every real coupling group the signal has.
+
+    Reads `coupling_groups`, never `multiplicity` or `coupling_hz` --
+    "s"/"d"/.../"m" is purely descriptive (see `NMRSignal`'s own
+    docstring) and does not gate whether this splits. An "m" signal with
+    real `coupling_groups` DOES split; a "d" signal with no real coupling
+    data (empty `coupling_groups`) still correctly does not.
 
     A multiplet's lines sit J Hz apart, and Hz converts to ppm by dividing
     by the observation frequency -- so this needs a real spectrometer
-    frequency and a real J, and returns a single line when either is
-    missing rather than inventing a splitting.
+    frequency and real coupling data, and returns a single line when
+    either is missing rather than inventing a splitting.
 
-    Intensities are the binomial row, which is the first-order
-    approximation: it is exact when the coupled nuclei are equivalent and
-    the shift difference is large compared with J, and progressively wrong
-    ("roofing") as they approach each other. Second-order line shapes
-    would need a full spin-Hamiltonian simulation, which this is not.
+    Each group's own binomial row is the first-order approximation: exact
+    when the coupled nuclei are equivalent and the shift difference is
+    large compared with J, progressively wrong ("roofing") as they
+    approach each other -- cascading several first-order groups is still
+    not a second-order spin-Hamiltonian simulation: no strong coupling, no
+    magnetic nonequivalence treatment. This is the first-order PRODUCT
+    splitting pattern, not a claim of matching a real experimental
+    spectrum in every respect.
     """
-    lines_expected = next(
-        (count for count, letter in _MULTIPLICITY_BY_LINE_COUNT.items() if letter == signal.multiplicity),
-        1,
-    )
-    if lines_expected <= 1 or not signal.coupling_hz or frequency_mhz <= 0:
+    if not signal.coupling_groups or frequency_mhz <= 0:
         return [(signal.shift, 1.0)]
 
     observation_mhz = frequency_mhz * _RELATIVE_FREQUENCY.get(signal.element, 1.0)
     if observation_mhz <= 0:
         return [(signal.shift, 1.0)]
 
-    # One J for the whole multiplet: an n+1 pattern by definition comes
-    # from n EQUIVALENT partners sharing one coupling constant. A signal
-    # with several distinct J values is reported as "m" upstream and takes
-    # the single-line path above.
-    spacing_ppm = signal.coupling_hz[0] / observation_mhz
-    neighbours = lines_expected - 1
-    intensities = _binomial_row(neighbours)
-    total = sum(intensities)
-    return [
-        (signal.shift + (neighbours / 2.0 - index) * spacing_ppm, intensity / total)
-        for index, intensity in enumerate(intensities)
-    ]
+    # Magnitude descending for determinism/debugging only -- the product
+    # below is commutative, so group order never changes the result.
+    ordered_groups = sorted(signal.coupling_groups, key=lambda group: abs(group[1]), reverse=True)
+
+    lines = [(0.0, 1.0)]
+    for count, j_hz in ordered_groups:
+        # Defensive: `_coupling_groups_hz` never builds a non-positive
+        # count, but a manually constructed `NMRSignal` could.
+        assert count > 0, f"coupling group has a non-positive partner count: {count}"
+        # abs() again here, independent of the builder already averaging
+        # magnitudes -- the renderer itself must never produce a
+        # negative/reflected spacing no matter what it's handed.
+        spacing_ppm = abs(j_hz) / observation_mhz
+        intensities = _binomial_row(count)
+        lines = [
+            (offset + (count / 2.0 - index) * spacing_ppm, intensity * weight)
+            for offset, intensity in lines
+            for index, weight in enumerate(intensities)
+        ]
+
+    merged = _merge_lines(lines)
+    total = sum(intensity for _, intensity in merged) or 1.0
+    return sorted(
+        ((signal.shift + offset, intensity / total) for offset, intensity in merged),
+        key=lambda line: line[0],
+        reverse=True,
+    )
 
 
-# HWHM of the Lorentzian each multiplet line is convolved with in "smooth"
-# display mode. Not a measured linewidth -- real ones vary with shimming and
-# field -- just narrow enough that two signals more than a few tenths of a
-# ppm apart stay resolved, matching how the predicted shifts are normally
-# spaced.
+#: HWHM of the Lorentzian each multiplet line is convolved with in "smooth"
+#: display mode. Not a measured linewidth -- real ones vary with shimming and
+#: field -- just narrow enough that two signals more than a few tenths of a
+#: ppm apart stay resolved, matching how the predicted shifts are normally
+#: spaced.
 DEFAULT_LORENTZIAN_HWHM_PPM = 0.012
 
 

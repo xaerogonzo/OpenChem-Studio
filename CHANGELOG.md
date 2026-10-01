@@ -39,6 +39,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   default -- so `setSortingEnabled(True)` after a table's very first population silently pre-sorted it before anyone had clicked anything
   (`docs/gotchas/qt-table-sort-indicator-default.md`).
 
+### NMR multi-group splitting trees, Hz display, spectrum labels (branch `nmr-splitting-tree`)
+
+- **A signal coupling to more than one distinct partner group ("m") now actually draws its real splitting, instead of falling back to one
+  unsplit line.** `multiplet_lines()` used to gate rendering entirely on the structural `multiplicity` letter, which maps "m" to "no pattern" by
+  construction -- so a signal with real, honest per-partner J values (propylene glycol's methine, coupled to 3 equivalent methyl H's, 2
+  diastereotopic CH₂ protons, and the OH) rendered flat even though the table showed the real couplings right next to it. `NMRSignal` gains a
+  `coupling_groups` field -- `(partner_count, mean_abs_J_hz)` per real equivalence-group coupling, populated for every signal -- and
+  `multiplet_lines()` now cascades across every group into the real first-order product pattern (never inventing a J; only using the real ones
+  already present), merging any positions that coincide. Multi-group first-order splitting is rendered from calculated ORCA J values and may
+  include symmetry-completed equivalent-partner values when ORCA reports only a subset of an equivalent group -- flagged via
+  `coupling_groups_inferred` and a sentence in the existing honest-coupling note, never silently presented as if every member had been directly
+  reported. This is a first-order approximation, not a full spin-Hamiltonian simulation -- no roofing, no second-order effects, no magnetic
+  nonequivalence. The stored `multiplicity` letter is unchanged ("m" still reads "m", matching Marvin's own choice for genuinely complex cases);
+  only what gets drawn changes.
+- **The 1D spectrum can show ppm or a Hz frequency offset.** Restricted to a referenced chemical shift -- disabled on a raw-shielding spectrum,
+  since isotropic shielding has no reference-frequency relationship to convert through and showing one would look like a fabricated
+  experimental number. Axis, ticks, peak labels, the cursor readout, and the signal table's own column all agree and update together; the
+  underlying `NMRSignal.shift` is never mutated by the display choice.
+- **A live cursor coordinate readout** shows δ/Hz under the mouse while hovering the plot (`setMouseTracking` was missing, so a passive hover
+  never fired `mouseMoveEvent` before), tracking the current zoom/pan viewport and clearing outside the actual plot rectangle.
+- **Spectrum Labels: None / Chemical shifts / Atom indices**, applied identically to sticks and smooth mode (smooth mode drew no labels at all
+  before this). "Atom indices" uses the same one-based display numbering already used throughout the app (Atom Inspector, `report_format.py`),
+  not the raw 0-based RDKit index. "None" is the direct fix for two signals close enough to crowd each other's label.
+
 ### Quantum Chemistry panel: run history, chart UX, help, scroll fix (branch `qc-panel-run-history`)
 
 - **A calculation result now survives save/reload, and running a new calc_type no longer discards the last one.** Every ORCA job (NMR,

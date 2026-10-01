@@ -100,6 +100,50 @@ def test_real_coupling_gets_a_positive_confirmation_naming_the_frequency(qapp):
     note = view._coupling_note_label.text()
     assert "calculated" in note and "not calculated" not in note
     assert view._frequency_combo.currentText() in note
+    # Only one of the methylene group's two members has a real value in
+    # this fixture, so this is a symmetry-completed group -- the note
+    # must say so, not read identically to a fully-reported one.
+    assert "symmetry-completed" in note
+
+
+def test_a_fully_reported_group_gets_the_plain_note_without_symmetry_completion(qapp):
+    """The contrast case: every member of every signal's own real coupling
+    group has a real value -- both the methyl signal's partner group
+    (methylene, 2 members) and the methylene signal's partner group
+    (methyl, 3 members) are fully covered here, so `coupling_groups_
+    inferred` is False for both signals and the note must not claim a
+    symmetry-completed value where none was needed."""
+    from openchem.chem.engine import ChemistryEngine as _Engine
+    from openchem.domain.molecule import MoleculeModel as _MoleculeModel
+    from openchem.domain.scientific_result import NMRSpectrumResult
+
+    engine = _Engine()
+    molecule = _MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+    mol = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    hydrogens = [a.GetIdx() for a in mol.GetAtoms() if a.GetAtomicNum() == 1]
+    methyl, methylene = hydrogens[:3], hydrogens[3:5]
+    spectrum = NMRSpectrumResult(
+        spectrum_type="nmr_calibrated",
+        name="NMR",
+        units="ppm",
+        method="orca",
+        molecule_uuid=molecule.uuid,
+        values={i: 1.2 for i in methyl} | {i: 3.6 for i in methylene},
+        elements={i: "H" for i in methyl + methylene},
+        couplings={
+            (methyl[0], methylene[0]): 7.05,
+            (methyl[0], methylene[1]): 7.05,
+            (methyl[1], methylene[0]): 7.05,
+            (methyl[2], methylene[0]): 7.05,
+        },
+    )
+    view = NmrViewWidget(engine, backend=FakeViewerBackend())
+    view.set_spectrum(molecule.molblock, spectrum)
+
+    note = view._coupling_note_label.text()
+    assert "calculated" in note and "not calculated" not in note
+    assert "symmetry-completed" not in note
 
 
 def test_a_coupling_parse_failure_gets_its_own_note_not_the_generic_one(qapp):
@@ -506,4 +550,59 @@ def test_a_raw_shielding_result_is_labelled_sigma_and_drawn_ascending(qapp):
     view.set_spectrum(molecule.molblock, spectrum)
     assert view._spectrum_widget._shielding is False
     assert "δ" in view._spectrum_widget._x_label
+
+
+# --- Phase G: Hz/ppm toggle, wired through the view ----------------------
+
+
+def test_the_unit_combo_is_disabled_on_a_raw_shielding_spectrum(qapp):
+    import dataclasses
+
+    view, _backend, molecule, spectrum = _make_view(qapp)
+    assert view._unit_combo.isEnabled() is True
+
+    raw = dataclasses.replace(spectrum, spectrum_type="nmr_raw_shielding")
+    view.set_spectrum(molecule.molblock, raw)
+    assert view._unit_combo.isEnabled() is False
+
+    view.set_spectrum(molecule.molblock, spectrum)
+    assert view._unit_combo.isEnabled() is True
+
+
+def test_switching_to_hz_updates_both_the_table_header_and_its_values(qapp):
+    view, _backend, _molecule, _spectrum = _make_view(qapp)
+    signal = view.signals()[0]
+
+    view._unit_combo.setCurrentIndex(view._unit_combo.findData("hz"))
+
+    assert view._table.horizontalHeaderItem(0).text() == "Offset (Hz)"
+    row = view._row_for_signal(signal)
+    cell_text = view._table.item(row, 0).text()
+    assert cell_text == view._spectrum_widget.format_shift(signal.shift)
+    expected_hz = signal.shift * view._spectrum_widget._observation_mhz()
+    assert abs(float(cell_text) - expected_hz) < 0.05
+
+
+def test_switching_back_to_ppm_restores_the_plain_header(qapp):
+    view, _backend, _molecule, _spectrum = _make_view(qapp)
+    view._unit_combo.setCurrentIndex(view._unit_combo.findData("hz"))
+    assert view._table.horizontalHeaderItem(0).text() == "Offset (Hz)"
+
+    view._unit_combo.setCurrentIndex(view._unit_combo.findData("ppm"))
+
+    assert view._table.horizontalHeaderItem(0).text() == "Shift (ppm)"
+
+
+# --- Phase G: Spectrum Labels combo, wired through the view --------------
+
+
+def test_the_labels_combo_controls_the_plots_label_mode(qapp):
+    view, _backend, _molecule, _spectrum = _make_view(qapp)
+    assert view._spectrum_widget.label_mode() == "shift"
+
+    view._labels_combo.setCurrentIndex(view._labels_combo.findData("atom"))
+    assert view._spectrum_widget.label_mode() == "atom"
+
+    view._labels_combo.setCurrentIndex(view._labels_combo.findData("none"))
+    assert view._spectrum_widget.label_mode() == "none"
     assert view._table.horizontalHeaderItem(0).text() == "Shift (ppm)"

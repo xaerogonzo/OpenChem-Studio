@@ -1,18 +1,22 @@
 from __future__ import annotations
 
-import pytest
+from types import SimpleNamespace
 
+import pytest
+from conftest import synthetic_nmr_spectrum
 from rdkit import Chem
 
-from conftest import synthetic_nmr_spectrum
 from openchem.chem.nmr_signals import (
+    RESIDUAL_SOLVENT_PEAKS,
     NMRSignal,
+    _coupling_groups_hz,
+    _coupling_value,
+    _merge_lines,
     align_mol_to_spectrum,
     are_diastereotopic,
     build_nmr_signals,
     depiction_atoms,
     lorentzian_envelope,
-    RESIDUAL_SOLVENT_PEAKS,
     multiplet_lines,
 )
 from openchem.domain.scientific_result import NMRSpectrumResult
@@ -225,7 +229,14 @@ def test_real_coupling_values_are_attached_to_their_signals():
     )
 
     signals = build_nmr_signals(mol, spectrum, "H")
-    assert [s.coupling_hz for s in signals if s.integration == 3] == [[7.05]]
+    methyl_signal = next(s for s in signals if s.integration == 3)
+    assert methyl_signal.coupling_hz == [7.05]
+    # Only one of the methylene group's two members has a real value in
+    # this spectrum -- symmetry completion: the group's count is still 2
+    # (both real partners), the magnitude is the one real value found, and
+    # it is flagged as completed rather than presented as a 2-of-2 report.
+    assert methyl_signal.coupling_groups == ((2, 7.05),)
+    assert methyl_signal.coupling_groups_inferred is True
 
 
 def test_a_coupling_inside_one_signal_is_not_reported():
@@ -244,7 +255,9 @@ def test_a_coupling_inside_one_signal_is_not_reported():
         couplings={(methyl[0], methyl[1]): 12.0},
     )
 
-    assert build_nmr_signals(mol, spectrum, "H")[0].coupling_hz == []
+    signal = build_nmr_signals(mol, spectrum, "H")[0]
+    assert signal.coupling_hz == []
+    assert signal.coupling_groups == ()
 
 
 def test_coupling_to_a_different_element_is_excluded_even_though_orca_reports_it():
@@ -283,6 +296,11 @@ def test_coupling_to_a_different_element_is_excluded_even_though_orca_reports_it
     methyl_signal = next(s for s in signals if s.integration == 3)
 
     assert methyl_signal.coupling_hz == [7.05]
+    # The ~180 Hz C-H entry must not leak into coupling_groups either --
+    # the new field reads the same scoped `partners`, so it was never
+    # exposed to the heteronuclear pair in the first place, not merely
+    # filtered out after the fact.
+    assert methyl_signal.coupling_groups == ((2, 7.05),)
 
 
 def test_coupling_to_an_atom_outside_the_real_partner_walk_is_excluded():
@@ -317,6 +335,7 @@ def test_coupling_to_an_atom_outside_the_real_partner_walk_is_excluded():
     methyl_signal = next(s for s in signals if s.integration == 3)
 
     assert methyl_signal.coupling_hz == [7.05]
+    assert methyl_signal.coupling_groups == ((2, 7.05),)
 
 
 def test_a_coupling_to_a_non_partner_is_excluded_even_when_the_signal_has_real_partners():
@@ -349,6 +368,7 @@ def test_a_coupling_to_a_non_partner_is_excluded_even_when_the_signal_has_real_p
 
     assert oh_signal.multiplicity == "t"  # real connectivity: 2 methylene partners
     assert oh_signal.coupling_hz == []  # but no real J was ever reported for THAT pair
+    assert oh_signal.coupling_groups == ()
 
 
 def test_13c_never_reports_coupling_even_when_orca_s_matrix_has_it():
@@ -372,6 +392,7 @@ def test_13c_never_reports_coupling_even_when_orca_s_matrix_has_it():
 
     carbons = build_nmr_signals(mol, spectrum, "C")
     assert carbons[0].coupling_hz == []
+    assert carbons[0].coupling_groups == ()
 
 
 # --- index alignment and depiction mapping ---
@@ -423,9 +444,16 @@ def test_empty_spectrum_produces_no_signals():
 def test_a_quartet_splits_into_four_lines_at_the_right_spacing():
     """J/frequency is the entire conversion: 7 Hz at 400 MHz is 0.0175
     ppm between adjacent lines, and the multiplet stays centred on the
-    signal's own shift."""
+    signal's own shift. `coupling_groups`, not `multiplicity`, is what
+    drives this now -- `coupling_hz` stays here only because it is still
+    a real field on the signal, unused by the renderer."""
     signal = NMRSignal(
-        shift=3.70, atom_indices=[0, 1], integration=2, multiplicity="q", coupling_hz=[7.0]
+        shift=3.70,
+        atom_indices=[0, 1],
+        integration=2,
+        multiplicity="q",
+        coupling_hz=[7.0],
+        coupling_groups=((3, 7.0),),
     )
 
     lines = multiplet_lines(signal, 400.0)
@@ -441,7 +469,12 @@ def test_multiplet_intensities_are_the_binomial_row_and_sum_to_one():
     the same integration enclose the same area -- which is what
     integration means."""
     signal = NMRSignal(
-        shift=1.0, atom_indices=[0], integration=1, multiplicity="q", coupling_hz=[7.0]
+        shift=1.0,
+        atom_indices=[0],
+        integration=1,
+        multiplicity="q",
+        coupling_hz=[7.0],
+        coupling_groups=((3, 7.0),),
     )
 
     intensities = [intensity for _shift, intensity in multiplet_lines(signal, 400.0)]
@@ -454,7 +487,12 @@ def test_a_higher_field_squeezes_the_multiplet_in_ppm():
     """The reason frequency is an option at all: the same coupling looks
     resolved at 600 MHz and collapsed at 60."""
     signal = NMRSignal(
-        shift=2.0, atom_indices=[0], integration=1, multiplicity="d", coupling_hz=[7.0]
+        shift=2.0,
+        atom_indices=[0],
+        integration=1,
+        multiplicity="d",
+        coupling_hz=[7.0],
+        coupling_groups=((1, 7.0),),
     )
 
     def span(frequency):
@@ -468,7 +506,13 @@ def test_a_higher_field_squeezes_the_multiplet_in_ppm():
 def test_carbon_multiplets_spread_further_than_proton_ones_at_the_same_field():
     """A "400 MHz" spectrometer observes carbon near 100 MHz, so the same
     J in Hz is about four times wider in ppm."""
-    common = {"atom_indices": [0], "integration": 1, "multiplicity": "d", "coupling_hz": [7.0]}
+    common = {
+        "atom_indices": [0],
+        "integration": 1,
+        "multiplicity": "d",
+        "coupling_hz": [7.0],
+        "coupling_groups": ((1, 7.0),),
+    }
     proton = NMRSignal(shift=2.0, element="H", **common)
     carbon = NMRSignal(shift=20.0, element="C", **common)
 
@@ -479,23 +523,362 @@ def test_carbon_multiplets_spread_further_than_proton_ones_at_the_same_field():
     assert span(carbon) > 3 * span(proton)
 
 
+def test_a_doublets_sign_does_not_change_its_rendered_positions():
+    """Spacing uses `abs(J)` -- a group built with a negative J (ORCA's own
+    sign convention, or test-constructed) must land on the exact same
+    canonical positions as the same magnitude with a positive sign."""
+    positive = NMRSignal(
+        shift=2.0, atom_indices=[0], integration=1, multiplicity="d", coupling_groups=((1, 7.0),)
+    )
+    negative = NMRSignal(
+        shift=2.0, atom_indices=[0], integration=1, multiplicity="d", coupling_groups=((1, -7.0),)
+    )
+
+    assert multiplet_lines(positive, 400.0) == pytest.approx(multiplet_lines(negative, 400.0))
+
+
 @pytest.mark.parametrize(
-    "multiplicity,coupling",
-    [("s", []), ("m", [7.0]), ("d", [])],
+    "multiplicity,coupling_hz,coupling_groups",
+    [("s", [], ()), ("m", [7.0], ()), ("d", [], ())],
 )
-def test_no_splitting_is_drawn_without_both_a_pattern_and_a_real_coupling(multiplicity, coupling):
-    """A singlet has nothing to split; "m" means the pattern is not
-    first-order; and a doublet with no measured J has no spacing to draw.
-    None of the three may invent one."""
+def test_no_splitting_is_drawn_without_both_a_pattern_and_a_real_coupling(
+    multiplicity, coupling_hz, coupling_groups
+):
+    """A singlet has nothing to split; a doublet with no measured J has no
+    spacing to draw. The "m" + flat-`coupling_hz`-but-no-`coupling_groups`
+    case is the load-bearing one: it proves the flat field alone is never
+    enough to drive rendering -- only `coupling_groups` is. None of the
+    three may invent a splitting."""
     signal = NMRSignal(
         shift=2.0,
         atom_indices=[0],
         integration=1,
         multiplicity=multiplicity,
-        coupling_hz=list(coupling),
+        coupling_hz=list(coupling_hz),
+        coupling_groups=coupling_groups,
     )
 
     assert multiplet_lines(signal, 400.0) == [(2.0, 1.0)]
+
+
+def test_m_with_real_coupling_groups_does_split():
+    """The direct regression guard for the actual bug: a signal labelled
+    "m" (coupling to more than one distinct partner group) with real
+    `coupling_groups` must render its real splitting, not fall back to one
+    line just because its letter isn't in the old `s/d/t/q/...` set."""
+    signal = NMRSignal(
+        shift=2.0,
+        atom_indices=[0],
+        integration=1,
+        multiplicity="m",
+        coupling_hz=[7.0],
+        coupling_groups=((1, 7.0),),
+    )
+
+    lines = multiplet_lines(signal, 400.0)
+
+    assert len(lines) == 2
+    assert sum(intensity for _shift, intensity in lines) == pytest.approx(1.0)
+
+
+# --- _coupling_value: undirected real-J lookup -------------------------
+
+
+def test_coupling_value_finds_either_stored_orientation():
+    assert _coupling_value({(1, 2): 7.05}, 1, 2) == 7.05
+    assert _coupling_value({(2, 1): 7.05}, 1, 2) == 7.05
+    assert _coupling_value({(1, 2): 7.05}, 2, 1) == 7.05
+
+
+def test_coupling_value_is_none_for_a_missing_pair():
+    assert _coupling_value({(1, 2): 7.05}, 1, 3) is None
+
+
+def test_coupling_value_treats_a_real_zero_as_present_not_missing():
+    """0.0 is a reported coupling, not an absent one -- a falsy check
+    would wrongly treat it as missing data."""
+    assert _coupling_value({(1, 2): 0.0}, 1, 2) == 0.0
+
+
+# --- _coupling_groups_hz: the structured, grouped render representation --
+
+
+def test_coupling_groups_hz_full_coverage_averages_magnitude():
+    partners = {10, 11, 12}
+    group_of_atom = {10: 0, 11: 0, 12: 0}
+    spectrum = SimpleNamespace(couplings={(1, 10): 6.80, (1, 11): 6.79, (1, 12): 6.81})
+
+    groups, inferred = _coupling_groups_hz(spectrum, 1, partners, group_of_atom)
+
+    assert len(groups) == 1
+    count, mean_abs = groups[0]
+    assert count == 3
+    assert mean_abs == pytest.approx(6.80, abs=0.01)
+    assert inferred is False
+
+
+def test_coupling_groups_hz_partial_coverage_is_flagged_inferred():
+    """Symmetry completion: 2 of 3 equivalent partners have a real value,
+    so the group still renders (using what's there), but is flagged --
+    never silently presented as if all 3 had been directly reported."""
+    partners = {10, 11, 12}
+    group_of_atom = {10: 0, 11: 0, 12: 0}
+    spectrum = SimpleNamespace(couplings={(1, 10): 6.80, (1, 11): 6.79})
+
+    groups, inferred = _coupling_groups_hz(spectrum, 1, partners, group_of_atom)
+
+    assert groups == ((3, pytest.approx(6.795, abs=0.01)),)
+    assert inferred is True
+
+
+def test_coupling_groups_hz_zero_coverage_skips_the_group():
+    partners = {10, 11}
+    group_of_atom = {10: 0, 11: 0}
+    spectrum = SimpleNamespace(couplings={})
+
+    groups, inferred = _coupling_groups_hz(spectrum, 1, partners, group_of_atom)
+
+    assert groups == ()
+    assert inferred is False
+
+
+def test_coupling_groups_hz_averages_magnitude_not_signed_value():
+    """Mixed-sign real values for one group must not cancel toward zero --
+    first-order spacing depends on |J|, never the sign."""
+    partners = {10, 11, 12}
+    group_of_atom = {10: 0, 11: 0, 12: 0}
+    spectrum = SimpleNamespace(couplings={(1, 10): -7.0, (1, 11): 7.1, (1, 12): 6.9})
+
+    groups, _inferred = _coupling_groups_hz(spectrum, 1, partners, group_of_atom)
+
+    assert groups == ((3, pytest.approx(7.0, abs=0.01)),)
+
+
+def test_coupling_groups_hz_treats_a_real_zero_j_as_present_data():
+    partners = {10}
+    group_of_atom = {10: 0}
+    spectrum = SimpleNamespace(couplings={(1, 10): 0.0})
+
+    groups, inferred = _coupling_groups_hz(spectrum, 1, partners, group_of_atom)
+
+    assert groups == ((1, 0.0),)
+    assert inferred is False
+
+
+def test_coupling_groups_hz_counts_only_this_groups_members_present_in_partners():
+    """The pooling-bug precaution `_coupling_partners` already applies,
+    carried through here: a group's `count` is how many of ITS OWN
+    members are in `partners`, never the group's full size elsewhere."""
+    partners = {10, 11}
+    group_of_atom = {10: 0, 11: 0, 99: 0}  # atom 99 is group 0 too, but not a partner here
+    spectrum = SimpleNamespace(couplings={(1, 10): 7.0, (1, 11): 7.0})
+
+    groups, _inferred = _coupling_groups_hz(spectrum, 1, partners, group_of_atom)
+
+    assert groups == ((2, 7.0),)
+
+
+def test_a_single_groups_count_matches_its_structural_multiplicity_letter():
+    """For a real, simple (single-partner-group) case, the one
+    `coupling_groups` entry's count must equal what the structural n+1
+    letter already claims -- both come from the same partner walk and
+    must never disagree."""
+    mol = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    methyl = [a.GetIdx() for a in mol.GetAtoms() if a.GetAtomicNum() == 1][:3]
+    methylene = [a.GetIdx() for a in mol.GetAtoms() if a.GetAtomicNum() == 1][3:5]
+    spectrum = NMRSpectrumResult(
+        spectrum_type="nmr_coupling",
+        name="NMR",
+        units="ppm",
+        method="orca",
+        molecule_uuid="mol-1",
+        values={index: 1.2 for index in methyl} | {index: 3.6 for index in methylene},
+        elements={index: "H" for index in methyl + methylene},
+        couplings={(methyl[0], methylene[0]): 7.05, (methyl[0], methylene[1]): 7.05},
+    )
+
+    methyl_signal = next(s for s in build_nmr_signals(mol, spectrum, "H") if s.integration == 3)
+
+    assert methyl_signal.multiplicity == "t"
+    assert len(methyl_signal.coupling_groups) == 1
+    count, j_hz = methyl_signal.coupling_groups[0]
+    assert count == 2
+    assert j_hz == pytest.approx(7.05)
+    assert methyl_signal.coupling_groups_inferred is False
+
+
+def test_every_signal_with_coupling_groups_has_at_least_one_real_group():
+    """A non-empty `coupling_groups` must never contain a stray zero-count
+    entry -- `build_nmr_signals` only ever appends a group when it found
+    at least one real value for it."""
+    mol, spectrum = _mol_and_spectrum(IBUPROFEN)
+    for signal in build_nmr_signals(mol, spectrum, "H"):
+        for count, _j in signal.coupling_groups:
+            assert count >= 1
+
+
+# --- _merge_lines --------------------------------------------------------
+
+
+def test_merge_lines_combines_an_exact_duplicate():
+    assert _merge_lines([(1.0, 0.5), (1.0, 0.5)]) == [(1.0, 1.0)]
+
+
+def test_merge_lines_combines_a_near_duplicate_within_tolerance():
+    merged = _merge_lines([(1.0, 0.5), (1.0 + 1e-9, 0.5)], tolerance=1e-6)
+    assert len(merged) == 1
+    assert merged[0][1] == pytest.approx(1.0)
+
+
+def test_merge_lines_keeps_genuinely_distinct_values_separate():
+    merged = _merge_lines([(1.0, 0.5), (1.1, 0.5)], tolerance=1e-6)
+    assert len(merged) == 2
+
+
+# --- multi-group cascade: the actual propylene-glycol bug --------------
+
+
+def test_two_distinct_groups_produce_the_exact_product_pattern():
+    """J's chosen with no simple rational relationship, so the raw product
+    survives with no accidental coincidence -- the product-generation half
+    of the algorithm, checked independently of merging."""
+    j1, j2 = 11.0, 4.3
+    signal = NMRSignal(
+        shift=4.0,
+        atom_indices=[0],
+        integration=1,
+        multiplicity="m",
+        coupling_groups=((1, j1), (1, j2)),
+    )
+
+    lines = multiplet_lines(signal, 400.0)
+
+    assert len(lines) == 4  # (1+1) * (1+1)
+    assert sum(intensity for _s, intensity in lines) == pytest.approx(1.0)
+    assert all(intensity == pytest.approx(0.25) for _s, intensity in lines)
+    shifts = [s for s, _i in lines]
+    assert max(shifts) - min(shifts) == pytest.approx((j1 + j2) / 400.0)
+    assert len({round(s, 9) for s in shifts}) == 4
+
+
+def test_two_groups_sharing_a_j_merge_into_the_smaller_expected_pattern():
+    """Two 1-partner groups with the SAME J collapse, via merging, into
+    the familiar 1:2:1 triplet shape -- not four separate near-identical
+    lines."""
+    signal = NMRSignal(
+        shift=4.0,
+        atom_indices=[0],
+        integration=1,
+        multiplicity="m",
+        coupling_groups=((1, 7.0), (1, 7.0)),
+    )
+
+    lines = multiplet_lines(signal, 400.0)
+
+    assert len(lines) == 3
+    intensities = sorted(intensity for _s, intensity in lines)
+    assert intensities == pytest.approx([0.25, 0.25, 0.5])
+    assert sum(intensities) == pytest.approx(1.0)
+
+
+def test_coincident_offsets_from_different_raw_combinations_merge_with_summed_intensity():
+    """Two different (not merely sign-mirrored) raw combinations can land
+    on the same final position -- not just the trivial "two groups share
+    one J" case above. A count=2 group and a count=1 group, both with the
+    SAME real J, is the simplest case where this happens: the position
+    reached by (the triplet's centre line, the doublet's +J/2 line)
+    coincides with the position reached by (the triplet's +J line, the
+    doublet's -J/2 line) -- genuinely different underlying raw lines, not
+    a mirror pair. Their raw intensities (2 and 1) must be SUMMED at the
+    merge, not one dropped; the result reproduces the ordinary 1:3:3:1
+    quartet that 3 total equivalent partners sharing one J would give,
+    which is the direct check that the merge is position-based, not an
+    `if J1 == J2` special case that only understands identical groups."""
+    signal = NMRSignal(
+        shift=4.0,
+        atom_indices=[0],
+        integration=1,
+        multiplicity="m",
+        coupling_groups=((2, 7.0), (1, 7.0)),
+    )
+
+    lines = multiplet_lines(signal, 400.0)
+
+    assert len(lines) == 4
+    intensities = sorted(round(intensity, 6) for _s, intensity in lines)
+    assert intensities == pytest.approx(sorted([1 / 8, 3 / 8, 3 / 8, 1 / 8]))
+
+
+def test_a_propylene_glycol_shaped_four_group_signal_produces_32_raw_components():
+    """The actual bug this branch fixes, reproduced structurally: a
+    methine coupling to 4 distinct real partner groups (3 equivalent
+    methyl H's plus three separate 1H partners -- the exact shape
+    propylene glycol's 4.10 ppm signal has) must cascade into the full
+    first-order product, not fall back to one line because its letter is
+    "m". J magnitudes are the real ones measured on that run, with no
+    simple rational relationship, so the raw product survives merging
+    exactly here -- `len(lines) <= raw_count` is the general invariant,
+    not `==`, since a legitimate coincidence can reduce it."""
+    signal = NMRSignal(
+        shift=4.10,
+        atom_indices=[0],
+        integration=1,
+        multiplicity="m",
+        coupling_groups=((3, 6.3), (1, 10.6), (1, 8.2), (1, 3.4)),
+    )
+
+    raw_count = (3 + 1) * (1 + 1) * (1 + 1) * (1 + 1)
+    lines = multiplet_lines(signal, 400.0)
+
+    assert len(lines) <= raw_count
+    assert len(lines) == raw_count  # these particular J's happen not to collide
+    assert sum(intensity for _s, intensity in lines) == pytest.approx(1.0)
+
+
+def test_a_negative_tiny_j_still_produces_the_correct_numeric_separation():
+    """J = -0.2 Hz (propylene glycol's real OH coupling, as ORCA reported
+    it) is real data, not noise to round to zero -- the renderer still
+    computes two distinct lines at the correct, tiny, numeric separation.
+    Whether that's visually resolvable is a display fact (Lorentzian
+    linewidth, pixel resolution), never the correctness criterion here."""
+    signal = NMRSignal(
+        shift=2.77,
+        atom_indices=[0],
+        integration=1,
+        multiplicity="d",
+        coupling_groups=((1, -0.2),),
+    )
+
+    lines = multiplet_lines(signal, 400.0)
+
+    assert len(lines) == 2
+    shifts = sorted(shift for shift, _i in lines)
+    assert shifts[1] - shifts[0] == pytest.approx(0.2 / 400.0)
+
+
+def test_the_cascade_matches_a_hand_built_reference_tree():
+    """A transparent, chemistry-independent check of the algorithm itself:
+    build the expected final line set by hand and compare directly,
+    rather than only checking derived properties like counts and sums."""
+    signal = NMRSignal(
+        shift=0.0,
+        atom_indices=[0],
+        integration=1,
+        multiplicity="m",
+        coupling_groups=((1, 8.0), (1, 4.0)),
+    )
+    freq = 400.0
+
+    lines = multiplet_lines(signal, freq)
+
+    a = 8.0 / freq / 2.0
+    b = 4.0 / freq / 2.0
+    expected = sorted(
+        [(a + b, 0.25), (a - b, 0.25), (-a + b, 0.25), (-a - b, 0.25)],
+        key=lambda line: line[0],
+        reverse=True,
+    )
+    assert lines == pytest.approx(expected)
 
 
 def test_residual_solvent_peaks_match_the_published_reference():
@@ -539,8 +922,30 @@ def test_lorentzian_envelope_splits_a_multiplets_area_across_its_lines():
     invariant `multiplet_lines`'s own intensities-sum-to-one test protects,
     carried through the convolution."""
     signal = NMRSignal(
-        shift=5.0, atom_indices=[0], integration=2, multiplicity="d", coupling_hz=[7.0]
+        shift=5.0,
+        atom_indices=[0],
+        integration=2,
+        multiplicity="d",
+        coupling_hz=[7.0],
+        coupling_groups=((1, 7.0),),
     )
     xs = [5.0 + 0.001 * i for i in range(-8000, 8001)]
     area = _trapezoid_area(xs, lorentzian_envelope([signal], xs, frequency_mhz=400.0))
     assert area == pytest.approx(2.0, rel=0.02)
+
+
+def test_lorentzian_envelope_preserves_area_for_a_multi_group_signal():
+    """The cascade rewrite must not multiply or lose area across groups --
+    a genuinely multi-group (qdd-shaped) signal's convolved curve must
+    still integrate to its own integration, exactly like the single-group
+    case above already checks."""
+    signal = NMRSignal(
+        shift=4.0,
+        atom_indices=[0, 1, 2],
+        integration=3,
+        multiplicity="m",
+        coupling_groups=((2, 8.0), (1, 3.0)),
+    )
+    xs = [4.0 + 0.001 * i for i in range(-12000, 12001)]
+    area = _trapezoid_area(xs, lorentzian_envelope([signal], xs, frequency_mhz=400.0))
+    assert area == pytest.approx(3.0, rel=0.02)

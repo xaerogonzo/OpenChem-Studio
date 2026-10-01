@@ -179,6 +179,27 @@ class NmrViewWidget(QWidget):
         self._zoom_follow_check = QCheckBox("Zoom to selection", self)
         self._zoom_follow_check.setChecked(True)
 
+        # Display-only -- never recomputes or mutates a signal's own ppm
+        # `shift`; see `NmrSpectrumWidget.set_display_unit`. Disabled
+        # whenever the current spectrum is raw shielding (`_rebuild_
+        # signals`), since σ has no reference-frequency relationship to
+        # convert through.
+        self._unit_combo = QComboBox(self)
+        self._unit_combo.addItem("ppm", "ppm")
+        self._unit_combo.addItem("Offset (Hz)", "hz")
+        self._unit_combo.currentIndexChanged.connect(self._on_unit_changed)
+        self._scroll_safe_guards.append(make_scroll_safe(self._unit_combo))
+
+        # None/Chemical shifts/Atom indices, applied identically to sticks
+        # and smooth mode (see `NmrSpectrumWidget.set_label_mode`).
+        # "Chemical shifts" matches today's always-on stick-mode default.
+        self._labels_combo = QComboBox(self)
+        self._labels_combo.addItem("Labels: Chemical shifts", "shift")
+        self._labels_combo.addItem("Labels: Atom indices", "atom")
+        self._labels_combo.addItem("Labels: None", "none")
+        self._labels_combo.currentIndexChanged.connect(self._on_label_mode_changed)
+        self._scroll_safe_guards.append(make_scroll_safe(self._labels_combo))
+
         element_row = QHBoxLayout()
         element_row.addWidget(QLabel("Nucleus:", self))
         element_row.addWidget(self._element_combo)
@@ -186,6 +207,9 @@ class NmrViewWidget(QWidget):
         element_row.addWidget(self._frequency_combo)
         element_row.addWidget(QLabel("Solvent peak:", self))
         element_row.addWidget(self._solvent_combo)
+        element_row.addWidget(QLabel("Unit:", self))
+        element_row.addWidget(self._unit_combo)
+        element_row.addWidget(self._labels_combo)
         element_row.addWidget(self._smooth_check)
         element_row.addWidget(self._integral_check)
         element_row.addWidget(self._zoom_follow_check)
@@ -275,6 +299,16 @@ class NmrViewWidget(QWidget):
     def _on_render_mode_toggled(self, smooth: bool) -> None:
         self._spectrum_widget.set_render_mode("smooth" if smooth else "sticks")
 
+    def _on_unit_changed(self, _index: int) -> None:
+        self._spectrum_widget.set_display_unit(self._unit_combo.currentData())
+        # The table's own Shift column/header must agree with the plot --
+        # it is not re-derived automatically, since it is rendered
+        # independently of `NmrSpectrumWidget`'s paintEvent.
+        self._populate_table()
+
+    def _on_label_mode_changed(self, _index: int) -> None:
+        self._spectrum_widget.set_label_mode(self._labels_combo.currentData())
+
     def _rebuild_signals(self) -> None:
         if self._spectrum is None or self._mol is None:
             return
@@ -286,8 +320,22 @@ class NmrViewWidget(QWidget):
         symbol = "σ" if shielding else "δ"
         self._spectrum_widget.set_signals(
             self._signals,
-            x_label=f"{_ELEMENT_LABELS.get(element, element)} {symbol} (ppm)",
+            # No unit baked in here -- `NmrSpectrumWidget` owns its own
+            # unit suffix (ppm/Hz toggle), see `set_signals`'s docstring.
+            x_label=f"{_ELEMENT_LABELS.get(element, element)} {symbol}",
             shielding=shielding,
+        )
+        # Hz is only meaningful for a referenced chemical shift -- raw σ
+        # has no reference-frequency relationship to convert through.
+        # `NmrSpectrumWidget` already goes inert on its own in this case
+        # (`_effective_unit`), but the control itself is disabled too
+        # rather than left clickable with no visible effect.
+        self._unit_combo.setEnabled(not shielding)
+        self._unit_combo.setToolTip(
+            "Hz display needs a referenced chemical shift; raw shielding has "
+            "no reference-frequency relationship to convert through."
+            if shielding
+            else ""
         )
         self._populate_table()
         self._render_structure(highlighted=[])
@@ -300,9 +348,12 @@ class NmrViewWidget(QWidget):
         everything (something broke, not "not requested"); a visible
         non-singlet signal with no real J beats a generic positive
         message (the gap is the thing worth saying); real coupling data,
-        confirmed present; otherwise nothing to say (every signal here is
-        a genuine singlet, or this element has no multiplet concept at
-        all -- 13C is always reported decoupled).
+        confirmed present -- with a richer variant when any signal's
+        `coupling_groups` needed symmetry completion (see
+        `nmr_signals._coupling_groups_hz`), since a 2-of-3 averaged value
+        must never read the same as a 3-of-3 one; otherwise nothing to say
+        (every signal here is a genuine singlet, or this element has no
+        multiplet concept at all -- 13C is always reported decoupled).
         """
         if self._spectrum is None:
             self._coupling_note_label.setText("")
@@ -323,6 +374,14 @@ class NmrViewWidget(QWidget):
             )
             return
         if couplings:
+            if any(signal.coupling_groups_inferred for signal in self._signals):
+                self._coupling_note_label.setText(
+                    f"Spin-spin coupling calculated; multiplet spacing shown at "
+                    f"{self._frequency_combo.currentText()} -- one or more multiplets "
+                    f"include a symmetry-completed coupling value because ORCA did not "
+                    f"report every equivalent partner."
+                )
+                return
             self._coupling_note_label.setText(
                 f"Spin-spin coupling calculated; multiplet spacing shown at "
                 f"{self._frequency_combo.currentText()}."
@@ -333,9 +392,17 @@ class NmrViewWidget(QWidget):
     def _populate_table(self) -> None:
         method = self._spectrum.method if self._spectrum is not None else ""
         raw = self._spectrum is not None and self._spectrum.spectrum_type == "nmr_raw_shielding"
-        self._table.setHorizontalHeaderItem(
-            0, QTableWidgetItem("Shielding σ (ppm)" if raw else _TABLE_COLUMNS[0])
-        )
+        if raw:
+            header_text = "Shielding σ (ppm)"
+        elif self._spectrum_widget.unit_suffix() == "Hz":
+            # Not "Shift (Hz)" -- a chemical shift is fundamentally a
+            # dimensionless ppm quantity; this column is showing the
+            # FREQUENCY OFFSET from the reference, a different (if
+            # related) number.
+            header_text = "Offset (Hz)"
+        else:
+            header_text = _TABLE_COLUMNS[0]
+        self._table.setHorizontalHeaderItem(0, QTableWidgetItem(header_text))
         self._table.blockSignals(True)
         # OFF during population: Qt would otherwise re-sort after every
         # single `setItem`, scrambling row/signal correspondence as the
@@ -353,7 +420,11 @@ class NmrViewWidget(QWidget):
             coupling_text = ", ".join(f"{hz:.1f}" for hz in signal.coupling_hz) or "—"
             coupling_sort = signal.coupling_hz[0] if signal.coupling_hz else float("-inf")
 
-            shift_item = SortableItem(f"{signal.shift:.2f}", signal.shift)
+            # Sort value is always the raw ppm, regardless of the display
+            # unit -- Hz is a monotonic function of ppm at a fixed
+            # frequency/nucleus, so the row ORDER is identical either way;
+            # only the printed text changes.
+            shift_item = SortableItem(self._spectrum_widget.format_shift(signal.shift), signal.shift)
             shift_item.setData(_ROW_IDENTITY_ROLE, tuple(signal.atom_indices))
             items = (
                 shift_item,
