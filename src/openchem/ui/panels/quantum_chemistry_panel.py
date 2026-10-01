@@ -73,6 +73,7 @@ from openchem.ui.widgets.ir_view_widget import IrViewWidget
 from openchem.ui.widgets.pop_out_host import PopOutHost
 from openchem.ui.widgets.nmr_correlation_plot_widget import NmrCorrelationPlotWidget, Peak
 from openchem.ui.widgets.nmr_view_widget import NmrViewWidget
+from openchem.ui.widgets.scroll_safe import make_scroll_safe
 
 _NMR_SPECTRUM_COLUMNS = ("Atom", "Element", "Value (ppm)")
 _CORRELATION_COLUMNS = ("Atom A", "Atom B", "Shift A", "Shift B", "J (Hz)")
@@ -686,28 +687,43 @@ class QuantumChemistryPanel(QWidget):
 
     def _build_controls(self) -> None:
         """Every control above the tabs, in the order it is laid out."""
+        # `make_scroll_safe` on every combo/spin box built in this method:
+        # confirmed live (OPENCHEM_DRIVE's wheel_trace/wheel steps) that a
+        # `QComboBox` accepts a wheel event directly and a `QSpinBox` does
+        # too via its internal line edit's ignore propagating up to it --
+        # neither checks focus, so scrolling PAST one of these on the way
+        # down the panel silently changes it. The returned guards are kept
+        # (not just relied on via Qt's own parent/child lifetime) so a test
+        # can find them.
+        self._scroll_safe_guards: list = []
+
         self._molecule_combo = QComboBox(self)
         apply_help_tooltip(self._molecule_combo, _HELP["molecule"])
         self._molecule_combo.currentIndexChanged.connect(self._on_molecule_changed)
+        self._scroll_safe_guards.append(make_scroll_safe(self._molecule_combo))
 
         self._calc_type_combo = QComboBox(self)
         apply_help_tooltip(self._calc_type_combo, _HELP["calculation_type"])
         self._calc_type_combo.addItems(list(CALC_TYPE_LABELS.keys()))
         self._calc_type_combo.currentTextChanged.connect(self._on_calc_type_changed)
+        self._scroll_safe_guards.append(make_scroll_safe(self._calc_type_combo))
 
         self._charge_spin = QSpinBox(self)
         self._charge_spin.setRange(-10, 10)
         apply_help_tooltip(self._charge_spin, _HELP["total_charge"])
+        self._scroll_safe_guards.append(make_scroll_safe(self._charge_spin))
 
         self._multiplicity_spin = QSpinBox(self)
         self._multiplicity_spin.setRange(1, 10)
         self._multiplicity_spin.setValue(1)
         apply_help_tooltip(self._multiplicity_spin, _HELP["spin_multiplicity"])
+        self._scroll_safe_guards.append(make_scroll_safe(self._multiplicity_spin))
 
         self._method_combo = QComboBox(self)
         self._method_combo.setEditable(True)
         self._method_combo.addItems(METHOD_BASIS_PRESETS)
         apply_help_tooltip(self._method_combo, _HELP["method_basis"])
+        self._scroll_safe_guards.append(make_scroll_safe(self._method_combo))
 
         # Solvent is NOT a separate parameter threaded through the service --
         # it is appended to the method/basis string as a CPCM keyword, which
@@ -724,12 +740,14 @@ class QuantumChemistryPanel(QWidget):
         apply_help_tooltip(self._solvent_combo, _HELP["solvent_model"])
         for solvent in SOLVENTS:
             self._solvent_combo.addItem(solvent or "None (gas phase)", solvent)
+        self._scroll_safe_guards.append(make_scroll_safe(self._solvent_combo))
 
         # Stored under `orca/cores`, which the service reads at launch. Without
         # MPI a parallel job aborts, so the box is pinned to 1 and says why.
         self._cores_spin = QSpinBox(self)
         self._cores_spin.setRange(1, max(1, os.cpu_count() or 1))
         apply_help_tooltip(self._cores_spin, _HELP["cpu_cores"])
+        self._scroll_safe_guards.append(make_scroll_safe(self._cores_spin))
         if find_mpi_bin() is None:
             self._cores_spin.setValue(1)
             self._cores_spin.setEnabled(False)

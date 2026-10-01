@@ -4668,14 +4668,18 @@ class _Driver(QObject):
         target = root
         child_path = step.get("child")
         if child_path:
-            for child_class in str(child_path).split(">"):
-                target = next(
-                    (w for w in target.findChildren(QWidget) if type(w).__name__ == child_class),
-                    None,
-                )
+            for segment in str(child_path).split(">"):
+                # "QComboBox:1" -> the SECOND match (0-indexed), for a panel
+                # with more than one of the same widget class -- plain
+                # "QComboBox" is index 0, the first in document order.
+                child_class, _, index_text = segment.partition(":")
+                index = int(index_text) if index_text else 0
+                matches = [w for w in target.findChildren(QWidget) if type(w).__name__ == child_class]
+                target = matches[index] if index < len(matches) else None
                 if target is None:
                     logger.error(
-                        "OPENCHEM_DRIVE: wheel -- no %s under %s", child_class, panel_name
+                        "OPENCHEM_DRIVE: wheel -- no %s (index %d, %d found) under %s",
+                        child_class, index, len(matches), panel_name,
                     )
                     return
         # A form-heavy panel (Quantum Chemistry, Docking) is wrapped in a
@@ -4720,12 +4724,23 @@ class _Driver(QObject):
             Qt.ScrollPhase.NoScrollPhase,
             False,
         )
+        def _control_value():
+            from PySide6.QtWidgets import QAbstractSpinBox, QComboBox
+
+            if isinstance(target, QComboBox):
+                return ("currentIndex", target.currentIndex())
+            if isinstance(target, QAbstractSpinBox):
+                return ("value", target.value())
+            return (None, None)
+
         scroll_bar_before = ancestor.verticalScrollBar().value() if ancestor is not None else None
+        control_label, control_before = _control_value()
         accepted = QApplication.sendEvent(receiver, event)
         scroll_bar_after = ancestor.verticalScrollBar().value() if ancestor is not None else None
+        _, control_after = _control_value()
         logger.warning(
             "OPENCHEM_DRIVE: wheel sent to %s (targeted %s, is_target=%s, hasFocus=%s) "
-            "at window-point %s -- sendEvent=%s isAccepted=%s scrollBar %s->%s",
+            "at window-point %s -- sendEvent=%s isAccepted=%s scrollBar %s->%s %s %s->%s",
             type(receiver).__name__,
             type(target).__name__,
             receiver is target,
@@ -4735,6 +4750,9 @@ class _Driver(QObject):
             event.isAccepted(),
             scroll_bar_before,
             scroll_bar_after,
+            control_label,
+            control_before,
+            control_after,
         )
 
     def _do_resize(self, step: dict[str, Any]) -> None:

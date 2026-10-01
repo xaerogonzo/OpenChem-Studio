@@ -28,6 +28,7 @@ from openchem.ui.viewer_backend import ViewerBackend
 from openchem.ui.visualization import VisualizationLayer
 from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
 from openchem.ui.widgets.nmr_spectrum_widget import NmrSpectrumWidget
+from openchem.ui.widgets.scroll_safe import make_scroll_safe
 
 # Deliberately NO "Prediction quality" column, which is what MarvinSketch
 # shows here. Marvin can rate its own confidence because it has a HOSE-code
@@ -72,8 +73,16 @@ class NmrViewWidget(QWidget):
         self._header_label = QLabel("", self)
         self._header_label.setWordWrap(True)
 
+        # `make_scroll_safe` on every combo below: confirmed live
+        # (OPENCHEM_DRIVE's wheel_trace/wheel steps) that a `QComboBox`
+        # accepts a wheel event unconditionally, focus or not -- scrolling
+        # PAST Nucleus/Frequency/Solvent on the way down this pop-out
+        # silently changed whichever one the cursor happened to be over.
+        self._scroll_safe_guards: list = []
+
         self._element_combo = QComboBox(self)
         self._element_combo.currentIndexChanged.connect(self._on_element_changed)
+        self._scroll_safe_guards.append(make_scroll_safe(self._element_combo))
 
         self._svg_widget = QSvgWidget(self)
         self._svg_widget.setMinimumSize(360, 300)
@@ -103,12 +112,14 @@ class NmrViewWidget(QWidget):
             list(SPECTROMETER_FREQUENCIES_MHZ).index(DEFAULT_FREQUENCY_MHZ)
         )
         self._frequency_combo.currentIndexChanged.connect(self._on_frequency_changed)
+        self._scroll_safe_guards.append(make_scroll_safe(self._frequency_combo))
 
         self._solvent_combo = QComboBox(self)
         self._solvent_combo.addItem("None", None)
         for solvent in RESIDUAL_SOLVENT_PEAKS:
             self._solvent_combo.addItem(solvent, solvent)
         self._solvent_combo.currentIndexChanged.connect(self._on_solvent_changed)
+        self._scroll_safe_guards.append(make_scroll_safe(self._solvent_combo))
 
         # Sticks are the exact data (zero-width, at each multiplet line);
         # smooth convolves the same lines with a Lorentzian so the plot
