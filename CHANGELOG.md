@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Quantum Chemistry panel: run history, chart UX, help, scroll fix (branch `qc-panel-run-history`)
+
+- **A calculation result now survives save/reload, and running a new calc_type no longer discards the last one.** Every ORCA job (NMR,
+  IR, Surfaces, Boltzmann-averaged runs counted as one) is recorded as its own durable `QuantumChemistryRun`, kept apart from the generic
+  per-calculator revision cache so it is never pruned when the molecule is later edited. A spin-spin coupling parse failure is now its own
+  state ("Spin-spin coupling data unavailable") rather than reading identically to "no coupling for this pair."
+- **One history picker for the whole panel**, newest first, with delete (project history only -- a reusable wavefunction in the quantum-
+  chemistry cache is untouched) and "Compare NMR Shifts..." between two runs, refusing cleanly when their atom numbering cannot be safely
+  lined up. Selecting an older run repaints every tab from its own stored geometry, wavefunction and spectra -- it never changes what
+  Properties shows as the molecule's current values.
+- **The 2D correlation plots (HSQC/HMBC/COSY) can be zoomed and panned** (scroll to zoom around the cursor, drag to pan, double-click to
+  reset), and a cross peak can be clicked to select its table row and back, through a stable (atom_a, atom_b) identity rather than nearby
+  coordinates. The 1D spectrum has a Sticks/Smooth render toggle (the smooth curve is a Lorentzian convolution whose per-signal area is
+  provably proportional to integration) plus an optional cumulative "relative integral" overlay. Each tab now shows a status glyph for the
+  active run, "Configure/Calibrate" are collapsed behind a "More" menu, and "Help for this tab" opens documentation specific to whichever
+  tab is active (new USER_GUIDE.md sections on raw/TMS/scaled shift referencing, the 2D correlation tabs, and what the Hybrid tab merges).
+- **Scrolling over any embedded 3D view (NMR, IR, Surfaces, Alignment, the Calculator Inspector, the main 3D viewer) no longer hijacks a
+  scroll meant for the panel it sits in.** A `QWebEngineView` consumes wheel input for its own camera zoom unconditionally -- confirmed with
+  a new `OPENCHEM_DRIVE` `wheel_trace` diagnostic that it never reaches a Qt ancestor at all, which no Python-side `wheelEvent` override
+  could have fixed. Fixed once, centrally, in `Mol3DViewerBackend`: a wheel over a view that does not have focus scrolls the page instead;
+  click into the view first and it zooms, the same two-step gesture every embedded map or 3D view already asks for.
+
 ### NMR: referencing, and what makes it slow (branch `nmr-referencing-and-speed`)
 
 - **A raw NMR result no longer draws as a mirror-image spectrum.** ORCA returns isotropic shielding sigma, and a chemical shift is

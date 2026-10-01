@@ -1176,4 +1176,131 @@ def test_an_unshown_viewer_is_refused_by_NAME_rather_than_answering_data_colon(q
         pytest.skip("this environment sizes the canvas without showing the widget")
     assert str(raw).startswith("error:"), raw
     assert "has not been shown" in str(raw), raw
+
+
+# --- _ScrollThroughFilter: a wheel scroll past the view must not always
+# become a camera zoom --------------------------------------------------
+
+
+class _FakeWheelEvent:
+    """Only what `_ScrollThroughFilter.eventFilter` reads off an event --
+    `type()` and `angleDelta()` -- constructed directly rather than
+    through a real `QWheelEvent`, the same approach
+    `test_nmr_correlation_plot_widget.py` uses for the same reason: the
+    filter is called directly, never through Qt's own dispatch, so the
+    event only needs to answer what it is asked."""
+
+    def __init__(self, event_type, delta_y: int = -120) -> None:
+        self._type = event_type
+        self._delta_y = delta_y
+
+    def type(self):
+        return self._type
+
+    def angleDelta(self):
+        from PySide6.QtCore import QPoint
+
+        return QPoint(0, self._delta_y)
+
+
+class _FakeView:
+    """Stands in for the `QWebEngineView` the real filter is installed
+    on -- only `hasFocus()` and `parentWidget()` are read."""
+
+    def __init__(self, parent=None, focused: bool = False) -> None:
+        self._parent = parent
+        self._focused = focused
+
+    def parentWidget(self):
+        return self._parent
+
+    def hasFocus(self) -> bool:
+        return self._focused
+
+
+class _FakeContainer:
+    """A plain widget between the view and its scroll area -- the real
+    hierarchy is view -> PopOutHost -> ... -> QScrollArea, never the view
+    parented directly to one."""
+
+    def __init__(self, parent=None) -> None:
+        self._parent = parent
+
+    def parentWidget(self):
+        return self._parent
+
+
+def test_an_unfocused_view_redirects_the_wheel_to_its_scroll_area(qapp):
+    from PySide6.QtCore import QEvent
+    from PySide6.QtWidgets import QScrollArea
+
+    from openchem.ui.widgets.mol3d_viewer_backend import _ScrollThroughFilter
+
+    scroll_area = QScrollArea()
+    scroll_area.verticalScrollBar().setRange(0, 1000)
+    scroll_area.verticalScrollBar().setValue(500)
+    container = _FakeContainer(parent=scroll_area)
+    view = _FakeView(parent=container, focused=False)
+
+    consumed = _ScrollThroughFilter().eventFilter(view, _FakeWheelEvent(QEvent.Type.Wheel, delta_y=-120))
+
+    assert consumed is True, "an unfocused view must not let Chromium see the wheel event"
+    assert scroll_area.verticalScrollBar().value() == 620, "scrolling down must move the bar forward"
+
+
+def test_a_focused_view_lets_the_wheel_through_to_zoom(qapp):
+    from PySide6.QtCore import QEvent
+    from PySide6.QtWidgets import QScrollArea
+
+    from openchem.ui.widgets.mol3d_viewer_backend import _ScrollThroughFilter
+
+    scroll_area = QScrollArea()
+    scroll_area.verticalScrollBar().setRange(0, 1000)
+    scroll_area.verticalScrollBar().setValue(500)
+    container = _FakeContainer(parent=scroll_area)
+    view = _FakeView(parent=container, focused=True)
+
+    consumed = _ScrollThroughFilter().eventFilter(view, _FakeWheelEvent(QEvent.Type.Wheel))
+
+    assert consumed is False, "a view the user has clicked into must zoom, not scroll the page"
+    assert scroll_area.verticalScrollBar().value() == 500, "the page must not also move"
+
+
+def test_a_view_with_no_scroll_area_ancestor_lets_the_wheel_through(qapp):
+    """A popped-out 3D view (its own top-level window, see `PopOutHost`)
+    has nothing to scroll past -- the wheel must still zoom it."""
+    from PySide6.QtCore import QEvent
+
+    from openchem.ui.widgets.mol3d_viewer_backend import _ScrollThroughFilter
+
+    view = _FakeView(parent=_FakeContainer(parent=None), focused=False)
+
+    consumed = _ScrollThroughFilter().eventFilter(view, _FakeWheelEvent(QEvent.Type.Wheel))
+
+    assert consumed is False
+
+
+def test_non_wheel_events_are_left_alone(qapp):
+    from PySide6.QtCore import QEvent
+
+    from openchem.ui.widgets.mol3d_viewer_backend import _ScrollThroughFilter
+
+    view = _FakeView(parent=None, focused=False)
+
+    consumed = _ScrollThroughFilter().eventFilter(view, _FakeWheelEvent(QEvent.Type.MouseMove))
+
+    assert consumed is False
+
+
+def test_the_backend_builds_a_filter_parented_to_its_own_view(qapp):
+    """`QWebEngineView` keeps no public list of its filters to read back,
+    so the one thing checkable from outside is that the backend actually
+    built one and gave it the view's lifetime -- the pure logic tests
+    above are what prove its behaviour."""
+    from openchem.ui.widgets.mol3d_viewer_backend import _ScrollThroughFilter
+
+    backend = Mol3DViewerBackend()
+
+    assert isinstance(backend._scroll_through_filter, _ScrollThroughFilter)
+    assert backend._scroll_through_filter.parent() is backend._view
     assert _grab_png(qapp, backend) is None

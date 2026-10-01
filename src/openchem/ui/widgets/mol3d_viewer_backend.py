@@ -7,10 +7,11 @@ import logging
 from pathlib import Path
 from typing import Callable
 
-from PySide6.QtCore import QObject, QUrl, Slot
+from PySide6.QtCore import QEvent, QObject, QUrl, Slot
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineProfile
 from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtWidgets import QScrollArea
 
 from openchem.domain.report import (
     ArrowAnnotation,
@@ -118,6 +119,44 @@ class _Bridge(QObject):
             self._on_grid_failed(message)
 
 
+class _ScrollThroughFilter(QObject):
+    """Lets a wheel scroll past this 3D view reach the panel it sits in,
+    instead of always zooming the camera.
+
+    **A `QWebEngineView` never leaves a wheel event for a Qt ancestor to
+    handle.** It is Chromium's own canvas underneath, and Chromium
+    consumes wheel input for its page/camera unconditionally -- confirmed
+    live with `OPENCHEM_DRIVE`'s `wheel_trace` step: nothing downstream of
+    the view ever saw one. That is correct for a page that scrolls, and
+    wrong for a 3D viewer embedded partway down a form the user is trying
+    to scroll PAST -- which is most wheel events this view ever receives.
+    `NmrCorrelationPlotWidget`'s zoom (a plain `QWidget`) does not have
+    this problem: an ignored `QWheelEvent` there propagates to its parent
+    on its own, which is exactly the Qt behaviour this filter has to
+    reproduce by hand for a view Chromium owns.
+
+    **Fixed by requiring the gesture a real zoom already needs anyway**:
+    click the view to focus it, then scroll to zoom -- the same two-step
+    every map or embedded 3D view on the web already asks for, for the
+    same reason. Unfocused, a wheel event is redirected to the nearest
+    ancestor `QScrollArea` and consumed here, before Chromium ever sees
+    it; with no such ancestor (a detached pop-out window, say, which has
+    nothing to scroll past), it is let through so the view still zooms.
+    """
+
+    def eventFilter(self, watched, event) -> bool:  # noqa: N802 - Qt override naming
+        if event.type() != QEvent.Type.Wheel or watched.hasFocus():
+            return False
+        ancestor = watched.parentWidget()
+        while ancestor is not None and not isinstance(ancestor, QScrollArea):
+            ancestor = ancestor.parentWidget()
+        if ancestor is None:
+            return False
+        bar = ancestor.verticalScrollBar()
+        bar.setValue(bar.value() - event.angleDelta().y())
+        return True
+
+
 class _LoggingPage(QWebEnginePage):
     """Forwards the page's JS console to Python logging."""
 
@@ -140,6 +179,11 @@ class Mol3DViewerBackend(ViewerBackend):
         if not _VIEWER_HTML.exists():
             raise FileNotFoundError(f"3D viewer page not found at {_VIEWER_HTML}")
         self._view = QWebEngineView(parent)
+        # See `_ScrollThroughFilter`: without this, a wheel scroll that
+        # merely passes over this view on its way down a form is eaten by
+        # Chromium for a camera zoom nobody asked for.
+        self._scroll_through_filter = _ScrollThroughFilter(self._view)
+        self._view.installEventFilter(self._scroll_through_filter)
         # **Do not cache the viewer page.** It is loaded from file://
         # and Chromium will happily serve a stale copy, so an edit to
         # viewer.html can appear to take effect on one run and not the
@@ -219,6 +263,18 @@ class Mol3DViewerBackend(ViewerBackend):
             logger.error("Failed to load 3D viewer page from %s", _VIEWER_HTML)
             return
         self._page_ready = True
+        # `QWebEngineView.installEventFilter` alone does nothing for wheel
+        # input: Chromium's actual input-receiving widget is an internal
+        # child Qt creates once the page has a renderer, never the
+        # `QWebEngineView` instance itself -- confirmed live with
+        # `OPENCHEM_DRIVE`'s `wheel_trace` step, where a wheel sent at the
+        # view landed on a `QWidget` one level below it in the tree and
+        # the filter installed on the view never ran. `focusProxy()` is
+        # that widget, and it does not exist before the page has loaded,
+        # which is why this is done here rather than in `__init__`.
+        proxy = self._view.focusProxy()
+        if proxy is not None:
+            proxy.installEventFilter(self._scroll_through_filter)
         # Before any payload, so the structure is drawn in the style the
         # user already chose rather than being restyled a frame later.
         if self._pending_style is not None:
