@@ -57,6 +57,56 @@ def test_chemical_shift_from_reference_applies_delta_formula():
     assert 2 not in calibrated.values
 
 
+def test_chemical_shift_from_reference_carries_real_coupling_data_through():
+    """BUG, confirmed live on a real 'NMR + Spin-Spin Coupling' run
+    (isopropanol, HF-3c): TMS referencing built a brand new
+    `NMRSpectrumResult` by hand and silently dropped `couplings`/
+    `coupling_error`, so a referenced spectrum ALWAYS read as the "not
+    requested" state of the four states `NMRSpectrumResult`'s own
+    docstring documents -- even when the raw spectrum genuinely carried
+    real J values. The panel's multiplet rendering then had nothing to
+    draw, which read as "coupling wasn't computed" when it actually was."""
+    raw = NMRSpectrumResult(
+        spectrum_type="nmr_raw_shielding",
+        name="raw",
+        units="ppm",
+        method="orca",
+        molecule_uuid="mol-1",
+        values={0: 100.0, 1: 25.0},
+        elements={0: "C", 1: "H"},
+        couplings={(0, 1): 6.8},
+    )
+
+    calibrated = chemical_shift_from_reference(raw, {"C": 190.0, "H": 30.0})
+
+    assert calibrated is not None
+    assert calibrated.couplings == {(0, 1): 6.8}
+    assert calibrated.coupling_error is None
+
+
+def test_chemical_shift_from_reference_carries_a_coupling_parse_failure_through_too():
+    """The other half of the same bug: a referenced spectrum must still
+    say WHY coupling is missing when the raw spectrum's coupling matrix
+    failed to parse, rather than silently reading as 'never requested'."""
+    raw = NMRSpectrumResult(
+        spectrum_type="nmr_raw_shielding",
+        name="raw",
+        units="ppm",
+        method="orca",
+        molecule_uuid="mol-1",
+        values={0: 100.0},
+        elements={0: "C"},
+        couplings=None,
+        coupling_error="could not parse the SPIN-SPIN COUPLING table",
+    )
+
+    calibrated = chemical_shift_from_reference(raw, {"C": 190.0})
+
+    assert calibrated is not None
+    assert calibrated.couplings is None
+    assert calibrated.coupling_error == "could not parse the SPIN-SPIN COUPLING table"
+
+
 def test_chemical_shift_from_reference_returns_none_when_nothing_is_covered():
     raw = NMRSpectrumResult(
         spectrum_type="nmr_raw_shielding",

@@ -92,4 +92,22 @@ def chemical_shift_from_reference(
         values=covered_values,
         elements=covered_elements,
         provenance=raw.provenance,
+        # BUG, confirmed live on a real "NMR + Spin-Spin Coupling" run
+        # (isopropanol, HF-3c): without these two, a referenced result
+        # ALWAYS reads as the "not requested" state of the four
+        # couplings/coupling_error carry (`NMRSpectrumResult`'s own
+        # docstring), even when the raw spectrum this was built from
+        # carried real J values -- TMS referencing silently discarded
+        # them before the panel ever saw the result. A molecule with no
+        # real coupling data is unaffected either way.
+        #
+        # `getattr`, not `raw.couplings` -- `_couplings_for` next door
+        # has the same guard for the same reason: this function is typed
+        # against `NMRSpectrumResult`, but at least one real caller in
+        # this codebase's own test suite passes a plain `SpectrumResult`
+        # (the base class, with neither field at all) through this exact
+        # path, and `chemical_shift_from_reference` must not be the place
+        # that turns that into a crash.
+        couplings=getattr(raw, "couplings", None),
+        coupling_error=getattr(raw, "coupling_error", None),
     )

@@ -216,22 +216,42 @@ def _multiplicity_for(mol: Chem.Mol, group: list[int], group_of_atom: dict[int, 
     return _MULTIPLICITY_BY_LINE_COUNT.get(len(partners) + 1, _COMPLEX_MULTIPLET)
 
 
-def _couplings_for(spectrum: SpectrumResult, group: list[int]) -> list[float]:
+def _couplings_for(spectrum: SpectrumResult, group: list[int], partners: set[int]) -> list[float]:
     """Real J values only -- the couplings ORCA's "NMR + Spin-Spin Coupling"
     calc type produced. Empty for every other source rather than estimated
     from typical-value tables.
 
+    **Scoped to `partners`, never every value ORCA's full matrix reports
+    touching a group member.** ORCA computes a coupling constant between
+    essentially every pair of magnetically active nuclei it's asked for --
+    confirmed live on isopropanol: its 6H methyl doublet's raw matrix
+    entries included ~180 Hz one-bond C-H couplings (a completely
+    different kind of information, irrelevant to a 1H multiplet pattern)
+    and couplings to atoms several bonds away, alongside the real H-H
+    values the "d" in the table actually describes. `partners` is
+    `build_nmr_signals`'s own `_coupling_partners(mol, group[0], ...)` --
+    the SAME geminal/vicinal set the structural multiplicity prediction
+    already uses -- so a signal's reported J values describe exactly the
+    splitting its own multiplicity letter claims, not a grab-bag. Empty
+    `partners` (every element but H) returns nothing, by construction.
+
     `couplings` lives on the `NMRSpectrumResult` subclass, not the
     `SpectrumResult` base this module is written against (a future IR/MS
     producer has no use for it), hence `getattr` -- the same access this
-    field already gets in `QuantumChemistryPanel._update_correlation_tabs`.
+    field already gets in `QuantumChemistryPanel._update_correlation_tabs`
+    (which reads it for the 2D correlation cross-peaks instead, a
+    different and legitimate use: HSQC/HMBC/COSY want every pairwise
+    coupling, not one signal's own splitting partners).
     """
+    if not partners:
+        return []
     couplings = getattr(spectrum, "couplings", None) or {}
     own_group = set(group)
     values = {
         round(hz, 2)
         for (atom_a, atom_b), hz in couplings.items()
         if (atom_a in own_group) != (atom_b in own_group)
+        and (atom_a in partners or atom_b in partners)
     }
     return sorted(values, reverse=True)
 
@@ -278,26 +298,42 @@ def build_nmr_signals(
     # distinct coupling partner (geminal coupling is real and observed).
     group_of_atom = {index: number for number, group in enumerate(groups) for index in group}
 
-    signals = [
-        NMRSignal(
-            shift=sum(spectrum.values[index] for index in group) / len(group),
-            atom_indices=list(group),
-            integration=len(group),
-            # Multiplicity is a 1H concept here: routine 13C (and other
-            # heteronuclear) spectra are broadband proton-decoupled, so every
-            # line is a singlet. Stated explicitly rather than left to fall
-            # out of _multiplicity_for finding no partners, which it would
-            # for the wrong reason (a heavy atom has no single "parent").
-            multiplicity=(
-                _multiplicity_for(mol, group, group_of_atom)
-                if element == "H"
-                else _MULTIPLICITY_BY_LINE_COUNT[1]
-            ),
-            coupling_hz=_couplings_for(spectrum, group),
-            element=element,
+    signals = []
+    for group in groups:
+        # The SAME partner set for both multiplicity and real J, computed
+        # once: `_coupling_partners` is what `_multiplicity_for` already
+        # uses for its n+1 structural prediction (geminal + vicinal
+        # protons only, for ONE representative atom of the group), and
+        # `coupling_hz` below is scoped to exactly those atoms too --
+        # never ORCA's FULL coupling matrix for the group, which also
+        # reports one-bond heteronuclear couplings (confirmed live:
+        # isopropanol's 6H methyl doublet picked up ~180 Hz C-H values
+        # alongside the real H-H ones before this existed) and couplings
+        # to atoms several bonds away that the structural prediction never
+        # counted as a splitting partner either. Empty for every element
+        # but H, matching the heteronuclear-decoupled-singlet convention
+        # the multiplicity branch below already states explicitly.
+        partners = set(_coupling_partners(mol, group[0], set(group))) if element == "H" else set()
+        signals.append(
+            NMRSignal(
+                shift=sum(spectrum.values[index] for index in group) / len(group),
+                atom_indices=list(group),
+                integration=len(group),
+                # Multiplicity is a 1H concept here: routine 13C (and other
+                # heteronuclear) spectra are broadband proton-decoupled, so
+                # every line is a singlet. Stated explicitly rather than
+                # left to fall out of _multiplicity_for finding no
+                # partners, which it would for the wrong reason (a heavy
+                # atom has no single "parent").
+                multiplicity=(
+                    _multiplicity_for(mol, group, group_of_atom)
+                    if element == "H"
+                    else _MULTIPLICITY_BY_LINE_COUNT[1]
+                ),
+                coupling_hz=_couplings_for(spectrum, group, partners),
+                element=element,
+            )
         )
-        for group in groups
-    ]
     return sorted(signals, key=lambda signal: signal.shift, reverse=True)
 
 

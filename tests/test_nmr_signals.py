@@ -247,6 +247,133 @@ def test_a_coupling_inside_one_signal_is_not_reported():
     assert build_nmr_signals(mol, spectrum, "H")[0].coupling_hz == []
 
 
+def test_coupling_to_a_different_element_is_excluded_even_though_orca_reports_it():
+    """BUG, confirmed live on a real isopropanol "NMR + Spin-Spin Coupling"
+    run: ORCA's full matrix reports a coupling constant between every pair
+    of magnetically active nuclei it's asked for, including the one-bond
+    H-C coupling under a methyl group's own carbon (measured ~180-196 Hz
+    on that run) -- a real number, but not what a 1H multiplet's splitting
+    pattern is about, and nothing this module's `_multiplicity_for` ever
+    counts as a partner. Before the fix, the 6H methyl doublet's
+    `coupling_hz` mixed those ~180 Hz values in alongside the real H-H
+    one, which is what "doesn't show individual J coupling patterns...
+    everything seems to be as if it's a singlet pattern" traced back to:
+    a stick plot spacing lines by whichever value sorted first could put
+    the pair at a spacing ten times too wide to read as the real
+    multiplet."""
+    mol = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    methyl = [a.GetIdx() for a in mol.GetAtoms() if a.GetAtomicNum() == 1][:3]
+    methylene = [a.GetIdx() for a in mol.GetAtoms() if a.GetAtomicNum() == 1][3:5]
+    methyl_carbon = 0  # "CCO": C0-C1-O2, AddHs appends H's in that order
+    spectrum = NMRSpectrumResult(
+        spectrum_type="nmr_coupling",
+        name="NMR",
+        units="ppm",
+        method="orca",
+        molecule_uuid="mol-1",
+        values={index: 1.2 for index in methyl} | {index: 3.6 for index in methylene},
+        elements={index: "H" for index in methyl + methylene},
+        couplings={
+            (methyl[0], methylene[0]): 7.05,  # the real, vicinal H-H coupling
+            (methyl[0], methyl_carbon): 185.3,  # one-bond C-H -- not a 1H partner
+        },
+    )
+
+    signals = build_nmr_signals(mol, spectrum, "H")
+    methyl_signal = next(s for s in signals if s.integration == 3)
+
+    assert methyl_signal.coupling_hz == [7.05]
+
+
+def test_coupling_to_an_atom_outside_the_real_partner_walk_is_excluded():
+    """A coupling value ORCA reports for a pair that are real atoms, real
+    neighbours of each other in the graph sense, but outside the geminal/
+    vicinal walk `_coupling_partners` actually does (parent heavy atom
+    plus ITS heavy neighbours only) -- ethanol's OH proton is 4 bonds from
+    a methyl proton (H-C-C-O-H), which `_multiplicity_for` never counted
+    as a splitting partner, so a J value between them must not appear in
+    the methyl signal's `coupling_hz` either, however ORCA's own matrix
+    reports it."""
+    mol = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    hydrogens = [a.GetIdx() for a in mol.GetAtoms() if a.GetAtomicNum() == 1]
+    methyl = hydrogens[:3]
+    methylene = hydrogens[3:5]
+    oh_hydrogen = next(n.GetIdx() for n in mol.GetAtomWithIdx(2).GetNeighbors() if n.GetAtomicNum() == 1)
+    spectrum = NMRSpectrumResult(
+        spectrum_type="nmr_coupling",
+        name="NMR",
+        units="ppm",
+        method="orca",
+        molecule_uuid="mol-1",
+        values={index: 1.2 for index in methyl} | {index: 3.6 for index in methylene} | {oh_hydrogen: 2.5},
+        elements={index: "H" for index in methyl + methylene + [oh_hydrogen]},
+        couplings={
+            (methyl[0], methylene[0]): 7.05,
+            (methyl[0], oh_hydrogen): 0.3,  # real pair, not a real partner
+        },
+    )
+
+    signals = build_nmr_signals(mol, spectrum, "H")
+    methyl_signal = next(s for s in signals if s.integration == 3)
+
+    assert methyl_signal.coupling_hz == [7.05]
+
+
+def test_a_coupling_to_a_non_partner_is_excluded_even_when_the_signal_has_real_partners():
+    """The structural prediction and the real-J extraction must describe
+    the SAME partner set. Ethanol's OH proton genuinely has real
+    geminal/vicinal partners (`_coupling_partners` walks real connectivity
+    regardless of which atoms this spectrum has values for: O's heavy
+    neighbour C1 bears the methylene protons, 3 bonds from OH, so OH is a
+    real triplet here) -- but the one coupling value THIS spectrum
+    reports for it is to the METHYL protons instead, which are not among
+    those real partners (4 bonds away, H-C-C-O-H), and must not appear in
+    `coupling_hz` just because it is a present key in `couplings`."""
+    mol = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    hydrogens = [a.GetIdx() for a in mol.GetAtoms() if a.GetAtomicNum() == 1]
+    methyl = hydrogens[:3]
+    oh_hydrogen = next(n.GetIdx() for n in mol.GetAtomWithIdx(2).GetNeighbors() if n.GetAtomicNum() == 1)
+    spectrum = NMRSpectrumResult(
+        spectrum_type="nmr_coupling",
+        name="NMR",
+        units="ppm",
+        method="orca",
+        molecule_uuid="mol-1",
+        values={index: 1.2 for index in methyl} | {oh_hydrogen: 2.5},
+        elements={index: "H" for index in methyl + [oh_hydrogen]},
+        couplings={(methyl[0], oh_hydrogen): 0.3},
+    )
+
+    signals = build_nmr_signals(mol, spectrum, "H")
+    oh_signal = next(s for s in signals if s.integration == 1)
+
+    assert oh_signal.multiplicity == "t"  # real connectivity: 2 methylene partners
+    assert oh_signal.coupling_hz == []  # but no real J was ever reported for THAT pair
+
+
+def test_13c_never_reports_coupling_even_when_orca_s_matrix_has_it():
+    """13C here is always broadband proton-decoupled (every line a
+    singlet, stated explicitly in `build_nmr_signals`) -- a one-bond C-H
+    coupling genuinely in ORCA's matrix must not leak into a carbon
+    signal's `coupling_hz` just because the pair exists."""
+    mol = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    carbon = 0
+    methyl_h = [a.GetIdx() for a in mol.GetAtoms() if a.GetAtomicNum() == 1][0]
+    spectrum = NMRSpectrumResult(
+        spectrum_type="nmr_coupling",
+        name="NMR",
+        units="ppm",
+        method="orca",
+        molecule_uuid="mol-1",
+        values={carbon: 18.0, methyl_h: 1.2},
+        elements={carbon: "C", methyl_h: "H"},
+        couplings={(carbon, methyl_h): 125.0},
+    )
+
+    carbons = build_nmr_signals(mol, spectrum, "C")
+    assert carbons[0].coupling_hz == []
+
+
 # --- index alignment and depiction mapping ---
 
 
