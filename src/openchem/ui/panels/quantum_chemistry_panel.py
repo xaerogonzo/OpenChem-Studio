@@ -981,12 +981,21 @@ class QuantumChemistryPanel(QWidget):
             tab = QWidget(self._correlation_tabs)
             tab_layout = QVBoxLayout(tab)
             table = QTableWidget(0, len(_CORRELATION_COLUMNS), tab)
+            # Read back via `sender()` in the two handlers below, instead
+            # of a lambda closing over `correlation_type` (and, with it,
+            # `self` -- a lambda connected to a child widget's signal is
+            # not disconnected when the panel itself would otherwise be
+            # collected, unlike a bound method, which Qt tracks and
+            # disconnects on its own). `test_qt_object_disposal.py`'s
+            # self-capturing-lambda guard is what caught this.
+            table.setProperty("correlation_type", correlation_type)
             table.setHorizontalHeaderLabels(_CORRELATION_COLUMNS)
             _document_header(table, _CORRELATION_COLUMN_HELP)
             table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
             table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
             table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
             plot = NmrCorrelationPlotWidget(parent=tab)
+            plot.setProperty("correlation_type", correlation_type)
             # One checkbox per tab rather than one for the panel: HSQC is
             # sparse enough to read as dots while HMBC on the same molecule
             # is crowded enough to want contours, so the useful setting
@@ -1030,14 +1039,8 @@ class QuantumChemistryPanel(QWidget):
             # for the 1D spectrum: a table row selects its peak, a peak
             # click selects its row -- both through the (atom_a, atom_b)
             # pair, never coordinates or row position.
-            table.itemSelectionChanged.connect(
-                lambda correlation_type=correlation_type: self._on_correlation_row_selected(correlation_type)
-            )
-            plot.peak_selected.connect(
-                lambda atom_a, atom_b, correlation_type=correlation_type: self._on_correlation_peak_selected(
-                    correlation_type, atom_a, atom_b
-                )
-            )
+            table.itemSelectionChanged.connect(self._on_correlation_row_selected)
+            plot.peak_selected.connect(self._on_correlation_peak_selected)
             # Painted into the plot rather than added as a placeholder
             # widget -- see `ui/widgets/empty_state.py` for the heap
             # corruption that a placeholder in a content-bearing tab
@@ -2246,11 +2249,13 @@ class QuantumChemistryPanel(QWidget):
                 peaks.append(Peak(x=shift_a, y=shift_b, atom_a=cross_peak.atom_a, atom_b=cross_peak.atom_b))
         self._correlation_plots[correlation_type].set_peaks(peaks, x_label=x_label, y_label=y_label)
 
-    def _on_correlation_peak_selected(self, correlation_type: str, atom_a: int, atom_b: int) -> None:
+    def _on_correlation_peak_selected(self, atom_a: int, atom_b: int) -> None:
         """A plot click -> the matching table row, by (atom_a, atom_b) --
         never by nearby coordinates, which two legitimately co-located
         cross peaks (a symmetric molecule) would resolve to the wrong
-        row for."""
+        row for. `correlation_type` comes off the plot that emitted this,
+        not a captured closure -- see where this is connected."""
+        correlation_type = self.sender().property("correlation_type")
         table = self._correlation_tables[correlation_type]
         table.blockSignals(True)
         for row in range(table.rowCount()):
@@ -2262,9 +2267,12 @@ class QuantumChemistryPanel(QWidget):
                 break
         table.blockSignals(False)
 
-    def _on_correlation_row_selected(self, correlation_type: str) -> None:
-        """The inbound half: selecting a table row highlights its peak."""
-        table = self._correlation_tables[correlation_type]
+    def _on_correlation_row_selected(self) -> None:
+        """The inbound half: selecting a table row highlights its peak.
+        `correlation_type` comes off the table that emitted this (see
+        where this is connected), not a captured closure."""
+        table = self.sender()
+        correlation_type = table.property("correlation_type")
         rows = {index.row() for index in table.selectedIndexes()}
         if len(rows) != 1:
             return

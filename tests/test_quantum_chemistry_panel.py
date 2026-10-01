@@ -427,10 +427,13 @@ def test_spectrum_computed_populates_correlation_tabs(qapp):
     assert plot._highlighted_pair == (atom_a, atom_b)
 
     # ...and a peak click drives the table back, landing on the SAME row
-    # regardless of which one was selected a moment ago.
+    # regardless of which one was selected a moment ago. Emitted for real
+    # (not called directly) because the handler reads `correlation_type`
+    # off `self.sender()`, which only resolves during a real signal
+    # dispatch.
     other_row = 0 if atom_a != int(table.item(0, 0).text()) else 1
-    panel._on_correlation_peak_selected(
-        "hsqc", int(table.item(other_row, 0).text()), int(table.item(other_row, 1).text())
+    plot.peak_selected.emit(
+        int(table.item(other_row, 0).text()), int(table.item(other_row, 1).text())
     )
     assert {index.row() for index in table.selectedIndexes()} == {other_row}
 

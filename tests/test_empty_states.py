@@ -155,7 +155,9 @@ def test_the_log_is_the_last_tab_not_the_biggest_widget(quantum_panel):
     claim as much as a layout one.
     """
     tabs = quantum_panel.findChild(QTabWidget)
-    assert tabs.tabText(tabs.count() - 1) == "Log"
+    # "ORCA Log," not "Log" -- renamed so it does not read as the
+    # application's own bottom Console.
+    assert tabs.tabText(tabs.count() - 1) == "ORCA Log"
     assert tabs.widget(tabs.count() - 1) is quantum_panel._output_log
 
     layout = quantum_panel.layout()

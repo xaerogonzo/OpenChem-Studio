@@ -24,6 +24,7 @@ _CLICK_MAX_DRIFT = 4.0
 #: select it -- independent of `_CONTOUR_COLOUR`'s drawn dot radius, which
 #: is deliberately tiny so it reads as the exact datum, not a hit target.
 _CLICK_HIT_RADIUS = 10.0
+#: The selected peak -- a clicked peak, or the one a table row selected.
 _HIGHLIGHT_COLOUR = QColor(214, 100, 20)
 
 

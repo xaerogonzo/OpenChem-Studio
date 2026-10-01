@@ -12,20 +12,27 @@ from openchem.chem.nmr_signals import (
     multiplet_lines,
 )
 
+#: The axis line and its tick labels.
 _AXIS_COLOR = QColor(120, 120, 120)
+#: An ordinary, unselected signal -- sticks or the smooth curve alike.
 _PEAK_COLOR = QColor(30, 100, 200)
+#: The signal a table row, a 3D atom click, or a direct click selected.
 _HIGHLIGHT_COLOR = QColor(214, 100, 20)
+#: The deuterated solvent's own residual peak, drawn dashed so it is never
+#: mistaken for one of the compound's own signals.
 _SOLVENT_COLOR = QColor(150, 150, 150)
+#: The cumulative "relative integral" trace -- a third colour, distinct
+#: from both the solvent dash and the signal itself.
 _INTEGRAL_COLOR = QColor(60, 150, 90)
 #: Points sampled across the plot for the smooth curve and the integral
 #: trace -- fine enough that a Lorentzian at the default HWHM (0.012 ppm)
 #: over a typical 10 ppm span still has several samples under each line.
 _CURVE_SAMPLE_COUNT = 400
-# Half-width of a peak's clickable region, in pixels. Peaks are drawn as
-# 1px vertical lines, which is far too thin to hit with a mouse -- and two
-# diastereotopic protons can share a shift exactly (the predictor splits the
-# signal without distinguishing the values), so the regions do sometimes
-# overlap; the first match wins, deterministically ordered by shift.
+#: Half-width of a peak's clickable region, in pixels. Peaks are drawn as
+#: 1px vertical lines, which is far too thin to hit with a mouse -- and two
+#: diastereotopic protons can share a shift exactly (the predictor splits the
+#: signal without distinguishing the values), so the regions do sometimes
+#: overlap; the first match wins, deterministically ordered by shift.
 _HIT_HALF_WIDTH = 6.0
 
 
