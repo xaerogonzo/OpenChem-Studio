@@ -13,6 +13,7 @@ from openchem.ui.widgets.plot_axis import (
     HIT_HALF_WIDTH,
     MARGIN,
     hit_regions,
+    nice_ticks,
     padded_range,
     plot_rect,
     to_widget_x,
@@ -113,6 +114,44 @@ def test_a_hit_region_spans_the_full_plot_height_around_its_stick():
     assert region.height() == rect.height()
     centre = to_widget_x(2.0, rect, (0.0, 10.0), descending=False)
     assert region.center().x() == pytest.approx(centre)
+
+
+def test_a_wide_span_picks_whole_number_steps():
+    """10 ppm / 5 -> a raw step of 2, which IS already a nice number, so
+    no rounding up is needed."""
+    assert nice_ticks(0.0, 10.0) == pytest.approx([0.0, 2.0, 4.0, 6.0, 8.0, 10.0])
+
+
+def test_a_raw_step_that_is_not_nice_rounds_up_to_the_next_one():
+    """1.0 / 5 -> a raw step of 0.2, which IS a nice number (2 x 10^-1) --
+    the case that exercises rounding UP rather than landing on a
+    candidate exactly, is one target count down."""
+    ticks = nice_ticks(0.0, 1.0, target_count=3)
+    # raw step 0.333... rounds up to the next candidate, 0.5.
+    assert ticks == pytest.approx([0.0, 0.5, 1.0])
+
+
+def test_a_degenerate_range_returns_only_the_low_value():
+    assert nice_ticks(5.0, 5.0) == [5.0]
+    assert nice_ticks(5.0, 3.0) == [5.0]
+
+
+def test_ticks_stay_within_the_requested_range():
+    """`first = ceil(low/step)*step` must never undershoot `low`, and the
+    loop's float tolerance must never run past `high` by more than a
+    rounding error -- both load-bearing for a deeply zoomed view, where a
+    tick drawn outside the plot's own range would be meaningless."""
+    low, high = 1.203, 1.347
+    ticks = nice_ticks(low, high)
+    assert len(ticks) >= 2
+    for value in ticks:
+        assert low - 1e-6 <= value <= high + 1e-6
+
+
+def test_steps_are_evenly_spaced():
+    ticks = nice_ticks(0.0, 10.0)
+    steps = [b - a for a, b in zip(ticks, ticks[1:])]
+    assert steps == pytest.approx([steps[0]] * len(steps))
 
 
 def test_regions_come_back_in_the_order_they_were_asked_for():

@@ -4621,6 +4621,69 @@ class _Driver(QObject):
             [tabs.tabText(i) for i in range(tabs.count())],
         )
 
+    def _do_qc_coupling_report(self, step: dict[str, Any]) -> None:
+        """What the ACTIVE run's spectrum actually carries for coupling,
+        read directly off the data rather than inferred from pixels --
+        built for the isopropanol diagnosis (NMR/IR viewer quality pass,
+        Phase B "Step Zero"): is `coupling_hz` genuinely empty (a parser/
+        data gap) or non-empty but unrendered (a paint-path bug)?
+
+        `{"do": "qc_coupling_report", "tag": "isopropanol"}`
+        """
+        from openchem.chem.nmr_signals import align_mol_to_spectrum, build_nmr_signals
+
+        panel = getattr(self._window, "_quantum_chemistry_panel", None)
+        if panel is None:
+            logger.error("OPENCHEM_DRIVE: qc_coupling_report -- no Quantum Chemistry panel")
+            return
+        # `_active_run` is the HISTORY-selected run, not a live in-session
+        # one -- `_refresh_active_run`'s own docstring: "the panel's only
+        # route to 'what was already calculated here' OUTSIDE a live job".
+        # A job that just finished THIS session never gets assigned to it
+        # automatically, so this forces exactly the lookup a molecule
+        # reselect or a project reload would do, which is also real
+        # coverage: the same run surfacing through ordinary history
+        # mechanics, not just the live in-session display path.
+        panel._refresh_active_run()
+        run = panel._active_run
+        if run is None:
+            logger.error("OPENCHEM_DRIVE: qc_coupling_report -- no active run even after refresh")
+            return
+        tag = step.get("tag", "")
+        logger.warning(
+            "OPENCHEM_DRIVE: qc_coupling_report[%s] run calc_type=%r method_basis=%r status=%s",
+            tag, run.calc_type, run.method_basis, run.status,
+        )
+        spectrum = run.results.get("spectrum")
+        if spectrum is None:
+            logger.error("OPENCHEM_DRIVE: qc_coupling_report[%s] -- no spectrum on the active run", tag)
+            return
+        couplings = getattr(spectrum, "couplings", None)
+        coupling_error = getattr(spectrum, "coupling_error", None)
+        logger.warning(
+            "OPENCHEM_DRIVE: qc_coupling_report[%s] spectrum_type=%r couplings=%s (%d pair(s)) coupling_error=%r",
+            tag,
+            spectrum.spectrum_type,
+            "None" if couplings is None else "{...}",
+            len(couplings or {}),
+            coupling_error,
+        )
+        if couplings:
+            for (atom_a, atom_b), hz in sorted(couplings.items()):
+                logger.warning("OPENCHEM_DRIVE: qc_coupling_report[%s]   J(%d,%d) = %.2f Hz", tag, atom_a, atom_b, hz)
+        if panel._display_mol is None:
+            logger.error("OPENCHEM_DRIVE: qc_coupling_report[%s] -- no display_mol to build signals from", tag)
+            return
+        mol = align_mol_to_spectrum(panel._display_mol, spectrum)
+        for element in sorted({spectrum.elements.get(i, "") for i in spectrum.values} - {""}):
+            for signal in build_nmr_signals(mol, spectrum, element):
+                logger.warning(
+                    "OPENCHEM_DRIVE: qc_coupling_report[%s]   %s shift=%.3f atoms=%s integration=%d "
+                    "multiplicity=%r coupling_hz=%s",
+                    tag, element, signal.shift, signal.atom_indices, signal.integration,
+                    signal.multiplicity, signal.coupling_hz,
+                )
+
     def _do_wheel_trace(self, step: dict[str, Any]) -> None:
         """`{"do": "wheel_trace", "on": true}` -- install or remove
         `_WheelTracer` on the whole application. See its own docstring for
@@ -4668,14 +4731,18 @@ class _Driver(QObject):
         target = root
         child_path = step.get("child")
         if child_path:
-            for child_class in str(child_path).split(">"):
-                target = next(
-                    (w for w in target.findChildren(QWidget) if type(w).__name__ == child_class),
-                    None,
-                )
+            for segment in str(child_path).split(">"):
+                # "QComboBox:1" -> the SECOND match (0-indexed), for a panel
+                # with more than one of the same widget class -- plain
+                # "QComboBox" is index 0, the first in document order.
+                child_class, _, index_text = segment.partition(":")
+                index = int(index_text) if index_text else 0
+                matches = [w for w in target.findChildren(QWidget) if type(w).__name__ == child_class]
+                target = matches[index] if index < len(matches) else None
                 if target is None:
                     logger.error(
-                        "OPENCHEM_DRIVE: wheel -- no %s under %s", child_class, panel_name
+                        "OPENCHEM_DRIVE: wheel -- no %s (index %d, %d found) under %s",
+                        child_class, index, len(matches), panel_name,
                     )
                     return
         # A form-heavy panel (Quantum Chemistry, Docking) is wrapped in a
@@ -4720,12 +4787,23 @@ class _Driver(QObject):
             Qt.ScrollPhase.NoScrollPhase,
             False,
         )
+        def _control_value():
+            from PySide6.QtWidgets import QAbstractSpinBox, QComboBox
+
+            if isinstance(target, QComboBox):
+                return ("currentIndex", target.currentIndex())
+            if isinstance(target, QAbstractSpinBox):
+                return ("value", target.value())
+            return (None, None)
+
         scroll_bar_before = ancestor.verticalScrollBar().value() if ancestor is not None else None
+        control_label, control_before = _control_value()
         accepted = QApplication.sendEvent(receiver, event)
         scroll_bar_after = ancestor.verticalScrollBar().value() if ancestor is not None else None
+        _, control_after = _control_value()
         logger.warning(
             "OPENCHEM_DRIVE: wheel sent to %s (targeted %s, is_target=%s, hasFocus=%s) "
-            "at window-point %s -- sendEvent=%s isAccepted=%s scrollBar %s->%s",
+            "at window-point %s -- sendEvent=%s isAccepted=%s scrollBar %s->%s %s %s->%s",
             type(receiver).__name__,
             type(target).__name__,
             receiver is target,
@@ -4735,6 +4813,9 @@ class _Driver(QObject):
             event.isAccepted(),
             scroll_bar_before,
             scroll_bar_after,
+            control_label,
+            control_before,
+            control_after,
         )
 
     def _do_resize(self, step: dict[str, Any]) -> None:

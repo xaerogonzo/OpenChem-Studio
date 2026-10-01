@@ -7,6 +7,8 @@ from PySide6.QtGui import QColor, QMouseEvent, QPainter, QPen, QWheelEvent
 from PySide6.QtWidgets import QWidget
 
 from openchem.ui import contours
+from openchem.ui.widgets import plot_zoom
+from openchem.ui.widgets.plot_axis import nice_ticks
 
 #: One wheel notch zooms by this factor (in); the inverse zooms out. Chosen
 #: so a handful of notches comfortably separates two cross peaks a couple
@@ -274,6 +276,7 @@ class NmrCorrelationPlotWidget(QWidget):
         # Zooming re-maps the same field onto more pixels, it never
         # recomputes it.
         x_range, y_range = self.view_ranges()
+        self._draw_axis_ticks(painter, plot_rect, x_range, y_range)
 
         if self._show_contours:
             self._draw_contours(painter, plot_rect, x_range, y_range)
@@ -331,31 +334,21 @@ class NmrCorrelationPlotWidget(QWidget):
 
         factor = _ZOOM_STEP if event.angleDelta().y() > 0 else 1.0 / _ZOOM_STEP
         full_x_min, full_x_max, full_y_min, full_y_max = self._axis_ranges()
-        min_x_span = (full_x_max - full_x_min) * _MIN_ZOOM_FRACTION
-        min_y_span = (full_y_max - full_y_min) * _MIN_ZOOM_FRACTION
+        full_x_range = (full_x_min, full_x_max)
+        full_y_range = (full_y_min, full_y_max)
 
-        (x_min, x_max), (y_min, y_max) = self.view_ranges()
-        new_x_span = min(max((x_max - x_min) * factor, min_x_span), full_x_max - full_x_min)
-        new_y_span = min(max((y_max - y_min) * factor, min_y_span), full_y_max - full_y_min)
-
-        # Keep the point under the cursor fixed, the way every other
-        # scroll-to-zoom view behaves -- zooming in on a cross peak should
-        # bring it toward the centre of attention, not slide it off-screen.
-        fx = (x_max - anchor_x) / (x_max - x_min) if x_max != x_min else 0.5
-        fy = (y_max - anchor_y) / (y_max - y_min) if y_max != y_min else 0.5
-        new_x_max = anchor_x + fx * new_x_span
-        new_x_min = new_x_max - new_x_span
-        new_y_max = anchor_y + fy * new_y_span
-        new_y_min = new_y_max - new_y_span
+        x_range, y_range = self.view_ranges()
+        new_x_range = plot_zoom.zoomed_window(x_range, full_x_range, anchor_x, factor, _MIN_ZOOM_FRACTION)
+        new_y_range = plot_zoom.zoomed_window(y_range, full_y_range, anchor_y, factor, _MIN_ZOOM_FRACTION)
 
         # A span that reaches the full data span is the same thing as "not
         # zoomed" -- drop back to None so `is_zoomed()` and the cached
         # `_grid` usage both read it as the fit-to-data state again.
-        if new_x_span >= full_x_max - full_x_min and new_y_span >= full_y_max - full_y_min:
+        if plot_zoom.is_full_span(new_x_range, full_x_range) and plot_zoom.is_full_span(new_y_range, full_y_range):
             self.reset_view()
         else:
-            self._view_x_range = (new_x_min, new_x_max)
-            self._view_y_range = (new_y_min, new_y_max)
+            self._view_x_range = new_x_range
+            self._view_y_range = new_y_range
             self.update()
         event.accept()
 
@@ -377,19 +370,14 @@ class NmrCorrelationPlotWidget(QWidget):
             super().mouseMoveEvent(event)
             return
         plot_rect = self._plot_rect()
-        (x_min, x_max), (y_min, y_max) = self.view_ranges()
+        x_range, y_range = self.view_ranges()
         delta = event.position() - self._pan_last_pos
         self._pan_last_pos = event.position()
         if plot_rect.width() and plot_rect.height():
             # The data point under the OLD cursor position must end up
-            # under the NEW one (a drag grabs the plot, not the axes) --
-            # solving `_data_point_at(new_pos, view + d) ==
-            # _data_point_at(old_pos, view)` for `d` gives this, positive
-            # in both screen directions despite the descending axes.
-            dx = delta.x() / plot_rect.width() * (x_max - x_min)
-            dy = delta.y() / plot_rect.height() * (y_max - y_min)
-            self._view_x_range = (x_min + dx, x_max + dx)
-            self._view_y_range = (y_min + dy, y_max + dy)
+            # under the NEW one -- a drag grabs the plot, not the axes.
+            self._view_x_range = plot_zoom.panned_window(x_range, delta.x(), plot_rect.width())
+            self._view_y_range = plot_zoom.panned_window(y_range, delta.y(), plot_rect.height())
             self.update()
         event.accept()
 
@@ -412,7 +400,7 @@ class NmrCorrelationPlotWidget(QWidget):
             press_pos, self._press_pos = self._press_pos, None
             self._pan_last_pos = None
             if press_pos is not None:
-                drift = ((event.position().x() - press_pos.x()) ** 2 + (event.position().y() - press_pos.y()) ** 2) ** 0.5
+                drift = plot_zoom.drift(event.position().x() - press_pos.x(), event.position().y() - press_pos.y())
                 if drift <= _CLICK_MAX_DRIFT:
                     peak = self._peak_near(event.position(), self._plot_rect())
                     if peak is not None and peak.atom_a is not None and peak.atom_b is not None:
@@ -421,6 +409,32 @@ class NmrCorrelationPlotWidget(QWidget):
             event.accept()
         else:
             super().mouseReleaseEvent(event)
+
+    def _draw_axis_ticks(
+        self, painter: QPainter, plot_rect: QRectF, x_range: tuple[float, float], y_range: tuple[float, float]
+    ) -> None:
+        """Intermediate numeric ticks on both axes -- this plot drew none
+        before (only the axis captions), unlike `NmrSpectrumWidget`,
+        which at least labelled its two endpoints. Reads the current
+        VIEW range so a zoomed-in plot's ticks are the zoomed numbers,
+        not the full data's."""
+        painter.setPen(QPen(QColor(120, 120, 120)))
+        for value in nice_ticks(*x_range):
+            px, _ = self._to_widget_coords(value, y_range[0], plot_rect, x_range, y_range)
+            painter.drawLine(QPointF(px, plot_rect.bottom()), QPointF(px, plot_rect.bottom() + 4))
+            painter.drawText(
+                QRectF(px - 30, plot_rect.bottom() + 4, 60, self._MARGIN / 4),
+                Qt.AlignmentFlag.AlignCenter,
+                f"{value:.4g}",
+            )
+        for value in nice_ticks(*y_range):
+            _, py = self._to_widget_coords(x_range[0], value, plot_rect, x_range, y_range)
+            painter.drawLine(QPointF(plot_rect.left() - 4, py), QPointF(plot_rect.left(), py))
+            painter.drawText(
+                QRectF(plot_rect.left() - self._MARGIN, py - 7, self._MARGIN - 6, 14),
+                Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
+                f"{value:.4g}",
+            )
 
     def _draw_contours(self, painter, plot_rect, x_range, y_range) -> None:
         """Rings from lowest level to highest, darkening as they climb.

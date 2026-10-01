@@ -1,11 +1,14 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QPoint, QRectF, Qt
+import pytest
+
+from PySide6.QtCore import QPoint, QPointF, QRectF, Qt
+from PySide6.QtGui import QMouseEvent
 from PySide6.QtTest import QTest
 
 from conftest import ink
 
-from openchem.chem.nmr_signals import NMRSignal
+from openchem.chem.nmr_signals import NMRSignal, multiplet_lines
 from openchem.ui.widgets.nmr_spectrum_widget import NmrSpectrumWidget
 
 
@@ -295,3 +298,240 @@ def test_clicking_anywhere_on_a_split_signal_still_selects_it(qapp):
 
     region, signal = widget.hit_regions()[0]
     assert widget.signal_at(region.center().x(), region.center().y()) is signal
+
+
+# --- Zoom, pan, reset -------------------------------------------------
+
+
+class _FakeWheelEvent:
+    """A stand-in for `QWheelEvent` carrying only what `wheelEvent` reads
+    -- the same approach `test_nmr_correlation_plot_widget.py` uses for
+    its own wheel tests."""
+
+    def __init__(self, pos: QPointF, delta_y: int) -> None:
+        self._pos = pos
+        self._delta_y = delta_y
+        self.accepted = False
+
+    def position(self) -> QPointF:
+        return self._pos
+
+    def angleDelta(self) -> QPoint:  # noqa: N802 - Qt naming
+        return QPoint(0, self._delta_y)
+
+    def accept(self) -> None:
+        self.accepted = True
+
+
+def _mouse_event(event_type, pos: QPointF) -> QMouseEvent:
+    return QMouseEvent(
+        event_type, pos, pos, Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier,
+    )
+
+
+def _widget_with_signals() -> NmrSpectrumWidget:
+    widget = NmrSpectrumWidget([_signal(1.0, 1, [0]), _signal(9.0, 1, [1])])
+    widget.resize(400, 250)
+    return widget
+
+
+def test_a_fresh_widget_is_not_zoomed(qapp):
+    widget = _widget_with_signals()
+    assert not widget.is_zoomed()
+    assert widget.view_range() == widget._axis_range()
+
+
+def test_scrolling_in_narrows_the_view(qapp):
+    widget = _widget_with_signals()
+    plot_rect = widget._plot_rect()
+    before = widget.view_range()
+
+    widget.wheelEvent(_FakeWheelEvent(plot_rect.center(), delta_y=120))
+
+    assert widget.is_zoomed()
+    after = widget.view_range()
+    assert (after[1] - after[0]) < (before[1] - before[0])
+
+
+def test_the_point_under_the_cursor_stays_under_the_cursor_while_zooming(qapp):
+    widget = _widget_with_signals()
+    plot_rect = widget._plot_rect()
+    cursor = QPointF(plot_rect.left() + 30, plot_rect.center().y())
+
+    anchor_before = widget._data_x_at(cursor.x(), plot_rect)
+    widget.wheelEvent(_FakeWheelEvent(cursor, delta_y=120))
+    anchor_after = widget._data_x_at(cursor.x(), plot_rect)
+
+    assert anchor_after == pytest.approx(anchor_before, abs=1e-6)
+
+
+def test_zooming_in_on_a_shielding_axis_also_keeps_the_cursor_anchored(qapp):
+    """The ascending (shielding) convention is the one branch
+    `NmrCorrelationPlotWidget`'s own zoom never had to handle."""
+    widget = NmrSpectrumWidget()
+    widget.set_signals([_signal(1.0, 1, [0]), _signal(9.0, 1, [1])], shielding=True)
+    widget.resize(400, 250)
+    plot_rect = widget._plot_rect()
+    cursor = QPointF(plot_rect.left() + 30, plot_rect.center().y())
+
+    anchor_before = widget._data_x_at(cursor.x(), plot_rect)
+    widget.wheelEvent(_FakeWheelEvent(cursor, delta_y=120))
+    anchor_after = widget._data_x_at(cursor.x(), plot_rect)
+
+    assert anchor_after == pytest.approx(anchor_before, abs=1e-6)
+
+
+def test_scrolling_out_past_the_full_extent_returns_to_not_zoomed(qapp):
+    widget = _widget_with_signals()
+    plot_rect = widget._plot_rect()
+    widget.wheelEvent(_FakeWheelEvent(plot_rect.center(), delta_y=120))
+    assert widget.is_zoomed()
+
+    for _ in range(20):
+        widget.wheelEvent(_FakeWheelEvent(plot_rect.center(), delta_y=-120))
+
+    assert not widget.is_zoomed()
+
+
+def test_reset_view_returns_to_the_full_range(qapp):
+    widget = _widget_with_signals()
+    widget.wheelEvent(_FakeWheelEvent(widget._plot_rect().center(), delta_y=120))
+    assert widget.is_zoomed()
+
+    widget.reset_view()
+
+    assert not widget.is_zoomed()
+
+
+def test_double_click_resets_the_view(qapp):
+    widget = _widget_with_signals()
+    widget.wheelEvent(_FakeWheelEvent(widget._plot_rect().center(), delta_y=120))
+    assert widget.is_zoomed()
+
+    center = widget._plot_rect().center()
+    widget.mouseDoubleClickEvent(_mouse_event(QMouseEvent.Type.MouseButtonDblClick, center))
+
+    assert not widget.is_zoomed()
+
+
+def test_dragging_pans_the_view_without_changing_its_span(qapp):
+    widget = _widget_with_signals()
+    plot_rect = widget._plot_rect()
+    before = widget.view_range()
+    before_span = before[1] - before[0]
+
+    start = plot_rect.center()
+    end = QPointF(start.x() + 40, start.y())
+
+    widget.mousePressEvent(_mouse_event(QMouseEvent.Type.MouseButtonPress, start))
+    widget.mouseMoveEvent(_mouse_event(QMouseEvent.Type.MouseMove, end))
+    widget.mouseReleaseEvent(_mouse_event(QMouseEvent.Type.MouseButtonRelease, end))
+
+    after = widget.view_range()
+    assert (after[1] - after[0]) == pytest.approx(before_span)
+    assert after != pytest.approx(before)
+
+
+def test_a_drag_past_the_click_threshold_does_not_select_a_peak(qapp):
+    widget = NmrSpectrumWidget([_signal(7.2, 2, [11, 12])])
+    widget.resize(400, 250)
+    emitted: list[list[int]] = []
+    widget.peak_clicked.connect(emitted.append)
+
+    region, _signal_at_region = widget.hit_regions()[0]
+    start = region.center()
+    end = QPointF(start.x() + 40, start.y())
+
+    widget.mousePressEvent(_mouse_event(QMouseEvent.Type.MouseButtonPress, start))
+    widget.mouseMoveEvent(_mouse_event(QMouseEvent.Type.MouseMove, end))
+    widget.mouseReleaseEvent(_mouse_event(QMouseEvent.Type.MouseButtonRelease, end))
+
+    assert emitted == []
+
+
+def test_a_normal_click_still_selects_a_peak(qapp):
+    """Press and release at the same point -- the click-vs-drag threshold
+    must not have turned every ordinary click into a no-op."""
+    widget = NmrSpectrumWidget([_signal(7.2, 2, [11, 12])])
+    widget.resize(400, 250)
+    emitted: list[list[int]] = []
+    widget.peak_clicked.connect(emitted.append)
+
+    region, _signal_at_region = widget.hit_regions()[0]
+    pos = region.center()
+
+    widget.mousePressEvent(_mouse_event(QMouseEvent.Type.MouseButtonPress, pos))
+    widget.mouseReleaseEvent(_mouse_event(QMouseEvent.Type.MouseButtonRelease, pos))
+
+    assert emitted == [[11, 12]]
+
+
+def test_hit_testing_tracks_a_deep_zoom(qapp):
+    """Zoom into one signal and confirm a click resolves it; zoom to the
+    OTHER signal and confirm a click there resolves THAT one -- proving
+    `hit_regions()` tracks the current viewport rather than staying
+    anchored to the full-data range it was built against before Phase C."""
+    widget = NmrSpectrumWidget([_signal(1.0, 1, [0]), _signal(9.0, 1, [1])])
+    widget.resize(400, 250)
+
+    widget.zoom_to_signal(widget._signals[0])
+    region0, signal0 = widget.hit_regions()[0]
+    assert widget.signal_at(region0.center().x(), region0.center().y()) is signal0
+    assert signal0.atom_indices == [0]
+
+    widget.zoom_to_signal(widget._signals[1])
+    region1, signal1 = widget.hit_regions()[1]
+    assert widget.signal_at(region1.center().x(), region1.center().y()) is signal1
+    assert signal1.atom_indices == [1]
+
+
+def test_zoom_to_signal_centres_on_its_full_multiplet_extent(qapp):
+    """Not just the nominal shift -- a resolved quartet's own lines reach
+    visibly away from its centre, and the view must cover all of them."""
+    widget = NmrSpectrumWidget()
+    quartet = _quartet()
+    widget.set_signals([quartet])
+    widget.set_frequency(60.0)
+
+    widget.zoom_to_signal(quartet)
+
+    lines = multiplet_lines(quartet, 60.0)
+    shifts = [ppm for ppm, _intensity in lines]
+    low, high = widget.view_range()
+    assert widget.is_zoomed()
+    assert low < min(shifts)
+    assert high > max(shifts)
+
+
+def test_a_fresh_spectrum_clears_the_zoom_but_leaves_preferences_alone(qapp):
+    """Render mode, frequency, solvent and integral visibility are viewer
+    PREFERENCES, not navigation state -- a new run must not reset them,
+    even though it must reset the zoom."""
+    widget = NmrSpectrumWidget([_signal(1.0), _signal(9.0)])
+    widget.set_render_mode("smooth")
+    widget.set_frequency(800.0)
+    widget.set_solvent("CDCl3")
+    widget.set_show_integral(True)
+    widget.wheelEvent(_FakeWheelEvent(widget._plot_rect().center(), delta_y=120))
+    assert widget.is_zoomed()
+
+    widget.set_signals([_signal(2.0), _signal(5.0)])
+
+    assert not widget.is_zoomed()
+    assert widget.render_mode() == "smooth"
+    assert widget._frequency_mhz == 800.0
+    assert widget._solvent == "CDCl3"
+    assert widget._show_integral is True
+
+
+def test_zooming_in_changes_the_drawn_ticks(qapp):
+    """A deep zoom must draw different intermediate ticks than the full
+    view -- a weaker but still meaningful smoke check that `nice_ticks`
+    is actually wired into `paintEvent`, not just available."""
+    widget = _widget_with_signals()
+    full_ink = ink(widget)
+
+    widget.zoom_to_signal(widget._signals[0])
+
+    assert ink(widget) != full_ink

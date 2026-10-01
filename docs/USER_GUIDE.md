@@ -1513,7 +1513,26 @@ Spin-spin coupling, when requested, is a separate parse of the same ORCA
 output and can fail (a genuinely different ORCA output layout) without
 losing the shifts themselves — a run like that shows "Spin-spin coupling
 data unavailable" rather than a bare dash that would read as "no coupling
-for this pair."
+for this pair." The 1D spectrum itself states which of three cases is on
+screen, right below the header: a genuine parser failure, "no J was ever
+calculated for this run" (predicted multiplicity still shown, but with no
+real spacing to draw it at), or real coupling data, naming the frequency
+it was drawn at.
+
+**Navigating the 1D spectrum:** scroll to zoom in and out around the
+cursor (horizontal only — peak height already auto-scales to the tallest
+signal, which stays true at every zoom level); drag to pan; double-click
+to reset to the full spectrum. Clicking a peak, a table row, or an atom
+in the structure views also re-centres and zooms the plot on that
+signal's full multiplet — not just its nominal shift, since a resolved
+triplet or quartet reaches visibly away from its centre. Turn this off
+with the "Zoom to selection" checkbox if it gets in the way; it does not
+affect what is selected or highlighted, only the view.
+
+**Every numeric column header is sortable** — click one to sort by it
+(shift, integration, coupling); click again to reverse. Sorting never
+changes which signal is highlighted or selected, and a new run resets
+the table to its natural order.
 
 <!-- help:2d-correlation -->
 ### HSQC, HMBC and COSY — connectivity, not a simulated spectrum
