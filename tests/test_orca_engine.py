@@ -171,6 +171,8 @@ CARTESIAN COORDINATES (ANGSTROEM)
   H      1.900000    0.500000   -0.900000
   H      3.150000    0.950000    0.000000
 
+FINAL SINGLE POINT ENERGY      -154.900000111
+
 Geometry convergence not reached, continuing...
 
 CARTESIAN COORDINATES (ANGSTROEM)
@@ -254,11 +256,23 @@ def test_command_args_matches_orca_invocation_convention():
     assert args == ["/opt/orca/orca", str(input_path)]
 
 
+#: A real single point has exactly one geometry and one energy line -- unlike the shared
+#: FIXTURE_OUTPUT below (two cycles, two energy lines, built to exercise `opt`'s "last cycle
+#: wins" extraction), so this test gets its own minimal, realistic transcript rather than
+#: silently relying on `sp`'s "first match" behavior happening to agree with `opt`'s fixture.
+SP_FIXTURE_OUTPUT = """
+Some ORCA banner text here
+...
+
+FINAL SINGLE POINT ENERGY      -154.987654123
+"""
+
+
 def test_parse_output_sp_extracts_only_scf_energy():
     provider = OrcaQuantumEngineProvider()
     mol = _ethanol_mol()
 
-    descriptors, conformer = provider.parse_output(FIXTURE_OUTPUT, mol, "mol-1", "sp")
+    descriptors, conformer = provider.parse_output(SP_FIXTURE_OUTPUT, mol, "mol-1", "sp")
 
     assert len(descriptors) == 1
     assert descriptors[0].descriptor_id == "orca.scf_energy"
@@ -281,6 +295,22 @@ def test_parse_output_opt_returns_optimized_conformer_from_last_block():
     # The LAST cartesian block's first atom is at x=0.01, not the first
     # block's x=0.0 -- confirms "last block wins."
     assert "0.0100" in conformer.molblock or "0.010000" in conformer.molblock.replace("  ", " ")
+
+
+def test_parse_output_opt_takes_the_last_cycles_energy_not_the_first():
+    """A real multi-cycle Opt prints "FINAL SINGLE POINT ENERGY" once PER CYCLE, not once per
+    job -- confirmed live, RDX alone takes 28. Taking the first (as `.search()` naively would)
+    silently returns cycle 1's near-starting-geometry energy, not the converged minimum; measured
+    live this was 44-109 kJ/mol off for RDX/HMX/PETN. FIXTURE_OUTPUT's two cartesian blocks each
+    carry their own energy line (-154.900000111 after the first, -154.987654123 after the second)
+    specifically so this is exercised, not just the conformer's own last-block handling above."""
+    provider = OrcaQuantumEngineProvider()
+    mol = _ethanol_mol()
+
+    descriptors, _ = provider.parse_output(FIXTURE_OUTPUT, mol, "mol-1", "opt")
+
+    assert descriptors[0].value == pytest.approx(-154.987654123)
+    assert descriptors[0].value != pytest.approx(-154.900000111)
 
 
 def test_parse_output_opt_freq_includes_thermochemistry():

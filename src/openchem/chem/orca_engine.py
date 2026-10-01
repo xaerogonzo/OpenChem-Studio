@@ -620,13 +620,33 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
     def parse_output(
         self, output_text: str, mol: Chem.Mol, molecule_uuid: str, calc_type: str
     ) -> tuple[list[DescriptorValue], ConformerModel | None]:
-        scf_match = _SCF_ENERGY_RE.search(output_text)
-        if scf_match is None:
-            raise OrcaOutputError(
-                "Could not find 'FINAL SINGLE POINT ENERGY' in ORCA output — "
-                "the job likely failed or did not converge."
-            )
-        scf_energy_hartree = float(scf_match.group(1))
+        # A geometry optimization prints "FINAL SINGLE POINT ENERGY" once per
+        # cycle, not once per job -- RDX alone takes 28. `.search()` (first
+        # match) silently returned cycle 1's energy, essentially the
+        # MMFF94-preoptimized starting geometry, not the converged minimum;
+        # measured live, this was 44-109 kJ/mol off (RDX/HMX/PETN) for an
+        # energetics survey that had been treating it as the converged
+        # value. `sp`/`nmr`/`nmr_coupling` print exactly one such line, so
+        # last == first for them. `delta_scf`/`led` run a compound job with
+        # multiple SINGLE POINTS (no optimization) in a fixed, meaningful
+        # order (neutral/cation/anion; dimer/fragments) -- taking the FIRST
+        # there is correct by construction and must not change.
+        if calc_type in ("opt", "opt_freq"):
+            scf_matches = list(_SCF_ENERGY_RE.finditer(output_text))
+            if not scf_matches:
+                raise OrcaOutputError(
+                    "Could not find 'FINAL SINGLE POINT ENERGY' in ORCA output — "
+                    "the job likely failed or did not converge."
+                )
+            scf_energy_hartree = float(scf_matches[-1].group(1))
+        else:
+            scf_match = _SCF_ENERGY_RE.search(output_text)
+            if scf_match is None:
+                raise OrcaOutputError(
+                    "Could not find 'FINAL SINGLE POINT ENERGY' in ORCA output — "
+                    "the job likely failed or did not converge."
+                )
+            scf_energy_hartree = float(scf_match.group(1))
         now = time.time()
         # One shared Provenance for every DescriptorValue/ConformerModel/
         # SpectrumResult this call produces -- same ORCA run, same "what
