@@ -2286,6 +2286,37 @@ and three were checked again recently rather than taken on trust.
   why the corrected accounts are kept in `docs/sources.toml` under the
   original keys rather than deleted. See docs/VALIDATION.md for the
   measurements.
+- **Boltzmann-run descriptors beyond the lowest-energy conformer.** A
+  Boltzmann-averaged QC run (`request_boltzmann_nmr`,
+  `services/quantum_chemistry_service.py`'s `_finish_conformer_job`) now
+  publishes descriptors (SCF energy, HOMO/LUMO, dipole, ...) to
+  PropertyPanel/Results the same way a single job does — but from the
+  LOWEST-energy conformer, not averaged, because unlike a spectrum's
+  per-atom shifts (which `chem/boltzmann.py`'s `boltzmann_average_spectrum`
+  already knows how to weight and average), a scalar like HOMO/LUMO gap
+  has no established averaging convention in this codebase, and inventing
+  one silently for every descriptor at once was refused as exactly the
+  "UI infers scientific meaning from a dataset's shape" mistake this
+  project has been burned by before (see the lessons index in
+  `CLAUDE.md`).
+
+  A weighted-average SCF energy — the one descriptor where the physics is
+  actually unambiguous, since `boltzmann_average_spectrum` already
+  computes the same population weights from the same SCF energies to
+  average the spectrum — is now computed as a **skeleton only**:
+  `_BoltzmannRun`/`_finish_conformer_job` stash it in
+  `QuantumChemistryRun.results["boltzmann_average_scf_energy_hartree"]`
+  (run history / Compare only), reusing `boltzmann_weights` from
+  `chem/boltzmann.py`. It is deliberately **not** published as a
+  `DescriptorValue` and does not reach PropertyPanel. Wiring it in for
+  real needs a decision this entry is recording rather than making:
+  whether SCF energy gets its own averaged descriptor alongside the
+  lowest-energy one (two numbers, clearly labelled), and if so, whether
+  any *other* scalar descriptor should be averaged too, or whether SCF
+  energy alone is the exception because it is what the weights are
+  computed from. Trigger to revisit: a user complaint that a Boltzmann
+  run's reported SCF energy is "the wrong conformer's", or a second
+  calculation type that makes the same choice necessary.
 **Removed from this list because it had SHIPPED**: ensemble alignment
 across a project. This entry read "`alignment.py` aligns onto a reference
 SMILES; aligning a whole project needs its own panel, and nothing is

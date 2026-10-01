@@ -34,6 +34,7 @@ from openchem.events.events import (
     QuantumChemistryJobStateChanged,
     QuantumChemistryResultReady,
     QuantumChemistryRunCompleted,
+    ResultRecorded,
 )
 from openchem.plugins.interfaces import QuantumEngineProvider
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
@@ -335,6 +336,73 @@ def test_a_boltzmann_run_publishes_exactly_one_qc_run_not_one_per_conformer(qapp
     assert len(runs) == 1
     assert runs[0].status is RunStatus.COMPLETED
     assert runs[0].calculation_input == ""  # no ensemble identity was passed in this test
+
+
+def test_a_boltzmann_run_publishes_the_lowest_energy_conformers_descriptors(qapp, tmp_path):
+    """A Boltzmann run has no averaging convention for a scalar like SCF
+    energy the way it does for a spectrum's per-atom shifts (see
+    `_BoltzmannRun.descriptors`'s docstring), so `_finish_conformer_job`
+    publishes the LOWEST-energy conformer's own descriptors -- the same
+    "current/latest value" wiring `_finish_calculation_job` uses for a
+    single job (Phase 3), now reaching Results for a Boltzmann run too.
+
+    Energies are deliberately NOT monotonic (middle one lowest) so this
+    fails if the code picked the first or the last conformer instead of
+    genuinely finding the minimum. The gaps are small (a fraction of a
+    kcal/mol, comparable to kT at room temperature) rather than the 3
+    kcal/mol `test_boltzmann_run_weights_by_the_scf_energy_of_each_run`
+    uses to prove weighting works at all -- a 3 kcal/mol gap leaves the
+    higher conformer's Boltzmann weight numerically indistinguishable
+    from zero, which would make the weighted-average skeleton below
+    collapse onto the lowest energy and prove nothing about the average.
+    """
+    kcal_per_hartree = 1.0 / 627.5094740631
+    lowest_energy = -100.0 - 3 * kcal_per_hartree
+    middle_energy = -100.0 - 2.7 * kcal_per_hartree
+    provider = _PerConformerProvider(
+        energies=[-100.0, lowest_energy, middle_energy], shifts=[30.0, 20.0, 10.0]
+    )
+    service, bus = _make_service(provider)
+    ready: list = []
+    bus.subscribe(QuantumChemistryResultReady, lambda e: ready.append(e))
+    recorded: list = []
+    bus.subscribe(ResultRecorded, lambda e: recorded.append(e.stored))
+    runs: list = []
+    bus.subscribe(QuantumChemistryRunCompleted, lambda e: runs.append(e.run))
+
+    mol = Chem.MolFromSmiles("CCO")
+    service.request_boltzmann_nmr(
+        mols=[mol, mol, mol],
+        molecule_uuid="mol-1",
+        calc_type="nmr",
+        charge=0,
+        multiplicity=1,
+        method_basis="B3LYP pcSseg-1",
+        provider_id="fake",
+    )
+
+    assert _wait_until(qapp, lambda: runs)
+
+    # Exactly one QuantumChemistryResultReady for the whole sequence, not
+    # one per conformer -- same contract as the averaged spectrum.
+    assert len(ready) == 1
+    assert [d.value for d in ready[0].descriptors] == [pytest.approx(lowest_energy)]
+
+    # It also reached the generic revision-cache store, the same way
+    # `_finish_calculation_job` does for a single job -- otherwise a
+    # Boltzmann run's numbers would still vanish from Results on reselect.
+    assert len(recorded) == 1
+    assert recorded[0].result.value == pytest.approx(lowest_energy)
+
+    qc_run = runs[0]
+    assert [d.value for d in qc_run.results["descriptors"]] == [pytest.approx(lowest_energy)]
+    # Skeleton weighted-average energy (docs/ROADMAP.md): not a descriptor,
+    # just present in run history. The 0.3 kcal/mol gap to the middle
+    # conformer is small enough that both meaningfully contribute, so the
+    # weighted mean must land strictly above the lowest-energy pick above
+    # (never collapse onto it) and strictly below the middle conformer.
+    weighted = qc_run.results["boltzmann_average_scf_energy_hartree"]
+    assert lowest_energy < weighted < middle_energy
 
 
 def test_a_qc_descriptor_survives_replay_after_no_recompute(qapp, tmp_path):
