@@ -21,12 +21,14 @@ dependencies = [
     "py2opsin>=1.2.0",
     "pyside6>=6.7",
     "pyside6-addons>=6.7",
-    # Pinned exact, not >=: a floating lower bound let `uv sync` silently
-    # resolve a newer RDKit partway through the energetics survey, and
-    # ETKDGv3 is only deterministic for a given seed WITHIN one RDKit
-    # build. That drift reproduced HMX's "identical" recorded ORCA job
-    # 108 kJ/mol off from a fresh run under the same documented recipe
-    # (seed 0xC0FFEE) -- see benchmarks/thermophysical/orca_atom_equivalents.py.
+    # Pinned exact, not >=: ETKDGv3 is only deterministic for a given seed WITHIN one RDKit
+    # build, so a floating lower bound is real risk even though it did not turn out to be the
+    # actual cause the one time it was suspected. A 108 kJ/mol HMX reproduction gap was
+    # originally attributed to this drifting (2026-09-29); Track 5 (2026-10-01) checked uv.lock's
+    # own history across that gap and found RDKit was 2025.9.6 the entire time -- the real cause
+    # was an unrelated ORCA-output-parsing bug (src/openchem/chem/orca_engine.py, fixed on the
+    # fix-orca-opt-energy-last-cycle branch). The pin stays anyway, on its own merits -- see
+    # benchmarks/thermophysical/orca_atom_equivalents.py's module docstring for the full story.
     "rdkit==2025.9.6",
 ]
 
