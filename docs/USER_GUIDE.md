@@ -1519,6 +1519,16 @@ calculated for this run" (predicted multiplicity still shown, but with no
 real spacing to draw it at), or real coupling data, naming the frequency
 it was drawn at.
 
+A signal coupling to more than one distinct partner group — a real,
+common case, not an edge case — draws its full first-order splitting
+pattern (a methine coupling to a methyl triplet and two different
+methylene protons, for instance), cascaded from every real coupling group
+the signal has, never from an invented one. This is a first-order
+approximation, not a full spin-Hamiltonian simulation. When ORCA reported
+a value for only some of an equivalent group's members, the shown J is a
+symmetry-completed average rather than a partial one presented as
+complete — the coupling note says so explicitly in that case.
+
 **Navigating the 1D spectrum:** scroll to zoom in and out around the
 cursor (horizontal only — peak height already auto-scales to the tallest
 signal, which stays true at every zoom level); drag to pan; double-click
@@ -1527,7 +1537,14 @@ in the structure views also re-centres and zooms the plot on that
 signal's full multiplet — not just its nominal shift, since a resolved
 triplet or quartet reaches visibly away from its centre. Turn this off
 with the "Zoom to selection" checkbox if it gets in the way; it does not
-affect what is selected or highlighted, only the view.
+affect what is selected or highlighted, only the view. Hovering the plot
+shows the δ (or Hz) value under the cursor. The **Unit** dropdown switches
+the axis, ticks, peak labels and table column between ppm and a Hz
+frequency offset from the reference — disabled on a raw shielding result,
+since σ has no reference frequency to convert through. The **Labels**
+dropdown chooses what each peak is labelled with: chemical shifts (the
+default), the atom numbers it belongs to, or nothing at all, useful when
+two signals sit close enough to crowd each other's label.
 
 **Every numeric column header is sortable** — click one to sort by it
 (shift, integration, coupling); click again to reverse. Sorting never

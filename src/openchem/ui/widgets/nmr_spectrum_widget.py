@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QPointF, QRectF, Qt, Signal
+from PySide6.QtCore import QEvent, QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QMouseEvent, QPainter, QPainterPath, QPen, QWheelEvent
 from PySide6.QtWidgets import QWidget
 
 from openchem.chem.nmr_signals import (
+    _RELATIVE_FREQUENCY,
     DEFAULT_FREQUENCY_MHZ,
     RESIDUAL_SOLVENT_PEAKS,
     NMRSignal,
@@ -78,7 +79,7 @@ class NmrSpectrumWidget(QWidget):
     def __init__(
         self,
         signals: list[NMRSignal] | None = None,
-        x_label: str = "δ (ppm)",
+        x_label: str = "δ",
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -95,6 +96,21 @@ class NmrSpectrumWidget(QWidget):
         #: just reads more like one.
         self._render_mode = "sticks"
         self._show_integral = False
+        #: "ppm" or "hz" -- display-only, never the plot's internal working
+        #: unit (always ppm, see `view_range()`). Forced back to "ppm" by
+        #: every consumer whenever `self._shielding` is True: a raw
+        #: shielding value has no reference-frequency relationship to
+        #: convert through, so `_effective_unit()` is what every formatter
+        #: below actually reads, never this field directly.
+        self._display_unit = "ppm"
+        #: "none" | "shift" | "atom" -- governs both render modes alike.
+        #: "shift" matches today's always-on stick-mode label by default.
+        self._label_mode = "shift"
+        #: ppm under the cursor while hovering the plot rectangle, or None
+        #: when the cursor is elsewhere (including the widget's own axis/
+        #: margin chrome) -- see `_update_hover`.
+        self._hover_ppm: float | None = None
+        self.setMouseTracking(True)
         # None means "fit to the data" -- `_axis_range()`'s own padded
         # extent. Set only by zooming/panning/`zoom_to_signal`, and
         # cleared by `set_signals` (a new spectrum resets navigation) but
@@ -121,9 +137,14 @@ class NmrSpectrumWidget(QWidget):
         self.update()
 
     def set_signals(
-        self, signals: list[NMRSignal], x_label: str = "δ (ppm)", shielding: bool = False
+        self, signals: list[NMRSignal], x_label: str = "δ", shielding: bool = False
     ) -> None:
-        """`shielding=True` means the values are isotropic shielding σ, not a
+        """`x_label` is the quantity name only (e.g. "¹H δ") -- the widget
+        appends its own unit suffix (`_axis_label_text`), which switches
+        between "(ppm)" and "offset (Hz)" with the display-unit toggle, so
+        a caller must never bake a unit into this string.
+
+        `shielding=True` means the values are isotropic shielding σ, not a
         chemical shift δ. The two run in OPPOSITE directions (δ = σ_ref − σ),
         so a raw σ drawn on the descending δ axis is a mirror image of the
         spectrum a chemist expects: the most shielded carbons (aliphatic,
@@ -157,6 +178,89 @@ class NmrSpectrumWidget(QWidget):
         if not self._solvent or self._shielding:
             return None
         return RESIDUAL_SOLVENT_PEAKS.get(self._solvent, {}).get(self._element)
+
+    def set_display_unit(self, unit: str) -> None:
+        """"ppm" or "hz" -- display-only (see `_display_unit`'s own
+        comment). Stored even when shielding makes it inert right now, so
+        switching back to a referenced spectrum later doesn't silently
+        lose the choice; `_effective_unit()` is what every formatter
+        actually consults."""
+        if unit not in ("ppm", "hz"):
+            raise ValueError(f"unknown NMR display unit: {unit!r}")
+        self._display_unit = unit
+        self.update()
+
+    def display_unit(self) -> str:
+        return self._display_unit
+
+    def _effective_unit(self) -> str:
+        """Hz is only ever meaningful for a referenced chemical shift (an
+        offset from TMS in frequency units) -- raw isotropic shielding has
+        no such relationship, so this is what every formatter below reads
+        instead of `self._display_unit` directly: Hz mode goes inert on a
+        shielding spectrum without needing an external reset."""
+        return "ppm" if self._shielding else self._display_unit
+
+    def _observation_mhz(self) -> float:
+        return self._frequency_mhz * _RELATIVE_FREQUENCY.get(self._element, 1.0)
+
+    def _to_hz(self, ppm: float) -> float:
+        """A FREQUENCY OFFSET from the reference, never an absolute
+        resonance frequency -- 1.21 ppm at 400 MHz is "+484 Hz from the
+        reference," not "the proton resonates at 484 Hz"."""
+        return ppm * self._observation_mhz()
+
+    def _format_axis_value(self, ppm: float) -> str:
+        if self._effective_unit() == "hz":
+            return f"{self._to_hz(ppm):.1f}"
+        return f"{ppm:.4g}"
+
+    def _format_peak_label(self, ppm: float) -> str:
+        if self._effective_unit() == "hz":
+            return f"{self._to_hz(ppm):.1f}"
+        return f"{ppm:.2f}"
+
+    def _axis_label_text(self) -> str:
+        if self._effective_unit() == "hz":
+            return f"{self._x_label} offset (Hz)"
+        return f"{self._x_label} (ppm)"
+
+    def set_label_mode(self, mode: str) -> None:
+        if mode not in ("none", "shift", "atom"):
+            raise ValueError(f"unknown NMR label mode: {mode!r}")
+        self._label_mode = mode
+        self.update()
+
+    def label_mode(self) -> str:
+        return self._label_mode
+
+    def format_shift(self, ppm: float) -> str:
+        """Public wrapper around `_format_peak_label` so a close
+        collaborator (`NmrViewWidget`'s signal table) can format a shift
+        identically to the plot itself, rather than duplicating the Hz
+        conversion in a second place."""
+        return self._format_peak_label(ppm)
+
+    def unit_suffix(self) -> str:
+        """"ppm" or "Hz" -- for a caller building its own label (e.g. the
+        signal table's column header) that needs to agree with the
+        plot's own current `_effective_unit()`."""
+        return "Hz" if self._effective_unit() == "hz" else "ppm"
+
+    def _peak_label_text(self, signal: NMRSignal) -> str | None:
+        """None means "draw nothing" -- the direct fix for a crowded
+        region (e.g. two signals 0.18 ppm apart) without an automatic
+        collision-avoidance layout engine. "atom" uses the ONE-BASED
+        display numbering already used throughout the app (Atom Inspector,
+        `report_format.py`, `compare_results_dialog.py`: `atom_index +
+        1`), never the raw 0-based RDKit index, and names the signal's
+        first/representative atom only -- one label per signal, same as
+        the shift label already is, never one per underlying atom."""
+        if self._label_mode == "none":
+            return None
+        if self._label_mode == "atom":
+            return str(signal.atom_indices[0] + 1) if signal.atom_indices else None
+        return self._format_peak_label(signal.shift)
 
     def set_highlighted_atoms(self, atom_indices: list[int]) -> None:
         """Highlights every peak owning any of these atoms — the inbound half
@@ -304,18 +408,38 @@ class NmrSpectrumWidget(QWidget):
             super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802 - Qt override naming
-        if not self._panning or self._pan_last_pos is None:
-            super().mouseMoveEvent(event)
-            return
         plot_rect = self._plot_rect()
-        delta = event.position() - self._pan_last_pos
-        self._pan_last_pos = event.position()
-        if plot_rect.width() > 0:
-            self._view_range = plot_zoom.panned_window(
-                self.view_range(), delta.x(), plot_rect.width(), descending=not self._shielding
-            )
-            self.update()
-        event.accept()
+        if self._panning and self._pan_last_pos is not None:
+            delta = event.position() - self._pan_last_pos
+            self._pan_last_pos = event.position()
+            if plot_rect.width() > 0:
+                self._view_range = plot_zoom.panned_window(
+                    self.view_range(), delta.x(), plot_rect.width(), descending=not self._shielding
+                )
+            event.accept()
+        else:
+            super().mouseMoveEvent(event)
+        # One code path for the cursor readout regardless of panning --
+        # reads the SAME `_data_x_at` transform panning and hit-testing
+        # already use, so it automatically tracks a zoomed/panned
+        # viewport with no separate conversion path.
+        self._update_hover(event.position(), plot_rect)
+
+    def _update_hover(self, position: QPointF, plot_rect: QRectF) -> None:
+        """Cleared whenever the cursor is outside the actual plot
+        rectangle -- not just outside the widget entirely via
+        `leaveEvent` -- so hovering the axis-label margin never shows a
+        coordinate that looks like real data but isn't one."""
+        if self._signals and plot_rect.contains(position):
+            self._hover_ppm = self._data_x_at(position.x(), plot_rect)
+        else:
+            self._hover_ppm = None
+        self.update()
+
+    def leaveEvent(self, event: QEvent) -> None:  # noqa: N802 - Qt override naming
+        self._hover_ppm = None
+        self.update()
+        super().leaveEvent(event)
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802 - Qt override naming
         if event.button() == Qt.MouseButton.LeftButton:
@@ -346,8 +470,20 @@ class NmrSpectrumWidget(QWidget):
             painter.drawText(
                 QRectF(x - 30, plot_rect.bottom() + 4, 60, self._MARGIN / 2 - 4),
                 Qt.AlignmentFlag.AlignCenter,
-                f"{value:.4g}",
+                self._format_axis_value(value),
             )
+
+    def _draw_hover_readout(self, painter: QPainter, plot_rect: QRectF) -> None:
+        if self._hover_ppm is None:
+            return
+        unit_label = "Hz" if self._effective_unit() == "hz" else "ppm"
+        value = self._to_hz(self._hover_ppm) if self._effective_unit() == "hz" else self._hover_ppm
+        painter.setPen(QPen(_AXIS_COLOR))
+        painter.drawText(
+            QRectF(plot_rect.left(), plot_rect.top() - self._MARGIN / 2, 160, self._MARGIN / 2),
+            Qt.AlignmentFlag.AlignLeft,
+            f"{value:.3g} {unit_label}",
+        )
 
     def paintEvent(self, event) -> None:  # noqa: N802 - Qt override naming
         painter = QPainter(self)
@@ -359,7 +495,7 @@ class NmrSpectrumWidget(QWidget):
         painter.drawText(
             QRectF(0, self.height() - self._MARGIN / 2, self.width(), self._MARGIN / 2),
             Qt.AlignmentFlag.AlignCenter,
-            self._x_label,
+            self._axis_label_text(),
         )
 
         if not self._signals:
@@ -368,6 +504,7 @@ class NmrSpectrumWidget(QWidget):
 
         x_range = self.view_range()
         self._draw_ticks(painter, plot_rect, x_range)
+        self._draw_hover_readout(painter, plot_rect)
         if self.is_zoomed():
             painter.setPen(QPen(_AXIS_COLOR))
             painter.drawText(
@@ -416,12 +553,14 @@ class NmrSpectrumWidget(QWidget):
                         QRectF(line_x, plot_rect.bottom() - height, 0, height).topLeft(),
                         QRectF(line_x, plot_rect.bottom() - height, 0, height).bottomLeft(),
                     )
-                centre_x = self._to_widget_x(signal.shift, plot_rect, x_range)
-                painter.drawText(
-                    QRectF(centre_x - 30, plot_rect.bottom() - full_height - label_height, 60, label_height),
-                    Qt.AlignmentFlag.AlignCenter,
-                    f"{signal.shift:.2f}",
-                )
+                label = self._peak_label_text(signal)
+                if label is not None:
+                    centre_x = self._to_widget_x(signal.shift, plot_rect, x_range)
+                    painter.drawText(
+                        QRectF(centre_x - 30, plot_rect.bottom() - full_height - label_height, 60, label_height),
+                        Qt.AlignmentFlag.AlignCenter,
+                        label,
+                    )
 
         if self._show_integral:
             self._draw_integral(painter, plot_rect, x_range, label_height)
@@ -463,6 +602,37 @@ class NmrSpectrumWidget(QWidget):
             highlighted_ys = lorentzian_envelope(highlighted_signals, xs, self._frequency_mhz)
             painter.setPen(QPen(_HIGHLIGHT_COLOR, 3))
             painter.drawPath(self._curve_path(xs, highlighted_ys, plot_rect, x_range, scale))
+
+        self._draw_peak_labels_smooth(painter, plot_rect, x_range, scale, label_height)
+
+    def _draw_peak_labels_smooth(
+        self,
+        painter: QPainter,
+        plot_rect: QRectF,
+        x_range: tuple[float, float],
+        scale: float,
+        label_height: float,
+    ) -> None:
+        """Smooth mode drew no labels at all before Spectrum Labels existed
+        -- stick mode's own always-on label was the only one. Anchored to
+        each signal's own nominal shift, at the FULL (not per-signal-
+        renormalised) curve's height there -- "how much of the total curve
+        is this signal", the same convention the highlight overlay above
+        already uses -- never to whichever resolved component happens to
+        be tallest, since the label describes the signal's assignment, not
+        a peak-pick of the convolved curve."""
+        painter.setPen(QPen(_AXIS_COLOR))
+        for signal in self._signals:
+            label = self._peak_label_text(signal)
+            if label is None:
+                continue
+            height = lorentzian_envelope(self._signals, [signal.shift], self._frequency_mhz)[0] * scale
+            centre_x = self._to_widget_x(signal.shift, plot_rect, x_range)
+            painter.drawText(
+                QRectF(centre_x - 30, plot_rect.bottom() - height - label_height, 60, label_height),
+                Qt.AlignmentFlag.AlignCenter,
+                label,
+            )
 
     def _draw_integral(
         self, painter: QPainter, plot_rect: QRectF, x_range: tuple[float, float], label_height: float
