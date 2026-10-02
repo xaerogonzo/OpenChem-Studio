@@ -136,6 +136,53 @@ for _label, _calc_type in CALC_TYPE_LABELS.items():
     )
 
 
+# NOT in CALC_TYPE_LABELS, deliberately: "tautomer_distribution" is not a
+# real ORCA calc_type (it dispatches N real "opt" jobs internally, one per
+# candidate, via QuantumChemistryService.request_tautomer_distribution) --
+# looping it through the CALC_TYPE_LABELS block above would wrongly imply
+# it is a single ORCA job like the others. A standalone entry instead.
+_EXTERNAL_CALCULATOR_DEFINITIONS.append(
+    CalculatorDefinition(
+        calculator_id="orca.tautomer_distribution",
+        display_name="Tautomer Distribution",
+        category="quantum_chemistry",
+        description=(
+            "Gas-phase electronic-energy Boltzmann population ESTIMATE over every "
+            "tautomer RDKit can enumerate, each optimized by its own real ORCA geometry "
+            "optimization -- not a full equilibrium probability model: no vibrational, "
+            "thermal, entropic, or solvent correction, and one optimized minimum per "
+            "tautomer (no per-tautomer conformer search). A population percentage is "
+            "shown only once validated against reference data (see docs/USER_GUIDE.md's "
+            "'Tautomer distribution' topic); otherwise each candidate's real relative "
+            "energy is still shown, just not a population built from it. If any "
+            "candidate fails to converge, no percentages are shown for any of them. "
+            "Needs an ORCA executable; run from the Quantum Chemistry panel's "
+            "'Tautomers...' button -- no pre-existing 3D conformer required, since each "
+            "candidate is embedded fresh from the 2D structure."
+        ),
+        execution=ServiceExecution(
+            service_name="quantum_chemistry_service",
+            panel_name="Quantum Chemistry panel",
+            panel_id="Quantum_Chemistry",
+        ),
+        prediction_basis="ab_initio",
+        parameters=[
+            CalculatorParameter(name="charge", label="Charge", kind="int", default=0, minimum=-10, maximum=10),
+            CalculatorParameter(
+                name="multiplicity", label="Multiplicity", kind="int", default=1, minimum=1, maximum=10
+            ),
+            CalculatorParameter(
+                name="method_basis",
+                label="Method/basis",
+                kind="choice",
+                default=METHOD_BASIS_PRESETS[0],
+                choices=METHOD_BASIS_PRESETS,
+            ),
+        ],
+    )
+)
+
+
 # Conceptual-DFT descriptors are produced by ANY ORCA job (see
 # `OrcaQuantumEngineProvider._parse_conceptual_dft`), so this entry runs no
 # new kind of calculation. It exists so the quantities Pearson's HSAB
