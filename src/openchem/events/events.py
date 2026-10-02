@@ -4,11 +4,10 @@ from dataclasses import dataclass
 
 from openchem.domain.alignment import EnsembleEntry
 from openchem.domain.common import CacheState
-from openchem.domain.nmr import ScalingFactors
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.docking import DockingResultModel
-from openchem.domain.structure_issue import CheckerResult
+from openchem.domain.nmr import ScalingFactors
 from openchem.domain.quantum_chemistry_run import QuantumChemistryRun
 from openchem.domain.report import ReportResult
 from openchem.domain.result_store import BundlePart, StoredResult
@@ -20,6 +19,7 @@ from openchem.domain.scientific_result import (
     StructureSetResult,
     TrajectoryResult,
 )
+from openchem.domain.structure_issue import CheckerResult
 from openchem.events.base import Event
 
 
@@ -343,6 +343,22 @@ class QuantumChemistryRunCompleted(Event):
     """
 
     run: QuantumChemistryRun
+
+
+@dataclass(frozen=True)
+class TautomerDistributionResultReady(Event):
+    """The combined result of a tautomer-distribution operation --
+    published once, after every candidate has either succeeded or
+    failed, never per candidate (see `services/quantum_chemistry_service
+    .py`'s `request_tautomer_distribution`). `result` is a real
+    `StructureSetResult`, the same shape/renderer `enumerate_tautomers`'s
+    own result already uses, with every deduplicated candidate present as
+    its own entry whether it succeeded or failed -- see `chem/
+    tautomer_distribution.build_structure_set_result`."""
+
+    molecule_uuid: str
+    run_id: str
+    result: StructureSetResult
 
 
 @dataclass(frozen=True)

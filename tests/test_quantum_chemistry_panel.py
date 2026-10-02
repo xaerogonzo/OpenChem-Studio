@@ -25,6 +25,7 @@ class _RecordingQuantumChemistryService(QuantumChemistryService):
         self.requests: list[dict] = []
         self.boltzmann_requests: list[dict] = []
         self.reference_requests: list[tuple[str, str]] = []
+        self.tautomer_distribution_requests: list[dict] = []
 
     def request_calculation(self, **kwargs) -> None:  # noqa: D102 - test double
         self.requests.append(kwargs)
@@ -34,6 +35,9 @@ class _RecordingQuantumChemistryService(QuantumChemistryService):
 
     def request_reference_calibration(self, method_basis: str, provider_id: str = "orca") -> None:
         self.reference_requests.append((method_basis, provider_id))
+
+    def request_tautomer_distribution(self, **kwargs) -> None:  # noqa: D102 - test double
+        self.tautomer_distribution_requests.append(kwargs)
 
 
 def _make_panel():
@@ -112,6 +116,169 @@ def test_nmr_calc_type_is_offered():
     assert "NMR (raw shielding)" in [
         panel._calc_type_combo.itemText(i) for i in range(panel._calc_type_combo.count())
     ]
+
+
+# --- Tautomer Distribution button --------------------------------------
+
+
+def _cyclohexanone_molecule(engine) -> MoleculeModel:
+    molecule = MoleculeModel(display_name="Cyclohexanone")
+    engine.set_structure_from_smiles(molecule, "O=C1CCCCC1")
+    return molecule
+
+
+def test_tautomer_distribution_requires_a_structure():
+    panel, _engine, service = _make_panel()
+    panel._method_combo.setCurrentText("HF STO-3G")
+
+    panel._on_tautomer_distribution_clicked()
+
+    assert service.tautomer_distribution_requests == []
+    assert "select a molecule" in panel._status_label.text().lower()
+
+
+def test_tautomer_distribution_proceeds_without_an_existing_conformer():
+    """Unlike the main Run button, this needs no pre-generated conformer --
+    each candidate gets its own fresh 3D embedding from the 2D structure."""
+    panel, engine, service = _make_panel()
+    molecule = _cyclohexanone_molecule(engine)
+    assert not molecule.conformers
+
+    project = ProjectModel(name="Test")
+    project.molecules.append(molecule)
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+    panel._method_combo.setCurrentText("HF STO-3G")
+
+    panel._on_tautomer_distribution_clicked()
+
+    assert len(service.tautomer_distribution_requests) == 1
+    request = service.tautomer_distribution_requests[0]
+    assert request["molecule_uuid"] == molecule.uuid
+    assert len(request["candidates"]) >= 2  # cyclohexanone: at least keto + enol
+
+
+def test_tautomer_distribution_requires_a_method_basis():
+    panel, engine, service = _make_panel()
+    molecule = _cyclohexanone_molecule(engine)
+    project = ProjectModel(name="Test")
+    project.molecules.append(molecule)
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+    panel._method_combo.setCurrentText("")
+
+    panel._on_tautomer_distribution_clicked()
+
+    assert service.tautomer_distribution_requests == []
+    assert "method/basis" in panel._status_label.text().lower()
+
+
+def test_tautomer_distribution_disables_run_and_tautomer_buttons_while_pending():
+    panel, engine, service = _make_panel()
+    molecule = _cyclohexanone_molecule(engine)
+    project = ProjectModel(name="Test")
+    project.molecules.append(molecule)
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+    panel._method_combo.setCurrentText("HF STO-3G")
+
+    panel._on_tautomer_distribution_clicked()
+
+    assert panel._run_button.isEnabled() is False
+    assert panel._tautomer_distribution_button.isEnabled() is False
+    assert panel._cancel_button.isEnabled() is True
+
+
+def test_tautomer_distribution_above_threshold_asks_for_confirmation(monkeypatch):
+    import openchem.ui.panels.quantum_chemistry_panel as panel_module
+
+    panel, engine, service = _make_panel()
+    molecule = _cyclohexanone_molecule(engine)
+    project = ProjectModel(name="Test")
+    project.molecules.append(molecule)
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+    panel._method_combo.setCurrentText("HF STO-3G")
+
+    # Force the confirmation path with only a couple of real candidates --
+    # patched on the panel module, where the name was bound by its own
+    # `from ... import CONFIRMATION_THRESHOLD`, not where it originates.
+    monkeypatch.setattr(panel_module, "CONFIRMATION_THRESHOLD", 1)
+    asked = []
+    monkeypatch.setattr(
+        panel_module.QMessageBox,
+        "question",
+        staticmethod(lambda *a, **k: asked.append(a) or panel_module.QMessageBox.StandardButton.No),
+    )
+
+    panel._on_tautomer_distribution_clicked()
+
+    assert asked  # the confirmation dialog was shown
+    assert service.tautomer_distribution_requests == []  # "No" was respected
+
+
+def test_tautomer_distribution_ready_ignores_a_different_molecule(qapp):
+    from openchem.domain.common import Provenance
+    from openchem.domain.scientific_result import StructureSetResult
+    from openchem.events.events import TautomerDistributionResultReady
+
+    panel, engine, service = _make_panel()
+    molecule = _cyclohexanone_molecule(engine)
+    project = ProjectModel(name="Test")
+    project.molecules.append(molecule)
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+    panel._method_combo.setCurrentText("HF STO-3G")
+    panel._on_tautomer_distribution_clicked()
+
+    unrelated_result = StructureSetResult(
+        set_id="tautomer_distribution", name="x", method="orca", molecule_uuid="some-other-molecule",
+        provenance=Provenance(created_by="core", method="orca", parameters={}),
+    )
+    panel._on_tautomer_distribution_ready(
+        TautomerDistributionResultReady(molecule_uuid="some-other-molecule", run_id="r1", result=unrelated_result)
+    )
+
+    assert panel._results_label.text() == ""
+
+
+def test_tautomer_distribution_ready_updates_the_summary_label(qapp):
+    from openchem.domain.common import Provenance
+    from openchem.domain.scientific_result import StructureEntry, StructureSetResult
+    from openchem.events.events import TautomerDistributionResultReady
+
+    panel, engine, service = _make_panel()
+    molecule = _cyclohexanone_molecule(engine)
+    project = ProjectModel(name="Test")
+    project.molecules.append(molecule)
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+    panel._method_combo.setCurrentText("HF STO-3G")
+    panel._on_tautomer_distribution_clicked()
+
+    result = StructureSetResult(
+        set_id="tautomer_distribution",
+        name="Tautomer distribution (1)",
+        method="orca",
+        molecule_uuid=molecule.uuid,
+        entries=[StructureEntry(molblock="", label="a", energy=0.0, metadata={"status": "succeeded"})],
+        provenance=Provenance(
+            created_by="core",
+            method="orca",
+            parameters={
+                "candidate_count_succeeded": 1,
+                "candidate_count_failed": 0,
+                "validation_branch": "unvalidated",
+            },
+        ),
+    )
+    panel._on_tautomer_distribution_ready(
+        TautomerDistributionResultReady(molecule_uuid=molecule.uuid, run_id="r1", result=result)
+    )
+
+    assert "1/1" in panel._results_label.text()
+    assert "not yet validated" in panel._results_label.text().lower()
+    panel._tautomer_distribution_dialog.close()
 
 
 def test_spectrum_computed_populates_the_table(qapp):

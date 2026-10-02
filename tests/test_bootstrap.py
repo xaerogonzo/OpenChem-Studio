@@ -31,6 +31,11 @@ def test_calculator_registry_includes_docking_and_quantum_chemistry_categories(q
         # Also a compound job: the complex plus both isolated fragments,
         # because decomposing the complex alone is not a binding energy.
         "orca.led",
+        # NOT one of the CALC_TYPE_LABELS loop's own entries above -- this
+        # one dispatches N real "opt" jobs internally (one per enumerated
+        # tautomer) rather than being a single ORCA calc_type itself; see
+        # bootstrap.py's own comment on why it is registered standalone.
+        "orca.tautomer_distribution",
     }
 
     for definition in registry.by_category("docking") + registry.by_category("quantum_chemistry"):

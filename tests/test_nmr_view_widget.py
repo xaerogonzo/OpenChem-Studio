@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QApplication, QLabel, QToolBar, QWidget, QWidgetAction
 from rdkit import Chem
 
 from openchem.chem.engine import ChemistryEngine
@@ -606,3 +606,122 @@ def test_the_labels_combo_controls_the_plots_label_mode(qapp):
     view._labels_combo.setCurrentIndex(view._labels_combo.findData("none"))
     assert view._spectrum_widget.label_mode() == "none"
     assert view._table.horizontalHeaderItem(0).text() == "Shift (ppm)"
+
+
+# --- Phase H: the controls row became a QToolBar, plus Reset Zoom and
+# Copy Spectrum Image ------------------------------------------------------
+
+
+def test_the_toolbar_carries_every_existing_control_in_order(qapp):
+    """The container swap (QHBoxLayout -> QToolBar) must not drop a
+    control or its caption, or silently reorder them. Checked by the
+    project's own widgets appearing in the intended sequence, not by a
+    raw `findChildren()` comparison -- Qt can insert its own internal
+    action widgets into a QToolBar that a literal child-list equality
+    would trip over."""
+    view, _backend, _molecule, _spectrum = _make_view(qapp)
+
+    expected_order = [
+        view._element_combo,
+        view._frequency_combo,
+        view._solvent_combo,
+        view._unit_combo,
+        view._labels_combo,
+        view._smooth_check,
+        view._integral_check,
+        view._zoom_follow_check,
+    ]
+    toolbar = next(child for child in view.children() if isinstance(child, QToolBar))
+    toolbar_widgets = [
+        action.defaultWidget() for action in toolbar.actions() if isinstance(action, QWidgetAction)
+    ]
+    positions = [toolbar_widgets.index(widget) for widget in expected_order]
+    assert positions == sorted(positions), "controls are out of their original order"
+
+    captions = [w.text() for w in toolbar_widgets if isinstance(w, QLabel)]
+    assert captions == ["Nucleus:", "Frequency:", "Solvent peak:", "Unit:"]
+
+
+def test_the_toolbar_still_fires_every_controls_existing_handler(qapp):
+    """Presence isn't enough -- the swap must not have silently
+    disconnected a signal either."""
+    view, _backend, _molecule, _spectrum = _make_view(qapp)
+
+    view._frequency_combo.setCurrentIndex(1)
+    assert view._spectrum_widget._frequency_mhz == view._frequency_combo.currentData()
+
+    view._solvent_combo.setCurrentIndex(1)
+    assert view._spectrum_widget._solvent == view._solvent_combo.currentData()
+
+    view._smooth_check.setChecked(True)
+    assert view._spectrum_widget._render_mode == "smooth"
+
+    view._integral_check.setChecked(True)
+    assert view._spectrum_widget._show_integral is True
+
+
+def test_the_toolbar_swap_does_not_change_the_unit_combos_enabled_state(qapp):
+    import dataclasses
+
+    view, _backend, molecule, spectrum = _make_view(qapp)
+    assert view._unit_combo.isEnabled() is True
+
+    raw = dataclasses.replace(spectrum, spectrum_type="nmr_raw_shielding")
+    view.set_spectrum(molecule.molblock, raw)
+    assert view._unit_combo.isEnabled() is False
+
+
+def test_scroll_safe_guards_still_intercept_a_wheel_event_inside_the_toolbar(qapp):
+    """A container swap is exactly the kind of change that can alter
+    event propagation while leaving the guard object itself intact --
+    this checks the actual behaviour, not just that the guard exists."""
+    view, _backend, _molecule, _spectrum = _make_view(qapp)
+    from PySide6.QtCore import QPoint
+    from PySide6.QtGui import QWheelEvent
+
+    combo = view._frequency_combo
+    combo.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+    before = combo.currentIndex()
+    event = QWheelEvent(
+        QPoint(5, 5).toPointF(),
+        QPoint(5, 5).toPointF(),
+        QPoint(0, 0),
+        QPoint(0, 120),
+        Qt.MouseButton.NoButton,
+        Qt.KeyboardModifier.NoModifier,
+        Qt.ScrollPhase.NoScrollPhase,
+        False,
+    )
+    QApplication.sendEvent(combo, event)
+    assert combo.currentIndex() == before, "an unfocused combo inside the toolbar still scrolled"
+
+
+def test_reset_zoom_restores_the_exact_full_span_not_merely_is_zoomed_false(qapp):
+    view, _backend, _molecule, _spectrum = _make_view(qapp)
+    full_range = view._spectrum_widget.view_range()
+
+    view._on_peak_clicked(list(view.signals()[3].atom_indices))
+    assert view._spectrum_widget.is_zoomed()
+    assert view._spectrum_widget.view_range() != full_range
+
+    view._reset_zoom_action.trigger()
+
+    assert not view._spectrum_widget.is_zoomed()
+    assert view._spectrum_widget.view_range() == full_range
+
+
+def test_copy_spectrum_image_reflects_the_current_state_not_a_stale_one(qapp):
+    """Zooms first, so a future refactor that copied a cached pixmap from
+    before the state change would fail this, while a weaker test that
+    only checked "is the clipboard non-null" would not catch it."""
+    view, _backend, _molecule, _spectrum = _make_view(qapp)
+    view._on_peak_clicked(list(view.signals()[3].atom_indices))
+    expected = view._spectrum_widget.grab()
+
+    view._copy_spectrum_action.trigger()
+
+    clipboard_pixmap = QApplication.clipboard().pixmap()
+    assert not clipboard_pixmap.isNull()
+    expected_logical_size = expected.size() / expected.devicePixelRatio()
+    clipboard_logical_size = clipboard_pixmap.size() / clipboard_pixmap.devicePixelRatio()
+    assert clipboard_logical_size == expected_logical_size

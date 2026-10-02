@@ -1544,12 +1544,48 @@ frequency offset from the reference — disabled on a raw shielding result,
 since σ has no reference frequency to convert through. The **Labels**
 dropdown chooses what each peak is labelled with: chemical shifts (the
 default), the atom numbers it belongs to, or nothing at all, useful when
-two signals sit close enough to crowd each other's label.
+two signals sit close enough to crowd each other's label. The toolbar's
+**Reset Zoom** button does the same thing as double-clicking the plot;
+**Copy Spectrum Image** copies the spectrum plot itself (not the
+structure panes or the table) to the clipboard as an image.
 
 **Every numeric column header is sortable** — click one to sort by it
 (shift, integration, coupling); click again to reverse. Sorting never
 changes which signal is highlighted or selected, and a new run resets
 the table to its natural order.
+
+<!-- help:tautomer-distribution -->
+### Tautomer distribution
+
+The **Tautomers...** button runs a real ORCA geometry optimization on
+every distinct tautomer RDKit can enumerate for the current structure —
+no pre-existing 3D conformer is required, since each candidate gets its
+own fresh 3D embedding from the 2D structure. Above a handful of
+candidates it asks for confirmation first, naming the real number of ORCA
+jobs it is about to queue.
+
+The result is a **gas-phase electronic-energy Boltzmann population
+estimate**, not a full equilibrium probability: it has no vibrational,
+thermal, entropic, or solvent correction, and uses one optimized geometry
+per tautomer rather than searching each tautomer's own conformers. A
+population percentage is only shown once this has been checked against
+published reference data for its exact method, basis, and weighting —
+until then, each candidate's real relative energy is still shown, just
+not a population built from it, so you always see the real numbers
+measured even when they are not yet validated as probabilities.
+
+If any candidate's geometry optimization fails to converge, **no
+percentages are shown for any candidate** — a distribution computed over
+only the survivors would be a different, weaker claim than "the
+distribution," so the honest alternative is not a percentage at all. The
+energies that did come back are still shown, labelled as relative to the
+best of the survivors rather than the true minimum, since the failed
+candidate could have been lower still.
+
+The result opens in the same structure-grid view every other generated
+structure set (tautomers, stereoisomers, resonance forms) already uses —
+one entry per candidate, succeeded or failed, each captioned with its
+energy and, once validated, its population.
 
 <!-- help:2d-correlation -->
 ### HSQC, HMBC and COSY — connectivity, not a simulated spectrum

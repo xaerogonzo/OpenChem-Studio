@@ -4,10 +4,10 @@ import dataclasses
 import functools
 
 from openchem.app.settings import Settings
+from openchem.chem.admet_providers import ADMET_PYTHON_SETTING
 from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
 from openchem.chem.engine import ChemistryEngine
 from openchem.chem.orca_engine import CALC_TYPE_LABELS, METHOD_BASIS_PRESETS
-from openchem.chem.admet_providers import ADMET_PYTHON_SETTING
 from openchem.chem.pka_providers import PKASOLVER_PYTHON_SETTING
 from openchem.domain.calculator import (
     CalculatorDefinition,
@@ -15,16 +15,18 @@ from openchem.domain.calculator import (
     RegistryExecution,
     ServiceExecution,
 )
+from openchem.domain.calculator_support import (
+    CalculatorSupport,
+    SupportStage,
+    Visibility,
+)
 from openchem.events.base import EventBus
-from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.alignment_service import AlignmentService
+from openchem.services.atom_fact_service import AtomFactService
 from openchem.services.batch_service import BatchService
+from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.conformer_service import ConformerService
 from openchem.services.container import ServiceContainer
-from openchem.services.spatial_overlay_service import SpatialOverlayService
-from openchem.services.atom_fact_service import AtomFactService
-from openchem.services.reaction_template_service import ReactionTemplateService
-from openchem.services.structure_check_service import StructureCheckService
 from openchem.services.descriptor_service import DescriptorService
 from openchem.services.docking_service import DEFAULT_NUM_POSES, DockingService
 from openchem.services.export_service import ExportService
@@ -32,11 +34,14 @@ from openchem.services.import_service import ImportService
 from openchem.services.job_manager import JobManager
 from openchem.services.measurement_service import MeasurementService
 from openchem.services.project_service import ProjectService
-from openchem.services.recalc_scheduler import RecalcScheduler
-from openchem.services.result_store_service import ResultStoreService
 from openchem.services.qm_surface_service import QmSurfaceService
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
+from openchem.services.reaction_template_service import ReactionTemplateService
+from openchem.services.recalc_scheduler import RecalcScheduler
+from openchem.services.result_store_service import ResultStoreService
 from openchem.services.screening_service import ScreeningService
+from openchem.services.spatial_overlay_service import SpatialOverlayService
+from openchem.services.structure_check_service import StructureCheckService
 from openchem.services.table_export_service import TableExportService
 
 # Discovery-only registrations (Phase 21): Docking and QuantumChemistry run
@@ -134,6 +139,74 @@ for _label, _calc_type in CALC_TYPE_LABELS.items():
             ],
         )
     )
+
+
+# NOT in CALC_TYPE_LABELS, deliberately: "tautomer_distribution" is not a
+# real ORCA calc_type (it dispatches N real "opt" jobs internally, one per
+# candidate, via QuantumChemistryService.request_tautomer_distribution) --
+# looping it through the CALC_TYPE_LABELS block above would wrongly imply
+# it is a single ORCA job like the others. A standalone entry instead.
+_EXTERNAL_CALCULATOR_DEFINITIONS.append(
+    CalculatorDefinition(
+        calculator_id="orca.tautomer_distribution",
+        display_name="Tautomer Distribution",
+        category="quantum_chemistry",
+        description=(
+            "Gas-phase electronic-energy Boltzmann population ESTIMATE over every "
+            "tautomer RDKit can enumerate, each optimized by its own real ORCA geometry "
+            "optimization -- not a full equilibrium probability model: no vibrational, "
+            "thermal, entropic, or solvent correction, and one optimized minimum per "
+            "tautomer (no per-tautomer conformer search). A population percentage is "
+            "shown only once validated against reference data (see docs/USER_GUIDE.md's "
+            "'Tautomer distribution' topic); otherwise each candidate's real relative "
+            "energy is still shown, just not a population built from it. If any "
+            "candidate fails to converge, no percentages are shown for any of them. "
+            "Needs an ORCA executable; run from the Quantum Chemistry panel's "
+            "'Tautomers...' button -- no pre-existing 3D conformer required, since each "
+            "candidate is embedded fresh from the 2D structure."
+        ),
+        execution=ServiceExecution(
+            service_name="quantum_chemistry_service",
+            panel_name="Quantum Chemistry panel",
+            panel_id="Quantum_Chemistry",
+        ),
+        prediction_basis="ab_initio",
+        parameters=[
+            CalculatorParameter(name="charge", label="Charge", kind="int", default=0, minimum=-10, maximum=10),
+            CalculatorParameter(
+                name="multiplicity", label="Multiplicity", kind="int", default=1, minimum=1, maximum=10
+            ),
+            CalculatorParameter(
+                name="method_basis",
+                label="Method/basis",
+                kind="choice",
+                default=METHOD_BASIS_PRESETS[0],
+                choices=METHOD_BASIS_PRESETS,
+            ),
+        ],
+        # EXPERIMENTAL, honestly: this implementation is not yet validated
+        # for default use (see chem/tautomer_distribution.py -- the real,
+        # two-gate validation study against published reference data has
+        # not been run; every result ships under VALIDATION_UNVALIDATED
+        # today). Not a guess "it feels experimental" -- the scope's own
+        # seven ORCA siblings all predate this declaration and are still
+        # LEGACY_UNCLASSIFIED, but that list is a closing migration, never
+        # an open bucket a NEW calculator can be added to
+        # (test_the_legacy_list_only_shrinks) -- a calculator written today
+        # earns its own honest stage instead.
+        support=CalculatorSupport(
+            stage=SupportStage.EXPERIMENTAL,
+            default_visibility=Visibility.HIDDEN,
+            support_reason=(
+                "Not yet validated: computed populations have not been checked against "
+                "published reference data at a literature-comparable level of theory. "
+                "Every result currently ships labeled 'unvalidated' -- real relative "
+                "energies are shown, but no population percentage is."
+            ),
+            scope_note="Gas-phase electronic-energy Boltzmann estimate; needs a configured ORCA executable",
+        ),
+    )
+)
 
 
 # Conceptual-DFT descriptors are produced by ANY ORCA job (see

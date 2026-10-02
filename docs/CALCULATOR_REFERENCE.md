@@ -850,6 +850,22 @@ Single-point energy via ORCA. Produces the SCF energy. Needs an ORCA executable 
   - `multiplicity` -- Multiplicity default `1` range 1 to 10
   - `method_basis` -- Method/basis (B3LYP def2-SVP, PBE0 def2-TZVP, B3LYP 6-31G(d), B3LYP pcSseg-1, B3LYP pcSseg-2) default `B3LYP def2-SVP`
 
+<!-- help:calc-orca-tautomer-distribution -->
+### Tautomer Distribution
+
+Gas-phase electronic-energy Boltzmann population ESTIMATE over every tautomer RDKit can enumerate, each optimized by its own real ORCA geometry optimization -- not a full equilibrium probability model: no vibrational, thermal, entropic, or solvent correction, and one optimized minimum per tautomer (no per-tautomer conformer search). A population percentage is shown only once validated against reference data (see docs/USER_GUIDE.md's 'Tautomer distribution' topic); otherwise each candidate's real relative energy is still shown, just not a population built from it. If any candidate fails to converge, no percentages are shown for any of them. Needs an ORCA executable; run from the Quantum Chemistry panel's 'Tautomers...' button -- no pre-existing 3D conformer required, since each candidate is embedded fresh from the 2D structure.
+
+- Support level: **Experimental**. Hidden by default; enable it under Settings > Calculators.
+- Why: Not yet validated: computed populations have not been checked against published reference data at a literature-comparable level of theory. Every result currently ships labeled 'unvalidated' -- real relative energies are shown, but no population percentage is.
+- Covers: Gas-phase electronic-energy Boltzmann estimate; needs a configured ORCA executable.
+- Runs from the **Quantum Chemistry panel** panel rather than from a Properties button.
+- Runs on the 2D drawing, so no conformer is needed.
+- Basis: ab initio (computed from theory rather than fitted).
+- Options:
+  - `charge` -- Charge default `0` range -10 to 10
+  - `multiplicity` -- Multiplicity default `1` range 1 to 10
+  - `method_basis` -- Method/basis (B3LYP def2-SVP, PBE0 def2-TZVP, B3LYP 6-31G(d), B3LYP pcSseg-1, B3LYP pcSseg-2) default `B3LYP def2-SVP`
+
 ## Thermophysical
 
 <!-- help:calc-joback-properties -->

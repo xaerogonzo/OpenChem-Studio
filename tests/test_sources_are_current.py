@@ -1169,6 +1169,11 @@ _PROVENANCE_DEBT = frozenset({
     "src/openchem/chem/analytics.py",
     "src/openchem/chem/atom_report.py",
     "src/openchem/chem/boltzmann.py",
+    # Boltzmann statistics (textbook stat mech, same reason boltzmann.py
+    # above is debt, not sourced) applied to candidates from RDKit's own
+    # tautomer enumerator (same reason structure_generators.py below is
+    # debt) -- no single paper backs the combination.
+    "src/openchem/chem/tautomer_distribution.py",
     "src/openchem/chem/bond_report.py",
     "src/openchem/chem/comparison.py",
     # IMPLEMENTS NO METHOD. It folds several reports into one

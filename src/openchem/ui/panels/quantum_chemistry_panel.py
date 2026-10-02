@@ -8,6 +8,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
+    QDialog,
     QFormLayout,
     QHeaderView,
     QInputDialog,
@@ -17,24 +18,27 @@ from PySide6.QtWidgets import (
     QPlainTextEdit,
     QPushButton,
     QSpinBox,
-    QTabWidget,
     QTableWidget,
     QTableWidgetItem,
+    QTabWidget,
     QToolButton,
     QVBoxLayout,
     QWidget,
     QWidgetAction,
 )
 
+from openchem.app.settings import Settings
 from openchem.chem.calculation_input import (
     canonical_conformer,
     resolve_calculation_input,
     resolve_ensemble,
 )
-from openchem.domain.calculator import ENSEMBLE, GEOMETRY
-from openchem.app.settings import Settings
 from openchem.chem.engine import ChemistryEngine
-from openchem.chem.nmr_correlation import compute_cosy_pairs, compute_hmbc_pairs, compute_hsqc_pairs
+from openchem.chem.nmr_correlation import (
+    compute_cosy_pairs,
+    compute_hmbc_pairs,
+    compute_hsqc_pairs,
+)
 from openchem.chem.orca_engine import (
     CALC_TYPE_LABELS,
     METHOD_BASIS_PRESETS,
@@ -43,6 +47,11 @@ from openchem.chem.orca_engine import (
     default_cores,
     find_mpi_bin,
 )
+from openchem.chem.tautomer_distribution import (
+    CONFIRMATION_THRESHOLD,
+    generate_tautomer_candidates,
+)
+from openchem.domain.calculator import ENSEMBLE, GEOMETRY
 from openchem.domain.compare import ComparedResult, CompareRefusal, compare
 from openchem.domain.project import ProjectModel
 from openchem.domain.scientific_result import (
@@ -60,21 +69,30 @@ from openchem.events.events import (
     QuantumChemistryJobStateChanged,
     QuantumChemistryResultReady,
     SpectrumComputed,
+    TautomerDistributionResultReady,
 )
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
 from openchem.ui.dialogs.compare_results_dialog import CompareResultsDialog
 from openchem.ui.dialogs.settings_dialog import EXTERNAL_TOOLS, SettingsDialog
 from openchem.ui.molecule_combo import repopulate, select
-from openchem.ui.widgets.empty_state import empty_state, empty_state_text, is_empty_state
+from openchem.ui.widgets.empty_state import (
+    empty_state,
+    empty_state_text,
+    is_empty_state,
+)
+from openchem.ui.widgets.esp_compare_widget import EspCompareWidget
 from openchem.ui.widgets.flow_layout import flow_row
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
-from openchem.ui.widgets.esp_compare_widget import EspCompareWidget
 from openchem.ui.widgets.ir_view_widget import IrViewWidget
-from openchem.ui.widgets.pop_out_host import PopOutHost
-from openchem.ui.widgets.nmr_correlation_plot_widget import NmrCorrelationPlotWidget, Peak
+from openchem.ui.widgets.nmr_correlation_plot_widget import (
+    NmrCorrelationPlotWidget,
+    Peak,
+)
 from openchem.ui.widgets.nmr_view_widget import NmrViewWidget
-from openchem.ui.widgets.sortable_item import SortableItem
+from openchem.ui.widgets.pop_out_host import PopOutHost
 from openchem.ui.widgets.scroll_safe import make_scroll_safe
+from openchem.ui.widgets.sortable_item import SortableItem
+from openchem.ui.widgets.structure_grid_widget import StructureGridWidget
 
 _NMR_SPECTRUM_COLUMNS = ("Atom", "Element", "Value (ppm)")
 _CORRELATION_COLUMNS = ("Atom A", "Atom B", "Shift A", "Shift B", "J (Hz)")
@@ -336,6 +354,26 @@ _HELP: dict[str, HelpTooltip] = {
         help_id="quantum.boltzmann_averaging",
         topic="quantum-chemistry",
         help_anchor="limits-nmr",
+    ),
+    "tautomer_distribution": HelpTooltip(
+        text=(
+            "Runs a real ORCA geometry optimization on every distinct tautomer RDKit can "
+            "enumerate, then Boltzmann-weights their electronic energies into a population "
+            "estimate.\n\n"
+            "This is a gas-phase ELECTRONIC-ENERGY estimate, not a full equilibrium "
+            "probability -- no vibrational, thermal, entropic, or solvent correction, and "
+            "one optimized minimum per tautomer (no per-tautomer conformer search).\n\n"
+            "If a percentage is shown, it has been checked against published reference "
+            "data; if not, you still see each candidate's real relative energy, just not "
+            "a population built from it. If any candidate fails to converge, no "
+            "percentages are shown for any of them -- the real energies for the ones that "
+            "did succeed are still reported, labelled as relative to the best of the "
+            "survivors rather than the true minimum."
+        ),
+        tier=3,
+        help_id="quantum.tautomer_distribution",
+        topic="quantum-chemistry",
+        help_anchor="tautomer-distribution",
     ),
     "correlation_contours": HelpTooltip(
         text=(
@@ -765,6 +803,15 @@ class QuantumChemistryPanel(QWidget):
         self._boltzmann_check = QCheckBox("Average over all conformers (Boltzmann)", self)
         apply_help_tooltip(self._boltzmann_check, _HELP["boltzmann_averaging"])
 
+        # A separate button, not a Run modifier like Boltzmann above: this
+        # produces a structurally different result (a set of candidate
+        # tautomers with their own energies/populations), not a spectrum,
+        # and runs N independent geometry optimizations rather than one
+        # calculation at the panel's selected calc_type.
+        self._tautomer_distribution_button = QPushButton("Tautomers...", self)
+        apply_help_tooltip(self._tautomer_distribution_button, _HELP["tautomer_distribution"])
+        self._tautomer_distribution_button.clicked.connect(self._on_tautomer_distribution_clicked)
+
         self._configure_button = QPushButton("Configure ORCA...", self)
         apply_help_tooltip(self._configure_button, _HELP["configure_orca"])
         self._configure_button.clicked.connect(self._on_configure_clicked)
@@ -1118,6 +1165,7 @@ class QuantumChemistryPanel(QWidget):
         run_row.layout().addWidget(self._more_button)
         run_row.layout().addWidget(self._run_button)
         run_row.layout().addWidget(self._cancel_button)
+        run_row.layout().addWidget(self._tautomer_distribution_button)
 
         # "Currently viewing," separate from the form above it ("calculation
         # to run"): selecting a run here must never look like it changed
@@ -1165,7 +1213,7 @@ class QuantumChemistryPanel(QWidget):
         self._reset_empty_states()
 
     def _subscribe_to_events(self, event_bus: EventBus) -> None:
-        """The seven events this panel listens for."""
+        """The eight events this panel listens for."""
         event_bus.subscribe(QuantumChemistryJobStateChanged, self._on_job_state_changed)
         event_bus.subscribe(QuantumChemistryResultReady, self._on_result_ready)
         event_bus.subscribe(SpectrumComputed, self._on_spectrum_computed)
@@ -1173,6 +1221,7 @@ class QuantumChemistryPanel(QWidget):
         event_bus.subscribe(NmrReferenceCalibrated, self._on_reference_calibrated)
         event_bus.subscribe(NmrScalingCalibrated, self._on_scaling_calibrated)
         event_bus.subscribe(MoleculeSelected, self._on_molecule_selected)
+        event_bus.subscribe(TautomerDistributionResultReady, self._on_tautomer_distribution_ready)
 
     def set_project(self, project: ProjectModel | None) -> None:
         self._project = project
@@ -1577,6 +1626,108 @@ class QuantumChemistryPanel(QWidget):
         if self._pending_molecule_uuid is not None:
             self._quantum_chemistry_service.cancel(self._pending_molecule_uuid)
 
+    def _on_tautomer_distribution_clicked(self) -> None:
+        """Enumerates, deduplicates and embeds every distinct tautomer of
+        the current molecule (`chem.tautomer_distribution
+        .generate_tautomer_candidates`), confirms the cost if there are
+        more than a few, and hands the embedded candidates to
+        `QuantumChemistryService.request_tautomer_distribution`.
+
+        Unlike the main Run button, this needs no PRE-EXISTING conformer
+        on the molecule -- each candidate gets its own fresh 3D embedding
+        from the 2D structure, which is exactly what `generate_tautomer_
+        candidates` does. Only a real 2D structure is required.
+        """
+        molecule = self._current_molecule()
+        if molecule is None or not molecule.molblock:
+            self._status_label.setText("Select a molecule with a structure first.")
+            return
+        method_basis = self._effective_method_basis()
+        if not method_basis:
+            self._status_label.setText("Enter a method/basis (e.g. 'B3LYP def2-SVP').")
+            return
+
+        mol = self._chemistry_engine.mol_from_molblock(molecule.molblock)
+        candidates, embedding_failures = generate_tautomer_candidates(mol)
+        if not candidates:
+            message = "No tautomer candidates could be generated for this molecule."
+            if embedding_failures:
+                message += f" ({embedding_failures} failed to embed in 3D.)"
+            self._status_label.setText(message)
+            return
+
+        if len(candidates) > CONFIRMATION_THRESHOLD:
+            answer = QMessageBox.question(
+                self,
+                "Run tautomer distribution?",
+                f"This will run {len(candidates)} real ORCA geometry optimizations, "
+                f"one per enumerated tautomer. This can take a long time. Continue?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                return
+
+        self._pending_molecule_uuid = molecule.uuid
+        self._pending_mol = mol
+        self._pending_molblock = molecule.molblock
+        self._pending_conformer_molblock = ""
+        self._optimized_conformer_molblock = ""
+        self._run_button.setEnabled(False)
+        self._tautomer_distribution_button.setEnabled(False)
+        self._cancel_button.setEnabled(True)
+        self._output_log.clear()
+        self._results_label.setText("")
+        self._spectrum_table.setRowCount(0)
+        self._spectrum_table.setVisible(False)
+        self._spectrum_note_label.setVisible(False)
+        self._correlation_tabs.setVisible(False)
+        self._reset_empty_states()
+        self._status_label.setText(
+            f"queued -- {len(candidates)} tautomer candidate(s)"
+            + (f", {embedding_failures} embedding failure(s) excluded" if embedding_failures else "")
+        )
+
+        self._quantum_chemistry_service.request_tautomer_distribution(
+            candidates=candidates,
+            molecule_uuid=molecule.uuid,
+            charge=self._charge_spin.value(),
+            multiplicity=self._multiplicity_spin.value(),
+            method_basis=method_basis,
+        )
+
+    def _on_tautomer_distribution_ready(self, event: TautomerDistributionResultReady) -> None:
+        if event.molecule_uuid != self._pending_molecule_uuid:
+            return
+        params = event.result.provenance.parameters if event.result.provenance else {}
+        succeeded = params.get("candidate_count_succeeded", 0)
+        failed = params.get("candidate_count_failed", 0)
+        total = len(event.result.entries)
+        summary = f"Tautomer distribution: {succeeded}/{total} candidate(s) succeeded"
+        if failed:
+            summary += (
+                f" ({failed} failed -- no population percentages shown; "
+                f"energies below are relative to the best of the survivors, not the true minimum)"
+            )
+        elif params.get("validation_branch") == "validated":
+            temperature = params.get("temperature_k", "?")
+            summary += (
+                f" -- populations validated against reference data. Electronic-energy "
+                f"Boltzmann population estimate, gas phase, {temperature} K -- excludes "
+                f"vibrational, entropic, solvent, and conformational contributions."
+            )
+        else:
+            summary += " -- energies and populations are NOT yet validated against reference data."
+        self._results_label.setText(summary)
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Tautomer Distribution")
+        layout = QVBoxLayout(dialog)
+        layout.addWidget(StructureGridWidget(self._chemistry_engine, event.result, dialog))
+        dialog.resize(800, 600)
+        dialog.show()
+        self._tautomer_distribution_dialog = dialog  # keep a reference so it isn't garbage-collected
+
     def _effective_method_basis(self) -> str:
         """The full ORCA `!` header body -- method/basis plus the CPCM
         solvent keyword when one is selected.
@@ -1745,6 +1896,7 @@ class QuantumChemistryPanel(QWidget):
             self._correlation_tabs.setCurrentWidget(self._output_log)
         if event.state.value in ("completed", "failed"):
             self._run_button.setEnabled(True)
+            self._tautomer_distribution_button.setEnabled(True)
             self._cancel_button.setEnabled(False)
             if event.state.value == "failed":
                 # Stay on the log: it is where the reason is, and every
