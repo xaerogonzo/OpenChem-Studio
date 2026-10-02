@@ -698,6 +698,9 @@ class QuantumChemistryPanel(QWidget):
         # test that builds this panel standalone depends on.
         self._open_help = open_help
         self._help_window = None
+        # The open tautomer-distribution window, kept so it is not garbage
+        # collected; None until one has been opened.
+        self._tautomer_distribution_dialog = None
         # Optional, and after `parent` so every existing positional call
         # site keeps working. Without it the Surfaces tab says why it is
         # empty rather than not existing -- a missing tab reads as a
@@ -1820,6 +1823,12 @@ class QuantumChemistryPanel(QWidget):
             )
         else:
             summary += " -- energies and populations are NOT yet validated against reference data."
+        if params.get("stereo_ambiguous"):
+            summary += (
+                " Stereochemistry the structure leaves unspecified was fixed to one "
+                "configuration for every candidate (the others were not computed), "
+                "so the energies describe that configuration only."
+            )
         return summary
 
     def _open_tautomer_distribution_dialog(self, result) -> None:

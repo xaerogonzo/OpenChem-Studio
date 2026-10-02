@@ -2090,3 +2090,22 @@ def test_wrapping_a_view_does_not_change_the_tabs_content_classification(qapp):
         host.isAncestorOf(widget) for widget in [state]
     ), "the placeholder must not have ended up inside the host"
     _dispose_panel(panel)
+
+
+def test_the_tautomer_summary_says_when_unspecified_stereo_was_fixed():
+    """The dialog's own text, not just the Results entry: it is what the user
+    reads beside the energies the stereo choice affects."""
+    from openchem.domain.common import Provenance
+    from openchem.domain.scientific_result import StructureSetResult
+
+    def summary(**parameters):
+        base = {"candidate_count_succeeded": 3, "candidate_count_failed": 0}
+        base.update(parameters)
+        result = StructureSetResult(
+            set_id="orca.tautomer_distribution", name="t", method="orca", molecule_uuid="m",
+            entries=[], provenance=Provenance(created_by="core", method="orca", parameters=base),
+        )
+        return QuantumChemistryPanel._tautomer_distribution_summary(result)
+
+    assert "fixed to one configuration" in summary(stereo_ambiguous=True)
+    assert "fixed to one configuration" not in summary(stereo_ambiguous=False)
