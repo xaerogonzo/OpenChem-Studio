@@ -63,6 +63,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   before this). "Atom indices" uses the same one-based display numbering already used throughout the app (Atom Inspector, `report_format.py`),
   not the raw 0-based RDKit index. "None" is the direct fix for two signals close enough to crowd each other's label.
 
+### NMR viewer toolbar: Reset Zoom, Copy Spectrum Image (branch `nmr-toolbar-and-tautomers`)
+
+- **The NMR viewer's loose row of combo boxes and checkboxes is now a `QToolBar`**, carrying every existing control (Nucleus, Frequency,
+  Solvent peak, Unit, Labels, Smooth rendering, Relative integral, Zoom to selection) unchanged -- same widgets, same wiring, just a different
+  container. Fixed (not movable/floatable), since this toolbar lives inside a docked panel rather than a main window.
+- **Reset Zoom** and **Copy Spectrum Image** are two small, previously-missing actions now on that toolbar: Reset Zoom restores the full
+  spectrum span (until now only reachable via double-click or wheeling back out); Copy Spectrum Image copies the spectrum plot itself
+  (not the structure panes or the table) to the system clipboard as an image.
+
 ### Quantum Chemistry panel: run history, chart UX, help, scroll fix (branch `qc-panel-run-history`)
 
 - **A calculation result now survives save/reload, and running a new calc_type no longer discards the last one.** Every ORCA job (NMR,

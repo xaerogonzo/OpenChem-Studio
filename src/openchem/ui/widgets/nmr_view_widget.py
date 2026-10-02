@@ -1,16 +1,19 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QAction
 from PySide6.QtSvgWidgets import QSvgWidget
 from PySide6.QtWidgets import (
+    QApplication,
     QCheckBox,
     QComboBox,
-    QHBoxLayout,
     QHeaderView,
     QLabel,
+    QSizePolicy,
     QSplitter,
     QTableWidget,
     QTableWidgetItem,
+    QToolBar,
     QVBoxLayout,
     QWidget,
 )
@@ -200,20 +203,44 @@ class NmrViewWidget(QWidget):
         self._labels_combo.currentIndexChanged.connect(self._on_label_mode_changed)
         self._scroll_safe_guards.append(make_scroll_safe(self._labels_combo))
 
-        element_row = QHBoxLayout()
-        element_row.addWidget(QLabel("Nucleus:", self))
-        element_row.addWidget(self._element_combo)
-        element_row.addWidget(QLabel("Frequency:", self))
-        element_row.addWidget(self._frequency_combo)
-        element_row.addWidget(QLabel("Solvent peak:", self))
-        element_row.addWidget(self._solvent_combo)
-        element_row.addWidget(QLabel("Unit:", self))
-        element_row.addWidget(self._unit_combo)
-        element_row.addWidget(self._labels_combo)
-        element_row.addWidget(self._smooth_check)
-        element_row.addWidget(self._integral_check)
-        element_row.addWidget(self._zoom_follow_check)
-        element_row.addStretch()
+        # A QToolBar, not the QHBoxLayout this row used to be -- every
+        # control below is the SAME widget, same attribute name, same
+        # signal connection as before; this is a container swap, not a
+        # rewire. Not movable/floatable: this toolbar lives inside a
+        # docked panel widget, not a QMainWindow, and nothing about it
+        # calls for the user being able to drag or detach it.
+        toolbar = QToolBar(self)
+        toolbar.setMovable(False)
+        toolbar.setFloatable(False)
+        toolbar.addWidget(QLabel("Nucleus:", self))
+        toolbar.addWidget(self._element_combo)
+        toolbar.addWidget(QLabel("Frequency:", self))
+        toolbar.addWidget(self._frequency_combo)
+        toolbar.addWidget(QLabel("Solvent peak:", self))
+        toolbar.addWidget(self._solvent_combo)
+        toolbar.addWidget(QLabel("Unit:", self))
+        toolbar.addWidget(self._unit_combo)
+        toolbar.addWidget(self._labels_combo)
+        toolbar.addWidget(self._smooth_check)
+        toolbar.addWidget(self._integral_check)
+        toolbar.addWidget(self._zoom_follow_check)
+        # QToolBar has no QBoxLayout.addStretch() equivalent -- an
+        # expanding spacer widget reproduces the old row's trailing
+        # stretch, pushing Reset Zoom/Copy Spectrum Image to the right as
+        # actions distinct from the settings controls to their left.
+        spacer = QWidget(self)
+        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        toolbar.addWidget(spacer)
+
+        self._reset_zoom_action = QAction("Reset Zoom", self)
+        self._reset_zoom_action.setToolTip("Restore the full spectrum span")
+        self._reset_zoom_action.triggered.connect(self._on_reset_zoom_clicked)
+        toolbar.addAction(self._reset_zoom_action)
+
+        self._copy_spectrum_action = QAction("Copy Spectrum Image", self)
+        self._copy_spectrum_action.setToolTip("Copy the spectrum plot as an image")
+        self._copy_spectrum_action.triggered.connect(self._on_copy_spectrum_image_clicked)
+        toolbar.addAction(self._copy_spectrum_action)
 
         # Nested, not one flat splitter: the 2D/3D pair is its own
         # resizable pair before it is one pane of the outer one, so
@@ -243,7 +270,7 @@ class NmrViewWidget(QWidget):
         layout = QVBoxLayout(self)
         layout.addWidget(self._header_label)
         layout.addWidget(self._coupling_note_label)
-        layout.addLayout(element_row)
+        layout.addWidget(toolbar)
         layout.addWidget(self._main_splitter)
 
     def set_spectrum(
@@ -308,6 +335,16 @@ class NmrViewWidget(QWidget):
 
     def _on_label_mode_changed(self, _index: int) -> None:
         self._spectrum_widget.set_label_mode(self._labels_combo.currentData())
+
+    def _on_reset_zoom_clicked(self) -> None:
+        self._spectrum_widget.reset_view()
+
+    def _on_copy_spectrum_image_clicked(self) -> None:
+        """Copies the spectrum PLOT only, not the structure panes or the
+        table -- Marvin's own "copy any panel as an image" is ambiguous
+        about scope; this picks the one Marvin wording actually calls the
+        "spectrum" and names the action accordingly."""
+        QApplication.clipboard().setPixmap(self._spectrum_widget.grab())
 
     def _rebuild_signals(self) -> None:
         if self._spectrum is None or self._mol is None:

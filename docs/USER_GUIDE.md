@@ -1544,7 +1544,10 @@ frequency offset from the reference — disabled on a raw shielding result,
 since σ has no reference frequency to convert through. The **Labels**
 dropdown chooses what each peak is labelled with: chemical shifts (the
 default), the atom numbers it belongs to, or nothing at all, useful when
-two signals sit close enough to crowd each other's label.
+two signals sit close enough to crowd each other's label. The toolbar's
+**Reset Zoom** button does the same thing as double-clicking the plot;
+**Copy Spectrum Image** copies the spectrum plot itself (not the
+structure panes or the table) to the clipboard as an image.
 
 **Every numeric column header is sortable** — click one to sort by it
 (shift, integration, coupling); click again to reverse. Sorting never
