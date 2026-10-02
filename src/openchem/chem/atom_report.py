@@ -338,7 +338,18 @@ def collect_per_atom_data(mol: Any, index: int, context: dict) -> list[AtomFact]
 
 
 def collect_spectra(mol: Any, index: int, context: dict) -> list[AtomFact]:
-    """NMR shieldings and any other per-nucleus spectrum already computed."""
+    """NMR shieldings and any other per-nucleus spectrum already computed.
+
+    **A VIBRATIONAL SPECTRUM STRUCTURALLY CANNOT PRODUCE A FACT HERE, BY
+    DESIGN, NOT BY OVERSIGHT.** `VibrationalSpectrumResult.values` is
+    deliberately always `{}` (its own docstring: a vibrational peak is a
+    property of a normal mode, not of one atom), so `index not in
+    spectrum.values` is unconditionally `True` for every atom and every
+    such spectrum -- this loop already, correctly, emits zero facts for
+    it with no type check needed. `molecule_report.py::collect_spectra`
+    is the molecule-level counterpart that emits an `ir_view` fact
+    instead (Phase K of the NMR/ORCA wiring plan).
+    """
     spectra: Iterable[SpectrumResult] = context.get("spectra", {}).values()
     facts: list[AtomFact] = []
     for spectrum in spectra:

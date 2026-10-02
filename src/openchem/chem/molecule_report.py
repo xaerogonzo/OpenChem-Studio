@@ -13,6 +13,7 @@ computed. An empty context gives a short report, not a slow one.
 
 from __future__ import annotations
 
+import logging
 from typing import Any, Callable, Iterable
 
 from rdkit import Chem
@@ -20,7 +21,10 @@ from rdkit.Chem import Descriptors, rdMolDescriptors
 
 from openchem.domain.molecule_report import MoleculeReport
 from openchem.domain.report import Fact, FactCategory, FactLink
+from openchem.domain.scientific_result import NMRSpectrumResult, VibrationalSpectrumResult
 from openchem.domain.structure_issue import Basis
+
+logger = logging.getLogger("openchem.chemistry")
 
 _ASSUMPTIONS: tuple[str, ...] = (
     "Assembled from results this session already had. Nothing here starts "
@@ -285,19 +289,51 @@ def collect_lewis(mol: Any, _context: dict) -> list[Fact]:
 
 
 def collect_spectra(_mol: Any, context: dict) -> list[Fact]:
-    """Which spectra exist, not their contents."""
+    """Which spectra exist, not their contents.
+
+    **`context["spectra"]` IS A `dict[str, SpectrumResult]`** keyed by
+    spectrum_type (`atom_inspector_panel._on_spectrum` is the only writer,
+    and it is type-agnostic -- NMR and vibrational spectra land in the
+    same dict identically). Iterating it directly used to yield its KEYS
+    (strings), not the spectrum objects -- every emitted fact silently
+    read `getattr("some_key_string", "name", "")` as `""` and "0 predicted
+    shifts" regardless of the real spectrum, for every spectrum type,
+    unconditionally. Never caught because nothing exercised this path --
+    fixed alongside adding the vibrational/IR case below.
+
+    **EXPLICIT TYPE DISPATCH, NEVER AN UNCONDITIONAL ELSE.** A `vibrational:
+    ... else: nmr` shape would silently mislabel a future third
+    `SpectrumResult` subclass as NMR. Both known types check their own
+    type explicitly; anything else is skipped with a logged warning.
+    """
     facts: list[Fact] = []
-    for spectrum in context.get("spectra", ()) or ():
+    for spectrum in context.get("spectra", {}).values():
         name = getattr(spectrum, "name", "") or getattr(spectrum, "spectrum_type", "")
-        values = getattr(spectrum, "values", {}) or {}
-        facts.append(
-            _fact(
-                FactCategory.SPECTROSCOPY, name, spectrum,
-                f"{len(values)} predicted shifts",
-                getattr(spectrum, "method", "spectrum"),
-                link=FactLink(target="nmr_view", params={}, label="Open NMR"),
+        if isinstance(spectrum, NMRSpectrumResult):
+            values = getattr(spectrum, "values", {}) or {}
+            facts.append(
+                _fact(
+                    FactCategory.SPECTROSCOPY, name, spectrum,
+                    f"{len(values)} predicted shifts",
+                    getattr(spectrum, "method", "spectrum"),
+                    link=FactLink(target="nmr_view", params={}, label="Open NMR"),
+                )
             )
-        )
+        elif isinstance(spectrum, VibrationalSpectrumResult):
+            facts.append(
+                _fact(
+                    FactCategory.SPECTROSCOPY, name, spectrum,
+                    f"{len(spectrum.modes)} vibrational modes",
+                    getattr(spectrum, "method", "spectrum"),
+                    link=FactLink(target="ir_view", params={}, label="Open IR"),
+                )
+            )
+        else:
+            logger.warning("No report fact for unrecognized spectrum type %s", type(spectrum).__name__)
+    # Deterministic order regardless of dict-construction/insertion order --
+    # a report's fact order is part of its contract, not an accident of
+    # which spectrum happened to be computed first.
+    facts.sort(key=lambda fact: fact.label)
     return facts
 
 

@@ -308,6 +308,7 @@ def test_every_surface_that_emits_a_link_is_connected_to_the_router():
         "_link_to_atom_report",
         "_link_to_calculator_inspector",
         "_link_to_nmr_view",
+        "_link_to_ir_view",
     ],
 )
 def test_every_handler_returns_a_bool_on_every_path(handler):

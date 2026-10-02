@@ -14,6 +14,12 @@ from rdkit.Chem import AllChem
 
 from openchem.chem.molecule_report import build_molecule_report
 from openchem.domain.report import FactCategory
+from openchem.domain.scientific_result import (
+    NMRSpectrumResult,
+    SpectrumResult,
+    VibrationalMode,
+    VibrationalSpectrumResult,
+)
 
 ASPIRIN = "CC(=O)Oc1ccccc1C(=O)O"
 
@@ -263,3 +269,101 @@ def test_the_report_indexes_its_own_atoms_and_bonds():
     report = build_molecule_report(mol("CCCCC"))
     assert report.atom_count == 5
     assert report.bond_count == 4
+
+
+# --- spectra (Phase K: the iteration bug, and the new IR case) ----------
+
+
+def _nmr_spectrum(spectrum_type: str = "nmr_1h") -> NMRSpectrumResult:
+    return NMRSpectrumResult(
+        spectrum_type=spectrum_type, name="1H NMR", units="ppm", method="orca",
+        molecule_uuid="m1", values={0: 1.2, 1: 7.3},
+    )
+
+
+def _vibrational_spectrum() -> VibrationalSpectrumResult:
+    return VibrationalSpectrumResult(
+        spectrum_type="ir", name="IR", units="cm-1", method="orca", molecule_uuid="m1",
+        modes=(
+            VibrationalMode(wavenumber_cm1=1700.0, ir_intensity_km_mol=50.0),
+            VibrationalMode(wavenumber_cm1=3000.0, ir_intensity_km_mol=10.0),
+        ),
+    )
+
+
+def test_no_spectra_key_produces_no_spectroscopy_facts():
+    report = build_molecule_report(mol())
+    assert [f for f in report.facts if f.category is FactCategory.SPECTROSCOPY] == []
+
+
+def test_an_empty_spectra_dict_produces_no_spectroscopy_facts():
+    report = build_molecule_report(mol(), context={"spectra": {}})
+    assert [f for f in report.facts if f.category is FactCategory.SPECTROSCOPY] == []
+
+
+def test_one_nmr_spectrum_produces_one_correctly_labelled_fact():
+    """THE ITERATION BUG, DIRECTLY: `context["spectra"]` is a real
+    `dict[str, SpectrumResult]` here (production shape), not a bare list --
+    the old code iterated it directly and silently read its KEYS as
+    spectrum objects, so every fact showed an empty label and "0 predicted
+    shifts" regardless of the real spectrum. This is the regression test
+    for that exact bug, not just for the feature being added alongside it.
+    """
+    spectrum = _nmr_spectrum()
+    report = build_molecule_report(mol(), context={"spectra": {"nmr_1h": spectrum}})
+
+    facts = [f for f in report.facts if f.category is FactCategory.SPECTROSCOPY]
+    assert len(facts) == 1
+    assert facts[0].label == "1H NMR"
+    assert facts[0].display_value == "2 predicted shifts"
+    assert facts[0].link.target == "nmr_view"
+
+
+def test_one_vibrational_spectrum_produces_one_ir_fact():
+    spectrum = _vibrational_spectrum()
+    report = build_molecule_report(mol(), context={"spectra": {"ir": spectrum}})
+
+    facts = [f for f in report.facts if f.category is FactCategory.SPECTROSCOPY]
+    assert len(facts) == 1
+    assert facts[0].label == "IR"
+    assert facts[0].display_value == "2 vibrational modes"
+    assert facts[0].link.target == "ir_view"
+
+
+def test_both_spectrum_types_together_produce_two_correctly_typed_facts():
+    nmr = _nmr_spectrum()
+    ir = _vibrational_spectrum()
+    report = build_molecule_report(mol(), context={"spectra": {"nmr_1h": nmr, "ir": ir}})
+
+    facts = {f.label: f for f in report.facts if f.category is FactCategory.SPECTROSCOPY}
+    assert set(facts) == {"1H NMR", "IR"}
+    assert facts["1H NMR"].link.target == "nmr_view"
+    assert facts["IR"].link.target == "ir_view"
+
+
+def test_spectroscopy_fact_order_is_deterministic_regardless_of_dict_order():
+    nmr = _nmr_spectrum()
+    ir = _vibrational_spectrum()
+    report_a = build_molecule_report(mol(), context={"spectra": {"nmr_1h": nmr, "ir": ir}})
+    report_b = build_molecule_report(mol(), context={"spectra": {"ir": ir, "nmr_1h": nmr}})
+
+    labels_a = [f.label for f in report_a.facts if f.category is FactCategory.SPECTROSCOPY]
+    labels_b = [f.label for f in report_b.facts if f.category is FactCategory.SPECTROSCOPY]
+    assert labels_a == labels_b
+
+
+def test_an_unrecognized_spectrum_type_is_skipped_never_routed_to_nmr():
+    """The direct regression test for explicit-dispatch over an
+    `isinstance(vibrational): ... else: nmr` shape: a third `SpectrumResult`
+    subclass neither branch recognizes must be silently skipped, never
+    silently treated as NMR just because it isn't vibrational."""
+
+    class _FutureSpectrumKind(SpectrumResult):
+        pass
+
+    unknown = _FutureSpectrumKind(
+        spectrum_type="uv_vis", name="UV-Vis", units="nm", method="orca", molecule_uuid="m1",
+    )
+    report = build_molecule_report(mol(), context={"spectra": {"uv_vis": unknown}})
+
+    assert [f for f in report.facts if f.category is FactCategory.SPECTROSCOPY] == []
