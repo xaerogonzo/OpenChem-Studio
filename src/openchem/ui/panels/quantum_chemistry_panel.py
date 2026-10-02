@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
 from openchem.app.settings import Settings
 from openchem.chem.calculation_input import (
     canonical_conformer,
+    input_fingerprint,
     resolve_calculation_input,
     resolve_ensemble,
 )
@@ -51,7 +52,7 @@ from openchem.chem.tautomer_distribution import (
     CONFIRMATION_THRESHOLD,
     generate_tautomer_candidates,
 )
-from openchem.domain.calculator import ENSEMBLE, GEOMETRY
+from openchem.domain.calculator import DRAWING, ENSEMBLE, GEOMETRY
 from openchem.domain.compare import ComparedResult, CompareRefusal, compare
 from openchem.domain.project import ProjectModel
 from openchem.domain.scientific_result import (
@@ -582,6 +583,18 @@ _HELP: dict[str, HelpTooltip] = {
         topic="quantum-chemistry",
         help_anchor="quantum-chemistry",
     ),
+    "view_tautomer_distribution": HelpTooltip(
+        text=(
+            "Reopens the selected run's tautomer-distribution result -- the "
+            "same structure grid shown when the run first finished. Enabled "
+            "only when the currently selected run actually computed a "
+            "tautomer distribution; opening it never recomputes anything."
+        ),
+        tier=2,
+        help_id="quantum.view_tautomer_distribution",
+        topic="quantum-chemistry",
+        help_anchor="quantum-chemistry",
+    ),
 }
 
 #: Column position -> key in `_HELP`, per table. The correlation tuple is
@@ -867,6 +880,14 @@ class QuantumChemistryPanel(QWidget):
         self._compare_runs_button = QPushButton("Compare NMR Shifts...", self)
         apply_help_tooltip(self._compare_runs_button, _HELP["compare_runs"])
         self._compare_runs_button.clicked.connect(self._on_compare_runs_clicked)
+        # Enabled per-run by `_render_run`/`_clear_run_display`, not by
+        # `_set_runs_controls_enabled` -- unlike the two buttons above,
+        # this one is meaningful only for a run that actually carries a
+        # tautomer-distribution result, not for QC history in general.
+        self._view_tautomer_distribution_button = QPushButton("View Tautomer Distribution...", self)
+        apply_help_tooltip(self._view_tautomer_distribution_button, _HELP["view_tautomer_distribution"])
+        self._view_tautomer_distribution_button.clicked.connect(self._on_view_tautomer_distribution_clicked)
+        self._view_tautomer_distribution_button.setEnabled(False)
         self._set_runs_controls_enabled(False)
 
         # ONE affordance for the whole tab strip, not one per tab -- it
@@ -1178,6 +1199,7 @@ class QuantumChemistryPanel(QWidget):
         runs_row.layout().addWidget(self._runs_combo)
         runs_row.layout().addWidget(self._delete_run_button)
         runs_row.layout().addWidget(self._compare_runs_button)
+        runs_row.layout().addWidget(self._view_tautomer_distribution_button)
 
         # THE RESULTS COME FIRST, AND THE LOG IS COLLAPSED UNDERNEATH.
         #
@@ -1289,9 +1311,18 @@ class QuantumChemistryPanel(QWidget):
 
     def _run_label(self, run) -> str:
         when = time.strftime("%Y-%m-%d %H:%M", time.localtime(run.started_at))
-        calc_label = next(
-            (label for label, key in CALC_TYPE_LABELS.items() if key == run.calc_type), run.calc_type
-        )
+        # "tautomer_distribution" is deliberately NOT in CALC_TYPE_LABELS
+        # (bootstrap.py's own comment: it dispatches N real "opt" jobs
+        # internally, it is not itself a single ORCA calc_type) -- a small
+        # explicit special-case here, not an addition to that dict, which
+        # also drives the uniform per-calc-type CalculatorDefinition
+        # registration loop.
+        if run.calc_type == "tautomer_distribution":
+            calc_label = "Tautomer Distribution"
+        else:
+            calc_label = next(
+                (label for label, key in CALC_TYPE_LABELS.items() if key == run.calc_type), run.calc_type
+            )
         return f"{calc_label} · {run.method_basis} · {when}"
 
     def _set_runs_controls_enabled(self, enabled: bool) -> None:
@@ -1406,7 +1437,16 @@ class QuantumChemistryPanel(QWidget):
         self._reset_empty_states()
         self._results_label.setText("")
         self._display_mol = None
+        self._view_tautomer_distribution_button.setEnabled(False)
         self._clear_tab_status_indicators()
+
+    def _on_view_tautomer_distribution_clicked(self) -> None:
+        if self._active_run is None:
+            return
+        result = self._active_run.results.get("tautomer_distribution")
+        if result is None:
+            return
+        self._open_tautomer_distribution_dialog(result)
 
     def _clear_tab_status_indicators(self) -> None:
         for index, title in self._tab_status_titles.items():
@@ -1489,6 +1529,20 @@ class QuantumChemistryPanel(QWidget):
         vibrational = run.results.get("vibrational_spectrum")
         if vibrational is not None:
             self._update_ir_view(vibrational)
+
+        # Silent, like every branch above -- NEVER auto-opens the dialog.
+        # `_render_run` fires on every plain molecule selection (not only
+        # an explicit Runs-combo pick), and the dialog is non-modal with
+        # only the newest reference kept, so popping one here would
+        # interrupt an unrelated molecule switch and leak every earlier
+        # dialog as an orphaned window. The summary text is enough to show
+        # something was computed; "View Tautomer Distribution..." (wired
+        # in `_build_form_and_layout`) is the explicit, discoverable way
+        # to reopen it.
+        tautomer_distribution = run.results.get("tautomer_distribution")
+        if tautomer_distribution is not None:
+            self._results_label.setText(self._tautomer_distribution_summary(tautomer_distribution))
+        self._view_tautomer_distribution_button.setEnabled(tautomer_distribution is not None)
 
         self._update_surfaces_view()
 
@@ -1694,15 +1748,26 @@ class QuantumChemistryPanel(QWidget):
             charge=self._charge_spin.value(),
             multiplicity=self._multiplicity_spin.value(),
             method_basis=method_basis,
+            calculation_input=DRAWING,
+            input_fingerprint=input_fingerprint(self._chemistry_engine, molecule, DRAWING),
         )
 
     def _on_tautomer_distribution_ready(self, event: TautomerDistributionResultReady) -> None:
         if event.molecule_uuid != self._pending_molecule_uuid:
             return
-        params = event.result.provenance.parameters if event.result.provenance else {}
+        self._results_label.setText(self._tautomer_distribution_summary(event.result))
+        self._open_tautomer_distribution_dialog(event.result)
+
+    @staticmethod
+    def _tautomer_distribution_summary(result) -> str:
+        """The one-line status text for a tautomer-distribution
+        `StructureSetResult` -- shared by the live-finish path
+        (`_on_tautomer_distribution_ready`) and the historical-run path
+        (`_render_run`), so the two can never drift apart."""
+        params = result.provenance.parameters if result.provenance else {}
         succeeded = params.get("candidate_count_succeeded", 0)
         failed = params.get("candidate_count_failed", 0)
-        total = len(event.result.entries)
+        total = len(result.entries)
         summary = f"Tautomer distribution: {succeeded}/{total} candidate(s) succeeded"
         if failed:
             summary += (
@@ -1718,12 +1783,17 @@ class QuantumChemistryPanel(QWidget):
             )
         else:
             summary += " -- energies and populations are NOT yet validated against reference data."
-        self._results_label.setText(summary)
+        return summary
 
+    def _open_tautomer_distribution_dialog(self, result) -> None:
+        """Opens the structure-grid dialog for a tautomer-distribution
+        result -- shared by the live-finish path and the "View Tautomer
+        Distribution..." button (historical runs, see `_render_run`), so
+        there is exactly one implementation of this window."""
         dialog = QDialog(self)
         dialog.setWindowTitle("Tautomer Distribution")
         layout = QVBoxLayout(dialog)
-        layout.addWidget(StructureGridWidget(self._chemistry_engine, event.result, dialog))
+        layout.addWidget(StructureGridWidget(self._chemistry_engine, result, dialog))
         dialog.resize(800, 600)
         dialog.show()
         self._tautomer_distribution_dialog = dialog  # keep a reference so it isn't garbage-collected

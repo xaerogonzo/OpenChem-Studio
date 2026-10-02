@@ -28,6 +28,7 @@ from openchem.chem.tautomer_distribution import (
     generate_tautomer_candidates,
     model_version,
 )
+from openchem.domain.result_store import result_id_of
 
 CYCLOHEXANONE = "O=C1CCCCC1"  # keto <-> enol, the same fixture test_phase27_structures.py uses
 
@@ -281,6 +282,24 @@ def test_build_structure_set_result_includes_every_candidate_succeeded_or_not():
     assert result.provenance.parameters["candidate_count_succeeded"] == 1
     assert result.provenance.parameters["candidate_count_failed"] == 1
     assert result.provenance.parameters["parent_run_id"] == "run-1"
+
+
+def test_build_structure_set_result_set_id_matches_the_registered_calculator_id():
+    """`property_panel.py`'s documented invariant: a generator's `set_id`
+    equals its registered `calculator_id` ("orca.tautomer_distribution",
+    `bootstrap.py`) exactly -- never the bare "tautomer_distribution",
+    which is a different namespace (the QC-run `results` dict key
+    `_render_run` reads). A mismatch here would silently file this result
+    under the "other" Properties category instead of "quantum_chemistry",
+    and would make `make_identity`/`result_id_of` disagree with the
+    registered calculator."""
+    outcome = build_outcome(
+        [CandidateResult("a", _molblock("CCO"), CandidateStatus.SUCCEEDED, absolute_energy_hartree=-100.0)]
+    )
+    result = build_structure_set_result(outcome, "mol-1", "HF def2-SVP", run_id="run-1")
+
+    assert result.set_id == "orca.tautomer_distribution"
+    assert result_id_of(result) == "orca.tautomer_distribution"
 
 
 def _complete_outcome():
