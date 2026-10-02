@@ -1710,7 +1710,12 @@ class QuantumChemistryPanel(QWidget):
                 f"energies below are relative to the best of the survivors, not the true minimum)"
             )
         elif params.get("validation_branch") == "validated":
-            summary += " -- populations validated against reference data."
+            temperature = params.get("temperature_k", "?")
+            summary += (
+                f" -- populations validated against reference data. Electronic-energy "
+                f"Boltzmann population estimate, gas phase, {temperature} K -- excludes "
+                f"vibrational, entropic, solvent, and conformational contributions."
+            )
         else:
             summary += " -- energies and populations are NOT yet validated against reference data."
         self._results_label.setText(summary)
