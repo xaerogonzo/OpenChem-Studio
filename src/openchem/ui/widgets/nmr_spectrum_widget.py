@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from PySide6.QtCore import QEvent, QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QMouseEvent, QPainter, QPainterPath, QPen, QWheelEvent
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QToolTip, QWidget
 
 from openchem.chem.nmr_signals import (
     _RELATIVE_FREQUENCY,
     DEFAULT_FREQUENCY_MHZ,
     RESIDUAL_SOLVENT_PEAKS,
     NMRSignal,
+    compact_multiplet_label,
     lorentzian_envelope,
     multiplet_lines,
 )
@@ -96,6 +97,11 @@ class NmrSpectrumWidget(QWidget):
         #: just reads more like one.
         self._render_mode = "sticks"
         self._show_integral = False
+        #: Display-only: `multiplet_lines`/`lorentzian_envelope` both
+        #: short-circuit to a single line per signal when this is True,
+        #: never touching `coupling_groups`/`multiplicity`. A pure viewer
+        #: preference, not navigation state (see `_view_range`'s own note).
+        self._decoupled = False
         #: "ppm" or "hz" -- display-only, never the plot's internal working
         #: unit (always ppm, see `view_range()`). Forced back to "ppm" by
         #: every consumer whenever `self._shielding` is True: a raw
@@ -135,6 +141,13 @@ class NmrSpectrumWidget(QWidget):
     def set_show_integral(self, show: bool) -> None:
         self._show_integral = bool(show)
         self.update()
+
+    def set_decoupled(self, decoupled: bool) -> None:
+        self._decoupled = bool(decoupled)
+        self.update()
+
+    def is_decoupled(self) -> bool:
+        return self._decoupled
 
     def set_signals(
         self, signals: list[NMRSignal], x_label: str = "δ", shielding: bool = False
@@ -308,8 +321,12 @@ class NmrSpectrumWidget(QWidget):
         can extend visibly away from the centre. Uses the min/max of its
         own drawn lines (`multiplet_lines`, the same positions the plot
         itself renders), padded so the whole pattern reads clearly rather
-        than filling the plot edge to edge."""
-        lines = multiplet_lines(signal, self._frequency_mhz)
+        than filling the plot edge to edge.
+
+        Honors `self._decoupled` -- while decoupled, this zooms to the
+        single collapsed line actually on screen, not a splitting pattern
+        that isn't currently being drawn."""
+        lines = multiplet_lines(signal, self._frequency_mhz, decoupled=self._decoupled)
         shifts = [ppm for ppm, _intensity in lines]
         low, high = min(shifts), max(shifts)
         padding = max((high - low) * 0.75, 0.3)
@@ -424,6 +441,27 @@ class NmrSpectrumWidget(QWidget):
         # already use, so it automatically tracks a zoomed/panned
         # viewport with no separate conversion path.
         self._update_hover(event.position(), plot_rect)
+        self._update_multiplet_tooltip(event)
+
+    def _update_multiplet_tooltip(self, event: QMouseEvent) -> None:
+        """Explicit `QToolTip.showText`/`hideText`, not a passive
+        `setToolTip()` call -- `setToolTip()` only arms Qt's own
+        hover-delay mechanism, which is not guaranteed to immediately
+        refresh an already-visible tooltip when the cursor moves directly
+        from one hit region to an adjacent one with no widget-level leave/
+        enter in between (both belong to this same widget, so none fires).
+        Explicit calls make every transition (signal -> signal, signal ->
+        empty space, widget leave) an immediate, deterministic update
+        instead of relying on Qt's hover-delay heuristics to notice a
+        changed static property. Uses `signal_at`/`hit_regions`, the same
+        machinery the click handler and the cursor readout already use, so
+        the tooltip can never name a signal the cursor isn't actually over."""
+        hovered = self.signal_at(event.position().x(), event.position().y())
+        if hovered is not None:
+            label = f"First-order pattern: {compact_multiplet_label(hovered)}"
+            QToolTip.showText(event.globalPosition().toPoint(), label, self)
+        else:
+            QToolTip.hideText()
 
     def _update_hover(self, position: QPointF, plot_rect: QRectF) -> None:
         """Cleared whenever the cursor is outside the actual plot
@@ -439,6 +477,7 @@ class NmrSpectrumWidget(QWidget):
     def leaveEvent(self, event: QEvent) -> None:  # noqa: N802 - Qt override naming
         self._hover_ppm = None
         self.update()
+        QToolTip.hideText()
         super().leaveEvent(event)
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802 - Qt override naming
@@ -546,7 +585,9 @@ class NmrSpectrumWidget(QWidget):
                 # total intensity, so a quartet and a singlet of the same
                 # integration still enclose the same area -- which is what
                 # integration means.
-                for line_shift, intensity in multiplet_lines(signal, self._frequency_mhz):
+                for line_shift, intensity in multiplet_lines(
+                    signal, self._frequency_mhz, decoupled=self._decoupled
+                ):
                     line_x = self._to_widget_x(line_shift, plot_rect, x_range)
                     height = full_height * intensity
                     painter.drawLine(
@@ -585,7 +626,7 @@ class NmrSpectrumWidget(QWidget):
         self, painter: QPainter, plot_rect: QRectF, x_range: tuple[float, float], label_height: float
     ) -> None:
         xs = self._sample_grid(x_range)
-        ys = lorentzian_envelope(self._signals, xs, self._frequency_mhz)
+        ys = lorentzian_envelope(self._signals, xs, self._frequency_mhz, decoupled=self._decoupled)
         scale = (plot_rect.height() - label_height) / (max(ys) or 1.0)
 
         painter.setPen(QPen(_PEAK_COLOR, 1))
@@ -599,7 +640,9 @@ class NmrSpectrumWidget(QWidget):
             # its own peak), because the point is "how much of the total
             # curve is this signal", not "what does this signal look like
             # alone".
-            highlighted_ys = lorentzian_envelope(highlighted_signals, xs, self._frequency_mhz)
+            highlighted_ys = lorentzian_envelope(
+                highlighted_signals, xs, self._frequency_mhz, decoupled=self._decoupled
+            )
             painter.setPen(QPen(_HIGHLIGHT_COLOR, 3))
             painter.drawPath(self._curve_path(xs, highlighted_ys, plot_rect, x_range, scale))
 
@@ -626,7 +669,9 @@ class NmrSpectrumWidget(QWidget):
             label = self._peak_label_text(signal)
             if label is None:
                 continue
-            height = lorentzian_envelope(self._signals, [signal.shift], self._frequency_mhz)[0] * scale
+            height = lorentzian_envelope(
+                self._signals, [signal.shift], self._frequency_mhz, decoupled=self._decoupled
+            )[0] * scale
             centre_x = self._to_widget_x(signal.shift, plot_rect, x_range)
             painter.drawText(
                 QRectF(centre_x - 30, plot_rect.bottom() - height - label_height, 60, label_height),
@@ -643,7 +688,7 @@ class NmrSpectrumWidget(QWidget):
         continuous curve to integrate regardless of how the peaks above it
         are drawn."""
         xs = self._sample_grid(x_range)
-        ys = lorentzian_envelope(self._signals, xs, self._frequency_mhz)
+        ys = lorentzian_envelope(self._signals, xs, self._frequency_mhz, decoupled=self._decoupled)
         cumulative = [0.0] * len(xs)
         acc = 0.0
         for index in range(1, len(xs)):

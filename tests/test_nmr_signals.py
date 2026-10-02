@@ -15,6 +15,7 @@ from openchem.chem.nmr_signals import (
     align_mol_to_spectrum,
     are_diastereotopic,
     build_nmr_signals,
+    compact_multiplet_label,
     depiction_atoms,
     lorentzian_envelope,
     multiplet_lines,
@@ -833,6 +834,96 @@ def test_a_propylene_glycol_shaped_four_group_signal_produces_32_raw_components(
     assert len(lines) <= raw_count
     assert len(lines) == raw_count  # these particular J's happen not to collide
     assert sum(intensity for _s, intensity in lines) == pytest.approx(1.0)
+
+
+# --- decoupled display (Phase L) -----------------------------------------
+
+
+def test_decoupled_collapses_any_multi_group_signal_to_a_singlet():
+    signal = NMRSignal(
+        shift=4.10, atom_indices=[0], integration=1, multiplicity="m",
+        coupling_groups=((3, 6.3), (1, 10.6), (1, 8.2), (1, 3.4)),
+    )
+    assert multiplet_lines(signal, 400.0, decoupled=True) == [(4.10, 1.0)]
+
+
+def test_decoupled_matches_the_no_coupling_groups_shape_exactly():
+    """Decoupling is output-shape-identical to an uncoupled singlet, by
+    construction -- not merely "also one line", the exact same tuple."""
+    coupled = NMRSignal(
+        shift=1.15, atom_indices=[0], integration=3, multiplicity="d",
+        coupling_groups=((1, 7.0),),
+    )
+    uncoupled = NMRSignal(shift=1.15, atom_indices=[0], integration=3, multiplicity="s")
+    assert multiplet_lines(coupled, 400.0, decoupled=True) == multiplet_lines(uncoupled, 400.0)
+
+
+def test_decoupled_false_is_the_default_and_changes_nothing():
+    signal = NMRSignal(
+        shift=1.15, atom_indices=[0], integration=3, multiplicity="d",
+        coupling_groups=((1, 7.0),),
+    )
+    assert multiplet_lines(signal, 400.0) == multiplet_lines(signal, 400.0, decoupled=False)
+    assert len(multiplet_lines(signal, 400.0)) == 2  # still a real doublet
+
+
+def test_decoupled_never_mutates_the_signal():
+    signal = NMRSignal(
+        shift=4.10, atom_indices=[0], integration=1, multiplicity="m",
+        coupling_groups=((3, 6.3), (1, 10.6)),
+    )
+    before = (signal.multiplicity, signal.coupling_groups, signal.integration)
+    multiplet_lines(signal, 400.0, decoupled=True)
+    assert (signal.multiplicity, signal.coupling_groups, signal.integration) == before
+
+
+def test_lorentzian_envelope_decoupled_preserves_total_area():
+    """Decoupling changes line positions/composition, not total intensity
+    -- the same area-preservation invariant Phase F already proved for the
+    coupled case."""
+    signal = NMRSignal(
+        shift=4.10, atom_indices=[0], integration=2.5, multiplicity="m",
+        coupling_groups=((3, 6.3), (1, 10.6), (1, 8.2), (1, 3.4)),
+    )
+    xs = [3.0 + 0.0002 * i for i in range(20000)]  # wide, fine grid around the signal
+    ys = lorentzian_envelope([signal], xs, 400.0, decoupled=True)
+    area = sum(ys) * (xs[1] - xs[0])
+    assert area == pytest.approx(signal.integration, rel=0.02)
+
+
+# --- compact multiplet label (Phase L) ------------------------------------
+
+
+def test_compact_label_of_a_clean_quartet_is_q():
+    signal = NMRSignal(
+        shift=2.31, atom_indices=[0], integration=1, multiplicity="sx",
+        coupling_groups=((3, 7.0),),
+    )
+    assert compact_multiplet_label(signal) == "q"
+
+
+def test_compact_label_of_the_propylene_glycol_four_group_signal():
+    """Asserted against this fixture's ACTUAL `coupling_groups`, not a
+    hardcoded string chosen to match -- sorted |J| descending: 10.6(d),
+    8.2(d), 6.3(q), 3.4(d)."""
+    signal = NMRSignal(
+        shift=4.10, atom_indices=[0], integration=1, multiplicity="m",
+        coupling_groups=((3, 6.3), (1, 10.6), (1, 8.2), (1, 3.4)),
+    )
+    assert compact_multiplet_label(signal) == "ddqd"
+
+
+def test_compact_label_falls_back_to_multiplicity_with_no_coupling_groups():
+    signal = NMRSignal(shift=7.26, atom_indices=[0], integration=1, multiplicity="s")
+    assert compact_multiplet_label(signal) == "s"
+
+
+def test_compact_label_uses_the_n_line_fallback_past_the_septet_ceiling():
+    signal = NMRSignal(
+        shift=1.0, atom_indices=[0], integration=1, multiplicity="m",
+        coupling_groups=((8, 7.0),),  # 9 lines -- past "sp" (septet, count=6)
+    )
+    assert compact_multiplet_label(signal) == "(9-line)"
 
 
 def test_a_negative_tiny_j_still_produces_the_correct_numeric_separation():

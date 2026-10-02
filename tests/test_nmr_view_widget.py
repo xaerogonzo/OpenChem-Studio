@@ -628,6 +628,7 @@ def test_the_toolbar_carries_every_existing_control_in_order(qapp):
         view._unit_combo,
         view._labels_combo,
         view._smooth_check,
+        view._decoupled_check,
         view._integral_check,
         view._zoom_follow_check,
     ]
@@ -655,6 +656,9 @@ def test_the_toolbar_still_fires_every_controls_existing_handler(qapp):
 
     view._smooth_check.setChecked(True)
     assert view._spectrum_widget._render_mode == "smooth"
+
+    view._decoupled_check.setChecked(True)
+    assert view._spectrum_widget.is_decoupled() is True
 
     view._integral_check.setChecked(True)
     assert view._spectrum_widget._show_integral is True

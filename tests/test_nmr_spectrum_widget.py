@@ -5,6 +5,7 @@ from conftest import ink
 from PySide6.QtCore import QEvent, QPoint, QPointF, QRectF, Qt
 from PySide6.QtGui import QMouseEvent
 from PySide6.QtTest import QTest
+from PySide6.QtWidgets import QToolTip
 
 from openchem.chem.nmr_signals import NMRSignal, multiplet_lines
 from openchem.ui.widgets.nmr_spectrum_widget import NmrSpectrumWidget
@@ -725,3 +726,195 @@ def test_a_signal_gets_exactly_one_label_regardless_of_render_mode(qapp):
         # `self._signals`, never `multiplet_lines(signal, ...)`'s own
         # per-line list, in either render mode.
         assert len([s for s in widget._signals if s is signal]) == 1
+
+
+# --- Phase L: coupled/decoupled display toggle ----------------------------
+
+
+def _multi_group_signal() -> NMRSignal:
+    return NMRSignal(
+        shift=4.10, atom_indices=[0], integration=1, multiplicity="m",
+        coupling_groups=((3, 6.3), (1, 10.6), (1, 8.2), (1, 3.4)),
+    )
+
+
+def test_a_fresh_widget_is_not_decoupled(qapp):
+    assert NmrSpectrumWidget().is_decoupled() is False
+
+
+def test_set_decoupled_changes_what_is_drawn(qapp):
+    """`ink()` is this project's own established way to prove drawn
+    content changed without scraping pixel-exact geometry (see `test_an_
+    extra_signal_puts_more_ink_on_the_canvas`) -- deliberately `!=` rather
+    than a specific direction: a many-line coupled pattern splits its
+    total intensity across many SHORT sticks, so it is not guaranteed to
+    paint more raw ink than one TALL collapsed one; what matters is that
+    toggling `_decoupled` demonstrably changes the painted output."""
+    signal = _multi_group_signal()
+    assert len(multiplet_lines(signal, 400.0)) > 1  # real splitting, coupled
+
+    coupled_widget = NmrSpectrumWidget([signal])
+    coupled_widget.resize(400, 250)
+    coupled_ink = ink(coupled_widget)
+
+    decoupled_widget = NmrSpectrumWidget([signal])
+    decoupled_widget.resize(400, 250)
+    decoupled_widget.set_decoupled(True)
+    decoupled_ink = ink(decoupled_widget)
+
+    assert decoupled_widget.is_decoupled() is True
+    assert decoupled_ink != coupled_ink
+
+
+def test_toggling_decoupled_back_off_restores_the_full_pattern(qapp):
+    signal = _multi_group_signal()
+    widget = NmrSpectrumWidget([signal])
+    widget.resize(400, 250)
+    coupled_lines = multiplet_lines(signal, widget._frequency_mhz, decoupled=widget.is_decoupled())
+
+    widget.set_decoupled(True)
+    assert widget.is_decoupled() is True
+    widget.set_decoupled(False)
+
+    assert widget.is_decoupled() is False
+    restored_lines = multiplet_lines(signal, widget._frequency_mhz, decoupled=widget.is_decoupled())
+    assert restored_lines == coupled_lines
+    assert len(restored_lines) > 1
+
+
+def test_zoom_to_signal_while_decoupled_zooms_to_the_collapsed_position(qapp):
+    """The real regression target: zooming to a signal while decoupled
+    must zoom to the single collapsed line actually drawn, not the full
+    (undrawn) multiplet extent.
+
+    Needs a LARGE J (unrealistic, deliberately): `zoom_to_signal` pads by
+    `max(0.75 * natural_span, 0.3)` -- with ordinary J's the 0.3 ppm floor
+    dominates for both a tight multiplet and a true singlet alike, so the
+    two cases would look the same regardless of whether `_decoupled` was
+    honored. A J large enough to push the coupled span's own 0.75x factor
+    past that floor is what actually distinguishes the two."""
+    signal = NMRSignal(
+        shift=4.10, atom_indices=[0], integration=1, multiplicity="d",
+        coupling_groups=((1, 1000.0),),  # 2.5 ppm spacing at 400 MHz
+    )
+    widget = NmrSpectrumWidget([signal])
+    widget.resize(400, 250)
+
+    widget.set_decoupled(False)
+    widget.zoom_to_signal(signal)
+    coupled_low, coupled_high = widget.view_range()
+    coupled_span = coupled_high - coupled_low
+
+    widget.set_decoupled(True)
+    widget.zoom_to_signal(signal)
+    low, high = widget.view_range()
+    span = high - low
+
+    assert span < coupled_span
+    # Centred on the collapsed single line, not dragged toward either of
+    # the (undrawn, while decoupled) doublet's two real line positions.
+    assert low < signal.shift < high
+
+
+def test_decoupled_never_mutates_the_source_signal(qapp):
+    """Snapshot the scientific data, render in every mode, and confirm
+    none of it changed -- a renderer must never mutate what it is asked
+    to draw."""
+    signal = _multi_group_signal()
+    before = (signal.multiplicity, signal.coupling_groups, signal.integration)
+    widget = NmrSpectrumWidget([signal])
+    widget.resize(400, 250)
+
+    for render_mode in ("sticks", "smooth"):
+        widget.set_render_mode(render_mode)
+        for decoupled in (False, True, False):
+            widget.set_decoupled(decoupled)
+            _paint(widget)
+
+    assert (signal.multiplicity, signal.coupling_groups, signal.integration) == before
+
+
+# --- Phase L: first-order compound pattern tooltip ------------------------
+
+
+def test_hovering_a_signal_shows_its_compact_pattern_tooltip(qapp, monkeypatch):
+    calls = []
+    monkeypatch.setattr(QToolTip, "showText", staticmethod(lambda pos, text, widget: calls.append(text)))
+    monkeypatch.setattr(QToolTip, "hideText", staticmethod(lambda: calls.append(None)))
+
+    widget = _widget_with_signals()  # 1H signals at 1.0 and 9.0 ppm, both plain singlets
+    region, signal = widget.hit_regions()[0]
+
+    widget.mouseMoveEvent(_hover_event(region.center()))
+
+    assert calls[-1] == "First-order pattern: s"
+
+
+def test_moving_directly_between_two_signals_updates_the_tooltip_immediately(qapp, monkeypatch):
+    """THE DIRECT REGRESSION TEST for the adjacent-region-transition
+    concern: moving from signal A's hit region straight to signal B's,
+    with no intervening move to empty space, must still show B's own
+    label -- a passive `setToolTip()` is not guaranteed to refresh here,
+    which is exactly why this uses explicit `showText` calls instead."""
+    calls = []
+    monkeypatch.setattr(QToolTip, "showText", staticmethod(lambda pos, text, widget: calls.append(text)))
+    monkeypatch.setattr(QToolTip, "hideText", staticmethod(lambda: calls.append(None)))
+
+    widget = _widget_with_signals()
+    region_a, _signal_a = widget.hit_regions()[0]
+    region_b, _signal_b = widget.hit_regions()[1]
+
+    widget.mouseMoveEvent(_hover_event(region_a.center()))
+    widget.mouseMoveEvent(_hover_event(region_b.center()))  # directly, no move to empty space first
+
+    assert calls == ["First-order pattern: s", "First-order pattern: s"]
+    # Both are plain singlets here, so assert the CALL happened per move
+    # (the direct regression), not merely that the final text is right.
+
+
+def test_moving_to_empty_space_hides_the_tooltip(qapp, monkeypatch):
+    calls = []
+    monkeypatch.setattr(QToolTip, "showText", staticmethod(lambda pos, text, widget: calls.append(("show", text))))
+    monkeypatch.setattr(QToolTip, "hideText", staticmethod(lambda: calls.append(("hide", None))))
+
+    widget = _widget_with_signals()
+    region, _signal = widget.hit_regions()[0]
+    widget.mouseMoveEvent(_hover_event(region.center()))
+    assert calls[-1][0] == "show"
+
+    empty = QPointF(widget._plot_rect().left() + 2, widget._plot_rect().top() + 2)
+    widget.mouseMoveEvent(_hover_event(empty))
+
+    assert calls[-1] == ("hide", None)
+
+
+def test_leaving_the_widget_hides_the_tooltip(qapp, monkeypatch):
+    calls = []
+    monkeypatch.setattr(QToolTip, "showText", staticmethod(lambda pos, text, widget: calls.append(("show", text))))
+    monkeypatch.setattr(QToolTip, "hideText", staticmethod(lambda: calls.append(("hide", None))))
+
+    widget = _widget_with_signals()
+    region, _signal = widget.hit_regions()[0]
+    widget.mouseMoveEvent(_hover_event(region.center()))
+    assert calls[-1][0] == "show"
+
+    widget.leaveEvent(QEvent(QEvent.Type.Leave))
+
+    assert calls[-1] == ("hide", None)
+
+
+def test_the_tooltip_label_matches_the_signals_real_coupling_groups(qapp, monkeypatch):
+    """Not just "a" tooltip -- the RIGHT one, derived from this signal's
+    own `coupling_groups`, for a signal with real splitting."""
+    calls = []
+    monkeypatch.setattr(QToolTip, "showText", staticmethod(lambda pos, text, widget: calls.append(text)))
+    monkeypatch.setattr(QToolTip, "hideText", staticmethod(lambda: calls.append(None)))
+
+    signal = _multi_group_signal()
+    widget = NmrSpectrumWidget([signal])
+    widget.resize(400, 250)
+    region, _signal_at_region = widget.hit_regions()[0]
+
+    widget.mouseMoveEvent(_hover_event(region.center()))
+
+    assert calls[-1] == "First-order pattern: ddqd"

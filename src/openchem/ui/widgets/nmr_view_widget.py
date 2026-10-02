@@ -174,6 +174,13 @@ class NmrViewWidget(QWidget):
         # not a recompute.
         self._smooth_check = QCheckBox("Smooth rendering", self)
         self._smooth_check.toggled.connect(self._on_render_mode_toggled)
+        # A pure display switch -- `NmrSpectrumWidget.set_decoupled` never
+        # touches `coupling_groups`/`multiplicity`, so this computes
+        # nothing new and stores no project state (see that method's own
+        # docstring). Grouped with `_smooth_check` -- the two rendering-
+        # mode toggles -- ahead of the independent integral/zoom checks.
+        self._decoupled_check = QCheckBox("Decoupled", self)
+        self._decoupled_check.toggled.connect(self._spectrum_widget.set_decoupled)
         self._integral_check = QCheckBox("Relative integral", self)
         self._integral_check.toggled.connect(self._spectrum_widget.set_show_integral)
         # Default on, matching Marvin's own "Zoom Follows Selection" --
@@ -222,6 +229,7 @@ class NmrViewWidget(QWidget):
         toolbar.addWidget(self._unit_combo)
         toolbar.addWidget(self._labels_combo)
         toolbar.addWidget(self._smooth_check)
+        toolbar.addWidget(self._decoupled_check)
         toolbar.addWidget(self._integral_check)
         toolbar.addWidget(self._zoom_follow_check)
         # QToolBar has no QBoxLayout.addStretch() equivalent -- an
