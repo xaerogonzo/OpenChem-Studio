@@ -15,7 +15,9 @@ from openchem.chem.tautomer_distribution import (
     DEFAULT_MAX_CANDIDATES,
     FAILURE_OPTIMIZATION_NOT_CONVERGED,
     HARTREE_TO_KCAL_PER_MOL,
+    VALIDATION_RANKING_ONLY,
     VALIDATION_UNVALIDATED,
+    VALIDATION_VALIDATED,
     CandidateResult,
     CandidateStatus,
     _embed_candidate,
@@ -281,8 +283,8 @@ def test_build_structure_set_result_includes_every_candidate_succeeded_or_not():
     assert result.provenance.parameters["parent_run_id"] == "run-1"
 
 
-def test_build_structure_set_result_carries_the_population_score_when_complete():
-    outcome = build_outcome(
+def _complete_outcome():
+    return build_outcome(
         [
             CandidateResult("a", _molblock("CCO"), CandidateStatus.SUCCEEDED, absolute_energy_hartree=-100.0),
             CandidateResult(
@@ -290,10 +292,36 @@ def test_build_structure_set_result_carries_the_population_score_when_complete()
             ),
         ]
     )
-    result = build_structure_set_result(outcome, "mol-1", "HF def2-SVP", run_id="run-2")
+
+
+def test_build_structure_set_result_withholds_score_until_actually_validated():
+    """The scientific-integrity gap a prior draft of this module had:
+    `outcome.populations` is real and computed as soon as the run is
+    complete, but `StructureGridWidget`'s shared caption renders any
+    non-None `score` directly with no awareness of validation state -- so
+    an unvalidated (the default) or ranking-only result must never put a
+    number there, even though the real population IS known and complete."""
+    result = build_structure_set_result(
+        _complete_outcome(), "mol-1", "HF def2-SVP", run_id="run-2", validation_branch=VALIDATION_UNVALIDATED
+    )
+    assert all(entry.score is None for entry in result.entries)
+    # Not lost, just not displayed -- retained for audit under its own key.
+    assert all(entry.metadata["population_unvalidated"] is not None for entry in result.entries)
+
+    ranking_only = build_structure_set_result(
+        _complete_outcome(), "mol-1", "HF def2-SVP", run_id="run-3", validation_branch=VALIDATION_RANKING_ONLY
+    )
+    assert all(entry.score is None for entry in ranking_only.entries)
+
+
+def test_build_structure_set_result_carries_the_population_score_once_validated():
+    result = build_structure_set_result(
+        _complete_outcome(), "mol-1", "HF def2-SVP", run_id="run-2", validation_branch=VALIDATION_VALIDATED
+    )
     assert all(entry.score is not None for entry in result.entries)
     assert sum(entry.score for entry in result.entries) == pytest.approx(1.0)
     assert result.provenance.parameters["complete"] is True
+    assert result.provenance.parameters["validation_branch"] == VALIDATION_VALIDATED
 
 
 def test_build_structure_set_result_orders_ascending_energy_with_failures_last():

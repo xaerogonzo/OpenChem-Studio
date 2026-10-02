@@ -333,8 +333,15 @@ def build_structure_set_result(
 
     `StructureEntry.score` carries the normalized population (0..1, the
     field this project's own docstring already earmarks for "a relative
-    weight") -- never a separately-scaled 0..100 value, and never set at
-    all unless `outcome.populations` is not `None`. `StructureEntry.energy`
+    weight") -- but **only once `validation_branch` is
+    `VALIDATION_VALIDATED`**. `StructureGridWidget`'s shared caption
+    renders any non-`None` `score` directly (`f"score {entry.score:.2f}"`)
+    with no awareness of validation state, so this is the one place that
+    gate has to be enforced -- an unvalidated or ranking-only result's
+    real population is still computed (point 7) but is retained only in
+    `metadata["population_unvalidated"]`, never in the field the shared
+    grid actually displays, so nothing that looks like a percentage
+    reaches the screen before it has been validated. `StructureEntry.energy`
     carries the relative energy in kcal/mol, labeled by `outcome.
     energy_label` at the result level so a reader knows whether it is the
     complete-set ΔE or a survivor-relative one (Design point 5's trap).
@@ -353,9 +360,14 @@ def build_structure_set_result(
             metadata["failure_reason_code"] = candidate.failure_reason_code
             label = f"{label} (failed: {candidate.failure_reason_code})"
 
-        population = None
+        raw_population = None
         if outcome.populations is not None:
-            population = outcome.populations.get(candidate.fingerprint)
+            raw_population = outcome.populations.get(candidate.fingerprint)
+        # Computed and real, but withheld from the displayed `score` field
+        # until the model is actually validated -- see the docstring above.
+        population = raw_population if validation_branch == VALIDATION_VALIDATED else None
+        if raw_population is not None:
+            metadata["population_unvalidated"] = raw_population
         energy = outcome.relative_energy_kcal_mol.get(candidate.fingerprint)
 
         entries.append(
