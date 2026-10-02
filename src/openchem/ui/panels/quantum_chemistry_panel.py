@@ -69,6 +69,7 @@ from openchem.events.events import (
     QmSurfaceComputed,
     QuantumChemistryJobStateChanged,
     QuantumChemistryResultReady,
+    QuantumChemistryRunCompleted,
     SpectrumComputed,
     TautomerDistributionResultReady,
 )
@@ -1235,8 +1236,9 @@ class QuantumChemistryPanel(QWidget):
         self._reset_empty_states()
 
     def _subscribe_to_events(self, event_bus: EventBus) -> None:
-        """The eight events this panel listens for."""
+        """The nine events this panel listens for."""
         event_bus.subscribe(QuantumChemistryJobStateChanged, self._on_job_state_changed)
+        event_bus.subscribe(QuantumChemistryRunCompleted, self._on_run_completed)
         event_bus.subscribe(QuantumChemistryResultReady, self._on_result_ready)
         event_bus.subscribe(SpectrumComputed, self._on_spectrum_computed)
         event_bus.subscribe(QmSurfaceComputed, self._on_qm_surface_computed)
@@ -1308,6 +1310,41 @@ class QuantumChemistryPanel(QWidget):
             return
         self._runs_combo.setCurrentIndex(0)
         self._render_run(runs[0])
+
+    def _on_run_completed(self, event: QuantumChemistryRunCompleted) -> None:
+        """A run just finished in this session -- add it to the Runs combo.
+
+        **FOUND BY DRIVING THE APP, NOT BY ANY TEST.** The combo was only ever
+        repopulated by a molecule selection, a project load or a delete, so a
+        run that finished while its molecule stayed selected never appeared in
+        "Runs", and "View Tautomer Distribution..." stayed disabled until the
+        user switched molecules and back -- the "closed the dialog, cannot get
+        back to it" symptom, on this panel. (Every other run type had the same
+        gap; it was merely invisible, since a live run paints its own tabs.)
+
+        Repopulates the LIST and makes the new run current, but does NOT call
+        `_render_run`: the live path has already drawn this run, and repainting
+        it from the stored record would reset tabs the user is looking at.
+        """
+        molecule = self._current_molecule()
+        if molecule is None or self._result_store_service is None:
+            return
+        if event.run.molecule_uuid != molecule.uuid:
+            return
+        runs = self._result_store_service.qc_runs.runs_for(molecule.uuid)
+        if not runs:
+            return
+        self._runs_combo.blockSignals(True)
+        self._runs_combo.clear()
+        for run in runs:
+            self._runs_combo.addItem(self._run_label(run), run.run_id)
+        self._runs_combo.setCurrentIndex(0)
+        self._runs_combo.blockSignals(False)
+        self._set_runs_controls_enabled(True)
+        self._active_run = runs[0]
+        self._view_tautomer_distribution_button.setEnabled(
+            runs[0].results.get("tautomer_distribution") is not None
+        )
 
     def _run_label(self, run) -> str:
         when = time.strftime("%Y-%m-%d %H:%M", time.localtime(run.started_at))

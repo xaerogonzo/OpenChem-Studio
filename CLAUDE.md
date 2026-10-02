@@ -173,6 +173,12 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                               the service was handed
     {"do": "inspector_report", "expect_spectrum": "stale"}  ASSERTS the held
                                               spectrum carries that identity
+    {"do": "tautomer_run", "method": "HF STO-3G"}  the REAL "Tautomers..." button,
+                                              REAL ORCA, and the identity handed on
+    {"do": "tautomer_report", "expect": {"in_results": true, "runs_label": "Tautomer",
+     "view_enabled": true}, "view": true}     where the result is REACHABLE from, read
+                                              off the widgets (Results list, Runs combo,
+                                              the View button, no auto-popped dialog)
     {"do": "save_project", "path": "..."}     the REAL save, results included
     {"do": "dock_move", "panel": "Results", "area": "top"}   as a drop
     {"do": "dock_move", "panel": "Results", "beside": "Properties"}

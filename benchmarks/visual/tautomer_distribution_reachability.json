@@ -1,0 +1,123 @@
+[
+ {
+  "do": "smiles",
+  "smiles": "CC(O)CO",
+  "name": "Propylene glycol",
+  "after_ms": 2000
+ },
+ {
+  "do": "select",
+  "molecule": -1,
+  "after_ms": 6000
+ },
+ {
+  "do": "tautomer_run",
+  "method": "HF STO-3G",
+  "after_ms": 90000
+ },
+ {
+  "do": "tautomer_report",
+  "tag": "live-finish",
+  "expect": {
+   "in_results": true,
+   "runs_label": "Tautomer Distribution",
+   "view_enabled": true,
+   "fingerprint_is_submitted": true
+  },
+  "after_ms": 1500
+ },
+ {
+  "do": "tautomer_report",
+  "tag": "closed-then-view",
+  "close_dialog": true,
+  "view": true,
+  "expect": {
+   "in_results": true,
+   "runs_label": "Tautomer Distribution",
+   "view_enabled": true
+  },
+  "after_ms": 1500
+ },
+ {
+  "do": "tautomer_report",
+  "tag": "cleanup",
+  "close_dialog": true,
+  "after_ms": 500
+ },
+ {
+  "do": "smiles",
+  "smiles": "CCO",
+  "name": "Ethanol",
+  "after_ms": 2000
+ },
+ {
+  "do": "select",
+  "molecule": -1,
+  "after_ms": 5000
+ },
+ {
+  "do": "tautomer_report",
+  "tag": "other-molecule-selected",
+  "expect": {
+   "no_dialog_open": true
+  },
+  "after_ms": 500
+ },
+ {
+  "do": "select",
+  "molecule": -2,
+  "after_ms": 5000
+ },
+ {
+  "do": "tautomer_report",
+  "tag": "reselected-original",
+  "expect": {
+   "no_dialog_open": true,
+   "in_results": true,
+   "runs_label": "Tautomer Distribution",
+   "view_enabled": true,
+   "fingerprint_is_submitted": true
+  },
+  "after_ms": 500
+ },
+ {
+  "do": "smiles",
+  "smiles": "O=C1CCCCC1",
+  "name": "Cyclohexanone",
+  "after_ms": 2000
+ },
+ {
+  "do": "select",
+  "molecule": -1,
+  "after_ms": 6000
+ },
+ {
+  "do": "tautomer_run",
+  "method": "HF STO-3G",
+  "after_ms": 120000
+ },
+ {
+  "do": "tautomer_report",
+  "tag": "cyclohexanone-finish",
+  "expect": {
+   "in_results": true,
+   "runs_label": "Tautomer Distribution",
+   "view_enabled": true,
+   "fingerprint_is_submitted": true
+  },
+  "after_ms": 1500
+ },
+ {
+  "do": "tautomer_report",
+  "tag": "cleanup2",
+  "close_dialog": true,
+  "after_ms": 500
+ },
+ {
+  "do": "expect_clean",
+  "tag": "end"
+ },
+ {
+  "do": "quit"
+ }
+]
