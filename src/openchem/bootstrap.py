@@ -4,10 +4,10 @@ import dataclasses
 import functools
 
 from openchem.app.settings import Settings
+from openchem.chem.admet_providers import ADMET_PYTHON_SETTING
 from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
 from openchem.chem.engine import ChemistryEngine
 from openchem.chem.orca_engine import CALC_TYPE_LABELS, METHOD_BASIS_PRESETS
-from openchem.chem.admet_providers import ADMET_PYTHON_SETTING
 from openchem.chem.pka_providers import PKASOLVER_PYTHON_SETTING
 from openchem.domain.calculator import (
     CalculatorDefinition,
@@ -15,16 +15,18 @@ from openchem.domain.calculator import (
     RegistryExecution,
     ServiceExecution,
 )
+from openchem.domain.calculator_support import (
+    CalculatorSupport,
+    SupportStage,
+    Visibility,
+)
 from openchem.events.base import EventBus
-from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.alignment_service import AlignmentService
+from openchem.services.atom_fact_service import AtomFactService
 from openchem.services.batch_service import BatchService
+from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.conformer_service import ConformerService
 from openchem.services.container import ServiceContainer
-from openchem.services.spatial_overlay_service import SpatialOverlayService
-from openchem.services.atom_fact_service import AtomFactService
-from openchem.services.reaction_template_service import ReactionTemplateService
-from openchem.services.structure_check_service import StructureCheckService
 from openchem.services.descriptor_service import DescriptorService
 from openchem.services.docking_service import DEFAULT_NUM_POSES, DockingService
 from openchem.services.export_service import ExportService
@@ -32,11 +34,14 @@ from openchem.services.import_service import ImportService
 from openchem.services.job_manager import JobManager
 from openchem.services.measurement_service import MeasurementService
 from openchem.services.project_service import ProjectService
-from openchem.services.recalc_scheduler import RecalcScheduler
-from openchem.services.result_store_service import ResultStoreService
 from openchem.services.qm_surface_service import QmSurfaceService
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
+from openchem.services.reaction_template_service import ReactionTemplateService
+from openchem.services.recalc_scheduler import RecalcScheduler
+from openchem.services.result_store_service import ResultStoreService
 from openchem.services.screening_service import ScreeningService
+from openchem.services.spatial_overlay_service import SpatialOverlayService
+from openchem.services.structure_check_service import StructureCheckService
 from openchem.services.table_export_service import TableExportService
 
 # Discovery-only registrations (Phase 21): Docking and QuantumChemistry run
@@ -179,6 +184,27 @@ _EXTERNAL_CALCULATOR_DEFINITIONS.append(
                 choices=METHOD_BASIS_PRESETS,
             ),
         ],
+        # EXPERIMENTAL, honestly: this implementation is not yet validated
+        # for default use (see chem/tautomer_distribution.py -- the real,
+        # two-gate validation study against published reference data has
+        # not been run; every result ships under VALIDATION_UNVALIDATED
+        # today). Not a guess "it feels experimental" -- the scope's own
+        # seven ORCA siblings all predate this declaration and are still
+        # LEGACY_UNCLASSIFIED, but that list is a closing migration, never
+        # an open bucket a NEW calculator can be added to
+        # (test_the_legacy_list_only_shrinks) -- a calculator written today
+        # earns its own honest stage instead.
+        support=CalculatorSupport(
+            stage=SupportStage.EXPERIMENTAL,
+            default_visibility=Visibility.HIDDEN,
+            support_reason=(
+                "Not yet validated: computed populations have not been checked against "
+                "published reference data at a literature-comparable level of theory. "
+                "Every result currently ships labeled 'unvalidated' -- real relative "
+                "energies are shown, but no population percentage is."
+            ),
+            scope_note="Gas-phase electronic-energy Boltzmann estimate; needs a configured ORCA executable",
+        ),
     )
 )
 

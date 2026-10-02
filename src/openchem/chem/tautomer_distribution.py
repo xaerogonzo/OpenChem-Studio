@@ -178,10 +178,20 @@ class CandidateStatus(str, Enum):
 
 #: Machine-readable categories for `CandidateResult.failure_reason_code` --
 #: easier to test/filter than parsing `failure_reason`'s prose later.
+#: This one: the candidate's 3D embedding itself failed (ETKDG could not
+#: find a usable starting geometry), before any ORCA job was ever queued.
 FAILURE_EMBEDDING_FAILED = "embedding_failed"
+#: The ORCA job ran and finished, but produced no "FINAL SINGLE POINT
+#: ENERGY" line -- the geometry optimization did not converge.
 FAILURE_OPTIMIZATION_NOT_CONVERGED = "optimization_not_converged"
+#: The ORCA job finished, but no `<provider_id>.scf_energy` descriptor
+#: came back from the parsed output -- an energy this candidate's weight
+#: could be computed from was never actually produced.
 FAILURE_ENERGY_UNPARSEABLE = "energy_unparseable"
+#: The QProcess itself crashed or errored (not a parse failure) -- see
+#: `services/quantum_chemistry_service.py`'s `_report_job_failure`.
 FAILURE_JOB_ERROR = "job_error"
+#: The whole operation was cancelled before this candidate's job finished.
 FAILURE_CANCELLED = "cancelled"
 
 
@@ -296,14 +306,22 @@ def format_population_percent(population: float) -> str:
     return f"{population * 100:.2f}%"
 
 
-#: `StructureSetResult.provenance.parameters`'s own fixed, named keys --
-#: not incidental spellings chosen per call site. `model_version` is the
-#: single string every other key here feeds into (Design point 8/30):
-#: change any one of them and `model_version` changes too, so a stale
-#: `validation_branch` can never silently keep authorizing a percentage
-#: under a model that has since moved on.
+#: `StructureSetResult.provenance.parameters["validation_branch"]`'s three
+#: fixed values -- not incidental spellings chosen per call site.
+#: `model_version` is the single string every other key here feeds into
+#: (Design point 8/30): change any one of them and `model_version` changes
+#: too, so a stale `validation_branch` can never silently keep authorizing
+#: a percentage under a model that has since moved on.
+#: No validation claim has been established yet -- not the same as
+#: "validation was attempted and failed." The only branch this module
+#: ships, until a real validation study runs.
 VALIDATION_UNVALIDATED = "unvalidated"
+#: The ranking gate passed but the quantitative gate didn't, or a
+#: candidate in this specific run failed -- real relative energies are
+#: shown, never a percentage built from them.
 VALIDATION_RANKING_ONLY = "ranking_only"
+#: Both gates passed under the exact frozen model this result's own
+#: `model_version` names -- the only branch allowed to show a percentage.
 VALIDATION_VALIDATED = "validated"
 
 
