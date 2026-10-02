@@ -571,7 +571,58 @@ def _structure_set_summary(
                 category, _source_of(result),
             )
         )
+    facts.extend(_structure_set_energy_facts(result, category))
     return tuple(facts)
+
+
+def _structure_set_energy_facts(
+    result: StructureSetResult, category: FactCategory
+) -> list[Fact]:
+    """What an ENERGY-BEARING structure set owes its summary beyond a count.
+
+    **A COUNT ALONE HID THE CAVEATS.** The ORCA tautomer distribution's
+    summary read "Structures 2" and nothing else -- no energies, and none of
+    "not validated" or "incomplete", which were on screen only in the dialog.
+    A reader that shows a result without the terms it was computed under is
+    the wrong place to drop them.
+
+    Still no per-structure list (the wall this module refuses): a RANGE, and
+    the producer's own declarations read from its provenance. Those keys are
+    plain strings written by `chem.tautomer_distribution`; a set with none of
+    them gets the range alone, and a set with no energies gets nothing.
+    """
+    source = _source_of(result)
+    energies = [e.energy for e in result.entries if e.energy is not None]
+    if not energies:
+        return []
+    params = dict(getattr(getattr(result, "provenance", None), "parameters", {}) or {})
+    reference = str(params.get("energy_label") or "")
+    low, high = min(energies), max(energies)
+    # The unit is IN the text and not passed as `units=`: the row appends
+    # `units` itself, which printed "kcal/mol kcal/mol" on screen.
+    span = f"{low:.2f} kcal/mol" if f"{low:.2f}" == f"{high:.2f}" else f"{low:.2f} to {high:.2f} kcal/mol"
+    facts = [_summary_fact("Relative energy", (low, high), span, category, source)]
+    if reference:
+        facts.append(_summary_fact("Energy reference", reference, reference, category, source))
+    if "candidate_count_expected" in params:
+        expected = int(params["candidate_count_expected"])
+        succeeded = int(params.get("candidate_count_succeeded", 0))
+        failed = int(params.get("candidate_count_failed", 0))
+        text = f"{succeeded} of {expected} optimized"
+        if failed:
+            text += f", {failed} failed"
+        facts.append(_summary_fact("Candidates", text, text, category, source))
+    if "population_model" in params:
+        if params.get("validation_branch") == "validated" and params.get("complete"):
+            text = (
+                f"shown -- gas-phase electronic-energy estimate at {params.get('temperature_k', '?')} K"
+            )
+        elif not params.get("complete"):
+            text = "not shown -- the candidate set is incomplete"
+        else:
+            text = "not shown -- not yet validated against reference data"
+        facts.append(_summary_fact("Populations", text, text, category, source))
+    return facts
 
 
 def _trajectory_summary(
@@ -758,6 +809,23 @@ ADAPTERS: dict[str, ResultAdapter] = {
 }
 
 
+def _rich_view_label(result: Any, adapter: ResultAdapter) -> str:
+    """The adapter's label, except for a structure set that carries ENERGIES.
+
+    "Send to 2D Editor..." names one thing the window can do, and is right
+    for a set of structures to pick from. For the ORCA tautomer distribution
+    it hid the point: the window the button opens is where the energies are,
+    and nothing on the row said so -- reported as "I did not find a button
+    that opens it" with the button on screen. A set with energies says what
+    it opens instead; the editor action is still in that window.
+    """
+    if kind_of(result) == STRUCTURE_SET and any(
+        getattr(entry, "energy", None) is not None for entry in getattr(result, "entries", ())
+    ):
+        return "View structures and energies..."
+    return adapter.rich_view_label
+
+
 def summarise(
     result: Any,
     *,
@@ -809,7 +877,7 @@ def summarise(
         # result. Without it a summary is a dead end for the 30 of 60 entries
         # that have a viewer.
         rich_view=adapter.rich_view,
-        rich_view_label=adapter.rich_view_label,
+        rich_view_label=_rich_view_label(result, adapter),
         # The projection's own caveat FIRST, then whatever the producer said.
         # A reader meeting the producer's caveats under a summary would have
         # no way to tell which half it was reading.

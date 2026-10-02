@@ -697,7 +697,34 @@ class _Driver(QObject):
                 if key[0] == "orca.tautomer_distribution":
                     stored_fingerprints.append(key[2])
 
+        # THE RESULTS READER'S OWN VIEW of the result: what its rows say, and
+        # whether it offers a way to open the whole thing. Focused on the
+        # distribution entry first -- the reader shows whichever entry is
+        # current, and a count-only summary is invisible from the list alone.
+        reader_view: dict[str, Any] = {}
+        if reader is not None:
+            from PySide6.QtWidgets import QApplication, QLabel
+
+            for index in range(reader._focus_box.count()):
+                if "istribution" in reader._focus_box.itemText(index):
+                    reader._focus_box.setCurrentIndex(index)
+                    break
+            reader_view["rows"] = [
+                label.text() for label in reader._view._container.findChildren(QLabel) if label.text()
+            ]
+            reader_view["open_button"] = {
+                "visible": reader._open_button.isVisibleTo(reader),
+                "text": reader._open_button.text(),
+            }
+            if step.get("open_result") and reader._open_button.isVisibleTo(reader):
+                before = {id(w) for w in QApplication.topLevelWidgets() if w.isVisible()}
+                reader._open_button.click()
+                reader_view["opened_windows"] = [
+                    w.windowTitle() for w in QApplication.topLevelWidgets()
+                    if w.isVisible() and id(w) not in before
+                ]
         report = {
+            "reader": reader_view,
             "results_entries": tautomer_entries,
             "runs": runs,
             "runs_current": runs_current,
@@ -716,6 +743,21 @@ class _Driver(QObject):
             problems.append(f"Runs combo shows {runs_current!r}, wanted a label starting {expect['runs_label']!r}")
         if "view_enabled" in expect and view_enabled != bool(expect["view_enabled"]):
             problems.append(f"View button enabled={view_enabled}, wanted {expect['view_enabled']}")
+        for needle in expect.get("reader_rows_contain") or []:
+            if not any(needle in row for row in reader_view.get("rows", [])):
+                problems.append(f"no Results reader row contains {needle!r} (rows: {reader_view.get('rows')})")
+        if expect.get("reader_open_button") and not reader_view.get("open_button", {}).get("visible"):
+            problems.append("the Results reader offers no button to open the whole result")
+        if "reader_open_label" in expect and expect["reader_open_label"] not in reader_view.get(
+            "open_button", {}
+        ).get("text", ""):
+            problems.append(
+                f"the Results reader's open button says {reader_view.get('open_button', {}).get('text')!r}, "
+                f"wanted it to contain {expect['reader_open_label']!r}"
+            )
+        for row in reader_view.get("rows", []):
+            if "kcal/mol kcal/mol" in row:
+                problems.append(f"a Results reader row repeats its unit: {row!r}")
         if expect.get("no_dialog_open") and dialog_open:
             problems.append("a tautomer dialog is open, but reselection must never pop one")
         if step.get("view") and not opened:

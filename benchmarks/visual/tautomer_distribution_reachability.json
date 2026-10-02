@@ -22,7 +22,12 @@
    "in_results": true,
    "runs_label": "Tautomer Distribution",
    "view_enabled": true,
-   "fingerprint_is_submitted": true
+   "fingerprint_is_submitted": true,
+   "reader_rows_contain": [
+    "kcal/mol",
+    "not shown"
+   ],
+   "reader_open_label": "energies"
   },
   "after_ms": 1500
  },
@@ -103,9 +108,17 @@
    "in_results": true,
    "runs_label": "Tautomer Distribution",
    "view_enabled": true,
-   "fingerprint_is_submitted": true
+   "fingerprint_is_submitted": true,
+   "reader_open_button": true,
+   "reader_rows_contain": [
+    "kcal/mol",
+    "not shown",
+    "2 of 2 optimized"
+   ],
+   "reader_open_label": "energies"
   },
-  "after_ms": 1500
+  "after_ms": 1500,
+  "open_result": true
  },
  {
   "do": "tautomer_report",

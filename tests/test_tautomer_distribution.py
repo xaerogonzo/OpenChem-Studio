@@ -354,3 +354,50 @@ def test_build_structure_set_result_orders_ascending_energy_with_failures_last()
     result = build_structure_set_result(outcome, "mol-1", "HF def2-SVP", run_id="run-3")
     fingerprints_in_order = [entry.metadata["fingerprint"] for entry in result.entries]
     assert fingerprints_in_order == ["a", "c", "b"]
+
+
+# --- stereo is shown as drawn, never invented from the 3D start geometry -----
+
+
+def _result_labels(smiles: str) -> list[str]:
+    """Run a molecule through the real candidate generator and the real
+    result builder, as the service does, and return the entry labels."""
+    candidates, _failures = generate_tautomer_candidates(Chem.MolFromSmiles(smiles))
+    outcome = build_outcome(
+        [
+            CandidateResult(
+                fingerprint=c.fingerprint,
+                molblock=Chem.MolToMolBlock(c.mol, kekulize=False),
+                display_molblock=c.display_molblock,
+                status=CandidateStatus.SUCCEEDED,
+                absolute_energy_hartree=-100.0,
+            )
+            for c in candidates
+        ]
+    )
+    result = build_structure_set_result(outcome, "mol-1", "HF def2-SVP", run_id="run-1")
+    return [entry.label for entry in result.entries]
+
+
+def test_an_unspecified_stereocentre_is_not_labelled_with_an_invented_one():
+    """FOUND IN THE DRIVEN APP: racemic propylene glycol was drawn with no
+    stereochemistry and its candidate came back labelled C[C@@H](O)CO --
+    chirality read back off the embedded 3D coordinates. The energies were
+    unaffected; the label named a compound nobody specified."""
+    labels = _result_labels("CC(O)CO")
+
+    assert labels and all("@" not in label for label in labels), labels
+
+
+def test_a_stereocentre_the_user_specified_is_kept():
+    labels = _result_labels("C[C@H](O)CO")
+
+    assert labels and all("@" in label for label in labels), labels
+
+
+def test_the_shown_structure_is_flat_not_the_3d_start_geometry():
+    candidates, _ = generate_tautomer_candidates(Chem.MolFromSmiles("CC(O)CO"))
+    shown = Chem.MolFromMolBlock(candidates[0].display_molblock)
+
+    assert shown is not None
+    assert max(abs(shown.GetConformer().GetAtomPosition(i).z) for i in range(shown.GetNumAtoms())) == 0.0

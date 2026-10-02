@@ -82,6 +82,30 @@ class TautomerCandidate:
     fingerprint: str
     mol: Chem.Mol  # embedded: AddHs + a real 3D conformer
     embedding_seed: int
+    #: A 2D molblock of the tautomer BEFORE embedding, carrying only the
+    #: stereo the user's own structure specified. What the result shows and
+    #: labels each candidate with -- see `_display_molblock`.
+    display_molblock: str = ""
+
+
+def _display_molblock(tautomer: Chem.Mol) -> str:
+    """A 2D drawing of one tautomer, with exactly the stereo it was given.
+
+    **THE 3D START GEOMETRY MUST NOT BE WHAT IS SHOWN.** ORCA needs real
+    coordinates, and embedding picks ONE spatial arrangement for every
+    stereocentre the input left unspecified. Reading chirality back off that
+    3D molblock (what `Chem.MolFromMolBlock` does) then labels a racemic
+    propylene glycol `C[C@@H](O)CO` -- a specific enantiomer nobody drew.
+    The energies are unaffected (enantiomers are degenerate), but the label
+    claimed a compound that was never specified. This is built from the
+    pre-embedding tautomer instead, so an undrawn centre stays undrawn and a
+    drawn one (a wedge the user placed) is kept.
+    """
+    flat = Chem.Mol(tautomer)
+    flat.RemoveAllConformers()
+    AllChem.Compute2DCoords(flat)
+    Chem.WedgeMolBonds(flat, flat.GetConformer())
+    return Chem.MolToMolBlock(flat)
 
 
 def generate_tautomer_candidates(
@@ -122,7 +146,14 @@ def generate_tautomer_candidates(
         if embedded is None:
             embedding_failures += 1
             continue
-        candidates.append(TautomerCandidate(fingerprint=fingerprint, mol=embedded, embedding_seed=seed))
+        candidates.append(
+            TautomerCandidate(
+                fingerprint=fingerprint,
+                mol=embedded,
+                embedding_seed=seed,
+                display_molblock=_display_molblock(by_fingerprint[fingerprint]),
+            )
+        )
     return candidates, embedding_failures
 
 
@@ -209,6 +240,10 @@ class CandidateResult:
     absolute_energy_hartree: float | None = None
     failure_reason: str = ""
     failure_reason_code: str = ""
+    #: The stereo-honest 2D drawing the result shows and labels this
+    #: candidate with (`TautomerCandidate.display_molblock`). Empty falls
+    #: back to `molblock`, the 3D start geometry.
+    display_molblock: str = ""
 
 
 @dataclass(frozen=True)
@@ -366,7 +401,11 @@ def build_structure_set_result(
     """
     entries: list[StructureEntry] = []
     for candidate in outcome.candidates:
-        mol = Chem.MolFromMolBlock(candidate.molblock) if candidate.molblock else None
+        # The stereo-honest 2D drawing, never the 3D start geometry: reading
+        # chirality off embedded coordinates invents a specific enantiomer
+        # for every centre the user left unspecified (`_display_molblock`).
+        shown = candidate.display_molblock or candidate.molblock
+        mol = Chem.MolFromMolBlock(shown) if shown else None
         label = Chem.MolToSmiles(mol) if mol is not None else candidate.fingerprint[:12]
         metadata: dict = {
             "status": candidate.status.value,
@@ -390,7 +429,7 @@ def build_structure_set_result(
 
         entries.append(
             StructureEntry(
-                molblock=candidate.molblock,
+                molblock=shown,
                 label=label,
                 score=population,
                 energy=energy,
