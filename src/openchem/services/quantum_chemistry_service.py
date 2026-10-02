@@ -1349,6 +1349,7 @@ class QuantumChemistryService(QObject):
                 CandidateResult(
                     fingerprint=candidate.fingerprint,
                     molblock=molblock,
+                    display_molblock=candidate.display_molblock,
                     status=CandidateStatus.FAILED,
                     embedding_seed=candidate.embedding_seed,
                     failure_reason=str(exc),
@@ -1369,6 +1370,7 @@ class QuantumChemistryService(QObject):
                     CandidateResult(
                         fingerprint=candidate.fingerprint,
                         molblock=molblock,
+                        display_molblock=candidate.display_molblock,
                         status=CandidateStatus.FAILED,
                         embedding_seed=candidate.embedding_seed,
                         failure_reason="No SCF energy in ORCA output.",
@@ -1380,6 +1382,7 @@ class QuantumChemistryService(QObject):
                     CandidateResult(
                         fingerprint=candidate.fingerprint,
                         molblock=molblock,
+                        display_molblock=candidate.display_molblock,
                         status=CandidateStatus.SUCCEEDED,
                         embedding_seed=candidate.embedding_seed,
                         absolute_energy_hartree=float(energy),

@@ -437,6 +437,60 @@ def test_view_tautomer_distribution_button_opens_the_exact_selected_runs_result(
     assert opened == [result]  # the exact same object, not a copy
 
 
+def _panel_with_a_store(qapp, molecule_count: int = 1):
+    from openchem.services.result_store_service import ResultStoreService
+
+    bus = EventBus()
+    engine = ChemistryEngine()
+    settings = Settings(bus)
+    store_service = ResultStoreService(bus, engine, settings)
+    panel = QuantumChemistryPanel(
+        _RecordingQuantumChemistryService(bus), engine, settings, bus, result_store_service=store_service
+    )
+    project = ProjectModel(name="Test")
+    molecules = [_cyclohexanone_molecule(engine) for _ in range(molecule_count)]
+    project.molecules.extend(molecules)
+    store_service.set_project(project)
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+    return panel, bus, molecules
+
+
+def test_a_run_finishing_in_this_session_appears_in_the_runs_combo_at_once(qapp):
+    """FOUND BY DRIVING THE REAL APP: the combo was only repopulated by a
+    molecule selection, a project load or a delete, so a run that finished
+    while its molecule stayed selected never showed in "Runs" and "View
+    Tautomer Distribution..." stayed disabled until the user switched
+    molecules and back."""
+    from openchem.events.events import QuantumChemistryRunCompleted
+
+    panel, bus, (molecule,) = _panel_with_a_store(qapp)
+    assert panel._runs_combo.count() == 0
+    assert panel._view_tautomer_distribution_button.isEnabled() is False
+
+    run = _tautomer_distribution_run(molecule.uuid, _fake_tautomer_distribution_result(molecule.uuid))
+    bus.publish(QuantumChemistryRunCompleted(run=run))
+    qapp.processEvents()
+
+    assert panel._runs_combo.count() == 1
+    assert panel._runs_combo.currentText().startswith("Tautomer Distribution ·")
+    assert panel._view_tautomer_distribution_button.isEnabled() is True
+
+
+def test_a_run_finishing_for_another_molecule_leaves_this_runs_combo_alone(qapp):
+    from openchem.events.events import QuantumChemistryRunCompleted
+
+    panel, bus, (_molecule, other) = _panel_with_a_store(qapp, molecule_count=2)
+
+    bus.publish(QuantumChemistryRunCompleted(
+        run=_tautomer_distribution_run(other.uuid, _fake_tautomer_distribution_result(other.uuid))
+    ))
+    qapp.processEvents()
+
+    assert panel._runs_combo.count() == 0
+    assert panel._view_tautomer_distribution_button.isEnabled() is False
+
+
 def test_view_tautomer_distribution_button_is_a_noop_with_no_active_run(qapp):
     panel, engine, service = _make_panel()
     opened = []

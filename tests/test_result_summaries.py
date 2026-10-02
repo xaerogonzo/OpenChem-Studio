@@ -297,6 +297,99 @@ def test_an_untruncated_set_says_neither_available_nor_showing():
     assert labels == ["Structures"]
 
 
+def _tautomer_distribution(**parameters):
+    from openchem.domain.common import Provenance
+
+    base = {
+        "population_model": "electronic-energy-boltzmann", "validation_branch": "unvalidated",
+        "complete": True, "energy_label": "ΔE (kcal/mol)", "temperature_k": 298.15,
+        "candidate_count_expected": 2, "candidate_count_succeeded": 2, "candidate_count_failed": 0,
+    }
+    base.update(parameters)
+    return StructureSetResult(
+        set_id="orca.tautomer_distribution", name="Tautomer distribution (2)", method="orca",
+        molecule_uuid=MOLECULE,
+        entries=[StructureEntry(molblock="", energy=0.0), StructureEntry(molblock="", energy=14.68)],
+        provenance=Provenance(created_by="core", method="orca", parameters=base),
+    )
+
+
+def test_an_energy_bearing_structure_set_summarises_its_energies_and_its_terms():
+    """FOUND IN THE DRIVEN APP: the ORCA tautomer distribution's Results entry
+    read "Structures 2" and nothing else -- no energies, and none of "not
+    validated" or "incomplete", which were visible only in the dialog."""
+    facts = {f.label: f.display_value for f in _view(_tautomer_distribution()).facts}
+
+    assert facts["Relative energy"] == "0.00 to 14.68 kcal/mol"
+    assert facts["Energy reference"] == "ΔE (kcal/mol)"
+    assert facts["Candidates"] == "2 of 2 optimized"
+    assert facts["Populations"].startswith("not shown -- not yet validated")
+
+
+def test_an_incomplete_distribution_says_so_and_names_the_failures():
+    facts = {
+        f.label: f.display_value
+        for f in _view(_tautomer_distribution(
+            complete=False, candidate_count_succeeded=1, candidate_count_failed=1,
+            energy_label="ΔE relative to the lowest successful candidate (kcal/mol)",
+        )).facts
+    }
+
+    assert facts["Candidates"] == "1 of 2 optimized, 1 failed"
+    assert facts["Populations"] == "not shown -- the candidate set is incomplete"
+    assert "lowest successful candidate" in facts["Energy reference"]
+
+
+def test_populations_are_reported_shown_only_when_validated_and_complete():
+    facts = {
+        f.label: f.display_value
+        for f in _view(_tautomer_distribution(validation_branch="validated")).facts
+    }
+
+    assert facts["Populations"].startswith("shown")
+    assert "298.15 K" in facts["Populations"]
+
+
+def test_the_open_button_for_an_energy_set_says_it_shows_the_energies():
+    """"Send to 2D Editor..." was right for a set to pick from and hid the
+    point for the tautomer distribution: the window the button opens is where
+    the energies are. Reported as no button to open it, with it on screen."""
+    assert _view(_tautomer_distribution()).rich_view_label == "View structures and energies..."
+
+
+def test_the_open_button_for_a_set_with_no_energies_keeps_its_editor_label():
+    result = StructureSetResult(
+        set_id="tautomers", name="Tautomers", method="rdkit", molecule_uuid=MOLECULE,
+        entries=[StructureEntry(molblock="")],
+    )
+    assert _view(result).rich_view_label == "Send to 2D Editor..."
+
+
+def test_the_energy_range_states_its_unit_once_and_collapses_a_single_value():
+    from openchem.domain.common import Provenance
+
+    spread = [f for f in _view(_tautomer_distribution()).facts if f.label == "Relative energy"][0]
+    assert spread.display_value == "0.00 to 14.68 kcal/mol"
+    assert spread.units == ""  # the row appends `units`, so it must not repeat the text's
+
+    single = StructureSetResult(
+        set_id="orca.tautomer_distribution", name="T", method="orca", molecule_uuid=MOLECULE,
+        entries=[StructureEntry(molblock="", energy=0.0)],
+        provenance=Provenance(created_by="core", method="orca", parameters={}),
+    )
+    assert [f for f in _view(single).facts if f.label == "Relative energy"][0].display_value == "0.00 kcal/mol"
+
+
+def test_a_set_with_no_energies_gains_no_energy_facts():
+    """The narrow half: RDKit's own generators carry no energies, and must
+    not start reporting a range nobody computed."""
+    result = StructureSetResult(
+        set_id="tautomers", name="Tautomers", method="rdkit", molecule_uuid=MOLECULE,
+        entries=[StructureEntry(molblock="") for _ in range(3)],
+    )
+    assert [f.label for f in _view(result).facts] == ["Structures"]
+
+
 def test_a_trajectorys_final_energy_appears_only_if_there_are_energies():
     """Reporting `0.0` for a trajectory with no energy series would be a
     number nobody computed sitting where a real energy goes."""

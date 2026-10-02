@@ -591,6 +591,200 @@ class _Driver(QObject):
             panel._status_label.text(),
         )
 
+    def _do_tautomer_run(self, step: dict[str, Any]) -> None:
+        """Press the Quantum Chemistry panel's "Tautomers..." button, for real.
+
+        `{"do": "tautomer_run", "method": "HF STO-3G", "after_ms": 120000}`
+
+        The BUTTON, not `request_tautomer_distribution`: the panel captures the
+        submitting molecule's `DRAWING` fingerprint and hands it on, so driving
+        the control is what checks that wiring. What the SERVICE was handed is
+        read off its own run record (`_tautomer_runs`, set synchronously by the
+        request) and REMEMBERED, so `tautomer_report` can assert the stored
+        result carries exactly that identity. Real ORCA: give the step an
+        `after_ms` long enough for every candidate to finish.
+        """
+        from openchem.ui.molecule_combo import select
+
+        panel = getattr(self._window, "_quantum_chemistry_panel", None)
+        if panel is None:
+            logger.error("OPENCHEM_DRIVE: tautomer_run -- no Quantum Chemistry panel on this window")
+            return
+        molecule_uuid = self._window._property_panel._selected_molecule_uuid
+        if not select(panel._molecule_combo, molecule_uuid):
+            logger.error("OPENCHEM_DRIVE: tautomer_run -- the selected molecule is not in the panel's combo")
+            return
+        if step.get("method") is not None:
+            panel._method_combo.setCurrentText(str(step["method"]))
+        if not panel._tautomer_distribution_button.isEnabled():
+            logger.error("OPENCHEM_DRIVE: tautomer_run -- the Tautomers button is DISABLED; not clicked")
+            return
+        panel._tautomer_distribution_button.click()
+        run = panel._quantum_chemistry_service._tautomer_runs.get(molecule_uuid)
+        if run is None:
+            logger.error(
+                "OPENCHEM_DRIVE: tautomer_run -- no run was started; status=%r", panel._status_label.text()
+            )
+            return
+        self._tautomer_submitted = (molecule_uuid, run.calculation_input, run.input_fingerprint, run.run_id)
+        logger.warning(
+            "OPENCHEM_DRIVE: tautomer_run submitted candidates=%d input=%s fingerprint=%s run_id=%s status=%r",
+            run.total, run.calculation_input, run.input_fingerprint[:12], run.run_id, panel._status_label.text(),
+        )
+
+    def _do_tautomer_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "tautomer_report", "tag": "after", "expect": {...}}` -- where the
+        ORCA Tautomer Distribution result is REACHABLE from, read off the widgets.
+
+        `expect` keys (each optional, each asserted):
+
+            "in_results"        the Results reader's "Showing:" list has an entry
+                                naming it (the Results-panel route)
+            "runs_label"        the Runs combo's current entry starts with this
+            "view_enabled"      the "View Tautomer Distribution..." button state
+            "no_dialog_open"    NO tautomer dialog is showing -- reselecting a run
+                                must never pop one
+            "fingerprint_is_submitted"  the stored result's identity carries the
+                                fingerprint the service was HANDED at submission
+
+        `"close_dialog": true` first closes the dialog the live finish opened (what
+        Alex did), and `"view": true` presses the real "View Tautomer Distribution..."
+        button and asserts a dialog opened. `"shot"` / `"reader_shot"` save the
+        dialog / the Results reader to a PNG.
+
+        **READ OFF THE WIDGETS, NOT THE SERVICE.** A result a service recorded and a
+        panel could not show would log alike from the service's side -- which is the
+        bug this exists to catch.
+        """
+        window = self._window
+        panel = getattr(window, "_quantum_chemistry_panel", None)
+        if panel is None:
+            logger.error("OPENCHEM_DRIVE: tautomer_report -- no Quantum Chemistry panel")
+            return
+        tag = str(step.get("tag", ""))
+        problems: list[str] = []
+        if step.get("close_dialog") and panel._tautomer_distribution_dialog is not None:
+            panel._tautomer_distribution_dialog.close()
+            panel._tautomer_distribution_dialog = None
+
+        reader = window._property_panel._attached_reader
+        entries = []
+        if reader is not None:
+            box = reader._focus_box
+            entries = [box.itemText(i) for i in range(box.count())]
+        tautomer_entries = [e for e in entries if "automer" in e]
+
+        runs = [panel._runs_combo.itemText(i) for i in range(panel._runs_combo.count())]
+        runs_current = panel._runs_combo.currentText()
+        view_enabled = panel._view_tautomer_distribution_button.isEnabled()
+        dialog = panel._tautomer_distribution_dialog
+        dialog_open = bool(dialog is not None and dialog.isVisible())
+
+        opened = None
+        if step.get("view"):
+            panel._view_tautomer_distribution_button.click()
+            dialog = panel._tautomer_distribution_dialog
+            opened = bool(dialog is not None and dialog.isVisible())
+            dialog_open = opened
+
+        store = window._services.result_store_service.store
+        stored_fingerprints: list[str] = []
+        submitted = getattr(self, "_tautomer_submitted", None)
+        if submitted is not None:
+            molecule_uuid, _calculation_input, fingerprint, _run_id = submitted
+            record = store._molecules.get(molecule_uuid)
+            for key in (record.results if record is not None else {}):
+                if key[0] == "orca.tautomer_distribution":
+                    stored_fingerprints.append(key[2])
+
+        # THE RESULTS READER'S OWN VIEW of the result: what its rows say, and
+        # whether it offers a way to open the whole thing. Focused on the
+        # distribution entry first -- the reader shows whichever entry is
+        # current, and a count-only summary is invisible from the list alone.
+        reader_view: dict[str, Any] = {}
+        if reader is not None:
+            from PySide6.QtWidgets import QApplication, QLabel
+
+            for index in range(reader._focus_box.count()):
+                if "istribution" in reader._focus_box.itemText(index):
+                    reader._focus_box.setCurrentIndex(index)
+                    break
+            reader_view["rows"] = [
+                label.text() for label in reader._view._container.findChildren(QLabel) if label.text()
+            ]
+            reader_view["open_button"] = {
+                "visible": reader._open_button.isVisibleTo(reader),
+                "text": reader._open_button.text(),
+            }
+            if step.get("open_result") and reader._open_button.isVisibleTo(reader):
+                before = {id(w) for w in QApplication.topLevelWidgets() if w.isVisible()}
+                reader._open_button.click()
+                reader_view["opened_windows"] = [
+                    w.windowTitle() for w in QApplication.topLevelWidgets()
+                    if w.isVisible() and id(w) not in before
+                ]
+        report = {
+            "reader": reader_view,
+            "results_entries": tautomer_entries,
+            "runs": runs,
+            "runs_current": runs_current,
+            "view_enabled": view_enabled,
+            "dialog_open": dialog_open,
+            "view_opened": opened,
+            "stored_fingerprints": [f[:12] for f in stored_fingerprints],
+            "results_label": panel._results_label.text()[:200],
+        }
+        logger.warning("OPENCHEM_DRIVE: tautomer_report[%s] %s", tag, json.dumps(report))
+
+        expect = step.get("expect") or {}
+        if "in_results" in expect and bool(tautomer_entries) != bool(expect["in_results"]):
+            problems.append(f"Results reader tautomer entries {tautomer_entries}, wanted in_results={expect['in_results']}")
+        if "runs_label" in expect and not runs_current.startswith(str(expect["runs_label"])):
+            problems.append(f"Runs combo shows {runs_current!r}, wanted a label starting {expect['runs_label']!r}")
+        if "view_enabled" in expect and view_enabled != bool(expect["view_enabled"]):
+            problems.append(f"View button enabled={view_enabled}, wanted {expect['view_enabled']}")
+        for needle in expect.get("reader_rows_contain") or []:
+            if not any(needle in row for row in reader_view.get("rows", [])):
+                problems.append(f"no Results reader row contains {needle!r} (rows: {reader_view.get('rows')})")
+        if expect.get("reader_open_button") and not reader_view.get("open_button", {}).get("visible"):
+            problems.append("the Results reader offers no button to open the whole result")
+        if "reader_open_label" in expect and expect["reader_open_label"] not in reader_view.get(
+            "open_button", {}
+        ).get("text", ""):
+            problems.append(
+                f"the Results reader's open button says {reader_view.get('open_button', {}).get('text')!r}, "
+                f"wanted it to contain {expect['reader_open_label']!r}"
+            )
+        for row in reader_view.get("rows", []):
+            if "kcal/mol kcal/mol" in row:
+                problems.append(f"a Results reader row repeats its unit: {row!r}")
+        if expect.get("no_dialog_open") and dialog_open:
+            problems.append("a tautomer dialog is open, but reselection must never pop one")
+        if step.get("view") and not opened:
+            problems.append("pressing View Tautomer Distribution... opened no dialog")
+        if expect.get("fingerprint_is_submitted"):
+            if submitted is None:
+                problems.append("no tautomer_run step preceded this one")
+            elif submitted[2] not in stored_fingerprints:
+                problems.append(
+                    f"stored fingerprints {[f[:12] for f in stored_fingerprints]} lack the submitted {submitted[2][:12]}"
+                )
+
+        if step.get("shot") and dialog is not None:
+            dialog.grab().save(str(step["shot"]))
+            logger.warning("OPENCHEM_DRIVE: wrote %s", step["shot"])
+        if step.get("reader_shot") and reader is not None:
+            for index in range(reader._focus_box.count()):
+                if "istribution" in reader._focus_box.itemText(index):
+                    reader._focus_box.setCurrentIndex(index)
+            reader.grab().save(str(step["reader_shot"]))
+            logger.warning("OPENCHEM_DRIVE: wrote %s", step["reader_shot"])
+
+        if self._record_assertion("tautomer_report", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT tautomer ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT tautomer FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
     def _do_dock_run(self, step: dict[str, Any]) -> None:
         """Press the Docking panel's Dock button, for real.
 
