@@ -190,6 +190,22 @@ def test_a_spectrum_becomes_a_spectroscopy_fact():
     assert "13C Shift" in labels(report, FactCategory.SPECTROSCOPY)
 
 
+def test_a_vibrational_spectrum_produces_no_per_atom_fact():
+    """Explicit regression, not merely absence-of-failure (Phase K of the
+    NMR/ORCA wiring plan): `VibrationalSpectrumResult.values` is always
+    `{}` by that result type's own design, so this must emit nothing for
+    ANY atom -- a vibrational peak describes a normal mode, not one atom.
+    The molecule-level IR fact lives in `molecule_report.py` instead."""
+    from openchem.domain.scientific_result import VibrationalMode, VibrationalSpectrumResult
+
+    context = {"spectra": {"ir": VibrationalSpectrumResult(
+        spectrum_type="ir", name="IR", units="cm-1", method="orca", molecule_uuid="m1",
+        modes=(VibrationalMode(wavenumber_cm1=1700.0, ir_intensity_km_mol=50.0),),
+        cache_state=CacheState.COMPLETED, provenance=_PROVENANCE)}}
+    report = report_for(CHALCONE, CARBONYL_C, context=context)
+    assert labels(report, FactCategory.SPECTROSCOPY) == set()
+
+
 def test_a_structure_issue_naming_this_atom_shows_up():
     context = {"issues": (StructureIssue(
         checker_id="geometry", category="geometry", severity=Severity.WARNING,

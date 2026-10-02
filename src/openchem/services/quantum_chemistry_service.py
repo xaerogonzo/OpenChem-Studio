@@ -59,6 +59,7 @@ from openchem.events.events import (
     QuantumChemistryRunCompleted,
     ResultRecorded,
     SpectrumComputed,
+    StructureSetComputed,
     TautomerDistributionResultReady,
 )
 from openchem.plugins.interfaces import QuantumEngineProvider
@@ -296,6 +297,17 @@ class _TautomerDistributionRun:
     provider: QuantumEngineProvider
     executable_path: str
     total: int
+    #: The submitting molecule's own `DRAWING` input identity, captured by
+    #: the caller (`QuantumChemistryPanel`) at submission time -- before
+    #: any candidate embedding/ORCA work starts, so a mid-run edit to the
+    #: molecule cannot retroactively change what the eventual recorded
+    #: result claims to describe. `QuantumChemistryRun.input_fingerprint`
+    #: stays empty (the run's real input is the whole candidate SET, not
+    #: one molblock) -- these two fields are only for the separate
+    #: `StoredResult` this operation records (`_record_tautomer_
+    #: distribution_result`), which needs a real `ResultIdentity`.
+    calculation_input: str = ""
+    input_fingerprint: str = ""
     #: The candidate `_launch_next_tautomer_candidate` most recently
     #: dispatched -- `_ActiveJob` carries no candidate-specific identity,
     #: so this is how its finish handler knows which candidate just ran.
@@ -544,6 +556,8 @@ class QuantumChemistryService(QObject):
         charge: int,
         multiplicity: int,
         method_basis: str,
+        calculation_input: str,
+        input_fingerprint: str,
         provider_id: str = "orca",
     ) -> None:
         """Runs a real ORCA geometry optimization on each of `candidates`,
@@ -553,6 +567,15 @@ class QuantumChemistryService(QObject):
         `candidates` comes from `chem.tautomer_distribution
         .generate_tautomer_candidates` -- this method only runs them; it
         does no enumeration or embedding of its own.
+
+        `calculation_input`/`input_fingerprint` identify the submitting
+        molecule's own 2D structure (always `DRAWING` in practice -- the
+        real input candidates were enumerated from, never a per-candidate
+        embedded 3D conformer), captured by the caller BEFORE this method
+        is invoked so a mid-run edit to the molecule cannot retroactively
+        change what the eventual recorded result claims to describe. Both
+        are required, not defaulted, so a caller cannot forget to capture
+        them and silently get an empty/wrong identity recorded later.
 
         Mirrors `request_boltzmann_nmr`'s shape (one molecule job slot for
         the whole sequence, refused if one is already running for this
@@ -601,6 +624,8 @@ class QuantumChemistryService(QObject):
             provider=provider,
             executable_path=executable_path,
             total=len(candidates),
+            calculation_input=calculation_input,
+            input_fingerprint=input_fingerprint,
             run_id=new_run_id(),
         )
         self._tautomer_runs[molecule_uuid] = run
@@ -1385,6 +1410,16 @@ class QuantumChemistryService(QObject):
         self._event_bus.publish(
             TautomerDistributionResultReady(molecule_uuid=run.molecule_uuid, run_id=run.run_id, result=result)
         )
+        # Beside, not instead of, the event above -- so the Results panel
+        # picks this up immediately in the live/same-session case (the
+        # exact pattern `_finish_calculation_job` already uses: publish the
+        # live event directly AND record through `_record_descriptors`).
+        # Every deduplicated candidate is present in `result` whether it
+        # succeeded or failed, including the zero-success case, so this is
+        # recorded unconditionally -- a failed run still has a real,
+        # reachable result naming which candidates failed and why.
+        self._event_bus.publish(StructureSetComputed(structure_set=result))
+        self._record_tautomer_distribution_result(result, run)
 
         warnings: list[str] = []
         if outcome.succeeded_count == 0:
@@ -1409,6 +1444,46 @@ class QuantumChemistryService(QObject):
             qc_run.results["tautomer_distribution"] = result
             qc_run.output_status["tautomer_distribution"] = OutputStatus.AVAILABLE
         self._record_run(qc_run)
+
+    def _record_tautomer_distribution_result(
+        self, result, run: _TautomerDistributionRun
+    ) -> None:
+        """Wraps the tautomer-distribution `StructureSetResult` into the
+        generic revision-cache store (`ResultRecorded`), the same envelope
+        `_record_descriptors` already publishes for ORCA's scalar
+        descriptor outputs -- this is what makes the result show up in the
+        Results panel's "Showing:" dropdown and survive molecule
+        reselection/project reload, alongside the RDKit `"tautomers"`
+        generator's own result.
+
+        SEPARATE from, and in addition to, the durable `qc_runs` entry
+        `_finish_tautomer_distribution` already records
+        (`qc_run.results["tautomer_distribution"]`): that collection is
+        never trimmed and is what the Quantum Chemistry panel's own Runs
+        combo reads regardless of molecule edits; this `SessionResultStore`
+        entry is a bounded recent-revision cache -- exactly as durable as
+        its RDKit sibling, no more and no less.
+
+        `producer="orca.tautomer_distribution"` matches the calculator_id
+        and `result.set_id` exactly, so this is a distinct dropdown entry
+        from RDKit's `"tautomers"`, never overwriting it.
+        """
+        try:
+            stored = StoredResult(
+                identity=make_identity(
+                    molecule_uuid=run.molecule_uuid,
+                    result=result,
+                    calculation_input=run.calculation_input,
+                    input_fingerprint=run.input_fingerprint,
+                    producer="orca.tautomer_distribution",
+                ),
+                result=result,
+                application_version=application_version(),
+            )
+        except Exception:  # noqa: BLE001 - retaining a result must never cost the result
+            logger.exception("Could not record tautomer distribution result for %s", run.molecule_uuid)
+            return
+        self._event_bus.publish(ResultRecorded(stored=stored))
 
     @staticmethod
     def _new_tautomer_distribution_run(

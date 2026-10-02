@@ -505,7 +505,7 @@ def _merge_lines(lines: list[tuple[float, float]], tolerance: float = _LINE_MERG
 
 
 def multiplet_lines(
-    signal: NMRSignal, frequency_mhz: float = DEFAULT_FREQUENCY_MHZ
+    signal: NMRSignal, frequency_mhz: float = DEFAULT_FREQUENCY_MHZ, *, decoupled: bool = False
 ) -> list[tuple[float, float]]:
     """(ppm, relative intensity) for each line of a first-order multiplet,
     cascaded across every real coupling group the signal has.
@@ -529,8 +529,15 @@ def multiplet_lines(
     magnetic nonequivalence treatment. This is the first-order PRODUCT
     splitting pattern, not a claim of matching a real experimental
     spectrum in every respect.
+
+    `decoupled=True` is a DISPLAY-ONLY short circuit -- the collapsed,
+    single-line shape it returns is byte-for-byte what a signal with no
+    real `coupling_groups` already produces below, so a decoupled display
+    is indistinguishable from an uncoupled singlet by construction.
+    `signal.coupling_groups`/`multiplicity` are never read past this check
+    and never mutated; decoupling this signal changes nothing it is.
     """
-    if not signal.coupling_groups or frequency_mhz <= 0:
+    if decoupled or not signal.coupling_groups or frequency_mhz <= 0:
         return [(signal.shift, 1.0)]
 
     observation_mhz = frequency_mhz * _RELATIVE_FREQUENCY.get(signal.element, 1.0)
@@ -566,6 +573,28 @@ def multiplet_lines(
     )
 
 
+def compact_multiplet_label(signal: NMRSignal) -> str:
+    """A Marvin-style compact label like "qddd", derived directly from
+    `coupling_groups` -- descriptive only, never substituted for or
+    written back into the stored `multiplicity` field, and never
+    consulted by `multiplet_lines` itself.
+
+    Group order matches `multiplet_lines`'s own cascade order (|J|
+    descending), so the label reads large-to-small exactly as the plot
+    renders the pattern. A group whose (count + 1) line count exceeds
+    `_MULTIPLICITY_BY_LINE_COUNT`'s septet ceiling falls back to an
+    explicit "(n-line)" fragment rather than guessing a letter Marvin
+    never defined.
+    """
+    if not signal.coupling_groups:
+        return signal.multiplicity
+    ordered = sorted(signal.coupling_groups, key=lambda group: abs(group[1]), reverse=True)
+    return "".join(
+        _MULTIPLICITY_BY_LINE_COUNT.get(count + 1, f"({count + 1}-line)")
+        for count, _j_hz in ordered
+    )
+
+
 #: HWHM of the Lorentzian each multiplet line is convolved with in "smooth"
 #: display mode. Not a measured linewidth -- real ones vary with shimming and
 #: field -- just narrow enough that two signals more than a few tenths of a
@@ -579,6 +608,8 @@ def lorentzian_envelope(
     xs: list[float],
     frequency_mhz: float = DEFAULT_FREQUENCY_MHZ,
     hwhm_ppm: float = DEFAULT_LORENTZIAN_HWHM_PPM,
+    *,
+    decoupled: bool = False,
 ) -> list[float]:
     """Sum, at each point in `xs`, of a unit-area Lorentzian centred on every
     `multiplet_lines()` position, weighted so each signal's own lines
@@ -591,10 +622,14 @@ def lorentzian_envelope(
     `xs` only decides where the curve is SAMPLED for display; a signal whose
     tails fall outside `xs` still had its full weight placed on the curve,
     just not drawn there.
+
+    `decoupled` passes straight through to `multiplet_lines` -- smooth mode
+    decouples via the exact same single code path sticks mode does, never a
+    second interpretation of the same `coupling_groups`.
     """
     ys = [0.0] * len(xs)
     for signal in signals:
-        for line_shift, intensity in multiplet_lines(signal, frequency_mhz):
+        for line_shift, intensity in multiplet_lines(signal, frequency_mhz, decoupled=decoupled):
             weight = signal.integration * intensity
             for index, x in enumerate(xs):
                 dx = x - line_shift

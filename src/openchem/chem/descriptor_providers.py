@@ -2750,7 +2750,11 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         scope=_EACH_COLLECTION,
         display_name="Tautomers",
         category="structures",
-        description="Tautomeric forms, with the canonical tautomer flagged.",
+        description=(
+            "Tautomeric forms, with the canonical tautomer flagged. For a real "
+            "energy-based ranking instead of RDKit's heuristic pick, see Tautomer "
+            "Distribution in the Quantum Chemistry panel (needs ORCA)."
+        ),
         execution=RegistryExecution(compute=compute_tautomers),
         parameters=[
             CalculatorParameter(

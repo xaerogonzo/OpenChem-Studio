@@ -426,7 +426,13 @@ def build_structure_set_result(
     )
 
     return StructureSetResult(
-        set_id="tautomer_distribution",
+        # Matches the registered `calculator_id` ("orca.tautomer_distribution",
+        # bootstrap.py) exactly -- `property_panel.py`'s own documented
+        # invariant is that a generator's `set_id` equals its registered
+        # calculator_id, which is also what `make_identity`/`result_id_of`
+        # key off. A mismatch here would make `_category_of` file this
+        # result under "other" instead of "quantum_chemistry".
+        set_id="orca.tautomer_distribution",
         name=f"Tautomer distribution ({len(entries)})",
         method="orca",
         molecule_uuid=molecule_uuid,

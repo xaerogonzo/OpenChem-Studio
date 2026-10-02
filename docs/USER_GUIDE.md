@@ -906,8 +906,9 @@ calculator knows which it is.
 
 **A summary opens the real thing.** Any result that arrives as a summary
 carries a button naming the viewer that owns it — *Open in Calculator
-Inspector*, *Open in NMR view* — which shows every value rather than the few
-beside the name. A result that already IS the whole thing, and the *All
+Inspector*, *Open in NMR view*, *Open in IR view* — which shows every value
+rather than the few beside the name. A result that already IS the whole
+thing, and the *All
 results* view, offer no such button: there is nothing more to open, and no one
 viewer owns several producers at once. If the result is no longer held —
 you changed molecule, or its results were cleared — the status bar says so
@@ -1547,7 +1548,14 @@ default), the atom numbers it belongs to, or nothing at all, useful when
 two signals sit close enough to crowd each other's label. The toolbar's
 **Reset Zoom** button does the same thing as double-clicking the plot;
 **Copy Spectrum Image** copies the spectrum plot itself (not the
-structure panes or the table) to the clipboard as an image.
+structure panes or the table) to the clipboard as an image. The
+**Decoupled** checkbox is a display-only switch: it collapses every
+multiplet to its nominal shift in both sticks and smooth mode, computing
+nothing new and leaving the underlying coupling data untouched — toggle
+it off to see the real pattern again. Hovering a signal also shows a
+"First-order pattern: ..." tooltip (e.g. "qddd") derived from its real
+coupling groups — informational only; the Multiplicity column is
+unchanged.
 
 **Every numeric column header is sortable** — click one to sort by it
 (shift, integration, coupling); click again to reverse. Sorting never

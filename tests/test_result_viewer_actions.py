@@ -125,6 +125,17 @@ def test_the_button_offers_the_viewer_when_the_focused_entry_has_one(window):
     assert window._open_button.text() == _VIEWER_ACTIONS["calculator_inspector"].label
 
 
+def test_the_button_offers_ir_view_for_a_vibrational_spectrum_summary(window):
+    """Phase K: `ir_view` is now a real, routable target (`main_window.
+    _link_to_ir_view`), not an unreachable one -- the positive case `test_
+    a_viewer_this_window_cannot_reach_offers_NO_button` used to stand in
+    for, before that route existed."""
+    window.set_reports([_summary(report_id="ir", name="IR", rich_view="ir_view")])
+    window.set_focus("ir")
+    assert window._open_button.isVisibleTo(window)
+    assert window._open_button.text() == _VIEWER_ACTIONS["ir_view"].label
+
+
 def test_the_button_is_absent_for_an_entry_that_is_already_the_whole_result(window):
     window.set_reports([_report()])
     window.set_focus("elemental_analysis")
@@ -148,18 +159,23 @@ def test_a_viewer_this_window_cannot_reach_offers_NO_button(window):
     """**THE NARROW HALF, AND IT IS THE LOAD-BEARING ONE.**
 
     A kind may declare a viewer that is not a destination anything can route
-    to -- `ir_view` is one: `IrViewWidget` is a tab inside the Quantum
-    Chemistry panel rather than a viewer a single result is handed to. A
-    truthiness test on the declared target draws a button for it, labelled by
-    a `.get` fallback and answered by the router with "unknown target".
+    to -- a sentinel ("some_future_view") stands in for one here. (`ir_view`
+    used to be the live example: `IrViewWidget` was a tab inside the Quantum
+    Chemistry panel rather than a viewer a single result could be handed to.
+    Phase K of the NMR/ORCA wiring plan added a real `ir_view` route -- see
+    `main_window._link_to_ir_view` -- so it moved to `_VIEWER_ACTIONS` and can
+    no longer stand in for "unreachable" here; this guard's PREMISE, not its
+    conclusion, needed a new example.) A truthiness test on the declared
+    target draws a button for it, labelled by a `.get` fallback and answered
+    by the router with "unknown target".
 
     A control that cannot work is worse than an absent one, and this is a
     different claim from 0g's rule that a link somebody DECLARED must never
     be a silent no-op.
     """
-    window.set_reports([_summary(report_id="ir", name="IR", rich_view="ir_view")])
-    window.set_focus("ir")
-    assert "ir_view" not in _VIEWER_ACTIONS, "the premise of this guard"
+    window.set_reports([_summary(report_id="future", name="Future", rich_view="some_future_view")])
+    window.set_focus("future")
+    assert "some_future_view" not in _VIEWER_ACTIONS, "the premise of this guard"
     assert not window._open_button.isVisibleTo(window)
 
 
@@ -189,8 +205,8 @@ def test_pressing_it_on_an_unreachable_viewer_asks_for_nothing(window):
     would answer with a diagnostic."""
     seen = []
     window.link_activated.connect(seen.append)
-    window.set_reports([_summary(report_id="ir", name="IR", rich_view="ir_view")])
-    window.set_focus("ir")
+    window.set_reports([_summary(report_id="future", name="Future", rich_view="some_future_view")])
+    window.set_focus("future")
     window._on_open_clicked()
     assert seen == []
 

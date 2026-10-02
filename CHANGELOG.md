@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Tautomer Distribution results are now reachable after the fact (branch `orca-wiring-and-nmr-deferred`)
+
+- **The ORCA Tautomer Distribution calculator's result is no longer lost the moment its dialog is closed.** It now records into the same Results panel "Showing:" list the RDKit `enumerate_tautomers` generator's own results already use, survives molecule reselection and project reload, and gets a fixed `set_id`/producer (`orca.tautomer_distribution`) matching its registered calculator id -- a latent mismatch that would have silently filed it under the wrong Properties category the moment it started being recorded.
+- **The Quantum Chemistry panel's own "Runs" history gained a matching fix**: selecting a past tautomer-distribution run used to show nothing at all, even though the full result was already retained there. A new "View Tautomer Distribution..." button reopens the exact stored result for the selected run -- never auto-popped, so reselecting an unrelated molecule never interrupts with an unsolicited window.
+- The RDKit "Tautomers..." row in Properties now mentions the ORCA-based alternative, and vice versa.
+
+### IR view reachability, and a real Molecule Report bug found while adding it (branch `orca-wiring-and-nmr-deferred`)
+
+- **A full audit of what ORCA can do versus what's reachable from Properties/Results** found one real gap: the vibrational/IR spectrum had no "open it" link the way the NMR spectrum already does. The Molecule Report's spectroscopy section now offers an "Open IR" link, routed to the Quantum Chemistry panel exactly as "Open NMR" already is.
+- **While adding it, a real, previously-unknown bug surfaced in the Molecule Report's spectroscopy-fact builder**: it was iterating `context["spectra"]` -- a dict keyed by spectrum type -- directly, which iterates its *keys* rather than the spectrum objects. Every molecule-level spectroscopy fact (NMR included, not just the new IR case) has therefore shown an empty label and "0 predicted shifts" regardless of the real spectrum, silently, since this path was never exercised by a test. Fixed alongside the new IR case, with an explicit regression test for both spectrum types plus an unrecognized-type case that must never be silently routed to NMR.
+- Everything else ORCA computes (the seven uniform calc types' scalar descriptors, QM surfaces, LED) was confirmed already correctly wired -- recorded as an audit result, not re-built.
+
+### NMR viewer: a coupled/decoupled display toggle and a first-order pattern tooltip (branch `orca-wiring-and-nmr-deferred`)
+
+- **A "Decoupled" checkbox** on the NMR viewer's toolbar, beside "Smooth rendering" -- a pure display switch collapsing every multiplet to its nominal shift in both sticks and smooth mode, computing nothing new and never touching the stored `coupling_groups`/`multiplicity`.
+- **A first-order compound pattern tooltip** ("First-order pattern: qddd"-style) on hover, derived directly from a signal's real `coupling_groups` -- informational only; the Multiplicity column and the underlying `multiplicity` field are unchanged. Uses explicit `QToolTip.showText`/`hideText` rather than the passive `setToolTip()` API, so the tooltip updates immediately when the cursor moves directly between two adjacent signals with no intervening pause over empty space.
+- Both were listed as "explicitly deferred" when the NMR splitting-tree fix shipped, pending the `coupling_groups` data they're built from -- both now built on it.
+
 ### Tautomer distribution: ORCA-based electronic-energy population estimates (branch `nmr-toolbar-and-tautomers`)
 
 - **A real tautomer distribution/population calculator**, replacing the only thing that existed before: `enumerate_tautomers` silently flagging one tautomer `"(canonical)"` via an RDKit internal heuristic score, with no distribution, no energy, nothing validated. The new "Tautomers..." button on the Quantum Chemistry panel enumerates and deduplicates every distinct tautomer RDKit can reach, embeds each one in 3D with an explicit, recorded seed, and runs a real ORCA geometry optimization on every one of them, sequentially -- one combined result, not one calculation per candidate.

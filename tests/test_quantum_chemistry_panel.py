@@ -281,6 +281,172 @@ def test_tautomer_distribution_ready_updates_the_summary_label(qapp):
     panel._tautomer_distribution_dialog.close()
 
 
+def test_tautomer_distribution_clicked_captures_the_submitting_fingerprint():
+    """Phase J: the submitting molecule's own DRAWING fingerprint is
+    captured at submission time and handed to the service -- the identity
+    a later-recorded `StoredResult` needs, taken BEFORE any candidate
+    embedding/ORCA work starts so a mid-run edit cannot retroactively
+    change what the eventual result claims to describe."""
+    from openchem.chem.calculation_input import input_fingerprint
+    from openchem.domain.calculator import DRAWING
+
+    panel, engine, service = _make_panel()
+    molecule = _cyclohexanone_molecule(engine)
+    project = ProjectModel(name="Test")
+    project.molecules.append(molecule)
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+    panel._method_combo.setCurrentText("HF STO-3G")
+
+    panel._on_tautomer_distribution_clicked()
+
+    assert len(service.tautomer_distribution_requests) == 1
+    request = service.tautomer_distribution_requests[0]
+    assert request["calculation_input"] == DRAWING
+    assert request["input_fingerprint"] == input_fingerprint(engine, molecule, DRAWING)
+
+
+def _tautomer_distribution_run(molecule_uuid: str, result) -> "object":
+    from openchem.domain.quantum_chemistry_run import OutputStatus, QuantumChemistryRun, RunStatus
+
+    run = QuantumChemistryRun(
+        run_id="run-1",
+        molecule_uuid=molecule_uuid,
+        calc_type="tautomer_distribution",
+        method_basis="HF STO-3G",
+        charge=0,
+        multiplicity=1,
+        calculation_input="",
+        input_fingerprint="",
+        input_molblock="",
+        status=RunStatus.COMPLETED,
+    )
+    run.results["tautomer_distribution"] = result
+    run.output_status["tautomer_distribution"] = OutputStatus.AVAILABLE
+    return run
+
+
+def _fake_tautomer_distribution_result(molecule_uuid: str):
+    from openchem.domain.common import Provenance
+    from openchem.domain.scientific_result import StructureEntry, StructureSetResult
+
+    return StructureSetResult(
+        set_id="orca.tautomer_distribution",
+        name="Tautomer distribution (1)",
+        method="orca",
+        molecule_uuid=molecule_uuid,
+        entries=[StructureEntry(molblock="", label="a", energy=0.0, metadata={"status": "succeeded"})],
+        provenance=Provenance(
+            created_by="core",
+            method="orca",
+            parameters={
+                "candidate_count_succeeded": 1,
+                "candidate_count_failed": 0,
+                "validation_branch": "unvalidated",
+            },
+        ),
+    )
+
+
+def test_run_label_names_tautomer_distribution_runs(qapp):
+    """`_run_label` special-cases `calc_type == "tautomer_distribution"`
+    rather than falling back to the raw calc_type string, since that
+    calc_type is deliberately excluded from `CALC_TYPE_LABELS`."""
+    panel, engine, service = _make_panel()
+    molecule = _cyclohexanone_molecule(engine)
+    run = _tautomer_distribution_run(molecule.uuid, _fake_tautomer_distribution_result(molecule.uuid))
+
+    label = panel._run_label(run)
+
+    assert label.startswith("Tautomer Distribution ·")
+    assert "tautomer_distribution" not in label  # never the raw calc_type string
+
+
+def test_render_run_enables_the_view_button_without_opening_a_dialog(qapp):
+    """The real fix for 'reselecting a past tautomer-distribution run shows
+    nothing': `_render_run` now populates the summary and enables 'View
+    Tautomer Distribution...' -- but NEVER auto-opens the dialog, since
+    `_render_run` also fires on a plain molecule reselection."""
+    panel, engine, service = _make_panel()
+    molecule = _cyclohexanone_molecule(engine)
+    project = ProjectModel(name="Test")
+    project.molecules.append(molecule)
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+    result = _fake_tautomer_distribution_result(molecule.uuid)
+    run = _tautomer_distribution_run(molecule.uuid, result)
+
+    opened = []
+    panel._open_tautomer_distribution_dialog = lambda r: opened.append(r)
+    panel._render_run(run)
+
+    assert opened == []  # no dialog, even though a result is present
+    assert panel._view_tautomer_distribution_button.isEnabled() is True
+    assert "1/1" in panel._results_label.text()
+
+
+def test_render_run_without_a_tautomer_distribution_disables_the_view_button(qapp):
+    from openchem.domain.quantum_chemistry_run import QuantumChemistryRun, RunStatus
+
+    panel, engine, service = _make_panel()
+    molecule = _cyclohexanone_molecule(engine)
+    project = ProjectModel(name="Test")
+    project.molecules.append(molecule)
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+    # First enable it from a real tautomer-distribution run...
+    panel._render_run(_tautomer_distribution_run(molecule.uuid, _fake_tautomer_distribution_result(molecule.uuid)))
+    assert panel._view_tautomer_distribution_button.isEnabled() is True
+
+    # ...then render an unrelated (e.g. plain NMR) run and confirm it turns off.
+    other_run = QuantumChemistryRun(
+        run_id="run-2", molecule_uuid=molecule.uuid, calc_type="nmr", method_basis="HF STO-3G",
+        charge=0, multiplicity=1, calculation_input="", input_fingerprint="", input_molblock="",
+        status=RunStatus.COMPLETED,
+    )
+    panel._render_run(other_run)
+
+    assert panel._view_tautomer_distribution_button.isEnabled() is False
+
+
+def test_clear_run_display_disables_the_view_button(qapp):
+    panel, engine, service = _make_panel()
+    molecule = _cyclohexanone_molecule(engine)
+    panel._render_run(_tautomer_distribution_run(molecule.uuid, _fake_tautomer_distribution_result(molecule.uuid)))
+    assert panel._view_tautomer_distribution_button.isEnabled() is True
+
+    panel._clear_run_display()
+
+    assert panel._view_tautomer_distribution_button.isEnabled() is False
+
+
+def test_view_tautomer_distribution_button_opens_the_exact_selected_runs_result(qapp):
+    """The explicit, discoverable reopen path: clicking the button opens
+    the CURRENTLY SELECTED run's own result, not a copy and not whatever
+    happens to be the molecule's latest."""
+    panel, engine, service = _make_panel()
+    molecule = _cyclohexanone_molecule(engine)
+    result = _fake_tautomer_distribution_result(molecule.uuid)
+    run = _tautomer_distribution_run(molecule.uuid, result)
+    panel._render_run(run)
+
+    opened = []
+    panel._open_tautomer_distribution_dialog = lambda r: opened.append(r)
+    panel._on_view_tautomer_distribution_clicked()
+
+    assert opened == [result]  # the exact same object, not a copy
+
+
+def test_view_tautomer_distribution_button_is_a_noop_with_no_active_run(qapp):
+    panel, engine, service = _make_panel()
+    opened = []
+    panel._open_tautomer_distribution_dialog = lambda r: opened.append(r)
+
+    panel._on_view_tautomer_distribution_clicked()  # no _render_run call first
+
+    assert opened == []
+
+
 def test_spectrum_computed_populates_the_table(qapp):
     bus = EventBus()
     engine = ChemistryEngine()

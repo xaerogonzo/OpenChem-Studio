@@ -4267,6 +4267,7 @@ class MainWindow(QMainWindow):
                 "atom_report": self._link_to_atom_report,
                 "calculator_inspector": self._link_to_calculator_inspector,
                 "nmr_view": self._link_to_nmr_view,
+                "ir_view": self._link_to_ir_view,
                 "spatial_view": self._link_to_spatial_view,
             }
         )
@@ -4361,6 +4362,38 @@ class MainWindow(QMainWindow):
             spectrum = self._atom_inspector_panel.retained_result("spectra", spectrum_type)
             return self._property_panel.open_result_inspector(spectrum)
         # No spectrum named: reveal the panel that owns NMR rather than
+        # guessing which spectrum was meant.
+        self._on_panel_chosen("Quantum_Chemistry")
+        return True
+
+    def _link_to_ir_view(self, params: dict) -> bool:
+        """Mirrors `_link_to_nmr_view` exactly -- `context["spectra"]`
+        holds NMR and vibrational spectra identically (`atom_inspector_
+        panel._on_spectrum` is type-agnostic), so the same `retained_
+        result("spectra", spectrum_type)` lookup already works for IR.
+        `molecule_report.py::collect_spectra` names nothing and just
+        means "open IR"; no `atom_report`-level `ir_view` emission exists
+        (a vibrational spectrum cannot carry a per-atom fact, see that
+        collector's own comment), so `report_id`/`spectrum_type` are
+        handled here only for parity with `nmr_view`'s shape, not because
+        anything emits them today.
+
+        `IrViewWidget` is a TAB inside the Quantum Chemistry panel, not a
+        viewer a result can be handed to directly (same as `nmr_view`'s
+        own no-spectrum-named case), so the fallback below only reveals
+        the panel -- it does not select the IR tab specifically. That is
+        the honest, current contract: matching the panel is correct, but
+        choosing a tab inside it is a further step this handler does not
+        take, exactly as `nmr_view`'s own fallback does not either.
+        """
+        report_id = params.get("report_id")
+        if report_id:
+            return self._property_panel.open_retained_result(str(report_id))
+        spectrum_type = params.get("spectrum_type")
+        if spectrum_type:
+            spectrum = self._atom_inspector_panel.retained_result("spectra", spectrum_type)
+            return self._property_panel.open_result_inspector(spectrum)
+        # No spectrum named: reveal the panel that owns IR rather than
         # guessing which spectrum was meant.
         self._on_panel_chosen("Quantum_Chemistry")
         return True

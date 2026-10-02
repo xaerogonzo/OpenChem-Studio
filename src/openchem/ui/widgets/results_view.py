@@ -93,18 +93,15 @@ logger = logging.getLogger("openchem.ui")
 #: the whole thing is choosing which surface to read it on.
 #:
 #: **A KIND ABSENT FROM IT OFFERS NO BUTTON.**
-#: `ir_view` is deliberately not here. `IrViewWidget` is a TAB inside the
-#: Quantum Chemistry panel rather than a viewer a result can be handed to, so
-#: there is nothing to route to -- and offering a button that reports "unknown
-#: target" is worse than offering none, which is a different claim from 0g's
-#: rule that a link somebody DECLARED must never be a silent no-op.
-#:
-#: Measured: no registry calculator produces a vibrational spectrum at all
-#: (60 results on aspirin, and the kinds are report, per_atom, structure_set,
-#: ph_curve, alert, spectrum, trajectory), so this costs nothing today. WHAT
-#: WOULD LIFT IT: an IR viewer a single result can be opened in, or an
-#: `ir_view` route that reveals the panel owning it -- the shape `nmr_view`
-#: already degrades to when no spectrum is named.
+#: `ir_view` WAS deliberately absent here (through Phase K of the NMR/ORCA
+#: wiring plan) for exactly the reason stated at the time: nothing emitted
+#: that target, so offering a button that reports "unknown target" would
+#: have been worse than offering none. `molecule_report.py::collect_spectra`
+#: now emits it for a held vibrational spectrum (the same shape `nmr_view`
+#: already used), which is what lifted it -- `IrViewWidget` is still a TAB
+#: inside the Quantum Chemistry panel rather than a viewer a result can be
+#: handed to, so `_link_to_ir_view` degrades to revealing that panel, the
+#: same fallback `_link_to_nmr_view` already has for an unnamed spectrum.
 #:
 #: **PROTOTYPES WITH LITERAL TARGETS, NOT A COMPUTED ONE, AND THE SUITE
 #: REFUSED THE COMPUTED FORM.** The obvious shape is
@@ -122,6 +119,7 @@ _VIEWER_ACTIONS: dict[str, FactLink] = {
         target="calculator_inspector", label="Open in Calculator Inspector"
     ),
     "nmr_view": FactLink(target="nmr_view", label="Open in NMR view"),
+    "ir_view": FactLink(target="ir_view", label="Open in IR view"),
 }
 
 #: Which annotation an Open button means, carried on the button itself.

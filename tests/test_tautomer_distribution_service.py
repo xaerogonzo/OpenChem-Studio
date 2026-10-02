@@ -22,12 +22,16 @@ from openchem import paths as app_paths
 from openchem.app.settings import Settings
 from openchem.chem.tautomer_distribution import generate_tautomer_candidates
 from openchem.domain import result_codec
+from openchem.domain.calculator import DRAWING
 from openchem.domain.common import CacheState
 from openchem.domain.descriptor import DescriptorValue
+from openchem.domain.result_store import ResultIdentity
 from openchem.events.base import EventBus
 from openchem.events.events import (
     QuantumChemistryJobStateChanged,
     QuantumChemistryRunCompleted,
+    ResultRecorded,
+    StructureSetComputed,
     TautomerDistributionResultReady,
 )
 from openchem.plugins.interfaces import QuantumEngineProvider
@@ -37,6 +41,11 @@ from openchem.services.quantum_chemistry_service import QuantumChemistryService
 from test_quantum_chemistry_service import FakeQuantumEngineProvider, _wait_until
 
 CYCLOHEXANONE = "O=C1CCCCC1"
+#: A stand-in for a real `input_fingerprint(engine, model, DRAWING)` call --
+#: these tests exercise the orchestration/recording plumbing, not fingerprint
+#: computation itself (that's `test_quantum_chemistry_panel.py`'s job, where
+#: the real molecule/engine exist).
+_FAKE_DRAWING_FINGERPRINT = "drawing:fake-cyclohexanone"
 
 
 class _PerCandidateProvider(FakeQuantumEngineProvider):
@@ -119,6 +128,8 @@ def test_runs_one_job_per_candidate_and_publishes_exactly_one_result(qapp):
         charge=0,
         multiplicity=1,
         method_basis="HF STO-3G",
+        calculation_input=DRAWING,
+        input_fingerprint=_FAKE_DRAWING_FINGERPRINT,
         provider_id="fake",
     )
 
@@ -149,6 +160,8 @@ def test_a_parse_failure_on_one_candidate_does_not_abort_the_sequence(qapp):
         charge=0,
         multiplicity=1,
         method_basis="HF STO-3G",
+        calculation_input=DRAWING,
+        input_fingerprint=_FAKE_DRAWING_FINGERPRINT,
         provider_id="fake",
     )
 
@@ -175,6 +188,7 @@ def test_a_candidate_with_no_parseable_scf_energy_is_recorded_as_failed(qapp):
     service.request_tautomer_distribution(
         candidates=candidates, molecule_uuid="mol-1", charge=0, multiplicity=1,
         method_basis="HF STO-3G", provider_id="fake",
+        calculation_input=DRAWING, input_fingerprint=_FAKE_DRAWING_FINGERPRINT,
     )
 
     assert _wait_until(qapp, lambda: results)
@@ -194,6 +208,7 @@ def test_holds_the_molecule_job_slot_for_the_whole_sequence(qapp):
     service.request_tautomer_distribution(
         candidates=candidates, molecule_uuid="mol-1", charge=0, multiplicity=1,
         method_basis="HF STO-3G", provider_id="fake",
+        calculation_input=DRAWING, input_fingerprint=_FAKE_DRAWING_FINGERPRINT,
     )
 
     assert _wait_until(qapp, lambda: provider.calls >= 1)
@@ -221,6 +236,7 @@ def test_cancelling_mid_distribution_publishes_no_result_and_releases_the_slot(q
     service.request_tautomer_distribution(
         candidates=candidates, molecule_uuid="mol-1", charge=0, multiplicity=1,
         method_basis="HF STO-3G", provider_id="fake",
+        calculation_input=DRAWING, input_fingerprint=_FAKE_DRAWING_FINGERPRINT,
     )
     assert _wait_until(qapp, lambda: service._active_jobs.get("mol-1") is not None)
     service.cancel("mol-1")
@@ -240,6 +256,7 @@ def test_no_candidates_fails_cleanly(qapp):
     service.request_tautomer_distribution(
         candidates=[], molecule_uuid="mol-1", charge=0, multiplicity=1,
         method_basis="HF STO-3G", provider_id="fake",
+        calculation_input=DRAWING, input_fingerprint=_FAKE_DRAWING_FINGERPRINT,
     )
 
     assert states[-1].state == CacheState.FAILED
@@ -256,6 +273,7 @@ def test_a_single_quantum_chemistry_run_is_recorded_for_the_whole_operation_not_
     service.request_tautomer_distribution(
         candidates=candidates, molecule_uuid="mol-1", charge=0, multiplicity=1,
         method_basis="HF STO-3G", provider_id="fake",
+        calculation_input=DRAWING, input_fingerprint=_FAKE_DRAWING_FINGERPRINT,
     )
 
     assert _wait_until(qapp, lambda: runs)
@@ -264,6 +282,98 @@ def test_a_single_quantum_chemistry_run_is_recorded_for_the_whole_operation_not_
     assert run.calc_type == "tautomer_distribution"
     assert "tautomer_distribution" in run.results
     assert run.results["tautomer_distribution"].molecule_uuid == "mol-1"
+
+
+def test_the_result_set_id_matches_the_registered_calculator_id(qapp):
+    """`property_panel.py`'s own documented invariant: a generator's
+    `set_id` equals its registered `calculator_id` -- "orca.
+    tautomer_distribution", not the bare "tautomer_distribution" (that
+    string is reserved for the QC-run results-dict key `_render_run`
+    reads, a different namespace). A mismatch here would make
+    `_category_of` file this result under "other" instead of
+    "quantum_chemistry"."""
+    candidates = _two_real_candidates()
+    provider = _PerCandidateProvider(energies=[-100.0, -99.999])
+    service, bus = _make_service(provider)
+    results = []
+    bus.subscribe(TautomerDistributionResultReady, lambda e: results.append(e))
+    service.request_tautomer_distribution(
+        candidates=candidates, molecule_uuid="mol-1", charge=0, multiplicity=1,
+        method_basis="HF STO-3G", provider_id="fake",
+        calculation_input=DRAWING, input_fingerprint=_FAKE_DRAWING_FINGERPRINT,
+    )
+    assert _wait_until(qapp, lambda: results)
+    assert results[0].result.set_id == "orca.tautomer_distribution"
+
+
+def test_the_result_is_recorded_into_the_generic_store_with_the_submitting_fingerprint(qapp):
+    """The actual fix for 'closed the dialog, could not find it again':
+    `_finish_tautomer_distribution` now publishes `ResultRecorded`
+    alongside `TautomerDistributionResultReady` -- the same envelope
+    `_record_descriptors` already uses for ORCA's scalar descriptor
+    outputs, which `ResultStoreService` persists into the Results panel's
+    `SessionResultStore`. `producer`/`calculation_input`/`input_fingerprint`
+    all come from what was captured at SUBMISSION time, not recomputed
+    from current state."""
+    candidates = _two_real_candidates()
+    provider = _PerCandidateProvider(energies=[-100.0, -99.999])
+    service, bus = _make_service(provider)
+    recorded = []
+    bus.subscribe(ResultRecorded, lambda e: recorded.append(e.stored))
+    service.request_tautomer_distribution(
+        candidates=candidates, molecule_uuid="mol-1", charge=0, multiplicity=1,
+        method_basis="HF STO-3G", provider_id="fake",
+        calculation_input=DRAWING, input_fingerprint=_FAKE_DRAWING_FINGERPRINT,
+    )
+    assert _wait_until(qapp, lambda: recorded)
+    stored = recorded[0]
+    assert stored.identity.molecule_uuid == "mol-1"
+    assert stored.identity.producer == "orca.tautomer_distribution"
+    assert stored.identity.calculation_input == DRAWING
+    assert stored.identity.input_fingerprint == _FAKE_DRAWING_FINGERPRINT
+    assert stored.result.set_id == "orca.tautomer_distribution"
+
+
+def test_one_calculation_publishes_exactly_one_recordable_result(qapp):
+    """`_finish_tautomer_distribution` publishes BOTH `StructureSetComputed`
+    (live display) and `ResultRecorded` (persistence) for the same single
+    operation -- this proves that duality still resolves to exactly one
+    retained result identity, not two."""
+    candidates = _two_real_candidates()
+    provider = _PerCandidateProvider(energies=[-100.0, -99.999])
+    service, bus = _make_service(provider)
+    live_events = []
+    recorded = []
+    bus.subscribe(StructureSetComputed, lambda e: live_events.append(e.structure_set))
+    bus.subscribe(ResultRecorded, lambda e: recorded.append(e.stored))
+    service.request_tautomer_distribution(
+        candidates=candidates, molecule_uuid="mol-1", charge=0, multiplicity=1,
+        method_basis="HF STO-3G", provider_id="fake",
+        calculation_input=DRAWING, input_fingerprint=_FAKE_DRAWING_FINGERPRINT,
+    )
+    assert _wait_until(qapp, lambda: recorded and live_events)
+    assert len(live_events) == 1
+    assert len(recorded) == 1
+    assert live_events[0].set_id == recorded[0].result.set_id == "orca.tautomer_distribution"
+
+
+def test_a_failed_run_is_still_recorded_so_it_can_be_audited(qapp):
+    """Zero successes still produces a real, reachable result naming which
+    candidates failed and why -- never silently dropped just because the
+    run's own status is FAILED."""
+    candidates = _two_real_candidates()
+    provider = _PerCandidateProvider(energies=[-100.0, -99.999], fail_to_parse_at={0, 1})
+    service, bus = _make_service(provider)
+    recorded = []
+    bus.subscribe(ResultRecorded, lambda e: recorded.append(e.stored))
+    service.request_tautomer_distribution(
+        candidates=candidates, molecule_uuid="mol-1", charge=0, multiplicity=1,
+        method_basis="HF STO-3G", provider_id="fake",
+        calculation_input=DRAWING, input_fingerprint=_FAKE_DRAWING_FINGERPRINT,
+    )
+    assert _wait_until(qapp, lambda: recorded)
+    assert len(recorded[0].result.entries) == 2
+    assert all(e.metadata["status"] == "failed" for e in recorded[0].result.entries)
 
 
 def test_the_published_result_round_trips_through_the_save_codec_exactly(qapp):
@@ -280,6 +390,7 @@ def test_the_published_result_round_trips_through_the_save_codec_exactly(qapp):
     service.request_tautomer_distribution(
         candidates=candidates, molecule_uuid="mol-1", charge=0, multiplicity=1,
         method_basis="HF STO-3G", provider_id="fake",
+        calculation_input=DRAWING, input_fingerprint=_FAKE_DRAWING_FINGERPRINT,
     )
     assert _wait_until(qapp, lambda: results)
     original = results[0].result
