@@ -1,10 +1,12 @@
 """Calculators run from another panel have a REAL row in Properties, and pressing it opens that panel.
 
-Nine calculators -- Vina docking, the seven ORCA jobs and Hardness/Softness -- are run by their
-own service from their own panel, and Properties skipped them with one `continue` and an italic
-sentence naming the panel. A person looking for an ab initio NMR in Properties found a hint and
-nothing to press. Now each has a row that OPENS the panel with the calculation chosen; it has no
-tick box (nothing here runs) and no status chip, and "Run selected" can never include it.
+Ten calculators -- Vina docking, the seven ORCA jobs, Tautomer Distribution (an eighth ORCA-
+driven entry that dispatches N real jobs internally rather than being one ORCA calc_type itself)
+and Hardness/Softness -- are run by their own service from their own panel, and Properties
+skipped them with one `continue` and an italic sentence naming the panel. A person looking for
+an ab initio NMR in Properties found a hint and nothing to press. Now each has a row that OPENS
+the panel with the calculation chosen; it has no tick box (nothing here runs) and no status
+chip, and "Run selected" can never include it.
 """
 
 from __future__ import annotations
@@ -48,7 +50,7 @@ def panel(qapp, registry):
 def test_every_service_calculator_declares_a_panel_that_exists(registry):
     """A guard, not a convenience: a row whose panel id is a typo is a button that opens nothing."""
     definitions = _service_definitions(registry)
-    assert len(definitions) == 9, "the nine calculators run from another panel"
+    assert len(definitions) == 10, "the ten calculators run from another panel"
     for definition in definitions:
         assert definition.execution.panel_id in HELP_TOPIC_BY_DOCK, (
             f"{definition.calculator_id} names panel {definition.execution.panel_id!r}, "
