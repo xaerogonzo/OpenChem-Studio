@@ -13,8 +13,13 @@ from pathlib import Path
 from PySide6.QtCore import QObject, QProcess, QProcessEnvironment
 from rdkit import Chem
 
+from openchem import paths as app_paths
 from openchem.app.settings import Settings
-from openchem.chem.boltzmann import boltzmann_average_spectrum, boltzmann_weights
+from openchem.chem.boltzmann import (
+    STANDARD_TEMPERATURE_K,
+    boltzmann_average_spectrum,
+    boltzmann_weights,
+)
 from openchem.chem.nmr_reference import (
     SPECTRUM_TYPE_BY_ELEMENT,
     average_reference_shielding,
@@ -27,7 +32,16 @@ from openchem.chem.orca_engine import (
     find_mpi_bin,
     parse_frontier_orbitals,
 )
-from openchem import paths as app_paths
+from openchem.chem.tautomer_distribution import (
+    FAILURE_ENERGY_UNPARSEABLE,
+    FAILURE_OPTIMIZATION_NOT_CONVERGED,
+    VALIDATION_UNVALIDATED,
+    CandidateResult,
+    CandidateStatus,
+    TautomerCandidate,
+    build_outcome,
+    build_structure_set_result,
+)
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.quantum_chemistry_run import (
     OutputStatus,
@@ -38,13 +52,14 @@ from openchem.domain.quantum_chemistry_run import (
 from openchem.domain.result_store import StoredResult
 from openchem.events.base import EventBus
 from openchem.events.events import (
-    NmrScalingCalibrated,
     NmrReferenceCalibrated,
+    NmrScalingCalibrated,
     QuantumChemistryJobStateChanged,
     QuantumChemistryResultReady,
     QuantumChemistryRunCompleted,
     ResultRecorded,
     SpectrumComputed,
+    TautomerDistributionResultReady,
 )
 from openchem.plugins.interfaces import QuantumEngineProvider
 from openchem.services import result_cache
@@ -214,8 +229,8 @@ class _ActiveJob:
     calc_type: str
     scratch_dir: Path
     process: QProcess
-    kind: str = "calculation"  # "calculation" | "reference" | "conformer" | "scaling"
-    molecule_uuid: str | None = None  # only set for kind == "calculation"/"conformer"
+    kind: str = "calculation"  # "calculation" | "reference" | "conformer" | "scaling" | "tautomer_candidate"
+    molecule_uuid: str | None = None  # only set for kind == "calculation"/"conformer"/"tautomer_candidate"
     # Only set for kind == "scaling": which calibration standard this run
     # is, so its shieldings can be filed against the right literature
     # shift when the whole sequence finishes.
@@ -243,9 +258,50 @@ class _ActiveJob:
     #: (see `quantum_chemistry_run.py`'s module docstring). For
     #: kind == "conformer", carries `_BoltzmannRun.run_id` instead of its
     #: own -- one run id per logical Boltzmann sequence, not per conformer.
+    #: Same for kind == "tautomer_candidate": carries
+    #: `_TautomerDistributionRun.run_id`, one id per logical operation, not
+    #: per candidate.
     run_id: str = ""
     stdout_chunks: list[str] = field(default_factory=list)
     cancelled: bool = False
+
+
+@dataclass
+class _TautomerDistributionRun:
+    """One logical tautomer-distribution operation spanning N sequential
+    ORCA geometry optimizations, one per candidate, combined at the end
+    (`chem/tautomer_distribution.py`).
+
+    Sequential and single-flight for the same reasons `_BoltzmannRun` is
+    (ORCA already saturates the machine on its own; Cancel must reach the
+    whole operation as one thing) -- this reuses the molecule's existing
+    JobManager slot, so a second request for the same source molecule
+    while one is running is refused the same way any other QC job already
+    is, and `run_id` is minted fresh at submission (`new_run_id()`), so
+    two identical requests still mint two different ids.
+
+    **UNLIKE `_BoltzmannRun`, a per-candidate parse/convergence failure
+    does NOT abort the whole run** -- see `_finish_tautomer_candidate_job`.
+    Every candidate's own outcome is appended to `results`, win or lose,
+    and the sequence always runs to completion (or to a real cancellation/
+    process crash, which still aborts the whole operation like every other
+    multi-job sequence here).
+    """
+
+    molecule_uuid: str
+    remaining_candidates: list[TautomerCandidate]
+    charge: int
+    multiplicity: int
+    method_basis: str
+    provider: QuantumEngineProvider
+    executable_path: str
+    total: int
+    #: The candidate `_launch_next_tautomer_candidate` most recently
+    #: dispatched -- `_ActiveJob` carries no candidate-specific identity,
+    #: so this is how its finish handler knows which candidate just ran.
+    current_candidate: TautomerCandidate | None = None
+    results: list[CandidateResult] = field(default_factory=list)
+    run_id: str = ""
 
 
 class QuantumChemistryService(QObject):
@@ -289,6 +345,10 @@ class QuantumChemistryService(QObject):
         # Keyed by molecule_uuid, same as _active_jobs: a Boltzmann run owns
         # the molecule's job slot for its whole sequence of conformers.
         self._boltzmann_runs: dict[str, _BoltzmannRun] = {}
+        # Keyed by molecule_uuid, same reasoning as _boltzmann_runs -- one
+        # tautomer-distribution operation owns the molecule's job slot for
+        # its whole sequence of candidates.
+        self._tautomer_runs: dict[str, _TautomerDistributionRun] = {}
         # Keyed by scaling-job key, one entry per in-flight calibration.
         self._scaling_runs: dict[str, _ScalingRun] = {}
         # Raw NMR results waiting on the TMS reference for their method/basis,
@@ -474,6 +534,100 @@ class QuantumChemistryService(QObject):
             molecule_uuid=run.molecule_uuid,
             input_fingerprint=run.input_fingerprint,
             calculation_input=run.calculation_input,
+            run_id=run.run_id,
+        )
+
+    def request_tautomer_distribution(
+        self,
+        candidates: list[TautomerCandidate],
+        molecule_uuid: str,
+        charge: int,
+        multiplicity: int,
+        method_basis: str,
+        provider_id: str = "orca",
+    ) -> None:
+        """Runs a real ORCA geometry optimization on each of `candidates`,
+        sequentially, and publishes one combined
+        `TautomerDistributionResultReady`.
+
+        `candidates` comes from `chem.tautomer_distribution
+        .generate_tautomer_candidates` -- this method only runs them; it
+        does no enumeration or embedding of its own.
+
+        Mirrors `request_boltzmann_nmr`'s shape (one molecule job slot for
+        the whole sequence, refused if one is already running for this
+        molecule) with one deliberate difference: a per-candidate parse/
+        convergence failure does NOT abort the sequence here -- see
+        `_finish_tautomer_candidate_job`. A process-level crash or a real
+        user cancellation still aborts the whole operation, exactly like
+        every other multi-job sequence this service runs
+        (`_report_job_failure`).
+        """
+        if not candidates:
+            self._publish_state(molecule_uuid, CacheState.FAILED, "No tautomer candidates to run.")
+            return
+        provider = self._providers.get(provider_id)
+        if provider is None:
+            self._publish_state(molecule_uuid, CacheState.FAILED, f"Unknown quantum engine: {provider_id}")
+            return
+        executable_path = self._resolve_executable_path()
+        if executable_path is None:
+            self._publish_state(
+                molecule_uuid,
+                CacheState.FAILED,
+                "No ORCA executable configured or found on PATH — set orca/executable_path in Settings.",
+            )
+            return
+        # Takes the molecule's single job slot for the WHOLE sequence, not
+        # per candidate -- so Cancel reaches the run as one thing, and a
+        # second request while it is going is refused the same way it
+        # would be for an ordinary single job.
+        if not self._job_manager.try_start(
+            _JOB_KIND, molecule_uuid, cancel_callback=lambda: self.cancel(molecule_uuid)
+        ):
+            self._publish_state(
+                molecule_uuid,
+                CacheState.FAILED,
+                "A calculation is already running for this molecule — cancel it first.",
+            )
+            return
+
+        run = _TautomerDistributionRun(
+            molecule_uuid=molecule_uuid,
+            remaining_candidates=list(candidates),
+            charge=charge,
+            multiplicity=multiplicity,
+            method_basis=method_basis,
+            provider=provider,
+            executable_path=executable_path,
+            total=len(candidates),
+            run_id=new_run_id(),
+        )
+        self._tautomer_runs[molecule_uuid] = run
+        self._launch_next_tautomer_candidate(run)
+
+    def _launch_next_tautomer_candidate(self, run: _TautomerDistributionRun) -> None:
+        candidate = run.remaining_candidates.pop(0)
+        run.current_candidate = candidate
+        succeeded = sum(1 for r in run.results if r.status is CandidateStatus.SUCCEEDED)
+        failed = sum(1 for r in run.results if r.status is CandidateStatus.FAILED)
+        self._publish_state(
+            run.molecule_uuid,
+            CacheState.RUNNING,
+            f"Tautomer candidate {len(run.results) + 1}/{run.total} "
+            f"({succeeded} succeeded, {failed} failed so far)",
+        )
+        self._launch_job(
+            key=run.molecule_uuid,
+            mol=candidate.mol,
+            charge=run.charge,
+            multiplicity=run.multiplicity,
+            method_basis=run.method_basis,
+            calc_type="opt",
+            provider=run.provider,
+            executable_path=run.executable_path,
+            kind="tautomer_candidate",
+            molecule_uuid=run.molecule_uuid,
             run_id=run.run_id,
         )
 
@@ -679,12 +833,13 @@ class QuantumChemistryService(QObject):
         except Exception as exc:  # noqa: BLE001 - bad input params, report don't crash
             self._cleanup_scratch(scratch_dir)
             self._publish_state(key, CacheState.FAILED, f"Failed to build input: {exc}")
-            # Abandons the whole Boltzmann sequence if one conformer can't
-            # even produce an input file -- the remaining ones would fail
-            # identically (same params, same provider), and a partial
-            # average would be silently wrong rather than obviously absent.
+            # Abandons the whole Boltzmann/tautomer sequence if one
+            # candidate can't even produce an input file -- the remaining
+            # ones would fail identically (same params, same provider), so
+            # this is a setup failure, not a per-candidate chemistry one.
             self._boltzmann_runs.pop(key, None)
             self._scaling_runs.pop(key, None)
+            self._tautomer_runs.pop(key, None)
             self._job_manager.finish(job_kind_for_manager, key)
             return
 
@@ -795,9 +950,13 @@ class QuantumChemistryService(QObject):
             self._report_job_failure(job, message)
         finally:
             # A process-level error ends the whole run, not just this
-            # conformer -- there is no partial average worth publishing.
+            # conformer/candidate -- there is no partial average or
+            # distribution worth publishing from a crashed process (a
+            # per-candidate PARSE failure is different and does not reach
+            # here -- see `_finish_tautomer_candidate_job`).
             self._boltzmann_runs.pop(key, None)
             self._scaling_runs.pop(key, None)
+            self._tautomer_runs.pop(key, None)
             self._cleanup_scratch(job.scratch_dir)
             self._job_manager.finish(_job_manager_kind(job.kind), key)
 
@@ -833,6 +992,19 @@ class QuantumChemistryService(QObject):
                     error=message,
                 )
             )
+        elif job.kind == "tautomer_candidate":
+            # A process-level crash or real cancellation, not a per-candidate
+            # parse failure (that path never reaches here -- see
+            # `_finish_tautomer_candidate_job`). Ends the WHOLE operation:
+            # no `TautomerDistributionResultReady` is published, matching
+            # every other multi-job sequence's crash/cancel behaviour --
+            # "cancelled" here always means "no distribution," never "a
+            # distribution over fewer candidates."
+            self._publish_state(job.key, CacheState.FAILED, message)
+            run = self._tautomer_runs.get(job.key)
+            status = RunStatus.CANCELLED if job.cancelled else RunStatus.FAILED
+            if run is not None:
+                self._record_run(self._new_tautomer_distribution_run(run, status, warnings=[message]))
         else:
             self._publish_state(job.key, CacheState.FAILED, message)
             status = RunStatus.CANCELLED if job.cancelled else RunStatus.FAILED
@@ -850,9 +1022,14 @@ class QuantumChemistryService(QObject):
         chaining = False
         try:
             if job.cancelled:
+                # `_report_job_failure` first -- for a "tautomer_candidate"
+                # job it looks up `self._tautomer_runs[key]` to build the
+                # terminal `QuantumChemistryRun`, so popping it before that
+                # call would silently skip recording the cancelled run.
+                self._report_job_failure(job, "Cancelled by user")
                 self._boltzmann_runs.pop(key, None)
                 self._scaling_runs.pop(key, None)
-                self._report_job_failure(job, "Cancelled by user")
+                self._tautomer_runs.pop(key, None)
                 return
             # `finished` can fire before Qt has delivered the LAST
             # `readyReadStandardOutput` signal for data ORCA wrote right as
@@ -874,6 +1051,8 @@ class QuantumChemistryService(QObject):
                 chaining = self._finish_conformer_job(job, output_text)
             elif job.kind == "scaling":
                 chaining = self._finish_scaling_job(job, output_text)
+            elif job.kind == "tautomer_candidate":
+                chaining = self._finish_tautomer_candidate_job(job, output_text)
             else:
                 self._finish_calculation_job(job, output_text)
         finally:
@@ -1111,6 +1290,157 @@ class QuantumChemistryService(QObject):
         self._record_run(qc_run)
         return False
 
+    def _finish_tautomer_candidate_job(self, job: _ActiveJob, output_text: str) -> bool:
+        """Records this candidate's own outcome -- success or failure --
+        and either starts the next candidate or publishes the combined
+        result.
+
+        **UNLIKE `_finish_conformer_job`, a parse/convergence failure here
+        does NOT abort the sequence.** A geometry optimization failing to
+        converge for one tautomer is an expected, common outcome -- not
+        every structure RDKit's enumerator proposes is a real, stable
+        minimum -- and discarding every OTHER candidate's already-paid-for
+        ORCA result over one bad one would be wasteful. The published
+        result still never shows a population over an incomplete set (see
+        `chem.tautomer_distribution.build_outcome`); a process-level crash
+        or cancellation is handled separately and DOES still abort the
+        whole operation (`_report_job_failure`'s `"tautomer_candidate"`
+        branch).
+        """
+        molecule_uuid = job.molecule_uuid
+        run = self._tautomer_runs.get(molecule_uuid)
+        if run is None:  # cancelled or already torn down
+            return False
+        candidate = run.current_candidate
+        molblock = Chem.MolToMolBlock(candidate.mol, kekulize=False)
+
+        try:
+            descriptors, _conformer = job.provider.parse_output(output_text, job.mol, molecule_uuid, job.calc_type)
+        except Exception as exc:  # one candidate's own failure, recorded, never crashes the sequence
+            logger.exception(
+                "Tautomer candidate optimization failed to parse for molecule %s", molecule_uuid
+            )
+            run.results.append(
+                CandidateResult(
+                    fingerprint=candidate.fingerprint,
+                    molblock=molblock,
+                    status=CandidateStatus.FAILED,
+                    embedding_seed=candidate.embedding_seed,
+                    failure_reason=str(exc),
+                    failure_reason_code=FAILURE_OPTIMIZATION_NOT_CONVERGED,
+                )
+            )
+        else:
+            # Same descriptor id `_finish_conformer_job` reads its own SCF
+            # energy from -- the convention every QuantumEngineProvider
+            # follows for its converged total energy, so this stays
+            # provider-agnostic. Convergence and the energy come from this
+            # SAME parsed outcome, never two independently-parsed facts
+            # that could silently refer to different stages of the job.
+            energy_id = f"{job.provider.provider_id}.scf_energy"
+            energy = next((d.value for d in descriptors if d.descriptor_id == energy_id), None)
+            if energy is None:
+                run.results.append(
+                    CandidateResult(
+                        fingerprint=candidate.fingerprint,
+                        molblock=molblock,
+                        status=CandidateStatus.FAILED,
+                        embedding_seed=candidate.embedding_seed,
+                        failure_reason="No SCF energy in ORCA output.",
+                        failure_reason_code=FAILURE_ENERGY_UNPARSEABLE,
+                    )
+                )
+            else:
+                run.results.append(
+                    CandidateResult(
+                        fingerprint=candidate.fingerprint,
+                        molblock=molblock,
+                        status=CandidateStatus.SUCCEEDED,
+                        embedding_seed=candidate.embedding_seed,
+                        absolute_energy_hartree=float(energy),
+                    )
+                )
+
+        if run.remaining_candidates:
+            self._launch_next_tautomer_candidate(run)
+            return True
+
+        self._tautomer_runs.pop(molecule_uuid, None)
+        self._finish_tautomer_distribution(run)
+        return False
+
+    def _finish_tautomer_distribution(self, run: _TautomerDistributionRun) -> None:
+        """Combines every candidate's own outcome (`chem.
+        tautomer_distribution.build_outcome`) into one `StructureSetResult`
+        and publishes it -- once, for the whole operation, never per
+        candidate."""
+        outcome = build_outcome(run.results, temperature_k=STANDARD_TEMPERATURE_K)
+        result = build_structure_set_result(
+            outcome,
+            run.molecule_uuid,
+            run.method_basis,
+            run_id=run.run_id,
+            validation_branch=VALIDATION_UNVALIDATED,
+        )
+        self._event_bus.publish(
+            TautomerDistributionResultReady(molecule_uuid=run.molecule_uuid, run_id=run.run_id, result=result)
+        )
+
+        warnings: list[str] = []
+        if outcome.succeeded_count == 0:
+            status = RunStatus.FAILED
+            message = "No tautomer candidate optimizations succeeded."
+        elif not outcome.complete:
+            status = RunStatus.COMPLETED_WITH_WARNINGS
+            message = (
+                f"{outcome.succeeded_count}/{len(run.results)} tautomer candidates succeeded "
+                f"-- no population percentages shown for an incomplete set."
+            )
+            warnings.append(message)
+        else:
+            status = RunStatus.COMPLETED
+            message = f"{outcome.succeeded_count}/{len(run.results)} tautomer candidates succeeded."
+        self._publish_state(
+            run.molecule_uuid, CacheState.FAILED if status is RunStatus.FAILED else CacheState.COMPLETED, message
+        )
+
+        qc_run = self._new_tautomer_distribution_run(run, status, warnings=warnings)
+        if qc_run is not None:
+            qc_run.results["tautomer_distribution"] = result
+            qc_run.output_status["tautomer_distribution"] = OutputStatus.AVAILABLE
+        self._record_run(qc_run)
+
+    @staticmethod
+    def _new_tautomer_distribution_run(
+        run: _TautomerDistributionRun, status: RunStatus, warnings: list[str] | None = None
+    ) -> QuantumChemistryRun | None:
+        """The tautomer-distribution counterpart of `_new_boltzmann_run` --
+        ONE run for the WHOLE operation, never one per candidate (see
+        `request_tautomer_distribution`'s own docstring and `domain/
+        quantum_chemistry_run.py`'s "A RUN IS THE UNIT" module docstring --
+        a candidate optimization is not itself something the user asked
+        for individually). `input_molblock` is left empty for the same
+        reason `_new_boltzmann_run`'s is: the real input is the whole
+        CANDIDATE SET, not a single molblock -- every candidate's own
+        molblock/status/energy is retained instead inside `results
+        ["tautomer_distribution"]` once published, which is the real,
+        auditable trace of what was measured."""
+        if not run.run_id:
+            return None
+        return QuantumChemistryRun(
+            run_id=run.run_id,
+            molecule_uuid=run.molecule_uuid,
+            calc_type="tautomer_distribution",
+            method_basis=run.method_basis,
+            charge=run.charge,
+            multiplicity=run.multiplicity,
+            calculation_input="",
+            input_fingerprint="",
+            input_molblock="",
+            status=status,
+            warnings=list(warnings or []),
+        )
+
     @staticmethod
     def _stamped(spectrum, job: _ActiveJob, input_fingerprint: str, calculation_input: str):
         """The `SpectrumComputed` for one finished job, stamped and described.
@@ -1303,7 +1633,11 @@ class QuantumChemistryService(QObject):
         hydrogen comes out at 0.859), so an all-or-nothing calibration
         would throw away a good carbon line because of a bad proton one.
         """
-        from openchem.chem.nmr_scaling import CalibrationError, fit_scaling, reference_points
+        from openchem.chem.nmr_scaling import (
+            CalibrationError,
+            fit_scaling,
+            reference_points,
+        )
 
         self._scaling_runs.pop(key, None)
         factors = {}
