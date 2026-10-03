@@ -1038,3 +1038,44 @@ re-proposed.
 Each benchmark directory has its own README with the exact commands. Nothing
 here depends on data that is not either in the repository or downloadable by
 the scripts.
+
+
+## Tautomer distribution: the preregistered gate, `attempted_failed` (2026-10-03)
+
+**Outcome: the model did not pass, so no population percentage ships.** The
+criteria (`chem/data/tautomer_validation.json`, frozen in commit `239f1e6a` before
+any number existed) were run once, on that commit, with real ORCA 6.1.1 at
+`PBE0 def2-TZVP`: 20 optimizations, every tautomer searched completely. The
+artifact, with every number the gate used, is
+`benchmarks/tautomer_validation/tautomer_validation_artifact.json`
+(`validation_execution_status` complete, `validation_gate_outcome`
+`attempted_failed`). This is a positive record of a complete attempt that missed the
+gate, not "never tested".
+
+| system (required) | ranking | MAE | max error | tolerance |
+|---|---|---|---|---|
+| cytosine | fails | 0.99 | 1.44 | 1.0 / 2.0 kcal/mol |
+| acetylacetone | fails | 5.07 | 5.29 | |
+| acetaldimine / vinylamine | passes | 0.86 | 1.72 | |
+| 2-pyridone / 2-hydroxypyridine | fails | 1.20 | 2.07 | |
+
+Optional rows (never gating): formamide 16.5 against a reference 10.7, acetaldehyde
+10.1 against 9.3, both ordered correctly.
+
+**What is established, and what is not.** The ranking gate failed on three of four
+required systems, which is the gate's own criterion. The 2-pyridone miss was
+disclosed before the run (the source's own PBE0 energies show it). Cytosine's
+failure is the model ranking the keto-amino form below the enol the reference puts
+lowest. **Acetylacetone puts the enol 5.3 kcal/mol ABOVE the diketo, where the
+reference has it lower (and 4.85 below).** That size is consistent with the
+single-start-geometry limitation the criteria name, since the reference enol is the
+hydrogen-bonded form, but the optimized geometries were not stored, so that cause is
+NOT verified here. The same applies to formamidic acid's +5.8. Nothing in this
+record says the method is wrong rather than the start geometry, only that this
+application, as built, does not reproduce the references.
+
+**What it authorizes.** Nothing new: results stay `unvalidated`, with ΔE and the
+RDKit cross-check, and no percentage. Changing the model (another preset, a
+conformer search, hydroxyl-rotamer and C=N-H E/Z enumeration) is a different
+`model_version` and needs its own preregistered run; this one is not reopened.
+
