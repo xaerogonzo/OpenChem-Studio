@@ -6,6 +6,8 @@ from PySide6.QtWidgets import QWidget
 
 from openchem.chem.spectrum_overlay import OverlaySeries, common_range, prepare_computed
 from openchem.domain.scientific_result import VibrationalMode
+from openchem.ui.picture_export import show_picture_menu
+from openchem.ui.widgets.plot_zoom import drift, is_full_span, panned_window, zoomed_window
 
 _AXIS_COLOR = QColor(120, 120, 120)
 _PEAK_COLOR = QColor(30, 100, 200)
@@ -40,6 +42,15 @@ _SILENT_STUB_HEIGHT = 4.0
 #: being judged against, so it should be legible without competing for
 #: attention with the thing under test.
 _MEASURED_COLOR = QColor(90, 140, 110)
+
+#: Zooming in stops at this fraction of the full wavenumber span, so a wheel
+#: cannot collapse the window to a sliver that shows nothing.
+_MIN_WINDOW_FRACTION = 0.02
+#: One wheel notch zooms by this factor (less than 1 zooms in).
+_ZOOM_STEP = 0.8
+#: A press and release closer than this many pixels is a CLICK; further apart
+#: it was a pan, and resolving a band there would surprise whoever dragged.
+_CLICK_DRIFT_PIXELS = 4.0
 
 
 class IrSpectrumWidget(QWidget):
@@ -80,6 +91,9 @@ class IrSpectrumWidget(QWidget):
 
     #: Emits the index into `modes` of the clicked mode.
     mode_clicked = Signal(int)
+    #: The visible wavenumber window changed (zoom, pan or reset), so a host
+    #: can enable or disable its Reset Zoom control.
+    view_changed = Signal()
 
     _MARGIN = 50.0
 
@@ -95,6 +109,15 @@ class IrSpectrumWidget(QWidget):
         self._highlighted: set[int] = set()
         self._measured: OverlaySeries | None = None
         self._x_label = "Wavenumber (cm⁻¹)"
+        #: The zoomed wavenumber window as `(low, high)` DATA units, or None
+        #: for the whole spectrum. View state only: it never touches `modes`.
+        self._window: tuple[float, float] | None = None
+        self._press_position = None
+        self._last_drag_x: float | None = None
+        self._dragged = False
+        #: The wavenumber under the cursor, or None outside the plot.
+        self._hover_wavenumber: float | None = None
+        self.setMouseTracking(True)
         self.setMinimumSize(320, 200)
 
     def set_modes(
@@ -105,6 +128,7 @@ class IrSpectrumWidget(QWidget):
         self._modes = list(modes)
         self._imaginary_warning = imaginary_warning
         self._highlighted.clear()
+        self._set_window(None)
         self.update()
 
     def set_measured(self, series: OverlaySeries | None) -> None:
@@ -118,6 +142,7 @@ class IrSpectrumWidget(QWidget):
         painter. This method only draws what it is given.
         """
         self._measured = series
+        self._set_window(None)  # the full range just changed under any zoom
         self.update()
 
     def measured(self) -> OverlaySeries | None:
@@ -144,6 +169,12 @@ class IrSpectrumWidget(QWidget):
             if not mode.is_imaginary
         ]
 
+    def _visible_modes(self) -> list[tuple[int, VibrationalMode]]:
+        """`_real_modes` inside the zoom window. A band outside it is neither
+        drawn nor clickable: its hit region would sit off the plot."""
+        low, high = self._axis_range()
+        return [(i, m) for i, m in self._real_modes() if low <= m.wavenumber_cm1 <= high]
+
     @staticmethod
     def _intensity(mode: VibrationalMode) -> float:
         """Intensity as a number, treating "not reported" as zero.
@@ -156,6 +187,10 @@ class IrSpectrumWidget(QWidget):
         return float(mode.ir_intensity_km_mol or 0.0)
 
     def _axis_range(self) -> tuple[float, float]:
+        """The range DRAWN: the zoom window, or the whole spectrum."""
+        return self._window if self._window is not None else self._full_range()
+
+    def _full_range(self) -> tuple[float, float]:
         real = self._real_modes()
         if self._measured is not None:
             # The UNION of both, via the shared helper -- clipping to the
@@ -198,7 +233,7 @@ class IrSpectrumWidget(QWidget):
         `paintEvent`, so a click resolves before the first paint and is
         testable without one -- `NmrSpectrumWidget.hit_regions` for the
         same reason."""
-        real = self._real_modes()
+        real = self._visible_modes()
         if not real:
             return []
         plot_rect = self._plot_rect()
@@ -225,14 +260,115 @@ class IrSpectrumWidget(QWidget):
                 return index
         return None
 
-    def mousePressEvent(self, event) -> None:  # noqa: N802 - Qt override naming
+    # -- view: zoom, pan, reset, readout ---------------------------------------
+
+    def _set_window(self, window: tuple[float, float] | None) -> None:
+        if window == self._window:
+            return
+        self._window = window
+        self.view_changed.emit()
+        self.update()
+
+    def is_zoomed(self) -> bool:
+        return self._window is not None
+
+    def view_range(self) -> tuple[float, float]:
+        """The wavenumber range on screen, `(low, high)`."""
+        return self._axis_range()
+
+    def reset_view(self) -> None:
+        self._set_window(None)
+
+    def _data_x_at(self, pixel_x: float) -> float:
+        low, high = self._axis_range()
+        plot_rect = self._plot_rect()
+        fraction = (pixel_x - plot_rect.left()) / plot_rect.width()
+        return high - fraction * (high - low)
+
+    def _in_plot(self, x: float, y: float) -> bool:
+        return self._plot_rect().contains(x, y)
+
+    def readout_text(self) -> str:
+        """What the cursor readout says, or '' when it is not over the plot."""
+        if self._hover_wavenumber is None:
+            return ""
+        return f"{self._hover_wavenumber:.0f} cm⁻¹"
+
+    def wheelEvent(self, event) -> None:  # noqa: N802 - Qt override naming
         position = event.position()
-        index = self.mode_at(position.x(), position.y())
-        if index is not None:
-            self._highlighted = {index}
-            self.update()
-            self.mode_clicked.emit(index)
+        if not self._real_modes() and self._measured is None:
+            event.ignore()
+            return
+        if not self._in_plot(position.x(), position.y()):
+            event.ignore()
+            return
+        delta = event.angleDelta().y()
+        if delta == 0:
+            event.ignore()
+            return
+        factor = _ZOOM_STEP if delta > 0 else 1.0 / _ZOOM_STEP
+        full = self._full_range()
+        window = zoomed_window(
+            self._axis_range(), full, self._data_x_at(position.x()), factor, _MIN_WINDOW_FRACTION
+        )
+        self._set_window(None if is_full_span(window, full) else window)
+        event.accept()
+
+    def mousePressEvent(self, event) -> None:  # noqa: N802 - Qt override naming
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._press_position = event.position()
+            self._last_drag_x = event.position().x()
+            self._dragged = False
         super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event) -> None:  # noqa: N802 - Qt override naming
+        position = event.position()
+        if (
+            event.buttons() & Qt.MouseButton.LeftButton
+            and self._press_position is not None
+            and self._window is not None
+        ):
+            if drift(position.x() - self._press_position.x(), position.y() - self._press_position.y()) > _CLICK_DRIFT_PIXELS:
+                self._dragged = True
+            if self._dragged:
+                moved = position.x() - (self._last_drag_x or position.x())
+                self._last_drag_x = position.x()
+                window = panned_window(self._window, moved, self._plot_rect().width(), descending=True)
+                full_low, full_high = self._full_range()
+                span = window[1] - window[0]
+                # Never drag the window off the data: clamp, keeping its width.
+                low = min(max(window[0], full_low), full_high - span)
+                self._set_window((low, low + span))
+        inside = self._in_plot(position.x(), position.y())
+        self._hover_wavenumber = self._data_x_at(position.x()) if inside else None
+        self.update()
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event) -> None:  # noqa: N802 - Qt override naming
+        if event.button() == Qt.MouseButton.LeftButton and self._press_position is not None:
+            position = event.position()
+            moved = drift(position.x() - self._press_position.x(), position.y() - self._press_position.y())
+            if not self._dragged and moved <= _CLICK_DRIFT_PIXELS:
+                index = self.mode_at(position.x(), position.y())
+                if index is not None:
+                    self._highlighted = {index}
+                    self.update()
+                    self.mode_clicked.emit(index)
+            self._press_position = None
+            self._dragged = False
+        super().mouseReleaseEvent(event)
+
+    def mouseDoubleClickEvent(self, event) -> None:  # noqa: N802 - Qt override naming
+        self.reset_view()
+        super().mouseDoubleClickEvent(event)
+
+    def leaveEvent(self, event) -> None:  # noqa: N802 - Qt override naming
+        self._hover_wavenumber = None
+        self.update()
+        super().leaveEvent(event)
+
+    def contextMenuEvent(self, event) -> None:  # noqa: N802 - Qt override naming
+        show_picture_menu(self, event, "ir-spectrum")
 
     def _draw_imaginary_banner(self, painter: QPainter) -> None:
         if not self._imaginary_warning:
@@ -304,16 +440,30 @@ class IrSpectrumWidget(QWidget):
         # imaginary has nothing to plot and the most to say.
         self._draw_imaginary_banner(painter)
 
-        real = self._real_modes()
-        if not real and self._measured is None:
+        real = self._visible_modes()
+        if not self._real_modes() and self._measured is None:
             painter.end()
             return
 
         x_range = self._axis_range()
+        # Clip to the plot's own width so a zoomed window never draws a band
+        # or a measured line over the margins and the axis labels.
+        painter.save()
+        painter.setClipRect(QRectF(plot_rect.left(), 0.0, plot_rect.width(), float(self.height())))
         # Drawn FIRST so the computed sticks sit on top of it. The
         # measurement is the reference; the prediction is the thing being
         # read against it, and it should not be occluded.
         self._draw_measured(painter, plot_rect, x_range)
+        painter.restore()
+
+        readout = self.readout_text()
+        if readout:
+            painter.setPen(QPen(_AXIS_COLOR))
+            painter.drawText(
+                QRectF(plot_rect.right() - 130, plot_rect.top() + 2, 128, 14),
+                Qt.AlignmentFlag.AlignRight,
+                readout,
+            )
 
         if not real:
             painter.end()
@@ -333,7 +483,10 @@ class IrSpectrumWidget(QWidget):
             f"{x_range[0]:.0f}",
         )
 
-        intensities = [self._intensity(mode) for _, mode in real]
+        # The scale is the strongest band of the WHOLE spectrum, not of the
+        # window: a stick's height must keep meaning the same intensity at
+        # every zoom level (the NMR viewer's rule, for the same reason).
+        intensities = [self._intensity(mode) for _, mode in self._real_modes()]
         strongest = max(intensities) if intensities else 0.0
         label_height = 14.0
         # A spectrum in which every band is symmetry-forbidden (or in which

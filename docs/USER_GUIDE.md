@@ -1576,6 +1576,8 @@ symmetry-completed); selecting in any of them selects the same signal in all.
 contrast) that recolour the plot and the structure highlight together; a
 palette is presentation only and never says anything about the chemistry.
 
+**The IR spectrum navigates the same way.** Scroll over the plot to zoom around the cursor, drag to pan, and double-click or press **Reset Zoom** to see the whole span again; the wavenumber under the cursor is shown in the corner. Zooming never rescales a band, so a band's height keeps meaning the same intensity. Right-click any spectrum or chart for **Copy picture** and **Save picture...**; **Copy Spectrum Image** does the same from the toolbar.
+
 **Drawing a measured spectrum beside the prediction.** **Import Reference...**
 reads a JCAMP-DX file of a processed 1D NMR spectrum (an `XYDATA` table with
 the x axis in ppm or in Hz plus the spectrometer frequency; an FID, a peak

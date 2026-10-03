@@ -31,6 +31,8 @@ from PySide6.QtCore import QPointF, QRectF, QSize, Qt, Signal
 from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import QWidget
 
+from openchem.ui.picture_export import show_picture_menu
+
 from openchem.domain.report import StickChartAnnotation, valid_chart_annotation
 from openchem.ui.widgets.plot_axis import (
     LABEL_HEIGHT,
@@ -288,6 +290,11 @@ class StickChartWidget(QWidget):
         super().mousePressEvent(event)
 
     # --- painting ------------------------------------------------------------
+
+    def contextMenuEvent(self, event) -> None:  # noqa: N802 - Qt override naming
+        # A reader chart has its own menu installed (CustomContextMenu), which
+        # takes over; this is for the same plot anywhere else it is shown.
+        show_picture_menu(self, event, "stick-chart")
 
     def paintEvent(self, event) -> None:  # noqa: N802 - Qt override naming
         painter = QPainter(self)

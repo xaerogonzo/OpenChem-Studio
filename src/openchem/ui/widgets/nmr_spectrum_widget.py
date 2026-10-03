@@ -4,6 +4,8 @@ from PySide6.QtCore import QEvent, QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QMouseEvent, QPainter, QPainterPath, QPen, QWheelEvent
 from PySide6.QtWidgets import QToolTip, QWidget
 
+from openchem.ui.picture_export import show_picture_menu
+
 from openchem.chem.nmr_measured import NmrReference, reference_peaks
 from openchem.chem.nmr_signals import (
     _RELATIVE_FREQUENCY,
@@ -774,6 +776,11 @@ class NmrSpectrumWidget(QWidget):
             Qt.AlignmentFlag.AlignLeft,
             f"{value:.3g} {unit_label}",
         )
+
+    def contextMenuEvent(self, event) -> None:  # noqa: N802 - Qt override naming
+        # A reader chart has its own menu installed (CustomContextMenu), which
+        # takes over; this is for the same plot anywhere else it is shown.
+        show_picture_menu(self, event, "nmr-spectrum")
 
     def paintEvent(self, event) -> None:  # noqa: N802 - Qt override naming
         painter = QPainter(self)

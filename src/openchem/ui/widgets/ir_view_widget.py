@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QCursor
 from PySide6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
@@ -13,6 +14,7 @@ from PySide6.QtWidgets import (
     QSplitter,
     QTableWidget,
     QTableWidgetItem,
+    QToolTip,
     QVBoxLayout,
     QWidget,
 )
@@ -22,6 +24,7 @@ from openchem.chem.engine import ChemistryEngine
 from openchem.chem.mode_animation import normal_mode_frames
 from openchem.chem.spectrum_overlay import prepare_measured
 from openchem.domain.scientific_result import VibrationalSpectrumResult
+from openchem.ui.picture_export import copy_picture
 from openchem.ui.viewer_backend import ViewerBackend
 from openchem.ui.widgets.ir_spectrum_widget import IrSpectrumWidget
 from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
@@ -123,6 +126,16 @@ class IrViewWidget(QWidget):
         self._animate_button.setEnabled(False)
         self._animate_button.toggled.connect(self._on_animate_toggled)
 
+        self._reset_zoom_button = QPushButton("Reset Zoom", self)
+        self._reset_zoom_button.setToolTip("Restore the full wavenumber span (also: double-click the plot)")
+        self._reset_zoom_button.setEnabled(False)
+        self._reset_zoom_button.clicked.connect(self._spectrum_widget.reset_view)
+        self._spectrum_widget.view_changed.connect(self._on_view_changed)
+
+        self._copy_image_button = QPushButton("Copy Spectrum Image", self)
+        self._copy_image_button.setToolTip("Copy the spectrum plot as an image (also: right-click the plot)")
+        self._copy_image_button.clicked.connect(self._on_copy_image)
+
         # Parented to self, so it is destroyed with the widget rather than
         # firing into a deleted backend.
         self._timer = QTimer(self)
@@ -134,6 +147,8 @@ class IrViewWidget(QWidget):
         controls.addWidget(self._import_button)
         controls.addWidget(self._clear_measured_button)
         controls.addStretch()
+        controls.addWidget(self._reset_zoom_button)
+        controls.addWidget(self._copy_image_button)
 
         # Same structure as `NmrViewWidget`'s own splitter, on purpose --
         # see this class's docstring. No inner horizontal splitter here:
@@ -203,6 +218,13 @@ class IrViewWidget(QWidget):
         elif "TRANS" in (series.source_units or "").upper():
             note += "; converted from transmittance to absorbance"
         self._header_label.setText(note)
+
+    def _on_view_changed(self) -> None:
+        self._reset_zoom_button.setEnabled(self._spectrum_widget.is_zoomed())
+
+    def _on_copy_image(self) -> None:
+        # Say what happened: a copy that says nothing reads like one that failed.
+        QToolTip.showText(QCursor.pos(), copy_picture(self._spectrum_widget), self)
 
     def _on_clear_measured(self) -> None:
         self._spectrum_widget.set_measured(None)

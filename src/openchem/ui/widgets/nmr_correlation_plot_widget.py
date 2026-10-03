@@ -6,6 +6,8 @@ from PySide6.QtCore import QLineF, QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QMouseEvent, QPainter, QPen, QWheelEvent
 from PySide6.QtWidgets import QWidget
 
+from openchem.ui.picture_export import show_picture_menu
+
 from openchem.ui import contours
 from openchem.ui.widgets import plot_zoom
 from openchem.ui.widgets.plot_axis import nice_ticks
@@ -208,6 +210,11 @@ class NmrCorrelationPlotWidget(QWidget):
             max(self.width() - 1.5 * self._MARGIN, 1.0),
             max(self.height() - 1.5 * self._MARGIN, 1.0),
         )
+
+    def contextMenuEvent(self, event) -> None:  # noqa: N802 - Qt override naming
+        # A reader chart has its own menu installed (CustomContextMenu), which
+        # takes over; this is for the same plot anywhere else it is shown.
+        show_picture_menu(self, event, "nmr-correlation")
 
     def paintEvent(self, event) -> None:  # noqa: N802 - Qt override naming
         painter = QPainter(self)
