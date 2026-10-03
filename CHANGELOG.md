@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Tautomer distribution: the validation run, outcome `attempted_failed` (Phase O, commit 2 of 2)
+
+- The preregistered gate was run once on commit `239f1e6a` with real ORCA at `PBE0 def2-TZVP` (20 optimizations, every tautomer complete). **It did not pass**: the ranking gate failed on cytosine, acetylacetone and 2-pyridone (acetaldimine passed), so **no population percentage is shown**; results remain `unvalidated`. The artifact is `benchmarks/tautomer_validation/tautomer_validation_artifact.json` and the outcome, with what it does and does not establish, is in `docs/VALIDATION.md`. The acetylacetone enol landing 5.3 kcal/mol above the diketo is consistent with the single-start-geometry limitation but was not verified.
+
 ### Tautomer distribution: the validation gate is preregistered (Phase O, commit 1 of 2; branch `tautomer-validation-gate`)
 
 - **The criteria are frozen before any number exists.** `chem/data/tautomer_validation.json` declares the model under test (`PBE0 def2-TZVP`, ORCA 6.1.1, gas phase, electronic energy, no ZPE or thermal terms), the gate rules and tolerances (reference tie 1.0, MAE <= 1.0 and maximum error <= 2.0 kcal/mol, every required system on its own, no compensation between systems) and the reference values, each with its source, DOI, table, units and zero. It is a **closed schema** (an unknown key is refused, so a result cannot be carried in under another name) and `tests/test_tautomer_validation.py` pins its three content hashes. The file contains no computed value; the measured artifact and the gate outcome are the second commit.

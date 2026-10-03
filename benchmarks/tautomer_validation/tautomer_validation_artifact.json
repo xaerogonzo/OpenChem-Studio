@@ -1,0 +1,687 @@
+{
+ "artifact_schema": 1,
+ "identity": {
+  "model_version": "tautomer-boltzmann-v3|stereo_cap=8;enantiomer_policy=dedupe_mirror;bond_stereo_policy=preserve;tautomer_representative=lowest_successful_stereo;state_degeneracy=unit;incomplete_population_policy=withhold|PBE0 def2-TZVP|ETKDGv3|T=298.15K",
+  "model_policy": "stereo_cap=8;enantiomer_policy=dedupe_mirror;bond_stereo_policy=preserve;tautomer_representative=lowest_successful_stereo;state_degeneracy=unit;incomplete_population_policy=withhold",
+  "validation_criteria_version": "tautomer-validation-criteria-v1",
+  "criteria_hash": "b7a86fa494fd760340d86b5b8262a1099e07e39cdf1406bc2d0230b23975d08d",
+  "benchmark_set_hash": "8437eec10b19be8ff5334568e08057c996aff1148d72ed0b6ab526981e9c71b3",
+  "reference_bundle_hash": "1b89e4f5d1f318cb78b65bff16fc3035b665abf14f3bf259daeaac3238aca8fa",
+  "source_commit": "239f1e6aa83847da31d87cb5fd07db645fc24a5a",
+  "orca_version": "ORCA 6.1.1 ran a test calculation correctly (H2 at HF/STO-3G, -1.116759 Eh).",
+  "rdkit_version": "2025.09.6",
+  "method_basis": "PBE0 def2-TZVP"
+ },
+ "validation_execution_status": "complete",
+ "validation_gate_outcome": "attempted_failed",
+ "pooled_mae_kcal": 1.913809060668755,
+ "systems": [
+  {
+   "id": "cytosine",
+   "role": "required",
+   "source": {
+    "key": "trygubenko2002",
+    "file": "trygubenko2002.pdf",
+    "doi": "10.1039/b202156k",
+    "locator": "Table 2, last line, Etot(CCSD(T)/inf); structures from Fig. 1"
+   },
+   "execution": "complete",
+   "mapping_error": "",
+   "unreferenced_tautomers": [
+    "N=c1cc[nH]c(O)n1"
+   ],
+   "jobs": [
+    {
+     "index": 0,
+     "fingerprint": "d6394a99d85d4f4fdfcedb2959e7dd9e3158aa9457482d0aca4604a56f778f22",
+     "tautomer_fingerprint": "14d4d8141a153edf909570fdbca23f21dd20cf051fe1e061fb35d883ad2ead98",
+     "stereo_index": 0,
+     "status": "succeeded",
+     "absolute_energy_hartree": -394.648195098284,
+     "failure_reason_code": "",
+     "failure_reason": "",
+     "embedding_seed": 0,
+     "start_geometry_sha256": "69ce477c5a275de4ba2864e8d5996732728e1fc26f8b6cf2fd7992c5b099f4ba",
+     "input_sha256": "448c75e7f9af349e3925f8b5a6adfa0205453e05b25f2288dfdaa011bd0b1fa2",
+     "tautomer_state": "complete",
+     "calculation_source": "fresh_orca"
+    },
+    {
+     "index": 1,
+     "fingerprint": "3c39243a92c0b4559559b6634225c9a8ab54edcd2d353b4ad314aa4f2dac61ad",
+     "tautomer_fingerprint": "3c39243a92c0b4559559b6634225c9a8ab54edcd2d353b4ad314aa4f2dac61ad",
+     "stereo_index": 0,
+     "status": "succeeded",
+     "absolute_energy_hartree": -394.651269392659,
+     "failure_reason_code": "",
+     "failure_reason": "",
+     "embedding_seed": 9,
+     "start_geometry_sha256": "7718e28b7c1ef0e60660864b4d0b2863dca3d3118d1e37c7fba5477a19f7f517",
+     "input_sha256": "71bbb311d5d3bf784d27cbe19fbe2127cf11ed3298a137227ba5cf8fbb763d69",
+     "tautomer_state": "complete",
+     "calculation_source": "fresh_orca"
+    },
+    {
+     "index": 2,
+     "fingerprint": "6026c2263f0070becd2d923d57ede6455163998ac5d01678f4def20557b94364",
+     "tautomer_fingerprint": "6026c2263f0070becd2d923d57ede6455163998ac5d01678f4def20557b94364",
+     "stereo_index": 0,
+     "status": "succeeded",
+     "absolute_energy_hartree": -394.649130943522,
+     "failure_reason_code": "",
+     "failure_reason": "",
+     "embedding_seed": 18,
+     "start_geometry_sha256": "adf0e8be4ee987661aa42755ffdff39ae8be087672cc13e8f8179eb0f7af0eef",
+     "input_sha256": "a007688ba198ebdfc7c64d8fb3bf5b3309e63760786163076b98769c5d2f4e54",
+     "tautomer_state": "complete",
+     "calculation_source": "fresh_orca"
+    },
+    {
+     "index": 3,
+     "fingerprint": "018bc83f7510b3e2001751b20fc032fd7adb331923f72fcf94fcae77a6402ea3",
+     "tautomer_fingerprint": "f3f20d4045f2d632648cbb2162bbcff540703d5f0eb170736b01019c2ff1f9f8",
+     "stereo_index": 0,
+     "status": "succeeded",
+     "absolute_energy_hartree": -394.615469549309,
+     "failure_reason_code": "",
+     "failure_reason": "",
+     "embedding_seed": 27,
+     "start_geometry_sha256": "474691bea8396c4f5aa9452edc28ad17bd15f860b6bcee08ce3a2544659c83e3",
+     "input_sha256": "55b74ec92a02f24725ea237f173ca99c445daec1a3689cde84d783c1ddacaca7",
+     "tautomer_state": "complete",
+     "calculation_source": "fresh_orca"
+    }
+   ],
+   "ranking_ok": false,
+   "quantitative_ok": true,
+   "mae_kcal": 0.9875827489741011,
+   "max_error_kcal": 1.44,
+   "pairs": [
+    {
+     "a": "enol_amino",
+     "b": "imino_oxo",
+     "reference_gap_kcal": -2.11,
+     "computed_gap_kcal": -0.5872517530776966,
+     "tied": false,
+     "ok": true
+    },
+    {
+     "a": "enol_amino",
+     "b": "keto_amino",
+     "reference_gap_kcal": -1.44,
+     "computed_gap_kcal": 1.341897093282942,
+     "tied": false,
+     "ok": false
+    },
+    {
+     "a": "imino_oxo",
+     "b": "keto_amino",
+     "reference_gap_kcal": 0.6699999999999999,
+     "computed_gap_kcal": 1.9291488463606385,
+     "tied": true,
+     "ok": true
+    }
+   ],
+   "tautomers": [
+    {
+     "id": "enol_amino",
+     "reference_kcal": 0.0,
+     "computed_kcal": 1.341897093282942,
+     "error_kcal": 1.341897093282942,
+     "absolute_hartree": -394.649130943522,
+     "representative_fingerprint": "6026c2263f0070becd2d923d57ede6455163998ac5d01678f4def20557b94364",
+     "reference_source": "trygubenko2002",
+     "reference_locator": "Table 2, last line, Etot(CCSD(T)/inf); structures from Fig. 1",
+     "reference_units": "kcal/mol",
+     "reference_zero": "tautomer 2a (the lowest in the source)"
+    },
+    {
+     "id": "keto_amino",
+     "reference_kcal": 1.44,
+     "computed_kcal": 0.0,
+     "error_kcal": 1.44,
+     "absolute_hartree": -394.651269392659,
+     "representative_fingerprint": "3c39243a92c0b4559559b6634225c9a8ab54edcd2d353b4ad314aa4f2dac61ad",
+     "reference_source": "trygubenko2002",
+     "reference_locator": "Table 2, last line, Etot(CCSD(T)/inf); structures from Fig. 1",
+     "reference_units": "kcal/mol",
+     "reference_zero": "tautomer 2a (the lowest in the source)"
+    },
+    {
+     "id": "imino_oxo",
+     "reference_kcal": 2.11,
+     "computed_kcal": 1.9291488463606385,
+     "error_kcal": 0.18085115363936133,
+     "absolute_hartree": -394.648195098284,
+     "representative_fingerprint": "d6394a99d85d4f4fdfcedb2959e7dd9e3158aa9457482d0aca4604a56f778f22",
+     "reference_source": "trygubenko2002",
+     "reference_locator": "Table 2, last line, Etot(CCSD(T)/inf); structures from Fig. 1",
+     "reference_units": "kcal/mol",
+     "reference_zero": "tautomer 2a (the lowest in the source)"
+    }
+   ]
+  },
+  {
+   "id": "acetylacetone",
+   "role": "required",
+   "source": {
+    "key": "belova2014",
+    "file": "belova2014_si.pdf",
+    "doi": "10.1021/jo402814c",
+    "locator": "Supporting Information, electronic energies of the labelled MP2/cc-pVTZ calculations (enol and diketo)"
+   },
+   "execution": "complete",
+   "mapping_error": "",
+   "unreferenced_tautomers": [
+    "C=C(O)C=C(C)O",
+    "C=C(O)CC(=C)O",
+    "C=C(O)CC(C)=O"
+   ],
+   "jobs": [
+    {
+     "index": 0,
+     "fingerprint": "6d0e5660355943130669feb1a2005ea46757905080c86819b1a389693f17e127",
+     "tautomer_fingerprint": "6d0e5660355943130669feb1a2005ea46757905080c86819b1a389693f17e127",
+     "stereo_index": 0,
+     "status": "succeeded",
+     "absolute_energy_hartree": -345.532866339451,
+     "failure_reason_code": "",
+     "failure_reason": "",
+     "embedding_seed": 0,
+     "start_geometry_sha256": "36c3ad131024aca33e80b0d3c1d2c1ccf3dca1f38578465f337bbeb88ad61b80",
+     "input_sha256": "09c711c05d4119b6ca0f05ba803749f43d29bde4e56ecebb14ac9c8967ada390",
+     "tautomer_state": "complete",
+     "calculation_source": "fresh_orca"
+    },
+    {
+     "index": 1,
+     "fingerprint": "3708d19eef8b239b3eb29184bce56dae9ee264ec47929133e612504c53fbe320",
+     "tautomer_fingerprint": "6dd77d1871eaa1fbb820931307726fd047d6b10ea41ba79fbee952b6eca29dd7",
+     "stereo_index": 0,
+     "status": "succeeded",
+     "absolute_energy_hartree": -345.509605648584,
+     "failure_reason_code": "",
+     "failure_reason": "",
+     "embedding_seed": 9,
+     "start_geometry_sha256": "cdff721abfd599c9106bbfa62c46dcc82cb394f72922b96f7862c06e1099e9e4",
+     "input_sha256": "7dc3109736197d228b299a3db571ce217246f4ed50a0cb759d9e8d62ce424042",
+     "tautomer_state": "complete",
+     "calculation_source": "fresh_orca"
+    },
+    {
+     "index": 2,
+     "fingerprint": "26482849cc47b491f87c126eeb3c93d468a5632332acbf7a1e0e1e7cb9b0fc70",
+     "tautomer_fingerprint": "6dd77d1871eaa1fbb820931307726fd047d6b10ea41ba79fbee952b6eca29dd7",
+     "stereo_index": 1,
+     "status": "succeeded",
+     "absolute_energy_hartree": -345.499985910487,
+     "failure_reason_code": "",
+     "failure_reason": "",
+     "embedding_seed": 10,
+     "start_geometry_sha256": "a24e17acfb700ce52cc96a59106ef58fcb5c89de50606e09485d3e68e6d5aa28",
+     "input_sha256": "e5e1ba7c875417833122bceccd3758e916cf300258b54d68069831ab1278c9b6",
+     "tautomer_state": "complete",
+     "calculation_source": "fresh_orca"
+    },
+    {
+     "index": 3,
+     "fingerprint": "d64b094134842ad63e53ff55743f6f65c3147eb8b275df5606a8b63853103934",
+     "tautomer_fingerprint": "d64b094134842ad63e53ff55743f6f65c3147eb8b275df5606a8b63853103934",
+     "stereo_index": 0,
+     "status": "succeeded",
+     "absolute_energy_hartree": -345.488138342198,
+     "failure_reason_code": "",
+     "failure_reason": "",
+     "embedding_seed": 18,
+     "start_geometry_sha256": "835a4019e5b1792be6c1e63f5a03f7af3f08271a0433c65fd758aca5466b5856",
+     "input_sha256": "850abf33812291c2c004f0afdb6fd066bd07ff45fba556b948a309920892370f",
+     "tautomer_state": "complete",
+     "calculation_source": "fresh_orca"
+    },
+    {
+     "index": 4,
+     "fingerprint": "bc0d9556c99cd791fa98539b52f9b6ec7e8c4774f293b2c898e526e987f19aa6",
+     "tautomer_fingerprint": "e5e73bc9802e5a42e32f90fe254aac022638741b23bc17d5f259e82b5f7689dc",
+     "stereo_index": 0,
+     "status": "succeeded",
+     "absolute_energy_hartree": -345.520375460775,
+     "failure_reason_code": "",
+     "failure_reason": "",
+     "embedding_seed": 27,
+     "start_geometry_sha256": "b6a88bb5c68c0c172f292adc9faa5e62393fd785905400af7a873542abe7327a",
+     "input_sha256": "1e75ea9c79d831b6d1749eff0b51260d67dcdd765213b4a5c32c844c855b96fc",
+     "tautomer_state": "complete",
+     "calculation_source": "fresh_orca"
+    },
+    {
+     "index": 5,
+     "fingerprint": "19b2dfe5821f5e99c4443ec662698348d28973e58820fe0b32e73ad0a736860b",
+     "tautomer_fingerprint": "e5e73bc9802e5a42e32f90fe254aac022638741b23bc17d5f259e82b5f7689dc",
+     "stereo_index": 1,
+     "status": "succeeded",
+     "absolute_energy_hartree": -345.524430153242,
+     "failure_reason_code": "",
+     "failure_reason": "",
+     "embedding_seed": 28,
+     "start_geometry_sha256": "c62d84a26ce77ea6c0c79e2a0945f3b8644203c9a6c9c821c0c6503b40aaaf95",
+     "input_sha256": "07283146aac3338c17572447155844eeeb66c804417208f4d43b14ef8a2fb6fa",
+     "tautomer_state": "complete",
+     "calculation_source": "fresh_orca"
+    },
+    {
+     "index": 6,
+     "fingerprint": "fe51f3e200084f35ed5b8d0172a54d5c811a876b6c6287fd7674e06545031a52",
+     "tautomer_fingerprint": "fe51f3e200084f35ed5b8d0172a54d5c811a876b6c6287fd7674e06545031a52",
+     "stereo_index": 0,
+     "status": "succeeded",
+     "absolute_energy_hartree": -345.509219171608,
+     "failure_reason_code": "",
+     "failure_reason": "",
+     "embedding_seed": 36,
+     "start_geometry_sha256": "cabcd5edcf0ca435009d7aec4071746947c44624ea5cd3233d3fdd5a652ac9f0",
+     "input_sha256": "82f28cc4ad35c4522c4ecc227676e880fd917d64ca1918064726f84d69234902",
+     "tautomer_state": "complete",
+     "calculation_source": "fresh_orca"
+    }
+   ],
+   "ranking_ok": false,
+   "quantitative_ok": false,
+   "mae_kcal": 5.071893385552833,
+   "max_error_kcal": 5.293786771105666,
+   "pairs": [
+    {
+     "a": "diketo",
+     "b": "enol",
+     "reference_gap_kcal": 4.85,
+     "computed_gap_kcal": -5.293786771105666,
+     "tied": false,
+     "ok": false
+    }
+   ],
+   "tautomers": [
+    {
+     "id": "enol",
+     "reference_kcal": 0.0,
+     "computed_kcal": 5.293786771105666,
+     "error_kcal": 5.293786771105666,
+     "absolute_hartree": -345.524430153242,
+     "representative_fingerprint": "19b2dfe5821f5e99c4443ec662698348d28973e58820fe0b32e73ad0a736860b",
+     "reference_source": "belova2014",
+     "reference_locator": "Supporting Information, electronic energies of the labelled MP2/cc-pVTZ calculations (enol and diketo)",
+     "reference_units": "kcal/mol",
+     "reference_zero": "the enol (the lowest in the source)"
+    },
+    {
+     "id": "diketo",
+     "reference_kcal": 4.85,
+     "computed_kcal": 0.0,
+     "error_kcal": 4.85,
+     "absolute_hartree": -345.532866339451,
+     "representative_fingerprint": "6d0e5660355943130669feb1a2005ea46757905080c86819b1a389693f17e127",
+     "reference_source": "belova2014",
+     "reference_locator": "Supporting Information, electronic energies of the labelled MP2/cc-pVTZ calculations (enol and diketo)",
+     "reference_units": "kcal/mol",
+     "reference_zero": "the enol (the lowest in the source)"
+    }
+   ]
+  },
+  {
+   "id": "acetaldimine_vinylamine",
+   "role": "required",
+   "source": {
+    "key": "fogarasi2010",
+    "file": "fogarasi2010.pdf",
+    "doi": "10.1016/j.molstruc.2010.02.065",
+    "locator": "Table 1, CCSD(T)//MP2/aug-pVTZ, /pV5Z row, system 4 (the paper's own best value is 3.0-3.1)"
+   },
+   "execution": "complete",
+   "mapping_error": "",
+   "unreferenced_tautomers": [],
+   "jobs": [
+    {
+     "index": 0,
+     "fingerprint": "b685f65bb9489a5d9a98580edcfcd77eeb8e696f7cafe04d5db10ce6ed195a5b",
+     "tautomer_fingerprint": "b685f65bb9489a5d9a98580edcfcd77eeb8e696f7cafe04d5db10ce6ed195a5b",
+     "stereo_index": 0,
+     "status": "succeeded",
+     "absolute_energy_hartree": -133.837087864672,
+     "failure_reason_code": "",
+     "failure_reason": "",
+     "embedding_seed": 0,
+     "start_geometry_sha256": "598d1f67b7400ffba4d4332372331d44333bf9c5238ca02946362195c4e905be",
+     "input_sha256": "0b7c16d471824939c7479ccb34e0d09add3bc74fbb57d3f4c1a8e2027ab3642a",
+     "tautomer_state": "complete",
+     "calculation_source": "fresh_orca"
+    },
+    {
+     "index": 1,
+     "fingerprint": "8c87f9b25872c9be46f4055d9240d3aa2d2499e3374e65d900585d1e7b809a9e",
+     "tautomer_fingerprint": "c5ea3f8b299ea3b3a8484942e6d1ae0f2f5db21d74c328418bd3bff38036cbbd",
+     "stereo_index": 0,
+     "status": "succeeded",
+     "absolute_energy_hartree": -133.839254766009,
+     "failure_reason_code": "",
+     "failure_reason": "",
+     "embedding_seed": 9,
+     "start_geometry_sha256": "fc42b12e300fe10fdd72dd3afd444474cda149f240d30a97fea1514b574fdbca",
+     "input_sha256": "f93697b27d172b3ad48b953d73d4f652e2280f50a3391cdab14e7f3353d212bf",
+     "tautomer_state": "complete",
+     "calculation_source": "fresh_orca"
+    }
+   ],
+   "ranking_ok": true,
+   "quantitative_ok": true,
+   "mae_kcal": 0.8601244408344277,
+   "max_error_kcal": 1.7202488816688555,
+   "pairs": [
+    {
+     "a": "acetaldimine",
+     "b": "vinylamine",
+     "reference_gap_kcal": -3.08,
+     "computed_gap_kcal": -1.3597511183311446,
+     "tied": false,
+     "ok": true
+    }
+   ],
+   "tautomers": [
+    {
+     "id": "acetaldimine",
+     "reference_kcal": 0.0,
+     "computed_kcal": 0.0,
+     "error_kcal": 0.0,
+     "absolute_hartree": -133.839254766009,
+     "representative_fingerprint": "8c87f9b25872c9be46f4055d9240d3aa2d2499e3374e65d900585d1e7b809a9e",
+     "reference_source": "fogarasi2010",
+     "reference_locator": "Table 1, CCSD(T)//MP2/aug-pVTZ, /pV5Z row, system 4 (the paper's own best value is 3.0-3.1)",
+     "reference_units": "kcal/mol",
+     "reference_zero": "acetaldimine (the lower in the source)"
+    },
+    {
+     "id": "vinylamine",
+     "reference_kcal": 3.08,
+     "computed_kcal": 1.3597511183311446,
+     "error_kcal": 1.7202488816688555,
+     "absolute_hartree": -133.837087864672,
+     "representative_fingerprint": "b685f65bb9489a5d9a98580edcfcd77eeb8e696f7cafe04d5db10ce6ed195a5b",
+     "reference_source": "fogarasi2010",
+     "reference_locator": "Table 1, CCSD(T)//MP2/aug-pVTZ, /pV5Z row, system 4 (the paper's own best value is 3.0-3.1)",
+     "reference_units": "kcal/mol",
+     "reference_zero": "acetaldimine (the lower in the source)"
+    }
+   ]
+  },
+  {
+   "id": "pyridone",
+   "role": "required",
+   "source": {
+    "key": "goller2022",
+    "file": "goller2022.pdf",
+    "doi": "10.1007/s10822-022-00480-3",
+    "locator": "Table 4, cc-pVQZ row (absolute CCSD(T) energies of 8.1 and 8.2)"
+   },
+   "execution": "complete",
+   "mapping_error": "",
+   "unreferenced_tautomers": [
+    "O=C1CC=CC=N1"
+   ],
+   "jobs": [
+    {
+     "index": 0,
+     "fingerprint": "14c194b36bb6982fbd6974cf5b1730e95f6ff0458bc6c3772a6eba9f55739329",
+     "tautomer_fingerprint": "14c194b36bb6982fbd6974cf5b1730e95f6ff0458bc6c3772a6eba9f55739329",
+     "stereo_index": 0,
+     "status": "succeeded",
+     "absolute_energy_hartree": -323.231180703674,
+     "failure_reason_code": "",
+     "failure_reason": "",
+     "embedding_seed": 0,
+     "start_geometry_sha256": "e0cfba0b087feb784a4b82c045dc376732a01b74614e785e2dd692d8a40555d6",
+     "input_sha256": "caf8e184d86f391eac968c72b3f7ca469d21164d59d11eea0d2dbd7253308040",
+     "tautomer_state": "complete",
+     "calculation_source": "fresh_orca"
+    },
+    {
+     "index": 1,
+     "fingerprint": "44c72dd879cc97880d3cb3a671027b658947ff52cf811d04490b09d66c764d4e",
+     "tautomer_fingerprint": "44c72dd879cc97880d3cb3a671027b658947ff52cf811d04490b09d66c764d4e",
+     "stereo_index": 0,
+     "status": "succeeded",
+     "absolute_energy_hartree": -323.274284080852,
+     "failure_reason_code": "",
+     "failure_reason": "",
+     "embedding_seed": 9,
+     "start_geometry_sha256": "109e6386a71d1722a2a96fd243e9c6bae175d1a9f7be92cf233c8b15561a2fea",
+     "input_sha256": "ab9b4afacbed6b9f9108602d4dbe0e204fbfc999b04b1a8a20602a9a052e8912",
+     "tautomer_state": "complete",
+     "calculation_source": "fresh_orca"
+    },
+    {
+     "index": 2,
+     "fingerprint": "57b344637a2fde12304838599c923f9724f02b57c2e1120aef2ee756c8ca8be5",
+     "tautomer_fingerprint": "57b344637a2fde12304838599c923f9724f02b57c2e1120aef2ee756c8ca8be5",
+     "stereo_index": 0,
+     "status": "succeeded",
+     "absolute_energy_hartree": -323.273762180132,
+     "failure_reason_code": "",
+     "failure_reason": "",
+     "embedding_seed": 18,
+     "start_geometry_sha256": "51c0942e9045194b1c4dbf9ae2a56e76e4011e1265fd06c83c908d02a04f7083",
+     "input_sha256": "7692a48842a28e4cd1ae29c7d34d99b7ff900549a5b589d3b87071dcca3405c4",
+     "tautomer_state": "complete",
+     "calculation_source": "fresh_orca"
+    }
+   ],
+   "ranking_ok": false,
+   "quantitative_ok": false,
+   "mae_kcal": 1.198748823160985,
+   "max_error_kcal": 2.07,
+   "pairs": [
+    {
+     "a": "hydroxypyridine",
+     "b": "pyridone",
+     "reference_gap_kcal": -2.07,
+     "computed_gap_kcal": 0.3274976463219704,
+     "tied": false,
+     "ok": false
+    }
+   ],
+   "tautomers": [
+    {
+     "id": "hydroxypyridine",
+     "reference_kcal": 0.0,
+     "computed_kcal": 0.3274976463219704,
+     "error_kcal": 0.3274976463219704,
+     "absolute_hartree": -323.273762180132,
+     "representative_fingerprint": "57b344637a2fde12304838599c923f9724f02b57c2e1120aef2ee756c8ca8be5",
+     "reference_source": "goller2022",
+     "reference_locator": "Table 4, cc-pVQZ row (absolute CCSD(T) energies of 8.1 and 8.2)",
+     "reference_units": "kcal/mol",
+     "reference_zero": "2-hydroxypyridine (the lower in the gas phase)"
+    },
+    {
+     "id": "pyridone",
+     "reference_kcal": 2.07,
+     "computed_kcal": 0.0,
+     "error_kcal": 2.07,
+     "absolute_hartree": -323.274284080852,
+     "representative_fingerprint": "44c72dd879cc97880d3cb3a671027b658947ff52cf811d04490b09d66c764d4e",
+     "reference_source": "goller2022",
+     "reference_locator": "Table 4, cc-pVQZ row (absolute CCSD(T) energies of 8.1 and 8.2)",
+     "reference_units": "kcal/mol",
+     "reference_zero": "2-hydroxypyridine (the lower in the gas phase)"
+    }
+   ]
+  },
+  {
+   "id": "formamide_formamidic_acid",
+   "role": "optional",
+   "source": {
+    "key": "fogarasi2010",
+    "file": "fogarasi2010.pdf",
+    "doi": "10.1016/j.molstruc.2010.02.065",
+    "locator": "Table 1, CCSD(T)//MP2/aug-pVTZ, /pV5Z row, system 1"
+   },
+   "execution": "complete",
+   "mapping_error": "",
+   "unreferenced_tautomers": [],
+   "jobs": [
+    {
+     "index": 0,
+     "fingerprint": "009331f47bc2bafa2fd1bdc050917ecbf737b12b5a323e7548804b2b36e65a2a",
+     "tautomer_fingerprint": "7fa944729d62e567cea5b37edaa1fcfd515492dee10d92e0ac54d4e20b9c41fb",
+     "stereo_index": 0,
+     "status": "succeeded",
+     "absolute_energy_hartree": -169.750962870042,
+     "failure_reason_code": "",
+     "failure_reason": "",
+     "embedding_seed": 0,
+     "start_geometry_sha256": "9c5369c4b439e92bbceb9a907f439ef92dc599d653e544b16c58c42e34ec159c",
+     "input_sha256": "9cfa9b9882f5788f8c373c1dc51c9fe6f1b6047940aa05cedb9f25f9ecd573aa",
+     "tautomer_state": "complete",
+     "calculation_source": "fresh_orca"
+    },
+    {
+     "index": 1,
+     "fingerprint": "933904fc70e527b0774bb899db96d2c4eb8799f8f31cb4fb74272bff14fff5a9",
+     "tautomer_fingerprint": "933904fc70e527b0774bb899db96d2c4eb8799f8f31cb4fb74272bff14fff5a9",
+     "stereo_index": 0,
+     "status": "succeeded",
+     "absolute_energy_hartree": -169.77731187322,
+     "failure_reason_code": "",
+     "failure_reason": "",
+     "embedding_seed": 9,
+     "start_geometry_sha256": "f44b68a4b9d96cc3322915e1a6dbc2e99d626ea1f485551aa863bdf3af1c5345",
+     "input_sha256": "5be219b67338475b06377f5b369c3c9f81996ec4db6568816711a96883af7948",
+     "tautomer_state": "complete",
+     "calculation_source": "fresh_orca"
+    }
+   ],
+   "ranking_ok": true,
+   "quantitative_ok": false,
+   "mae_kcal": 2.922124563151793,
+   "max_error_kcal": 5.844249126303586,
+   "pairs": [
+    {
+     "a": "formamide",
+     "b": "formamidic_acid",
+     "reference_gap_kcal": -10.69,
+     "computed_gap_kcal": -16.534249126303585,
+     "tied": false,
+     "ok": true
+    }
+   ],
+   "tautomers": [
+    {
+     "id": "formamide",
+     "reference_kcal": 0.0,
+     "computed_kcal": 0.0,
+     "error_kcal": 0.0,
+     "absolute_hartree": -169.77731187322,
+     "representative_fingerprint": "933904fc70e527b0774bb899db96d2c4eb8799f8f31cb4fb74272bff14fff5a9",
+     "reference_source": "fogarasi2010",
+     "reference_locator": "Table 1, CCSD(T)//MP2/aug-pVTZ, /pV5Z row, system 1",
+     "reference_units": "kcal/mol",
+     "reference_zero": "formamide"
+    },
+    {
+     "id": "formamidic_acid",
+     "reference_kcal": 10.69,
+     "computed_kcal": 16.534249126303585,
+     "error_kcal": 5.844249126303586,
+     "absolute_hartree": -169.750962870042,
+     "representative_fingerprint": "009331f47bc2bafa2fd1bdc050917ecbf737b12b5a323e7548804b2b36e65a2a",
+     "reference_source": "fogarasi2010",
+     "reference_locator": "Table 1, CCSD(T)//MP2/aug-pVTZ, /pV5Z row, system 1",
+     "reference_units": "kcal/mol",
+     "reference_zero": "formamide"
+    }
+   ]
+  },
+  {
+   "id": "acetaldehyde_vinyl_alcohol",
+   "role": "optional",
+   "source": {
+    "key": "fogarasi2010",
+    "file": "fogarasi2010.pdf",
+    "doi": "10.1016/j.molstruc.2010.02.065",
+    "locator": "Table 1, CCSD(T)//MP2/aug-pVTZ, /pV5Z row, system 3"
+   },
+   "execution": "complete",
+   "mapping_error": "",
+   "unreferenced_tautomers": [],
+   "jobs": [
+    {
+     "index": 0,
+     "fingerprint": "8243d3cabf69ed274d4fcab4a887713ad451b6dc60ba9e97007449da55fbcabd",
+     "tautomer_fingerprint": "8243d3cabf69ed274d4fcab4a887713ad451b6dc60ba9e97007449da55fbcabd",
+     "stereo_index": 0,
+     "status": "succeeded",
+     "absolute_energy_hartree": -153.713055263711,
+     "failure_reason_code": "",
+     "failure_reason": "",
+     "embedding_seed": 0,
+     "start_geometry_sha256": "fc0124ae7cf1025aabdced4130a8e3c602c08c5e5afc85396eab13b7a5e56c2f",
+     "input_sha256": "d3bd45ed59ab5b562ca16e593a770e2b48415a8d70812e4130f5ad2e913a71fe",
+     "tautomer_state": "complete",
+     "calculation_source": "fresh_orca"
+    },
+    {
+     "index": 1,
+     "fingerprint": "bc4bc5b675594c3952750feb6e0112354d295530e65d96a125e9fd5f8352c0b5",
+     "tautomer_fingerprint": "bc4bc5b675594c3952750feb6e0112354d295530e65d96a125e9fd5f8352c0b5",
+     "stereo_index": 0,
+     "status": "succeeded",
+     "absolute_energy_hartree": -153.696966763288,
+     "failure_reason_code": "",
+     "failure_reason": "",
+     "embedding_seed": 9,
+     "start_geometry_sha256": "ce7f567db5470dd5dee377cc8d1021f0b9aab3da5c5a1ee858c749f2829c7ae9",
+     "input_sha256": "47e69661ad5de8064fc3b56f517996e9f844ba90c3b4908f5e4a36718464d2e5",
+     "tautomer_state": "complete",
+     "calculation_source": "fresh_orca"
+    }
+   ],
+   "ranking_ok": true,
+   "quantitative_ok": true,
+   "mae_kcal": 0.4028432194488927,
+   "max_error_kcal": 0.8056864388977854,
+   "pairs": [
+    {
+     "a": "acetaldehyde",
+     "b": "vinyl_alcohol",
+     "reference_gap_kcal": -9.29,
+     "computed_gap_kcal": -10.095686438897784,
+     "tied": false,
+     "ok": true
+    }
+   ],
+   "tautomers": [
+    {
+     "id": "acetaldehyde",
+     "reference_kcal": 0.0,
+     "computed_kcal": 0.0,
+     "error_kcal": 0.0,
+     "absolute_hartree": -153.713055263711,
+     "representative_fingerprint": "8243d3cabf69ed274d4fcab4a887713ad451b6dc60ba9e97007449da55fbcabd",
+     "reference_source": "fogarasi2010",
+     "reference_locator": "Table 1, CCSD(T)//MP2/aug-pVTZ, /pV5Z row, system 3",
+     "reference_units": "kcal/mol",
+     "reference_zero": "acetaldehyde"
+    },
+    {
+     "id": "vinyl_alcohol",
+     "reference_kcal": 9.29,
+     "computed_kcal": 10.095686438897784,
+     "error_kcal": 0.8056864388977854,
+     "absolute_hartree": -153.696966763288,
+     "representative_fingerprint": "bc4bc5b675594c3952750feb6e0112354d295530e65d96a125e9fd5f8352c0b5",
+     "reference_source": "fogarasi2010",
+     "reference_locator": "Table 1, CCSD(T)//MP2/aug-pVTZ, /pV5Z row, system 3",
+     "reference_units": "kcal/mol",
+     "reference_zero": "acetaldehyde"
+    }
+   ]
+  }
+ ],
+ "partial_run": false
+}
