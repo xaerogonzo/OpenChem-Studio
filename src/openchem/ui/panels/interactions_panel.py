@@ -44,6 +44,7 @@ from openchem.chem.lewis_adduct import predict
 from openchem.domain.project import ProjectModel
 from openchem.events.base import EventBus
 from openchem.events.events import QuantumChemistryResultReady
+from openchem.ui.table_export import install_table_export
 from openchem.ui.molecule_combo import repopulate
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
@@ -251,6 +252,7 @@ class InteractionsPanel(QWidget):
         self._status_label.setWordWrap(True)
 
         self._table = QTableWidget(0, len(_COLUMNS), self)
+        install_table_export(self._table, "interactions")
         self._table.setHorizontalHeaderLabels(_COLUMNS)
         # On the header ITEMS, which are QTableWidgetItems rather than
         # widgets; see `docking_panel.py` for why the walk needs that.
@@ -365,6 +367,7 @@ class InteractionsPanel(QWidget):
         self._contacts_status.setWordWrap(True)
 
         self._contacts_table = QTableWidget(0, 3, self)
+        install_table_export(self._contacts_table, "contacts")
         _CONTACT_COLUMNS = ("Interaction", "Where", "Distance")
         self._contacts_table.setHorizontalHeaderLabels(_CONTACT_COLUMNS)
         for column, name in enumerate(_CONTACT_COLUMNS):

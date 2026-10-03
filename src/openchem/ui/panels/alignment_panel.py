@@ -38,6 +38,7 @@ from openchem.domain.project import ProjectModel
 from openchem.events.base import EventBus
 from openchem.events.events import AlignmentJobStateChanged, EnsembleAlignmentReady
 from openchem.services.alignment_service import AlignmentService
+from openchem.ui.table_export import install_table_export
 from openchem.ui.molecule_combo import repopulate
 from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
 from openchem.ui.widgets.flow_layout import flow_row
@@ -364,6 +365,7 @@ class AlignmentPanel(QWidget):
         self._status_label.setWordWrap(True)
 
         self._result_table = QTableWidget(0, len(_RESULT_COLUMNS), self)
+        install_table_export(self._result_table, "alignment-results")
         self._result_table.setHorizontalHeaderLabels(_RESULT_COLUMNS)
         # On the header ITEMS -- QTableWidgetItems, not widgets; see
         # `docking_panel.py` for why the distinction matters to the walk.

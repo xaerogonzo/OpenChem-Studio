@@ -195,6 +195,29 @@ def _parameters_of(cells) -> str:
     return ", ".join(f"{key} = {value}" for key, value in next(iter(seen)))
 
 
+def rows_to_csv_text(headers: list[str], rows: list[list[str]]) -> str:
+    """Any table of text as CSV, with the same formula protection `_safe` gives
+    a batch cell: a cell that opens with `=`, `+`, `-` or `@` is a formula to a
+    spreadsheet, and a panel's own text can begin with any of them."""
+    import io
+
+    buffer = io.StringIO()
+    writer = csv.writer(buffer, lineterminator="\r\n")
+    writer.writerow([_safe(h) for h in headers])
+    for row in rows:
+        writer.writerow([_safe(cell) for cell in row])
+    return buffer.getvalue()
+
+
+def write_rows_csv(path: Path, headers: list[str], rows: list[list[str]]) -> None:
+    """`rows_to_csv_text` to a file, UTF-8 WITH A BOM for the reason `export_csv`
+    gives: Excel reads a BOM-less file as the system code page and turns every
+    non-ASCII unit into mojibake."""
+    with path.open("w", encoding="utf-8-sig", newline="") as handle:
+        handle.write(rows_to_csv_text(headers, rows))
+    logger.info("Exported a table (%d rows x %d columns) to %s", len(rows), len(headers), path)
+
+
 def _disambiguated_headers(table: BatchTable) -> dict[str, str]:
     """column_id -> header, with the source appended only where needed.
 

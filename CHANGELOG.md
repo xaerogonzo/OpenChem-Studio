@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Survey items 3-7: IR export, chart zoom, table export, tautomer table
+
+- **IR JCAMP-DX export** (`chem/ir_export.py`, an **Export JCAMP-DX...** button on the IR view): the predicted bands as a labelled peak table (wavenumber, km/mol), predicted and harmonic, with the frequency scaling and any imaginary modes named and the imaginary ones left out. A peak table and not a broadened trace, because the viewer applies no lineshape; this application's own overlay import refuses peak tables by design, so the file is for other tools.
+- **Line and scatter charts zoom** with **Ctrl+wheel** (around the cursor), **Shift+wheel** pans the line chart, double-click resets, and the drawing clips to the plot. A plain wheel is deliberately NOT taken: these charts sit in a scrolling reader. The NMR correlation tabs gain a **Reset Zoom** button (enabled only while zoomed). Histograms and stick charts are unchanged.
+- **Every result table can be copied or saved:** right-click the Quantum Chemistry spectrum, hybrid and correlation tables and the Docking poses, Interactions, contacts and Alignment tables for **Copy table as CSV** / **Export CSV...** (what the table shows, hidden columns left out, UTF-8 with a BOM, formula-looking cells protected).
+- **Tautomer distribution result: Export table (CSV)...** in its dialog, one row per candidate at full precision with the absolute and relative energy, status, stereo search, what qualifies the energy, and the model identity. The population column is blank unless the model is validated, so a file cannot carry a percentage the screen was not allowed to show. Each entry now keeps its absolute energy (additive metadata).
+- Item 6 of the survey (reset settings elsewhere) needed no code: no viewer other than the NMR one has persisted settings to reset.
+
 ### IR viewer navigation and a right-click picture menu on every plot (survey items 1 and 2)
 
 - **The IR spectrum is navigable.** Wheel-zoom around the cursor, drag to pan, double-click or the new **Reset Zoom** button to restore the full span, a cursor wavenumber readout, and bands outside the window neither drawn nor clickable. Zoom is view state only: a stick's height still means the same intensity at every zoom (the scale is the whole spectrum's strongest band), and a click now registers on release, so a drag no longer selects a band. Reuses the NMR plot's `plot_zoom` arithmetic.

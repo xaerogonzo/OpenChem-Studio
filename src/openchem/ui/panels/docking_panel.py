@@ -34,6 +34,7 @@ from openchem.domain.project import ProjectModel
 from openchem.events.base import EventBus
 from openchem.events.events import DockingJobStateChanged, DockingResultReady, MoleculeSelected
 from openchem.services.docking_service import DEFAULT_REPLICATES, DockingService
+from openchem.ui.table_export import install_table_export
 from openchem.ui.dialogs.settings_dialog import EXTERNAL_TOOLS, SettingsDialog
 from openchem.ui.molecule_combo import repopulate, select
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
@@ -761,6 +762,7 @@ class DockingPanel(QWidget):
         self._limitation_label.setWordWrap(True)
 
         self._table = QTableWidget(0, len(_POSE_COLUMNS), self)
+        install_table_export(self._table, "docking-poses")
         self._table.setHorizontalHeaderLabels(_POSE_COLUMNS)
         # On the header ITEMS, which are QTableWidgetItems rather than
         # widgets -- so a tooltip audit that walks QWidgets alone cannot

@@ -21,6 +21,7 @@ from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import QWidget
 
 from openchem.ui.picture_export import show_picture_menu
+from openchem.ui.widgets.plot_zoom import is_full_span, zoomed_window
 
 #: Same Okabe-Ito set the per-atom categorical palette uses, and for the
 #: same reason: these are group identities, not a ramp, and they have to be
@@ -82,6 +83,9 @@ class ScatterPlotWidget(QWidget):
         self._fit: tuple[float, float] | None = None
         self._hover_index: int | None = None
         self._empty_message = "No data"
+        #: A zoomed `(x_min, x_max, y_min, y_max)` window in DATA units, or None
+        #: for every point. View state only: the points are never touched.
+        self._window: tuple[float, float, float, float] | None = None
         self.setMinimumSize(340, 260)
         self.setMouseTracking(True)
 
@@ -99,6 +103,7 @@ class ScatterPlotWidget(QWidget):
         self._caption = caption
         self._fit = fit
         self._hover_index = None
+        self._window = None
         self.update()
 
     def set_empty_message(self, message: str) -> None:
@@ -126,6 +131,10 @@ class ScatterPlotWidget(QWidget):
         )
 
     def _ranges(self) -> tuple[float, float, float, float]:
+        """The bounds DRAWN: the zoom window, or every point."""
+        return self._window if self._window is not None else self._full_ranges()
+
+    def _full_ranges(self) -> tuple[float, float, float, float]:
         """Padded data bounds. A column with no spread is widened rather
         than collapsing the axis to zero width, which would divide by zero
         in `_to_widget` and stack every point on one pixel."""
@@ -139,6 +148,62 @@ class ScatterPlotWidget(QWidget):
         fy = (y - y_min) / (y_max - y_min)
         return QPointF(rect.left() + fx * rect.width(), rect.bottom() - fy * rect.height())
 
+    # -- zoom ---------------------------------------------------------------
+
+    _MIN_WINDOW_FRACTION = 0.02
+    _ZOOM_STEP = 0.8
+
+    def is_zoomed(self) -> bool:
+        return self._window is not None
+
+    def reset_view(self) -> None:
+        self._set_window(None)
+
+    def _set_window(self, window: tuple[float, float, float, float] | None) -> None:
+        if window == self._window:
+            return
+        self._window = window
+        self._hover_index = None
+        self.update()
+
+    def _visible_indices(self) -> list[int]:
+        x_min, x_max, y_min, y_max = self._ranges()
+        return [
+            i for i, p in enumerate(self._points) if x_min <= p.x <= x_max and y_min <= p.y <= y_max
+        ]
+
+    def wheelEvent(self, event) -> None:  # noqa: N802 - Qt override
+        """**CTRL+wheel zooms both axes around the cursor; a plain wheel is NOT
+        taken**, because these plots sit in a scrolling reader and one that
+        swallowed the wheel would trap the page's scrolling under it."""
+        delta = event.angleDelta().y()
+        if (
+            not self._points
+            or delta == 0
+            or not (event.modifiers() & Qt.KeyboardModifier.ControlModifier)
+        ):
+            event.ignore()
+            return
+        rect = self._plot_rect()
+        position = event.position()
+        if not rect.contains(position):
+            event.ignore()
+            return
+        x_min, x_max, y_min, y_max = self._ranges()
+        full = self._full_ranges()
+        anchor_x = x_min + (position.x() - rect.left()) / rect.width() * (x_max - x_min)
+        anchor_y = y_min + (rect.bottom() - position.y()) / rect.height() * (y_max - y_min)
+        factor = self._ZOOM_STEP if delta > 0 else 1.0 / self._ZOOM_STEP
+        new_x = zoomed_window((x_min, x_max), (full[0], full[1]), anchor_x, factor, self._MIN_WINDOW_FRACTION)
+        new_y = zoomed_window((y_min, y_max), (full[2], full[3]), anchor_y, factor, self._MIN_WINDOW_FRACTION)
+        both_full = is_full_span(new_x, (full[0], full[1])) and is_full_span(new_y, (full[2], full[3]))
+        self._set_window(None if both_full else (*new_x, *new_y))
+        event.accept()
+
+    def mouseDoubleClickEvent(self, event) -> None:  # noqa: N802 - Qt override
+        self.reset_view()
+        super().mouseDoubleClickEvent(event)
+
     # -- interaction ------------------------------------------------------
 
     def mouseMoveEvent(self, event) -> None:  # noqa: N802 - Qt override
@@ -147,8 +212,15 @@ class ScatterPlotWidget(QWidget):
         rect = self._plot_rect()
         ranges = self._ranges()
         position = event.position()
+        candidates = self._visible_indices()
+        if not candidates:
+            if self._hover_index is not None:
+                self._hover_index = None
+                self.point_hovered.emit(-1)
+                self.update()
+            return
         nearest = min(
-            range(len(self._points)),
+            candidates,
             key=lambda index: _distance_squared(
                 self._to_widget(self._points[index].x, self._points[index].y, rect, ranges), position
             ),
@@ -185,8 +257,13 @@ class ScatterPlotWidget(QWidget):
             return
         ranges = self._ranges()
         self._draw_axes(painter, rect, ranges)
+        # Clipped to the plot so a zoomed window never draws points or the fit
+        # line over the axis labels.
+        painter.save()
+        painter.setClipRect(rect)
         self._draw_fit(painter, rect, ranges)
         self._draw_points(painter, rect, ranges)
+        painter.restore()
         self._draw_caption(painter, rect)
         self._draw_hover(painter, rect, ranges)
         painter.end()

@@ -901,6 +901,10 @@ def build_structure_set_result(
             "stereo_fallback_reason": stereo.fallback_reason,
             "rdkit_score": candidate.rdkit_score,
         }
+        if candidate.absolute_energy_hartree is not None:
+            # The measurement behind the derived relative energy, kept so the
+            # table can be audited and exported without recomputing anything.
+            metadata["absolute_energy_hartree"] = candidate.absolute_energy_hartree
         if candidate.status is CandidateStatus.FAILED:
             metadata["failure_reason"] = candidate.failure_reason
             metadata["failure_reason_code"] = candidate.failure_reason_code
@@ -985,3 +989,61 @@ def build_structure_set_result(
         entries=entries,
         provenance=provenance,
     )
+
+
+#: The columns of `tautomer_distribution_table`, in order.
+TABLE_COLUMNS = (
+    "Structure", "Status", "Tautomer state", "Lowest calculated for tautomer", "Stereo index",
+    "Stereoisomers calculated", "Stereo fallback", "Absolute energy (Hartree)",
+    "Relative energy (kcal/mol)", "Energy reference", "Population estimate",
+    "RDKit heuristic score", "Failure", "Candidate fingerprint", "Tautomer fingerprint",
+    "Validation branch", "Model version",
+)
+
+
+def tautomer_distribution_table(result: StructureSetResult) -> tuple[list[str], list[list[str]]]:
+    """A tautomer-distribution result as `(headers, rows)`, one row per candidate,
+    read from the result and never from the screen. Numbers are written at full
+    precision.
+
+    **EVERY ROW CARRIES WHAT QUALIFIES ITS ENERGY.** A relative energy is only
+    "ΔE to the global minimum" when the result is complete, so each row names its
+    `Energy reference`, validation branch and model version rather than leaving
+    a reader to infer them from a file that has lost its dialog.
+
+    **THE POPULATION COLUMN IS BLANK UNLESS THE MODEL IS VALIDATED.** It reads
+    `entry.score`, which `build_structure_set_result` sets only for a validated
+    result; the withheld `population_unvalidated` value is deliberately never
+    exported, so no file can carry a percentage the screen was not allowed to show.
+    """
+    parameters = result.provenance.parameters if result.provenance else {}
+
+    def number(value) -> str:
+        return "" if value is None else repr(float(value))
+
+    rows = []
+    for entry in result.entries:
+        meta = entry.metadata
+        rows.append(
+            [
+                entry.label,
+                str(meta.get("status", "")),
+                str(meta.get("tautomer_state", "")),
+                "yes" if meta.get("is_lowest_calculated_for_tautomer") else "no",
+                str(meta.get("stereo_index", "")),
+                str(meta.get("stereo_isomers_calculated", "")),
+                "yes" if meta.get("stereo_fallback") else "no",
+                number(meta.get("absolute_energy_hartree")),
+                number(entry.energy),
+                str(parameters.get("energy_reference", "")),
+                number(entry.score),
+                number(meta.get("rdkit_score")),
+                str(meta.get("failure_reason_code", "")),
+                str(meta.get("fingerprint", "")),
+                str(meta.get("tautomer_fingerprint", "")),
+                str(parameters.get("validation_branch", "")),
+                str(parameters.get("model_version", "")),
+            ]
+        )
+    return list(TABLE_COLUMNS), rows
+
