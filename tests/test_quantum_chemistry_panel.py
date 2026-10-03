@@ -217,6 +217,61 @@ def test_tautomer_distribution_above_threshold_asks_for_confirmation(monkeypatch
     assert service.tautomer_distribution_requests == []  # "No" was respected
 
 
+def test_the_confirmation_names_the_jobs_and_the_tautomers(monkeypatch):
+    import openchem.ui.panels.quantum_chemistry_panel as panel_module
+
+    panel, engine, service = _make_panel()
+    project = ProjectModel(name="Test")
+    project.molecules.append(_cyclohexanone_molecule(engine))
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+    panel._method_combo.setCurrentText("HF STO-3G")
+    monkeypatch.setattr(panel_module, "CONFIRMATION_THRESHOLD", 1)
+    asked = []
+    monkeypatch.setattr(
+        panel_module.QMessageBox,
+        "question",
+        staticmethod(lambda *a, **k: asked.append(a[2]) or panel_module.QMessageBox.StandardButton.No),
+    )
+
+    panel._on_tautomer_distribution_clicked()
+
+    assert "2 real ORCA geometry optimizations for 2 tautomer(s)" in asked[0]
+    assert "exceed the stereoisomer cap" not in asked[0]
+
+
+def test_the_confirmation_warns_before_a_truncated_tautomer_is_run(monkeypatch):
+    """Cost is below the threshold, so only truncation can trigger the prompt:
+    the user must hear the result will be incomplete BEFORE paying for it."""
+    import openchem.ui.panels.quantum_chemistry_panel as panel_module
+    from openchem.chem import tautomer_distribution as td
+
+    panel, engine, service = _make_panel()
+    project = ProjectModel(name="Test")
+    project.molecules.append(_cyclohexanone_molecule(engine))
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+    panel._method_combo.setCurrentText("HF STO-3G")
+    real = td.generate_tautomer_candidates
+    monkeypatch.setattr(
+        panel_module,
+        "generate_tautomer_candidates",
+        lambda mol: real(engine.mol_from_smiles("CC(O)C(C)O"), stereo_cap=1),
+    )
+    asked = []
+    monkeypatch.setattr(
+        panel_module.QMessageBox,
+        "question",
+        staticmethod(lambda *a, **k: asked.append(a[2]) or panel_module.QMessageBox.StandardButton.No),
+    )
+
+    panel._on_tautomer_distribution_clicked()
+
+    assert asked and "1 tautomer(s) exceed the stereoisomer cap" in asked[0]
+    assert "incomplete" in asked[0] and "no population percentages" in asked[0]
+    assert service.tautomer_distribution_requests == []
+
+
 def test_tautomer_distribution_ready_ignores_a_different_molecule(qapp):
     from openchem.domain.common import Provenance
     from openchem.domain.scientific_result import StructureSetResult
@@ -2092,9 +2147,9 @@ def test_wrapping_a_view_does_not_change_the_tabs_content_classification(qapp):
     _dispose_panel(panel)
 
 
-def test_the_tautomer_summary_says_when_unspecified_stereo_was_fixed():
+def test_the_tautomer_summary_says_how_a_stereo_search_chose_its_energies():
     """The dialog's own text, not just the Results entry: it is what the user
-    reads beside the energies the stereo choice affects."""
+    reads beside the energies the stereo search produced."""
     from openchem.domain.common import Provenance
     from openchem.domain.scientific_result import StructureSetResult
 
@@ -2107,5 +2162,8 @@ def test_the_tautomer_summary_says_when_unspecified_stereo_was_fixed():
         )
         return QuantumChemistryPanel._tautomer_distribution_summary(result)
 
-    assert "fixed to one configuration" in summary(stereo_ambiguous=True)
-    assert "fixed to one configuration" not in summary(stereo_ambiguous=False)
+    searched = summary(stereo_search=True)
+    assert "lowest successful stereoisomer" in searched and "truncated" not in searched
+    assert "stereoisomer" not in summary(stereo_search=False)
+    truncated = summary(stereo_search=True, stereo_enumeration_truncated=2, stereo_enumeration_cap=8)
+    assert "truncated for 2 tautomer(s)" in truncated and "no population percentages" in truncated
