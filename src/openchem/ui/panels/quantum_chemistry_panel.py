@@ -1750,12 +1750,28 @@ class QuantumChemistryPanel(QWidget):
             self._status_label.setText(message)
             return
 
-        if len(candidates) > CONFIRMATION_THRESHOLD:
+        tautomers = len({c.tautomer_fingerprint or c.fingerprint for c in candidates})
+        truncated = len({c.tautomer_fingerprint for c in candidates if c.stereo.truncated})
+        # A job is one stereo candidate, so the count that matters for cost is
+        # the number of jobs, named beside the number of tautomers. A tautomer
+        # over the stereo cap costs less than it would, but yields an
+        # INCOMPLETE result, which the user must hear before confirming.
+        if len(candidates) > CONFIRMATION_THRESHOLD or truncated:
+            text = (
+                f"This will run {len(candidates)} real ORCA geometry optimizations "
+                f"for {tautomers} tautomer(s), one per unique stereoisomer. "
+            )
+            if truncated:
+                text += (
+                    f"{truncated} tautomer(s) exceed the stereoisomer cap and will use a single "
+                    f"fallback configuration, so the result will be marked incomplete and show no "
+                    f"population percentages. "
+                )
+            text += "This can take a long time. Continue?"
             answer = QMessageBox.question(
                 self,
                 "Run tautomer distribution?",
-                f"This will run {len(candidates)} real ORCA geometry optimizations, "
-                f"one per enumerated tautomer. This can take a long time. Continue?",
+                text,
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No,
             )
@@ -1778,7 +1794,7 @@ class QuantumChemistryPanel(QWidget):
         self._correlation_tabs.setVisible(False)
         self._reset_empty_states()
         self._status_label.setText(
-            f"queued -- {len(candidates)} tautomer candidate(s)"
+            f"queued -- {len(candidates)} optimization(s) for {tautomers} tautomer(s)"
             + (f", {embedding_failures} embedding failure(s) excluded" if embedding_failures else "")
         )
 
@@ -1823,12 +1839,18 @@ class QuantumChemistryPanel(QWidget):
             )
         else:
             summary += " -- energies and populations are NOT yet validated against reference data."
-        if params.get("stereo_ambiguous"):
+        if params.get("stereo_search"):
             summary += (
-                " Stereochemistry the structure leaves unspecified was fixed to one "
-                "configuration for every candidate (the others were not computed), "
-                "so the energies describe that configuration only."
+                " Each tautomer is represented by its lowest successful stereoisomer "
+                "(enantiomer pairs calculated once; stereochemical degeneracy not included)."
             )
+            truncated = params.get("stereo_enumeration_truncated", 0)
+            if truncated:
+                summary += (
+                    f" Stereoisomer enumeration was truncated for {truncated} tautomer(s) "
+                    f"(cap {params.get('stereo_enumeration_cap', '?')}): those tautomers are "
+                    f"incomplete and no population percentages are shown."
+                )
         return summary
 
     def _open_tautomer_distribution_dialog(self, result) -> None:

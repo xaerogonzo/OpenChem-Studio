@@ -1590,15 +1590,23 @@ energies that did come back are still shown, labelled as relative to the
 best of the survivors rather than the true minimum, since the failed
 candidate could have been lower still.
 
-**Stereochemistry you did not draw is fixed, not enumerated.** Where a
-structure leaves a centre (or a C=C) unspecified, every candidate is
-computed in the same one configuration, so the energies compare tautomers
-and not an accidental mix of diastereomers. That is one choice among
-several, and the others are not computed: when the choice can move an
-energy (two or more undrawn centres, or an undrawn C=C — a lone centre
-is an enantiomer pair, whose energies are identical) the result says so
-under "Stereochemistry". The structure shown under each entry is still
-drawn as you drew it, not as it was fixed for the calculation.
+**Stereochemistry you did not draw is enumerated.** Where a structure leaves
+a centre (or a C=C) unspecified, every unique stereoisomer of each tautomer
+is its own ORCA job, so the energies compare tautomers and not an accidental
+mix of diastereomers. A tautomer is then represented by its **lowest
+successful stereoisomer**; the others stay in the list for audit but add no
+separate weight, and an enantiomer pair is calculated once and counted once
+(stereochemical degeneracy is deliberately not included in the estimate). The
+confirmation names both numbers: how many optimizations, for how many
+tautomers.
+
+Each tautomer is searched up to a cap of 8 unique stereoisomers. A tautomer
+over the cap uses one fallback configuration, and the result is then marked
+**incomplete**: its optimization may succeed, but its lowest stereoisomer is
+not known, so no population percentages are shown and the energies are
+labelled "lowest successful stereoisomer found" rather than "lowest-energy
+stereoisomer". The same wording applies if one stereoisomer's job fails.
+You are asked before anything runs if a tautomer will be truncated.
 
 The result opens in the same structure-grid view every other generated
 structure set (tautomers, stereoisomers, resonance forms) already uses —

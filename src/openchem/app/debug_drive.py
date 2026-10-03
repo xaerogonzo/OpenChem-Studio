@@ -647,6 +647,9 @@ class _Driver(QObject):
             "fingerprint_is_submitted"  the stored result's identity carries the
                                 fingerprint the service was HANDED at submission
 
+        `"stereo_table": true` also logs one row per ORCA JOB (tautomer, stereo index,
+        status, state, energy, lowest-calculated flag) from the stored result.
+
         `"close_dialog": true` first closes the dialog the live finish opened (what
         Alex did), and `"view": true` presses the real "View Tautomer Distribution..."
         button and asserts a dialog opened. `"shot"` / `"reader_shot"` save the
@@ -689,6 +692,7 @@ class _Driver(QObject):
 
         store = window._services.result_store_service.store
         stored_fingerprints: list[str] = []
+        stored_result = None
         submitted = getattr(self, "_tautomer_submitted", None)
         if submitted is not None:
             molecule_uuid, _calculation_input, fingerprint, _run_id = submitted
@@ -696,6 +700,26 @@ class _Driver(QObject):
             for key in (record.results if record is not None else {}):
                 if key[0] == "orca.tautomer_distribution":
                     stored_fingerprints.append(key[2])
+                    stored_result = getattr(record.results[key], "result", None)
+        stereo_rows: list[dict[str, Any]] = []
+        if step.get("stereo_table") and submitted is not None:
+            # The exact per-JOB table behind the reader's summary: tautomer,
+            # stereo identity, status, energy and whether it is the lowest
+            # calculated for its tautomer. What a stereo-enumeration run is
+            # diagnosed from, since the reader's rows only summarise it.
+            for entry in getattr(stored_result, "entries", []):
+                meta = entry.metadata
+                stereo_rows.append({
+                    "tautomer": meta.get("tautomer_fingerprint", "")[:8],
+                    "stereo_index": meta.get("stereo_index"),
+                    "calculated": meta.get("stereo_isomers_calculated"),
+                    "fingerprint": meta.get("fingerprint", "")[:8],
+                    "status": meta.get("status"),
+                    "state": meta.get("tautomer_state"),
+                    "lowest_calculated": meta.get("is_lowest_calculated_for_tautomer"),
+                    "dE_kcal": None if entry.energy is None else round(entry.energy, 3),
+                    "label": entry.label,
+                })
 
         # THE RESULTS READER'S OWN VIEW of the result: what its rows say, and
         # whether it offers a way to open the whole thing. Focused on the
@@ -734,6 +758,8 @@ class _Driver(QObject):
             "stored_fingerprints": [f[:12] for f in stored_fingerprints],
             "results_label": panel._results_label.text()[:200],
         }
+        if stereo_rows:
+            report["stereo_table"] = stereo_rows
         logger.warning("OPENCHEM_DRIVE: tautomer_report[%s] %s", tag, json.dumps(report))
 
         expect = step.get("expect") or {}

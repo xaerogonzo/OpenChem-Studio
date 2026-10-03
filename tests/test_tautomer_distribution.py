@@ -18,14 +18,21 @@ from openchem.chem.tautomer_distribution import (
     VALIDATION_RANKING_ONLY,
     VALIDATION_UNVALIDATED,
     VALIDATION_VALIDATED,
+    MODEL_POLICY,
+    TAUTOMER_MODEL_REVISION,
     CandidateResult,
     CandidateStatus,
+    TautomerState,
     _embed_candidate,
+    _enumerate_stereo_classes,
     _fingerprint,
+    _mirror_stereo,
+    _stereo_class_key,
     build_outcome,
     build_structure_set_result,
     format_population_percent,
     generate_tautomer_candidates,
+    model_assumptions,
     model_version,
 )
 from openchem.domain.result_store import result_id_of
@@ -365,11 +372,10 @@ def _result_labels(smiles: str) -> list[str]:
     candidates, _failures = generate_tautomer_candidates(Chem.MolFromSmiles(smiles))
     outcome = build_outcome(
         [
-            CandidateResult(
-                fingerprint=c.fingerprint,
-                molblock=Chem.MolToMolBlock(c.mol, kekulize=False),
-                display_molblock=c.display_molblock,
-                status=CandidateStatus.SUCCEEDED,
+            CandidateResult.for_candidate(
+                c,
+                Chem.MolToMolBlock(c.mol, kekulize=False),
+                CandidateStatus.SUCCEEDED,
                 absolute_energy_hartree=-100.0,
             )
             for c in candidates
@@ -403,142 +409,382 @@ def test_the_shown_structure_is_flat_not_the_3d_start_geometry():
     assert max(abs(shown.GetConformer().GetAtomPosition(i).z) for i in range(shown.GetNumAtoms())) == 0.0
 
 
-# --- unspecified stereo is fixed to ONE configuration across candidates -------
+# --- undrawn stereo is ENUMERATED, and a tautomer is its lowest stereoisomer ---
 #
-# Embedding picks an arbitrary arrangement for every unspecified element, and
-# each candidate has its own seed, so before this the keto and enol forms of a
-# molecule with two undrawn centres landed on different diastereomers and the
-# reported gap mixed a tautomer difference with a diastereomer one.
+# #177 pinned every undrawn element to one shared configuration, so the energies
+# described one arbitrary diastereomer. Each unique stereo class is now its own
+# ORCA job, and a tautomer is represented by its lowest SUCCESSFUL one.
 
-DIMETHYLCYCLOHEXANONE = "CC1CCCC(=O)C1C"  # keto, and two enols; two undrawn centres
-
-
-def _centre_tags(candidate) -> dict[int, Chem.ChiralType]:
-    """Each centre's configuration as it ACTUALLY embedded, read off the
-    candidate's 3D coordinates (heavy-atom indices are shared by every
-    tautomer, so the same index is the same atom in each)."""
-    flat = Chem.Mol(candidate.mol)
-    Chem.AssignStereochemistryFrom3D(flat)
-    flat = Chem.RemoveHs(flat)
-    return {
-        atom.GetIdx(): atom.GetChiralTag()
-        for atom in flat.GetAtoms()
-        if atom.GetChiralTag() != Chem.ChiralType.CHI_UNSPECIFIED
-    }
+DIMETHYLCYCLOHEXANONE = "CC1CCCC(=O)C1C"  # keto + two enols; two undrawn centres
+BUTANEDIOL = "CC(O)C(C)O"  # two undrawn centres: a meso form and an enantiomer pair
+TRIOL = "CC(O)C(O)C(C)O"  # three undrawn centres: raw isomers outnumber unique classes
 
 
-@pytest.mark.parametrize("base_seed", range(6))
-def test_candidates_share_one_configuration_at_each_undrawn_centre(base_seed):
-    candidates, failures = generate_tautomer_candidates(
+def _by_tautomer(candidates):
+    groups: dict[str, list] = {}
+    for candidate in candidates:
+        groups.setdefault(candidate.tautomer_fingerprint, []).append(candidate)
+    return groups
+
+
+def _succeeded(candidate, energy):
+    return CandidateResult.for_candidate(
+        candidate, "", CandidateStatus.SUCCEEDED, absolute_energy_hartree=energy
+    )
+
+
+def _failed(candidate):
+    return CandidateResult.for_candidate(
+        candidate, "", CandidateStatus.FAILED, failure_reason_code=FAILURE_OPTIMIZATION_NOT_CONVERGED
+    )
+
+
+def test_each_unique_stereo_class_is_its_own_job():
+    candidates, failures = generate_tautomer_candidates(Chem.MolFromSmiles(DIMETHYLCYCLOHEXANONE))
+
+    assert failures == 0
+    groups = _by_tautomer(candidates)
+    # The C=C enol toward C2 keeps one centre (one class); the keto form and the
+    # other enol keep two (a cis and a trans class, each standing for a pair).
+    assert sorted(len(members) for members in groups.values()) == [1, 2, 2]
+    for members in groups.values():
+        assert {c.stereo.isomers_calculated for c in members} == {len(members)}
+        assert all(c.stereo.isomers_total == len(members) and c.stereo.isomers_total_known for c in members)
+        assert not any(c.stereo.truncated or c.stereo.fallback for c in members)
+
+
+@pytest.mark.parametrize("base_seed", range(4))
+def test_the_jobs_of_one_tautomer_embed_in_genuinely_different_configurations(base_seed):
+    """The point of enumerating: each job's 3D geometry is the configuration it
+    claims, so the two jobs of a tautomer are different diastereomers."""
+    candidates, _ = generate_tautomer_candidates(
         Chem.MolFromSmiles(DIMETHYLCYCLOHEXANONE), base_seed=base_seed
     )
-    assert failures == 0 and len(candidates) == 3
-
-    seen: dict[int, set] = {}
-    for candidate in candidates:
-        for idx, tag in _centre_tags(candidate).items():
-            seen.setdefault(idx, set()).add(tag)
-
-    shared = {idx for idx, tags in seen.items() if len(tags) != 1}
-    assert not shared, f"centres {shared} embedded in more than one configuration"
-    # The keto form and one enol carry both centres, so the comparison that
-    # used to be arbitrary is genuinely exercised.
-    assert sum(1 for c in candidates if len(_centre_tags(c)) == 2) >= 2
+    for members in _by_tautomer(candidates).values():
+        if len(members) < 2:
+            continue
+        keys = set()
+        for member in members:
+            flat = Chem.Mol(member.mol)
+            Chem.AssignStereochemistryFrom3D(flat)
+            keys.add(_stereo_class_key(Chem.RemoveHs(flat)))
+        assert len(keys) == len(members), keys
 
 
-def test_two_undrawn_centres_are_reported_as_a_choice_that_moves_the_energy():
-    candidates, _ = generate_tautomer_candidates(Chem.MolFromSmiles(DIMETHYLCYCLOHEXANONE))
-
-    assert any(c.stereo_ambiguous for c in candidates)
-    assert max(c.stereo_pinned for c in candidates) == 2
+# --- the mirror image: tetrahedral tags only ---------------------------------
 
 
-def test_one_undrawn_centre_alone_is_not_reported_as_ambiguous():
-    """Enantiomers are degenerate: fixing propylene glycol's one centre moves
-    no energy, so the result has nothing to disclose."""
-    candidates, _ = generate_tautomer_candidates(Chem.MolFromSmiles("CC(O)CO"))
+def test_an_enantiomer_pair_is_one_class_but_diastereomers_and_e_z_pairs_are_not():
+    def key(smiles):
+        return _stereo_class_key(Chem.MolFromSmiles(smiles))
 
-    assert candidates and not any(c.stereo_ambiguous for c in candidates)
-    assert all(c.stereo_pinned == 1 for c in candidates)
-
-
-def test_a_drawn_centre_is_never_overridden_by_the_shared_configuration():
-    """One centre drawn, one not: the drawn one keeps its configuration in
-    every seed, and the undrawn one is the thing fixed."""
-    drawn = Chem.MolFromSmiles("C[C@H](O)C(C)O")
-    reference, _ = generate_tautomer_candidates(drawn, base_seed=0)
-    expected = _centre_tags(reference[0])[1]
-    for base_seed in range(1, 5):
-        candidates, _ = generate_tautomer_candidates(drawn, base_seed=base_seed)
-        assert _centre_tags(candidates[0])[1] == expected
-    assert reference[0].stereo_pinned == 1 and reference[0].stereo_ambiguous
+    assert key("C[C@H](O)CO") == key("C[C@@H](O)CO")  # R/S: merged
+    assert key("C[C@H](O)[C@H](C)O") == key("C[C@@H](O)[C@@H](C)O")  # (R,R)/(S,S): merged
+    assert key("C[C@H](O)[C@@H](C)O") != key("C[C@H](O)[C@H](C)O")  # meso vs chiral
+    assert key("C/C=C/C") != key("C/C=C\\C")  # E/Z: NEVER merged
+    assert key("CCO") == key("CCO")  # achiral: one
 
 
-def test_an_undrawn_double_bond_is_fixed_and_reported():
-    """The enumerator marks a C=C it just created STEREOANY, which ETKDG leaves
-    free: measured, butanone's enol embedded E and Z across seeds."""
+def test_the_isomeric_form_is_what_tells_diastereomers_apart():
+    """A non-isomeric comparison would collapse the very pairs that must stay
+    distinct; this fixes that the key reads stereo, not just connectivity."""
+    meso, chiral = Chem.MolFromSmiles("C[C@H](O)[C@@H](C)O"), Chem.MolFromSmiles("C[C@H](O)[C@H](C)O")
+
+    assert Chem.MolToSmiles(meso, isomericSmiles=False) == Chem.MolToSmiles(chiral, isomericSmiles=False)
+    assert _stereo_class_key(meso) != _stereo_class_key(chiral)
+
+
+def test_mirroring_inverts_tetrahedral_tags_and_leaves_double_bond_stereo_alone():
+    mirrored = _mirror_stereo(Chem.MolFromSmiles("C[C@H](O)/C=C/C"))
+
+    assert Chem.MolToSmiles(mirrored) == Chem.MolToSmiles(Chem.MolFromSmiles("C[C@@H](O)/C=C/C"))
+
+
+def test_propylene_glycol_is_one_class_standing_for_its_enantiomer_pair():
+    """The regression for #176/#177, asserted for the reason and not just the
+    count: the two enantiomers fall in ONE class, the retained representative
+    is the same structure on every run, and the shown structure stays as drawn."""
+    mol = Chem.MolFromSmiles("CC(O)CO")
+    first, _ = generate_tautomer_candidates(mol)
+    second, _ = generate_tautomer_candidates(mol)
+
+    assert len(first) == 1 and first[0].stereo.enantiomer_merged
+    assert first[0].fingerprint == second[0].fingerprint
+    assert "@" not in Chem.MolToSmiles(Chem.MolFromMolBlock(first[0].display_molblock))
+
+
+def test_a_drawn_centre_with_an_undrawn_one_gives_diastereomers_never_merged():
+    """The whole-molecule mirror inverts the DRAWN centre too, so it is never
+    another generated isomer: these are two diastereomers, two jobs."""
+    candidates, _ = generate_tautomer_candidates(Chem.MolFromSmiles("C[C@H](O)C(C)O"))
+
+    assert len(candidates) == 2
+    assert not any(c.stereo.enantiomer_merged for c in candidates)
+    assert len({c.fingerprint for c in candidates}) == 2
+
+
+def test_an_enantiomer_pair_and_one_more_diastereomer_are_two_jobs_not_three():
+    candidates, _ = generate_tautomer_candidates(Chem.MolFromSmiles(BUTANEDIOL))
+
+    assert len(candidates) == 2  # meso, and the chiral pair counted once
+    assert len({c.tautomer_fingerprint for c in candidates}) == 1
+    assert sorted(c.stereo.enantiomer_merged for c in candidates) == [False, True]
+
+
+def test_the_two_configurations_of_an_undrawn_double_bond_are_both_enumerated():
     candidates, _ = generate_tautomer_candidates(Chem.MolFromSmiles("CCC(C)=O"))
-    enol = [c for c in candidates if Chem.MolToSmiles(Chem.RemoveHs(c.mol)) == "CC=C(C)O"]
+    enol = [c for c in candidates if c.stereo.isomers_calculated == 2]
 
-    assert len(enol) == 1
-    assert enol[0].stereo_pinned == 1 and enol[0].stereo_ambiguous
+    assert len(enol) == 2
+    assert len({c.fingerprint for c in enol}) == 2
+    assert not any(c.stereo.enantiomer_merged for c in enol)
+
+
+def test_identity_does_not_depend_on_the_order_rdkit_enumerates_in(monkeypatch):
+    """A class's fingerprint, and the geometry it embeds from, must not depend
+    on which mirror image RDKit happened to list first."""
+    import openchem.chem.tautomer_distribution as module
+
+    mol = Chem.MolFromSmiles(BUTANEDIOL)
+    forward, _ = generate_tautomer_candidates(mol)
+    original = module.EnumerateStereoisomers
+    monkeypatch.setattr(
+        module, "EnumerateStereoisomers", lambda m, options=None: iter(reversed(list(original(m, options=options))))
+    )
+    backward, _ = generate_tautomer_candidates(mol)
+
+    assert {c.fingerprint for c in forward} == {c.fingerprint for c in backward}
+
+
+def test_candidates_differing_in_one_retained_element_never_share_a_fingerprint():
+    for smiles in (BUTANEDIOL, DIMETHYLCYCLOHEXANONE, "CCC(C)=O"):
+        candidates, _ = generate_tautomer_candidates(Chem.MolFromSmiles(smiles))
+        assert len({c.fingerprint for c in candidates}) == len(candidates), smiles
+
+
+def test_a_class_standing_for_an_enantiomer_pair_is_the_same_structure_in_every_seed():
+    reference, _ = generate_tautomer_candidates(Chem.MolFromSmiles(BUTANEDIOL), base_seed=0)
+    for base_seed in range(1, 4):
+        again, _ = generate_tautomer_candidates(Chem.MolFromSmiles(BUTANEDIOL), base_seed=base_seed)
+        assert {c.fingerprint for c in again} == {c.fingerprint for c in reference}
+
+
+# --- the cap counts UNIQUE jobs, and truncation is incomplete -----------------
+
+
+def test_the_cap_counts_unique_jobs_not_raw_rdkit_output():
+    from rdkit.Chem.EnumerateStereoisomers import EnumerateStereoisomers, StereoEnumerationOptions
+
+    mol = Chem.MolFromSmiles(TRIOL)
+    raw = len(list(EnumerateStereoisomers(mol, options=StereoEnumerationOptions(onlyUnassigned=True, unique=True))))
+    unique = len(_enumerate_stereo_classes(mol, cap=64).classes)
+    assert raw > unique  # enantiomer pairs fold, so a raw cutoff would over-truncate
+
+    at_cap = _enumerate_stereo_classes(mol, cap=unique)
+    assert not at_cap.truncated and at_cap.total == unique and at_cap.total_known
+
+    under_cap = _enumerate_stereo_classes(mol, cap=unique - 1)
+    assert under_cap.truncated and under_cap.total is None and not under_cap.total_known
+    assert len(under_cap.classes) == 1  # the single fallback configuration
+
+
+def test_a_truncated_tautomer_falls_back_to_one_deterministic_configuration():
+    mol = Chem.MolFromSmiles(BUTANEDIOL)
+    first, _ = generate_tautomer_candidates(mol, stereo_cap=1)
+    second, _ = generate_tautomer_candidates(mol, stereo_cap=1)
+
+    assert len(first) == 1
+    only = first[0]
+    assert only.stereo.truncated and only.stereo.fallback
+    assert only.stereo.fallback_reason == "enumeration_cap_exceeded"
+    assert only.stereo.isomers_total is None and not only.stereo.isomers_total_known
+    assert only.fingerprint == second[0].fingerprint
+
+
+def test_a_truncated_tautomer_is_incomplete_even_though_its_job_succeeded():
+    """The fallback is a SUCCESSFUL optimization of an INCOMPLETE stereo search:
+    candidate status and tautomer state coexist, and no population follows."""
+    candidates, _ = generate_tautomer_candidates(Chem.MolFromSmiles(BUTANEDIOL), stereo_cap=1)
+    outcome = build_outcome([_succeeded(c, -100.0) for c in candidates])
+
+    key = candidates[0].tautomer_fingerprint
+    assert outcome.tautomer_states[key] is TautomerState.INCOMPLETE
+    assert outcome.succeeded_count == 1
+    assert not outcome.complete and outcome.populations is None
+    assert outcome.energy_reference == "lowest_successful_calculated"
+    assert "truncated" in outcome.energy_label and "lowest successful stereoisomer" in outcome.energy_label
+    assert "lowest-energy stereoisomer" not in outcome.energy_label
+
+    result = build_structure_set_result(outcome, "m", "HF STO-3G", run_id="r")
+    entry = result.entries[0]
+    assert entry.metadata["stereo_fallback"] is True
+    assert entry.metadata["tautomer_state"] == "incomplete"
+    assert "fallback" in entry.label
+    assert result.provenance.parameters["stereo_enumeration_truncated"] == 1
+    assert result.provenance.parameters["complete"] is False
+
+
+# --- a tautomer is its lowest SUCCESSFUL stereoisomer -------------------------
+
+
+def _two_job_tautomer():
+    candidates, _ = generate_tautomer_candidates(Chem.MolFromSmiles(BUTANEDIOL))
+    assert len(candidates) == 2
+    return candidates
+
+
+def test_the_lower_energy_stereoisomer_represents_its_tautomer():
+    low, high = _two_job_tautomer()
+    outcome = build_outcome([_succeeded(low, -100.0010), _succeeded(high, -100.0000)])
+
+    key = low.tautomer_fingerprint
+    assert outcome.representatives[key] == low.fingerprint
+    assert outcome.tautomer_states[key] is TautomerState.COMPLETE and outcome.complete
+    assert outcome.energy_reference == "global_minimum"
+    assert outcome.energy_label == "ΔE (kcal/mol), lowest-energy stereoisomer of each tautomer"
+    assert outcome.relative_energy_kcal_mol[low.fingerprint] == 0.0
+
+
+def test_the_representative_does_not_depend_on_enumeration_order():
+    a, b = _two_job_tautomer()
+    forward = build_outcome([_succeeded(a, -100.0000), _succeeded(b, -99.9990)])
+    backward = build_outcome([_succeeded(b, -99.9990), _succeeded(a, -100.0000)])
+
+    key = a.tautomer_fingerprint
+    assert forward.representatives[key] == backward.representatives[key] == a.fingerprint
+    assert forward.relative_energy_kcal_mol == backward.relative_energy_kcal_mol
+
+
+def test_equal_energy_stereoisomers_are_both_kept_but_carry_one_statistical_state():
+    """Unit degeneracy, asserted: a second stereoisomer of the same tautomer
+    adds no weight, however equal its energy."""
+    a, b = _two_job_tautomer()
+    outcome = build_outcome([_succeeded(a, -100.0), _succeeded(b, -100.0)])
+
+    assert outcome.complete
+    assert set(outcome.populations) == {outcome.representatives[a.tautomer_fingerprint]}
+    assert outcome.populations[outcome.representatives[a.tautomer_fingerprint]] == pytest.approx(1.0)
+    result = build_structure_set_result(outcome, "m", "HF STO-3G", run_id="r")
+    assert len(result.entries) == 2  # both retained for audit and display
+
+
+def test_populations_are_over_tautomers_not_over_stereo_jobs():
+    candidates, _ = generate_tautomer_candidates(Chem.MolFromSmiles(DIMETHYLCYCLOHEXANONE))
+    groups = _by_tautomer(candidates)
+    results = []
+    for index, members in enumerate(groups.values()):
+        results += [_succeeded(m, -100.0 - 0.001 * index - 0.0001 * j) for j, m in enumerate(members)]
+    outcome = build_outcome(results)
+
+    assert outcome.complete
+    assert len(outcome.populations) == len(groups) == outcome.tautomer_count
+    assert sum(outcome.populations.values()) == pytest.approx(1.0)
+
+
+def test_a_failed_stereoisomer_makes_its_tautomer_and_the_set_incomplete():
+    """The surviving job is the lowest SUCCESSFUL one, not known to be the lowest."""
+    low, high = _two_job_tautomer()
+    outcome = build_outcome([_succeeded(low, -100.0), _failed(high)])
+
+    assert outcome.tautomer_states[low.tautomer_fingerprint] is TautomerState.INCOMPLETE
+    assert not outcome.complete and outcome.populations is None
+    assert "lowest successful stereoisomer" in outcome.energy_label
+    assert "lowest-energy stereoisomer" not in outcome.energy_label
+    result = build_structure_set_result(outcome, "m", "HF STO-3G", run_id="r")
+    lowest = [e for e in result.entries if e.metadata["is_lowest_calculated_for_tautomer"]]
+    assert len(lowest) == 1 and lowest[0].metadata["tautomer_state"] == "incomplete"
+
+
+def test_a_tautomer_with_no_usable_job_is_failed():
+    low, high = _two_job_tautomer()
+    outcome = build_outcome([_failed(low), _failed(high)])
+
+    assert outcome.tautomer_states[low.tautomer_fingerprint] is TautomerState.FAILED
+    assert not outcome.complete and outcome.succeeded_count == 0
+
+
+def test_a_dropped_embedding_makes_the_tautomer_incomplete(monkeypatch):
+    import openchem.chem.tautomer_distribution as module
+
+    real = module._embed_candidate
+    monkeypatch.setattr(
+        module, "_embed_candidate", lambda mol, base_seed, index: (None, base_seed + index) if index % 9 == 1 else real(mol, base_seed, index)
+    )
+    candidates, failures = generate_tautomer_candidates(Chem.MolFromSmiles(BUTANEDIOL))
+
+    assert failures == 1 and len(candidates) == 1
+    assert candidates[0].stereo.embedding_failed == 1
+    outcome = build_outcome([_succeeded(candidates[0], -100.0)])
+    assert outcome.tautomer_states[candidates[0].tautomer_fingerprint] is TautomerState.INCOMPLETE
+    assert not outcome.complete
+
+
+def test_the_wedged_drawing_appears_only_where_it_tells_jobs_apart():
+    two = _result_labels(BUTANEDIOL)
+    one = _result_labels("CC(O)CO")
+
+    assert all("@" in label and " of 2]" in label for label in two), two
+    assert all("@" not in label for label in one), one
+
+
+# --- the model identity is built from structured policy, never from prose ----
 
 
 @pytest.mark.parametrize(
-    ("relation", "expected_cis"),
-    [(Chem.BondStereo.STEREOCIS, True), (Chem.BondStereo.STEREOTRANS, False)],
+    ("field_name", "other"),
+    [
+        ("stereo_cap", 9),
+        ("enantiomer_policy", "keep_both"),
+        ("bond_stereo_policy", "ignore"),
+        ("tautomer_representative", "first_stereo"),
+        ("state_degeneracy", "counted"),
+        ("incomplete_population_policy", "renormalize"),
+    ],
 )
-def test_a_pinned_double_bond_embeds_the_same_way_in_every_seed(relation, expected_cis):
-    """The mechanism itself: apply a pin to a C=C the enumerator left free and
-    embed it under many seeds. Without the pin, seeds gave both 0 and 180."""
-    from rdkit.Chem import rdMolTransforms
+def test_changing_any_policy_field_is_a_different_model(field_name, other):
+    from dataclasses import replace
 
-    from openchem.chem.tautomer_distribution import _apply_pins, _bond_neighbours, _StereoPins
+    changed = replace(MODEL_POLICY, **{field_name: other})
 
-    enol = Chem.MolFromSmiles("CC=C(C)O")
-    bond_idx = next(b.GetIdx() for b in enol.GetBonds() if b.GetBondType() == Chem.BondType.DOUBLE)
-    first, last = _bond_neighbours(enol, bond_idx)
-    pins = _StereoPins(bonds={bond_idx: (first, last, relation)})
-    pinned = _apply_pins(enol, pins, [], [bond_idx])
-
-    bond = pinned.GetBondWithIdx(bond_idx)
-    for seed in range(8):
-        embedded, _ = _embed_candidate(pinned, base_seed=seed, index=0)
-        dihedral = rdMolTransforms.GetDihedralDeg(
-            embedded.GetConformer(), first, bond.GetBeginAtomIdx(), bond.GetEndAtomIdx(), last
-        )
-        assert (abs(dihedral) < 30) is expected_cis, (seed, dihedral)
-
-
-def test_the_label_still_shows_the_stereo_as_drawn_not_as_pinned():
-    """Pinning is a computational choice; the shown structure must not claim
-    it. The label of a two-undrawn-centre molecule carries no @."""
-    labels = _result_labels(DIMETHYLCYCLOHEXANONE)
-
-    assert labels and all("@" not in label for label in labels), labels
-
-
-def test_the_result_records_what_was_pinned_and_the_model_version_moves():
-    candidates, _ = generate_tautomer_candidates(Chem.MolFromSmiles(DIMETHYLCYCLOHEXANONE))
-    outcome = build_outcome(
-        [
-            CandidateResult(
-                fingerprint=c.fingerprint,
-                molblock="",
-                display_molblock=c.display_molblock,
-                status=CandidateStatus.SUCCEEDED,
-                absolute_energy_hartree=-100.0,
-                stereo_pinned=c.stereo_pinned,
-                stereo_ambiguous=c.stereo_ambiguous,
-            )
-            for c in candidates
-        ]
+    assert model_version("HF STO-3G", "ETKDGv3", 298.15, changed) != model_version(
+        "HF STO-3G", "ETKDGv3", 298.15
     )
-    result = build_structure_set_result(outcome, "mol-1", "HF def2-SVP", run_id="run-1")
-    params = result.provenance.parameters
 
-    assert params["stereo_pinned"] == 2
-    assert params["stereo_ambiguous"] is True
-    # Fixing stereo changes what the energies describe, so it is a different
-    # model: a stored "validated" stamp must never carry over.
-    assert params["model_version"].startswith("tautomer-boltzmann-v2|")
+
+def test_rewording_the_assumption_prose_does_not_change_the_model(monkeypatch):
+    import openchem.chem.tautomer_distribution as module
+
+    before = model_version("HF STO-3G", "ETKDGv3", 298.15)
+    monkeypatch.setattr(module, "model_assumptions", lambda policy=MODEL_POLICY: ("reworded",))
+
+    assert model_version("HF STO-3G", "ETKDGv3", 298.15) == before
+
+
+def test_the_policy_serializes_in_one_fixed_order_and_is_immutable():
+    assert MODEL_POLICY.canonical().split(";")[0] == "stereo_cap=8"
+    with pytest.raises(Exception):  # noqa: B017 - FrozenInstanceError
+        MODEL_POLICY.stereo_cap = 99
+    assert model_version("a", "b", 1.0).startswith(f"tautomer-boltzmann-v{TAUTOMER_MODEL_REVISION}|")
+    assert TAUTOMER_MODEL_REVISION == 3
+
+
+def test_the_assumptions_state_unit_degeneracy_and_the_lowest_representative_rule():
+    text = " ".join(model_assumptions())
+
+    assert "unit degeneracy" in text
+    assert "lowest successful stereoisomer" in text
+    assert "no separate statistical weight" in text
+
+
+def test_the_result_carries_the_policy_the_reference_and_the_search_facts():
+    candidates, _ = generate_tautomer_candidates(Chem.MolFromSmiles(BUTANEDIOL))
+    outcome = build_outcome([_succeeded(c, -100.0 - 0.001 * i) for i, c in enumerate(candidates)])
+    params = build_structure_set_result(outcome, "m", "HF STO-3G", run_id="r").provenance.parameters
+
+    assert params["model_revision"] == 3
+    assert params["model_policy"]["stereo_cap"] == 8
+    assert params["energy_reference"] == "global_minimum"
+    assert params["stereo_enumeration_cap"] == 8 and params["stereo_enumeration_truncated"] == 0
+    assert params["stereo_search"] is True
+    assert params["tautomer_count"] == 1 and params["candidate_count_expected"] == 2
+    assert params["model_version"].startswith("tautomer-boltzmann-v3|")

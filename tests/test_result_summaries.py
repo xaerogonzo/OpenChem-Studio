@@ -874,17 +874,39 @@ def test_oxidation_states_looks_like_the_exception_and_is_not():
     assert "Finding" in labels, labels
 
 
-def test_a_stereo_choice_that_moves_the_energy_is_stated_in_the_summary():
-    """Two undrawn centres are fixed to one diastereomer for every candidate;
-    a reader looking at the energies must be told which question they answer."""
-    facts = {f.label: f.display_value for f in _view(_tautomer_distribution(stereo_ambiguous=True)).facts}
+def test_a_stereo_search_states_how_the_energies_were_chosen():
+    """Some tautomer was searched over several stereo candidates: a reader of
+    the energies must be told each tautomer stands for its lowest successful one."""
+    facts = {
+        f.label: f.display_value
+        for f in _view(
+            _tautomer_distribution(stereo_search=True, tautomer_count=3, candidate_count_expected=5)
+        ).facts
+    }
 
-    assert "one configuration" in facts["Stereochemistry"]
+    assert facts["Tautomers"] == "3 tautomer(s), 5 stereoisomer optimization(s)"
+    assert "lowest successful stereoisomer" in facts["Stereochemistry"]
+    assert "degeneracy not included" in facts["Stereochemistry"]
+    assert "truncated" not in facts["Stereochemistry"]
 
 
-def test_a_degenerate_stereo_choice_adds_no_stereochemistry_line():
-    """The narrow half: one undrawn centre is an enantiomer pair, whose
-    energies are identical, so there is nothing to disclose."""
-    for parameters in ({}, {"stereo_ambiguous": False, "stereo_pinned": 1}):
-        facts = {f.label for f in _view(_tautomer_distribution(**parameters)).facts}
-        assert "Stereochemistry" not in facts
+def test_a_truncated_stereo_search_says_the_result_is_incomplete():
+    facts = {
+        f.label: f.display_value
+        for f in _view(
+            _tautomer_distribution(
+                stereo_search=True, stereo_enumeration_truncated=1, stereo_enumeration_cap=8, complete=False
+            )
+        ).facts
+    }
+
+    assert "truncated for 1 tautomer(s)" in facts["Stereochemistry"]
+    assert "incomplete" in facts["Stereochemistry"]
+
+
+def test_no_stereo_search_adds_no_stereochemistry_lines():
+    """The narrow half: a set whose tautomers each had one job (propylene
+    glycol's enantiomer pair, or nothing undrawn) has nothing to disclose."""
+    labels = {f.label for f in _view(_tautomer_distribution(stereo_search=False)).facts}
+
+    assert "Stereochemistry" not in labels and "Tautomers" not in labels

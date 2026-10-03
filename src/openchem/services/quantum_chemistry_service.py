@@ -1346,14 +1346,10 @@ class QuantumChemistryService(QObject):
                 "Tautomer candidate optimization failed to parse for molecule %s", molecule_uuid
             )
             run.results.append(
-                CandidateResult(
-                    fingerprint=candidate.fingerprint,
-                    molblock=molblock,
-                    display_molblock=candidate.display_molblock,
-                    stereo_pinned=candidate.stereo_pinned,
-                    stereo_ambiguous=candidate.stereo_ambiguous,
-                    status=CandidateStatus.FAILED,
-                    embedding_seed=candidate.embedding_seed,
+                CandidateResult.for_candidate(
+                    candidate,
+                    molblock,
+                    CandidateStatus.FAILED,
                     failure_reason=str(exc),
                     failure_reason_code=FAILURE_OPTIMIZATION_NOT_CONVERGED,
                 )
@@ -1369,28 +1365,20 @@ class QuantumChemistryService(QObject):
             energy = next((d.value for d in descriptors if d.descriptor_id == energy_id), None)
             if energy is None:
                 run.results.append(
-                    CandidateResult(
-                        fingerprint=candidate.fingerprint,
-                        molblock=molblock,
-                        display_molblock=candidate.display_molblock,
-                        stereo_pinned=candidate.stereo_pinned,
-                        stereo_ambiguous=candidate.stereo_ambiguous,
-                        status=CandidateStatus.FAILED,
-                        embedding_seed=candidate.embedding_seed,
+                    CandidateResult.for_candidate(
+                        candidate,
+                        molblock,
+                        CandidateStatus.FAILED,
                         failure_reason="No SCF energy in ORCA output.",
                         failure_reason_code=FAILURE_ENERGY_UNPARSEABLE,
                     )
                 )
             else:
                 run.results.append(
-                    CandidateResult(
-                        fingerprint=candidate.fingerprint,
-                        molblock=molblock,
-                        display_molblock=candidate.display_molblock,
-                        stereo_pinned=candidate.stereo_pinned,
-                        stereo_ambiguous=candidate.stereo_ambiguous,
-                        status=CandidateStatus.SUCCEEDED,
-                        embedding_seed=candidate.embedding_seed,
+                    CandidateResult.for_candidate(
+                        candidate,
+                        molblock,
+                        CandidateStatus.SUCCEEDED,
                         absolute_energy_hartree=float(energy),
                     )
                 )

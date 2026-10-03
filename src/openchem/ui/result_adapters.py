@@ -622,10 +622,23 @@ def _structure_set_energy_facts(
         else:
             text = "not shown -- not yet validated against reference data"
         facts.append(_summary_fact("Populations", text, text, category, source))
-    if params.get("stereo_ambiguous"):
-        # Only when the fixed choice moves the energy (diastereomers, E/Z);
-        # a lone undrawn centre is a degenerate enantiomer pair and says nothing.
-        text = "undrawn centres fixed to one configuration for every candidate"
+    if params.get("stereo_search"):
+        # Some tautomer was searched over more than one stereo candidate (or
+        # fell back): say how the energies were chosen, and what was cut.
+        tautomers = int(params.get("tautomer_count", 0))
+        jobs = int(params.get("candidate_count_expected", 0))
+        text = f"{tautomers} tautomer(s), {jobs} stereoisomer optimization(s)"
+        facts.append(_summary_fact("Tautomers", text, text, category, source))
+        text = (
+            "each tautomer by its lowest successful stereoisomer; "
+            "enantiomer pairs calculated once; stereochemical degeneracy not included"
+        )
+        truncated = int(params.get("stereo_enumeration_truncated", 0))
+        if truncated:
+            text += (
+                f"; stereoisomer search truncated for {truncated} tautomer(s) "
+                f"(cap {params.get('stereo_enumeration_cap', '?')}), so the result is incomplete"
+            )
         facts.append(_summary_fact("Stereochemistry", text, text, category, source))
     return facts
 
