@@ -575,6 +575,27 @@ def _structure_set_summary(
     return tuple(facts)
 
 
+def _rdkit_cross_check_text(check: dict) -> str:
+    """One line for the heuristic-vs-ORCA verdict. Informational: RDKit's score
+    is a heuristic preference, never an energy or a probability."""
+    verdict = check.get("verdict")
+    tolerance = check.get("tolerance_kcal", "?")
+    if verdict == "agrees":
+        return "agrees with ORCA on the most stable tautomer (the score is a heuristic, not an energy)"
+    if verdict == "differs":
+        return "prefers a different tautomer than ORCA's lowest energy (the score is a heuristic, not an energy)"
+    if verdict == "tied":
+        parts = []
+        if check.get("rdkit_tie"):
+            parts.append("RDKit's heuristic does not distinguish its top candidates")
+        if check.get("orca_tie"):
+            parts.append(f"ORCA's lowest candidates are within {tolerance} kcal/mol")
+        return "; ".join(parts) or "not distinguished"
+    if check.get("orca_incomplete"):
+        return "not compared -- the ORCA result is incomplete"
+    return "not compared"
+
+
 def _structure_set_energy_facts(
     result: StructureSetResult, category: FactCategory
 ) -> list[Fact]:
@@ -622,6 +643,10 @@ def _structure_set_energy_facts(
         else:
             text = "not shown -- not yet validated against reference data"
         facts.append(_summary_fact("Populations", text, text, category, source))
+    check = params.get("rdkit_cross_check")
+    if isinstance(check, dict) and check.get("verdict"):
+        text = _rdkit_cross_check_text(check)
+        facts.append(_summary_fact("RDKit heuristic", text, text, category, source))
     if params.get("stereo_search"):
         # Some tautomer was searched over more than one stereo candidate (or
         # fell back): say how the energies were chosen, and what was cut.

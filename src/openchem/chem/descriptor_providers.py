@@ -2751,9 +2751,11 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         display_name="Tautomers",
         category="structures",
         description=(
-            "Tautomeric forms, with the canonical tautomer flagged. For a real "
-            "energy-based ranking instead of RDKit's heuristic pick, see Tautomer "
-            "Distribution in the Quantum Chemistry panel (needs ORCA)."
+            "Tautomeric forms, ordered by RDKit's own heuristic preference score "
+            "(a rule-of-thumb ranking: not an energy and not a probability; equal "
+            "scores are shown as tied) with the canonical tautomer flagged. For a "
+            "real energy-based ranking, see Tautomer Distribution in the Quantum "
+            "Chemistry panel (needs ORCA)."
         ),
         execution=RegistryExecution(compute=compute_tautomers),
         parameters=[
