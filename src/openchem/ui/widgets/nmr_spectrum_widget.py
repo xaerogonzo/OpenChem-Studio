@@ -18,16 +18,35 @@ from openchem.ui.widgets.plot_axis import nice_ticks
 
 #: The axis line and its tick labels.
 _AXIS_COLOR = QColor(120, 120, 120)
-#: An ordinary, unselected signal -- sticks or the smooth curve alike.
-_PEAK_COLOR = QColor(30, 100, 200)
-#: The signal a table row, a 3D atom click, or a direct click selected.
-_HIGHLIGHT_COLOR = QColor(214, 100, 20)
-#: The deuterated solvent's own residual peak, drawn dashed so it is never
-#: mistaken for one of the compound's own signals.
-_SOLVENT_COLOR = QColor(150, 150, 150)
-#: The cumulative "relative integral" trace -- a third colour, distinct
-#: from both the solvent dash and the signal itself.
-_INTEGRAL_COLOR = QColor(60, 150, 90)
+#: The fixed palettes the viewer offers: each names the four marks the plot
+#: draws, and nothing else. Presentation only -- a colour never says anything
+#: about the chemistry (no per-signal colours, nothing that implies a
+#: distinction the data does not make), which is why this is a short fixed
+#: list and not a colour picker. "Colour-blind safe" is the Okabe-Ito set.
+NMR_PALETTES: dict[str, dict[str, tuple[int, int, int]]] = {
+    "Default": {
+        "peak": (30, 100, 200), "highlight": (214, 100, 20),
+        "solvent": (150, 150, 150), "integral": (60, 150, 90),
+    },
+    "Colour-blind safe": {
+        "peak": (0, 114, 178), "highlight": (213, 94, 0),
+        "solvent": (150, 150, 150), "integral": (204, 121, 167),
+    },
+    "High contrast": {
+        "peak": (0, 0, 0), "highlight": (220, 0, 0),
+        "solvent": (110, 110, 110), "integral": (0, 0, 170),
+    },
+}
+#: The palette a viewer starts with and Reset Settings restores.
+DEFAULT_PALETTE = "Default"
+
+
+def palette_hex(name: str, mark: str) -> str:
+    """One mark's colour as `#rrggbb`, for the structure panes' own renderers."""
+    r, g, b = NMR_PALETTES[name][mark]
+    return f"#{r:02x}{g:02x}{b:02x}"
+
+
 #: Points sampled across the plot for the smooth curve and the integral
 #: trace -- fine enough that a Lorentzian at the default HWHM (0.012 ppm)
 #: over a typical 10 ppm span still has several samples under each line.
@@ -105,6 +124,7 @@ class NmrSpectrumWidget(QWidget):
         #: A static key for what the marks on the plot are. Display-only and
         #: off by default; see `legend_entries`.
         self._show_legend = False
+        self._palette_name = DEFAULT_PALETTE
         #: "ppm" or "hz" -- display-only, never the plot's internal working
         #: unit (always ppm, see `view_range()`). Forced back to "ppm" by
         #: every consumer whenever `self._shielding` is True: a raw
@@ -130,6 +150,15 @@ class NmrSpectrumWidget(QWidget):
         self._panning = False
         self._pan_last_pos: QPointF | None = None
         self._press_pos: QPointF | None = None
+        #: Repeat-click cycling through signals that overlap under the cursor
+        #: (`_click_target`). `anchor` is the ppm where the cycle began and
+        #: `ppm_range` the UNION of the hit regions that established it, in
+        #: DATA coordinates, so zooming does not change how the cycle behaves.
+        self._cycle_candidates: list[NMRSignal] = []
+        self._cycle_index = 0
+        self._cycle_anchor_ppm: float | None = None
+        self._cycle_ppm_range: tuple[float, float] | None = None
+        self._cycle_view_range: tuple[float, float] | None = None
         self.setMinimumSize(320, 200)
 
     def set_render_mode(self, mode: str) -> None:
@@ -144,6 +173,18 @@ class NmrSpectrumWidget(QWidget):
     def set_show_integral(self, show: bool) -> None:
         self._show_integral = bool(show)
         self.update()
+
+    def set_palette(self, name: str) -> None:
+        if name not in NMR_PALETTES:
+            raise ValueError(f"unknown NMR palette: {name!r}")
+        self._palette_name = name
+        self.update()
+
+    def palette_name(self) -> str:
+        return self._palette_name
+
+    def _color(self, mark: str) -> QColor:
+        return QColor(*NMR_PALETTES[self._palette_name][mark])
 
     def set_show_legend(self, show: bool) -> None:
         self._show_legend = bool(show)
@@ -199,6 +240,7 @@ class NmrSpectrumWidget(QWidget):
         self._element = signals[0].element if signals else "H"
         self._highlighted_atoms.clear()
         self._view_range = None
+        self._reset_cycle()
         self.update()
 
     def set_frequency(self, frequency_mhz: float) -> None:
@@ -412,6 +454,69 @@ class NmrSpectrumWidget(QWidget):
             )
         return regions
 
+    def signals_at(self, x: float, y: float) -> list[NMRSignal]:
+        """EVERY signal whose hit region holds the point, in a deterministic
+        order: nearest the cursor first, then by shift, then by atom indices.
+        Never container order, so which of several overlapping multiplets a
+        click reaches first does not depend on how the list happened to be
+        built. The returned objects ARE the widget's signals, not copies."""
+        plot_rect = self._plot_rect()
+        if plot_rect.width() <= 0:
+            return []
+        cursor_ppm = self._data_x_at(x, plot_rect)
+        hits = [signal for region, signal in self.hit_regions() if region.contains(x, y)]
+        return sorted(
+            hits, key=lambda sig: (abs(sig.shift - cursor_ppm), sig.shift, tuple(sig.atom_indices))
+        )
+
+    def _reset_cycle(self) -> None:
+        self._cycle_candidates = []
+        self._cycle_index = 0
+        self._cycle_anchor_ppm = None
+        self._cycle_ppm_range = None
+        self._cycle_view_range = None
+
+    def _click_target(self, x: float, y: float) -> NMRSignal | None:
+        """The signal a click selects. One signal under the cursor: that one.
+        Several overlap: the nearest first, and each repeat click on the same
+        spot moves to the next, wrapping.
+
+        THE CYCLE ENDS when the cursor leaves the union of the hit regions
+        that began it (in ppm, not pixels), or the view range changed, or the
+        set of overlapping signals is no longer the same -- so a stale cycle
+        can never carry over from somewhere else. `set_signals` clears it too.
+        """
+        candidates = self.signals_at(x, y)
+        if not candidates:
+            self._reset_cycle()
+            return None
+        if len(candidates) == 1:
+            self._reset_cycle()
+            return candidates[0]
+        plot_rect = self._plot_rect()
+        cursor_ppm = self._data_x_at(x, plot_rect)
+        view = self.view_range()
+        same_cycle = (
+            self._cycle_ppm_range is not None
+            and self._cycle_ppm_range[0] <= cursor_ppm <= self._cycle_ppm_range[1]
+            and self._cycle_view_range == view
+            and [id(c) for c in self._cycle_candidates] == [id(c) for c in candidates]
+        )
+        if same_cycle:
+            self._cycle_index = (self._cycle_index + 1) % len(candidates)
+        else:
+            per_pixel = abs(view[1] - view[0]) / plot_rect.width()
+            half = _HIT_HALF_WIDTH * per_pixel
+            self._cycle_candidates = candidates
+            self._cycle_index = 0
+            self._cycle_anchor_ppm = cursor_ppm
+            self._cycle_ppm_range = (
+                min(c.shift for c in candidates) - half,
+                max(c.shift for c in candidates) + half,
+            )
+            self._cycle_view_range = view
+        return self._cycle_candidates[self._cycle_index]
+
     def signal_at(self, x: float, y: float) -> NMRSignal | None:
         for region, signal in self.hit_regions():
             if region.contains(x, y):
@@ -517,7 +622,7 @@ class NmrSpectrumWidget(QWidget):
             if press_pos is not None:
                 drift = plot_zoom.drift(event.position().x() - press_pos.x(), event.position().y() - press_pos.y())
                 if drift <= _CLICK_MAX_DRIFT:
-                    signal = self.signal_at(event.position().x(), event.position().y())
+                    signal = self._click_target(event.position().x(), event.position().y())
                     if signal is not None:
                         self._highlighted_atoms = set(signal.atom_indices)
                         self.update()
@@ -544,12 +649,7 @@ class NmrSpectrumWidget(QWidget):
     def _draw_legend(self, painter: QPainter, plot_rect: QRectF) -> None:
         """The key, top-right INSIDE the plot (the margin above it already
         holds the hover readout and the zoom hint)."""
-        colours = {
-            "peak": _PEAK_COLOR,
-            "highlight": _HIGHLIGHT_COLOR,
-            "integral": _INTEGRAL_COLOR,
-            "solvent": _SOLVENT_COLOR,
-        }
+        colours = {mark: self._color(mark) for mark in ("peak", "highlight", "integral", "solvent")}
         row, swatch, pad = 15.0, 22.0, 6.0
         entries = self.legend_entries()
         metrics = painter.fontMetrics()
@@ -634,7 +734,7 @@ class NmrSpectrumWidget(QWidget):
             # Dashed and grey: it belongs to the solvent, not the sample,
             # and must not be mistaken for one of the compound's signals.
             solvent_x = self._to_widget_x(solvent_shift, plot_rect, x_range)
-            painter.setPen(QPen(_SOLVENT_COLOR, 1, Qt.PenStyle.DashLine))
+            painter.setPen(QPen(self._color("solvent"), 1, Qt.PenStyle.DashLine))
             painter.drawLine(
                 QRectF(solvent_x, plot_rect.top(), 0, plot_rect.height()).topLeft(),
                 QRectF(solvent_x, plot_rect.top(), 0, plot_rect.height()).bottomLeft(),
@@ -651,7 +751,7 @@ class NmrSpectrumWidget(QWidget):
             for signal in self._signals:
                 highlighted = bool(self._highlighted_atoms & set(signal.atom_indices))
                 full_height = (plot_rect.height() - label_height) * (signal.integration / max_integration)
-                painter.setPen(QPen(_HIGHLIGHT_COLOR if highlighted else _PEAK_COLOR, 3 if highlighted else 1))
+                painter.setPen(QPen(self._color("highlight") if highlighted else self._color("peak"), 3 if highlighted else 1))
                 # Each line of the multiplet carries its share of the signal's
                 # total intensity, so a quartet and a singlet of the same
                 # integration still enclose the same area -- which is what
@@ -702,7 +802,7 @@ class NmrSpectrumWidget(QWidget):
         ys = lorentzian_envelope(self._signals, xs, self._frequency_mhz, decoupled=self._decoupled)
         scale = (plot_rect.height() - label_height) / (max(ys) or 1.0)
 
-        painter.setPen(QPen(_PEAK_COLOR, 1))
+        painter.setPen(QPen(self._color("peak"), 1))
         painter.drawPath(self._curve_path(xs, ys, plot_rect, x_range, scale))
 
         highlighted_signals = [
@@ -716,7 +816,7 @@ class NmrSpectrumWidget(QWidget):
             highlighted_ys = lorentzian_envelope(
                 highlighted_signals, xs, self._frequency_mhz, decoupled=self._decoupled
             )
-            painter.setPen(QPen(_HIGHLIGHT_COLOR, 3))
+            painter.setPen(QPen(self._color("highlight"), 3))
             painter.drawPath(self._curve_path(xs, highlighted_ys, plot_rect, x_range, scale))
 
         self._draw_peak_labels_smooth(painter, plot_rect, x_range, scale, label_height)
@@ -770,7 +870,7 @@ class NmrSpectrumWidget(QWidget):
         total = cumulative[-1] or 1.0
         scale = (plot_rect.height() - label_height) / total
 
-        painter.setPen(QPen(_INTEGRAL_COLOR, 1.5, Qt.PenStyle.DashLine))
+        painter.setPen(QPen(self._color("integral"), 1.5, Qt.PenStyle.DashLine))
         painter.drawPath(self._curve_path(xs, cumulative, plot_rect, x_range, scale))
         painter.drawText(
             QRectF(plot_rect.left(), plot_rect.top() - label_height, 120, label_height),
