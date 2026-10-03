@@ -308,3 +308,33 @@ def test_a_vibrational_spectrum_never_reaches_the_nmr_path(qapp, monkeypatch):
     assert "nmr" not in routed
     assert "correlation" not in routed
     assert "hybrid" not in routed
+
+
+def test_reset_zoom_is_enabled_only_while_zoomed_and_restores_the_span(view, water_conformer):
+    widget, _ = view
+    _, molblock = water_conformer
+    widget.set_spectrum(_spectrum(), molblock)
+    assert not widget._reset_zoom_button.isEnabled()
+    full = widget._spectrum_widget.view_range()
+
+    low, high = full
+    widget._spectrum_widget._set_window((low + (high - low) * 0.25, low + (high - low) * 0.5))
+    assert widget._reset_zoom_button.isEnabled()
+
+    widget._reset_zoom_button.click()
+    assert widget._spectrum_widget.view_range() == full and not widget._reset_zoom_button.isEnabled()
+
+
+def test_copy_spectrum_image_puts_the_plot_on_the_clipboard(view, water_conformer):
+    from PySide6.QtGui import QGuiApplication
+
+    widget, _ = view
+    _, molblock = water_conformer
+    widget.set_spectrum(_spectrum(), molblock)
+    widget._spectrum_widget.resize(400, 250)
+    QGuiApplication.clipboard().clear()
+
+    widget._copy_image_button.click()
+
+    image = QGuiApplication.clipboard().image()
+    assert not image.isNull() and image.width() > 100

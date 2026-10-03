@@ -20,6 +20,8 @@ from PySide6.QtCore import QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import QWidget
 
+from openchem.ui.picture_export import show_picture_menu
+
 #: Same Okabe-Ito set the per-atom categorical palette uses, and for the
 #: same reason: these are group identities, not a ramp, and they have to be
 #: distinguishable under the common colour-vision deficiencies.
@@ -165,6 +167,11 @@ class ScatterPlotWidget(QWidget):
         self.update()
 
     # -- painting ---------------------------------------------------------
+
+    def contextMenuEvent(self, event) -> None:  # noqa: N802 - Qt override naming
+        # A reader chart has its own menu installed (CustomContextMenu), which
+        # takes over; this is for the same plot anywhere else it is shown.
+        show_picture_menu(self, event, "scatter-plot")
 
     def paintEvent(self, event) -> None:  # noqa: N802 - Qt override
         painter = QPainter(self)

@@ -423,3 +423,56 @@ def test_the_picture_menu_connects_a_BOUND_METHOD_not_a_closure():
         "a callable is defined inside _install_picture_menu; if it is connected "
         "it will pin the reader"
     )
+
+
+# --- plots that live OUTSIDE the reader offer the same menu ------------------------
+
+
+def _plot_classes():
+    from openchem.ui.widgets.histogram_widget import HistogramWidget
+    from openchem.ui.widgets.ir_spectrum_widget import IrSpectrumWidget
+    from openchem.ui.widgets.line_chart_widget import LineChartWidget
+    from openchem.ui.widgets.nmr_correlation_plot_widget import NmrCorrelationPlotWidget
+    from openchem.ui.widgets.nmr_spectrum_widget import NmrSpectrumWidget
+    from openchem.ui.widgets.ph_curve_widget import PhCurveWidget
+    from openchem.ui.widgets.scatter_plot_widget import ScatterPlotWidget
+    from openchem.ui.widgets.stick_chart_widget import StickChartWidget
+
+    return [
+        IrSpectrumWidget, NmrSpectrumWidget, NmrCorrelationPlotWidget, LineChartWidget,
+        PhCurveWidget, ScatterPlotWidget, HistogramWidget, StickChartWidget,
+    ]
+
+
+def test_every_plot_widget_routes_its_right_click_to_the_shared_picture_menu():
+    """A plot that is not in the reader used to be readable and not takeable
+    away. Asserted on the CLASS so a new plot copied from an old one cannot
+    silently lack it: the override must exist on the class itself, not be
+    inherited from QWidget's no-op."""
+    from PySide6.QtWidgets import QWidget
+
+    for cls in _plot_classes():
+        assert "contextMenuEvent" in vars(cls) or any(
+            "contextMenuEvent" in vars(base) for base in cls.__mro__ if base is not QWidget and base.__module__.startswith("openchem")
+        ), cls.__name__
+
+
+def test_the_spectrum_menu_copies_and_saves_the_picture(qapp):
+    from openchem.ui.picture_export import build_picture_menu
+    from openchem.ui.widgets.nmr_spectrum_widget import NmrSpectrumWidget
+
+    menu = build_picture_menu(NmrSpectrumWidget(), "nmr-spectrum")
+    assert [a.text() for a in menu.actions()] == ["Copy picture", "Save picture..."]
+
+
+def test_a_copy_with_no_status_line_still_says_what_happened(qapp, monkeypatch):
+    """The reader has a status line; a bare plot has none, and a silent copy
+    reads the same as a failed one."""
+    from PySide6.QtWidgets import QToolTip, QWidget
+
+    from openchem.ui import picture_export
+
+    shown: list[str] = []
+    monkeypatch.setattr(QToolTip, "showText", staticmethod(lambda pos, text, widget=None: shown.append(text)))
+    picture_export._report(QWidget(), "Copied the picture (10x10).")
+    assert shown == ["Copied the picture (10x10)."]

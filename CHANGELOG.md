@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### IR viewer navigation and a right-click picture menu on every plot (survey items 1 and 2)
+
+- **The IR spectrum is navigable.** Wheel-zoom around the cursor, drag to pan, double-click or the new **Reset Zoom** button to restore the full span, a cursor wavenumber readout, and bands outside the window neither drawn nor clickable. Zoom is view state only: a stick's height still means the same intensity at every zoom (the scale is the whole spectrum's strongest band), and a click now registers on release, so a drag no longer selects a band. Reuses the NMR plot's `plot_zoom` arithmetic.
+- **Copy Spectrum Image** on the IR view, and a **right-click Copy picture / Save picture** on the IR spectrum, the NMR spectrum, the NMR correlation plot, the pH curve and the other chart widgets, through the same `picture_export` actions the results reader uses (a reader chart keeps its own menu, with no duplicate). A copy now says what it did even where there is no status line.
+- Not verified on screen with real fonts (the offscreen renderer has none); the geometry is covered by tests.
+
 ### Tautomer distribution: the validation run, outcome `attempted_failed` (Phase O, commit 2 of 2)
 
 - The preregistered gate was run once on commit `239f1e6a` with real ORCA at `PBE0 def2-TZVP` (20 optimizations, every tautomer complete). **It did not pass**: the ranking gate failed on cytosine, acetylacetone and 2-pyridone (acetaldimine passed), so **no population percentage is shown**; results remain `unvalidated`. The artifact is `benchmarks/tautomer_validation/tautomer_validation_artifact.json` and the outcome, with what it does and does not establish, is in `docs/VALIDATION.md`. The acetylacetone enol landing 5.3 kcal/mol above the diketo is consistent with the single-start-geometry limitation but was not verified.

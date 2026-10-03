@@ -34,8 +34,8 @@ from __future__ import annotations
 import logging
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QGuiApplication, QImage
-from PySide6.QtWidgets import QFileDialog, QMenu, QMessageBox, QWidget
+from PySide6.QtGui import QCursor, QGuiApplication, QImage
+from PySide6.QtWidgets import QFileDialog, QMenu, QMessageBox, QToolTip, QWidget
 
 logger = logging.getLogger("openchem.ui")
 
@@ -202,6 +202,28 @@ def add_picture_actions(
     menu.addAction("Save picture...", lambda: _report(parent, save_picture(widget, parent, stem)))
 
 
+def show_picture_menu(widget: QWidget, event, stem: str, parent: QWidget | None = None) -> None:
+    """The right-click menu for a plot that owns its own `contextMenuEvent`.
+
+    **FOR A WIDGET THAT IS NOT INSIDE THE RESULTS READER.** The reader installs
+    this same menu on every chart it builds; a plot that lives elsewhere (the IR
+    and NMR spectra, the NMR correlation plot) calls this from its own
+    `contextMenuEvent`, so it is a method on the widget and holds no signal
+    connection that could pin it. The actions are the reader's, so a spectrum
+    copies and saves exactly as a reader chart does.
+    """
+    build_picture_menu(widget, stem, parent).exec(event.globalPos())
+
+
+def build_picture_menu(widget: QWidget, stem: str, parent: QWidget | None = None) -> QMenu:
+    """The menu `show_picture_menu` shows, built apart from showing it: a modal
+    `QMenu.exec` cannot be patched in a test (measured: the run hangs), so the
+    contents are asserted here and the one-line `exec` stays untested on purpose."""
+    menu = QMenu(widget)
+    add_picture_actions(menu, widget, parent if parent is not None else widget, stem)
+    return menu
+
+
 def _report(parent: QWidget | None, message: str) -> None:
     """Say what happened, through the host's own status line if it has one.
 
@@ -216,3 +238,6 @@ def _report(parent: QWidget | None, message: str) -> None:
         setter(message)
         return
     logger.info("%s", message)
+    # No status line to say it in: a copy that says nothing reads the same as
+    # one that failed, so show it beside the cursor.
+    QToolTip.showText(QCursor.pos(), message, parent)

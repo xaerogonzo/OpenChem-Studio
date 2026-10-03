@@ -12,6 +12,8 @@ from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import QWidget
 
+from openchem.ui.picture_export import show_picture_menu
+
 from openchem.chem.analytics import Distribution
 
 _BAR_COLOR = QColor(70, 120, 180)
@@ -68,6 +70,11 @@ class HistogramWidget(QWidget):
 
     def _has_data(self) -> bool:
         return bool(self._distribution and self._distribution.counts)
+
+    def contextMenuEvent(self, event) -> None:  # noqa: N802 - Qt override naming
+        # A reader chart has its own menu installed (CustomContextMenu), which
+        # takes over; this is for the same plot anywhere else it is shown.
+        show_picture_menu(self, event, "histogram")
 
     def paintEvent(self, event) -> None:  # noqa: N802 - Qt override
         painter = QPainter(self)

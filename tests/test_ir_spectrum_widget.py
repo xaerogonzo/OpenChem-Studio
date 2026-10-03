@@ -10,6 +10,7 @@ same height), leaving exactly one thing different.
 
 from __future__ import annotations
 
+import pytest
 from conftest import ink
 
 from openchem.domain.scientific_result import VibrationalMode
@@ -191,3 +192,168 @@ def test_set_modes_replaces_data(qapp):
 
     assert len(widget._modes) == 2
     assert widget._imaginary_warning == "w"
+
+
+# --- zoom, pan, reset, readout, picture menu (the survey's item 1 and 2) --------
+
+
+def _wheel(widget, x, y, delta):
+    from PySide6.QtCore import QPoint, QPointF, Qt
+    from PySide6.QtGui import QWheelEvent
+    from PySide6.QtWidgets import QApplication
+
+    event = QWheelEvent(
+        QPointF(x, y), widget.mapToGlobal(QPointF(x, y)), QPoint(0, 0), QPoint(0, delta),
+        Qt.MouseButton.NoButton, Qt.KeyboardModifier.NoModifier, Qt.ScrollPhase.NoScrollPhase, False,
+    )
+    QApplication.sendEvent(widget, event)
+
+
+def _mouse(widget, kind, point, button=None, buttons=None):
+    from PySide6.QtCore import Qt
+    from PySide6.QtGui import QMouseEvent
+    from PySide6.QtWidgets import QApplication
+
+    button = Qt.MouseButton.LeftButton if button is None else button
+    buttons = Qt.MouseButton.NoButton if buttons is None else buttons
+    QApplication.sendEvent(
+        widget, QMouseEvent(kind, point, button, buttons, Qt.KeyboardModifier.NoModifier)
+    )
+
+
+def _spectrum_widget():
+    widget = IrSpectrumWidget([_mode(500.0), _mode(1600.0, 40.0), _mode(1750.0, 80.0), _mode(3400.0, 20.0)])
+    widget.resize(500, 300)
+    return widget
+
+
+def test_the_wheel_zooms_around_the_cursor_and_double_click_restores(qapp):
+    from PySide6.QtGui import QMouseEvent
+
+    widget = _spectrum_widget()
+    full = widget.view_range()
+    plot = widget._plot_rect()
+    x = plot.center().x()
+    anchor = widget._data_x_at(x)
+
+    _wheel(widget, x, plot.center().y(), 120)
+
+    assert widget.is_zoomed()
+    low, high = widget.view_range()
+    assert (high - low) < (full[1] - full[0])
+    assert low < anchor < high and widget._data_x_at(x) == pytest.approx(anchor)  # the anchor stays put
+    _mouse(widget, QMouseEvent.Type.MouseButtonDblClick, plot.center())
+    assert not widget.is_zoomed() and widget.view_range() == full
+
+
+def test_zooming_back_out_to_the_full_span_drops_the_window(qapp):
+    widget = _spectrum_widget()
+    plot = widget._plot_rect()
+    _wheel(widget, plot.center().x(), plot.center().y(), 120)
+    for _ in range(40):
+        _wheel(widget, plot.center().x(), plot.center().y(), -120)
+    assert not widget.is_zoomed()
+
+
+def test_a_wheel_outside_the_plot_does_not_zoom(qapp):
+    widget = _spectrum_widget()
+    _wheel(widget, 2, 2, 120)
+    assert not widget.is_zoomed()
+
+
+def test_a_band_outside_the_window_is_neither_drawn_nor_clickable(qapp):
+    widget = _spectrum_widget()
+    assert [i for _, i in widget.hit_regions()] == [0, 1, 2, 3]
+    widget._set_window((1500.0, 1800.0))
+    assert [i for _, i in widget.hit_regions()] == [1, 2]  # indices stay positions in the FULL list
+    assert [i for i, _ in widget._visible_modes()] == [1, 2]
+
+
+def test_zooming_does_not_rescale_a_stick(qapp):
+    """The scale is the whole spectrum's strongest band, not the window's, so
+    zooming onto the weaker 1600 band must not inflate it to full height."""
+    widget = _spectrum_widget()
+    widget._set_window((1550.0, 1650.0))
+    assert [m.wavenumber_cm1 for _, m in widget._visible_modes()] == [1600.0]
+    zoomed = ink(widget)
+    plain = _spectrum_widget()
+    plain._set_window((1550.0, 1650.0))
+    plain._modes[1] = _mode(1600.0, 80.0)  # as strong as the global maximum
+    assert ink(plain) > zoomed  # a 40-of-80 band is half as tall as an 80-of-80 one, even alone in the window
+
+
+def test_dragging_pans_the_window_and_never_off_the_data(qapp):
+    from PySide6.QtCore import QPointF, Qt
+    from PySide6.QtGui import QMouseEvent
+
+    widget = _spectrum_widget()
+    widget._set_window((1500.0, 1800.0))
+    start = widget._plot_rect().center()
+    left = Qt.MouseButton.LeftButton
+
+    grabbed = widget._data_x_at(start.x())
+    _mouse(widget, QMouseEvent.Type.MouseButtonPress, start, buttons=left)
+    _mouse(widget, QMouseEvent.Type.MouseMove, QPointF(start.x() + 60, start.y()), buttons=left)
+    low, high = widget.view_range()
+    assert (high - low) == pytest.approx(300.0) and low != 1500.0
+    # A drag GRABS the plot: the wavenumber that was under the cursor follows it.
+    assert widget._data_x_at(start.x() + 60) == pytest.approx(grabbed)
+    _mouse(widget, QMouseEvent.Type.MouseMove, QPointF(start.x() + 4000, start.y()), buttons=left)
+    assert widget.view_range()[0] >= widget._full_range()[0]
+
+
+def test_a_drag_does_not_click_a_band_but_a_click_does(qapp):
+    from PySide6.QtCore import QPointF, Qt
+    from PySide6.QtGui import QMouseEvent
+
+    widget = _spectrum_widget()
+    received: list[int] = []
+    widget.mode_clicked.connect(received.append)
+    region, _index = widget.hit_regions()[2]
+    point = region.center()
+    none = Qt.MouseButton.NoButton
+
+    _mouse(widget, QMouseEvent.Type.MouseButtonPress, point, buttons=Qt.MouseButton.LeftButton)
+    _mouse(widget, QMouseEvent.Type.MouseButtonRelease, point, buttons=none)
+    assert received == [2]
+    _mouse(widget, QMouseEvent.Type.MouseButtonPress, point, buttons=Qt.MouseButton.LeftButton)
+    _mouse(widget, QMouseEvent.Type.MouseButtonRelease, QPointF(point.x() + 30, point.y()), buttons=none)
+    assert received == [2]  # moved too far: that was a drag
+
+
+def test_the_readout_follows_the_cursor_and_clears_outside_the_plot(qapp):
+    from PySide6.QtCore import QPointF
+    from PySide6.QtGui import QMouseEvent
+
+    widget = _spectrum_widget()
+    assert widget.readout_text() == ""
+    inside = widget._plot_rect().center()
+    _mouse(widget, QMouseEvent.Type.MouseMove, inside)
+    assert widget.readout_text() == f"{widget._data_x_at(inside.x()):.0f} cm⁻¹"
+    _mouse(widget, QMouseEvent.Type.MouseMove, QPointF(1, 1))
+    assert widget.readout_text() == ""
+
+
+def test_new_data_resets_the_zoom(qapp):
+    widget = _spectrum_widget()
+    widget._set_window((1500.0, 1800.0))
+    widget.set_modes([_mode(1000.0)])
+    assert not widget.is_zoomed()
+
+
+def test_view_changed_fires_once_per_real_change(qapp):
+    widget = _spectrum_widget()
+    seen: list[int] = []
+    widget.view_changed.connect(lambda: seen.append(1))
+    widget._set_window((1500.0, 1800.0))
+    widget._set_window((1500.0, 1800.0))
+    widget.reset_view()
+    widget.reset_view()
+    assert len(seen) == 2
+
+
+def test_the_right_click_menu_offers_the_picture_actions(qapp):
+    from openchem.ui.picture_export import build_picture_menu
+
+    menu = build_picture_menu(_spectrum_widget(), "ir-spectrum")
+    assert [a.text() for a in menu.actions()] == ["Copy picture", "Save picture..."]
