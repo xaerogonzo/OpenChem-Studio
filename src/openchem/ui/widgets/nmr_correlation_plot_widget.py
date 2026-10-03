@@ -78,6 +78,8 @@ class NmrCorrelationPlotWidget(QWidget):
     #: Emits (atom_a, atom_b) of the clicked peak -- the outbound half of
     #: the bidirectional link to the table beside this plot.
     peak_selected = Signal(int, int)
+    #: The view was zoomed, panned or reset, so a host can enable its Reset Zoom.
+    view_changed = Signal()
 
     _MARGIN = 50.0
     _CONTOUR_COLOUR = QColor(30, 100, 200)
@@ -140,6 +142,7 @@ class NmrCorrelationPlotWidget(QWidget):
     def reset_view(self) -> None:
         self._view_x_range = None
         self._view_y_range = None
+        self.view_changed.emit()
         self.update()
 
     def set_empty_message(self, message: str) -> None:
@@ -356,6 +359,7 @@ class NmrCorrelationPlotWidget(QWidget):
         else:
             self._view_x_range = new_x_range
             self._view_y_range = new_y_range
+            self.view_changed.emit()
             self.update()
         event.accept()
 
@@ -385,6 +389,7 @@ class NmrCorrelationPlotWidget(QWidget):
             # under the NEW one -- a drag grabs the plot, not the axes.
             self._view_x_range = plot_zoom.panned_window(x_range, delta.x(), plot_rect.width())
             self._view_y_range = plot_zoom.panned_window(y_range, delta.y(), plot_rect.height())
+            self.view_changed.emit()
             self.update()
         event.accept()
 

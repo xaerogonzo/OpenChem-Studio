@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
 
 from openchem.chem import jcamp
 from openchem.chem.engine import ChemistryEngine
+from openchem.chem.ir_export import export_jcamp_peaks
 from openchem.chem.mode_animation import normal_mode_frames
 from openchem.chem.spectrum_overlay import prepare_measured
 from openchem.domain.scientific_result import VibrationalSpectrumResult
@@ -136,6 +137,14 @@ class IrViewWidget(QWidget):
         self._copy_image_button.setToolTip("Copy the spectrum plot as an image (also: right-click the plot)")
         self._copy_image_button.clicked.connect(self._on_copy_image)
 
+        self._export_button = QPushButton("Export JCAMP-DX...", self)
+        self._export_button.setToolTip(
+            "Write the predicted bands as a JCAMP-DX peak table (labelled predicted; "
+            "this application's own overlay import reads spectra, not peak tables)"
+        )
+        self._export_button.setEnabled(False)
+        self._export_button.clicked.connect(self._on_export_clicked)
+
         # Parented to self, so it is destroyed with the widget rather than
         # firing into a deleted backend.
         self._timer = QTimer(self)
@@ -149,6 +158,7 @@ class IrViewWidget(QWidget):
         controls.addStretch()
         controls.addWidget(self._reset_zoom_button)
         controls.addWidget(self._copy_image_button)
+        controls.addWidget(self._export_button)
 
         # Same structure as `NmrViewWidget`'s own splitter, on purpose --
         # see this class's docstring. No inner horizontal splitter here:
@@ -219,6 +229,24 @@ class IrViewWidget(QWidget):
             note += "; converted from transmittance to absorbance"
         self._header_label.setText(note)
 
+    def export_jcamp_text(self) -> str:
+        """The predicted bands as JCAMP-DX, read from the held result and never
+        from the screen. Raises `ValueError` with nothing to export."""
+        if self._spectrum is None:
+            raise ValueError("There is no spectrum to export.")
+        return export_jcamp_peaks(
+            self._spectrum.modes, method=self._spectrum.method, scaling_factor=self._spectrum.scaling_factor
+        )
+
+    def _on_export_clicked(self) -> None:
+        path, _ = QFileDialog.getSaveFileName(self, "Export JCAMP-DX", "", "JCAMP-DX (*.jdx);;All files (*)")
+        if not path:
+            return
+        try:
+            Path(path).write_text(self.export_jcamp_text(), encoding="utf-8")
+        except (ValueError, OSError) as exc:
+            QMessageBox.warning(self, "Could not export", str(exc))
+
     def _on_view_changed(self) -> None:
         self._reset_zoom_button.setEnabled(self._spectrum_widget.is_zoomed())
 
@@ -246,6 +274,7 @@ class IrViewWidget(QWidget):
         self.stop()
         self._spectrum = spectrum
         self._conformer_molblock = conformer_molblock
+        self._export_button.setEnabled(any(not m.is_imaginary for m in spectrum.modes))
 
         scaling = ""
         if spectrum.scaling_factor != 1.0:

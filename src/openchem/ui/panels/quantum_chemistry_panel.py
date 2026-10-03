@@ -4,12 +4,16 @@ import dataclasses
 import os
 import time
 
+from pathlib import Path
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDialog,
+    QFileDialog,
     QFormLayout,
+    QHBoxLayout,
     QHeaderView,
     QInputDialog,
     QLabel,
@@ -51,6 +55,7 @@ from openchem.chem.orca_engine import (
 from openchem.chem.tautomer_distribution import (
     CONFIRMATION_THRESHOLD,
     generate_tautomer_candidates,
+    tautomer_distribution_table,
 )
 from openchem.domain.calculator import DRAWING, ENSEMBLE, GEOMETRY
 from openchem.domain.compare import ComparedResult, CompareRefusal, compare
@@ -74,6 +79,7 @@ from openchem.events.events import (
     TautomerDistributionResultReady,
 )
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
+from openchem.ui.table_export import install_table_export
 from openchem.ui.dialogs.compare_results_dialog import CompareResultsDialog
 from openchem.ui.dialogs.settings_dialog import EXTERNAL_TOOLS, SettingsDialog
 from openchem.ui.molecule_combo import repopulate, select
@@ -95,6 +101,7 @@ from openchem.ui.widgets.pop_out_host import PopOutHost
 from openchem.ui.widgets.scroll_safe import make_scroll_safe
 from openchem.ui.widgets.sortable_item import SortableItem
 from openchem.ui.widgets.structure_grid_widget import StructureGridWidget
+from openchem.services.table_export_service import write_rows_csv
 
 _NMR_SPECTRUM_COLUMNS = ("Atom", "Element", "Value (ppm)")
 _CORRELATION_COLUMNS = ("Atom A", "Atom B", "Shift A", "Shift B", "J (Hz)")
@@ -376,6 +383,16 @@ _HELP: dict[str, HelpTooltip] = {
         help_id="quantum.tautomer_distribution",
         topic="quantum-chemistry",
         help_anchor="tautomer-distribution",
+    ),
+    "correlation_reset_zoom": HelpTooltip(
+        text=(
+            "Restore the whole correlation plot after zooming or panning it.\n\n"
+            "Enabled only while this tab's plot is zoomed. Double-clicking the plot does "
+            "the same. It changes the view only: no peak, shift or table row changes."
+        ),
+        tier=1,
+        help_id="quantum.correlation_reset_zoom",
+        topic="quantum-chemistry",
     ),
     "correlation_contours": HelpTooltip(
         text=(
@@ -920,6 +937,7 @@ class QuantumChemistryPanel(QWidget):
         self._spectrum_note_label.setWordWrap(True)
         self._spectrum_note_label.setVisible(False)
         self._spectrum_table = QTableWidget(0, len(_NMR_SPECTRUM_COLUMNS), self)
+        install_table_export(self._spectrum_table, "orca-spectrum")
         self._spectrum_table.setHorizontalHeaderLabels(_NMR_SPECTRUM_COLUMNS)
         _document_header(self._spectrum_table, _SPECTRUM_COLUMN_HELP)
         self._spectrum_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
@@ -1046,6 +1064,7 @@ class QuantumChemistryPanel(QWidget):
         self._hybrid_summary_label = QLabel("", hybrid_tab)
         self._hybrid_summary_label.setWordWrap(True)
         self._hybrid_table = QTableWidget(0, len(_HYBRID_COLUMNS), hybrid_tab)
+        install_table_export(self._hybrid_table, "nmr-hybrid")
         self._hybrid_table.setHorizontalHeaderLabels(_HYBRID_COLUMNS)
         _document_header(self._hybrid_table, _HYBRID_COLUMN_HELP)
         self._hybrid_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
@@ -1072,6 +1091,7 @@ class QuantumChemistryPanel(QWidget):
             tab = QWidget(self._correlation_tabs)
             tab_layout = QVBoxLayout(tab)
             table = QTableWidget(0, len(_CORRELATION_COLUMNS), tab)
+            install_table_export(table, f"{correlation_type}-correlations")
             # Read back via `sender()` in the two handlers below, instead
             # of a lambda closing over `correlation_type` (and, with it,
             # `self` -- a lambda connected to a child widget's signal is
@@ -1116,8 +1136,22 @@ class QuantumChemistryPanel(QWidget):
             # equal halves. A user-draggable split was the plan's first
             # idea, but it costs exactly this invariant for a panel that
             # already crashed once over it.
+            # Reset Zoom beside Contours: wheel/drag already zoom this plot and
+            # double-click resets it, but nothing SAID so. Both widgets stay
+            # direct children of `tab` (the `_content_of` invariant above); only
+            # the layout nests.
+            reset_zoom = QPushButton("Reset Zoom", tab)
+            apply_help_tooltip(reset_zoom, _HELP["correlation_reset_zoom"])
+            reset_zoom.setEnabled(False)
+            reset_zoom.clicked.connect(plot.reset_view)
+            plot.view_changed.connect(self._on_correlation_view_changed)
+            plot.setProperty("reset_zoom_button", reset_zoom)
+            controls_row = QHBoxLayout()
+            controls_row.addWidget(contour_toggle)
+            controls_row.addStretch()
+            controls_row.addWidget(reset_zoom)
             tab_layout.addWidget(table, 1)
-            tab_layout.addWidget(contour_toggle, 0)
+            tab_layout.addLayout(controls_row, 0)
             tab_layout.addWidget(host, 3)
             self._correlation_tabs.addTab(tab, correlation_type.upper())
             tab_index = self._correlation_tabs.indexOf(tab)
@@ -1720,6 +1754,15 @@ class QuantumChemistryPanel(QWidget):
         if self._pending_molecule_uuid is not None:
             self._quantum_chemistry_service.cancel(self._pending_molecule_uuid)
 
+    def _on_correlation_view_changed(self) -> None:
+        """Enable a tab's Reset Zoom only while its plot is zoomed. The plot comes
+        from `sender()`, so one bound method serves every tab (no closure over
+        `self`, which the disposal guard forbids)."""
+        plot = self.sender()
+        button = plot.property("reset_zoom_button") if plot is not None else None
+        if button is not None:
+            button.setEnabled(plot.is_zoomed())
+
     def _on_tautomer_distribution_clicked(self) -> None:
         """Enumerates, deduplicates and embeds every distinct tautomer of
         the current molecule (`chem.tautomer_distribution
@@ -1862,9 +1905,35 @@ class QuantumChemistryPanel(QWidget):
         dialog.setWindowTitle("Tautomer Distribution")
         layout = QVBoxLayout(dialog)
         layout.addWidget(StructureGridWidget(self._chemistry_engine, result, dialog))
+        # The grid shows each candidate's caption; the table has the numbers at
+        # full precision, the status of every job and what qualifies each energy.
+        export_button = QPushButton("Export table (CSV)...", dialog)
+        export_button.setToolTip(
+            "Write every candidate with its absolute and relative energy, status, stereo search "
+            "and model identity as CSV"
+        )
+        export_button.clicked.connect(self._export_tautomer_distribution_table)
+        layout.addWidget(export_button)
+        self._tautomer_distribution_result = result
         dialog.resize(800, 600)
         dialog.show()
         self._tautomer_distribution_dialog = dialog  # keep a reference so it isn't garbage-collected
+
+    def _export_tautomer_distribution_table(self) -> None:
+        """Write the result the OPEN dialog shows (kept beside it) as CSV."""
+        result = getattr(self, "_tautomer_distribution_result", None)
+        if result is None:
+            return
+        headers, rows = tautomer_distribution_table(result)
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Export tautomer distribution", "tautomer-distribution.csv", "CSV (*.csv);;All files (*)"
+        )
+        if not path:
+            return
+        try:
+            write_rows_csv(Path(path), headers, rows)
+        except OSError as exc:
+            QMessageBox.warning(self, "Could not export", str(exc))
 
     def _effective_method_basis(self) -> str:
         """The full ORCA `!` header body -- method/basis plus the CPCM

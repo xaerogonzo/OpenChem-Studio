@@ -2196,3 +2196,62 @@ def test_the_report_links_reveal_the_panel_and_select_its_tab():
     assert panel._correlation_tabs.currentWidget() is panel._ir_view_tab
     assert MainWindow._link_to_nmr_view(fake, {}) is True
     assert panel._correlation_tabs.currentWidget() is panel._nmr_view_tab
+
+
+def test_each_correlation_tab_has_a_reset_zoom_that_follows_its_own_plot(qapp):
+    """Reset Zoom is enabled only while THAT tab's plot is zoomed. The handler
+    reads the plot off `sender()`, so zooming one tab must not enable another's."""
+    panel, _engine, _service = _make_panel()
+    try:
+        hsqc, cosy = panel._correlation_plots["hsqc"], panel._correlation_plots["cosy"]
+        hsqc_button = hsqc.property("reset_zoom_button")
+        cosy_button = cosy.property("reset_zoom_button")
+        assert not hsqc_button.isEnabled() and not cosy_button.isEnabled()
+
+        hsqc._view_x_range = (0.0, 1.0)
+        hsqc.view_changed.emit()
+        assert hsqc_button.isEnabled() and not cosy_button.isEnabled()
+
+        hsqc_button.click()
+        assert not hsqc.is_zoomed() and not hsqc_button.isEnabled()
+    finally:
+        _dispose_panel(panel)
+
+
+def test_the_tautomer_dialog_exports_the_result_it_shows_as_csv(qapp, tmp_path, monkeypatch):
+    """The grid shows captions; the file has the numbers at full precision."""
+    from PySide6.QtWidgets import QFileDialog, QPushButton
+    from rdkit import Chem
+
+    from openchem.chem.tautomer_distribution import (
+        CandidateResult,
+        CandidateStatus,
+        build_outcome,
+        build_structure_set_result,
+    )
+
+    def block(smiles):
+        mol = Chem.MolFromSmiles(smiles)
+        return Chem.MolToMolBlock(mol)
+
+    outcome = build_outcome([
+        CandidateResult("a", block("CCO"), CandidateStatus.SUCCEEDED, absolute_energy_hartree=-154.1234567),
+        CandidateResult("b", block("CC=O"), CandidateStatus.SUCCEEDED, absolute_energy_hartree=-154.1),
+    ])
+    result = build_structure_set_result(outcome, "mol-1", "HF def2-SVP", run_id="run-1")
+    target = tmp_path / "t.csv"
+    monkeypatch.setattr(QFileDialog, "getSaveFileName", staticmethod(lambda *a, **k: (str(target), "")))
+    panel, _engine, _service = _make_panel()
+    try:
+        panel._open_tautomer_distribution_dialog(result)
+        dialog = panel._tautomer_distribution_dialog
+        button = next(b for b in dialog.findChildren(QPushButton) if b.text().startswith("Export table"))
+
+        button.click()
+
+        lines = target.read_text(encoding="utf-8-sig").splitlines()
+        assert lines[0].startswith("Structure,Status,Tautomer state")
+        assert len(lines) == 3 and "-154.1234567" in lines[1] + lines[2]
+        dialog.close()
+    finally:
+        _dispose_panel(panel)

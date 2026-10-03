@@ -788,3 +788,71 @@ def test_the_result_carries_the_policy_the_reference_and_the_search_facts():
     assert params["stereo_search"] is True
     assert params["tautomer_count"] == 1 and params["candidate_count_expected"] == 2
     assert params["model_version"].startswith("tautomer-boltzmann-v3|")
+
+
+# --- the result as a table (the survey's item 7) ------------------------------------
+
+
+def _table_for(outcome, branch=VALIDATION_UNVALIDATED):
+    from openchem.chem.tautomer_distribution import tautomer_distribution_table
+
+    result = build_structure_set_result(outcome, "mol-1", "HF def2-SVP", run_id="run-9", validation_branch=branch)
+    headers, rows = tautomer_distribution_table(result)
+    return result, headers, [dict(zip(headers, row, strict=True)) for row in rows]
+
+
+def test_the_table_has_one_row_per_candidate_and_the_documented_columns():
+    from openchem.chem.tautomer_distribution import TABLE_COLUMNS
+
+    result, headers, rows = _table_for(_complete_outcome())
+    assert tuple(headers) == TABLE_COLUMNS and len(rows) == len(result.entries) == 2
+
+
+def test_energies_are_written_at_full_precision_not_as_displayed():
+    _result, _headers, rows = _table_for(_complete_outcome())
+    by_absolute = {float(r["Absolute energy (Hartree)"]): r for r in rows}
+    assert set(by_absolute) == {-100.0, -99.0}
+    lowest = by_absolute[-100.0]
+    assert float(lowest["Relative energy (kcal/mol)"]) == 0.0
+    assert float(by_absolute[-99.0]["Relative energy (kcal/mol)"]) == pytest.approx(HARTREE_TO_KCAL_PER_MOL)
+
+
+def test_the_population_column_is_blank_unless_the_model_is_validated():
+    """No file may carry a percentage the screen was not allowed to show: the
+    withheld `population_unvalidated` is never exported."""
+    for branch in (VALIDATION_UNVALIDATED, "ranking_only"):
+        _result, _headers, rows = _table_for(_complete_outcome(), branch)
+        assert all(r["Population estimate"] == "" for r in rows)
+    _result, _headers, rows = _table_for(_complete_outcome(), "validated")
+    assert all(0.0 <= float(r["Population estimate"]) <= 1.0 for r in rows)
+    assert all(r["Population estimate"] != "" for r in rows)  # present, even where it underflows to 0.0
+    assert sum(float(r["Population estimate"]) for r in rows) == pytest.approx(1.0)
+
+
+def test_every_row_names_what_qualifies_its_energy():
+    _result, _headers, rows = _table_for(_complete_outcome())
+    assert {r["Energy reference"] for r in rows} == {"global_minimum"}
+    assert {r["Validation branch"] for r in rows} == {VALIDATION_UNVALIDATED}
+    assert all(r["Model version"].startswith("tautomer-boltzmann-v") for r in rows)
+
+
+def test_a_failed_candidate_is_kept_with_its_reason_and_no_energy():
+    outcome = build_outcome(
+        [
+            CandidateResult("a", _molblock("CCO"), CandidateStatus.SUCCEEDED, absolute_energy_hartree=-100.0),
+            CandidateResult(
+                "b", _molblock("CC=O"), CandidateStatus.FAILED,
+                failure_reason="did not converge", failure_reason_code="optimization_not_converged",
+            ),
+        ]
+    )
+    _result, _headers, rows = _table_for(outcome)
+    failed = next(r for r in rows if r["Status"] == "failed")
+    assert failed["Failure"] == "optimization_not_converged"
+    assert failed["Absolute energy (Hartree)"] == "" and failed["Relative energy (kcal/mol)"] == ""
+    assert {r["Energy reference"] for r in rows} == {"lowest_successful_calculated"}
+
+
+def test_the_candidate_identity_is_exported_so_a_row_can_be_traced():
+    _result, _headers, rows = _table_for(_complete_outcome())
+    assert {r["Candidate fingerprint"] for r in rows} == {"a", "b"}

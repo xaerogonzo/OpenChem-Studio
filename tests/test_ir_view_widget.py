@@ -338,3 +338,39 @@ def test_copy_spectrum_image_puts_the_plot_on_the_clipboard(view, water_conforme
 
     image = QGuiApplication.clipboard().image()
     assert not image.isNull() and image.width() > 100
+
+
+def test_export_is_enabled_only_with_a_real_band_and_reads_the_held_result(view, water_conformer):
+    widget, _ = view
+    _, molblock = water_conformer
+    assert not widget._export_button.isEnabled()
+    widget.set_spectrum(_spectrum(), molblock)
+    assert widget._export_button.isEnabled()
+
+    text = widget.export_jcamp_text()
+    assert "##PEAKTABLE=(XY..XY)" in text and f"##NPOINTS={len(WATER_MODES)}" in text
+
+
+def test_exporting_writes_through_the_save_dialog(view, water_conformer, tmp_path, monkeypatch):
+    from PySide6.QtWidgets import QFileDialog
+
+    widget, _ = view
+    _, molblock = water_conformer
+    widget.set_spectrum(_spectrum(), molblock)
+    target = tmp_path / "ir.jdx"
+    monkeypatch.setattr(QFileDialog, "getSaveFileName", staticmethod(lambda *a, **k: (str(target), "")))
+
+    widget._export_button.click()
+
+    assert target.read_text(encoding="utf-8").startswith("##TITLE")
+
+
+def test_cancelling_the_export_dialog_writes_nothing(view, water_conformer, tmp_path, monkeypatch):
+    from PySide6.QtWidgets import QFileDialog
+
+    widget, _ = view
+    _, molblock = water_conformer
+    widget.set_spectrum(_spectrum(), molblock)
+    monkeypatch.setattr(QFileDialog, "getSaveFileName", staticmethod(lambda *a, **k: ("", "")))
+    widget._export_button.click()
+    assert list(tmp_path.iterdir()) == []
