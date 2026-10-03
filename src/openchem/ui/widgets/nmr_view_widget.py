@@ -199,6 +199,10 @@ class NmrViewWidget(QWidget):
         # three resolves to the SAME signal and never depends on a row number.
         self._atoms_table = self._make_projection_table(_ATOM_COLUMNS)
         self._couplings_table = self._make_projection_table(_COUPLING_COLUMNS)
+        # Bound methods, not a lambda capturing `self`: the Qt-disposal guard
+        # (tests/test_qt_object_disposal.py) forbids that shape.
+        self._atoms_table.itemSelectionChanged.connect(self._on_atoms_row_selected)
+        self._couplings_table.itemSelectionChanged.connect(self._on_couplings_row_selected)
         self._table_tabs = QTabWidget(self)
         self._table_tabs.addTab(self._table, "Signals")
         self._table_tabs.addTab(self._atoms_table, "Atoms")
@@ -651,7 +655,6 @@ class NmrViewWidget(QWidget):
         table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         table.setMinimumHeight(80)
-        table.itemSelectionChanged.connect(lambda t=table: self._on_projection_selected(t))
         return table
 
     def _populate_projections(self) -> None:
@@ -682,6 +685,12 @@ class NmrViewWidget(QWidget):
                     item.setData(_ROW_IDENTITY_ROLE, identity)
                     table.setItem(row, column, item)
             table.blockSignals(False)
+
+    def _on_atoms_row_selected(self) -> None:
+        self._on_projection_selected(self._atoms_table)
+
+    def _on_couplings_row_selected(self) -> None:
+        self._on_projection_selected(self._couplings_table)
 
     def _on_projection_selected(self, table: QTableWidget) -> None:
         rows = {index.row() for index in table.selectedIndexes()}
