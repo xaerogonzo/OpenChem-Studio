@@ -113,6 +113,7 @@ class ModelPolicy:
         return ";".join(f"{f.name}={getattr(self, f.name)}" for f in fields(self))
 
 
+#: The policy every result is computed under; `model_version` is built from it.
 MODEL_POLICY = ModelPolicy()
 
 
@@ -230,6 +231,8 @@ def _stereo_elements(mol: Chem.Mol) -> tuple[list[int], list[int], int]:
     return atoms, bonds, specified
 
 
+#: Tetrahedral tag -> its mirror image. Deliberately TETRAHEDRAL ONLY (see
+#: `_mirror_stereo`): double-bond stereo has no handedness.
 _MIRRORED_TAGS = {
     Chem.ChiralType.CHI_TETRAHEDRAL_CW: Chem.ChiralType.CHI_TETRAHEDRAL_CCW,
     Chem.ChiralType.CHI_TETRAHEDRAL_CCW: Chem.ChiralType.CHI_TETRAHEDRAL_CW,
@@ -331,6 +334,8 @@ def _enumerate_stereo_classes(tautomer: Chem.Mol, cap: int) -> _StereoSearch:
     )
 
 
+#: `StereoStatus.fallback_reason` when a tautomer had more unique stereo classes
+#: than the cap and only the single fallback configuration was calculated.
 FALLBACK_ENUMERATION_CAP_EXCEEDED = "enumeration_cap_exceeded"
 
 
