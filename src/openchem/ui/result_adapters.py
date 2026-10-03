@@ -622,6 +622,11 @@ def _structure_set_energy_facts(
         else:
             text = "not shown -- not yet validated against reference data"
         facts.append(_summary_fact("Populations", text, text, category, source))
+    if params.get("stereo_ambiguous"):
+        # Only when the fixed choice moves the energy (diastereomers, E/Z);
+        # a lone undrawn centre is a degenerate enantiomer pair and says nothing.
+        text = "undrawn centres fixed to one configuration for every candidate"
+        facts.append(_summary_fact("Stereochemistry", text, text, category, source))
     return facts
 
 

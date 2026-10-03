@@ -872,3 +872,19 @@ def test_oxidation_states_looks_like_the_exception_and_is_not():
 
     assert "Range" not in labels, labels
     assert "Finding" in labels, labels
+
+
+def test_a_stereo_choice_that_moves_the_energy_is_stated_in_the_summary():
+    """Two undrawn centres are fixed to one diastereomer for every candidate;
+    a reader looking at the energies must be told which question they answer."""
+    facts = {f.label: f.display_value for f in _view(_tautomer_distribution(stereo_ambiguous=True)).facts}
+
+    assert "one configuration" in facts["Stereochemistry"]
+
+
+def test_a_degenerate_stereo_choice_adds_no_stereochemistry_line():
+    """The narrow half: one undrawn centre is an enantiomer pair, whose
+    energies are identical, so there is nothing to disclose."""
+    for parameters in ({}, {"stereo_ambiguous": False, "stereo_pinned": 1}):
+        facts = {f.label for f in _view(_tautomer_distribution(**parameters)).facts}
+        assert "Stereochemistry" not in facts

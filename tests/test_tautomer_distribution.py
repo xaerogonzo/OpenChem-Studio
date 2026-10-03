@@ -401,3 +401,144 @@ def test_the_shown_structure_is_flat_not_the_3d_start_geometry():
 
     assert shown is not None
     assert max(abs(shown.GetConformer().GetAtomPosition(i).z) for i in range(shown.GetNumAtoms())) == 0.0
+
+
+# --- unspecified stereo is fixed to ONE configuration across candidates -------
+#
+# Embedding picks an arbitrary arrangement for every unspecified element, and
+# each candidate has its own seed, so before this the keto and enol forms of a
+# molecule with two undrawn centres landed on different diastereomers and the
+# reported gap mixed a tautomer difference with a diastereomer one.
+
+DIMETHYLCYCLOHEXANONE = "CC1CCCC(=O)C1C"  # keto, and two enols; two undrawn centres
+
+
+def _centre_tags(candidate) -> dict[int, Chem.ChiralType]:
+    """Each centre's configuration as it ACTUALLY embedded, read off the
+    candidate's 3D coordinates (heavy-atom indices are shared by every
+    tautomer, so the same index is the same atom in each)."""
+    flat = Chem.Mol(candidate.mol)
+    Chem.AssignStereochemistryFrom3D(flat)
+    flat = Chem.RemoveHs(flat)
+    return {
+        atom.GetIdx(): atom.GetChiralTag()
+        for atom in flat.GetAtoms()
+        if atom.GetChiralTag() != Chem.ChiralType.CHI_UNSPECIFIED
+    }
+
+
+@pytest.mark.parametrize("base_seed", range(6))
+def test_candidates_share_one_configuration_at_each_undrawn_centre(base_seed):
+    candidates, failures = generate_tautomer_candidates(
+        Chem.MolFromSmiles(DIMETHYLCYCLOHEXANONE), base_seed=base_seed
+    )
+    assert failures == 0 and len(candidates) == 3
+
+    seen: dict[int, set] = {}
+    for candidate in candidates:
+        for idx, tag in _centre_tags(candidate).items():
+            seen.setdefault(idx, set()).add(tag)
+
+    shared = {idx for idx, tags in seen.items() if len(tags) != 1}
+    assert not shared, f"centres {shared} embedded in more than one configuration"
+    # The keto form and one enol carry both centres, so the comparison that
+    # used to be arbitrary is genuinely exercised.
+    assert sum(1 for c in candidates if len(_centre_tags(c)) == 2) >= 2
+
+
+def test_two_undrawn_centres_are_reported_as_a_choice_that_moves_the_energy():
+    candidates, _ = generate_tautomer_candidates(Chem.MolFromSmiles(DIMETHYLCYCLOHEXANONE))
+
+    assert any(c.stereo_ambiguous for c in candidates)
+    assert max(c.stereo_pinned for c in candidates) == 2
+
+
+def test_one_undrawn_centre_alone_is_not_reported_as_ambiguous():
+    """Enantiomers are degenerate: fixing propylene glycol's one centre moves
+    no energy, so the result has nothing to disclose."""
+    candidates, _ = generate_tautomer_candidates(Chem.MolFromSmiles("CC(O)CO"))
+
+    assert candidates and not any(c.stereo_ambiguous for c in candidates)
+    assert all(c.stereo_pinned == 1 for c in candidates)
+
+
+def test_a_drawn_centre_is_never_overridden_by_the_shared_configuration():
+    """One centre drawn, one not: the drawn one keeps its configuration in
+    every seed, and the undrawn one is the thing fixed."""
+    drawn = Chem.MolFromSmiles("C[C@H](O)C(C)O")
+    reference, _ = generate_tautomer_candidates(drawn, base_seed=0)
+    expected = _centre_tags(reference[0])[1]
+    for base_seed in range(1, 5):
+        candidates, _ = generate_tautomer_candidates(drawn, base_seed=base_seed)
+        assert _centre_tags(candidates[0])[1] == expected
+    assert reference[0].stereo_pinned == 1 and reference[0].stereo_ambiguous
+
+
+def test_an_undrawn_double_bond_is_fixed_and_reported():
+    """The enumerator marks a C=C it just created STEREOANY, which ETKDG leaves
+    free: measured, butanone's enol embedded E and Z across seeds."""
+    candidates, _ = generate_tautomer_candidates(Chem.MolFromSmiles("CCC(C)=O"))
+    enol = [c for c in candidates if Chem.MolToSmiles(Chem.RemoveHs(c.mol)) == "CC=C(C)O"]
+
+    assert len(enol) == 1
+    assert enol[0].stereo_pinned == 1 and enol[0].stereo_ambiguous
+
+
+@pytest.mark.parametrize(
+    ("relation", "expected_cis"),
+    [(Chem.BondStereo.STEREOCIS, True), (Chem.BondStereo.STEREOTRANS, False)],
+)
+def test_a_pinned_double_bond_embeds_the_same_way_in_every_seed(relation, expected_cis):
+    """The mechanism itself: apply a pin to a C=C the enumerator left free and
+    embed it under many seeds. Without the pin, seeds gave both 0 and 180."""
+    from rdkit.Chem import rdMolTransforms
+
+    from openchem.chem.tautomer_distribution import _apply_pins, _bond_neighbours, _StereoPins
+
+    enol = Chem.MolFromSmiles("CC=C(C)O")
+    bond_idx = next(b.GetIdx() for b in enol.GetBonds() if b.GetBondType() == Chem.BondType.DOUBLE)
+    first, last = _bond_neighbours(enol, bond_idx)
+    pins = _StereoPins(bonds={bond_idx: (first, last, relation)})
+    pinned = _apply_pins(enol, pins, [], [bond_idx])
+
+    bond = pinned.GetBondWithIdx(bond_idx)
+    for seed in range(8):
+        embedded, _ = _embed_candidate(pinned, base_seed=seed, index=0)
+        dihedral = rdMolTransforms.GetDihedralDeg(
+            embedded.GetConformer(), first, bond.GetBeginAtomIdx(), bond.GetEndAtomIdx(), last
+        )
+        assert (abs(dihedral) < 30) is expected_cis, (seed, dihedral)
+
+
+def test_the_label_still_shows_the_stereo_as_drawn_not_as_pinned():
+    """Pinning is a computational choice; the shown structure must not claim
+    it. The label of a two-undrawn-centre molecule carries no @."""
+    labels = _result_labels(DIMETHYLCYCLOHEXANONE)
+
+    assert labels and all("@" not in label for label in labels), labels
+
+
+def test_the_result_records_what_was_pinned_and_the_model_version_moves():
+    candidates, _ = generate_tautomer_candidates(Chem.MolFromSmiles(DIMETHYLCYCLOHEXANONE))
+    outcome = build_outcome(
+        [
+            CandidateResult(
+                fingerprint=c.fingerprint,
+                molblock="",
+                display_molblock=c.display_molblock,
+                status=CandidateStatus.SUCCEEDED,
+                absolute_energy_hartree=-100.0,
+                stereo_pinned=c.stereo_pinned,
+                stereo_ambiguous=c.stereo_ambiguous,
+            )
+            for c in candidates
+        ]
+    )
+    result = build_structure_set_result(outcome, "mol-1", "HF def2-SVP", run_id="run-1")
+    params = result.provenance.parameters
+
+    assert params["stereo_pinned"] == 2
+    assert params["stereo_ambiguous"] is True
+    # Fixing stereo changes what the energies describe, so it is a different
+    # model: a stored "validated" stamp must never carry over.
+    assert params["model_version"].startswith("tautomer-boltzmann-v2|")

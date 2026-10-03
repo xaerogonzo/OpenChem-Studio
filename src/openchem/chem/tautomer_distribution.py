@@ -30,7 +30,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 from rdkit import Chem
-from rdkit.Chem import AllChem
+from rdkit.Chem import AllChem, rdMolTransforms
 from rdkit.Chem.MolStandardize import rdMolStandardize
 
 from openchem.chem.boltzmann import STANDARD_TEMPERATURE_K, boltzmann_weights
@@ -86,6 +86,132 @@ class TautomerCandidate:
     #: stereo the user's own structure specified. What the result shows and
     #: labels each candidate with -- see `_display_molblock`.
     display_molblock: str = ""
+    #: How many stereo elements (tetrahedral centres, double bonds) this
+    #: tautomer left UNSPECIFIED and `generate_tautomer_candidates` therefore
+    #: fixed to one shared configuration before embedding -- see `_StereoPins`.
+    stereo_pinned: int = 0
+    #: True when pinning decided something that changes the ENERGY, i.e. the
+    #: choice was between diastereomers or E/Z isomers rather than a pair of
+    #: degenerate enantiomers. The one case where the result must say so.
+    stereo_ambiguous: bool = False
+
+
+@dataclass
+class _StereoPins:
+    """One consistent stereo configuration shared by every candidate.
+
+    **WITHOUT THIS, EACH CANDIDATE WAS EMBEDDED INTO AN ARBITRARY
+    DIASTEREOMER.** ETKDG picks one arrangement for every element the input
+    left unspecified, and the seed differs per candidate, so 2,3-dimethyl-
+    cyclohexanone's keto and enol forms were measured landing on cis and trans
+    ring configurations across seeds (and an acyclic enol's C=C on both E and
+    Z). The reported gap then mixed a tautomer difference with a
+    diastereomer difference nobody asked about. A single unspecified centre is
+    harmless (enantiomers are degenerate); two, or an undrawn C=C, are not.
+
+    Tautomer enumeration only moves hydrogens and bond orders, so atom and
+    bond indices are shared by every tautomer, and an element keeps its
+    meaning from one candidate to the next. The first candidate that embeds
+    decides each element's configuration (its own, from its real 3D
+    coordinates, so the choice is always one that embedded); every later
+    candidate is told to match it. Elements the user DREW are never touched.
+
+    This fixes one configuration. It does not enumerate the others: that
+    would multiply the number of ORCA jobs by the number of stereoisomers.
+    """
+
+    #: atom index -> the chiral tag, relative to that atom's heavy-atom
+    #: neighbour order (identical across tautomers).
+    atoms: dict[int, Chem.ChiralType] = field(default_factory=dict)
+    #: bond index -> (neighbour of begin atom, neighbour of end atom, CIS or
+    #: TRANS between those two).
+    bonds: dict[int, tuple[int, int, Chem.BondStereo]] = field(default_factory=dict)
+
+
+def _stereo_elements(mol: Chem.Mol) -> tuple[list[int], list[int], int]:
+    """`(unspecified centre atoms, unspecified double bonds, specified count)`.
+
+    `Unknown` counts as unspecified: the tautomer enumerator marks a bond it
+    has just created `STEREOANY`, which ETKDG treats as free -- measured, an
+    acyclic enol's C=C embeds E and Z across seeds."""
+    atoms: list[int] = []
+    bonds: list[int] = []
+    specified = 0
+    for info in Chem.FindPotentialStereo(mol):
+        if info.type == Chem.StereoType.Atom_Tetrahedral:
+            target = atoms
+        elif info.type == Chem.StereoType.Bond_Double:
+            target = bonds
+        else:
+            continue
+        if info.specified == Chem.StereoSpecified.Specified:
+            specified += 1
+        else:
+            target.append(info.centeredOn)
+    return atoms, bonds, specified
+
+
+def _bond_neighbours(mol: Chem.Mol, bond_idx: int) -> tuple[int, int] | None:
+    """The lowest-index heavy neighbour on each end of a double bond -- a
+    rule that depends only on topology, so every tautomer picks the same two."""
+    bond = mol.GetBondWithIdx(bond_idx)
+    found = []
+    for atom in (bond.GetBeginAtom(), bond.GetEndAtom()):
+        other = bond.GetOtherAtomIdx(atom.GetIdx())
+        neighbours = sorted(n.GetIdx() for n in atom.GetNeighbors() if n.GetIdx() != other)
+        if not neighbours:
+            return None
+        found.append(neighbours[0])
+    return found[0], found[1]
+
+
+def _apply_pins(tautomer: Chem.Mol, pins: _StereoPins, atoms: list[int], bonds: list[int]) -> Chem.Mol:
+    """A copy of `tautomer` with every already-pinned, still-unspecified
+    element set to its shared configuration. Never touches a drawn one."""
+    pinned = Chem.Mol(tautomer)
+    for idx in atoms:
+        if idx in pins.atoms:
+            pinned.GetAtomWithIdx(idx).SetChiralTag(pins.atoms[idx])
+    for idx in bonds:
+        if idx in pins.bonds:
+            first, last, relation = pins.bonds[idx]
+            bond = pinned.GetBondWithIdx(idx)
+            bond.SetStereoAtoms(first, last)
+            bond.SetStereo(relation)
+    return pinned
+
+
+def _extend_pins(
+    pins: _StereoPins, tautomer: Chem.Mol, embedded: Chem.Mol, atoms: list[int], bonds: list[int]
+) -> None:
+    """Record, for every element not yet pinned, the configuration this
+    candidate's real 3D embedding settled on."""
+    new_atoms = [idx for idx in atoms if idx not in pins.atoms]
+    if new_atoms:
+        flat = Chem.Mol(embedded)
+        Chem.AssignStereochemistryFrom3D(flat)
+        flat = Chem.RemoveHs(flat)
+        # Heavy-atom indices must line up, or a tag would be transplanted
+        # onto the wrong atom; if they do not, pin nothing rather than guess.
+        if flat.GetNumAtoms() == tautomer.GetNumAtoms():
+            for idx in new_atoms:
+                tag = flat.GetAtomWithIdx(idx).GetChiralTag()
+                if tag in (Chem.ChiralType.CHI_TETRAHEDRAL_CW, Chem.ChiralType.CHI_TETRAHEDRAL_CCW):
+                    pins.atoms[idx] = tag
+    conformer = embedded.GetConformer()
+    for idx in bonds:
+        if idx in pins.bonds:
+            continue
+        neighbours = _bond_neighbours(tautomer, idx)
+        if neighbours is None:
+            continue
+        bond = tautomer.GetBondWithIdx(idx)
+        first, last = neighbours
+        dihedral = rdMolTransforms.GetDihedralDeg(
+            conformer, first, bond.GetBeginAtomIdx(), bond.GetEndAtomIdx(), last
+        )
+        relation = Chem.BondStereo.STEREOCIS if abs(dihedral) < 90 else Chem.BondStereo.STEREOTRANS
+        pins.bonds[idx] = (first, last, relation)
 
 
 def _display_molblock(tautomer: Chem.Mol) -> str:
@@ -141,17 +267,31 @@ def generate_tautomer_candidates(
 
     candidates: list[TautomerCandidate] = []
     embedding_failures = 0
+    pins = _StereoPins()
     for index, fingerprint in enumerate(sorted(by_fingerprint)):
-        embedded, seed = _embed_candidate(by_fingerprint[fingerprint], base_seed, index)
+        tautomer = by_fingerprint[fingerprint]
+        unspecified_atoms, unspecified_bonds, specified = _stereo_elements(tautomer)
+        embedded, seed = _embed_candidate(
+            _apply_pins(tautomer, pins, unspecified_atoms, unspecified_bonds), base_seed, index
+        )
         if embedded is None:
             embedding_failures += 1
             continue
+        _extend_pins(pins, tautomer, embedded, unspecified_atoms, unspecified_bonds)
+        unspecified = len(unspecified_atoms) + len(unspecified_bonds)
         candidates.append(
             TautomerCandidate(
                 fingerprint=fingerprint,
                 mol=embedded,
                 embedding_seed=seed,
-                display_molblock=_display_molblock(by_fingerprint[fingerprint]),
+                # The DRAWN tautomer, not the pinned copy: pinning is a
+                # computational choice, and the label must not claim it.
+                display_molblock=_display_molblock(tautomer),
+                stereo_pinned=unspecified,
+                # Enantiomers are degenerate, so one lone unspecified centre
+                # decides nothing; a second element, or any C=C, does.
+                stereo_ambiguous=bool(unspecified_bonds)
+                or (bool(unspecified_atoms) and unspecified + specified >= 2),
             )
         )
     return candidates, embedding_failures
@@ -244,6 +384,10 @@ class CandidateResult:
     #: candidate with (`TautomerCandidate.display_molblock`). Empty falls
     #: back to `molblock`, the 3D start geometry.
     display_molblock: str = ""
+    #: `TautomerCandidate.stereo_pinned` / `.stereo_ambiguous`, carried so the
+    #: finished result can say what configuration the energies describe.
+    stereo_pinned: int = 0
+    stereo_ambiguous: bool = False
 
 
 @dataclass(frozen=True)
@@ -367,7 +511,7 @@ def model_version(method_basis: str, embedding_algorithm: str, temperature_k: fl
     change this, Design point 8). Changing any input here is, by
     definition, a different model: a stored `validation_branch` from a
     different `model_version` must never be trusted for the current one."""
-    return f"tautomer-boltzmann-v1|{method_basis}|{embedding_algorithm}|T={temperature_k:g}K"
+    return f"tautomer-boltzmann-v2|{method_basis}|{embedding_algorithm}|T={temperature_k:g}K"
 
 
 def build_structure_set_result(
@@ -461,6 +605,11 @@ def build_structure_set_result(
             "parent_run_id": run_id,
             "complete": outcome.complete,
             "energy_label": outcome.energy_label,
+            # What configuration the energies describe: the most unspecified
+            # stereo elements any one candidate had fixed to a shared
+            # configuration, and whether that choice moved the energy.
+            "stereo_pinned": max((c.stereo_pinned for c in outcome.candidates), default=0),
+            "stereo_ambiguous": any(c.stereo_ambiguous for c in outcome.candidates),
         },
     )
 

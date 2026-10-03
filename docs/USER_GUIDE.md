@@ -1590,6 +1590,16 @@ energies that did come back are still shown, labelled as relative to the
 best of the survivors rather than the true minimum, since the failed
 candidate could have been lower still.
 
+**Stereochemistry you did not draw is fixed, not enumerated.** Where a
+structure leaves a centre (or a C=C) unspecified, every candidate is
+computed in the same one configuration, so the energies compare tautomers
+and not an accidental mix of diastereomers. That is one choice among
+several, and the others are not computed: when the choice can move an
+energy (two or more undrawn centres, or an undrawn C=C — a lone centre
+is an enantiomer pair, whose energies are identical) the result says so
+under "Stereochemistry". The structure shown under each entry is still
+drawn as you drew it, not as it was fixed for the calculation.
+
 The result opens in the same structure-grid view every other generated
 structure set (tautomers, stereoisomers, resonance forms) already uses —
 one entry per candidate, succeeded or failed, each captioned with its

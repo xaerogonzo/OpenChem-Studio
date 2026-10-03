@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Tautomer Distribution compares candidates in one stereo configuration (branch `tautomer-stereo-honesty`)
+
+- **A molecule with two or more undrawn stereocentres no longer has its tautomers compared across arbitrary diastereomers.** Each candidate was embedded under its own seed, and the embedder picks an arrangement for every element the structure leaves unspecified: measured on 2,3-dimethylcyclohexanone, the keto and enol forms landed on different cis/trans ring configurations across seeds, so the reported gap mixed a tautomer difference with a diastereomer difference nobody asked about. The first candidate that embeds now decides each undrawn element's configuration from its real 3D coordinates, and every later candidate is constrained to match; an element the user drew is never touched. An undrawn C=C (the tautomer enumerator marks a bond it just made as "any", which embedded E and Z across seeds) is fixed the same way.
+- **It fixes one configuration; it does not enumerate the others** (that would multiply the ORCA jobs by the number of stereoisomers). So when the fixed choice can move an energy (diastereomers or E/Z, not a lone enantiomer pair, whose energies are identical), the result says so: a "Stereochemistry" line in the Results panel's summary and a sentence in the Quantum Chemistry panel's status line. The label under each structure still shows the stereo as drawn, never the configuration that was pinned.
+- The result's model version moves to `tautomer-boltzmann-v2`, since the energies now describe a different, consistent quantity; a stored stamp from v1 can never authorise a percentage under it.
+
 ### Runs history refreshes when a run finishes (branch `tautomer-live-drive`)
 
 - **A run that finished while its molecule stayed selected never appeared in the Quantum Chemistry panel's "Runs" list**, and "View Tautomer Distribution..." stayed disabled, until you switched molecules and back. Found by driving the real app with real ORCA (`tautomer_run`/`tautomer_report` steps, `benchmarks/visual/tautomer_distribution_reachability.json`) after the unit tests and a direct-call live check had both passed -- they refreshed the list by hand, which the app never does. The panel now adds a finished run to the list straight away. Every run type had the same gap; it was only visible for tautomer runs because they show a dialog instead of painting the panel's own tabs.
