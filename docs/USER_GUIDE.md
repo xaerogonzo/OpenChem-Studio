@@ -1608,6 +1608,15 @@ labelled "lowest successful stereoisomer found" rather than "lowest-energy
 stereoisomer". The same wording applies if one stereoisomer's job fails.
 You are asked before anything runs if a tautomer will be truncated.
 
+**RDKit's own ordering, and how it compares.** The RDKit **Tautomers** list
+(no ORCA needed) is ordered by RDKit's heuristic preference score, shown as
+"heuristic rank N of M". It is a rule-of-thumb score, not an energy and not a
+probability, and tautomers with equal scores are marked as tied rather than
+ranked against each other. After an ORCA run, the Results panel's "RDKit
+heuristic" line says whether the heuristic's top choice agrees with ORCA's
+lowest energy, differs, is tied, or could not be compared because the ORCA
+result is incomplete.
+
 The result opens in the same structure-grid view every other generated
 structure set (tautomers, stereoisomers, resonance forms) already uses —
 one entry per candidate, succeeded or failed, each captioned with its
