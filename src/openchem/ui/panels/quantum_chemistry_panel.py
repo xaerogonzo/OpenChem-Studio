@@ -2355,6 +2355,17 @@ class QuantumChemistryPanel(QWidget):
         self._correlation_tabs.setVisible(True)
         self._correlation_tabs.setCurrentWidget(self._ir_view_tab)
 
+    def show_spectrum_tab(self, kind: str) -> bool:
+        """Selects the "1D Signals" (`"nmr"`) or "IR" (`"ir"`) tab, for a
+        report link that means "open that viewer". Selection only: it never
+        runs anything and never changes what the tab holds. False for an
+        unknown kind."""
+        tab = {"nmr": self._nmr_view_tab, "ir": self._ir_view_tab}.get(kind)
+        if tab is None:
+            return False
+        self._correlation_tabs.setCurrentWidget(tab)
+        return True
+
     def _update_nmr_view(self, spectrum: SpectrumResult) -> None:
         """Populates the 1D signal view -- the same `NmrViewWidget` the
         Property Panel opens for the empirical estimator, so a real ORCA

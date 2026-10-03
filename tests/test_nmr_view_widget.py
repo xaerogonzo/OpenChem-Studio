@@ -729,3 +729,101 @@ def test_copy_spectrum_image_reflects_the_current_state_not_a_stale_one(qapp):
     expected_logical_size = expected.size() / expected.devicePixelRatio()
     clipboard_logical_size = clipboard_pixmap.size() / clipboard_pixmap.devicePixelRatio()
     assert clipboard_logical_size == expected_logical_size
+
+
+# --- Phase P1: legend and Reset Settings --------------------------------------
+
+
+def test_a_fresh_viewer_reports_exactly_the_canonical_defaults(qapp):
+    """The drift guard: a control added to the toolbar with a different
+    starting value than `NMR_VIEWER_DEFAULTS` fails here, instead of quietly
+    surviving a Reset."""
+    view, *_ = _make_view(qapp)
+
+    assert view.current_settings() == nmr_view_module.NMR_VIEWER_DEFAULTS
+
+
+def _change_every_setting(view):
+    view._frequency_combo.setCurrentIndex(view._frequency_combo.count() - 1)
+    view._solvent_combo.setCurrentIndex(1)
+    view._unit_combo.setCurrentIndex(1)
+    view._labels_combo.setCurrentIndex(2)
+    for check in (view._smooth_check, view._decoupled_check, view._integral_check, view._legend_check):
+        check.setChecked(True)
+    view._zoom_follow_check.setChecked(False)
+
+
+def test_reset_settings_restores_every_control_and_what_the_plot_does(qapp):
+    view, *_ = _make_view(qapp)
+    _change_every_setting(view)
+    assert view.current_settings() != nmr_view_module.NMR_VIEWER_DEFAULTS
+
+    view.reset_settings()
+
+    assert view.current_settings() == nmr_view_module.NMR_VIEWER_DEFAULTS
+    plot = view._spectrum_widget
+    assert plot.render_mode() == "sticks" and not plot.is_decoupled()
+    assert not plot.is_legend_shown() and plot.label_mode() == "shift" and plot.display_unit() == "ppm"
+
+
+def test_reset_settings_keeps_the_zoom(qapp):
+    view, *_ = _make_view(qapp)
+    view._spectrum_widget.zoom_to_signal(view.signals()[0])
+    assert view._spectrum_widget.is_zoomed()
+    view._smooth_check.setChecked(True)
+
+    view.reset_settings()
+
+    assert view._spectrum_widget.is_zoomed()
+    assert not view._smooth_check.isChecked()
+
+
+def test_reset_zoom_keeps_the_settings(qapp):
+    view, *_ = _make_view(qapp)
+    view._spectrum_widget.zoom_to_signal(view.signals()[0])
+    view._smooth_check.setChecked(True)
+
+    view._reset_zoom_action.trigger()
+
+    assert not view._spectrum_widget.is_zoomed()
+    assert view._smooth_check.isChecked()
+
+
+def test_the_reset_settings_action_is_in_the_toolbar_and_wired(qapp):
+    view, *_ = _make_view(qapp)
+    view._legend_check.setChecked(True)
+
+    view._reset_settings_action.trigger()
+
+    assert not view._legend_check.isChecked()
+    toolbar = view.findChild(QToolBar)
+    assert view._reset_settings_action in toolbar.actions()
+
+
+def test_the_legend_lists_only_marks_that_are_on_the_plot(qapp):
+    view, *_ = _make_view(qapp)
+    plot = view._spectrum_widget
+
+    base = {text for _k, text, _c in plot.legend_entries()}
+    assert not any("integral" in t or "Solvent" in t for t in base)
+
+    view._integral_check.setChecked(True)
+    view._solvent_combo.setCurrentIndex(1)
+    shown = {text for _k, text, _c in plot.legend_entries()}
+    assert any("integral" in t for t in shown) and any("Solvent" in t for t in shown)
+
+
+def test_the_legend_draws_only_when_asked_and_never_changes_the_data(qapp):
+    view, *_ = _make_view(qapp)
+    plot = view._spectrum_widget
+    plot.resize(600, 300)
+    snapshot = [(s.shift, s.multiplicity, s.coupling_groups, s.integration) for s in view.signals()]
+    plain = plot.grab().toImage()
+
+    view._legend_check.setChecked(True)
+    with_key = plot.grab().toImage()
+
+    assert plain != with_key
+    assert snapshot == [(s.shift, s.multiplicity, s.coupling_groups, s.integration) for s in view.signals()]
+    view._legend_check.setChecked(False)
+    assert plot.grab().toImage() == plain

@@ -2167,3 +2167,32 @@ def test_the_tautomer_summary_says_how_a_stereo_search_chose_its_energies():
     assert "stereoisomer" not in summary(stereo_search=False)
     truncated = summary(stereo_search=True, stereo_enumeration_truncated=2, stereo_enumeration_cap=8)
     assert "truncated for 2 tautomer(s)" in truncated and "no population percentages" in truncated
+
+
+def test_show_spectrum_tab_selects_the_named_tab_and_nothing_else():
+    panel, _engine, _service = _make_panel()
+
+    assert panel.show_spectrum_tab("ir") is True
+    assert panel._correlation_tabs.currentWidget() is panel._ir_view_tab
+    assert panel.show_spectrum_tab("nmr") is True
+    assert panel._correlation_tabs.currentWidget() is panel._nmr_view_tab
+    assert panel.show_spectrum_tab("surfaces") is False
+    assert panel._correlation_tabs.currentWidget() is panel._nmr_view_tab
+
+
+def test_the_report_links_reveal_the_panel_and_select_its_tab():
+    """`Open IR` / `Open NMR` with no spectrum named: reveal the Quantum
+    Chemistry panel AND land on the matching tab (previously the panel only)."""
+    from types import SimpleNamespace
+
+    from openchem.app.main_window import MainWindow
+
+    panel, _engine, _service = _make_panel()
+    chosen = []
+    fake = SimpleNamespace(_on_panel_chosen=chosen.append, _quantum_chemistry_panel=panel)
+
+    assert MainWindow._link_to_ir_view(fake, {}) is True
+    assert chosen == ["Quantum_Chemistry"]
+    assert panel._correlation_tabs.currentWidget() is panel._ir_view_tab
+    assert MainWindow._link_to_nmr_view(fake, {}) is True
+    assert panel._correlation_tabs.currentWidget() is panel._nmr_view_tab

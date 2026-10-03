@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### NMR viewer: legend, Reset Settings, and report links that select the tab (branch `nmr-viewer-p1`)
+
+- **A "Legend" checkbox** draws a key for what is on the plot (predicted signal, selected signal, and the integral and solvent line only while they are shown), in whichever top corner hides less signal. Display-only, off by default, and it never touches a signal.
+- **"Reset Settings"** restores every toolbar control to its default and **keeps the zoom**; Reset Zoom keeps the settings. The defaults are one frozen `NmrViewerSettings` (`NMR_VIEWER_DEFAULTS`) read by construction, by Reset and by a test asserting a fresh viewer reports exactly them, so a control added without a default fails loudly instead of surviving a reset.
+- **The Molecule Report's "Open IR" / "Open NMR" links now select the matching Quantum Chemistry tab** (they used to reveal the panel only), via `QuantumChemistryPanel.show_spectrum_tab`.
+
 ### Tautomer Distribution enumerates undrawn stereo and represents a tautomer by its lowest stereoisomer (branch `tautomer-stereo-enumeration`)
 
 - **Replaces #177's single pinned configuration with a real stereo search.** Every unique stereoisomer of each tautomer's undrawn centres and C=C bonds is its own ORCA job; a tautomer's energy is its **lowest successful** stereoisomer. Enantiomer pairs are calculated once (mirror image = tetrahedral tags inverted only, so E/Z isomers and diastereomers are never merged), and a drawn centre keeps its configuration.

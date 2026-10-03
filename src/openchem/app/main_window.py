@@ -4362,8 +4362,9 @@ class MainWindow(QMainWindow):
             spectrum = self._atom_inspector_panel.retained_result("spectra", spectrum_type)
             return self._property_panel.open_result_inspector(spectrum)
         # No spectrum named: reveal the panel that owns NMR rather than
-        # guessing which spectrum was meant.
+        # guessing which spectrum was meant, and select its NMR tab.
         self._on_panel_chosen("Quantum_Chemistry")
+        self._quantum_chemistry_panel.show_spectrum_tab("nmr")
         return True
 
     def _link_to_ir_view(self, params: dict) -> bool:
@@ -4380,11 +4381,9 @@ class MainWindow(QMainWindow):
 
         `IrViewWidget` is a TAB inside the Quantum Chemistry panel, not a
         viewer a result can be handed to directly (same as `nmr_view`'s
-        own no-spectrum-named case), so the fallback below only reveals
-        the panel -- it does not select the IR tab specifically. That is
-        the honest, current contract: matching the panel is correct, but
-        choosing a tab inside it is a further step this handler does not
-        take, exactly as `nmr_view`'s own fallback does not either.
+        own no-spectrum-named case), so the fallback below reveals the
+        panel AND selects the IR tab (`show_spectrum_tab`), which is cheap
+        because the panel already owns the tab widget.
         """
         report_id = params.get("report_id")
         if report_id:
@@ -4394,8 +4393,9 @@ class MainWindow(QMainWindow):
             spectrum = self._atom_inspector_panel.retained_result("spectra", spectrum_type)
             return self._property_panel.open_result_inspector(spectrum)
         # No spectrum named: reveal the panel that owns IR rather than
-        # guessing which spectrum was meant.
+        # guessing which spectrum was meant, and select its IR tab.
         self._on_panel_chosen("Quantum_Chemistry")
+        self._quantum_chemistry_panel.show_spectrum_tab("ir")
         return True
 
     def _on_atom_fact_link(self, link) -> None:
