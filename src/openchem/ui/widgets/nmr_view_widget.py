@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction
@@ -9,6 +10,10 @@ from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
     QComboBox,
+    QDoubleSpinBox,
+    QFileDialog,
+    QMenu,
+    QMessageBox,
     QHeaderView,
     QLabel,
     QSizePolicy,
@@ -17,11 +22,15 @@ from PySide6.QtWidgets import (
     QTableWidgetItem,
     QTabWidget,
     QToolBar,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
+from openchem.chem import jcamp
 from openchem.chem.engine import ChemistryEngine
+from openchem.chem.nmr_export import export_jcamp, export_sdf
+from openchem.chem.nmr_measured import NmrReference, read_nmr_reference
 from openchem.chem.nmr_signals import (
     DEFAULT_FREQUENCY_MHZ,
     RESIDUAL_SOLVENT_PEAKS,
@@ -101,6 +110,10 @@ class NmrViewerSettings:
     explicit_hydrogens: bool = False
     #: One of `NMR_PALETTES`. Presentation only.
     palette: str = DEFAULT_PALETTE
+    #: Display scale of an imported measured spectrum (the record itself is
+    #: never scaled) and whether its peaks are marked.
+    reference_scale: float = 1.0
+    reference_peaks: bool = False
 
 
 #: The defaults every viewer starts with and "Reset Settings" restores.
@@ -261,6 +274,24 @@ class NmrViewWidget(QWidget):
             self._palette_combo.addItem(f"Colours: {name}", name)
         self._palette_combo.currentIndexChanged.connect(self._on_palette_changed)
         self._scroll_safe_guards.append(make_scroll_safe(self._palette_combo))
+        # A measured spectrum beside the prediction. Its scale and peak marks
+        # are view settings; the imported record itself is not a setting, so
+        # Reset Settings leaves it (Clear Reference removes it).
+        self._reference: NmrReference | None = None
+        self._reference_scale_spin = QDoubleSpinBox(self)
+        self._reference_scale_spin.setPrefix("Reference scale: ")
+        self._reference_scale_spin.setRange(0.1, 10.0)
+        self._reference_scale_spin.setSingleStep(0.1)
+        self._reference_scale_spin.setValue(NMR_VIEWER_DEFAULTS.reference_scale)
+        self._reference_scale_spin.valueChanged.connect(self._on_reference_scale_changed)
+        self._reference_peaks_check = QCheckBox("Reference peaks", self)
+        self._reference_peaks_check.toggled.connect(self._spectrum_widget.set_show_reference_peaks)
+        self._reference_scale_spin.setEnabled(False)
+        self._reference_peaks_check.setEnabled(False)
+        self._reference_note_label = QLabel("", self)
+        self._reference_note_label.setWordWrap(True)
+        self._reference_note_label.setStyleSheet("color: #666;")
+        self._reference_note_label.setVisible(False)
         self._explicit_h_check = QCheckBox("Explicit H", self)
         self._explicit_h_check.toggled.connect(self._on_explicit_h_toggled)
         self._highlighted_atoms: list[int] = []
@@ -349,6 +380,42 @@ class NmrViewWidget(QWidget):
         ):
             display_toolbar.addWidget(control)
 
+        # A third row for the measured reference and export: the first two
+        # already fill the width at 1300 px (seen on screen).
+        reference_toolbar = QToolBar(self)
+        reference_toolbar.setMovable(False)
+        reference_toolbar.setFloatable(False)
+        self._import_reference_action = QAction("Import Reference...", self)
+        self._import_reference_action.setToolTip(
+            "Draw a measured NMR spectrum (JCAMP-DX) behind the prediction; it never changes a prediction"
+        )
+        self._import_reference_action.triggered.connect(self._on_import_reference_clicked)
+        reference_toolbar.addAction(self._import_reference_action)
+        self._clear_reference_action = QAction("Clear Reference", self)
+        self._clear_reference_action.setEnabled(False)
+        self._clear_reference_action.triggered.connect(self.clear_reference)
+        reference_toolbar.addAction(self._clear_reference_action)
+
+        self._export_button = QToolButton(self)
+        self._export_button.setText("Export")
+        self._export_button.setToolTip("Write the predicted spectrum out (read from the data, not the screen)")
+        self._export_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        export_menu = QMenu(self._export_button)
+        self._export_jcamp_action = export_menu.addAction("JCAMP-DX spectrum...")
+        self._export_sdf_action = export_menu.addAction("SD file with shifts...")
+        self._export_pdf_action = export_menu.addAction("PDF report...")
+        self._export_jcamp_action.triggered.connect(self._on_export_jcamp_clicked)
+        self._export_sdf_action.triggered.connect(self._on_export_sdf_clicked)
+        self._export_pdf_action.triggered.connect(self._on_export_pdf_clicked)
+        self._export_button.setMenu(export_menu)
+
+        reference_toolbar.addWidget(self._reference_peaks_check)
+        reference_toolbar.addWidget(self._reference_scale_spin)
+        reference_spacer = QWidget(self)
+        reference_spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        reference_toolbar.addWidget(reference_spacer)
+        reference_toolbar.addWidget(self._export_button)
+
         # Nested, not one flat splitter: the 2D/3D pair is its own
         # resizable pair before it is one pane of the outer one, so
         # either structure view can be widened without stealing space
@@ -377,8 +444,10 @@ class NmrViewWidget(QWidget):
         layout = QVBoxLayout(self)
         layout.addWidget(self._header_label)
         layout.addWidget(self._coupling_note_label)
+        layout.addWidget(self._reference_note_label)
         layout.addWidget(toolbar)
         layout.addWidget(display_toolbar)
+        layout.addWidget(reference_toolbar)
         layout.addWidget(self._main_splitter)
 
     def set_spectrum(
@@ -433,6 +502,8 @@ class NmrViewWidget(QWidget):
             legend=self._legend_check.isChecked(),
             explicit_hydrogens=self._explicit_h_check.isChecked(),
             palette=self._palette_combo.currentData(),
+            reference_scale=round(self._reference_scale_spin.value(), 6),
+            reference_peaks=self._reference_peaks_check.isChecked(),
         )
 
     def apply_settings(self, settings: NmrViewerSettings) -> None:
@@ -457,8 +528,11 @@ class NmrViewWidget(QWidget):
             (self._zoom_follow_check, settings.zoom_follow),
             (self._legend_check, settings.legend),
             (self._explicit_h_check, settings.explicit_hydrogens),
+            (self._reference_peaks_check, settings.reference_peaks),
         ):
             check.setChecked(value)
+
+        self._reference_scale_spin.setValue(settings.reference_scale)
 
     def reset_settings(self) -> None:
         self.apply_settings(NMR_VIEWER_DEFAULTS)
@@ -468,6 +542,7 @@ class NmrViewWidget(QWidget):
 
     def _on_element_changed(self, _index: int) -> None:
         self._rebuild_signals()
+        self._update_reference_note()
 
     def _on_frequency_changed(self, _index: int) -> None:
         self._spectrum_widget.set_frequency(self._frequency_combo.currentData())
@@ -488,6 +563,155 @@ class NmrViewWidget(QWidget):
 
     def _on_label_mode_changed(self, _index: int) -> None:
         self._spectrum_widget.set_label_mode(self._labels_combo.currentData())
+
+    # -- measured reference ------------------------------------------------
+
+    def _on_import_reference_clicked(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Open measured NMR spectrum", "",
+            "JCAMP-DX spectra (*.jdx *.dx *.jcm *.jcamp);;All files (*)",
+        )
+        if path:
+            self.load_reference_file(path)
+
+    def load_reference_file(self, path: str) -> NmrReference | None:
+        """Reads and draws a measured spectrum. Every failure is SHOWN, never
+        absorbed into an empty plot: JCAMP-DX varies by vendor and a file that
+        will not load is information worth the user's eyes."""
+        try:
+            reference = read_nmr_reference(Path(path).read_bytes(), Path(path).name)
+        except jcamp.JcampError as exc:
+            QMessageBox.warning(self, "Could not read spectrum", str(exc))
+            return None
+        except OSError as exc:
+            QMessageBox.warning(self, "Could not open file", str(exc))
+            return None
+        self.set_reference(reference)
+        return reference
+
+    def set_reference(self, reference: NmrReference | None) -> None:
+        self._reference = reference
+        self._spectrum_widget.set_reference(reference)
+        present = reference is not None
+        self._clear_reference_action.setEnabled(present)
+        self._reference_scale_spin.setEnabled(present)
+        self._reference_peaks_check.setEnabled(present)
+        self._update_reference_note()
+
+    def clear_reference(self) -> None:
+        self.set_reference(None)
+
+    def reference(self) -> NmrReference | None:
+        return self._reference
+
+    def _on_reference_scale_changed(self, value: float) -> None:
+        self._spectrum_widget.set_reference_scale(value)
+
+    def _update_reference_note(self) -> None:
+        reference = self._reference
+        if reference is None:
+            self._reference_note_label.setVisible(False)
+            return
+        text = f"Reference: {reference.describe()}"
+        if not self._spectrum_widget.reference_drawn():
+            text += (
+                f" -- not drawn: it is a {reference.nucleus} spectrum and the viewer is showing "
+                f"{self._current_element()} (or a raw shielding axis)."
+            )
+        self._reference_note_label.setText(text)
+        self._reference_note_label.setVisible(True)
+
+    # -- export ------------------------------------------------------------------
+
+    def _export_parameters(self) -> dict:
+        return {
+            "frequency_mhz": self._frequency_combo.currentData(),
+            "element": self._current_element(),
+            "solvent": self._solvent_combo.currentData() or "",
+            "method": self._spectrum.method if self._spectrum is not None else "",
+        }
+
+    def export_jcamp_text(self) -> str:
+        return export_jcamp(
+            self._signals, decoupled=self._decoupled_check.isChecked(), **self._export_parameters()
+        )
+
+    def export_sdf_text(self) -> str:
+        if self._mol is None:
+            raise ValueError("There is no structure to export.")
+        return export_sdf(self._mol, self._signals, **self._export_parameters())
+
+    def export_pdf(self, path: str) -> bool:
+        """A one-page report: header, the spectrum plot as drawn (the figure
+        is a rendering; everything else is read from the signal list) and the
+        signal table."""
+        from PySide6.QtCore import QMarginsF, QRectF
+        from PySide6.QtGui import QFont, QPageSize, QPainter, QPdfWriter
+
+        writer = QPdfWriter(path)
+        writer.setPageSize(QPageSize(QPageSize.PageSizeId.A4))
+        writer.setPageMargins(QMarginsF(15, 15, 15, 15))
+        painter = QPainter(writer)
+        if not painter.isActive():
+            return False
+        width = writer.width()
+        y = 0
+        body = QFont("Sans Serif", 9)
+        painter.setFont(QFont("Sans Serif", 14, QFont.Weight.Bold))
+        painter.drawText(QRectF(0, y, width, 400), self._header_label.text() or "NMR spectrum")
+        y += 420
+        painter.setFont(body)
+        parameters = self._export_parameters()
+        for line in (
+            f"{parameters['element']} NMR at {parameters['frequency_mhz']:g} MHz"
+            + (f", {parameters['solvent']}" if parameters["solvent"] else ""),
+            "PREDICTED, not a measurement. First-order multiplets; no second-order effects.",
+        ):
+            painter.drawText(QRectF(0, y, width, 220), line)
+            y += 220
+        pixmap = self._spectrum_widget.grab()
+        height = int(width * pixmap.height() / max(pixmap.width(), 1))
+        painter.drawPixmap(QRectF(0, y, width, height).toRect(), pixmap)
+        y += height + 200
+        painter.setFont(QFont("Sans Serif", 9, QFont.Weight.Bold))
+        columns = (0, width * 0.2, width * 0.4, width * 0.6)
+        for x, text in zip(columns, ("Shift (ppm)", "Integration", "Multiplicity", "Coupling (Hz)")):
+            painter.drawText(QRectF(x, y, width * 0.2, 220), text)
+        y += 240
+        painter.setFont(body)
+        for signal in self._signals:
+            cells = (
+                f"{signal.shift:.3f}", f"{signal.integration}{signal.element}", signal.multiplicity,
+                ", ".join(f"{hz:.1f}" for hz in signal.coupling_hz) or "-",
+            )
+            for x, text in zip(columns, cells):
+                painter.drawText(QRectF(x, y, width * 0.2, 220), text)
+            y += 220
+            if y > writer.height() - 300:
+                writer.newPage()
+                y = 0
+        painter.end()
+        return True
+
+    def _save_text(self, caption: str, pattern: str, text_factory) -> None:
+        path, _ = QFileDialog.getSaveFileName(self, caption, "", pattern)
+        if not path:
+            return
+        try:
+            Path(path).write_text(text_factory(), encoding="utf-8")
+        except (ValueError, OSError) as exc:
+            QMessageBox.warning(self, "Could not export", str(exc))
+
+    def _on_export_jcamp_clicked(self) -> None:
+        self._save_text("Export JCAMP-DX", "JCAMP-DX (*.jdx);;All files (*)", self.export_jcamp_text)
+
+    def _on_export_sdf_clicked(self) -> None:
+        self._save_text("Export SD file", "SD file (*.sdf);;All files (*)", self.export_sdf_text)
+
+    def _on_export_pdf_clicked(self) -> None:
+        path, _ = QFileDialog.getSaveFileName(self, "Export PDF report", "", "PDF (*.pdf)")
+        if path and not self.export_pdf(path):
+            QMessageBox.warning(self, "Could not export", "The PDF could not be written.")
 
     def _on_palette_changed(self, _index: int) -> None:
         self._spectrum_widget.set_palette(self._palette_combo.currentData())
