@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### RDKit tautomer preference ordering, and a heuristic-vs-ORCA cross-check (branch `tautomer-rdkit-ranking`)
+
+- **The RDKit "Tautomers" generator now orders its results by RDKit's own preference score** (`TautomerEnumerator.ScoreTautomer`, the same rules that silently pick the "(canonical)" one) and labels each "heuristic rank N of M". It is not an energy and not a probability: equal scores are a **competition-ranked tie** (10, 10, 5 is rank 1, 1, 3, marked ", tied"), the raw score is stored unrounded, the RDKit version is recorded (the score is implementation-defined), no percentage or bar is drawn, and the shared grid's validated-population `score` field is never used.
+- **The ORCA Tautomer Distribution result gains an "RDKit heuristic" line** comparing RDKit's most-preferred tautomer with ORCA's lowest energy, tautomer by tautomer (a multi-stereoisomer tautomer is compared once). The verdict is four-valued, `agrees` / `differs` / `tied` / `indeterminate`, and is `indeterminate` for any incomplete ORCA result. A tie on either side (RDKit scores equal, or ORCA energies within 0.5 kcal/mol, a comparison resolution and not a claim of degeneracy) is `tied`, never `differs`. Informational only: it feeds neither populations nor the validation gate.
+
 ### Tautomer Distribution enumerates undrawn stereo and represents a tautomer by its lowest stereoisomer (branch `tautomer-stereo-enumeration`)
 
 - **Replaces #177's single pinned configuration with a real stereo search.** Every unique stereoisomer of each tautomer's undrawn centres and C=C bonds is its own ORCA job; a tautomer's energy is its **lowest successful** stereoisomer. Enantiomer pairs are calculated once (mirror image = tetrahedral tags inverted only, so E/Z isomers and diastereomers are never merged), and a drawn centre keeps its configuration.

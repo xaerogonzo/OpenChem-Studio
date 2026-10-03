@@ -28,6 +28,7 @@ from rdkit.Chem import AllChem
 from rdkit.Chem.EnumerateStereoisomers import EnumerateStereoisomers, StereoEnumerationOptions
 from rdkit.Chem.MolStandardize import rdMolStandardize
 
+from openchem.chem.tautomer_ranking import RDKIT_VERSION, competition_ranks, score_tautomer, tied_flags
 from openchem.domain.common import Provenance
 from openchem.domain.scientific_result import StructureEntry, StructureSetResult
 
@@ -123,15 +124,36 @@ def enumerate_tautomers(
     tautomers = list(enumerator.Enumerate(mol))
     canonical = Chem.MolToSmiles(enumerator.Canonicalize(mol))
 
+    # RDKit's own heuristic preference, instant and needing no ORCA. Ordered
+    # best first with a stable SMILES tie-break so the display order is
+    # deterministic, while the competition RANK keeps a tie looking like one.
+    # NOT an energy and NOT a probability (see `chem.tautomer_ranking`), and
+    # deliberately kept out of `StructureEntry.score`, which the shared grid
+    # prints as a number and which is reserved for validated populations.
+    scored = sorted(
+        ((score_tautomer(t), Chem.MolToSmiles(t), t) for t in tautomers),
+        key=lambda item: (-item[0], item[1]),
+    )
+    scores = [score for score, _smiles, _t in scored]
+    ranks = competition_ranks(scores)
+    tied = tied_flags(scores)
+
     entries = []
-    for tautomer in tautomers:
-        smiles = Chem.MolToSmiles(tautomer)
+    for (score, smiles, tautomer), rank, is_tied in zip(scored, ranks, tied, strict=True):
         is_canonical = smiles == canonical
+        label = f"{smiles} (canonical)" if is_canonical else smiles
+        label += f" [heuristic rank {rank} of {len(scored)}{', tied' if is_tied else ''}]"
         entries.append(
             _entry(
                 tautomer,
-                f"{smiles} (canonical)" if is_canonical else smiles,
-                metadata={"smiles": smiles, "canonical": is_canonical},
+                label,
+                metadata={
+                    "smiles": smiles,
+                    "canonical": is_canonical,
+                    "rdkit_score": score,
+                    "rdkit_rank": rank,
+                    "rdkit_tied": is_tied,
+                },
             )
         )
     return StructureSetResult(
@@ -141,7 +163,17 @@ def enumerate_tautomers(
         molecule_uuid=molecule_uuid,
         entries=entries,
         truncated=len(entries) >= max_tautomers,
-        provenance=Provenance(created_by="core", method="rdkit"),
+        provenance=Provenance(
+            created_by="core",
+            method="rdkit",
+            parameters={
+                # The score is implementation-defined and can change between
+                # releases, so a stored ranking names the version that made it.
+                "rdkit_version": RDKIT_VERSION,
+                "score_function": "TautomerEnumerator.ScoreTautomer",
+                "score_meaning": "heuristic preference; not an energy and not a probability",
+            },
+        ),
     )
 
 

@@ -213,7 +213,7 @@ Bemis-Murcko scaffold and the generic (all-carbon, all-single-bond) framework.
 <!-- help:calc-tautomers -->
 ### Tautomers
 
-Tautomeric forms, with the canonical tautomer flagged. For a real energy-based ranking instead of RDKit's heuristic pick, see Tautomer Distribution in the Quantum Chemistry panel (needs ORCA).
+Tautomeric forms, ordered by RDKit's own heuristic preference score (a rule-of-thumb ranking: not an energy and not a probability; equal scores are shown as tied) with the canonical tautomer flagged. For a real energy-based ranking, see Tautomer Distribution in the Quantum Chemistry panel (needs ORCA).
 
 - Produces a set of structures.
 - Runs on the 2D drawing, so no conformer is needed.

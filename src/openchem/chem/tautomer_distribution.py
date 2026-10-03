@@ -35,6 +35,7 @@ from rdkit.Chem.EnumerateStereoisomers import EnumerateStereoisomers, StereoEnum
 from rdkit.Chem.MolStandardize import rdMolStandardize
 
 from openchem.chem.boltzmann import STANDARD_TEMPERATURE_K, boltzmann_weights
+from openchem.chem.tautomer_ranking import RDKIT_VERSION, cross_check, score_tautomer
 from openchem.domain.common import Provenance
 from openchem.domain.scientific_result import StructureEntry, StructureSetResult
 
@@ -206,6 +207,10 @@ class TautomerCandidate:
     display_molblock: str = ""
     tautomer_fingerprint: str = ""
     stereo: StereoStatus = field(default_factory=StereoStatus)
+    #: RDKit's raw heuristic preference score for this candidate's tautomer
+    #: (`chem.tautomer_ranking`). Informational only: it never feeds a
+    #: population, an energy or the validation gate.
+    rdkit_score: float | None = None
 
 
 def _stereo_elements(mol: Chem.Mol) -> tuple[list[int], list[int], int]:
@@ -450,6 +455,7 @@ def generate_tautomer_candidates(
                     embedding_seed=seed,
                     display_molblock=display,
                     tautomer_fingerprint=tautomer_fingerprint,
+                    rdkit_score=score_tautomer(tautomer),
                     stereo=StereoStatus(
                         index=stereo_index,
                         fallback=search.truncated,
@@ -557,6 +563,7 @@ class CandidateResult:
     #: candidate built without one) means it is its own tautomer.
     tautomer_fingerprint: str = ""
     stereo: StereoStatus = field(default_factory=StereoStatus)
+    rdkit_score: float | None = None
 
     @property
     def tautomer_key(self) -> str:
@@ -576,6 +583,7 @@ class CandidateResult:
             display_molblock=candidate.display_molblock,
             tautomer_fingerprint=candidate.tautomer_fingerprint,
             stereo=candidate.stereo,
+            rdkit_score=candidate.rdkit_score,
             **outcome,
         )
 
@@ -668,6 +676,22 @@ class TautomerDistributionOutcome:
             "ΔE relative to the lowest successful candidate (kcal/mol) "
             "-- incomplete, one or more candidates failed"
         )
+
+    def rdkit_cross_check(self) -> dict:
+        """RDKit's heuristic preference against ORCA, TAUTOMER by tautomer:
+        each tautomer's ORCA energy is its representative's (lowest successful
+        stereo job), never one stereo job against a tautomer's rank. See
+        `chem.tautomer_ranking.cross_check` for the four verdicts."""
+        by_fingerprint = {c.fingerprint: c for c in self.candidates}
+        scores: dict[str, float | None] = {}
+        for candidate in self.candidates:
+            scores.setdefault(candidate.tautomer_key, candidate.rdkit_score)
+        energies = {
+            key: self.relative_energy_kcal_mol[fingerprint]
+            for key, fingerprint in self.representatives.items()
+            if fingerprint in self.relative_energy_kcal_mol and fingerprint in by_fingerprint
+        }
+        return cross_check(scores, energies, self.complete)
 
     @property
     def succeeded_count(self) -> int:
@@ -875,6 +899,7 @@ def build_structure_set_result(
             "stereo_enantiomer_merged": stereo.enantiomer_merged,
             "stereo_fallback": stereo.fallback,
             "stereo_fallback_reason": stereo.fallback_reason,
+            "rdkit_score": candidate.rdkit_score,
         }
         if candidate.status is CandidateStatus.FAILED:
             metadata["failure_reason"] = candidate.failure_reason
@@ -938,6 +963,11 @@ def build_structure_set_result(
             "stereo_enumeration_cap": MODEL_POLICY.stereo_cap,
             "stereo_enumeration_truncated": outcome.truncated_tautomer_count,
             "stereo_search": outcome.has_stereo_search,
+            # RDKit's heuristic against ORCA: informational, never an input to
+            # populations or validation. The verdict is four-valued and is
+            # `indeterminate` for any incomplete result.
+            "rdkit_cross_check": outcome.rdkit_cross_check(),
+            "rdkit_version": RDKIT_VERSION,
         },
     )
 
