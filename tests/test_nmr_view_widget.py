@@ -369,7 +369,9 @@ def test_the_layout_is_a_nested_splitter_not_a_flat_one(qapp):
     assert view._main_splitter.count() == 3
     assert view._main_splitter.widget(0) is view._structures_splitter
     assert view._main_splitter.widget(1) is view._spectrum_widget
-    assert view._main_splitter.widget(2) is view._table
+    # The signal table now lives in a tab widget beside its Atoms and Couplings views.
+    assert view._main_splitter.widget(2) is view._table_tabs
+    assert view._table_tabs.widget(0) is view._table
 
     assert isinstance(view._structures_splitter, QSplitter)
     assert view._structures_splitter.orientation() == Qt.Orientation.Horizontal
@@ -632,9 +634,13 @@ def test_the_toolbar_carries_every_existing_control_in_order(qapp):
         view._integral_check,
         view._zoom_follow_check,
     ]
-    toolbar = next(child for child in view.children() if isinstance(child, QToolBar))
+    # Two rows now (the one toolbar overflowed into "..." on screen); read
+    # them top to bottom as one sequence.
     toolbar_widgets = [
-        action.defaultWidget() for action in toolbar.actions() if isinstance(action, QWidgetAction)
+        action.defaultWidget()
+        for toolbar in (child for child in view.children() if isinstance(child, QToolBar))
+        for action in toolbar.actions()
+        if isinstance(action, QWidgetAction)
     ]
     positions = [toolbar_widgets.index(widget) for widget in expected_order]
     assert positions == sorted(positions), "controls are out of their original order"
@@ -827,3 +833,202 @@ def test_the_legend_draws_only_when_asked_and_never_changes_the_data(qapp):
     assert snapshot == [(s.shift, s.multiplicity, s.coupling_groups, s.integration) for s in view.signals()]
     view._legend_check.setChecked(False)
     assert plot.grab().toImage() == plain
+
+
+# --- Phase P2: explicit hydrogens on the structure pane -----------------------
+
+
+def _drawn_svg(view) -> tuple:
+    calls = []
+    original = view._engine.render_2d_svg
+
+    def spy(*args, **kwargs):
+        svg = original(*args, **kwargs)
+        calls.append((kwargs.get("explicit_hydrogens"), svg))
+        return svg
+
+    view._engine.render_2d_svg = spy
+    view._render_structure(view._highlighted_atoms)
+    view._engine.render_2d_svg = original
+    return calls[-1]
+
+
+def test_explicit_hydrogens_draw_more_atoms_and_leave_the_molecule_alone(qapp):
+    view, _backend, molecule, _spectrum = _make_view(qapp)
+    before = molecule.molblock
+    off_flag, off_svg = _drawn_svg(view)
+
+    view._explicit_h_check.setChecked(True)
+    on_flag, on_svg = _drawn_svg(view)
+
+    assert (off_flag, on_flag) == (False, True)
+    assert on_svg.count("<path") > off_svg.count("<path")  # the hydrogens are drawn
+    assert molecule.molblock == before and view._molblock == before
+
+
+def test_the_hydrogen_toggle_keeps_the_selection_and_the_signals(qapp):
+    view, *_ = _make_view(qapp)
+    view._select_signal(view.signals()[2])
+    selected = list(view._highlighted_atoms)
+    snapshot = [(s.shift, s.multiplicity, s.coupling_groups) for s in view.signals()]
+
+    view._explicit_h_check.setChecked(True)
+
+    assert view._highlighted_atoms == selected
+    assert snapshot == [(s.shift, s.multiplicity, s.coupling_groups) for s in view.signals()]
+
+
+def test_explicit_hydrogens_is_a_setting_that_reset_restores(qapp):
+    view, *_ = _make_view(qapp)
+    view._explicit_h_check.setChecked(True)
+    assert view.current_settings().explicit_hydrogens is True
+
+    view.reset_settings()
+
+    assert not view._explicit_h_check.isChecked()
+    assert view.current_settings() == nmr_view_module.NMR_VIEWER_DEFAULTS
+
+
+# --- Phase P2: the Atoms and Couplings views ------------------------------------
+
+
+def _with_couplings(view):
+    """Give two signals real coupling groups, so the Couplings view has rows."""
+    import dataclasses
+
+    signals = list(view.signals())
+    signals[0] = dataclasses.replace(signals[0], coupling_groups=((2, 7.1), (1, 6.9)), coupling_groups_inferred=True)
+    signals[1] = dataclasses.replace(signals[1], coupling_groups=((3, 7.0),))
+    view._signals = signals
+    view._populate_table()
+    return signals
+
+
+def test_the_three_views_are_tabs_over_the_one_signal_list(qapp):
+    view, *_ = _make_view(qapp)
+    signals = _with_couplings(view)
+
+    tabs = view._table_tabs
+    assert [tabs.tabText(i) for i in range(tabs.count())] == ["Signals", "Atoms", "Couplings"]
+    assert view._table.rowCount() == len(signals)
+    assert view._atoms_table.rowCount() == sum(len(s.atom_indices) for s in signals)
+    assert view._couplings_table.rowCount() == 3  # 2 + 1 groups; the rest have none
+
+
+def test_a_signal_with_no_calculated_coupling_has_no_coupling_row(qapp):
+    view, *_ = _make_view(qapp)
+    _with_couplings(view)
+    owners = {view._couplings_table.item(r, 0).data(nmr_view_module._ROW_IDENTITY_ROLE)
+              for r in range(view._couplings_table.rowCount())}
+
+    assert owners == {tuple(view.signals()[0].atom_indices), tuple(view.signals()[1].atom_indices)}
+
+
+def test_the_coupling_rows_say_when_a_value_was_symmetry_completed(qapp):
+    view, *_ = _make_view(qapp)
+    _with_couplings(view)
+    sources = [view._couplings_table.item(r, 3).text() for r in range(view._couplings_table.rowCount())]
+
+    assert sources.count("symmetry-completed") == 2 and sources.count("calculated") == 1
+
+
+def test_atom_numbers_are_the_one_based_numbers_used_elsewhere(qapp):
+    view, *_ = _make_view(qapp)
+    first = view.signals()[0]
+
+    shown = {view._atoms_table.item(r, 0).text() for r in range(view._atoms_table.rowCount())}
+
+    assert str(first.atom_indices[0] + 1) in shown and "0" not in shown
+
+
+def _select_row(table, row):
+    table.blockSignals(False)
+    table.selectRow(row)
+
+
+def test_selecting_in_any_tab_selects_the_same_signal_everywhere(qapp):
+    view, *_ = _make_view(qapp)
+    signals = _with_couplings(view)
+    target = signals[1]
+
+    view._atoms_table.selectRow(next(
+        r for r in range(view._atoms_table.rowCount())
+        if view._atoms_table.item(r, 0).data(nmr_view_module._ROW_IDENTITY_ROLE) == tuple(target.atom_indices)
+    ))
+    assert list(view._spectrum_widget._highlighted_atoms) == list(target.atom_indices) or \
+        set(view._spectrum_widget._highlighted_atoms) == set(target.atom_indices)
+    selected_signal_rows = {i.row() for i in view._table.selectedIndexes()}
+    assert view._table.item(selected_signal_rows.pop(), 0).data(nmr_view_module._ROW_IDENTITY_ROLE) == tuple(target.atom_indices)
+
+    view._couplings_table.selectRow(0)  # a coupling row of signal 0
+    assert set(view._spectrum_widget._highlighted_atoms) == set(signals[0].atom_indices)
+
+
+def test_the_selection_follows_the_identity_not_the_row_number_after_a_sort(qapp):
+    view, *_ = _make_view(qapp)
+    signals = _with_couplings(view)
+    view._table.sortByColumn(0, Qt.SortOrder.DescendingOrder)  # reorders the Signals rows only
+
+    view._select_signal(signals[1])
+
+    atom_rows = {i.row() for i in view._atoms_table.selectedIndexes()}
+    assert atom_rows
+    item = view._atoms_table.item(atom_rows.pop(), 0)
+    assert item.data(nmr_view_module._ROW_IDENTITY_ROLE) == tuple(signals[1].atom_indices)
+
+
+def test_a_unit_change_updates_the_projection_shift_text_too(qapp):
+    view, *_ = _make_view(qapp)
+    _with_couplings(view)
+    before = view._atoms_table.item(0, 1).text()
+
+    view._unit_combo.setCurrentIndex(1)  # Offset (Hz)
+
+    assert view._atoms_table.item(0, 1).text() != before
+
+
+# --- Phase P2: colour palettes -----------------------------------------------------
+
+
+def test_the_palettes_are_a_short_fixed_list_naming_exactly_the_four_marks(qapp):
+    from openchem.ui.widgets.nmr_spectrum_widget import NMR_PALETTES
+
+    assert list(NMR_PALETTES) == ["Default", "Colour-blind safe", "High contrast"]
+    for colours in NMR_PALETTES.values():
+        assert set(colours) == {"peak", "highlight", "solvent", "integral"}
+        assert len(set(colours.values())) == 4  # no two marks share a colour
+
+
+def test_choosing_a_palette_recolours_the_plot_and_the_structure_pane_together(qapp):
+    view, backend, *_ = _make_view(qapp)
+    view._select_signal(view.signals()[0])
+    plain = view._spectrum_widget.grab().toImage()
+
+    view._palette_combo.setCurrentIndex(view._palette_combo.findData("High contrast"))
+
+    assert view._spectrum_widget.palette_name() == "High contrast"
+    assert view._spectrum_widget.grab().toImage() != plain
+    layer = backend.applied_layers[-1]
+    assert nmr_view_module.palette_hex("High contrast", "highlight") in layer.atom_colors.values()
+
+
+def test_a_palette_never_touches_the_data_and_reset_restores_it(qapp):
+    view, *_ = _make_view(qapp)
+    snapshot = [(s.shift, s.multiplicity, s.coupling_groups, s.integration) for s in view.signals()]
+
+    view._palette_combo.setCurrentIndex(2)
+    assert view.current_settings().palette == "High contrast"
+    assert snapshot == [(s.shift, s.multiplicity, s.coupling_groups, s.integration) for s in view.signals()]
+
+    view.reset_settings()
+    assert view._spectrum_widget.palette_name() == "Default"
+    assert view.current_settings() == nmr_view_module.NMR_VIEWER_DEFAULTS
+
+
+def test_an_unknown_palette_is_refused(qapp):
+    import pytest
+
+    from openchem.ui.widgets.nmr_spectrum_widget import NmrSpectrumWidget
+
+    with pytest.raises(ValueError):
+        NmrSpectrumWidget().set_palette("rainbow")

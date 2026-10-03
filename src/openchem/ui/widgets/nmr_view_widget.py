@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QSplitter,
     QTableWidget,
     QTableWidgetItem,
+    QTabWidget,
     QToolBar,
     QVBoxLayout,
     QWidget,
@@ -34,7 +35,12 @@ from openchem.domain.scientific_result import SpectrumResult
 from openchem.ui.viewer_backend import ViewerBackend
 from openchem.ui.visualization import VisualizationLayer
 from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
-from openchem.ui.widgets.nmr_spectrum_widget import NmrSpectrumWidget
+from openchem.ui.widgets.nmr_spectrum_widget import (
+    DEFAULT_PALETTE,
+    NMR_PALETTES,
+    NmrSpectrumWidget,
+    palette_hex,
+)
 from openchem.ui.widgets.scroll_safe import make_scroll_safe
 from openchem.ui.widgets.sortable_item import SortableItem
 
@@ -48,13 +54,17 @@ from openchem.ui.widgets.sortable_item import SortableItem
 #: "Method" is the honest substitute: it says where the number came from
 #: and lets the reader judge.
 _TABLE_COLUMNS = ("Shift (ppm)", "Integration", "Multiplicity", "Coupling (Hz)", "Method")
+#: The per-atom and per-coupling views of the same signals.
+_ATOM_COLUMNS = ("Atom", "Shift (ppm)", "Multiplicity")
+#: One row per (partner count, |J|) group of a signal; see `_populate_projections`.
+_COUPLING_COLUMNS = ("Shift (ppm)", "Partners", "J (Hz)", "Source")
 #: Nucleus combo display text, keyed by element symbol.
 _ELEMENT_LABELS = {"H": "¹H", "C": "¹³C"}
 #: The signal a table row, a 3D atom click, or a direct click selected --
 #: the same colour `NmrSpectrumWidget`'s own highlighted-stick pen uses
 #: (`QColor(214, 100, 20)` is this hex value), just as a string for the
 #: SVG/CSS paths here rather than a `QColor`.
-_HIGHLIGHT_COLOR = "#d66414"
+_HIGHLIGHT_COLOR = palette_hex(DEFAULT_PALETTE, "highlight")
 #: An ordinary, unselected signal's atoms in the 3D view and 2D depiction.
 _BASE_COLOR = "#9aa0a6"
 #: A row's stable identity (its signal's atom indices), read back after a
@@ -87,6 +97,10 @@ class NmrViewerSettings:
     integral: bool = False
     zoom_follow: bool = True
     legend: bool = False
+    #: Draw the 2D structure's implicit hydrogens as atoms. View state only.
+    explicit_hydrogens: bool = False
+    #: One of `NMR_PALETTES`. Presentation only.
+    palette: str = DEFAULT_PALETTE
 
 
 #: The defaults every viewer starts with and "Reset Settings" restores.
@@ -177,6 +191,23 @@ class NmrViewWidget(QWidget):
         self._table.itemSelectionChanged.connect(self._on_table_selection_changed)
         self._table.setMinimumHeight(80)
 
+        # Two more VIEWS of the same signals (Marvin splits its table the
+        # same way): per-atom and per-coupling. They are projections, never a
+        # second dataset -- rebuilt from `self._signals` in
+        # `_populate_projections`, and every row carries the owning signal's
+        # stable identity (its atom indices), so a selection in any of the
+        # three resolves to the SAME signal and never depends on a row number.
+        self._atoms_table = self._make_projection_table(_ATOM_COLUMNS)
+        self._couplings_table = self._make_projection_table(_COUPLING_COLUMNS)
+        # Bound methods, not a lambda capturing `self`: the Qt-disposal guard
+        # (tests/test_qt_object_disposal.py) forbids that shape.
+        self._atoms_table.itemSelectionChanged.connect(self._on_atoms_row_selected)
+        self._couplings_table.itemSelectionChanged.connect(self._on_couplings_row_selected)
+        self._table_tabs = QTabWidget(self)
+        self._table_tabs.addTab(self._table, "Signals")
+        self._table_tabs.addTab(self._atoms_table, "Atoms")
+        self._table_tabs.addTab(self._couplings_table, "Couplings")
+
         # Marvin's own NMR panel offers both. Neither changes a predicted
         # shift -- frequency only sets how far apart a multiplet's lines
         # fall in ppm, and the solvent peak is the solvent's, not the
@@ -223,6 +254,16 @@ class NmrViewWidget(QWidget):
         # is unchanged for anyone who does not ask for it.
         self._legend_check = QCheckBox("Legend", self)
         self._legend_check.toggled.connect(self._spectrum_widget.set_show_legend)
+        # Structure-pane view state: never part of a signal, a result or a
+        # fingerprint, and it draws a COPY of the molecule.
+        self._palette_combo = QComboBox(self)
+        for name in NMR_PALETTES:
+            self._palette_combo.addItem(f"Colours: {name}", name)
+        self._palette_combo.currentIndexChanged.connect(self._on_palette_changed)
+        self._scroll_safe_guards.append(make_scroll_safe(self._palette_combo))
+        self._explicit_h_check = QCheckBox("Explicit H", self)
+        self._explicit_h_check.toggled.connect(self._on_explicit_h_toggled)
+        self._highlighted_atoms: list[int] = []
 
         # Display-only -- never recomputes or mutates a signal's own ppm
         # `shift`; see `NmrSpectrumWidget.set_display_unit`. Disabled
@@ -251,6 +292,12 @@ class NmrViewWidget(QWidget):
         # rewire. Not movable/floatable: this toolbar lives inside a
         # docked panel widget, not a QMainWindow, and nothing about it
         # calls for the user being able to drag or detach it.
+        # TWO rows. One toolbar overflowed into its "..." menu well before the
+        # panel got narrow (seen on screen at 1300 px), hiding the newest
+        # controls and both Reset actions. The top row holds what the spectrum
+        # is OF (nucleus, frequency, solvent, unit, labels) and the actions;
+        # the second holds the display options. Every control is still the
+        # same widget with the same attribute name and connection.
         toolbar = QToolBar(self)
         toolbar.setMovable(False)
         toolbar.setFloatable(False)
@@ -263,21 +310,16 @@ class NmrViewWidget(QWidget):
         toolbar.addWidget(QLabel("Unit:", self))
         toolbar.addWidget(self._unit_combo)
         toolbar.addWidget(self._labels_combo)
-        toolbar.addWidget(self._smooth_check)
-        toolbar.addWidget(self._decoupled_check)
-        toolbar.addWidget(self._integral_check)
-        toolbar.addWidget(self._zoom_follow_check)
-        toolbar.addWidget(self._legend_check)
         # QToolBar has no QBoxLayout.addStretch() equivalent -- an
         # expanding spacer widget reproduces the old row's trailing
-        # stretch, pushing Reset Zoom/Copy Spectrum Image to the right as
-        # actions distinct from the settings controls to their left.
+        # stretch, pushing the actions to the right, distinct from the
+        # settings controls to their left.
         spacer = QWidget(self)
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         toolbar.addWidget(spacer)
 
         # Beside Reset Zoom but independent of it: settings are what the
-        # controls above say, the zoom is where the plot is looking.
+        # controls say, the zoom is where the plot is looking.
         self._reset_settings_action = QAction("Reset Settings", self)
         self._reset_settings_action.setToolTip("Restore every viewer setting to its default (the zoom is kept)")
         self._reset_settings_action.triggered.connect(self.reset_settings)
@@ -293,6 +335,20 @@ class NmrViewWidget(QWidget):
         self._copy_spectrum_action.triggered.connect(self._on_copy_spectrum_image_clicked)
         toolbar.addAction(self._copy_spectrum_action)
 
+        display_toolbar = QToolBar(self)
+        display_toolbar.setMovable(False)
+        display_toolbar.setFloatable(False)
+        for control in (
+            self._smooth_check,
+            self._decoupled_check,
+            self._integral_check,
+            self._zoom_follow_check,
+            self._legend_check,
+            self._explicit_h_check,
+            self._palette_combo,
+        ):
+            display_toolbar.addWidget(control)
+
         # Nested, not one flat splitter: the 2D/3D pair is its own
         # resizable pair before it is one pane of the outer one, so
         # either structure view can be widened without stealing space
@@ -305,7 +361,7 @@ class NmrViewWidget(QWidget):
         self._main_splitter = QSplitter(Qt.Orientation.Vertical, self)
         self._main_splitter.addWidget(self._structures_splitter)
         self._main_splitter.addWidget(self._spectrum_widget)
-        self._main_splitter.addWidget(self._table)
+        self._main_splitter.addWidget(self._table_tabs)
         self._main_splitter.setChildrenCollapsible(False)
         # The spectrum is the primary analytical view; the structure
         # panes are assignment context and the table is the exact-value
@@ -322,6 +378,7 @@ class NmrViewWidget(QWidget):
         layout.addWidget(self._header_label)
         layout.addWidget(self._coupling_note_label)
         layout.addWidget(toolbar)
+        layout.addWidget(display_toolbar)
         layout.addWidget(self._main_splitter)
 
     def set_spectrum(
@@ -374,6 +431,8 @@ class NmrViewWidget(QWidget):
             integral=self._integral_check.isChecked(),
             zoom_follow=self._zoom_follow_check.isChecked(),
             legend=self._legend_check.isChecked(),
+            explicit_hydrogens=self._explicit_h_check.isChecked(),
+            palette=self._palette_combo.currentData(),
         )
 
     def apply_settings(self, settings: NmrViewerSettings) -> None:
@@ -386,6 +445,7 @@ class NmrViewWidget(QWidget):
             (self._solvent_combo, settings.solvent),
             (self._unit_combo, settings.unit),
             (self._labels_combo, settings.label_mode),
+            (self._palette_combo, settings.palette),
         ):
             index = combo.findData(value)
             if index >= 0:
@@ -396,6 +456,7 @@ class NmrViewWidget(QWidget):
             (self._integral_check, settings.integral),
             (self._zoom_follow_check, settings.zoom_follow),
             (self._legend_check, settings.legend),
+            (self._explicit_h_check, settings.explicit_hydrogens),
         ):
             check.setChecked(value)
 
@@ -427,6 +488,17 @@ class NmrViewWidget(QWidget):
 
     def _on_label_mode_changed(self, _index: int) -> None:
         self._spectrum_widget.set_label_mode(self._labels_combo.currentData())
+
+    def _on_palette_changed(self, _index: int) -> None:
+        self._spectrum_widget.set_palette(self._palette_combo.currentData())
+        # The structure panes colour the selected signal too, and must agree.
+        self._render_structure(self._highlighted_atoms)
+
+    def _highlight_hex(self) -> str:
+        return palette_hex(self._palette_combo.currentData() or DEFAULT_PALETTE, "highlight")
+
+    def _on_explicit_h_toggled(self, _checked: bool) -> None:
+        self._render_structure(self._highlighted_atoms)
 
     def _on_reset_zoom_clicked(self) -> None:
         self._spectrum_widget.reset_view()
@@ -574,6 +646,74 @@ class NmrViewWidget(QWidget):
         self._table.horizontalHeader().setSortIndicator(-1, Qt.SortOrder.AscendingOrder)
         self._table.setSortingEnabled(True)
         self._table.blockSignals(False)
+        self._populate_projections()
+
+    def _make_projection_table(self, columns: tuple[str, ...]) -> QTableWidget:
+        table = QTableWidget(0, len(columns), self)
+        table.setHorizontalHeaderLabels(columns)
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        table.setMinimumHeight(80)
+        return table
+
+    def _populate_projections(self) -> None:
+        """Rebuilds the Atoms and Couplings views from `self._signals`.
+
+        Atom numbers are the app-wide one-based display numbers (`index + 1`,
+        as the Atom Inspector and the spectrum's own atom labels use). A
+        coupling row is one (partner count, |J|) group of a signal, with
+        whether its value was symmetry-completed, so a signal with no
+        calculated coupling simply has no rows here rather than a guessed one.
+        """
+        unit_text = self._spectrum_widget.format_shift
+        atoms: list[tuple[tuple[int, ...], tuple[str, ...]]] = []
+        couplings: list[tuple[tuple[int, ...], tuple[str, ...]]] = []
+        for signal in self._signals:
+            identity = tuple(signal.atom_indices)
+            for atom_index in signal.atom_indices:
+                atoms.append((identity, (str(atom_index + 1), unit_text(signal.shift), signal.multiplicity)))
+            for count, hz in signal.coupling_groups:
+                source = "symmetry-completed" if signal.coupling_groups_inferred else "calculated"
+                couplings.append((identity, (unit_text(signal.shift), str(count), f"{hz:.1f}", source)))
+        for table, rows in ((self._atoms_table, atoms), (self._couplings_table, couplings)):
+            table.blockSignals(True)
+            table.setRowCount(len(rows))
+            for row, (identity, cells) in enumerate(rows):
+                for column, text in enumerate(cells):
+                    item = QTableWidgetItem(text)
+                    item.setData(_ROW_IDENTITY_ROLE, identity)
+                    table.setItem(row, column, item)
+            table.blockSignals(False)
+
+    def _on_atoms_row_selected(self) -> None:
+        self._on_projection_selected(self._atoms_table)
+
+    def _on_couplings_row_selected(self) -> None:
+        self._on_projection_selected(self._couplings_table)
+
+    def _on_projection_selected(self, table: QTableWidget) -> None:
+        rows = {index.row() for index in table.selectedIndexes()}
+        if len(rows) != 1:
+            return
+        item = table.item(rows.pop(), 0)
+        identity = item.data(_ROW_IDENTITY_ROLE) if item is not None else None
+        signal = next((s for s in self._signals if tuple(s.atom_indices) == identity), None)
+        if signal is not None:
+            self._select_signal(signal)
+
+    def _select_projection_rows(self, signal: NMRSignal) -> None:
+        """Marks the signal's first row in each projection (no re-entry)."""
+        target = tuple(signal.atom_indices)
+        for table in (self._atoms_table, self._couplings_table):
+            table.blockSignals(True)
+            table.clearSelection()
+            for row in range(table.rowCount()):
+                item = table.item(row, 0)
+                if item is not None and item.data(_ROW_IDENTITY_ROLE) == target:
+                    table.selectRow(row)
+                    break
+            table.blockSignals(False)
 
     def _row_for_signal(self, signal: NMRSignal) -> int | None:
         """The row currently showing `signal`, by its stable identity --
@@ -589,6 +729,7 @@ class NmrViewWidget(QWidget):
     def _render_structure(self, highlighted: list[int]) -> None:
         if self._mol is None or not self._molblock:
             return
+        self._highlighted_atoms = list(highlighted)
         highlighted_set = set(highlighted)
         atom_labels: dict[int, str] = {}
         atom_colors: dict[int, str] = {}
@@ -601,8 +742,13 @@ class NmrViewWidget(QWidget):
                 existing = atom_labels.get(atom_index)
                 atom_labels[atom_index] = f"{existing}/{label}" if existing else label
                 if highlighted_set & set(signal.atom_indices):
-                    atom_colors[atom_index] = _HIGHLIGHT_COLOR
-        svg = self._engine.render_2d_svg(self._molblock, atom_colors or None, atom_labels or None)
+                    atom_colors[atom_index] = self._highlight_hex()
+        svg = self._engine.render_2d_svg(
+            self._molblock,
+            atom_colors or None,
+            atom_labels or None,
+            explicit_hydrogens=self._explicit_h_check.isChecked(),
+        )
         self._svg_widget.load(svg.encode("utf-8"))
 
         # The 3D pane carries explicit hydrogens, so it highlights the real
@@ -614,7 +760,7 @@ class NmrViewWidget(QWidget):
         layer = VisualizationLayer(
             name=self._spectrum.name if self._spectrum else "NMR",
             atom_colors={
-                index: _HIGHLIGHT_COLOR if index in highlighted_set else _BASE_COLOR
+                index: self._highlight_hex() if index in highlighted_set else _BASE_COLOR
                 for signal in self._signals
                 for index in signal.atom_indices
             },
@@ -641,6 +787,7 @@ class NmrViewWidget(QWidget):
             self._table.blockSignals(True)
             self._table.selectRow(row)
             self._table.blockSignals(False)
+        self._select_projection_rows(signal)
 
     def _signal_owning(self, atom_indices: list[int]) -> NMRSignal | None:
         wanted = set(atom_indices)

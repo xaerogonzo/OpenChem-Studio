@@ -607,6 +607,7 @@ class ChemistryEngine:
         width: int = 360,
         height: int = 320,
         emphasised_atom: int | None = None,
+        explicit_hydrogens: bool = False,
     ) -> str:
         """Renders `molblock`'s existing 2D layout (never recomputed --
         this must match what's drawn in the 2D editor) as an SVG string,
@@ -618,7 +619,11 @@ class ChemistryEngine:
         `atomNote` per atom -- confirmed live this renders as vector glyph
         paths near the atom (RDKit's SVG backend draws text as bezier
         paths, not literal `<text>` nodes, so verify by rendering, not by
-        string-searching the SVG output)."""
+        string-searching the SVG output).
+
+        `explicit_hydrogens` draws the implicit hydrogens as atoms. Display
+        only: it never changes which indices `atom_colors`/`atom_labels` mean
+        (the drawn molecule is a copy, and hydrogens are appended)."""
         from rdkit.Chem.Draw import rdMolDraw2D
 
         mol = self.mol_from_molblock(molblock)
@@ -659,6 +664,12 @@ class ChemistryEngine:
             for idx, label in atom_labels.items():
                 if drawable(idx):
                     mol.GetAtomWithIdx(idx).SetProp("atomNote", label)
+        if explicit_hydrogens:
+            # Draws the hydrogens that were implicit. Added AFTER the labels
+            # and highlights are resolved: `AddHs` appends, so every heavy
+            # atom keeps its index, and this works on a copy -- the stored
+            # molecule is never touched.
+            mol = Chem.AddHs(mol, addCoords=True)
         drawer = rdMolDraw2D.MolDraw2DSVG(width, height)
         highlighted = {idx: color for idx, color in (atom_colors or {}).items() if drawable(idx)}
         # The atom picked in the Calculator Inspector's value table: drawn with a

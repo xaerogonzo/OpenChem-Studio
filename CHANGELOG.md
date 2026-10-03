@@ -7,11 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### NMR viewer: overlapping signals, explicit H, table views and palettes (branch `nmr-viewer-p2`)
+
+- **Clicking through overlapping multiplets.** `signals_at` returns every signal under the cursor in a deterministic order (nearest, then shift, then atom indices; never container order); the first click selects the nearest and repeat clicks cycle, wrapping. The cycle ends when the cursor leaves the union of the hit regions that began it (measured in ppm, so a resize does not end it), when the view range changes, or when a new spectrum loads. Selection still goes through the existing `_select_signal`.
+- **Explicit H** draws the 2D structure's implicit hydrogens as atoms on a copy (`render_2d_svg(explicit_hydrogens=...)`), keeping every heavy-atom index; the molecule, the signals and the selection are untouched.
+- **The signal table is now three tabs over the same signals** (Signals, Atoms, Couplings). Every row carries the owning signal's atom-index identity, never a row number, so a selection in any tab resolves to the same signal even after the Signals table is sorted. Atom numbers are the app-wide one-based ones; a signal with no calculated coupling has no Couplings row.
+- **Three fixed colour palettes** (default, colour-blind safe, high contrast) for the plot and the structure highlight together; presentation only. Part of the reset defaults. (Not persisted: no viewer setting is, and one that was would be inconsistent.)
+- **The controls are now two toolbar rows.** One row overflowed into its "..." menu at 1300 px, hiding the newest controls and both Reset actions; seen only by rendering the whole viewer.
+
 ### NMR viewer: legend, Reset Settings, and report links that select the tab (branch `nmr-viewer-p1`)
 
 - **A "Legend" checkbox** draws a key for what is on the plot (predicted signal, selected signal, and the integral and solvent line only while they are shown), in whichever top corner hides less signal. Display-only, off by default, and it never touches a signal.
 - **"Reset Settings"** restores every toolbar control to its default and **keeps the zoom**; Reset Zoom keeps the settings. The defaults are one frozen `NmrViewerSettings` (`NMR_VIEWER_DEFAULTS`) read by construction, by Reset and by a test asserting a fresh viewer reports exactly them, so a control added without a default fails loudly instead of surviving a reset.
 - **The Molecule Report's "Open IR" / "Open NMR" links now select the matching Quantum Chemistry tab** (they used to reveal the panel only), via `QuantumChemistryPanel.show_spectrum_tab`.
+
 ### RDKit tautomer preference ordering, and a heuristic-vs-ORCA cross-check (branch `tautomer-rdkit-ranking`)
 
 - **The RDKit "Tautomers" generator now orders its results by RDKit's own preference score** (`TautomerEnumerator.ScoreTautomer`, the same rules that silently pick the "(canonical)" one) and labels each "heuristic rank N of M". It is not an energy and not a probability: equal scores are a **competition-ranked tie** (10, 10, 5 is rank 1, 1, 3, marked ", tied"), the raw score is stored unrounded, the RDKit version is recorded (the score is implementation-defined), no percentage or bar is drawn, and the shared grid's validated-population `score` field is never used.

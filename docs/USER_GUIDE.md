@@ -1563,6 +1563,19 @@ default but keeps where the plot is zoomed, just as Reset Zoom keeps the
 settings. The **Open IR** and **Open NMR** links in a Molecule Report now
 also select the matching tab of the Quantum Chemistry panel.
 
+**Overlapping signals:** where several multiplets sit under the cursor,
+the first click selects the nearest, and clicking the same spot again steps
+to the next, wrapping around; the cycle starts over once you click
+elsewhere, zoom or pan, or load a new spectrum. **Explicit H** draws the
+2D structure's implicit hydrogens as atoms (view only; the molecule is not
+changed). The table is now three tabs over the same signals: **Signals**,
+**Atoms** (one row per atom, numbered as everywhere else in the app) and
+**Couplings** (one row per calculated coupling group, saying when a value was
+symmetry-completed); selecting in any of them selects the same signal in all.
+**Colours** offers three fixed palettes (default, colour-blind safe, high
+contrast) that recolour the plot and the structure highlight together; a
+palette is presentation only and never says anything about the chemistry.
+
 **Every numeric column header is sortable** — click one to sort by it
 (shift, integration, coupling); click again to reverse. Sorting never
 changes which signal is highlighted or selected, and a new run resets

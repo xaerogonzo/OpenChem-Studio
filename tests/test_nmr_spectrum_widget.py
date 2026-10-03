@@ -918,3 +918,119 @@ def test_the_tooltip_label_matches_the_signals_real_coupling_groups(qapp, monkey
     widget.mouseMoveEvent(_hover_event(region.center()))
 
     assert calls[-1] == "First-order pattern: ddqd"
+
+
+# --- Phase P2: overlapping signals, and clicking through them -----------------
+
+
+def _overlap_widget(*extra: float) -> NmrSpectrumWidget:
+    """Two signals 0.01 ppm apart (well inside one hit region) plus anchors
+    that fix the axis, so the hit regions overlap whatever the pixel scale."""
+    widget = NmrSpectrumWidget(
+        [_signal(1.0, atoms=[10]), _signal(3.00, atoms=[1]), _signal(3.01, atoms=[2]), _signal(9.0, atoms=[11])]
+        + [_signal(s, atoms=[100 + i]) for i, s in enumerate(extra)]
+    )
+    widget.resize(600, 300)
+    return widget
+
+
+def _click_at_ppm(widget, ppm: float):
+    plot = widget._plot_rect()
+    x = widget._to_widget_x(ppm, plot, widget.view_range())
+    pos = QPoint(int(round(x)), int(plot.center().y()))
+    emitted: list[list[int]] = []
+    widget.peak_clicked.connect(emitted.append)
+    QTest.mouseClick(widget, Qt.MouseButton.LeftButton, pos=pos)
+    widget.peak_clicked.disconnect(emitted.append)
+    return emitted
+
+
+def _centre(widget, ppm):
+    plot = widget._plot_rect()
+    return widget._to_widget_x(ppm, plot, widget.view_range()), plot.center().y()
+
+
+def test_signals_at_returns_every_overlapping_signal_nearest_first(qapp):
+    widget = _overlap_widget()
+    x, y = _centre(widget, 3.0)
+
+    hits = widget.signals_at(x, y)
+
+    assert [s.atom_indices for s in hits] == [[1], [2]]
+
+
+def test_the_overlap_order_does_not_depend_on_the_order_signals_were_given(qapp):
+    forward = _overlap_widget()
+    backward = NmrSpectrumWidget(list(reversed(forward._signals)))
+    backward.resize(600, 300)
+    x, y = _centre(forward, 3.005)
+
+    assert [s.atom_indices for s in forward.signals_at(x, y)] == [s.atom_indices for s in backward.signals_at(x, y)]
+
+
+def test_signals_at_returns_the_widgets_own_signal_objects_not_copies(qapp):
+    widget = _overlap_widget()
+    x, y = _centre(widget, 3.0)
+
+    assert all(any(hit is own for own in widget._signals) for hit in widget.signals_at(x, y))
+
+
+def test_repeat_clicks_on_the_same_spot_cycle_through_the_overlap_and_wrap(qapp):
+    widget = _overlap_widget()
+
+    picked = [_click_at_ppm(widget, 3.0)[0] for _ in range(4)]
+
+    assert picked == [[1], [2], [1], [2]]
+
+
+def test_the_cycle_starts_over_after_a_click_elsewhere(qapp):
+    widget = _overlap_widget()
+    assert _click_at_ppm(widget, 3.0) == [[1]]
+    assert _click_at_ppm(widget, 3.0) == [[2]]
+
+    assert _click_at_ppm(widget, 9.0) == [[11]]  # leaves the union of the hit regions
+
+    assert _click_at_ppm(widget, 3.0) == [[1]]  # a fresh cycle, nearest first
+
+
+def test_the_cycle_starts_over_when_the_view_changes(qapp):
+    """One click, then a view change that keeps the overlap: a continued cycle
+    would move on to the SECOND signal, a fresh one starts at the nearest."""
+    widget = _overlap_widget()
+    assert _click_at_ppm(widget, 3.0) == [[1]]
+
+    first, last = widget.view_range()
+    widget._view_range = (first - 0.2, last + 0.2)  # a slight pan/zoom; still overlapping
+
+    assert _click_at_ppm(widget, 3.0) == [[1]]
+
+
+def test_a_new_spectrum_clears_the_cycle(qapp):
+    widget = _overlap_widget()
+    _click_at_ppm(widget, 3.0)
+    _click_at_ppm(widget, 3.0)
+
+    widget.set_signals(list(widget._signals))
+
+    assert widget._cycle_candidates == [] and widget._cycle_index == 0
+
+
+def test_a_lone_signal_is_never_cycled(qapp):
+    widget = _overlap_widget()
+
+    assert [_click_at_ppm(widget, 1.0) for _ in range(3)] == [[[10]]] * 3
+    assert widget._cycle_candidates == []
+
+
+def test_the_cycle_boundary_is_in_ppm_so_a_resize_does_not_end_it(qapp):
+    """The boundary was fixed in DATA coordinates when the cycle began, so
+    changing the pixel scale alone (here, doubling the width) neither ends nor
+    re-measures it: the next click continues the cycle."""
+    widget = _overlap_widget()
+    assert _click_at_ppm(widget, 3.0) == [[1]]
+    boundary = widget._cycle_ppm_range
+
+    widget.resize(1200, 300)
+
+    assert _click_at_ppm(widget, 3.0) == [[2]]
+    assert widget._cycle_ppm_range == boundary
