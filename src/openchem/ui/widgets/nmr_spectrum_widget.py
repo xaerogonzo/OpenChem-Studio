@@ -4,6 +4,7 @@ from PySide6.QtCore import QEvent, QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QMouseEvent, QPainter, QPainterPath, QPen, QWheelEvent
 from PySide6.QtWidgets import QToolTip, QWidget
 
+from openchem.chem.nmr_measured import NmrReference, reference_peaks
 from openchem.chem.nmr_signals import (
     _RELATIVE_FREQUENCY,
     DEFAULT_FREQUENCY_MHZ,
@@ -18,7 +19,7 @@ from openchem.ui.widgets.plot_axis import nice_ticks
 
 #: The axis line and its tick labels.
 _AXIS_COLOR = QColor(120, 120, 120)
-#: The fixed palettes the viewer offers: each names the four marks the plot
+#: The fixed palettes the viewer offers: each names the five marks the plot
 #: draws, and nothing else. Presentation only -- a colour never says anything
 #: about the chemistry (no per-signal colours, nothing that implies a
 #: distinction the data does not make), which is why this is a short fixed
@@ -26,15 +27,15 @@ _AXIS_COLOR = QColor(120, 120, 120)
 NMR_PALETTES: dict[str, dict[str, tuple[int, int, int]]] = {
     "Default": {
         "peak": (30, 100, 200), "highlight": (214, 100, 20),
-        "solvent": (150, 150, 150), "integral": (60, 150, 90),
+        "solvent": (150, 150, 150), "integral": (60, 150, 90), "reference": (140, 80, 170),
     },
     "Colour-blind safe": {
         "peak": (0, 114, 178), "highlight": (213, 94, 0),
-        "solvent": (150, 150, 150), "integral": (204, 121, 167),
+        "solvent": (150, 150, 150), "integral": (204, 121, 167), "reference": (86, 180, 233),
     },
     "High contrast": {
         "peak": (0, 0, 0), "highlight": (220, 0, 0),
-        "solvent": (110, 110, 110), "integral": (0, 0, 170),
+        "solvent": (110, 110, 110), "integral": (0, 0, 170), "reference": (130, 0, 160),
     },
 }
 #: The palette a viewer starts with and Reset Settings restores.
@@ -125,6 +126,12 @@ class NmrSpectrumWidget(QWidget):
         #: off by default; see `legend_entries`.
         self._show_legend = False
         self._palette_name = DEFAULT_PALETTE
+        #: A measured spectrum drawn behind the prediction. VIEW STATE: the
+        #: record is immutable and the scale below is applied only when
+        #: drawing, so neither can reach a signal (see `chem.nmr_measured`).
+        self._reference: NmrReference | None = None
+        self._reference_scale = 1.0
+        self._show_reference_peaks = False
         #: "ppm" or "hz" -- display-only, never the plot's internal working
         #: unit (always ppm, see `view_range()`). Forced back to "ppm" by
         #: every consumer whenever `self._shielding` is True: a raw
@@ -174,6 +181,38 @@ class NmrSpectrumWidget(QWidget):
         self._show_integral = bool(show)
         self.update()
 
+    def set_reference(self, reference: NmrReference | None) -> None:
+        self._reference = reference
+        self.update()
+
+    def reference(self) -> NmrReference | None:
+        return self._reference
+
+    def set_reference_scale(self, scale: float) -> None:
+        """Display-only vertical scale of the measured trace (1.0 = its
+        tallest point fills the plot). Never written back to the record."""
+        if scale <= 0:
+            raise ValueError("the reference scale must be positive")
+        self._reference_scale = float(scale)
+        self.update()
+
+    def reference_scale(self) -> float:
+        return self._reference_scale
+
+    def set_show_reference_peaks(self, show: bool) -> None:
+        self._show_reference_peaks = bool(show)
+        self.update()
+
+    def reference_drawn(self) -> bool:
+        """Whether a reference is on the plot: present, acquired on the nucleus
+        being shown, and not a raw shielding axis (a measured spectrum is a
+        chemical shift, and has no place on a sigma axis)."""
+        return (
+            self._reference is not None
+            and not self._shielding
+            and self._reference.matches(self._element)
+        )
+
     def set_palette(self, name: str) -> None:
         if name not in NMR_PALETTES:
             raise ValueError(f"unknown NMR palette: {name!r}")
@@ -208,6 +247,8 @@ class NmrSpectrumWidget(QWidget):
         ]
         if self._show_integral:
             entries.append(("curve", "Relative integral", "integral"))
+        if self.reference_drawn():
+            entries.append(("curve", f"Measured: {self._reference.filename}", "reference"))
         if self._solvent_shift() is not None:
             entries.append(("dash", "Solvent peak (not the sample)", "solvent"))
         return entries
@@ -646,10 +687,49 @@ class NmrSpectrumWidget(QWidget):
                 self._format_axis_value(value),
             )
 
+    def _draw_reference(self, painter: QPainter, plot_rect: QRectF, x_range: tuple[float, float]) -> None:
+        """The measured trace as a thin line, tallest point at the plot top
+        times the display scale, clipped to the plot. Only the visible window
+        is drawn (decimated if dense), and the record is read, never changed."""
+        reference = self._reference
+        ceiling = max(reference.intensity) or 1.0
+        low, high = min(x_range), max(x_range)
+        visible = [i for i, x in enumerate(reference.ppm) if low <= x <= high]
+        if len(visible) < 2:
+            return
+        stride = max(1, len(visible) // 2000)
+        path = QPainterPath()
+        top = plot_rect.top() + 4
+        height = plot_rect.height() - 4
+        started = False
+        for i in visible[::stride]:
+            x = self._to_widget_x(reference.ppm[i], plot_rect, x_range)
+            y = plot_rect.bottom() - max(reference.intensity[i], 0.0) / ceiling * height * self._reference_scale
+            y = max(y, top)
+            if started:
+                path.lineTo(x, y)
+            else:
+                path.moveTo(x, y)
+                started = True
+        painter.setPen(QPen(self._color("reference"), 1.2))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawPath(path)
+        if self._show_reference_peaks:
+            painter.setPen(QPen(self._color("reference")))
+            for ppm, intensity in reference_peaks(reference):
+                if not low <= ppm <= high:
+                    continue
+                x = self._to_widget_x(ppm, plot_rect, x_range)
+                y = max(plot_rect.bottom() - intensity / ceiling * height * self._reference_scale, top)
+                painter.drawLine(QPointF(x, y - 2), QPointF(x, y - 6))
+                painter.drawText(QRectF(x - 24, y - 20, 48, 14), Qt.AlignmentFlag.AlignCenter, f"{ppm:.2f}")
+
     def _draw_legend(self, painter: QPainter, plot_rect: QRectF) -> None:
         """The key, top-right INSIDE the plot (the margin above it already
         holds the hover readout and the zoom hint)."""
-        colours = {mark: self._color(mark) for mark in ("peak", "highlight", "integral", "solvent")}
+        colours = {
+            mark: self._color(mark) for mark in ("peak", "highlight", "integral", "solvent", "reference")
+        }
         row, swatch, pad = 15.0, 22.0, 6.0
         entries = self.legend_entries()
         metrics = painter.fontMetrics()
@@ -776,6 +856,8 @@ class NmrSpectrumWidget(QWidget):
 
         if self._show_integral:
             self._draw_integral(painter, plot_rect, x_range, label_height)
+        if self.reference_drawn():
+            self._draw_reference(painter, plot_rect, x_range)
         if self._show_legend:
             self._draw_legend(painter, plot_rect)
 

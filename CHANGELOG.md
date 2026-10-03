@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### NMR viewer: a measured JCAMP-DX reference overlay, and export (branch `nmr-viewer-p3`)
+
+- **Import Reference...** draws a measured 1D NMR spectrum (JCAMP-DX, `XYDATA` with a ppm or Hz axis) behind the prediction. It is a separate immutable record (`chem/nmr_measured.py`): provenance (filename, nucleus, frequency, solvent, format) plus a SHA-256 of the **original bytes**, so two different files stay distinguishable even if they render alike. **Scaling is display state** (`set_reference_scale`), the record is never rewritten, and import, scale, peak marks and clear are tested never to change a signal, `coupling_groups`, shift or integral. An FID, a non-NMR file, an Hz axis with no spectrometer frequency or an unknown unit is refused by name; a reference for another nucleus is kept but not drawn, and the note says why. Reference peaks are plain local maxima of the original trace.
+- **Export** (a menu) writes the predicted spectrum from the signal list and the viewer's parameters, never from the screen: a JCAMP-DX spectrum that round-trips through this application's own reader, an SD file with explicit hydrogens and per-atom predicted shifts (atom numbers are the molfile's), and a one-page PDF. All three say they are predicted; the JCAMP-DX notes it is a first-order model. The decoupled switch reaches the export.
+- Controls moved to a third toolbar row so the first rows stay readable at 1300 px.
+- Not covered, by design: NTUPLES / complex (real+imaginary) NMR files and peak-table JCAMP are refused, not guessed at.
+
 ### NMR viewer: overlapping signals, explicit H, table views and palettes (branch `nmr-viewer-p2`)
 
 - **Clicking through overlapping multiplets.** `signals_at` returns every signal under the cursor in a deterministic order (nearest, then shift, then atom indices; never container order); the first click selects the nearest and repeat clicks cycle, wrapping. The cycle ends when the cursor leaves the union of the hit regions that began it (measured in ppm, so a resize does not end it), when the view range changes, or when a new spectrum loads. Selection still goes through the existing `_select_signal`.

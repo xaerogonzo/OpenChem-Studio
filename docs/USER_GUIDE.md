@@ -1576,6 +1576,25 @@ symmetry-completed); selecting in any of them selects the same signal in all.
 contrast) that recolour the plot and the structure highlight together; a
 palette is presentation only and never says anything about the chemistry.
 
+**Drawing a measured spectrum beside the prediction.** **Import Reference...**
+reads a JCAMP-DX file of a processed 1D NMR spectrum (an `XYDATA` table with
+the x axis in ppm or in Hz plus the spectrometer frequency; an FID, a peak
+table or a multi-block NTUPLES file is refused with the reason) and draws it
+as a thin line behind the prediction. It is labelled an imported measurement,
+carries the file's nucleus, frequency and solvent, and is only drawn when its
+nucleus is the one being shown. **Reference scale** and **Reference peaks**
+change how it is drawn only; the file's own numbers are never rewritten, and
+importing, scaling or clearing a reference never changes a prediction.
+**Reset Settings** keeps the reference (it is data, not a setting);
+**Clear Reference** removes it.
+
+**Export** writes the *predicted* spectrum from its data: a JCAMP-DX
+spectrum (the same broadened trace the smooth mode draws, which this
+application can read back), an SD file with the molecule and each atom's
+predicted shift, or a one-page PDF report. Each says it is predicted, not
+measured, and the JCAMP-DX notes it is a first-order model, not a
+spin-Hamiltonian simulation.
+
 **Every numeric column header is sortable** — click one to sort by it
 (shift, integration, coupling); click again to reverse. Sorting never
 changes which signal is highlighted or selected, and a new run resets

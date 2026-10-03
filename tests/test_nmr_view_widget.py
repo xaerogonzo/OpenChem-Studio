@@ -995,8 +995,8 @@ def test_the_palettes_are_a_short_fixed_list_naming_exactly_the_four_marks(qapp)
 
     assert list(NMR_PALETTES) == ["Default", "Colour-blind safe", "High contrast"]
     for colours in NMR_PALETTES.values():
-        assert set(colours) == {"peak", "highlight", "solvent", "integral"}
-        assert len(set(colours.values())) == 4  # no two marks share a colour
+        assert set(colours) == {"peak", "highlight", "solvent", "integral", "reference"}
+        assert len(set(colours.values())) == 5  # no two marks share a colour
 
 
 def test_choosing_a_palette_recolours_the_plot_and_the_structure_pane_together(qapp):
@@ -1032,3 +1032,215 @@ def test_an_unknown_palette_is_refused(qapp):
 
     with pytest.raises(ValueError):
         NmrSpectrumWidget().set_palette("rainbow")
+
+
+# --- Phase P3: a measured reference, and exporting ----------------------------------
+
+
+def _write_jdx(tmp_path, name="measured.jdx", **kwargs):
+    from test_nmr_measured import _jdx
+
+    path = tmp_path / name
+    path.write_text(_jdx(**kwargs), encoding="utf-8")
+    return str(path)
+
+
+def _snapshot(view):
+    return [(s.shift, s.multiplicity, s.coupling_groups, s.integration, tuple(s.atom_indices)) for s in view.signals()]
+
+
+def test_importing_a_reference_draws_it_and_says_it_is_not_a_prediction(qapp, tmp_path):
+    view, *_ = _make_view(qapp)
+    plain = view._spectrum_widget.grab().toImage()
+
+    reference = view.load_reference_file(_write_jdx(tmp_path))
+
+    assert reference is not None and view._spectrum_widget.reference_drawn()
+    assert view._spectrum_widget.grab().toImage() != plain
+    note = view._reference_note_label
+    assert not note.isHidden() and "imported measurement, not a prediction" in note.text()
+    assert view._clear_reference_action.isEnabled() and view._reference_scale_spin.isEnabled()
+
+
+def test_import_scale_peaks_and_clear_never_touch_a_signal(qapp, tmp_path):
+    view, *_ = _make_view(qapp)
+    before = _snapshot(view)
+
+    view.load_reference_file(_write_jdx(tmp_path))
+    view._reference_scale_spin.setValue(3.0)
+    view._reference_peaks_check.setChecked(True)
+    view._spectrum_widget.grab()
+    assert _snapshot(view) == before
+    view.clear_reference()
+
+    assert _snapshot(view) == before and view.reference() is None
+
+
+def test_scaling_is_display_only_and_the_record_is_never_rewritten(qapp, tmp_path):
+    view, *_ = _make_view(qapp)
+    reference = view.load_reference_file(_write_jdx(tmp_path))
+    ppm, intensity = reference.ppm, reference.intensity
+
+    view._reference_scale_spin.setValue(4.0)
+    view._reference_scale_spin.setValue(0.5)
+
+    assert view.reference() is reference
+    assert reference.ppm is ppm and reference.intensity is intensity
+    assert view._spectrum_widget.reference_scale() == 0.5
+    view._reference_scale_spin.setValue(1.0)  # reversible: nothing was baked in
+    assert view._spectrum_widget.reference_scale() == 1.0
+
+
+def test_the_scale_changes_what_is_drawn_and_only_that(qapp, tmp_path):
+    view, *_ = _make_view(qapp)
+    view.load_reference_file(_write_jdx(tmp_path))
+    one = view._spectrum_widget.grab().toImage()
+
+    view._reference_scale_spin.setValue(0.3)
+
+    assert view._spectrum_widget.grab().toImage() != one
+
+
+def test_a_file_that_will_not_load_is_reported_and_draws_nothing(qapp, tmp_path, monkeypatch):
+    from PySide6.QtWidgets import QMessageBox
+
+    shown = []
+    monkeypatch.setattr(QMessageBox, "warning", staticmethod(lambda *a, **k: shown.append(a[2])))
+    view, *_ = _make_view(qapp)
+
+    result = view.load_reference_file(_write_jdx(tmp_path, data_type="NMR FID"))
+
+    assert result is None and view.reference() is None and not view._spectrum_widget.reference_drawn()
+    assert shown and "FID" in shown[0]
+
+
+def test_a_missing_file_is_reported_not_swallowed(qapp, tmp_path, monkeypatch):
+    from PySide6.QtWidgets import QMessageBox
+
+    shown = []
+    monkeypatch.setattr(QMessageBox, "warning", staticmethod(lambda *a, **k: shown.append(a[1])))
+    view, *_ = _make_view(qapp)
+
+    assert view.load_reference_file(str(tmp_path / "nope.jdx")) is None
+    assert shown == ["Could not open file"]
+
+
+def test_a_reference_for_another_nucleus_is_kept_but_not_drawn_and_says_why(qapp, tmp_path):
+    view, *_ = _make_view(qapp)
+    view.load_reference_file(_write_jdx(tmp_path, nucleus="^13C"))
+
+    assert view.reference() is not None and not view._spectrum_widget.reference_drawn()
+    assert "not drawn" in view._reference_note_label.text()
+    assert not any("Measured" in text for _k, text, _c in view._spectrum_widget.legend_entries())
+
+
+def test_the_legend_lists_the_measured_trace_only_while_it_is_drawn(qapp, tmp_path):
+    view, *_ = _make_view(qapp)
+    assert not any("Measured" in t for _k, t, _c in view._spectrum_widget.legend_entries())
+
+    view.load_reference_file(_write_jdx(tmp_path, name="ethyl.jdx"))
+
+    assert any(t == "Measured: ethyl.jdx" for _k, t, _c in view._spectrum_widget.legend_entries())
+
+
+def test_reset_settings_keeps_the_imported_reference_but_resets_its_scale(qapp, tmp_path):
+    view, *_ = _make_view(qapp)
+    reference = view.load_reference_file(_write_jdx(tmp_path))
+    view._reference_scale_spin.setValue(5.0)
+    view._reference_peaks_check.setChecked(True)
+
+    view.reset_settings()
+
+    assert view.reference() is reference
+    assert view._reference_scale_spin.value() == 1.0 and not view._reference_peaks_check.isChecked()
+    assert view.current_settings() == nmr_view_module.NMR_VIEWER_DEFAULTS
+
+
+def test_importing_through_the_real_action_uses_the_file_dialog(qapp, tmp_path, monkeypatch):
+    from PySide6.QtWidgets import QFileDialog
+
+    path = _write_jdx(tmp_path)
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", staticmethod(lambda *a, **k: (path, "")))
+    view, *_ = _make_view(qapp)
+
+    view._import_reference_action.trigger()
+
+    assert view.reference() is not None and view.reference().filename == "measured.jdx"
+
+
+def test_two_imports_of_one_filename_with_different_bytes_are_distinguishable(qapp, tmp_path):
+    view, *_ = _make_view(qapp)
+    first = view.load_reference_file(_write_jdx(tmp_path, solvent="CDCl3"))
+    second = view.load_reference_file(_write_jdx(tmp_path, solvent="DMSO-d6"))
+
+    assert first.filename == second.filename and first.content_sha256 != second.content_sha256
+
+
+def test_the_jcamp_export_reads_the_signals_and_the_viewer_parameters(qapp):
+    from openchem.chem import jcamp
+    from openchem.chem.nmr_measured import read_nmr_reference
+
+    view, *_ = _make_view(qapp)
+    view._solvent_combo.setCurrentIndex(1)
+    before = _snapshot(view)
+
+    text = view.export_jcamp_text()
+
+    ref = read_nmr_reference(text, "export.jdx")
+    assert ref.frequency_mhz == view._frequency_combo.currentData()
+    assert ref.solvent == view._solvent_combo.currentData() and ref.nucleus == "H"
+    assert jcamp.parse(text).point_count == 4096 and _snapshot(view) == before
+
+
+def test_the_decoupled_switch_reaches_the_export(qapp):
+    view, *_ = _make_view(qapp)
+    _with_couplings(view)  # the synthetic spectrum carries no coupling data
+    coupled = view.export_jcamp_text()
+    view._decoupled_check.setChecked(True)
+
+    assert view.export_jcamp_text() != coupled
+
+
+def test_the_sdf_export_carries_the_molecule_with_hydrogens_and_the_shifts(qapp):
+    view, *_ = _make_view(qapp)
+
+    text = view.export_sdf_text()
+
+    assert "> <NMR_1H_PREDICTED_SHIFTS>" in text and text.rstrip().endswith("$" * 4)
+    assert "PREDICTED, not measured" in text
+
+
+def test_the_pdf_export_writes_a_real_pdf(qapp, tmp_path):
+    view, *_ = _make_view(qapp)
+    target = tmp_path / "report.pdf"
+
+    assert view.export_pdf(str(target)) is True
+
+    data = target.read_bytes()
+    assert data.startswith(b"%PDF") and len(data) > 2000
+
+
+def test_each_export_action_writes_through_the_save_dialog(qapp, tmp_path, monkeypatch):
+    from PySide6.QtWidgets import QFileDialog
+
+    view, *_ = _make_view(qapp)
+    targets = iter([str(tmp_path / "a.jdx"), str(tmp_path / "a.sdf"), str(tmp_path / "a.pdf")])
+    monkeypatch.setattr(QFileDialog, "getSaveFileName", staticmethod(lambda *a, **k: (next(targets), "")))
+
+    view._export_jcamp_action.trigger()
+    view._export_sdf_action.trigger()
+    view._export_pdf_action.trigger()
+
+    assert (tmp_path / "a.jdx").read_text(encoding="utf-8").startswith("##TITLE")
+    assert (tmp_path / "a.sdf").read_text(encoding="utf-8").rstrip().endswith("$" * 4)
+    assert (tmp_path / "a.pdf").read_bytes().startswith(b"%PDF")
+
+
+def test_cancelling_the_save_dialog_writes_nothing(qapp, tmp_path, monkeypatch):
+    from PySide6.QtWidgets import QFileDialog
+
+    view, *_ = _make_view(qapp)
+    monkeypatch.setattr(QFileDialog, "getSaveFileName", staticmethod(lambda *a, **k: ("", "")))
+    view._export_jcamp_action.trigger()
+
+    assert list(tmp_path.iterdir()) == []
