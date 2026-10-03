@@ -102,6 +102,9 @@ class NmrSpectrumWidget(QWidget):
         #: never touching `coupling_groups`/`multiplicity`. A pure viewer
         #: preference, not navigation state (see `_view_range`'s own note).
         self._decoupled = False
+        #: A static key for what the marks on the plot are. Display-only and
+        #: off by default; see `legend_entries`.
+        self._show_legend = False
         #: "ppm" or "hz" -- display-only, never the plot's internal working
         #: unit (always ppm, see `view_range()`). Forced back to "ppm" by
         #: every consumer whenever `self._shielding` is True: a raw
@@ -141,6 +144,32 @@ class NmrSpectrumWidget(QWidget):
     def set_show_integral(self, show: bool) -> None:
         self._show_integral = bool(show)
         self.update()
+
+    def set_show_legend(self, show: bool) -> None:
+        self._show_legend = bool(show)
+        self.update()
+
+    def is_legend_shown(self) -> bool:
+        return self._show_legend
+
+    def legend_entries(self) -> list[tuple[str, str, str]]:
+        """`(kind, text, colour name)` for each mark the plot is drawing NOW,
+        so the key never lists something that is not on screen: the integral
+        only when it is shown, the solvent only when one is chosen. Pure data
+        (testable without painting); `_draw_legend` only draws it."""
+        entries = [
+            (
+                "curve" if self._render_mode == "smooth" else "stick",
+                "Predicted signal (height = proton count)",
+                "peak",
+            ),
+            ("stick", "Selected signal", "highlight"),
+        ]
+        if self._show_integral:
+            entries.append(("curve", "Relative integral", "integral"))
+        if self._solvent_shift() is not None:
+            entries.append(("dash", "Solvent peak (not the sample)", "solvent"))
+        return entries
 
     def set_decoupled(self, decoupled: bool) -> None:
         self._decoupled = bool(decoupled)
@@ -512,6 +541,48 @@ class NmrSpectrumWidget(QWidget):
                 self._format_axis_value(value),
             )
 
+    def _draw_legend(self, painter: QPainter, plot_rect: QRectF) -> None:
+        """The key, top-right INSIDE the plot (the margin above it already
+        holds the hover readout and the zoom hint)."""
+        colours = {
+            "peak": _PEAK_COLOR,
+            "highlight": _HIGHLIGHT_COLOR,
+            "integral": _INTEGRAL_COLOR,
+            "solvent": _SOLVENT_COLOR,
+        }
+        row, swatch, pad = 15.0, 22.0, 6.0
+        entries = self.legend_entries()
+        metrics = painter.fontMetrics()
+        text_width = max(metrics.horizontalAdvance(text) for _kind, text, _c in entries)
+        width = pad * 3 + swatch + text_width
+        height = pad * 2 + row * len(entries)
+        # Whichever top corner hides less signal (right on a tie): the key
+        # must not cover a peak it is there to explain.
+        x_range = self.view_range()
+        marks = [(self._to_widget_x(sig.shift, plot_rect, x_range), sig.integration) for sig in self._signals]
+        right = QRectF(plot_rect.right() - width - 4, plot_rect.top() + 4, width, height)
+        left = QRectF(plot_rect.left() + 4, plot_rect.top() + 4, width, height)
+        # Weighted by integration: a tall peak is the one worth not hiding.
+        covered = lambda rect: sum(w for x, w in marks if rect.left() <= x <= rect.right())  # noqa: E731
+        box = left if covered(left) < covered(right) else right
+        painter.setPen(QPen(_AXIS_COLOR, 1))
+        painter.setBrush(QColor(255, 255, 255, 220))
+        painter.drawRect(box)
+        for index, (kind, text, colour) in enumerate(entries):
+            y = box.top() + pad + row * index + row / 2
+            pen = QPen(colours[colour], 3 if colour == "highlight" else 1)
+            if kind == "dash":
+                pen.setStyle(Qt.PenStyle.DashLine)
+            painter.setPen(pen)
+            painter.drawLine(QPointF(box.left() + pad, y), QPointF(box.left() + pad + swatch, y))
+            painter.setPen(QPen(_AXIS_COLOR))
+            painter.drawText(
+                QRectF(box.left() + pad * 2 + swatch, y - row / 2, text_width + pad, row),
+                Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
+                text,
+            )
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+
     def _draw_hover_readout(self, painter: QPainter, plot_rect: QRectF) -> None:
         if self._hover_ppm is None:
             return
@@ -605,6 +676,8 @@ class NmrSpectrumWidget(QWidget):
 
         if self._show_integral:
             self._draw_integral(painter, plot_rect, x_range, label_height)
+        if self._show_legend:
+            self._draw_legend(painter, plot_rect)
 
         painter.end()
 

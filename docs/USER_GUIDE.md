@@ -1555,7 +1555,13 @@ nothing new and leaving the underlying coupling data untouched — toggle
 it off to see the real pattern again. Hovering a signal also shows a
 "First-order pattern: ..." tooltip (e.g. "qddd") derived from its real
 coupling groups — informational only; the Multiplicity column is
-unchanged.
+unchanged. The **Legend** checkbox draws a small key for the marks on the
+plot (predicted signal, selected signal, and the integral and solvent line
+only while they are shown); it sits in whichever top corner hides less
+signal. **Reset Settings** returns every control on the toolbar to its
+default but keeps where the plot is zoomed, just as Reset Zoom keeps the
+settings. The **Open IR** and **Open NMR** links in a Molecule Report now
+also select the matching tab of the Quantum Chemistry panel.
 
 **Every numeric column header is sortable** — click one to sort by it
 (shift, integration, coupling); click again to reverse. Sorting never

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction
 from PySide6.QtSvgWidgets import QSvgWidget
@@ -60,6 +62,35 @@ _BASE_COLOR = "#9aa0a6"
 #: signal" the moment `setSortingEnabled(True)` lets a header click
 #: reorder rows out from under `self._signals`'s own order.
 _ROW_IDENTITY_ROLE = Qt.ItemDataRole.UserRole + 2
+
+
+@dataclass(frozen=True)
+class NmrViewerSettings:
+    """The persistent viewer settings that exist, as ONE value.
+
+    **THE SINGLE SOURCE OF THE DEFAULTS.** Construction reads them, "Reset
+    Settings" applies them, and a test asserts a freshly built viewer reports
+    exactly them -- so a setting added to the toolbar without a default here
+    fails loudly instead of quietly surviving a reset. Only settings that
+    exist are listed: no placeholders for controls that are not built yet.
+    One-shot ACTIONS (Reset Zoom, Copy Spectrum Image) are not settings, and
+    neither is navigation (the zoom), which Reset Settings must not touch.
+    """
+
+    element: str = "H"
+    frequency_mhz: float = DEFAULT_FREQUENCY_MHZ
+    solvent: str | None = None
+    unit: str = "ppm"
+    label_mode: str = "shift"
+    smooth: bool = False
+    decoupled: bool = False
+    integral: bool = False
+    zoom_follow: bool = True
+    legend: bool = False
+
+
+#: The defaults every viewer starts with and "Reset Settings" restores.
+NMR_VIEWER_DEFAULTS = NmrViewerSettings()
 
 
 class NmrViewWidget(QWidget):
@@ -155,7 +186,7 @@ class NmrViewWidget(QWidget):
         for frequency in SPECTROMETER_FREQUENCIES_MHZ:
             self._frequency_combo.addItem(f"{frequency:g} MHz", frequency)
         self._frequency_combo.setCurrentIndex(
-            list(SPECTROMETER_FREQUENCIES_MHZ).index(DEFAULT_FREQUENCY_MHZ)
+            list(SPECTROMETER_FREQUENCIES_MHZ).index(NMR_VIEWER_DEFAULTS.frequency_mhz)
         )
         self._frequency_combo.currentIndexChanged.connect(self._on_frequency_changed)
         self._scroll_safe_guards.append(make_scroll_safe(self._frequency_combo))
@@ -187,7 +218,11 @@ class NmrViewWidget(QWidget):
         # a checkbox rather than always-on so it can be turned off if it
         # ever feels disruptive rather than helpful.
         self._zoom_follow_check = QCheckBox("Zoom to selection", self)
-        self._zoom_follow_check.setChecked(True)
+        self._zoom_follow_check.setChecked(NMR_VIEWER_DEFAULTS.zoom_follow)
+        # A static key for the marks on the plot; off by default so the plot
+        # is unchanged for anyone who does not ask for it.
+        self._legend_check = QCheckBox("Legend", self)
+        self._legend_check.toggled.connect(self._spectrum_widget.set_show_legend)
 
         # Display-only -- never recomputes or mutates a signal's own ppm
         # `shift`; see `NmrSpectrumWidget.set_display_unit`. Disabled
@@ -232,6 +267,7 @@ class NmrViewWidget(QWidget):
         toolbar.addWidget(self._decoupled_check)
         toolbar.addWidget(self._integral_check)
         toolbar.addWidget(self._zoom_follow_check)
+        toolbar.addWidget(self._legend_check)
         # QToolBar has no QBoxLayout.addStretch() equivalent -- an
         # expanding spacer widget reproduces the old row's trailing
         # stretch, pushing Reset Zoom/Copy Spectrum Image to the right as
@@ -239,6 +275,13 @@ class NmrViewWidget(QWidget):
         spacer = QWidget(self)
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         toolbar.addWidget(spacer)
+
+        # Beside Reset Zoom but independent of it: settings are what the
+        # controls above say, the zoom is where the plot is looking.
+        self._reset_settings_action = QAction("Reset Settings", self)
+        self._reset_settings_action.setToolTip("Restore every viewer setting to its default (the zoom is kept)")
+        self._reset_settings_action.triggered.connect(self.reset_settings)
+        toolbar.addAction(self._reset_settings_action)
 
         self._reset_zoom_action = QAction("Reset Zoom", self)
         self._reset_zoom_action.setToolTip("Restore the full spectrum span")
@@ -317,6 +360,47 @@ class NmrViewWidget(QWidget):
 
     def signals(self) -> list[NMRSignal]:
         return list(self._signals)
+
+    def current_settings(self) -> NmrViewerSettings:
+        """What the controls say now, in the same shape as the defaults."""
+        return NmrViewerSettings(
+            element=self._current_element(),
+            frequency_mhz=self._frequency_combo.currentData(),
+            solvent=self._solvent_combo.currentData(),
+            unit=self._unit_combo.currentData(),
+            label_mode=self._labels_combo.currentData(),
+            smooth=self._smooth_check.isChecked(),
+            decoupled=self._decoupled_check.isChecked(),
+            integral=self._integral_check.isChecked(),
+            zoom_follow=self._zoom_follow_check.isChecked(),
+            legend=self._legend_check.isChecked(),
+        )
+
+    def apply_settings(self, settings: NmrViewerSettings) -> None:
+        """Drives the REAL controls, so every handler runs exactly as for a
+        user's click. Never touches the zoom (navigation, not a setting),
+        though changing the nucleus necessarily re-fits the axis."""
+        for combo, value in (
+            (self._element_combo, settings.element),
+            (self._frequency_combo, settings.frequency_mhz),
+            (self._solvent_combo, settings.solvent),
+            (self._unit_combo, settings.unit),
+            (self._labels_combo, settings.label_mode),
+        ):
+            index = combo.findData(value)
+            if index >= 0:
+                combo.setCurrentIndex(index)
+        for check, value in (
+            (self._smooth_check, settings.smooth),
+            (self._decoupled_check, settings.decoupled),
+            (self._integral_check, settings.integral),
+            (self._zoom_follow_check, settings.zoom_follow),
+            (self._legend_check, settings.legend),
+        ):
+            check.setChecked(value)
+
+    def reset_settings(self) -> None:
+        self.apply_settings(NMR_VIEWER_DEFAULTS)
 
     def _current_element(self) -> str:
         return self._element_combo.currentData() or "H"
