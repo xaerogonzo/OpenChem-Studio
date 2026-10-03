@@ -473,6 +473,17 @@ imaginary-frequency warning that says the thermochemistry from the same
 job is invalid. Benchmarked in `benchmarks/ir/` (MAE 27.6 cm⁻¹ scaled,
 fitted factor 0.9666).
 
+NMR viewer and tautomer distribution, shipped 2026-10 (PRs #172-#185):
+first-order multi-group splitting from the real coupling groups, Hz/ppm,
+a measured JCAMP-DX reference overlay and JCAMP-DX export, overlapping-
+signal cycling, table views and palettes; an IR viewer with zoom, pan and a
+readout; a right-click picture menu on every chart and CSV copy/export on
+every result table. The ORCA tautomer distribution enumerates stereoisomers
+per tautomer and is stamped by a versioned model policy. **Its percentages
+are withheld**: the preregistered gate (`docs/VALIDATION.md`, PBE0
+def2-TZVP) was run once and recorded `attempted_failed`, so results stay
+`unvalidated` and show electronic-energy differences only.
+
 #### TD-DFT / UV-Vis — SCOPED AND MEASURED, DELIBERATELY NOT SHIPPED
 
 Timed and checked against experiment on the installed ORCA 6.1.1 build
@@ -2286,6 +2297,17 @@ and three were checked again recently rather than taken on trust.
   why the corrected accounts are kept in `docs/sources.toml` under the
   original keys rather than deleted. See docs/VALIDATION.md for the
   measurements.
+- **Tautomer percentages, and tautomer peaks overlaid on the NMR
+  spectrum.** The first needs a `model_version` that passes the
+  preregistered gate; the gate failed on 2026-10-03 for PBE0 def2-TZVP
+  (acetylacetone and 2-pyridone mis-ranked), and the likeliest cause, one
+  start geometry and no conformer or rotamer search, was **not** verified.
+  A new model gets its own preregistered run, never a re-tuned tolerance.
+  The overlay needs a per-tautomer NMR job and a decision on which
+  stereoisomer or conformer supplies the shifts, and waits on a passing
+  model. Also not built: the validation-record lookup in
+  `quantum_chemistry_service` (nothing can be authorized yet) and zoom for
+  the histogram and stick charts.
 - **Boltzmann-run descriptors beyond the lowest-energy conformer.** A
   Boltzmann-averaged QC run (`request_boltzmann_nmr`,
   `services/quantum_chemistry_service.py`'s `_finish_conformer_job`) now
