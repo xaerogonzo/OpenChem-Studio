@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: fc5b2c505a51d330c407de29abf1283441d616556f5944900cfc41150b73039d -->
+<!-- SOURCE SHA256: 35fe80ac5f456c9341f004ed7e461802750668da87e8e63f5b0ba9c1121faf0b -->
 
 # Sources
 
@@ -103,6 +103,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`baell2010`](#baell2010) | literature | shipped | citation |
 | [`bakowies1996`](#bakowies1996) | literature | **not shipped** | citation + claim |
 | [`ballester2010`](#ballester2010) | literature | **not shipped** | citation |
+| [`belova2014`](#belova2014) | literature | shipped | citation + claim |
 | [`bento2020`](#bento2020) | literature | shipped | citation + claim |
 | [`bertz1981`](#bertz1981) | literature | shipped | citation |
 | [`bickerton2012`](#bickerton2012) | literature | shipped | citation |
@@ -142,10 +143,12 @@ next run of `tools/build_lewis_parameters.py`.
 | [`ertl2009`](#ertl2009) | literature | shipped | citation |
 | [`ertl2017`](#ertl2017) | literature | reference only | citation |
 | [`feinstein2015`](#feinstein2015) | literature | shipped | citation + claim |
+| [`fogarasi2010`](#fogarasi2010) | literature | shipped | citation + claim |
 | [`gasteiger1980`](#gasteiger1980) | literature | shipped | citation + claim |
 | [`gasteiger1985`](#gasteiger1985) | literature | **not shipped** | citation |
 | [`geidl2015`](#geidl2015) | literature | reference only | citation |
 | [`glasser1995`](#glasser1995) | literature | shipped | citation |
+| [`goller2022`](#goller2022) | literature | shipped | citation + claim |
 | [`guo2006`](#guo2006) | literature | reference only | citation + claim |
 | [`gutmann1976`](#gutmann1976) | literature | shipped | citation + claim |
 | [`gutmann_frontiers2022`](#gutmann_frontiers2022) | literature | **not shipped** | citation |
@@ -153,6 +156,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`hall1981`](#hall1981) | literature | shipped | citation |
 | [`hancock1996`](#hancock1996) | literature | reference only | citation |
 | [`harmony1979`](#harmony1979) | literature | reference only | citation + claim |
+| [`hejazi2016`](#hejazi2016) | literature | reference only | citation |
 | [`hlb`](#hlb) | reference_table | reference only | citation |
 | [`hopfinger2009`](#hopfinger2009) | dataset | shipped | citation |
 | [`huber1979`](#huber1979) | literature | reference only | citation + claim |
@@ -232,6 +236,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`rcsb_pdb`](#rcsb_pdb) | dataset | shipped | citation |
 | [`rdkit`](#rdkit) | software | shipped | citation |
 | [`rdkit_bertz`](#rdkit_bertz) | software | shipped | citation + claim |
+| [`rendell1993`](#rendell1993) | literature | reference only | unverified |
 | [`ruttkies2016`](#ruttkies2016) | literature | reference only | citation |
 | [`schindler2021`](#schindler2021) | literature | reference only | citation |
 | [`schindler2021_correction`](#schindler2021_correction) | literature | reference only | citation |
@@ -250,6 +255,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`threedmol`](#threedmol) | software | shipped | citation |
 | [`tosco2014`](#tosco2014) | literature | reference only | citation |
 | [`trott_olson2010`](#trott_olson2010) | literature | shipped | citation + claim |
+| [`trygubenko2002`](#trygubenko2002) | literature | shipped | citation + claim |
 | [`tsei`](#tsei) | reference_table | reference only | citation |
 | [`verstraelen2009`](#verstraelen2009) | literature | reference only | citation + claim |
 | [`verstraelen2011`](#verstraelen2011) | literature | reference only | citation + claim |
@@ -3947,6 +3953,109 @@ unblock inventory. Context for PQEq's G2 feasibility, not read.
 
 **Why it is reference only.** NOT HELD; checked on Crossref only. A PQEq parameter extension found by the
 same bounded search. Context for PQEq's G2 feasibility, not read.
+
+### trygubenko2002
+
+<a id="trygubenko2002"></a>
+
+> S. A. Trygubenko, T. V. Bogdan, M. Rueda, M. Orozco, F. J. Luque, J. Sponer, P. Slavicek & P. Hobza, 'Correlated ab initio study of nucleic acid bases and their tautomers in the gas phase, in a microhydrated environment and in aqueous solution. Part 1. Cytosine', Phys. Chem. Chem. Phys. 2002, 4, 4192-4203.
+
+| | |
+| --- | --- |
+| Identifier | [10.1039/b202156k](https://doi.org/10.1039/b202156k) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-03 |
+| Local copy | `trygubenko2002.pdf` (not checked) |
+| Used by | `src/openchem/chem/data/tautomer_validation.json`, `src/openchem/chem/tautomer_validation.py`, `tools/tautomer_validation.py` |
+
+### belova2014
+
+<a id="belova2014"></a>
+
+> N. V. Belova, H. Oberhammer, N. H. Trang & G. V. Girichev, 'Tautomeric Properties and Gas-Phase Structure of Acetylacetone', J. Org. Chem. 2014, 79, 5412-5419.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jo402814c](https://doi.org/10.1021/jo402814c) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-03 |
+| Local copy | `belova2014.pdf` (not checked) |
+| Used by | `src/openchem/chem/data/tautomer_validation.json`, `src/openchem/chem/tautomer_validation.py`, `tools/tautomer_validation.py` |
+
+### fogarasi2010
+
+<a id="fogarasi2010"></a>
+
+> G. Fogarasi, 'Studies on tautomerism: Benchmark quantum chemical calculations on formamide and formamidine', J. Mol. Struct. 2010, 978, 257-262.
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/j.molstruc.2010.02.065](https://doi.org/10.1016/j.molstruc.2010.02.065) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-03 |
+| Local copy | `fogarasi2010.pdf` (not checked) |
+| Used by | `src/openchem/chem/data/tautomer_validation.json`, `src/openchem/chem/tautomer_validation.py`, `tools/tautomer_validation.py` |
+
+### goller2022
+
+<a id="goller2022"></a>
+
+> A. H. Goller, 'Reliable gas-phase tautomer equilibria of drug-like molecule scaffolds and the issue of continuum solvation', J. Comput.-Aided Mol. Des. 2022, 36, 805-824.
+
+| | |
+| --- | --- |
+| Identifier | [10.1007/s10822-022-00480-3](https://doi.org/10.1007/s10822-022-00480-3) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-03 |
+| Local copy | `goller2022.pdf` (not checked) |
+| Used by | `src/openchem/chem/data/tautomer_validation.json`, `src/openchem/chem/tautomer_validation.py`, `tools/tautomer_validation.py` |
+
+### rendell1993
+
+<a id="rendell1993"></a>
+
+> A. P. Rendell, M. F. Guest & R. A. Kendall, 'Distributed data parallel coupled-cluster algorithm: Application to the 2-hydroxypyridine/2-pyridone tautomerism', J. Comput. Chem. 1993, 14, 1429-1439.
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/jcc.540141204](https://doi.org/10.1002/jcc.540141204) |
+| Status | reference only |
+| Verification | unverified |
+| Local copy | `rendell1993.pdf` (not checked) |
+| Used by | `src/openchem/chem/data/tautomer_validation.json` |
+
+**Why it is reference only.** CORROBORATION FOR THE 2-PYRIDONE ROW, NOT A ROW. CCSD(T) in two small bases on
+SCF geometries: 2-pyridone above 2-hydroxypyridine by 5.9 and 3.2 kJ/mol (1.41
+and 0.76 kcal/mol), and a "best estimate" of 4.7 kJ/mol that ADDS a SCF
+zero-point correction, so it is not an electronic energy. Title, authors, journal,
+volume, issue and pages (J. Comput. Chem. 14(12), 1429-1439) were read off the file; the DOI is NOT
+printed in it and came from a review, so this entry stays `unverified` until the DOI is checked
+against Crossref.
+
+### hejazi2016
+
+<a id="hejazi2016"></a>
+
+> S. A. Hejazi, O. I. Osman, A. O. Alyoubi, S. G. Aziz & R. H. Hilal, 'The Thermodynamic and Kinetic Properties of 2-Hydroxypyridine/2-Pyridone Tautomerization: A Theoretical and Computational Revisit', Int. J. Mol. Sci. 2016, 17, 1893.
+
+| | |
+| --- | --- |
+| Identifier | [10.3390/ijms17111893](https://doi.org/10.3390/ijms17111893) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-03 |
+| Local copy | `Hejazi 2016.pdf` (not checked) |
+| Used by | `src/openchem/chem/data/tautomer_validation.json` |
+
+**Why it is reference only.** CORROBORATION FOR THE 2-PYRIDONE ROW, NOT A ROW. The DOI is printed in the file.
+Its tautomerization energies are ZERO-POINT-INCLUSIVE totals (CCSD/6-311++G** and
+aug-cc-pVDZ put 2-hydroxypyridine 5-9 kJ/mol below 2-pyridone), so they are not the
+declared electronic quantity. DOI, title, authors, journal, volume and article number
+were read off the file's own first pages.
 
 ### glasser1995
 

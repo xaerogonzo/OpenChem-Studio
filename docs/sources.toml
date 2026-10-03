@@ -4073,6 +4073,159 @@ NOT HELD; checked on Crossref only. A PQEq parameter extension found by the
 same bounded search. Context for PQEq's G2 feasibility, not read.
 """
 
+
+[[source]]
+key = "trygubenko2002"
+kind = "literature"
+citation = "S. A. Trygubenko, T. V. Bogdan, M. Rueda, M. Orozco, F. J. Luque, J. Sponer, P. Slavicek & P. Hobza, 'Correlated ab initio study of nucleic acid bases and their tautomers in the gas phase, in a microhydrated environment and in aqueous solution. Part 1. Cytosine', Phys. Chem. Chem. Phys. 2002, 4, 4192-4203."
+identifier_type = "doi"
+identifier = "10.1039/b202156k"
+status = "shipped"
+used_by = ["src/openchem/chem/data/tautomer_validation.json", "src/openchem/chem/tautomer_validation.py", "tools/tautomer_validation.py"]
+local = "trygubenko2002.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-03
+reason = """
+THE CYTOSINE ROW OF THE PREREGISTERED TAUTOMER VALIDATION. The NUMBERS checked
+against the PDF: Table 2's last line, `Etot(CCSD(T)/inf)`, gas phase, kcal/mol,
+RI-MP2/TZVPP geometries, no zero-point energy: 2a 0.00, 2b 0.69, 1 1.44, 3b 2.11,
+3a 3.68. The structures were read from Fig. 1 (2a/2b hydroxy-amino, 3a/3b
+imino-oxo with both ring N-H).
+
+**FIVE STRUCTURES BUT THREE TAUTOMERS.** 2a/2b are two hydroxyl rotamers of one
+enol and 3a/3b the two E/Z forms of one imino tautomer, so the application-level
+reference value of a tautomer is its LOWEST variant (2a 0.00, 3b 2.11) and the
+rest are kept as variants. The paper's microhydrated and aqueous data are a
+different quantity and are not used. Its zero-point-inclusive 0 K enthalpies
+(1 1.17, 2a 0.00, 2b 0.68, 3a 4.18, 3b 2.73) are NOT the declared quantity either.
+"""
+
+
+[[source]]
+key = "belova2014"
+kind = "literature"
+citation = "N. V. Belova, H. Oberhammer, N. H. Trang & G. V. Girichev, 'Tautomeric Properties and Gas-Phase Structure of Acetylacetone', J. Org. Chem. 2014, 79, 5412-5419."
+identifier_type = "doi"
+identifier = "10.1021/jo402814c"
+status = "shipped"
+used_by = ["src/openchem/chem/data/tautomer_validation.json", "src/openchem/chem/tautomer_validation.py", "tools/tautomer_validation.py"]
+local = "belova2014.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-03
+reason = """
+THE ACETYLACETONE ROW OF THE PREREGISTERED TAUTOMER VALIDATION, TAKEN FROM THE
+SUPPORTING INFORMATION (`belova2014_si.pdf`) AND NOT FROM THE MAIN TEXT. The SI
+lists each labelled calculation's electronic energy for the enol and the diketo
+form; the electronic difference (diketo minus enol) recomputed from them is
+MP2/cc-pVTZ 4.849, MP2/6-31G(d,p) 1.466, B3LYP/6-31G(d,p) 6.256 and
+B3LYP/aug-cc-pVTZ 6.481 kcal/mol.
+
+**THE PAPER CONTRADICTS ITSELF ON TWO LABELS.** Main-text Table 1 prints 6.48
+under B3LYP/6-31G(d,p) and 6.24 under aug-cc-pVTZ; the SI's own energies give
+6.26 and 6.48, the other way round, and Table 1's free-energy columns do not map
+cleanly either. MP2/cc-pVTZ agrees in both places (4.85) and is the single level
+declared. This is why the SI is the primary data: each of its numbers is tied to
+a named calculation.
+"""
+
+
+[[source]]
+key = "fogarasi2010"
+kind = "literature"
+citation = "G. Fogarasi, 'Studies on tautomerism: Benchmark quantum chemical calculations on formamide and formamidine', J. Mol. Struct. 2010, 978, 257-262."
+identifier_type = "doi"
+identifier = "10.1016/j.molstruc.2010.02.065"
+status = "shipped"
+used_by = ["src/openchem/chem/data/tautomer_validation.json", "src/openchem/chem/tautomer_validation.py", "tools/tautomer_validation.py"]
+local = "fogarasi2010.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-03
+reason = """
+THREE ROWS OF THE PREREGISTERED TAUTOMER VALIDATION (ACETALDIMINE/VINYLAMINE
+REQUIRED, FORMAMIDE AND ACETALDEHYDE OPTIONAL). The numbers are DERIVED from
+Table 1's printed CCSD(T)//MP2/aug-pVTZ energies at cc-pV5Z, not read from its one-decimal
+DE column: 3.08 (acetaldimine lower), 10.69 and 9.29 kcal/mol. The table prints
+each energy as a magnitude after an `E + n` offset, so the absolute energy is
+-(n + printed value); only differences are used. The text's own best values are
+3.0-3.1, 10.7 and 9.3.
+
+The paper says its CCSD and CCSD(T) values differ by 0.1-0.2 kcal/mol for these
+pairs, so the reference uncertainty is recorded as 0.06 (acetaldimine, from its
+aug-cc-pVQZ versus cc-pV5Z) and 0.2 for the others, and is never folded into a
+tolerance.
+"""
+
+
+[[source]]
+key = "goller2022"
+kind = "literature"
+citation = "A. H. Goller, 'Reliable gas-phase tautomer equilibria of drug-like molecule scaffolds and the issue of continuum solvation', J. Comput.-Aided Mol. Des. 2022, 36, 805-824."
+identifier_type = "doi"
+identifier = "10.1007/s10822-022-00480-3"
+status = "shipped"
+used_by = ["src/openchem/chem/data/tautomer_validation.json", "src/openchem/chem/tautomer_validation.py", "tools/tautomer_validation.py"]
+local = "goller2022.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-03
+reason = """
+THE 2-PYRIDONE / 2-HYDROXYPYRIDINE ROW OF THE PREREGISTERED TAUTOMER
+VALIDATION. Table 4 gives absolute CCSD(T) energies for 2-pyridone (8.1) and
+2-hydroxypyridine (8.2); at cc-pVQZ they differ by 0.0032983 Eh = 2.07 kcal/mol
+with the hydroxy form lower in the gas phase (cc-pVDZ 2.32, cc-pVTZ 2.33, CBS
+extrapolations 2.48 from 2/3 and 1.96 from 3/4). The paper states its energy
+differences are ELECTRONIC and puts the free-energy term for this pair at 0.04
+kcal/mol, geometries PBE0-D3(BJ)/def2-TZVP.
+
+**IT ALSO PRINTS THE MODEL UNDER TEST'S OWN ANSWER, AND IT IS WRONG.** Table 6's
+PBE0-D3(BJ)/def2-TZVP electronic energies put 2-pyridone 0.32 kcal/mol BELOW
+2-hydroxypyridine, against the 2.07 above. That was read before the criteria were
+frozen and is disclosed in them. Table 4 labels its energies "CCSD(T)" and the
+paper says elsewhere that its CCSD(T) is DLPNO-CCSD(T); whether Table 4 is the
+canonical method is not stated, and the row says so.
+"""
+
+
+[[source]]
+key = "rendell1993"
+kind = "literature"
+citation = "A. P. Rendell, M. F. Guest & R. A. Kendall, 'Distributed data parallel coupled-cluster algorithm: Application to the 2-hydroxypyridine/2-pyridone tautomerism', J. Comput. Chem. 1993, 14, 1429-1439."
+identifier_type = "doi"
+identifier = "10.1002/jcc.540141204"
+status = "reference_only"
+used_by = ["src/openchem/chem/data/tautomer_validation.json"]
+local = "rendell1993.pdf"
+verification = "unverified"
+reason = """
+CORROBORATION FOR THE 2-PYRIDONE ROW, NOT A ROW. CCSD(T) in two small bases on
+SCF geometries: 2-pyridone above 2-hydroxypyridine by 5.9 and 3.2 kJ/mol (1.41
+and 0.76 kcal/mol), and a "best estimate" of 4.7 kJ/mol that ADDS a SCF
+zero-point correction, so it is not an electronic energy. Title, authors, journal,
+volume, issue and pages (J. Comput. Chem. 14(12), 1429-1439) were read off the file; the DOI is NOT
+printed in it and came from a review, so this entry stays `unverified` until the DOI is checked
+against Crossref.
+"""
+
+
+[[source]]
+key = "hejazi2016"
+kind = "literature"
+citation = "S. A. Hejazi, O. I. Osman, A. O. Alyoubi, S. G. Aziz & R. H. Hilal, 'The Thermodynamic and Kinetic Properties of 2-Hydroxypyridine/2-Pyridone Tautomerization: A Theoretical and Computational Revisit', Int. J. Mol. Sci. 2016, 17, 1893."
+identifier_type = "doi"
+identifier = "10.3390/ijms17111893"
+status = "reference_only"
+used_by = ["src/openchem/chem/data/tautomer_validation.json"]
+local = "Hejazi 2016.pdf"
+verification = "citation"
+verified_date = 2026-10-03
+reason = """
+CORROBORATION FOR THE 2-PYRIDONE ROW, NOT A ROW. The DOI is printed in the file.
+Its tautomerization energies are ZERO-POINT-INCLUSIVE totals (CCSD/6-311++G** and
+aug-cc-pVDZ put 2-hydroxypyridine 5-9 kJ/mol below 2-pyridone), so they are not the
+declared electronic quantity. DOI, title, authors, journal, volume and article number
+were read off the file's own first pages.
+"""
+
+
 # =============================================================================
 # Datasets
 # =============================================================================
