@@ -1079,3 +1079,29 @@ RDKit cross-check, and no percentage. Changing the model (another preset, a
 conformer search, hydroxyl-rotamer and C=N-H E/Z enumeration) is a different
 `model_version` and needs its own preregistered run; this one is not reopened.
 
+
+
+## Tautomer distribution v2: the preregistration (2026-10-04, no result yet)
+
+**Status: frozen, not run.** `chem/data/tautomer_validation_v2.json` (criteria
+`tautomer-validation-criteria-v2`) preregisters a second attempt for model revision 5 (a conformer
+search per stereo class, aromatic tautomers told apart) at `M062X def2-TZVP`. The v1 file and its
+artifact above are untouched and remain the record of the revision-3 failure. The gates and
+tolerances are exactly v1's (tie 1.0, MAE 1.0, maximum 2.0 kcal/mol) and are not retuned.
+
+- **Two partitions.** The four carried-forward systems are `regression`: v4 was designed after
+  seeing them fail, so passing them is **not independent evidence**. Four systems are `held_out`
+  (indazole, hypoxanthine, 1,2,3-triazole, 1,2,4-triazole), frozen by a written selection rule in
+  `heldout_manifest_v2.json` before any v4 code or energy existed. The gate is reported for each
+  partition and overall; the overall gate (every required system on its own) decides.
+- **How the method was chosen** is recorded in `benchmarks/tautomer_validation/method_screen/`: a
+  rule written before any candidate number, applied to the development systems only, on PBE0
+  geometries (a disclosed shortcut). It selects the method that receives the run and is not a
+  validation claim.
+- **A defect the preregistration found.** The held-out systems' mapping check showed the shipped
+  model merged azole tautomers differing only in which ring nitrogen carries the hydrogen (so it
+  calculated one structure of a two-state system); fixed as revision 5 before the file was frozen.
+- **Scope.** One policy only (top-3 MMFF conformers of 50 embeds). The full-ORCA-conformer mode is a
+  different model and would need its own run. A pass would validate this model for this set only.
+
+No percentage ships until a run on a clean tree, at the commit that merges this file, passes.

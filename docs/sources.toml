@@ -4081,7 +4081,7 @@ citation = "S. A. Trygubenko, T. V. Bogdan, M. Rueda, M. Orozco, F. J. Luque, J.
 identifier_type = "doi"
 identifier = "10.1039/b202156k"
 status = "shipped"
-used_by = ["src/openchem/chem/data/tautomer_validation.json", "src/openchem/chem/tautomer_validation.py", "tools/tautomer_validation.py"]
+used_by = ["src/openchem/chem/data/tautomer_validation.json", "src/openchem/chem/data/tautomer_validation_v2.json", "src/openchem/chem/tautomer_validation.py", "tools/tautomer_validation.py"]
 local = "trygubenko2002.pdf"
 verification = "citation_and_claim"
 verified_date = 2026-10-03
@@ -4108,7 +4108,7 @@ citation = "N. V. Belova, H. Oberhammer, N. H. Trang & G. V. Girichev, 'Tautomer
 identifier_type = "doi"
 identifier = "10.1021/jo402814c"
 status = "shipped"
-used_by = ["src/openchem/chem/data/tautomer_validation.json", "src/openchem/chem/tautomer_validation.py", "tools/tautomer_validation.py"]
+used_by = ["src/openchem/chem/data/tautomer_validation.json", "src/openchem/chem/data/tautomer_validation_v2.json", "src/openchem/chem/tautomer_validation.py", "tools/tautomer_validation.py"]
 local = "belova2014.pdf"
 verification = "citation_and_claim"
 verified_date = 2026-10-03
@@ -4136,7 +4136,7 @@ citation = "G. Fogarasi, 'Studies on tautomerism: Benchmark quantum chemical cal
 identifier_type = "doi"
 identifier = "10.1016/j.molstruc.2010.02.065"
 status = "shipped"
-used_by = ["src/openchem/chem/data/tautomer_validation.json", "src/openchem/chem/tautomer_validation.py", "tools/tautomer_validation.py"]
+used_by = ["src/openchem/chem/data/tautomer_validation.json", "src/openchem/chem/data/tautomer_validation_v2.json", "src/openchem/chem/tautomer_validation.py", "tools/tautomer_validation.py"]
 local = "fogarasi2010.pdf"
 verification = "citation_and_claim"
 verified_date = 2026-10-03
@@ -4163,7 +4163,7 @@ citation = "A. H. Goller, 'Reliable gas-phase tautomer equilibria of drug-like m
 identifier_type = "doi"
 identifier = "10.1007/s10822-022-00480-3"
 status = "shipped"
-used_by = ["src/openchem/chem/data/tautomer_validation.json", "src/openchem/chem/tautomer_validation.py", "tools/tautomer_validation.py"]
+used_by = ["src/openchem/chem/data/tautomer_validation.json", "src/openchem/chem/data/tautomer_validation_v2.json", "src/openchem/chem/tautomer_validation.py", "tools/tautomer_validation.py"]
 local = "goller2022.pdf"
 verification = "citation_and_claim"
 verified_date = 2026-10-03
@@ -4232,13 +4232,12 @@ citation = "R. M. Balabin, 'Tautomeric equilibrium and hydrogen shifts in tetraz
 identifier_type = "doi"
 identifier = "10.1063/1.3249968"
 status = "reference_only"
-used_by = ["benchmarks/tautomer_validation/heldout_manifest_v2.json"]
+used_by = ["benchmarks/tautomer_validation/heldout_manifest_v2.json", "src/openchem/chem/data/tautomer_validation_v2.json"]
 local = "Balabin2009.pdf"
 verification = "citation_and_claim"
 verified_date = 2026-10-03
 reason = """
-REFERENCE FOR TWO HELD-OUT ROWS, NOT YET SHIPPED (the v4 criteria file that will
-carry it does not exist yet). The DOI, title, journal, volume and article number are
+REFERENCE FOR TWO HELD-OUT ROWS of the criteria-v2 preregistration. The DOI, title, journal, volume and article number are
 printed on the file's first page. Table III was read in full: valence focal-point
 analysis, CCSD(T)/CBS with core correction, MP2/aug-cc-pVTZ geometries, energy
 differences relative to the most stable tautomer. The two numbers used are the
@@ -4274,7 +4273,7 @@ citation = "J. Catalan, J. L. G. de Paz & J. Elguero, 'Importance of aromaticity
 identifier_type = "doi"
 identifier = "10.1039/P29960000057"
 status = "reference_only"
-used_by = ["benchmarks/tautomer_validation/heldout_manifest_v2.json"]
+used_by = ["benchmarks/tautomer_validation/heldout_manifest_v2.json", "src/openchem/chem/data/tautomer_validation_v2.json"]
 local = "Catalán1996.pdf"
 verification = "citation_and_claim"
 verified_date = 2026-10-03
@@ -4292,7 +4291,7 @@ citation = "O. O. Brovarets' & D. M. Hovorun, 'Prototropic tautomerism and basic
 identifier_type = "doi"
 identifier = "10.1080/07391102.2012.715041"
 status = "reference_only"
-used_by = ["benchmarks/tautomer_validation/heldout_manifest_v2.json"]
+used_by = ["benchmarks/tautomer_validation/heldout_manifest_v2.json", "src/openchem/chem/data/tautomer_validation_v2.json"]
 local = "Brovarets2013.pdf"
 verification = "citation"
 verified_date = 2026-10-03
@@ -4302,6 +4301,62 @@ MP2/6-311++G(2df,pd)//B3LYP/6-311++G(d,p); the keto-N1H,N7H form is the vacuum g
 minimum, below keto-N1H,N9H, which agrees with Goller's pair. No number was transcribed.
 The volume and page range are not printed in the file's text, so the citation gives the
 online-first date and the DOI (printed in the file) instead of guessing them.
+"""
+
+
+[[source]]
+key = "perry2025"
+kind = "literature"
+citation = "C. J. Perry, S. A. Ramos, M. C. Phelps, L. J. Mueller & G. J. O. Beran, 'Taming Tautomerism in Organic Crystal Structure Prediction', J. Am. Chem. Soc. (2025), author manuscript."
+identifier_type = "doi"
+identifier = "10.1021/jacs.5c08442"
+status = "reference_only"
+used_by = ["src/openchem/chem/data/tautomer_validation_v2.json", "benchmarks/tautomer_validation/method_screen/README.md"]
+local = "Perry2025.pdf"
+verification = "citation"
+verified_date = 2026-10-04
+reason = """
+WHY TWO FUNCTIONALS WERE SCREENED BESIDE M06-2X, NOT A REFERENCE. A gas-phase
+DLPNO-CCSD(T1) benchmark over 18 large drug-like crystal-tautomer systems that finds routine
+GGA and hybrid functionals poor, and names omega-B97M-V and the double hybrid
+revDSD-PBEP86-D4 as the best approximate methods (rms about 3 kJ/mol, up to 7-8). The file
+is an author manuscript: the title, authors and DOI are printed in it, but the volume and
+pages are not, so the citation does not give them. The paper does not mention M06-2X.
+"""
+
+[[source]]
+key = "ganyecz2019"
+kind = "literature"
+citation = "A. Ganyecz, M. Kallay & J. Csontos, 'Thermochemistry of Uracil, Thymine, Cytosine, and Adenine', J. Phys. Chem. A 2019, 123, 4057-4067."
+identifier_type = "doi"
+identifier = "10.1021/acs.jpca.9b02061"
+status = "reference_only"
+used_by = ["src/openchem/chem/data/tautomer_validation_v2.json"]
+local = "ganyecz2019.pdf"
+verification = "citation"
+verified_date = 2026-10-04
+reason = """
+CYTOSINE CORROBORATION, NOT A ROW. Heats of formation by the diet-HEAT-F12 protocol;
+the tautomer study is cytosine only. Adenine appears only as its canonical form, so this
+paper does NOT supply the adenine reference that the held-out manifest lacks. Journal,
+volume, pages and DOI are printed on the file's first page.
+"""
+
+[[source]]
+key = "barone2023"
+kind = "literature"
+citation = "V. Barone, 'DFT Meets Wave-Function Composite Methods for Characterizing Cytosine Tautomers in the Gas Phase', J. Chem. Theory Comput. 2023, 19, 4970-4981."
+identifier_type = "doi"
+identifier = "10.1021/acs.jctc.3c00465"
+status = "reference_only"
+used_by = ["src/openchem/chem/data/tautomer_validation_v2.json"]
+local = "Barone2023.pdf"
+verification = "citation"
+verified_date = 2026-10-04
+reason = """
+CYTOSINE CORROBORATION, NOT A ROW. CCSD(T)-F12/cc-pVTZ-F12 composite results for cytosine
+tautomers and rotamers, relative electronic energies tabulated in cm-1. No number was
+transcribed. Journal, volume, pages and DOI are printed on the file's first page.
 """
 
 
