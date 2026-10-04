@@ -359,9 +359,9 @@ def test_the_result_records_the_search_the_pools_and_the_lowest_for_each_stereoi
     result = build_structure_set_result(outcome, "m", "M062X def2-TZVP", run_id="r", policy=MODEL_POLICY_TOPK)
     params = result.provenance.parameters
 
-    assert params["conformer_search"] == SEARCH_TOPK and params["model_revision"] == 4
+    assert params["conformer_search"] == SEARCH_TOPK and params["model_revision"] == 5
     assert params["model_policy"]["conformer_topk"] == 3
-    assert params["model_version"].startswith("tautomer-boltzmann-v4|")
+    assert params["model_version"].startswith("tautomer-boltzmann-v5|")
     (pool,) = params["conformer_pools"]
     assert pool["selected"] == len(candidates) and pool["distinct"] >= pool["selected"] and pool["truncated"] is False
     assert pool["selected_recipes"] == [c.conformer.recipe_fingerprint for c in candidates]

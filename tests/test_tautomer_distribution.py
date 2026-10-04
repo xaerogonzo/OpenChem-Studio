@@ -28,6 +28,7 @@ from openchem.chem.tautomer_distribution import (
     _enumerate_stereo_classes,
     _fingerprint,
     _mirror_stereo,
+    _tautomer_fingerprint,
     _stereo_class_key,
     build_outcome,
     build_structure_set_result,
@@ -87,6 +88,44 @@ def test_candidate_generation_is_deterministic_across_calls():
 def test_candidates_are_sorted_by_fingerprint_not_enumerator_order():
     candidates, _ = generate_tautomer_candidates(Chem.MolFromSmiles(CYCLOHEXANONE))
     assert [c.fingerprint for c in candidates] == sorted(c.fingerprint for c in candidates)
+
+
+#: Pairs that differ ONLY in which aromatic ring nitrogen carries the hydrogen. Their
+#: kekulize=False molblocks are byte-identical, which is how revision 4 merged them.
+_AZOLE_TAUTOMERS = [
+    ("c1ccc2[nH]ncc2c1", {"c1ccc2[nH]ncc2c1", "c1ccc2n[nH]cc2c1"}),  # indazole, 1H / 2H
+    ("c1nc[nH]n1", {"c1nc[nH]n1", "c1nnc[nH]1"}),  # 1,2,4-triazole, 1H / 4H
+    ("c1c[nH]nn1", {"c1c[nH]nn1", "c1cn[nH]n1"}),  # 1,2,3-triazole, 1H / 2H
+]
+
+
+@pytest.mark.parametrize(("smiles", "tautomers"), _AZOLE_TAUTOMERS)
+def test_azole_tautomers_that_differ_only_in_the_nh_position_are_separate_candidates(smiles, tautomers):
+    """Measured on the revision-4 code: each of these produced ONE candidate, so the app
+    calculated one structure of a two-state system and called it complete. Built through a
+    molblock, the way the app holds a drawing, not from the SMILES directly."""
+    mol = Chem.MolFromMolBlock(Chem.MolToMolBlock(Chem.MolFromSmiles(smiles)))
+    candidates, failures = generate_tautomer_candidates(mol)
+    assert failures == 0
+    assert {Chem.MolToSmiles(Chem.RemoveHs(c.mol)) for c in candidates} == tautomers
+    assert len({c.tautomer_fingerprint for c in candidates}) == len(tautomers)
+    assert len({c.fingerprint for c in candidates}) == len(tautomers)
+
+
+def test_hypoxanthine_keeps_all_eight_states_rdkit_enumerates():
+    """Goller 2022 enumerates eight hypoxanthine states and so does RDKit; revision 4 kept three."""
+    mol = Chem.MolFromMolBlock(Chem.MolToMolBlock(Chem.MolFromSmiles("O=c1[nH]cnc2nc[nH]c12")))
+    candidates, _ = generate_tautomer_candidates(mol)
+    assert len({c.tautomer_fingerprint for c in candidates}) == 8
+
+
+def test_the_tautomer_fingerprint_sees_what_a_molblock_cannot():
+    one = Chem.MolFromSmiles("c1ccc2[nH]ncc2c1")
+    two = Chem.MolFromSmiles("c1ccc2n[nH]cc2c1")
+    # Not a statement about RDKit's coordinates: the two molblocks carry no hydrogen count.
+    assert Chem.MolToMolBlock(one, kekulize=False).split("\n", 3)[3] == Chem.MolToMolBlock(two, kekulize=False).split("\n", 3)[3]
+    assert _tautomer_fingerprint(one) != _tautomer_fingerprint(two)
+    assert _tautomer_fingerprint(one) == _tautomer_fingerprint(Chem.MolFromSmiles("c1ccc2[nH]ncc2c1"))
 
 
 def test_fingerprint_is_stable_for_the_same_molblock():
@@ -776,7 +815,7 @@ def test_the_policy_serializes_in_one_fixed_order_and_is_immutable():
     with pytest.raises(Exception):  # noqa: B017 - FrozenInstanceError
         MODEL_POLICY.stereo_cap = 99
     assert model_version("a", "b", 1.0).startswith(f"tautomer-boltzmann-v{TAUTOMER_MODEL_REVISION}|")
-    assert TAUTOMER_MODEL_REVISION == 4
+    assert TAUTOMER_MODEL_REVISION == 5
 
 
 def test_the_assumptions_state_unit_degeneracy_and_the_lowest_representative_rule():
@@ -794,14 +833,14 @@ def test_the_result_carries_the_policy_the_reference_and_the_search_facts():
         outcome, "m", "HF STO-3G", run_id="r", policy=MODEL_POLICY_SINGLE
     ).provenance.parameters
 
-    assert params["model_revision"] == 4
+    assert params["model_revision"] == 5
     assert params["model_policy"]["conformer_search"] == "single"
     assert params["model_policy"]["stereo_cap"] == 8
     assert params["energy_reference"] == "global_minimum"
     assert params["stereo_enumeration_cap"] == 8 and params["stereo_enumeration_truncated"] == 0
     assert params["stereo_search"] is True
     assert params["tautomer_count"] == 1 and params["candidate_count_expected"] == 2
-    assert params["model_version"].startswith("tautomer-boltzmann-v4|")
+    assert params["model_version"].startswith("tautomer-boltzmann-v5|")
 
 
 # --- the result as a table (the survey's item 7) ------------------------------------
