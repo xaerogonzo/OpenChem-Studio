@@ -8,7 +8,7 @@ the ones that turned out not to answer it**, with what it was read for, how deep
 It is hand-edited and checked by nothing, on purpose: a negative result ("this paper is not an energy
 source") is exactly what a guard on `used_by` cannot hold. Where a paper IS in the registry its `key`
 is given and the registry entry is authoritative for the citation. Identity details below are the ones
-printed in the file itself; where a file prints less (a scan, an author manuscript) this says so rather
+printed in the file itself (DOIs are deliberately not repeated here: the DOI guard requires every DOI in a tracked document to be in the registry, and this log is for papers that are not); where a file prints less (a scan, an author manuscript) this says so rather
 than filling the gap. Files are in Alex's `Sci Downloads`.
 
 **Read depth** is stated per entry: *full* (read through for the claim), *tables* (the relevant tables
@@ -46,11 +46,11 @@ read), *identity + abstract* (first pages only: do not treat the verdict as more
 | `cox1990.pdf` | 1,2,3- and 1,2,4-triazole tautomerism, gas phase and aqueous (J. Phys. Chem. 94, 5499) | triazole gas-phase energies | abstract confirmed this session; earlier reading not recorded | MP2/6-31G**//3-21G **with zero-point effects**: not the electronic quantity; corroboration of which tautomer is lower |
 | `davarski1998.pdf` | Quantum-chemical study of 1,2,3- and 1,2,4-triazoles (Chem. Heterocycl. Compd. 34, no. 5) | triazole energies | abstract confirmed this session; earlier reading not recorded | semiempirical and MP2: not coupled cluster; agrees on 2H-1,2,3 and 1H-1,2,4 being more stable |
 | `anandan2004.pdf` | Five tautomeric forms of indazole, MP2/B3LYP/B3PW91 6-311G(2d,2p) (J. Mol. Struct. THEOCHEM) | indazole | abstract confirmed this session; earlier reading not recorded | not coupled cluster: fails the selection rule |
-| `Kim2007.pdf` | Adenine 9H to 7H and 9H to 3H tautomerization facilitated by water (J. Phys. Chem. A, DOI 10.1021/jp074229d) | adenine tautomer energies | identity + abstract | a microsolvation barrier study, not a gas-phase electronic-energy reference |
-| `Claramunt2024.pdf`, `Claramunt2024_si.pdf` | Addition of azoles to acetone-d6, NMR and computation (DOI 10.1002/poc.4612) | triazole corroboration | read in an earlier session; the quoted figures are from that reading | cites 26.1 kJ/mol CCSD(T)/cc-pCVTZ for 4H-1,2,4-triazole (matching Balabin's 6.25 kcal/mol) and 15.9 kJ/mol for 1,2,3-triazole **including ZPVE**: corroboration only |
-| `Rybczyński2023.pdf`, `Rybczyński2023_si/` | Tautomeric equilibrium in 1-benzamidoisoquinoline derivatives, Molecules 28, 1101 (DOI 10.3390/molecules28031101) | whether DLPNO-CCSD(T) reorders DFT | skimmed in an earlier session | DMSO solution, wB97X-D/def2-TZVP; only the methodological point. Not a reference |
-| `alkorta2022.pdf` | NH-indazoles with formaldehyde in HCl, NMR and crystallography (J. Org. Chem. 87, 5866; DOI 10.1021/acs.joc.2c00154) | an indazole energy | **identity + abstract only** | a reaction-mechanism study, not a tautomer-energy source: nothing used |
-| `kim2008.pdf` | Densities of solid energetic molecules from surface electrostatic potentials (J. Comput. Chem., DOI 10.1002/jcc.20943) | (it was suggested as a "Kim" tautomer paper) | identity | **not a tautomer paper at all**; unrelated to this work |
+| `Kim2007.pdf` | Adenine 9H to 7H and 9H to 3H tautomerization facilitated by water (J. Phys. Chem. A) | adenine tautomer energies | identity + abstract | a microsolvation barrier study, not a gas-phase electronic-energy reference |
+| `Claramunt2024.pdf`, `Claramunt2024_si.pdf` | Addition of azoles to acetone-d6, NMR and computation | triazole corroboration | read in an earlier session; the quoted figures are from that reading | cites 26.1 kJ/mol CCSD(T)/cc-pCVTZ for 4H-1,2,4-triazole (matching Balabin's 6.25 kcal/mol) and 15.9 kJ/mol for 1,2,3-triazole **including ZPVE**: corroboration only |
+| `Rybczyński2023.pdf`, `Rybczyński2023_si/` | Tautomeric equilibrium in 1-benzamidoisoquinoline derivatives, Molecules 28, 1101 | whether DLPNO-CCSD(T) reorders DFT | skimmed in an earlier session | DMSO solution, wB97X-D/def2-TZVP; only the methodological point. Not a reference |
+| `alkorta2022.pdf` | NH-indazoles with formaldehyde in HCl, NMR and crystallography (J. Org. Chem. 87, 5866) | an indazole energy | **identity + abstract only** | a reaction-mechanism study, not a tautomer-energy source: nothing used |
+| `kim2008.pdf` | Densities of solid energetic molecules from surface electrostatic potentials (J. Comput. Chem.) | (it was suggested as a "Kim" tautomer paper) | identity | **not a tautomer paper at all**; unrelated to this work |
 
 ## How to use this
 
