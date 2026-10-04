@@ -4225,6 +4225,85 @@ declared electronic quantity. DOI, title, authors, journal, volume and article n
 were read off the file's own first pages.
 """
 
+[[source]]
+key = "balabin2009"
+kind = "literature"
+citation = "R. M. Balabin, 'Tautomeric equilibrium and hydrogen shifts in tetrazole and triazoles: Focal-point analysis and ab initio limit', J. Chem. Phys. 131, 154307 (2009)."
+identifier_type = "doi"
+identifier = "10.1063/1.3249968"
+status = "reference_only"
+used_by = ["benchmarks/tautomer_validation/heldout_manifest_v2.json"]
+local = "Balabin2009.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-03
+reason = """
+REFERENCE FOR TWO HELD-OUT ROWS, NOT YET SHIPPED (the v4 criteria file that will
+carry it does not exist yet). The DOI, title, journal, volume and article number are
+printed on the file's first page. Table III was read in full: valence focal-point
+analysis, CCSD(T)/CBS with core correction, MP2/aug-cc-pVTZ geometries, energy
+differences relative to the most stable tautomer. The two numbers used are the
+bracketed CBS finals, 3.98 kcal/mol for 1H-1,2,3-triazole above 2H and 6.25 kcal/mol for
+4H-1,2,4-triazole above 1H. The 3.98 also equals Goller 2022's implied gas value for
+the same pair (2.93 + 1.05), which is what identifies Goller's printed 4.36 as the typo.
+"""
+
+[[source]]
+key = "hanus2004"
+kind = "literature"
+citation = "M. Hanus, M. Kabelac, J. Rejnek, F. Ryjacek & P. Hobza, 'Correlated ab Initio Study of Nucleic Acid Bases and Their Tautomers in the Gas Phase, in a Microhydrated Environment, and in Aqueous Solution. Part 3. Adenine', J. Phys. Chem. B 108, 2087-2097 (2004)."
+identifier_type = "doi"
+identifier = "10.1021/jp036090m"
+status = "reference_only"
+used_by = ["benchmarks/tautomer_validation/heldout_manifest_v2.json"]
+local = "hanus2004.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-03
+reason = """
+WHY ADENINE IS NOT A HELD-OUT ROW. Table 1 gives 7H-adenine 7.63 kcal/mol above 9H at
+RI-MP2/TZVPP (electronic, gas; zero-point is a separate column), and the authors argue
+higher-order correlation is negligible. That is a careful MP2 value, not a
+coupled-cluster one, so it fails the frozen selection rule's first criterion and is
+recorded only as corroboration. Title, authors, journal, volume and pages were read off
+the file's first page.
+"""
+
+[[source]]
+key = "catalan1996"
+kind = "literature"
+citation = "J. Catalan, J. L. G. de Paz & J. Elguero, 'Importance of aromaticity on the relative stabilities of indazole annular tautomers: an ab initio study', J. Chem. Soc., Perkin Trans. 2, 57 (1996)."
+identifier_type = "doi"
+identifier = "10.1039/P29960000057"
+status = "reference_only"
+used_by = ["benchmarks/tautomer_validation/heldout_manifest_v2.json"]
+local = "Catalán1996.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-03
+reason = """
+LOW-LEVEL CORROBORATION FOR INDAZOLE. MP2/6-31G** puts 1H-indazole 3.6 kcal/mol below
+2H (abstract); the 4.08 in its Table 2 is the thermochemical value and is deliberately not
+used, since it includes thermal terms. The DOI is printed on the file; the last page of
+the article was not read off the file.
+"""
+
+[[source]]
+key = "brovarets2013"
+kind = "literature"
+citation = "O. O. Brovarets' & D. M. Hovorun, 'Prototropic tautomerism and basic molecular principles of hypoxanthine mutagenicity: an exhaustive quantum-chemical analysis', J. Biomol. Struct. Dyn. (first published online 10 September 2012)."
+identifier_type = "doi"
+identifier = "10.1080/07391102.2012.715041"
+status = "reference_only"
+used_by = ["benchmarks/tautomer_validation/heldout_manifest_v2.json"]
+local = "Brovarets2013.pdf"
+verification = "citation"
+verified_date = 2026-10-03
+reason = """
+ORDERING-ONLY CORROBORATION FOR HYPOXANTHINE. 21 planar tautomers at
+MP2/6-311++G(2df,pd)//B3LYP/6-311++G(d,p); the keto-N1H,N7H form is the vacuum global
+minimum, below keto-N1H,N9H, which agrees with Goller's pair. No number was transcribed.
+The volume and page range are not printed in the file's text, so the citation gives the
+online-first date and the DOI (printed in the file) instead of guessing them.
+"""
+
 
 # =============================================================================
 # Datasets
