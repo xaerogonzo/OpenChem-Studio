@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Tautomer validation: the held-out manifest, frozen before v4 exists
+
+- **`benchmarks/tautomer_validation/heldout_manifest_v2.json`**: indazole, hypoxanthine, 1,2,3-triazole and 1,2,4-triazole, selected by a written rule that never looks at any model's behaviour, pinned by hash (`tests/test_tautomer_heldout_manifest.py`). Göller 2022's Table 1 fails its own gas/water/delta check for adenine and 1,2,3-triazole, so adenine is excluded and the 1,2,3-triazole reference is Balabin 2009's CCSD(T)/CBS 3.98 kcal/mol (which equals the value Göller's own delta column implies). The SI's structure names fixed a mis-read of the scheme drawing for 1,2,4-triazole. Four sources registered.
+
 ### Survey items 3-7: IR export, chart zoom, table export, tautomer table
 
 - **IR JCAMP-DX export** (`chem/ir_export.py`, an **Export JCAMP-DX...** button on the IR view): the predicted bands as a labelled peak table (wavenumber, km/mol), predicted and harmonic, with the frequency scaling and any imaginary modes named and the imaginary ones left out. A peak table and not a broadened trace, because the viewer applies no lineshape; this application's own overlay import refuses peak tables by design, so the file is for other tools.
