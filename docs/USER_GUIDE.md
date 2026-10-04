@@ -1616,9 +1616,9 @@ jobs it is about to queue.
 
 The result is a **gas-phase electronic-energy Boltzmann population
 estimate**, not a full equilibrium probability: it has no vibrational,
-thermal, entropic, or solvent correction, and uses one optimized geometry
-per tautomer rather than searching each tautomer's own conformers. A
-population percentage is only shown once this has been checked against
+thermal, entropic, or solvent correction, and each tautomer is represented by
+the lowest of a SAMPLED conformer search (see below), not an exhaustive one.
+A population percentage is only shown once this has been checked against
 published reference data for its exact method, basis, and weighting —
 until then, each candidate's real relative energy is still shown, just
 not a population built from it, so you always see the real numbers
@@ -1649,6 +1649,23 @@ not known, so no population percentages are shown and the energies are
 labelled "lowest successful stereoisomer found" rather than "lowest-energy
 stereoisomer". The same wording applies if one stereoisomer's job fails.
 You are asked before anything runs if a tautomer will be truncated.
+
+**Conformers are searched, and the search is a model choice.** A tautomer's
+energy is only as good as the geometries tried: optimizing one embedded start
+geometry put acetylacetone's enol 14.7 kcal/mol too high, because that start
+had the O-H pointing away from the carbonyl and the optimizer stayed there. So
+each stereoisomer now gets 50 embedded conformers, scored with a force field
+(MMFF94, UFF where MMFF has no parameters) and reduced to the distinct ones,
+and the **three lowest** are optimized with ORCA. Tick **Full ORCA
+conformers** to optimize every distinct conformer of that sampled pool (up to
+10 per stereoisomer) instead. Neither is an exhaustive conformational search,
+so the result says "lowest calculated conformer", never "lowest-energy
+conformer". The two settings are **different scientific models**: each has its
+own model version and would need its own validation before showing a
+percentage. A tautomer is complete when every conformer the setting selected
+succeeded; choosing three of ten is the model, not a truncation, but a pool
+cut at the cap in full mode makes the tautomer incomplete. The confirmation
+names the job count, which is now tautomers x stereoisomers x conformers.
 
 **RDKit's own ordering, and how it compares.** The RDKit **Tautomers** list
 (no ORCA needed) is ordered by RDKit's heuristic preference score, shown as

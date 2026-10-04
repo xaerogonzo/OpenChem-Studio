@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from openchem.app.settings import Settings
 from openchem.chem.engine import ChemistryEngine
 from openchem.chem.orca_engine import NMR_METHOD_BASIS
@@ -236,7 +238,13 @@ def test_the_confirmation_names_the_jobs_and_the_tautomers(monkeypatch):
 
     panel._on_tautomer_distribution_clicked()
 
-    assert "2 real ORCA geometry optimizations for 2 tautomer(s)" in asked[0]
+    # The JOB count depends on the conformer search; the tautomer and stereoisomer
+    # counts, and the named model, are what the user is told alongside it.
+    assert re.search(
+        r"This will run \d+ real ORCA geometry optimizations for 2 tautomer\(s\) and 2 stereoisomer\(s\)",
+        asked[0],
+    )
+    assert "conformer search mmff_topk" in asked[0]
     assert "exceed the stereoisomer cap" not in asked[0]
 
 
@@ -256,7 +264,9 @@ def test_the_confirmation_warns_before_a_truncated_tautomer_is_run(monkeypatch):
     monkeypatch.setattr(
         panel_module,
         "generate_tautomer_candidates",
-        lambda mol: real(engine.mol_from_smiles("CC(O)C(C)O"), stereo_cap=1),
+        lambda mol, policy=None: real(
+            engine.mol_from_smiles("CC(O)C(C)O"), stereo_cap=1, policy=td.MODEL_POLICY_SINGLE
+        ),
     )
     asked = []
     monkeypatch.setattr(
@@ -2255,3 +2265,69 @@ def test_the_tautomer_dialog_exports_the_result_it_shows_as_csv(qapp, tmp_path, 
         dialog.close()
     finally:
         _dispose_panel(panel)
+
+
+# --- the conformer-search setting (model revision 4) -----------------------------------
+
+
+def _run_tautomers(monkeypatch, full: bool):
+    from openchem.chem import tautomer_distribution as td
+
+    panel, engine, service = _make_panel()
+    project = ProjectModel(name="Test")
+    project.molecules.append(_cyclohexanone_molecule(engine))
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+    panel._method_combo.setCurrentText("HF STO-3G")
+    panel._tautomer_full_check.setChecked(full)
+    panel._on_tautomer_distribution_clicked()
+    return panel, service, td
+
+
+def test_the_full_orca_conformers_box_is_off_by_default_and_runs_the_top_k_model(monkeypatch):
+    panel, service, td = _run_tautomers(monkeypatch, full=False)
+
+    assert panel._tautomer_full_check.text() == "Full ORCA conformers"
+    request = service.tautomer_distribution_requests[0]
+    assert request["policy"] is td.MODEL_POLICY_TOPK
+    assert all(c.conformer.search == "mmff_topk" for c in request["candidates"])
+
+
+def test_ticking_full_orca_conformers_runs_the_other_model_and_remembers_the_choice(monkeypatch):
+    panel, service, td = _run_tautomers(monkeypatch, full=True)
+
+    request = service.tautomer_distribution_requests[0]
+    assert request["policy"] is td.MODEL_POLICY_FULL
+    assert all(c.conformer.search == "full_orca" for c in request["candidates"])
+    assert panel._stored_tautomer_full_mode() is True
+
+
+def test_the_two_settings_name_different_model_versions(monkeypatch):
+    from openchem.chem.tautomer_distribution import model_version
+
+    _panel, top_service, td = _run_tautomers(monkeypatch, full=False)
+    _panel2, full_service, _td = _run_tautomers(monkeypatch, full=True)
+    top = top_service.tautomer_distribution_requests[0]["policy"]
+    full = full_service.tautomer_distribution_requests[0]["policy"]
+
+    assert model_version("M062X def2-TZVP", "ETKDGv3", 298.15, top) != model_version(
+        "M062X def2-TZVP", "ETKDGv3", 298.15, full
+    )
+
+
+def test_the_summary_names_the_conformer_search_and_says_it_is_not_exhaustive():
+    from openchem.chem import tautomer_distribution as td
+    from rdkit import Chem
+
+    candidates, _ = td.generate_tautomer_candidates(Chem.MolFromSmiles("CCCCO"))
+    outcome = td.build_outcome(
+        [
+            td.CandidateResult.for_candidate(c, "", td.CandidateStatus.SUCCEEDED, absolute_energy_hartree=-100.0 - 0.001 * i)
+            for i, c in enumerate(candidates)
+        ]
+    )
+    result = td.build_structure_set_result(outcome, "m", "M062X def2-TZVP", run_id="r")
+
+    text = QuantumChemistryPanel._tautomer_distribution_summary(result)
+
+    assert "Conformer search: MMFF top-3 of" in text and "not exhaustive" in text

@@ -12,6 +12,7 @@ from rdkit import Chem
 
 from openchem.chem.structure_generators import enumerate_tautomers
 from openchem.chem.tautomer_distribution import (
+    MODEL_POLICY_SINGLE,
     CandidateResult,
     CandidateStatus,
     build_outcome,
@@ -166,7 +167,9 @@ def _outcome(smiles, energies_by_tautomer_rank):
     """Real candidates; `energies_by_tautomer_rank` are Hartree OFFSETS above
     -100.0, indexed by distinct RDKit score best first, so a bigger offset is
     a LESS stable tautomer."""
-    candidates, _ = generate_tautomer_candidates(Chem.MolFromSmiles(smiles))
+    # One start geometry per stereo class: this file is about the tautomer-level
+    # comparison, not about conformer counts.
+    candidates, _ = generate_tautomer_candidates(Chem.MolFromSmiles(smiles), policy=MODEL_POLICY_SINGLE)
     scores = sorted({c.rdkit_score for c in candidates}, reverse=True)
     results = []
     for candidate in candidates:

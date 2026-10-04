@@ -397,6 +397,7 @@ CALC_TYPE_LABELS = {
 METHOD_BASIS_PRESETS = [
     "B3LYP def2-SVP",
     "PBE0 def2-TZVP",
+    "M062X def2-TZVP",
     "B3LYP 6-31G(d)",
     "B3LYP pcSseg-1",
     "B3LYP pcSseg-2",
