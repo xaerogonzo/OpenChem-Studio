@@ -2,11 +2,12 @@
 and population estimation from ORCA-computed electronic energies.
 
 **What this is, precisely.** A gas-phase electronic-energy Boltzmann
-population ESTIMATE over one optimized minimum per enumerated tautomer --
-not a full equilibrium probability model. There is no vibrational, thermal,
-or entropic correction, no solvent model, and no per-tautomer conformer
-search (one deterministically-seeded embedded starting geometry, one
-optimization, one minimum). `enumerate_tautomers`
+population ESTIMATE over the lowest calculated minimum of each enumerated
+tautomer -- not a full equilibrium probability model. There is no vibrational,
+thermal, or entropic correction and no solvent model. Since model revision 4 each
+stereoisomer gets a SAMPLED conformer search (`chem/tautomer_conformers.py`), not
+an exhaustive one; revision 3 optimized one embedded start geometry, which put
+acetylacetone's enol 14.7 kcal/mol too high. `enumerate_tautomers`
 (`chem/structure_generators.py`) already flags one tautomer "(canonical)"
 using RDKit's own internal empirical scoring rules -- useful, but not a
 probability, not an energy, and not validated against anything. This module
@@ -35,6 +36,14 @@ from rdkit.Chem.EnumerateStereoisomers import EnumerateStereoisomers, StereoEnum
 from rdkit.Chem.MolStandardize import rdMolStandardize
 
 from openchem.chem.boltzmann import STANDARD_TEMPERATURE_K, boltzmann_weights
+from openchem.chem.conformer_providers import DEFAULT_ENERGY_WINDOW, DEFAULT_RMS_THRESHOLD
+from openchem.chem.tautomer_conformers import (
+    SEARCH_FULL,
+    SEARCH_SINGLE,
+    SEARCH_TOPK,
+    build_pool,
+    etkdg_signature,
+)
 from openchem.chem.tautomer_ranking import RDKIT_VERSION, cross_check, score_tautomer
 from openchem.domain.common import Provenance
 from openchem.domain.scientific_result import StructureEntry, StructureSetResult
@@ -74,8 +83,9 @@ MAX_STEREOISOMERS_PER_TAUTOMER = 8
 #: Generation of the algorithm/schema (what a result's structure means).
 #: Distinct from `ModelPolicy`, which is the exact configuration: a change to
 #: how the stereo search works bumps this even if every policy value is kept.
-#: Revision 2 was #177's pinned single configuration; 3 enumerates.
-TAUTOMER_MODEL_REVISION = 3
+#: Revision 2 was #177's pinned single configuration; 3 enumerates stereoisomers;
+#: 4 adds a conformer search per stereo class (`chem.tautomer_conformers`).
+TAUTOMER_MODEL_REVISION = 4
 
 
 @dataclass(frozen=True)
@@ -107,6 +117,31 @@ class ModelPolicy:
     state_degeneracy: str = "unit"
     #: No population is shown over an incomplete set.
     incomplete_population_policy: str = "withhold"
+    #: How a stereo class's start geometries are chosen: one embedded geometry
+    #: (`single`, what revision 3 computed), the `topk` lowest distinct MMFF
+    #: conformers (`mmff_topk`), or every retained conformer of the sampled, pruned
+    #: pool up to `conformer_cap` (`full_orca`, NOT exhaustive enumeration).
+    conformer_search: str = SEARCH_TOPK
+    #: Embedding engine and release: ETKDG, the force fields and their ordering are
+    #: implementation-defined, so a different RDKit is a different pool.
+    conformer_engine: str = f"rdkit-{RDKIT_VERSION}-etkdgv3"
+    #: The EFFECTIVE embedding parameters (`tautomer_conformers.etkdg_signature`).
+    conformer_embed_params: str = etkdg_signature()
+    #: Embedding attempts per stereo class.
+    conformer_embeds: int = 50
+    #: Conformers sent to ORCA per stereo class under `mmff_topk`.
+    conformer_topk: int = 3
+    #: Hard cap per stereo class under `full_orca`; above it the class is truncated.
+    conformer_cap: int = 10
+    #: Distinctness: heavy atoms plus polar hydrogens, symmetry-aware, with the
+    #: energy veto, exactly `conformer_providers.distinct_conformers`.
+    conformer_prune: str = (
+        f"distinct_conformers(skeleton_polar_h,rms={DEFAULT_RMS_THRESHOLD},window={DEFAULT_ENERGY_WINDOW})"
+    )
+    #: Scoring rule for the pool. A RULE, so the model says what happens where MMFF
+    #: has no parameters instead of that being a runtime surprise.
+    conformer_prefilter: str = "mmff94_with_uff_fallback"
+    conformer_prefilter_max_iters: int = 2000
 
     def canonical(self) -> str:
         """One deterministic serialization (declaration order), so equal
@@ -114,8 +149,23 @@ class ModelPolicy:
         return ";".join(f"{f.name}={getattr(self, f.name)}" for f in fields(self))
 
 
-#: The policy every result is computed under; `model_version` is built from it.
-MODEL_POLICY = ModelPolicy()
+#: The policies a result can be computed under. Frozen and fixed: choosing between
+#: them is a setting, mutating one is not possible. **They are different SCIENTIFIC
+#: MODELS** (`model_version` differs), so each needs its own validation record
+#: before it may show a percentage; the full mode never inherits the top-K one.
+MODEL_POLICY_TOPK = ModelPolicy()
+#: Every distinct conformer of the sampled pool is optimized, up to the cap.
+MODEL_POLICY_FULL = ModelPolicy(conformer_search=SEARCH_FULL)
+#: Revision 3's behaviour (one embedded start geometry per stereo class), kept so
+#: its results stay interpretable and its tests stay honest.
+MODEL_POLICY_SINGLE = ModelPolicy(conformer_search=SEARCH_SINGLE)
+#: The policy every result is computed under unless one is passed.
+MODEL_POLICY = MODEL_POLICY_TOPK
+
+
+def policy_for_mode(full_orca: bool) -> ModelPolicy:
+    """The policy the "Full ORCA conformer optimization" setting selects."""
+    return MODEL_POLICY_FULL if full_orca else MODEL_POLICY_TOPK
 
 
 def model_assumptions(policy: ModelPolicy = MODEL_POLICY) -> tuple[str, ...]:
@@ -137,6 +187,25 @@ def model_assumptions(policy: ModelPolicy = MODEL_POLICY) -> tuple[str, ...]:
         f"At most {policy.stereo_cap} unique stereoisomers are calculated per tautomer; beyond "
         "that the tautomer uses one fallback configuration and the result is marked incomplete."
     )
+    if policy.conformer_search == SEARCH_SINGLE:
+        out.append(
+            "One embedded start geometry is optimized per stereoisomer; no conformer search was "
+            "done, so a tautomer's rotamers are not explored."
+        )
+    elif policy.conformer_search == SEARCH_TOPK:
+        out.append(
+            f"Conformer search: {policy.conformer_embeds} ETKDG conformers per stereoisomer are "
+            f"scored with a force field and reduced to the distinct set; the {policy.conformer_topk} "
+            "lowest are optimized with ORCA. This is a sampled search, not exhaustive: a tautomer "
+            "is complete when every conformer the policy selected succeeded."
+        )
+    elif policy.conformer_search == SEARCH_FULL:
+        out.append(
+            f"Conformer search: {policy.conformer_embeds} ETKDG conformers per stereoisomer are "
+            f"scored with a force field and reduced to the distinct set; every one, up to "
+            f"{policy.conformer_cap}, is optimized with ORCA. This is every conformer of the "
+            "sampled pool, not exhaustive enumeration; beyond the cap the tautomer is incomplete."
+        )
     if policy.incomplete_population_policy == "withhold":
         out.append("No population is shown when any tautomer is incomplete.")
     return tuple(out)
@@ -187,6 +256,40 @@ class StereoStatus:
 
 
 @dataclass(frozen=True)
+class ConformerStatus:
+    """What the conformer search did for one candidate's STEREO CLASS, and which
+    conformer this candidate is. Facts about how the search went: completeness is
+    still read only from `TautomerState`.
+
+    The default is the revision-3 situation (one embedded geometry, no search).
+    """
+
+    #: `tautomer_conformers.SEARCH_*`: the policy this candidate was made under.
+    search: str = SEARCH_SINGLE
+    #: Position among the SELECTED conformers (lowest prefilter energy first),
+    #: assigned after selection. Presentation only, never identity.
+    index: int = 0
+    #: Identity: how this conformer was made (`tautomer_conformers.recipe_fingerprint`).
+    recipe_fingerprint: str = ""
+    #: The stereo class this conformer belongs to (the revision-3 candidate fingerprint).
+    stereo_fingerprint: str = ""
+    seed: int = 0
+    #: Per STEREO CLASS, never per tautomer.
+    generated: int = 1
+    distinct: int = 1
+    selected: int = 1
+    #: `full_orca` only: more distinct conformers than the cap.
+    truncated: bool = False
+    #: The force field that scored the pool (`mmff94` / `uff`); empty without a search.
+    prefilter: str = ""
+    prefilter_energy_kcal: float | None = None
+    prefilter_ok: int = 0
+    prefilter_failed: int = 0
+    retained_recipes: tuple[str, ...] = ()
+    selected_recipes: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class TautomerCandidate:
     """One stereo-specified candidate of one enumerated tautomer,
     deduplicated, embedded in 3D, ready for a geometry-optimization QC job.
@@ -211,6 +314,7 @@ class TautomerCandidate:
     #: (`chem.tautomer_ranking`). Informational only: it never feeds a
     #: population, an energy or the validation gate.
     rdkit_score: float | None = None
+    conformer: ConformerStatus = field(default_factory=ConformerStatus)
 
 
 def _stereo_elements(mol: Chem.Mol) -> tuple[list[int], list[int], int]:
@@ -382,12 +486,17 @@ def generate_tautomer_candidates(
     mol: Chem.Mol,
     max_tautomers: int = DEFAULT_MAX_CANDIDATES,
     base_seed: int = 0,
-    stereo_cap: int = MODEL_POLICY.stereo_cap,
+    stereo_cap: int | None = None,
+    policy: ModelPolicy = MODEL_POLICY,
 ) -> tuple[list[TautomerCandidate], int]:
     """Enumerates, deduplicates, deterministically orders, and embeds every
     tautomer RDKit's standardizer can reach from `mol` -- and, for each
     tautomer, every unique stereoisomer of the elements the structure leaves
     unspecified (up to `stereo_cap`; see `_enumerate_stereo_classes`).
+
+    `policy` decides the conformer search (`chem.tautomer_conformers`): each stereo
+    class yields one candidate under `single`, or one per SELECTED conformer under
+    `mmff_topk` / `full_orca`, so the number of candidates is the number of ORCA jobs.
 
     Returns `(candidates, embedding_failures)`. A candidate whose 3D
     embedding fails is dropped and counted, never silently merged into the
@@ -403,6 +512,10 @@ def generate_tautomer_candidates(
     must stay unchanged for its own existing callers/tests -- this needs
     raw, 3D-embeddable `Chem.Mol` objects instead.
     """
+    # An explicit `stereo_cap` overrides the policy's for a test that needs a tiny
+    # cap; a result computed that way does not match its model version, which is
+    # why production code passes only `policy`.
+    stereo_cap = policy.stereo_cap if stereo_cap is None else stereo_cap
     enumerator = rdMolStandardize.TautomerEnumerator()
     enumerator.SetMaxTautomers(max_tautomers)
     tautomers = list(enumerator.Enumerate(mol))
@@ -425,29 +538,78 @@ def generate_tautomer_candidates(
         # class standing for an enantiomer pair keeps the structure AS DRAWN:
         # showing one enantiomer would name a compound nobody specified.
         show_wedges = search.unspecified and (len(search.classes) > 1 or search.truncated)
-        embedded_here: list[tuple[str, Chem.Mol, int, str, int, bool]] = []
+        #: `(job fingerprint, embedded mol, seed, display, stereo index, merged, conformer)`
+        embedded_here: list[tuple[str, Chem.Mol, int, str, int, bool, ConformerStatus]] = []
         failed_here = 0
         for stereo_index, (isomer, merged) in enumerate(search.classes):
-            # Seed stable per (tautomer position, class index): adding a
-            # tautomer elsewhere does not move this candidate's start geometry.
-            embedded, seed = _embed_candidate(
-                isomer, base_seed, tautomer_index * (stereo_cap + 1) + stereo_index
+            position = tautomer_index * (stereo_cap + 1) + stereo_index
+            stereo_fingerprint = _candidate_fingerprint(
+                tautomer_fingerprint, tautomer, isomer, search.unspecified
             )
-            if embedded is None:
+            display = _display_molblock(isomer if show_wedges else tautomer)
+            if policy.conformer_search == SEARCH_SINGLE:
+                # Seed stable per (tautomer position, class index): adding a
+                # tautomer elsewhere does not move this candidate's start geometry.
+                embedded, seed = _embed_candidate(isomer, base_seed, position)
+                if embedded is None:
+                    failed_here += 1
+                    embedding_failures += 1
+                    continue
+                embedded_here.append(
+                    (stereo_fingerprint, embedded, seed, display, stereo_index, merged, ConformerStatus())
+                )
+                continue
+            # +1: a pool seeded with 0 returns N IDENTICAL conformers (measured).
+            pool_seed = 1 + base_seed + position
+            pool = build_pool(
+                isomer,
+                stereo_fingerprint=stereo_fingerprint,
+                seed=pool_seed,
+                search=policy.conformer_search,
+                embeds=policy.conformer_embeds,
+                topk=policy.conformer_topk,
+                cap=policy.conformer_cap,
+                rms_threshold=DEFAULT_RMS_THRESHOLD,
+                energy_window=DEFAULT_ENERGY_WINDOW,
+                max_iters=policy.conformer_prefilter_max_iters,
+                embed_policy=policy.canonical(),
+            )
+            if not pool.selected:
+                # No usable conformer: the class is dropped and counted exactly as
+                # an embedding failure is, which makes its tautomer INCOMPLETE.
                 failed_here += 1
                 embedding_failures += 1
                 continue
-            embedded_here.append(
-                (
-                    _candidate_fingerprint(tautomer_fingerprint, tautomer, isomer, search.unspecified),
-                    embedded,
-                    seed,
-                    _display_molblock(isomer if show_wedges else tautomer),
-                    stereo_index,
-                    merged,
+            for member_index, member in enumerate(pool.selected):
+                status = ConformerStatus(
+                    search=policy.conformer_search,
+                    index=member_index,
+                    recipe_fingerprint=member.recipe_fingerprint,
+                    stereo_fingerprint=stereo_fingerprint,
+                    seed=pool.seed,
+                    generated=pool.produced,
+                    distinct=pool.distinct,
+                    selected=len(pool.selected),
+                    truncated=pool.truncated,
+                    prefilter=pool.prefilter,
+                    prefilter_energy_kcal=member.prefilter_energy,
+                    prefilter_ok=pool.prefilter_ok,
+                    prefilter_failed=pool.prefilter_failed,
+                    retained_recipes=pool.retained_recipes,
+                    selected_recipes=pool.selected_recipes,
                 )
-            )
-        for fingerprint, embedded, seed, display, stereo_index, merged in embedded_here:
+                embedded_here.append(
+                    (
+                        _fingerprint(stereo_fingerprint + "|conformer|" + member.recipe_fingerprint),
+                        member.mol,
+                        pool.seed,
+                        display,
+                        stereo_index,
+                        merged,
+                        status,
+                    )
+                )
+        for fingerprint, embedded, seed, display, stereo_index, merged, conformer in embedded_here:
             candidates.append(
                 TautomerCandidate(
                     fingerprint=fingerprint,
@@ -456,6 +618,7 @@ def generate_tautomer_candidates(
                     display_molblock=display,
                     tautomer_fingerprint=tautomer_fingerprint,
                     rdkit_score=score_tautomer(tautomer),
+                    conformer=conformer,
                     stereo=StereoStatus(
                         index=stereo_index,
                         fallback=search.truncated,
@@ -564,6 +727,7 @@ class CandidateResult:
     tautomer_fingerprint: str = ""
     stereo: StereoStatus = field(default_factory=StereoStatus)
     rdkit_score: float | None = None
+    conformer: ConformerStatus = field(default_factory=ConformerStatus)
 
     @property
     def tautomer_key(self) -> str:
@@ -584,6 +748,7 @@ class CandidateResult:
             tautomer_fingerprint=candidate.tautomer_fingerprint,
             stereo=candidate.stereo,
             rdkit_score=candidate.rdkit_score,
+            conformer=candidate.conformer,
             **outcome,
         )
 
@@ -644,6 +809,17 @@ class TautomerDistributionOutcome:
         return len({c.tautomer_key for c in self.candidates if c.stereo.truncated})
 
     @property
+    def has_conformer_search(self) -> bool:
+        """Some candidate came from a conformer search, so each tautomer's energy
+        is the lowest of what that search selected, not of one start geometry."""
+        return any(c.conformer.search != SEARCH_SINGLE for c in self.candidates)
+
+    @property
+    def truncated_conformer_class_count(self) -> int:
+        """Stereo classes whose conformer pool was cut at the cap (`full_orca`)."""
+        return len({c.conformer.stereo_fingerprint for c in self.candidates if c.conformer.truncated})
+
+    @property
     def has_stereo_search(self) -> bool:
         """Some tautomer was searched over more than one stereo candidate (or
         fell back), so the energies are lowest-of-several, not a single job."""
@@ -656,6 +832,24 @@ class TautomerDistributionOutcome:
 
     @property
     def energy_label(self) -> str:
+        if self.has_conformer_search:
+            # Never an unqualified "lowest-energy conformer": the search is sampled,
+            # so this is the lowest of what the declared policy selected.
+            if self.complete:
+                return (
+                    "ΔE (kcal/mol), lowest calculated conformer of each tautomer "
+                    "(a sampled conformer search, not exhaustive)"
+                )
+            reason = (
+                f"the conformer pool was truncated for {self.truncated_conformer_class_count} "
+                "stereoisomer(s)"
+                if self.truncated_conformer_class_count
+                else "one or more candidates failed or were not searched"
+            )
+            return (
+                "ΔE relative to the lowest successful calculated tautomer (kcal/mol) -- incomplete; "
+                f"lowest calculated conformer found for each tautomer, {reason}"
+            )
         if self.complete:
             if self.has_stereo_search:
                 return "ΔE (kcal/mol), lowest-energy stereoisomer of each tautomer"
@@ -739,7 +933,7 @@ def build_outcome(
         best = min(succeeded_members, key=lambda m: (m.absolute_energy_hartree, m.fingerprint))
         representatives[key] = best.fingerprint
         searched_fully = len(succeeded_members) == len(members) and not any(
-            m.stereo.truncated or m.stereo.embedding_failed for m in members
+            m.stereo.truncated or m.stereo.embedding_failed or m.conformer.truncated for m in members
         )
         states[key] = TautomerState.COMPLETE if searched_fully else TautomerState.INCOMPLETE
 
@@ -837,6 +1031,7 @@ def build_structure_set_result(
     run_id: str,
     validation_branch: str = VALIDATION_UNVALIDATED,
     embedding_algorithm: str = "ETKDGv3",
+    policy: ModelPolicy = MODEL_POLICY,
 ) -> StructureSetResult:
     """The user-facing result: one entry per deduplicated candidate
     (succeeded AND failed -- never only the survivors, which would make
@@ -862,6 +1057,14 @@ def build_structure_set_result(
     energy_label` at the result level so a reader knows whether it is the
     complete-set ΔE or a survivor-relative one (Design point 5's trap).
     """
+    # The lowest successful candidate WITHIN each stereo class (a class is one
+    # revision-3 candidate; under a conformer search it has several jobs).
+    lowest_in_class: dict[str, str] = {}
+    for candidate in sorted(
+        (c for c in outcome.candidates if c.status is CandidateStatus.SUCCEEDED),
+        key=lambda c: (c.absolute_energy_hartree, c.fingerprint),
+    ):
+        lowest_in_class.setdefault(candidate.conformer.stereo_fingerprint or candidate.fingerprint, candidate.fingerprint)
     entries: list[StructureEntry] = []
     for candidate in outcome.candidates:
         # The drawing chosen at generation (`generate_tautomer_candidates`),
@@ -879,6 +1082,9 @@ def build_structure_set_result(
             label += " [fallback]"
         elif stereo.isomers_calculated > 1:
             label += f" [{stereo.index + 1} of {stereo.isomers_calculated}]"
+        conformer = candidate.conformer
+        if conformer.selected > 1:
+            label += f" [conf {conformer.index + 1}/{conformer.selected}]"
         state = outcome.tautomer_states.get(candidate.tautomer_key, TautomerState.FAILED)
         metadata: dict = {
             "status": candidate.status.value,
@@ -900,6 +1106,22 @@ def build_structure_set_result(
             "stereo_fallback": stereo.fallback,
             "stereo_fallback_reason": stereo.fallback_reason,
             "rdkit_score": candidate.rdkit_score,
+            "conformer_search": conformer.search,
+            "conformer_index": conformer.index,
+            "conformer_recipe_fingerprint": conformer.recipe_fingerprint,
+            "stereo_fingerprint": conformer.stereo_fingerprint or candidate.fingerprint,
+            "conformers_generated_for_stereo": conformer.generated,
+            "conformers_distinct_for_stereo": conformer.distinct,
+            "conformers_selected_for_stereo": conformer.selected,
+            "conformers_truncated": conformer.truncated,
+            "conformer_prefilter": conformer.prefilter,
+            "conformer_prefilter_energy_kcal": conformer.prefilter_energy_kcal,
+            # Lowest AMONG THOSE CALCULATED for this stereoisomer: never a claim of
+            # the global conformer minimum.
+            "is_lowest_calculated_for_stereo": (
+                lowest_in_class.get(conformer.stereo_fingerprint or candidate.fingerprint)
+                == candidate.fingerprint
+            ),
         }
         if candidate.absolute_energy_hartree is not None:
             # The measurement behind the derived relative energy, kept so the
@@ -936,7 +1158,29 @@ def build_structure_set_result(
     # every succeeded one rather than raising or landing arbitrarily.
     entries.sort(key=lambda e: (e.energy is None, e.energy if e.energy is not None else 0.0, e.metadata["fingerprint"]))
 
-    version = model_version(method_basis, embedding_algorithm, outcome.temperature_k)
+    version = model_version(method_basis, embedding_algorithm, outcome.temperature_k, policy)
+    pools: dict[str, dict] = {}
+    for candidate in outcome.candidates:
+        c = candidate.conformer
+        if c.search == SEARCH_SINGLE:
+            continue
+        pools.setdefault(
+            c.stereo_fingerprint,
+            {
+                "stereo_fingerprint": c.stereo_fingerprint,
+                "tautomer_fingerprint": candidate.tautomer_key,
+                "seed": c.seed,
+                "generated": c.generated,
+                "prefilter_ok": c.prefilter_ok,
+                "prefilter_failed": c.prefilter_failed,
+                "distinct": c.distinct,
+                "selected": c.selected,
+                "truncated": c.truncated,
+                "prefilter": c.prefilter,
+                "retained_recipes": list(c.retained_recipes),
+                "selected_recipes": list(c.selected_recipes),
+            },
+        )
     states = outcome.tautomer_states.values()
     provenance = Provenance(
         created_by="core",
@@ -947,8 +1191,8 @@ def build_structure_set_result(
             "validation_branch": validation_branch,
             "model_version": version,
             "model_revision": TAUTOMER_MODEL_REVISION,
-            "model_policy": asdict(MODEL_POLICY),
-            "model_assumptions": list(model_assumptions()),
+            "model_policy": asdict(policy),
+            "model_assumptions": list(model_assumptions(policy)),
             "method_basis": method_basis,
             "embedding_algorithm": embedding_algorithm,
             # Jobs, not tautomers: one stereo candidate is one ORCA optimization.
@@ -964,7 +1208,10 @@ def build_structure_set_result(
             "complete": outcome.complete,
             "energy_label": outcome.energy_label,
             "energy_reference": outcome.energy_reference,
-            "stereo_enumeration_cap": MODEL_POLICY.stereo_cap,
+            "stereo_enumeration_cap": policy.stereo_cap,
+            "conformer_search": policy.conformer_search,
+            "conformer_pools": list(pools.values()),
+            "conformer_pools_truncated": outcome.truncated_conformer_class_count,
             "stereo_enumeration_truncated": outcome.truncated_tautomer_count,
             "stereo_search": outcome.has_stereo_search,
             # RDKit's heuristic against ORCA: informational, never an input to
@@ -994,7 +1241,8 @@ def build_structure_set_result(
 #: The columns of `tautomer_distribution_table`, in order.
 TABLE_COLUMNS = (
     "Structure", "Status", "Tautomer state", "Lowest calculated for tautomer", "Stereo index",
-    "Stereoisomers calculated", "Stereo fallback", "Absolute energy (Hartree)",
+    "Stereoisomers calculated", "Stereo fallback", "Conformer", "Conformers selected",
+    "Lowest calculated for stereoisomer", "Conformer recipe fingerprint", "Absolute energy (Hartree)",
     "Relative energy (kcal/mol)", "Energy reference", "Population estimate",
     "RDKit heuristic score", "Failure", "Candidate fingerprint", "Tautomer fingerprint",
     "Validation branch", "Model version",
@@ -1021,6 +1269,12 @@ def tautomer_distribution_table(result: StructureSetResult) -> tuple[list[str], 
     def number(value) -> str:
         return "" if value is None else repr(float(value))
 
+    def conformer_cell(meta: dict) -> str:
+        """1-based position among the selected conformers; blank without a search."""
+        if meta.get("conformer_search", SEARCH_SINGLE) == SEARCH_SINGLE:
+            return ""
+        return str(int(meta.get("conformer_index", 0)) + 1)
+
     rows = []
     for entry in result.entries:
         meta = entry.metadata
@@ -1033,6 +1287,10 @@ def tautomer_distribution_table(result: StructureSetResult) -> tuple[list[str], 
                 str(meta.get("stereo_index", "")),
                 str(meta.get("stereo_isomers_calculated", "")),
                 "yes" if meta.get("stereo_fallback") else "no",
+                conformer_cell(meta),
+                str(meta.get("conformers_selected_for_stereo", "")) if meta.get("conformer_search") != SEARCH_SINGLE else "",
+                "yes" if meta.get("is_lowest_calculated_for_stereo") else "no",
+                str(meta.get("conformer_recipe_fingerprint", "")),
                 number(meta.get("absolute_energy_hartree")),
                 number(entry.energy),
                 str(parameters.get("energy_reference", "")),

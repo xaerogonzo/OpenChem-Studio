@@ -55,6 +55,7 @@ from openchem.chem.orca_engine import (
 from openchem.chem.tautomer_distribution import (
     CONFIRMATION_THRESHOLD,
     generate_tautomer_candidates,
+    policy_for_mode,
     tautomer_distribution_table,
 )
 from openchem.domain.calculator import DRAWING, ENSEMBLE, GEOMETRY
@@ -163,6 +164,9 @@ _CORRELATION_SPECS = (
 # between those tabs is WHICH atom pairs appear, which is a property of
 # the tab rather than of its columns. `Atom` and `Element` are likewise
 # one concept each across the spectrum and hybrid tables.
+#: QSettings key for the "Full ORCA conformers" tautomer-distribution choice.
+_TAUTOMER_FULL_KEY = "tautomer/full_orca_conformers"
+
 _HELP: dict[str, HelpTooltip] = {
     "molecule": HelpTooltip(
         text=(
@@ -371,7 +375,8 @@ _HELP: dict[str, HelpTooltip] = {
             "estimate.\n\n"
             "This is a gas-phase ELECTRONIC-ENERGY estimate, not a full equilibrium "
             "probability -- no vibrational, thermal, entropic, or solvent correction, and "
-            "one optimized minimum per tautomer (no per-tautomer conformer search).\n\n"
+            "a sampled conformer search per tautomer (not exhaustive) whose lowest "
+            "calculated conformer represents it.\n\n"
             "If a percentage is shown, it has been checked against published reference "
             "data; if not, you still see each candidate's real relative energy, just not "
             "a population built from it. If any candidate fails to converge, no "
@@ -381,6 +386,22 @@ _HELP: dict[str, HelpTooltip] = {
         ),
         tier=3,
         help_id="quantum.tautomer_distribution",
+        topic="quantum-chemistry",
+        help_anchor="tautomer-distribution",
+    ),
+    "tautomer_full_orca": HelpTooltip(
+        text=(
+            "Unchecked (the default), each stereoisomer's conformers are scored with a "
+            "force field and only the three lowest distinct ones are optimized with ORCA.\n\n"
+            "Checked, every distinct conformer of that sampled pool is optimized with ORCA "
+            "(up to a per-stereoisomer cap). More jobs, and still not an exhaustive "
+            "conformational search.\n\n"
+            "The two settings are different scientific models. A percentage is only ever "
+            "shown for a model whose own validation record passed; choosing this setting "
+            "does not inherit the other's."
+        ),
+        tier=3,
+        help_id="quantum.tautomer_full_orca",
         topic="quantum-chemistry",
         help_anchor="tautomer-distribution",
     ),
@@ -845,6 +866,12 @@ class QuantumChemistryPanel(QWidget):
         self._tautomer_distribution_button = QPushButton("Tautomers...", self)
         apply_help_tooltip(self._tautomer_distribution_button, _HELP["tautomer_distribution"])
         self._tautomer_distribution_button.clicked.connect(self._on_tautomer_distribution_clicked)
+        # Which conformer search the button above runs. A MODEL choice, not a
+        # performance knob: each setting is its own model version.
+        self._tautomer_full_check = QCheckBox("Full ORCA conformers", self)
+        apply_help_tooltip(self._tautomer_full_check, _HELP["tautomer_full_orca"])
+        self._tautomer_full_check.setChecked(self._stored_tautomer_full_mode())
+        self._tautomer_full_check.toggled.connect(self._on_tautomer_full_toggled)
 
         self._configure_button = QPushButton("Configure ORCA...", self)
         apply_help_tooltip(self._configure_button, _HELP["configure_orca"])
@@ -1225,6 +1252,7 @@ class QuantumChemistryPanel(QWidget):
         run_row.layout().addWidget(self._run_button)
         run_row.layout().addWidget(self._cancel_button)
         run_row.layout().addWidget(self._tautomer_distribution_button)
+        run_row.layout().addWidget(self._tautomer_full_check)
 
         # "Currently viewing," separate from the form above it ("calculation
         # to run"): selecting a run here must never look like it changed
@@ -1763,6 +1791,13 @@ class QuantumChemistryPanel(QWidget):
         if button is not None:
             button.setEnabled(plot.is_zoomed())
 
+    def _stored_tautomer_full_mode(self) -> bool:
+        """The saved "Full ORCA conformers" choice (QSettings may hand back a string)."""
+        return str(self._settings.get(_TAUTOMER_FULL_KEY, False)).lower() in ("true", "1")
+
+    def _on_tautomer_full_toggled(self, checked: bool) -> None:
+        self._settings.set(_TAUTOMER_FULL_KEY, bool(checked))
+
     def _on_tautomer_distribution_clicked(self) -> None:
         """Enumerates, deduplicates and embeds every distinct tautomer of
         the current molecule (`chem.tautomer_distribution
@@ -1785,7 +1820,8 @@ class QuantumChemistryPanel(QWidget):
             return
 
         mol = self._chemistry_engine.mol_from_molblock(molecule.molblock)
-        candidates, embedding_failures = generate_tautomer_candidates(mol)
+        policy = policy_for_mode(self._tautomer_full_check.isChecked())
+        candidates, embedding_failures = generate_tautomer_candidates(mol, policy=policy)
         if not candidates:
             message = "No tautomer candidates could be generated for this molecule."
             if embedding_failures:
@@ -1799,11 +1835,27 @@ class QuantumChemistryPanel(QWidget):
         # the number of jobs, named beside the number of tautomers. A tautomer
         # over the stereo cap costs less than it would, but yields an
         # INCOMPLETE result, which the user must hear before confirming.
-        if len(candidates) > CONFIRMATION_THRESHOLD or truncated:
+        conformer_truncated = len(
+            {c.conformer.stereo_fingerprint for c in candidates if c.conformer.truncated}
+        )
+        if len(candidates) > CONFIRMATION_THRESHOLD or truncated or conformer_truncated:
+            stereo_classes = len({c.conformer.stereo_fingerprint or c.fingerprint for c in candidates})
+            which = (
+                "every retained sampled conformer"
+                if policy.conformer_search == "full_orca"
+                else "the lowest distinct conformers"
+            )
             text = (
                 f"This will run {len(candidates)} real ORCA geometry optimizations "
-                f"for {tautomers} tautomer(s), one per unique stereoisomer. "
+                f"for {tautomers} tautomer(s) and {stereo_classes} stereoisomer(s) "
+                f"({which} of each; conformer search {policy.conformer_search}). "
             )
+            if conformer_truncated:
+                text += (
+                    f"{conformer_truncated} stereoisomer(s) have more distinct conformers than the cap "
+                    f"({policy.conformer_cap}); the lowest ones are used and the result will be marked "
+                    f"incomplete, with no population percentages. "
+                )
             if truncated:
                 text += (
                     f"{truncated} tautomer(s) exceed the stereoisomer cap and will use a single "
@@ -1849,6 +1901,7 @@ class QuantumChemistryPanel(QWidget):
             method_basis=method_basis,
             calculation_input=DRAWING,
             input_fingerprint=input_fingerprint(self._chemistry_engine, molecule, DRAWING),
+            policy=policy,
         )
 
     def _on_tautomer_distribution_ready(self, event: TautomerDistributionResultReady) -> None:
@@ -1882,6 +1935,25 @@ class QuantumChemistryPanel(QWidget):
             )
         else:
             summary += " -- energies and populations are NOT yet validated against reference data."
+        pools = params.get("conformer_pools") or []
+        if pools:
+            model = params.get("model_policy", {})
+            retained = sum(p["distinct"] for p in pools)
+            selected = sum(p["selected"] for p in pools)
+            if model.get("conformer_search") == "full_orca":
+                how = f"all {selected} retained sampled conformers"
+            else:
+                how = f"MMFF top-{model.get('conformer_topk', '?')} of {retained} distinct sampled conformers"
+            summary += f" Conformer search: {how}"
+            if any(p.get("prefilter") == "uff" for p in pools):
+                summary += " (UFF prefilter fallback)"
+            summary += "; a sampled search, not exhaustive."
+            truncated_pools = params.get("conformer_pools_truncated", 0)
+            if truncated_pools:
+                summary += (
+                    f" The conformer pool was cut at the cap for {truncated_pools} stereoisomer(s): "
+                    f"those tautomers are incomplete and no population percentages are shown."
+                )
         if params.get("stereo_search"):
             summary += (
                 " Each tautomer is represented by its lowest successful stereoisomer "
