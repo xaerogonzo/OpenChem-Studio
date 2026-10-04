@@ -18,6 +18,7 @@ changes nothing it is given.
     python tools/tautomer_validation.py --list
     python tools/tautomer_validation.py --check-mapping        # RDKit only, no ORCA; also the job count
     python tools/tautomer_validation.py --run --out DIR [--systems cytosine ...] [--resume]
+    python tools/tautomer_validation.py --make-record ARTIFACT  # the compact record the service consults
 
 `--run` prints how many ORCA optimizations it is about to make, per system and in total,
 BEFORE the first one starts, and refuses if the model the criteria file declares is not the
@@ -318,6 +319,23 @@ def run_system(qapp, spec, system, orca: str, timeout_minutes: int):
     return SystemRun(system.id, "", energies, unreferenced_tautomers(system, keys), jobs)
 
 
+def make_record(artifact_path: Path) -> int:
+    """Writes `chem/data/tautomer_validation_record_v2.json` from a committed artifact. The record
+    is DERIVED (a test rebuilds it from the artifact and refuses any difference), so this is the
+    only way it is made; it is never edited by hand."""
+    from openchem.chem.tautomer_validation import RECORD_PATH_V2, artifact_sha256, record_from_artifact
+
+    artifact_path = artifact_path.resolve()
+    artifact = json.loads(artifact_path.read_text(encoding="utf-8"))
+    if artifact["validation_execution_status"] != "complete" or artifact.get("partial_run"):
+        raise SystemExit("a record is made only from a COMPLETE, whole run")
+    relative = artifact_path.relative_to(ROOT).as_posix()
+    record = record_from_artifact(artifact, relative, artifact_sha256(artifact_path))
+    RECORD_PATH_V2.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+    print(f"wrote {RECORD_PATH_V2} ({record['validation_gate_outcome']}, {record['model_version'][:40]}...)")
+    return 0
+
+
 def print_job_counts(systems, policy) -> int:
     """How many ORCA optimizations the run will make, per system and in total, printed
     BEFORE the first one starts. RDKit only. A long run that surprises its operator with its
@@ -355,6 +373,8 @@ def main(argv: list[str] | None = None) -> int:
     mode.add_argument("--list", action="store_true")
     mode.add_argument("--check-mapping", action="store_true")
     mode.add_argument("--run", action="store_true")
+    mode.add_argument("--make-record", type=Path, metavar="ARTIFACT",
+                      help="write the compact validation record (chem/data) from a committed artifact")
     parser.add_argument("--out", type=Path, help="directory for the artifact and per-system files")
     parser.add_argument("--systems", nargs="*", help="only these system ids (a partial run cannot pass the gate)")
     parser.add_argument("--resume", action="store_true")
@@ -377,6 +397,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.check_mapping:
         return check_mapping(spec)
+    if args.make_record:
+        return make_record(args.make_record)
 
     if args.out is None:
         parser.error("--run needs --out")

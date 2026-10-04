@@ -362,7 +362,13 @@ def test_every_source_reference_resolves():
 #: JSON directly under `chem/data/` that is NOT a scientific data table, each
 #: with the reason. Anything added here needs one -- an unexplained exemption
 #: is how a guard gets hollowed out.
-DATA_FILES_WITHOUT_A_SOURCE: dict[str, str] = {}
+DATA_FILES_WITHOUT_A_SOURCE: dict[str, str] = {
+    "tautomer_validation_record_v2.json": (
+        "derived from this project's own committed validation artifact (tests/test_tautomer_validation_record.py "
+        "rebuilds it and refuses a difference); it holds no literature value, and the references it was "
+        "judged against are sourced in tautomer_validation_v2.json"
+    ),
+}
 
 #: THE UNDERSCORE IS LOAD-BEARING, and a plain `source_key` broke two
 #: loaders when this was first written. `oxidation_states.electronegativity_table`

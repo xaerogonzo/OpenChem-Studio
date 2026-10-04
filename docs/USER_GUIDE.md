@@ -1624,6 +1624,16 @@ until then, each candidate's real relative energy is still shown, just
 not a population built from it, so you always see the real numbers
 measured even when they are not yet validated as probabilities.
 
+**What is validated, and what is not.** A preregistered check (eight small
+tautomer systems, four of them held out, none larger than a purine, all
+two-state) was passed by exactly one setup: **`M062X def2-TZVP` with the default
+conformer search** (the three lowest of 50 sampled conformers per
+stereoisomer). Only a complete result from that setup shows percentages. Any
+other method or basis, or **Full ORCA conformers**, is a different model with
+no validation and shows energies only. A pass on a small benchmark does not make
+the number a prediction for a large, flexible, charged or many-tautomer
+molecule, or for solution; see `docs/VALIDATION.md`.
+
 If any candidate's geometry optimization fails to converge, **no
 percentages are shown for any candidate** — a distribution computed over
 only the survivors would be a different, weaker claim than "the
