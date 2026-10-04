@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Tautomer NMR (P5), step 1 of 5: the design, and keeping each tautomer's optimized geometry
+
+- **`docs/TAUTOMER_NMR_DESIGN.md`**: tautomer peaks on the NMR spectrum, as agreed: one trace per tautomer, plus a population-weighted fast-exchange average trace offered only for a validated, complete result; one geometry per tautomer (its lowest calculated conformer) by default, with per-conformer averaging as an optional, off-by-default setting; and the per-heavy-atom averaging rule, which excludes N/O/S hydrogens and carbons whose hydrogen count changes between tautomers, and names every exclusion.
+- **The service now keeps the geometry ORCA's optimization ended at** for each succeeded tautomer candidate (`CandidateResult.optimized_molblock`, and the result entry's `optimized_molblock`); it used to read it and discard it, so a later calculation on a tautomer could only start from the embedded start geometry. No energy, model version or percentage changes.
+
 ### Tautomer distribution: a validated model now shows population percentages
 
 - **A population percentage appears, for one model only.** `M062X def2-TZVP` with the default conformer search (revision 5, top-3 of 50 conformers) passed the preregistered validation (#192), and the service now stamps a result `validated` when a validation record matches its exact `model_version` AND the current criteria hashes and the result's candidate set is complete (`chem/tautomer_validation.validation_branch_for`; the record is `chem/data/tautomer_validation_record_v2.json`, derived from the committed artifact and refused if edited). Any other method or basis, the Full ORCA conformers setting, another RDKit release, changed criteria or an incomplete candidate set keeps percentages withheld (an incomplete set of the validated model shows energies as `ranking_only`).

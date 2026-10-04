@@ -1354,7 +1354,7 @@ class QuantumChemistryService(QObject):
         molblock = Chem.MolToMolBlock(candidate.mol, kekulize=False)
 
         try:
-            descriptors, _conformer = job.provider.parse_output(output_text, job.mol, molecule_uuid, job.calc_type)
+            descriptors, optimized = job.provider.parse_output(output_text, job.mol, molecule_uuid, job.calc_type)
         except Exception as exc:  # one candidate's own failure, recorded, never crashes the sequence
             logger.exception(
                 "Tautomer candidate optimization failed to parse for molecule %s", molecule_uuid
@@ -1394,6 +1394,7 @@ class QuantumChemistryService(QObject):
                         molblock,
                         CandidateStatus.SUCCEEDED,
                         absolute_energy_hartree=float(energy),
+                        optimized_molblock=optimized.molblock if optimized is not None else "",
                     )
                 )
 
