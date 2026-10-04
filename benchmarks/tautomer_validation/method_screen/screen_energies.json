@@ -1,0 +1,546 @@
+{
+ "note": "Every energy the method screen produced, Hartree. PBE0 rows are the def2-TZVP optimized pools (converged only counted by analyze.py); the other functionals are single points on those geometries. Acetylacetone PBE0 energies come from the earlier pool run (D:/_scratch/acac) and are listed inline in analyze.py.",
+ "pbe0_optimizations": [
+  {
+   "system": "acetaldimine_vinylamine",
+   "tautomer": "acetaldimine",
+   "name": "acetaldimine_vinylamine__acetaldimine__s0__c0",
+   "converged": true,
+   "energy_hartree": -133.840328222189
+  },
+  {
+   "system": "acetaldimine_vinylamine",
+   "tautomer": "acetaldimine",
+   "name": "acetaldimine_vinylamine__acetaldimine__s0__c1",
+   "converged": true,
+   "energy_hartree": -133.83925172192
+  },
+  {
+   "system": "acetaldimine_vinylamine",
+   "tautomer": "vinylamine",
+   "name": "acetaldimine_vinylamine__vinylamine__s0__c0",
+   "converged": true,
+   "energy_hartree": -133.837083424203
+  },
+  {
+   "system": "acetaldimine_vinylamine",
+   "tautomer": "vinylamine",
+   "name": "acetaldimine_vinylamine__vinylamine__s0__c1",
+   "converged": true,
+   "energy_hartree": -133.837084368452
+  },
+  {
+   "system": "cytosine",
+   "tautomer": "enol_amino",
+   "name": "cytosine__enol_amino__s0__c0",
+   "converged": true,
+   "energy_hartree": -394.65039304179
+  },
+  {
+   "system": "cytosine",
+   "tautomer": "enol_amino",
+   "name": "cytosine__enol_amino__s0__c1",
+   "converged": true,
+   "energy_hartree": -394.65039013302
+  },
+  {
+   "system": "cytosine",
+   "tautomer": "enol_amino",
+   "name": "cytosine__enol_amino__s0__c2",
+   "converged": true,
+   "energy_hartree": -394.649148488596
+  },
+  {
+   "system": "cytosine",
+   "tautomer": "enol_amino",
+   "name": "cytosine__enol_amino__s0__c3",
+   "converged": true,
+   "energy_hartree": -394.649135422659
+  },
+  {
+   "system": "cytosine",
+   "tautomer": "enol_amino",
+   "name": "cytosine__enol_amino__s0__c4",
+   "converged": true,
+   "energy_hartree": -394.649140233938
+  },
+  {
+   "system": "cytosine",
+   "tautomer": "enol_amino",
+   "name": "cytosine__enol_amino__s0__c5",
+   "converged": true,
+   "energy_hartree": -394.65039471206
+  },
+  {
+   "system": "cytosine",
+   "tautomer": "imino_oxo",
+   "name": "cytosine__imino_oxo__s0__c0",
+   "converged": true,
+   "energy_hartree": -394.648189704002
+  },
+  {
+   "system": "cytosine",
+   "tautomer": "imino_oxo",
+   "name": "cytosine__imino_oxo__s0__c1",
+   "converged": true,
+   "energy_hartree": -394.645119210061
+  },
+  {
+   "system": "cytosine",
+   "tautomer": "keto_amino",
+   "name": "cytosine__keto_amino__s0__c0",
+   "converged": true,
+   "energy_hartree": -394.651274228482
+  },
+  {
+   "system": "cytosine",
+   "tautomer": "keto_amino",
+   "name": "cytosine__keto_amino__s0__c1",
+   "converged": true,
+   "energy_hartree": -394.651297854571
+  },
+  {
+   "system": "pyridone",
+   "tautomer": "hydroxypyridine",
+   "name": "pyridone__hydroxypyridine__s0__c0",
+   "converged": true,
+   "energy_hartree": -323.273763013018
+  },
+  {
+   "system": "pyridone",
+   "tautomer": "hydroxypyridine",
+   "name": "pyridone__hydroxypyridine__s0__c1",
+   "converged": true,
+   "energy_hartree": -323.265528336221
+  },
+  {
+   "system": "pyridone",
+   "tautomer": "pyridone",
+   "name": "pyridone__pyridone__s0__c0",
+   "converged": true,
+   "energy_hartree": -323.274294250266
+  }
+ ],
+ "single_points": {
+  "M062X": [
+   {
+    "system": "acetaldimine_vinylamine",
+    "tautomer": "acetaldimine",
+    "name": "acetaldimine_vinylamine__acetaldimine__s0__c0",
+    "energy_hartree": -133.937681443708
+   },
+   {
+    "system": "acetaldimine_vinylamine",
+    "tautomer": "acetaldimine",
+    "name": "acetaldimine_vinylamine__acetaldimine__s0__c1",
+    "energy_hartree": -133.936580343116
+   },
+   {
+    "system": "acetaldimine_vinylamine",
+    "tautomer": "vinylamine",
+    "name": "acetaldimine_vinylamine__vinylamine__s0__c0",
+    "energy_hartree": -133.934335156523
+   },
+   {
+    "system": "acetaldimine_vinylamine",
+    "tautomer": "vinylamine",
+    "name": "acetaldimine_vinylamine__vinylamine__s0__c1",
+    "energy_hartree": -133.934324099854
+   },
+   {
+    "system": "acetylacetone",
+    "tautomer": "diketo",
+    "name": "acetylacetone__diketo_c0",
+    "energy_hartree": -345.779728607247
+   },
+   {
+    "system": "acetylacetone",
+    "tautomer": "diketo",
+    "name": "acetylacetone__diketo_c1",
+    "energy_hartree": -345.779747996429
+   },
+   {
+    "system": "acetylacetone",
+    "tautomer": "diketo",
+    "name": "acetylacetone__diketo_c2",
+    "energy_hartree": -345.779752947519
+   },
+   {
+    "system": "acetylacetone",
+    "tautomer": "diketo",
+    "name": "acetylacetone__diketo_seed0",
+    "energy_hartree": -345.779754201452
+   },
+   {
+    "system": "acetylacetone",
+    "tautomer": "enol",
+    "name": "acetylacetone__enol_c0",
+    "energy_hartree": -345.787524475029
+   },
+   {
+    "system": "acetylacetone",
+    "tautomer": "enol",
+    "name": "acetylacetone__enol_c1",
+    "energy_hartree": -345.767958745125
+   },
+   {
+    "system": "cytosine",
+    "tautomer": "enol_amino",
+    "name": "cytosine__enol_amino__s0__c0",
+    "energy_hartree": -394.938151567498
+   },
+   {
+    "system": "cytosine",
+    "tautomer": "enol_amino",
+    "name": "cytosine__enol_amino__s0__c1",
+    "energy_hartree": -394.938121477435
+   },
+   {
+    "system": "cytosine",
+    "tautomer": "enol_amino",
+    "name": "cytosine__enol_amino__s0__c2",
+    "energy_hartree": -394.9369463431
+   },
+   {
+    "system": "cytosine",
+    "tautomer": "enol_amino",
+    "name": "cytosine__enol_amino__s0__c3",
+    "energy_hartree": -394.936926163609
+   },
+   {
+    "system": "cytosine",
+    "tautomer": "enol_amino",
+    "name": "cytosine__enol_amino__s0__c4",
+    "energy_hartree": -394.936925142685
+   },
+   {
+    "system": "cytosine",
+    "tautomer": "enol_amino",
+    "name": "cytosine__enol_amino__s0__c5",
+    "energy_hartree": -394.938150586931
+   },
+   {
+    "system": "cytosine",
+    "tautomer": "imino_oxo",
+    "name": "cytosine__imino_oxo__s0__c0",
+    "energy_hartree": -394.934652728255
+   },
+   {
+    "system": "cytosine",
+    "tautomer": "imino_oxo",
+    "name": "cytosine__imino_oxo__s0__c1",
+    "energy_hartree": -394.931717285144
+   },
+   {
+    "system": "cytosine",
+    "tautomer": "keto_amino",
+    "name": "cytosine__keto_amino__s0__c0",
+    "energy_hartree": -394.936777850401
+   },
+   {
+    "system": "cytosine",
+    "tautomer": "keto_amino",
+    "name": "cytosine__keto_amino__s0__c1",
+    "energy_hartree": -394.936837318924
+   },
+   {
+    "system": "pyridone",
+    "tautomer": "hydroxypyridine",
+    "name": "pyridone__hydroxypyridine__s0__c0",
+    "energy_hartree": -323.513775949637
+   },
+   {
+    "system": "pyridone",
+    "tautomer": "hydroxypyridine",
+    "name": "pyridone__hydroxypyridine__s0__c1",
+    "energy_hartree": -323.505440777788
+   },
+   {
+    "system": "pyridone",
+    "tautomer": "pyridone",
+    "name": "pyridone__pyridone__s0__c0",
+    "energy_hartree": -323.511703529615
+   }
+  ],
+  "revDSD": [
+   {
+    "system": "acetaldimine_vinylamine",
+    "tautomer": "acetaldimine",
+    "name": "acetaldimine_vinylamine__acetaldimine__s0__c0",
+    "energy_hartree": -133.74101048323
+   },
+   {
+    "system": "acetaldimine_vinylamine",
+    "tautomer": "acetaldimine",
+    "name": "acetaldimine_vinylamine__acetaldimine__s0__c1",
+    "energy_hartree": -133.739832562424
+   },
+   {
+    "system": "acetaldimine_vinylamine",
+    "tautomer": "vinylamine",
+    "name": "acetaldimine_vinylamine__vinylamine__s0__c0",
+    "energy_hartree": -133.73475019206
+   },
+   {
+    "system": "acetaldimine_vinylamine",
+    "tautomer": "vinylamine",
+    "name": "acetaldimine_vinylamine__vinylamine__s0__c1",
+    "energy_hartree": -133.734751406188
+   },
+   {
+    "system": "acetylacetone",
+    "tautomer": "diketo",
+    "name": "acetylacetone__diketo_c0",
+    "energy_hartree": -345.302358714663
+   },
+   {
+    "system": "acetylacetone",
+    "tautomer": "diketo",
+    "name": "acetylacetone__diketo_c1",
+    "energy_hartree": -345.30233914028
+   },
+   {
+    "system": "acetylacetone",
+    "tautomer": "diketo",
+    "name": "acetylacetone__diketo_c2",
+    "energy_hartree": -345.302347441311
+   },
+   {
+    "system": "acetylacetone",
+    "tautomer": "diketo",
+    "name": "acetylacetone__diketo_seed0",
+    "energy_hartree": -345.302345231169
+   },
+   {
+    "system": "acetylacetone",
+    "tautomer": "enol",
+    "name": "acetylacetone__enol_c0",
+    "energy_hartree": -345.30681902404
+   },
+   {
+    "system": "acetylacetone",
+    "tautomer": "enol",
+    "name": "acetylacetone__enol_c1",
+    "energy_hartree": -345.286824954763
+   },
+   {
+    "system": "cytosine",
+    "tautomer": "enol_amino",
+    "name": "cytosine__enol_amino__s0__c0",
+    "energy_hartree": -394.382193094836
+   },
+   {
+    "system": "cytosine",
+    "tautomer": "enol_amino",
+    "name": "cytosine__enol_amino__s0__c1",
+    "energy_hartree": -394.382181733586
+   },
+   {
+    "system": "cytosine",
+    "tautomer": "enol_amino",
+    "name": "cytosine__enol_amino__s0__c2",
+    "energy_hartree": -394.380906439248
+   },
+   {
+    "system": "cytosine",
+    "tautomer": "enol_amino",
+    "name": "cytosine__enol_amino__s0__c3",
+    "energy_hartree": -394.38090474047
+   },
+   {
+    "system": "cytosine",
+    "tautomer": "enol_amino",
+    "name": "cytosine__enol_amino__s0__c4",
+    "energy_hartree": -394.380906666865
+   },
+   {
+    "system": "cytosine",
+    "tautomer": "enol_amino",
+    "name": "cytosine__enol_amino__s0__c5",
+    "energy_hartree": -394.382189654357
+   },
+   {
+    "system": "cytosine",
+    "tautomer": "imino_oxo",
+    "name": "cytosine__imino_oxo__s0__c0",
+    "energy_hartree": -394.381759439737
+   },
+   {
+    "system": "cytosine",
+    "tautomer": "imino_oxo",
+    "name": "cytosine__imino_oxo__s0__c1",
+    "energy_hartree": -394.378970247681
+   },
+   {
+    "system": "cytosine",
+    "tautomer": "keto_amino",
+    "name": "cytosine__keto_amino__s0__c0",
+    "energy_hartree": -394.383002170396
+   },
+   {
+    "system": "cytosine",
+    "tautomer": "keto_amino",
+    "name": "cytosine__keto_amino__s0__c1",
+    "energy_hartree": -394.383008087157
+   },
+   {
+    "system": "pyridone",
+    "tautomer": "hydroxypyridine",
+    "name": "pyridone__hydroxypyridine__s0__c0",
+    "energy_hartree": -323.044896689579
+   },
+   {
+    "system": "pyridone",
+    "tautomer": "hydroxypyridine",
+    "name": "pyridone__hydroxypyridine__s0__c1",
+    "energy_hartree": -323.036557163073
+   },
+   {
+    "system": "pyridone",
+    "tautomer": "pyridone",
+    "name": "pyridone__pyridone__s0__c0",
+    "energy_hartree": -323.045564718072
+   }
+  ],
+  "wB97M-V": [
+   {
+    "system": "acetaldimine_vinylamine",
+    "tautomer": "acetaldimine",
+    "name": "acetaldimine_vinylamine__acetaldimine__s0__c0",
+    "energy_hartree": -133.936848130292
+   },
+   {
+    "system": "acetaldimine_vinylamine",
+    "tautomer": "acetaldimine",
+    "name": "acetaldimine_vinylamine__acetaldimine__s0__c1",
+    "energy_hartree": -133.935701708614
+   },
+   {
+    "system": "acetaldimine_vinylamine",
+    "tautomer": "vinylamine",
+    "name": "acetaldimine_vinylamine__vinylamine__s0__c0",
+    "energy_hartree": -133.932179152953
+   },
+   {
+    "system": "acetaldimine_vinylamine",
+    "tautomer": "vinylamine",
+    "name": "acetaldimine_vinylamine__vinylamine__s0__c1",
+    "energy_hartree": -133.932179353313
+   },
+   {
+    "system": "acetylacetone",
+    "tautomer": "diketo",
+    "name": "acetylacetone__diketo_c0",
+    "energy_hartree": -345.795375151979
+   },
+   {
+    "system": "acetylacetone",
+    "tautomer": "diketo",
+    "name": "acetylacetone__diketo_c1",
+    "energy_hartree": -345.79537588624
+   },
+   {
+    "system": "acetylacetone",
+    "tautomer": "diketo",
+    "name": "acetylacetone__diketo_c2",
+    "energy_hartree": -345.795389587761
+   },
+   {
+    "system": "acetylacetone",
+    "tautomer": "diketo",
+    "name": "acetylacetone__diketo_seed0",
+    "energy_hartree": -345.795383924645
+   },
+   {
+    "system": "acetylacetone",
+    "tautomer": "enol",
+    "name": "acetylacetone__enol_c0",
+    "energy_hartree": -345.801546329581
+   },
+   {
+    "system": "acetylacetone",
+    "tautomer": "enol",
+    "name": "acetylacetone__enol_c1",
+    "energy_hartree": -345.780511972963
+   },
+   {
+    "system": "cytosine",
+    "tautomer": "enol_amino",
+    "name": "cytosine__enol_amino__s0__c0",
+    "energy_hartree": -394.969288700807
+   },
+   {
+    "system": "cytosine",
+    "tautomer": "enol_amino",
+    "name": "cytosine__enol_amino__s0__c1",
+    "energy_hartree": -394.969284419111
+   },
+   {
+    "system": "cytosine",
+    "tautomer": "enol_amino",
+    "name": "cytosine__enol_amino__s0__c2",
+    "energy_hartree": -394.96807697229
+   },
+   {
+    "system": "cytosine",
+    "tautomer": "enol_amino",
+    "name": "cytosine__enol_amino__s0__c3",
+    "energy_hartree": -394.968073078197
+   },
+   {
+    "system": "cytosine",
+    "tautomer": "enol_amino",
+    "name": "cytosine__enol_amino__s0__c4",
+    "energy_hartree": -394.968081238914
+   },
+   {
+    "system": "cytosine",
+    "tautomer": "enol_amino",
+    "name": "cytosine__enol_amino__s0__c5",
+    "energy_hartree": -394.969292721529
+   },
+   {
+    "system": "cytosine",
+    "tautomer": "imino_oxo",
+    "name": "cytosine__imino_oxo__s0__c0",
+    "energy_hartree": -394.966346009737
+   },
+   {
+    "system": "cytosine",
+    "tautomer": "imino_oxo",
+    "name": "cytosine__imino_oxo__s0__c1",
+    "energy_hartree": -394.963255508538
+   },
+   {
+    "system": "cytosine",
+    "tautomer": "keto_amino",
+    "name": "cytosine__keto_amino__s0__c0",
+    "energy_hartree": -394.968739918886
+   },
+   {
+    "system": "cytosine",
+    "tautomer": "keto_amino",
+    "name": "cytosine__keto_amino__s0__c1",
+    "energy_hartree": -394.968753819822
+   },
+   {
+    "system": "pyridone",
+    "tautomer": "hydroxypyridine",
+    "name": "pyridone__hydroxypyridine__s0__c0",
+    "energy_hartree": -323.532432769561
+   },
+   {
+    "system": "pyridone",
+    "tautomer": "hydroxypyridine",
+    "name": "pyridone__hydroxypyridine__s0__c1",
+    "energy_hartree": -323.52416444646
+   },
+   {
+    "system": "pyridone",
+    "tautomer": "pyridone",
+    "name": "pyridone__pyridone__s0__c0",
+    "energy_hartree": -323.531190676993
+   }
+  ]
+ }
+}

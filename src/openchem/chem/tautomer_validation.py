@@ -51,15 +51,25 @@ from typing import Any
 
 from rdkit import Chem
 
+from openchem.chem.tautomer_conformers import SEARCH_FULL, SEARCH_SINGLE, SEARCH_TOPK
 from openchem.chem.tautomer_distribution import (
     HARTREE_TO_KCAL_PER_MOL,
+    MODEL_POLICY_FULL,
+    MODEL_POLICY_SINGLE,
+    MODEL_POLICY_TOPK,
     CandidateStatus,
+    ModelPolicy,
     TautomerDistributionOutcome,
     TautomerState,
+    model_version,
 )
 
-#: The frozen criteria and reference values.
+#: The criteria-v1 file: revision 3, PBE0 def2-TZVP. Kept loadable and untouched, because
+#: its artifact (`benchmarks/tautomer_validation/`) is the permanent record of that failure.
 SPEC_PATH = Path(__file__).parent / "data" / "tautomer_validation.json"
+#: The criteria-v2 file: revision 4 (a conformer search), M062X def2-TZVP, and every system
+#: marked as a seen regression system or a held-out one.
+SPEC_PATH_V2 = Path(__file__).parent / "data" / "tautomer_validation_v2.json"
 
 #: Largest disagreement between a reference value and the energy difference of
 #: the source's own printed absolute energies. Values are printed to two
@@ -72,6 +82,12 @@ ROLE_REQUIRED = "required"
 ROLE_OPTIONAL = "optional"
 #: A reference tautomer's value is the LOWEST of its source variants (rotamers, E/Z forms).
 REPRESENTATIVE_RULE_LOWEST = "lowest_reference_variant"
+#: A system the model's design had already seen (v1's four): a pass on it is not independent evidence.
+PARTITION_REGRESSION = "regression"
+#: A system frozen in the held-out manifest before any v4 code or energy existed.
+PARTITION_HELD_OUT = "held_out"
+#: Every partition a v2 system carries.
+PARTITIONS = (PARTITION_REGRESSION, PARTITION_HELD_OUT)
 #: The source printed the relative energy; there are no absolute energies to check it against.
 DERIVATION_REPORTED = "reported_relative"
 #: The value was computed from the source's own printed absolute energies, which are kept.
@@ -138,6 +154,8 @@ class ReferenceSystem:
     reference: Mapping[str, Any]
     tautomers: tuple[ReferenceTautomer, ...]
     notes: str
+    #: `regression` or `held_out` in a v2 file; `None` in a v1 file, which has no partition.
+    partition: str | None = None
 
     @property
     def required(self) -> bool:
@@ -180,9 +198,12 @@ class ValidationSpec:
         """WHICH systems and tautomers, and whether each is required, without
         their values: the same set with one number corrected keeps this hash and
         changes `reference_bundle_hash`."""
+        # The partition joins the digest only where a system has one, so criteria v1's hash is
+        # exactly what it was, and moving a system between partitions is a different set.
         return _digest(
             [
                 [s.id, s.role, s.input_smiles, [[t.id, t.smiles] for t in s.tautomers]]
+                + ([] if s.partition is None else [s.partition])
                 for s in self.systems
             ]
         )
@@ -294,16 +315,26 @@ def parse_spec(raw: Mapping[str, Any]) -> ValidationSpec:
         "$",
     )
     assert_no_computed(raw)
-    if raw["schema_version"] != 1:
+    if raw["schema_version"] not in (1, 2):
         raise ValidationSpecError(f"unsupported schema_version {raw['schema_version']!r}")
-    _closed(raw["preregistration"], {"frozen_before_first_run", "frozen_on", "note"}, set(), "$.preregistration")
+    v2 = raw["schema_version"] == 2
+    _closed(
+        raw["preregistration"],
+        {"frozen_before_first_run", "frozen_on", "note"}
+        | ({"supersedes", "design_disclosure", "selection_manifest", "method_screen"} if v2 else set()),
+        set(),
+        "$.preregistration",
+    )
     if raw["preregistration"]["frozen_before_first_run"] is not True:
         raise ValidationSpecError("$.preregistration.frozen_before_first_run must be true")
+    if v2:
+        _check_v2_preregistration(raw["preregistration"])
     _closed(
         raw["model_under_test"],
         {"method_basis", "provider", "calc_type", "orca_version", "charge", "multiplicity",
          "embedding_algorithm", "embedding_base_seed", "temperature_k", "dispersion", "convergence",
-         "rationale"},
+         "rationale"}
+        | ({"conformer_search", "model_policy", "model_version", "rdkit_version"} if v2 else set()),
         set(),
         "$.model_under_test",
     )
@@ -311,7 +342,8 @@ def parse_spec(raw: Mapping[str, Any]) -> ValidationSpec:
     _closed(
         raw["gates"],
         {"reference_tie_kcal", "mae_tolerance_kcal", "max_error_tolerance_kcal", "scope", "ranking_rule",
-         "quantitative_rule", "tied_pairs_in_quantitative_gate", "pooled_mae"},
+         "quantitative_rule", "tied_pairs_in_quantitative_gate", "pooled_mae"}
+        | ({"partition_reporting"} if v2 else set()),
         set(),
         "$.gates",
     )
@@ -327,12 +359,14 @@ def parse_spec(raw: Mapping[str, Any]) -> ValidationSpec:
     if raw["gates"]["tied_pairs_in_quantitative_gate"] != "included":
         raise ValidationSpecError("tied pairs are included in the quantitative gate (decided before the run)")
 
-    systems = tuple(_parse_system(s, raw["quantity"], index) for index, s in enumerate(raw["systems"]))
+    systems = tuple(_parse_system(s, raw["quantity"], index, v2) for index, s in enumerate(raw["systems"]))
     ids = [s.id for s in systems]
     if len(set(ids)) != len(ids):
         raise ValidationSpecError(f"duplicate system ids: {ids}")
     if not any(s.required for s in systems):
         raise ValidationSpecError("no system is required: there is nothing to gate on")
+    if v2 and not any(s.required and s.partition == PARTITION_HELD_OUT for s in systems):
+        raise ValidationSpecError("a v2 preregistration needs at least one REQUIRED held_out system")
     if not isinstance(raw["corroboration_only"], list) or not isinstance(raw["tolerance_evidence"], list):
         raise ValidationSpecError("corroboration_only and tolerance_evidence are lists")
     for index, entry in enumerate(raw["corroboration_only"]):
@@ -348,15 +382,31 @@ def parse_spec(raw: Mapping[str, Any]) -> ValidationSpec:
     )
 
 
-def _parse_system(node: Mapping[str, Any], declared_quantity: Mapping[str, Any], index: int) -> ReferenceSystem:
+def _parse_system(
+    node: Mapping[str, Any], declared_quantity: Mapping[str, Any], index: int, v2: bool = False
+) -> ReferenceSystem:
     where = f"$.systems[{index}]"
-    _closed(node, {"id", "role", "name", "input_smiles", "source", "reference", "tautomers", "notes"}, set(), where)
+    _closed(
+        node,
+        {"id", "role", "name", "input_smiles", "source", "reference", "tautomers", "notes"}
+        | ({"partition"} if v2 else set()),
+        {"table_checksum", "corroboration"} if v2 else set(),
+        where,
+    )
     if node["role"] not in (ROLE_REQUIRED, ROLE_OPTIONAL):
         raise ValidationSpecError(f"{where}.role: {node['role']!r}")
+    if v2 and node["partition"] not in PARTITIONS:
+        raise ValidationSpecError(f"{where}.partition: {node['partition']!r}, expected one of {PARTITIONS}")
+    for entry_index, entry in enumerate(node.get("corroboration", [])):
+        _closed(entry, {"key", "value_kcal_mol", "level", "note"}, set(), f"{where}.corroboration[{entry_index}]")
     _closed(node["source"], {"key", "file", "doi", "locator"}, set(), f"{where}.source")
     _closed(node["reference"], {"method", "units", "zero", "derivation", "protocol", "uncertainty"}, set(),
             f"{where}.reference")
     _closed(node["reference"]["uncertainty"], {"value_kcal", "basis"}, set(), f"{where}.reference.uncertainty")
+    uncertainty = node["reference"]["uncertainty"]["value_kcal"]
+    # A source that states none is recorded as none, never as an estimate.
+    if uncertainty is not None:
+        _number(uncertainty, f"{where}.reference.uncertainty.value_kcal", positive=True)
     _closed(node["reference"]["protocol"], set(_QUANTITY_KEYS), set(), f"{where}.reference.protocol")
     if node["reference"]["units"] != "kcal/mol":
         raise ValidationSpecError(f"{where}.reference.units must be kcal/mol")
@@ -395,6 +445,7 @@ def _parse_system(node: Mapping[str, Any], declared_quantity: Mapping[str, Any],
     return ReferenceSystem(
         id=node["id"], role=node["role"], name=node["name"], input_smiles=node["input_smiles"],
         source=node["source"], reference=node["reference"], tautomers=tautomers, notes=node["notes"],
+        partition=node.get("partition"),
     )
 
 
@@ -424,8 +475,72 @@ def _parse_tautomer(node: Mapping[str, Any], where: str) -> ReferenceTautomer:
     )
 
 
+def _check_v2_preregistration(node: Mapping[str, Any]) -> None:
+    """The v2 disclosure and the two pins it relies on must be present and well-formed."""
+    where = "$.preregistration"
+    disclosure = node["design_disclosure"]
+    if not (
+        isinstance(disclosure, list)
+        and disclosure
+        and all(isinstance(item, str) and item.strip() for item in disclosure)
+    ):
+        raise ValidationSpecError(f"{where}.design_disclosure: a non-empty list of statements")
+    _closed(node["selection_manifest"], {"path", "sha256", "hash_basis", "selection_rule_version"}, set(),
+            f"{where}.selection_manifest")
+    _closed(node["method_screen"],
+            {"record_directory", "rule_path", "rule_sha256", "chosen_method_basis", "scope"}, set(),
+            f"{where}.method_screen")
+    for label, digest in (("selection_manifest", node["selection_manifest"]["sha256"]),
+                          ("method_screen", node["method_screen"]["rule_sha256"])):
+        if not re.fullmatch(r"[0-9a-f]{64}", digest):
+            raise ValidationSpecError(f"{where}.{label}: not a SHA-256 hex digest")
+
+
 def load_spec(path: Path = SPEC_PATH) -> ValidationSpec:
     return parse_spec(json.loads(path.read_text(encoding="utf-8")))
+
+
+#: The frozen policies a v2 file may declare, by their `conformer_search`. The file names the
+#: search and the full canonical policy string; the code supplies the policy, so the two can
+#: be compared and a drift is an error rather than a silent difference.
+_POLICY_BY_SEARCH: dict[str, ModelPolicy] = {
+    SEARCH_TOPK: MODEL_POLICY_TOPK,
+    SEARCH_FULL: MODEL_POLICY_FULL,
+    SEARCH_SINGLE: MODEL_POLICY_SINGLE,
+}
+
+
+def policy_of(spec: ValidationSpec) -> ModelPolicy:
+    """The `ModelPolicy` a v2 spec declares. A v1 spec declares none (it predates the field)."""
+    declared = spec.model_under_test.get("conformer_search")
+    if declared is None:
+        raise ValidationSpecError("this criteria file declares no conformer policy (it is a v1 file)")
+    if declared not in _POLICY_BY_SEARCH:
+        raise ValidationSpecError(f"unknown conformer_search {declared!r}")
+    return _POLICY_BY_SEARCH[declared]
+
+
+def model_mismatches(spec: ValidationSpec) -> list[str]:
+    """Where the model a v2 file DECLARES differs from the model this code would run: the
+    canonical policy string, the model version and the RDKit release. A frozen file whose
+    declared model is not the one being executed would validate something else, so the runner
+    refuses on any entry here, and a test pins that the committed file has none."""
+    declared = spec.model_under_test
+    policy = policy_of(spec)
+    problems = []
+    if declared["model_policy"] != policy.canonical():
+        problems.append("model_policy: the file's string is not the one the code builds")
+    expected_version = model_version(
+        declared["method_basis"], declared["embedding_algorithm"], declared["temperature_k"], policy
+    )
+    if declared["model_version"] != expected_version:
+        problems.append("model_version: the file's string is not the one the code builds")
+    if declared["rdkit_version"] not in policy.conformer_engine:
+        problems.append(
+            f"rdkit_version: the file declares {declared['rdkit_version']}, the code's engine is "
+            f"{policy.conformer_engine}"
+        )
+    return problems
 
 
 # --- matching a reference tautomer to what the application enumerated --------------
@@ -634,7 +749,38 @@ def evaluate_gate(
 
 def systems_summary(systems: Sequence[ReferenceSystem]) -> list[str]:
     """One line per system, for the runner's listing."""
-    return [f"{s.id} [{s.role}] {len(s.tautomers)} tautomers, {s.source['key']}" for s in systems]
+    return [
+        f"{s.id} [{s.role}{'/' + s.partition if s.partition else ''}] {len(s.tautomers)} tautomers, "
+        f"{s.source['key']}"
+        for s in systems
+    ]
+
+
+def partition_summary(
+    spec: ValidationSpec, evaluations: Sequence[SystemEvaluation]
+) -> dict[str, dict[str, Any]]:
+    """The gate's REQUIRED systems grouped by partition, so a run can honestly say "repaired
+    the known cases, failed unseen chemistry". Reported beside the overall gate and never
+    replacing it: the overall gate is the criterion, and a regression pass is not independent
+    evidence. A partition with a required system that was not evaluated reports `passed` as
+    `None` rather than a guess."""
+    by_id = {e.system_id: e for e in evaluations}
+    summary: dict[str, dict[str, Any]] = {}
+    for partition in PARTITIONS:
+        required = [s for s in spec.systems if s.required and s.partition == partition]
+        if not required:
+            continue
+        evaluated = [by_id[s.id] for s in required if s.id in by_id]
+        complete = len(evaluated) == len(required)
+        summary[partition] = {
+            "required_systems": [s.id for s in required],
+            "evaluated": [e.system_id for e in evaluated],
+            "ranking_ok": all(e.ranking_ok for e in evaluated) if complete else None,
+            "quantitative_ok": all(e.quantitative_ok for e in evaluated) if complete else None,
+            "passed": all(e.passed for e in evaluated) if complete else None,
+            "failed_systems": [e.system_id for e in evaluated if not e.passed],
+        }
+    return summary
 
 
 @dataclass(frozen=True)
@@ -673,6 +819,8 @@ def build_artifact(
     for system in spec.systems:
         run = by_id.get(system.id)
         entry: dict[str, Any] = {"id": system.id, "role": system.role, "source": dict(system.source)}
+        if system.partition is not None:
+            entry["partition"] = system.partition
         if run is None:
             entry["execution"] = "not_run"
             systems_out.append(entry)
@@ -720,7 +868,8 @@ def build_artifact(
             by_id.get(s.id) is not None and s.id in usable for s in spec.required_systems
         ),
     )
-    return {
+    partitions = partition_summary(spec, gate.systems) if any(s.partition for s in spec.systems) else None
+    artifact = {
         "artifact_schema": 1,
         "identity": {
             "model_version": model_version,
@@ -739,4 +888,7 @@ def build_artifact(
         "pooled_mae_kcal": gate.pooled_mae_kcal,
         "systems": systems_out,
     }
+    if partitions is not None:
+        artifact["partitions"] = partitions
+    return artifact
 

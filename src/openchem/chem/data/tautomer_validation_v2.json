@@ -1,0 +1,911 @@
+{
+  "_source_key": "trygubenko2002",
+  "_supplementary_source_keys": [
+    "belova2014",
+    "fogarasi2010",
+    "goller2022",
+    "balabin2009",
+    "catalan1996",
+    "brovarets2013",
+    "hanus2004",
+    "ganyecz2019",
+    "barone2023",
+    "perry2025"
+  ],
+  "schema_version": 2,
+  "validation_criteria_version": "tautomer-validation-criteria-v2",
+  "preregistration": {
+    "frozen_before_first_run": true,
+    "frozen_on": "2026-10-04",
+    "note": "This file holds INPUTS only: literature reference values, tolerances, the declared model and the disclosure of how v4 was designed. It contains no value computed by this application, and tests refuse a key that could carry one. The criteria-v1 file and its artifact are untouched and remain the permanent record of the revision-3 failure. The measured artifact and the gate outcome are a separate, later commit made on a clean tree at the commit that merges this file.",
+    "supersedes": "tautomer-validation-criteria-v1",
+    "design_disclosure": [
+      "WHAT v4 IS AND WHEN IT WAS DESIGNED. Model revision 4 (a conformer search per stereo class, and the method M062X def2-TZVP) was designed AFTER the criteria-v1 run recorded attempted_failed for revision 3 (PBE0 def2-TZVP, one start geometry; cytosine, acetylacetone and 2-pyridone were mis-ranked). The four carried-forward systems are therefore SEEN data: v4 was shaped on them, and a pass on them is NOT independent evidence. They are marked partition 'regression' for that reason.",
+      "AN EXPLORATORY CHECK BEFORE v4 WAS BUILT. PBE0/def2-TZVP optimizations of acetylacetone's enol from two start geometries (the seed-0 embedding, O-H pointing away from the carbonyl, and a hydrogen-bond-oriented start) differed by 14.7 kcal/mol; with the lower enol the computed enol lay 6.91 kcal/mol below the diketo against a reference of 4.85 (error 2.06). That is a development-system observation, not a gate result, and it is why a conformer search was added.",
+      "HOW THE METHOD WAS CHOSEN. M062X def2-TZVP was selected by a screen over the four carried-forward systems only, under a rule committed before any candidate energy existed (benchmarks/tautomer_validation/method_screen/SELECTION_RULE.md, SHA-256 8449dc1111403c908bd7a741a4d03afd6ec84d6e19f6aee7f83e97bfd7c72bc0). It scored single points of M062X, wB97M-V and revDSD-PBEP86-D4 on PBE0/def2-TZVP optimized conformer pools (a disclosed cost shortcut: the real model optimizes with M062X, which could move any number). The worst per-system maximum error was 0.98 kcal/mol for M062X and 1.29 for wB97M-V; PBE0 and revDSD-PBEP86-D4 each failed two rankings. The screen selects which method receives this run and is not a validation claim.",
+      "WHAT ELSE WAS READ BEFORE THE METHOD WAS CHOSEN. Goller 2022 states that M06-2X reproduces the 2-pyridone CCSD(T) gap that PBE0 misses (molecule 8, a carried-forward system). The same paper also states an aggregate preference for M06-2X over all thirteen of its molecules, which include the indazole and hypoxanthine rows used as held-out references here. The method choice cites only the molecule-8 statement and the screen, but the aggregate sentence was read and is disclosed. Perry 2025 (large drug-like crystal-tautomer systems, M06-2X not named) is why wB97M-V and revDSD-PBEP86-D4 were screened alongside it.",
+      "HOW THE HELD-OUT SYSTEMS WERE CHOSEN. By heldout-selection-rule-v1, committed in benchmarks/tautomer_validation/heldout_manifest_v2.json (SHA-256 below, merged as 9d6a533d) before any v4 code was written and before any energy was computed for any of them. Difficulty and any model's behaviour on them played no part. Adenine was excluded (no eligible coupled-cluster source). No held-out energy has been computed by this application before this file was frozen; conformer count, prune threshold, top-K, cap, method and tolerances were all fixed without reference to them.",
+      "WHAT THIS RUN VALIDATES. One policy only: the top-K policy (50 ETKDG embeds, 3 lowest distinct MMFF conformers optimized with ORCA). The full-ORCA-conformer mode is a different scientific model with a different model_version and would need its own preregistered run. A passed run validates THIS model for THIS benchmark set only.",
+      "HOW AN OUTCOME IS HANDLED. The tolerances (tie 1.0, MAE 1.0, maximum 2.0 kcal/mol) are unchanged from criteria v1 and are not retuned after any number exists. The gate is reported by partition (regression, held_out, overall) and the overall gate is unchanged: every required system must pass on its own. A failure is recorded as attempted_failed and percentages stay withheld; a held-out failure is not repaired by editing this file."
+    ],
+    "selection_manifest": {
+      "path": "benchmarks/tautomer_validation/heldout_manifest_v2.json",
+      "sha256": "8a3932ca92480b6022b6c51a7b60a7fea47d3d921f61f2d51173efba7cb1c12d",
+      "hash_basis": "SHA-256 of the file's bytes with line endings normalized to LF",
+      "selection_rule_version": "heldout-selection-rule-v1"
+    },
+    "method_screen": {
+      "record_directory": "benchmarks/tautomer_validation/method_screen",
+      "rule_path": "benchmarks/tautomer_validation/method_screen/SELECTION_RULE.md",
+      "rule_sha256": "8449dc1111403c908bd7a741a4d03afd6ec84d6e19f6aee7f83e97bfd7c72bc0",
+      "chosen_method_basis": "M062X def2-TZVP",
+      "scope": "development systems only; single points on PBE0/def2-TZVP optimized pools"
+    }
+  },
+  "model_under_test": {
+    "method_basis": "M062X def2-TZVP",
+    "provider": "orca",
+    "calc_type": "opt",
+    "orca_version": "6.1.1",
+    "charge": 0,
+    "multiplicity": 1,
+    "embedding_algorithm": "ETKDGv3",
+    "embedding_base_seed": 0,
+    "temperature_k": 298.15,
+    "dispersion": "none requested (the keyword line is `M062X def2-TZVP`; provenance only)",
+    "convergence": "as built by OrcaQuantumEngineProvider.build_input for calc_type 'opt' (no tightened settings); the exact input text of every job is hashed into the artifact",
+    "rationale": "M062X def2-TZVP is the method the pre-committed development-set screen selected (benchmarks/tautomer_validation/method_screen). It is a proposal for THIS benchmark, not a general claim. Validation authorizes percentages ONLY for this method/basis and this conformer policy, because both are part of model_version.",
+    "conformer_search": "mmff_topk",
+    "model_policy": "stereo_cap=8;enantiomer_policy=dedupe_mirror;bond_stereo_policy=preserve;tautomer_representative=lowest_successful_stereo;state_degeneracy=unit;incomplete_population_policy=withhold;conformer_search=mmff_topk;conformer_engine=rdkit-2025.09.6-etkdgv3;conformer_embed_params=useExpTorsionAnglePrefs=True;useBasicKnowledge=True;useRandomCoords=False;enforceChirality=True;ETversion=2;pruneRmsThresh=-1.0;useSmallRingTorsions=False;useMacrocycleTorsions=True;conformer_embeds=50;conformer_topk=3;conformer_cap=10;conformer_prune=distinct_conformers(skeleton_polar_h,rms=0.5,window=1.0);conformer_prefilter=mmff94_with_uff_fallback;conformer_prefilter_max_iters=2000",
+    "model_version": "tautomer-boltzmann-v4|stereo_cap=8;enantiomer_policy=dedupe_mirror;bond_stereo_policy=preserve;tautomer_representative=lowest_successful_stereo;state_degeneracy=unit;incomplete_population_policy=withhold;conformer_search=mmff_topk;conformer_engine=rdkit-2025.09.6-etkdgv3;conformer_embed_params=useExpTorsionAnglePrefs=True;useBasicKnowledge=True;useRandomCoords=False;enforceChirality=True;ETversion=2;pruneRmsThresh=-1.0;useSmallRingTorsions=False;useMacrocycleTorsions=True;conformer_embeds=50;conformer_topk=3;conformer_cap=10;conformer_prune=distinct_conformers(skeleton_polar_h,rms=0.5,window=1.0);conformer_prefilter=mmff94_with_uff_fallback;conformer_prefilter_max_iters=2000|M062X def2-TZVP|ETKDGv3|T=298.15K",
+    "rdkit_version": "2025.09.6"
+  },
+  "quantity": {
+    "phase": "gas",
+    "energy_kind": "electronic",
+    "geometry": "optimized",
+    "vertical": false,
+    "zpe_included": false,
+    "thermal_included": false,
+    "solvent": "none",
+    "experimental": false,
+    "charge": 0,
+    "multiplicity": 1
+  },
+  "gates": {
+    "reference_tie_kcal": 1.0,
+    "mae_tolerance_kcal": 1.0,
+    "max_error_tolerance_kcal": 2.0,
+    "scope": "every_required_system_individually",
+    "ranking_rule": "pairwise_tie_aware: for a pair whose reference values differ by at least reference_tie_kcal the computed energies must order the same way; a closer pair is unordered",
+    "quantitative_rule": "one absolute error per reference-listed tautomer after rebaselining each vector to its own lowest reference-listed tautomer; a system passes only if its MAE <= mae_tolerance_kcal AND its max error <= max_error_tolerance_kcal",
+    "tied_pairs_in_quantitative_gate": "included",
+    "pooled_mae": "reported, never the criterion",
+    "partition_reporting": "the outcome is reported for the regression partition, the held_out partition and overall; the overall gate is the one that decides, and it is the same rule as criteria v1"
+  },
+  "tolerance_evidence": [
+    "Tolerances (tie 1.0, MAE 1.0, max 2.0 kcal/mol) were proposed in the approved plan of 2026-10-02, BEFORE the supplied papers were read, and are not changed here. The evidence below is context for plausibility, not a derivation.",
+    "Method spread inside one source: Belova 2014 SI gives the acetylacetone diketo-enol electronic energy as 4.849 (MP2/cc-pVTZ) and 6.481 (B3LYP/aug-cc-pVTZ) kcal/mol, a spread of 1.63 between two large-basis levels.",
+    "Cytosine 3a is not settled between sources: Trygubenko 2002 puts it 3.68 above 2a; Fogarasi 2008 (a citation of CCSD(T) ranges, read for this purpose) places it near 1.5-2.1 above 2b, about 1 kcal/mol closer.",
+    "Rotamer and isomer limits of a single start geometry: cytosine 2a/2b differ by 0.69 and 3a/3b by 1.57 kcal/mol, and RDKit does not enumerate hydroxyl rotamers or C=N-H E/Z, so the application may land on the higher variant. The reference value of a tautomer is its LOWEST variant (see representative_rule), so this limitation can only raise an error.",
+    "2-pyridone/2-hydroxypyridine: Goller 2022 Table 4 gives 2.07 (cc-pVQZ), 1.96 (CBS 3/4) and 2.48 (CBS 2/3) kcal/mol for the same pair, so the reference itself moves by about 0.5; Rendell 1993's 1.4/0.76 kcal/mol (two small bases, SCF geometries) lie further away.",
+    "DISCLOSED BEFORE THE RUN: the same Goller 2022 paper (Table 6) lists PBE0-D3(BJ)/def2-TZVP electronic energies for this pair that put 2-pyridone 0.32 kcal/mol BELOW 2-hydroxypyridine, against a reference that puts it 2.07 above. If the application reproduces that, the 2-pyridone system misses both the ranking gate and the maximum-error tolerance. The tolerances were not loosened and the system was not demoted to optional because of it; a gate that fails here is the intended, recorded outcome.",
+    "Fogarasi 2010 sets a 0.5 kcal/mol benchmark-accuracy goal for converged reference values; that is a methodology target for the REFERENCE, not a threshold for two independent DFT energies being the same.",
+    "UNCHANGED FOR v2. The tolerances above are exactly those of criteria v1 (tie 1.0, MAE 1.0, maximum 2.0 kcal/mol). They were not retuned after revision 3 failed, after the method screen, or after the held-out manifest was frozen.",
+    "THE HELD-OUT REFERENCES ARE NOT ALL AT ONE LEVEL. Indazole and hypoxanthine are Goller 2022 DLPNO-CCSD(T)/def2-QZVPP on PBE0-D3(BJ) geometries; the two triazoles are Balabin 2009 canonical CCSD(T)/CBS focal-point values on MP2/aug-cc-pVTZ geometries. Goller's own value for the 1,2,4-triazole pair (5.92) lies 0.33 kcal/mol from Balabin's (6.25), which sizes the disagreement between the two sources on the one pair both cover."
+  ],
+  "systems": [
+    {
+      "id": "cytosine",
+      "role": "required",
+      "name": "Cytosine, gas phase (three application-level tautomers)",
+      "input_smiles": "Nc1cc[nH]c(=O)n1",
+      "source": {
+        "key": "trygubenko2002",
+        "file": "trygubenko2002.pdf",
+        "doi": "10.1039/b202156k",
+        "locator": "Table 2, last line, Etot(CCSD(T)/inf); structures from Fig. 1"
+      },
+      "reference": {
+        "method": "CCSD(T) extrapolated to the basis-set limit (triazine-fitted exponents), on RI-MP2/TZVPP geometries",
+        "units": "kcal/mol",
+        "zero": "tautomer 2a (the lowest in the source)",
+        "derivation": "reported_relative",
+        "protocol": {
+          "phase": "gas",
+          "energy_kind": "electronic",
+          "geometry": "optimized",
+          "vertical": false,
+          "zpe_included": false,
+          "thermal_included": false,
+          "solvent": "none",
+          "experimental": false,
+          "charge": 0,
+          "multiplicity": 1
+        },
+        "uncertainty": {
+          "value_kcal": 1.0,
+          "basis": "none stated by the source; about 1 kcal/mol is the disagreement with Fogarasi 2008 on tautomer 3a. Reported, never folded into a tolerance."
+        }
+      },
+      "tautomers": [
+        {
+          "id": "enol_amino",
+          "name": "enol-amino (2a/2b, hydroxyl rotamers)",
+          "smiles": "Nc1ccnc(O)n1",
+          "reference_kcal": 0.0,
+          "representative_rule": "lowest_reference_variant",
+          "variants": [
+            {
+              "label": "2a",
+              "reference_kcal": 0.0,
+              "locator": "Table 2, Etot(CCSD(T)/inf)"
+            },
+            {
+              "label": "2b",
+              "reference_kcal": 0.69,
+              "locator": "Table 2, Etot(CCSD(T)/inf)"
+            }
+          ]
+        },
+        {
+          "id": "keto_amino",
+          "name": "keto-amino (1, the canonical form)",
+          "smiles": "Nc1cc[nH]c(=O)n1",
+          "reference_kcal": 1.44,
+          "representative_rule": "lowest_reference_variant",
+          "variants": [
+            {
+              "label": "1",
+              "reference_kcal": 1.44,
+              "locator": "Table 2, Etot(CCSD(T)/inf)"
+            }
+          ]
+        },
+        {
+          "id": "imino_oxo",
+          "name": "imino-oxo (3a/3b, C=N-H E/Z)",
+          "smiles": "N=C1C=CNC(=O)N1",
+          "reference_kcal": 2.11,
+          "representative_rule": "lowest_reference_variant",
+          "variants": [
+            {
+              "label": "3b",
+              "reference_kcal": 2.11,
+              "locator": "Table 2, Etot(CCSD(T)/inf)"
+            },
+            {
+              "label": "3a",
+              "reference_kcal": 3.68,
+              "locator": "Table 2, Etot(CCSD(T)/inf)"
+            }
+          ]
+        }
+      ],
+      "notes": "The primary multi-state, close-energy row. Structures were read from the paper's Fig. 1 (2a/2b hydroxy-amino, 3a/3b imino-oxo with both ring N-H).",
+      "partition": "regression"
+    },
+    {
+      "id": "acetylacetone",
+      "role": "required",
+      "name": "Acetylacetone, enol versus diketo, gas phase",
+      "input_smiles": "CC(=O)CC(C)=O",
+      "source": {
+        "key": "belova2014",
+        "file": "belova2014_si.pdf",
+        "doi": "10.1021/jo402814c",
+        "locator": "Supporting Information, electronic energies of the labelled MP2/cc-pVTZ calculations (enol and diketo)"
+      },
+      "reference": {
+        "method": "MP2/cc-pVTZ, geometry optimized at the same level",
+        "units": "kcal/mol",
+        "zero": "the enol (the lowest in the source)",
+        "derivation": "derived_from_absolutes",
+        "protocol": {
+          "phase": "gas",
+          "energy_kind": "electronic",
+          "geometry": "optimized",
+          "vertical": false,
+          "zpe_included": false,
+          "thermal_included": false,
+          "solvent": "none",
+          "experimental": false,
+          "charge": 0,
+          "multiplicity": 1
+        },
+        "uncertainty": {
+          "value_kcal": 1.63,
+          "basis": "spread between this MP2/cc-pVTZ value (4.849) and the same paper's B3LYP/aug-cc-pVTZ value (6.481), read from the same SI. Evidence of method dependence, not a formal interval."
+        }
+      },
+      "tautomers": [
+        {
+          "id": "enol",
+          "name": "enol (chelated cis form)",
+          "smiles": "CC(=O)C=C(C)O",
+          "reference_kcal": 0.0,
+          "absolute_hartree": -345.1498905,
+          "representative_rule": "lowest_reference_variant",
+          "variants": [
+            {
+              "label": "enol",
+              "reference_kcal": 0.0,
+              "locator": "SI, E(MP2) of the MP2/cc-pVTZ enol calculation"
+            }
+          ]
+        },
+        {
+          "id": "diketo",
+          "name": "diketo",
+          "smiles": "CC(=O)CC(C)=O",
+          "reference_kcal": 4.85,
+          "absolute_hartree": -345.1421634,
+          "representative_rule": "lowest_reference_variant",
+          "variants": [
+            {
+              "label": "diketo",
+              "reference_kcal": 4.85,
+              "locator": "SI, E(MP2) of the MP2/cc-pVTZ diketo calculation"
+            }
+          ]
+        }
+      ],
+      "notes": "The SI's own labelled energies are the primary data, not the main-text Table 1: Table 1 prints B3LYP 6.48 under 6-31G(d,p) and 6.24 under aug-cc-pVTZ, while the SI's energies give 6.26 and 6.48, so the paper contradicts itself on those two labels. MP2/cc-pVTZ (4.849) agrees in both places and is the single declared level. The reference enol is the intramolecularly hydrogen-bonded form; the application starts from one embedded geometry and may not reach it.",
+      "partition": "regression"
+    },
+    {
+      "id": "acetaldimine_vinylamine",
+      "role": "required",
+      "name": "Acetaldimine versus vinylamine, gas phase",
+      "input_smiles": "CC=N",
+      "source": {
+        "key": "fogarasi2010",
+        "file": "fogarasi2010.pdf",
+        "doi": "10.1016/j.molstruc.2010.02.065",
+        "locator": "Table 1, CCSD(T)//MP2/aug-pVTZ, /pV5Z row, system 4 (the paper's own best value is 3.0-3.1)"
+      },
+      "reference": {
+        "method": "CCSD(T)/cc-pV5Z on MP2/aug-cc-pVTZ geometries",
+        "units": "kcal/mol",
+        "zero": "acetaldimine (the lower in the source)",
+        "derivation": "derived_from_absolutes",
+        "protocol": {
+          "phase": "gas",
+          "energy_kind": "electronic",
+          "geometry": "optimized",
+          "vertical": false,
+          "zpe_included": false,
+          "thermal_included": false,
+          "solvent": "none",
+          "experimental": false,
+          "charge": 0,
+          "multiplicity": 1
+        },
+        "uncertainty": {
+          "value_kcal": 0.06,
+          "basis": "the source's own statement that the aug-cc-pVQZ and cc-pV5Z values differ by 0.06 kcal/mol (3.03 versus 3.08 from the printed energies)."
+        }
+      },
+      "tautomers": [
+        {
+          "id": "acetaldimine",
+          "name": "acetaldimine",
+          "smiles": "CC=N",
+          "reference_kcal": 0.0,
+          "absolute_hartree": -133.88293,
+          "representative_rule": "lowest_reference_variant",
+          "variants": [
+            {
+              "label": "4A",
+              "reference_kcal": 0.0,
+              "locator": "Table 1, CCSD(T)/pV5Z, 'E + 132' column"
+            }
+          ]
+        },
+        {
+          "id": "vinylamine",
+          "name": "vinylamine",
+          "smiles": "C=CN",
+          "reference_kcal": 3.08,
+          "absolute_hartree": -133.87802,
+          "representative_rule": "lowest_reference_variant",
+          "variants": [
+            {
+              "label": "4B",
+              "reference_kcal": 3.08,
+              "locator": "Table 1, CCSD(T)/pV5Z, 'E + 132' column"
+            }
+          ]
+        }
+      ],
+      "notes": "Absolute energies are reconstructed from the table's 'E + 132' header as -(132 + printed value); only their difference is used. The source does not state the imine N-H configuration in the table.",
+      "partition": "regression"
+    },
+    {
+      "id": "pyridone",
+      "role": "required",
+      "name": "2-Pyridone versus 2-hydroxypyridine, gas phase",
+      "input_smiles": "O=c1cccc[nH]1",
+      "source": {
+        "key": "goller2022",
+        "file": "goller2022.pdf",
+        "doi": "10.1007/s10822-022-00480-3",
+        "locator": "Table 4, cc-pVQZ row (absolute CCSD(T) energies of 8.1 and 8.2)"
+      },
+      "reference": {
+        "method": "CCSD(T)/cc-pVQZ as labelled in Table 4, on PBE0-D3(BJ)/def2-TZVP geometries; the paper states that its 'CCSD(T)' is DLPNO-CCSD(T) and the table does not say which form Table 4 used",
+        "units": "kcal/mol",
+        "zero": "2-hydroxypyridine (the lower in the gas phase)",
+        "derivation": "derived_from_absolutes",
+        "protocol": {
+          "phase": "gas",
+          "energy_kind": "electronic",
+          "geometry": "optimized",
+          "vertical": false,
+          "zpe_included": false,
+          "thermal_included": false,
+          "solvent": "none",
+          "experimental": false,
+          "charge": 0,
+          "multiplicity": 1
+        },
+        "uncertainty": {
+          "value_kcal": 0.52,
+          "basis": "spread between the paper's two CBS extrapolations (2.48 from cc-pVDZ/TZ, 1.96 from cc-pVTZ/QZ); the cc-pVQZ value itself is 0.11 from the 3/4 extrapolation."
+        }
+      },
+      "tautomers": [
+        {
+          "id": "hydroxypyridine",
+          "name": "2-hydroxypyridine (8.2)",
+          "smiles": "Oc1ccccn1",
+          "reference_kcal": 0.0,
+          "absolute_hartree": -323.0672737,
+          "representative_rule": "lowest_reference_variant",
+          "variants": [
+            {
+              "label": "8.2",
+              "reference_kcal": 0.0,
+              "locator": "Table 4, cc-pVQZ"
+            }
+          ]
+        },
+        {
+          "id": "pyridone",
+          "name": "2-pyridone (8.1)",
+          "smiles": "O=c1cccc[nH]1",
+          "reference_kcal": 2.07,
+          "absolute_hartree": -323.0639754,
+          "representative_rule": "lowest_reference_variant",
+          "variants": [
+            {
+              "label": "8.1",
+              "reference_kcal": 2.07,
+              "locator": "Table 4, cc-pVQZ"
+            }
+          ]
+        }
+      ],
+      "notes": "Promoted from optional to required because a modern gas-phase electronic-energy source now exists (Goller 2022; the paper states its energy differences are electronic, with the free-energy contribution computed separately in Table 6). The pair is famously hard for hybrid DFT; see tolerance_evidence.",
+      "partition": "regression"
+    },
+    {
+      "id": "formamide_formamidic_acid",
+      "role": "optional",
+      "name": "Formamide versus formamidic acid, gas phase (lopsided sanity row)",
+      "input_smiles": "NC=O",
+      "source": {
+        "key": "fogarasi2010",
+        "file": "fogarasi2010.pdf",
+        "doi": "10.1016/j.molstruc.2010.02.065",
+        "locator": "Table 1, CCSD(T)//MP2/aug-pVTZ, /pV5Z row, system 1"
+      },
+      "reference": {
+        "method": "CCSD(T)/cc-pV5Z on MP2/aug-cc-pVTZ geometries",
+        "units": "kcal/mol",
+        "zero": "formamide",
+        "derivation": "derived_from_absolutes",
+        "protocol": {
+          "phase": "gas",
+          "energy_kind": "electronic",
+          "geometry": "optimized",
+          "vertical": false,
+          "zpe_included": false,
+          "thermal_included": false,
+          "solvent": "none",
+          "experimental": false,
+          "charge": 0,
+          "multiplicity": 1
+        },
+        "uncertainty": {
+          "value_kcal": 0.2,
+          "basis": "the source states its CCSD(T) values are stable within 0.2 kcal/mol across the largest bases."
+        }
+      },
+      "tautomers": [
+        {
+          "id": "formamide",
+          "name": "formamide",
+          "smiles": "NC=O",
+          "reference_kcal": 0.0,
+          "absolute_hartree": -169.82351,
+          "representative_rule": "lowest_reference_variant",
+          "variants": [
+            {
+              "label": "1A",
+              "reference_kcal": 0.0,
+              "locator": "Table 1, CCSD(T)/pV5Z, 'E + 168' column"
+            }
+          ]
+        },
+        {
+          "id": "formamidic_acid",
+          "name": "formamidic acid",
+          "smiles": "N=CO",
+          "reference_kcal": 10.69,
+          "absolute_hartree": -169.80648,
+          "representative_rule": "lowest_reference_variant",
+          "variants": [
+            {
+              "label": "1B",
+              "reference_kcal": 10.69,
+              "locator": "Table 1, CCSD(T)/pV5Z, 'E + 168' column"
+            }
+          ]
+        }
+      ],
+      "notes": "Reported and never gating: a gap this large is ranked correctly by almost any method, so passing it proves little.",
+      "partition": "regression"
+    },
+    {
+      "id": "acetaldehyde_vinyl_alcohol",
+      "role": "optional",
+      "name": "Acetaldehyde versus vinyl alcohol, gas phase (sanity row)",
+      "input_smiles": "CC=O",
+      "source": {
+        "key": "fogarasi2010",
+        "file": "fogarasi2010.pdf",
+        "doi": "10.1016/j.molstruc.2010.02.065",
+        "locator": "Table 1, CCSD(T)//MP2/aug-pVTZ, /pV5Z row, system 3"
+      },
+      "reference": {
+        "method": "CCSD(T)/cc-pV5Z on MP2/aug-cc-pVTZ geometries",
+        "units": "kcal/mol",
+        "zero": "acetaldehyde",
+        "derivation": "derived_from_absolutes",
+        "protocol": {
+          "phase": "gas",
+          "energy_kind": "electronic",
+          "geometry": "optimized",
+          "vertical": false,
+          "zpe_included": false,
+          "thermal_included": false,
+          "solvent": "none",
+          "experimental": false,
+          "charge": 0,
+          "multiplicity": 1
+        },
+        "uncertainty": {
+          "value_kcal": 0.2,
+          "basis": "the source's own statement that CCSD(T) and CCSD differ by 0.2 kcal/mol for this system."
+        }
+      },
+      "tautomers": [
+        {
+          "id": "acetaldehyde",
+          "name": "acetaldehyde",
+          "smiles": "CC=O",
+          "reference_kcal": 0.0,
+          "absolute_hartree": -153.75727,
+          "representative_rule": "lowest_reference_variant",
+          "variants": [
+            {
+              "label": "3A",
+              "reference_kcal": 0.0,
+              "locator": "Table 1, CCSD(T)/pV5Z, 'E + 152' column"
+            }
+          ]
+        },
+        {
+          "id": "vinyl_alcohol",
+          "name": "vinyl alcohol",
+          "smiles": "C=CO",
+          "reference_kcal": 9.29,
+          "absolute_hartree": -153.74246,
+          "representative_rule": "lowest_reference_variant",
+          "variants": [
+            {
+              "label": "3B",
+              "reference_kcal": 9.29,
+              "locator": "Table 1, CCSD(T)/pV5Z, 'E + 152' column"
+            }
+          ]
+        }
+      ],
+      "notes": "Reported and never gating.",
+      "partition": "regression"
+    },
+    {
+      "id": "indazole",
+      "role": "required",
+      "partition": "held_out",
+      "name": "Indazole, gas phase (1H versus 2H)",
+      "input_smiles": "c1ccc2[nH]ncc2c1",
+      "source": {
+        "key": "goller2022",
+        "file": "goller2022.pdf",
+        "doi": "10.1007/s10822-022-00480-3",
+        "locator": "Table 1, 'DE gas (2nd-min)', molecule 1"
+      },
+      "reference": {
+        "method": "DLPNO-CCSD(T)/def2-QZVPP on PBE0-D3(BJ)/def2-TZVP geometries",
+        "units": "kcal/mol",
+        "zero": "1H-indazole (the lowest in the source)",
+        "derivation": "reported_relative",
+        "protocol": {
+          "phase": "gas",
+          "energy_kind": "electronic",
+          "geometry": "optimized",
+          "vertical": false,
+          "zpe_included": false,
+          "thermal_included": false,
+          "solvent": "none",
+          "experimental": false,
+          "charge": 0,
+          "multiplicity": 1
+        },
+        "uncertainty": {
+          "value_kcal": null,
+          "basis": "none stated by the source. The lower-level MP2/6-31G** value in Catalan 1996 (3.6 kcal/mol) is recorded as corroboration of the sign and rough size only."
+        }
+      },
+      "tautomers": [
+        {
+          "id": "indazole_1h",
+          "name": "1H-indazole",
+          "smiles": "c1ccc2[nH]ncc2c1",
+          "reference_kcal": 0.0,
+          "representative_rule": "lowest_reference_variant",
+          "variants": [
+            {
+              "label": "m01.1",
+              "reference_kcal": 0.0,
+              "locator": "Table 1, 'DE gas (2nd-min)', molecule 1"
+            }
+          ]
+        },
+        {
+          "id": "indazole_2h",
+          "name": "2H-indazole",
+          "smiles": "c1ccc2n[nH]cc2c1",
+          "reference_kcal": 4.56,
+          "representative_rule": "lowest_reference_variant",
+          "variants": [
+            {
+              "label": "m01.2",
+              "reference_kcal": 4.56,
+              "locator": "Table 1, 'DE gas (2nd-min)', molecule 1"
+            }
+          ]
+        }
+      ],
+      "table_checksum": "gas 4.56 - water 3.33 = 1.23 = printed DeltaDeltaE: passes",
+      "corroboration": [
+        {
+          "key": "catalan1996",
+          "value_kcal_mol": 3.6,
+          "level": "MP2/6-31G**, 1H lower than 2H",
+          "note": "lower-level corroboration of sign and rough size only"
+        }
+      ],
+      "notes": "Held out: frozen by heldout-selection-rule-v1 before any v4 code ran. Structures are the SDF names of Goller 2022 SI MOESM1 (Goller 2022 SI MOESM1 m01.1; Goller 2022 SI MOESM1 m01.2), never the Scheme 1 drawings."
+    },
+    {
+      "id": "hypoxanthine",
+      "role": "required",
+      "partition": "held_out",
+      "name": "Hypoxanthine, gas phase (the two lowest keto tautomers)",
+      "input_smiles": "O=c1[nH]cnc2nc[nH]c12",
+      "source": {
+        "key": "goller2022",
+        "file": "goller2022.pdf",
+        "doi": "10.1007/s10822-022-00480-3",
+        "locator": "Table 1, 'DE gas (2nd-min)', molecule 3"
+      },
+      "reference": {
+        "method": "DLPNO-CCSD(T)/def2-QZVPP on PBE0-D3(BJ)/def2-TZVP geometries",
+        "units": "kcal/mol",
+        "zero": "keto-N1H,N7H (the lowest in the source)",
+        "derivation": "reported_relative",
+        "protocol": {
+          "phase": "gas",
+          "energy_kind": "electronic",
+          "geometry": "optimized",
+          "vertical": false,
+          "zpe_included": false,
+          "thermal_included": false,
+          "solvent": "none",
+          "experimental": false,
+          "charge": 0,
+          "multiplicity": 1
+        },
+        "uncertainty": {
+          "value_kcal": null,
+          "basis": "none stated by the source, and no second coupled-cluster value is available."
+        }
+      },
+      "tautomers": [
+        {
+          "id": "keto_n1h_n7h",
+          "name": "keto-N1H,N7H",
+          "smiles": "O=c1[nH]cnc2nc[nH]c12",
+          "reference_kcal": 0.0,
+          "representative_rule": "lowest_reference_variant",
+          "variants": [
+            {
+              "label": "m03.2",
+              "reference_kcal": 0.0,
+              "locator": "Table 1, 'DE gas (2nd-min)', molecule 3"
+            }
+          ]
+        },
+        {
+          "id": "keto_n1h_n9h",
+          "name": "keto-N1H,N9H",
+          "smiles": "O=c1[nH]cnc2[nH]cnc12",
+          "reference_kcal": 1.04,
+          "representative_rule": "lowest_reference_variant",
+          "variants": [
+            {
+              "label": "m03.1",
+              "reference_kcal": 1.04,
+              "locator": "Table 1, 'DE gas (2nd-min)', molecule 3"
+            }
+          ]
+        }
+      ],
+      "table_checksum": "gas 1.04 - water 0.25 = 0.79 = printed DeltaDeltaE: passes",
+      "corroboration": [
+        {
+          "key": "brovarets2013",
+          "value_kcal_mol": null,
+          "level": "MP2/6-311++G(2df,pd)//B3LYP/6-311++G(d,p)",
+          "note": "orders keto-N1H,N7H below keto-N1H,N9H in vacuum; ordering only, no number transcribed"
+        }
+      ],
+      "notes": "Held out: frozen by heldout-selection-rule-v1 before any v4 code ran. Structures are the SDF names of Goller 2022 SI MOESM1 (Goller 2022 SI MOESM1 m03.2; Goller 2022 SI MOESM1 m03.1), never the Scheme 1 drawings. Goller enumerates 8 hypoxanthine states and lists only the lowest two in Table 1; the others are reported by the runner as unreferenced and never gate."
+    },
+    {
+      "id": "triazole_123",
+      "role": "required",
+      "partition": "held_out",
+      "name": "1,2,3-Triazole, gas phase (2H versus 1H)",
+      "input_smiles": "c1c[nH]nn1",
+      "source": {
+        "key": "balabin2009",
+        "file": "Balabin2009.pdf",
+        "doi": "10.1063/1.3249968",
+        "locator": "Table III, '1H-1,2,3-2H-1,2,3: R1-R2', CBS row, bracketed final value"
+      },
+      "reference": {
+        "method": "valence focal-point analysis, CCSD(T)/CBS with core correction, on MP2/aug-cc-pVTZ geometries",
+        "units": "kcal/mol",
+        "zero": "2H-1,2,3-triazole (the lowest in the source)",
+        "derivation": "reported_relative",
+        "protocol": {
+          "phase": "gas",
+          "energy_kind": "electronic",
+          "geometry": "optimized",
+          "vertical": false,
+          "zpe_included": false,
+          "thermal_included": false,
+          "solvent": "none",
+          "experimental": false,
+          "charge": 0,
+          "multiplicity": 1
+        },
+        "uncertainty": {
+          "value_kcal": null,
+          "basis": "none stated by the source. Goller 2022's printed value for this pair fails its own checksum and is disclosed beside the row, not used."
+        }
+      },
+      "tautomers": [
+        {
+          "id": "triazole_2h",
+          "name": "2H-1,2,3-triazole",
+          "smiles": "c1cn[nH]n1",
+          "reference_kcal": 0.0,
+          "representative_rule": "lowest_reference_variant",
+          "variants": [
+            {
+              "label": "m04.2",
+              "reference_kcal": 0.0,
+              "locator": "Table III, '1H-1,2,3-2H-1,2,3: R1-R2', CBS row, bracketed final value"
+            }
+          ]
+        },
+        {
+          "id": "triazole_1h",
+          "name": "1H-1,2,3-triazole",
+          "smiles": "c1c[nH]nn1",
+          "reference_kcal": 3.98,
+          "representative_rule": "lowest_reference_variant",
+          "variants": [
+            {
+              "label": "m04.1",
+              "reference_kcal": 3.98,
+              "locator": "Table III, '1H-1,2,3-2H-1,2,3: R1-R2', CBS row, bracketed final value"
+            }
+          ]
+        }
+      ],
+      "table_checksum": "Goller's Table 1 row for this molecule fails its own check (gas 4.36 - water 1.05 = 3.31, printed DeltaDeltaE 2.93); the implied gas value 2.93 + 1.05 = 3.98 equals Balabin's value, so the printed 4.36 is the likely typo. Goller is NOT used as the reference.",
+      "corroboration": [
+        {
+          "key": "goller2022",
+          "value_kcal_mol": 4.36,
+          "level": "printed value, internally inconsistent",
+          "note": "disclosed, not used"
+        }
+      ],
+      "notes": "Held out: frozen by heldout-selection-rule-v1 before any v4 code ran. Structures are the SDF names of Goller 2022 SI MOESM1 (Goller 2022 SI MOESM1 m04.2; Goller 2022 SI MOESM1 m04.1), never the Scheme 1 drawings."
+    },
+    {
+      "id": "triazole_124",
+      "role": "required",
+      "partition": "held_out",
+      "name": "1,2,4-Triazole, gas phase (1H versus 4H)",
+      "input_smiles": "c1nc[nH]n1",
+      "source": {
+        "key": "balabin2009",
+        "file": "Balabin2009.pdf",
+        "doi": "10.1063/1.3249968",
+        "locator": "Table III, '4H-1,2,4-1H-1,2,4: S4-S1', CBS row, bracketed final value"
+      },
+      "reference": {
+        "method": "valence focal-point analysis, CCSD(T)/CBS with core correction, on MP2/aug-cc-pVTZ geometries",
+        "units": "kcal/mol",
+        "zero": "1H-1,2,4-triazole (the lowest in the source)",
+        "derivation": "reported_relative",
+        "protocol": {
+          "phase": "gas",
+          "energy_kind": "electronic",
+          "geometry": "optimized",
+          "vertical": false,
+          "zpe_included": false,
+          "thermal_included": false,
+          "solvent": "none",
+          "experimental": false,
+          "charge": 0,
+          "multiplicity": 1
+        },
+        "uncertainty": {
+          "value_kcal": null,
+          "basis": "none stated by the source. Goller 2022's DLPNO value (5.92) is 0.33 kcal/mol below this one."
+        }
+      },
+      "tautomers": [
+        {
+          "id": "triazole_1h",
+          "name": "1H-1,2,4-triazole",
+          "smiles": "c1nc[nH]n1",
+          "reference_kcal": 0.0,
+          "representative_rule": "lowest_reference_variant",
+          "variants": [
+            {
+              "label": "m05.1",
+              "reference_kcal": 0.0,
+              "locator": "Table III, '4H-1,2,4-1H-1,2,4: S4-S1', CBS row, bracketed final value"
+            }
+          ]
+        },
+        {
+          "id": "triazole_4h",
+          "name": "4H-1,2,4-triazole",
+          "smiles": "c1nnc[nH]1",
+          "reference_kcal": 6.25,
+          "representative_rule": "lowest_reference_variant",
+          "variants": [
+            {
+              "label": "m05.2",
+              "reference_kcal": 6.25,
+              "locator": "Table III, '4H-1,2,4-1H-1,2,4: S4-S1', CBS row, bracketed final value"
+            }
+          ]
+        }
+      ],
+      "table_checksum": "Goller's row passes (5.92 - 2.66 = 3.26) and is kept as corroboration; Balabin is the reference because its declared level (canonical CCSD(T)/CBS) is higher than Goller's DLPNO-CCSD(T)/def2-QZVPP.",
+      "corroboration": [
+        {
+          "key": "goller2022",
+          "value_kcal_mol": 5.92,
+          "level": "DLPNO-CCSD(T)/def2-QZVPP, Table 1 molecule 5",
+          "note": "0.33 kcal/mol from the reference"
+        }
+      ],
+      "notes": "Held out: frozen by heldout-selection-rule-v1 before any v4 code ran. Structures are the SDF names of Goller 2022 SI MOESM1 (Goller 2022 SI MOESM1 m05.1; Goller 2022 SI MOESM1 m05.2), never the Scheme 1 drawings."
+    }
+  ],
+  "corroboration_only": [
+    {
+      "key": "moreno1990",
+      "file": "moreno1990.pdf",
+      "doi": "",
+      "doi_status": "not printed in the supplied file; not recorded",
+      "role": "2-pyridone corroboration",
+      "why_not_a_row": "1990 CISD/DZP; its own cited literature spans +2.06 to -3.46 kcal/mol, about 5 kcal/mol. Too uncertain to gate anything."
+    },
+    {
+      "key": "rendell1993",
+      "file": "rendell1993.pdf",
+      "doi": "10.1002/jcc.540141204",
+      "doi_status": "supplied by a review and not printed in the file; the title and authors were checked against the file",
+      "role": "2-pyridone corroboration",
+      "why_not_a_row": "CCSD(T) in two small bases on SCF geometries (3.2 kJ/mol = 0.76 kcal/mol in the larger); its 'best estimate' of 4.7 kJ/mol adds a SCF zero-point correction, so it is not an electronic energy."
+    },
+    {
+      "key": "hejazi2016",
+      "file": "Hejazi 2016.pdf",
+      "doi": "10.3390/ijms17111893",
+      "doi_status": "printed in the file",
+      "role": "2-pyridone corroboration",
+      "why_not_a_row": "Its tautomerization dE is a zero-point-inclusive total energy (CCSD/6-311++G** and aug-cc-pVDZ, 5-9 kJ/mol favouring 2-hydroxypyridine), so it is not the declared electronic quantity."
+    },
+    {
+      "key": "fogarasi2008",
+      "file": "fogarasi2008.pdf",
+      "doi": "",
+      "doi_status": "not recorded",
+      "role": "cytosine uncertainty probe",
+      "why_not_a_row": "A cytosine dynamics study that cites CCSD(T) ranges relative to 2b; a secondary citation, used only to size the disagreement on tautomer 3a."
+    },
+    {
+      "key": "delchev2001",
+      "file": "delchev2001.pdf",
+      "doi": "",
+      "doi_status": "not recorded",
+      "role": "acetylacetone corroboration",
+      "why_not_a_row": "HF/BLYP; its quoted 0.008725 a.u. includes zero-point corrections."
+    },
+    {
+      "key": "rzepiela2020",
+      "file": "rzepiela2020.pdf",
+      "doi": "",
+      "doi_status": "not recorded",
+      "role": "uracil cross-check",
+      "why_not_a_row": "B3LYP-D3/aug-cc-pVQZ over six tautomers with the second lowest more than 10 kcal/mol up: a lopsided DFT cross-check, not a reference."
+    },
+    {
+      "key": "wieder2021",
+      "file": "wieder2021.pdf",
+      "doi": "",
+      "doi_status": "not recorded",
+      "role": "none",
+      "why_not_a_row": "Solution and vacuum FREE-energy ratios from a machine-learned potential: a different physical quantity from a gas-phase electronic energy."
+    },
+    {
+      "key": "ganyecz2019",
+      "file": "ganyecz2019.pdf",
+      "doi": "10.1021/acs.jpca.9b02061",
+      "doi_status": "printed in the file",
+      "role": "cytosine corroboration",
+      "why_not_a_row": "Treats adenine only as its canonical form (heat of formation); its tautomer study is cytosine only (five tautomers, with CCSDT(Q), core, relativistic, DBOC and zero-point terms as separate columns), so it is a high-level corroboration of the cytosine ordering and rescues no excluded system."
+    },
+    {
+      "key": "barone2023",
+      "file": "Barone2023.pdf",
+      "doi": "10.1021/acs.jctc.3c00465",
+      "doi_status": "printed in the file",
+      "role": "cytosine corroboration",
+      "why_not_a_row": "CCSD(T)-F12/cc-pVTZ-F12 composite results for cytosine tautomers and rotamers, with relative electronic energies tabulated in cm-1. A second high-level look at the same system as the carried-forward cytosine row, not an independent held-out system, and its numbers were not transcribed."
+    },
+    {
+      "key": "perry2025",
+      "file": "Perry2025.pdf",
+      "doi": "10.1021/jacs.5c08442",
+      "doi_status": "printed in the file",
+      "role": "method-screen candidate list",
+      "why_not_a_row": "Gas-phase DLPNO-CCSD(T1) benchmark over 18 large drug-like crystal-tautomer systems; its functional ranking (omega-B97M-V and revDSD-PBEP86-D4 best, routine GGA and hybrid functionals poor) is why those two were screened beside M06-2X. Not a reference for any row here."
+    }
+  ]
+}
