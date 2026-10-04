@@ -310,6 +310,49 @@ def dispose_web_engine_views():
         QCoreApplication.sendPostedEvents(view, QEvent.Type.DeferredDelete)
 
 
+def release_stuck_modifiers() -> None:
+    """Send a key release for each modifier Qt still believes is held.
+
+    `QTest.keyClick(widget, key, Ctrl|Shift)` presses the modifiers, clicks, and releases
+    them -- but when the click fires a window shortcut that shows or focuses another
+    window, the release lands elsewhere and Qt's GLOBAL modifier state keeps the key down
+    (measured: Shift stayed down after Ctrl+Shift+F, Ctrl after Ctrl+Alt+F9). It outlives
+    the test: with Ctrl "down", `QTableWidget.selectRow` toggles instead of selects, so an
+    unrelated NMR test failed two files later. Release goes through `QTest.keyRelease`,
+    which is what updates that state; there is no setter.
+    """
+    from PySide6.QtCore import Qt
+    from PySide6.QtGui import QGuiApplication
+    from PySide6.QtTest import QTest
+    from PySide6.QtWidgets import QWidget
+
+    if QGuiApplication.instance() is None or QGuiApplication.keyboardModifiers() == Qt.KeyboardModifier.NoModifier:
+        return
+    target = QApplication.activeWindow() or QWidget()
+    for key in (Qt.Key.Key_Shift, Qt.Key.Key_Control, Qt.Key.Key_Alt, Qt.Key.Key_Meta):
+        QTest.keyRelease(target, key)
+
+
+@pytest.fixture(autouse=True)
+def no_modifier_left_down():
+    """Fail the test that leaves a keyboard modifier held, instead of its victim.
+
+    Releasing quietly would hide the leak; the failure names the test to fix at the
+    source (release the modifiers after the click -- see `release_stuck_modifiers`). The
+    state is released before failing so one leaker does not fail every test after it.
+    """
+    yield
+    from PySide6.QtCore import Qt
+    from PySide6.QtGui import QGuiApplication
+
+    if QGuiApplication.instance() is None:
+        return
+    held = QGuiApplication.keyboardModifiers()
+    if held != Qt.KeyboardModifier.NoModifier:
+        release_stuck_modifiers()
+        pytest.fail(f"this test left keyboard modifiers down: {held}", pytrace=False)
+
+
 @pytest.fixture(scope="session")
 def qapp():
     """A QApplication is required for QObject-derived types used throughout
