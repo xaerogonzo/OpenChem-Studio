@@ -377,6 +377,22 @@ def test_a_choice_reaches_the_real_action_of_a_fresh_window(qapp, tmp_path):
         built.close()
 
 
+def _key_click(widget, key, modifiers) -> None:
+    """`QTest.keyClick`, then release whatever modifier Qt kept down.
+
+    A click that fires a window shortcut can move focus before the modifier's release
+    arrives, leaving Ctrl/Shift held globally for every later test (tests/conftest.py
+    `no_modifier_left_down` fails the leaker)."""
+    from PySide6.QtTest import QTest
+
+    from tests.conftest import release_stuck_modifiers
+
+    try:
+        QTest.keyClick(widget, key, modifiers)
+    finally:
+        release_stuck_modifiers()
+
+
 def test_a_rebound_key_really_fires_the_command_and_the_old_one_no_longer_does(window, qapp):
     """The property the whole page is for, through the real key path (QShortcutMap), not through
     `action.shortcut()` -- which a registry could set correctly on an action Qt never consults."""
@@ -392,14 +408,14 @@ def test_a_rebound_key_really_fires_the_command_and_the_old_one_no_longer_does(w
     old = (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier, Qt.Key.Key_F)
     new = (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.AltModifier, Qt.Key.Key_F9)
 
-    QTest.keyClick(built, old[1], old[0])
+    _key_click(built, old[1], old[0])
     assert len(fired) == 1, "the shipped key works before anything is changed"
 
     assert built._shortcuts.set_shortcut("search_facts", "Ctrl+Alt+F9") is None
 
-    QTest.keyClick(built, old[1], old[0])
+    _key_click(built, old[1], old[0])
     assert len(fired) == 1, "the old key must stop working"
-    QTest.keyClick(built, new[1], new[0])
+    _key_click(built, new[1], new[0])
     assert len(fired) == 2, "and the new one must start"
 
 
@@ -427,14 +443,14 @@ def test_a_key_pressed_into_the_box_is_recorded_not_run(window, qapp):
 
         taken = page._rows["exit"][1]
         taken.setFocus()
-        QTest.keyClick(taken, Qt.Key.Key_Z, Qt.KeyboardModifier.ControlModifier)
+        _key_click(taken, Qt.Key.Key_Z, Qt.KeyboardModifier.ControlModifier)
         QTest.qWait(1300)                    # the box finishes a second after the last key
         assert fired == [], "the key ran Undo instead of being recorded"
         assert "already used by Undo" in page.status.text() and page.shortcut_of("exit") == ""
 
         free = page._rows["rotate_in_3d"][1]
         free.setFocus()
-        QTest.keyClick(free, Qt.Key.Key_K, Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.AltModifier)
+        _key_click(free, Qt.Key.Key_K, Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.AltModifier)
         QTest.qWait(1300)
         assert _window_action(built, "rotate_in_3d").shortcut().toString() == "Ctrl+Alt+K"
         assert page.status.text() == ""

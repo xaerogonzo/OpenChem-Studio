@@ -1,0 +1,74 @@
+{
+  "manifest_version": "tautomer-heldout-manifest-v2",
+  "frozen_on": "2026-10-03",
+  "purpose": "The systems the tautomer-boltzmann-v4 validation run is judged on that were NOT used to design v4 or to choose its method. Frozen BEFORE any v4 code was written and before any energy was computed for any of them.",
+  "selection_rule": {
+    "version": "heldout-selection-rule-v1",
+    "text": "A gas-phase tautomer set is eligible when (1) its reference is a single declared coupled-cluster-level (CCSD(T) or better, canonical or DLPNO) electronic-energy difference, no ZPE or thermal terms; (2) it has at most 12 heavy atoms; (3) every reference tautomer maps to exactly one enumerated tautomer by canonical non-isomeric SMILES (checked structurally, with no energy involved); (4) the source row is internally consistent: where a table carries a derived column, recomputing it must reproduce the printed value, and the structure-to-state map must not contradict the source's own table; (5) it comes from a source registered in docs/sources.toml. Every eligible system is taken. Difficulty, and any predicted or computed behaviour of any model on a system, play no part in selection. Where two eligible sources exist for one system the one with the higher declared level of theory is the reference and the other is recorded as corroboration.",
+    "applied_to": "Goller 2022 Table 1 (molecules 1-5), Balabin 2009 Table III, and the supplementary papers listed per system below."
+  },
+  "may_not_influence": ["method and basis choice", "conformer count, prune threshold, top-K, cap", "gate tolerances"],
+  "systems": [
+    {
+      "id": "indazole",
+      "partition": "held_out",
+      "reference_tautomers": [
+        {"state": "1H-indazole", "smiles": "c1ccc2[nH]ncc2c1", "reference_kcal_mol": 0.0, "structure_source": "Goller 2022 SI MOESM1 m01.1"},
+        {"state": "2H-indazole", "smiles": "c1ccc2n[nH]cc2c1", "reference_kcal_mol": 4.56, "structure_source": "Goller 2022 SI MOESM1 m01.2"}
+      ],
+      "reference_source": {"key": "goller2022", "locator": "Table 1, 'DE gas (2nd-min)', molecule 1", "doi": "10.1007/s10822-022-00480-3"},
+      "reference_method": "DLPNO-CCSD(T)/def2-QZVPP on PBE0-D3(BJ)/def2-TZVP geometries",
+      "reference_protocol": {"phase": "gas", "quantity": "electronic_energy_difference", "zpe_or_thermal_included": false, "charge": 0, "multiplicity": 1},
+      "table_checksum": "gas 4.56 - water 3.33 = 1.23 = printed DeltaDeltaE: passes",
+      "corroboration": [{"key": "catalan1996", "value_kcal_mol": 3.6, "level": "MP2/6-31G**, 1H lower than 2H", "note": "lower-level corroboration of sign and rough size only"}]
+    },
+    {
+      "id": "hypoxanthine",
+      "partition": "held_out",
+      "reference_tautomers": [
+        {"state": "keto-N1H,N7H", "smiles": "O=c1[nH]cnc2nc[nH]c12", "reference_kcal_mol": 0.0, "structure_source": "Goller 2022 SI MOESM1 m03.2"},
+        {"state": "keto-N1H,N9H", "smiles": "O=c1[nH]cnc2[nH]cnc12", "reference_kcal_mol": 1.04, "structure_source": "Goller 2022 SI MOESM1 m03.1"}
+      ],
+      "reference_source": {"key": "goller2022", "locator": "Table 1, 'DE gas (2nd-min)', molecule 3", "doi": "10.1007/s10822-022-00480-3"},
+      "reference_method": "DLPNO-CCSD(T)/def2-QZVPP on PBE0-D3(BJ)/def2-TZVP geometries",
+      "reference_protocol": {"phase": "gas", "quantity": "electronic_energy_difference", "zpe_or_thermal_included": false, "charge": 0, "multiplicity": 1},
+      "table_checksum": "gas 1.04 - water 0.25 = 0.79 = printed DeltaDeltaE: passes",
+      "unreferenced_note": "Goller enumerates 8 hypoxanthine states and lists only the lowest two in Table 1; the others are reported by the runner as unreferenced and never gate.",
+      "corroboration": [{"key": "brovarets2013", "value_kcal_mol": null, "level": "MP2/6-311++G(2df,pd)//B3LYP/6-311++G(d,p)", "note": "orders keto-N1H,N7H below keto-N1H,N9H in vacuum; ordering only, no number transcribed"}]
+    },
+    {
+      "id": "triazole_123",
+      "partition": "held_out",
+      "reference_tautomers": [
+        {"state": "2H-1,2,3-triazole", "smiles": "c1cn[nH]n1", "reference_kcal_mol": 0.0, "structure_source": "Goller 2022 SI MOESM1 m04.2"},
+        {"state": "1H-1,2,3-triazole", "smiles": "c1c[nH]nn1", "reference_kcal_mol": 3.98, "structure_source": "Goller 2022 SI MOESM1 m04.1"}
+      ],
+      "reference_source": {"key": "balabin2009", "locator": "Table III, '1H-1,2,3-2H-1,2,3: R1-R2', CBS row, bracketed final value", "doi": "10.1063/1.3249968"},
+      "reference_method": "valence focal-point analysis, CCSD(T)/CBS with core correction, on MP2/aug-cc-pVTZ geometries",
+      "reference_protocol": {"phase": "gas", "quantity": "electronic_energy_difference", "zpe_or_thermal_included": false, "charge": 0, "multiplicity": 1},
+      "table_checksum": "Goller's Table 1 row for this molecule fails its own check (gas 4.36 - water 1.05 = 3.31, printed DeltaDeltaE 2.93); the implied gas value 2.93 + 1.05 = 3.98 equals Balabin's value, so the printed 4.36 is the likely typo. Goller is NOT used as the reference.",
+      "corroboration": [{"key": "goller2022", "value_kcal_mol": 4.36, "level": "printed value, internally inconsistent", "note": "disclosed, not used"}]
+    },
+    {
+      "id": "triazole_124",
+      "partition": "held_out",
+      "reference_tautomers": [
+        {"state": "1H-1,2,4-triazole", "smiles": "c1nc[nH]n1", "reference_kcal_mol": 0.0, "structure_source": "Goller 2022 SI MOESM1 m05.1"},
+        {"state": "4H-1,2,4-triazole", "smiles": "c1nnc[nH]1", "reference_kcal_mol": 6.25, "structure_source": "Goller 2022 SI MOESM1 m05.2"}
+      ],
+      "reference_source": {"key": "balabin2009", "locator": "Table III, '4H-1,2,4-1H-1,2,4: S4-S1', CBS row, bracketed final value", "doi": "10.1063/1.3249968"},
+      "reference_method": "valence focal-point analysis, CCSD(T)/CBS with core correction, on MP2/aug-cc-pVTZ geometries",
+      "reference_protocol": {"phase": "gas", "quantity": "electronic_energy_difference", "zpe_or_thermal_included": false, "charge": 0, "multiplicity": 1},
+      "table_checksum": "Goller's row passes (5.92 - 2.66 = 3.26) and is kept as corroboration; Balabin is the reference because its declared level (canonical CCSD(T)/CBS) is higher than Goller's DLPNO-CCSD(T)/def2-QZVPP.",
+      "corroboration": [{"key": "goller2022", "value_kcal_mol": 5.92, "level": "DLPNO-CCSD(T)/def2-QZVPP, Table 1 molecule 5", "note": "0.33 kcal/mol from the reference"}]
+    }
+  ],
+  "excluded": [
+    {
+      "id": "adenine",
+      "reason": "No eligible reference. Goller 2022 Table 1 (molecule 2: gas 8.70, water 1.06, printed DeltaDeltaE 7.78) fails its own check (8.70 - 1.06 = 7.64) and the supplied SI carries no CCSD(T) energies to settle it. The only other complete source, Hanus 2004 (RI-MP2/TZVPP; 7H 7.63 kcal/mol above 9H), is not coupled-cluster, so it fails criterion (1).",
+      "status": "excluded_pending_source",
+      "corroboration_noted": [{"key": "hanus2004", "value_kcal_mol": 7.63, "level": "RI-MP2/TZVPP, gas, electronic, 7H relative to 9H"}]
+    }
+  ]
+}

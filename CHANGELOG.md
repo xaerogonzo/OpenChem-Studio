@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Tautomer validation: the held-out manifest, frozen before v4 exists
+
+- **`benchmarks/tautomer_validation/heldout_manifest_v2.json`**: indazole, hypoxanthine, 1,2,3-triazole and 1,2,4-triazole, selected by a written rule that never looks at any model's behaviour, pinned by hash (`tests/test_tautomer_heldout_manifest.py`). Göller 2022's Table 1 fails its own gas/water/delta check for adenine and 1,2,3-triazole, so adenine is excluded and the 1,2,3-triazole reference is Balabin 2009's CCSD(T)/CBS 3.98 kcal/mol (which equals the value Göller's own delta column implies). The SI's structure names fixed a mis-read of the scheme drawing for 1,2,4-triazole. Four sources registered.
+
 ### Tautomer distribution model revision 4: a conformer search (no validation claim)
 
 - **A conformer search per stereoisomer** (`chem/tautomer_conformers.py`). Revision 3 optimized one embedded geometry; for acetylacetone that start kept the enol's O-H 4.76 A from the carbonyl and the result sat 14.7 kcal/mol too high (measured, PBE0/def2-TZVP, and the cause of v3's failed preregistered gate). Now 50 ETKDG conformers (seed never 0: `randomSeed=0` returns N identical conformers), MMFF94 (UFF as a stated rule where MMFF has no parameters), the project's own `distinct_conformers` (heavy atoms plus polar H, so OH rotamers stay distinct), then the lowest 3 go to ORCA; a **Full ORCA conformers** checkbox optimizes every distinct one up to 10. Identity is the conformer's recipe, never its rank; a selection is not a truncation, a pool cut at the cap is.

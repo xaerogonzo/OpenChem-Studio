@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 35fe80ac5f456c9341f004ed7e461802750668da87e8e63f5b0ba9c1121faf0b -->
+<!-- SOURCE SHA256: def90a6ddbef03a482a19ea04868ece61197eb0bbcdce707686d9e609e17e656 -->
 
 # Sources
 
@@ -102,6 +102,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`avdeef2020`](#avdeef2020) | literature | shipped | citation + claim |
 | [`baell2010`](#baell2010) | literature | shipped | citation |
 | [`bakowies1996`](#bakowies1996) | literature | **not shipped** | citation + claim |
+| [`balabin2009`](#balabin2009) | literature | reference only | citation + claim |
 | [`ballester2010`](#ballester2010) | literature | **not shipped** | citation |
 | [`belova2014`](#belova2014) | literature | shipped | citation + claim |
 | [`bento2020`](#bento2020) | literature | shipped | citation + claim |
@@ -114,10 +115,12 @@ next run of `tools/build_lewis_parameters.py`.
 | [`bravetti2023`](#bravetti2023) | literature | shipped | citation |
 | [`bremer2022`](#bremer2022) | literature | reference only | citation |
 | [`brenk2008`](#brenk2008) | literature | shipped | citation |
+| [`brovarets2013`](#brovarets2013) | literature | reference only | citation |
 | [`brown2006`](#brown2006) | literature | **not shipped** | citation |
 | [`bultinck2002a`](#bultinck2002a) | literature | shipped | citation + claim |
 | [`bultinck2002b`](#bultinck2002b) | literature | reference only | citation + claim |
 | [`cao2004`](#cao2004) | literature | shipped | citation + claim |
+| [`catalan1996`](#catalan1996) | literature | reference only | citation + claim |
 | [`chelli1999`](#chelli1999) | literature | reference only | citation |
 | [`chembl_schema`](#chembl_schema) | dataset | shipped | citation + claim |
 | [`chembl_structure_pipeline`](#chembl_structure_pipeline) | software | shipped | citation |
@@ -155,6 +158,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`halgren1996_mmff2`](#halgren1996_mmff2) | literature | shipped | citation + claim |
 | [`hall1981`](#hall1981) | literature | shipped | citation |
 | [`hancock1996`](#hancock1996) | literature | reference only | citation |
+| [`hanus2004`](#hanus2004) | literature | reference only | citation + claim |
 | [`harmony1979`](#harmony1979) | literature | reference only | citation + claim |
 | [`hejazi2016`](#hejazi2016) | literature | reference only | citation |
 | [`hlb`](#hlb) | reference_table | reference only | citation |
@@ -4056,6 +4060,93 @@ Its tautomerization energies are ZERO-POINT-INCLUSIVE totals (CCSD/6-311++G** an
 aug-cc-pVDZ put 2-hydroxypyridine 5-9 kJ/mol below 2-pyridone), so they are not the
 declared electronic quantity. DOI, title, authors, journal, volume and article number
 were read off the file's own first pages.
+
+### balabin2009
+
+<a id="balabin2009"></a>
+
+> R. M. Balabin, 'Tautomeric equilibrium and hydrogen shifts in tetrazole and triazoles: Focal-point analysis and ab initio limit', J. Chem. Phys. 131, 154307 (2009).
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.3249968](https://doi.org/10.1063/1.3249968) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-03 |
+| Local copy | `Balabin2009.pdf` (not checked) |
+| Used by | `benchmarks/tautomer_validation/heldout_manifest_v2.json` |
+
+**Why it is reference only.** REFERENCE FOR TWO HELD-OUT ROWS, NOT YET SHIPPED (the v4 criteria file that will
+carry it does not exist yet). The DOI, title, journal, volume and article number are
+printed on the file's first page. Table III was read in full: valence focal-point
+analysis, CCSD(T)/CBS with core correction, MP2/aug-cc-pVTZ geometries, energy
+differences relative to the most stable tautomer. The two numbers used are the
+bracketed CBS finals, 3.98 kcal/mol for 1H-1,2,3-triazole above 2H and 6.25 kcal/mol for
+4H-1,2,4-triazole above 1H. The 3.98 also equals Goller 2022's implied gas value for
+the same pair (2.93 + 1.05), which is what identifies Goller's printed 4.36 as the typo.
+
+### hanus2004
+
+<a id="hanus2004"></a>
+
+> M. Hanus, M. Kabelac, J. Rejnek, F. Ryjacek & P. Hobza, 'Correlated ab Initio Study of Nucleic Acid Bases and Their Tautomers in the Gas Phase, in a Microhydrated Environment, and in Aqueous Solution. Part 3. Adenine', J. Phys. Chem. B 108, 2087-2097 (2004).
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jp036090m](https://doi.org/10.1021/jp036090m) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-03 |
+| Local copy | `hanus2004.pdf` (not checked) |
+| Used by | `benchmarks/tautomer_validation/heldout_manifest_v2.json` |
+
+**Why it is reference only.** WHY ADENINE IS NOT A HELD-OUT ROW. Table 1 gives 7H-adenine 7.63 kcal/mol above 9H at
+RI-MP2/TZVPP (electronic, gas; zero-point is a separate column), and the authors argue
+higher-order correlation is negligible. That is a careful MP2 value, not a
+coupled-cluster one, so it fails the frozen selection rule's first criterion and is
+recorded only as corroboration. Title, authors, journal, volume and pages were read off
+the file's first page.
+
+### catalan1996
+
+<a id="catalan1996"></a>
+
+> J. Catalan, J. L. G. de Paz & J. Elguero, 'Importance of aromaticity on the relative stabilities of indazole annular tautomers: an ab initio study', J. Chem. Soc., Perkin Trans. 2, 57 (1996).
+
+| | |
+| --- | --- |
+| Identifier | [10.1039/P29960000057](https://doi.org/10.1039/P29960000057) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-03 |
+| Local copy | `Catalán1996.pdf` (not checked) |
+| Used by | `benchmarks/tautomer_validation/heldout_manifest_v2.json` |
+
+**Why it is reference only.** LOW-LEVEL CORROBORATION FOR INDAZOLE. MP2/6-31G** puts 1H-indazole 3.6 kcal/mol below
+2H (abstract); the 4.08 in its Table 2 is the thermochemical value and is deliberately not
+used, since it includes thermal terms. The DOI is printed on the file; the last page of
+the article was not read off the file.
+
+### brovarets2013
+
+<a id="brovarets2013"></a>
+
+> O. O. Brovarets' & D. M. Hovorun, 'Prototropic tautomerism and basic molecular principles of hypoxanthine mutagenicity: an exhaustive quantum-chemical analysis', J. Biomol. Struct. Dyn. (first published online 10 September 2012).
+
+| | |
+| --- | --- |
+| Identifier | [10.1080/07391102.2012.715041](https://doi.org/10.1080/07391102.2012.715041) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-03 |
+| Local copy | `Brovarets2013.pdf` (not checked) |
+| Used by | `benchmarks/tautomer_validation/heldout_manifest_v2.json` |
+
+**Why it is reference only.** ORDERING-ONLY CORROBORATION FOR HYPOXANTHINE. 21 planar tautomers at
+MP2/6-311++G(2df,pd)//B3LYP/6-311++G(d,p); the keto-N1H,N7H form is the vacuum global
+minimum, below keto-N1H,N9H, which agrees with Goller's pair. No number was transcribed.
+The volume and page range are not printed in the file's text, so the citation gives the
+online-first date and the DOI (printed in the file) instead of guessing them.
 
 ### glasser1995
 
