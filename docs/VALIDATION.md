@@ -1137,5 +1137,22 @@ or solution. Hypoxanthine's reference lists two of its eight enumerated states. 
 reference and is not covered. The largest regression error (0.99 against a 1.0 MAE tolerance is a
 per-system MAE bound; the maximum bound is 2.0) is close to the line for acetaldimine/vinylamine. A pass
 validates THIS model for THIS benchmark set only: the full-ORCA-conformer mode, another method or basis, and
-another RDKit release are different models with no record. **Nothing has been wired yet**: results are still
-computed `unvalidated` and show no percentage until the validation lookup is added in its own change.
+another RDKit release are different models with no record. Percentages are authorized by the record in `chem/data/tautomer_validation_record_v2.json`
+(derived from the artifact, matched on model version AND current criteria); see the next section.
+
+
+### What the record authorizes (2026-10-04)
+
+`chem/tautomer_validation.validation_branch_for` is called when a tautomer distribution finishes. A
+result earns `validated` (the only branch that shows a percentage) only when a record matches its
+`model_version` (method, basis, conformer policy, model revision, temperature, RDKit release) AND the
+current criteria version, criteria hash, benchmark-set hash and reference-bundle hash, the record is of
+a complete whole run that `passed`, and the result's own candidate set is complete. A complete result of
+the validated model whose candidate set is incomplete earns `ranking_only` (energies, no percentage).
+Anything else is `unvalidated`: another method or basis, **Full ORCA conformers**, another RDKit release,
+corrected reference values, a changed tolerance. Correcting one transcription error in the criteria
+therefore removes percentages until the run is repeated.
+
+Not covered by the match, and worth knowing: the ORCA version (the record names 6.1.1, but `model_version`
+does not include it, so another ORCA release is not detected) and the machine's numerical details.
+Historical results keep the branch they were computed with and are never re-stamped.

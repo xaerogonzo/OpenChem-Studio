@@ -1,0 +1,40 @@
+{
+  "record_schema": 1,
+  "model_version": "tautomer-boltzmann-v5|stereo_cap=8;enantiomer_policy=dedupe_mirror;bond_stereo_policy=preserve;tautomer_representative=lowest_successful_stereo;state_degeneracy=unit;incomplete_population_policy=withhold;conformer_search=mmff_topk;conformer_engine=rdkit-2025.09.6-etkdgv3;conformer_embed_params=useExpTorsionAnglePrefs=True;useBasicKnowledge=True;useRandomCoords=False;enforceChirality=True;ETversion=2;pruneRmsThresh=-1.0;useSmallRingTorsions=False;useMacrocycleTorsions=True;conformer_embeds=50;conformer_topk=3;conformer_cap=10;conformer_prune=distinct_conformers(skeleton_polar_h,rms=0.5,window=1.0);conformer_prefilter=mmff94_with_uff_fallback;conformer_prefilter_max_iters=2000|M062X def2-TZVP|ETKDGv3|T=298.15K",
+  "validation_criteria_version": "tautomer-validation-criteria-v2",
+  "criteria_hash": "89ec9c055bdd3da040539cd05a74c853f61faf67210aa0e46c01b85b84574e8c",
+  "benchmark_set_hash": "c983b1898e84dff3de36ed6abb8741bf5fe0614701eeda6a0070b0194147f75c",
+  "reference_bundle_hash": "f03d2e4f32122079da661a2e3f15621530e7ad47467771ef0d3ecde21a553a15",
+  "method_basis": "M062X def2-TZVP",
+  "source_commit": "8f03ebb7c9de97841e8c8db75389c1747d760c44",
+  "orca_version": "ORCA 6.1.1 ran a test calculation correctly (H2 at HF/STO-3G, -1.116759 Eh).",
+  "rdkit_version": "2025.09.6",
+  "validation_execution_status": "complete",
+  "validation_gate_outcome": "passed",
+  "partial_run": false,
+  "pooled_mae_kcal": 0.26466661827900184,
+  "partitions": {
+    "regression": {
+      "passed": true,
+      "required_systems": [
+        "cytosine",
+        "acetylacetone",
+        "acetaldimine_vinylamine",
+        "pyridone"
+      ]
+    },
+    "held_out": {
+      "passed": true,
+      "required_systems": [
+        "indazole",
+        "hypoxanthine",
+        "triazole_123",
+        "triazole_124"
+      ]
+    }
+  },
+  "artifact": {
+    "path": "benchmarks/tautomer_validation_v2/tautomer_validation_artifact.json",
+    "sha256": "d006a16e2b5da50310132208b958551c8cc480b6792e493cfffa9f9946ae21e0"
+  }
+}

@@ -32,15 +32,18 @@ their own lowest REFERENCE-LISTED tautomer before an error is taken, never to
 
 from __future__ import annotations
 
-#: Entered by the validation runner and the suite only, until the gate wiring
-#: (the later commit of this phase) reads a validation record from the service.
+#: The criteria and the comparison are reached by the validation runner and the suite; the
+#: running application reaches only `validation_branch_for`, from the service, which is what
+#: lets a matching validation record authorize a population percentage.
 REACHED_BY = (
-    "tooling: consumed by tools/tautomer_validation.py and tests/test_tautomer_validation.py, "
-    "never by the running application until the validation gate is wired in"
+    "service: quantum_chemistry_service._finish_tautomer_distribution calls validation_branch_for; "
+    "the rest is consumed by tools/tautomer_validation.py and tests/test_tautomer_validation*.py"
 )
 
+import functools
 import hashlib
 import json
+import logging
 import math
 import re
 from collections.abc import Mapping, Sequence
@@ -57,12 +60,17 @@ from openchem.chem.tautomer_distribution import (
     MODEL_POLICY_FULL,
     MODEL_POLICY_SINGLE,
     MODEL_POLICY_TOPK,
+    VALIDATION_RANKING_ONLY,
+    VALIDATION_UNVALIDATED,
+    VALIDATION_VALIDATED,
     CandidateStatus,
     ModelPolicy,
     TautomerDistributionOutcome,
     TautomerState,
     model_version,
 )
+
+logger = logging.getLogger(__name__)
 
 #: The criteria-v1 file: revision 3, PBE0 def2-TZVP. Kept loadable and untouched, because
 #: its artifact (`benchmarks/tautomer_validation/`) is the permanent record of that failure.
@@ -76,6 +84,12 @@ SPEC_PATH_V2 = Path(__file__).parent / "data" / "tautomer_validation_v2.json"
 #: decimals, so half a unit in the last place plus rounding of the inputs.
 DERIVED_VALUE_TOLERANCE_KCAL = 0.006
 
+#: The compact record of the completed criteria-v2 run: the identity the run was made under and
+#: what it decided, derived from the committed artifact (`record_from_artifact`) and never edited
+#: by hand. This is what the service consults.
+RECORD_PATH_V2 = Path(__file__).parent / "data" / "tautomer_validation_record_v2.json"
+#: Version of the record's own shape.
+RECORD_SCHEMA = 1
 #: A system whose reference the gate decides on, alone and without compensation.
 ROLE_REQUIRED = "required"
 #: A system that is run and reported but never decides the gate.
@@ -892,3 +906,99 @@ def build_artifact(
         artifact["partitions"] = partitions
     return artifact
 
+
+
+# --- the validation record, and what it authorizes ---------------------------------------
+
+
+def artifact_sha256(path: Path) -> str:
+    """SHA-256 of an artifact's content with line endings normalized: a Windows checkout rewrites
+    them, and the hash is of what the file SAYS."""
+    return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+
+
+def record_from_artifact(artifact: Mapping[str, Any], artifact_path: str, sha256: str) -> dict[str, Any]:
+    """The compact validation record of one completed run: its identity, what it decided and a
+    pointer, with a hash, to the full artifact that holds every number. Deterministic, so a test
+    can rebuild it from the committed artifact and refuse a hand edit."""
+    identity = artifact["identity"]
+    return {
+        "record_schema": RECORD_SCHEMA,
+        "model_version": identity["model_version"],
+        "validation_criteria_version": identity["validation_criteria_version"],
+        "criteria_hash": identity["criteria_hash"],
+        "benchmark_set_hash": identity["benchmark_set_hash"],
+        "reference_bundle_hash": identity["reference_bundle_hash"],
+        "method_basis": identity["method_basis"],
+        "source_commit": identity["source_commit"],
+        "orca_version": identity["orca_version"],
+        "rdkit_version": identity["rdkit_version"],
+        "validation_execution_status": artifact["validation_execution_status"],
+        "validation_gate_outcome": artifact["validation_gate_outcome"],
+        "partial_run": bool(artifact["partial_run"]),
+        "pooled_mae_kcal": artifact["pooled_mae_kcal"],
+        "partitions": {
+            name: {"passed": block["passed"], "required_systems": block["required_systems"]}
+            for name, block in artifact["partitions"].items()
+        },
+        "artifact": {"path": artifact_path, "sha256": sha256},
+    }
+
+
+@functools.lru_cache(maxsize=1)
+def _current_spec() -> ValidationSpec:
+    return load_spec(SPEC_PATH_V2)
+
+
+def load_records(paths: Sequence[Path] = (RECORD_PATH_V2,)) -> tuple[Mapping[str, Any], ...]:
+    """Every validation record that can be read. A missing or unreadable record is logged and
+    skipped, which can only make a result read `unvalidated`: the safe direction."""
+    records = []
+    for path in paths:
+        try:
+            records.append(json.loads(Path(path).read_text(encoding="utf-8")))
+        except (OSError, ValueError):
+            logger.exception("Could not read the tautomer validation record %s", path)
+    return tuple(records)
+
+
+def validation_branch_for(
+    version: str,
+    complete: bool,
+    *,
+    records: Sequence[Mapping[str, Any]] | None = None,
+    spec: ValidationSpec | None = None,
+) -> str:
+    """The validation branch a NEWLY COMPUTED result earns, from the records.
+
+    **A record authorizes a result only when it matches EVERYTHING it was made under**: the
+    result's `model_version` (method, basis, conformer policy, model revision, temperature, RDKit
+    release), AND the CURRENT criteria version, criteria hash, benchmark set and reference bundle,
+    so correcting one reference value or changing one tolerance voids it. The record must also be
+    of a COMPLETE, whole run. An old record never authorizes a changed model, and the same model
+    under changed criteria is unvalidated until it is run again.
+
+    `passed` earns `validated` (the only branch that may show a percentage) when this result's own
+    candidate set is complete; on an incomplete one it earns `ranking_only` (energies, no percent),
+    because a percentage over a partial set is never shown. A record that decided `ranking_only`
+    earns `ranking_only`. Everything else, including no record, is `unvalidated`.
+    """
+    spec = _current_spec() if spec is None else spec
+    for record in load_records() if records is None else records:
+        if record.get("record_schema") != RECORD_SCHEMA or record.get("model_version") != version:
+            continue
+        if (
+            record.get("validation_criteria_version") != spec.criteria_version
+            or record.get("criteria_hash") != spec.criteria_hash
+            or record.get("benchmark_set_hash") != spec.benchmark_set_hash
+            or record.get("reference_bundle_hash") != spec.reference_bundle_hash
+        ):
+            continue
+        if record.get("validation_execution_status") != ExecutionStatus.COMPLETE.value or record.get("partial_run"):
+            continue
+        outcome = record.get("validation_gate_outcome")
+        if outcome == GateOutcome.PASSED.value:
+            return VALIDATION_VALIDATED if complete else VALIDATION_RANKING_ONLY
+        if outcome == GateOutcome.RANKING_ONLY.value:
+            return VALIDATION_RANKING_ONLY
+    return VALIDATION_UNVALIDATED

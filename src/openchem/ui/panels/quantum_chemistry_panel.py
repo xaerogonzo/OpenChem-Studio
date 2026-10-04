@@ -1929,9 +1929,10 @@ class QuantumChemistryPanel(QWidget):
         elif params.get("validation_branch") == "validated":
             temperature = params.get("temperature_k", "?")
             summary += (
-                f" -- populations validated against reference data. Electronic-energy "
-                f"Boltzmann population estimate, gas phase, {temperature} K -- excludes "
-                f"vibrational, entropic, solvent, and conformational contributions."
+                f" -- populations validated against reference data for this exact model, on a "
+                f"small benchmark of eight tautomer systems (see docs/VALIDATION.md). "
+                f"Electronic-energy Boltzmann population estimate, gas phase, {temperature} K "
+                f"-- excludes vibrational, entropic, solvent, and conformational contributions."
             )
         else:
             summary += " -- energies and populations are NOT yet validated against reference data."

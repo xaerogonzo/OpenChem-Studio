@@ -36,14 +36,15 @@ from openchem.chem.tautomer_distribution import (
     FAILURE_ENERGY_UNPARSEABLE,
     FAILURE_OPTIMIZATION_NOT_CONVERGED,
     MODEL_POLICY,
-    VALIDATION_UNVALIDATED,
     CandidateResult,
     CandidateStatus,
     ModelPolicy,
     TautomerCandidate,
     build_outcome,
     build_structure_set_result,
+    model_version,
 )
+from openchem.chem.tautomer_validation import validation_branch_for
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.quantum_chemistry_run import (
     OutputStatus,
@@ -1410,12 +1411,18 @@ class QuantumChemistryService(QObject):
         and publishes it -- once, for the whole operation, never per
         candidate."""
         outcome = build_outcome(run.results, temperature_k=STANDARD_TEMPERATURE_K)
+        # The branch is EARNED, by a validation record matching this exact model and the current
+        # criteria; nothing here asserts it. The same model_version `build_structure_set_result`
+        # stamps on the result is what the record is matched against.
+        branch = validation_branch_for(
+            model_version(run.method_basis, "ETKDGv3", outcome.temperature_k, run.policy), outcome.complete
+        )
         result = build_structure_set_result(
             outcome,
             run.molecule_uuid,
             run.method_basis,
             run_id=run.run_id,
-            validation_branch=VALIDATION_UNVALIDATED,
+            validation_branch=branch,
             policy=run.policy,
         )
         self._event_bus.publish(

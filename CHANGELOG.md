@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Tautomer distribution: a validated model now shows population percentages
+
+- **A population percentage appears, for one model only.** `M062X def2-TZVP` with the default conformer search (revision 5, top-3 of 50 conformers) passed the preregistered validation (#192), and the service now stamps a result `validated` when a validation record matches its exact `model_version` AND the current criteria hashes and the result's candidate set is complete (`chem/tautomer_validation.validation_branch_for`; the record is `chem/data/tautomer_validation_record_v2.json`, derived from the committed artifact and refused if edited). Any other method or basis, the Full ORCA conformers setting, another RDKit release, changed criteria or an incomplete candidate set keeps percentages withheld (an incomplete set of the validated model shows energies as `ranking_only`).
+- **What that does and does not mean** is stated in the result text, the User Guide and `docs/VALIDATION.md`: eight small two-state systems (four held out) is a narrow benchmark, not a general probability model.
+- The two criteria/record JSONs are bundled in the frozen build (`packaging/openchem.spec`), guarded by a test, because a build missing them would silently read every result as unvalidated.
+
 ### Tautomer validation v2: the preregistered run PASSED (nothing wired yet)
 
 - **The criteria-v2 run** (revision 5, `M062X def2-TZVP`, 61 ORCA optimizations, clean tree at `8f03ebb7`) recorded `validation_gate_outcome: passed`: all eight required systems, regression and held-out partitions both, pooled MAE 0.26 kcal/mol, largest per-system maximum error 0.99 (held-out: 0.85). The artifact, with every optimized geometry and conformer-pool record, is `benchmarks/tautomer_validation_v2/`; `docs/VALIDATION.md` states what a four-system, small-heterocycle held-out set does and does not establish.

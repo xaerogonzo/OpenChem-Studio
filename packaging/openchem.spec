@@ -124,6 +124,15 @@ datas += [(str(PKG / "chem" / "data" / "eqeq_charge_centres.json"), "openchem/ch
 # the omission.
 datas += [(str(PKG / "chem" / "data" / "eem_ionescu2013.json"), "openchem/chem/data")]
 
+# The tautomer-distribution validation: the criteria and the compact record of the run that passed
+# them. `validation_branch_for` loads both when a tautomer distribution finishes. A frozen build
+# without either does not crash: the record is unreadable or the criteria hash cannot match, so
+# every result reads `unvalidated` and no percentage ever appears. That is the safe direction and
+# also the failure nobody would see, which is why `tests/test_tautomer_validation_record.py` pins
+# both names here.
+datas += [(str(PKG / "chem" / "data" / "tautomer_validation_v2.json"), "openchem/chem/data")]
+datas += [(str(PKG / "chem" / "data" / "tautomer_validation_record_v2.json"), "openchem/chem/data")]
+
 # Scripts that are never imported -- they are handed as argv to a *sidecar*
 # interpreter (the pkasolver and ADMET environments, which run their own
 # Python, not ours). PyInstaller's import analysis therefore never sees them,
