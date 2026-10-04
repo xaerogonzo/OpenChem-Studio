@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from openchem.domain.common import ScientificResult
+from openchem.domain.common import Provenance, ScientificResult
 from openchem.domain.report import Fact
 from openchem.domain.structure_issue import Severity
 
@@ -352,3 +352,55 @@ class CorrelationResult(ScientificResult):
     method: str  # "connectivity" | "orca_j_coupling"
     molecule_uuid: str
     cross_peaks: list[CrossPeak] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class TautomerNmrEntry:
+    """One tautomer's predicted NMR, or why there is none.
+
+    **THE ATOM INDICES OF `spectrum` ARE THE CANDIDATE'S, NOT THE DRAWING'S.** They index the hydrogen-explicit
+    structure ORCA optimized, so they must never be shown on, or looked up in, the user's own molecule.
+    Heavy atoms keep their index across tautomers (tautomerism moves hydrogens), which is what lets the viewer
+    pair a carbon across them; hydrogens do not correspond.
+    """
+
+    tautomer_fingerprint: str
+    label: str
+    #: The drawing the tautomer-distribution result showed for it.
+    display_molblock: str
+    #: The candidates NMR ran on: one, or every succeeded conformer of the representative stereoisomer.
+    job_fingerprints: tuple[str, ...]
+    #: Within-tautomer weights over `job_fingerprints` (1.0 for one job). Boltzmann at the run's temperature.
+    weights: tuple[float, ...]
+    #: Referenced (delta) shifts, averaged over the jobs when there are several. `None` when it failed.
+    spectrum: NMRSpectrumResult | None = None
+    #: Why there is no spectrum. Empty on success.
+    failure: str = ""
+
+
+@dataclass(frozen=True)
+class TautomerNmrResult:
+    """The NMR of every tautomer of one tautomer-distribution result, from one logical run.
+
+    Independent of populations on purpose: weights belong to the distribution result and are applied when the
+    two are combined, so a population is never baked into a spectrum computed before it was validated.
+    """
+
+    molecule_uuid: str
+    #: This run's own id, minted at submission.
+    run_id: str
+    #: The tautomer-distribution run these structures came from.
+    parent_run_id: str
+    method_basis: str
+    #: Whether each tautomer's shifts are a Boltzmann average over its conformers.
+    per_conformer: bool
+    entries: tuple[TautomerNmrEntry, ...] = ()
+    #: Tautomers that could not be run at all (no stored geometry, nothing succeeded), with the reason.
+    skipped: tuple[str, ...] = ()
+    provenance: Provenance | None = None
+
+    @property
+    def complete(self) -> bool:
+        """Every tautomer of the distribution has a spectrum. An incomplete result can still be shown tautomer
+        by tautomer; it must never be averaged."""
+        return bool(self.entries) and not self.skipped and all(e.spectrum is not None for e in self.entries)
