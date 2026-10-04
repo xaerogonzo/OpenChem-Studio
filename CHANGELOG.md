@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Tautomer validation v2: the preregistered run PASSED (nothing wired yet)
+
+- **The criteria-v2 run** (revision 5, `M062X def2-TZVP`, 61 ORCA optimizations, clean tree at `8f03ebb7`) recorded `validation_gate_outcome: passed`: all eight required systems, regression and held-out partitions both, pooled MAE 0.26 kcal/mol, largest per-system maximum error 0.99 (held-out: 0.85). The artifact, with every optimized geometry and conformer-pool record, is `benchmarks/tautomer_validation_v2/`; `docs/VALIDATION.md` states what a four-system, small-heterocycle held-out set does and does not establish.
+- **No behaviour changes yet.** Results still compute as `unvalidated` and show no population percentage; the lookup that lets a matching record authorize one is a separate change.
+- Adds `docs/LITERATURE_LOG.md`: every paper opened in Phase R, what it was read for and what came of it, including the dead ends.
+
 ### Tautomer validation v2: the preregistration (nothing has been run)
 
 - **`chem/data/tautomer_validation_v2.json`** freezes a second attempt at the percentage gate for model revision 5 at `M062X def2-TZVP`, with the same tolerances as v1 (not retuned). Every system carries a `partition`: `regression` (the four v1 systems v4 was shaped on, so a pass is not independent evidence) or `held_out` (indazole, hypoxanthine and both triazoles, frozen in the manifest before v4 existed). The preregistration carries a `design_disclosure` (v4 was designed after v3 failed; the exploratory acetylacetone check; the method screen; the aggregate Goller sentence that was read; the defect fixed as revision 5) and pins the manifest and the method-screen rule by hash. Its declared model string is compared with what the code would run, and the runner refuses on any difference.

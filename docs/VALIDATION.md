@@ -1081,9 +1081,9 @@ conformer search, hydroxyl-rotamer and C=N-H E/Z enumeration) is a different
 
 
 
-## Tautomer distribution v2: the preregistration (2026-10-04, no result yet)
+## Tautomer distribution v2: the preregistration (2026-10-04) and its result: `passed`
 
-**Status: frozen, not run.** `chem/data/tautomer_validation_v2.json` (criteria
+**Status: frozen, then run once (below).** `chem/data/tautomer_validation_v2.json` (criteria
 `tautomer-validation-criteria-v2`) preregisters a second attempt for model revision 5 (a conformer
 search per stereo class, aromatic tautomers told apart) at `M062X def2-TZVP`. The v1 file and its
 artifact above are untouched and remain the record of the revision-3 failure. The gates and
@@ -1105,3 +1105,37 @@ tolerances are exactly v1's (tie 1.0, MAE 1.0, maximum 2.0 kcal/mol) and are not
   different model and would need its own run. A pass would validate this model for this set only.
 
 No percentage ships until a run on a clean tree, at the commit that merges this file, passes.
+
+### Result (2026-10-04): `passed`
+
+Run once on a clean tree at `8f03ebb7` (the commit that merged the preregistration), real ORCA 6.1.1,
+`M062X def2-TZVP`, 61 optimizations, every tautomer of every required system searched completely.
+Artifact: `benchmarks/tautomer_validation_v2/tautomer_validation_artifact.json`
+(`validation_execution_status` complete, `validation_gate_outcome` `passed`, pooled MAE 0.26 kcal/mol).
+Every optimized geometry and conformer-pool record is in the per-system run files beside it.
+
+| system | partition | ranking | MAE | max error | tolerance |
+|---|---|---|---|---|---|
+| cytosine | regression | passes | 0.22 | 0.64 | 1.0 / 2.0 kcal/mol |
+| acetylacetone | regression | passes | 0.09 | 0.19 | |
+| acetaldimine / vinylamine | regression | passes | 0.50 | 0.99 | |
+| 2-pyridone / 2-hydroxypyridine | regression | passes | 0.40 | 0.79 | |
+| indazole | **held out** | passes | 0.43 | 0.85 | |
+| hypoxanthine | **held out** | passes | 0.21 | 0.43 | |
+| 1,2,3-triazole | **held out** | passes | 0.16 | 0.32 | |
+| 1,2,4-triazole | **held out** | passes | 0.12 | 0.25 | |
+
+Optional rows (never gating): formamide max 0.35, acetaldehyde max 0.62, both ordered correctly.
+
+**What this establishes.** The model (revision 5, top-3 MMFF conformers of 50 embeds, `M062X def2-TZVP`) met
+the preregistered gate on the four systems v4 was shaped on AND on four systems frozen before it existed.
+The held-out pass is the one that counts as independent evidence; the regression pass is not.
+
+**What it does not.** Four held-out systems, all two-state and all small heterocycles (three of them azoles),
+is a narrow test: it says nothing about large or flexible molecules, charged species, many-state systems,
+or solution. Hypoxanthine's reference lists two of its eight enumerated states. Adenine had no eligible
+reference and is not covered. The largest regression error (0.99 against a 1.0 MAE tolerance is a
+per-system MAE bound; the maximum bound is 2.0) is close to the line for acetaldimine/vinylamine. A pass
+validates THIS model for THIS benchmark set only: the full-ORCA-conformer mode, another method or basis, and
+another RDKit release are different models with no record. **Nothing has been wired yet**: results are still
+computed `unvalidated` and show no percentage until the validation lookup is added in its own change.

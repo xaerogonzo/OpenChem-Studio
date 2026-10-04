@@ -1,0 +1,179 @@
+{
+ "stamp": {
+  "commit": "8f03ebb7c9de97841e8c8db75389c1747d760c44",
+  "model_version": "tautomer-boltzmann-v5|stereo_cap=8;enantiomer_policy=dedupe_mirror;bond_stereo_policy=preserve;tautomer_representative=lowest_successful_stereo;state_degeneracy=unit;incomplete_population_policy=withhold;conformer_search=mmff_topk;conformer_engine=rdkit-2025.09.6-etkdgv3;conformer_embed_params=useExpTorsionAnglePrefs=True;useBasicKnowledge=True;useRandomCoords=False;enforceChirality=True;ETversion=2;pruneRmsThresh=-1.0;useSmallRingTorsions=False;useMacrocycleTorsions=True;conformer_embeds=50;conformer_topk=3;conformer_cap=10;conformer_prune=distinct_conformers(skeleton_polar_h,rms=0.5,window=1.0);conformer_prefilter=mmff94_with_uff_fallback;conformer_prefilter_max_iters=2000|M062X def2-TZVP|ETKDGv3|T=298.15K",
+  "reference_bundle_hash": "f03d2e4f32122079da661a2e3f15621530e7ad47467771ef0d3ecde21a553a15"
+ },
+ "run": {
+  "system_id": "formamide_formamidic_acid",
+  "mapping_error": "",
+  "energies": {
+   "formamide": {
+    "reference_id": "formamide",
+    "absolute_hartree": -169.893714242599,
+    "representative_fingerprint": "67008793f8a0f6f5e13578196a32ab9b69639fbfbedb0bbbff9f6c3c681fd328",
+    "complete": true
+   },
+   "formamidic_acid": {
+    "reference_id": "formamidic_acid",
+    "absolute_hartree": -169.876125224477,
+    "representative_fingerprint": "dbbbd9e7dca252ca45938013803555c3f1499706096ed3b3e4653b0ad8137a78",
+    "complete": true
+   }
+  },
+  "unreferenced": [],
+  "jobs": [
+   {
+    "index": 0,
+    "fingerprint": "dbbbd9e7dca252ca45938013803555c3f1499706096ed3b3e4653b0ad8137a78",
+    "tautomer_fingerprint": "009331f47bc2bafa2fd1bdc050917ecbf737b12b5a323e7548804b2b36e65a2a",
+    "stereo_index": 0,
+    "status": "succeeded",
+    "absolute_energy_hartree": -169.876125224477,
+    "failure_reason_code": "",
+    "failure_reason": "",
+    "embedding_seed": 1,
+    "start_geometry_sha256": "532786593e6056e4161fb6d83e6cabe7d2d31b3b2eda703fc2e4f5979ef9ce9d",
+    "start_geometry_molblock": "\n     RDKit          3D\n\n  6  5  0  0  0  0  0  0  0  0999 V2000\n   -0.6888   -0.5096   -0.5437 N   0  0  0  0  0  0  0  0  0  0  0  0\n   -0.0194    0.2736    0.2071 C   0  0  0  0  0  0  0  0  0  0  0  0\n    1.2849    0.0515    0.3195 O   0  0  0  0  0  0  0  0  0  0  0  0\n   -1.6746   -0.2228   -0.5367 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -0.3887    1.1296    0.7880 H   0  0  0  0  0  0  0  0  0  0  0  0\n    1.4866   -0.7223   -0.2343 H   0  0  0  0  0  0  0  0  0  0  0  0\n  1  2  2  3\n  2  3  1  0\n  1  4  1  0\n  2  5  1  0\n  3  6  1  0\nM  END\n",
+    "optimized_geometry_molblock": "",
+    "input_sha256": "31c8819f36e3645d2e893f9c7960e74df7ab4b16cd4217a70046dead4c3ecdbd",
+    "stereo": {
+     "index": 0,
+     "fallback": false,
+     "fallback_reason": "",
+     "enantiomer_merged": false,
+     "isomers_total": 1,
+     "isomers_total_known": true,
+     "isomers_calculated": 1,
+     "truncated": false,
+     "embedding_failed": 0
+    },
+    "conformer": {
+     "search": "mmff_topk",
+     "index": 0,
+     "recipe_fingerprint": "5cae505b49fc13d5bd826db3af9822cde2c0a65dd018ccc2cef0e8048f20ba3d",
+     "stereo_fingerprint": "009331f47bc2bafa2fd1bdc050917ecbf737b12b5a323e7548804b2b36e65a2a",
+     "seed": 1,
+     "generated": 50,
+     "distinct": 2,
+     "selected": 2,
+     "truncated": false,
+     "prefilter": "mmff94",
+     "prefilter_energy_kcal": -35.72497090169369,
+     "prefilter_ok": 50,
+     "prefilter_failed": 0,
+     "retained_recipes": [
+      "5cae505b49fc13d5bd826db3af9822cde2c0a65dd018ccc2cef0e8048f20ba3d",
+      "62a0f256aa128406691d2e9302ce2a8d90ec3085ff5e6ee1db8885c947c10cff"
+     ],
+     "selected_recipes": [
+      "5cae505b49fc13d5bd826db3af9822cde2c0a65dd018ccc2cef0e8048f20ba3d",
+      "62a0f256aa128406691d2e9302ce2a8d90ec3085ff5e6ee1db8885c947c10cff"
+     ]
+    },
+    "tautomer_state": "complete",
+    "calculation_source": "fresh_orca"
+   },
+   {
+    "index": 1,
+    "fingerprint": "f849b041539426ac777394bfe310b1a80fe17b85f6816cdd02a1f4c108ad9c62",
+    "tautomer_fingerprint": "009331f47bc2bafa2fd1bdc050917ecbf737b12b5a323e7548804b2b36e65a2a",
+    "stereo_index": 0,
+    "status": "succeeded",
+    "absolute_energy_hartree": -169.870227972703,
+    "failure_reason_code": "",
+    "failure_reason": "",
+    "embedding_seed": 1,
+    "start_geometry_sha256": "52302fba111b2f0bcf8a7a07a219e054380cd7c44e43eb185d622a9f4e057b82",
+    "start_geometry_molblock": "\n     RDKit          3D\n\n  6  5  0  0  0  0  0  0  0  0999 V2000\n   -1.1087   -0.2326    0.1943 N   0  0  0  0  0  0  0  0  0  0  0  0\n   -0.1331    0.5566   -0.0373 C   0  0  0  0  0  0  0  0  0  0  0  0\n    1.1108    0.0984   -0.1807 O   0  0  0  0  0  0  0  0  0  0  0  0\n   -0.8151   -1.2070    0.2503 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -0.2082    1.6482   -0.1390 H   0  0  0  0  0  0  0  0  0  0  0  0\n    1.1543   -0.8635   -0.0876 H   0  0  0  0  0  0  0  0  0  0  0  0\n  1  2  2  3\n  2  3  1  0\n  1  4  1  0\n  2  5  1  0\n  3  6  1  0\nM  END\n",
+    "optimized_geometry_molblock": "",
+    "input_sha256": "ed5bcbe4c04ed42869c1000f0893e27ded546711ff66105338d385484da723c5",
+    "stereo": {
+     "index": 0,
+     "fallback": false,
+     "fallback_reason": "",
+     "enantiomer_merged": false,
+     "isomers_total": 1,
+     "isomers_total_known": true,
+     "isomers_calculated": 1,
+     "truncated": false,
+     "embedding_failed": 0
+    },
+    "conformer": {
+     "search": "mmff_topk",
+     "index": 1,
+     "recipe_fingerprint": "62a0f256aa128406691d2e9302ce2a8d90ec3085ff5e6ee1db8885c947c10cff",
+     "stereo_fingerprint": "009331f47bc2bafa2fd1bdc050917ecbf737b12b5a323e7548804b2b36e65a2a",
+     "seed": 1,
+     "generated": 50,
+     "distinct": 2,
+     "selected": 2,
+     "truncated": false,
+     "prefilter": "mmff94",
+     "prefilter_energy_kcal": -29.809632221313834,
+     "prefilter_ok": 50,
+     "prefilter_failed": 0,
+     "retained_recipes": [
+      "5cae505b49fc13d5bd826db3af9822cde2c0a65dd018ccc2cef0e8048f20ba3d",
+      "62a0f256aa128406691d2e9302ce2a8d90ec3085ff5e6ee1db8885c947c10cff"
+     ],
+     "selected_recipes": [
+      "5cae505b49fc13d5bd826db3af9822cde2c0a65dd018ccc2cef0e8048f20ba3d",
+      "62a0f256aa128406691d2e9302ce2a8d90ec3085ff5e6ee1db8885c947c10cff"
+     ]
+    },
+    "tautomer_state": "complete",
+    "calculation_source": "fresh_orca"
+   },
+   {
+    "index": 2,
+    "fingerprint": "67008793f8a0f6f5e13578196a32ab9b69639fbfbedb0bbbff9f6c3c681fd328",
+    "tautomer_fingerprint": "faeec10b779768995c7454e21c5a955e74fd43e1463fed640a03df7e437faad2",
+    "stereo_index": 0,
+    "status": "succeeded",
+    "absolute_energy_hartree": -169.893714242599,
+    "failure_reason_code": "",
+    "failure_reason": "",
+    "embedding_seed": 10,
+    "start_geometry_sha256": "669e211ba4e3dd678153c20a91f68b6d8f9e092005239e0e2303acc0f5dcd9aa",
+    "start_geometry_molblock": "\n     RDKit          3D\n\n  6  5  0  0  0  0  0  0  0  0999 V2000\n    0.6779    0.0658    0.1268 N   0  0  0  0  0  0  0  0  0  0  0  0\n   -0.6494   -0.0789   -0.1255 C   0  0  0  0  0  0  0  0  0  0  0  0\n   -1.4542    0.8329   -0.0210 O   0  0  0  0  0  0  0  0  0  0  0  0\n    1.0114    0.9763    0.4153 H   0  0  0  0  0  0  0  0  0  0  0  0\n    1.3360   -0.6947    0.0374 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -0.9216   -1.1015   -0.4330 H   0  0  0  0  0  0  0  0  0  0  0  0\n  1  2  1  0\n  2  3  2  3\n  1  4  1  0\n  1  5  1  0\n  2  6  1  0\nM  END\n",
+    "optimized_geometry_molblock": "",
+    "input_sha256": "26dfcb93e130869512b1a6a1a4694d8f814d57e72b4088d7ed738ce007195876",
+    "stereo": {
+     "index": 0,
+     "fallback": false,
+     "fallback_reason": "",
+     "enantiomer_merged": false,
+     "isomers_total": 1,
+     "isomers_total_known": true,
+     "isomers_calculated": 1,
+     "truncated": false,
+     "embedding_failed": 0
+    },
+    "conformer": {
+     "search": "mmff_topk",
+     "index": 0,
+     "recipe_fingerprint": "815d45bf4902a778b7627aa1e091941074032f2d5f9e6a051cf35af35e15ded7",
+     "stereo_fingerprint": "faeec10b779768995c7454e21c5a955e74fd43e1463fed640a03df7e437faad2",
+     "seed": 10,
+     "generated": 50,
+     "distinct": 1,
+     "selected": 1,
+     "truncated": false,
+     "prefilter": "mmff94",
+     "prefilter_energy_kcal": -30.90736107163066,
+     "prefilter_ok": 50,
+     "prefilter_failed": 0,
+     "retained_recipes": [
+      "815d45bf4902a778b7627aa1e091941074032f2d5f9e6a051cf35af35e15ded7"
+     ],
+     "selected_recipes": [
+      "815d45bf4902a778b7627aa1e091941074032f2d5f9e6a051cf35af35e15ded7"
+     ]
+    },
+    "tautomer_state": "complete",
+    "calculation_source": "fresh_orca"
+   }
+  ]
+ }
+}
