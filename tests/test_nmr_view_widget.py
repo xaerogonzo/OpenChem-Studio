@@ -960,6 +960,10 @@ def test_selecting_in_any_tab_selects_the_same_signal_everywhere(qapp):
     selected_signal_rows = {i.row() for i in view._table.selectedIndexes()}
     assert view._table.item(selected_signal_rows.pop(), 0).data(nmr_view_module._ROW_IDENTITY_ROLE) == tuple(target.atom_indices)
 
+    # Clear first: `selectRow` TOGGLES when a Ctrl modifier is down, and another test file
+    # (the keyboard-shortcut recorder tests) leaves one down, which made this test pass in
+    # file order and fail in a CI shard that ran them first.
+    view._couplings_table.clearSelection()
     view._couplings_table.selectRow(0)  # a coupling row of signal 0
     assert set(view._spectrum_widget._highlighted_atoms) == set(signals[0].atom_indices)
 
