@@ -35,9 +35,11 @@ from openchem.chem.orca_engine import (
 from openchem.chem.tautomer_distribution import (
     FAILURE_ENERGY_UNPARSEABLE,
     FAILURE_OPTIMIZATION_NOT_CONVERGED,
+    MODEL_POLICY,
     VALIDATION_UNVALIDATED,
     CandidateResult,
     CandidateStatus,
+    ModelPolicy,
     TautomerCandidate,
     build_outcome,
     build_structure_set_result,
@@ -308,6 +310,10 @@ class _TautomerDistributionRun:
     #: distribution_result`), which needs a real `ResultIdentity`.
     calculation_input: str = ""
     input_fingerprint: str = ""
+    #: The scientific model the candidates were generated under, carried to the
+    #: result so its model version and provenance describe what was computed,
+    #: never today's default.
+    policy: ModelPolicy = MODEL_POLICY
     #: The candidate `_launch_next_tautomer_candidate` most recently
     #: dispatched -- `_ActiveJob` carries no candidate-specific identity,
     #: so this is how its finish handler knows which candidate just ran.
@@ -559,6 +565,7 @@ class QuantumChemistryService(QObject):
         calculation_input: str,
         input_fingerprint: str,
         provider_id: str = "orca",
+        policy: ModelPolicy = MODEL_POLICY,
     ) -> None:
         """Runs a real ORCA geometry optimization on each of `candidates`,
         sequentially, and publishes one combined
@@ -627,6 +634,7 @@ class QuantumChemistryService(QObject):
             calculation_input=calculation_input,
             input_fingerprint=input_fingerprint,
             run_id=new_run_id(),
+            policy=policy,
         )
         self._tautomer_runs[molecule_uuid] = run
         self._launch_next_tautomer_candidate(run)
@@ -639,8 +647,13 @@ class QuantumChemistryService(QObject):
         self._publish_state(
             run.molecule_uuid,
             CacheState.RUNNING,
-            f"Tautomer candidate {len(run.results) + 1}/{run.total} "
-            f"({succeeded} succeeded, {failed} failed so far)",
+            f"Tautomer candidate {len(run.results) + 1}/{run.total}"
+            + (
+                f" (conformer {candidate.conformer.index + 1} of {candidate.conformer.selected})"
+                if candidate.conformer.selected > 1
+                else ""
+            )
+            + f" ({succeeded} succeeded, {failed} failed so far)",
         )
         self._launch_job(
             key=run.molecule_uuid,
@@ -1403,6 +1416,7 @@ class QuantumChemistryService(QObject):
             run.method_basis,
             run_id=run.run_id,
             validation_branch=VALIDATION_UNVALIDATED,
+            policy=run.policy,
         )
         self._event_bus.publish(
             TautomerDistributionResultReady(molecule_uuid=run.molecule_uuid, run_id=run.run_id, result=result)

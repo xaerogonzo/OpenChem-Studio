@@ -19,6 +19,7 @@ from openchem.chem.tautomer_distribution import (
     VALIDATION_UNVALIDATED,
     VALIDATION_VALIDATED,
     MODEL_POLICY,
+    MODEL_POLICY_SINGLE,
     TAUTOMER_MODEL_REVISION,
     CandidateResult,
     CandidateStatus,
@@ -35,6 +36,16 @@ from openchem.chem.tautomer_distribution import (
     model_assumptions,
     model_version,
 )
+
+# The stereo-mechanics tests below describe ONE embedded geometry per stereo class
+# (the `single` policy, revision 3's behaviour): a conformer search multiplies the
+# jobs per class, which `test_tautomer_conformers.py` and the v4 tests at the end of
+# this file cover. Passing the policy explicitly keeps these assertions about stereo
+# enumeration rather than about conformer counts.
+import functools  # noqa: E402
+
+_generate_with_search = generate_tautomer_candidates
+generate_tautomer_candidates = functools.partial(_generate_with_search, policy=MODEL_POLICY_SINGLE)
 from openchem.domain.result_store import result_id_of
 
 CYCLOHEXANONE = "O=C1CCCCC1"  # keto <-> enol, the same fixture test_phase27_structures.py uses
@@ -765,7 +776,7 @@ def test_the_policy_serializes_in_one_fixed_order_and_is_immutable():
     with pytest.raises(Exception):  # noqa: B017 - FrozenInstanceError
         MODEL_POLICY.stereo_cap = 99
     assert model_version("a", "b", 1.0).startswith(f"tautomer-boltzmann-v{TAUTOMER_MODEL_REVISION}|")
-    assert TAUTOMER_MODEL_REVISION == 3
+    assert TAUTOMER_MODEL_REVISION == 4
 
 
 def test_the_assumptions_state_unit_degeneracy_and_the_lowest_representative_rule():
@@ -779,15 +790,18 @@ def test_the_assumptions_state_unit_degeneracy_and_the_lowest_representative_rul
 def test_the_result_carries_the_policy_the_reference_and_the_search_facts():
     candidates, _ = generate_tautomer_candidates(Chem.MolFromSmiles(BUTANEDIOL))
     outcome = build_outcome([_succeeded(c, -100.0 - 0.001 * i) for i, c in enumerate(candidates)])
-    params = build_structure_set_result(outcome, "m", "HF STO-3G", run_id="r").provenance.parameters
+    params = build_structure_set_result(
+        outcome, "m", "HF STO-3G", run_id="r", policy=MODEL_POLICY_SINGLE
+    ).provenance.parameters
 
-    assert params["model_revision"] == 3
+    assert params["model_revision"] == 4
+    assert params["model_policy"]["conformer_search"] == "single"
     assert params["model_policy"]["stereo_cap"] == 8
     assert params["energy_reference"] == "global_minimum"
     assert params["stereo_enumeration_cap"] == 8 and params["stereo_enumeration_truncated"] == 0
     assert params["stereo_search"] is True
     assert params["tautomer_count"] == 1 and params["candidate_count_expected"] == 2
-    assert params["model_version"].startswith("tautomer-boltzmann-v3|")
+    assert params["model_version"].startswith("tautomer-boltzmann-v4|")
 
 
 # --- the result as a table (the survey's item 7) ------------------------------------
