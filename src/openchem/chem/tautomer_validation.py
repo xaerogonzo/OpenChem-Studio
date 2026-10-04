@@ -32,14 +32,6 @@ their own lowest REFERENCE-LISTED tautomer before an error is taken, never to
 
 from __future__ import annotations
 
-#: The criteria and the comparison are reached by the validation runner and the suite; the
-#: running application reaches only `validation_branch_for`, from the service, which is what
-#: lets a matching validation record authorize a population percentage.
-REACHED_BY = (
-    "service: quantum_chemistry_service._finish_tautomer_distribution calls validation_branch_for; "
-    "the rest is consumed by tools/tautomer_validation.py and tests/test_tautomer_validation*.py"
-)
-
 import functools
 import hashlib
 import json
