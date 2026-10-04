@@ -410,3 +410,34 @@ def test_the_published_result_round_trips_through_the_save_codec_exactly(qapp):
     assert restored.provenance.parameters["complete"] is False
     assert restored.provenance.parameters["complete"] == original.provenance.parameters["complete"]
     assert restored.provenance.parameters["candidate_count_failed"] == 1
+
+
+class _OptimizedGeometryProvider(_PerCandidateProvider):
+    """Returns a distinct optimized conformer per job, as ORCA's output does for an `opt`."""
+
+    def parse_output(self, output_text, mol, molecule_uuid, calc_type):
+        index = self.calls
+        descriptors, _ = super().parse_output(output_text, mol, molecule_uuid, calc_type)
+        from openchem.domain.conformer import ConformerModel
+
+        return descriptors, ConformerModel(molblock=f"OPTIMIZED-{index}")
+
+
+def test_the_optimized_geometry_is_kept_on_each_succeeded_candidate(qapp):
+    """The service used to read ORCA's final geometry and discard it, so a later calculation on a
+    tautomer (its NMR) could only start from the embedded start geometry."""
+    candidates = _two_real_candidates()
+    provider = _OptimizedGeometryProvider(energies=[-100.0, -99.999], fail_to_parse_at={1})
+    service, bus = _make_service(provider)
+    results = []
+    bus.subscribe(TautomerDistributionResultReady, lambda e: results.append(e))
+    service.request_tautomer_distribution(
+        candidates=candidates, molecule_uuid="mol-opt", charge=0, multiplicity=1, method_basis="HF STO-3G",
+        calculation_input=DRAWING, input_fingerprint=_FAKE_DRAWING_FINGERPRINT, provider_id="fake",
+    )
+    assert _wait_until(qapp, lambda: results)
+    by_status = {e.metadata["status"]: e for e in results[0].result.entries}
+    assert by_status["succeeded"].metadata["optimized_molblock"] == "OPTIMIZED-0"
+    assert "optimized_molblock" not in by_status["failed"].metadata  # a failed candidate has no minimum
+    # The start geometry it was optimized FROM is a different thing and is not replaced.
+    assert by_status["succeeded"].metadata["fingerprint"] in {c.fingerprint for c in candidates}

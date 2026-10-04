@@ -743,6 +743,11 @@ class CandidateResult:
     stereo: StereoStatus = field(default_factory=StereoStatus)
     rdkit_score: float | None = None
     conformer: ConformerStatus = field(default_factory=ConformerStatus)
+    #: The geometry ORCA's optimization ENDED at (hydrogen-explicit, 3D), for a succeeded
+    #: candidate; empty for a failed one or when the output carried none. Kept so a later
+    #: calculation on this tautomer (its NMR) starts from the minimum the energy describes and
+    #: not from the embedded start geometry in `molblock`.
+    optimized_molblock: str = ""
 
     @property
     def tautomer_key(self) -> str:
@@ -1142,6 +1147,8 @@ def build_structure_set_result(
             # The measurement behind the derived relative energy, kept so the
             # table can be audited and exported without recomputing anything.
             metadata["absolute_energy_hartree"] = candidate.absolute_energy_hartree
+        if candidate.optimized_molblock:
+            metadata["optimized_molblock"] = candidate.optimized_molblock
         if candidate.status is CandidateStatus.FAILED:
             metadata["failure_reason"] = candidate.failure_reason
             metadata["failure_reason_code"] = candidate.failure_reason_code
