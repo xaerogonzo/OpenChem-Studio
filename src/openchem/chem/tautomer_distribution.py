@@ -84,8 +84,10 @@ MAX_STEREOISOMERS_PER_TAUTOMER = 8
 #: Distinct from `ModelPolicy`, which is the exact configuration: a change to
 #: how the stereo search works bumps this even if every policy value is kept.
 #: Revision 2 was #177's pinned single configuration; 3 enumerates stereoisomers;
-#: 4 adds a conformer search per stereo class (`chem.tautomer_conformers`).
-TAUTOMER_MODEL_REVISION = 4
+#: 4 adds a conformer search per stereo class (`chem.tautomer_conformers`); 5 tells
+#: aromatic tautomers apart (revision 4 merged any two that differ only in which ring
+#: nitrogen carries the hydrogen, so an azole's other tautomer was never calculated).
+TAUTOMER_MODEL_REVISION = 5
 
 
 @dataclass(frozen=True)
@@ -209,6 +211,20 @@ def model_assumptions(policy: ModelPolicy = MODEL_POLICY) -> tuple[str, ...]:
     if policy.incomplete_population_policy == "withhold":
         out.append("No population is shown when any tautomer is incomplete.")
     return tuple(out)
+
+
+def _tautomer_fingerprint(tautomer: Chem.Mol) -> str:
+    """A tautomer's identity: its pre-embedding molblock AND its isomeric SMILES.
+
+    **THE MOLBLOCK ALONE IS NOT ENOUGH, AND THAT WAS MEASURED.** A molblock states atoms and
+    bonds, not how many hydrogens an aromatic nitrogen carries, so 1H- and 2H-indazole, the two
+    triazole pairs and hypoxanthine's N7-H and N9-H forms wrote IDENTICAL molblocks and were
+    merged into one candidate: the app calculated one structure of a two-state system and
+    reported it complete. (Plain RDKit enumerates all of them; the loss was here.) The SMILES
+    carries the hydrogen placement, so two tautomers that differ only there never collide."""
+    return _fingerprint(
+        Chem.MolToMolBlock(tautomer, kekulize=False) + "|" + Chem.MolToSmiles(tautomer, isomericSmiles=True)
+    )
 
 
 def _fingerprint(molblock: str) -> str:
@@ -526,8 +542,7 @@ def generate_tautomer_candidates(
     # and independent of the enumerator's own (incidental) ordering.
     by_fingerprint: dict[str, Chem.Mol] = {}
     for tautomer in tautomers:
-        molblock = Chem.MolToMolBlock(tautomer, kekulize=False)
-        by_fingerprint.setdefault(_fingerprint(molblock), tautomer)
+        by_fingerprint.setdefault(_tautomer_fingerprint(tautomer), tautomer)
 
     candidates: list[TautomerCandidate] = []
     embedding_failures = 0

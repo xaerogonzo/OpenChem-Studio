@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Tautomer model revision 5: azole tautomers were being merged into one candidate
+
+- **Fixed: tautomers that differ only in which aromatic ring nitrogen carries the hydrogen were one candidate.** The candidate identity was a hash of the structure's molblock, and a molblock written for the aromatic form carries atoms and bonds but not that hydrogen count, so 1H- and 2H-indazole, 1H- and 4H-1,2,4-triazole, 1H- and 2H-1,2,3-triazole and hypoxanthine's N7-H and N9-H forms hashed identically and were deduplicated. The Tautomer Distribution calculator therefore calculated ONE structure of a two-state azole system and reported it complete (hypoxanthine kept 3 of the 8 states RDKit enumerates). The identity now also hashes the isomeric SMILES, which does carry the hydrogen placement. Found by the preregistered held-out systems' mapping check, which asked whether each reference tautomer was among the enumerated ones. `TAUTOMER_MODEL_REVISION` is 5 (a different deduplication is a different model); no model has been validated, so no percentage is affected.
+
 ### Tautomer validation: the held-out manifest, frozen before v4 exists
 
 - **`benchmarks/tautomer_validation/heldout_manifest_v2.json`**: indazole, hypoxanthine, 1,2,3-triazole and 1,2,4-triazole, selected by a written rule that never looks at any model's behaviour, pinned by hash (`tests/test_tautomer_heldout_manifest.py`). Göller 2022's Table 1 fails its own gas/water/delta check for adenine and 1,2,3-triazole, so adenine is excluded and the 1,2,3-triazole reference is Balabin 2009's CCSD(T)/CBS 3.98 kcal/mol (which equals the value Göller's own delta column implies). The SI's structure names fixed a mis-read of the scheme drawing for 1,2,4-triazole. Four sources registered.
