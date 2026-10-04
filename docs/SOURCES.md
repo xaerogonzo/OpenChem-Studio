@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: def90a6ddbef03a482a19ea04868ece61197eb0bbcdce707686d9e609e17e656 -->
+<!-- SOURCE SHA256: 4493798010ff1fbd92400bbcce080f18808e6c70a97db8a18b2c3cf09ff098c8 -->
 
 # Sources
 
@@ -104,6 +104,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`bakowies1996`](#bakowies1996) | literature | **not shipped** | citation + claim |
 | [`balabin2009`](#balabin2009) | literature | reference only | citation + claim |
 | [`ballester2010`](#ballester2010) | literature | **not shipped** | citation |
+| [`barone2023`](#barone2023) | literature | reference only | citation |
 | [`belova2014`](#belova2014) | literature | shipped | citation + claim |
 | [`bento2020`](#bento2020) | literature | shipped | citation + claim |
 | [`bertz1981`](#bertz1981) | literature | shipped | citation |
@@ -147,6 +148,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`ertl2017`](#ertl2017) | literature | reference only | citation |
 | [`feinstein2015`](#feinstein2015) | literature | shipped | citation + claim |
 | [`fogarasi2010`](#fogarasi2010) | literature | shipped | citation + claim |
+| [`ganyecz2019`](#ganyecz2019) | literature | reference only | citation |
 | [`gasteiger1980`](#gasteiger1980) | literature | shipped | citation + claim |
 | [`gasteiger1985`](#gasteiger1985) | literature | **not shipped** | citation |
 | [`geidl2015`](#geidl2015) | literature | reference only | citation |
@@ -229,6 +231,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`pearson1963`](#pearson1963) | literature | reference only | citation |
 | [`pearson1968`](#pearson1968) | literature | reference only | citation |
 | [`pearson1988`](#pearson1988) | literature | shipped | citation + claim |
+| [`perry2025`](#perry2025) | literature | reference only | citation |
 | [`pkasolver`](#pkasolver) | software | shipped | citation |
 | [`platts1999`](#platts1999) | literature | **not shipped** | citation + claim |
 | [`pyside6`](#pyside6) | software | shipped | citation |
@@ -3971,7 +3974,7 @@ same bounded search. Context for PQEq's G2 feasibility, not read.
 | Verification | citation + claim |
 | Verified | 2026-10-03 |
 | Local copy | `trygubenko2002.pdf` (not checked) |
-| Used by | `src/openchem/chem/data/tautomer_validation.json`, `src/openchem/chem/tautomer_validation.py`, `tools/tautomer_validation.py` |
+| Used by | `src/openchem/chem/data/tautomer_validation.json`, `src/openchem/chem/data/tautomer_validation_v2.json`, `src/openchem/chem/tautomer_validation.py`, `tools/tautomer_validation.py` |
 
 ### belova2014
 
@@ -3986,7 +3989,7 @@ same bounded search. Context for PQEq's G2 feasibility, not read.
 | Verification | citation + claim |
 | Verified | 2026-10-03 |
 | Local copy | `belova2014.pdf` (not checked) |
-| Used by | `src/openchem/chem/data/tautomer_validation.json`, `src/openchem/chem/tautomer_validation.py`, `tools/tautomer_validation.py` |
+| Used by | `src/openchem/chem/data/tautomer_validation.json`, `src/openchem/chem/data/tautomer_validation_v2.json`, `src/openchem/chem/tautomer_validation.py`, `tools/tautomer_validation.py` |
 
 ### fogarasi2010
 
@@ -4001,7 +4004,7 @@ same bounded search. Context for PQEq's G2 feasibility, not read.
 | Verification | citation + claim |
 | Verified | 2026-10-03 |
 | Local copy | `fogarasi2010.pdf` (not checked) |
-| Used by | `src/openchem/chem/data/tautomer_validation.json`, `src/openchem/chem/tautomer_validation.py`, `tools/tautomer_validation.py` |
+| Used by | `src/openchem/chem/data/tautomer_validation.json`, `src/openchem/chem/data/tautomer_validation_v2.json`, `src/openchem/chem/tautomer_validation.py`, `tools/tautomer_validation.py` |
 
 ### goller2022
 
@@ -4016,7 +4019,7 @@ same bounded search. Context for PQEq's G2 feasibility, not read.
 | Verification | citation + claim |
 | Verified | 2026-10-03 |
 | Local copy | `goller2022.pdf` (not checked) |
-| Used by | `src/openchem/chem/data/tautomer_validation.json`, `src/openchem/chem/tautomer_validation.py`, `tools/tautomer_validation.py` |
+| Used by | `src/openchem/chem/data/tautomer_validation.json`, `src/openchem/chem/data/tautomer_validation_v2.json`, `src/openchem/chem/tautomer_validation.py`, `tools/tautomer_validation.py` |
 
 ### rendell1993
 
@@ -4074,10 +4077,9 @@ were read off the file's own first pages.
 | Verification | citation + claim |
 | Verified | 2026-10-03 |
 | Local copy | `Balabin2009.pdf` (not checked) |
-| Used by | `benchmarks/tautomer_validation/heldout_manifest_v2.json` |
+| Used by | `benchmarks/tautomer_validation/heldout_manifest_v2.json`, `src/openchem/chem/data/tautomer_validation_v2.json` |
 
-**Why it is reference only.** REFERENCE FOR TWO HELD-OUT ROWS, NOT YET SHIPPED (the v4 criteria file that will
-carry it does not exist yet). The DOI, title, journal, volume and article number are
+**Why it is reference only.** REFERENCE FOR TWO HELD-OUT ROWS of the criteria-v2 preregistration. The DOI, title, journal, volume and article number are
 printed on the file's first page. Table III was read in full: valence focal-point
 analysis, CCSD(T)/CBS with core correction, MP2/aug-cc-pVTZ geometries, energy
 differences relative to the most stable tautomer. The two numbers used are the
@@ -4120,7 +4122,7 @@ the file's first page.
 | Verification | citation + claim |
 | Verified | 2026-10-03 |
 | Local copy | `Catalán1996.pdf` (not checked) |
-| Used by | `benchmarks/tautomer_validation/heldout_manifest_v2.json` |
+| Used by | `benchmarks/tautomer_validation/heldout_manifest_v2.json`, `src/openchem/chem/data/tautomer_validation_v2.json` |
 
 **Why it is reference only.** LOW-LEVEL CORROBORATION FOR INDAZOLE. MP2/6-31G** puts 1H-indazole 3.6 kcal/mol below
 2H (abstract); the 4.08 in its Table 2 is the thermochemical value and is deliberately not
@@ -4140,13 +4142,74 @@ the article was not read off the file.
 | Verification | citation |
 | Verified | 2026-10-03 |
 | Local copy | `Brovarets2013.pdf` (not checked) |
-| Used by | `benchmarks/tautomer_validation/heldout_manifest_v2.json` |
+| Used by | `benchmarks/tautomer_validation/heldout_manifest_v2.json`, `src/openchem/chem/data/tautomer_validation_v2.json` |
 
 **Why it is reference only.** ORDERING-ONLY CORROBORATION FOR HYPOXANTHINE. 21 planar tautomers at
 MP2/6-311++G(2df,pd)//B3LYP/6-311++G(d,p); the keto-N1H,N7H form is the vacuum global
 minimum, below keto-N1H,N9H, which agrees with Goller's pair. No number was transcribed.
 The volume and page range are not printed in the file's text, so the citation gives the
 online-first date and the DOI (printed in the file) instead of guessing them.
+
+### perry2025
+
+<a id="perry2025"></a>
+
+> C. J. Perry, S. A. Ramos, M. C. Phelps, L. J. Mueller & G. J. O. Beran, 'Taming Tautomerism in Organic Crystal Structure Prediction', J. Am. Chem. Soc. (2025), author manuscript.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jacs.5c08442](https://doi.org/10.1021/jacs.5c08442) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-04 |
+| Local copy | `Perry2025.pdf` (not checked) |
+| Used by | `src/openchem/chem/data/tautomer_validation_v2.json`, `benchmarks/tautomer_validation/method_screen/README.md` |
+
+**Why it is reference only.** WHY TWO FUNCTIONALS WERE SCREENED BESIDE M06-2X, NOT A REFERENCE. A gas-phase
+DLPNO-CCSD(T1) benchmark over 18 large drug-like crystal-tautomer systems that finds routine
+GGA and hybrid functionals poor, and names omega-B97M-V and the double hybrid
+revDSD-PBEP86-D4 as the best approximate methods (rms about 3 kJ/mol, up to 7-8). The file
+is an author manuscript: the title, authors and DOI are printed in it, but the volume and
+pages are not, so the citation does not give them. The paper does not mention M06-2X.
+
+### ganyecz2019
+
+<a id="ganyecz2019"></a>
+
+> A. Ganyecz, M. Kallay & J. Csontos, 'Thermochemistry of Uracil, Thymine, Cytosine, and Adenine', J. Phys. Chem. A 2019, 123, 4057-4067.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/acs.jpca.9b02061](https://doi.org/10.1021/acs.jpca.9b02061) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-04 |
+| Local copy | `ganyecz2019.pdf` (not checked) |
+| Used by | `src/openchem/chem/data/tautomer_validation_v2.json` |
+
+**Why it is reference only.** CYTOSINE CORROBORATION, NOT A ROW. Heats of formation by the diet-HEAT-F12 protocol;
+the tautomer study is cytosine only. Adenine appears only as its canonical form, so this
+paper does NOT supply the adenine reference that the held-out manifest lacks. Journal,
+volume, pages and DOI are printed on the file's first page.
+
+### barone2023
+
+<a id="barone2023"></a>
+
+> V. Barone, 'DFT Meets Wave-Function Composite Methods for Characterizing Cytosine Tautomers in the Gas Phase', J. Chem. Theory Comput. 2023, 19, 4970-4981.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/acs.jctc.3c00465](https://doi.org/10.1021/acs.jctc.3c00465) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-04 |
+| Local copy | `Barone2023.pdf` (not checked) |
+| Used by | `src/openchem/chem/data/tautomer_validation_v2.json` |
+
+**Why it is reference only.** CYTOSINE CORROBORATION, NOT A ROW. CCSD(T)-F12/cc-pVTZ-F12 composite results for cytosine
+tautomers and rotamers, relative electronic energies tabulated in cm-1. No number was
+transcribed. Journal, volume, pages and DOI are printed on the file's first page.
 
 ### glasser1995
 

@@ -1,0 +1,19 @@
+jobs: 17 [('cytosine', 'enol_amino', 0, 0, -115.94), ('cytosine', 'enol_amino', 0, 1, -115.94), ('cytosine', 'enol_amino', 0, 2, -115.55), ('cytosine', 'enol_amino', 0, 3, -115.55), ('cytosine', 'enol_amino', 0, 4, -105.43), ('cytosine', 'enol_amino', 0, 5, -104.11), ('cytosine', 'keto_amino', 0, 0, -88.84), ('cytosine', 'keto_amino', 0, 1, -88.84), ('cytosine', 'imino_oxo', 0, 0, -100.07), ('cytosine', 'imino_oxo', 0, 1, -98.6), ('acetaldimine_vinylamine', 'acetaldimine', 0, 0, 6.44), ('acetaldimine_vinylamine', 'acetaldimine', 0, 1, 6.96), ('acetaldimine_vinylamine', 'vinylamine', 0, 0, -0.78), ('acetaldimine_vinylamine', 'vinylamine', 0, 1, -0.78), ('pyridone', 'hydroxypyridine', 0, 0, -23.5), ('pyridone', 'hydroxypyridine', 0, 1, -12.69), ('pyridone', 'pyridone', 0, 0, -5.84)]
+cytosine__enol_amino__s0__c0 mmff -115.94 E -394.65039304179 conv True
+cytosine__enol_amino__s0__c1 mmff -115.94 E -394.65039013302 conv True
+cytosine__enol_amino__s0__c2 mmff -115.55 E -394.649148488596 conv True
+cytosine__enol_amino__s0__c3 mmff -115.55 E -394.649135422659 conv True
+cytosine__enol_amino__s0__c4 mmff -105.43 E -394.649140233938 conv True
+cytosine__enol_amino__s0__c5 mmff -104.11 E -394.65039471206 conv True
+cytosine__keto_amino__s0__c0 mmff -88.84 E -394.651274228482 conv True
+cytosine__keto_amino__s0__c1 mmff -88.84 E -394.651297854571 conv True
+cytosine__imino_oxo__s0__c0 mmff -100.07 E -394.648189704002 conv True
+cytosine__imino_oxo__s0__c1 mmff -98.6 E -394.645119210061 conv True
+acetaldimine_vinylamine__acetaldimine__s0__c0 mmff 6.44 E -133.840328222189 conv True
+acetaldimine_vinylamine__acetaldimine__s0__c1 mmff 6.96 E -133.83925172192 conv True
+acetaldimine_vinylamine__vinylamine__s0__c0 mmff -0.78 E -133.837083424203 conv True
+acetaldimine_vinylamine__vinylamine__s0__c1 mmff -0.78 E -133.837084368452 conv True
+pyridone__hydroxypyridine__s0__c0 mmff -23.5 E -323.273763013018 conv True
+pyridone__hydroxypyridine__s0__c1 mmff -12.69 E -323.265528336221 conv True
+pyridone__pyridone__s0__c0 mmff -5.84 E -323.274294250266 conv True
+ALL DONE

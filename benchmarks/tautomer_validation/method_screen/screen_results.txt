@@ -1,0 +1,51 @@
+
+===== PBE0
+  cytosine: {'ref': {'enol_amino': 0.0, 'keto_amino': 1.44, 'imino_oxo': 2.11}, 'comp': {'enol_amino': 0.57, 'keto_amino': 0.0, 'imino_oxo': 1.95}, 'err': {'enol_amino': 0.57, 'keto_amino': 1.44, 'imino_oxo': 0.16}, 'mae': 0.72, 'max': 1.44, 'rank_ok': False, 'gate': False}
+  acetylacetone: {'ref': {'enol': 0.0, 'diketo': 4.85}, 'comp': {'enol': 0.0, 'diketo': 6.91}, 'err': {'enol': 0.0, 'diketo': 2.06}, 'mae': 1.03, 'max': 2.06, 'rank_ok': True, 'gate': False}
+  acetaldimine_vinylamine: {'ref': {'acetaldimine': 0.0, 'vinylamine': 3.08}, 'comp': {'acetaldimine': 0.0, 'vinylamine': 2.04}, 'err': {'acetaldimine': 0.0, 'vinylamine': 1.04}, 'mae': 0.52, 'max': 1.04, 'rank_ok': True, 'gate': True}
+  pyridone: {'ref': {'hydroxypyridine': 0.0, 'pyridone': 2.07}, 'comp': {'hydroxypyridine': 0.33, 'pyridone': 0.0}, 'err': {'hydroxypyridine': 0.33, 'pyridone': 2.07}, 'mae': 1.2, 'max': 2.07, 'rank_ok': False, 'gate': False}
+  -> {'eligible': False, 'worst_max_error': 2.07, 'passes_full_gate': False}
+
+===== M062X
+  cytosine: {'ref': {'enol_amino': 0.0, 'keto_amino': 1.44, 'imino_oxo': 2.11}, 'comp': {'enol_amino': 0.0, 'keto_amino': 0.82, 'imino_oxo': 2.2}, 'err': {'enol_amino': 0.0, 'keto_amino': 0.62, 'imino_oxo': 0.09}, 'mae': 0.23, 'max': 0.62, 'rank_ok': True, 'gate': True}
+  acetylacetone: {'ref': {'enol': 0.0, 'diketo': 4.85}, 'comp': {'enol': 0.0, 'diketo': 4.88}, 'err': {'enol': 0.0, 'diketo': 0.03}, 'mae': 0.01, 'max': 0.03, 'rank_ok': True, 'gate': True}
+  acetaldimine_vinylamine: {'ref': {'acetaldimine': 0.0, 'vinylamine': 3.08}, 'comp': {'acetaldimine': 0.0, 'vinylamine': 2.1}, 'err': {'acetaldimine': 0.0, 'vinylamine': 0.98}, 'mae': 0.49, 'max': 0.98, 'rank_ok': True, 'gate': True}
+  pyridone: {'ref': {'hydroxypyridine': 0.0, 'pyridone': 2.07}, 'comp': {'hydroxypyridine': 0.0, 'pyridone': 1.3}, 'err': {'hydroxypyridine': 0.0, 'pyridone': 0.77}, 'mae': 0.38, 'max': 0.77, 'rank_ok': True, 'gate': True}
+  -> {'eligible': True, 'worst_max_error': 0.98, 'passes_full_gate': True}
+
+===== wB97M-V
+  cytosine: {'ref': {'enol_amino': 0.0, 'keto_amino': 1.44, 'imino_oxo': 2.11}, 'comp': {'enol_amino': 0.0, 'keto_amino': 0.34, 'imino_oxo': 1.85}, 'err': {'enol_amino': 0.0, 'keto_amino': 1.1, 'imino_oxo': 0.26}, 'mae': 0.45, 'max': 1.1, 'rank_ok': True, 'gate': True}
+  acetylacetone: {'ref': {'enol': 0.0, 'diketo': 4.85}, 'comp': {'enol': 0.0, 'diketo': 3.86}, 'err': {'enol': 0.0, 'diketo': 0.99}, 'mae': 0.49, 'max': 0.99, 'rank_ok': True, 'gate': True}
+  acetaldimine_vinylamine: {'ref': {'acetaldimine': 0.0, 'vinylamine': 3.08}, 'comp': {'acetaldimine': 0.0, 'vinylamine': 2.93}, 'err': {'acetaldimine': 0.0, 'vinylamine': 0.15}, 'mae': 0.08, 'max': 0.15, 'rank_ok': True, 'gate': True}
+  pyridone: {'ref': {'hydroxypyridine': 0.0, 'pyridone': 2.07}, 'comp': {'hydroxypyridine': 0.0, 'pyridone': 0.78}, 'err': {'hydroxypyridine': 0.0, 'pyridone': 1.29}, 'mae': 0.65, 'max': 1.29, 'rank_ok': True, 'gate': True}
+  -> {'eligible': True, 'worst_max_error': 1.29, 'passes_full_gate': True}
+
+===== revDSD
+  cytosine: {'ref': {'enol_amino': 0.0, 'keto_amino': 1.44, 'imino_oxo': 2.11}, 'comp': {'enol_amino': 0.51, 'keto_amino': 0.0, 'imino_oxo': 0.78}, 'err': {'enol_amino': 0.51, 'keto_amino': 1.44, 'imino_oxo': 1.33}, 'mae': 1.09, 'max': 1.44, 'rank_ok': False, 'gate': False}
+  acetylacetone: {'ref': {'enol': 0.0, 'diketo': 4.85}, 'comp': {'enol': 0.0, 'diketo': 2.8}, 'err': {'enol': 0.0, 'diketo': 2.05}, 'mae': 1.03, 'max': 2.05, 'rank_ok': True, 'gate': False}
+  acetaldimine_vinylamine: {'ref': {'acetaldimine': 0.0, 'vinylamine': 3.08}, 'comp': {'acetaldimine': 0.0, 'vinylamine': 3.93}, 'err': {'acetaldimine': 0.0, 'vinylamine': 0.85}, 'mae': 0.42, 'max': 0.85, 'rank_ok': True, 'gate': True}
+  pyridone: {'ref': {'hydroxypyridine': 0.0, 'pyridone': 2.07}, 'comp': {'hydroxypyridine': 0.42, 'pyridone': 0.0}, 'err': {'hydroxypyridine': 0.42, 'pyridone': 2.07}, 'mae': 1.24, 'max': 2.07, 'rank_ok': False, 'gate': False}
+  -> {'eligible': False, 'worst_max_error': 2.07, 'passes_full_gate': False}
+
+SUMMARY {
+ "PBE0": {
+  "eligible": false,
+  "worst_max_error": 2.07,
+  "passes_full_gate": false
+ },
+ "M062X": {
+  "eligible": true,
+  "worst_max_error": 0.98,
+  "passes_full_gate": true
+ },
+ "wB97M-V": {
+  "eligible": true,
+  "worst_max_error": 1.29,
+  "passes_full_gate": true
+ },
+ "revDSD": {
+  "eligible": false,
+  "worst_max_error": 2.07,
+  "passes_full_gate": false
+ }
+}

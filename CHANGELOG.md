@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Tautomer validation v2: the preregistration (nothing has been run)
+
+- **`chem/data/tautomer_validation_v2.json`** freezes a second attempt at the percentage gate for model revision 5 at `M062X def2-TZVP`, with the same tolerances as v1 (not retuned). Every system carries a `partition`: `regression` (the four v1 systems v4 was shaped on, so a pass is not independent evidence) or `held_out` (indazole, hypoxanthine and both triazoles, frozen in the manifest before v4 existed). The preregistration carries a `design_disclosure` (v4 was designed after v3 failed; the exploratory acetylacetone check; the method screen; the aggregate Goller sentence that was read; the defect fixed as revision 5) and pins the manifest and the method-screen rule by hash. Its declared model string is compared with what the code would run, and the runner refuses on any difference.
+- **The closed schema** (`chem/tautomer_validation.py`) now accepts schema version 2 beside 1; v1's three content hashes are unchanged and tested against its artifact.
+- **The runner** (`tools/tautomer_validation.py`) prints the ORCA job count before it starts, stores every job's optimized geometry and conformer-pool provenance (revision 3's artifact could not say which minimum a job reached), reports the gate by partition, and refuses the revision-3 file.
+- **`benchmarks/tautomer_validation/method_screen/`** commits the rule, scripts, energies and results behind the method choice, with what it does not show. Three newly cited sources are registered (Perry 2025, Ganyecz 2019, Barone 2023).
+
 ### Tautomer model revision 5: azole tautomers were being merged into one candidate
 
 - **Fixed: tautomers that differ only in which aromatic ring nitrogen carries the hydrogen were one candidate.** The candidate identity was a hash of the structure's molblock, and a molblock written for the aromatic form carries atoms and bonds but not that hydrogen count, so 1H- and 2H-indazole, 1H- and 4H-1,2,4-triazole, 1H- and 2H-1,2,3-triazole and hypoxanthine's N7-H and N9-H forms hashed identically and were deduplicated. The Tautomer Distribution calculator therefore calculated ONE structure of a two-state azole system and reported it complete (hypoxanthine kept 3 of the 8 states RDKit enumerates). The identity now also hashes the isomeric SMILES, which does carry the hydrogen placement. Found by the preregistered held-out systems' mapping check, which asked whether each reference tautomer was among the enumerated ones. `TAUTOMER_MODEL_REVISION` is 5 (a different deduplication is a different model); no model has been validated, so no percentage is affected.

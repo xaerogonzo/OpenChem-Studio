@@ -1,9 +1,11 @@
 """Run the preregistered tautomer validation through the application's own path.
 
-**WHY IT EXISTS.** `chem/data/tautomer_validation.json` froze, before any number
-existed, what the tautomer-distribution model must reproduce to be allowed to show
-a population percentage. This is the experiment: it runs every system in that file
-and writes the artifact `chem.tautomer_validation.build_artifact` defines.
+**WHY IT EXISTS.** `chem/data/tautomer_validation_v2.json` (the default; `--criteria`
+selects another) froze, before any number existed, what the tautomer-distribution model
+must reproduce to be allowed to show a population percentage. This is the experiment: it
+runs every system in that file and writes the artifact
+`chem.tautomer_validation.build_artifact` defines. The criteria-v1 file records revision
+3 and cannot be re-run by revision-4 code; `--run` refuses it.
 
 **NO VALIDATION-ONLY CHEMISTRY.** Each system goes through the same steps the
 Quantum Chemistry panel's "Tautomers..." button takes: the structure through
@@ -14,8 +16,15 @@ added is a provider subclass that records each job's exact input text hash; it
 changes nothing it is given.
 
     python tools/tautomer_validation.py --list
-    python tools/tautomer_validation.py --check-mapping        # RDKit only, no ORCA
+    python tools/tautomer_validation.py --check-mapping        # RDKit only, no ORCA; also the job count
     python tools/tautomer_validation.py --run --out DIR [--systems cytosine ...] [--resume]
+
+`--run` prints how many ORCA optimizations it is about to make, per system and in total,
+BEFORE the first one starts, and refuses if the model the criteria file declares is not the
+one this code would execute. The artifact stores every job's optimized geometry and its
+conformer-pool provenance (the recipe that made the start geometry, how many conformers the
+pool held, which force field scored it, which were selected), so a failure can be diagnosed
+from the artifact alone.
 
 `--run` refuses a dirty working tree (the artifact names a commit) unless
 `--allow-dirty` says it is a trial. A system's finished measurements are written to
@@ -83,18 +92,33 @@ def _isolated_environment() -> Path:
 
 
 def _recording_provider():
-    """The real ORCA provider, remembering a SHA-256 of every input it builds."""
+    """The real ORCA provider, remembering a SHA-256 of every input it builds and the
+    optimized geometry ORCA's output carried back (empty when the output had none).
+
+    The service discards that geometry after reading the energy; Phase O's artifact therefore
+    could not say WHICH minimum a job had reached, which left its failure's cause unverifiable.
+    Recording it changes nothing the service is given or returns."""
     from openchem.chem.orca_engine import OrcaQuantumEngineProvider
 
     class RecordingProvider(OrcaQuantumEngineProvider):
         def __init__(self) -> None:
             super().__init__()
             self.input_hashes: list[str] = []
+            self.optimized_molblocks: list[str] = []
 
         def build_input(self, mol, charge, multiplicity, method_basis, calc_type):  # noqa: ANN001
             text = super().build_input(mol, charge, multiplicity, method_basis, calc_type)
             self.input_hashes.append(hashlib.sha256(text.encode("utf-8")).hexdigest())
             return text
+
+        def parse_output(self, output_text, mol, molecule_uuid, calc_type):  # noqa: ANN001
+            try:
+                descriptors, conformer = super().parse_output(output_text, mol, molecule_uuid, calc_type)
+            except Exception:
+                self.optimized_molblocks.append("")
+                raise
+            self.optimized_molblocks.append(conformer.molblock if conformer is not None else "")
+            return descriptors, conformer
 
     return RecordingProvider()
 
@@ -108,9 +132,20 @@ def _structure(engine, smiles: str):
     return model, engine.mol_from_molblock(model.molblock)
 
 
+def _policy_for(spec):
+    """The conformer policy the criteria file declares. A v1 file declares none (it is the
+    revision-3 record), so the listing commands use revision 3's single-geometry policy for it
+    and `--run` refuses it outright."""
+    from openchem.chem.tautomer_distribution import MODEL_POLICY_SINGLE
+    from openchem.chem.tautomer_validation import policy_of
+
+    return policy_of(spec) if "conformer_search" in spec.model_under_test else MODEL_POLICY_SINGLE
+
+
 def check_mapping(spec) -> int:
     """Every reference tautomer must be one the application enumerates; reported
-    with what else it enumerates. RDKit only."""
+    with what else it enumerates, and how many ORCA optimizations the system needs
+    under the declared policy. RDKit only."""
     from openchem.chem.engine import ChemistryEngine
     from openchem.chem.tautomer_distribution import generate_tautomer_candidates
     from openchem.chem.tautomer_validation import (
@@ -121,21 +156,26 @@ def check_mapping(spec) -> int:
     )
 
     engine = ChemistryEngine()
+    policy = _policy_for(spec)
     bad = 0
+    total = 0
     for system in spec.systems:
         _model, mol = _structure(engine, system.input_smiles)
-        candidates, failures = generate_tautomer_candidates(mol)
+        candidates, failures = generate_tautomer_candidates(mol, stereo_cap=policy.stereo_cap, policy=policy)
         keys = {c.tautomer_fingerprint: canonical_key(c.mol) for c in candidates}
+        total += len(candidates)
         try:
             mapping = map_reference_tautomers(system, keys)
             note = ", ".join(f"{ref}<-{len(group)}" for ref, group in mapping.items())
         except MappingError as exc:
             bad += 1
             note = f"MAPPING ERROR {exc}"
+        partition = f"/{system.partition}" if system.partition else ""
         print(
-            f"{system.id} [{system.role}]: {len(candidates)} jobs, {len(keys)} tautomers, "
+            f"{system.id} [{system.role}{partition}]: {len(candidates)} jobs, {len(keys)} tautomers, "
             f"{failures} embedding failure(s); {note}; unlisted {unreferenced_tautomers(system, keys)}"
         )
+    print(f"total: {total} ORCA optimizations under {policy.conformer_search}")
     return 1 if bad else 0
 
 
@@ -163,7 +203,6 @@ def run_system(qapp, spec, system, orca: str, timeout_minutes: int):
     from openchem.chem.boltzmann import STANDARD_TEMPERATURE_K
     from openchem.chem.engine import ChemistryEngine
     from openchem.chem.tautomer_distribution import (
-        MODEL_POLICY,
         build_outcome,
         generate_tautomer_candidates,
     )
@@ -187,7 +226,10 @@ def run_system(qapp, spec, system, orca: str, timeout_minutes: int):
         raise SystemExit("the criteria declare a base seed other than the one the application uses")
     engine = ChemistryEngine()
     model, mol = _structure(engine, system.input_smiles)
-    candidates, embedding_failures = generate_tautomer_candidates(mol, stereo_cap=MODEL_POLICY.stereo_cap)
+    policy = _policy_for(spec)
+    candidates, embedding_failures = generate_tautomer_candidates(
+        mol, stereo_cap=policy.stereo_cap, policy=policy
+    )
     keys = {c.tautomer_fingerprint: canonical_key(c.mol) for c in candidates}
     mapping_error = ""
     mapping: dict[str, tuple[str, ...]] = {}
@@ -222,6 +264,7 @@ def run_system(qapp, spec, system, orca: str, timeout_minutes: int):
         method_basis=model_spec["method_basis"],
         calculation_input=DRAWING,
         input_fingerprint=input_fingerprint(engine, model, DRAWING),
+        policy=policy,
     )
     run = service._tautomer_runs.get(model.uuid)  # the very object the service finishes with
     if run is None:
@@ -241,6 +284,13 @@ def run_system(qapp, spec, system, orca: str, timeout_minutes: int):
             last_report = len(run.results)
             print(f"  {system.id}: {last_report}/{len(candidates)} jobs done ({time.perf_counter() - started:.0f} s)")
 
+    if len(provider.input_hashes) != len(run.results) or len(provider.optimized_molblocks) != len(run.results):
+        # Both lists are appended once per job in completion order; a mismatch would attach an
+        # input hash or a geometry to the wrong job, which is worse than recording none.
+        raise SystemExit(
+            f"{system.id}: {len(run.results)} results but {len(provider.input_hashes)} inputs and "
+            f"{len(provider.optimized_molblocks)} outputs were recorded; the artifact would misattribute them"
+        )
     outcome = build_outcome(run.results, temperature_k=STANDARD_TEMPERATURE_K)
     jobs = []
     for index, result in enumerate(run.results):
@@ -255,13 +305,48 @@ def run_system(qapp, spec, system, orca: str, timeout_minutes: int):
             "failure_reason": result.failure_reason,
             "embedding_seed": result.embedding_seed,
             "start_geometry_sha256": hashlib.sha256(result.molblock.encode("utf-8")).hexdigest(),
-            "input_sha256": provider.input_hashes[index] if index < len(provider.input_hashes) else "",
+            "start_geometry_molblock": result.molblock,
+            "optimized_geometry_molblock": provider.optimized_molblocks[index],
+            "input_sha256": provider.input_hashes[index],
+            "stereo": dataclasses.asdict(result.stereo),
+            "conformer": dataclasses.asdict(result.conformer),
             "tautomer_state": outcome.tautomer_states[result.tautomer_key].value,
             "calculation_source": "fresh_orca",
         })
     energies = reference_tautomer_energies(mapping, outcome)
     print(f"  {system.id}: done in {time.perf_counter() - started:.0f} s, {len(jobs)} jobs")
     return SystemRun(system.id, "", energies, unreferenced_tautomers(system, keys), jobs)
+
+
+def print_job_counts(systems, policy) -> int:
+    """How many ORCA optimizations the run will make, per system and in total, printed
+    BEFORE the first one starts. RDKit only. A long run that surprises its operator with its
+    own size has no way to be stopped in time, so the size is stated first."""
+    from openchem.chem.engine import ChemistryEngine
+    from openchem.chem.tautomer_distribution import generate_tautomer_candidates
+
+    engine = ChemistryEngine()
+    total = 0
+    for system in systems:
+        _model, mol = _structure(engine, system.input_smiles)
+        candidates, failures = generate_tautomer_candidates(mol, stereo_cap=policy.stereo_cap, policy=policy)
+        total += len(candidates)
+        extra = f" (+{failures} that failed to embed)" if failures else ""
+        print(f"  {system.id}: {len(candidates)} ORCA optimizations{extra}")
+    print(f"  total: {total} ORCA optimizations under {policy.conformer_search}")
+    return total
+
+
+def partition_report(artifact: dict[str, Any]) -> list[str]:
+    """The gate's result by partition, as the lines the runner prints. A regression pass is
+    NOT independent evidence (v4 was shaped on those systems), so the held-out line is the one
+    to read; the overall gate is still the criterion."""
+    lines = []
+    for partition, block in (artifact.get("partitions") or {}).items():
+        verdict = {True: "passed", False: "FAILED", None: "not evaluable"}[block["passed"]]
+        failed = f" ({', '.join(block['failed_systems'])})" if block["failed_systems"] else ""
+        lines.append(f"  {partition}: {verdict}{failed}; {len(block['evaluated'])}/{len(block['required_systems'])} required systems evaluated")
+    return lines
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -276,16 +361,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--allow-dirty", action="store_true")
     parser.add_argument(
         "--criteria", type=Path, default=None,
-        help="an alternate criteria file, for exercising the runner with a cheap model. Its artifact carries "
-        "ITS criteria hash, so it can never stand in for the preregistered run",
+        help="an alternate criteria file (default: the criteria-v2 file), for exercising the runner with a "
+        "cheap model. Its artifact carries ITS criteria hash, so it can never stand in for the preregistered run",
     )
     parser.add_argument("--orca", default=os.environ.get("OPENCHEM_VALIDATION_ORCA", DEFAULT_ORCA))
     parser.add_argument("--timeout-minutes", type=int, default=DEFAULT_SYSTEM_TIMEOUT_MINUTES)
     args = parser.parse_args(argv)
 
-    from openchem.chem.tautomer_validation import load_spec, systems_summary
+    from openchem.chem.tautomer_validation import SPEC_PATH_V2, load_spec, systems_summary
 
-    spec = load_spec(args.criteria) if args.criteria else load_spec()
+    spec = load_spec(args.criteria or SPEC_PATH_V2)
     if args.list:
         print("\n".join(systems_summary(spec.systems)))
         print(f"criteria {spec.criteria_hash}\nbenchmark set {spec.benchmark_set_hash}\nbundle {spec.reference_bundle_hash}")
@@ -295,13 +380,25 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.out is None:
         parser.error("--run needs --out")
+    if "conformer_search" not in spec.model_under_test:
+        raise SystemExit(
+            "this criteria file is the revision-3 record (it declares no conformer policy); revision-4 code "
+            "cannot re-run it. Use the criteria-v2 file."
+        )
+    from openchem.chem.tautomer_validation import model_mismatches
+
+    if problems := model_mismatches(spec):
+        raise SystemExit(
+            "the model the criteria file declares is not the one this code would run, so the run would "
+            "validate something else:\n  " + "\n  ".join(problems)
+        )
     commit = source_commit(args.allow_dirty)
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
     _isolated_environment()
     from PySide6.QtWidgets import QApplication
     from rdkit import rdBase
 
-    from openchem.chem.tautomer_distribution import MODEL_POLICY, model_version
+    from openchem.chem.tautomer_distribution import model_version
     from openchem.chem.tautomer_validation import build_artifact
     from openchem.services.tool_download_service import verify_orca
 
@@ -309,12 +406,18 @@ def main(argv: list[str] | None = None) -> int:
     if spec.model_under_test["orca_version"] not in orca_version:
         raise SystemExit(f"ORCA reports {orca_version!r}; the criteria declare {spec.model_under_test['orca_version']}")
     qapp = QApplication.instance() or QApplication([])
+    policy = _policy_for(spec)
     model_ver = model_version(
         spec.model_under_test["method_basis"], spec.model_under_test["embedding_algorithm"],
-        spec.model_under_test["temperature_k"],
+        spec.model_under_test["temperature_k"], policy,
     )
     args.out.mkdir(parents=True, exist_ok=True)
     wanted = [s for s in spec.systems if not args.systems or s.id in args.systems]
+    unknown = sorted(set(args.systems or []) - {s.id for s in spec.systems})
+    if unknown:
+        raise SystemExit(f"no such system(s): {unknown}")
+    print(f"model {model_ver}")
+    print_job_counts(wanted, policy)
     runs = []
     for system in wanted:
         path = args.out / f"{system.id}.run.json"
@@ -331,13 +434,15 @@ def main(argv: list[str] | None = None) -> int:
         runs.append(run)
 
     artifact = build_artifact(
-        spec, runs, model_version=model_ver, model_policy=MODEL_POLICY.canonical(),
+        spec, runs, model_version=model_ver, model_policy=policy.canonical(),
         source_commit=commit, orca_version=orca_version, rdkit_version=rdBase.rdkitVersion,
     )
     artifact["partial_run"] = len(wanted) != len(spec.systems)
     target = args.out / "tautomer_validation_artifact.json"
     target.write_text(json.dumps(artifact, indent=1) + "\n", encoding="utf-8")
     print(f"execution {artifact['validation_execution_status']}, outcome {artifact['validation_gate_outcome']}")
+    for line in partition_report(artifact):
+        print(line)
     print(f"wrote {target}")
     return 0
 
