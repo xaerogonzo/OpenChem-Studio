@@ -17,6 +17,7 @@ from openchem.domain.scientific_result import (
     PhCurveResult,
     SpectrumResult,
     StructureSetResult,
+    TautomerNmrResult,
     TrajectoryResult,
 )
 from openchem.domain.structure_issue import CheckerResult
@@ -343,6 +344,18 @@ class QuantumChemistryRunCompleted(Event):
     """
 
     run: QuantumChemistryRun
+
+
+@dataclass(frozen=True)
+class TautomerNmrResultReady(Event):
+    """The NMR of every tautomer of a distribution, published once when the whole run ends (never per
+    tautomer), including a run in which some tautomers failed. It is NOT a `SpectrumComputed`: its atom
+    indices belong to the candidates' structures, so it must never reach anything that reads the user's own
+    molecule's spectrum."""
+
+    molecule_uuid: str
+    run_id: str
+    result: TautomerNmrResult
 
 
 @dataclass(frozen=True)

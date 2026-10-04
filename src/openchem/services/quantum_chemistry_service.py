@@ -44,6 +44,7 @@ from openchem.chem.tautomer_distribution import (
     build_structure_set_result,
     model_version,
 )
+from openchem.chem.tautomer_nmr import NmrJob, TautomerNmrTarget
 from openchem.chem.tautomer_validation import validation_branch_for
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.quantum_chemistry_run import (
@@ -53,6 +54,7 @@ from openchem.domain.quantum_chemistry_run import (
     new_run_id,
 )
 from openchem.domain.result_store import StoredResult
+from openchem.domain.scientific_result import TautomerNmrEntry, TautomerNmrResult
 from openchem.events.base import EventBus
 from openchem.events.events import (
     NmrReferenceCalibrated,
@@ -64,6 +66,7 @@ from openchem.events.events import (
     SpectrumComputed,
     StructureSetComputed,
     TautomerDistributionResultReady,
+    TautomerNmrResultReady,
 )
 from openchem.plugins.interfaces import QuantumEngineProvider
 from openchem.services import result_cache
@@ -233,7 +236,8 @@ class _ActiveJob:
     calc_type: str
     scratch_dir: Path
     process: QProcess
-    kind: str = "calculation"  # "calculation" | "reference" | "conformer" | "scaling" | "tautomer_candidate"
+    # "calculation" | "reference" | "conformer" | "scaling" | "tautomer_candidate" | "tautomer_nmr"
+    kind: str = "calculation"
     molecule_uuid: str | None = None  # only set for kind == "calculation"/"conformer"/"tautomer_candidate"
     # Only set for kind == "scaling": which calibration standard this run
     # is, so its shieldings can be filed against the right literature
@@ -323,6 +327,36 @@ class _TautomerDistributionRun:
     run_id: str = ""
 
 
+@dataclass
+class _TautomerNmrRun:
+    """One logical tautomer-NMR operation: an NMR job per tautomer (or per conformer of its representative
+    stereoisomer), run sequentially on the geometries a tautomer-distribution result kept, combined into one
+    `TautomerNmrResult` at the end (`docs/TAUTOMER_NMR_DESIGN.md`).
+
+    The same single-flight, sequential and cancellation shape as `_TautomerDistributionRun`, and the same
+    rule: a per-structure failure is recorded and the sequence continues, while a crash or a cancellation ends
+    the whole operation with no result ("cancelled" never means "a result over fewer tautomers").
+    """
+
+    molecule_uuid: str
+    targets: list[TautomerNmrTarget]
+    #: Flattened work, in order: `(target, job)`.
+    queue: list[tuple[TautomerNmrTarget, NmrJob]]
+    charge: int
+    multiplicity: int
+    method_basis: str
+    provider: QuantumEngineProvider
+    executable_path: str
+    per_conformer: bool
+    parent_run_id: str
+    skipped: tuple[str, ...]
+    run_id: str
+    total: int
+    current: tuple[TautomerNmrTarget, NmrJob] | None = None
+    #: tautomer fingerprint -> `[(job, referenced spectrum or None, failure reason)]` in run order.
+    outcomes: dict[str, list] = field(default_factory=dict)
+
+
 class QuantumChemistryService(QObject):
     """Runs a `QuantumEngineProvider`'s calculation via `QProcess`, run
     **on the GUI thread** — a deliberate asymmetry from every other async
@@ -368,6 +402,7 @@ class QuantumChemistryService(QObject):
         # tautomer-distribution operation owns the molecule's job slot for
         # its whole sequence of candidates.
         self._tautomer_runs: dict[str, _TautomerDistributionRun] = {}
+        self._tautomer_nmr_runs: dict[str, _TautomerNmrRun] = {}
         # Keyed by scaling-job key, one entry per in-flight calibration.
         self._scaling_runs: dict[str, _ScalingRun] = {}
         # Raw NMR results waiting on the TMS reference for their method/basis,
@@ -670,6 +705,108 @@ class QuantumChemistryService(QObject):
             run_id=run.run_id,
         )
 
+    def request_tautomer_nmr(
+        self,
+        targets: list[TautomerNmrTarget],
+        molecule_uuid: str,
+        charge: int,
+        multiplicity: int,
+        method_basis: str,
+        per_conformer: bool = False,
+        parent_run_id: str = "",
+        skipped: tuple[str, ...] = (),
+        provider_id: str = "orca",
+    ) -> None:
+        """Runs `nmr` on each target's stored optimized geometry(ies), sequentially, and publishes one
+        `TautomerNmrResultReady`.
+
+        `targets` comes from `chem.tautomer_nmr.targets_from_distribution`; this only runs them. The shifts are
+        referenced with the SAME cached TMS reference or empirical scaling an ordinary NMR calculation uses. If
+        none is cached for this method, the run is refused at its first result with a message saying so, rather
+        than publishing raw shieldings that read as shifts.
+
+        Takes the molecule's single job slot for the whole sequence, like every multi-job run here.
+        """
+        if not targets:
+            self._publish_state(molecule_uuid, CacheState.FAILED, "No tautomers to run NMR on.")
+            return
+        provider = self._providers.get(provider_id)
+        if provider is None:
+            self._publish_state(molecule_uuid, CacheState.FAILED, f"Unknown quantum engine: {provider_id}")
+            return
+        executable_path = self._resolve_executable_path()
+        if executable_path is None:
+            self._publish_state(
+                molecule_uuid,
+                CacheState.FAILED,
+                "No ORCA executable configured or found on PATH — set orca/executable_path in Settings.",
+            )
+            return
+        if not self._job_manager.try_start(
+            _JOB_KIND, molecule_uuid, cancel_callback=lambda: self.cancel(molecule_uuid)
+        ):
+            self._publish_state(
+                molecule_uuid,
+                CacheState.FAILED,
+                "A calculation is already running for this molecule — cancel it first.",
+            )
+            return
+        queue = [(target, job) for target in targets for job in target.jobs]
+        run = _TautomerNmrRun(
+            molecule_uuid=molecule_uuid,
+            targets=list(targets),
+            queue=queue,
+            charge=charge,
+            multiplicity=multiplicity,
+            method_basis=method_basis,
+            provider=provider,
+            executable_path=executable_path,
+            per_conformer=per_conformer,
+            parent_run_id=parent_run_id,
+            skipped=tuple(skipped),
+            run_id=new_run_id(),
+            total=len(queue),
+        )
+        self._tautomer_nmr_runs[molecule_uuid] = run
+        if not self._launch_next_tautomer_nmr_job(run):
+            self._job_manager.finish(_JOB_KIND, molecule_uuid)
+
+    def _launch_next_tautomer_nmr_job(self, run: _TautomerNmrRun) -> bool:
+        """Starts the next structure's job. True: a process is running (the logical job continues). False: the
+        queue is exhausted (every remaining structure's geometry was unreadable), so the run was finished here and
+        the caller must release the molecule's job slot."""
+        while run.queue:
+            target, nmr_job = run.queue.pop(0)
+            run.current = (target, nmr_job)
+            done = sum(len(v) for v in run.outcomes.values())
+            self._publish_state(
+                run.molecule_uuid,
+                CacheState.RUNNING,
+                f"Tautomer NMR {done + 1}/{run.total}: {target.label}",
+            )
+            mol = Chem.MolFromMolBlock(nmr_job.optimized_molblock, removeHs=False)
+            if mol is None:
+                # A stored geometry that will not parse is that structure's own failure, not the run's.
+                self._record_tautomer_nmr_outcome(run, target, nmr_job, None, "the stored geometry could not be read")
+                continue
+            self._launch_job(
+                key=run.molecule_uuid,
+                mol=mol,
+                charge=run.charge,
+                multiplicity=run.multiplicity,
+                method_basis=run.method_basis,
+                calc_type="nmr",
+                provider=run.provider,
+                executable_path=run.executable_path,
+                kind="tautomer_nmr",
+                molecule_uuid=run.molecule_uuid,
+                run_id=run.run_id,
+            )
+            return True
+        self._tautomer_nmr_runs.pop(run.molecule_uuid, None)
+        self._finish_tautomer_nmr(run)
+        return False
+
     def request_reference_calibration(self, method_basis: str, provider_id: str = "orca") -> None:
         """Runs a real ORCA `! NMR` job on TMS (the standard 1H/13C
         reference compound, `chem/nmr_reference.py::tms_molecule()`) at
@@ -879,6 +1016,7 @@ class QuantumChemistryService(QObject):
             self._boltzmann_runs.pop(key, None)
             self._scaling_runs.pop(key, None)
             self._tautomer_runs.pop(key, None)
+            self._tautomer_nmr_runs.pop(key, None)
             self._job_manager.finish(job_kind_for_manager, key)
             return
 
@@ -1044,6 +1182,14 @@ class QuantumChemistryService(QObject):
             status = RunStatus.CANCELLED if job.cancelled else RunStatus.FAILED
             if run is not None:
                 self._record_run(self._new_tautomer_distribution_run(run, status, warnings=[message]))
+        elif job.kind == "tautomer_nmr":
+            # A crash or a cancellation (a per-structure parse failure never reaches here): the whole
+            # operation ends and no result is published.
+            self._publish_state(job.key, CacheState.FAILED, message)
+            run = self._tautomer_nmr_runs.get(job.key)
+            status = RunStatus.CANCELLED if job.cancelled else RunStatus.FAILED
+            if run is not None:
+                self._record_run(self._new_tautomer_nmr_run(run, status, warnings=[message]))
         else:
             self._publish_state(job.key, CacheState.FAILED, message)
             status = RunStatus.CANCELLED if job.cancelled else RunStatus.FAILED
@@ -1069,6 +1215,7 @@ class QuantumChemistryService(QObject):
                 self._boltzmann_runs.pop(key, None)
                 self._scaling_runs.pop(key, None)
                 self._tautomer_runs.pop(key, None)
+                self._tautomer_nmr_runs.pop(key, None)
                 return
             # `finished` can fire before Qt has delivered the LAST
             # `readyReadStandardOutput` signal for data ORCA wrote right as
@@ -1092,6 +1239,8 @@ class QuantumChemistryService(QObject):
                 chaining = self._finish_scaling_job(job, output_text)
             elif job.kind == "tautomer_candidate":
                 chaining = self._finish_tautomer_candidate_job(job, output_text)
+            elif job.kind == "tautomer_nmr":
+                chaining = self._finish_tautomer_nmr_job(job, output_text)
             else:
                 self._finish_calculation_job(job, output_text)
         finally:
@@ -1405,6 +1554,148 @@ class QuantumChemistryService(QObject):
         self._tautomer_runs.pop(molecule_uuid, None)
         self._finish_tautomer_distribution(run)
         return False
+
+    def _finish_tautomer_nmr_job(self, job: _ActiveJob, output_text: str) -> bool:
+        """Records this structure's referenced spectrum, or why it has none, then runs the next structure or
+        publishes the combined result. A parse failure here does NOT end the run (one tautomer's NMR failing
+        should not discard the others'); an unreferenced result does, because every later one would be too."""
+        run = self._tautomer_nmr_runs.get(job.molecule_uuid or job.key)
+        if run is None or run.current is None:  # cancelled or already torn down
+            return False
+        target, nmr_job = run.current
+        try:
+            spectrum = job.provider.parse_spectrum_output(output_text, job.mol, run.molecule_uuid, job.calc_type)
+        except Exception as exc:  # noqa: BLE001 - one structure's own failure, recorded, never crashes the run
+            logger.exception("Tautomer NMR output could not be parsed for %s", target.label)
+            self._record_tautomer_nmr_outcome(run, target, nmr_job, None, f"ORCA output could not be parsed: {exc}")
+            return self._advance_tautomer_nmr(run)
+        if spectrum is None:
+            self._record_tautomer_nmr_outcome(run, target, nmr_job, None, "ORCA produced no shielding data")
+            return self._advance_tautomer_nmr(run)
+        referenced = self._maybe_calibrate(spectrum, run.method_basis)
+        if referenced.spectrum_type == "nmr_raw_shielding":
+            # No reference or scaling is cached for this method, so these are shieldings, which run the
+            # opposite way to shifts and cannot be averaged or overlaid with them. Every later job would end
+            # the same way, so the run stops here instead of spending the rest of its time.
+            message = (
+                f"No NMR reference is cached for {run.method_basis}. Run an NMR calculation with this method "
+                f"once (it prepares the TMS reference), then run the tautomer NMR again."
+            )
+            self._tautomer_nmr_runs.pop(run.molecule_uuid, None)
+            self._publish_state(run.molecule_uuid, CacheState.FAILED, message)
+            self._record_run(self._new_tautomer_nmr_run(run, RunStatus.FAILED, warnings=[message]))
+            return False
+        self._record_tautomer_nmr_outcome(run, target, nmr_job, referenced, "")
+        return self._advance_tautomer_nmr(run)
+
+    @staticmethod
+    def _record_tautomer_nmr_outcome(
+        run: _TautomerNmrRun, target: TautomerNmrTarget, nmr_job: NmrJob, spectrum, failure: str
+    ) -> None:
+        run.outcomes.setdefault(target.tautomer_fingerprint, []).append((nmr_job, spectrum, failure))
+
+    def _advance_tautomer_nmr(self, run: _TautomerNmrRun) -> bool:
+        """Starts the next structure (True: the logical job is still running) or finishes the run (False)."""
+        return self._launch_next_tautomer_nmr_job(run)
+
+    def _finish_tautomer_nmr(self, run: _TautomerNmrRun) -> None:
+        """Combines each tautomer's jobs into its entry and publishes the one result.
+
+        A tautomer with several conformer jobs is Boltzmann-averaged atom by atom
+        (`chem.boltzmann.boltzmann_average_spectrum`) only when EVERY one of its jobs succeeded; a subset would
+        silently weight the survivors differently, so one failed conformer fails that tautomer instead.
+        """
+        entries: list[TautomerNmrEntry] = []
+        for target in run.targets:
+            records = run.outcomes.get(target.tautomer_fingerprint, [])
+            failures = [reason for _job, spectrum, reason in records if spectrum is None]
+            common = dict(
+                tautomer_fingerprint=target.tautomer_fingerprint,
+                label=target.label,
+                display_molblock=target.display_molblock,
+                job_fingerprints=tuple(j.candidate_fingerprint for j in target.jobs),
+            )
+            if failures or len(records) != len(target.jobs):
+                reason = failures[0] if failures else "not run"
+                entries.append(TautomerNmrEntry(**common, weights=(), spectrum=None, failure=reason))
+                continue
+            spectra = [spectrum for _job, spectrum, _reason in records]
+            if len(spectra) == 1:
+                entries.append(TautomerNmrEntry(**common, weights=(1.0,), spectrum=spectra[0]))
+                continue
+            energies = [job.absolute_energy_hartree for job, _s, _r in records]
+            entries.append(
+                TautomerNmrEntry(
+                    **common,
+                    weights=tuple(boltzmann_weights(energies, STANDARD_TEMPERATURE_K)),
+                    spectrum=boltzmann_average_spectrum(spectra, energies, STANDARD_TEMPERATURE_K),
+                )
+            )
+        result = TautomerNmrResult(
+            molecule_uuid=run.molecule_uuid,
+            run_id=run.run_id,
+            parent_run_id=run.parent_run_id,
+            method_basis=run.method_basis,
+            per_conformer=run.per_conformer,
+            entries=tuple(entries),
+            skipped=run.skipped,
+            provenance=Provenance(
+                created_by="core",
+                method="orca",
+                parameters={
+                    "calc_type": "nmr",
+                    "method_basis": run.method_basis,
+                    "geometry": "optimized geometry of the lowest calculated conformer"
+                    if not run.per_conformer
+                    else "optimized geometry of every conformer of the representative stereoisomer, Boltzmann-averaged",
+                    "temperature_k": STANDARD_TEMPERATURE_K,
+                    "parent_run_id": run.parent_run_id,
+                },
+            ),
+        )
+        self._event_bus.publish(
+            TautomerNmrResultReady(molecule_uuid=run.molecule_uuid, run_id=run.run_id, result=result)
+        )
+        succeeded = sum(1 for e in entries if e.spectrum is not None)
+        if succeeded == 0:
+            status, message = RunStatus.FAILED, "No tautomer NMR calculation succeeded."
+        elif succeeded < len(entries) or run.skipped:
+            message = f"{succeeded}/{len(entries)} tautomer NMR calculations succeeded."
+            status = RunStatus.COMPLETED_WITH_WARNINGS
+        else:
+            status, message = RunStatus.COMPLETED, f"{succeeded}/{len(entries)} tautomer NMR calculations succeeded."
+        self._publish_state(
+            run.molecule_uuid, CacheState.FAILED if status is RunStatus.FAILED else CacheState.COMPLETED, message
+        )
+        qc_run = self._new_tautomer_nmr_run(
+            run, status, warnings=[message] if status is RunStatus.COMPLETED_WITH_WARNINGS else []
+        )
+        if qc_run is not None:
+            qc_run.results["tautomer_nmr"] = result
+            qc_run.output_status["tautomer_nmr"] = OutputStatus.AVAILABLE
+        self._record_run(qc_run)
+
+    @staticmethod
+    def _new_tautomer_nmr_run(
+        run: _TautomerNmrRun, status: RunStatus, warnings: list[str] | None = None
+    ) -> QuantumChemistryRun | None:
+        """ONE run for the whole operation, like `_new_tautomer_distribution_run`; the per-tautomer detail is
+        retained in `results["tautomer_nmr"]`."""
+        if not run.run_id:
+            return None
+        return QuantumChemistryRun(
+            run_id=run.run_id,
+            molecule_uuid=run.molecule_uuid,
+            calc_type="tautomer_nmr",
+            method_basis=run.method_basis,
+            charge=run.charge,
+            multiplicity=run.multiplicity,
+            calculation_input="",
+            input_fingerprint="",
+            input_molblock="",
+            status=status,
+            warnings=list(warnings or []),
+        )
 
     def _finish_tautomer_distribution(self, run: _TautomerDistributionRun) -> None:
         """Combines every candidate's own outcome (`chem.

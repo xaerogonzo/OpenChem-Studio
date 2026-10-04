@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Tautomer NMR (P5), step 2 of 5: the NMR run over a distribution's tautomers
+
+- **`QuantumChemistryService.request_tautomer_nmr`** runs `nmr` on the optimized geometry each tautomer of a stored distribution kept (its lowest calculated conformer), or, with `per_conformer`, on every succeeded conformer of that stereoisomer, which are then Boltzmann-averaged atom by atom. Sequential, one job slot for the whole run, one `TautomerNmrResultReady` and one stored run (`tautomer_nmr`). Shifts are referenced with the same cached TMS reference or scaling an ordinary NMR calculation uses; with none cached the run stops at its first result and says so, instead of publishing shieldings that read as shifts.
+- **Failure handling**: a structure whose output will not parse, or whose stored geometry cannot be read, fails that tautomer and the run continues; one failed conformer fails its tautomer rather than averaging the survivors; a crash or cancellation ends the run with no result. The result is never a `SpectrumComputed`, because its atom indices are the candidates', not the user's molecule's.
+- **`chem/tautomer_nmr.py`** chooses the structures from a stored result and reports, never substitutes, a tautomer with no stored geometry or no success. `TautomerNmrResult` round-trips through the project codec. No UI yet (steps 3 and 4).
+
 ### Tautomer NMR (P5), step 1 of 5: the design, and keeping each tautomer's optimized geometry
 
 - **`docs/TAUTOMER_NMR_DESIGN.md`**: tautomer peaks on the NMR spectrum, as agreed: one trace per tautomer, plus a population-weighted fast-exchange average trace offered only for a validated, complete result; one geometry per tautomer (its lowest calculated conformer) by default, with per-conformer averaging as an optional, off-by-default setting; and the per-heavy-atom averaging rule, which excludes N/O/S hydrogens and carbons whose hydrogen count changes between tautomers, and names every exclusion.
