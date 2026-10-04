@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Tautomer NMR (P5), step 3 of 5: the population-weighted fast-exchange average
+
+- **`chem/tautomer_nmr.average_tautomer_nmr(nmr, distribution)`** combines a tautomer NMR result with the distribution's validated populations: a carbon's 13C shift is the weighted mean over the tautomers; a carbon's 1H peak is the weighted mean of its hydrogens' mean shift, only when the carbon has the same number of hydrogens in every tautomer; hydrogens on N, O, S or any heteroatom are never averaged. Each peak left out is returned with its reason, never dropped silently.
+- **There is no partial average.** It is unavailable, with the reason, unless the distribution is validated and complete, the NMR result is complete and was computed from that same distribution run, every spectrum is referenced (ppm, not shieldings), the populations sum to one, the structures are stored, and the tautomers' heavy atoms correspond. Hydrogens on one carbon are merged into one peak per tautomer, so diastereotopic hydrogens are not resolved. Mutation-checked.
+
 ### Tautomer NMR (P5), step 2 of 5: the NMR run over a distribution's tautomers
 
 - **`QuantumChemistryService.request_tautomer_nmr`** runs `nmr` on the optimized geometry each tautomer of a stored distribution kept (its lowest calculated conformer), or, with `per_conformer`, on every succeeded conformer of that stereoisomer, which are then Boltzmann-averaged atom by atom. Sequential, one job slot for the whole run, one `TautomerNmrResultReady` and one stored run (`tautomer_nmr`). Shifts are referenced with the same cached TMS reference or scaling an ordinary NMR calculation uses; with none cached the run stops at its first result and says so, instead of publishing shieldings that read as shifts.
