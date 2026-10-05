@@ -42,8 +42,16 @@ from openchem.domain.calculator_taxonomy import (
     category_label,
     category_sort_key,
 )
-from openchem.domain.common import describe_failure
-from openchem.domain.compare import MAX_COMPARED, ComparedResult, Comparison, CompareRefusal, compare
+from openchem.domain.common import CacheState, describe_failure
+from openchem.domain.compare import (
+    MAX_COMPARED,
+    ComparedResult,
+    Comparison,
+    CompareRefusal,
+    compare,
+    distinguish_labels,
+    spectrum_as_per_atom,
+)
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.descriptor_aggregate import (
     DESCRIPTOR_AGGREGATE_ID,
@@ -70,6 +78,7 @@ from openchem.ui.result_adapters import summarise
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from openchem.chem.report_adapter import report_from_alert
 from openchem.domain.report import ReportResult
+from openchem.domain.result_store import result_id_of
 from openchem.events.base import EventBus
 from openchem.events.events import (
     AlertComputed,
@@ -81,6 +90,7 @@ from openchem.events.events import (
     PerAtomDataComputed,
     PhCurveComputed,
     RecalculationDue,
+    ResultRecorded,
     SettingsChanged,
     SpectrumComputed,
     StructureSetComputed,
@@ -1644,6 +1654,15 @@ class PropertyPanel(QWidget):
         #: a raw result outliving its summary is the stale-result confusion
         #: this panel already had to fix once.
         self._retained_results: dict[str, object] = {}
+        #: calculator id -> the result THAT CALCULATOR produced, for the calculators that file it
+        #: under another name (`nmr_database` -> `nmr_13c`, `gasteiger_charge_at_ph` ->
+        #: `gasteiger_charge`). Filled from `ResultRecorded`, the one event that carries the
+        #: producer, and ONLY when the producer is not the result's own id (the other case
+        #: `_reports` already answers). Keyed and cleared as `_reports` is.
+        self._produced_results: dict[str, object] = {}
+        #: calculator id -> why it is certain to refuse the selected molecule, known before any run
+        #: (`CalculatorDefinition.preflight`). Only calculators that declare a hook appear.
+        self._preflight_reasons: dict[str, str] = {}
         self._sections: dict[str, _CollapsibleSection] = {}
         # Which section each row currently lives in -- lets
         # _on_descriptor_computed detect a category change and re-parent the
@@ -1788,6 +1807,7 @@ class PropertyPanel(QWidget):
         event_bus.subscribe(PhCurveComputed, self._on_ph_curve_computed)
         event_bus.subscribe(TrajectoryComputed, self._on_trajectory_computed)
         event_bus.subscribe(CalculationFinished, self._on_calculation_finished)
+        event_bus.subscribe(ResultRecorded, self._on_result_recorded)
         event_bus.subscribe(SettingsChanged, self._on_settings_changed)
 
     def set_project(self, project: ProjectModel | None) -> None:
@@ -1826,10 +1846,12 @@ class PropertyPanel(QWidget):
         self._finished_calculator_ids.clear()
         self._reports.clear()
         self._retained_results.clear()
+        self._produced_results.clear()
         self._row_sections.clear()
         for section in self._sections.values():
             section.clear_rows()
         self._substance_card.clear()
+        self._update_preflight()
         # **THE DOCKED READER FOLLOWS RATHER THAN CLOSING**, which is the one
         # behaviour that separates it from the window three lines above. It
         # runs AFTER the clears deliberately: it reads `_reports` and
@@ -2378,6 +2400,9 @@ class PropertyPanel(QWidget):
         """
         if event.molecule_uuid != self._selected_molecule_uuid:
             return
+        if not event.during_edit:
+            self._update_preflight()
+            self._refresh_status_chips()
         if event.during_edit:
             # A CANVAS EDIT IN PROGRESS: what is held describes a structure that is
             # already gone, so say so now (the version was bumped before this ran) and
@@ -2389,7 +2414,29 @@ class PropertyPanel(QWidget):
     def _on_recalculation_due(self, event: RecalculationDue) -> None:
         """The quiet period after a canvas edit has passed: perceive the substance again."""
         if event.molecule_uuid == self._selected_molecule_uuid:
+            self._update_preflight()
+            self._refresh_status_chips()
             self._perceive_substance_if_needed(event.molecule_uuid)
+
+    def _update_preflight(self) -> None:
+        """Ask each calculator that declares a hook whether it is certain to refuse this molecule.
+
+        The chip draws the answer; this only keeps it. Cheap by contract (Joback's is one
+        fragmentation), and run when the structure settles, never per keystroke of a drag.
+        """
+        self._preflight_reasons.clear()
+        if self._project is None or self._selected_molecule_uuid is None:
+            return
+        molecule = self._project.find_molecule(self._selected_molecule_uuid)
+        if molecule is None:
+            return
+        for calculator_id in self._calculator_status:
+            definition = self._calculator_registry.get(calculator_id)
+            if definition is None or definition.preflight is None:
+                continue
+            reason = self._descriptor_service.preflight(molecule, calculator_id)
+            if reason:
+                self._preflight_reasons[calculator_id] = reason
 
     def _perceive_substance_if_needed(self, molecule_uuid: str) -> None:
         # The same gate as a selection: undoing back to a structure whose
@@ -2651,19 +2698,60 @@ class PropertyPanel(QWidget):
     # --- what the launcher says about each calculator ------------------------
 
     def _result_for(self, calculator_id: str):
-        """The result filed under this calculator's OWN id, or None.
+        """The result this calculator produced, or None.
 
-        **THE ATTRIBUTION IS BY NAME, BECAUSE NOTHING ELSE EXISTS.** No
-        result type in this application carries a `calculator_id` -- checked
-        rather than assumed -- so "which calculator produced this" is not a
-        question the data can answer. `_pending_calculator_id` does not
-        bridge it either: it is matched by EQUALITY against the result's own
-        id, so it works exactly where this does.
+        **BY NAME FIRST, THEN BY PRODUCER.** No result type carries a
+        `calculator_id`, so a result filed under the calculator's own id is
+        attributed by that name. The two calculators that file under another
+        (`nmr_database` as `nmr_13c`, `gasteiger_charge_at_ph` as
+        `gasteiger_charge`) are attributed by `ResultRecorded`, whose identity
+        carries the producer -- the dispatcher knows what the result does not.
+        Name first, because a refusal is filed under the calculator's own id.
         """
         report = self._reports.get(calculator_id)
         if report is not None:
             return report
-        return self._retained_results.get(calculator_id)
+        held = self._retained_results.get(calculator_id)
+        if held is not None:
+            return held
+        return self._filed_summary_of_produced(calculator_id)
+
+    def _filed_summary_of_produced(self, calculator_id: str):
+        """The panel's SUMMARY of what this calculator produced, while that is still what is filed.
+
+        The summary and not the raw result, because only the summary carries the structure
+        revision (`summarise` stamps it): a raw spectrum or per-atom set has none, and
+        `status_of` would read every one of them as Stale. And only while the entry filed under
+        that name IS this producer's result -- `nmr_13c` is also what the ab initio path files,
+        so a later run by another producer replaces it, and then this calculator has no result to
+        show rather than someone else's.
+        """
+        produced = self._produced_results.get(calculator_id)
+        if produced is None:
+            return None
+        try:
+            result_id = result_id_of(produced)
+        except TypeError:
+            return None
+        if self._retained_results.get(result_id) is not produced:
+            return None
+        return self._reports.get(result_id)
+
+    def _on_result_recorded(self, event: ResultRecorded) -> None:
+        """Remember which calculator produced a result filed under a different name.
+
+        Only a REGISTERED calculator whose result id is not its own: the
+        always-on provider batch records under provider ids, and a calculator
+        that files under its own id is already answered by `_reports`.
+        """
+        identity = event.stored.identity
+        if identity.molecule_uuid != self._selected_molecule_uuid:
+            return
+        producer = identity.producer
+        if producer == identity.result_id or self._calculator_registry.get(producer) is None:
+            return
+        self._produced_results[producer] = event.stored.result
+        self._refresh_status_chip(producer)
 
     def _status_for(self, calculator_id: str) -> str:
         """One of `RESULT_STATUSES`, from the RESULT and never from a row.
@@ -2699,9 +2787,11 @@ class PropertyPanel(QWidget):
         a success `CalculationFinished` does not promise -- it is published
         in a `finally`, so it fires for a calculator that failed or raised.
 
-        WHAT WOULD LIFT IT: a `calculator_id` on the result, which nothing
-        carries today. With one, the chip attributes exactly and this
-        branch is unreachable.
+        WHAT LIFTED IT: `_on_result_recorded` attributes a result by the producer
+        `ResultRecorded` carries, so after a run that PUBLISHED, the chip is
+        exact. What remains of the branch is a run that published nothing the
+        record step could keep (an unpublishable type, a failed record), where
+        saying nothing is still the honest answer.
         """
         chip = self._calculator_status.get(calculator_id)
         if chip is None:
@@ -2711,7 +2801,8 @@ class PropertyPanel(QWidget):
         if status == NOT_RUN and calculator_id in self._finished_calculator_ids:
             chip.setVisible(False)
             return
-        text, style = _STATUS_APPEARANCE[status]
+        known_beforehand = self._preflight_reasons.get(calculator_id, "") if status == NOT_RUN else ""
+        text, style = _STATUS_APPEARANCE[INAPPLICABLE if known_beforehand else status]
         chip.setText(text)
         chip.setStyleSheet(style)
         # DISABLED rather than hidden where there is nothing to open: the
@@ -2733,6 +2824,12 @@ class PropertyPanel(QWidget):
         descriptions that can disagree.
         """
         base = _STATUS_CHIP_HELP.text
+        known_beforehand = self._preflight_reasons.get(calculator_id, "") if status == NOT_RUN else ""
+        if known_beforehand:
+            return (
+                f"{base}\n\nNot run yet, and known not to apply before running it: "
+                f"{known_beforehand}"
+            )
         if status == NEEDS_INPUT and result is not None:
             definition = self._calculator_registry.get(calculator_id)
             phrases = needed_input_phrases(definition, missing_inputs_of(result)) if definition else []
@@ -2807,7 +2904,15 @@ class PropertyPanel(QWidget):
             if tool is not None:
                 self.tool_setup_requested.emit(tool)
                 return
-        self._show_in_reader(focus=calculator_id)
+        self._show_in_reader(focus=self._reader_focus_for(calculator_id, result))
+
+    def _reader_focus_for(self, calculator_id: str, result) -> str:
+        """The reader entry that holds this calculator's result: its own id, or, for the
+        calculators that file under another name, the id the result is filed under."""
+        if calculator_id in self._reports or calculator_id not in self._produced_results:
+            return calculator_id
+        # The summary the panel filed carries the id it is filed under.
+        return str(getattr(result, "report_id", "") or calculator_id)
 
     def _refresh_reader_soon(self) -> None:
         """`_refresh_reader`, once, after the events already queued have been handled.
@@ -2949,6 +3054,14 @@ class PropertyPanel(QWidget):
         spectrum = event.spectrum
         self._finish_batch_run(spectrum.spectrum_type)
         if spectrum.molecule_uuid == self._selected_molecule_uuid:
+            # A spectrum is one number per nucleus, so it joins the pool the per-atom results
+            # share and meets the same rules -- unless it is a refusal or holds nothing, which
+            # has nothing to set beside another.
+            if spectrum.values and getattr(spectrum, "cache_state", None) is not CacheState.FAILED:
+                adapted = spectrum_as_per_atom(spectrum)
+                self._compare_pool[_compare_key(adapted)] = ComparedResult(
+                    adapted, event.input_fingerprint, event.calculation_input, origin=spectrum
+                )
             self._show_result(
                 spectrum.spectrum_type, spectrum.name,
                 self._category_of(spectrum.spectrum_type), spectrum,
@@ -3539,7 +3652,10 @@ class PropertyPanel(QWidget):
         # signals, integrations and multiplicities have nowhere to live in
         # the generic inspector's one-colour-per-atom layout.
         if isinstance(result, SpectrumResult):
-            dialog = NmrViewDialog(self._chemistry_engine, molecule, result, conformer_molblock, parent=self)
+            dialog = NmrViewDialog(
+                self._chemistry_engine, molecule, result, conformer_molblock, parent=self,
+                compare_candidates=self.comparable_with, on_compare=self._open_comparison,
+            )
         else:
             refusal = inspector_budget_message()
             if refusal is not None:
@@ -3569,15 +3685,21 @@ class PropertyPanel(QWidget):
         protonation state is not offered at all, so the menu never proposes a comparison that
         would be refused.
         """
-        anchor = next((c for c in self._compare_pool.values() if c.dataset is result), None)
+        anchor = next(
+            (c for c in self._compare_pool.values() if c.dataset is result or c.origin is result), None
+        )
         if anchor is None:
-            anchor = ComparedResult(result)
+            anchor = ComparedResult(spectrum_as_per_atom(result), origin=result) if isinstance(
+                result, SpectrumResult
+            ) else ComparedResult(result)
         others = [
             candidate
             for candidate in self._compare_pool.values()
             if candidate is not anchor and isinstance(compare([anchor, candidate]), Comparison)
         ]
-        return anchor, others[: MAX_COMPARED - 1]
+        # Two runs of one calculator share a name; the menu has to say which is which.
+        distinct = distinguish_labels([anchor, *others[: MAX_COMPARED - 1]])
+        return distinct[0], distinct[1:]
 
     def _open_comparison(self, results) -> None:
         """Open the comparison window for `results`, or say why it cannot be made."""
@@ -3604,6 +3726,10 @@ class PropertyPanel(QWidget):
         indices do not fit it the symbols are dropped rather than put on the wrong atoms.
         """
         dataset = compared.dataset
+        if isinstance(compared.origin, SpectrumResult):
+            # A spectrum names the element of each of its atoms itself; reading them off a
+            # structure by index would be a second answer to a question it already settled.
+            return {index: symbol for index, symbol in compared.origin.elements.items() if index in dataset.values}
         molblock, source = display_structure(molecule, dataset)
         if source == NO_STRUCTURE or not molblock:
             conformer = canonical_conformer(molecule) if compared.calculation_input == GEOMETRY else None

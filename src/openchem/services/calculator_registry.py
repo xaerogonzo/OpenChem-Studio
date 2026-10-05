@@ -75,6 +75,23 @@ class CalculatorRegistry:
         result = execution.compute(selection.mol, molecule_uuid, active)
         return components.read_back(result, definition.scope, selection)
 
+    def preflight(self, calculator_id: str, mol: Chem.Mol) -> str:
+        """Why this calculator is certain to refuse `mol`, or "" when nothing is known to.
+
+        Applies the calculator's scope first, so the hook sees the component the run would.
+        Never raises: a check that cannot be made is not a claim.
+        """
+        definition = self._definitions.get(calculator_id)
+        if definition is None or definition.preflight is None:
+            return ""
+        try:
+            target = mol
+            if definition.scope is not None:
+                target = components.select(mol, definition.scope, definition.display_name).mol
+            return str(definition.preflight(target) or "")
+        except Exception:  # noqa: BLE001 - see the docstring
+            return ""
+
     def by_category(self, category: str) -> list[CalculatorDefinition]:
         return [d for d in self._definitions.values() if d.category == category]
 

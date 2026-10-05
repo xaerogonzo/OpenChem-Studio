@@ -17,10 +17,15 @@ from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
 from openchem.domain.report import Basis, Fact, FactCategory, ReportResult
 from openchem.events.base import EventBus
+from openchem.domain.result_store import ResultIdentity, StoredResult, result_id_of
+from openchem.domain.scientific_result import NMRSpectrumResult
 from openchem.events.events import (
     CalculationFinished,
     MoleculeSelected,
+    RecalculationDue,
     ReportComputed,
+    ResultRecorded,
+    SpectrumComputed,
 )
 from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.descriptor_service import DescriptorService
@@ -38,13 +43,14 @@ ALPHA = "alpha"
 BETA = "beta"
 
 
-def _definition(calculator_id: str, display_name: str) -> CalculatorDefinition:
+def _definition(calculator_id: str, display_name: str, **extra) -> CalculatorDefinition:
     return CalculatorDefinition(
         calculator_id=calculator_id,
         display_name=display_name,
         category="topology",
         description=f"{display_name}. Runs nothing in this fixture.",
         execution=RegistryExecution(compute=lambda _mol, _uuid, _params: None),
+        **extra,
     )
 
 
@@ -230,3 +236,139 @@ def test_a_calculator_whose_result_is_filed_elsewhere_CLAIMS_NOTHING(panel):
     # ...and a calculator nobody asked for still says so.
     assert _chip(widget, BETA).text() == "Not run"
     assert not _chip(widget, BETA).isHidden()
+
+
+def _spectrum(spectrum_type: str, uuid: str) -> NMRSpectrumResult:
+    return NMRSpectrumResult(
+        spectrum_type=spectrum_type, name="Alpha Spectrum", units="ppm", method="lookup",
+        molecule_uuid=uuid, values={0: 18.0}, elements={0: "C"},
+    )
+
+
+def _produce(bus, result, producer, molecule_uuid):
+    """What the dispatcher publishes: the result, then the envelope that alone names the producer."""
+    bus.publish(SpectrumComputed(spectrum=result))
+    QCoreApplication.processEvents()
+    identity = ResultIdentity(
+        molecule_uuid=molecule_uuid, result_id=result_id_of(result), calculation_input="drawing",
+        input_fingerprint="f", producer=producer,
+    )
+    bus.publish(ResultRecorded(stored=StoredResult(identity=identity, result=result)))
+    QCoreApplication.processEvents()
+
+
+def test_a_result_filed_elsewhere_is_attributed_by_the_producer_the_record_carries(panel):
+    """The case the test above leaves anonymous, once the dispatcher has said who made it.
+
+    `ResultRecorded` is published after the result and carries the PRODUCER, so the chip no
+    longer has to guess from a name: Ready (not Stale -- the summary carries the structure
+    revision the raw spectrum does not), openable, and pressing it opens the entry the result
+    is actually filed under (`alpha_spectrum`, not `alpha`)."""
+    widget, bus, _reader, molecule, _versions = panel
+    _produce(bus, _spectrum("alpha_spectrum", molecule.uuid), ALPHA, molecule.uuid)
+    bus.publish(CalculationFinished(calculator_id=ALPHA, molecule_uuid=molecule.uuid))
+    QCoreApplication.processEvents()
+
+    chip = _chip(widget, ALPHA)
+    assert not chip.isHidden()
+    assert chip.text().endswith("Ready"), chip.text()
+    assert chip.isEnabled()
+    assert widget._reader_focus_for(ALPHA, widget._result_for(ALPHA)) == "alpha_spectrum"
+    # Another calculator's chip is untouched by a result that is not its own.
+    assert _chip(widget, BETA).text() == "Not run"
+
+
+def test_a_later_producer_of_the_same_name_takes_the_result_away_from_the_first(panel):
+    """`nmr_13c` is what several producers file under. When another one replaces the entry, the
+    first calculator has no result to show -- not the other's."""
+    widget, bus, _reader, molecule, _versions = panel
+    _produce(bus, _spectrum("alpha_spectrum", molecule.uuid), ALPHA, molecule.uuid)
+    assert widget._result_for(ALPHA) is not None
+    _produce(bus, _spectrum("alpha_spectrum", molecule.uuid), BETA, molecule.uuid)
+    assert widget._result_for(ALPHA) is None
+    assert widget._result_for(BETA) is not None
+
+
+def test_a_record_for_another_molecule_or_an_unregistered_producer_attributes_nothing(panel):
+    widget, bus, _reader, molecule, _versions = panel
+    result = _spectrum("alpha_spectrum", molecule.uuid)
+    _produce(bus, result, ALPHA, "some-other-molecule")
+    _produce(bus, result, "descriptor_provider_not_a_calculator", molecule.uuid)
+    assert widget._produced_results == {}
+    # A producer that files under its own id is already answered by `_reports`.
+    _produce(bus, _spectrum(BETA, molecule.uuid), BETA, molecule.uuid)
+    assert widget._produced_results == {}
+
+
+def test_a_new_selection_forgets_who_produced_what(panel):
+    widget, bus, _reader, molecule, _versions = panel
+    _produce(bus, _spectrum("alpha_spectrum", molecule.uuid), ALPHA, molecule.uuid)
+    assert ALPHA in widget._produced_results
+    bus.publish(MoleculeSelected(molecule_uuid=molecule.uuid))
+    QCoreApplication.processEvents()
+    assert widget._produced_results == {}
+
+
+GAMMA = "gamma"
+GAMMA_REASON = "Gamma has no group for an oxygen."
+
+
+@pytest.fixture
+def preflight_panel(qapp):
+    """A panel whose calculator `gamma` declares a pre-flight that refuses anything with an oxygen."""
+    bus = EventBus()
+    engine = ChemistryEngine()
+    registry = CalculatorRegistry()
+    registry.register(
+        _definition(
+            GAMMA, "Gamma",
+            preflight=lambda mol: GAMMA_REASON if any(a.GetSymbol() == "O" for a in mol.GetAtoms()) else "",
+        )
+    )
+    widget = PropertyPanel(
+        bus, registry, DescriptorService(bus, engine, calculator_registry=registry), engine,
+        structure_version_of=_Versions(),
+    )
+    ethanol = MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(ethanol, "CCO")
+    ethane = MoleculeModel(display_name="Ethane")
+    engine.set_structure_from_smiles(ethane, "CC")
+    widget.set_project(ProjectModel(molecules=[ethanol, ethane]))
+    yield widget, bus, engine, ethanol, ethane
+    dispose(widget)
+
+
+def test_a_pre_flight_refusal_is_on_the_chip_before_anything_runs(preflight_panel):
+    """Joback's case: the structure is outside the method's groups, and that is knowable now.
+
+    "Not applicable", disabled (there is no result to open), and the tooltip says it was known
+    before a run and why. The molecule that passes the hook still reads "Not run"."""
+    widget, bus, _engine, ethanol, ethane = preflight_panel
+    bus.publish(MoleculeSelected(molecule_uuid=ethanol.uuid))
+    QCoreApplication.processEvents()
+    chip = _chip(widget, GAMMA)
+    assert not chip.isHidden()
+    assert chip.text().endswith("Not applicable"), chip.text()
+    assert not chip.isEnabled()
+    assert GAMMA_REASON in chip.toolTip() and "before running" in chip.toolTip()
+
+    bus.publish(MoleculeSelected(molecule_uuid=ethane.uuid))
+    QCoreApplication.processEvents()
+    assert chip.text() == "Not run"
+    assert GAMMA_REASON not in chip.toolTip()
+
+
+def test_a_pre_flight_claim_follows_an_edit_and_never_outranks_a_result(preflight_panel):
+    widget, bus, engine, ethanol, _ethane = preflight_panel
+    bus.publish(MoleculeSelected(molecule_uuid=ethanol.uuid))
+    QCoreApplication.processEvents()
+    assert _chip(widget, GAMMA).text().endswith("Not applicable")
+    # Drawn into a molecule without oxygen: the claim goes.
+    engine.set_structure_from_smiles(ethanol, "CC")
+    bus.publish(RecalculationDue(molecule_uuid=ethanol.uuid))
+    QCoreApplication.processEvents()
+    assert _chip(widget, GAMMA).text() == "Not run"
+    # And a real result is what the chip reports, whatever the hook said.
+    widget._preflight_reasons[GAMMA] = GAMMA_REASON
+    _land(bus, _report(GAMMA, "Gamma", ethanol.uuid))
+    assert _chip(widget, GAMMA).text().endswith("Ready")
