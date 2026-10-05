@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### CI: the Windows crash measurement is on record, and run 2 is pre-registered
+
+- `benchmarks/windows_crash/` holds the first measurement (run 37383273300, shard 1, 10 legs per arm): **inconclusive** (4/10 crashed as-is, 6/10 with #197 reverted, Fisher p = 0.66) and **the wrong shard for the question**, since #197 targeted the shard 2 crash at about 82%. It did show that about half of shard 1's legs crash at 4-8% of the run (about 80 s in) with no frame outside pytest, which #197 does not touch.
+- The README pre-registers run 2 before it is dispatched: shard 2, 15 legs per arm, one two-sided Fisher test at 0.05, no extension or pooling. The Known-TODOs item for the dispose fix is now about its own target and stays OPEN until run 2's report is committed.
+
 ### CI: the crash measurement's first run, and two defects in the instrument
 
 - First dispatch of `windows-crash-rate.yml` (run 37356155136, shard 1, master, 10 legs per arm): **the whole control arm failed**, because reverting #197 conflicts in `docs/ARCHITECTURE.md` (that section was edited after the fix). A revert conflict in prose (docs, changelog) now keeps the current text; a conflict in anything that runs still stops the leg.
