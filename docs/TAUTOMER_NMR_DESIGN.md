@@ -1,6 +1,6 @@
 # Tautomer peaks on the NMR spectrum (P5): design
 
-**Status: design agreed 2026-10-04, building in stages (steps 1-3 built: the geometry is kept, the NMR run exists, and the averaging below is implemented in `chem/tautomer_nmr.py`).** The tautomer-distribution model is validated for one
+**Status: design agreed 2026-10-04, building in stages (steps 1-4 built: the geometry is kept, the NMR run exists, the averaging is implemented in `chem/tautomer_nmr.py`, and the viewer draws it; step 5, a live ORCA check, remains).** The tautomer-distribution model is validated for one
 setup (`docs/VALIDATION.md`), which is what unblocked this. Nothing here changes a model version or an
 energy: it adds NMR calculations ON the tautomers the distribution already found.
 

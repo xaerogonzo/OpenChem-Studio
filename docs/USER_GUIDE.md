@@ -1692,6 +1692,32 @@ one entry per candidate, succeeded or failed, each captioned with its
 energy and, once validated, its population.
 
 <!-- help:2d-correlation -->
+
+**Tautomer peaks on the NMR spectrum.** With a tautomer-distribution run
+selected, **Tautomer NMR...** runs NMR on each tautomer, starting from the
+geometry that run optimized (its lowest calculated conformer), at the Method/basis
+chosen in the panel. It needs the same cached reference an ordinary NMR calculation
+uses; if none is cached it stops at the first result and says so. A result
+computed before geometries were kept has nothing to start from, so the button stays
+disabled. **Average NMR over conformers** (off by default) runs NMR on every
+optimized conformer of the tautomer's representative stereoisomer and averages
+within the tautomer: about three times the jobs, and one failed conformer leaves
+that tautomer with no spectrum rather than an average over the survivors.
+
+**View Tautomer NMR...** draws each tautomer's predicted peaks over the 1D
+spectrum (or on their own when the molecule has no referenced spectrum), one
+colour per tautomer, each with a checkbox. A stick's height is the number of
+hydrogens it stands for, on the same scale as the molecule's own signals; a
+hydrogen on N, O or S is dashed. A population appears beside a tautomer only when
+the distribution is validated. When it is validated and complete, a **fast-exchange
+average** is offered too: what an experiment sees if the tautomers interconvert
+faster than the NMR timescale, built per heavy atom (13C always; 1H on a carbon only
+when it carries the same number of hydrogens in every tautomer; N/O/S hydrogens
+never). The panel under the checkboxes names everything left out of the average.
+Hydrogens on one carbon are merged into one peak, so diastereotopic hydrogens are
+not resolved. These are gas-phase predictions from one geometry per tautomer, not a
+solution spectrum.
+
 ### HSQC, HMBC and COSY — connectivity, not a simulated spectrum
 
 **HSQC** pairs a proton with the carbon it is directly bonded to

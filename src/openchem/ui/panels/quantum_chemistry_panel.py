@@ -52,6 +52,7 @@ from openchem.chem.orca_engine import (
     default_cores,
     find_mpi_bin,
 )
+from openchem.chem.tautomer_nmr import targets_from_distribution
 from openchem.chem.tautomer_distribution import (
     CONFIRMATION_THRESHOLD,
     generate_tautomer_candidates,
@@ -78,6 +79,7 @@ from openchem.events.events import (
     QuantumChemistryRunCompleted,
     SpectrumComputed,
     TautomerDistributionResultReady,
+    TautomerNmrResultReady,
 )
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
 from openchem.ui.table_export import install_table_export
@@ -166,6 +168,8 @@ _CORRELATION_SPECS = (
 # one concept each across the spectrum and hybrid tables.
 #: QSettings key for the "Full ORCA conformers" tautomer-distribution choice.
 _TAUTOMER_FULL_KEY = "tautomer/full_orca_conformers"
+#: The saved "Average NMR over conformers" choice for the tautomer NMR run (default off: one job per tautomer).
+_TAUTOMER_NMR_CONFORMERS_KEY = "tautomer/nmr_average_conformers"
 
 _HELP: dict[str, HelpTooltip] = {
     "molecule": HelpTooltip(
@@ -402,6 +406,45 @@ _HELP: dict[str, HelpTooltip] = {
         ),
         tier=3,
         help_id="quantum.tautomer_full_orca",
+        topic="quantum-chemistry",
+        help_anchor="tautomer-distribution",
+    ),
+    "tautomer_nmr": HelpTooltip(
+        text=(
+            "Runs NMR on each tautomer of the selected tautomer-distribution run, starting from the "
+            "geometry that run optimized (its lowest calculated conformer), at the Method/basis chosen "
+            "here, and draws each tautomer's predicted peaks over the 1D spectrum.\n\n"
+            "Shifts are referenced with the same cached TMS reference an ordinary NMR calculation uses; "
+            "if none is cached for this method, run an NMR calculation with it once first.\n\n"
+            "When the distribution's populations are validated, a fast-exchange average is offered too. "
+            "These are gas-phase predictions from one geometry per tautomer, not a solution spectrum."
+        ),
+        tier=3,
+        help_id="quantum.tautomer_nmr",
+        topic="quantum-chemistry",
+        help_anchor="tautomer-distribution",
+    ),
+    "tautomer_nmr_conformers": HelpTooltip(
+        text=(
+            "Unchecked (the default), NMR is run once per tautomer, on its lowest calculated conformer.\n\n"
+            "Checked, NMR is run on every optimized conformer of the tautomer's representative "
+            "stereoisomer and the shifts are Boltzmann-averaged within the tautomer: about three times "
+            "the NMR jobs. If any conformer's NMR fails, that tautomer has no spectrum rather than an "
+            "average over the survivors."
+        ),
+        tier=3,
+        help_id="quantum.tautomer_nmr_conformers",
+        topic="quantum-chemistry",
+        help_anchor="tautomer-distribution",
+    ),
+    "view_tautomer_nmr": HelpTooltip(
+        text=(
+            "Shows the selected run's tautomer NMR over the molecule's 1D spectrum (or on its own "
+            "when the molecule has no spectrum of its own). Enabled only when the selected run is a "
+            "tautomer NMR run; opening it never recomputes anything."
+        ),
+        tier=2,
+        help_id="quantum.view_tautomer_nmr",
         topic="quantum-chemistry",
         help_anchor="tautomer-distribution",
     ),
@@ -872,6 +915,24 @@ class QuantumChemistryPanel(QWidget):
         apply_help_tooltip(self._tautomer_full_check, _HELP["tautomer_full_orca"])
         self._tautomer_full_check.setChecked(self._stored_tautomer_full_mode())
         self._tautomer_full_check.toggled.connect(self._on_tautomer_full_toggled)
+        # Tautomer NMR (P5): NMR on each tautomer of the selected distribution run's stored geometries.
+        self._tautomer_nmr_button = QPushButton("Tautomer NMR...", self)
+        apply_help_tooltip(self._tautomer_nmr_button, _HELP["tautomer_nmr"])
+        self._tautomer_nmr_button.clicked.connect(self._on_tautomer_nmr_clicked)
+        self._tautomer_nmr_button.setEnabled(False)
+        self._tautomer_nmr_conformers_check = QCheckBox("Average NMR over conformers", self)
+        apply_help_tooltip(self._tautomer_nmr_conformers_check, _HELP["tautomer_nmr_conformers"])
+        self._tautomer_nmr_conformers_check.setChecked(
+            str(self._settings.get(_TAUTOMER_NMR_CONFORMERS_KEY, False)).lower() in ("true", "1")
+        )
+        self._tautomer_nmr_conformers_check.toggled.connect(self._on_tautomer_nmr_conformers_toggled)
+        self._view_tautomer_nmr_button = QPushButton("View Tautomer NMR...", self)
+        apply_help_tooltip(self._view_tautomer_nmr_button, _HELP["view_tautomer_nmr"])
+        self._view_tautomer_nmr_button.clicked.connect(self._on_view_tautomer_nmr_clicked)
+        self._view_tautomer_nmr_button.setEnabled(False)
+        #: The distribution a live tautomer NMR run was started from, held so its result can be shown with
+        #: the populations and structures it needs even if the user selects another run meanwhile.
+        self._tautomer_nmr_distribution = None
 
         self._configure_button = QPushButton("Configure ORCA...", self)
         apply_help_tooltip(self._configure_button, _HELP["configure_orca"])
@@ -1253,6 +1314,8 @@ class QuantumChemistryPanel(QWidget):
         run_row.layout().addWidget(self._cancel_button)
         run_row.layout().addWidget(self._tautomer_distribution_button)
         run_row.layout().addWidget(self._tautomer_full_check)
+        run_row.layout().addWidget(self._tautomer_nmr_button)
+        run_row.layout().addWidget(self._tautomer_nmr_conformers_check)
 
         # "Currently viewing," separate from the form above it ("calculation
         # to run"): selecting a run here must never look like it changed
@@ -1266,6 +1329,7 @@ class QuantumChemistryPanel(QWidget):
         runs_row.layout().addWidget(self._delete_run_button)
         runs_row.layout().addWidget(self._compare_runs_button)
         runs_row.layout().addWidget(self._view_tautomer_distribution_button)
+        runs_row.layout().addWidget(self._view_tautomer_nmr_button)
 
         # THE RESULTS COME FIRST, AND THE LOG IS COLLAPSED UNDERNEATH.
         #
@@ -1311,6 +1375,7 @@ class QuantumChemistryPanel(QWidget):
         event_bus.subscribe(NmrScalingCalibrated, self._on_scaling_calibrated)
         event_bus.subscribe(MoleculeSelected, self._on_molecule_selected)
         event_bus.subscribe(TautomerDistributionResultReady, self._on_tautomer_distribution_ready)
+        event_bus.subscribe(TautomerNmrResultReady, self._on_tautomer_nmr_ready)
 
     def set_project(self, project: ProjectModel | None) -> None:
         self._project = project
@@ -1410,6 +1475,7 @@ class QuantumChemistryPanel(QWidget):
         self._view_tautomer_distribution_button.setEnabled(
             runs[0].results.get("tautomer_distribution") is not None
         )
+        self._update_tautomer_nmr_buttons(runs[0])
 
     def _run_label(self, run) -> str:
         when = time.strftime("%Y-%m-%d %H:%M", time.localtime(run.started_at))
@@ -1421,6 +1487,8 @@ class QuantumChemistryPanel(QWidget):
         # registration loop.
         if run.calc_type == "tautomer_distribution":
             calc_label = "Tautomer Distribution"
+        elif run.calc_type == "tautomer_nmr":
+            calc_label = "Tautomer NMR"
         else:
             calc_label = next(
                 (label for label, key in CALC_TYPE_LABELS.items() if key == run.calc_type), run.calc_type
@@ -1540,6 +1608,7 @@ class QuantumChemistryPanel(QWidget):
         self._results_label.setText("")
         self._display_mol = None
         self._view_tautomer_distribution_button.setEnabled(False)
+        self._update_tautomer_nmr_buttons(None)
         self._clear_tab_status_indicators()
 
     def _on_view_tautomer_distribution_clicked(self) -> None:
@@ -1645,6 +1714,10 @@ class QuantumChemistryPanel(QWidget):
         if tautomer_distribution is not None:
             self._results_label.setText(self._tautomer_distribution_summary(tautomer_distribution))
         self._view_tautomer_distribution_button.setEnabled(tautomer_distribution is not None)
+        tautomer_nmr = run.results.get("tautomer_nmr")
+        if tautomer_nmr is not None:
+            self._results_label.setText(self._tautomer_nmr_summary(tautomer_nmr))
+        self._update_tautomer_nmr_buttons(run)
 
         self._update_surfaces_view()
 
@@ -1903,6 +1976,194 @@ class QuantumChemistryPanel(QWidget):
             input_fingerprint=input_fingerprint(self._chemistry_engine, molecule, DRAWING),
             policy=policy,
         )
+
+    def _on_tautomer_nmr_conformers_toggled(self, checked: bool) -> None:
+        self._settings.set(_TAUTOMER_NMR_CONFORMERS_KEY, bool(checked))
+
+    def _update_tautomer_nmr_buttons(self, run) -> None:
+        """"Tautomer NMR..." needs a selected run that holds a tautomer distribution with at least one stored
+        geometry to start from (a result computed before geometries were kept has none); "View Tautomer NMR..."
+        needs a selected tautomer NMR run. Neither is enabled while a job is running."""
+        idle = self._pending_molecule_uuid is None or self._run_button.isEnabled()
+        distribution = run.results.get("tautomer_distribution") if run is not None else None
+        runnable = False
+        if distribution is not None:
+            targets, _problems = targets_from_distribution(distribution)
+            runnable = bool(targets)
+        self._tautomer_nmr_button.setEnabled(runnable and idle)
+        self._view_tautomer_nmr_button.setEnabled(run is not None and run.results.get("tautomer_nmr") is not None)
+
+    @staticmethod
+    def _tautomer_nmr_summary(result) -> str:
+        done = sum(1 for e in result.entries if e.spectrum is not None)
+        text = f"Tautomer NMR at {result.method_basis}: {done}/{len(result.entries)} tautomer(s) have a spectrum"
+        if result.per_conformer:
+            text += " (each averaged over its conformers)"
+        failed = [f"{e.label}: {e.failure}" for e in result.entries if e.spectrum is None]
+        if failed:
+            text += ". Failed: " + "; ".join(failed)
+        if result.skipped:
+            text += ". Not run: " + "; ".join(result.skipped)
+        return text
+
+    def _on_tautomer_nmr_clicked(self) -> None:
+        """Runs NMR on the tautomers of the SELECTED run's distribution, from the geometries it kept, after
+        saying what that costs. Never starts from a structure other than the one the energy describes."""
+        molecule = self._current_molecule()
+        run = self._active_run
+        distribution = run.results.get("tautomer_distribution") if run is not None else None
+        if molecule is None or distribution is None:
+            self._status_label.setText("Select a tautomer distribution run first.")
+            return
+        method_basis = self._effective_method_basis()
+        if not method_basis:
+            self._status_label.setText("Enter a method/basis (e.g. 'B3LYP def2-SVP').")
+            return
+        per_conformer = self._tautomer_nmr_conformers_check.isChecked()
+        targets, problems = targets_from_distribution(distribution, per_conformer=per_conformer)
+        if not targets:
+            self._status_label.setText("No tautomer can be run: " + "; ".join(problems))
+            return
+        jobs = sum(len(t.jobs) for t in targets)
+        text = (
+            f"This will run {jobs} real ORCA NMR calculation(s) for {len(targets)} tautomer(s) at {method_basis}, "
+            f"each on the geometry the tautomer distribution optimized"
+            + (" (every conformer of each tautomer's representative stereoisomer)" if per_conformer else "")
+            + ". Shifts use the cached reference for this method; if none is cached the run stops at its "
+            "first result and tells you."
+        )
+        if problems:
+            text += "\n\nLeft out: " + "; ".join(problems)
+        text += "\n\nContinue?"
+        answer = QMessageBox.question(
+            self, "Run tautomer NMR?", text,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        self._pending_molecule_uuid = molecule.uuid
+        self._tautomer_nmr_distribution = distribution
+        self._run_button.setEnabled(False)
+        self._tautomer_distribution_button.setEnabled(False)
+        self._tautomer_nmr_button.setEnabled(False)
+        self._cancel_button.setEnabled(True)
+        self._output_log.clear()
+        self._status_label.setText(f"queued -- {jobs} NMR calculation(s) for {len(targets)} tautomer(s)")
+        self._quantum_chemistry_service.request_tautomer_nmr(
+            targets=targets,
+            molecule_uuid=molecule.uuid,
+            charge=self._charge_spin.value(),
+            multiplicity=self._multiplicity_spin.value(),
+            method_basis=method_basis,
+            per_conformer=per_conformer,
+            parent_run_id=run.run_id,
+            skipped=tuple(problems),
+        )
+
+    def _on_tautomer_nmr_ready(self, event: TautomerNmrResultReady) -> None:
+        if event.molecule_uuid != self._pending_molecule_uuid:
+            return
+        self._results_label.setText(self._tautomer_nmr_summary(event.result))
+        distribution = self._tautomer_nmr_distribution
+        self._tautomer_nmr_distribution = None
+        if distribution is not None:
+            self._show_tautomer_nmr(event.result, distribution)
+
+    def _on_view_tautomer_nmr_clicked(self) -> None:
+        run = self._active_run
+        result = run.results.get("tautomer_nmr") if run is not None else None
+        if result is None:
+            return
+        distribution = self._distribution_for(result)
+        if distribution is None:
+            self._status_label.setText(
+                "The tautomer distribution this NMR came from is no longer in this project's history."
+            )
+            return
+        self._show_tautomer_nmr(result, distribution)
+
+    def _distribution_for(self, result):
+        """The tautomer-distribution result `result` was computed from, looked up by its run id."""
+        molecule = self._current_molecule()
+        if molecule is None or self._result_store_service is None:
+            return None
+        for run in self._result_store_service.qc_runs.runs_for(molecule.uuid):
+            if run.run_id == result.parent_run_id:
+                return run.results.get("tautomer_distribution")
+        return None
+
+    def _show_tautomer_nmr(self, result, distribution) -> None:
+        """Draw the tautomer peaks over the molecule's own 1D spectrum when it has a referenced one (shown through
+        the same path selecting that run uses), else on their own in a window. One view, one implementation."""
+        own = self._own_spectrum_run()
+        if own is not None:
+            self._render_run(own)
+            index = self._runs_combo.findData(own.run_id)
+            if index >= 0:
+                self._runs_combo.blockSignals(True)
+                self._runs_combo.setCurrentIndex(index)
+                self._runs_combo.blockSignals(False)
+            if self._nmr_view is not None:
+                self._nmr_view.set_tautomer_nmr(result, distribution)
+                self._correlation_tabs.setVisible(True)
+                self._correlation_tabs.setCurrentWidget(self._nmr_view_tab)
+                return
+        self._open_tautomer_nmr_window(result, distribution)
+
+    def _own_spectrum_run(self):
+        """The newest run of this molecule whose NMR spectrum is referenced (a chemical shift, so it can share an
+        axis with the tautomer peaks), or None."""
+        molecule = self._current_molecule()
+        if molecule is None or self._result_store_service is None:
+            return None
+        for run in self._result_store_service.qc_runs.runs_for(molecule.uuid):
+            spectrum = run.results.get("spectrum")
+            if spectrum is not None and spectrum.spectrum_type != "nmr_raw_shielding":
+                return run
+        return None
+
+    def _open_tautomer_nmr_window(self, result, distribution) -> None:
+        """The tautomer peaks on their own spectrum, for a molecule with no referenced spectrum of its own."""
+        from openchem.chem.tautomer_nmr import tautomer_overlay
+        from openchem.ui.widgets.nmr_spectrum_widget import NmrSpectrumWidget
+        from openchem.ui.widgets.tautomer_overlay_controls import TautomerOverlayControls
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Tautomer NMR")
+        layout = QVBoxLayout(dialog)
+        nucleus = QComboBox(dialog)
+        spectrum = NmrSpectrumWidget(parent=dialog)
+        controls = TautomerOverlayControls(spectrum, dialog)
+        overlay = tautomer_overlay(result, distribution)
+        elements = [e for e in ("H", "C") if any(t.peaks.get(e) for t in overlay.traces)] or ["H"]
+        for element in elements:
+            nucleus.addItem("\u00b9H" if element == "H" else "\u00b9\u00b3C", element)
+        controls.set_overlay(overlay, elements[0], result.method_basis)
+        spectrum.set_signals([], x_label="\u00b9H \u03b4" if elements[0] == "H" else "\u00b9\u00b3C \u03b4")
+        spectrum.set_show_legend(True)
+        # Bound by property on the sender, never a lambda capturing `self` (tests/test_qt_object_disposal.py).
+        nucleus.setProperty("spectrum", spectrum)
+        nucleus.currentIndexChanged.connect(self._on_tautomer_window_nucleus_changed)
+        row = QHBoxLayout()
+        row.addWidget(QLabel("Nucleus:", dialog))
+        row.addWidget(nucleus)
+        row.addStretch(1)
+        layout.addLayout(row)
+        layout.addWidget(spectrum, 1)
+        layout.addWidget(controls)
+        dialog.resize(900, 560)
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+        dialog.show()
+        self._tautomer_nmr_window = dialog
+
+    def _on_tautomer_window_nucleus_changed(self, _index: int) -> None:
+        combo = self.sender()
+        spectrum = combo.property("spectrum") if combo is not None else None
+        if spectrum is None:
+            return
+        element = combo.currentData()
+        spectrum.set_tautomer_trace_element(element)
+        spectrum.set_signals([], x_label="¹H δ" if element == "H" else "¹³C δ")
 
     def _on_tautomer_distribution_ready(self, event: TautomerDistributionResultReady) -> None:
         if event.molecule_uuid != self._pending_molecule_uuid:
@@ -2177,6 +2438,7 @@ class QuantumChemistryPanel(QWidget):
         if event.state.value in ("completed", "failed"):
             self._run_button.setEnabled(True)
             self._tautomer_distribution_button.setEnabled(True)
+            self._update_tautomer_nmr_buttons(self._active_run)
             self._cancel_button.setEnabled(False)
             if event.state.value == "failed":
                 # Stay on the log: it is where the reason is, and every

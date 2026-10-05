@@ -81,10 +81,13 @@ def targets_from_distribution(
             stereo = representative.metadata.get("stereo_fingerprint")
             chosen = [e for e in succeeded if e.metadata.get("stereo_fingerprint") == stereo]
             chosen.sort(key=lambda e: (e.metadata.get("conformer_index", 0), e.metadata["fingerprint"]))
-        missing = [e for e in chosen if not e.metadata.get("optimized_molblock")]
+        missing = [
+            e for e in chosen
+            if not e.metadata.get("optimized_molblock") or e.metadata.get("absolute_energy_hartree") is None
+        ]
         if missing:
             problems.append(
-                f"{name}: the optimized geometry was not stored for {len(missing)} of {len(chosen)} job(s) "
+                f"{name}: the optimized geometry or energy was not stored for {len(missing)} of {len(chosen)} job(s) "
                 f"(a result computed before geometries were kept); rerun the tautomer distribution"
             )
             continue
@@ -273,3 +276,119 @@ def average_tautomer_nmr(nmr: TautomerNmrResult, distribution: StructureSetResul
             continue
         peaks.append(AveragedPeak("1H", heavy, element, mean(per_tautomer), counts[0], parts(per_tautomer)))
     return TautomerAverage(available=True, weights=weights, peaks=tuple(peaks), not_averaged=tuple(left_out))
+
+
+# --- what the viewer draws --------------------------------------------------------------------------------
+
+#: Element keys the NMR viewer uses for its nucleus choice ("H" for 1H, "C" for 13C).
+NUCLEUS_ELEMENTS = ("H", "C")
+
+
+@dataclass(frozen=True)
+class TracePeak:
+    """One stick of a trace: a carbon's 13C, a group of hydrogens on one heavy atom, or one averaged peak."""
+
+    shift_ppm: float
+    #: Stick height in the plot's own unit: the number of hydrogens it stands for (1 for a 13C peak), so a
+    #: trace's heights mean the same thing as the molecule's own signals' integrations.
+    weight: float
+    heavy_atom: int
+    #: A hydrogen on N, O, S or another heteroatom: drawn, but marked, because it is not averaged and
+    #: exchanges with solvent.
+    labile: bool = False
+
+
+@dataclass(frozen=True)
+class TautomerTrace:
+    """One trace on the overlay: a tautomer's own peaks, or the fast-exchange average."""
+
+    key: str  # the tautomer's fingerprint, or "average"
+    label: str
+    is_average: bool
+    #: The validated population, or None (not validated, or the average itself).
+    population: float | None
+    relative_energy_kcal: float | None
+    #: Peaks by nucleus element ("H" / "C"). Empty for a tautomer whose NMR failed.
+    peaks: dict[str, tuple[TracePeak, ...]]
+    failure: str = ""
+
+
+@dataclass(frozen=True)
+class TautomerOverlay:
+    """Everything the viewer shows for a tautomer NMR result."""
+
+    traces: tuple[TautomerTrace, ...]
+    #: The fast-exchange average, or None when it is unavailable (`average_note` says why).
+    average: TautomerTrace | None
+    #: Why there is no average, or how much of the spectrum it covers and what it leaves out.
+    average_note: str
+    not_averaged: tuple[NotAveraged, ...] = ()
+
+
+def _group_peaks(entry: TautomerNmrEntry, mol: Chem.Mol) -> dict[str, tuple[TracePeak, ...]]:
+    """A tautomer's peaks grouped the way the average groups them: a 13C per carbon, and the hydrogens on each
+    heavy atom as ONE stick (their mean shift, height = how many)."""
+    spectrum = entry.spectrum
+    carbon: list[TracePeak] = []
+    hydrogen: list[TracePeak] = []
+    for atom in mol.GetAtoms():
+        if atom.GetAtomicNum() <= 1:
+            continue
+        index = atom.GetIdx()
+        if atom.GetSymbol() == _CARBON and index in spectrum.values:
+            carbon.append(TracePeak(spectrum.values[index], 1.0, index))
+        shifts = [spectrum.values[h] for h in _hydrogens(mol, index) if h in spectrum.values]
+        if shifts and len(shifts) == len(_hydrogens(mol, index)):
+            hydrogen.append(TracePeak(
+                sum(shifts) / len(shifts), float(len(shifts)), index, labile=atom.GetSymbol() != _CARBON
+            ))
+    return {"C": tuple(carbon), "H": tuple(hydrogen)}
+
+
+def tautomer_overlay(nmr: TautomerNmrResult, distribution: StructureSetResult) -> TautomerOverlay:
+    """The traces for `nmr`, with populations and energies from `distribution` (the populations only when it
+    is validated), and the fast-exchange average when `average_tautomer_nmr` offers one.
+
+    A tautomer whose NMR failed still gets a trace, empty and carrying the reason, so it is listed and never
+    silently absent. A tautomer whose stored structure cannot be read is treated the same way.
+    """
+    params = distribution.provenance.parameters if distribution.provenance else {}
+    shown = params.get("validation_branch") == "validated" and bool(params.get("complete"))
+    representative = {
+        e.metadata.get("tautomer_fingerprint"): e
+        for e in distribution.entries
+        if e.metadata.get("is_lowest_calculated_for_tautomer")
+    }
+    traces: list[TautomerTrace] = []
+    for entry in nmr.entries:
+        rep = representative.get(entry.tautomer_fingerprint)
+        population = rep.score if (shown and rep is not None) else None
+        energy = rep.energy if rep is not None else None
+        peaks: dict[str, tuple[TracePeak, ...]] = {}
+        failure = entry.failure
+        if entry.spectrum is not None:
+            mol = _molecule_of(distribution, entry)
+            if mol is None:
+                failure = "the structure behind this spectrum is not stored"
+            else:
+                peaks = _group_peaks(entry, mol)
+        traces.append(TautomerTrace(entry.tautomer_fingerprint, entry.label, False, population, energy, peaks, failure))
+
+    average = average_tautomer_nmr(nmr, distribution)
+    if not average.available:
+        return TautomerOverlay(tuple(traces), None, average.reason)
+    by_nucleus: dict[str, list[TracePeak]] = {"C": [], "H": []}
+    for peak in average.peaks:
+        by_nucleus["C" if peak.nucleus == "13C" else "H"].append(
+            TracePeak(peak.shift_ppm, float(peak.hydrogen_count or 1), peak.heavy_atom)
+        )
+    trace = TautomerTrace(
+        "average", "Fast-exchange average", True, None, None, {k: tuple(v) for k, v in by_nucleus.items()}
+    )
+    note = (
+        f"Fast-exchange average of {len(nmr.entries)} tautomers, weighted by the validated populations: "
+        f"{len(average.peaks)} peaks."
+    )
+    if average.not_averaged:
+        note += f" {len(average.not_averaged)} left out (labile N/O/S hydrogens, and carbons whose hydrogen count changes)."
+    return TautomerOverlay(tuple(traces), trace, note, average.not_averaged)

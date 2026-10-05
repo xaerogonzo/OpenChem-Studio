@@ -49,6 +49,7 @@ def _build(*, branch="validated", complete=True, parent=PARENT, populations=POPU
             "fingerprint": candidate.fingerprint, "tautomer_fingerprint": candidate.tautomer_fingerprint,
             "status": "succeeded", "is_lowest_calculated_for_tautomer": True,
         }
+        metadata["absolute_energy_hartree"] = -100.0 - 0.001 * index
         if store_geometry:
             metadata["optimized_molblock"] = Chem.MolToMolBlock(candidate.mol)
         entries.append(StructureEntry(molblock="2D", label=f"T{index}", score=populations[index], metadata=metadata))
@@ -174,3 +175,78 @@ def test_tautomers_whose_heavy_atoms_do_not_correspond_cannot_be_paired():
     entries[1] = dataclasses.replace(entries[1], metadata=metadata)
     swapped = dataclasses.replace(distribution, entries=entries)
     assert "heavy atoms do not correspond" in average_tautomer_nmr(nmr, swapped).reason
+
+
+# --- the traces the viewer draws ------------------------------------------------------------------------
+
+
+def test_each_tautomers_trace_groups_hydrogens_per_heavy_atom_and_marks_the_labile_ones():
+    from openchem.chem.tautomer_nmr import tautomer_overlay
+
+    nmr, distribution, candidates = _build()
+    overlay = tautomer_overlay(nmr, distribution)
+    assert [t.key for t in overlay.traces] == [c.tautomer_fingerprint for c in candidates]
+    for index, (trace, candidate) in enumerate(zip(overlay.traces, candidates, strict=True)):
+        mol = _mol(candidate)
+        carbons = [a.GetIdx() for a in mol.GetAtoms() if a.GetSymbol() == "C"]
+        assert sorted(p.heavy_atom for p in trace.peaks["C"]) == sorted(carbons)
+        assert all(p.weight == 1.0 and not p.labile for p in trace.peaks["C"])
+        for peak in trace.peaks["H"]:
+            hs = [n.GetIdx() for n in mol.GetAtomWithIdx(peak.heavy_atom).GetNeighbors() if n.GetAtomicNum() == 1]
+            assert peak.weight == len(hs)
+            assert peak.shift_ppm == pytest.approx(sum(_shift(mol, h, index) for h in hs) / len(hs))
+            assert peak.labile == (mol.GetAtomWithIdx(peak.heavy_atom).GetSymbol() != "C")
+    labile = [p for t in overlay.traces for p in t.peaks["H"] if p.labile]
+    assert len(labile) == 1  # only the enol's O-H
+
+
+def test_populations_appear_on_the_traces_only_when_the_distribution_is_validated():
+    from openchem.chem.tautomer_nmr import tautomer_overlay
+
+    nmr, distribution, _ = _build()
+    assert [t.population for t in tautomer_overlay(nmr, distribution).traces] == list(POPULATIONS)
+    nmr, distribution, _ = _build(branch="unvalidated")
+    assert [t.population for t in tautomer_overlay(nmr, distribution).traces] == [None, None]
+
+
+def test_the_average_trace_is_the_average_and_says_what_it_leaves_out():
+    from openchem.chem.tautomer_nmr import tautomer_overlay
+
+    nmr, distribution, _ = _build()
+    overlay = tautomer_overlay(nmr, distribution)
+    average = average_tautomer_nmr(nmr, distribution)
+    assert overlay.average is not None and overlay.average.is_average and overlay.average.population is None
+    carbons = {p.heavy_atom: p.shift_ppm for p in average.peaks if p.nucleus == "13C"}
+    assert {p.heavy_atom: p.shift_ppm for p in overlay.average.peaks["C"]} == pytest.approx(carbons)
+    assert {(p.heavy_atom, p.weight) for p in overlay.average.peaks["H"]} == {
+        (p.heavy_atom, float(p.hydrogen_count)) for p in average.peaks if p.nucleus == "1H"
+    }
+    assert overlay.not_averaged == average.not_averaged and "left out" in overlay.average_note
+
+
+@pytest.mark.parametrize("kwargs", [{"branch": "unvalidated"}, {"complete": False}, {"parent": "other"}])
+def test_without_an_average_the_traces_are_still_shown_and_the_reason_is_given(kwargs):
+    from openchem.chem.tautomer_nmr import tautomer_overlay
+
+    nmr, distribution, _ = _build(**kwargs)
+    overlay = tautomer_overlay(nmr, distribution)
+    assert overlay.average is None and overlay.average_note and len(overlay.traces) == 2
+    assert all(t.peaks["C"] for t in overlay.traces)
+
+
+def test_a_failed_tautomer_is_listed_with_its_reason_and_blocks_the_average():
+    from openchem.chem.tautomer_nmr import tautomer_overlay
+
+    nmr, distribution, _ = _build(fail=1)
+    overlay = tautomer_overlay(nmr, distribution)
+    failed = overlay.traces[1]
+    assert failed.failure == "failed" and failed.peaks == {}
+    assert overlay.traces[0].peaks["C"] and overlay.average is None
+
+
+def test_a_spectrum_whose_structure_is_not_stored_gets_an_empty_trace_with_the_reason():
+    from openchem.chem.tautomer_nmr import tautomer_overlay
+
+    nmr, distribution, _ = _build(store_geometry=False)
+    overlay = tautomer_overlay(nmr, distribution)
+    assert all(t.peaks == {} and "not stored" in t.failure for t in overlay.traces)

@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QToolTip, QWidget
 from openchem.ui.picture_export import show_picture_menu
 
 from openchem.chem.nmr_measured import NmrReference, reference_peaks
+from openchem.chem.tautomer_nmr import TautomerTrace
 from openchem.chem.nmr_signals import (
     _RELATIVE_FREQUENCY,
     DEFAULT_FREQUENCY_MHZ,
@@ -42,6 +43,16 @@ NMR_PALETTES: dict[str, dict[str, tuple[int, int, int]]] = {
 }
 #: The palette a viewer starts with and Reset Settings restores.
 DEFAULT_PALETTE = "Default"
+
+#: One colour per tautomer trace, in the order the traces arrive. Chosen to stay clear of every palette's own blue,
+#: orange (the selected signal) and purple, and of the integral's pink; the first version used an orange that read
+#: as "Selected signal" in the legend. Presentation only: a colour says WHICH tautomer, never anything about
+#: it, and it does not change with the palette setting so a trace keeps its identity on screen.
+TAUTOMER_TRACE_COLOURS: tuple[str, ...] = (
+    "#117733", "#AA3377", "#B2182B", "#8B5A2B", "#00A6A6", "#6B6B00", "#4C566A", "#CC6677",
+)
+#: The fast-exchange average is drawn in near-black and thicker than a tautomer's own sticks.
+TAUTOMER_AVERAGE_COLOUR = "#111111"
 
 
 def palette_hex(name: str, mark: str) -> str:
@@ -134,6 +145,12 @@ class NmrSpectrumWidget(QWidget):
         self._reference: NmrReference | None = None
         self._reference_scale = 1.0
         self._show_reference_peaks = False
+        #: Predicted peaks of each TAUTOMER (and their fast-exchange average) drawn over the spectrum. VIEW
+        #: STATE, like the measured reference above: the traces are immutable records and nothing here can
+        #: reach a signal. `_trace_element` is the nucleus ("H"/"C") the traces are drawn for.
+        self._tautomer_traces: list[TautomerTrace] = []
+        self._trace_element = "H"
+        self._hidden_traces: set[str] = set()
         #: "ppm" or "hz" -- display-only, never the plot's internal working
         #: unit (always ppm, see `view_range()`). Forced back to "ppm" by
         #: every consumer whenever `self._shielding` is True: a raw
@@ -215,6 +232,63 @@ class NmrSpectrumWidget(QWidget):
             and self._reference.matches(self._element)
         )
 
+    # --- tautomer traces ---------------------------------------------------------------------------
+
+    def set_tautomer_traces(self, traces: list[TautomerTrace], element: str) -> None:
+        """The traces to draw and the nucleus they are drawn for. Replaces any earlier set and forgets which
+        were hidden: a new result is a new set of tautomers."""
+        if element not in ("H", "C"):
+            raise ValueError(f"unknown nucleus element: {element!r}")
+        self._tautomer_traces = list(traces)
+        self._trace_element = element
+        self._hidden_traces = set()
+        self.update()
+
+    def set_tautomer_trace_element(self, element: str) -> None:
+        """Switch which nucleus the existing traces are drawn for (the viewer's nucleus choice)."""
+        if element not in ("H", "C"):
+            raise ValueError(f"unknown nucleus element: {element!r}")
+        self._trace_element = element
+        self.update()
+
+    def clear_tautomer_traces(self) -> None:
+        self._tautomer_traces = []
+        self._hidden_traces = set()
+        self.update()
+
+    def tautomer_traces(self) -> list[TautomerTrace]:
+        return list(self._tautomer_traces)
+
+    def set_tautomer_trace_visible(self, key: str, visible: bool) -> None:
+        if visible:
+            self._hidden_traces.discard(key)
+        else:
+            self._hidden_traces.add(key)
+        self.update()
+
+    def is_tautomer_trace_visible(self, key: str) -> bool:
+        return key not in self._hidden_traces
+
+    def tautomer_trace_colour(self, trace: TautomerTrace) -> str:
+        """`#rrggbb` for `trace`: the average is near-black, each tautomer takes the colour of its position."""
+        if trace.is_average:
+            return TAUTOMER_AVERAGE_COLOUR
+        tautomers = [t for t in self._tautomer_traces if not t.is_average]
+        return TAUTOMER_TRACE_COLOURS[tautomers.index(trace) % len(TAUTOMER_TRACE_COLOURS)]
+
+    def drawn_tautomer_traces(self) -> list[TautomerTrace]:
+        """The traces on the plot NOW: shown, with peaks for this nucleus, on a chemical-shift axis (a tautomer's
+        delta has no place on a sigma axis, exactly as for the measured reference)."""
+        if self._shielding:
+            return []
+        return [
+            t for t in self._tautomer_traces
+            if t.key not in self._hidden_traces and t.peaks.get(self._trace_element)
+        ]
+
+    def _trace_shifts(self) -> list[float]:
+        return [p.shift_ppm for t in self.drawn_tautomer_traces() for p in t.peaks[self._trace_element]]
+
     def set_palette(self, name: str) -> None:
         if name not in NMR_PALETTES:
             raise ValueError(f"unknown NMR palette: {name!r}")
@@ -251,6 +325,14 @@ class NmrSpectrumWidget(QWidget):
             entries.append(("curve", "Relative integral", "integral"))
         if self.reference_drawn():
             entries.append(("curve", f"Measured: {self._reference.filename}", "reference"))
+        for trace in self.drawn_tautomer_traces():
+            if trace.is_average:
+                text = trace.label
+            elif trace.population is not None:
+                text = f"{trace.label} ({trace.population * 100:.1f}%)"
+            else:
+                text = trace.label
+            entries.append(("stick", text, self.tautomer_trace_colour(trace)))
         if self._solvent_shift() is not None:
             entries.append(("dash", "Solvent peak (not the sample)", "solvent"))
         return entries
@@ -396,9 +478,10 @@ class NmrSpectrumWidget(QWidget):
         self.update()
 
     def _axis_range(self) -> tuple[float, float]:
-        if not self._signals:
+        trace_shifts = self._trace_shifts()
+        if not self._signals and not trace_shifts:
             return 0.0, 1.0
-        shifts = [signal.shift for signal in self._signals]
+        shifts = [signal.shift for signal in self._signals] + trace_shifts
         solvent = self._solvent_shift()
         if solvent is not None:
             # Included so a solvent peak outside the sample's own range
@@ -689,6 +772,37 @@ class NmrSpectrumWidget(QWidget):
                 self._format_axis_value(value),
             )
 
+    def _draw_tautomer_traces(
+        self,
+        painter: QPainter,
+        plot_rect: QRectF,
+        x_range: tuple[float, float],
+        traces: list[TautomerTrace],
+        max_weight: float,
+        label_height: float,
+    ) -> None:
+        """Each trace's sticks over the plot, in its own colour: a tautomer thin, the average thick with a dot
+        on top. A labile hydrogen (N, O, S) is dashed: it is the tautomer's own and is never averaged. Heights
+        are hydrogen counts on the molecule's own scale. Only the visible window is drawn."""
+        low, high = min(x_range), max(x_range)
+        usable = plot_rect.height() - label_height
+        for trace in traces:
+            colour = QColor(self.tautomer_trace_colour(trace))
+            for peak in trace.peaks[self._trace_element]:
+                if not low <= peak.shift_ppm <= high:
+                    continue
+                x = self._to_widget_x(peak.shift_ppm, plot_rect, x_range)
+                top = plot_rect.bottom() - usable * (peak.weight / max_weight)
+                pen = QPen(colour, 3.0 if trace.is_average else 1.5)
+                if peak.labile:
+                    pen.setStyle(Qt.PenStyle.DashLine)
+                painter.setPen(pen)
+                painter.drawLine(QPointF(x, plot_rect.bottom()), QPointF(x, top))
+                if trace.is_average:
+                    painter.setBrush(colour)
+                    painter.drawEllipse(QPointF(x, top), 3.0, 3.0)
+                    painter.setBrush(Qt.BrushStyle.NoBrush)
+
     def _draw_reference(self, painter: QPainter, plot_rect: QRectF, x_range: tuple[float, float]) -> None:
         """The measured trace as a thin line, tallest point at the plot top
         times the display scale, clipped to the plot. Only the visible window
@@ -732,6 +846,10 @@ class NmrSpectrumWidget(QWidget):
         colours = {
             mark: self._color(mark) for mark in ("peak", "highlight", "integral", "solvent", "reference")
         }
+        # A tautomer trace's entry carries its own `#rrggbb` instead of a palette mark.
+        for _kind, _text, colour in self.legend_entries():
+            if colour.startswith("#"):
+                colours[colour] = QColor(colour)
         row, swatch, pad = 15.0, 22.0, 6.0
         entries = self.legend_entries()
         metrics = painter.fontMetrics()
@@ -752,7 +870,7 @@ class NmrSpectrumWidget(QWidget):
         painter.drawRect(box)
         for index, (kind, text, colour) in enumerate(entries):
             y = box.top() + pad + row * index + row / 2
-            pen = QPen(colours[colour], 3 if colour == "highlight" else 1)
+            pen = QPen(colours[colour], 3 if colour in ("highlight", TAUTOMER_AVERAGE_COLOUR) else 1)
             if kind == "dash":
                 pen.setStyle(Qt.PenStyle.DashLine)
             painter.setPen(pen)
@@ -795,7 +913,7 @@ class NmrSpectrumWidget(QWidget):
             self._axis_label_text(),
         )
 
-        if not self._signals:
+        if not self._signals and not self.drawn_tautomer_traces():
             painter.end()
             return
 
@@ -813,8 +931,14 @@ class NmrSpectrumWidget(QWidget):
         # Tallest peak fills the plot area; everything else is proportional
         # to its integration, so relative peak heights ARE relative proton
         # counts and nothing else.
-        max_integration = max(signal.integration for signal in self._signals) or 1
+        max_integration = max((signal.integration for signal in self._signals), default=0.0)
         label_height = 14.0
+        drawn_traces = self.drawn_tautomer_traces()
+        # The traces use the molecule's own height scale (a stick means this many hydrogens), so the two are
+        # comparable on one plot; with no spectrum of its own, the tallest trace stick sets it.
+        max_integration = max(
+            [max_integration] + [p.weight for t in drawn_traces for p in t.peaks[self._trace_element]]
+        ) or 1
 
         solvent_shift = self._solvent_shift()
         if solvent_shift is not None:
@@ -861,8 +985,10 @@ class NmrSpectrumWidget(QWidget):
                         label,
                     )
 
-        if self._show_integral:
+        if self._show_integral and self._signals:
             self._draw_integral(painter, plot_rect, x_range, label_height)
+        if drawn_traces:
+            self._draw_tautomer_traces(painter, plot_rect, x_range, drawn_traces, max_integration, label_height)
         if self.reference_drawn():
             self._draw_reference(painter, plot_rect, x_range)
         if self._show_legend:
