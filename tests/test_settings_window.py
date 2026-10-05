@@ -732,21 +732,17 @@ def test_forget_clears_one_kind_and_says_where_it_now_opens(qapp, dialogs, tmp_p
 
 def test_every_preference_control_carries_a_help_contract(qapp, dialogs):
     """The inventory's fixture needs settings, so the bare-context guard in
-    `test_dialog_help_contracts` never builds this window. This walks it.
-
-    SCOPED TO THE PREFERENCE SECTIONS. The External Tools pages were never
-    walked either -- their dialog needed settings too -- and carry no
-    contracts; documenting their controls is its own piece of work, recorded
-    in ARCHITECTURE's Known TODOs, not a condition of moving them.
+    `test_dialog_help_contracts` never builds this window. This walks it,
+    every section of it -- the External Tools pages included, which were
+    skipped here until their controls were given contracts
+    (`ui/dialogs/external_tools_help.py`).
     """
+
     from openchem.ui.widgets.help_tooltip import placeholder_reason
     from openchem.ui.widgets.tooltip_inventory import iter_documentable_controls
 
     dialog = _dialog(dialogs, Settings(EventBus()))
-    controls = [
-        c for c in iter_documentable_controls(dialog, path="SettingsDialog")
-        if "/ExternalToolsPages/" not in c.instance_path
-    ]
+    controls = list(iter_documentable_controls(dialog, path="SettingsDialog"))
 
     assert len(controls) >= 7, [c.instance_path for c in controls]
     assert [c.instance_path for c in controls if c.status != "tooltip"] == []

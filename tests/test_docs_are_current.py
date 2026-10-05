@@ -692,17 +692,6 @@ DEFERRALS: list[Deferral] = [
         "run, which no code fact can check. The day one runs, the ROADMAP entry "
         "'Measure, then unify protonation' changes, and this entry with it.",
     ),
-    Deferral(
-        claim="the External Tools pages carry no help contracts",
-        # A contract is attached through `apply_help_tooltip` and nothing
-        # else, so the day either file holding the tool tabs calls it, the
-        # entry is describing the past -- and the skip in
-        # `test_every_preference_control_carries_a_help_contract` should go.
-        unbuilt=lambda: not any(
-            "apply_help_tooltip" in (_ROOT / "src/openchem/ui/dialogs" / name).read_text(encoding="utf-8")
-            for name in ("external_tool_tabs.py", "external_tools_pages.py")
-        ),
-    ),
 ]
 
 

@@ -29,12 +29,14 @@ from PySide6.QtWidgets import (
 
 from openchem.app.settings import Settings
 from openchem.plugins.async_task import run_async
+from openchem.ui.widgets.help_tooltip import apply_help_tooltip
 from openchem.services.tool_download_service import (
     VinaReleaseAsset,
     download_vina_asset,
     fetch_latest_vina_release,
 )
 from openchem.ui.dialogs import external_tool_catalog as catalog
+from openchem.ui.dialogs import external_tools_help as help_text
 from openchem.ui.dialogs.external_tool_tabs import (
     InterpreterSidecarTab,
     ManagedAssetTab,
@@ -328,7 +330,6 @@ class ExternalToolsPages(QWidget):
         would drift.
         """
         button = QPushButton("Remove from Disk...", parent)
-        button.setToolTip(f"Delete {label} and free the space it uses.")
         # A bound method, never a lambda capturing `self`: PySide6 holds a
         # connected plain callable strongly and a QObject's bound method
         # weakly, so the lambda form roots this object for the life of the
@@ -424,6 +425,9 @@ class ExternalToolsPages(QWidget):
         self._storage_reset_button.clicked.connect(self._on_storage_reset_clicked)
         self._storage_refresh_button = QPushButton("Refresh", tab)
         self._storage_refresh_button.clicked.connect(self._refresh_storage)
+        apply_help_tooltip(self._storage_move_button, help_text.STORAGE_MOVE)
+        apply_help_tooltip(self._storage_reset_button, help_text.STORAGE_RESET)
+        apply_help_tooltip(self._storage_refresh_button, help_text.STORAGE_REFRESH)
 
         why_note = QLabel(
             "The sidecar environments are large - a pkasolver install is around 2.3 GB and a "
@@ -458,6 +462,9 @@ class ExternalToolsPages(QWidget):
         self._components_table.horizontalHeader().setStretchLastSection(True)
         self._components_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self._components_table.verticalHeader().setVisible(False)
+        for column, tip in enumerate(help_text.STORAGE_HEADERS):
+            item = self._components_table.horizontalHeaderItem(column)
+            apply_help_tooltip(item, tip)
 
         layout = QVBoxLayout(tab)
         layout.addWidget(self._storage_status_label)
@@ -529,6 +536,7 @@ class ExternalToolsPages(QWidget):
                 # `self` here roots this dialog permanently.
                 button.setProperty(_COMPONENT_KEY_PROPERTY, component.key)
                 button.clicked.connect(self._on_remove_button_clicked)
+                apply_help_tooltip(button, help_text.STORAGE_REMOVE)
                 self._components_table.setCellWidget(row, 2, button)
             else:
                 self._components_table.setCellWidget(row, 2, None)

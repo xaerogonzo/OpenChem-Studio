@@ -891,13 +891,14 @@ document may cite a file or a test that does not exist.
     the result is computed while the result stays fresh.
   - The record is `benchmarks/charges/consumers/preregistration.md` (E1).
 
-- **OPEN** -- the External Tools pages carry no help contracts. Their
-  controls were never walked: the dialog needed settings, so the bare-context
-  guard in `tests/test_dialog_help_contracts.py` could not build it, and
-  moving the tabs into the Settings window did not change that.
-  `tests/test_settings_window.py` walks the window's preference sections and
-  deliberately skips `ExternalToolsPages`. Closing it means a contract on each
-  tool tab's controls, then dropping that skip.
+- **SETTLED** (2026-10-05) -- the External Tools pages carry help contracts.
+  Each control's contract is built from the descriptor that built the control
+  (`src/openchem/ui/dialogs/external_tools_help.py`), with per-tool ids such as
+  `external_tools.vina_remove`, because the guard allows one id one text. A
+  button a tab hides (ORCA's Set Up and Remove) is still walked by the
+  inventory, so it carries a contract saying it is not offered. The skip for
+  `ExternalToolsPages` in `tests/test_settings_window.py` is gone: the walk
+  covers the whole Settings window.
 
 
 - **OPEN** -- a salt with no single ChEMBL parent has no compound

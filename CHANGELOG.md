@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### External Tools pages: every control now carries a help contract
+
+- The Settings > External Tools tabs (Vina, ORCA, pkasolver, ADMET, Java, NMR database, Storage) had 45 controls with no contract, because the bare-context guard could never build the dialog and `test_every_preference_control_carries_a_help_contract` skipped the section. Each control's contract is built from the descriptor that built it (`src/openchem/ui/dialogs/external_tools_help.py`), so a tab cannot describe a different tool than the one it sits on; the skip is gone and the whole Settings window is walked. ORCA's hidden Set Up and Remove buttons still get walked, so they say they are not offered rather than describing what they never do.
+
 ### CI: a test file keeps its shard when another file is added
 
 - `tools/suite_shards.py` re-packed every file by timing, so adding one test file moved about fifty others between the two Windows shards: each PR ran a shard combination master had never run, and master's green history said nothing about it (it muddied every "is this crash the flake?" question). Each file's shard is now PINNED in `tools/suite-shard-pins.json` (generated to reproduce the current split exactly: both shards' file lists are byte-identical before and after). A file with no pin is packed onto the lighter shard, which moves no pinned file; the set partitioned is still read from disk, so a new or unpinned file still runs. `--repin --splits=2` re-packs everything from the current weights, as a PR of its own. Guards: adding files moves no other file (with a control showing the unpinned packer does), stale or missing pins are bounded, balance within 25%.
