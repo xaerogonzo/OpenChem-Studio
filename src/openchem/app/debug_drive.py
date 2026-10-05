@@ -811,6 +811,160 @@ class _Driver(QObject):
         else:
             logger.error("OPENCHEM_DRIVE: EXPECT tautomer FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
 
+    def _do_tautomer_nmr_run(self, step: dict[str, Any]) -> None:
+        """Press the Quantum Chemistry panel's "Tautomer NMR..." button, for real.
+
+        `{"do": "tautomer_nmr_run", "method": "HF STO-3G", "conformers": false, "after_ms": 300000}`
+
+        The panel is first pointed at the newest tautomer-DISTRIBUTION run through its own Runs
+        combo (the button acts on the SELECTED run, so skipping this would run whatever was
+        showing). The cost question the button asks is answered by `OPENCHEM_DRIVE_MODAL=yes`,
+        and is in the log either way. What the SERVICE was handed is read off its own run
+        record and remembered for `tautomer_nmr_report`.
+        """
+        from openchem.ui.molecule_combo import select
+
+        panel = getattr(self._window, "_quantum_chemistry_panel", None)
+        if panel is None:
+            logger.error("OPENCHEM_DRIVE: tautomer_nmr_run -- no Quantum Chemistry panel on this window")
+            return
+        molecule_uuid = self._window._property_panel._selected_molecule_uuid
+        if not select(panel._molecule_combo, molecule_uuid):
+            logger.error("OPENCHEM_DRIVE: tautomer_nmr_run -- the selected molecule is not in the panel's combo")
+            return
+        combo = panel._runs_combo
+        for index in range(combo.count()):
+            if combo.itemText(index).startswith("Tautomer Distribution"):
+                combo.setCurrentIndex(index)
+                break
+        if step.get("method") is not None:
+            panel._method_combo.setCurrentText(str(step["method"]))
+        panel._tautomer_nmr_conformers_check.setChecked(bool(step.get("conformers", False)))
+        if not panel._tautomer_nmr_button.isEnabled():
+            from openchem.chem.tautomer_nmr import targets_from_distribution
+
+            active = panel._active_run
+            distribution = active.results.get("tautomer_distribution") if active is not None else None
+            problems = targets_from_distribution(distribution)[1] if distribution is not None else ["no distribution"]
+            logger.error(
+                "OPENCHEM_DRIVE: tautomer_nmr_run -- the Tautomer NMR button is DISABLED; not clicked "
+                "(active=%s pending=%s run_button=%s problems=%s entries=%s)",
+                getattr(active, "calc_type", None), panel._pending_molecule_uuid,
+                panel._run_button.isEnabled(), problems,
+                [
+                    {k: (bool(v) if k == "optimized_molblock" else v) for k, v in e.metadata.items()
+                     if k in ("optimized_molblock", "absolute_energy_hartree", "status", "fingerprint")}
+                    for e in (distribution.entries if distribution is not None else [])
+                ],
+            )
+            return
+        panel._tautomer_nmr_button.click()
+        run = panel._quantum_chemistry_service._tautomer_nmr_runs.get(molecule_uuid)
+        if run is None:
+            logger.error(
+                "OPENCHEM_DRIVE: tautomer_nmr_run -- no run was started; status=%r", panel._status_label.text()
+            )
+            return
+        logger.warning(
+            "OPENCHEM_DRIVE: tautomer_nmr_run submitted tautomers=%d parent=%s method=%r status=%r",
+            len(run.targets), run.parent_run_id, run.method_basis, panel._status_label.text(),
+        )
+
+    def _do_tautomer_nmr_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "tautomer_nmr_report", "tag": "after", "expect": {...}}` -- what the tautomer NMR
+        result put ON SCREEN, read off the widgets and the stored run, never off the service.
+
+        `expect` keys (each optional, each asserted):
+
+            "runs_label"        the Runs combo's current entry starts with this
+            "view_enabled"      the "View Tautomer NMR..." button state
+            "complete"          the stored result's `.complete`
+            "tautomers"         how many tautomer traces are drawn (separate peaks)
+            "average"           whether a fast-exchange average trace is drawn
+            "window"            True: the peaks opened in their own window (no own spectrum);
+                                False: they were drawn over the molecule's own NMR view
+
+        `"shot"` saves whatever shows the peaks (the window, else the panel) to a PNG.
+        """
+        from PySide6.QtWidgets import QApplication
+
+        from openchem.ui.widgets.nmr_spectrum_widget import NmrSpectrumWidget
+
+        panel = getattr(self._window, "_quantum_chemistry_panel", None)
+        if panel is None:
+            logger.error("OPENCHEM_DRIVE: tautomer_nmr_report -- no Quantum Chemistry panel")
+            return
+        tag = str(step.get("tag", ""))
+        problems: list[str] = []
+        window = getattr(panel, "_tautomer_nmr_window", None)
+        window_open = bool(window is not None and window.isVisible())
+        spectrum = window.findChild(NmrSpectrumWidget) if window_open else None
+        overlay = None
+        if spectrum is None and panel._nmr_view is not None:
+            spectrum = panel._nmr_view._spectrum_widget
+            overlay = panel._nmr_view.current_tautomer_overlay()
+        traces = spectrum.tautomer_traces() if spectrum is not None else []
+        drawn = spectrum.drawn_tautomer_traces() if spectrum is not None else []
+        run = panel._active_run
+        runs = [panel._runs_combo.itemText(i) for i in range(panel._runs_combo.count())]
+        stored = None
+        molecule = panel._current_molecule()
+        if molecule is not None and panel._result_store_service is not None:
+            for candidate in panel._result_store_service.qc_runs.runs_for(molecule.uuid):
+                if candidate.results.get("tautomer_nmr") is not None:
+                    stored = candidate.results["tautomer_nmr"]
+        report = {
+            "runs": runs,
+            "runs_current": panel._runs_combo.currentText(),
+            "view_enabled": panel._view_tautomer_nmr_button.isEnabled(),
+            "window_open": window_open,
+            "separate_traces": [t.label for t in traces if not t.is_average],
+            "average_trace": any(t.is_average for t in traces),
+            "drawn": len(drawn),
+            "complete": None if stored is None else stored.complete,
+            "entries": [] if stored is None else [
+                {"label": e.label, "ok": getattr(e, "failure", "") == "",
+                 "shifts": {
+                     f"{(e.spectrum.elements or {}).get(a, '?')}{a}": round(float(v), 2)
+                     for a, v in sorted((e.spectrum.values or {}).items())
+                 } if getattr(e, "spectrum", None) is not None else None}
+                for e in stored.entries
+            ],
+            "overlay_note": None if overlay is None else overlay.average_note,
+            "results_label": panel._results_label.text()[:240],
+            "status": panel._status_label.text()[:200],
+        }
+        logger.warning("OPENCHEM_DRIVE: tautomer_nmr_report[%s] %s", tag, json.dumps(report, default=str))
+
+        expect = step.get("expect") or {}
+        if "runs_label" in expect and not report["runs_current"].startswith(str(expect["runs_label"])):
+            problems.append(f"Runs combo shows {report['runs_current']!r}, wanted {expect['runs_label']!r}")
+        if "view_enabled" in expect and report["view_enabled"] != bool(expect["view_enabled"]):
+            problems.append(f"View button enabled={report['view_enabled']}, wanted {expect['view_enabled']}")
+        if "complete" in expect and report["complete"] != bool(expect["complete"]):
+            problems.append(f"stored result complete={report['complete']}, wanted {expect['complete']}")
+        if "tautomers" in expect and len(report["separate_traces"]) != int(expect["tautomers"]):
+            problems.append(f"{len(report['separate_traces'])} tautomer traces, wanted {expect['tautomers']}")
+        if "average" in expect and report["average_trace"] != bool(expect["average"]):
+            problems.append(f"average trace present={report['average_trace']}, wanted {expect['average']}")
+        if "window" in expect and window_open != bool(expect["window"]):
+            problems.append(f"own window open={window_open}, wanted {expect['window']}")
+        if expect.get("drawn") and not report["drawn"]:
+            problems.append("no tautomer trace is DRAWN, though the controls list some")
+
+        if step.get("shot"):
+            target = window if window_open else panel
+            target.grab().save(str(step["shot"]))
+            logger.warning("OPENCHEM_DRIVE: wrote %s", step["shot"])
+        if window_open and step.get("close_window"):
+            window.close()
+            QApplication.processEvents()
+
+        if self._record_assertion("tautomer_nmr_report", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT tautomer nmr ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT tautomer nmr FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
     def _do_dock_run(self, step: dict[str, Any]) -> None:
         """Press the Docking panel's Dock button, for real.
 

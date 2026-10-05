@@ -1630,6 +1630,39 @@ def test_spectrum_computed_populates_the_1d_signal_view(qapp):
     assert sorted(s.integration for s in panel._nmr_view.signals()) == [1, 2, 3]
 
 
+def test_a_stored_nmr_run_fills_the_1d_signal_view_from_its_3d_structure(qapp):
+    """A run chosen from the Runs combo has no 2D drawing, only the structure ORCA was given. The 1D tab used
+    to stay on its "No NMR signals" placeholder for it (a table under an empty tab), which also hid anything
+    drawn onto that view, such as tautomer peaks."""
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+
+    from openchem.domain.quantum_chemistry_run import QuantumChemistryRun, RunStatus
+
+    panel, engine, _service = _make_panel()
+    molecule = MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+    mol_3d = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    AllChem.EmbedMolecule(mol_3d, randomSeed=7)
+    project = ProjectModel(name="Test")
+    project.molecules.append(molecule)
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+    run = QuantumChemistryRun(
+        run_id="stored", molecule_uuid=molecule.uuid, calc_type="nmr", method_basis="HF STO-3G", charge=0,
+        multiplicity=1, calculation_input="geometry", input_fingerprint="f",
+        input_molblock=Chem.MolToMolBlock(mol_3d), status=RunStatus.COMPLETED,
+    )
+    run.results["spectrum"] = NMRSpectrumResult(
+        spectrum_type="nmr_calibrated", name="Chemical Shift", units="ppm", method="orca",
+        molecule_uuid=molecule.uuid, values={i: 1.0 + i for i in range(mol_3d.GetNumAtoms())},
+        elements={i: a.GetSymbol() for i, a in enumerate(mol_3d.GetAtoms())},
+    )
+    panel._render_run(run)
+    assert panel._nmr_view is not None
+    assert sorted(s.integration for s in panel._nmr_view.signals()) == [1, 2, 3]
+
+
 def _panel_with_conformers(count: int):
     """A molecule carrying `count` real embedded conformers, since the
     Boltzmann path only engages when there is more than one to average."""

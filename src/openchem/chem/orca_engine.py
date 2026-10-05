@@ -253,8 +253,10 @@ _CALC_TYPE_KEYWORDS = {
 }
 
 _SCF_ENERGY_RE = re.compile(r"FINAL SINGLE POINT ENERGY\s+(-?\d+\.\d+)")
+# ORCA's output has CRLF line ends on Windows, so every newline here is `\r?\n`: with a bare `\n` this found no
+# block at all and an optimized geometry was silently never read (found by a live tautomer-NMR run).
 _CARTESIAN_BLOCK_RE = re.compile(
-    r"CARTESIAN COORDINATES \(ANGSTROEM\)\n-+\n((?:\s*[A-Za-z]{1,2}(?:\s+-?\d+\.\d+){3}\n)+)"
+    r"CARTESIAN COORDINATES \(ANGSTROEM\)\r?\n-+\r?\n((?:\s*[A-Za-z]{1,2}(?:\s+-?\d+\.\d+){3}\r?\n)+)"
 )
 _ENTHALPY_RE = re.compile(r"Total [Ee]nthalpy\s+\.\.\.\s+(-?\d+\.\d+)")
 _ENTROPY_TERM_RE = re.compile(r"Final entropy term\s+\.\.\.\s+(-?\d+\.\d+)")

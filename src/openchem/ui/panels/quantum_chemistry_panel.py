@@ -1464,18 +1464,32 @@ class QuantumChemistryPanel(QWidget):
         runs = self._result_store_service.qc_runs.runs_for(molecule.uuid)
         if not runs:
             return
+        # A tautomer NMR result is drawn over the molecule's OWN spectrum (`_show_tautomer_nmr`), which is the
+        # run the panel is then showing. Making the new tautomer run "current" here would leave the combo
+        # naming one run over another run's content.
+        shown = self._active_run
+        keep_shown = (
+            runs[0].results.get("tautomer_nmr") is not None
+            and shown is not None
+            and shown.run_id != runs[0].run_id
+            and self._nmr_view is not None
+            and self._nmr_view.current_tautomer_overlay() is not None
+        )
+        current = runs[0]
         self._runs_combo.blockSignals(True)
         self._runs_combo.clear()
         for run in runs:
             self._runs_combo.addItem(self._run_label(run), run.run_id)
-        self._runs_combo.setCurrentIndex(0)
+            if keep_shown and run.run_id == shown.run_id:
+                current = run
+        self._runs_combo.setCurrentIndex(self._runs_combo.findData(current.run_id))
         self._runs_combo.blockSignals(False)
         self._set_runs_controls_enabled(True)
-        self._active_run = runs[0]
+        self._active_run = current
         self._view_tautomer_distribution_button.setEnabled(
-            runs[0].results.get("tautomer_distribution") is not None
+            current.results.get("tautomer_distribution") is not None
         )
-        self._update_tautomer_nmr_buttons(runs[0])
+        self._update_tautomer_nmr_buttons(current)
 
     def _run_label(self, run) -> str:
         when = time.strftime("%Y-%m-%d %H:%M", time.localtime(run.started_at))
@@ -2774,7 +2788,12 @@ class QuantumChemistryPanel(QWidget):
         """Populates the 1D signal view -- the same `NmrViewWidget` the
         Property Panel opens for the empirical estimator, so a real ORCA
         result and a SMARTS estimate are read the same way."""
-        if not self._pending_molblock:
+        # A HISTORICAL run has no 2D drawing (`_render_run` leaves `_pending_molblock` empty), only the 3D
+        # structure ORCA was given. That is a fine depiction source (same atoms, same order), and without it a
+        # stored NMR run showed a table under an EMPTY 1D tab -- found when tautomer peaks, drawn onto that
+        # view, were invisible behind its placeholder.
+        molblock = self._pending_molblock or self._pending_conformer_molblock
+        if not molblock:
             return
         if self._nmr_view is None:
             self._nmr_view = NmrViewWidget(self._chemistry_engine, parent=self._nmr_view_tab)
@@ -2787,9 +2806,7 @@ class QuantumChemistryPanel(QWidget):
                     parent=self._nmr_view_tab,
                 )
             )
-        self._nmr_view.set_spectrum(
-            self._pending_molblock, spectrum, self._pending_conformer_molblock or None
-        )
+        self._nmr_view.set_spectrum(molblock, spectrum, self._pending_conformer_molblock or None)
         self._fill_tab(self._nmr_view_tab)
         self._correlation_tabs.setVisible(True)
 
