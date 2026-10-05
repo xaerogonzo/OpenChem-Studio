@@ -199,11 +199,51 @@ def dispose(widget) -> None:
 
     Same shape as `OPENCHEM_CENSUS`: off by default, costing nothing, and
     the default is guarded so it cannot drift.
+
+    ## WEB VIEWS UNDER THE WIDGET ARE DESTROYED FIRST (2026-10-05)
+
+    **THIS IS THE WINDOWS CRASH THAT RED-STAMPED MOST PRs.** Measured over the 17 crashed
+    Windows suite runs of 2026-09-26..10-04: nine died at THIS flush, and the last
+    four on master/PRs died on the same test, `test_result_presentation.py::
+    test_one_dataset_renders_at_one_precision_everywhere`, in `_dispose(dialog)`
+    -- a `CalculatorInspectorDialog`, whose 3D viewer is a `QWebEngineView` that
+    was still loading its page. Deleting the dialog deletes that view as a CHILD,
+    in the middle of the parent's destructor, with Chromium mid-load.
+    `dispose_web_engine_views` already knew the safe order (stop the view, delete
+    it, flush it, on its own) but runs AFTER the test, by which time this call
+    had already destroyed it the unsafe way. The same order is applied here.
+
+    The isolated file never crashes (0 of 30 local runs), so the cause needs the
+    state a whole shard builds up; that is why this was found from the crash
+    stacks and not from a reproduction, and why its effect is measured on CI
+    (`docs/ARCHITECTURE.md`, Known TODOs) rather than assumed.
     """
+    _destroy_web_views_under(widget)
+    if not shiboken6.isValid(widget):  # the widget WAS a web view, and is gone
+        return
     widget.setParent(None)
     widget.deleteLater()
     if FLUSH_AT_DISPOSE:
         QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+
+
+def _destroy_web_views_under(widget) -> None:
+    """Stop, delete and flush every `QWebEngineView` that is `widget` or inside it, each on its
+    own and BEFORE the widget goes. A no-op until something has imported the web-engine module
+    (until then no view can exist, and importing it here would drag Chromium into the ~1000
+    tests that never touch one)."""
+    module = sys.modules.get("PySide6.QtWebEngineWidgets")
+    if module is None or not shiboken6.isValid(widget):
+        return
+    view_type = module.QWebEngineView
+    views = [widget] if isinstance(widget, view_type) else []
+    views += widget.findChildren(view_type)
+    for view in views:
+        if not shiboken6.isValid(view):
+            continue
+        view.stop()
+        view.deleteLater()
+        QCoreApplication.sendPostedEvents(view, QEvent.Type.DeferredDelete)
 
 
 # Weak refs to every QWebEngineView built since the current test started.
