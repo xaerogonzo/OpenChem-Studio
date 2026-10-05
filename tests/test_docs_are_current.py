@@ -492,6 +492,16 @@ def _plugins_registering_reactions(root: Path) -> list[str]:
 #: silently fall behind the document.
 DEFERRALS: list[Deferral] = [
     Deferral(
+        claim="the effect of the Windows dispose-crash fix has not been measured",
+        # Unbuilt until a measurement of the Windows crash rate is committed.
+        unbuilt=lambda: not (_ROOT / "benchmarks" / "windows_crash").exists(),
+        manual=(
+            "what would go stale is the measurement itself (the crash rate over many CI runs), which no "
+            "source-level count can see; eight of the seventeen classified crashes are not the dispose crash "
+            "and have no known cause"
+        ),
+    ),
+    Deferral(
         claim="a coordinate-only edit recomputes every result",
         unbuilt=lambda: "constitution" not in (_ROOT / "src/openchem/chem/calculation_input.py").read_text(encoding="utf-8").lower(),
         manual=(

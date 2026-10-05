@@ -1,7 +1,7 @@
 [
  {
   "file": "tests/conftest.py",
-  "line": 200,
+  "line": 227,
   "subject": "widget",
   "names": [
    "sendPostedEvents"
@@ -13,7 +13,7 @@
  },
  {
   "file": "tests/conftest.py",
-  "line": 296,
+  "line": 244,
   "subject": "view",
   "names": [
    "stop",
@@ -29,7 +29,23 @@
  },
  {
   "file": "tests/conftest.py",
-  "line": 418,
+  "line": 342,
+  "subject": "view",
+  "names": [
+   "stop",
+   "deleteLater",
+   "sendPostedEvents"
+  ],
+  "steps": [
+   "stop()",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/conftest.py",
+  "line": 507,
   "subject": "view",
   "names": [
    "stop",
@@ -47,7 +63,7 @@
  },
  {
   "file": "tests/conftest.py",
-  "line": 115,
+  "line": 121,
   "subject": "obj",
   "names": [
    "sendPostedEvents"
@@ -87,7 +103,7 @@
  },
  {
   "file": "tests/test_property_panel_long_values.py",
-  "line": 489,
+  "line": 431,
   "subject": "parent",
   "names": [
    "deleteLater",
