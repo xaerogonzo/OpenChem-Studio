@@ -105,10 +105,24 @@ jobs:
           git config user.name "crash-rate"
           foreach ($sha in ($env:REVERT -split '\s+' | Where-Object { $_ })) {
             git revert --no-commit --no-edit $sha
-            if ($LASTEXITCODE -ne 0) { throw "could not revert $sha cleanly" }
+            if ($LASTEXITCODE -ne 0) {
+              # A revert of a code change conflicts in the PROSE written about it afterwards (docs, the
+              # changelog), which cannot change what the suite does. Keep the current text there; a conflict
+              # in anything that runs (src, tests, tools, benchmarks, packaging) is real and stops the leg.
+              $unmerged = @(git diff --name-only --diff-filter=U)
+              $code = $unmerged | Where-Object { $_ -match '^(src|tests|tools|benchmarks|packaging)/' }
+              if ($code) { throw "could not revert $sha cleanly; conflicts in code: $($code -join ', ')" }
+              foreach ($file in $unmerged) {
+                git checkout --ours -- $file
+                git add -- $file
+                Write-Host "kept the current $file (revert conflict in prose only)"
+              }
+            }
             Write-Host "reverted $sha"
           }
           git status --short
+          # The arm exists only if the change under test is really gone: say what differs from HEAD.
+          git diff --cached --stat HEAD | Select-Object -Last 8
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
@@ -137,7 +151,7 @@ jobs:
           $watch = [Diagnostics.Stopwatch]::StartNew()
           ./tools/ci_suite_shard.ps1 -Shard $env:SHARD -Log suite-attempt-1.log -NetworkTest "$env:NETWORK_TEST"
           $code = $LASTEXITCODE
-          $out = ./tools/ci_classify_crash.ps1 -Log suite-attempt-1.log -Shard $env:SHARD
+          $out = ./tools/ci_classify_crash.ps1 -Log suite-attempt-1.log -Shard $env:SHARD -ExitCode $code
           $crashed = if ($out -contains 'crashed=true') { 'true' } else { 'false' }
           $detail = ($out | Where-Object { $_ -like 'detail=*' } | Select-Object -First 1)
           if ($detail) { $detail = $detail.Substring(7) } else { $detail = '' }

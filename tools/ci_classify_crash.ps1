@@ -8,7 +8,14 @@
 # Prints `crashed=true|false` (for $GITHUB_OUTPUT), and, for a crash, the lines that identify the
 # victim. Those are what measure the crash rate over time, which is the only way to learn whether
 # any fix worked: the crash cannot be reproduced locally.
-param([Parameter(Mandatory)][string]$Log, [int]$Shard = 0)
+#
+# `-ExitCode` (optional, only the measurement workflow passes it) adds the OTHER shape of the same crash:
+# pytest printed a CLEAN summary (nothing failed, nothing errored) and the process still exited non-zero,
+# with no fatal-exception text at all -- measured on windows-crash-rate run 37356155136, leg 5: "6535 passed
+# ... in 1322.04s", exit 1. That is a crash at interpreter exit, and without this it was filed as an
+# ordinary failure and the crash rate came out low. The retry in tests.yml does not pass it, so what CI
+# retries is unchanged.
+param([Parameter(Mandatory)][string]$Log, [int]$Shard = 0, [int]$ExitCode = 0)
 
 if (-not (Test-Path -LiteralPath $Log)) { Write-Output "crashed=false"; exit 0 }
 $text = Get-Content -LiteralPath $Log -Raw
@@ -17,6 +24,14 @@ $reported = [regex]::Matches($text, '(?m)^(FAILED|ERROR) ').Count
 $summary = [regex]::IsMatch($text, '(?m)^\d+ (passed|failed|error)[^\r\n]* in [\d.]+s')
 
 $crashed = $fatal.Success -and ($reported -eq 0) -and (-not $summary)
+
+$summaryLine = [regex]::Match($text, '(?m)^\d+ (passed|failed|error)[^\r\n]* in [\d.]+s[^\r\n]*')
+$cleanSummary = $summary -and ($summaryLine.Value -notmatch '\b(failed|errors?)\b')
+if (-not $crashed -and $ExitCode -ne 0 -and $cleanSummary -and ($reported -eq 0)) {
+    Write-Output "crashed=true"
+    Write-Output "detail=shard $Shard exited with code $ExitCode after a clean pytest summary ($($summaryLine.Value.Trim())); a crash at interpreter exit"
+    exit 0
+}
 Write-Output "crashed=$($crashed.ToString().ToLower())"
 if (-not $crashed) { exit 0 }
 

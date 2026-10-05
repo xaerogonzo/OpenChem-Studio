@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### CI: the crash measurement's first run, and two defects in the instrument
+
+- First dispatch of `windows-crash-rate.yml` (run 37356155136, shard 1, master, 10 legs per arm): **the whole control arm failed**, because reverting #197 conflicts in `docs/ARCHITECTURE.md` (that section was edited after the fix). A revert conflict in prose (docs, changelog) now keeps the current text; a conflict in anything that runs still stops the leg.
+- **A crash that exits non-zero after a CLEAN pytest summary was counted as an ordinary failure** (leg 5: "6535 passed ... in 1322.04s", exit 1, no fatal-exception text), so the rate read low. `ci_classify_crash.ps1` takes an optional `-ExitCode` and calls that shape a crash; only the measurement passes it, so what the CI retry retries is unchanged.
+- What the as-is arm showed (informational; it is one arm, so it is a rate and not a comparison): 10 legs, 7 passed, **2 crashed at 5% after about 80 s with no frame outside pytest, 1 crashed at exit**; none at the `conftest.dispose` flush #197 targets. The early 5% crash is the unexplained kind the Known-TODOs item records.
+
 ### CI: a way to measure the Windows crash, on demand
 
 - **`windows-crash-rate.yml`** (manual dispatch only) runs one Windows shard N times per arm, each leg a single attempt with NO retry, and **`tools/crash_rate.py`** reports crashed / failed / passed per arm with a Wilson interval and, for two arms, Fisher's exact p. The control arm is the same tree with named commits reverted (`-f revert=655abcc9` for the dispose fix), so both arms run the same files in the same pinned shard. A leg that never reports is shown as MISSING and kept out of the denominator; a real test failure is reported but never counted as a crash. This is the only way to learn whether a change to the access violation did anything: it cannot be reproduced locally and three green pushes at a ~50% rate happen by chance one time in eight. Not run yet; the Known-TODOs item for the dispose fix stays OPEN until a measurement is committed.

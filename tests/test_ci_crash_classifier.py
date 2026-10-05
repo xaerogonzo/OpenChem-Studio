@@ -97,3 +97,44 @@ def test_the_workflow_wires_the_retry_and_keeps_each_attempts_budget():
     # The pytest invocation, and so the network deselection, lives in ONE place: the shard script.
     assert "-m pytest" not in code
     assert "NetworkTest" in (ROOT / "tools" / "ci_suite_shard.ps1").read_text(encoding="utf-8")
+
+
+# --- the crash that exits non-zero AFTER a clean summary (measurement only: -ExitCode) --------------------
+
+
+def classify_with_exit(tmp_path, text: str, exit_code: int) -> list[str]:
+    log = tmp_path / "attempt.log"
+    log.write_text(text, encoding="utf-8")
+    done = subprocess.run(
+        [PWSH, "-NoProfile", "-File", str(SCRIPT), "-Log", str(log), "-Shard", "1", "-ExitCode", str(exit_code)],
+        capture_output=True, text=True, timeout=120, check=True,
+    )
+    return [line for line in done.stdout.splitlines() if line.strip()]
+
+
+def test_a_clean_summary_with_a_nonzero_exit_is_a_crash_at_exit(tmp_path):
+    """Measured on windows-crash-rate run 37356155136, leg 5: '6535 passed ... in 1322.04s', exit 1, and no
+    fatal-exception text. Filed as an ordinary failure, it made the crash rate read low."""
+    out = classify_with_exit(tmp_path, PROGRESS + SUMMARY_PASS, 1)
+    assert out[0] == "crashed=true"
+    assert "exited with code 1 after a clean pytest summary" in out[1]
+    assert "6400 passed" in out[1]
+
+
+@pytest.mark.parametrize(
+    ("name", "text", "exit_code"),
+    [
+        ("a clean pass with a clean exit", PROGRESS + SUMMARY_PASS, 0),
+        ("a real failure, which exits non-zero by design", PROGRESS + SUMMARY_FAIL, 1),
+        ("an error-only summary", PROGRESS + "FAILED tests/test_a.py::t - x\n" + "1 error, 6400 passed in 9.00s\n", 1),
+        ("a failed test reported, clean-looking count line", PROGRESS + "FAILED tests/test_a.py::t - x\n" + SUMMARY_PASS, 1),
+        ("a timeout kill: no summary at all", TIMEOUT, 1),
+    ],
+)
+def test_a_nonzero_exit_is_a_crash_only_after_a_clean_summary(tmp_path, name, text, exit_code):
+    assert classify_with_exit(tmp_path, text, exit_code) == ["crashed=false"], name
+
+
+def test_without_an_exit_code_the_ci_retry_classifier_is_unchanged(tmp_path):
+    """tests.yml does not pass -ExitCode, so what CI retries must stay exactly the narrow fatal-exception shape."""
+    assert classify(tmp_path, PROGRESS + SUMMARY_PASS) == ["crashed=false"]
