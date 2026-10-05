@@ -18,7 +18,7 @@ in `conftest.dispose`, and
 keeps it that way. Everything else here is a sequence that is not
 that recipe and was deliberately left alone.
 
-- sequences: **7**
+- sequences: **8**
 - distinct sequences: **5**
 - files: **3**
 
@@ -29,18 +29,19 @@ that recipe and was deliberately left alone.
 
 ## 2x  sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)
 
-- `tests/conftest.py:115` (`obj`)
-- `tests/conftest.py:200` (`widget`)
+- `tests/conftest.py:121` (`obj`)
+- `tests/conftest.py:227` (`widget`)
+
+## 2x  stop()  ->  deleteLater()  ->  sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)
+
+- `tests/conftest.py:244` (`view`)
+- `tests/conftest.py:342` (`view`)
 
 ## 1x  deleteLater()  ->  sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)
 
-- `tests/test_property_panel_long_values.py:489` (`parent`)
-
-## 1x  stop()  ->  deleteLater()  ->  sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)
-
-- `tests/conftest.py:296` (`view`)
+- `tests/test_property_panel_long_values.py:431` (`parent`)
 
 ## 1x  stop()  ->  setParent(None)  ->  deleteLater()  ->  sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)
 
-- `tests/conftest.py:418` (`view`)
+- `tests/conftest.py:507` (`view`)
 
