@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### CI: a way to measure the Windows crash, on demand
+
+- **`windows-crash-rate.yml`** (manual dispatch only) runs one Windows shard N times per arm, each leg a single attempt with NO retry, and **`tools/crash_rate.py`** reports crashed / failed / passed per arm with a Wilson interval and, for two arms, Fisher's exact p. The control arm is the same tree with named commits reverted (`-f revert=655abcc9` for the dispose fix), so both arms run the same files in the same pinned shard. A leg that never reports is shown as MISSING and kept out of the denominator; a real test failure is reported but never counted as a crash. This is the only way to learn whether a change to the access violation did anything: it cannot be reproduced locally and three green pushes at a ~50% rate happen by chance one time in eight. Not run yet; the Known-TODOs item for the dispose fix stays OPEN until a measurement is committed.
+
 ### CI: a test file keeps its shard when another file is added
 
 - `tools/suite_shards.py` re-packed every file by timing, so adding one test file moved about fifty others between the two Windows shards: each PR ran a shard combination master had never run, and master's green history said nothing about it (it muddied every "is this crash the flake?" question). Each file's shard is now PINNED in `tools/suite-shard-pins.json` (generated to reproduce the current split exactly: both shards' file lists are byte-identical before and after). A file with no pin is packed onto the lighter shard, which moves no pinned file; the set partitioned is still read from disk, so a new or unpinned file still runs. `--repin --splits=2` re-packs everything from the current weights, as a PR of its own. Guards: adding files moves no other file (with a control showing the unpinned packer does), stale or missing pins are bounded, balance within 25%.
