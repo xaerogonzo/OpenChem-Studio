@@ -778,6 +778,10 @@ class _RecordingService:
     def run_calculator(self, model, request) -> None:
         self.requests.append(request)
 
+    def preflight(self, model, calculator_id) -> str:
+        """No pre-flight claim: the panel asks, and this double dispatches nothing."""
+        return ""
+
     @property
     def requested_by_the_button(self) -> list:
         """Everything except the identity card's own dispatch.
