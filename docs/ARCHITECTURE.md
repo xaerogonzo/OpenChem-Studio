@@ -2250,7 +2250,12 @@ document may cite a file or a test that does not exist.
   (`tests/test_dispose_helper.py`). The remaining eight crashes are NOT this: two at 5-6% of
   shard 1 show no test frame at all, others sit in panel construction, and none of those is
   explained. The isolated file never crashes (0/30), so the effect of the fix has to be read
-  from CI over many runs, not from one green one. This is the WINDOWS suite, so the Linux
+  from CI over many runs, not from one green one. **The instrument exists, the measurement has
+  not been run:** `windows-crash-rate.yml` (manual dispatch) runs one shard N times per arm, one
+  attempt each with no retry, and `tools/crash_rate.py` reports the rate, a Wilson interval and
+  Fisher's exact p; the control arm is the SAME tree with the fix reverted
+  (`gh workflow run windows-crash-rate.yml -f revert=655abcc9 -f replicas=10`). Commit the report
+  under `benchmarks/windows_crash/` and close this item. This is the WINDOWS suite, so the Linux
   decision below does not apply to it.
 - **DECISION** -- the Linux CI suite crashes part-way through, and the
   investigation is CLOSED rather than solved. Measured 2026-09-12 from
