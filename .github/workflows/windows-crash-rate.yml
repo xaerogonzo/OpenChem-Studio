@@ -1,0 +1,193 @@
+# MEASURE THE WINDOWS ACCESS-VIOLATION CRASH, ON DEMAND.
+#
+# `workflow_dispatch` ONLY. It never runs on push or pull_request: it spends N Windows legs of ~20
+# minutes each, and it exists to be asked a question, not to gate anything.
+#
+# THE QUESTION. The Windows suite shards die with an access violation and no failed test on about
+# half of first attempts, and the crash cannot be reproduced locally. A change aimed at it (the
+# `conftest.dispose` web-view teardown, #197) therefore cannot be judged from the pushes that happen
+# to follow it: at a rate near 50%, three green pushes occur by chance one time in eight. This
+# workflow samples ONE shard N times per arm, each leg a single attempt with NO RETRY (a retry would
+# hide the very event being counted), and `tools/crash_rate.py` turns the legs into a rate, a Wilson
+# interval and, for two arms, Fisher's exact p.
+#
+# THE ARMS. "as-is" is `ref` exactly. If `revert` names commits, a second arm "reverted" is the SAME
+# tree with those commits reverted -- same test files, same pinned shard (`tools/suite-shard-pins.json`),
+# differing only by the change under test. That is the control a before/after comparison across two
+# different refs cannot give, because two refs also differ in which test files exist.
+#
+#     gh workflow run windows-crash-rate.yml -f ref=master -f shard=1 -f replicas=10 -f revert=655abcc9
+#
+# CHOOSE `replicas` BEFORE RUNNING and do not extend the run until the p-value crosses 0.05. To see a
+# 50% -> 10% change at all, 10 per arm is about the minimum; the report says plainly when the result
+# is too small to tell. COST: arms x replicas Windows legs, ~20 minutes each (windows-latest bills at
+# twice the Linux rate on private repositories).
+#
+# NOT A GATE: nothing here is required, and a leg that crashes is the measurement, not a failure.
+# Every leg exits 0 once its outcome is recorded, so the report always runs.
+
+name: Windows crash rate
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch, tag or SHA to measure'
+        default: 'master'
+      shard:
+        description: 'Which of the 2 Windows shards to run (1 holds most of the crashes seen)'
+        default: '1'
+      replicas:
+        description: 'Legs PER ARM, fixed before the run (10 is about the minimum to see 50% -> 10%)'
+        default: '10'
+      revert:
+        description: 'Optional: space-separated SHAs to revert for a "reverted" control arm (e.g. 655abcc9)'
+        default: ''
+
+permissions:
+  contents: read
+
+env:
+  NETWORK_TEST: tests/test_naming_providers.py::test_pubchem_name_round_trips_back_through_opsin
+
+jobs:
+  plan:
+    name: plan the legs
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      expected: ${{ steps.plan.outputs.expected }}
+    steps:
+      - name: Build the leg matrix
+        id: plan
+        env:
+          REPLICAS: ${{ inputs.replicas }}
+          REVERT: ${{ inputs.revert }}
+          SHARD: ${{ inputs.shard }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          replicas = int(os.environ["REPLICAS"])
+          if not 1 <= replicas <= 30:
+              raise SystemExit("replicas must be between 1 and 30")
+          if os.environ["SHARD"] not in ("1", "2"):
+              raise SystemExit("shard must be 1 or 2")
+          arms = ["as-is"] + (["reverted"] if os.environ["REVERT"].strip() else [])
+          matrix = {"include": [{"arm": a, "replica": r} for a in arms for r in range(1, replicas + 1)]}
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write("matrix=" + json.dumps(matrix) + "\n")
+              out.write("expected=" + json.dumps({a: replicas for a in arms}) + "\n")
+          print(f"{len(matrix['include'])} legs across {arms}")
+          PY
+
+  leg:
+    name: ${{ matrix.arm }} #${{ matrix.replica }}
+    needs: plan
+    runs-on: windows-latest
+    timeout-minutes: 45
+    strategy:
+      # An experiment whose sample size depends on its own outcome measures nothing.
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+
+      - name: Revert the change under test (control arm only)
+        if: matrix.arm == 'reverted'
+        shell: pwsh
+        env:
+          REVERT: ${{ inputs.revert }}
+        run: |
+          git config user.email "crash-rate@example.invalid"
+          git config user.name "crash-rate"
+          foreach ($sha in ($env:REVERT -split '\s+' | Where-Object { $_ })) {
+            git revert --no-commit --no-edit $sha
+            if ($LASTEXITCODE -ne 0) { throw "could not revert $sha cleanly" }
+            Write-Host "reverted $sha"
+          }
+          git status --short
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install Java (for OPSIN)
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Sync dependencies
+        run: uv sync --extra ai --extra network --extra openbabel
+
+      # ONE attempt, no retry, exit 0 whatever happened: the outcome is the measurement.
+      - name: Run the shard once and record how it ended
+        shell: pwsh
+        timeout-minutes: 35
+        env:
+          SHARD: ${{ inputs.shard }}
+          REF_INPUT: ${{ inputs.ref }}
+          ARM: ${{ matrix.arm }}
+          REPLICA: ${{ matrix.replica }}
+        run: |
+          $watch = [Diagnostics.Stopwatch]::StartNew()
+          ./tools/ci_suite_shard.ps1 -Shard $env:SHARD -Log suite-attempt-1.log -NetworkTest "$env:NETWORK_TEST"
+          $code = $LASTEXITCODE
+          $out = ./tools/ci_classify_crash.ps1 -Log suite-attempt-1.log -Shard $env:SHARD
+          $crashed = if ($out -contains 'crashed=true') { 'true' } else { 'false' }
+          $detail = ($out | Where-Object { $_ -like 'detail=*' } | Select-Object -First 1)
+          if ($detail) { $detail = $detail.Substring(7) } else { $detail = '' }
+          uv run --no-sync python tools/crash_rate.py leg `
+            --arm "$env:ARM" --replica "$env:REPLICA" `
+            --exit-code $code --crashed $crashed --seconds $watch.Elapsed.TotalSeconds `
+            --detail "$detail" --ref "$env:REF_INPUT" --out leg.json
+          Get-Content leg.json
+          exit 0
+
+      - name: Publish this leg
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crash-leg-${{ matrix.arm }}-${{ matrix.replica }}
+          path: leg.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Keep a crashed leg's log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crash-log-${{ matrix.arm }}-${{ matrix.replica }}
+          path: suite-attempt-1.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+  report:
+    name: crash rate report
+    needs: [plan, leg]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: crash-leg-*
+          path: legs
+          merge-multiple: false
+
+      - name: Summarise
+        env:
+          EXPECTED: ${{ needs.plan.outputs.expected }}
+        run: |
+          python3 tools/crash_rate.py report legs --expected "$EXPECTED" | tee crash-rate.md >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: crash-rate-report
+          path: crash-rate.md
+          retention-days: 90
