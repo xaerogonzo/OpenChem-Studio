@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Ctrl+wheel zooms along x around the cursor, Shift+wheel pans, a double-click resets, and a plain wheel still scrolls the page, as on the line chart. A stick outside the window is neither drawn nor clickable; a zoomed histogram rescales its count axis to the bins in view. The stick chart keeps the whole chart's y scale, so a weak region is not blown up to look strong. The histogram's count axis also stopped repeating a label ("1, 0, 0" for a tallest bin of 1).
 
+### CI: the crash measurement's first run, and two defects in the instrument
+
+- First dispatch of `windows-crash-rate.yml` (run 37356155136, shard 1, master, 10 legs per arm): **the whole control arm failed**, because reverting #197 conflicts in `docs/ARCHITECTURE.md` (that section was edited after the fix). A revert conflict in prose (docs, changelog) now keeps the current text; a conflict in anything that runs still stops the leg.
+- **A crash that exits non-zero after a CLEAN pytest summary was counted as an ordinary failure** (leg 5: "6535 passed ... in 1322.04s", exit 1, no fatal-exception text), so the rate read low. `ci_classify_crash.ps1` takes an optional `-ExitCode` and calls that shape a crash; only the measurement passes it, so what the CI retry retries is unchanged.
+- What the as-is arm showed (informational; it is one arm, so it is a rate and not a comparison): 10 legs, 7 passed, **2 crashed at 5% after about 80 s with no frame outside pytest, 1 crashed at exit**; none at the `conftest.dispose` flush #197 targets. The early 5% crash is the unexplained kind the Known-TODOs item records.
+
 ### Click-to-cycle bonds now works with any atom tool armed
 
 - Settings > Drawing > "A click on a bond cycles its order" worked only in the Select tool, which is rarely the tool you are in when you want to fix a bond. It now also works with **any element's atom tool** armed (C, N, O, ...), as in Marvin: keep the element, click a bond, single -> double -> triple. The bond tool already cycled natively and is untouched. Still off by default. In an atom tool the press is withheld from Ketcher together with its release and click (without that the edit does not stick). Atoms under the pointer still belong to the atom tool. `benchmarks/visual/bond_click_cycle.json` gains N and O rows; the ketcher bundle is rebuilt. **Not yet confirmed with a real mouse in an atom tool** (the driven check dispatches the events inside the page).
