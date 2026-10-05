@@ -1346,14 +1346,30 @@ def compute_gasteiger_charge_at_ph(
             )
         charges, every_atom = computed
         formal = Chem.GetFormalCharge(protonated)
-        # CONSERVATION, CHECKED RATHER THAN ASSUMED. A dropped or doubled
-        # hydrogen in the folding above would still produce plausible
-        # numbers; it would not produce the right sum.
-        if abs(every_atom - formal) > _MMFF_CONSERVATION_TOLERANCE or (
-            include_hydrogens and abs(sum(charges.values()) - formal) > _MMFF_CONSERVATION_TOLERANCE
-        ):
+        # CONSERVATION, CHECKED RATHER THAN ASSUMED. TWO DIFFERENT SUMS, TWO
+        # DIFFERENT VERDICTS. `every_atom` is MMFF94's own raw output, which
+        # nothing in this application touches: when IT misses the formal charge
+        # the METHOD has failed on this structure (a drawn carbanion sums to 0
+        # on a charge of -1, measured on cyclopentadienide, methyl anion,
+        # acetylide and an enolate carbon), and that is a limit like an
+        # untypable atom, not a fault. The FOLDED sum is this application's own
+        # arithmetic: a dropped or doubled hydrogen there would still produce
+        # plausible numbers but not the right sum, and that stays a bug.
+        if abs(every_atom - formal) > _MMFF_CONSERVATION_TOLERANCE:
+            return PerAtomDataset(
+                property_id="gasteiger_charge_at_ph", name=name, units="e",
+                method="rdkit-mmff94+dimorphite_dl", molecule_uuid=molecule_uuid,
+                cache_state=CacheState.FAILED, inapplicable=True,
+                error=(
+                    f"MMFF94 charges sum to {every_atom:+.6f} on a species of formal charge "
+                    f"{formal:+d}: its charge scheme does not conserve the charge of this structure."
+                ),
+                error_summary="Not covered by MMFF94",
+            )
+        if include_hydrogens and abs(sum(charges.values()) - formal) > _MMFF_CONSERVATION_TOLERANCE:
             raise ValueError(
-                f"MMFF94 charges sum to {every_atom:+.6f} on a species of formal charge {formal:+d}"
+                f"MMFF94 folded charges sum to {sum(charges.values()):+.6f} on a species of "
+                f"formal charge {formal:+d}"
             )
         total = declare_total(every_atom, "Net calculated charge", units="e")
         if not include_hydrogens:

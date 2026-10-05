@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### MMFF94 pH charges: a carbanion is a limit of the method, not a fault
+
+- MMFF94's own charges sum to 0 on a drawn carbanion (formal charge -1): measured on cyclopentadienide, methyl anion, acetylide and an enolate carbon. The conservation check treated that as a bug in this application and raised `ValueError`, which read as a fault. The raw sum is MMFF94's own output, so a miss there now returns "Not covered by MMFF94" like an untypable atom; the check on the folded (implicit-hydrogen) sum, which IS this application's arithmetic, still raises. Ionic ferrocene, where this was first seen, is refused earlier now by the parent rule, so the carbanion is the case that reaches it.
+
 ### Nitroguanidine's NH2 is no longer counted as a base
 
 - `BASIC_AMINE_SMARTS` (the one definition behind logD, solubility, the pH curves and the hERG checklist) excludes an amine on an sp2 carbon whose other nitrogen carries a nitro group: the lone pair is delocalised into a nitroimine, and nitroguanidine's conjugate acid has pKa about -0.9. An ordinary guanidine, an aminal beside a nitramine, and a real amine elsewhere on a nitroguanidine all keep their count (tests). Census cells that moved, exactly three and all for nitroguanidine: isoelectric point and pKa microspecies `Needs setup` -> `Limit` (nothing to ionise), solubility `Needs setup` -> `Ready`. Whether ESOL's number is plausible for it is a separate, still-open question.
