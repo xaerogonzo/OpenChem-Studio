@@ -428,7 +428,9 @@ def model_logs0(mol: Chem.Mol, model: str, interpreter_path: str | None = None) 
     """The chosen model's raw logS0, or why it could not be had.
 
     ESOL needs nothing and cannot be unavailable. AqSolDB runs in the ADMET
-    sidecar and takes roughly 300 s, so it is never the default.
+    sidecar: measured 2026-10-05 at ~14 s per call once warm and ~64 s for the
+    first (a fresh process loads the model each call), so ESOL is the default
+    baseline. This said "roughly 300 s" before; that was never measured.
     """
     if model == ESOL:
         return ModelEstimate(model=ESOL, status=ModelStatus.AVAILABLE, logs0=esol_logs(mol))

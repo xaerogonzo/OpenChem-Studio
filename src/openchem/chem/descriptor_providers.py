@@ -1729,10 +1729,10 @@ def compute_logd(
     from openchem.chem.logd import classify_ionizable_centres, logd_from_microspecies, logd_from_pkas
     from openchem.chem.pka_providers import (
         IonizationCrossCheck,
-        compute_pka,
+        PKaStatus,
         cross_check_lines,
         cross_check_record,
-        pka_predictor_available,
+        predicted_pkas,
     )
     from openchem.chem.ph_curves import ph_grid_from
     from openchem.domain.calculator_taxonomy import category_for
@@ -1770,6 +1770,15 @@ def compute_logd(
     # Only the Henderson-Hasselbalch branch has pkasolver's predictions to
     # set against the species; the other two say why nothing was compared.
     cross_check = IonizationCrossCheck(status="not configured")
+    # Asked only when there is something to ionise: a molecule with no centre
+    # has logD == logP whatever the predictor would say, and need not wait on it.
+    resolution = predicted_pkas(mol, interpreter_path) if (acids or bases) else None
+    if resolution is not None and resolution.status is PKaStatus.FAILED:
+        return ReportResult(
+            report_id="logd", name="LogD", molecule_uuid=molecule_uuid, category="lipophilicity",
+            provenance=Provenance(created_by="core", method="pkasolver"),
+            cache_state=CacheState.FAILED, error=resolution.reason,
+        )
     if acids == 0 and bases == 0:
         method = "rdkit"
         facts.append(fact(
@@ -1781,15 +1790,12 @@ def compute_logd(
             lambda _x: logp,
             "LogD vs pH - no modelled ionizable centre, so logD is pH-independent under this method",
         ),)
-    elif pka_predictor_available(interpreter_path):
-        try:
-            predictions = compute_pka(mol, interpreter_path) or []
-        except RuntimeError as exc:
-            return ReportResult(
-                report_id="logd", name="LogD", molecule_uuid=molecule_uuid, category="lipophilicity",
-                provenance=Provenance(created_by="core", method="pkasolver"),
-                cache_state=CacheState.FAILED, error=str(exc),
-            )
+    elif resolution.status is PKaStatus.FOUND:
+        from openchem.chem.pka_providers import compute_pka
+
+        # The predictions themselves (kept by `compute_pka`), for the
+        # cross-check, which needs their sites and not just their values.
+        predictions = compute_pka(mol, interpreter_path) or []
         pkas = [p.value for p in predictions]
         # BESIDE the number, never inside it: the scalar and the curve below
         # read `pkas` exactly as before, and this only says where the
@@ -1816,10 +1822,20 @@ def compute_logd(
         )
     else:
         value = logd_from_microspecies(mol, ph)
+        # TWO REASONS FOR THIS BRANCH, AND ONLY ONE IS FIXED BY SETTING UP
+        # pkasolver. A configured predictor that returned no pKa for this
+        # structure used to fall into Henderson-Hasselbalch with an empty list
+        # and report logP -- for a basic amine, a number that is too high.
+        if resolution.status is PKaStatus.NO_PREDICTION:
+            remedy = (
+                "pkasolver ran but has no pKa for this structure, so there is nothing for "
+                "Henderson-Hasselbalch to use."
+            )
+        else:
+            remedy = "configure a pkasolver environment in Tools > External Tools for real numeric pKa."
         approximation = (
             "Approximation: LogP of the dominant microspecies at this pH (Dimorphite-DL), "
-            "not true Henderson-Hasselbalch logD \u2014 configure a pkasolver environment in "
-            "Tools > External Tools for real numeric pKa."
+            f"not true Henderson-Hasselbalch logD \u2014 {remedy}"
         )
         facts.append(fact(
             f"LogD at pH {ph:g} (approximation)", value, f"{value:.2f}",
@@ -2937,10 +2953,15 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
                 name="solvent", label="Solvent", kind="choice",
                 default="water", choices=solvent_choices(),
             ),
-            # Costs ~6 s when the ADMET sidecar is configured, and nothing
-            # at all when it is not. On by default because two independent
-            # models disagreeing by half a log unit is the most useful
-            # thing on the panel; switchable because it is not free.
+            # Costs a second sidecar process when the ADMET environment is
+            # configured -- MEASURED 2026-10-05 at ~14 s for a warm call and ~64 s
+            # for the first, each call loading the model afresh (while a test run
+            # shared the machine) -- and nothing at all when it is not. This
+            # comment used to say ~6 s and `model_logs0` said ~300 s; neither was
+            # measured. It adds ONE row ("Model disagreement", advanced detail)
+            # and changes no number. On by default because two independent models
+            # disagreeing by half a log unit is the most useful thing on the
+            # panel; switchable because it is not free.
             CalculatorParameter(
                 name="compare_models", label="Compare against the other model",
                 kind="bool", default=True,
