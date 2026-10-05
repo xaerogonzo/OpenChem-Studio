@@ -1128,6 +1128,49 @@ class SolubilityAnalysis:
         )
 
 
+#: **ESOL IS NOT DEFINED FOR AN N-NITRO OR NITRATE-ESTER GROUP, AND THAT WAS MEASURED.** ESOL is built on
+#: Crippen logP, and Crippen gives these groups a logP that is far too low (RDX -1.65, PETN -1.19), so
+#: ESOL reads a sparingly soluble explosive as freely soluble. Against the CRC Handbook's aqueous
+#: solubilities [source:crc_handbook] (97th ed., Table 5-153, mass% at the stated temperature, taken
+#: as g/kg ~ g/L), ESOL's logS minus the tabulated one:
+#:
+#:     RDX 25 C            +3.60      nitroglycerin 25 C        +1.79
+#:     PETN 20 C           +4.30      isosorbide dinitrate 25 C +2.14
+#:     nitroguanidine 25 C +1.51      tetryl 20 C               +1.07
+#:
+#: against -0.97 to +0.61 for the three aromatic C-nitro controls from the same table (TNT, picric
+#: acid, 1,3,5-trinitrobenzene). `tests/test_solubility.py` re-derives the table. SIX compounds in two
+#: families, every one overpredicted by more than a log unit and five by 1.5 or more; so the statement
+#: is "ESOL is outside its domain here", NOT a fitted correction or a threshold.
+#:
+#: A nitro group on CARBON is not in this set (nitromethane, TNT and picric acid are fine).
+_ESOL_OUTSIDE_DOMAIN = (
+    ("an N-nitro group (a nitramine or nitroguanidine)", Chem.MolFromSmarts("[#7;!a]-[N+](=O)[O-]")),
+    ("a nitrate ester", Chem.MolFromSmarts("[#6]-[OX2]-[N+](=O)[O-]")),
+)
+
+#: The coded limit for it. Registered in `domain.refusal_kinds._LIMIT_CODES`.
+ESOL_OUTSIDE_DOMAIN = "ESOL_OUTSIDE_DOMAIN"
+
+
+def esol_domain_problem(mol: Chem.Mol) -> str:
+    """Why ESOL cannot be trusted for `mol`, or "" when nothing here is known to defeat it.
+
+    Empty means "no known problem", never "validated": ESOL has no applicability domain beyond
+    the groups someone has checked and found it wrong on.
+    """
+    groups = [label for label, pattern in _ESOL_OUTSIDE_DOMAIN if mol.HasSubstructMatch(pattern)]
+    if not groups:
+        return ""
+    return (
+        "ESOL is not defined for " + " or ".join(groups) + ": it is built on Crippen logP, which reads "
+        "these groups as far more polar than they are, so it reports an explosive such as RDX as "
+        "freely soluble when the CRC Handbook gives about 0.06 g/L (ESOL is out by 1.1 to 4.3 log "
+        "units on the six compounds checked). Choose the AqSolDB model (Tools > External Tools sets it "
+        "up) or use a measured value."
+    )
+
+
 def analyse_solubility(
     mol: Chem.Mol,
     parameters: dict | None = None,
@@ -1156,6 +1199,17 @@ def analyse_solubility(
     model = str(parameters.get("model", ESOL))
     interpreter = admet_interpreter_path if model == AQSOLDB else interpreter_path
     estimate = model_logs0(mol, model, interpreter)
+    # BEFORE ionization and the solvent shift, which are both applied to this baseline: a wrong logS0
+    # would also make the pH profile and the ICH M9 "high solubility" estimate wrong.
+    if model == ESOL:
+        problem = esol_domain_problem(mol)
+        if problem:
+            return SolubilityAnalysis(
+                solvent=solvent, estimate=estimate,
+                resolution=PKaResolution(status=PKaStatus.UNAVAILABLE),
+                ionization=IonizationClass.UNSUPPORTED, molecular_weight=Descriptors.MolWt(mol),
+                pkas=[], is_acid=[], refusal=problem, refusal_code=ESOL_OUTSIDE_DOMAIN,
+            )
 
     try:
         resolution = resolve_pkas(mol, str(parameters.get("pka_values", "")), interpreter_path)
@@ -1241,7 +1295,7 @@ def analyse_solubility(
 
 #: Refusals that are a limit of the method rather than a fault.
 _INAPPLICABLE_REFUSALS = frozenset(
-    {"AMPHOLYTE", MULTICOMPONENT_UNSUPPORTED, "SOLVENT_NOT_COVERED", NO_PKA_PREDICTION}
+    {"AMPHOLYTE", MULTICOMPONENT_UNSUPPORTED, "SOLVENT_NOT_COVERED", NO_PKA_PREDICTION, ESOL_OUTSIDE_DOMAIN}
 )
 
 

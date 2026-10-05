@@ -1,5 +1,5 @@
 """Measured crystal densities of 41 energetic molecules, from Kim et al. 2008, Table 1 (kim2008 in
-docs/research/literature.toml; DOI 10.1002/jcc.20943).
+docs/research/literature.toml, which holds its DOI).
 
 WHAT THIS IS: 41 X-ray crystal structures the paper selected from the Cambridge Structural Database
 (CSD 5.24), each with its CSD refcode, the density that structure gives, the R factor, and the
