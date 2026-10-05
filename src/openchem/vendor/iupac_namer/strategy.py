@@ -1379,6 +1379,9 @@ class IUPACCanonical(NamingStrategy):
                 # [1,3]dioxol retained fused names on monocyclic bases always
                 # win.  Module: ring_naming/methylenedioxy_bridge.py.
                 "methylenedioxy_bridge": 45.0,
+                # A retained polycyclic parent with didehydro and/or an epoxy bridge (naming round 24):
+                # beats the von Baeyer pentacycle that names the same atoms.
+                "retained_modified": 45.0,
                 # Stage 3 fused-hetero with a hydro- prefix (hexahydro-
                 # [1,3]dioxolo[4,5-b]benzene etc.).  Ranked above von_baeyer
                 # so saturated dioxolo/dithiolo heterocycles prefer the

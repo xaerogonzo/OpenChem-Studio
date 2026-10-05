@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming round 24: morphinans, colchicine, and bridged stereo
+
+- **Names keep their stereodescriptors on bridged rings.** The app ran the naming engine without Java on PATH, so the engine's own OPSIN checks failed and dropped the stereo of every bridged centre (camphor had no `1R,4R`). Fixed in `naming_providers.py`.
+- **Morphine, codeine, heroin, hydromorphone, oxycodone, naloxone, thebaine** are named on the retained `morphinan` parent (`4,5-epoxy-...-7,8-didehydromorphinan-3,6-diol`) instead of a von Baeyer pentacycle; **colchicine** is named on `benzo[a]heptalene` and no longer withheld. See `src/openchem/vendor/CHANGELOG.md`, round 24.
+
 ### CI: a way to measure the Windows crash, on demand
 
 - **`windows-crash-rate.yml`** (manual dispatch only) runs one Windows shard N times per arm, each leg a single attempt with NO retry, and **`tools/crash_rate.py`** reports crashed / failed / passed per arm with a Wilson interval and, for two arms, Fisher's exact p. The control arm is the same tree with named commits reverted (`-f revert=655abcc9` for the dispose fix), so both arms run the same files in the same pinned shard. A leg that never reports is shown as MISSING and kept out of the denominator; a real test failure is reported but never counted as a crash. This is the only way to learn whether a change to the access violation did anything: it cannot be reproduced locally and three green pushes at a ~50% rate happen by chance one time in eight. Not run yet; the Known-TODOs item for the dispose fix stays OPEN until a measurement is committed.

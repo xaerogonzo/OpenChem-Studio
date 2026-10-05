@@ -461,6 +461,14 @@ class NamedParent:
                                         # differing only in indicated hydrogen
                                         # ("quinolizine" for 4H-quinolizine),
                                         # `name_ring_system` keeps this one.
+    bridge_prefixes: tuple[tuple[str, tuple[Locant, ...]], ...] = ()
+                                        # Detachable BRIDGE prefixes the parent carries, as
+                                        # (prefix, locants): ("epoxy", (4, 5)). Unlike the
+                                        # methylenedioxy bridge (baked into `name`), these are
+                                        # sorted alphabetically with the substituents by
+                                        # `_assemble_substitutive`, as the book cites them:
+                                        # "4,5-epoxy-17-methyl-7,8-didehydromorphinan-3,6-diol"
+                                        # (naming round 24).
 
 
 # ---------------------------------------------------------------------------

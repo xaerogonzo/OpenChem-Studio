@@ -349,6 +349,13 @@ D-166 (`nitramide`) and D-167 (N-nitro and N-nitroso carbamates) are fixed, and 
 PINs: P-67.1.2.6.3 (pdf p. 708) makes them SUBSTITUTED NITRAMIDES and NITROUS AMIDES (`dimethylnitramide`, `dimethylnitrous amide`), and the `N-methyl-N-nitromethanamine` form round 16
 wrote is the book's non-PIN alternative. `CHANGELOG.md`, round 17.
 
+## Open after naming round 24 (2026-10-05; D-180, D-181, D-182 closed in round 24 above)
+
+* **Four of 45 complex natural products still lose stereo in the app:** atropine and scopolamine (tropane parents), galantamine (`benzofuro[3a,3,2-ef][2]benzazepine`) and ibogaine (a methano-bridged fused system). Not diagnosed this round: the name is right about connectivity and the engine's own stereo check leaves the descriptors out. Read `_validate_stereo_via_opsin` first.
+* **Charged morphinans** (quaternary N-methyl) fall back to a von Baeyer name: `retained_modified` refuses a formally charged ring atom.
+* **Only morphinan is eligible for `didehydro`/`epoxy` modification.** Other retained natural-product parents (ergoline, ibogamine, the Amaryllidaceae scaffolds) are not in `_MODIFIABLE`; add one only where the book prints such a name.
+* **The battery was not run on the frozen sets as a population.** It is a 45-molecule drug panel chosen by hand, so it measures the cluster, not a rate.
+
 ## Open after naming round 23 (2026-09-27)
 
 D-179 (the chalcogen analogue thiohydrazide) is fixed; see `CHANGELOG.md`, round 23. Still open:

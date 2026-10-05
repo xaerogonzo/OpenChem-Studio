@@ -1991,3 +1991,33 @@ two call sites) were each removed in turn and a row failed for eight of nine; th
 up their uncommitted work too. Recovered by restoring only this round's three files from the stash (`git checkout stash@{0} -- <path>` per file) and
 diffing the stash against the restored files before dropping it, leaving the other session's newer, larger edit to that file untouched. Future
 "before" baselines in a shared checkout should use a worktree or `git show <ref>:<path>` instead of `git stash`, which operates on the whole tree.
+
+## 2026-10-05 -- naming round 24 (D-180, D-181, D-182): morphinans, a heptalene template, and Java for the engine's own OPSIN checks
+
+Started from one molecule the app refused (a 3,14-diacetoxy-4,5-epoxy-6-oxo morphinan) and a 45-molecule battery of drugs and natural products named through
+the app's own path (`derived_name_for_structure`). Before: 21 exact, 24 shown with "does not express stereochemistry", 1 refused. After: 41 exact.
+
+**D-182 (the largest, and not in the engine): the app ran the engine without `java` on PATH.** The engine confirms stereo on a bridged or spiro parent by
+parsing its own candidate name with OPSIN (`_validate_stereo_via_opsin`) and DROPS the descriptors when that fails. py2opsin shells out to a bare `java`, and the
+app's managed JRE is on neither PATH nor JAVA_HOME, so every check failed and every bridged stereocentre was dropped: camphor came back `1,7,7-trimethylbicyclo[2.2.1]heptan-2-one`,
+not `(1R,4R)-...`. The engine's own benchmarks and suites ran with Java on PATH, so none could see it. `naming_providers._java_on_path()` now wraps both engine
+calls (`derived_name_for_structure`, `structure_annotation._name_ring_skeleton`). Mutation-checked: removing the wrapper fails `tests/test_derived_name_reaches_opsin.py`.
+
+**D-181: the `heptalene` template was a 13-atom [8,7] skeleton** (`C1CCCC2CCCCCC2CC1`), so it never matched a real heptalene and fusion naming fell back to
+`cyclohepta[7]annulene` as the parent: colchicine's core was `benzocyclohepta[7]annulene`, a name OPSIN reads as a different structure (the app withheld it). Now
+`C1CCCCC2CCCCCC12`; colchicine is `N-[(7S)-1,2,3,10-tetramethoxy-9-oxo-5,6,7,9-tetrahydrobenzo[a]heptalen-7-yl]acetamide`. All 67 `POLYCYCLES` templates were then
+checked against OPSIN's parse of their own name (atom count and ring sizes, skeleton isomorphism): no other mismatch. `tests/test_round24_polycycle_templates.py` pins the table.
+
+**D-180: a retained parent MODIFIED by `didehydro` and an `epoxy` bridge.** P-13.8.1.1 (pdf p. 66) names morphine `4,5α-epoxy-17-methyl-7,8-didehydromorphinan-3,6α-diol`
+on the retained parent `morphinan` (P-101.2). The retained lookup matched the saturated skeleton exactly, so levorphanol named and morphine, codeine, heroin,
+hydromorphone, oxycodone, naloxone and thebaine fell to a von Baeyer pentacycle. New `ring_naming/retained_modified.py` (rank 45, like the methylenedioxy bridge):
+strip at most one ether bridge, flatten ring double bonds into recorded `didehydro` locants, look the remainder up in the curated table, number by its `atom_locants`.
+`epoxy` rides on a new `NamedParent.bridge_prefixes` and is alphabetized with the substituents by `_assemble_substitutive`, as the book cites it; `didehydro` is part of the
+parent name. Only parents in `_MODIFIABLE` (morphinan) are eligible, because the book prints such a name for it.
+Names are in `tests/test_round24_morphinan.py`, each read back through OPSIN with stereo.
+
+**Measured.** Census (2000 rows): 1999 unchanged; one moved, a no-stereo 4,5-epoxymorphinan, von Baeyer name -> `1-bromo-4,5-epoxy-2-hydroxymorphinan-6-one`, which OPSIN reads
+back with stereo the input lacks (exact -> same_connectivity, connectivity identical). Ref-compare 1712 structures, 0 names changed, 0 violations. Vendored suite passes.
+
+**Left open (4 of 45).** atropine, scopolamine, galantamine and ibogaine are still shown with "does not express stereochemistry"; the cause was not diagnosed. The quaternary N-methyl morphinanium falls back to von Baeyer (charged systems are not eligible). A morphinan
+N-oxide is named as an additive `17-oxide`, which OPSIN reads. The Blue Book also prints a furo-fused form for morphine; the epoxy form is used because OPSIN reads it back (the round-trip tests) and it is the book's own form for the demethyl example. Which of the two is the PIN was not settled.

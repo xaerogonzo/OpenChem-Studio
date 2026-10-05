@@ -2444,7 +2444,8 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
         parts.append(render_indicated_h(tree.indicated_hydrogen))
 
     # 3. Prefixes
-    if tree.prefixes:
+    _bridge_prefixes = getattr(tree.named_parent, "bridge_prefixes", ()) or ()
+    if tree.prefixes or _bridge_prefixes:
         assembled_prefixes: list[tuple[str, tuple[Locant, ...]]] = []
         for pe in tree.prefixes:
             prefix_name = assemble(pe.tree)
@@ -2735,6 +2736,8 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
                 and all(loc for _name, loc in assembled_prefixes)):
             assembled_prefixes = [(name, ()) for name, _loc in assembled_prefixes]
 
+        # A parent's own detachable bridge prefix ("4,5-epoxy") is cited with the substituents, alphabetically (naming round 24).
+        assembled_prefixes = list(assembled_prefixes) + [(_n, tuple(_l)) for _n, _l in _bridge_prefixes]
         merged = merge_identical_prefixes(assembled_prefixes)
         merged.sort(key=lambda m: m.sort_name)
 
