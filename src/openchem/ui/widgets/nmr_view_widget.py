@@ -40,7 +40,8 @@ from openchem.chem.nmr_signals import (
     build_nmr_signals,
     depiction_atoms,
 )
-from openchem.domain.scientific_result import SpectrumResult
+from openchem.chem.tautomer_nmr import TautomerOverlay, tautomer_overlay
+from openchem.domain.scientific_result import SpectrumResult, StructureSetResult, TautomerNmrResult
 from openchem.ui.viewer_backend import ViewerBackend
 from openchem.ui.visualization import VisualizationLayer
 from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
@@ -52,6 +53,7 @@ from openchem.ui.widgets.nmr_spectrum_widget import (
 )
 from openchem.ui.widgets.scroll_safe import make_scroll_safe
 from openchem.ui.widgets.sortable_item import SortableItem
+from openchem.ui.widgets.tautomer_overlay_controls import TautomerOverlayControls
 
 #: Column headers for the signal table, in display order. Deliberately NO
 #: "Prediction quality" column, which is what MarvinSketch shows here.
@@ -292,6 +294,10 @@ class NmrViewWidget(QWidget):
         self._reference_note_label.setWordWrap(True)
         self._reference_note_label.setStyleSheet("color: #666;")
         self._reference_note_label.setVisible(False)
+        # Tautomer peaks drawn over the spectrum, with their toggles and notes. Hidden until a tautomer NMR
+        # result is attached (`set_tautomer_nmr`); view state like the reference, so Reset Settings leaves it.
+        self._tautomer_overlay: TautomerOverlay | None = None
+        self._tautomer_controls = TautomerOverlayControls(self._spectrum_widget, self)
         self._explicit_h_check = QCheckBox("Explicit H", self)
         self._explicit_h_check.toggled.connect(self._on_explicit_h_toggled)
         self._highlighted_atoms: list[int] = []
@@ -445,6 +451,7 @@ class NmrViewWidget(QWidget):
         layout.addWidget(self._header_label)
         layout.addWidget(self._coupling_note_label)
         layout.addWidget(self._reference_note_label)
+        layout.addWidget(self._tautomer_controls)
         layout.addWidget(toolbar)
         layout.addWidget(display_toolbar)
         layout.addWidget(reference_toolbar)
@@ -486,6 +493,24 @@ class NmrViewWidget(QWidget):
 
     def signals(self) -> list[NMRSignal]:
         return list(self._signals)
+
+    def set_tautomer_nmr(self, result: TautomerNmrResult, distribution: StructureSetResult) -> TautomerOverlay:
+        """Draw each tautomer's predicted peaks, and (when the distribution is validated and complete) their
+        fast-exchange average, over this spectrum. `distribution` supplies the populations, labels and the
+        structures the spectra's atom numbering refers to. Returns what is shown. Never touches a signal."""
+        self._tautomer_overlay = tautomer_overlay(result, distribution)
+        self._tautomer_controls.set_overlay(self._tautomer_overlay, self._current_element(), result.method_basis)
+        return self._tautomer_overlay
+
+    def clear_tautomer_nmr(self) -> None:
+        self._tautomer_overlay = None
+        self._tautomer_controls.clear()
+
+    def current_tautomer_overlay(self) -> TautomerOverlay | None:
+        return self._tautomer_overlay
+
+    def tautomer_controls(self) -> TautomerOverlayControls:
+        return self._tautomer_controls
 
     def current_settings(self) -> NmrViewerSettings:
         """What the controls say now, in the same shape as the defaults."""
@@ -755,6 +780,8 @@ class NmrViewWidget(QWidget):
         # `NmrSpectrumWidget` already goes inert on its own in this case
         # (`_effective_unit`), but the control itself is disabled too
         # rather than left clickable with no visible effect.
+        if element in ("H", "C"):
+            self._spectrum_widget.set_tautomer_trace_element(element)
         self._unit_combo.setEnabled(not shielding)
         self._unit_combo.setToolTip(
             "Hz display needs a referenced chemical shift; raw shielding has "

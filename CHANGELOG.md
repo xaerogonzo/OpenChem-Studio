@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Tautomer NMR (P5), step 4 of 5: the viewer
+
+- **Tautomer peaks drawn over the 1D spectrum.** `NmrSpectrumWidget` draws one trace per tautomer (its own colour, sticks as tall as the hydrogens they stand for, on the molecule's own scale; labile N/O/S hydrogens dashed) and the fast-exchange average (near-black, thicker, with a dot). View state like the measured reference: never on a shielding axis, never touching a signal, and it works for a molecule with no spectrum of its own. `TautomerOverlayControls` lists a checkbox per trace with its population (only when validated) or relative energy, the average's row (disabled, with the reason, when unavailable), what the average covers, and what it leaves out, with the app's one-based atom numbers. `NmrViewWidget.set_tautomer_nmr` wires it to the viewer's nucleus choice.
+- **Quantum Chemistry panel**: **Tautomer NMR...** (needs a selected distribution run with stored geometries; confirms the job count and method first), **Average NMR over conformers** (remembered, off by default), and **View Tautomer NMR...** for a stored run; the peaks go over the molecule's referenced spectrum when it has one, otherwise into their own window. Runs appear in the Runs combo as "Tautomer NMR". `chem/tautomer_nmr.tautomer_overlay` builds the traces (pure); a tautomer whose NMR failed is listed with its reason, never silently absent.
+
+### Tautomer NMR (P5), step 3 of 5: the population-weighted fast-exchange average
+
+- **`chem/tautomer_nmr.average_tautomer_nmr(nmr, distribution)`** combines a tautomer NMR result with the distribution's validated populations: a carbon's 13C shift is the weighted mean over the tautomers; a carbon's 1H peak is the weighted mean of its hydrogens' mean shift, only when the carbon has the same number of hydrogens in every tautomer; hydrogens on N, O, S or any heteroatom are never averaged. Each peak left out is returned with its reason, never dropped silently.
+- **There is no partial average.** It is unavailable, with the reason, unless the distribution is validated and complete, the NMR result is complete and was computed from that same distribution run, every spectrum is referenced (ppm, not shieldings), the populations sum to one, the structures are stored, and the tautomers' heavy atoms correspond. Hydrogens on one carbon are merged into one peak per tautomer, so diastereotopic hydrogens are not resolved. Mutation-checked.
+
 ### CI: a crashed Windows shard is retried once, and said so out loud
 
 - The Windows suite shards die with an access violation and no failed test on about half of master's pushes. A shard that **crashes** (a fatal exception, no pytest summary line, no test reported FAILED or ERROR; decided by `tools/ci_classify_crash.ps1`) is now rerun once, with a warning annotation naming where it died, the crashed attempt's log uploaded, and a notice if the retry passed. A real failure, a timeout, or a crash that repeats still fails the job. Each attempt keeps its own 30-minute budget (the job's limit is 65), so the gate on suite growth is unchanged. The crash annotations are the only record of the crash rate over time, which is how a fix will be judged.

@@ -99,6 +99,13 @@ def test_one_conformer_missing_its_geometry_fails_the_tautomer_rather_than_avera
     assert targets == [] and "1 of 2" in problems[0]
 
 
+def test_a_succeeded_candidate_with_no_recorded_energy_is_reported_not_raised():
+    entry = _entry("A", "T1", "a", representative=True)
+    del entry.metadata["absolute_energy_hartree"]
+    targets, problems = targets_from_distribution(_result([entry]))
+    assert targets == [] and "not stored" in problems[0]
+
+
 # --- running it ----------------------------------------------------------------------------------------
 
 METHOD = "HF STO-3G"

@@ -1,6 +1,6 @@
 # Tautomer peaks on the NMR spectrum (P5): design
 
-**Status: design agreed 2026-10-04, building in stages.** The tautomer-distribution model is validated for one
+**Status: design agreed 2026-10-04, building in stages (steps 1-4 built: the geometry is kept, the NMR run exists, the averaging is implemented in `chem/tautomer_nmr.py`, and the viewer draws it; step 5, a live ORCA check, remains).** The tautomer-distribution model is validated for one
 setup (`docs/VALIDATION.md`), which is what unblocked this. Nothing here changes a model version or an
 energy: it adds NMR calculations ON the tautomers the distribution already found.
 
@@ -42,6 +42,12 @@ do: the enumerator keeps every heavy atom's index. The average is therefore defi
   traces, marked labile.
 
 Each excluded set is named on screen, never dropped silently.
+
+Two consequences worth stating. The hydrogens on one carbon become ONE peak per tautomer (their mean), so a
+carbon's diastereotopic hydrogens, which a real spectrum can resolve, are merged. And the average exists only
+when every ingredient does: a validated and complete distribution, a complete NMR result computed from that same
+distribution run, referenced shifts, and tautomers whose heavy atoms correspond. Otherwise `average_tautomer_nmr`
+returns no average and the reason; it never returns a partial one.
 
 ## What it does not claim
 
