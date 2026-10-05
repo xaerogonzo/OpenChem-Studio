@@ -587,6 +587,26 @@ def test_a_manual_pka_overrides_the_prediction_and_changes_the_answer():
     assert report.provenance.parameters["pka_input_text"] == "6.00"
 
 
+def test_a_typed_pka_that_is_not_a_number_asks_for_input_and_is_not_a_fault():
+    """A typo in the pKa box used to be filed as `PKA_FAILED` -- the code for a crashed
+    predictor -- so the launcher said "Failed" and sent the person looking for a broken
+    install. It is a missing-input refusal that names the field."""
+    from openchem.domain.refusal_kinds import RefusalKind, missing_inputs_of, refusal_kind_of_result
+    from openchem.domain.result_status import NEEDS_INPUT, status_of
+
+    report = compute_solubility(mol(ASPIRIN), "u", {"pka_values": "3.49, 9.x", "pH": 4.0})
+
+    assert report.cache_state.value == "failed"
+    assert "'9.x' is not a number" in report.error
+    assert report.provenance.parameters["refusal"] == "INPUT_REQUIRED"
+    assert refusal_kind_of_result(report) is RefusalKind.NEEDS_INPUT
+    assert status_of(report) == NEEDS_INPUT
+    (missing,) = missing_inputs_of(report)
+    assert missing.parameter == "pka_values" and missing.problem.value == "invalid"
+    # And typing it right gives an answer again: the refusal is about the text, not the molecule.
+    assert compute_solubility(mol(ASPIRIN), "u", {"pka_values": "3.49", "pH": 4.0}).cache_state.value != "failed"
+
+
 # --- the calculators, end to end ---------------------------------------
 
 

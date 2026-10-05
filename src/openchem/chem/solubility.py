@@ -77,7 +77,14 @@ from openchem.chem.calculator_options import DEFAULT_PH, ph_grid_from
 from openchem.chem.logd import assign_site_polarity, classify_ionizable_centres, ionization_log_factor
 from openchem.chem.pka_providers import PKaResolution, PKaStatus
 from openchem.domain.calculator import MULTICOMPONENT_UNSUPPORTED, SIDECAR_NOT_CONFIGURED
-from openchem.domain.refusal_kinds import NO_PKA_PREDICTION
+from openchem.domain.refusal_kinds import (
+    INPUT_REQUIRED,
+    NO_PKA_PREDICTION,
+    InputProblem,
+    MissingInput,
+    RefusalKind,
+    refusal_parameters,
+)
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.report import Detail, Fact, FactCategory, Rendering, ReportResult
 from openchem.domain.scientific_result import PhCurveResult
@@ -1151,7 +1158,12 @@ def analyse_solubility(
     try:
         resolution = resolve_pkas(mol, str(parameters.get("pka_values", "")), interpreter_path)
     except ValueError as exc:
-        resolution = PKaResolution(status=PKaStatus.FAILED, reason=str(exc))
+        # The only ValueError `resolve_pkas` raises is a typed value that is not
+        # a number. That is the person's input to fix, not a broken predictor.
+        resolution = PKaResolution(
+            status=PKaStatus.INVALID_INPUT, reason=str(exc), source="manual",
+            input_text=str(parameters.get("pka_values", "")).strip(),
+        )
 
     ionization = classify_ionization(mol, resolution)
     pkas, is_acid = ([], [])
@@ -1212,6 +1224,7 @@ def analyse_solubility(
             refusal_code = {
                 PKaStatus.UNAVAILABLE: SIDECAR_NOT_CONFIGURED,
                 PKaStatus.NO_PREDICTION: NO_PKA_PREDICTION,
+                PKaStatus.INVALID_INPUT: INPUT_REQUIRED,
             }.get(resolution.status, "PKA_FAILED")
     elif estimate.status is not ModelStatus.AVAILABLE:
         refusal = estimate.reason
@@ -1228,6 +1241,17 @@ def analyse_solubility(
 _INAPPLICABLE_REFUSALS = frozenset(
     {"AMPHOLYTE", MULTICOMPONENT_UNSUPPORTED, "SOLVENT_NOT_COVERED", NO_PKA_PREDICTION}
 )
+
+
+def _refusal_record(analysis: SolubilityAnalysis) -> dict:
+    """What a refusal writes into provenance. Only a typed-pKa refusal names an
+    input, so the launcher can open the settings on the field that is wrong."""
+    if analysis.refusal_code == INPUT_REQUIRED:
+        return refusal_parameters(
+            INPUT_REQUIRED, RefusalKind.NEEDS_INPUT,
+            (MissingInput("pka_values", problem=InputProblem.INVALID),),
+        )
+    return {"refusal": analysis.refusal_code}
 
 
 def _model_refusal_code(status: "ModelStatus") -> str:
@@ -1600,7 +1624,7 @@ def compute_solubility(
             # An ampholyte is outside Henderson-Hasselbalch: a limit, not a fault.
             inapplicable=analysis.refusal_code in _INAPPLICABLE_REFUSALS,
             provenance=replace(
-                provenance, parameters={**provenance.parameters, "refusal": analysis.refusal_code}
+                provenance, parameters={**provenance.parameters, **_refusal_record(analysis)}
             ) if analysis.refusal_code else provenance,
         )
 

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Solubility: a mistyped pKa asks for input instead of reading as a fault
+
+- "3.49, 9.x" in the pKa box was filed under `PKA_FAILED`, the code for a crashed predictor, so the launcher said Failed. It is a new `PKaStatus.INVALID_INPUT`, refused as `INPUT_REQUIRED` with `missing_inputs = [pka_values (invalid)]`, so it reads Needs input and names the field. The text, not the molecule, is what is wrong, and retyping it gives an answer again (test).
+
 ### MMFF94 pH charges: a carbanion is a limit of the method, not a fault
 
 - MMFF94's own charges sum to 0 on a drawn carbanion (formal charge -1): measured on cyclopentadienide, methyl anion, acetylide and an enolate carbon. The conservation check treated that as a bug in this application and raised `ValueError`, which read as a fault. The raw sum is MMFF94's own output, so a miss there now returns "Not covered by MMFF94" like an untypable atom; the check on the folded (implicit-hydrogen) sum, which IS this application's arithmetic, still raises. Ionic ferrocene, where this was first seen, is refused earlier now by the parent rule, so the carbanion is the case that reaches it.

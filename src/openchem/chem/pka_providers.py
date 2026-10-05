@@ -510,7 +510,7 @@ def protonate_at_ph(mol: Chem.Mol, ph: float) -> Chem.Mol:
 class PKaStatus(Enum):
     """Why a pKa lookup produced what it did.
 
-    **FIVE STATES, BECAUSE COLLAPSING THEM LOSES THE ONE THAT MATTERS.**
+    **SIX STATES, BECAUSE COLLAPSING THEM LOSES THE ONE THAT MATTERS.**
     `compute_pka` returns `None` for "not installed" and its own docstring
     has to warn that this is not "no ionizable atoms found" -- a warning
     only load-bearing because the two were indistinguishable in the return
@@ -534,6 +534,11 @@ class PKaStatus(Enum):
     UNAVAILABLE = "unavailable"  # no environment configured
     FAILED = "failed"  # configured, but the run errored
     NO_PREDICTION = "no_prediction"  # configured, ran, and returned nothing
+    #: Values the USER typed that cannot be read ("3.4x"). Not a fault of the
+    #: software or of the model: a missing-input refusal naming the field, which
+    #: the person fixes by retyping it. It used to share FAILED with a crashed
+    #: predictor, so a typo read as a broken install.
+    INVALID_INPUT = "invalid_input"
 
 
 @dataclass(frozen=True)
