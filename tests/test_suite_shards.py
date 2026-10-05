@@ -161,3 +161,98 @@ def test_the_weight_table_only_names_files_that_exist():
         f"{len(stale)} weights name files that no longer exist: {stale[:5]}... "
         "Regenerate with `python tools/suite_shards.py --update=<junit.xml>`."
     )
+
+
+# --- pinned placement: adding a test file must not move any other file ----------------------------------
+
+
+def _pins(module, splits=2):
+    return module.load_pins().get(str(splits), {})
+
+
+def test_adding_a_test_file_moves_no_other_file():
+    """THE POINT OF THE PINS. Without them, adding one file re-sorted everything and about fifty files
+    changed shard, so a PR's shard held a combination master had never run (docs/LESSONS.md, "ADDING A TEST
+    FILE RE-BALANCES THE SHARDS"). Compared against the table-free packer to show the difference is real."""
+    module = _module()
+    files = module.test_files()
+    durations = module.load_durations()
+    pins = _pins(module)
+    assert pins, "no pin table committed for 2 shards"
+
+    def placement(groups):
+        return {name: i for i, group in enumerate(groups) for name in group}
+
+    extra = files + ["tests/test_a_brand_new_file.py", "tests/test_another_new_file.py"]
+    before = placement(module.assign(files, durations, 2, pins))
+    after = placement(module.assign(extra, durations, 2, pins))
+    assert {k: v for k, v in after.items() if k in before} == before
+
+    # The control: with no pins the same addition does reshuffle existing files (if it ever stops doing so
+    # the pins are no longer what is keeping this test green, and it should be looked at).
+    loose_before = placement(module.assign(files, durations, 2))
+    loose_after = placement(module.assign(extra, durations, 2))
+    assert any(loose_after[k] != v for k, v in loose_before.items()), "the control no longer reshuffles"
+
+
+def test_the_committed_pins_are_what_the_split_uses():
+    module = _module()
+    pins = _pins(module)
+    files = module.test_files()
+    groups = module.assign(files, module.load_durations(), 2, pins)
+    placed = {name: i for i, group in enumerate(groups) for name in group}
+    assert all(placed[name] == shard for name, shard in pins.items() if name in placed)
+
+
+@pytest.mark.parametrize("splits", [1, 2, 3, 5])
+def test_pinned_assignment_is_still_an_exact_partition(splits):
+    """Pins made for 2 shards must never drop a file when asked for another count: an out-of-range pin is
+    ignored, not obeyed."""
+    module = _module()
+    files = module.test_files() + ["tests/test_a_brand_new_file.py"]
+    pins = _pins(module, 2)
+    groups = module.assign(files, module.load_durations(), splits, pins)
+    flat = [name for group in groups for name in group]
+    assert sorted(flat) == sorted(files)
+
+
+def test_a_pin_for_a_deleted_file_is_ignored():
+    module = _module()
+    files = module.test_files()
+    pins = dict(_pins(module), **{"tests/test_deleted_long_ago.py": 1})
+    groups = module.assign(files, module.load_durations(), 2, pins)
+    assert sorted(name for group in groups for name in group) == sorted(files)
+
+
+def test_a_new_file_goes_to_the_lighter_shard():
+    module = _module()
+    pins = {"tests/test_a.py": 0, "tests/test_b.py": 0, "tests/test_c.py": 1}
+    durations = {"tests/test_a.py": 10.0, "tests/test_b.py": 10.0, "tests/test_c.py": 1.0}
+    groups = module.assign(["tests/test_a.py", "tests/test_b.py", "tests/test_c.py", "tests/test_new.py"],
+                           durations, 2, pins)
+    assert "tests/test_new.py" in groups[1]
+
+
+def test_the_pins_have_not_rotted():
+    """A pin table is placement, not a list of what exists, so a few unpinned or stale entries are fine.
+    Many mean balance has drifted (every unpinned file piles onto whichever shard was lighter)."""
+    module = _module()
+    pins = _pins(module)
+    files = set(module.test_files())
+    unpinned = sorted(files - set(pins))
+    stale = sorted(set(pins) - files)
+    assert len(unpinned) < 25, (
+        f"{len(unpinned)} test files have no pin ({unpinned[:3]}...). Re-pin in a PR of its own: "
+        "`python tools/suite_shards.py --repin --splits=2`."
+    )
+    assert len(stale) < 25, f"{len(stale)} pins name files that no longer exist: {stale[:3]}..."
+
+
+def test_the_pinned_shards_are_balanced_enough():
+    module = _module()
+    durations = module.load_durations()
+    if not durations:
+        pytest.skip("no weight table committed")
+    groups = module.assign(module.test_files(), durations, 2, _pins(module))
+    totals = [sum(durations.get(name, 0.0) for name in group) for group in groups]
+    assert abs(totals[0] - totals[1]) / sum(totals) < 0.25, f"shards weigh {totals[0]:.0f} s vs {totals[1]:.0f} s"
