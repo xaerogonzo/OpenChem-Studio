@@ -54,7 +54,9 @@ _R_C_OR_H = "$([#6][#6]),$([#6H1]),$([#6H2])"
 #: An amide nitrogen: anything but N or O on it (those are hydrazides and
 #: hydroxamic acids). The Gold Book's amides entry includes N-acyl and
 #: N-sulfonyl amides ("one, two or three acyl groups on a given nitrogen").
-_AMIDE_N = "[#7;!$([#7]-[#7]);!$([#7]-[#8])"
+#: A CHARGED nitrogen is not one: a protonated acylguanidine's acyl nitrogen has
+#: no lone pair left to conjugate with the carbonyl (the sweep found it).
+_AMIDE_N = "[#7;!$([#7]-[#7]);!$([#7]-[#8]);!$([#7+])"
 #: Amine nitrogen exclusions: no non-carbon neighbour (N, O, S, P ...), and no
 #: carbon neighbour that is acyl, thioacyl, imidoyl or a nitrile carbon.
 _AMINE_EXCL = "!a;!$([#7]~[!#6;!#1]);!$([#7][#6]=,#[O,S,#7])"
@@ -197,7 +199,7 @@ SPECS: dict[str, FeatureSpec] = {s.feature_id: s for s in (
     _s("fg:quaternary_ammonium", "[NX4+;H0;!a:1]([#6])([#6])([#6])[#6]"),
     _s("fg:amine_oxide", "[NX4+;!a;!$([#7](~[!#6;!#1])~[!#6;!#1]):1]-[OX1-:2]"),
     _s("fg:hydroxylamine",
-       "[NX3;!a;!$([#7][#6]=[O,S,#7]);!$([#7](-[!#6;!#1])-[!#6;!#1]):1]"
+       "[NX3;!a;!$([#7][#6]=[O,S,#7]);!$([#7+]=*);!$([#7](-[!#6;!#1])-[!#6;!#1]):1]"
        "-[OX2;$([OH1]),$(O[#6]):2]"),
     _s("fg:hydrazine",
        f"[NX3;!a;!$([#7][#6]=[O,S,#7]);{_NOT_NITRO_N}:1]-"

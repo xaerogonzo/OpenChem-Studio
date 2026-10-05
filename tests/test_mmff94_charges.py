@@ -199,6 +199,28 @@ def test_a_structure_mmff94_cannot_type_is_a_limit_not_a_fault():
     assert result.inapplicable
 
 
+@pytest.mark.parametrize("include_hydrogens", [False, True])
+@pytest.mark.parametrize("smiles", ["[cH-]1cccc1", "[CH3-]", "C#[C-]", "[CH2-]C(=O)C"])
+def test_a_charge_set_that_does_not_sum_to_the_formal_charge_is_a_limit_not_a_fault(smiles, include_hydrogens):
+    """A drawn carbanion: MMFF94 types it, then hands back charges summing to 0 on a species
+    of formal charge -1 -- its charge scheme does not conserve a carbanion's charge. That is the
+    METHOD failing on this structure (the raw sum is independent of any folding this application
+    does), so it must read "not covered by MMFF94" like an untypable atom. It raised ValueError
+    instead, which every census and driven run read as a fault. (Ionic ferrocene was the first
+    sighting; the metal complex is now refused earlier, by the parent rule, but the carbanion
+    reaches here with no metal at all.)"""
+    result = _registry().compute(
+        "gasteiger_charge_at_ph",
+        Chem.MolFromSmiles(smiles),
+        "u",
+        {"pH": 7.4, "method": MMFF94, "include_hydrogens": include_hydrogens},
+    )
+    assert result.cache_state.value == "failed"
+    assert result.inapplicable
+    assert "Not covered by MMFF94" in result.error_summary
+    assert "formal charge" in result.error
+
+
 def test_an_unknown_method_is_refused_rather_than_defaulted():
     with pytest.raises(ValueError, match="Unknown charge method"):
         _registry().compute("gasteiger_charge_at_ph", Chem.MolFromSmiles("CO"), "u", {"method": "eem"})

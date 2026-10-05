@@ -91,18 +91,17 @@ def compute_bbb_descriptors(
     places = decimals(parameters)
     values = bbb_descriptors(target)
 
-    most_basic_pka: float | None = None
-    try:
-        from openchem.chem.logd import classify_ionizable_centres
-        from openchem.chem.pka_providers import compute_pka, pka_predictor_available
+    from openchem.chem.logd import classify_ionizable_centres
+    from openchem.chem.pka_providers import PKaStatus, predicted_pkas
 
-        if pka_predictor_available(interpreter_path):
-            pkas = sorted(p.value for p in (compute_pka(target, interpreter_path) or []))
-            acids, _bases = classify_ionizable_centres(target)
-            basic = pkas[acids:]
-            most_basic_pka = max(basic) if basic else None
-    except Exception:  # noqa: BLE001 - the other four descriptors remain valid
-        most_basic_pka = None
+    # The other four descriptors stay valid whatever the predictor does, so every
+    # status leaves the pKa term out; WHICH status only changes what the line says.
+    pka = predicted_pkas(target, interpreter_path)
+    most_basic_pka: float | None = None
+    if pka.status is PKaStatus.FOUND:
+        acids, _bases = classify_ionizable_centres(target)
+        basic = list(pka.values)[acids:]
+        most_basic_pka = max(basic) if basic else None
 
     lines = [
         f"Aromatic rings: {values['aromatic_rings']:.0f}",
@@ -113,7 +112,7 @@ def compute_bbb_descriptors(
     lines.append(
         f"pKa (most basic): {most_basic_pka:.{places}f} (pkasolver)"
         if most_basic_pka is not None
-        else "pKa (most basic): unavailable (needs a configured pkasolver environment)"
+        else f"pKa (most basic): unavailable ({pka.reason or 'no basic centre among the predicted values'})"
     )
     lines.extend(microspecies_note(parameters))
     lines.append(

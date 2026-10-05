@@ -234,6 +234,7 @@ printed.doi = "10.1002/jcc.20943"
 printed.title = "Prediction of Densities for Solid Energetic Molecules with Molecular Surface Electrostatic Potentials"
 assigned.property = "density"
 assigned.role = "candidate_method"
+note = """Table 1 (41 CSD crystal structures of energetic molecules with their measured densities and the temperature of each diffraction experiment) is recorded as data in `benchmarks/thermophysical/kim2008_crystal_densities.py` (2026-10-05), not as a method. Its density is printed twice (Table 1 and Table 3's Exp. column) and the two copies disagree for ONE row: picric acid, 1.655 in Table 1 (the TNT row's value above it) against 1.771 in Table 3, whose seven deviations are arithmetic on 1.771. Every structure was checked against its printed formula (one printed formula, SIQKAE's, is missing its hydrogens) and against OPSIN's reading of its printed name."""
 
 [[source]]
 id = "qiu2007"

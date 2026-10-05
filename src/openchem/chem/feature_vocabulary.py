@@ -246,10 +246,10 @@ FEATURES: tuple[FeatureDefinition, ...] = (
        "'And hydrocarbyl derivatives thereof', so N and O may both carry "
        "carbon. B0 excluded the O-alkyl ones; the Ertl cross-check found that "
        "wrong against the entry's own words (N-alkoxy amides, 0.09% of ChEMBL)."),
-    _f("fg:hydrazide", "hydrazide", ("carbonyl_c", "carbonyl_o", "amide_n", "terminal_n"),
+    _f("fg:hydrazide", {_N: "hydrazide", _C: "hydrazidium"}, ("carbonyl_c", "carbonyl_o", "amide_n", "terminal_n"),
        _gb("hydrazides", 693, "RC(=O)NHNH2"),
-       "Carbohydrazides and sulfonohydrazides; the terminal N single-bonded."),
-    _f("fg:thiohydrazide", "thiohydrazide", ("thiocarbonyl_c", "thiocarbonyl_s", "amide_n", "terminal_n"),
+       "Carbohydrazides and sulfonohydrazides. Cationic when the terminal (hydrazone) N is protonated: a protonated acylhydrazone is still an acylhydrazide, and leaving it out would orphan its C=O (the Ertl cross-check's lesson)."),
+    _f("fg:thiohydrazide", {_N: "thiohydrazide", _C: "thiohydrazidium"}, ("thiocarbonyl_c", "thiocarbonyl_s", "amide_n", "terminal_n"),
        _gb("hydrazides", 693, "thio-hydrazides (chalcogen replacement analogues)"),
        "RC(=S)NHNH2 (naming round 23, D-179): mirrors thioamide's own chalcogen-replacement reuse of the amide entry, "
        "above, for the same reason (the Gold Book's own page has no separate thio-hydrazide term)."),
@@ -278,7 +278,7 @@ FEATURES: tuple[FeatureDefinition, ...] = (
        _bb("guanidine", 675, "P-66.4.1.2.1.1", "H2N-C(=NH)-NH2"),
        "The Gold Book has no guanidines entry. Carbon bearing three nitrogens, "
        "one double-bonded; cationic when protonated (delocalised, any N)."),
-    _f("fg:imidate", "imidate (imidic acid or ester)", ("imidate_c", "imino_n", "o"),
+    _f("fg:imidate", {_N: "imidate (imidic acid or ester)", _C: "imidatium"}, ("imidate_c", "imino_n", "o"),
        _gb("imidic acids", 710, "RC(=NR)(OH)"),
        "The carboximidic acids ('tautomers of amides') and their O-hydrocarbyl "
        "esters, which the esters entry's note names as esters though not esters "
@@ -499,8 +499,9 @@ FEATURES: tuple[FeatureDefinition, ...] = (
        ("s", "oxo_o", "ester_o", "acid_o"),
        _gb("esters", 528, "RkE(=O)l(OH)m ester, E = S, k = 0"),
        "Mono- or di-esters of sulfuric acid; a monoester is often drawn as O-."),
-    _f("fg:sulfonamide", "sulfonamide", ("s", "oxo_o", "amide_n"),
-       _gb("sulfonamides", 1481, "RS(=O)2NR'2"), "R carbon."),
+    _f("fg:sulfonamide", {_N: "sulfonamide", _A: "sulfonamidate"}, ("s", "oxo_o", "amide_n"),
+       _gb("sulfonamides", 1481, "RS(=O)2NR'2"),
+       "R carbon. Anionic when the nitrogen is deprotonated (a sulfadiazine-type anion is a commonly drawn form; the Blue Book's name for it is sulfonamidate)."),
     _f("fg:sulfamide", "sulfamide", ("s", "oxo_o", "amide_n"),
        _gb("amides", 69, "RkE(=O)l(OH)m amide, E = S, k = 0"),
        "Sulfuric acid is an oxoacid of the amides entry's form, so N-SO2-N is an "

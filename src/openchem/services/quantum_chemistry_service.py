@@ -105,6 +105,14 @@ _TMS_CHARGE = 0
 _TMS_MULTIPLICITY = 1
 
 
+def _boltzmann_mean(energies_hartree: list[float]) -> float:
+    """The population-weighted mean of the energies, in Hartree, at the standard temperature."""
+    return sum(
+        weight * energy
+        for weight, energy in zip(boltzmann_weights(energies_hartree, STANDARD_TEMPERATURE_K), energies_hartree)
+    )
+
+
 def _structure_fingerprint(mol) -> str:
     """A molecule's constitution, as the thing a retained result belongs to.
 
@@ -1421,12 +1429,23 @@ class QuantumChemistryService(QObject):
 
         # Descriptors are published from the LOWEST-ENERGY conformer, not
         # averaged -- see `_BoltzmannRun.descriptors`'s docstring for why a
-        # scalar like SCF energy or HOMO/LUMO gap has no averaging
-        # convention here the way a spectrum's per-atom shifts do. This is
-        # the same "current/latest value" wiring `_finish_calculation_job`
-        # uses for a single job, applied to the winning conformer.
+        # scalar like HOMO/LUMO gap has no averaging convention here the way a
+        # spectrum's per-atom shifts do. This is the same "current/latest
+        # value" wiring `_finish_calculation_job` uses for a single job,
+        # applied to the winning conformer.
+        #
+        # ONE EXCEPTION, AND IT IS DECIDED (2026-10-05): the SCF energy also gets
+        # a Boltzmann-AVERAGED companion beside the lowest-energy one. It is the
+        # only scalar whose average is unambiguous, because the weights are
+        # computed FROM it -- the same weights `boltzmann_average_spectrum` uses
+        # for the spectrum. Every other scalar stays the lowest conformer's: an
+        # average of a HOMO/LUMO gap or a dipole would be a convention this
+        # application invented, offered for every descriptor at once.
         lowest_index = min(range(len(run.energies)), key=run.energies.__getitem__)
-        lowest_descriptors = run.descriptors[lowest_index]
+        lowest_descriptors = list(run.descriptors[lowest_index])
+        averaged_energy = self._boltzmann_average_energy_descriptor(run, lowest_descriptors, job)
+        if averaged_energy is not None:
+            lowest_descriptors.append(averaged_energy)
         lowest_conformer = run.conformers[lowest_index]
         self._event_bus.publish(
             QuantumChemistryResultReady(
@@ -1450,7 +1469,8 @@ class QuantumChemistryService(QObject):
         self._publish_state(
             molecule_uuid,
             CacheState.COMPLETED,
-            f"Averaged over {run.total} conformer(s) -- descriptors are the lowest-energy conformer's",
+            f"Averaged over {run.total} conformer(s) -- descriptors are the lowest-energy conformer's, "
+            "except the Boltzmann-averaged SCF energy",
         )
         qc_run = self._new_boltzmann_run(run, RunStatus.COMPLETED)
         if qc_run is not None:
@@ -1460,23 +1480,47 @@ class QuantumChemistryService(QObject):
             qc_run.output_status["descriptors"] = OutputStatus.AVAILABLE
             if lowest_conformer is not None:
                 qc_run.output_conformer_id = lowest_conformer.conformer_id
-            # SKELETON ONLY -- see docs/ROADMAP.md ("What is left, and why
-            # each one is left"): a weighted mean over ALL conformers'
-            # energies, using the same weights `boltzmann_average_spectrum`
-            # computed for the spectrum above. Not published as a
-            # `DescriptorValue` and not reachable from PropertyPanel --
-            # only stashed in run history/Compare -- because shipping it
-            # as a descriptor means deciding what every OTHER scalar
-            # (HOMO/LUMO gap, dipole, ...) should do in an averaged run,
-            # which has not been decided yet.
-            qc_run.results["boltzmann_average_scf_energy_hartree"] = sum(
-                weight * energy for weight, energy in zip(boltzmann_weights(run.energies), run.energies)
-            )
+            # The weighted mean over ALL conformers' energies, with the same
+            # weights `boltzmann_average_spectrum` used for the spectrum above.
+            # Also kept as a plain number in run history/Compare; the published
+            # descriptor (`<provider>.boltzmann_average_scf_energy`) carries the
+            # same value.
+            qc_run.results["boltzmann_average_scf_energy_hartree"] = _boltzmann_mean(run.energies)
             if calibrated.coupling_error:
                 qc_run.warnings.append(calibrated.coupling_error)
                 qc_run.status = RunStatus.COMPLETED_WITH_WARNINGS
         self._record_run(qc_run)
         return False
+
+    def _boltzmann_average_energy_descriptor(self, run: "_BoltzmannRun", lowest: list, job: _ActiveJob):
+        """The SCF energy averaged over the run's conformers, as a descriptor next to
+        the lowest conformer's, or None when there is no lowest SCF energy to sit beside."""
+        energy_id = f"{job.provider.provider_id}.scf_energy"
+        template = next((d for d in lowest if d.descriptor_id == energy_id), None)
+        if template is None or len(run.energies) < 2:
+            # A single conformer's "average" is the lowest conformer's own number: a
+            # second row saying the same thing would read as two results.
+            return None
+        average_parameters = {
+            "averaged_over_conformers": len(run.energies),
+            "temperature_k": STANDARD_TEMPERATURE_K,
+            "weights": "Boltzmann, from these same SCF energies",
+        }
+        if template.provenance is not None:
+            provenance = dataclasses.replace(
+                template.provenance, parameters={**template.provenance.parameters, **average_parameters}
+            )
+        else:
+            provenance = Provenance(
+                created_by="core", method=job.provider.provider_id, parameters=average_parameters
+            )
+        return dataclasses.replace(
+            template,
+            descriptor_id=f"{job.provider.provider_id}.boltzmann_average_scf_energy",
+            name="SCF Energy (Boltzmann-averaged)",
+            value=_boltzmann_mean(run.energies),
+            provenance=provenance,
+        )
 
     def _finish_tautomer_candidate_job(self, job: _ActiveJob, output_text: str) -> bool:
         """Records this candidate's own outcome -- success or failure --

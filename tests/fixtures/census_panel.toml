@@ -73,7 +73,7 @@ why = "the insensitive explosive Kamlet-Jacobs's own tables use; needs a loading
 id = "nitroguanidine"
 smiles = "NC(=N)N[N+](=O)[O-]"
 stratum = "energetic"
-why = "its NH2 groups are still counted as bases (recorded, not fixed)"
+why = "its NH2 groups were counted as bases until 2026-10-05 (a nitroimine, essentially non-basic); the first stress case for the basic-amine pattern"
 
 [[row]]
 id = "ammonium_nitrate"

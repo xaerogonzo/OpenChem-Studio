@@ -15,65 +15,7 @@
 # acylguanidinium's nitrogen is not an amide nitrogen) -- which is a vocabulary decision,
 # not a patch, so they are listed rather than silently changed. Fix it, delete its row.
 
-[[defect]]
-population = "naming_census"
-label = "census45625"
-feature = "fg:hydroxylamine"
-smiles = "CN(C)c1c2ccccc2nc2cccc([N+](=O)O)c12"
-note = "an N-hydroxy nitrogen drawn as [N+](=O)O (a nitronic-acid form)"
-
-[[defect]]
-population = "naming_census"
-label = "census1758625"
-feature = "fg:hydroxylamine"
-smiles = "CCC(=O)N(C)CCc1cc2c(c(OC)c1/C=[N+](\\C)O)OCO2"
-note = "a protonated oxime, C=[N+](C)O"
-
-[[defect]]
-population = "naming_census"
-label = "census119625"
-feature = "fg:imidate"
-smiles = "CN(C)c1ccc(C=CC2=[N+](C)C(C)(CO)CO2)cc1"
-note = "an oxazolinium: the imidate's nitrogen is the cation"
-
-[[defect]]
-population = "naming_census"
-label = "census1894625"
-feature = "fg:carboxamide"
-smiles = "CCc1ccc(NC(Nc2nc(C)cc(C)n2)=[NH+]C(=O)c2ccccc2)cc1"
-note = "a protonated acylguanidine: the acyl nitrogen is charged, so it is not an amide nitrogen"
-
-[[defect]]
-population = "naming_census"
-label = "census1936625"
-feature = "fg:hydrazide"
-smiles = "COc1ccc(C=[NH+]NC(=O)c2ccc3nc[nH]c3c2)c(OC)c1OC"
-note = "a protonated acylhydrazone"
-
-[[defect]]
-population = "naming_census"
-label = "census1577625"
-feature = "fg:thiohydrazide"
-smiles = "CCOc1cc(C=[NH+]NC(N)=S)ccc1OCc1ccc(C)cc1"
-note = "the same class of defect as census1936625 (fg:hydrazide), a protonated acylhydrazone, on the chalcogen analogue (naming round 23, D-179)"
-
-[[defect]]
-population = "naming_census"
-label = "census1975625"
-feature = "fg:sulfonamide"
-smiles = "CCCn1nc([N-]S(=O)(=O)c2ccc(C)cc2)c2cc3ccccc3nc21"
-note = "a deprotonated sulfonamide, [N-]S(=O)(=O)"
-
-[[defect]]
-population = "naming_census"
-label = "census2059625"
-feature = "fg:sulfonamide"
-smiles = "COC(=O)c1c(C)oc2c1cc([N-]S(=O)(=O)c1ccc(C(C)C)cc1)c1ccccc12"
-note = "a deprotonated sulfonamide"
-
-[[defect]]
-population = "naming_census"
-label = "census2072625"
-feature = "fg:sulfonamide"
-smiles = "Cc1cc(OCC(=O)Nc2ccc(S(=O)(=O)[N-]c3ncccn3)cc2)ccc1[N+](=O)[O-]"
-note = "a deprotonated sulfonamide (a sulfadiazine-type anion)"
+# (empty: all nine were decided on 2026-10-05 -- sulfonamide anion, protonated
+# acylhydrazide/thiohydrazide and the oxazolinium imidate got a declared label; the
+# acylguanidinium amide N and the protonated oxime / nitronic acid are excluded
+# in the patterns. A new one must be added below as a [[defect]] row.)

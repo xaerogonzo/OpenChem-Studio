@@ -86,7 +86,8 @@ RECALC_QUIET_MS = Preference(
 DRAWING_BOND_KEYS = Preference("drawing/bond_order_keys", bool, True)
 
 #: Whether a click on a bond cycles its order (single, double, triple, single). OFF by default and only ever on by
-#: choice: in the Select tool a click on a bond SELECTS it, and cycling takes that away. It changes the bond through
+#: choice: in the Select tool a click on a bond SELECTS it, and cycling takes that away. It works in the Select tool and in
+#: any atom tool (an atom tool does nothing on a bond, so keeping an element armed costs nothing). It changes the bond through
 #: the same edit the number keys use, so it is one undo entry and has the same refusals.
 DRAWING_BOND_CLICK = Preference("drawing/bond_click_cycle", bool, False)
 

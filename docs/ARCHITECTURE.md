@@ -891,13 +891,14 @@ document may cite a file or a test that does not exist.
     the result is computed while the result stays fresh.
   - The record is `benchmarks/charges/consumers/preregistration.md` (E1).
 
-- **OPEN** -- the External Tools pages carry no help contracts. Their
-  controls were never walked: the dialog needed settings, so the bare-context
-  guard in `tests/test_dialog_help_contracts.py` could not build it, and
-  moving the tabs into the Settings window did not change that.
-  `tests/test_settings_window.py` walks the window's preference sections and
-  deliberately skips `ExternalToolsPages`. Closing it means a contract on each
-  tool tab's controls, then dropping that skip.
+- **SETTLED** (2026-10-05) -- the External Tools pages carry help contracts.
+  Each control's contract is built from the descriptor that built the control
+  (`src/openchem/ui/dialogs/external_tools_help.py`), with per-tool ids such as
+  `external_tools.vina_remove`, because the guard allows one id one text. A
+  button a tab hides (ORCA's Set Up and Remove) is still walked by the
+  inventory, so it carries a contract saying it is not offered. The skip for
+  `ExternalToolsPages` in `tests/test_settings_window.py` is gone: the walk
+  covers the whole Settings window.
 
 
 - **OPEN** -- a salt with no single ChEMBL parent has no compound
@@ -2301,9 +2302,11 @@ document may cite a file or a test that does not exist.
   `tools/ketcher-host/src/main.jsx` and both ending in the same page -> bridge -> `edit_bond` -> `EditStructureCommand` chain, so a click is
   one undo entry with the number keys' refusals (aromatic, query, wedge, a broken valence). Ketcher has no handler for a number over a bond
   (measured, `benchmarks/visual/ketcher_hover_keys.json`), so neither gesture was native. **Click-to-cycle is OFF by default** (Settings >
-  Drawing): in the Select tool a click on a bond SELECTS it and cycling takes that away. It acts only in a Select tool (matched by class-name
-  prefix), on a left click that did not move, with no modifier, on a bond with no atom under the pointer; a bond that is not single, double
-  or triple is left alone. A hover can be produced from automation (`editor.hover(editor.findItem(...))`), which is what makes both
+  Drawing): in the Select tool a click on a bond SELECTS it and cycling takes that away. It acts in the Select tool and in ANY atom tool (matched by
+  class-name prefix; added 2026-10-05 because the point of the gesture is to keep an element armed and fix bonds without going back to the
+  toolbar), on a left click that did not move, with no modifier, on a bond with no atom under the pointer; a bond that is not single, double
+  or triple is left alone. In an atom tool the press is WITHHELD from Ketcher (and its release and click): measured, with the
+  atom tool armed a click on a bond is not inert, and without withholding it the bond edit does not stick. A hover can be produced from automation (`editor.hover(editor.findItem(...))`), which is what makes both
   gestures regression-testable through `OPENCHEM_DRIVE`.
 
 - **DECISION** -- a coordinate-only edit recomputes every result, because the drawing's fingerprint hashes the

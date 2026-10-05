@@ -2297,48 +2297,64 @@ and three were checked again recently rather than taken on trust.
   why the corrected accounts are kept in `docs/sources.toml` under the
   original keys rather than deleted. See docs/VALIDATION.md for the
   measurements.
-- **Tautomer percentages, and tautomer peaks overlaid on the NMR
-  spectrum.** The first needs a `model_version` that passes the
-  preregistered gate; the gate failed on 2026-10-03 for PBE0 def2-TZVP
-  (acetylacetone and 2-pyridone mis-ranked), and the likeliest cause, one
-  start geometry and no conformer or rotamer search, was **not** verified.
-  A new model gets its own preregistered run, never a re-tuned tolerance.
-  The overlay needs a per-tautomer NMR job and a decision on which
-  stereoisomer or conformer supplies the shifts, and waits on a passing
-  model. Also not built: the validation-record lookup in
-  `quantum_chemistry_service` (nothing can be authorized yet) and zoom for
-  the histogram and stick charts.
-- **Boltzmann-run descriptors beyond the lowest-energy conformer.** A
-  Boltzmann-averaged QC run (`request_boltzmann_nmr`,
-  `services/quantum_chemistry_service.py`'s `_finish_conformer_job`) now
-  publishes descriptors (SCF energy, HOMO/LUMO, dipole, ...) to
-  PropertyPanel/Results the same way a single job does — but from the
-  LOWEST-energy conformer, not averaged, because unlike a spectrum's
-  per-atom shifts (which `chem/boltzmann.py`'s `boltzmann_average_spectrum`
-  already knows how to weight and average), a scalar like HOMO/LUMO gap
-  has no established averaging convention in this codebase, and inventing
-  one silently for every descriptor at once was refused as exactly the
-  "UI infers scientific meaning from a dataset's shape" mistake this
-  project has been burned by before (see the lessons index in
-  `CLAUDE.md`).
+- **Detonation's condensed-phase enthalpy, and the PETN decision (recorded
+  2026-10-05, on Alex's instruction to decide; reversible).** The Kamlet-Jacobs
+  calculator needs two numbers it cannot estimate: a loading density and a
+  condensed-phase enthalpy of formation, so it is `NEEDS_INPUT` and hidden
+  (specialist). The survey's candidate for supplying the enthalpy is the ORCA
+  atom-equivalent route (`benchmarks/thermophysical/orca_atom_equivalents.py`),
+  plus a sublimation term. After the first-cycle-energy parser bug was found and
+  both retracted gates were re-run on the converged energies, the standing result
+  is: at PBE0/def2-TZVP a 9-compound fit puts RDX at 9.15 and HMX at 3.02
+  kJ/mol from measurement, and PETN still misses by about 63 kJ/mol, as it did
+  at every fit and every level of theory tried. The cause that survived every
+  test is structural -- a quaternary carbon carrying FOUR nitrate-ester arms --
+  and the one near neighbour found (metriol trinitrate, three arms) is predicted
+  well (9.7 kJ/mol). No calibrant with that topology exists in the literature
+  held or searched.
 
-  A weighted-average SCF energy — the one descriptor where the physics is
-  actually unambiguous, since `boltzmann_average_spectrum` already
-  computes the same population weights from the same SCF energies to
-  average the spectrum — is now computed as a **skeleton only**:
-  `_BoltzmannRun`/`_finish_conformer_job` stash it in
-  `QuantumChemistryRun.results["boltzmann_average_scf_energy_hartree"]`
-  (run history / Compare only), reusing `boltzmann_weights` from
-  `chem/boltzmann.py`. It is deliberately **not** published as a
-  `DescriptorValue` and does not reach PropertyPanel. Wiring it in for
-  real needs a decision this entry is recording rather than making:
-  whether SCF energy gets its own averaged descriptor alongside the
-  lowest-energy one (two numbers, clearly labelled), and if so, whether
-  any *other* scalar descriptor should be averaged too, or whether SCF
-  energy alone is the exception because it is what the weights are
-  computed from. Trigger to revisit: a user complaint that a Boltzmann
-  run's reported SCF energy is "the wrong conformer's", or a second
-  calculation type that makes the same choice necessary.
+  **DECISION: the route does NOT become an automatic Detonation input.** It is
+  validated for nitramines of the RDX/HMX kind and refused by evidence for the
+  PETN topology; a calculator that quietly produced a 60 kJ/mol error for the
+  second family would be the plausible-looking wrong answer this project
+  refuses to ship, and the route needs a full DFT geometry optimisation of the
+  molecule besides. Detonation stays `NEEDS_INPUT`: the person supplies the
+  enthalpy, with the sensitivity note (docs/research/SENSITIVITY.md) saying how
+  much it matters. **What would reverse this:** a four-arm quaternary-carbon
+  calibrant with a measured gas-phase enthalpy (then the PETN miss is testable
+  as a calibration gap rather than assumed to be one), or a held-out set of
+  nitramines large enough to ship the route scoped to that family alone with
+  the PETN class refused by a coded limit. The measured crystal densities that
+  a density method can be compared on are now recorded
+  (`benchmarks/thermophysical/kim2008_crystal_densities.py`, 41 rows); a matching
+  table of measured detonation velocities and pressures is NOT built (the
+  Kamlet-Jacobs 1968 Table III values are in `tests/test_energetics.py`, but
+  they validate the calculator's equations, not a density or enthalpy method).
+- **Tautomer work: what is left after it shipped.** Percentages shipped for the
+  one model that passed its preregistered gate (M062X def2-TZVP, revision 5,
+  2026-10-04), and ONLY that model; the validation-record lookup this entry
+  used to list as unbuilt IS built (`validation_branch_for`, called from
+  `quantum_chemistry_service._finish_tautomer_distribution` and covered by
+  `tests/test_tautomer_validation_record.py`). The per-tautomer NMR job, the
+  fast-exchange average and the overlay on the NMR spectrum shipped too
+  (docs/TAUTOMER_NMR_DESIGN.md). What remains: a new model gets its own
+  preregistered run, never a re-tuned tolerance; the held-out set is narrow; and
+  zoom for the histogram and stick charts (line and scatter charts zoom since
+  #185, these two do not).
+- ~~**Boltzmann-run descriptors beyond the lowest-energy conformer.**~~
+  **DECIDED AND SHIPPED (2026-10-05).** A Boltzmann-averaged QC run publishes
+  the lowest-energy conformer's descriptors, as before, PLUS the SCF energy
+  averaged over the conformers as its own labelled descriptor
+  (`<provider>.boltzmann_average_scf_energy`, "SCF Energy (Boltzmann-averaged)"):
+  two numbers, side by side, never one replacing the other. SCF energy is the
+  one exception because the weights are computed FROM it -- the same weights
+  `boltzmann_average_spectrum` uses -- so its average is unambiguous. **Every
+  other scalar (HOMO/LUMO gap, dipole, ...) stays the lowest conformer's**: an
+  average of those would be a convention this application invented, offered for
+  every descriptor at once, which is the "UI infers scientific meaning from a
+  dataset's shape" mistake `CLAUDE.md`'s lessons index records. A run of one
+  conformer adds no companion (its average is its own number). Revisit only if a
+  second scalar acquires an unambiguous average.
 **Removed from this list because it had SHIPPED**: ensemble alignment
 across a project. This entry read "`alignment.py` aligns onto a reference
 SMILES; aligning a whole project needs its own panel, and nothing is

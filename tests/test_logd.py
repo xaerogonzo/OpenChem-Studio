@@ -95,6 +95,9 @@ def test_classify_ignores_amides_and_aromatic_nitrogen():
         "O=[N+]([O-])N1CN([N+](=O)[O-])CN([N+](=O)[O-])C1",    # RDX
         "CN(C)N=O",                                            # N-nitrosodimethylamine
         "O=NN1CCCCC1",                                         # N-nitrosopiperidine
+        "NC(=N)N[N+](=O)[O-]",                                 # nitroguanidine, nitroimine drawn as a nitramide
+        "NC(N)=N[N+](=O)[O-]",                                 # ... and its other tautomer
+        "CNC(=N)N[N+](=O)[O-]",                                # N-methyl-N'-nitroguanidine
     ],
 )
 def test_an_n_nitro_or_n_nitroso_nitrogen_is_not_a_basic_centre(smiles):
@@ -112,6 +115,8 @@ def test_an_n_nitro_or_n_nitroso_nitrogen_is_not_a_basic_centre(smiles):
         ("C1CCNCC1", 1),                        # piperidine
         ("CN1CCNCC1", 2),                       # N-methylpiperazine
         ("CN(C)CCN(C)[N+](=O)[O-]", 1),         # a real amine beside a nitramine: only it counts
+        ("CN(C)CN(C)[N+](=O)[O-]", 1),          # an aminal: the CH2 is sp3, so the amine is not conjugated
+        ("CN(C)CCNC(=N)N[N+](=O)[O-]", 1),      # a real amine on a nitroguanidine: only it counts
     ],
 )
 def test_excluding_n_nitro_did_not_cost_a_real_amine(smiles, bases):
