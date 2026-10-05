@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### A table of 41 measured crystal densities of energetic molecules (survey data, not a calculator)
+
+- `benchmarks/thermophysical/kim2008_crystal_densities.py` holds Kim et al. 2008, Table 1: 41 CSD crystal structures, each with its refcode, structure, X-ray density and the temperature of the experiment, as `ValidationRow`s (`crystal_density`, phase `crystal`, all `selection`; none is an untouched holdout, and CSD-trained methods may have seen them). Not read from the PDF at run time. **The source contradicts itself once**: Table 1 prints picric acid at 1.655 (TNT's value on the line above); Table 3 prints 1.771 and its seven deviations are arithmetic on 1.771, so the row uses 1.771. Also found: SIQKAE's printed formula lacks its hydrogens, and four names have print damage (a lost prime, `alpah`, a missing `-one`, a loose `difluoroamino`). Every structure matches its printed formula and OPSIN's reading of its (repaired) name; the cubanes and cages were built from their skeletons. `tests/test_kim2008_crystal_densities.py` pins the second printed copy of every density and the two exception sets exactly.
+
 ### The visual oracle now measures item-view header titles
 
 - `visual_check` walked child widgets only, so a column title clipped at both ends ("Substance classification" drawn as `ostance classificat`) was invisible to it: Batch reached 12-13 painted items and Compare 5, against Properties' 40. New `HeaderSection` / `header_sections` / `clipped_headers` measure every visible horizontal-header title against its section in the header's own font, `check_surface` includes them, and the drive log prints the header-title count beside the painted-item count so a clean result says how much it covered. Driven on Batch (4 titles, 0 findings; the tolerance control still reports). Compare's table reports 0 header titles: its view has none to measure.
