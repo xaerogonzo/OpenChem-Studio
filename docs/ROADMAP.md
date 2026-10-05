@@ -2297,6 +2297,39 @@ and three were checked again recently rather than taken on trust.
   why the corrected accounts are kept in `docs/sources.toml` under the
   original keys rather than deleted. See docs/VALIDATION.md for the
   measurements.
+- **Detonation's condensed-phase enthalpy, and the PETN decision (recorded
+  2026-10-05, on Alex's instruction to decide; reversible).** The Kamlet-Jacobs
+  calculator needs two numbers it cannot estimate: a loading density and a
+  condensed-phase enthalpy of formation, so it is `NEEDS_INPUT` and hidden
+  (specialist). The survey's candidate for supplying the enthalpy is the ORCA
+  atom-equivalent route (`benchmarks/thermophysical/orca_atom_equivalents.py`),
+  plus a sublimation term. After the first-cycle-energy parser bug was found and
+  both retracted gates were re-run on the converged energies, the standing result
+  is: at PBE0/def2-TZVP a 9-compound fit puts RDX at 9.15 and HMX at 3.02
+  kJ/mol from measurement, and PETN still misses by about 63 kJ/mol, as it did
+  at every fit and every level of theory tried. The cause that survived every
+  test is structural -- a quaternary carbon carrying FOUR nitrate-ester arms --
+  and the one near neighbour found (metriol trinitrate, three arms) is predicted
+  well (9.7 kJ/mol). No calibrant with that topology exists in the literature
+  held or searched.
+
+  **DECISION: the route does NOT become an automatic Detonation input.** It is
+  validated for nitramines of the RDX/HMX kind and refused by evidence for the
+  PETN topology; a calculator that quietly produced a 60 kJ/mol error for the
+  second family would be the plausible-looking wrong answer this project
+  refuses to ship, and the route needs a full DFT geometry optimisation of the
+  molecule besides. Detonation stays `NEEDS_INPUT`: the person supplies the
+  enthalpy, with the sensitivity note (docs/research/SENSITIVITY.md) saying how
+  much it matters. **What would reverse this:** a four-arm quaternary-carbon
+  calibrant with a measured gas-phase enthalpy (then the PETN miss is testable
+  as a calibration gap rather than assumed to be one), or a held-out set of
+  nitramines large enough to ship the route scoped to that family alone with
+  the PETN class refused by a coded limit. The measured crystal densities that
+  a density method can be compared on are now recorded
+  (`benchmarks/thermophysical/kim2008_crystal_densities.py`, 41 rows); a matching
+  table of measured detonation velocities and pressures is NOT built (the
+  Kamlet-Jacobs 1968 Table III values are in `tests/test_energetics.py`, but
+  they validate the calculator's equations, not a density or enthalpy method).
 - **Tautomer work: what is left after it shipped.** Percentages shipped for the
   one model that passed its preregistered gate (M062X def2-TZVP, revision 5,
   2026-10-04), and ONLY that model; the validation-record lookup this entry
