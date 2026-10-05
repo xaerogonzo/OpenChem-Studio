@@ -1691,8 +1691,6 @@ structure set (tautomers, stereoisomers, resonance forms) already uses —
 one entry per candidate, succeeded or failed, each captioned with its
 energy and, once validated, its population.
 
-<!-- help:2d-correlation -->
-
 **Tautomer peaks on the NMR spectrum.** With a tautomer-distribution run
 selected, **Tautomer NMR...** runs NMR on each tautomer, starting from the
 geometry that run optimized (its lowest calculated conformer), at the Method/basis
@@ -1718,6 +1716,7 @@ Hydrogens on one carbon are merged into one peak, so diastereotopic hydrogens ar
 not resolved. These are gas-phase predictions from one geometry per tautomer, not a
 solution spectrum.
 
+<!-- help:2d-correlation -->
 ### HSQC, HMBC and COSY — connectivity, not a simulated spectrum
 
 **HSQC** pairs a proton with the carbon it is directly bonded to
