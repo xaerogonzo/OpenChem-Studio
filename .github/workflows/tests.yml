@@ -170,7 +170,11 @@ jobs:
     # genuinely needs more than 30 minutes, add a third shard before
     # raising this -- the splitter takes `--splits=N` and the only other
     # change is this matrix.
-    timeout-minutes: 30
+    #
+    # **THE JOB LIMIT IS 65 SINCE 2026-10-05, AND THE 30 ABOVE NOW LIVES ON EACH ATTEMPT'S STEP.**
+    # A crashed shard is retried once (see the "Run this shard" step), so a job can legitimately
+    # hold two attempts. Each attempt still has its own 30, so growth is noticed exactly as before.
+    timeout-minutes: 65
 
     steps:
       - uses: actions/checkout@v5
@@ -223,13 +227,76 @@ jobs:
       # array variable expands into separate arguments for a native
       # command there -- this file already records a Windows runner
       # handing a bash script to PowerShell and one line surviving.
+      #
+      # A CRASHED SHARD IS RETRIED ONCE, AND SAID SO OUT LOUD (2026-10-05). This suite's Windows
+      # shards die with an access violation and NO failed test on about half of master's pushes
+      # (17 crashed runs classified in docs/ARCHITECTURE.md, Known TODOs); it cannot be reproduced
+      # off CI, and one fix is in flight with no way yet to know it worked. A red check that no
+      # test caused trains everyone to ignore red, which is the cost this removes.
+      #
+      # WHAT COUNTS AS A CRASH is decided by `tools/ci_classify_crash.ps1` and is narrow on
+      # purpose: a fatal exception printed, AND no pytest summary line, AND no test reported
+      # FAILED or ERROR. A real failure is never retried away, a timeout (no fatal exception)
+      # still fails, and a crash that REPEATS fails the job. The first attempt's step is
+      # `continue-on-error` only so the next step can look at it; the job still goes red through
+      # the "Fail the job" step unless the retry ran and passed.
+      #
+      # EACH ATTEMPT KEEPS THE 30-MINUTE STEP BUDGET, so the gate on suite growth is unchanged;
+      # the job's own limit is 65 because a crash late in attempt one leaves a whole attempt two.
+      # THE CRASH IS ALWAYS ANNOTATED and its log is uploaded: the crash rate over time is the
+      # only evidence there will ever be about whether a fix worked.
       - name: Run this shard of the test suite
+        id: suite
+        shell: pwsh
+        continue-on-error: true
+        timeout-minutes: 30
+        run: ./tools/ci_suite_shard.ps1 -Shard ${{ matrix.shard }} -Log suite-attempt-1.log -NetworkTest "${{ env.NETWORK_TEST }}"
+
+      - name: Was the first attempt a crash?
+        id: classify
+        if: steps.suite.outcome == 'failure'
         shell: pwsh
         run: |
-          $files = uv run --no-sync python tools/suite_shards.py --splits=2 --group=${{ matrix.shard }}
-          Write-Host "shard ${{ matrix.shard }} of 2: $($files.Count) test files"
-          if ($files.Count -lt 1) { throw "the splitter produced no files for this shard" }
-          uv run --no-sync python -u -m pytest -q -ra --deselect "${{ env.NETWORK_TEST }}" --junitxml=suite-timings-windows-${{ matrix.shard }}.xml --durations=30 $files
+          $out = ./tools/ci_classify_crash.ps1 -Log suite-attempt-1.log -Shard ${{ matrix.shard }}
+          $crashed = ($out | Where-Object { $_ -like 'crashed=*' } | Select-Object -First 1)
+          if (-not $crashed) { $crashed = 'crashed=false' }
+          Add-Content -Path $env:GITHUB_OUTPUT -Value $crashed
+          $detail = ($out | Where-Object { $_ -like 'detail=*' } | Select-Object -First 1)
+          if ($detail) {
+            $text = $detail.Substring(7)
+            Write-Host "::warning title=Windows suite shard ${{ matrix.shard }} CRASHED, retrying once (no test failed)::$text"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "**Shard ${{ matrix.shard }} crashed (no test failed); retrying once.** $text"
+          }
+
+      - name: Keep the crashed attempt's log
+        if: steps.classify.outputs.crashed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: suite-crash-log-${{ github.run_number }}-${{ github.run_attempt }}-${{ matrix.shard }}
+          path: suite-attempt-1.log
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Retry the shard once after a crash
+        id: retry
+        if: steps.classify.outputs.crashed == 'true'
+        shell: pwsh
+        timeout-minutes: 30
+        run: ./tools/ci_suite_shard.ps1 -Shard ${{ matrix.shard }} -Log suite-attempt-2.log -NetworkTest "${{ env.NETWORK_TEST }}"
+
+      - name: Say that the retry rescued it
+        if: steps.retry.outcome == 'success'
+        shell: pwsh
+        run: |
+          Write-Host "::notice title=Windows suite shard ${{ matrix.shard }} passed on retry::The first attempt CRASHED (access violation, no failed test) and the second passed. See the crashed attempt's log artifact."
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "**Shard ${{ matrix.shard }} passed on retry** after a crash."
+
+      - name: Fail the job if the suite failed and was not retried
+        if: steps.suite.outcome == 'failure' && steps.classify.outputs.crashed != 'true'
+        shell: pwsh
+        run: |
+          Write-Host "::error title=Windows suite shard ${{ matrix.shard }} FAILED::A test failed or the step timed out. This was not a crash, so it is not retried."
+          exit 1
 
       # Uploaded whatever the suite did: a red suite's timings are still
       # timings, and a job that only published them on success would lose

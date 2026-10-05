@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### CI: a crashed Windows shard is retried once, and said so out loud
+
+- The Windows suite shards die with an access violation and no failed test on about half of master's pushes. A shard that **crashes** (a fatal exception, no pytest summary line, no test reported FAILED or ERROR; decided by `tools/ci_classify_crash.ps1`) is now rerun once, with a warning annotation naming where it died, the crashed attempt's log uploaded, and a notice if the retry passed. A real failure, a timeout, or a crash that repeats still fails the job. Each attempt keeps its own 30-minute budget (the job's limit is 65), so the gate on suite growth is unchanged. The crash annotations are the only record of the crash rate over time, which is how a fix will be judged.
+
 ### Tautomer NMR (P5), step 2 of 5: the NMR run over a distribution's tautomers
 
 - **`QuantumChemistryService.request_tautomer_nmr`** runs `nmr` on the optimized geometry each tautomer of a stored distribution kept (its lowest calculated conformer), or, with `per_conformer`, on every succeeded conformer of that stereoisomer, which are then Boltzmann-averaged atom by atom. Sequential, one job slot for the whole run, one `TautomerNmrResultReady` and one stored run (`tautomer_nmr`). Shifts are referenced with the same cached TMS reference or scaling an ordinary NMR calculation uses; with none cached the run stops at its first result and says so, instead of publishing shieldings that read as shifts.
