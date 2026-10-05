@@ -2297,17 +2297,17 @@ and three were checked again recently rather than taken on trust.
   why the corrected accounts are kept in `docs/sources.toml` under the
   original keys rather than deleted. See docs/VALIDATION.md for the
   measurements.
-- **Tautomer percentages, and tautomer peaks overlaid on the NMR
-  spectrum.** The first needs a `model_version` that passes the
-  preregistered gate; the gate failed on 2026-10-03 for PBE0 def2-TZVP
-  (acetylacetone and 2-pyridone mis-ranked), and the likeliest cause, one
-  start geometry and no conformer or rotamer search, was **not** verified.
-  A new model gets its own preregistered run, never a re-tuned tolerance.
-  The overlay needs a per-tautomer NMR job and a decision on which
-  stereoisomer or conformer supplies the shifts, and waits on a passing
-  model. Also not built: the validation-record lookup in
-  `quantum_chemistry_service` (nothing can be authorized yet) and zoom for
-  the histogram and stick charts.
+- **Tautomer work: what is left after it shipped.** Percentages shipped for the
+  one model that passed its preregistered gate (M062X def2-TZVP, revision 5,
+  2026-10-04), and ONLY that model; the validation-record lookup this entry
+  used to list as unbuilt IS built (`validation_branch_for`, called from
+  `quantum_chemistry_service._finish_tautomer_distribution` and covered by
+  `tests/test_tautomer_validation_record.py`). The per-tautomer NMR job, the
+  fast-exchange average and the overlay on the NMR spectrum shipped too
+  (docs/TAUTOMER_NMR_DESIGN.md). What remains: a new model gets its own
+  preregistered run, never a re-tuned tolerance; the held-out set is narrow; and
+  zoom for the histogram and stick charts (line and scatter charts zoom since
+  #185, these two do not).
 - ~~**Boltzmann-run descriptors beyond the lowest-energy conformer.**~~
   **DECIDED AND SHIPPED (2026-10-05).** A Boltzmann-averaged QC run publishes
   the lowest-energy conformer's descriptors, as before, PLUS the SCF energy
