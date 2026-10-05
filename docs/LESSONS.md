@@ -20680,6 +20680,8 @@ is what the project's own precedent asks for, and the honest verdict is "the
 known flake class, exposed in an arrangement master has not run", not "the
 branch caused it" and not "master does it too".
 
+**UPDATE 2026-10-05: the re-balancing is gone.** Each file's shard is pinned in `tools/suite-shard-pins.json`, so adding a test file moves only itself and master's green history is again the comparison it looks like. The rule below about diffing the split still applies after a `--repin`.
+
 The practical rules this leaves:
 
 * A crashed CI job has no FAILED lines. Read `--log-failed` AND grep for

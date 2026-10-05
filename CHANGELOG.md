@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### CI: a test file keeps its shard when another file is added
+
+- `tools/suite_shards.py` re-packed every file by timing, so adding one test file moved about fifty others between the two Windows shards: each PR ran a shard combination master had never run, and master's green history said nothing about it (it muddied every "is this crash the flake?" question). Each file's shard is now PINNED in `tools/suite-shard-pins.json` (generated to reproduce the current split exactly: both shards' file lists are byte-identical before and after). A file with no pin is packed onto the lighter shard, which moves no pinned file; the set partitioned is still read from disk, so a new or unpinned file still runs. `--repin --splits=2` re-packs everything from the current weights, as a PR of its own. Guards: adding files moves no other file (with a control showing the unpinned packer does), stale or missing pins are bounded, balance within 25%.
+
 ### Tautomer NMR (P5), step 5 of 5: the live check, and three defects only a real run found
 
 - **First real-ORCA run of the whole chain** (acetaldehyde / vinyl alcohol, HF STO-3G, through the real buttons: `benchmarks/visual/tautomer_nmr_live.json`, new drive steps `tautomer_nmr_run` and `tautomer_nmr_report`): distribution, then NMR on each tautomer's kept geometry, then both tautomers' referenced peaks drawn over the molecule's own 1H spectrum, with the average correctly withheld ("populations are not validated for this model"). Plumbing only; no chemistry claim at HF STO-3G.
