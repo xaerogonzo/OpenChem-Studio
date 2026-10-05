@@ -111,6 +111,7 @@ negative = [
   { smiles = "CC(=O)NO", why = "a hydroxamic acid: N bears O" },
   { smiles = "CS(=O)(=O)N", why = "a sulfonamide" },
   { smiles = "CC(=S)N", why = "a thioamide" },
+  { smiles = "CCNC(=[NH+]C(=O)c1ccccc1)N", why = "a protonated acylguanidine: the acyl nitrogen is charged and has no lone pair to conjugate with the carbonyl (found by the vocabulary sweep)" },
 ]
 
 [[feature]]
@@ -208,6 +209,7 @@ negative = [
   { smiles = "CC(=O)NC", why = "an amide" },
   { smiles = "CC(=NN)C", why = "a hydrazone" },
 ]
+charged = [{ smiles = "c1ccccc1[C:1](=[O:2])[NH:3][NH+:4]=CC", state = "cationic" }]
 
 [[feature]]
 id = "fg:thiohydrazide"
@@ -218,6 +220,7 @@ negative = [
   { smiles = "CC(=NN)C", why = "a hydrazone" },
   { smiles = "CC(=O)NN", why = "the oxo analogue, hydrazide" },
 ]
+charged = [{ smiles = "c1ccccc1[C:1](=[S:2])[NH:3][NH+:4]=CC", state = "cationic" }]
 
 # --- carbonyl and imino carbon -------------------------------------------------
 
@@ -284,6 +287,7 @@ negative = [
   { smiles = "CN=C(N)OC", why = "an isourea: the carbon bears N" },
   { smiles = "CC(=NO)N", why = "an amidoxime: no C-O" },
 ]
+charged = [{ smiles = "C[C:1]1=[N+:2](C)CC[O:3]1", state = "cationic" }]
 
 [[feature]]
 id = "fg:thioimidate"
@@ -594,6 +598,8 @@ positive = ["C[NH:1][OH:2]", "C[N:1](C)[OH:2]"]
 negative = [
   { smiles = "CC(=O)NO", why = "a hydroxamic acid: N acylated" },
   { smiles = "CC=NO", why = "an oxime" },
+  { smiles = "CC=[N+](C)O", why = "a protonated oxime: the nitrogen is doubly bonded to carbon (found by the vocabulary sweep)" },
+  { smiles = "C[N+](=O)O", why = "a nitronic acid, [N+](=O)O: the nitrogen is doubly bonded to oxygen (found by the vocabulary sweep)" },
 ]
 
 [[feature]]
@@ -795,6 +801,7 @@ negative = [
   { smiles = "CS(C)(=O)=O", why = "a sulfone" },
   { smiles = "CC(N)=O", why = "a carboxamide" },
 ]
+charged = [{ smiles = "c1ccccc1[S:1](=[O:2])(=[O:2])[N-:3]C", state = "anionic" }]
 
 [[feature]]
 id = "fg:sulfamide"

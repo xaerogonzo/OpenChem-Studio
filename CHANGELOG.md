@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Feature vocabulary: the nine recorded charge-state defects are decided, and the list is empty
+
+- Decided, not patched: a deprotonated sulfonamide is declared (`sulfonamidate`, the Blue Book's name); a protonated acyl(thio)hydrazone is declared (`hydrazidium`/`thiohydrazidium`) because excluding it would orphan its C=O, the Ertl cross-check's lesson; an oxazolinium is a cationic imidate (`imidatium`). Excluded in the pattern instead: a charged acyl nitrogen is not an amide nitrogen (protonated acylguanidine; also lactam and thioamide), and `[N+]=` is not a hydroxylamine (protonated oxime, nitronic acid). Each has a charged or negative fixture in `coverage.toml`; `known_vocabulary_defects.toml` is now empty and `test_feature_vocabulary_sweep.py` tolerates that.
+
 ### Status messages name the key Undo actually has
 
 - "Applied '...'. Ctrl+Z undoes it." and the isotope-edit message hardcoded Ctrl+Z, so after rebinding Undo in Settings > Keyboard they told you to press a key that did something else. They now read the registry (`MainWindow._undo_hint`), and point at Edit > Undo when the shortcut is cleared. Help texts that mention Ctrl+Z are static prose and unchanged.
