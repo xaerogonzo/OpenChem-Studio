@@ -2297,9 +2297,11 @@ document may cite a file or a test that does not exist.
   `tools/ketcher-host/src/main.jsx` and both ending in the same page -> bridge -> `edit_bond` -> `EditStructureCommand` chain, so a click is
   one undo entry with the number keys' refusals (aromatic, query, wedge, a broken valence). Ketcher has no handler for a number over a bond
   (measured, `benchmarks/visual/ketcher_hover_keys.json`), so neither gesture was native. **Click-to-cycle is OFF by default** (Settings >
-  Drawing): in the Select tool a click on a bond SELECTS it and cycling takes that away. It acts only in a Select tool (matched by class-name
-  prefix), on a left click that did not move, with no modifier, on a bond with no atom under the pointer; a bond that is not single, double
-  or triple is left alone. A hover can be produced from automation (`editor.hover(editor.findItem(...))`), which is what makes both
+  Drawing): in the Select tool a click on a bond SELECTS it and cycling takes that away. It acts in the Select tool and in ANY atom tool (matched by
+  class-name prefix; added 2026-10-05 because the point of the gesture is to keep an element armed and fix bonds without going back to the
+  toolbar), on a left click that did not move, with no modifier, on a bond with no atom under the pointer; a bond that is not single, double
+  or triple is left alone. In an atom tool the press is WITHHELD from Ketcher (and its release and click): measured, with the
+  atom tool armed a click on a bond is not inert, and without withholding it the bond edit does not stick. A hover can be produced from automation (`editor.hover(editor.findItem(...))`), which is what makes both
   gestures regression-testable through `OPENCHEM_DRIVE`.
 
 - **DECISION** -- a coordinate-only edit recomputes every result, because the drawing's fingerprint hashes the

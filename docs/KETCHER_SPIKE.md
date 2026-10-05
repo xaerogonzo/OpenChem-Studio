@@ -64,7 +64,8 @@ hover-dependent gesture can now be regression-tested.
    and the key, and the application changes the bond through a `ChemistryEngine` method and an
    `EditStructureCommand`, so it is one undo entry and recomputes like any deliberate change.
 2. **Click-to-cycle is the contested half, and is opt-in for that reason.** In the select tool a click on a bond SELECTS it; cycling on
-   click would take that away, so it needs its own switch, off by default. Aromatic, query and wedge bonds
+   click would take that away, so it needs its own switch, off by default. It works in the Select tool and, since 2026-10-05, in any ATOM
+   tool (keep an element armed and click bonds, as Marvin does); the bond tool already cycles natively. Aromatic, query and wedge bonds
    are left untouched with a hint.
 3. The atom menu's replacement of Ketcher's own menu keeps delegating to Ketcher for anything Ketcher does
    natively; `Edit...` does.

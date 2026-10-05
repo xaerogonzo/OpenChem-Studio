@@ -252,11 +252,14 @@ _HELP = {
     "bond_click": HelpTooltip(
         text=(
             "Off (the default): a click on a bond selects it, as it always has.\n\n"
-            "On: a click on a bond in the Select tool cycles its order, single, double, triple, single. "
+            "On: a click on a bond with the Select tool or ANY atom tool (C, N, O, ...) armed cycles its order, "
+            "single, double, triple, single, so you can keep an element armed and fix bonds without going "
+            "back to the toolbar. "
             "It is one undoable edit, made the way the number keys make it, and a bond that is aromatic, a "
             "query bond, a wedge or hash bond, or one whose change would break a valence is left as it was.\n\n"
-            "The cost is that a click no longer selects a bond (a drag across it still does). Only the Select "
-            "tool is affected: with the bond tool, the chain tool or the eraser a click means what it did."
+            "The cost is that, in the Select tool, a click no longer selects a bond (a drag across it still "
+            "does); an atom tool did nothing on a bond, so it loses nothing. With the bond tool (which already "
+            "cycles by itself), the chain tool or the eraser a click means what it did."
         ),
         tier=2,
         help_id="settings.bond_click_cycle",
@@ -565,7 +568,9 @@ class SettingsDialog(QDialog):
         apply_help_tooltip(self._bond_keys, _HELP["bond_keys"])
         self._bond_keys.toggled.connect(self._on_bond_keys_toggled)
 
-        self._bond_click = QCheckBox("A click on a bond cycles its order (single, double, triple)", page)
+        self._bond_click = QCheckBox(
+            "A click on a bond cycles its order (single, double, triple) with the Select tool or an atom tool", page
+        )
         self._bond_click.setObjectName("drawingBondClick")
         self._bond_click.setChecked(bool(self._settings.preference(DRAWING_BOND_CLICK)))
         apply_help_tooltip(self._bond_click, _HELP["bond_click"])

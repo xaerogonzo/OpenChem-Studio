@@ -139,6 +139,60 @@
   "after_ms": 2500
  },
  {
+  "do": "ketcher_eval",
+  "tag": "an ATOM tool (nitrogen armed; the selection is cleared first, because arming an element with atoms selected relabels them): the gesture works without going back to the toolbar",
+  "script": "(function(){window.ketcher.editor.selection(null);window.ketcher.editor.tool('atom',{label:'N'});return window.ketcher.editor.tool().constructor.name})()",
+  "after_ms": 600
+ },
+ {
+  "do": "ketcher_hover",
+  "tag": "atom tool N: a click on the bond makes it double, one undo entry",
+  "bond": 0,
+  "click": true,
+  "settle_ms": 2200,
+  "expect": {
+   "hovered": true,
+   "bond_type": 2,
+   "smiles_equals": "C=C",
+   "undo_delta": 1
+  },
+  "after_ms": 3000
+ },
+ {
+  "do": "ketcher_hover",
+  "tag": "atom tool N: and the next makes it triple",
+  "bond": 0,
+  "click": true,
+  "settle_ms": 2200,
+  "expect": {
+   "hovered": true,
+   "bond_type": 3,
+   "smiles_equals": "C#C",
+   "undo_delta": 1
+  },
+  "after_ms": 3000
+ },
+ {
+  "do": "ketcher_eval",
+  "tag": "a different element's atom tool is the same gesture",
+  "script": "(function(){window.ketcher.editor.selection(null);window.ketcher.editor.tool('atom',{label:'O'});return window.ketcher.editor.tool().constructor.name})()",
+  "after_ms": 600
+ },
+ {
+  "do": "ketcher_hover",
+  "tag": "atom tool O: and back to single",
+  "bond": 0,
+  "click": true,
+  "settle_ms": 2200,
+  "expect": {
+   "hovered": true,
+   "bond_type": 1,
+   "smiles_equals": "CC",
+   "undo_delta": 1
+  },
+  "after_ms": 3000
+ },
+ {
   "do": "dialog",
   "name": "SettingsDialog",
   "section": "drawing",
