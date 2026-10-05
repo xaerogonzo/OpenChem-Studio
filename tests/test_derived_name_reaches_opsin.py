@@ -20,10 +20,10 @@ pytestmark = pytest.mark.skipif(not opsin_available(), reason="needs the managed
     "smiles,expected",
     [
         ("CC1(C)[C@@H]2CC[C@@]1(C)C(=O)C2", "(1R,4R)-1,7,7-trimethylbicyclo[2.2.1]heptan-2-one"),
-        # a morphinan-type pentacycle: four stereocentres on a von Baeyer parent
-        ("CC(=O)Oc1ccc2c3c1O[C@H]1C(=O)CC[C@@]4(OC(C)=O)[C@@H](C2)N(C)CC[C@]314",
-         "(3R,7S,8S,12R)-17-(acetyloxy)-11-methyl-4-oxo-2-oxa-11-azapentacyclo"
-         "[12.3.1.0^{3,8}.0^{7,12}.0^{8,18}]octadeca-1(17),14(18),15-trien-7-yl acetate"),
+        # a tropane: stereo on an azabicyclo[3.2.1] parent (cocaine). A morphinan is NOT used here any more:
+        # since D-180 it is named on the retained parent, so it no longer reaches the von Baeyer stereo check.
+        ("COC(=O)[C@H]1[C@@H]2CC[C@H](C[C@@H]1OC(=O)c1ccccc1)N2C",
+         "(1R,3S,4S,5S)-4-(methoxycarbonyl)-8-methyl-8-azabicyclo[3.2.1]octan-3-yl benzoate"),
     ],
 )
 def test_bridged_stereo_survives_the_engines_own_opsin_check(smiles, expected):
