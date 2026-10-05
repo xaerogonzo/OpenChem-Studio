@@ -354,6 +354,7 @@ wrote is the book's non-PIN alternative. `CHANGELOG.md`, round 17.
 * **Four of 45 complex natural products still lose stereo in the app:** atropine and scopolamine (tropane parents), galantamine (`benzofuro[3a,3,2-ef][2]benzazepine`) and ibogaine (a methano-bridged fused system). Not diagnosed this round: the name is right about connectivity and the engine's own stereo check leaves the descriptors out. Read `_validate_stereo_via_opsin` first.
 * **Charged morphinans** (quaternary N-methyl) fall back to a von Baeyer name: `retained_modified` refuses a formally charged ring atom.
 * **Only morphinan is eligible for `didehydro`/`epoxy` modification.** Other retained natural-product parents (ergoline, ibogamine, the Amaryllidaceae scaffolds) are not in `_MODIFIABLE`; add one only where the book prints such a name.
+* **Which ester carries the suffix depends on input atom order.** For a molecule with two equivalent ester groups (heroin; also `CC(=O)OC1CCC(OC(C)=O)CC1C`), randomised SMILES of the same structure give two names, `...-3-yl acetate` with `6-(acetyloxy)` and the reverse. Both read back to the structure, so neither is wrong about the molecule, but the lower-locant suffix is the expected one and the tie-break is accidental. Found while porting round 24; present before it (the non-morphinan control shows it too), not investigated.
 * **The battery was not run on the frozen sets as a population.** It is a 45-molecule drug panel chosen by hand, so it measures the cluster, not a rate.
 
 ## Open after naming round 23 (2026-09-27)

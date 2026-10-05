@@ -1,0 +1,55 @@
+{
+  "verdict": "PASS",
+  "exit_code": 0,
+  "tolerate_errors": false,
+  "run": {
+    "run_id": "c20a167314b04d29985ad5705850acc8",
+    "pid": 1772,
+    "started": "2026-10-05T22:37:12+00:00",
+    "script": "D:/_scratch/OpenChem-Studio-r24/benchmarks/naming/drive/morphinan_name.json",
+    "script_sha256": "596350997df98e7c9c6658b36eeafb98c9805513235d26dd418c3136c702df24",
+    "commit": "e4e7da50a1f43d04ee6f5a67c7b164169d50849c",
+    "dirty": true,
+    "lockfile_sha256": "3e691a752678e6ac916aa7cfc9abba2c2a8a673fa420a52a32e58a6b0fc20f2f",
+    "ketcher_bundle": "27ea5bab99703b4cb68a31dcab7f73adb1e8ed52222cfbaeb64f06e41139b68a",
+    "versions": {
+      "python": "3.13.7",
+      "platform": "Windows-11-10.0.26200-SP0",
+      "pyside6": "6.11.1",
+      "qt": "6.11.1",
+      "rdkit": "2025.9.6",
+      "java": ""
+    },
+    "log_start": 701
+  },
+  "steps": {
+    "in_script": 9,
+    "run": 9
+  },
+  "log_file": {
+    "path": "D:\\Random Programs\\OpenChemStudio_Data\\logs\\drive-1772.log",
+    "start": 701,
+    "end": 2482
+  },
+  "assertions": [
+    {
+      "step": "expect_results",
+      "tag": "morphinan-named",
+      "ok": true,
+      "detail": "as expected"
+    },
+    {
+      "step": "expect_clean",
+      "tag": "",
+      "ok": true,
+      "detail": "no unexpected application errors"
+    }
+  ],
+  "measurements": {},
+  "ledger": {
+    "errors": [],
+    "warnings": [],
+    "driver_failures": [],
+    "dropped": 0
+  }
+}
