@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Boltzmann runs publish the averaged SCF energy beside the lowest conformer's
+
+- A Boltzmann-averaged QC run now also publishes `SCF Energy (Boltzmann-averaged)` as a descriptor (Results, Properties, run history), next to the lowest-energy conformer's own SCF energy: two clearly labelled numbers. SCF energy is the one scalar whose average is unambiguous, since the weights are computed from it. Every other scalar stays the lowest conformer's. A one-conformer run adds nothing. Decided, recorded in ROADMAP.
+
 ### An empty pKa list no longer reads as "no information": logD stops reporting logP as Henderson-Hasselbalch
 
 - logD, CNS MPO and the BBB inputs each did `compute_pka(...) or []`, folding three situations into one: nothing configured, a run that errored, and a run that worked and had no value for this structure. The third did real damage: for an amine, logD fell into Henderson-Hasselbalch with an empty list and reported logP (2.96) labelled "Henderson-Hasselbalch on the predicted pKa values", when the protonated form at pH 7.4 is about 1.5. `pka_providers.predicted_pkas` is now the one definition of the three states. logD takes its existing labelled-approximation branch for "no prediction" and says pkasolver ran and has nothing, rather than telling the person to configure an environment that is configured; a predictor error still fails loudly. CNS MPO and the BBB inputs change no number (the pKa term is still omitted, never assumed) but say which of the three it was. A molecule with no ionizable centre no longer asks the predictor at all.
