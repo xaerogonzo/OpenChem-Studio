@@ -744,8 +744,39 @@ def test_provenance_records_the_model_status_not_merely_the_model():
 def test_no_model_disagreement_is_reported_when_only_one_model_ran():
     """**NEVER MANUFACTURE A DELTA.** An unavailable sidecar is not a
     disagreement between two numbers; it is one number and nothing."""
-    report = compute_solubility(mol(ASPIRIN), "u", {"model": ESOL}, admet_interpreter_path="")
+    report = compute_solubility(
+        mol(ASPIRIN), "u", {"model": ESOL, "compare_models": True}, admet_interpreter_path=""
+    )
     assert not any(f.label == "Model disagreement" for f in report.facts)
+
+
+def test_the_model_comparison_is_off_by_default_and_never_starts_the_sidecar(monkeypatch):
+    """It costs ~14-64 s of a second sidecar process for one advanced row, so a default run
+    must not pay it; asking for it still works."""
+    from openchem.chem import solubility
+    from openchem.chem.solubility import AQSOLDB, ModelEstimate, ModelStatus
+
+    asked = []
+
+    def fake(m, model, path=None):
+        asked.append(model)
+        if model == AQSOLDB:
+            return ModelEstimate(model=AQSOLDB, status=ModelStatus.AVAILABLE, logs0=-1.0)
+        return real(m, model, path)
+
+    real = solubility.model_logs0
+    monkeypatch.setattr(solubility, "model_logs0", fake)
+
+    default = compute_solubility(mol(ASPIRIN), "u", {"pka_values": "3.49"}, admet_interpreter_path="x")
+    assert AQSOLDB not in asked
+    assert not any(f.label == "Model disagreement" for f in default.facts)
+
+    asked.clear()
+    asked_for = compute_solubility(
+        mol(ASPIRIN), "u", {"pka_values": "3.49", "compare_models": True}, admet_interpreter_path="x"
+    )
+    assert AQSOLDB in asked
+    assert any(f.label == "Model disagreement" for f in asked_for.facts)
 
 
 # --- the curve result --------------------------------------------------

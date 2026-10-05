@@ -2959,12 +2959,13 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             # shared the machine) -- and nothing at all when it is not. This
             # comment used to say ~6 s and `model_logs0` said ~300 s; neither was
             # measured. It adds ONE row ("Model disagreement", advanced detail)
-            # and changes no number. On by default because two independent models
-            # disagreeing by half a log unit is the most useful thing on the
-            # panel; switchable because it is not free.
+            # and changes no number. OFF BY DEFAULT since 2026-10-05: every default
+            # run, batch included, paid for a row most people never open. Two
+            # independent models disagreeing by half a log unit is still the most
+            # useful thing on the panel for someone who asks for it.
             CalculatorParameter(
                 name="compare_models", label="Compare against the other model",
-                kind="bool", default=True,
+                kind="bool", default=False,
             ),
             # **THIS CALCULATOR ALREADY HONOURED THESE; IT JUST DID NOT
             # OFFER THEM.** `solubility_chart` reads ph_min/ph_max/ph_step

@@ -1637,7 +1637,7 @@ def compute_solubility(
     facts += _ph_facts(analysis, ph)
     facts += _model_facts(
         analysis, mol, admet_interpreter_path,
-        compare=bool(parameters.get("compare_models", True)),
+        compare=bool(parameters.get("compare_models", False)),
     )
     # **THE CURVE'S OWN FACT, NOW THAT THIS CALCULATOR DRAWS THE CURVE.**
     # `solubility_curve` was a second registration reporting the same nine
