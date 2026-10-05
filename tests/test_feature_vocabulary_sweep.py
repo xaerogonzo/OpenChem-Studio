@@ -65,7 +65,7 @@ def sweep() -> dict[str, dict]:
 
 def _known() -> set[str]:
     data = tomllib.loads(_KNOWN.read_text(encoding="utf-8"))
-    return {f"{d['population']}/{d['label']}|{d['feature']}" for d in data["defect"]}
+    return {f"{d['population']}/{d['label']}|{d['feature']}" for d in data.get("defect", [])}
 
 
 def test_the_sweep_really_covers_the_populations(sweep):
@@ -95,7 +95,7 @@ def test_every_known_defect_still_occurs(sweep):
 
 
 def test_the_known_defects_are_listed_once_each_and_with_their_smiles():
-    data = tomllib.loads(_KNOWN.read_text(encoding="utf-8"))["defect"]
+    data = tomllib.loads(_KNOWN.read_text(encoding="utf-8")).get("defect", [])
     keys = [f"{d['population']}/{d['label']}|{d['feature']}" for d in data]
     assert len(keys) == len(set(keys))
     populations = _populations()

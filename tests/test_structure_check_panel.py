@@ -486,6 +486,18 @@ def test_a_quick_fix_lands_on_the_undo_stack(window):
     assert molecule.molblock == before
 
 
+def test_a_quick_fix_names_the_key_undo_has_now(window):
+    """The status line used to say "Ctrl+Z undoes it" whatever Undo was bound to."""
+    molecule = _add(window, "Sodium acetate", "CC(=O)[O-].[Na+]")
+    assert window._shortcuts.set_shortcut("undo", "Ctrl+Alt+U") is None
+
+    window._apply_structure_fix("keep_largest_fragment", molecule.molblock)
+    QCoreApplication.processEvents()
+
+    assert "Ctrl+Alt+U undoes it." in window.statusBar().currentMessage()
+    assert "Ctrl+Z" not in window.statusBar().currentMessage()
+
+
 def test_a_fix_that_would_change_nothing_says_so_instead_of_pushing_a_command(window):
     """An undo entry that undoes nothing is worse than no entry: it makes
     Ctrl+Z appear to do nothing, twice."""

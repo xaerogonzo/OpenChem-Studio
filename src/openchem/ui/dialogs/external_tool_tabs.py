@@ -49,6 +49,8 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.plugins.async_task import run_async
+from openchem.ui.dialogs import external_tools_help as help_text
+from openchem.ui.widgets.help_tooltip import apply_help_tooltip
 
 # Secondary explanation, and a warning that is not an error. Named
 # because the same two greys were pasted as literals into six labels.
@@ -163,6 +165,7 @@ class PathRow(QWidget):
         finder: Callable[[Path], Path | None],
         description: str,
         on_changed: Callable[[], None] = lambda: None,
+        descriptor: Any = None,
     ) -> None:
         super().__init__(parent)
         self._settings = settings
@@ -177,6 +180,9 @@ class PathRow(QWidget):
         self.edit.editingFinished.connect(self.commit)
         self.browse_button = QPushButton("Browse...", self)
         self.browse_button.clicked.connect(self._on_browse_clicked)
+        if descriptor is not None:
+            apply_help_tooltip(self.edit, help_text.path_help(descriptor, description))
+            apply_help_tooltip(self.browse_button, help_text.browse_help(descriptor))
 
         layout = QHBoxLayout(self)
         # Zero margins so wrapping the row in a QWidget lines up exactly
@@ -321,6 +327,11 @@ class ToolTab(QWidget):
         self.setup_button = QPushButton(descriptor.action_label, self)
         self.setup_button.clicked.connect(self._on_setup_clicked)
         self.remove_button = remove_button_factory(self, descriptor.key, descriptor.remove_label)
+        # A tab can hide either button (ORCA cannot be fetched or removed by this
+        # app). The inventory still walks a hidden widget, so it is given a
+        # contract that says it is not offered, not one describing what it never does.
+        apply_help_tooltip(self.setup_button, help_text.setup_help(descriptor))
+        apply_help_tooltip(self.remove_button, help_text.remove_help(descriptor))
 
     # --- Subclass hooks ------------------------------------------------
 
@@ -394,6 +405,7 @@ class ManagedAssetTab(ToolTab):
 
         self.refresh_button = QPushButton("Re-check", self)
         self.refresh_button.clicked.connect(self.refresh)
+        apply_help_tooltip(self.refresh_button, help_text.recheck_help(descriptor))
 
         row = QHBoxLayout()
         row.addWidget(self.setup_button)
@@ -445,15 +457,21 @@ class InterpreterSidecarTab(ToolTab):
             finder=find_interpreter,
             description="Python interpreter",
             on_changed=self._on_path_changed,
+            descriptor=descriptor,
         )
 
         self.locate_button = QPushButton("Locate Installed", self)
-        self.locate_button.setToolTip(
-            "Look where this app installs it, without asking you to find anything."
+        apply_help_tooltip(
+            self.locate_button,
+            help_text.locate_help(
+                descriptor,
+                "Looks where this app installs it, without asking you to find anything.",
+            ),
         )
         self.locate_button.clicked.connect(self._on_locate_clicked)
         self.test_button = QPushButton(descriptor.test_label, self)
         self.test_button.clicked.connect(self._on_test_clicked)
+        apply_help_tooltip(self.test_button, help_text.test_help(descriptor))
 
         prerequisites = QLabel(descriptor.prerequisites(), self)
         prerequisites.setWordWrap(True)
@@ -591,13 +609,17 @@ class ManagedExecutableTab(ToolTab):
             finder=descriptor.finder,
             description=descriptor.path_description,
             on_changed=self._on_path_changed,
+            descriptor=descriptor,
         )
 
         self.locate_button = QPushButton("Locate Installed", self)
-        self.locate_button.setToolTip(descriptor.locate_hint)
+        apply_help_tooltip(
+            self.locate_button, help_text.locate_help(descriptor, descriptor.locate_hint)
+        )
         self.locate_button.clicked.connect(self._on_locate_clicked)
         self.test_button = QPushButton(descriptor.test_label, self)
         self.test_button.clicked.connect(self._on_test_clicked)
+        apply_help_tooltip(self.test_button, help_text.test_help(descriptor))
 
         form = QFormLayout()
         form.addRow(descriptor.form_label, self.path_row)
@@ -632,6 +654,7 @@ class ManagedExecutableTab(ToolTab):
                 # dialog for the life of the process -- measured, and
                 # documented in `property_panel._section_for`.
                 button.setProperty(_VENDOR_URL_PROPERTY, url)
+                apply_help_tooltip(button, help_text.vendor_link_help(descriptor, label, url))
                 button.clicked.connect(self._on_vendor_link_clicked)
                 links.addWidget(button)
             links.addStretch()

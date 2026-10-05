@@ -27,9 +27,17 @@ _ACID_SMARTS = Chem.MolFromSmarts("[$([CX3](=O)[OX2H1]),$([OX2H1][cX3]),$([SX4](
 #: in the live session that also crashed the feature detector on the same
 #: group). The lone pair is delocalised into N=O exactly as an amide's is
 #: into C=O, so the same reasoning that excludes an amide excludes both.
+#:
+#: **SO IS THE AMINO NITROGEN OF A NITROGUANIDINE.** Its NH2 sits on a
+#: guanidine carbon whose other nitrogen carries the nitro group, so its lone
+#: pair is delocalised through C=N into N=O (a nitroimine) and the compound is
+#: essentially non-basic -- the conjugate acid's pKa is about -0.9, against 13+
+#: for guanidine itself. The carbon must be sp2 (`CX3`): an aminal's CH2 between
+#: an amine and a nitramine is not conjugated and that amine is still basic.
+#: An ordinary guanidine, with no nitro on it, is deliberately left alone.
 BASIC_AMINE_SMARTS = (
     "[NX3;H2,H1,H0;!$(NC=[O,S]);!$(N=*);!$(NS(=O)=O);!$(Nc);!a"
-    ";!$(N[N+](=O)[O-]);!$(NN=O)]"
+    ";!$(N[N+](=O)[O-]);!$(NN=O);!$(N[CX3](~[#7])~[#7]~[N+](~[O-])~O)]"
 )
 _BASE_SMARTS = Chem.MolFromSmarts(BASIC_AMINE_SMARTS)
 #: **THE SAME CENTRES, DRAWN IONISED.** A carboxylate is the acid's conjugate

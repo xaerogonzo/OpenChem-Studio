@@ -3712,7 +3712,7 @@ class MainWindow(QMainWindow):
         self._editor.set_molecule(molecule)
         scope = f"every {symbol}" if all_of_element else "the selected atom"
         self.statusBar().showMessage(
-            f"Set {symbol}-{mass_number} on {scope}. Ctrl+Z undoes it.", 5000
+            f"Set {symbol}-{mass_number} on {scope}. {self._undo_hint()}", 5000
         )
 
     def _on_editor_action(self, action: str) -> None:
@@ -4432,6 +4432,18 @@ class MainWindow(QMainWindow):
         self._structure_check_dock.raise_()
         self._check_current_structure()
 
+    def _undo_hint(self) -> str:
+        """"<key> undoes it", naming the key Undo has NOW.
+
+        The user can rebind Undo (Settings > Keyboard) or clear it, so a message
+        that hardcodes Ctrl+Z tells them to press a key that may do something
+        else. With no shortcut it points at the menu entry instead.
+        """
+        entry = self._shortcuts.entry("undo")
+        if entry is not None and entry.current:
+            return f"{entry.current} undoes it."
+        return "Edit > Undo undoes it."
+
     def _apply_structure_fix(self, fix_id: str, molblock: str) -> None:
         """Run a quick fix, through the undo stack.
 
@@ -4460,7 +4472,7 @@ class MainWindow(QMainWindow):
         )
         self._editor.set_molecule(molecule)
         label = fix.label if fix is not None else fix_id
-        self.statusBar().showMessage(f"Applied '{label}'. Ctrl+Z undoes it.", 4000)
+        self.statusBar().showMessage(f"Applied '{label}'. {self._undo_hint()}", 4000)
 
     def _publish_molecule_snapshot(self, molecule: MoleculeModel) -> None:
         """Gives plugins (which have no access to SessionManager/ProjectModel)

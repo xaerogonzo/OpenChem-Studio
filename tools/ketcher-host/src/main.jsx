@@ -458,6 +458,12 @@ function interceptBondOrderKeys() {
 // on by choice (`window.__openchemBondClick`, pushed from Python, Settings > Drawing), because a click
 // on a bond in the Select tool SELECTS it and cycling takes that away.
 //
+// WHICH TOOLS: the Select tool, and ANY ATOM TOOL (C, N, O, ... -- every element button, plus the periodic
+// table's, is the same `AtomTool`). The atom tool is the reason it exists: with an element armed a click
+// on a bond does nothing in Ketcher, so cycling costs nothing, and it saves going back to the bond tool
+// for each order change. The bond tool already cycles natively. The Select tool is a click that would
+// otherwise select, which is why the gesture is opt-in at all.
+//
 // What it is and is not: it reads a click and reports the SAME thing the number keys do
 // (`bridgeObject.bondOrderKey(position, order)`), so the change is made by the application as one
 // undoable edit and every refusal (an aromatic bond, a wedge, a valence that would break) is the one
@@ -465,12 +471,12 @@ function interceptBondOrderKeys() {
 // handling, so the click still selects for the instant before the edit reloads the drawing.
 //
 // Only a CLICK: left button, no modifier, the pointer not moved (a drag is a move or a marquee), on the
-// canvas, in a Select tool (its class is `SelectTool2` in the vendored build and is matched by prefix; a
-// Ketcher upgrade that renames it turns the gesture off rather than into an edit, and
-// `benchmarks/visual/bond_click_cycle.json` fails). With the bond tool, the chain tool or the eraser
-// active a click means something else and is left entirely alone. A bond that is not single, double or
-// triple (aromatic, query, "any") is left alone, and an ATOM under the pointer means the click is for
-// the atom.
+// canvas, in a Select or an Atom tool (their classes are `SelectTool2` and `AtomTool2` in the vendored
+// build and are matched by prefix; a Ketcher upgrade that renames either turns the gesture off rather
+// than into an edit, and `benchmarks/visual/bond_click_cycle.json` fails). With the bond tool, the chain
+// tool or the eraser active a click means something else and is left entirely alone. A bond that is not
+// single, double or triple (aromatic, query, "any") is left alone, and an ATOM under the pointer means
+// the click is for the atom (in the Atom tool that is what sets the element).
 function interceptBondClick() {
   const NEXT = { 1: 2, 2: 3, 3: 1 }
   let down = null
@@ -479,10 +485,48 @@ function interceptBondClick() {
     const editor = editorOf()
     return !!(target && editor && editor.render && editor.render.clientArea && editor.render.clientArea.contains(target))
   }
+  const toolName = () => {
+    const editor = editorOf()
+    const tool = editor && editor.tool && editor.tool()
+    return (tool && tool.constructor && tool.constructor.name) || ''
+  }
+  // THE ATOM TOOL ACTS ON A BOND CLICK ITSELF, which is why this has to SWALLOW the press and not merely
+  // add a bond edit beside it: measured with the nitrogen tool armed, a click on a bond's midpoint made
+  // the bond double AND turned one of its carbons into nitrogen (C=N from C-C). With the carbon tool the
+  // same native action is invisible (carbon onto carbon), which is why only the first element tried looked
+  // right. So a press that lands on a bond with an atom tool armed is withheld from Ketcher, together with
+  // the release and click that complete it, and this module makes the one edit.
+  let swallowing = false
+  let swallowClick = false
   document.addEventListener(
     'mousedown',
     (event) => {
       down = event.button === 0 && inCanvas(event.target) ? { x: event.clientX, y: event.clientY } : null
+      swallowing = false
+      swallowClick = false // a release that moved away produces no click; never carry the flag over
+      if (!down || !bridgeObject || window.__openchemBondClick !== true) return
+      if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return
+      if (!/^AtomTool/.test(toolName())) return
+      try {
+        const hit = editorOf().findItem(event, ['atoms', 'bonds'])
+        if (hit && hit.map === 'bonds') {
+          swallowing = true
+          event.stopImmediatePropagation()
+          event.preventDefault()
+        }
+      } catch (e) {
+        console.warn('[ketcher-host] bond press check failed', e)
+      }
+    },
+    true,
+  )
+  document.addEventListener(
+    'click',
+    (event) => {
+      if (!swallowClick) return
+      swallowClick = false
+      event.stopImmediatePropagation()
+      event.preventDefault()
     },
     true,
   )
@@ -491,6 +535,14 @@ function interceptBondClick() {
     (event) => {
       const start = down
       down = null
+      // Complete the withheld press: Ketcher never saw its mousedown, so it must not see this mouseup
+      // or the click that follows it either.
+      if (swallowing) {
+        swallowing = false
+        swallowClick = true
+        event.stopImmediatePropagation()
+        event.preventDefault()
+      }
       if (!bridgeObject || window.__openchemBondClick !== true || !start) return
       if (event.button !== 0 || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return
       if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > 4) return
@@ -499,17 +551,26 @@ function interceptBondClick() {
         const editor = editorOf()
         const tool = editor.tool && editor.tool()
         const name = tool && tool.constructor && tool.constructor.name
-        if (!name || !/^SelectTool/.test(name)) return
-        const ctab = editor.render.ctab
-        let atomHovered = false
-        ctab.atoms.forEach((item) => {
-          if (item.hover) atomHovered = true
-        })
-        if (atomHovered) return
+        if (!name || !/^(SelectTool|AtomTool)/.test(name)) return
         let bondId = null
-        ctab.bonds.forEach((item, id) => {
-          if (item.hover) bondId = id
-        })
+        if (/^SelectTool/.test(name)) {
+          // The Select tool keeps the hover flag current as the pointer moves.
+          const ctab = editor.render.ctab
+          let atomHovered = false
+          ctab.atoms.forEach((item) => {
+            if (item.hover) atomHovered = true
+          })
+          if (atomHovered) return
+          ctab.bonds.forEach((item, id) => {
+            if (item.hover) bondId = id
+          })
+        } else {
+          // An atom tool does not hover bonds, so ask the editor what is under the pointer the way its own
+          // tools do. An atom wins over a bond (the click is for the atom, and sets the element).
+          const hit = editor.findItem(event, ['atoms', 'bonds'])
+          if (!hit || hit.map !== 'bonds') return
+          bondId = hit.id
+        }
         if (bondId === null) return
         const struct = editor.struct()
         const bond = struct.bonds.get(bondId)
