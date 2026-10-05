@@ -4139,11 +4139,16 @@ class _Driver(QObject):
         # overflowed" and "the walk found nothing to measure" are opposite
         # outcomes that read identically in an empty findings list, and the
         # second is how an over-broad exclusion reads as a clean run.
+        # Header titles are painted by the VIEW and counted apart: an item-view
+        # panel reached a handful of painted items and a clean result there was
+        # a weak statement, so the header population is logged beside them.
+        headers = visual_check.header_sections(root)
         logger.warning(
-            "OPENCHEM_DRIVE: visual_check %s [%s] -- %d painted item(s), %d finding(s)",
+            "OPENCHEM_DRIVE: visual_check %s [%s] -- %d painted item(s), %d header title(s), %d finding(s)",
             tag,
             name,
             len(items),
+            len(headers),
             len(findings),
         )
         for finding in findings:

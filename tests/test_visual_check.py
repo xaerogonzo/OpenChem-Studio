@@ -28,9 +28,12 @@ from PySide6.QtWidgets import QFormLayout, QLabel, QWidget
 
 from openchem.ui import visual_check
 from openchem.ui.visual_check import (
+    HeaderSection,
     LabelledRow,
     PaintedText,
+    clipped_headers,
     collapsed,
+    header_sections,
     labelled_rows,
     latched_ellipsis,
     overflowing,
@@ -388,7 +391,7 @@ def test_a_widget_in_a_hidden_branch_is_not_measured(qapp) -> None:
 
 # -- the two levels stay apart --------------------------------------------
 
-_PREDICATES = ("overflowing", "overlapping", "latched_ellipsis", "collapsed")
+_PREDICATES = ("overflowing", "overlapping", "latched_ellipsis", "collapsed", "clipped_headers")
 
 
 def test_no_predicate_measures_a_font() -> None:
@@ -421,3 +424,48 @@ def test_no_predicate_measures_a_font() -> None:
     # vacuously by matching nothing at all.
     names = {n.name for n in tree.body if isinstance(n, ast.FunctionDef)}
     assert set(_PREDICATES) <= names, sorted(names)
+
+
+# -- item-view headers: painted by the VIEW, so the widget walk never reached them ----
+
+
+def _section(text_width: int, section_width: int) -> HeaderSection:
+    return HeaderSection(path="Panel/QHeaderView/section[0]", text="Substance classification",
+                         text_width=text_width, section_width=section_width)
+
+
+def test_a_header_title_wider_than_its_section_is_reported() -> None:
+    (finding,) = clipped_headers([_section(150, 100)], tolerance=2)
+    assert finding.kind == "clipped_header"
+    assert "150 px" in finding.detail and "100 px" in finding.detail
+
+
+def test_a_header_that_fits_is_not_reported_even_at_the_edge() -> None:
+    """The narrow half: without it `return everything` passes the test above."""
+    assert clipped_headers([_section(100, 100), _section(102, 100), _section(40, 100)], tolerance=2) == []
+
+
+def test_extraction_reads_the_real_titles_and_widths_of_a_table(qapp) -> None:
+    """THE DEFECT THIS EXISTS FOR: a column left at Qt's default section width draws a long
+    title with both ends cut, and every child-widget walk reported 0 findings."""
+    from PySide6.QtWidgets import QTableWidget
+
+    table = QTableWidget(1, 3)
+    table.setHorizontalHeaderLabels(["Substance classification and its long qualifier", "A", ""])
+    table.horizontalHeader().resizeSection(0, 30)
+    table.setColumnHidden(1, True)
+    root = QWidget()
+    table.setParent(root)
+    root.resize(400, 200)
+    root.show()
+
+    sections = header_sections(root)
+    assert [s.text for s in sections] == ["Substance classification and its long qualifier"], (
+        "a hidden section and an empty title paint nothing and must not be measured"
+    )
+    assert sections[0].section_width == 30 and sections[0].text_width > 30
+    assert [f.kind for f in visual_check.check_surface(root)].count("clipped_header") == 1
+
+    table.horizontalHeader().resizeSection(0, sections[0].text_width + 10)
+    assert "clipped_header" not in [f.kind for f in visual_check.check_surface(root)]
+    root.close()

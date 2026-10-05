@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### The visual oracle now measures item-view header titles
+
+- `visual_check` walked child widgets only, so a column title clipped at both ends ("Substance classification" drawn as `ostance classificat`) was invisible to it: Batch reached 12-13 painted items and Compare 5, against Properties' 40. New `HeaderSection` / `header_sections` / `clipped_headers` measure every visible horizontal-header title against its section in the header's own font, `check_surface` includes them, and the drive log prints the header-title count beside the painted-item count so a clean result says how much it covered. Driven on Batch (4 titles, 0 findings; the tolerance control still reports). Compare's table reports 0 header titles: its view has none to measure.
+
 ### Boltzmann runs publish the averaged SCF energy beside the lowest conformer's
 
 - A Boltzmann-averaged QC run now also publishes `SCF Energy (Boltzmann-averaged)` as a descriptor (Results, Properties, run history), next to the lowest-energy conformer's own SCF energy: two clearly labelled numbers. SCF energy is the one scalar whose average is unambiguous, since the weights are computed from it. Every other scalar stays the lowest conformer's. A one-conformer run adds nothing. Decided, recorded in ROADMAP.

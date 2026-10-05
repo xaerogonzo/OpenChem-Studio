@@ -9,7 +9,7 @@ OPENCHEM_DRIVE=benchmarks/visual/properties-width.json uv run --no-sync python -
 ```
 
 Findings and the painted-item count go to the log as
-`OPENCHEM_DRIVE: visual_check <tag> [<surface>] -- N painted item(s), M finding(s)`.
+`OPENCHEM_DRIVE: visual_check <tag> [<surface>] -- N painted item(s), H header title(s), M finding(s)`.
 Shots land under `artifacts/visual/`, which is not tracked.
 
 ## Why these exist
