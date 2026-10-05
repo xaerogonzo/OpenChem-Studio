@@ -93,23 +93,23 @@ def compute_cns_mpo(
     interpreter_path: str | None = None,
 ) -> ReportResult:
     """The "admet" category's CNS MPO calculator."""
+    from openchem.chem.logd import classify_ionizable_centres, logd_from_pkas
+    from openchem.chem.pka_providers import PKaStatus, predicted_pkas
+
     logd = None
     most_basic_pka = None
-    try:
-        from openchem.chem.logd import classify_ionizable_centres, logd_from_pkas
-        from openchem.chem.pka_providers import compute_pka, pka_predictor_available
-
-        if pka_predictor_available(interpreter_path):
-            pkas = sorted(p.value for p in (compute_pka(mol, interpreter_path) or []))
-            if pkas:
-                logd = logd_from_pkas(mol, 7.4, pkas)
-                acids, _bases = classify_ionizable_centres(mol)
-                # The BASIC centres are the higher pKa values, by the same
-                # ordering convention logd_from_pkas already applies.
-                basic = pkas[acids:]
-                most_basic_pka = max(basic) if basic else None
-    except Exception:  # noqa: BLE001 - the score is still useful without pKa
-        logd, most_basic_pka = None, None
+    # The score is still useful without pKa, so every status other than FOUND
+    # leaves logD at logP and drops the pKa term -- and says WHY, which used to
+    # be "no pKa predictor configured" even when one was and had declined.
+    pka = predicted_pkas(mol, interpreter_path)
+    if pka.status is PKaStatus.FOUND:
+        pkas = list(pka.values)
+        logd = logd_from_pkas(mol, 7.4, pkas)
+        acids, _bases = classify_ionizable_centres(mol)
+        # The BASIC centres are the higher pKa values, by the same
+        # ordering convention logd_from_pkas already applies.
+        basic = pkas[acids:]
+        most_basic_pka = max(basic) if basic else None
 
     components = cns_mpo_components(mol, logd=logd, most_basic_pka=most_basic_pka)
     scored = {name: score for name, (_value, score) in components.items() if score is not None}
@@ -118,7 +118,7 @@ def compute_cns_mpo(
     lines = []
     for name, (value, score) in components.items():
         if score is None:
-            lines.append(f"{name}: unavailable (needs a configured pkasolver environment)")
+            lines.append(f"{name}: unavailable ({pka.reason or 'no basic centre among the predicted values'})")
         else:
             lines.append(f"{name}: {value:.2f} -> {score:.2f}")
     lines.append(f"CNS MPO score: {total:.2f} / {len(scored)}.00")
@@ -128,7 +128,10 @@ def compute_cns_mpo(
             "which would inflate the score for every basic compound."
         )
     if logd is None:
-        lines.append("LogD approximated by LogP (no pKa predictor configured).")
+        if pka.status is PKaStatus.FOUND:
+            lines.append("LogD equals LogP (no ionizable centre).")
+        else:
+            lines.append(f"LogD approximated by LogP ({pka.reason}).")
     lines.append("Favourable is generally taken as >= 4.0 (Wager et al.).")
 
     return report_from_fields(

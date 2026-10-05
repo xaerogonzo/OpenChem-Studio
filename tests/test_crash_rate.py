@@ -160,3 +160,17 @@ def test_the_report_runs_even_when_legs_were_cancelled():
     code = _code(_workflow())
     report = code[code.index("  report:"):]
     assert "if: always()" in report
+
+
+def test_the_leg_hands_the_exit_code_to_the_classifier():
+    """Without it a crash at exit (clean summary, non-zero exit) is filed as a test failure and the rate reads low."""
+    assert "-ExitCode $code" in _code(_workflow())
+
+
+def test_a_revert_conflict_in_prose_is_resolved_and_one_in_code_stops_the_leg():
+    """The first run's whole control arm failed on a docs conflict: the fix's own ARCHITECTURE entry had been
+    edited since. Prose keeps the current text; anything that runs must not be silently half-reverted."""
+    code = _code(_workflow())
+    assert "git checkout --ours" in code
+    assert "'^(src|tests|tools|benchmarks|packaging)/'" in code
+    assert "conflicts in code" in code

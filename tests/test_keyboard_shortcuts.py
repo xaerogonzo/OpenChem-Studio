@@ -377,6 +377,18 @@ def test_a_choice_reaches_the_real_action_of_a_fresh_window(qapp, tmp_path):
         built.close()
 
 
+def test_the_undo_hint_names_the_key_undo_has_now(window):
+    """Two status messages used to say "Ctrl+Z undoes it" whatever Undo was bound to."""
+    built, _settings_ = window
+    assert built._undo_hint() == "Ctrl+Z undoes it."
+
+    assert built._shortcuts.set_shortcut("undo", "Ctrl+Alt+U") is None
+    assert built._undo_hint() == "Ctrl+Alt+U undoes it."
+
+    assert built._shortcuts.set_shortcut("undo", "") is None
+    assert built._undo_hint() == "Edit > Undo undoes it."
+
+
 def _key_click(widget, key, modifiers) -> None:
     """`QTest.keyClick`, then release whatever modifier Qt kept down.
 

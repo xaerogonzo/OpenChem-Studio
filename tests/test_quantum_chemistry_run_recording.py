@@ -386,23 +386,50 @@ def test_a_boltzmann_run_publishes_the_lowest_energy_conformers_descriptors(qapp
     # Exactly one QuantumChemistryResultReady for the whole sequence, not
     # one per conformer -- same contract as the averaged spectrum.
     assert len(ready) == 1
-    assert [d.value for d in ready[0].descriptors] == [pytest.approx(lowest_energy)]
+    # The lowest conformer's descriptors, PLUS the one decided exception: the SCF
+    # energy also averaged over the conformers, as its own labelled descriptor.
+    lowest_d, averaged_d = ready[0].descriptors
+    assert lowest_d.value == pytest.approx(lowest_energy)
+    assert averaged_d.descriptor_id.endswith(".boltzmann_average_scf_energy")
+    assert averaged_d.name == "SCF Energy (Boltzmann-averaged)"
+    assert averaged_d.units == lowest_d.units
+    assert lowest_energy < averaged_d.value < middle_energy
+    assert averaged_d.provenance.parameters["averaged_over_conformers"] == 3
 
     # It also reached the generic revision-cache store, the same way
     # `_finish_calculation_job` does for a single job -- otherwise a
     # Boltzmann run's numbers would still vanish from Results on reselect.
-    assert len(recorded) == 1
-    assert recorded[0].result.value == pytest.approx(lowest_energy)
+    assert [r.result.value for r in recorded] == [pytest.approx(lowest_energy), pytest.approx(averaged_d.value)]
 
     qc_run = runs[0]
-    assert [d.value for d in qc_run.results["descriptors"]] == [pytest.approx(lowest_energy)]
-    # Skeleton weighted-average energy (docs/ROADMAP.md): not a descriptor,
-    # just present in run history. The 0.3 kcal/mol gap to the middle
+    assert [d.value for d in qc_run.results["descriptors"]] == [
+        pytest.approx(lowest_energy), pytest.approx(averaged_d.value)
+    ]
+    # The same number also sits in run history as a plain value. The 0.3 kcal/mol gap to the middle
     # conformer is small enough that both meaningfully contribute, so the
     # weighted mean must land strictly above the lowest-energy pick above
     # (never collapse onto it) and strictly below the middle conformer.
     weighted = qc_run.results["boltzmann_average_scf_energy_hartree"]
     assert lowest_energy < weighted < middle_energy
+    assert weighted == pytest.approx(averaged_d.value)
+
+
+def test_a_single_conformer_run_adds_no_averaged_companion(qapp):
+    """One conformer's average IS its own energy: a second row saying the same number
+    twice would read as two results."""
+    provider = _PerConformerProvider(energies=[-100.0], shifts=[30.0])
+    service, bus = _make_service(provider)
+    ready: list = []
+    bus.subscribe(QuantumChemistryResultReady, lambda e: ready.append(e))
+    runs: list = []
+    bus.subscribe(QuantumChemistryRunCompleted, lambda e: runs.append(e.run))
+    mol = Chem.MolFromSmiles("CCO")
+    service.request_boltzmann_nmr(
+        mols=[mol], molecule_uuid="mol-1", calc_type="nmr", charge=0, multiplicity=1,
+        method_basis="B3LYP pcSseg-1", provider_id="fake",
+    )
+    assert _wait_until(qapp, lambda: runs)
+    assert len(ready[0].descriptors) == 1
 
 
 def test_a_qc_descriptor_survives_replay_after_no_recompute(qapp, tmp_path):

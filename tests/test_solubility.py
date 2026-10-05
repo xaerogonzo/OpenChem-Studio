@@ -587,6 +587,26 @@ def test_a_manual_pka_overrides_the_prediction_and_changes_the_answer():
     assert report.provenance.parameters["pka_input_text"] == "6.00"
 
 
+def test_a_typed_pka_that_is_not_a_number_asks_for_input_and_is_not_a_fault():
+    """A typo in the pKa box used to be filed as `PKA_FAILED` -- the code for a crashed
+    predictor -- so the launcher said "Failed" and sent the person looking for a broken
+    install. It is a missing-input refusal that names the field."""
+    from openchem.domain.refusal_kinds import RefusalKind, missing_inputs_of, refusal_kind_of_result
+    from openchem.domain.result_status import NEEDS_INPUT, status_of
+
+    report = compute_solubility(mol(ASPIRIN), "u", {"pka_values": "3.49, 9.x", "pH": 4.0})
+
+    assert report.cache_state.value == "failed"
+    assert "'9.x' is not a number" in report.error
+    assert report.provenance.parameters["refusal"] == "INPUT_REQUIRED"
+    assert refusal_kind_of_result(report) is RefusalKind.NEEDS_INPUT
+    assert status_of(report) == NEEDS_INPUT
+    (missing,) = missing_inputs_of(report)
+    assert missing.parameter == "pka_values" and missing.problem.value == "invalid"
+    # And typing it right gives an answer again: the refusal is about the text, not the molecule.
+    assert compute_solubility(mol(ASPIRIN), "u", {"pka_values": "3.49", "pH": 4.0}).cache_state.value != "failed"
+
+
 # --- the calculators, end to end ---------------------------------------
 
 
@@ -724,8 +744,39 @@ def test_provenance_records_the_model_status_not_merely_the_model():
 def test_no_model_disagreement_is_reported_when_only_one_model_ran():
     """**NEVER MANUFACTURE A DELTA.** An unavailable sidecar is not a
     disagreement between two numbers; it is one number and nothing."""
-    report = compute_solubility(mol(ASPIRIN), "u", {"model": ESOL}, admet_interpreter_path="")
+    report = compute_solubility(
+        mol(ASPIRIN), "u", {"model": ESOL, "compare_models": True}, admet_interpreter_path=""
+    )
     assert not any(f.label == "Model disagreement" for f in report.facts)
+
+
+def test_the_model_comparison_is_off_by_default_and_never_starts_the_sidecar(monkeypatch):
+    """It costs ~14-64 s of a second sidecar process for one advanced row, so a default run
+    must not pay it; asking for it still works."""
+    from openchem.chem import solubility
+    from openchem.chem.solubility import AQSOLDB, ModelEstimate, ModelStatus
+
+    asked = []
+
+    def fake(m, model, path=None):
+        asked.append(model)
+        if model == AQSOLDB:
+            return ModelEstimate(model=AQSOLDB, status=ModelStatus.AVAILABLE, logs0=-1.0)
+        return real(m, model, path)
+
+    real = solubility.model_logs0
+    monkeypatch.setattr(solubility, "model_logs0", fake)
+
+    default = compute_solubility(mol(ASPIRIN), "u", {"pka_values": "3.49"}, admet_interpreter_path="x")
+    assert AQSOLDB not in asked
+    assert not any(f.label == "Model disagreement" for f in default.facts)
+
+    asked.clear()
+    asked_for = compute_solubility(
+        mol(ASPIRIN), "u", {"pka_values": "3.49", "compare_models": True}, admet_interpreter_path="x"
+    )
+    assert AQSOLDB in asked
+    assert any(f.label == "Model disagreement" for f in asked_for.facts)
 
 
 # --- the curve result --------------------------------------------------
@@ -1131,3 +1182,72 @@ def test_no_curve_is_drawn_when_the_analysis_was_refused():
     # this test assumed the opposite and was wrong about the shape.
     assert result.facts == ()
     assert result.error, "and it says why"
+
+
+# --- ESOL outside its domain: N-nitro and nitrate-ester groups -----------------------------------
+
+#: (name, SMILES, temperature C, solubility mass% from the CRC Handbook 97th ed., Table 5-153). g/kg of
+#: water is ten times the mass% and is taken as g/L. Read off the held PDF 2026-10-05.
+_CRC_NITRO = [
+    ("RDX", "O=[N+]([O-])N1CN(CN(C1)[N+](=O)[O-])[N+](=O)[O-]", 25, 0.0060),
+    ("PETN", "C(C(CO[N+](=O)[O-])(CO[N+](=O)[O-])CO[N+](=O)[O-])O[N+](=O)[O-]", 20, 0.0002),
+    ("nitroglycerin", "C(C(CO[N+](=O)[O-])O[N+](=O)[O-])O[N+](=O)[O-]", 25, 0.13),
+    ("isosorbide dinitrate", "O=[N+]([O-])OC1COC2C1OCC2O[N+](=O)[O-]", 25, 0.055),
+    ("nitroguanidine", "NC(=N)N[N+](=O)[O-]", 25, 1.2),
+    ("tetryl", "CN(c1c([N+](=O)[O-])cc([N+](=O)[O-])cc1[N+](=O)[O-])[N+](=O)[O-]", 20, 0.0074),
+]
+_CRC_C_NITRO_CONTROLS = [
+    ("TNT", "Cc1c([N+](=O)[O-])cc([N+](=O)[O-])cc1[N+](=O)[O-]", 20, 0.012),
+    ("picric acid", "Oc1c([N+](=O)[O-])cc([N+](=O)[O-])cc1[N+](=O)[O-]", 25, 1.25),
+    ("1,3,5-trinitrobenzene", "c1c([N+](=O)[O-])cc([N+](=O)[O-])cc1[N+](=O)[O-]", 15, 0.028),
+]
+
+
+def _crc_logs(smiles: str, mass_percent: float) -> float:
+    import math
+
+    from rdkit.Chem import Descriptors
+
+    return math.log10(mass_percent * 10.0 / Descriptors.MolWt(mol(smiles)))
+
+
+def test_the_evidence_for_the_esol_domain_still_holds():
+    """If ESOL's coefficients or Crippen logP ever change, the sentence in the refusal ("out by
+    1.1 to 4.3 log units") stops being true; this is what notices."""
+    errors = [esol_logs(mol(smiles)) - _crc_logs(smiles, pct) for _n, smiles, _t, pct in _CRC_NITRO]
+    assert all(error > 1.0 for error in errors), errors
+    assert max(errors) == pytest.approx(4.3, abs=0.1) and min(errors) == pytest.approx(1.07, abs=0.1)
+    controls = [esol_logs(mol(smiles)) - _crc_logs(smiles, pct) for _n, smiles, _t, pct in _CRC_C_NITRO_CONTROLS]
+    assert all(abs(error) < 1.0 for error in controls), controls
+
+
+@pytest.mark.parametrize(("name", "smiles"), [(n, s) for n, s, _t, _p in _CRC_NITRO])
+def test_esol_is_refused_for_an_n_nitro_or_nitrate_ester_compound(name, smiles):
+    report = compute_solubility(mol(smiles), "u", {"pka_values": "7.0"})
+    assert report.cache_state.value == "failed", name
+    assert report.inapplicable, "a limit of the model, not a fault"
+    assert report.provenance.parameters["refusal"] == "ESOL_OUTSIDE_DOMAIN"
+    assert "ESOL is not defined for" in report.error and "AqSolDB" in report.error
+
+
+@pytest.mark.parametrize(("name", "smiles"), [(n, s) for n, s, _t, _p in _CRC_C_NITRO_CONTROLS] + [
+    ("nitromethane", "C[N+](=O)[O-]"), ("aspirin", ASPIRIN), ("caffeine", CAFFEINE),
+])
+def test_esol_is_not_refused_where_it_was_not_shown_to_fail(name, smiles):
+    report = compute_solubility(mol(smiles), "u", {"pka_values": "3.5"})
+    assert report.provenance.parameters.get("refusal") != "ESOL_OUTSIDE_DOMAIN", name
+
+
+def test_the_refusal_applies_to_esol_only_not_to_the_other_model(monkeypatch):
+    """Choosing AqSolDB is the way out the message offers, so it must not refuse the same molecule."""
+    from openchem.chem import solubility
+    from openchem.chem.solubility import AQSOLDB, ModelEstimate, ModelStatus
+
+    monkeypatch.setattr(
+        solubility, "model_logs0",
+        lambda m, model, path=None: ModelEstimate(model=AQSOLDB, status=ModelStatus.AVAILABLE, logs0=-3.7),
+    )
+    rdx = mol("O=[N+]([O-])N1CN(CN(C1)[N+](=O)[O-])[N+](=O)[O-]")
+    report = compute_solubility(rdx, "u", {"model": AQSOLDB, "pka_values": "7.0"}, admet_interpreter_path="x")
+    assert report.provenance.parameters.get("refusal") != "ESOL_OUTSIDE_DOMAIN"
+    assert report.cache_state.value != "failed"

@@ -55,7 +55,7 @@ from typing import Sequence
 
 from PySide6.QtCore import QPoint, QRect, Qt
 from PySide6.QtGui import QFontMetrics
-from PySide6.QtWidgets import QFormLayout, QLabel, QWidget
+from PySide6.QtWidgets import QFormLayout, QHeaderView, QLabel, QWidget
 
 #: Pixels of slack before a geometry finding is reported.
 #:
@@ -114,6 +114,29 @@ class PaintedText:
     full_text_width: int
     #: `minimumSizeHint().width()` -- what the widget says it needs.
     minimum_width: int
+
+
+@dataclass(frozen=True)
+class HeaderSection:
+    """One column (or row) header of an item view, with the width its title needs.
+
+    **A SEPARATE KIND FROM `PaintedText` BECAUSE A HEADER IS NOT A WIDGET.** A
+    `QHeaderView` paints every section itself, so the walk over child widgets
+    that feeds `PaintedText` never reaches a title: the item-view panels (Batch
+    reached 12-13 painted items, Compare 5, against Properties' 40) were mostly
+    unmeasured, and a title clipped at both ends -- "Substance classification"
+    drawn as `ostance classificat` -- passed every test and reported 0 findings.
+    Measured with the header's OWN font, so the comparison is font-independent.
+    """
+
+    path: str
+    text: str
+    #: What the title needs on one line, in the header's own font.
+    text_width: int
+    #: The pixels the section actually has.
+    section_width: int
+    #: Where it is painted -- true for the horizontal header's sections.
+    horizontal: bool = True
 
 
 @dataclass(frozen=True)
@@ -247,6 +270,26 @@ def overlapping(
                 )
             )
     return findings
+
+
+def clipped_headers(
+    sections: Sequence[HeaderSection], tolerance: int = DEFAULT_TOLERANCE
+) -> list[Finding]:
+    """Header titles wider than the section that holds them.
+
+    A `QHeaderView` OVERFLOWS rather than eliding, and a centred title loses BOTH
+    ends. `tolerance` is the same slack every geometry predicate here grants.
+    """
+    return [
+        Finding(
+            kind="clipped_header",
+            path=section.path,
+            text=section.text,
+            detail=f"title needs {section.text_width} px, section is {section.section_width} px",
+        )
+        for section in sections
+        if section.text_width > section.section_width + tolerance
+    ]
 
 
 def latched_ellipsis(items: Sequence[PaintedText]) -> list[Finding]:
@@ -401,6 +444,39 @@ def painted_items(root: QWidget, space: QWidget | None = None) -> list[PaintedTe
     return items
 
 
+def header_sections(root: QWidget) -> list[HeaderSection]:
+    """Every visible section title of every horizontal header under `root`.
+
+    A hidden section, an empty title and a header with no model are skipped: none
+    of them paints a title. Vertical headers hold row numbers and are not asked.
+    """
+    sections: list[HeaderSection] = []
+    for header in root.findChildren(QHeaderView):
+        if header.orientation() != Qt.Orientation.Horizontal or not header.isVisibleTo(root):
+            continue
+        model = header.model()
+        if model is None:
+            continue
+        metrics = QFontMetrics(header.font())
+        path = ancestry_path(header, root)
+        for index in range(header.count()):
+            if header.isSectionHidden(index):
+                continue
+            title = model.headerData(index, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole)
+            text = str(title) if title is not None else ""
+            if not text.strip():
+                continue
+            sections.append(
+                HeaderSection(
+                    path=f"{path}/section[{index}]",
+                    text=text,
+                    text_width=metrics.horizontalAdvance(text),
+                    section_width=header.sectionSize(index),
+                )
+            )
+    return sections
+
+
 def labelled_rows(root: QWidget, space: QWidget | None = None) -> list[LabelledRow]:
     """Every `QFormLayout` row under `root` carrying BOTH a label and a field.
 
@@ -456,4 +532,5 @@ def check_surface(
         *overlapping(labelled_rows(root, space), tolerance),
         *latched_ellipsis(items),
         *collapsed(items),
+        *clipped_headers(header_sections(root), tolerance),
     ]

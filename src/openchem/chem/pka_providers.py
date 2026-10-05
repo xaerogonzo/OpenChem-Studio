@@ -510,7 +510,7 @@ def protonate_at_ph(mol: Chem.Mol, ph: float) -> Chem.Mol:
 class PKaStatus(Enum):
     """Why a pKa lookup produced what it did.
 
-    **FIVE STATES, BECAUSE COLLAPSING THEM LOSES THE ONE THAT MATTERS.**
+    **SIX STATES, BECAUSE COLLAPSING THEM LOSES THE ONE THAT MATTERS.**
     `compute_pka` returns `None` for "not installed" and its own docstring
     has to warn that this is not "no ionizable atoms found" -- a warning
     only load-bearing because the two were indistinguishable in the return
@@ -534,6 +534,11 @@ class PKaStatus(Enum):
     UNAVAILABLE = "unavailable"  # no environment configured
     FAILED = "failed"  # configured, but the run errored
     NO_PREDICTION = "no_prediction"  # configured, ran, and returned nothing
+    #: Values the USER typed that cannot be read ("3.4x"). Not a fault of the
+    #: software or of the model: a missing-input refusal naming the field, which
+    #: the person fixes by retyping it. It used to share FAILED with a crashed
+    #: predictor, so a typo read as a broken install.
+    INVALID_INPUT = "invalid_input"
 
 
 @dataclass(frozen=True)
@@ -745,6 +750,42 @@ def clear_pka_cache() -> None:
     """Forget every kept pkasolver answer. For setup and for tests."""
     with _PAYLOADS_LOCK:
         _PAYLOADS.clear()
+
+
+def predicted_pkas(mol: Chem.Mol, interpreter_path: str | None) -> PKaResolution:
+    """The predictor's pKa values for `mol`, or WHICH of three different reasons
+    there are none: nothing configured, a run that errored, or a run that worked
+    and had no value for this structure.
+
+    **ONE DEFINITION OF "THE LIST CAME BACK EMPTY".** logD, CNS MPO and the BBB
+    inputs each did `compute_pka(...) or []` and read an empty list as "no
+    information" -- which let logD report logP as a Henderson-Hasselbalch value
+    for an amine (a basic centre at pH 7.4, so it must sit BELOW logP), and let
+    two others say "needs a configured pkasolver environment" when the
+    environment was configured and had simply declined the structure. The three
+    cases need three different sentences, so they come back as three statuses,
+    and what each calculator DOES about them stays its own decision.
+    """
+    if not pka_predictor_available(interpreter_path):
+        return PKaResolution(
+            status=PKaStatus.UNAVAILABLE,
+            reason="needs a configured pkasolver environment (Tools > External Tools)",
+        )
+    try:
+        predictions = compute_pka(mol, interpreter_path) or []
+    except Exception as exc:  # noqa: BLE001 - report, never crash a panel
+        return PKaResolution(status=PKaStatus.FAILED, reason=str(exc))
+    if not predictions:
+        return PKaResolution(
+            status=PKaStatus.NO_PREDICTION,
+            reason="pkasolver ran but has no prediction for this structure",
+        )
+    return PKaResolution(
+        status=PKaStatus.FOUND,
+        values=tuple(sorted(p.value for p in predictions)),
+        source="predicted",
+        method="pkasolver",
+    )
 
 
 def compute_pka(
