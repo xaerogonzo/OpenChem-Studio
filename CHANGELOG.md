@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Nitroguanidine's NH2 is no longer counted as a base
+
+- `BASIC_AMINE_SMARTS` (the one definition behind logD, solubility, the pH curves and the hERG checklist) excludes an amine on an sp2 carbon whose other nitrogen carries a nitro group: the lone pair is delocalised into a nitroimine, and nitroguanidine's conjugate acid has pKa about -0.9. An ordinary guanidine, an aminal beside a nitramine, and a real amine elsewhere on a nitroguanidine all keep their count (tests). Census cells that moved, exactly three and all for nitroguanidine: isoelectric point and pKa microspecies `Needs setup` -> `Limit` (nothing to ionise), solubility `Needs setup` -> `Ready`. Whether ESOL's number is plausible for it is a separate, still-open question.
+
 ### Feature vocabulary: the nine recorded charge-state defects are decided, and the list is empty
 
 - Decided, not patched: a deprotonated sulfonamide is declared (`sulfonamidate`, the Blue Book's name); a protonated acyl(thio)hydrazone is declared (`hydrazidium`/`thiohydrazidium`) because excluding it would orphan its C=O, the Ertl cross-check's lesson; an oxazolinium is a cationic imidate (`imidatium`). Excluded in the pattern instead: a charged acyl nitrogen is not an amide nitrogen (protonated acylguanidine; also lactam and thioamide), and `[N+]=` is not a hydroxylamine (protonated oxime, nitronic acid). Each has a charged or negative fixture in `coverage.toml`; `known_vocabulary_defects.toml` is now empty and `test_feature_vocabulary_sweep.py` tolerates that.
