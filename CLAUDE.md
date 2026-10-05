@@ -179,6 +179,10 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
      "view_enabled": true}, "view": true}     where the result is REACHABLE from, read
                                               off the widgets (Results list, Runs combo,
                                               the View button, no auto-popped dialog)
+    {"do": "tautomer_nmr_run", "method": "HF STO-3G"}  the REAL "Tautomer NMR..." button on the
+                                              newest distribution run (answer its cost question with
+                                              OPENCHEM_DRIVE_MODAL=yes); `tautomer_nmr_report` reads
+                                              the traces DRAWN, the stored result and the combo
     {"do": "save_project", "path": "..."}     the REAL save, results included
     {"do": "dock_move", "panel": "Results", "area": "top"}   as a drop
     {"do": "dock_move", "panel": "Results", "beside": "Properties"}

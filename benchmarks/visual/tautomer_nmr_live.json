@@ -1,0 +1,13 @@
+[
+ {"do": "smiles", "smiles": "CC=O", "name": "Acetaldehyde", "after_ms": 3000},
+ {"do": "select", "molecule": -1, "after_ms": 3000},
+ {"do": "conformers", "count": 1, "after_ms": 20000},
+ {"do": "panel", "id": "Quantum_Chemistry", "after_ms": 1500},
+ {"do": "qc_run", "calc_type": "NMR (raw shielding)", "method": "HF STO-3G", "after_ms": 120000},
+ {"do": "tautomer_run", "method": "HF STO-3G", "after_ms": 180000},
+ {"do": "tautomer_report", "tag": "distribution", "expect": {"runs_label": "Tautomer Distribution", "view_enabled": true}, "after_ms": 1000},
+ {"do": "tautomer_nmr_run", "method": "HF STO-3G", "after_ms": 240000},
+ {"do": "tautomer_nmr_report", "tag": "after-run", "shot": "D:/_scratch/tautomer_nmr_live.png",
+  "expect": {"drawn": true, "complete": true, "tautomers": 2, "average": false, "window": false}, "after_ms": 1500},
+ {"do": "quit"}
+]

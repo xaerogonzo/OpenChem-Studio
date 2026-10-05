@@ -297,6 +297,19 @@ def test_parse_output_opt_returns_optimized_conformer_from_last_block():
     assert "0.0100" in conformer.molblock or "0.010000" in conformer.molblock.replace("  ", " ")
 
 
+def test_the_optimized_geometry_is_read_from_output_with_windows_line_ends():
+    """ORCA's real output on Windows has CRLF line ends (measured on 6.1.1: every line). The fixtures are
+    LF, so a regex that required a bare newline passed every test while finding NO coordinate block in a
+    real run -- an optimized geometry was silently never read, and the tautomer distribution kept an energy
+    with no structure behind it. This is the same text as the LF case, with the line ends ORCA writes."""
+    provider = OrcaQuantumEngineProvider()
+    mol = _ethanol_mol()
+    lf = provider.parse_output(FIXTURE_OUTPUT, mol, "mol-1", "opt")[1]
+    crlf = provider.parse_output(FIXTURE_OUTPUT.replace("\n", "\r\n"), mol, "mol-1", "opt")[1]
+    assert crlf is not None
+    assert crlf.molblock == lf.molblock
+
+
 def test_parse_output_opt_takes_the_last_cycles_energy_not_the_first():
     """A real multi-cycle Opt prints "FINAL SINGLE POINT ENERGY" once PER CYCLE, not once per
     job -- confirmed live, RDX alone takes 28. Taking the first (as `.search()` naively would)

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Tautomer NMR (P5), step 5 of 5: the live check, and three defects only a real run found
+
+- **First real-ORCA run of the whole chain** (acetaldehyde / vinyl alcohol, HF STO-3G, through the real buttons: `benchmarks/visual/tautomer_nmr_live.json`, new drive steps `tautomer_nmr_run` and `tautomer_nmr_report`): distribution, then NMR on each tautomer's kept geometry, then both tautomers' referenced peaks drawn over the molecule's own 1H spectrum, with the average correctly withheld ("populations are not validated for this model"). Plumbing only; no chemistry claim at HF STO-3G.
+- **ORCA's output has CRLF line ends on Windows, and the optimized-geometry regex required a bare newline**, so it found no coordinate block in any real run: a tautomer distribution kept each energy with no structure behind it (so Tautomer NMR could never start), and the same parser serves ordinary Geometry Optimization. Every fixture was LF, so every test passed. Fixed, with a CRLF regression test.
+- **A stored NMR run chosen from the Runs combo left the 1D Signals tab on its "No NMR signals" placeholder** (it has no 2D drawing and the view refused to build without one), which also hid any tautomer peaks drawn onto that view. It now depicts the run from the 3D structure ORCA was given.
+- **After a tautomer NMR run the Runs combo named the new run while the panel showed the molecule's own spectrum**; it now keeps naming the run whose content is on screen.
+
 ### Tautomer NMR (P5), step 4 of 5: the viewer
 
 - **Tautomer peaks drawn over the 1D spectrum.** `NmrSpectrumWidget` draws one trace per tautomer (its own colour, sticks as tall as the hydrogens they stand for, on the molecule's own scale; labile N/O/S hydrogens dashed) and the fast-exchange average (near-black, thicker, with a dot). View state like the measured reference: never on a shielding axis, never touching a signal, and it works for a molecule with no spectrum of its own. `TautomerOverlayControls` lists a checkbox per trace with its population (only when validated) or relative energy, the average's row (disabled, with the reason, when unavailable), what the average covers, and what it leaves out, with the app's one-based atom numbers. `NmrViewWidget.set_tautomer_nmr` wires it to the viewer's nucleus choice.
