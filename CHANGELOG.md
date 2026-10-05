@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Status messages name the key Undo actually has
+
+- "Applied '...'. Ctrl+Z undoes it." and the isotope-edit message hardcoded Ctrl+Z, so after rebinding Undo in Settings > Keyboard they told you to press a key that did something else. They now read the registry (`MainWindow._undo_hint`), and point at Edit > Undo when the shortcut is cleared. Help texts that mention Ctrl+Z are static prose and unchanged.
+
 ### External Tools pages: every control now carries a help contract
 
 - The Settings > External Tools tabs (Vina, ORCA, pkasolver, ADMET, Java, NMR database, Storage) had 45 controls with no contract, because the bare-context guard could never build the dialog and `test_every_preference_control_carries_a_help_contract` skipped the section. Each control's contract is built from the descriptor that built it (`src/openchem/ui/dialogs/external_tools_help.py`), so a tab cannot describe a different tool than the one it sits on; the skip is gone and the whole Settings window is walked. ORCA's hidden Set Up and Remove buttons still get walked, so they say they are not offered rather than describing what they never do.
