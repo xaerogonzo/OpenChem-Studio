@@ -43,6 +43,12 @@ on:
       revert:
         description: 'Optional: space-separated SHAs to revert for a "reverted" control arm (e.g. 655abcc9)'
         default: ''
+      ranges:
+        description: 'BISECT MODE: comma-separated slices of the shard file list, e.g. "0:28,10:28". Each is an arm; replaces as-is/reverted. Empty = the whole shard.'
+        default: ''
+      attempts:
+        description: 'Attempts per leg (fresh process each). Use >1 only with ranges, where an attempt takes minutes, not 25.'
+        default: '1'
 
 permissions:
   contents: read
@@ -64,6 +70,8 @@ jobs:
           REPLICAS: ${{ inputs.replicas }}
           REVERT: ${{ inputs.revert }}
           SHARD: ${{ inputs.shard }}
+          RANGES: ${{ inputs.ranges }}
+          ATTEMPTS: ${{ inputs.attempts }}
         run: |
           python3 - <<'PY'
           import json, os
@@ -72,12 +80,24 @@ jobs:
               raise SystemExit("replicas must be between 1 and 30")
           if os.environ["SHARD"] not in ("1", "2"):
               raise SystemExit("shard must be 1 or 2")
-          arms = ["as-is"] + (["reverted"] if os.environ["REVERT"].strip() else [])
-          matrix = {"include": [{"arm": a, "replica": r} for a in arms for r in range(1, replicas + 1)]}
+          attempts = int(os.environ["ATTEMPTS"])
+          if not 1 <= attempts <= 40:
+              raise SystemExit("attempts must be between 1 and 40")
+          ranges = [r.strip() for r in os.environ["RANGES"].split(",") if r.strip()]
+          if ranges and os.environ["REVERT"].strip():
+              raise SystemExit("ranges and revert are different experiments; use one")
+          if attempts > 1 and not ranges:
+              raise SystemExit("attempts > 1 is for ranges (a whole-shard attempt takes ~25 minutes)")
+          if ranges:
+              # One arm per slice, labelled by the slice, so the report compares them.
+              arms = [(f"files {r}", r) for r in ranges]
+          else:
+              arms = [("as-is", "")] + ([("reverted", "")] if os.environ["REVERT"].strip() else [])
+          matrix = {"include": [{"arm": a, "range": r, "replica": i} for a, r in arms for i in range(1, replicas + 1)]}
           with open(os.environ["GITHUB_OUTPUT"], "a") as out:
               out.write("matrix=" + json.dumps(matrix) + "\n")
-              out.write("expected=" + json.dumps({a: replicas for a in arms}) + "\n")
-          print(f"{len(matrix['include'])} legs across {arms}")
+              out.write("expected=" + json.dumps({a: replicas * attempts for a, _ in arms}) + "\n")
+          print(f"{len(matrix['include'])} legs x {attempts} attempt(s) across {[a for a, _ in arms]}")
           PY
 
   leg:
@@ -140,28 +160,48 @@ jobs:
       - name: Sync dependencies
         run: uv sync --extra ai --extra network --extra openbabel
 
-      # ONE attempt, no retry, exit 0 whatever happened: the outcome is the measurement.
-      - name: Run the shard once and record how it ended
+      # `attempts` fresh processes per leg (1 for a whole-shard run), NO retry in any of them, exit 0 whatever
+      # happened: every outcome is the measurement. With `ranges`, only that slice of the shard's file list
+      # runs, which is what makes many attempts per leg affordable.
+      - name: Run the shard and record how each attempt ended
         shell: pwsh
-        timeout-minutes: 35
+        timeout-minutes: 40
         env:
           SHARD: ${{ inputs.shard }}
           REF_INPUT: ${{ inputs.ref }}
           ARM: ${{ matrix.arm }}
           REPLICA: ${{ matrix.replica }}
+          RANGE: ${{ matrix.range }}
+          ATTEMPTS: ${{ inputs.attempts }}
         run: |
-          $watch = [Diagnostics.Stopwatch]::StartNew()
-          ./tools/ci_suite_shard.ps1 -Shard $env:SHARD -Log suite-attempt-1.log -NetworkTest "$env:NETWORK_TEST"
-          $code = $LASTEXITCODE
-          $out = ./tools/ci_classify_crash.ps1 -Log suite-attempt-1.log -Shard $env:SHARD -ExitCode $code
-          $crashed = if ($out -contains 'crashed=true') { 'true' } else { 'false' }
-          $detail = ($out | Where-Object { $_ -like 'detail=*' } | Select-Object -First 1)
-          if ($detail) { $detail = $detail.Substring(7) } else { $detail = '' }
-          uv run --no-sync python tools/crash_rate.py leg `
-            --arm "$env:ARM" --replica "$env:REPLICA" `
-            --exit-code $code --crashed $crashed --seconds $watch.Elapsed.TotalSeconds `
-            --detail "$detail" --ref "$env:REF_INPUT" --out leg.json
-          Get-Content leg.json
+          $files = @()
+          if ($env:RANGE) {
+            $files = @(uv run --no-sync python tools/suite_shards.py --splits=2 --group=$env:SHARD --slice=$env:RANGE)
+            Write-Host "slice $($env:RANGE) of shard $($env:SHARD): $($files.Count) files, first $($files[0]), last $($files[-1])"
+          }
+          $attempts = [int]$env:ATTEMPTS
+          for ($n = 1; $n -le $attempts; $n++) {
+            $log = "suite-attempt-$n.log"
+            $watch = [Diagnostics.Stopwatch]::StartNew()
+            if ($files.Count -gt 0) {
+              ./tools/ci_suite_shard.ps1 -Shard $env:SHARD -Log $log -NetworkTest "$env:NETWORK_TEST" -Files $files
+            } else {
+              ./tools/ci_suite_shard.ps1 -Shard $env:SHARD -Log $log -NetworkTest "$env:NETWORK_TEST"
+            }
+            $code = $LASTEXITCODE
+            $out = ./tools/ci_classify_crash.ps1 -Log $log -Shard $env:SHARD -ExitCode $code
+            $crashed = if ($out -contains 'crashed=true') { 'true' } else { 'false' }
+            $detail = ($out | Where-Object { $_ -like 'detail=*' } | Select-Object -First 1)
+            if ($detail) { $detail = $detail.Substring(7) } else { $detail = '' }
+            $replica = if ($attempts -gt 1) { "$($env:REPLICA).$n" } else { "$($env:REPLICA)" }
+            uv run --no-sync python tools/crash_rate.py leg `
+              --arm "$env:ARM" --replica "$replica" `
+              --exit-code $code --crashed $crashed --seconds $watch.Elapsed.TotalSeconds `
+              --detail "$detail" --ref "$env:REF_INPUT" --out "leg-$n.json"
+            Get-Content "leg-$n.json"
+            # Only a crashed attempt's log is worth keeping; the rest are megabytes of dots.
+            if ($crashed -ne 'true') { Remove-Item $log -ErrorAction SilentlyContinue }
+          }
           exit 0
 
       - name: Publish this leg
@@ -169,7 +209,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: crash-leg-${{ matrix.arm }}-${{ matrix.replica }}
-          path: leg.json
+          path: leg-*.json
           if-no-files-found: warn
           retention-days: 30
 
@@ -178,7 +218,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: crash-log-${{ matrix.arm }}-${{ matrix.replica }}
-          path: suite-attempt-1.log
+          path: suite-attempt-*.log
           if-no-files-found: ignore
           retention-days: 14
 

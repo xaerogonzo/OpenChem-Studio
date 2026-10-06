@@ -4,6 +4,7 @@
     python tools/suite_shards.py --update=suite-timings-windows.xml
     python tools/suite_shards.py --repin --splits=2
     python tools/suite_shards.py --pin-new --splits=2   # pin files that have no pin, where they sit now
+    python tools/suite_shards.py --splits=2 --group=1 --slice=0:28   # only files 0..27 of that shard
 
 WHY THIS EXISTS. The Windows suite runs ~34 minutes against a 45-minute
 job timeout -- 76% of budget -- and **the timeout is PER JOB**. Two shards
@@ -148,6 +149,22 @@ def pin_new(splits: int, out_path: Path | None = None) -> list[str]:
     return fresh
 
 
+def slice_files(files: list[str], spec: str) -> list[str]:
+    """`files[a:b]` for a spec like `"0:28"`, `":28"` or `"10:"`: a window onto one shard's file list, in the
+    order pytest will run it. Used by the crash-bisect workflow to run only the part of a shard where a crash
+    happens. Bounds are Python's: out-of-range ends clamp, they do not raise, so a stale window shrinks
+    rather than failing; an empty result is an error (a window that selects nothing must not "pass")."""
+    head, sep, tail = spec.partition(":")
+    if not sep:
+        raise ValueError(f"slice must look like 'a:b', got {spec!r}")
+    start = int(head) if head.strip() else None
+    stop = int(tail) if tail.strip() else None
+    window = files[start:stop]
+    if not window:
+        raise ValueError(f"slice {spec!r} selects none of the {len(files)} files")
+    return window
+
+
 def repin(splits: int, out_path: Path | None = None) -> int:
     """Re-pack EVERY file from the current weights and commit the result as the new pins. This is the one
     operation that moves files between shards; run it on its own, not alongside other changes."""
@@ -179,12 +196,14 @@ def update_from_junit(xml_path: Path, out_path: Path | None = None) -> int:
 
 
 def main(argv: list[str]) -> int:
-    splits, group, update, do_repin, do_pin_new = 2, None, None, False, False
+    splits, group, update, do_repin, do_pin_new, window = 2, None, None, False, False, None
     for arg in argv:
         if arg.startswith("--splits="):
             splits = int(arg.split("=", 1)[1])
         elif arg.startswith("--group="):
             group = int(arg.split("=", 1)[1])
+        elif arg.startswith("--slice="):
+            window = arg.split("=", 1)[1]
         elif arg == "--repin":
             do_repin = True
         elif arg == "--pin-new":
@@ -217,7 +236,8 @@ def main(argv: list[str]) -> int:
         return 2
 
     pins = load_pins().get(str(splits), {})
-    for name in assign(test_files(), load_durations(), splits, pins)[group - 1]:
+    shard = assign(test_files(), load_durations(), splits, pins)[group - 1]
+    for name in slice_files(shard, window) if window is not None else shard:
         print(name)
     return 0
 

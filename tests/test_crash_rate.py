@@ -145,7 +145,9 @@ def test_the_workflow_runs_only_when_asked_for():
 def test_every_leg_is_a_single_attempt_that_cannot_be_retried_or_cancelled_by_a_sibling():
     code = _code(_workflow())
     assert "fail-fast: false" in code, "a crash in one leg must not cancel the others"
-    assert code.count("ci_suite_shard.ps1") == 1, "a retry would hide the event being counted"
+    # Two call sites (with and without -Files), both inside the one attempt loop: no retry step exists.
+    assert code.count("ci_suite_shard.ps1") == 2, "a retry would hide the event being counted"
+    assert "retry" not in code.lower()
     assert "exit 0" in code, "the leg must always record its outcome"
 
 
@@ -176,3 +178,17 @@ def test_a_revert_conflict_in_prose_is_resolved_and_one_in_code_stops_the_leg():
     assert "docs/|CHANGELOG" in code and "tests/test_docs_are_current" in code
     assert "-notmatch $prose" in code
     assert "conflicts in code" in code
+
+
+def test_the_bisect_inputs_exist_and_cannot_be_combined_with_a_revert_arm():
+    code = _code(_workflow())
+    assert "ranges:" in code and "attempts:" in code
+    assert "ranges and revert are different experiments" in code
+    assert "attempts > 1 is for ranges" in code, "a whole-shard attempt is ~25 minutes; many per leg would time out"
+
+
+def test_each_attempt_is_a_fresh_process_with_no_retry_and_its_own_leg_file():
+    code = _code(_workflow())
+    assert code.count("ci_suite_shard.ps1") == 2, "one call with -Files, one without, both inside the attempt loop"
+    assert 'leg-$n.json' in code and "path: leg-*.json" in code
+    assert "-ExitCode $code" in code

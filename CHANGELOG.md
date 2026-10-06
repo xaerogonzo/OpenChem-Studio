@@ -44,6 +44,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Ctrl+wheel zooms along x around the cursor, Shift+wheel pans, a double-click resets, and a plain wheel still scrolls the page, as on the line chart. A stick outside the window is neither drawn nor clickable; a zoomed histogram rescales its count axis to the bins in view. The stick chart keeps the whole chart's y scale, so a weak region is not blown up to look strong. The histogram's count axis also stopped repeating a label ("1, 0, 0" for a tallest bin of 1).
 
+### CI: chase the early Windows shard 1 crash by bisecting the shard
+
+- About half of shard 1's runs crash at 4-8% of the run (about 80 s in, roughly tests 290-650, files 11-28 of the shard) with no frame outside pytest. `windows-crash-rate.yml` gains **`ranges`** (comma-separated slices of the shard's file list, e.g. `0:28,10:28`; each is an arm, compared by the report) and **`attempts`** (fresh processes per leg, no retry, for slices where one attempt takes minutes instead of 25). `tools/suite_shards.py --slice=a:b` prints a window of a shard; an empty or malformed window is an error, never a clean pass of zero tests. Exploratory, so no pre-registered test: it narrows where the crash lives.
+
 ### CI: the crash measurement's first run, and two defects in the instrument
 
 - First dispatch of `windows-crash-rate.yml` (run 37356155136, shard 1, master, 10 legs per arm): **the whole control arm failed**, because reverting #197 conflicts in `docs/ARCHITECTURE.md` (that section was edited after the fix). A revert conflict in prose (docs, changelog) now keeps the current text; a conflict in anything that runs still stops the leg.
