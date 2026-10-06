@@ -36,6 +36,30 @@ Rules the file follows, each learned the hard way in this project:
 - **Counts are generated.** `python tools/index_literature.py --counts` prints them; no document quotes a
   hand-typed number of papers.
 
+## Finding a paper: the library index
+
+`literature.toml` records the papers that were READ; it cannot say which of the other held papers mention
+a compound. `tools/library_index.py` can: it reads every PDF in the library once into a SQLite full-text
+index kept BESIDE the library (`<library>.index.sqlite`) and never committed, since the library holds far
+more than this project uses and a public repository should carry records of the papers relied on, not a
+catalogue of a disk.
+
+```
+uvx --with pymupdf python tools/library_index.py update            # new and changed files only
+uvx --with pymupdf python tools/library_index.py search "propylene glycol dinitrate | PGDN" --near "solub*"
+python tools/library_index.py show "<file>" <page>                 # read the page, then read the number off it
+python tools/library_index.py stub "<file>"                        # a DRAFT literature.toml entry
+python tools/library_index.py stats                                # incl. files with no text layer
+```
+
+- A hit is a PAGE to read, not a value: tables extract as running text.
+- **A scanned file (no text layer) can never match.** `stats` lists them and `search` says how many exist,
+  so "not found" is never read as "not in the library".
+- `stub` fills only what a machine can know (hash, page count, a DOI printed on the first pages) and leaves
+  the title, venue, property and role to be written from the paper's own first page, by the rule above.
+- When a held paper is READ for a question, record it (`stub`, then fill it in, or a line in
+  `docs/LITERATURE_LOG.md` for one that did not answer), so the next search starts from what was learned.
+
 `OPENCHEM_PDF_LIBRARY=<folder> python tools/index_literature.py --check` verifies every held file against
 its hash, and says so plainly when there is no library to check against.
 

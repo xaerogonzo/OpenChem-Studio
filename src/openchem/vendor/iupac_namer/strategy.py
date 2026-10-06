@@ -434,6 +434,7 @@ class IUPACCanonical(NamingStrategy):
         "carbamothioate": "carbamothioate",
         "symmetric_diester": "ester",
         "polyester": "ester",
+        "polyol_ester": "ester",
     }
 
     def accept_additive(self, additive_groups) -> bool:

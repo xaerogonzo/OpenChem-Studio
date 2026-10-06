@@ -702,6 +702,81 @@ def _carve_polyester(mol: object, decomposition: object) -> dict:
     return result
 
 
+def _carve_polyol_ester(mol: object, decomposition: object) -> dict:
+    """Carve the esters of ONE polyol with ONE acid into the polyvalent alcohol component and a single acid.
+
+    Returns a dict:
+        "alcohol"              -> (alcohol_mol, [attachment idx in alcohol_mol, ...])   one per ester
+        "acid"                 -> (acid_mol, None)                                       ONE of the identical acids
+        "_polyol_bond_orders"  -> [1, 1, ...]                                            one per attachment
+        "_polyol_count"        -> number of ester groups
+
+    The alcohol component is carved as a BRIDGING substituent: each ester oxygen's bond to its alkyl carbon is cut and
+    becomes a free valence, so ``CC(=O)OCCOC(C)=O`` gives ``CC`` with attachments on both carbons, named ``ethane-1,2-diyl``.
+    `_build_polyol_ester_decomposition` already guaranteed the acids are identical, so any one stands for all.
+    """
+    from rdkit import Chem
+
+    root_atoms = getattr(decomposition, "root_atoms", None) or frozenset()
+    pieces = getattr(decomposition, "pieces", None)
+    if not pieces or len(pieces) < 2:
+        return {}
+    alcohol_atoms = frozenset(pieces[0].atom_indices)
+    cuts: list[tuple[int, int]] = []  # (ester_o, alkyl_c), ester_o is the "parent side" of the bridging cut
+    for a in sorted(root_atoms):
+        atom = mol.GetAtomWithIdx(a)
+        if atom.GetAtomicNum() != 8 or a in alcohol_atoms:
+            continue
+        alkyl = [nb.GetIdx() for nb in atom.GetNeighbors() if nb.GetIdx() in alcohol_atoms]
+        if not alkyl:
+            return {}
+        cuts.append((a, alkyl[0]))
+    if len(cuts) < 2:
+        return {}
+    try:
+        alcohol_mol, attachment_idxs, bond_orders = carve_bridging_substituent(
+            mol, alcohol_atoms, tuple(cuts),
+        )
+    except Exception as exc:
+        logger.debug("polyol ester alcohol carve failed: %s", exc)
+        return {}
+
+    # ONE acid: cut the first ester's O--C(alkyl) bond and cap the oxygen with H, as `_carve_polyester` does for its acid.
+    ao, ac = cuts[0]
+    bond = mol.GetBondBetweenAtoms(ao, ac)
+    if bond is None:
+        return {}
+    fragmented = Chem.FragmentOnBonds(
+        mol, [bond.GetIdx()], addDummies=True, dummyLabels=[(0, 0)],
+    )
+    frag_atom_lists = Chem.GetMolFrags(fragmented, asMols=False)
+    frag_mols = Chem.GetMolFrags(fragmented, asMols=True, sanitizeFrags=False)
+    acid_raw = None
+    for atoms_in, frag in zip(frag_atom_lists, frag_mols):
+        if ao in atoms_in:
+            acid_raw = frag
+            break
+    if acid_raw is None:
+        return {}
+    rw = Chem.RWMol(acid_raw)
+    for atom in rw.GetAtoms():
+        if atom.GetAtomicNum() == 0:
+            atom.SetAtomicNum(1)
+            atom.SetNoImplicit(False)
+    try:
+        Chem.SanitizeMol(rw)
+        acid_mol = Chem.RemoveHs(rw.GetMol())
+    except Exception as exc:
+        logger.debug("polyol ester acid split failed: %s", exc)
+        return {}
+    return {
+        "alcohol": (alcohol_mol, list(attachment_idxs)),
+        "acid": (acid_mol, None),
+        "_polyol_bond_orders": list(bond_orders),
+        "_polyol_count": len(cuts),
+    }
+
+
 def carve_fc_fragments(mol: object, decomposition: object) -> dict:
     """Split a molecule at functional-class boundaries.
 
@@ -748,11 +823,15 @@ def carve_fc_fragments(mol: object, decomposition: object) -> dict:
         "thioester", "thionoester", "dithioester",
         "thionocarbamate", "dithiocarbamate",
         "carbamothioate",
-        "symmetric_diester", "polyester",
+        "symmetric_diester", "polyester", "polyol_ester",
     ):
         return {}
     if getattr(decomposition, "intramolecular", False):
         return {}
+
+    # --- Esters of one polyol (P-65.6.3.3.3.1): the alcohol component as a polyvalent group + one acid. ---
+    if subtype == "polyol_ester":
+        return _carve_polyol_ester(mol, decomposition) or {}
 
     # --- Poly-ester / mixed ester: cut every ester C-O bond -> parent acid +
     #     N alkyl substituents (P-65.6.3.3.2). ---
