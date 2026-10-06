@@ -35,7 +35,7 @@ on:
         description: 'Branch, tag or SHA to measure'
         default: 'master'
       shard:
-        description: 'Which of the 2 Windows shards to run (1 holds most of the crashes seen)'
+        description: 'Which of the 2 shards to run (1 holds most of the crashes seen). This is the 2-way split the crash records were measured on (the pin table for 2 stays committed); tests.yml has run 3 shards since 2026-10-06'
         default: '1'
       replicas:
         description: 'Legs PER ARM, fixed before the run (10 is about the minimum to see 50% -> 10%)'
@@ -239,9 +239,9 @@ jobs:
             $log = "suite-attempt-$n.log"
             $watch = [Diagnostics.Stopwatch]::StartNew()
             if ($files.Count -gt 0) {
-              ./tools/ci_suite_shard.ps1 -Shard $env:SHARD -Log $log -NetworkTest "$env:NETWORK_TEST" -Files $files
+              ./tools/ci_suite_shard.ps1 -Shard $env:SHARD -Splits 2 -Log $log -NetworkTest "$env:NETWORK_TEST" -Files $files
             } else {
-              ./tools/ci_suite_shard.ps1 -Shard $env:SHARD -Log $log -NetworkTest "$env:NETWORK_TEST"
+              ./tools/ci_suite_shard.ps1 -Shard $env:SHARD -Splits 2 -Log $log -NetworkTest "$env:NETWORK_TEST"
             }
             $code = $LASTEXITCODE
             $out = ./tools/ci_classify_crash.ps1 -Log $log -Shard $env:SHARD -ExitCode $code
