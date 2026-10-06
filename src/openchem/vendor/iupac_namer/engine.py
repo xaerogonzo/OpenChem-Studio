@@ -1,6 +1,7 @@
 """IUPAC naming engine."""
 from __future__ import annotations
 
+import dataclasses
 import logging
 import os
 import re
@@ -10928,8 +10929,8 @@ def _name_bound(
         _session.cache_store(fragment_key, output_form, fv_bond_orders, err, attachment_indices)
         return err
 
-    # --- P-45.6.2 / P-45.6.3: parents that tie and whose names differ only in their descriptors (a meso diether or diamide) ---
-    parent_winner = _break_parent_stereo_tie(
+    # --- P-45.2.3, then P-45.6.2 / P-45.6.3: parents that tie on the key, chosen on executed names ---
+    parent_winner = _break_parent_tie(
         ranked_plans, mol, strategy, output_form, free_valence,
         decision_ctx, _session, _depth,
     )
@@ -11223,9 +11224,9 @@ def _break_alphanumerical_tie(
     return candidates[0][2]
 
 
-#: The most parent hypotheses `_break_parent_stereo_tie` will name side by side. Each is a full execution of its plan; a molecule with more
+#: The most parent hypotheses `_break_parent_tie` will name side by side. Each is a full execution of its plan; a molecule with more
 #: tied parents than this is left to the declared policy of `_search_plans`, as it was before.
-_PARENT_STEREO_HYPOTHESES = 4
+_PARENT_TIE_HYPOTHESES = 4
 
 
 def _carries_stereo(mol) -> bool:
@@ -11288,13 +11289,73 @@ def _choose_by_configuration(trees):
     return trees[min(same, key=lambda i: (keys[i], i))]
 
 
-def _break_parent_stereo_tie(
+def _citation_locants(tree) -> tuple | None:
+    """P-45.2.3 as a comparable value: EVERY locant of the prefixes, in the order the name cites the prefixes.
+
+    `_alphanumerical_locant_key` groups the locants by prefix, which is all P-14.4 (g) needs between two numberings of one parent (the same
+    prefixes, so the same groups). Between two PARENTS the prefixes can be split differently, and the rule reads the name left to right:
+    `1-bromo-5-(bromomethyl)-1,6-dichlorohexane` is `1,5,1,6` and `1,6-dibromo-1-chloro-5-(chloromethyl)hexane` is `1,6,1,5` (the book's
+    own example 8, BlueBookV2.pdf p. 421), so the groups are flattened. None when there are no prefixes to read.
+    """
+    grouped = _alphanumerical_locant_key(tree)
+    if grouped is None:
+        return None
+    return tuple(locant for group in grouped for locant in group)
+
+
+def _parent_name_alone(tree) -> str | None:
+    """A tree's parent structure named with no prefixes and no descriptors: `quinoline`, `heptanoic acid`, `tetradeca-1,3,13-triene`.
+
+    What `_senior_by_citation_locants` asks of two trees before it compares them: that they are the SAME parent, differing only in which atoms
+    carry it. None when the tree is not a substitutive name or will not assemble without its prefixes.
+    """
+    from openchem.vendor.iupac_namer.assembly import without_stereo_descriptors
+
+    if not isinstance(tree, SubstitutiveTree):
+        return None
+    try:
+        return without_stereo_descriptors(assemble(dataclasses.replace(tree, prefixes=())))
+    except Exception:  # noqa: BLE001 - a tree that will not read without its prefixes is not compared
+        return None
+
+
+def _senior_by_citation_locants(trees):
+    """P-45.2.3 across parents: the trees whose prefixes have the lowest locants in the order the name cites them; None when it cannot apply.
+
+    "The preferred IUPAC name is based on the senior parent structure that has the lower locant or set of locants for substituents cited as
+    prefixes to the parent structure (other than 'hydro/dehydro' prefixes) in their order of citation in the name" (BlueBookV2.pdf p. 419).
+    It is the criterion after P-45.2.1 (the number of prefixes) and P-45.2.2 (their locant SET), and both are tiers of the preference key, so
+    two plans that tie on the key have the same set and only the ORDER of citation is left: `3-chloro-7-[(4-chloro-3-nitroquinolin-7-yl)
+    sulfanyl]-4-nitroquinoline` reads `3,7,4` and its rival `4,7,3`. Hydro prefixes are not in `tree.prefixes` and so are never read.
+
+    Only trees that are the SAME parent are compared (`_parent_name_alone`), which is the guard `_choose_by_configuration` has for P-45.6: the
+    key does not hold every criterion that would tell two different parents apart, and the locants must not be made to stand in for one.
+    Returns the trees, in the order given, that share the lowest value (one when the rule decides, all of them when it does not), or None
+    when the trees are not comparable.
+    """
+    parents = {_parent_name_alone(tree) for tree in trees}
+    values = [_citation_locants(tree) for tree in trees]
+    if len(parents) != 1 or None in parents or None in values or len({len(value) for value in values}) != 1:
+        return None
+    lowest = min(values)
+    return [tree for tree, value in zip(trees, values) if value == lowest]
+
+
+def _break_parent_tie(
     ranked_plans, mol, strategy, output_form, free_valence, decision_ctx, session, depth,
 ):
-    """Choose between PARENTS that tie on the key and whose names differ only in their stereodescriptors.
+    """Choose between PARENTS that tie on the key: the lowest locants in their order of citation (P-45.2.3), then the configuration (P-45.6).
 
-    P-45.6.2 (BlueBookV2.pdf p. 426), where the choice between two substitutive names is the one thing the descriptors differ in:
-    "since the alphabetic characters and locants (ignoring the configuration symbols) are identical the configurational symbols are
+    Each tied parent hypothesis is named as it would be named alone, its own numbering tie-break first. P-45.2.3 then compares the trees
+    (`_senior_by_citation_locants`), and this is the one step that reaches an achiral molecule: `2-bromo-N-(4-bromo-2-chlorophenyl)-4-
+    chloroaniline` and `4-bromo-N-(2-bromo-4-chlorophenyl)-2-chloroaniline` are the same molecule with either aniline as the parent, and
+    which one a SMILES spelling produced went by atom order. The book orders it before P-45.6, so what P-45.2.3 leaves tied goes on to the
+    configuration comparison below, which only a molecule that carries stereo pays for. P-45.3 (nonstandard bonding numbers), P-45.4
+    (isotopes) and P-45.5 (the name earlier in alphanumerical order, `bromo` before `dibromo`) sit between the two in the book and are not
+    applied across parents: a tie they would decide stays with the configuration comparison and then the plan order, as it did.
+
+    The configuration comparison is P-45.6.2 (BlueBookV2.pdf p. 426), where the choice between two substitutive names is the one thing
+    the descriptors differ in: "since the alphabetic characters and locants (ignoring the configuration symbols) are identical the configurational symbols are
     compared and 'R' precedes 'S'" -- `1-[(2R)-butan-2-yl]-4-({4-[(2S)-butan-2-yl]phenyl}sulfanyl)benzene`, not the same name with
     S and R exchanged. P-45.6.3 (p. 427) says it again for two prefixes at one position. A meso diether or diamide has two equal halves,
     either of which can be the parent, and the two names are exactly such a pair: `{[(2R,3S)-3-phenoxybutan-2-yl]oxy}benzene` and
@@ -11303,19 +11364,19 @@ def _break_parent_stereo_tie(
 
     Scoped so that it changes nothing else:
 
-      * only a molecule that carries stereo (`_carries_stereo`);
-      * only plans that tie on the whole key, in two to `_PARENT_STEREO_HYPOTHESES` hypotheses;
+      * only plans that tie on the whole key, in two to `_PARENT_TIE_HYPOTHESES` hypotheses;
       * each hypothesis is named as it would have been alone (its own numbering tie-break first);
-      * only candidates whose names are EQUAL once the descriptors are set aside are compared, so a choice between two different names
-        is never made here; nothing here picks a parent on any ground but the descriptors.
+      * P-45.2.3 compares only trees that are the same parent once prefixes and descriptors are set aside;
+      * the configuration comparison only for a molecule that carries stereo (`_carries_stereo`), and only candidates whose names are EQUAL
+        once the descriptors are set aside, so a choice between two different names is never made on that ground.
 
-    The comparison is the parents' own configuration first (`_parent_configuration_key`: P-44.4.1.12, which is where "like before unlike"
-    lives), then `stereo_citation_key` over the whole name, in the order the name cites its descriptors, the first point of difference
-    deciding, which is what "R precedes S" means for a name. Returns the winning tree, or None when it does not engage.
+    The configuration comparison is the parents' own configuration first (`_parent_configuration_key`: P-44.4.1.12, which is where "like
+    before unlike" lives), then `stereo_citation_key` over the whole name, in the order the name cites its descriptors, the first point of
+    difference deciding, which is what "R precedes S" means for a name. Returns the winning tree, or None when it does not engage.
     """
     from openchem.vendor.iupac_namer.preference import NomenclaturePreferenceKey
 
-    if len(ranked_plans) < 2 or not _carries_stereo(mol):
+    if len(ranked_plans) < 2:
         return None
     top_key = ranked_plans[-1][0]
     if not isinstance(top_key, NomenclaturePreferenceKey):
@@ -11326,7 +11387,7 @@ def _break_parent_stereo_tie(
             break
         if isinstance(plan, SubstitutivePlan):
             hypotheses.setdefault(_parent_hypothesis_key(plan), []).append((key, seq, plan))
-    if not 2 <= len(hypotheses) <= _PARENT_STEREO_HYPOTHESES:
+    if not 2 <= len(hypotheses) <= _PARENT_TIE_HYPOTHESES:
         return None
 
     trees = []
@@ -11342,7 +11403,17 @@ def _break_parent_stereo_tie(
                     break
         if tree is not None:
             trees.append(tree)
-    return _choose_by_configuration(trees)
+    if len(trees) < 2:
+        return None
+
+    senior = _senior_by_citation_locants(trees)
+    if senior is not None and len(senior) < len(trees):
+        # P-45.2.3 ruled some parents out. What is left is the answer, and falling through here would name the TOP plan's hypothesis,
+        # which may be one of the parents just ruled out. Of the survivors, P-45.6 decides when it can, and the first one otherwise.
+        if len(senior) == 1 or not _carries_stereo(mol):
+            return senior[0]
+        return _choose_by_configuration(senior) or senior[0]
+    return _choose_by_configuration(trees) if _carries_stereo(mol) else None
 
 
 def _ester_alcohol_key(tree) -> tuple | None:
@@ -19368,6 +19439,12 @@ def _role_primes(pcg_instances, parent_atoms, mol) -> dict[int, str]:
         if fg.type not in ("hydrazide", "thiohydrazide", "imidamide"):
             continue
         parent_pos = _find_parent_neighbor(fg.anchor, parent_atoms, mol)
+        if parent_pos is None and fg.anchor not in parent_atoms:
+            # A group whose acyl carbon is neither in this parent nor bonded to it is the suffix of ANOTHER parent hypothesis. The two halves
+            # of a diacylhydrazine share one N-N, so processing it here let the later group overwrite the roles the first had just set, and the
+            # parent that came out second named the SAME nitrogen N where N' was meant: `N-benzoylbenzohydrazide`, a different molecule. Plan
+            # order hid it (the parent that came out first was right); comparing the two parents (P-45.2.3) is what exposed it.
+            continue
         by_parent_pos.setdefault(parent_pos, []).append(fg)
 
     primes: dict[int, str] = {}

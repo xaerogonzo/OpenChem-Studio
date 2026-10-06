@@ -1,0 +1,53 @@
+# P-45.2.3 (BlueBookV2.pdf p. 419), the parent chosen by the lower locant set IN THEIR ORDER OF CITATION, applied across parent structures that tie on the
+# preference key. Measured against 3e36cf8c, the merge of #227 (P-14.4 (j)), #229 (the stereo cache fix) and master at #231, the tree this sits on.
+#
+# UNLIKE the manifests before it, FIVE panel rows change, all in the bluebook_tuning population (1712 structures over r7, r8, mc and pop: 5 names changed,
+# 5 listed below, 0 violations once listed). The rule reaches ACHIRAL molecules whose two possible parents tie on every tier of the key, and a population
+# built from the Blue Book's own examples is where such ties are. Two of the five are the book's own P-45.2.3 examples (3 and 15) and now carry the book's
+# name; the other three are the same rule on `N` against a numeral (the book's example 10), on a hydrazine and on a position. Every one reads back to the
+# same structure before and after (`base_roundtrips` and `head_roundtrips` true in the report), and the census (2000 rows, canonical SMILES, OPSIN
+# read-back) agrees in kind: 2 of 2000 rows moved, both `N` against a numeral, both `exact` before and after, class counts identical.
+#
+# The manifest exists so that "nothing else moves" is a checked claim and a later change to the rule cannot pass as this one.
+
+stage = "P45-2-3-citation-locants"
+
+# The book's P-45.2.3 example 3 (p. 420): the locant sets are the same, 1,2,7, and in the order of citation 1,7,2 is lower than 2,7,1.
+[[expect]]
+id = "pop:bluebook_tuning:bb-882a0ad4ccc2"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-45.2.3"
+expected_layer = "candidate_assignment"
+expected_name = "1-ethyl-7-[(7-ethyl-8-propylnaphthalen-2-yl)oxy]-2-propylnaphthalene"
+
+# The book's P-45.2.3 example 15 (p. 422): both have the set 1,1,4,5,6; in the order of citation 1,5,4,1,6 is lower than 1,6,4,1,5.
+[[expect]]
+id = "pop:bluebook_tuning:bb-9650a71562f6"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-45.2.3"
+expected_layer = "candidate_assignment"
+expected_name = "1,5-dibromo-4-(2-bromo-1-iodoethyl)-1,6-dichlorohexane"
+
+# bromo (5) then the carboxyfluorophenoxy group (2) reads 5,2; the bromocarboxyphenoxy group (2) then fluoro (5) reads 2,5.
+[[expect]]
+id = "pop:bluebook_tuning:bb-03f16ec1a487"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-45.2.3"
+expected_layer = "candidate_assignment"
+expected_name = "2-(4-bromo-2-carboxyphenoxy)-5-fluorobenzoic acid"
+
+# Three prefixes either way, the set 1,1,2 either way: amino (2), methyl (1), methylamino (1) reads 2,1,1; hydrazinyl (1), methyl (1,2) reads 1,1,2.
+[[expect]]
+id = "pop:bluebook_tuning:bb-0cbd47af4e8f"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-45.2.3"
+expected_layer = "candidate_assignment"
+expected_name = "1-hydrazinyl-1,2-dimethylhydrazine"
+
+# The book's example 10 in a methanimidamide: a letter locant is lower than a numeral (P-14.3.5), so N-ethyl (N) before the sulfanyl group (1) reads N,1, not 1,N.
+[[expect]]
+id = "pop:bluebook_tuning:bb-e342ad3d916c"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-45.2.3"
+expected_layer = "candidate_assignment"
+expected_name = "N-ethyl-1-({[(imino)(methylamino)methyl]sulfanyl}sulfanyl)methanimidamide"

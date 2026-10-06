@@ -255,6 +255,7 @@
   "tests/test_namer_multiplicative.py": 0,
   "tests/test_namer_numbering.py": 1,
   "tests/test_namer_ownership.py": 0,
+  "tests/test_namer_parent_citation_locants.py": 1,
   "tests/test_namer_plan_budget.py": 1,
   "tests/test_namer_preference_key.py": 0,
   "tests/test_namer_probe_shapes.py": 1,

@@ -4850,7 +4850,11 @@ def test_the_aromatic_carbocycle_kekule_recovery_does_not_move_a_neighbouring_na
         ("NNC(=O)N[N+](=O)[O-]", "N-nitrohydrazinecarboxamide"),
         ("O=[N+]([O-])NNN[N+](=O)[O-]", "1-nitramido-2-nitrohydrazine"),
         ("O=[N+]([O-])NN1CCCC1", "1-nitramidopyrrolidine"),
-        ("CN(N=O)NN", "2-amino-1-methyl-1-nitrosohydrazine"),
+        # Two hydrazine parents tie on the key (amino, methyl, nitroso against hydrazinyl, methyl, oxo: three prefixes, the set 1,1,2), and this was whichever the
+        # atom order gave: `2-amino-1-methyl-1-nitrosohydrazine` on 11 of 24 spellings and this one on 13, both read back by OPSIN to the one molecule. P-45.2.3 takes the
+        # lower locants in their order of citation, 1,1,2 against 2,1,1, so it is one name on every spelling (tests/test_namer_parent_citation_locants.py). Which of
+        # the two a reader would rather see is not what the rule decides; the row stays here because it is a nitric-hydrazide control, not a pin of either name.
+        ("CN(N=O)NN", "1-hydrazinyl-1-methyl-2-oxohydrazine"),
         ("CC=NN(C)C", "2-ethylidene-1,1-dimethylhydrazine"),
         # a hydrazide-class group ELSEWHERE outranks it (only the seniority limit can see this one: the carbon hydrazide is not next to the nitrohydrazine)
         ("NNC(=O)CCNN[N+](=O)[O-]", "3-(2-nitrohydrazinyl)propanehydrazide"),
