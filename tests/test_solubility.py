@@ -1281,32 +1281,57 @@ def test_esol_overpredicts_on_every_one_of_the_ten_but_is_only_slightly_off_on_t
     assert all(0.3 < error < 1.0 for error in small), small
 
 
-def test_the_refusal_quotes_the_ten_compound_evidence_and_the_limits_of_the_alternative():
+def _fact_labelled(report, label_start: str):
+    return next(f for f in report.facts if f.label.startswith(label_start))
+
+
+def test_the_warning_quotes_the_ten_compound_evidence_and_the_limits_of_the_alternative():
     report = compute_solubility(mol(_CL20), "u", {"pka_values": "7.0"})
-    assert report.provenance.parameters["refusal"] == "ESOL_OUTSIDE_DOMAIN"
-    for fragment in ("ten compounds", "0.4 to 5.4 log", "more than 1.0 on seven", "CL-20", "glycerol 1,2-dinitrate", "PETN"):
-        assert fragment in report.error, fragment
+    assert report.cache_state.value != "failed", "a warning, not a refusal: the number is still returned"
+    text = report.limitations[0]
+    for fragment in ("ten compounds", "0.4 to 5.4 log", "more than 1.0 on seven", "CL-20", "glycerol 1,2-dinitrate",
+                     "PETN", "too high"):
+        assert fragment in text, fragment
 
 
 @pytest.mark.parametrize(("name", "smiles"), [(n, s) for n, s, _t, _p in _CRC_NITRO])
-def test_esol_is_refused_for_an_n_nitro_or_nitrate_ester_compound(name, smiles):
+def test_esol_still_answers_for_an_n_nitro_or_nitrate_ester_compound_but_says_it_runs_high(name, smiles):
     report = compute_solubility(mol(smiles), "u", {"pka_values": "7.0"})
-    assert report.cache_state.value == "failed", name
-    assert report.inapplicable, "a limit of the model, not a fault"
-    assert report.provenance.parameters["refusal"] == "ESOL_OUTSIDE_DOMAIN"
-    assert "ESOL is not defined for" in report.error and "AqSolDB" in report.error
+    assert report.cache_state.value != "failed" and not report.inapplicable, name
+    assert report.provenance.parameters["domain_warning"] == "ESOL_OUTSIDE_DOMAIN"
+    assert "refusal" not in report.provenance.parameters
+    # FIRST in the status line, ahead of the standing screening-estimate note -- the one place read without hovering.
+    assert report.limitations[0].startswith("ESOL is not reliable for"), name
+    # ... and on the number itself, which is what gets copied out of the panel, and on the category read from it.
+    row = report.facts[0]
+    assert row.label == "Baseline reliability" and "overpredicts" in row.display_value, "a visible row, first"
+    assert row.detail.name == "STANDARD" and row.evidence[0].startswith("ESOL is not reliable for")
+    value = _fact_labelled(report, "Predicted intrinsic solubility")
+    assert value.limitations and value.limitations[0].startswith("ESOL is not reliable for")
+    assert _fact_labelled(report, "Solubility category").limitations[0].startswith("ESOL is not reliable for")
+
+
+@pytest.mark.parametrize(("name", "smiles"), [(n, s) for n, s, _t, _p in _CRC_NITRO])
+def test_the_ich_m9_estimate_is_withheld_where_the_baseline_is_known_to_run_high(name, smiles):
+    """The one output here that could do harm: a regulatory-shaped PASS built on a baseline that overpredicts."""
+    report = compute_solubility(mol(smiles), "u", {"pka_values": "7.0", "dose_mg": 100})
+    screen = _fact_labelled(report, "BCS high-solubility screening estimate")
+    assert screen.value == "UNDETERMINED", name
+    assert "known to overpredict" in screen.display_value
 
 
 @pytest.mark.parametrize(("name", "smiles"), [(n, s) for n, s, _t, _p in _CRC_C_NITRO_CONTROLS] + [
     ("nitromethane", "C[N+](=O)[O-]"), ("aspirin", ASPIRIN), ("caffeine", CAFFEINE),
 ])
-def test_esol_is_not_refused_where_it_was_not_shown_to_fail(name, smiles):
+def test_no_warning_where_esol_was_not_shown_to_fail(name, smiles):
     report = compute_solubility(mol(smiles), "u", {"pka_values": "3.5"})
-    assert report.provenance.parameters.get("refusal") != "ESOL_OUTSIDE_DOMAIN", name
+    assert report.provenance.parameters["domain_warning"] == "", name
+    assert not report.limitations[0].startswith("ESOL is not reliable"), name
+    assert all(f.label != "Baseline reliability" for f in report.facts), name
 
 
-def test_the_refusal_applies_to_esol_only_not_to_the_other_model(monkeypatch):
-    """Choosing AqSolDB is the way out the message offers, so it must not refuse the same molecule."""
+def test_the_warning_applies_to_esol_only_not_to_the_other_model(monkeypatch):
+    """Choosing AqSolDB must not carry ESOL's warning: it is about ESOL's Crippen logP."""
     from openchem.chem import solubility
     from openchem.chem.solubility import AQSOLDB, ModelEstimate, ModelStatus
 
@@ -1316,5 +1341,6 @@ def test_the_refusal_applies_to_esol_only_not_to_the_other_model(monkeypatch):
     )
     rdx = mol("O=[N+]([O-])N1CN(CN(C1)[N+](=O)[O-])[N+](=O)[O-]")
     report = compute_solubility(rdx, "u", {"model": AQSOLDB, "pka_values": "7.0"}, admet_interpreter_path="x")
-    assert report.provenance.parameters.get("refusal") != "ESOL_OUTSIDE_DOMAIN"
+    assert report.provenance.parameters["domain_warning"] == ""
     assert report.cache_state.value != "failed"
+    assert not report.limitations[0].startswith("ESOL is not reliable")

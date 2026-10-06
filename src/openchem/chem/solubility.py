@@ -830,6 +830,9 @@ class BcsReason(Enum):
     # refusal that names the wrong cause sends the reader to fix the wrong
     # thing.
     NON_AQUEOUS_SOLVENT = "ICH M9 is defined on aqueous media"
+    #: The baseline model is known to overpredict for this molecule (`esol_domain_warning`), and the screen is
+    #: built on it.
+    BASELINE_OUT_OF_DOMAIN = "the baseline model is known to overpredict for this molecule"
 
 
 @dataclass(frozen=True)
@@ -1091,6 +1094,9 @@ class SolubilityAnalysis:
     refusal_code: str = ""
     #: `log Ss - log Sw` for a non-aqueous solvent, or None for water.
     shift: object = None
+    #: Why the baseline should not be trusted for this molecule, when it should not (`esol_domain_warning`).
+    #: The analysis proceeds; every number that follows from the baseline is reported WITH this.
+    domain_warning: str = ""
 
     @property
     def baseline_logs(self) -> float | None:
@@ -1149,12 +1155,14 @@ _ESOL_OUTSIDE_DOMAIN = (
     ("a nitrate ester", Chem.MolFromSmarts("[#6]-[OX2]-[N+](=O)[O-]")),
 )
 
-#: The coded limit for it. Registered in `domain.refusal_kinds._LIMIT_CODES`.
-ESOL_OUTSIDE_DOMAIN = "ESOL_OUTSIDE_DOMAIN"
+#: The provenance code the warning is recorded under. It is a WARNING, not a refusal: ESOL's number is still
+#: returned, because it overpredicts consistently (always in the same direction, on every compound checked) and a
+#: warned number is more use than none -- and it was a coded refusal until the maintainer chose otherwise.
+ESOL_DOMAIN_WARNING = "ESOL_OUTSIDE_DOMAIN"
 
 
-def esol_domain_problem(mol: Chem.Mol) -> str:
-    """Why ESOL cannot be trusted for `mol`, or "" when nothing here is known to defeat it.
+def esol_domain_warning(mol: Chem.Mol) -> str:
+    """What to tell the reader about ESOL for `mol`, or "" when nothing here is known to defeat it.
 
     Empty means "no known problem", never "validated": ESOL has no applicability domain beyond
     the groups someone has checked and found it wrong on.
@@ -1163,15 +1171,15 @@ def esol_domain_problem(mol: Chem.Mol) -> str:
     if not groups:
         return ""
     return (
-        "ESOL is not defined for " + " or ".join(groups) + ": it is built on Crippen logP, which reads "
+        "ESOL is not reliable for " + " or ".join(groups) + ": it is built on Crippen logP, which reads "
         "these groups as far more polar than they are, so it reports an explosive such as RDX as "
         "freely soluble when the CRC Handbook gives about 0.06 g/L. On the ten compounds with these groups "
         "checked against measured values it overpredicts the solubility on every one, by 0.4 to 5.4 log "
-        "units (more than 1.0 on seven; the smallest errors are two glycerol dinitrates and ethyl tetryl). "
-        "The AqSolDB model (Tools > External Tools sets it up) is closer on the cyclic nitramines -- within "
-        "about 0.1 on CL-20, which is not in its training data -- but not on nitrate esters: 1.2 log units "
-        "too low on glycerol 1,2-dinitrate, also outside its training data, and 1.7 too high on PETN. "
-        "Use a measured value where you have one."
+        "units (more than 1.0 on seven; the smallest errors are two glycerol dinitrates and ethyl tetryl), "
+        "so expect this number to be too high. The AqSolDB model (Tools > External Tools sets it up) is "
+        "closer on the cyclic nitramines -- within about 0.1 on CL-20, which is not in its training data -- "
+        "but not on nitrate esters: 1.2 log units too low on glycerol 1,2-dinitrate, also outside its "
+        "training data, and 1.7 too high on PETN. Use a measured value where you have one."
     )
 
 
@@ -1203,17 +1211,9 @@ def analyse_solubility(
     model = str(parameters.get("model", ESOL))
     interpreter = admet_interpreter_path if model == AQSOLDB else interpreter_path
     estimate = model_logs0(mol, model, interpreter)
-    # BEFORE ionization and the solvent shift, which are both applied to this baseline: a wrong logS0
-    # would also make the pH profile and the ICH M9 "high solubility" estimate wrong.
-    if model == ESOL:
-        problem = esol_domain_problem(mol)
-        if problem:
-            return SolubilityAnalysis(
-                solvent=solvent, estimate=estimate,
-                resolution=PKaResolution(status=PKaStatus.UNAVAILABLE),
-                ionization=IonizationClass.UNSUPPORTED, molecular_weight=Descriptors.MolWt(mol),
-                pkas=[], is_acid=[], refusal=problem, refusal_code=ESOL_OUTSIDE_DOMAIN,
-            )
+    # A wrong logS0 also moves the pH profile and the ICH M9 estimate, which are both applied to this
+    # baseline, so the warning travels with the analysis and the report withholds what depends on it.
+    warning = esol_domain_warning(mol) if model == ESOL else ""
 
     try:
         resolution = resolve_pkas(mol, str(parameters.get("pka_values", "")), interpreter_path)
@@ -1243,6 +1243,7 @@ def analyse_solubility(
                 solvent=solvent, estimate=estimate, resolution=resolution,
                 ionization=ionization, molecular_weight=Descriptors.MolWt(mol),
                 pkas=[], is_acid=[], refusal=outcome, refusal_code="SOLVENT_NOT_COVERED",
+                domain_warning=warning,
             )
         shift = outcome
 
@@ -1260,6 +1261,7 @@ def analyse_solubility(
             solvent=solvent, estimate=estimate, resolution=resolution,
             ionization=ionization, molecular_weight=Descriptors.MolWt(mol),
             pkas=[], is_acid=[], refusal=refusal, refusal_code=refusal_code, shift=shift,
+            domain_warning=warning,
         )
     if ionization is IonizationClass.AMPHOLYTE:
         refusal = (
@@ -1293,13 +1295,13 @@ def analyse_solubility(
     return SolubilityAnalysis(
         solvent=solvent, estimate=estimate, resolution=resolution, ionization=ionization,
         molecular_weight=Descriptors.MolWt(mol), pkas=pkas, is_acid=is_acid, refusal=refusal,
-        refusal_code=refusal_code, shift=shift,
+        refusal_code=refusal_code, shift=shift, domain_warning=warning,
     )
 
 
 #: Refusals that are a limit of the method rather than a fault.
 _INAPPLICABLE_REFUSALS = frozenset(
-    {"AMPHOLYTE", MULTICOMPONENT_UNSUPPORTED, "SOLVENT_NOT_COVERED", NO_PKA_PREDICTION, ESOL_OUTSIDE_DOMAIN}
+    {"AMPHOLYTE", MULTICOMPONENT_UNSUPPORTED, "SOLVENT_NOT_COVERED", NO_PKA_PREDICTION}
 )
 
 
@@ -1336,6 +1338,7 @@ def _provenance(analysis: SolubilityAnalysis, parameters: dict) -> Provenance:
             "pka_input_text": analysis.resolution.input_text,
             "ionization_class": analysis.ionization.value,
             "solvent": analysis.solvent.key,
+            "domain_warning": ESOL_DOMAIN_WARNING if analysis.domain_warning else "",
             "adjustment_limit_log_units": analysis.limit.log_units,
             "adjustment_limit_kind": analysis.limit.kind.value,
             "ph": float(parameters.get("pH", DEFAULT_PH)),
@@ -1390,6 +1393,11 @@ def _base_bias_limitation(analysis: SolubilityAnalysis) -> tuple[str, ...]:
     return (_BASE_BIAS_NOTE,) if analysis.ionization is IonizationClass.BASE else ()
 
 
+def _domain_limitation(analysis: SolubilityAnalysis) -> tuple[str, ...]:
+    """The ESOL domain warning as a limitation, or nothing."""
+    return (analysis.domain_warning,) if analysis.domain_warning else ()
+
+
 def _baseline_facts(analysis: SolubilityAnalysis) -> list[Fact]:
     """The value in every display unit, each tagged with its rendering, plus
     the category.
@@ -1418,7 +1426,7 @@ def _baseline_facts(analysis: SolubilityAnalysis) -> list[Fact]:
             "The model's own output, read as the neutral species' solubility. That reading "
             "is an added assumption, not something the model claims.",
         )
-        limitations = _base_bias_limitation(analysis)
+        limitations = _base_bias_limitation(analysis) + _domain_limitation(analysis)
     else:
         heading = f"Predicted solubility in {analysis.solvent.label}"
         evidence = (
@@ -1427,7 +1435,7 @@ def _baseline_facts(analysis: SolubilityAnalysis) -> list[Fact]:
             "Both the solvent coefficients and the solute descriptors are measured values; "
             "the AQUEOUS baseline is still a prediction, so its error carries through.",
         )
-        limitations = _NON_AQUEOUS_ACCURACY_LIMITATIONS
+        limitations = _NON_AQUEOUS_ACCURACY_LIMITATIONS + _domain_limitation(analysis)
     facts = [
         _fact(
             f"{heading} ({unit_symbol(name)})",
@@ -1474,6 +1482,7 @@ def _baseline_facts(analysis: SolubilityAnalysis) -> list[Fact]:
                 f"{MODERATE_HIGH_BOUNDARY_MG_PER_ML} mg/mL Moderate, above it High.",
                 f"Classified from {mg_per_ml:.4g} mg/mL.",
             ),
+            limitations=_domain_limitation(analysis),
         )
     )
     return facts
@@ -1691,6 +1700,18 @@ def compute_solubility(
     ph = float(parameters.get("pH", DEFAULT_PH))
 
     facts = _baseline_facts(analysis)
+    if analysis.domain_warning:
+        # A ROW, FIRST, BECAUSE NOTHING ELSE IS READ. The warning is in the report's limitations, which the merged
+        # reader pools with every other report's under one status line (the Substance report's note came first and
+        # cut it off), and in tooltips, which nobody hovers. A row in the section the number is read from is the
+        # one place it cannot be missed. Found by photographing the panel with every test green.
+        facts.insert(0, _fact(
+            "Baseline reliability", "ESOL runs high",
+            "ESOL overpredicts for this molecule: too high on all ten compounds with these groups checked "
+            "(by 0.4 to 5.4 log units)",
+            evidence=(analysis.domain_warning,),
+            detail=Detail.STANDARD,
+        ))
     facts += _gutmann_facts(analysis.solvent.key)
     facts += _ph_facts(analysis, ph)
     facts += _model_facts(
@@ -1713,13 +1734,18 @@ def compute_solubility(
     # and were invisible on screen -- found by grabbing the panel, with
     # every test green. They are carried in BOTH places: on the fact for
     # the tooltip and the export, and here so they are actually read.
-    limitations = [_BCS_NOTE]
+    limitations = [*_domain_limitation(analysis), _BCS_NOTE]
     limitations.extend(_base_bias_limitation(analysis))
     if not analysis.solvent.is_water and analysis.shift is not None:
         limitations.extend(_NON_AQUEOUS_ACCURACY_LIMITATIONS)
     dose_mg = parameters.get("dose_mg")
     dose = float(dose_mg) if dose_mg not in (None, "") else None
-    if not analysis.solvent.is_water:
+    if analysis.domain_warning:
+        # A regulatory-shaped PASS built on a baseline known to run high is the one output here that could do
+        # harm, so it is withheld; the number and its warning above are what is offered instead.
+        screen = BcsScreen.undetermined(BcsReason.BASELINE_OUT_OF_DOMAIN)
+        window = None
+    elif not analysis.solvent.is_water:
         # ICH M9 is a criterion about aqueous media. Reporting it for a
         # solubility in hexane would be a regulatory-shaped answer to a
         # question the regulation does not ask.
