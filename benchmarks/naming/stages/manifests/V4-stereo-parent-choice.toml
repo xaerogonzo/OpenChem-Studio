@@ -1,0 +1,16 @@
+# V4 (after V3-stereo-cache-key and P45-6-stereo-citation): the parent chosen by configuration reaches a molecule with many equal chains.
+# `_break_parent_stereo_tie` counts parent hypotheses that no stereo-preserving symmetry of the molecule can tell apart once
+# (`engine._plan_identity`), raises its bound to 12 DISTINCT hypotheses, and tests "differ only in configuration" on a name assembled
+# without descriptors (`assembly.assemble_without_stereo`) instead of on the finished text. Every row not listed here must NOT change
+# (an unlisted change is a violation), and NO row is listed: the change is expected to move no panel row.
+#
+# Measured, not assumed: see the CHANGELOG entry of 2026-10-06 ("one stereoisomer, one name") for the numbers of the run that wrote this file.
+#
+# That is a property of the populations and not evidence of a no-op. The defect needs a molecule whose parent chain can be any of several
+# chains that tie on every criterion of the preference key and differ only in the configuration of the stereocentres they carry, in at
+# least one more chain than the old bound named (P-92.5.2.2 example 5 has nine, of which four differ), or whose chains' names differ in how
+# their prefixes merge. No panel row has that shape. The fix is exercised by `tests/test_namer_stereo_parent_choice.py`: the book's own
+# molecule and eight more stereoisomers of its skeleton, each over random spellings, every descriptor checked per atom against RDKit's
+# labels; before it, 12 of 12 of the isomers sampled had two to four names over five spellings, after it 0 of 60.
+
+stage = "V4-stereo-parent-choice"
