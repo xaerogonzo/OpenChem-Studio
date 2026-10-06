@@ -2239,27 +2239,21 @@ document may cite a file or a test that does not exist.
   The one band the computation gets too WEAK is pyridine's B1u-like, at
   0.26-0.36x of measured. Everything else it overestimates.
 
-- **OPEN (2026-10-05)** -- the effect of the Windows dispose-crash fix on its own target (shard 2) has not been measured. The WINDOWS suite
-  crashed (access violation, no FAILED lines) on about half of master's pushes. Classified
-  from the 17 crashed Windows runs of 2026-09-26..10-04: **nine died at `conftest.dispose`'s
-  flush**, and the last four on master and PRs died on the same test,
-  `test_result_presentation.py::test_one_dataset_renders_at_one_precision_everywhere`
-  (shard 2, 82-83%), disposing a `CalculatorInspectorDialog` whose 3D viewer is a
-  `QWebEngineView` still loading. Deleting the dialog deleted that view as a child inside the
-  parent's destructor; `dispose_web_engine_views` already knew the safe order but runs after
-  the test. `dispose` now stops, deletes and flushes every web view under the widget first
-  (`tests/test_dispose_helper.py`). The remaining eight crashes are NOT this: two at 5-6% of
-  shard 1 show no test frame at all, others sit in panel construction, and none of those is
-  explained. The isolated file never crashes (0/30), so the effect of the fix has to be read
-  from CI over many runs, not from one green one. **The instrument exists and has been run once, on the wrong
-  shard:** `windows-crash-rate.yml` (manual dispatch) runs one shard N times per arm, one attempt each
-  with no retry, and `tools/crash_rate.py` reports the rate, a Wilson interval and Fisher's exact p;
-  the control arm is the SAME tree with the fix reverted. Run 1 (shard 1, n=10 per arm) was
-  inconclusive (4/10 crashed as-is, 6/10 reverted, p=0.66) and could not test the fix, which targeted
-  shard 2; it showed instead that about half of shard 1's legs crash at 4-8% of the run with no test
-  frame, which #197 does not touch. Run 2 (shard 2, n=15 per arm, pre-registered in
-  `benchmarks/windows_crash/README.md` before dispatch) is the real test; commit its report there
-  and close this item. This is the WINDOWS suite, so the Linux decision below does not apply to it.
+- **SETTLED (2026-10-05)** -- the Windows dispose-crash fix was measured twice and the effect is
+  inconclusive; nothing further is planned. The WINDOWS suite crashed (access violation, no FAILED
+  lines) on about half of master's pushes. Classified from the 17 crashed Windows runs of
+  2026-09-26..10-04, nine died at `conftest.dispose`'s flush and the last four on master and PRs
+  died on `test_result_presentation.py::test_one_dataset_renders_at_one_precision_everywhere`
+  (shard 2, 82-83%), disposing a `CalculatorInspectorDialog` whose 3D viewer is a `QWebEngineView`
+  still loading; `dispose` now stops, deletes and flushes every web view under the widget first
+  (#197, `tests/test_dispose_helper.py`). `windows-crash-rate.yml` samples one shard N times per
+  arm with no retry against the same tree with the fix reverted, and `benchmarks/windows_crash/`
+  holds the records: **run 2 (shard 2, pre-registered, n=15 per arm) was inconclusive** (0/15
+  crashed with the fix, 2/15 without, one of them at the fix's own target; Fisher p = 0.48), so a
+  difference of that size was not detectable and the fix is neither shown to work nor shown not to.
+  What the runs did show is a larger, unrelated problem: about half of shard 1's legs crash at 4-8%
+  of the run (about 80 s in) with no frame outside pytest, which #197 does not touch. This is the
+  WINDOWS suite, so the Linux decision below does not apply to it.
 - **DECISION** -- the Linux CI suite crashes part-way through, and the
   investigation is CLOSED rather than solved. Measured 2026-09-12 from
   each leg's own `leg.json` rather than from annotations: **8 of the last
