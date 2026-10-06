@@ -1247,10 +1247,45 @@ def test_esol_is_out_by_five_log_units_on_cl20_which_two_papers_measured():
     assert abs(errors[0] - errors[1]) < 0.2, "the two measurements agree, so the target is not one lab's number"
 
 
-def test_the_refusal_names_cl20_and_the_range_it_quotes():
+#: Three more, from Yalkowsky and He's Handbook of Aqueous Solubility Data, 2nd ed.: (name, SMILES, mol/L, C).
+#: Glycerol 1,2-dinitrate is NOT in the curated AqSolDB data; the other two are, so only the first is a test of that
+#: model. Single-source values (the handbook's refs D013 and D067), read off the held PDF 2026-10-06 (entries 168,
+#: 169 and 1408).
+_HANDBOOK2_NITRO = [
+    ("glycerol 1,2-dinitrate", "O=[N+]([O-])OCC(O[N+](=O)[O-])CO", 3.386e-1, 20),
+    ("glycerol 1,3-dinitrate", "O=[N+]([O-])OCC(O)CO[N+](=O)[O-]", 3.993e-1, 20),
+    ("ethyl tetryl", "CCN(c1c([N+](=O)[O-])cc([N+](=O)[O-])cc1[N+](=O)[O-])[N+](=O)[O-]", 1.992e-4, 22),
+]
+
+
+def _all_ten_errors() -> list[float]:
+    import math
+
+    crc = [esol_logs(mol(s)) - _crc_logs(s, pct) for _n, s, _t, pct in _CRC_NITRO]
+    cl20 = [esol_logs(mol(_CL20)) - _logs_from_mg_per_l(_CL20, v) for v in _CL20_MEASURED_MG_PER_L.values()]
+    handbook = [esol_logs(mol(s)) - math.log10(c) for _n, s, c, _t in _HANDBOOK2_NITRO]
+    return crc + [max(cl20)] + handbook
+
+
+def test_esol_overpredicts_on_every_one_of_the_ten_but_is_only_slightly_off_on_three():
+    """The honest shape of the evidence the refusal rests on: ALWAYS in the same direction, by 0.4 to 5.4 log
+    units, and under 1.0 for the small hydroxylated nitrate esters and ethyl tetryl. The refusal is therefore
+    broader than the worst cases, and the message says so rather than quoting only the worst."""
+    import math
+
+    errors = _all_ten_errors()
+    assert len(errors) == 10 and all(error > 0.3 for error in errors), errors
+    assert min(errors) == pytest.approx(0.4, abs=0.05) and max(errors) == pytest.approx(5.4, abs=0.1)
+    assert sum(error > 1.0 for error in errors) == 7
+    small = [esol_logs(mol(s)) - math.log10(c) for _n, s, c, _t in _HANDBOOK2_NITRO]
+    assert all(0.3 < error < 1.0 for error in small), small
+
+
+def test_the_refusal_quotes_the_ten_compound_evidence_and_the_limits_of_the_alternative():
     report = compute_solubility(mol(_CL20), "u", {"pka_values": "7.0"})
     assert report.provenance.parameters["refusal"] == "ESOL_OUTSIDE_DOMAIN"
-    assert "1.1 to 5.4 log" in report.error and "CL-20" in report.error and "seven compounds" in report.error
+    for fragment in ("ten compounds", "0.4 to 5.4 log", "more than 1.0 on seven", "CL-20", "glycerol 1,2-dinitrate", "PETN"):
+        assert fragment in report.error, fragment
 
 
 @pytest.mark.parametrize(("name", "smiles"), [(n, s) for n, s, _t, _p in _CRC_NITRO])

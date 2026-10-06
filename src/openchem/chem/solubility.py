@@ -1165,11 +1165,13 @@ def esol_domain_problem(mol: Chem.Mol) -> str:
     return (
         "ESOL is not defined for " + " or ".join(groups) + ": it is built on Crippen logP, which reads "
         "these groups as far more polar than they are, so it reports an explosive such as RDX as "
-        "freely soluble when the CRC Handbook gives about 0.06 g/L (ESOL is out by 1.1 to 5.4 log "
-        "units on the seven compounds checked). The AqSolDB model (Tools > External Tools sets it up) "
-        "matches the six in the CRC table only because they are in its training data. On CL-20, which "
-        "is not, it came within about 0.1 log units of two measurements, but that is one compound, and a cyclic "
-        "nitramine like the RDX and HMX it was trained on. Use a measured value where you have one."
+        "freely soluble when the CRC Handbook gives about 0.06 g/L. On the ten compounds with these groups "
+        "checked against measured values it overpredicts the solubility on every one, by 0.4 to 5.4 log "
+        "units (more than 1.0 on seven; the smallest errors are two glycerol dinitrates and ethyl tetryl). "
+        "The AqSolDB model (Tools > External Tools sets it up) is closer on the cyclic nitramines -- within "
+        "about 0.1 on CL-20, which is not in its training data -- but not on nitrate esters: 1.2 log units "
+        "too low on glycerol 1,2-dinitrate, also outside its training data, and 1.7 too high on PETN. "
+        "Use a measured value where you have one."
     )
 
 
