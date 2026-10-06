@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### A local full-text index of the PDF library
+
+- `tools/library_index.py` reads every PDF in the held library once into a SQLite full-text index beside the folder (`<library>.index.sqlite`, never committed) and answers `search` with page-level snippets, `--near` proximity and `a | b` synonyms; `show` prints a page and `stub` drafts a `literature.toml` entry (hash, page count and a first-page DOI; the title and judgement are left to be written). It re-reads only files whose size or modification time changed, lists files with no text layer instead of silently never matching them, and needs pymupdf only to `update` (`uvx --with pymupdf`). It replaces opening every PDF to find a compound: that took minutes and stalled on a 2,643-page handbook. Tests stand in for the PDF reader (and one builds a real PDF where pymupdf is present); four mutations of the behaviours that make an index trustworthy are each caught.
+
 ### CI: a pre-registered attempt to fix the early shard 1 crash did not work
 
 - Hypothesis: the crash is a parentless `CalculatorInspectorDialog` dying by refcount (the crashing test discards `_inspect(...)`'s return value) with its `QWebEngineView` destroyed as a child inside the dialog's destructor. Test: a `__del__` that destroys the view first, behind an env var, 100 attempts per arm on the `15:20` window, one Fisher test registered beforehand. **Result: baseline 7/100, with the change 15/100, p = 0.112: inconclusive and in the wrong direction.** The change is not merged (branch `eventfilter-hardening`); the cause is still not identified. A 3000-iteration local stress loop of the same create-and-discard pattern did not crash either.
