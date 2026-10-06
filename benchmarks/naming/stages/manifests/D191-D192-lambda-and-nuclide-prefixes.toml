@@ -1,0 +1,32 @@
+# D-191 and D-192 (2026-10-06): a group past its standard bonding number carries its lambda number (a one-atom substituent, and a heteroatom
+# PARENT that still has a hydrogen), and a nuclide on a one-atom prefix is named. Measured against 1030bc96, master at #233, the tree this sits on.
+#
+# 1712 structures over r7, r8, mc and pop: 2 names changed, both listed below, 0 violations. Every other row, including every row that carries a
+# halogen, a hydroxy or an amino group, did not move. The census (2000 rows, canonical SMILES, OPSIN read-back) agrees in kind: 3 rows moved, all
+# three a five-bonded phosphorus with one REAL hydrogen, `exact` before and after, the OPSIN read-back structure identical, class counts identical.
+#
+# Neither defect is in this panel: no row carries a nuclide on a prefix or a hydrogen-bearing hypervalent substituent (that is why the census and the
+# Blue Book's own P-45.2.3 examples 11 and 12 found them). The two rows below are the same rule met by a population built from the book: a heteroatom
+# with one real hydrogen on a centre past its standard number. Both names read back through OPSIN to the same structure before and after
+# (`base_roundtrips` and `head_roundtrips` true in the report), so they are STRUCTURALLY_EQUIVALENT: the old names read back (OPSIN takes the valence
+# to 5 and supplies the missing hydrogen) and the new ones say the number, as the book does (`pentamethoxy-λ5-phosphane (PIN)`, BlueBookV2.pdf p. 770).
+# The rows' structures are `C[PH](=O)OC#N` and `CO[AsH](=S)c1ccccc1` (benchmarks/naming/bluebook_tuning.json).
+#
+# The first version of the heteroatom-centre rule counted the hydrogen that stands for a carved substituent's cut bond and moved 8 rows here and 13
+# of 2000 in the census, every phosphoryl group among them; it now discounts the free valence's own hydrogen, which left these two.
+
+stage = "D191-D192-lambda-and-nuclide-prefixes"
+
+# {[methyl(oxo)phosphanyl]oxy}methanenitrile: a P(=O)(H)(CH3) group, one real hydrogen on a five-bonded phosphorus.
+[[expect]]
+id = "pop:bluebook_tuning:bb-aec8ad06ae91"
+expect = "STRUCTURALLY_EQUIVALENT"
+reason_rule_id = "D-191: a heteroatom centre past its standard bonding number that carries a hydrogen takes the lambda number (P-45.3)"
+expected_layer = "parent_naming"
+
+# (methoxy)(phenyl)(thioxo)arsane: an AsH(=S)(OCH3)(C6H5), one real hydrogen on a five-bonded arsenic.
+[[expect]]
+id = "pop:bluebook_tuning:bb-e2c51731af1d"
+expect = "STRUCTURALLY_EQUIVALENT"
+reason_rule_id = "D-191: a heteroatom centre past its standard bonding number that carries a hydrogen takes the lambda number (P-45.3)"
+expected_layer = "parent_naming"
