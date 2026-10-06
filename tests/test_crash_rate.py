@@ -145,7 +145,9 @@ def test_the_workflow_runs_only_when_asked_for():
 def test_every_leg_is_a_single_attempt_that_cannot_be_retried_or_cancelled_by_a_sibling():
     code = _code(_workflow())
     assert "fail-fast: false" in code, "a crash in one leg must not cancel the others"
-    assert code.count("ci_suite_shard.ps1") == 1, "a retry would hide the event being counted"
+    # Two call sites (with and without -Files), both inside the one attempt loop: no retry step exists.
+    assert code.count("ci_suite_shard.ps1") == 2, "a retry would hide the event being counted"
+    assert "retry" not in code.lower()
     assert "exit 0" in code, "the leg must always record its outcome"
 
 
@@ -176,3 +178,71 @@ def test_a_revert_conflict_in_prose_is_resolved_and_one_in_code_stops_the_leg():
     assert "docs/|CHANGELOG" in code and "tests/test_docs_are_current" in code
     assert "-notmatch $prose" in code
     assert "conflicts in code" in code
+
+
+def test_the_bisect_inputs_exist_and_cannot_be_combined_with_a_revert_arm():
+    code = _code(_workflow())
+    assert "ranges:" in code and "attempts:" in code
+    assert "ranges and revert are different experiments" in code
+    assert "attempts > 1 is for ranges" in code, "a whole-shard attempt is ~25 minutes; many per leg would time out"
+
+
+def test_each_attempt_is_a_fresh_process_with_no_retry_and_its_own_leg_file():
+    code = _code(_workflow())
+    assert code.count("ci_suite_shard.ps1") == 2, "one call with -Files, one without, both inside the attempt loop"
+    assert 'leg-$n.json' in code and "path: leg-*.json" in code
+    assert "-ExitCode $code" in code
+
+
+def test_artifact_names_cannot_contain_the_arm_label():
+    """An arm label like 'files 0:28' holds a colon, which artifact names reject: every upload of the first
+    bisect run failed on it, and the legs' results survived only in the step logs."""
+    code = _code(_workflow())
+    for line in code.splitlines():
+        if line.strip().startswith(("name: crash-leg-", "name: crash-log-")):
+            assert "matrix.arm" not in line and "strategy.job-index" in line, line
+
+
+def test_the_job_name_survives_yaml_comment_parsing():
+    """` #` in an unquoted scalar starts a comment: the replica vanished from the job name, the three legs of
+    an arm became indistinguishable, and `gh run view --log` printed one leg's log three times."""
+    code = _code(_workflow())
+    assert 'name: "${{ matrix.arm }} / leg ${{ matrix.replica }}"' in code
+
+
+def test_treatment_mode_exists_and_is_exclusive_with_the_other_experiments():
+    code = _code(_workflow())
+    assert "treatments:" in code and "TREATMENTS:" in code
+    assert "treatments, ranges and revert are different experiments" in code
+    assert "treatment labels must be unique" in code
+    assert "treatment env must map strings to strings" in code
+
+
+def test_a_treatments_environment_is_applied_inside_the_leg_not_the_runner_job():
+    """Set-Item Env: inside the step's own pwsh process: it reaches every attempt's pytest of this leg and
+    nothing else (each leg is its own runner)."""
+    code = _code(_workflow())
+    assert "TREATMENT_ENV: ${{ matrix.env }}" in code
+    assert "ConvertFrom-Json" in code and 'Set-Item -Path "Env:' in code
+
+
+def test_native_crash_dumps_are_opt_in_per_arm_and_uploaded():
+    code = _code(_workflow())
+    assert "OPENCHEM_CAPTURE_DUMPS -eq '1'" in code, "dumps must be opt-in: they are large and need a registry write"
+    assert "Windows Error Reporting" in code and "LocalDumps" in code
+    assert "name: crash-dumps-${{ strategy.job-index }}" in code and "path: dumps/" in code
+
+
+def test_the_pyside_version_is_a_treatment_and_the_four_packages_move_together():
+    code = _code(_workflow())
+    assert "OPENCHEM_PYSIDE_VERSION" in code
+    for package in ("PySide6==$v", "PySide6-Essentials==$v", "PySide6-Addons==$v", "shiboken6==$v"):
+        assert package in code, "a partial version change leaves a mismatched binding"
+    assert "print('PySide6'" in code, "every leg must log the version it actually ran"
+
+
+def test_the_log_of_a_failed_attempt_is_kept_and_only_a_clean_pass_is_discarded():
+    """A failed attempt's log holds the FAILED lines; deleting it left a version-compatibility run with 'failed'
+    and no way to say which tests."""
+    code = _code(_workflow())
+    assert "if ($code -eq 0 -and $crashed -ne 'true') { Remove-Item $log" in code

@@ -193,6 +193,7 @@
   "tests/test_ketcher_bundle_is_current.py": 0,
   "tests/test_ketcher_editor_backend.py": 0,
   "tests/test_ketcher_holds_3d_coordinates.py": 0,
+  "tests/test_ketcher_notices_workflow.py": 1,
   "tests/test_ketcher_overrule.py": 0,
   "tests/test_ketcher_viewport_transform.py": 1,
   "tests/test_keyboard_shortcuts.py": 0,
