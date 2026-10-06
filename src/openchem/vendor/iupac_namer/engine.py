@@ -11089,6 +11089,52 @@ def _alphanumerical_locant_key(tree) -> tuple | None:
     return tuple(tuple(m.locants) for m in cited)
 
 
+# P-14.4 (j): of each pair of CIP descriptors the first takes the lower locant -- Z over E, R over S, M over P, r over s.
+# A rank, not a letter comparison: "R" < "S" and "Z" > "E" alphabetically, so the letters cannot be compared directly.
+_STEREO_LOCANT_PREFERENCE = {"Z": 0, "R": 0, "M": 0, "r": 0, "E": 1, "S": 1, "P": 1, "s": 1}
+
+
+def _stereo_locant_key(carrier) -> tuple | None:
+    """P-14.4 (j) as a comparable value: `(stereogenic atoms, their locants, their descriptors' ranks)`.
+
+    `carrier` is anything holding `stereo_descriptors`; a plan does, from the moment it is generated.
+
+    "Lower locants related to the presence of stereogenic centers": the stereogenic units' locants are compared first,
+    then the descriptors in locant order, the first point of difference deciding. `(2Z,4S,8R,9E)-undeca-2,9-diene-4,8-diol`
+    is the book's own case: the choice is Z against E at 2, not R against S at 4.
+
+    The atoms come first because only two numberings of the SAME stereogenic atoms can be compared (`_comparable_stereo`).
+    None when a descriptor cannot be ranked.
+    """
+    descriptors = getattr(carrier, "stereo_descriptors", None)
+    if not descriptors:
+        return (frozenset(), (), ())
+    rows = []
+    for sd in descriptors:
+        rank = _STEREO_LOCANT_PREFERENCE.get(sd.descriptor)
+        if rank is None or sd.locant is None or sd.stereo_center is None:
+            return None
+        rows.append((sd.locant, rank, (sd.stereo_center.atom_idx, sd.stereo_center.type)))
+    rows.sort(key=lambda row: row[0])
+    return (
+        frozenset(row[2] for row in rows),
+        tuple(row[0] for row in rows),
+        tuple(row[1] for row in rows),
+    )
+
+
+def _comparable_stereo(keys: list) -> list | None:
+    """Each key's `(locants, ranks)`, when every candidate describes the same stereogenic units; otherwise None.
+
+    A numbering that drops a descriptor (a junction locant a bridged or spiro parent cannot cite) describes FEWER
+    atoms, and its shorter tuple would win by length alone: a name that says less would be preferred to one that says more.
+    So candidates that do not describe the same units are not compared at all, and the tie falls to the plan order as before.
+    """
+    if not keys or None in keys or len({key[0] for key in keys}) != 1:
+        return None
+    return [(key[1], key[2]) for key in keys]
+
+
 def _break_alphanumerical_tie(
     ranked_plans, mol, strategy, output_form, free_valence, decision_ctx, session, depth,
 ):
@@ -11110,11 +11156,11 @@ def _break_alphanumerical_tie(
         old behaviour exactly;
       * only plans of ONE parent hypothesis, since P-14.4 is a numbering rule
         and two different parents tying is not what it decides;
+      * a tie that (g) cannot break goes to P-14.4 (j) -- the stereodescriptors,
+        `_stereo_locant_key` -- so `(2R,3S)-butane-2,3-diol` and not whichever
+        of it and `(2S,3R)` the atom order produced;
       * a residual tie falls to the later-generated plan, the declared
         compatibility policy of `_search_plans`.
-
-    After (g) comes P-14.4 (j), the stereodescriptor of the lower locant (`_stereo_locant_key`): the one criterion that separates the two
-    numberings of a meso compound, which differ in nothing but their labels.
 
     Returns the winning tree, or None to fall through to the normal loop.
     """
@@ -11137,6 +11183,12 @@ def _break_alphanumerical_tie(
     if len(tied) < 2:
         return None
 
+    # P-14.4 (j) is the LAST criterion, after (g) above. The descriptors need no execution: a plan carries them from the
+    # moment it is generated. They only count when every tied plan describes the same stereogenic atoms.
+    comparable = _comparable_stereo([_stereo_locant_key(plan) for _seq, plan in tied])
+    stereo_of = {seq: key for (seq, _plan), key in zip(tied, comparable)} if comparable else {}
+    stereo_decides = len(set(stereo_of.values())) > 1
+
     candidates = []
     for seq, plan in tied:
         tree = _execute_plan(
@@ -11146,37 +11198,15 @@ def _break_alphanumerical_tie(
             continue
         locant_key = _alphanumerical_locant_key(tree)
         if locant_key is None:
-            if isinstance(tree, SubstitutiveTree) and not tree.prefixes:
-                # No prefix to compare on (g): a plain meso skeleton, or one whose only substituents are suffixes. That is not a reason to give
-                # up, since (j) below can still decide; an empty key ties, and a tie falls to plan order exactly as before.
-                locant_key = ()
-            else:
+            # (g) has nothing to compare on a name without prefixes (butane-2,3-diol), where (j) can still decide.
+            if not (stereo_decides and isinstance(tree, SubstitutiveTree) and not tree.prefixes):
                 return None
-        candidates.append((locant_key, _stereo_locant_key(tree), -seq, tree))
+            locant_key = ()
+        candidates.append(((locant_key, stereo_of.get(seq, ())), -seq, tree))
     if not candidates:
         return None
-    candidates.sort(key=lambda c: (c[0], c[1], c[2]))
-    return candidates[0][3]
-
-
-#: P-14.4 (j): "the lower locant is assigned to CIP stereodescriptors Z, R, M, and r (pseudoasymmetry) that are preferred to E, S, P, and s".
-_PREFERRED_CIP_DESCRIPTORS = frozenset({"Z", "R", "M", "r"})
-
-
-def _stereo_locant_key(tree) -> tuple:
-    """P-14.4 (j) as a comparable value: a preferred descriptor (Z, R, M, r) at the lowest locant.
-
-    One entry per stereodescriptor the name will carry, in locant order, 0 for a preferred descriptor and 1 for the other of its pair, compared
-    from the lowest locant up: the decision is made at the FIRST point of difference, as the book's own example has it (`(2Z,4S,8R,9E)-undeca-2,9-
-    diene-4,8-diol`: the choice is made between Z and E at 2, not between R and S at 4). So `(2R,4S)` beats `(2S,4R)` for 2,4-difluoropentane
-    and `(1R,5S)` beats `(1S,5R)` for tropane, whose two mirror numberings differ in nothing else.
-
-    It is the LAST criterion of P-14.4, after the alphanumerical one, which is why it is a tie-break here and not a tier of the preference key.
-    It reads the descriptors of the executed tree, i.e. those the name will carry: one that was dropped (an unreadable locant, a pseudoasymmetric
-    `r` OPSIN cannot read) takes no part. A tree with none gives `()`, which ties.
-    """
-    descriptors = getattr(tree, "stereo_descriptors", None) or ()
-    return tuple(0 if d.descriptor in _PREFERRED_CIP_DESCRIPTORS else 1 for d in descriptors)
+    candidates.sort(key=lambda c: (c[0], c[1]))
+    return candidates[0][2]
 
 
 def _ester_alcohol_key(tree) -> tuple | None:
@@ -11285,6 +11315,9 @@ def _break_ester_tie(
         candidates.append(((acid_key, alcohol_key), -seq, tree))
     if not candidates:
         return None
+    # NOT a P-14.4 (j) tier, on purpose: the alcohol component is named as a fragment of its own, and when two ester plans carve
+    # fragments that print alike one of the two trees can carry descriptors that do not describe the molecule (measured: meso
+    # dipropylene glycol diacetate came out as the R,R compound with an R-first tier here). The canonical rank stays the last resort.
     candidates.sort(key=lambda c: (c[0], c[1]))
     return candidates[0][2]
 

@@ -75,6 +75,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_stereo_locant_tie.py"
+why = "P-14.4 (j): R before S (Z, M, r likewise) takes the lower locant when numberings tie; the book's own examples, and the cases left undone"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_plan_budget.py"
 why = "the plan-search budget and what it may prune"
 scope = "core"

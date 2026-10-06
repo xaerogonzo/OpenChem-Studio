@@ -1,0 +1,9 @@
+# P-14.4 (j), the stereodescriptor tie-break. Measured against f470933f, master (with #218 and naming round 26) when it was last checked.
+# NOTHING on the panels or in the five tuning populations is expected to change: the rule reaches only a structure whose numberings tie on
+# every other criterion AND differ in their descriptors, which is a meso pair of centres or a symmetric unit with one E/Z or R/S set, and none of the 1712
+# structures over r7, r8, mc and pop is one (0 names changed, 0 violations). The census is the only standing population that holds any: 4 of its 2000 rows
+# moved (an adamantane `(1S,5R)` to `(1R,5S)`, a cis-2,6-dimethylmorpholine `(2S,6R)` to `(2R,6S)`, and the two von Baeyer meso skeletons #218 left open:
+# a tricyclic imide and 2,4-diphenyl-3-azabicyclo[3.3.1]nonan-9-ol), each to R at the lower locant, class unchanged.
+# The manifest exists so that "nothing else moves" is a checked claim and a later change to the tie-break cannot pass as this one.
+
+stage = "P14-4j-stereo-tie"
