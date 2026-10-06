@@ -18,8 +18,8 @@ from openchem.vendor.iupac_namer import name_smiles
 needs_opsin = pytest.mark.skipif(not opsin_available(), reason="needs the managed JRE and py2opsin")
 
 STEREO = [
-    ("galantamine", "CN1CC[C@]23C=C[C@@H](C[C@@H]2OC4=C(C=CC(=C34)C1)OC)O",
-     "(4aS,6R,8aR)-3-methoxy-11-methyl-4a,5,9,10,11,12-hexahydro-6H-[1]benzofuro[3a,3,2-ef][2]benzazepin-6-ol", False),
+    ("galantamine", "COc1ccc2c3c1O[C@H]1C[C@@H](O)C=C[C@@]31CCN(C)C2",
+     "(4aS,6R,8aS)-3-methoxy-11-methyl-4a,5,9,10,11,12-hexahydro-6H-[1]benzofuro[3a,3,2-ef][2]benzazepin-6-ol", False),
     ("ibogaine", "CC[C@H]1C[C@H]2C[C@@H]3[C@H]1N(C2)CCc1c3[nH]c2ccc(OC)cc12",
      "(6R,6aS,7S,9S)-7-ethyl-2-methoxy-5,6,6a,7,8,9,10,12,13-nonahydro-6,9-methanopyrido[1',2':1,2]azepino[4,5-b]indole", False),
     ("atropine", "CN1[C@H]2CC[C@@H]1C[C@@H](C2)OC(=O)C(CO)c1ccccc1",

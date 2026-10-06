@@ -2033,7 +2033,7 @@ are the two C3 epimers and now share one name**, `(1R,5S)-8-methyl-8-azabicyclo[
 
 **D-184, galantamine: the curated table had 8a and 12a swapped.** The entry's own comment says those two junctions were "deduced by topology", and only the probed locants were right. OPSIN settles it: `8a-chloro-...`
 is a valency error (the quaternary carbon has no hydrogen), `12a-chloro-` lands on the aromatic carbon beside the CH2-N, and `(4aS,6R,8aS)-...-6-ol` reads as galantamine where the old `12aR` could not be parsed, so both
-junction descriptors were stripped. Swapped back; galantamine now round-trips exactly as `(4aS,6R,8aR)-...`.
+junction descriptors were stripped. Swapped back; galantamine now round-trips exactly as `(4aS,6R,8aS)-...`, PubChem's published set for natural galantamine. `test_fda_0605_galantamine_no_letter_suffix_stereo` had pinned the stripped `(6R)`-only name and its docstring blamed OPSIN; it is inverted and renamed `..._keeps_its_letter_suffix_stereo`.
 
 **D-185, ibogaine: a bridged system named by FUSION has letter junction locants.** The descriptor gate admitted only plain integers for a bridged parent (right for von Baeyer names, which have no letters), so `6a` was
 dropped before validation ever saw it. Admitted when the parent is not a von Baeyer or spiro name; the OPSIN validation still strips it if the name is unreadable. Ibogaine is now `(6R,6aS,7S,9S)-...`, exact.
