@@ -110,17 +110,17 @@ env:
 
 jobs:
   suite:
-    name: test suite ${{ matrix.shard }}/2
+    name: test suite ${{ matrix.shard }}/${{ strategy.job-total }}
     runs-on: windows-latest
     strategy:
-      # BOTH SHARDS ALWAYS REPORT. With the default `fail-fast`, a failure
-      # in one cancels the other, and the cancelled half reports as a
-      # failure it never had -- so a one-shard bug reads as a two-shard
-      # bug and the second verdict, which is the one that says whether the
-      # problem is local, is destroyed.
+      # EVERY SHARD ALWAYS REPORTS. With the default `fail-fast`, a failure
+      # in one cancels the others, and a cancelled shard reports as a
+      # failure it never had -- so a one-shard bug reads as an every-shard
+      # bug and the other verdicts, which are the ones that say whether the
+      # problem is local, are destroyed.
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: [1, 2, 3]
     # 30 WAS NOT A CEILING, IT WAS A COIN FLIP -- measured across five
     # consecutive runs, four of them on unmodified master:
     #
@@ -170,6 +170,18 @@ jobs:
     # genuinely needs more than 30 minutes, add a third shard before
     # raising this -- the splitter takes `--splits=N` and the only other
     # change is this matrix.
+    #
+    # **THREE SHARDS SINCE 2026-10-06, WHICH IS THAT SENTENCE BEING FOLLOWED.** After the stereo tests landed the two
+    # shards ran 1737 s and 1769 s of this step's 1800 (97% of the capacity of the pair, 91% before), and master's
+    # `0752332` and the pull request behind it timed out at 99% of the shard with no test failed. The two were already
+    # balanced to 32 s, so MOVING FILES COULD NOT HAVE FIXED IT: the sum was the problem. Three shards carry the same
+    # ~3500 s at ~1170 s each (65%). The count is not written here or in the script: `-Splits ${{ strategy.job-total }}`
+    # is the size of this matrix, and `tests/test_suite_shards.py` asserts the pin table for that size exists.
+    #
+    # THE SPLIT WAS BALANCED ON WALL TIME, NOT ON THE TIME TESTS REPORT. A shard's wall time is its tests + the
+    # `gc.collect()` after each Qt test + ~30 s, to the second in both shards of both runs read; the weights modelled
+    # only the first term, so shard 1 carried 714 s of collects against shard 2's 394 s while looking even.
+    # `tools/suite_shards.py` now weighs a file by its time plus 0.4 s per test that requests `qapp`.
     #
     # **THE JOB LIMIT IS 65 SINCE 2026-10-05, AND THE 30 ABOVE NOW LIVES ON EACH ATTEMPT'S STEP.**
     # A crashed shard is retried once (see the "Run this shard" step), so a job can legitimately
@@ -250,7 +262,7 @@ jobs:
         shell: pwsh
         continue-on-error: true
         timeout-minutes: 30
-        run: ./tools/ci_suite_shard.ps1 -Shard ${{ matrix.shard }} -Log suite-attempt-1.log -NetworkTest "${{ env.NETWORK_TEST }}"
+        run: ./tools/ci_suite_shard.ps1 -Shard ${{ matrix.shard }} -Splits ${{ strategy.job-total }} -Log suite-attempt-1.log -NetworkTest "${{ env.NETWORK_TEST }}"
 
       - name: Was the first attempt a crash?
         id: classify
@@ -282,7 +294,7 @@ jobs:
         if: steps.classify.outputs.crashed == 'true'
         shell: pwsh
         timeout-minutes: 30
-        run: ./tools/ci_suite_shard.ps1 -Shard ${{ matrix.shard }} -Log suite-attempt-2.log -NetworkTest "${{ env.NETWORK_TEST }}"
+        run: ./tools/ci_suite_shard.ps1 -Shard ${{ matrix.shard }} -Splits ${{ strategy.job-total }} -Log suite-attempt-2.log -NetworkTest "${{ env.NETWORK_TEST }}"
 
       - name: Say that the retry rescued it
         if: steps.retry.outcome == 'success'
