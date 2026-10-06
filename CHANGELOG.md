@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### P-14.4 (j): a meso compound has one name, not one per way of writing its SMILES
+
+- When two numberings tie on everything else, R (and Z, M, r) now takes the lower locant, as criterion (j) of P-14.4 prints: `(2R,3S)-butane-2,3-diol`, `(1R,2S)-cyclohexane-1,2-diol`, `(2R,4S)-2,4-difluoropentane`, `(2Z,5E)-hepta-2,5-dienedioic acid`. Before, the order the SMILES atoms were written in chose between the two valid descriptor sets (18 of 18 probed structures gave two names). It also numbers the `-diyl` group of a polyol's diester, so naming round 26's `(2R,3S)-butane-2,3-diyl diacetate` is R-first and one name in every atom order. What it does not reach, each measured: see `src/openchem/vendor/KNOWN_LIMITATIONS.md` and `src/openchem/vendor/CHANGELOG.md`, 2026-10-06.
+
 ### The glycerol dinitrate solubilities are checked against their primary paper
 
 - Dunstan, Griffiths and Harvey (J. Chem. Soc. 1965, 1319; now held) measured the two dinitrates in water at 20 C (saturated at 25 C, cooled, aliquots weighed and evaporated; mean of three): 6.57 g/100 g water for the 1,2-isomer and 7.84 g/100 g for the 1,3-isomer. The handbook's 61.65 and 72.70 g/L are exactly those figures read as g per kg of solution taken as g/L, so the two values the ten-compound evidence uses are confirmed, and the density assumption shifts logS by about 0.01. The ethyl tetryl value (the handbook's source is a 1926 Desvergnes paper in a French trade journal) remains the handbook's alone: it has no DOI, the Internet Archive scans of the journal stop at 1909, and it is recorded as the weakest of the ten. Nothing in the evidence or the warning changes.
+
 
 ### The Ketcher notices workflow could never have worked on a real Dependabot PR, and now can
 
@@ -19,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### CL-20 is the independent test: ESOL is out by 5.4, AqSolDB by 0.1
 
 - CL-20 (an N-nitro cage compound) is not in the curated AqSolDB data and has two independent measurements at 25 C: 4.33 mg/L (Karakaya et al. 2005) and 3.6 mg/L (Monteil-Rivera et al. 2004), logS -5.01 and -5.09. ESOL puts it at +0.39, an error of +5.4 log units, the largest of the seven compounds checked; the AqSolDB model gives -5.13, within about 0.1 of both. The second edition of the Yalkowsky and He handbook then added three more measured compounds with these groups (glycerol 1,2- and 1,3-dinitrate, ethyl tetryl), and they change the picture: ESOL overpredicts on all ten, always in the same direction, but by only 0.4 to 0.8 on those three (more than 1.0 on seven of the ten), and the AqSolDB model is NOT better on nitrate esters: 1.2 log units too low on glycerol 1,2-dinitrate, which is outside its training data (and 1.7 too high on PETN). The maintainer chose a **warning instead of a refusal**, so ESOL now answers for these compounds again: the number is returned and the seven census cells that #204 moved from Ready to Limit are back at Ready. The warning ("ESOL is not reliable for ...", with the ten-compound evidence: 0.4 to 5.4 log units too high, more than 1.0 on seven; AqSolDB within about 0.1 on CL-20 but not on nitrate esters, 1.2 too low on glycerol 1,2-dinitrate and 1.7 too high on PETN; prefer a measured value) is the FIRST line of the report's limitations, on each value row and on the solubility category, and recorded in provenance as `domain_warning`. **The ICH M9 high-solubility estimate is withheld** (UNDETERMINED, "the baseline model is known to overpredict for this molecule") for those molecules, because a regulatory-shaped PASS built on a baseline that runs high was the one output that could do harm. The `ESOL_OUTSIDE_DOMAIN` refusal code is gone from the limit-code table; choosing AqSolDB carries no warning. The eight compounds searched for in the held library (PGDN, BTTN, ETN, EDNA, DINA, dimethyl- and diethylnitramine, TNAZ) have no measured water solubility in it; TNAZ's 1.1 g/L in a held book is software-predicted. `docs/research/literature.toml` gains eight records (the two CL-20 papers, the Yalkowsky handbook, two Boddu books, three Lynch/Pennington papers) and a `solubility` property.
+
 
 ### A local full-text index of the PDF library
 
@@ -822,7 +828,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   instead of being withheld (`chem/naming_providers.py`).
 - Held-out corpus v3 (40 fresh molecules, frozen before the work): 0 wrong
   molecules, 13 matching PubChem's string exactly.
-
 
 ### Added
 
