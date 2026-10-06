@@ -76,7 +76,7 @@ owner = "namer"
 
 [[consumer]]
 file = "tests/test_namer_stereo_locant_tie.py"
-why = "P-14.4 (j): R before S (Z, M, r likewise) takes the lower locant when numberings tie, in the numbering tie-break and the ester one; the book's own examples, and the cases left undone"
+why = "P-14.4 (j): R before S (Z, M, r likewise) takes the lower locant when numberings tie; the book's own examples, and the cases left undone"
 scope = "core"
 owner = "namer"
 
