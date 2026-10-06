@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### The Windows suite runs as three shards, balanced on wall time
+
+- Master's `test suite 2/2` timed out at its 30-minute step limit on the squash of #232 (and on the pull request behind it) with no test failed: after the stereo tests the two shards ran 1737 s and 1769 s of 1800 s (97% of the pair's capacity, 91% before). They were already balanced to 32 s, so re-pinning could not have helped; the fix is a third shard, as `tests.yml`'s own comment said. `tests.yml` runs `shard: [1, 2, 3]` and hands the script `-Splits ${{ strategy.job-total }}`, so the count is the size of the matrix and nowhere else; `tools/ci_suite_shard.ps1` has no default for it (a matrix of 2 with `--splits=3` would silently drop a third of the suite). 11 of 477 files move, all into shard 3, so shards 1 and 2 stay subsets of compositions CI has already run; the predicted wall time per shard is 1050 s to 1290 s against 1800 s. The split is balanced on `load_costs` (reported time + 0.4 s for each test that requests `qapp`, which is followed by a full `gc.collect()` outside the reported time) instead of reported time alone, which had hidden 714 s of hook in shard 1 against 394 s in shard 2; `suite-durations.json` is refreshed from CI (328 files, 882 s, to 477 files, 2398 s) and `suite-qapp-counts.json` and `--count-qapp` are new. `windows-crash-rate.yml` keeps the 2-way split its records were measured on, now stated with `-Splits 2`. Not yet seen in CI: how shard 3 behaves; see the lesson in `docs/LESSONS.md`.
+
 ### Seven tautomer papers are recorded in the literature manifest
 
 - alkorta2022, rybczynski2023, claramunt2024, anandan2004, kim2007, wieder2021 and rzepiela2020 were in the library but cited nowhere in the repo (the session that fetched them was archived). Each is recorded with its DOI and sha256 from the library index and page 1, as `context_only` with a provisional `tautomerism` property (new in the closed vocabulary) and a note that it has not been read through.
