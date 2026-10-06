@@ -208,6 +208,7 @@
   "tests/test_lewis_diagram_model.py": 1,
   "tests/test_lewis_layout.py": 1,
   "tests/test_lewis_svg.py": 1,
+  "tests/test_library_index.py": 0,
   "tests/test_ligand_extent_warning.py": 1,
   "tests/test_ligand_preparation.py": 0,
   "tests/test_line_chart_cursor.py": 0,

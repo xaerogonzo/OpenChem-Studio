@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### A local full-text index of the PDF library
+
+- `tools/library_index.py` reads every PDF in the held library once into a SQLite full-text index beside the folder (`<library>.index.sqlite`, never committed) and answers `search` with page-level snippets, `--near` proximity and `a | b` synonyms; `show` prints a page and `stub` drafts a `literature.toml` entry (hash, page count and a first-page DOI; the title and judgement are left to be written). It re-reads only files whose size or modification time changed, lists files with no text layer instead of silently never matching them, and needs pymupdf only to `update` (`uvx --with pymupdf`). It replaces opening every PDF to find a compound: that took minutes and stalled on a 2,643-page handbook. Tests stand in for the PDF reader (and one builds a real PDF where pymupdf is present); four mutations of the behaviours that make an index trustworthy are each caught.
+
 ### CI: the early shard 1 crash is identified; a PySide6 downgrade is not a fix
 
 - **Bisect harness** for the Windows crash workflow: `ranges` (slices of a shard's file list, each an arm), `attempts` (fresh processes per leg, no retry), `treatments` (the same window under a different environment per arm), opt-in native minidumps (`OPENCHEM_CAPTURE_DUMPS=1`) and `OPENCHEM_PYSIDE_VERSION`; `suite_shards.py --slice=a:b`. Also fixed in it: artifact names with a colon, and an unquoted ` #` that made YAML drop the replica from the job name.
