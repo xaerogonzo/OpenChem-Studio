@@ -224,3 +224,10 @@ def test_a_treatments_environment_is_applied_inside_the_leg_not_the_runner_job()
     code = _code(_workflow())
     assert "TREATMENT_ENV: ${{ matrix.env }}" in code
     assert "ConvertFrom-Json" in code and 'Set-Item -Path "Env:' in code
+
+
+def test_native_crash_dumps_are_opt_in_per_arm_and_uploaded():
+    code = _code(_workflow())
+    assert "OPENCHEM_CAPTURE_DUMPS -eq '1'" in code, "dumps must be opt-in: they are large and need a registry write"
+    assert "Windows Error Reporting" in code and "LocalDumps" in code
+    assert "name: crash-dumps-${{ strategy.job-index }}" in code and "path: dumps/" in code

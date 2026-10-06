@@ -206,6 +206,20 @@ jobs:
             }
             Write-Host "treatment environment: $($applied -join '; ')"
           }
+          # NATIVE CRASH DUMPS (a treatment sets OPENCHEM_CAPTURE_DUMPS=1). faulthandler shows only Python
+          # frames, and the early shard 1 crash has none outside pytest, so the faulting DLL is unknown.
+          # Windows Error Reporting writes a minidump per crashed process (python.exe, and also any
+          # QtWebEngineProcess.exe helper) to ./dumps, uploaded below; the exception address names the module.
+          if ($env:OPENCHEM_CAPTURE_DUMPS -eq '1') {
+            $dumps = Join-Path $PWD 'dumps'
+            New-Item -ItemType Directory -Force $dumps | Out-Null
+            $wer = 'HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps'
+            New-Item -Path $wer -Force | Out-Null
+            New-ItemProperty -Path $wer -Name DumpFolder -Value $dumps -PropertyType ExpandString -Force | Out-Null
+            New-ItemProperty -Path $wer -Name DumpCount -Value 40 -PropertyType DWord -Force | Out-Null
+            New-ItemProperty -Path $wer -Name DumpType -Value 1 -PropertyType DWord -Force | Out-Null
+            Write-Host "crash dumps (minidump, WER LocalDumps) go to $dumps"
+          }
           $files = @()
           if ($env:RANGE) {
             $files = @(uv run --no-sync python tools/suite_shards.py --splits=2 --group=$env:SHARD --slice=$env:RANGE)
@@ -246,6 +260,15 @@ jobs:
           path: leg-*.json
           if-no-files-found: warn
           retention-days: 30
+
+      - name: Keep any native crash dumps
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crash-dumps-${{ strategy.job-index }}
+          path: dumps/
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Keep a crashed leg's log
         if: always()
