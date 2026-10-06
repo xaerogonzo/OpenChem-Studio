@@ -1,0 +1,9 @@
+# "R precedes S" beyond the numbering (P-45.6.2, P-45.6.3, P-44.4.1.12): the order two prefixes that differ only in their descriptors are cited in, which
+# half of a meso diether or diamide is the parent, and the stereo tier of the ester route. Measured against the merge of #227 (P-14.4 (j)) with master
+# (which has #226) and the session-cache stereo fix, the tree these changes sit on.
+# NOTHING on the panels or in the five tuning populations is expected to change: each rule reaches only a structure that carries two prefixes (or two
+# parents, or two principal esters) that tie on every other criterion AND differ in their descriptors, and none of the 1712 structures over r7, r8,
+# mc and pop is one (0 names changed, 0 violations). The census is no more sensitive: 0 of its 2000 rows moved, class counts identical.
+# The manifest exists so that "nothing else moves" is a checked claim and a later change to these rules cannot pass as this one.
+
+stage = "P45-6-stereo-citation"

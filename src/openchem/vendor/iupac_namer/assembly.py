@@ -333,6 +333,36 @@ def derive_sort_name(prefix_name: str) -> str:
     return "".join(tokens).lower()
 
 
+# P-45.6.3 (BlueBookV2.pdf p. 427): "When names based on alphanumerical order and isotopic descriptors are the same, further choice
+# depends on the alphabetic order of the stereochemical descriptors 'R' and 'S'": `1-[(1R)-1-bromoethyl]-1-[(1S)-1-bromoethyl]cyclopentane`,
+# not the other way round. The same rank P-14.4 (j) gives (Z, R, M, r before E, S, P, s) is used, so the order two prefixes are CITED in
+# and the numbering criterion that looks at "the substituent cited first" can never disagree. A rank, not a letter comparison: "Z" sorts
+# after "E" alphabetically.
+_CITATION_STEREO_RANK = {"Z": 0, "R": 0, "M": 0, "r": 0, "E": 1, "S": 1, "P": 1, "s": 1}
+
+
+def stereo_citation_key(prefix_name: str) -> tuple[int, ...]:
+    """The CIP descriptors of a prefix name as ranks, in the order the name cites them; `()` for a name with none.
+
+    The SECOND key of the citation order, after `derive_sort_name`, which sets the descriptors aside (P-14.5): two prefixes that read
+    alike once they are set aside (`(2R)-butan-2-yl` and `(2S)-butan-2-yl`) used to be cited in the order the atoms were written in,
+    so the R,S compound was `1-[(2R)-...]-3-[(2S)-...]benzene` or `3-[(2S)-...]-1-[(2R)-...]benzene` by spelling.
+    """
+    ranks: list[int] = []
+    for group in _STEREO_GROUP_RE.finditer(prefix_name):
+        for token in group.group(0).strip("()-").split(","):
+            rank = _CITATION_STEREO_RANK.get(token.rstrip("*")[-1:])
+            if rank is not None:
+                ranks.append(rank)
+    return tuple(ranks)
+
+
+def without_stereo_descriptors(name: str) -> str:
+    """A name with every parenthesised CIP descriptor group removed: what P-45.6.2 calls "the alphabetic characters and locants
+    (ignoring the configuration symbols)". Two names that are equal here differ only in their descriptors."""
+    return _STEREO_GROUP_RE.sub("", name)
+
+
 # ---------------------------------------------------------------------------
 # Compound-prefix detection
 # ---------------------------------------------------------------------------
@@ -1760,7 +1790,7 @@ def _carbamic_n_subs_to_prefix(n_sub_names: list[str]) -> str:
     import dataclasses as _dc
 
     merged = merge_identical_prefixes([(n, ()) for n in n_sub_names])
-    merged.sort(key=lambda m: m.sort_name)
+    merged.sort(key=lambda m: (m.sort_name, stereo_citation_key(m.name)))
     if len(merged) > 1:
         merged = [merged[0]] + [_dc.replace(m, needs_brackets=True) for m in merged[1:]]
     return render_merged_prefixes(merged)
@@ -2134,7 +2164,7 @@ def _assemble_replacement(tree: ReplacementTree) -> str:
             prefix_name = assemble(pe.tree)
             assembled_prefixes.append((prefix_name, pe.locants))
         merged = merge_identical_prefixes(assembled_prefixes)
-        merged.sort(key=lambda m: m.sort_name)
+        merged.sort(key=lambda m: (m.sort_name, stereo_citation_key(m.name)))
         parts.append(render_merged_prefixes(merged))
 
     # 4. Replacement 'a' prefixes — sorted by locant, grouped by element for multiplier
@@ -2796,7 +2826,7 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
         # A parent's own detachable bridge prefix ("4,5-epoxy") is cited with the substituents, alphabetically (naming round 24).
         assembled_prefixes = list(assembled_prefixes) + [(_n, tuple(_l)) for _n, _l in _bridge_prefixes]
         merged = merge_identical_prefixes(assembled_prefixes)
-        merged.sort(key=lambda m: m.sort_name)
+        merged.sort(key=lambda m: (m.sort_name, stereo_citation_key(m.name)))
 
         # P-73.4 anion-multiplicity rule for heteroatom parent hydrides:
         # When the parent is a single-atom heteroatom hydride (phosphane,
