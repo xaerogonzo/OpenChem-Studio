@@ -20,10 +20,9 @@ pytestmark = pytest.mark.skipif(not opsin_available(), reason="needs the managed
     "smiles,expected",
     [
         ("CC1(C)[C@@H]2CC[C@@]1(C)C(=O)C2", "(1R,4R)-1,7,7-trimethylbicyclo[2.2.1]heptan-2-one"),
-        # a tropane: stereo on an azabicyclo[3.2.1] parent (cocaine). A morphinan is NOT used here any more:
-        # since D-180 it is named on the retained parent, so it no longer reaches the von Baeyer stereo check.
-        ("COC(=O)[C@H]1[C@@H]2CC[C@H](C[C@@H]1OC(=O)c1ccccc1)N2C",
-         "(1R,3S,4S,5S)-4-(methoxycarbonyl)-8-methyl-8-azabicyclo[3.2.1]octan-3-yl benzoate"),
+        # a second bridged parent with two centres (borneol). A tropane (cocaine) was used here in round 24, but its numbering depends on how the
+        # SMILES is written (`...-2-carboxylate` or `...-4-carboxylate`), a defect recorded in KNOWN_LIMITATIONS under round 25 and not this test's job.
+        ("C[C@@]12CC[C@@H](C[C@H]1O)C2(C)C", "(1S,2R,4S)-1,7,7-trimethylbicyclo[2.2.1]heptan-2-ol"),
     ],
 )
 def test_bridged_stereo_survives_the_engines_own_opsin_check(smiles, expected):

@@ -14,6 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The test `qapp` gains an env-gated `AA_ShareOpenGLContexts` switch (off by default) that the experiment showed to be irrelevant.
 - **A downgrade to PySide6 6.9.3 is not a fix** (whole-suite check, exploratory, 4 legs per arm per shard): 6.9.3 crashed 8 of 8 whole-shard legs against 2 of 8 for the locked 6.11.1, at other places, inside the app's own `eventFilter` overrides (`scroll_safe.py:37`, `mol3d_viewer_backend.py:148`); the pre-registered window result stands, but the crash is not simply a 6.10 regression.
 
+### CI regenerates the Ketcher notices on a Dependabot bump
+
+- A Dependabot bump of `tools/ketcher-host/package-lock.json` failed suite 2/2 every time (#167, #211) because `THIRD-PARTY-NOTICES.txt` records the lockfile's hash. New `.github/workflows/ketcher-notices.yml` regenerates it and pushes one commit to the PR branch. It needs the repository secret `NOTICES_PUSH_TOKEN` (a fine-grained token, Contents read/write on this repository): a push with the built-in token would not start CI again, leaving the old red result standing. Without the secret it does nothing and says so. It is `pull_request_target`, so it runs only the base branch's generator, installs with `npm ci --ignore-scripts`, handles only Dependabot's own PRs from this repository, and never forces; `tests/test_ketcher_notices_workflow.py` holds those properties. Untested against a real bump until the next one arrives; `@dependabot recreate` on an open Ketcher PR will exercise it.
+
+### Naming round 25: stereo on four natural products, and a stable name for polyesters
+
+- **Atropine, scopolamine, galantamine, ibogaine** keep the stereodescriptors OPSIN can read (galantamine and ibogaine are now exact). Four different causes, see `src/openchem/vendor/CHANGELOG.md`, round 25.
+- **A diester no longer has a different name for each way of writing its SMILES** (heroin, diacetates of diols): the senior acid, then the lowest locants, decide which ester is the principal anion.
+
 ### CI: the shard pins guard asserted more than the pins guarantee
 
 - `test_adding_a_test_file_moves_no_other_file` (#202) asserted that NO existing file moves when test files are added, but only PINNED files are guaranteed not to: an unpinned file is packed among the other unpinned ones, and 8 files were unpinned. It passed on master by luck of the current set, and failed in every non-crashed leg of the crash measurement's control arm (a tree with one file fewer), so it would have failed some future PR for no reason. It now asserts the pinned files only.

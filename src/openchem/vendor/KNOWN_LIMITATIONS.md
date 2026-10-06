@@ -349,6 +349,14 @@ D-166 (`nitramide`) and D-167 (N-nitro and N-nitroso carbamates) are fixed, and 
 PINs: P-67.1.2.6.3 (pdf p. 708) makes them SUBSTITUTED NITRAMIDES and NITROUS AMIDES (`dimethylnitramide`, `dimethylnitrous amide`), and the `N-methyl-N-nitromethanamine` form round 16
 wrote is the book's non-PIN alternative. `CHANGELOG.md`, round 17.
 
+## Open after naming round 25 (2026-10-05; D-183 to D-186 closed in round 25 above)
+
+* **Polyesters are written in the accepted (acyloxy) form, never the PIN.** P-65.6.3.3.3.1 prints `ethane-1,2-diyl diacetate (PIN)` and `propane-1,2,3-triyl triacetate (PIN)`; the engine has no multiplicative ester construction, so heroin is `...-3-yl acetate` with a `6-(acetyloxy)` prefix, not `...morphinan-3,6-diyl diacetate`. Different acids have their own multiplicative form too (`propane-1,2,3-triyl 1,2-diacetate 3-propanoate`).
+* **"Senior acid" is ring-before-chain, then skeletal atoms, then substituents** on the executed acid component, not the full P-41/P-44.1 order (class, then the rest). With more than four tied esters, or a retained acid other than formate/acetate/benzoate, or a leaf-named alcohol, the choice falls to a canonical atom rank: stable, but not a rule. Where two esters have the same acid and the alcohols compare equal on locants (two benzoates, two acrylates) the book prints no further criterion this engine implements; the name is stable but its choice among valid names is arbitrary.
+* **Tropine and pseudotropine have one name.** The C3 centre is pseudoasymmetric (`3r`/`3s`), OPSIN cannot read it, so it is dropped with a note. Keeping it would give the correct name but one the parser cannot verify.
+* **The numbering of a bridged parent depends on the order the SMILES is written in.** `8-azabicyclo[3.2.1]octane` (tropane) with any suffix is numbered so its carboxyl is at 2 in some orderings and 4 in others, with or without stereo (`3-hydroxy-8-methyl-8-azabicyclo[3.2.1]octane-2-carboxylic acid` vs `-4-carboxylic acid`, 10 vs 10 of 20 random SMILES); lowest locants to the principal characteristic group says 2. Cocaine inherits it. Found in round 25 by a test that pinned the wrong form; **not fixed**, it is a von Baeyer numbering tie, outside this round's four items.
+* The four natural products of round 24 are no longer open: atropine and scopolamine keep every centre OPSIN reads; galantamine and ibogaine are exact.
+
 ## Open after naming round 24 (2026-10-05; D-180, D-181, D-182 closed in round 24 above)
 
 * **Four of 45 complex natural products still lose stereo in the app:** atropine and scopolamine (tropane parents), galantamine (`benzofuro[3a,3,2-ef][2]benzazepine`) and ibogaine (a methano-bridged fused system). Not diagnosed this round: the name is right about connectivity and the engine's own stereo check leaves the descriptors out. Read `_validate_stereo_via_opsin` first.

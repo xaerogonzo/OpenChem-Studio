@@ -277,3 +277,9 @@ file = "tests/test_round24_polycycle_templates.py"
 why = "every fusion_general.POLYCYCLES template matches what its name means, and colchicine's benzo[a]heptalene (naming round 24, D-181)"
 scope = "core"
 owner = "namer"
+
+[[consumer]]
+file = "tests/test_round25_stereo_and_esters.py"
+why = "stereo kept on tropane/galantamine/ibogaine parents, and a diester named the same in every atom order (naming round 25)"
+scope = "core"
+owner = "namer"
