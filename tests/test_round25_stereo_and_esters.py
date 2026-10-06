@@ -71,3 +71,29 @@ def test_the_lowest_locant_ester_wins_where_a_canonical_rank_alone_did_not():
     # heldout_v4 h4cid52750 (a tuning row): the alcohol component's attachment locant is 2 in one reading and 3 in the other
     smiles = "S=C=NCC(OC(C)=O)C(OC(C)=O)C(OC(C)=O)C(OC(C)=O)CN=C=S"
     assert name_smiles(smiles) == "3,4,5-tris(acetyloxy)-1,6-diisothiocyanatohexan-2-yl acetate"
+
+
+RULES = [
+    # the senior ACID is the principal anion: a ring carboxylic acid before an acetic-acid chain (P-44.1.2.2), whichever alcohol it carries
+    ("CCOC(=O)Cc1ccc(C(=O)OC)cc1", "methyl 4-(2-ethoxy-2-oxoethyl)benzoate"),
+    ("COC(=O)Cc1ccc(C(=O)OCC)cc1", "ethyl 4-(2-methoxy-2-oxoethyl)benzoate"),
+    # locants compare only within one parent: a ring parent for the alcohol component before a chain parent
+    ("CC(=O)OCC1CCCC(OC(C)=O)C1", "3-[(acetyloxy)methyl]cyclohexyl acetate"),
+    # a well-formed poly-ester reading (P-65.6.3.3.2) is the answer; the single-ester readings only compete when it is not
+    ("COC(=O)CCC(=O)OC", "dimethyl butanedioate"),
+    ("CCOC(=O)CCC(=O)OC", "ethyl methyl butanedioate"),
+]
+
+
+@pytest.mark.parametrize("smiles,expected", RULES)
+def test_the_principal_ester_follows_the_acid_then_the_alcohol(smiles, expected):
+    rdBase.SeedRandomNumberGenerator(20261005)
+    mol = Chem.MolFromSmiles(smiles)
+    assert {name_smiles(Chem.MolToSmiles(mol, doRandom=True)) for _ in range(12)} == {expected}
+
+
+def test_more_tied_esters_than_the_tie_break_will_execute_keep_one_name():
+    # five acetates on one chain: past the four the tie-break executes, so the canonical class rank alone must make the name atom-order free
+    rdBase.SeedRandomNumberGenerator(20261005)
+    mol = Chem.MolFromSmiles("CC(=O)OCC(OC(C)=O)C(OC(C)=O)C(OC(C)=O)C(C)OC(C)=O")
+    assert len({name_smiles(Chem.MolToSmiles(mol, doRandom=True)) for _ in range(16)}) == 1

@@ -11154,6 +11154,7 @@ def _break_alphanumerical_tie(
 def _ester_alcohol_key(tree) -> tuple | None:
     """The alcohol component of a functional-class ester, as a comparable value: lowest locants first (P-31.1.4).
 
+    (0) a ring parent before a chain parent, since locants only compare within one parent;
     (1) the locant(s) of the free valence on the alcohol component -- `hexan-2-yl`, not `hexan-3-yl`;
     (2) then the locants of its prefixes in citation order, the same value `_alphanumerical_locant_key` gives.
     None when the alcohol is not a numbered substitutive name (a retained or leaf name), which this cannot decide.
@@ -11174,7 +11175,29 @@ def _ester_alcohol_key(tree) -> tuple | None:
         ))
     except KeyError:
         return None
-    return (attach, _alphanumerical_locant_key(alcohol) or ())
+    # Locants only compare WITHIN one parent: a ring parent comes before a chain (P-44.1.2.2), so `...hexadecan-16-yl` beats
+    # `(...hexadecan-9-yl)methyl` although 1 < 16.
+    parent = alcohol.named_parent.candidate
+    is_ring = parent.type not in ("chain", "heteroatom_center")
+    return (0 if is_ring else 1, attach, _alphanumerical_locant_key(alcohol) or ())
+
+
+def _acid_seniority_key(tree) -> tuple | None:
+    """The acid component of a functional-class ester as a comparable value; smaller is MORE senior.
+
+    P-65.6.3.3.3.2: the principal anion is the one whose acid is senior (P-41, then P-44.1): a ring parent before a chain
+    (P-44.1.2.2), then more skeletal atoms, then more substituents. None when the acid is a retained name this cannot read.
+    """
+    acid = dict(tree.pieces).get("acid") if isinstance(tree, FunctionalClassTree) else None
+    if isinstance(acid, SubstitutiveTree):
+        parent = acid.named_parent.candidate
+        is_ring = parent.type not in ("chain", "heteroatom_center")
+        return (0 if is_ring else 1, -(parent.length or 0), -len(acid.prefixes))
+    if isinstance(acid, LeafTree):
+        # the retained acid stems the ester path produces; everything else is not compared
+        known = {"formate": (1, -1, 0), "acetate": (1, -2, 0), "benzoate": (0, -6, 0)}
+        return known.get(acid.text)
+    return None
 
 
 def _break_ester_tie(
@@ -11182,13 +11205,14 @@ def _break_ester_tie(
 ):
     """Choose which ester of a polyester is the principal anion when the plans tie on everything the key sees.
 
-    P-65.6.3.3.3.2 method 2: the senior ACID is the principal anion (the plan order already puts it last, so it wins
-    a bare tie). Among esters of the SAME acid, the rest is substitutive nomenclature of the alcohol component, so
-    the lowest locants decide (P-31.1.4): the free valence first, then the prefixes. Before round 25 this was the
-    order the atoms were written in, so one molecule had two names (heroin, any diacetate of a diol).
+    P-65.6.3.3.3.2 method 2: "one anion is chosen as principal anion"; "the seniority order of anions corresponds to that
+    of acids". So the executed ACID components are compared first (`_acid_seniority_key`), and among esters of the same
+    acid the rest is substitutive nomenclature of the alcohol component, so the lowest locants decide (P-31.1.4): the free
+    valence first, then the prefixes (`_ester_alcohol_key`). Before round 25 this was the order the atoms were written in, so
+    one molecule had two names (heroin, any diacetate of a diol).
 
-    Only esters whose acid component is the same size as the top plan's tie, so acid seniority is never overruled by
-    locants. A residual tie falls to the later-generated plan, as in `_search_plans`.
+    At most four tied plans are executed: each alcohol component can itself hold esters, so the work grows with the number
+    of them. Beyond that, or when a component cannot be compared, the plans keep the canonical order `types.py` gives them.
     """
     from openchem.vendor.iupac_namer.preference import NomenclaturePreferenceKey
 
@@ -11197,27 +11221,37 @@ def _break_ester_tie(
     top_key, _seq, top_plan = ranked_plans[-1]
     if not isinstance(top_key, NomenclaturePreferenceKey) or not isinstance(top_plan, FunctionalClassPlan):
         return None
-    if top_plan.decomposition.subtype != "ester":
+    if top_plan.decomposition.subtype not in ("ester", "polyester"):
         return None
-    acid_size = len(top_plan.decomposition.pieces[0].atom_indices)
     tied = []
     for key, seq, plan in reversed(ranked_plans):
         if key != top_key:
             break
-        if (isinstance(plan, FunctionalClassPlan) and plan.decomposition.subtype == "ester"
-                and len(plan.decomposition.pieces[0].atom_indices) == acid_size):
+        if not isinstance(plan, FunctionalClassPlan):
+            continue
+        subtype = plan.decomposition.subtype
+        if subtype == "polyester":
+            # The poly-ester reading ("<alkyl> <alkyl> ...dicarboxylate", P-65.6.3.3.2) is generated last, so it is tried first;
+            # when it is well formed it IS the answer, and when it is not (the parent acid is not fully suffixed) it is skipped,
+            # exactly as the normal loop skips it. Only then do the single-ester readings compete.
+            tree = _execute_plan(plan, mol, strategy, output_form, free_valence, decision_ctx, session, depth)
+            if not _has_error_children(tree):
+                return tree
+            continue
+        if subtype == "ester":
             tied.append((seq, plan))
-    if len(tied) < 2:
+    if not 2 <= len(tied) <= 4:
         return None
     candidates = []
     for seq, plan in tied:
         tree = _execute_plan(plan, mol, strategy, output_form, free_valence, decision_ctx, session, depth)
         if _has_error_children(tree):
             continue
+        acid_key = _acid_seniority_key(tree)
         alcohol_key = _ester_alcohol_key(tree)
-        if alcohol_key is None:
+        if acid_key is None or alcohol_key is None:
             return None
-        candidates.append((alcohol_key, -seq, tree))
+        candidates.append(((acid_key, alcohol_key), -seq, tree))
     if not candidates:
         return None
     candidates.sort(key=lambda c: (c[0], c[1]))

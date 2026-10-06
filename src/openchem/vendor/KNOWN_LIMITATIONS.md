@@ -352,7 +352,7 @@ wrote is the book's non-PIN alternative. `CHANGELOG.md`, round 17.
 ## Open after naming round 25 (2026-10-05; D-183 to D-186 closed in round 25 above)
 
 * **Polyesters are written in the accepted (acyloxy) form, never the PIN.** P-65.6.3.3.3.1 prints `ethane-1,2-diyl diacetate (PIN)` and `propane-1,2,3-triyl triacetate (PIN)`; the engine has no multiplicative ester construction, so heroin is `...-3-yl acetate` with a `6-(acetyloxy)` prefix, not `...morphinan-3,6-diyl diacetate`. Different acids have their own multiplicative form too (`propane-1,2,3-triyl 1,2-diacetate 3-propanoate`).
-* **"Senior acid" is a size proxy** (atoms on the acid side of the cut), not the P-65.1.2.3 seniority order. It agrees with the four examples of P-65.6.3.3.3.2 checked.
+* **"Senior acid" is ring-before-chain, then skeletal atoms, then substituents** on the executed acid component, not the full P-41/P-44.1 order (class, then the rest). With more than four tied esters, or a retained acid other than formate/acetate/benzoate, or a leaf-named alcohol, the choice falls to a canonical atom rank: stable, but not a rule. Where two esters have the same acid and the alcohols compare equal on locants (two benzoates, two acrylates) the book prints no further criterion this engine implements; the name is stable but its choice among valid names is arbitrary.
 * **Tropine and pseudotropine have one name.** The C3 centre is pseudoasymmetric (`3r`/`3s`), OPSIN cannot read it, so it is dropped with a note. Keeping it would give the correct name but one the parser cannot verify.
 * The four natural products of round 24 are no longer open: atropine and scopolamine keep every centre OPSIN reads; galantamine and ibogaine are exact.
 

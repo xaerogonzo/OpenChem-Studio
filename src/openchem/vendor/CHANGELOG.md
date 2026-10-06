@@ -2039,11 +2039,14 @@ junction descriptors were stripped. Swapped back; galantamine now round-trips ex
 dropped before validation ever saw it. Admitted when the parent is not a von Baeyer or spiro name; the OPSIN validation still strips it if the name is unreadable. Ibogaine is now `(6R,6aS,7S,9S)-...`, exact.
 
 **D-186, a polyester's principal anion followed the order its atoms were written in.** Equally scored plans fall to generation order, and the ester decompositions came out in atom order, so heroin and any diacetate of a
-diol had a different name for each way of writing the SMILES (30 random SMILES each: 5 of 7 diester shapes tried gave two names). Now: (1) the decompositions are yielded senior acid last (P-65.6.3.3.3.2 method 2: "one
-anion is chosen as principal anion ... corresponding to the seniority of acids"; the book's own examples pick the larger acyl group), with RDKit's canonical class rank as the last resort; (2) among esters of the SAME
-acid, `_break_ester_tie` executes the tied plans and takes the lowest locants of the alcohol component, free valence first, then prefixes (P-31.1.4), as `_break_alphanumerical_tie` does for substitutive plans.
-`propyl` beats `propan-2-yl`, `hexan-2-yl` beats `hexan-3-yl`. Heroin moves to `(5R,6S,9R,13S,14R)-6-(acetyloxy)-4,5-epoxy-17-methyl-7,8-didehydromorphinan-3-yl acetate`.
-"Senior acid" is the SIZE of the acid side of the cut, a proxy that agrees with the four P-65.6.3.3.3.2 examples checked (`(formyloxy)methyl acetate`, `4-(acetyloxy)phenyl dichloroacetate`, `2,3-bis(acetyloxy)propyl propanoate`, the hexadecanoyl one) but is not the full P-65.1.2.3 order.
+diol had a different name for each way of writing the SMILES (30 random SMILES each: 5 of 7 diester shapes tried gave two names). Now, on the EXECUTED trees (`_break_ester_tie`, the ester counterpart of
+`_break_alphanumerical_tie`): (1) the senior ACID is the principal anion (P-65.6.3.3.3.2 method 2, "corresponding to that of acids"): a ring parent before a chain (P-44.1.2.2), then more skeletal atoms, then more
+substituents (`_acid_seniority_key`); (2) among esters of the same acid, the alcohol component: ring parent before chain, then the lowest locant of its free valence, then its prefixes (P-31.1.4;
+`_ester_alcohol_key`). `propyl` beats `propan-2-yl`, `hexan-2-yl` beats `hexan-3-yl`. A well-formed poly-ester reading (`dimethyl butanedioate`) is tried first and wins, as in the normal loop. Heroin moves to
+`(5R,6S,9R,13S,14R)-6-(acetyloxy)-4,5-epoxy-17-methyl-7,8-didehydromorphinan-3-yl acetate`. At most four tied plans are executed (each alcohol can hold more esters, so the work multiplies); beyond four, or when a
+component is not comparable (a retained acid other than formate/acetate/benzoate, a leaf alcohol), the order is RDKit's canonical class rank, which does not depend on atom order but is not a nomenclature rule.
+**A first version ordered by the size of the acid side of the cut and was wrong**: for esters on one shared skeleton that side is nearly everything, and it made an acetate outrank a ring carboxylate (census rows
+1404625, 1709625, 2069625). The ref-compare and census scan caught it; the executed-acid comparison replaced it.
 
 **Not done: the book's PIN for a polyester is a different construction.** P-65.6.3.3.3.1 names identical anions multiplicatively, `ethane-1,2-diyl diacetate (PIN)`, `propane-1,2,3-triyl triacetate (PIN)`;
 method 2 (acyloxy) is "acceptable in general nomenclature". The engine builds no multiplicative ester, so every polyester it writes is the accepted form, now at least a stable one.
