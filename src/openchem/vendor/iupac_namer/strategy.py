@@ -641,10 +641,12 @@ class IUPACCanonical(NamingStrategy):
         from openchem.vendor.iupac_namer.preference import (
             NomenclaturePreferenceKey,
             locant_set_tier,
+            unsaturation_tier,
         )
 
         empty = locant_set_tier(())
-        blank = (0, 0.0, 0, 0, 0.0, 0.0, 0.0, 0, 0.0, empty, empty, empty, empty, empty, 0)
+        no_unsat = unsaturation_tier(0, ())
+        blank = (0, 0.0, 0, 0, 0.0, 0.0, 0.0, 0, 0.0, empty, empty, empty, no_unsat, empty, 0)
         match plan:
             case RetainedPlan():
                 return NomenclaturePreferenceKey((5,) + blank[1:])
@@ -675,14 +677,16 @@ class IUPACCanonical(NamingStrategy):
             mol, plan.named_parent, plan.numbering, plan.suffix_groups,
         ))
         if numbering is None:
-            hetero, suffix, unsat, prefix, primes = 0.0, empty, empty, empty, 0
+            hetero, suffix, unsat, prefix, primes = 0.0, empty, no_unsat, empty, 0
         else:
             hetero = float(numbering["heteroatom_score"])
             # A ring heteroatom cation's '-ium' is a suffix (P-31.1.4.3), so its locant is compared with the suffix locants (naming round 8). It was
             # not compared at all: the assembler read it off whichever numbering had won, so the atom order of the SMILES decided it ('C1C[NH2+]CCN1'
             # was 'piperazin-4-ium', its twin 'C1CNCC[NH2+]1' 'piperazin-1-ium').
             suffix = locant_set_tier(sorted(list(numbering["suffix_locants"]) + self._ring_cation_locants(plan, mol)))
-            unsat = locant_set_tier(numbering["unsat_locants"])
+            unsat = unsaturation_tier(
+                numbering["unsat_compound_count"], numbering["unsat_locants"], numbering["unsat_compound_high"],
+            )
             prefix = locant_set_tier(numbering["prefix_locants"])
             primes = -int(numbering["prefix_prime_count"])
         return NomenclaturePreferenceKey((
@@ -1146,7 +1150,27 @@ class IUPACCanonical(NamingStrategy):
         # This allows the strategy to correctly prefer the direction with lowest
         # locants for the ring double bonds, consistent with IUPAC rules.
         np = plan.named_parent
-        if np.ring_unsaturation_bonds:
+        compound_count = 0
+        compound_high: list[int] = []
+        _ring_sys = np.candidate.ring_system
+        if np.ring_unsaturation_bonds and _ring_sys is not None and _ring_sys.type == "bridged":
+            # A von Baeyer ring cites a bond between non-consecutive locants as a COMPOUND locant, ``1(8)``, and P-31.1.4.2 ranks the fewest of
+            # them FIRST, then the lowest locants with the parenthesised ones ignored, then those too (pdf p. 324): ``oct-6-ene``, not
+            # ``oct-1(8)-ene``. The monocyclic helper below knows neither (and reads a bond from locant 1 to the last as the wrap-around of a
+            # monocycle, which a bridged ring has none of), so a bridged ring's bond is read here.
+            _a2l = plan.numbering.atom_to_locant
+            for a1, a2, _btype in np.ring_unsaturation_bonds:
+                l1, l2 = _a2l.get(a1), _a2l.get(a2)
+                v1 = getattr(l1, "_numeric_value", None)
+                v2 = getattr(l2, "_numeric_value", None)
+                if not v1 or not v2:
+                    continue
+                lo, hi = min(v1, v2), max(v1, v2)
+                unsat_locants_raw.append(lo)
+                if hi != lo + 1:
+                    compound_count += 1
+                    compound_high.append(hi)
+        elif np.ring_unsaturation_bonds:
             from openchem.vendor.iupac_namer.ring_naming.monocyclic import (
                 compute_ring_unsaturation_locants_from_numbering,
             )
@@ -1241,6 +1265,8 @@ class IUPACCanonical(NamingStrategy):
             "heteroatom_score": heteroatom_score,
             "suffix_locants": suffix_locants,
             "unsat_locants": unsat_locants,
+            "unsat_compound_count": compound_count,
+            "unsat_compound_high": sorted(compound_high),
             "prefix_locants": prefix_locants,
             "prefix_prime_count": prefix_prime_count,
             # LEGACY ONLY. The "z" fallback this is built from is the defect

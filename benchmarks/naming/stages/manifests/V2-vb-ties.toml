@@ -1,0 +1,160 @@
+# V2 (after #218): the three remaining von Baeyer ties settled by the Blue Book's own rules.
+# P-14.4 (j): a meso tie goes to the preferred stereodescriptor (R before S). P-31.1.4.2: fewest compound locants first. P-23.2.6.2 and P-23.3:
+# a cage is numbered from EVERY tied decomposition, symmetric division of the main ring, lowest superscripts, and only then the heteroatoms.
+# Every row not listed here must NOT change. Each listed row changed its name; none stopped reading back (0 round-trip regressions, measured).
+# `expected_name` is given only where the NEW name equals a printed Blue Book target (the book's own PIN), never from the engine's output alone.
+
+stage = "V2-vb-ties"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-0d186e9db888"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-23.2.6.2"
+expected_layer = "numbering"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-10d2113a4aad"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-31.1.4.2"
+expected_layer = "numbering"
+expected_name = "bicyclo[11.3.1]heptadec-2-en-11-yne"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-2249cf014e11"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-31.1.4.2"
+expected_layer = "numbering"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-28933c0338da"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-31.1.4.2"
+expected_layer = "numbering"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-321dcaea117e"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-23.2.6.2"
+expected_layer = "numbering"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-42da24797acf"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-31.1.4.2"
+expected_layer = "numbering"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-4fcffa4e38e9"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-23.2.6.2"
+expected_layer = "numbering"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-51024dd8c588"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-23.2.6.2"
+expected_layer = "numbering"
+expected_name = "tricyclo[4.4.1.1^{1,5}]dodecane"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-544fad72ad63"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-31.1.4.2"
+expected_layer = "numbering"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-5badb1977dc4"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-31.1.4.2"
+expected_layer = "numbering"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-5fc51461e680"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-23.2.6.2"
+expected_layer = "numbering"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-728c3fc1f8cb"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-23.2.6.2"
+expected_layer = "numbering"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-8e0534261445"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-23.2.6.2"
+expected_layer = "numbering"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-be7b91ee093f"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-23.2.6.2"
+expected_layer = "numbering"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-bf3247c32ec9"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-31.1.4.2"
+expected_layer = "numbering"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-e274b87adf3d"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-23.2.6.2"
+expected_layer = "numbering"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-e3c2f25abaa0"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-23.2.6.2"
+expected_layer = "numbering"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-ef35706dbb81"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-23.2.6.2"
+expected_layer = "numbering"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-fa5da6f16ad8"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-23.2.6.2"
+expected_layer = "numbering"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-fb78871f2a3f"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-23.2.6.2"
+expected_layer = "numbering"
+expected_name = "tetracyclo[4.4.2.2^{2,5}.2^{7,10}]hexadecane"
+
+[[expect]]
+id = "pop:heldout:cid40000"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-23.2.6.2"
+expected_layer = "numbering"
+
+[[expect]]
+id = "pop:heldout_v2:h2cid10500"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-23.2.6.2"
+expected_layer = "numbering"
+
+[[expect]]
+id = "pop:heldout_v3:h3cid43250"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-23.2.6.2"
+expected_layer = "numbering"
+
+[[expect]]
+id = "pop:heldout_v3:h3cid5250"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-23.2.6.2"
+expected_layer = "numbering"
+
+[[expect]]
+id = "pop:heldout_v5:h5cid22125"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-23.2.6.2"
+expected_layer = "numbering"

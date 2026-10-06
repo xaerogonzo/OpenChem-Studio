@@ -19501,8 +19501,11 @@ def _recompute_ring_unsaturation_name(named_parent, numbering) -> "NamedParent":
         # Parse the baked "-<loc>-en" / "-<loc>-yn" / "-<locs>-diene" segment.
         # Only handle the simple single-bond cases for now.  Multi-unsaturated
         # VB rings (bicyclo[2.2.1]hepta-2,5-diene etc.) aren't in the cluster.
+        # The baked locant may be a COMPOUND one, ``-1(8)-ene`` (a bond between non-consecutive locants, P-31.1.4.2). The pattern read only a
+        # plain number, so such a name was never rewritten and kept the locants of the numbering that wrote it while the substituents took
+        # those of the one the strategy chose: `7-methylbicyclo[4.2.0]oct-1(8)-ene` named a different molecule.
         m = _re_bn.search(
-            r"^(?P<pre>.*?)-(?P<loc>\d+)-(?P<ty>en|yn)(?P<post>.*)$",
+            r"^(?P<pre>.*?)-(?P<loc>\d+(?:\(\d+\))?)-(?P<ty>en|yn)(?P<post>.*)$",
             named_parent.name,
         )
         if not m:
@@ -19514,14 +19517,17 @@ def _recompute_ring_unsaturation_name(named_parent, numbering) -> "NamedParent":
            sum(1 for *_rest, t in bonds if t == "triple") != 1:
             return named_parent
 
-        new_dbl, new_tri = compute_ring_unsaturation_locants_from_numbering(
-            bonds, numbering.atom_to_locant,
-        )
-        new_loc = (new_dbl + new_tri)[0] if (new_dbl or new_tri) else None
-        if new_loc is None:
+        # Read the bond off the FINAL numbering and cite it as the von Baeyer name does: the lower locant, and the higher one in parentheses
+        # unless the two are consecutive. (Not the monocyclic helper, which reads a bond from locant 1 to the last as a wrap-around.)
+        from openchem.vendor.iupac_namer.ring_naming.bridged import _format_vb_locant
+
+        a1, a2, _bond_type = bonds[0]
+        v1 = getattr(numbering.atom_to_locant.get(a1), "_numeric_value", None)
+        v2 = getattr(numbering.atom_to_locant.get(a2), "_numeric_value", None)
+        if not v1 or not v2:
             return named_parent
-        old_loc = int(m.group("loc"))
-        if new_loc == old_loc:
+        new_loc = _format_vb_locant((min(v1, v2), max(v1, v2)))
+        if new_loc == m.group("loc"):
             return named_parent
 
         new_name = f"{m.group('pre')}-{new_loc}-{m.group('ty')}{m.group('post')}"
