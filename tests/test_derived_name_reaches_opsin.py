@@ -22,8 +22,13 @@ pytestmark = pytest.mark.skipif(not opsin_available(), reason="needs the managed
         ("CC1(C)[C@@H]2CC[C@@]1(C)C(=O)C2", "(1R,4R)-1,7,7-trimethylbicyclo[2.2.1]heptan-2-one"),
         # a tropane: stereo on an azabicyclo[3.2.1] parent (cocaine). A morphinan is NOT used here any more:
         # since D-180 it is named on the retained parent, so it no longer reaches the von Baeyer stereo check.
+        # This used to pin `(1R,3S,4S,5S)-4-(methoxycarbonyl)-...`: the carboxylate at 4, the SECOND mirror numbering of the
+        # skeleton, chosen by atom order. The free valence is at 3 in both numberings, so P-31.1.4's next criterion, the
+        # lowest locant for the detachable prefix, decides: 2. Both read back stereo-exact, so only the tie-break moved
+        # (see tests/test_namer_numbering.py). That the parent is the benzoate and not the carboxylate is a separate
+        # choice, atom-order dependent too, and still open.
         ("COC(=O)[C@H]1[C@@H]2CC[C@H](C[C@@H]1OC(=O)c1ccccc1)N2C",
-         "(1R,3S,4S,5S)-4-(methoxycarbonyl)-8-methyl-8-azabicyclo[3.2.1]octan-3-yl benzoate"),
+         "(1S,2S,3S,5R)-2-(methoxycarbonyl)-8-methyl-8-azabicyclo[3.2.1]octan-3-yl benzoate"),
     ],
 )
 def test_bridged_stereo_survives_the_engines_own_opsin_check(smiles, expected):

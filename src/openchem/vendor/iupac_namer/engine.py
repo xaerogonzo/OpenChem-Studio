@@ -19170,7 +19170,7 @@ def _recompute_ring_unsaturation_name(named_parent, numbering) -> "NamedParent":
     # --- Bridged (von Baeyer) branch ---------------------------------------
     # For bridged names the unsaturation locant is EMBEDDED inside the stem
     # (e.g. "bicyclo[2.2.1]hept-2-en").  The provisional locant was baked in
-    # by name_bridged using _choose_best_vb_locant_map, which prioritises
+    # by name_bridged using _best_vb_locant_maps, which prioritises
     # unsaturation over substituent attachment.  The strategy layer may pick
     # a different numbering that prioritises attachment for -yl substituent
     # forms (per _produce_numberings bridged branch).  Recompute the en/yn
