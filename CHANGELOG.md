@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### The ESOL refusal now says how good the alternative is
+
+- The refusal for N-nitro and nitrate-ester groups said "Choose the AqSolDB model", which had not been measured. Run against the same six CRC Handbook values (97th ed., Table 5-153), AqSolDB is within about half a log unit on five (RDX -0.18, nitroguanidine -0.18, tetryl +0.51, nitroglycerin -0.42, isosorbide dinitrate +0.48) against ESOL's +1.1 to +3.6 on those, and puts PETN 1.72 log units too soluble (ESOL: 4.30). The message now says so and prefers a measured value. Caveat: these compounds are probably in AqSolDB's training data, which was not checked, so the close agreement may be partly memory.
+
 ### CI: the early shard 1 crash is identified; a PySide6 downgrade is not a fix
 
 - **Bisect harness** for the Windows crash workflow: `ranges` (slices of a shard's file list, each an arm), `attempts` (fresh processes per leg, no retry), `treatments` (the same window under a different environment per arm), opt-in native minidumps (`OPENCHEM_CAPTURE_DUMPS=1`) and `OPENCHEM_PYSIDE_VERSION`; `suite_shards.py --slice=a:b`. Also fixed in it: artifact names with a colon, and an unquoted ` #` that made YAML drop the replica from the job name.
