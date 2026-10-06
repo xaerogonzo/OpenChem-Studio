@@ -228,22 +228,12 @@ def dispose(widget) -> None:
 
 
 def _destroy_web_views_under(widget) -> None:
-    """Stop, delete and flush every `QWebEngineView` that is `widget` or inside it, each on its
-    own and BEFORE the widget goes. A no-op until something has imported the web-engine module
-    (until then no view can exist, and importing it here would drag Chromium into the ~1000
-    tests that never touch one)."""
-    module = sys.modules.get("PySide6.QtWebEngineWidgets")
-    if module is None or not shiboken6.isValid(widget):
-        return
-    view_type = module.QWebEngineView
-    views = [widget] if isinstance(widget, view_type) else []
-    views += widget.findChildren(view_type)
-    for view in views:
-        if not shiboken6.isValid(view):
-            continue
-        view.stop()
-        view.deleteLater()
-        QCoreApplication.sendPostedEvents(view, QEvent.Type.DeferredDelete)
+    """Stop, delete and flush every `QWebEngineView` that is `widget` or inside it, each on its own
+    and BEFORE the widget goes. The one implementation lives in the application
+    (`openchem.ui.widgets.web_view_safety`), so the suite and the app cannot drift apart."""
+    from openchem.ui.widgets.web_view_safety import destroy_web_views_first
+
+    destroy_web_views_first(widget)
 
 
 # Weak refs to every QWebEngineView built since the current test started.

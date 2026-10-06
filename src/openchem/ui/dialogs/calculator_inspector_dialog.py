@@ -62,6 +62,7 @@ from openchem.ui.visualization import (
     with_labels_on,
 )
 from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
+from openchem.ui.widgets.web_view_safety import safe_teardown_on_delete
 from openchem.ui.widgets.ph_curve_widget import PhCurveWidget
 from openchem.ui.widgets.structure_grid_widget import StructureGridWidget
 
@@ -904,6 +905,12 @@ class CalculatorInspectorDialog(QDialog):
     scalar/per-atom descriptors -- which is now literally true: the view
     is chosen by result type via `_RESULT_VIEW_FACTORIES`.
     """
+
+    def __del__(self) -> None:
+        """Runs when the last Python reference goes, BEFORE Python deletes this parentless dialog's C++
+        object, so the 3D view's `QWebEngineView` can be destroyed in the safe order first instead of as a
+        child inside this dialog's destructor (`ui/widgets/web_view_safety.py`)."""
+        safe_teardown_on_delete(self)
 
     def __init__(
         self,
