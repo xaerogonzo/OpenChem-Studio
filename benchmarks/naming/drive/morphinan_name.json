@@ -4,7 +4,7 @@
   {"do": "panel", "id": "Properties"},
   {"do": "calculator", "id": "iupac_name", "parameters": {"use_pubchem": false}, "reveal": false, "after_ms": 20000},
   {"do": "expect_results", "tag": "morphinan-named",
-   "expect": {"iupac_name": {"facts_contain": ["4,5-epoxy", "morphinan"], "facts_absent": ["azapentacyclo", "withheld"]}}},
+   "expect": {"iupac_name": {"facts_contain": ["4,5-epoxy", "morphinan-3,14-diyl diacetate"], "facts_absent": ["azapentacyclo", "withheld", "(acetyloxy)"]}}},
   {"do": "expand", "section": "naming"},
   {"do": "shot", "path": "D:/_scratch/r24_morphinan_name.png"},
   {"do": "expect_clean"},
