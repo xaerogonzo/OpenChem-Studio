@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### P-14.4 (j): a meso compound has one name, not one per way of writing its SMILES
+
+- When two numberings tie on everything else, R (and Z, M, r) now takes the lower locant, as criterion (j) of P-14.4 prints: `(2R,3S)-butane-2,3-diol`, `(1R,2S)-cyclohexane-1,2-diol`, `(2R,4S)-2,4-difluoropentane`, `(2Z,5E)-hepta-2,5-dienedioic acid`. Before, the order the SMILES atoms were written in chose between the two valid descriptor sets (18 of 18 probed structures gave two names). It also numbers the `-diyl` group of a polyol's diester, so naming round 26's `(2R,3S)-butane-2,3-diyl diacetate` is R-first and one name in every atom order. What it does not reach, each measured: see `src/openchem/vendor/KNOWN_LIMITATIONS.md` and `src/openchem/vendor/CHANGELOG.md`, 2026-10-06.
+
 ### A local full-text index of the PDF library
 
 - `tools/library_index.py` reads every PDF in the held library once into a SQLite full-text index beside the folder (`<library>.index.sqlite`, never committed) and answers `search` with page-level snippets, `--near` proximity and `a | b` synonyms; `show` prints a page and `stub` drafts a `literature.toml` entry (hash, page count and a first-page DOI; the title and judgement are left to be written). It re-reads only files whose size or modification time changed, lists files with no text layer instead of silently never matching them, and needs pymupdf only to `update` (`uvx --with pymupdf`). It replaces opening every PDF to find a compound: that took minutes and stalled on a 2,643-page handbook. Tests stand in for the PDF reader (and one builds a real PDF where pymupdf is present); four mutations of the behaviours that make an index trustworthy are each caught.
@@ -809,7 +813,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   instead of being withheld (`chem/naming_providers.py`).
 - Held-out corpus v3 (40 fresh molecules, frozen before the work): 0 wrong
   molecules, 13 matching PubChem's string exactly.
-
 
 ### Added
 
