@@ -11221,7 +11221,7 @@ def _break_ester_tie(
     top_key, _seq, top_plan = ranked_plans[-1]
     if not isinstance(top_key, NomenclaturePreferenceKey) or not isinstance(top_plan, FunctionalClassPlan):
         return None
-    if top_plan.decomposition.subtype not in ("ester", "polyester"):
+    if top_plan.decomposition.subtype not in ("ester", "polyester", "polyol_ester"):
         return None
     tied = []
     for key, seq, plan in reversed(ranked_plans):
@@ -11230,7 +11230,10 @@ def _break_ester_tie(
         if not isinstance(plan, FunctionalClassPlan):
             continue
         subtype = plan.decomposition.subtype
-        if subtype == "polyester":
+        if subtype in ("polyester", "polyol_ester"):
+            # Naming round 26: the esters of ONE polyol with one acid are `<organyl>-diyl di<anion>` (P-65.6.3.3.3.1), the PIN, where the
+            # single-ester plans give the acyloxy form the book calls acceptable. It is a different reading from the poly-acid one and at
+            # most one of the two is ever generated, so both take the same rule below: tried before the single-ester readings.
             # The poly-ester reading ("<alkyl> <alkyl> ...dicarboxylate", P-65.6.3.3.2) is generated last, so it is tried first;
             # when it is well formed it IS the answer, and when it is not (the parent acid is not fully suffixed) it is skipped,
             # exactly as the normal loop skips it. Only then do the single-ester readings compete.
@@ -11564,6 +11567,13 @@ def _generate_retained_plans(perception, mol, output_form, free_valence, strateg
         # If the requested output_form is SUBSTITUENT but this retained name
         # has no substituent form, skip it and let fallback paths handle it.
         if output_form == OutputForm.SUBSTITUENT and OutputForm.SUBSTITUENT not in valid_forms:
+            return
+        # Naming round 26: a retained substituent form ("phenyl", "cyclohexyl") is ONE valence. Given a free valence of two or more it printed
+        # that monovalent form anyway, so a divalent benzene read `phenyl` -- a different molecule. The substitutive path writes the divalent
+        # group ("benzene-1,4-diyl"), so the retained leaf does not apply.
+        if (output_form == OutputForm.SUBSTITUENT
+                and free_valence is not None
+                and len(free_valence.bond_orders) > 1):
             return
         from openchem.vendor.iupac_namer.types import RetainedMatch, RetainedPlan
         rm = RetainedMatch(
@@ -14678,6 +14688,18 @@ class SubstitutivePath:
                 reverse_locant = reverse.atom_to_locant.get(attachment_atom)
                 fwd_val = forward_locant._numeric_value if forward_locant else None
                 rev_val = reverse_locant._numeric_value if reverse_locant else None
+                # Naming round 26 (P-31.1.4.2.4): with SEVERAL free valences the direction is decided by all of them as a set, lowest
+                # first -- the first alone gave a tie for `2-chloropropane-1,3-diyl`-like groups and an arbitrary direction elsewhere.
+                # One attachment reduces to the comparison that was here.
+                if len(free_valence.attachment_atoms_in_fragment) > 1:
+                    def _free_valence_set(numbering):
+                        values = [
+                            numbering.atom_to_locant[a]._numeric_value
+                            for a in free_valence.attachment_atoms_in_fragment
+                            if a in numbering.atom_to_locant
+                        ]
+                        return tuple(sorted(values))
+                    fwd_val, rev_val = _free_valence_set(forward), _free_valence_set(reverse)
 
                 if free_valence.method == SubstituentMethod.ALKYL:
                     # Method 1: attachment must be at locant 1.
@@ -14896,6 +14918,9 @@ class SubstitutivePath:
                 output_form == OutputForm.SUBSTITUENT
                 and free_valence is not None
                 and free_valence.attachment_atoms_in_fragment
+                # Naming round 26: "the first attachment is locant 1" is the rule for ONE free valence. With several it kept both directions
+                # around the ring and the plan order chose: catechol was `1,6-phenylene`. They take the set rule below, as a hetero ring does.
+                and len(free_valence.attachment_atoms_in_fragment) == 1
                 and not is_retained_carbon_attached_heteroaryl
                 and not is_bridged_ring
                 and not attachment_at_subordinate_hetero
@@ -18242,7 +18267,7 @@ class FunctionalClassPath:
             "thioester", "thionoester", "dithioester",
             "thionocarbamate", "dithiocarbamate",
             "carbamothioate",
-            "symmetric_diester", "polyester",
+            "symmetric_diester", "polyester", "polyol_ester",
         ):
             return  # Supported FC subtypes only.
 
@@ -18279,6 +18304,23 @@ class FunctionalClassPath:
             fragment_roles = (("acid", 0),)
             fragment_output_forms = (
                 ("acid", OutputForm.ACYL),
+            )
+            plan = FunctionalClassPlan(
+                interpretation=interpretation,
+                stereo_descriptors=None,
+                decomposition=decomp,
+                fragment_roles=fragment_roles,
+                fragment_output_forms=fragment_output_forms,
+            )
+            yield plan
+            return
+
+        if decomp.subtype == "polyol_ester":
+            # The esters of one polyol with one acid (P-65.6.3.3.3.1): "<polyvalent organyl> <multiplied anion>". The carve supplies the
+            # variable attachment points, so, like the poly-acid reading below, the plan only declares the acid role to trigger carving.
+            fragment_roles = (("acid", 1),)
+            fragment_output_forms = (
+                ("acid", OutputForm.ACID_STEM),
             )
             plan = FunctionalClassPlan(
                 interpretation=interpretation,
@@ -18374,6 +18416,12 @@ class FunctionalClassPath:
                 decision_ctx=decision_ctx,
                 validity_warnings=None,
                 message="FC fragment carving failed",
+            )
+
+        if plan.decomposition.subtype == "polyol_ester":
+            return _execute_polyol_ester(
+                plan, pieces_by_role, strategy, output_form, free_valence,
+                decision_ctx, session, depth,
             )
 
         # For carbamate, roles come from pieces_by_role directly (variable n_sub_* keys).
@@ -18500,6 +18548,88 @@ class FunctionalClassPath:
 # ---------------------------------------------------------------------------
 # Helpers shared across handlers
 # ---------------------------------------------------------------------------
+
+_POLYVALENT_WORD = {2: "di", 3: "tri", 4: "tetra", 5: "penta", 6: "hexa"}
+
+
+def _organyl_cites_valences(organyl: str, n: int) -> bool:
+    """True iff the name of a polyvalent organyl group cites exactly *n* free valences.
+
+    The generic substituent path can lose a valence without saying so: the divalent group of
+    ``CC(=O)OCCCc1ccccc1CCCOC(C)=O`` came out as ``3-(2-propylphenyl)propane-1-diyl`` -- one locant, two valences, a different
+    molecule. The book's PIN for it is a multiplicative group (`1,2-phenylenedi(propan-3,1-yl)`) this path does not build, so a
+    polyol ester whose organyl group does not read as an n-valent group is DECLINED and keeps the acyloxy name it had.
+    Accepted endings: ``-<n locants>-<di|tri|...>yl``, the retained ``<a>,<b>-phenylene`` and ``methylene`` (P-29.6.1).
+    """
+    import re as _re
+
+    if n == 2:
+        if organyl.endswith("methylene"):
+            return True
+        if _re.search(r"(?<![\d,])\d+,\d+-phenylene$", organyl):
+            return True
+    word = _POLYVALENT_WORD.get(n)
+    if word is None:
+        return False
+    m = _re.search(rf"-(\d+[a-z]?(?:,\d+[a-z]?)*)-{word}yl$", organyl)
+    return m is not None and len(m.group(1).split(",")) == n
+
+
+def _execute_polyol_ester(
+    plan, pieces_by_role, strategy, output_form, free_valence, decision_ctx, session, depth,
+) -> NameTree:
+    """Execute the esters of ONE polyol with ONE acid (P-65.6.3.3.3.1): ``<polyvalent organyl> <multiplied anion>``.
+
+    The alcohol component is named as a SUBSTITUENT whose free valence has one attachment point per ester; the acid is named
+    once, as an anion stem, and the assembler multiplies it (`di`/`bis`...). Declines with an ErrorTree, so the search falls
+    through to the single-ester readings, when either part cannot be named or the organyl group does not cite every valence.
+    """
+    from openchem.vendor.iupac_namer.assembly import assemble
+
+    def _declined(message: str) -> ErrorTree:
+        return ErrorTree(
+            output_form=output_form, free_valence=free_valence, choices_made=(),
+            decision_ctx=decision_ctx, validity_warnings=None, message=message,
+        )
+
+    alcohol_mol, attachment_idxs = pieces_by_role["alcohol"]
+    acid_mol = pieces_by_role["acid"][0]
+    n_esters = pieces_by_role["_polyol_count"]
+    organyl_fv = FreeValenceInfo(
+        bond_orders=tuple(pieces_by_role["_polyol_bond_orders"]),
+        method=SubstituentMethod.ALKANYL,
+        attachment_atoms_in_fragment=tuple(attachment_idxs),
+        elide_locant_one=False,
+    )
+    alcohol_tree = name(
+        alcohol_mol, strategy, OutputForm.SUBSTITUENT,
+        free_valence=organyl_fv,
+        decision_ctx=DecisionContext(role="alcohol_part", parent_plan=plan, depth=depth + 1),
+        _session=session, _depth=depth + 1,
+    )
+    if isinstance(alcohol_tree, ErrorTree) or _has_error_children(alcohol_tree):
+        return _declined("polyol ester: the alcohol component could not be named")
+    if not _organyl_cites_valences(assemble(alcohol_tree), n_esters):
+        return _declined("polyol ester: the organyl group does not cite every valence")
+    acid_tree = name(
+        acid_mol, strategy, OutputForm.ACID_STEM,
+        decision_ctx=DecisionContext(role="acid_part", parent_plan=plan, depth=depth + 1),
+        _session=session, _depth=depth + 1,
+    )
+    # An acid that could not be named is an ErrorTree piece, and both selection loops reject a tree that contains one (`_has_error_children`),
+    # so it is not tested here (a round 26 mutant that accepted it survived every test). The ALCOHOL is checked above only because
+    # `assemble` reads it next.
+    return FunctionalClassTree(
+        output_form=output_form,
+        free_valence=free_valence,
+        choices_made=(Choice(type="functional_class", detail="FC polyol_ester"),),
+        decision_ctx=decision_ctx,
+        validity_warnings=None,
+        subtype="polyol_ester",
+        pieces=(("alcohol", alcohol_tree), ("acid", acid_tree)),
+        ester_multiplicity=n_esters,
+    )
+
 
 def _polyester_acid_fully_suffixed(acid_tree, n_esters: int) -> bool:
     """True iff the named parent acid expresses all N acid groups as suffixes.
@@ -19299,7 +19429,7 @@ def _recompute_ring_unsaturation_name(named_parent, numbering) -> "NamedParent":
     # --- Bridged (von Baeyer) branch ---------------------------------------
     # For bridged names the unsaturation locant is EMBEDDED inside the stem
     # (e.g. "bicyclo[2.2.1]hept-2-en").  The provisional locant was baked in
-    # by name_bridged using _choose_best_vb_locant_map, which prioritises
+    # by name_bridged using _best_vb_locant_maps, which prioritises
     # unsaturation over substituent attachment.  The strategy layer may pick
     # a different numbering that prioritises attachment for -yl substituent
     # forms (per _produce_numberings bridged branch).  Recompute the en/yn

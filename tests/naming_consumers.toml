@@ -283,3 +283,9 @@ file = "tests/test_round25_stereo_and_esters.py"
 why = "stereo kept on tropane/galantamine/ibogaine parents, and a diester named the same in every atom order (naming round 25)"
 scope = "core"
 owner = "namer"
+
+[[consumer]]
+file = "tests/test_round26_polyol_esters.py"
+why = "the esters of one polyol named functional-class-multiplicatively (ethane-1,2-diyl diacetate), with the polyvalent organyl group, retained phenylene/methylene and the free-valence set numbering it needed (naming round 26, D-187 to D-190)"
+scope = "core"
+owner = "namer"
