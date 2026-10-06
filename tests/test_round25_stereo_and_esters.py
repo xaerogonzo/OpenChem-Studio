@@ -41,11 +41,13 @@ def test_stereo_kept_where_opsin_can_read_it(label, smiles, expected, partial):
 
 
 DIESTERS = [
-    # one acid twice: a single name whichever way the SMILES is written, and the lower locants win (`propyl`, not `propan-2-yl`)
-    ("CC(=O)OC1CCC(OC(C)=O)CC1C", "4-(acetyloxy)-2-methylcyclohexyl acetate"),
-    ("CC(=O)Oc1ccc(OC(C)=O)cc1C", "4-(acetyloxy)-2-methylphenyl acetate"),
-    ("CC(=O)OCC(C)OC(C)=O", "2-(acetyloxy)propyl acetate"),
-    ("CC(=O)OC(C)CCOC(C)=O", "3-(acetyloxy)butyl acetate"),
+    # one acid twice: a single name whichever way the SMILES is written. Round 25 pinned the acyloxy form (the lower locants winning,
+    # `propyl` not `propan-2-yl`); round 26 names the esters of ONE polyol with ONE acid as the book does, `<organyl>-diyl di<anion>`
+    # (P-65.6.3.3.3.1), so what these rows now pin is that the multiplicative name is as atom-order free as the acyloxy one was.
+    ("CC(=O)OC1CCC(OC(C)=O)CC1C", "2-methylcyclohexane-1,4-diyl diacetate"),
+    ("CC(=O)Oc1ccc(OC(C)=O)cc1C", "2-methyl-1,4-phenylene diacetate"),
+    ("CC(=O)OCC(C)OC(C)=O", "propane-1,2-diyl diacetate"),
+    ("CC(=O)OC(C)CCOC(C)=O", "butane-1,3-diyl diacetate"),
     # two acids: the senior (longer) one is the principal anion, P-65.6.3.3.3.2 method 2
     ("CCC(=O)OCCCOC(C)=O", "3-(acetyloxy)propyl propanoate"),
     ("CC(=O)OCCOC(=O)CCC", "2-(acetyloxy)ethyl butanoate"),
@@ -68,9 +70,11 @@ def test_heroin_is_one_name_in_every_atom_order():
 
 
 def test_the_lowest_locant_ester_wins_where_a_canonical_rank_alone_did_not():
-    # heldout_v4 h4cid52750 (a tuning row): the alcohol component's attachment locant is 2 in one reading and 3 in the other
+    # heldout_v4 h4cid52750 (a tuning row): the alcohol component's attachment locant is 2 in one reading and 3 in the other.
+    # Round 25 pinned `3,4,5-tris(acetyloxy)-1,6-diisothiocyanatohexan-2-yl acetate`. Four acetates on one hexane are the esters of one polyol
+    # (P-65.6.3.3.3.1), so since round 26 there is no principal anion to choose and the name is `...hexane-2,3,4,5-tetrayl tetraacetate`.
     smiles = "S=C=NCC(OC(C)=O)C(OC(C)=O)C(OC(C)=O)C(OC(C)=O)CN=C=S"
-    assert name_smiles(smiles) == "3,4,5-tris(acetyloxy)-1,6-diisothiocyanatohexan-2-yl acetate"
+    assert name_smiles(smiles) == "1,6-diisothiocyanatohexane-2,3,4,5-tetrayl tetraacetate"
 
 
 RULES = [
