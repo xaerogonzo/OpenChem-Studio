@@ -213,3 +213,88 @@ def test_a_bridgehead_alkene_name_reads_back(smiles, expected):
     back = py2opsin(name_smiles(smiles), output_format="SMILES")
     assert back, f"{expected!r} did not parse back at all"
     assert Chem.MolToSmiles(Chem.MolFromSmiles(back)) == Chem.MolToSmiles(Chem.MolFromSmiles(smiles)), (expected, back)
+
+
+# ---------------------------------------------------------------------------
+# P-23.2.6.2 / P-23.3: a cage is numbered from EVERY decomposition that ties, not from the first
+# ---------------------------------------------------------------------------
+# Perception took the first decomposition in atom-index order, and the numbering selector explored only that one's numberings. For a symmetric
+# cage many decompositions tie on everything the book ranks first, and which numbering the heteroatoms and substituents then land on was a
+# question the first of them could not answer: 2-azaadamantane-carboxylic acid was `2-aza`, `9-aza` or `10-aza` and `-2-`, `-4-`, `-8-`, `-9-`
+# or `-10-carboxylic acid`, six names by spelling. The book chooses among all of them by the lowest superscripts (P-23.2.6.2.4, .5), and only
+# then gives the heteroatoms the lowest locants (P-23.3.2.1, .2), "determined first by the fixed numbering of the hydrocarbon system" (P-23.3.1).
+CAGE_CASES = [
+    # the reported one: N at 2, then the acid at the lowest position left, 4
+    ("OC(=O)C1C2CC3CC(C2)CC1N3", "2-azatricyclo[3.3.1.1^{3,7}]decane-4-carboxylic acid"),
+    ("OC1C2CC3CC(C2)OC1C3", "2-oxatricyclo[3.3.1.1^{3,7}]decan-4-ol"),
+    ("OC1C2CC3CC1NC(C2)N3", "2,4-diazatricyclo[3.3.1.1^{3,7}]decan-6-ol"),
+    ("N12CC3CC(CC(C3)C1)C2", "1-azatricyclo[3.3.1.1^{3,7}]decane"),
+    # skeletons whose decompositions differ in more than which atom is which
+    ("OC1C2CCC3CC(C2)CC1C3", "tricyclo[4.3.1.1^{3,8}]undecan-2-ol"),
+    ("OC1CC2CC1C1CCCC21", "tricyclo[5.2.1.0^{2,6}]decan-8-ol"),
+    ("OC1C2CC3CC(C2)C1C3", "tricyclo[3.3.1.0^{3,7}]nonan-2-ol"),
+]
+
+
+@pytest.mark.parametrize("smiles,expected", CAGE_CASES, ids=[c[1] for c in CAGE_CASES])
+def test_a_cage_is_numbered_from_every_decomposition_that_ties(smiles, expected):
+    assert name_smiles(smiles) == expected
+    for spelling in _many_spellings(smiles):
+        assert name_smiles(spelling) == expected, spelling
+
+
+@pytest.mark.parametrize("smiles,expected", CAGE_CASES, ids=[c[1] for c in CAGE_CASES])
+def test_a_cage_name_reads_back(smiles, expected):
+    from py2opsin import py2opsin
+
+    back = py2opsin(name_smiles(smiles), output_format="SMILES")
+    assert back, f"{expected!r} did not parse back at all"
+    assert Chem.MolToSmiles(Chem.MolFromSmiles(back)) == Chem.MolToSmiles(Chem.MolFromSmiles(smiles)), (expected, back)
+
+
+# The book's own selection examples (P-23.2.6.2, pdf pp. 166-167): each is a ring system the book names two ways, saying which is right. The
+# structures are OPSIN's reading of the book's names, held here as SMILES. The first of them was already right; the next three are the ones that
+# were wrong before, `tricyclo[5.3.1.1^{1,6}]dodecane` for the third and an order of the secondary bridges that was not the lowest for the others.
+BOOK_VON_BAEYER_CASES = [
+    # P-23.2.6.2.1: the main ring is divided as symmetrically as possible
+    ("C1CC2CC(C1)C1CCC2C1", "tricyclo[4.3.1.1^{2,5}]undecane"),
+    # P-23.2.6.2.3 and .4: few dependent bridges, then the lowest superscript set
+    ("C1CC2CCC(C1)C1CC3CC2C31", "tetracyclo[5.3.2.1^{2,4}.0^{3,6}]tridecane"),
+    ("C1CC2CCCC3CC(C2)CC3C1", "tricyclo[5.5.1.0^{3,11}]tridecane"),
+    ("C1CCC23CCCC(C2)C(C1)C3", "tricyclo[4.4.1.1^{1,5}]dodecane"),
+    # P-23.2.6.2.5: lowest in the order of citation
+    ("C1CC2CCC(C1)C1CCC2C2CCCC1C2", "tetracyclo[5.5.2.2^{2,6}.1^{8,12}]heptadecane"),
+    ("C12C3C1C1C4C1C3C24", "pentacyclo[3.3.0.0^{2,4}.0^{3,7}.0^{6,8}]octane"),
+]
+
+
+@pytest.mark.parametrize("smiles,expected", BOOK_VON_BAEYER_CASES, ids=[c[1] for c in BOOK_VON_BAEYER_CASES])
+def test_the_blue_books_own_von_baeyer_examples(smiles, expected):
+    assert name_smiles(smiles) == expected
+    for spelling in _many_spellings(smiles, 12):
+        assert name_smiles(spelling) == expected, spelling
+
+
+# The hydrocarbon's own numbering comes FIRST (P-23.3.1: "determined first by the fixed numbering of the hydrocarbon system"), so the lowest
+# superscripts (P-23.2.6.2.4) outrank the lowest heteroatom locant (P-23.3.2.1). Each structure below is the book's example skeleton with a
+# nitrogen at the LOW locant of its INCORRECT numbering: `2-azatricyclo[4.4.1.1^{1,7}]dodecane` would put the nitrogen at 2, but that
+# descriptor is the book's rejected one, so the name keeps the PIN's `[4.4.1.1^{1,5}]` and takes the higher nitrogen locant. Ranking the
+# heteroatoms first gave the other.
+SUPERSCRIPTS_BEFORE_HETEROATOMS_CASES = [
+    ("C1CNC23CCCC(C2)C(C1)C3", "10-azatricyclo[4.4.1.1^{1,5}]dodecane"),
+    ("C1CC2CC3CC(C1)C(CCN2)C3", "6-azatricyclo[5.5.1.0^{3,11}]tridecane"),
+    ("C1CC2CCC(C1)C1NC3CC2C31", "5-azatetracyclo[5.3.2.1^{2,4}.0^{3,6}]tridecane"),
+]
+
+
+@pytest.mark.parametrize(
+    "smiles,expected", SUPERSCRIPTS_BEFORE_HETEROATOMS_CASES, ids=[c[1] for c in SUPERSCRIPTS_BEFORE_HETEROATOMS_CASES]
+)
+def test_the_lowest_superscripts_outrank_the_lowest_heteroatom_locant(smiles, expected):
+    from py2opsin import py2opsin
+
+    assert name_smiles(smiles) == expected
+    for spelling in _many_spellings(smiles, 12):
+        assert name_smiles(spelling) == expected, spelling
+    back = py2opsin(expected, output_format="SMILES")
+    assert Chem.MolToSmiles(Chem.MolFromSmiles(back)) == Chem.MolToSmiles(Chem.MolFromSmiles(smiles)), (expected, back)

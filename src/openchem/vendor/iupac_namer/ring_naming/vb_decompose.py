@@ -444,7 +444,31 @@ def _score_decomposition(
     # 3. Main bridge = third main bridge
     main_bridge = main_sizes[2] if len(main_sizes) >= 3 else -1
 
-    # 4. Secondary bridge sizes (descending; as tuple)
+    # 4. P-23.2.6.2.1: the main ring is divided as symmetrically as possible by the main bridge
+    #    (tricyclo[4.3.1.1^{2,5}]undecane, not [5.2.1.1^{2,6}]: bridges of 4 and 3 atoms, not 5 and 2).
+    symmetry = -(main_sizes[0] - main_sizes[1]) if len(main_sizes) >= 2 else 0
+
+    # 5. P-23.2.6.2.2: the independent secondary bridges as long as possible, the first cited first
     sec_tup = sec_sizes
 
-    return (coverage, main_ring, main_bridge, sec_tup)
+    # P-23.2.6.2.3 (fewest dependent secondary bridges) is NOT scored: `_enumerate_secondary_bridges` starts a secondary bridge only from atoms
+    # of the main skeleton, so a dependent one (an end on another secondary bridge's own atoms) is never produced and the count would always be
+    # 0. A cage that needs one has no decomposition here at all (measured on the book's example: all 44 enumerated have none).
+
+    return (coverage, main_ring, main_bridge, symmetry, sec_tup)
+
+
+def best_decompositions(ring_atom_set: frozenset[int], mol) -> list[VBDecomposition]:
+    """EVERY decomposition tied for the best score, not just the first.
+
+    `decompose_ring_system` sorts by score but keeps ties in enumeration order, which is atom-index order, and the callers took the first. For a
+    symmetric cage, adamantane above all, many decompositions tie on every criterion of P-23.2.6.2 that this scores, and which numbering the
+    heteroatoms and substituents land on is then a question the first of them cannot answer: the book chooses among ALL of them by the lowest
+    superscript locants (P-23.2.6.2.4, .5) and then, for a heterocycle, by the lowest locants for the heteroatoms (P-23.3.2). Empty when the
+    ring system has no complete decomposition.
+    """
+    decomps = decompose_ring_system(ring_atom_set, mol)
+    if not decomps:
+        return []
+    best = _score_decomposition(decomps[0], ring_atom_set)
+    return [d for d in decomps if _score_decomposition(d, ring_atom_set) == best]
