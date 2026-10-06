@@ -14,8 +14,10 @@ them the validator strips them and re-assembles.  This closes the ergot
 / lysergol family (parent ``indolo[4,3-fg]quinoline`` cleanly tolerates
 ``(6aR,9S)``) without regressing FDA-0605.
 
-The 3 ergot rows are pinned via OPSIN round-trip; the FDA-0605 control
-is pinned to the (6R)-only emit.
+The 3 ergot rows are pinned via OPSIN round-trip. FDA-0605 (galantamine) was pinned to a
+(6R)-only emit until naming round 25 found the cause: its curated locant table had 8a and 12a
+swapped, so OPSIN rejected `12aS` and the validator stripped the letter-suffix pair. It is now
+pinned to the full round-tripping `(4aS,6R,8aS)`.
 """
 from __future__ import annotations
 
@@ -102,25 +104,17 @@ def test_lysergol_C9_inverted_emits_6aR_9R() -> None:
     assert "6aR" in name and "9R" in name, f"expected (6aR,9R) in {name!r}"
 
 
-# --- FDA-0605 control: must NOT acquire 4aS/12aS ---
+# --- FDA-0605: galantamine keeps (4aS,6R,8aS) (naming round 25) ---
 
 
-def test_fda_0605_galantamine_no_letter_suffix_stereo() -> None:
-    """FDA-0605 is the galantamine derivative whose parent
-    `[1]benzofuro[3a,3,2-ef][2]benzazepine` does NOT tolerate `12aS` /
-    `4aS` in OPSIN.  R15-C-followup reverted an extension that emitted
-    those descriptors and broke this row.  R22-C re-emits them in the
-    candidate name but strips them via OPSIN-validation; the final name
-    must contain only the plain-integer `(6R)`.
+def test_fda_0605_galantamine_keeps_its_letter_suffix_stereo() -> None:
+    """FDA-0605 is galantamine, whose parent `[1]benzofuro[3a,3,2-ef][2]benzazepine` was once said not to tolerate `12aS` / `4aS` in OPSIN.
+
+    That was a defect in the curated locant table, not in OPSIN: it had the quaternary carbon as 12a and the aromatic carbon beside the CH2-N
+    as 8a, the reverse of OPSIN's numbering (`8a-chloro-` is a valency error; `12a-chloro-` is the aromatic carbon). With the two swapped back
+    the name round-trips exactly, and it is PubChem's published descriptor set for natural galantamine, `(4aS,6R,8aS)`. Before round 25 the
+    validator stripped everything but `(6R)`; this test used to REQUIRE that.
     """
-    name = name_smiles("COc1ccc2c3c1O[C@H]1C[C@@H](O)C=C[C@@]31CCN(C)C2")
-    assert name is not None and "NAMING ERROR" not in name, (
-        f"naming error: {name!r}"
-    )
-    # Plain-integer (6R) must remain.
-    assert "(6R)" in name, f"expected (6R) in {name!r}"
-    # Letter-suffix R/S descriptors must not survive the validator.
-    import re
-    assert not re.search(r"\d+[a-z][RS]\b", name), (
-        f"letter-suffix R/S leaked into FDA-0605 name: {name!r}"
-    )
+    name = _assert_roundtrips("COc1ccc2c3c1O[C@H]1C[C@@H](O)C=C[C@@]31CCN(C)C2")
+    assert name.startswith("(4aS,6R,8aS)-3-methoxy-11-methyl"), f"expected (4aS,6R,8aS) in {name!r}"
+    assert "12a" not in name, f"the old, wrong locant came back: {name!r}"

@@ -265,6 +265,7 @@ def test_pin_new_pins_unpinned_files_where_they_already_sit_and_moves_nobody(tmp
     module = _module()
     out = tmp_path / "pins.json"
     files = module.test_files()
+
     module.pin_new  # noqa: B018 - exists
     # Start from the committed table minus a few entries, to have something to pin.
     table = module.load_pins()
@@ -272,12 +273,11 @@ def test_pin_new_pins_unpinned_files_where_they_already_sit_and_moves_nobody(tmp
     table["2"] = {k: v for k, v in table["2"].items() if k not in dropped}
     out.write_text(__import__("json").dumps(table), encoding="utf-8")
 
-    # WHERE THE PACKER PUTS THEM NOW, with those pins gone -- the contract of `pin_new`. It used to be
-    # compared with their placement under the FULL pin table, which holds only while the greedy packer
-    # happens to send them back to the shard they were pinned in: adding one pinned test file anywhere
-    # flipped it, and the failure named a file the change never touched.
-    sitting = module.assign(files, module.load_durations(), 2, table["2"])
-    placed_now = {name: i for i, group in enumerate(sitting) for name in group}
+    # Where those files SIT with their pins removed: the packer puts each on the lighter shard once the pinned files are counted. That is
+    # what `pin_new` must record. It is NOT where the committed pins had them: which shard is lighter changes whenever any test file is
+    # added, so comparing with the old pins failed for a PR that added one file and said nothing about this tool.
+    sit_now = module.assign(files, module.load_durations(), 2, table["2"])
+    placed_now = {name: i for i, group in enumerate(sit_now) for name in group}
 
     fresh = module.pin_new(2, out)
     assert set(dropped) <= set(fresh)

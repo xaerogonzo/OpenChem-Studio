@@ -1,0 +1,73 @@
+# Round 25's full ref-compare manifest, against master's pre-round-25 tip (76df63fe): stereo kept on four natural products (D-183 to D-185) and the principal
+# anion of a polyester (D-186). The 9 rows below are the ONLY ones the round moved across r7, r8, mc and pop (1712 structures), every one in the TUNING population
+# and every one a diester or polyester. The stereo fixes move NO panel row (no panel structure has a bridged or pseudoasymmetric centre).
+# Each pair was checked directly: the old name and the new name BOTH read back to the input structure through OPSIN (base_roundtrips and head_roundtrips are
+# true for all nine), so every entry is STRUCTURALLY_EQUIVALENT: the engine chose a different one of two valid names, now by a rule instead of by the order the
+# atoms were written in -- the senior ACID is the principal anion (ring before chain, then skeletal atoms, then substituents), then the ALCOHOL component (ring
+# before chain, lowest free-valence locant, lowest prefix locants), P-65.6.3.3.3.2 method 2 and P-31.1.4. Where two esters tie on all of that (two benzoates, two
+# malonates) the choice is a canonical atom rank, stable but not a nomenclature rule; those rows are in KNOWN_LIMITATIONS.md under round 25, not claimed as improved.
+
+stage = "r25-release-candidate"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-199299a6bd76"
+expect = "STRUCTURALLY_EQUIVALENT"
+reason_rule_id = "principal ester chosen on the executed acid, then alcohol component (D-186)"
+expected_layer = "candidate_assignment"
+expected_name = "[(3-{[(4-{2-[(3-methoxy-3-oxopropanoyl)oxy]ethoxy}-4-oxobutanoyl)oxy]methoxy}-3-oxopropanoyl)oxy]methyl 3-methoxy-3-oxopropanoate"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-3c04d7043b65"
+expect = "STRUCTURALLY_EQUIVALENT"
+reason_rule_id = "principal ester chosen on the executed acid, then alcohol component (D-186)"
+expected_layer = "candidate_assignment"
+expected_name = "ethyl 3-[3-(methoxycarbonyl)phenoxy]benzoate"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-58962956fd44"
+expect = "STRUCTURALLY_EQUIVALENT"
+reason_rule_id = "principal ester chosen on the executed acid, then alcohol component (D-186)"
+expected_layer = "candidate_assignment"
+expected_name = "2-[(4-methoxy-4-oxobutanoyl)oxy]ethyl 4-{2-[(4-methoxy-4-oxobutanoyl)oxy]ethoxy}-4-oxobutanoate"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-5986c17fda81"
+expect = "STRUCTURALLY_EQUIVALENT"
+reason_rule_id = "principal ester chosen on the executed acid, then alcohol component (D-186)"
+expected_layer = "candidate_assignment"
+expected_name = "4-[(3-ethoxy-3-oxopropanoyl)oxy]phenyl 4-methoxy-4-oxobutanoate"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-8f0523ab93ee"
+expect = "STRUCTURALLY_EQUIVALENT"
+reason_rule_id = "principal ester chosen on the executed acid, then alcohol component (D-186)"
+expected_layer = "candidate_assignment"
+expected_name = "3-{1-[3-(acetyloxy)propyl]-2-[3-(formyloxy)propyl]cyclohexyl}propyl acetate"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-c545cf1a7461"
+expect = "STRUCTURALLY_EQUIVALENT"
+reason_rule_id = "principal ester chosen on the executed acid, then alcohol component (D-186)"
+expected_layer = "candidate_assignment"
+expected_name = "2-(propanoyloxy)ethyl 4-[2-(acetyloxy)ethoxy]-4-oxobutanoate"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-db9001927a61"
+expect = "STRUCTURALLY_EQUIVALENT"
+reason_rule_id = "principal ester chosen on the executed acid, then alcohol component (D-186)"
+expected_layer = "candidate_assignment"
+expected_name = "4-[5-(acetyloxy)pyridin-2-yl]phenyl acetate"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-e99182af8af8"
+expect = "STRUCTURALLY_EQUIVALENT"
+reason_rule_id = "principal ester chosen on the executed acid, then alcohol component (D-186)"
+expected_layer = "candidate_assignment"
+expected_name = "2-[(4-methoxy-4-oxobutanoyl)oxy]ethyl 4-[2-(acetyloxy)ethoxy]-4-oxobutanoate"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-e9923e6b418d"
+expect = "STRUCTURALLY_EQUIVALENT"
+reason_rule_id = "principal ester chosen on the executed acid, then alcohol component (D-186)"
+expected_layer = "candidate_assignment"
+expected_name = "(2-{[3-(2-{[(3-methoxy-3-oxopropanoyl)oxy]methoxy}ethoxy)-3-oxopropanoyl]oxy}ethoxy)methyl 3-methoxy-3-oxopropanoate"
