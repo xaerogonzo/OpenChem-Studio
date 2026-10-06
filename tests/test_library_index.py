@@ -62,6 +62,20 @@ def test_nothing_typed_becomes_a_search_operator(tool, typed):
     assert expression.count('"') - 2 * typed.count('"') == 2
 
 
+def test_a_trailing_star_is_a_prefix_and_nothing_else_is_an_operator(tool):
+    assert tool.fts_query("PETN", near=["solub*"]) == 'NEAR("PETN" "solub"*, 30)'
+    assert tool.fts_query("a*b") == '"a*b"', "a star inside a term is searched, not interpreted"
+
+
+def test_a_prefix_finds_the_longer_word_and_a_bare_stem_does_not(tool, library):
+    root, connection, _reads, _contents = library
+    tool.update(root, connection, say=_quiet)
+    stem = tool.fts_query("propylene glycol dinitrate", near=["solub"])
+    prefix = tool.fts_query("propylene glycol dinitrate", near=["solub*"])
+    assert not tool.search(connection, stem)
+    assert [h["path"] for h in tool.search(connection, prefix)] == ["handbook.pdf"]
+
+
 def test_alternatives_and_proximity_are_the_only_structure(tool):
     assert tool.fts_query("PGDN | propylene glycol dinitrate") == '"PGDN" OR "propylene glycol dinitrate"'
     assert tool.fts_query("PETN", near=["solubility"], within=40) == 'NEAR("PETN" "solubility", 40)'

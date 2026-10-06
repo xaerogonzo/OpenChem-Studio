@@ -12,7 +12,7 @@ the papers we actually relied on (the literature manifest), not a catalogue of e
 `tools/index_literature.py` still checks the curated records against their hashes; this is the other half.
 
     uvx --with pymupdf python tools/library_index.py update              # index new and changed files
-    uvx --with pymupdf python tools/library_index.py search "propylene glycol dinitrate | PGDN" --near solub
+    uvx --with pymupdf python tools/library_index.py search "propylene glycol dinitrate | PGDN" --near "solub*"
     python tools/library_index.py show "Aqueous Solubility....pdf" 164   # one page, to read its table
     python tools/library_index.py stats
     python tools/library_index.py stub "Aqueous Solubility....pdf"        # a draft literature.toml entry
@@ -82,8 +82,15 @@ def is_scanned(chars: int, pages: int) -> bool:
 
 
 def _phrase(term: str) -> str:
-    """One FTS5 phrase, with the query syntax in it defused: a name like `2,4-DNT` must be searched, not parsed."""
-    return '"' + term.strip().replace('"', '""') + '"'
+    """One FTS5 phrase, with the query syntax in it defused: a name like `2,4-DNT` must be searched, not parsed.
+
+    A TRAILING `*` is the one thing kept, as a prefix match (`solub*` finds solubility and soluble). Without
+    it a stem matches nothing at all, and zero hits reads as "not in the library".
+    """
+    term = term.strip()
+    prefix = term.endswith("*")
+    quoted = '"' + term.rstrip("*").strip().replace('"', '""') + '"'
+    return quoted + ("*" if prefix else "")
 
 
 def fts_query(text: str, *, near: Iterable[str] = (), within: int = 30, also: Iterable[str] = ()) -> str:

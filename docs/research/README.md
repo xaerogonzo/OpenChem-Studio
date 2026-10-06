@@ -46,7 +46,7 @@ catalogue of a disk.
 
 ```
 uvx --with pymupdf python tools/library_index.py update            # new and changed files only
-uvx --with pymupdf python tools/library_index.py search "propylene glycol dinitrate | PGDN" --near solub
+uvx --with pymupdf python tools/library_index.py search "propylene glycol dinitrate | PGDN" --near "solub*"
 python tools/library_index.py show "<file>" <page>                 # read the page, then read the number off it
 python tools/library_index.py stub "<file>"                        # a DRAFT literature.toml entry
 python tools/library_index.py stats                                # incl. files with no text layer
