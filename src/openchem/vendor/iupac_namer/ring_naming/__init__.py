@@ -115,6 +115,14 @@ def name_ring_system(
     except Exception as e:
         logger.warning("Systematic ring naming failed for type=%s: %s", rs_type, e)
 
+    # --- 2b. A retained parent MODIFIED by didehydro and/or an epoxy bridge (naming round 24) ---
+    if rs_type in ("fused", "bridged"):
+        try:
+            from openchem.vendor.iupac_namer.ring_naming.retained_modified import name_retained_modified
+            results.extend(name_retained_modified(ring_system, candidate, mol))
+        except Exception as e:
+            logger.warning("Modified retained ring naming failed: %s", e)
+
     # --- 3. Handle ambiguous classification ---
     if ring_system.classification_ambiguous and ring_system.alternate_type:
         alt_type = ring_system.alternate_type

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming round 24: morphinans, colchicine, and bridged stereo
+
+- **Names keep their stereodescriptors on bridged rings.** The app ran the naming engine without Java on PATH, so the engine's own OPSIN checks failed and dropped the stereo of every bridged centre (camphor had no `1R,4R`). Fixed in `naming_providers.py`.
+- **Morphine, codeine, heroin, hydromorphone, oxycodone, naloxone, thebaine** are named on the retained `morphinan` parent (`4,5-epoxy-...-7,8-didehydromorphinan-3,6-diol`) instead of a von Baeyer pentacycle; **colchicine** is named on `benzo[a]heptalene` and no longer withheld. See `src/openchem/vendor/CHANGELOG.md`, round 24.
+
 ### CI: the Windows crash measurement is on record, and run 2 is pre-registered
 
 - `benchmarks/windows_crash/` holds the first measurement (run 37383273300, shard 1, 10 legs per arm): **inconclusive** (4/10 crashed as-is, 6/10 with #197 reverted, Fisher p = 0.66) and **the wrong shard for the question**, since #197 targeted the shard 2 crash at about 82%. It did show that about half of shard 1's legs crash at 4-8% of the run (about 80 s in) with no frame outside pytest, which #197 does not touch.

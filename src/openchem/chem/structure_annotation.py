@@ -1692,9 +1692,12 @@ def _name_ring_skeleton(ring_smiles: str) -> str | None:
     if curated:
         return str(curated)
     try:
+        from openchem.chem.naming_providers import _java_on_path
         from openchem.vendor.iupac_namer import name_smiles
 
-        named = name_smiles(ring_smiles)
+        # The engine's own OPSIN checks need `java` on PATH (see derived_name_for_structure).
+        with _java_on_path():
+            named = name_smiles(ring_smiles)
     except Exception:  # noqa: BLE001 - an unnameable skeleton is not fatal
         return None
     # The engine reports a skeleton it cannot name AS the name ('[NAMING ERROR: ...]'); that is not a ring name (naming round 8).

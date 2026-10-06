@@ -422,7 +422,14 @@ def derived_name_for_structure(mol: Chem.Mol) -> NameResult:
 
     smiles = Chem.MolToSmiles(mol)
     try:
-        name = name_smiles(smiles)
+        # The engine checks its own candidate names with OPSIN (stereo on a bridged
+        # parent, letter-locant fused stereo) and DROPS what it cannot confirm. It
+        # reaches OPSIN through py2opsin's bare `java`, which an app-managed runtime
+        # (on neither PATH nor JAVA_HOME) is invisible to -- so every check failed
+        # and every bridged stereocentre was dropped (camphor `1,7,7-trimethyl...`
+        # not `(1R,4R)-...`). Measured 2026-10-05; the benchmarks ran with Java on PATH.
+        with _java_on_path():
+            name = name_smiles(smiles)
     except Exception as exc:  # the engine raises a wide variety on odd input
         raise NamingError(f"Could not derive a name for this structure: {exc}") from exc
     if not name:

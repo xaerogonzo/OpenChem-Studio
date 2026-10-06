@@ -95,7 +95,7 @@ POLYCYCLES: dict[str, str] = {
     "azulene": "C1CCC2CCCC2CC1",
     "indene": "C1CC2CCCCC2C1",
     "pentalene": "C1CC2CCCC2C1",
-    "heptalene": "C1CCCC2CCCCCC2CC1",
+    "heptalene": "C1CCCCC2CCCCCC12",
     "biphenylene": "C1CCC2C(C1)C1CCCCC12",
     "as-indacene": "C1CC2CCC3CCCC3C2C1",
     "s-indacene": "C1CC2CC3CCCC3CC2C1",
