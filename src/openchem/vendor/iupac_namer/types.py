@@ -2461,6 +2461,13 @@ class NamingSession:
                   attachment_indices: tuple[int, ...] | None) -> tuple:
         """Build the cache key.
 
+        smiles: the fragment's IDENTITY text, not necessarily its bare SMILES. A carved
+        fragment carries inherited stereodescriptors as atom and bond properties that a
+        SMILES cannot write, so ``engine._name_bound`` passes the SMILES plus
+        ``extraction.context_stereo_key``. Keyed on the SMILES alone, an R and an S
+        substituent that both carve to ``CCCC`` shared one entry, and the second was
+        named with the first's descriptor.
+
         attachment_indices: indices of attachment atoms within the FRAGMENT
         (not the parent molecule). These positions determine naming --
         propan-1-yl (attachment at atom 0) vs propan-2-yl (attachment at atom 1).

@@ -259,6 +259,7 @@
   "tests/test_namer_preference_key.py": 0,
   "tests/test_namer_probe_shapes.py": 1,
   "tests/test_namer_salt_multiplier.py": 0,
+  "tests/test_namer_stereo_cache_identity.py": 0,
   "tests/test_namer_stereo_locant_tie.py": 0,
   "tests/test_namer_stereo_validation_cache.py": 1,
   "tests/test_namer_strategy_propagation.py": 0,

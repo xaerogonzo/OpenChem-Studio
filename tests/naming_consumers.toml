@@ -93,6 +93,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_stereo_cache_identity.py"
+why = "the session cache's identity for a carved fragment: two substituents that print as one SMILES but inherit different R/S descriptors (the R,S di-sec-butylbenzene), its converse, the app path, and the 45 cache calls"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_stereo_validation_cache.py"
 why = "stereo validation and its cache"
 scope = "core"
