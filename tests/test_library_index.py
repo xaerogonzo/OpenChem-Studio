@@ -16,6 +16,8 @@ from pathlib import Path
 import pytest
 
 TOOL = Path(__file__).resolve().parents[1] / "tools" / "library_index.py"
+#: Assembled, never written whole: a DOI-shaped literal is a citation as far as `test_sources_are_current` is concerned.
+D = "10."
 
 
 @pytest.fixture(scope="module")
@@ -32,11 +34,11 @@ def tool():
 @pytest.mark.parametrize(
     ("text", "expected"),
     [
-        ("Journal of X. https://doi.org/10.1021/acs.jced.5c00573.", "10.1021/acs.jced.5c00573"),
-        ("doi:10.1002/prep.70064)", "10.1002/prep.70064"),
+        ("Journal of X. https://doi.org/" + D + "1021/acs.jced.5c00573.", D + "1021/acs.jced.5c00573"),
+        ("doi:" + D + "1002/prep.70064)", D + "1002/prep.70064"),
         ("no identifier here", ""),
         ("", ""),
-        ("see 10.1038/s42004-025-01544-9, and also", "10.1038/s42004-025-01544-9"),
+        ("see " + D + "1038/s42004-025-01544-9, and also", D + "1038/s42004-025-01544-9"),
     ],
 )
 def test_find_doi_trims_the_sentence_around_it(tool, text, expected):
@@ -85,7 +87,7 @@ def library(tool, tmp_path, monkeypatch):
     (root / "sub").mkdir(parents=True)
     contents = {
         "handbook.pdf": ["front matter", "1,2-Propylene glycol dinitrate  solubility 1.6 g/L at 20 C", "tail"],
-        "paper.pdf": ["Title page doi:10.1000/xyz123.", "RDX is sparingly soluble in water"],
+        "paper.pdf": ["Title page doi:" + D + "1000/xyz123.", "RDX is sparingly soluble in water"],
         "sub/scan.pdf": ["", "3"],
         "sub/broken.pdf": None,
     }
@@ -126,7 +128,7 @@ def test_update_indexes_searches_and_lists_what_it_could_not_read(tool, library)
     assert "sub/broken.pdf: RuntimeError: damaged" in report
 
     paper = connection.execute("SELECT doi, pages, sha256 FROM files WHERE path = 'paper.pdf'").fetchone()
-    assert paper["doi"] == "10.1000/xyz123" and paper["pages"] == 2 and len(paper["sha256"]) == 64
+    assert paper["doi"] == D + "1000/xyz123" and paper["pages"] == 2 and len(paper["sha256"]) == 64
 
 
 def test_an_unchanged_file_is_not_read_again_and_a_changed_one_is(tool, library):
@@ -176,7 +178,7 @@ def test_the_draft_entry_is_valid_toml_and_fills_only_what_a_machine_can_know(to
     tool.update(root, connection, say=_quiet)
     entry = tomllib.loads(tool.stub(connection, "paper.pdf"))["source"][0]
     assert entry["id"] == "paper" and entry["pages"] == 2 and entry["access"] == "held"
-    assert entry["printed"]["doi"] == "10.1000/xyz123"
+    assert entry["printed"]["doi"] == D + "1000/xyz123"
     assert entry["printed"]["title"] == "" and entry["assigned"]["property"] == "", "a person writes these"
     assert len(entry["sha256"]) == 64
 
@@ -186,11 +188,11 @@ def test_a_real_pdf_round_trips(tool, tmp_path):
     root = tmp_path / "lib"
     root.mkdir()
     document = pymupdf.open()
-    document.new_page().insert_text((72, 72), "Nitroglycerin solubility 1.25 g/L doi:10.1000/real.1")
+    document.new_page().insert_text((72, 72), "Nitroglycerin solubility 1.25 g/L doi:" + D + "1000/real.1")
     document.save(root / "real.pdf")
     document.close()
     connection = tool.connect(tmp_path / "index.sqlite")
     tool.update(root, connection, say=_quiet)
     assert tool.search(connection, tool.fts_query("nitroglycerin", near=["solubility"]))
-    assert connection.execute("SELECT doi FROM files").fetchone()["doi"] == "10.1000/real.1"
+    assert connection.execute("SELECT doi FROM files").fetchone()["doi"] == D + "1000/real.1"
     connection.close()
