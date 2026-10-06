@@ -1,0 +1,50 @@
+[
+ {
+  "do": "smiles",
+  "smiles": "O=[N+]([O-])N1CN(CN(C1)[N+](=O)[O-])[N+](=O)[O-]",
+  "name": "RDX"
+ },
+ {
+  "do": "select",
+  "molecule": -1,
+  "after_ms": 4000
+ },
+ {
+  "do": "panel",
+  "id": "Properties"
+ },
+ {
+  "do": "calculator",
+  "id": "solubility",
+  "parameters": {
+   "pka_values": "7.0"
+  },
+  "reveal": false,
+  "after_ms": 4000
+ },
+ {
+  "do": "result_report",
+  "calculator": "solubility"
+ },
+ {
+  "do": "panel",
+  "id": "Results",
+  "after_ms": 1200
+ },
+ {
+  "do": "results",
+  "focus": "solubility",
+  "after_ms": 1200
+ },
+ {
+  "do": "shot",
+  "path": "benchmarks/visual/artifacts/esol_warning_results.png",
+  "after_ms": 800
+ },
+ {
+  "do": "expect_clean"
+ },
+ {
+  "do": "quit"
+ }
+]

@@ -1203,6 +1203,21 @@ _CRC_C_NITRO_CONTROLS = [
 ]
 
 
+#: CL-20, which is NOT in the curated AqSolDB data (matched by InChIKey), measured twice at 25 C:
+#: Karakaya et al. 2005 (J. Hazard. Mater. 120, Table 1) 4.33 mg/L, Monteil-Rivera et al. 2004
+#: (J. Chromatogr. A 1025, abstract) 3.6 mg/L. Read off the held PDFs 2026-10-06. mg/L, 25 C.
+_CL20 = "[N+](=O)([O-])N1C2N(C3N(C4N(C2N(C4N(C13)[N+](=O)[O-])[N+](=O)[O-])[N+](=O)[O-])[N+](=O)[O-])[N+](=O)[O-]"
+_CL20_MEASURED_MG_PER_L = {"Karakaya 2005": 4.33, "Monteil-Rivera 2004": 3.6}
+
+
+def _logs_from_mg_per_l(smiles: str, mg_per_l: float) -> float:
+    import math
+
+    from rdkit.Chem import Descriptors
+
+    return math.log10(mg_per_l * 1e-3 / Descriptors.MolWt(mol(smiles)))
+
+
 def _crc_logs(smiles: str, mass_percent: float) -> float:
     import math
 
@@ -1221,25 +1236,102 @@ def test_the_evidence_for_the_esol_domain_still_holds():
     assert all(abs(error) < 1.0 for error in controls), controls
 
 
+def test_esol_is_out_by_five_log_units_on_cl20_which_two_papers_measured():
+    """The seventh compound, and the worst: ESOL puts CL-20 near +0.4 against measured values near -5.0.
+    The refusal's "5.4" is the larger of the two errors."""
+    errors = [
+        esol_logs(mol(_CL20)) - _logs_from_mg_per_l(_CL20, value) for value in _CL20_MEASURED_MG_PER_L.values()
+    ]
+    assert all(error > 5.0 for error in errors), errors
+    assert max(errors) == pytest.approx(5.4, abs=0.1)
+    assert abs(errors[0] - errors[1]) < 0.2, "the two measurements agree, so the target is not one lab's number"
+
+
+#: Three more, from Yalkowsky and He's Handbook of Aqueous Solubility Data, 2nd ed.: (name, SMILES, mol/L, C).
+#: Glycerol 1,2-dinitrate is NOT in the curated AqSolDB data; the other two are, so only the first is a test of that
+#: model. Single-source values (the handbook's refs D013 and D067), read off the held PDF 2026-10-06 (entries 168,
+#: 169 and 1408).
+_HANDBOOK2_NITRO = [
+    ("glycerol 1,2-dinitrate", "O=[N+]([O-])OCC(O[N+](=O)[O-])CO", 3.386e-1, 20),
+    ("glycerol 1,3-dinitrate", "O=[N+]([O-])OCC(O)CO[N+](=O)[O-]", 3.993e-1, 20),
+    ("ethyl tetryl", "CCN(c1c([N+](=O)[O-])cc([N+](=O)[O-])cc1[N+](=O)[O-])[N+](=O)[O-]", 1.992e-4, 22),
+]
+
+
+def _all_ten_errors() -> list[float]:
+    import math
+
+    crc = [esol_logs(mol(s)) - _crc_logs(s, pct) for _n, s, _t, pct in _CRC_NITRO]
+    cl20 = [esol_logs(mol(_CL20)) - _logs_from_mg_per_l(_CL20, v) for v in _CL20_MEASURED_MG_PER_L.values()]
+    handbook = [esol_logs(mol(s)) - math.log10(c) for _n, s, c, _t in _HANDBOOK2_NITRO]
+    return crc + [max(cl20)] + handbook
+
+
+def test_esol_overpredicts_on_every_one_of_the_ten_but_is_only_slightly_off_on_three():
+    """The honest shape of the evidence the refusal rests on: ALWAYS in the same direction, by 0.4 to 5.4 log
+    units, and under 1.0 for the small hydroxylated nitrate esters and ethyl tetryl. The refusal is therefore
+    broader than the worst cases, and the message says so rather than quoting only the worst."""
+    import math
+
+    errors = _all_ten_errors()
+    assert len(errors) == 10 and all(error > 0.3 for error in errors), errors
+    assert min(errors) == pytest.approx(0.4, abs=0.05) and max(errors) == pytest.approx(5.4, abs=0.1)
+    assert sum(error > 1.0 for error in errors) == 7
+    small = [esol_logs(mol(s)) - math.log10(c) for _n, s, c, _t in _HANDBOOK2_NITRO]
+    assert all(0.3 < error < 1.0 for error in small), small
+
+
+def _fact_labelled(report, label_start: str):
+    return next(f for f in report.facts if f.label.startswith(label_start))
+
+
+def test_the_warning_quotes_the_ten_compound_evidence_and_the_limits_of_the_alternative():
+    report = compute_solubility(mol(_CL20), "u", {"pka_values": "7.0"})
+    assert report.cache_state.value != "failed", "a warning, not a refusal: the number is still returned"
+    text = report.limitations[0]
+    for fragment in ("ten compounds", "0.4 to 5.4 log", "more than 1.0 on seven", "CL-20", "glycerol 1,2-dinitrate",
+                     "PETN", "too high"):
+        assert fragment in text, fragment
+
+
 @pytest.mark.parametrize(("name", "smiles"), [(n, s) for n, s, _t, _p in _CRC_NITRO])
-def test_esol_is_refused_for_an_n_nitro_or_nitrate_ester_compound(name, smiles):
+def test_esol_still_answers_for_an_n_nitro_or_nitrate_ester_compound_but_says_it_runs_high(name, smiles):
     report = compute_solubility(mol(smiles), "u", {"pka_values": "7.0"})
-    assert report.cache_state.value == "failed", name
-    assert report.inapplicable, "a limit of the model, not a fault"
-    assert report.provenance.parameters["refusal"] == "ESOL_OUTSIDE_DOMAIN"
-    assert "ESOL is not defined for" in report.error and "AqSolDB" in report.error
+    assert report.cache_state.value != "failed" and not report.inapplicable, name
+    assert report.provenance.parameters["domain_warning"] == "ESOL_OUTSIDE_DOMAIN"
+    assert "refusal" not in report.provenance.parameters
+    # FIRST in the status line, ahead of the standing screening-estimate note -- the one place read without hovering.
+    assert report.limitations[0].startswith("ESOL is not reliable for"), name
+    # ... and on the number itself, which is what gets copied out of the panel, and on the category read from it.
+    row = report.facts[0]
+    assert row.label == "Baseline reliability" and "overpredicts" in row.display_value, "a visible row, first"
+    assert row.detail.name == "STANDARD" and row.evidence[0].startswith("ESOL is not reliable for")
+    value = _fact_labelled(report, "Predicted intrinsic solubility")
+    assert value.limitations and value.limitations[0].startswith("ESOL is not reliable for")
+    assert _fact_labelled(report, "Solubility category").limitations[0].startswith("ESOL is not reliable for")
+
+
+@pytest.mark.parametrize(("name", "smiles"), [(n, s) for n, s, _t, _p in _CRC_NITRO])
+def test_the_ich_m9_estimate_is_withheld_where_the_baseline_is_known_to_run_high(name, smiles):
+    """The one output here that could do harm: a regulatory-shaped PASS built on a baseline that overpredicts."""
+    report = compute_solubility(mol(smiles), "u", {"pka_values": "7.0", "dose_mg": 100})
+    screen = _fact_labelled(report, "BCS high-solubility screening estimate")
+    assert screen.value == "UNDETERMINED", name
+    assert "known to overpredict" in screen.display_value
 
 
 @pytest.mark.parametrize(("name", "smiles"), [(n, s) for n, s, _t, _p in _CRC_C_NITRO_CONTROLS] + [
     ("nitromethane", "C[N+](=O)[O-]"), ("aspirin", ASPIRIN), ("caffeine", CAFFEINE),
 ])
-def test_esol_is_not_refused_where_it_was_not_shown_to_fail(name, smiles):
+def test_no_warning_where_esol_was_not_shown_to_fail(name, smiles):
     report = compute_solubility(mol(smiles), "u", {"pka_values": "3.5"})
-    assert report.provenance.parameters.get("refusal") != "ESOL_OUTSIDE_DOMAIN", name
+    assert report.provenance.parameters["domain_warning"] == "", name
+    assert not report.limitations[0].startswith("ESOL is not reliable"), name
+    assert all(f.label != "Baseline reliability" for f in report.facts), name
 
 
-def test_the_refusal_applies_to_esol_only_not_to_the_other_model(monkeypatch):
-    """Choosing AqSolDB is the way out the message offers, so it must not refuse the same molecule."""
+def test_the_warning_applies_to_esol_only_not_to_the_other_model(monkeypatch):
+    """Choosing AqSolDB must not carry ESOL's warning: it is about ESOL's Crippen logP."""
     from openchem.chem import solubility
     from openchem.chem.solubility import AQSOLDB, ModelEstimate, ModelStatus
 
@@ -1249,5 +1341,6 @@ def test_the_refusal_applies_to_esol_only_not_to_the_other_model(monkeypatch):
     )
     rdx = mol("O=[N+]([O-])N1CN(CN(C1)[N+](=O)[O-])[N+](=O)[O-]")
     report = compute_solubility(rdx, "u", {"model": AQSOLDB, "pka_values": "7.0"}, admet_interpreter_path="x")
-    assert report.provenance.parameters.get("refusal") != "ESOL_OUTSIDE_DOMAIN"
+    assert report.provenance.parameters["domain_warning"] == ""
     assert report.cache_state.value != "failed"
+    assert not report.limitations[0].startswith("ESOL is not reliable")
