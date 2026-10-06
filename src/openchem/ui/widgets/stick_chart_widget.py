@@ -34,6 +34,7 @@ from PySide6.QtWidgets import QWidget
 from openchem.ui.picture_export import show_picture_menu
 
 from openchem.domain.report import StickChartAnnotation, valid_chart_annotation
+from openchem.ui.widgets.x_zoomable import XZoomable
 from openchem.ui.widgets.plot_axis import (
     LABEL_HEIGHT,
     MARGIN,
@@ -111,8 +112,17 @@ def minimum_height(base_height: float, caption_height: float) -> float:
     return max(base_height, _MINIMUM_PLOT_HEIGHT) + caption_height
 
 
-class StickChartWidget(QWidget):
-    """One `StickChartAnnotation`, painted."""
+class StickChartWidget(XZoomable, QWidget):
+    """One `StickChartAnnotation`, painted.
+
+    Zooms along x like the line chart (Ctrl+wheel, Shift+wheel to pan, double-click to reset):
+    a powder pattern's crowded low-angle lines are unreadable at full span. The y scale is the
+    WHOLE chart's, deliberately, so a zoomed view shows how small the lines in it are beside the
+    tallest one rather than blowing a weak region up to look strong.
+    """
+
+    #: The visible x window changed (zoom, pan or reset).
+    view_changed = Signal()
 
     #: The index of the stick that was clicked, into `annotation.sticks`.
     #: An INDEX rather than the `Stick` itself, because two sticks can be
@@ -146,6 +156,8 @@ class StickChartWidget(QWidget):
         if annotation is not None and not valid_chart_annotation(annotation):
             logger.warning("Refusing to draw a malformed chart annotation: %r", annotation)
             annotation = None
+        if annotation is not self._annotation:
+            self._reset_zoom_for_new_chart()
         self._annotation = annotation
         self.updateGeometry()
         self.update()
@@ -250,7 +262,17 @@ class StickChartWidget(QWidget):
             _MAXIMUM_CAPTION_FRACTION * max(float(self.height()), 1.0),
         )
 
-    def _x_range(self) -> tuple[float, float]:
+    def _zoom_has_data(self) -> bool:
+        return self._annotation is not None and bool(self._annotation.sticks)
+
+    def _zoom_descending(self) -> bool:
+        return self._annotation is not None and self._annotation.x_descending
+
+    def _reset_zoom_for_new_chart(self) -> None:
+        """A different chart is a different x span: a window left over from the last one is meaningless."""
+        self._x_window = None
+
+    def _full_x_range(self) -> tuple[float, float]:
         if self._annotation is None:
             return 0.0, 1.0
         return padded_range(
@@ -277,8 +299,11 @@ class StickChartWidget(QWidget):
         """First match wins, in producer order -- two sticks can share an x
         (two isotopologues in one nominal bin), so the regions do overlap
         and the rule has to be stated rather than left to chance."""
+        sticks = self._annotation.sticks if self._annotation is not None else ()
         for index, region in enumerate(self.hit_regions()):
-            if region.contains(x, y):
+            # A stick zoomed out of view has a band outside the plot, and must not be clickable
+            # from wherever that lands.
+            if self.in_view(sticks[index].x) and region.contains(x, y):
                 return index
         return None
 
@@ -366,6 +391,8 @@ class StickChartWidget(QWidget):
         painter.setPen(QPen(_STICK_COLOR))
         placed: list[tuple[float, float, str]] = []
         for stick in annotation.sticks:
+            if not self.in_view(stick.x):
+                continue
             x = to_widget_x(stick.x, rect, (low, high), annotation.x_descending)
             height = available * (stick.y / scale)
             painter.drawLine(

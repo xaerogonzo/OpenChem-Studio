@@ -73,7 +73,7 @@ from openchem.chem.hlb import compute_griffin_hlb
 from openchem.chem.energetics import compute_detonation, compute_oxygen_balance
 from openchem.chem.aromaticity import compute_aromaticity, compute_bird_index
 from openchem.chem.hansen import compute_hansen
-from openchem.chem.joback import compute_joback
+from openchem.chem.joback import compute_joback, preflight_reason as joback_preflight
 from openchem.chem.huckel import compute_huckel_analysis, compute_pi_electron_density
 from openchem.chem.lewis import compute_lewis_sites
 from openchem.chem.lewis_adduct import (
@@ -3508,6 +3508,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             "times the error."
         ),
         execution=RegistryExecution(compute=compute_joback),
+        preflight=joback_preflight,
         prediction_basis="empirical",
         # LIMITED, and hidden by default, on MEASURED evidence rather than a
         # judgement: on 2026-09-24 this implementation ran on TNT, PETN and
