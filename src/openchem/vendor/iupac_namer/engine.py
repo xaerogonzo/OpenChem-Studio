@@ -31,6 +31,7 @@ from openchem.vendor.iupac_namer.assembly import (
     assemble, derive_sort_name, _preferred_prefix_spelling,
 )
 from openchem.vendor.iupac_namer import ownership as _ownership
+from openchem.vendor.iupac_namer.isotope import isotopic_prefix
 from openchem.vendor.iupac_namer.data_loader import (
     get_chain_stem, get_multiplier, lookup_retained_name,
     suffix_elides_terminal_e,
@@ -278,6 +279,48 @@ _SMALL_FRAGMENT_PREFIXES_BY_ATTACHMENT: dict[tuple[str, str], str] = {
 }
 
 
+# The hydride a one-atom group is a substituent of, stem only: `phosphane` -> `phosphanyl`, `iodane` -> `iodanyl`. The table above names the group at the
+# element's STANDARD bonding number (`phosphanyl` is PH2-); at any other number the group is named from the hydride itself, with the number in front.
+_HYDRIDE_STEM: dict[str, str] = {
+    "N": "azan", "O": "oxidan", "P": "phosphan", "As": "arsan", "Sb": "stiban", "Bi": "bismuthan",
+    "S": "sulfan", "Se": "selan", "Te": "tellan", "B": "boran", "Si": "silan", "Ge": "german", "Sn": "stannan", "Pb": "plumban",
+    "F": "fluoran", "Cl": "chloran", "Br": "broman", "I": "iodan",
+}
+_GROUP_ENDING = {1: "yl", 2: "ylidene", 3: "ylidyne"}
+# Halogens are monovalent; `ring_naming.monocyclic._STANDARD_VALENCE` (the lambda convention for ring atoms) has none.
+_HALOGEN_STANDARD_BONDING_NUMBER = {"F": 1, "Cl": 1, "Br": 1, "I": 1}
+
+
+def _hypervalent_group_name(atom, bonds: int, bond_order: int) -> str | None:
+    """`lambda5-phosphanyl` for a one-atom group whose atom has more bonds than its standard number, else None (P-45.3, BlueBookV2.pdf p. 423).
+
+    "3-(λ5-phosphanyl)-2-(phosphanylmethyl)propanoic acid", "3-(λ6-sulfanyl)-2-(λ4-sulfanylmethyl)propanoic acid": the bonding number of a group is
+    part of its name, and `phosphanyl` alone is the group at the standard number (PH2-). The table the caller reads is keyed on the element and the
+    bond order, so a PH4 group, an SH3 group and an SH5 group all came out as the ordinary prefix, which a reader takes for a DIFFERENT group: the
+    name read back with two to four hydrogens fewer (measured 2026-10-06, OPSIN, `3-phosphanylpropanoic acid` for PH4-CH2CH2COOH).
+
+    `bonds` is the number of bonds the atom has in the MOLECULE. Read off a carved fragment, where the cut bond became a hydrogen, that is
+    `valence - 1 + bond_order`, for a single and a double cut alike (`-PH4` carves to PH5, `=PH3` to PH4: both are 5). Only a neutral atom is named
+    this way: a charged one is the `-ium`/`-ide` family, whose own names already carry the charge. A difference of one is a radical, not a number.
+    """
+    stem = _HYDRIDE_STEM.get(atom.GetSymbol())
+    ending = _GROUP_ENDING.get(bond_order)
+    if stem is None or ending is None or not _is_hypervalent(atom, bonds):
+        return None
+    return f"lambda{bonds}-{stem}{ending}"
+
+
+def _is_hypervalent(atom, bonds: int) -> bool:
+    """Whether a neutral atom with `bonds` bonds is past its standard bonding number by a whole step (two), so the lambda convention applies."""
+    from openchem.vendor.iupac_namer.ring_naming.monocyclic import _STANDARD_VALENCE
+
+    element = atom.GetSymbol()
+    standard = _STANDARD_VALENCE.get(element, _HALOGEN_STANDARD_BONDING_NUMBER.get(element))
+    if standard is None or atom.GetFormalCharge() != 0:
+        return False
+    return bonds > standard and (bonds - standard) % 2 == 0
+
+
 def _name_single_atom_substituent(
     mol,
     output_form: OutputForm,
@@ -328,8 +371,13 @@ def _name_single_atom_substituent(
     #  So any N+ we see here is safe to treat as azaniumyl.)
 
     prefix = _SINGLE_ATOM_SUBSTITUENT.get((element, charge, bond_order))
+    # Before the table says "no": `=PH3` has no entry, and the group it reaches is named from the hydride, like every other hypervalent one.
+    hypervalent = _hypervalent_group_name(atom, atom.GetTotalValence() - 1 + bond_order, bond_order)
+    if hypervalent is not None:
+        prefix = hypervalent
     if prefix is None:
         return None
+    prefix = isotopic_prefix(prefix, atom)
 
     return LeafTree(
         output_form=output_form,
@@ -11088,7 +11136,7 @@ def _alphanumerical_locant_key(tree) -> tuple | None:
     tree is not a substitutive name with prefixes, which is never a tie this
     criterion can decide.
     """
-    from openchem.vendor.iupac_namer.assembly import assemble, merge_identical_prefixes, stereo_citation_key
+    from openchem.vendor.iupac_namer.assembly import assemble, isotope_citation_key, merge_identical_prefixes, stereo_citation_key
 
     if not isinstance(tree, SubstitutiveTree) or not tree.prefixes:
         return None
@@ -11097,9 +11145,10 @@ def _alphanumerical_locant_key(tree) -> tuple | None:
         merged = merge_identical_prefixes(entries)
     except Exception:  # noqa: BLE001 - an unassemblable tie is left to the fallback
         return None
-    # The order assembly cites them in (`stereo_citation_key`, P-45.6.3): of two prefixes that read alike but for their descriptors, the one
-    # whose descriptors rank first (R before S, Z before E) is cited first, so its locants are the ones this reads first.
-    cited = sorted(merged, key=lambda m: (m.sort_name, stereo_citation_key(m.name), m.name))
+    # The order assembly cites them in (`isotope_citation_key`, then `stereo_citation_key`, P-82.2.2.1 and P-45.6.3): of two prefixes that read alike
+    # but for their descriptors, the isotopically modified one is cited first and then the one whose CIP descriptors rank first (R before S, Z before E),
+    # so its locants are the ones this reads first.
+    cited = sorted(merged, key=lambda m: (m.sort_name, isotope_citation_key(m.name), stereo_citation_key(m.name), m.name))
     return tuple(tuple(m.locants) for m in cited)
 
 
@@ -13735,6 +13784,9 @@ def _synthesise_ring_carbonyl_fgs(interpretation, mol):
             ]
             if len(heavy_nbs) != 1:
                 continue
+            # ... and no hydrogens either: `=SH2` is a lambda4 sulfur, whose group is not a thione (it read back as `=S`, two hydrogens lost).
+            if other.GetTotalValence() != 2:
+                continue
             if other.GetIdx() in claimed_chalcogens:
                 continue
             n_double_chalcogen += 1
@@ -14769,6 +14821,21 @@ class SubstitutivePath:
             if info is None:
                 return
             name_str, stem, alkyl_stem = info
+            # A centre past its standard bonding number that still carries hydrogens (`C[PH4]`, `C[PH2](C)C`) takes the lambda number, `methyl-lambda5-
+            # phosphane` (P-45.3, BlueBookV2.pdf p. 423): without it the name reads back with the hydrogens it does not have. A centre with NONE is
+            # left as it was (`pentamethylphosphane`): its substituents say the number, and OPSIN reads it, so no information is lost there.
+            if len(candidate.atom_indices) == 1:
+                _lam_idx = next(iter(candidate.atom_indices))
+                _lam_atom = perception._mol.GetAtomWithIdx(_lam_idx)  # type: ignore[attr-defined]
+                # The cut bond of a CARVED substituent is a hydrogen in its fragment, and not one of the molecule's: `(oxo)phosphanyl` (P(=O)(OR)2-)
+                # is a phosphorus with one H here and none there. Counted as real it gave `(oxo)-lambda5-phosphanyl` to 13 of 2000 census rows (all reading
+                # back as before), so the free valence's atom is discounted by the one hydrogen that stands for the bond.
+                _own_h = _lam_atom.GetTotalNumHs() - (
+                    1 if free_valence is not None and _lam_idx in free_valence.attachment_atoms_in_fragment else 0
+                )
+                if _own_h > 0 and _is_hypervalent(_lam_atom, _lam_atom.GetTotalValence()):
+                    _lam = f"lambda{_lam_atom.GetTotalValence()}-"
+                    name_str, stem, alkyl_stem = _lam + name_str, _lam + stem, _lam + alkyl_stem
             # A fully quaternary NR4+ is spelled "ammonium" here. This is NOT
             # the PIN, whatever this comment once said: the book prints
             # "N,N,N-trimethylmethanaminium (PIN)" with "tetramethylazanium"
@@ -15981,6 +16048,10 @@ class SubstitutivePath:
             atom = mol.GetAtomWithIdx(atom_idx)
             atomic_num = atom.GetAtomicNum()
             if atomic_num not in _DOUBLE_BOND_PREFIXES:
+                continue
+            # This table names the group at its STANDARD bonding number: `=SH2` is `lambda4-sulfanylidene`, not `thioxo`, which read back as `=S` (two
+            # hydrogens lost). Unclaimed, the atom is carved and named by `_name_single_atom_substituent`, which knows the number.
+            if _hypervalent_group_name(atom, atom.GetTotalValence(), 2) is not None:
                 continue
             # For N atoms (imino): skip if N has non-parent, non-H heavy neighbors
             # (substituents like isopropyl or OH from oxime).  These are compound
@@ -17368,6 +17439,13 @@ class SubstitutivePath:
                         parent_atoms = plan.named_parent.candidate.atom_indices
                         if pa.fg.anchor not in parent_atoms:
                             prefix_name = pa.fg.prefix_form_nonterminal
+                    if prefix_name and len(pa.substituent_atoms) == 1:
+                        # A prefix that is the name of the ONE atom it owns (`bromo` on Br, `hydroxy` on O, `amino` on N, `oxo` on =O) says which nuclide
+                        # that atom is, in front of it: `(81Br)bromo`, `(18O)hydroxy` (P-82.2.1). Keyed on the NAME so that `cyano` and `carboxy`, whose
+                        # atom count is not their atom's, are not labelled on a guess.
+                        lone = mol.GetAtomWithIdx(next(iter(pa.substituent_atoms)))
+                        if _SINGLE_ATOM_SUBSTITUENT.get((lone.GetSymbol(), lone.GetFormalCharge(), pa.attachment_bond_order)) == prefix_name:
+                            prefix_name = isotopic_prefix(prefix_name, lone)
                     if prefix_name:
                         sub_tree = LeafTree(
                             output_form=OutputForm.SUBSTITUENT,
@@ -17396,7 +17474,7 @@ class SubstitutivePath:
                     atom_idx_hal = next(iter(pa.substituent_atoms))
                     atom_hal = mol.GetAtomWithIdx(atom_idx_hal)
                     _HALOGEN_PREFIXES_EXEC = {9: "fluoro", 17: "chloro", 35: "bromo", 53: "iodo"}
-                    prefix_name = _HALOGEN_PREFIXES_EXEC.get(atom_hal.GetAtomicNum(), "halo")
+                    prefix_name = isotopic_prefix(_HALOGEN_PREFIXES_EXEC.get(atom_hal.GetAtomicNum(), "halo"), atom_hal)
                     sub_tree = LeafTree(
                         output_form=OutputForm.SUBSTITUENT,
                         free_valence=None,

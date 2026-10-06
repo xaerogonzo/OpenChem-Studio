@@ -268,6 +268,61 @@ _UNALPHABETISED_TOKEN_RE = re.compile(
 )
 
 
+_NUCLIDE_TOKEN_RE = re.compile(r"([0-9]+)([A-Z][a-z]?)[0-9]*")
+_ELEMENT_NUMBERS: dict[str, int] = {}
+
+
+def _element_number(symbol: str) -> int | None:
+    """The atomic number of an element symbol, or None. Built once from the periodic table's symbols: asking it for a name it does not have
+    (`R`, `E`, `Xx`) raises, but RDKit also logs a C++ post-condition violation for each ask, which a name with a stereodescriptor would print every time."""
+    if not _ELEMENT_NUMBERS:
+        from rdkit import Chem
+
+        table = Chem.GetPeriodicTable()
+        _ELEMENT_NUMBERS.update({table.GetElementSymbol(z): z for z in range(1, 119)})
+    return _ELEMENT_NUMBERS.get(symbol)
+
+
+def is_nuclide_token(token: str) -> bool:
+    """`81Br`, `13C`, `2H3`: a mass number and an element symbol, the count after it optional (P-82.2.1).
+
+    Checked against the periodic table because `2S`, `5R` and `1E` are stereodescriptors with a locant in front, and a mass number below the atomic
+    number is no nuclide: `2S` would be a sulfur of mass two.
+    """
+    m = _NUCLIDE_TOKEN_RE.fullmatch(token)
+    if m is None:
+        return False
+    number = _element_number(m.group(2))
+    return number is not None and number <= int(m.group(1)) < 400
+
+
+# A parenthesised nuclide descriptor: "(81Br)", "(2H3)", "(1-13C)", "(1,1,1-2H3)", "(N-15N)" -- locants and nuclides, nothing else between the marks.
+_ISOTOPE_GROUP_RE = re.compile(r"\(([^()]*)\)")
+
+
+def has_isotope_descriptor(name: str) -> bool:
+    """Whether a prefix name carries a nuclide descriptor anywhere in it."""
+    for group in _ISOTOPE_GROUP_RE.finditer(name):
+        tokens = re.split(r"[-,]", group.group(1))
+        if tokens and all(t and (is_nuclide_token(t) or re.fullmatch(r"(?:[0-9]+[a-z]?|[A-Z][a-z]?)'*", t)) for t in tokens) and any(
+            is_nuclide_token(t) for t in tokens
+        ):
+            return True
+    return False
+
+
+def isotope_citation_key(prefix_name: str) -> int:
+    """0 for a prefix carrying a nuclide descriptor, 1 for one that does not.
+
+    P-82.2.2.1 (BlueBookV2.pdf p. 854): of two substituents that differ only in their isotopic modification, "The isotopically modified substituent is
+    preferred alphabetically to the unmodified substituent": `N-[7-(131I)iodo-6-iodo-9H-fluoren-2-yl]acetamide`, `2-(13C)methyl-3-methylpyridine`. The
+    descriptor is set aside by `derive_sort_name` (it is not alphabetised), so the two read alike there and this is the key that parts them: the
+    SECOND key of the citation order, before `stereo_citation_key`, since P-45.6.3 (p. 427) turns to the CIP descriptors only "When names based on
+    alphanumerical order and isotopic descriptors are the same".
+    """
+    return 0 if has_isotope_descriptor(prefix_name) else 1
+
+
 def derive_sort_name(prefix_name: str) -> str:
     """The alphanumerical-ordering KEY for a substituent prefix (P-14.5).
 
@@ -325,10 +380,13 @@ def derive_sort_name(prefix_name: str) -> str:
                 break
 
     s = _STEREO_GROUP_RE.sub("-", s)
+    # A nuclide is part of a descriptor, not of the name ("(81Br)bromo" is filed under b): left in, `81Br` was a token of its own and "13cmethyl" sorted
+    # before "ethyl". P-14.5 (BlueBookV2.pdf p. 80): Roman letters are considered "unless used ... in an isotopic descriptor", and the principles
+    # "do not include ... isotopic or stereochemical descriptors" (see `isotope_citation_key` for what parts two prefixes that then read alike).
     tokens = [
         token
         for token in _SORT_TOKEN_SPLIT_RE.split(s)
-        if token and not _UNALPHABETISED_TOKEN_RE.match(token)
+        if token and not _UNALPHABETISED_TOKEN_RE.match(token) and not is_nuclide_token(token)
     ]
     return "".join(tokens).lower()
 
@@ -421,6 +479,20 @@ _SIMPLE_PREFIXES = frozenset({
 })
 
 
+_ISOTOPIC_SIMPLE_RE = re.compile(r"\(([0-9]+[A-Z][a-z]?)\)([a-z]+)")
+
+
+def _isotopic_simple_prefix(name: str) -> bool:
+    """`(81Br)bromo`: one nuclide, in its own marks, on the name of a simple prefix, with no locant.
+
+    The marks belong to the nuclide, so the prefix is not a compound one and takes no enclosing marks of its own beside a locant: the book prints
+    "4-(81Br)bromo-3-[1-(81Br)bromo-2-bromopropyl]-5-chlorohexanoic acid" (p. 422) and "2-(35Cl)chloro-3-(2H3)methyl(1-2H1)pentane" (P-82.2.1, p. 853).
+    Multiplied it IS enclosed, "1,2-di[(13C)methyl]benzene" (p. 853), which is what `merge_identical_prefixes` does with this.
+    """
+    m = _ISOTOPIC_SIMPLE_RE.fullmatch(name)
+    return m is not None and is_nuclide_token(m.group(1)) and not _is_compound_prefix(m.group(2))
+
+
 def _is_compound_prefix(name: str) -> bool:
     """Return True if *name* is a compound prefix (needs brackets).
 
@@ -431,6 +503,8 @@ def _is_compound_prefix(name: str) -> bool:
 
     Extra brackets are never wrong, so default to compound (True).
     """
+    if _isotopic_simple_prefix(name):
+        return False
     # Check for internal locant pattern (digit or letter locant + hyphen)
     if re.search(r"[0-9]-", name):
         return True
@@ -651,7 +725,8 @@ def merge_identical_prefixes(
                 needs_brackets = False
             else:
                 multiplier = get_multiplier(count, complex=False)
-                needs_brackets = False
+                # "1,2-di[(13C)methyl]benzene" (P-82.2.1, p. 853): a nuclide's own marks would otherwise read as the multiplier's.
+                needs_brackets = _isotopic_simple_prefix(name)
         else:
             # Compound prefix
             if count == 1:
@@ -1790,7 +1865,7 @@ def _carbamic_n_subs_to_prefix(n_sub_names: list[str]) -> str:
     import dataclasses as _dc
 
     merged = merge_identical_prefixes([(n, ()) for n in n_sub_names])
-    merged.sort(key=lambda m: (m.sort_name, stereo_citation_key(m.name)))
+    merged.sort(key=lambda m: (m.sort_name, isotope_citation_key(m.name), stereo_citation_key(m.name)))
     if len(merged) > 1:
         merged = [merged[0]] + [_dc.replace(m, needs_brackets=True) for m in merged[1:]]
     return render_merged_prefixes(merged)
@@ -2164,7 +2239,7 @@ def _assemble_replacement(tree: ReplacementTree) -> str:
             prefix_name = assemble(pe.tree)
             assembled_prefixes.append((prefix_name, pe.locants))
         merged = merge_identical_prefixes(assembled_prefixes)
-        merged.sort(key=lambda m: (m.sort_name, stereo_citation_key(m.name)))
+        merged.sort(key=lambda m: (m.sort_name, isotope_citation_key(m.name), stereo_citation_key(m.name)))
         parts.append(render_merged_prefixes(merged))
 
     # 4. Replacement 'a' prefixes — sorted by locant, grouped by element for multiplier
@@ -2303,6 +2378,11 @@ def _needs_hyphen_before_stem(prev: str, stem: str) -> bool:
         return False
     head = stem[0]
     if head.isdigit():
+        return True
+    # "methyl-lambda5-phosphane": a lambda descriptor is preceded by a hyphen, as a locant is (BlueBookV2.pdf pp. 769-770 print
+    # "triphenyl-λ5-phosphanone (PIN)" and "pentamethoxy-λ5-phosphane (PIN)"). Written "lambda5" as the rest of the engine does (py2opsin's
+    # cp1252 input has no Greek).
+    if re.match(r"lambda[0-9]", stem):
         return True
     # Heteroatom locant letter at stem start (e.g. "N-oxide" style, rare)
     if head in "NOSPH" and len(stem) > 1 and stem[1] in "-,0123456789":
@@ -2826,7 +2906,7 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
         # A parent's own detachable bridge prefix ("4,5-epoxy") is cited with the substituents, alphabetically (naming round 24).
         assembled_prefixes = list(assembled_prefixes) + [(_n, tuple(_l)) for _n, _l in _bridge_prefixes]
         merged = merge_identical_prefixes(assembled_prefixes)
-        merged.sort(key=lambda m: (m.sort_name, stereo_citation_key(m.name)))
+        merged.sort(key=lambda m: (m.sort_name, isotope_citation_key(m.name), stereo_citation_key(m.name)))
 
         # P-73.4 anion-multiplicity rule for heteroatom parent hydrides:
         # When the parent is a single-atom heteroatom hydride (phosphane,

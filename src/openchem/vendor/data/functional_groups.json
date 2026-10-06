@@ -998,7 +998,7 @@
         {
             "_comment": "Phase 4 thione: both substituents must be carbons, like ketone (P-66.6.3). Restricting [!#1]\u00e2\u20ac\u00a6[!#1] to [#6]\u00e2\u20ac\u00a6[#6] avoids matching carbonothioyl halides (S=C(Cl)Cl, FC(=S)Cl, etc.), which are not thiones and were producing silent atom drops via overlap with halogen FGs.",
             "name": "thione",
-            "smarts": "[#6][CX3;H0;!$([CX3](=S)[NX3]);!$([CX3](=S)[OX2H1]);!$([CX3](=S)[OX2][#6]);!$([CX3](=S)[SX2H1]);!$([CX3](=S)[SX2][#6])](=S)[#6]",
+            "smarts": "[#6][CX3;H0;!$([CX3](=S)[NX3]);!$([CX3](=S)[OX2H1]);!$([CX3](=S)[OX2][#6]);!$([CX3](=S)[SX2H1]);!$([CX3](=S)[SX2][#6])](=[SX1])[#6]",
             "anchor_index": 1,
             "seniority": 1601,
             "bluebook_class": "16",
@@ -1009,7 +1009,7 @@
         {
             "_comment": "Stage 6 R2-G: selone = C=Se ketone-analog (P-66.6.3; OPSIN '-selone'). Accepts both H0 (internal/ring) and H1 (terminal acyclic) carbons \u00e2\u20ac\u201d OPSIN treats '-selone' as generalised across both.",
             "name": "selone",
-            "smarts": "[CX3;H0,H1;!$([CX3](=[Se])[NX3]);!$([CX3](=[Se])[OX2H1]);!$([CX3](=[Se])[OX2][#6]);!$([CX3](=[Se])[SX2H1]);!$([CX3](=[Se])[SX2][#6])](=[Se])",
+            "smarts": "[CX3;H0,H1;!$([CX3](=[Se])[NX3]);!$([CX3](=[Se])[OX2H1]);!$([CX3](=[Se])[OX2][#6]);!$([CX3](=[Se])[SX2H1]);!$([CX3](=[Se])[SX2][#6])](=[SeX1])",
             "anchor_index": 0,
             "seniority": 1602,
             "bluebook_class": "16",
@@ -1020,7 +1020,7 @@
         {
             "_comment": "Stage 6 R2-G: tellone = C=Te ketone-analog (P-66.6.3; OPSIN '-tellone'). Accepts both H0 (internal/ring) and H1 (terminal acyclic) carbons.",
             "name": "tellone",
-            "smarts": "[CX3;H0,H1;!$([CX3](=[Te])[NX3]);!$([CX3](=[Te])[OX2H1]);!$([CX3](=[Te])[OX2][#6]);!$([CX3](=[Te])[SX2H1]);!$([CX3](=[Te])[SX2][#6])](=[Te])",
+            "smarts": "[CX3;H0,H1;!$([CX3](=[Te])[NX3]);!$([CX3](=[Te])[OX2H1]);!$([CX3](=[Te])[OX2][#6]);!$([CX3](=[Te])[SX2H1]);!$([CX3](=[Te])[SX2][#6])](=[TeX1])",
             "anchor_index": 0,
             "seniority": 1603,
             "bluebook_class": "16",
