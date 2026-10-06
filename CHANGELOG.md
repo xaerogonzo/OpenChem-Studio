@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### The line chart uses the shared zoom code
+
+- `LineChartWidget` carried its own copy of the Ctrl+wheel zoom, Shift+wheel pan and double-click reset; the histogram and stick chart got `XZoomable`, and the line chart now uses it too. No behaviour change: its existing zoom, cursor and widget tests pass untouched (62 across the chart files), and about 60 lines of duplicate arithmetic are gone.
+
 ### Naming round 24: morphinans, colchicine, and bridged stereo
 
 - **Names keep their stereodescriptors on bridged rings.** The app ran the naming engine without Java on PATH, so the engine's own OPSIN checks failed and dropped the stereo of every bridged centre (camphor had no `1R,4R`). Fixed in `naming_providers.py`.
