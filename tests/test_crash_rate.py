@@ -192,3 +192,19 @@ def test_each_attempt_is_a_fresh_process_with_no_retry_and_its_own_leg_file():
     assert code.count("ci_suite_shard.ps1") == 2, "one call with -Files, one without, both inside the attempt loop"
     assert 'leg-$n.json' in code and "path: leg-*.json" in code
     assert "-ExitCode $code" in code
+
+
+def test_artifact_names_cannot_contain_the_arm_label():
+    """An arm label like 'files 0:28' holds a colon, which artifact names reject: every upload of the first
+    bisect run failed on it, and the legs' results survived only in the step logs."""
+    code = _code(_workflow())
+    for line in code.splitlines():
+        if line.strip().startswith(("name: crash-leg-", "name: crash-log-")):
+            assert "matrix.arm" not in line and "strategy.job-index" in line, line
+
+
+def test_the_job_name_survives_yaml_comment_parsing():
+    """` #` in an unquoted scalar starts a comment: the replica vanished from the job name, the three legs of
+    an arm became indistinguishable, and `gh run view --log` printed one leg's log three times."""
+    code = _code(_workflow())
+    assert 'name: "${{ matrix.arm }} / leg ${{ matrix.replica }}"' in code

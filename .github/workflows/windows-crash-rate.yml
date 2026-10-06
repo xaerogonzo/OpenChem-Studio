@@ -101,7 +101,9 @@ jobs:
           PY
 
   leg:
-    name: ${{ matrix.arm }} #${{ matrix.replica }}
+    # QUOTED: an unquoted ' #' is a YAML comment, which silently dropped the replica from the job name
+    # and made the legs of one arm indistinguishable in the log tools.
+    name: "${{ matrix.arm }} / leg ${{ matrix.replica }}"
     needs: plan
     runs-on: windows-latest
     timeout-minutes: 45
@@ -204,11 +206,13 @@ jobs:
           }
           exit 0
 
+      # ARTIFACT NAMES take no ':' (an arm label like 'files 0:28' made every upload fail), so they use the
+      # job index; the arm and replica are inside each leg's JSON.
       - name: Publish this leg
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: crash-leg-${{ matrix.arm }}-${{ matrix.replica }}
+          name: crash-leg-${{ strategy.job-index }}
           path: leg-*.json
           if-no-files-found: warn
           retention-days: 30
@@ -217,7 +221,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: crash-log-${{ matrix.arm }}-${{ matrix.replica }}
+          name: crash-log-${{ strategy.job-index }}
           path: suite-attempt-*.log
           if-no-files-found: ignore
           retention-days: 14
