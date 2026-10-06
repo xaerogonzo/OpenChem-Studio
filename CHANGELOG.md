@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### The ESOL refusal no longer recommends AqSolDB without saying what the evidence is
+
+- The refusal for N-nitro and nitrate-ester groups said "Choose the AqSolDB model", which had not been measured. Measured against the six CRC Handbook values (97th ed., Table 5-153), AqSolDB is within about half a log unit on five (RDX -0.18, nitroguanidine -0.18, tetryl +0.51, nitroglycerin -0.42, isosorbide dinitrate +0.48) and 1.72 log units too soluble on PETN, against ESOL's +1.1 to +4.3. **That agreement is not evidence.** All six compounds, and the three aromatic C-nitro controls, are in the curated AqSolDB dataset (matched by InChIKey, 9,982 rows), and for RDX, tetryl, isosorbide dinitrate and trinitrobenzene its own value equals the CRC value to the second decimal: the model was scored on its own training labels. PETN's "error" is a disagreement between data sources (AqSolDB holds -3.87, the CRC -5.20) and the model reproduced the dataset's number. The message now says it matches these compounds only because they are in its training data, and prefers a measured value. The ESOL half is unaffected: ESOL was not trained on them, which is why it justifies the refusal.
+
 ### CI: the early shard 1 crash is identified; a PySide6 downgrade is not a fix
 
 - **Bisect harness** for the Windows crash workflow: `ranges` (slices of a shard's file list, each an arm), `attempts` (fresh processes per leg, no retry), `treatments` (the same window under a different environment per arm), opt-in native minidumps (`OPENCHEM_CAPTURE_DUMPS=1`) and `OPENCHEM_PYSIDE_VERSION`; `suite_shards.py --slice=a:b`. Also fixed in it: artifact names with a colon, and an unquoted ` #` that made YAML drop the replica from the job name.
