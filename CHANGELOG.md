@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### CI: a pre-registered attempt to fix the early shard 1 crash did not work
+
+- Hypothesis: the crash is a parentless `CalculatorInspectorDialog` dying by refcount (the crashing test discards `_inspect(...)`'s return value) with its `QWebEngineView` destroyed as a child inside the dialog's destructor. Test: a `__del__` that destroys the view first, behind an env var, 100 attempts per arm on the `15:20` window, one Fisher test registered beforehand. **Result: baseline 7/100, with the change 15/100, p = 0.112: inconclusive and in the wrong direction.** The change is not merged (branch `eventfilter-hardening`); the cause is still not identified. A 3000-iteration local stress loop of the same create-and-discard pattern did not crash either.
+
 ### The ESOL refusal no longer recommends AqSolDB without saying what the evidence is
 
 - The refusal for N-nitro and nitrate-ester groups said "Choose the AqSolDB model", which had not been measured. Measured against the six CRC Handbook values (97th ed., Table 5-153), AqSolDB is within about half a log unit on five (RDX -0.18, nitroguanidine -0.18, tetryl +0.51, nitroglycerin -0.42, isosorbide dinitrate +0.48) and 1.72 log units too soluble on PETN, against ESOL's +1.1 to +4.3. **That agreement is not evidence.** All six compounds, and the three aromatic C-nitro controls, are in the curated AqSolDB dataset (matched by InChIKey, 9,982 rows), and for RDX, tetryl, isosorbide dinitrate and trinitrobenzene its own value equals the CRC value to the second decimal: the model was scored on its own training labels. PETN's "error" is a disagreement between data sources (AqSolDB holds -3.87, the CRC -5.20) and the model reproduced the dataset's number. The message now says it matches these compounds only because they are in its training data, and prefers a measured value. The ESOL half is unaffected: ESOL was not trained on them, which is why it justifies the refusal.
