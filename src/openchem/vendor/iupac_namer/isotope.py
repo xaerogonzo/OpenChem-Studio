@@ -252,8 +252,31 @@ def render_isotope_labels(labels: Iterable[IsotopeLabel]) -> str:
     return f"({body})"
 
 
+# ---------------------------------------------------------------------------
+# isotopic_prefix
+# ---------------------------------------------------------------------------
+
+
+def isotopic_prefix(prefix: str, atom: object) -> str:
+    """A one-atom substituent prefix with its atom's nuclide: ``bromo`` on ``[81Br]`` is ``(81Br)bromo``.
+
+    P-82.2.1 (BlueBookV2.pdf p. 853) cites the nuclide in enclosing marks before the name of the group it modifies: ``2-(35Cl)chloro-3-(2H3)methyl
+    (1-2H1)pentane``, ``N-[7-(131I)iodo-9H-fluoren-2-yl]acetamide``. A prefix that is ONE atom has no locant to give ("Locants are omitted when
+    there is only one atom of a given element", P-82.6.1.2, p. 860), so the label is the bare nuclide symbol and there is nothing to number.
+
+    `collect_isotope_labels` cannot do this: it labels the atoms of the PARENT, and a halogen or any other one-atom prefix is never a parent atom, so
+    its label was dropped there ("drop the label rather than emit a guess") and the name read back as the unlabelled compound. Returning the
+    prefix unchanged for a natural-abundance atom keeps every existing name exactly as it was.
+    """
+    mass = atom.GetIsotope()  # type: ignore[attr-defined]
+    if not mass:
+        return prefix
+    return f"({mass}{atom.GetSymbol()}){prefix}"  # type: ignore[attr-defined]
+
+
 __all__ = [
     "collect_isotope_labels",
+    "isotopic_prefix",
     "render_isotope_label",
     "render_isotope_labels",
 ]
