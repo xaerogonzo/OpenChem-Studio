@@ -219,15 +219,44 @@ def _compute_vb_numbering(
     return _build_locant_map(bh1, bh2, paths_sorted, directions)
 
 
+def _unsaturation_rank(
+    unsat_bonds: "list[tuple[int, int, bool]]",  # (atom, atom, is_triple)
+    locant_map: dict[int, int],
+) -> tuple:
+    """How one numbering ranks on a ring's multiple bonds, lower is better (P-31.1.4.2, P-31.1.4.3).
+
+    A bond is cited at its lower locant, and ALSO at its higher one in parentheses, a *compound* locant, when the two ends are not consecutive:
+    ``1(8)``.  For double bonds only (P-31.1.4.2) the criteria are, in order: (1) the fewest compound locants; (2) the lowest locants with the
+    parenthesised ones ignored; (3) the lowest locants counting the parenthesised ones too.  So ``bicyclo[4.2.0]oct-6-ene`` and not
+    ``oct-1(8)-ene``, although 1 < 6: the single locant outranks the lower one.  Ranking by the lower locant alone, as this did, ties the two
+    numberings of ``non-1-ene`` and ``non-1(8)-ene``, and the name text and the substituent locants then came from different ones.
+
+    With both double and triple bonds (P-31.1.4.3) the order is different: (1) the multiple bonds as one set, (2) the double bonds, (3) the
+    fewest compound locants; the final tie-break is again every locant cited.
+    """
+    pairs = []
+    for a, b, is_triple in unsat_bonds:
+        la, lb = locant_map.get(a, 9999), locant_map.get(b, 9999)
+        pairs.append((min(la, lb), max(la, lb), is_triple))
+    n_compound = sum(1 for lo, hi, _ in pairs if hi != lo + 1)
+    lows = tuple(sorted(lo for lo, _, _ in pairs))
+    cited = tuple(sorted(x for lo, hi, _ in pairs for x in ((lo,) if hi == lo + 1 else (lo, hi))))
+    if any(t for *_, t in pairs) and not all(t for *_, t in pairs):
+        double_lows = tuple(sorted(lo for lo, _, t in pairs if not t))
+        return (lows, double_lows, n_compound, cited)
+    return (n_compound, lows, cited)
+
+
 def _hetero_locants_by_element(
     heteroatoms: tuple,  # tuple[HeteroPosition]
     locant_map: dict[int, int],
 ) -> tuple[int, ...]:
-    """Heteroatom locants grouped by element, senior element first (P-31.1.4.2.4).
+    """Heteroatom locants grouped by element, senior element first (P-23.3.2.2).
 
-    Compared AFTER the heteroatoms' locants taken all together: when two
-    numberings give the same locant SET, the one that puts the senior element
+    Compared AFTER the heteroatoms' locants taken all together (P-23.3.2.1): when
+    two numberings give the same locant SET, the one that puts the senior element
     (O before S before Se before Te before N ...) on the lower locant wins,
+    ``2-oxa-4-thiabicyclo[3.2.1]octane`` (the book's example), and likewise
     ``2-oxa-5-aza`` over ``5-oxa-2-aza``.  Without this tier such a tie went to
     whichever numbering was generated first, i.e. by atom order.  The groups
     have the same sizes for every numbering of one molecule, so the flat tuple
@@ -260,7 +289,7 @@ def _best_vb_locant_maps(
     **A TIE IS NOT ONE ANSWER.**  The two mirror numberings of a symmetric
     skeleton (8-azabicyclo[3.2.1]octane has two) tie on every criterion above,
     and which one came first was decided by the SMILES atom order — so the
-    principal characteristic group (P-31.1.4) landed on locant 2 or 4 by how
+    principal characteristic group (P-14.4 (c)) landed on locant 2 or 4 by how
     the molecule happened to be written.  Returning only the first made the
     choice here, before any substituent was looked at; returning the tie lets
     ``name_bridged`` hand all of it to the strategy layer, which can.
@@ -278,7 +307,7 @@ def _best_vb_locant_maps(
     )
 
     # Find unsaturated bonds (double or triple) within the ring
-    unsat_bonds: list[tuple[int, int]] = []
+    unsat_bonds: list[tuple[int, int, bool]] = []
     seen_b: set[tuple[int, int]] = set()
     for atom_idx in ring_atom_set:
         atom = mol.GetAtomWithIdx(atom_idx)
@@ -292,7 +321,7 @@ def _best_vb_locant_maps(
             seen_b.add(bkey)
             bond = mol.GetBondBetweenAtoms(atom_idx, nb_idx)
             if bond is not None and bond.GetBondType() in (BondType.DOUBLE, BondType.TRIPLE):
-                unsat_bonds.append(bkey)
+                unsat_bonds.append((*bkey, bond.GetBondType() == BondType.TRIPLE))
 
     best_maps: list[dict[int, int]] = []
     best_score: tuple | None = None
@@ -301,16 +330,13 @@ def _best_vb_locant_maps(
         """Lower score = better (lowest locants first)."""
         # Score 1: sorted heteroatom locants, all elements together
         hetero_locs = sorted(locant_map.get(a, 9999) for a in heteroatom_idxs)
-        # Score 1b: then senior element on the lower locant (P-31.1.4.2.4)
+        # Score 1b: then senior element on the lower locant (P-23.3.2.2)
         hetero_by_elem = _hetero_locants_by_element(ring_system.heteroatoms, locant_map)
-        # Score 2: sorted unsaturation locants (lower atom of each bond)
-        unsat_locs = sorted(
-            min(locant_map.get(a, 9999), locant_map.get(b, 9999))
-            for a, b in unsat_bonds
-        )
+        # Score 2: the multiple bonds (P-31.1.4.2, P-31.1.4.3): fewest compound locants first
+        unsat_rank = _unsaturation_rank(unsat_bonds, locant_map)
         # Score 3: full locant set as tiebreaker
         all_locs = sorted(locant_map.values())
-        return tuple(hetero_locs) + hetero_by_elem + tuple(unsat_locs) + tuple(all_locs)
+        return (tuple(hetero_locs), hetero_by_elem, unsat_rank, tuple(all_locs))
 
     for bh1, bh2, paths_sorted in triples:
         for bh_swap in (False, True):
@@ -416,56 +442,57 @@ def _best_vb_locant_maps_with_secondaries(
     ring_system: "RingSystem",
     bridge_sizes: tuple[int, ...],
     mol,
-) -> list[dict[int, int]]:
-    """Every VB locant map for a ring with secondary bridges that ties for best.
+) -> "list[tuple[dict[int, int], tuple]]":
+    """Every VB locant map for a ring with secondary bridges that ties for best, each with ITS decomposition's secondary bridges.
 
-    Enumerates all main-bicycle numberings (via the existing triple / path
-    permutation machinery), extends each with secondary bridge interiors,
-    and keeps all of those minimising (in priority order):
+    Enumerates the numberings of EVERY decomposition tied for best (`vb_decompose.best_decompositions`, not the first one the perception
+    layer took), extends each with its secondary bridge interiors, and keeps all of those minimising, in the book's order:
 
-    1. Heteroatom locant set (P-31.1.3)
-    2. Unsaturation locants (P-23.3)
-    3. Secondary bridge superscript locants (P-23.2.5)
-    4. Full locant set
+    1. The secondary-bridge superscripts, as a set and then in citation order (P-23.2.6.2.4, .5): the fixed numbering of the hydrocarbon.
+    2. The heteroatoms taken together, then the senior element on the lower locant (P-23.3.2.1, .2)
+    3. The multiple bonds (P-31.1.4.2, P-31.1.4.3)
+    4. The substituent-bearing atoms (a stand-in for the strategy layer's criteria, see below)
+    5. The full locant set
 
-    In generation order; see ``_best_vb_locant_maps`` for why the tie is
-    returned whole.
+    Superscripts come BEFORE the heteroatoms: "Numbering is determined first by the fixed numbering of the hydrocarbon system" (P-23.3.1). They
+    came after them, and after the substituents, but only one decomposition was ever explored so that order could not matter. With every
+    tied decomposition explored it does, and for a symmetric cage it is the heteroatom that must choose among them: 2-azaadamantane was
+    `2-aza`, `9-aza` or `10-aza` by how its SMILES was written.
 
-    Falls back to ``_best_vb_locant_maps`` if no secondary bridges are
-    defined.
+    The pairs are in generation order; see ``_best_vb_locant_maps`` for why the tie is returned whole. The secondary bridges are returned with
+    each map because they differ from one decomposition to the next and the descriptor is written from the chosen one.
+
+    Falls back to ``_best_vb_locant_maps`` if no secondary bridges are defined.
     """
     import itertools as _itertools
     from rdkit.Chem import BondType
 
     secondary_bridges = ring_system.secondary_bridges or ()
     if not secondary_bridges:
-        return _best_vb_locant_maps(ring_system, bridge_sizes, mol)
+        return [(m, ()) for m in _best_vb_locant_maps(ring_system, bridge_sizes, mol)]
 
     triples = _find_bridgeheads_and_paths(ring_system, bridge_sizes, mol)
+    # (bh1, bh2, main paths, secondary bridges). A triple found directly belongs to the decomposition the perception layer chose.
+    candidates = [(bh1, bh2, paths, secondary_bridges) for bh1, bh2, paths in triples]
     # The structured decomposition's bridgeheads may not appear in ``triples``
     # because that helper filters by exact bridge-size match.  If we can't get
-    # main-bicycle triples directly, derive them from the decomposition
-    # bridgeheads.
-    if not triples:
-        # Derive from ring_system.atom_indices + mol — use any valid main
-        # bridgehead pair with 2+ disjoint paths of the required sizes.
-        from openchem.vendor.iupac_namer.ring_naming.vb_decompose import (
-            decompose_ring_system,
-        )
-        decomps = decompose_ring_system(ring_system.atom_indices, mol)
-        if not decomps:
+    # main-bicycle triples directly, derive them from the decompositions.
+    if not candidates:
+        from openchem.vendor.iupac_namer.ring_naming.vb_decompose import best_decompositions
+
+        for d in best_decompositions(ring_system.atom_indices, mol):
+            main_paths = [list(p) for p in d.main_bridges]
+            main_paths.sort(key=len, reverse=True)
+            candidates.append((d.bh1, d.bh2, main_paths, d.secondary_bridges))
+        if not candidates:
             return []
-        d = decomps[0]
-        main_paths = [list(p) for p in d.main_bridges]
-        main_paths.sort(key=len, reverse=True)
-        triples = [(d.bh1, d.bh2, main_paths)]
 
     ring_atom_set = ring_system.atom_indices
     heteroatom_idxs = frozenset(
         hp.atom_idx for hp in (ring_system.heteroatoms or ())
     )
 
-    unsat_bonds: list[tuple[int, int]] = []
+    unsat_bonds: list[tuple[int, int, bool]] = []
     seen_b: set[tuple[int, int]] = set()
     for atom_idx in ring_atom_set:
         atom = mol.GetAtomWithIdx(atom_idx)
@@ -479,7 +506,7 @@ def _best_vb_locant_maps_with_secondaries(
             seen_b.add(bkey)
             bond = mol.GetBondBetweenAtoms(atom_idx, nb_idx)
             if bond is not None and bond.GetBondType() in (BondType.DOUBLE, BondType.TRIPLE):
-                unsat_bonds.append(bkey)
+                unsat_bonds.append((*bkey, bond.GetBondType() == BondType.TRIPLE))
 
     total_atoms = len(ring_atom_set)
 
@@ -501,37 +528,37 @@ def _best_vb_locant_maps_with_secondaries(
                 substituent_atoms.add(atom_idx)
                 break
 
-    def _score(locant_map: dict[int, int]) -> tuple:
+    def _score(locant_map: dict[int, int], sec_bridges) -> tuple:
         hetero_locs = sorted(locant_map.get(a, 9999) for a in heteroatom_idxs)
-        unsat_locs = sorted(
-            min(locant_map.get(a, 9999), locant_map.get(b, 9999))
-            for a, b in unsat_bonds
-        )
+        unsat_rank = _unsaturation_rank(unsat_bonds, locant_map)
         # Substituent-bearing atom locants (proxy for P-23.2.5 criterion d).
         sub_locs = sorted(locant_map.get(a, 9999) for a in substituent_atoms)
-        # Secondary bridge superscript locant pairs (sorted by bridge size desc)
-        sec_scored: list[tuple] = []
-        for (a, b), interior in sorted(
-            secondary_bridges, key=lambda sb: -len(sb[1])
-        ):
+        # Secondary bridge superscript pairs in citation order: longer bridges first (P-23.2.6.1.2), and of equal length the lower pair
+        # first, which is the order that gives the lowest locants in the sequence cited (P-23.2.6.2.5).
+        cited: list[tuple[int, int, int]] = []
+        for (a, b), interior in sec_bridges:
             la = locant_map.get(a, 9999)
             lb = locant_map.get(b, 9999)
-            lo, hi = (la, lb) if la <= lb else (lb, la)
-            sec_scored.append((lo, hi))
+            cited.append((-len(interior), min(la, lb), max(la, lb)))
+        cited.sort()
+        sec_in_order = tuple((lo, hi) for _, lo, hi in cited)
+        # P-23.2.6.2.4 compares them as a set in ascending order (first point of difference), then P-23.2.6.2.5 in citation order.
+        sec_as_set = tuple(sorted(x for lo, hi in sec_in_order for x in (lo, hi)))
         all_locs = sorted(locant_map.values())
         return (
+            sec_as_set,
+            sec_in_order,
             tuple(hetero_locs),
             _hetero_locants_by_element(ring_system.heteroatoms, locant_map),
-            tuple(unsat_locs),
+            unsat_rank,
             tuple(sub_locs),
-            tuple(sec_scored),
             tuple(all_locs),
         )
 
-    best_maps: list[dict[int, int]] = []
+    best_maps: "list[tuple[dict[int, int], tuple]]" = []
     best_score: tuple | None = None
 
-    for bh1, bh2, paths_sorted in triples:
+    for bh1, bh2, paths_sorted, sec_bridges in candidates:
         for bh_swap in (False, True):
             if bh_swap:
                 actual_bh1, actual_bh2 = bh2, bh1
@@ -566,16 +593,16 @@ def _best_vb_locant_maps_with_secondaries(
                 if lm is None:
                     continue
                 ext = _extend_locant_map_over_secondaries(
-                    lm, secondary_bridges, total_atoms
+                    lm, sec_bridges, total_atoms
                 )
                 if ext is None:
                     continue
-                s = _score(ext)
+                s = _score(ext, sec_bridges)
                 if best_score is None or s < best_score:
                     best_score = s
-                    best_maps = [ext]
+                    best_maps = [(ext, sec_bridges)]
                 elif s == best_score:
-                    best_maps.append(ext)
+                    best_maps.append((ext, sec_bridges))
 
     return best_maps
 
@@ -970,6 +997,7 @@ def _baked_name_parts(
     ring_system: "RingSystem",
     locant_map: dict[int, int],
     mol,
+    secondary_bridges: "tuple | None" = None,
 ) -> tuple | None:
     """What ``name_bridged`` writes into the name text from ONE locant map.
 
@@ -985,10 +1013,13 @@ def _baked_name_parts(
     from differing there: a later change to the score must not be able to pair
     a numbering with a prefix it did not write.
 
+    ``secondary_bridges`` are those of the decomposition the map was numbered from, which need not be the perceived one; given none, the ring
+    system's own are read.
+
     ``None`` when a locant needed for the text is missing.
     """
     secondary: list[tuple[int, int, int]] = []
-    for (a, b), interior in ring_system.secondary_bridges or ():
+    for (a, b), interior in (ring_system.secondary_bridges if secondary_bridges is None else secondary_bridges) or ():
         la, lb = locant_map.get(a), locant_map.get(b)
         if la is None or lb is None:
             return None
@@ -1058,14 +1089,16 @@ def name_bridged(
     # that gives the lowest locant set for unsaturation (double/triple bonds),
     # then for heteroatoms.  This implements IUPAC P-23.3 unsaturation priority.
     if n_secondary > 0:
-        tied_locant_maps = _best_vb_locant_maps_with_secondaries(
+        tied_numberings = _best_vb_locant_maps_with_secondaries(
             ring_system, sorted_bridges, mol
         )
     else:
-        tied_locant_maps = _best_vb_locant_maps(ring_system, sorted_bridges, mol)
+        tied_numberings = [(m, ()) for m in _best_vb_locant_maps(ring_system, sorted_bridges, mol)]
     # The first of a tie writes the name; ALL of the tie that write the same
     # name are pinned below, so the strategy layer can still choose among them.
-    locant_map = tied_locant_maps[0] if tied_locant_maps else None
+    # Each carries the secondary bridges of the decomposition it was numbered from: they differ from one tied decomposition to the next, and the
+    # descriptor is written from this one's, not from the one perception happened to choose.
+    locant_map, chosen_secondary = tied_numberings[0] if tied_numberings else (None, ())
 
     # Append secondary-bridge segments to the descriptor string.
     # Each secondary bridge has size k (possibly 0) and endpoints whose
@@ -1073,7 +1106,7 @@ def name_bridged(
     # bridge under the current numbering; IUPAC convention).
     if n_secondary > 0 and locant_map is not None:
         sec_segments: list[tuple[int, int, int]] = []  # (size, p, q)
-        for (a, b), interior in ring_system.secondary_bridges:
+        for (a, b), interior in chosen_secondary:
             la = locant_map.get(a)
             lb = locant_map.get(b)
             if la is None or lb is None:
@@ -1211,7 +1244,7 @@ def name_bridged(
     # characteristic group's locant by atom order: 8-azabicyclo[3.2.1]octane
     # has two mirror numberings, and `OC(=O)C1C2CCC(CC1O)N2C` was
     # "...-2-carboxylic acid" or "...-4-carboxylic acid" by how it was
-    # written.  P-31.1.4 (suffix lowest, then prefixes) is the strategy
+    # written.  P-14.4 (c) and (f) (suffix lowest, then prefixes) are the strategy
     # layer's to apply, and it can only apply it to a choice it is given.
     #
     # The numbering that used to be the ONLY option goes LAST.  When the strategy
@@ -1221,17 +1254,18 @@ def name_bridged(
     # and `_break_alphanumerical_tie`.  Offering the tie in generation order made
     # the second numbering win those ties instead of the first, which flipped
     # `(1R,5S)-...` to `(1S,5R)-...` for two names round 25 had pinned.  Ordering
-    # this way changes nothing for a tie that nothing can break; the principled
-    # rule, R before S at the first point of difference, is not implemented and
-    # is recorded as open in CHANGELOG.md.
+    # this way changes nothing for a tie that nothing can break.  P-14.4 (j), R
+    # before S at the first point of difference, now decides those meso ties
+    # itself (engine._stereo_locant_key); this order is what is left for a tie
+    # NO criterion can break, which resolves as it always did.
     needs_hetero_pin = bool(heteroatoms) and locant_map is not None
     if locant_map is not None and (n_secondary > 0 or needs_hetero_pin):
         from openchem.vendor.iupac_namer.ring_naming.numbering import _make_numbering
-        written = _baked_name_parts(ring_system, locant_map, mol)
+        written = _baked_name_parts(ring_system, locant_map, mol, chosen_secondary)
         seen_orders: set[tuple[int, ...]] = set()
         pinned: list[Numbering] = []
-        for tied in tied_locant_maps:
-            if _baked_name_parts(ring_system, tied, mol) != written:
+        for tied, tied_secondary in tied_numberings:
+            if _baked_name_parts(ring_system, tied, mol, tied_secondary) != written:
                 continue
             ordered_atoms = sorted(tied.keys(), key=lambda a: tied[a])
             if tuple(ordered_atoms) in seen_orders:
