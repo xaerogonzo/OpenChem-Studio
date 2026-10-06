@@ -1179,7 +1179,11 @@ def esol_domain_warning(mol: Chem.Mol) -> str:
         "so expect this number to be too high. The AqSolDB model (Tools > External Tools sets it up) is "
         "closer on the cyclic nitramines -- within about 0.1 on CL-20, which is not in its training data -- "
         "but not on nitrate esters: 1.2 log units too low on glycerol 1,2-dinitrate, also outside its "
-        "training data, and 1.7 too high on PETN. Use a measured value where you have one."
+        "training data, and 1.7 too high on PETN. A separate set of nine aliphatic nitrate esters and "
+        "nitramines from the EPA OPERA water-solubility data, none of them in AqSolDB, agrees: ESOL is too "
+        "high on all nine (by 0.5 to 2.6), while the AqSolDB model is within 0.3 on eight of them. Those "
+        "values are curated but their sources are not traced, so they are kept apart from the ten. "
+        "Use a measured value where you have one."
     )
 
 

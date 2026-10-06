@@ -1283,6 +1283,54 @@ def test_esol_overpredicts_on_every_one_of_the_ten_but_is_only_slightly_off_on_t
     assert all(0.3 < error < 1.0 for error in small), small
 
 
+#: A SEPARATE evidence set, kept out of the ten: the EPA OPERA water-solubility table (OPERA_Data.zip, WS_2.9_update.csv,
+#: logS in mol/L, fetched 2026-10-06). Every compound is absent from AqSolDB (InChIKey first block checked against the
+#: curated file), so the AqSolDB column is an out-of-training test. The sources behind the values are NOT traced
+#: (OPERA aggregates PubChem, OChem and eChemPortal entries; temperatures are not stated; two are rounded to one
+#: figure), and erythrityl tetranitrate's "PubChem(2)" value may include a predicted figure, so none of this joins
+#: the ten. Last column: the AqSolDB model's logS measured on the same day (cannot run in the suite).
+#: (name, CAS, SMILES, OPERA logS, AqSolDB model logS)
+_OPERA_ALIPHATIC_NITRO = [
+    ("propylene dinitrate", "6423-43-4", "CC(CO[N+](=O)[O-])O[N+](=O)[O-]", -2.22, -2.04),
+    ("erythrityl tetranitrate", "7297-25-8", "[O-][N+](=O)OC(CO[N+]([O-])=O)C(CO[N+]([O-])=O)O[N+]([O-])=O", -3.19, -3.17),
+    ("N,N'-dinitroethylenediamine", "505-71-5", "[O-][N+](=O)NCCN[N+]([O-])=O", -1.81, -1.59),
+    ("trimethylolethane trinitrate", "3032-55-1", "CC(CO[N+]([O-])=O)(CO[N+]([O-])=O)CO[N+]([O-])=O", -2.69, -2.97),
+    ("nitroisobutylglycerol trinitrate", "20820-44-4", "[O-][N+](=O)C(CO[N+]([O-])=O)(CO[N+]([O-])=O)CO[N+]([O-])=O", -2.54, -3.42),
+    ("1,3-dinitroimidazolidine", "5754-91-6", "[O-][N+](=O)N1CN(CC1)[N+]([O-])=O", -2.21, -2.35),
+    ("butyl-NENA", "82486-82-6", "CCCCN(CCO[N+]([O-])=O)[N+]([O-])=O", -2.53, -2.55),
+    ("mannitol pentanitrate", "30236-28-3", "[O-][N+](=O)OC(C(O)C(CO[N+]([O-])=O)O[N+]([O-])=O)C(CO[N+]([O-])=O)O[N+]([O-])=O", -3.09, -3.33),
+    ("isosorbide 5-mononitrate", "16051-77-7", "[O-][N+](=O)OC1COC2C(O)COC12", -0.53, -0.80),
+]
+#: The two aromatic N-nitro compounds in the same table: ESOL is NOT wrong on them, which is why the warning's
+#: claim is about aliphatic nitrate esters and nitramines and the set is reported with them separate.
+_OPERA_AROMATIC_N_NITRO = [
+    ("N-nitroaniline", "645-55-6", "[O-][N+](=O)NC1C=CC=CC=1", -2.00, -1.88),
+    ("N-(4-nitrophenyl)nitramide", "20020-13-7", "[O-][N+](=O)C1C=CC(=CC=1)N[N+]([O-])=O", -2.00, -3.12),
+]
+
+
+def test_the_separate_opera_set_agrees_that_esol_runs_high_on_aliphatic_nitro_compounds():
+    """The sentence in the warning ("too high on all nine (by 0.5 to 2.6)", AqSolDB "within 0.3 on eight") is this."""
+    esol = [esol_logs(mol(s)) - logs for _n, _c, s, logs, _a in _OPERA_ALIPHATIC_NITRO]
+    assert len(esol) == 9 and all(error > 0.4 for error in esol), esol
+    assert min(esol) == pytest.approx(0.5, abs=0.05) and max(esol) == pytest.approx(2.6, abs=0.05)
+    assert sum(esol) / len(esol) == pytest.approx(1.8, abs=0.05)
+    aq = [a - logs for _n, _c, _s, logs, a in _OPERA_ALIPHATIC_NITRO]
+    assert sum(abs(error) <= 0.3 for error in aq) == 8, aq
+
+
+def test_the_opera_aromatic_n_nitro_compounds_are_the_counterexample_esol_is_fine_on():
+    errors = [esol_logs(mol(s)) - logs for _n, _c, s, logs, _a in _OPERA_AROMATIC_N_NITRO]
+    assert all(abs(error) < 0.2 for error in errors), errors
+
+
+def test_the_warning_fires_on_every_opera_compound_including_the_two_it_is_over_cautious_about():
+    from openchem.chem.solubility import esol_domain_warning
+
+    for name, _c, s, _l, _a in _OPERA_ALIPHATIC_NITRO + _OPERA_AROMATIC_N_NITRO:
+        assert esol_domain_warning(mol(s)), name
+
+
 def _fact_labelled(report, label_start: str):
     return next(f for f in report.facts if f.label.startswith(label_start))
 
@@ -1292,7 +1340,7 @@ def test_the_warning_quotes_the_ten_compound_evidence_and_the_limits_of_the_alte
     assert report.cache_state.value != "failed", "a warning, not a refusal: the number is still returned"
     text = report.limitations[0]
     for fragment in ("ten compounds", "0.4 to 5.4 log", "more than 1.0 on seven", "CL-20", "glycerol 1,2-dinitrate",
-                     "PETN", "too high"):
+                     "PETN", "too high", "OPERA", "within 0.3 on eight"):
         assert fragment in text, fragment
 
 
