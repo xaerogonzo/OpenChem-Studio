@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### The ESOL warning cites a second, separate evidence set (EPA OPERA)
+
+- The EPA OPERA water-solubility table holds nine aliphatic nitrate esters and nitramines (propylene dinitrate, erythrityl tetranitrate, N,N'-dinitroethylenediamine, trimethylolethane trinitrate, nitroisobutylglycerol trinitrate, 1,3-dinitroimidazolidine, butyl-NENA, mannitol pentanitrate, isosorbide mononitrate), none of them in AqSolDB. ESOL is too high on all nine, by 0.5 to 2.6 log units (mean 1.8); the AqSolDB model is within 0.3 on eight and 0.9 low on the ninth. The two aromatic N-nitro compounds in the same table are the counterexample: ESOL is within 0.15 on both N-nitroaniline and N-(4-nitrophenyl)nitramide (the warning still fires on them, so it is over-cautious there; the AqSolDB model is 1.1 low on the second). The set is kept apart from the ten measured compounds because OPERA's own sources are not traced (temperatures unstated, two values rounded to one figure, erythrityl tetranitrate possibly including a predicted figure). The warning gains one sentence saying so; the ten-compound numbers are unchanged. Evidence and the AqSolDB predictions are recorded in `tests/test_solubility.py`.
+
 ### The glycerol dinitrate solubilities are checked against their primary paper
 
 - Dunstan, Griffiths and Harvey (J. Chem. Soc. 1965, 1319; now held) measured the two dinitrates in water at 20 C (saturated at 25 C, cooled, aliquots weighed and evaporated; mean of three): 6.57 g/100 g water for the 1,2-isomer and 7.84 g/100 g for the 1,3-isomer. The handbook's 61.65 and 72.70 g/L are exactly those figures read as g per kg of solution taken as g/L, so the two values the ten-compound evidence uses are confirmed, and the density assumption shifts logS by about 0.01. The ethyl tetryl value (the handbook's source is a 1926 Desvergnes paper in a French trade journal) remains the handbook's alone: it has no DOI, the Internet Archive scans of the journal stop at 1909, and it is recorded as the weakest of the ten. Nothing in the evidence or the warning changes.
