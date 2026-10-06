@@ -43,6 +43,15 @@ on:
       revert:
         description: 'Optional: space-separated SHAs to revert for a "reverted" control arm (e.g. 655abcc9)'
         default: ''
+      ranges:
+        description: 'BISECT MODE: comma-separated slices of the shard file list, e.g. "0:28,10:28". Each is an arm; replaces as-is/reverted. Empty = the whole shard.'
+        default: ''
+      attempts:
+        description: 'Attempts per leg (fresh process each). Use >1 only with ranges, where an attempt takes minutes, not 25.'
+        default: '1'
+      treatments:
+        description: 'TREATMENT MODE: JSON list of arms [{"label":"baseline","range":"15:20","env":{}},{"label":"x","range":"15:20","env":{"NAME":"VALUE"}}]. Same window, different environment per arm. Replaces ranges/revert.'
+        default: ''
 
 permissions:
   contents: read
@@ -64,6 +73,9 @@ jobs:
           REPLICAS: ${{ inputs.replicas }}
           REVERT: ${{ inputs.revert }}
           SHARD: ${{ inputs.shard }}
+          RANGES: ${{ inputs.ranges }}
+          ATTEMPTS: ${{ inputs.attempts }}
+          TREATMENTS: ${{ inputs.treatments }}
         run: |
           python3 - <<'PY'
           import json, os
@@ -72,16 +84,46 @@ jobs:
               raise SystemExit("replicas must be between 1 and 30")
           if os.environ["SHARD"] not in ("1", "2"):
               raise SystemExit("shard must be 1 or 2")
-          arms = ["as-is"] + (["reverted"] if os.environ["REVERT"].strip() else [])
-          matrix = {"include": [{"arm": a, "replica": r} for a in arms for r in range(1, replicas + 1)]}
+          attempts = int(os.environ["ATTEMPTS"])
+          if not 1 <= attempts <= 40:
+              raise SystemExit("attempts must be between 1 and 40")
+          ranges = [r.strip() for r in os.environ["RANGES"].split(",") if r.strip()]
+          treatments = os.environ["TREATMENTS"].strip()
+          if treatments and (ranges or os.environ["REVERT"].strip()):
+              raise SystemExit("treatments, ranges and revert are different experiments; use one")
+          if ranges and os.environ["REVERT"].strip():
+              raise SystemExit("ranges and revert are different experiments; use one")
+          if attempts > 1 and not (ranges or treatments):
+              raise SystemExit("attempts > 1 is for ranges or treatments (a whole-shard attempt takes ~25 minutes)")
+          envs = {}
+          if treatments:
+              # One arm per treatment: the same window under a different environment. Labels must be unique,
+              # and an env value must be a string (it becomes an environment variable).
+              listed = json.loads(treatments)
+              labels = [t["label"] for t in listed]
+              if len(set(labels)) != len(labels):
+                  raise SystemExit("treatment labels must be unique")
+              for t in listed:
+                  if not all(isinstance(k, str) and isinstance(v, str) for k, v in t.get("env", {}).items()):
+                      raise SystemExit("treatment env must map strings to strings")
+              arms = [(t["label"], t.get("range", "")) for t in listed]
+              envs = {t["label"]: json.dumps(t.get("env", {})) for t in listed}
+          elif ranges:
+              # One arm per slice, labelled by the slice, so the report compares them.
+              arms = [(f"files {r}", r) for r in ranges]
+          else:
+              arms = [("as-is", "")] + ([("reverted", "")] if os.environ["REVERT"].strip() else [])
+          matrix = {"include": [{"arm": a, "range": r, "env": envs.get(a, "{}"), "replica": i} for a, r in arms for i in range(1, replicas + 1)]}
           with open(os.environ["GITHUB_OUTPUT"], "a") as out:
               out.write("matrix=" + json.dumps(matrix) + "\n")
-              out.write("expected=" + json.dumps({a: replicas for a in arms}) + "\n")
-          print(f"{len(matrix['include'])} legs across {arms}")
+              out.write("expected=" + json.dumps({a: replicas * attempts for a, _ in arms}) + "\n")
+          print(f"{len(matrix['include'])} legs x {attempts} attempt(s) across {[a for a, _ in arms]}")
           PY
 
   leg:
-    name: ${{ matrix.arm }} #${{ matrix.replica }}
+    # QUOTED: an unquoted ' #' is a YAML comment, which silently dropped the replica from the job name
+    # and made the legs of one arm indistinguishable in the log tools.
+    name: "${{ matrix.arm }} / leg ${{ matrix.replica }}"
     needs: plan
     runs-on: windows-latest
     timeout-minutes: 45
@@ -140,45 +182,111 @@ jobs:
       - name: Sync dependencies
         run: uv sync --extra ai --extra network --extra openbabel
 
-      # ONE attempt, no retry, exit 0 whatever happened: the outcome is the measurement.
-      - name: Run the shard once and record how it ended
+      # `attempts` fresh processes per leg (1 for a whole-shard run), NO retry in any of them, exit 0 whatever
+      # happened: every outcome is the measurement. With `ranges`, only that slice of the shard's file list
+      # runs, which is what makes many attempts per leg affordable.
+      - name: Run the shard and record how each attempt ended
         shell: pwsh
-        timeout-minutes: 35
+        timeout-minutes: 40
         env:
           SHARD: ${{ inputs.shard }}
           REF_INPUT: ${{ inputs.ref }}
           ARM: ${{ matrix.arm }}
           REPLICA: ${{ matrix.replica }}
+          RANGE: ${{ matrix.range }}
+          ATTEMPTS: ${{ inputs.attempts }}
+          TREATMENT_ENV: ${{ matrix.env }}
         run: |
-          $watch = [Diagnostics.Stopwatch]::StartNew()
-          ./tools/ci_suite_shard.ps1 -Shard $env:SHARD -Log suite-attempt-1.log -NetworkTest "$env:NETWORK_TEST"
-          $code = $LASTEXITCODE
-          $out = ./tools/ci_classify_crash.ps1 -Log suite-attempt-1.log -Shard $env:SHARD -ExitCode $code
-          $crashed = if ($out -contains 'crashed=true') { 'true' } else { 'false' }
-          $detail = ($out | Where-Object { $_ -like 'detail=*' } | Select-Object -First 1)
-          if ($detail) { $detail = $detail.Substring(7) } else { $detail = '' }
-          uv run --no-sync python tools/crash_rate.py leg `
-            --arm "$env:ARM" --replica "$env:REPLICA" `
-            --exit-code $code --crashed $crashed --seconds $watch.Elapsed.TotalSeconds `
-            --detail "$detail" --ref "$env:REF_INPUT" --out leg.json
-          Get-Content leg.json
+          # A treatment arm's environment, applied to every attempt of this leg (and only this leg's processes).
+          $applied = @()
+          if ($env:TREATMENT_ENV -and $env:TREATMENT_ENV -ne '{}') {
+            foreach ($entry in ($env:TREATMENT_ENV | ConvertFrom-Json).PSObject.Properties) {
+              Set-Item -Path "Env:$($entry.Name)" -Value $entry.Value
+              $applied += "$($entry.Name)=$($entry.Value)"
+            }
+            Write-Host "treatment environment: $($applied -join '; ')"
+          }
+          # NATIVE CRASH DUMPS (a treatment sets OPENCHEM_CAPTURE_DUMPS=1). faulthandler shows only Python
+          # frames, and the early shard 1 crash has none outside pytest, so the faulting DLL is unknown.
+          # Windows Error Reporting writes a minidump per crashed process (python.exe, and also any
+          # QtWebEngineProcess.exe helper) to ./dumps, uploaded below; the exception address names the module.
+          if ($env:OPENCHEM_CAPTURE_DUMPS -eq '1') {
+            $dumps = Join-Path $PWD 'dumps'
+            New-Item -ItemType Directory -Force $dumps | Out-Null
+            $wer = 'HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps'
+            New-Item -Path $wer -Force | Out-Null
+            New-ItemProperty -Path $wer -Name DumpFolder -Value $dumps -PropertyType ExpandString -Force | Out-Null
+            New-ItemProperty -Path $wer -Name DumpCount -Value 40 -PropertyType DWord -Force | Out-Null
+            New-ItemProperty -Path $wer -Name DumpType -Value 1 -PropertyType DWord -Force | Out-Null
+            Write-Host "crash dumps (minidump, WER LocalDumps) go to $dumps"
+          }
+          # PYSIDE6 VERSION TREATMENT (OPENCHEM_PYSIDE_VERSION=x.y.z): the early shard 1 crash is a null read in
+          # shiboken6's BindingManager::releaseWrapper (PySide6 6.11.1), so the library version is a variable.
+          # The four packages must match exactly; the interpreter and everything else stay as locked.
+          if ($env:OPENCHEM_PYSIDE_VERSION) {
+            $v = $env:OPENCHEM_PYSIDE_VERSION
+            uv pip install "PySide6==$v" "PySide6-Essentials==$v" "PySide6-Addons==$v" "shiboken6==$v"
+            if ($LASTEXITCODE -ne 0) { throw "could not install PySide6 $v" }
+          }
+          uv run --no-sync python -c "import PySide6, shiboken6; print('PySide6', PySide6.__version__, 'shiboken6', shiboken6.__version__)"
+          $files = @()
+          if ($env:RANGE) {
+            $files = @(uv run --no-sync python tools/suite_shards.py --splits=2 --group=$env:SHARD --slice=$env:RANGE)
+            Write-Host "slice $($env:RANGE) of shard $($env:SHARD): $($files.Count) files, first $($files[0]), last $($files[-1])"
+          }
+          $attempts = [int]$env:ATTEMPTS
+          for ($n = 1; $n -le $attempts; $n++) {
+            $log = "suite-attempt-$n.log"
+            $watch = [Diagnostics.Stopwatch]::StartNew()
+            if ($files.Count -gt 0) {
+              ./tools/ci_suite_shard.ps1 -Shard $env:SHARD -Log $log -NetworkTest "$env:NETWORK_TEST" -Files $files
+            } else {
+              ./tools/ci_suite_shard.ps1 -Shard $env:SHARD -Log $log -NetworkTest "$env:NETWORK_TEST"
+            }
+            $code = $LASTEXITCODE
+            $out = ./tools/ci_classify_crash.ps1 -Log $log -Shard $env:SHARD -ExitCode $code
+            $crashed = if ($out -contains 'crashed=true') { 'true' } else { 'false' }
+            $detail = ($out | Where-Object { $_ -like 'detail=*' } | Select-Object -First 1)
+            if ($detail) { $detail = $detail.Substring(7) } else { $detail = '' }
+            $replica = if ($attempts -gt 1) { "$($env:REPLICA).$n" } else { "$($env:REPLICA)" }
+            uv run --no-sync python tools/crash_rate.py leg `
+              --arm "$env:ARM" --replica "$replica" `
+              --exit-code $code --crashed $crashed --seconds $watch.Elapsed.TotalSeconds `
+              --detail "$detail" --ref "$env:REF_INPUT" --out "leg-$n.json"
+            Get-Content "leg-$n.json"
+            # Keep the log of any attempt that did not pass cleanly: a crash (the victim) and a FAILED run (the
+            # failing tests, which a compatibility check such as a PySide6 version swap is about). Only a clean
+            # pass is megabytes of dots nobody needs.
+            if ($code -eq 0 -and $crashed -ne 'true') { Remove-Item $log -ErrorAction SilentlyContinue }
+          }
           exit 0
 
+      # ARTIFACT NAMES take no ':' (an arm label like 'files 0:28' made every upload fail), so they use the
+      # job index; the arm and replica are inside each leg's JSON.
       - name: Publish this leg
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: crash-leg-${{ matrix.arm }}-${{ matrix.replica }}
-          path: leg.json
+          name: crash-leg-${{ strategy.job-index }}
+          path: leg-*.json
           if-no-files-found: warn
           retention-days: 30
+
+      - name: Keep any native crash dumps
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crash-dumps-${{ strategy.job-index }}
+          path: dumps/
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Keep a crashed leg's log
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: crash-log-${{ matrix.arm }}-${{ matrix.replica }}
-          path: suite-attempt-1.log
+          name: crash-log-${{ strategy.job-index }}
+          path: suite-attempt-*.log
           if-no-files-found: ignore
           retention-days: 14
 
