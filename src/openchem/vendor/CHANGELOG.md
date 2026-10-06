@@ -2021,3 +2021,29 @@ back with stereo the input lacks (exact -> same_connectivity, connectivity ident
 
 **Left open (4 of 45).** atropine, scopolamine, galantamine and ibogaine are still shown with "does not express stereochemistry"; the cause was not diagnosed. The quaternary N-methyl morphinanium falls back to von Baeyer (charged systems are not eligible). A morphinan
 N-oxide is named as an additive `17-oxide`, which OPSIN reads. The Blue Book also prints a furo-fused form for morphine; the epoxy form is used because OPSIN reads it back (the round-trip tests) and it is the book's own form for the demethyl example. Which of the two is the PIN was not settled.
+
+## 2026-10-05 -- naming round 25 (D-183 to D-186): stereo kept on four natural products, and which ester of a polyester is the principal anion
+
+Round 24 left two items open in `KNOWN_LIMITATIONS.md`; both were diagnosed first, and the four stereo losses turned out to have FOUR different causes, not one.
+
+**D-183, atropine and scopolamine: a pseudoasymmetric descriptor poisoned the rest.** The engine writes `(1R,3r,5S)` (the lowercase `r` is P-91.2, stamped by `rdCIPLabeler`). OPSIN cannot read `r`/`s`, so
+`_validate_stereo_via_opsin` rejected the candidate and its `bridged_or_spiro` mode stripped EVERY R/S, including the `1R,5S` OPSIN reads fine. New strip mode `pseudoasymmetric` (lowercase only) is tried first.
+Both now keep what OPSIN can read: `(1R,5S)-8-methyl-8-azabicyclo[3.2.1]octan-3-yl 3-hydroxy-2-phenylpropanoate`. They still carry the "does not express stereochemistry" note, correctly: **tropine and pseudotropine
+are the two C3 epimers and now share one name**, `(1R,5S)-8-methyl-8-azabicyclo[3.2.1]octan-3-ol`; the note is the only thing telling them apart. PubChem omits the pseudoasymmetric centre the same way.
+
+**D-184, galantamine: the curated table had 8a and 12a swapped.** The entry's own comment says those two junctions were "deduced by topology", and only the probed locants were right. OPSIN settles it: `8a-chloro-...`
+is a valency error (the quaternary carbon has no hydrogen), `12a-chloro-` lands on the aromatic carbon beside the CH2-N, and `(4aS,6R,8aS)-...-6-ol` reads as galantamine where the old `12aR` could not be parsed, so both
+junction descriptors were stripped. Swapped back; galantamine now round-trips exactly as `(4aS,6R,8aR)-...`.
+
+**D-185, ibogaine: a bridged system named by FUSION has letter junction locants.** The descriptor gate admitted only plain integers for a bridged parent (right for von Baeyer names, which have no letters), so `6a` was
+dropped before validation ever saw it. Admitted when the parent is not a von Baeyer or spiro name; the OPSIN validation still strips it if the name is unreadable. Ibogaine is now `(6R,6aS,7S,9S)-...`, exact.
+
+**D-186, a polyester's principal anion followed the order its atoms were written in.** Equally scored plans fall to generation order, and the ester decompositions came out in atom order, so heroin and any diacetate of a
+diol had a different name for each way of writing the SMILES (30 random SMILES each: 5 of 7 diester shapes tried gave two names). Now: (1) the decompositions are yielded senior acid last (P-65.6.3.3.3.2 method 2: "one
+anion is chosen as principal anion ... corresponding to the seniority of acids"; the book's own examples pick the larger acyl group), with RDKit's canonical class rank as the last resort; (2) among esters of the SAME
+acid, `_break_ester_tie` executes the tied plans and takes the lowest locants of the alcohol component, free valence first, then prefixes (P-31.1.4), as `_break_alphanumerical_tie` does for substitutive plans.
+`propyl` beats `propan-2-yl`, `hexan-2-yl` beats `hexan-3-yl`. Heroin moves to `(5R,6S,9R,13S,14R)-6-(acetyloxy)-4,5-epoxy-17-methyl-7,8-didehydromorphinan-3-yl acetate`.
+"Senior acid" is the SIZE of the acid side of the cut, a proxy that agrees with the four P-65.6.3.3.3.2 examples checked (`(formyloxy)methyl acetate`, `4-(acetyloxy)phenyl dichloroacetate`, `2,3-bis(acetyloxy)propyl propanoate`, the hexadecanoyl one) but is not the full P-65.1.2.3 order.
+
+**Not done: the book's PIN for a polyester is a different construction.** P-65.6.3.3.3.1 names identical anions multiplicatively, `ethane-1,2-diyl diacetate (PIN)`, `propane-1,2,3-triyl triacetate (PIN)`;
+method 2 (acyloxy) is "acceptable in general nomenclature". The engine builds no multiplicative ester, so every polyester it writes is the accepted form, now at least a stable one.

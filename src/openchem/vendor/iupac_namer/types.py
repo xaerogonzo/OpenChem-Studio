@@ -1804,12 +1804,30 @@ class Interpretation:
         # acid and alcohol fragments. Intramolecular (lactone) cases are
         # flagged on the decomposition; strategy rejects them (Phase 2d
         # handles intermolecular only).
+        # Naming round 25: the ORDER these are yielded in decides which ester of a diester is the principal anion, because equally
+        # scored plans fall to generation order (`_search_plans`: the later one is tried first) and `self.fgs` is in ATOM order. Heroin
+        # and `CC(=O)OC1CCC(OC(C)=O)CC1C` therefore got a different name for each way of writing the same SMILES. The order is now a
+        # property of the structure: the later one wins, so the SENIOR acid goes last (P-65.6.3.3.3.2 method 2: "one anion is chosen as
+        # principal anion ... corresponding to the seniority of acids"; the book's own examples all pick the larger acyl group), and equal
+        # acids fall to RDKit's canonical class rank, which does not depend on the order atoms were written in.
+        ester_decomps = []
         for fg in self.fgs:
             if fg.type not in ("ester", "sulfonate_ester"):
                 continue
             decomp = _build_ester_decomposition(fg, mol)
             if decomp is not None:
-                yield decomp
+                ester_decomps.append(decomp)
+        if len(ester_decomps) > 1:
+            from rdkit import Chem as _Chem
+
+            _ranks = list(_Chem.CanonicalRankAtoms(mol, breakTies=False))
+
+            def _ester_order_key(d):
+                acyl_size = len(d.pieces[0].atom_indices)
+                return (acyl_size, min(_ranks[i] for i in d.root_atoms))
+
+            ester_decomps.sort(key=_ester_order_key)
+        yield from ester_decomps
         # --- Functional Class: carbamates (P-66.6) ---
         for fg in self.fgs:
             if fg.type != "carbamate":

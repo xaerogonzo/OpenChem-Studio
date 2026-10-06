@@ -6364,11 +6364,20 @@ def _collect_stereo_descriptors(
                     and getattr(loc, "suffix", "").isalpha()
                 )
                 _is_admissible = _is_plain_int_locant or _is_letter_suffix_int_locant
+                # Naming round 25: a bridged system NAMED BY FUSION ("6,9-methanopyrido[1',2':1,2]azepino[4,5-b]indole", ibogaine) numbers
+                # its junctions with letters, exactly as a fused parent does, so its 6a centre was dropped here and nowhere else. Only a
+                # von Baeyer name has no letter suffixes. The post-assembly OPSIN validation still strips it if OPSIN rejects the name.
+                _bridged_named_by_fusion = (
+                    allow_bridged_tetrahedral_int_locant
+                    and ring_sys is not None and ring_sys.type == "bridged"
+                    and getattr(named_parent, "naming_method", "") not in ("von_baeyer", "spiro_systematic", "spiro_polycyclic")
+                )
                 _gate_open = (
                     (allow_fused_tetrahedral_int_locant and _is_admissible)
                     # Stage 22 R22-D: bridged parents admit only plain-int
                     # locants (von-Baeyer numbering has no letter suffixes).
                     or (allow_bridged_tetrahedral_int_locant and _is_plain_int_locant)
+                    or (_bridged_named_by_fusion and _is_admissible)
                 )
                 if not _gate_open:
                     continue
@@ -9078,6 +9087,10 @@ def _strip_tetrahedral_stereo(tree, *, mode: str):
     def _should_drop(d, parent_node) -> bool:
         if mode == "letter_suffix":
             return _stereo_descriptor_has_letter_suffix_locant(d)
+        if mode == "pseudoasymmetric":
+            # Naming round 25: only the lowercase r/s (P-91.2). OPSIN reads R/S on a bridged parent but not r/s, so
+            # dropping ALL of them (the next mode) lost the centres OPSIN reads fine: atropine's (1R,5S) went with its 3r.
+            return getattr(d, "descriptor", "") in ("r", "s") and _stereo_descriptor_is_tetrahedral_rs(d)
         if mode == "bridged_or_spiro":
             return (
                 _node_is_bridged_or_spiro_parent(parent_node)
@@ -9861,7 +9874,8 @@ def _name_smiles_bound(smiles: str, strategy) -> str:
     needs_letter_suffix_check = _name_has_letter_suffix_tetrahedral_stereo(final_name)
     needs_bridged_check = _tree_has_bridged_tetrahedral_stereo(tree)
     if needs_letter_suffix_check or needs_bridged_check:
-        modes: list[str] = []
+        # Pseudoasymmetric r/s first: OPSIN cannot read them, and dropping only them keeps every R/S it can (round 25).
+        modes: list[str] = ["pseudoasymmetric"]
         if needs_letter_suffix_check:
             modes.append("letter_suffix")
         if needs_bridged_check:
@@ -10918,6 +10932,14 @@ def _name_bound(
     if tied_winner is not None:
         _session.cache_store(smiles, output_form, fv_bond_orders, tied_winner, attachment_indices)
         return tied_winner
+    # --- Naming round 25: which ester of a polyester is the principal anion, on executed names ---
+    ester_winner = _break_ester_tie(
+        ranked_plans, mol, strategy, output_form, free_valence,
+        decision_ctx, _session, _depth,
+    )
+    if ester_winner is not None:
+        _session.cache_store(smiles, output_form, fv_bond_orders, ester_winner, attachment_indices)
+        return ester_winner
 
     # --- Execute best plan; retry on child failure ---
     best_tree = None
@@ -11123,6 +11145,79 @@ def _break_alphanumerical_tie(
         if locant_key is None:
             return None
         candidates.append((locant_key, -seq, tree))
+    if not candidates:
+        return None
+    candidates.sort(key=lambda c: (c[0], c[1]))
+    return candidates[0][2]
+
+
+def _ester_alcohol_key(tree) -> tuple | None:
+    """The alcohol component of a functional-class ester, as a comparable value: lowest locants first (P-31.1.4).
+
+    (1) the locant(s) of the free valence on the alcohol component -- `hexan-2-yl`, not `hexan-3-yl`;
+    (2) then the locants of its prefixes in citation order, the same value `_alphanumerical_locant_key` gives.
+    None when the alcohol is not a numbered substitutive name (a retained or leaf name), which this cannot decide.
+    """
+    if not isinstance(tree, FunctionalClassTree):
+        return None
+    alcohol = dict(tree.pieces).get("alcohol")
+    if not isinstance(alcohol, SubstitutiveTree) or alcohol.free_valence is None:
+        return None
+    atoms = getattr(alcohol.free_valence, "attachment_atoms_in_fragment", None)
+    if not atoms:
+        return None
+    atom_to_locant = alcohol.numbering.atom_to_locant
+    try:
+        attach = tuple(sorted(
+            (getattr(atom_to_locant[a], "_numeric_value", 0) or 0, getattr(atom_to_locant[a], "suffix", "") or "")
+            for a in atoms
+        ))
+    except KeyError:
+        return None
+    return (attach, _alphanumerical_locant_key(alcohol) or ())
+
+
+def _break_ester_tie(
+    ranked_plans, mol, strategy, output_form, free_valence, decision_ctx, session, depth,
+):
+    """Choose which ester of a polyester is the principal anion when the plans tie on everything the key sees.
+
+    P-65.6.3.3.3.2 method 2: the senior ACID is the principal anion (the plan order already puts it last, so it wins
+    a bare tie). Among esters of the SAME acid, the rest is substitutive nomenclature of the alcohol component, so
+    the lowest locants decide (P-31.1.4): the free valence first, then the prefixes. Before round 25 this was the
+    order the atoms were written in, so one molecule had two names (heroin, any diacetate of a diol).
+
+    Only esters whose acid component is the same size as the top plan's tie, so acid seniority is never overruled by
+    locants. A residual tie falls to the later-generated plan, as in `_search_plans`.
+    """
+    from openchem.vendor.iupac_namer.preference import NomenclaturePreferenceKey
+
+    if len(ranked_plans) < 2:
+        return None
+    top_key, _seq, top_plan = ranked_plans[-1]
+    if not isinstance(top_key, NomenclaturePreferenceKey) or not isinstance(top_plan, FunctionalClassPlan):
+        return None
+    if top_plan.decomposition.subtype != "ester":
+        return None
+    acid_size = len(top_plan.decomposition.pieces[0].atom_indices)
+    tied = []
+    for key, seq, plan in reversed(ranked_plans):
+        if key != top_key:
+            break
+        if (isinstance(plan, FunctionalClassPlan) and plan.decomposition.subtype == "ester"
+                and len(plan.decomposition.pieces[0].atom_indices) == acid_size):
+            tied.append((seq, plan))
+    if len(tied) < 2:
+        return None
+    candidates = []
+    for seq, plan in tied:
+        tree = _execute_plan(plan, mol, strategy, output_form, free_valence, decision_ctx, session, depth)
+        if _has_error_children(tree):
+            continue
+        alcohol_key = _ester_alcohol_key(tree)
+        if alcohol_key is None:
+            return None
+        candidates.append((alcohol_key, -seq, tree))
     if not candidates:
         return None
     candidates.sort(key=lambda c: (c[0], c[1]))

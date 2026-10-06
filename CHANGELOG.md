@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming round 25: stereo on four natural products, and a stable name for polyesters
+
+- **Atropine, scopolamine, galantamine, ibogaine** keep the stereodescriptors OPSIN can read (galantamine and ibogaine are now exact). Four different causes, see `src/openchem/vendor/CHANGELOG.md`, round 25.
+- **A diester no longer has a different name for each way of writing its SMILES** (heroin, diacetates of diols): the senior acid, then the lowest locants, decide which ester is the principal anion.
+
 ### Naming round 24: morphinans, colchicine, and bridged stereo
 
 - **Names keep their stereodescriptors on bridged rings.** The app ran the naming engine without Java on PATH, so the engine's own OPSIN checks failed and dropped the stereo of every bridged centre (camphor had no `1R,4R`). Fixed in `naming_providers.py`.
