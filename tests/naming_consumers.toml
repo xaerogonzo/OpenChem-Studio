@@ -81,6 +81,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_stereo_parents_and_citation.py"
+why = "the rest of R before S: the order prefixes that differ only in their descriptors are cited in (P-45.6.3), which half of a meso diether or diamide is the parent (P-45.6.2, like before unlike P-44.4.1.12), the ester route's own (j) tier, and the read-back guard over every stereoisomer"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_plan_budget.py"
 why = "the plan-search budget and what it may prune"
 scope = "core"

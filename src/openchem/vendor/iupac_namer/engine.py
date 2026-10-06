@@ -10928,6 +10928,14 @@ def _name_bound(
         _session.cache_store(fragment_key, output_form, fv_bond_orders, err, attachment_indices)
         return err
 
+    # --- P-45.6.2 / P-45.6.3: parents that tie and whose names differ only in their descriptors (a meso diether or diamide) ---
+    parent_winner = _break_parent_stereo_tie(
+        ranked_plans, mol, strategy, output_form, free_valence,
+        decision_ctx, _session, _depth,
+    )
+    if parent_winner is not None:
+        _session.cache_store(fragment_key, output_form, fv_bond_orders, parent_winner, attachment_indices)
+        return parent_winner
     # --- P-14.4 (g): break a full tie between numberings on executed names ---
     tied_winner = _break_alphanumerical_tie(
         ranked_plans, mol, strategy, output_form, free_valence,
@@ -11080,7 +11088,7 @@ def _alphanumerical_locant_key(tree) -> tuple | None:
     tree is not a substitutive name with prefixes, which is never a tie this
     criterion can decide.
     """
-    from openchem.vendor.iupac_namer.assembly import assemble, merge_identical_prefixes
+    from openchem.vendor.iupac_namer.assembly import assemble, merge_identical_prefixes, stereo_citation_key
 
     if not isinstance(tree, SubstitutiveTree) or not tree.prefixes:
         return None
@@ -11089,7 +11097,9 @@ def _alphanumerical_locant_key(tree) -> tuple | None:
         merged = merge_identical_prefixes(entries)
     except Exception:  # noqa: BLE001 - an unassemblable tie is left to the fallback
         return None
-    cited = sorted(merged, key=lambda m: (m.sort_name, m.name))
+    # The order assembly cites them in (`stereo_citation_key`, P-45.6.3): of two prefixes that read alike but for their descriptors, the one
+    # whose descriptors rank first (R before S, Z before E) is cited first, so its locants are the ones this reads first.
+    cited = sorted(merged, key=lambda m: (m.sort_name, stereo_citation_key(m.name), m.name))
     return tuple(tuple(m.locants) for m in cited)
 
 
@@ -11213,6 +11223,128 @@ def _break_alphanumerical_tie(
     return candidates[0][2]
 
 
+#: The most parent hypotheses `_break_parent_stereo_tie` will name side by side. Each is a full execution of its plan; a molecule with more
+#: tied parents than this is left to the declared policy of `_search_plans`, as it was before.
+_PARENT_STEREO_HYPOTHESES = 4
+
+
+def _carries_stereo(mol) -> bool:
+    """Whether naming `mol` can write a CIP descriptor at all: a specified centre or double bond, or a carved fragment's inherited stamp."""
+    return (
+        any(atom.GetChiralTag() != Chem.ChiralType.CHI_UNSPECIFIED for atom in mol.GetAtoms())
+        or any(bond.GetStereo() != Chem.BondStereo.STEREONONE for bond in mol.GetBonds())
+        or bool(context_stereo_key(mol))
+    )
+
+
+def _parent_configuration_key(tree) -> tuple:
+    """The order of two PARENTS that differ only in the configuration of the stereogenic units they carry: smaller is senior.
+
+    P-44.4.1.12.1 (BlueBookV2.pdf p. 412): Z over E, at the first point of difference. P-44.4.1.12.2 (p. 413): "like stereodescriptors
+    such as 'RR', 'SS' have priority over unlike 'RS' and 'SR' ('l' has priority over 'u'), the 'r' over 's', then 'R' over 'S'." So
+    (E/Z ranks, like before unlike, r before s, R before S), each in locant order.
+
+    "Like" is defined here only where it is unambiguous: a parent that carries exactly TWO R/S descriptors, which are a pair. For more,
+    the book pairs each centre with a reference descriptor chosen from a digraph (P-92.5.2.1, Mata and Lobo), which a finished name does
+    not hold; such a parent is compared on the other three components and, last, on the whole name (`stereo_citation_key`).
+    """
+    own = list(getattr(tree, "stereo_descriptors", None) or ())
+    if any(sd.locant is None for sd in own):
+        return ((), 0, (), ())
+    own.sort(key=lambda sd: sd.locant)
+    letters = [sd.descriptor for sd in own]
+    chiral = [x for x in letters if x in ("R", "S")]
+    unlike = 1 if len(chiral) == 2 and chiral[0] != chiral[1] else 0
+    rank = _STEREO_LOCANT_PREFERENCE
+    return (
+        tuple(rank[x] for x in letters if x in ("E", "Z")),
+        unlike,
+        tuple(rank[x] for x in letters if x in ("r", "s")),
+        tuple(rank[x] for x in chiral),
+    )
+
+
+def _choose_by_configuration(trees):
+    """The tree among `trees` whose configuration is senior, when they differ in nothing else; otherwise None.
+
+    `trees[0]` is the tree the normal loop would have returned. Only trees whose names are EQUAL once the descriptors are set aside
+    (`without_stereo_descriptors`) are compared, so a choice between two different names is never made on this ground. Among those,
+    `_parent_configuration_key` of the tree first, then `stereo_citation_key` of the whole name, the smaller winning and the earlier
+    tree on a tie. None when fewer than two trees qualify, when no key tells them apart, or when a name cannot be assembled.
+    """
+    from openchem.vendor.iupac_namer.assembly import assemble, stereo_citation_key, without_stereo_descriptors
+
+    try:
+        names = [assemble(tree) for tree in trees]
+    except Exception:  # noqa: BLE001 - an unassemblable candidate is left to the normal loop
+        return None
+    plain = without_stereo_descriptors(names[0])
+    same = [i for i, name in enumerate(names) if without_stereo_descriptors(name) == plain]
+    if len(same) < 2:
+        return None
+    keys = {i: (_parent_configuration_key(trees[i]), stereo_citation_key(names[i])) for i in same}
+    if len(set(keys.values())) < 2:
+        return None
+    return trees[min(same, key=lambda i: (keys[i], i))]
+
+
+def _break_parent_stereo_tie(
+    ranked_plans, mol, strategy, output_form, free_valence, decision_ctx, session, depth,
+):
+    """Choose between PARENTS that tie on the key and whose names differ only in their stereodescriptors.
+
+    P-45.6.2 (BlueBookV2.pdf p. 426), where the choice between two substitutive names is the one thing the descriptors differ in:
+    "since the alphabetic characters and locants (ignoring the configuration symbols) are identical the configurational symbols are
+    compared and 'R' precedes 'S'" -- `1-[(2R)-butan-2-yl]-4-({4-[(2S)-butan-2-yl]phenyl}sulfanyl)benzene`, not the same name with
+    S and R exchanged. P-45.6.3 (p. 427) says it again for two prefixes at one position. A meso diether or diamide has two equal halves,
+    either of which can be the parent, and the two names are exactly such a pair: `{[(2R,3S)-3-phenoxybutan-2-yl]oxy}benzene` and
+    `{[(2S,3R)-3-phenoxybutan-2-yl]oxy}benzene`. `_break_alphanumerical_tie` cannot reach them, because it compares only the plans of one
+    parent hypothesis, and P-14.4 is a numbering rule.
+
+    Scoped so that it changes nothing else:
+
+      * only a molecule that carries stereo (`_carries_stereo`);
+      * only plans that tie on the whole key, in two to `_PARENT_STEREO_HYPOTHESES` hypotheses;
+      * each hypothesis is named as it would have been alone (its own numbering tie-break first);
+      * only candidates whose names are EQUAL once the descriptors are set aside are compared, so a choice between two different names
+        is never made here; nothing here picks a parent on any ground but the descriptors.
+
+    The comparison is the parents' own configuration first (`_parent_configuration_key`: P-44.4.1.12, which is where "like before unlike"
+    lives), then `stereo_citation_key` over the whole name, in the order the name cites its descriptors, the first point of difference
+    deciding, which is what "R precedes S" means for a name. Returns the winning tree, or None when it does not engage.
+    """
+    from openchem.vendor.iupac_namer.preference import NomenclaturePreferenceKey
+
+    if len(ranked_plans) < 2 or not _carries_stereo(mol):
+        return None
+    top_key = ranked_plans[-1][0]
+    if not isinstance(top_key, NomenclaturePreferenceKey):
+        return None
+    hypotheses: dict[tuple, list] = {}
+    for key, seq, plan in reversed(ranked_plans):
+        if key != top_key:
+            break
+        if isinstance(plan, SubstitutivePlan):
+            hypotheses.setdefault(_parent_hypothesis_key(plan), []).append((key, seq, plan))
+    if not 2 <= len(hypotheses) <= _PARENT_STEREO_HYPOTHESES:
+        return None
+
+    trees = []
+    for group in hypotheses.values():
+        tree = _break_alphanumerical_tie(
+            list(reversed(group)), mol, strategy, output_form, free_valence, decision_ctx, session, depth,
+        )
+        if tree is None:
+            for _key, _seq, plan in group:
+                candidate = _execute_plan(plan, mol, strategy, output_form, free_valence, decision_ctx, session, depth)
+                if not _has_error_children(candidate):
+                    tree = candidate
+                    break
+        if tree is not None:
+            trees.append(tree)
+    return _choose_by_configuration(trees)
+
+
 def _ester_alcohol_key(tree) -> tuple | None:
     """The alcohol component of a functional-class ester, as a comparable value: lowest locants first (P-31.1.4).
 
@@ -11242,6 +11374,18 @@ def _ester_alcohol_key(tree) -> tuple | None:
     parent = alcohol.named_parent.candidate
     is_ring = parent.type not in ("chain", "heteroatom_center")
     return (0 if is_ring else 1, attach, _alphanumerical_locant_key(alcohol) or ())
+
+
+def _ester_alcohol_stereo_key(tree) -> tuple | None:
+    """P-14.4 (j) for the alcohol component of an ester: its own stereodescriptors, `(how many, their locants, their ranks)`.
+
+    The first slot is a COUNT and not the atoms `_stereo_locant_key` puts there: each candidate's alcohol component is named as a fragment
+    of its own, so its atom indices belong to that fragment and say nothing about another candidate's. `_comparable_stereo` then compares
+    only candidates that describe the same number of stereogenic units. None when there is nothing to compare or a descriptor cannot be ranked.
+    """
+    alcohol = dict(tree.pieces).get("alcohol") if isinstance(tree, FunctionalClassTree) else None
+    key = _stereo_locant_key(alcohol) if isinstance(alcohol, SubstitutiveTree) else None
+    return None if key is None else (len(key[1]), key[1], key[2])
 
 
 def _acid_seniority_key(tree) -> tuple | None:
@@ -11316,14 +11460,18 @@ def _break_ester_tie(
         alcohol_key = _ester_alcohol_key(tree)
         if acid_key is None or alcohol_key is None:
             return None
-        candidates.append(((acid_key, alcohol_key), -seq, tree))
+        candidates.append(((acid_key, alcohol_key), _ester_alcohol_stereo_key(tree), -seq, tree))
     if not candidates:
         return None
-    # NOT a P-14.4 (j) tier, on purpose: the alcohol component is named as a fragment of its own, and when two ester plans carve
-    # fragments that print alike one of the two trees can carry descriptors that do not describe the molecule (measured: meso
-    # dipropylene glycol diacetate came out as the R,R compound with an R-first tier here). The canonical rank stays the last resort.
-    candidates.sort(key=lambda c: (c[0], c[1]))
-    return candidates[0][2]
+    # P-14.4 (j), LAST: of two principal esters that tie on the acid and on every locant of the alcohol, the one whose alcohol component
+    # cites R (Z, M, r) at the lower locant. This tier was built once and taken out again, because it could name a meso diester as the
+    # R,R compound, and it is back now that the cause is fixed: the session cache was keyed on a SMILES that cannot write the
+    # descriptor a carved fragment inherits (`context_stereo_key`), so the second ester plan reused the first plan's tree and its
+    # descriptors. `test_every_stereoisomer_of_these_diesters_reads_back` is what would catch that coming back.
+    comparable = _comparable_stereo([c[1] for c in candidates])
+    ranked = [(c[0], comparable[i] if comparable else (), c[2], c[3]) for i, c in enumerate(candidates)]
+    ranked.sort(key=lambda c: (c[0], c[1], c[2]))
+    return ranked[0][3]
 
 
 def _search_plans(perception, mol, output_form, free_valence, query, strategy, session):
