@@ -1574,3 +1574,25 @@ taken as g/L: the handbook converted mass of solute per 100 g of water to mass p
 higher, a shift of about 0.01 in logS, far below the 0.4 to 1.2 differences the models are scored on. So the glycerol
 dinitrate values are confirmed against their primary source; the two compounds are liquids, so this is a liquid-liquid
 solubility, and the paper gives one temperature and a single mean."""
+
+[[source]]
+id = "koch2019"
+file = "koch2019.pdf"
+sha256 = "db6ccd52191f05222c28ca67579c7ca600c1853bf5b335ea825b1ab49a3e4831"
+pages = 27
+access = "held_preproof"
+printed.doi = "10.1002/prep.201800253"
+printed.title = "Insensitive High Explosives: III. Nitroguanidine - Synthesis - Structure - Spectroscopy - Sensitiveness"
+printed.venue = "Propellants, Explosives, Pyrotechnics, 2019; author Ernst-Christian Koch (volume and pages not printed in this copy)"
+assigned.property = "solubility"
+assigned.role = "review"
+note = """text layer read 2026-10-06. Held as a journal proof, not the version of record: every page carries 'These are not the
+final page numbers!'. A review of nitroguanidine (NGu, CAS 556-88-7). Two things in it matter here. (1) It states NGu's
+solubility in water as 3.45 g/L at 298 K, citing McBride, Henry, Cohen and Skolnik, 'Solubility of Nitroguanidine in Water',
+J. Am. Chem. Soc. 1951, 73, 485-486 (its ref. [42], not held): a candidate measured value for a compound with an
+N-nitro group, from a primary paper a review points at, which has not been read, so it is a lead and not a record.
+(2) Its Table 5 of NGu in organic solvents rests on one 1929 note, L. Desvergnes in Revue de chimie industrielle et le
+Moniteur scientifique de Quesneville, 1929, 265-266 (its ref. [81]), covering aprotic non-polar solvents, ethers, esters
+and alcohols near 19 C; it does NOT contain the 1926 Desvergnes value for ethyl tetryl that the Yalkowsky and He
+handbook cites (D067), so it does not settle that value. Also lists the enthalpy of formation, density and
+decomposition temperature of NGu in its property tables."""
