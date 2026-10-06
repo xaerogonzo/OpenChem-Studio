@@ -254,8 +254,10 @@ jobs:
               --exit-code $code --crashed $crashed --seconds $watch.Elapsed.TotalSeconds `
               --detail "$detail" --ref "$env:REF_INPUT" --out "leg-$n.json"
             Get-Content "leg-$n.json"
-            # Only a crashed attempt's log is worth keeping; the rest are megabytes of dots.
-            if ($crashed -ne 'true') { Remove-Item $log -ErrorAction SilentlyContinue }
+            # Keep the log of any attempt that did not pass cleanly: a crash (the victim) and a FAILED run (the
+            # failing tests, which a compatibility check such as a PySide6 version swap is about). Only a clean
+            # pass is megabytes of dots nobody needs.
+            if ($code -eq 0 -and $crashed -ne 'true') { Remove-Item $log -ErrorAction SilentlyContinue }
           }
           exit 0
 

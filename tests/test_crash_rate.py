@@ -239,3 +239,10 @@ def test_the_pyside_version_is_a_treatment_and_the_four_packages_move_together()
     for package in ("PySide6==$v", "PySide6-Essentials==$v", "PySide6-Addons==$v", "shiboken6==$v"):
         assert package in code, "a partial version change leaves a mismatched binding"
     assert "print('PySide6'" in code, "every leg must log the version it actually ran"
+
+
+def test_the_log_of_a_failed_attempt_is_kept_and_only_a_clean_pass_is_discarded():
+    """A failed attempt's log holds the FAILED lines; deleting it left a version-compatibility run with 'failed'
+    and no way to say which tests."""
+    code = _code(_workflow())
+    assert "if ($code -eq 0 -and $crashed -ne 'true') { Remove-Item $log" in code
