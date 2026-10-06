@@ -34,3 +34,7 @@ The first dispatch of this workflow (run 37356155136) is NOT pooled with run 1: 
 - **Known artifact, accepted in advance:** the reverted arm may show "failed" legs from the two docs-guard tests named above if they fall in shard 2; they are not crashes and are reported as failed.
 
 The Known-TODOs item for the dispose fix closes when run 2's report is committed here.
+
+### Amendment, before any leg reported
+
+The first dispatch of run 2 (run 37395570244, from `4d119fc6`) was cancelled within minutes, **before any leg had reported a result**, because the revert step would have failed in every reverted leg: reverting `655abcc9` conflicts in `tests/test_docs_are_current.py` (the docs guard, which the pre-registration commit also edited), and the step treated every conflict under `tests/` as fatal. The conflict rule is now an allow-list of PROSE (`docs/`, `CHANGELOG.md`, `tests/test_docs_are_current.py`); any other conflict still stops the leg. Nothing else in the design above changes: same shard, arms, n, outcome, test and decision rule. The run is dispatched from the commit that contains this amendment (its SHA is recorded in the report), not from `4d119fc6`.
