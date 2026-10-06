@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### CI: the shard pins guard asserted more than the pins guarantee
+
+- `test_adding_a_test_file_moves_no_other_file` (#202) asserted that NO existing file moves when test files are added, but only PINNED files are guaranteed not to: an unpinned file is packed among the other unpinned ones, and 8 files were unpinned. It passed on master by luck of the current set, and failed in every non-crashed leg of the crash measurement's control arm (a tree with one file fewer), so it would have failed some future PR for no reason. It now asserts the pinned files only.
+- **`suite_shards.py --pin-new`** pins every unpinned file at the shard it already sits in, so a PR that adds a test file can make its placement permanent without moving anyone. Run once now: the 8 unpinned files are pinned and both shard lists are identical before and after (234 and 236 files).
+
 ### The line chart uses the shared zoom code
 
 - `LineChartWidget` carried its own copy of the Ctrl+wheel zoom, Shift+wheel pan and double-click reset; the histogram and stick chart got `XZoomable`, and the line chart now uses it too. No behaviour change: its existing zoom, cursor and widget tests pass untouched (62 across the chart files), and about 60 lines of duplicate arithmetic are gone.

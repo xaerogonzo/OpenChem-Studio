@@ -3,6 +3,7 @@
     python tools/suite_shards.py --splits 2 --group 1
     python tools/suite_shards.py --update=suite-timings-windows.xml
     python tools/suite_shards.py --repin --splits=2
+    python tools/suite_shards.py --pin-new --splits=2   # pin files that have no pin, where they sit now
 
 WHY THIS EXISTS. The Windows suite runs ~34 minutes against a 45-minute
 job timeout -- 76% of budget -- and **the timeout is PER JOB**. Two shards
@@ -132,6 +133,21 @@ def assign(
     return [sorted(group) for group in groups]
 
 
+def pin_new(splits: int, out_path: Path | None = None) -> list[str]:
+    """Pin every file that has no pin at the shard it is ALREADY in, so nobody moves. Returns the newly
+    pinned files. An unpinned file is packed among the other unpinned files, so adding one more can move an
+    earlier one; pinning them (with this, in the PR that adds the test file) makes the placement permanent."""
+    files = test_files()
+    table = load_pins(out_path)
+    pins = table.get(str(splits), {})
+    groups = assign(files, load_durations(), splits, pins)
+    placed = {name: i for i, group in enumerate(groups) for name in group}
+    fresh = sorted(name for name in files if name not in pins)
+    table[str(splits)] = {**pins, **{name: placed[name] for name in fresh}}
+    (out_path or DEFAULT_PINS).write_text(json.dumps(table, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+    return fresh
+
+
 def repin(splits: int, out_path: Path | None = None) -> int:
     """Re-pack EVERY file from the current weights and commit the result as the new pins. This is the one
     operation that moves files between shards; run it on its own, not alongside other changes."""
@@ -163,7 +179,7 @@ def update_from_junit(xml_path: Path, out_path: Path | None = None) -> int:
 
 
 def main(argv: list[str]) -> int:
-    splits, group, update, do_repin = 2, None, None, False
+    splits, group, update, do_repin, do_pin_new = 2, None, None, False, False
     for arg in argv:
         if arg.startswith("--splits="):
             splits = int(arg.split("=", 1)[1])
@@ -171,6 +187,8 @@ def main(argv: list[str]) -> int:
             group = int(arg.split("=", 1)[1])
         elif arg == "--repin":
             do_repin = True
+        elif arg == "--pin-new":
+            do_pin_new = True
         elif arg.startswith("--update="):
             update = Path(arg.split("=", 1)[1])
         else:
@@ -180,6 +198,11 @@ def main(argv: list[str]) -> int:
     if update is not None:
         count = update_from_junit(update)
         print(f"wrote {count} file weights to {DEFAULT_DURATIONS}")
+        return 0
+
+    if do_pin_new:
+        fresh = pin_new(splits)
+        print(f"pinned {len(fresh)} new file(s) where they already sit: {fresh}")
         return 0
 
     if do_repin:
