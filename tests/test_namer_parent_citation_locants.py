@@ -14,9 +14,10 @@ came out 7, 4, 5, 8 and 10 of 13 (examples 1 to 5), 8, 7 and 8 (examples 7, 8, 1
 the book says is NOT preferred, the rest. Both names of each pair are read back through OPSIN below and are the same molecule, so nothing
 failed and no corpus row could see it; the name was not a function of the molecule.
 
-Where the fifteen stand, each measured on 13 spellings (`CHANGELOG.md`, 2026-10-06, has the table):
+Where the fifteen stand, each measured on 13 spellings (`CHANGELOG.md`, 2026-10-06, has the table; the counts before are from the tree before D-191 and D-192):
 
-* **Decided by this rule (ten):** 1, 2, 3, 4, 5, 7, 8, 10, 14, 15. Both names appeared before; the book's is the only one now.
+* **Decided by this rule (twelve):** 1, 2, 3, 4, 5, 7, 8, 10, 11, 12, 14, 15. Both names appeared before; the book's is the only one now. (11 and 12 only since D-191 and
+  D-192, xaerogonzo/OpenChem-Studio#238, made the engine name a `[PH4]` group with its lambda number and a labelled bromine with its label.)
 * **13** compares two numberings of one chain (`5,8,3,6` against `6,3,8,5`), the choice P-14.4 (g) makes: it was the book's name on every
   spelling before the rule too, so it cannot show the split.
 * **6 and 9** are decided by a criterion that comes BEFORE this one and is not implemented: P-44.4.1.1 (p. 401), "the senior ... principal
@@ -25,9 +26,6 @@ Where the fifteen stand, each measured on 13 spellings (`CHANGELOG.md`, 2026-10-
   parent, ranks the shorter set higher: the engine names those two molecules with an ethenyl substituent on a diene, on every spelling.
   Measured below, pinned as an open defect (a strict xfail, so fixing it fails the suite and this file gets updated), and the rule is
   shown to decide both examples once the bonds are counted (a stand-in for that fix, not the fix).
-* **11 and 12** are not reached for reasons that have nothing to do with the choice of parent, and are the same on the tree before this
-  change: the engine names a `[PH4]` substituent (the book's `λ5-phosphanyl`) as `phosphanyl`, which reads back as a different molecule
-  (C9H18 for C9H22), and names the 81Br labels of example 12 as plain `bromo`. Nothing is pinned for them here.
 
 Three examples of P-45.5, the rule after P-45.3 (nonstandard bonding numbers) and P-45.4 (isotopes), are pinned as the next rule in line:
 they tie on this one by the book's own words and are still two names over the spellings.
@@ -87,6 +85,14 @@ DECIDED = [
     ("15", "ClCC(Br)C(CCC(Cl)Br)C(I)CBr",
      "1,5-dibromo-4-(2-bromo-1-iodoethyl)-1,6-dichlorohexane",
      "1,6-dibromo-4-(1-bromo-2-chloroethyl)-1-chloro-5-iodohexane"),
+    # 11 and 12 could not be decided here until D-191 and D-192 (xaerogonzo/OpenChem-Studio#238) made the engine name a PH4 group with its lambda number and a labelled
+    # bromine with its label: before, each came out as a different molecule. The engine writes `lambda5`, where the book prints the glyph.
+    ("11", "CC(Cl)C([PH4])C(CC(=O)O)C([PH4])C(C)Br",
+     "3-[2-bromo-1-(lambda5-phosphanyl)propyl]-5-chloro-4-(lambda5-phosphanyl)hexanoic acid",
+     "5-bromo-3-[2-chloro-1-(lambda5-phosphanyl)propyl]-4-(lambda5-phosphanyl)hexanoic acid"),
+    ("12", "CC(Cl)C([81Br])C(CC(=O)O)C([81Br])C(C)Br",
+     "4-(81Br)bromo-3-[1-(81Br)bromo-2-bromopropyl]-5-chlorohexanoic acid",
+     "4-(81Br)bromo-5-bromo-3-[1-(81Br)bromo-2-chloropropyl]hexanoic acid"),
 ]
 
 # Example 13 was already the book's name on every spelling BEFORE the rule: the book compares two numberings of one chain, which is the choice

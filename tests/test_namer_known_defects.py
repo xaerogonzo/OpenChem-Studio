@@ -3897,6 +3897,172 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "the thio analogue of D-087i: a ring-attached thiohydrazide keeps the whole-group prefix 'hydrazinecarbonothioyl', needing `_C_INCLUDING_FG_TYPES` to know the new type too"),
     ("D-179h", "NNC(=S)c1ccc(cc1)C(=O)O", "4-hydrazinecarbonothioylbenzoic acid", "4-[(hydrazinyl)(thioxo)methyl]benzoic acid",
      "the thio analogue of D-117y, same reason"),
+
+    # --- D-191 and D-192 (2026-10-06): the two wrong-molecule defects found by naming the Blue Book's own P-45.2.3 examples 11 and 12 (BlueBookV2.pdf p. 422) -------------
+    #
+    # D-191. THE BONDING NUMBER OF A GROUP WAS PART OF NO NAME. `_SINGLE_ATOM_SUBSTITUENT` is keyed on (element, charge, bond order), so a one-atom group named from
+    # a carved fragment came out as the ordinary prefix whatever its hydrogens: PH4-, SH3-, SH5-, AsH4- and IH2- were `phosphanyl`, `sulfanyl`, `arsanyl`, `iodo`, which a reader
+    # takes for the group at its standard number (PH2-, SH-, ...). The book prints the number on the prefix, `(λ5-phosphanyl)`, `(λ6-sulfanyl)` (P-45.3, p. 423). Five sites
+    # lost it, each measured and each fixed: the carved one-atom route (`_hypervalent_group_name`, from the atom's bonding number, `valence - 1 + bond order` in a
+    # fragment whose cut bond became a hydrogen), the oxo/thioxo fallback and the ring-carbonyl synthesis (both promoted `=SH2` to `thioxo`/`thione`), the thione/selone/tellone
+    # SMARTS (`(=S)` asked nothing of the chalcogen's connectivity, so `=[SeH2]` was a selone), and the heteroatom-centre PARENT (`C[PH4]` was `methylphosphane`), whose number
+    # now follows the book's hyphen (`methyl-λ5-phosphane`, pp. 769-770). A centre with NO hydrogen (`pentamethylphosphane`) is left alone, D-195.
+    # Measured 2026-10-06 (OPSIN round trip, canonical SMILES): of the 20 D-191 rows below 17 read back as a different molecule before and 0 do now (the other three, D-191r to D-191t, are a
+    # phosphorus with one REAL hydrogen, which read back before because OPSIN raises a four-substituent phosphane to valence 5 and supplies the hydrogen, and now say the number); of the
+    # 25 D-192 rows 23 did and 0 do now (the other two, D-192r and D-192s, are the severity-B ordering rows: the right molecule, cited in the wrong order). OPSIN reads every TARGET below
+    # back to its input on canonical SMILES AND InChIKey (InChIKey alone does not see a hydrogen on iodine: D-191f).
+    #
+    # D-192. A NUCLIDE ON A ONE-ATOM PREFIX WAS NAMED BY NOTHING. `collect_isotope_labels` labels the atoms of the PARENT (and its suffix groups), and "drops the label rather than emit
+    # a guess" for any other atom, so a labelled halogen, hydroxy, amino, sulfanyl, selanyl, oxo or imino group named as a prefix read back unlabelled. P-82.2.1 (p. 853) puts the nuclide
+    # in front of the group, `(81Br)bromo`, `(18O)hydroxy`; `isotopic_prefix` does, for a prefix that IS the name of the one atom it owns (`cyano` and `carboxy` own atoms of a
+    # group and are D-193). Three more things had to follow from it, all in the book: a labelled prefix is not a compound one (no enclosing marks alone, `di[...]` multiplied, p. 853),
+    # it is cited BEFORE an otherwise identical unlabelled one and never multiplied with it (P-82.2.2.1, p. 854: `N-[7-(131I)iodo-6-iodo-9H-fluoren-2-yl]acetamide`), and its nuclide is not
+    # alphabetised (P-14.5, p. 80: `derive_sort_name` filed `(1-13C)methyl` under "13cmethyl", before `ethyl`, which is D-192r).
+    ("D-191a", "OC(=O)CC[PH4]", "3-(lambda5-phosphanyl)propanoic acid",
+     "3-phosphanylpropanoic acid",
+     "PH4 read back as PH2: four hydrogens in, two out"),
+    ("D-191b", "OC(=O)CC[SH3]", "3-(lambda4-sulfanyl)propanoic acid",
+     "3-sulfanylpropanoic acid",
+     "SH3 read back as SH"),
+    ("D-191c", "OC(=O)CC[SH5]", "3-(lambda6-sulfanyl)propanoic acid",
+     "3-sulfanylpropanoic acid",
+     "SH5 read back as SH"),
+    ("D-191d", "OC(=O)CC[AsH4]", "3-(lambda5-arsanyl)propanoic acid",
+     "3-arsanylpropanoic acid",
+     "AsH4 read back as AsH2"),
+    ("D-191e", "OC(=O)CC[SeH3]", "3-(lambda4-selanyl)propanoic acid",
+     "3-selanylpropanoic acid",
+     "SeH3 read back as SeH"),
+    ("D-191f", "OC(=O)CC[IH2]", "3-(lambda3-iodanyl)propanoic acid",
+     "3-iodopropanoic acid",
+     "IH2 read back as I (standard InChIKey does not see the hydrogens on iodine: the canonical SMILES does)"),
+    ("D-191g", "OC(=O)CC=[PH3]", "3-(lambda5-phosphanylidene)propanoic acid",
+     "3-phosphanylidenepropanoic acid",
+     "=PH3 read back as =PH"),
+    ("D-191h", "OC(=O)CC=[SH2]", "3-(lambda4-sulfanylidene)propanoic acid",
+     "3-thioxopropanoic acid",
+     "=SH2 named as =S by the oxo/thioxo fallback"),
+    ("D-191i", "OC(=O)CC=[SH4]", "3-(lambda6-sulfanylidene)propanoic acid",
+     "3-thioxopropanoic acid",
+     "=SH4 named as =S"),
+    ("D-191j", "O=C1CCC(=[SH2])CC1", "4-(lambda4-sulfanylidene)cyclohexan-1-one",
+     "4-sulfanylidenecyclohexan-1-one",
+     "=SH2 on a ring carbon promoted to a thione by the ring-carbonyl synthesis"),
+    ("D-191k", "OC(=O)CC=[SeH2]", "3-(lambda4-selanylidene)propanoic acid",
+     "3-selanylidenepropanoic acid",
+     "=SeH2 matched the selone SMARTS, which asked nothing of the selenium's connectivity"),
+    ("D-191l", "C[PH4]", "methyl-lambda5-phosphane",
+     "methylphosphane",
+     "the heteroatom PARENT with hydrogens past its standard bonding number lost the number too"),
+    ("D-191m", "c1ccccc1[PH4]", "phenyl-lambda5-phosphane",
+     "phenylphosphane",
+     "same, on an aryl"),
+    ("D-191n", "C[PH2](C)C", "trimethyl-lambda5-phosphane",
+     "trimethylphosphane",
+     "same: two hydrogens still on a five-bonded phosphorus"),
+    ("D-191o", "OC(=O)CC[PH3]C", "3-(methyl-lambda5-phosphanyl)propanoic acid",
+     "3-(methylphosphanyl)propanoic acid",
+     "the same parent as a SUBSTITUENT"),
+    ("D-191p", "CC(Cl)C([PH4])C(CC(=O)O)C([PH4])C(C)Br", "3-[2-bromo-1-(lambda5-phosphanyl)propyl]-5-chloro-4-(lambda5-phosphanyl)hexanoic acid",
+     "5-bromo-3-(2-chloro-1-phosphanylpropyl)-4-phosphanylhexanoic acid",
+     "the book's own P-45.2.3 example 11 (BlueBookV2.pdf p. 422), in the canonical spelling the application names. This row pinned the order the book REJECTS "
+     "(`5-bromo-3-[2-chloro-1-...`) until P-45.2.3 was implemented (xaerogonzo/OpenChem-Studio#239); it is now the book's PIN, as D-191q and D-194a pin for other spellings"),
+    ("D-191q", "BrC(C([PH4])C(CC(=O)O)C(C(C)Cl)[PH4])C", "3-[2-bromo-1-(lambda5-phosphanyl)propyl]-5-chloro-4-(lambda5-phosphanyl)hexanoic acid",
+     "3-(2-bromo-1-phosphanylpropyl)-5-chloro-4-phosphanylhexanoic acid",
+     "the same example in OPSIN's own spelling of the book's name, which reaches the book's PIN (the parent is chosen by atom order, D-194)"),
+    ("D-191r", "c1ccccc1[PH](Cc1ccccc1)(c1ccccc1)c1ccccc1", "benzyltri(phenyl)-lambda5-phosphane",
+     "benzyltri(phenyl)phosphane",
+     "severity B: a phosphorane that carries one REAL hydrogen. OPSIN raised the base name's four-substituent phosphane to valence 5 and supplied the hydrogen, so it read back; the book prints the number (`pentamethoxy-λ5-phosphane (PIN)`, p. 770)"),
+    ("D-191s", "OC(=O)CCC[PH](=O)[O-]", "4-[oxido(oxo)-lambda5-phosphanyl]butanoic acid",
+     "4-[oxido(oxo)phosphanyl]butanoic acid",
+     "severity B, the same: a P(=O)(O-)H group, one real hydrogen on a five-bonded phosphorus, as a substituent"),
+    ("D-191t", "C[PH](=O)[O-]", "methyl(oxido)(oxo)-lambda5-phosphane",
+     "methyl(oxido)(oxo)phosphane",
+     "severity B, the same, as a parent"),
+    ("D-192a", "[81Br]CCC(=O)O", "3-(81Br)bromopropanoic acid",
+     "3-bromopropanoic acid",
+     "the label is dropped: the compound reads back unlabelled"),
+    ("D-192b", "[81Br]c1ccccc1", "(81Br)bromobenzene",
+     "bromobenzene",
+     "same, on a ring"),
+    ("D-192c", "[35Cl]CCC(=O)O", "3-(35Cl)chloropropanoic acid",
+     "3-chloropropanoic acid",
+     "same, chlorine"),
+    ("D-192d", "[131I]CCC(=O)O", "3-(131I)iodopropanoic acid",
+     "3-iodopropanoic acid",
+     "same, iodine"),
+    ("D-192e", "[18F]CCC(=O)O", "3-(18F)fluoropropanoic acid",
+     "3-fluoropropanoic acid",
+     "same, fluorine"),
+    ("D-192f", "[15NH2]CCC(=O)O", "3-(15N)aminopropanoic acid",
+     "3-aminopropanoic acid",
+     "the amino group's nitrogen"),
+    ("D-192g", "[18OH]CCC(=O)O", "3-(18O)hydroxypropanoic acid",
+     "3-hydroxypropanoic acid",
+     "the hydroxy group's oxygen"),
+    ("D-192h", "[33SH]CCC(=O)O", "3-(33S)sulfanylpropanoic acid",
+     "3-sulfanylpropanoic acid",
+     "the sulfanyl group's sulfur"),
+    ("D-192i", "[77SeH]CCC(=O)O", "3-(77Se)selanylpropanoic acid",
+     "3-selanylpropanoic acid",
+     "the selanyl group's selenium"),
+    ("D-192j", "[18O]=CCC(=O)O", "3-(18O)oxopropanoic acid",
+     "3-oxopropanoic acid",
+     "the oxo group's oxygen"),
+    ("D-192k", "[18O]=C1CCC(C(=O)O)CC1", "4-(18O)oxocyclohexane-1-carboxylic acid",
+     "4-oxocyclohexane-1-carboxylic acid",
+     "the oxo group's oxygen on a ring"),
+    ("D-192l", "[15NH]=CC(=O)O", "(15N)iminoacetic acid",
+     "iminoacetic acid",
+     "the imino group's nitrogen"),
+    ("D-192m", "[81Br]CC[81Br]", "1,2-di[(81Br)bromo]ethane",
+     "1,2-dibromoethane",
+     "two identical labelled prefixes multiply, in the book's form `1,2-di[(13C)methyl]benzene` (P-82.2.1, p. 853)"),
+    ("D-192n", "[81Br]CCBr", "1-(81Br)bromo-2-bromoethane",
+     "1,2-dibromoethane",
+     "P-82.2.2.1 (p. 854): prefixes that differ in their isotopic modification are cited separately, the modified one first"),
+    ("D-192o", "[81Br]C(Br)C(Cl)Cl", "1-(81Br)bromo-1-bromo-2,2-dichloroethane",
+     "1,1-dibromo-2,2-dichloroethane",
+     "same: the modified prefix is cited before the plain one at the same position"),
+    ("D-192p", "CC(Cl)C([81Br])C(CC(=O)O)C([81Br])C(C)Br", "4-(81Br)bromo-3-[1-(81Br)bromo-2-bromopropyl]-5-chlorohexanoic acid",
+     "4,5-dibromo-3-(1-bromo-2-chloropropyl)hexanoic acid",
+     "the book's own P-45.2.3 example 12 (p. 422), in the canonical spelling the application names: both labels were dropped. This row pinned the order the book REJECTS "
+     "(`4-(81Br)bromo-5-bromo-3-[1-(81Br)bromo-2-chloropropyl]hexanoic acid`) until P-45.2.3 was implemented (xaerogonzo/OpenChem-Studio#239); it is now the book's PIN, as D-192q and D-194b pin for other spellings"),
+    ("D-192q", "[81Br]C(C(CC(=O)O)C(C(C)Br)[81Br])C(C)Cl", "4-(81Br)bromo-3-[1-(81Br)bromo-2-bromopropyl]-5-chlorohexanoic acid",
+     "4-bromo-5-chloro-3-(1,2-dibromopropyl)hexanoic acid",
+     "the same example in OPSIN's own spelling of the book's name, which reaches the book's PIN (the parent is chosen by atom order, D-194)"),
+    ("D-192r", "CCc1ccccc1[13CH3]", "1-ethyl-2-[(1-13C)methyl]benzene",
+     "1-[(1-13C)methyl]-2-ethylbenzene",
+     "severity B: a prefix carrying a nuclide was alphabetised under its mass number ('13cmethyl' before 'ethyl'); P-14.5 (p. 80) does not alphabetise an isotopic descriptor"),
+    ("D-192s", "[2H]C([2H])([2H])c1ccccc1CC", "1-ethyl-2-[(1,1,1-2H3)methyl]benzene",
+     "1-[(1,1,1-2H3)methyl]-2-ethylbenzene",
+     "same, deuterium"),
+    ("D-192t", "C[SiH2][81Br]", "(81Br)bromo(methyl)silane",
+     "bromo(methyl)silane",
+     "the halogen on a heteroatom PARENT (the `halogen_prefix` role) dropped its label too"),
+    ("D-192u", "C[Si](C)([81Br])C", "(81Br)bromotri(methyl)silane",
+     "bromotri(methyl)silane",
+     "same"),
+    ("D-192v", "[81Br]C1CCCCC1C", "1-(81Br)bromo-2-methylcyclohexane",
+     "1-bromo-2-methylcyclohexane",
+     "same, on a ring with a second prefix"),
+    ("D-192w", "CO[81Br]", "{[(81Br)bromo]oxy}methane",
+     "(bromooxy)methane",
+     "a labelled halogen on a HETEROATOM is a carved one-atom substituent, a route of its own (`_name_single_atom_substituent`), which dropped the label too"),
+    ("D-192x", "CS[81Br]", "{[(81Br)bromo]sulfanyl}methane",
+     "(bromosulfanyl)methane",
+     "same, on sulfur"),
+    ("D-192y", "CN(C)[18OH]", "[(18O)hydroxy(methyl)amino]methane",
+     "[hydroxy(methyl)amino]methane",
+     "same, a hydroxy group on nitrogen"),
+    # D-194a / D-194b, OPEN until P-45.2.3 (xaerogonzo/OpenChem-Studio#239): of two parent chains that tie, the one whose prefixes' locants in order of citation are lower is the parent.
+    # They were named two ways over 40 random spellings (21/19 each); `former` is the order the book rejects.
+    ("D-194a", "CC(Cl)C([PH4])C(CC(=O)O)C([PH4])C(C)Br", "3-[2-bromo-1-(lambda5-phosphanyl)propyl]-5-chloro-4-(lambda5-phosphanyl)hexanoic acid",
+     "5-bromo-3-[2-chloro-1-(lambda5-phosphanyl)propyl]-4-(lambda5-phosphanyl)hexanoic acid",
+     "P-45.2.3 (p. 422, example 11): '3,5,4' over '5,3,4' in the order of citation. Now one name over every spelling (tests/test_namer_parent_citation_locants.py)"),
+    ("D-194b", "CC(Cl)C([81Br])C(CC(=O)O)C([81Br])C(C)Br", "4-(81Br)bromo-3-[1-(81Br)bromo-2-bromopropyl]-5-chlorohexanoic acid",
+     "4-(81Br)bromo-5-bromo-3-[1-(81Br)bromo-2-chloropropyl]hexanoic acid",
+     "P-45.2.3 (p. 422, example 12): '4,3,5' over '4,5,3'. Now one name over every spelling"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -4007,6 +4173,35 @@ OPEN: list[tuple[str, str, str, str, str]] = [
     # analogue (`2-[methoxy(methyl)amino]-2-oxoethyl acetate`) is named correctly, so the N-OH context is the trigger.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate", "an N-substituted hydroxamic acid inside an ester's acid part loses its N-substituent"),
+
+    # D-191 / D-192 follow-ups, open. D-193: a nuclide on an atom a RETAINED PARENT NAME or a MULTI-atom prefix owns is dropped (WRONG MOLECULES; `isotopic_prefix` labels only a prefix that is
+    # the name of the one atom it owns, and `collect_isotope_labels` only an atom that has a locant). D-194: the parent chain is chosen by atom order where P-45.4.1 decides it (D-194c); D-194a and D-194b, P-45.2.3's examples 11 and 12, were closed by
+    # implementing P-45.2.3 (xaerogonzo/OpenChem-Studio#239) and moved to FIXED. D-194c is named two ways over 40 random spellings (24/16), every name reading back exact. D-195 and D-196 are not wrong molecules: a hypervalent centre with no hydrogen is named without its number, and the parent's isotope descriptor
+    # sits before the prefixes where OPSIN cannot read it.
+    ("D-193a", "[15NH2]c1ccccc1", "(15N)aniline",
+     "aniline",
+     "WRONG MOLECULE: a nuclide on an atom the PARENT's retained name owns is dropped (`collect_isotope_labels` labels only atoms with a locant, and aniline's nitrogen has none)"),
+    ("D-193b", "[15N]#CCC(=O)O", "(15N)cyanoacetic acid",
+     "cyanoacetic acid",
+     "WRONG MOLECULE: a nuclide on an atom of a MULTI-atom prefix (cyano) is dropped; `isotopic_prefix` labels a prefix only when it is the name of the one atom it owns"),
+    ("D-193c", "[18OH]c1ccccc1", "(18O)phenol",
+     "(1-18O)phenol",
+     "the engine writes a locant OPSIN cannot read (P-82.6.3, p. 861: a nuclide on a position a retained name does not number); not a wrong molecule, but not a readable name"),
+    ("D-194c", "CCCC(Br)COCC([81Br])CCC", "2-bromo-1-{[2-(81Br)bromopentyl]oxy}pentane",
+     "2-(81Br)bromo-1-[(2-bromopentyl)oxy]pentane",
+     "P-45.4.1 (p. 423): the parent that gives the isotopically modified substituent the LOWER locant ('1' over '2'); criteria P-45.4.1 to P-45.4.3 are not implemented, so the parent is chosen by atom order (24 of 40 random spellings name the book's PIN, 16 the other)"),
+    ("D-195", "CP(C)(C)(C)C", "pentamethyl-lambda5-phosphane",
+     "pentamethylphosphane",
+     "severity B: a hypervalent centre with NO hydrogen is named without its number (`pentamethoxy-λ5-phosphane (PIN)`, p. 770). OPSIN reads the engine's name, since the five substituents say the number, so nothing is lost; not changed in this round"),
+    ("D-193d", "O=C([81Br])CCC(=O)O", "3-[(81Br)bromocarbonyl]propanoic acid",
+     "3-(bromocarbonyl)propanoic acid",
+     "WRONG MOLECULE: a nuclide on an atom of the multi-atom acyl-halide prefix is dropped (the same class as D-193b)"),
+    ("D-196a", "[13CH3]CCCBr", "1-bromo(4-13C)butane",
+     "(4-13C)-1-bromobutane",
+     "the PARENT's descriptor is placed before the prefixes, where OPSIN cannot read it; P-82.2.1 (p. 853) inserts it before the part it modifies, '1-phenyl(1,2-13C2)ethan-1-one', '2-(35Cl)chloro-3-(2H3)methyl(1-2H1)pentane'. Unchanged by D-192, and a label on a prefix too reads the same way, `(4-13C)-1-(81Br)bromobutane`"),
+    ("D-196b", "[18O]=C(C)c1ccccc1", "1-phenylethan-1-(18O)one",
+     "(1-18O)-1-phenylethan-1-one",
+     "the same placement, for the oxygen of a ketone suffix (P-82.2.1, p. 853: '1-(aminomethyl)cyclopentan-1-(18O)ol')"),
 ]
 
 # Observed but NOT tracked here, because this table requires a verified
@@ -4931,3 +5126,190 @@ def test_a_thiohydrazide_anchored_in_a_longer_acid_chain_does_not_double_count_i
     (an extra carbon, a WRONG STRUCTURE) or fell back to a thiohydrazide parent outranking the acid ('3-carboxypropanethiohydrazide'), for a
     molecule the pre-round-23 engine already named correctly by a different, generic route."""
     assert name_smiles(smiles) == expected
+
+# ---- D-191 and D-192: the converses, the helpers' own contract, and the exactly-one-owner check -------------------------------------
+# D-191 gives a group the lambda number only when its atom has MORE bonds than its standard number, and D-192 labels a prefix only when it is the name of the one
+# atom it owns. Each converse below is a neighbour those rules must not move, with its name asserted equal before and after the round (measured against the
+# unedited tree: every one of the 33 control rows is identical).
+
+@pytest.mark.parametrize("smiles, expected", [
+    # a group AT its standard bonding number is the ordinary prefix, not `lambda3-phosphanyl`
+    ("OC(=O)CCP", "3-phosphanylpropanoic acid"),
+    ("OC(=O)CC[SH]", "3-sulfanylpropanoic acid"),
+    ("OC(=O)CC[SeH]", "3-selanylpropanoic acid"),
+    ("OC(=O)CC[AsH2]", "3-arsanylpropanoic acid"),
+    ("OC(=O)CC[IH0]", "3-iodopropanoic acid"),
+    ("OC(=O)CC=N", "3-iminopropanoic acid"),
+    # ... and a double-bonded chalcogen at its standard number is still the thioxo / sulfanylidene / selanylidene it was (the two guards test the VALENCE, not the element)
+    ("OC(=O)CC=S", "3-thioxopropanoic acid"),
+    ("S=C1CCCCC1", "cyclohexanethione"),
+    ("CC(=S)C", "propane-2-thione"),
+    ("CC=S", "ethanethial"),
+    ("O=C1CCC(=S)CC1", "4-sulfanylidenecyclohexan-1-one"),
+    ("O=C1CCC(=[Se])CC1", "4-selanylidenecyclohexan-1-one"),
+    # a heteroatom centre is named as it was when it has no hydrogen or is at its standard number (D-195 is the open row for the first)
+    ("CP(C)C", "trimethylphosphane"),
+    # a phosphoryl group carved as a substituent has one hydrogen in its FRAGMENT, standing for the cut bond, and none in the molecule: it keeps `(oxo)phosphanyl` (the first
+    # version of the heteroatom-centre rule counted that hydrogen and moved 13 of 2000 census rows, 10 of them this shape)
+    ("O=P(OCC)(OCC)Nc1ccccn1", "2-{[di(ethoxy)(oxo)phosphanyl]amino}pyridine"),
+    ("OC(=O)CCP(=O)(C)C", "3-[dimethyl(oxo)phosphanyl]propanoic acid"),
+    ("O=P(c1ccccc1)(c1ccccc1)Cc1ccccc1", "benzyldi(phenyl)-lambda5-phosphanone"),
+    ("C[SiH2]Br", "bromo(methyl)silane"),
+    ("C[Si](C)(Br)C", "bromotri(methyl)silane"),
+])
+def test_a_group_at_its_standard_bonding_number_keeps_its_name(smiles, expected):
+    assert name_smiles(smiles) == expected
+
+
+@pytest.mark.parametrize("smiles, expected", [
+    # no nuclide anywhere: not one of these takes a descriptor, a bracket, or a different order
+    ("BrCCC(=O)O", "3-bromopropanoic acid"),
+    ("BrCCBr", "1,2-dibromoethane"),
+    ("Brc1ccccc1", "bromobenzene"),
+    ("ClC(Br)(Br)Cl", "dibromodichloromethane"),
+    ("OCCC(=O)O", "3-hydroxypropanoic acid"),
+    ("NCCC(=O)O", "3-aminopropanoic acid"),
+    ("O=CCC(=O)O", "3-oxopropanoic acid"),
+    ("N#CCC(=O)O", "cyanoacetic acid"),
+    ("FC(F)(F)CC(=O)O", "3,3,3-trifluoropropanoic acid"),
+    ("CCc1ccccc1C", "1-ethyl-2-methylbenzene"),
+    ("BrC1CCCCC1C", "1-bromo-2-methylcyclohexane"),
+    # a nuclide on the PARENT is still written where it was written (D-196 is the open row for WHERE)
+    ("[13CH3]CC(=O)O", "(3-13C)propanoic acid"),
+    ("OC(=O)C[13CH3]", "(3-13C)propanoic acid"),
+    ("[2H]C([2H])([2H])C(=O)O", "(2,2,2-2H3)acetic acid"),
+    ("O[2H]", "(2H1)water"),
+])
+def test_a_name_without_a_labelled_prefix_is_not_moved_by_the_nuclide_rules(smiles, expected):
+    assert name_smiles(smiles) == expected
+
+
+def test_an_isotopic_prefix_of_a_natural_abundance_atom_is_the_bare_prefix():
+    from rdkit import Chem
+
+    from openchem.vendor.iupac_namer.isotope import isotopic_prefix
+
+    assert isotopic_prefix("bromo", Chem.MolFromSmiles("BrC").GetAtomWithIdx(0)) == "bromo"
+    assert isotopic_prefix("bromo", Chem.MolFromSmiles("[81Br]C").GetAtomWithIdx(0)) == "(81Br)bromo"
+    assert isotopic_prefix("amino", Chem.MolFromSmiles("[15NH2]C").GetAtomWithIdx(0)) == "(15N)amino"
+
+
+@pytest.mark.parametrize("token, expected", [
+    ("81Br", True), ("13C", True), ("2H3", True), ("131I", True), ("18O", True), ("1H", True),
+    # stereodescriptors with a locant, and things that are not a mass number and an element: NOT nuclides
+    ("2S", False),      # a sulfur of mass two; and the descriptor of a stereocentre at 2
+    ("5R", False), ("1E", False), ("2Z", False), ("4a", False), ("N", False), ("14", False), ("0C", False), ("81Xx", False), ("400C", False),
+])
+def test_what_is_a_nuclide_token(token, expected):
+    from openchem.vendor.iupac_namer.assembly import is_nuclide_token
+
+    assert is_nuclide_token(token) is expected
+
+
+def test_asking_whether_a_stereodescriptor_is_a_nuclide_does_not_log(capfd):
+    """RDKit prints a C++ post-condition violation to stderr whenever its periodic table is asked for a symbol it lacks, exception or not, which a
+    name carrying `(2R)` would have printed on every sort. The symbols are read from the table once instead."""
+    from openchem.vendor.iupac_namer.assembly import is_nuclide_token
+
+    for token in ("5R", "1E", "2Z", "81Xx"):
+        assert is_nuclide_token(token) is False
+    captured = capfd.readouterr()
+    assert "Post-condition Violation" not in captured.err + captured.out
+
+
+@pytest.mark.parametrize("prefix, sort_name, citation_key", [
+    # a nuclide is set aside, as locants and stereodescriptors are (P-14.5, p. 80): the group is filed under the letters of its NAME
+    ("(81Br)bromo", "bromo", 0),
+    ("(1-13C)methyl", "methyl", 0),
+    ("[(1,1,1-2H3)methyl]", "methyl", 0),
+    ("(15N)amino", "amino", 0),
+    ("(4-13C)butyl", "butyl", 0),
+    # ... and an unmodified group is cited AFTER a modified one that reads alike (P-82.2.2.1, p. 854), so its key is the larger
+    ("bromo", "bromo", 1),
+    # what only LOOKS like a descriptor is not one: an indicated hydrogen, a CIP descriptor, an italic prefix
+    ("(1H-indol-3-yl)", "indolyl", 1),
+    ("2-(1H-indol-3-yl)ethyl", "indolylethyl", 1),
+    ("[(2S)-butan-2-yl]", "butanyl", 1),
+    ("[(1E)-prop-1-en-1-yl]", "propenyl", 1),
+    ("tert-butyl", "butyl", 1),
+])
+def test_a_prefixs_sort_name_ignores_its_nuclide_and_its_citation_key_puts_the_modified_one_first(prefix, sort_name, citation_key):
+    from openchem.vendor.iupac_namer.assembly import derive_sort_name, isotope_citation_key
+
+    assert derive_sort_name(prefix) == sort_name
+    assert isotope_citation_key(prefix) == citation_key
+
+
+def _locant(n):
+    from openchem.vendor.iupac_namer.types import Locant
+
+    return Locant(label=str(n), is_numeric=True, _numeric_value=n, suffix="")
+
+
+def _cited(entries):
+    """What assembly does with prefix entries: merge the identical ones, order them by (sort name, isotope key), render."""
+    from openchem.vendor.iupac_namer.assembly import isotope_citation_key, merge_identical_prefixes, render_merged_prefixes
+
+    merged = merge_identical_prefixes([(name, tuple(_locant(n) for n in locants)) for name, locants in entries])
+    merged.sort(key=lambda m: (m.sort_name, isotope_citation_key(m.name)))
+    return render_merged_prefixes(merged)
+
+
+@pytest.mark.parametrize("entries, rendered", [
+    # one labelled one-atom prefix is not a compound prefix: no enclosing marks of its own (p. 853, "4-(81Br)bromo-3-...")
+    ([("(81Br)bromo", (1,))], "1-(81Br)bromo"),
+    # two identical ones multiply, and ARE enclosed: "1,2-di[(13C)methyl]benzene" (p. 853)
+    ([("(81Br)bromo", (1,)), ("(81Br)bromo", (2,))], "1,2-di[(81Br)bromo]"),
+    # a labelled and a plain one are two prefixes, never "dibromo" (P-82.2.2.1), the labelled one first, wherever the plain one's locant is
+    ([("(81Br)bromo", (2,)), ("bromo", (1,))], "2-(81Br)bromo-1-bromo"),
+    ([("bromo", (1,)), ("(81Br)bromo", (2,)), ("chloro", (3,))], "2-(81Br)bromo-1-bromo-3-chloro"),
+    ([("(13C)methyl", (1,)), ("methyl", (2,))], "1-(13C)methyl-2-methyl"),
+])
+def test_a_labelled_one_atom_prefix_is_enclosed_only_when_multiplied_and_never_merged_with_a_plain_one(entries, rendered):
+    assert _cited(entries) == rendered
+
+
+@pytest.mark.parametrize("previous, stem, hyphen", [
+    ("methyl", "lambda5-phosphane", True),          # "methyl-lambda5-phosphane": a lambda descriptor takes a hyphen, as a locant does (pp. 769-770)
+    ("1-methyl", "lambda5-phosphane", True),
+    ("", "lambda5-phosphane", False),               # ... and nothing before it is nothing to separate it from
+    ("methyl", "phosphane", False),                 # the ordinary stem is joined as it always was
+])
+def test_a_lambda_stem_is_hyphenated_from_the_prefixes_before_it(previous, stem, hyphen):
+    from openchem.vendor.iupac_namer.assembly import _needs_hyphen_before_stem
+
+    assert _needs_hyphen_before_stem(previous, stem) is hyphen
+
+
+@pytest.mark.parametrize("smiles, bonds, group_names", [
+    # (element, bonds in the molecule): the name of the group at each bond order; None where the group is not named this way
+    ("[PH5]", 5, ["lambda5-phosphanyl", "lambda5-phosphanylidene", "lambda5-phosphanylidyne", None]),
+    ("[SH6]", 6, ["lambda6-sulfanyl", "lambda6-sulfanylidene", "lambda6-sulfanylidyne", None]),
+    ("[SH6]", 4, ["lambda4-sulfanyl", "lambda4-sulfanylidene", "lambda4-sulfanylidyne", None]),
+    ("[ClH3]", 3, ["lambda3-chloranyl", "lambda3-chloranylidene", "lambda3-chloranylidyne", None]),
+    # at its standard number, one bond short of the next step (a radical, not a number), below it, or the wrong kind of atom: no lambda name
+    ("[PH5]", 3, [None] * 4),
+    ("[PH5]", 4, [None] * 4),
+    ("[SH6]", 3, [None] * 4),
+    ("[SH6]", 2, [None] * 4),
+    ("[Cl]", 1, [None] * 4),
+    ("C", 4, [None] * 4),
+    ("[N+](C)(C)(C)C", 4, [None] * 4),              # a charged atom is the -ium/-ide family, whose names carry the charge
+])
+def test_the_lambda_name_of_a_one_atom_group(smiles, bonds, group_names):
+    from rdkit import Chem
+
+    from openchem.vendor.iupac_namer.engine import _hypervalent_group_name, _is_hypervalent
+
+    atom = Chem.MolFromSmiles(smiles, sanitize=False).GetAtomWithIdx(0)
+    assert [_hypervalent_group_name(atom, bonds, order) for order in (1, 2, 3, 4)] == group_names
+    assert _is_hypervalent(atom, bonds) is any(name is not None for name in group_names)
+
+
+@pytest.mark.parametrize("smiles", [row[1] for row in FIXED if row[0].startswith(("D-191", "D-192"))])
+def test_every_atom_of_a_d191_or_d192_shape_is_owned_by_exactly_one_node(smiles, monkeypatch):
+    """The guards that stop `=SH2` becoming `thioxo`, and the single-atom label, change which pass claims an atom: a hypervalent chalcogen is now left to the
+    structural carve, and a prefix is built from one atom's own isotope. `strict` makes the ownership check RAISE, so a naming that returns here owned every
+    atom of every level once and only once (a name-equality test alone would pass for the wrong reason if a fall-back plan reached the same string)."""
+    monkeypatch.setenv("OPENCHEM_NAMER_OWNERSHIP", "strict")
+    assert "NAMING ERROR" not in name_smiles(smiles)
