@@ -2252,7 +2252,12 @@ document may cite a file or a test that does not exist.
   crashed with the fix, 2/15 without, one of them at the fix's own target; Fisher p = 0.48), so a
   difference of that size was not detectable and the fix is neither shown to work nor shown not to.
   What the runs did show is a larger, unrelated problem: about half of shard 1's legs crash at 4-8%
-  of the run (about 80 s in) with no frame outside pytest, which #197 does not touch. This is the
+  of the run (about 80 s in) with no frame outside pytest, which #197 does not touch. **That crash was
+  then bisected and identified** (`benchmarks/windows_crash/`): it needs `test_calculator_inspector_structure.py`
+  to run after a few earlier files (about 14% of attempts on that window, 0 alone), is not GPU/GL related,
+  and is a null read in `shiboken6`'s `BindingManager::releaseWrapper` that **depends on the PySide6 version**
+  (pre-registered confirmation: 6.9.3 1/100, locked 6.11.1 8/100, p = 0.035; present from 6.10.0). The
+  locked version has not been changed; that is a maintainer decision with its own full-suite check. This is the
   WINDOWS suite, so the Linux decision below does not apply to it.
 - **DECISION** -- the Linux CI suite crashes part-way through, and the
   investigation is CLOSED rather than solved. Measured 2026-09-12 from
