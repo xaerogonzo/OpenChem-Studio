@@ -49,6 +49,9 @@ on:
       attempts:
         description: 'Attempts per leg (fresh process each). Use >1 only with ranges, where an attempt takes minutes, not 25.'
         default: '1'
+      treatments:
+        description: 'TREATMENT MODE: JSON list of arms [{"label":"baseline","range":"15:20","env":{}},{"label":"x","range":"15:20","env":{"NAME":"VALUE"}}]. Same window, different environment per arm. Replaces ranges/revert.'
+        default: ''
 
 permissions:
   contents: read
@@ -72,6 +75,7 @@ jobs:
           SHARD: ${{ inputs.shard }}
           RANGES: ${{ inputs.ranges }}
           ATTEMPTS: ${{ inputs.attempts }}
+          TREATMENTS: ${{ inputs.treatments }}
         run: |
           python3 - <<'PY'
           import json, os
@@ -84,16 +88,32 @@ jobs:
           if not 1 <= attempts <= 40:
               raise SystemExit("attempts must be between 1 and 40")
           ranges = [r.strip() for r in os.environ["RANGES"].split(",") if r.strip()]
+          treatments = os.environ["TREATMENTS"].strip()
+          if treatments and (ranges or os.environ["REVERT"].strip()):
+              raise SystemExit("treatments, ranges and revert are different experiments; use one")
           if ranges and os.environ["REVERT"].strip():
               raise SystemExit("ranges and revert are different experiments; use one")
-          if attempts > 1 and not ranges:
-              raise SystemExit("attempts > 1 is for ranges (a whole-shard attempt takes ~25 minutes)")
-          if ranges:
+          if attempts > 1 and not (ranges or treatments):
+              raise SystemExit("attempts > 1 is for ranges or treatments (a whole-shard attempt takes ~25 minutes)")
+          envs = {}
+          if treatments:
+              # One arm per treatment: the same window under a different environment. Labels must be unique,
+              # and an env value must be a string (it becomes an environment variable).
+              listed = json.loads(treatments)
+              labels = [t["label"] for t in listed]
+              if len(set(labels)) != len(labels):
+                  raise SystemExit("treatment labels must be unique")
+              for t in listed:
+                  if not all(isinstance(k, str) and isinstance(v, str) for k, v in t.get("env", {}).items()):
+                      raise SystemExit("treatment env must map strings to strings")
+              arms = [(t["label"], t.get("range", "")) for t in listed]
+              envs = {t["label"]: json.dumps(t.get("env", {})) for t in listed}
+          elif ranges:
               # One arm per slice, labelled by the slice, so the report compares them.
               arms = [(f"files {r}", r) for r in ranges]
           else:
               arms = [("as-is", "")] + ([("reverted", "")] if os.environ["REVERT"].strip() else [])
-          matrix = {"include": [{"arm": a, "range": r, "replica": i} for a, r in arms for i in range(1, replicas + 1)]}
+          matrix = {"include": [{"arm": a, "range": r, "env": envs.get(a, "{}"), "replica": i} for a, r in arms for i in range(1, replicas + 1)]}
           with open(os.environ["GITHUB_OUTPUT"], "a") as out:
               out.write("matrix=" + json.dumps(matrix) + "\n")
               out.write("expected=" + json.dumps({a: replicas * attempts for a, _ in arms}) + "\n")
@@ -175,7 +195,17 @@ jobs:
           REPLICA: ${{ matrix.replica }}
           RANGE: ${{ matrix.range }}
           ATTEMPTS: ${{ inputs.attempts }}
+          TREATMENT_ENV: ${{ matrix.env }}
         run: |
+          # A treatment arm's environment, applied to every attempt of this leg (and only this leg's processes).
+          $applied = @()
+          if ($env:TREATMENT_ENV -and $env:TREATMENT_ENV -ne '{}') {
+            foreach ($entry in ($env:TREATMENT_ENV | ConvertFrom-Json).PSObject.Properties) {
+              Set-Item -Path "Env:$($entry.Name)" -Value $entry.Value
+              $applied += "$($entry.Name)=$($entry.Value)"
+            }
+            Write-Host "treatment environment: $($applied -join '; ')"
+          }
           $files = @()
           if ($env:RANGE) {
             $files = @(uv run --no-sync python tools/suite_shards.py --splits=2 --group=$env:SHARD --slice=$env:RANGE)

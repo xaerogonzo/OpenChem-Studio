@@ -26,7 +26,7 @@ if str(PLUGINS_DIR) not in sys.path:
 
 import pytest
 import shiboken6
-from PySide6.QtCore import QCoreApplication, QEvent, QObject, QSettings
+from PySide6.QtCore import QCoreApplication, QEvent, QObject, QSettings, Qt
 from PySide6.QtWidgets import QApplication
 
 
@@ -400,6 +400,10 @@ def qapp():
     tests. Session-scoped and offscreen so the suite runs in CI with no
     display.
     """
+    if os.environ.get("OPENCHEM_QAPP_SHARE_GL") == "1" and QApplication.instance() is None:
+        # EXPERIMENT (windows-crash-rate.yml treatments). The real app sets this BEFORE it creates the
+        # QApplication, as Qt requires when QtWebEngine is in use (main.py); this fixture never did.
+        QCoreApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts, True)
     app = QApplication.instance() or QApplication([])
     yield app
 

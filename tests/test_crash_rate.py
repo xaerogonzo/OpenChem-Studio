@@ -208,3 +208,19 @@ def test_the_job_name_survives_yaml_comment_parsing():
     an arm became indistinguishable, and `gh run view --log` printed one leg's log three times."""
     code = _code(_workflow())
     assert 'name: "${{ matrix.arm }} / leg ${{ matrix.replica }}"' in code
+
+
+def test_treatment_mode_exists_and_is_exclusive_with_the_other_experiments():
+    code = _code(_workflow())
+    assert "treatments:" in code and "TREATMENTS:" in code
+    assert "treatments, ranges and revert are different experiments" in code
+    assert "treatment labels must be unique" in code
+    assert "treatment env must map strings to strings" in code
+
+
+def test_a_treatments_environment_is_applied_inside_the_leg_not_the_runner_job():
+    """Set-Item Env: inside the step's own pwsh process: it reaches every attempt's pytest of this leg and
+    nothing else (each leg is its own runner)."""
+    code = _code(_workflow())
+    assert "TREATMENT_ENV: ${{ matrix.env }}" in code
+    assert "ConvertFrom-Json" in code and 'Set-Item -Path "Env:' in code
