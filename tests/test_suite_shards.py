@@ -265,8 +265,6 @@ def test_pin_new_pins_unpinned_files_where_they_already_sit_and_moves_nobody(tmp
     module = _module()
     out = tmp_path / "pins.json"
     files = module.test_files()
-    before = module.assign(files, module.load_durations(), 2, _pins(module))
-    placed_before = {name: i for i, group in enumerate(before) for name in group}
 
     module.pin_new  # noqa: B018 - exists
     # Start from the committed table minus a few entries, to have something to pin.
@@ -275,10 +273,16 @@ def test_pin_new_pins_unpinned_files_where_they_already_sit_and_moves_nobody(tmp
     table["2"] = {k: v for k, v in table["2"].items() if k not in dropped}
     out.write_text(__import__("json").dumps(table), encoding="utf-8")
 
+    # Where those files SIT with their pins removed: the packer puts each on the lighter shard once the pinned files are counted. That is
+    # what `pin_new` must record. It is NOT where the committed pins had them: which shard is lighter changes whenever any test file is
+    # added, so comparing with the old pins failed for a PR that added one file and said nothing about this tool.
+    sit_now = module.assign(files, module.load_durations(), 2, table["2"])
+    placed_now = {name: i for i, group in enumerate(sit_now) for name in group}
+
     fresh = module.pin_new(2, out)
     assert set(dropped) <= set(fresh)
     pinned = __import__("json").loads(out.read_text(encoding="utf-8"))["2"]
     assert all(name in pinned for name in files)
     # Every previously pinned file kept its pin; the re-pinned ones landed where the packer had put them.
     assert all(pinned[k] == v for k, v in table["2"].items())
-    assert all(pinned[name] == placed_before[name] for name in dropped)
+    assert all(pinned[name] == placed_now[name] for name in dropped)

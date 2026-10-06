@@ -81,6 +81,10 @@ VB_TIE_CASES = [
     # a different element on each, so they write different text. P-31.1.4.2.4
     # puts the senior element (O) on the lower locant; this was 12/12 by spelling.
     ("C1OC2CC1NC2", "2-oxa-5-azabicyclo[2.2.1]heptane"),
+    # Cocaine as the report wrote it (PubChem's SMILES): the acid at 2 and the benzoyloxy at 3 in every spelling. The ester parent is
+    # round 25's (the azabicyclo acid outranks benzoic acid), the numbering this change's; the name read back stereo-exact by InChIKey.
+    ("CN1[C@H]2CC[C@@H]1[C@@H]([C@H](C2)OC(=O)C3=CC=CC=C3)C(=O)OC",
+     "methyl (1R,2S,3S,5S)-3-(benzoyloxy)-8-methyl-8-azabicyclo[3.2.1]octane-2-carboxylate"),
 ]
 
 

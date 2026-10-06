@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming round 25: stereo on four natural products, and a stable name for polyesters
+
+- **Atropine, scopolamine, galantamine, ibogaine** keep the stereodescriptors OPSIN can read (galantamine and ibogaine are now exact). Four different causes, see `src/openchem/vendor/CHANGELOG.md`, round 25.
+- **A diester no longer has a different name for each way of writing its SMILES** (heroin, diacetates of diols): the senior acid, then the lowest locants, decide which ester is the principal anion.
+
 ### CI: the shard pins guard asserted more than the pins guarantee
 
 - `test_adding_a_test_file_moves_no_other_file` (#202) asserted that NO existing file moves when test files are added, but only PINNED files are guaranteed not to: an unpinned file is packed among the other unpinned ones, and 8 files were unpinned. It passed on master by luck of the current set, and failed in every non-crashed leg of the crash measurement's control arm (a tree with one file fewer), so it would have failed some future PR for no reason. It now asserts the pinned files only.

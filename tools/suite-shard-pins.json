@@ -400,6 +400,7 @@
   "tests/test_rotation_transaction.py": 0,
   "tests/test_round24_morphinan.py": 0,
   "tests/test_round24_polycycle_templates.py": 1,
+  "tests/test_round25_stereo_and_esters.py": 1,
   "tests/test_run_app_gate.py": 1,
   "tests/test_scalar_field.py": 0,
   "tests/test_scatter_plot_zoom.py": 0,
