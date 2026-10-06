@@ -1538,6 +1538,14 @@ nitrate-ester and N-nitro entries that the first edition does not, read 2026-10-
 value): glycerol 1,2-dinitrate 0.3386 mol/L at 20 C (entry 168, ref D013, p. 73), glycerol 1,3-dinitrate 0.3993 mol/L at
 20 C (169, D013), and ethyl tetryl 1.992e-4 mol/L at 22 C (1408, D067, p. 481). Scored against ESOL and the AqSolDB model
 (glycerol 1,2-dinitrate is not in the curated AqSolDB data; the other two are): ESOL +0.47, +0.40 and +0.81, AqSolDB -1.17,
--0.88 and +0.36 log units. The references D013 and D067 were not looked up, so these are the handbook's values, not
-checked against their originals. Entries are laid out as running text with one token per line in the PDF's text layer;
+-0.88 and +0.36 log units. Their sources, from the handbook's own reference list (printed p. 1399 and 1401 of the
+PDF, 2026-10-06): D013 = Dunstan, Griffiths and Harvey, 'Nitric esters. Part I. Characterisation of the isomeric
+glycerol dinitrates', J. Chem. Soc. (London) 1965, 1319-1324 (the handbook scores it 1 0 1 1 2 on its own scale:
+temperature given without a range, purity not stated, equilibration and analysis stated briefly, two significant
+figures); D067 = Desvergnes, 'Sur quelques proprietes physiques des derives nitres: l'acide 2-4-6-trinitrobenzoique',
+Moniteur Scientifique 16, 201-208, 1926 (scored 1 2 0 0 0: purity stated with a range, but equilibration time, analysis
+and accuracy not stated, and the value 0.06 g/L carries one significant figure). So the glycerol dinitrate values trace
+to one 1965 paper that has a DOI and is not held; the ethyl tetryl value traces to a 1926 French trade journal with no
+DOI and is the weakest of the three. Neither original has been read, so these are the handbook's values, not checked
+against them. Entries are laid out as running text with one token per line in the PDF's text layer;
 read a value off the page, not off a search snippet."""
