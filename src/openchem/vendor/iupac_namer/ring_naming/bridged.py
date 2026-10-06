@@ -1213,6 +1213,17 @@ def name_bridged(
     # "...-2-carboxylic acid" or "...-4-carboxylic acid" by how it was
     # written.  P-31.1.4 (suffix lowest, then prefixes) is the strategy
     # layer's to apply, and it can only apply it to a choice it is given.
+    #
+    # The numbering that used to be the ONLY option goes LAST.  When the strategy
+    # layer cannot tell two numberings apart (a meso skeleton, where the mirror
+    # numbering differs only in CIP labels: atropine, scopolamine, tropine) the
+    # later-generated plan wins, the declared policy of `engine._search_plans`
+    # and `_break_alphanumerical_tie`.  Offering the tie in generation order made
+    # the second numbering win those ties instead of the first, which flipped
+    # `(1R,5S)-...` to `(1S,5R)-...` for two names round 25 had pinned.  Ordering
+    # this way changes nothing for a tie that nothing can break; the principled
+    # rule, R before S at the first point of difference, is not implemented and
+    # is recorded as open in CHANGELOG.md.
     needs_hetero_pin = bool(heteroatoms) and locant_map is not None
     if locant_map is not None and (n_secondary > 0 or needs_hetero_pin):
         from openchem.vendor.iupac_namer.ring_naming.numbering import _make_numbering
@@ -1227,6 +1238,7 @@ def name_bridged(
                 continue
             seen_orders.add(tuple(ordered_atoms))
             pinned.append(_make_numbering(ordered_atoms))
+        pinned.append(pinned.pop(0))  # the old sole pick last: it wins a tie the strategy cannot break
         pinned_numberings = tuple(pinned)
 
     return [NamedParent(
