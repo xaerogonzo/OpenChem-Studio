@@ -148,6 +148,39 @@ def fragment_origin(fragment: object) -> "tuple[tuple[int, int], ...]":
     return pairs
 
 
+def context_stereo_key(mol: object) -> str:
+    """The inherited descriptors a carved fragment holds, as text for a cache key; ``""`` if it holds none.
+
+    **A CARVED FRAGMENT'S STEREO IS A PROPERTY, AND A SMILES CANNOT WRITE ONE.** The fragment of
+    ``CC[C@@H](C)c1cccc([C@@H](C)CC)c1`` cut at either ring bond is ``CCCC`` with the attachment on atom 3: the
+    stereocentre is not a stereocentre once the ring side is an H, so ``MolToSmiles`` has nothing to print, and the
+    two fragments are the SAME text. They are not the same substituent: one is stamped ``R`` and the other ``S``
+    (`_stamp_context_cip`), and the namer reads the stamp (`perception/stereo.py`). The session cache keyed on the
+    SMILES alone answered the second lookup with the first fragment's tree, so the R,S compound was named
+    ``1,3-bis[(2R)-butan-2-yl]benzene`` or ``1,3-bis[(2S)-...``, whichever substituent was named first, which OPSIN
+    reads as the R,R or the S,S compound. The wrong descriptor came from the cache and not from the prefix merger: both
+    prefixes arrived at `merge_identical_prefixes` already named ``(2R)-butan-2-yl``.
+
+    Every stamp is in the key, atoms and bonds, because both are read. Indices are the fragment's own, which
+    `_canonical_renumber` fixes, the convention the key's attachment indices already rely on. A key that is too
+    specific costs a cache miss; one that is too general names the wrong compound, so nothing is left out. (A bond
+    stamp is not what the reported shape needed: an E or Z alkene fragment keeps its explicit ``[H]``, so its SMILES
+    already differs.) Provenance (`_ORIGIN_ATOM`) is deliberately NOT in the key: it says where a fragment came from,
+    not what it is named, and every fragment would then be its own entry.
+    """
+    parts = [
+        f"a{atom.GetIdx()}={atom.GetProp(_PARENT_CIP)}"
+        for atom in mol.GetAtoms()
+        if atom.HasProp(_PARENT_CIP)
+    ]
+    for bond in mol.GetBonds():
+        if bond.HasProp(_PARENT_CIP):
+            lo, hi = sorted((bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()))
+            parts.append(f"b{lo}-{hi}={bond.GetProp(_PARENT_CIP)}")
+    # "|" never occurs in a SMILES, so the suffix cannot be read as part of one.
+    return "|" + ",".join(parts) if parts else ""
+
+
 def _stamp_context_cip(
     rw: object,
     parent: object,

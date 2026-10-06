@@ -10,11 +10,12 @@ locant order after, the first point of difference deciding. It is the LAST crite
 It is applied in `engine._break_alphanumerical_tie`, between numberings of one parent: a chain, a ring, and the `-diyl` group of a
 polyol's diester (`(2R,4S)-pentane-2,4-diyl diacetate`, naming round 26).
 
-It is deliberately NOT applied in `engine._break_ester_tie`, the choice of which ester of a polyester is principal. A tier was
-built there and removed: the alcohol component is named as a fragment of its own, and when two ester plans carve fragments that
-print alike one of the two trees can carry descriptors that do not describe the molecule. Ranking those trees R-first picked the
-wrong one: meso dipropylene glycol diacetate came out as the R,R compound. `test_every_stereoisomer_of_these_diesters_reads_back`
-is the guard, and it is the reason this file reads names back instead of only comparing them.
+It was first NOT applied in `engine._break_ester_tie`, the choice of which ester of a polyester is principal. A tier was built there
+and removed: with it, meso dipropylene glycol diacetate came out as the R,R compound. The tier was not the cause. The session cache
+was keyed on a SMILES that cannot write the descriptor a carved fragment inherits, so the second ester plan reused the first plan's
+tree and its descriptors (`context_stereo_key`; `test_namer_stereo_cache_identity.py`). With that fixed the tier is back, pinned in
+`test_namer_stereo_parents_and_citation.py`. `test_every_stereoisomer_of_these_diesters_reads_back` below is the guard that found
+it, and it is the reason this file reads names back instead of only comparing them.
 """
 from __future__ import annotations
 
@@ -161,8 +162,8 @@ DIESTERS = [
 ]
 
 # Diesters whose organyl group is a multiplicative group, which round 26 leaves on the acyloxy form: the choice there is which ester is
-# principal, and no (j) tier is applied to it (see the module docstring). Every stereoisomer must read back.
-UNTIERED_DIESTERS = ["CC(=O)OC(C)COCC(C)OC(C)=O", "CC(=O)OC(C)COC(C)COC(C)=O"]
+# principal (`_break_ester_tie`, which has a (j) tier of its own; see the module docstring). Every stereoisomer must read back.
+ESTER_ROUTE_DIESTERS = ["CC(=O)OC(C)COCC(C)OC(C)=O", "CC(=O)OC(C)COC(C)COC(C)=O"]
 
 ALL_PINNED = MESO + BOOK + PARTIAL
 
@@ -232,16 +233,17 @@ def test_without_the_stereo_key_the_same_spellings_give_two_names(monkeypatch):
     assert name.startswith("(2S,4R)-"), name
 
 
-# --- the ester route has no tier, and every name it writes must still be the molecule's -------------------------------------
+# --- every name the ester route writes must still be the molecule's --------------------------------------------------------
 
 @needs_opsin
-@pytest.mark.parametrize("flat", UNTIERED_DIESTERS + ["CC(=O)OC(C)CC(C)OC(C)=O", "CC(=O)OC1CCCC(OC(C)=O)C1", "CC(=O)OC1CCCCC1OC(C)=O"])
+@pytest.mark.parametrize("flat", ESTER_ROUTE_DIESTERS + ["CC(=O)OC(C)CC(C)OC(C)=O", "CC(=O)OC1CCCC(OC(C)=O)C1", "CC(=O)OC1CCCCC1OC(C)=O"])
 def test_every_stereoisomer_of_these_diesters_reads_back(flat):
     """A tie-break only CHOOSES between trees that already exist, so it is only as good as the worst of them.
 
-    With an R-first tier on the ester route, one stereoisomer here (the meso `CC(=O)O[C@H](C)COC[C@H](C)OC(C)=O`) was named
-    `(2R)-1-[(2R)-2-(acetyloxy)propoxy]propan-2-yl acetate`, the R,R compound, because one of the two candidate trees carried
-    descriptors that do not describe the molecule and R-first preferred it. Reading every isomer back is what finds that.
+    With an R-first tier on the ester route and the session cache keyed on the SMILES alone, one stereoisomer here (the meso
+    `CC(=O)O[C@H](C)COC[C@H](C)OC(C)=O`) was named `(2R)-1-[(2R)-2-(acetyloxy)propoxy]propan-2-yl acetate`, the R,R compound,
+    because one of the two candidate trees carried descriptors that do not describe the molecule and R-first preferred it.
+    Reading every isomer back is what finds that.
     """
     from py2opsin import py2opsin
     from rdkit.Chem.EnumerateStereoisomers import EnumerateStereoisomers
