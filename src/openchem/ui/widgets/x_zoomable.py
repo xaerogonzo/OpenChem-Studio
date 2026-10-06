@@ -1,6 +1,6 @@
 """Ctrl+wheel zoom, Shift+wheel pan and double-click reset along x, for a plot that draws a window of its data.
 
-**THE LINE CHART'S GESTURES, WRITTEN ONCE FOR THE CHARTS THAT LACKED THEM.** The histogram and the
+**THE LINE CHART'S GESTURES, WRITTEN ONCE.** The histogram and the
 stick chart drew their whole data span however many points it held, so a powder pattern's crowded
 low-angle lines or a distribution's thin tail could not be opened up. `LineChartWidget` already had
 the answer and the same constraint: these charts sit in a scrolling reader, so a PLAIN wheel must
@@ -9,8 +9,9 @@ keep scrolling the page and zoom is Ctrl+wheel, pan Shift+wheel, a double-click 
 It is a mixin, not a shared widget, because what differs is the drawing; the window arithmetic is
 `plot_zoom`'s, shared with the NMR plots and the line chart. The host supplies four small facts:
 `_zoom_has_data`, `_full_x_range`, `_plot_rect` and `_zoom_descending`, and declares the
-`view_changed` signal (a mixin cannot, not being a QObject). The line chart keeps its own copy for
-now: moving it onto this is a behaviour-preserving change that belongs in its own commit.
+`view_changed` signal (a mixin cannot, not being a QObject). The line chart, the histogram and the
+stick chart all use it; the line chart's own copy was moved here unchanged, with its 20-odd zoom tests
+as the net.
 
 Put it BEFORE `QWidget` in the bases so its `wheelEvent` is the one that runs.
 """
