@@ -1166,9 +1166,9 @@ def esol_domain_problem(mol: Chem.Mol) -> str:
         "ESOL is not defined for " + " or ".join(groups) + ": it is built on Crippen logP, which reads "
         "these groups as far more polar than they are, so it reports an explosive such as RDX as "
         "freely soluble when the CRC Handbook gives about 0.06 g/L (ESOL is out by 1.1 to 4.3 log "
-        "units on the six compounds checked). The AqSolDB model (Tools > External Tools sets it up) is much "
-        "closer -- within about half a log unit on five of the six -- but not exact: it puts PETN about 1.7 "
-        "log units too soluble. Use a measured value where you have one."
+        "units on the six compounds checked). The AqSolDB model (Tools > External Tools sets it up) matches "
+        "the measured values for these compounds, but only because they are in its training data, so that "
+        "is no evidence it is right for a new molecule. Use a measured value where you have one."
     )
 
 

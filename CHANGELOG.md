@@ -7,9 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### The ESOL refusal now says how good the alternative is
+### The ESOL refusal no longer recommends AqSolDB without saying what the evidence is
 
-- The refusal for N-nitro and nitrate-ester groups said "Choose the AqSolDB model", which had not been measured. Run against the same six CRC Handbook values (97th ed., Table 5-153), AqSolDB is within about half a log unit on five (RDX -0.18, nitroguanidine -0.18, tetryl +0.51, nitroglycerin -0.42, isosorbide dinitrate +0.48) against ESOL's +1.1 to +3.6 on those, and puts PETN 1.72 log units too soluble (ESOL: 4.30). The message now says so and prefers a measured value. Caveat: these compounds are probably in AqSolDB's training data, which was not checked, so the close agreement may be partly memory.
+- The refusal for N-nitro and nitrate-ester groups said "Choose the AqSolDB model", which had not been measured. Measured against the six CRC Handbook values (97th ed., Table 5-153), AqSolDB is within about half a log unit on five (RDX -0.18, nitroguanidine -0.18, tetryl +0.51, nitroglycerin -0.42, isosorbide dinitrate +0.48) and 1.72 log units too soluble on PETN, against ESOL's +1.1 to +4.3. **That agreement is not evidence.** All six compounds, and the three aromatic C-nitro controls, are in the curated AqSolDB dataset (matched by InChIKey, 9,982 rows), and for RDX, tetryl, isosorbide dinitrate and trinitrobenzene its own value equals the CRC value to the second decimal: the model was scored on its own training labels. PETN's "error" is a disagreement between data sources (AqSolDB holds -3.87, the CRC -5.20) and the model reproduced the dataset's number. The message now says it matches these compounds only because they are in its training data, and prefers a measured value. The ESOL half is unaffected: ESOL was not trained on them, which is why it justifies the refusal.
 
 ### CI: the early shard 1 crash is identified; a PySide6 downgrade is not a fix
 
