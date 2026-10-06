@@ -220,6 +220,15 @@ jobs:
             New-ItemProperty -Path $wer -Name DumpType -Value 1 -PropertyType DWord -Force | Out-Null
             Write-Host "crash dumps (minidump, WER LocalDumps) go to $dumps"
           }
+          # PYSIDE6 VERSION TREATMENT (OPENCHEM_PYSIDE_VERSION=x.y.z): the early shard 1 crash is a null read in
+          # shiboken6's BindingManager::releaseWrapper (PySide6 6.11.1), so the library version is a variable.
+          # The four packages must match exactly; the interpreter and everything else stay as locked.
+          if ($env:OPENCHEM_PYSIDE_VERSION) {
+            $v = $env:OPENCHEM_PYSIDE_VERSION
+            uv pip install "PySide6==$v" "PySide6-Essentials==$v" "PySide6-Addons==$v" "shiboken6==$v"
+            if ($LASTEXITCODE -ne 0) { throw "could not install PySide6 $v" }
+          }
+          uv run --no-sync python -c "import PySide6, shiboken6; print('PySide6', PySide6.__version__, 'shiboken6', shiboken6.__version__)"
           $files = @()
           if ($env:RANGE) {
             $files = @(uv run --no-sync python tools/suite_shards.py --splits=2 --group=$env:SHARD --slice=$env:RANGE)

@@ -231,3 +231,11 @@ def test_native_crash_dumps_are_opt_in_per_arm_and_uploaded():
     assert "OPENCHEM_CAPTURE_DUMPS -eq '1'" in code, "dumps must be opt-in: they are large and need a registry write"
     assert "Windows Error Reporting" in code and "LocalDumps" in code
     assert "name: crash-dumps-${{ strategy.job-index }}" in code and "path: dumps/" in code
+
+
+def test_the_pyside_version_is_a_treatment_and_the_four_packages_move_together():
+    code = _code(_workflow())
+    assert "OPENCHEM_PYSIDE_VERSION" in code
+    for package in ("PySide6==$v", "PySide6-Essentials==$v", "PySide6-Addons==$v", "shiboken6==$v"):
+        assert package in code, "a partial version change leaves a mismatched binding"
+    assert "print('PySide6'" in code, "every leg must log the version it actually ran"
