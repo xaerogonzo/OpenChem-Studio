@@ -31,4 +31,4 @@
 ## What this does and does not establish
 
 - It establishes that the crash is tied to the PySide6/shiboken version in the 6.10+ line and not to this project's WebEngine, GPU or driver configuration.
-- It does **not** show that the project and its full suite are sound on 6.9.3 (two tests in the file fail under it), and it does not touch the locked version. Changing the lock, or filing an upstream report, are separate decisions for the maintainer.
+- It does **not** show that the project and its full suite are sound on 6.9.3, and it does not touch the locked version. **The follow-up whole-suite check found 6.9.3 is worse** (8 of 8 whole-shard legs crashed, at other places): see [`2026-10-06_pyside_693_full_suite.md`](2026-10-06_pyside_693_full_suite.md). Changing the lock, or filing an upstream report, are separate decisions for the maintainer.
