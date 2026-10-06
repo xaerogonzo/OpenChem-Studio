@@ -350,7 +350,10 @@ def test_the_workflow_runs_exactly_the_shards_the_committed_pins_cover():
     pins = _pins(module)
     files = module.test_files()
     assert pins, f"the workflow runs {n} shards and `tools/suite-shard-pins.json` has no table for {n}"
-    assert not (set(files) - set(pins)), f"files with no pin in the {n}-way table: {sorted(set(files) - set(pins))[:3]}"
+    assert not (set(files) - set(pins)), (
+        f"files with no pin in the {n}-way table: {sorted(set(files) - set(pins))[:3]}. A PR that adds a test file runs "
+        "`python tools/suite_shards.py --pin-new` (its default is the matrix's size, so it pins into the table CI uses)."
+    )
     groups = module.assign(files, module.load_costs(), n, pins)
     flat = [name for group in groups for name in group]
     assert sorted(flat) == sorted(files) and len(groups) == n and all(groups), "the CI split is not an exact, non-empty partition"
@@ -376,6 +379,23 @@ def test_the_split_count_is_written_once_and_the_script_cannot_default_it():
     crash = CRASH_RATE_WORKFLOW.read_text(encoding="utf-8")
     assert crash.count("ci_suite_shard.ps1") == 2 and crash.count("-Splits 2") == 2
     assert "--splits=2" in crash and _pins(_module(), 2), "the 2-way pin table must stay committed for it"
+
+
+def test_the_default_split_count_is_the_workflows_matrix_size(tmp_path):
+    """`--pin-new` and `--repin` default to the count CI runs, so the habit of running them with no argument pins into the table CI
+    uses (with a default of 2, a plain `--pin-new` filled the retired 2-way table and the 3-way guard failed for a PR that did
+    everything the docs said)."""
+    module = _module()
+    assert module.ci_splits() == _ci_splits()
+    script = REPO / "tools" / "suite_shards.py"
+    default = subprocess.run([sys.executable, str(script), "--group=1"], capture_output=True, text=True)
+    explicit = subprocess.run([sys.executable, str(script), f"--splits={_ci_splits()}", "--group=1"], capture_output=True, text=True)
+    assert default.returncode == 0 and default.stdout.strip() and default.stdout == explicit.stdout
+    # and when the matrix cannot be read, the old default, not a crash
+    assert module.ci_splits(tmp_path / "missing.yml") == 2
+    odd = tmp_path / "odd.yml"
+    odd.write_text("jobs:\n  suite:\n    strategy:\n      matrix:\n        os: [a]\n", encoding="utf-8")
+    assert module.ci_splits(odd) == 2
 
 
 def test_a_files_cost_is_its_reported_time_plus_the_collects_after_its_qt_tests():

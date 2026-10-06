@@ -67,6 +67,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import statistics
 import subprocess
 import sys
@@ -86,6 +87,9 @@ DEFAULT_PINS = REPO / "tools" / "suite-shard-pins.json"
 #: can see it. See "THE HOOK IS HALF THE COST OF A QT FILE" in the module docstring.
 DEFAULT_QAPP = REPO / "tools" / "suite-qapp-counts.json"
 QAPP_PLUGIN = "suite_qapp_plugin"
+
+#: The workflow that decides how many shards CI runs: the size of its `shard: [1, 2, 3]` matrix is the only place the number is written.
+WORKFLOW = REPO / ".github" / "workflows" / "tests.yml"
 
 #: Seconds one of those collects costs. It walks the LIVE heap, so it differs with what a shard imports: 0.477 and 0.309 in the two Windows
 #: shards of CI run 725 (1433 and 1168 collects, 684 s and 361 s of hook); 0.40 is their collect-weighted mean.
@@ -128,6 +132,17 @@ def load_costs(durations: dict[str, float] | None = None, counts: dict[str, int]
     durations = load_durations() if durations is None else durations
     counts = load_qapp_counts() if counts is None else counts
     return {name: durations.get(name, 0.0) + HOOK_SECONDS * counts.get(name, 0) for name in sorted(set(durations) | set(counts))}
+
+
+def ci_splits(workflow: Path | None = None) -> int:
+    """How many shards CI runs, read from the workflow's matrix: what `--splits` defaults to, so `--pin-new` and `--repin` act on the table CI
+    uses instead of whichever count somebody remembered (a plain `--pin-new` pinned into the 2-way table after the suite went to three shards).
+    Falls back to 2 only when the file or the matrix is not there."""
+    path = workflow or WORKFLOW
+    if not path.is_file():
+        return 2
+    match = re.search(r"^\s+shard:\s*\[([0-9,\s]+)\]\s*$", path.read_text(encoding="utf-8"), re.MULTILINE)
+    return len([part for part in match.group(1).split(",") if part.strip()]) if match else 2
 
 
 def load_pins(path: Path | None = None) -> dict[str, dict[str, int]]:
@@ -261,7 +276,7 @@ def update_from_junit(xml_path: Path, out_path: Path | None = None) -> int:
 
 
 def main(argv: list[str]) -> int:
-    splits, group, update, do_repin, do_pin_new, window, do_count = 2, None, None, False, False, None, False
+    splits, group, update, do_repin, do_pin_new, window, do_count = ci_splits(), None, None, False, False, None, False
     for arg in argv:
         if arg.startswith("--splits="):
             splits = int(arg.split("=", 1)[1])
