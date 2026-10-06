@@ -23,6 +23,11 @@ pytestmark = pytest.mark.skipif(not opsin_available(), reason="needs the managed
         # a second bridged parent with two centres (borneol). A tropane (cocaine) was used here in round 24, but its numbering depends on how the
         # SMILES is written (`...-2-carboxylate` or `...-4-carboxylate`), a defect recorded in KNOWN_LIMITATIONS under round 25 and not this test's job.
         ("C[C@@]12CC[C@@H](C[C@H]1O)C2(C)C", "(1S,2R,4S)-1,7,7-trimethylbicyclo[2.2.1]heptan-2-ol"),
+        # The tropane (cocaine) is back: its numbering no longer depends on how the SMILES is written, because a tie between the two mirror
+        # numberings of 8-azabicyclo[3.2.1]octane is now the strategy layer's to break (tests/test_namer_numbering.py). Round 24 pinned the
+        # carboxylate at 4, the other mirror numbering; measured 12 of 12 atom orders give this one, reading back stereo-exact.
+        ("COC(=O)[C@H]1[C@@H]2CC[C@H](C[C@@H]1OC(=O)c1ccccc1)N2C",
+         "methyl (1S,2S,3S,5R)-3-(benzoyloxy)-8-methyl-8-azabicyclo[3.2.1]octane-2-carboxylate"),
     ],
 )
 def test_bridged_stereo_survives_the_engines_own_opsin_check(smiles, expected):

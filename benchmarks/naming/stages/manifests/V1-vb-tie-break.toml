@@ -1,0 +1,22 @@
+# V1 (after naming round 25): a tie between von Baeyer numberings goes to the strategy layer instead of to atom order.
+# Every row not listed here must NOT change (an unlisted change is a violation).
+#
+# Both listed rows are Blue Book `dispiroter[...]` targets that the engine cannot yet name in the book's form, so NEITHER the old name
+# nor the new one reads back (base_roundtrips = head_roundtrips = false in the report): they are not a structural change, and no
+# `expected_name` is given because the independent target is the book's own form, not a string the engine could produce. What moved is
+# the locant of the spiro atom on the 7-oxabicyclo[4.1.0]heptane component, 5'' -> 2'': the component has two mirror numberings, the
+# old pin kept whichever was generated first, and the strategy layer, now offered both, takes the lower locant for the spiro atom.
+
+stage = "V1-vb-tie-break"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-41aeffe4fdc6"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-31.1.4"
+expected_layer = "numbering"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-a6c2c094a402"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-31.1.4"
+expected_layer = "numbering"
