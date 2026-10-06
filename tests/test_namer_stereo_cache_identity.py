@@ -23,12 +23,12 @@ What the tests pin, and why each is a separate test:
   1,3-phenylene, read back through OPSIN. Measured before the fix, over nine families and five parents: 56 of 2725 names read
   back as another stereoisomer, in exactly these seven families and all of them a same-family pair on a ring.
 
-THE CITATION ORDER OF THE TWO PREFIXES IS NOT PINNED, ON PURPOSE. In the canonical spelling the name is the book's; in about
-half of the other atom orders the same two prefixes are cited `3-[(2S)...]-1-[(2R)...]`. That reads back exact and is not
-this defect: it is P-14.5.4 (prefixes with identical letters are cited by their lowest locants, pdf p. 82), which the engine
-does not implement, and the book's own `1-(pentan-2-yl)-4-(pentan-3-yl)benzene` comes out in the other order in 20 of 40
-spellings on a tree without this change. The tests therefore assert what must hold in every spelling: the two descriptors are
-both present and the name reads back to the structure.
+THE CITATION ORDER OF THE TWO PREFIXES IS PINNED ELSEWHERE. This file asserts what must hold in every spelling: the two
+descriptors are both present and the name reads back to the structure. Which prefix is cited first when the two differ only
+in their descriptors is P-45.6.3 (R precedes S, pdf p. 427), pinned by `test_namer_stereo_parents_and_citation.py`; when two
+prefixes tie on their letters alone it is P-14.5.4 (the lowest locants at the first point of difference, pdf p. 82), which the
+engine does not implement: the book's own `1-(pentan-2-yl)-4-(pentan-3-yl)benzene` comes out in the other order in 20 of 40
+spellings.
 """
 from __future__ import annotations
 
@@ -130,8 +130,8 @@ def test_the_r_s_compound_is_named_with_both_descriptors_in_every_spelling():
 def test_the_canonical_spelling_gives_the_books_name():
     """The app names the CANONICAL SMILES (`derived_name_for_structure` canonicalises), so this is the name a user sees.
 
-    The Blue Book's own example under P-14.4 (j). The citation order of the two prefixes in OTHER atom orders is the open
-    P-14.5.4 gap described in the module docstring, which is why this pins one spelling and not all of them.
+    The Blue Book's own example under P-14.4 (j). Since the prefixes are cited R before S (P-45.6.3) every spelling gives this name;
+    `test_namer_stereo_parents_and_citation.py` pins that, and this one is the spelling the application names.
     """
     assert name_smiles(Chem.MolToSmiles(Chem.MolFromSmiles(R_S))) == "1-[(2R)-butan-2-yl]-3-[(2S)-butan-2-yl]benzene"
 
