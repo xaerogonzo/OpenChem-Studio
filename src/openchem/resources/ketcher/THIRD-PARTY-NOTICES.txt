@@ -3,7 +3,7 @@ THIRD-PARTY NOTICES for the bundled Ketcher editor
 ==============================================================================
 
 GENERATED FROM tools/ketcher-host/package-lock.json
-LOCKFILE SHA256: cf6bd1bca62fadbf9025629785d68ba4ac0b516b36b3d4b822c05e950ac2ee0c
+LOCKFILE SHA256: 59a5a298895ada24cfc23ce2e93a29412751d5e2adbaf9cfa43bef57ccaaf36c
 DO NOT EDIT -- regenerate with tools/build_ketcher_notices.py
 
 `src/openchem/resources/ketcher/dist/` is a bundle. Its build strips
@@ -2413,7 +2413,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ------------------------------------------------------------------------------
-brace-expansion  5.0.9
+brace-expansion  5.0.12
 License: MIT
 Source: LICENSE
 

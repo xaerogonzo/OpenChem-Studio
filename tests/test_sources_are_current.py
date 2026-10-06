@@ -1196,6 +1196,11 @@ _PROVENANCE_DEBT = frozenset({
     # here to source, only a container. The walk finds it because it builds
     # `Fact`s, not because it computes one.
     "src/openchem/domain/descriptor_aggregate.py",
+    # IMPLEMENTS NO METHOD. `spectrum_as_per_atom` re-wraps a predicted spectrum's own numbers,
+    # units and method label as the per-atom container the Compare window already reads; the walk
+    # finds it because it RETURNS a `PerAtomDataset`, not because it computes one. The method is
+    # whichever calculator produced the spectrum, and that one is sourced where it is registered.
+    "src/openchem/domain/compare.py",
     "src/openchem/chem/crystal_report.py",
     "src/openchem/chem/elemental_analysis.py",
     "src/openchem/chem/geometry_analysis.py",

@@ -519,10 +519,6 @@ DEFERRALS: list[Deferral] = [
         ),
     ),
     Deferral(
-        claim="the Thermophysical chip cannot say a structure is outside Joback's groups before it is run",
-        unbuilt=lambda: "def preflight" not in (_ROOT / "src/openchem/chem/joback.py").read_text(encoding="utf-8"),
-    ),
-    Deferral(
         claim="a salt with no single ChEMBL parent has no compound",
         # Unbuilt while the parent rule still refuses sodium acetate.
         unbuilt=lambda: _parent_refuses("CC(=O)[O-].[Na+]", "chembl_parent"),

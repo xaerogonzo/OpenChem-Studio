@@ -1,0 +1,10 @@
+[
+  {"do": "smiles", "smiles": "CCOC(C)=O", "name": "ethyl acetate"},
+  {"do": "select", "molecule": -1, "after_ms": 4000},
+  {"do": "panel", "id": "Properties"},
+  {"do": "calculator", "id": "nmr_database", "parameters": {"spheres": 3}, "reveal": false, "after_ms": 5000},
+  {"do": "calculator", "id": "nmr_database", "parameters": {"spheres": 2}, "reveal": false, "after_ms": 5000},
+  {"do": "compare_results", "tag": "nmr", "property": "nmr_13c", "expect": {"columns": 2},
+   "shot": "benchmarks/visual/artifacts/compare_spectra.png", "after_ms": 1500},
+  {"do": "quit", "tolerate_errors": false}
+]

@@ -383,6 +383,14 @@ class CalculatorDefinition:
     #: always did; a guard fails a BUILT-IN calculator that is neither classified
     #: nor named in `LEGACY_UNCLASSIFIED`.
     support: CalculatorSupport | None = None
+    #: A cheap check, run BEFORE anything is asked of the calculator, for a structure it is
+    #: certain to refuse: `mol -> ""` when nothing is known to stop it, otherwise the
+    #: reader-facing reason. It must be the very code the calculator refuses with (Joback
+    #: calls its own `fragment()`), never a second rule meant to agree -- the chip it drives
+    #: says "Not applicable" without a run, and a guess there would be a claim nobody ran.
+    #: Handed the same component the calculator would be (`CalculatorRegistry.preflight`), and
+    #: an exception means "no claim". None for every calculator without one.
+    preflight: Callable[[Any], str] | None = None
 
     def __post_init__(self) -> None:
         # At construction, so a dangling or circular dependency is a failing

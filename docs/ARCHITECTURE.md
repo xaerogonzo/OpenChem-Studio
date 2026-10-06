@@ -2328,7 +2328,9 @@ document may cite a file or a test that does not exist.
   truth for "who reads this" beside the panels. Revisit when an automatic provider is slow enough to matter
   (the Solubility AqSolDB comparison, about 5 minutes, is a manual calculator and does not count).
 
-- **OPEN** -- the Thermophysical chip cannot say a structure is outside Joback's groups before it is run.
+- **SETTLED 2026-10-05** -- the Thermophysical chip says a structure is outside Joback's groups before it is run, through
+  `CalculatorDefinition.preflight` (see the end of this entry). Original statement:
+  the Thermophysical chip cannot say a structure is outside Joback's groups before it is run.
   Joback refuses any molecule with an atom no group covers (`UNCOVERED_ATOM`: a ring tertiary amine is one),
   which is why it refuses RDX, HMX and dinitrodiazetidine while running TNT, PETN and aspirin. It is hidden by
   default now, so the surprise of a "Not applicable" after running is confined to someone who turned it on.
@@ -2336,3 +2338,12 @@ document may cite a file or a test that does not exist.
   atom, before any run. It needs a decision the code does not make for itself: a calculator would have to
   declare a cheap pre-flight hook, only one calculator has one, and the chip vocabulary is deliberately
   closed. Coverage would be worded with its denominator, never as a percentage of molecules.
+  Decided: the hook exists and the vocabulary did not grow. A calculator declares `preflight(mol) -> reason`,
+  which must be the code the calculator refuses with (Joback's is `fragment()` itself); the registry applies the
+  calculator's scope first, so it sees the component a run would, and any exception means no claim. The chip uses
+  the existing "Not applicable" word, disabled (there is no result to open), with the reason in its tooltip, and
+  only while nothing has been run: a result always outranks it. Only Joback declares one.
+- **SETTLED 2026-10-05** -- a result filed under another name had no chip (`nmr_database` files `nmr_13c`).
+  `ResultRecorded` carries the producer, which no result does; the panel attributes by it
+  (`_produced_results`), returns the filed SUMMARY (the raw result has no structure revision, and `status_of`
+  would read it as Stale) and only while that entry is still this producer's result.

@@ -7,6 +7,7 @@ from openchem.chem.engine import ChemistryEngine
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.scientific_result import SpectrumResult
 from openchem.ui.viewer_backend import ViewerBackend
+from openchem.ui.widgets.compare_menu_button import CompareMenuButton
 from openchem.ui.widgets.nmr_view_widget import NmrViewWidget
 
 
@@ -27,6 +28,8 @@ class NmrViewDialog(QDialog):
         conformer_molblock: str | None,
         backend: ViewerBackend | None = None,
         parent: QWidget | None = None,
+        compare_candidates=None,
+        on_compare=None,
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle(f"NMR — {molecule.display_name}")
@@ -52,12 +55,30 @@ class NmrViewDialog(QDialog):
         actions = QHBoxLayout()
         actions.addWidget(copy_signals)
         actions.addWidget(copy_raw)
+        if compare_candidates is not None and on_compare is not None:
+            # Another method's shifts for the same structure, atom by atom: the database lookup
+            # against an ab initio run is the case this exists for.
+            self._compare_button = CompareMenuButton(
+                spectrum,
+                compare_candidates,
+                on_compare,
+                "Set these shifts beside another method's for the same structure, atom by atom, "
+                "with how much they disagree. Only spectra for the same molecule, drawing, "
+                "atoms and units are offered; run another method first if there is none.",
+                self,
+            )
+            self._compare_menu = self._compare_button.menu()
+            actions.addWidget(self._compare_button)
         actions.addStretch(1)
         actions.addWidget(self._status)
 
         layout = QVBoxLayout(self)
         layout.addWidget(self.view)
         layout.addLayout(actions)
+
+    def _rebuild_compare_menu(self) -> None:
+        """Rebuild the "Compare with..." menu now (the button does it each time it opens)."""
+        self._compare_button.rebuild()
 
     def signals_text(self) -> str:
         """Tab-separated, so it pastes into a spreadsheet as columns."""

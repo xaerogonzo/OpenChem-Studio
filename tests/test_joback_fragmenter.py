@@ -307,3 +307,16 @@ def test_the_papers_own_error_bars_are_carried_not_invented():
     assert J.PAPER_ABSOLUTE_ERROR["Tc"] == (4.8, "K")
     assert J.PAPER_ABSOLUTE_ERROR["Tb"] == (12.9, "K")
     assert J.CP_RANGE_K == (273.0, 1000.0)
+
+
+def test_the_preflight_is_the_refusal_itself_and_empty_where_it_runs():
+    """The chip says "Not applicable" before a run on the strength of this, so it must BE the
+    refusal -- the same text `compute_joback` files -- and say nothing where Joback runs."""
+    from openchem.chem.joback import compute_joback, preflight_reason
+
+    rdx = Chem.MolFromSmiles("O=[N+]([O-])N1CN([N+](=O)[O-])CN([N+](=O)[O-])C1")
+    reason = preflight_reason(rdx)
+    assert reason and "no group" in reason
+    assert compute_joback(rdx, "u", {}).error == reason
+    for smiles in ("CC(=O)Oc1ccccc1C(=O)O", "CCO"):
+        assert preflight_reason(Chem.MolFromSmiles(smiles)) == ""

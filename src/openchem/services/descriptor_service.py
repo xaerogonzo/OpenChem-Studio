@@ -597,6 +597,21 @@ class DescriptorService:
         self._structure_version_of = structure_version_of
         self._pool = QThreadPool.globalInstance()
 
+    def preflight(self, model: MoleculeModel, calculator_id: str) -> str:
+        """Why `calculator_id` is certain to refuse this molecule, or "" (see `CalculatorDefinition.preflight`).
+
+        Resolved the way a run resolves its input, so the hook sees what the run would. Never
+        raises: no structure, an unresolvable input and a failing hook all read as no claim.
+        """
+        definition = self._calculator_registry.get(calculator_id)
+        if definition is None or definition.preflight is None:
+            return ""
+        try:
+            resolved = resolve_calculation_input(self._engine, model, definition.calculation_input)
+            return self._calculator_registry.preflight(calculator_id, resolved.mol)
+        except Exception:  # noqa: BLE001
+            return ""
+
     def run_calculator(self, model: MoleculeModel, request: CalculationRequest) -> None:
         """On-demand (not eager) calculator dispatch (Phase 18) -- looks up
         `request.calculator_id` in the injected `CalculatorRegistry` and

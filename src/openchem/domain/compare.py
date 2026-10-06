@@ -26,9 +26,9 @@ Pure and Qt-free.
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
-from openchem.domain.scientific_result import PerAtomDataset
+from openchem.domain.scientific_result import PerAtomDataset, SpectrumResult
 
 #: The fewest results a comparison has: one is a table, not a comparison.
 MIN_COMPARED = 2
@@ -50,11 +50,17 @@ class ComparedResult:
     dataset: PerAtomDataset
     input_fingerprint: str = ""
     calculation_input: str = ""
+    #: The result this was made from, when it is not itself a `PerAtomDataset` -- a spectrum
+    #: (`spectrum_as_per_atom`). Lets a window that holds the spectrum find its own entry, and
+    #: lets the caller read what the dataset view dropped (the element of each atom).
+    origin: object | None = None
+    #: Set by `distinguish_labels` when two results would otherwise carry one name.
+    display_label: str = ""
 
     @property
     def label(self) -> str:
         """What the column is called: the result's own name, which usually carries the method."""
-        return str(self.dataset.name or self.dataset.method or self.dataset.property_id)
+        return self.display_label or str(self.dataset.name or self.dataset.method or self.dataset.property_id)
 
     def same_result_as(self, other: ComparedResult) -> bool:
         """Whether this is the very same calculation: same property, method and parameters."""
@@ -64,6 +70,58 @@ class ComparedResult:
             and a.method == b.method
             and _parameters_of(a) == _parameters_of(b)
         )
+
+
+def spectrum_as_per_atom(spectrum: SpectrumResult) -> PerAtomDataset:
+    """A spectrum seen as the per-atom result it is, so it meets the same rules a charge does.
+
+    A predicted NMR spectrum IS one number per nucleus keyed by atom index, so setting the
+    database lookup's shifts beside an ab initio run's is the same comparison as setting two
+    charge models side by side -- and needs the same refusals (the same molecule, the same
+    drawing, the same atoms, the same units), which this reuses rather than restating. Only the
+    shape changes; nothing is added, so the method and units stay exactly the spectrum's own.
+    """
+    return PerAtomDataset(
+        property_id=spectrum.spectrum_type,
+        name=spectrum.name,
+        units=spectrum.units,
+        method=spectrum.method,
+        molecule_uuid=spectrum.molecule_uuid,
+        values=dict(spectrum.values),
+        provenance=spectrum.provenance,
+        cache_state=spectrum.cache_state,
+        error=spectrum.error,
+    )
+
+
+def distinguish_labels(results: Sequence[ComparedResult]) -> list[ComparedResult]:
+    """`results` with any repeated label made unique, by what actually differs between them.
+
+    Two runs of one calculator under different settings have the same name, and a table with two
+    columns called "C NMR (experimental database)" cannot be read: which is the reference? So a
+    label that repeats gains the parameters that differ among its twins (`(spheres=2)`), and
+    where nothing differs, its position. Labels that are already unique are left exactly alone.
+    """
+    results = list(results)
+    labels = [r.label for r in results]
+    out: list[ComparedResult] = []
+    for position, result in enumerate(results):
+        twins = [i for i, label in enumerate(labels) if label == labels[position]]
+        if len(twins) == 1:
+            out.append(result)
+            continue
+        parameters = [_parameters_of(results[i].dataset) for i in twins]
+        # Scalar settings only: provenance also carries diagnostics (a per-atom table of match
+        # counts), which differ between any two runs and would swamp the heading.
+        keys = sorted({key for p in parameters for key, v in p.items() if isinstance(v, (bool, int, float, str))})
+        varying = [k for k in keys if len({repr(p.get(k)) for p in parameters}) > 1]
+        mine = _parameters_of(result.dataset)
+        if varying:
+            detail = ", ".join(f"{k}={mine.get(k)}" for k in varying)
+        else:
+            detail = str(twins.index(position) + 1)
+        out.append(replace(result, display_label=f"{labels[position]} ({detail})"))
+    return out
 
 
 def _parameters_of(dataset: PerAtomDataset) -> dict:
@@ -157,6 +215,7 @@ def compare(results: Sequence[ComparedResult]) -> Comparison | CompareRefusal:
     if len(results) > MAX_COMPARED:
         return CompareRefusal(TOO_MANY, f"At most {MAX_COMPARED} results can be compared at once.")
 
+    results = distinguish_labels(results)
     first = results[0]
     labels = [r.label for r in results]
 
