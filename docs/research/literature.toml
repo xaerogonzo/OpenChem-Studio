@@ -1546,6 +1546,31 @@ figures); D067 = Desvergnes, 'Sur quelques proprietes physiques des derives nitr
 Moniteur Scientifique 16, 201-208, 1926 (scored 1 2 0 0 0: purity stated with a range, but equilibration time, analysis
 and accuracy not stated, and the value 0.06 g/L carries one significant figure). So the glycerol dinitrate values trace
 to one 1965 paper that has a DOI and is not held; the ethyl tetryl value traces to a 1926 French trade journal with no
-DOI and is the weakest of the three. Neither original has been read, so these are the handbook's values, not checked
-against them. Entries are laid out as running text with one token per line in the PDF's text layer;
+DOI and is the weakest of the three. D013 HAS since been read (dunstan1965, below) and the handbook's two values
+reproduce from it exactly; D067 has not, and could not be found (no DOI; the Internet Archive scans of the journal stop at
+1909; HathiTrust and Gallica could not be queried from here), so the ethyl tetryl value is still the handbook's alone. Entries are laid out as running text with one token per line in the PDF's text layer;
 read a value off the page, not off a search snippet."""
+
+[[source]]
+id = "dunstan1965"
+file = "dunstan1965.pdf"
+sha256 = "6abce188f988aa1ede896b506c1467d324a3fe756fef69ada80921e81aa4b7ba"
+pages = 6
+access = "held"
+printed.doi = "10.1039/JR9650001319"
+printed.title = "Nitric Esters. Part I. Characterisation of the Isomeric Glycerol Dinitrates"
+printed.venue = "Journal of the Chemical Society (London), 1965, 1319-1324 (paper 230); authors I. Dunstan, J. V. Griffiths and S. A. Harvey"
+assigned.property = "solubility"
+assigned.role = "benchmark_reference"
+note = """read 2026-10-06 (all six pages have a text layer; the solubility method begins at the foot of p. 1321 and the values
+are on p. 1322). 'Solubilities of the dinitrates in water at 20 C were measured by preparing saturated solutions at 25 C,
+cooling to 20 C in a thermostat bath, and separating aliquots which were weighed and evaporated to dryness to determine
+nitric ester content. Mean values from three determinations, using dinitrates which were colourless and free from
+halogen and from impurities detectable by paper chromatography and i.r. analysis': glycerol 1,2-dinitrate 6.57 g/100 g
+and glycerol 1,3-dinitrate 7.84 g/100 g water. The second edition of the Yalkowsky and He handbook lists them as 61.65 and
+72.70 g/L (0.3386 and 0.3993 mol/L at 20 C), which is exactly 6.57/106.57 and 7.84/107.84 read as g per kg of solution
+taken as g/L: the handbook converted mass of solute per 100 g of water to mass per volume of solution assuming a density of
+1. At the dinitrates' own density (1.52 g/mL for the 1,2-isomer, reported on p. 1321) the true figure is a few percent
+higher, a shift of about 0.01 in logS, far below the 0.4 to 1.2 differences the models are scored on. So the glycerol
+dinitrate values are confirmed against their primary source; the two compounds are liquids, so this is a liquid-liquid
+solubility, and the paper gives one temperature and a single mean."""
