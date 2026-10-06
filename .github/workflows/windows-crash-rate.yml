@@ -106,11 +106,13 @@ jobs:
           foreach ($sha in ($env:REVERT -split '\s+' | Where-Object { $_ })) {
             git revert --no-commit --no-edit $sha
             if ($LASTEXITCODE -ne 0) {
-              # A revert of a code change conflicts in the PROSE written about it afterwards (docs, the
-              # changelog), which cannot change what the suite does. Keep the current text there; a conflict
-              # in anything that runs (src, tests, tools, benchmarks, packaging) is real and stops the leg.
+              # A revert of a code change conflicts in the PROSE written about it afterwards: docs, the
+              # changelog, and the docs-guard test that checks them (tests/test_docs_are_current.py), none of
+              # which can change what the code under test does. Keep the current text there. The rule is an
+              # ALLOW-list of prose: a conflict in anything else is real and stops the leg.
               $unmerged = @(git diff --name-only --diff-filter=U)
-              $code = $unmerged | Where-Object { $_ -match '^(src|tests|tools|benchmarks|packaging)/' }
+              $prose = '^(docs/|CHANGELOG\.md$|tests/test_docs_are_current\.py$)'
+              $code = $unmerged | Where-Object { $_ -notmatch $prose }
               if ($code) { throw "could not revert $sha cleanly; conflicts in code: $($code -join ', ')" }
               foreach ($file in $unmerged) {
                 git checkout --ours -- $file

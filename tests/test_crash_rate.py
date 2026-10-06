@@ -172,5 +172,7 @@ def test_a_revert_conflict_in_prose_is_resolved_and_one_in_code_stops_the_leg():
     edited since. Prose keeps the current text; anything that runs must not be silently half-reverted."""
     code = _code(_workflow())
     assert "git checkout --ours" in code
-    assert "'^(src|tests|tools|benchmarks|packaging)/'" in code
+    # An ALLOW-list of prose, not a deny-list of code directories: an unlisted conflict must stop the leg.
+    assert "docs/|CHANGELOG" in code and "tests/test_docs_are_current" in code
+    assert "-notmatch $prose" in code
     assert "conflicts in code" in code
