@@ -1390,3 +1390,133 @@ this survey's own DFT/atom-equivalent ceiling is a limitation of the METHOD trie
 that HMX's own literature "experimental" values carry a real, still-unexplained spread of several tens of
 kJ/mol depending on which primary source is used -- worth remembering the next time an HMX result looks
 anomalous."""
+
+[[source]]
+id = "karakaya2005"
+file = "karakaya2005.pdf"
+sha256 = "ebc87187fc077415446571f5fb6965199592e796dfb7123ed097c07d9b64036e"
+pages = 9
+access = "held"
+printed.doi = "10.1016/j.jhazmat.2005.01.001"
+printed.title = "Aqueous solubility and alkaline hydrolysis of the novel high explosive hexanitrohexaazaisowurtzitane (CL-20)"
+printed.venue = "Journal of Hazardous Materials B120 (2005) 183-191"
+assigned.property = "solubility"
+assigned.role = "benchmark_reference"
+note = """abstract, section 3.1 and Table 1 read 2026-10-06. Table 1 (journal p. 185): CL-20 in water at 13 temperatures
+from 4 to 69 C, mg/L and mole fraction; at 25 C 4.33 (0.04) mg/L = 1.78e-7 mole fraction, 2.27 at 4 C, an increase of
+about 17.5-fold to 69 C. Used with monteilrivera2004 as the independent test of ESOL and of the AqSolDB model on a
+compound that is NOT in the AqSolDB training data (CL-20 is absent from the curated file, matched by InChIKey):
+measured logS -5.01 (this paper) and -5.09 (the other), ESOL +0.39, AqSolDB -5.13. The alkaline-hydrolysis half was
+not read."""
+
+[[source]]
+id = "monteilrivera2004"
+file = "monteil-rivera2004.pdf"
+sha256 = "7483407006b3742e9c650aea70c600e76afef356d23e6d4d001fd0b2d0d71cd6"
+pages = 8
+access = "held"
+printed.doi = "10.1016/j.chroma.2003.08.060"
+printed.title = "Physico-chemical measurements of CL-20 for environmental applications. Comparison with RDX and HMX"
+printed.venue = "Journal of Chromatography A, 1025 (2004) 125-132"
+assigned.property = "solubility"
+assigned.role = "benchmark_reference"
+note = """abstract and the solubility passages read 2026-10-06: 'aqueous solubility of CL-20 was poor (3.6 mg/L at 25 C)
+and increased with temperature'; the same paper measures RDX and HMX and the effect of cyclodextrins. From a different group than
+karakaya2005 (Stevens Institute; here the National Research Council of Canada) and within 20 percent of it at 25 C. See that entry for how both
+were used."""
+
+[[source]]
+id = "yalkowsky_handbook"
+file = "handbook-of-aqueous-solubility-data.pdf"
+sha256 = "8950332ac8b8716588d5057be6b15502e8387020f5b4532b412ebbd6eea2b669"
+pages = 1513
+access = "held"
+printed.doi = ""
+printed.title = "Handbook of Aqueous Solubility Data"
+printed.venue = "CRC Press (Samuel H. Yalkowsky, Yan He); edition and year not read from the indexed pages"
+assigned.property = "data_compendium"
+assigned.role = "data_layer"
+note = """identified 2026-10-06 from its own title and copyright pages: the file had been called 'Aqueous Solubility
+Methods of Estimation for Organic Compound.pdf', a guess from an earlier filename that its text does not support (two
+byte-identical copies existed; the older name is being retired). Searched through the library index for eight energetic compounds
+that are NOT in AqSolDB (PGDN, BTTN, ETN, EDNA, DINA, dimethylnitramine, diethylnitramine, TNAZ), by name and by CAS
+number: it has a PETN entry (p. 164; references p. 1336) and none of the other seven. A compilation of measured
+values, so an absence here is not evidence a value does not exist."""
+
+[[source]]
+id = "viswanath2018"
+file = "viswanath2018.pdf"
+sha256 = "ff99a9b35d4d594a4e4e91a69003aa4cb94d81c84ad5c89624fe8ec3066458cc"
+pages = 477
+access = "held"
+printed.doi = ""
+printed.title = "Emerging Energetic Materials: Synthesis, Physicochemical, and Detonation Properties"
+printed.venue = "book; Dabir S. Viswanath, Tushar K. Ghosh, Veera M. Boddu (publisher and year not read from the indexed pages)"
+assigned.property = "thermophysical"
+assigned.role = "context_only"
+note = """TNAZ chapter (ch. 11) read for aqueous solubility 2026-10-06. It gives NO measured value: Table 11.9 lists
+'mass intrinsic solubility 1.1 g/L, slightly soluble' and 'molar 5.8e-3 mol/L' under 'Other properties calculated and
+not listed above', from ACD/Labs software V8.14 (the chapter says so), and Table 11.3 gives solubility in organic
+solvents from Watt and Cliff without a temperature. It cites a measured ethanol + water study (Zhang et al. 2011) and
+Jenkins et al. for soil half-life; whether either is held was not checked. Do not use 1.1 g/L as a measurement."""
+
+[[source]]
+id = "boddu2010"
+file = "Energetic Materials _ Thermophysical Properties, -- Veera Boddu; Paul Redner -- CRC Press (Unlimited), Boca Raton, FL, 2010 -- CRC Press -- isbn13 9780429093890 -- f1d703a482c07fb690c96f6245125ec1.pdf"
+sha256 = "26b43b0fb011d489db1ca2310f283f0143baec3956d5368e512d0d68b172e116"
+pages = 272
+access = "held"
+printed.doi = ""
+printed.title = "Energetic Materials: Thermophysical Properties, Predictions, and Experimental Measurements"
+printed.venue = "CRC Press, Taylor & Francis, Boca Raton, 2010; ISBN-13 978-1-4398-3514-2 (eBook PDF)"
+assigned.property = "thermophysical"
+assigned.role = "context_only"
+note = """the substitute for the chapter 'Physicochemical Property Measurements on Insensitive Munitions Compounds for
+Environmental Applications' (Boddu, Abburi, Maloney, et al.), which is chapter 8 here (printed p. 139). That
+chapter measures MNA and DNAN, which are C-nitro/aniline compounds, so it does not bear on the N-nitro and nitrate-ester
+question; it was located, not read through. Chapter 11 is 'Solubility of RDX, HMX, and epsilon-CL20 in Supercritical
+Carbon Dioxide', which is not aqueous solubility. Read for identity and contents only."""
+
+[[source]]
+id = "lynch2001"
+file = "lynch2001.pdf"
+sha256 = "56df32da1975816c12687b3e6d61682c37a2db91dfd0f258fddaf217fd7e4483"
+pages = 7
+access = "held"
+printed.doi = "10.1021/je0101496"
+printed.title = "Effects of pH and Temperature on the Aqueous Solubility and Dissolution Rate of 2,4,6-Trinitrotoluene (TNT), Hexahydro-1,3,5-trinitro-1,3,5-triazine (RDX), and Octahydro-1,3,5,7-tetranitro-1,3,5,7-tetrazocine (HMX)"
+printed.venue = ""
+assigned.property = "solubility"
+assigned.role = "context_only"
+note = """identity read 2026-10-06 from the first page; values not transcribed. TNT, RDX and HMX are all in the curated
+AqSolDB data, so these measurements cannot test that model. The journal name is not in the indexed first-page text."""
+
+[[source]]
+id = "lynch2002"
+file = "lynch2002.pdf"
+sha256 = "639fded8bffc1b4d51dc5204135c4b59f33d9026e2a59d7327dc9553bdd499e3"
+pages = 8
+access = "held"
+printed.doi = "10.1021/je010294j"
+printed.title = "Effects of Component Interactions on the Aqueous Solubilities and Dissolution Rates of the Explosive Formulations Octol, Composition B, and LX-14"
+printed.venue = ""
+assigned.property = "solubility"
+assigned.role = "context_only"
+note = """identity read 2026-10-06 from the first page; values not transcribed. Octol, Composition B and LX-14 are
+mixtures of explosives the first paper measured singly (RDX, HMX, TNT), so there is no independent test of the model here. The journal
+name is not in the indexed first-page text."""
+
+[[source]]
+id = "pennington2002"
+file = "pennington2002.pdf"
+sha256 = "2ff2620c7c609006ad7ddd20d94b35a7b43d0eb6ce4eab67e4b185eeb5e64138"
+pages = 10
+access = "held"
+printed.doi = ""
+printed.title = "Environmental fate of explosives"
+printed.venue = ""
+assigned.property = "solubility"
+assigned.role = "review"
+note = """identity read 2026-10-06 from the first page (J. C. Pennington and J. M. Brannon, US Army Engineer R&D
+Center, Vicksburg); no DOI and no journal name in the indexed text. A review of the fate of TNT, RDX and HMX
+(per its abstract); not read through, and those compounds are in AqSolDB."""

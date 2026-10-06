@@ -1203,6 +1203,21 @@ _CRC_C_NITRO_CONTROLS = [
 ]
 
 
+#: CL-20, which is NOT in the curated AqSolDB data (matched by InChIKey), measured twice at 25 C:
+#: Karakaya et al. 2005 (J. Hazard. Mater. 120, Table 1) 4.33 mg/L, Monteil-Rivera et al. 2004
+#: (J. Chromatogr. A 1025, abstract) 3.6 mg/L. Read off the held PDFs 2026-10-06. mg/L, 25 C.
+_CL20 = "[N+](=O)([O-])N1C2N(C3N(C4N(C2N(C4N(C13)[N+](=O)[O-])[N+](=O)[O-])[N+](=O)[O-])[N+](=O)[O-])[N+](=O)[O-]"
+_CL20_MEASURED_MG_PER_L = {"Karakaya 2005": 4.33, "Monteil-Rivera 2004": 3.6}
+
+
+def _logs_from_mg_per_l(smiles: str, mg_per_l: float) -> float:
+    import math
+
+    from rdkit.Chem import Descriptors
+
+    return math.log10(mg_per_l * 1e-3 / Descriptors.MolWt(mol(smiles)))
+
+
 def _crc_logs(smiles: str, mass_percent: float) -> float:
     import math
 
@@ -1219,6 +1234,23 @@ def test_the_evidence_for_the_esol_domain_still_holds():
     assert max(errors) == pytest.approx(4.3, abs=0.1) and min(errors) == pytest.approx(1.07, abs=0.1)
     controls = [esol_logs(mol(smiles)) - _crc_logs(smiles, pct) for _n, smiles, _t, pct in _CRC_C_NITRO_CONTROLS]
     assert all(abs(error) < 1.0 for error in controls), controls
+
+
+def test_esol_is_out_by_five_log_units_on_cl20_which_two_papers_measured():
+    """The seventh compound, and the worst: ESOL puts CL-20 near +0.4 against measured values near -5.0.
+    The refusal's "5.4" is the larger of the two errors."""
+    errors = [
+        esol_logs(mol(_CL20)) - _logs_from_mg_per_l(_CL20, value) for value in _CL20_MEASURED_MG_PER_L.values()
+    ]
+    assert all(error > 5.0 for error in errors), errors
+    assert max(errors) == pytest.approx(5.4, abs=0.1)
+    assert abs(errors[0] - errors[1]) < 0.2, "the two measurements agree, so the target is not one lab's number"
+
+
+def test_the_refusal_names_cl20_and_the_range_it_quotes():
+    report = compute_solubility(mol(_CL20), "u", {"pka_values": "7.0"})
+    assert report.provenance.parameters["refusal"] == "ESOL_OUTSIDE_DOMAIN"
+    assert "1.1 to 5.4 log" in report.error and "CL-20" in report.error and "seven compounds" in report.error
 
 
 @pytest.mark.parametrize(("name", "smiles"), [(n, s) for n, s, _t, _p in _CRC_NITRO])
