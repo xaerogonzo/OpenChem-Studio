@@ -1249,7 +1249,9 @@ def test_esol_is_out_by_five_log_units_on_cl20_which_two_papers_measured():
 
 #: Three more, from Yalkowsky and He's Handbook of Aqueous Solubility Data, 2nd ed.: (name, SMILES, mol/L, C).
 #: Glycerol 1,2-dinitrate is NOT in the curated AqSolDB data; the other two are, so only the first is a test of that
-#: model. Single-source values (the handbook's refs D013 and D067), read off the held PDF 2026-10-06 (entries 168,
+#: model. Values from the handbook's refs D013 (both dinitrates: CHECKED against Dunstan et al. 1965, which reproduces
+#: them exactly) and D067 (ethyl tetryl: a 1926 journal not found, one significant figure, the weakest), read off the
+#: held PDF 2026-10-06 (entries 168,
 #: 169 and 1408).
 _HANDBOOK2_NITRO = [
     ("glycerol 1,2-dinitrate", "O=[N+]([O-])OCC(O[N+](=O)[O-])CO", 3.386e-1, 20),
