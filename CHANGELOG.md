@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### CI: the early shard 1 crash is identified, and depends on the PySide6 version
+### CI: the early shard 1 crash is identified; a PySide6 downgrade is not a fix
 
 - **Bisect harness** for the Windows crash workflow: `ranges` (slices of a shard's file list, each an arm), `attempts` (fresh processes per leg, no retry), `treatments` (the same window under a different environment per arm), opt-in native minidumps (`OPENCHEM_CAPTURE_DUMPS=1`) and `OPENCHEM_PYSIDE_VERSION`; `suite_shards.py --slice=a:b`. Also fixed in it: artifact names with a colon, and an unquoted ` #` that made YAML drop the replica from the job name.
 - **Finding** (`benchmarks/windows_crash/`): the crash needs `test_calculator_inspector_structure.py` after files 15-18 of shard 1 (about 14% of attempts on that window, 0 alone), is unaffected by GPU, GL and context-sharing settings, and is a **null read in `shiboken6.abi3.dll`, `Shiboken::BindingManager::releaseWrapper`**, entered from a QtGui wrapper's destructor. **Pre-registered confirmation: PySide6 6.9.3 crashed 1/100, the locked 6.11.1 8/100 (Fisher p = 0.0349); present from 6.10.0.** A related upstream report exists (stale wrapper, 6.10.2 and 6.11.1, no fix). The locked version is unchanged.
