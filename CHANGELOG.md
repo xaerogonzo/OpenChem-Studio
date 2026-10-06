@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### CI regenerates the Ketcher notices on a Dependabot bump
+
+- A Dependabot bump of `tools/ketcher-host/package-lock.json` failed suite 2/2 every time (#167, #211) because `THIRD-PARTY-NOTICES.txt` records the lockfile's hash. New `.github/workflows/ketcher-notices.yml` regenerates it and pushes one commit to the PR branch. It needs the repository secret `NOTICES_PUSH_TOKEN` (a fine-grained token, Contents read/write on this repository): a push with the built-in token would not start CI again, leaving the old red result standing. Without the secret it does nothing and says so. It is `pull_request_target`, so it runs only the base branch's generator, installs with `npm ci --ignore-scripts`, handles only Dependabot's own PRs from this repository, and never forces; `tests/test_ketcher_notices_workflow.py` holds those properties. Untested against a real bump until the next one arrives; `@dependabot recreate` on an open Ketcher PR will exercise it.
+
 ### The line chart uses the shared zoom code
 
 - `LineChartWidget` carried its own copy of the Ctrl+wheel zoom, Shift+wheel pan and double-click reset; the histogram and stick chart got `XZoomable`, and the line chart now uses it too. No behaviour change: its existing zoom, cursor and widget tests pass untouched (62 across the chart files), and about 60 lines of duplicate arithmetic are gone.
