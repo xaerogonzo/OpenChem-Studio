@@ -1,0 +1,27 @@
+# Round 26's full ref-compare manifest, against master's tip when the round was measured (4f13189, whose engine is round 25's): the esters of ONE polyol with
+# ONE acid take the book's functional-class multiplicative name (P-65.6.3.3.3.1, D-187 to D-190). The 2 rows below are the ONLY ones the round moved across r7, r8,
+# mc and pop (1712 structures): one tuning row and one held-out row, both polyol esters. Neither is a panel row, and none of the fixes to the polyvalent organyl
+# group (the doubled multiplier, the retained leaf for a divalent ring, the free-valence set numbering, phenylene and methylene) moves a row on its own.
+# Each pair was checked directly: the old name and the new name BOTH read back to the input structure through OPSIN (base_roundtrips and head_roundtrips are true
+# for both), so each entry is STRUCTURALLY_EQUIVALENT: the engine now writes the preferred IUPAC name where it wrote the form the book calls acceptable in
+# general nomenclature (P-65.6.3.3.3.2 method 2, `(butanoyloxy)ethyl butanoate`). The census scan agrees (2000 rows, identical class counts, 3 names changed, all
+# exact before and after).
+#
+# NOT claimed: P-65.6.3.3.3.2 method (1), different anions on one polyol. OPSIN reads none of the book's forms of it, so those molecules keep the accepted name
+# and no row of them is here.
+
+stage = "r26-release-candidate"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-7f587fa3ab9c"
+expect = "STRUCTURALLY_EQUIVALENT"
+reason_rule_id = "esters of one polyol with one acid named functional-class multiplicatively (D-187)"
+expected_layer = "candidate_assignment"
+expected_name = "ethane-1,1-diyl dibutanoate"
+
+[[expect]]
+id = "pop:heldout_v4:h4cid52750"
+expect = "STRUCTURALLY_EQUIVALENT"
+reason_rule_id = "esters of one polyol with one acid named functional-class multiplicatively (D-187)"
+expected_layer = "candidate_assignment"
+expected_name = "1,6-diisothiocyanatohexane-2,3,4,5-tetrayl tetraacetate"

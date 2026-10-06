@@ -1424,6 +1424,28 @@ def _free_valence_locant_will_elide(fv: FreeValenceInfo, numbering: Numbering) -
     return str(loc) == "1" and fv.elide_locant_one
 
 
+def _retained_divalent_group(tree, fv: FreeValenceInfo, fv_rendered: str) -> str | None:
+    """The retained prefix for a divalent benzene or methane group, or None (P-29.6.1, naming round 26).
+
+    ``benzene-1,4-diyl`` is ``1,4-phenylene`` and ``methane-1,1-diyl`` is ``methylene``; the substituents stay as prefixes of
+    the retained group. Only the plain case: two single-bond valences, no suffix, unsaturation or cation on the parent.
+    Returns the text that REPLACES the parent stem and the valence suffix.
+    """
+    if len(fv.bond_orders) != 2 or any(order != 1 for order in fv.bond_orders):
+        return None
+    if tree.suffix_groups or tree.unsaturation or tree.ring_cation_locants:
+        return None
+    m = re.fullmatch(r"-(\d+),(\d+)-diyl", fv_rendered)
+    if m is None:
+        return None
+    parent_name = tree.named_parent.name
+    if parent_name == "benzene":
+        return f"{m.group(1)},{m.group(2)}-phenylene"
+    if parent_name == "methane" and m.group(1) == m.group(2) == "1":
+        return "methylene"
+    return None
+
+
 def render_free_valence_suffix(
     fv: FreeValenceInfo,
     numbering: Numbering,
@@ -1490,12 +1512,19 @@ def render_free_valence_suffix(
     if not attachment_locants:
         return f"-{suffix}"
 
+    # Naming round 26: `FREE_VALENCE_SUFFIXES` already carries the multiplier for two and three valences ("diyl", "triyl"), and four or more
+    # are not in it at all. Both branches below prepended a multiplier of their own, so an ethane-1,2-diyl was written "ethan-1,2-didiyl" and a
+    # propane-1,2,3-triyl "propan-1,2,3-tritriyl"; nothing reached the path (the multiplicative builder writes its own linkers), so it was never seen.
+    # The valence word is therefore built here from the count of attachment points, once.
+    if len(attachment_locants) > 1 and all(order == 1 for order in fv.bond_orders):
+        suffix = "yl"
+        mult = get_multiplier(len(attachment_locants), complex=False) or ""
+    else:
+        mult = ""
+
     if added_hydrogen:
         added = "(" + ",".join(f"{h}H" for h in sorted(added_hydrogen)) + ")"
         locant_str = ",".join(str(loc) for loc in attachment_locants) + added
-        mult = ""
-        if len(attachment_locants) > 1:
-            mult = get_multiplier(len(attachment_locants), complex=False) or ""
         return f"-{locant_str}-{mult}{suffix}"
 
     # For monovalent: single locant; omit if locant is "1" and suffix is "yl"
@@ -1510,8 +1539,6 @@ def render_free_valence_suffix(
         return f"-{loc}-{suffix}"
 
     locant_str = ",".join(str(loc) for loc in attachment_locants)
-    # Multiplier for diyl, triyl etc.
-    mult = get_multiplier(len(attachment_locants), complex=False) or ""
     return f"-{locant_str}-{mult}{suffix}"
 
 
@@ -1884,8 +1911,38 @@ def _assemble_polyester(tree: FunctionalClassTree) -> str:
     return f"{alkyl_str} {acid_name}"
 
 
+def _assemble_polyol_ester(tree: FunctionalClassTree) -> str:
+    """The esters of ONE polyol with ONE acid: ``<polyvalent organyl> <multiplied anion>`` (P-65.6.3.3.3.1).
+
+    "Multiplicative prefixes 'di', 'tri', etc. are used when anions are unsubstituted; when substituted, prefixes 'bis',
+    'tris', etc. are used": ``ethane-1,2-diyl diacetate``, ``propane-1,3-diyl bis(chloroacetate)`` (pdf p. 624). The test
+    is the anion's own tree, not its spelling, because ``dichloroacetate`` is a different anion from ``bis(chloroacetate)``.
+    An unsubstituted anion whose name carries a locant (`prop-2-enoate`) is enclosed too, `di(prop-2-enoate)`, as P-16.3.6
+    does for any multiplied name that would otherwise run together.
+    """
+    pieces = dict(tree.pieces)
+    organyl = assemble(pieces["alcohol"])
+    acid_tree = pieces["acid"]
+    acid = assemble(acid_tree)
+    n = tree.ester_multiplicity or 2
+    substituted = isinstance(acid_tree, SubstitutiveTree) and bool(acid_tree.prefixes)
+    if substituted or acid[:1].isdigit():
+        mult = get_multiplier(n, complex=True) or ""
+        open_b, close_b = _choose_brackets(acid)
+        multiplied = f"{mult}{open_b}{acid}{close_b}"
+    elif re.search(r"[0-9,()\[\]{}-]", acid):
+        mult = get_multiplier(n, complex=False) or ""
+        open_b, close_b = _choose_brackets(acid)
+        multiplied = f"{mult}{open_b}{acid}{close_b}"
+    else:
+        multiplied = f"{get_multiplier(n, complex=False) or ''}{acid}"
+    return f"{organyl} {multiplied}"
+
+
 def _assemble_fc(tree: FunctionalClassTree) -> str:
     """Assemble functional class names."""
+    if tree.subtype == "polyol_ester":
+        return _assemble_polyol_ester(tree)
     if tree.subtype == "polyester":
         return _assemble_polyester(tree)
 
@@ -3282,6 +3339,25 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
                 # not "prop-yl". The contracted-stem branch above replaced
                 # "<chain>an" with "<chain>", so the suffix must abut.
                 fv_rendered = fv_rendered[1:]
+            # Naming round 26, P-29.6.1: the retained prefixes "methylene" and "1,2-/1,3-/1,4-phenylene" are the preferred forms of the
+            # divalent methane and benzene groups -- "The names 'methanediyl' and 'benzene-1,2-diyl' are not recommended in place of
+            # 'methylene' and '1,2-phenylene'" (pdf p. 313), and they stay fully substitutable ("2,6-dimethyl-1,4-phenylene").
+            _retained_divalent = _retained_divalent_group(tree, fv, fv_rendered)
+            if _retained_divalent is not None:
+                if stem_idx > 0 and _needs_hyphen_before_stem(parts[stem_idx - 1], _retained_divalent):
+                    parts.insert(stem_idx, "-")
+                    stem_idx += 1
+                parts[stem_idx] = _retained_divalent
+                fv_rendered = ""
+            # Naming round 26: a polyvalent free valence ("-1,2-diyl") starts with a consonant, so the parent keeps its terminal 'e' exactly as it
+            # does before "-diol": "ethane-1,2-diyl", "cyclohexane-1,4-diyl", not "ethan-1,2-diyl". With unsaturation the 'e' comes from the infix.
+            if (len(fv.bond_orders) > 1
+                    and not tree.unsaturation
+                    and not contracted_alkyl_form
+                    and _rendered_suffix_starts_with_consonant(fv_rendered)):
+                if (tree.named_parent.name.endswith("e")
+                        and not parts[stem_idx].endswith("e")):
+                    parts[stem_idx] += "e"
             parts.append(fv_rendered)
     elif anion_suffix_form is not None:
         # P-73.4 dianion-on-heteroatom: append "<e><diyl|triyl|...>bis(...)"

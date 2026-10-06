@@ -1511,6 +1511,129 @@ def _build_symmetric_diester_decomposition(
     )
 
 
+def _ester_fg_triple(fg: "DetectedFG", mol: Any) -> "tuple[int, int, int] | None":
+    """(acyl_c, alkyl_o, alkyl_c) of a -C(=O)-O-R ester FG, or None.
+
+    Shared by the poly-acid builder (`_build_polyester_decomposition`) and the polyol builder
+    (`_build_polyol_ester_decomposition`); it was a nested helper of the first until round 26.
+    """
+    atoms = set(fg.atoms)
+    for a_idx in atoms:
+        atom = mol.GetAtomWithIdx(a_idx)
+        if atom.GetSymbol() != "C":
+            continue
+        if atom.GetHybridization().__str__() != "SP2":
+            continue
+        dbl_o_idx = None
+        sng_o_idx = None
+        for bond in atom.GetBonds():
+            other = bond.GetOtherAtom(atom)
+            if other.GetSymbol() != "O":
+                continue
+            bt = bond.GetBondTypeAsDouble()
+            if bt == 2.0 and dbl_o_idx is None:
+                dbl_o_idx = other.GetIdx()
+            elif bt == 1.0 and sng_o_idx is None:
+                for nbr in other.GetNeighbors():
+                    if nbr.GetIdx() != a_idx and nbr.GetSymbol() in ("C", "c"):
+                        sng_o_idx = other.GetIdx()
+                        break
+        if dbl_o_idx is not None and sng_o_idx is not None:
+            alkyl_o_atom = mol.GetAtomWithIdx(sng_o_idx)
+            for nbr in alkyl_o_atom.GetNeighbors():
+                if nbr.GetIdx() != a_idx and nbr.GetAtomicNum() == 6:
+                    return (a_idx, sng_o_idx, nbr.GetIdx())
+    return None
+
+
+def _build_polyol_ester_decomposition(
+    ester_fgs: list["DetectedFG"], mol: Any
+) -> "Decomposition | None":
+    """Build a Decomposition for the esters of ONE polyol with ONE acid (P-65.6.3.3.3.1).
+
+    ``CC(=O)OCCOC(C)=O`` is ``ethane-1,2-diyl diacetate (PIN)``, ``propane-1,3-diyl bis(chloroacetate)``,
+    ``propane-1,2,3-triyl triacetate``: the multivalent organyl group of the single polyhydroxylic component,
+    then the multiplied anion. Before naming round 26 the engine wrote the acyloxy form (``2-(acetyloxy)ethyl
+    acetate``), which the book calls acceptable in general nomenclature (P-65.6.3.3.3.2 method 2).
+
+    It is the mirror image of `_build_polyester_decomposition` (one acid, several alcohols), and exactly one of
+    the two can hold: here every acyl group is its OWN component once the ester O--C(alkyl) bonds are cut, there
+    they share one.  Declined (None) unless ALL of these hold, so a molecule that is not this shape keeps the
+    path it had:
+
+      * two or more carboxylic ester groups, every one a plain intermolecular ``R-C(=O)-O-R'`` (a lactone or macrocycle is not);
+      * cutting every ester O--C(alkyl) bond leaves the alcohol and one component per acid, none overlapping, no atom over;
+      * the acids are the SAME acid. Different acids are method (1) of P-65.6.3.3.3.2, ``propane-1,2,3-triyl
+        1,2-diacetate 3-propanoate``, which OPSIN cannot read (measured round 26: every mixed-anion form is
+        unparseable), so it is not built and those molecules stay on the accepted acyloxy form.
+    """
+    from rdkit import Chem
+
+    if len(ester_fgs) < 2:
+        return None
+    parsed = [_ester_fg_triple(fg, mol) for fg in ester_fgs]
+    if any(p is None for p in parsed):
+        return None
+    acyl_cs = [p[0] for p in parsed]
+    ester_os = [p[1] for p in parsed]
+    alkyl_cs = [p[2] for p in parsed]
+    cut_pairs = {frozenset({ao, ac}) for ao, ac in zip(ester_os, alkyl_cs)}
+
+    def _component(start: int) -> frozenset[int]:
+        seen = {start}
+        stack = [start]
+        while stack:
+            cur = stack.pop()
+            for nbr in mol.GetAtomWithIdx(cur).GetNeighbors():
+                j = nbr.GetIdx()
+                if j in seen or frozenset({cur, j}) in cut_pairs:
+                    continue
+                seen.add(j)
+                stack.append(j)
+        return frozenset(seen)
+
+    # Cut every ester O--C(alkyl) bond. A polyol ester falls into exactly the alcohol and one component per acid, none overlapping, with
+    # no atom left over. Everything else this builder must decline fails one of those two tests, so there is no rule apiece: a bond in a
+    # ring (a lactone, a macrocycle) leaves the acyl and alkyl carbons in ONE component, two esters of one diacid share a component, an
+    # alkyl carbon in a second component or a second ester on one acyl carbon makes the components overlap or leave atoms in none, and a
+    # stray fragment is unclaimed. (Round 26's mutation matrix removed four separate guards of that kind, none of which any molecule
+    # reached: each was shadowed by these two on every connected molecule; `tests/test_round26_polyol_esters.py` tests them on the builder.)
+    alcohol = _component(alkyl_cs[0])
+    claimed = set(alcohol)
+    acid_atoms: list[frozenset[int]] = []
+    for acyl in acyl_cs:
+        comp = _component(acyl)
+        if comp & claimed:
+            return None
+        claimed |= comp
+        acid_atoms.append(comp)
+    if len(claimed) != mol.GetNumAtoms():
+        return None
+    acid_keys = {
+        Chem.MolFragmentToSmiles(mol, atomsToUse=sorted(comp), isomericSmiles=True)
+        for comp in acid_atoms
+    }
+    if len(acid_keys) != 1:
+        return None
+
+    root: set[int] = set()
+    for triple in parsed:
+        root.update(triple)
+    all_acid = frozenset().union(*acid_atoms)
+    return Decomposition(
+        type="functional_class",
+        subtype="polyol_ester",
+        pieces=(
+            Fragment(atom_indices=alcohol, mol=mol, charge=0),
+            Fragment(atom_indices=all_acid, mol=mol, charge=0),
+        ),
+        symmetry_group=None,
+        locants=None,
+        root_atoms=frozenset(root),
+        intramolecular=False,
+    )
+
+
 def _build_polyester_decomposition(
     ester_fgs: list["DetectedFG"], mol: Any
 ) -> "Decomposition | None":
@@ -1544,39 +1667,9 @@ def _build_polyester_decomposition(
     if len(ester_fgs) < 2:
         return None
 
-    def _parse_ester_fg(fg: "DetectedFG"):
-        """Return (acyl_c, alkyl_o, alkyl_c) or None for a -C(=O)-O-R ester."""
-        atoms = set(fg.atoms)
-        for a_idx in atoms:
-            atom = mol.GetAtomWithIdx(a_idx)
-            if atom.GetSymbol() != "C":
-                continue
-            if atom.GetHybridization().__str__() != "SP2":
-                continue
-            dbl_o_idx = None
-            sng_o_idx = None
-            for bond in atom.GetBonds():
-                other = bond.GetOtherAtom(atom)
-                if other.GetSymbol() != "O":
-                    continue
-                bt = bond.GetBondTypeAsDouble()
-                if bt == 2.0 and dbl_o_idx is None:
-                    dbl_o_idx = other.GetIdx()
-                elif bt == 1.0 and sng_o_idx is None:
-                    for nbr in other.GetNeighbors():
-                        if nbr.GetIdx() != a_idx and nbr.GetSymbol() in ("C", "c"):
-                            sng_o_idx = other.GetIdx()
-                            break
-            if dbl_o_idx is not None and sng_o_idx is not None:
-                alkyl_o_atom = mol.GetAtomWithIdx(sng_o_idx)
-                for nbr in alkyl_o_atom.GetNeighbors():
-                    if nbr.GetIdx() != a_idx and nbr.GetAtomicNum() == 6:
-                        return (a_idx, sng_o_idx, nbr.GetIdx())
-        return None
-
     parsed: list[tuple[int, int, int]] = []
     for fg in ester_fgs:
-        result = _parse_ester_fg(fg)
+        result = _ester_fg_triple(fg, mol)
         if result is not None:
             parsed.append(result)
     if len(parsed) < 2:
@@ -1879,6 +1972,13 @@ class Interpretation:
             decomp = _build_polyester_decomposition(ester_fgs, mol)
             if decomp is None:
                 decomp = _build_symmetric_diester_decomposition(ester_fgs, mol)
+            if decomp is not None:
+                yield decomp
+            # --- Functional Class: the esters of one polyol (P-65.6.3.3.3.1, naming round 26) ---
+            # The mirror image of the poly-acid reading above, so at most one of the two applies. It is generated after the single-ester
+            # readings and `_break_ester_tie` tries it first: the book's PIN is `ethane-1,2-diyl diacetate`, and the acyloxy form the
+            # single-ester plans give is "acceptable in general nomenclature" only.
+            decomp = _build_polyol_ester_decomposition(ester_fgs, mol)
             if decomp is not None:
                 yield decomp
 
@@ -2210,6 +2310,8 @@ class FunctionalClassTree(TreeBase):
     # topologically interchangeable positions.  Assembly uses these to decide
     # whether to format "ethyl methyl ..." vs "1-ethyl 3-methyl ...".
     polyester_alkyl_locants: tuple[tuple[str, str | None, int], ...] | None = None
+    # For subtype="polyol_ester": how many times the single anion is cited ("tri" in `propane-1,2,3-triyl triacetate`).
+    ester_multiplicity: int | None = None
 
     def with_warnings(self, *new_warnings: str) -> FunctionalClassTree:
         existing = self.validity_warnings or ()
