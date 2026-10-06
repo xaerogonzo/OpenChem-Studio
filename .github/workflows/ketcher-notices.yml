@@ -7,30 +7,46 @@
 # thing. Every Dependabot bump of that lockfile therefore failed suite 2/2 until someone ran
 # `tools/build_ketcher_notices.py` by hand (#167, #211).
 #
+# THE TRIGGER IS `pull_request`, AND THAT IS NOT A CHOICE. The first version used `pull_request_target`,
+# on the belief that it would see the ordinary Actions secret. It would not: GitHub's documentation says
+# that for a workflow initiated by Dependabot on `pull_request_target`, when the PR's author is
+# `dependabot[bot]` -- which is exactly this workflow's condition -- "the GITHUB_TOKEN will be read-only and
+# secrets are not available", so it would have taken its do-nothing branch on every real bump. For
+# `pull_request` the same page says the token is read-only and "secrets are populated from Dependabot
+# secrets". So the secret below must be stored as a DEPENDABOT secret (Settings > Secrets and variables >
+# Dependabot), not only as an Actions one; a push by this workflow's own token owner is not initiated by
+# Dependabot and reads the ordinary Actions store, which is why it is worth having in both.
+#
 # WHAT IT NEEDS THAT THE SUITE DOES NOT. A push made with the built-in GITHUB_TOKEN does not start new
 # workflow runs, so a fix pushed that way would leave the PR showing the OLD red result on the OLD commit
-# and nothing would ever re-test it. The push is therefore made with the repository secret
-# NOTICES_PUSH_TOKEN, a fine-grained token with Contents: read and write on this repository only. Without
-# the secret this workflow does nothing and says so; it never fails a PR.
+# and nothing would ever re-test it. The push is therefore made with the secret NOTICES_PUSH_TOKEN, a
+# fine-grained token with Contents: read and write on this repository only. Without it this workflow does
+# nothing and says so; it never fails a PR.
 #
-# SAFETY, since this is `pull_request_target` (it has a write token and runs the BASE branch's workflow):
-#   * it never executes anything from the PR. The generator is the base branch's; only the PR's
-#     package.json and package-lock.json are copied in as DATA, and `npm ci --ignore-scripts` means no
-#     dependency can run a lifecycle script during the install;
-#   * it runs only for Dependabot's own PRs, only for a branch in this repository, and only when the
-#     Ketcher lockfile changed;
+# SAFETY. A `pull_request` run executes the PR's own copy of the workflow file and is handed a write-capable
+# token, so the guards are about what a PR can make it do:
+#   * it runs only for Dependabot's own PRs, from a branch in this repository, and only when the Ketcher
+#     lockfile changed;
+#   * the FIRST thing it does is list the PR's files through the API and stand down unless they are only the
+#     two Ketcher manifests and the notices file -- a Dependabot-looking branch that also touched a workflow,
+#     the generator or anything else gets no push;
+#   * the generator it runs is the BASE commit's, checked out by SHA; the PR's package.json and
+#     package-lock.json are copied in as DATA, and `npm ci --ignore-scripts` means no dependency can run a
+#     lifecycle script during the install;
 #   * branch names reach the shell through the environment, never by expression substitution;
-#   * it commits one file, and a second run on its own commit finds nothing to change and stops, so it
-#     cannot loop.
+#   * it commits one file, never forces, and a second run on its own commit finds nothing to change and
+#     stops, so it cannot loop.
 name: ketcher-notices
 
 on:
-  pull_request_target:
+  pull_request:
     paths:
       - tools/ketcher-host/package-lock.json
 
 permissions:
   contents: read
+  # to list the PR's files before doing anything (the first step); nothing here writes with this token
+  pull-requests: read
 
 concurrency:
   group: ketcher-notices-${{ github.event.pull_request.number }}
@@ -47,28 +63,38 @@ jobs:
     env:
       PUSH_TOKEN: ${{ secrets.NOTICES_PUSH_TOKEN }}
       HEAD_REF: ${{ github.event.pull_request.head.ref }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      GH_TOKEN: ${{ github.token }}
     steps:
-      - name: Is the push token configured?
-        id: token
+      - name: Is the push token configured, and did the PR touch only the manifests?
+        id: scope
         run: |
           if [ -z "$PUSH_TOKEN" ]; then
-            echo "::notice title=Ketcher notices not regenerated::The NOTICES_PUSH_TOKEN secret is not set, so this workflow did nothing. Run tools/build_ketcher_notices.py by hand."
-            echo "present=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "present=true" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Ketcher notices not regenerated::The NOTICES_PUSH_TOKEN secret is not visible to this run. A Dependabot-initiated run reads the DEPENDABOT secret store, not the Actions one: add it with 'gh secret set NOTICES_PUSH_TOKEN --app dependabot'. Until then run tools/build_ketcher_notices.py by hand."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          files=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files" --paginate --jq '.[].filename')
+          stray=$(printf '%s\n' "$files" | grep -v -E '^(tools/ketcher-host/package\.json|tools/ketcher-host/package-lock\.json|src/openchem/resources/ketcher/THIRD-PARTY-NOTICES\.txt)$' || true)
+          if [ -n "$stray" ]; then
+            echo "::notice title=Ketcher notices not regenerated::This PR changes more than the Ketcher manifests, so nothing was pushed: $(printf '%s' "$stray" | tr '\n' ' ')"
+            echo "go=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "go=true" >> "$GITHUB_OUTPUT"
 
-      # The BASE branch: the generator we trust.
-      - name: Check out the base branch
-        if: steps.token.outputs.present == 'true'
+      # The BASE commit, by SHA: the generator we trust, whatever the PR branch holds.
+      - name: Check out the base commit
+        if: steps.scope.outputs.go == 'true'
         uses: actions/checkout@v5
         with:
+          ref: ${{ github.event.pull_request.base.sha }}
           path: base
           persist-credentials: false
 
-      # The PR's branch: only its lockfile is read, and only this checkout is pushed from.
+      # The PR's branch: only its manifests are read, and only this checkout is pushed from.
       - name: Check out the PR branch
-        if: steps.token.outputs.present == 'true'
+        if: steps.scope.outputs.go == 'true'
         uses: actions/checkout@v5
         with:
           ref: ${{ github.event.pull_request.head.ref }}
@@ -76,7 +102,7 @@ jobs:
           token: ${{ secrets.NOTICES_PUSH_TOKEN }}
 
       - name: Regenerate
-        if: steps.token.outputs.present == 'true'
+        if: steps.scope.outputs.go == 'true'
         run: |
           set -euo pipefail
           # The PR's two manifests as DATA, into the trusted tree; nothing from the PR is run.
@@ -87,7 +113,7 @@ jobs:
              pr/src/openchem/resources/ketcher/THIRD-PARTY-NOTICES.txt
 
       - name: Commit and push if it changed
-        if: steps.token.outputs.present == 'true'
+        if: steps.scope.outputs.go == 'true'
         working-directory: pr
         run: |
           set -euo pipefail

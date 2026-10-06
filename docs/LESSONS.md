@@ -7704,6 +7704,25 @@ found by running it rather than reading it:
   deleted they still passed. They now put the stick in the margin, where only the
   hiding keeps it out, and both die under the mutation.
 
+### A WORKFLOW REPLAYED PERFECTLY LOCALLY AND COULD NEVER HAVE RUN: GITHUB WITHHOLDS SECRETS FROM DEPENDABOT
+
+Measured 2026-10-06 on the Ketcher-notices workflow (#215). I told the maintainer that a `pull_request_target` run could use
+the ordinary Actions secret, wrote the workflow, mutation-tested it, and merged it. Replaying its steps against the real stale
+state of #211 reproduced the hand-made fix byte for byte, and that was the moment to read the documentation instead of stopping:
+for a workflow initiated by Dependabot on `pull_request_target`, when the PR's author is `dependabot[bot]` -- the workflow's own
+`if` -- "the GITHUB_TOKEN will be read-only and secrets are not available". On every real bump it would have printed its
+"secret not configured" notice and done nothing, which looks exactly like a workflow that is simply not needed.
+
+* **A local replay tests what the workflow RUNS and nothing about whether GitHub will RUN it.** Triggers, token scopes and secret
+  stores are the platform's, and a replay passes through none of them. The claim I had made from memory was the one thing the
+  replay could not contradict.
+* **A do-nothing branch that explains itself is a trap as well as a safeguard.** The "token not configured" notice was written so
+  the workflow could never fail a PR; it is also what a workflow that CANNOT work looks like. The fix keeps the notice and names the
+  real cause in it (the Dependabot store).
+* **`pull_request` hands the PR its own copy of the workflow.** Moving to the supported trigger meant the first step lists the PR's
+  files and stands down unless only the manifests and the notices changed, and the generator is checked out by base SHA; each is a
+  test, and each was removed by mutation to see that it fails.
+
 ### DISABLED RATHER THAN HIDDEN WHERE THERE IS NOTHING TO OPEN
 
 The reader's own rule is the opposite -- its viewer button is hidden
