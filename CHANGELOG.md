@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### CI: a pre-registered attempt to fix the early shard 1 crash did not work
+
+- Hypothesis: the crash is a parentless `CalculatorInspectorDialog` dying by refcount (the crashing test discards `_inspect(...)`'s return value) with its `QWebEngineView` destroyed as a child inside the dialog's destructor. Test: a `__del__` that destroys the view first, behind an env var, 100 attempts per arm on the `15:20` window, one Fisher test registered beforehand. **Result: baseline 7/100, with the change 15/100, p = 0.112: inconclusive and in the wrong direction.** The change is not merged (branch `eventfilter-hardening`); the cause is still not identified. A 3000-iteration local stress loop of the same create-and-discard pattern did not crash either.
+
 ### CI: the early shard 1 crash is identified; a PySide6 downgrade is not a fix
 
 - **Bisect harness** for the Windows crash workflow: `ranges` (slices of a shard's file list, each an arm), `attempts` (fresh processes per leg, no retry), `treatments` (the same window under a different environment per arm), opt-in native minidumps (`OPENCHEM_CAPTURE_DUMPS=1`) and `OPENCHEM_PYSIDE_VERSION`; `suite_shards.py --slice=a:b`. Also fixed in it: artifact names with a colon, and an unquoted ` #` that made YAML drop the replica from the job name.
