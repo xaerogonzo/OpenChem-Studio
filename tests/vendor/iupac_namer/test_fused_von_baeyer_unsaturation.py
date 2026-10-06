@@ -64,8 +64,11 @@ def _opsin_round_trip(name: str) -> str | None:
 TARGET_CASES = [
     # benzocyclobutadiene
     ("C1=Cc2ccccc21", "bicyclo[4.2.0]octa-1,3,5,7-tetraene"),
-    # bicyclo[4.2.0]octa-2,4,6-triene (a benzo-fused cyclobutene isomer)
-    ("C1=CC2=CCC2C=C1", "bicyclo[4.2.0]octa-1(8),2,4-triene"),
+    # bicyclo[4.2.0]octa-2,4,6-triene (a benzo-fused cyclobutene isomer).
+    # Was octa-1(8),2,4-triene, which put a compound locant first; P-31.1.4.2
+    # prefers the numbering with the fewest compound locants, and this one
+    # has none. Both names read back through OPSIN to the same structure.
+    ("C1=CC2=CCC2C=C1", "bicyclo[4.2.0]octa-2,4,6-triene"),
 ]
 
 
