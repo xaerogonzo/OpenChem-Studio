@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### CI: the early shard 1 crash is identified; a PySide6 downgrade is not a fix
+
+- **Bisect harness** for the Windows crash workflow: `ranges` (slices of a shard's file list, each an arm), `attempts` (fresh processes per leg, no retry), `treatments` (the same window under a different environment per arm), opt-in native minidumps (`OPENCHEM_CAPTURE_DUMPS=1`) and `OPENCHEM_PYSIDE_VERSION`; `suite_shards.py --slice=a:b`. Also fixed in it: artifact names with a colon, and an unquoted ` #` that made YAML drop the replica from the job name.
+- **Finding** (`benchmarks/windows_crash/`): the crash needs `test_calculator_inspector_structure.py` after files 15-18 of shard 1 (about 14% of attempts on that window, 0 alone), is unaffected by GPU, GL and context-sharing settings, and is a **null read in `shiboken6.abi3.dll`, `Shiboken::BindingManager::releaseWrapper`**, entered from a QtGui wrapper's destructor. **Pre-registered confirmation: PySide6 6.9.3 crashed 1/100, the locked 6.11.1 8/100 (Fisher p = 0.0349); present from 6.10.0.** A related upstream report exists (stale wrapper, 6.10.2 and 6.11.1, no fix). The locked version is unchanged.
+- The test `qapp` gains an env-gated `AA_ShareOpenGLContexts` switch (off by default) that the experiment showed to be irrelevant.
+- **A downgrade to PySide6 6.9.3 is not a fix** (whole-suite check, exploratory, 4 legs per arm per shard): 6.9.3 crashed 8 of 8 whole-shard legs against 2 of 8 for the locked 6.11.1, at other places, inside the app's own `eventFilter` overrides (`scroll_safe.py:37`, `mol3d_viewer_backend.py:148`); the pre-registered window result stands, but the crash is not simply a 6.10 regression.
+
 ### CI regenerates the Ketcher notices on a Dependabot bump
 
 - A Dependabot bump of `tools/ketcher-host/package-lock.json` failed suite 2/2 every time (#167, #211) because `THIRD-PARTY-NOTICES.txt` records the lockfile's hash. New `.github/workflows/ketcher-notices.yml` regenerates it and pushes one commit to the PR branch. It needs the repository secret `NOTICES_PUSH_TOKEN` (a fine-grained token, Contents read/write on this repository): a push with the built-in token would not start CI again, leaving the old red result standing. Without the secret it does nothing and says so. It is `pull_request_target`, so it runs only the base branch's generator, installs with `npm ci --ignore-scripts`, handles only Dependabot's own PRs from this repository, and never forces; `tests/test_ketcher_notices_workflow.py` holds those properties. Untested against a real bump until the next one arrives; `@dependabot recreate` on an open Ketcher PR will exercise it.
@@ -58,6 +65,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Histogram and stick charts zoom
 
 - Ctrl+wheel zooms along x around the cursor, Shift+wheel pans, a double-click resets, and a plain wheel still scrolls the page, as on the line chart. A stick outside the window is neither drawn nor clickable; a zoomed histogram rescales its count axis to the bins in view. The stick chart keeps the whole chart's y scale, so a weak region is not blown up to look strong. The histogram's count axis also stopped repeating a label ("1, 0, 0" for a tallest bin of 1).
+
+### CI: chase the early Windows shard 1 crash by bisecting the shard
+
+- About half of shard 1's runs crash at 4-8% of the run (about 80 s in, roughly tests 290-650, files 11-28 of the shard) with no frame outside pytest. `windows-crash-rate.yml` gains **`ranges`** (comma-separated slices of the shard's file list, e.g. `0:28,10:28`; each is an arm, compared by the report) and **`attempts`** (fresh processes per leg, no retry, for slices where one attempt takes minutes instead of 25). `tools/suite_shards.py --slice=a:b` prints a window of a shard; an empty or malformed window is an error, never a clean pass of zero tests. Exploratory, so no pre-registered test: it narrows where the crash lives.
 
 ### CI: the crash measurement's first run, and two defects in the instrument
 

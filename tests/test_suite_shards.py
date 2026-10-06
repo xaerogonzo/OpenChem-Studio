@@ -286,3 +286,27 @@ def test_pin_new_pins_unpinned_files_where_they_already_sit_and_moves_nobody(tmp
     # Every previously pinned file kept its pin; the re-pinned ones landed where the packer had put them.
     assert all(pinned[k] == v for k, v in table["2"].items())
     assert all(pinned[name] == placed_now[name] for name in dropped)
+
+
+# --- slice: run only a window of one shard (the crash-bisect workflow) -----------------------------------
+
+
+@pytest.mark.parametrize(
+    ("spec", "expected"),
+    [("0:2", ["a", "b"]), (":2", ["a", "b"]), ("2:", ["c", "d"]), ("1:3", ["b", "c"]), ("0:99", ["a", "b", "c", "d"])],
+)
+def test_slice_is_a_window_onto_the_shards_file_list(spec, expected):
+    assert _module().slice_files(["a", "b", "c", "d"], spec) == expected
+
+
+@pytest.mark.parametrize("spec", ["5:", "3:1", "abc", "1-3", ""])
+def test_a_slice_that_selects_nothing_or_is_malformed_is_an_error_not_a_pass(spec):
+    """An empty window would run zero tests and report a clean pass, which a measurement would count."""
+    with pytest.raises(ValueError):
+        _module().slice_files(["a", "b", "c", "d"], spec)
+
+
+def test_the_cli_slice_is_a_prefix_of_the_unsliced_shard():
+    module = _module()
+    shard = module.assign(module.test_files(), module.load_durations(), 2, _pins(module))[0]
+    assert module.slice_files(shard, "0:5") == shard[:5]
