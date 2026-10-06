@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Seven tautomer papers are recorded in the literature manifest
+
+- alkorta2022, rybczynski2023, claramunt2024, anandan2004, kim2007, wieder2021 and rzepiela2020 were in the library but cited nowhere in the repo (the session that fetched them was archived). Each is recorded with its DOI and sha256 from the library index and page 1, as `context_only` with a provisional `tautomerism` property (new in the closed vocabulary) and a note that it has not been read through.
+
 ### koch2019 is recorded in the literature manifest
 
 - Koch's 2019 nitroguanidine review (held as a journal proof) is recorded in `docs/research/literature.toml`, with the two things it is useful for: a lead on nitroguanidine's water solubility (3.45 g/L at 298 K, citing McBride et al. 1951, not yet read) and the fact that its solvent table cites only a 1929 Desvergnes note, not the 1926 one behind ethyl tetryl.
