@@ -158,8 +158,8 @@ def context_stereo_key(mol: object) -> str:
     (`_stamp_context_cip`), and the namer reads the stamp (`perception/stereo.py`). The session cache keyed on the
     SMILES alone answered the second lookup with the first fragment's tree, so the R,S compound was named
     ``1,3-bis[(2R)-butan-2-yl]benzene`` or ``1,3-bis[(2S)-...``, whichever substituent was named first, which OPSIN
-    reads as the R,R or the S,S compound. It reads wrong from the cache, never from the merge: both prefixes arrived at
-    `merge_identical_prefixes` already named ``(2R)-butan-2-yl``.
+    reads as the R,R or the S,S compound. The wrong descriptor came from the cache and not from the prefix merger: both
+    prefixes arrived at `merge_identical_prefixes` already named ``(2R)-butan-2-yl``.
 
     Every stamp is in the key, atoms and bonds, because both are read. Indices are the fragment's own, which
     `_canonical_renumber` fixes, the convention the key's attachment indices already rely on. A key that is too
