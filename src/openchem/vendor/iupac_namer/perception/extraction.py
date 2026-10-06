@@ -728,7 +728,7 @@ def _carve_polyol_ester(mol: object, decomposition: object) -> dict:
         if atom.GetAtomicNum() != 8 or a in alcohol_atoms:
             continue
         alkyl = [nb.GetIdx() for nb in atom.GetNeighbors() if nb.GetIdx() in alcohol_atoms]
-        if len(alkyl) != 1:
+        if not alkyl:
             return {}
         cuts.append((a, alkyl[0]))
     if len(cuts) < 2:

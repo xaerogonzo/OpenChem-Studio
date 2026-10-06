@@ -16,12 +16,14 @@ OPSIN reads none of the forms of it (measured: ``methylene acetate formate``, ``
 other examples are all unparseable), so the oracle cannot confirm them and those molecules stay on the accepted acyloxy name, which it can.
 """
 import shutil
+from types import SimpleNamespace
 
 import pytest
 from rdkit import Chem, rdBase
 
 from openchem.vendor.iupac_namer import name_smiles
 from openchem.vendor.iupac_namer.engine import _organyl_cites_valences
+from openchem.vendor.iupac_namer.types import Interpretation, _build_polyol_ester_decomposition
 
 needs_opsin = pytest.mark.skipif(shutil.which("java") is None, reason="needs java on PATH (OPSIN read-back)")
 
@@ -184,3 +186,51 @@ def test_the_name_does_not_depend_on_the_order_the_atoms_are_written_in(label, s
 ])
 def test_an_organyl_group_must_cite_every_valence_it_was_given(organyl, valences, cited):
     assert _organyl_cites_valences(organyl, valences) is cited
+
+
+_ESTER = Chem.MolFromSmarts("[#6][OX2][CX3](=O)")
+
+
+def _build(smiles):
+    """The decomposition builder alone, on the ester groups a SMARTS finds (it needs only each group's atoms)."""
+    mol = Chem.MolFromSmiles(smiles)
+    return _build_polyol_ester_decomposition([SimpleNamespace(atoms=frozenset(m)) for m in mol.GetSubstructMatches(_ESTER)], mol)
+
+
+@pytest.mark.parametrize("smiles", [
+    "CC(=O)OCCOC(C)=O",
+    "CC(=O)OCC(OC(C)=O)COC(C)=O",
+    "O=C(OCCOC(=O)c1ccccc1)c1ccccc1",
+    "CC(=O)Oc1ccc(OC(C)=O)cc1",
+], ids=["diacetate", "triacetate", "dibenzoate", "phenylene"])
+def test_the_builder_accepts_the_esters_of_one_polyol_with_one_acid(smiles):
+    assert _build(smiles) is not None
+
+
+@pytest.mark.parametrize("smiles", [
+    "CC(=O)OCCO",                              # one ester
+    "CC(=O)OCCOC(=O)CC",                       # two acids
+    "CCOC(=O)CCC(=O)OCC",                      # two alcohols on one diacid: the components overlap
+    "O=C1CCC(=O)OCCO1",                        # a macrocycle: cutting a ring bond leaves the acyl and alkyl carbons together
+    "CC(=O)OCC1CCC(=O)O1",                     # a lactone beside an acetate
+    "O=C1CCC(CC2CCC(=O)O2)O1",                 # two IDENTICAL lactones: the same acid, but each cut is in a ring
+    "COC(=O)OC",                               # a carbonate: two ester groups on ONE acyl carbon
+    "CC(=O)OCCOC(C)=O.O",                      # a stray fragment is not claimed by any component
+    "CC(=O)OCC.CC(=O)OCC",                     # two alcohols in two molecules
+], ids=["one ester", "two acids", "diacid diester", "macrocycle", "lactone + acetate", "two lactones", "carbonate",
+        "stray fragment", "two molecules"])
+def test_the_builder_declines_every_shape_that_is_not_one_polyol_one_acid(smiles):
+    assert _build(smiles) is None
+
+
+def test_the_polyol_reading_wins_whatever_order_the_decompositions_are_generated_in(monkeypatch):
+    # The plan search tries the LAST-generated of equally scored plans first, and the polyol reading happens to be generated last. That is
+    # an accident of `decomposition_candidates`, not a rule: the book's PIN is the multiplicative name, so `_break_ester_tie` must choose it
+    # itself. (A round 26 mutant that dropped it from that function survived every other test for exactly this reason.)
+    original = Interpretation.decomposition_candidates
+
+    def reversed_candidates(self, mol):
+        return iter(list(original(self, mol))[::-1])
+
+    monkeypatch.setattr(Interpretation, "decomposition_candidates", reversed_candidates)
+    assert name_smiles("CC(=O)OCCCCOC(C)=O") == "butane-1,4-diyl diacetate"

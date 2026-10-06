@@ -1561,9 +1561,8 @@ def _build_polyol_ester_decomposition(
     they share one.  Declined (None) unless ALL of these hold, so a molecule that is not this shape keeps the
     path it had:
 
-      * two or more carboxylic ester groups, every one a plain intermolecular ``R-C(=O)-O-R'``;
-      * all of the alkyl carbons lie in ONE component (a single alcohol), and every cut bond is acyclic;
-      * the acids are separate components, no atom belongs to anything else (no salt, no further ester);
+      * two or more carboxylic ester groups, every one a plain intermolecular ``R-C(=O)-O-R'`` (a lactone or macrocycle is not);
+      * cutting every ester O--C(alkyl) bond leaves the alcohol and one component per acid, none overlapping, no atom over;
       * the acids are the SAME acid. Different acids are method (1) of P-65.6.3.3.3.2, ``propane-1,2,3-triyl
         1,2-diacetate 3-propanoate``, which OPSIN cannot read (measured round 26: every mixed-anion form is
         unparseable), so it is not built and those molecules stay on the accepted acyloxy form.
@@ -1578,13 +1577,7 @@ def _build_polyol_ester_decomposition(
     acyl_cs = [p[0] for p in parsed]
     ester_os = [p[1] for p in parsed]
     alkyl_cs = [p[2] for p in parsed]
-    if len(set(acyl_cs)) != len(parsed) or len(set(ester_os)) != len(parsed):
-        return None
     cut_pairs = {frozenset({ao, ac}) for ao, ac in zip(ester_os, alkyl_cs)}
-    for ao, ac in zip(ester_os, alkyl_cs):
-        bond = mol.GetBondBetweenAtoms(ao, ac)
-        if bond is None or bond.IsInRing():
-            return None
 
     def _component(start: int) -> frozenset[int]:
         seen = {start}
@@ -1599,14 +1592,18 @@ def _build_polyol_ester_decomposition(
                 stack.append(j)
         return frozenset(seen)
 
+    # Cut every ester O--C(alkyl) bond. A polyol ester falls into exactly the alcohol and one component per acid, none overlapping, with
+    # no atom left over. Everything else this builder must decline fails one of those two tests, so there is no rule apiece: a bond in a
+    # ring (a lactone, a macrocycle) leaves the acyl and alkyl carbons in ONE component, two esters of one diacid share a component, an
+    # alkyl carbon in a second component or a second ester on one acyl carbon makes the components overlap or leave atoms in none, and a
+    # stray fragment is unclaimed. (Round 26's mutation matrix removed four separate guards of that kind, none of which any molecule
+    # reached: each was shadowed by these two on every connected molecule; `tests/test_round26_polyol_esters.py` tests them on the builder.)
     alcohol = _component(alkyl_cs[0])
-    if not set(alkyl_cs) <= alcohol or alcohol & (set(acyl_cs) | set(ester_os)):
-        return None
     claimed = set(alcohol)
     acid_atoms: list[frozenset[int]] = []
-    for acyl, ao in zip(acyl_cs, ester_os):
+    for acyl in acyl_cs:
         comp = _component(acyl)
-        if ao not in comp or comp & claimed:
+        if comp & claimed:
             return None
         claimed |= comp
         acid_atoms.append(comp)

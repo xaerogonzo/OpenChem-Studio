@@ -18616,8 +18616,9 @@ def _execute_polyol_ester(
         decision_ctx=DecisionContext(role="acid_part", parent_plan=plan, depth=depth + 1),
         _session=session, _depth=depth + 1,
     )
-    if isinstance(acid_tree, ErrorTree) or _has_error_children(acid_tree):
-        return _declined("polyol ester: the acid component could not be named")
+    # An acid that could not be named is an ErrorTree piece, and both selection loops reject a tree that contains one (`_has_error_children`),
+    # so it is not tested here (a round 26 mutant that accepted it survived every test). The ALCOHOL is checked above only because
+    # `assemble` reads it next.
     return FunctionalClassTree(
         output_form=output_form,
         free_valence=free_valence,
