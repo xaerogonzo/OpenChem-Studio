@@ -58,7 +58,7 @@ HELD_STATES = frozenset({"held", "held_accepted_manuscript", "held_preproof"})
 #: What a paper is about. OUR classification (`assigned.property`), never the paper's.
 PROPERTIES = frozenset({
     "thermophysical", "density", "enthalpy_gas", "enthalpy_sublimation", "enthalpy_solid",
-    "enthalpy_fusion", "detonation", "sensitivity", "data_compendium", "ml_general", "solubility",
+    "enthalpy_fusion", "detonation", "sensitivity", "data_compendium", "ml_general", "solubility", "tautomerism",
 })
 
 #: What we use a paper for. OUR classification (`assigned.role`).

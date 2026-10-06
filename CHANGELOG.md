@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **One pinned name changed, and it was one of two.** `tests/test_namer_known_defects.py` pinned `CN(N=O)NN` as `2-amino-1-methyl-1-nitrosohydrazine`, the canonical spelling's name. Over 24 spellings the tree before gave that on 11 and `1-hydrazinyl-1-methyl-2-oxohydrazine` on 13 (both read back to the one molecule): two hydrazine parents tie on the key, three prefixes each, the set 1,1,2. The rule takes `1,1,2` over `2,1,1`, so it is the second name on all 24 and the row now says so. Neither is claimed to be the PIN (the four nitrogens form a chain, and the engine does not name it on that chain).
 - `tests/test_namer_parent_citation_locants.py`: the book's names pinned over 16 spellings each, the same spellings splitting without the rule, both names read back to one molecule, the comparison and the wiring of `_break_parent_tie` on stand-ins, the hydrazide cases, and the open defects as strict xfails. Mutation-checked (see `docs/LESSONS.md`).
 
+### Seven tautomer papers are recorded in the literature manifest
+
+- alkorta2022, rybczynski2023, claramunt2024, anandan2004, kim2007, wieder2021 and rzepiela2020 were in the library but cited nowhere in the repo (the session that fetched them was archived). Each is recorded with its DOI and sha256 from the library index and page 1, as `context_only` with a provisional `tautomerism` property (new in the closed vocabulary) and a note that it has not been read through.
+
 ### koch2019 is recorded in the literature manifest
 
 - Koch's 2019 nitroguanidine review (held as a journal proof) is recorded in `docs/research/literature.toml`, with the two things it is useful for: a lead on nitroguanidine's water solubility (3.45 g/L at 298 K, citing McBride et al. 1951, not yet read) and the fact that its solvent table cites only a 1929 Desvergnes note, not the 1926 one behind ethyl tetryl.

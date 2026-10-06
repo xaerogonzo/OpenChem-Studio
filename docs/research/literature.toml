@@ -1596,3 +1596,115 @@ Moniteur scientifique de Quesneville, 1929, 265-266 (its ref. [81]), covering ap
 and alcohols near 19 C; it does NOT contain the 1926 Desvergnes value for ethyl tetryl that the Yalkowsky and He
 handbook cites (D067), so it does not settle that value. Also lists the enthalpy of formation, density and
 decomposition temperature of NGu in its property tables."""
+
+[[source]]
+id = "alkorta2022"
+file = "alkorta2022.pdf"
+sha256 = "9770e0cce22bb86b34aa8da98c612456c71687456564613043b5f0b5f6ac9a86"
+pages = 16
+access = "held"
+printed.doi = "10.1021/acs.joc.2c00154"
+printed.title = "Study of the Addition Mechanism of 1H-Indazole and Its 4-, 5-, 6-, and 7-Nitro Derivatives to Formaldehyde in Aqueous Hydrochloric Acid Solutions"
+printed.venue = "Journal of Organic Chemistry, 2022, 87, 5866-5881; authors I. Alkorta, R. M. Claramunt, J. Elguero and others"
+assigned.property = "tautomerism"
+assigned.role = "context_only"
+note = """recorded 2026-10-06 from the library index (page 1 and the printed DOI), NOT read through: the work that downloaded it (the
+tautomer program, 2026-10-02/03) was in a session that has since been archived, so why it was wanted is not written down.
+What page 1 says: NMR and crystallography of NH-indazoles with formaldehyde in aqueous HCl, with GIAO calculations; the N1-CH2OH mechanism. The property and the role are provisional; re-assign the role (candidate_method, benchmark_reference,
+...) once someone reads it for what it is used for."""
+
+[[source]]
+id = "rybczynski2023"
+file = "Rybczyński2023.pdf"
+sha256 = "881f6eeb1fa8c94b36f04d2ab2138f267c91f7cc744ad8f969c872f0d3855670"
+pages = 18
+access = "held"
+printed.doi = "10.3390/molecules28031101"
+printed.title = "Tautomeric Equilibrium in 1-Benzamidoisoquinoline Derivatives"
+printed.venue = "Molecules, 2023, 28, 1101; authors P. Rybczynski, A. Kaczmarek-Kedziera, A. Iglesias-Reguant, D. Plazuk and B. Osmialowski (open access, CC BY)"
+assigned.property = "tautomerism"
+assigned.role = "context_only"
+note = """recorded 2026-10-06 from the library index (page 1 and the printed DOI), NOT read through: the work that downloaded it (the
+tautomer program, 2026-10-02/03) was in a session that has since been archived, so why it was wanted is not written down.
+What page 1 says: Tautomeric equilibrium of 1-benzamidoisoquinolines. The property and the role are provisional; re-assign the role (candidate_method, benchmark_reference,
+...) once someone reads it for what it is used for."""
+
+[[source]]
+id = "claramunt2024"
+file = "Claramunt2024.pdf"
+sha256 = "db46b8658b5a300fe17972a606cd12d6e8eedd1b35b401c81d1582152a528221"
+pages = 17
+access = "held"
+printed.doi = "10.1002/poc.4612"
+printed.title = "Addition reaction of azoles to acetone-d6: NMR and computational studies"
+printed.venue = "Journal of Physical Organic Chemistry, 2024, 37, e4612; authors R. M. Claramunt, D. Sanz, I. Alkorta and J. Elguero (a supplement, Claramunt2024_si.pdf, is also in the library but not recorded here)"
+assigned.property = "tautomerism"
+assigned.role = "context_only"
+note = """recorded 2026-10-06 from the library index (page 1 and the printed DOI), NOT read through: the work that downloaded it (the
+tautomer program, 2026-10-02/03) was in a session that has since been archived, so why it was wanted is not written down.
+What page 1 says: Reactivity of imidazole, pyrazole, 1,2,4-triazole, 1,2,3-triazole and tetrazole with acetone, by NMR and calculation. The property and the role are provisional; re-assign the role (candidate_method, benchmark_reference,
+...) once someone reads it for what it is used for."""
+
+[[source]]
+id = "anandan2004"
+file = "anandan2004.pdf"
+sha256 = "d79e8525e79679ea4e197ef6c5849ce366be3a60ba9ab7cce6918e69c5f16fa8"
+pages = 7
+access = "held"
+printed.doi = "10.1016/j.theochem.2004.08.014"
+printed.title = "Ab initio and DFT studies on tautomerism of indazole in gaseous and aqueous phases"
+printed.venue = "Journal of Molecular Structure (Theochem), 686 (2004) 83-89; authors K. Anandan, P. Kolandaivel and R. Kumaresan"
+assigned.property = "tautomerism"
+assigned.role = "context_only"
+note = """recorded 2026-10-06 from the library index (page 1 and the printed DOI), NOT read through: the work that downloaded it (the
+tautomer program, 2026-10-02/03) was in a session that has since been archived, so why it was wanted is not written down.
+What page 1 says: Five tautomeric forms of indazole at MP2, B3LYP and B3PW91 with 6-311G(2d,2p), plus a continuum water model. The property and the role are provisional; re-assign the role (candidate_method, benchmark_reference,
+...) once someone reads it for what it is used for."""
+
+[[source]]
+id = "kim2007"
+file = "Kim2007.pdf"
+sha256 = "d5f5b88279161f88a3a3c114e60f9388edcd0d10562deecf1a074215119f38e3"
+pages = 6
+access = "held"
+printed.doi = "10.1021/jp074229d"
+printed.title = "Tautomerization of Adenine Facilitated by Water: Computational Study of Microsolvation"
+printed.venue = "Journal of Physical Chemistry A, 2007, 111, 8007-8012; authors H.-S. Kim, D.-S. Ahn, S.-Y. Chung, S. K. Kim and S. Lee"
+assigned.property = "tautomerism"
+assigned.role = "context_only"
+note = """recorded 2026-10-06 from the library index (page 1 and the printed DOI), NOT read through: the work that downloaded it (the
+tautomer program, 2026-10-02/03) was in a session that has since been archived, so why it was wanted is not written down.
+What page 1 says: Mechanisms and barrier heights for 9(H) to 7(H) and 9(H) to 3(H) adenine tautomerization, with water assistance. The property and the role are provisional; re-assign the role (candidate_method, benchmark_reference,
+...) once someone reads it for what it is used for."""
+
+[[source]]
+id = "wieder2021"
+file = "wieder2021.pdf"
+sha256 = "acd7f8b25d085e9d84afbccae947ab24655e15fe5463f851efcbef53d3e79e86"
+pages = 18
+access = "held"
+printed.doi = "10.1039/d1sc01185e"
+printed.title = "Fitting quantum machine learning potentials to experimental free energy data: predicting tautomer ratios in solution"
+printed.venue = "Chemical Science, 2021; authors M. Wieder, J. Fass and J. D. Chodera (volume and pages not read)"
+assigned.property = "tautomerism"
+assigned.role = "context_only"
+note = """recorded 2026-10-06 from the library index (page 1 and the printed DOI), NOT read through: the work that downloaded it (the
+tautomer program, 2026-10-02/03) was in a session that has since been archived, so why it was wanted is not written down.
+What page 1 says: Quantum machine-learning potentials fitted to experimental free energies to predict aqueous tautomer ratios. The property and the role are provisional; re-assign the role (candidate_method, benchmark_reference,
+...) once someone reads it for what it is used for."""
+
+[[source]]
+id = "rzepiela2020"
+file = "rzepiela2020.pdf"
+sha256 = "afdf3863c1502c5b8b7bc045464df7dfe73ddd4d1df4bd675090cc607de36ad5"
+pages = 15
+access = "held"
+printed.doi = "10.3390/molecules25173931"
+printed.title = "Factors Governing the Chemical Stability and NMR Parameters of Uracil Tautomers and Its 5-Halogen Derivatives"
+printed.venue = "Molecules, 2020, 25, 3931; authors K. Rzepiela, A. Buczek, T. Kupka and M. A. Broda (open access)"
+assigned.property = "tautomerism"
+assigned.role = "context_only"
+note = """recorded 2026-10-06 from the library index (page 1 and the printed DOI), NOT read through: the work that downloaded it (the
+tautomer program, 2026-10-02/03) was in a session that has since been archived, so why it was wanted is not written down.
+What page 1 says: DFT structure, energy and NMR parameters of uracil and the 5-halouracils in vacuum and water (PCM and others). The property and the role are provisional; re-assign the role (candidate_method, benchmark_reference,
+...) once someone reads it for what it is used for."""
