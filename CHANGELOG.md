@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Names keep their stereodescriptors on bridged rings.** The app ran the naming engine without Java on PATH, so the engine's own OPSIN checks failed and dropped the stereo of every bridged centre (camphor had no `1R,4R`). Fixed in `naming_providers.py`.
 - **Morphine, codeine, heroin, hydromorphone, oxycodone, naloxone, thebaine** are named on the retained `morphinan` parent (`4,5-epoxy-...-7,8-didehydromorphinan-3,6-diol`) instead of a von Baeyer pentacycle; **colchicine** is named on `benzo[a]heptalene` and no longer withheld. See `src/openchem/vendor/CHANGELOG.md`, round 24.
 
+### CI: the Windows crash measurement is on record, and run 2 is pre-registered
+
+- `benchmarks/windows_crash/` holds the first measurement (run 37383273300, shard 1, 10 legs per arm): **inconclusive** (4/10 crashed as-is, 6/10 with #197 reverted, Fisher p = 0.66) and **the wrong shard for the question**, since #197 targeted the shard 2 crash at about 82%. It did show that about half of shard 1's legs crash at 4-8% of the run (about 80 s in) with no frame outside pytest, which #197 does not touch.
+- The README pre-registers run 2 before it is dispatched: shard 2, 15 legs per arm, one two-sided Fisher test at 0.05, no extension or pooling. The Known-TODOs item for the dispose fix is now about its own target and stays OPEN until run 2's report is committed.
+
 ### Status chips: a calculator that files its result under another name now has its chip, and Joback's chip knows before it is run
 
 - **`nmr_database` and the other aliased calculators.** The chip beside a calculator was removed (an absence of a claim) once it had been run if the result was filed under a different name (`nmr_database` files `nmr_13c`), because no result carries the calculator that made it. The dispatcher does know: `ResultRecorded` carries the producer. The panel now attributes a result by it, so the chip reads Ready/Stale/Needs setup exactly, and pressing it opens the entry the result is filed under. If another producer later files the same name (the ab initio path also files `nmr_13c`) the first calculator has no result to show, not the other's. Checked in the real app: `nmr_database` on ethyl acetate reads Ready.
