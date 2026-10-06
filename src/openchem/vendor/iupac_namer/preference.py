@@ -117,7 +117,10 @@ TIER_SPECS: tuple[TierSpec, ...] = (
              "'added indicated hydrogen', after the principal group and before hydro "
              "prefixes (pdf p. 76): pyrimidine-4,6(1H,5H)-dione, not (3H,5H). Stored as "
              "suffix_locants, a fusion letter as +1..26 on number x 100"),
-    TierSpec("unsaturation_locants", "P-31.1.4.2.4", "lower", "as suffix_locants"),
+    TierSpec("unsaturation_locants", "P-14.4 (e) / P-31.1.4.2", "lower",
+             "stored as (-compound_count, -count, -l1, -l2, ..., -h1, ...) (preference.unsaturation_tier): for a von Baeyer ring the fewest "
+             "compound locants FIRST (a bond cited as 1(8)), then the locant set as suffix_locants, then the parenthesised ones; for every "
+             "other parent the first part is 0 and the last empty, so it is suffix_locants"),
     TierSpec("prefix_locants", "P-45.2.2 / P-14.4 (f)", "lower",
              "all detachable prefixes together, as suffix_locants"),
     TierSpec("primes", "P-14.3", "lower", "unprimed ring-assembly locants before primed"),
@@ -214,3 +217,14 @@ def locant_set_tier(locants) -> tuple:
     """
     values = sorted(int(v) for v in locants)
     return (-len(values),) + tuple(-v for v in values)
+
+
+def unsaturation_tier(compound_count: int, locants, compound_high=()) -> tuple:
+    """The unsaturation tier as "higher is better": the fewest compound locants, then `locant_set_tier`, then the parenthesised ones.
+
+    P-31.1.4.2 for a von Baeyer ring (pdf p. 324): (1) a minimum number of compound locants, a bond cited as ``1(8)`` because its ends are not
+    consecutive; (2) the lowest locants with the parenthesised ones ignored; (3) the lowest locants counting them too. So ``oct-6-ene`` is
+    preferred to ``oct-1(8)-ene`` although 1 is lower than 6. Nothing but a bridged ring has a compound locant here, so for every other plan
+    the first part is 0 and the last is empty and the tier orders exactly as `locant_set_tier` alone did.
+    """
+    return (-int(compound_count),) + locant_set_tier(locants) + tuple(-int(h) for h in sorted(compound_high))

@@ -91,9 +91,15 @@ class TestFusedAromaticBridgedVB:
         misreads the locant and produces a 5-valent carbon."""
         smi = "C1=CC2=CC=CC=C2C3CCCCC13"
         name = name_smiles(smi)
-        # Expected: cross-bridge locant "1(14)" present
-        assert "1(14)" in name, f"expected cross-bridge locant '1(14)' in {name}"
-        assert name == "tricyclo[8.4.0.0^{4,9}]tetradeca-1(14),2,10,12-tetraene"
+        # Expected: cross-bridge locant "1(14)" present. The numbering moved
+        # from 0^{4,9}...1(14),2,10,12 to 0^{2,7}...1(14),8,10,12: the
+        # superscripts now come first (P-23.2.6.2.4) and the unsaturation
+        # ties are decided under P-31.1.4.2 -- one compound locant either way.
+        # NOTE this is spelling-dependent for a pre-existing reason: the
+        # benzene ring is named from whichever Kekule form the input carries,
+        # so other spellings of the same molecule give 2,4,6,8 / 2(7),3,5,8 /
+        # 1(10),8,11,13 (the same four-way split exists on the base commit).
+        assert name == "tricyclo[8.4.0.0^{2,7}]tetradeca-1(14),8,10,12-tetraene"
         if HAVE_OPSIN:
             assert _opsin_roundtrip(smi, name), f"round-trip failed: {name}"
 
@@ -145,7 +151,7 @@ class TestOpsinVerifiedBridgedAromatic:
         ),
         (
             "C1=CC2=CC=CC=C2C3CCCCC13",
-            "tricyclo[8.4.0.0^{4,9}]tetradeca-1(14),2,10,12-tetraene",
+            "tricyclo[8.4.0.0^{2,7}]tetradeca-1(14),8,10,12-tetraene",
         ),
         (
             # Round 5 (N3): a hydro phenalene, named by fusion (P-52.2.4.1)

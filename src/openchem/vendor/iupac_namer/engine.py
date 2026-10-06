@@ -11113,6 +11113,9 @@ def _break_alphanumerical_tie(
       * a residual tie falls to the later-generated plan, the declared
         compatibility policy of `_search_plans`.
 
+    After (g) comes P-14.4 (j), the stereodescriptor of the lower locant (`_stereo_locant_key`): the one criterion that separates the two
+    numberings of a meso compound, which differ in nothing but their labels.
+
     Returns the winning tree, or None to fall through to the normal loop.
     """
     from openchem.vendor.iupac_namer.preference import NomenclaturePreferenceKey
@@ -11143,12 +11146,37 @@ def _break_alphanumerical_tie(
             continue
         locant_key = _alphanumerical_locant_key(tree)
         if locant_key is None:
-            return None
-        candidates.append((locant_key, -seq, tree))
+            if isinstance(tree, SubstitutiveTree) and not tree.prefixes:
+                # No prefix to compare on (g): a plain meso skeleton, or one whose only substituents are suffixes. That is not a reason to give
+                # up, since (j) below can still decide; an empty key ties, and a tie falls to plan order exactly as before.
+                locant_key = ()
+            else:
+                return None
+        candidates.append((locant_key, _stereo_locant_key(tree), -seq, tree))
     if not candidates:
         return None
-    candidates.sort(key=lambda c: (c[0], c[1]))
-    return candidates[0][2]
+    candidates.sort(key=lambda c: (c[0], c[1], c[2]))
+    return candidates[0][3]
+
+
+#: P-14.4 (j): "the lower locant is assigned to CIP stereodescriptors Z, R, M, and r (pseudoasymmetry) that are preferred to E, S, P, and s".
+_PREFERRED_CIP_DESCRIPTORS = frozenset({"Z", "R", "M", "r"})
+
+
+def _stereo_locant_key(tree) -> tuple:
+    """P-14.4 (j) as a comparable value: a preferred descriptor (Z, R, M, r) at the lowest locant.
+
+    One entry per stereodescriptor the name will carry, in locant order, 0 for a preferred descriptor and 1 for the other of its pair, compared
+    from the lowest locant up: the decision is made at the FIRST point of difference, as the book's own example has it (`(2Z,4S,8R,9E)-undeca-2,9-
+    diene-4,8-diol`: the choice is made between Z and E at 2, not between R and S at 4). So `(2R,4S)` beats `(2S,4R)` for 2,4-difluoropentane
+    and `(1R,5S)` beats `(1S,5R)` for tropane, whose two mirror numberings differ in nothing else.
+
+    It is the LAST criterion of P-14.4, after the alphanumerical one, which is why it is a tie-break here and not a tier of the preference key.
+    It reads the descriptors of the executed tree, i.e. those the name will carry: one that was dropped (an unreadable locant, a pseudoasymmetric
+    `r` OPSIN cannot read) takes no part. A tree with none gives `()`, which ties.
+    """
+    descriptors = getattr(tree, "stereo_descriptors", None) or ()
+    return tuple(0 if d.descriptor in _PREFERRED_CIP_DESCRIPTORS else 1 for d in descriptors)
 
 
 def _ester_alcohol_key(tree) -> tuple | None:
@@ -19440,8 +19468,11 @@ def _recompute_ring_unsaturation_name(named_parent, numbering) -> "NamedParent":
         # Parse the baked "-<loc>-en" / "-<loc>-yn" / "-<locs>-diene" segment.
         # Only handle the simple single-bond cases for now.  Multi-unsaturated
         # VB rings (bicyclo[2.2.1]hepta-2,5-diene etc.) aren't in the cluster.
+        # The baked locant may be a COMPOUND one, ``-1(8)-ene`` (a bond between non-consecutive locants, P-31.1.4.2). The pattern read only a
+        # plain number, so such a name was never rewritten and kept the locants of the numbering that wrote it while the substituents took
+        # those of the one the strategy chose: `7-methylbicyclo[4.2.0]oct-1(8)-ene` named a different molecule.
         m = _re_bn.search(
-            r"^(?P<pre>.*?)-(?P<loc>\d+)-(?P<ty>en|yn)(?P<post>.*)$",
+            r"^(?P<pre>.*?)-(?P<loc>\d+(?:\(\d+\))?)-(?P<ty>en|yn)(?P<post>.*)$",
             named_parent.name,
         )
         if not m:
@@ -19453,14 +19484,17 @@ def _recompute_ring_unsaturation_name(named_parent, numbering) -> "NamedParent":
            sum(1 for *_rest, t in bonds if t == "triple") != 1:
             return named_parent
 
-        new_dbl, new_tri = compute_ring_unsaturation_locants_from_numbering(
-            bonds, numbering.atom_to_locant,
-        )
-        new_loc = (new_dbl + new_tri)[0] if (new_dbl or new_tri) else None
-        if new_loc is None:
+        # Read the bond off the FINAL numbering and cite it as the von Baeyer name does: the lower locant, and the higher one in parentheses
+        # unless the two are consecutive. (Not the monocyclic helper, which reads a bond from locant 1 to the last as a wrap-around.)
+        from openchem.vendor.iupac_namer.ring_naming.bridged import _format_vb_locant
+
+        a1, a2, _bond_type = bonds[0]
+        v1 = getattr(numbering.atom_to_locant.get(a1), "_numeric_value", None)
+        v2 = getattr(numbering.atom_to_locant.get(a2), "_numeric_value", None)
+        if not v1 or not v2:
             return named_parent
-        old_loc = int(m.group("loc"))
-        if new_loc == old_loc:
+        new_loc = _format_vb_locant((min(v1, v2), max(v1, v2)))
+        if new_loc == m.group("loc"):
             return named_parent
 
         new_name = f"{m.group('pre')}-{new_loc}-{m.group('ty')}{m.group('post')}"
