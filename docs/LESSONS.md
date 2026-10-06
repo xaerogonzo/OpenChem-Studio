@@ -7685,6 +7685,25 @@ than a false one.
 **WHAT WOULD LIFT IT:** a `calculator_id` on the result. With one the chip
 attributes exactly and the branch is unreachable.
 
+**LIFTED 2026-10-05, WITHOUT ADDING THE FIELD.** The claim "nothing carries a
+`calculator_id`" was true of every RESULT and false of the application: the
+`ResultRecorded` envelope has carried `identity.producer` since the result store
+was written, and the panel never subscribed. Three things the fix cost, all
+found by running it rather than reading it:
+
+* **Attribute to the SUMMARY, not the raw result.** The first version returned
+  the raw spectrum and the real app read "Stale": `status_of` compares a
+  `structure_version` that only the panel's summary (`summarise`) carries, so every
+  raw spectrum or per-atom set is Stale by construction. Unit tests with a fake
+  report had passed.
+* **A shared name is attributed only while it is still yours.** `nmr_13c` is also
+  what the ab initio path files; the entry is trusted for a producer only if the
+  retained result under that name IS the one the producer made.
+* **A test that cannot fail was found by breaking it.** The first out-of-view stick
+  tests zoomed so far that the hidden stick fell off the widget; with the hiding code
+  deleted they still passed. They now put the stick in the margin, where only the
+  hiding keeps it out, and both die under the mutation.
+
 ### DISABLED RATHER THAN HIDDEN WHERE THERE IS NOTHING TO OPEN
 
 The reader's own rule is the opposite -- its viewer button is hidden

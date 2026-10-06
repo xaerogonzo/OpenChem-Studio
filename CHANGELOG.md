@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Status chips: a calculator that files its result under another name now has its chip, and Joback's chip knows before it is run
+
+- **`nmr_database` and the other aliased calculators.** The chip beside a calculator was removed (an absence of a claim) once it had been run if the result was filed under a different name (`nmr_database` files `nmr_13c`), because no result carries the calculator that made it. The dispatcher does know: `ResultRecorded` carries the producer. The panel now attributes a result by it, so the chip reads Ready/Stale/Needs setup exactly, and pressing it opens the entry the result is filed under. If another producer later files the same name (the ab initio path also files `nmr_13c`) the first calculator has no result to show, not the other's. Checked in the real app: `nmr_database` on ethyl acetate reads Ready.
+- **Joback pre-flight.** A calculator may now declare `CalculatorDefinition.preflight`, a cheap check that returns why it is certain to refuse the molecule. Joback declares its own `fragment()`, so the chip reads "Not applicable" with the uncovered atom named in its tooltip BEFORE any run (RDX and HMX; TNT, PETN and aspirin stay "Not run"). It is the refusal itself, not a second rule, it is evaluated on the same component a run would be handed, and a result always outranks it. Joback is still hidden by default.
+
+### Compare now takes spectra: the database lookup against an ab initio run, atom by atom
+
+- A predicted NMR spectrum is one number per nucleus, so it joins the per-atom results that "Compare with..." sets side by side, with every refusal that already protected them (another molecule, an edit between the runs, other atoms, other units, one calculation twice). The NMR view has the button. Two runs of one calculator under different settings used to give two columns with the same heading; they are now told apart by the parameters that differ (`max_spheres=2`), in the menu and the window. A refused or empty spectrum joins nothing. Checked in the real app on ethyl acetate (carbonyl 173.99 vs 171.73 ppm between two sphere settings).
+
+### Histogram and stick charts zoom
+
+- Ctrl+wheel zooms along x around the cursor, Shift+wheel pans, a double-click resets, and a plain wheel still scrolls the page, as on the line chart. A stick outside the window is neither drawn nor clickable; a zoomed histogram rescales its count axis to the bins in view. The stick chart keeps the whole chart's y scale, so a weak region is not blown up to look strong. The histogram's count axis also stopped repeating a label ("1, 0, 0" for a tallest bin of 1).
+
 ### CI: the crash measurement's first run, and two defects in the instrument
 
 - First dispatch of `windows-crash-rate.yml` (run 37356155136, shard 1, master, 10 legs per arm): **the whole control arm failed**, because reverting #197 conflicts in `docs/ARCHITECTURE.md` (that section was edited after the fix). A revert conflict in prose (docs, changelog) now keeps the current text; a conflict in anything that runs still stops the leg.

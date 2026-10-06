@@ -514,6 +514,11 @@ def _display(value: float, places: int) -> str:
     return f"{value:.{places}f}"
 
 
+def preflight_reason(mol: Chem.Mol) -> str:
+    """Why `compute_joback` will refuse `mol`, or "" -- by running the same `fragment()`."""
+    return refusal_text(fragment(mol))
+
+
 def compute_joback(
     mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any] | None = None
 ) -> ReportResult:

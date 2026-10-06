@@ -6107,7 +6107,8 @@ class _Driver(QObject):
         -- open one held result's Calculator Inspector, take "Compare with..." from ITS menu,
         and assert the comparison window that opens.
 
-            "property"   the per-atom property whose held results are compared
+            "property"   the per-atom property whose held results are compared (a spectrum's
+                         is its type, e.g. "nmr_13c": its NMR view carries the same menu)
             "all"        choose "With all N" instead of the first single entry
             "expect"     {"columns": N, "atoms": N, "refused": "fragment of the message"}
             "shot"       a path to photograph the comparison window to
@@ -6127,7 +6128,9 @@ class _Driver(QObject):
         if not held:
             logger.error("OPENCHEM_DRIVE: compare_results: nothing held for %r", property_id)
             return
-        anchor = held[-1].dataset
+        # A spectrum is held as its per-atom view; the window that opens is the NMR view of the
+        # spectrum itself, so the anchor is the spectrum it was made from.
+        anchor = held[-1].origin or held[-1].dataset
         if not panel.open_result_inspector(anchor):
             logger.error("OPENCHEM_DRIVE: compare_results: the inspector would not open")
             return
