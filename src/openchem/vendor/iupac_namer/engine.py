@@ -25,7 +25,7 @@ from openchem.vendor.iupac_namer.types import (
 from openchem.vendor.iupac_namer.perception import Perception
 from openchem.vendor.iupac_namer.perception.extraction import (
     carve_substituent, carve_bridging_substituent, strip_additive_atoms,
-    carve_fc_fragments, fragment_origin,
+    carve_fc_fragments, fragment_origin, context_stereo_key,
 )
 from openchem.vendor.iupac_namer.assembly import (
     assemble, derive_sort_name, _preferred_prefix_spelling,
@@ -9994,6 +9994,10 @@ def _name_bound(
         _session = NamingSession()
 
     smiles = Chem.MolToSmiles(mol)
+    # The session cache's identity for this fragment: its SMILES plus the descriptors a carve stamped on it, which a SMILES
+    # cannot write (see `context_stereo_key`). `smiles` stays the plain structure: the curated lookups and the error messages
+    # below want that, not a cache key.
+    fragment_key = smiles + context_stereo_key(mol)
     fv_bond_orders = free_valence.bond_orders if free_valence else ()
     attachment_indices = (
         free_valence.attachment_atoms_in_fragment
@@ -10002,7 +10006,7 @@ def _name_bound(
     )
 
     # Cache check
-    cached = _session.cache_lookup(smiles, output_form, fv_bond_orders, attachment_indices)
+    cached = _session.cache_lookup(fragment_key, output_form, fv_bond_orders, attachment_indices)
     if cached is not None:
         return cached
 
@@ -10016,7 +10020,7 @@ def _name_bound(
             validity_warnings=None,
             message=f"Max recursion depth exceeded for {smiles}",
         )
-        _session.cache_store(smiles, output_form, fv_bond_orders, err, attachment_indices)
+        _session.cache_store(fragment_key, output_form, fv_bond_orders, err, attachment_indices)
         return err
 
     # --- Single-atom substituent short-circuit ---
@@ -10026,7 +10030,7 @@ def _name_bound(
         mol, output_form, free_valence, decision_ctx
     )
     if single_atom_tree is not None:
-        _session.cache_store(smiles, output_form, fv_bond_orders, single_atom_tree, attachment_indices)
+        _session.cache_store(fragment_key, output_form, fv_bond_orders, single_atom_tree, attachment_indices)
         return single_atom_tree
 
     # --- Ketene-substituent short-circuit (=C=O / =C=S) ---
@@ -10071,7 +10075,7 @@ def _name_bound(
                     validity_warnings=None,
                     text=_ket_prefix,
                 )
-                _session.cache_store(smiles, output_form, fv_bond_orders, _ket_tree, attachment_indices)
+                _session.cache_store(fragment_key, output_form, fv_bond_orders, _ket_tree, attachment_indices)
                 return _ket_tree
 
     # --- Charge perception dispatch (Stage 6 R2-B) ---
@@ -10093,7 +10097,7 @@ def _name_bound(
             strategy=strategy, session=_session, depth=_depth,
         )
         if charge_tree is not None:
-            _session.cache_store(smiles, output_form, fv_bond_orders, charge_tree, attachment_indices)
+            _session.cache_store(fragment_key, output_form, fv_bond_orders, charge_tree, attachment_indices)
             return charge_tree
 
     # --- Heteroelement oxoacid whole-molecule shortcut (Stage 6 R1-B) ---
@@ -10121,7 +10125,7 @@ def _name_bound(
                 validity_warnings=None,
                 text=oxoacid_name,
             )
-            _session.cache_store(smiles, output_form, fv_bond_orders, leaf, attachment_indices)
+            _session.cache_store(fragment_key, output_form, fv_bond_orders, leaf, attachment_indices)
             return leaf
 
     # --- Polynuclear phosphorus oxoacid whole-molecule shortcut (Stage 6 R2-F) ---
@@ -10149,7 +10153,7 @@ def _name_bound(
                 validity_warnings=None,
                 text=poly_p_name,
             )
-            _session.cache_store(smiles, output_form, fv_bond_orders, leaf, attachment_indices)
+            _session.cache_store(fragment_key, output_form, fv_bond_orders, leaf, attachment_indices)
             return leaf
 
     # --- Generative main-group oxoacid namer (Stage 15) ---
@@ -10183,7 +10187,7 @@ def _name_bound(
                 validity_warnings=None,
                 text=gen_oxoacid_name,
             )
-            _session.cache_store(smiles, output_form, fv_bond_orders, leaf, attachment_indices)
+            _session.cache_store(fragment_key, output_form, fv_bond_orders, leaf, attachment_indices)
             return leaf
 
     # P-21.2 / P-68.3 — substituted group-13 parent-hydride / ``-olate``
@@ -10201,7 +10205,7 @@ def _name_bound(
     )
     if group13_frag_tree is not None:
         _session.cache_store(
-            smiles, output_form, fv_bond_orders, group13_frag_tree,
+            fragment_key, output_form, fv_bond_orders, group13_frag_tree,
             attachment_indices,
         )
         return group13_frag_tree
@@ -10213,7 +10217,7 @@ def _name_bound(
         tree = _name_salt(
             perception, mol, strategy, output_form, decision_ctx, _session, _depth
         )
-        _session.cache_store(smiles, output_form, fv_bond_orders, tree, attachment_indices)
+        _session.cache_store(fragment_key, output_form, fv_bond_orders, tree, attachment_indices)
         return tree
 
     # --- STANDALONE → CATION auto-promotion for ring-heterocation standalones ---
@@ -10439,7 +10443,7 @@ def _name_bound(
             parent_tree=parent_tree,
             additions=tuple(additions),
         )
-        _session.cache_store(smiles, output_form, fv_bond_orders, tree, attachment_indices)
+        _session.cache_store(fragment_key, output_form, fv_bond_orders, tree, attachment_indices)
         return tree
 
     # --- Single-FG substituent short-circuit ---
@@ -10450,7 +10454,7 @@ def _name_bound(
         strategy=strategy, session=_session, depth=_depth,
     )
     if single_fg_tree is not None:
-        _session.cache_store(smiles, output_form, fv_bond_orders, single_fg_tree, attachment_indices)
+        _session.cache_store(fragment_key, output_form, fv_bond_orders, single_fg_tree, attachment_indices)
         return single_fg_tree
 
     # --- Heteroatom free-valence substituent (P-66.4) ---
@@ -10462,7 +10466,7 @@ def _name_bound(
         strategy=strategy, session=_session, depth=_depth,
     )
     if het_fv_tree is not None:
-        _session.cache_store(smiles, output_form, fv_bond_orders, het_fv_tree, attachment_indices)
+        _session.cache_store(fragment_key, output_form, fv_bond_orders, het_fv_tree, attachment_indices)
         return het_fv_tree
 
     # --- Acyl group of a ring-nitrogen amide: 'piperidine-1-carbonyl' (naming round 8, P-65.1.7.3, pdf p. 667). ---
@@ -10471,7 +10475,7 @@ def _name_bound(
         strategy=strategy, session=_session, depth=_depth,
     )
     if ring_acyl_tree is not None:
-        _session.cache_store(smiles, output_form, fv_bond_orders, ring_acyl_tree, attachment_indices)
+        _session.cache_store(fragment_key, output_form, fv_bond_orders, ring_acyl_tree, attachment_indices)
         return ring_acyl_tree
 
     # --- Condensed ureas (n = 2..4) and guanidines from n = 3 (naming round 8, W2): P-66.1.6.1.4, P-66.4.1.2. ---
@@ -10486,7 +10490,7 @@ def _name_bound(
             strategy=strategy, session=_session, depth=_depth,
         )
         if cd_tree is not None:
-            _session.cache_store(smiles, output_form, fv_bond_orders, cd_tree, attachment_indices)
+            _session.cache_store(fragment_key, output_form, fv_bond_orders, cd_tree, attachment_indices)
             return cd_tree
 
     # --- Urea functional parent (P-66.6.3) ---
@@ -10502,7 +10506,7 @@ def _name_bound(
             perception=perception,
         )
         if urea_tree is not None:
-            _session.cache_store(smiles, output_form, fv_bond_orders, urea_tree, attachment_indices)
+            _session.cache_store(fragment_key, output_form, fv_bond_orders, urea_tree, attachment_indices)
             return urea_tree
 
     # --- Single heteroatom-centre parents (silanol, boronic acid, ...) ---
@@ -10514,7 +10518,7 @@ def _name_bound(
             perception=perception,
         )
         if centre_tree is not None:
-            _session.cache_store(smiles, output_form, fv_bond_orders, centre_tree, attachment_indices)
+            _session.cache_store(fragment_key, output_form, fv_bond_orders, centre_tree, attachment_indices)
             return centre_tree
 
     # --- Carbamic acid functional parent (P-65.2.1.1) ---
@@ -10526,7 +10530,7 @@ def _name_bound(
             perception=perception,
         )
         if carbamic_tree is not None:
-            _session.cache_store(smiles, output_form, fv_bond_orders, carbamic_tree, attachment_indices)
+            _session.cache_store(fragment_key, output_form, fv_bond_orders, carbamic_tree, attachment_indices)
             return carbamic_tree
 
     # --- Sulfamic acid functional parent (P-67.1.2.4.1) ---
@@ -10538,7 +10542,7 @@ def _name_bound(
             perception=perception,
         )
         if sulfamic_tree is not None:
-            _session.cache_store(smiles, output_form, fv_bond_orders, sulfamic_tree, attachment_indices)
+            _session.cache_store(fragment_key, output_form, fv_bond_orders, sulfamic_tree, attachment_indices)
             return sulfamic_tree
 
     # --- Cyanamide functional parent (P-66.1.6.2) ---
@@ -10550,7 +10554,7 @@ def _name_bound(
             perception=perception,
         )
         if cyanamide_tree is not None:
-            _session.cache_store(smiles, output_form, fv_bond_orders, cyanamide_tree, attachment_indices)
+            _session.cache_store(fragment_key, output_form, fv_bond_orders, cyanamide_tree, attachment_indices)
             return cyanamide_tree
 
     # --- Cyanic / thiocyanic acid esters (P-65.2.2, P-65.6.3.3.7.2.1) ---
@@ -10562,7 +10566,7 @@ def _name_bound(
             perception=perception,
         )
         if cyanic_tree is not None:
-            _session.cache_store(smiles, output_form, fv_bond_orders, cyanic_tree, attachment_indices)
+            _session.cache_store(fragment_key, output_form, fv_bond_orders, cyanic_tree, attachment_indices)
             return cyanic_tree
 
     # --- Guanidine functional parent (P-66.4.1.2.1.2) ---
@@ -10574,7 +10578,7 @@ def _name_bound(
             perception=perception,
         )
         if guanidine_tree is not None:
-            _session.cache_store(smiles, output_form, fv_bond_orders, guanidine_tree, attachment_indices)
+            _session.cache_store(fragment_key, output_form, fv_bond_orders, guanidine_tree, attachment_indices)
             return guanidine_tree
 
     # --- Thiourea functional parent (P-66.6.3) ---
@@ -10590,7 +10594,7 @@ def _name_bound(
             perception=perception,
         )
         if thiourea_tree is not None:
-            _session.cache_store(smiles, output_form, fv_bond_orders, thiourea_tree, attachment_indices)
+            _session.cache_store(fragment_key, output_form, fv_bond_orders, thiourea_tree, attachment_indices)
             return thiourea_tree
 
     # --- Sulfamide functional parent (P-66.4.1.2.4) ---
@@ -10607,7 +10611,7 @@ def _name_bound(
             strategy=strategy, session=_session, depth=_depth,
         )
         if sulfamide_tree is not None:
-            _session.cache_store(smiles, output_form, fv_bond_orders, sulfamide_tree, attachment_indices)
+            _session.cache_store(fragment_key, output_form, fv_bond_orders, sulfamide_tree, attachment_indices)
             return sulfamide_tree
 
     # --- Nitramide / nitrous amide functional parent (P-67.1.2.6.3) ---
@@ -10621,7 +10625,7 @@ def _name_bound(
             perception=perception,
         )
         if nitramide_tree is not None:
-            _session.cache_store(smiles, output_form, fv_bond_orders, nitramide_tree, attachment_indices)
+            _session.cache_store(fragment_key, output_form, fv_bond_orders, nitramide_tree, attachment_indices)
             return nitramide_tree
 
     # --- Nitric / nitrous hydrazide functional parent (P-67.1.2.6.3) ---
@@ -10634,7 +10638,7 @@ def _name_bound(
             perception=perception,
         )
         if hydrazide_tree is not None:
-            _session.cache_store(smiles, output_form, fv_bond_orders, hydrazide_tree, attachment_indices)
+            _session.cache_store(fragment_key, output_form, fv_bond_orders, hydrazide_tree, attachment_indices)
             return hydrazide_tree
 
     # --- Hypohalous, halous, halic and perhalic amide functional parents (P-67.1.2.2 / P-67.1.2.6.1) ---
@@ -10648,7 +10652,7 @@ def _name_bound(
             perception=perception,
         )
         if hypohalous_tree is not None:
-            _session.cache_store(smiles, output_form, fv_bond_orders, hypohalous_tree, attachment_indices)
+            _session.cache_store(fragment_key, output_form, fv_bond_orders, hypohalous_tree, attachment_indices)
             return hypohalous_tree
 
     # --- Fulminic acid [C-]#[N+]O retained (P-66) ---
@@ -10662,7 +10666,7 @@ def _name_bound(
             mol, output_form, decision_ctx,
         )
         if fulm_tree is not None:
-            _session.cache_store(smiles, output_form, fv_bond_orders, fulm_tree, attachment_indices)
+            _session.cache_store(fragment_key, output_form, fv_bond_orders, fulm_tree, attachment_indices)
             return fulm_tree
 
     # --- Sulfinothioate ester FC (P-66.6) ---
@@ -10676,7 +10680,7 @@ def _name_bound(
             strategy=strategy, session=_session, depth=_depth,
         )
         if sfthio_tree is not None:
-            _session.cache_store(smiles, output_form, fv_bond_orders, sfthio_tree, attachment_indices)
+            _session.cache_store(fragment_key, output_form, fv_bond_orders, sfthio_tree, attachment_indices)
             return sfthio_tree
 
     # --- Sulfonothioate ester FC (P-66.6, R2-S(=O)(=S)-O-R1) ---
@@ -10695,7 +10699,7 @@ def _name_bound(
             strategy=strategy, session=_session, depth=_depth,
         )
         if sothio_tree is not None:
-            _session.cache_store(smiles, output_form, fv_bond_orders, sothio_tree, attachment_indices)
+            _session.cache_store(fragment_key, output_form, fv_bond_orders, sothio_tree, attachment_indices)
             return sothio_tree
 
     # --- Sulfonic anhydride FC (P-66.6, R-S(=O)(=O)-O-S(=O)(=O)-R') ---
@@ -10711,7 +10715,7 @@ def _name_bound(
             strategy=strategy, session=_session, depth=_depth,
         )
         if sanh_tree is not None:
-            _session.cache_store(smiles, output_form, fv_bond_orders, sanh_tree, attachment_indices)
+            _session.cache_store(fragment_key, output_form, fv_bond_orders, sanh_tree, attachment_indices)
             return sanh_tree
 
     # --- Biaryl ring assembly (P-28.2) ---
@@ -10728,7 +10732,7 @@ def _name_bound(
             strategy=strategy, session=_session, depth=_depth,
         )
         if biaryl_tree is not None:
-            _session.cache_store(smiles, output_form, fv_bond_orders, biaryl_tree, attachment_indices)
+            _session.cache_store(fragment_key, output_form, fv_bond_orders, biaryl_tree, attachment_indices)
             return biaryl_tree
 
     # --- Carboxylic anhydride FC (P-65.7, R-C(=O)-O-C(=O)-R') ---
@@ -10744,7 +10748,7 @@ def _name_bound(
             strategy=strategy, session=_session, depth=_depth,
         )
         if canh_tree is not None:
-            _session.cache_store(smiles, output_form, fv_bond_orders, canh_tree, attachment_indices)
+            _session.cache_store(fragment_key, output_form, fv_bond_orders, canh_tree, attachment_indices)
             return canh_tree
 
     # --- Phosphite ester FC (P-66.6, dialkyl phosphite anion / hydrogen) ---
@@ -10764,7 +10768,7 @@ def _name_bound(
             strategy=strategy, session=_session, depth=_depth,
         )
         if phos_tree is not None:
-            _session.cache_store(smiles, output_form, fv_bond_orders, phos_tree, attachment_indices)
+            _session.cache_store(fragment_key, output_form, fv_bond_orders, phos_tree, attachment_indices)
             return phos_tree
 
     # --- Sulfite ester FC (P-66.6, dialkyl sulfite + mono-ester) ---
@@ -10783,7 +10787,7 @@ def _name_bound(
             strategy=strategy, session=_session, depth=_depth,
         )
         if sulfite_tree is not None:
-            _session.cache_store(smiles, output_form, fv_bond_orders, sulfite_tree, attachment_indices)
+            _session.cache_store(fragment_key, output_form, fv_bond_orders, sulfite_tree, attachment_indices)
             return sulfite_tree
 
     # --- Dialkyl peroxide / sulfoxide / sulfone FC (P-63.3, P-63.6) ---
@@ -10823,7 +10827,7 @@ def _name_bound(
             )
             if _dichal_tree is not None:
                 _session.cache_store(
-                    smiles, output_form, fv_bond_orders,
+                    fragment_key, output_form, fv_bond_orders,
                     _dichal_tree, attachment_indices,
                 )
                 return _dichal_tree
@@ -10840,7 +10844,7 @@ def _name_bound(
             strategy=strategy, session=_session, depth=_depth,
         )
         if bg_tree is not None:
-            _session.cache_store(smiles, output_form, fv_bond_orders, bg_tree, attachment_indices)
+            _session.cache_store(fragment_key, output_form, fv_bond_orders, bg_tree, attachment_indices)
             return bg_tree
 
     # --- Acid-infix composition dispatcher (Stage 6 R1-F) ---
@@ -10862,7 +10866,7 @@ def _name_bound(
             strategy=strategy, session=_session, depth=_depth,
         )
         if infix_tree is not None:
-            _session.cache_store(smiles, output_form, fv_bond_orders, infix_tree, attachment_indices)
+            _session.cache_store(fragment_key, output_form, fv_bond_orders, infix_tree, attachment_indices)
             return infix_tree
 
     # --- Cyclic-suffix classifier dispatcher (Stage 6 R2-E) ---
@@ -10884,7 +10888,7 @@ def _name_bound(
             strategy=strategy, session=_session, depth=_depth,
         )
         if cyclic_tree is not None:
-            _session.cache_store(smiles, output_form, fv_bond_orders, cyclic_tree, attachment_indices)
+            _session.cache_store(fragment_key, output_form, fv_bond_orders, cyclic_tree, attachment_indices)
             return cyclic_tree
 
     # --- Peptide-acyl dispatcher (naming round 9, item "peptide-acyl-naming") ---
@@ -10900,7 +10904,7 @@ def _name_bound(
         )
         peptide_tree = try_peptide_acyl_name(mol, output_form, free_valence, decision_ctx)
         if peptide_tree is not None:
-            _session.cache_store(smiles, output_form, fv_bond_orders, peptide_tree, attachment_indices)
+            _session.cache_store(fragment_key, output_form, fv_bond_orders, peptide_tree, attachment_indices)
             return peptide_tree
 
     # --- Normal plan search ---
@@ -10921,7 +10925,7 @@ def _name_bound(
             validity_warnings=None,
             message=f"No valid naming plan found for {smiles}",
         )
-        _session.cache_store(smiles, output_form, fv_bond_orders, err, attachment_indices)
+        _session.cache_store(fragment_key, output_form, fv_bond_orders, err, attachment_indices)
         return err
 
     # --- P-14.4 (g): break a full tie between numberings on executed names ---
@@ -10930,7 +10934,7 @@ def _name_bound(
         decision_ctx, _session, _depth,
     )
     if tied_winner is not None:
-        _session.cache_store(smiles, output_form, fv_bond_orders, tied_winner, attachment_indices)
+        _session.cache_store(fragment_key, output_form, fv_bond_orders, tied_winner, attachment_indices)
         return tied_winner
     # --- Naming round 25: which ester of a polyester is the principal anion, on executed names ---
     ester_winner = _break_ester_tie(
@@ -10938,7 +10942,7 @@ def _name_bound(
         decision_ctx, _session, _depth,
     )
     if ester_winner is not None:
-        _session.cache_store(smiles, output_form, fv_bond_orders, ester_winner, attachment_indices)
+        _session.cache_store(fragment_key, output_form, fv_bond_orders, ester_winner, attachment_indices)
         return ester_winner
 
     # --- Execute best plan; retry on child failure ---
@@ -10951,7 +10955,7 @@ def _name_bound(
             decision_ctx, _session, _depth,
         )
         if not _has_error_children(tree):
-            _session.cache_store(smiles, output_form, fv_bond_orders, tree, attachment_indices)
+            _session.cache_store(fragment_key, output_form, fv_bond_orders, tree, attachment_indices)
             return tree
         if best_score is None or score > best_score:
             best_score = score
@@ -10971,7 +10975,7 @@ def _name_bound(
         best_tree = best_tree.with_warnings(
             "All plans had sub-fragment errors; returning best attempt"
         )
-    _session.cache_store(smiles, output_form, fv_bond_orders, best_tree, attachment_indices)
+    _session.cache_store(fragment_key, output_form, fv_bond_orders, best_tree, attachment_indices)
     return best_tree
 
 
