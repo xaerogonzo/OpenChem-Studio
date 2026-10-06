@@ -1583,9 +1583,13 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # Atom_locants (17-atom canonical) verified via OPSIN chloro/methyl probing
     # of positions 1,2,3,5,6,7,8,9,10,12,4a (1-chloro → idx8, 3-chloro → idx10,
     # 11-methyl → idx5 (N)), plus topological deduction of junctions:
-    #   idx2 = 12a (sp3 quat, 4 C-neighbours),
+    #   idx2 = 8a (sp3 quat, 4 C-neighbours),
     #   idx12 = 12b (aromatic junction, between ring A and the sp3 quat),
-    #   idx7 = 8a (aromatic junction adj. to CH2-6 and CH2-N),
+    #   idx7 = 12a (aromatic junction adj. to CH2-6 and CH2-N),
+    # NAMING ROUND 25: the first version of the two lines above had 8a and 12a SWAPPED, because they were "deduced by topology" and
+    # not probed. OPSIN: `8a-chloro-` is a valency error (it is the quaternary carbon, no hydrogen to replace), `12a-chloro-` puts
+    # the chlorine on the aromatic carbon beside the CH2-N, and `(4aS,6R,8aS)-...-6-ol` reads back as galantamine where the old
+    # `12aR` was unparseable, so galantamine's two junction descriptors were dropped. The 3a and 12b rows were probed and are right.
     #   idx11 = 3a (aromatic junction adj. to furan O),
     #   idx13 = 4 (furan oxygen, non-substitutable).
     "C1=CC23CCNCc4cccc(c42)OC3CC1": {
@@ -1593,8 +1597,8 @@ _RING_CURATED_SMILES: dict[str, dict] = {
         "substituent_form": "4a,5,9,10,11,12-hexahydro-6H-[1]benzofuro[3a,3,2-ef][2]benzazepinyl",
         "alkyl_stem_ok": False,
         "atom_locants": {8: 1, 9: 2, 10: 3, 13: 4, 14: "4a", 15: 5, 16: 6,
-                         0: 7, 1: 8, 7: "8a", 3: 9, 4: 10, 5: 11, 6: 12,
-                         2: "12a", 11: "3a", 12: "12b"}},
+                         0: 7, 1: 8, 7: "12a", 3: 9, 4: 10, 5: 11, 6: 12,
+                         2: "8a", 11: "3a", 12: "12b"}},
 
     # -----------------------------------------------------------------------
     # octahydro-8H-oxazolo[3,2-a]pyrrolo[2,1-c]pyrazine
