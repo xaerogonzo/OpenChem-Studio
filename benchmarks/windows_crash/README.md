@@ -9,6 +9,7 @@ A leg is **crashed** if the process died with no test reported FAILED/ERROR (a f
 | file | question | verdict |
 |---|---|---|
 | [`2026-10-05_shard1_dispose_fix.md`](2026-10-05_shard1_dispose_fix.md) | does #197 (the `conftest.dispose` web-view teardown) change the crash rate? (shard 1) | **inconclusive, and the wrong shard for the question**: 4/10 crashed as-is against 6/10 reverted, Fisher p = 0.656 |
+| [`2026-10-05_shard2_dispose_fix.md`](2026-10-05_shard2_dispose_fix.md) | does #197 change the crash rate on the shard it targeted? (shard 2, pre-registered, n=15 per arm) | **inconclusive by the registered rule**: 0/15 crashed as-is, 2/15 reverted (one at the fix's own target), Fisher p = 0.483 |
 
 Run 1 is [37383273300](https://github.com/xaerogonzo/OpenChem-Studio/actions/runs/37383273300) (shard 1, master at 7996caa1, 10 legs per arm, `revert=655abcc9`). Four things worth keeping from it:
 

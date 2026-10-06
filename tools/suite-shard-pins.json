@@ -70,6 +70,7 @@
   "tests/test_commands.py": 1,
   "tests/test_compare.py": 0,
   "tests/test_compare_enthalpies.py": 1,
+  "tests/test_compare_spectra.py": 1,
   "tests/test_compare_window.py": 0,
   "tests/test_comparison.py": 0,
   "tests/test_comparison_panel.py": 1,
@@ -89,6 +90,7 @@
   "tests/test_conformers_without_the_3d_viewer.py": 0,
   "tests/test_constant_docs.py": 1,
   "tests/test_contours.py": 0,
+  "tests/test_crash_rate.py": 0,
   "tests/test_crystal.py": 0,
   "tests/test_crystal_viewer.py": 0,
   "tests/test_cube.py": 0,
@@ -99,6 +101,7 @@
   "tests/test_decay_svg.py": 0,
   "tests/test_declared_totals.py": 1,
   "tests/test_depiction_annotations.py": 1,
+  "tests/test_derived_name_reaches_opsin.py": 1,
   "tests/test_descriptor_aggregate.py": 0,
   "tests/test_descriptor_providers.py": 0,
   "tests/test_descriptor_service.py": 1,
@@ -127,6 +130,7 @@
   "tests/test_electronic_properties.py": 1,
   "tests/test_element_palettes.py": 1,
   "tests/test_element_reference.py": 0,
+  "tests/test_empty_pka_list.py": 0,
   "tests/test_empty_states.py": 1,
   "tests/test_energetics.py": 0,
   "tests/test_energetics_groups.py": 0,
@@ -192,6 +196,7 @@
   "tests/test_ketcher_overrule.py": 0,
   "tests/test_ketcher_viewport_transform.py": 1,
   "tests/test_keyboard_shortcuts.py": 0,
+  "tests/test_kim2008_crystal_densities.py": 1,
   "tests/test_known_deviations.py": 1,
   "tests/test_lattice_energy.py": 0,
   "tests/test_layering.py": 1,
@@ -393,6 +398,8 @@
   "tests/test_right_dock_width.py": 1,
   "tests/test_rotate_3d_shortcut.py": 1,
   "tests/test_rotation_transaction.py": 0,
+  "tests/test_round24_morphinan.py": 0,
+  "tests/test_round24_polycycle_templates.py": 1,
   "tests/test_run_app_gate.py": 1,
   "tests/test_scalar_field.py": 0,
   "tests/test_scatter_plot_zoom.py": 0,
@@ -461,6 +468,7 @@
   "tests/test_visualization.py": 1,
   "tests/test_visualizations_section.py": 1,
   "tests/test_webgl_gate.py": 0,
-  "tests/test_workflow_safety.py": 1
+  "tests/test_workflow_safety.py": 1,
+  "tests/test_x_zoomable_charts.py": 0
  }
 }

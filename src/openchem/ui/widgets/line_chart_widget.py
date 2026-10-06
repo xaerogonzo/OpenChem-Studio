@@ -30,7 +30,7 @@ from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import QWidget
 
 from openchem.ui.picture_export import show_picture_menu
-from openchem.ui.widgets.plot_zoom import is_full_span, zoomed_window
+from openchem.ui.widgets.x_zoomable import XZoomable
 
 from openchem.domain.report import LineChartAnnotation, valid_chart_annotation
 
@@ -79,7 +79,7 @@ def nearest_sampled_x(sampled: list[float], target: float) -> float:
     return min(sampled, key=lambda value: (abs(value - target), value))
 
 
-class LineChartWidget(QWidget):
+class LineChartWidget(XZoomable, QWidget):
     """One `LineChartAnnotation`, painted."""
 
     _MARGIN_LEFT = 58.0
@@ -108,9 +108,6 @@ class LineChartWidget(QWidget):
         #: hover alone vanishes the moment the pointer leaves to do anything
         #: with the number.
         self._pinned_x: float | None = None
-        #: A zoomed x window `(low, high)` in DATA units, or None for the whole
-        #: curve. View state only: the annotation is never touched.
-        self._x_window: tuple[float, float] | None = None
         self.setMinimumSize(320, 240)
         self.setMouseTracking(True)
         if annotation is not None:
@@ -160,10 +157,6 @@ class LineChartWidget(QWidget):
             max(self.width() - self._MARGIN_LEFT - self._MARGIN_RIGHT, 1.0),
             max(self.height() - self._MARGIN_TOP - self._MARGIN_BOTTOM - legend_height, 1.0),
         )
-
-    def _x_range(self) -> tuple[float, float]:
-        """The range DRAWN: the zoom window, or the whole curve."""
-        return self._x_window if self._x_window is not None else self._full_x_range()
 
     def _full_x_range(self) -> tuple[float, float]:
         """The extremes across EVERY series, not the first one's.
@@ -231,64 +224,17 @@ class LineChartWidget(QWidget):
         return inside or every
 
     # -- zoom ------------------------------------------------------------------
+    # The gestures and the window are `XZoomable`'s; these are the facts it asks of a host.
 
-    #: Zooming in stops at this fraction of the full span.
-    _MIN_WINDOW_FRACTION = 0.02
-    #: One wheel notch zooms by this factor, and pans by this fraction of the window.
-    _ZOOM_STEP = 0.8
-    _PAN_STEP = 0.1
+    def _zoom_has_data(self) -> bool:
+        return self._has_data()
 
-    def is_zoomed(self) -> bool:
-        return self._x_window is not None
+    def _zoom_descending(self) -> bool:
+        return bool(self._annotation and self._annotation.x_descending)
 
-    def view_range(self) -> tuple[float, float]:
-        return self._x_range()
-
-    def reset_view(self) -> None:
-        self._set_x_window(None)
-
-    def _set_x_window(self, window: tuple[float, float] | None) -> None:
-        if window == self._x_window:
-            return
-        self._x_window = window
+    def _window_changed(self) -> None:
+        # A reading under the pointer belonged to the old window.
         self._hover_x = None
-        self.view_changed.emit()
-        self.update()
-
-    def wheelEvent(self, event) -> None:  # noqa: N802 - Qt override
-        """**CTRL zooms and SHIFT pans; a plain wheel is NOT taken.** These charts
-        sit in a scrolling reader, and a chart that swallowed the plain wheel
-        would trap the page's scrolling underneath it -- the NMR and IR plots
-        can take it because they are not in a scroll area."""
-        modifiers = event.modifiers()
-        delta = event.angleDelta().y() or event.angleDelta().x()
-        ctrl = bool(modifiers & Qt.KeyboardModifier.ControlModifier)
-        shift = bool(modifiers & Qt.KeyboardModifier.ShiftModifier)
-        if not self._has_data() or delta == 0 or not (ctrl or shift):
-            event.ignore()
-            return
-        full = self._full_x_range()
-        window = self._x_range()
-        if ctrl:
-            rect = self._plot_rect()
-            fraction = (event.position().x() - rect.left()) / rect.width() if rect.width() else 0.5
-            fraction = max(0.0, min(1.0, fraction))
-            if self._annotation.x_descending:
-                fraction = 1.0 - fraction
-            anchor = window[0] + fraction * (window[1] - window[0])
-            factor = self._ZOOM_STEP if delta > 0 else 1.0 / self._ZOOM_STEP
-            new = zoomed_window(window, full, anchor, factor, self._MIN_WINDOW_FRACTION)
-            self._set_x_window(None if is_full_span(new, full) else new)
-        elif self._x_window is not None:
-            span = window[1] - window[0]
-            shift_by = span * self._PAN_STEP * (-1 if delta > 0 else 1)
-            low = min(max(window[0] + shift_by, full[0]), full[1] - span)
-            self._set_x_window((low, low + span))
-        event.accept()
-
-    def mouseDoubleClickEvent(self, event) -> None:  # noqa: N802 - Qt override
-        self.reset_view()
-        super().mouseDoubleClickEvent(event)
 
     def mouseMoveEvent(self, event) -> None:  # noqa: N802 - Qt override
         if not self._has_data():

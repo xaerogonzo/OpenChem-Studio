@@ -12,6 +12,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Atropine, scopolamine, galantamine, ibogaine** keep the stereodescriptors OPSIN can read (galantamine and ibogaine are now exact). Four different causes, see `src/openchem/vendor/CHANGELOG.md`, round 25.
 - **A diester no longer has a different name for each way of writing its SMILES** (heroin, diacetates of diols): the senior acid, then the lowest locants, decide which ester is the principal anion.
 
+### CI: the shard pins guard asserted more than the pins guarantee
+
+- `test_adding_a_test_file_moves_no_other_file` (#202) asserted that NO existing file moves when test files are added, but only PINNED files are guaranteed not to: an unpinned file is packed among the other unpinned ones, and 8 files were unpinned. It passed on master by luck of the current set, and failed in every non-crashed leg of the crash measurement's control arm (a tree with one file fewer), so it would have failed some future PR for no reason. It now asserts the pinned files only.
+- **`suite_shards.py --pin-new`** pins every unpinned file at the shard it already sits in, so a PR that adds a test file can make its placement permanent without moving anyone. Run once now: the 8 unpinned files are pinned and both shard lists are identical before and after (234 and 236 files).
+
+### CI: the pre-registered shard 2 crash measurement came back inconclusive
+
+- Run 37395773485 (shard 2, 15 legs per arm, #197 reverted in the control): **0/15 crashed with the fix, 2/15 without, Fisher p = 0.483, inconclusive by the rule registered beforehand.** One of the two crashes is at the fix's own target (`test_result_presentation.py`, 82%); both are at the `conftest.dispose` frame. Not a finding at this n, and not reported as one. The Known-TODOs item is closed (SETTLED) and nothing further is planned.
+- The control arm's 13 non-crashed legs all "failed" one test, `test_suite_shards.py::test_adding_a_test_file_moves_no_other_file`: not the docs-guard artifact the pre-registration expected, but a real flaw in that guard (it asserted that no existing file moves, which is only guaranteed for pinned files). Fixed separately.
+
+### The line chart uses the shared zoom code
+
+- `LineChartWidget` carried its own copy of the Ctrl+wheel zoom, Shift+wheel pan and double-click reset; the histogram and stick chart got `XZoomable`, and the line chart now uses it too. No behaviour change: its existing zoom, cursor and widget tests pass untouched (62 across the chart files), and about 60 lines of duplicate arithmetic are gone.
+
 ### Naming round 24: morphinans, colchicine, and bridged stereo
 
 - **Names keep their stereodescriptors on bridged rings.** The app ran the naming engine without Java on PATH, so the engine's own OPSIN checks failed and dropped the stereo of every bridged centre (camphor had no `1R,4R`). Fixed in `naming_providers.py`.

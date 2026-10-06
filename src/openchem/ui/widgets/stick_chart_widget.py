@@ -115,7 +115,7 @@ def minimum_height(base_height: float, caption_height: float) -> float:
 class StickChartWidget(XZoomable, QWidget):
     """One `StickChartAnnotation`, painted.
 
-    Zooms along x like the line chart (Ctrl+wheel, Shift+wheel to pan, double-click to reset):
+    Zooms along x like the line chart (`XZoomable`) (Ctrl+wheel, Shift+wheel to pan, double-click to reset):
     a powder pattern's crowded low-angle lines are unreadable at full span. The y scale is the
     WHOLE chart's, deliberately, so a zoomed view shows how small the lines in it are beside the
     tallest one rather than blowing a weak region up to look strong.
