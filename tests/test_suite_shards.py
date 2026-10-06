@@ -186,7 +186,10 @@ def test_adding_a_test_file_moves_no_other_file():
     extra = files + ["tests/test_a_brand_new_file.py", "tests/test_another_new_file.py"]
     before = placement(module.assign(files, durations, 2, pins))
     after = placement(module.assign(extra, durations, 2, pins))
-    assert {k: v for k, v in after.items() if k in before} == before
+    # PINNED files are what is guaranteed not to move. An UNPINNED file is packed among the other unpinned
+    # ones, so adding files can move it (a pass on master that depended on that luck failed in every leg of
+    # the crash measurement's control arm, whose tree has one file fewer). `--pin-new` makes it permanent.
+    assert {k: v for k, v in after.items() if k in before and k in pins} == {k: v for k, v in before.items() if k in pins}
 
     # The control: with no pins the same addition does reshuffle existing files (if it ever stops doing so
     # the pins are no longer what is keeping this test green, and it should be looked at).
@@ -256,3 +259,26 @@ def test_the_pinned_shards_are_balanced_enough():
     groups = module.assign(module.test_files(), durations, 2, _pins(module))
     totals = [sum(durations.get(name, 0.0) for name in group) for group in groups]
     assert abs(totals[0] - totals[1]) / sum(totals) < 0.25, f"shards weigh {totals[0]:.0f} s vs {totals[1]:.0f} s"
+
+
+def test_pin_new_pins_unpinned_files_where_they_already_sit_and_moves_nobody(tmp_path):
+    module = _module()
+    out = tmp_path / "pins.json"
+    files = module.test_files()
+    before = module.assign(files, module.load_durations(), 2, _pins(module))
+    placed_before = {name: i for i, group in enumerate(before) for name in group}
+
+    module.pin_new  # noqa: B018 - exists
+    # Start from the committed table minus a few entries, to have something to pin.
+    table = module.load_pins()
+    dropped = sorted(_pins(module))[:3]
+    table["2"] = {k: v for k, v in table["2"].items() if k not in dropped}
+    out.write_text(__import__("json").dumps(table), encoding="utf-8")
+
+    fresh = module.pin_new(2, out)
+    assert set(dropped) <= set(fresh)
+    pinned = __import__("json").loads(out.read_text(encoding="utf-8"))["2"]
+    assert all(name in pinned for name in files)
+    # Every previously pinned file kept its pin; the re-pinned ones landed where the packer had put them.
+    assert all(pinned[k] == v for k, v in table["2"].items())
+    assert all(pinned[name] == placed_before[name] for name in dropped)

@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - A Dependabot bump of `tools/ketcher-host/package-lock.json` failed suite 2/2 every time (#167, #211) because `THIRD-PARTY-NOTICES.txt` records the lockfile's hash. New `.github/workflows/ketcher-notices.yml` regenerates it and pushes one commit to the PR branch. It needs the repository secret `NOTICES_PUSH_TOKEN` (a fine-grained token, Contents read/write on this repository): a push with the built-in token would not start CI again, leaving the old red result standing. Without the secret it does nothing and says so. It is `pull_request_target`, so it runs only the base branch's generator, installs with `npm ci --ignore-scripts`, handles only Dependabot's own PRs from this repository, and never forces; `tests/test_ketcher_notices_workflow.py` holds those properties. Untested against a real bump until the next one arrives; `@dependabot recreate` on an open Ketcher PR will exercise it.
 
+### CI: the shard pins guard asserted more than the pins guarantee
+
+- `test_adding_a_test_file_moves_no_other_file` (#202) asserted that NO existing file moves when test files are added, but only PINNED files are guaranteed not to: an unpinned file is packed among the other unpinned ones, and 8 files were unpinned. It passed on master by luck of the current set, and failed in every non-crashed leg of the crash measurement's control arm (a tree with one file fewer), so it would have failed some future PR for no reason. It now asserts the pinned files only.
+- **`suite_shards.py --pin-new`** pins every unpinned file at the shard it already sits in, so a PR that adds a test file can make its placement permanent without moving anyone. Run once now: the 8 unpinned files are pinned and both shard lists are identical before and after (234 and 236 files).
+
+### CI: the pre-registered shard 2 crash measurement came back inconclusive
+
+- Run 37395773485 (shard 2, 15 legs per arm, #197 reverted in the control): **0/15 crashed with the fix, 2/15 without, Fisher p = 0.483, inconclusive by the rule registered beforehand.** One of the two crashes is at the fix's own target (`test_result_presentation.py`, 82%); both are at the `conftest.dispose` frame. Not a finding at this n, and not reported as one. The Known-TODOs item is closed (SETTLED) and nothing further is planned.
+- The control arm's 13 non-crashed legs all "failed" one test, `test_suite_shards.py::test_adding_a_test_file_moves_no_other_file`: not the docs-guard artifact the pre-registration expected, but a real flaw in that guard (it asserted that no existing file moves, which is only guaranteed for pinned files). Fixed separately.
+
 ### The line chart uses the shared zoom code
 
 - `LineChartWidget` carried its own copy of the Ctrl+wheel zoom, Shift+wheel pan and double-click reset; the histogram and stick chart got `XZoomable`, and the line chart now uses it too. No behaviour change: its existing zoom, cursor and widget tests pass untouched (62 across the chart files), and about 60 lines of duplicate arithmetic are gone.
