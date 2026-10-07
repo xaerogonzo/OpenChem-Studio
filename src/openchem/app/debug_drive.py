@@ -6631,8 +6631,17 @@ class _Driver(QObject):
         if method is None:
             logger.error("OPENCHEM_DRIVE: call_window: no method %r", step["method"])
             return
-        QTimer.singleShot(int(step.get("close_after_ms", 800)), self._window, self._close_active_modal)
+        close_after = int(step.get("close_after_ms", 800))
+        QTimer.singleShot(close_after, self._window, self._close_active_modal)
+        if step.get("census_tag"):
+            # A census while the modal is UP: proof the method opened what it should,
+            # since a loop that opened nothing reads exactly like a loop with no leak.
+            self._during_tag = str(step["census_tag"])
+            QTimer.singleShot(close_after // 2, self._window, self._census_during)
         method(*(step.get("args") or []))
+
+    def _census_during(self) -> None:
+        self._do_object_census({"tag": self._during_tag, "collect": False})
 
     def _close_active_modal(self) -> None:
         from PySide6.QtWidgets import QApplication, QDialog

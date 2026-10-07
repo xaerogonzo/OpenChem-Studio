@@ -216,7 +216,7 @@ def lifecycle_edit(iterations: int = 50, checkpoints: tuple[int, ...] = DEFAULT_
 
 
 def lifecycle_inspector(iterations: int = 50, checkpoints: tuple[int, ...] = DEFAULT_CHECKPOINTS,
-                        warmup: int = DEFAULT_WARMUP) -> Scenario:
+                        warmup: int = DEFAULT_WARMUP, probe_open: tuple[int, ...] = ()) -> Scenario:
     """S3b: the Calculator Inspector through the REAL reveal path (a QWebEngineView per
     open). The driver's `inspect` step builds a dialog without `WA_DeleteOnClose` and
     measured +150 MiB per open that the app does not have: do not use it for this."""
@@ -224,6 +224,7 @@ def lifecycle_inspector(iterations: int = 50, checkpoints: tuple[int, ...] = DEF
         return [
             _s("calculator", id=LIFECYCLE_CALCULATOR, parameters=LIFECYCLE_CALCULATOR_PARAMETERS,
                reveal=True, after_ms=2500),
+        ] + ([_s("object_census", tag=f"open-{i}", collect=False)] if i in probe_open else []) + [
             _s("close_inspectors", after_ms=800),
         ]
     return _scenario_loop("lifecycle-inspector", "S3b Calculator Inspector open/close (real reveal path)",
