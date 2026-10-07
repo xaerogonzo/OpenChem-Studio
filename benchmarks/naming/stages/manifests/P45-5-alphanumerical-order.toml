@@ -1,0 +1,84 @@
+# P-45.5 (BlueBookV2.pdf p. 424), of two parents that tie on P-45.2.3, the name earlier in alphanumerical order ("bromo" before "dibromo"). Measured against 68ef2891,
+# the branch tip of #245 (P-44.4.1.1) this sits on.
+#
+# NINE panel rows change, all in the bluebook_tuning population (1712 structures over r7, r8, mc and pop: 9 names changed, 9 listed below, 0 violations once listed). The rule
+# reaches molecules whose two possible parents tie on every tier of the key AND on P-45.2.3, which a population built from the Blue Book's own examples is full of. One of the
+# nine is the book's own P-45.5 example 2 and now carries the book's name. Every one reads back to the same structure before and after (`base_roundtrips` and `head_roundtrips`
+# true in the report), and the census (2000 rows, canonical SMILES, OPSIN read-back) agrees in kind: 0 of 2000 rows moved. Two more panel rows moved in a first version of the rule
+# because their names embed a NAMING ERROR and the rule ordered two different broken names; it declines those now, so they are not listed.
+#
+# The manifest exists so that "nothing else moves" is a checked claim and a later change to the rule cannot pass as this one.
+
+stage = "P45-5-alphanumerical-order"
+
+# `diphenyl...` is earlier than `phenyl...` (the multiplying prefix is a letter).
+[[expect]]
+id = "pop:bluebook_tuning:bb-3e2419d9ff7f"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-45.5"
+expected_layer = "candidate_assignment"
+expected_name = "({[diphenyl(triphenylmethoxy)methyl]sulfanyl}di(phenyl)methyl)benzene"
+
+# the book's own P-45.5 example 2 (p. 424): `bromo` is earlier than `dibromo`.
+[[expect]]
+id = "pop:bluebook_tuning:bb-4764baf26ff7"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-45.5"
+expected_layer = "candidate_assignment"
+expected_name = "2-bromo-4-chloro-N-(2,4-dibromophenyl)aniline"
+
+# `amino...` is earlier than `diamino...`.
+[[expect]]
+id = "pop:bluebook_tuning:bb-5540e53cad6c"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-45.5"
+expected_layer = "candidate_assignment"
+expected_name = "amino{[diamino(imino)phosphanyl]amino}(imino)(methylamino)phosphane"
+
+# `aminoisocyanato...` is earlier than `hydrazinyloxomethylidene...`.
+[[expect]]
+id = "pop:bluebook_tuning:bb-af524e72f7ec"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-45.5"
+expected_layer = "candidate_assignment"
+expected_name = "1-amino-2-isocyanatohydrazine"
+
+# `anthracenyldiazenyl...` is earlier than `anthracenylphenyl...` (d before p).
+[[expect]]
+id = "pop:bluebook_tuning:bb-ca3baa1a8852"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-45.5"
+expected_layer = "candidate_assignment"
+expected_name = "1-[7-(anthracen-2-yldiazenyl)naphthalen-2-yl]-2-phenyldiazene"
+
+# `dibromo...` is earlier than `dichloro...`.
+[[expect]]
+id = "pop:bluebook_tuning:bb-cd46286c98dc"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-45.5"
+expected_layer = "candidate_assignment"
+expected_name = "dibromo{2-[dichloro(thioxo)phosphanyl]ethyl}(oxo)phosphane"
+
+# `ethenyl...` is earlier than `methyl...`.
+[[expect]]
+id = "pop:bluebook_tuning:bb-da81ccbc20d9"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-45.5"
+expected_layer = "candidate_assignment"
+expected_name = "ethenyl{[({[(methylsilanyl)methyl]silanyl}methyl)silanyl]methyl}silane"
+
+# `bis(hydrazinyl)hydrazinylideneethylidene...` is earlier than `hydrazinyldihydrazinylideneethyl...`.
+[[expect]]
+id = "pop:bluebook_tuning:bb-e0c90c06147f"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-45.5"
+expected_layer = "candidate_assignment"
+expected_name = "[1,2-bis(hydrazinyl)-2-hydrazinylideneethylidene]hydrazine"
+
+# `butanyl` is earlier than `butyl` (a before y).
+[[expect]]
+id = "pop:bluebook_tuning:bb-e583ce66cf26"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-45.5"
+expected_layer = "candidate_assignment"
+expected_name = "(1,4-diphosphanylbutan-2-yl)phosphane"
