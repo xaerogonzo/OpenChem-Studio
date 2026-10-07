@@ -17,6 +17,7 @@ v13 spec: ARCHITECTURE_ASSEMBLY.md
 """
 from __future__ import annotations
 
+import contextvars
 import re
 from collections import defaultdict
 from typing import TYPE_CHECKING
@@ -417,8 +418,32 @@ def stereo_citation_key(prefix_name: str) -> tuple[int, ...]:
 
 def without_stereo_descriptors(name: str) -> str:
     """A name with every parenthesised CIP descriptor group removed: what P-45.6.2 calls "the alphabetic characters and locants
-    (ignoring the configuration symbols)". Two names that are equal here differ only in their descriptors."""
+    (ignoring the configuration symbols)". Two names that are equal here differ only in their descriptors.
+
+    Only for a name that was ASSEMBLED with its descriptors: removing them afterwards leaves the prefixes merged the way the
+    descriptors merged them (`4,4-bis[(2S,3R)-...]` against `4-[(2R,3R)-...]-4-[(2S,3R)-...]` stay different texts). For two names that
+    must be equal once the configuration is set aside, use `assemble_without_stereo`."""
     return _STEREO_GROUP_RE.sub("", name)
+
+
+# True while `assemble_without_stereo` runs: the two sites that write a descriptor group write nothing.
+_STEREO_SUPPRESSED: contextvars.ContextVar[bool] = contextvars.ContextVar("iupac_namer_stereo_suppressed", default=False)
+
+
+def assemble_without_stereo(tree: "NameTree") -> str:  # type: ignore[type-arg]
+    """The name `tree` assembles to with no CIP descriptor written ANYWHERE in it: the name's alphabetic characters and locants only.
+
+    Suppressed while assembling and not stripped from the finished text, because the descriptors decide how prefixes MERGE: a chain
+    through one arm of a quaternary carbon and a chain through another read `4,4-bis[(2S,3R)-3-chlorobutan-2-yl]` and
+    `4-[(2R,3R)-3-chlorobutan-2-yl]-4-[(2S,3R)-3-chlorobutan-2-yl]`, which differ in text although they differ in nothing but configuration.
+    Without the descriptors the arms are alike and merge alike. A descriptor baked into a leaf's own text (a retained stem's) is removed
+    from the finished text, as `without_stereo_descriptors` does.
+    """
+    token = _STEREO_SUPPRESSED.set(True)
+    try:
+        return without_stereo_descriptors(assemble(tree))
+    finally:
+        _STEREO_SUPPRESSED.reset(token)
 
 
 # ---------------------------------------------------------------------------
@@ -2225,7 +2250,7 @@ def _assemble_replacement(tree: ReplacementTree) -> str:
     parts: list[str] = []
 
     # 1. Stereo descriptors
-    if tree.stereo_descriptors:
+    if tree.stereo_descriptors and not _STEREO_SUPPRESSED.get():
         parts.append(render_stereo(tree.stereo_descriptors))
 
     # 2. Indicated hydrogen
@@ -2581,7 +2606,7 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
     parts: list[str] = []
 
     # 1. Stereo descriptors
-    if tree.stereo_descriptors:
+    if tree.stereo_descriptors and not _STEREO_SUPPRESSED.get():
         parts.append(render_stereo(tree.stereo_descriptors))
 
     # 1b. Isotope labels (Stage 6 R1-D)

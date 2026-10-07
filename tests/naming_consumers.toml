@@ -99,6 +99,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_stereo_parent_choice.py"
+why = "one stereoisomer, one name when the parent can be any of several chains that differ only in configuration (P-44.4.1.12): P-92.5.2.2 example 5 and eight more stereoisomers of its skeleton over random spellings, each descriptor checked per atom against RDKit's whole-molecule labels; the identity that counts equal chains once, and the assembly that sets the descriptors aside"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_stereo_cache_identity.py"
 why = "the session cache's identity for a carved fragment: two substituents that print as one SMILES but inherit different R/S descriptors (the R,S di-sec-butylbenzene), its converse, the app path, and the 45 cache calls"
 scope = "core"
