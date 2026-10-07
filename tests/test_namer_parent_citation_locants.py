@@ -481,11 +481,15 @@ def test_p_45_2_3_is_applied_before_the_configuration_comparison(monkeypatch):
     assert seen == []
 
 
-def test_more_than_four_tied_parents_are_left_alone(monkeypatch):
-    ranked, _seen = _wired(monkeypatch, lambda trees: ["T2"], hypotheses=("A", "B", "C", "D", "E"))
+def test_more_than_the_bound_of_tied_parents_are_left_alone(monkeypatch):
+    """Made-up plans have no identity to merge on (`_plan_identity` is None for them), so every hypothesis counts as one choice: the bound is the
+    most it names. It was 4 here until the choice of parent by configuration (#235) raised it to 12 to count DISTINCT choices."""
+    bound = engine._PARENT_TIE_HYPOTHESES
+    names = tuple(f"H{i}" for i in range(bound + 1))
+    ranked, _seen = _wired(monkeypatch, lambda trees: ["T2"], hypotheses=names)
     assert _tie(ranked) is None
-    ranked, _seen = _wired(monkeypatch, lambda trees: ["T2"], hypotheses=("A", "B", "C", "D"))
-    assert _tie(ranked) == "T2"                         # four is the most it names
+    ranked, _seen = _wired(monkeypatch, lambda trees: ["T2"], hypotheses=names[:bound])
+    assert _tie(ranked) == "T2"                         # the bound is the most it names
 
 
 def test_one_parent_is_not_a_tie(monkeypatch):

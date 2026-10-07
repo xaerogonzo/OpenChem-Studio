@@ -11273,9 +11273,11 @@ def _break_alphanumerical_tie(
     return candidates[0][2]
 
 
-#: The most parent hypotheses `_break_parent_tie` will name side by side. Each is a full execution of its plan; a molecule with more
-#: tied parents than this is left to the declared policy of `_search_plans`, as it was before.
-_PARENT_TIE_HYPOTHESES = 4
+#: The most DISTINCT parent hypotheses `_break_parent_tie` will name side by side. Each is a full execution of its plan (about 15 ms for
+#: the nine-chain Blue Book molecule, whose substituents the session cache names once); a molecule with more distinct tied parents than this
+#: is left to the declared policy of `_search_plans`, as it was before. 12 is a quaternary carbon whose three arms differ at each end of the
+#: chain (3 x 3) with room to spare; the Blue Book's own P-92.5.2.2 example 5 is 9 hypotheses and 4 distinct.
+_PARENT_TIE_HYPOTHESES = 12
 
 
 def _carries_stereo(mol) -> bool:
@@ -11318,18 +11320,23 @@ def _choose_by_configuration(trees):
     """The tree among `trees` whose configuration is senior, when they differ in nothing else; otherwise None.
 
     `trees[0]` is the tree the normal loop would have returned. Only trees whose names are EQUAL once the descriptors are set aside
-    (`without_stereo_descriptors`) are compared, so a choice between two different names is never made on this ground. Among those,
+    (`assemble_without_stereo`) are compared, so a choice between two different names is never made on this ground. Among those,
     `_parent_configuration_key` of the tree first, then `stereo_citation_key` of the whole name, the smaller winning and the earlier
     tree on a tie. None when fewer than two trees qualify, when no key tells them apart, or when a name cannot be assembled.
+
+    "Set aside" is while the name is ASSEMBLED, not afterwards: stripping the finished text leaves the prefixes merged the way the
+    descriptors merged them, so the chain through one arm of a quaternary carbon (`4,4-bis[(2S,3R)-...]`) and the chain through another
+    (`4-[(2R,3R)-...]-4-[(2S,3R)-...]`) read as different names although they differ in nothing but configuration, and the parent was
+    chosen by atom order instead (P-92.5.2.2 example 5: eight names over ten spellings).
     """
-    from openchem.vendor.iupac_namer.assembly import assemble, stereo_citation_key, without_stereo_descriptors
+    from openchem.vendor.iupac_namer.assembly import assemble, assemble_without_stereo, stereo_citation_key
 
     try:
         names = [assemble(tree) for tree in trees]
+        plain = [assemble_without_stereo(tree) for tree in trees]
     except Exception:  # noqa: BLE001 - an unassemblable candidate is left to the normal loop
         return None
-    plain = without_stereo_descriptors(names[0])
-    same = [i for i, name in enumerate(names) if without_stereo_descriptors(name) == plain]
+    same = [i for i, text in enumerate(plain) if text == plain[0]]
     if len(same) < 2:
         return None
     keys = {i: (_parent_configuration_key(trees[i]), stereo_citation_key(names[i])) for i in same}
@@ -11346,7 +11353,14 @@ def _citation_locants(tree) -> tuple | None:
     `1-bromo-5-(bromomethyl)-1,6-dichlorohexane` is `1,5,1,6` and `1,6-dibromo-1-chloro-5-(chloromethyl)hexane` is `1,6,1,5` (the book's
     own example 8, BlueBookV2.pdf p. 421), so the groups are flattened. None when there are no prefixes to read.
     """
-    grouped = _alphanumerical_locant_key(tree)
+    from openchem.vendor.iupac_namer.assembly import descriptors_set_aside
+
+    # Read with the descriptors set aside, as the book reads a name for this rule ("ignoring the configuration symbols", P-45.6.2, p. 426): they decide
+    # how prefixes MERGE, so the chain through one arm of a quaternary carbon reads `4,4-bis[...]` and through another `4-[...]-4-[...]`, and the flattened
+    # locants differ (`4,4,6,6` against `4,6,4,6`) between parents that differ in nothing but configuration. Left in, the rule ruled two of the four
+    # parent choices of P-92.5.2.2 example 5 out on that artefact, before the configuration comparison, which is the one that should choose.
+    with descriptors_set_aside():
+        grouped = _alphanumerical_locant_key(tree)
     if grouped is None:
         return None
     return tuple(locant for group in grouped for locant in group)
@@ -11390,6 +11404,28 @@ def _senior_by_citation_locants(trees):
     return [tree for tree, value in zip(trees, values) if value == lowest]
 
 
+def _plan_identity(mol, plan) -> tuple | None:
+    """What a plan names, as a value two plans share exactly when they name the molecule the same way; None when that cannot be told.
+
+    The molecule is written as a canonical SMILES with every parent atom labelled by the ORDINAL of its locant, so two plans whose parents are
+    related by a symmetry of the molecule that preserves its configuration (the two identical arms of a quaternary carbon: either is the chain,
+    and the name is the same) write the same text, whatever order the atoms were given in. A carved fragment's inherited descriptors live in
+    a property that a SMILES cannot write (`context_stereo_key`), so each is written as an isotope, which a canonical SMILES does keep.
+    """
+    try:
+        locants = sorted(set(plan.numbering.atom_to_locant.values()))
+        marked = Chem.Mol(mol)
+        for atom_idx, locant in plan.numbering.atom_to_locant.items():
+            marked.GetAtomWithIdx(atom_idx).SetAtomMapNum(1 + locants.index(locant))
+        for atom in marked.GetAtoms():
+            if atom.HasProp("_ParentCIPCode"):
+                atom.SetIsotope(atom.GetIsotope() + 1000 * ord(atom.GetProp("_ParentCIPCode")[0]))
+        return (plan.pcg_type, getattr(plan.named_parent, "naming_method", None), Chem.MolToSmiles(marked))
+    except Exception:  # noqa: BLE001 - a plan that cannot be told apart is kept, never merged
+        return None
+
+
+
 def _break_parent_tie(
     ranked_plans, mol, strategy, output_form, free_valence, decision_ctx, session, depth,
 ):
@@ -11413,7 +11449,9 @@ def _break_parent_tie(
 
     Scoped so that it changes nothing else:
 
-      * only plans that tie on the whole key, in two to `_PARENT_TIE_HYPOTHESES` hypotheses;
+      * only plans that tie on the whole key, in two to `_PARENT_TIE_HYPOTHESES` DISTINCT hypotheses: hypotheses `_plan_identity` says
+        name the molecule identically are one (the three arms of a quaternary carbon that carry the same configuration are one chain
+        choice, not three), so a molecule is not left to atom order merely because it has many equal chains;
       * each hypothesis is named as it would have been alone (its own numbering tie-break first);
       * P-45.2.3 compares only trees that are the same parent once prefixes and descriptors are set aside;
       * the configuration comparison only for a molecule that carries stereo (`_carries_stereo`), and only candidates whose names are EQUAL
@@ -11436,11 +11474,18 @@ def _break_parent_tie(
             break
         if isinstance(plan, SubstitutivePlan):
             hypotheses.setdefault(_parent_hypothesis_key(plan), []).append((key, seq, plan))
-    if not 2 <= len(hypotheses) <= _PARENT_TIE_HYPOTHESES:
+    if len(hypotheses) < 2:
+        return None
+    distinct: dict = {}
+    for position, group in enumerate(hypotheses.values()):
+        identities = {_plan_identity(mol, plan) for _key, _seq, plan in group}
+        # The first of each kind stays: `hypotheses` is in the order the normal loop would take them, so `trees[0]` below is still its choice.
+        distinct.setdefault(("opaque", position) if None in identities else frozenset(identities), group)
+    if not 2 <= len(distinct) <= _PARENT_TIE_HYPOTHESES:
         return None
 
     trees = []
-    for group in hypotheses.values():
+    for group in distinct.values():
         tree = _break_alphanumerical_tie(
             list(reversed(group)), mol, strategy, output_form, free_valence, decision_ctx, session, depth,
         )
