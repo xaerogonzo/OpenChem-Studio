@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### A headless command line: `openchem-cli`
+
+Any registered calculator can now be run on a SMILES from a script or an agent, with no window and no Qt:
+`uv run openchem-cli calculate --smiles CCO --calculator elemental_analysis`. It prints one JSON envelope --
+the status in the application's own word (`status_of`), the result as plain data with its provenance,
+the parameters it ran with, and what structure it was handed -- and exits 0 for ready, 1 for a limit or a
+fault, 2 for a missing input and 3 for a missing sidecar. `calculators` lists all 59 with their parameters,
+stage and whether the command line can run them; `commands --json` is the manifest, with every flag read
+from the parser.
+
+**A returned value is not a pass.** With no sidecar configured, `admet_ml` returns an alert and `pka` a report,
+both saying "not configured"; those read `needs_setup`, not success. Measured on aspirin with a conformer,
+over the 58 runnable calculators: 47 ready, 5 needs_setup, 4 needs_input, 2 inapplicable, none failed, 1.3 s in
+all. A bare SMILES gave 16 "failed" results, every one "the available conformer is 2D", so `--conformer`
+generates one seeded, unoptimised embedding (the embedder's own default seed is none, so it is set) and says
+beside the result that the geometry is a starting one.
+
+**It does not touch the machine.** All 58 were run with file writes, subprocesses, sockets and temp files
+recorded: none did anything. `iupac_name` did (Java twice, the network, two temp files), so it is refused by name,
+and a test repeats the measurement. The settings store -- the Windows registry -- is never opened, so the
+pKa and ADMET sidecars refuse as `needs_setup`. A misspelt `--param` is refused (the registry would pass it
+through to the calculator), and a result over `--max-bytes` is withheld whole, never cut.
+
+It reproduces what `DescriptorService`'s calculation task does around the call rather than importing it (the task
+is a `QRunnable`), so `tests/test_cli.py` runs the real task beside it for ten cases covering every status and
+four result shapes and compares them; each guard was confirmed to fail on a planted fault. See
+"The command line" in `docs/ARCHITECTURE.md`; the shared-function follow-up is an OPEN item there.
+
 ### P-45.2.3: of two parent structures that tie, the one whose prefixes have the lower locants in their order of citation
 
 - Between parents that tie on the number of prefixes (P-45.2.1) and on their locant set (P-45.2.2), the senior one has the lower locants "in their order of citation in the name" (BlueBookV2.pdf p. 419). The engine took whichever parent its plan order gave first, which follows the order the SMILES atoms were written in, so one molecule had two names: `2-bromo-N-(4-bromo-2-chlorophenyl)-4-chloroaniline` (the book's) on 4 of 13 spellings and `4-bromo-N-(2-bromo-4-chlorophenyl)-2-chloroaniline`, which the book says is NOT preferred, on 9. `engine._break_parent_tie` (it was `_break_parent_stereo_tie`) names each tied parent alone, as before, and `_senior_by_citation_locants` takes the one whose prefix locants, read as the name writes them (`1,5,1,6` before `1,6,1,5`; `N,3` before `3,N`), are lowest. P-45.6 (the descriptors) follows for what it leaves tied, and only a molecule that carries stereo pays for that. Parents are compared only when they have the same name once prefixes and descriptors are set aside, and at most twelve DISTINCT ones are named (#235's bound; hypotheses it shows to name the molecule identically count once). The prefixes' locants are read with the descriptors set aside, as the book reads them for this rule ("ignoring the configuration symbols", P-45.6.2): left in, they decide how prefixes merge, and the rule ruled two of the four parent choices of P-92.5.2.2 example 5 out before the configuration comparison saw them. It is the first of these tie-breaks to reach an ACHIRAL molecule.
@@ -27,7 +55,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **D-192, the nuclide.** A labelled halogen, hydroxy, amino, sulfanyl, selanyl, oxo or imino prefix lost its label: `3-(81Br)bromopropanoic acid`, `(81Br)bromobenzene`, `3-(15N)aminopropanoic acid`, `3-(18O)hydroxypropanoic acid`, `1,2-di[(81Br)bromo]ethane`. A labelled prefix is cited before a plain one and never merged with it (`1-(81Br)bromo-2-bromoethane`, P-82.2.2.1), and is no longer filed under its mass number: `1-ethyl-2-[(1-13C)methyl]benzene`, where it was `1-[(1-13C)methyl]-2-ethylbenzene`.
 - Measured: 45 pinned rows and 10 open ones in `tests/test_namer_known_defects.py` (each name read back by OPSIN); the census over 2000 rows moved 3 names (a phosphorus with one real hydrogen, `exact` before and after, the read-back identical; the first version moved 13, ten of them an artefact of counting a carved substituent's placeholder hydrogen); the reference comparison over 1712 structures moved 2 names, both listed in a new manifest, 0 violations; the vendored suite 5632 passed; the application session 3,181 passed, 2 skipped, 25 xfailed, 0 failed; 20 of 21 undone fixes turn a test red.
 - Not fixed, measured, in `src/openchem/vendor/KNOWN_LIMITATIONS.md` ("Open after D-191 and D-192"): a nuclide on an atom a retained parent name or a multi-atom prefix owns (`[15NH2]c1ccccc1` is `aniline`; the application withholds it), the parent chain of P-45.2.3 and P-45.4.1 chosen by atom order (the same molecule is named two ways over random spellings, every name reading back exact), and the parent's isotope descriptor placed where OPSIN cannot read it. The fork has not been ported.
-
 
 ### Seven tautomer papers are recorded in the literature manifest
 

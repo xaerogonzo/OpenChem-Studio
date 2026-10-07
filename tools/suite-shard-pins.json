@@ -546,6 +546,7 @@
   "tests/test_chembl_corpus.py": 0,
   "tests/test_ci_crash_classifier.py": 1,
   "tests/test_ci_deselections.py": 1,
+  "tests/test_cli.py": 1,
   "tests/test_command_palette.py": 0,
   "tests/test_command_palette_vocabulary.py": 0,
   "tests/test_commands.py": 1,

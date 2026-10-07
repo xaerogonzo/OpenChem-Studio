@@ -48,6 +48,15 @@ def test_layer_never_imports_chemistry_engines_directly(layer: str) -> None:
     assert not offenders, f"UI/app files must not import RDKit/Open Babel directly: {offenders}"
 
 
+def test_the_cli_layer_imports_neither_a_chemistry_toolkit_nor_a_gui() -> None:
+    """`cli/` is a composition layer beside `app/`: it reaches chemistry through
+    `ChemistryEngine` and the registry, never `rdkit` itself, and it must run with no
+    display and no Qt. `tests/test_cli.py` proves the second half at run time in a clean
+    interpreter, because a transitive import is invisible to a scan of this kind."""
+    offenders = _offenders("cli", FORBIDDEN | {"PySide6"})
+    assert not offenders, f"cli/ must not import RDKit, Open Babel or Qt directly: {offenders}"
+
+
 def test_the_domain_layer_imports_neither_a_toolkit_nor_a_gui() -> None:
     """The rule every module under `domain/` already follows in prose.
 
