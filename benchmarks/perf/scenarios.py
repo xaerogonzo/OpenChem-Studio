@@ -217,23 +217,27 @@ def lifecycle_edit(iterations: int = 50, checkpoints: tuple[int, ...] = DEFAULT_
 
 def lifecycle_inspector(iterations: int = 50, checkpoints: tuple[int, ...] = DEFAULT_CHECKPOINTS,
                         warmup: int = DEFAULT_WARMUP) -> Scenario:
-    """S3b: open and close the Calculator Inspector (a QWebEngineView per open)."""
+    """S3b: the Calculator Inspector through the REAL reveal path (a QWebEngineView per
+    open). The driver's `inspect` step builds a dialog without `WA_DeleteOnClose` and
+    measured +150 MiB per open that the app does not have: do not use it for this."""
     def body(i: int) -> list[dict[str, Any]]:
         return [
-            _s("inspect", id=LIFECYCLE_CALCULATOR, parameters=LIFECYCLE_CALCULATOR_PARAMETERS, after_ms=1500),
-            _s("close_windows", which=["inspector"], after_ms=600),
+            _s("calculator", id=LIFECYCLE_CALCULATOR, parameters=LIFECYCLE_CALCULATOR_PARAMETERS,
+               reveal=True, after_ms=2500),
+            _s("close_inspectors", after_ms=800),
         ]
-    return _scenario_loop("lifecycle-inspector", "S3b Calculator Inspector open/close", body, iterations,
-                          checkpoints, warmup)
+    return _scenario_loop("lifecycle-inspector", "S3b Calculator Inspector open/close (real reveal path)",
+                          body, iterations, checkpoints, warmup)
 
 
 def lifecycle_lewis(iterations: int = 50, checkpoints: tuple[int, ...] = DEFAULT_CHECKPOINTS,
                     warmup: int = DEFAULT_WARMUP) -> Scenario:
-    """S3c: open and close the Full Lewis window."""
+    """S3c: the Full Lewis window through `MainWindow._show_lewis_diagram`, which the app
+    calls: parent=window, `exec()`, no `WA_DeleteOnClose`."""
     def body(i: int) -> list[dict[str, Any]]:
-        return [_s("lewis", details=True, after_ms=800), _s("close_windows", which=["lewis"], after_ms=400)]
-    return _scenario_loop("lifecycle-lewis", "S3c Lewis window open/close", body, iterations,
-                          checkpoints, warmup)
+        return [_s("call_window", method="_show_lewis_diagram", close_after_ms=700, after_ms=400)]
+    return _scenario_loop("lifecycle-lewis", "S3c Lewis window open/close (real method)", body,
+                          iterations, checkpoints, warmup)
 
 
 def lifecycle_results(iterations: int = 50, checkpoints: tuple[int, ...] = DEFAULT_CHECKPOINTS,
@@ -252,17 +256,14 @@ def lifecycle_results(iterations: int = 50, checkpoints: tuple[int, ...] = DEFAU
 
 def lifecycle_dialogs(iterations: int = 50, checkpoints: tuple[int, ...] = DEFAULT_CHECKPOINTS,
                       warmup: int = DEFAULT_WARMUP,
-                      names: tuple[str, ...] = ("HelpDialog", "PeriodicTableDialog", "SettingsDialog")
-                      ) -> Scenario:
-    """S3e: open and close a few dialogs by name (the `dialog` step closes the last)."""
+                      methods: tuple[str, ...] = ("show_settings", "_show_about")) -> Scenario:
+    """S3e: modal dialogs through the window's own methods. Help is a reused singleton
+    in the app and is not in this loop."""
     def body(i: int) -> list[dict[str, Any]]:
-        out: list[dict[str, Any]] = []
-        for name in names:
-            out += [_s("dialog", name=name, after_ms=700), _s("close_windows", which=["dialog"], after_ms=300)]
-        return out
-    scenario = _scenario_loop("lifecycle-dialogs", "S3e dialogs open/close", body, iterations,
-                              checkpoints, warmup)
-    scenario.parameters["dialogs"] = list(names)
+        return [_s("call_window", method=m, close_after_ms=900, after_ms=400) for m in methods]
+    scenario = _scenario_loop("lifecycle-dialogs", "S3e modal dialogs open/close (real methods)", body,
+                              iterations, checkpoints, warmup)
+    scenario.parameters["methods"] = list(methods)
     return scenario
 
 

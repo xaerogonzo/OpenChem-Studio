@@ -6613,6 +6613,46 @@ class _Driver(QObject):
                 target.close()
             setattr(self, attribute, None)
 
+    def _do_call_window(self, step: dict[str, Any]) -> None:
+        """`{"do": "call_window", "method": "show_settings", "close_after_ms": 800}` --
+        run the window's OWN method for a dialog, and close the modal it opens.
+
+        **WHY THIS EXISTS: THE HARNESS-BUILT DIALOG IS NOT THE APP'S DIALOG.** The
+        census's first Calculator Inspector loop reported +150 MiB per open; the real
+        path (`PropertyPanel._open_inspector`) sets `WA_DeleteOnClose`, the `inspect`
+        step builds its own dialog without it. The number described the harness. A
+        lifecycle measurement has to go through the code a person's click reaches.
+
+        The method may `exec()`. A closer is scheduled FIRST, on the window, so the
+        nested event loop it spins ends; the usual rule against calling `exec()` in a
+        step is about a modal nobody closes.
+        """
+        method = getattr(self._window, str(step["method"]), None)
+        if method is None:
+            logger.error("OPENCHEM_DRIVE: call_window: no method %r", step["method"])
+            return
+        QTimer.singleShot(int(step.get("close_after_ms", 800)), self._window, self._close_active_modal)
+        method(*(step.get("args") or []))
+
+    def _close_active_modal(self) -> None:
+        from PySide6.QtWidgets import QApplication, QDialog
+
+        modal = QApplication.activeModalWidget()
+        if modal is None:
+            logger.error("OPENCHEM_DRIVE: call_window: no modal was open to close")
+        elif isinstance(modal, QDialog):
+            modal.reject()
+        else:
+            modal.close()
+
+    def _do_close_inspectors(self, step: dict[str, Any]) -> None:
+        """`{"do": "close_inspectors"}` -- close every Calculator Inspector the Properties
+        panel opened through its real reveal path (they delete themselves on close)."""
+        for ref in list(self._window._property_panel._inspector_windows.values()):
+            window = ref()
+            if window is not None:
+                window.close()
+
     def _do_gc(self, step: dict[str, Any]) -> None:
         """`{"do": "gc"}` -- one diagnostic `gc.collect()`, so a lifecycle scenario's
         memory checkpoints measure what is RETAINED. Normal scenarios do not use it:
