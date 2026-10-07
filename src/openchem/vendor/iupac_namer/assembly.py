@@ -17,6 +17,7 @@ v13 spec: ARCHITECTURE_ASSEMBLY.md
 """
 from __future__ import annotations
 
+import contextlib
 import contextvars
 import re
 from collections import defaultdict
@@ -430,6 +431,21 @@ def without_stereo_descriptors(name: str) -> str:
 _STEREO_SUPPRESSED: contextvars.ContextVar[bool] = contextvars.ContextVar("iupac_namer_stereo_suppressed", default=False)
 
 
+@contextlib.contextmanager
+def descriptors_set_aside():
+    """While active, `assemble` writes no CIP descriptor group, so prefixes merge as they would without configuration (see `assemble_without_stereo`).
+
+    For a caller that needs more than the finished text: P-45.2.3 reads the LOCANTS of the prefixes in the order the name cites them, and
+    the book reads them "ignoring the configuration symbols" (P-45.6.2, BlueBookV2.pdf p. 426), which is not what the merged prefixes of a
+    name with descriptors give.
+    """
+    token = _STEREO_SUPPRESSED.set(True)
+    try:
+        yield
+    finally:
+        _STEREO_SUPPRESSED.reset(token)
+
+
 def assemble_without_stereo(tree: "NameTree") -> str:  # type: ignore[type-arg]
     """The name `tree` assembles to with no CIP descriptor written ANYWHERE in it: the name's alphabetic characters and locants only.
 
@@ -439,11 +455,8 @@ def assemble_without_stereo(tree: "NameTree") -> str:  # type: ignore[type-arg]
     Without the descriptors the arms are alike and merge alike. A descriptor baked into a leaf's own text (a retained stem's) is removed
     from the finished text, as `without_stereo_descriptors` does.
     """
-    token = _STEREO_SUPPRESSED.set(True)
-    try:
+    with descriptors_set_aside():
         return without_stereo_descriptors(assemble(tree))
-    finally:
-        _STEREO_SUPPRESSED.reset(token)
 
 
 # ---------------------------------------------------------------------------

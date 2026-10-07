@@ -3963,9 +3963,10 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-191o", "OC(=O)CC[PH3]C", "3-(methyl-lambda5-phosphanyl)propanoic acid",
      "3-(methylphosphanyl)propanoic acid",
      "the same parent as a SUBSTITUENT"),
-    ("D-191p", "CC(Cl)C([PH4])C(CC(=O)O)C([PH4])C(C)Br", "5-bromo-3-[2-chloro-1-(lambda5-phosphanyl)propyl]-4-(lambda5-phosphanyl)hexanoic acid",
+    ("D-191p", "CC(Cl)C([PH4])C(CC(=O)O)C([PH4])C(C)Br", "3-[2-bromo-1-(lambda5-phosphanyl)propyl]-5-chloro-4-(lambda5-phosphanyl)hexanoic acid",
      "5-bromo-3-(2-chloro-1-phosphanylpropyl)-4-phosphanylhexanoic acid",
-     "the book's own P-45.2.3 example 11 (BlueBookV2.pdf p. 422), in the canonical spelling the application names: right molecule, and the order the book REJECTS (its PIN is D-194a, open)"),
+     "the book's own P-45.2.3 example 11 (BlueBookV2.pdf p. 422), in the canonical spelling the application names. This row pinned the order the book REJECTS "
+     "(`5-bromo-3-[2-chloro-1-...`) until P-45.2.3 was implemented (xaerogonzo/OpenChem-Studio#239); it is now the book's PIN, as D-191q and D-194a pin for other spellings"),
     ("D-191q", "BrC(C([PH4])C(CC(=O)O)C(C(C)Cl)[PH4])C", "3-[2-bromo-1-(lambda5-phosphanyl)propyl]-5-chloro-4-(lambda5-phosphanyl)hexanoic acid",
      "3-(2-bromo-1-phosphanylpropyl)-5-chloro-4-phosphanylhexanoic acid",
      "the same example in OPSIN's own spelling of the book's name, which reaches the book's PIN (the parent is chosen by atom order, D-194)"),
@@ -4023,9 +4024,10 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-192o", "[81Br]C(Br)C(Cl)Cl", "1-(81Br)bromo-1-bromo-2,2-dichloroethane",
      "1,1-dibromo-2,2-dichloroethane",
      "same: the modified prefix is cited before the plain one at the same position"),
-    ("D-192p", "CC(Cl)C([81Br])C(CC(=O)O)C([81Br])C(C)Br", "4-(81Br)bromo-5-bromo-3-[1-(81Br)bromo-2-chloropropyl]hexanoic acid",
+    ("D-192p", "CC(Cl)C([81Br])C(CC(=O)O)C([81Br])C(C)Br", "4-(81Br)bromo-3-[1-(81Br)bromo-2-bromopropyl]-5-chlorohexanoic acid",
      "4,5-dibromo-3-(1-bromo-2-chloropropyl)hexanoic acid",
-     "the book's own P-45.2.3 example 12 (p. 422), in the canonical spelling the application names: both labels were dropped; the order is the one the book REJECTS (its PIN is D-194b, open)"),
+     "the book's own P-45.2.3 example 12 (p. 422), in the canonical spelling the application names: both labels were dropped. This row pinned the order the book REJECTS "
+     "(`4-(81Br)bromo-5-bromo-3-[1-(81Br)bromo-2-chloropropyl]hexanoic acid`) until P-45.2.3 was implemented (xaerogonzo/OpenChem-Studio#239); it is now the book's PIN, as D-192q and D-194b pin for other spellings"),
     ("D-192q", "[81Br]C(C(CC(=O)O)C(C(C)Br)[81Br])C(C)Cl", "4-(81Br)bromo-3-[1-(81Br)bromo-2-bromopropyl]-5-chlorohexanoic acid",
      "4-bromo-5-chloro-3-(1,2-dibromopropyl)hexanoic acid",
      "the same example in OPSIN's own spelling of the book's name, which reaches the book's PIN (the parent is chosen by atom order, D-194)"),
@@ -4053,6 +4055,14 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-192y", "CN(C)[18OH]", "[(18O)hydroxy(methyl)amino]methane",
      "[hydroxy(methyl)amino]methane",
      "same, a hydroxy group on nitrogen"),
+    # D-194a / D-194b, OPEN until P-45.2.3 (xaerogonzo/OpenChem-Studio#239): of two parent chains that tie, the one whose prefixes' locants in order of citation are lower is the parent.
+    # They were named two ways over 40 random spellings (21/19 each); `former` is the order the book rejects.
+    ("D-194a", "CC(Cl)C([PH4])C(CC(=O)O)C([PH4])C(C)Br", "3-[2-bromo-1-(lambda5-phosphanyl)propyl]-5-chloro-4-(lambda5-phosphanyl)hexanoic acid",
+     "5-bromo-3-[2-chloro-1-(lambda5-phosphanyl)propyl]-4-(lambda5-phosphanyl)hexanoic acid",
+     "P-45.2.3 (p. 422, example 11): '3,5,4' over '5,3,4' in the order of citation. Now one name over every spelling (tests/test_namer_parent_citation_locants.py)"),
+    ("D-194b", "CC(Cl)C([81Br])C(CC(=O)O)C([81Br])C(C)Br", "4-(81Br)bromo-3-[1-(81Br)bromo-2-bromopropyl]-5-chlorohexanoic acid",
+     "4-(81Br)bromo-5-bromo-3-[1-(81Br)bromo-2-chloropropyl]hexanoic acid",
+     "P-45.2.3 (p. 422, example 12): '4,3,5' over '4,5,3'. Now one name over every spelling"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -4165,9 +4175,8 @@ OPEN: list[tuple[str, str, str, str, str]] = [
      "[(hydroxycarbamoyl)methyl]methyl acetate", "an N-substituted hydroxamic acid inside an ester's acid part loses its N-substituent"),
 
     # D-191 / D-192 follow-ups, open. D-193: a nuclide on an atom a RETAINED PARENT NAME or a MULTI-atom prefix owns is dropped (WRONG MOLECULES; `isotopic_prefix` labels only a prefix that is
-    # the name of the one atom it owns, and `collect_isotope_labels` only an atom that has a locant). D-194: the parent chain is chosen by atom order where P-45.2.3 / P-45.4.1 decide it,
-    # which is the P-45.2.3 gap recorded in KNOWN_LIMITATIONS.md, now with the three examples of pp. 422-423: each is named two ways over 40 random spellings (21/19, 21/19 and 24/16),
-    # every name reading back exact. D-195 and D-196 are not wrong molecules: a hypervalent centre with no hydrogen is named without its number, and the parent's isotope descriptor
+    # the name of the one atom it owns, and `collect_isotope_labels` only an atom that has a locant). D-194: the parent chain is chosen by atom order where P-45.4.1 decides it (D-194c); D-194a and D-194b, P-45.2.3's examples 11 and 12, were closed by
+    # implementing P-45.2.3 (xaerogonzo/OpenChem-Studio#239) and moved to FIXED. D-194c is named two ways over 40 random spellings (24/16), every name reading back exact. D-195 and D-196 are not wrong molecules: a hypervalent centre with no hydrogen is named without its number, and the parent's isotope descriptor
     # sits before the prefixes where OPSIN cannot read it.
     ("D-193a", "[15NH2]c1ccccc1", "(15N)aniline",
      "aniline",
@@ -4178,12 +4187,6 @@ OPEN: list[tuple[str, str, str, str, str]] = [
     ("D-193c", "[18OH]c1ccccc1", "(18O)phenol",
      "(1-18O)phenol",
      "the engine writes a locant OPSIN cannot read (P-82.6.3, p. 861: a nuclide on a position a retained name does not number); not a wrong molecule, but not a readable name"),
-    ("D-194a", "CC(Cl)C([PH4])C(CC(=O)O)C([PH4])C(C)Br", "3-[2-bromo-1-(lambda5-phosphanyl)propyl]-5-chloro-4-(lambda5-phosphanyl)hexanoic acid",
-     "5-bromo-3-[2-chloro-1-(lambda5-phosphanyl)propyl]-4-(lambda5-phosphanyl)hexanoic acid",
-     "P-45.2.3 (p. 422, example 11): of two parent chains that tie, the one whose prefixes' locants in order of citation are lower is the parent ('3,5,4' over '5,3,4'); the engine chooses by atom order (the same molecule is named either way over random spellings), which is the recorded P-45.2.3 gap"),
-    ("D-194b", "CC(Cl)C([81Br])C(CC(=O)O)C([81Br])C(C)Br", "4-(81Br)bromo-3-[1-(81Br)bromo-2-bromopropyl]-5-chlorohexanoic acid",
-     "4-(81Br)bromo-5-bromo-3-[1-(81Br)bromo-2-chloropropyl]hexanoic acid",
-     "P-45.2.3 (p. 422, example 12): '4,3,5' over '4,5,3', the same gap"),
     ("D-194c", "CCCC(Br)COCC([81Br])CCC", "2-bromo-1-{[2-(81Br)bromopentyl]oxy}pentane",
      "2-(81Br)bromo-1-[(2-bromopentyl)oxy]pentane",
      "P-45.4.1 (p. 423): the parent that gives the isotopically modified substituent the LOWER locant ('1' over '2'); criteria P-45.4.1 to P-45.4.3 are not implemented, so the parent is chosen by atom order (24 of 40 random spellings name the book's PIN, 16 the other)"),
@@ -5042,7 +5045,11 @@ def test_the_aromatic_carbocycle_kekule_recovery_does_not_move_a_neighbouring_na
         ("NNC(=O)N[N+](=O)[O-]", "N-nitrohydrazinecarboxamide"),
         ("O=[N+]([O-])NNN[N+](=O)[O-]", "1-nitramido-2-nitrohydrazine"),
         ("O=[N+]([O-])NN1CCCC1", "1-nitramidopyrrolidine"),
-        ("CN(N=O)NN", "2-amino-1-methyl-1-nitrosohydrazine"),
+        # Two hydrazine parents tie on the key (amino, methyl, nitroso against hydrazinyl, methyl, oxo: three prefixes, the set 1,1,2), and this was whichever the
+        # atom order gave: `2-amino-1-methyl-1-nitrosohydrazine` on 11 of 24 spellings and this one on 13, both read back by OPSIN to the one molecule. P-45.2.3 takes the
+        # lower locants in their order of citation, 1,1,2 against 2,1,1, so it is one name on every spelling (tests/test_namer_parent_citation_locants.py). Which of
+        # the two a reader would rather see is not what the rule decides; the row stays here because it is a nitric-hydrazide control, not a pin of either name.
+        ("CN(N=O)NN", "1-hydrazinyl-1-methyl-2-oxohydrazine"),
         ("CC=NN(C)C", "2-ethylidene-1,1-dimethylhydrazine"),
         # a hydrazide-class group ELSEWHERE outranks it (only the seniority limit can see this one: the carbon hydrazide is not next to the nitrohydrazine)
         ("NNC(=O)CCNN[N+](=O)[O-]", "3-(2-nitrohydrazinyl)propanehydrazide"),

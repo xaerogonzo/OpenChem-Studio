@@ -930,9 +930,10 @@ def test_a_repaired_shape_is_now_shown_not_withheld():
 
 
 @pytest.mark.parametrize("smiles, expected", [
-    # the Blue Book's own P-45.2.3 examples 11 and 12 (BlueBookV2.pdf p. 422), in the canonical spelling the application names (right molecule; the book's PIN is the open D-194)
-    ("CC(Cl)C([PH4])C(CC(=O)O)C([PH4])C(C)Br", "5-bromo-3-[2-chloro-1-(lambda5-phosphanyl)propyl]-4-(lambda5-phosphanyl)hexanoic acid"),
-    ("[81Br]C(C(CC(=O)O)C(C(C)Br)[81Br])C(C)Cl", "4-(81Br)bromo-5-bromo-3-[1-(81Br)bromo-2-chloropropyl]hexanoic acid"),
+    # the Blue Book's own P-45.2.3 examples 11 and 12 (BlueBookV2.pdf p. 422), in the canonical spelling the application names. These rows pinned the order the book REJECTS
+    # (`5-bromo-3-[2-chloro-1-...`, `4-(81Br)bromo-5-bromo-3-...`) until P-45.2.3 was implemented (xaerogonzo/OpenChem-Studio#239); now the book's PIN (D-194a, D-194b)
+    ("CC(Cl)C([PH4])C(CC(=O)O)C([PH4])C(C)Br", "3-[2-bromo-1-(lambda5-phosphanyl)propyl]-5-chloro-4-(lambda5-phosphanyl)hexanoic acid"),
+    ("[81Br]C(C(CC(=O)O)C(C(C)Br)[81Br])C(C)Cl", "4-(81Br)bromo-3-[1-(81Br)bromo-2-bromopropyl]-5-chlorohexanoic acid"),
     # and one minimal shape of each defect
     ("OC(=O)CC[PH4]", "3-(lambda5-phosphanyl)propanoic acid"),
     ("C[PH4]", "methyl-lambda5-phosphane"),

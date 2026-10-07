@@ -149,9 +149,9 @@ def test_each_stereoisomer_of_the_skeleton_is_one_name_and_right_per_atom(smiles
 # --- what each half of the fix is for ---------------------------------------------------------------------------------------
 
 def test_without_the_cross_parent_choice_the_same_spellings_give_several_names(monkeypatch):
-    """The defect, kept alive: with the choice of parent by configuration switched off the chain is the later-generated plan, which
+    """The defect, kept alive: with the choice between tied parents switched off (`_break_parent_tie`) the chain is the later-generated plan, which
     follows atom order. If this ever stops disagreeing, the fixture no longer reaches the tie and the tests above prove nothing."""
-    monkeypatch.setattr(engine, "_break_parent_stereo_tie", lambda *args, **kwargs: None)
+    monkeypatch.setattr(engine, "_break_parent_tie", lambda *args, **kwargs: None)
     assert len(_names(BOOK_SMILES)) > 1
 
 
@@ -174,6 +174,24 @@ def test_nine_chains_are_four_choices(monkeypatch):
     assert len(_chain_choices(monkeypatch)) == 4
 
 
+def test_p_45_2_3_cannot_tell_the_four_choices_apart(monkeypatch):
+    """The two rules meet here (#235 with #239). The four chains differ in nothing but configuration, and P-45.2.3 reads the prefixes' locants
+    "ignoring the configuration symbols" (P-45.6.2): so it must leave all four to the configuration comparison. Read off the assembled prefixes
+    WITH their descriptors, the arms merged differently (`4,4-bis[...]` against `4-[...]-4-[...]`), the flattened locants differed (`4,4,6,6`
+    against `4,6,4,6`), and the rule ruled two of the four out on that, before the comparison that should choose."""
+    offered_and_kept: list = []
+    real = engine._senior_by_citation_locants
+
+    def spy(trees):
+        kept = real(trees)
+        offered_and_kept.append((len(trees), None if kept is None else len(kept)))
+        return kept
+
+    monkeypatch.setattr(engine, "_senior_by_citation_locants", spy)
+    assert _names(BOOK_SMILES, 4) == {BOOK_NAME}
+    assert offered_and_kept and all(offered == 4 and kept in (None, 4) for offered, kept in offered_and_kept), offered_and_kept
+
+
 def test_the_four_choices_differ_in_nothing_but_configuration_when_assembled_without_it(monkeypatch):
     trees = _chain_choices(monkeypatch)
     # Set aside AFTER assembly, the prefixes are merged the way the descriptors merged them: `4,4-bis[...]` against `4-[...]-4-[...]`.
@@ -191,9 +209,9 @@ def test_assembling_without_the_descriptors_leaves_no_trace_in_the_next_assembly
 
 def test_the_bound_counts_distinct_choices_not_chains(monkeypatch):
     """There are nine chains and four choices: a bound of four is enough only if equal chains count once, and three is not enough."""
-    monkeypatch.setattr(engine, "_PARENT_STEREO_HYPOTHESES", 4)
+    monkeypatch.setattr(engine, "_PARENT_TIE_HYPOTHESES", 4)
     assert _names(BOOK_SMILES, 12) == {BOOK_NAME}
-    monkeypatch.setattr(engine, "_PARENT_STEREO_HYPOTHESES", 3)
+    monkeypatch.setattr(engine, "_PARENT_TIE_HYPOTHESES", 3)
     assert len(_names(BOOK_SMILES, 12)) > 1
 
 
