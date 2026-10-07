@@ -151,6 +151,7 @@ class _Seen:
     last_seen: float
     peak_rss: int = 0
     peak_uss: int = 0
+    peak_private: int = 0
     cpu_s: float = 0.0
     process: Any = None
 
@@ -213,6 +214,9 @@ class Sampler(threading.Thread):
                 "tree_uss": agg["app"]["uss"] + agg["kids"]["uss"] if read_uss else "",
                 "app_rss": agg["app"]["rss"], "app_uss": agg["app"]["uss"] if read_uss else "",
                 "kids_rss": agg["kids"]["rss"], "kids_uss": agg["kids"]["uss"] if read_uss else "",
+                "tree_private": agg["app"]["private"] + agg["kids"]["private"],
+                "app_private": agg["app"]["private"], "kids_private": agg["kids"]["private"],
+                "system_cpu_pct": psutil.cpu_percent(interval=None),
                 "app_threads": agg["app"]["threads"], "kids_threads": agg["kids"]["threads"],
                 "app_handles": agg["app"]["handles"], "kids_handles": agg["kids"]["handles"],
                 "child_count": agg["kids"]["n"],
@@ -228,7 +232,7 @@ class Sampler(threading.Thread):
 
     @staticmethod
     def _zero() -> dict[str, int]:
-        return {"rss": 0, "uss": 0, "threads": 0, "handles": 0, "n": 0}
+        return {"rss": 0, "uss": 0, "private": 0, "threads": 0, "handles": 0, "n": 0}
 
     def _read(self, proc: psutil.Process, now: float, read_uss: bool, agg: dict[str, dict[str, int]]) -> None:
         try:
@@ -245,7 +249,15 @@ class Sampler(threading.Thread):
                                  classify(name, cmd, proc.pid == self.root_pid), now, now, process=proc)
                     self.table[key] = seen
                 seen.last_seen = now
-                rss = proc.memory_info().rss
+                info = proc.memory_info()
+                rss = info.rss
+                # Windows PRIVATE BYTES (commit charge). The working set above is
+                # trimmed by the OS when the window is behind others: a measured idle
+                # app "shrank" from ~400 to ~50 MiB RSS and ~230 to ~50 MiB USS while
+                # doing nothing. Private bytes does not move with the trim, so it is
+                # the memory number to read at idle and for a slope.
+                private = int(getattr(info, "private", 0) or getattr(info, "pagefile", 0) or 0)
+                seen.peak_private = max(seen.peak_private, private)
                 seen.peak_rss = max(seen.peak_rss, rss)
                 times = proc.cpu_times()
                 seen.cpu_s = float(times.user + times.system)
@@ -260,6 +272,7 @@ class Sampler(threading.Thread):
         bucket = agg["app"] if seen.klass in ("app", "launcher") else agg["kids"]
         bucket["rss"] += rss
         bucket["uss"] += uss
+        bucket["private"] += private
         bucket["threads"] += threads
         bucket["handles"] += handles
         bucket["n"] += 1
@@ -274,12 +287,12 @@ class Sampler(threading.Thread):
         with (directory / "processes.csv").open("w", newline="", encoding="utf-8") as handle:
             writer = csv.writer(handle)
             writer.writerow(["pid", "ppid", "name", "class", "started_epoch", "first_seen_epoch",
-                             "last_seen_epoch", "observed_lifetime_s", "peak_rss", "peak_uss", "cpu_s"])
+                             "last_seen_epoch", "observed_lifetime_s", "peak_rss", "peak_uss", "peak_private", "cpu_s"])
             for seen in sorted(self.table.values(), key=lambda s: s.first_seen):
                 writer.writerow([seen.pid, seen.ppid, seen.name, seen.klass, round(seen.started, 3),
                                  round(seen.first_seen, 3), round(seen.last_seen, 3),
                                  round(seen.last_seen - seen.first_seen, 2), seen.peak_rss, seen.peak_uss,
-                                 round(seen.cpu_s, 2)])
+                                 seen.peak_private, round(seen.cpu_s, 2)])
 
 
 # -- statistics --------------------------------------------------------------------------------
@@ -440,7 +453,8 @@ def _process_lifetimes(sampler: Sampler) -> list[dict[str, Any]]:
         {"pid": s.pid, "name": s.name, "class": s.klass,
          "first_seen_s": round(s.first_seen - sampler._t0, 1),
          "observed_lifetime_s": round(s.last_seen - s.first_seen, 1),
-         "peak_rss_mib": round(s.peak_rss / MIB, 1), "peak_uss_mib": round(s.peak_uss / MIB, 1)}
+         "peak_rss_mib": round(s.peak_rss / MIB, 1), "peak_uss_mib": round(s.peak_uss / MIB, 1),
+         "peak_private_mib": round(s.peak_private / MIB, 1)}
         for s in sorted(sampler.table.values(), key=lambda s: s.first_seen)
     ]
 
@@ -482,12 +496,19 @@ def derive_idle(rows: list[dict[str, Any]], origin: float) -> dict[str, Any]:
              "last_30s": (end - 30, end)}
     rss = {name: window_median(rows, "app_rss", a, b) for name, (a, b) in spans.items()}
     uss = {name: window_median(rows, "app_uss", a, b) for name, (a, b) in spans.items()}
+    private = {name: window_median(rows, "app_private", a, b) for name, (a, b) in spans.items()}
+    kids_private = {name: window_median(rows, "kids_private", a, b) for name, (a, b) in spans.items()}
     out: dict[str, Any] = {
         "app_rss_mib": {k: None if v is None else round(v / MIB, 1) for k, v in rss.items()},
         "app_uss_mib": {k: None if v is None else round(v / MIB, 1) for k, v in uss.items()},
+        "app_private_mib": {k: None if v is None else round(v / MIB, 1) for k, v in private.items()},
+        "children_private_mib": {k: None if v is None else round(v / MIB, 1) for k, v in kids_private.items()},
+        "system_cpu_pct_mean": round(statistics.fmean(float(r["system_cpu_pct"]) for r in rows), 1),
         "tree_cpu_pct_machine_after_30s": window_cpu(rows, "tree_cpu_pct_machine", origin + 30, end),
         "app_cpu_pct_machine_after_30s": window_cpu(rows, "app_cpu_pct_machine", origin + 30, end),
     }
+    if private["plateau_10_20s"] and private["last_30s"]:
+        out["private_delta_plateau_to_end_mib"] = round((private["last_30s"] - private["plateau_10_20s"]) / MIB, 2)
     if rss["plateau_10_20s"] and rss["last_30s"]:
         out["rss_delta_plateau_to_end_mib"] = round((rss["last_30s"] - rss["plateau_10_20s"]) / MIB, 2)
     return out
@@ -531,12 +552,20 @@ def derive_lifecycle(scenario: scenario_defs.Scenario, rows: list[dict[str, Any]
             "app_rss_mib": _mib(window_median(rows, "app_rss", stamp, stamp + 2.4)),
             "app_uss_mib": _mib(window_median(rows, "app_uss", stamp - 1.0, stamp + 3.0)),
             "tree_uss_mib": _mib(window_median(rows, "tree_uss", stamp - 1.0, stamp + 3.0)),
+            "app_private_mib": _mib(window_median(rows, "app_private", stamp, stamp + 3.0)),
+            "kids_private_mib": _mib(window_median(rows, "kids_private", stamp, stamp + 3.0)),
             "child_count": window_median(rows, "child_count", stamp, stamp + 2.4),
         })
     fit_points = [(p["iteration"], p["app_rss_mib"]) for p in series
                   if p["iteration"] >= warmup and p["app_rss_mib"] is not None]
     uss_points = [(p["iteration"], p["app_uss_mib"]) for p in series
                   if p["iteration"] >= warmup and p["app_uss_mib"] is not None]
+    private_points = [(p["iteration"], p["app_private_mib"]) for p in series
+                      if p["iteration"] >= warmup and p["app_private_mib"] is not None]
+    kids_points = [(p["iteration"], p["kids_private_mib"]) for p in series
+                   if p["iteration"] >= warmup and p["kids_private_mib"] is not None]
+    private_slope = theil_sen(private_points)
+    kids_slope = theil_sen(kids_points)
     slope = theil_sen(fit_points)
     uss_slope = theil_sen(uss_points)
     census = {tag: v for tag, v in measurements.items() if tag.startswith("object_census[")}
@@ -545,11 +574,15 @@ def derive_lifecycle(scenario: scenario_defs.Scenario, rows: list[dict[str, Any]
         "series": series,
         "rss_slope_mib_per_iteration": None if slope is None else round(slope, 4),
         "uss_slope_mib_per_iteration": None if uss_slope is None else round(uss_slope, 4),
+        "private_slope_mib_per_iteration": None if private_slope is None else round(private_slope, 4),
+        "children_private_slope_mib_per_iteration": None if kids_slope is None else round(kids_slope, 4),
+        "start_private_mib": private_points[0][1] if private_points else None,
+        "end_private_mib": private_points[-1][1] if private_points else None,
         "start_rss_mib": fit_points[0][1] if fit_points else None,
         "end_rss_mib": fit_points[-1][1] if fit_points else None,
         "high_water_rss_mib": max((p[1] for p in fit_points), default=None),
         "object_growth": growth,
-        "reading": interpret_growth(uss_slope if uss_slope is not None else slope,
+        "reading": interpret_growth(private_slope if private_slope is not None else slope,
                                     bool(growth["monotonic_growers"]), None),
     }
 

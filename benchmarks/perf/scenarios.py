@@ -178,7 +178,7 @@ def startup_idle(idle_seconds: int = 300) -> Scenario:
 # -- S2 panels --------------------------------------------------------------------
 
 
-def panels(settle_ms: int = 3000, sample_ms: int = 17000, expect: int | None = 12) -> Scenario:
+def panels(settle_ms: int = 3000, sample_ms: int = 17000, expect: int | None = 11) -> Scenario:
     step = _s("panel_cycle", settle_ms=settle_ms, sample_ms=sample_ms)
     if expect is not None:
         step["expect"] = expect
