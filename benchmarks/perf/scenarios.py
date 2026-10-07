@@ -17,10 +17,14 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
-#: One cheap, deterministic, in-process, per-atom calculator. Gasteiger charges at
-#: the molecule's own state (`ph_dependent` off), so no microspecies search runs.
-LIFECYCLE_CALCULATOR = "gasteiger_charge_at_ph"
-LIFECYCLE_CALCULATOR_PARAMETERS = {"ph_dependent": False}
+#: One cheap, deterministic, in-process, per-atom calculator. The FIRST choice here was
+#: `gasteiger_charge_at_ph` with a made-up `ph_dependent` parameter: the parameter does not
+#: exist (its real ones are `method` and `pH`), so it ran pH-dependent every time, which
+#: spawns a pKa sidecar Python process (~310 MiB RSS, ~1.76 GiB commit, 5-24 s). The whole
+#: first lifecycle batch was measuring that. Oxidation states are rule-based and in-process.
+LIFECYCLE_CALCULATOR = "oxidation_states"
+LIFECYCLE_CALCULATOR_PARAMETERS: dict = {}
+PH_SIDECAR_CALCULATOR = "gasteiger_charge_at_ph"
 
 #: A fixed fixture, small enough that the calculator is not what is measured.
 LIFECYCLE_SMILES = "CC(=O)Oc1ccccc1C(=O)O"  # aspirin
@@ -283,6 +287,24 @@ def responsiveness() -> Scenario:
                     probes=["heartbeat"], kind="generic", timeout_s=600)
 
 
+# -- S6 external-process lifecycle ----------------------------------------------------------
+
+
+def ph_sidecar(calls: int = 4) -> Scenario:
+    """The pH-dependent charge calculator runs the pKa predictor in a sidecar Python process.
+    A different pH each call, so the result store cannot answer for it."""
+    steps = _boot() + [_s("wait", after_ms=STARTUP_SETTLE_MS), _s("mark", name="calls-start", after_ms=3000)]
+    for k in range(calls):
+        steps += [
+            _s("mark", name=f"call-{k}"),
+            _s("calculator", id=PH_SIDECAR_CALCULATOR, parameters={"pH": 6.0 + 0.4 * k}, reveal=False,
+               after_ms=30000),
+        ]
+    steps += [_s("mark", name="calls-end"), _s("quit")]
+    return Scenario("ph-sidecar", "S6 pH-dependent partial charge: the sidecar Python process it spawns",
+                    steps, cadence_s=0.25, kind="generic", timeout_s=900, parameters={"calls": calls})
+
+
 # -- S5 heavy molecule ----------------------------------------------------------------
 
 
@@ -319,4 +341,5 @@ REGISTRY: dict[str, Callable[..., Scenario]] = {
     "lifecycle-dialogs": lifecycle_dialogs,
     "responsiveness": responsiveness,
     "heavy-molecule": heavy_molecule,
+    "ph-sidecar": ph_sidecar,
 }
