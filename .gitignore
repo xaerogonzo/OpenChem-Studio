@@ -128,3 +128,6 @@ py2opsin_temp_input.txt
 
 # naming round 9 (B2): slow network resolution scratch, never committed -- battery_r9.toml is the committed result
 benchmarks/naming/battery_scratch/
+
+# Resource census raw output (tools/perf_census.py); the findings live in docs/PERFORMANCE_CENSUS.md
+benchmarks/perf/results/
