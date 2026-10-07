@@ -926,3 +926,44 @@ def test_a_repaired_shape_is_now_shown_not_withheld():
     assert result.name == "N-(5-methyl-1,3,4-thiadiazol-2-yl)acetamide"
     assert result.source == "Nomenclature engine"
     assert "not verified" not in result.note.lower()
+
+
+
+@pytest.mark.parametrize("smiles, expected", [
+    # the Blue Book's own P-45.2.3 examples 11 and 12 (BlueBookV2.pdf p. 422), in the canonical spelling the application names. These rows pinned the order the book REJECTS
+    # (`5-bromo-3-[2-chloro-1-...`, `4-(81Br)bromo-5-bromo-3-...`) until P-45.2.3 was implemented (xaerogonzo/OpenChem-Studio#239); now the book's PIN (D-194a, D-194b)
+    ("CC(Cl)C([PH4])C(CC(=O)O)C([PH4])C(C)Br", "3-[2-bromo-1-(lambda5-phosphanyl)propyl]-5-chloro-4-(lambda5-phosphanyl)hexanoic acid"),
+    ("[81Br]C(C(CC(=O)O)C(C(C)Br)[81Br])C(C)Cl", "4-(81Br)bromo-3-[1-(81Br)bromo-2-bromopropyl]-5-chlorohexanoic acid"),
+    # and one minimal shape of each defect
+    ("OC(=O)CC[PH4]", "3-(lambda5-phosphanyl)propanoic acid"),
+    ("C[PH4]", "methyl-lambda5-phosphane"),
+    ("[81Br]CCC(=O)O", "3-(81Br)bromopropanoic acid"),
+])
+def test_a_hypervalent_group_or_a_labelled_prefix_is_shown_verified_not_withheld(smiles, expected):
+    """D-191 and D-192. Every one of these was a name that read back as a DIFFERENT molecule (the lambda number or the nuclide had been dropped), so with a
+    parser present the application withheld it ("did not parse back to this structure"), and without one showed it marked unverified; measured 2026-10-06 on the unedited
+    tree for each. Now the read-back matches, so it is shown with no note, and the result says which engine produced it."""
+    if not naming_providers.opsin_available():
+        pytest.skip("the read-back gate needs OPSIN")
+
+    result = naming_providers.derived_name_for_structure(Chem.MolFromSmiles(smiles))
+
+    assert result.name == expected
+    assert result.source == "Nomenclature engine"
+    assert result.note == ""
+
+
+def test_a_nuclide_on_an_atom_the_parent_name_owns_is_still_withheld():
+    """What is left open of D-192 is D-193a: `[15NH2]c1ccccc1` is named `aniline`, which is a different compound (the nitrogen's mass number is gone), and the
+    application's read-back is what keeps it from being shown. When D-193a is fixed this example has to move to another open wrong-structure row -- the strict xfail
+    in test_namer_known_defects.py fires in the same commit, which is the reminder (the same arrangement as D-162 above)."""
+    if not naming_providers.opsin_available():
+        pytest.skip("the read-back gate needs OPSIN")
+    import openchem.vendor.iupac_namer as namer
+
+    smiles = "[15NH2]c1ccccc1"
+    assert namer.name_smiles(smiles) == "aniline"                # a plain-looking name, and the wrong one
+
+    with pytest.raises(naming_providers.NamingError) as raised:
+        naming_providers.derived_name_for_structure(Chem.MolFromSmiles(smiles))
+    assert "did not parse back to this structure" in str(raised.value)

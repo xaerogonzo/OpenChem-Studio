@@ -87,6 +87,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_parent_citation_locants.py"
+why = "P-45.2.3: of two parents that tie on the key, the one whose prefixes have the lower locants in their order of citation; the book's ten examples (eight decided, two blocked by P-44.4.1.1), the comparison on made-up trees, and that it reaches achiral molecules"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_plan_budget.py"
 why = "the plan-search budget and what it may prune"
 scope = "core"
@@ -95,6 +101,12 @@ owner = "namer"
 [[consumer]]
 file = "tests/test_namer_salt_multiplier.py"
 why = "the salt multiplier (calcium diacetate), unit-tested because the D-rows go through whole salts"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_stereo_parent_choice.py"
+why = "one stereoisomer, one name when the parent can be any of several chains that differ only in configuration (P-44.4.1.12): P-92.5.2.2 example 5 and eight more stereoisomers of its skeleton over random spellings, each descriptor checked per atom against RDKit's whole-molecule labels; the identity that counts equal chains once, and the assembly that sets the descriptors aside"
 scope = "core"
 owner = "namer"
 
