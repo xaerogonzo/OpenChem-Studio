@@ -88,7 +88,13 @@ owner = "namer"
 
 [[consumer]]
 file = "tests/test_namer_parent_citation_locants.py"
-why = "P-45.2.3: of two parents that tie on the key, the one whose prefixes have the lower locants in their order of citation; the book's ten examples (eight decided, two blocked by P-44.4.1.1), the comparison on made-up trees, and that it reaches achiral molecules"
+why = "P-45.2.3: of two parents that tie on the key, the one whose prefixes have the lower locants in their order of citation; the book's examples (fourteen of fifteen decided, 13 already stable), the comparison on made-up trees, and that it reaches achiral molecules"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_multiple_bonds_parent.py"
+why = "P-44.4.1.1: the principal chain has the greater number of multiple bonds (the bonds an infix names, not the infixes), only among chains of equal length; P-44.4.1.2 pinned open"
 scope = "core"
 owner = "namer"
 
