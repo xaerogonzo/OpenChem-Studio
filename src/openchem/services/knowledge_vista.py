@@ -31,8 +31,11 @@ logger = logging.getLogger("openchem.tools")
 
 #: The only `protocol_version` of `kv capabilities` this build understands. Anything else is "present but unusable", said plainly.
 SUPPORTED_PROTOCOL = 1
+#: The settings key holding the path of the `kv` executable (Settings > External tools > Knowledge Vista).
 SETTING_KEY = "knowledgevista/executable_path"
+#: Where a person gets Knowledge Vista; shown as the tab's vendor link. This app never downloads it.
 PROJECT_PAGE = "https://github.com/xaerogonzo/knowledgevista"
+#: How long one `kv` call may take before it is reported as not answering. Long enough for a cold start, short enough that a hung program is not mistaken for a slow one.
 TIMEOUT_SECONDS = 20.0
 
 

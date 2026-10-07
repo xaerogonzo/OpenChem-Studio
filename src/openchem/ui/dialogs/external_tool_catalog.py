@@ -483,6 +483,8 @@ def orca() -> ManagedExecutable:
     )
 
 
+#: Why the Knowledge Vista tab has no Set Up button: it is a separate program this app neither installs nor owns. Stated once so the refusal, the
+#: dialog title and the failure status cannot drift apart.
 _KV_NO_AUTOMATION = (
     "Knowledge Vista is a separate program that OpenChem Studio does not install for you. Get it from its project page, "
     "then use Locate Installed or Browse to point at the `kv` executable."
