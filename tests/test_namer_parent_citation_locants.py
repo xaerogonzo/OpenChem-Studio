@@ -150,6 +150,8 @@ def test_without_the_rule_the_same_spellings_give_two_names(monkeypatch, example
     in, and both of the book's names appear: the preferred one and the one the book says is not.
     """
     monkeypatch.setattr(engine, "_senior_by_citation_locants", lambda trees: None)
+    # P-45.5 (the rule after this one) also decides some of these, which it would do in this rule's place; it is switched off too, so that what is left is plan order
+    monkeypatch.setattr(engine, "_senior_by_alphanumerical_order", lambda trees: None)
     assert _names(smiles) == {book, other}
 
 
