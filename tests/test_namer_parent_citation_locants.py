@@ -16,16 +16,15 @@ failed and no corpus row could see it; the name was not a function of the molecu
 
 Where the fifteen stand, each measured on 13 spellings (`CHANGELOG.md`, 2026-10-06, has the table; the counts before are from the tree before D-191 and D-192):
 
-* **Decided by this rule (twelve):** 1, 2, 3, 4, 5, 7, 8, 10, 11, 12, 14, 15. Both names appeared before; the book's is the only one now. (11 and 12 only since D-191 and
-  D-192, xaerogonzo/OpenChem-Studio#238, made the engine name a `[PH4]` group with its lambda number and a labelled bromine with its label.)
+* **Decided by this rule (fourteen):** 1 to 5, 7, 8, 10 to 12, 14, 15, and 6 and 9. Both names appeared before; the book's is the only one now. (11 and 12 only since D-191 and
+  D-192, xaerogonzo/OpenChem-Studio#238, made the engine name a `[PH4]` group with its lambda number and a labelled bromine with its label; 6 and 9 only since naming
+  round 27, below.)
 * **13** compares two numberings of one chain (`5,8,3,6` against `6,3,8,5`), the choice P-14.4 (g) makes: it was the book's name on every
   spelling before the rule too, so it cannot show the split.
-* **6 and 9** are decided by a criterion that comes BEFORE this one and is not implemented: P-44.4.1.1 (p. 401), "the senior ... principal
-  chain has the greater number of multiple bonds". `strategy._parent_selection_score` counts unsaturation INFIXES, so a `1,3-diene` and a
-  `1,3,13-triene` count one each and tie, and then the `unsaturation_locants` tier, which is only meaningful between numberings of one
-  parent, ranks the shorter set higher: the engine names those two molecules with an ethenyl substituent on a diene, on every spelling.
-  Measured below, pinned as an open defect (a strict xfail, so fixing it fails the suite and this file gets updated), and the rule is
-  shown to decide both examples once the bonds are counted (a stand-in for that fix, not the fix).
+* **6 and 9** needed a criterion that comes BEFORE this one: P-44.4.1.1 (p. 401), "the senior ... principal chain has the greater number of multiple bonds".
+  `strategy._parent_selection_score` counted unsaturation INFIXES, so a `1,3-diene` and a `1,3,13-triene` counted one each and tied, and the `unsaturation_locants`
+  tier, which is only meaningful between numberings of one parent, ranked the shorter set higher: the engine named both molecules with an ethenyl substituent
+  on a diene, on every spelling. It counts the bonds the infixes name now (`tests/test_namer_multiple_bonds_parent.py`).
 
 Three examples of P-45.5, the rule after P-45.3 (nonstandard bonding numbers) and P-45.4 (isotopes), are pinned as the next rule in line:
 they tie on this one by the book's own words and are still two names over the spellings.
@@ -93,6 +92,14 @@ DECIDED = [
     ("12", "CC(Cl)C([81Br])C(CC(=O)O)C([81Br])C(C)Br",
      "4-(81Br)bromo-3-[1-(81Br)bromo-2-bromopropyl]-5-chlorohexanoic acid",
      "4-(81Br)bromo-5-bromo-3-[1-(81Br)bromo-2-chloropropyl]hexanoic acid"),
+    # 6 and 9 were blocked by P-44.4.1.1 (the principal chain has the greater number of multiple bonds) until naming round 27: `parent_selection` counted
+    # unsaturation INFIXES, so a diene and a triene tied and the diene with an ethenyl substituent won on every spelling.
+    ("6", "C=CC=CCCCC(CCC(C)C(C=C)CC)CCC(CC)C(C)C=C",
+     "11-ethyl-8-(4-ethyl-3-methylhex-5-en-1-yl)-12-methyltetradeca-1,3,13-triene",
+     "12-ethyl-8-(3-ethyl-4-methylhex-5-en-1-yl)-11-methyltetradeca-1,3,13-triene"),
+    ("9", "C=CC=CCC(C(C)C(C=C)CC)C(CC)C(C)C=C",
+     "7-ethyl-6-(3-ethylpent-4-en-2-yl)-8-methyldeca-1,3,9-triene",
+     "8-ethyl-7-methyl-6-(4-methylhex-5-en-3-yl)deca-1,3,9-triene"),
 ]
 
 # Example 13 was already the book's name on every spelling BEFORE the rule: the book compares two numberings of one chain, which is the choice
@@ -117,21 +124,6 @@ ALPHANUMERICAL = [
      "4-(1,2-difluoropropyl)-5,6-dinitroheptanoic acid",
      "4-(1,2-dinitropropyl)-5,6-difluoroheptanoic acid"),
 ]
-
-# Examples 6 and 9: the chain with the greater number of multiple bonds is the parent (P-44.4.1.1), and only then is this rule reached.
-TRIENES = [
-    ("6", "C=CC=CCCCC(CCC(C)C(C=C)CC)CCC(CC)C(C)C=C",
-     "11-ethyl-8-(4-ethyl-3-methylhex-5-en-1-yl)-12-methyltetradeca-1,3,13-triene",
-     "12-ethyl-8-(3-ethyl-4-methylhex-5-en-1-yl)-11-methyltetradeca-1,3,13-triene"),
-    ("9", "C=CC=CCC(C(C)C(C=C)CC)C(CC)C(C)C=C",
-     "7-ethyl-6-(3-ethylpent-4-en-2-yl)-8-methyldeca-1,3,9-triene",
-     "8-ethyl-7-methyl-6-(4-methylhex-5-en-3-yl)deca-1,3,9-triene"),
-]
-# What the engine says for them today, on every spelling: a diene with an ethenyl substituent, which P-44.4.1.1 does not allow.
-TRIENE_GAP = {
-    "6": "12-ethenyl-8-(3-ethyl-4-methylhex-5-en-1-yl)-11-methyltetradeca-1,3-diene",
-    "9": "8-ethenyl-7-methyl-6-(4-methylhex-5-en-3-yl)deca-1,3-diene",
-}
 
 # P-45.6.2 example 3 (p. 426), whose second name was recorded as this gap and not a stereo one: the book prints the first, the engine used to
 # print the second on 9 of 12 spellings.
@@ -178,8 +170,8 @@ def test_without_the_rule_the_same_spellings_give_two_names(monkeypatch, example
 
 
 @needs_opsin
-@pytest.mark.parametrize("example,smiles,book,other", DECIDED + KEPT + TRIENES + ALPHANUMERICAL,
-                         ids=[f"example {e}" for e, *_rest in DECIDED + KEPT + TRIENES + ALPHANUMERICAL])
+@pytest.mark.parametrize("example,smiles,book,other", DECIDED + KEPT + ALPHANUMERICAL,
+                         ids=[f"example {e}" for e, *_rest in DECIDED + KEPT + ALPHANUMERICAL])
 def test_the_other_name_is_the_same_molecule(example, smiles, book, other):
     """Both names of each pair read back to the structure above, so the choice is between two names of ONE molecule and nothing else."""
     from py2opsin import py2opsin
@@ -193,44 +185,9 @@ def test_the_other_name_is_the_same_molecule(example, smiles, book, other):
 
 def test_the_rule_reaches_molecules_that_carry_no_stereo():
     """The reason it is a change of its own: the stereo tie-break was gated on `_carries_stereo`, and none of these is."""
-    for _example, smiles, book, _other in DECIDED + KEPT + TRIENES + ALPHANUMERICAL:
+    for _example, smiles, book, _other in DECIDED + KEPT + ALPHANUMERICAL:
         assert not engine._carries_stereo(Chem.MolFromSmiles(smiles)), smiles
         assert not re.search(r"\d[RSEZ][,)]", book), book                                    # and the book's name cites no descriptor
-
-
-# --- examples 6 and 9: decided once the chain with the most multiple bonds is the parent -------------------------------------
-
-def _count_multiple_bonds(monkeypatch):
-    """A stand-in for P-44.4.1.1, NOT the fix: `parent_selection` counts the bonds an unsaturation infix names, not the infixes."""
-    from openchem.vendor.iupac_namer import strategy
-
-    owner = next(cls for cls in vars(strategy).values()
-                 if isinstance(cls, type) and "_parent_selection_score" in vars(cls))
-    original = owner._parent_selection_score
-
-    def counted(self, plan, **kwargs):
-        infixes = plan.unsaturation or ()
-        return original(self, plan, **kwargs) + (sum(len(i.locants) for i in infixes) - len(infixes)) * 0.001
-
-    monkeypatch.setattr(owner, "_parent_selection_score", counted)
-
-
-@pytest.mark.parametrize("example,smiles,book,other", TRIENES, ids=[f"example {e}" for e, *_rest in TRIENES])
-def test_examples_6_and_9_are_decided_by_the_rule_once_the_multiple_bonds_are_counted(monkeypatch, example, smiles, book, other):
-    _count_multiple_bonds(monkeypatch)
-    assert _names(smiles) == {book}
-
-
-@pytest.mark.parametrize("example,smiles,book,other", TRIENES, ids=[f"example {e}" for e, *_rest in TRIENES])
-def test_examples_6_and_9_are_not_reached_today(example, smiles, book, other):
-    """The measured gap, on every spelling: P-44.4.1.1 is not implemented, so a diene with an ethenyl substituent is the parent."""
-    assert _names(smiles) == {TRIENE_GAP[example]}
-
-
-@pytest.mark.xfail(strict=True, reason="open defect, P-44.4.1.1 (the principal chain has the greater number of multiple bonds) is not implemented")
-@pytest.mark.parametrize("example,smiles,book,other", TRIENES, ids=[f"example {e}" for e, *_rest in TRIENES])
-def test_examples_6_and_9_are_the_books_name(example, smiles, book, other):
-    assert _names(smiles) == {book}
 
 
 # --- P-45.5: the next rule in line, not implemented ---------------------------------------------------------------------------
@@ -307,7 +264,7 @@ def test_p_45_6_2_example_3_second_name_is_the_books():
 def test_the_names_pinned_above_read_back_to_their_structures():
     from py2opsin import py2opsin
 
-    for smiles, name in [(s, b) for _e, s, b, _o in DECIDED + KEPT + TRIENES + ALPHANUMERICAL] + [(P4562_EX3[0], P4562_EX3[1])]:
+    for smiles, name in [(s, b) for _e, s, b, _o in DECIDED + KEPT + ALPHANUMERICAL] + [(P4562_EX3[0], P4562_EX3[1])]:
         back = py2opsin(name)
         assert back, name
         assert Chem.MolToInchiKey(Chem.MolFromSmiles(back)) == Chem.MolToInchiKey(Chem.MolFromSmiles(smiles)), name
