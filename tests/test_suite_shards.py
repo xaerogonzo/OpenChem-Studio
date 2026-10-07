@@ -10,6 +10,7 @@ property here is secondary to the partition being exact.
 from __future__ import annotations
 
 import importlib.util
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -17,6 +18,20 @@ from pathlib import Path
 import pytest
 
 REPO = Path(__file__).resolve().parent.parent
+WORKFLOW = REPO / ".github" / "workflows" / "tests.yml"
+CRASH_RATE_WORKFLOW = REPO / ".github" / "workflows" / "windows-crash-rate.yml"
+SHARD_SCRIPT = REPO / "tools" / "ci_suite_shard.ps1"
+
+
+def _ci_splits() -> int:
+    """How many shards CI runs: the size of the Windows suite job's matrix, which is the ONLY place the number is written
+    (`tests.yml` hands it to the script as `strategy.job-total`)."""
+    text = WORKFLOW.read_text(encoding="utf-8")
+    match = re.search(r"^\s+shard:\s*\[([0-9,\s]+)\]\s*$", text, re.MULTILINE)
+    assert match, "tests.yml no longer has a `shard: [1, 2, ...]` matrix"
+    shards = [int(part) for part in match.group(1).split(",")]
+    assert shards == list(range(1, len(shards) + 1)), f"the matrix {shards} is not 1..N"
+    return len(shards)
 
 
 def _module():
@@ -166,8 +181,9 @@ def test_the_weight_table_only_names_files_that_exist():
 # --- pinned placement: adding a test file must not move any other file ----------------------------------
 
 
-def _pins(module, splits=2):
-    return module.load_pins().get(str(splits), {})
+def _pins(module, splits=None):
+    """The pin table for `splits` shards; by default the one CI uses, which is the size of the workflow's matrix."""
+    return module.load_pins().get(str(_ci_splits() if splits is None else splits), {})
 
 
 def test_adding_a_test_file_moves_no_other_file():
@@ -177,15 +193,16 @@ def test_adding_a_test_file_moves_no_other_file():
     module = _module()
     files = module.test_files()
     durations = module.load_durations()
+    n = _ci_splits()
     pins = _pins(module)
-    assert pins, "no pin table committed for 2 shards"
+    assert pins, f"no pin table committed for {n} shards"
 
     def placement(groups):
         return {name: i for i, group in enumerate(groups) for name in group}
 
     extra = files + ["tests/test_a_brand_new_file.py", "tests/test_another_new_file.py"]
-    before = placement(module.assign(files, durations, 2, pins))
-    after = placement(module.assign(extra, durations, 2, pins))
+    before = placement(module.assign(files, durations, n, pins))
+    after = placement(module.assign(extra, durations, n, pins))
     # PINNED files are what is guaranteed not to move. An UNPINNED file is packed among the other unpinned
     # ones, so adding files can move it (a pass on master that depended on that luck failed in every leg of
     # the crash measurement's control arm, whose tree has one file fewer). `--pin-new` makes it permanent.
@@ -193,8 +210,8 @@ def test_adding_a_test_file_moves_no_other_file():
 
     # The control: with no pins the same addition does reshuffle existing files (if it ever stops doing so
     # the pins are no longer what is keeping this test green, and it should be looked at).
-    loose_before = placement(module.assign(files, durations, 2))
-    loose_after = placement(module.assign(extra, durations, 2))
+    loose_before = placement(module.assign(files, durations, n))
+    loose_after = placement(module.assign(extra, durations, n))
     assert any(loose_after[k] != v for k, v in loose_before.items()), "the control no longer reshuffles"
 
 
@@ -202,18 +219,19 @@ def test_the_committed_pins_are_what_the_split_uses():
     module = _module()
     pins = _pins(module)
     files = module.test_files()
-    groups = module.assign(files, module.load_durations(), 2, pins)
+    groups = module.assign(files, module.load_costs(), _ci_splits(), pins)
     placed = {name: i for i, group in enumerate(groups) for name in group}
     assert all(placed[name] == shard for name, shard in pins.items() if name in placed)
 
 
+@pytest.mark.parametrize("table", [2, 3])
 @pytest.mark.parametrize("splits", [1, 2, 3, 5])
-def test_pinned_assignment_is_still_an_exact_partition(splits):
-    """Pins made for 2 shards must never drop a file when asked for another count: an out-of-range pin is
-    ignored, not obeyed."""
+def test_pinned_assignment_is_still_an_exact_partition(splits, table):
+    """Pins made for one shard count must never drop a file when asked for another: an out-of-range pin is
+    ignored, not obeyed. Both committed tables are checked (the 2-way one is kept for the crash-rate workflow)."""
     module = _module()
     files = module.test_files() + ["tests/test_a_brand_new_file.py"]
-    pins = _pins(module, 2)
+    pins = _pins(module, table)
     groups = module.assign(files, module.load_durations(), splits, pins)
     flat = [name for group in groups for name in group]
     assert sorted(flat) == sorted(files)
@@ -223,7 +241,7 @@ def test_a_pin_for_a_deleted_file_is_ignored():
     module = _module()
     files = module.test_files()
     pins = dict(_pins(module), **{"tests/test_deleted_long_ago.py": 1})
-    groups = module.assign(files, module.load_durations(), 2, pins)
+    groups = module.assign(files, module.load_durations(), _ci_splits(), pins)
     assert sorted(name for group in groups for name in group) == sorted(files)
 
 
@@ -246,19 +264,26 @@ def test_the_pins_have_not_rotted():
     stale = sorted(set(pins) - files)
     assert len(unpinned) < 25, (
         f"{len(unpinned)} test files have no pin ({unpinned[:3]}...). Re-pin in a PR of its own: "
-        "`python tools/suite_shards.py --repin --splits=2`."
+        f"`python tools/suite_shards.py --repin --splits={_ci_splits()}` (it balances on `load_costs`, the hook included)."
     )
     assert len(stale) < 25, f"{len(stale)} pins name files that no longer exist: {stale[:3]}..."
 
 
-def test_the_pinned_shards_are_balanced_enough():
+def test_the_pinned_shards_are_balanced_on_what_a_shard_costs():
+    """Balanced on `load_costs`, not on reported test time: a shard's CI wall time is its tests + the `gc.collect()` after each Qt
+    test + ~30 s, so a split balanced on the first term alone is lopsided in the second (shard 1 carried 714 s of collects against
+    shard 2's 394 s, while the weights said they were even). Measured on the committed tables: the 3-way table is at 0.09% (spread
+    over total cost), the old packer's 3-way table, made on reported time, at 2.0%, and the 2-way split CI ran until 2026-10-06 at
+    7.2%. The tolerance is 1%: wide enough for files added since (each goes to the lightest shard), narrow enough to fail a table that
+    was made without the hook. The weights are committed, so this does not move with the runner's noise."""
     module = _module()
-    durations = module.load_durations()
-    if not durations:
+    costs = module.load_costs()
+    if not costs:
         pytest.skip("no weight table committed")
-    groups = module.assign(module.test_files(), durations, 2, _pins(module))
-    totals = [sum(durations.get(name, 0.0) for name in group) for group in groups]
-    assert abs(totals[0] - totals[1]) / sum(totals) < 0.25, f"shards weigh {totals[0]:.0f} s vs {totals[1]:.0f} s"
+    n = _ci_splits()
+    groups = module.assign(module.test_files(), costs, n, _pins(module))
+    totals = [sum(costs.get(name, 0.0) for name in group) for group in groups]
+    assert max(totals) - min(totals) < 0.01 * sum(totals), f"shards cost {[round(t) for t in totals]} s"
 
 
 def test_pin_new_pins_unpinned_files_where_they_already_sit_and_moves_nobody(tmp_path):
@@ -308,5 +333,125 @@ def test_a_slice_that_selects_nothing_or_is_malformed_is_an_error_not_a_pass(spe
 
 def test_the_cli_slice_is_a_prefix_of_the_unsliced_shard():
     module = _module()
-    shard = module.assign(module.test_files(), module.load_durations(), 2, _pins(module))[0]
+    shard = module.assign(module.test_files(), module.load_costs(), _ci_splits(), _pins(module))[0]
     assert module.slice_files(shard, "0:5") == shard[:5]
+
+
+# --- the number of shards has ONE source, and the pins and costs are what CI will actually run -----------------
+
+
+def test_the_workflow_runs_exactly_the_shards_the_committed_pins_cover():
+    """THE DANGEROUS MISMATCH IS A MATRIX SMALLER THAN THE SPLIT. `--splits=3` with a matrix of [1, 2] runs two thirds of the suite and
+    every job is green; `--splits=2` with [1, 2, 3] fails shard 3 outright, which is the kind one. So the matrix is the split count
+    (below), and the pin table made for that count has to exist and cover every file, or a shard would be packed from weights and
+    move files that nobody chose to move."""
+    module = _module()
+    n = _ci_splits()
+    pins = _pins(module)
+    files = module.test_files()
+    assert pins, f"the workflow runs {n} shards and `tools/suite-shard-pins.json` has no table for {n}"
+    assert not (set(files) - set(pins)), (
+        f"files with no pin in the {n}-way table: {sorted(set(files) - set(pins))[:3]}. A PR that adds a test file runs "
+        "`python tools/suite_shards.py --pin-new` (its default is the matrix's size, so it pins into the table CI uses)."
+    )
+    groups = module.assign(files, module.load_costs(), n, pins)
+    flat = [name for group in groups for name in group]
+    assert sorted(flat) == sorted(files) and len(groups) == n and all(groups), "the CI split is not an exact, non-empty partition"
+
+
+def test_the_split_count_is_written_once_and_the_script_cannot_default_it():
+    workflow = WORKFLOW.read_text(encoding="utf-8")
+    suite_job = workflow.split("\n  gates:")[0]
+    # both attempts of the suite step take the count from the matrix itself
+    runs = re.findall(r"^\s+run: \./tools/ci_suite_shard\.ps1 .*$", suite_job, re.MULTILINE)
+    assert len(runs) == 2, "the suite job no longer runs the shard script exactly twice (an attempt and its retry)"
+    assert all("-Splits ${{ strategy.job-total }}" in run for run in runs), f"an attempt that does not pass the matrix size: {runs}"
+    assert re.search(r"^\s+name: test suite \${{ matrix\.shard }}/\${{ strategy\.job-total }}\s*$", suite_job, re.MULTILINE), (
+        "the job name no longer says how many shards there are")
+    assert not re.search(r"--splits[= ]\d", suite_job), "a literal split count in the workflow"
+
+    script = SHARD_SCRIPT.read_text(encoding="utf-8")
+    assert re.search(r"\[Parameter\(Mandatory\)\]\[int\]\$Splits", script), "-Splits must be mandatory: a default is a silent 2-way split"
+    assert not re.search(r"--splits=\d", script), "the script hard-codes a split count"
+    assert "--splits=$Splits" in script
+
+    # the crash-rate workflow samples the 2-way split its records were measured on, and says so by passing 2 explicitly
+    crash = CRASH_RATE_WORKFLOW.read_text(encoding="utf-8")
+    assert crash.count("ci_suite_shard.ps1") == 2 and crash.count("-Splits 2") == 2
+    assert "--splits=2" in crash and _pins(_module(), 2), "the 2-way pin table must stay committed for it"
+
+
+def test_the_default_split_count_is_the_workflows_matrix_size(tmp_path):
+    """`--pin-new` and `--repin` default to the count CI runs, so the habit of running them with no argument pins into the table CI
+    uses (with a default of 2, a plain `--pin-new` filled the retired 2-way table and the 3-way guard failed for a PR that did
+    everything the docs said)."""
+    module = _module()
+    assert module.ci_splits() == _ci_splits()
+    script = REPO / "tools" / "suite_shards.py"
+    default = subprocess.run([sys.executable, str(script), "--group=1"], capture_output=True, text=True)
+    explicit = subprocess.run([sys.executable, str(script), f"--splits={_ci_splits()}", "--group=1"], capture_output=True, text=True)
+    assert default.returncode == 0 and default.stdout.strip() and default.stdout == explicit.stdout
+    # and when the matrix cannot be read, the old default, not a crash
+    assert module.ci_splits(tmp_path / "missing.yml") == 2
+    odd = tmp_path / "odd.yml"
+    odd.write_text("jobs:\n  suite:\n    strategy:\n      matrix:\n        os: [a]\n", encoding="utf-8")
+    assert module.ci_splits(odd) == 2
+
+
+def test_a_files_cost_is_its_reported_time_plus_the_collects_after_its_qt_tests():
+    module = _module()
+    costs = module.load_costs({"tests/test_a.py": 10.0, "tests/test_b.py": 5.0}, {"tests/test_a.py": 10, "tests/test_c.py": 3})
+    assert costs["tests/test_a.py"] == pytest.approx(10.0 + 10 * module.HOOK_SECONDS)
+    assert costs["tests/test_b.py"] == 5.0                                   # no Qt tests: no hook
+    assert costs["tests/test_c.py"] == pytest.approx(3 * module.HOOK_SECONDS)  # a file the timing table has not met still has a hook
+
+
+def test_the_hook_term_keeps_a_qt_heavy_file_from_sharing_a_shard_it_would_overload():
+    """The failure this is for: three files, a and b of equal reported time but a with 100 Qt tests (40 s of collects), and c of 60 s.
+    Packed on reported time alone, a and b look interchangeable and share a shard; with the hook, a is alone and b joins c."""
+    module = _module()
+    files = ["tests/test_a.py", "tests/test_b.py", "tests/test_c.py"]
+    times = {"tests/test_a.py": 50.0, "tests/test_b.py": 50.0, "tests/test_c.py": 60.0}
+    blind = module.assign(files, times, 2)
+    aware = module.assign(files, module.load_costs(times, {"tests/test_a.py": 100}), 2)
+    assert any({"tests/test_a.py", "tests/test_b.py"} <= set(group) for group in blind), "the control changed"
+    assert ["tests/test_a.py"] in aware and ["tests/test_b.py", "tests/test_c.py"] in aware
+
+
+def test_the_qapp_counts_name_only_files_that_exist_and_are_positive():
+    module = _module()
+    counts = module.load_qapp_counts()
+    assert counts, "no qapp-count table committed: the hook is invisible to the split"
+    files = set(module.test_files())
+    assert not (set(counts) - files), f"counts for files that do not exist: {sorted(set(counts) - files)[:3]}"
+    assert all(isinstance(v, int) and v > 0 for v in counts.values())
+
+
+def test_the_qapp_counting_plugin_counts_what_the_hook_collects_after(tmp_path):
+    """The plugin must use the criterion `tests/conftest.py` uses for who gets a gc.collect(), checked on a file that defines its own
+    `qapp`: one test requests it directly, one through another fixture, one not at all."""
+    sample = tmp_path / "test_sample_qt.py"
+    sample.write_text(
+        "import pytest\n\n"
+        "@pytest.fixture\ndef qapp():\n    return object()\n\n"
+        "@pytest.fixture\ndef window(qapp):\n    return object()\n\n"
+        "def test_direct(qapp):\n    pass\n\n"
+        "def test_through_another_fixture(window):\n    pass\n\n"
+        "def test_no_qt():\n    pass\n",
+        encoding="utf-8",
+    )
+    out = tmp_path / "counts.json"
+    import json
+    import os
+
+    env = {**os.environ, "SUITE_QAPP_OUT": str(out), "PYTHONPATH": str(REPO / "tools")}
+    run = subprocess.run(
+        [sys.executable, "-m", "pytest", str(sample), "--collect-only", "-q", "-p", "suite_qapp_plugin", "-p", "no:cacheprovider",
+         "--rootdir", str(tmp_path)],
+        cwd=tmp_path, env=env, capture_output=True, text=True,
+    )
+    assert run.returncode == 0, run.stdout + run.stderr
+    assert json.loads(out.read_text(encoding="utf-8")) == {"test_sample_qt.py": 2}
+    # and the criterion is the conftest's own, character for character, so the two cannot drift apart unseen
+    assert '"qapp" in getattr(item, "fixturenames", ())' in (REPO / "tests" / "conftest.py").read_text(encoding="utf-8")
+    assert '"qapp" in getattr(item, "fixturenames", ())' in (REPO / "tools" / "suite_qapp_plugin.py").read_text(encoding="utf-8")
