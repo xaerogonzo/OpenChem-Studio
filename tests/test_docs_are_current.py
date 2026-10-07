@@ -492,6 +492,27 @@ def _plugins_registering_reactions(root: Path) -> list[str]:
 #: silently fall behind the document.
 DEFERRALS: list[Deferral] = [
     Deferral(
+        claim="the command line reproduces `_CalculationTask._run`'s steps instead of sharing them",
+        # Unbuilt while the command line still carries its OWN copy of the task's
+        # stamping step. (`descriptor_service.py` already has a METHOD called
+        # `run_calculator`, so its absence cannot be the signal.) Converging deletes
+        # the copy and imports the shared function; the parity test is what keeps the
+        # two equal until then.
+        unbuilt=lambda: "def with_geometry_provenance" in (_ROOT / "src/openchem/cli/calculation.py").read_text(encoding="utf-8"),
+    ),
+    Deferral(
+        claim="what the command line does not do yet",
+        # Four absences, all of which must still hold: no profile command, no way to
+        # name a sidecar interpreter for one run, `iupac_name` still refused, and the
+        # service-run entries (Docking, ORCA) still not runnable through it.
+        unbuilt=lambda: (
+            "profile" not in (_ROOT / "src/openchem/cli/commands.py").read_text(encoding="utf-8").split("COMMANDS: tuple")[1]
+            and "--interpreter" not in (_ROOT / "src/openchem/cli/commands.py").read_text(encoding="utf-8")
+            and '"iupac_name"' in (_ROOT / "src/openchem/cli/calculation.py").read_text(encoding="utf-8")
+            and "ServiceExecution" not in (_ROOT / "src/openchem/cli/calculation.py").read_text(encoding="utf-8")
+        ),
+    ),
+    Deferral(
         claim="a coordinate-only edit recomputes every result",
         unbuilt=lambda: "constitution" not in (_ROOT / "src/openchem/chem/calculation_input.py").read_text(encoding="utf-8").lower(),
         manual=(

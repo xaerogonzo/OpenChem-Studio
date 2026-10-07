@@ -488,7 +488,12 @@ _ENTRY_POINT = "openchem.main"
 #: the same reason `applies_to` is a closed vocabulary while `category` is
 #: not. The REASON after the colon is free text, because a new instance of
 #: a known mechanism needs no code change.
-_ENTRY_SURFACES = frozenset({"script_path", "tooling"})
+# `console_script` is a second console script (`openchem-cli`) declared in pyproject.toml and
+# entered by the operating system, not by an import from `openchem.main`. A genuinely new
+# mechanism rather than a `script_path` (which is a file handed to another interpreter), and
+# `tests/test_cli.py::test_the_declared_console_script_is_really_in_pyproject` checks the
+# declaration is true.
+_ENTRY_SURFACES = frozenset({"script_path", "tooling", "console_script"})
 
 _REACHED_BY = "REACHED_BY"
 

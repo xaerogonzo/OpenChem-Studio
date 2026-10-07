@@ -38,6 +38,7 @@ subscribe by event type rather than by ad-hoc signal name.
 | `openchem.plugins` | `interfaces.py` (`Plugin`, `DescriptorProvider`, `ConformerProvider`, `DockingProvider`, `QuantumEngineProvider`, `FactProvider`, `PanelProvider`, `MenuProvider`, `Importer`, `Exporter`), `manifest.py` (`PluginManifest` + dependency topological sort), `context.py` (`PluginContext`, including the `context.secrets` namespace backed by the OS keychain via `keyring`, and `context.molecules`/`context.docking`/`context.quantum_chemistry`), `ui_registry.py` (`UIRegistry` protocol), `manager.py` (`PluginManager` — discovery, transactional load/unload/reload, hot-reload watcher). See `PLUGIN_SDK.md`. |
 | `openchem.app` | Composition: `MainWindow`, typed `Settings`, `SessionManager`, structured logging setup. `MainWindow` implements the `UIRegistry` protocol and constructs `PluginManager` at the end of `__init__`. |
 | `openchem.ui` | Widgets and dock panels. `EditorBackend`/`KetcherEditorBackend` (2D, `resources/ketcher/dist/`), `ViewerBackend`/`Mol3DViewerBackend` (3D small molecules, `resources/viewer3d/`, 3Dmol.js), and `ViewerBackend`/`MolStarViewerBackend` (macromolecules/crystallography, `resources/molstar/`, Mol*) are interface + implementation pairs — new content types get a sibling implementation, or a new optional capability method on the shared `ViewerBackend` base, without touching chemistry, services, or commands. `panels/docking_panel.py` and `panels/quantum_chemistry_panel.py` are core (not plugin) panels, same tier as `PropertyPanel`. Four widgets **compute nothing and are handed already-decided data**, which is what keeps `ui/` free of the chemistry layer: `widgets/atom_diagram.py` (shell rings with a p/n nucleus, and orbital boxes with spin arrows, drawn from `chem/electron_shells.py`'s triples) and `widgets/zoomable_svg_view.py` (an SVG at its own size in a scroll area, shared by the Lewis dialog and the decay chart -- extracted rather than copied, with the dialog keeping its whole surface as delegations so the extraction is behaviour-neutral by construction) and `widgets/substance_card.py` (the Properties panel's identity header, whose shape follows what the structure IS — a salt shows its formula unit and its ions, a complex its metal and two named counts) and `widgets/stick_chart_widget.py` (a declared `ChartAnnotation`, drawn and never edited: it refuses a malformed annotation rather than repairing one, and renormalises, reorders and relabels nothing — the axis mechanics live in `widgets/plot_axis.py`, extracted for it rather than generalised out of the NMR and IR spectrum widgets, which know three chemistries between them and are deliberately left alone). `widgets/results_view.py` is the results reader, and it is a WIDGET rather than a window so that one class serves both formats it appears in: a dock in the `analysis` group that follows the selection, and the pop-out window `PopOutHost` MOVES it into. It replaced a per-molecule dialog, which could not follow a selection because a dialog is opened, read and closed; every "Details..." button reaches this one surface, focused by `report_id`, rather than a second implementation of it. **The help-contract layer lives here too and knows no chemistry**: `widgets/help_tooltip.py` is the metadata (a `HelpTooltip` is constructible with no `QApplication`, which is what makes it unit-testable), `widgets/tooltip_inventory.py` is the ONE definition of which controls owe the user an explanation, and `app/menu_help.py` carries the menu bar's contracts so `main_window.py` keeps only the job of building menus. `tests/test_tooltip_coverage.py` and `tools/list_tooltips.py` both consume `iter_documentable_controls` and neither walks the tree itself — two implementations of "all interactive controls" would drift, which this repository has paid for four times. |
+| `openchem.cli` | **The headless command line** (`openchem-cli`, or `python -m openchem.cli`): the registry's calculators asked from a script or an agent, with **no window, no event loop and no Qt**. `calculation.py` is the Qt-free twin of `DescriptorService`'s `_CalculationTask._run` -- resolve the input structure, compute, merge the geometry and parameters into the result's provenance, map a `CalculationRefusal` -- minus the events and the thread pool, which is all that task adds; `serialise.py` writes any result as plain data generically, so no field is dropped by a per-type writer; `commands.py` is the command table, the parser and `main`. Three commands, all `pure_read`: `commands --json` (the manifest, flags read from the parser), `calculators` (every registered calculator with its parameters, stage and whether this tool can run it) and `calculate --smiles S --calculator ID [--param NAME=VALUE]... [--conformer]`. **Status is `status_of`'s word, never "it did not raise":** with no sidecar configured `admet_ml` returns an `AlertResult` and `pka` a `ReportResult`, both saying "not configured", and `needs_input` exits 2, `needs_setup` exits 3, a limit or fault exits 1. The command line does not read or write the settings store (`QSettings` is the Windows registry), so the sidecar calculators run unconfigured and say so. See "The command line" below. |
 | `openchem.vendor` | Third-party code owned in-tree rather than depended on. Two entries: `iupac_namer`, a deterministic IUPAC nomenclature engine (structure -> name), reached only through `chem/naming_providers.py`; and `chembl_structure_pipeline`, ChEMBL's GetParent rule and its salt and solvent lists, verbatim, reached only through `chem/components.py`. Nothing else imports either. See below and `vendor/VENDORING.md`. |
 | `plugins/ai_assistant` | Bundled first-party plugin (loads by default, unlike `examples/`). `providers.py` (`AIProvider` ABC, `AnthropicProvider`, `OpenAICompatibleProvider` covering OpenAI + local Ollama, `ClaudeCLIProvider` driving a locally-logged-in `claude` CLI headless for claude.ai subscription users with no separate API key), `context_builder.py` (`MoleculeContextCache` — accumulates molecule identity/descriptors purely from subscribed events, same pattern as `PropertyPanel`), `panel.py` (chat UI), `plugin.py` (registers the panel + two menu-driven canned prompts). Kept out of core `openchem` so the `anthropic`/`openai` SDKs stay optional (`pyproject.toml`'s `ai` extra) — `ClaudeCLIProvider` needs neither, just `claude` on PATH. |
 | `plugins/database_search` | Bundled plugin: `DatabaseSearchProvider` ABC (`PubChemProvider`, `ChEMBLProvider`), search results import as a new molecule via `context.molecules.add(...)`. `requests` stays optional (`network` extra). |
@@ -749,6 +750,66 @@ Results across an update is not a preference yet. Its states act on which
 build computed a result, and nothing displays that; see ROADMAP, "A
 Settings page".
 
+### The command line
+
+`openchem-cli` (or `python -m openchem.cli`) runs one registered calculator on one structure and
+prints **one JSON envelope on stdout**, with no window, no event loop and no Qt. It follows the
+TokenSave Manager's agent-tool contract (the envelope, the exit codes, a side-effect class per
+command); this tool is self-scoped, so there is no `--project`.
+
+**It reproduces the service task rather than sharing it, and a test is what keeps the two equal.**
+`DescriptorService`'s `_CalculationTask` is a `QRunnable` that publishes events, so it cannot be
+imported without Qt, and its private stamping helpers live in the same module. Everything it does
+*around* `registry.compute` is small and Qt-free (`resolve_calculation_input`,
+`geometry_provenance`, `recordable_parameters`), so `cli/calculation.py` repeats those steps in
+the same order. `tests/test_cli.py` then runs the real task beside it, on the same model, for
+ten (molecule, calculator) cases covering every status and four result shapes, and compares the
+result whole (timestamps aside) or, for a refusal, the status the application reads back and its
+code -- the discipline `tools/calculator_census.py` states as "through the service, not by
+import". The cleaner end state is one function that both call; it was not done here because it
+edits a core service file under active development. See the OPEN entry below.
+
+**A returned value is not a pass.** Status is `domain.result_status.status_of`, the application's
+own word, and `needs_input` (exit 2) and `needs_setup` (exit 3) are neither failures nor
+successes. Measured on aspirin with a conformer, over all 58 runnable calculators: 47 ready, 5
+needs_setup, 4 needs_input, 2 inapplicable, **0 failed**, 1.3 s in total. The 16 `failed` results
+an earlier bare-SMILES survey showed were all one sentence -- "the available conformer is 2D" --
+which is why `--conformer` exists.
+
+**`pure_read` is measured, and one calculator is refused because of it.** Every runnable
+calculator was run with Python-level file writes, subprocesses, sockets and temp files recorded:
+exactly one touched anything. `iupac_name` reached the network, started Java twice and wrote two
+temp files, so it is refused by name (`EXTERNAL_EFFECT_CALCULATORS`), and
+`test_no_other_calculator_has_a_side_effect` repeats the measurement, so a calculator that gains
+a side effect fails there instead of silently breaking the promise. It cannot see a C extension
+that writes on its own, and says so.
+
+**The settings store is never opened.** The sidecar calculators (pKa, ADMET) read their
+interpreter path through `_bind_settings`, which reads `QSettings` -- on Windows, the registry --
+so the command line registers the definitions unbound and those calculators refuse as
+`needs_setup`, which is the true state of a process that was not told an interpreter.
+
+**Other decisions worth knowing before changing it:**
+
+- `--conformer` generates one **seeded, unoptimised** embedding (`RDKitConformerProvider`'s own
+  default seed is `None`, i.e. the global RNG, which is right for a random search and wrong for a
+  tool whose answers are meant to repeat), and a geometry result computed on it says so in
+  `warnings`. `ready` says the calculator ran, not that the geometry was good.
+- A `--param` name no parameter declares is **refused**: the registry passes undeclared keys
+  straight through ("callers may hand a calculator internal settings"), so a misspelling would
+  otherwise be a silently different calculation. Values are coerced to the declared kind and
+  checked against its range and choices.
+- The molecule's uuid and the conformer's id are fixed, because both are `uuid4()` by default and
+  both end up inside every result's provenance. Measured over twelve runs, the output then differs
+  only in the result's two timestamps (and `payload_bytes`, which moves by a byte because a
+  timestamp's decimal form varies in length).
+- A result over `--max-bytes` is **withheld whole**, with its size and a warning, never cut: half
+  a per-atom table that parses is a plausible wrong answer. A calculator is a synchronous call
+  that cannot be interrupted from inside, so `--timeout` ends the process -- after writing the one
+  envelope, whichever of the run and the deadline gets there first.
+- stdout is the envelope's alone: `sys.stdout` is pointed at stderr while a command runs, so a
+  calculator that prints cannot corrupt it.
+
 ## Known TODOs
 
 **Every item carries a verdict**, because this list had become half
@@ -765,6 +826,17 @@ label says what it is.
 `tests/test_docs_are_current.py` guards the mechanical half of this: no
 document may cite a file or a test that does not exist.
 
+
+- **OPEN** -- the command line reproduces `_CalculationTask._run`'s steps instead of sharing them
+  (see "The command line"). Extract one Qt-free function from the task, have both call it, and
+  keep `test_the_cli_path_agrees_with_the_application_path` as the proof the extraction changed
+  nothing. Not done in the change that added the command line, because it edits
+  `services/descriptor_service.py`.
+- **OPEN** -- what the command line does not do yet: the service-run entries (Docking, ORCA), which
+  are not registry calculators; a way to name a sidecar interpreter for one run (`pka`, `admet_ml`,
+  `solubility` refuse as `needs_setup` until then); a whole-profile command that runs every
+  calculator on one structure and returns the status table; and `iupac_name`, which needs a
+  decision about whether a command may start Java and reach the network.
 
 - **SETTLED** (2026-09-14) -- ORCA spectra carry an exact input identity.
   They used to carry none, so the Atom Inspector showed a QM shift computed

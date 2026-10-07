@@ -34,6 +34,9 @@ dependencies = [
 
 [project.scripts]
 openchem = "openchem.main:main"
+# Headless calculators: one JSON envelope on stdout, no Qt. See docs/ARCHITECTURE.md
+# ("The command line").
+openchem-cli = "openchem.cli.commands:main"
 
 [project.optional-dependencies]
 openbabel = [

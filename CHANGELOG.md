@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### A headless command line: `openchem-cli`
+
+Any registered calculator can now be run on a SMILES from a script or an agent, with no window and no Qt:
+`uv run openchem-cli calculate --smiles CCO --calculator elemental_analysis`. It prints one JSON envelope --
+the status in the application's own word (`status_of`), the result as plain data with its provenance,
+the parameters it ran with, and what structure it was handed -- and exits 0 for ready, 1 for a limit or a
+fault, 2 for a missing input and 3 for a missing sidecar. `calculators` lists all 59 with their parameters,
+stage and whether the command line can run them; `commands --json` is the manifest, with every flag read
+from the parser.
+
+**A returned value is not a pass.** With no sidecar configured, `admet_ml` returns an alert and `pka` a report,
+both saying "not configured"; those read `needs_setup`, not success. Measured on aspirin with a conformer,
+over the 58 runnable calculators: 47 ready, 5 needs_setup, 4 needs_input, 2 inapplicable, none failed, 1.3 s in
+all. A bare SMILES gave 16 "failed" results, every one "the available conformer is 2D", so `--conformer`
+generates one seeded, unoptimised embedding (the embedder's own default seed is none, so it is set) and says
+beside the result that the geometry is a starting one.
+
+**It does not touch the machine.** All 58 were run with file writes, subprocesses, sockets and temp files
+recorded: none did anything. `iupac_name` did (Java twice, the network, two temp files), so it is refused by name,
+and a test repeats the measurement. The settings store -- the Windows registry -- is never opened, so the
+pKa and ADMET sidecars refuse as `needs_setup`. A misspelt `--param` is refused (the registry would pass it
+through to the calculator), and a result over `--max-bytes` is withheld whole, never cut.
+
+It reproduces what `DescriptorService`'s calculation task does around the call rather than importing it (the task
+is a `QRunnable`), so `tests/test_cli.py` runs the real task beside it for ten cases covering every status and
+four result shapes and compares them; each guard was confirmed to fail on a planted fault. See
+"The command line" in `docs/ARCHITECTURE.md`; the shared-function follow-up is an OPEN item there.
+
 ### Seven tautomer papers are recorded in the literature manifest
 
 - alkorta2022, rybczynski2023, claramunt2024, anandan2004, kim2007, wieder2021 and rzepiela2020 were in the library but cited nowhere in the repo (the session that fetched them was archived). Each is recorded with its DOI and sha256 from the library index and page 1, as `context_only` with a provisional `tautomerism` property (new in the closed vocabulary) and a note that it has not been read through.

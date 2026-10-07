@@ -70,6 +70,7 @@ by `tests/test_layering.py`.
 - `src/openchem/chem/periodic_charges.py` — EQeq charges for a crystal; the only calculation here about a periodic solid, reached through `crystal_report.py` rather than the calculator registry (a `CalculationRequest` cannot name a crystal)
 - `src/openchem/domain/refusal_kinds.py` — why a calculator declined (limit / needs input / needs setup); a refusal with no kind is a fault
 - `src/openchem/domain/calculator_support.py` — a calculator's stage (maturity of this implementation) and default visibility, with the reason; `LEGACY_UNCLASSIFIED` only shrinks (see `docs/CALCULATOR_MATURITY.md`)
+- `src/openchem/cli/` — the headless command line (`openchem-cli`): any registered calculator on a SMILES, one JSON envelope on stdout, no Qt; `tests/test_cli.py` runs the real service task beside it and compares
 - `tools/calculator_census.py` — every calculator over a fixed panel through the app's own path; `tests/test_calculator_census.py` fails on a fault, an error logged, an unclassified refusal code, or a moved cell
 
 ---

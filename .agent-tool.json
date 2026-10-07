@@ -1,0 +1,13 @@
+{
+  "protocol_version": 1,
+  "launcher": [
+    "uv",
+    "run",
+    "openchem-cli"
+  ],
+  "working_directory": ".",
+  "capability_command": [
+    "commands",
+    "--json"
+  ]
+}
