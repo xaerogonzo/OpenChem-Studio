@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: the principal chain has the greater number of multiple bonds (P-44.4.1.1)
+- The parent chain is chosen by the number of multiple BONDS, not unsaturation endings, so a triene beats a diene of the same length: the Blue Book's P-45.2.3 examples 6 and 9 now give its name on every spelling, and a `-ylidene`/`methylidene` substituent on a shorter-unsaturated chain becomes a longer `-diene` parent (`4-ethylidene-2,3-dimethylhex-1-ene` is `4-ethyl-2,3-dimethylhexa-1,4-diene`). Measured: census 2000 rows 0 moved, panel 1712 rows 0 changed; a 700-molecule polyene sweep moved 238 names, all reading back exact with a same-length parent and more bonds. P-44.4.1.2 (more DOUBLE bonds) is still open. Details in `src/openchem/vendor/CHANGELOG.md`.
+
 ### A headless command line: `openchem-cli`
 
 Any registered calculator can now be run on a SMILES from a script or an agent, with no window and no Qt:
