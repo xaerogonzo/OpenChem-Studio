@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### A resource census: `tools/perf_census.py` and `docs/PERFORMANCE_CENSUS.md`
+
+An external `psutil` sampler plus debug-only drive steps (`drive_probes.py`: `mark`, `object_census`, `loop_lag`, `tracemalloc`, `cache_probe`, `panel_cycle`, `call_window`) measure memory (private bytes), CPU, threads, handles, child processes and live widgets/timers over scripted scenarios. Nothing runs in a normal launch. First survey: a launch builds four web views and idles at ~1.08 GiB; the pH-dependent charge spawns a ~1.76 GiB-committed sidecar per uncached call; the leak hypotheses tested (dialogs, Results dock, Jobs timer) were ruled out. `psutil` is in a new `perf` dependency group.
+
 ### A headless command line: `openchem-cli`
 
 Any registered calculator can now be run on a SMILES from a script or an agent, with no window and no Qt:
