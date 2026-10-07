@@ -31,6 +31,10 @@ the stream that was stdout when `main` started.
 
 from __future__ import annotations
 
+#: What `tests/test_calculator_reachability.py` accepts in place of an import: nothing
+#: imports this module, because the real entry is the `openchem-cli` script. The guard
+#: checks the claim (the script really is declared in pyproject.toml) rather than
+#: trusting the string. See `chem/admet_runner.py` for the mechanism.
 REACHED_BY = (
     "console_script: entered by the `openchem-cli` script in pyproject.toml "
     "([project.scripts] -> openchem.cli.commands:main) or `python -m openchem.cli`, "
@@ -52,14 +56,24 @@ from openchem.domain.calculator import GEOMETRY
 
 from openchem.cli.serialise import DEFAULT_MAX_BYTES, to_plain, result_payload
 
+#: The version of the JSON envelope every command prints, in its `schema_version`
+#: field, so a consumer can tell which shape it is reading.
 SCHEMA_VERSION = 1
 
+#: Exit 0: the command ran and has an answer (`ready`, or a `stale` one).
 EXIT_OK = 0
+#: Exit 1: it ran and has no answer to give, a limit of the method or a fault.
 EXIT_FAILED = 1
+#: Exit 2: the invocation cannot run as given, bad usage or a required input missing.
 EXIT_USAGE = 2
+#: Exit 3: a prerequisite is missing, such as a sidecar that is not configured.
 EXIT_PREREQUISITE = 3
 
+#: The side-effect class of a command that changes nothing: the one every command here
+#: declares, in the agent-tool contract's vocabulary.
 PURE_READ = "pure_read"
+#: What each declared side-effect class means, printed in the manifest so a caller need
+#: not guess.
 SIDE_EFFECT_MEANING = {
     PURE_READ: "No filesystem, project or database mutation. "
                "(Python's own bytecode cache is excluded.)",
@@ -112,7 +126,10 @@ class Command:
 
 # -- parameters --------------------------------------------------------------
 
+#: The spellings a boolean `--param` reads as true, lower-cased.
 _TRUE = frozenset({"true", "1", "yes", "on"})
+#: The spellings it reads as false. Anything in neither set is refused (`_coerce`), so
+#: a misspelt value is never quietly taken for false.
 _FALSE = frozenset({"false", "0", "no", "off"})
 
 
@@ -321,6 +338,7 @@ def _no_arguments(parser: argparse.ArgumentParser) -> None:
     """A command that takes nothing beyond the shared flags."""
 
 
+#: Every command, named once for the parser, the dispatch and the manifest.
 COMMANDS: tuple[Command, ...] = (
     Command("commands", "emit the tool's command vocabulary", PURE_READ,
             _cmd_commands, _no_arguments),
@@ -330,6 +348,7 @@ COMMANDS: tuple[Command, ...] = (
     Command("calculate", "run one calculator on one structure and report its status "
                          "and result", PURE_READ, _cmd_calculate, _configure_calculate),
 )
+#: `COMMANDS` by name, for the dispatch.
 BY_NAME = {c.name: c for c in COMMANDS}
 
 

@@ -24,6 +24,9 @@ type tag of its own; the result's class name is written beside it by the caller.
 
 from __future__ import annotations
 
+#: What the reachability guard accepts for a module reached only through the command
+#: line. See `cli/commands.py` for what this declares; the same mechanism, one hop
+#: further in (this module is imported by `commands`, which the script enters).
 REACHED_BY = (
     "console_script: imported only by openchem.cli.commands, which is itself entered "
     "by the `openchem-cli` console script rather than by an import from openchem.main"

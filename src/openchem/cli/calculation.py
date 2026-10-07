@@ -34,6 +34,9 @@ What is deliberately left out, and why:
 
 from __future__ import annotations
 
+#: What the reachability guard accepts for a module reached only through the command
+#: line. See `cli/commands.py` for what this declares; the same mechanism, one hop
+#: further in (this module is imported by `commands`, which the script enters).
 REACHED_BY = (
     "console_script: imported only by openchem.cli.commands, which is itself entered "
     "by the `openchem-cli` console script rather than by an import from openchem.main"
@@ -65,6 +68,8 @@ logger = logging.getLogger("openchem.cli")
 #: uuid and a conformer's id are `uuid4()` by default and end up inside every
 #: result's provenance, which would make the output differ run to run for no reason.
 CLI_MOLECULE_UUID = "00000000-0000-4000-8000-00000000c11a"
+#: The conformer's fixed id, for the reason `CLI_MOLECULE_UUID` is fixed. (This line
+#: needs its own comment: a `#:` block documents only the statement that follows it.)
 CLI_CONFORMER_ID = "00000000-0000-4000-8000-00000000c11b"
 
 #: The conformer seed used when none is given. The embedder's own default is "draw
