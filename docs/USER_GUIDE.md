@@ -2879,15 +2879,15 @@ kept, which asks first.
 - **File dialogs.** Each kind of file dialog opens where it was last used:
   projects, molecules, and macromolecules with crystal structures. **Forget**
   sends one back to your Documents folder.
-- **External tools.** The seven tabs described [below](#external-tools).
+- **External tools.** The eight tabs described [below](#external-tools).
 
 ---
 
 <!-- help:external-tools -->
 ## External tools
 
-**Edit ▸ Settings… ▸ External tools** has seven tabs: AutoDock Vina, ORCA,
-pkasolver, ADMET, Java (Temurin), NMR Database, and Storage. **Tools ▸
+**Edit ▸ Settings… ▸ External tools** has eight tabs: AutoDock Vina, ORCA,
+pkasolver, ADMET, Java (Temurin), NMR Database, Knowledge Vista, and Storage. **Tools ▸
 External Tools…**, and the Configure buttons on the Docking and Quantum
 Chemistry panels, open the same window at the right tab.
 
@@ -2901,6 +2901,13 @@ acid's pKa. A path that exists proves nothing; these prove the tool works.
 each candidate before accepting it, which matters more than it sounds: "ORCA"
 is a common name, and on a real machine this search found an unrelated
 `Orca.exe` in a Windows Installer cache before the right one.
+
+**Knowledge Vista** is the one optional extra: a separate program (`kv`) that
+keeps track of where a library of PDFs is, by what the files contain, so a paper
+is still found after its file is renamed. Nothing in OpenChem Studio depends on
+it. The tab records where `kv` is and its **Test** asks the program what it is
+and which integration protocol it speaks; the app is not told anything about
+your library and sends it no documents.
 
 **Remove from Disk** appears only where this app installed the tool itself.
 Vina it downloads, so it can remove it — and if you pointed the path at your

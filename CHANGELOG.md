@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### An optional Knowledge Vista tab in External Tools
+
+[Knowledge Vista](https://github.com/xaerogonzo/knowledgevista) (`kv`) is a separate local program that recognises PDFs by content, so a
+paper is still found after its file is renamed. Settings > External tools gains a **Knowledge Vista** tab beside Vina and ORCA: a path,
+Browse, **Locate Installed** (each candidate is *run* with `capabilities` before it is accepted) and **Test** (asks the program what it is
+and which integration protocol it speaks). It has no Set Up and no Remove -- the app neither installs nor owns it -- and it says nothing
+in OpenChem Studio depends on it. Every failure (no program, an unrelated `kv`, a timeout, unparsable output, a protocol this build was
+not taught) is one readable sentence. `openchem.services.knowledge_vista` holds the logic; tests drive a mock `kv`.
+
+**Not shipped: "Open in Knowledge Vista".** It was planned, and it needs a screen that shows a paper; nothing in the application does (the
+literature manifest is a development record). A button with nothing to attach to would be unreachable code, so it waits for the screen.
+
 ### A headless command line: `openchem-cli`
 
 Any registered calculator can now be run on a SMILES from a script or an agent, with no window and no Qt:
