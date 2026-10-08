@@ -4184,6 +4184,11 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-201", "C=CC(=[18O])N", "prop-2-en-1-(18O)amide",
      "prop-2-ene-1-(18O)amide",
      "`prop-2-en-1-ol` and `prop-2-enamide` lose the infix's e; a bracket in between hid the vowel from the elision"),
+    # D-203, found by naming round 30 (called a label defect there: the UNLABELLED name was already another molecule). The retained lookup writes the parent's default
+    # indicated hydrogen into its text and `_resolve` declined the planner's correct answer because the placeholder was not among the atoms the plan described.
+    ("D-203", "N1C(SC)=NC2C(=O)N=CN=C21", "8-(methylsulfanyl)-5,9-dihydro-6H-purin-6-one",
+     "8-(methylsulfanyl)-5,9-dihydro-2H-purin-6-one",
+     "WRONG MOLECULE: OPSIN reads the former as a purine with a CH2 at C2; the indicated hydrogen belongs on the group carbon (P-58.2.3.1)"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this

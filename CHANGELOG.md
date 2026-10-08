@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: the indicated hydrogen of a hydro-named ring ketone
+- `8-(methylsulfanyl)-5,9-dihydro-2H-purin-6-one` named another molecule (OPSIN reads a CH2 at C2); the molecule is `8-(methylsulfanyl)-5,9-dihydro-6H-purin-6-one`. The retained lookup writes the parent's default indicated hydrogen into its text and the planner's correct answer (the hydrogen on the group carbon, P-58.2.3.1) was declined because that placeholder was not among the atoms it described. Seven purin-6-one tautomers were wrong and all read back exact now, as do two more rings found in a population of odd tautomers (`2,3a,4,7-tetrahydro-3H-isoindol-3-one`, `1,3a,5,7a-tetrahydro-4H-imidazo[4,5-c]pyridin-4-one`). The 2000-row census moves 2 names, both `mismatch_formula` -> `exact`; the 1712-row panel moves none.
+
 ### Naming: the two oxygens of a carboxyl group, a ketone's neighbours, and a nuclide in a fused ring
 - `CC(=[18O])OC` and `CC(=O)[18O]C` were both `methyl (1-18O)acetate`: two molecules under one name that OPSIN reads as neither, and the same for a free acid's carbonyl and hydroxyl oxygen. They are `methyl (18O)acetate` and `methyl (O-18O)acetate` now (`methyl prop-2-en-1-(18O)oate`, `propan-1-(O-18O)oic acid` for a systematic acid), each read back exact.
 - `CC(=O)[15N]1CCCCC1` was `1-[(1-15N)piperidin-1-yl]ethan-1-(15N)one`, two 15N for one: a ketone's group lists its two neighbours and only its oxygen is named by `-one`. It is `1-[(1-15N)piperidin-1-yl]ethan-1-one`. A nuclide between a locant and a suffix keeps the infix's elision (`prop-2-en-1-(18O)amide`, not `prop-2-ene-1-...`).
