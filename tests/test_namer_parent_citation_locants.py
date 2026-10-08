@@ -26,8 +26,7 @@ Where the fifteen stand, each measured on 13 spellings (`CHANGELOG.md`, 2026-10-
   tier, which is only meaningful between numberings of one parent, ranked the shorter set higher: the engine named both molecules with an ethenyl substituent
   on a diene, on every spelling. It counts the bonds the infixes name now (`tests/test_namer_multiple_bonds_parent.py`).
 
-Three examples of P-45.5, the rule after P-45.3 (nonstandard bonding numbers) and P-45.4 (isotopes), are pinned as the next rule in line:
-they tie on this one by the book's own words and are still two names over the spellings.
+P-45.5, the rule after this one (the name earlier in alphanumerical order), decides the examples that tie here: `tests/test_namer_alphanumerical_order.py`.
 
 What is pinned: the book's names exactly, over 16 spellings of each structure (every spelling checked to BE that structure by InChIKey);
 that the same spellings split without the rule; that the other name is the same molecule; and the comparison itself on made-up trees, where
@@ -110,21 +109,6 @@ KEPT = [
      "6-butyl-3-ethyl-8-methyl-5-propyldecane"),
 ]
 
-# P-45.5, the rule AFTER P-45.3 (nonstandard bonding numbers) and P-45.4 (isotopes): the name earlier in alphanumerical order, "bromo" before
-# "dibromo". Its examples tie on P-45.2.3 ("the locants appear in the name in the same order") and are NOT decided by it, which is the point:
-# they are still two names over the spellings. Not implemented; the next rule in line.
-ALPHANUMERICAL = [
-    ("45.5-1", "Clc1cc(CCOCc2cc(Br)c3ccccc3c2Br)c(Br)c2ccccc12",
-     "1-bromo-4-chloro-2-{2-[(1,4-dibromonaphthalen-2-yl)methoxy]ethyl}naphthalene",
-     "1,4-dibromo-2-{[2-(1-bromo-4-chloronaphthalen-2-yl)ethoxy]methyl}naphthalene"),
-    ("45.5-2", "Clc1ccc(Nc2ccc(Br)cc2Br)c(Br)c1",
-     "2-bromo-4-chloro-N-(2,4-dibromophenyl)aniline",
-     "2,4-dibromo-N-(2-bromo-4-chlorophenyl)aniline"),
-    ("45.5-4", "CC(F)C(F)C(CCC(=O)O)C(C(C)[N+](=O)[O-])[N+](=O)[O-]",
-     "4-(1,2-difluoropropyl)-5,6-dinitroheptanoic acid",
-     "4-(1,2-dinitropropyl)-5,6-difluoroheptanoic acid"),
-]
-
 # P-45.6.2 example 3 (p. 426), whose second name was recorded as this gap and not a stereo one: the book prints the first, the engine used to
 # print the second on 9 of 12 spellings.
 P4562_EX3 = (
@@ -166,12 +150,14 @@ def test_without_the_rule_the_same_spellings_give_two_names(monkeypatch, example
     in, and both of the book's names appear: the preferred one and the one the book says is not.
     """
     monkeypatch.setattr(engine, "_senior_by_citation_locants", lambda trees: None)
+    # P-45.5 (the rule after this one) also decides some of these, which it would do in this rule's place; it is switched off too, so that what is left is plan order
+    monkeypatch.setattr(engine, "_senior_by_alphanumerical_order", lambda trees: None)
     assert _names(smiles) == {book, other}
 
 
 @needs_opsin
-@pytest.mark.parametrize("example,smiles,book,other", DECIDED + KEPT + ALPHANUMERICAL,
-                         ids=[f"example {e}" for e, *_rest in DECIDED + KEPT + ALPHANUMERICAL])
+@pytest.mark.parametrize("example,smiles,book,other", DECIDED + KEPT,
+                         ids=[f"example {e}" for e, *_rest in DECIDED + KEPT])
 def test_the_other_name_is_the_same_molecule(example, smiles, book, other):
     """Both names of each pair read back to the structure above, so the choice is between two names of ONE molecule and nothing else."""
     from py2opsin import py2opsin
@@ -185,23 +171,9 @@ def test_the_other_name_is_the_same_molecule(example, smiles, book, other):
 
 def test_the_rule_reaches_molecules_that_carry_no_stereo():
     """The reason it is a change of its own: the stereo tie-break was gated on `_carries_stereo`, and none of these is."""
-    for _example, smiles, book, _other in DECIDED + KEPT + ALPHANUMERICAL:
+    for _example, smiles, book, _other in DECIDED + KEPT:
         assert not engine._carries_stereo(Chem.MolFromSmiles(smiles)), smiles
         assert not re.search(r"\d[RSEZ][,)]", book), book                                    # and the book's name cites no descriptor
-
-
-# --- P-45.5: the next rule in line, not implemented ---------------------------------------------------------------------------
-
-@pytest.mark.parametrize("example,smiles,book,other", ALPHANUMERICAL, ids=[f"example {e}" for e, *_rest in ALPHANUMERICAL])
-def test_p_45_5_examples_are_still_two_names_because_that_rule_is_not_implemented(example, smiles, book, other):
-    """P-45.2.3 ties on these (the locants read the same in both names), so it does not decide them, and nothing else does yet."""
-    assert _names(smiles) == {book, other}
-
-
-@pytest.mark.xfail(strict=True, reason="open defect, P-45.5 (the name earlier in alphanumerical order: 'bromo' before 'dibromo') is not implemented")
-@pytest.mark.parametrize("example,smiles,book,other", ALPHANUMERICAL, ids=[f"example {e}" for e, *_rest in ALPHANUMERICAL])
-def test_p_45_5_examples_are_the_books_name(example, smiles, book, other):
-    assert _names(smiles) == {book}
 
 
 # --- the latent wrong tree that comparing two parents exposed ---------------------------------------------------------------
@@ -264,7 +236,7 @@ def test_p_45_6_2_example_3_second_name_is_the_books():
 def test_the_names_pinned_above_read_back_to_their_structures():
     from py2opsin import py2opsin
 
-    for smiles, name in [(s, b) for _e, s, b, _o in DECIDED + KEPT + ALPHANUMERICAL] + [(P4562_EX3[0], P4562_EX3[1])]:
+    for smiles, name in [(s, b) for _e, s, b, _o in DECIDED + KEPT] + [(P4562_EX3[0], P4562_EX3[1])]:
         back = py2opsin(name)
         assert back, name
         assert Chem.MolToInchiKey(Chem.MolFromSmiles(back)) == Chem.MolToInchiKey(Chem.MolFromSmiles(smiles)), name
