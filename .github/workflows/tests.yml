@@ -210,8 +210,13 @@ jobs:
       # from source and needs Boost; the reference environment does not have
       # it either. These three are what the suite needs -- without them about
       # 40 tests fail on missing imports and it reads as a broken checkout.
+      #
+      # `--group perf` adds `psutil`, which only the resource census's sampler
+      # test needs (tests/test_perf_census.py). Without it that one test SKIPS
+      # ("could not import 'psutil'") and this gate reads green over a sampler
+      # nothing ran -- measured on PR #252's first run.
       - name: Sync dependencies
-        run: uv sync --extra ai --extra network --extra openbabel
+        run: uv sync --extra ai --extra network --extra openbabel --group perf
 
       # `--deselect` for the network test, so NCBI cannot switch off the
       # three gates below. See the `env:` block for the whole reasoning.

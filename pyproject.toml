@@ -74,6 +74,12 @@ build = [
 bench = [
     "scikit-learn>=1.4",
 ]
+# Only `tools/perf_census.py` (the external resource sampler) needs this. A
+# group, not `dev`: a test run should not install it, and nothing in `src/`
+# imports it. See docs/PERFORMANCE_CENSUS.md.
+perf = [
+    "psutil>=6.0",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

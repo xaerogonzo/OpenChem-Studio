@@ -1188,3 +1188,73 @@ def test_a_locant_cell_says_where_its_number_came_from(panel):
         tips[cell.data(Qt.ItemDataRole.UserRole)] = (cell.text(), cell.toolTip())
     assert tips[7] == ("2", "2 of 6-methoxynaphthalen-2-yl (the substituent's own numbering)")
     assert tips[8] == ("2", "2 in this structure's parent numbering")
+
+
+# -- the atom table analyses the structure ONCE, not once per atom ----------------------------------
+
+
+def test_building_the_atom_table_runs_each_whole_molecule_analysis_once(panel, monkeypatch):
+    """The table asks for a report per atom, and `collect_lewis` / `collect_oxidation_state` each ran
+    a WHOLE-MOLECULE analysis per call: 51 identical `lewis.analyse` calls for erythromycin's 51
+    atoms, ~64% of a ~310 ms table build on the GUI thread (docs/PERFORMANCE_CENSUS.md F12)."""
+    import openchem.chem.lewis as lewis
+    import openchem.chem.oxidation_states as oxidation
+
+    widget, _bus = panel
+    calls = {"lewis": 0, "oxidation": 0}
+    real_lewis, real_assign = lewis.analyse, oxidation.assign
+
+    def counting_lewis(*args, **kwargs):
+        calls["lewis"] += 1
+        return real_lewis(*args, **kwargs)
+
+    def counting_assign(*args, **kwargs):
+        calls["oxidation"] += 1
+        return real_assign(*args, **kwargs)
+
+    monkeypatch.setattr(lewis, "analyse", counting_lewis)
+    monkeypatch.setattr(oxidation, "assign", counting_assign)
+    model = molecule()
+    showing(widget, model)
+    widget._cache.clear()
+    calls.update(lewis=0, oxidation=0)
+
+    widget._rebuild_atom_table()
+
+    assert widget._atom_table.rowCount() == Chem.MolFromSmiles(CHALCONE).GetNumAtoms() > 10
+    assert calls == {"lewis": 1, "oxidation": 1}
+
+
+def test_a_report_built_inside_a_shared_scope_equals_one_built_alone():
+    """Sharing changes how often the analysis runs, never what a report says. Compared minus the
+    wall-clock `timestamp`, which differs between ANY two builds."""
+    import dataclasses
+
+    from openchem.chem import atom_report
+
+    mol = ChemistryEngine().mol_from_smiles(CHALCONE)
+
+    def build(index, context):
+        report = atom_report.build_atom_report(
+            mol, index, molecule_uuid="u", structure_version=0, context=context, providers=()
+        )
+        return dataclasses.replace(report, timestamp=0.0)
+
+    shared = {atom_report.SHARED_ANALYSES: {}}
+    for index in range(mol.GetNumAtoms()):
+        assert build(index, shared) == build(index, {})
+
+
+def test_without_a_scope_each_report_still_analyses_for_itself(monkeypatch):
+    """The default is unchanged: a caller that builds one report, or holds a Mol that may change,
+    gets a fresh analysis. Only a caller that asks for a scope shares one."""
+    import openchem.chem.lewis as lewis
+    from openchem.chem import atom_report
+
+    mol = ChemistryEngine().mol_from_smiles(CHALCONE)
+    calls = []
+    real = lewis.analyse
+    monkeypatch.setattr(lewis, "analyse", lambda *a, **k: calls.append(1) or real(*a, **k))
+    for index in range(3):
+        atom_report.build_atom_report(mol, index, molecule_uuid="u", structure_version=0, context={}, providers=())
+    assert len(calls) == 3

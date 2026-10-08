@@ -150,6 +150,25 @@ def collect_element(mol: Any, index: int, _context: dict) -> list[AtomFact]:
     return facts
 
 
+#: The key under which a caller building MANY reports for one structure hands the collectors a dict
+#: to share. `analyse(mol)` and `assign(mol)` are whole-molecule analyses; the Atom Inspector's table
+#: asks for one report PER ATOM, so each ran N times to produce N identical answers (measured on
+#: erythromycin, 51 atoms: 51 `lewis.analyse` calls for one table build, ~64% of it). Explicit and
+#: scoped to one build rather than remembered by object identity: a memo that outlives its caller
+#: is how a report built before an in-place edit gets handed back after it.
+SHARED_ANALYSES = "_shared_analyses"
+
+
+def _once_per_structure(context: dict, name: str, compute: Callable[[], Any]) -> Any:
+    """`compute()`, once per shared scope when the caller gave one, every time otherwise."""
+    shared = context.get(SHARED_ANALYSES)
+    if shared is None:
+        return compute()
+    if name not in shared:
+        shared[name] = compute()
+    return shared[name]
+
+
 def collect_lewis(mol: Any, index: int, _context: dict) -> list[AtomFact]:
     """Donor/acceptor character, with the rule that found it.
 
@@ -158,7 +177,7 @@ def collect_lewis(mol: Any, index: int, _context: dict) -> list[AtomFact]:
     """
     from openchem.chem.lewis import analyse, lone_pairs
 
-    result = analyse(mol)
+    result = _once_per_structure(_context, "lewis", lambda: analyse(mol))
     if result.refused:
         return [
             _fact(FactCategory.ELECTRONIC, "Lewis analysis", None, "LewisAnalysis",
@@ -220,7 +239,7 @@ def collect_oxidation_state(mol: Any, index: int, _context: dict) -> list[AtomFa
     """
     from openchem.chem.oxidation_states import assign
 
-    result = assign(mol)
+    result = _once_per_structure(_context, "oxidation_states", lambda: assign(mol))
     if result.refused:
         return [
             _fact(FactCategory.ELECTRONIC, "Oxidation state", None, "oxidation_states",

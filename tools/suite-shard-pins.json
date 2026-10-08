@@ -807,6 +807,7 @@
   "tests/test_particle.py": 1,
   "tests/test_pdb_presence.py": 0,
   "tests/test_pdf_library_index.py": 0,
+  "tests/test_perf_census.py": 1,
   "tests/test_periodic_charges.py": 1,
   "tests/test_periodic_table_is_the_only_one.py": 2,
   "tests/test_ph_curve_widget.py": 0,

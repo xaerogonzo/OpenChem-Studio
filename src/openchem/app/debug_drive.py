@@ -317,6 +317,13 @@ class _Driver(QObject):
 
     def start(self) -> None:
         logger.warning("OPENCHEM_DRIVE: %d step(s) from %s", len(self._steps), _DRIVE_SCRIPT)
+        # The census's startup metric: the main window has been shown (`main.py` calls
+        # `start_if_requested` straight after `window.show()`). It is "window ready",
+        # NOT first paint -- an exposed frame is not observable from here.
+        import time
+
+        self._measurements["window_ready_epoch"] = time.time()
+        logger.warning("OPENCHEM_DRIVE: window_ready epoch=%.3f", self._measurements["window_ready_epoch"])
         if _DRIVE_SCRIPT:
             # A real scripted run: attach the ledger and say which run this is.
             self._identity = RunIdentity.capture(_DRIVE_SCRIPT)
@@ -395,6 +402,13 @@ class _Driver(QObject):
         except Exception:  # noqa: BLE001 - a bad script must not kill the app
             logger.exception("OPENCHEM_DRIVE: step %d (%s) failed", self._index, action)
         after = int(step.get("after_ms", _DEFAULT_AFTER_MS))
+        # A step that waits for something it cannot size (`wait_web_loaded`) HOLDS the
+        # chain and resumes it itself.
+        if self.__dict__.pop("_hold_chain", False):
+            return
+        # A step that runs on its own timers (`panel_cycle`) asks the NEXT step to
+        # wait for it, because its length is only known once it has looked.
+        after += int(self.__dict__.pop("_defer_ms", 0))
         # A BOUND METHOD, never a lambda capturing self: PySide6 holds a
         # plain callable strongly (see tests/test_qt_object_disposal.py).
         # Context-bound to the window for the reason given in `start`.
@@ -2550,6 +2564,45 @@ class _Driver(QObject):
                     "OPENCHEM_DRIVE: EXPECT conformers_provenance %s FAILED -- %s is %r, wanted %r",
                     tag, key, parameters.get(key), value,
                 )
+
+    def _do_expect_conformers(self, step: dict[str, Any]) -> None:
+        """`{"do": "expect_conformers", "min": 3}` -- the selected molecule HOLDS at least
+        that many conformers. A scenario that asks for conformers and reads memory
+        afterwards would pass on a run where none were made, which is the failure a
+        census cannot see on its own."""
+        window = self._window
+        molecule = window._session.project.find_molecule(window._property_panel._selected_molecule_uuid)
+        held = len(molecule.conformers) if molecule is not None else 0
+        wanted = int(step.get("min", 1))
+        ok = self._record_assertion("expect_conformers", str(step.get("tag", "")), held >= wanted,
+                                    f"{held} conformer(s), wanted at least {wanted}")
+        if ok:
+            logger.warning("OPENCHEM_DRIVE: EXPECT conformers ok -- %d", held)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT conformers FAILED -- %d held, wanted at least %d", held, wanted)
+
+    def _do_view_3d(self, step: dict[str, Any]) -> None:
+        """`{"do": "view_3d"}` brings the 3D viewer's tab to the front (the viewer shares a
+        tab group with the 2D editor, and a hidden web view is not the cost a person pays);
+        `{"do": "view_3d", "show": false}` puts the 2D editor back."""
+        window = self._window
+        target = window._viewer3d if step.get("show", True) else window._editor
+        tabs = target.parent()
+        while tabs is not None and not hasattr(tabs, "setCurrentWidget"):
+            tabs = tabs.parent()
+        if tabs is None:
+            logger.error("OPENCHEM_DRIVE: view_3d: no tab group above %s", type(target).__name__)
+            return
+        # How long the call ITSELF blocks, recorded per switch: a stall the heartbeat sees could
+        # be this synchronous call or work queued behind it, and the two have different fixes.
+        import time
+
+        started = time.perf_counter()
+        tabs.setCurrentWidget(target)
+        self._measurements.setdefault("view_3d", []).append({
+            "show": bool(step.get("show", True)),
+            "call_ms": round((time.perf_counter() - started) * 1000.0, 1),
+        })
 
     def _do_overlay(self, step: dict[str, Any]) -> None:
         """Turn the 3D viewer's shape overlay on, and optionally step.
@@ -6449,6 +6502,353 @@ class _Driver(QObject):
     def _do_wait(self, step: dict[str, Any]) -> None:
         """Nothing; the pause is `after_ms`. Present so a script can say
         it is waiting rather than hiding it in the previous step."""
+
+    # -- resource census probes (`drive_probes`; `tools/perf_census.py`) -----
+    #
+    # Off unless a script names one, imported lazily, and none of them starts
+    # anything that outlives its own stop step except what that step says.
+
+    def _do_mark(self, step: dict[str, Any]) -> None:
+        """`{"do": "mark", "name": "iter-10"}` -- a wall-clock stamp, so the external
+        sampler's time series can be cut at the checkpoint a script reached
+        (the sampler cannot see iterations, only seconds)."""
+        import time
+
+        entry = {"name": str(step.get("name", "")), "epoch": time.time()}
+        self._measurements.setdefault("marks", []).append(entry)
+        logger.warning("OPENCHEM_DRIVE: mark %s epoch=%.3f", entry["name"], entry["epoch"])
+
+    def _do_object_census(self, step: dict[str, Any]) -> None:
+        """`{"do": "object_census", "tag": "after-10", "collect": true}` -- what is
+        alive now, by class, and every active Python-visible QTimer. At CHECKPOINTS
+        only: it walks every object the collector tracks (see `drive_probes`)."""
+        from openchem.app import drive_probes
+
+        tag = str(step.get("tag", "census"))
+        result = drive_probes.object_census(collect=bool(step.get("collect", True)))
+        self._measurements[f"object_census[{tag}]"] = result
+        logger.warning(
+            "OPENCHEM_DRIVE: object_census[%s] widgets=%d qobject_wrappers=%d timers_active=%d scan_ms=%s",
+            tag, result["widget_total"], result["qobject_wrappers_total"],
+            result["timers_active"], result["scan_ms"],
+        )
+
+    def _do_loop_lag(self, step: dict[str, Any]) -> None:
+        """`{"do": "loop_lag", "action": "start"|"stop", "tag": "x", "interval_ms": 10}`
+        -- a heartbeat over whatever the steps between start and stop do. It is a
+        repeating timer itself, so never in an idle-CPU arm."""
+        from openchem.app import drive_probes
+
+        tag = str(step.get("tag", "loop_lag"))
+        probes = self.__dict__.setdefault("_heartbeats", {})
+        if str(step.get("action", "start")) == "start":
+            probe = drive_probes.HeartbeatProbe(int(step.get("interval_ms", 10)))
+            probes[tag] = probe
+            probe.start()
+            return
+        probe = probes.pop(tag, None)
+        if probe is None:
+            logger.error("OPENCHEM_DRIVE: loop_lag stop[%s] without a start", tag)
+            return
+        result = probe.stop()
+        self._measurements[f"loop_lag[{tag}]"] = result
+        logger.warning("OPENCHEM_DRIVE: loop_lag[%s] %s", tag, json.dumps(result))
+
+    def _do_tracemalloc(self, step: dict[str, Any]) -> None:
+        """`{"do": "tracemalloc", "action": "start"|"diff"|"stop", "tag": "x"}` --
+        Python allocations in `openchem` since `start`. A diagnostic arm: it slows
+        everything, and native allocations are invisible to it."""
+        from openchem.app import drive_probes
+
+        probe = self.__dict__.setdefault("_allocation_probe", drive_probes.AllocationProbe())
+        action = str(step.get("action", "diff"))
+        if action == "start":
+            probe.start(int(step.get("frames", 8)))
+        elif action == "stop":
+            probe.stop()
+        else:
+            tag = str(step.get("tag", "tracemalloc"))
+            self._measurements[f"tracemalloc[{tag}]"] = probe.diff(int(step.get("limit", 20)))
+            logger.warning("OPENCHEM_DRIVE: tracemalloc[%s] recorded", tag)
+
+    def _do_cache_probe(self, step: dict[str, Any]) -> None:
+        """`{"do": "cache_probe", "tag": "x", "paths": ["_services.result_store._items"]}`
+        -- the size of named containers, reached by attribute path from the window.
+        Only for caches the static survey flagged; not an object inspector."""
+        from openchem.app import drive_probes
+
+        out: dict[str, Any] = {}
+        for path in step.get("paths") or []:
+            try:
+                out[str(path)] = drive_probes.cache_size(
+                    drive_probes.resolve_attribute_path(self._window, str(path))
+                )
+            except AttributeError as exc:
+                out[str(path)] = {"error": str(exc)}
+        tag = str(step.get("tag", "cache_probe"))
+        self._measurements[f"cache_probe[{tag}]"] = out
+        logger.warning("OPENCHEM_DRIVE: cache_probe[%s] %s", tag, json.dumps(out))
+
+    def _do_panel_cycle(self, step: dict[str, Any]) -> None:
+        """`{"do": "panel_cycle", "settle_ms": 3000, "sample_ms": 17000}` -- show each
+        right-hand dock in turn and idle on it, WITHOUT blocking the event loop
+        (a handler that pumped events would change what idle means), stamping
+        `panel:<id>:start` and `panel:<id>:sample` marks so the external sampler
+        can split each stay into its transition spike and its steady state.
+
+        The dock set is enumerated HERE, from the window, and recorded -- a panel
+        added or removed shows up as a different list rather than a silently
+        missing row. `"expect"` (a count) fails the run when the list differs.
+        """
+        from PySide6.QtWidgets import QDockWidget
+
+        window = self._window
+        right = Qt.DockWidgetArea.RightDockWidgetArea
+        ids = [
+            dock.objectName() for dock in window.findChildren(QDockWidget)
+            if dock.objectName() and window.dockWidgetArea(dock) == right
+        ]
+        self._measurements["panel_cycle_ids"] = ids
+        expected = step.get("expect")
+        if expected is not None and not self._record_assertion(
+            "panel_cycle", "ids", len(ids) == int(expected), f"{len(ids)} right-hand docks: {ids}"
+        ):
+            logger.error("OPENCHEM_DRIVE: EXPECT panel_cycle FAILED -- %d docks, wanted %s", len(ids), expected)
+        settle = int(step.get("settle_ms", 3000))
+        sample = int(step.get("sample_ms", 17000))
+        self._cycle = {"ids": ids, "index": 0, "phase": "start", "settle": settle, "sample": sample}
+        # The next scripted step waits for the whole cycle.
+        self._defer_ms = len(ids) * (settle + sample) + 500
+        self._cycle_step()
+
+    def _cycle_step(self) -> None:
+        cycle = getattr(self, "_cycle", None)
+        if not cycle:
+            return
+        if cycle["index"] >= len(cycle["ids"]):
+            self._do_mark({"name": "panel:end"})
+            self._cycle = None
+            return
+        panel_id = cycle["ids"][cycle["index"]]
+        if cycle["phase"] == "start":
+            self._window._on_panel_chosen(panel_id)
+            self._do_mark({"name": f"panel:{panel_id}:start"})
+            cycle["phase"] = "sample"
+            QTimer.singleShot(cycle["settle"], self._window, self._cycle_step)
+        else:
+            self._do_mark({"name": f"panel:{panel_id}:sample"})
+            cycle["phase"] = "start"
+            cycle["index"] += 1
+            QTimer.singleShot(cycle["sample"], self._window, self._cycle_step)
+
+    def _do_close_windows(self, step: dict[str, Any]) -> None:
+        """`{"do": "close_windows", "which": ["inspector", "lewis"]}` -- close the
+        window a step opened and drop the driver's reference, the way a person
+        closing it would. `close()` only: whether the app then DELETES the dialog
+        is what a lifecycle scenario exists to find out."""
+        for name in step.get("which") or []:
+            attribute = {"inspector": "_inspector", "lewis": "_lewis", "dialog": "_dialog"}.get(str(name))
+            if attribute is None:
+                logger.error("OPENCHEM_DRIVE: close_windows: unknown window %r", name)
+                continue
+            target = getattr(self, attribute, None)
+            if target is not None:
+                target.close()
+            setattr(self, attribute, None)
+
+    def _do_call_window(self, step: dict[str, Any]) -> None:
+        """`{"do": "call_window", "method": "show_settings", "close_after_ms": 800}` --
+        run the window's OWN method for a dialog, and close the modal it opens.
+
+        **WHY THIS EXISTS: THE HARNESS-BUILT DIALOG IS NOT THE APP'S DIALOG.** The
+        census's first Calculator Inspector loop reported +150 MiB per open; the real
+        path (`PropertyPanel._open_inspector`) sets `WA_DeleteOnClose`, the `inspect`
+        step builds its own dialog without it. The number described the harness. A
+        lifecycle measurement has to go through the code a person's click reaches.
+
+        The method may `exec()`. A closer is scheduled FIRST, on the window, so the
+        nested event loop it spins ends; the usual rule against calling `exec()` in a
+        step is about a modal nobody closes.
+        """
+        method = getattr(self._window, str(step["method"]), None)
+        if method is None:
+            logger.error("OPENCHEM_DRIVE: call_window: no method %r", step["method"])
+            return
+        close_after = int(step.get("close_after_ms", 800))
+        QTimer.singleShot(close_after, self._window, self._close_active_modal)
+        if step.get("census_tag"):
+            # A census while the modal is UP: proof the method opened what it should,
+            # since a loop that opened nothing reads exactly like a loop with no leak.
+            self._during_tag = str(step["census_tag"])
+            QTimer.singleShot(close_after // 2, self._window, self._census_during)
+        method(*(step.get("args") or []))
+
+    def _census_during(self) -> None:
+        self._do_object_census({"tag": self._during_tag, "collect": False})
+
+    def _close_active_modal(self) -> None:
+        from PySide6.QtWidgets import QApplication, QDialog
+
+        modal = QApplication.activeModalWidget()
+        if modal is None:
+            logger.error("OPENCHEM_DRIVE: call_window: no modal was open to close")
+        elif isinstance(modal, QDialog):
+            modal.reject()
+        else:
+            modal.close()
+
+    def _do_close_inspectors(self, step: dict[str, Any]) -> None:
+        """`{"do": "close_inspectors"}` -- close every Calculator Inspector the Properties
+        panel opened through its real reveal path (they delete themselves on close)."""
+        for ref in list(self._window._property_panel._inspector_windows.values()):
+            window = ref()
+            if window is not None:
+                window.close()
+
+    def _do_profile(self, step: dict[str, Any]) -> None:
+        """`{"do": "profile", "action": "start"|"stop", "tag": "x", "limit": 40}` -- cProfile of
+        the GUI thread between the two steps, logged as `openchem` functions by cumulative time.
+        It slows what it measures, so read proportions, not seconds (the same rule as
+        `edit_burst`'s `profile`)."""
+        import cProfile
+        import io
+        import pstats
+
+        if str(step.get("action", "start")) == "start":
+            profiler = cProfile.Profile()
+            self.__dict__["_gui_profiler"] = profiler
+            profiler.enable()
+            return
+        profiler = self.__dict__.pop("_gui_profiler", None)
+        if profiler is None:
+            logger.error("OPENCHEM_DRIVE: profile stop without a start")
+            return
+        profiler.disable()
+        out = io.StringIO()
+        pstats.Stats(profiler, stream=out).sort_stats("cumulative").print_stats("openchem", int(step.get("limit", 40)))
+        logger.warning("OPENCHEM_DRIVE: profile[%s] by cumulative time\n%s", step.get("tag", ""), out.getvalue())
+
+    def _do_stack_watchdog(self, step: dict[str, Any]) -> None:
+        """`{"do": "stack_watchdog", "action": "start", "seconds": 3, "tag": "viewer"}` ... `"action": "stop"`
+        -- while armed, every `seconds` of the process being unable to return to this
+        timer, every thread's Python stack is appended to `<report>.stacks.txt` (via
+        `faulthandler`, which runs on its own thread and so still fires when the GUI
+        thread is blocked). A freeze that a heartbeat can only SIZE gets a stack that
+        NAMES the call it is stuck in; when the GUI thread is inside native code the
+        innermost Python frame is the last thing Python knew about.
+
+        It does not fire on a healthy loop: `dump_traceback_later` is re-armed by a
+        QTimer, so only a gap longer than `seconds` lets it expire."""
+        import faulthandler
+
+        if str(step.get("action", "start")) == "stop":
+            timer = self.__dict__.pop("_stack_timer", None)
+            if timer is not None:
+                timer.stop()
+            faulthandler.cancel_dump_traceback_later()
+            return
+        seconds = float(step.get("seconds", 3.0))
+        path = (self._report_path or Path("drive")).with_suffix(".stacks.txt")
+        handle = self.__dict__.setdefault("_stack_file", open(path, "a", encoding="utf-8"))
+        handle.write(f"\n===== watchdog armed: {step.get('tag', '')} (every {seconds} s) =====\n")
+        handle.flush()
+        self._stack_seconds = seconds
+        timer = QTimer()
+        timer.setInterval(int(seconds * 250))
+        timer.timeout.connect(self._rearm_stack_watchdog)
+        self._stack_timer = timer
+        self._rearm_stack_watchdog()
+        timer.start()
+
+    def _rearm_stack_watchdog(self) -> None:
+        import faulthandler
+
+        faulthandler.cancel_dump_traceback_later()
+        faulthandler.dump_traceback_later(self._stack_seconds, repeat=False, file=self._stack_file)
+
+    def _do_wait_web_loaded(self, step: dict[str, Any]) -> None:
+        """`{"do": "wait_web_loaded", "quiet_ms": 3000, "timeout_ms": 120000, "after_ms": 5000}` --
+        hold the script until every `QWebEngineView` under the window reports its page not
+        loading, steadily for `quiet_ms`. Replaces a fixed start-up wait: a census phase
+        read while the pages are still loading measures the load, not the phase (S5's
+        multi-second stalls could not be attributed because of exactly that).
+
+        The result is recorded as `web_loaded`: how long it took, how many views, and
+        whether it gave up. A page that is not loading is not the same as an app that is
+        finished (Ketcher initialises after its page is up), which is why the caller adds
+        `after_ms`."""
+        import time
+
+        self._web_wait = {
+            "started": time.monotonic(), "deadline": time.monotonic() + int(step.get("timeout_ms", 120000)) / 1000.0,
+            "quiet": int(step.get("quiet_ms", 3000)) / 1000.0, "quiet_since": None,
+            "after_ms": int(step.get("after_ms", _DEFAULT_AFTER_MS)),
+        }
+        self._hold_chain = True
+        self._poll_web_loaded()
+
+    def _poll_web_loaded(self) -> None:
+        import time
+
+        from PySide6.QtWebEngineWidgets import QWebEngineView
+
+        wait = self._web_wait
+        views = self._window.findChildren(QWebEngineView)
+        loading = [v for v in views if v.page().isLoading()]
+        now = time.monotonic()
+        if loading:
+            wait["quiet_since"] = None
+        elif wait["quiet_since"] is None:
+            wait["quiet_since"] = now
+        timed_out = now >= wait["deadline"]
+        if timed_out or (wait["quiet_since"] is not None and now - wait["quiet_since"] >= wait["quiet"]):
+            result = {"views": len(views), "waited_s": round(now - wait["started"], 1), "timed_out": timed_out}
+            self._measurements.setdefault("web_loaded", []).append(result)
+            logger.warning("OPENCHEM_DRIVE: wait_web_loaded %s", json.dumps(result))
+            if timed_out:
+                logger.error("OPENCHEM_DRIVE: wait_web_loaded gave up after %.0f s", result["waited_s"])
+            QTimer.singleShot(wait["after_ms"], self._window, self._run_next)
+            return
+        QTimer.singleShot(250, self._window, self._poll_web_loaded)
+
+    def _do_gc(self, step: dict[str, Any]) -> None:
+        """`{"do": "gc"}` -- one diagnostic `gc.collect()`, so a lifecycle scenario's
+        memory checkpoints measure what is RETAINED. Normal scenarios do not use it:
+        forcing a collection changes what a person's session would do."""
+        import gc
+
+        gc.collect()
+
+    def _do_control_inject(self, step: dict[str, Any]) -> None:
+        """`{"do": "control_inject", "kind": "bytes"|"widgets"|"child", ...}` -- a
+        DELIBERATE leak or child process, for the census's own control scenario (S0).
+        An instrument is trusted only after it has seen a signal planted at a known
+        size. Never part of a real scenario."""
+        kind = str(step.get("kind", "bytes"))
+        held = self.__dict__.setdefault("_injected", [])
+        if kind == "bytes":
+            held.append(bytearray(int(float(step.get("mb", 1.0)) * 1024 * 1024)))
+            # bytearray(n) is lazily committed on some platforms; touch every page.
+            view = held[-1]
+            for offset in range(0, len(view), 4096):
+                view[offset] = 1
+        elif kind == "widgets":
+            from PySide6.QtWidgets import QLabel
+
+            for _ in range(int(step.get("count", 10))):
+                label = QLabel("injected")
+                label.setObjectName("control_inject")
+                held.append(label)
+        elif kind == "child":
+            import subprocess
+            import sys
+
+            subprocess.Popen(
+                [sys.executable, "-c", f"import time; time.sleep({float(step.get('seconds', 2.0))})"],
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+        else:
+            logger.error("OPENCHEM_DRIVE: control_inject: unknown kind %r", kind)
 
     def _do_quit(self, step: dict[str, Any]) -> None:
         """Leave without going through `closeEvent`.

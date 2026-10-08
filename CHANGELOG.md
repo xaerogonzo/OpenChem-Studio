@@ -40,6 +40,10 @@ literature manifest is a development record). A button with nothing to attach to
 ### Naming: the principal chain has the greater number of multiple bonds (P-44.4.1.1)
 - The parent chain is chosen by the number of multiple BONDS, not unsaturation endings, so a triene beats a diene of the same length: the Blue Book's P-45.2.3 examples 6 and 9 now give its name on every spelling, and a `-ylidene`/`methylidene` substituent on a shorter-unsaturated chain becomes a longer `-diene` parent (`4-ethylidene-2,3-dimethylhex-1-ene` is `4-ethyl-2,3-dimethylhexa-1,4-diene`). Measured: census 2000 rows 0 moved, panel 1712 rows 0 changed; a 700-molecule polyene sweep moved 238 names, all reading back exact with a same-length parent and more bonds. P-44.4.1.2 (more DOUBLE bonds) is still open. Details in `src/openchem/vendor/CHANGELOG.md`.
 
+### A resource census: `tools/perf_census.py` and `docs/PERFORMANCE_CENSUS.md`
+
+An external `psutil` sampler plus debug-only drive steps (`drive_probes.py`: `mark`, `object_census`, `loop_lag`, `tracemalloc`, `cache_probe`, `panel_cycle`, `call_window`) measure memory (private bytes), CPU, threads, handles, child processes and live widgets/timers over scripted scenarios. Nothing runs in a normal launch. First survey: a launch builds four web views and idles at ~1.08 GiB; the pH-dependent charge spawns a ~1.76 GiB-committed sidecar per uncached call; the leak hypotheses tested (dialogs, Results dock, Jobs timer) were ruled out. `psutil` is in a new `perf` dependency group.
+
 ### A headless command line: `openchem-cli`
 
 Any registered calculator can now be run on a SMILES from a script or an agent, with no window and no Qt:
