@@ -9460,6 +9460,9 @@ _MULTIPLIERS = (("tetrakis", 4), ("tris", 3), ("bis", 2), ("tetra", 4), ("penta"
 _ISOTOPE_BRACKET = re.compile(r"\(((?:[0-9A-Za-z,']+-)?\d+[A-Z][a-z]?\d*(?:,(?:[0-9A-Za-z,']+-)?\d+[A-Z][a-z]?\d*)*)\)")
 
 
+_ISOTOPE_WORD = re.compile(r"(?<![a-z])(tetra|tri|di|penta|hexa)?(deuter|trit)(?:ide|ium|on|io|ido)")
+
+
 def _multiplier_before(text: str) -> int:
     """The multiplying prefix a bracket opens right after: `...-di[` is 2, `...bis(` is 2, anything else 1."""
     for word, factor in _MULTIPLIERS:
@@ -9503,6 +9506,11 @@ def _nuclides_named(name: str) -> dict:
         elif char in ")]}" and stack:
             stack.pop()
         i += 1
+    # The retained isotope-specific names carry the nuclide in the WORD, not in a bracket: `potassium tritide`, `calcium ditritide`, `deuterium`.
+    for multiplier, stem in _ISOTOPE_WORD.findall(name):
+        mass = 2 if stem == "deuter" else 3
+        factor = dict(_MULTIPLIERS).get(multiplier, 1) if multiplier else 1
+        found[("H", mass)] = found.get(("H", mass), 0) + factor
     return found
 
 

@@ -118,6 +118,10 @@ def test_the_application_shows_the_refusal_not_a_wrong_name():
     ("(1R,2S)-cyclohexane-1,2-diol", {}),
     ("2H-pyran", {}),                                                        # an indicated hydrogen is outside any bracket
     ("3-(15N)aminopropanoic acid", {("N", 15): 1}),
+    ("potassium tritide", {("H", 3): 1}),                                     # the retained isotope-specific names carry the nuclide in the word
+    ("calcium ditritide", {("H", 3): 2}),
+    ("sodium deuteride", {("H", 2): 1}),
+    ("potassium hydride", {}),
 ])
 def test_the_nuclides_a_name_cites(name, expected):
     assert engine._nuclides_named(name) == expected
