@@ -67,9 +67,14 @@ fourth view are not needed until a molecule or receptor is shown.
 | Whole-scenario wall time | 308-435 s | 168-192 s (page loads were also quicker, 3-9 s vs 30-71 s: machine state, not the fix) |
 
 The UI-thread starvation by the minimiser is gone; what remains in that phase is F12.
-Conformer quality was not re-gated on the benchmark corpus (`benchmarks/conformers`): the standalone
-check gave identical energies on five molecules and the unit tests pass, which is evidence, not that gate.
-
+**Conformer quality gate (2026-10-07, `benchmarks/conformers`, 12 molecules x 5 seeds x 50 embeddings):** predictions
+generated twice on this machine, once through the batch API and once with that route switched off (the old
+`ForceField.Minimize` path), then compared with each other and with the committed `predictions_shipped.json`
+(built 2026-09-11, same RDKit 2025.09.6). **All three are identical across the 4,793 values compared** (counts,
+per-seed sets, overlaps); `score.py` prints the same table for each, including the existing `over` (1,2-dichloroethane,
+pentane) and `SHORT` (morphinan cage) verdicts, which are not new. Generation took 53 s on the batch API and 46 s on
+the old path, so there is no speed claim here either way. The two regenerated files were identical to the baseline and were
+not kept.
 
 ## Unresolved (do not act on these without a repeat)
 
