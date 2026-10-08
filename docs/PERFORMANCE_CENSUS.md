@@ -31,7 +31,7 @@ fourth view are not needed until a molecule or receptor is shown.
 | ID | Finding | Status | Evidence | Priority |
 |---|---|---|---|---|
 | F1 | Four `QWebEngineView`s are built at launch; the tree idles at ~1.08 GiB private | MEASURED | S1 x3; object census `QWebEngineView: 4` | P1 (design cost) |
-| F2 | pH-dependent partial charge spawns a Python sidecar per uncached call: ~310 MiB resident, **~1.76 GiB committed**, alive 8-38 s | MEASURED | S6 `ph-sidecar` x3 (calls with different pH) | P1 |
+| F2 | pH-dependent partial charge spawns a Python sidecar per uncached call: ~310 MiB resident, **~1.76 GiB committed**, alive 8-38 s | MEASURED. **CORRECTED AND FIXED 2026-10-08** (see "Follow-up: the pKa sidecar"): the cost is per NEW STRUCTURE, not per call or per pH (`_PAYLOADS` already caches by structure), and it is now paid once per session | S6 `ph-sidecar` x3 (calls with different pH) | done |
 | F3 | Chromium children take ~70% of idle CPU | MEASURED | S1: tree 0.31-0.36% vs app 0.09-0.11% | P2 |
 | F4 | First show of the Docking panel costs a one-off CPU spike (median 5.6% of machine for 3 s, range 2.0-8.3%) | MEASURED | S2 x3 | P2 |
 | F5 | The Atom Inspector panel idles at about twice the app-process CPU of the others (0.19% vs 0.07-0.11% of machine; ranges do not overlap) | MEASURED, small | S2 x3 | P3 |
@@ -139,8 +139,43 @@ the log. In-app probes: `src/openchem/app/drive_probes.py` and the `mark`, `obje
 ## Follow-up candidates (pick; none started)
 
 1. Build the Mol* and fourth web view lazily (F1: up to ~half the idle tree's memory).
-2. Decide whether the pH-dependent charge needs a fresh ~1.76 GiB sidecar per call, or a warm/shared one (F2).
-3. Guard the NP-likeness descriptor against an empty structure (F7).
+2. DONE 2026-10-08: the pKa sidecar is kept warm (F2; see "Follow-up: the pKa sidecar").
+3. DONE 2026-10-08: the NP-likeness descriptor refuses an empty structure instead of raising (F7).
 4. Repeat the inspector and edit loops under controlled conditions before treating either as a leak.
 5. DONE: conformer minimisation no longer freezes the UI (F10: batch API; slicing `Minimize` was measured and rejected, see `benchmarks/perf/probes/minimise_slices.py`) and the Atom Inspector no longer re-runs whole-molecule analyses per atom (F12).
 6. The 3D tab (F9/F11): the first show freezes the UI 75-640 ms and adds ~0.4 GiB, once. Showing it early at idle was tried and is not a fix. What would change the picture is not constructing the 3D and Mol* web views until first asked for (it defers the memory for people who never open 3D; not tried, and the first-show freeze would remain for those who do). The multi-second freezes (up to 14 s) have no explanation yet and should get one before any of this.
+
+## Follow-up: the pKa sidecar (2026-10-08, commits `8db3545d`, `fc8fe19c`)
+
+**What changed:** the pKa predictor keeps ONE pkasolver process warm (`chem/pka_worker.py`, `pka_runner.py --serve`) instead of starting
+one per structure; it exits after 120 s idle and when the application quits. **What did not:** the per-structure payload cache in
+front of it (pH was never in its key), the predictions (identical to the one-process route field for field on aspirin, fentanyl,
+glycine and an invalid SMILES), and `use_cache=False`, which still runs a fresh process.
+
+**Correction to F2.** The census said the cost was "per uncached call" and varied pH to defeat the result store. The pKa cache is keyed by
+structure, so the cost is per NEW STRUCTURE per process; the same structure at any pH was already free.
+
+**Step 0, before any code (3 cold processes, warm file cache):** model load 2.2-2.5 s, interpreter start and exit ~0.8 s, each
+prediction 0.33-1.19 s. A new structure cost 3-5 s of which under a third was prediction. The very first spawn of the session took
+31 s: that is the file cache being cold, and a worker does not remove it (it pays it once per worker lifetime). Measured, not
+inferred: that standalone probe, the spawn counts through `compute_pka`, and the payload comparison are in
+`benchmarks/perf/results/followup-2026-10-08/step0/` (git-ignored; `SUMMARY.md` states them).
+
+**Census, `ph-sidecar-structures`, 3 runs per arm, same tree, same machine, 16.4 GiB free at the start of each arm:**
+
+| | worker off (`OPENCHEM_PKA_WORKER=0`) | worker on |
+|---|---|---|
+| sidecar processes per run (3 different structures) | 3, each ~1.76 GiB private | **1** (spawns=1, requests=3, every run) |
+| time a new structure holds a sidecar / waits | 2.6-4.5 s each | first: startup 2.3 / 2.6 / **32 s** + 0.3 s; next two: **0.34-0.45 s** each |
+| after 135 s idle | (each already gone) | state `stopped`, process gone |
+
+The 32 s startup is the cold-file-cache case again (one run of three). Three runs on one machine: a range, not a distribution.
+`last_predict_s` for the first structure was 0.31-0.32 s in two runs and 2.96 s in the third.
+
+**Two earlier worker-on batches and one worker-off batch were discarded** (kept as `*__contaminated`): the machine was at 98% memory,
+startup read 122 s twice, and a direct probe showed the sidecar I/O-bound at ~2 s of CPU over a minute. They say nothing about the
+worker. Lesson for this file: record `psutil.virtual_memory().available` at the start of every census arm (the rerun log now does).
+
+**Found while building it, not by the tests:** a venv `python.exe` on Windows is a launcher whose child is the real interpreter, so
+the pid we start is not the pid that answers. This looked like an orphan risk and is not one (measured on both venvs: the launcher
+runs its child in a kill-on-close job, so `Popen.kill()` ends both). A `taskkill /T` written on that suspicion was removed.
