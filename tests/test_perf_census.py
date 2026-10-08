@@ -131,8 +131,32 @@ def test_controls_pass_on_a_planted_signal_and_fail_on_a_missed_one():
 # -- the sampler, on a process it can plant a signal in ----------------------------------------
 
 
+def _require_psutil():
+    """`psutil` is in the `perf` group. Locally its absence is a skip; in CI it is a FAILURE, because
+    the first CI run skipped this test and the gate read green over a sampler nothing exercised."""
+    import os
+
+    try:
+        import psutil
+    except ImportError:
+        if os.environ.get("GITHUB_ACTIONS"):
+            pytest.fail("psutil is missing in CI: the workflow's sync step must include `--group perf`")
+        pytest.skip("psutil is not installed (uv sync --group perf)")
+    return psutil
+
+
+def test_a_missing_psutil_fails_in_ci_and_skips_elsewhere(monkeypatch):
+    monkeypatch.setitem(sys.modules, "psutil", None)  # makes `import psutil` raise ImportError
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    with pytest.raises(pytest.skip.Exception):
+        _require_psutil()
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    with pytest.raises(pytest.fail.Exception):
+        _require_psutil()
+
+
 def test_sampler_sees_a_short_lived_child_and_a_planted_allocation():
-    psutil = pytest.importorskip("psutil")
+    psutil = _require_psutil()
     import subprocess
 
     code = (
