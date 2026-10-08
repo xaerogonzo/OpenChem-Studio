@@ -5306,6 +5306,10 @@ def _isotopic_attachment_prefix(prefix: str, atom, fragment) -> str:
     """
     if sum(1 for a in fragment.GetAtoms() if a.GetSymbol() == atom.GetSymbol()) != 1:
         return prefix
+    if atom.GetSymbol() == "N" and prefix.endswith("amino") and prefix != "amino":
+        # `methyl(N-2H)amino`, `benzoyl(N-2H)amino`: the label goes before the `amino` it modifies, after the groups on the nitrogen. OPSIN reads that and
+        # not `(N-2H)methylamino`.
+        return prefix[:-len("amino")] + isotopic_prefix("amino", atom)
     return isotopic_prefix(prefix, atom)
 
 
@@ -11543,7 +11547,32 @@ def _senior_by_citation_locants(trees):
     return [tree for tree, value in zip(trees, values) if value == lowest]
 
 
-def _isotope_atom_sites(plan, mol, atom_to_locant) -> tuple[frozenset, frozenset]:
+def _atoms_named_by_suffix(sg, mol) -> list:
+    """The atoms of a suffix group that its suffix word names; a ketone's group also lists its two neighbours, which only the oxygen is named by `-one`.
+
+    The neighbour of `CC(=O)N1CCCCC1` is the ring nitrogen, which the prefix `piperidin-1-yl` cites; reading it as part of `-one` as well named a labelled ring
+    nitrogen twice, `1-[(1-15N)piperidin-1-yl]ethan-1-(15N)one`, and the aryl carbon of `CC(=O)c1ccc([13cH]c1)Cl` the same way.
+    """
+    if sg.fg.type != "ketone":
+        return list(sg.fg.atoms)
+    named = []
+    for a in sg.fg.atoms:
+        bond = mol.GetBondBetweenAtoms(a, sg.fg.anchor)
+        if bond is not None and bond.GetBondType() == Chem.BondType.DOUBLE:
+            named.append(a)
+    return named
+
+
+def _is_carboxyl_hydroxyl_oxygen(mol, atom_idx: int, anchor: int) -> bool:
+    """True for the oxygen single-bonded to a carboxyl group's carbon: the hydroxyl of an acid, or the alkoxy oxygen of the ester it was carved from.
+
+    No charge test: a carboxylate is named from its neutral acid, so its oxygens never arrive charged here (a version that required charge 0 gave the same name for every anion tried).
+    """
+    bond = mol.GetBondBetweenAtoms(atom_idx, anchor)
+    return mol.GetAtomWithIdx(atom_idx).GetSymbol() == "O" and bond is not None and bond.GetBondType() == Chem.BondType.SINGLE
+
+
+def _isotope_atom_sites(plan, mol, atom_to_locant) -> tuple[frozenset, frozenset, frozenset]:
     """Which labelled atoms a parent cites without a locant, and which it cites before its suffix word (see `isotope.collect_isotope_labels`).
 
     A RETAINED parent name numbers only some of its atoms: `aniline` owns its nitrogen, `phenol` its oxygen, `benzonitrile` its nitrile carbon and
@@ -11556,7 +11585,15 @@ def _isotope_atom_sites(plan, mol, atom_to_locant) -> tuple[frozenset, frozenset
     `1-(aminomethyl)cyclopentan-1-(18O)ol`): the heteroatoms of ONE suffix group that are alone of their element in it.
     """
     named_parent = plan.named_parent
-    suffix_atoms = [a for sg in plan.suffix_groups for a in sg.fg.atoms if a not in atom_to_locant]
+    suffix_atoms = [a for sg in plan.suffix_groups for a in _atoms_named_by_suffix(sg, mol) if a not in atom_to_locant]
+    # D-197: the two oxygens of a carboxyl group are different atoms, the carbonyl one and the hydroxyl one, and the hydroxyl one is also the oxygen of an ester
+    # (the acid component is cut at the alkyl-oxygen bond and capped with hydrogen). Both used to be `(1-18O)`, which names neither and which OPSIN cannot read.
+    # The hydroxyl oxygen is cited with the element as its locant, `(O-18O)`, and the carbonyl oxygen is then alone of its element in the group.
+    alkoxy = frozenset(
+        a for sg in plan.suffix_groups if sg.fg.type == "carboxylic_acid" for a in sg.fg.atoms
+        if a in suffix_atoms and _is_carboxyl_hydroxyl_oxygen(mol, a, sg.fg.anchor)
+    )
+    suffix_atoms = [a for a in suffix_atoms if a not in alkoxy]
     if named_parent.naming_method == "retained":
         owned = set(named_parent.candidate.atom_indices) | set(getattr(named_parent, "extra_atom_indices", ()) or ()) | set(suffix_atoms)
         # "Alone of its element" is measured over EVERY atom the name owns, numbered or not: `(13C)benzonitrile` would name the nitrile carbon among seven carbons
@@ -11564,13 +11601,13 @@ def _isotope_atom_sites(plan, mol, atom_to_locant) -> tuple[frozenset, frozenset
         by_element: dict = {}
         for a in owned:
             by_element.setdefault(mol.GetAtomWithIdx(a).GetSymbol(), []).append(a)
-        return frozenset(a for atoms in by_element.values() if len(atoms) == 1 for a in atoms if a not in atom_to_locant), frozenset()
+        return frozenset(a for atoms in by_element.values() if len(atoms) == 1 for a in atoms if a not in atom_to_locant), frozenset(), alkoxy
     if len(plan.suffix_groups) == 1:
         by_element = {}
         for a in suffix_atoms:
             by_element.setdefault(mol.GetAtomWithIdx(a).GetSymbol(), []).append(a)
-        return frozenset(), frozenset(a for atoms in by_element.values() if len(atoms) == 1 for a in atoms)
-    return frozenset(), frozenset()
+        return frozenset(), frozenset(a for atoms in by_element.values() if len(atoms) == 1 for a in atoms), alkoxy
+    return frozenset(), frozenset(), alkoxy
 
 
 def _bonding_number_of_prefix(prefix_tree) -> int | None:
@@ -18249,7 +18286,15 @@ class SubstitutivePath:
                                         ether_prefix_name = alkyl_name + ether_suffix
                                 # The ether atom's own nuclide is cited in front of the whole prefix: `(18O)methoxy` (P-45.4.2's example, p. 423).
                                 if sum(1 for i in pa.substituent_atoms if mol.GetAtomWithIdx(i).GetSymbol() == ether_atom.GetSymbol()) == 1:
-                                    ether_prefix_name = isotopic_prefix(ether_prefix_name, ether_atom)
+                                    _labelled = isotopic_prefix("", ether_atom)
+                                    from openchem.vendor.iupac_namer.isotope import _LEADING_ISOTOPE_BRACKET
+                                    # a stem that carries a nuclide bracket of its own (`(1-13C)methyl`) is still a bare stem: the two brackets merge, `(1-13C,18O)methoxy`
+                                    if _labelled and not re.fullmatch(r"(meth|eth|prop|but|pent|hex|hept|oct|non|dec)yl|phenyl", _LEADING_ISOTOPE_BRACKET.sub("", alkyl_name)):
+                                        # A contracted alkoxy with anything on its alkyl (`phenylmethoxy`, `2-methylpropoxy`, `4-chlorophenoxy`) takes the label
+                                        # before its `oxy` on the UNcontracted form, `(phenylmethyl)(18O)oxy`; OPSIN reads that and not `(18O)phenylmethoxy`.
+                                        ether_prefix_name = "(" + alkyl_name + ")" + _labelled + ether_suffix
+                                    else:
+                                        ether_prefix_name = isotopic_prefix(ether_prefix_name, ether_atom)
                                 sub_tree = LeafTree(
                                     output_form=OutputForm.SUBSTITUENT,
                                     free_valence=None,
@@ -18672,14 +18717,14 @@ class SubstitutivePath:
             _anchor_loc = _atom_to_loc_map.get(_sg.fg.anchor)
             if _anchor_loc is None:
                 continue
-            for _fg_atom in _sg.fg.atoms:
+            for _fg_atom in _atoms_named_by_suffix(_sg, mol):
                 if _fg_atom in _atom_to_loc_map:
                     continue
                 _fg_anchor_map[_fg_atom] = _anchor_loc
-        _iso_unnumbered, _iso_suffix = _isotope_atom_sites(plan, mol, _atom_to_loc_map)
+        _iso_unnumbered, _iso_suffix, _iso_alkoxy = _isotope_atom_sites(plan, mol, _atom_to_loc_map)
         _iso_labels = _coll_iso(
             mol, _atom_to_loc_map, fg_anchor_map=_fg_anchor_map or None,
-            unnumbered_ok=_iso_unnumbered, suffix_ok=_iso_suffix,
+            unnumbered_ok=_iso_unnumbered, suffix_ok=_iso_suffix, alkoxy_ok=_iso_alkoxy,
         )
         _isotope_labels_tuple = _iso_labels if _iso_labels else None
 

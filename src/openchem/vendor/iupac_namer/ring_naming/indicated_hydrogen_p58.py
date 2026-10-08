@@ -457,7 +457,13 @@ def _resolve(mol, named_parent, numbering, suffix_groups, free_valence=None):
     by_label = {str(locant_of[a]): a for a in ring}
     old_atoms = {by_label.get(label) for label in old} | set(named_parent.added_indicated_h_atoms or ())
     if None in old_atoms or not old_atoms <= described:
-        return None
+        # The retained lookup writes the parent's DEFAULT indicated hydrogen into its text (`5,9-dihydro-2H-purine` for a ring whose C2 is sp2 and whose
+        # C6 is the carbonyl), a placeholder for "some mancude tautomer" that says nothing about this structure. The plan puts the indicated hydrogen on
+        # the group carbon; what has to agree with it are the hydro positions, which are read off the structure.
+        ih_old = _HYDRO_IH.match(named_parent.name or "")
+        placeholder = ({by_label.get(s[:-1]) for s in ih_old.group("ih").split(",")} if ih_old and ih_old.group("ih") else set())
+        if None in (old_atoms - placeholder) or not (old_atoms - placeholder) <= described:
+            return None
     if plan.hydro and len(plan.hydro) not in _HYDRO_MULT:
         return None
     return plan, locant_of, base_name, stem_split[0], described
