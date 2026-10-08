@@ -37,6 +37,8 @@ fourth view are not needed until a molecule or receptor is shown.
 | F5 | The Atom Inspector panel idles at about twice the app-process CPU of the others (0.19% vs 0.07-0.11% of machine; ranges do not overlap) | MEASURED, small | S2 x3 | P3 |
 | F6 | A 12-edit burst blocks the event loop up to 97-177 ms (4 stalls over 30 ms), one descriptor request per burst | MEASURED | S4 x3 | P3 (the 2026-09-24 fixes hold) |
 | F7 | An unexpected `ZeroDivisionError` in the NP-likeness descriptor (`npscorer.py:58`) on a 0-atom structure, logged as an app ERROR once in 6 idle runs | MEASURED, incidental | startup-idle run 2 ledger (first batch) | P2 (a bug, not performance) |
+| F9 | The first display of the 3D viewer adds **~390-460 MiB** to the app process (private bytes 1,212 -> 1,599 and 1,230 -> 1,688 MiB), and switching back to the 2D editor gives back only ~25-70 MiB. In the third run the same jump landed one phase later (1,238 -> 1,653), so the amount is stable and the timing is not | MEASURED x3, phase boundaries blurred by timing | S5 | P1 |
+| F10 | Event-loop stalls of seconds during conformer generation and the 3D viewer opening: worst stall 0.5 / 1.8 / 7.5 s while generating 10 conformers of a 51-heavy-atom molecule, and 1.1 / 8.7 / 5.3 s while the viewer opened. Descriptors alone were quiet in run 1 (12 ms) but stalled 1.8 s and 4.1 s in runs 2 and 3 | MEASURED, wide run-to-run spread; the start-up pages were still settling in runs 2-3 (child memory 61 and 269 MiB at the first boundary vs 567), so work and page load are not separated | S5 | P1 to confirm |
 | F8 | Inspector open/close: a ~200 MiB one-off step on first open; **no per-open growth on clean reruns** | see Unresolved | | |
 
 ## Ruled out (measured, 3 runs each, 50 iterations, `oxidation_states` as the in-process calculator)
@@ -62,8 +64,9 @@ fourth view are not needed until a molecule or receptor is shown.
   150-iteration run alone showed a flat 1,240 MiB (slope +0.04) from iteration 1 to 150. Again not
   reproduced; the first runs read like a start-up ramp, and I did not isolate it.
 * **Window-ready latency** varied 3.0-9.6 s across three otherwise identical runs.
-* **Heavy molecule (S5)** only ran load + one calculator; conformers and the 3D viewer are not driven,
-  so "a big molecule is expensive" is untested.
+* **Heavy molecule (S5)** ran all phases (the 10 conformers were asserted to exist), but its stalls
+  varied from 12 ms to 8.7 s between runs, and a 30 s settle did not always finish loading the web pages. F10 needs a rerun with the
+  settle replaced by "all web views report loaded" before it is read as the cost of the work itself.
 
 ## How the instruments were validated, and where they were wrong
 
@@ -115,4 +118,4 @@ the log. In-app probes: `src/openchem/app/drive_probes.py` and the `mark`, `obje
 2. Decide whether the pH-dependent charge needs a fresh ~1.76 GiB sidecar per call, or a warm/shared one (F2).
 3. Guard the NP-likeness descriptor against an empty structure (F7).
 4. Repeat the inspector and edit loops under controlled conditions before treating either as a leak.
-5. Drive conformers and the 3D viewer in S5.
+5. Replace the fixed start-up settle with a wait for the web views to finish loading, then repeat S5 (F10).
