@@ -4153,6 +4153,37 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-199d", "[13cH]1ccccc1", "(6-13C)benzene",
      "(6-13C)cyclohexa-1,3,5-triene",
      "a labelled benzene was a Kekule triene"),
+    # Naming round 30. D-197 was found by round 29 (phase 2), where the sweep counted it as unreadable, not wrong: the two oxygens of a carboxyl group (the carbonyl
+    # one and the hydroxyl one, which is also an ester's alkoxy oxygen) were both `(1-18O)`, so two different molecules had ONE name and OPSIN read neither. OPSIN
+    # reads the carbonyl oxygen as `(18O)acetate` / `-1-(18O)oate` and the alkoxy or hydroxyl oxygen as `(O-18O)acetate` / `-1-(O-18O)oate`.
+    ("D-197a", "C=CC(=[18O])OC", "methyl prop-2-en-1-(18O)oate",
+     "methyl (1-18O)prop-2-enoate",
+     "the carbonyl oxygen of an ester: the acid component is carved with both its oxygens, so neither was alone of its element in the group"),
+    ("D-197b", "C=CC(=O)[18O]C", "methyl prop-2-en-1-(O-18O)oate",
+     "methyl (1-18O)prop-2-enoate",
+     "the alkoxy oxygen: the SAME name as D-197a for a different molecule; it is cited with the element as its locant"),
+    ("D-197c", "CC(=[18O])O", "(18O)acetic acid",
+     "(1-18O)acetic acid",
+     "the free acid had the same defect: carbonyl and hydroxyl oxygen shared one unreadable name"),
+    ("D-197d", "CC(=O)[18OH]", "(O-18O)acetic acid",
+     "(1-18O)acetic acid",
+     "the hydroxyl oxygen of an acid"),
+    # D-200: a ketone's group lists its two NEIGHBOURS among its atoms, and only its oxygen is named by `-one`.
+    ("D-200a", "CC(=O)[15N]1CCCCC1", "1-[(1-15N)piperidin-1-yl]ethan-1-one",
+     "1-[(1-15N)piperidin-1-yl]ethan-1-(15N)one",
+     "WRONG MOLECULE: the ring nitrogen was cited by its ring AND by the ketone (two 15N for one)"),
+    ("D-200b", "CC(=O)c1ccc(Cc2cc[13c](C(C)=O)cc2)cc1", "1-{4-[(4-acetylphenyl)methyl](1-13C)phenyl}ethan-1-one",
+     "1-{4-[(4-acetylphenyl)methyl](1-13C)phenyl}ethan-1-(13C)one",
+     "the ring carbon the acetyl hangs on was cited again by the ketone"),
+    # D-202: a nuclide in a fused ring system. Round 29 made `extract_ring_mol` look the ring up without its nuclides; the namers that read the ring from the molecule
+    # themselves were not reached.
+    ("D-202", "c1ccc2nnc[15n]2n1", "(4-15N)[1,2,4]triazolo[4,3-b]pyridazine",
+     "[NAMING ERROR: No valid naming plan found for c1cn[15n]2cnnc2c1]",
+     "a labelled bridgehead nitrogen made the fused ring unnameable (11 of 300 census molecules with one ring nitrogen labelled)"),
+    # D-201: a nuclide between the locant and the suffix word does not stop the infix's `e` going before the vowel.
+    ("D-201", "C=CC(=[18O])N", "prop-2-en-1-(18O)amide",
+     "prop-2-ene-1-(18O)amide",
+     "`prop-2-en-1-ol` and `prop-2-enamide` lose the infix's e; a bracket in between hid the vowel from the elision"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -4263,17 +4294,6 @@ OPEN: list[tuple[str, str, str, str, str]] = [
     # analogue (`2-[methoxy(methyl)amino]-2-oxoethyl acetate`) is named correctly, so the N-OH context is the trigger.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate", "an N-substituted hydroxamic acid inside an ester's acid part loses its N-substituent"),
-
-    # D-197, found by naming round 29 (phase 2) and NOT fixed. The two oxygens of an ester's acid component are one name: the carbonyl oxygen and the alkoxy oxygen of `CC(=[18O])OC`
-    # and `CC(=O)[18O]C` are both `methyl (1-18O)acetate`, two different molecules, and OPSIN reads neither. The sweep that measured the label placements counted these
-    # as unreadable, not wrong, so nothing flagged them. The targets are the forms OPSIN reads for each (verified separately): `-1-(18O)oate` for the carbonyl oxygen
-    # and `-1-(O-18O)oate` for the alkoxy oxygen. Whether the book prints the same is NOT known; they are the only readable forms found.
-    ("D-197a", "C=CC(=[18O])OC", "methyl prop-2-en-1-(18O)oate",
-     "methyl (1-18O)prop-2-enoate",
-     "the carbonyl oxygen of an ester: the acid component is carved with both its oxygens, so `suffix_ok` (alone of its element in the group) is false and the label stays at the front"),
-    ("D-197b", "C=CC(=O)[18O]C", "methyl prop-2-en-1-(O-18O)oate",
-     "methyl (1-18O)prop-2-enoate",
-     "the alkoxy oxygen: the SAME name as D-197a for a different molecule"),
 ]
 
 # Observed but NOT tracked here, because this table requires a verified

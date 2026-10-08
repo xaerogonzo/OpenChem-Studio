@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: the two oxygens of a carboxyl group, a ketone's neighbours, and a nuclide in a fused ring
+- `CC(=[18O])OC` and `CC(=O)[18O]C` were both `methyl (1-18O)acetate`: two molecules under one name that OPSIN reads as neither, and the same for a free acid's carbonyl and hydroxyl oxygen. They are `methyl (18O)acetate` and `methyl (O-18O)acetate` now (`methyl prop-2-en-1-(18O)oate`, `propan-1-(O-18O)oic acid` for a systematic acid), each read back exact.
+- `CC(=O)[15N]1CCCCC1` was `1-[(1-15N)piperidin-1-yl]ethan-1-(15N)one`, two 15N for one: a ketone's group lists its two neighbours and only its oxygen is named by `-one`. It is `1-[(1-15N)piperidin-1-yl]ethan-1-one`. A nuclide between a locant and a suffix keeps the infix's elision (`prop-2-en-1-(18O)amide`, not `prop-2-ene-1-...`).
+- A nuclide in a fused ring system was a naming error or a von Baeyer name (`[1,2,4]triazolo[4,3-b]pyridazine` with a labelled bridgehead nitrogen): the ring is looked up without its nuclides for every kind of ring now. 300 census molecules with one ring nitrogen labelled (15N, or a deuterium on it), master -> now: exact 269 -> 295, unreadable 16 -> 2, naming errors 11 -> 0, wrong molecule 3 -> 2; none that was exact became anything else. The 2000-row census and the 1712-row panel do not move.
+
 ### Naming: isotopic labels are placed where OPSIN reads them, and a labelled ring is still the ring it is
 - `[13cH]1ccc2ccccc2c1` was a naming error, labelled benzene `cyclohexa-1,3,5-triene`, labelled pyridine `azine`, labelled tetralin a `bicyclo[4.4.0]` name for another molecule: a nuclide anywhere in a ring made it unrecognisable. They are `(7-13C)naphthalene`, `(6-13C)benzene`, `(5-13C)pyridine` and `1,2,3,4-tetrahydro(6-13C)naphthalene` now, and the bracket sits where OPSIN reads it: after the locant of a suffix (`butan-1-(18O)amide`), after hydro prefixes (`3,4-dihydro(4-13C)quinolin-1(2H)-yl`), before `amino` and before the `oxy` of a compound alkoxy. On 400 labelled census molecules the unreadable names went from 40 to 10 and the exact ones from 290 to 331; the 2000-row census does not move. Found and not fixed: the carbonyl and the alkoxy oxygen of an ester get the same name (D-197). Details in `src/openchem/vendor/CHANGELOG.md`.
 

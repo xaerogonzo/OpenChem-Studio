@@ -1803,6 +1803,9 @@ def elide(name: str) -> str:
 _UNSATURATION_INFIX = re.compile(r"(?:-[0-9a-z,]+-)?(?:di|tri|tetra|penta|hexa)?(?:en|yn)e")
 
 
+_LEADING_NUCLIDE_BRACKET = re.compile(r"^\((?:[0-9A-Za-z,']+-)?\d+[A-Z][a-z]?\d*(?:,(?:[0-9A-Za-z,']+-)?\d+[A-Z][a-z]?\d*)*\)")
+
+
 def elide_at_boundaries(parts: list[str]) -> str:
     """Apply IUPAC P-16.3.3 elision only at explicit part-boundary junctions.
 
@@ -1858,6 +1861,8 @@ def elide_at_boundaries(parts: list[str]) -> str:
             elif left.endswith("e") and right and _LOCANT_PREFIX_RE.match(right):
                 # Skip past the "-<locant>-" prefix and check the suffix start.
                 suffix_after_locant = _LOCANT_PREFIX_RE.sub("", right)
+                # A nuclide cited between the locant and the suffix word (`prop-2-en-1-(18O)amide`) does not stop the infix's `e` going before the vowel.
+                suffix_after_locant = _LEADING_NUCLIDE_BRACKET.sub("", suffix_after_locant, count=1)
                 if (suffix_after_locant
                         and suffix_after_locant[0] in "aeiouy"
                         and (unsaturation_infix
@@ -3439,9 +3444,11 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
             # does not). A suffix with no locant to give stays where it always was.
             import dataclasses as _dc_iso
             from openchem.vendor.iupac_namer.isotope import render_isotope_labels as _render_iso_suffix
-            _suffix_label = _render_iso_suffix(tuple(_dc_iso.replace(lbl, locant=None) for lbl in _suffix_iso))
+            _suffix_label = _render_iso_suffix(tuple(_dc_iso.replace(lbl, locant=None) if lbl.locant is not None and lbl.locant.is_numeric else lbl for lbl in _suffix_iso))
             _located = re.match(r"^(-[0-9A-Za-z,']+-)(.+)$", rendered_suf)
-            _anchors = {str(lbl.locant) for lbl in _suffix_iso if lbl.locant is not None}
+            _anchors = {str(lbl.locant) for lbl in _suffix_iso if lbl.locant is not None and lbl.locant.is_numeric}
+            if not _anchors and len(tree.suffix_groups) == 1 and tree.suffix_groups[0].locants:      # an alkoxy oxygen's label carries the element, not the anchor
+                _anchors = {str(tree.suffix_groups[0].locants[0])}
             if _located:
                 rendered_suf = _located.group(1) + _suffix_label + _located.group(2)
                 _suffix_iso = ()
@@ -3659,7 +3666,7 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
         import dataclasses as _dc_front
         from openchem.vendor.iupac_namer.isotope import render_isotope_labels as _render_iso_front
         front = _render_iso_front(tuple(
-            _dc_front.replace(lbl, locant=None) if (lbl.at_suffix and tree.named_parent.name in ("benzene", "ethane", "methane")) else lbl
+            _dc_front.replace(lbl, locant=None) if (lbl.at_suffix and lbl.locant is not None and lbl.locant.is_numeric and tree.named_parent.name in ("benzene", "ethane", "methane")) else lbl
             for lbl in tree.isotope_labels))
         if _iso_index is None:
             parts.insert(0 if not (tree.stereo_descriptors and not _STEREO_SUPPRESSED.get()) else 1, front)

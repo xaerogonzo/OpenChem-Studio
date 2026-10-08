@@ -96,6 +96,7 @@ def collect_isotope_labels(
     fg_anchor_map: Mapping[int, Locant] | None = None,
     unnumbered_ok: frozenset | None = None,
     suffix_ok: frozenset | None = None,
+    alkoxy_ok: frozenset | None = None,
 ) -> tuple[IsotopeLabel, ...]:
     """Extract IUPAC isotope labels from *mol* for the given parent.
 
@@ -124,6 +125,9 @@ def collect_isotope_labels(
     (P-82.6.1.2: "Locants are omitted when there is only one atom of a given element"; the locant of the anchor carbon this used to give, `(1-18O)phenol`,
     is one OPSIN cannot read). ``suffix_ok`` names the heteroatoms of a systematic parent's suffix group that are the only atom of their element in it:
     their label is marked ``at_suffix`` so assembly can cite it before the suffix word. Hydrogen isotopes keep the heteroatom locant they always had.
+
+    ``alkoxy_ok`` names the ester oxygen that the carve turned into the acid component's hydroxyl (D-197): its label is cited with the element as its locant,
+    `(O-18O)acetate`, `prop-2-en-1-(O-18O)oate`, which OPSIN reads as the alkoxy oxygen where the carbonyl oxygen's `(18O)acetate` and `-1-(18O)oate` are the other one.
 
     The returned tuple is sorted by ``(locant-as-string, mass_number,
     element)`` for deterministic output.
@@ -170,7 +174,10 @@ def collect_isotope_labels(
                         and target_idx not in atom_to_locant):
                     locant = Locant.hetero(target_sym)
         at_suffix = False
-        if element != "H" and unnumbered_ok and target_idx in unnumbered_ok:
+        if element != "H" and alkoxy_ok and target_idx in alkoxy_ok:
+            locant = Locant.hetero(element)
+            at_suffix = True
+        elif element != "H" and unnumbered_ok and target_idx in unnumbered_ok:
             locant = None                       # a retained name numbers nothing here: the nuclide is cited bare
         elif element != "H" and suffix_ok and target_idx in suffix_ok and locant is not None:
             at_suffix = True
