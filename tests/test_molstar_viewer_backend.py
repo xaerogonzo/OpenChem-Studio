@@ -29,6 +29,15 @@ _STRUCTURE_COUNT_JS = (
 )
 
 
+def _built_backend() -> MolStarViewerBackend:
+    """A backend whose view exists. The backend builds it lazily (on a structure to show,
+    or when its container is shown), but these tests are about the page and its queues,
+    so they take the view first; `tests/test_lazy_web_views.py` covers the laziness."""
+    backend = MolStarViewerBackend()
+    backend.ensure_built()
+    return backend
+
+
 def _pump(qapp, seconds: float) -> None:
     deadline = time.time() + seconds
     while time.time() < deadline:
@@ -61,12 +70,12 @@ def _structure_count(qapp, backend) -> object:
 
 
 def test_viewer_becomes_ready(qapp):
-    backend = MolStarViewerBackend()
+    backend = _built_backend()
     assert _wait_until(qapp, lambda: backend._viewer_ready)
 
 
 def test_load_macromolecule_adds_a_structure(qapp):
-    backend = MolStarViewerBackend()
+    backend = _built_backend()
     assert _wait_until(qapp, lambda: backend._viewer_ready)
 
     backend.load_macromolecule(_MINIMAL_PDB, "pdb")
@@ -74,7 +83,7 @@ def test_load_macromolecule_adds_a_structure(qapp):
 
 
 def test_load_before_ready_is_queued_and_applied_once_ready(qapp):
-    backend = MolStarViewerBackend()
+    backend = _built_backend()
     # Call before waiting for _viewer_ready -- exercises the pending-call
     # queue (backend._pending_call), not just the already-ready path.
     backend.load_macromolecule(_MINIMAL_PDB, "pdb")
@@ -83,7 +92,7 @@ def test_load_before_ready_is_queued_and_applied_once_ready(qapp):
 
 
 def test_clear_removes_loaded_structure(qapp):
-    backend = MolStarViewerBackend()
+    backend = _built_backend()
     assert _wait_until(qapp, lambda: backend._viewer_ready)
     backend.load_macromolecule(_MINIMAL_PDB, "pdb")
     assert _wait_until(qapp, lambda: _structure_count(qapp, backend) == 1)
@@ -110,7 +119,7 @@ def test_residue_colors_applied_before_the_viewer_exists_are_replayed(qapp):
     into nothing -- the identical bug that left the Calculator Inspector's
     3D pane uncoloured, and which was reintroduced here once already
     before this test existed."""
-    backend = MolStarViewerBackend()
+    backend = _built_backend()
     calls = _fired_js(backend)
 
     backend.load_macromolecule(_MINIMAL_PDB, "pdb")
@@ -133,7 +142,7 @@ def test_residue_names_are_passed_unquoted_to_mol_script(qapp):
     successfully -- a silent failure confirmed interactively, and the
     reason an earlier attempt wrongly concluded Mol* colouring was
     unavailable."""
-    backend = MolStarViewerBackend()
+    backend = _built_backend()
     assert _wait_until(qapp, lambda: backend._viewer_ready)
     calls = _fired_js(backend)
 
@@ -148,7 +157,7 @@ def test_atom_layers_are_ignored_by_the_macromolecule_viewer(qapp):
     """Per ViewerBackend.apply_visualizations' contract: a backend renders
     the target kinds it can. Per-atom scientific data has no meaning
     against a receptor-sized structure, so it clears rather than raises."""
-    backend = MolStarViewerBackend()
+    backend = _built_backend()
     assert _wait_until(qapp, lambda: backend._viewer_ready)
     calls = _fired_js(backend)
 
@@ -160,7 +169,7 @@ def test_atom_layers_are_ignored_by_the_macromolecule_viewer(qapp):
 def test_several_residue_layers_composite_with_later_layers_winning(qapp):
     """build_interaction_layers emits clashes after H-bonds precisely so a
     residue doing both ends up flagged with the problem."""
-    backend = MolStarViewerBackend()
+    backend = _built_backend()
     assert _wait_until(qapp, lambda: backend._viewer_ready)
     calls = _fired_js(backend)
 
@@ -175,7 +184,7 @@ def test_several_residue_layers_composite_with_later_layers_winning(qapp):
 
 
 def test_empty_layer_list_clears(qapp):
-    backend = MolStarViewerBackend()
+    backend = _built_backend()
     assert _wait_until(qapp, lambda: backend._viewer_ready)
     calls = _fired_js(backend)
 
@@ -188,7 +197,7 @@ def test_a_queued_clear_is_not_lost(qapp):
     """Regression test for an ambiguous sentinel: None is a real queued
     VALUE here (meaning "clear"), so using None as the also-means-empty
     marker silently dropped clears requested before the viewer existed."""
-    backend = MolStarViewerBackend()
+    backend = _built_backend()
     calls = _fired_js(backend)
 
     backend.load_macromolecule(_MINIMAL_PDB, "pdb")
@@ -242,7 +251,7 @@ def _owned_box_shapes(qapp, backend):
 
 
 def test_a_search_box_is_drawn_and_reports_its_committed_geometry(qapp):
-    backend = MolStarViewerBackend()
+    backend = _built_backend()
     assert _wait_until(qapp, lambda: backend._viewer_ready)
     backend.load_macromolecule(_MINIMAL_PDB, "pdb")
     assert _wait_until(qapp, lambda: _structure_count(qapp, backend) == 1)
@@ -262,7 +271,7 @@ def test_clearing_leaves_no_box_AND_no_stale_geometry(qapp):
     keep reading coordinates off a box that is not there -- and a test doing
     the same would pass.
     """
-    backend = MolStarViewerBackend()
+    backend = _built_backend()
     assert _wait_until(qapp, lambda: backend._viewer_ready)
     backend.show_search_box((1.0, 2.0, 3.0), (12.0, 10.0, 8.0))
     assert _wait_until(qapp, lambda: _search_box_state(qapp, backend).get("present") is True)
@@ -284,7 +293,7 @@ def test_a_burst_of_requests_leaves_exactly_the_LAST_one_drawn(qapp):
     assertion below and left three boxes in the scene, which is why the
     shape count is here.
     """
-    backend = MolStarViewerBackend()
+    backend = _built_backend()
     assert _wait_until(qapp, lambda: backend._viewer_ready)
     backend.load_macromolecule(_MINIMAL_PDB, "pdb")
     assert _wait_until(qapp, lambda: _structure_count(qapp, backend) == 1)
@@ -303,7 +312,7 @@ def test_a_burst_of_requests_leaves_exactly_the_LAST_one_drawn(qapp):
 
 def test_a_clear_racing_a_show_ends_on_whichever_came_last(qapp):
     """Both orders, because they fail differently."""
-    backend = MolStarViewerBackend()
+    backend = _built_backend()
     assert _wait_until(qapp, lambda: backend._viewer_ready)
 
     backend.show_search_box((9.0, 9.0, 9.0), (6.0, 6.0, 6.0))
@@ -318,7 +327,7 @@ def test_a_clear_racing_a_show_ends_on_whichever_came_last(qapp):
 
 
 def test_a_box_requested_before_the_viewer_exists_is_replayed(qapp):
-    backend = MolStarViewerBackend()
+    backend = _built_backend()
     # No readiness wait: this is the queued path.
     backend.show_search_box((4.0, 5.0, 6.0), (10.0, 10.0, 10.0))
 
@@ -337,7 +346,7 @@ def test_a_CLEAR_requested_before_the_viewer_exists_is_not_lost(qapp):
     clears, which is why `_NOTHING_PENDING` exists on this slot and on
     `_pending_layers`.
     """
-    backend = MolStarViewerBackend()
+    backend = _built_backend()
     backend.show_search_box((4.0, 5.0, 6.0), (10.0, 10.0, 10.0))
     backend.clear_search_box()
     assert backend._pending_search_box is None, "a queued clear must not read as 'nothing queued'"
@@ -357,7 +366,7 @@ def test_the_box_survives_loading_another_structure(qapp):
     box survives on purpose, so loading a receptor redraws its search region
     without the window having to sequence the two calls.
     """
-    backend = MolStarViewerBackend()
+    backend = _built_backend()
     assert _wait_until(qapp, lambda: backend._viewer_ready)
     backend.load_macromolecule(_MINIMAL_PDB, "pdb")
     assert _wait_until(qapp, lambda: _structure_count(qapp, backend) == 1)
@@ -378,7 +387,7 @@ def test_a_chain_qualified_key_reaches_mol_script_as_a_chain_term(qapp):
     it across the bridge; `test_the_chain_term_actually_narrows_what_is_painted`
     is what establishes the expression then selects less.
     """
-    backend = MolStarViewerBackend()
+    backend = _built_backend()
     assert _wait_until(qapp, lambda: backend._viewer_ready)
     calls = _fired_js(backend)
 
@@ -444,7 +453,7 @@ def test_a_chain_qualified_key_selects_only_that_chain(qapp):
     Unquoted for the same reason residue NAMES are: quoting matches zero
     atoms while the overpaint commits successfully.
     """
-    backend = MolStarViewerBackend()
+    backend = _built_backend()
     assert _wait_until(qapp, lambda: backend._viewer_ready)
 
     clauses = _selection_clauses(
@@ -572,7 +581,7 @@ def test_the_fixture_can_actually_show_the_difference(qapp):
     'model', this PDB cannot reproduce the reported defect and the guards
     below need a real multi-copy deposit instead.
     """
-    backend = MolStarViewerBackend()
+    backend = _built_backend()
     assert _wait_until(qapp, lambda: backend._viewer_ready)
 
     backend.load_additional_structure(_TWO_CHAIN_PDB, "pdb", "receptor")
@@ -595,7 +604,7 @@ def test_a_receptor_loaded_alone_is_shown_as_deposited(qapp):
     `showDepositedCoordinates` was written, which is why the defect below
     survived it.
     """
-    backend = MolStarViewerBackend()
+    backend = _built_backend()
     assert _wait_until(qapp, lambda: backend._viewer_ready)
 
     backend.load_macromolecule(_TWO_CHAIN_PDB, "pdb")
@@ -640,7 +649,7 @@ def test_the_docking_sequence_leaves_the_receptor_on_deposited_coordinates(qapp)
     -- a molblock that failed to load would fail this test for a reason
     having nothing to do with the defect.
     """
-    backend = MolStarViewerBackend()
+    backend = _built_backend()
     assert _wait_until(qapp, lambda: backend._viewer_ready)
 
     backend.load_macromolecule(_TWO_CHAIN_PDB, "pdb")

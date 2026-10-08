@@ -8,6 +8,7 @@ from PySide6.QtCore import QObject, QUrl, Signal, Slot
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineCore import QWebEnginePage
 from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from openchem.ui.viewer_backend import ViewerBackend
 from openchem.ui.visualization import AnyVisualizationLayer, ResidueColorLayer
@@ -41,6 +42,27 @@ class _Bridge(QObject):
         self._backend.structure_clicked.emit(loci_kind)
 
 
+class _LazyContainer(QWidget):
+    """The cheap, stable widget the application holds in place of the web view.
+
+    It exists from construction on and is the SAME object for the life of the
+    backend, so a tab, a layout or a test that took `widget()` early still has the
+    right thing after the view is built into it. Showing it is a first use: whatever
+    puts it on screen (a tab becoming current, a dock, a pop-out) builds the view,
+    so no caller has to know the view is lazy.
+    """
+
+    def __init__(self, backend: "MolStarViewerBackend", parent=None) -> None:
+        super().__init__(parent)
+        self._backend = backend
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+    def showEvent(self, event) -> None:  # noqa: N802 - Qt override
+        self._backend.ensure_built()
+        super().showEvent(event)
+
+
 class _LoggingPage(QWebEnginePage):
     """Forwards the page's JS console to Python logging."""
 
@@ -63,16 +85,19 @@ class MolStarViewerBackend(ViewerBackend):
     structure_clicked = Signal(str)  # Loci "kind" string, e.g. "element-loci"
 
     def __init__(self, parent=None) -> None:
+        """Builds NO web view. Mol* is the macromolecule tab, and most sessions never
+        open it; a `QWebEngineView` is a Chromium renderer, so it is built on first use
+        (`ensure_built`) instead of at launch. The deferred-call queues below were
+        written for the page not being ready yet; "the view does not exist yet" is the
+        same state one step earlier, so they are the ONLY queue -- there is no second one
+        in front of them."""
         super().__init__(parent)
         if not _VIEWER_HTML.exists():
             raise FileNotFoundError(f"Macromolecule viewer page not found at {_VIEWER_HTML}")
-        self._view = QWebEngineView(parent)
-        self._page = _LoggingPage(self._view)
-        self._view.setPage(self._page)
-        self._channel = QWebChannel(self._page)
-        self._bridge = _Bridge(self)
-        self._channel.registerObject("bridge", self._bridge)
-        self._page.setWebChannel(self._channel)
+        self._container = _LazyContainer(self, parent if isinstance(parent, QWidget) else None)
+        self._parent_widget = parent
+        self._view: QWebEngineView | None = None
+        self._page: QWebEnginePage | None = None
 
         self._viewer_ready = False
         # A FIFO, not a single slot: load_macromolecule() followed
@@ -93,7 +118,34 @@ class MolStarViewerBackend(ViewerBackend):
         #: slot and same sentinel as `_pending_layers`, for the same reason:
         #: None means "clear", so it cannot double as "nothing requested".
         self._pending_search_box: tuple | None | object = _NOTHING_PENDING
-        self._page.load(QUrl.fromLocalFile(str(_VIEWER_HTML)))
+
+    @property
+    def is_built(self) -> bool:
+        return self._view is not None
+
+    def ensure_built(self) -> None:
+        """Create the web view, once. THE ONLY PLACE a `QWebEngineView` is made here.
+
+        Idempotent. Every first-use path -- a structure to show, the container being
+        shown -- funnels through this, so there is exactly one construction however
+        they interleave. The pending queues are replayed by `_on_viewer_ready`, as
+        they always were.
+        """
+        if self._view is not None:
+            return
+        view = QWebEngineView(self._container)
+        page = _LoggingPage(view)
+        view.setPage(page)
+        channel = QWebChannel(page)
+        self._bridge = _Bridge(self)
+        channel.registerObject("bridge", self._bridge)
+        page.setWebChannel(channel)
+        self._channel = channel
+        self._container.layout().addWidget(view)
+        # Assigned last: `is_built` must not report True for a half-built view.
+        self._page = page
+        self._view = view
+        page.load(QUrl.fromLocalFile(str(_VIEWER_HTML)))
 
     def _on_viewer_ready(self) -> None:
         self._viewer_ready = True
@@ -124,6 +176,9 @@ class MolStarViewerBackend(ViewerBackend):
         self._load(structure_text, source_format, label, additional=True)
 
     def _load(self, structure_text: str, source_format: str, label: str, additional: bool) -> None:
+        # A structure to show is the use that justifies the view: build it, then the
+        # call queues (or runs) exactly as it always did.
+        self.ensure_built()
         if self._viewer_ready:
             self._run_load(structure_text, source_format, label, additional)
         else:
@@ -137,6 +192,13 @@ class MolStarViewerBackend(ViewerBackend):
         )
 
     def clear(self) -> None:
+        if self._view is None:
+            # Nothing was ever shown, so there is nothing to clear -- and clearing must
+            # not be what builds a renderer. Drop what was queued, as below.
+            self._pending_calls = []
+            self._pending_layers = _NOTHING_PENDING
+            self._pending_search_box = _NOTHING_PENDING
+            return
         if self._viewer_ready:
             self._page.runJavaScript("window.openchemMolstarViewer.clear();")
         self._pending_calls = []
@@ -241,4 +303,6 @@ class MolStarViewerBackend(ViewerBackend):
         )
 
     def widget(self):
-        return self._view
+        """The stable container -- never the view, and never builds it (the point of
+        being lazy: handing a widget to a layout must not cost a renderer)."""
+        return self._container

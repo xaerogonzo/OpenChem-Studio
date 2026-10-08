@@ -155,6 +155,7 @@ def test_the_failed_entry_is_not_sent_to_the_viewer_and_colours_stay_aligned(qap
     as one entry fails -- this pins that they still agree on which colour
     belongs to which molecule."""
     panel, _service, bus, _engine = _panel(qapp)
+    panel._ensure_viewer()  # the view is built on first show; this test spies on it
     sent: list[list[tuple[str, str]]] = []
     panel._viewer.load_ensemble = lambda entries: sent.append(list(entries))
 
@@ -189,7 +190,9 @@ def test_the_overlay_can_be_shown_in_its_own_window(qapp):
     """
     panel, _service, _bus, _engine = _panel(qapp)
 
-    viewer_widget = panel._viewer.widget()
+    # The host holds the panel's STABLE container; the backend's view is built into it
+    # on first show, and the same container travels to the window and back.
+    viewer_widget = panel._viewer_container
     window = panel._viewer_host.pop_out()
 
     assert window.isAncestorOf(viewer_widget)
@@ -233,6 +236,7 @@ def test_the_panel_control_is_authoritative_wherever_the_view_lives(qapp):
     is exactly why it needs an assertion: free today, easy to break.
     """
     panel, _service, _bus, _engine = _panel(qapp)
+    panel._ensure_viewer()  # the view is built on first show; this test spies on it
     styles: list[str] = []
     panel._viewer.set_style = lambda style: styles.append(style)
 
@@ -266,6 +270,7 @@ def test_hiding_an_entry_removes_it_from_the_overlay_and_keeps_its_colour(qapp):
     the legend lie the moment anything was hidden.
     """
     panel, _service, bus, _engine = _panel(qapp)
+    panel._ensure_viewer()  # the view is built on first show; this test spies on it
     sent: list[list[tuple[str, str]]] = []
     panel._viewer.load_ensemble = lambda entries: sent.append(list(entries))
 
@@ -292,6 +297,7 @@ def test_filling_the_table_does_not_reload_the_overlay_once_per_cell(qapp):
     unguarded the table reloads the whole overlay while it is still being
     filled -- once per cell, each one drawing a partial ensemble."""
     panel, _service, bus, _engine = _panel(qapp)
+    panel._ensure_viewer()  # the view is built on first show; this test spies on it
     sent: list[object] = []
     panel._viewer.load_ensemble = lambda entries: sent.append(list(entries))
 
@@ -317,6 +323,7 @@ def test_a_failed_entry_has_no_visibility_box(qapp):
 
 def test_the_colour_mode_reaches_the_viewer(qapp):
     panel, _service, _bus, _engine = _panel(qapp)
+    panel._ensure_viewer()  # the view is built on first show; this test spies on it
     modes: list[str] = []
     panel._viewer.set_ensemble_color_mode = modes.append
 

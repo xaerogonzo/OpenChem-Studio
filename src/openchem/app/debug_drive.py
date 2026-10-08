@@ -1524,7 +1524,7 @@ class _Driver(QObject):
         headers = [
             table.horizontalHeaderItem(c).text() for c in range(table.columnCount())
         ]
-        view = panel._viewer.widget()
+        view = panel._viewer_container
         # EVERY DIRECT CHILD, not a summary: this panel's whole problem is
         # that fixed-height siblings leave the overlay a strip, and "the
         # viewer is 63 px" does not say which sibling to argue with.

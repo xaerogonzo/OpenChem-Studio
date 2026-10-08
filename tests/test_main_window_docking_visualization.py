@@ -96,6 +96,7 @@ def test_docking_result_colours_the_binding_site(qapp, tmp_path):
     interaction analysis pose_analysis already recorded in pose.metadata."""
     window, services, session = _window(tmp_path)
     viewer = window._macromolecule_viewer
+    viewer.ensure_built()  # the view is lazy; this test spies on its page
 
     fired: list[str] = []
     original = viewer._page.runJavaScript
@@ -118,6 +119,7 @@ def test_a_pose_with_no_interactions_clears_rather_than_leaving_stale_colours(qa
     pose's binding site still highlighted."""
     window, services, session = _window(tmp_path)
     viewer = window._macromolecule_viewer
+    viewer.ensure_built()  # the view is lazy; this test spies on its page
 
     fired: list[str] = []
     original = viewer._page.runJavaScript
