@@ -6718,9 +6718,7 @@ class _Driver(QObject):
         seconds = float(step.get("seconds", 3.0))
         path = (self._report_path or Path("drive")).with_suffix(".stacks.txt")
         handle = self.__dict__.setdefault("_stack_file", open(path, "a", encoding="utf-8"))
-        handle.write(f"
-===== watchdog armed: {step.get('tag', '')} (every {seconds} s) =====
-")
+        handle.write(f"\n===== watchdog armed: {step.get('tag', '')} (every {seconds} s) =====\n")
         handle.flush()
         self._stack_seconds = seconds
         timer = QTimer()
