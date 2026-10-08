@@ -11404,6 +11404,51 @@ def _senior_by_citation_locants(trees):
     return [tree for tree, value in zip(trees, values) if value == lowest]
 
 
+def _alphanumerical_letters(tree) -> str | None:
+    """A name's letters in the order they appear, for P-45.5: no locants, no descriptors, no element symbols, no punctuation.
+
+    "Alphabetic letters are considered first in the order that they appear in the name; all Roman letters are considered before any italic
+    letters, unless the latter are used as locants" (BlueBookV2.pdf p. 424), and the multiplying prefix is one of the letters, which is why
+    `bromo` is earlier than `dibromo`. The element symbols of an italic locant (`N`, `Se`) and of a nuclide (`81Br`, "the `B` ... is not a
+    factor", p. 425) are the only capitals in a name and are removed whole. None when a name carries what P-45.3 (a bonding number) or P-45.4
+    (a nuclide) would decide first, because those sit before this rule in the book and are not applied across parents here: reading a letter
+    order into them would decide by the wrong rule, so such a tie is left as it was.
+    """
+    from openchem.vendor.iupac_namer.assembly import assemble_without_stereo
+
+    try:
+        text = assemble_without_stereo(tree)
+    except Exception:  # noqa: BLE001 - a name that will not assemble is not compared
+        return None
+    if "NAMING ERROR" in text:                                              # an embedded failure: two different broken names are not ordered
+        return None
+    if "lambda" in text or "\u03bb" in text or re.search(r"\d[A-Z][a-z]?\)", text):
+        return None
+    # hydro/dehydro prefixes "are not included in the category of alphabetized detachable prefixes" (P-31.1.4.2.4, pdf p. 75); `hydroxy` and `hydrogen` are.
+    text = re.sub(r"(?:(?:di|tri|tetra|penta|hexa|hepta|octa|nona|deca)a?)?(?:de)?hydro(?![xg])", "", text)
+    # a fusion descriptor (`[3,2-a]`, `[b,e]`, `[2,3-b:3',2'-d]`) is numbers and italic locant letters only; an enclosing mark holds words
+    text = re.sub(r"\[(?:\d+'*|[a-z]'*)(?:[,:\-](?:\d+'*|[a-z]'*))*\]", "", text)
+    text = re.sub(r"[A-Z][a-z]?(?![a-z])", "", text)                       # `N`, `Se`, the `H` of `1H`: italic locants and element symbols
+    return re.sub(r"[^a-z]", "", re.sub(r"(?<=\d)[a-z](?![a-z])", "", text))   # `4a`: the letter of a fusion locant is not one of the name's
+
+
+def _senior_by_alphanumerical_order(trees):
+    """P-45.5 across parents: the trees whose name is earliest in alphanumerical order; None when it cannot apply.
+
+    "The preferred IUPAC name is the name that is earlier in alphanumerical order" (p. 424): `2-bromo-4-chloro-N-(2,4-dibromophenyl)aniline`
+    reads `bromochlorodibromophenylaniline` and its rival `dibromobromochlorophenylaniline`. It follows P-45.2.3, so the trees given are
+    ones that tie on the locants in their order of citation, which is also why the numerical locants "in the order of their appearance"
+    that the book names last are already equal. Only trees that are the same parent are compared (`_parent_name_alone`), as for P-45.2.3.
+    Returns the trees, in the order given, that share the earliest letters (one when the rule decides, all when it does not).
+    """
+    parents = {_parent_name_alone(tree) for tree in trees}
+    letters = [_alphanumerical_letters(tree) for tree in trees]
+    if len(parents) != 1 or None in parents or None in letters:
+        return None
+    earliest = min(letters)
+    return [tree for tree, value in zip(trees, letters) if value == earliest]
+
+
 def _plan_identity(mol, plan) -> tuple | None:
     """What a plan names, as a value two plans share exactly when they name the molecule the same way; None when that cannot be told.
 
@@ -11435,9 +11480,9 @@ def _break_parent_tie(
     (`_senior_by_citation_locants`), and this is the one step that reaches an achiral molecule: `2-bromo-N-(4-bromo-2-chlorophenyl)-4-
     chloroaniline` and `4-bromo-N-(2-bromo-4-chlorophenyl)-2-chloroaniline` are the same molecule with either aniline as the parent, and
     which one a SMILES spelling produced went by atom order. The book orders it before P-45.6, so what P-45.2.3 leaves tied goes on to the
-    configuration comparison below, which only a molecule that carries stereo pays for. P-45.3 (nonstandard bonding numbers), P-45.4
-    (isotopes) and P-45.5 (the name earlier in alphanumerical order, `bromo` before `dibromo`) sit between the two in the book and are not
-    applied across parents: a tie they would decide stays with the configuration comparison and then the plan order, as it did.
+    configuration comparison below, which only a molecule that carries stereo pays for. P-45.5 (the name earlier in alphanumerical order, `bromo` before `dibromo`) follows it, and then the same. P-45.3 (nonstandard bonding
+    numbers) and P-45.4 (isotopes) sit between the two in the book and are not applied across parents: P-45.5 declines a name that carries
+    a bonding number or a nuclide, and such a tie stays with the configuration comparison and then the plan order, as it did.
 
     The configuration comparison is P-45.6.2 (BlueBookV2.pdf p. 426), where the choice between two substitutive names is the one thing
     the descriptors differ in: "since the alphabetic characters and locants (ignoring the configuration symbols) are identical the configurational symbols are
@@ -11501,12 +11546,17 @@ def _break_parent_tie(
         return None
 
     senior = _senior_by_citation_locants(trees)
-    if senior is not None and len(senior) < len(trees):
-        # P-45.2.3 ruled some parents out. What is left is the answer, and falling through here would name the TOP plan's hypothesis,
+    survivors = trees if senior is None else senior
+    # P-45.5 follows P-45.2.3 in the book (P-45.3 and P-45.4 between them are not applied across parents), and takes what P-45.2.3 left tied.
+    alphabetical = _senior_by_alphanumerical_order(survivors)
+    if alphabetical is not None:
+        survivors = alphabetical
+    if len(survivors) < len(trees):
+        # A rule ruled some parents out. What is left is the answer, and falling through here would name the TOP plan's hypothesis,
         # which may be one of the parents just ruled out. Of the survivors, P-45.6 decides when it can, and the first one otherwise.
-        if len(senior) == 1 or not _carries_stereo(mol):
-            return senior[0]
-        return _choose_by_configuration(senior) or senior[0]
+        if len(survivors) == 1 or not _carries_stereo(mol):
+            return survivors[0]
+        return _choose_by_configuration(survivors) or survivors[0]
     return _choose_by_configuration(trees) if _carries_stereo(mol) else None
 
 

@@ -1010,10 +1010,19 @@ class IUPACCanonical(NamingStrategy):
             if not plan.suffix_groups and not plan.pcg_instances:
                 score += 5.0
 
-        # Band 2: number of multiple bonds in chain (P-44.3c)
+        # Band 2: number of multiple bonds in chain (P-44.4.1.1, pdf p. 401:
+        # "has the greater number of multiple bonds").
         # Max ~10 double/triple bonds → max 0.01 pts.
+        #
+        # BONDS, not infixes: one infix names every bond of its kind
+        # ("1,3,13-triene" is one infix and three bonds), so counting infixes
+        # tied a diene with a triene and the next tier, which ranks the
+        # SHORTER locant set higher across parents, then chose the diene
+        # (P-45.2.3 examples 6 and 9). Capped so a freak count can never reach
+        # one chain atom (0.1) in band 3.
         if plan.unsaturation:
-            score += len(plan.unsaturation) * 0.001
+            bonds = sum(len(inf.locants) for inf in plan.unsaturation)
+            score += min(bonds, 99) * 0.001
 
         # Band 1: number of substituents (P-44.3d)
         # Max ~10 substituents → max 0.001 pts.
