@@ -40,8 +40,8 @@ DECIDED = [
      "4-(1,2-dinitropropyl)-5,6-difluoroheptanoic acid"),
 ]
 
-# Example 5: P-45.4 (isotopes) decides before this rule, and is not applied across parents, so the rule declines it. Both names read back to the molecule; the
-# book's is the first (the second is what the book prints, with a typo, as "not"). Open: 9 and 4 of 13 spellings, as before this rule existed.
+# Example 5 carries nuclides: P-45.4 (isotopes) decides before this rule (tests/test_namer_substituent_modification.py). Both names read back to the molecule; the book's is the
+# first (the second is what the book prints, with a typo, as "not"). It was 9 and 4 of 13 spellings until naming round 29.
 ISOTOPIC = (
     "[81Br]C(C(C(CC(=O)O)C(C)C(C)[81Br])[N+](=O)[O-])C",
     "5-(81Br)bromo-3-[3-(81Br)bromobutan-2-yl]-4-nitrohexanoic acid",
@@ -96,10 +96,11 @@ def test_the_rule_is_reached_by_molecules_that_carry_no_stereo():
         assert not engine._carries_stereo(Chem.MolFromSmiles(smiles)), smiles
 
 
-def test_a_name_with_a_nuclide_is_left_as_it_was():
-    """P-45.4 sits before this rule and is not applied across parents: the rule must not decide an isotopic tie by letters. Open, pinned."""
+def test_example_5_carries_nuclides_and_is_the_books_name_now():
+    """P-45.4 (isotopes) is applied across parents since naming round 29, so a nuclide tie is decided before this rule or by it: the book's own example 5 ("The `B` of
+    the element symbol `Br` is not a factor in the alphabetization") was two names, 9 and 4 of 13, while this rule declined a name with a nuclide."""
     smiles, book, other = ISOTOPIC
-    assert _names(smiles) == {book, other}
+    assert _names(smiles) == {book}
 
 
 @needs_opsin
@@ -137,13 +138,11 @@ def test_letters_are_the_names_letters_in_order(monkeypatch, text, letters):
 
 
 @pytest.mark.parametrize("text", [
-    "4-(81Br)bromo-3-[1-(81Br)bromo-2-bromopropyl]-5-chlorohexanoic acid",       # a nuclide: P-45.4 decides first
-    "3-(13C)methoxy-2-methylpropan-1-ol",
     "3-[2-bromo-1-(lambda5-phosphanyl)propyl]-5-chlorohexanoic acid",            # a bonding number: P-45.3 decides first
     "3-(λ5-phosphanyl)-2-(phosphanylmethyl)propanoic acid",
     "({[NAMING ERROR: No valid naming plan found for [SeH]c1ccccc1]}tellanyl)benzene",        # an embedded failure: not ordered against another one
 ])
-def test_a_name_with_a_nuclide_or_a_bonding_number_is_declined(monkeypatch, text):
+def test_a_name_with_a_bonding_number_is_declined(monkeypatch, text):
     assert _letters(monkeypatch, text) is None
 
 
