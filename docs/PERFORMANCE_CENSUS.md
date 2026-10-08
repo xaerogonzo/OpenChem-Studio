@@ -38,7 +38,8 @@ fourth view are not needed until a molecule or receptor is shown.
 | F6 | A 12-edit burst blocks the event loop up to 97-177 ms (4 stalls over 30 ms), one descriptor request per burst | MEASURED | S4 x3 | P3 (the 2026-09-24 fixes hold) |
 | F7 | An unexpected `ZeroDivisionError` in the NP-likeness descriptor (`npscorer.py:58`) on a 0-atom structure, logged as an app ERROR once in 6 idle runs | MEASURED, incidental | startup-idle run 2 ledger (first batch) | P2 (a bug, not performance) |
 | F9 | The first display of the 3D viewer adds **~360-460 MiB** to the app process (private bytes e.g. 1,214 -> 1,621; 1,210 -> 1,623), and switching back to the 2D editor gives back only ~15-70 MiB. Seen in 7 of 9 runs inside the measured window; in the two runs that did not show it the viewer also stalled the loop for 12.8-14.0 s, so its load probably landed outside the window | MEASURED, intermittent in timing, stable in size | S5 x9 | P1 |
-| F10 | **Conformer generation freezes the UI in ~0.3 s slices because RDKit's `ForceField.Minimize` holds the GIL.** During 10 conformers of a 51-heavy-atom molecule the loop's worst stall was 0.87 / 0.73 / 0.60 s and then 0.49 / 0.45 / 0.54 s, with 12-16 stalls over 100 ms, in all six runs taken after the pages had finished loading. The watchdog's stacks show the worker inside `_minimise` -> `force_field.Minimize` (`conformer_providers.py:1403`) while the main thread sits in `app.exec()` with no Python slot running. Standalone, in plain Python with no Qt: a thread running `ForceField.Minimize` per conformer left a 5 ms ticking thread **11 ticks, median gap 288 ms, 10 gaps over 100 ms**; `MMFFOptimizeMoleculeConfs` (1 or 4 threads) and `EmbedMultipleConfs` gave 546 / 229 / 649 ticks at a 5.2 ms median | MEASURED with a cause (RDKit 2025.09.6) | S5 + standalone GIL test | P1 |
+| F10 | **Conformer generation freezes the UI in ~0.3 s slices because RDKit's `ForceField.Minimize` holds the GIL.** During 10 conformers of a 51-heavy-atom molecule the loop's worst stall was 0.87 / 0.73 / 0.60 s and then 0.49 / 0.45 / 0.54 s, with 12-16 stalls over 100 ms, in all six runs taken after the pages had finished loading. The watchdog's stacks show the worker inside `_minimise` -> `force_field.Minimize` (`conformer_providers.py:1403`) while the main thread sits in `app.exec()` with no Python slot running. Standalone, in plain Python with no Qt: a thread running `ForceField.Minimize` per conformer left a 5 ms ticking thread **11 ticks, median gap 288 ms, 10 gaps over 100 ms**; `MMFFOptimizeMoleculeConfs` (1 or 4 threads) and `EmbedMultipleConfs` gave 546 / 229 / 649 ticks at a 5.2 ms median | MEASURED with a cause (RDKit 2025.09.6). **FIXED for the "Normal" level on 2026-10-07 (`MMFFOptimizeMoleculeConfs`)**; re-measured below | S5 + standalone GIL test | done |
+| F12 | **After the F10 fix, the conformer phase still stalls 0.33-0.41 s (2 stalls over 100 ms per run, was 12-16)**: the stack watchdog caught the GUI thread in `AtomInspectorPanel._rebuild_atom_table` -> `atom_report.build_atom_report` -> `collect_lewis` -> `lewis.analyse` while conformers arrive, i.e. Lewis analysis for every atom of a 51-heavy-atom molecule computed synchronously on the GUI thread. One run only produced a dump (the 0.4 s watchdog is at the edge of the stall) | MEASURED once with a stack, stall size x3 | S5 | P2 |
 | F11 | 3D viewer opening stalls the loop 1.0-1.3 s in 2 of the 3 watchdog runs (0.09 s in the third); earlier passes saw 1.1-14.0 s. The 12.8 s and 14.0 s runs are not reproduced and not explained. The watchdog (1.5 s) fired no stack for any of them | MEASURED, spread unexplained | S5 x9 | P2 |
 | F8 | Inspector open/close: a ~200 MiB one-off step on first open; **no per-open growth on clean reruns** | see Unresolved | | |
 
@@ -52,6 +53,23 @@ fourth view are not needed until a molecule or receptor is shown.
 | `connect(lambda ...)` closures over `self` still exist | Ruled out statically: one remains and it captures `callback`, not `self` |
 | Probe overhead distorts the numbers | Within noise. App CPU, % of machine: sampler-only 0.076-0.133; +object census 0.085-0.129; +heartbeat 0.105-0.145; +tracemalloc 0.084-0.191. The 10 ms heartbeat itself reads a ~5.5 ms floor stall (Windows timer granularity) |
 | Control instruments can see a planted signal | Pass: no-op slope -0.05 MiB/iter (limit 0.30); planted 5 MiB/iter read 4.95 (accepted 3.0-7.0); retained `QLabel`s grew 285->660; a 2 s child process was recorded |
+
+## Re-measurement after the F10 fix (S5, 3 runs, same scenario, pages awaited)
+
+| | Before (6 runs) | After (3 runs) |
+|---|---|---|
+| Conformer phase, worst loop stall | 0.87, 0.73, 0.60, 0.49, 0.45, 0.54 s | 0.34, 0.33, 0.41 s |
+| Conformer phase, stalls over 100 ms | 9-16 per run | 2 per run |
+| Conformer phase, stalls over 16.7 ms | n/a | 4-6 per run |
+| Descriptor phase, worst stall | 8-47 ms | 16-25 ms |
+| 3D viewer phase, worst stall | 1.3, 0.09, 1.0 s (watchdog runs) | 121, 149, 75 ms |
+| 3D viewer first-display memory | +360-410 MiB | +370-420 MiB (unchanged: not part of this fix) |
+| Whole-scenario wall time | 308-435 s | 168-192 s (page loads were also quicker, 3-9 s vs 30-71 s: machine state, not the fix) |
+
+The UI-thread starvation by the minimiser is gone; what remains in that phase is F12.
+Conformer quality was not re-gated on the benchmark corpus (`benchmarks/conformers`): the standalone
+check gave identical energies on five molecules and the unit tests pass, which is evidence, not that gate.
+
 
 ## Unresolved (do not act on these without a repeat)
 
