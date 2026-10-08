@@ -374,6 +374,29 @@ def ph_sidecar_structures(idle_wait_s: int = 0) -> Scenario:
                                 "idle_wait_s": idle_wait_s})
 
 
+def lazy_first_use(pdb_id: str = "1HSG") -> Scenario:
+    """The cost the lazy web views MOVED: what the first use of each deferred view costs.
+    Idle first (the startup saving is `startup-idle`'s, read from the sampler), then a receptor
+    into the Macromolecule Viewer, then the Alignment dock. A stamp before and a settled stamp
+    after each, so the sampler reads memory and child processes either side and the heartbeat
+    reads the longest stall in between. On a tree where the views are still eager the same
+    steps run (they just cost less), which is what makes before/after comparable."""
+    steps = _boot() + [
+        _s("wait", after_ms=STARTUP_SETTLE_MS),
+        _s("mark", name="idle-ready", after_ms=3000),
+        _s("mark", name="molstar-before"),
+        _s("receptor", pdb_id=pdb_id, after_ms=25000),
+        _s("mark", name="molstar-after", after_ms=3000),
+        _s("mark", name="alignment-before"),
+        _s("panel", id="Alignment", after_ms=15000),
+        _s("mark", name="alignment-after", after_ms=3000),
+        _s("quit"),
+    ]
+    return Scenario("lazy-first-use", "S7 first use of the deferred web views: Macromolecule Viewer, Alignment dock",
+                    steps, cadence_s=0.25, probes=["heartbeat"], kind="generic", timeout_s=600,
+                    parameters={"pdb_id": pdb_id})
+
+
 # -- S5 heavy molecule ----------------------------------------------------------------
 
 
@@ -432,5 +455,6 @@ REGISTRY: dict[str, Callable[..., Scenario]] = {
     "heavy-molecule": heavy_molecule,
     "ph-sidecar": ph_sidecar,
     "ph-sidecar-structures": ph_sidecar_structures,
+    "lazy-first-use": lazy_first_use,
     "viewer-switch": viewer_switch,
 }
