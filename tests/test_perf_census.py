@@ -283,3 +283,44 @@ def test_expect_conformers_fails_the_run_when_none_were_made():
     molecule.conformers = [object()]
     driver._do_expect_conformers({"min": 1, "tag": "t"})
     assert driver._assertions[-1]["ok"] is True
+
+
+def test_heavy_molecule_waits_for_pages_not_for_a_fixed_time():
+    names = [step["do"] for step in scenarios.heavy_molecule().steps]
+    assert names.index("wait_web_loaded") < names.index("conformers")
+    first_phase = next(i for i, s in enumerate(scenarios.heavy_molecule().steps) if s.get("name") == "phase:loaded")
+    assert not any(s["do"] == "wait" and s.get("after_ms") == scenarios.STARTUP_SETTLE_MS
+                   for s in scenarios.heavy_molecule().steps[:first_phase])
+
+
+def test_wait_web_loaded_holds_the_chain_and_resumes_it(qapp):
+    """Against a real QWebEngineView on a trivial page: the driver stays on the step while
+    the page loads, then runs the next step. Not a mock of the thing being waited on."""
+    from types import SimpleNamespace
+
+    from PySide6.QtCore import QUrl
+    from PySide6.QtWebEngineWidgets import QWebEngineView
+    from PySide6.QtWidgets import QApplication, QWidget
+
+    from openchem.app.debug_drive import _Driver
+
+    window = QWidget()
+    view = QWebEngineView(window)
+    view.setHtml("<html><body>x</body></html>", QUrl("about:blank"))
+    ran = []
+    driver = _Driver(window, [{"do": "wait_web_loaded", "quiet_ms": 300, "after_ms": 10},
+                              {"do": "mark", "name": "after"}])
+    driver._do_mark = lambda step: ran.append(step["name"])  # the step after the wait
+    driver._run_next()
+    assert driver._index == 1 and not ran, "the chain must be held while the wait runs"
+    import time
+
+    deadline = time.monotonic() + 30
+    while not ran and time.monotonic() < deadline:
+        QApplication.processEvents()
+        time.sleep(0.01)
+    assert ran == ["after"]
+    assert driver._measurements["web_loaded"][0]["timed_out"] is False
+    assert driver._measurements["web_loaded"][0]["views"] == 1
+    view.deleteLater()
+    del SimpleNamespace

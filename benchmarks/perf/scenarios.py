@@ -312,7 +312,9 @@ def heavy_molecule(conformers: int = 10) -> Scenario:
     """S5: one large molecule through each phase, stamped so the sampler can read memory and
     child processes at every boundary. `phase:*` marks are read at their own instant."""
     steps = _boot(HEAVY_SMILES, "erythromycin") + [
-        _s("wait", after_ms=STARTUP_SETTLE_MS),
+        # NOT a fixed wait: the first S5 runs stalled for seconds in phases that were still
+        # loading their web pages, and the work could not be told from the load.
+        _s("wait_web_loaded", quiet_ms=3000, timeout_ms=120000, after_ms=10000),
         _s("mark", name="phase:loaded", after_ms=3000),
         _s("loop_lag", action="start", tag="descriptors", interval_ms=10),
         _s("calculator", id=LIFECYCLE_CALCULATOR, parameters=LIFECYCLE_CALCULATOR_PARAMETERS, reveal=False,

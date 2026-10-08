@@ -402,6 +402,10 @@ class _Driver(QObject):
         except Exception:  # noqa: BLE001 - a bad script must not kill the app
             logger.exception("OPENCHEM_DRIVE: step %d (%s) failed", self._index, action)
         after = int(step.get("after_ms", _DEFAULT_AFTER_MS))
+        # A step that waits for something it cannot size (`wait_web_loaded`) HOLDS the
+        # chain and resumes it itself.
+        if self.__dict__.pop("_hold_chain", False):
+            return
         # A step that runs on its own timers (`panel_cycle`) asks the NEXT step to
         # wait for it, because its length is only known once it has looked.
         after += int(self.__dict__.pop("_defer_ms", 0))
@@ -6691,6 +6695,51 @@ class _Driver(QObject):
             window = ref()
             if window is not None:
                 window.close()
+
+    def _do_wait_web_loaded(self, step: dict[str, Any]) -> None:
+        """`{"do": "wait_web_loaded", "quiet_ms": 3000, "timeout_ms": 120000, "after_ms": 5000}` --
+        hold the script until every `QWebEngineView` under the window reports its page not
+        loading, steadily for `quiet_ms`. Replaces a fixed start-up wait: a census phase
+        read while the pages are still loading measures the load, not the phase (S5's
+        multi-second stalls could not be attributed because of exactly that).
+
+        The result is recorded as `web_loaded`: how long it took, how many views, and
+        whether it gave up. A page that is not loading is not the same as an app that is
+        finished (Ketcher initialises after its page is up), which is why the caller adds
+        `after_ms`."""
+        import time
+
+        self._web_wait = {
+            "started": time.monotonic(), "deadline": time.monotonic() + int(step.get("timeout_ms", 120000)) / 1000.0,
+            "quiet": int(step.get("quiet_ms", 3000)) / 1000.0, "quiet_since": None,
+            "after_ms": int(step.get("after_ms", _DEFAULT_AFTER_MS)),
+        }
+        self._hold_chain = True
+        self._poll_web_loaded()
+
+    def _poll_web_loaded(self) -> None:
+        import time
+
+        from PySide6.QtWebEngineWidgets import QWebEngineView
+
+        wait = self._web_wait
+        views = self._window.findChildren(QWebEngineView)
+        loading = [v for v in views if v.page().isLoading()]
+        now = time.monotonic()
+        if loading:
+            wait["quiet_since"] = None
+        elif wait["quiet_since"] is None:
+            wait["quiet_since"] = now
+        timed_out = now >= wait["deadline"]
+        if timed_out or (wait["quiet_since"] is not None and now - wait["quiet_since"] >= wait["quiet"]):
+            result = {"views": len(views), "waited_s": round(now - wait["started"], 1), "timed_out": timed_out}
+            self._measurements.setdefault("web_loaded", []).append(result)
+            logger.warning("OPENCHEM_DRIVE: wait_web_loaded %s", json.dumps(result))
+            if timed_out:
+                logger.error("OPENCHEM_DRIVE: wait_web_loaded gave up after %.0f s", result["waited_s"])
+            QTimer.singleShot(wait["after_ms"], self._window, self._run_next)
+            return
+        QTimer.singleShot(250, self._window, self._poll_web_loaded)
 
     def _do_gc(self, step: dict[str, Any]) -> None:
         """`{"do": "gc"}` -- one diagnostic `gc.collect()`, so a lifecycle scenario's
