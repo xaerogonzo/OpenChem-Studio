@@ -26,6 +26,12 @@ Rules the file follows, each learned the hard way in this project:
   a pre-proof or a supplement, has not been rejected. There is deliberately no "rejected" state; a
   rejection is a scientific decision that records a reason, and a paywall is never one.
 - **`sha256` says the file is still the one that was read**, nothing more.
+- **Three keys, three jobs.** `kv_document_id` (optional) says *this paper is a source*, and is a
+  [Knowledge Vista](https://github.com/xaerogonzo/knowledgevista) document id: it survives the PDF being renamed, replaced
+  by a better scan or merged with a duplicate. `sha256` says *this exact PDF was verified*. `file` is a display name and a
+  legacy locator that goes stale the moment a file is renamed. When they disagree the order of trust is hash, then document
+  id, then name. Knowledge Vista is a separate program and optional: nothing here needs it, and an entry without
+  `kv_document_id` is complete.
 - **This is an inventory, not the provenance registry.** A paper moves into `docs/sources.toml` (with a
   `used_by`, a verification level and the number it backs) the day something we ship is built from it; until
   then it is read, not cited. `tests/test_sources_are_current.py` skips this one file for that reason and no
@@ -62,6 +68,18 @@ python tools/library_index.py stats                                # incl. files
 
 `OPENCHEM_PDF_LIBRARY=<folder> python tools/index_literature.py --check` verifies every held file against
 its hash, and says so plainly when there is no library to check against.
+
+**A renamed paper is not a changed paper.** If a held file is not at its recorded name and Knowledge Vista (`kv`) is installed, the
+check asks it where those bytes are now (`kv locate <sha256>`, which sends nothing but the hash) and then **hashes the path it is
+given itself**, because KV answers from a catalog that may be a day stale. A file found that way is printed as `MOVED` and is not a
+problem: the identified bytes are held, only `file` is old. A file that is gone, or different, is still a problem. KV missing, slow,
+or speaking a protocol this tool was not taught changes nothing about what is checked; it is noted once, only if you pointed OpenChem at
+it. Point OpenChem at KV with `OPENCHEM_KV=<path to kv>` (and `OPENCHEM_KV_CATALOG=<catalog file>` if it is not KV's default);
+`--no-kv` skips the lookup.
+
+`python tools/index_literature.py --link-kv` proposes a `kv_document_id` for every held entry that lacks one, and `--link-kv --write`
+records them (one line after the entry's `sha256`, nothing else touched). It links an entry only when KV has the entry's exact bytes
+under a document and the path it names hashes to the recorded `sha256`; it never guesses from a title.
 
 ## The four density-type quantities
 

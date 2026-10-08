@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### A renamed paper is no longer a changed paper: Knowledge Vista lookup for `index_literature.py --check`
+
+`file` in `docs/research/literature.toml` is a locator and drifts the moment a PDF is renamed; the check used to call that a mismatch.
+When [Knowledge Vista](https://github.com/xaerogonzo/knowledgevista) (`kv`, a separate local program that knows where a hash is *now*) is
+installed, a held file that is not at its recorded name is looked up by sha256 (`tools/kv_client.py`; only the hash is sent) and passes as
+`MOVED` if the path KV names **hashes to the recorded sha256 here** -- KV's catalog may be stale, so what it says is a lead, never
+evidence. KV absent, slow, wrong-protocol, malformed or crashing changes nothing about what is checked (tests drive a mock `kv` through
+each of those). `--link-kv [--write]` proposes the new optional `kv_document_id` field for held entries. OpenChem remains fully useful with
+KV absent. Not changed: `tools/library_index.py` (it records no hash for a name the caller types, so there is nothing to look up by).
 ### An optional Knowledge Vista tab in External Tools
 
 [Knowledge Vista](https://github.com/xaerogonzo/knowledgevista) (`kv`) is a separate local program that recognises PDFs by content, so a

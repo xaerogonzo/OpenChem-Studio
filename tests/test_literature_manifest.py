@@ -153,3 +153,15 @@ def test_the_held_files_are_the_ones_that_were_read(tool, entries):
     if not library.is_dir():
         pytest.skip("no PDF library on this machine")
     assert tool.check(library, entries) == 0
+
+
+def test_a_kv_document_id_is_a_document_id_or_absent_and_never_on_an_unheld_entry(tool, entries):
+    """`kv_document_id` is optional, belongs to a held file, and is the 32 lowercase hex characters Knowledge Vista issues."""
+    seen: dict[str, str] = {}
+    for entry in entries:
+        document_id = entry.get("kv_document_id")
+        if document_id is None:
+            continue
+        assert re.fullmatch(r"[0-9a-f]{32}", document_id), (entry["id"], document_id)
+        assert entry["access"] in tool.HELD_STATES, f"{entry['id']} is {entry['access']} but names a Knowledge Vista document"
+        assert seen.setdefault(document_id, entry["id"]) == entry["id"], f"{entry['id']} and {seen[document_id]} are the same document"
