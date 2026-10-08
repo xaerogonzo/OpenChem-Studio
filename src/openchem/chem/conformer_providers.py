@@ -199,6 +199,20 @@ _OPTIMISATION_MAX_ITERS = 2000
 #: ranking, the veto, de-duplication, or a calculator.
 _MAX_OPTIMISATION_ATTEMPTS = 2
 
+#: The force tolerance `MMFFOptimizeMoleculeConfs` minimises to, and cannot be told otherwise.
+#: It is also the "Normal" level's. A level with this tolerance takes the batch API, which
+#: RELEASES THE GIL; every other level calls `ForceField.Minimize`, which does not.
+#:
+#: **WHY THIS MATTERS ON THE GUI.** Generation runs in a worker thread, and a Python thread
+#: inside `ForceField.Minimize` starves every other one: the UI's Python slots stopped
+#: for ~0.3-0.5 s at a time while 10 conformers of a 51-heavy-atom molecule were minimised
+#: (`docs/PERFORMANCE_CENSUS.md` F10, `benchmarks/perf/probes/rdkit_gil.py`). Slicing
+#: `Minimize` into short calls was measured and rejected: 3.6x slower, and a restarted BFGS
+#: lands in different minima (up to 5.7 kcal/mol from the shipped result). The batch API
+#: ran in the same time and returned identical energies (0.0000 kcal/mol over five
+#: molecules, ethanol to erythromycin; `benchmarks/perf/probes/minimise_slices.py`).
+_BATCH_API_FORCE_TOL = 1e-4
+
 #: Optimisation strictness, inspired by Marvin's `[o]{1}{3}` control and
 #: **NOT numerically equivalent to it** -- ChemAxon documents theirs as a
 #: gradient convergence criterion but publishes no values, so a claim of
@@ -1396,6 +1410,8 @@ class RDKitConformerProvider(ConformerProvider):
         max_iters, force_tol, attempts = level or OPTIMISATION_LEVELS[
             DEFAULT_OPTIMISATION_LEVEL
         ]
+        if force_tol == _BATCH_API_FORCE_TOL and AllChem.MMFFGetMoleculeProperties(conf_mol) is not None:
+            return self._optimise_with_batch_api(conf_mol, max_iters, attempts)
         force_field = self._force_field(conf_mol)
         if force_field is None:
             return None, False
@@ -1403,6 +1419,22 @@ class RDKitConformerProvider(ConformerProvider):
             lambda: force_field.Minimize(maxIts=max_iters, forceTol=force_tol), attempts
         )
         return force_field.CalcEnergy(), converged
+
+    @staticmethod
+    def _optimise_with_batch_api(
+        conf_mol: Chem.Mol, max_iters: int, attempts: int
+    ) -> tuple[float | None, bool]:
+        """MMFF94 through `MMFFOptimizeMoleculeConfs`, the same contract as the force-field
+        path: up to `attempts` calls, each continuing from the previous coordinates, and
+        `converged` only if one reported 0. The energy is the force field's own."""
+        energy: float | None = None
+        for _attempt in range(attempts):
+            ((not_converged, energy),) = AllChem.MMFFOptimizeMoleculeConfs(
+                conf_mol, numThreads=1, maxIters=max_iters
+            )
+            if not_converged == 0:
+                return energy, True
+        return energy, False
 
     def _refine(
         self, results: list[tuple[Chem.Mol, float | None]]

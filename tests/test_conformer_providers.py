@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import contextlib
 
+import pytest
+
 from rdkit.Chem import AllChem
 
 from openchem.chem.conformer_providers import (
@@ -101,7 +103,8 @@ def test_on_progress_returning_none_keeps_going():
 
 @contextlib.contextmanager
 def _never_converging(calls: list | None = None):
-    """A force field whose `Minimize` never reports convergence.
+    """A force field whose `Minimize` -- and the batch API the default level uses -- never
+    reports convergence.
 
     Wraps the REAL force field so energies stay real and only the
     convergence answer is forced -- a stub returning a fake energy would
@@ -123,11 +126,23 @@ def _never_converging(calls: list | None = None):
 
         return _Stubborn()
 
+    original_confs = AllChem.MMFFOptimizeMoleculeConfs
+
+    def wrapped_confs(mol, numThreads=1, maxIters=200, **kwargs):  # noqa: N803 - RDKit's names
+        """The "Normal" level goes through the batch API (it releases the GIL); force the
+        same answer there, recording the call in the shape the force-field path records."""
+        if calls is not None:
+            calls.append({"maxIts": maxIters})
+        real = original_confs(mol, numThreads=numThreads, maxIters=maxIters, **kwargs)
+        return [(1, energy) for _flag, energy in real]
+
     AllChem.MMFFGetMoleculeForceField = wrapped
+    AllChem.MMFFOptimizeMoleculeConfs = wrapped_confs
     try:
         yield
     finally:
         AllChem.MMFFGetMoleculeForceField = original
+        AllChem.MMFFOptimizeMoleculeConfs = original_confs
 
 
 def test_a_conformer_that_never_converges_is_discarded():
@@ -237,3 +252,95 @@ def test_a_provider_written_against_the_original_interface_still_works():
     # Zero rather than a guess: this provider does not distinguish them.
     assert batch.embedding_failures == 0
     assert batch.convergence_failures == 0
+
+
+# -- the "Normal" level goes through the batch API, which releases the GIL --------------------------
+
+#: Erythromycin A: big enough that ONE minimisation takes ~0.3 s, which is what makes a held GIL
+#: visible. Frozen with `benchmarks/perf/scenarios.HEAVY_SMILES`.
+_BIG_MOLECULE = (
+    "CC[C@@H]1[C@@]([C@@H]([C@H](C(=O)[C@@H](C[C@@]([C@@H]([C@H]([C@@H]([C@H](C(=O)O1)C)"
+    "O[C@H]2C[C@@]([C@H]([C@@H](O2)C)O)(C)OC)C)O[C@H]3[C@@H]([C@H](C[C@H](O3)C)N(C)C)O)(C)O)C)C)O)(C)O"
+)
+
+
+def _embedded(smiles: str, seed: int = 7):
+    from rdkit import Chem
+
+    provider = RDKitConformerProvider(random_seed=seed)
+    return provider, provider._embed_one(Chem.MolFromSmiles(smiles), attempt=0)
+
+
+def test_normal_level_uses_the_batch_api_and_other_levels_keep_minimize():
+    from openchem.chem.conformer_providers import OPTIMISATION_LEVELS
+
+    seen: list[str] = []
+    original_confs, original_ff = AllChem.MMFFOptimizeMoleculeConfs, AllChem.MMFFGetMoleculeForceField
+
+    def spy_confs(*args, **kwargs):
+        seen.append("batch")
+        return original_confs(*args, **kwargs)
+
+    def spy_ff(*args, **kwargs):
+        seen.append("force-field")
+        return original_ff(*args, **kwargs)
+
+    AllChem.MMFFOptimizeMoleculeConfs, AllChem.MMFFGetMoleculeForceField = spy_confs, spy_ff
+    try:
+        for name in ("Loose", "Normal", "Strict"):
+            provider, conf_mol = _embedded("CCCCO")
+            seen.clear()
+            provider._optimize_one(conf_mol, OPTIMISATION_LEVELS[name])
+            assert seen == (["batch"] if name == "Normal" else ["force-field"]), (name, seen)
+    finally:
+        AllChem.MMFFOptimizeMoleculeConfs, AllChem.MMFFGetMoleculeForceField = original_confs, original_ff
+
+
+@pytest.mark.parametrize("smiles", ["CCO", "C1CCCCC1", "CC(C)Cc1ccc(cc1)C(C)C(=O)O", _BIG_MOLECULE])
+def test_the_batch_api_reaches_the_same_energy_as_the_force_field_path(smiles):
+    """Measured 0.0000 kcal/mol apart over five molecules; asserted at 1e-3 so a different
+    force-field default (not a different run) is what would fail it."""
+    from rdkit import Chem
+
+    provider, conf_mol = _embedded(smiles)
+    reference = Chem.Mol(conf_mol)
+    field = AllChem.MMFFGetMoleculeForceField(reference, AllChem.MMFFGetMoleculeProperties(reference), confId=0)
+    for _ in range(2):
+        if field.Minimize(maxIts=2000, forceTol=1e-4) == 0:
+            break
+    energy, converged = provider._optimize_one(conf_mol)
+    assert converged
+    assert energy == pytest.approx(field.CalcEnergy(), abs=1e-3)
+
+
+def test_minimising_a_big_molecule_does_not_starve_another_python_thread():
+    """THE REASON FOR THE BATCH API. `ForceField.Minimize` holds the GIL for the whole call, so a
+    worker minimising one erythromycin conformer left a 5 ms ticking thread waiting 270-470 ms
+    (docs/PERFORMANCE_CENSUS.md F10). Through the batch API the worst wait measured 17 ms; the
+    limit here is 8x that, because a CI machine is not this one and the failure being guarded
+    against is ten times larger."""
+    import threading
+    import time
+
+    provider, conf_mol = _embedded(_BIG_MOLECULE)
+    done = threading.Event()
+    result: list = []
+
+    def worker() -> None:
+        result.append(provider._optimize_one(conf_mol))
+        done.set()
+
+    gaps: list[float] = []
+    thread = threading.Thread(target=worker)
+    thread.start()
+    last = time.perf_counter()
+    while not done.is_set():
+        time.sleep(0.005)
+        now = time.perf_counter()
+        gaps.append((now - last) * 1000.0)
+        last = now
+    thread.join()
+
+    assert result and result[0][1], "the conformer should have converged"
+    assert len(gaps) > 10, "the minimisation finished too quickly to say anything about the GIL"
+    assert max(gaps) < 140.0, f"another thread was starved for {max(gaps):.0f} ms"
