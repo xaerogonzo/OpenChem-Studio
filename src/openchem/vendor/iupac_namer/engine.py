@@ -11573,15 +11573,91 @@ def _isotope_atom_sites(plan, mol, atom_to_locant) -> tuple[frozenset, frozenset
     return frozenset(), frozenset()
 
 
+def _bonding_number_of_prefix(prefix_tree) -> int | None:
+    """The nonstandard bonding number of the atom a prefix hangs on, `lambda6-sulfanyl` -> 6; None for a prefix whose attachment atom is standard.
+
+    P-45.3.1 counts "substituent group(s) with the higher bonding number cited as prefixes and DIRECTLY CONNECTED to the parent structure": `(lambda5-
+    phosphanyl)` on the parent, not `[(lambda5-phosphanyl)methyl]`, whose lambda number is on an atom one bond further out. A bare group is a leaf whose
+    text starts with the number; one with its own substituents (`tetramethyl-lambda5-phosphanyl`) is a tree whose PARENT is the hypervalent atom.
+    """
+    text = getattr(prefix_tree, "text", None)
+    if text is None:
+        text = getattr(getattr(prefix_tree, "named_parent", None), "name", None)
+    match = re.match(r"^lambda(\d+)-", text or "")
+    return int(match.group(1)) if match else None
+
+
+def _substituent_modification_keys(trees) -> list:
+    """For each tree, the value P-45.3 and P-45.4 compare, as one tuple in the book's order of criteria; smaller is senior.
+
+    (1) P-45.3.1: the MAXIMUM number of prefixes directly bonded through an atom of nonstandard bonding number, then (a further choice) the higher numbers
+        first, `lambda6` before `lambda4`;
+    (2) P-45.3.2: the lower locants of those prefixes;
+    (3) P-45.4.1: the lowest locants of the isotopically modified prefixes (any prefix whose name cites a nuclide, wherever in it);
+    (4) P-45.4.2: the lowest locants of the prefixes that hold the nuclide of HIGHER ATOMIC NUMBER, then the next, in turn;
+    (5) P-45.4.3: the same for the higher MASS NUMBER.
+    A prefix with no locant (the N of an amine is a locant; a prefix without one is rare) contributes nothing to a locant set.
+    """
+    from rdkit.Chem import GetPeriodicTable
+
+    from openchem.vendor.iupac_namer.assembly import assemble
+
+    table = GetPeriodicTable()
+    rows = []
+    for tree in trees:
+        lam, iso = [], []
+        for entry in tree.prefixes:
+            number = _bonding_number_of_prefix(entry.tree)
+            if number:
+                lam.append((number, tuple(entry.locants)))
+            nuclides = _nuclides_named(assemble(entry.tree))
+            if nuclides:
+                iso.append((tuple(entry.locants), frozenset(nuclides)))
+        rows.append((lam, iso))
+    atomic_numbers = sorted({table.GetAtomicNumber(el) for _lam, iso in rows for _locs, nuc in iso for el, _mass in nuc}, reverse=True)
+    mass_numbers = sorted({mass for _lam, iso in rows for _locs, nuc in iso for _el, mass in nuc}, reverse=True)
+    keys = []
+    for lam, iso in rows:
+        keys.append((
+            -len(lam),
+            tuple(sorted(-number for number, _locs in lam)),
+            tuple(sorted(loc for _number, locs in lam for loc in locs)),
+            tuple(sorted(loc for locs, _nuc in iso for loc in locs)),
+            tuple(tuple(sorted(loc for locs, nuc in iso if any(table.GetAtomicNumber(el) == z for el, _m in nuc) for loc in locs)) for z in atomic_numbers),
+            tuple(tuple(sorted(loc for locs, nuc in iso if any(m == mass for _el, m in nuc) for loc in locs)) for mass in mass_numbers),
+        ))
+    return keys
+
+
+def _senior_by_substituent_modification(trees):
+    """P-45.3 and P-45.4 across parents: the trees whose prefixes are senior in bonding numbers, then in isotopic modification; None when it cannot apply.
+
+    "The preferred IUPAC name is based on the senior parent structure that has the maximum number of substituent group(s) with the higher bonding number"
+    (P-45.3.1, BlueBookV2.pdf p. 423), "...the lower locant set for [them]" (P-45.3.2), and for isotopes "the lowest locant(s) for isotopically modified
+    substituent groups" (P-45.4.1), "for nuclides of higher atomic number" (P-45.4.2), "of higher mass number" (P-45.4.3). They follow P-45.2.3 and come
+    before P-45.5, and they are applied in turn "until a decision is reached", which is what comparing one tuple in that order is. Only trees that are the same
+    parent are compared (`_parent_name_alone`), as for P-45.2.3, and a tree with no such prefix has the empty key, so a molecule with neither feature is untouched.
+    Returns the trees, in the order given, that share the smallest key (one when it decides, all when it does not).
+    """
+    parents = {_parent_name_alone(tree) for tree in trees}
+    if len(parents) != 1 or None in parents:
+        return None
+    try:
+        keys = _substituent_modification_keys(trees)
+    except Exception:  # noqa: BLE001 - a prefix that will not assemble is not compared
+        return None
+    smallest = min(keys)
+    return [tree for tree, key in zip(trees, keys) if key == smallest]
+
+
 def _alphanumerical_letters(tree) -> str | None:
     """A name's letters in the order they appear, for P-45.5: no locants, no descriptors, no element symbols, no punctuation.
 
     "Alphabetic letters are considered first in the order that they appear in the name; all Roman letters are considered before any italic
     letters, unless the latter are used as locants" (BlueBookV2.pdf p. 424), and the multiplying prefix is one of the letters, which is why
     `bromo` is earlier than `dibromo`. The element symbols of an italic locant (`N`, `Se`) and of a nuclide (`81Br`, "the `B` ... is not a
-    factor", p. 425) are the only capitals in a name and are removed whole. None when a name carries what P-45.3 (a bonding number) or P-45.4
-    (a nuclide) would decide first, because those sit before this rule in the book and are not applied across parents here: reading a letter
-    order into them would decide by the wrong rule, so such a tie is left as it was.
+    factor", p. 425) are the only capitals in a name and are removed whole. None when a name carries a bonding number (P-45.3 is decided before this rule,
+    and how the book alphabetizes the lambda is not stated) or an embedded failure.
     """
     from openchem.vendor.iupac_namer.assembly import assemble_without_stereo
 
@@ -11591,7 +11667,9 @@ def _alphanumerical_letters(tree) -> str | None:
         return None
     if "NAMING ERROR" in text:                                              # an embedded failure: two different broken names are not ordered
         return None
-    if "lambda" in text or "\u03bb" in text or re.search(r"\d[A-Z][a-z]?\)", text):
+    # A bonding number is declined: how the book alphabetizes the lambda (`\u03bb5-phosphanyl`) is not stated. A nuclide is read: P-45.4 is decided before this rule
+    # now, and the book's own P-45.5 example 5 carries nuclides ("The `B` of the element symbol `Br` is not a factor in the alphabetization").
+    if "lambda" in text or "\u03bb" in text:
         return None
     # hydro/dehydro prefixes "are not included in the category of alphabetized detachable prefixes" (P-31.1.4.2.4, pdf p. 75); `hydroxy` and `hydrogen` are.
     text = re.sub(r"(?:(?:di|tri|tetra|penta|hexa|hepta|octa|nona|deca)a?)?(?:de)?hydro(?![xg])", "", text)
@@ -11650,8 +11728,8 @@ def _break_parent_tie(
     chloroaniline` and `4-bromo-N-(2-bromo-4-chlorophenyl)-2-chloroaniline` are the same molecule with either aniline as the parent, and
     which one a SMILES spelling produced went by atom order. The book orders it before P-45.6, so what P-45.2.3 leaves tied goes on to the
     configuration comparison below, which only a molecule that carries stereo pays for. P-45.5 (the name earlier in alphanumerical order, `bromo` before `dibromo`) follows it, and then the same. P-45.3 (nonstandard bonding
-    numbers) and P-45.4 (isotopes) sit between the two in the book and are not applied across parents: P-45.5 declines a name that carries
-    a bonding number or a nuclide, and such a tie stays with the configuration comparison and then the plan order, as it did.
+    numbers) and P-45.4 (isotopes) come between P-45.2.3 and P-45.5 (`_senior_by_substituent_modification`); P-45.5 declines only a name that carries a
+    bonding number (how the book alphabetizes the lambda is not stated), and a tie it cannot decide stays with the configuration comparison and then the plan order.
 
     The configuration comparison is P-45.6.2 (BlueBookV2.pdf p. 426), where the choice between two substitutive names is the one thing
     the descriptors differ in: "since the alphabetic characters and locants (ignoring the configuration symbols) are identical the configurational symbols are
@@ -11716,7 +11794,10 @@ def _break_parent_tie(
 
     senior = _senior_by_citation_locants(trees)
     survivors = trees if senior is None else senior
-    # P-45.5 follows P-45.2.3 in the book (P-45.3 and P-45.4 between them are not applied across parents), and takes what P-45.2.3 left tied.
+    # P-45.3 (bonding numbers) and P-45.4 (isotopes) follow P-45.2.3 in the book, and P-45.5 takes what they leave tied.
+    modified = _senior_by_substituent_modification(survivors)
+    if modified is not None:
+        survivors = modified
     alphabetical = _senior_by_alphanumerical_order(survivors)
     if alphabetical is not None:
         survivors = alphabetical

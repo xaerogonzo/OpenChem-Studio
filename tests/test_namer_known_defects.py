@@ -4119,6 +4119,9 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-196d", "O=C(Cl)[13CH2]CC(=O)O", "3-(chlorocarbonyl)(3-13C)propanoic acid",
      "(3-13C)-3-(chlorocarbonyl)propanoic acid",
      "D-196a, a parent label beside a prefix that is itself a multi-atom group"),
+    ("D-194c", "CCCC(Br)COCC([81Br])CCC", "2-bromo-1-{[2-(81Br)bromopentyl]oxy}pentane",
+     "2-(81Br)bromo-1-[(2-bromopentyl)oxy]pentane",
+     "P-45.4.1 (p. 423): the parent that gives the isotopically modified substituent the LOWER locant ('1' over '2'). Was chosen by atom order (24 of 40 random spellings, 16 the other); P-45.3 and P-45.4 are applied across parents since naming round 29 (tests/test_namer_substituent_modification.py)"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -4230,11 +4233,6 @@ OPEN: list[tuple[str, str, str, str, str]] = [
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate", "an N-substituted hydroxamic acid inside an ester's acid part loses its N-substituent"),
 
-    # D-194c, open: the parent chain is chosen by atom order where P-45.4.1 decides it. D-193 (a nuclide the name dropped), D-195 and D-196 were closed in naming
-    # round 28 and moved to FIXED. D-194c is named two ways over 40 random spellings (24/16), every name reading back exact.
-    ("D-194c", "CCCC(Br)COCC([81Br])CCC", "2-bromo-1-{[2-(81Br)bromopentyl]oxy}pentane",
-     "2-(81Br)bromo-1-[(2-bromopentyl)oxy]pentane",
-     "P-45.4.1 (p. 423): the parent that gives the isotopically modified substituent the LOWER locant ('1' over '2'); criteria P-45.4.1 to P-45.4.3 are not implemented, so the parent is chosen by atom order (24 of 40 random spellings name the book's PIN, 16 the other)"),
 ]
 
 # Observed but NOT tracked here, because this table requires a verified

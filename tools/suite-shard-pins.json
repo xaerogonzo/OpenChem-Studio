@@ -757,6 +757,7 @@
   "tests/test_namer_stereo_parents_and_citation.py": 2,
   "tests/test_namer_stereo_validation_cache.py": 1,
   "tests/test_namer_strategy_propagation.py": 0,
+  "tests/test_namer_substituent_modification.py": 1,
   "tests/test_naming_adjudication.py": 1,
   "tests/test_naming_app_check.py": 0,
   "tests/test_naming_benchmark_scoring.py": 1,
