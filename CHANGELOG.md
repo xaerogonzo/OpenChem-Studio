@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: of two parents that tie, the name earlier in alphanumerical order (P-45.5)
+- When the parent can be either of two chains or rings that tie on everything before it, the one whose name is earlier in alphanumerical order is chosen, so `bromo` comes before `dibromo`: `2-bromo-4-chloro-N-(2,4-dibromophenyl)aniline` is now the name on every spelling (the Blue Book's own example) where the other, `2,4-dibromo-N-(2-bromo-4-chlorophenyl)aniline`, came out about half the time, chosen by the order the SMILES atoms were written in. Names with a nuclide or a bonding number are left alone (the earlier rules are not applied across parents). Census: 0 of 2000 rows moved. Details in `src/openchem/vendor/CHANGELOG.md`.
+
 ### A renamed paper is no longer a changed paper: Knowledge Vista lookup for `index_literature.py --check`
 
 `file` in `docs/research/literature.toml` is a locator and drifts the moment a PDF is renamed; the check used to call that a mismatch.

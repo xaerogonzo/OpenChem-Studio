@@ -734,6 +734,7 @@
   "tests/test_multicomponent_scope.py": 1,
   "tests/test_multicomponent_sweep.py": 0,
   "tests/test_mutagenicity_alerts.py": 0,
+  "tests/test_namer_alphanumerical_order.py": 0,
   "tests/test_namer_charge_ledger.py": 1,
   "tests/test_namer_cyanic_perception.py": 0,
   "tests/test_namer_enclosing_marks.py": 1,

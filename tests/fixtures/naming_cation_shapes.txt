@@ -67,7 +67,7 @@ C[N+](C)(C)[O-]	N,N-dimethylmethanamine N-oxide
 [O-]C(=O)c1cc[n+]([O-])cc1	pyridine-4-carboxylate 1-oxide
 [O-][n+]1ccc(cc1)C[NH3+]	[(1-oxidopyridin-1-ium-4-yl)methyl]azanium
 [O-][n+]1ccccc1C[N+](C)(C)C	trimethyl[(1-oxidopyridin-1-ium-2-yl)methyl]ammonium
-C[N+](C)([O-])CC[N+](C)(C)C	dimethyl(oxido)[2-(trimethylazaniumyl)ethyl]ammonium
+C[N+](C)([O-])CC[N+](C)(C)C	{2-[dimethyl(oxido)azaniumyl]ethyl}tri(methyl)ammonium
 [O-][n+]1ccc(N)cc1	pyridin-4-amine 1-oxide
 C[n+]1ccccc1.[O-][n+]1ccccc1	1-methylpyridin-1-ium pyridine 1-oxide
 c1cc[n+]([O-])cc1C[n+]1ccccc1	1-oxido-3-[(pyridinium-1-yl)methyl]pyridin-1-ium
