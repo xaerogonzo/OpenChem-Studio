@@ -50,6 +50,13 @@ def name_ring_system(
     if ring_system is None:
         return []
 
+    # Which ring this is does not depend on a nuclide in it. Every namer below reads the ring from the molecule (its canonical SMILES, its atoms' elements), and
+    # a 15N at the bridgehead of a fused system defeated the ones that round 29 did not reach through `extract_ring_mol`: `[1,2,4]triazolo[4,3-b]pyridazine` with
+    # a labelled nitrogen was a naming error. The label is placed afterwards from the full molecule (`isotope.collect_isotope_labels`); the atom indices are unchanged.
+    from openchem.vendor.iupac_namer.ring_naming.common import _nuclide_free
+
+    mol = _nuclide_free(mol)
+
     results: list[NamedParent] = []
 
     # --- 1. Try retained name first (highest priority) ---

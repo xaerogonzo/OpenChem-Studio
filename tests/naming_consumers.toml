@@ -99,6 +99,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_carboxyl_oxygen_labels.py"
+why = "the two oxygens of a carboxyl group are two names (an ester's carbonyl and alkoxy oxygen, an acid's carbonyl and hydroxyl), a suffix cites only the atoms it names (a ketone's neighbours are not its), the infix e before a nuclide, and a nuclide in a fused ring"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_nuclide_guard.py"
 why = "a name must keep every nuclide (D-193): the guard that refuses one that would not, the routes that label (retained parent, multi-atom prefix, ether oxygen, hypohalous amide, hydroxy/amino prefix, suffix heteroatom), the parent bracket placed before the part it modifies (D-196), and lambda5 on a single-bonded hypervalent centre (D-195)"
 scope = "core"
