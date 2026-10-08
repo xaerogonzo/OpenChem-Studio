@@ -980,7 +980,7 @@ def _name_heteroatom_fv_substituent(
                 ),),
                 decision_ctx=decision_ctx,
                 validity_warnings=None,
-                text="nitramido",
+                text=_isotopic_attachment_prefix("nitramido", att_atom, mol),
             )
 
         # Disambiguate compound amino sub-names when 2+ N-substituents are
@@ -1071,7 +1071,7 @@ def _name_heteroatom_fv_substituent(
                     ),),
                     decision_ctx=decision_ctx,
                     validity_warnings=None,
-                    text=compound_prefix,
+                    text=_isotopic_attachment_prefix(compound_prefix, att_atom, mol),
                 )
 
         # An O free valence is an ALKOXY group, and the ether_prefix path's contraction applies here too: "methoxy", not "methyloxy" (P-63.2.2.2).
@@ -1088,7 +1088,7 @@ def _name_heteroatom_fv_substituent(
                     ),),
                     decision_ctx=decision_ctx,
                     validity_warnings=None,
-                    text=_alkoxy,
+                    text=_isotopic_attachment_prefix(_alkoxy, att_atom, mol),
                 )
 
         # Combine: alphabetical sort, multiplier-merge identical names.
@@ -1106,7 +1106,7 @@ def _name_heteroatom_fv_substituent(
             ),),
             decision_ctx=decision_ctx,
             validity_warnings=None,
-            text=compound_prefix,
+            text=_isotopic_attachment_prefix(compound_prefix, att_atom, mol),
         )
 
     # bond_order == 2: imine free-valence forms.  Two sub-cases.
@@ -1564,6 +1564,7 @@ def _name_hypohalous_amide_functional_parent(
     if len(candidates) != 1:
         return None
     amino, (hal, parent_name) = candidates[0]
+    parent_name = isotopic_prefix(parent_name, hal)         # `(81Br)hypobromous amide`: the halogen is the one atom of the acid the name owns
     if any(
         nb.GetAtomicNum() == 6 and any(
             b.GetBondTypeAsDouble() == 2.0 and b.GetOtherAtom(nb).GetAtomicNum() in (7, 8, 16)
@@ -5297,6 +5298,41 @@ def _sulfonyl_sulfinyl_has_single_substituent(mol, attachment_idx, att_atom_s) -
     return non_oxo == 1
 
 
+def _isotopic_attachment_prefix(prefix: str, atom, fragment) -> str:
+    """`isotopic_prefix` for the atom a heteroatom-rooted prefix hangs on, when it is the only atom of its element in the fragment.
+
+    `[(18O)4-methoxyphenoxy]` would not say which of the two oxygens is the 18O, and OPSIN reads it as the other one: a name for another molecule, which is worse
+    than no name. Where the symbol would not say, the prefix is left unlabelled and the nuclide guard refuses the name.
+    """
+    if sum(1 for a in fragment.GetAtoms() if a.GetSymbol() == atom.GetSymbol()) != 1:
+        return prefix
+    return isotopic_prefix(prefix, atom)
+
+
+def _isotopic_group_prefix(prefix: str, group_atoms, mol) -> str | None:
+    """A multi-atom group's prefix with the nuclides of its atoms: `cyano` on `[15N]#C-` is `(15N)cyano`, `bromocarbonyl` on `O=C([81Br])-` is `(81Br)bromocarbonyl`.
+
+    P-82.2.1 (BlueBookV2.pdf p. 853) cites the nuclide in enclosing marks before the name of the group it modifies, and P-82.6.1.2 (p. 860) leaves out
+    the locant when the group has only one atom of that element, so the label is the bare nuclide symbol. `isotopic_prefix` does this for a prefix that IS
+    one atom; a group of several used to drop the label (`cyanoacetic acid` for the 15N compound, a different molecule). If a labelled element occurs more than
+    once in the group (the two oxygens of `carboxy`) the bare symbol would not say which, so None: the caller declines this short-circuit and the nuclide
+    guard refuses the name unless another route labels it. A group with no nuclide returns the prefix unchanged.
+    """
+    atoms = [mol.GetAtomWithIdx(a) for a in sorted(group_atoms)]
+    labelled = [a for a in atoms if a.GetIsotope() and a.GetAtomicNum() > 1]
+    if not labelled:
+        return prefix
+    heavy = [a for a in atoms if a.GetAtomicNum() > 1]
+    for atom in labelled:
+        if sum(1 for other in heavy if other.GetSymbol() == atom.GetSymbol()) > 1:
+            return None
+    from openchem.vendor.iupac_namer.isotope import render_isotope_labels
+    from openchem.vendor.iupac_namer.types import IsotopeLabel
+
+    labels = tuple(IsotopeLabel(locant=None, element=a.GetSymbol(), mass_number=a.GetIsotope(), count=1) for a in labelled)
+    return render_isotope_labels(labels) + prefix
+
+
 def _name_single_fg_substituent(
     perception: Perception,
     mol,
@@ -6228,6 +6264,9 @@ def _name_single_fg_substituent(
     # claims both the CHO carbon and the =O.
     prefix = fg.prefix_form_nonterminal or fg.prefix_form
     if not prefix:
+        return None
+    prefix = _isotopic_group_prefix(prefix, fg.atoms, mol)
+    if prefix is None:
         return None
 
     return LeafTree(
@@ -9409,11 +9448,111 @@ def name_smiles(smiles: str, strategy=None) -> str:
         return _name_smiles_bound(smiles, bound)
 
 
+#: A nuclide the way a name cites it, inside an isotope bracket: `(81Br)`, `(1-13C)`, `(2H3)`, `(1,1,1-2H3)`, `(N-2H)`, `(1-2H,2-13C)`.
+#: The token is a mass number, an element symbol and an optional count, after `(` or `-` and before `)` or `,`. An indicated hydrogen (`2H-pyran`) is outside
+#: any bracket and is not read; a stereodescriptor (`(2S)`) matches the shape and is dropped by the mass test in `_nuclides_named`.
+_NUCLIDE_TOKEN = re.compile(r"(?<=[(\-,])(\d+)([A-Z][a-z]?)(\d*)(?=[),])")
+
+
+#: The multiplying prefixes that put a labelled group on several atoms: `1,2-di[(81Br)bromo]ethane` cites the nuclide once for two atoms.
+_MULTIPLIERS = (("tetrakis", 4), ("tris", 3), ("bis", 2), ("tetra", 4), ("penta", 5), ("hexa", 6), ("hepta", 7), ("octa", 8), ("nona", 9), ("deca", 10),
+                ("tri", 3), ("di", 2))
+_ISOTOPE_BRACKET = re.compile(r"\(((?:[0-9A-Za-z,']+-)?\d+[A-Z][a-z]?\d*(?:,(?:[0-9A-Za-z,']+-)?\d+[A-Z][a-z]?\d*)*)\)")
+
+
+_ISOTOPE_WORD = re.compile(r"(?<![a-z])(tetra|tri|di|penta|hexa)?(deuter|trit)(?:ide|ium|on|io|ido)")
+
+
+def _multiplier_before(text: str) -> int:
+    """The multiplying prefix a bracket opens right after: `...-di[` is 2, `...bis(` is 2, anything else 1."""
+    for word, factor in _MULTIPLIERS:
+        if text.endswith(word):
+            return factor
+    return 1
+
+
+def _nuclides_named(name: str) -> dict:
+    """The nuclides a name cites, as `{(element, mass): atoms}`, read from its isotope brackets and multiplied by the multipliers enclosing them.
+
+    `1,2-di[(81Br)bromo]ethane` names two bromine-81 atoms with one bracket. A multiplier that is not directly before an enclosing mark is not seen, which
+    can only make a count too SMALL, and the guard refuses a count that is too small: the cost of a missed multiplier is a refused name, never a wrong one.
+    """
+    from rdkit.Chem import GetPeriodicTable
+
+    table = GetPeriodicTable()
+    found: dict = {}
+    stack: list[int] = []
+    i = 0
+    while i < len(name):
+        char = name[i]
+        if char == "(":
+            bracket = _ISOTOPE_BRACKET.match(name, i)
+            if bracket is not None:
+                factor = 1
+                for f in stack:
+                    factor *= f
+                for mass, element, count in _NUCLIDE_TOKEN.findall("(" + bracket.group(1) + ")"):
+                    try:
+                        number = table.GetAtomicNumber(element)
+                    except Exception:  # noqa: BLE001 - not an element symbol: `R`, `E`, `Z`
+                        continue
+                    if int(mass) < number:                  # `(2S)` is a stereodescriptor, not sulfur-2
+                        continue
+                    found[(element, int(mass))] = found.get((element, int(mass)), 0) + (int(count) if count else 1) * factor
+                i = bracket.end()
+                continue
+        if char in "([{":
+            stack.append(_multiplier_before(name[:i]))
+        elif char in ")]}" and stack:
+            stack.pop()
+        i += 1
+    # The retained isotope-specific names carry the nuclide in the WORD, not in a bracket: `potassium tritide`, `calcium ditritide`, `deuterium`.
+    for multiplier, stem in _ISOTOPE_WORD.findall(name):
+        mass = 2 if stem == "deuter" else 3
+        factor = dict(_MULTIPLIERS).get(multiplier, 1) if multiplier else 1
+        found[("H", mass)] = found.get(("H", mass), 0) + factor
+    return found
+
+
+def _check_nuclides_named(mol, name: str) -> None:
+    """Refuse a name that cites fewer atoms of a nuclide than the molecule has: it denotes the unlabelled compound, a different molecule.
+
+    This is the net under every route that builds a name: a retained parent that numbers nothing (`aniline` for `[15NH2]c1ccccc1`), a multi-atom prefix
+    (`cyano`, `bromocarbonyl`), an ether oxygen, a hydroxy prefix. Each used to drop its label SILENTLY ("drop the label rather than emit a guess") and the
+    name read back as another molecule, with nothing in the output to say so. A route that labels its atoms correctly is untouched; one that does not now
+    raises, and the application withholds a name the engine refuses. More mentions than atoms are not refused: a count is not proof of placement.
+    """
+    wanted: dict = {}
+    for atom in mol.GetAtoms():
+        if atom.GetIsotope():
+            key = (atom.GetSymbol(), atom.GetIsotope())
+            wanted[key] = wanted.get(key, 0) + 1
+    if not wanted or "NAMING ERROR" in name:
+        return
+    named = _nuclides_named(name)
+    missing = {key: count - named.get(key, 0) for key, count in wanted.items() if named.get(key, 0) < count}
+    if missing:
+        raise ValueError(
+            "No name found that keeps the isotopic labelling: "
+            + ", ".join(f"{count} x {mass}{element}" for (element, mass), count in sorted(missing.items()))
+            + f" would be lost (the nearest name, {name!r}, is the unlabelled compound's)."
+        )
+
+
 def _name_smiles_bound(smiles: str, strategy) -> str:
-    """Name a molecule from SMILES, *strategy* already bound (never None).
+    """Name a molecule from SMILES, *strategy* already bound (never None); refuse a name that loses a nuclide.
 
     Returns the final name string.
     """
+    name = _name_smiles_unchecked(smiles, strategy)
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is not None:
+        _check_nuclides_named(mol, name)
+    return name
+
+
+def _name_smiles_unchecked(smiles: str, strategy) -> str:
+    """`_name_smiles_bound` without the nuclide check (the routes that build the name)."""
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         raise ValueError(f"Invalid SMILES: {smiles}")
@@ -11402,6 +11541,36 @@ def _senior_by_citation_locants(trees):
         return None
     lowest = min(values)
     return [tree for tree, value in zip(trees, values) if value == lowest]
+
+
+def _isotope_atom_sites(plan, mol, atom_to_locant) -> tuple[frozenset, frozenset]:
+    """Which labelled atoms a parent cites without a locant, and which it cites before its suffix word (see `isotope.collect_isotope_labels`).
+
+    A RETAINED parent name numbers only some of its atoms: `aniline` owns its nitrogen, `phenol` its oxygen, `benzonitrile` its nitrile carbon and
+    nitrogen, and none of the three has a locant for them, so a nuclide there used to be dropped (`aniline` for `[15NH2]c1ccccc1`: a different compound) or
+    given the anchor carbon's locant (`(1-18O)phenol`, which OPSIN cannot read). An atom that the parent or its suffix groups own, that has no locant, and
+    that is the ONLY atom of its element the name owns is cited bare. Two of one element (the two oxygens of acetic acid, the nitrile carbon among the
+    ring's carbons) would leave the reader to guess which, and stay unlabelled, which the nuclide guard turns into a refusal.
+
+    A SYSTEMATIC parent numbers everything but the heteroatoms of its suffix groups, which the book cites before the suffix word (P-82.2.1,
+    `1-(aminomethyl)cyclopentan-1-(18O)ol`): the heteroatoms of ONE suffix group that are alone of their element in it.
+    """
+    named_parent = plan.named_parent
+    suffix_atoms = [a for sg in plan.suffix_groups for a in sg.fg.atoms if a not in atom_to_locant]
+    if named_parent.naming_method == "retained":
+        owned = set(named_parent.candidate.atom_indices) | set(getattr(named_parent, "extra_atom_indices", ()) or ()) | set(suffix_atoms)
+        # "Alone of its element" is measured over EVERY atom the name owns, numbered or not: `(13C)benzonitrile` would name the nitrile carbon among seven carbons
+        # (OPSIN: "Position of isotope on benzonitrile is ambiguous"), where `(15N)benzonitrile` has one nitrogen to mean.
+        by_element: dict = {}
+        for a in owned:
+            by_element.setdefault(mol.GetAtomWithIdx(a).GetSymbol(), []).append(a)
+        return frozenset(a for atoms in by_element.values() if len(atoms) == 1 for a in atoms if a not in atom_to_locant), frozenset()
+    if len(plan.suffix_groups) == 1:
+        by_element = {}
+        for a in suffix_atoms:
+            by_element.setdefault(mol.GetAtomWithIdx(a).GetSymbol(), []).append(a)
+        return frozenset(), frozenset(a for atoms in by_element.values() if len(atoms) == 1 for a in atoms)
+    return frozenset(), frozenset()
 
 
 def _alphanumerical_letters(tree) -> str | None:
@@ -14988,8 +15157,11 @@ class SubstitutivePath:
                 return
             name_str, stem, alkyl_stem = info
             # A centre past its standard bonding number that still carries hydrogens (`C[PH4]`, `C[PH2](C)C`) takes the lambda number, `methyl-lambda5-
-            # phosphane` (P-45.3, BlueBookV2.pdf p. 423): without it the name reads back with the hydrogens it does not have. A centre with NONE is
-            # left as it was (`pentamethylphosphane`): its substituents say the number, and OPSIN reads it, so no information is lost there.
+            # phosphane` (P-45.3, BlueBookV2.pdf p. 423): without it the name reads back with the hydrogens it does not have. A centre with NONE and
+            # a double bond (`(oxo)phosphanyl`, an ylide) is left as it was: the double-bonded group says the number. A centre with none and ONLY single
+            # bonds takes it too, `pentamethyl-lambda5-phosphane`, `pentamethoxy-lambda5-phosphane (PIN)` (P-45.3.1 and p. 770): OPSIN reads the bare
+            # `pentamethylphosphane` because five substituents say the number, but the book prints it and the name was a different compound on a reader
+            # that does not count (D-195).
             if len(candidate.atom_indices) == 1:
                 _lam_idx = next(iter(candidate.atom_indices))
                 _lam_atom = perception._mol.GetAtomWithIdx(_lam_idx)  # type: ignore[attr-defined]
@@ -14999,7 +15171,8 @@ class SubstitutivePath:
                 _own_h = _lam_atom.GetTotalNumHs() - (
                     1 if free_valence is not None and _lam_idx in free_valence.attachment_atoms_in_fragment else 0
                 )
-                if _own_h > 0 and _is_hypervalent(_lam_atom, _lam_atom.GetTotalValence()):
+                _only_single_bonds = all(b.GetBondTypeAsDouble() == 1.0 for b in _lam_atom.GetBonds())
+                if (_own_h > 0 or _only_single_bonds) and _is_hypervalent(_lam_atom, _lam_atom.GetTotalValence()):
                     _lam = f"lambda{_lam_atom.GetTotalValence()}-"
                     name_str, stem, alkyl_stem = _lam + name_str, _lam + stem, _lam + alkyl_stem
             # A fully quaternary NR4+ is spelled "ammonium" here. This is NOT
@@ -17612,6 +17785,10 @@ class SubstitutivePath:
                         lone = mol.GetAtomWithIdx(next(iter(pa.substituent_atoms)))
                         if _SINGLE_ATOM_SUBSTITUENT.get((lone.GetSymbol(), lone.GetFormalCharge(), pa.attachment_bond_order)) == prefix_name:
                             prefix_name = isotopic_prefix(prefix_name, lone)
+                    elif prefix_name:
+                        # A group of several atoms (`bromocarbonyl`, `cyano`): the nuclide of one atom, cited by the bare symbol when that element is alone in the
+                        # group. None (the symbol would not say which atom) leaves the prefix unlabelled and the nuclide guard refuses the name.
+                        prefix_name = _isotopic_group_prefix(prefix_name, pa.substituent_atoms, mol) or prefix_name
                     if prefix_name:
                         sub_tree = LeafTree(
                             output_form=OutputForm.SUBSTITUENT,
@@ -17989,6 +18166,9 @@ class SubstitutivePath:
                                         ether_prefix_name = "(" + alkyl_name + ")" + ether_suffix
                                     else:
                                         ether_prefix_name = alkyl_name + ether_suffix
+                                # The ether atom's own nuclide is cited in front of the whole prefix: `(18O)methoxy` (P-45.4.2's example, p. 423).
+                                if sum(1 for i in pa.substituent_atoms if mol.GetAtomWithIdx(i).GetSymbol() == ether_atom.GetSymbol()) == 1:
+                                    ether_prefix_name = isotopic_prefix(ether_prefix_name, ether_atom)
                                 sub_tree = LeafTree(
                                     output_form=OutputForm.SUBSTITUENT,
                                     free_valence=None,
@@ -18415,8 +18595,10 @@ class SubstitutivePath:
                 if _fg_atom in _atom_to_loc_map:
                     continue
                 _fg_anchor_map[_fg_atom] = _anchor_loc
+        _iso_unnumbered, _iso_suffix = _isotope_atom_sites(plan, mol, _atom_to_loc_map)
         _iso_labels = _coll_iso(
-            mol, _atom_to_loc_map, fg_anchor_map=_fg_anchor_map or None
+            mol, _atom_to_loc_map, fg_anchor_map=_fg_anchor_map or None,
+            unnumbered_ok=_iso_unnumbered, suffix_ok=_iso_suffix,
         )
         _isotope_labels_tuple = _iso_labels if _iso_labels else None
 

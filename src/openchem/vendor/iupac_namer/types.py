@@ -178,6 +178,9 @@ class IsotopeLabel:
     element: str              # IUPAC element symbol: "H", "C", "N", ...
     mass_number: int          # 2 for deuterium, 3 for tritium, 13/14 for C, ...
     count: int                # number of atoms of this isotope at this locant
+    # True for a nuclide on the heteroatom of a SUFFIX group (the oxygen of `-one`, `-ol`): P-82.2.1 cites it before the suffix word, `1-phenylethan-1-(18O)one`,
+    # not at the front of the name, where it modifies the parent skeleton. Default False keeps every existing label where it was.
+    at_suffix: bool = False
 
 
 # ---------------------------------------------------------------------------

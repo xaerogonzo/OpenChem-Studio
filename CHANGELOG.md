@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: a name keeps every isotopic label, and isotopic brackets are placed where OPSIN reads them (D-193, D-195, D-196)
+- `[15NH2]c1ccccc1` used to be named `aniline`, `[15N]#CCC(=O)O` `cyanoacetic acid` and `C[18O]CC(=O)O` `methoxyacetic acid`: names for the unlabelled compound. They are `(15N)aniline`, `(15N)cyanoacetic acid` and `(18O)methoxyacetic acid` now, the parent's bracket sits before the parent name (`1-bromo(4-13C)butane`, `1-phenylethan-1-(18O)one`), and a hypervalent phosphorus with five single bonds carries its lambda number (`pentamethyl-lambda5-phosphane`). A name that would still lose a label is refused, not shown. On 400 census molecules with one labelled atom, wrong-molecule names went from 86 to 2 and exact ones from 89 to 290; the 2000-row census does not move. Details in `src/openchem/vendor/CHANGELOG.md`.
+
 ### Naming: of two parents that tie, the name earlier in alphanumerical order (P-45.5)
 - When the parent can be either of two chains or rings that tie on everything before it, the one whose name is earlier in alphanumerical order is chosen, so `bromo` comes before `dibromo`: `2-bromo-4-chloro-N-(2,4-dibromophenyl)aniline` is now the name on every spelling (the Blue Book's own example) where the other, `2,4-dibromo-N-(2-bromo-4-chlorophenyl)aniline`, came out about half the time, chosen by the order the SMILES atoms were written in. Names with a nuclide or a bonding number are left alone (the earlier rules are not applied across parents). Census: 0 of 2000 rows moved. Details in `src/openchem/vendor/CHANGELOG.md`.
 

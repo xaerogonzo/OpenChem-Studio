@@ -2637,9 +2637,10 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
     # where the parent name has no preceding locant at all. The decision is
     # therefore deferred: the following part does not exist yet here.
     _iso_index: int | None = None
+    _suffix_iso: tuple = tuple(lbl for lbl in (tree.isotope_labels or ()) if lbl.at_suffix)
     if tree.isotope_labels:
         from openchem.vendor.iupac_namer.isotope import render_isotope_labels as _render_iso
-        iso_str = _render_iso(tree.isotope_labels)
+        iso_str = _render_iso(tuple(lbl for lbl in tree.isotope_labels if not lbl.at_suffix))
         if iso_str:
             parts.append(iso_str)
             _iso_index = len(parts) - 1
@@ -3427,6 +3428,16 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
                 if (parent_name.endswith("e")
                         and not parts[stem_idx].endswith("e")):
                     parts[stem_idx] += "e"
+        if _suffix_iso:
+            # P-82.2.1: a nuclide on the heteroatom of a suffix group goes before the suffix word, after its locant: `1-phenylethan-1-(18O)one`. A suffix
+            # with no locant to follow (`al`, `oic acid`) has no place the book prints for it and OPSIN has not been shown to read one, so the label
+            # stays at the front of the name as it always was.
+            import dataclasses as _dc_iso
+            from openchem.vendor.iupac_namer.isotope import render_isotope_labels as _render_iso_suffix
+            _located = re.match(r"^(-[0-9A-Za-z,']+-)(.+)$", rendered_suf)
+            if _located:
+                rendered_suf = _located.group(1) + _render_iso_suffix(tuple(_dc_iso.replace(lbl, locant=None) for lbl in _suffix_iso)) + _located.group(2)
+                _suffix_iso = ()
         parts.append(rendered_suf)
     elif fv is not None and any(o > 0 for o in fv.bond_orders):
         # Check for retained ring substituent form (P-31.1.2.4):
@@ -3632,6 +3643,25 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
     # hyphen goes in only when what follows the nuclide parentheses starts
     # with a locant -- an indicated-hydrogen marker like `1H-`, a numeric
     # locant, or an italic element locant.
+    if _suffix_iso:                                         # no place to cite it by the suffix: where it always was, with the parent's
+        from openchem.vendor.iupac_namer.isotope import render_isotope_labels as _render_iso_front
+        front = _render_iso_front(tuple(lbl for lbl in tree.isotope_labels if lbl.at_suffix or True))
+        if _iso_index is None:
+            parts.insert(0 if not (tree.stereo_descriptors and not _STEREO_SUPPRESSED.get()) else 1, front)
+            _iso_index = 0 if not (tree.stereo_descriptors and not _STEREO_SUPPRESSED.get()) else 1
+        else:
+            parts[_iso_index] = front
+    # D-196: the parent's nuclide is cited before the name of the part it modifies (P-82.2.1, pdf p. 853: `1-phenyl(1,2-13C2)ethan-1-one`,
+    # `1-bromo(4-13C)butane`), which is AFTER the substituent prefixes, not before them: OPSIN reads the first and not `(4-13C)-1-bromobutane`.
+    # Only a name that has prefixes is moved; with none the bracket is at the front already, which is where it is also the book's.
+    if _iso_index is not None and tree.prefixes and not _suffix_iso:
+        _label = parts.pop(_iso_index)
+        _stem_at = stem_idx - 1 if stem_idx > _iso_index else stem_idx
+        if _stem_at > 0 and parts[_stem_at - 1] == "-":                   # the hyphen that separated the prefixes from a stem starting with a locant
+            parts.pop(_stem_at - 1)
+            _stem_at -= 1
+        parts.insert(_stem_at, _label)
+        _iso_index = _stem_at
     if _iso_index is not None and _iso_index + 1 < len(parts):
         following = parts[_iso_index + 1]
         if _ISOTOPE_NEEDS_HYPHEN.match(following):

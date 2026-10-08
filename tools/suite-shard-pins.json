@@ -743,6 +743,7 @@
   "tests/test_namer_known_defects.py": 2,
   "tests/test_namer_multiple_bonds_parent.py": 2,
   "tests/test_namer_multiplicative.py": 0,
+  "tests/test_namer_nuclide_guard.py": 1,
   "tests/test_namer_numbering.py": 1,
   "tests/test_namer_ownership.py": 2,
   "tests/test_namer_parent_citation_locants.py": 2,

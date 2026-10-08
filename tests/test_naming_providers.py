@@ -953,17 +953,20 @@ def test_a_hypervalent_group_or_a_labelled_prefix_is_shown_verified_not_withheld
     assert result.note == ""
 
 
-def test_a_nuclide_on_an_atom_the_parent_name_owns_is_still_withheld():
-    """What is left open of D-192 is D-193a: `[15NH2]c1ccccc1` is named `aniline`, which is a different compound (the nitrogen's mass number is gone), and the
-    application's read-back is what keeps it from being shown. When D-193a is fixed this example has to move to another open wrong-structure row -- the strict xfail
-    in test_namer_known_defects.py fires in the same commit, which is the reminder (the same arrangement as D-162 above)."""
+def test_a_nuclide_on_an_atom_the_parent_name_owns_is_named_now_and_one_that_cannot_be_is_refused():
+    """D-193a is fixed (naming round 28): `[15NH2]c1ccccc1` is `(15N)aniline`, which the application shows. What the engine cannot label it REFUSES (the nuclide
+    guard, `engine._check_nuclides_named`), and the application reports that as a NamingError rather than showing the unlabelled compound's name, which is what
+    `aniline` was for the 15N compound and what the application's read-back alone used to catch (this test pinned that arrangement; the read-back is still there)."""
     if not naming_providers.opsin_available():
         pytest.skip("the read-back gate needs OPSIN")
     import openchem.vendor.iupac_namer as namer
 
-    smiles = "[15NH2]c1ccccc1"
-    assert namer.name_smiles(smiles) == "aniline"                # a plain-looking name, and the wrong one
+    named = naming_providers.derived_name_for_structure(Chem.MolFromSmiles("[15NH2]c1ccccc1"))
+    assert named.name == "(15N)aniline"
 
+    smiles = "[2H]N([2H])c1ccccc1"                               # two deuteriums on an aromatic amine: no verified name keeps them
+    with pytest.raises(ValueError, match="isotopic labelling"):
+        namer.name_smiles(smiles)
     with pytest.raises(naming_providers.NamingError) as raised:
         naming_providers.derived_name_for_structure(Chem.MolFromSmiles(smiles))
-    assert "did not parse back to this structure" in str(raised.value)
+    assert "isotopic labelling" in str(raised.value)
