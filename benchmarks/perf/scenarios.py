@@ -308,19 +308,33 @@ def ph_sidecar(calls: int = 4) -> Scenario:
 # -- S5 heavy molecule ----------------------------------------------------------------
 
 
-def heavy_molecule() -> Scenario:
+def heavy_molecule(conformers: int = 10) -> Scenario:
+    """S5: one large molecule through each phase, stamped so the sampler can read memory and
+    child processes at every boundary. `phase:*` marks are read at their own instant."""
     steps = _boot(HEAVY_SMILES, "erythromycin") + [
-        _s("mark", name="phase:loaded", after_ms=4000),
+        _s("wait", after_ms=STARTUP_SETTLE_MS),
+        _s("mark", name="phase:loaded", after_ms=3000),
         _s("loop_lag", action="start", tag="descriptors", interval_ms=10),
         _s("calculator", id=LIFECYCLE_CALCULATOR, parameters=LIFECYCLE_CALCULATOR_PARAMETERS, reveal=False,
            after_ms=6000),
         _s("loop_lag", action="stop", tag="descriptors"),
         _s("mark", name="phase:descriptors", after_ms=3000),
+        _s("loop_lag", action="start", tag="conformers", interval_ms=10),
+        _s("conformers", count=conformers, optimize=True, after_ms=90000),
+        _s("loop_lag", action="stop", tag="conformers"),
+        _s("expect_conformers", min=1, tag="heavy"),
+        _s("mark", name="phase:conformers", after_ms=3000),
+        _s("loop_lag", action="start", tag="viewer3d", interval_ms=10),
+        _s("view_3d", after_ms=12000),
+        _s("loop_lag", action="stop", tag="viewer3d"),
+        _s("mark", name="phase:viewer-open", after_ms=3000),
+        _s("view_3d", show=False, after_ms=6000),
+        _s("mark", name="phase:viewer-away", after_ms=3000),
         _s("quit"),
     ]
-    return Scenario("heavy-molecule", "S5 large molecule: load, descriptors (conformers/3D added once "
-                    "their drive steps are pinned)", steps, probes=["heartbeat"], kind="generic",
-                    timeout_s=900, parameters={"smiles": HEAVY_SMILES})
+    return Scenario("heavy-molecule", "S5 large molecule: load, descriptors, conformers, 3D viewer",
+                    steps, probes=["heartbeat"], kind="generic", timeout_s=900,
+                    parameters={"smiles": HEAVY_SMILES, "conformers": conformers})
 
 
 REGISTRY: dict[str, Callable[..., Scenario]] = {

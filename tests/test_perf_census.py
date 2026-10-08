@@ -254,3 +254,32 @@ def test_the_dirty_tree_guard_names_what_it_refuses_over(monkeypatch, capsys):
     args = census.argparse.Namespace(scenarios=["control-noop"], runs=1, set=None, allow_dirty=False)
     assert census.cmd_run(args) == 2
     assert "dirty" in capsys.readouterr().err
+
+
+# -- the heavy-molecule phases ------------------------------------------------------------------
+
+
+def test_heavy_molecule_asserts_conformers_so_it_cannot_pass_empty():
+    steps = scenarios.heavy_molecule().steps
+    names = [step["do"] for step in steps]
+    assert names.index("conformers") < names.index("expect_conformers") < names.index("view_3d")
+    assert {"phase:loaded", "phase:descriptors", "phase:conformers", "phase:viewer-open",
+            "phase:viewer-away"} <= {s.get("name") for s in steps if s["do"] == "mark"}
+
+
+def test_expect_conformers_fails_the_run_when_none_were_made():
+    from types import SimpleNamespace
+
+    from openchem.app.debug_drive import _Driver
+
+    molecule = SimpleNamespace(conformers=[])
+    window = SimpleNamespace(
+        _session=SimpleNamespace(project=SimpleNamespace(find_molecule=lambda uuid: molecule)),
+        _property_panel=SimpleNamespace(_selected_molecule_uuid="u"),
+    )
+    driver = _Driver(window, [])
+    driver._do_expect_conformers({"min": 1, "tag": "t"})
+    assert driver._assertions[-1]["ok"] is False
+    molecule.conformers = [object()]
+    driver._do_expect_conformers({"min": 1, "tag": "t"})
+    assert driver._assertions[-1]["ok"] is True

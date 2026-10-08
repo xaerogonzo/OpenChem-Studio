@@ -477,6 +477,18 @@ def derive(scenario: scenario_defs.Scenario, sampler: Sampler, report: dict[str,
         "app_handles": max(int(r["app_handles"]) for r in rows),
     }
     out["marks"] = measurements.get("marks", [])
+    phases = {}
+    for mark in out["marks"]:
+        if mark["name"].startswith("phase:"):
+            at = mark["epoch"]
+            phases[mark["name"][6:]] = {
+                "app_private_mib": _mib(window_median(rows, "app_private", at - 2.0, at)),
+                "children_private_mib": _mib(window_median(rows, "kids_private", at - 2.0, at)),
+                "child_count": window_median(rows, "child_count", at - 2.0, at),
+                "tree_cpu_pct_machine_2s": (window_cpu(rows, "tree_cpu_pct_machine", at - 2.0, at) or {}).get("mean"),
+            }
+    if phases:
+        out["phases"] = phases
     if scenario.kind == "idle":
         out["idle"] = derive_idle(rows, ready or rows[0]["epoch"])
     elif scenario.kind == "panels":

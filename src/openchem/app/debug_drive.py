@@ -2561,6 +2561,36 @@ class _Driver(QObject):
                     tag, key, parameters.get(key), value,
                 )
 
+    def _do_expect_conformers(self, step: dict[str, Any]) -> None:
+        """`{"do": "expect_conformers", "min": 3}` -- the selected molecule HOLDS at least
+        that many conformers. A scenario that asks for conformers and reads memory
+        afterwards would pass on a run where none were made, which is the failure a
+        census cannot see on its own."""
+        window = self._window
+        molecule = window._session.project.find_molecule(window._property_panel._selected_molecule_uuid)
+        held = len(molecule.conformers) if molecule is not None else 0
+        wanted = int(step.get("min", 1))
+        ok = self._record_assertion("expect_conformers", str(step.get("tag", "")), held >= wanted,
+                                    f"{held} conformer(s), wanted at least {wanted}")
+        if ok:
+            logger.warning("OPENCHEM_DRIVE: EXPECT conformers ok -- %d", held)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT conformers FAILED -- %d held, wanted at least %d", held, wanted)
+
+    def _do_view_3d(self, step: dict[str, Any]) -> None:
+        """`{"do": "view_3d"}` brings the 3D viewer's tab to the front (the viewer shares a
+        tab group with the 2D editor, and a hidden web view is not the cost a person pays);
+        `{"do": "view_3d", "show": false}` puts the 2D editor back."""
+        window = self._window
+        target = window._viewer3d if step.get("show", True) else window._editor
+        tabs = target.parent()
+        while tabs is not None and not hasattr(tabs, "setCurrentWidget"):
+            tabs = tabs.parent()
+        if tabs is None:
+            logger.error("OPENCHEM_DRIVE: view_3d: no tab group above %s", type(target).__name__)
+            return
+        tabs.setCurrentWidget(target)
+
     def _do_overlay(self, step: dict[str, Any]) -> None:
         """Turn the 3D viewer's shape overlay on, and optionally step.
 
