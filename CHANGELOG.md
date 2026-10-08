@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: isotopic labels are placed where OPSIN reads them, and a labelled ring is still the ring it is
+- `[13cH]1ccc2ccccc2c1` was a naming error, labelled benzene `cyclohexa-1,3,5-triene`, labelled pyridine `azine`, labelled tetralin a `bicyclo[4.4.0]` name for another molecule: a nuclide anywhere in a ring made it unrecognisable. They are `(7-13C)naphthalene`, `(6-13C)benzene`, `(5-13C)pyridine` and `1,2,3,4-tetrahydro(6-13C)naphthalene` now, and the bracket sits where OPSIN reads it: after the locant of a suffix (`butan-1-(18O)amide`), after hydro prefixes (`3,4-dihydro(4-13C)quinolin-1(2H)-yl`), before `amino` and before the `oxy` of a compound alkoxy. On 400 labelled census molecules the unreadable names went from 40 to 10 and the exact ones from 290 to 331; the 2000-row census does not move. Found and not fixed: the carbonyl and the alkoxy oxygen of an ester get the same name (D-197). Details in `src/openchem/vendor/CHANGELOG.md`.
+
 ### Naming: the bonding number and the isotopic modification of the substituents choose between two parents (P-45.3, P-45.4)
 - When the parent can be either of two chains that tie on everything before them, the one that carries more substituents attached through a hypervalent atom (`lambda6` before `lambda4`), then the one whose isotopically modified substituents have the lower locants (then the higher atomic number, then the higher mass number), is chosen, so `2-bromo-1-{[2-(81Br)bromopentyl]oxy}pentane` is the name on every spelling where it came out about half the time chosen by the order the SMILES atoms were written in. The Blue Book's own examples are one name each. Census: 0 of 2000 rows moved. Details in `src/openchem/vendor/CHANGELOG.md`.
 

@@ -5306,6 +5306,10 @@ def _isotopic_attachment_prefix(prefix: str, atom, fragment) -> str:
     """
     if sum(1 for a in fragment.GetAtoms() if a.GetSymbol() == atom.GetSymbol()) != 1:
         return prefix
+    if atom.GetSymbol() == "N" and prefix.endswith("amino") and prefix != "amino":
+        # `methyl(N-2H)amino`, `benzoyl(N-2H)amino`: the label goes before the `amino` it modifies, after the groups on the nitrogen. OPSIN reads that and
+        # not `(N-2H)methylamino`.
+        return prefix[:-len("amino")] + isotopic_prefix("amino", atom)
     return isotopic_prefix(prefix, atom)
 
 
@@ -18249,7 +18253,15 @@ class SubstitutivePath:
                                         ether_prefix_name = alkyl_name + ether_suffix
                                 # The ether atom's own nuclide is cited in front of the whole prefix: `(18O)methoxy` (P-45.4.2's example, p. 423).
                                 if sum(1 for i in pa.substituent_atoms if mol.GetAtomWithIdx(i).GetSymbol() == ether_atom.GetSymbol()) == 1:
-                                    ether_prefix_name = isotopic_prefix(ether_prefix_name, ether_atom)
+                                    _labelled = isotopic_prefix("", ether_atom)
+                                    from openchem.vendor.iupac_namer.isotope import _LEADING_ISOTOPE_BRACKET
+                                    # a stem that carries a nuclide bracket of its own (`(1-13C)methyl`) is still a bare stem: the two brackets merge, `(1-13C,18O)methoxy`
+                                    if _labelled and not re.fullmatch(r"(meth|eth|prop|but|pent|hex|hept|oct|non|dec)yl|phenyl", _LEADING_ISOTOPE_BRACKET.sub("", alkyl_name)):
+                                        # A contracted alkoxy with anything on its alkyl (`phenylmethoxy`, `2-methylpropoxy`, `4-chlorophenoxy`) takes the label
+                                        # before its `oxy` on the UNcontracted form, `(phenylmethyl)(18O)oxy`; OPSIN reads that and not `(18O)phenylmethoxy`.
+                                        ether_prefix_name = "(" + alkyl_name + ")" + _labelled + ether_suffix
+                                    else:
+                                        ether_prefix_name = isotopic_prefix(ether_prefix_name, ether_atom)
                                 sub_tree = LeafTree(
                                     output_form=OutputForm.SUBSTITUENT,
                                     free_valence=None,

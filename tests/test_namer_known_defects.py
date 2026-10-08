@@ -4122,6 +4122,37 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-194c", "CCCC(Br)COCC([81Br])CCC", "2-bromo-1-{[2-(81Br)bromopentyl]oxy}pentane",
      "2-(81Br)bromo-1-[(2-bromopentyl)oxy]pentane",
      "P-45.4.1 (p. 423): the parent that gives the isotopically modified substituent the LOWER locant ('1' over '2'). Was chosen by atom order (24 of 40 random spellings, 16 the other); P-45.3 and P-45.4 are applied across parents since naming round 29 (tests/test_namer_substituent_modification.py)"),
+    # --- naming round 29, phase 2 (2026-10-08): where an isotopic label goes so that OPSIN reads it, and a labelled ring that is still the ring it is
+    # (tests/test_namer_label_placement.py). The causes: a suffix whose locant is left out cited its label at the front of the name with a locant OPSIN cannot read; a label
+    # sat before the hydro prefixes; an amino prefix and a compound alkoxy took the label in front of the whole prefix; and a nuclide anywhere in a ring made the ring
+    # unrecognisable (`ring_naming.common._nuclide_free`).
+    ("D-198a", "CCCC(=[18O])N", "butan-1-(18O)amide",
+     "(1-18O)butanamide",
+     "a suffix whose locant is left out: the label goes after the locant the name does not print (OPSIN reads `butan-1-(18O)amide` and not `(1-18O)butanamide`)"),
+    ("D-198b", "O=C(CCl)N1CC[13CH2]c2ccccc21", "2-chloro-1-[3,4-dihydro(4-13C)quinolin-1(2H)-yl]ethan-1-one",
+     "2-chloro-1-[(4-13C)-3,4-dihydroquinolin-1(2H)-yl]ethan-1-one",
+     "the bracket follows the hydro prefixes, which are cited directly before the parent name"),
+    ("D-198c", "[2H]N(C(=O)c1ccccc1)CCC(=O)O", "3-[benzoyl(N-2H)amino]propanoic acid",
+     "3-[(N-2H)benzoylamino]propanoic acid",
+     "the bracket goes before the `amino` it modifies, after the groups on the nitrogen"),
+    ("D-198d", "COc1cc2c(cc1[18O]Cc1ccccc1)NC(=O)C2", "5-methoxy-6-[(phenylmethyl)(18O)oxy]-1,3-dihydro-2H-indol-2-one",
+     "5-methoxy-6-[(18O)phenylmethoxy]-1,3-dihydro-2H-indol-2-one",
+     "a compound alkoxy takes the label before `oxy` on the uncontracted form; a bare stem keeps `(18O)methoxy`"),
+    ("D-198e", "ClCC(=O)[15NH]c1ccccc1", "2-chloro-N-phenyl(15N)acetamide",
+     "(15N)-2-chloro-N-phenylacetamide",
+     "a retained name that numbers nothing keeps the bare label and cites it after the prefixes"),
+    ("D-199a", "[13cH]1ccc2ccccc2c1", "(7-13C)naphthalene",
+     "[NAMING ERROR: No valid naming plan found for c1ccc2c[13cH]ccc2c1]",
+     "a nuclide in a ring made the ring unrecognisable; the ring is looked up without its nuclides"),
+    ("D-199b", "c1cc2CCCCc2c[13cH]1", "1,2,3,4-tetrahydro(6-13C)naphthalene",
+     "(3-13C)bicyclo[4.4.0]deca-1(6),7,9-triene",
+     "WRONG MOLECULE: a labelled tetralin came out as a von Baeyer name that OPSIN reads as another compound"),
+    ("D-199c", "[13cH]1cccnc1", "(5-13C)pyridine",
+     "(5-13C)azine",
+     "a labelled pyridine lost its retained name"),
+    ("D-199d", "[13cH]1ccccc1", "(6-13C)benzene",
+     "(6-13C)cyclohexa-1,3,5-triene",
+     "a labelled benzene was a Kekule triene"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -4233,6 +4264,16 @@ OPEN: list[tuple[str, str, str, str, str]] = [
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate", "an N-substituted hydroxamic acid inside an ester's acid part loses its N-substituent"),
 
+    # D-197, found by naming round 29 (phase 2) and NOT fixed. The two oxygens of an ester's acid component are one name: the carbonyl oxygen and the alkoxy oxygen of `CC(=[18O])OC`
+    # and `CC(=O)[18O]C` are both `methyl (1-18O)acetate`, two different molecules, and OPSIN reads neither. The sweep that measured the label placements counted these
+    # as unreadable, not wrong, so nothing flagged them. The targets are the forms OPSIN reads for each (verified separately): `-1-(18O)oate` for the carbonyl oxygen
+    # and `-1-(O-18O)oate` for the alkoxy oxygen. Whether the book prints the same is NOT known; they are the only readable forms found.
+    ("D-197a", "C=CC(=[18O])OC", "methyl prop-2-en-1-(18O)oate",
+     "methyl (1-18O)prop-2-enoate",
+     "the carbonyl oxygen of an ester: the acid component is carved with both its oxygens, so `suffix_ok` (alone of its element in the group) is false and the label stays at the front"),
+    ("D-197b", "C=CC(=O)[18O]C", "methyl prop-2-en-1-(O-18O)oate",
+     "methyl (1-18O)prop-2-enoate",
+     "the alkoxy oxygen: the SAME name as D-197a for a different molecule"),
 ]
 
 # Observed but NOT tracked here, because this table requires a verified

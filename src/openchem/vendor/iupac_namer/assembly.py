@@ -2605,6 +2605,10 @@ def _apply_retained_acyl_pin(result: str, tree: SubstitutiveTree) -> str:
     return re.sub(pattern, replacement, result)
 
 
+#: A parent stem that starts with its hydro prefixes: `3,4-dihydroquinolin`, `1,2,3,4-tetrahydronaphthalen`, `octahydro-4H-indol`, `2,3-dihydro-1H-indol`.
+_HYDRO_PREFIXED_STEM = re.compile(r"^((?:[0-9A-Za-z,]+-)?(?:(?:di|tri|tetra|penta|hexa|hepta|octa|nona|deca)a?)?(?:de)?hydro)(.+)$")
+
+
 def _assemble_substitutive(tree: SubstitutiveTree) -> str:
     """Assemble a SubstitutiveTree to its IUPAC name string.
 
@@ -3430,13 +3434,21 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
                     parts[stem_idx] += "e"
         if _suffix_iso:
             # P-82.2.1: a nuclide on the heteroatom of a suffix group goes before the suffix word, after its locant: `1-phenylethan-1-(18O)one`. A suffix
-            # with no locant to follow (`al`, `oic acid`) has no place the book prints for it and OPSIN has not been shown to read one, so the label
-            # stays at the front of the name as it always was.
+            # whose locant is left out (`butanamide`, `propanal`, `butanoic acid`, `ethanol`) is written WITH it when it carries a nuclide, from the label's
+            # own anchor locant: `butan-1-(18O)amide`, `propan-1-(18O)al`, `ethan-1-(15N)nitrile`, which OPSIN reads (the front-of-name `(1-18O)butanamide` it
+            # does not). A suffix with no locant to give stays where it always was.
             import dataclasses as _dc_iso
             from openchem.vendor.iupac_namer.isotope import render_isotope_labels as _render_iso_suffix
+            _suffix_label = _render_iso_suffix(tuple(_dc_iso.replace(lbl, locant=None) for lbl in _suffix_iso))
             _located = re.match(r"^(-[0-9A-Za-z,']+-)(.+)$", rendered_suf)
+            _anchors = {str(lbl.locant) for lbl in _suffix_iso if lbl.locant is not None}
             if _located:
-                rendered_suf = _located.group(1) + _render_iso_suffix(tuple(_dc_iso.replace(lbl, locant=None) for lbl in _suffix_iso)) + _located.group(2)
+                rendered_suf = _located.group(1) + _suffix_label + _located.group(2)
+                _suffix_iso = ()
+            # `ethanamide`, `benzoic acid`, `methanal` are rewritten to their retained names (acetamide, ...) after assembly; a label spliced into the suffix
+            # would stop that rewrite, and `(18O)acetamide` (a retained name that numbers nothing) is what OPSIN reads, so those keep the bare front label.
+            elif tree.named_parent.name not in ("benzene", "ethane", "methane") and len(_anchors) == 1 and not rendered_suf.startswith("-"):
+                rendered_suf = f"-{next(iter(_anchors))}-" + _suffix_label + rendered_suf
                 _suffix_iso = ()
         parts.append(rendered_suf)
     elif fv is not None and any(o > 0 for o in fv.bond_orders):
@@ -3644,24 +3656,42 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
     # with a locant -- an indicated-hydrogen marker like `1H-`, a numeric
     # locant, or an italic element locant.
     if _suffix_iso:                                         # no place to cite it by the suffix: where it always was, with the parent's
+        import dataclasses as _dc_front
         from openchem.vendor.iupac_namer.isotope import render_isotope_labels as _render_iso_front
-        front = _render_iso_front(tuple(lbl for lbl in tree.isotope_labels if lbl.at_suffix or True))
+        front = _render_iso_front(tuple(
+            _dc_front.replace(lbl, locant=None) if (lbl.at_suffix and tree.named_parent.name in ("benzene", "ethane", "methane")) else lbl
+            for lbl in tree.isotope_labels))
         if _iso_index is None:
             parts.insert(0 if not (tree.stereo_descriptors and not _STEREO_SUPPRESSED.get()) else 1, front)
             _iso_index = 0 if not (tree.stereo_descriptors and not _STEREO_SUPPRESSED.get()) else 1
+            stem_idx += 1                              # a new part in front of the stem: the index computed when the stem was appended is one short now
         else:
             parts[_iso_index] = front
     # D-196: the parent's nuclide is cited before the name of the part it modifies (P-82.2.1, pdf p. 853: `1-phenyl(1,2-13C2)ethan-1-one`,
     # `1-bromo(4-13C)butane`), which is AFTER the substituent prefixes, not before them: OPSIN reads the first and not `(4-13C)-1-bromobutane`.
-    # Only a name that has prefixes is moved; with none the bracket is at the front already, which is where it is also the book's.
-    if _iso_index is not None and tree.prefixes and not _suffix_iso:
+    # AND after the hydro prefixes of the parent, which are cited directly before its name (P-31.1.4.2.4): `3,4-dihydro(4-13C)quinolin-1(2H)-yl`,
+    # `5,6,7,8-tetrahydro(2-13C)naphthalene`, `2,3-dihydro(1-15N)-1H-indole`; OPSIN reads these and not `(4-13C)-3,4-dihydroquinolin-1(2H)-yl`.
+    # A name with neither prefixes nor hydro prefixes keeps the bracket at the front, which is where it is also the book's.
+    if _iso_index is not None:
         _label = parts.pop(_iso_index)
         _stem_at = stem_idx - 1 if stem_idx > _iso_index else stem_idx
-        if _stem_at > 0 and parts[_stem_at - 1] == "-":                   # the hyphen that separated the prefixes from a stem starting with a locant
-            parts.pop(_stem_at - 1)
-            _stem_at -= 1
-        parts.insert(_stem_at, _label)
-        _iso_index = _stem_at
+        _hydro = _HYDRO_PREFIXED_STEM.match(parts[_stem_at])
+        if _hydro is not None:
+            if not tree.prefixes and _stem_at > 0 and parts[_stem_at - 1] == "-":     # the hyphen that only separated the old front bracket from the stem
+                parts.pop(_stem_at - 1)
+                _stem_at -= 1
+            parts[_stem_at] = _hydro.group(1)
+            parts.insert(_stem_at + 1, _label)
+            parts.insert(_stem_at + 2, _hydro.group(2))
+            _iso_index = _stem_at + 1
+        elif tree.prefixes:
+            if _stem_at > 0 and parts[_stem_at - 1] == "-":                   # the hyphen that separated the prefixes from a stem starting with a locant
+                parts.pop(_stem_at - 1)
+                _stem_at -= 1
+            parts.insert(_stem_at, _label)
+            _iso_index = _stem_at
+        else:
+            parts.insert(_iso_index, _label)
     if _iso_index is not None and _iso_index + 1 < len(parts):
         following = parts[_iso_index + 1]
         if _ISOTOPE_NEEDS_HYPHEN.match(following):
