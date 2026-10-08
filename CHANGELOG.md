@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### An empty structure no longer takes the whole descriptor set down (perf census F7)
+- `RDKitDescriptorProvider` raised `ZeroDivisionError` on a drawing with no atoms, because RDKit's NP-likeness scorer divides by the atom count, so an empty canvas got no descriptors at all (logged once in six idle census runs). The NP score is now refused with the same `NO_KNOWN_FRAGMENTS` answer a molecule sharing no fragment gets, and its confidence reads 0.00; every other descriptor is computed as before. No descriptor value changed.
+
 ### Naming: the bonding number and the isotopic modification of the substituents choose between two parents (P-45.3, P-45.4)
 - When the parent can be either of two chains that tie on everything before them, the one that carries more substituents attached through a hypervalent atom (`lambda6` before `lambda4`), then the one whose isotopically modified substituents have the lower locants (then the higher atomic number, then the higher mass number), is chosen, so `2-bromo-1-{[2-(81Br)bromopentyl]oxy}pentane` is the name on every spelling where it came out about half the time chosen by the order the SMILES atoms were written in. The Blue Book's own examples are one name each. Census: 0 of 2000 rows moved. Details in `src/openchem/vendor/CHANGELOG.md`.
 

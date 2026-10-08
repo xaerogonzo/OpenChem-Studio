@@ -471,6 +471,39 @@ def test_a_natural_product_can_score_as_synthetic():
     assert morphine["np_likeness_confidence"].value == pytest.approx(1.0)
 
 
+def test_an_empty_structure_refuses_np_likeness_and_the_rest_still_computes():
+    """AN EMPTY DRAWING USED TO RAISE `ZeroDivisionError` FOR THE WHOLE PROVIDER.
+
+    RDKit's `scoreMolWConfidence` divides by `mol.GetNumAtoms()` and by the
+    fingerprint's bit count, both 0 for `Chem.Mol()` (perf census F7, logged
+    once in six idle runs). The raise took every descriptor with it, so the
+    contract is: the NP score is refused with the SAME code a molecule sharing
+    no fragment gets, and nothing else is replaced by a refusal because of it.
+    """
+    results = _values_by_id(Chem.Mol())
+
+    np_score = results["np_likeness"]
+    assert np_score.value is None
+    assert np_score.cache_state == CacheState.FAILED
+    assert np_score.provenance.parameters["refusal"] == "NO_KNOWN_FRAGMENTS"
+    assert results["np_likeness_confidence"].value == 0.0
+
+    # The guard is local to the NP call: no other row may have been refused
+    # on its account. The shape rows are refused for lack of a conformer, as
+    # for any molecule without one, and are not this guard's concern.
+    refused = {
+        descriptor_id
+        for descriptor_id, value in results.items()
+        if value.cache_state == CacheState.FAILED
+    }
+    assert refused - {"np_likeness"} <= {
+        "radius_of_gyration", "asphericity", "spherocity_index", "inertial_shape_factor",
+        "pmi1", "pmi2", "pmi3", "npr1", "npr2", "pbf",
+    }
+    assert results["mol_wt"].cache_state == CacheState.COMPLETED
+    assert results["heavy_atom_count"].value == 0
+
+
 def test_the_np_scorer_is_not_reached_by_the_sa_scorers_name():
     """`npscorer` HAS NO `calculateScore`, and the sibling loader does.
 
