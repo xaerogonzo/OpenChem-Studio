@@ -9,8 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Two idle web views are built when first used instead of at launch
 - The Macromolecule Viewer (Mol*) and the Alignment panel's 3D view were each a Chromium renderer created at start-up whether or not a structure or an alignment ever existed. Each now has a stable empty container from the start and builds its view on first use: a structure to show, or the container/panel being shown. The editor and the main 3D viewer stay eager. Nothing about what they draw changed; the cost moves to the first use, and `docs/PERFORMANCE_CENSUS.md` has what it measured.
+
 ### pKa predictor: the model is loaded once per session, not once per structure
 - Every NEW structure sent to pkasolver (pH-dependent charges, logD, the pKa calculator and everything else that asks for a pKa) used to start a fresh Python process that spent about three seconds loading the 50-model ensemble before the 0.3-1.2 s prediction. The application now keeps one sidecar warm (`chem/pka_worker.py`, `pka_runner.py --serve`): a structure after the first costs the prediction alone, a structure already seen is still answered from the existing per-structure cache (pH was never part of that key), and the sidecar exits after two idle minutes and when the application quits. The predictions are identical to the one-process-per-structure route field for field, and `use_cache=False` (the fresh-install check) still runs a fresh process. `OPENCHEM_PKA_WORKER=0` restores the old behaviour for a machine where the worker misbehaves.
+
 ### An empty structure no longer takes the whole descriptor set down (perf census F7)
 - `RDKitDescriptorProvider` raised `ZeroDivisionError` on a drawing with no atoms, because RDKit's NP-likeness scorer divides by the atom count, so an empty canvas got no descriptors at all (logged once in six idle census runs). The NP score is now refused with the same `NO_KNOWN_FRAGMENTS` answer a molecule sharing no fragment gets, and its confidence reads 0.00; every other descriptor is computed as before. No descriptor value changed.
 
