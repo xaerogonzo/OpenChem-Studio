@@ -15,6 +15,12 @@ Reads a SMILES string from argv, writes JSON to stdout:
 `atom_idx` indexes `site_smiles`, NOT the caller's molecule -- see
 `_indexed_smiles` below for why that distinction is the whole point.
 
+Two modes, one payload (`predict`): `pka_runner.py <smiles>` answers one structure
+and exits, which is what a fresh-install check runs; `pka_runner.py --serve` loads
+pkasolver once and answers one request line at a time, which is how the application
+keeps the model warm between structures (`chem/pka_worker.py`; the wire contract is
+documented on `serve`).
+
 Keep this file dependency-free apart from what the pkasolver environment
 itself provides (rdkit + pkasolver). In particular it must NOT import
 anything from `openchem` -- that package isn't installed over there.
@@ -87,24 +93,21 @@ def _indexed_smiles(mol) -> str:
     return Chem.MolToSmiles(tagged)
 
 
-def main(argv: list[str]) -> int:
-    warnings.filterwarnings("ignore")
-    if len(argv) < 2:
-        json.dump({"error": "usage: pka_runner.py <smiles>"}, sys.stdout)
-        return 2
-    smiles = argv[1]
-    # pkasolver's vendored Dimorphite-DL parses sys.argv with argparse when
-    # invoked in-process, and errors out on OUR arguments ("unrecognized
-    # arguments: CC(=O)O"). Blank argv before calling into it.
-    sys.argv = [argv[0]]
+def predict(query, smiles: str) -> dict:
+    """One structure's answer as a payload dict: `{"pkas": [...], "pkasolver_version": ...}`
+    or `{"error": ...}`. Never raises, because both callers must put it on a
+    wire -- a traceback on stdout would be mistaken for the answer.
+
+    The ONE place the payload is built, shared by the one-shot run and the
+    persistent `--serve` loop, so the two cannot drift apart: the app compares
+    them field for field.
+    """
     try:
         from rdkit import Chem
 
-        query = _load_pkasolver()
         mol = Chem.MolFromSmiles(smiles)
         if mol is None:
-            json.dump({"error": f"Could not parse SMILES {smiles!r}"}, sys.stdout)
-            return 1
+            return {"error": f"Could not parse SMILES {smiles!r}"}
         states = query.calculate_microstate_pka_values(mol)
         # Attribute names confirmed live against pkasolver's own microstate
         # objects: `reaction_center_idx` (the atom being protonated/
@@ -137,11 +140,91 @@ def main(argv: list[str]) -> int:
 
         version = str(getattr(pkasolver, "__version__", "") or "unknown")
     except Exception as exc:  # noqa: BLE001 - any failure must come back as JSON, not a traceback on stdout
+        return {"error": f"{type(exc).__name__}: {exc}"}
+    return {"pkas": pkas, "pkasolver_version": version}
+
+
+def main(argv: list[str]) -> int:
+    """One-shot: one SMILES in argv, one JSON object on stdout, exit. Unchanged
+    in behaviour -- this is the path a fresh-install check must really run."""
+    warnings.filterwarnings("ignore")
+    if len(argv) < 2:
+        json.dump({"error": "usage: pka_runner.py <smiles>"}, sys.stdout)
+        return 2
+    smiles = argv[1]
+    # pkasolver's vendored Dimorphite-DL parses sys.argv with argparse when
+    # invoked in-process, and errors out on OUR arguments ("unrecognized
+    # arguments: CC(=O)O"). Blank argv before calling into it.
+    sys.argv = [argv[0]]
+    try:
+        query = _load_pkasolver()
+    except Exception as exc:  # noqa: BLE001 - see predict()
         json.dump({"error": f"{type(exc).__name__}: {exc}"}, sys.stdout)
         return 1
-    json.dump({"pkas": pkas, "pkasolver_version": version}, sys.stdout)
+    payload = predict(query, smiles)
+    json.dump(payload, sys.stdout)
+    return 1 if "error" in payload else 0
+
+
+def serve() -> int:
+    """Persistent mode (`--serve`): load pkasolver ONCE, then answer one request
+    line at a time until stdin closes.
+
+    Wire contract (the parent is `chem/pka_worker.py`; both ends are in this
+    repository and change together):
+
+        child  -> {"ready": true, "pkasolver_version": "..."}          once, after the load
+                  {"ready": false, "error": "..."}                      and exit, if it fails
+        parent -> {"request_id": "<generation>:<n>", "smiles": "..."}   one line per request
+        child  -> the `predict` payload plus the same "request_id"      one line per request
+
+    A bad request or a failed prediction is an `{"error": ...}` RESPONSE and the
+    process stays up: a warm model must not be thrown away for one bad molecule.
+    Stdin closing (the app exited, even by crashing) ends the loop, so the
+    sidecar can never outlive the application that started it.
+
+    **STDOUT IS THE PROTOCOL AND NOTHING ELSE MAY REACH IT.** pkasolver's
+    dependencies print banners to stdout (`_parse_runner_output` has always
+    had to skip them), so the real stdout is duplicated for the protocol and
+    file descriptor 1 is pointed at stderr -- which also catches output written
+    by native code, not only by Python's `print`.
+    """
+    import io
+    import os
+
+    warnings.filterwarnings("ignore")
+    sys.argv = [sys.argv[0]]
+    protocol = os.fdopen(os.dup(1), "w", encoding="utf-8", newline="\n")
+    os.dup2(2, 1)
+    sys.stdout = sys.stderr
+
+    def emit(obj: dict) -> None:
+        protocol.write(json.dumps(obj) + "\n")
+        protocol.flush()
+
+    try:
+        query = _load_pkasolver()
+        import pkasolver
+
+        version = str(getattr(pkasolver, "__version__", "") or "unknown")
+    except Exception as exc:  # noqa: BLE001 - reported over the wire, then exit
+        emit({"ready": False, "error": f"{type(exc).__name__}: {exc}"})
+        return 1
+    emit({"ready": True, "pkasolver_version": version})
+
+    for raw in io.TextIOWrapper(sys.stdin.buffer, encoding="utf-8"):
+        raw = raw.strip()
+        if not raw:
+            continue
+        try:
+            request = json.loads(raw)
+            request_id, smiles = request["request_id"], str(request["smiles"])
+        except Exception as exc:  # noqa: BLE001 - a malformed request is an answer, not a crash
+            emit({"request_id": None, "error": f"malformed request: {type(exc).__name__}: {exc}"})
+            continue
+        emit({**predict(query, smiles), "request_id": request_id})
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv))
+    sys.exit(serve() if sys.argv[1:2] == ["--serve"] else main(sys.argv))

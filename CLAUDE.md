@@ -195,6 +195,8 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "expect_results", "expect": {"solubility": "ready",
                              "fragment_counts": {"facts_contain": ["nitro (2)"]}}}
                                           what Properties HOLDS, asserted
+    {"do": "pka_worker_report", "tag": "x"}  the pKa sidecar: state, pid, spawns, requests,
+                                          its own startup/prediction times (never creates one)
     {"do": "wait"} {"do": "quit"}
 
 **A DRIVEN RUN ENDS IN A VERDICT, AND EXITS NON-ZERO WHEN IT FAILED.**

@@ -337,6 +337,43 @@ def ph_sidecar(calls: int = 4) -> Scenario:
                     steps, cadence_s=0.25, kind="generic", timeout_s=900, parameters={"calls": calls})
 
 
+#: The 2026-09-14 pKa benchmark set, in the order that makes the third request the first
+#: NEW structure on a warm sidecar: aspirin pays the model load, the others should not.
+PH_SIDECAR_STRUCTURES = (
+    ("aspirin", "CC(=O)Oc1ccccc1C(=O)O"),
+    ("fentanyl", "CCC(=O)N(c1ccccc1)C1CCN(CCc2ccccc2)CC1"),
+    ("glycine", "NCC(=O)O"),
+)
+
+
+def ph_sidecar_structures(idle_wait_s: int = 0) -> Scenario:
+    """Three DIFFERENT structures through the pH-dependent charge, one pH. Structure is what
+    keys the pKa cache (pH is not in the key), so this is what separates the three paths:
+    the first request is cold, the others warm. `pka_worker_report` after each call records
+    the sidecar's pid, spawn and request counts and its own startup/prediction times;
+    `idle_wait_s` > 0 then waits (the production idle timeout is 120 s) and reports again, so
+    the sampler's process table shows the sidecar and its memory go away."""
+    steps = _boot() + [_s("wait", after_ms=STARTUP_SETTLE_MS), _s("mark", name="calls-start", after_ms=3000)]
+    for k, (name, smiles) in enumerate(PH_SIDECAR_STRUCTURES):
+        steps += [
+            _s("smiles", smiles=smiles, name=name),
+            _s("select", molecule=-1),
+            _s("mark", name=f"call-{k}"),
+            _s("calculator", id=PH_SIDECAR_CALCULATOR, parameters={"pH": 7.4}, reveal=False,
+               after_ms=60000 if k == 0 else 20000),
+            _s("pka_worker_report", tag=f"after-{name}"),
+        ]
+    steps += [_s("mark", name="calls-end", after_ms=3000)]
+    if idle_wait_s:
+        steps += [_s("wait", after_ms=idle_wait_s * 1000), _s("mark", name="after-idle"),
+                  _s("pka_worker_report", tag="after-idle")]
+    steps += [_s("quit")]
+    return Scenario("ph-sidecar-structures", "S6b pH-dependent partial charge on three different structures: one sidecar or three",
+                    steps, cadence_s=0.25, kind="generic", timeout_s=900 + idle_wait_s,
+                    parameters={"structures": [n for n, _ in PH_SIDECAR_STRUCTURES], "pH": 7.4,
+                                "idle_wait_s": idle_wait_s})
+
+
 # -- S5 heavy molecule ----------------------------------------------------------------
 
 
@@ -394,5 +431,6 @@ REGISTRY: dict[str, Callable[..., Scenario]] = {
     "responsiveness": responsiveness,
     "heavy-molecule": heavy_molecule,
     "ph-sidecar": ph_sidecar,
+    "ph-sidecar-structures": ph_sidecar_structures,
     "viewer-switch": viewer_switch,
 }

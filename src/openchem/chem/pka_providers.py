@@ -43,9 +43,20 @@ from pathlib import Path
 
 from rdkit import Chem
 
+from openchem.chem import pka_worker
 from openchem.chem.engine import InvalidStructureError
 
 logger = logging.getLogger("openchem.chemistry")
+
+#: Whether an uncached `compute_pka` goes through the persistent sidecar
+#: (`pka_worker`) or starts a fresh process per structure. On in the
+#: application; `OPENCHEM_PKA_WORKER=0` turns it off (a way back to the
+#: one-process-per-structure behaviour if a worker ever misbehaves on a
+#: machine). The suite sets that variable (`tests/conftest.py`) because a large
+#: part of it drives `compute_pka` against fake one-shot "interpreters" and must
+#: keep testing the one-shot route; `tests/test_pka_worker.py` switches the
+#: worker on for the tests about it.
+PERSISTENT_WORKER_ENABLED = os.environ.get("OPENCHEM_PKA_WORKER", "1") != "0"
 
 #: Settings key holding the path to a Python interpreter that has pkasolver
 #: installed. Configured via Tools -> External Tools, same as ORCA's and
@@ -842,19 +853,20 @@ def compute_pka(
             if payload is not None:
                 _PAYLOADS.move_to_end(key)
     if payload is None:
-        try:
-            completed = subprocess.run(
-                [str(interpreter_path), str(_RUNNER), smiles],
-                capture_output=True,
-                text=True,
-                timeout=_TIMEOUT_SECONDS,
+        if key is not None and PERSISTENT_WORKER_ENABLED:
+            # THE WARM PATH. Only a cacheable request goes through the shared
+            # sidecar: `use_cache=False` is "really run it" (a fresh-install
+            # check), so it takes the one-shot route below and neither starts nor
+            # reuses the worker. The key travels WITH the request, so an answer is
+            # stored under the configuration it was computed under.
+            payload = pka_worker.get_worker().predict(
+                key[1:],
+                pka_worker.serve_command(str(interpreter_path), str(_RUNNER)),
+                smiles,
+                _parse_runner_output,
             )
-        except subprocess.TimeoutExpired as exc:
-            raise RuntimeError(f"pkasolver timed out after {_TIMEOUT_SECONDS}s") from exc
-        except OSError as exc:
-            raise RuntimeError(f"Could not run the configured pkasolver interpreter: {exc}") from exc
-
-        payload = _parse_runner_output(completed.stdout, completed.stderr, completed.returncode)
+        else:
+            payload = _run_one_shot(str(interpreter_path), smiles)
         if key is not None:
             with _PAYLOADS_LOCK:
                 _PAYLOADS[key] = payload
@@ -880,6 +892,24 @@ def compute_pka(
         )
         for entry in payload["pkas"]
     ]
+
+
+def _run_one_shot(interpreter_path: str, smiles: str) -> dict:
+    """A fresh `pka_runner.py` process for one structure -- the original route, kept
+    byte for byte: it is what `use_cache=False` and `describe_pka_status` must
+    really run, and what the persistent worker is compared against."""
+    try:
+        completed = subprocess.run(
+            [interpreter_path, str(_RUNNER), smiles],
+            capture_output=True,
+            text=True,
+            timeout=_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(f"pkasolver timed out after {_TIMEOUT_SECONDS}s") from exc
+    except OSError as exc:
+        raise RuntimeError(f"Could not run the configured pkasolver interpreter: {exc}") from exc
+    return _parse_runner_output(completed.stdout, completed.stderr, completed.returncode)
 
 
 def site_state(tagged_smiles: str, site_atom_index: int) -> tuple[int, int] | None:

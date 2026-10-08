@@ -67,6 +67,7 @@ by `tests/test_layering.py`.
 - `src/openchem/ui/widgets/ketcher_editor_backend.py` — the embedded 2D editor, behind the `EditorBackend` interface
 - `src/openchem/chem/naming_providers.py` — structure <-> name; the only entry point to the vendored nomenclature engine
 - `src/openchem/net.py` — every outbound HTTP request, so each one identifies the app (a missing User-Agent is a 403 on some hosts)
+- `src/openchem/chem/pka_worker.py` -- the persistent pkasolver sidecar: one owner thread over a request queue, `pka_runner.py --serve` as the child; the cache in `pka_providers._PAYLOADS` sits in front of it and `use_cache=False` bypasses it; `OPENCHEM_PKA_WORKER=0` turns it off (the suite does)
 - `src/openchem/chem/periodic_charges.py` — EQeq charges for a crystal; the only calculation here about a periodic solid, reached through `crystal_report.py` rather than the calculator registry (a `CalculationRequest` cannot name a crystal)
 - `src/openchem/domain/refusal_kinds.py` — why a calculator declined (limit / needs input / needs setup); a refusal with no kind is a fault
 - `src/openchem/domain/calculator_support.py` — a calculator's stage (maturity of this implementation) and default visibility, with the reason; `LEGACY_UNCLASSIFIED` only shrinks (see `docs/CALCULATOR_MATURITY.md`)

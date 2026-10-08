@@ -6571,6 +6571,18 @@ class _Driver(QObject):
             self._measurements[f"tracemalloc[{tag}]"] = probe.diff(int(step.get("limit", 20)))
             logger.warning("OPENCHEM_DRIVE: tracemalloc[%s] recorded", tag)
 
+    def _do_pka_worker_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "pka_worker_report", "tag": "x"}` -- the pKa predictor's persistent
+        sidecar: its state, the pid of the process we started, how many sidecars have
+        been spawned and requests served, and the last startup and prediction times.
+        Reads without creating a worker, so the report does not change the run."""
+        from openchem.chem import pka_worker
+
+        tag = str(step.get("tag", "pka_worker"))
+        snapshot = pka_worker.worker_snapshot() or {"state": "no worker created"}
+        self._measurements[f"pka_worker[{tag}]"] = snapshot
+        logger.warning("OPENCHEM_DRIVE: pka_worker[%s] %s", tag, json.dumps(snapshot))
+
     def _do_cache_probe(self, step: dict[str, Any]) -> None:
         """`{"do": "cache_probe", "tag": "x", "paths": ["_services.result_store._items"]}`
         -- the size of named containers, reached by attribute path from the window.
