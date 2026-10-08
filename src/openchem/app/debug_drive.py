@@ -6696,6 +6696,46 @@ class _Driver(QObject):
             if window is not None:
                 window.close()
 
+    def _do_stack_watchdog(self, step: dict[str, Any]) -> None:
+        """`{"do": "stack_watchdog", "action": "start", "seconds": 3, "tag": "viewer"}` ... `"action": "stop"`
+        -- while armed, every `seconds` of the process being unable to return to this
+        timer, every thread's Python stack is appended to `<report>.stacks.txt` (via
+        `faulthandler`, which runs on its own thread and so still fires when the GUI
+        thread is blocked). A freeze that a heartbeat can only SIZE gets a stack that
+        NAMES the call it is stuck in; when the GUI thread is inside native code the
+        innermost Python frame is the last thing Python knew about.
+
+        It does not fire on a healthy loop: `dump_traceback_later` is re-armed by a
+        QTimer, so only a gap longer than `seconds` lets it expire."""
+        import faulthandler
+
+        if str(step.get("action", "start")) == "stop":
+            timer = self.__dict__.pop("_stack_timer", None)
+            if timer is not None:
+                timer.stop()
+            faulthandler.cancel_dump_traceback_later()
+            return
+        seconds = float(step.get("seconds", 3.0))
+        path = (self._report_path or Path("drive")).with_suffix(".stacks.txt")
+        handle = self.__dict__.setdefault("_stack_file", open(path, "a", encoding="utf-8"))
+        handle.write(f"
+===== watchdog armed: {step.get('tag', '')} (every {seconds} s) =====
+")
+        handle.flush()
+        self._stack_seconds = seconds
+        timer = QTimer()
+        timer.setInterval(int(seconds * 250))
+        timer.timeout.connect(self._rearm_stack_watchdog)
+        self._stack_timer = timer
+        self._rearm_stack_watchdog()
+        timer.start()
+
+    def _rearm_stack_watchdog(self) -> None:
+        import faulthandler
+
+        faulthandler.cancel_dump_traceback_later()
+        faulthandler.dump_traceback_later(self._stack_seconds, repeat=False, file=self._stack_file)
+
     def _do_wait_web_loaded(self, step: dict[str, Any]) -> None:
         """`{"do": "wait_web_loaded", "quiet_ms": 3000, "timeout_ms": 120000, "after_ms": 5000}` --
         hold the script until every `QWebEngineView` under the window reports its page not
