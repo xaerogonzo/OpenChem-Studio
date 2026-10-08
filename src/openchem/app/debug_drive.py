@@ -6696,6 +6696,29 @@ class _Driver(QObject):
             if window is not None:
                 window.close()
 
+    def _do_profile(self, step: dict[str, Any]) -> None:
+        """`{"do": "profile", "action": "start"|"stop", "tag": "x", "limit": 40}` -- cProfile of
+        the GUI thread between the two steps, logged as `openchem` functions by cumulative time.
+        It slows what it measures, so read proportions, not seconds (the same rule as
+        `edit_burst`'s `profile`)."""
+        import cProfile
+        import io
+        import pstats
+
+        if str(step.get("action", "start")) == "start":
+            profiler = cProfile.Profile()
+            self.__dict__["_gui_profiler"] = profiler
+            profiler.enable()
+            return
+        profiler = self.__dict__.pop("_gui_profiler", None)
+        if profiler is None:
+            logger.error("OPENCHEM_DRIVE: profile stop without a start")
+            return
+        profiler.disable()
+        out = io.StringIO()
+        pstats.Stats(profiler, stream=out).sort_stats("cumulative").print_stats("openchem", int(step.get("limit", 40)))
+        logger.warning("OPENCHEM_DRIVE: profile[%s] by cumulative time\n%s", step.get("tag", ""), out.getvalue())
+
     def _do_stack_watchdog(self, step: dict[str, Any]) -> None:
         """`{"do": "stack_watchdog", "action": "start", "seconds": 3, "tag": "viewer"}` ... `"action": "stop"`
         -- while armed, every `seconds` of the process being unable to return to this

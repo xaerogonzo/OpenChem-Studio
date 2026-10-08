@@ -44,7 +44,7 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.chem.atom_identity import project_to_drawing
-from openchem.chem.atom_report import build_atom_report, per_atom_display
+from openchem.chem.atom_report import SHARED_ANALYSES, build_atom_report, per_atom_display
 from openchem.chem.bond_report import bond_label, build_bond_report
 from openchem.chem.molecule_report import build_molecule_report
 from openchem.chem.calculation_input import input_fingerprint
@@ -463,6 +463,11 @@ class AtomInspectorPanel(QWidget):
 
     def _rebuild_atom_table(self) -> None:
         model, mol = self._molecule()
+        # ONE structure, ONE scope for the whole-molecule analyses: the table asks for a report
+        # per atom, and each used to re-read the model into a fresh Mol and re-run Lewis and
+        # oxidation-state analysis from scratch (51 identical analyses for 51 atoms).
+        resolved = (model, mol)
+        shared: dict = {}
         self._atom_table.setSortingEnabled(False)
         self._atom_table.setRowCount(0)
         if mol is None:
@@ -488,7 +493,7 @@ class AtomInspectorPanel(QWidget):
                 self._atom_table.setItem(row, 1, QTableWidgetItem(bond_label(mol, row)))
                 count = QTableWidgetItem()
                 count.setData(
-                    Qt.ItemDataRole.DisplayRole, len(self._report_for(row).facts)
+                    Qt.ItemDataRole.DisplayRole, len(self._report_for(row, resolved, shared).facts)
                 )
                 self._atom_table.setItem(row, 2, count)
             self._atom_table.setSortingEnabled(True)
@@ -521,7 +526,7 @@ class AtomInspectorPanel(QWidget):
             self._atom_table.setItem(row, 1, locant)
             self._atom_table.setItem(row, 2, QTableWidgetItem(atom.GetSymbol()))
             count = QTableWidgetItem()
-            count.setData(Qt.ItemDataRole.DisplayRole, len(self._report_for(index).facts))
+            count.setData(Qt.ItemDataRole.DisplayRole, len(self._report_for(index, resolved, shared).facts))
             self._atom_table.setItem(row, 3, count)
         self._atom_table.setSortingEnabled(True)
 
@@ -576,7 +581,7 @@ class AtomInspectorPanel(QWidget):
         limit = mol.GetNumBonds() if self._subject == "Bond" else mol.GetNumAtoms()
         return 0 <= index < limit
 
-    def _report_for(self, index: int):
+    def _report_for(self, index: int, resolved: tuple | None = None, shared: dict | None = None):
         """The report for one subject, cached by structure version.
 
         The version comes from `StructureCheckService`, the counter that
@@ -589,7 +594,7 @@ class AtomInspectorPanel(QWidget):
         differs, and branching on that is smaller than three copies of the
         surrounding logic.
         """
-        model, mol = self._molecule()
+        model, mol = resolved if resolved is not None else self._molecule()
         if mol is None or model is None:
             return AtomReport(molecule_uuid="", atom_index=index)
 
@@ -636,6 +641,8 @@ class AtomInspectorPanel(QWidget):
         if self._atom_fact_service is not None:
             providers = self._atom_fact_service.providers()
         context = self._current_context(model)
+        if shared is not None:
+            context = {**context, SHARED_ANALYSES: shared}
         common = {
             "molecule_uuid": model.uuid,
             "structure_version": version,
