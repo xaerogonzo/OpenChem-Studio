@@ -31,6 +31,7 @@ functions are pure.
 
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 from typing import Iterable, Mapping
 
@@ -93,6 +94,8 @@ def collect_isotope_labels(
     mol: object,
     atom_to_locant: Mapping[int, Locant],
     fg_anchor_map: Mapping[int, Locant] | None = None,
+    unnumbered_ok: frozenset | None = None,
+    suffix_ok: frozenset | None = None,
 ) -> tuple[IsotopeLabel, ...]:
     """Extract IUPAC isotope labels from *mol* for the given parent.
 
@@ -116,11 +119,17 @@ def collect_isotope_labels(
     Labels are grouped by ``(locant, element, mass_number)`` and ``count``
     equals the number of isotope-bearing atoms in that bucket.
 
+    ``unnumbered_ok`` names atoms of a parent whose RETAINED name numbers nothing there (`aniline`'s nitrogen, `phenol`'s oxygen, `benzonitrile`'s two
+    atoms) and which are the only atom of their element among such atoms: a nuclide on one is cited with no locant, `(15N)aniline`, `(18O)phenol`
+    (P-82.6.1.2: "Locants are omitted when there is only one atom of a given element"; the locant of the anchor carbon this used to give, `(1-18O)phenol`,
+    is one OPSIN cannot read). ``suffix_ok`` names the heteroatoms of a systematic parent's suffix group that are the only atom of their element in it:
+    their label is marked ``at_suffix`` so assembly can cite it before the suffix word. Hydrogen isotopes keep the heteroatom locant they always had.
+
     The returned tuple is sorted by ``(locant-as-string, mass_number,
     element)`` for deterministic output.
     """
-    # bucket: (locant, element, mass) -> count
-    buckets: dict[tuple[Locant | None, str, int], int] = defaultdict(int)
+    # bucket: (locant, element, mass, at_suffix) -> count
+    buckets: dict[tuple[Locant | None, str, int, bool], int] = defaultdict(int)
 
     for atom in mol.GetAtoms():                      # type: ignore[attr-defined]
         iso = atom.GetIsotope()
@@ -160,18 +169,23 @@ def collect_isotope_labels(
                         and target_sym != "C"
                         and target_idx not in atom_to_locant):
                     locant = Locant.hetero(target_sym)
-        # If the target atom has no addressable locant on this parent,
-        # drop the label rather than emitting a guess.
-        if locant is None:
+        at_suffix = False
+        if element != "H" and unnumbered_ok and target_idx in unnumbered_ok:
+            locant = None                       # a retained name numbers nothing here: the nuclide is cited bare
+        elif element != "H" and suffix_ok and target_idx in suffix_ok and locant is not None:
+            at_suffix = True
+        # If the target atom has no addressable locant on this parent and the retained name does not own it,
+        # drop the label rather than emitting a guess (the nuclide guard in `engine._check_nuclides_named` then refuses the name).
+        elif locant is None:
             continue
 
-        key = (locant, element, iso)
+        key = (locant, element, iso, at_suffix)
         buckets[key] += 1
 
-    def _sort_key(item: tuple[tuple[Locant | None, str, int], int]) -> tuple[str, int, str]:
+    def _sort_key(item: tuple[tuple[Locant | None, str, int, bool], int]) -> tuple[str, int, str]:
         # ``sorted(buckets.items(), key=_sort_key)`` hands us a
         # ``((locant, element, mass), count)`` item — pull the key tuple out.
-        loc, elem, mass = item[0]
+        loc, elem, mass, _suffix = item[0]
         loc_str = "" if loc is None else str(loc)
         # Pad numeric locants for natural order: "10" > "2"
         try:
@@ -181,8 +195,8 @@ def collect_isotope_labels(
         return (f"{loc_sort[0]}:{loc_sort[1]!s:>10}", mass, elem)
 
     return tuple(
-        IsotopeLabel(locant=loc, element=elem, mass_number=mass, count=count)
-        for (loc, elem, mass), count in sorted(buckets.items(), key=_sort_key)
+        IsotopeLabel(locant=loc, element=elem, mass_number=mass, count=count, at_suffix=at_suffix)
+        for (loc, elem, mass, at_suffix), count in sorted(buckets.items(), key=_sort_key)
     )
 
 
@@ -257,6 +271,9 @@ def render_isotope_labels(labels: Iterable[IsotopeLabel]) -> str:
 # ---------------------------------------------------------------------------
 
 
+_LEADING_ISOTOPE_BRACKET = re.compile(r"^\(((?:[0-9A-Za-z,']+-)?\d+[A-Z][a-z]?\d*(?:,(?:[0-9A-Za-z,']+-)?\d+[A-Z][a-z]?\d*)*)\)")
+
+
 def isotopic_prefix(prefix: str, atom: object) -> str:
     """A one-atom substituent prefix with its atom's nuclide: ``bromo`` on ``[81Br]`` is ``(81Br)bromo``.
 
@@ -267,11 +284,30 @@ def isotopic_prefix(prefix: str, atom: object) -> str:
     `collect_isotope_labels` cannot do this: it labels the atoms of the PARENT, and a halogen or any other one-atom prefix is never a parent atom, so
     its label was dropped there ("drop the label rather than emit a guess") and the name read back as the unlabelled compound. Returning the
     prefix unchanged for a natural-abundance atom keeps every existing name exactly as it was.
+
+    The atom's hydrogens are part of what the prefix names (`hydroxy` is O-H, `amino` N-H2), so an isotopic hydrogen on it is cited here too, with the
+    atom's symbol as its locant, the way the parent's `(O-2H)methanol` does it: `3-[(O-2H)hydroxy]propanoic acid`, which OPSIN reads and
+    `3-[(2H)hydroxy]propanoic acid` it does not. A deuterium here used to be dropped, and the prefix read back as the plain hydroxy compound.
     """
+    labels = []
     mass = atom.GetIsotope()  # type: ignore[attr-defined]
-    if not mass:
+    if mass:
+        labels.append(IsotopeLabel(locant=None, element=atom.GetSymbol(), mass_number=mass, count=1))  # type: ignore[attr-defined]
+    hydrogens: dict[int, int] = {}
+    for neighbour in atom.GetNeighbors():  # type: ignore[attr-defined]
+        if neighbour.GetAtomicNum() == 1 and neighbour.GetIsotope():
+            hydrogens[neighbour.GetIsotope()] = hydrogens.get(neighbour.GetIsotope(), 0) + 1
+    for hydrogen_mass, count in sorted(hydrogens.items()):
+        labels.append(IsotopeLabel(locant=Locant.hetero(atom.GetSymbol()), element="H", mass_number=hydrogen_mass, count=count))  # type: ignore[attr-defined]
+    if not labels:
         return prefix
-    return f"({mass}{atom.GetSymbol()}){prefix}"  # type: ignore[attr-defined]
+    own = render_isotope_labels(labels)
+    # A prefix that already starts with a nuclide bracket (`(1-13C)methoxy`) takes this one into the SAME bracket, `(1-13C,18O)methoxy`: OPSIN reads that
+    # and reads neither `(18O)(1-13C)methoxy` nor `(1-13C)(18O)methoxy`, and the book's own multi-label form is one bracket (`(1-2H,2-13C)`).
+    leading = _LEADING_ISOTOPE_BRACKET.match(prefix)
+    if leading is not None:
+        return "(" + leading.group(1) + "," + own[1:-1] + ")" + prefix[leading.end():]
+    return own + prefix
 
 
 __all__ = [

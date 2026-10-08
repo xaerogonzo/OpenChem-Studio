@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: a name keeps every isotopic label, and isotopic brackets are placed where OPSIN reads them (D-193, D-195, D-196)
+- `[15NH2]c1ccccc1` used to be named `aniline`, `[15N]#CCC(=O)O` `cyanoacetic acid` and `C[18O]CC(=O)O` `methoxyacetic acid`: names for the unlabelled compound. They are `(15N)aniline`, `(15N)cyanoacetic acid` and `(18O)methoxyacetic acid` now, the parent's bracket sits before the parent name (`1-bromo(4-13C)butane`, `1-phenylethan-1-(18O)one`), and a hypervalent phosphorus with five single bonds carries its lambda number (`pentamethyl-lambda5-phosphane`). A name that would still lose a label is refused, not shown. On 400 census molecules with one labelled atom, wrong-molecule names went from 86 to 2 and exact ones from 89 to 290; the 2000-row census does not move. Details in `src/openchem/vendor/CHANGELOG.md`.
+
 ### A renamed paper is no longer a changed paper: Knowledge Vista lookup for `index_literature.py --check`
 
 `file` in `docs/research/literature.toml` is a locator and drifts the moment a PDF is renamed; the check used to call that a mismatch.
