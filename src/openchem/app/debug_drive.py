@@ -2593,7 +2593,16 @@ class _Driver(QObject):
         if tabs is None:
             logger.error("OPENCHEM_DRIVE: view_3d: no tab group above %s", type(target).__name__)
             return
+        # How long the call ITSELF blocks, recorded per switch: a stall the heartbeat sees could
+        # be this synchronous call or work queued behind it, and the two have different fixes.
+        import time
+
+        started = time.perf_counter()
         tabs.setCurrentWidget(target)
+        self._measurements.setdefault("view_3d", []).append({
+            "show": bool(step.get("show", True)),
+            "call_ms": round((time.perf_counter() - started) * 1000.0, 1),
+        })
 
     def _do_overlay(self, step: dict[str, Any]) -> None:
         """Turn the 3D viewer's shape overlay on, and optionally step.

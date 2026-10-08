@@ -287,6 +287,38 @@ def responsiveness() -> Scenario:
                     probes=["heartbeat"], kind="generic", timeout_s=600)
 
 
+# -- S5b the 3D tab show --------------------------------------------------------------------------
+
+
+def viewer_switch(switches: int = 6, with_conformers: bool = False, early_warm: bool = False) -> Scenario:
+    """Switch to the 3D tab and back, `switches` times, timing each one. Answers: is the freeze
+    the FIRST show or EVERY show; does it depend on there being a conformer in the viewer; and
+    does showing the tab once early, at idle, make the later shows cheap."""
+    steps = _boot(HEAVY_SMILES, "erythromycin") + [
+        _s("wait_web_loaded", quiet_ms=3000, timeout_ms=120000, after_ms=10000),
+    ]
+    if early_warm:
+        steps += [_s("view_3d", after_ms=8000), _s("view_3d", show=False, after_ms=4000)]
+    if with_conformers:
+        steps += [_s("conformers", count=5, optimize=True, after_ms=60000), _s("expect_conformers", min=1)]
+    for k in range(switches):
+        steps += [
+            _s("mark", name=f"phase:before-{k}", after_ms=1000),
+            _s("loop_lag", action="start", tag=f"show-{k}", interval_ms=10),
+            _s("stack_watchdog", action="start", seconds=1.0, tag=f"show-{k}"),
+            _s("view_3d", after_ms=7000),
+            _s("stack_watchdog", action="stop"),
+            _s("loop_lag", action="stop", tag=f"show-{k}"),
+            _s("mark", name=f"phase:shown-{k}", after_ms=1000),
+            _s("view_3d", show=False, after_ms=4000),
+        ]
+    steps.append(_s("quit"))
+    sid = "viewer-switch" + ("-conf" if with_conformers else "") + ("-warm" if early_warm else "")
+    return Scenario(sid, "S5b switching to the 3D tab and back, timed per switch", steps,
+                    probes=["heartbeat"], kind="generic", timeout_s=900,
+                    parameters={"switches": switches, "with_conformers": with_conformers, "early_warm": early_warm})
+
+
 # -- S6 external-process lifecycle ----------------------------------------------------------
 
 
@@ -362,4 +394,5 @@ REGISTRY: dict[str, Callable[..., Scenario]] = {
     "responsiveness": responsiveness,
     "heavy-molecule": heavy_molecule,
     "ph-sidecar": ph_sidecar,
+    "viewer-switch": viewer_switch,
 }
