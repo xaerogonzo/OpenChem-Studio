@@ -30,7 +30,7 @@ fourth view are not needed until a molecule or receptor is shown.
 
 | ID | Finding | Status | Evidence | Priority |
 |---|---|---|---|---|
-| F1 | Four `QWebEngineView`s are built at launch; the tree idles at ~1.08 GiB private | MEASURED | S1 x3; object census `QWebEngineView: 4` | P1 (design cost) |
+| F1 | Four `QWebEngineView`s are built at launch; the tree idles at ~1.08 GiB private | MEASURED. **PARTLY ADDRESSED 2026-10-08** (see "Follow-up: deferring two web views"): Mol* and the Alignment 3D view are built on first use; the idle saving was ~10%, not the ~half this row's framing suggested | S1 x3; object census `QWebEngineView: 4` | P1 -> done for two of four |
 | F2 | pH-dependent partial charge spawns a Python sidecar per uncached call: ~310 MiB resident, **~1.76 GiB committed**, alive 8-38 s | MEASURED. **CORRECTED AND FIXED 2026-10-08** (see "Follow-up: the pKa sidecar"): the cost is per NEW STRUCTURE, not per call or per pH (`_PAYLOADS` already caches by structure), and it is now paid once per session | S6 `ph-sidecar` x3 (calls with different pH) | done |
 | F3 | Chromium children take ~70% of idle CPU | MEASURED | S1: tree 0.31-0.36% vs app 0.09-0.11% | P2 |
 | F4 | First show of the Docking panel costs a one-off CPU spike (median 5.6% of machine for 3 s, range 2.0-8.3%) | MEASURED | S2 x3 | P2 |
@@ -138,7 +138,7 @@ the log. In-app probes: `src/openchem/app/drive_probes.py` and the `mark`, `obje
 
 ## Follow-up candidates (pick; none started)
 
-1. Build the Mol* and fourth web view lazily (F1: up to ~half the idle tree's memory).
+1. DONE 2026-10-08: Mol* and the Alignment 3D view are built on first use (F1; see "Follow-up: deferring two web views").
 2. DONE 2026-10-08: the pKa sidecar is kept warm (F2; see "Follow-up: the pKa sidecar").
 3. DONE 2026-10-08: the NP-likeness descriptor refuses an empty structure instead of raising (F7).
 4. Repeat the inspector and edit loops under controlled conditions before treating either as a leak.
@@ -179,3 +179,42 @@ worker. Lesson for this file: record `psutil.virtual_memory().available` at the 
 **Found while building it, not by the tests:** a venv `python.exe` on Windows is a launcher whose child is the real interpreter, so
 the pid we start is not the pid that answers. This looked like an orphan risk and is not one (measured on both venvs: the launcher
 runs its child in a kill-on-close job, so `Popen.kill()` ends both). A `taskkill /T` written on that suspicion was removed.
+
+## Follow-up: deferring two web views (2026-10-08, commits `c5cbf3c1`, `01432dfe`, `3f39aa99`)
+
+**What changed:** the Macromolecule Viewer (Mol*) and the Alignment panel's 3D view are built on first use instead of at launch.
+The editor (Ketcher) and the main 3D viewer stay eager: the editor is the default tab, and the 3D tab's first-show cost was
+shown not to move by building it early. **What did not:** what any view draws; Mol*'s own pending-call slots remain the only
+"not ready yet" queue; the cost of the work moved to first use rather than disappearing.
+
+**Measured, same machine, 3 runs per arm, 10-11 GiB free throughout; before = `b39819b0`, after = this tree:**
+
+| | before | after |
+|---|---|---|
+| web-view child processes at idle | 4 | **2** |
+| tree private bytes at idle (median of the last 30 s) | 1,604 / 1,612 / 1,638 MiB | **1,441 / 1,446 / 1,453 MiB** (-155 to -195) |
+| of which children | 522-554 MiB | 383-388 MiB |
+| window ready | 2.6 / 3.3 / 24 s (the 24 s is the cold-cache run) | 2.2 / 2.5 / 2.6 s |
+| first use: receptor into Mol* | tree +185 MiB (view already built) | tree +323-344 MiB (view built here) |
+| tree private after Mol* has been used | 1,929-1,978 MiB | 1,941-1,966 MiB (the same) |
+| first use: Alignment dock shown | +1 to +11 MiB | +2 to +9 MiB |
+| longest event-loop stall during Mol* first use | 148 / 201 / 235 ms | **139 / 147 / 150 ms** |
+| longest stall, Alignment shown | 2-8 ms | 2 ms |
+
+**Reading it.** The saving is real and is a memory saving for sessions that never open Mol*: about a tenth of the idle tree
+(one fewer renderer-backed process pair), not the half this document's first framing suggested. It is not a startup-time
+saving (window-ready did not move beyond run-to-run noise, 3 runs) and not a free one: a session that opens Mol* ends where
+it did before, and pays the ~140-160 MiB at that moment. First use added no new stall (the longest, 139-150 ms, is the same
+size as before). The Alignment view was nearly free in memory because Chromium shares its renderer with the views already
+running; deferring it is cheap hygiene, not a saving. **Inference, not measured:** the 4 -> 2 child count means the
+renderer-backed processes are shared between views, which is why the second deferred view bought almost nothing.
+
+Not measured: GPU-process behaviour on a machine with a real GPU surface (the census runs here as on Alex's one machine).
+
+## Decisions on the two items not chased (2026-10-08)
+
+* **Multi-second 3D-tab freezes (F11).** Not chased: no cause found, intermittent, not felt in daily use as far as is known. Reopen on a
+  reproducible user-visible report, or a new census/driver artifact that shows one; the first step then is a watchdog stack-capture
+  loop over `viewer-switch`, not a fix attempt. Suspicion from reading the code does not reopen it.
+* **Inspector open/close and edit-loop "leaks".** Closed unless a fresh positive dynamic signal appears (a real session whose memory
+  keeps growing). Static suspicion alone does not reopen it.
