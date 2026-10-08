@@ -105,6 +105,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_hydro_ketone_indicated_hydrogen.py"
+why = "the indicated hydrogen of a hydro-named ring ketone is the P-58.2 planner's, not the retained lookup's placeholder (5,9-dihydro-6H-purin-6-one, not 5,9-dihydro-2H), and the planner's check of the hydro positions still declines a disagreeing parent"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_nuclide_guard.py"
 why = "a name must keep every nuclide (D-193): the guard that refuses one that would not, the routes that label (retained parent, multi-atom prefix, ether oxygen, hypohalous amide, hydroxy/amino prefix, suffix heteroatom), the parent bracket placed before the part it modifies (D-196), and lambda5 on a single-bonded hypervalent centre (D-195)"
 scope = "core"
