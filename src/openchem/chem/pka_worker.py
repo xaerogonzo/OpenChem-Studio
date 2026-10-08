@@ -505,6 +505,11 @@ class PkaWorker:
                 self._stderr_tail.append(line.rstrip())
         except (OSError, ValueError):
             pass
+        finally:
+            try:
+                proc.stderr.close()
+            except (OSError, ValueError):
+                pass
 
     def _kill_if_current(self, request: _Request) -> None:
         """A caller's way to break a blocked read: terminate the process IF it is
@@ -536,7 +541,10 @@ class PkaWorker:
             except subprocess.TimeoutExpired:
                 logger.warning("the pKa sidecar (pid %s) did not exit after being killed", proc.pid)
         finally:
-            for stream in (proc.stdin, proc.stdout, proc.stderr):
+            # NOT stderr: the reader thread is blocked reading it, and closing a buffered
+            # stream another thread is reading waits for that read -- i.e. for the child's
+            # EOF, which a slow teardown delays. The reader closes it itself on EOF.
+            for stream in (proc.stdin, proc.stdout):
                 try:
                     if stream is not None:
                         stream.close()
