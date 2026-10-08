@@ -1,4 +1,4 @@
-"""The External Tools pages: seven tabs that live inside the Settings window.
+"""The External Tools pages: eight tabs that live inside the Settings window.
 
 They were a dialog of their own, `ExternalToolsDialog`, until the Settings
 window was built to hold every preference in one place. The tabs moved in
@@ -223,6 +223,8 @@ class ExternalToolsPages(QWidget):
         self._add_sidecar_tab(catalog.admet(), _AdmetSidecarTab)
         self._add_managed_asset_tab(catalog.java())
         self._add_managed_asset_tab(catalog.nmr_database())
+        # Optional, and the only tab here that nothing depends on: after every tool some feature needs, before Storage (not a tool).
+        self._add_executable_tab(catalog.knowledge_vista(), ManagedExecutableTab)
         self._tabs.addTab(self._build_storage_tab(), "Storage")
         self._tabs.currentChanged.connect(self._on_tab_changed)
 
@@ -291,6 +293,7 @@ class ExternalToolsPages(QWidget):
         "nmr_index": "_nmr_db",
         "vina": "_vina",
         "orca": "_orca",
+        "knowledge_vista": "_knowledge_vista",
     }
 
     def _alias_widgets(self, key: str, tab: ToolTab) -> None:

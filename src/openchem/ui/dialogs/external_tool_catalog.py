@@ -481,3 +481,69 @@ def orca() -> ManagedExecutable:
             ),
         ),
     )
+
+
+#: Why the Knowledge Vista tab has no Set Up button: it is a separate program this app neither installs nor owns. Stated once so the refusal, the
+#: dialog title and the failure status cannot drift apart.
+_KV_NO_AUTOMATION = (
+    "Knowledge Vista is a separate program that OpenChem Studio does not install for you. Get it from its project page, "
+    "then use Locate Installed or Browse to point at the `kv` executable."
+)
+
+
+def knowledge_vista() -> ManagedExecutable:
+    """Knowledge Vista (`kv`): an OPTIONAL companion that keeps track of where the PDFs a project reads are, however they are renamed.
+
+    **Nothing in OpenChem Studio needs it.** The tab says so, because every other tab here is a tool some feature cannot run without,
+    and this one is the exception. Like ORCA it is not fetched by this app -- it is a separate program with its own project and
+    release -- so there is no Set Up button and no Remove from Disk, only Locate, Browse, a Test that asks the program what it is, and
+    a link to its page.
+    """
+    import openchem.services.knowledge_vista as kv
+    import openchem.services.tool_download_service as tools
+
+    return ManagedExecutable(
+        key="knowledge_vista",
+        title="Knowledge Vista",
+        setting_key=kv.SETTING_KEY,
+        browse_title="Select the folder Knowledge Vista (kv) is installed in",
+        finder=lambda root: _find(root, ("kv",)),
+        path_description="Knowledge Vista executable (kv)",
+        describe_status=kv.describe_status,
+        locate=lambda: tools.locate_executable(("kv",), validate=kv.responds_as_knowledge_vista),
+        locate_hint=(
+            "Search the usual install locations. Each candidate is RUN with `capabilities` before being accepted -- "
+            '"kv" is a short name and an unrelated program of that name would otherwise be picked.'
+        ),
+        test_label="Test (asks kv what it is)...",
+        testing_status="Asking Knowledge Vista what it is...",
+        describe_test=kv.verify,
+        test_errors=kv.KnowledgeVistaUnavailable,
+        obtainable=False,
+        removable=False,
+        vendor_links=(("Get Knowledge Vista...", kv.PROJECT_PAGE),),
+        action_label="Set Up Automatically...",
+        remove_label="Knowledge Vista",
+        confirm_title="Knowledge Vista cannot be installed from here",
+        confirm_body=lambda: _KV_NO_AUTOMATION,
+        run=lambda _on_progress: (_ for _ in ()).throw(RuntimeError(_KV_NO_AUTOMATION)),
+        errors=RuntimeError,
+        finished_status=lambda _result: "",
+        success_title="",
+        success_message=lambda _result: "",
+        failure_title="Knowledge Vista cannot be installed from here",
+        failure_status_prefix="Not available",
+        notes=(
+            Note(
+                "Optional. Knowledge Vista indexes a folder of PDFs by what they contain and recognises each file by its content, so a "
+                "paper keeps its identity when its file is renamed or moved. It is for people who keep a library of papers: nothing in "
+                "OpenChem Studio depends on it, and the application behaves exactly as it did before it existed whether or not it is "
+                "set up."
+            ),
+            Note(
+                "Setting it up here only records where `kv` is and lets you check that it works. OpenChem Studio does not send it "
+                "documents and does not read its library.",
+                MUTED,
+            ),
+        ),
+    )
