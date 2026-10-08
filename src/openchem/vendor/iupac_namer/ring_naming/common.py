@@ -283,6 +283,22 @@ def _neutralize_ring_charged_n(ring_mol: Chem.Mol) -> Chem.Mol | None:
 _neutralize_ring_anion = _neutralize_ring_charged_n
 
 
+def _nuclide_free(mol):
+    """`mol` itself when no atom carries a nuclide, otherwise a copy with every nuclide removed (same atom indices).
+
+    A ring is looked up by the canonical SMILES of its atoms, and the tables hold natural-abundance rings: `c1ccc2c[13cH]ccc2c1` is in none of them, so a
+    13C anywhere in a ring made it unnameable (labelled benzene `cyclohexa-1,3,5-triene`, labelled pyridine `azine`, labelled naphthalene a naming error,
+    labelled tetralin a `bicyclo[4.4.0]` name for another molecule). Which ring it is does not depend on the nuclide; the label is placed afterwards from the
+    full molecule (`isotope.collect_isotope_labels`), so the lookup is made on the nuclide-free ring.
+    """
+    if not any(atom.GetIsotope() for atom in mol.GetAtoms()):
+        return mol
+    stripped = Chem.Mol(mol)
+    for atom in stripped.GetAtoms():
+        atom.SetIsotope(0)
+    return stripped
+
+
 def extract_ring_mol(ring_system: "RingSystem", mol) -> Chem.Mol | None:
     """Extract ring atoms as an isolated RDKit molecule.
 
@@ -312,6 +328,7 @@ def extract_ring_mol(ring_system: "RingSystem", mol) -> Chem.Mol | None:
 
     Returns None on failure.
     """
+    mol = _nuclide_free(mol)
     atom_indices = sorted(ring_system.atom_indices)
     if not atom_indices:
         return None
@@ -566,6 +583,7 @@ def extract_ring_mol_with_exo_oxo(
     found OR on failure (the caller should fall back to the default
     ``extract_ring_mol`` path).
     """
+    mol = _nuclide_free(mol)
     atom_indices = sorted(ring_system.atom_indices)
     if not atom_indices:
         return None
@@ -657,6 +675,7 @@ def extract_ring_mol_stripping_exo_oxo(
     valid neutral molecule after stripping, we return None and let the
     caller fall back to other lookup strategies.
     """
+    mol = _nuclide_free(mol)
     atom_indices = sorted(ring_system.atom_indices)
     if not atom_indices:
         return None
