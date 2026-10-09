@@ -7,7 +7,7 @@ two or three characters. Three grouped labels need 324.
 
 from __future__ import annotations
 
-from PySide6.QtWidgets import QToolButton
+from PySide6.QtWidgets import QPushButton
 
 from openchem.ui.widgets.panel_rail import GROUP_LABELS, PanelRail
 
@@ -19,21 +19,26 @@ def _dispose(widget) -> None:
 
 
 def _rail(qapp) -> PanelRail:
+    from openchem.ui.widgets.panel_rail import builtin_order_of
+
     rail = PanelRail()
-    rail.register("Properties", "Properties", "analysis")
-    rail.register("Atom_Inspector", "Atom Inspector", "analysis")
-    rail.register("Quantum_Chemistry", "Quantum Chemistry", "compute")
-    rail.register("Docking", "Docking", "compute")
-    rail.register("Batch", "Batch", "compare")
+    for panel_id, title, group in (
+        ("Properties", "Properties", "analyze"),
+        ("Atom_Inspector", "Atom Inspector", "analyze"),
+        ("Quantum_Chemistry", "Quantum Chemistry", "compute"),
+        ("Docking", "Docking", "compute"),
+        ("Batch", "Batch", "extend"),
+    ):
+        rail.register(panel_id, title, group, builtin_order_of(panel_id))
     return rail
 
 
 def test_a_group_shows_only_its_own_panels(qapp):
     rail = _rail(qapp)
-    rail._select_group("analysis")
+    rail._select_group("analyze")
     assert rail.visible_panel_ids() == ["Properties", "Atom_Inspector"]
     rail._select_group("compute")
-    assert rail.visible_panel_ids() == ["Quantum_Chemistry", "Docking"]
+    assert rail.visible_panel_ids() == ["Docking", "Quantum_Chemistry"]
     _dispose(rail)
 
 
@@ -52,7 +57,7 @@ def test_choosing_a_panel_emits_its_id(qapp):
     rail = _rail(qapp)
     seen: list[str] = []
     rail.panel_chosen.connect(seen.append)
-    rail._select_group("analysis")
+    rail._select_group("analyze")
     rail._on_item_chosen(rail._list.item(1))
     assert seen == ["Atom_Inspector"]
     _dispose(rail)
@@ -63,7 +68,7 @@ def test_an_unknown_group_falls_back_rather_than_vanishing(qapp):
     be reachable -- a panel nobody can open is worse than a misfiled one."""
     rail = PanelRail()
     rail.register("Weird_Plugin", "Weird Plugin", "not-a-real-group")
-    rail._select_group("extensions")
+    rail._select_group("extend")
     assert rail.visible_panel_ids() == ["Weird_Plugin"]
     _dispose(rail)
 
@@ -71,7 +76,7 @@ def test_an_unknown_group_falls_back_rather_than_vanishing(qapp):
 def test_a_favourite_is_pinned_above_every_group(qapp):
     rail = _rail(qapp)
     rail.set_favourites(["Batch"])
-    rail._select_group("analysis")
+    rail._select_group("analyze")
     # Batch is in "compare", but pinned it shows here too -- that is what
     # pinning is for: the panel you use constantly should not need you to
     # remember which group somebody filed it under.
@@ -83,7 +88,7 @@ def test_a_favourite_is_pinned_above_every_group(qapp):
 def test_a_pinned_panel_is_not_listed_twice_in_its_own_group(qapp):
     rail = _rail(qapp)
     rail.set_favourites(["Properties"])
-    rail._select_group("analysis")
+    rail._select_group("analyze")
     assert rail.visible_panel_ids().count("Properties") == 1
     _dispose(rail)
 
@@ -106,7 +111,7 @@ def test_selecting_a_panel_switches_to_its_group_without_re_emitting(qapp):
     rail = _rail(qapp)
     seen: list[str] = []
     rail.panel_chosen.connect(seen.append)
-    rail._select_group("analysis")
+    rail._select_group("analyze")
 
     rail.select_panel("Docking")
 
@@ -136,10 +141,10 @@ def test_unregistering_removes_it_from_the_list_and_the_favourites(qapp):
 
 def test_every_group_has_a_button_and_a_readable_name(qapp):
     rail = _rail(qapp)
-    buttons = rail._buttons.findChildren(QToolButton)
+    buttons = rail._buttons.findChildren(QPushButton)
     assert len(buttons) == len(GROUP_LABELS)
     for button in buttons:
-        assert button.text() in GROUP_LABELS.values()
+        assert button.text() in GROUP_LABELS.values(), "the name is beside the icon while the list is open"
         assert not button.icon().isNull(), f"{button.text()} has no icon"
     _dispose(rail)
 
@@ -150,7 +155,7 @@ def test_the_group_icons_actually_draw(qapp):
     no icon, because the button becomes a mystery."""
     from openchem.ui.widgets.panel_rail import _group_icon
 
-    blank = _group_icon("analysis").pixmap(22, 22).toImage()
+    blank = _group_icon("analyze").pixmap(22, 22).toImage()
     seen = set()
     for group in GROUP_LABELS:
         image = _group_icon(group).pixmap(22, 22).toImage()
@@ -178,10 +183,11 @@ def test_the_rail_stays_narrow_enough_to_be_worth_it(qapp):
     rail.show()
     qapp.processEvents()
 
-    assert rail._buttons.width() < 60, (
-        f"the icon column is {rail._buttons.width()}px -- it is icons, not labels"
-    )
+    # Labels now sit beside the icons, ABOVE the list, so they cost no width:
+    # the rail is as wide as its list, and folded it is icons alone.
     assert rail.sizeHint().width() < 300, rail.sizeHint().width()
+    rail.set_list_visible(False)
+    assert rail.sizeHint().width() < 80, f"folded rail is {rail.sizeHint().width()}px"
     _dispose(rail)
 
 
@@ -212,8 +218,8 @@ def test_the_heading_names_the_group_the_icons_no_longer_do(qapp):
     rail = _rail(qapp)
     rail._select_group("compute")
     assert rail._heading.text() == "Compute"
-    rail._select_group("analysis")
-    assert rail._heading.text() == "Analysis"
+    rail._select_group("analyze")
+    assert rail._heading.text() == "Analyze"
     _dispose(rail)
 
 
@@ -226,12 +232,12 @@ def test_clicking_the_active_group_again_collapses_the_rail(qapp):
     qapp.processEvents()
     button = next(
         b for b in rail._button_group.buttons()
-        if b.property("openchem_group") == "analysis"
+        if b.property("openchem_group") == "analyze"
     )
 
-    # "analysis" is already the group showing, so the FIRST click on it is
+    # "analyze" is already the group showing, so the FIRST click on it is
     # the second-click-collapses gesture.
-    assert rail.current_group() == "analysis"
+    assert rail.current_group() == "analyze"
     assert rail.is_list_visible()
     wide = rail.sizeHint().width()
 
@@ -241,7 +247,7 @@ def test_clicking_the_active_group_again_collapses_the_rail(qapp):
     # Still the current group, and the button still says so -- Qt unchecks
     # a checked button in an exclusive group on click, which would
     # otherwise leave the rail claiming no group at all.
-    assert rail.current_group() == "analysis"
+    assert rail.current_group() == "analyze"
     assert button.isChecked()
 
     button.click()
@@ -299,3 +305,61 @@ def test_a_locked_panel_shows_its_lock_and_the_menu_offers_the_release(qapp):
     rail.set_locked_panels(set())
     assert not any(rail._list.item(r).text().startswith("\U0001F512") for r in range(rail._list.count()))
     _dispose(rail)
+
+
+# --- the three-group rail ------------------------------------------------------
+
+
+def test_there_are_three_groups_each_with_a_sentence():
+    from openchem.ui.widgets.panel_rail import GROUP_DESCRIPTIONS
+
+    assert list(GROUP_LABELS) == ["analyze", "compute", "extend"]
+    assert set(GROUP_DESCRIPTIONS) == set(GROUP_LABELS)
+    assert all(text.strip().endswith(".") for text in GROUP_DESCRIPTIONS.values())
+
+
+def test_a_folded_rail_shows_icons_only_and_an_open_one_names_the_groups(qapp):
+    rail = _rail(qapp)
+    buttons = rail._button_group.buttons()
+    assert [b.text() for b in buttons] == list(GROUP_LABELS.values())
+    rail.set_list_visible(False)
+    assert [b.text() for b in buttons] == ["", "", ""]
+    assert all(not b.toolTip() == "" for b in buttons), "a folded icon still says what it is"
+    rail.set_list_visible(True)
+    assert [b.text() for b in buttons] == list(GROUP_LABELS.values())
+    _dispose(rail)
+
+
+def test_the_old_five_group_ids_are_filed_not_lost(qapp):
+    rail = PanelRail()
+    for old, new in (("analysis", "analyze"), ("compare", "extend"), ("assist", "extend"), ("extensions", "extend")):
+        rail.register(f"P_{old}", old, old)
+        assert rail._panels[f"P_{old}"][1] == new
+    _dispose(rail)
+
+
+def test_builtin_panels_list_in_their_declared_order_then_plugins_a_to_z(qapp):
+    from openchem.ui.widgets.panel_rail import BUILTIN_PANELS, builtin_order_of
+
+    rail = PanelRail()
+    # Registered in a scrambled order, plugins loaded zeta-first.
+    for panel_id, group in reversed(BUILTIN_PANELS):
+        rail.register(panel_id, panel_id.replace("_", " "), group, builtin_order_of(panel_id))
+    rail.register("Zeta_Plugin", "Zeta Plugin", "extend")
+    rail.register("Alpha_Plugin", "Alpha Plugin", "extend")
+    rail._select_group("extend")
+    assert rail.visible_panel_ids() == ["Compare", "Alpha_Plugin", "Zeta_Plugin"]
+    rail._select_group("analyze")
+    assert rail.visible_panel_ids() == [p for p, g in BUILTIN_PANELS if g == "analyze"]
+    _dispose(rail)
+
+
+def test_the_primary_pair_leads_analyze_and_the_rest_run_a_to_z():
+    from openchem.ui.widgets.panel_rail import BUILTIN_PANELS
+
+    analyze = [p.replace("_", " ") for p, g in BUILTIN_PANELS if g == "analyze"]
+    assert analyze[:2] == ["Properties", "Results"]
+    assert analyze[2:] == sorted(analyze[2:], key=str.casefold)
+    for group in ("compute",):
+        titles = [p.replace("_", " ") for p, g in BUILTIN_PANELS if g == group]
+        assert titles == sorted(titles, key=str.casefold), group

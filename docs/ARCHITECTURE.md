@@ -452,6 +452,11 @@ it).
   `ui/widgets/panel_rail.py` chooses which. `_LAYOUT_VERSION` in
   `app/main_window.py` discards a saved layout from before the change,
   because `restoreState` restores tabification.
+  The rail has three labelled groups -- Analyze, Compute, Compare and
+  Extend -- stacked above the panel list (so the labels cost no width), and
+  `BUILTIN_PANELS` is the one table that files every built-in panel and
+  sets its place; plugins are listed after them, A to Z, whatever order they
+  loaded in. A test compares that table with the docks the window builds.
 
 - **The command palette reads, never registers.** `Ctrl+Shift+P` builds
   its list from the rail's panels, `CalculatorRegistry` and the live

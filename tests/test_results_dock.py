@@ -119,12 +119,12 @@ def test_the_application_tells_the_reader_where_each_calculator_SITS(window):
     assert window._results_view._display_order_of == registry.display_order
 
 
-def test_the_dock_is_a_panel_in_the_analysis_group(window):
+def test_the_dock_is_a_panel_in_the_analyze_group(window):
     """Beside Properties rather than in a group of its own: starting a
     calculation and reading one are the same task seen from two ends."""
     assert window._panel_rail.panel_ids().count("Results") == 1
     _title, group = window._panel_rail._panels["Results"]
-    assert group == "analysis"
+    assert group == "analyze"
 
 
 # --- following the selection, which is the panel's half ----------------------

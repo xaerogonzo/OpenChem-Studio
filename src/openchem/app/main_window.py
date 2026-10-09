@@ -118,7 +118,12 @@ from openchem.ui.widgets.checker_status_indicator import CheckerStatusIndicator
 from openchem.ui.widgets.dock_title_bar import DockTitleBar
 from openchem.ui.panels.comparison_panel import ComparisonPanel
 from openchem.ui.fact_link_router import FactLinkRouter
-from openchem.ui.widgets.panel_rail import DEFAULT_GROUP, PanelRail
+from openchem.ui.widgets.panel_rail import (
+    DEFAULT_GROUP,
+    PanelRail,
+    builtin_group_of,
+    builtin_order_of,
+)
 from openchem.ui.widgets.pop_out_host import PopOutHost
 from openchem.ui.widgets.results_view import ResultsView
 from openchem.ui.widgets.molecule_editor_widget import MoleculeEditorWidget
@@ -748,20 +753,18 @@ class MainWindow(QMainWindow):
             batch_dock,
             compare_dock,
         ]
-        for dock, group in (
-            (self._properties_dock, "analysis"),
-            (results_dock, "analysis"),
-            (atom_inspector_dock, "analysis"),
-            (interactions_dock, "analysis"),
-            (self._structure_check_dock, "analysis"),
-            (quantum_chemistry_dock, "compute"),
-            (docking_dock, "compute"),
-            (alignment_dock, "compute"),
-            (jobs_dock, "compute"),
-            (batch_dock, "compare"),
-            (compare_dock, "compare"),
-        ):
-            self._panel_rail.register(dock.objectName(), dock.windowTitle(), group)
+        # Each built-in panel's group and place come from ONE table
+        # (`panel_rail.BUILTIN_PANELS`). A dock missing from it is a
+        # development error -- it is filed under the default group so it is
+        # still reachable, and said so loudly; `tests/test_panel_rail.py`
+        # fails the build before it can ship.
+        for dock in self._right_docks:
+            panel_id = dock.objectName()
+            group = builtin_group_of(panel_id)
+            if group is None:
+                logger.warning("panel %r is not in BUILTIN_PANELS; filed under %r", panel_id, DEFAULT_GROUP)
+                group = DEFAULT_GROUP
+            self._panel_rail.register(panel_id, dock.windowTitle(), group, builtin_order_of(panel_id))
         # NESTED AND TABBED DROPS, so a panel can be dropped BESIDE or UNDER
         # another in the same column, or onto it as a tab. Without
         # `AllowNestedDocks` a column is one stack and "Properties with Results
