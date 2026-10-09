@@ -1016,6 +1016,48 @@ def _webgl_available(qapp, backend) -> bool:
     return str(raw or "no") == "yes"
 
 
+_KNOWN_COLOUR_JS = """
+(function () {
+  var gl = null, answer;
+  try {
+    var c = document.createElement('canvas'); c.width = 16; c.height = 16;
+    gl = c.getContext('webgl2', {preserveDrawingBuffer: true})
+      || c.getContext('webgl', {preserveDrawingBuffer: true});
+    if (!gl) return 'no-context';
+    if (gl.isContextLost()) return 'lost';
+    gl.clearColor(1, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+    var px = new Uint8Array(4); gl.readPixels(8, 8, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    answer = (px[0] === 255 && px[1] === 0 && px[2] === 0 && px[3] === 255) ? 'ok' : 'bad:' + Array.from(px).join(',');
+  } catch (e) { answer = 'error:' + e; }
+  // Release it. A probe that leaves contexts behind is a load on the GPU process the next test shares.
+  try { var lose = gl && gl.getExtension('WEBGL_lose_context'); if (lose) lose.loseContext(); } catch (e) {}
+  return answer;
+})()
+"""
+
+def _webgl_trustworthy(qapp, backend) -> tuple[bool, str]:
+    """Can this machine's WebGL be TRUSTED to draw what a test then compares?
+
+    Two questions, asked ONCE of a throwaway canvas rather than of the viewer under test: can a
+    context be made at all, and does clearing it to red read back as red. One probe, one context,
+    released afterwards: the first version made up to four per test and left them, and the file
+    then segfaulted in 5 of 13 whole-file runs against 0 of 11 for the unchanged file.
+    Returns the verdict and what was seen, so a skip can say why.
+
+    **THIS IS A DETECTOR FOR "WEBGL CANNOT BE TRUSTED HERE", NOT FOR "THE EXPORT IS BROKEN",
+    and it was measured not to be the second.** On the machine that prompted it (2026-10-09,
+    software rendering, "context is marked as lost" in the GPU log), `getContext` on a fresh
+    canvas failed in every run and the viewer's own canvas still drew a molecule in some
+    (flat grab 7 of 11 runs, 4 good). Neither probe told a flat grab from a good one: with
+    `no-context` the grab was flat 5 times and fine 4; with a working control it was still flat
+    twice. So the honest options were a flaky test or a skip, and this is the skip. The cost is
+    that these two tests run nowhere that this fails: not here, and not on the CI runner, which
+    blocklists WebGL.
+    """
+    probe = str(_run_js(qapp, backend, _KNOWN_COLOUR_JS) or "no-answer")
+    return probe == "ok", probe
+
+
 def _shown_with_a_sized_canvas(qapp, backend) -> tuple[int, int]:
     """Show the viewer and WAIT FOR ITS CANVAS TO HAVE A SIZE.
 
@@ -1032,6 +1074,16 @@ def _shown_with_a_sized_canvas(qapp, backend) -> tuple[int, int]:
     assert _wait_until(qapp, lambda: backend.widget().isVisible(), timeout_seconds=5)
     _wait_until(qapp, lambda: _canvas_size(qapp, backend) != (0, 0), timeout_seconds=20)
     size = _canvas_size(qapp, backend)
+    trustworthy, seen = _webgl_trustworthy(qapp, backend)
+    if not trustworthy:
+        # The caller hides the widget at its end; a skip never gets there, and a visible WebGL view
+        # left behind is what the next test would otherwise inherit.
+        backend.widget().hide()
+        pytest.skip(
+            f"this machine's WebGL cannot be trusted to draw a known colour (control canvas: {seen}); "
+            "the grab here was measured flat in some runs and fine in others regardless, so a result "
+            "would say nothing about the export -- see `_webgl_trustworthy`"
+        )
     if size == (0, 0) and not _webgl_available(qapp, backend):
         # Not a failure and not a pass. What these tests compare is a
         # RENDERED canvas against a widget grab of it; with no WebGL there
