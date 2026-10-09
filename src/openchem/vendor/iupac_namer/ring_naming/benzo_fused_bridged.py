@@ -250,6 +250,11 @@ def name_benzo_fused_bridged(
     if len(sub_atoms) < 5:
         return []  # too small, no meaningful bridge
 
+    # The name is a CARBOCYCLE's (`benzocyclooctene`, `methano`): a ring oxygen or nitrogen has no place in it, and was dropped without a word, so the
+    # 2,6-methano-1,3-benzoxazocin-4-one skeleton of a Biginelli-type adduct came out as `5,9-methanobenzocycloocten-7-one`, a different molecule.
+    if any(mol.GetAtomWithIdx(a).GetSymbol() != "C" for a in sub_atoms):
+        return []
+
     analysis = _analyze_sub_bicyclic(sub_atoms, fusion, mol)
     if analysis is None:
         return []

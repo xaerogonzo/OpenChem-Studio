@@ -111,6 +111,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_benzo_bridged_heteroatoms.py"
+why = "a benzo-fused bridged ring system with a ring heteroatom is not named as a carbocycle (methanobenzocyclooctene dropped the oxygen and nitrogen of a 2,6-methano-1,3-benzoxazocine)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_nuclide_guard.py"
 why = "a name must keep every nuclide (D-193): the guard that refuses one that would not, the routes that label (retained parent, multi-atom prefix, ether oxygen, hypohalous amide, hydroxy/amino prefix, suffix heteroatom), the parent bracket placed before the part it modifies (D-196), and lambda5 on a single-bonded hypervalent centre (D-195)"
 scope = "core"

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: a benzo-fused bridged ring system with a ring heteroatom
+- A Biginelli-type adduct, a 2,6-methano-1,3-benzoxazocin-4-one, was named `6-acetyl-9-methyl-3-nitro-5,6,7,8,9,10-hexahydro-5,9-methanobenzocycloocten-7-one`: a carbocycle with no oxygen and no nitrogen, so a different molecule. `benzo_fused_bridged` names a carbocycle and never looked at an element; it now declines a system with a ring O, N or S, and the generic bridged path names it (`12-acetyl-9-methyl-4-nitro-8-oxa-10-azatricyclo[7.3.1.0^{2,7}]trideca-2,4,6-trien-11-one`, read back exact). Both census rows of this shape were wrong. 114 heteroatom variants of twelve skeletons, master -> now: wrong molecule 89 -> 0, exact 25 -> 114; the 20 carbocyclic controls keep their names. The preferred fusion-bridged name (`2,6-methano-1,3-benzoxazocine`) is not built.
+
 ### Two idle web views are built when first used instead of at launch
 - The Macromolecule Viewer (Mol*) and the Alignment panel's 3D view were each a Chromium renderer created at start-up whether or not a structure or an alignment ever existed. Each now has a stable empty container from the start and builds its view on first use: a structure to show, or the container/panel being shown. The editor and the main 3D viewer stay eager. Nothing about what they draw changed; the cost moves to the first use, and `docs/PERFORMANCE_CENSUS.md` has what it measured.
 
