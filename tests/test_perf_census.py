@@ -194,13 +194,47 @@ def test_object_census_sees_retained_widgets_and_an_active_timer(qapp):
     timer.setInterval(777)
     timer.start()
     try:
-        after = drive_probes.object_census()
+        # THE WHOLE LIST, NOT THE DISPLAY CAP. The census shows the first 40 active timers,
+        # shortest interval first, so the answer to "is MY timer there" depended on how many
+        # others the process had left running: in one long process 131 timers of 500 ms (left
+        # by test modules that keep a MainWindow alive; measured 2026-10-09) pushed this 777 ms
+        # one out of the first 40 and the test failed, while it passed alone and in each CI shard.
+        after = drive_probes.object_census(top_timers=100_000)
         assert after["widgets"].get("QLabel", 0) - before["widgets"].get("QLabel", 0) == 7
         assert any(t["interval_ms"] == 777 and not t["single_shot"] for t in after["timers_active_detail"])
         assert after["gc_forced"] is True
     finally:
         timer.stop()
         del held
+
+
+def test_the_census_finds_a_timer_among_many_shorter_ones_when_asked_for_all(qapp):
+    """The condition that broke the test above, made explicit rather than left to what the
+    suite happened to leave behind: more active timers than the display cap, all shorter."""
+    from PySide6.QtCore import QTimer
+
+    from openchem.app import drive_probes
+
+    crowd = [QTimer() for _ in range(60)]
+    for crowd_timer in crowd:
+        crowd_timer.setInterval(123)
+        crowd_timer.start()
+    odd_one = QTimer()
+    odd_one.setInterval(7771)
+    odd_one.start()
+    try:
+        capped = drive_probes.object_census()
+        everything = drive_probes.object_census(top_timers=100_000)
+
+        assert not any(t["interval_ms"] == 7771 for t in capped["timers_active_detail"]), (
+            "the default cap is a display limit and hides the longest-interval timer"
+        )
+        assert any(t["interval_ms"] == 7771 for t in everything["timers_active_detail"])
+        assert len(capped["timers_active_detail"]) == 40
+    finally:
+        odd_one.stop()
+        for crowd_timer in crowd:
+            crowd_timer.stop()
 
 
 def test_heartbeat_reports_a_stall_it_was_made_to_see(qapp):
