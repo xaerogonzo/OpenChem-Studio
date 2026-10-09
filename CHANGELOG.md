@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: the cation of a fused ring system, and the lettering of a ring fused on purine
+- A protonated fused heteroaromatic (`c1c[n+]2c([nH]1)[nH]c1ccccc12`, the cation of imidazo[1,2-a][1,3]benzimidazole; 8 of 300 such molecules, 3 of the census's 2000 rows) was a visible `[NAMING ERROR: No valid naming plan found ...]`: no table holds the cation. The ring is named once more from a neutral copy when the first pass found nothing, and the `-ium` is rendered from the full molecule (`9H-imidazo[1,2-a][1,3]benzimidazol-4-ium`, `8-chloro-4-(3,3-dimethylpiperidin-1-yl)-5H-pyrimido[5,4-b]indol-1-ium`), each read back exact.
+- A ring fused on purine was lettered by sorting purine's locants, but purine's periphery runs 1, 2, 3, 4, 9, 8, 7, 5, 6, so the bond N7-C8 is `f` and the engine said `g`: `imidazo[1,2-g]purine` for the skeleton OPSIN calls `imidazo[2,1-f]purine`, which OPSIN reads as another molecule, and `imidazo[2,1-h]purine` and its kin, which it cannot read. 32 purine-fused ring systems, master -> now: exact 21 -> 32 (9 unreadable, 1 wrong molecule and 1 naming error before). The 2000-row census: 3 `NAMING ERROR` rows are exact (1963 -> 1966), nothing else moves; the 1712-row panel does not move.
+
 ### Naming: a benzo-fused bridged ring system with a ring heteroatom
 - A Biginelli-type adduct, a 2,6-methano-1,3-benzoxazocin-4-one, was named `6-acetyl-9-methyl-3-nitro-5,6,7,8,9,10-hexahydro-5,9-methanobenzocycloocten-7-one`: a carbocycle with no oxygen and no nitrogen, so a different molecule. `benzo_fused_bridged` names a carbocycle and never looked at an element; it now declines a system with a ring O, N or S, and the generic bridged path names it (`12-acetyl-9-methyl-4-nitro-8-oxa-10-azatricyclo[7.3.1.0^{2,7}]trideca-2,4,6-trien-11-one`, read back exact). Both census rows of this shape were wrong. 114 heteroatom variants of twelve skeletons, master -> now: wrong molecule 89 -> 0, exact 25 -> 114; the 20 carbocyclic controls keep their names. The preferred fusion-bridged name (`2,6-methano-1,3-benzoxazocine`) is not built.
 
