@@ -7,7 +7,7 @@ import time
 from dataclasses import replace
 from importlib import import_module
 from types import ModuleType
-from typing import Any
+from typing import Any, NamedTuple
 
 from rdkit import Chem
 from rdkit.Chem import (
@@ -354,6 +354,18 @@ def _load_sascorer() -> ModuleType:
 
 _npscorer_module: ModuleType | None = None
 _np_model: dict | None = None
+
+
+class _NPResult(NamedTuple):
+    """The shape of RDKit's `NPLikeness(nplikeness, confidence)` result."""
+
+    nplikeness: float
+    confidence: float
+
+
+#: What an empty structure scores: no fragments recognised, so the
+#: zero-confidence refusal path below applies. See the guard in `_compute_all`.
+_NP_EMPTY_STRUCTURE_RESULT = _NPResult(nplikeness=0.0, confidence=0.0)
 
 #: Why a zero-confidence NP-likeness is refused rather than reported as 0.0.
 #: Not a rounding statement -- `scoreMolWConfidence` sums `fscore[bit]` only
@@ -914,7 +926,18 @@ class RDKitDescriptorProvider(DescriptorProvider):
         # together, and computing the score and the confidence separately
         # would fingerprint the molecule twice for one answer.
         _npscorer, _np_fscore = _load_npscorer()
-        np_result = _npscorer.scoreMolWConfidence(mol, _np_fscore)
+        if mol.GetNumAtoms() == 0:
+            # **AN EMPTY DRAWING DIVIDES BY ZERO INSIDE RDKIT'S SCORER.**
+            # `scoreMolWConfidence` does `score /= mol.GetNumAtoms()` and
+            # `bits_found / len(bits)`, both 0 here (measured 2026-10-08:
+            # `ZeroDivisionError` from the provider on `Chem.Mol()`, logged once
+            # in six idle census runs, F7). Nothing is fingerprinted, so the
+            # answer is the one a molecule sharing no fragment gets: confidence
+            # 0.0, which refuses the score below. Local to this call on
+            # purpose -- every other descriptor already copes with no atoms.
+            np_result = _NP_EMPTY_STRUCTURE_RESULT
+        else:
+            np_result = _npscorer.scoreMolWConfidence(mol, _np_fscore)
 
         # A descriptor whose value would be arithmetic rather than a
         # measurement is FAILED with a reason, following the shape

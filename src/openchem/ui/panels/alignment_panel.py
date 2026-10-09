@@ -380,10 +380,19 @@ class AlignmentPanel(QWidget):
         self._result_table.setMaximumHeight(_TABLE_MAX_HEIGHT)
         self._result_table.itemChanged.connect(self._on_visibility_changed)
 
-        self._viewer = Mol3DViewerBackend(self)
+        # THE 3D VIEW IS BUILT ON FIRST SHOW, NOT AT LAUNCH. It is a Chromium renderer, and
+        # this panel is one of twelve docks of which one shows at a time. The container is
+        # the stable widget the pop-out host holds from now on; `_ensure_viewer` puts the
+        # backend into it. State the user can change before then (style, colour mode) lives in
+        # the combos and is applied at build; an ensemble that arrives before then is kept
+        # (latest wins -- an ensemble REPLACES the last one) and drawn at build.
+        self._viewer: Mol3DViewerBackend | None = None
+        self._viewer_container = QWidget(self)
+        QVBoxLayout(self._viewer_container).setContentsMargins(0, 0, 0, 0)
+        self._pending_ensemble: list[tuple[str, str]] | None = None
         self._style_combo = QComboBox(self)
         self._style_combo.addItems(["stick", "ballstick", "sphere", "line"])
-        self._style_combo.currentTextChanged.connect(self._viewer.set_style)
+        self._style_combo.currentTextChanged.connect(self._on_style_changed)
         apply_help_tooltip(self._style_combo, _HELP['style'])
 
         self._color_mode_combo = QComboBox(self)
@@ -441,7 +450,7 @@ class AlignmentPanel(QWidget):
         # window from the dock. See `pop_out_host` for why a duplicate
         # control in that window would be worse than none.
         self._viewer_host = PopOutHost(
-            self._viewer.widget(),
+            self._viewer_container,
             title="3D Alignment",
             settings_id="alignment.overlay",
             settings=settings,
@@ -658,8 +667,37 @@ class AlignmentPanel(QWidget):
         self._visible[item.row()] = item.checkState() == Qt.CheckState.Checked
         self._show_ensemble()
 
+    @property
+    def viewer_is_built(self) -> bool:
+        return self._viewer is not None
+
+    def _ensure_viewer(self) -> Mol3DViewerBackend:
+        """Build the 3D view, once, into the stable container; THE ONLY PLACE it is made.
+        Applies what the user chose while it did not exist, then draws any ensemble that
+        arrived."""
+        if self._viewer is None:
+            viewer = Mol3DViewerBackend(self)
+            self._viewer_container.layout().addWidget(viewer.widget())
+            viewer.set_style(self._style_combo.currentText())
+            viewer.set_ensemble_color_mode(self._color_mode_combo.currentData())
+            self._viewer = viewer
+            if self._pending_ensemble is not None:
+                entries, self._pending_ensemble = self._pending_ensemble, None
+                viewer.load_ensemble(entries)
+        return self._viewer
+
+    def showEvent(self, event) -> None:  # noqa: N802 - Qt override
+        # FIRST SHOW is the contract: the dock becoming the visible one builds the view.
+        self._ensure_viewer()
+        super().showEvent(event)
+
+    def _on_style_changed(self, style: str) -> None:
+        if self._viewer is not None:
+            self._viewer.set_style(style)
+
     def _on_color_mode_changed(self, _index: int) -> None:
-        self._viewer.set_ensemble_color_mode(self._color_mode_combo.currentData())
+        if self._viewer is not None:
+            self._viewer.set_ensemble_color_mode(self._color_mode_combo.currentData())
 
     def _show_ensemble(self) -> None:
         """Draw the entries that are ticked, in their assigned colours.
@@ -668,13 +706,15 @@ class AlignmentPanel(QWidget):
         cost of hiding is a model the page does not build. Its colour is
         untouched, so ticking it back on restores the same picture.
         """
-        self._viewer.load_ensemble(
-            [
-                (self._entries[index].molblock, color)
-                for index, color in sorted(self._colors.items())
-                if self._visible.get(index, True)
-            ]
-        )
+        entries = [
+            (self._entries[index].molblock, color)
+            for index, color in sorted(self._colors.items())
+            if self._visible.get(index, True)
+        ]
+        if self._viewer is None:
+            self._pending_ensemble = entries  # drawn when the panel is first shown
+            return
+        self._viewer.load_ensemble(entries)
 
 
 def _number(value: float | None) -> str:

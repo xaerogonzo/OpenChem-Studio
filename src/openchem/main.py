@@ -13,6 +13,7 @@ from openchem.app.session import SessionManager
 from openchem.app.settings import Settings
 from openchem.app.window_trace import install_if_requested
 from openchem.bootstrap import build_service_container
+from openchem.chem.pka_worker import shutdown_worker
 from openchem.paths import subdirectory
 from openchem.services.recovery_service import RecoveryService
 
@@ -24,6 +25,11 @@ def main() -> int:
     app = QApplication(sys.argv)
     app.setOrganizationName("OpenChemStudio")
     app.setApplicationName("OpenChemStudio")
+
+    # The pKa predictor keeps a warm sidecar process between structures
+    # (chem/pka_worker.py). It is created on first use and ends itself when
+    # idle, but the application ending must not wait on either.
+    app.aboutToQuit.connect(shutdown_worker)
 
     services = build_service_container()
     # Before the window exists, so the trace sees every window it shows.

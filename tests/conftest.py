@@ -373,6 +373,13 @@ def release_stuck_modifiers() -> None:
         QTest.keyRelease(target, key)
 
 
+# The pKa predictor's persistent sidecar is the application's route; most of the
+# suite instead drives `compute_pka` against fake ONE-SHOT interpreters and must
+# go on testing that route (see `pka_providers.PERSISTENT_WORKER_ENABLED`).
+# `tests/test_pka_worker.py` enables the worker for the tests that are about it.
+os.environ.setdefault("OPENCHEM_PKA_WORKER", "0")
+
+
 @pytest.fixture(autouse=True)
 def no_modifier_left_down():
     """Fail the test that leaves a keyboard modifier held, instead of its victim.
