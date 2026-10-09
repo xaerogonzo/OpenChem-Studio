@@ -34,6 +34,65 @@ def name_ring_system(
     candidate: "CandidateParent",
     mol,
 ) -> list[NamedParent]:
+    """Generate NamedParent candidates for a ring system; see `_name_ring_system_on`.
+
+    A ring system with nothing to offer that carries an aromatic nitrogen CATION is tried once more on its neutral twin (`_neutral_twin`): the fused namers
+    read the ring from the molecule, and the cation of a one-NH ring system (`c1c[n+]2c([nH]1)[nH]c1ccccc12`) is a molecule no table holds. The `-ium` is
+    rendered afterwards from the full molecule, so only the parent's identity is looked up on the twin; the atom indices are the same.
+    """
+    results = _name_ring_system_on(candidate, mol)
+    if results or candidate.ring_system is None:
+        return results
+    twin = _neutral_twin(candidate.ring_system, mol)
+    if twin is None:
+        return results
+    return _name_ring_system_on(candidate, twin)
+
+
+def _neutral_twin(ring_system, mol):
+    """A copy of `mol` with every aromatic ring N+ made neutral (its H, if it has one, removed), or None when there is none or the copy does not sanitise.
+
+    When two [nH] then remain on a ring system whose neutral parent has one, each is dropped in turn and the first copy that sanitises is kept.
+    """
+    from rdkit import Chem
+
+    ring_atoms = sorted(ring_system.atom_indices)
+    cations = [
+        i for i in ring_atoms
+        if mol.GetAtomWithIdx(i).GetAtomicNum() == 7 and mol.GetAtomWithIdx(i).GetFormalCharge() == 1 and mol.GetAtomWithIdx(i).GetIsAromatic()
+    ]
+    if not cations:
+        return None
+    rw = Chem.RWMol(mol)
+    for i in cations:
+        atom = rw.GetAtomWithIdx(i)
+        hydrogens = atom.GetTotalNumHs()
+        atom.SetFormalCharge(0)
+        atom.SetNumExplicitHs(max(hydrogens - 1, 0))
+        atom.SetNoImplicit(hydrogens > 0)
+    candidates = [rw]
+    for i in ring_atoms:
+        atom = rw.GetAtomWithIdx(i)
+        if atom.GetAtomicNum() == 7 and atom.GetIsAromatic() and atom.GetNumExplicitHs() >= 1:
+            trial = Chem.RWMol(rw)
+            t_atom = trial.GetAtomWithIdx(i)
+            t_atom.SetNumExplicitHs(0)
+            t_atom.SetNoImplicit(False)
+            candidates.append(trial)
+    for trial in candidates:
+        twin = trial.GetMol()
+        try:
+            Chem.SanitizeMol(twin)
+        except Exception:
+            continue
+        return twin
+    return None
+
+
+def _name_ring_system_on(
+    candidate: "CandidateParent",
+    mol,
+) -> list[NamedParent]:
     """Generate NamedParent candidates for a ring system.
 
     Returns all valid naming options. Strategy will score them.
