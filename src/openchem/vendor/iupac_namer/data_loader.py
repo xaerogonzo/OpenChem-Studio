@@ -3327,7 +3327,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # pyrazolo[1,5-a]pyrimidine: 9-atom bicyclic. 6-ring=(pyrimidine) fused with 5-ring(pyrazole).
     # Verified: 2-Cl->idx5, 3-Cl->idx4, 5-Cl->idx1, 6-Cl->idx0, 7-Cl->idx8.
     "c1cnc2ccnn2c1":    {"name": "pyrazolo[1,5-a]pyrimidine", "substituent_form": "pyrazolo[1,5-a]pyrimidinyl", "alkyl_stem_ok": False,
-                         "atom_locants": {5: 2, 4: 3, 1: 5, 0: 6, 8: 7}},
+                         "atom_locants": {6: 1, 5: 2, 4: 3, 3: "3a", 2: 4, 1: 5, 0: 6, 8: 7, 7: 8}},
 
     # pyrrolo[2,3-d]pyrimidine tautomers.  6-ring=pyrimidine (positions 1-4 + 4a, 7a),
     # 5-ring=pyrrole (positions 5-7 + 4a, 7a).  Each tautomer has [nH] at a different
@@ -3449,7 +3449,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # thiazolo[5,4-d]pyrimidine: 9-atom bicyclic. Thiazole fused at C5a/C7a with pyrimidine.
     # Verified: 2-Cl->idx5, 5-Cl->idx0, 7-Cl->idx2.
     "c1ncc2ncsc2n1":    {"name": "thiazolo[5,4-d]pyrimidine", "substituent_form": "thiazolo[5,4-d]pyrimidinyl", "alkyl_stem_ok": False,
-                          "atom_locants": {5: 2, 0: 5, 2: 7}},
+                          "atom_locants": {4: 1, 5: 2, 6: 3, 7: "3a", 8: 4, 0: 5, 1: 6, 2: 7, 3: "7a"}},
 
     # [1,2,4]triazolo[3,4-b][1,3]benzothiazole: tricyclic. Benzo ring positions 5-8.
     # Verified: 5-Cl->idx2, 6-Cl->idx1, 7-Cl->idx0, 8-Cl->idx5.
@@ -3479,7 +3479,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     "c1nnc2n1CCNC2":   {"name": "5,6,7,8-tetrahydro-[1,2,4]triazolo[4,3-a]pyrazine",
                         "substituent_form": "5,6,7,8-tetrahydro-[1,2,4]triazolo[4,3-a]pyrazin-yl",
                         "alkyl_stem_ok": False,
-                        "atom_locants": {0: 3, 5: 5, 6: 6, 7: 7, 8: 8}},
+                        "atom_locants": {2: 1, 1: 2, 0: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 3: "8a"}},
 
     # 5,6,7,8-tetrahydro-[1,2,4]triazolo[4,3-a]pyridine (dapiprazole core, FDA-0358).
     # OPSIN '5,6,7,8-tetrahydro-[1,2,4]triazolo[4,3-a]pyridine' -> N=1N=CN2C1CCCC2;
@@ -3488,7 +3488,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     "c1nnc2n1CCCC2":   {"name": "5,6,7,8-tetrahydro-[1,2,4]triazolo[4,3-a]pyridine",
                         "substituent_form": "5,6,7,8-tetrahydro-[1,2,4]triazolo[4,3-a]pyridin-yl",
                         "alkyl_stem_ok": False,
-                        "atom_locants": {0: 3, 5: 5, 6: 6, 7: 7, 8: 8}},
+                        "atom_locants": {2: 1, 1: 2, 0: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 3: "8a"}},
 
     # 4,5,6,7-tetrahydro-1,3-benzothiazole (pramipexole core, FDA-1100).
     # OPSIN '4,5,6,7-tetrahydro-1,3-benzothiazole' -> S1C=NC2=C1CCCC2;
@@ -3500,7 +3500,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     "c1nc2c(s1)CCCC2": {"name": "4,5,6,7-tetrahydro-1,3-benzothiazole",
                         "substituent_form": "4,5,6,7-tetrahydro-1,3-benzothiazolyl",
                         "alkyl_stem_ok": False,
-                        "atom_locants": {0: 2, 8: 4, 7: 5, 6: 6, 5: 7}},
+                        "atom_locants": {4: 1, 0: 2, 1: 3, 2: "3a", 8: 4, 7: 5, 6: 6, 5: 7, 3: "7a"}},
 
     # 4,5,6,7-tetrahydrothieno[3,2-c]pyridine (ticlopidine/clopidogrel core, FDA-1328).
     # OPSIN '4,5,6,7-tetrahydrothieno[3,2-c]pyridine' -> S1C=CC=2CNCCC21;
@@ -3513,7 +3513,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     "c1cc2c(s1)CCNC2": {"name": "4,5,6,7-tetrahydrothieno[3,2-c]pyridine",
                         "substituent_form": "4,5,6,7-tetrahydrothieno[3,2-c]pyridin-yl",
                         "alkyl_stem_ok": False,
-                        "atom_locants": {0: 2, 1: 3, 8: 4, 7: 5, 6: 6, 5: 7}},
+                        "atom_locants": {4: 1, 0: 2, 1: 3, 2: "3a", 8: 4, 7: 5, 6: 6, 5: 7, 3: "7a"}},
 
     # 1,2-benzodithiete (ZT-1051; benzodithiete = S-S 4-ring fused to benzene).
     # OPSIN '1,2-benzodithiete' -> S1SC2=C1C=CC=C2; RDKit canonical: c1ccc2ssc2c1.

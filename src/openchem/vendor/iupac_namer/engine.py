@@ -18657,6 +18657,19 @@ class SubstitutivePath:
                     continue
                 loc = atom_to_loc.get(atom_idx)
                 if loc is None:
+                    # Naming round 35: an atom the parent's table gives no locant cannot take the -ium, and skipping it printed the NEUTRAL parent
+                    # (`2-methyl-4,5,6,7-tetrahydro-1,3-benzothiazole` for its cation, a different molecule). The plan fails; the retry loop tries the next.
+                    if not plan.named_parent.name.endswith("ium"):
+                        return ErrorTree(
+                            output_form=output_form,
+                            free_valence=free_valence,
+                            choices_made=(),
+                            decision_ctx=decision_ctx,
+                            validity_warnings=None,
+                            message=(
+                                f"Parent {plan.named_parent.name!r} gives the ring cation atom {atom_idx} no locant"
+                            ),
+                        )
                     continue
                 ring_cation_found.append(loc)
             if ring_cation_found:
