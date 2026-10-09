@@ -1,14 +1,18 @@
-# Panel feature inventory: Batch and Docking
+# Panel feature inventory: Batch, Docking, Quantum Chemistry and 3D Alignment
 
 **Why this exists.** The direction is one main control panel for every calculation
 (see the Batch/Quantum/Alignment/Docking note in the session plan). The rule
 attached to it is that **no feature may be lost**. This file is the list the rule
-is checked against: every control, option, export and edge behaviour of the two
-panels inventoried so far, each with where it lives, whether it has a new home yet,
+is checked against: every control, option, export and edge behaviour of the four
+panels, each with where it lives, whether it has a new home yet,
 and what is missing. Nothing is removed from either panel until every row here is
 `PORTED` or a decision recorded against it says otherwise.
 
-Quantum Chemistry and 3D Alignment are **not inventoried yet**.
+Batch and Docking come first (sections 1-2); Quantum Chemistry and 3D Alignment
+follow (sections 3-4). For the widgets inside Quantum Chemistry's tabs (NMR, IR,
+surfaces, correlation plots) the panel-level controls and each widget's visible
+controls are listed, but **not each widget's internals** (the NMR view alone is about
+1,000 lines). They are expected to move intact, and that is the assumption to check.
 
 Read from the source on 2026-10-09 (branch `claude/calculator-organization-ux-32c9fe`).
 Nothing below was run live; "status" is what the code says, and each `verify` is
@@ -161,7 +165,112 @@ That decides how it can sit inside a unified panel (section 4).
 
 ---
 
-## 3. Findings made while inventorying
+## 3. Quantum Chemistry
+
+Files: `src/openchem/ui/panels/quantum_chemistry_panel.py` (about 3,000 lines),
+`src/openchem/services/quantum_chemistry_service.py`, `src/openchem/chem/orca_engine.py`,
+`src/openchem/services/qm_surface_service.py`, and the widgets that live in its tabs
+(listed under Q18-Q22).
+
+This is the largest panel and the least like a calculator. It runs **one real ORCA job
+on one molecule**, can take minutes to hours, streams a log, keeps a **history of runs
+saved with the project**, and shows the answer in **eight tabs**. It is not a
+`RegistryExecution` calculator, so Batch cannot run it (the Batch picker excludes it by
+design) and nothing here can be fanned out over a project today.
+
+### 3a. What goes into a run
+
+| ID | What it does today | Notes |
+|---|---|---|
+| Q01 | **Molecule** combo. Follows the project selection; preserved by uuid on refresh. Choosing a molecule **sets Charge from its formal charge** and refreshes the Runs list. | Following the selection is why a project with two identically named molecules once computed on the wrong one. |
+| Q02 | **Calculation** (7): Single Point, Geometry Optimization, Optimization + Frequency, NMR (raw shielding), NMR + Spin-Spin Coupling, Hardness / Softness (delta-SCF), Interaction energy breakdown (LED). The type decides which result tabs fill. | Choosing an NMR type moves the method to `B3LYP pcSseg-1`, **only if the method is still an unedited preset**. |
+| Q03 | **Charge** -10..+10, auto-set from the structure, free to override. | |
+| Q04 | **Multiplicity** 1..10, default 1, **never derived** from the structure. | A radical or triplet must be set by hand. |
+| Q05 | **Method/basis**: editable combo, six presets (B3LYP def2-SVP, PBE0 def2-TZVP, M062X def2-TZVP, B3LYP 6-31G(d), B3LYP pcSseg-1, B3LYP pcSseg-2). The text becomes ORCA's `!` header verbatim. Ignored for LED, which is defined on DLPNO-CCSD(T). | |
+| Q06 | **Solvent (CPCM)**: None plus Chloroform, DMSO, Water, Methanol, Acetone, Toluene, Benzene. Appended to the method string, which makes a solvated and a gas-phase TMS reference **separate cache entries** by construction. | Must stay in the string, not become a separate parameter. |
+| Q07 | **CPU cores**: 1..machine cores, stored as `orca/cores`; pinned to 1 and disabled (with a tooltip explaining why) when Microsoft MPI is not installed; automatic default capped at 8. | |
+| Q08 | **Average over all conformers (Boltzmann)** checkbox: one ORCA run per conformer, shifts averaged by population. Only effective with 2+ conformers; refuses with a reason if the conformer ensemble cannot be resolved. | |
+| Q09 | Every combo and spin box is **scroll-safe** (a wheel passing over it does not change it). | A guard list is kept so a test can find them. |
+
+### 3b. Running
+
+| ID | What it does today | Notes |
+|---|---|---|
+| Q10 | **Run**: refuses with no structure, **no conformer** ("Generate one with Structure > Generate Conformers... first"), an unusable 3D geometry, or an empty method. The geometry goes through the calculation-input resolver so the identity stamped on the spectra is the geometry actually sent. Disables Run, enables Cancel, clears the log and tabs, shows "queued". | |
+| Q11 | **LED guard**: before an LED job, refuses anything that is not exactly two separate species, refuses an overlapping geometry (a live run once returned +40619 kcal/mol), and above a size asks to confirm with an atom/basis-function count and a cost warning. | |
+| Q12 | **Cancel**: stops ORCA and removes its scratch directory; a cancelled job leaves no partial result. | |
+| Q13 | **More** menu (set-up-once items): **Configure ORCA...** (Settings at the ORCA entry), **Calibrate Reference (TMS)...**, **Calibrate Scaling (11 standards)...**. Each calibration disables its own button while it runs; scaling reports R-squared and n per element. | Real `QPushButton`s inside the menu, because every test and help contract targets those widgets. |
+| Q14 | **Tautomers...** with **Full ORCA conformers** (remembered as `tautomer/full_orca_conformers`). Needs only the 2D structure. Enumerates candidates, then asks to confirm above a threshold or whenever anything was truncated, stating jobs, tautomers, stereoisomers and the incompleteness consequences. | Two model versions: a percentage is shown only for a model whose own validation passed. |
+| Q15 | **Tautomer NMR...** with **Average NMR over conformers** (remembered as `tautomer/nmr_average_conformers`). Runs NMR on each tautomer of the *selected* distribution run from the geometry it stored; says what it costs and what is left out first; needs a cached TMS reference. Enabled only for a run holding a distribution with at least one stored geometry, and never while a job runs. | |
+| Q16 | **Live state**: the job's text streams into the log; on "running" the tabs appear and the log tab is selected so a long job does not look hung; on failure the log stays selected (it holds the reason); on success no tab is forced, each result selects its own tab only when it has something to show. | |
+
+### 3c. What was calculated (history)
+
+| ID | What it does today | Notes |
+|---|---|---|
+| Q17 | **Currently viewing** (kept apart from "Calculation to run" on purpose, so picking an old run never looks like it changed what Run will submit): **Runs** combo, newest first, labelled `calculation · method · time`. Selecting one repaints every tab from that run **locally, never publishing on the event bus** (publishing would make Results show stale numbers as current). **Delete Run** (confirm; removes the project record only, not the cached wavefunction), **Compare NMR Shifts...** (pick another run with a spectrum; refuses when atom numbering cannot be matched), **View Tautomer Distribution...**, **View Tautomer NMR...** (each enabled only for a run that holds that result; opening never recomputes). | History is saved in the project file as its own `qc_runs` envelope, separate from the result cache. A just-finished run is added to the combo without repainting the tabs the person is looking at. |
+
+### 3d. Where it is shown (the eight tabs)
+
+| ID | Tab | What it holds | Notes |
+|---|---|---|---|
+| Q18 | **1D Signals** | `NmrViewWidget` in a pop-out: nucleus, frequency, solvent peak, smooth, decoupled, relative integral, zoom to selection, legend, palette, reference scale, reference peaks, explicit H, unit (ppm / Hz offset), labels (shift / atom index / none), and an export menu (JCAMP-DX, SD file with shifts, PDF report). Tautomer peaks overlay here with their own controls. | Moves intact if the widget is reparented. Its internal controls are listed, not individually inventoried. |
+| Q19 | **IR** | `IrViewWidget` in a pop-out: overlay a measured spectrum, clear overlay, animate mode on the optimised geometry, reset zoom, copy spectrum image, export JCAMP-DX. | Modes are animated about the **optimised** geometry, not the submitted one. |
+| Q20 | **Surfaces** | `EspCompareWidget` in a pop-out: point-charge ESP (Gasteiger / EEM / QEq) beside an ab-initio surface (surface type, HOMO/LUMO, **Compute QM surface**). Needs a run that kept its wavefunction. | Two web views; the most expensive tab. |
+| Q21 | **Hybrid** | Merge of the run with the experimental-shift lookup per atom: 6-column sortable table, calibration-check summary, carbons only, needs an empirically scaled run (else says what to do). | |
+| Q22 | **HSQC / HMBC / COSY** | Per tab: a 5-column sortable table (atom A/B, shift A/B, J in Hz or a dash), a cross-peak plot in a pop-out with a **Contours** checkbox and **Reset Zoom**, wheel/drag zoom, double-click reset, and **table row <-> plot peak** selection by atom pair (never by coordinates). | One column list and one loop build all three. |
+| Q23 | **ORCA Log** | Raw stdout of this job. | Named so it is not mistaken for the app's own Console. |
+| Q24 | **Per-tab status glyph** (check / dash / cross) read from the stored run's output status, **Help for this tab** (one button that follows the active tab to its help topic), and a per-tab **empty state** saying what would fill it. | |
+| Q25 | **Summary lines** above the tabs: the results label (descriptor lines, or the tautomer summaries), the status line, a note saying whether the table holds raw shielding, TMS-calibrated or empirically scaled values (plus a coupling-failed note), and the 3-column spectrum table. Tables export from their menu (`orca-spectrum`, `nmr-hybrid`, `hsqc-correlations`, ...). **Tautomer distribution dialog** has an *Export table (CSV)*. | Wording is long and sourced on purpose. |
+
+### 3e. Around the panel
+
+| ID | What it does today | Notes |
+|---|---|---|
+| Q26 | **Results leave the panel through `MainWindow`**, not the panel: descriptors are republished so Properties/Results show them; an optimised geometry is added as an **undoable** conformer; spectra reach the Atom Inspector; the run goes into the project's `qc_runs`. | A move must not break these subscriptions. |
+| Q27 | **Other surfaces open this panel**: Properties' `orca.*` rows open it **with the calculation type chosen (nothing runs)**; report links "open NMR" and "open IR" reveal it and select the tab (`show_spectrum_tab`). | Already a launcher into the panel from Properties; retargeting is needed, not rebuilding. |
+| Q28 | **Remembered state**: `orca/cores`, `tautomer/full_orca_conformers`, `tautomer/nmr_average_conformers`; six pop-out ids (`quantum.nmr_signals`, `quantum.ir_spectrum`, `quantum.surfaces`, `quantum.correlation_hsqc`, `_hmbc`, `_cosy`). | Keep the ids or the saved pop-out placement is lost. |
+| Q29 | **Hard-won structure rules.** Placeholders are found through Qt's child tree and never stored in a dict keyed by a widget (that corrupted the heap, `0xc0000374`, 3 of 3 runs, in an unrelated test); no signal is connected to a lambda capturing `self`; a new job brings a detached pop-out home so a stale picture is not left in another window. | Anything that reparents these tabs inherits the constraints. |
+| Q30 | **Help**: rail/dock id `Quantum_Chemistry`, topic `quantum-chemistry` (with anchors), and 38 `quantum.*` ids (see the panel's help table). | |
+| Q31 | **Layout facts**: wants 518-576 px wide (the main window records this for it and 3D Alignment), the tab strip hidden until there is something to show. | |
+| Q32 | **Drive steps** `qc_run`, `qc_tab`, `qc_nmr_report`, `qc_coupling_report`, `tautomer_run`, `tautomer_report`, `tautomer_nmr_run`, `tautomer_nmr_report`; visual scripts `qm_nmr_referencing`, `qm_shift_identity`, `tautomer_distribution_reachability`, `tautomer_nmr_live`. | These drive **real ORCA**. |
+
+**Status of every Q row: `MISSING` in the new surface**, except Q27, which is `LAUNCH`
+(Properties already routes into the panel).
+
+---
+
+## 4. 3D Alignment
+
+Files: `src/openchem/ui/panels/alignment_panel.py`, `src/openchem/services/alignment_service.py`,
+`src/openchem/chem/alignment.py`, `src/openchem/domain/alignment.py`.
+
+It aligns **several project molecules onto one reference** and shows the result as an
+overlay. The single-molecule registry calculator "3D Alignment" (reference typed as
+SMILES) is separate and already in Properties.
+
+| ID | What it does today | Status / notes |
+|---|---|---|
+| A01 | **Reference** combo. Preserved by uuid; **deliberately not wired to the project selection** (the probe list is defined against it, so following the tree would reshuffle the ticks under the person). Changing it rebuilds the probe list and re-frames every number. | `MISSING` |
+| A02 | **Align onto it**: a tick list of every molecule except the reference. Ticks survive rebuilds by uuid, so renaming an unrelated molecule does not clear them. | `MISSING` |
+| A03 | **Method**: Extended atom types (MMFF type pairing, Open3DAlign) or Common scaffold (MCS first, then refine). | Also a parameter of the registry calculator. |
+| A04 | **Accuracy**: Fast (1 conformer / 5 s), Normal (5 / 15 s, default), Accurate (20 / 60 s). | Also on the registry calculator. |
+| A05 | **Flexibility**: Flexible (default; shared atoms pinned to the reference's coordinates) or Rigid. | **Panel only**: the registry calculator has no Flexibility parameter. |
+| A06 | A standing **note** under the controls saying Score is higher-is-better and RMSD lower-is-better and that they are different measures. | On screen on purpose. |
+| A07 | **Align**: refuses with no reference or no tick; disabled while running; status line shows "Aligning name (k/N)". The job is keyed **per reference**, so alignments to different references can run together and a second one against the same reference is refused with a message. Cancel is checked between molecules. | **There is no Cancel button in the panel**; the service registers a cancel callback, so it can be cancelled from the Jobs panel. |
+| A08 | **Result table** (8 columns): Show, Molecule, Score, RMSD (A), Core, Tail, Paired atoms, Geometry. Core and Tail split the RMSD over the rigid and flexible parts (measured: a 0.116 headline RMSD hid a 0.931 flexible part). Paired atoms reads "n (MCS)" or O3A's count. Geometry reads Project / Generated / Constrained. Eight column help contracts, six of them tier 3. Exports from the table menu (`alignment-results`). Height capped (64 to 160 px) so the picture keeps the space. | `MISSING` |
+| A09 | **Row semantics**: a failed molecule gets a reason spanning its numeric columns, no colour and no Show box (one unembeddable structure never discards the others); the reference row shows dashes. | |
+| A10 | **Show** tick per row hides that structure from the picture only (omitted, not made transparent); its colour is kept so showing it again changes nothing. | |
+| A11 | **Overlay viewer**, built on first show (it is a Chromium view and this is one of many docks): **Style** (stick, ballstick, sphere, line) and **Colour** (by molecule: 8 colour-blind-safe colours, reference grey first; or by element). The header controls stay in the dock while the view is popped out. Pop-out id `alignment.overlay`. | |
+| A12 | **Stored structures are not moved**; the alignment is for display and comparison. An ensemble **replaces** the previous one; nothing is saved in the project. | Persisting results would be new behaviour, not a port. |
+| A13 | **Geometry choice**: stored conformers newest first, otherwise generated, or built with shared atoms pinned for Flexible. Falls back and says so in the Geometry column. | |
+| A14 | **Help**: rail/dock id `3D_Alignment`, topic `alignment`, and 15 `alignment.*` ids (flexibility, overlay_color_mode, entry_visible, core_rmsd, flexible_rmsd, geometry_source, reference, method, accuracy, run, display_style, subject, score, rmsd, paired_atoms). | |
+| A15 | **Layout facts**: wants 518 px wide; the settings box is about 414 px tall, which once left the picture a 63 px strip. | The reason the table is capped. |
+| A16 | **Drive steps** `align`, `align_report`, `ensemble_visible`, `overlay_colour`. | |
+
+---
+
+## 5. Findings made while inventorying
 
 1. **The Virtual Screening help text describes a different feature.** `batch.virtual_screening`
    (shown on the Batch and Results button) says it "filter[s] the project against
@@ -174,8 +283,26 @@ That decides how it can sit inside a unified panel (section 4).
 3. **The migration drops descriptor and alert ids** (B11). A person who saved a Batch
    selection of individual descriptors would find only the calculators in the
    imported preset.
+4. **Quantum Chemistry is the target of other surfaces** (Q27): Properties' `orca.*`
+   rows and the "open NMR"/"open IR" report links reveal the panel and select a
+   calculation type or tab. They route by the panel id `Quantum_Chemistry`, so the
+   routes need retargeting rather than rebuilding.
+5. **Quantum Chemistry's results are not owned by the panel** (Q26). Descriptors,
+   the optimised conformer and the spectra leave through `MainWindow`; a port that
+   moves only the panel's widgets would still look right and stop feeding Properties,
+   the conformer list and the Atom Inspector.
+6. **3D Alignment has no Cancel button** (A07), unlike Quantum Chemistry and Batch.
+   It can be cancelled from the Jobs panel only. Whether that is intended is not
+   recorded anywhere I found.
+7. **Alignment's Flexibility exists only in the panel** (A05). The Properties
+   calculator for 3D Alignment takes a method and an accuracy but not flexibility, and
+   reports no Core/Tail split, so the two are not equivalent and neither can replace
+   the other.
+8. **The Quantum panel carries the repository's worst crash history** (Q29): a heap
+   corruption from a dict keyed by widgets, found in an unrelated test hundreds of
+   tests later. Reparenting its tabs is the riskiest single move in this whole plan.
 
-## 4. What the inventory implies for the unified panel
+## 6. What the inventory implies for the unified panel
 
 These are recommendations to react to, not decisions.
 
@@ -193,8 +320,25 @@ These are recommendations to react to, not decisions.
   in front. In a single panel that rule needs a new definition.
 - **Keep `SearchOptionsControls` and the pose-table help contracts exactly as they
   are**; they already serve two surfaces and carry sourced claims.
+- **Quantum Chemistry is a workflow, and a big one.** One molecule, a real external
+  program, a saved run history, eight result tabs and six pop-outs. It is not a
+  candidate for ticks or for Batch, and nothing in the inventory is an obvious
+  "small" piece to move first. The least risky order is probably to leave its widgets
+  where they are and give the unified panel a section that **hosts the whole panel
+  unchanged** at first, then dissolve it piece by piece with the inventory as the
+  checklist. That keeps every row `STAYS` until it is deliberately moved.
+- **3D Alignment is small and self-contained** (16 rows, one service, no persistence),
+  so it is the cheapest place to prove a "workflow section" pattern before Docking or
+  Quantum Chemistry use it. Its one hard constraint is vertical space for the picture.
+- **Three kinds of result live outside any table**: a pose table with a 3D drawing
+  (Docking), an overlay with a score table (Alignment), and eight tabs with a run
+  history (Quantum Chemistry). A single "Results" area would have to host all three
+  or leave them with their sections. That is a design question, not an inventory one.
+- **Nothing here can be batched over a project except the calculators.** Docking has
+  its screening dialog; Quantum Chemistry and Alignment have nothing. A unified panel
+  would make that gap visible rather than fix it.
 
-## 5. Parity baseline: what already pins this behaviour
+## 7. Parity baseline: what already pins this behaviour
 
 Tests that exercise the existing panels, which become the check that nothing moved:
 
@@ -205,3 +349,13 @@ Tests that exercise the existing panels, which become the check that nothing mov
 | Docking | `tests/test_docking_panel.py` (52), `test_docking_service.py` (31), `test_docking_providers.py` (36), `test_docking_domain.py` (16), `test_rescoring.py` (28), `test_binding_site.py` (29), `test_pose_analysis.py` (47), `test_dock_placement.py` (13), `test_main_window_docking_visualization.py` (6), `test_docking_result_inverse.py` (5), `test_docking_commands.py` (1) |
 | Screening | `tests/test_screening_service.py` (35), `test_screening_is_configurable.py` (17), `test_virtual_screening_dialog.py` (5) |
 | Receptor library | `tests/test_receptor_library.py` (19), `test_receptor_library_dialog.py` (11) |
+| Quantum Chemistry | `tests/test_quantum_chemistry_panel.py` (82), `test_quantum_chemistry_service.py` (38), `test_quantum_chemistry_run.py` (16), `test_quantum_chemistry_run_recording.py` (12), `test_tautomer_nmr_panel.py` (11), `test_orca_engine.py` (45), `test_orca_led.py` (52), `test_orca_surfaces.py` (21), `test_qm_surfaces.py` (25) |
+| NMR / IR widgets in its tabs | `tests/test_nmr_view_widget.py` (84), `test_nmr_spectrum_widget.py` (69), `test_nmr_signals.py` (67), `test_nmr_correlation_plot_widget.py` (21), `test_nmr_hybrid.py` (18), `test_nmr_scaling.py` (17), `test_nmr_reference.py` (9) |
+| Tautomers | `tests/test_tautomer_distribution.py` (66), `test_tautomer_distribution_service.py` (13), `test_tautomer_nmr.py` (14), `test_tautomer_nmr_average.py` (13), `test_tautomer_conformers.py` (32) |
+| 3D Alignment | `tests/test_alignment.py` (31), `test_alignment_panel.py` (18), `test_alignment_service.py` (4) |
+
+**A caution about this baseline.** These suites mostly use fakes for ORCA and Vina. In
+this project mocked engines have hidden real defects (three, in Vina and ORCA), so
+parity for Docking and Quantum Chemistry has to include the **driven runs against the
+real programs** (`dock_run`, `qc_run`, `tautomer_run`, `tautomer_nmr_run`), not only
+these tests.
