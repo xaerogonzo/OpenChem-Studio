@@ -971,6 +971,7 @@
   "tests/test_undo_refreshes_panels.py": 1,
   "tests/test_validation_rows.py": 1,
   "tests/test_validation_rows_energetics.py": 0,
+  "tests/test_vendoring_rows.py": 0,
   "tests/test_vibrational_spectrum.py": 1,
   "tests/test_vina_engine.py": 1,
   "tests/test_virtual_screening_dialog.py": 0,
