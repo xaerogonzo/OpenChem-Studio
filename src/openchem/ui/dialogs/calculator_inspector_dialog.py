@@ -7,7 +7,7 @@ import weakref
 from collections.abc import Callable, Sequence
 
 from PySide6.QtCore import QSortFilterProxyModel, Qt
-from PySide6.QtGui import QGuiApplication, QStandardItem, QStandardItemModel
+from PySide6.QtGui import QGuiApplication, QKeySequence, QShortcut, QStandardItem, QStandardItemModel
 from PySide6.QtSvgWidgets import QSvgWidget
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMenu,
     QPlainTextEdit,
     QPushButton,
     QSplitter,
@@ -177,6 +178,12 @@ class _CalculatorResultView(QWidget):
         balance_text = self._balance_text(result, total, places)
         balance_label.setText(balance_text)
         balance_label.setVisible(bool(balance_text))
+        # The headline sentences are what a reader pastes into a note, so
+        # they can be highlighted and copied one at a time.
+        for sentence in (name_label, summary_label, note_label, balance_label):
+            sentence.setTextInteractionFlags(
+                sentence.textInteractionFlags() | Qt.TextInteractionFlag.TextSelectableByMouse
+            )
 
         self._engine = engine
         self._molecule = molecule
@@ -471,6 +478,13 @@ class _CalculatorResultView(QWidget):
         self._table.verticalHeader().setVisible(False)
         self._table.horizontalHeader().setStretchLastSection(True)
         self._table.selectionModel().currentRowChanged.connect(self._on_table_row)
+        self._table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self._table.customContextMenuRequested.connect(self._on_table_context_menu)
+        # Ctrl+C on the highlighted row, the way a spreadsheet does it; a
+        # QTableView copies nothing by default.
+        QShortcut(QKeySequence.StandardKey.Copy, self._table, self._copy_current_row).setContext(
+            Qt.ShortcutContext.WidgetShortcut
+        )
 
         self._table_filter = QLineEdit(area)
         self._table_filter.setPlaceholderText("Filter by element or atom number")
@@ -501,6 +515,51 @@ class _CalculatorResultView(QWidget):
         else:
             self._emphasised = self._to_depiction.get(atom)
         self._render_2d()
+
+    def table_cell_text(self, proxy_index) -> str:
+        """One displayed cell, by the index the table itself hands out."""
+        source = self._table_proxy.mapToSource(proxy_index)
+        return self._table_model.item(source.row(), source.column()).text()
+
+    def table_row_text(self, proxy_index) -> str:
+        """The whole row of that cell, tab-separated like `table_text`."""
+        source = self._table_proxy.mapToSource(proxy_index)
+        return "\t".join(self._table_model.item(source.row(), c).text() for c in range(3))
+
+    def table_menu(self, proxy_index):
+        """`(menu, choose)` for a right-click on one cell.
+
+        Built apart from `QMenu.exec` (modal, cannot be patched) so a test can
+        trigger an action. The cell is the one UNDER THE POINTER, not the
+        current row, so copying never depends on what was last clicked.
+        """
+        menu = QMenu(self)
+        cell_action = menu.addAction("Copy cell")
+        row_action = menu.addAction("Copy row")
+
+        def choose(chosen) -> None:
+            if chosen is cell_action:
+                self._put_on_clipboard(self.table_cell_text(proxy_index))
+            elif chosen is row_action:
+                self._put_on_clipboard(self.table_row_text(proxy_index))
+
+        return menu, choose
+
+    def _on_table_context_menu(self, position) -> None:
+        index = self._table.indexAt(position)
+        if not index.isValid():
+            return
+        menu, choose = self.table_menu(index)
+        choose(menu.exec(self._table.viewport().mapToGlobal(position)))
+
+    def _copy_current_row(self) -> None:
+        current = self._table.selectionModel().currentIndex()
+        if current.isValid():
+            self._put_on_clipboard(self.table_row_text(current))
+
+    @staticmethod
+    def _put_on_clipboard(text: str) -> None:
+        QGuiApplication.clipboard().setText(text)
 
     def table_text(self) -> str:
         """The table as tab-separated text, in atom order, for Copy All."""
