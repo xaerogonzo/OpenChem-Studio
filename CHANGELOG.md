@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Switching molecule no longer rebuilds the Results reader once per stored result
+- Switching to a molecule whose results are stored replays them as one event per result, and each one rebuilt the whole Results reader. Measured with 50 calculators run on two molecules: 398 rebuilds of 230-350 facts, 30-90 ms each, which froze the window for 2-4 s on every switch (more as more calculators have run). The replay now rebuilds the reader once at its end (`PropertyPanel.batched_reader_refresh`, used around `store_service.replay`); after the change a switch costs 1-4 rebuilds (50-85 ms). A result arriving on its own still refreshes the reader at once. Nothing is recalculated either way: the values were already stored.
+
 ### Results: highlight a value, or copy one fact at a time
 - Two IUPAC names (PubChem's and our own engine's) could only be copied together, as part of Copy report. Every value in the Results reader, the pop-out window and the Atom Inspector reports (so every calculator) is now selectable by dragging, and right-clicking a value offers `Copy value` (the highlighted text, or the whole value if nothing is highlighted) and `Copy "<name>: value"`, above the report actions that were already there. Which fact is copied is read off the row clicked, so two rows with the same name copy their own values. Row heights are unchanged.
 - The Calculator Inspector follows: its headline sentences (name, total, note, balance) can be highlighted, and its per-atom table copies the cell or the row under the pointer from a right-click (`Copy cell`, `Copy row`), or the current row with Ctrl+C, in the same tab-separated form as Copy All.
