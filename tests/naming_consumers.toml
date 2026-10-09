@@ -129,6 +129,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_ring_iminium_hydro.py"
+why = "a partly saturated ring whose nitrogen is cationic keeps its hydro prefixes (D-207): 2,3-dimethyl-4,5-dihydro-1H-1,3-diazol-3-ium, not the imidazolium, and 2,3,4,5-tetrahydropyridin-1-ium, not piperidinium"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_nuclide_guard.py"
 why = "a name must keep every nuclide (D-193): the guard that refuses one that would not, the routes that label (retained parent, multi-atom prefix, ether oxygen, hypohalous amide, hydroxy/amino prefix, suffix heteroatom), the parent bracket placed before the part it modifies (D-196), and lambda5 on a single-bonded hypervalent centre (D-195)"
 scope = "core"

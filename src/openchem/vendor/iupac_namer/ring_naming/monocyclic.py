@@ -1455,8 +1455,6 @@ def _collect_hydro_locants(
         # both the mancude and the saturated ring — never an added-H position.
         if _is_ring_db_blocker(atom, ring_atom_set, mol):
             continue
-        if atom.GetFormalCharge() != 0:
-            return []
         in_endocyclic_unsat = False
         for bond in atom.GetBonds():
             other = bond.GetOtherAtomIdx(atom_idx)
@@ -1465,6 +1463,10 @@ def _collect_hydro_locants(
                 break
         if in_endocyclic_unsat:
             continue
+        # Naming round 34: the charge test comes AFTER the unsaturation test. A ring N+ in a C=N+ (a protonated imine, an amidinium) is in the
+        # double bond, so it is no hydro position; refusing the whole list for it dropped every hydro prefix, and `C1CC=[NH+]C1` read `azol-1-ium`.
+        if atom.GetFormalCharge() != 0:
+            return []
         loc = locant_map.get(atom_idx)
         if loc is None:
             return []

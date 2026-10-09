@@ -757,6 +757,7 @@
   "tests/test_namer_preference_key.py": 0,
   "tests/test_namer_probe_shapes.py": 1,
   "tests/test_namer_purine_fusion_letters.py": 2,
+  "tests/test_namer_ring_iminium_hydro.py": 1,
   "tests/test_namer_salt_multiplier.py": 0,
   "tests/test_namer_stereo_cache_identity.py": 0,
   "tests/test_namer_stereo_locant_tie.py": 2,
