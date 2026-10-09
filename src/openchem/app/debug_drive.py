@@ -5457,6 +5457,73 @@ class _Driver(QObject):
         else:
             logger.error("OPENCHEM_DRIVE: EXPECT results FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
 
+    def _do_project_run(self, step: dict[str, Any]) -> None:
+        """`{"do": "project_run", "calculators": ["topology_analysis"], "scope": "all", "descriptors": false}`
+        -- tick calculators in Properties, choose a scope, and press the REAL "Run selected".
+
+        THE BUTTON, not the handler behind it, for the reason `jobs_cancel` presses
+        its own: the wiring from the button to the scope to the plan to the batch
+        service is what this step exists to prove. `scope` is "this", "all" or
+        "chosen" (with `chosen`: molecule indexes). Ticks are set from scratch, so
+        a run is what the script says rather than what a previous step left ticked.
+        """
+        from openchem.ui.panels.property_panel import _SCOPE_ALL, _SCOPE_CHOSEN, _SCOPE_THIS
+
+        panel = self._window._property_panel
+        for tick in panel._calculator_ticks.values():
+            tick.setChecked(False)
+        missing = []
+        for calculator_id in step.get("calculators", []):
+            tick = panel._calculator_ticks.get(calculator_id)
+            if tick is None:
+                missing.append(calculator_id)
+            else:
+                tick.setChecked(True)
+        molecules = list(panel._project.molecules) if panel._project else []
+        scope = {"this": _SCOPE_THIS, "all": _SCOPE_ALL, "chosen": _SCOPE_CHOSEN}[step.get("scope", "all")]
+        chosen = {molecules[i].uuid for i in step.get("chosen", []) if 0 <= i < len(molecules)}
+        panel.set_scope(scope, chosen)
+        panel._scope_descriptors.setChecked(bool(step.get("descriptors", False)))
+        if missing:
+            logger.error("OPENCHEM_DRIVE: project_run -- no tick box for %s", missing)
+        logger.warning(
+            "OPENCHEM_DRIVE: project_run scope=%s calculators=%s molecules=%d enabled=%s",
+            scope, step.get("calculators", []), len(panel.scope_molecules()),
+            panel._run_selected_button.isEnabled(),
+        )
+        panel._run_selected_button.click()
+        logger.warning("OPENCHEM_DRIVE: project_run status=%r", panel._batch_status.text())
+
+    def _do_expect_project_table(self, step: dict[str, Any]) -> None:
+        """`{"do": "expect_project_table", "rows": 2, "columns_contain": ["Polar"], "showing": true}`
+        -- what the Results dock's project table HOLDS, asserted.
+
+        Reads the table off the workspace the dock is built from, so a table that
+        reached some other widget (the Batch panel's own) cannot satisfy it.
+        """
+        workspace = self._window._results_workspace
+        tag = str(step.get("tag", ""))
+        problems: list[str] = []
+        table = workspace.table_view.table()
+        if table is None:
+            problems.append("the Results dock has no project table")
+        else:
+            if "rows" in step and len(table.row_uuids) != int(step["rows"]):
+                problems.append(f"{len(table.row_uuids)} rows, wanted {step['rows']}")
+            headers = [column.header for column in table.columns]
+            for needle in step.get("columns_contain") or []:
+                if not any(needle in header for header in headers):
+                    problems.append(f"no column contains {needle!r} (columns: {headers[:10]})")
+            grid = workspace.table_view._results
+            if grid.rowCount() != len(table.row_uuids):
+                problems.append(f"the grid draws {grid.rowCount()} rows for {len(table.row_uuids)}")
+        if "showing" in step and workspace.showing_project_table() != bool(step["showing"]):
+            problems.append(f"showing the table is {workspace.showing_project_table()}, wanted {bool(step['showing'])}")
+        if self._record_assertion("expect_project_table", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT project table ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT project table FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
     def _do_edit_burst(self, step: dict[str, Any]) -> None:
         """`{"do": "edit_burst", "structures": ["CCO", "CCCO"], "edits": 20, "gap_ms": 150, "tag": "..."}`
         -- what a person DRAWING costs the application, measured.

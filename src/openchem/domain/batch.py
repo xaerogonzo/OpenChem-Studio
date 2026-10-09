@@ -533,3 +533,7 @@ class BatchRequest:
     #: fixture has; the guard for staleness must move this or it is
     #: testing the cache rather than the invalidation.
     structure_version: int = 0
+    #: Per-molecule versions, when the caller has them. The checker's counter is
+    #: per molecule, so a single `structure_version` cannot say whether ANY of a
+    #: run's molecules has moved since; a molecule absent here falls back to it.
+    structure_versions: dict[str, int] = field(default_factory=dict)

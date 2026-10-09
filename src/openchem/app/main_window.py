@@ -126,6 +126,7 @@ from openchem.ui.widgets.panel_rail import (
 )
 from openchem.ui.widgets.pop_out_host import PopOutHost
 from openchem.ui.widgets.results_view import ResultsView
+from openchem.ui.widgets.results_workspace import ResultsWorkspace
 from openchem.ui.widgets.molecule_editor_widget import MoleculeEditorWidget
 from openchem.ui.widgets.molecule_viewer3d_widget import MoleculeViewer3DWidget
 from openchem.ui.widgets.molstar_viewer_backend import MolStarViewerBackend
@@ -444,6 +445,8 @@ class MainWindow(QMainWindow):
             structure_version_of=services.structure_check_service.current_version,
             substance_perception_needed=self._substance_perception_needed,
             settings=self._settings,
+            # So "Run selected" can also run on several molecules, into the project table.
+            batch_service=services.batch_service,
         )
         # The footer's "N calculators hidden" link: the window owns the dialogs.
         self._property_panel.settings_requested.connect(self.show_settings)
@@ -689,8 +692,24 @@ class MainWindow(QMainWindow):
         self._results_view = ResultsView(
             display_order_of=services.calculator_registry.display_order
         )
-        self._results_host = PopOutHost(
+        # The reader and the project table share this dock as two pages; the
+        # switch between them only appears once a project run has made a table.
+        # Bound methods for the lookups, never lambdas closing over `self`.
+        self._results_workspace = ResultsWorkspace(
             self._results_view,
+            services.calculator_registry,
+            services.table_export_service,
+            services.event_bus,
+            services.chemistry_engine,
+            project_of=self._project_for_results,
+            structure_version_of=services.structure_check_service.current_version,
+            on_analyse=self._show_batch_analysis,
+            on_screen=self._show_virtual_screening,
+            batch_service=services.batch_service,
+        )
+        self._property_panel.project_run_started.connect(self._on_project_run_started)
+        self._results_host = PopOutHost(
+            self._results_workspace,
             title="Results",
             settings_id="results",
             settings=settings,
@@ -1486,6 +1505,14 @@ class MainWindow(QMainWindow):
         return HELP_TOPIC_BY_CENTRE_TAB.get(
             self._center_tabs.tabText(self._center_tabs.currentIndex()), "projects"
         )
+
+    def _project_for_results(self):
+        return self._session.project
+
+    def _on_project_run_started(self, plan) -> None:
+        """A project run was submitted: the workspace adopts its table, and it is shown."""
+        self._results_workspace.begin_project_run(plan)
+        self.reveal_results()
 
     def reveal_results(self) -> None:
         """Put the results reader somewhere it can be read.

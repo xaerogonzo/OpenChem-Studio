@@ -106,6 +106,12 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "service_row", "calculator": "orca.nmr", "expect": {"panel": "Quantum_Chemistry"}}
                                           PRESS a row that opens another panel;
                                           `reveal_row` scrolls one into a shot
+    {"do": "project_run", "calculators": ["topology_analysis"], "scope": "all",
+     "descriptors": true}                 tick calculators, pick a scope (this/all/chosen)
+                                          and press the REAL "Run selected"
+    {"do": "expect_project_table", "rows": 2, "columns_contain": ["Atom count"],
+     "showing": true}                     what the Results dock's PROJECT TABLE holds,
+                                          read off the workspace the dock is built from
     {"do": "chip", "calculator": "detonation", "expect": {"status": "needs_input"}}
                                           PRESS a status chip and assert where
                                           the press went; `tool_setup` is the

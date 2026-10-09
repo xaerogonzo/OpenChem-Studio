@@ -26,6 +26,7 @@ from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QFileDialog,
+    QHBoxLayout,
     QHeaderView,
     QLabel,
     QMenu,
@@ -56,6 +57,17 @@ logger = logging.getLogger("openchem.ui")
 #: The help contracts of the controls this widget draws. They keep their
 #: `batch.*` ids and topic: the concept did not change when the code moved.
 TABLE_HELP: dict[str, HelpTooltip] = {
+    "cancel_run": HelpTooltip(
+        text=(
+            "Stop the project run that is in progress.\n\n"
+            "Results already computed stay in the table; the rest are left "
+            "blank, which reads the same as never having been run. The run is "
+            "also listed in the Jobs panel."
+        ),
+        tier=1,
+        help_id="results.cancel_project_run",
+        topic="batch",
+    ),
     "export_csv": HelpTooltip(
         text=(
             "Write the results table to a CSV file.\n\n"
@@ -180,6 +192,8 @@ class ProjectTableView(QWidget):
     #: A molecule's row was opened (double-click, or Details with a row chosen).
     #: Carries its uuid; the host decides whether anything must be computed first.
     details_requested = Signal(str)
+    #: The Cancel button was pressed while a run was going (only when `show_cancel`).
+    cancel_requested = Signal()
 
     def __init__(
         self,
@@ -188,8 +202,12 @@ class ProjectTableView(QWidget):
         parent: QWidget | None = None,
         on_analyse=None,
         on_screen=None,
+        show_cancel: bool = False,
     ) -> None:
         super().__init__(parent)
+        #: Whether this view draws its own Cancel. The Batch panel has one among its
+        #: run controls, so it does not; the Results page has no other.
+        self._show_cancel = show_cancel
         self._registry = calculator_registry
         self._export_service = table_export_service
         self._on_analyse = on_analyse
@@ -211,7 +229,15 @@ class ProjectTableView(QWidget):
         """
         self._progress = QProgressBar(self)
         self._progress.setVisible(False)
-        layout.addWidget(self._progress)
+        progress_row = QHBoxLayout()
+        progress_row.setContentsMargins(0, 0, 0, 0)
+        progress_row.addWidget(self._progress, 1)
+        self._cancel_button = QPushButton("Cancel run", self)
+        self._cancel_button.setVisible(False)
+        apply_help_tooltip(self._cancel_button, TABLE_HELP["cancel_run"])
+        self._cancel_button.clicked.connect(self.cancel_requested)
+        progress_row.addWidget(self._cancel_button)
+        layout.addLayout(progress_row)
         self._status = QLabel("")
         self._status.setWordWrap(True)
         layout.addWidget(self._status)
@@ -273,6 +299,7 @@ class ProjectTableView(QWidget):
         """
         running = event.state in (CacheState.QUEUED, CacheState.RUNNING)
         self._progress.setVisible(running)
+        self._cancel_button.setVisible(running and self._show_cancel)
         if event.total:
             self._progress.setMaximum(event.total)
             self._progress.setValue(event.completed)

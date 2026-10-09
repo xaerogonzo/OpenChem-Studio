@@ -73,7 +73,10 @@ class ExecutionPlan:
     #: still get a row -- failed, with the reason -- so the table is never
     #: silently shorter than the scope.
     unrunnable_molecules: tuple[ExcludedJob, ...]
-    structure_version: int
+    #: The structure version of EACH molecule when the run was submitted. The
+    #: checker's counter is per molecule, so one number for a whole run cannot
+    #: say whether any one of them has moved since.
+    structure_versions: Mapping[str, int]
     calculator_ids: tuple[str, ...]
     descriptor_ids: tuple[str, ...]
     #: Parameters for each RUNNABLE calculator, normalised: what the person
@@ -126,7 +129,7 @@ def build_execution_plan(
     descriptor_ids: Iterable[str] = (),
     chosen_parameters: Mapping[str, Mapping[str, Any]] | None = None,
     definition_of: Callable[[str], CalculatorDefinition | None],
-    structure_version: int = 0,
+    structure_version_of: Callable[[str], int] = lambda _uuid: 0,
     run_id: str | None = None,
     plain_label: Callable[[str], str] = lambda text: text,
 ) -> ExecutionPlan:
@@ -211,7 +214,7 @@ def build_execution_plan(
         molecule_uuids=tuple(runnable_molecules),
         molecule_labels=MappingProxyType(labels),
         unrunnable_molecules=tuple(unrunnable),
-        structure_version=structure_version,
+        structure_versions=MappingProxyType({u: structure_version_of(u) for u in scope}),
         calculator_ids=tuple(runnable),
         descriptor_ids=tuple(dict.fromkeys(descriptor_ids)),
         parameters=MappingProxyType(parameters),
