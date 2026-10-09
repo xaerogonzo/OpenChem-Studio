@@ -6,6 +6,7 @@ import logging
 import os
 import weakref
 from collections.abc import Callable
+from contextlib import contextmanager
 from typing import NamedTuple
 
 from PySide6.QtCore import QPoint, QSize, Qt, QTimer, Signal
@@ -1630,6 +1631,9 @@ class PropertyPanel(QWidget):
         self._descriptor_values: dict[tuple[str, str], DescriptorValue] = {}
         #: Whether a coalesced `_refresh_reader_soon` is waiting to run.
         self._reader_refresh_scheduled = False
+        #: Depth of `batched_reader_refresh`, and whether a refresh was asked for inside it.
+        self._reader_batch_depth = 0
+        self._reader_batch_owed = False
         #: The structure version each held descriptor was computed for (its dispatch
         #: version, or arrival time where the producer did not say). The reader's
         #: "Molecular Properties" entry is only as current as the OLDEST of these: a set
@@ -2932,6 +2936,26 @@ class PropertyPanel(QWidget):
         self._reader_refresh_scheduled = False
         self._refresh_reader()
 
+    @contextmanager
+    def batched_reader_refresh(self):
+        """Hold every reader refresh asked for inside the block and run ONE at its end.
+
+        **FOR A REPLAY, WHERE THE RESULTS COME BACK AS A LOOP OF EVENTS.** Switching molecule
+        replays what is stored for it as one `ReportComputed` per result, and each used to
+        rebuild the whole Results reader: 50 calculators on two molecules measured 398
+        rebuilds of 230-350 facts, 2-4 s of frozen window per switch. The caller names the
+        loop, so nothing outside it changes: a result arriving on its own still refreshes
+        the reader at once, which code and tests read straight after.
+        """
+        self._reader_batch_depth += 1
+        try:
+            yield
+        finally:
+            self._reader_batch_depth -= 1
+            if self._reader_batch_depth == 0 and self._reader_batch_owed:
+                self._reader_batch_owed = False
+                self._refresh_reader()
+
     def _refresh_reader(self) -> None:
         """Push the currently-held reports into the reader.
 
@@ -2947,6 +2971,9 @@ class PropertyPanel(QWidget):
         Sixty chips is a handful of `setText` calls; a per-result update
         would be six call sites and five chances to miss one.
         """
+        if self._reader_batch_depth:
+            self._reader_batch_owed = True
+            return
         self._sync_attached_reader()
         self._refresh_status_chips()
 
