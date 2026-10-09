@@ -3504,10 +3504,13 @@ class MainWindow(QMainWindow):
             return
         store_service = self._services.result_store_service
         try:
-            store_service.replay(
-                molecule,
-                self._services.structure_check_service.current_version(molecule.uuid),
-            )
+            # One reader rebuild for the whole replay, not one per stored result: 50
+            # calculators on two molecules cost 398 rebuilds and 2-4 s a switch.
+            with self._property_panel.batched_reader_refresh():
+                store_service.replay(
+                    molecule,
+                    self._services.structure_check_service.current_version(molecule.uuid),
+                )
         except Exception:  # noqa: BLE001 - see _missing_automatic_parts
             logger.exception("Could not replay retained results for %s; recomputing", molecule.uuid)
             self._services.descriptor_service.request_descriptors(molecule)

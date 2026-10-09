@@ -45,6 +45,11 @@
 | fork commit | `60b125a` — synced 2026-09-27, corresponding to this repository's `naming-round-20` (base `b99dfda2`, the round-19 merge): naming round 20, D-170 (the SUBSTITUENT `hydrazinylidene`, P-66.4.1.2: `_hydrazinylidene_prefix` cites N2's substituents at 2 and writes a lone nitro or nitroso group unlocanted, `assembly._is_simple_by_form` leaves the bare group unenclosed; an azine, a triazane and a ring N2 keep the imino form). `engine.py` and `assembly.py` merged clean with `tools/fork_port.py` (numstat +79/0 on both sides); `tests/test_namer_known_defects.py` is hand-patched in the fork, and the fork's CHANGELOG and KNOWN_LIMITATIONS are written there. The fork's own suite: 6994 passed, 2 failed — the same two `test_carbocyclic_indicated_h.py` trindene cases as rounds 17 to 19 (the fork venv's RDKit 2026.03.6) |
 | offered upstream | https://github.com/leehiufung911/open-iupac-namer/pull/1 |
 
+From naming round 34 on a sync is recorded in a `| fork pull request |` row that cites PULL REQUEST NUMBERS, not commits, and it is written into the application's own
+code PR. The older `| fork commit |` rows cite the fork's merge commit and this repository's squash commit, which only exist once both PRs have merged, so each of them cost a
+second, documentation-only PR. A pull request number is known the moment the PR is opened, and either commit is one `gh pr view <n> --json mergeCommit` away. The rows above
+are history and are not rewritten. `tests/test_vendoring_rows.py` fails a code PR that adds a `naming round N` section (N >= 34) to `CHANGELOG.md` without that row.
+
 ### Why vendored rather than depended on
 
 It is abandoned. Created 2026-05-24, last pushed 2026-05-24, three commits,
@@ -160,6 +165,20 @@ re.sub(r"\b(from|import) iupac_namer\b", r"\1 openchem.vendor.iupac_namer", text
 and its exact inverse to go the other way. That is still the whole transform;
 nothing else diverges. Then re-run `benchmarks/naming` before accepting the
 change — the benchmark, not the diff, is what says whether it got better.
+
+### Recording a sync: the order that keeps it in ONE application PR
+
+1. Push the branch and open the application PR. Its number is the row's `app #N`.
+2. Run `tools/fork_port.py` for it (`--base` is the application commit the fork already holds: `gh pr view <previous app PR> --json mergeCommit`), commit in the fork, push, open the
+   fork PR. Its number is the row's `fork #M`. The fork's CHANGELOG then cites the application PR as `xaerogonzo/OpenChem-Studio#N`.
+3. Add the row to `VENDORING.md` on the application branch and push: the same PR, so its CI runs once on the finished tree.
+4. Merge the application PR when green, then the fork PR. Nothing is left to document afterwards.
+
+The row, with every field the older ones carry except the commits:
+
+    | fork pull request | xaerogonzo/open-iupac-namer#M — synced YYYY-MM-DD, corresponding to this repository's pull request #N (`branch`, base `SHA`, the application commit the
+    fork held): naming round R, <what it changed and where>. The port merged <k> files clean (<names>), numstat +A/-D on both sides. <which tests came across as they are, and which
+    were merged>. The fork's tests run here: <files>, <passed>, <xfailed>; the fork's full suite was NOT run. |
 
 ### Pushing a change OUT to the fork: merge, never copy
 

@@ -571,3 +571,39 @@ def test_the_edit_flag_does_not_outlive_its_push(window_rig):
     window._on_undo_index_changed(0)  # no event this time
 
     assert rebuilt == [1], "the second change is not a canvas edit"
+
+
+def test_a_batched_replay_rebuilds_the_reader_once_and_holds_every_report(panel_rig):
+    """A molecule switch replays every stored result as its own event. Measured: 50
+    calculators on two molecules cost 398 rebuilds of 230-350 facts, 2-4 s of frozen window
+    per switch. Inside `batched_reader_refresh` the loop owes ONE refresh, at its end; outside
+    it a report still refreshes the reader at once (the test above)."""
+    from openchem.domain.report import Basis, Fact, FactCategory, ReportResult
+    from openchem.events.events import ReportComputed
+
+    panel, bus, molecule, _service, _versions = panel_rig
+    rebuilds: list[int] = []
+    original = panel._sync_attached_reader
+    panel._sync_attached_reader = lambda: (rebuilds.append(1), original())[1]
+
+    with panel.batched_reader_refresh():
+        for index in range(30):
+            bus.publish(ReportComputed(report=ReportResult(
+                molecule_uuid=molecule.uuid, report_id=f"r{index}", name=f"r{index}",
+                category="topology",
+                facts=(Fact(category=FactCategory.TOPOLOGY, label=f"x{index}", value=index,
+                            display_value=str(index), source="t", basis=Basis.DETERMINISTIC),),
+            )))
+        assert rebuilds == [], "nothing rebuilt while the replay is still running"
+    assert len(rebuilds) == 1, "one rebuild when it ended"
+    assert len(panel._reports) == 30
+
+
+def test_an_empty_batch_rebuilds_nothing(panel_rig):
+    panel, _bus, _molecule, _service, _versions = panel_rig
+    rebuilds: list[int] = []
+    original = panel._sync_attached_reader
+    panel._sync_attached_reader = lambda: (rebuilds.append(1), original())[1]
+    with panel.batched_reader_refresh():
+        pass
+    assert rebuilds == []
