@@ -601,13 +601,44 @@ def seniority_key(c: Component) -> tuple:
 # --- descriptors ----------------------------------------------------------------
 
 
-def _periphery_order(comp: Component, label_map: dict[int, str], ring_sets) -> list[int]:
+def _periphery_order(comp: Component, label_map: dict[int, str], ring_sets, bonds=None) -> list[int]:
     """The component's peripheral atoms in the order of its own locants. An
     atom in three of the component's rings is interior to it (pyrene's two
-    central carbons) and carries no lettered side."""
+    central carbons) and carries no lettered side.
+
+    The sides are lettered along the PERIPHERY, from the side 1-2 in the direction of increasing locants (P-25.3.1.3), which is the order of the locants
+    wherever the numbering runs once round the ring system. Purine's does not: its fusion atoms are 4 and 5, and the periphery goes 1, 2, 3, 4, 9, 8, 7, 5,
+    6, so the imidazole bond N7-C8 is `f` (OPSIN: `imidazo[2,1-f]purine`) where sorting the locants made it `g`, a different bond. When the periphery can be walked
+    (`bonds` given) and its order differs from the locant order, the walk is used."""
     rings = [ring_sets[i] for i in comp.rings]
-    return [a for a, _lab in sorted(label_map.items(), key=lambda kv: _locant_key(kv[1]))
-            if sum(1 for r in rings if a in r) < 3]
+    by_locant = [a for a, _lab in sorted(label_map.items(), key=lambda kv: _locant_key(kv[1]))
+                 if sum(1 for r in rings if a in r) < 3]
+    walked = _walk_periphery(by_locant, rings, bonds, label_map) if bonds is not None else None
+    return walked if walked is not None else by_locant
+
+
+def _walk_periphery(by_locant: list[int], rings, bonds, label_map: dict[int, str]) -> list[int] | None:
+    """The peripheral atoms in the order a walk round the periphery visits them, starting at the lowest locant towards the lower of its two neighbours;
+    None when the peripheral bonds do not form one cycle through exactly these atoms (then the locant order stands)."""
+    atoms = set(by_locant)
+    neighbours: dict[int, list[int]] = {a: [] for a in atoms}
+    for bond in bonds:
+        u, v = tuple(bond)
+        if u in atoms and v in atoms and sum(1 for r in rings if u in r and v in r) == 1:    # a bond of ONE ring is on the periphery; a shared bond is not
+            neighbours[u].append(v)
+            neighbours[v].append(u)
+    if any(len(n) != 2 for n in neighbours.values()) or not by_locant:
+        return None
+    start = by_locant[0]
+    first = min(neighbours[start], key=lambda a: _locant_key(label_map[a]))
+    order = [start, first]
+    while len(order) < len(atoms):
+        previous, current = order[-2], order[-1]
+        following = [n for n in neighbours[current] if n != previous]
+        if len(following) != 1 or following[0] in order:
+            return None
+        order.append(following[0])
+    return order if set(order) == atoms else None
 
 
 def _sides(order: list[int]) -> list[tuple[int, int]]:
@@ -625,7 +656,7 @@ def fusion_descriptor(parent: Component, parent_map: dict[int, str],
     under one parent numbering and one attached numbering. Letters follow the
     parent's peripheral sides a = 1-2, b = 2-3 ...; the attached locants are
     those of the shared atoms, cited in the parent's lettering direction."""
-    order = _periphery_order(parent, parent_map, ring_sets)
+    order = _periphery_order(parent, parent_map, ring_sets, bonds)
     sides = _sides(order)
     shared = parent.atoms & attached.atoms
     fused = [i for i, (u, v) in enumerate(sides)
