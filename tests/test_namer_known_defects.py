@@ -4202,6 +4202,10 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-206", "C1=Nc2nc3ncncc3n2C1", "6H-imidazo[2,1-f]purine",
      "6H-imidazo[1,2-g]purine",
      "WRONG MOLECULE: the bond N7-C8 is 'f', not 'g'; OPSIN reads the former name as another structure (9 of 32 purine-fused systems unreadable, 1 wrong)"),
+    # D-207, found by naming round 33's census review: a partly saturated ring with a C=N+ lost every hydro prefix, so a cyclic iminium / amidinium named the aromatic or the saturated ring.
+    ("D-207", "C[N+]1=C(C)NCC1", "2,3-dimethyl-4,5-dihydro-1H-1,3-diazol-3-ium",
+     "2,3-dimethyl-1,3-diazol-3-ium",
+     "WRONG MOLECULE: an imidazolinium named as an imidazolium; 1005 of 1151 protonated or N-alkylated cyclic imines, amidines and their substituted forms named another molecule"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this

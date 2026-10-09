@@ -3115,8 +3115,8 @@ def _try_derive_hydro_retained(
             return None
         if a.GetIsAromatic():
             continue
-        if a.GetFormalCharge() != 0:
-            return None
+        # Naming round 34: a charged atom is out of scope only when it is a saturation position. A ring N+ in a C=N+ (`C1CC[NH+]=CC1`) is in its
+        # double bond like any sp2 member, and refusing it here left the cation of 2,3,4,5-tetrahydropyridine `azinan-1-ium`, a different molecule.
         if (a.GetAtomicNum() in _CHALCOGEN_DIVALENT
                 and a.GetTotalValence() == 2):
             continue
@@ -3188,6 +3188,11 @@ def _try_derive_hydro_retained(
             if atom.IsInRing():
                 was_aromatic = atom.GetIsAromatic()
                 atom.SetIsAromatic(True)
+                if reset == "neutral" and atom.GetFormalCharge() != 0:
+                    # Naming round 34: the carve leaves an N+ that has lost its substituent (`C[N+]1=CCCCC1` -> `C1=[N+]CCCC1`) with a RADICAL electron and
+                    # no H, which does not kekulise. Clear both and the ring is the table's pyridinium; the -ium itself is rendered from the full molecule.
+                    atom.SetNumExplicitHs(0)
+                    atom.SetNumRadicalElectrons(0)
                 if (reset == "all" or nh_atom is not None
                         or (reset == "saturated_only" and not was_aromatic)):
                     atom.SetNumExplicitHs(0)
@@ -3211,7 +3216,11 @@ def _try_derive_hydro_retained(
     arom_smi = None
     _nh_modes = [("nh", _a.GetIdx()) for _a in ring_mol.GetAtoms()
                  if _a.IsInRing() and _a.GetAtomicNum() == 7 and not _a.GetIsAromatic()]
-    for _mode in ("none", "saturated_only", "all", *_nh_modes):
+    _modes = ["none", "saturated_only", "all", *_nh_modes]
+    if any(_a.IsInRing() and _a.GetFormalCharge() != 0 for _a in ring_mol.GetAtoms()):
+        # A charged ring whose N+ has lost its H or substituent in the carve only kekulises in the "neutral" mode, and the other modes would settle on a candidate first.
+        _modes.insert(0, "neutral")
+    for _mode in _modes:
         try:
             _candidate = _try_aromatize(_mode)
         except Exception:

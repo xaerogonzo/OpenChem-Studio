@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: a partly saturated ring cation keeps its hydro prefixes
+- A cyclic iminium or amidinium (`C[N+]1=C(C)NCC1`, `C1CC=[NH+]C1`, `CC1=[NH+]CCCC1`) was named as the aromatic or the fully saturated ring with an `-ium`: `2,3-dimethyl-1,3-diazol-3-ium` (an imidazolium), `azol-1-ium` (a pyrrolium), `6-methylazinan-1-ium` (a piperidinium), all different molecules. Two helpers refused a ring on its first charged atom, although an N+ in a C=N+ is in the double bond and is no hydro position. 1151 protonated or N-alkylated cyclic imines, amidines and their substituted forms, master -> now: wrong molecule 1005 -> 0, exact 146 -> 1151, none worse (`C[N+]1=C(C)NCC1` -> `2,3-dimethyl-4,5-dihydro-1H-1,3-diazol-3-ium`). D-207.
+
 ### Compare table: every molecule fits, and a long value is cut off rather than taking the table
 - Every molecule column was sized to its longest value, so one IUPAC name made its column about 700 px wide, squeezed the Property column to "Chain atom co..." and pushed the second molecule off the right edge (two molecules at 640 px: columns 100 / 706 / 379 px). The Property column now takes its names (capped at 260 px), the molecules share the rest, and a value that does not fit is elided with the whole of it in the tooltip. Highlight cells and press Ctrl+C to copy them tab-separated (whole values, not the cut-off text), and right-click offers the table as CSV like the other tables.
 
