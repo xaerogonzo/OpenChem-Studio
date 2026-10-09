@@ -4194,6 +4194,14 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "(1S,9R,12R)-12-acetyl-9-methyl-4-nitro-8-oxa-10-azatricyclo[7.3.1.0^{2,7}]trideca-2,4,6-trien-11-one",
      "(5S,6R,9R)-6-acetyl-9-methyl-3-nitro-5,6,7,8,9,10-hexahydro-5,9-methanobenzocycloocten-7-one",
      "WRONG MOLECULE: a 2,6-methano-1,3-benzoxazocin-4-one came out as a carbocycle with no oxygen and no nitrogen (89 of 114 heteroatom variants of the skeleton)"),
+    # D-205, found by naming round 32's census review: the cation of a fused ring system with ONE indicated hydrogen is a molecule no table holds, so `name_ring_system` returned nothing.
+    ("D-205", "COc1cc2[nH+]c3c(C)[nH]ccc-3c2cc1Br", "6-bromo-7-methoxy-1-methyl-2H-pyrido[3,4-b]indol-9-ium",
+     "[NAMING ERROR: No valid naming plan found for COc1cc2[nH]c3c(C)[nH]ccc-3c2cc1Br]",
+     "a protonated fused heteroaromatic was a visible NAMING ERROR (8 of 300 such molecules, 7 of the census's 2000 rows)"),
+    # D-206, found while verifying D-205: a ring fused on purine was lettered by sorting the locants, and purine's periphery is 1,2,3,4,9,8,7,5,6.
+    ("D-206", "C1=Nc2nc3ncncc3n2C1", "6H-imidazo[2,1-f]purine",
+     "6H-imidazo[1,2-g]purine",
+     "WRONG MOLECULE: the bond N7-C8 is 'f', not 'g'; OPSIN reads the former name as another structure (9 of 32 purine-fused systems unreadable, 1 wrong)"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
