@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QFormLayout,
     QLabel,
+    QLineEdit,
     QMenu,
     QMessageBox,
     QPushButton,
@@ -40,8 +41,11 @@ from openchem.domain.calculator_support import help_anchor_for, is_offered_by_de
 from openchem.domain.calculator_taxonomy import (
     CATEGORY_LABELS,
     CATEGORY_ORDER,
+    calculator_browse_sort_key,
+    category_browse_key,
     category_label,
-    category_sort_key,
+    task_group_label,
+    task_group_of,
 )
 from openchem.domain.common import CacheState, describe_failure
 from openchem.domain.compare import (
@@ -357,6 +361,23 @@ _RUN_SELECTED_HELP = HelpTooltip(
     ),
     tier=1,
     help_id="properties.run_selected",
+    topic="properties",
+    help_anchor="properties",
+)
+
+#: The Find box above the calculator list. Visibility only, which is the
+#: sentence the tooltip leads with because it is what somebody worries about.
+_FIND_CALCULATOR_HELP = HelpTooltip(
+    text=(
+        "Narrow the calculator list to what matches what you type.\n\n"
+        "It matches a calculator's name, its tags, its description and its "
+        "section heading, ignoring case. Matching sections open while you "
+        "search and go back to how you had them when you clear the box.\n\n"
+        "It only changes what is SHOWN: ticks, options and results are "
+        "untouched, and a calculator hidden by default stays hidden."
+    ),
+    tier=2,
+    help_id="properties.find_calculator",
     topic="properties",
     help_anchor="properties",
 )
@@ -1668,6 +1689,8 @@ class PropertyPanel(QWidget):
         #: (`CalculatorDefinition.preflight`). Only calculators that declare a hook appear.
         self._preflight_reasons: dict[str, str] = {}
         self._sections: dict[str, _CollapsibleSection] = {}
+        #: Task-group heading labels, by group id (see `_group_header`).
+        self._group_headers: dict[str, QLabel] = {}
         # Which section each row currently lives in -- lets
         # _on_descriptor_computed detect a category change and re-parent the
         # row instead of leaving it stuck in whatever section it first drew
@@ -1755,10 +1778,27 @@ class PropertyPanel(QWidget):
         # answer belongs above the properties rather than among them.
         self._substance_card = SubstanceCard(self)
 
+        # FIND A CALCULATOR. Visibility only -- it never touches ticks, scope,
+        # parameters or saved presets. While a query is active the matching
+        # sections open; the expansion the person had is captured once, when
+        # the query goes from empty to non-empty, and put back on clear.
+        self._find_text = ""
+        self._find_snapshot: dict[str, bool] | None = None
+        self._find_box = QLineEdit(self)
+        self._find_box.setPlaceholderText("Find a calculator (name, tag, topic)...")
+        self._find_box.setClearButtonEnabled(True)
+        apply_help_tooltip(self._find_box, _FIND_CALCULATOR_HELP)
+        self._find_box.textChanged.connect(self._on_find_changed)
+        self._find_empty = QLabel("No calculator matches.", self)
+        self._find_empty.setStyleSheet(_INFORMATION_STYLE)
+        self._find_empty.setVisible(False)
+
         layout = QVBoxLayout(self)
         layout.setContentsMargins(4, 4, 4, 4)
         layout.addWidget(self._substance_card)
         layout.addLayout(batch_row)
+        layout.addWidget(self._find_box)
+        layout.addWidget(self._find_empty)
         layout.addWidget(scroll_area)
         #: "N calculators hidden by default -- Settings...". An ELIDING button:
         #: a plain one reports its whole text as its minimum width, and this
@@ -1879,7 +1919,12 @@ class PropertyPanel(QWidget):
         title = _category_label(category)
         section = _CollapsibleSection(title, expanded, self._sections_container)
         self._sections[category] = section
-        for definition in self._calculator_registry.by_category(category):
+        # A-Z inside a section (`calculator_browse_sort_key`), NOT registration
+        # order: the registry's editorial order is still what the Results reader
+        # sorts by, but a launcher is scanned by name.
+        for definition in sorted(
+            self._calculator_registry.by_category(category), key=calculator_browse_sort_key
+        ):
             if not isinstance(definition.execution, RegistryExecution):
                 # ServiceExecution-backed (Docking, QuantumChemistry): run from their own
                 # panel, so the row OPENS it -- a real control where there used to be one
@@ -2144,13 +2189,48 @@ class PropertyPanel(QWidget):
         # for the first time, not on every descriptor.
         while self._sections_layout.count():
             self._sections_layout.takeAt(0)
-        # `category_sort_key`, not a copy of it. This rule is now also the
-        # Results selector's, and two implementations of "where does this
-        # category sit" is exactly the drift this move exists to end.
-        ordered = sorted(self._sections, key=category_sort_key)
+        # `category_browse_key`, not a copy of it. This rule is also the
+        # Results selector's (task group, then the visible heading), and two
+        # implementations of "where does this category sit" is exactly the
+        # drift this exists to end.
+        ordered = sorted(self._sections, key=category_browse_key)
+        current_group = None
         for category in ordered:
+            group = task_group_of(category)
+            if group != current_group:
+                current_group = group
+                self._sections_layout.addWidget(self._group_header(group))
             self._sections_layout.addWidget(self._sections[category])
         self._sections_layout.addStretch()
+        self._refresh_group_headers()
+
+    def _group_header(self, group: str) -> QLabel:
+        """The heading above one task group's sections, built once and reused."""
+        header = self._group_headers.get(group)
+        if header is None:
+            header = QLabel(task_group_label(group), self._sections_container)
+            header.setObjectName("taskGroupHeader")
+            font = header.font()
+            font.setBold(True)
+            header.setFont(font)
+            header.setContentsMargins(2, 8, 0, 2)
+            self._group_headers[group] = header
+        return header
+
+    def _refresh_group_headers(self) -> None:
+        """Show a group's heading only while one of its sections is showing.
+
+        `isHidden`, not `isVisible`: a panel that has not been shown yet reports
+        every child not-visible, which would blank every heading at startup.
+        """
+        for group, header in self._group_headers.items():
+            header.setHidden(
+                all(
+                    section.isHidden()
+                    for category, section in self._sections.items()
+                    if task_group_of(category) == group
+                )
+            )
 
     def _on_descriptor_computed(self, event: DescriptorComputed) -> None:
         """Record an always-on descriptor. It is READ in the results panel.
@@ -3239,11 +3319,68 @@ class PropertyPanel(QWidget):
                 # A section with nothing left to offer goes too: an empty
                 # heading is a promise with nothing behind it.
                 section.setVisible(any(cid not in hidden for cid in calculator_ids))
+        self._apply_find()
+        self._refresh_group_headers()
         count = len(hidden)
         self._hidden_link.setVisible(count > 0)
         plural = "" if count == 1 else "s"
         self._hidden_link.setText(f"{count} calculator{plural} hidden by default -- Settings...")
         self._on_selection_toggled()
+
+    def _on_find_changed(self, text: str) -> None:
+        self._find_text = text
+        self._apply_calculator_visibility()
+
+    def _find_matches(self, definition: CalculatorDefinition, needle: str) -> bool:
+        """Case-insensitive substring over name, tags, description and heading.
+
+        Tags may be empty (a plugin need not declare any), so they are only
+        ever iterated, never assumed.
+        """
+        haystack = " ".join(
+            [
+                definition.display_name,
+                definition.description or "",
+                _category_label(definition.category),
+                *(definition.tags or []),
+            ]
+        ).casefold()
+        return needle in haystack
+
+    def _apply_find(self) -> None:
+        """Narrow the launcher to the query, or put back what it replaced.
+
+        Runs AFTER the offered/withdrawn pass, so it can only hide more: a
+        calculator withdrawn by default stays withdrawn whatever it matches.
+        """
+        needle = self._find_text.strip().casefold()
+        if not needle:
+            if self._find_snapshot is not None:
+                for category, was_open in self._find_snapshot.items():
+                    section = self._sections.get(category)
+                    if section is not None:
+                        section.set_expanded(was_open)
+                self._find_snapshot = None
+            self._find_empty.setVisible(False)
+            return
+        if self._find_snapshot is None:
+            self._find_snapshot = {c: s.is_expanded() for c, s in self._sections.items()}
+        any_match = False
+        for category, section in self._sections.items():
+            section_match = False
+            for definition in self._calculator_registry.by_category(category):
+                calculator_id = definition.calculator_id
+                widget = self._calculator_rows.get(calculator_id) or self._service_rows.get(calculator_id)
+                if widget is None or calculator_id in self._hidden_calculator_ids:
+                    continue
+                matched = self._find_matches(definition, needle)
+                widget.setVisible(matched)
+                section_match = section_match or matched
+            section.setVisible(section_match)
+            if section_match:
+                section.set_expanded(True)
+            any_match = any_match or section_match
+        self._find_empty.setVisible(not any_match)
 
     def _on_settings_changed(self, event: SettingsChanged) -> None:
         if str(event.key).startswith("calculators/"):

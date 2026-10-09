@@ -275,8 +275,9 @@ def render() -> str:
     from openchem.bootstrap import build_service_container
     from openchem.domain.calculator_taxonomy import (
         RETIREMENTS,
+        calculator_browse_sort_key,
+        category_browse_key,
         category_label,
-        category_sort_key,
     )
 
     registry = build_service_container().calculator_registry
@@ -304,11 +305,11 @@ def render() -> str:
         "",
     ]
 
-    categories = sorted(registry.categories(), key=category_sort_key)
+    # The same browse order Properties and Results use, so the reference reads
+    # in the order the application shows its sections.
+    categories = sorted(registry.categories(), key=category_browse_key)
     for category in categories:
-        definitions = sorted(
-            registry.by_category(category), key=lambda d: d.display_name
-        )
+        definitions = sorted(registry.by_category(category), key=calculator_browse_sort_key)
         if not definitions:
             continue
         lines += [f"## {category_label(category)}", ""]

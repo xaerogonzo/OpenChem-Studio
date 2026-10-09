@@ -17,8 +17,12 @@ looking for.
 The complete key, in order:
 
     display band   -> the always-on entry first (see ALWAYS_ON)
-    category       -> `category_sort_key`, i.e. CATEGORY_ORDER then alphabetical
-    display order  -> the calculator's position in the registry
+    category       -> `category_browse_key`: task group, then the section's
+                      visible label -- the SAME key Properties orders its
+                      sections by, so the two panels cannot disagree. The band
+                      still comes first: a task group never crosses it.
+    display order  -> the calculator's position in the registry (the editorial
+                      order INSIDE a section; Properties alone is A-Z there)
     display name   -> casefolded
     report_id      -> last resort, so the key is TOTAL
 
@@ -55,7 +59,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from openchem.domain.calculator_taxonomy import category_label, category_sort_key
+from openchem.domain.calculator_taxonomy import category_browse_key, category_label
 
 #: An entry that belongs to no single section, shown above the sections.
 #:
@@ -99,7 +103,7 @@ def category_of(entry) -> str:
 
     **`""` AND `"other"` MUST NOT BE TWO SECTIONS.** `ReportResult.category`
     defaults to `"other"`, so a report that omits it means exactly what one
-    that spells it out means -- but `category_sort_key` orders unlisted
+    that spells it out means -- but `category_browse_key` orders unfiled
     categories by the string, which puts them at opposite ends of the
     unlisted tail, while `category_label` renders BOTH as "Other". Left
     alone, a plugin category sorting between them yields two separate groups
@@ -141,7 +145,7 @@ def report_sort_key(
     position = None if display_order_of is None else display_order_of(report_id)
     return (
         display_band(entry),
-        category_sort_key(category),
+        category_browse_key(category),
         UNORDERED if position is None else position,
         name.casefold(),
         report_id,

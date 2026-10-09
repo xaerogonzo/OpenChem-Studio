@@ -495,10 +495,10 @@ def test_every_result_that_reaches_the_reader_is_placed_by_the_key(smiles):
 
 
 def test_the_shipped_results_sort_into_the_taxonomys_order():
-    """End to end over the same population: the sections come out in
-    `CATEGORY_ORDER`, which is the order the Properties panel shows them in
-    and the thing arrival order could not give."""
-    from openchem.domain.calculator_taxonomy import CATEGORY_ORDER
+    """End to end over the same population: the sections come out in the
+    BROWSE order (task group, then the visible heading) -- the order the
+    Properties panel shows them in and the thing arrival order could not give."""
+    from openchem.domain.calculator_taxonomy import category_browse_key
 
     entries = [
         _Entry("a", "A", "admet"),
@@ -507,4 +507,7 @@ def test_the_shipped_results_sort_into_the_taxonomys_order():
         _Entry("d", "D", "pka"),
     ]
     categories = [category_of(e) for e in ordered_reports(entries)]
-    assert categories == sorted(categories, key=CATEGORY_ORDER.index)
+    assert categories == sorted(categories, key=category_browse_key)
+    # Identity and naming, then Solubility and pKa (pKa < Solubility by label),
+    # then Drug-likeness: groups first, headings second, never the id.
+    assert categories == ["identity", "pka", "solubility", "admet"]

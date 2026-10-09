@@ -391,6 +391,11 @@ class CalculatorDefinition:
     #: Handed the same component the calculator would be (`CalculatorRegistry.preflight`), and
     #: an exception means "no claim". None for every calculator without one.
     preflight: Callable[[Any], str] | None = None
+    #: Optional: which canonical task group (`calculator_taxonomy.TASK_GROUPS`) a
+    #: PLUGIN's new category is browsed under. Honoured only for a category this
+    #: application does not already file; absent or unknown means "Other
+    #: calculators", never an error, and a plugin cannot create a group.
+    task_group: str | None = None
 
     def __post_init__(self) -> None:
         # At construction, so a dangling or circular dependency is a failing
