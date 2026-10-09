@@ -4189,6 +4189,11 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-203", "N1C(SC)=NC2C(=O)N=CN=C21", "8-(methylsulfanyl)-5,9-dihydro-6H-purin-6-one",
      "8-(methylsulfanyl)-5,9-dihydro-2H-purin-6-one",
      "WRONG MOLECULE: OPSIN reads the former as a purine with a CH2 at C2; the indicated hydrogen belongs on the group carbon (P-58.2.3.1)"),
+    # D-204, found by naming round 31's census review: `benzo_fused_bridged` names a CARBOCYCLE and never looked at an element, so a ring O, N or S was dropped.
+    ("D-204", "CC(=O)[C@@H]1C(=O)N[C@@]2(C)C[C@@H]1c1cc([N+](=O)[O-])ccc1O2",
+     "(1S,9R,12R)-12-acetyl-9-methyl-4-nitro-8-oxa-10-azatricyclo[7.3.1.0^{2,7}]trideca-2,4,6-trien-11-one",
+     "(5S,6R,9R)-6-acetyl-9-methyl-3-nitro-5,6,7,8,9,10-hexahydro-5,9-methanobenzocycloocten-7-one",
+     "WRONG MOLECULE: a 2,6-methano-1,3-benzoxazocin-4-one came out as a carbocycle with no oxygen and no nitrogen (89 of 114 heteroatom variants of the skeleton)"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
