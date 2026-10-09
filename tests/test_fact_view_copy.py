@@ -8,8 +8,8 @@ called the handler directly would pass while the event never reached it.
 
 from __future__ import annotations
 
-from PySide6.QtCore import QPoint, Qt
-from PySide6.QtGui import QContextMenuEvent
+from PySide6.QtCore import QPoint, QPointF, Qt
+from PySide6.QtGui import QContextMenuEvent, QEnterEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QMenu, QPushButton
 
@@ -68,7 +68,13 @@ def _choose(view, row, text: str) -> list[str]:
 def test_value_is_selectable_and_keeps_its_height(qapp):
     view = _view(_fact("IUPAC Name", NAME_A))
     row = _row(view, NAME_A)
+    # Lazy: building a report must stay cheap, so a row becomes selectable
+    # when the pointer first reaches it.
+    assert not row.textInteractionFlags() & Qt.TextInteractionFlag.TextSelectableByMouse
+    before = row.height()
+    QApplication.sendEvent(row, QEnterEvent(QPointF(1, 1), QPointF(1, 1), QPointF(1, 1)))
     assert row.textInteractionFlags() & Qt.TextInteractionFlag.TextSelectableByMouse
+    assert row.height() == before
     assert row.wordWrap()
     conftest.dispose(view)
 
@@ -113,6 +119,7 @@ def test_a_partial_selection_is_what_copy_value_copies(qapp):
     view.resize(900, 300)
     view.show()
     row = _row(view, NAME_A)
+    QApplication.sendEvent(row, QEnterEvent(QPointF(1, 1), QPointF(1, 1), QPointF(1, 1)))
     # Drag across the start of the text: a REAL selection, not a stubbed one.
     QTest.mousePress(row, Qt.MouseButton.LeftButton, pos=QPoint(2, 6))
     QTest.mouseMove(row, QPoint(60, 6))

@@ -115,24 +115,38 @@ class _FactRow(ExplicitHeightLabel):
     def __init__(self, text: str, parent: QWidget | None = None) -> None:
         super().__init__(text, parent)
         self.setMouseTracking(True)
-        # Highlightable, so one value can be copied without the whole
-        # report. OR-ed onto whatever the label already allows.
+        self._selectable = False
+
+    def make_selectable(self) -> None:
+        """Let the value be highlighted, the first time the pointer is near it.
+
+        **LAZY ON PURPOSE.** A selectable `QLabel` builds a text control, and
+        doing that for every row of a report made the reader render 2.5x
+        slower (measured, 260 facts: 55 ms -> 140 ms) -- paid again on every
+        molecule switch. A pointer must reach a row before it can press on it,
+        so `enterEvent` is early enough and rows nobody touches stay cheap.
+        """
+        if self._selectable:
+            return
+        self._selectable = True
         self.setTextInteractionFlags(
             self.textInteractionFlags() | Qt.TextInteractionFlag.TextSelectableByMouse
         )
         self.setCursor(Qt.CursorShape.IBeamCursor)
-        # A selectable label gets a 1 px text-control margin top and bottom,
-        # which made every row 2 px taller (measured: 12 -> 14 px). Pulled
-        # back so turning selection on does not move the reader's layout.
+        # A selectable label gets a 1 px text-control margin top and bottom
+        # (measured: 12 -> 14 px). Pulled back in the same step so turning
+        # selection on does not move the reader's layout.
         self.setContentsMargins(0, -1, 0, -1)
 
     def contextMenuEvent(self, event) -> None:  # noqa: N802 - Qt override naming
         """Ask the owning view for a per-fact menu. The selection is left
         alone so `Copy value` can read it."""
+        self.make_selectable()
         self.context_requested.emit(self.property(_FACT_PROPERTY), event.globalPos())
         event.accept()
 
     def enterEvent(self, event) -> None:  # noqa: N802 - Qt override naming
+        self.make_selectable()
         self.hovered.emit(self.property(_FACT_PROPERTY))
         super().enterEvent(event)
 
