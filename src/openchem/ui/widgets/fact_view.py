@@ -107,12 +107,46 @@ class _FactRow(ExplicitHeightLabel):
     """
 
     hovered = Signal(object)
+    #: (fact, global position) -- the fact is read off THIS row's own
+    #: property at event time, never looked up by label: two rows can share
+    #: a label (an IUPAC name from PubChem and one from our engine).
+    context_requested = Signal(object, object)
 
     def __init__(self, text: str, parent: QWidget | None = None) -> None:
         super().__init__(text, parent)
         self.setMouseTracking(True)
+        self._selectable = False
+
+    def make_selectable(self) -> None:
+        """Let the value be highlighted, the first time the pointer is near it.
+
+        **LAZY ON PURPOSE.** A selectable `QLabel` builds a text control, and
+        doing that for every row of a report made the reader render 2.5x
+        slower (measured, 260 facts: 55 ms -> 140 ms) -- paid again on every
+        molecule switch. A pointer must reach a row before it can press on it,
+        so `enterEvent` is early enough and rows nobody touches stay cheap.
+        """
+        if self._selectable:
+            return
+        self._selectable = True
+        self.setTextInteractionFlags(
+            self.textInteractionFlags() | Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        self.setCursor(Qt.CursorShape.IBeamCursor)
+        # A selectable label gets a 1 px text-control margin top and bottom
+        # (measured: 12 -> 14 px). Pulled back in the same step so turning
+        # selection on does not move the reader's layout.
+        self.setContentsMargins(0, -1, 0, -1)
+
+    def contextMenuEvent(self, event) -> None:  # noqa: N802 - Qt override naming
+        """Ask the owning view for a per-fact menu. The selection is left
+        alone so `Copy value` can read it."""
+        self.make_selectable()
+        self.context_requested.emit(self.property(_FACT_PROPERTY), event.globalPos())
+        event.accept()
 
     def enterEvent(self, event) -> None:  # noqa: N802 - Qt override naming
+        self.make_selectable()
         self.hovered.emit(self.property(_FACT_PROPERTY))
         super().enterEvent(event)
 
@@ -1018,6 +1052,7 @@ class FactView(QWidget):
         value.setProperty(_FACT_PROPERTY, fact)
         value.setToolTip(provenance)
         value.hovered.connect(self._on_row_hovered)
+        value.context_requested.connect(self._on_row_context_menu)
         if fact.link is None:
             section.content_layout().addRow(
                 self._caption(section, fact, provenance), value
@@ -1077,12 +1112,21 @@ class FactView(QWidget):
         if self._report is None:
             return
         menu = QMenu(self)
+        actions = self._add_report_actions(menu)
+        self._run_report_action(menu.exec(self.mapToGlobal(position)), actions)
+
+    def _add_report_actions(self, menu: QMenu) -> tuple:
         copy_action = menu.addAction("Copy report")
         export_action = menu.addAction("Export report...")
         compare_action = menu.addAction("Compare with...")
         menu.addSeparator()
         window_action = menu.addAction("Open in window")
-        chosen = menu.exec(self.mapToGlobal(position))
+        return copy_action, export_action, compare_action, window_action
+
+    def _run_report_action(self, chosen, actions: tuple) -> None:
+        copy_action, export_action, compare_action, window_action = actions
+        if chosen is None:
+            return
         if chosen is copy_action:
             self._on_copy_clicked()
         elif chosen is export_action:
@@ -1091,6 +1135,52 @@ class FactView(QWidget):
             self.compare_requested.emit(self._report)
         elif chosen is window_action:
             self.open_in_window()
+
+    def _on_row_context_menu(self, fact, global_position) -> None:
+        """Copy ONE fact: its value, or `label: value`; then the report actions.
+
+        The fact comes from the row that was clicked. The label+value copy
+        ignores any partial selection on purpose, so selecting half a value
+        never changes what the second action means.
+        """
+        if self._report is None or fact is None:
+            return
+        row = self.sender()
+        selected = row.selectedText() if isinstance(row, QLabel) else ""
+        menu, choose = self._row_menu(fact, selected)
+        choose(menu.exec(global_position))
+
+    def _row_menu(self, fact, selected: str = ""):
+        """The per-fact menu, and the function that applies a chosen action.
+
+        Split from `_on_row_context_menu` because `QMenu.exec` is modal and
+        cannot be patched, so a test has to build the menu and trigger an
+        action without ever executing it. The fact and the selection are
+        bound HERE, once, rather than read from view state at choice time.
+        """
+        menu = QMenu(self)
+        value_action = menu.addAction("Copy value")
+        pair_action = menu.addAction(f"Copy \"{fact.label}: value\"")
+        menu.addSeparator()
+        report_actions = self._add_report_actions(menu)
+
+        def choose(chosen) -> None:
+            if chosen is None:
+                return
+            if chosen is value_action:
+                self._copy_text(selected or fact.value_with_units, fact.label)
+            elif chosen is pair_action:
+                self._copy_text(f"{fact.label}: {fact.value_with_units}", fact.label)
+            else:
+                self._run_report_action(chosen, report_actions)
+
+        return menu, choose
+
+    def _copy_text(self, text: str, label: str) -> None:
+        clipboard = QApplication.clipboard()
+        if clipboard is not None:
+            clipboard.setText(text)
+        self._status.setText(f"Copied {label}.")
 
     def open_in_window(self) -> QDialog | None:
         """The same report, in its own window.
