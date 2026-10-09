@@ -20,6 +20,7 @@ supposed to save.
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QGuiApplication, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
@@ -44,6 +45,7 @@ from openchem.events.events import (
     MoleculeSelected,
     ReportComputed,
 )
+from openchem.ui.table_export import install_table_export
 from openchem.ui.widgets.collapsible_section import WrappedLabel
 from openchem.ui.widgets.empty_state import empty_state, empty_state_text, is_empty_state
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
@@ -89,6 +91,14 @@ _COPY_TABLE_HELP = HelpTooltip(
 )
 
 
+#: Narrowest a column gets, so many molecules scroll sideways rather than shrink to nothing.
+_MIN_COLUMN = 110
+#: The most the Property column takes, however long a name is.
+_MAX_PROPERTY = 260
+#: What a cell adds around its text (margins and the grid line).
+_CELL_PADDING = 24
+
+
 class ComparisonPanel(QWidget):
     """Tick molecules; see their values in columns."""
 
@@ -121,6 +131,14 @@ class ComparisonPanel(QWidget):
         self._table.setWordWrap(False)
         self._table.verticalHeader().setVisible(False)
         self._table.setSortingEnabled(False)
+        # A value that does not fit its column is elided and carries the whole of it in a
+        # tooltip. Selection is for COPYING: Ctrl+C takes the highlighted cells, tab-separated,
+        # and right-click offers the table as CSV like every other table in the application.
+        self._table.setTextElideMode(Qt.TextElideMode.ElideRight)
+        install_table_export(self._table, "comparison")
+        QShortcut(QKeySequence.StandardKey.Copy, self._table, self.copy_selection).setContext(
+            Qt.ShortcutContext.WidgetShortcut
+        )
 
         self._status = WrappedLabel("", self)
         self._empty = empty_state(
@@ -271,17 +289,15 @@ class ComparisonPanel(QWidget):
         headers = ["Property", *[names.get(u, u) for u in self._chosen]]
         self._table.setColumnCount(len(headers))
         self._table.setHorizontalHeaderLabels(headers)
-        header = self._table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        for column in range(1, len(headers)):
-            header.setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
-
         self._table.setRowCount(len(rows))
+        labels: list[str] = []
         for index, row in enumerate(rows):
             label = f"{row.label} ({row.units})" if row.units else row.label
-            self._table.setItem(index, 0, QTableWidgetItem(label))
+            labels.append(label)
+            self._table.setItem(index, 0, self._cell(label))
             for column, value in enumerate(row.values, start=1):
-                self._table.setItem(index, column, QTableWidgetItem(value))
+                self._table.setItem(index, column, self._cell(value))
+        self._size_columns(len(headers), labels)
 
         total = len(compare_values(
             [(names.get(u, u), self._values.get(u, {})) for u in self._chosen]
@@ -294,6 +310,51 @@ class ComparisonPanel(QWidget):
         else:
             differing = sum(1 for row in rows if row.differs)
             self._status.setText(f"{total} properties, {differing} of them differing.")
+
+    @staticmethod
+    def _cell(text: str) -> QTableWidgetItem:
+        """A cell that can be read in full even where the column cuts it off."""
+        item = QTableWidgetItem(text)
+        item.setToolTip(text)
+        return item
+
+    def _size_columns(self, count: int, labels: list[str]) -> None:
+        """Property column to its names (capped); the molecules SHARE what is left.
+
+        **THE OLD SIZING LET ONE LONG VALUE DECIDE EVERYTHING.** Every molecule column was
+        `ResizeToContents` and the Property column took what remained, so one IUPAC name made
+        its column 700 px wide, squeezed "Chain atom count" to "Chain atom co...", and pushed
+        the second molecule off the right edge (measured with two molecules at 640 px: columns
+        100 / 706 / 379 px). A value too long for its column is now elided, with the whole of
+        it in the tooltip and in Copy table.
+        """
+        header = self._table.horizontalHeader()
+        header.setMinimumSectionSize(_MIN_COLUMN)
+        metrics = self._table.fontMetrics()
+        widest = max((metrics.horizontalAdvance(text) for text in labels), default=0)
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Interactive)
+        self._table.setColumnWidth(0, min(max(widest + _CELL_PADDING, _MIN_COLUMN), _MAX_PROPERTY))
+        for column in range(1, count):
+            header.setSectionResizeMode(column, QHeaderView.ResizeMode.Stretch)
+
+    def selection_text(self) -> str:
+        """The highlighted cells as tab-separated text, rows in table order.
+
+        Whole values, not what the column shows: a cut-off cell copies in full.
+        """
+        cells = sorted(
+            (i.row(), i.column(), self._table.item(i.row(), i.column()))
+            for i in self._table.selectedIndexes()
+        )
+        rows: dict[int, list[str]] = {}
+        for row, _column, item in cells:
+            rows.setdefault(row, []).append(item.text() if item is not None else "")
+        return "\n".join("\t".join(values) for values in rows.values())
+
+    def copy_selection(self) -> None:
+        text = self.selection_text()
+        if text:
+            QGuiApplication.clipboard().setText(text)
 
     def _empty_message(self, total: int) -> None:
         """Two different empty states, because they mean opposite things.

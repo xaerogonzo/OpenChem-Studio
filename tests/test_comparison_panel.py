@@ -260,3 +260,67 @@ def test_ticking_survives_a_rename(panel):
         if widget._molecules.item(i).checkState() == Qt.CheckState.Checked
     ]
     assert "Renamed" in checked
+
+
+# --- the table is readable --------------------------------------------------------------
+
+LONG_NAME = (
+    "[(4R,4aS,7aR,12bS)-4a-acetyloxy-3-methyl-7-oxo-2,4,5,6,7a,13-hexahydro-1H-4,12-"
+    "methanobenzofuro[3,2-e]isoquinolin-9-yl] acetate"
+)
+
+
+def _wide_comparison(panel):
+    widget, bus = panel
+    project = _project()
+    widget.set_project(project)
+    a, b = project.molecules[0].uuid, project.molecules[1].uuid
+    bus.publish(_descriptor(a, "IUPAC Name", LONG_NAME))
+    bus.publish(_descriptor(b, "IUPAC Name", "short"))
+    bus.publish(_descriptor(a, "Chain atom count", 11))
+    bus.publish(_descriptor(b, "Chain atom count", 0))
+    widget.compare_with([a, b])
+    widget.resize(640, 560)
+    widget.show()
+    return widget
+
+
+def test_one_long_value_does_not_push_the_other_molecule_off_screen(panel, qapp):
+    """Measured before the fix, two molecules at 640 px: columns 100 / 706 / 379 px -- the
+    longest value decided every width and the second molecule sat beyond a scrollbar."""
+    widget = _wide_comparison(panel)
+    qapp.processEvents()
+    table = widget._table
+    assert table.horizontalScrollBar().maximum() == 0, "both molecules fit without scrolling"
+    first, second = table.columnWidth(1), table.columnWidth(2)
+    assert abs(first - second) <= 2, "the molecules share the width, whatever they hold"
+    assert first + second + table.columnWidth(0) <= table.viewport().width() + 2
+
+
+def test_the_property_column_shows_its_names_in_full(panel, qapp):
+    widget = _wide_comparison(panel)
+    qapp.processEvents()
+    table = widget._table
+    metrics = table.fontMetrics()
+    for row in range(table.rowCount()):
+        label = table.item(row, 0).text()
+        assert table.columnWidth(0) >= metrics.horizontalAdvance(label), label
+
+
+def test_a_cut_off_value_is_whole_in_its_tooltip_and_in_a_copy(panel, qapp):
+    from PySide6.QtGui import QGuiApplication
+
+    widget = _wide_comparison(panel)
+    qapp.processEvents()
+    table = widget._table
+    row = next(r for r in range(table.rowCount()) if table.item(r, 0).text() == "IUPAC Name")
+    cell = table.item(row, 1)
+    assert cell.toolTip() == LONG_NAME
+    assert table.fontMetrics().horizontalAdvance(LONG_NAME) > table.columnWidth(1), "setup: it IS cut off"
+
+    table.clearSelection()
+    table.setCurrentCell(row, 1)
+    table.selectRow(row)
+    QGuiApplication.clipboard().clear()
+    widget.copy_selection()
+    assert QGuiApplication.clipboard().text() == f"IUPAC Name\t{LONG_NAME}\tshort"
