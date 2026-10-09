@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Compare table: every molecule fits, and a long value is cut off rather than taking the table
+- Every molecule column was sized to its longest value, so one IUPAC name made its column about 700 px wide, squeezed the Property column to "Chain atom co..." and pushed the second molecule off the right edge (two molecules at 640 px: columns 100 / 706 / 379 px). The Property column now takes its names (capped at 260 px), the molecules share the rest, and a value that does not fit is elided with the whole of it in the tooltip. Highlight cells and press Ctrl+C to copy them tab-separated (whole values, not the cut-off text), and right-click offers the table as CSV like the other tables.
+
 ### Switching molecule no longer rebuilds the Results reader once per stored result
 - Switching to a molecule whose results are stored replays them as one event per result, and each one rebuilt the whole Results reader. Measured with 50 calculators run on two molecules: 398 rebuilds of 230-350 facts, 30-90 ms each, which froze the window for 2-4 s on every switch (more as more calculators have run). The replay now rebuilds the reader once at its end (`PropertyPanel.batched_reader_refresh`, used around `store_service.replay`); after the change a switch costs 1-4 rebuilds (50-85 ms). A result arriving on its own still refreshes the reader at once. Nothing is recalculated either way: the values were already stored.
 
