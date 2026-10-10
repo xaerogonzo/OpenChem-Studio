@@ -1652,3 +1652,16 @@ class DockingPanel(QWidget):
         if not self._is_pending(result.ligand_molecule_uuid, result.receptor_macromolecule_uuid):
             return
         self._show_result(result)
+        self._collapse_groups_after_a_run()
+
+    def _collapse_groups_after_a_run(self) -> None:
+        """Close the settings groups of the embedded copy that started the run.
+
+        Only the pending copy reaches here (`_is_pending`), so a dock started from the rail
+        panel does not rearrange the section. A failed run never gets here either: its
+        settings stay open, because they are what the person edits next. The groups'
+        summaries still say what the run used.
+        """
+        for section in (self._box_section, self._prep_section, self._search_section):
+            if section is not None:
+                section.set_expanded(False)

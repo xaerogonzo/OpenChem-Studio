@@ -9,7 +9,7 @@
   {"do": "align", "in": "section", "reference": "Ibuprofen", "probes": ["Naproxen"],
    "method": "Common scaffold (MCS)", "flexibility": "Flexible", "after_ms": 20000},
   {"do": "align_report", "in": "section", "tag": "section",
-   "expect": {"rows": 2, "same_as_other_view": true, "viewer_built": true}},
+   "expect": {"rows": 2, "same_as_other_view": true, "viewer_built": true, "settings_expanded": false}},
   {"do": "align_report", "tag": "rail",
    "expect": {"rows": 2, "same_as_other_view": true, "viewer_built": false}},
   {"do": "properties_scroll", "to": "workflow:alignment", "after_ms": 1500},

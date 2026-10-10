@@ -10,7 +10,7 @@
 
   {"do": "dock_run", "in": "section", "after_ms": 300000},
   {"do": "dock_panel", "in": "section", "tag": "section-after",
-   "expect": {"poses_at_least": 1, "same_as_other_view": true}},
+   "expect": {"poses_at_least": 1, "same_as_other_view": true, "groups_expanded": false}},
   {"do": "shot", "path": "benchmarks/visual/artifacts/docking_section_pose_drawn.png", "after_ms": 8000},
   {"do": "properties_scroll", "to": "workflow:docking", "after_ms": 1500},
   {"do": "shot", "path": "benchmarks/visual/artifacts/docking_section_after.png", "after_ms": 1500},

@@ -549,6 +549,11 @@ class _Driver(QObject):
                 problems.append("the two copies disagree on the pose table")
             elif not mine:
                 problems.append("both pose tables are empty, so agreeing proves nothing")
+        if "groups_expanded" in expect:
+            groups = (panel.box_section, panel.prep_section, panel.search_section)
+            actual = [g.is_expanded() if g is not None else None for g in groups]
+            if actual != [bool(expect["groups_expanded"])] * 3:
+                problems.append(f"groups (box, prep, search) expanded {actual}, wanted all {expect['groups_expanded']}")
         if problems:
             logger.error("OPENCHEM_DRIVE: EXPECT docking FAILED[%s] -- %s", tag, "; ".join(problems))
         else:
@@ -1663,6 +1668,11 @@ class _Driver(QObject):
                 problems.append("both tables are empty, so agreeing proves nothing")
         if "viewer_built" in expect and panel.viewer_is_built != bool(expect["viewer_built"]):
             problems.append(f"viewer_is_built is {panel.viewer_is_built}")
+        if "settings_expanded" in expect:
+            section = panel.settings_section
+            actual = section.is_expanded() if section is not None else None
+            if actual != bool(expect["settings_expanded"]):
+                problems.append(f"settings_expanded is {actual}, wanted {expect['settings_expanded']}")
         if problems:
             logger.error("OPENCHEM_DRIVE: EXPECT align FAILED[%s] -- %s", tag, "; ".join(problems))
         else:

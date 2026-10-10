@@ -126,7 +126,7 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           scrolls sideways; `properties_grab` saves the whole list
                                           at full height
     {"do": "dock_run", "in": "section"}  every docking step takes `in` too; `dock_panel` takes
-                                          `expect` (`poses`, `poses_at_least`, `same_as_other_view`)
+                                          `expect` (`poses`, `poses_at_least`, `same_as_other_view`, `groups_expanded`)
     {"do": "properties_scroll", "to": "workflow:alignment"}  scroll the Properties list
                                           ("end", "top", a pixel offset) so a tall section's
                                           picture is in the shot

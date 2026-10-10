@@ -353,6 +353,10 @@ class AlignmentPanel(QWidget):
         self._embedded = embedded
         #: The collapsible group holding the settings, in the embedded copy only.
         self._settings_section: CollapsibleSection | None = None
+        #: Whether THIS copy asked for the alignment now in flight. Only that copy closes
+        #: its settings when the result arrives: both copies hear every result, and the
+        #: one the person did not press Align in must not rearrange itself.
+        self._run_started_here = False
         self._alignment_service = alignment_service
         self._event_bus = event_bus
         self._project: ProjectModel | None = None
@@ -639,6 +643,7 @@ class AlignmentPanel(QWidget):
 
         from openchem.chem.alignment import FLEXIBILITY_MODES
 
+        self._run_started_here = True
         self._alignment_service.request_alignment(
             reference,
             probes,
@@ -649,6 +654,9 @@ class AlignmentPanel(QWidget):
 
     def _on_job_state_changed(self, event: AlignmentJobStateChanged) -> None:
         running = event.state in (CacheState.QUEUED, CacheState.RUNNING)
+        if event.state is CacheState.FAILED:
+            # A failed run leaves the settings open: they are what the person edits next.
+            self._run_started_here = False
         self._align_button.setEnabled(not running)
         self._status_label.setText(event.message or event.state.value)
 
@@ -671,6 +679,11 @@ class AlignmentPanel(QWidget):
         if self._embedded:
             self._result_table.setVisible(True)
             self._viewer_host.setVisible(True)
+            if self._run_started_here and self._settings_section is not None:
+                # The settings did their job; the table and the picture are what the person
+                # is now here for, and a closed section still says what was run.
+                self._settings_section.set_expanded(False)
+            self._run_started_here = False
             if self.isVisible():
                 # The panel was shown before any result existed, so `showEvent` skipped the
                 # build; this is the moment the picture has something to draw.
