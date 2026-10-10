@@ -211,7 +211,9 @@ def test_the_pka_line_names_the_ionizable_atom():
     acetic_acid = Chem.MolFromSmiles("CC(=O)O")
     line = _pka_line(PkaPrediction(atom_index=3, value=4.19), {}, acetic_acid)
 
-    assert line == "pKa 4.19 at O3"
+    # Atom 3 counting from 0 is the FOURTH atom, the hydroxyl oxygen; the canvas numbers it 4, and the
+    # line used to say O3, which the canvas gives to the carbonyl oxygen beside it.
+    assert line == "pKa 4.19 at O4"
 
 
 def test_an_unmapped_pka_names_no_atom_rather_than_guessing():

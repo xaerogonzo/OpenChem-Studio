@@ -60,6 +60,7 @@
   "huckel_analysis": "RRRRRRRRRRRLRRRRRRRRRRLLRLRLR",
   "huckel_pi_density": "RRRRRRRRRRRLRRRRRRRRRRLLRLRLR",
   "interaction_analysis": "RRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
+  "ionisable_sites": "SSSSSSSSSSLSSSSSSSSLSLLSSSSSS",
   "isoelectric_point": "LLLLLLLLLLLSSSLSSSSLSLLLLLSLL",
   "iupac_name": "RRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
   "joback_properties": "LLLRRRRRRRLRRRLLLRLLLLLLLLRRR",
@@ -95,6 +96,7 @@
   "topology_analysis": "RRRRRRRRRRLRRRRRRRRLRLLRRRRRR",
   "topology_distance_degree": "RRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
   "topology_eccentricity": "RRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
+  "torsion_table": "RRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
   "tsei_projection": "RRRRRRRRRRRRRRRRRRRRRRLRRRRRR"
  },
  "observation": {
@@ -122,6 +124,7 @@
   "huckel_analysis": "ccccccccccccccccccccccccccccc",
   "huckel_pi_density": "ccccccccccccccccccccccccccccc",
   "interaction_analysis": "ccccccccccccccccccccccccccccc",
+  "ionisable_sites": "ccccccccccccccccccccccccccccc",
   "isoelectric_point": "ccccccccccccccccccccccccccccc",
   "iupac_name": "cccccccccwccccccccccccccccccc",
   "joback_properties": "ccccccccccccccccccccccccccccc",
@@ -157,6 +160,7 @@
   "topology_analysis": "ccccccccccccccccccccccccccccc",
   "topology_distance_degree": "ccccccccccccccccccccccccccccc",
   "topology_eccentricity": "ccccccccccccccccccccccccccccc",
+  "torsion_table": "ccccccccccccccccccccccccccccc",
   "tsei_projection": "ccccccccccccccccccccccccccccc"
  },
  "unclassified_codes": []

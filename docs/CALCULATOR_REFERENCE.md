@@ -307,6 +307,21 @@ Per-atom Crippen LogP contribution -- which atoms increase vs. decrease LogP. Th
 
 ## pKa
 
+<!-- help:calc-ionisable-sites -->
+### Ionisable Sites
+
+Each ionisable centre pkasolver predicts, whether it is an acid or a base (read from the model's own protonation state), and how much of it is ionised at a pH. A guide to which groups are mostly charged, treating each site alone: neighbouring sites shift one another's pKa, so it is not a species distribution. Uses the same predictions as pKa.
+
+- Support level: **Limited**.
+- Why: It inherits the pKa model's scope and error (a 24-compound check found a mean error of 0.15 where the model's fifty members agreed and 0.84 where they did not, and a confident 2.7 units out on 2,4-dinitrophenol), and its fraction ionised treats each site alone.
+- Covers: structures pkasolver has a prediction for; each site judged on its own.
+- Produces a list of facts, each with its own units, basis and evidence.
+- Runs on the 2D drawing, so no conformer is needed.
+- Basis: empirical (fitted to measured data, with real scatter).
+- Options:
+  - `decimal_places` -- Decimal places default `2` range 0 to 8
+  - `pH` -- pH default `7.4` range 0.0 to 14.0
+
 <!-- help:calc-major-microspecies -->
 ### Major Microspecies
 
@@ -443,6 +458,17 @@ Velocity-Verlet dynamics over MMFF94/UFF forces. VACUUM only: no thermostat, no 
   - `temperature` -- Initial temperature (K) default `300.0` range 1.0 to 2000.0
   - `frame_interval` -- Frame interval (steps) default `10` range 1 to 1000
   - `seed` -- Random seed (0 = none) default `0` range 0 to 999999
+
+<!-- help:calc-torsion-table -->
+### Torsion Table
+
+Every rotatable bond of the conformer with the dihedral angle about it, so 'flexible' can be read bond by bond. The bonds are exactly the ones the Rotatable Bonds count counts, and the angle is measured through the heaviest neighbour of each end (named on every row). One conformer, not a scan. Needs a conformer.
+
+- Support level: **Stable**.
+- Produces a list of facts, each with its own units, basis and evidence.
+- Runs on a real 3D conformer -- generate one first.
+- Options:
+  - `decimal_places` -- Decimal places default `2` range 0 to 8
 
 ## Surface Area
 

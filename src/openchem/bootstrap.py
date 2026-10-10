@@ -286,6 +286,7 @@ _EXTERNAL_CALCULATOR_DEFINITIONS.append(
 _CALCULATOR_INTERPRETER_SETTING: dict[str, str | dict[str, str]] = {
     # pkasolver
     "pka": PKASOLVER_PYTHON_SETTING,
+    "ionisable_sites": PKASOLVER_PYTHON_SETTING,
     "logd": PKASOLVER_PYTHON_SETTING,
     "pka_microspecies": PKASOLVER_PYTHON_SETTING,
     "isoelectric_point": PKASOLVER_PYTHON_SETTING,
