@@ -4218,6 +4218,14 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-210", "C1C[N+]2=C(CCCCC2)NC1", "2,3,4,6,7,8,9,10-octahydro-1H-pyrimido[1,2-a]azepin-5-ium",
      "[NAMING ERROR: No valid naming plan found for C1CCC2=[N+](CC1)CCCN2]",
      "a bicyclic amidinium drawn with the charge on the bridgehead (the protonated DBU skeleton) was a visible NAMING ERROR, as was quinolizinium itself (190 of 288 bridgehead iminium bicycles)"),
+    # D-211, found by naming round 38's census review: a hydroxamic acid that is not the principal group was written with the prefix "hydroxycarbamoyl", which includes its carbon, while the chain also named it.
+    ("D-211", "OC(=O)CC(=O)N(C)O", "3-[hydroxy(methyl)amino]-3-oxopropanoic acid",
+     "3-(hydroxycarbamoyl)propanoic acid",
+     "WRONG MOLECULE: one carbon too many, and the N-methyl gone; 292 of 336 hydroxamic acids under an acid, an ester or a ring named another molecule (census row 322625 among them)"),
+    # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
+    ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
+     "[(hydroxycarbamoyl)methyl]methyl acetate",
+     "an N-substituted hydroxamic acid in an ester's alcohol part lost its N-substituent (one census structure, 0.05%, recorded open since round 14)"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -4322,12 +4330,12 @@ OPEN: list[tuple[str, str, str, str, str]] = [
      "-- the WRONG MOLECULE this item was admitted for is fixed, the PIN is "
      "a separate, still-open gap (imine FG perception is empty for this "
      "structure in every context, not only the multiplicative one)"),
-    # Naming round 14: an ester whose acid part carries an N-HYDROXY-N-ALKYL amide is named `[(hydroxycarbamoyl)methyl]methyl acetate`, which drops the
-    # N-substituent and reads back as a different structure (formula differs). The hydroxamic acid group is written as if the nitrogen were unsubstituted.
-    # One census structure (0.05%, under the floor), a structural error, recorded not fixed; the target is derived and read back exact. The N-methoxy
-    # analogue (`2-[methoxy(methyl)amino]-2-oxoethyl acetate`) is named correctly, so the N-OH context is the trigger.
-    ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
-     "[(hydroxycarbamoyl)methyl]methyl acetate", "an N-substituted hydroxamic acid inside an ester's acid part loses its N-substituent"),
+    # Naming round 38: an N-acyl amidine whose carbon is bonded to a RING nitrogen is named as a methanamine: the C=N is lost, so the name reads back as another molecule
+    # (a wrong-molecule census row, 0.05%, found while closing D-162). The target is derived and read back exact on canonical SMILES and InChIKey. It replaces D-162 as the
+    # example tests/test_naming_providers.py withholds by the read-back: a plain-looking name (no NAMING ERROR) that denotes another structure.
+    ("D-212", "Cc1cc(C)n(C(N)=NC(=O)c2ccccc2)n1", "N'-benzoyl-3,5-dimethyl-1H-pyrazole-1-carboximidamide",
+     "benzamido(3,5-dimethyl-1H-pyrazol-1-yl)methanamine",
+     "an N-acyl amidine on a ring nitrogen loses its C=N: named as a methanamine, another molecule (census row 325625)"),
 ]
 
 # Observed but NOT tracked here, because this table requires a verified

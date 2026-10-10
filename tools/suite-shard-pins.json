@@ -749,6 +749,7 @@
   "tests/test_namer_fused_cations.py": 1,
   "tests/test_namer_fusion.py": 1,
   "tests/test_namer_hydro_ketone_indicated_hydrogen.py": 0,
+  "tests/test_namer_hydroxamic_prefix.py": 2,
   "tests/test_namer_known_defects.py": 2,
   "tests/test_namer_label_placement.py": 0,
   "tests/test_namer_multiple_bonds_parent.py": 2,
