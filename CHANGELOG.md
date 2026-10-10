@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: a ring cation with an exocyclic double bond keeps its hydro prefixes
+- `C=C1CCC[NH+]=C1`, the cation of 3-methylidene-3,4,5,6-tetrahydropyridine, was named `5-methylideneazinan-1-ium`: the saturated piperidinium, a different molecule. The hydro derivation for a retained parent counted the ylidene carbon as an sp2 ring member, so the hydro positions were odd in number and it gave up; the neutral ring never showed it because a curated entry matches it with the ylidene as a substituent. A ring carbon whose double bond goes out of the ring to a carbon is a hydro position (`5-methylidene-2,3,4,5-tetrahydropyridin-1-ium`). 231 ylidene ring cations and their neutral rings, master -> now: wrong molecule 37 -> 0, exact 194 -> 231, none worse. D-209.
+
 ### Naming: a ring cation on a curated fused parent keeps its -ium
 - The cation of a protonated 2-amido-thiazole fused to a saturated ring, of a pyrazolo[1,5-a]pyrimidine, a thiazolo[5,4-d]pyrimidine and the tetrahydro-triazolo, -thieno and -benzothiazole parents was named as its NEUTRAL parent (`2-methyl-4,5,6,7-tetrahydro-1,3-benzothiazole`), which OPSIN reads as another molecule. Six curated ring tables left out the locants of their heteroatoms, so the engine had no place for the `-ium` and skipped it. They are complete now, and a plan whose cationic ring atom has no locant fails (the next plan names it) instead of dropping the charge. 700 cations of the six parents, master -> now: wrong molecule 528 -> 0, unreadable 44 -> 0, exact 128 -> 700. D-208.
 

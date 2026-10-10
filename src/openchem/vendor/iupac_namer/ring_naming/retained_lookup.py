@@ -3134,6 +3134,16 @@ def _try_derive_hydro_retained(
                         for b in a.GetBonds()
                     )):
                 oxo_saturation_full.add(atom_idx)
+            elif (a.GetAtomicNum() == 6
+                    and any(
+                        b.GetBondType() == Chem.BondType.DOUBLE
+                        and b.GetOtherAtom(a).GetIdx() not in ring_atoms_full
+                        and b.GetOtherAtom(a).GetAtomicNum() == 6
+                        for b in a.GetBonds()
+                    )):
+                # Naming round 36: a ring carbon whose only double bond goes OUT of the ring to a carbon (`C=C1CCC[NH+]=C1`, the ylidene) is a hydro position,
+                # as in the neutral `3-methylidene-3,4,5,6-tetrahydropyridine`; counted as sp2 it left an odd number of positions and no name.
+                sp3_full.add(atom_idx)
             continue  # genuine sp2/sp ring member — retains aromatic-form H count
         sp3_full.add(atom_idx)
 
