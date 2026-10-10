@@ -64,6 +64,7 @@ from openchem.domain.compare import (
 )
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.execution_plan import NEEDS_INPUT as EXCLUDED_NEEDS_INPUT
+from openchem.domain.calculator_goals import SCOPE_ALL, SCOPE_CHOSEN, SCOPE_THIS, GoalRun, goal_of
 from openchem.domain.execution_plan import ExecutionPlan, build_execution_plan
 from openchem.domain.descriptor_aggregate import (
     DESCRIPTOR_AGGREGATE_ID,
@@ -371,6 +372,35 @@ _RUN_SELECTED_HELP = HelpTooltip(
     ),
     tier=1,
     help_id="properties.run_selected",
+    topic="properties",
+    help_anchor="properties",
+)
+
+#: The "Run by goal..." button: the wizard, for the person who knows the question and not the calculators.
+_RUN_BY_GOAL_HELP = HelpTooltip(
+    text=(
+        "Pick what you want to know -- charge, solubility, shape, drug-likeness -- and run a "
+        "curated set of calculators that answers it.\n\n"
+        "Nothing is gated: it runs the same calculators this list offers, through the same "
+        "services, and never changes your ticks or presets. \"Run recommended\" is the whole "
+        "interaction; \"Customise\" lets you see and change the set first."
+    ),
+    tier=1,
+    help_id="properties.run_by_goal",
+    topic="properties",
+    help_anchor="properties",
+)
+
+#: The "Run recommended" button on a group heading: one concept, one button per group.
+_RUN_RECOMMENDED_HELP = HelpTooltip(
+    text=(
+        "Run this group's recommended calculators on the molecules in the scope above, with "
+        "their default settings. The calculators it will run are listed below.\n\n"
+        "It never changes your ticks or your presets, and the same calculators are still one "
+        "click away in the sections beneath."
+    ),
+    tier=1,
+    help_id="properties.run_recommended",
     topic="properties",
     help_anchor="properties",
 )
@@ -785,6 +815,10 @@ _PANEL_MIN_WIDTH = 280
 #: The left indent of a workflow section's content, in pixels. Smaller than a calculator
 #: section's 16, because a workflow's widest row (the docking receptor row) has to fit a dock.
 _WORKFLOW_INDENT = 4
+
+#: The Qt property that carries a goal's id on a heading's button, so one bound method serves
+#: every group (a lambda capturing `self` would root the panel).
+_GOAL_ID_PROPERTY = "openchem_goal_id"
 
 #: The Qt property that carries a workflow's id on its body, so one bound method can serve
 #: every workflow's buttons (a lambda capturing `self` would root the panel).
@@ -1625,6 +1659,9 @@ class PropertyPanel(QWidget):
     workflow_move_requested = Signal(str, str)
     #: The person asked to see a workflow's own tab (workflow id).
     workflow_tab_requested = Signal(str)
+    #: The person asked for the goal wizard ("Run by goal..."). Routed by the window, which owns
+    #: the one wizard so a second request raises it rather than opening another.
+    goal_wizard_requested = Signal()
     #: A project run was submitted. Carries its immutable `ExecutionPlan`, so the
     #: Results table that will show it knows which run it is adopting.
     project_run_started = Signal(object)
@@ -1966,9 +2003,13 @@ class PropertyPanel(QWidget):
         self._presets_button.setVisible(settings is not None)
         self._presets_button.pressed.connect(self._refresh_presets_menu)
         self._presets_menu: QMenu | None = None
+        self._goals_button = QPushButton("Run by goal...", self)
+        apply_help_tooltip(self._goals_button, _RUN_BY_GOAL_HELP)
+        self._goals_button.clicked.connect(self._on_goal_wizard_clicked)
         scope_row = QHBoxLayout()
         scope_row.setContentsMargins(0, 0, 0, 0)
         scope_row.addWidget(self._scope_combo, 1)
+        scope_row.addWidget(self._goals_button)
         scope_row.addWidget(self._presets_button)
         layout.addLayout(scope_row)
         layout.addWidget(self._scope_descriptors)
@@ -2499,7 +2540,47 @@ class PropertyPanel(QWidget):
             header.setFont(font)
             header.setContentsMargins(2, 8, 0, 2)
             self._group_headers[group] = header
+            self._add_run_recommended(header, group)
         return header
+
+    def _add_run_recommended(self, header: QLabel, group: str) -> None:
+        """A "Run recommended" button at the right of a group's heading, if the group has a goal.
+
+        A goal's id is its group's id, so the button runs the set the wizard calls by the same
+        name. It lives INSIDE the heading label, which keeps the heading one widget: the code
+        that hides a heading with its empty group hides the button with it. The tooltip lists
+        what it will run, composed from the registry so it cannot name a calculator that is
+        gone.
+        """
+        goal = goal_of(group)
+        if goal is None:
+            return
+        button = QPushButton("Run recommended", header)
+        button.setFlat(True)
+        button.setCursor(Qt.CursorShape.PointingHandCursor)
+        button.setProperty(_GOAL_ID_PROPERTY, goal.goal_id)
+        apply_help_tooltip(button, _RUN_RECOMMENDED_HELP)
+        names = [
+            definition.display_name
+            for cid in goal.recommended_ids()
+            if (definition := self._calculator_registry.get(cid)) is not None
+        ]
+        button.setToolTip(f"{_RUN_RECOMMENDED_HELP.text}\n\nRuns: " + ", ".join(names) + ".")
+        button.clicked.connect(self._on_group_run_recommended)
+        # The heading is bold, and the button inherits that; it is an action, not a heading.
+        plain = button.font()
+        plain.setBold(False)
+        button.setFont(plain)
+        # The label's own margins already clear the heading text, so the layout adds none:
+        # measured at 3x, a layout margin on top of them left the button less tall than its
+        # text and cut the bottom of every letter. The label is made as tall as the button
+        # needs, which the label's own size hint (text only) does not know.
+        row = QHBoxLayout(header)
+        row.setContentsMargins(0, 0, 2, 0)
+        row.addStretch(1)
+        row.addWidget(button)
+        margins = header.contentsMargins()
+        header.setMinimumHeight(button.sizeHint().height() + margins.top() + margins.bottom())
 
     def _refresh_group_headers(self) -> None:
         """Show a group's heading only while one of its sections is showing.
@@ -3818,6 +3899,14 @@ class PropertyPanel(QWidget):
             structure_version_of=self._version_of_molecule,
             plain_label=plain_label,
         )
+        self._start_single_run(molecule, plan, "with default settings")
+
+    def _start_single_run(self, molecule, plan: ExecutionPlan, how: str) -> str:
+        """Start a plan's calculators on one molecule, and say what happened. Returns the status text.
+
+        Shared by "Run selected" and a goal run, so the two cannot disagree about what a
+        calculator that needs input, or one already running, does.
+        """
         skipped = [
             f"{job.display_name} ({job.reason})" for job in plan.excluded if job.kind == EXCLUDED_NEEDS_INPUT
         ]
@@ -3846,13 +3935,16 @@ class PropertyPanel(QWidget):
             else ""
         )
         if not started:
-            self._batch_status.setText(("Those are already running." if not skipped else "") + skipped_note.strip())
-            return
-        self._batch_status.setText(
-            f"Running {len(started)} with default settings: {', '.join(started[:4])}"
+            text = ("Those are already running." if not skipped else "") + skipped_note.strip()
+            self._batch_status.setText(text)
+            return text
+        text = (
+            f"Running {len(started)} {how}: {', '.join(started[:4])}"
             + ("..." if len(started) > 4 else "")
             + skipped_note
         )
+        self._batch_status.setText(text)
+        return text
 
     # --- presets -------------------------------------------------------------------
 
@@ -4048,26 +4140,134 @@ class PropertyPanel(QWidget):
                 "Nothing to run. " + (plan.describe_exclusions() or "Tick a calculator first.")
             )
             return
+        self._start_project_run(plan, molecules, self._project_parameters)
+
+    def _start_project_run(
+        self, plan: ExecutionPlan, molecules: list, chosen_parameters: dict, label: str = ""
+    ) -> str:
+        """Hand a plan to the batch service, after the cost question. Returns the status text.
+
+        Shared by "Run selected" over several molecules and a goal run, so the confirmation,
+        the table adoption and the exclusions sentence are one implementation.
+        """
         if plan.job_count > _CONFIRM_PROJECT_RUN_ABOVE and not self._confirm_project_run(plan):
-            self._batch_status.setText("Cancelled -- nothing was computed.")
-            return
+            text = "Cancelled -- nothing was computed."
+            self._batch_status.setText(text)
+            return text
         self.project_run_started.emit(plan)
         self._batch_service.request_batch(
             BatchRequest(
                 molecule_uuids=list(plan.scope_uuids),
                 descriptor_ids=list(plan.descriptor_ids),
                 calculator_ids=list(plan.calculator_ids),
-                parameters=plan.overrides(self._project_parameters),
+                parameters=plan.overrides(chosen_parameters),
                 per_atom_aggregate=str(self._scope_aggregate.currentData()),
                 structure_versions=dict(plan.structure_versions),
             ),
             molecules,
         )
         left_out = plan.describe_exclusions()
-        self._batch_status.setText(
+        text = (
             f"Running {len(plan.calculator_ids)} calculator(s) on {plan.molecule_count} molecule(s) "
-            f"-- see Results > Project table. {left_out}".strip()
+            f"{label}-- see Results > Project table. {left_out}".strip()
         )
+        self._batch_status.setText(text)
+        return text
+
+    # --- running a goal -----------------------------------------------------------------
+
+    def run_goal(self, run: GoalRun) -> str:
+        """Run a goal's calculators, as asked, and return what was said about it.
+
+        **IT TOUCHES NOTHING THE PERSON SET.** Not a tick, not a preset, not the scope
+        control: the calculators and settings come from `run`, an immutable value, and the
+        molecules are read from the scope `run` names at THIS moment. So "Run recommended"
+        beside a heading and a customised wizard run are the same operation with different
+        arguments, and neither can leave Properties looking as though the person had
+        ticked something.
+
+        The route is the one "Run selected" takes (`_start_single_run` for one molecule,
+        `_start_project_run` for several), so what a calculator that needs input, one already
+        running, or a large run does is decided once.
+        """
+        goal = goal_of(run.goal_id)
+        label = f"'{goal.label}' " if goal is not None else ""
+        if self._project is None:
+            return self._say("Open or create a project first.")
+        molecules = self._molecules_for_run(run)
+        if not molecules:
+            return self._say(
+                "Select a molecule first." if run.scope_mode == SCOPE_THIS else "No molecules in that scope."
+            )
+        if run.scope_mode == SCOPE_THIS and not getattr(molecules[0], "molblock", ""):
+            # The several-molecule routes leave such a molecule out and say so; here it is the
+            # only one, and starting calculators on it would only log a failure for each.
+            return self._say(f"{molecules[0].display_name} has no structure yet -- draw or import one first.")
+        known = [cid for cid in run.calculator_ids if self._calculator_registry.get(cid) is not None]
+        ordered = sorted(
+            known, key=lambda cid: calculator_browse_sort_key(self._calculator_registry.get(cid))
+        ) + [cid for cid in run.calculator_ids if cid not in known]
+        plan = build_execution_plan(
+            molecules=molecules,
+            calculator_ids=ordered,
+            chosen_parameters=run.chosen_parameters(),
+            definition_of=self._calculator_registry.get,
+            structure_version_of=self._version_of_molecule,
+            plain_label=plain_label,
+            run_id=run.run_id,
+        )
+        if not plan.calculator_ids:
+            return self._say("Nothing to run. " + (plan.describe_exclusions() or "That goal has no calculators."))
+        if run.scope_mode == SCOPE_THIS:
+            return self._start_single_run(molecules[0], plan, f"for {label}".rstrip())
+        if self._batch_service is None:
+            return self._say("Running on several molecules is not available here.")
+        if self._batch_service.is_running():
+            return self._say("A project run is already going -- try again when it finishes.")
+        return self._start_project_run(plan, molecules, run.chosen_parameters(), f"for {label}")
+
+    def _say(self, text: str) -> str:
+        self._batch_status.setText(text)
+        return text
+
+    def _molecules_for_run(self, run: GoalRun) -> list:
+        """The molecules a run names, in project order, read from the project as it is now."""
+        if self._project is None:
+            return []
+        if run.scope_mode == SCOPE_ALL:
+            return list(self._project.molecules)
+        if run.scope_mode == SCOPE_CHOSEN:
+            wanted = set(run.scope_uuids)
+            return [m for m in self._project.molecules if m.uuid in wanted]
+        selected = self._selected_molecule_uuid
+        molecule = self._project.find_molecule(selected) if selected else None
+        return [molecule] if molecule is not None else []
+
+    def current_scope(self) -> tuple[str, set[str]]:
+        """The scope Properties has, for the wizard to start from (it keeps its own after that)."""
+        return self._scope_mode, set(self._scope_chosen)
+
+    def selected_molecule_uuid(self) -> str | None:
+        return self._selected_molecule_uuid
+
+    def _on_group_run_recommended(self, _checked: bool = False) -> None:
+        button = self.sender()
+        goal = goal_of(str(button.property(_GOAL_ID_PROPERTY))) if button is not None else None
+        if goal is None:
+            return
+        mode = self._scope_mode if self._batch_service is not None else SCOPE_THIS
+        self.run_goal(
+            GoalRun(
+                goal_id=goal.goal_id,
+                calculator_ids=goal.recommended_ids(),
+                parameters={e.calculator_id: dict(e.parameters) for e in goal.recommended() if e.parameters},
+                scope_mode=mode,
+                scope_uuids=tuple(sorted(self._scope_chosen)) if mode == SCOPE_CHOSEN else (),
+            )
+        )
+
+    def _on_goal_wizard_clicked(self, _checked: bool = False) -> None:
+        self.goal_wizard_requested.emit()
 
     def _confirm_project_run(self, plan: ExecutionPlan) -> bool:
         """State the size of a large run before it starts, and let the person decide."""

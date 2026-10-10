@@ -2226,6 +2226,66 @@ class _Driver(QObject):
             workflow, group, section.is_expanded(), section.summary(),
         )
 
+    def _do_goal_wizard(self, step: dict[str, Any]) -> None:
+        """Open the goal wizard and press its REAL buttons.
+
+        `{"do": "goal_wizard", "goal": "identity", "scope": "this", "press": "run_recommended",
+        "expect": {"ran_all": ["elemental_analysis"], "status_contains": "Running"}}`
+
+        `press` is `"run_recommended"` (page 1), or `"customise"` followed by `"run"` with
+        `untick` / `tick` naming calculators on the checklist, or absent to only open it.
+        The buttons, not `_emit`, because the wiring from a button to the run to Properties
+        is what is being proved. `expect.ran_all` reads the run the wizard emitted
+        (`last_run`), and `status_contains` what the wizard said back about it.
+        """
+        from openchem.ui.panels.property_panel import _SCOPE_ALL, _SCOPE_CHOSEN, _SCOPE_THIS
+
+        wizard = self._window.show_goal_wizard(step.get("goal"))
+        if "scope" in step:
+            molecules = list(self._window._session.project.molecules)
+            chosen = {molecules[i].uuid for i in step.get("chosen", []) if 0 <= i < len(molecules)}
+            wizard.set_scope({"this": _SCOPE_THIS, "all": _SCOPE_ALL, "chosen": _SCOPE_CHOSEN}[step["scope"]], chosen)
+        press = step.get("press")
+        if press == "customise":
+            wizard._customise_button.click()
+        if press in ("customise", "run"):
+            for calculator_id in step.get("untick", []):
+                check = wizard._entry_checks.get(calculator_id)
+                if check is not None:
+                    check.setChecked(False)
+            for calculator_id in step.get("tick", []):
+                check = wizard._entry_checks.get(calculator_id)
+                if check is not None:
+                    check.setChecked(True)
+        if press == "run_recommended":
+            wizard._run_recommended_button.click()
+        elif press == "run":
+            wizard._run_button.click()
+        run = wizard.last_run
+        logger.warning(
+            "OPENCHEM_DRIVE: goal_wizard goal=%s page=%s run=%s status=%r",
+            wizard.goal.goal_id, wizard._stack.currentIndex(),
+            list(run.calculator_ids) if run is not None else None, wizard._status.text(),
+        )
+        expect = step.get("expect")
+        if expect:
+            problems = []
+            ran = set(run.calculator_ids) if run is not None else set()
+            for calculator_id in expect.get("ran_all", []):
+                if calculator_id not in ran:
+                    problems.append(f"{calculator_id} was not in the run ({sorted(ran)})")
+            for calculator_id in expect.get("ran_none", []):
+                if calculator_id in ran:
+                    problems.append(f"{calculator_id} was in the run")
+            needle = expect.get("status_contains")
+            if needle and needle not in wizard._status.text():
+                problems.append(f"status {wizard._status.text()!r} lacks {needle!r}")
+            tag = str(step.get("tag", ""))
+            if self._record_assertion("goal_wizard", tag, not problems, "; ".join(problems) or "as expected"):
+                logger.warning("OPENCHEM_DRIVE: EXPECT goal_wizard ok[%s]", tag)
+            else:
+                logger.error("OPENCHEM_DRIVE: EXPECT goal_wizard FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
     def _do_properties_scroll(self, step: dict[str, Any]) -> None:
         """Scroll the Properties list: `{"do": "properties_scroll", "to": "end"}`.
 
@@ -2463,6 +2523,11 @@ class _Driver(QObject):
                 logger.error("OPENCHEM_DRIVE: no periodic table open; run {'do': 'periodic'}")
                 return
             target = self._periodic
+        elif step.get("widget") == "goal_wizard":
+            if self._window._goal_wizard is None:
+                logger.error("OPENCHEM_DRIVE: no goal wizard open; run {'do': 'goal_wizard'}")
+                return
+            target = self._window._goal_wizard
         elif step.get("widget") == "dialog":
             if getattr(self, "_dialog", None) is None:
                 logger.error("OPENCHEM_DRIVE: no dialog open; run {'do': 'dialog', ...}")
@@ -5818,7 +5883,10 @@ class _Driver(QObject):
             problems.append("the Results dock has no project table")
         else:
             if "rows" in step and len(table.row_uuids) != int(step["rows"]):
-                problems.append(f"{len(table.row_uuids)} rows, wanted {step['rows']}")
+                problems.append(
+                    f"{len(table.row_uuids)} rows, wanted {step['rows']} "
+                    f"({[table.row_labels.get(u) for u in table.row_uuids]})"
+                )
             headers = [column.header for column in table.columns]
             for needle in step.get("columns_contain") or []:
                 if not any(needle in header for header in headers):

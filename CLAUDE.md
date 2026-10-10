@@ -119,6 +119,11 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           `expect` (`home`, `rows`/`poses_at_least`,
                                           `viewer_built`, `settings_expanded`, `groups_expanded`)
                                           and read where the widget is off its containers
+    {"do": "goal_wizard", "goal": "identity", "scope": "this", "press": "run_recommended",
+     "expect": {"ran_all": ["elemental_analysis"], "status_contains": "Running"}}
+                                          the goal wizard's REAL buttons ("customise" then
+                                          "run", with "tick"/"untick"); `shot` takes
+                                          "widget": "goal_wizard"
     {"do": "workflow_group", "workflow": "docking", "group": "search", "expanded": false}
                                           open or close a collapsible group INSIDE a workflow
                                           (alignment: settings; docking: box, prep, search)

@@ -458,6 +458,18 @@ it).
   sets its place; plugins are listed after them, A to Z, whatever order they
   loaded in. A test compares that table with the docks the window builds.
 
+- **Goals are task groups, and a goal run is a value.** `src/openchem/domain/calculator_goals.py` holds
+  the curated sets (a goal's id is its task group's id, so a heading's "Run recommended"
+  and the wizard's goal of that name are one set) and `GoalRun`, the immutable run made
+  when Run is pressed. `validate_goals` checks every recommendation against the registry
+  (exists, runs from Properties, visible by default, has no input only the person has,
+  overrides inside the declared range). `PropertyPanel.run_goal` is the one door: it reads
+  "this molecule" when it runs, builds the shared `ExecutionPlan`, and hands it to
+  `_start_single_run` or `_start_project_run`, the same two routes "Run selected" uses; it
+  changes no tick, preset or scope. `src/openchem/ui/dialogs/goal_wizard_dialog.py` is only the asking:
+  `MainWindow.show_goal_wizard` keeps one instance, and the window passes the run back to
+  Properties and returns the outcome to the wizard.
+
 - **A workflow is ONE widget with two homes: its own tab, or a Properties section.**
   `PropertyPanel.add_workflow()` puts a collapsed section under a "Workflows"
   heading above the calculators, found by Find on its keywords. It is a different

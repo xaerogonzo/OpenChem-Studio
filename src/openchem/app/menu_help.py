@@ -573,6 +573,18 @@ MENU_HELP: dict[str, HelpTooltip] = {
         tier=3, help_id="tools.identify_structure", topic=_M,
         help_anchor="naming",
     ),
+    "goal_wizard": HelpTooltip(
+        text=(
+            "Opens the goal wizard: pick what you want to know about the molecule (its charge, "
+            "its solubility, its shape, whether it is drug-like) and run a short, curated set "
+            "of calculators that answers it.\n\n"
+            "\"Run recommended\" is the whole quick path; \"Customise\" shows the set first and "
+            "lets you change it. It runs the same calculators Properties lists and never changes "
+            "your ticks or presets."
+        ),
+        tier=1, help_id="tools.goal_wizard", topic=_M,
+        help_anchor="properties",
+    ),
     "virtual_screening": HelpTooltip(
         text=(
             "Opens virtual screening -- docking a set of molecules against one "

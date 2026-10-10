@@ -1027,6 +1027,22 @@ ADMET model is about six seconds — and before this the panel showed
 nothing at all for that whole stretch, then the result and its window
 arrived together. It reads as a slow dialog and is not one.
 
+### Running by goal
+
+If you know the question and not the section, use **Tools > Run Calculators by Goal...**
+(or **Run by goal...** in Properties). Pick what you want to know (its charge, its
+solubility, its shape, whether it is drug-like) and the wizard says what it will run.
+**Run recommended** runs that set at once, on this molecule, on the whole project or on
+molecules you choose, as the **Run on** box says. **Customise...** lists the set with the
+reason for each calculator: recommended ones ticked, optional ones not, a **Settings...**
+button on each that has settings, and the size of the run before you press **Run**.
+
+Each group heading in Properties has its own **Run recommended** button for the same set.
+
+Running by goal never ticks or unticks anything in Properties, and never changes your
+presets. A molecule with no structure yet is left out and the status line says so. With
+several molecules the results go to **Results > Project table**, as with **Run selected**.
+
 ### Categories worth knowing about
 
 | Category | What's in it |
