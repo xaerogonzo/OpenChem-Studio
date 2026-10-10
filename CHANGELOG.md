@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: a ring cation on a curated fused parent keeps its -ium
+- The cation of a protonated 2-amido-thiazole fused to a saturated ring, of a pyrazolo[1,5-a]pyrimidine, a thiazolo[5,4-d]pyrimidine and the tetrahydro-triazolo, -thieno and -benzothiazole parents was named as its NEUTRAL parent (`2-methyl-4,5,6,7-tetrahydro-1,3-benzothiazole`), which OPSIN reads as another molecule. Six curated ring tables left out the locants of their heteroatoms, so the engine had no place for the `-ium` and skipped it. They are complete now, and a plan whose cationic ring atom has no locant fails (the next plan names it) instead of dropping the charge. 700 cations of the six parents, master -> now: wrong molecule 528 -> 0, unreadable 44 -> 0, exact 128 -> 700. D-208.
+
 ### Naming: a partly saturated ring cation keeps its hydro prefixes
 - A cyclic iminium or amidinium (`C[N+]1=C(C)NCC1`, `C1CC=[NH+]C1`, `CC1=[NH+]CCCC1`) was named as the aromatic or the fully saturated ring with an `-ium`: `2,3-dimethyl-1,3-diazol-3-ium` (an imidazolium), `azol-1-ium` (a pyrrolium), `6-methylazinan-1-ium` (a piperidinium), all different molecules. Two helpers refused a ring on its first charged atom, although an N+ in a C=N+ is in the double bond and is no hydro position. 1151 protonated or N-alkylated cyclic imines, amidines and their substituted forms, master -> now: wrong molecule 1005 -> 0, exact 146 -> 1151, none worse (`C[N+]1=C(C)NCC1` -> `2,3-dimethyl-4,5-dihydro-1H-1,3-diazol-3-ium`). D-207.
 

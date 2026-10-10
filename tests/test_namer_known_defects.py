@@ -4206,6 +4206,10 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-207", "C[N+]1=C(C)NCC1", "2,3-dimethyl-4,5-dihydro-1H-1,3-diazol-3-ium",
      "2,3-dimethyl-1,3-diazol-3-ium",
      "WRONG MOLECULE: an imidazolinium named as an imidazolium; 1005 of 1151 protonated or N-alkylated cyclic imines, amidines and their substituted forms named another molecule"),
+    # D-208, found by naming round 34's list of open items: six curated fused parents listed no locant for their ring heteroatoms, so the engine had no place for the -ium and skipped it.
+    ("D-208", "Cc1[nH+]c2c(s1)CCCC2", "2-methyl-4,5,6,7-tetrahydro-1,3-benzothiazol-3-ium",
+     "2-methyl-4,5,6,7-tetrahydro-1,3-benzothiazole",
+     "WRONG MOLECULE: the cation named as its neutral parent (528 of 700 cations of the six parents, 44 more unreadable)"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
