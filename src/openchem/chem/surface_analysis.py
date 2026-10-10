@@ -34,7 +34,6 @@ from openchem.chem.geometry_analysis import NoConformerError, _require_conformer
 from openchem.chem.calculator_options import (
     atom_basis_of,
     decimals,
-    microspecies_note,
     microspecies_parameters,
 )
 from openchem.chem.projection_geometry import van_der_waals_surface_area, van_der_waals_volume
@@ -201,11 +200,13 @@ def compute_surface_analysis(
                     molecule_uuid, state.message or "The structure at that pH could not be built from this conformer."
                 )
             mol = state.mol
-            notes = microspecies_note(parameters)
-            notes.append(
-                "That differs from the structure as it is." if state.changed
-                else "That is the structure as it is: it is already the dominant form at this pH."
-            )
+            # "Label: value", so the reader files it as a row of its own instead of under the
+            # calculator's name.
+            notes = [
+                f"Structure: major microspecies at pH {ph:g}, which differs from the structure as it is."
+                if state.changed
+                else f"Structure: major microspecies at pH {ph:g}, which is the structure as it is: it is already the dominant form."
+            ]
             recorded.update({"major_microspecies": True, "pH": ph, "state_changed": bool(state.changed)})
         areas = surface_areas(mol, probe)
     except NoConformerError as exc:

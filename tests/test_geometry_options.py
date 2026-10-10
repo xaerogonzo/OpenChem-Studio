@@ -330,3 +330,39 @@ def test_the_old_and_new_methods_never_share_a_slot_and_only_the_new_is_replayed
 
     assert replayed == {"geometry-v2"}, "the old measurement must not be replayed as if it were the new one"
     assert kept == {"geometry-v2", "legacy-principal-planes-v1"}, "and it must not be thrown away either"
+
+
+# --- the settings dialog, which is where a person meets these options ----------------------------------------
+
+
+def _dialog(calculator_id):
+    from openchem.bootstrap import build_service_container
+    from openchem.ui.dialogs.calculator_settings_dialog import CalculatorSettingsDialog
+
+    definition = build_service_container().calculator_registry.get(calculator_id)
+    return CalculatorSettingsDialog(definition), definition
+
+
+def test_the_dialog_stores_a_choice_as_its_code_never_its_label(qapp):
+    from PySide6.QtWidgets import QComboBox
+
+    dialog, definition = _dialog("geometry_analysis")
+    unit = next(c for c in dialog.findChildren(QComboBox) if c.findText("kJ/mol") >= 0)
+
+    unit.setCurrentIndex(unit.findText("kJ/mol"))
+
+    assert dialog.parameters()["energy_unit"] == "kj_per_mol"
+    assert "energy_unit" in {p.name for p in definition.parameters}
+
+
+def test_the_dialog_at_its_defaults_gives_the_defaults(qapp):
+    dialog, definition = _dialog("geometry_analysis")
+
+    assert dialog.parameters() == {p.name: p.default for p in definition.parameters}
+
+
+def test_the_surface_dialog_offers_the_probe_and_the_microspecies(qapp):
+    _dialog_, definition = _dialog("surface_analysis")
+    names = [p.name for p in definition.parameters]
+
+    assert names[:2] == ["decimal_places", "solvent_radius"] and "major_microspecies" in names and "pH" in names

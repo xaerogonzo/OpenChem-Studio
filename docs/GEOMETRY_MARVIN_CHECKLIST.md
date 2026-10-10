@@ -95,11 +95,13 @@ Agreed 2026-10-10 (Alex): **the smaller scope**, not the merge. Retire nothing.
    copy; "lowest of N candidates" for the conformer option; and the optimisation limit
    read as the conformer search's convergence (the inference above), in OpenChem's own
    gradient and iteration terms.
-5. **Added by the second page, small:** report the van der Waals surface area the shape code
-   already computes; a radius scale factor on the projection, defined as a multiplier on
-   the vdW radii.
-6. **Added by the second page, outside Geometry (offered, not agreed):** a pH and a solvent
-   radius on `Molecular Surface Area (3D)`.
+5. **Added by the second page:** a radius scale factor on the projection, defined as a
+   multiplier on the vdW radii (in Geometry); the van der Waals surface area (in
+   `Molecular Surface Area (3D)`, where Marvin keeps `vdwsa`).
+6. **Agreed 2026-10-10 and built:** a pH and a solvent radius on `Molecular Surface Area (3D)`.
+   Building it found the accessible surface area was computed with zero radii (see the
+   CHANGELOG and LESSONS), which is why this table's "Molecular Surface Area (3D)" row is no
+   longer a statement about a number that was right.
 7. **Comparison class for every Marvin row stays "qualitative" or "not comparable"** until
    somebody with the plugin supplies its output for a given structure with its conformer.
 

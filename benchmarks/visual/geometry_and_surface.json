@@ -1,0 +1,93 @@
+[
+ {
+  "do": "smiles",
+  "smiles": "CC(=O)O",
+  "name": "Acetic acid",
+  "after_ms": 800
+ },
+ {
+  "do": "select",
+  "molecule": -1,
+  "after_ms": 1500
+ },
+ {
+  "do": "conformers",
+  "count": 5,
+  "after_ms": 12000
+ },
+ {
+  "do": "calculator",
+  "id": "geometry_analysis",
+  "after_ms": 4000
+ },
+ {
+  "do": "panel",
+  "id": "Results",
+  "after_ms": 1500
+ },
+ {
+  "do": "shot",
+  "path": "benchmarks/visual/artifacts/geometry_default.png"
+ },
+ {
+  "do": "calculator",
+  "id": "geometry_analysis",
+  "parameters": {
+   "energy_unit": "kj_per_mol",
+   "optimise_mmff": true,
+   "optimise_projection": true,
+   "conformer_policy": "always",
+   "conformer_count": 8,
+   "radius_scale": 1.2
+  },
+  "after_ms": 9000
+ },
+ {
+  "do": "panel",
+  "id": "Results",
+  "after_ms": 1500
+ },
+ {
+  "do": "shot",
+  "path": "benchmarks/visual/artifacts/geometry_options.png"
+ },
+ {
+  "do": "calculator",
+  "id": "surface_analysis",
+  "after_ms": 3000
+ },
+ {
+  "do": "panel",
+  "id": "Results",
+  "after_ms": 1500
+ },
+ {
+  "do": "shot",
+  "path": "benchmarks/visual/artifacts/surface_default.png"
+ },
+ {
+  "do": "calculator",
+  "id": "surface_analysis",
+  "parameters": {
+   "major_microspecies": true,
+   "pH": 7.4,
+   "solvent_radius": 1.6
+  },
+  "after_ms": 6000
+ },
+ {
+  "do": "panel",
+  "id": "Results",
+  "after_ms": 1500
+ },
+ {
+  "do": "shot",
+  "path": "benchmarks/visual/artifacts/surface_options.png"
+ },
+ {
+  "do": "expect_clean"
+ },
+ {
+  "do": "quit"
+ }
+]
