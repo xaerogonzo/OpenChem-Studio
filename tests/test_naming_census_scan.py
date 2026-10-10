@@ -92,3 +92,17 @@ def test_the_command_refuses_without_java_unless_names_only(monkeypatch, capsys)
     monkeypatch.setattr(scan.shutil, "which", lambda _name: None)
     assert scan.main([]) == 2
     assert "java" in capsys.readouterr().err
+
+
+def test_naming_rows_leaves_logging_and_rdkit_as_it_found_them():
+    """A scan silences both while it runs. It used to leave them silenced, and the calculator census
+    then counted no warnings for any test that ran after it in the same process."""
+    import logging
+
+    from rdkit import rdBase
+
+    logging.disable(logging.NOTSET)  # start clean: an earlier leak must not make before == after
+    rdBase.EnableLog('rdApp.warning')
+    before = (logging.root.manager.disable, rdBase.LogStatus())
+    scan.name_rows([{"label": "r1", "smiles": "CCO"}])
+    assert (logging.root.manager.disable, rdBase.LogStatus()) == before

@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import argparse
 import collections
+import contextlib
 import hashlib
 import json
 import re
@@ -81,24 +82,45 @@ def load_sample() -> list[dict]:
     return json.loads(raw)
 
 
-def name_rows(rows: list[dict]) -> dict[str, dict]:
-    """`{label: {smiles, name}}` with the engine's own refusal recorded as a name, never raised."""
+@contextlib.contextmanager
+def _engine_logging_silenced():
+    """Silence RDKit and `logging` for the length of a scan, then put both back.
+
+    This used to switch them off and leave them off. It is called in-process by tests, so every later
+    test in the same pytest run lost its WARNING records, and the calculator census (which counts
+    them) read "w" cells as "c" -- but only when the two files shared a process, which CI's shards do not.
+    """
     import logging
 
-    from rdkit import Chem, RDLogger
+    from rdkit import RDLogger, rdBase
 
+    status = dict(line.split(":") for line in rdBase.LogStatus().splitlines())
+    was_disabled = logging.root.manager.disable
     RDLogger.DisableLog("rdApp.*")
     logging.disable(logging.CRITICAL)
-    from openchem.vendor.iupac_namer import name_smiles
+    try:
+        yield
+    finally:
+        logging.disable(was_disabled)
+        for channel, state in status.items():
+            (RDLogger.EnableLog if state == "enabled" else RDLogger.DisableLog)(channel)
+
+
+def name_rows(rows: list[dict]) -> dict[str, dict]:
+    """`{label: {smiles, name}}` with the engine's own refusal recorded as a name, never raised."""
+    from rdkit import Chem
 
     out: dict[str, dict] = {}
-    for row in rows:
-        smiles = Chem.MolToSmiles(Chem.MolFromSmiles(row["smiles"]))
-        try:
-            name = name_smiles(smiles)
-        except Exception as exc:  # noqa: BLE001 - the refusal guard raises ValueError on purpose
-            name = f"RAISED: {type(exc).__name__}: {str(exc)[:100]}"
-        out[row["label"]] = {"smiles": smiles, "name": name}
+    with _engine_logging_silenced():
+        from openchem.vendor.iupac_namer import name_smiles
+
+        for row in rows:
+            smiles = Chem.MolToSmiles(Chem.MolFromSmiles(row["smiles"]))
+            try:
+                name = name_smiles(smiles)
+            except Exception as exc:  # noqa: BLE001 - the refusal guard raises ValueError on purpose
+                name = f"RAISED: {type(exc).__name__}: {str(exc)[:100]}"
+            out[row["label"]] = {"smiles": smiles, "name": name}
     return out
 
 
