@@ -1,6 +1,6 @@
 {
  "n_rings": 371,
- "population_sha256": "4a3bd0e462147f75380c5b27b15d901f88b705a93712531f9f6f3098a87b1d2d",
+ "population_sha256": "9249f194dbd678b6f5b3f8c510ab25d3ad973c4d30de19fee8108321c0c3d584",
  "purpose": "the frozen ring denominator for tools/naming_ring_locant_sweep.py (naming round 13)",
  "rings": [
   {
@@ -5988,6 +5988,9 @@
    "locant_atoms": [
     0,
     1,
+    2,
+    3,
+    4,
     5,
     6,
     7,
@@ -11912,8 +11915,12 @@
    "locant_atoms": [
     0,
     1,
+    2,
+    3,
     4,
     5,
+    6,
+    7,
     8
    ],
    "name": "pyrazolo[1,5-a]pyrimidine",
@@ -12412,6 +12419,10 @@
    "has_atom_locants": true,
    "locant_atoms": [
     0,
+    1,
+    2,
+    3,
+    4,
     5,
     6,
     7,
@@ -12746,8 +12757,14 @@
    "has_atom_locants": true,
    "locant_atoms": [
     0,
+    1,
     2,
-    5
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
    ],
    "name": "thiazolo[5,4-d]pyrimidine",
    "sites": [
@@ -12905,6 +12922,10 @@
    "has_atom_locants": true,
    "locant_atoms": [
     0,
+    1,
+    2,
+    3,
+    4,
     5,
     6,
     7,
@@ -12935,6 +12956,10 @@
    "has_atom_locants": true,
    "locant_atoms": [
     0,
+    1,
+    2,
+    3,
+    4,
     5,
     6,
     7,
