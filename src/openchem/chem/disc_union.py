@@ -28,6 +28,7 @@ import numpy as np
 #: structure that could be drawn, and large against floating-point noise in a coordinate.
 _EPS = 1e-9
 
+#: A full turn: the angle a circle's boundary runs through.
 _TWO_PI = 2.0 * np.pi
 
 

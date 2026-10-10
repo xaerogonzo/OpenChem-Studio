@@ -41,9 +41,13 @@ from openchem.chem.disc_union import union_area
 #: compared), so a larger molecule gets fewer samples: its shadow is also a smoother function
 #: of the direction, and the refinement does the precise work.
 _SAMPLES_SMALL = 240
+#: The sample count for a molecule of more than `_MEDIUM_ATOMS` atoms.
 _SAMPLES_MEDIUM = 160
+#: The sample count for a molecule of more than `_LARGE_ATOMS` atoms.
 _SAMPLES_LARGE = 100
+#: Above this many atoms (hydrogens included) a molecule is "medium" for the sample count.
 _MEDIUM_ATOMS = 60
+#: Above this many atoms a molecule is "large" for the sample count.
 _LARGE_ATOMS = 150
 
 #: How many of the best samples (of each kind) are refined. The area can have more than one
@@ -59,6 +63,9 @@ _REFINED_STARTS = 3
 #: at the first tolerance tried (2e-3), 3e-4 A^2 at this one. A maximum is usually smooth, a
 #: minimum usually is not.
 _REFINE_TOLERANCE = 1e-4
+
+#: The smallest relative improvement a step must make to be taken.
+_MIN_GAIN = 1e-9
 
 #: Every refined start is first walked to this coarser tolerance (about 0.1 degree); only the best
 #: of each kind is then taken on to `_REFINE_TOLERANCE`. Most starts lose, so the fine steps -- each
@@ -185,7 +192,9 @@ def _refine(
             )
             candidate_value = sign * _area(positions, radii, candidate)
             budget[0] += 1
-            if candidate_value > best_value:
+            # A move must GAIN something real. A symmetric molecule has a whole ring of equally good
+            # views, and floating-point noise would otherwise let the walk wander along it for ever.
+            if candidate_value > best_value + _MIN_GAIN * max(1.0, abs(best_value)):
                 best, best_value = candidate, candidate_value
         if best is None:
             step *= 0.5

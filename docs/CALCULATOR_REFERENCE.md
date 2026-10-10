@@ -449,12 +449,13 @@ Velocity-Verlet dynamics over MMFF94/UFF forces. VACUUM only: no thermostat, no 
 <!-- help:calc-atom-sasa -->
 ### Accessible Surface Area (per atom)
 
-Per-atom solvent-accessible surface -- which atoms are actually exposed. Needs a conformer.
+Per-atom solvent-accessible surface -- which atoms are actually exposed, for a solvent probe of a chosen radius. Needs a conformer.
 
 - Produces one value per atom, with a depiction coloured by them.
 - Runs on a real 3D conformer -- generate one first.
 - Options:
   - `decimal_places` -- Decimal places default `2` range 0 to 8
+  - `solvent_radius` -- Solvent probe radius (A) default `1.4` range 0.0 to 5.0
 
 <!-- help:calc-griffin-hlb -->
 ### HLB (Griffin)
@@ -470,12 +471,15 @@ Griffin's hydrophile-lipophile balance: the weight percentage of ethylene oxide 
 <!-- help:calc-surface-analysis -->
 ### Molecular Surface Area (3D)
 
-Solvent-accessible surface area with Marvin's ASA+/ASA-/ASA_H/ASA_P splits, plus van der Waals volume. Needs a conformer.
+Solvent-accessible surface area with Marvin's ASA+/ASA-/ASA_H/ASA_P splits, plus the van der Waals surface area and volume. The solvent probe's radius can be changed (1.4 A, a water molecule, by default), and the structure can be the major microspecies at a pH, built on the stored conformer by moving protons only. Needs a conformer.
 
 - Produces a list of facts, each with its own units, basis and evidence.
 - Runs on a real 3D conformer -- generate one first.
 - Options:
   - `decimal_places` -- Decimal places default `2` range 0 to 8
+  - `solvent_radius` -- Solvent probe radius (A) default `1.4` range 0.0 to 5.0
+  - `major_microspecies` -- Take major microspecies default `False`
+  - `pH` -- at pH default `7.4` range 0.0 to 14.0
 
 <!-- help:calc-polar-surface-area -->
 ### Polar Surface Area (2D)

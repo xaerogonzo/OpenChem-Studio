@@ -26,7 +26,9 @@ KJ_PER_KCAL = 4.184
 #: Energy unit codes and what is shown. The energy is always COMPUTED in kcal/mol and converted
 #: for display, so switching the unit converts the same stored number rather than computing again.
 UNIT_KCAL = "kcal_per_mol"
+#: The kilojoule-per-mole code, the other energy unit offered.
 UNIT_KJ = "kj_per_mol"
+#: What each energy unit code is called on screen, and the `units` string a fact carries.
 UNIT_LABELS = {UNIT_KCAL: "kcal/mol", UNIT_KJ: "kJ/mol"}
 
 #: Which conformer the numbers are measured on.
@@ -36,15 +38,20 @@ UNIT_LABELS = {UNIT_KCAL: "kcal/mol", UNIT_KJ: "kJ/mol"}
 #: energy one when it is not. `always` -- the lowest-energy of the generated candidates and the
 #: geometry supplied.
 POLICY_NEVER = "never"
+#: Generate a lowest-energy conformer only when the structure is not 3D.
 POLICY_IF_2D = "if_2d"
+#: Generate one for every structure, and compare it with the geometry supplied.
 POLICY_ALWAYS = "always"
+#: What each conformer policy code reads as in the settings dialog (never stored).
 POLICY_LABELS = {
     POLICY_NEVER: "Never: use the conformer as it is",
     POLICY_IF_2D: "Only if the structure is 2D",
     POLICY_ALWAYS: "Always: the lowest of several",
 }
 
+#: How many conformers the lowest-energy search tries by default.
 DEFAULT_CONFORMER_COUNT = 20
+#: The multiplier on the van der Waals radii in the projections: none, by default.
 DEFAULT_RADIUS_SCALE = 1.0
 
 

@@ -135,7 +135,12 @@ from openchem.chem.structure_annotation import (
     compute_stereocenters,
 )
 from openchem.chem.substructure import COMMON_PATTERNS, compute_substructure_search
-from openchem.chem.surface_analysis import compute_sasa_dataset, compute_surface_analysis
+from openchem.chem.surface_analysis import (
+    compute_sasa_dataset,
+    compute_surface_analysis,
+    solvent_radius_parameter,
+    surface_parameters,
+)
 from openchem.chem.substance import compute_substance_analysis
 from openchem.chem.tsei import compute_tsei_projection
 from openchem.chem.topology_analysis import (
@@ -2544,12 +2549,16 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         category="surface",
         description=(
             "Solvent-accessible surface area with Marvin's ASA+/ASA-/ASA_H/ASA_P splits, "
-            "plus van der Waals volume. Needs a conformer."
+            "plus the van der Waals surface area and volume. The solvent probe's radius can "
+            "be changed (1.4 A, a water molecule, by default), and the structure can be the "
+            "major microspecies at a pH, built on the stored conformer by moving protons "
+            "only. Needs a conformer."
         ),
         execution=RegistryExecution(compute=compute_surface_analysis),
-        tags=["surface", "3d", "solvent"],
+        tags=["surface", "3d", "solvent", "ph", "microspecies", "vdw"],
         parameters=[
             decimal_places_parameter(),
+            *surface_parameters(),
         ],
     ),
     CalculatorDefinition(
@@ -2558,11 +2567,12 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         calculation_input=GEOMETRY,
         display_name="Accessible Surface Area (per atom)",
         category="surface",
-        description="Per-atom solvent-accessible surface -- which atoms are actually exposed. Needs a conformer.",
+        description="Per-atom solvent-accessible surface -- which atoms are actually exposed, for a solvent probe of a chosen radius. Needs a conformer.",
         execution=RegistryExecution(compute=compute_sasa_dataset),
         tags=["surface", "3d", "per-atom"],
         parameters=[
             decimal_places_parameter(),
+            solvent_radius_parameter(),
         ],
     ),
     CalculatorDefinition(

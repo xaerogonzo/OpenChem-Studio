@@ -68,12 +68,21 @@ FRAGMENT_COUNTS_METHOD = "structural-features-v3"
 #: measured them on the three principal planes and is kept beside this one, labelled as such.
 GEOMETRY_METHOD = "geometry-v2"
 
+#: The method the surface calculators are computed by today. v2 (2026-10-10) passes real van der
+#: Waals radii to the solvent-accessible surface; a result without a method was computed with a
+#: radius of ZERO for every atom (`rdFreeSASA.classifyAtoms` knows only PDB atom names), so its
+#: areas are a fraction of the true ones (ethanol 97 against 199 A^2) and it is kept beside the
+#: new result, labelled, never replayed as one.
+SURFACE_METHOD = "surface-v2"
+
 #: Result ids whose METHOD is part of their stored identity, and the method
 #: a result computed today is by. Only these carry a `method_version`, so no
 #: other result's identity (or saved project) changes.
 CURRENT_METHOD_VERSIONS: dict[str, str] = {
     "fragment_counts": FRAGMENT_COUNTS_METHOD,
     "geometry_analysis": GEOMETRY_METHOD,
+    "surface_analysis": SURFACE_METHOD,
+    "atom_sasa": SURFACE_METHOD,
 }
 
 #: What a saved entry WITHOUT a `method_version` was computed by -- the rule
@@ -83,6 +92,14 @@ CURRENT_METHOD_VERSIONS: dict[str, str] = {
 LEGACY_METHOD_VERSIONS: dict[str, tuple[str, str]] = {
     "fragment_counts": ("legacy-rdkit-fr-v1", "Fragment Counts (legacy: RDKit fr_* counters)"),
     "geometry_analysis": ("legacy-principal-planes-v1", "Geometry (previous method: principal-plane projections)"),
+    "surface_analysis": (
+        "legacy-zero-radii-v1",
+        "Molecular Surface Area (3D) (previous method, withdrawn: atomic radii were zero, accessible areas too small)",
+    ),
+    "atom_sasa": (
+        "legacy-zero-radii-v1",
+        "Accessible Surface Area (per atom) (previous method, withdrawn: atomic radii were zero, areas too small)",
+    ),
 }
 
 #: Methods a result id WAS computed by that carry an explicit `method_version`

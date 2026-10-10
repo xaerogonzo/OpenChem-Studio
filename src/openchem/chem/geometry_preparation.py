@@ -39,6 +39,7 @@ LIMIT_LEVELS: dict[str, str] = {
     "strict": "Strict",
     "very_strict": "Very strict",
 }
+#: The optimisation limit a result is computed at unless another is chosen.
 DEFAULT_LIMIT = "normal"
 
 
