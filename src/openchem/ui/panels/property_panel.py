@@ -126,6 +126,8 @@ from openchem.ui.dialogs.calculator_settings_dialog import (
     plain_label,
 )
 from openchem.ui.dialogs.molecule_scope_dialog import MoleculeScopeDialog
+from openchem.ui.dialogs.property_choice_dialog import Choice, PropertyChoiceDialog
+from openchem.ui.widgets.project_table import _title
 from openchem.ui.dialogs.nmr_view_dialog import NmrViewDialog
 from openchem.ui.widgets.substance_card import SubstanceCard, card_data_from_report
 from openchem.ui.widgets.collapsible_section import CollapsibleSection as _CollapsibleSection
@@ -455,6 +457,32 @@ _RUN_ALERTS_HELP = HelpTooltip(
     ),
     tier=2,
     help_id="properties.run_scope_alerts",
+    topic="properties",
+    help_anchor="properties",
+)
+
+#: Picking some of the always-on properties for a project run instead of all of them.
+_CHOOSE_DESCRIPTORS_HELP = HelpTooltip(
+    text=(
+        "Choose which always-on properties become columns of the project table.\n\n"
+        "Without a choice, all of them are included. Pick only logP and TPSA, say, "
+        "for a table that is just those."
+    ),
+    tier=3,
+    help_id="properties.choose_descriptors",
+    topic="properties",
+    help_anchor="properties",
+)
+
+#: Picking some of the structural-alert catalogs for a project run.
+_CHOOSE_ALERTS_HELP = HelpTooltip(
+    text=(
+        "Choose which structural-alert catalogs (PAINS, Brenk, ...) become columns.\n\n"
+        "Each catalog is real work on a large project, so choosing only the one you "
+        "need is cheaper than all five."
+    ),
+    tier=3,
+    help_id="properties.choose_alerts",
     topic="properties",
     help_anchor="properties",
 )
@@ -819,6 +847,8 @@ _WORKFLOW_INDENT = 4
 #: The Qt property that carries a goal's id on a heading's button, so one bound method serves
 #: every group (a lambda capturing `self` would root the panel).
 _GOAL_ID_PROPERTY = "openchem_goal_id"
+#: Which way a "tick every calculator in this section" action goes, carried on the action.
+_BULK_TICK_PROPERTY = "openchem_bulk_tick"
 
 #: The Qt property that carries a workflow's id on its body, so one bound method can serve
 #: every workflow's buttons (a lambda capturing `self` would root the panel).
@@ -1978,6 +2008,20 @@ class PropertyPanel(QWidget):
         self._scope_alerts = QCheckBox("Include structural alerts", self)
         apply_help_tooltip(self._scope_alerts, _RUN_ALERTS_HELP)
         self._scope_alerts.setVisible(False)
+        #: Which always-on properties and alert catalogs a project run includes. `None` is
+        #: "all of them", which is what the box alone has always meant.
+        self._descriptor_choice: set[str] | None = None
+        self._alert_choice: set[str] | None = None
+        self._choose_descriptors = QPushButton("Choose...", self)
+        self._choose_descriptors.setFlat(True)
+        apply_help_tooltip(self._choose_descriptors, _CHOOSE_DESCRIPTORS_HELP)
+        self._choose_descriptors.clicked.connect(self._on_choose_descriptors)
+        self._choose_descriptors.setVisible(False)
+        self._choose_alerts = QPushButton("Choose...", self)
+        self._choose_alerts.setFlat(True)
+        apply_help_tooltip(self._choose_alerts, _CHOOSE_ALERTS_HELP)
+        self._choose_alerts.clicked.connect(self._on_choose_alerts)
+        self._choose_alerts.setVisible(False)
         self._scope_aggregate = QComboBox(self)
         for name in PER_ATOM_AGGREGATES:
             self._scope_aggregate.addItem(f"Per-atom results as: {name}", name)
@@ -2012,8 +2056,15 @@ class PropertyPanel(QWidget):
         scope_row.addWidget(self._goals_button)
         scope_row.addWidget(self._presets_button)
         layout.addLayout(scope_row)
-        layout.addWidget(self._scope_descriptors)
-        layout.addWidget(self._scope_alerts)
+        for box, choose in (
+            (self._scope_descriptors, self._choose_descriptors),
+            (self._scope_alerts, self._choose_alerts),
+        ):
+            choice_row = QHBoxLayout()
+            choice_row.setContentsMargins(0, 0, 0, 0)
+            choice_row.addWidget(box, 1)
+            choice_row.addWidget(choose)
+            layout.addLayout(choice_row)
         layout.addWidget(self._scope_aggregate)
         layout.addWidget(self._find_box)
         layout.addWidget(self._find_empty)
@@ -2055,7 +2106,12 @@ class PropertyPanel(QWidget):
                 for d in calculator_registry.by_category(category)
             ):
                 self._section_for(category)
-        self._presets.migrate_batch_selection(set(self._calculator_ticks))
+        from openchem.chem.descriptor_providers import RDKitDescriptorProvider
+
+        _properties = RDKitDescriptorProvider()
+        self._presets.migrate_batch_selection(
+            set(self._calculator_ticks), set(_properties.descriptor_ids()) | set(_properties.alert_ids())
+        )
         self._apply_calculator_visibility()
 
         event_bus.subscribe(MoleculeSelected, self._on_molecule_selected)
@@ -3778,6 +3834,15 @@ class PropertyPanel(QWidget):
         action.setProperty(_CALCULATOR_ID_PROPERTY, calculator_id)
         action.triggered.connect(self._on_about_calculator_triggered)
         definition = self._calculator_registry.get(calculator_id)
+        if definition is not None and calculator_id in self._calculator_ticks:
+            for text, ticked in (
+                ("Tick every calculator in this section", True),
+                ("Untick every calculator in this section", False),
+            ):
+                bulk = menu.addAction(text)
+                bulk.setProperty(_CALCULATOR_ID_PROPERTY, calculator_id)
+                bulk.setProperty(_BULK_TICK_PROPERTY, ticked)
+                bulk.triggered.connect(self._on_section_ticks_triggered)
         if (
             self._batch_service is not None
             and definition is not None
@@ -3788,6 +3853,13 @@ class PropertyPanel(QWidget):
             settings_action.setProperty(_CALCULATOR_ID_PROPERTY, calculator_id)
             settings_action.triggered.connect(self._on_project_settings_triggered)
         return menu
+
+    def _on_section_ticks_triggered(self, _checked: bool = False) -> None:
+        action = self.sender()
+        calculator_id = action.property(_CALCULATOR_ID_PROPERTY) if action is not None else None
+        definition = self._calculator_registry.get(str(calculator_id)) if calculator_id else None
+        if definition is not None:
+            self.set_section_ticks(definition.category, bool(action.property(_BULK_TICK_PROPERTY)))
 
     def _on_project_settings_triggered(self, _checked: bool = False) -> None:
         action = self.sender()
@@ -3958,9 +4030,12 @@ class PropertyPanel(QWidget):
         menu = QMenu(self)
         actions: dict[str, object] = {}
         save = menu.addAction("Save ticked as preset...")
-        save.setEnabled(bool(self._selected_calculator_ids()))
+        save.setEnabled(bool(self._preset_ids_to_save()))
         save.setData(("save", ""))
         actions["save"] = save
+        tick_shown = menu.addAction("Tick all shown")
+        tick_shown.setData(("tick_shown", ""))
+        actions["tick_shown"] = tick_shown
         names = self._presets.names()
         if names:
             menu.addSeparator()
@@ -3993,12 +4068,14 @@ class PropertyPanel(QWidget):
         kind, name = action.data()
         if kind == "save":
             name, accepted = QInputDialog.getText(self, "Save preset", "Name for the ticked calculators:")
-            if accepted and not self._presets.save(name, self._selected_calculator_ids()):
+            if accepted and not self._presets.save(name, self._preset_ids_to_save()):
                 self._batch_status.setText("A preset needs a name and at least one ticked calculator.")
             elif accepted:
                 self._batch_status.setText(f"Saved preset '{name.strip()}'.")
         elif kind == "apply":
             self.apply_preset(name)
+        elif kind == "tick_shown":
+            self.tick_all_shown()
         elif kind == "delete":
             self._presets.delete(name)
             self._batch_status.setText(f"Deleted preset '{name}'.")
@@ -4011,7 +4088,9 @@ class PropertyPanel(QWidget):
         something different each time. A calculator the launcher is not offering
         is left unticked -- "Run selected" never runs what the person cannot see.
         """
-        wanted = self._presets.ids(name, set(self._calculator_ticks))
+        everything = self._presets.ids(name, self._known_preset_ids())
+        wanted = [i for i in everything if i in self._calculator_ticks]
+        self._apply_property_choice(everything)
         offered = [cid for cid in wanted if cid not in self._hidden_calculator_ids]
         for tick in self._calculator_ticks.values():
             tick.setChecked(False)
@@ -4023,6 +4102,159 @@ class PropertyPanel(QWidget):
             + (f" {skipped} hidden by default, not ticked." if skipped else "")
         )
         return len(offered)
+
+    # --- the always-on properties and alert catalogs ------------------------------------
+
+    def _descriptor_choices(self) -> dict[str, list[Choice]]:
+        """The always-on properties, grouped as the Batch panel's tree grouped them."""
+        from openchem.chem.descriptor_providers import RDKitDescriptorProvider
+
+        provider = RDKitDescriptorProvider()
+        names = provider.descriptor_names()
+        categories = provider.descriptor_categories()
+        grouped: dict[str, list[str]] = {}
+        for descriptor_id in provider.descriptor_ids():
+            grouped.setdefault(categories.get(descriptor_id, "other"), []).append(descriptor_id)
+        return {
+            _title(category): [
+                (d, names.get(d, d), d) for d in sorted(ids, key=lambda i: names.get(i, i).casefold())
+            ]
+            for category, ids in sorted(grouped.items())
+        }
+
+    def _alert_choices(self) -> dict[str, list[Choice]]:
+        from openchem.chem.descriptor_providers import RDKitDescriptorProvider
+
+        catalogs = RDKitDescriptorProvider().alert_ids()
+        return {"Structural alerts": [(a, name, "") for a, name in sorted(catalogs.items(), key=lambda p: p[1])]}
+
+    def _known_preset_ids(self) -> set[str]:
+        """Every id a preset may hold: calculators, always-on properties and alert catalogs."""
+        from openchem.chem.descriptor_providers import RDKitDescriptorProvider
+
+        provider = RDKitDescriptorProvider()
+        return set(self._calculator_ticks) | set(provider.descriptor_ids()) | set(provider.alert_ids())
+
+    def _preset_ids_to_save(self) -> list[str]:
+        """The ticked calculators, plus any SUBSET of properties or catalogs that was chosen.
+
+        A box left at "all" adds nothing: a preset is the set somebody ticked, and applying
+        one must not switch a property choice they never made.
+        """
+        ids = self._selected_calculator_ids()
+        if self._descriptor_choice is not None:
+            ids += sorted(self._descriptor_choice)
+        if self._alert_choice is not None:
+            ids += sorted(self._alert_choice)
+        return ids
+
+    def _apply_property_choice(self, ids) -> None:
+        """Take the properties and catalogs a preset names; leave them alone if it names none."""
+        from openchem.chem.descriptor_providers import RDKitDescriptorProvider
+
+        provider = RDKitDescriptorProvider()
+        wanted = set(ids)
+        descriptors = wanted & set(provider.descriptor_ids())
+        alerts = wanted & set(provider.alert_ids())
+        if descriptors:
+            self.set_descriptor_choice(descriptors)
+        if alerts:
+            self.set_alert_choice(alerts)
+
+    def descriptor_choice(self) -> set[str] | None:
+        """The always-on properties a project run includes, or None for all of them."""
+        return None if self._descriptor_choice is None else set(self._descriptor_choice)
+
+    def alert_choice(self) -> set[str] | None:
+        return None if self._alert_choice is None else set(self._alert_choice)
+
+    def set_descriptor_choice(self, ids) -> None:
+        """Choose some of the always-on properties (None for all), and tick the box."""
+        known = set(self._descriptor_choices_flat())
+        chosen = None if ids is None else set(ids) & known
+        self._descriptor_choice = None if not chosen or chosen == known else chosen
+        if ids is not None:
+            self._scope_descriptors.setChecked(True)
+        self._refresh_choice_labels()
+
+    def set_alert_choice(self, ids) -> None:
+        known = set(self._alert_choices_flat())
+        chosen = None if ids is None else set(ids) & known
+        self._alert_choice = None if not chosen or chosen == known else chosen
+        if ids is not None:
+            self._scope_alerts.setChecked(True)
+        self._refresh_choice_labels()
+
+    def _descriptor_choices_flat(self) -> list[str]:
+        return [i for rows in self._descriptor_choices().values() for i, _label, _tip in rows]
+
+    def _alert_choices_flat(self) -> list[str]:
+        return [i for rows in self._alert_choices().values() for i, _label, _tip in rows]
+
+    def _refresh_choice_labels(self) -> None:
+        """Say on the boxes how many are included, so "all" and "just two" do not look alike."""
+        for box, choice, flat, noun in (
+            (self._scope_descriptors, self._descriptor_choice, self._descriptor_choices_flat, "always-on properties"),
+            (self._scope_alerts, self._alert_choice, self._alert_choices_flat, "structural alerts"),
+        ):
+            total = len(flat())
+            suffix = f" ({len(choice)} of {total})" if choice is not None else ""
+            box.setText(f"Include {noun}{suffix}")
+
+    def _on_choose_descriptors(self, _checked: bool = False) -> None:
+        dialog = PropertyChoiceDialog(
+            "Always-on properties",
+            "Include these as columns of the project table:",
+            self._descriptor_choices(),
+            self._descriptor_choice,
+            self,
+        )
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.set_descriptor_choice(dialog.chosen())
+
+    def _on_choose_alerts(self, _checked: bool = False) -> None:
+        dialog = PropertyChoiceDialog(
+            "Structural alerts",
+            "Include these catalogs as columns of the project table:",
+            self._alert_choices(),
+            self._alert_choice,
+            self,
+        )
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.set_alert_choice(dialog.chosen())
+
+    # --- ticking more than one at once ---------------------------------------------------
+
+    def _tickable_ids(self, category: str | None = None) -> list[str]:
+        """Calculators a bulk tick may touch: offered, and not hidden by Find."""
+        ids = []
+        for calculator_id in self._calculator_ticks:
+            if calculator_id in self._hidden_calculator_ids:
+                continue
+            definition = self._calculator_registry.get(calculator_id)
+            if category is not None and (definition is None or definition.category != category):
+                continue
+            row = self._calculator_rows.get(calculator_id)
+            section = self._sections.get(definition.category) if definition is not None else None
+            if (row is not None and row.isHidden()) or (section is not None and section.isHidden()):
+                continue
+            ids.append(calculator_id)
+        return ids
+
+    def tick_all_shown(self) -> int:
+        """Tick every calculator the launcher is showing, and say how many. Adds to what is ticked."""
+        ids = self._tickable_ids()
+        for calculator_id in ids:
+            self._calculator_ticks[calculator_id].setChecked(True)
+        self._batch_status.setText(f"Ticked {len(ids)} shown.")
+        return len(ids)
+
+    def set_section_ticks(self, category: str, ticked: bool) -> int:
+        """Tick or untick every calculator in one section that is showing. Returns how many."""
+        ids = self._tickable_ids(category)
+        for calculator_id in ids:
+            self._calculator_ticks[calculator_id].setChecked(ticked)
+        return len(ids)
 
     # --- running on more than one molecule -------------------------------------
 
@@ -4088,7 +4320,10 @@ class PropertyPanel(QWidget):
         if index >= 0 and self._scope_combo.currentIndex() != index:
             self._scope_combo.setCurrentIndex(index)
         project_scope = self._batch_service is not None and self._scope_mode != _SCOPE_THIS
-        for control in (self._scope_descriptors, self._scope_alerts, self._scope_aggregate):
+        for control in (
+            self._scope_descriptors, self._scope_alerts, self._scope_aggregate,
+            self._choose_descriptors, self._choose_alerts,
+        ):
             control.setVisible(project_scope)
         self._on_selection_toggled()
 
@@ -4112,11 +4347,17 @@ class PropertyPanel(QWidget):
 
             provider = RDKitDescriptorProvider()
             if self._scope_descriptors.isChecked():
-                descriptor_ids += list(provider.descriptor_ids())
+                descriptor_ids += [
+                    d for d in provider.descriptor_ids()
+                    if self._descriptor_choice is None or d in self._descriptor_choice
+                ]
             if self._scope_alerts.isChecked():
                 # Requested through the SAME list, as the batch panel does: from the
                 # person's side PAINS and TPSA are the same kind of thing.
-                descriptor_ids += list(provider.alert_ids())
+                descriptor_ids += [
+                    a for a in provider.alert_ids()
+                    if self._alert_choice is None or a in self._alert_choice
+                ]
         # In the order the launcher shows them (task group, heading, name), so the
         # table's calculator columns read left to right as the list reads top to
         # bottom -- not in whatever order the tick boxes happened to be built.
@@ -4154,14 +4395,18 @@ class PropertyPanel(QWidget):
             text = "Cancelled -- nothing was computed."
             self._batch_status.setText(text)
             return text
+        aggregate = str(self._scope_aggregate.currentData())
+        # The plan is what the Results dock remembers about this table, so it carries the
+        # settings and the reduction the service is about to be given.
+        plan = replace(plan, requested_parameters=plan.overrides(chosen_parameters), per_atom_aggregate=aggregate)
         self.project_run_started.emit(plan)
         self._batch_service.request_batch(
             BatchRequest(
                 molecule_uuids=list(plan.scope_uuids),
                 descriptor_ids=list(plan.descriptor_ids),
                 calculator_ids=list(plan.calculator_ids),
-                parameters=plan.overrides(chosen_parameters),
-                per_atom_aggregate=str(self._scope_aggregate.currentData()),
+                parameters=dict(plan.requested_parameters),
+                per_atom_aggregate=aggregate,
                 structure_versions=dict(plan.structure_versions),
             ),
             molecules,

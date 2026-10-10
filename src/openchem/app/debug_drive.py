@@ -5858,6 +5858,12 @@ class _Driver(QObject):
         chosen = {molecules[i].uuid for i in step.get("chosen", []) if 0 <= i < len(molecules)}
         panel.set_scope(scope, chosen)
         panel._scope_descriptors.setChecked(bool(step.get("descriptors", False)))
+        # A SUBSET of the always-on properties or alert catalogs, by id (the picker's answer;
+        # the picker is a modal, which a driven run cannot answer). Choosing ticks the box.
+        if "descriptor_ids" in step:
+            panel.set_descriptor_choice(step["descriptor_ids"])
+        if "alert_ids" in step:
+            panel.set_alert_choice(step["alert_ids"])
         if missing:
             logger.error("OPENCHEM_DRIVE: project_run -- no tick box for %s", missing)
         logger.warning(
@@ -5867,6 +5873,71 @@ class _Driver(QObject):
         )
         panel._run_selected_button.click()
         logger.warning("OPENCHEM_DRIVE: project_run status=%r", panel._batch_status.text())
+
+    def _do_results_details(self, step: dict[str, Any]) -> None:
+        """`{"do": "results_details", "molecule": 1, "expect": {"computed": ["polar_surface_area"]}}`
+        -- press Details in the Results project table for one molecule, and read what it did.
+
+        It goes through `ResultsWorkspace._on_details_requested`, the slot the table's own
+        Details button and double-click reach. The dialog it opens is modal, which a driven run
+        cannot answer, so for this step the dialog's `exec` is replaced by `show` (the way
+        `lewis` does it) and the molecule it opened for is logged. `expect.computed` names
+        calculators that must be held for that molecule once the run has landed: give the step
+        an `after_ms` long enough for the one-molecule run, and read the result with
+        `expect_project_table` after it (the table must not have been replaced).
+        """
+        from openchem.ui.dialogs.batch_detail_dialog import BatchDetailDialog
+
+        workspace = self._window._results_workspace
+        molecules = list(self._window._session.project.molecules)
+        index = int(step.get("molecule", 0))
+        if not -len(molecules) <= index < len(molecules):
+            logger.error("OPENCHEM_DRIVE: results_details -- no molecule %s", index)
+            return
+        molecule = molecules[index]
+        opened: list[str] = []
+
+        def show_instead(dialog) -> int:
+            opened.append(dialog._molecule.display_name)
+            self._details_dialog = dialog
+            dialog.show()
+            return 0
+
+        BatchDetailDialog.exec = show_instead  # type: ignore[method-assign]
+        missing_before = workspace._missing_for(molecule.uuid)
+        workspace._on_details_requested(molecule.uuid)
+        logger.warning(
+            "OPENCHEM_DRIVE: results_details %s missing_before=%s status=%r",
+            molecule.display_name, missing_before, workspace.table_view._status.text(),
+        )
+        expect = step.get("expect")
+        if expect:
+            self._pending_details_expect = (molecule, expect, opened, str(step.get("tag", "")))
+            from PySide6.QtCore import QTimer
+
+            QTimer.singleShot(int(expect.get("wait_ms", 6000)), self._window, self._check_details_expectation)
+
+    def _check_details_expectation(self) -> None:
+        """The half of `results_details` that has to wait for the one-molecule run to land."""
+        molecule, expect, opened, tag = self._pending_details_expect
+        workspace = self._window._results_workspace
+        store = workspace.table_view._store
+        held = set(store.for_molecule(molecule.uuid, workspace._structure_version_of(molecule.uuid))) if store else set()
+        problems = []
+        for calculator_id in expect.get("computed", []):
+            if calculator_id not in held:
+                problems.append(f"{calculator_id} not held for {molecule.display_name} (held: {sorted(held)[:8]})")
+        if expect.get("dialog", True) and not opened:
+            problems.append("the Details dialog never opened")
+        if "rows" in expect:
+            table = workspace.table_view.table()
+            rows = len(table.row_uuids) if table is not None else 0
+            if rows != int(expect["rows"]):
+                problems.append(f"the project table has {rows} rows, wanted {expect['rows']}")
+        if self._record_assertion("results_details", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT results_details ok[%s] opened=%s", tag, opened)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT results_details FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
 
     def _do_expect_project_table(self, step: dict[str, Any]) -> None:
         """`{"do": "expect_project_table", "rows": 2, "columns_contain": ["Polar"], "showing": true}`

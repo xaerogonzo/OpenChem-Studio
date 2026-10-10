@@ -1027,6 +1027,23 @@ ADMET model is about six seconds — and before this the panel showed
 nothing at all for that whole stretch, then the result and its window
 arrived together. It reads as a slow dialog and is not one.
 
+### Choosing some of the always-on properties
+
+With **Run on** set to more than one molecule, **Include always-on properties** and
+**Include structural alerts** each have a **Choose...** button. Without one, the box means
+all of them. With it you can pick just logP and TPSA, or just PAINS: the list is grouped,
+has a filter box, and **All shown** / **None shown** act on what the filter is showing. The
+box then says how many are included ("2 of 41"). Presets saved while a choice is made keep
+it.
+
+**Tick all shown** (in Presets) ticks every calculator Find is showing, and right-clicking
+a calculator offers **Tick / Untick every calculator in this section**.
+
+**Details...** in the Results project table opens one molecule's results. If it is a
+molecule the table left out, or one whose structure changed since, it first computes the
+table's calculators for that molecule, with the same settings, and the project table keeps
+its rows.
+
 ### Running by goal
 
 If you know the question and not the section, use **Tools > Run Calculators by Goal...**
