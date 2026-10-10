@@ -175,17 +175,86 @@ def classify(smiles: str, name: str, back: str | None) -> str:
     return "mismatch_formula" if _formula(smiles) != _formula(back) else "mismatch_same_formula"
 
 
+#: What `delta` can say, in the order it is decided. A wrong-molecule row gets every label that applies, most specific first, and the
+#: FIRST is the one `summarise` groups by. The two heteroatom labels carry the elements (`heteroatom_dropped:N`), because "an N went
+#: missing" and "an O went missing" are different defects to chase.
+DELTA_LABELS = (
+    "charge_lost",
+    "charge_changed",
+    "heteroatom_dropped",
+    "heteroatom_gained",
+    "ring_atom_count_changed",
+    "same_formula_connectivity_change",
+    "other_formula_change",
+)
+#: The bucket for a record scanned before `delta` existed (r12-r14 scans): not invented, and not an error.
+LEGACY_DELTA = "legacy/unknown"
+
+
+def _delta_facts(mol) -> tuple[int, int, dict[str, int], int]:
+    """(net charge, total |charge|, element counts excluding C and H, atoms that are in any ring)."""
+    elements: collections.Counter = collections.Counter(
+        a.GetSymbol() for a in mol.GetAtoms() if a.GetSymbol() not in ("C", "H")
+    )
+    charges = [a.GetFormalCharge() for a in mol.GetAtoms()]
+    return sum(charges), sum(abs(c) for c in charges), dict(elements), sum(1 for a in mol.GetAtoms() if a.IsInRing())
+
+
+def delta(smiles: str, back: str | None) -> tuple[str, ...]:
+    """What a wrong-molecule read-back lost or changed, as labels (see `DELTA_LABELS`); a pure function of the two structures.
+
+    It explains a `mismatch_*` row, it does not decide one: the class still comes from `classify`. It calls neither the engine nor
+    OPSIN, and a read-back that is empty or does not parse gets the fallback rather than an exception.
+
+    Element counts are compared per element, so a swap (an O where the input had an N) reads as one element dropped AND one
+    gained, not as "no heteroatom change". The ring measure is the number of ATOMS in any ring, not RDKit's ring count: a ring
+    opened or closed moves the first, a different decomposition of the same rings moves only the second.
+    `same_formula_connectivity_change` deliberately does not say "wrong locant": two isomers of one formula differ by a locant,
+    a skeleton, a functional group, and this function cannot tell which.
+    """
+    from rdkit import Chem
+    from rdkit.Chem.rdMolDescriptors import CalcMolFormula
+
+    want = Chem.MolFromSmiles(smiles) if smiles else None
+    got = Chem.MolFromSmiles(back) if back else None
+    if want is None or got is None:
+        return ("other_formula_change",)
+    net_w, abs_w, el_w, ring_w = _delta_facts(want)
+    net_g, abs_g, el_g, ring_g = _delta_facts(got)
+    labels: list[str] = []
+    if abs_w and not abs_g:
+        labels.append("charge_lost")
+    elif (net_w, abs_w) != (net_g, abs_g):
+        labels.append("charge_changed")
+    dropped = sorted(e for e in el_w if el_g.get(e, 0) < el_w[e])
+    gained = sorted(e for e in el_g if el_g[e] > el_w.get(e, 0))
+    if dropped:
+        labels.append("heteroatom_dropped:" + "+".join(dropped))
+    if gained:
+        labels.append("heteroatom_gained:" + "+".join(gained))
+    if ring_w != ring_g:
+        labels.append("ring_atom_count_changed")
+    same_formula = CalcMolFormula(want) == CalcMolFormula(got)
+    if same_formula:
+        labels.append("same_formula_connectivity_change")
+    return tuple(labels) or ("other_formula_change",)
+
+
 def scan(rows: list[dict], *, names_only: bool = False) -> dict[str, dict]:
-    """Every row named, read back and classified: `{label: {smiles, name, back, cls}}`."""
+    """Every row named, read back and classified: `{label: {smiles, name, back, cls}}`, plus `delta` on a `mismatch_*` row."""
     named = name_rows(rows)
     readable = [k for k, v in named.items() if "NAMING ERROR" not in v["name"] and not v["name"].startswith("RAISED")]
     back_of: dict[str, str] = {}
     if not names_only:
         back_of = dict(zip(readable, read_back([named[k]["name"] for k in readable])))
-    return {
+    out = {
         k: {**v, "back": back_of.get(k), "cls": classify(v["smiles"], v["name"], None if names_only else back_of.get(k))}
         for k, v in named.items()
     }
+    for record in out.values():
+        if record["cls"] in ("mismatch_formula", "mismatch_same_formula"):
+            record["delta"] = list(delta(record["smiles"], record["back"]))
+    return out
 
 
 def summarise(records: dict[str, dict]) -> list[str]:
@@ -204,6 +273,15 @@ def summarise(records: dict[str, dict]) -> list[str]:
         lines.append("  embedded-error stems (a stem is a MECHANISM only after reading its rows):")
         for stem, n in stems.most_common(8):
             lines.append(f"    {n:4d}  {_LONG_TOKEN.sub('<smiles>', stem)}")
+    deltas = collections.Counter(
+        (r["delta"][0] if r.get("delta") else LEGACY_DELTA)
+        for r in records.values() if r["cls"] in ("mismatch_formula", "mismatch_same_formula")
+    )
+    if deltas:
+        lines.append("  wrong-molecule rows by what the read-back changed (first label; a record scanned before `delta` existed is "
+                     f"{LEGACY_DELTA}):")
+        for label, n in deltas.most_common():
+            lines.append(f"    {n:4d}  {label}")
     bad = counts["mismatch_formula"] + counts["mismatch_same_formula"]
     lines.append(f"  candidate wrong structures: {bad} ({100 * bad / total:.2f}%); visible failures: "
                  f"{counts['naming_error'] + counts['refused']} ({100 * (counts['naming_error'] + counts['refused']) / total:.2f}%)")
@@ -242,7 +320,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.list:
         for label, r in records.items():
             if r["cls"] == args.list:
-                print(f"{label}\t{r['smiles']}\t{r['name'][:140]}")
+                print(f"{label}\t{r['smiles']}\t{r['name'][:140]}" + (f"\t[{','.join(r['delta'])}]" if r.get("delta") else ""))
     if args.compare:
         print()
         for line in compare(json.loads(args.compare.read_text(encoding="utf-8")), records):
