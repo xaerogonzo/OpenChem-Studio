@@ -147,6 +147,23 @@ def test_gaba_at_ph_74_has_one_acid_and_one_base_both_mostly_ionised(predictor):
     assert facts["Base 2 at N1"].value == 10.4 and "protonated" in facts["Base 2 at N1"].display_value
 
 
+def test_the_count_of_mostly_ionised_sites_follows_the_ph(predictor):
+    """At pH 11 the amine (pKa 10.4) is 20% protonated, so only the acid is mostly ionised."""
+    predictor([BASE_SITE, ACID_SITE])
+    mol = Chem.MolFromSmiles(GABA)
+
+    assert _facts(compute_ionisable_sites(mol, "m", {"pH": 11.0}, "x"))["Mostly ionised at pH 11"].display_value == "1 of 2"
+    assert _facts(compute_ionisable_sites(mol, "m", {"pH": 1.0}, "x"))["Mostly ionised at pH 1"].display_value == "1 of 2"
+
+
+def test_a_site_of_unknown_direction_is_never_counted_as_ionised(predictor):
+    predictor([PkaPrediction(atom_index=6, value=4.2)])
+
+    facts = _facts(compute_ionisable_sites(Chem.MolFromSmiles(GABA), "m", {}, "x"))
+
+    assert facts["Mostly ionised at pH 7.4"].display_value == "0 of 1"
+
+
 def test_the_percentages_are_the_closed_form_at_the_requested_ph(predictor):
     predictor([ACID_SITE])
 

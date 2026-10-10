@@ -46,6 +46,8 @@ to be confirmed when a candidate is approved.
 
 ### 1. Torsion table (rotatable bonds with their dihedral angles)
 
+**BUILT 2026-10-10** as `Torsion Table` (see CHANGELOG). The bonds are held to the count by a test over 85 structures in two forms. What follows is the analysis it was built from.
+
 - **Gap:** `Rotatable Bonds` is a count. Nothing lists WHICH bonds, or the dihedral at each in the
   conformer on screen.
 - **Existing coverage:** an interactive measurement (`services/measurement_service.py`) gives ONE
@@ -73,6 +75,8 @@ to be confirmed when a candidate is approved.
   unless the table is built from the same one as the count.
 
 ### 3. Ionisable-site summary
+
+**BUILT 2026-10-10** as `Ionisable Sites`, classified LIMITED. What follows is the analysis it was built from; building it found the pKa line's zero-based atom label, now fixed.
 
 - **Gap:** presentation, not computation. `pKa` returns one line per centre; there is no table of
   centre, acid or base, pKa, and the fraction ionised at a chosen pH.

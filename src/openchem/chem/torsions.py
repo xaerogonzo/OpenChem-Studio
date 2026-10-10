@@ -35,13 +35,15 @@ from openchem.domain.common import CacheState, Provenance
 from openchem.domain.report import Fact, FactCategory, ReportResult
 from openchem.domain.structure_issue import Basis
 
-#: RDKit's strict rotatable-bond definition (the one `Lipinski.NumRotatableBonds` counts), as a SMARTS
-#: pattern: a single, non-ring bond between two atoms that are not terminal, not part of a triple
-#: bond, not a trihalomethyl or tert-butyl carbon, and not the amide-like C(=X)-N/O/S linkage
-#: that RDKit treats as rigid. Held to RDKit's own count by `tests/test_torsions.py`.
+#: The conditions on one END of a rotatable bond: not part of a triple bond, not terminal, and not a
+#: trihalomethyl or tert-butyl carbon (a group that spins but whose spin changes nothing).
 _END = (
     "!$(*#*)&!D1&!$(C(F)(F)F)&!$(C(Cl)(Cl)Cl)&!$(C(Br)(Br)Br)&!$(C([CH3])([CH3])[CH3])"
 )
+#: RDKit's strict rotatable-bond definition (the one `Lipinski.NumRotatableBonds` counts), as a SMARTS
+#: pattern: a single, non-ring bond between two atoms that satisfy `_END`, and that are not the
+#: amide-like C(=X)-N/O/S linkage RDKit treats as rigid. Held to RDKit's own count by
+#: `tests/test_torsions.py`.
 _ROTATABLE = Chem.MolFromSmarts(
     f"[{_END}&!$([CD3](=[N,O,S])-!@[#7,O,S!D1])&!$([#7,O,S!D1]-!@[CD3]=[N,O,S])"
     f"&!$([CD3](=[N+])-!@[#7!D1])&!$([#7!D1]-!@[CD3]=[N+])]-,:;!@[{_END}]"
@@ -84,11 +86,13 @@ def rotatable_bonds(mol: Chem.Mol) -> list[tuple[int, int]]:
     return sorted(set(bonds))
 
 
-def _outer_neighbour(mol: Chem.Mol, atom: int, other: int) -> int | None:
-    """The neighbour of `atom` (not `other`) a torsion is measured through: heaviest, then lowest index."""
+def _outer_neighbour(mol: Chem.Mol, atom: int, other: int) -> int:
+    """The neighbour of `atom` (not `other`) a torsion is measured through: heaviest, then lowest index.
+
+    Every end of a rotatable bond has one: the pattern excludes terminal atoms, and a conformer's
+    explicit hydrogens only add neighbours.
+    """
     candidates = [n for n in mol.GetAtomWithIdx(atom).GetNeighbors() if n.GetIdx() != other]
-    if not candidates:
-        return None
     return min(candidates, key=lambda n: (-n.GetAtomicNum(), n.GetIdx())).GetIdx()
 
 
@@ -104,8 +108,6 @@ def torsions(mol: Chem.Mol) -> list[Torsion]:
     found = []
     for b, c in rotatable_bonds(mol):
         a, d = _outer_neighbour(mol, b, c), _outer_neighbour(mol, c, b)
-        if a is None or d is None:
-            continue
         angle = float(rdMolTransforms.GetDihedralDeg(conformer, a, b, c, d))
         # (-180, 180]: RDKit returns -180 for an exactly anti arrangement on some platforms.
         found.append(Torsion(atoms=(a, b, c, d), angle=180.0 if angle == -180.0 else angle))

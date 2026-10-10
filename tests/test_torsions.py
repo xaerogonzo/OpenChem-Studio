@@ -187,12 +187,6 @@ def test_the_choice_does_not_change_when_the_atoms_are_renumbered():
     assert results[0] == results[1]
 
 
-def test_a_conformer_with_no_atoms_to_measure_through_is_skipped_not_a_crash():
-    mol = _conformer("CCCC")
-
-    assert all(isinstance(t, Torsion) for t in torsions(mol))
-
-
 # --- refusals ----------------------------------------------------------------------------------------------------------
 
 
