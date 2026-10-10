@@ -60,6 +60,11 @@ _REFINED_STARTS = 3
 #: minimum usually is not.
 _REFINE_TOLERANCE = 1e-4
 
+#: Every refined start is first walked to this coarser tolerance (about 0.1 degree); only the best
+#: of each kind is then taken on to `_REFINE_TOLERANCE`. Most starts lose, so the fine steps -- each
+#: halving costs eight orientations -- are spent once per extreme instead of once per start.
+_COARSE_TOLERANCE = 2e-3
+
 #: Iterations of each of the two nested ternary searches for the enclosing circle. The range
 #: shrinks by 2/3 each time, so 60 take it far below floating-point resolution.
 _CIRCLE_ITERATIONS = 60
@@ -160,16 +165,18 @@ def projection_at(positions: np.ndarray, radii: np.ndarray, direction) -> Projec
     )
 
 
-def _refine(positions, radii, start: np.ndarray, step: float, sign: float, budget: list[int]) -> np.ndarray:
+def _refine(
+    positions, radii, start: np.ndarray, step: float, sign: float, budget: list[int], tolerance: float
+) -> np.ndarray:
     """Walk from `start` to a local extreme of the area (`sign` -1 for a minimum, +1 for a maximum).
 
     A shrinking compass search on the sphere: try eight neighbours at the current step, move to
-    the best one if it improves, otherwise halve the step.
+    the best one if it improves, otherwise halve the step, until the step falls below `tolerance`.
     """
     current = start / np.linalg.norm(start)
     value = sign * _area(positions, radii, current)
     budget[0] += 1
-    while step > _REFINE_TOLERANCE:
+    while step > tolerance:
         first, second = _plane_basis(current)
         best, best_value = None, value
         for angle in np.arange(8) * (math.pi / 4.0):
@@ -216,8 +223,9 @@ def projection_extremes(positions: np.ndarray, radii: np.ndarray) -> ProjectionE
                 starts.append(candidate)
             if len(starts) == _REFINED_STARTS:
                 break
-        refined = [_refine(positions, radii, start, step, sign, budget) for start in starts]
+        refined = [_refine(positions, radii, start, step, sign, budget, _COARSE_TOLERANCE) for start in starts]
         best = max(refined, key=lambda direction: sign * _area(positions, radii, direction))
-        found.append(best)
+        budget[0] += len(refined)
+        found.append(_refine(positions, radii, best, 2.0 * _COARSE_TOLERANCE, sign, budget, _REFINE_TOLERANCE))
     minimum, maximum = (projection_at(positions, radii, direction) for direction in found)
     return ProjectionExtremes(minimum=minimum, maximum=maximum, orientations=budget[0])

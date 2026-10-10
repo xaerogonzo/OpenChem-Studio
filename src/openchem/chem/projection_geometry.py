@@ -37,13 +37,15 @@ quantities.
 The probe volume is genuinely wanted too, so it is computed deliberately
 and reported under its own name rather than being confused for this one.
 
-## What is approximated, said plainly
+## What is searched, said plainly
 
-The projection is taken on the principal axes rather than optimised over
-all orientations, so "minimal" and "maximal" mean "of the three principal
-planes". A shape whose true extreme lies off-axis reads slightly high.
-Full orientation optimisation is Phase 7b; until it exists the facts say
-which one they are.
+The minimal and maximal projection are found by SEARCHING the orientations
+(`projection_search`): the area at each is exact, and the extreme is the best
+of a sampling of the sphere refined locally. An earlier version measured on
+the three principal planes and called the smaller "minimal", which read
+slightly high -- benzene 20.07 A^2 there, 18.76 A^2 searched. The principal
+axes are still computed, because the drawn axes on the 3D view are the
+principal ones, but no reported extreme comes from them.
 """
 
 from __future__ import annotations
@@ -54,6 +56,8 @@ from dataclasses import dataclass
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem import AllChem, rdMolDescriptors
+
+from openchem.chem.projection_search import projection_extremes
 
 #: RDKit's own Bondi radii, asked rather than duplicated -- a second copy
 #: of a parameter table is a second thing to get out of step.
@@ -123,8 +127,20 @@ class ShapeDescriptors:
     volume_disagreement: float
     min_projection_area: float
     max_projection_area: float
+    #: Radius of the smallest circle enclosing the shadow at that orientation.
     min_projection_radius: float
     max_projection_radius: float
+    #: The viewing directions the extremes were found along (unit vectors, the conformer's
+    #: frame; the sign is arbitrary because a shadow is the same from both sides) and the
+    #: extent of the molecule along each, surface to surface.
+    min_projection_direction: tuple[float, float, float] = (0.0, 0.0, 1.0)
+    max_projection_direction: tuple[float, float, float] = (0.0, 0.0, 1.0)
+    min_projection_size: float = 0.0
+    max_projection_size: float = 0.0
+    #: How many orientations the search computed an area for.
+    orientations_searched: int = 0
+    #: The multiplier the van der Waals radii carried in the projection figures.
+    radius_scale: float = 1.0
     #: The drawing half: the exact signed principal axes the projections
     #: above were measured along (widest atom spread first), the unweighted
     #: centroid they pass through, the half-span of atom centres along
@@ -298,8 +314,17 @@ def _projection(positions: np.ndarray, radii: np.ndarray, axis: np.ndarray):
     return area, radius
 
 
-def shape_descriptors(mol: Chem.Mol, conformer_id: int = -1) -> ShapeDescriptors:
-    """Volume, surface, and the projection extremes over the principal planes."""
+def shape_descriptors(
+    mol: Chem.Mol, conformer_id: int = -1, radius_scale: float = 1.0
+) -> ShapeDescriptors:
+    """Volume, surface, and the projection extremes over every orientation.
+
+    `radius_scale` multiplies the van der Waals radii in the PROJECTION figures only (area,
+    radius, size). The volume and surface are those of the unscaled radii: they are different
+    quantities, and a caller asking for a bigger shadow has not asked for a bigger molecule.
+    """
+    if not radius_scale > 0:
+        raise ValueError(f"The radius scale must be positive, got {radius_scale!r}.")
     positions, radii = _positions_and_radii(mol, conformer_id)
     volume, disagreement = van_der_waals_volume(mol, conformer_id)
 
@@ -314,9 +339,9 @@ def shape_descriptors(mol: Chem.Mol, conformer_id: int = -1) -> ShapeDescriptors
     )
 
     axes = _principal_axes(positions)
-    results = [_projection(positions, radii, axis) for axis in axes]
-    areas = [area for area, _radius in results]
-    extents = [radius for _area, radius in results]
+    scaled = radii * radius_scale
+    results = [_projection(positions, scaled, axis) for axis in axes]
+    extremes = projection_extremes(positions, scaled)
     # The drawing half, from the SAME arrays the numbers above came from.
     # `positions.mean` is the identical centring `_principal_axes` used,
     # so the drawn axes pass through the point the measurement pivoted on.
@@ -337,9 +362,15 @@ def shape_descriptors(mol: Chem.Mol, conformer_id: int = -1) -> ShapeDescriptors
         solvent_accessible_volume=float(solvated.GetVolume()),
         solvent_accessible_surface_area=float(solvated.GetSurfaceArea()),
         volume_disagreement=disagreement,
-        min_projection_area=min(areas),
-        max_projection_area=max(areas),
-        min_projection_radius=min(extents),
-        max_projection_radius=max(extents),
+        min_projection_area=extremes.minimum.area,
+        max_projection_area=extremes.maximum.area,
+        min_projection_radius=extremes.minimum.radius,
+        max_projection_radius=extremes.maximum.radius,
+        min_projection_direction=extremes.minimum.direction,
+        max_projection_direction=extremes.maximum.direction,
+        min_projection_size=extremes.minimum.size,
+        max_projection_size=extremes.maximum.size,
+        orientations_searched=extremes.orientations,
+        radius_scale=float(radius_scale),
         **spatial,
     )
