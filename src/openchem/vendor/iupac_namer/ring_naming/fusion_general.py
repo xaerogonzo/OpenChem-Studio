@@ -925,6 +925,62 @@ def _neutral_ring_copy(mol, ring_system):
     return rw.GetMol()
 
 
+def _bridgehead_iminium(mol, ring_system) -> list[int]:
+    """The ring system's bridgehead N+ atoms that sit in a double bond: three ring bonds, one of them a double (or aromatic) bond (so no hydrogen: valence).
+
+    Such an atom has no neutral form with the same skeleton and bonds (`C1CC[N+]2=C(C1)CCC2`, quinolizinium): it is a pi atom of the cation, like the
+    carbon of the isoelectronic carbocycle, and the fused namers could not describe it (naming round 37)."""
+    from rdkit import Chem
+
+    ring = frozenset(ring_system.atom_indices)
+    found = []
+    for i in sorted(ring):
+        atom = mol.GetAtomWithIdx(i)
+        if atom.GetAtomicNum() != 7 or atom.GetFormalCharge() != 1:
+            continue
+        in_ring = [b for b in atom.GetBonds() if b.GetOtherAtomIdx(i) in ring]
+        if len(in_ring) == 3 and any(b.GetBondType() in (Chem.BondType.DOUBLE, Chem.BondType.AROMATIC) for b in in_ring):
+            found.append(i)
+    return found
+
+
+def _iminium_copies(mol, ring_system, bridgeheads):
+    """(twin, analogue) for a ring system with bridgehead N+ in a double bond, atom indices unchanged.
+
+    The TWIN gives the fusion namer a neutral graph: the N+=C bond becomes single and N loses its charge, so C takes the hydrogen RDKit gives it
+    (`4H-quinolizine` for quinolizinium); the namer reads atoms, rings and heteroatoms, never the bond orders. The ANALOGUE replaces each bridgehead N+ by carbon, so the
+    hydrogen planner counts it as the pi atom it is: quinolizinium plans as naphthalene, and its tetrahydro cation as a tetralin skeleton.
+    Raises `Unsupported` when the double bond does not end on a carbon or the copies do not sanitise."""
+    from rdkit import Chem
+
+    kek = Chem.RWMol(mol)
+    try:
+        Chem.Kekulize(kek, clearAromaticFlags=True)
+    except Exception as exc:  # noqa: BLE001
+        raise Unsupported(f"the cation does not kekulise ({exc})") from exc
+    analogue = Chem.RWMol(kek)
+    for i in bridgeheads:
+        atom = kek.GetAtomWithIdx(i)
+        double = [b for b in atom.GetBonds() if b.GetBondType() == Chem.BondType.DOUBLE]
+        if len(double) != 1:
+            raise Unsupported("a bridgehead N+ without exactly one double bond")
+        partner = kek.GetAtomWithIdx(double[0].GetOtherAtomIdx(i))
+        if partner.GetAtomicNum() != 6:
+            raise Unsupported("a bridgehead N+ double-bonded to a heteroatom")
+        double[0].SetBondType(Chem.BondType.SINGLE)
+        atom.SetFormalCharge(0)
+        a = analogue.GetAtomWithIdx(i)
+        a.SetAtomicNum(6)
+        a.SetFormalCharge(0)
+    twin, other = kek.GetMol(), analogue.GetMol()
+    try:
+        Chem.SanitizeMol(twin)
+        Chem.SanitizeMol(other)
+    except Exception as exc:  # noqa: BLE001
+        raise Unsupported(f"the bridgehead cation's copies do not sanitise ({exc})") from exc
+    return twin, other
+
+
 def name_fusion_parents(ring_system, candidate, mol) -> list:
     """NamedParents for the system by general fusion, one per numbering that
     survives P-25.3.3, each carrying its hydro and indicated-hydrogen block
@@ -944,7 +1000,15 @@ def name_fusion_parents(ring_system, candidate, mol) -> list:
     # A RING CATION is named for its NEUTRAL skeleton with '-ium' added at the charged atom's locant (P-73.1.1; the engine reads the locant off
     # the real molecule). Only the graph is needed here, so the ring is described on a neutral copy with the SAME atom indices (naming round
     # 14): a charged ring atom used to leave every non-retained fused cation with no name at all ('imidazo[2,1-b][1,3]thiazol-7-ium').
-    mol = _neutral_ring_copy(mol, ring_system)
+    bridgeheads = _bridgehead_iminium(mol, ring_system)
+    if bridgeheads:
+        if len(ring_system.rings) > 2 or any(
+            mol.GetAtomWithIdx(i).GetFormalCharge() for i in ring_system.atom_indices if i not in bridgeheads
+        ):
+            raise Unsupported("a bridgehead iminium in a system of more than two rings, or with another charge")
+        mol, plan_mol = _iminium_copies(mol, ring_system, bridgeheads)
+    else:
+        mol = plan_mol = _neutral_ring_copy(mol, ring_system)
     cycles = _ordered_rings(ring_system, mol)
     fusion = name_fusion(mol, cycles)
     whole_retained = "[" not in fusion.text and fusion.text in POLYCYCLES
@@ -957,7 +1021,7 @@ def name_fusion_parents(ring_system, candidate, mol) -> list:
     planned = []
     for numbering in fusion.numberings:
         locant_of = numbering.atom_to_locant
-        plan = plan_hydrogens(mol, ring, (), locant_of)
+        plan = plan_hydrogens(plan_mol, ring, (), locant_of)
         if plan is None or plan.added:
             raise Unsupported("the ring hydrogens cannot be described (P-58.2)")
         planned.append((numbering, plan))

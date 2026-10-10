@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: a fused ring system with a bridgehead N+ in a double bond is named
+- Quinolizinium (`c1cc[n+]2ccccc2c1`), its tetrahydro and dihydro-indolizinium cations, and the bicyclic amidiniums drawn with the charge on the bridgehead (`C1C[N+]2=C(CCCCC2)NC1`, the protonated DBU skeleton) were a visible `[NAMING ERROR: No valid naming plan found ...]`: the fusion namer describes a ring on a neutral copy, and a bridgehead N+ with three ring bonds and a double bond has none. It is described on a twin (the N+=C bond made single) with the hydrogens planned on a carbon analogue (the bridgehead nitrogen is a pi atom, as in naphthalene), and the `-ium` goes at the nitrogen's own locant: `quinolizin-5-ium`, `1,2,3,4-tetrahydroquinolizin-5-ium`, `2,3,4,6,7,8,9,10-octahydro-1H-pyrimido[1,2-a]azepin-5-ium`. 288 bridgehead-N+ bicycles, master -> now: naming error 190 -> 28 (all with a four-membered ring), exact 98 -> 260. D-210.
+
 ### Naming: a ring cation with an exocyclic double bond keeps its hydro prefixes
 - `C=C1CCC[NH+]=C1`, the cation of 3-methylidene-3,4,5,6-tetrahydropyridine, was named `5-methylideneazinan-1-ium`: the saturated piperidinium, a different molecule. The hydro derivation for a retained parent counted the ylidene carbon as an sp2 ring member, so the hydro positions were odd in number and it gave up; the neutral ring never showed it because a curated entry matches it with the ylidene as a substituent. A ring carbon whose double bond goes out of the ring to a carbon is a hydro position (`5-methylidene-2,3,4,5-tetrahydropyridin-1-ium`). 231 ylidene ring cations and their neutral rings, master -> now: wrong molecule 37 -> 0, exact 194 -> 231, none worse. D-209.
 

@@ -4214,6 +4214,10 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-209", "C=C1CCC[NH+]=C1", "5-methylidene-2,3,4,5-tetrahydropyridin-1-ium",
      "5-methylideneazinan-1-ium",
      "WRONG MOLECULE: the saturated piperidinium; the ylidene carbon was counted as sp2, which left an odd number of hydro positions (37 of 231 ylidene ring cations and their neutral rings)"),
+    # D-210, found by naming round 33's census review: a fused ring system with a bridgehead N+ in a double bond has no neutral copy, so the fusion namer declined it.
+    ("D-210", "C1C[N+]2=C(CCCCC2)NC1", "2,3,4,6,7,8,9,10-octahydro-1H-pyrimido[1,2-a]azepin-5-ium",
+     "[NAMING ERROR: No valid naming plan found for C1CCC2=[N+](CC1)CCCN2]",
+     "a bicyclic amidinium drawn with the charge on the bridgehead (the protonated DBU skeleton) was a visible NAMING ERROR, as was quinolizinium itself (190 of 288 bridgehead iminium bicycles)"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
