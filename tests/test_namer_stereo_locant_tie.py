@@ -23,11 +23,12 @@ import re
 from types import SimpleNamespace
 
 import pytest
-from rdkit import Chem, rdBase
+from rdkit import Chem
 
 from openchem.chem.naming_providers import opsin_available
 from openchem.vendor.iupac_namer import engine, name_smiles
 from openchem.vendor.iupac_namer.types import Locant, StereoCenter, StereoDescriptor
+from tests.naming_spellings import checked_spellings
 
 needs_opsin = pytest.mark.skipif(not opsin_available(), reason="needs the managed JRE and py2opsin")
 
@@ -39,17 +40,10 @@ def _spellings(smiles: str) -> list[str]:
     """Random roots and atom orders of one structure, each checked to BE that structure.
 
     The check is not decoration: `MolToSmiles(doRandom=True)` on a molecule straight out of `EnumerateStereoisomers` writes
-    a different stereoisomer, and a run of this file once "found" instability that was the probe's, not the engine's.
+    a different stereoisomer, and a run of this file once "found" instability that was the probe's, not the engine's. (`doRandom` is
+    gone from here for another reason too: it ignores the seed, so the spellings were new on every run. See `tests/naming_spellings.py`.)
     """
-    mol = Chem.MolFromSmiles(smiles)
-    key = Chem.MolToInchiKey(mol)
-    rdBase.SeedRandomNumberGenerator(SEED)
-    out = [smiles]
-    for _ in range(SPELLINGS):
-        spelling = Chem.MolToSmiles(mol, doRandom=True)
-        assert Chem.MolToInchiKey(Chem.MolFromSmiles(spelling)) == key, spelling
-        out.append(spelling)
-    return out
+    return checked_spellings(smiles, SPELLINGS, SEED)
 
 
 def _names(smiles: str) -> set[str]:

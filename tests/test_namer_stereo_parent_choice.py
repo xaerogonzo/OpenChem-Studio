@@ -40,13 +40,14 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
-from rdkit import Chem, rdBase
+from rdkit import Chem
 from rdkit.Chem import rdCIPLabeler
 
 from openchem.vendor.iupac_namer import engine, name_smiles
 from openchem.vendor.iupac_namer.assembly import assemble, assemble_without_stereo, without_stereo_descriptors
 from openchem.vendor.iupac_namer.strategy import default_strategy
 from openchem.vendor.iupac_namer.types import Locant
+from tests.naming_spellings import checked_spellings
 
 SEED = 20261006
 
@@ -75,16 +76,7 @@ ISOMERS = [
 
 def _spellings(smiles: str, count: int = 24) -> list[str]:
     """`count` distinct random roots and atom orders of one structure, each checked to BE that structure by InChIKey."""
-    mol = Chem.MolFromSmiles(smiles)
-    key = Chem.MolToInchiKey(mol)
-    rdBase.SeedRandomNumberGenerator(SEED)
-    out = [smiles]
-    while len(out) < count:
-        spelling = Chem.MolToSmiles(mol, doRandom=True)
-        assert Chem.MolToInchiKey(Chem.MolFromSmiles(spelling)) == key, spelling
-        if spelling not in out:
-            out.append(spelling)
-    return out
+    return checked_spellings(smiles, count, SEED, distinct=True)
 
 
 def _names(smiles: str, count: int = 24) -> set[str]:

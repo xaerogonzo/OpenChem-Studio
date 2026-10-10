@@ -32,7 +32,6 @@ spellings.
 """
 from __future__ import annotations
 
-import random
 import re
 
 import pytest
@@ -44,6 +43,7 @@ from openchem.chem.naming_providers import derived_name_for_structure, opsin_ava
 from openchem.vendor.iupac_namer import name_smiles
 from openchem.vendor.iupac_namer.perception.extraction import carve_substituent, context_stereo_key
 from openchem.vendor.iupac_namer.types import NamingSession, OutputForm
+from tests.naming_spellings import checked_spellings
 
 needs_opsin = pytest.mark.skipif(not opsin_available(), reason="needs the managed JRE and py2opsin")
 
@@ -73,22 +73,10 @@ def _spellings(smiles: str, n: int = N_SPELLINGS) -> list[str]:
 
     The check is the point: `MolToSmiles(doRandom=True)` on a molecule straight out of `EnumerateStereoisomers` writes a
     DIFFERENT stereoisomer, so a spelling must be parsed from the isomer's own SMILES and its InChIKey compared, or the
-    test reports an instability that is the probe's and not the engine's.
+    test reports an instability that is the probe's and not the engine's. (`doRandom` is not used any more: it ignores the seed,
+    so half of these were new on every run. See `tests/naming_spellings.py`.)
     """
-    mol = Chem.MolFromSmiles(smiles)
-    want = Chem.MolToInchiKey(mol)
-    rng = random.Random(SEED)
-    out = [smiles]
-    for i in range(n):
-        if i % 2:
-            spelling = Chem.MolToSmiles(mol, doRandom=True)
-        else:
-            order = list(range(mol.GetNumAtoms()))
-            rng.shuffle(order)
-            spelling = Chem.MolToSmiles(Chem.RenumberAtoms(mol, order), canonical=False)
-        assert _key(spelling) == want, f"{spelling} is not the structure {smiles}"
-        out.append(spelling)
-    return out
+    return checked_spellings(smiles, n, SEED)
 
 
 def _read_back(names: list[str]) -> dict[str, str]:
