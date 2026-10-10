@@ -8,7 +8,6 @@ from PySide6.QtWidgets import (
     QDialog,
     QDoubleSpinBox,
     QFormLayout,
-    QGroupBox,
     QHBoxLayout,
     QHeaderView,
     QInputDialog,
@@ -46,14 +45,13 @@ from openchem.ui.widgets.search_options import (
 
 logger = logging.getLogger("openchem.ui")
 
-#: The pose table's floor inside a Properties section: two rows and the header stay
-#: readable however little height the scroll area offers it.
-_EMBEDDED_TABLE_MIN_HEIGHT = 120
+#: The pose table's floor: two rows and the header stay readable however little height
+#: the scroll area offers it.
+_TABLE_MIN_HEIGHT = 120
 
-#: The pose table's ceiling inside a Properties section. A section sits in a scroll area
-#: that gives a stretch widget whatever it is offered, so without a cap nine poses would
-#: push everything below them off the bottom.
-_EMBEDDED_TABLE_MAX_HEIGHT = 240
+#: The pose table's ceiling. Both homes are scroll areas that give a stretch widget whatever
+#: it is offered, so without a cap nine poses would push everything below them off the bottom.
+_TABLE_MAX_HEIGHT = 240
 
 #: The left indent of a collapsible group that sits inside a workflow section, in pixels.
 #: The section already indents its content, so the group takes a small one; measured in the
@@ -585,17 +583,14 @@ class DockingPanel(QWidget):
         settings: Settings,
         event_bus: EventBus,
         parent: QWidget | None = None,
-        embedded: bool = False,
     ) -> None:
         """Built in three steps, after the fields the panel starts with.
 
-        `embedded` is True for the copy that lives inside a Properties section. It is
-        THIS CLASS built a second time, so every control, rule and message is the rail
-        panel's by construction; what differs is only the container: the three groups
-        become collapsible sections that say what they hold while closed, and the pose
-        table is capped in height. The two copies have separate inputs (receptor, box,
-        settings) while both exist -- a transitional cost of keeping the rail panel as
-        the baseline -- and share the PROJECT, so a finished dock shows in both.
+        It is built ONCE and lives either in its own tab or in a section of Properties,
+        moving between them, so it has one set of inputs, one box and one result wherever
+        it is. It is laid out to suit a section -- three groups that close and say what
+        they hold while closed, the pose table shown only once there are poses and capped
+        in height -- which suits the tab too, so there is one presentation rather than two.
 
         Split from a single 311-line constructor. Each step's lines are
         verbatim at the indent they already had, so every comment still
@@ -614,8 +609,7 @@ class DockingPanel(QWidget):
         why the boundary sits at 791 and not where the group boxes begin.
         """
         super().__init__(parent)
-        self._embedded = embedded
-        #: The three collapsible groups, in the embedded copy only.
+        #: The three collapsible groups.
         self._box_section: CollapsibleSection | None = None
         self._prep_section: CollapsibleSection | None = None
         self._search_section: CollapsibleSection | None = None
@@ -928,31 +922,25 @@ class DockingPanel(QWidget):
         layout.addWidget(self._rescore_label)
         layout.addWidget(self._table)
         layout.addWidget(self._limitation_label)
-        if self._embedded:
-            # Capped, not stretched: a section sits in a scroll area, where an
-            # unbounded table would take whatever height it was offered.
-            self._table.setMinimumHeight(_EMBEDDED_TABLE_MIN_HEIGHT)
-            self._table.setMaximumHeight(_EMBEDDED_TABLE_MAX_HEIGHT)
-            # And absent until there are poses: an empty table is a header and 120 px of
-            # nothing in a list that is scrolled.
-            self._table.setVisible(False)
-            self._connect_summaries()
+        # Capped, not stretched: both homes are scroll areas, where an unbounded table
+        # would take whatever height it was offered.
+        self._table.setMinimumHeight(_TABLE_MIN_HEIGHT)
+        self._table.setMaximumHeight(_TABLE_MAX_HEIGHT)
+        # And absent until there are poses: an empty table is a header and 120 px of
+        # nothing.
+        self._table.setVisible(False)
+        self._connect_summaries()
 
     def _refresh_table_visibility(self) -> None:
-        """The embedded copy shows its pose table only while it holds poses."""
-        if self._embedded:
-            self._table.setVisible(self._table.rowCount() > 0)
+        """The pose table is shown only while it holds poses."""
+        self._table.setVisible(self._table.rowCount() > 0)
 
     def _make_group(self, title: str, expanded: bool):
-        """A titled group: a plain box in the rail panel, a collapsible section here.
+        """A titled group that closes: returns the section, its form, and the section again.
 
-        Returns the widget to lay out, the form to fill, and the section (None for the
-        plain box). The form is the same `QFormLayout` either way, so every row below
-        is the rail panel's row.
+        Returns the widget to lay out, the form to fill, and the section (the third
+        value is the section for the caller to keep).
         """
-        if not self._embedded:
-            box = QGroupBox(title, self)
-            return box, QFormLayout(box), None
         section = CollapsibleSection(title, expanded, self)
         # A group inside a section is indented once already; the default 16 px again would
         # cost the widest row (receptor, Contents, Derive) the width it measured as short.
@@ -1655,10 +1643,10 @@ class DockingPanel(QWidget):
         self._collapse_groups_after_a_run()
 
     def _collapse_groups_after_a_run(self) -> None:
-        """Close the settings groups of the embedded copy that started the run.
+        """Close the settings groups when the run this panel started finishes.
 
-        Only the pending copy reaches here (`_is_pending`), so a dock started from the rail
-        panel does not rearrange the section. A failed run never gets here either: its
+        Only a run this panel started reaches here (`_is_pending`), so a result published
+        by a script does not rearrange it. A failed run never gets here either: its
         settings stay open, because they are what the person edits next. The groups'
         summaries still say what the run used.
         """

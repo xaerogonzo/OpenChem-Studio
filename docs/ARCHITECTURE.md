@@ -458,23 +458,23 @@ it).
   sets its place; plugins are listed after them, A to Z, whatever order they
   loaded in. A test compares that table with the docks the window builds.
 
-- **A workflow section hosts a whole workflow inside Properties.**
-  `PropertyPanel.add_workflow()` puts an already-built widget in a collapsed
-  section under a "Workflows" heading above the calculators, found by Find on
-  its keywords. It is a different kind of section from a calculator category: no
-  tick box, not part of "Run selected", its own inputs and Run. The first is
-  "Align several molecules", which is `AlignmentPanel(embedded=True)`: the rail
-  panel's class built again, so both hear the same events and cannot drift, with
-  its own pop-out id and a minimum height for the picture. The rail panel stays
-  until `docs/PANEL_FEATURE_INVENTORY.md` is satisfied. "Dock a molecule into a
-  receptor" is the second: `DockingPanel(embedded=True)`. Its inputs (receptor,
-  box, settings) are separate from the rail copy's while both exist and the
-  PROJECT is shared, so a finished dock shows in both; the search box is drawn for
-  one copy at a time (`MainWindow._active_docking_panel`). Inside a workflow, a
-  group is a `CollapsibleSection` with a one-line summary shown while it is closed.
-  **Every workflow is hosted in a `HeightStatingHost`**, which states the child's
-  real height at its real width and answers `hasHeightForWidth` with False: without
-  it the list squeezed the section to half the height it asked for.
+- **A workflow is ONE widget with two homes: its own tab, or a Properties section.**
+  `PropertyPanel.add_workflow()` puts a collapsed section under a "Workflows"
+  heading above the calculators, found by Find on its keywords. It is a different
+  kind of section from a calculator category: no tick box, not part of "Run
+  selected", its own inputs and Run. Its body (`ui/widgets/workflow_body.py`) holds
+  the workflow's widget while it is HERE and says where it went while it is in its
+  tab; the window owns the rail and does the moving (`MainWindow._move_workflow`),
+  taking the widget out of one container before putting it into the other, so it is
+  the same object with everything it holds. The home is a setting
+  (`workflows/<id>/home`); a rail click on a workflow that lives in Properties goes to
+  its section (`_reveal_if_in_properties`). Docking and 3D Alignment are the two so
+  far; Quantum Chemistry is not one and is expected to stay in its tab. The docking
+  search box follows the home (`_active_docking_panel`). Inside a workflow, a group is
+  a `CollapsibleSection` with a one-line summary shown while it is closed.
+  **A workflow in the Properties list is hosted in a `HeightStatingHost`**, which
+  states the child's real height at its real width and answers `hasHeightForWidth`
+  with False: without it the list squeezed the section to half the height it asked for.
 
 - **The command palette reads, never registers.** `Ctrl+Shift+P` builds
   its list from the rail's panels, `CalculatorRegistry` and the live

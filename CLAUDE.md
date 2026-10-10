@@ -113,20 +113,21 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
      "showing": true}                     what the Results dock's PROJECT TABLE holds,
                                           read off the workspace the dock is built from
     {"do": "expand", "section": "workflow:alignment"}   open a Properties WORKFLOW section
-    {"do": "align", "in": "section", ...}  `in` picks the copy of the alignment panel
-                                          (rail, the default, or the Properties section);
-                                          `align_report` takes `expect` (`rows`,
-                                          `same_as_other_view`, `viewer_built`)
+    {"do": "workflow_move", "workflow": "docking", "to": "properties"}  move a workflow
+                                          between its own tab and Properties by pressing the
+                                          REAL button; `align_report` and `dock_panel` take
+                                          `expect` (`home`, `rows`/`poses_at_least`,
+                                          `viewer_built`, `settings_expanded`, `groups_expanded`)
+                                          and read where the widget is off its containers
     {"do": "workflow_group", "workflow": "docking", "group": "search", "expanded": false}
                                           open or close a collapsible group INSIDE a workflow
-                                          section (alignment: settings; docking: box, prep, search)
+                                          (alignment: settings; docking: box, prep, search)
     {"do": "properties_height_report", "workflow": "alignment"}  each level from the workflow up to
-                                          the list: height against the minimum it asks for, STARVED
-                                          when shorter; `properties_width_report` says why the list
-                                          scrolls sideways; `properties_grab` saves the whole list
-                                          at full height
-    {"do": "dock_run", "in": "section"}  every docking step takes `in` too; `dock_panel` takes
-                                          `expect` (`poses`, `poses_at_least`, `same_as_other_view`, `groups_expanded`)
+                                          the window: height against the minimum it asks for,
+                                          STARVED when shorter; `properties_width_report` says why
+                                          the list scrolls sideways; `properties_grab` saves the
+                                          whole list at full height. A script that moves a
+                                          workflow writes the real settings: end it in its tab
     {"do": "properties_scroll", "to": "workflow:alignment"}  scroll the Properties list
                                           ("end", "top", a pixel offset) so a tall section's
                                           picture is in the shot

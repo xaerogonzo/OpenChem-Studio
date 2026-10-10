@@ -54,6 +54,20 @@ class HeightStatingHost(QWidget):
     def child(self) -> QWidget:
         return self._child
 
+    def release(self) -> QWidget:
+        """Take the child back out, to put it somewhere else. The host is spent after this.
+
+        For a widget that MOVES between homes (a workflow between its own tab and the
+        Properties list): the same object goes on, with every value it holds, and only
+        its container changes.
+        """
+        child = self._child
+        self._child.removeEventFilter(self)
+        self.layout().removeWidget(child)
+        child.setParent(None)
+        self._stated_height = 0
+        return child
+
     def stated_height(self) -> int:
         return self._stated_height
 

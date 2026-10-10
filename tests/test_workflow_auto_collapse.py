@@ -1,10 +1,9 @@
-"""A workflow section closes its settings when a run it started finishes.
+"""A workflow closes its settings when a run it started finishes.
 
 The settings have done their job by then; the table and the picture are what the
 person is looking for, and the closed groups still say what was run. What is
-guarded is the part that is easy to get wrong: ONLY the copy the person pressed
-the button in rearranges itself (both copies hear every result), and a failed run
-leaves the settings open.
+guarded is the part that is easy to get wrong: only a run THIS panel started closes
+them, and a failed run leaves them open.
 """
 
 from __future__ import annotations
@@ -60,16 +59,13 @@ def _project(services, *names_and_smiles) -> ProjectModel:
     return project
 
 
-def _align_pair(services, built):
+def _aligner(services, built) -> AlignmentPanel:
     service = _Recording(services.event_bus, services.chemistry_engine)
-    project = _project(services, ("A", "CCO"), ("B", "CCN"))
-    rail = AlignmentPanel(service, services.event_bus)
-    section = AlignmentPanel(service, services.event_bus, embedded=True)
-    built.extend([rail, section])
-    for panel in (rail, section):
-        panel.set_project(project)
-        panel._probe_list.item(0).setCheckState(Qt.CheckState.Checked)
-    return rail, section
+    panel = AlignmentPanel(service, services.event_bus)
+    built.append(panel)
+    panel.set_project(_project(services, ("A", "CCO"), ("B", "CCN")))
+    panel._probe_list.item(0).setCheckState(Qt.CheckState.Checked)
+    return panel
 
 
 def _ready(services):
@@ -83,51 +79,50 @@ def _ready(services):
     )
 
 
-def test_the_copy_that_started_the_alignment_closes_its_settings(services, built):
-    _rail, section = _align_pair(services, built)
-    assert section.settings_section.is_expanded()
+def test_the_alignment_settings_close_when_its_run_finishes(services, built):
+    panel = _aligner(services, built)
+    assert panel.settings_section.is_expanded()
 
-    section._on_align_clicked()
+    panel._on_align_clicked()
     _ready(services)
 
-    assert not section.settings_section.is_expanded()
-    assert section.settings_section.summary().startswith("1 molecule onto A")
+    assert not panel.settings_section.is_expanded()
+    assert panel.settings_section.summary().startswith("1 molecule onto A")
 
 
-def test_the_copy_that_did_not_start_it_is_left_as_it_was(services, built):
-    rail, section = _align_pair(services, built)
+def test_a_result_nobody_here_asked_for_leaves_the_settings_alone(services, built):
+    panel = _aligner(services, built)
 
-    rail._on_align_clicked()
-    _ready(services)
+    _ready(services)  # published by something else: a script, a test
 
-    assert section.settings_section.is_expanded(), "the section did not press Align"
+    assert panel.settings_section.is_expanded()
 
 
 def test_a_failed_alignment_leaves_the_settings_open(services, built):
-    _rail, section = _align_pair(services, built)
+    panel = _aligner(services, built)
 
-    section._on_align_clicked()
+    panel._on_align_clicked()
     services.event_bus.publish(
         AlignmentJobStateChanged(reference_uuid="r", state=CacheState.FAILED, message="no")
     )
     _ready(services)
 
-    assert section.settings_section.is_expanded()
+    assert panel.settings_section.is_expanded()
 
 
-def test_a_later_result_from_elsewhere_does_not_close_them_again(services, built):
-    """One press closes once: the flag is spent when the result arrives."""
-    _rail, section = _align_pair(services, built)
-    section._on_align_clicked()
+def test_one_press_closes_once(services, built):
+    """The flag is spent when the result arrives, so a later result does not close them again."""
+    panel = _aligner(services, built)
+    panel._on_align_clicked()
     _ready(services)
-    section.settings_section.set_expanded(True)
+    panel.settings_section.set_expanded(True)
 
     _ready(services)
 
-    assert section.settings_section.is_expanded()
+    assert panel.settings_section.is_expanded()
 
 
-# --- docking ------------------------------------------------------------------------------
+# --- docking -------------------------------------------------------------------------------
 
 
 def _dock_result(project, receptor):
@@ -149,40 +144,41 @@ def _dock_result(project, receptor):
     )
 
 
-def _dock_pair(services, built):
-    settings = Settings(services.event_bus)
-    args = (services.docking_service, services.chemistry_engine, settings, services.event_bus)
-    rail = DockingPanel(*args)
-    section = DockingPanel(*args, embedded=True)
-    built.extend([rail, section])
+def _docker(services, built):
+    panel = DockingPanel(
+        services.docking_service,
+        services.chemistry_engine,
+        Settings(services.event_bus),
+        services.event_bus,
+    )
+    built.append(panel)
     project = _project(services, ("Ethanol", "CCO"))
     receptor = MacromoleculeModel(
         display_name="Receptor", structure_text="HEADER\nATOM\nEND\n", source_format="pdb"
     )
     project.macromolecules.append(receptor)
-    rail.set_project(project)
-    section.set_project(project)
-    return rail, section, project, receptor
+    panel.set_project(project)
+    return panel, project, receptor
 
 
-def test_the_docking_copy_that_started_the_run_closes_its_groups(services, built):
-    _rail, section, project, receptor = _dock_pair(services, built)
-    section.search_section.set_expanded(True)
-    assert section.box_section.is_expanded() and section.search_section.is_expanded()
-    section._pending_ligand_uuid = project.molecules[0].uuid
-    section._pending_receptor_uuid = receptor.uuid
-
-    services.event_bus.publish(DockingResultReady(result=_dock_result(project, receptor)))
-
-    assert not section.box_section.is_expanded()
-    assert not section.prep_section.is_expanded()
-    assert not section.search_section.is_expanded()
-
-
-def test_the_docking_copy_that_did_not_start_it_keeps_its_groups(services, built):
-    _rail, section, project, receptor = _dock_pair(services, built)
-    # Nothing pending in the section: a dock from the rail panel, say.
+def test_the_docking_groups_close_when_its_run_finishes(services, built):
+    panel, project, receptor = _docker(services, built)
+    panel.search_section.set_expanded(True)
+    assert panel.box_section.is_expanded() and panel.search_section.is_expanded()
+    panel._pending_ligand_uuid = project.molecules[0].uuid
+    panel._pending_receptor_uuid = receptor.uuid
 
     services.event_bus.publish(DockingResultReady(result=_dock_result(project, receptor)))
 
-    assert section.box_section.is_expanded()
+    assert not panel.box_section.is_expanded()
+    assert not panel.prep_section.is_expanded()
+    assert not panel.search_section.is_expanded()
+
+
+def test_a_docking_result_nobody_here_asked_for_leaves_the_groups_alone(services, built):
+    panel, project, receptor = _docker(services, built)
+    # Nothing pending: a script, or another run's result.
+
+    services.event_bus.publish(DockingResultReady(result=_dock_result(project, receptor)))
+
+    assert panel.box_section.is_expanded()

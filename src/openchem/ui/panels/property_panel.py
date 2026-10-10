@@ -129,7 +129,7 @@ from openchem.ui.dialogs.nmr_view_dialog import NmrViewDialog
 from openchem.ui.widgets.substance_card import SubstanceCard, card_data_from_report
 from openchem.ui.widgets.collapsible_section import CollapsibleSection as _CollapsibleSection
 from openchem.ui.widgets.collapsible_section import ExplicitHeightLabel as _ExplicitHeightLabel
-from openchem.ui.widgets.height_stating_host import HeightStatingHost
+from openchem.ui.widgets.workflow_body import HOME_PROPERTIES, HOME_TAB, WorkflowBody
 
 # Preferred display order -- any category not listed here (e.g. a future
 # plugin-supplied one) is appended alphabetically after these, not dropped.
@@ -785,6 +785,10 @@ _PANEL_MIN_WIDTH = 280
 #: The left indent of a workflow section's content, in pixels. Smaller than a calculator
 #: section's 16, because a workflow's widest row (the docking receptor row) has to fit a dock.
 _WORKFLOW_INDENT = 4
+
+#: The Qt property that carries a workflow's id on its body, so one bound method can serve
+#: every workflow's buttons (a lambda capturing `self` would root the panel).
+_WORKFLOW_ID_PROPERTY = "openchem_workflow_id"
 
 #: Marks a workflow's key in the Find expansion snapshot, so it cannot collide with
 #: a calculator category id however either is named.
@@ -1616,6 +1620,11 @@ class PropertyPanel(QWidget):
     #: calculator id. Routed by the window, which owns the panels; the second argument is
     #: what the panel should have chosen when it appears.
     service_panel_requested = Signal(str, str)
+    #: The person asked to move a workflow to a home: (workflow id, `HOME_PROPERTIES` or
+    #: `HOME_TAB`). Routed by the window, which owns the rail and the docks.
+    workflow_move_requested = Signal(str, str)
+    #: The person asked to see a workflow's own tab (workflow id).
+    workflow_tab_requested = Signal(str)
     #: A project run was submitted. Carries its immutable `ExecutionPlan`, so the
     #: Results table that will show it knows which run it is adopting.
     project_run_started = Signal(object)
@@ -1811,6 +1820,7 @@ class PropertyPanel(QWidget):
         #: Run, so it has no tick box and is not part of "Run selected".
         self._workflows: dict[str, _CollapsibleSection] = {}
         self._workflow_keywords: dict[str, str] = {}
+        self._workflow_bodies: dict[str, WorkflowBody] = {}
         self._workflow_header: QLabel | None = None
         # Which section each row currently lives in -- lets
         # _on_descriptor_computed detect a category change and re-parent the
@@ -2382,32 +2392,86 @@ class PropertyPanel(QWidget):
         self._refresh_group_headers()
 
     def add_workflow(
-        self, workflow_id: str, title: str, widget: QWidget, keywords: str = ""
+        self,
+        workflow_id: str,
+        title: str,
+        keywords: str = "",
+        home: str = HOME_TAB,
+        widget: QWidget | None = None,
     ) -> _CollapsibleSection:
-        """Host a whole workflow as a collapsible section above the calculators.
+        """A section for a whole workflow, which lives either here or in its own tab.
 
         **A WORKFLOW IS NOT A CALCULATOR, AND THAT IS WHY IT HAS ITS OWN KIND OF
         SECTION.** A calculator is a button and a tick that runs on whatever is
-        selected. A workflow (aligning several molecules onto a reference, docking,
-        a quantum-chemistry job) has inputs of its own and a Run of its own, and
-        squeezing it into ticks would lose them. The widget is handed in already
-        built, so this panel imports none of the workflow code.
+        selected. A workflow (aligning several molecules onto a reference, docking, a
+        quantum-chemistry job) has inputs of its own and a Run of its own, and squeezing
+        it into ticks would lose them.
+
+        **IT IS ONE WIDGET WITH TWO HOMES, NEVER TWO WIDGETS.** `home` says where it
+        starts: `HOME_PROPERTIES` (give the widget here, and it is shown in this section)
+        or `HOME_TAB` (the section says so and offers to bring it back). The window owns
+        the rail, so moving it is the window's job: this panel emits what was asked for
+        (`workflow_move_requested`) and lends the widget out and takes it back
+        (`release_workflow`, `adopt_workflow`).
 
         Collapsed on creation, so a person who never uses it pays one heading. Find
-        matches it on `keywords` (and its title), so searching "align" or "overlay"
-        finds it the way it finds a calculator.
+        matches it on `keywords` and its title, so searching "align" or "overlay" finds
+        it the way it finds a calculator.
         """
         section = _CollapsibleSection(title, False, self._sections_container)
         # A workflow is dense and its rows are wide: the calculator sections' 16 px indent is
         # more than it can spare in a docked column.
         section.content.layout().setContentsMargins(_WORKFLOW_INDENT, 2, 2, 6)
-        # Hosted, not added bare: a whole workflow is height-for-width all the way down, and
-        # the list would squeeze its rows (see `HeightStatingHost`).
-        section.add_calculator_widget(HeightStatingHost(widget, section.content))
+        body = WorkflowBody(title, section.content)
+        body.setProperty(_WORKFLOW_ID_PROPERTY, workflow_id)
+        body.move_requested.connect(self._on_workflow_move_requested)
+        body.open_tab_requested.connect(self._on_workflow_open_tab_requested)
+        section.add_calculator_widget(body)
         self._workflows[workflow_id] = section
+        self._workflow_bodies[workflow_id] = body
         self._workflow_keywords[workflow_id] = f"{title} {keywords}".casefold()
+        if home == HOME_PROPERTIES and widget is not None:
+            body.adopt(widget)
         self._reorder_sections()
         return section
+
+    def adopt_workflow(self, workflow_id: str, widget: QWidget) -> None:
+        """The workflow's widget arrives in its section (it moved here from its tab)."""
+        self._workflow_bodies[workflow_id].adopt(widget)
+
+    def release_workflow(self, workflow_id: str) -> QWidget | None:
+        """The workflow's widget leaves its section, to its tab. The same object."""
+        return self._workflow_bodies[workflow_id].release()
+
+    def reveal_workflow(self, workflow_id: str) -> None:
+        """Bring a workflow's section into view, open, however Find or scrolling left it."""
+        section = self._workflows.get(workflow_id)
+        if section is None:
+            return
+        if self._find_text:
+            # A query that hides the section would hide the thing being revealed.
+            self._find_box.setText("")
+        section.setVisible(True)
+        section.set_expanded(True)
+        self._scroll_area.ensureWidgetVisible(section, 0, 12)
+
+    def workflow_home(self, workflow_id: str) -> str:
+        return self._workflow_bodies[workflow_id].home()
+
+    def workflow_body(self, workflow_id: str) -> WorkflowBody | None:
+        return self._workflow_bodies.get(workflow_id)
+
+    def _on_workflow_move_requested(self, home: str) -> None:
+        body = self.sender()
+        workflow_id = body.property(_WORKFLOW_ID_PROPERTY) if body is not None else None
+        if workflow_id:
+            self.workflow_move_requested.emit(str(workflow_id), home)
+
+    def _on_workflow_open_tab_requested(self) -> None:
+        body = self.sender()
+        workflow_id = body.property(_WORKFLOW_ID_PROPERTY) if body is not None else None
+        if workflow_id:
+            self.workflow_tab_requested.emit(str(workflow_id))
 
     def workflow_section(self, workflow_id: str) -> _CollapsibleSection | None:
         return self._workflows.get(workflow_id)

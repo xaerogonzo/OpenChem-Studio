@@ -513,12 +513,11 @@ class _Driver(QObject):
         )
 
     def _expect_docking(self, panel, tag: str, expect: dict[str, Any]) -> None:
-        """ASSERT the pose table, and that the two copies of the Docking panel agree.
+        """ASSERT the pose table, where the panel lives, and its groups.
 
-        `{"expect": {"poses": 3, "same_as_other_view": true}}`. `poses` is a minimum
-        when written `"poses_at_least"`. `same_as_other_view` compares this copy's
-        table cells with the OTHER copy's: a dock started from one must show in the
-        other once it is in the project, which is the claim of having two copies.
+        `{"expect": {"poses_at_least": 1, "home": "properties", "groups_expanded": false}}`.
+        `poses` is exact; `poses_at_least` is a minimum. `home` is where the ONE panel is
+        (`"tab"` or `"properties"`), read off the containers that hold the widget.
         """
         problems: list[str] = []
 
@@ -538,17 +537,8 @@ class _Driver(QObject):
             problems.append(f"{len(mine)} pose row(s), wanted {expect['poses']}")
         if "poses_at_least" in expect and len(mine) < int(expect["poses_at_least"]):
             problems.append(f"{len(mine)} pose row(s), wanted at least {expect['poses_at_least']}")
-        if expect.get("same_as_other_view"):
-            window = self._window
-            other = (
-                window._docking_panel
-                if panel is getattr(window, "_docking_section_panel", None)
-                else window._docking_section_panel
-            )
-            if cells_of(other) != mine:
-                problems.append("the two copies disagree on the pose table")
-            elif not mine:
-                problems.append("both pose tables are empty, so agreeing proves nothing")
+        if "home" in expect:
+            problems.extend(self._home_problems("docking", panel, str(expect["home"])))
         if "groups_expanded" in expect:
             groups = (panel.box_section, panel.prep_section, panel.search_section)
             actual = [g.is_expanded() if g is not None else None for g in groups]
@@ -560,16 +550,11 @@ class _Driver(QObject):
             logger.warning("OPENCHEM_DRIVE: EXPECT docking ok[%s]", tag)
 
     def _docking_target(self, step: dict[str, Any]):
-        """Which copy of the Docking panel a step drives: the rail panel (the default)
-        or the one inside the Properties section (`"in": "section"`). None when the
-        window has no such panel, which the caller reports.
+        """The docking panel -- ONE widget, wherever it lives (its tab or Properties).
 
-        Two copies of one class, with separate inputs while both exist -- so a script
-        that sets the receptor in one and presses Dock in the other is wrong in a way
-        that reads as the app ignoring the receptor. Name the copy on every step.
+        `step` is accepted so every call site reads the same; there is nothing to choose.
+        None when the window has no such panel, which the caller reports.
         """
-        if step.get("in") == "section":
-            return getattr(self._window, "_docking_section_panel", None)
         return getattr(self._window, "_docking_panel", None)
 
     def _do_dock_receptor(self, step: dict[str, Any]) -> None:
@@ -1523,15 +1508,10 @@ class _Driver(QObject):
         )
 
     def _alignment_target(self, step: dict[str, Any]):
-        """Which copy of the alignment panel a step drives: the rail panel (the
-        default) or the one inside the Properties section (`"in": "section"`).
+        """The alignment panel -- ONE widget, wherever it lives (its tab or Properties).
 
-        Both are the same class and hear the same events, so a script can run the
-        alignment in one and read the OTHER -- which is the check that the section
-        really is a second view of one result and not a second alignment.
+        `step` is accepted so every call site reads the same; there is nothing to choose.
         """
-        if step.get("in") == "section":
-            return self._window._alignment_section_panel
         return self._window._alignment_panel
 
     def _do_align(self, step: dict[str, Any]) -> None:
@@ -1632,14 +1612,12 @@ class _Driver(QObject):
             self._expect_alignment(panel, tag, expect)
 
     def _expect_alignment(self, panel, tag: str, expect: dict[str, Any]) -> None:
-        """ASSERT what the alignment table holds, and that the two copies agree.
+        """ASSERT what the alignment table holds, and where the panel lives.
 
-        `{"expect": {"rows": 3, "same_as_other_view": true, "viewer_built": true}}`
+        `{"expect": {"rows": 3, "home": "tab", "viewer_built": true, "settings_expanded": false}}`
 
-        `same_as_other_view` compares this copy's cells with the OTHER copy's (rail
-        panel against Properties section), which is the whole claim of the section:
-        one alignment, two views. Pair it with `"in": "section"` and `"in": "rail"`
-        reports so each direction is read once.
+        `home` is where the ONE panel is (`"tab"` or `"properties"`), read off the
+        containers that hold the widget rather than off the setting.
         """
         problems: list[str] = []
 
@@ -1656,16 +1634,8 @@ class _Driver(QObject):
         mine = cells_of(panel)
         if "rows" in expect and len(mine) != int(expect["rows"]):
             problems.append(f"{len(mine)} row(s), wanted {expect['rows']}")
-        if expect.get("same_as_other_view"):
-            window = self._window
-            other = (
-                window._alignment_panel if panel is window._alignment_section_panel
-                else window._alignment_section_panel
-            )
-            if cells_of(other) != mine:
-                problems.append("the two copies disagree on the table cells")
-            elif not mine:
-                problems.append("both tables are empty, so agreeing proves nothing")
+        if "home" in expect:
+            problems.extend(self._home_problems("alignment", panel, str(expect["home"])))
         if "viewer_built" in expect and panel.viewer_is_built != bool(expect["viewer_built"]):
             problems.append(f"viewer_is_built is {panel.viewer_is_built}")
         if "settings_expanded" in expect:
@@ -2102,7 +2072,7 @@ class _Driver(QObject):
                 "OPENCHEM_DRIVE: width_report %s | workflow %s min %d (section %d)",
                 tag, workflow_id, body.minimumSizeHint().width(), section.minimumSizeHint().width(),
             )
-            inner = {"alignment": "_alignment_section_panel", "docking": "_docking_section_panel"}.get(workflow_id)
+            inner = {"alignment": "_alignment_panel", "docking": "_docking_panel"}.get(workflow_id)
             target = getattr(self._window, inner, None) if inner else None
             layout = target.layout() if target is not None else None
             for index in range(layout.count() if layout is not None else 0):
@@ -2122,12 +2092,12 @@ class _Driver(QObject):
         """
         workflow = str(step.get("workflow", "alignment"))
         target = {
-            "alignment": getattr(self._window, "_alignment_section_panel", None),
-            "docking": getattr(self._window, "_docking_section_panel", None),
+            "alignment": getattr(self._window, "_alignment_panel", None),
+            "docking": getattr(self._window, "_docking_panel", None),
         }.get(workflow)
         tag = step.get("tag", "")
         widget = target
-        while widget is not None and widget is not self._window._property_panel:
+        while widget is not None and widget is not self._window:
             hint = widget.minimumSizeHint()
             layout = widget.layout()
             logger.warning(
@@ -2177,6 +2147,52 @@ class _Driver(QObject):
             "OPENCHEM_DRIVE: properties_grab %dx%d -> %s", pixmap.width(), pixmap.height(), path
         )
 
+    def _home_problems(self, workflow_id: str, panel, wanted: str) -> list[str]:
+        """What is wrong, if anything, with where a workflow's widget is.
+
+        Reads the CONTAINERS, not the setting: the property panel's body must hold the very
+        widget when the home is Properties, and the dock's scroll area must when it is the tab.
+        A setting that said "tab" while the widget sat in Properties would pass a check of the
+        setting alone.
+        """
+        window = self._window
+        home = window._property_panel.workflow_home(workflow_id)
+        spec = window._workflow_homes[workflow_id]
+        problems: list[str] = []
+        if home != wanted:
+            problems.append(f"home is {home!r}, wanted {wanted!r}")
+        in_body = window._property_panel.workflow_body(workflow_id).widget() is panel
+        in_dock = spec.scroll.widget() is panel
+        if wanted == "properties" and not (in_body and not in_dock):
+            problems.append(f"widget placement: in Properties={in_body}, in its tab={in_dock}")
+        if wanted == "tab" and not (in_dock and not in_body):
+            problems.append(f"widget placement: in Properties={in_body}, in its tab={in_dock}")
+        return problems
+
+    def _do_workflow_move(self, step: dict[str, Any]) -> None:
+        """Move a workflow between its tab and Properties by pressing the REAL button.
+
+        `{"do": "workflow_move", "workflow": "docking", "to": "properties"}` presses "Move
+        here" in the section; `"to": "tab"` presses "Move to its own tab". The buttons, not
+        `_move_workflow`, for the reason `jobs_cancel` presses a button: the wiring is what
+        is being exercised.
+        """
+        workflow = str(step.get("workflow", ""))
+        wanted = str(step.get("to", ""))
+        body = self._window._property_panel.workflow_body(workflow)
+        if body is None or wanted not in ("properties", "tab"):
+            logger.error("OPENCHEM_DRIVE: cannot move workflow %r to %r", workflow, wanted)
+            return
+        if body.home() == wanted:
+            logger.warning("OPENCHEM_DRIVE: workflow %s is already in %s", workflow, wanted)
+            return
+        button = body._move_here if wanted == "properties" else body._move_to_tab
+        button.click()
+        logger.warning(
+            "OPENCHEM_DRIVE: workflow %s moved to %s (home now %s)",
+            workflow, wanted, self._window._property_panel.workflow_home(workflow),
+        )
+
     def _do_workflow_group(self, step: dict[str, Any]) -> None:
         """Open or close one collapsible group INSIDE a workflow section.
 
@@ -2187,8 +2203,8 @@ class _Driver(QObject):
         shots taken with `"expanded": false` are for.
         """
         panels = {
-            "alignment": getattr(self._window, "_alignment_section_panel", None),
-            "docking": getattr(self._window, "_docking_section_panel", None),
+            "alignment": getattr(self._window, "_alignment_panel", None),
+            "docking": getattr(self._window, "_docking_panel", None),
         }
         groups = {
             ("alignment", "settings"): "settings_section",

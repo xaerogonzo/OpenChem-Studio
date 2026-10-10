@@ -245,16 +245,25 @@ design) and nothing here can be fanned out over a project today.
 Files: `src/openchem/ui/panels/alignment_panel.py`, `src/openchem/services/alignment_service.py`,
 `src/openchem/chem/alignment.py`, `src/openchem/domain/alignment.py`.
 
-**Status: moved in.** The Properties section *Workflows > Align several molecules* hosts
-the same class (`AlignmentPanel(embedded=True)`), so every row below holds there by
-construction. Shown live (`benchmarks/visual/alignment_section.json`, a real alignment,
-verdict PASS): A01, A02, A03 to A05 (set from the script), A07 (run and status), A08 and A09
-(the same cells in both copies, the reference dashes), A10 (hiding a structure), A11 (Style,
-Colour, the overlay drawn in the section). **Not yet shown live: the pop-out from the
-section, a failed-structure row, Rigid mode, and the Jobs-panel cancel.** The rail panel
-stays as the baseline; removing it needs your say-so.
+**Status: can live in Properties.** The panel is ONE widget that lives in its own tab or in
+*Workflows > Align several molecules* and moves between them (`Move here` / `Move to its own
+tab`), so every row below holds in either home by construction. Shown live
+(`benchmarks/visual/alignment_section.json`, a real alignment, verdict PASS): A01, A02, A03 to A05
+(set from the script), A07 (run and status), A08 and A09 (the table, the reference dashes), A10
+(hiding a structure, which survived a move), A11 (Style, Colour, the overlay drawn in either
+home), A12 (the result survived two moves). **Presentation changed in the tab** (and is the same
+in both homes): the settings are a group that closes, and the table and picture are absent until a
+result exists. **Not yet shown live: the pop-out from the section, a failed-structure row, Rigid
+mode, and the Jobs-panel cancel.**
 
-**Docking: moved in the same way** (`Workflows > Dock a molecule into a receptor`, `DockingPanel(embedded=True)`). Shown live with a real Vina run (`benchmarks/visual/docking_section.json`, verdict PASS): D01, D03 (box derived from the bound ligand), D04, D05, D06, D09 to D14 (run at their defaults), D16, D18 and D19 (nine poses, the spread label), D20 (the dock is in the project, and the rail copy showed the same table), D21 (receptor and pose drawn in the macromolecule viewer). D07 now has a rule: the box is drawn for the open section while Properties is showing, otherwise for the rail panel while Docking is showing. **Not yet shown live: D02 Contents..., rescoring, replicates above 1, an undo of a dock, and the Virtual Screening dialog (D22) from the section.** The two copies have separate inputs while both exist.
+**Docking: the same** (`Workflows > Dock a molecule into a receptor`). Shown live with a real Vina
+run (`benchmarks/visual/docking_section.json`, verdict PASS), including moving the workflow to its
+tab and back with the nine poses intact: D01, D03 (box derived from the bound ligand), D04, D05,
+D06, D09 to D14 (run at their defaults), D16, D18 and D19 (nine poses, the spread label), D20 (the
+dock is in the project), D21 (receptor and pose drawn in the macromolecule viewer). D07 now has a
+rule: the box is drawn while the panel is on screen where it lives (its tab showing, or its section
+open). **Not yet shown live: D02 Contents..., rescoring, replicates above 1, an undo of a dock, and
+the Virtual Screening dialog (D22) from the section.**
 
 It aligns **several project molecules onto one reference** and shows the result as an
 overlay. The single-molecule registry calculator "3D Alignment" (reference typed as

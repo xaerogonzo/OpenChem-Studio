@@ -994,6 +994,7 @@
   "tests/test_webgl_gate.py": 0,
   "tests/test_workflow_auto_collapse.py": 1,
   "tests/test_workflow_docking.py": 0,
+  "tests/test_workflow_move.py": 2,
   "tests/test_workflow_safety.py": 1,
   "tests/test_workflow_sections.py": 1,
   "tests/test_x_zoomable_charts.py": 0

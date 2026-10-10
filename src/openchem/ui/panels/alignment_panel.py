@@ -57,19 +57,14 @@ _TABLE_MIN_HEIGHT = 64
 #: already indents its content, so the group takes a small one (see the docking panel's).
 _NESTED_INDENT = 4
 
-#: The overlay's floor inside a Properties section. A section is laid out in a
-#: scroll area, which gives a stretch widget only its minimum, so without this the
-#: picture -- this panel's entire output -- would be a strip a few pixels tall.
-#: The dock version needs none: it is handed whatever the dock has left.
-_EMBEDDED_VIEW_MIN_HEIGHT = 320
+#: The overlay's floor. Both homes are scroll areas (a Properties section, the tab's own
+#: wrapper), which give a stretch widget only its minimum, so without this the picture --
+#: this panel's entire output -- would be a strip a few pixels tall.
+_VIEW_MIN_HEIGHT = 320
 
-#: Where the rail panel's pop-out saves its placement. Unchanged from before the
-#: Properties section existed, so a saved window is still found.
+#: Where the pop-out saves its placement, in either home. Unchanged from before workflows
+#: could move, so a saved window is still found.
 _POP_OUT_ID = "alignment.overlay"
-
-#: Where the Properties section's pop-out saves its placement. A SECOND KEY because
-#: both copies exist at once, and one key would have each overwrite the other's window.
-_EMBEDDED_POP_OUT_ID = "alignment.overlay.section"
 
 _RESULT_COLUMNS = (
     "Show",
@@ -337,25 +332,21 @@ class AlignmentPanel(QWidget):
         event_bus: EventBus,
         parent: QWidget | None = None,
         settings: object = None,
-        embedded: bool = False,
     ) -> None:
-        """`embedded` is True for the copy that lives inside a Properties section.
+        """One panel, which lives either in its own tab or in a section of Properties.
 
-        **THE SAME CLASS SERVES BOTH HOMES, and that is what makes the section's
-        parity true by construction** rather than by two implementations agreeing.
-        Both copies hear the same events, so one alignment fills both tables and
-        both pictures. Only two things differ: the embedded one saves its pop-out
-        placement under its own id (two hosts writing one key would overwrite each
-        other), and its picture gets a floor of its own height, because a section
-        sits in a scroll area that hands a stretch widget nothing.
+        It is built ONCE and moved between those homes, so it has one set of inputs, one
+        result and one 3D view wherever it is. It is laid out to suit a section -- the
+        settings in a group that closes, the table and the picture shown only once there
+        is a result, the picture given a floor of its own height -- and that suits the tab
+        too, which is why there is one presentation rather than two.
         """
         super().__init__(parent)
-        self._embedded = embedded
-        #: The collapsible group holding the settings, in the embedded copy only.
+        #: The collapsible group holding the settings.
         self._settings_section: CollapsibleSection | None = None
-        #: Whether THIS copy asked for the alignment now in flight. Only that copy closes
-        #: its settings when the result arrives: both copies hear every result, and the
-        #: one the person did not press Align in must not rearrange itself.
+        #: Whether an alignment this panel asked for is in flight. The settings close
+        #: when ITS result arrives, and not for a result that someone else's run (a
+        #: script, a test) published.
         self._run_started_here = False
         self._alignment_service = alignment_service
         self._event_bus = event_bus
@@ -426,8 +417,7 @@ class AlignmentPanel(QWidget):
         self._viewer: Mol3DViewerBackend | None = None
         self._viewer_container = QWidget(self)
         QVBoxLayout(self._viewer_container).setContentsMargins(0, 0, 0, 0)
-        if embedded:
-            self._viewer_container.setMinimumHeight(_EMBEDDED_VIEW_MIN_HEIGHT)
+        self._viewer_container.setMinimumHeight(_VIEW_MIN_HEIGHT)
         self._pending_ensemble: list[tuple[str, str]] | None = None
         self._style_combo = QComboBox(self)
         self._style_combo.addItems(["stick", "ballstick", "sphere", "line"])
@@ -466,22 +456,11 @@ class AlignmentPanel(QWidget):
         options.layout().addWidget(self._flexibility_combo)
         form.addRow(options)
 
-        if embedded:
-            # COLLAPSIBLE, with the Align button and the status line OUTSIDE the
-            # collapsing part: closing the settings to give the table and the
-            # picture the room must not take the way to run (or to see that a run
-            # is going) with it. The closed section still says what Run would do.
-            settings_box = self._build_collapsible_settings(form, note)
-        else:
-            settings_box = QGroupBox("Alignment", self)
-            settings_layout = QVBoxLayout(settings_box)
-            settings_layout.addLayout(form)
-            settings_layout.addWidget(note)
-            buttons = QHBoxLayout()
-            buttons.addWidget(self._align_button)
-            buttons.addStretch(1)
-            settings_layout.addLayout(buttons)
-            settings_layout.addWidget(self._status_label)
+        # COLLAPSIBLE, with the Align button and the status line OUTSIDE the collapsing part:
+        # closing the settings to give the table and the picture the room must not take the
+        # way to run (or to see that a run is going) with it. The closed section still says
+        # what Run would do.
+        settings_box = self._build_collapsible_settings(form, note)
 
         # THE STYLE ROW BECOMES THE HOST'S HEADER rather than a row of its
         # own. This panel's whole problem is vertical space -- the group
@@ -498,7 +477,7 @@ class AlignmentPanel(QWidget):
         self._viewer_host = PopOutHost(
             self._viewer_container,
             title="3D Alignment",
-            settings_id=_EMBEDDED_POP_OUT_ID if embedded else _POP_OUT_ID,
+            settings_id=_POP_OUT_ID,
             settings=settings,
             header=[
                 QLabel("Style:", self),
@@ -513,23 +492,19 @@ class AlignmentPanel(QWidget):
         layout.addWidget(settings_box)
         layout.addWidget(self._result_table)
         layout.addWidget(self._viewer_host, 1)
-        if embedded:
-            # NO EMPTY BOXES IN A SECTION. An empty score table and a blank 320 px picture
-            # area cost about 500 px of a list that is scrolled, and say nothing; they
-            # appear when there is an alignment to show. The rail panel keeps them, as the
-            # baseline it is.
-            self._result_table.setVisible(False)
-            self._viewer_host.setVisible(False)
+        # NO EMPTY BOXES. An empty score table and a blank 320 px picture area cost about
+        # 500 px and say nothing; they appear when there is an alignment to show.
+        self._result_table.setVisible(False)
+        self._viewer_host.setVisible(False)
 
         event_bus.subscribe(AlignmentJobStateChanged, self._on_job_state_changed)
         event_bus.subscribe(EnsembleAlignmentReady, self._on_alignment_ready)
-        if embedded:
-            self._reference_combo.currentIndexChanged.connect(self._refresh_summary)
-            self._probe_list.itemChanged.connect(self._refresh_summary)
-            self._method_combo.currentTextChanged.connect(self._refresh_summary)
-            self._accuracy_combo.currentTextChanged.connect(self._refresh_summary)
-            self._flexibility_combo.currentTextChanged.connect(self._refresh_summary)
-            self._refresh_summary()
+        self._reference_combo.currentIndexChanged.connect(self._refresh_summary)
+        self._probe_list.itemChanged.connect(self._refresh_summary)
+        self._method_combo.currentTextChanged.connect(self._refresh_summary)
+        self._accuracy_combo.currentTextChanged.connect(self._refresh_summary)
+        self._flexibility_combo.currentTextChanged.connect(self._refresh_summary)
+        self._refresh_summary()
 
     def _build_collapsible_settings(self, form: QFormLayout, note: QLabel) -> QWidget:
         section = CollapsibleSection("Settings", True, self)
@@ -676,18 +651,20 @@ class AlignmentPanel(QWidget):
         self._colors = colors
         self._visible = {index: True for index in colors}
         self._populate_table(event.entries, colors)
-        if self._embedded:
-            self._result_table.setVisible(True)
-            self._viewer_host.setVisible(True)
-            if self._run_started_here and self._settings_section is not None:
-                # The settings did their job; the table and the picture are what the person
-                # is now here for, and a closed section still says what was run.
-                self._settings_section.set_expanded(False)
-            self._run_started_here = False
-            if self.isVisible():
-                # The panel was shown before any result existed, so `showEvent` skipped the
-                # build; this is the moment the picture has something to draw.
-                self._ensure_viewer()
+        self._result_table.setVisible(True)
+        self._viewer_host.setVisible(True)
+        # AFTER it is shown: `_populate_table` sized the table while it was still hidden, and a
+        # hidden table has not measured its header or its rows, so the second row was cut off.
+        self._fit_table_height()
+        if self._run_started_here and self._settings_section is not None:
+            # The settings did their job; the table and the picture are what the person
+            # is now here for, and a closed section still says what was run.
+            self._settings_section.set_expanded(False)
+        self._run_started_here = False
+        if self.isVisible():
+            # The panel was shown before any result existed, so `showEvent` skipped the
+            # build; this is the moment the picture has something to draw.
+            self._ensure_viewer()
         self._show_ensemble()
 
     def _populate_table(self, entries: list[EnsembleEntry], colors: dict[int, str]) -> None:
@@ -803,10 +780,7 @@ class AlignmentPanel(QWidget):
 
     def showEvent(self, event) -> None:  # noqa: N802 - Qt override
         # FIRST SHOW is the contract: the dock becoming the visible one builds the view.
-        # The embedded copy waits for a result instead: its picture is not even on screen
-        # until there is one, and a Chromium view built for nothing is the cost it avoids.
-        if not self._embedded or self._entries:
-            self._ensure_viewer()
+        self._ensure_viewer()
         super().showEvent(event)
 
     def _on_style_changed(self, style: str) -> None:
