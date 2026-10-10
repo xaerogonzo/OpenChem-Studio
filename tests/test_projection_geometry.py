@@ -222,16 +222,18 @@ def test_the_geometry_report_carries_the_projection_facts_with_units():
     assert float(by_label["Max projection area"].display_value) > 0
 
 
-def test_the_projection_facts_say_they_are_on_the_principal_planes():
-    """The approximation travels with the number it qualifies, into the
-    tooltip and every export -- not as a separate line of prose that a
-    reader can meet without the value or discard while copying."""
+def test_the_projection_facts_say_they_were_searched_and_over_what():
+    """What the number IS travels with it, into the tooltip and every export --
+    not as a separate line of prose that a reader can meet without the value or
+    discard while copying. This was "principal planes" until 2026-10-10, when the
+    minimum and maximum began to be searched over every orientation."""
     from openchem.chem.geometry_analysis import compute_geometry_analysis
 
     report = compute_geometry_analysis(_embedded("CCO"), "uuid")
     fact = next(f for f in report.facts if f.label == "Min projection area")
 
-    assert any("principal planes" in line for line in fact.limitations)
+    assert any("searching" in line and "viewing directions" in line for line in fact.limitations)
+    assert not any("principal planes" in line for line in fact.limitations)
 
 
 def test_the_surface_panel_and_this_module_report_ONE_volume():
@@ -296,7 +298,8 @@ def test_an_ordinary_molecule_gets_no_fragment_warning():
     fact = next(f for f in report.facts if f.label == "Min projection area")
 
     assert not any("separate fragments" in line for line in fact.limitations)
-    assert len(fact.limitations) == 1
+    # What it IS, how it was found, and the radii used: three lines, none of them a warning.
+    assert len(fact.limitations) == 3
 
 
 # --- the grid cap ------------------------------------------------------------

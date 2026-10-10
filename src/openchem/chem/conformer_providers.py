@@ -1420,6 +1420,19 @@ class RDKitConformerProvider(ConformerProvider):
         )
         return force_field.CalcEnergy(), converged
 
+    def optimise(
+        self, conf_mol: Chem.Mol, level_name: str = DEFAULT_OPTIMISATION_LEVEL
+    ) -> tuple[float | None, bool]:
+        """Minimise `conf_mol` IN PLACE at a named level of `OPTIMISATION_LEVELS`.
+
+        `(energy in kcal/mol, converged)`; the energy is None when neither MMFF94 nor UFF had
+        parameters. The public door to `_optimize_one` for callers that relax ONE geometry
+        they already hold (a calculator measuring a relaxed copy) rather than generating
+        conformers, so they cannot drift from the minimiser the search uses.
+        """
+        level = OPTIMISATION_LEVELS.get(level_name, OPTIMISATION_LEVELS[DEFAULT_OPTIMISATION_LEVEL])
+        return self._optimize_one(conf_mol, level)
+
     @staticmethod
     def _optimise_with_batch_api(
         conf_mol: Chem.Mol, max_iters: int, attempts: int

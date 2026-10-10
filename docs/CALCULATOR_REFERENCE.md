@@ -393,12 +393,19 @@ Aligns this molecule onto a reference structure in 3D. "Extended atom types" pai
 <!-- help:calc-geometry-analysis -->
 ### Geometry
 
-3D extent (min/max/mean radius from the centroid), projection area and radius on the principal planes, and the force field energy of the current conformer in MMFF94, UFF and Dreiding. The three are on different scales and are never comparable with each other -- compare one of them across conformers of the same molecule. Dreiding is implemented here from the original paper and reproduces all eight rotational barriers that paper publishes; it omits charges and hydrogen bonds, as the paper's own reported results do. Needs a conformer.
+3D extent (min/max/mean radius from the centroid); the smallest and largest shadow the molecule casts over ALL viewing directions, with the radius of the circle round each and the size of the molecule along it; and the force field energy of the conformer in MMFF94, UFF and Dreiding, in kcal/mol or kJ/mol. The three energies are on different scales and are never comparable with each other -- compare one of them across conformers of the same molecule. Dreiding is implemented here from the original paper and reproduces all eight rotational barriers that paper publishes; it omits charges and hydrogen bonds, as the paper's own reported results do. Options can relax a COPY of the geometry before the MMFF94 energy or the shadow, or use the lowest-energy of several generated conformers (the lowest of those tried, never the global minimum). Needs a conformer unless a conformer is to be generated.
 
 - Produces a list of facts, each with its own units, basis and evidence.
 - Runs on a real 3D conformer -- generate one first.
 - Options:
   - `decimal_places` -- Decimal places default `2` range 0 to 8
+  - `energy_unit` -- Energy unit (kcal_per_mol, kj_per_mol) default `kcal_per_mol`
+  - `conformer_policy` -- Use the lowest-energy conformer (never, if_2d, always) default `never`
+  - `conformer_count` -- Conformers to try default `20` range 1 to 200
+  - `optimise_mmff` -- Optimise before the MMFF94 energy default `False`
+  - `optimise_projection` -- Optimise before the projections default `False`
+  - `optimisation_limit` -- Optimisation limit (loose, normal, strict, very_strict) default `normal`
+  - `radius_scale` -- Projection radii (x van der Waals) default `1.0` range 0.5 to 3.0
 
 <!-- help:calc-interaction-analysis -->
 ### Interaction Analysis

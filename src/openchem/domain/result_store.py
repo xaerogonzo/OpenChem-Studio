@@ -62,11 +62,18 @@ AUTOMATIC_BUNDLE_ID = "automatic/v3"
 #: because a saved result carries this and is interpreted by it.
 FRAGMENT_COUNTS_METHOD = "structural-features-v3"
 
+#: The method Geometry is computed by today (`chem/geometry_analysis.py`). Declared here, with the
+#: other methods, so the store needs no import from the chemistry layer. v2 (2026-10-10) searches
+#: the orientations for the minimum and maximum projection; a saved result without a method
+#: measured them on the three principal planes and is kept beside this one, labelled as such.
+GEOMETRY_METHOD = "geometry-v2"
+
 #: Result ids whose METHOD is part of their stored identity, and the method
 #: a result computed today is by. Only these carry a `method_version`, so no
 #: other result's identity (or saved project) changes.
 CURRENT_METHOD_VERSIONS: dict[str, str] = {
     "fragment_counts": FRAGMENT_COUNTS_METHOD,
+    "geometry_analysis": GEOMETRY_METHOD,
 }
 
 #: What a saved entry WITHOUT a `method_version` was computed by -- the rule
@@ -75,6 +82,7 @@ CURRENT_METHOD_VERSIONS: dict[str, str] = {
 #: occupies its own slot beside the current method's.
 LEGACY_METHOD_VERSIONS: dict[str, tuple[str, str]] = {
     "fragment_counts": ("legacy-rdkit-fr-v1", "Fragment Counts (legacy: RDKit fr_* counters)"),
+    "geometry_analysis": ("legacy-principal-planes-v1", "Geometry (previous method: principal-plane projections)"),
 }
 
 #: Methods a result id WAS computed by that carry an explicit `method_version`
