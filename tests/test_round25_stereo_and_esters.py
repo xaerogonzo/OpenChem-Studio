@@ -10,10 +10,11 @@
   of the alcohol component (free valence first, then prefixes; P-31.1.4) on executed names, then RDKit's canonical class rank.
 """
 import pytest
-from rdkit import Chem, rdBase
+from rdkit import Chem
 
 from openchem.chem.naming_providers import derived_name_for_structure, opsin_available
 from openchem.vendor.iupac_namer import name_smiles
+from tests.naming_spellings import random_spellings
 
 needs_opsin = pytest.mark.skipif(not opsin_available(), reason="needs the managed JRE and py2opsin")
 
@@ -56,16 +57,13 @@ DIESTERS = [
 
 @pytest.mark.parametrize("smiles,expected", DIESTERS)
 def test_a_diester_is_named_the_same_whatever_order_its_atoms_are_written_in(smiles, expected):
-    rdBase.SeedRandomNumberGenerator(20261005)
-    mol = Chem.MolFromSmiles(smiles)
-    names = {name_smiles(Chem.MolToSmiles(mol, doRandom=True)) for _ in range(12)}
+    names = {name_smiles(s) for s in random_spellings(smiles, 12, 20261005)}
     assert names == {expected}
 
 
 def test_heroin_is_one_name_in_every_atom_order():
-    rdBase.SeedRandomNumberGenerator(20261005)
-    mol = Chem.MolFromSmiles("CC(=O)O[C@H]1C=C[C@H]2[C@H]3Cc4ccc(OC(C)=O)c5O[C@@H]1[C@]2(CCN3C)c45")
-    names = {name_smiles(Chem.MolToSmiles(mol, doRandom=True)) for _ in range(10)}
+    heroin = "CC(=O)O[C@H]1C=C[C@H]2[C@H]3Cc4ccc(OC(C)=O)c5O[C@@H]1[C@]2(CCN3C)c45"
+    names = {name_smiles(s) for s in random_spellings(heroin, 10, 20261005)}
     assert len(names) == 1
 
 
@@ -91,13 +89,10 @@ RULES = [
 
 @pytest.mark.parametrize("smiles,expected", RULES)
 def test_the_principal_ester_follows_the_acid_then_the_alcohol(smiles, expected):
-    rdBase.SeedRandomNumberGenerator(20261005)
-    mol = Chem.MolFromSmiles(smiles)
-    assert {name_smiles(Chem.MolToSmiles(mol, doRandom=True)) for _ in range(12)} == {expected}
+    assert {name_smiles(s) for s in random_spellings(smiles, 12, 20261005)} == {expected}
 
 
 def test_more_tied_esters_than_the_tie_break_will_execute_keep_one_name():
     # five acetates on one chain: past the four the tie-break executes, so the canonical class rank alone must make the name atom-order free
-    rdBase.SeedRandomNumberGenerator(20261005)
-    mol = Chem.MolFromSmiles("CC(=O)OCC(OC(C)=O)C(OC(C)=O)C(OC(C)=O)C(C)OC(C)=O")
-    assert len({name_smiles(Chem.MolToSmiles(mol, doRandom=True)) for _ in range(16)}) == 1
+    smiles = "CC(=O)OCC(OC(C)=O)C(OC(C)=O)C(OC(C)=O)C(C)OC(C)=O"
+    assert len({name_smiles(s) for s in random_spellings(smiles, 16, 20261005)}) == 1

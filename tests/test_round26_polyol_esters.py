@@ -19,11 +19,12 @@ import shutil
 from types import SimpleNamespace
 
 import pytest
-from rdkit import Chem, rdBase
+from rdkit import Chem
 
 from openchem.vendor.iupac_namer import name_smiles
 from openchem.vendor.iupac_namer.engine import _organyl_cites_valences
 from openchem.vendor.iupac_namer.types import Interpretation, _build_polyol_ester_decomposition
+from tests.naming_spellings import random_spellings
 
 needs_opsin = pytest.mark.skipif(shutil.which("java") is None, reason="needs java on PATH (OPSIN read-back)")
 
@@ -153,9 +154,7 @@ MESO = [
 
 @pytest.mark.parametrize("label,smiles,either", MESO, ids=[r[0] for r in MESO])
 def test_a_meso_group_is_named_with_either_descriptor_set(label, smiles, either):
-    rdBase.SeedRandomNumberGenerator(20261006)
-    mol = Chem.MolFromSmiles(smiles)
-    names = {name_smiles(Chem.MolToSmiles(mol, doRandom=True)) for _ in range(8)}
+    names = {name_smiles(s) for s in random_spellings(smiles, 8, 20261006)}
     assert names <= either
     if shutil.which("java") is not None:
         assert {_opsin_structure(n) for n in either} == {_canon(smiles)}
@@ -167,9 +166,7 @@ ORDER_FREE = [r for r in NEW if r[0] in {"ethane-1,2-diyl", "propane-1,2,3-triyl
 
 @pytest.mark.parametrize("label,smiles,expected", ORDER_FREE, ids=[r[0] for r in ORDER_FREE])
 def test_the_name_does_not_depend_on_the_order_the_atoms_are_written_in(label, smiles, expected):
-    rdBase.SeedRandomNumberGenerator(20261006)
-    mol = Chem.MolFromSmiles(smiles)
-    assert {name_smiles(Chem.MolToSmiles(mol, doRandom=True)) for _ in range(10)} == {expected}
+    assert {name_smiles(s) for s in random_spellings(smiles, 10, 20261006)} == {expected}
 
 
 @pytest.mark.parametrize("organyl,valences,cited", [
@@ -250,9 +247,7 @@ def test_a_polyol_ester_the_rule_declines_still_has_one_name_in_every_atom_order
     # The polyol plan is BUILT for these and then declines at execution (its organyl group is not one parent). `_break_ester_tie` must still
     # run round 25's comparison of the single-ester readings: without it the search falls to raw generation order, which follows atom order, and
     # D-186 comes back for exactly these molecules. (A round 26 mutant that took polyol_ester out of that function's gate survived every other test.)
-    rdBase.SeedRandomNumberGenerator(20261006)
-    mol = Chem.MolFromSmiles(smiles)
-    assert len({name_smiles(Chem.MolToSmiles(mol, doRandom=True)) for _ in range(12)}) == 1
+    assert len({name_smiles(s) for s in random_spellings(smiles, 12, 20261006)}) == 1
 
 
 # The same shapes, where the RULE and a canonical rank would choose different esters: `_break_ester_tie` compares the executed alcohol components

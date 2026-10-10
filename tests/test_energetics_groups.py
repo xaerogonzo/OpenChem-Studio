@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 import pytest
-from rdkit import Chem
+from tests.naming_spellings import random_spellings
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -65,12 +65,10 @@ def test_reproduces_every_documented_refusal_too(eg, compare_module):
 )
 def test_group_counts_are_invariant_to_representation(eg, smiles):
     """Rewrite the molecule as several differently-rooted, differently-traversed, differently-kekulized
-    SMILES (RDKit's own randomized writer, not hand-picked variants) and require identical group counts
+    SMILES (a seeded random atom order, not hand-picked variants; RDKit's own `doRandom` ignores its seed) and require identical group counts
     from every one -- a real check that the assignment is a property of the molecule, not the string."""
-    mol = Chem.MolFromSmiles(smiles)
     expected = None
-    for seed in range(12):
-        variant = Chem.MolToSmiles(mol, canonical=False, doRandom=True)
+    for seed, variant in enumerate(random_spellings(smiles, 12, 20261010)):
         counts = eg.count_groups(variant)
         if expected is None:
             expected = counts
