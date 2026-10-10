@@ -321,6 +321,12 @@ scope = "benchmark"
 owner = "benchmarks"
 
 [[consumer]]
+file = "tests/test_naming_variants_tool.py"
+why = "the variant generator and atom-order diagnostic (tools/naming_variants.py): the ported operators, the frozen-structure refusal, and that random spellings reach the namer as written"
+scope = "benchmark"
+owner = "benchmarks"
+
+[[consumer]]
 file = "tests/test_naming_frozen_impact.py"
 why = "the blind frozen-impact check: counts only, never a label or a name, on fake rows and a temp sidecar directory"
 scope = "benchmark"
