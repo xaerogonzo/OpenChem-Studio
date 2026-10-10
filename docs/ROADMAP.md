@@ -1679,6 +1679,19 @@ Unblocking condition: the page itself, with a place for each existing
 preference, so that these arrive as entries on it rather than as the reason
 it was built.
 
+### Pending: a fresh, frozen naming sample (started 2026-10-10, blocked by PubChem)
+
+The census's 98.35% exact (2026-10-10) is a TUNING score: every round since 12 took its targets from the census's failing rows, so the
+engine was fixed against it. The honest number needs a sample drawn before anything is known about it and scored once. The draw script
+and a `--only` option for scoring that one population alone are committed on the local branch `claude/fresh-frozen-population`
+(commit `7ab1adf4`, pushed, no PR). The population itself is NOT drawn: PubChem's REST API answered 429 to everything after about
+400 requests and was still refusing an hour later, so nothing was registered, frozen or scored.
+
+To finish: run the draw script on that branch (it is resumable, 100 CIDs per request, waits out a 429), then register the population as
+frozen, add it to the lock tests' drawing-script and expected-meta tables, list its test in the namer-consumer manifest and pin it to a
+shard (CI fails on both if forgotten), and score it ONCE with `--final-evaluation --only fresh_v1`. The artifact records the engine's commit; naming round 38 will have moved
+the engine by then, so quote the number for that commit and not for the census's. Fix nothing against its rows.
+
 ## Naming — resolved, and how
 
 Structure-to-name went through three answers in one day. Recorded because
