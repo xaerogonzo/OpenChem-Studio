@@ -774,7 +774,7 @@ the thing that needs the room.
 
 The Properties panel is where a calculation is **started**, and the
 [Results](#results) panel is where one is **read**. It has **22 collapsible
-categories** covering **61 registered calculators**; Identity is open by
+categories** covering **62 registered calculators**; Identity is open by
 default.
 
 Each calculator gets a row: a tick box that adds it to a batch run, a
@@ -1043,6 +1043,15 @@ a calculator offers **Tick / Untick every calculator in this section**.
 molecule the table left out, or one whose structure changed since, it first computes the
 table's calculators for that molecule, with the same settings, and the project table keeps
 its rows.
+
+### The hydrogen-bond sites
+
+**Hydrogen-Bond Sites** (Topology) lists every atom that can donate or accept a hydrogen bond, by
+the same definitions the **H-Bond Donors** and **H-Bond Acceptors** properties count, so the two
+agree. An NH2 is one donor atom; it says which atoms CAN take part, not how strongly. Tick **Take
+major microspecies** and give a pH to see the table for the dominant ionised form, with each atom
+whose role changes marked: a carboxylic acid's hydroxyl donates as drawn and not at pH 7.4, where its
+carboxylate oxygen accepts.
 
 ### The torsion table and the ionisable sites
 

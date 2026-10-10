@@ -658,6 +658,7 @@
   "tests/test_gutmann_bridge.py": 0,
   "tests/test_hansen_fragmenter.py": 0,
   "tests/test_hansen_table.py": 1,
+  "tests/test_hbond_sites.py": 1,
   "tests/test_heavy_atom_correspondence_oracle.py": 0,
   "tests/test_height_stating_host.py": 2,
   "tests/test_hello_plugin_example.py": 0,

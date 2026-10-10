@@ -226,7 +226,13 @@ def test_the_real_registry_page_names_joback_and_detonation(qapp):
 
     definitions = _definitions(build_service_container().calculator_registry)
     page = CalculatorVisibilityPage(Settings(EventBus()), definitions)
-    assert sorted(page._row_ticks) == ["detonation", "joback_properties", "orca.tautomer_distribution"]
+    # Every CLASSIFIED calculator has a row, shown or hidden by default: the three that were hidden
+    # or limited, and the ones classified since (the pKa-based site summary, the torsion table and
+    # the hydrogen-bond site table).
+    assert sorted(page._row_ticks) == [
+        "detonation", "hbond_sites", "ionisable_sites", "joback_properties",
+        "orca.tautomer_distribution", "torsion_table",
+    ]
     assert page.offered("joback_properties") is False and page.offered("detonation") is False
     assert page.offered("orca.tautomer_distribution") is False
 

@@ -62,6 +62,8 @@ to be confirmed when a candidate is approved.
 
 ### 2. Hydrogen-bond site table
 
+**BUILT 2026-10-10** as `Hydrogen-Bond Sites`, classified LIMITED. What follows is the analysis it was built from; its acceptor definition needed one change from RDKit's module-level pattern (see the CHANGELOG).
+
 - **Gap:** `H-Bond Donors/Acceptors vs pH` is a count curve and `Interaction Analysis` finds
   intramolecular contacts in a conformer. Nothing says WHICH atoms are donors or acceptors, nor
   which change with pH.

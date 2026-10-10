@@ -610,6 +610,20 @@ Donor and acceptor counts on the dominant microspecies at each pH. Works without
   - `ph_max` -- pH to default `14.0` range -2.0 to 16.0
   - `ph_step` -- Step default `0.5` range 0.01 to 2.0
 
+<!-- help:calc-hbond-sites -->
+### Hydrogen-Bond Sites
+
+Which atoms are hydrogen-bond donors and which are acceptors, by the same definitions the H-Bond Donors and H-Bond Acceptors properties count (atoms, not hydrogens; which atoms CAN take part, not how strongly). Optionally on the major microspecies at a pH, with each atom whose role changes when the molecule ionises flagged: an acid's hydroxyl donates as drawn and its carboxylate oxygen accepts at pH 7.4.
+
+- Support level: **Limited**.
+- Why: Donor and acceptor are conventions about which atoms can take part, not a strength or a geometry (an amide nitrogen donates and does not accept; an aniline nitrogen does both). At a pH the structure is Dimorphite-DL's dominant ionisation state, which does not enumerate tautomers.
+- Covers: the atom definitions of RDKit's donor and acceptor counts; one dominant ionisation state at a pH.
+- Produces a list of facts, each with its own units, basis and evidence.
+- Runs on the 2D drawing, so no conformer is needed.
+- Options:
+  - `major_microspecies` -- Take major microspecies default `False`
+  - `pH` -- at pH default `7.4` range 0.0 to 14.0
+
 <!-- help:calc-ring-systems -->
 ### Ring Systems
 

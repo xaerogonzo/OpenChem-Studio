@@ -1237,6 +1237,14 @@ _PROVENANCE_DEBT = frozenset({
     "src/openchem/chem/substance.py",
     "src/openchem/chem/substructure.py",
     "src/openchem/chem/surface_analysis.py",
+    # IMPLEMENTS NO METHOD OF ITS OWN. The hydrogen-bond sites are RDKit's own donor and
+    # acceptor definitions written out as patterns (RDKit exposes a count and no atoms), held
+    # to RDKit's count over a corpus by tests/test_hbond_sites.py. A convention about which
+    # atoms CAN take part, so no paper backs it; the definitions' source is RDKit.
+    "src/openchem/chem/hbond_sites.py",
+    # The same: the rotatable bonds are RDKit's strict definition written out (held to its count by
+    # tests/test_torsions.py) and the angle is the IUPAC dihedral, a definition rather than a model.
+    "src/openchem/chem/torsions.py",
     "src/openchem/chem/topology_analysis.py",
     "src/openchem/domain/report.py",
     "src/openchem/plugins/interfaces.py",

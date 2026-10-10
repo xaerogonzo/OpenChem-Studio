@@ -283,6 +283,7 @@ SETUP_TOOL_FOR_CALCULATOR: dict[str, str] = {
     "pka": "pkasolver",
     "pka_microspecies": "pkasolver",
     "isoelectric_point": "pkasolver",
+    "ionisable_sites": "pkasolver",
     "solubility": "pkasolver",
     "admet_ml": "admet",
     "nmr_database": "nmr_index",

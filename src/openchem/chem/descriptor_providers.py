@@ -31,6 +31,7 @@ from openchem.chem.mass_spectrum import (
 )
 from openchem.chem.geometry_analysis import compute_geometry_analysis
 from openchem.chem.geometry_options import geometry_parameters
+from openchem.chem.hbond_sites import compute_hbond_sites
 from openchem.chem.torsions import compute_torsion_table
 from openchem.chem.geometry_charges import (
     EEM_BULTINCK2002_PART1,
@@ -3145,6 +3146,33 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         ),
         execution=RegistryExecution(compute=compute_hbond_vs_ph),
         tags=["topology", "ph", "hydrogen-bonding", "curve"],
+    ),
+    CalculatorDefinition(
+        calculator_id="hbond_sites",
+        scope=_PARENT_PROPERTY,
+        parameters=microspecies_parameters(),
+        display_name="Hydrogen-Bond Sites",
+        category="topology",
+        description=(
+            "Which atoms are hydrogen-bond donors and which are acceptors, by the same definitions the "
+            "H-Bond Donors and H-Bond Acceptors properties count (atoms, not hydrogens; which atoms CAN "
+            "take part, not how strongly). Optionally on the major microspecies at a pH, with each atom "
+            "whose role changes when the molecule ionises flagged: an acid's hydroxyl donates as drawn "
+            "and its carboxylate oxygen accepts at pH 7.4."
+        ),
+        execution=RegistryExecution(compute=compute_hbond_sites),
+        support=CalculatorSupport(
+            SupportStage.LIMITED,
+            Visibility.SHOWN,
+            support_reason=(
+                "Donor and acceptor are conventions about which atoms can take part, not a strength or a "
+                "geometry (an amide nitrogen donates and does not accept; an aniline nitrogen does both). "
+                "At a pH the structure is Dimorphite-DL's dominant ionisation state, which does not "
+                "enumerate tautomers."
+            ),
+            scope_note="the atom definitions of RDKit's donor and acceptor counts; one dominant ionisation state at a pH",
+        ),
+        tags=["topology", "hydrogen-bonding", "donor", "acceptor", "ph", "sites"],
     ),
     # ---- Solubility ----------------------------------------------------
     # Registered UNCONDITIONALLY, both of them. The AqSolDB baseline and the
