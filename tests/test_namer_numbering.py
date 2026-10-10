@@ -8,12 +8,11 @@ randomly rooted SMILES, and must come out identical every time.
 """
 from __future__ import annotations
 
-import random
-
 import pytest
 from rdkit import Chem
 
 from openchem.vendor.iupac_namer import name_smiles
+from tests.naming_spellings import random_spellings
 
 CASES = [
     ("OC(=O)C1=CCNCC1", "1,2,3,6-tetrahydropyridine-4-carboxylic acid"),
@@ -26,19 +25,14 @@ CASES = [
 
 def _spellings(smiles: str) -> list[str]:
     mol = Chem.MolFromSmiles(smiles)
-    rng = random.Random(20260919)
-    out = []
-    for _ in range(4):
-        order = list(range(mol.GetNumAtoms()))
-        rng.shuffle(order)
-        out.append(Chem.MolToSmiles(Chem.RenumberAtoms(mol, order), canonical=False))
+    seven = random_spellings(mol, 7, 20260919)
+    out = seven[:4]
     kek = Chem.Mol(mol)
     Chem.Kekulize(kek, clearAromaticFlags=True)
     out.append(Chem.MolToSmiles(kek, kekuleSmiles=True))
     out.append(Chem.MolToSmiles(mol))
-    for seed in (1, 2, 3):
-        Chem.rdBase.SeedRandomNumberGenerator(seed)
-        out.append(Chem.MolToSmiles(mol, doRandom=True, canonical=False))
+    # three more from the same generator (these were `doRandom` spellings under seeds 1, 2, 3, which that writer ignores)
+    out.extend(seven[4:])
     return out
 
 
@@ -89,19 +83,8 @@ VB_TIE_CASES = [
 
 
 def _many_spellings(smiles: str, n: int = 24) -> list[str]:
-    """Random-root SMILES and random atom renumberings: both move the atom order."""
-    mol = Chem.MolFromSmiles(smiles)
-    rng = random.Random(20261005)
-    out = []
-    for i in range(n):
-        if i % 2 == 0:
-            Chem.rdBase.SeedRandomNumberGenerator(1000 + i)
-            out.append(Chem.MolToSmiles(mol, doRandom=True))
-        else:
-            order = list(range(mol.GetNumAtoms()))
-            rng.shuffle(order)
-            out.append(Chem.MolToSmiles(Chem.RenumberAtoms(mol, order), canonical=False))
-    return out
+    """Random roots and atom orders, seeded: both move the atom order."""
+    return random_spellings(smiles, n, 20261005)
 
 
 @pytest.mark.parametrize("smiles,expected", VB_TIE_CASES, ids=[c[1] for c in VB_TIE_CASES])
