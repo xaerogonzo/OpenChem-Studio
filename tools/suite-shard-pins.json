@@ -762,6 +762,7 @@
   "tests/test_namer_purine_fusion_letters.py": 2,
   "tests/test_namer_ring_iminium_hydro.py": 1,
   "tests/test_namer_salt_multiplier.py": 0,
+  "tests/test_namer_ylidene_ring_cations.py": 0,
   "tests/test_namer_stereo_cache_identity.py": 0,
   "tests/test_namer_stereo_locant_tie.py": 2,
   "tests/test_namer_stereo_parent_choice.py": 2,

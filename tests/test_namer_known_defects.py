@@ -4210,6 +4210,10 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-208", "Cc1[nH+]c2c(s1)CCCC2", "2-methyl-4,5,6,7-tetrahydro-1,3-benzothiazol-3-ium",
      "2-methyl-4,5,6,7-tetrahydro-1,3-benzothiazole",
      "WRONG MOLECULE: the cation named as its neutral parent (528 of 700 cations of the six parents, 44 more unreadable)"),
+    # D-209, found by naming round 34's list of open items: a ring cation with an exocyclic C=C on a ring carbon fell to the saturated ring.
+    ("D-209", "C=C1CCC[NH+]=C1", "5-methylidene-2,3,4,5-tetrahydropyridin-1-ium",
+     "5-methylideneazinan-1-ium",
+     "WRONG MOLECULE: the saturated piperidinium; the ylidene carbon was counted as sp2, which left an odd number of hydro positions (37 of 231 ylidene ring cations and their neutral rings)"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
