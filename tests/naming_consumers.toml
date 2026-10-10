@@ -147,6 +147,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_bridgehead_iminium.py"
+why = "a fused ring system with a bridgehead N+ in a double bond is named (D-210): quinolizin-5-ium, the tetrahydro- and octahydro- cations, the bicyclic amidiniums drawn with the charge on the bridgehead, instead of a NAMING ERROR; a quaternary bridgehead ammonium keeps its old name"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_nuclide_guard.py"
 why = "a name must keep every nuclide (D-193): the guard that refuses one that would not, the routes that label (retained parent, multi-atom prefix, ether oxygen, hypohalous amide, hydroxy/amino prefix, suffix heteroatom), the parent bracket placed before the part it modifies (D-196), and lambda5 on a single-bonded hypervalent centre (D-195)"
 scope = "core"

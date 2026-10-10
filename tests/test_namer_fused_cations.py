@@ -102,5 +102,16 @@ def test_the_twin_is_tried_only_when_the_first_pass_found_nothing(monkeypatch):
 
 
 def test_a_non_aromatic_cation_is_not_guessed():
-    """The twin neutralises AROMATIC ring nitrogens only: a bicyclic amidinium has no neutral aromatic parent to look up, and stays a visible refusal."""
-    assert "NAMING ERROR" in name_smiles("C1C[N+]2=C(CCCCC2)NC1")
+    """The twin neutralises AROMATIC ring nitrogens only: a bicyclic amidinium has no neutral aromatic parent to look up.
+
+    Round 33 pinned this as a visible refusal (`NAMING ERROR`). Round 37 (D-210) names it by another route, the bridgehead iminium's own twin and carbon analogue in
+    `fusion_general`, so what stays pinned here is the twin's behaviour: it still does not touch a non-aromatic cation."""
+    from openchem.vendor.iupac_namer.ring_naming import _neutral_twin
+
+    class Ring:
+        def __init__(self, atoms):
+            self.atom_indices = frozenset(atoms)
+
+    mol = Chem.MolFromSmiles("C1C[N+]2=C(CCCCC2)NC1")
+    assert _neutral_twin(Ring(range(mol.GetNumAtoms())), mol) is None
+    assert "NAMING ERROR" not in name_smiles("C1C[N+]2=C(CCCCC2)NC1")
