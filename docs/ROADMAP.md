@@ -1684,7 +1684,7 @@ it was built.
 The census's 98.35% exact (2026-10-10) is a TUNING score: every round since 12 took its targets from the census's failing rows, so the
 engine was fixed against it. The honest number needs a sample drawn before anything is known about it and scored once. The draw script
 and a `--only` option for scoring that one population alone are committed on the local branch `claude/fresh-frozen-population`
-(commit `7ab1adf4`, not pushed, no PR). The population itself is NOT drawn: PubChem's REST API answered 429 to everything after about
+(commit `7ab1adf4`, pushed, no PR). The population itself is NOT drawn: PubChem's REST API answered 429 to everything after about
 400 requests and was still refusing an hour later, so nothing was registered, frozen or scored.
 
 To finish: run the draw script on that branch (it is resumable, 100 CIDs per request, waits out a 429), then register the population as
