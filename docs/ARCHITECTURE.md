@@ -466,7 +466,15 @@ it).
   "Align several molecules", which is `AlignmentPanel(embedded=True)`: the rail
   panel's class built again, so both hear the same events and cannot drift, with
   its own pop-out id and a minimum height for the picture. The rail panel stays
-  until `docs/PANEL_FEATURE_INVENTORY.md` is satisfied.
+  until `docs/PANEL_FEATURE_INVENTORY.md` is satisfied. "Dock a molecule into a
+  receptor" is the second: `DockingPanel(embedded=True)`. Its inputs (receptor,
+  box, settings) are separate from the rail copy's while both exist and the
+  PROJECT is shared, so a finished dock shows in both; the search box is drawn for
+  one copy at a time (`MainWindow._active_docking_panel`). Inside a workflow, a
+  group is a `CollapsibleSection` with a one-line summary shown while it is closed.
+  **Every workflow is hosted in a `HeightStatingHost`**, which states the child's
+  real height at its real width and answers `hasHeightForWidth` with False: without
+  it the list squeezed the section to half the height it asked for.
 
 - **The command palette reads, never registers.** `Ctrl+Shift+P` builds
   its list from the rail's panels, `CalculatorRegistry` and the live

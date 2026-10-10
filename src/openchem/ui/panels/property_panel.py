@@ -129,6 +129,7 @@ from openchem.ui.dialogs.nmr_view_dialog import NmrViewDialog
 from openchem.ui.widgets.substance_card import SubstanceCard, card_data_from_report
 from openchem.ui.widgets.collapsible_section import CollapsibleSection as _CollapsibleSection
 from openchem.ui.widgets.collapsible_section import ExplicitHeightLabel as _ExplicitHeightLabel
+from openchem.ui.widgets.height_stating_host import HeightStatingHost
 
 # Preferred display order -- any category not listed here (e.g. a future
 # plugin-supplied one) is appended alphabetically after these, not dropped.
@@ -780,6 +781,10 @@ _WIDE_ROW_CAPTION_STYLE = "color: #555; font-size: 11px;"
 #: The lesson generalises: a scroll area's VIEWPORT is not its width, and
 #: a harness whose content is too short to scroll measures the wrong one.
 _PANEL_MIN_WIDTH = 280
+
+#: The left indent of a workflow section's content, in pixels. Smaller than a calculator
+#: section's 16, because a workflow's widest row (the docking receptor row) has to fit a dock.
+_WORKFLOW_INDENT = 4
 
 #: Marks a workflow's key in the Find expansion snapshot, so it cannot collide with
 #: a calculator category id however either is named.
@@ -2393,7 +2398,12 @@ class PropertyPanel(QWidget):
         finds it the way it finds a calculator.
         """
         section = _CollapsibleSection(title, False, self._sections_container)
-        section.add_calculator_widget(widget)
+        # A workflow is dense and its rows are wide: the calculator sections' 16 px indent is
+        # more than it can spare in a docked column.
+        section.content.layout().setContentsMargins(_WORKFLOW_INDENT, 2, 2, 6)
+        # Hosted, not added bare: a whole workflow is height-for-width all the way down, and
+        # the list would squeeze its rows (see `HeightStatingHost`).
+        section.add_calculator_widget(HeightStatingHost(widget, section.content))
         self._workflows[workflow_id] = section
         self._workflow_keywords[workflow_id] = f"{title} {keywords}".casefold()
         self._reorder_sections()

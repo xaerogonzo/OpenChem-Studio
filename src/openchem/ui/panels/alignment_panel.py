@@ -39,6 +39,7 @@ from openchem.events.base import EventBus
 from openchem.events.events import AlignmentJobStateChanged, EnsembleAlignmentReady
 from openchem.services.alignment_service import AlignmentService
 from openchem.ui.table_export import install_table_export
+from openchem.ui.widgets.collapsible_section import CollapsibleSection
 from openchem.ui.molecule_combo import repopulate
 from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
 from openchem.ui.widgets.flow_layout import flow_row
@@ -51,6 +52,10 @@ from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 #: difference.
 _TABLE_MAX_HEIGHT = 160
 _TABLE_MIN_HEIGHT = 64
+
+#: The left indent of the settings group inside the Properties section, in pixels. The section
+#: already indents its content, so the group takes a small one (see the docking panel's).
+_NESTED_INDENT = 4
 
 #: The overlay's floor inside a Properties section. A section is laid out in a
 #: scroll area, which gives a stretch widget only its minimum, so without this the
@@ -346,6 +351,8 @@ class AlignmentPanel(QWidget):
         """
         super().__init__(parent)
         self._embedded = embedded
+        #: The collapsible group holding the settings, in the embedded copy only.
+        self._settings_section: CollapsibleSection | None = None
         self._alignment_service = alignment_service
         self._event_bus = event_bus
         self._project: ProjectModel | None = None
@@ -455,15 +462,22 @@ class AlignmentPanel(QWidget):
         options.layout().addWidget(self._flexibility_combo)
         form.addRow(options)
 
-        settings_box = QGroupBox("Alignment", self)
-        settings_layout = QVBoxLayout(settings_box)
-        settings_layout.addLayout(form)
-        settings_layout.addWidget(note)
-        buttons = QHBoxLayout()
-        buttons.addWidget(self._align_button)
-        buttons.addStretch(1)
-        settings_layout.addLayout(buttons)
-        settings_layout.addWidget(self._status_label)
+        if embedded:
+            # COLLAPSIBLE, with the Align button and the status line OUTSIDE the
+            # collapsing part: closing the settings to give the table and the
+            # picture the room must not take the way to run (or to see that a run
+            # is going) with it. The closed section still says what Run would do.
+            settings_box = self._build_collapsible_settings(form, note)
+        else:
+            settings_box = QGroupBox("Alignment", self)
+            settings_layout = QVBoxLayout(settings_box)
+            settings_layout.addLayout(form)
+            settings_layout.addWidget(note)
+            buttons = QHBoxLayout()
+            buttons.addWidget(self._align_button)
+            buttons.addStretch(1)
+            settings_layout.addLayout(buttons)
+            settings_layout.addWidget(self._status_label)
 
         # THE STYLE ROW BECOMES THE HOST'S HEADER rather than a row of its
         # own. This panel's whole problem is vertical space -- the group
@@ -495,9 +509,61 @@ class AlignmentPanel(QWidget):
         layout.addWidget(settings_box)
         layout.addWidget(self._result_table)
         layout.addWidget(self._viewer_host, 1)
+        if embedded:
+            # NO EMPTY BOXES IN A SECTION. An empty score table and a blank 320 px picture
+            # area cost about 500 px of a list that is scrolled, and say nothing; they
+            # appear when there is an alignment to show. The rail panel keeps them, as the
+            # baseline it is.
+            self._result_table.setVisible(False)
+            self._viewer_host.setVisible(False)
 
         event_bus.subscribe(AlignmentJobStateChanged, self._on_job_state_changed)
         event_bus.subscribe(EnsembleAlignmentReady, self._on_alignment_ready)
+        if embedded:
+            self._reference_combo.currentIndexChanged.connect(self._refresh_summary)
+            self._probe_list.itemChanged.connect(self._refresh_summary)
+            self._method_combo.currentTextChanged.connect(self._refresh_summary)
+            self._accuracy_combo.currentTextChanged.connect(self._refresh_summary)
+            self._flexibility_combo.currentTextChanged.connect(self._refresh_summary)
+            self._refresh_summary()
+
+    def _build_collapsible_settings(self, form: QFormLayout, note: QLabel) -> QWidget:
+        section = CollapsibleSection("Settings", True, self)
+        section.content.layout().setContentsMargins(_NESTED_INDENT, 2, 2, 4)
+        body = QWidget(self)
+        body_layout = QVBoxLayout(body)
+        body_layout.setContentsMargins(0, 0, 0, 0)
+        body_layout.addLayout(form)
+        body_layout.addWidget(note)
+        section.add_calculator_widget(body)
+        self._settings_section = section
+
+        container = QWidget(self)
+        container_layout = QVBoxLayout(container)
+        container_layout.setContentsMargins(0, 0, 0, 0)
+        container_layout.addWidget(section)
+        buttons = QHBoxLayout()
+        buttons.addWidget(self._align_button)
+        buttons.addStretch(1)
+        container_layout.addLayout(buttons)
+        container_layout.addWidget(self._status_label)
+        return container
+
+    @property
+    def settings_section(self) -> CollapsibleSection | None:
+        return self._settings_section
+
+    def _refresh_summary(self, *_args) -> None:
+        """What the closed settings still say: what Align would do right now."""
+        if self._settings_section is None:
+            return
+        count = len(self._checked_uuids())
+        reference = self._reference_combo.currentText() or "no reference"
+        self._settings_section.set_summary(
+            f"{count} molecule{'' if count == 1 else 's'} onto {reference}"
+            f" · {self._method_combo.currentText()} · {self._accuracy_combo.currentText()}"
+            f" · {self._flexibility_combo.currentText()}"
+        )
 
     # --- project wiring ---------------------------------------------------
 
@@ -541,6 +607,7 @@ class AlignmentPanel(QWidget):
                 Qt.CheckState.Checked if molecule.uuid in checked else Qt.CheckState.Unchecked
             )
             self._probe_list.addItem(item)
+        self._refresh_summary()
 
     def _on_reference_changed(self) -> None:
         self._rebuild_probe_list()
@@ -601,6 +668,13 @@ class AlignmentPanel(QWidget):
         self._colors = colors
         self._visible = {index: True for index in colors}
         self._populate_table(event.entries, colors)
+        if self._embedded:
+            self._result_table.setVisible(True)
+            self._viewer_host.setVisible(True)
+            if self.isVisible():
+                # The panel was shown before any result existed, so `showEvent` skipped the
+                # build; this is the moment the picture has something to draw.
+                self._ensure_viewer()
         self._show_ensemble()
 
     def _populate_table(self, entries: list[EnsembleEntry], colors: dict[int, str]) -> None:
@@ -716,7 +790,10 @@ class AlignmentPanel(QWidget):
 
     def showEvent(self, event) -> None:  # noqa: N802 - Qt override
         # FIRST SHOW is the contract: the dock becoming the visible one builds the view.
-        self._ensure_viewer()
+        # The embedded copy waits for a result instead: its picture is not even on screen
+        # until there is one, and a Chromium view built for nothing is the cost it avoids.
+        if not self._embedded or self._entries:
+            self._ensure_viewer()
         super().showEvent(event)
 
     def _on_style_changed(self, style: str) -> None:

@@ -254,6 +254,8 @@ Colour, the overlay drawn in the section). **Not yet shown live: the pop-out fro
 section, a failed-structure row, Rigid mode, and the Jobs-panel cancel.** The rail panel
 stays as the baseline; removing it needs your say-so.
 
+**Docking: moved in the same way** (`Workflows > Dock a molecule into a receptor`, `DockingPanel(embedded=True)`). Shown live with a real Vina run (`benchmarks/visual/docking_section.json`, verdict PASS): D01, D03 (box derived from the bound ligand), D04, D05, D06, D09 to D14 (run at their defaults), D16, D18 and D19 (nine poses, the spread label), D20 (the dock is in the project, and the rail copy showed the same table), D21 (receptor and pose drawn in the macromolecule viewer). D07 now has a rule: the box is drawn for the open section while Properties is showing, otherwise for the rail panel while Docking is showing. **Not yet shown live: D02 Contents..., rescoring, replicates above 1, an undo of a dock, and the Virtual Screening dialog (D22) from the section.** The two copies have separate inputs while both exist.
+
 It aligns **several project molecules onto one reference** and shows the result as an
 overlay. The single-molecule registry calculator "3D Alignment" (reference typed as
 SMILES) is separate and already in Properties.

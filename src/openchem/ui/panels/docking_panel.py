@@ -35,6 +35,7 @@ from openchem.events.base import EventBus
 from openchem.events.events import DockingJobStateChanged, DockingResultReady, MoleculeSelected
 from openchem.services.docking_service import DEFAULT_REPLICATES, DockingService
 from openchem.ui.table_export import install_table_export
+from openchem.ui.widgets.collapsible_section import CollapsibleSection
 from openchem.ui.dialogs.settings_dialog import EXTERNAL_TOOLS, SettingsDialog
 from openchem.ui.molecule_combo import repopulate, select
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
@@ -44,6 +45,20 @@ from openchem.ui.widgets.search_options import (
 )
 
 logger = logging.getLogger("openchem.ui")
+
+#: The pose table's floor inside a Properties section: two rows and the header stay
+#: readable however little height the scroll area offers it.
+_EMBEDDED_TABLE_MIN_HEIGHT = 120
+
+#: The pose table's ceiling inside a Properties section. A section sits in a scroll area
+#: that gives a stretch widget whatever it is offered, so without a cap nine poses would
+#: push everything below them off the bottom.
+_EMBEDDED_TABLE_MAX_HEIGHT = 240
+
+#: The left indent of a collapsible group that sits inside a workflow section, in pixels.
+#: The section already indents its content, so the group takes a small one; measured in the
+#: running app, the default indent twice over left this panel about 25 px wider than the dock.
+_NESTED_INDENT = 4
 
 _POSE_COLUMNS = (
     "Pose",
@@ -570,8 +585,17 @@ class DockingPanel(QWidget):
         settings: Settings,
         event_bus: EventBus,
         parent: QWidget | None = None,
+        embedded: bool = False,
     ) -> None:
         """Built in three steps, after the fields the panel starts with.
+
+        `embedded` is True for the copy that lives inside a Properties section. It is
+        THIS CLASS built a second time, so every control, rule and message is the rail
+        panel's by construction; what differs is only the container: the three groups
+        become collapsible sections that say what they hold while closed, and the pose
+        table is capped in height. The two copies have separate inputs (receptor, box,
+        settings) while both exist -- a transitional cost of keeping the rail panel as
+        the baseline -- and share the PROJECT, so a finished dock shows in both.
 
         Split from a single 311-line constructor. Each step's lines are
         verbatim at the indent they already had, so every comment still
@@ -590,6 +614,11 @@ class DockingPanel(QWidget):
         why the boundary sits at 791 and not where the group boxes begin.
         """
         super().__init__(parent)
+        self._embedded = embedded
+        #: The three collapsible groups, in the embedded copy only.
+        self._box_section: CollapsibleSection | None = None
+        self._prep_section: CollapsibleSection | None = None
+        self._search_section: CollapsibleSection | None = None
         self._docking_service = docking_service
         self._chemistry_engine = chemistry_engine
         self._settings = settings
@@ -830,8 +859,7 @@ class DockingPanel(QWidget):
         selection_form.addRow("Receptor:", receptor_row)
         selection_form.addRow("Ligand:", self._ligand_combo)
 
-        box_group = QGroupBox("Search box (Å)", self)
-        box_form = QFormLayout(box_group)
+        box_group, box_form, self._box_section = self._make_group("Search box (Å)", expanded=True)
         center_row = QHBoxLayout()
         center_row.addWidget(self._center_x)
         center_row.addWidget(self._center_y)
@@ -850,8 +878,7 @@ class DockingPanel(QWidget):
         # "Preparation", not "Receptor preparation": the pH governs the LIGAND
         # too now, and a heading naming only the receptor would say the panel
         # does something narrower than it does.
-        prep_group = QGroupBox("Preparation", self)
-        prep_form = QFormLayout(prep_group)
+        prep_group, prep_form, self._prep_section = self._make_group("Preparation", expanded=False)
         prep_form.addRow("pH (ligand + receptor):", self._ph_spin)
         # DELIBERATELY a QHBoxLayout, having tried the alternative. `flow_row`
         # is this project's cure for a horizontal row whose minimum width is
@@ -872,8 +899,7 @@ class DockingPanel(QWidget):
         strip_row.addWidget(self._strip_cofactors_check)
         prep_form.addRow("", strip_row)
 
-        search_group = QGroupBox("Search", self)
-        search_form = QFormLayout(search_group)
+        search_group, search_form, self._search_section = self._make_group("Search", expanded=False)
         search_form.addRow("Exhaustiveness:", self._exhaustiveness_combo)
         search_form.addRow("Scoring function:", self._scoring_combo)
         search_form.addRow("Rescore with:", self._rescore_combo)
@@ -902,6 +928,99 @@ class DockingPanel(QWidget):
         layout.addWidget(self._rescore_label)
         layout.addWidget(self._table)
         layout.addWidget(self._limitation_label)
+        if self._embedded:
+            # Capped, not stretched: a section sits in a scroll area, where an
+            # unbounded table would take whatever height it was offered.
+            self._table.setMinimumHeight(_EMBEDDED_TABLE_MIN_HEIGHT)
+            self._table.setMaximumHeight(_EMBEDDED_TABLE_MAX_HEIGHT)
+            # And absent until there are poses: an empty table is a header and 120 px of
+            # nothing in a list that is scrolled.
+            self._table.setVisible(False)
+            self._connect_summaries()
+
+    def _refresh_table_visibility(self) -> None:
+        """The embedded copy shows its pose table only while it holds poses."""
+        if self._embedded:
+            self._table.setVisible(self._table.rowCount() > 0)
+
+    def _make_group(self, title: str, expanded: bool):
+        """A titled group: a plain box in the rail panel, a collapsible section here.
+
+        Returns the widget to lay out, the form to fill, and the section (None for the
+        plain box). The form is the same `QFormLayout` either way, so every row below
+        is the rail panel's row.
+        """
+        if not self._embedded:
+            box = QGroupBox(title, self)
+            return box, QFormLayout(box), None
+        section = CollapsibleSection(title, expanded, self)
+        # A group inside a section is indented once already; the default 16 px again would
+        # cost the widest row (receptor, Contents, Derive) the width it measured as short.
+        section.content.layout().setContentsMargins(_NESTED_INDENT, 2, 2, 4)
+        body = QWidget(self)
+        form = QFormLayout(body)
+        form.setContentsMargins(0, 0, 0, 0)
+        section.add_calculator_widget(body)
+        return section, form, section
+
+    def _connect_summaries(self) -> None:
+        """Keep each closed group's one-line summary current as its controls change."""
+        refresh = self._refresh_summaries
+        for spin in (
+            self._center_x, self._center_y, self._center_z,
+            self._size_x, self._size_y, self._size_z,
+        ):
+            spin.valueChanged.connect(refresh)
+        self.box_changed.connect(refresh)
+        self._ph_spin.valueChanged.connect(refresh)
+        self._strip_waters_check.toggled.connect(refresh)
+        self._strip_cofactors_check.toggled.connect(refresh)
+        self._replicates_spin.valueChanged.connect(refresh)
+        self._search_controls.exhaustiveness.currentIndexChanged.connect(refresh)
+        self._search_controls.scoring_function.currentIndexChanged.connect(refresh)
+        self._search_controls.rescore_with.currentIndexChanged.connect(refresh)
+        self._search_controls.seed.valueChanged.connect(refresh)
+        self._refresh_summaries()
+
+    def _refresh_summaries(self, *_args) -> None:
+        """What each closed group still says, so closing one never hides a setting."""
+        if self._box_section is None:
+            return
+        box = self.displayed_box()
+        origin = {
+            "derived": "from the bound ligand",
+            "manual": "set by hand",
+        }.get(self._box_source, "not placed on a site")
+        self._box_section.set_summary(
+            "centre ({:.1f}, {:.1f}, {:.1f}) · size {:g} x {:g} x {:g} A · {}".format(
+                *box.center, *box.size, origin
+            )
+        )
+        self._prep_section.set_summary(
+            f"pH {self._ph_spin.value():.1f}"
+            f" · waters {'removed' if self._strip_waters_check.isChecked() else 'kept'}"
+            f" · cofactors {'removed' if self._strip_cofactors_check.isChecked() else 'kept'}"
+        )
+        options = self.displayed_search_options()
+        replicates = self.displayed_replicates()
+        self._search_section.set_summary(
+            f"exhaustiveness {options['exhaustiveness']} · {options['scoring_function']}"
+            f" · rescore {options.get('rescore_with') or 'off'}"
+            f" · {replicates} replicate{'' if replicates == 1 else 's'}"
+            f" · seed {options['seed'] if options['seed'] is not None else 'random'}"
+        )
+
+    @property
+    def box_section(self) -> CollapsibleSection | None:
+        return self._box_section
+
+    @property
+    def prep_section(self) -> CollapsibleSection | None:
+        return self._prep_section
+
+    @property
+    def search_section(self) -> CollapsibleSection | None:
+        return self._search_section
 
     def _subscribe_to_events(self, event_bus: EventBus) -> None:
         """The three events this panel listens for."""
@@ -1275,6 +1394,7 @@ class DockingPanel(QWidget):
         self._pending_receptor_uuid = receptor_uuid
         self._dock_button.setEnabled(False)
         self._table.setRowCount(0)
+        self._refresh_table_visibility()
         self._status_label.setText("Queued...")
 
         self._docking_service.request_docking(
@@ -1386,6 +1506,7 @@ class DockingPanel(QWidget):
         selected receptor/ligand pair, or nothing.
         """
         self._table.setRowCount(0)
+        self._refresh_table_visibility()
         self._displayed_result_uuid = None
         self._displayed_result = None
         # The rescore column and its note go with the poses, for the same
@@ -1449,6 +1570,7 @@ class DockingPanel(QWidget):
             for col, value in enumerate(values):
                 self._table.setItem(row, col, QTableWidgetItem(value))
             self._set_rescore_cell(row, scores[row])
+        self._refresh_table_visibility()
 
     def _apply_rescore_column(self, scores: list) -> None:
         """Show or hide the rescore column, and name it after the function.

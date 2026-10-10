@@ -1955,7 +1955,9 @@ maximum-common-substructure search more time. That is the trade: alignment
 quality against wall clock.
 
 You can also reach it from **Properties**: open **Workflows > Align several
-molecules**. It is the same controls and the same result, so an alignment run in
+molecules**. Its **Settings** group can be closed to make room; while closed it
+still says what Align would do ("1 molecule onto Ibuprofen · Common scaffold
+(MCS) · Normal · Flexible"), and the Align button stays in view. It is the same controls and the same result, so an alignment run in
 one shows in the other. Typing "align" or "overlay" in Properties' Find box opens
 it. It is taller than the rest of the list, so scroll inside the section to reach
 the table and the picture.

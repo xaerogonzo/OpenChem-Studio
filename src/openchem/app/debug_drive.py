@@ -512,6 +512,61 @@ class _Driver(QObject):
             )
         )
 
+    def _expect_docking(self, panel, tag: str, expect: dict[str, Any]) -> None:
+        """ASSERT the pose table, and that the two copies of the Docking panel agree.
+
+        `{"expect": {"poses": 3, "same_as_other_view": true}}`. `poses` is a minimum
+        when written `"poses_at_least"`. `same_as_other_view` compares this copy's
+        table cells with the OTHER copy's: a dock started from one must show in the
+        other once it is in the project, which is the claim of having two copies.
+        """
+        problems: list[str] = []
+
+        def cells_of(target) -> list[list[str]]:
+            table = target._table
+            return [
+                [
+                    table.item(row, column).text()
+                    for column in range(table.columnCount())
+                    if table.item(row, column) is not None
+                ]
+                for row in range(table.rowCount())
+            ]
+
+        mine = cells_of(panel)
+        if "poses" in expect and len(mine) != int(expect["poses"]):
+            problems.append(f"{len(mine)} pose row(s), wanted {expect['poses']}")
+        if "poses_at_least" in expect and len(mine) < int(expect["poses_at_least"]):
+            problems.append(f"{len(mine)} pose row(s), wanted at least {expect['poses_at_least']}")
+        if expect.get("same_as_other_view"):
+            window = self._window
+            other = (
+                window._docking_panel
+                if panel is getattr(window, "_docking_section_panel", None)
+                else window._docking_section_panel
+            )
+            if cells_of(other) != mine:
+                problems.append("the two copies disagree on the pose table")
+            elif not mine:
+                problems.append("both pose tables are empty, so agreeing proves nothing")
+        if problems:
+            logger.error("OPENCHEM_DRIVE: EXPECT docking FAILED[%s] -- %s", tag, "; ".join(problems))
+        else:
+            logger.warning("OPENCHEM_DRIVE: EXPECT docking ok[%s]", tag)
+
+    def _docking_target(self, step: dict[str, Any]):
+        """Which copy of the Docking panel a step drives: the rail panel (the default)
+        or the one inside the Properties section (`"in": "section"`). None when the
+        window has no such panel, which the caller reports.
+
+        Two copies of one class, with separate inputs while both exist -- so a script
+        that sets the receptor in one and presses Dock in the other is wrong in a way
+        that reads as the app ignoring the receptor. Name the copy on every step.
+        """
+        if step.get("in") == "section":
+            return getattr(self._window, "_docking_section_panel", None)
+        return getattr(self._window, "_docking_panel", None)
+
     def _do_dock_receptor(self, step: dict[str, Any]) -> None:
         """Point the Docking panel's receptor combo at one entry.
 
@@ -525,7 +580,7 @@ class _Driver(QObject):
         which is what a run of this harness reported before this existed,
         and read at first as the box failing to reset.
         """
-        panel = getattr(self._window, "_docking_panel", None)
+        panel = self._docking_target(step)
         if panel is None:
             logger.error("OPENCHEM_DRIVE: no docking panel on this window")
             return
@@ -1008,7 +1063,7 @@ class _Driver(QObject):
         a healthy `dock_run` step and simply never dock -- the wrong-panel-id
         trap in another costume.
         """
-        panel = getattr(self._window, "_docking_panel", None)
+        panel = self._docking_target(step)
         if panel is None:
             logger.error("OPENCHEM_DRIVE: no docking panel on this window")
             return
@@ -1067,7 +1122,7 @@ class _Driver(QObject):
         difference between "the shot looks right" and "the box is on the
         site".
         """
-        panel = getattr(self._window, "_docking_panel", None)
+        panel = self._docking_target(step)
         if panel is None:
             logger.error("OPENCHEM_DRIVE: no docking panel on this window")
             return
@@ -1142,6 +1197,9 @@ class _Driver(QObject):
             panel.displayed_search_options(),
             panel._seed_spin.text(),
         )
+        expect = step.get("expect")
+        if expect:
+            self._expect_docking(panel, str(step.get("tag", "")), expect)
 
     def _do_select(self, step: dict[str, Any]) -> None:
         """Select a molecule by index (-1 is the most recent) or by name."""
@@ -2007,6 +2065,140 @@ class _Driver(QObject):
             logger.error("OPENCHEM_DRIVE: no section %r", step["section"])
             return
         section.set_expanded(bool(step.get("expanded", True)))
+
+    def _do_properties_width_report(self, step: dict[str, Any]) -> None:
+        """Say WHY the Properties list scrolls sideways, if it does.
+
+        `{"do": "properties_width_report", "tag": "docking-open"}`. Logs the viewport
+        width, how far the horizontal bar can move, and the minimum width each open
+        workflow asks for, then that of each of its direct children -- the widest is
+        the one to argue with. A shot shows a thin bar; it cannot name the row.
+        """
+        panel = self._window._property_panel
+        area = panel._scroll_area
+        tag = step.get("tag", "")
+        logger.warning(
+            "OPENCHEM_DRIVE: width_report %s | viewport %d | h-bar max %d | container min %d",
+            tag,
+            area.viewport().width(),
+            area.horizontalScrollBar().maximum(),
+            panel._sections_container.minimumSizeHint().width(),
+        )
+        for workflow_id, section in panel._workflows.items():
+            if not section.is_expanded():
+                continue
+            body = section.content
+            logger.warning(
+                "OPENCHEM_DRIVE: width_report %s | workflow %s min %d (section %d)",
+                tag, workflow_id, body.minimumSizeHint().width(), section.minimumSizeHint().width(),
+            )
+            inner = {"alignment": "_alignment_section_panel", "docking": "_docking_section_panel"}.get(workflow_id)
+            target = getattr(self._window, inner, None) if inner else None
+            layout = target.layout() if target is not None else None
+            for index in range(layout.count() if layout is not None else 0):
+                item = layout.itemAt(index)
+                widget = item.widget()
+                width = widget.minimumSizeHint().width() if widget is not None else item.minimumSize().width()
+                kind = type(widget).__name__ if widget is not None else type(item).__name__
+                logger.warning("OPENCHEM_DRIVE: width_report %s |    %s min %d", tag, kind, width)
+
+    def _do_properties_height_report(self, step: dict[str, Any]) -> None:
+        """Walk from a workflow's panel up to the scroll area, saying for each level how
+        tall it IS against the minimum it ASKS for. A level shorter than its own minimum
+        is the one the layout above squeezed -- the "starved ancestor" this panel's
+        `_starved` helper names -- and the first one found going up is the one to fix.
+
+        `{"do": "properties_height_report", "workflow": "alignment", "tag": "after"}`
+        """
+        workflow = str(step.get("workflow", "alignment"))
+        target = {
+            "alignment": getattr(self._window, "_alignment_section_panel", None),
+            "docking": getattr(self._window, "_docking_section_panel", None),
+        }.get(workflow)
+        tag = step.get("tag", "")
+        widget = target
+        while widget is not None and widget is not self._window._property_panel:
+            hint = widget.minimumSizeHint()
+            layout = widget.layout()
+            logger.warning(
+                "OPENCHEM_DRIVE: height_report %s | %-22s h=%4d  min=%4d  hint=%4d  minimumHeight=%d maxH=%d%s",
+                tag, type(widget).__name__, widget.height(), hint.height(), widget.sizeHint().height(),
+                widget.minimumHeight(), widget.maximumHeight(),
+                "  STARVED" if widget.height() < hint.height() else "",
+            )
+            widget = widget.parentWidget()
+        # The list's own items: how the height was SHARED OUT between them.
+        layout = self._window._property_panel._sections_layout
+        total_min = 0
+        total_h = 0
+        for index in range(layout.count()):
+            item = layout.itemAt(index)
+            w = item.widget()
+            if w is None or w.isHidden():
+                continue
+            total_min += w.minimumSizeHint().height()
+            total_h += w.height()
+            if w.height() < 60 and w.minimumSizeHint().height() < 60:
+                continue
+            logger.warning(
+                "OPENCHEM_DRIVE: height_report %s |   list item %-18s h=%4d min=%4d",
+                tag, type(w).__name__, w.height(), w.minimumSizeHint().height(),
+            )
+        logger.warning(
+            "OPENCHEM_DRIVE: height_report %s |   list items: sum of h=%d, sum of min=%d, layout min=%d",
+            tag, total_h, total_min, layout.minimumSize().height(),
+        )
+
+    def _do_properties_grab(self, step: dict[str, Any]) -> None:
+        """Save the WHOLE Properties list, at its full height, as one picture.
+
+        `{"do": "properties_grab", "path": "..."}`. A window shot shows what fits the
+        dock; this shows how tall the list really is, which is what comparing a section
+        with its settings open against closed needs (the closed one is shorter, and a
+        shot of the dock cannot say by how much). Widgets that render through a web view
+        come out blank here, so it is for layout, not for pictures.
+        """
+        container = self._window._property_panel._sections_container
+        pixmap = container.grab()
+        path = Path(str(step["path"]))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        pixmap.save(str(path))
+        logger.warning(
+            "OPENCHEM_DRIVE: properties_grab %dx%d -> %s", pixmap.width(), pixmap.height(), path
+        )
+
+    def _do_workflow_group(self, step: dict[str, Any]) -> None:
+        """Open or close one collapsible group INSIDE a workflow section.
+
+        `{"do": "workflow_group", "workflow": "docking", "group": "search", "expanded": false}`
+
+        Groups: alignment has `settings`; docking has `box`, `prep` and `search`. The
+        closed group keeps a one-line summary of what it holds, which is what the
+        shots taken with `"expanded": false` are for.
+        """
+        panels = {
+            "alignment": getattr(self._window, "_alignment_section_panel", None),
+            "docking": getattr(self._window, "_docking_section_panel", None),
+        }
+        groups = {
+            ("alignment", "settings"): "settings_section",
+            ("docking", "box"): "box_section",
+            ("docking", "prep"): "prep_section",
+            ("docking", "search"): "search_section",
+        }
+        workflow = str(step.get("workflow", ""))
+        group = str(step.get("group", ""))
+        attribute = groups.get((workflow, group))
+        panel = panels.get(workflow)
+        section = getattr(panel, attribute, None) if panel is not None and attribute else None
+        if section is None:
+            logger.error("OPENCHEM_DRIVE: no group %r in workflow %r", group, workflow)
+            return
+        section.set_expanded(bool(step.get("expanded", True)))
+        logger.warning(
+            "OPENCHEM_DRIVE: %s/%s expanded=%s summary=%r",
+            workflow, group, section.is_expanded(), section.summary(),
+        )
 
     def _do_properties_scroll(self, step: dict[str, Any]) -> None:
         """Scroll the Properties list: `{"do": "properties_scroll", "to": "end"}`.

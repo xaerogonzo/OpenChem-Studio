@@ -493,6 +493,25 @@ class MainWindow(QMainWindow):
             self._alignment_section_panel,
             keywords="3D alignment superimpose overlay reference rmsd ensemble multiple molecules",
         )
+        # AND DOCKING, the same way: the rail panel's class built again. Its box is drawn on the
+        # structure for whichever copy is active (`_active_docking_panel`), so the section's
+        # signals feed the same authority the rail panel's does.
+        self._docking_section_panel = DockingPanel(
+            services.docking_service,
+            services.chemistry_engine,
+            self._settings,
+            services.event_bus,
+            self,
+            embedded=True,
+        )
+        self._docking_section_panel.box_changed.connect(self._sync_docking_box_overlay)
+        docking_section = self._property_panel.add_workflow(
+            "docking",
+            "Dock a molecule into a receptor",
+            self._docking_section_panel,
+            keywords="docking autodock vina receptor ligand pose binding affinity search box rescore screening",
+        )
+        docking_section.expansion_changed.connect(self._sync_docking_box_overlay)
         self._interactions_panel = InteractionsPanel(
             services.chemistry_engine, services.event_bus, self
         )
@@ -1073,7 +1092,35 @@ class MainWindow(QMainWindow):
             "window_minimum": [self.minimumSizeHint().width(), self.minimumSizeHint().height()],
         }
 
-    def _sync_docking_box_overlay(self) -> None:
+    def _active_docking_panel(self):
+        """The copy of the Docking panel whose box belongs on the structure right now.
+
+        There are two copies while the rail panel is kept as the baseline: the rail
+        panel, and the one inside the Properties section. The box is drawn for the
+        section's copy while its section is OPEN (and shown, and Properties is in
+        front), otherwise for the rail panel while ITS dock shows, otherwise for
+        neither. Two copies drawing at once would put two boxes on one receptor with
+        no way to say which belongs to which.
+        """
+        section_panel = getattr(self, "_docking_section_panel", None)
+        section = self._property_panel.workflow_section("docking") if section_panel else None
+        properties_dock = self._dock_by_panel_id("Properties")
+        if (
+            section is not None
+            and not section.isHidden()
+            and section.is_expanded()
+            and properties_dock is not None
+            and not properties_dock.isHidden()
+            and section_panel.selected_receptor_uuid() is not None
+        ):
+            return section_panel
+        dock = self._dock_by_panel_id("Docking")
+        panel = getattr(self, "_docking_panel", None)
+        if dock is None or panel is None or dock.isHidden():
+            return None
+        return panel if panel.selected_receptor_uuid() is not None else None
+
+    def _sync_docking_box_overlay(self, *_args) -> None:
         """Draw the docking search box while, and only while, Docking shows.
 
         THE ONE AUTHORITY. Every route that can change the answer calls this
@@ -1092,11 +1139,10 @@ class MainWindow(QMainWindow):
         would draw nothing under a test harness while looking correct in the
         running app -- already on record here twice.
         """
-        dock = self._dock_by_panel_id("Docking")
-        panel = getattr(self, "_docking_panel", None)
-        if dock is None or panel is None:
+        if self._dock_by_panel_id("Docking") is None or getattr(self, "_docking_panel", None) is None:
             return
-        if dock.isHidden() or panel.selected_receptor_uuid() is None:
+        panel = self._active_docking_panel()
+        if panel is None:
             self._macromolecule_viewer.clear_search_box()
             return
         box = panel.displayed_box()
@@ -2620,6 +2666,7 @@ class MainWindow(QMainWindow):
             self._services.result_store_service.set_project(project, results, qc_runs)
         self._project_explorer.set_project(project)
         self._docking_panel.set_project(project)
+        self._docking_section_panel.set_project(project)
         self._quantum_chemistry_panel.set_project(project)
         self._property_panel.set_project(project)
         self._alignment_panel.set_project(project)
@@ -3378,6 +3425,7 @@ class MainWindow(QMainWindow):
         # The pose table is not a dropdown and is not rebuilt from the
         # project, so it needs telling separately.
         self._docking_panel.sync_with_project(self._session.project)
+        self._docking_section_panel.sync_with_project(self._session.project)
         self._clear_stale_pose_overlay()
 
     def _clear_stale_pose_overlay(self) -> None:
@@ -3418,6 +3466,7 @@ class MainWindow(QMainWindow):
         no re-selection side effects beyond what a combo repopulate implies.
         """
         self._docking_panel.set_project(self._session.project)
+        self._docking_section_panel.set_project(self._session.project)
         self._quantum_chemistry_panel.set_project(self._session.project)
         self._alignment_panel.set_project(self._session.project)
         self._alignment_section_panel.set_project(self._session.project)
