@@ -992,6 +992,7 @@
   "tests/test_visualizations_section.py": 1,
   "tests/test_webgl_gate.py": 0,
   "tests/test_workflow_safety.py": 1,
+  "tests/test_workflow_sections.py": 1,
   "tests/test_x_zoomable_charts.py": 0
  }
 }
