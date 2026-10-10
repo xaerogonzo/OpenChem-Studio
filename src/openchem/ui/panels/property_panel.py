@@ -781,6 +781,10 @@ _WIDE_ROW_CAPTION_STYLE = "color: #555; font-size: 11px;"
 #: a harness whose content is too short to scroll measures the wrong one.
 _PANEL_MIN_WIDTH = 280
 
+#: Marks a workflow's key in the Find expansion snapshot, so it cannot collide with
+#: a calculator category id however either is named.
+_WORKFLOW_SNAPSHOT_PREFIX = "workflow:"
+
 
 def _starved(widget: QWidget) -> str:
     """`STARVED` when a widget is shorter than the minimum it asks for.
@@ -1797,6 +1801,12 @@ class PropertyPanel(QWidget):
         self._sections: dict[str, _CollapsibleSection] = {}
         #: Task-group heading labels, by group id (see `_group_header`).
         self._group_headers: dict[str, QLabel] = {}
+        #: Workflow sections by id (see `add_workflow`), and the words Find matches
+        #: them on. A workflow is not a calculator: it has its own inputs and its own
+        #: Run, so it has no tick box and is not part of "Run selected".
+        self._workflows: dict[str, _CollapsibleSection] = {}
+        self._workflow_keywords: dict[str, str] = {}
+        self._workflow_header: QLabel | None = None
         # Which section each row currently lives in -- lets
         # _on_descriptor_computed detect a category change and re-parent the
         # row instead of leaving it stuck in whatever section it first drew
@@ -2350,6 +2360,12 @@ class PropertyPanel(QWidget):
         # implementations of "where does this category sit" is exactly the
         # drift this exists to end.
         ordered = sorted(self._sections, key=category_browse_key)
+        # Workflows first: a few collapsed headings, and the calculators below are
+        # the long list a person scrolls.
+        if self._workflows:
+            self._sections_layout.addWidget(self._workflows_header())
+            for workflow_id in sorted(self._workflows, key=lambda w: self._workflows[w].title()):
+                self._sections_layout.addWidget(self._workflows[workflow_id])
         current_group = None
         for category in ordered:
             group = task_group_of(category)
@@ -2359,6 +2375,44 @@ class PropertyPanel(QWidget):
             self._sections_layout.addWidget(self._sections[category])
         self._sections_layout.addStretch()
         self._refresh_group_headers()
+
+    def add_workflow(
+        self, workflow_id: str, title: str, widget: QWidget, keywords: str = ""
+    ) -> _CollapsibleSection:
+        """Host a whole workflow as a collapsible section above the calculators.
+
+        **A WORKFLOW IS NOT A CALCULATOR, AND THAT IS WHY IT HAS ITS OWN KIND OF
+        SECTION.** A calculator is a button and a tick that runs on whatever is
+        selected. A workflow (aligning several molecules onto a reference, docking,
+        a quantum-chemistry job) has inputs of its own and a Run of its own, and
+        squeezing it into ticks would lose them. The widget is handed in already
+        built, so this panel imports none of the workflow code.
+
+        Collapsed on creation, so a person who never uses it pays one heading. Find
+        matches it on `keywords` (and its title), so searching "align" or "overlay"
+        finds it the way it finds a calculator.
+        """
+        section = _CollapsibleSection(title, False, self._sections_container)
+        section.add_calculator_widget(widget)
+        self._workflows[workflow_id] = section
+        self._workflow_keywords[workflow_id] = f"{title} {keywords}".casefold()
+        self._reorder_sections()
+        return section
+
+    def workflow_section(self, workflow_id: str) -> _CollapsibleSection | None:
+        return self._workflows.get(workflow_id)
+
+    def _workflows_header(self) -> QLabel:
+        header = self._workflow_header
+        if header is None:
+            header = QLabel("Workflows", self._sections_container)
+            header.setObjectName("workflowsHeader")
+            font = header.font()
+            font.setBold(True)
+            header.setFont(font)
+            header.setContentsMargins(2, 8, 0, 2)
+            self._workflow_header = header
+        return header
 
     def _group_header(self, group: str) -> QLabel:
         """The heading above one task group's sections, built once and reused."""
@@ -2379,6 +2433,8 @@ class PropertyPanel(QWidget):
         `isHidden`, not `isVisible`: a panel that has not been shown yet reports
         every child not-visible, which would blank every heading at startup.
         """
+        if self._workflow_header is not None:
+            self._workflow_header.setHidden(all(s.isHidden() for s in self._workflows.values()))
         for group, header in self._group_headers.items():
             header.setHidden(
                 all(
@@ -3513,15 +3569,28 @@ class PropertyPanel(QWidget):
         if not needle:
             if self._find_snapshot is not None:
                 for category, was_open in self._find_snapshot.items():
-                    section = self._sections.get(category)
+                    if category.startswith(_WORKFLOW_SNAPSHOT_PREFIX):
+                        section = self._workflows.get(category[len(_WORKFLOW_SNAPSHOT_PREFIX):])
+                    else:
+                        section = self._sections.get(category)
                     if section is not None:
                         section.set_expanded(was_open)
                 self._find_snapshot = None
+            for workflow in self._workflows.values():
+                workflow.setVisible(True)
             self._find_empty.setVisible(False)
             return
         if self._find_snapshot is None:
             self._find_snapshot = {c: s.is_expanded() for c, s in self._sections.items()}
+            for workflow_id, workflow in self._workflows.items():
+                self._find_snapshot[_WORKFLOW_SNAPSHOT_PREFIX + workflow_id] = workflow.is_expanded()
         any_match = False
+        for workflow_id, workflow in self._workflows.items():
+            workflow_match = needle in self._workflow_keywords[workflow_id]
+            workflow.setVisible(workflow_match)
+            if workflow_match:
+                workflow.set_expanded(True)
+            any_match = any_match or workflow_match
         for category, section in self._sections.items():
             section_match = False
             for definition in self._calculator_registry.by_category(category):

@@ -1954,6 +1954,12 @@ Higher accuracy levels generate more conformers per probe and allow the
 maximum-common-substructure search more time. That is the trade: alignment
 quality against wall clock.
 
+You can also reach it from **Properties**: open **Workflows > Align several
+molecules**. It is the same controls and the same result, so an alignment run in
+one shows in the other. Typing "align" or "overlay" in Properties' Find box opens
+it. It is taller than the rest of the list, so scroll inside the section to reach
+the table and the picture.
+
 The superimposed structures are the point of this panel, and a docked
 column is a poor place to read them. Press **↗** beside *Style* to move
 the overlay into its own window — see [Giving a picture more

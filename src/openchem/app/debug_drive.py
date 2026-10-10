@@ -1459,6 +1459,18 @@ class _Driver(QObject):
             over,
         )
 
+    def _alignment_target(self, step: dict[str, Any]):
+        """Which copy of the alignment panel a step drives: the rail panel (the
+        default) or the one inside the Properties section (`"in": "section"`).
+
+        Both are the same class and hear the same events, so a script can run the
+        alignment in one and read the OTHER -- which is the check that the section
+        really is a second view of one result and not a second alignment.
+        """
+        if step.get("in") == "section":
+            return self._window._alignment_section_panel
+        return self._window._alignment_panel
+
     def _do_align(self, step: dict[str, Any]) -> None:
         """Run the 3D Alignment panel on the project's molecules.
 
@@ -1476,7 +1488,7 @@ class _Driver(QObject):
         `probes` names which molecules to tick; without it every other
         molecule is ticked, starter included.
         """
-        panel = self._window._alignment_panel
+        panel = self._alignment_target(step)
         reference = step.get("reference")
         if reference is not None:
             index = panel._reference_combo.findText(str(reference))
@@ -1518,7 +1530,7 @@ class _Driver(QObject):
         off the rendered cells is the cheap half of checking that the two
         now agree; the shot is the other half.
         """
-        panel = self._window._alignment_panel
+        panel = self._alignment_target(step)
         table = panel._result_table
         tag = step.get("tag", "")
         headers = [
@@ -1552,6 +1564,51 @@ class _Driver(QObject):
                 else:
                     cells.append(item.text())
             logger.warning("OPENCHEM_DRIVE: align_report %s | %s", tag, " | ".join(cells))
+        expect = step.get("expect")
+        if expect:
+            self._expect_alignment(panel, tag, expect)
+
+    def _expect_alignment(self, panel, tag: str, expect: dict[str, Any]) -> None:
+        """ASSERT what the alignment table holds, and that the two copies agree.
+
+        `{"expect": {"rows": 3, "same_as_other_view": true, "viewer_built": true}}`
+
+        `same_as_other_view` compares this copy's cells with the OTHER copy's (rail
+        panel against Properties section), which is the whole claim of the section:
+        one alignment, two views. Pair it with `"in": "section"` and `"in": "rail"`
+        reports so each direction is read once.
+        """
+        problems: list[str] = []
+
+        def cells_of(target) -> list[list[str]]:
+            table = target._result_table
+            return [
+                [
+                    (table.item(row, column).text() if table.item(row, column) is not None else "")
+                    for column in range(table.columnCount())
+                ]
+                for row in range(table.rowCount())
+            ]
+
+        mine = cells_of(panel)
+        if "rows" in expect and len(mine) != int(expect["rows"]):
+            problems.append(f"{len(mine)} row(s), wanted {expect['rows']}")
+        if expect.get("same_as_other_view"):
+            window = self._window
+            other = (
+                window._alignment_panel if panel is window._alignment_section_panel
+                else window._alignment_section_panel
+            )
+            if cells_of(other) != mine:
+                problems.append("the two copies disagree on the table cells")
+            elif not mine:
+                problems.append("both tables are empty, so agreeing proves nothing")
+        if "viewer_built" in expect and panel.viewer_is_built != bool(expect["viewer_built"]):
+            problems.append(f"viewer_is_built is {panel.viewer_is_built}")
+        if problems:
+            logger.error("OPENCHEM_DRIVE: EXPECT align FAILED[%s] -- %s", tag, "; ".join(problems))
+        else:
+            logger.warning("OPENCHEM_DRIVE: EXPECT align ok[%s]", tag)
 
     def _do_ensemble_visible(self, step: dict[str, Any]) -> None:
         """Tick or untick one row's visibility box.
@@ -1561,7 +1618,7 @@ class _Driver(QObject):
         thing worth checking is the WIRING and a helper called directly
         proves only that the helper works.
         """
-        panel = self._window._alignment_panel
+        panel = self._alignment_target(step)
         row = int(step.get("row", 0))
         item = panel._result_table.item(row, 0)
         if item is None:
@@ -1577,7 +1634,7 @@ class _Driver(QObject):
     def _do_overlay_colour(self, step: dict[str, Any]) -> None:
         """`{"do": "overlay_colour", "mode": "element"}` -- by molecule or
         by element. Driven through the combo, for the reason above."""
-        panel = self._window._alignment_panel
+        panel = self._alignment_target(step)
         mode = str(step.get("mode", "molecule"))
         index = panel._color_mode_combo.findData(mode)
         if index < 0:
@@ -1937,12 +1994,46 @@ class _Driver(QObject):
         )
 
     def _do_expand(self, step: dict[str, Any]) -> None:
-        """Expand one Properties section, by category id (e.g. "admet")."""
-        section = self._window._property_panel._sections.get(str(step["section"]))
+        """Expand one Properties section, by category id (e.g. "admet"), or a
+        workflow section by `workflow:<id>` (e.g. "workflow:alignment")."""
+        name = str(step["section"])
+        panel = self._window._property_panel
+        section = (
+            panel.workflow_section(name.split(":", 1)[1])
+            if name.startswith("workflow:")
+            else panel._sections.get(name)
+        )
         if section is None:
             logger.error("OPENCHEM_DRIVE: no section %r", step["section"])
             return
         section.set_expanded(bool(step.get("expanded", True)))
+
+    def _do_properties_scroll(self, step: dict[str, Any]) -> None:
+        """Scroll the Properties list: `{"do": "properties_scroll", "to": "end"}`.
+
+        `"to"` is `"end"`, `"top"`, `"workflow:<id>"` or a pixel offset. A section taller than the
+        dock's viewport (the alignment workflow is) has its picture below the fold,
+        and a shot of the top of the list cannot show whether the picture rendered.
+        """
+        panel = self._window._property_panel
+        bar = panel._scroll_area.verticalScrollBar()
+        target = step.get("to", "end")
+        if isinstance(target, str) and target.startswith("workflow:"):
+            # The BOTTOM of that workflow section lines up with the bottom of the
+            # viewport, which is where a tall section's output (its picture) is.
+            section = panel.workflow_section(target.split(":", 1)[1])
+            if section is None:
+                logger.error("OPENCHEM_DRIVE: no workflow section %r", target)
+                return
+            viewport = panel._scroll_area.viewport().height()
+            bar.setValue(max(0, section.y() + section.height() - viewport))
+        elif target == "end":
+            bar.setValue(bar.maximum())
+        elif target == "top":
+            bar.setValue(bar.minimum())
+        else:
+            bar.setValue(int(target))
+        logger.warning("OPENCHEM_DRIVE: properties scrolled to %d of %d", bar.value(), bar.maximum())
 
     def _do_calculator(self, step: dict[str, Any]) -> None:
         """Run a calculator with no settings dialog.

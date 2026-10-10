@@ -112,6 +112,14 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "expect_project_table", "rows": 2, "columns_contain": ["Atom count"],
      "showing": true}                     what the Results dock's PROJECT TABLE holds,
                                           read off the workspace the dock is built from
+    {"do": "expand", "section": "workflow:alignment"}   open a Properties WORKFLOW section
+    {"do": "align", "in": "section", ...}  `in` picks the copy of the alignment panel
+                                          (rail, the default, or the Properties section);
+                                          `align_report` takes `expect` (`rows`,
+                                          `same_as_other_view`, `viewer_built`)
+    {"do": "properties_scroll", "to": "workflow:alignment"}  scroll the Properties list
+                                          ("end", "top", a pixel offset) so a tall section's
+                                          picture is in the shot
     {"do": "chip", "calculator": "detonation", "expect": {"status": "needs_input"}}
                                           PRESS a status chip and assert where
                                           the press went; `tool_setup` is the

@@ -548,6 +548,10 @@ class CollapsibleSection(QWidget):
     def is_expanded(self) -> bool:
         return self._toggle_button.isChecked()
 
+    def title(self) -> str:
+        """The heading as given, for ordering and for a test to read."""
+        return self._toggle_button.text()
+
     def _on_toggled(self, checked: bool) -> None:
         self._toggle_button.setArrowType(Qt.ArrowType.DownArrow if checked else Qt.ArrowType.RightArrow)
         self.content.setVisible(checked)

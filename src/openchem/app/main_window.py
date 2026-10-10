@@ -481,6 +481,18 @@ class MainWindow(QMainWindow):
             result_store_service=services.result_store_service,
         )
         self._alignment_panel = AlignmentPanel(services.alignment_service, services.event_bus, self, settings=settings)
+        # THE SAME CLASS AGAIN, as a section of Properties (the first workflow to move in;
+        # the rail panel stays as the baseline until every row of docs/PANEL_FEATURE_INVENTORY.md
+        # is shown equal). Both hear the same events, so one alignment fills both.
+        self._alignment_section_panel = AlignmentPanel(
+            services.alignment_service, services.event_bus, self, settings=settings, embedded=True
+        )
+        self._property_panel.add_workflow(
+            "alignment",
+            "Align several molecules",
+            self._alignment_section_panel,
+            keywords="3D alignment superimpose overlay reference rmsd ensemble multiple molecules",
+        )
         self._interactions_panel = InteractionsPanel(
             services.chemistry_engine, services.event_bus, self
         )
@@ -2611,6 +2623,7 @@ class MainWindow(QMainWindow):
         self._quantum_chemistry_panel.set_project(project)
         self._property_panel.set_project(project)
         self._alignment_panel.set_project(project)
+        self._alignment_section_panel.set_project(project)
         self._interactions_panel.set_project(project)
         self._atom_inspector_panel.set_project(project)
         self._comparison_panel.set_project(project)
@@ -3407,6 +3420,7 @@ class MainWindow(QMainWindow):
         self._docking_panel.set_project(self._session.project)
         self._quantum_chemistry_panel.set_project(self._session.project)
         self._alignment_panel.set_project(self._session.project)
+        self._alignment_section_panel.set_project(self._session.project)
         self._interactions_panel.set_project(self._session.project)
         if not defer_atom_table:
             self._atom_inspector_panel.set_project(self._session.project)

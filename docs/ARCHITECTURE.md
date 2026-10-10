@@ -458,6 +458,16 @@ it).
   sets its place; plugins are listed after them, A to Z, whatever order they
   loaded in. A test compares that table with the docks the window builds.
 
+- **A workflow section hosts a whole workflow inside Properties.**
+  `PropertyPanel.add_workflow()` puts an already-built widget in a collapsed
+  section under a "Workflows" heading above the calculators, found by Find on
+  its keywords. It is a different kind of section from a calculator category: no
+  tick box, not part of "Run selected", its own inputs and Run. The first is
+  "Align several molecules", which is `AlignmentPanel(embedded=True)`: the rail
+  panel's class built again, so both hear the same events and cannot drift, with
+  its own pop-out id and a minimum height for the picture. The rail panel stays
+  until `docs/PANEL_FEATURE_INVENTORY.md` is satisfied.
+
 - **The command palette reads, never registers.** `Ctrl+Shift+P` builds
   its list from the rail's panels, `CalculatorRegistry` and the live
   `QMenuBar` -- 113 commands with nothing registering itself, so a new

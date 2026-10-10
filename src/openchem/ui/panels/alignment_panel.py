@@ -52,6 +52,20 @@ from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 _TABLE_MAX_HEIGHT = 160
 _TABLE_MIN_HEIGHT = 64
 
+#: The overlay's floor inside a Properties section. A section is laid out in a
+#: scroll area, which gives a stretch widget only its minimum, so without this the
+#: picture -- this panel's entire output -- would be a strip a few pixels tall.
+#: The dock version needs none: it is handed whatever the dock has left.
+_EMBEDDED_VIEW_MIN_HEIGHT = 320
+
+#: Where the rail panel's pop-out saves its placement. Unchanged from before the
+#: Properties section existed, so a saved window is still found.
+_POP_OUT_ID = "alignment.overlay"
+
+#: Where the Properties section's pop-out saves its placement. A SECOND KEY because
+#: both copies exist at once, and one key would have each overwrite the other's window.
+_EMBEDDED_POP_OUT_ID = "alignment.overlay.section"
+
 _RESULT_COLUMNS = (
     "Show",
     "Molecule",
@@ -318,8 +332,20 @@ class AlignmentPanel(QWidget):
         event_bus: EventBus,
         parent: QWidget | None = None,
         settings: object = None,
+        embedded: bool = False,
     ) -> None:
+        """`embedded` is True for the copy that lives inside a Properties section.
+
+        **THE SAME CLASS SERVES BOTH HOMES, and that is what makes the section's
+        parity true by construction** rather than by two implementations agreeing.
+        Both copies hear the same events, so one alignment fills both tables and
+        both pictures. Only two things differ: the embedded one saves its pop-out
+        placement under its own id (two hosts writing one key would overwrite each
+        other), and its picture gets a floor of its own height, because a section
+        sits in a scroll area that hands a stretch widget nothing.
+        """
         super().__init__(parent)
+        self._embedded = embedded
         self._alignment_service = alignment_service
         self._event_bus = event_bus
         self._project: ProjectModel | None = None
@@ -389,6 +415,8 @@ class AlignmentPanel(QWidget):
         self._viewer: Mol3DViewerBackend | None = None
         self._viewer_container = QWidget(self)
         QVBoxLayout(self._viewer_container).setContentsMargins(0, 0, 0, 0)
+        if embedded:
+            self._viewer_container.setMinimumHeight(_EMBEDDED_VIEW_MIN_HEIGHT)
         self._pending_ensemble: list[tuple[str, str]] | None = None
         self._style_combo = QComboBox(self)
         self._style_combo.addItems(["stick", "ballstick", "sphere", "line"])
@@ -452,7 +480,7 @@ class AlignmentPanel(QWidget):
         self._viewer_host = PopOutHost(
             self._viewer_container,
             title="3D Alignment",
-            settings_id="alignment.overlay",
+            settings_id=_EMBEDDED_POP_OUT_ID if embedded else _POP_OUT_ID,
             settings=settings,
             header=[
                 QLabel("Style:", self),
