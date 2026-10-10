@@ -81,7 +81,7 @@ Files: `src/openchem/ui/panels/batch_panel.py` (the picker and run controls),
 | B26 | **Details...** (selected row, or double-click) opens the molecule's merged report in the Properties renderer. **If the ticked properties are not yet computed for that molecule it computes them first** ("Computing name..."), refuses while another run is in progress, and uses the same parameters as the table. | `PARTIAL` | The dialog is shared. Results' Project table does **not** compute what is missing; it says nothing is retained. This is a real gap while Batch exists. |
 | B27 | **Inspect...** buttons for results with their own view, with the inspector budget refusal ("Too many inspectors open"). | `SHARED` | `BatchDetailDialog`. |
 | B28 | **Analyse...**: Correlation (X/Y, and *Correlate Y against everything*, the confound check), Chemical space, Clustering, Distributions, and a Per-atom tab only when per-atom data exists for 2+ molecules. Refuses with a message when no numeric column exists. | `LAUNCH` | `BatchAnalysisDialog` is untouched; the Project table page carries the button and the callback is wired. |
-| B29 | **Virtual Screening...** button. | `LAUNCH` | See D22. **Its help text is wrong**, see section 3. |
+| B29 | **Virtual Screening...** button. | `LAUNCH` | See D22. Its help text wrongly described a property filter; fixed, see section 5. |
 | B30 | **Retention across runs**: a later run merges into the store; a one-molecule Details run must not replace the project's table. | `PORTED` | The workspace adopts a table only for a run it was told about. |
 | B31 | **Not saved in the project file**: the table and store are in memory only. | `SHARED` | Same on both sides. |
 
@@ -272,12 +272,13 @@ SMILES) is separate and already in Properties.
 
 ## 5. Findings made while inventorying
 
-1. **The Virtual Screening help text describes a different feature.** `batch.virtual_screening`
+1. **FIXED. The Virtual Screening help text described a different feature.** `batch.virtual_screening`
    (shown on the Batch and Results button) says it "filter[s] the project against
    property thresholds ... keeps the molecules satisfying every rule you set". The
    dialog it opens docks every molecule into a receptor and ranks them. Pre-existing,
-   not caused by the recent work. It is a copy edit to the contract, and it also
-   settles where the feature belongs (D22).
+   not caused by the recent work. The contract text in `project_table.py` now says it
+   is a docking screen (the id is unchanged). It also settles where the feature
+   belongs (D22).
 2. **The Batch structure-version defect** (B22), already known, restated here because
    it is a Batch behaviour the new route does not share.
 3. **The migration drops descriptor and alert ids** (B11). A person who saved a Batch

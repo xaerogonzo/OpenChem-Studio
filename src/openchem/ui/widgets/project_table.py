@@ -134,11 +134,17 @@ TABLE_HELP: dict[str, HelpTooltip] = {
     ),
     "screen": HelpTooltip(
         text=(
-            "Filter the project against property thresholds.\n\n"
-            "A different question from the table: rather than reporting "
-            "values it keeps the molecules satisfying every rule you set. "
-            "The thresholds are yours -- nothing here is a druglikeness "
-            "or regulatory verdict."
+            "Dock every molecule in the project into one receptor and rank "
+            "them.\n\n"
+            "This is a docking run, not a filter on the table: it does not "
+            "read the values above and it starts one AutoDock Vina search per "
+            "molecule (times the replicates you ask for), so it can take a "
+            "long time. The search box comes from the bound ligand the "
+            "receptor's library entry names.\n\n"
+            "The scores rank ligands against THIS receptor only. They are not "
+            "binding free energies, and ligands whose score ranges overlap "
+            "share a rank because the search cannot tell them apart. The same "
+            "dialog opens from Tools > Virtual Screening."
         ),
         tier=2,
         help_id="batch.virtual_screening",
