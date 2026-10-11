@@ -628,8 +628,10 @@ def frozen_impact(against_stage: str) -> dict[str, tuple[int, int]]:
     for key in active_populations(final_evaluation=True):
         if key not in frozen:
             continue
-        sidecar = SEALED / f"{against_stage}.{key}.records.json"
-        if not sidecar.exists():
+        # A frozen population drawn later is sealed at its own stage (fresh_v1: `r38-fresh-v1`), so the argument may name several stages,
+        # comma-separated; each population is compared against the first of them that sealed it.
+        sidecar = next((s for s in (SEALED / f"{stage}.{key}.records.json" for stage in against_stage.split(",")) if s.exists()), None)
+        if sidecar is None:
             raise SystemExit(f"no sealed final evaluation of {key} at stage {against_stage!r}")
         was = {r["label"]: r["name"] for r in json.loads(sidecar.read_text(encoding="utf-8"))}
         _filename, rows = load_population(key, final_evaluation=True)

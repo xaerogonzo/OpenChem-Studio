@@ -737,6 +737,7 @@
   "tests/test_multicomponent_scope.py": 1,
   "tests/test_multicomponent_sweep.py": 0,
   "tests/test_mutagenicity_alerts.py": 0,
+  "tests/test_namer_acylimino_aminooxy.py": 1,
   "tests/test_namer_alphanumerical_order.py": 0,
   "tests/test_namer_benzo_bridged_heteroatoms.py": 1,
   "tests/test_namer_bridgehead_iminium.py": 1,

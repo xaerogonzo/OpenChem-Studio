@@ -5653,7 +5653,15 @@ def _name_single_fg_substituent(
                         nb for nb in n_amino.GetNeighbors()
                         if nb.GetIdx() != attachment_idx and nb.GetAtomicNum() > 1
                     ]
-                    if len(_amino_others) == 1:
+                    # D-213: "N-(X)" cites a SINGLE-bonded substituent. An amino N whose other bond is a double one (`-N=C(N)S`, the two nitrogens of
+                    # an N-ylidene amidine) was cited as "N-(amino(sulfanyl)methyl)", the C=N dropped: another molecule. Declined, so the
+                    # decomposed ylidene-amino prefix names it.
+                    if any(
+                        mol.GetBondBetweenAtoms(n_amino.GetIdx(), nb.GetIdx()).GetBondTypeAsDouble() != 1.0
+                        for nb in _amino_others
+                    ):
+                        ok = False
+                    elif len(_amino_others) == 1:
                         y_name = _carve_and_name_cm(
                             _amino_others[0].GetIdx(), n_amino.GetIdx(), _forbidden,
                             "n_in_carbamimidoyl",
@@ -6006,8 +6014,12 @@ def _name_single_fg_substituent(
         "thioamide", "secondary_thioamide", "tertiary_thioamide",
     })
     att_atom_amide = mol.GetAtomWithIdx(attachment_idx)
+    # D-212: `acylamino` / `amido` is the prefix for N joined by a SINGLE bond. An N-acyl imine joined by a double bond (`=N-C(=O)R`) is
+    # `acylimino`; naming it `acetamido` drops the C=N and writes another molecule.
+    _single_bonded_n = all(_o == 1 for _o in free_valence.bond_orders)
     if (
         att_atom_amide.GetAtomicNum() == 7
+        and _single_bonded_n
         and strategy is not None
         and session is not None
     ):
@@ -6113,7 +6125,7 @@ def _name_single_fg_substituent(
     fg = detected[0]
 
     # Legacy single-FG acylamino path (kept as a fallback for the simple case).
-    if fg.type in _AMIDE_N_ATTACHMENT_TYPES and fg.anchor != attachment_idx:
+    if _single_bonded_n and fg.type in _AMIDE_N_ATTACHMENT_TYPES and fg.anchor != attachment_idx:
         att_atom = mol.GetAtomWithIdx(attachment_idx)
         if att_atom.GetAtomicNum() == 7:  # N is attachment
             # Check that the anchor C is adjacent to the attachment N
@@ -17584,7 +17596,18 @@ class SubstitutivePath:
                     # "(methylamino)" or "(dimethylamino)" rather than using
                     # the bare "amino" prefix_form.
                     _AMINE_FG_TYPES = frozenset({"secondary_amine", "tertiary_amine"})
-                    if pa.fg.type in _AMINE_FG_TYPES and pa.substituent_atoms:
+                    # D-214: the compound "(R)amino" prefix is for a parent joined to the NITROGEN. A parent joined through the amine's
+                    # O (`C-O-NHR`, an N-substituted aminooxy group) took it anyway, named the O as one of N's substituents, and so wrote
+                    # the parent twice ("[(carboxymethoxy)(methyl)amino]acetic acid"). That shape is "(R-amino)oxy": the O is the attachment
+                    # and is left out of N's substituents.
+                    _aminooxy_idx: int | None = None
+                    if pa.attachment_bond is not None and pa.attachment_bond[1] != pa.fg.anchor:
+                        _att_o = mol.GetAtomWithIdx(pa.attachment_bond[1])
+                        if (_att_o.GetAtomicNum() == 8 and _att_o.GetDegree() == 2
+                                and mol.GetBondBetweenAtoms(_att_o.GetIdx(), pa.fg.anchor) is not None):
+                            _aminooxy_idx = _att_o.GetIdx()
+                    _amine_joined_at_n = pa.attachment_bond is None or pa.attachment_bond[1] == pa.fg.anchor or _aminooxy_idx is not None
+                    if pa.fg.type in _AMINE_FG_TYPES and pa.substituent_atoms and _amine_joined_at_n:
                         # The amine N is the FG's anchor.  Using "first N in
                         # substituent_atoms" would mis-identify the anchor when
                         # the amine FG's BFS-expanded substituent_atoms happens
@@ -17613,6 +17636,8 @@ class SubstitutivePath:
                             # parent_atoms or is the attachment_bond source).
                             n_sub_components: list[frozenset[int]] = []
                             pool_for_n = set(pa.substituent_atoms) - {n_idx_prefix}
+                            if _aminooxy_idx is not None:
+                                pool_for_n.discard(_aminooxy_idx)
                             for nb in n_atom_prefix.GetNeighbors():
                                 nb_idx = nb.GetIdx()
                                 if nb.GetAtomicNum() == 1:
@@ -17665,6 +17690,8 @@ class SubstitutivePath:
                                     # "(methylamino)", "methyl(phenyl)amino", ...
                                     n_prefix_str = _compose_n_substituents(n_sub_names)
                                     compound_prefix = n_prefix_str + "amino"
+                                    if _aminooxy_idx is not None:
+                                        compound_prefix = f"({compound_prefix})oxy"
                                     sub_tree = LeafTree(
                                         output_form=OutputForm.SUBSTITUENT,
                                         free_valence=None,
