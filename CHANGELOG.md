@@ -66,7 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   version untouched, because a version bump would claim the numbers differ and they do not. `alvarez2013` joins the registry:
   its Table 1 puts iron at 2.44 angstrom (the docking table has 1.56, supported by no published set), and measuring the
   docking pose analysis showed that a ligand donor bonded to a zinc, iron or magnesium is also reported as a steric clash,
-  which is the real defect behind that number (not fixed here).
+  which is the real defect behind that number (fixed: see the next entries).
 
 - Five more papers read for the radii question (`harding1999`, `harding2000`, `harding2001`, `gavezzotti1983`, `zhao2003`).
   Zhao et al.'s Tables 1 and 3 are a second transcription of Bondi's group volumes; on those 46 molecules Bondi's list errs
@@ -74,6 +74,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   3.14%), so moving the surface calculators to Bondi is a provenance gain, not an accuracy one. Harding's tables give sourced
   metal-donor distances (Zn-N 2.00, Fe-N 2.08, Mg-O 2.07, Ca-O 2.39 A) and a primary-sphere rule of target + 0.5 A, and show
   sulfur is as good a donor as nitrogen. `benchmarks/vdw_radii/radii_study.py` gains the 46-molecule check.
+
+### Docking: a bond to a metal is no longer a steric clash
+- `analyze_pose` reported every coordinated metal as a clash as well as a metal coordination: an imidazole with Zn at 2.1,
+  Fe at 2.0 or Mg at 2.1 angstrom from its nitrogen gave one clash, and Ca or Na at 2.4 gave three (the nitrogen's own ring
+  carbons, which the bond's geometry holds 3.4 angstrom away). A ligand N, O, F or S between 1.8 and 2.8 angstrom of a
+  receptor metal, and the ligand atoms within two bonds of it (against that metal only), now skip the clash test and stay
+  in `metal_coordination`; the 1.8 floor keeps an overlap a clash. A metal the ligand carries, bound by a receptor N, O, F
+  or S, is exempt the same way and is now reported as a coordination too. All five measured cases give 0 clashes and 1
+  coordination; `tests/test_pose_analysis_metals.py` pins them, Harding's sourced distances, the boundaries and a sweep that
+  no distance is both, and eleven mutants of the fix are killed. The radii are unchanged.
+- Not covered: Na, K, Co and Ni (and fluorine as a donor) have no source, so the old 2.8 angstrom cutoff stands unsourced for
+  them. A docking result saved earlier keeps the clash list it was analysed with; re-docking replaces it. The same
+  metal-as-separate-fragment defect exists in `interaction_analysis.find_interactions` (measured: one clash and one
+  coordination) and is not fixed here. `harding1999` (now read for its tables), `harding2000` and `harding2001` are in the
+  source registry.
 
 ### Help window: three things found by using it
 - **Clearing a search lost your place.** The x in the search box re-rendered the page and put it back at
