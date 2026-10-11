@@ -3,7 +3,7 @@
     python tools/naming_fresh_draw.py --cache <scratch>/fresh_raw.jsonl     # needs network, ~30 min; resumable
     python tools/naming_stage_artifact.py --stage <name> --final-evaluation --only fresh_v1    # the ONE scoring
 
-**WHY IT EXISTS.** The census (`census_sample.json`, naming round 9) was drawn unenriched, but it has been read row by row since:
+**WHY IT EXISTS.** The frequency census (naming round 9) was drawn unenriched, but it has been read row by row since:
 every round from 12 on took its targets from its failing rows, and the 98.35% it scores now is a number measured on a sample the
 engine was fixed against. That is a tuning score. This is the other kind: a sample drawn BEFORE anything is known about it, scored
 ONCE, in aggregate, and never opened row by row.
@@ -19,7 +19,7 @@ ONCE, in aggregate, and never opened row by row.
 * **The engine and OPSIN are not consulted** while drawing, and the progress output carries counts only.
 * **Scoring.** Once, with the engine as it is when this lands (no naming round 38 change), by
   `naming_stage_artifact.py --final-evaluation --only fresh_v1`. Reported in AGGREGATE (outcome counts); the per-row records are sealed
-  under `stages/sealed/` by hash and read by no tracked script. After that, only the blind `--frozen-impact` check may look at it again.
+  by hash beside the stage artifact and read by no tracked script. After that, only the blind `--frozen-impact` check may look at it again.
 * **What it can claim.** The share of ordinary PubChem molecules (6-40 heavy atoms, one component) the engine names so that OPSIN reads the
   name back to the input. Not: that the names are the preferred ones (verbatim agreement with PubChem is reported, and is not that).
 * **What happens next.** No fix is made to a row of this sample. It is spent as evaluation, never as tuning: when it is, a round says so in
@@ -191,7 +191,7 @@ def meta_for(rows: list[dict], digest: str) -> dict:
         "opsin_consulted": False,
         "selection_time": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
         "rows": len(rows),
-        "population_sha256": digest,
+        "heldout_sha256": digest,  # the key naming_stage_artifact reads for a frozen population; the name is historical
         "membership_salt": registry.MEMBERSHIP_SALT,
         "membership_sha256": registry.membership_hashes(rows),
         "pubchem_property": census._PROPS,

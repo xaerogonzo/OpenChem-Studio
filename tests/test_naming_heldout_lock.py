@@ -45,6 +45,7 @@ import naming_stage_artifact as stage  # noqa: E402
 DRAWING_SCRIPTS = {
     "heldout_v6": "benchmarks/naming/build_heldout.py",
     "bluebook_frozen": "tools/naming_bluebook_harvest.py",
+    "fresh_v1": "tools/naming_fresh_draw.py",
 }
 
 #: What each frozen population's meta file must say about itself. `rows` and `variant` are properties of one draw; a second
@@ -52,6 +53,7 @@ DRAWING_SCRIPTS = {
 EXPECTED_META = {
     "heldout_v6": {"rows": 40, "variant": "v6"},
     "bluebook_frozen": {"rows": 1126, "variant": "bluebook"},
+    "fresh_v1": {"rows": 2000, "variant": "fresh_v1"},
 }
 
 THIS_TEST = "tests/test_naming_heldout_lock.py"

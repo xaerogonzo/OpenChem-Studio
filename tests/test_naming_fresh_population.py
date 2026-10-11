@@ -294,14 +294,14 @@ def test_only_scores_that_one_population_and_no_other(monkeypatch):
 def test_a_population_hash_is_over_the_bytes_written(offline, tmp_path, monkeypatch):
     """The digest in the meta is of the exact bytes on disk (write_bytes), not of text the platform re-encodes."""
     fetch, _, _ = offline
-    monkeypatch.setattr(fresh, "OUT", tmp_path / "fresh_v1.json")
-    monkeypatch.setattr(fresh, "META", tmp_path / "fresh_v1.meta.json")
+    monkeypatch.setattr(fresh, "OUT", tmp_path / "population.json")
+    monkeypatch.setattr(fresh, "META", tmp_path / "population.meta.json")
     # drive main() with the real draw over the fake PubChem
     real_draw = fresh.draw
     monkeypatch.setattr(fresh, "draw", lambda cache: real_draw(cache, fetch=fetch, sleep=lambda _s: None))
     monkeypatch.setattr(sys, "argv", ["naming_fresh_draw"])
     fresh.main()
-    meta = json.loads((tmp_path / "fresh_v1.meta.json").read_text(encoding="utf-8"))
-    assert meta["population_sha256"] == hashlib.sha256((tmp_path / "fresh_v1.json").read_bytes()).hexdigest()
+    meta = json.loads((tmp_path / "population.meta.json").read_text(encoding="utf-8"))
+    assert meta["heldout_sha256"] == hashlib.sha256((tmp_path / "population.json").read_bytes()).hexdigest()
     with pytest.raises(SystemExit, match="exists"):
         fresh.main()

@@ -77,3 +77,12 @@ key = "bluebook_frozen"
 short = "bb-f"
 file = "bluebook_frozen.json"
 status = "frozen"
+
+# The fresh sample (naming round 38 follow-up, drawn 2026-10-10 by tools/naming_fresh_draw.py): 2,000 unenriched PubChem molecules (CIDs 1000*k + 875), drawn before anything
+# was known about them, minus every structure in a registered population, the B2 battery and the census. Unlike the census, which every round since 12 has taken its targets from,
+# this is evaluation only: scored ONCE (`naming_stage_artifact.py --final-evaluation --only fresh_v1`), in aggregate, and no fix is made against a row of it.
+[[population]]
+key = "fresh_v1"
+short = "fr-1"
+file = "fresh_v1.json"
+status = "frozen"
