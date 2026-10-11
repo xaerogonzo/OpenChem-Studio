@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: an acyl imine keeps its C=N, an N-ylidene amidine its double bond, an aminooxy group its parent once
+- `O=C1CCCCC1=NC(C)=O` was `2-acetamidocyclohexan-1-one` (the C=N dropped), `CNOCC(=O)O` was `[(carboxymethoxy)(methyl)amino]acetic acid` (the parent written twice, a carboxylate refused), and a carbamimidoyl on an N-ylidene nitrogen lost its double bond. All three read back to their molecule now (D-212, D-213, D-214). Census 1968 -> 1972 exact; wrong-molecule rows 6 -> 3, all OPSIN charge misreads. The frozen sets are unchanged by the fix (blind check), so none was re-scored.
+- `naming_stage_artifact.py --frozen-impact` takes a comma-separated list of stages, since fresh_v1 is sealed at its own.
+
 ### Naming: a frozen, scored-once sample of 2,000 unseen molecules, and the honest ratio
 - The census's 98.35% is a tuning score (every round since 12 took its targets from it). `fresh_v1` is 2,000 PubChem molecules drawn before anything was known about them, registered frozen and scored once, in aggregate: **1,951 of 2,000 (97.55%) name the molecule**, 17 (0.85%) name another one, 16 (0.8%) are unreadable by OPSIN, 6 lose stereochemistry. The wrong-molecule rate is about three times the census's. No fix is made against a row of it.
 - Its draw script batches 100 CIDs per request and waits out PubChem's 429. The census builder's fetch reads any status but 500/503 as "no such compound", so a throttle silently became absence in the first version of this draw; `naming_stage_artifact.py --only KEY` scores one frozen population without re-scoring the sealed ones.

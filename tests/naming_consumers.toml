@@ -147,6 +147,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_acylimino_aminooxy.py"
+why = "an N-acyl imine keeps its C=N (D-212), an N-ylidene amidine keeps its double bond (D-213), an N-substituted aminooxy group names its parent once (D-214): (acetylimino), ({[amino(sulfanyl)methylidene]amino}...), [(methylamino)oxy]acetic acid"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_hydroxamic_prefix.py"
 why = "a hydroxamic acid that is not the principal group keeps its carbon count and its N-substituent (D-211): 3-[hydroxy(methyl)amino]-3-oxopropanoic acid, 2-[hydroxy(methyl)carbamoyl]benzoic acid, instead of a bare hydroxycarbamoyl prefix"
 scope = "core"
