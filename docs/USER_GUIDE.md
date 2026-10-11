@@ -2131,6 +2131,29 @@ application has validated any of them against *your* molecule: a charge is a
 model output, not a measurement, and only the **sum** of the charges equals
 the net charge.
 
+**What each one does, and what its number means, is explained in the
+[calculator reference](CALCULATOR_REFERENCE.md)** -- the idea behind the model,
+what it was fitted to, when to prefer it and when not: [Partial Charge
+(3D)](CALCULATOR_REFERENCE.md#partial-charge-3d) for EEM, QEq and Ionescu,
+[Partial Charge (pH-dependent)](CALCULATOR_REFERENCE.md#partial-charge-ph-dependent)
+for Gasteiger and MMFF94, and [Dipole Moment](CALCULATOR_REFERENCE.md#dipole-moment).
+This page is the short comparison; that one is the reason behind it.
+
+The same atom under each model, so "different numbers" is not an abstraction.
+**Measured 2026-10-11 on one RDKit-embedded, MMFF94-relaxed conformer per
+molecule (seed 7); an illustration, not a benchmark.** Charges in units of *e*:
+
+| Atom | EEM | QEq | Ionescu 6-31G* | Gasteiger | MMFF94 |
+|---|---|---|---|---|---|
+| ethanol, O | -0.58 | -0.67 | -0.82 | -0.40 | -0.68 |
+| nitromethane, N | +0.24 | +0.12 | -0.42 | +0.02 | +0.80 |
+| dimethyl sulfone, S | refused (no S parameters) | -0.10 | refused (S bonded to O) | +0.14 | +1.09 |
+
+Two things in it are worth reading closely: Ionescu's model, fitted for
+proteins, puts a **negative** charge on the nitro nitrogen where the others put a
+positive one, and QEq returns a slightly negative sulfur for a sulfone without
+refusing. A number that comes back is not thereby shown to be reasonable.
+
 | Calculator and method | Runs on | Covers | Refuses |
 |---|---|---|---|
 | **Partial Charge (pH-dependent)** — Gasteiger (PEOE) | the 2D drawing, on its dominant protonation state at the pH you give | computed for every structure tried (see below) | nothing in the structures tried |

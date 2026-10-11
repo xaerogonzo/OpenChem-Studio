@@ -117,6 +117,11 @@ SKIP_FILES = {REGISTRY, GENERATED, SURVEY_INVENTORY}
 SYNTAX_DOCUMENTING_FILES = {
     Path(__file__).resolve(),
     ROOT / "tools" / "build_sources_doc.py",
+    # Parses `[source:key]` in the hand-written calculator explainers and renders each as a
+    # numbered reference; its regex, its f-string and the test that holds it contain the
+    # syntax without citing anything. The explainer TEXT (docs/explainers/) is swept.
+    ROOT / "tools" / "calculator_explainers.py",
+    ROOT / "tests" / "test_calculator_explainers.py",
 }
 
 #: The key used when the SYNTAX is being shown rather than a source cited.

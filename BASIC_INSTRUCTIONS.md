@@ -74,6 +74,7 @@ by `tests/test_layering.py`.
 - `tools/perf_census.py` / `benchmarks/perf/scenarios.py` / `src/openchem/app/drive_probes.py` — the resource census: external sampler, scenario builders, in-app probes; findings in `docs/PERFORMANCE_CENSUS.md` (start with its "Unresolved" and "where they were wrong" sections before trusting a number)
 - `src/openchem/cli/` — the headless command line (`openchem-cli`): any registered calculator on a SMILES, one JSON envelope on stdout, no Qt; `tests/test_cli.py` runs the real service task beside it and compares
 - `tools/naming_variants.py` — a naming population from seed molecules (the operators are rounds 32-35's generator rules, ported), and the atom-order diagnostic: it names random spellings AS WRITTEN (not through `naming_census_scan.name_rows`, which canonicalises) and reports any structure with more than one name; `tools/naming_census_scan.py` now labels each wrong-molecule row with what the read-back changed (`delta`)
+- `docs/explainers/` / `tools/calculator_explainers.py` -- hand-written prose on what each calculator DOES, merged into the generated `CALCULATOR_REFERENCE.md` by `tools/build_calculator_reference.py`; `tests/test_calculator_explainers.py` owns it (the `EXPLAINER_DEBT` ratchet only shrinks, citations are `[source:key]`, no URLs)
 - `tools/calculator_census.py` — every calculator over a fixed panel through the app's own path; `tests/test_calculator_census.py` fails on a fault, an error logged, an unclassified refusal code, or a moved cell
 
 ---
