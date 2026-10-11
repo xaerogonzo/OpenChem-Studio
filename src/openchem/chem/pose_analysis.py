@@ -814,6 +814,41 @@ def _is_apolar_receptor_carbon(atom: ReceptorAtom) -> bool:
 
 
 
+def _formal_charge_sites(mol: Chem.Mol) -> tuple[list[int], list[int]]:
+    """Atoms that are a real cation / anion site, not just a charge in the drawing.
+
+    A formal charge is bookkeeping, and a neutral group is often DRAWN with a pair of them on neighbouring atoms: the
+    nitro group (`[N+](=O)[O-]`), an N-oxide, a sulfoxide or sulfone written `[S+][O-]`, an azide, a diazo
+    compound, an ylide. Reading each end as an ion reported nitrobenzene's nitro nitrogen as a cation 2.86 A from its
+    own ring. The rule: atoms that carry a charge and are bonded to one another form a cluster, and a cluster's
+    charges cancel as the drawing intends. A cluster that nets to zero contributes no site; one that does not
+    (nitrate, `O=[N+]([O-])[O-]`, nets -1) contributes the atoms of the sign it nets to, and none of the other.
+    A charge with no charged neighbour (an ammonium, a carboxylate O-) is a cluster of one and is kept.
+    """
+    charged = {a.GetIdx(): a.GetFormalCharge() for a in mol.GetAtoms() if a.GetFormalCharge()}
+    positive: list[int] = []
+    negative: list[int] = []
+    seen: set[int] = set()
+    for start in charged:
+        if start in seen:
+            continue
+        cluster, frontier = [start], [start]
+        seen.add(start)
+        while frontier:
+            for neighbor in mol.GetAtomWithIdx(frontier.pop()).GetNeighbors():
+                index = neighbor.GetIdx()
+                if index in charged and index not in seen:
+                    seen.add(index)
+                    cluster.append(index)
+                    frontier.append(index)
+        net = sum(charged[index] for index in cluster)
+        if net > 0:
+            positive += [index for index in cluster if charged[index] > 0]
+        elif net < 0:
+            negative += [index for index in cluster if charged[index] < 0]
+    return sorted(positive), sorted(negative)
+
+
 def _ligand_features(pose_molblock: str) -> dict[str, Any]:
     """Apolar carbons, aromatic ring centroids and charge sites on the pose.
 
@@ -836,6 +871,12 @@ def _ligand_features(pose_molblock: str) -> dict[str, Any]:
     except Exception:  # noqa: BLE001 - geometry is still usable without perception
         aromatic_ok = False
 
+    # A formal charge is bookkeeping, not an ion: a nitro group, N-oxide or
+    # charge-separated sulfoxide is a neutral group drawn with two. The bond
+    # graph is there even when sanitisation failed (the molblock carries the
+    # bonds), so the cluster rule needs no perception.
+    cation_sites, anion_sites = (set(sites) for sites in _formal_charge_sites(mol))
+
     apolar, cations, anions, polar = [], [], [], []
     for atom in mol.GetAtoms():
         symbol = atom.GetSymbol().upper()
@@ -848,10 +889,9 @@ def _ligand_features(pose_molblock: str) -> dict[str, Any]:
                 apolar.append(position(index))
         if symbol in _POLAR_ELEMENTS or symbol == "S":
             polar.append((symbol, position(index)))
-        charge = atom.GetFormalCharge()
-        if charge > 0:
+        if index in cation_sites:
             cations.append(position(index))
-        elif charge < 0:
+        elif index in anion_sites:
             anions.append(position(index))
 
     rings = []
