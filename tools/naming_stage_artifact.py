@@ -499,7 +499,7 @@ def _preferred_scores(named: list[dict], targets: dict[str, str]) -> dict:
     return {"adjudicated_rows": rows, "engine": engine, "pubchem": pubchem, "known_deviation": deviating}
 
 
-def build(stage: str, *, allow_no_java: bool, final_evaluation: bool = False) -> dict:
+def build(stage: str, *, allow_no_java: bool, final_evaluation: bool = False, only: str | None = None) -> dict:
     provenance = _provenance(stage)
     if provenance["java"] == "ABSENT" and not allow_no_java:
         raise SystemExit(
@@ -512,7 +512,16 @@ def build(stage: str, *, allow_no_java: bool, final_evaluation: bool = False) ->
     provenance["final_evaluation"] = final_evaluation
     targets = _adjudicated_targets()
     populations = {}
-    for key in active_populations(final_evaluation=final_evaluation):
+    keys = active_populations(final_evaluation=final_evaluation)
+    if only is not None:
+        # One population, not the whole final evaluation: a frozen population drawn after the others must be scored without re-scoring
+        # the sealed ones (frozen_impact's rule: an unchanged engine leaves the previous evaluation's score standing).
+        if not final_evaluation:
+            raise SystemExit("--only selects a population of the final evaluation; pass --final-evaluation too")
+        if only not in keys:
+            raise SystemExit(f"--only {only!r}: not a population of the final evaluation ({', '.join(keys)})")
+        keys = [only]
+    for key in keys:
         filename, rows = load_population(key, final_evaluation=final_evaluation)
         path = BENCH / filename
         named = _name_rows(rows)
@@ -619,8 +628,10 @@ def frozen_impact(against_stage: str) -> dict[str, tuple[int, int]]:
     for key in active_populations(final_evaluation=True):
         if key not in frozen:
             continue
-        sidecar = SEALED / f"{against_stage}.{key}.records.json"
-        if not sidecar.exists():
+        # A frozen population drawn later is sealed at its own stage (fresh_v1: `r38-fresh-v1`), so the argument may name several stages,
+        # comma-separated; each population is compared against the first of them that sealed it.
+        sidecar = next((s for s in (SEALED / f"{stage}.{key}.records.json" for stage in against_stage.split(",")) if s.exists()), None)
+        if sidecar is None:
             raise SystemExit(f"no sealed final evaluation of {key} at stage {against_stage!r}")
         was = {r["label"]: r["name"] for r in json.loads(sidecar.read_text(encoding="utf-8"))}
         _filename, rows = load_population(key, final_evaluation=True)
@@ -652,6 +663,11 @@ def main() -> None:
         help="also score the frozen evaluation-only population (end of round only)",
     )
     parser.add_argument(
+        "--only",
+        metavar="KEY",
+        help="with --final-evaluation: score just this population (a frozen one drawn after the others is scored without re-scoring them)",
+    )
+    parser.add_argument(
         "--allow-no-java",
         action="store_true",
         help="record names without round-trip classes (diagnostics only)",
@@ -673,6 +689,7 @@ def main() -> None:
         args.stage,
         allow_no_java=args.allow_no_java,
         final_evaluation=args.final_evaluation,
+        only=args.only,
     )
     STAGES.mkdir(parents=True, exist_ok=True)
     out = STAGES / f"{args.stage}.json"

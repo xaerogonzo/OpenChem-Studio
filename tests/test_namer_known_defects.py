@@ -4222,6 +4222,19 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-211", "OC(=O)CC(=O)N(C)O", "3-[hydroxy(methyl)amino]-3-oxopropanoic acid",
      "3-(hydroxycarbamoyl)propanoic acid",
      "WRONG MOLECULE: one carbon too many, and the N-methyl gone; 292 of 336 hydroxamic acids under an acid, an ester or a ring named another molecule (census row 322625 among them)"),
+    # D-212, found by naming round 38's census review and closed in round 39: an N-acyl imine that is not the principal group (`=N-C(=O)R`) was written as the acylamino prefix `acetamido`, which has a single bond: the C=N was dropped and the name read back as another molecule.
+    # The book's preferred form for the census row is "N'-benzoyl-3,5-dimethyl-1H-pyrazole-1-carboximidamide", which the engine does not reach (no amidine suffix on a ring-N carbon); the name it now writes is correct and reads back exact.
+    ("D-212", "Cc1cc(C)n(C(N)=NC(=O)c2ccccc2)n1", "(benzoylimino)(3,5-dimethyl-1H-pyrazol-1-yl)methanamine",
+     "benzamido(3,5-dimethyl-1H-pyrazol-1-yl)methanamine",
+     "WRONG MOLECULE: the C=N lost (an N-acyl imine named as an amide); the same defect turned `O=C1CCCCC1=NC(C)=O` into 2-acetamidocyclohexanone (census row 325625)"),
+    # D-213, found by naming round 38's census review: a carbamimidoyl whose amino nitrogen carries a double bond (`-N=C(N)S`) cited it as a single-bonded "N-(...methyl)".
+    ("D-213", "NC(S)=NC(=NOCc1ccccc1)c1ccccc1", "({[amino(sulfanyl)methylidene]amino}(phenylmethoxyimino)methyl)benzene",
+     "[N'-phenylmethoxy-N-(amino(sulfanyl)methyl)carbamimidoyl]benzene",
+     "WRONG MOLECULE: the C=N of the N-ylidene amidine dropped (census row 356625); the name is correct but not the preferred form"),
+    # D-214, found by naming round 38's census review (rows 1786625 and 1754625): an N-substituted aminooxy group (`C-O-NHR`) was named as an amino group on the parent with the O as one of its substituents, which wrote the parent twice; with a carboxylate it was refused.
+    ("D-214", "CNOCC(=O)O", "[(methylamino)oxy]acetic acid",
+     "[(carboxymethoxy)(methyl)amino]acetic acid",
+     "WRONG MOLECULE: the parent named twice and the O moved onto N (every R-NH-O-CH2-X with a principal group on X; both steroid and carboxylate census rows)"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",
@@ -4330,12 +4343,6 @@ OPEN: list[tuple[str, str, str, str, str]] = [
      "-- the WRONG MOLECULE this item was admitted for is fixed, the PIN is "
      "a separate, still-open gap (imine FG perception is empty for this "
      "structure in every context, not only the multiplicative one)"),
-    # Naming round 38: an N-acyl amidine whose carbon is bonded to a RING nitrogen is named as a methanamine: the C=N is lost, so the name reads back as another molecule
-    # (a wrong-molecule census row, 0.05%, found while closing D-162). The target is derived and read back exact on canonical SMILES and InChIKey. It replaces D-162 as the
-    # example tests/test_naming_providers.py withholds by the read-back: a plain-looking name (no NAMING ERROR) that denotes another structure.
-    ("D-212", "Cc1cc(C)n(C(N)=NC(=O)c2ccccc2)n1", "N'-benzoyl-3,5-dimethyl-1H-pyrazole-1-carboximidamide",
-     "benzamido(3,5-dimethyl-1H-pyrazol-1-yl)methanamine",
-     "an N-acyl amidine on a ring nitrogen loses its C=N: named as a methanamine, another molecule (census row 325625)"),
 ]
 
 # Observed but NOT tracked here, because this table requires a verified

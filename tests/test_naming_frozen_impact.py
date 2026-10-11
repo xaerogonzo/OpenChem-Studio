@@ -61,6 +61,13 @@ def test_a_stage_with_no_sealed_record_is_refused_not_treated_as_unchanged(fake_
         stage.frozen_impact("no-such-stage")
 
 
+def test_a_population_sealed_at_a_later_stage_is_found_through_a_stage_list(fake_frozen):
+    """fresh_v1 is sealed at its own stage; a comma-separated list compares each population with the first stage that sealed it."""
+    assert stage.frozen_impact("no-such-stage,r0") == {"fz": (2, 0)}
+    fake_frozen["row-beta"] = "bicarbon"
+    assert stage.frozen_impact("no-such-stage,r0") == {"fz": (2, 1)}
+
+
 def test_the_tuning_population_is_never_consulted(fake_frozen, monkeypatch):
     """Only populations the registry marks frozen are compared; a tuning key must not need a sidecar."""
     seen = []

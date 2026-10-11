@@ -1679,18 +1679,25 @@ Unblocking condition: the page itself, with a place for each existing
 preference, so that these arrive as entries on it rather than as the reason
 it was built.
 
-### Pending: a fresh, frozen naming sample (started 2026-10-10, blocked by PubChem)
+### The fresh, frozen naming sample (drawn and scored once, 2026-10-10)
 
-The census's 98.35% exact (2026-10-10) is a TUNING score: every round since 12 took its targets from the census's failing rows, so the
-engine was fixed against it. The honest number needs a sample drawn before anything is known about it and scored once. The draw script
-and a `--only` option for scoring that one population alone are committed on the local branch `claude/fresh-frozen-population`
-(commit `7ab1adf4`, pushed, no PR). The population itself is NOT drawn: PubChem's REST API answered 429 to everything after about
-400 requests and was still refusing an hour later, so nothing was registered, frozen or scored.
+The census's 98.35% exact (2026-10-10) is a TUNING score: every round since 12 took its targets from the census's failing rows, so the engine was fixed against it. `fresh_v1` is
+the honest number: 2,000 unenriched PubChem molecules (CIDs 1000*k + 875, the census's filter, minus every other population and the census), drawn before anything was known about
+them, registered frozen, and scored once with `naming_stage_artifact.py --final-evaluation --only fresh_v1` on the engine of commit `a5c2468` (naming round 38 included).
 
-To finish: run the draw script on that branch (it is resumable, 100 CIDs per request, waits out a 429), then register the population as
-frozen, add it to the lock tests' drawing-script and expected-meta tables, list its test in the namer-consumer manifest and pin it to a
-shard (CI fails on both if forgotten), and score it ONCE with `--final-evaluation --only fresh_v1`. The artifact records the engine's commit; naming round 38 will have moved
-the engine by then, so quote the number for that commit and not for the census's. Fix nothing against its rows.
+**Result, aggregates only (no row was read):** 1,951 of 2,000 (97.55%) name the molecule (336 exact, 1,614 equivalent, 1 tautomer); 17 (0.85%) name another molecule; 16 (0.8%)
+are unreadable by OPSIN; 6 (0.3%) keep the skeleton and lose stereochemistry; 10 (0.5%) are rows where the canonical-SMILES and InChIKey gates disagree. The census, on its own
+(different, tuned-on) scale, reads 98.4% exact, 0.3% wrong molecule, 0.35% unreadable: the unseen sample's wrong-molecule rate is about three times the census's. The two reports
+define their classes a little differently, so compare the pattern and not the last digit.
+
+**The rules for it:** no fix is made to a row of this sample; it is not a candidate list. Round 39 and later check it only with `naming_stage_artifact.py --frozen-impact r38-fresh-v1`
+(counts only) and say so when a change moves it. When a future round has spent it as a measurement, it draws the next one, at a new unused offset.
+
+**What drawing it taught (so the next draw does not repeat it).** The first version asked for one CID per request at 4 a second and was answered `429 Too Many Requests` after about
+400 answers, for over an hour. The shared `naming_census_build._fetch` reads any status but 500/503 as "no such compound", so a 429 silently became absence and the draw would have
+selected a sample shaped by when the throttle began. `naming_fresh_draw.fetch_batch` asks for 100 CIDs per request, waits out a 429 (`Retry-After`, else 60 s doubling), records a
+CID as absent only on an actual answer, and stops with a resumable error if throttling persists; the same draw then ran in four minutes. On Windows `pkill` does not exist, so the
+first process kept running for 15 minutes after I thought it was stopped: stop a background draw with `Stop-Process` and confirm it is gone.
 
 ## Naming — resolved, and how
 
