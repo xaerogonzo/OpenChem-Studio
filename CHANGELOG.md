@@ -37,7 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   "Known limits" rather than hiding them: every nitro group reads as a cation (cation-π 2.86 A against its own
   ring), two acceptors count as a hydrogen bond (1,2-dimethoxyethane), two bonded rings count as stacked
   (biphenyl), sulfur is not a metal donor, a salt written as two fragments is embedded on top of itself, and a
-  hydrophobic contact has no lower bound. The fixes are a separate task, not made here. The molecular dynamics
+  hydrophobic contact has no lower bound. The fixes were a separate task: see "Fixed: Interaction Analysis" below. The molecular dynamics
   measurements: energy conserved to under 0.1 kcal/mol over 0.5 ps, the 300 K you ask for becomes about half of
   that when started from a minimised conformer, and the default run never leaves the starting conformer (50 ps at
   300 K does not either; only 1000 K does). 3D Alignment: the score is not normalised (a perfect self-overlay scores
@@ -69,6 +69,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **"Read the whole document" did nothing** on a document's own title, because that page already is the
   whole document. The button is disabled there, and a new **Open the file** button opens the markdown file
   in the system's program for it (and says so when there is none).
+
+### Fixed: Interaction Analysis no longer reads a nitro group as a cation, or two acceptors as a hydrogen bond
+- Five of the six wrong results the explainer measured are fixed in `chem/interaction_analysis.py`, as method
+  `interactions-v2`: **(1)** a formal charge that only draws a neutral group (a nitro group, an N-oxide, a sulfoxide or
+  sulfone written with charges, an azide, a diazo group, an ylide) is no longer a cation or anion site: bonded charged
+  atoms are taken together and a cluster that sums to zero contributes none, while one that does not (nitrate) keeps the
+  atoms of its sign; **(2)** a hydrogen bond needs a hydrogen on at least one of the two atoms (the docking analysis keeps
+  its heavy-atom-only rule); **(3)** two rings joined directly or through one atom are not stacked (nearest atoms at
+  least 3 bonds apart, so bibenzyl's folded conformers still stack); **(4)** a divalent sulfur (thiolate, thiol,
+  thioether, thione, disulfide) is a metal donor, as the shared constant's comment and the docking analysis already
+  had it, and the 2.8 A literal is now `METAL_COORDINATION_CUTOFF`; **(5)** a hydrophobic contact is at least the sum of
+  the two van der Waals radii (3.4 A for carbons), so crowding nearer than that is not reported as attraction.
+- Measured on 49 molecules at 6 conformers (seed 7, MMFF94): 102 hydrogen-bond, 18 cation-π, 60 π-π and 17
+  hydrophobic lines removed, 6 metal-coordination lines (all thiolate-zinc) added, nothing else moved. **Still
+  limits, and documented as such:** a salt written as fragments has no real geometry; the tert-butyl contacts of
+  cis-1,3-di-tert-butylcyclohexane (3.56 to 4.49 A) are beyond the floor and still reported; no hydrogen-bond angle.
+- A result saved before is kept and shown as "Interaction Analysis (previous method ...)" (`legacy-contact-rules-v1`
+  in `result_store.LEGACY_METHOD_VERSIONS`), never replayed as the new one. The Interactions panel's contact finder
+  calls the same function and changes with it. `tests/test_interaction_analysis_rules.py` runs every structure that was
+  reported through the registered calculator and measures its own precondition from the coordinates; each rule was
+  reverted in turn and the tests failed. The explainer's limits are updated to match.
 
 ### Naming: ring systems keep their heteroatoms, numbering, hydrogen and name
 - A spiro heterocycle on a bridged ring was `tricyclo[...]undecane-1,3-dione` (every N gone), an N-attached triazinedione was numbered as a ring OPSIN cannot build, a spiro partner lost an azole N-H, a tricycle of three monocycles had no name, and a protonated or iminium N in a fused 4-ring was a NAMING ERROR (D-215 .. D-219). Census 1968 -> 1978 exact, visible failures 4 -> 0; fresh_v1 1950 -> 1951 of 2000 read back after its one re-score (97.55%).
