@@ -782,6 +782,7 @@
   "tests/test_naming_census_lock.py": 1,
   "tests/test_naming_census_scan.py": 0,
   "tests/test_naming_consumers_manifest.py": 1,
+  "tests/test_naming_fresh_population.py": 0,
   "tests/test_naming_frozen_impact.py": 0,
   "tests/test_naming_heldout_lock.py": 1,
   "tests/test_naming_probe_tool.py": 0,
