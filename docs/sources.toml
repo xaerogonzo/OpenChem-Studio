@@ -2349,6 +2349,155 @@ does not say the scheme is symplectic or name its error; the explainer claims ne
 """
 
 [[source]]
+key = "alvarez2013"
+kind = "literature"
+citation = "S. Alvarez, 'A cartography of the van der Waals territories', Dalton Trans. 2013, 42(24), 8617-8636."
+identifier_type = "doi"
+identifier = "10.1039/C3DT50599E"
+status = "reference_only"
+reason = "The most complete published set of van der Waals radii for the whole periodic table, read to settle what the docking contact table's metal entries mean; no value of the application comes from it."
+used_by = ["docs/VDW_RADII_ASSESSMENT.md"]
+local = "alvarez2013_cartography.pdf"
+verification = "citation"
+verified_date = 2026-10-11
+note = """
+CHECKED: identity against Crossref and the printed running head (Dalton Trans., 2013, 42, 8617-8636); the 20-page open-access
+copy (CC BY-NC 3.0, deposited by the University of Barcelona) was downloaded and read through its text layer, Table 1 and
+sections 4.1 and 5.1 and the discussion of Bondi's radii, not every page. Table 1 (radii in angstrom, with Bondi's and
+Batsanov's beside it): Fe 2.44 (Bondi none, Batsanov 2.05), Zn 2.39 (Bondi 1.39, Batsanov 2.1), Mg 2.51 (1.73, 2.2), Na 2.50
+(2.27, 2.4), K 2.73 (2.75, 2.8), Ca 2.62 (Batsanov 2.4), H 1.20 (from D...D contacts in neutron structures, O and N
+excluded), C 1.77, N 1.66, O 1.50, F 1.46, P 1.90, S 1.89, Cl 1.82, Br 1.86, I 2.04. The paper defines its radius as the
+leading edge of the van der Waals peak in the distribution of contact distances, a few tenths of an angstrom above the cutoff
+for contacts, and says some of Bondi's radii (it names Mg, Ga, In, Tl, Sn, Pb, I, Kr, Xe, Cd, La, Pd, Pt, Hg and U) correspond to
+a cutoff distance instead. It says differences of 0.1 angstrom or less should not be considered significant; that groups 6 to
+12 have similar radii of about 2.4 in the 3d and 4d series; that no different van der Waals regions for high- and low-spin
+Mn, Fe and Co could be found; and, on hydrogen, that Bondi's 1.20 "represents very well" the contacts in crystals, "without
+modifying it as proposed by Rowland and Taylor".
+
+NOT CHECKED: the fitting equations, the supplementary data, the f-block discussion and the comparison with ionic radii. The
+file is not in the maintainer's library until it is added there under the name above.
+"""
+
+[[source]]
+key = "harding1999"
+kind = "literature"
+citation = "M. M. Harding, 'The geometry of metal-ligand interactions relevant to proteins', Acta Crystallogr. D 1999, 55, 1432-1443."
+identifier_type = "doi"
+identifier = "10.1107/S0907444999007374"
+status = "reference_only"
+reason = "Read for the metal-donor distances in small-molecule structures, which Harding 2001 simplifies into the targets the assessment uses; no value of the application comes from it."
+used_by = ["docs/VDW_RADII_ASSESSMENT.md"]
+local = "harding1999.pdf"
+verification = "citation"
+verified_date = 2026-10-11
+note = """
+CHECKED: identity from page 1 and against Crossref (title, author, Acta D 55, 1432-1443; the DOI is Crossref's, the
+typeset paper prints none), and the abstract: Cambridge Structural Database structures with R <= 0.065 containing Ca, Mg, Mn,
+Fe, Cu or Zn bound to analogues of protein side-chain ligands (carboxylate, alcohol, phenolate, thiolate, imidazole, water),
+4500 observations, with the mean metal-donor distance, standard deviation and range tabulated.
+
+NOT CHECKED: the paper's own tables. The distances the assessment quotes are from Harding 2001's Table 1, which says it is
+built from these with simplifications ([source:harding2001]).
+"""
+
+[[source]]
+key = "harding2000"
+kind = "literature"
+citation = "M. M. Harding, 'The geometry of metal-ligand interactions relevant to proteins. II. Angles at the metal atom, additional weak metal-donor interactions', Acta Crystallogr. D 2000, 56, 857-867."
+identifier_type = "doi"
+identifier = "10.1107/S0907444900005849"
+status = "reference_only"
+reason = "Read for how far a weakly bonded donor can sit from a metal; no value of the application comes from it."
+used_by = ["docs/VDW_RADII_ASSESSMENT.md"]
+local = "harding2000.pdf"
+verification = "citation"
+verified_date = 2026-10-11
+note = """
+CHECKED: identity from page 1 and against Crossref, and the abstract's statement that four- and five-coordinate Zn and Cu
+complexes commonly have additional weakly coordinated ligands, usually N or O donors, at "M...N,O distances longer than a normal
+bond length but shorter than a van der Waals contact, e.g. in the range 2.4-3.0 A for Zn and 2.6-3.0 A for Cu".
+
+NOT CHECKED: the angle tables and the bond-valence discussion.
+"""
+
+[[source]]
+key = "harding2001"
+kind = "literature"
+citation = "M. M. Harding, 'Geometry of metal-ligand interactions in proteins', Acta Crystallogr. D 2001, 57, 401-411."
+identifier_type = "doi"
+identifier = "10.1107/S0907444900019168"
+status = "reference_only"
+reason = "The tabulated target metal-donor distances the docking pose analysis should use to tell a metal bond from a contact; no value of the application comes from it yet."
+used_by = ["docs/VDW_RADII_ASSESSMENT.md"]
+local = "harding2001.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-11
+note = """
+CHECKED: identity from page 1 and against Crossref; Table 1 read FROM THE PAGE IMAGE (the text layer would have served, but
+tables are where it fails). Metal-donor target distances in angstrom, columns O water / O Asp or Glu (monodentate) / O Ser or
+Thr / O Tyr / N His / S Cys: Ca 2.39 2.36 2.43 (2.20) (2.38) (2.56); Mg 2.07 2.26 2.10 (1.87) (2.05) (2.23); Mn 2.21 2.21 2.25
+1.88 2.19 2.35; Fe 2.09 2.01 2.13 1.93 2.08 2.27; Cu(II) 1.97 1.96 2.00 1.90 1.99 (2.17); Zn 2.09 2.04 2.14 1.95 2.00 2.29.
+Values in parentheses are estimates for want of data. The Asp and Glu values for Ca, Mg, Mn and Zn come from PDB structures at
+1.6 A or better, the rest from the CSD. A donor is in the primary coordination sphere if it is within target + 0.5 A, in the
+secondary within target + 0.5 to + 1.0 A. The paper also remarks that N,O...N,O donor-donor distances in metal complexes
+correspond closely to the sum of Bondi's radii, while for N,O...S,Cl and S,Cl...S,Cl Bondi's sums (3.3 and 3.6 A) are longer
+than the distances found.
+
+NOT CHECKED: the PDB survey, the angle restraints, and any metal other than the six (there is no sodium, potassium, cobalt
+or nickel, which the docking module also lists).
+"""
+
+[[source]]
+key = "gavezzotti1983"
+kind = "literature"
+citation = "A. Gavezzotti, 'The calculation of molecular volumes and the use of volume analysis in the investigation of structured media and of solid-state organic reactivity', J. Am. Chem. Soc. 1983, 105, 5220-5225."
+identifier_type = "doi"
+identifier = "10.1021/ja00354a007"
+status = "reference_only"
+reason = "Read as an independent molecular-volume convention to set beside Bondi's; no value of the application comes from it."
+used_by = ["docs/VDW_RADII_ASSESSMENT.md"]
+local = "gavezzotti1983.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-11
+note = """
+CHECKED: identity from page 1 (the typeset paper prints no DOI; Crossref's matches title, author, volume and pages); Table I
+and Table II read FROM THE PAGE IMAGES. His radii (angstrom): H 1.17, C 1.75, N 1.55, O 1.40, F 1.30, Cl 1.77, Br 1.95, I 2.10,
+set beside the ranges he reads Bondi's as giving (H 1.00-1.20, C 1.70-1.77, N 1.60, O 1.50, F 1.40-1.47, Cl 1.73-1.77, Br
+1.84-1.92, I 2.01-2.06). His molecular volumes are computed by counting random points inside the fused spheres (Vm =
+Venv Nocc / N), the method used here to check the radii tables, and he reports that his volumes differ from Bondi's by under
+10% "in spite of the sometimes relevant differences in molecular geometries, atomic radii, and method of calculation":
+methane 28.01 against 28.42, benzene 85.39 against 80.28, acetone 62.86 against 64.81, chloroethane 59.45 against 58.96.
+
+NOT CHECKED: the volume-analysis applications (cage compounds, inclusion compounds, solid-state reactivity).
+"""
+
+[[source]]
+key = "zhao2003"
+kind = "literature"
+citation = "Y. H. Zhao, M. H. Abraham & A. M. Zissimos, 'Fast calculation of van der Waals volume as a sum of atomic and bond contributions and its application to drug compounds', J. Org. Chem. 2003, 68(19), 7368-7373."
+identifier_type = "doi"
+identifier = "10.1021/jo034808o"
+status = "reference_only"
+reason = "Its Tables 1 and 3 are a second, published transcription of Bondi's group-contribution volumes, used as a check on the radii tables; no value of the application comes from it."
+used_by = ["docs/VDW_RADII_ASSESSMENT.md", "benchmarks/vdw_radii/radii_study.py"]
+local = "zhao2003.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-11
+note = """
+CHECKED: read in full (6 pages; the DOI is printed on page 1). What is used: Tables 1 and 3, Bondi's volumes in cubic
+angstrom per molecule converted from his group increments by dividing by 0.602 (46 molecules entered in
+`benchmarks/vdw_radii/radii_study.py`); they agree with the application's own hand transcription of Bondi's Tables XV and XVI
+to within 0.1 cubic angstrom (chloromethane 42.0, nitromethane 50.6, trimethylamine 75.3). Also read: Table 2, atomic volumes from Bondi
+radii (H 7.24, C 20.58, N 15.60, O 14.71, F 13.31, Cl 22.45, Br 26.52, I 32.52, P and S 24.43) and the paper's remark that
+programs disagree: ethanol's van der Waals volume is 76, 41 or 52 cubic angstrom from three programs, and carbon's radius is
+1.70 in one and 1.90 to 1.94 in another.
+
+NOT CHECKED: the paper's own formula, V = sum of atomic volumes - 5.92 N_B - 14.7 R_A - 3.8 R_NA (eq 4), against 677
+compounds, beyond noting that it was fitted to Bondi's group volumes and to TSAR's values (slope 0.80 against TSAR), so it is not
+used as an oracle; and the aromatic-ring correction, which a single radius per element cannot reproduce.
+"""
+
+[[source]]
 key = "tosco2014"
 kind = "literature"
 citation = "P. Tosco, N. Stiefl & G. Landrum, 'Bringing the MMFF force field to the RDKit: implementation and validation', J. Cheminform. 2014, 6:37."

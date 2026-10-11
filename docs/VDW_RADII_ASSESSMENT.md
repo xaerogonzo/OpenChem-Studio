@@ -216,10 +216,75 @@ little, as an expectation not measured here: iron in a protein receptor is typic
 that sit at 2.0 angstrom, so the contact test is not about its van der Waals size. Replacing it needs a source for
 what the table means by a metal's radius, not a different number.
 
-**3. A Geometry result saved before this change.** Its stored limitation line says "Bondi radii", which was never true.
-The numbers in it are correct and unchanged, so a method-version bump (which would mark it as a previous method and
-imply its numbers differ) would say something false in the other direction. The honest options are to leave the stored
-line, or to show a reader's note on a result whose stored line names Bondi; neither is built, and neither is urgent.
+**3. A Geometry result saved before this change (decided and built, 2026-10-11).** Its stored limitation line said
+"Bondi van der Waals radii.", which was never true. The numbers in it are correct and unchanged, so a method-version bump
+(which marks a previous method and implies its numbers differ) would say something false in the other direction. Instead a
+**reader's note** is applied when the saved result is loaded (`STORED_TEXT_NOTES` in `domain/result_store.py`): that exact
+line is shown as "Van der Waals radii from RDKit's table (Batsanov's recommended set, not Bondi's). This result was saved
+when they were labelled Bondi's; its numbers are unchanged." The numbers, the provenance and the method version are not
+touched, and only an exact match is replaced.
+
+## Five more papers, and what they say (2026-10-11, later)
+
+**The volume check, on 46 molecules from a second transcription of Bondi** [source:zhao2003]. Zhao, Abraham and Zissimos's
+Tables 1 and 3 give Bondi's group-contribution volumes for alkanes, alkenes and alkynes, heteroatom compounds, halides, rings
+and aromatics, and they agree with the application's own transcription of Bondi's tables to within 0.1 cubic angstrom. Measured with a
+0.04 angstrom grid on one MMFF94 geometry each (`radii_study.py`, `zhao_volumes`):
+
+| set | RDKit (Batsanov) mean abs | Bondi 1964 mean abs | CRC, hydrogen 1.10 mean abs |
+|---|---|---|---|
+| all 46 | 2.12% | 1.84% | 7.71% |
+| acyclic hydrocarbons (17) | 1.91% | 1.91% | 9.81% |
+| N, O, S, P compounds (11) | 2.04% | 1.86% | 7.26% |
+| halides (9) | 3.14% (mean +3.14%) | 1.95% (mean -0.40%) | 5.91% |
+| rings (5) | 1.13% | 1.09% | 8.22% |
+| aromatics (4) | 2.22% | 2.22% | 3.41% |
+
+**What this settles and what it does not.** Hydrocarbons are identical in the two tables, so nothing moves there. The whole
+gain from Bondi's list is in halides and some heteroatoms: about 1 to 3 points of volume, and for a typical drug-like molecule
+well under 1%. The largest errors for both tables are structural and are not fixed by any radii table: acetylene (-9.8%
+for both) and benzene (+4.0% for both) need Bondi's own special radii for sp and aromatic carbon, which one radius per element
+cannot supply. So moving the surface calculators to Bondi's list is a provenance and consistency improvement (one table
+behind steric and surface, every value traced to a paper), not an accuracy one for common molecules. Hydrogen 1.10 is
+refuted again, at 7.7%.
+
+**Gavezzotti's convention** [source:gavezzotti1983] is a fourth set (H 1.17, C 1.75, N 1.55, O 1.40, F 1.30, Cl 1.77, Br 1.95,
+I 2.10) computed by the same random-point counting used here, and he reports volumes within 10% of Bondi's. Zhao et al. note
+that programs give ethanol's volume as 76, 41 or 52 cubic angstrom. Together with Alvarez's larger contact-based radii, the
+literature offers no single true radius for a surface, only conventions, and Bondi's is the one the volume literature and the
+buried-volume papers share.
+
+**Metal-donor distances** [source:harding2001], from Harding's three papers [source:harding1999] [source:harding2000]. Target
+distances (angstrom) for a donor bonded to a metal, from small-molecule structures (the carboxylate values for Ca, Mg, Mn and
+Zn are from protein structures at 1.6 angstrom or better): Zn to histidine nitrogen 2.00, to water 2.09, to
+cysteine sulfur 2.29; Fe to histidine nitrogen 2.08, to water 2.09, to cysteine sulfur 2.27; Mg to water 2.07, to carboxylate
+2.26; Ca to water 2.39, to carboxylate 2.36. A donor is in the primary coordination sphere within **the target plus 0.5
+angstrom**, and weakly bonded additional donors of Zn and Cu sit at 2.4 to 3.0 (Zn) and 2.6 to 3.0 (Cu) angstrom, "shorter
+than a van der Waals contact". The coordination distances used in the clash measurement below (2.0 to 2.4) are within
+Harding's ranges. Two things follow for the code: the application's single 2.8 angstrom coordination cutoff is of the right
+size for these metals but is not metal- or donor-specific; and **sulfur belongs among the donors** (Zn-S 2.29, Fe-S 2.27 are
+as well-defined as the nitrogen and oxygen values), which `interaction_analysis` excludes. Harding covers Ca, Mg, Mn, Fe, Cu
+and Zn only: there are no sourced distances for sodium, potassium, cobalt or nickel, which the docking module lists, and
+Harding's sodium and potassium paper (Acta Cryst. D 2002, 58, 872) would be the next to ask for.
+
+## A third published set, and what it did to the Fe question (2026-10-11)
+
+Alvarez's 2013 radii [source:alvarez2013], deduced from over five million contacts in the Cambridge Structural Database,
+are the first set that covers iron, and it puts it at **2.44 angstrom**, with Batsanov's 2.05 and no Bondi value. The
+application's 1.56 is therefore supported by none of the three published sets, and it is not close to any of them. The same
+table puts the docking table's other metals far above the application's values: Zn 2.39 (the application has 1.39), Mg 2.51
+(1.73), Na 2.50 (2.27), Ca 2.62 (2.31). Bondi's metal radii are, by the paper's own account, in several cases a cutoff
+distance and not a van der Waals radius, so the two sets are not measuring the same thing. For hydrogen the paper
+independently gets 1.20 from neutron-diffraction H...H contacts and says it needs no modification to Rowland and Taylor's
+1.10, which agrees with keeping 1.20 for areas and volumes.
+
+**The finding that changes the question: the docking pose analysis counts a coordinated metal as a clash.** The radius does
+not matter as much as how it is used. `analyze_pose` reports a clash for any pair closer than the sum of the two radii less
+0.4 angstrom, and treats a metal as an ordinary atom. Measured with an imidazole nitrogen placed at a coordination distance
+from each metal: zinc at 2.1 angstrom, iron at 2.0 and magnesium at 2.1 each give one clash (and one metal coordination),
+and calcium and sodium at 2.4 give three. A better radius would make it worse (Alvarez's 2.44 for iron puts the threshold at
+3.6 angstrom, far beyond the 2.0 angstrom used in the measurement; the coordination distances chosen there (2.0 to 2.4) are typical values that still need a source, and Harding's papers on metal-ligand geometry in proteins are the usual reference). The defect is that a bond to a metal is not a contact, so the fix is to
+leave a ligand donor within the metal-coordination cutoff out of the clash test, and the metal's radius then barely matters.
 
 ## Not verified
 

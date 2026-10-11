@@ -1,5 +1,6 @@
-"""What the choice of van der Waals radius table changes: areas over a drug-like set, the steric series, and a check
-against Bondi's own published group volumes.
+"""What the choice of van der Waals radius table changes: areas over a drug-like set, the steric series, and checks
+against Bondi's own published group volumes, transcribed twice (by hand from his Tables XV and XVI, and from Zhao,
+Abraham and Zissimos's Tables 1 and 3).
 
 Reproduces the measurements in `docs/VDW_RADII_ASSESSMENT.md`. Run from the repository root:
 
@@ -154,7 +155,52 @@ def group_volumes() -> None:
               f"mean abs {statistics.mean(abs(v) for v in values):.2f}%  max abs {max(abs(v) for v in values):.2f}%")
 
 
+#: Zhao, Abraham & Zissimos 2003, Tables 1 and 3: Bondi's group-contribution volumes in A^3/molecule (no crowding
+#: or hydrogen-bond correction), by kind. (name, SMILES, volume, kind).
+ZHAO_CASES = [
+    ("methane", "C", 28.44, "acyclic"), ("ethane", "CC", 45.42, "acyclic"), ("propane", "CCC", 62.41, "acyclic"),
+    ("butane", "CCCC", 79.40, "acyclic"), ("isobutane", "CC(C)C", 79.39, "acyclic"), ("pentane", "CCCCC", 96.40, "acyclic"),
+    ("neopentane", "CC(C)(C)C", 96.36, "acyclic"), ("hexane", "CCCCCC", 113.39, "acyclic"),
+    ("octane", "CCCCCCCC", 147.38, "acyclic"), ("decane", "CCCCCCCCCC", 181.36, "acyclic"),
+    ("allene", "C=C=C", 51.2, "acyclic"), ("ethene", "C=C", 39.7, "acyclic"), ("2-methylpropene", "CC(C)=C", 73.6, "acyclic"),
+    ("2-methyl-2-butene", "CC=C(C)C", 90.5, "acyclic"), ("2,3-dimethyl-2-butene", "CC(C)=C(C)C", 107.5, "acyclic"),
+    ("ethyne", "C#C", 38.4, "acyclic"), ("propyne", "CC#C", 55.3, "acyclic"),
+    ("dimethyl ether", "COC", 51.6, "hetero"), ("methanol", "CO", 36.1, "hetero"), ("acetone", "CC(C)=O", 64.9, "hetero"),
+    ("dimethyl sulfide", "CSC", 63.4, "hetero"), ("methanethiol", "CS", 47.3, "hetero"), ("methylamine", "CN", 40.2, "hetero"),
+    ("dimethylamine", "CNC", 58.8, "hetero"), ("trimethylamine", "CN(C)C", 75.3, "hetero"),
+    ("acetonitrile", "CC#N", 47.1, "hetero"), ("nitromethane", "C[N+](=O)[O-]", 50.6, "hetero"),
+    ("trimethylphosphine", "CP(C)C", 85.5, "hetero"),
+    ("fluoromethane", "CF", 32.2, "halide"), ("2-fluoropropane", "CC(C)F", 67.0, "halide"),
+    ("difluoromethane", "FCF", 36.9, "halide"), ("chloromethane", "CCl", 42.0, "halide"),
+    ("2-chloropropane", "CC(C)Cl", 77.0, "halide"), ("bromomethane", "CBr", 46.6, "halide"),
+    ("2-bromopropane", "CC(C)Br", 80.9, "halide"), ("iodomethane", "CI", 54.6, "halide"),
+    ("2-iodopropane", "CC(C)I", 90.5, "halide"),
+    ("cyclohexane", "C1CCCCC1", 102.0, "ring"), ("cyclohexanol", "OC1CCCCC1", 109.6, "ring"),
+    ("tetrahydropyran", "C1CCOCC1", 91.1, "ring"), ("adamantane", "C1C2CC3CC1CC(C2)C3", 147.0, "ring"),
+    ("bicyclohexyl", "C1CCC(CC1)C1CCCCC1", 192.5, "ring"),
+    ("benzene", "c1ccccc1", 80.3, "aromatic"), ("naphthalene", "c1ccc2ccccc2c1", 122.9, "aromatic"),
+    ("toluene", "Cc1ccccc1", 98.9, "aromatic"), ("hexylbenzene", "CCCCCCc1ccccc1", 183.8, "aromatic"),
+]
+
+
+def zhao_volumes() -> None:
+    """The same question on 46 molecules from a second transcription of Bondi's volumes, by kind of molecule."""
+    errors: dict[str, dict[str, list[float]]] = {}
+    for _name, smiles, reference, kind in ZHAO_CASES:
+        mol = _conformer(smiles)
+        for label, table in TABLES.items():
+            error = 100 * (_grid_volume(mol, table) - reference) / reference
+            for key in (kind, "all"):
+                errors.setdefault(key, {}).setdefault(label, []).append(error)
+    for kind, by_table in errors.items():
+        for label, values in by_table.items():
+            print(f"vdW volume vs Zhao et al. Tables 1 and 3, {kind:8} n={len(values):2d}  {label:15} "
+                  f"mean {statistics.mean(values):+5.2f}%  mean abs {statistics.mean(abs(v) for v in values):5.2f}%  "
+                  f"max abs {max(abs(v) for v in values):5.1f}%")
+
+
 if __name__ == "__main__":
     areas()
     steric_series()
     group_volumes()
+    zhao_volumes()

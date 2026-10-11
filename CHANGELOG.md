@@ -60,6 +60,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   evidence, `tests/test_vdw_radii.py` and `tests/test_vdw_radii_provenance.py` pin the tables and the sources, and
   `benchmarks/vdw_radii/radii_study.py` reproduces the numbers.
 
+- **Old Geometry results no longer say "Bondi".** A result saved before the radii were relabelled carried the stored line "Bondi
+  van der Waals radii.", which was never true of RDKit's table. It now loads with a reader's note in its place
+  (`STORED_TEXT_NOTES` in `domain/result_store.py`): the exact line only, with the numbers, the provenance and the method
+  version untouched, because a version bump would claim the numbers differ and they do not. `alvarez2013` joins the registry:
+  its Table 1 puts iron at 2.44 angstrom (the docking table has 1.56, supported by no published set), and measuring the
+  docking pose analysis showed that a ligand donor bonded to a zinc, iron or magnesium is also reported as a steric clash,
+  which is the real defect behind that number (not fixed here).
+
+- Five more papers read for the radii question (`harding1999`, `harding2000`, `harding2001`, `gavezzotti1983`, `zhao2003`).
+  Zhao et al.'s Tables 1 and 3 are a second transcription of Bondi's group volumes; on those 46 molecules Bondi's list errs
+  1.84% on average against RDKit's 2.12% and hydrogen 1.10's 7.71%, the whole difference being in halides (1.95% against
+  3.14%), so moving the surface calculators to Bondi is a provenance gain, not an accuracy one. Harding's tables give sourced
+  metal-donor distances (Zn-N 2.00, Fe-N 2.08, Mg-O 2.07, Ca-O 2.39 A) and a primary-sphere rule of target + 0.5 A, and show
+  sulfur is as good a donor as nitrogen. `benchmarks/vdw_radii/radii_study.py` gains the 46-molecule check.
+
 ### Help window: three things found by using it
 - **Clearing a search lost your place.** The x in the search box re-rendered the page and put it back at
   the top, so removing the highlighting read as being thrown back to the main menu. It now drops the marks,
@@ -69,6 +84,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **"Read the whole document" did nothing** on a document's own title, because that page already is the
   whole document. The button is disabled there, and a new **Open the file** button opens the markdown file
   in the system's program for it (and says so when there is none).
+
 
 ### Naming: ring systems keep their heteroatoms, numbering, hydrogen and name
 - A spiro heterocycle on a bridged ring was `tricyclo[...]undecane-1,3-dione` (every N gone), an N-attached triazinedione was numbered as a ring OPSIN cannot build, a spiro partner lost an azole N-H, a tricycle of three monocycles had no name, and a protonated or iminium N in a fused 4-ring was a NAMING ERROR (D-215 .. D-219). Census 1968 -> 1978 exact, visible failures 4 -> 0; fresh_v1 1950 -> 1951 of 2000 read back after its one re-score (97.55%).

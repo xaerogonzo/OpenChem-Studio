@@ -149,3 +149,87 @@ def test_a_steric_result_saved_before_the_change_is_kept_and_labelled():
     legacy, label = LEGACY_METHOD_VERSIONS["steric_analysis"]
     assert restored.identity.method_version == legacy == "legacy-rdkit-radii-v1"
     assert restored.result.name == label and label.startswith("Ligand Steric Bulk") and "previous method" in label
+
+
+# --- an older Geometry result said "Bondi" for RDKit's table: a reader's note, not a new method -----------------------
+
+
+def _geometry_result():
+    from rdkit.Chem import AllChem
+
+    from openchem.chem.geometry_analysis import compute_geometry_analysis
+
+    mol = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    AllChem.EmbedMolecule(mol, randomSeed=7)
+    AllChem.MMFFOptimizeMolecule(mol)
+    return compute_geometry_analysis(mol, "m", {})
+
+
+def _as_saved_before_the_relabel(result):
+    """The same result with the one line the earlier version wrote, which is what a saved project holds."""
+    from dataclasses import replace
+
+    from openchem.domain.result_store import STORED_TEXT_NOTES
+
+    (old,) = STORED_TEXT_NOTES["geometry_analysis"]
+    current = "Van der Waals radii from RDKit's table (Batsanov's recommended set, not Bondi's)."
+    facts = tuple(replace(f, limitations=tuple(old if t == current else t for t in f.limitations)) for f in result.facts)
+    return replace(result, facts=facts)
+
+
+def _round_trip(result):
+    from openchem.domain.result_store import SessionResultStore, StoredResult
+    from openchem.services.result_identity import make_identity
+
+    identity = make_identity(
+        molecule_uuid="m", result=result, calculation_input=GEOMETRY, input_fingerprint="fp", producer="core"
+    )
+    store = SessionResultStore("project")
+    store.put(StoredResult(identity=identity, result=result))
+    (restored,) = SessionResultStore.from_dict(store.to_dict(), "project").fresh_results("m", {GEOMETRY: "fp"})
+    return identity, restored
+
+
+def test_an_older_geometry_result_loads_with_a_note_where_it_said_bondi():
+    from openchem.domain.result_store import STORED_TEXT_NOTES
+
+    ((old, note),) = STORED_TEXT_NOTES["geometry_analysis"].items()
+    saved = _as_saved_before_the_relabel(_geometry_result())
+    assert any(old in f.limitations for f in saved.facts), "the fixture must carry the old line, or this proves nothing"
+
+    _identity, restored = _round_trip(saved)
+
+    shown = [text for fact in restored.result.facts for text in fact.limitations]
+    assert note in shown and old not in shown
+    assert "not Bondi's" in note and "numbers are unchanged" in note
+
+
+def test_the_note_changes_the_words_only_not_the_numbers_the_provenance_or_the_method():
+    saved = _as_saved_before_the_relabel(_geometry_result())
+    identity, restored = _round_trip(saved)
+
+    assert [f.value for f in restored.result.facts] == [f.value for f in saved.facts]
+    assert [f.display_value for f in restored.result.facts] == [f.display_value for f in saved.facts]
+    assert restored.result.provenance == saved.provenance
+    assert restored.identity.method_version == identity.method_version == CURRENT_METHOD_VERSIONS["geometry_analysis"]
+
+
+def test_a_current_geometry_result_never_says_the_old_line_so_the_note_cannot_shadow_live_text():
+    from openchem.domain.result_store import STORED_TEXT_NOTES
+
+    texts = {text for fact in _geometry_result().facts for text in fact.limitations}
+
+    assert not texts & set(STORED_TEXT_NOTES["geometry_analysis"])
+    assert any("RDKit's table" in text for text in texts)
+
+
+def test_only_an_exact_match_is_replaced():
+    from dataclasses import replace
+
+    result = _geometry_result()
+    other = "Bondi van der Waals radii, scaled."
+    unrelated = replace(result, facts=tuple(replace(f, limitations=(*f.limitations, other)) for f in result.facts))
+
+    _identity, restored = _round_trip(unrelated)
+
+    assert all(other in f.limitations for f in restored.result.facts)

@@ -1540,10 +1540,11 @@ in authored text (a DOI is built to outlive a site, a link is not), and Knowledg
 **Decided: which van der Waals radii (2026-10-11).** Ligand Steric Bulk uses Bondi's own list (`chem/vdw_radii.py`,
 method `steric-v2`); the surface, volume, projection and Geometry calculators keep RDKit's table, which the code now
 calls what it is (it equals Batsanov 2001's recommended radii, not Bondi's). Hydrogen 1.10 was not adopted for areas
-and volumes. Still open, none urgent: whether the surface calculators should one day follow Bondi too (areas move about
-0.5%, and it needs a method-version bump), and the docking table's `Fe` 1.56, which is in neither Bondi's nor Mantina's
-list and is untraced. Both were researched further the same day (Bondi's own group volumes as an oracle; a library
-search for Fe) and are Alex's to decide: see "The three open questions" in the assessment. `docs/VDW_RADII_ASSESSMENT.md` has the evidence.
+and volumes. An older Geometry result's "Bondi" line now loads with a reader's note (built). Still open, waiting on more sources
+before a decision: whether the surface calculators should follow Bondi's list, with a method-version bump (areas move about
+0.5%), and what to do about the docking table's metal radii. For the second, Alvarez 2013 puts iron at 2.44 angstrom against
+the table's untraced 1.56, and measuring the pose analysis showed the real defect: a ligand donor bonded to a metal is also
+reported as a steric clash, whatever the radius. `docs/VDW_RADII_ASSESSMENT.md` has the evidence.
 
 **Deferred, maintainer side:** replace the filename in `sources.toml`'s `local` field (a locator that drifts, and
 the subject of the deferred Sci Downloads naming round) with a `kv` lookup by DOI or hash, and add a coverage
