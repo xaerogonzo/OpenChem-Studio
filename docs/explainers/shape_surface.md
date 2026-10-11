@@ -5,9 +5,8 @@ is documented in `tools/calculator_explainers.py`. Every claim is **published** 
 **shipped** (read from the code) or **measured here** (a run on 2026-10-11, one RDKit-embedded, MMFF94-relaxed
 conformer per molecule, seed 7).
 
-The surface and steric calculators of this group are in `surface_steric.md`. Interaction Analysis, Molecular
-Dynamics and 3D Alignment are the three still to do. Geometry's radii note, below, is the same finding as the one
-at the top of that file: RDKit's van der Waals table is not Bondi's recommended list [source:bondi1964].
+The surface and steric calculators of this group are in `surface_steric.md`; the radii they and Geometry share, and what
+changed in method v3, are described at the top of that file.
 
 ## polar_surface_area
 
@@ -83,7 +82,7 @@ Describes the size and shape of the conformer on screen and gives its energy und
 ### How it works
 **Extent.** The distances from the centroid (the unweighted mean of the atom positions) to the nearest, the farthest and the average atom.
 
-**Shadows.** The molecule is drawn as a union of spheres, one per atom, of the atom's van der Waals radius times a scale factor (default 1). Its shadow in a viewing direction is the union of the discs they project, and the area of that union is computed exactly, not on a grid. The smallest and largest shadow are found by searching the viewing directions: about a thousand orientations are sampled over the sphere, the area is exact at each, and the best are refined locally (measured: benzene, 990 orientations, smallest shadow 18.75 square angstroms, where measuring on the three principal planes and calling the smaller "minimal" gives 20.07). The radii are RDKit's van der Waals table, which follows Bondi's scale (the most widely used scale of van der Waals radii [source:crc_handbook]) but is not his recommended list: it differs for nitrogen, oxygen, fluorine and phosphorus, by at most about 2% in an area [source:bondi1964].
+**Shadows.** The molecule is drawn as a union of spheres, one per atom, of the atom's van der Waals radius times a scale factor (default 1). Its shadow in a viewing direction is the union of the discs they project, and the area of that union is computed exactly, not on a grid. The smallest and largest shadow are found by searching the viewing directions: about a thousand orientations are sampled over the sphere, the area is exact at each, and the best are refined locally (measured: benzene, 990 orientations, smallest shadow 18.75 square angstroms, where measuring on the three principal planes and calling the smaller "minimal" gives 20.07). The radii are Bondi's own list, the most widely used scale of van der Waals radii [source:crc_handbook] [source:bondi1964], extended for the sixteen main-group elements he gave none for by the radii of Mantina and co-workers [source:mantina2009]; they are shared with the surface and steric calculators. Before method geometry-v3 the radii were RDKit's table, which is a different set (Batsanov's) that this application had called Bondi's; the change moved the smallest shadow by -0.8% on average and the largest by -0.7% over 17 drug-like molecules (worst -2.8% and -2.4%), because the two sets differ for nitrogen, oxygen, fluorine, phosphorus and the halogens, and not for hydrogen, carbon or sulfur. A result saved by the earlier method is kept beside the new one and labelled.
 
 **Energies.** Each force field is evaluated at the geometry as it is. **MMFF94** was derived mainly from high-quality computational data, about 500 structures optimized at HF/6-31G*, 475 at MP2/6-31G* and further sets evaluated at higher levels, as a combined organic and protein force field [source:halgren1996_mmff1]; it is reached through RDKit's port [source:tosco2014]. **UFF**, the Universal force field, estimates its parameters from general rules that use only the element, its hybridization and its connectivity, so it covers the full periodic table [source:rappe1992]. **Dreiding** is also a generic force field: it takes bond lengths from atomic radii and uses one force constant each for bonds, angles and inversions and only six torsional barriers, all from simple hybridization rules [source:mayo1990]. Shipped: Dreiding is implemented here from that paper, with neither charges nor an explicit hydrogen-bond term, which is how the paper reports its own results, and it covers 37 atom types and declines outside them; the application's own check reproduces all eight rotational barriers the paper computes with Dreiding to within 0.008 kcal/mol (`docs/DREIDING_ASSESSMENT.md`). Any of the three can be absent for a molecule it has no parameters for, and nothing is substituted.
 
@@ -104,4 +103,5 @@ force field energy, MMFF94 UFF Dreiding, projection area, molecular shape
 - [source:mayo1990] -- what Dreiding is and how its parameters are generated
 - [source:tosco2014] -- RDKit's implementation of MMFF94, through which the energy is computed
 - [source:crc_handbook] -- Bondi's van der Waals radii as the most widely used scale
-- [source:bondi1964] -- Bondi's recommended radii, against which RDKit's table was compared
+- [source:bondi1964] -- Bondi's recommended radii, which the shadow is drawn with
+- [source:mantina2009] -- the radii for the main-group elements Bondi gave none for

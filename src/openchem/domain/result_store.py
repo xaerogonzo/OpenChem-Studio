@@ -65,15 +65,22 @@ FRAGMENT_COUNTS_METHOD = "structural-features-v3"
 #: The method Geometry is computed by today (`chem/geometry_analysis.py`). Declared here, with the
 #: other methods, so the store needs no import from the chemistry layer. v2 (2026-10-10) searches
 #: the orientations for the minimum and maximum projection; a saved result without a method
-#: measured them on the three principal planes and is kept beside this one, labelled as such.
-GEOMETRY_METHOD = "geometry-v2"
+#: measured them on the three principal planes and is kept beside this one, labelled as such. v3 (2026-10-11) uses
+#: Bondi's own van der Waals radii (`chem/vdw_radii.py`) where v2 used RDKit's table and called it Bondi's; the
+#: projection figures move by well under 1% for hydrocarbons and by a few percent where nitrogen, oxygen, phosphorus
+#: or a halogen is exposed (measured on 17 drug-like molecules: minimum projection area -0.8% on average, worst -2.8%).
+#: A v2 result is kept beside the new one, labelled, never replayed as it.
+GEOMETRY_METHOD = "geometry-v3"
 
 #: The method the surface calculators are computed by today. v2 (2026-10-10) passes real van der
 #: Waals radii to the solvent-accessible surface; a result without a method was computed with a
 #: radius of ZERO for every atom (`rdFreeSASA.classifyAtoms` knows only PDB atom names), so its
 #: areas are a fraction of the true ones (ethanol 97 against 199 A^2) and it is kept beside the
-#: new result, labelled, never replayed as one.
-SURFACE_METHOD = "surface-v2"
+#: new result, labelled, never replayed as one. v3 (2026-10-11) uses Bondi's own radii where v2 used RDKit's table
+#: (called Bondi's, and not: it is Batsanov's). Measured on 17 drug-like molecules: accessible area -0.4% on average
+#: (worst -1.9%), van der Waals volume -1.4% (worst -4.5%). The volume is now computed by `sasa.enclosed_volume`, since
+#: RDKit's routines take no radii. v2 results are kept beside, labelled.
+SURFACE_METHOD = "surface-v3"
 
 #: The method Ligand Steric Bulk is computed by today (`chem/steric.py`). v2 (2026-10-11) uses Bondi's own van der
 #: Waals radii (Table I of the 1964 paper, extended by Mantina et al. 2009) where the first version used RDKit's
@@ -157,6 +164,15 @@ def _with_reader_notes(result_id: str, result: object) -> object:
 SUPERSEDED_METHOD_VERSIONS: dict[str, dict[str, str]] = {
     "fragment_counts": {
         "structural-features-v2": "Fragment Counts (previous method: vocabulary v2)",
+    },
+    "geometry_analysis": {
+        "geometry-v2": "Geometry (previous method: RDKit's radii, which it called Bondi's)",
+    },
+    "surface_analysis": {
+        "surface-v2": "Molecular Surface Area (3D) (previous method: RDKit's radii, which it called Bondi's)",
+    },
+    "atom_sasa": {
+        "surface-v2": "Accessible Surface Area (per atom) (previous method: RDKit's radii, which it called Bondi's)",
     },
 }
 

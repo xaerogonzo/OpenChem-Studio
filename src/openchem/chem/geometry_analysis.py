@@ -66,6 +66,7 @@ from openchem.chem.projection_geometry import (
     shape_descriptors,
 )
 from openchem.domain.common import CacheState, Provenance
+from openchem.chem.vdw_radii import RADII_LABEL
 from openchem.domain.result_store import GEOMETRY_METHOD
 from openchem.domain.report import Fact, FactCategory, ReportResult, AxesAnnotation, valid_spatial_annotation
 from openchem.domain.structure_issue import Basis
@@ -273,7 +274,7 @@ def compute_geometry_analysis(
     scale_note = (
         f"Van der Waals radii scaled by {options.radius_scale:g}."
         if options.radius_scale != 1.0
-        else "Van der Waals radii from RDKit's table (Batsanov's recommended set, not Bondi's)."
+        else "Van der Waals radii: Bondi's list, with Mantina et al.'s for the elements he gave none for."
     )
     searched = (
         "Found by searching "
@@ -448,6 +449,7 @@ def compute_geometry_analysis(
         "optimise_projection": options.optimise_projection,
         "optimisation_limit": level_name(options.optimisation_limit),
         "radius_scale": options.radius_scale,
+        "radii": RADII_LABEL,
         "orientations_searched": shape.orientations_searched,
         "input_geometry": geometry_fingerprint(mol),
         "measured_geometry": geometry_fingerprint(shape_mol),
