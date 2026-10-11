@@ -61,6 +61,13 @@ SOURCE_MANTINA = "mantina2009"
 #: What `radius_source` answers for an element in neither table: RDKit's own radius is the fallback.
 SOURCE_RDKIT = "rdkit"
 
+#: How each source is named where a person reads it (the periodic table's detail pane).
+SOURCE_LABELS: dict[str, str] = {
+    SOURCE_BONDI: "Bondi 1964",
+    SOURCE_MANTINA: "Mantina et al. 2009, on Bondi's scale",
+    SOURCE_RDKIT: "RDKit's table, Batsanov 2001's set",
+}
+
 #: What a result computed with this table records as its radii, so a stored value says which table made it.
 RADII_LABEL = "bondi1964+mantina2009 (rdkit for other elements)"
 
@@ -80,6 +87,11 @@ def radius_source(atomic_number: int) -> str:
     if symbol in MANTINA_2009:
         return SOURCE_MANTINA
     return SOURCE_RDKIT
+
+
+def radius_source_label(atomic_number: int) -> str:
+    """`radius_source` as a phrase for a reader, e.g. "Bondi 1964"."""
+    return SOURCE_LABELS[radius_source(atomic_number)]
 
 
 def bondi_radius(atomic_number: int) -> float:

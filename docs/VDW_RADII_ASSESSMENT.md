@@ -272,18 +272,41 @@ that programs give ethanol's volume as 76, 41 or 52 cubic angstrom. Together wit
 literature offers no single true radius for a surface, only conventions, and Bondi's is the one the volume literature and the
 buried-volume papers share.
 
-**Metal-donor distances** [source:harding2001], from Harding's three papers [source:harding1999] [source:harding2000]. Target
-distances (angstrom) for a donor bonded to a metal, from small-molecule structures (the carboxylate values for Ca, Mg, Mn and
-Zn are from protein structures at 1.6 angstrom or better): Zn to histidine nitrogen 2.00, to water 2.09, to
-cysteine sulfur 2.29; Fe to histidine nitrogen 2.08, to water 2.09, to cysteine sulfur 2.27; Mg to water 2.07, to carboxylate
-2.26; Ca to water 2.39, to carboxylate 2.36. A donor is in the primary coordination sphere within **the target plus 0.5
-angstrom**, and weakly bonded additional donors of Zn and Cu sit at 2.4 to 3.0 (Zn) and 2.6 to 3.0 (Cu) angstrom, "shorter
-than a van der Waals contact". The coordination distances used in the clash measurement below (2.0 to 2.4) are within
-Harding's ranges. Two things follow for the code: the application's single 2.8 angstrom coordination cutoff is of the right
-size for these metals but is not metal- or donor-specific; and **sulfur belongs among the donors** (Zn-S 2.29, Fe-S 2.27 are
-as well-defined as the nitrogen and oxygen values), which `interaction_analysis` excludes. Harding covers Ca, Mg, Mn, Fe, Cu
-and Zn only: there are no sourced distances for sodium, potassium, cobalt or nickel, which the docking module lists, and
-Harding's sodium and potassium paper (Acta Cryst. D 2002, 58, 872) would be the next to ask for.
+**Metal-donor distances**, from Harding's papers, current table [source:harding2006] (supersedes [source:harding2001] and
+[source:harding2002]). Target metal-donor distances in angstrom, small-molecule and protein structures combined, read from the
+paper's own Table 4 (a mark of three stars means a standard deviation of about 0.05, two 0.10, one 0.15 to 0.20):
+
+| metal | O water | O carboxylate | O carbonyl | N histidine | S cysteine |
+|---|---|---|---|---|---|
+| Na | 2.41 | 2.41 | 2.38 | | |
+| K | 2.81 | 2.82 | 2.74 | | |
+| Mg | 2.07 | 2.07 | 2.26 | | |
+| Ca | 2.39 | 2.36 | 2.36 | | |
+| Fe | 2.09 | 2.04 | 2.04 | 2.16 | 2.30 |
+| Co | 2.09 | 2.05 | 2.08 | 2.14 | 2.25 |
+| Zn | 2.09 | 1.99 | 2.07 | 2.03 | 2.31 |
+
+**Nickel** is not in Harding. Zheng et al.'s Table 3, from the Cambridge Structural Database [source:zheng2017], gives Ni-O
+(water) 2.08, Ni-N 1.89 and 2.09 and Ni-S 2.18 and 2.46 (two values each where given), and for cobalt Co-N 1.95 and 2.14, which agrees
+with Harding's 2.14. A donor is in the primary coordination sphere within the target plus 0.5 angstrom for the transition
+metals, Mg and Ca, but **plus 0.75 for sodium and potassium** [source:harding2002], whose interactions are "predominantly
+electrostatic" and for which a distance 0.5 angstrom shorter than the target is not acceptable while one 0.5 longer is
+possible. Weakly bonded extra N and O donors of Zn and Cu sit at 2.4 to 3.0 and 2.6 to 3.0 angstrom [source:harding2000],
+"shorter than a van der Waals contact". Harding 2002's conclusions printed the sodium and potassium distances interchanged;
+the corrigendum gives K 2.84 and Na 2.42 [source:harding2013] (the tables were right).
+
+Four things follow for the code. **The 2.8 angstrom coordination cutoff** is a good size for the transition metals (target plus
+0.5 is 2.5 to 2.9) but is **too short for potassium** (target 2.81, so the primary sphere runs to about 3.6), and a single
+number cannot be right for both. **Sulfur belongs among the donors** (Zn-S 2.31, Fe-S 2.30, Co-S 2.25, Ni-S 2.18), which
+`interaction_analysis` excludes. **The docking table has no sourced distance for any metal not in the table above**; nickel
+now has one (Zheng), manganese and copper have Harding's. And a **bond to a metal is not a contact**, which is the logic fix
+described below; sodium and potassium are the cases where even that threshold is soft.
+
+**More on why no contact-based radius is used for metals.** Chernyshov, Ananyev and Pidko [source:chernyshov2020] find that sums
+of tabulated radii, Bondi's included, fall short of the energy-minimum distance by as much as 0.3 to 0.4 angstrom, which is a
+statement about contacts and not about volumes (Bondi chose his radii for volumes), and that the concept of a van der Waals
+radius should be applied with special care to atoms in confined tetrahedral or octahedral environments, naming most d and f
+elements. That is the same caution as Alvarez's, and the reason the metals' radii are not a free parameter to be tuned.
 
 ## A third published set, and what it did to the Fe question (2026-10-11)
 
