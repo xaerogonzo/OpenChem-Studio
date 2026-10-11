@@ -86,6 +86,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in the system's program for it (and says so when there is none).
 
 
+- **The accessible surface, van der Waals volume, projections and Geometry now use Bondi's own radii** (`chem/vdw_radii.py`),
+  the table Ligand Steric Bulk already used: methods `surface-v3` and `geometry-v3`. Over 17 drug-like molecules, accessible area
+  moves -0.4% on average (worst -1.9%), van der Waals volume -1.4% (worst -4.5%), the smallest shadow -0.8%; hydrocarbons do
+  not move, the whole change is in the elements Bondi's list and RDKit's table disagree about. Results saved by v2 are kept
+  beside the new ones and labelled "previous method", never replayed as the new. Because RDKit's volume routines take no
+  radii, the volume is now the divergence theorem over the surface points (`sasa.enclosed_volume`, within 0.25% of a fine
+  grid against RDKit's 1.2%) with an independent grid count as its check (`sasa.grid_volume`), which also retires the lone
+  atom as the known exception to that check. Hydrogen stays 1.20.
+
 ### Naming: ring systems keep their heteroatoms, numbering, hydrogen and name
 - A spiro heterocycle on a bridged ring was `tricyclo[...]undecane-1,3-dione` (every N gone), an N-attached triazinedione was numbered as a ring OPSIN cannot build, a spiro partner lost an azole N-H, a tricycle of three monocycles had no name, and a protonated or iminium N in a fused 4-ring was a NAMING ERROR (D-215 .. D-219). Census 1968 -> 1978 exact, visible failures 4 -> 0; fresh_v1 1950 -> 1951 of 2000 read back after its one re-score (97.55%).
 

@@ -1,11 +1,13 @@
 """Bondi's van der Waals radii, as the paper prints them, for the calculators that say they use them.
 
-`docs/VDW_RADII_ASSESSMENT.md` is the investigation. The short version: the surface, volume and projection
-calculators take their radii from RDKit's periodic table, which is NOT Bondi's list (it equals Batsanov 2001's
-recommended crystallographic radii), and for most purposes that is fine. **Percent buried volume is the exception.**
-It is defined with Bondi's radii [source:bondi1964] scaled by 1.17 (SambVca, Poater et al. [source:poater2009] and Clavier and Nolan [source:clavier2010]), and RDKit's
-phosphorus radius (1.95) is far from Bondi's (1.80), which put small phosphines 2 to 3.6 points high. So the steric
-calculator, and only it, reads this table.
+`docs/VDW_RADII_ASSESSMENT.md` is the investigation. The short version: RDKit's periodic table, which this application
+used for the surface, volume and projection calculators and called Bondi's, is NOT Bondi's list (it equals Batsanov 2001's
+recommended crystallographic radii). **Percent buried volume needed Bondi's radii first.** It is defined with them
+[source:bondi1964] scaled by 1.17 (SambVca, Poater et al. [source:poater2009] and Clavier and Nolan [source:clavier2010]),
+and RDKit's phosphorus radius (1.95) is far from Bondi's (1.80), which put small phosphines 2 to 3.6 points high. The
+steric calculator moved in method steric-v2; the accessible surface, van der Waals volume, projections and Geometry moved
+in surface-v3 and geometry-v3 (2026-10-11), so this is now the one table for all of them. The docking module keeps its own,
+for contacts.
 
 **WHAT IS IN IT, AND WHERE EACH NUMBER IS FROM.**
 

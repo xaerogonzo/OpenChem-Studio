@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: e88af315a73eef6cc4901a289180a2e8d16d419b6feccc755c37da8bed978fe4 -->
+<!-- SOURCE SHA256: edd859cc17c4c2f43c2327c218e58e0b6a9ba152b4b9db303c9786c953933c4e -->
 
 # Sources
 
@@ -1967,7 +1967,7 @@ The PDF carries no DOI (typeset 1996); the identifier is what page 1 prints.
 | Verification | citation + claim |
 | Verified | 2026-10-11 |
 | Local copy | `bondi1964.pdf` (not checked) |
-| Used by | `src/openchem/chem/vdw_radii.py`, `src/openchem/chem/steric.py` |
+| Used by | `src/openchem/chem/vdw_radii.py`, `src/openchem/chem/steric.py`, `src/openchem/chem/surface_analysis.py`, `src/openchem/chem/projection_geometry.py` |
 
 THE PDF PRINTS NO DOI (typeset 1964, before DOIs existed), so the identifier is not read from the file: it is Crossref's DOI for this journal, volume and first page (queried 2026-10-11), and its title, author, journal, volume and pages match what page 1 of the PDF prints.
 

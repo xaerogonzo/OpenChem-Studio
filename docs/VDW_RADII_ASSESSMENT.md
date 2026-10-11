@@ -5,14 +5,32 @@ Investigated 2026-10-11, after reading Bondi's 1964 paper for the explainers and
 file), **measured** (a run, with the method stated) or **reported** (seen only through a search summary, not read
 directly). The decision it asks for is at the end.
 
-## The decision (Alex, 2026-10-11)
+## Update (Alex, 2026-10-12): the surface calculators moved to Bondi's list too
+
+After the evidence below (Bondi's own volumes reproduced best by his list, and a provenance gain for one table behind every
+calculator), Alex chose the version bump: **the accessible surface, van der Waals volume, projections and Geometry now use
+Bondi's own radii** (`chem/vdw_radii.py`), as Ligand Steric Bulk already did. Methods `surface-v3` and `geometry-v3`; results
+saved by `surface-v2` and `geometry-v2` are kept beside the new ones, labelled "previous method", never replayed as the new.
+Hydrogen stays 1.20. Two consequences worth recording:
+
+- **The volume routine had to change.** RDKit's `DoubleCubicLatticeVolume` and `ComputeMolVolume` take no radii, so the volume
+  is now `sasa.enclosed_volume` (the divergence theorem over the same surface points the areas use) with `sasa.grid_volume`
+  as the independent check. Measured on six molecules against a 0.03 angstrom grid, the new volume is within 0.25% and
+  RDKit's routine within 1.2%; a lone sphere is exact. The old "lone atom is the known exception to the cross-check" is gone.
+- **The size of the move, over 17 drug-like molecules** (v3 against v2): accessible area -0.4% on average (worst -1.9%), van der
+  Waals volume -1.4% (worst -4.5%), smallest shadow -0.8% (worst -2.8%), largest shadow -0.7% (worst -2.4%). All of it comes
+  from the elements the two tables disagree about; hydrocarbons are unchanged.
+
+What stays open is Question 2, the docking table's metals, which is a logic fix more than a radius.
+
+## The decision (Alex, 2026-10-11): what it was before the update above
 
 - **B for the steric calculator.** Ligand Steric Bulk now uses Bondi's own radii (`chem/vdw_radii.py`, method `steric-v2`),
   extended where Bondi gave none by Mantina et al.'s sixteen. Older saved results are kept and labelled
   (`legacy-rdkit-radii-v1`), never replayed as the new method.
-- **A for everything else.** The surface, volume, projection and Geometry calculators keep RDKit's table, now **called what
-  it is** in the code, the Geometry result's limitation line and the stored provenance (`radii: "rdkit_rvdw"`). No number
-  changes.
+- **A for everything else (superseded 2026-10-12, see above).** The surface, volume, projection and Geometry calculators kept
+  RDKit's table, **called what it is** in the code, the Geometry result's limitation line and the stored provenance
+  (`radii: "rdkit_rvdw"`). No number changed. They have since moved to Bondi's list.
 - **C (hydrogen 1.10) is not taken for the surface calculators**, after reading Rowland and Taylor and Mantina et al.: see
   "What the three papers add".
 - The docking module's table keeps hydrogen 1.10, which is the right value for the thing it does (contacts), and is now
