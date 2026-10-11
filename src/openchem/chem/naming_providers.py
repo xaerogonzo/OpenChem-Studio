@@ -526,6 +526,8 @@ def _opsin_scratch():
             pass
 
 
+#: A CIP/E-Z stereodescriptor group such as `(1R,5S)-` or `(E)-`. `opsin_readable_spellings` strips them when OPSIN cannot assign descriptors itself
+#: (a bis-adamantane), so the connectivity can still be checked.
 _STEREO_DESCRIPTOR = re.compile(r"\((?:\d+[a-z]?'*[RSEZrsMP](?:,|(?=\)))|[RSEZ](?=\)))+\)-?|\((?:[EZ])\)-?")
 
 
