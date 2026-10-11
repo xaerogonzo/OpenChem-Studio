@@ -84,6 +84,12 @@ class ExecutionPlan:
     #: overrides runs on its defaults, exactly as `batch_service` builds them.
     parameters: Mapping[str, Mapping[str, Any]]
     excluded: tuple[ExcludedJob, ...] = field(default_factory=tuple)
+    #: What the service was told about settings: only what somebody chose (see `overrides`).
+    #: Kept so a later one-molecule run for the same table -- a Details view computing what a
+    #: molecule is missing -- uses the SAME settings, never two calculations under one name.
+    requested_parameters: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
+    #: How a per-atom result became one number in this run's table.
+    per_atom_aggregate: str = "mean"
 
     @property
     def molecule_count(self) -> int:

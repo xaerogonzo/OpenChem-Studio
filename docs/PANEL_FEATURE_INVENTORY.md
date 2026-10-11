@@ -43,18 +43,18 @@ Files: `src/openchem/ui/panels/batch_panel.py` (the picker and run controls),
 
 | ID | What it does today | Status | New home / what is missing |
 |---|---|---|---|
-| B01 | **Molecule scope.** A "Molecules" section (collapsed by default) with a tick list, *All molecules* and *No molecules* buttons. Everything starts ticked; ticks survive a rebuild by uuid; a different project resets to all; not remembered between launches. | `PORTED` | Properties "Run on" (This molecule / All N / Chosen...) and the molecule checklist dialog; the chosen set also survives by uuid. `verify`: the dialog has no one-press *No molecules*. |
+| B01 | **Molecule scope.** A "Molecules" section (collapsed by default) with a tick list, *All molecules* and *No molecules* buttons. Everything starts ticked; ticks survive a rebuild by uuid; a different project resets to all; not remembered between launches. | `PORTED` | Properties "Run on" (This molecule / All N / Chosen...) and the molecule checklist dialog; the chosen set also survives by uuid. The dialog has *All* and *None* buttons, and OK is disabled with nothing ticked (checked 2026-10-10). |
 | B02 | **Scope readout** line: "N molecules in this project." or "k of N molecules selected." Always visible even when the list is collapsed. | `PORTED` | Properties scope labels. |
-| B03 | **An empty scope is refused** ("Tick at least one molecule first."), never run as "everything". | `verify` | Check `Chosen` with nothing chosen refuses rather than runs all. |
+| B03 | **An empty scope is refused** ("Tick at least one molecule first."), never run as "everything". | `PORTED` | `Chosen` with nothing chosen says "No molecules in that scope." and runs nothing (`scope_molecules()` is empty; read 2026-10-10). |
 | B04 | **Property filter** box: filters the *list*, never the results; hidden ticks stay ticked and run; a group with no match is hidden, not shown empty. | `PARTIAL` | Properties "Find a calculator" does this for calculators. It cannot find a **descriptor** or an **alert catalog**, because those are not listed individually in Properties (B06, B07). |
 | B05 | **The picker is a tree**: Descriptors / Structural alerts / Calculators, each grouped, with a *Basis* column and the calculator description as a tooltip. | `PARTIAL` | Calculators are in Properties, grouped and A-Z. See B06, B07 for the other two branches. `verify`: whether Properties shows the basis on each calculator row. |
-| B06 | **36 descriptors, individually tickable**, grouped by descriptor category. | `MISSING` | Properties has one box, "Include always-on properties": all of them or none. Picking *only* logP and TPSA for a project table is not possible there. |
-| B07 | **5 structural-alert catalogs, individually tickable** (PAINS, Brenk and the others). | `MISSING` | One box, "Include structural alerts", all-or-none. |
-| B08 | **Calculators offered = every one with a registry execution**, regardless of its default visibility. | `verify` | Properties hides some calculators by default (maturity) and a preset skips them ("N hidden by default, not ticked"). A calculator Batch could run but Properties hides is a silent loss unless there is a reveal. Check which. |
-| B09 | **Group tick boxes** on every branch/category, tristate computed by hand; ticking a group never touches children the filter is hiding; each group reads "n / total" ticked. | `verify` | Properties sections have per-section ticks of their own; whether there is a tick-whole-section and a count needs a live look. |
-| B10 | **Select all** (ticks only what the filter shows; status says how many, "shown" or "available") and **Clear selection** (selection only; results and filter untouched). | `PARTIAL` | Presets (apply a named set) and Find exist; there is no select-all-shown. `verify`. |
-| B11 | **The selection is remembered** between launches (`batch/selected_property_ids`): ids not positions; an id that no longer exists is dropped silently. | `PARTIAL` | One-time, non-destructive copy into a preset named "From the Batch panel". **It keeps calculator ids only: any descriptor or alert id in the saved selection is dropped by the copy** (`clean_ids` is given the calculator ticks as the known set). The old key is left untouched. |
-| B12 | **Per-calculator settings.** Double-click a leaf or right-click > *Settings...* opens the calculator's settings dialog. Only calculators somebody actually configured send parameters; the rest run on registry defaults; settings are frozen when the run starts. "That property has nothing to configure." for a calculator with none. | `PARTIAL` | "Settings for project runs..." in the Properties menu. `verify`: no double-click or right-click on a calculator row for this in the project route. |
+| B06 | **36 descriptors, individually tickable**, grouped by descriptor category. | `PORTED` | "Include always-on properties" has a **Choose...** button: a grouped, filterable picker (`PropertyChoiceDialog`) with All shown / None shown. The box says "(2 of 41)" when a subset is chosen. (41, not 36: the five shape descriptors are listed too.) |
+| B07 | **5 structural-alert catalogs, individually tickable** (PAINS, Brenk and the others). | `PORTED` | Same picker behind "Include structural alerts" > **Choose...**. |
+| B08 | **Calculators offered = every one with a registry execution**, regardless of its default visibility. | `PORTED` (changed on purpose) | Properties hides some calculators by default (maturity); the "N calculators hidden by default -- Settings..." link under the list reveals them, after which they tick like any other. A preset skips the hidden ones and says how many. Not a silent loss. |
+| B09 | **Group tick boxes** on every branch/category, tristate computed by hand; ticking a group never touches children the filter is hiding; each group reads "n / total" ticked. | `PARTIAL` | Right-click a calculator > *Tick / Untick every calculator in this section*: touches only rows Find is showing and never the hidden-by-default ones. **No "n / total" readout and no tristate on the section heading**; the picker dialog for properties has both. |
+| B10 | **Select all** (ticks only what the filter shows; status says how many, "shown" or "available") and **Clear selection** (selection only; results and filter untouched). | `PORTED` | Presets menu > **Tick all shown** (adds to what is ticked; status "Ticked N shown."), and the existing **Clear**. |
+| B11 | **The selection is remembered** between launches (`batch/selected_property_ids`): ids not positions; an id that no longer exists is dropped silently. | `PORTED` | One-time, non-destructive copy into a preset named "From the Batch panel", now carrying descriptor and alert ids too (a preset can hold them). A copy made before that is upgraded once, by its own marker, **only if it still holds exactly the calculators it was given**; one the person edited, renamed or deleted is left alone. The old key is untouched. |
+| B12 | **Per-calculator settings.** Double-click a leaf or right-click > *Settings...* opens the calculator's settings dialog. Only calculators somebody actually configured send parameters; the rest run on registry defaults; settings are frozen when the run starts. "That property has nothing to configure." for a calculator with none. | `PORTED` | Right-click a calculator's button > *Settings for project runs...* (offered only where the calculator has settings and a project route exists). Not double-click: a calculator's button already means "open it". |
 | B13 | **Per-atom values as:** (sum / mean / and the other reductions) controlling how a per-atom result becomes one number; the column header records which. | `PORTED` | `_scope_aggregate` in Properties, same reduction list. |
 
 ### 1b. Running
@@ -78,7 +78,7 @@ Files: `src/openchem/ui/panels/batch_panel.py` (the picker and run controls),
 | B23 | **The table**: one row per molecule; sortable with numeric sort keys (failed cells sort to one end); failed cell = grey dash + reason tooltip; a result with no single number (per-atom map, spectrum) = blue italic text with "double-click to open"; cell tooltips carry basis, method, parameters, value; header tooltips carry source, basis, "text column". Column widths sampled from 20 rows and capped at the viewport. | `SHARED` | `ProjectTableView`. |
 | B24 | **Columns...** menu (also right-click on the header): hide whole categories, *Show all*; status "Showing x of y columns (n group(s) hidden)". View only; exports still write everything. | `SHARED` | |
 | B25 | **Export CSV** and **Export Report** (Markdown with provenance). Both write every column, hidden or not. | `SHARED` | |
-| B26 | **Details...** (selected row, or double-click) opens the molecule's merged report in the Properties renderer. **If the ticked properties are not yet computed for that molecule it computes them first** ("Computing name..."), refuses while another run is in progress, and uses the same parameters as the table. | `PARTIAL` | The dialog is shared. Results' Project table does **not** compute what is missing; it says nothing is retained. This is a real gap while Batch exists. |
+| B26 | **Details...** (selected row, or double-click) opens the molecule's merged report in the Properties renderer. **If the ticked properties are not yet computed for that molecule it computes them first** ("Computing name..."), refuses while another run is in progress, and uses the same parameters as the table. | `PORTED` | Results' Project table Details computes the table's **calculators** the molecule has no current result for, on the table's own settings, through `BatchService`, then opens; it never replaces the table and is refused while another run is going. **Not computed: always-on properties and alert catalogs**, which are cells of the table and not entries of the store the dialog reads (the Batch panel asked for them on every press and nothing showed them). |
 | B27 | **Inspect...** buttons for results with their own view, with the inspector budget refusal ("Too many inspectors open"). | `SHARED` | `BatchDetailDialog`. |
 | B28 | **Analyse...**: Correlation (X/Y, and *Correlate Y against everything*, the confound check), Chemical space, Clustering, Distributions, and a Per-atom tab only when per-atom data exists for 2+ molecules. Refuses with a message when no numeric column exists. | `LAUNCH` | `BatchAnalysisDialog` is untouched; the Project table page carries the button and the callback is wired. |
 | B29 | **Virtual Screening...** button. | `LAUNCH` | See D22. Its help text wrongly described a property filter; fixed, see section 5. |
@@ -301,9 +301,10 @@ SMILES) is separate and already in Properties.
    belongs (D22).
 2. **The Batch structure-version defect** (B22), already known, restated here because
    it is a Batch behaviour the new route does not share.
-3. **The migration drops descriptor and alert ids** (B11). A person who saved a Batch
-   selection of individual descriptors would find only the calculators in the
-   imported preset.
+3. **FIXED 2026-10-10. The migration dropped descriptor and alert ids** (B11). A person who
+   saved a Batch selection of individual descriptors found only the calculators in the
+   imported preset. Presets can hold them now, and a copy made before is upgraded once if
+   the person has not touched it.
 4. **Quantum Chemistry is the target of other surfaces** (Q27): Properties' `orca.*`
    rows and the "open NMR"/"open IR" report links reveal the panel and select a
    calculation type or tab. They route by the panel id `Quantum_Chemistry`, so the
@@ -332,11 +333,12 @@ These are recommendations to react to, not decisions.
   3D Alignment) are *workflows with their own inputs*. Cramming them into ticks would
   lose D01-D08. Expandable **sections** that each hold a workflow's inputs and a Run
   button fit what was described ("submenus or expansions, minimise and maximise").
-- **Batch is mostly done, and the gaps are specific.** The results half (B23-B25, B27,
-  B31) is the same code in both homes, and B28/B29 are dialogs that stay. What is
-  missing: B06 and B07 (individual descriptors and alert catalogs), B26 (Details
-  computing what is missing), B11 (descriptor ids dropped by the copy), B12 (the
-  settings shortcut), B10 (select-all-shown), plus the rows marked `verify`.
+- **Batch is done except two small things.** The results half (B23-B25, B27, B31) is the
+  same code in both homes, and B28/B29 are dialogs that stay. The gaps this list named
+  (B06, B07, B10, B11, B12, B26) were closed on 2026-10-10 and the `verify` rows settled.
+  What remains: B09 has no "n / total" readout or tristate on a section heading, and
+  B33/B35 (help contracts for the old picker's controls, drive steps for settings and
+  scope) are still the Batch panel's own while it exists.
 - **D07 is the hard one for Docking.** The 3D box exists only while the Docking dock is
   in front. In a single panel that rule needs a new definition.
 - **Keep `SearchOptionsControls` and the pose-table help contracts exactly as they

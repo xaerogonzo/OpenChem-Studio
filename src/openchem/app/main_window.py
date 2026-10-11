@@ -108,6 +108,8 @@ from openchem.ui.panels.alignment_panel import AlignmentPanel
 from openchem.ui.panels.atom_inspector_panel import AtomInspectorPanel
 from openchem.ui.panels.interactions_panel import InteractionsPanel
 from openchem.ui.panels.batch_panel import BatchPanel
+from openchem.ui.dialogs.calculator_settings_dialog import plain_label
+from openchem.ui.dialogs.goal_wizard_dialog import GoalWizardDialog
 from openchem.ui.panels.docking_panel import DockingPanel
 from openchem.ui.panels.jobs_panel import JobsPanel
 from openchem.ui.panels.project_explorer_panel import ProjectExplorerPanel
@@ -202,6 +204,7 @@ _MENU_KEYWORDS: dict[str, tuple[str, ...]] = {
         "mixture", "explosive", "detonation", "anfo", "blend",
     ),
     "Receptor Library...": ("pdb", "protein", "target", "docking"),
+    "Run Calculators by Goal...": ("wizard", "guided", "recommended", "charge", "solubility", "shape", "drug-likeness"),
     "Periodic Table...": ("element", "isotope", "atomic number", "electron configuration"),
     # NOT "quark" or "hadron": both are words of the label, so the palette
     # finds them directly and a keyword would only pad the map.
@@ -533,6 +536,9 @@ class MainWindow(QMainWindow):
             self._sync_docking_box_overlay
         )
         self._property_panel.workflow_move_requested.connect(self._on_workflow_move_requested)
+        # THE GOAL WIZARD: one, built when first asked for and raised after that.
+        self._goal_wizard: GoalWizardDialog | None = None
+        self._property_panel.goal_wizard_requested.connect(self._on_goal_wizard_action)
         self._property_panel.workflow_tab_requested.connect(self._on_workflow_tab_requested)
         self._interactions_panel = InteractionsPanel(
             services.chemistry_engine, services.event_bus, self
@@ -1627,6 +1633,49 @@ class MainWindow(QMainWindow):
             return
         self._results_host.pop_out()
 
+    # --- the goal wizard ----------------------------------------------------------------------
+
+    def _on_goal_wizard_action(self, _checked: bool = False) -> None:
+        self.show_goal_wizard()
+
+    def show_goal_wizard(self, goal_id: str | None = None) -> GoalWizardDialog:
+        """Open the goal wizard, or raise the one that is open. There is never a second.
+
+        It starts from the scope Properties has and a goal if one was named; an open wizard is
+        brought forward as it is, with whatever the person had chosen in it, rather than reset.
+        """
+        if self._goal_wizard is None:
+            wizard = GoalWizardDialog(
+                self._services.calculator_registry.get,
+                self._wizard_molecules,
+                self._property_panel.selected_molecule_uuid,
+                self._property_panel.current_scope,
+                self,
+                on_generate_conformers=self._generate_conformers,
+                structure_version_of=self._services.structure_check_service.current_version,
+                plain_label=plain_label,
+            )
+            wizard.run_requested.connect(self._on_goal_run_requested)
+            self._goal_wizard = wizard
+        else:
+            wizard = self._goal_wizard
+        if goal_id:
+            wizard.select_goal(goal_id)
+        wizard.show()
+        wizard.raise_()
+        wizard.activateWindow()
+        return wizard
+
+    def _wizard_molecules(self) -> list:
+        project = self._session.project
+        return list(project.molecules) if project is not None else []
+
+    def _on_goal_run_requested(self, run) -> None:
+        """The wizard asked for a run. Properties runs it and the wizard says what happened."""
+        text = self._property_panel.run_goal(run)
+        if self._goal_wizard is not None:
+            self._goal_wizard.show_outcome(text)
+
     # --- workflows that move between their tab and Properties ----------------------------------
 
     def _stored_workflow_home(self, workflow_id: str) -> str:
@@ -2241,6 +2290,12 @@ class MainWindow(QMainWindow):
         self._recalculate_action.setEnabled(False)
         self._document(self._recalculate_action, "recalculate_now")
         tools_menu.addSeparator()
+        # Before the reference tools: this is the way into the calculators for somebody who
+        # knows the question and not the section, which makes it the one a newcomer wants.
+        self._document(
+            tools_menu.addAction("Run Calculators by Goal...", self._on_goal_wizard_action),
+            "goal_wizard",
+        )
         self._document(
             tools_menu.addAction("Periodic Table...", self._show_periodic_table),
             "periodic_table",

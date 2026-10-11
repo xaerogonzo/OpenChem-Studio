@@ -835,6 +835,12 @@ class RDKitDescriptorProvider(DescriptorProvider):
     def descriptor_ids(self) -> list[str]:
         return [spec[0] for spec in _DESCRIPTOR_SPECS] + [spec[0] for spec in _SHAPE_DESCRIPTOR_SPECS]
 
+    def descriptor_names(self) -> dict[str, str]:
+        """What each descriptor is called on screen, by id: for a picker, which lists ids by name."""
+        names = {descriptor_id: name for descriptor_id, name, _units, _category in _DESCRIPTOR_SPECS}
+        names.update({descriptor_id: name for descriptor_id, name, _units in _SHAPE_DESCRIPTOR_SPECS})
+        return names
+
     def descriptor_categories(self) -> dict[str, str]:
         categories = {descriptor_id: category for descriptor_id, _name, _units, category in _DESCRIPTOR_SPECS}
         categories.update({descriptor_id: "shape" for descriptor_id, _name, _units in _SHAPE_DESCRIPTOR_SPECS})

@@ -1,0 +1,16 @@
+[
+  {"do": "smiles", "smiles": "CC(=O)Oc1ccccc1C(=O)O", "name": "Aspirin", "after_ms": 600},
+  {"do": "smiles", "smiles": "Cn1cnc2c1c(=O)n(C)c(=O)n2C", "name": "Caffeine", "after_ms": 600},
+  {"do": "smiles", "smiles": "CC(=O)Nc1ccc(O)cc1", "name": "Paracetamol", "after_ms": 600},
+  {"do": "select", "molecule": 1, "after_ms": 800},
+  {"do": "panel", "id": "Properties", "after_ms": 800},
+  {"do": "project_run", "calculators": ["polar_surface_area"], "scope": "chosen", "chosen": [1, 2],
+   "descriptor_ids": ["mol_wt", "mol_logp"], "alert_ids": ["pains"], "after_ms": 6000},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/project_properties.png"},
+  {"do": "expect_project_table", "rows": 2, "columns_contain": ["Molecular Weight", "PAINS", "Polar"], "showing": true},
+  {"do": "results_details", "molecule": 3, "tag": "left-out-row",
+   "expect": {"computed": ["polar_surface_area"], "rows": 2, "wait_ms": 5000}, "after_ms": 7000},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/project_details.png"},
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

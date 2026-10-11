@@ -107,6 +107,18 @@ def iter_dialog_fixtures() -> Iterator[DialogFixture]:
         # guard covers every one of its controls for free.
         return FormulationDialog()
 
+    def goal_wizard(context: DialogContext):
+        from openchem.domain.calculator_goals import SCOPE_THIS
+        from openchem.ui.dialogs.goal_wizard_dialog import GoalWizardDialog
+
+        _require(context, "services")
+        return GoalWizardDialog(
+            context.services.calculator_registry.get,
+            lambda: list(context.project.molecules) if context.project is not None else [],
+            lambda: None,
+            lambda: (SCOPE_THIS, set()),
+        )
+
     def particle(_context: DialogContext):
         from openchem.ui.dialogs.particle_dialog import ParticleDialog
 
@@ -381,6 +393,7 @@ def iter_dialog_fixtures() -> Iterator[DialogFixture]:
     )
     yield DialogFixture("LewisDiagramDialog", lewis, needs="a molecule")
     yield DialogFixture("VirtualScreeningDialog", virtual_screening, needs="a project")
+    yield DialogFixture("GoalWizardDialog", goal_wizard, needs="the service container")
     yield DialogFixture("ConformerDetailsDialog", conformer_details, needs="a conformer")
     yield DialogFixture(
         "StructureContentsDialog", structure_contents, needs="a parsed structure summary"

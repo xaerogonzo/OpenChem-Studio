@@ -356,7 +356,8 @@ def test_the_context_menu_of_a_calculator_button_opens_its_section(qapp):
     assert button.contextMenuPolicy() == Qt.ContextMenuPolicy.CustomContextMenu
 
     menu = panel._about_menu_for("everyday")
-    (action,) = menu.actions()
+    # The section ticks sit after it; this test is about the About entry, first in the menu.
+    action = menu.actions()[0]
     assert action.text() == "About this calculator"
     action.trigger()
 

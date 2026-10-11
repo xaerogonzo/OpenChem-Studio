@@ -1,6 +1,7 @@
 """Named sets of ticked calculators, and the one-time copy from the Batch panel.
 
-**A PRESET IS A LIST OF CALCULATOR IDS AND NOTHING ELSE.** Ids, never tree
+**A PRESET IS A LIST OF IDS AND NOTHING ELSE**: calculator ids, plus -- only when somebody
+chose a subset -- always-on property and alert-catalog ids. Ids, never tree
 positions or check states, for the reason the batch panel stored ids: the
 launcher's order moves when a calculator is added, and a saved position would
 then restore somebody else's property. An id that no longer names a calculator
@@ -32,6 +33,10 @@ logger = logging.getLogger("openchem.domain")
 PRESETS_KEY = "presets/calculator_ticks"
 #: Set once the Batch panel's selection has been copied in, whatever it held.
 MIGRATED_KEY = "presets/batch_selection_migrated"
+#: Set once the always-on properties and alert catalogs in that selection have been
+#: carried too. Separate from `MIGRATED_KEY` so a person whose first copy dropped them
+#: still gets them, without a second copy of everything else.
+MIGRATED_PROPERTIES_KEY = "presets/batch_properties_migrated"
 #: The key the Batch panel stores its ticked ids under (calculators AND
 #: descriptors in one flat list).
 LEGACY_BATCH_KEY = "batch/selected_property_ids"
@@ -121,34 +126,55 @@ class PresetStore:
         self._store(data)
         return True
 
-    # -- the one-time copy from the Batch panel ------------------------------------
+    # -- the one-time copy from the Batch panel ------------------------------------------
 
-    def migrate_batch_selection(self, known_calculators: Collection[str]) -> int:
-        """Copy the Batch panel's calculators in as a preset, once. Returns how many.
+    def migrate_batch_selection(
+        self, known_calculators: Collection[str], known_properties: Collection[str] = ()
+    ) -> int:
+        """Copy the Batch panel's selection in as a preset, once. Returns how many ids it holds.
 
-        Descriptor and alert ids in that list have no tick box in Properties
-        (the always-on properties are one switch), so they are not carried; the
-        count of what WAS carried is what a caller can say. Nothing is deleted
-        or rewritten: see the module docstring.
+        `known_properties` are the always-on property and alert-catalog ids Properties can
+        now choose between; the first copy dropped them, because there was nowhere to put
+        them. A SECOND, separate marker covers people whose copy was made before that:
+        their imported preset is upgraded to carry the properties too, but ONLY if it still
+        holds exactly the calculators the first copy gave it. Anything the person edited,
+        renamed or deleted is theirs and is left alone. Nothing is ever deleted from the old
+        key: see the module docstring.
         """
         if self._settings is None:
             return 0
         try:
-            if str(self._settings.get(MIGRATED_KEY, "") or "").lower() in ("1", "true"):
-                return 0
+            first_done = self._flag(MIGRATED_KEY)
+            second_done = self._flag(MIGRATED_PROPERTIES_KEY)
             legacy = self._settings.get(LEGACY_BATCH_KEY, []) or []
         except Exception:  # noqa: BLE001
             return 0
         if isinstance(legacy, str):
             legacy = [legacy]
-        carried = clean_ids(legacy, known_calculators)
-        if carried and IMPORTED_NAME not in self._load():
-            self.save(IMPORTED_NAME, carried)
+        calculators = clean_ids(legacy, known_calculators)
+        carried = clean_ids(legacy, set(known_calculators) | set(known_properties))
+        count = 0
+        if not first_done:
+            if carried and IMPORTED_NAME not in self._load():
+                self.save(IMPORTED_NAME, carried)
+                count = len(carried)
+            self._mark(MIGRATED_KEY)
+        elif known_properties and not second_done:
+            held = self._load().get(IMPORTED_NAME)
+            if held is not None and held == calculators and carried != calculators:
+                self.save(IMPORTED_NAME, carried)
+                count = len(carried)
+        if known_properties:
+            self._mark(MIGRATED_PROPERTIES_KEY)
+        return count
+
+    def _flag(self, key: str) -> bool:
+        return str(self._settings.get(key, "") or "").lower() in ("1", "true")
+
+    def _mark(self, key: str) -> None:
+        """Marked even when there was nothing to copy: "nothing" was this launch's answer, and
+        a selection made in the Batch panel LATER must not appear as a surprise preset."""
         try:
-            # Marked even when there was nothing to copy: "nothing" was this
-            # launch's answer, and a selection made in the Batch panel LATER
-            # must not appear as a surprise preset.
-            self._settings.set(MIGRATED_KEY, "1")
+            self._settings.set(key, "1")
         except Exception:  # noqa: BLE001
             logger.debug("Could not record that the batch selection was migrated")
-        return len(carried)

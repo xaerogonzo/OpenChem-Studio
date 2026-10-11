@@ -8,12 +8,15 @@ from openchem.domain.selection_presets import (
     IMPORTED_NAME,
     LEGACY_BATCH_KEY,
     MIGRATED_KEY,
+    MIGRATED_PROPERTIES_KEY,
     PRESETS_KEY,
     PresetStore,
     clean_ids,
 )
 
 KNOWN = {"a", "b", "c"}
+#: Always-on property and alert-catalog ids, which a preset can now hold too.
+PROPS = {"mol_wt", "pains"}
 
 
 class _Settings:
@@ -118,6 +121,75 @@ def test_an_existing_preset_with_the_imported_name_is_not_overwritten():
     store.save(IMPORTED_NAME, ["b", "c"])
     store.migrate_batch_selection(KNOWN)
     assert store.ids(IMPORTED_NAME, KNOWN) == ["b", "c"]
+
+
+# --- the properties the first copy dropped ------------------------------------------------
+
+
+def test_the_copy_carries_property_and_alert_ids_when_properties_can_hold_them():
+    legacy = ["mol_wt", "a", "pains", "c", "gone"]
+    settings = _Settings(**{LEGACY_BATCH_KEY: list(legacy)})
+    store = PresetStore(settings)
+
+    assert store.migrate_batch_selection(KNOWN, PROPS) == 4
+
+    assert store.ids(IMPORTED_NAME, KNOWN | PROPS) == ["mol_wt", "a", "pains", "c"]
+    assert settings.values[LEGACY_BATCH_KEY] == legacy
+    assert settings.values[MIGRATED_PROPERTIES_KEY] == "1"
+
+
+def test_a_first_copy_made_before_properties_existed_is_upgraded_if_untouched():
+    legacy = ["mol_wt", "a", "pains"]
+    settings = _Settings(**{LEGACY_BATCH_KEY: legacy})
+    store = PresetStore(settings)
+    store.migrate_batch_selection(KNOWN)  # the old behaviour: calculators only
+    assert store.ids(IMPORTED_NAME, KNOWN | PROPS) == ["a"]
+
+    assert store.migrate_batch_selection(KNOWN, PROPS) == 3
+
+    assert store.ids(IMPORTED_NAME, KNOWN | PROPS) == ["mol_wt", "a", "pains"]
+
+
+def test_an_imported_preset_the_person_changed_is_not_upgraded():
+    settings = _Settings(**{LEGACY_BATCH_KEY: ["mol_wt", "a", "b"]})
+    store = PresetStore(settings)
+    store.migrate_batch_selection(KNOWN)
+    store.save(IMPORTED_NAME, ["c"])
+
+    assert store.migrate_batch_selection(KNOWN, PROPS) == 0
+
+    assert store.ids(IMPORTED_NAME, KNOWN | PROPS) == ["c"]
+
+
+def test_a_deleted_imported_preset_does_not_come_back_with_the_upgrade():
+    settings = _Settings(**{LEGACY_BATCH_KEY: ["mol_wt", "a"]})
+    store = PresetStore(settings)
+    store.migrate_batch_selection(KNOWN)
+    store.delete(IMPORTED_NAME)
+
+    store.migrate_batch_selection(KNOWN, PROPS)
+
+    assert store.names() == []
+
+
+def test_the_upgrade_happens_once():
+    settings = _Settings(**{LEGACY_BATCH_KEY: ["mol_wt", "a"]})
+    store = PresetStore(settings)
+    store.migrate_batch_selection(KNOWN)
+    store.migrate_batch_selection(KNOWN, PROPS)
+    store.save(IMPORTED_NAME, ["a"])  # the person narrows it again afterwards
+
+    assert store.migrate_batch_selection(KNOWN, PROPS) == 0
+    assert store.ids(IMPORTED_NAME, KNOWN | PROPS) == ["a"]
+
+
+def test_calling_without_properties_never_uses_up_the_upgrade():
+    settings = _Settings(**{LEGACY_BATCH_KEY: ["mol_wt", "a"]})
+    store = PresetStore(settings)
+
+    store.migrate_batch_selection(KNOWN)
+
+    assert MIGRATED_PROPERTIES_KEY not in settings.values
 
 
 def test_the_module_imports_no_qt():
