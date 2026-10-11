@@ -32,15 +32,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `bilbrey2013`, `poater2009`, `clavier2010`), each with its DOI. The three old papers print no DOI, so those
   come from Crossref and each row says so; this retired `geometry_analysis.py`, `steric.py` and
   `surface_analysis.py` from the provenance debt.
-- **Found while checking Bondi's paper, and researched:** the "Bondi radii" the surface and steric code use are RDKit's
-  table, which is neither Bondi's list nor ever was. RDKit says only "taken from BODR v10.1", BODR cites nothing, and the
-  values equal Batsanov (2001) Table 9's recommended crystallographic radii for all 65 elements it lists. Before 2019
-  RDKit had yet another table (carbon 1.95). On areas the choice is small (mean 0.4% on 17 molecules; the hydrogen radius,
-  1.10 against 1.20, is the lever at 3 to 7%), but percent buried volume runs 2 to 3.6 points high for small phosphines
-  because of RDKit's phosphorus 1.95 against Bondi's 1.80, and Bondi's list is closer to Clavier and Nolan's published
-  values (mean error 0.8 against 1.8 points). Nothing was changed: `docs/VDW_RADII_ASSESSMENT.md` has the evidence and
-  the options, `tests/test_vdw_radii_provenance.py` pins RDKit's table so an upgrade cannot move it unnoticed, and
-  `benchmarks/vdw_radii/radii_study.py` reproduces the numbers. The docking module keeps a second table, which is Bondi's.
+- **Found while checking Bondi's paper, researched, and decided:** the "Bondi radii" the surface and steric code used are
+  RDKit's table, which is neither Bondi's list nor ever was. RDKit says only "taken from BODR v10.1", BODR cites nothing,
+  and the values equal Batsanov (2001) Table 9's recommended crystallographic radii for all 65 elements it lists. On
+  areas the choice is small (mean 0.4% on 17 molecules), but percent buried volume ran 2 to 3.6 points high for small
+  phosphines because of RDKit's phosphorus 1.95 against Bondi's 1.80. After reading Bondi, Batsanov, Mantina et al. and
+  Rowland and Taylor: **Ligand Steric Bulk now uses Bondi's own radii** (`chem/vdw_radii.py`, with Mantina et al.'s
+  sixteen for the elements he left out; method `steric-v2`, mean error against Clavier and Nolan's published volumes
+  0.8 points instead of 1.8, the exact cone angle unchanged), and a result saved by the earlier method is kept and
+  labelled `legacy-rdkit-radii-v1`. **Every other calculator keeps RDKit's table and now says so** (code comments, the
+  Geometry result's limitation line, stored `radii: "rdkit_rvdw"`); no number there moved. Hydrogen stays 1.20 for areas
+  and volumes (Bondi chose his radii for volumes; Rowland and Taylor's 1.10 is a contact-distance compromise, which is
+  what the docking module's own table, Bondi's with that hydrogen, is for). `docs/VDW_RADII_ASSESSMENT.md` has the
+  evidence, `tests/test_vdw_radii.py` and `tests/test_vdw_radii_provenance.py` pin the tables and the sources, and
+  `benchmarks/vdw_radii/radii_study.py` reproduces the numbers.
 
 ### Naming: ring systems keep their heteroatoms, numbering, hydrogen and name
 - A spiro heterocycle on a bridged ring was `tricyclo[...]undecane-1,3-dione` (every N gone), an N-attached triazinedione was numbered as a ring OPSIN cannot build, a spiro partner lost an azole N-H, a tricycle of three monocycles had no name, and a protonated or iminium N in a fused 4-ring was a NAMING ERROR (D-215 .. D-219). Census 1968 -> 1978 exact, visible failures 4 -> 0; fresh_v1 1950 -> 1951 of 2000 read back after its one re-score (97.55%).

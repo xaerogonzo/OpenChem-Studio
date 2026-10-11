@@ -5,6 +5,19 @@ Investigated 2026-10-11, after reading Bondi's 1964 paper for the explainers and
 file), **measured** (a run, with the method stated) or **reported** (seen only through a search summary, not read
 directly). The decision it asks for is at the end.
 
+## The decision (Alex, 2026-10-11)
+
+- **B for the steric calculator.** Ligand Steric Bulk now uses Bondi's own radii (`chem/vdw_radii.py`, method `steric-v2`),
+  extended where Bondi gave none by Mantina et al.'s sixteen. Older saved results are kept and labelled
+  (`legacy-rdkit-radii-v1`), never replayed as the new method.
+- **A for everything else.** The surface, volume, projection and Geometry calculators keep RDKit's table, now **called what
+  it is** in the code, the Geometry result's limitation line and the stored provenance (`radii: "rdkit_rvdw"`). No number
+  changes.
+- **C (hydrogen 1.10) is not taken for the surface calculators**, after reading Rowland and Taylor and Mantina et al.: see
+  "What the three papers add".
+- The docking module's table keeps hydrogen 1.10, which is the right value for the thing it does (contacts), and is now
+  documented as such.
+
 ## The short version
 
 - The surface, volume, projection and steric calculators take their radii from `rdkit.Chem.GetPeriodicTable().GetRvdw`,
@@ -118,28 +131,69 @@ indicative, but the direction is what the convention predicts: SambVca uses Bond
 - **Consistency.** "One definition of how big an atom is across the application" is not true while the docking module
   keeps its own table.
 
-## Options, and a recommendation
+## What the three papers add (read 2026-10-11), and why C is not taken for areas and volumes
 
-- **A. Relabel only.** Say what the table is ("RDKit's table, BODR 10-1, equal to Batsanov 2001 Table 9") in the code
-  comments, the Geometry limitation line and the stored provenance. No number changes. This is the minimum, and it does
-  not need a decision about values.
-- **B. Adopt Bondi's own list** for the surface, volume, projection and steric calculators, as one project-owned table
-  with its source recorded, and decide the docking module's hydrogen separately. Areas move by about 0.5% on average,
-  buried volumes move toward the published ones, and the label becomes true. It changes stored values, so it needs the
-  project's method-version bump and the legacy-result handling that `geometry-v2` and `surface-v2` already use.
-- **C. Adopt the CRC set (hydrogen 1.10).** Matches the docking module and the Handbook; lowers areas 3 to 7%. Nothing
-  here argues for it except matching the Handbook.
+**Bondi (1964) says what his radii are for.** They "have been selected for the calculation of volumes" and "may not always be
+suitable for the calculation of contact distances in crystals" (the second quoted by Rowland and Taylor). That is
+exactly the use here, and exactly not the use of the 1.10 hydrogen. His own Table I (read from the page image) gives
+hydrogen 1.20 and the nonmetal radii in the table above; his recommended list leaves boron, aluminium, germanium and
+antimony blank.
 
-**Recommendation: A in any case, and B for the steric calculator at least**, because its stated convention is Bondi's and
-the evidence favours it; B for the surface calculators too if one definition across them is wanted. Do not take C on
-the grounds of Marvin parity: that cannot be established. This is Alex's decision, because B changes reported values.
+**Rowland and Taylor (1996) find Bondi's radii "highly consistent" with the contacts in 28,403 organic crystal structures, with
+one exception: hydrogen.** Hydrogen contact distances were computed with hydrogens moved to neutron C-H, N-H and O-H lengths
+(1.083, 1.009, 0.983 angstrom). Bondi's 1.2 is "probably too high by about 0.1 A". But they also find, and say, that
+**H...H contacts in neutron structures support about 1.19, "almost identical to Bondi's value"**, because Bondi's hydrogen
+rested largely on H...H contacts (Kitaigorodskii's adamantane work). Only the H...O and H...N contacts, shortened by
+electrostatic attraction, call for less. Their 1.1 is "a weighted average over several different types of H...X
+distribution", offered as "a better compromise" for transferability across contact types. For the other elements they
+"see no reason to move away from Bondi's data" (for O, F, S, Cl, Br and I the difference is 0.04 angstrom or less),
+with carbon (0.05) and nitrogen (0.06) the largest.
+
+**Mantina et al. (2009) adopt 1.10 for their standard set and say why, and what it costs.** "Bondi's value of 1.2 A describes
+well the size of H in H...H contacts, but for interactions with other elements, the smaller value is more appropriate.
+Bondi had drawn similar conclusions, but he favored using the higher value as a standard. We accept the Rowland-Taylor
+recommendation for H." They extend Bondi's scale to the sixteen main-group elements he left out, correlating his radii
+with repulsive-wall distances from relativistic coupled-cluster calculations. Their Table 9 prints two Bondi values that
+the paper does not (bromine 1.83 against 1.85, lithium 1.81 against 1.82).
+
+**What follows for hydrogen.** The two values answer different questions. 1.10 is a contact-distance compromise across
+H...X pairs. 1.20 is what hydrogen is against another hydrogen, and for the surface of an organic molecule, which is
+mostly hydrogen facing hydrogen, that is the contact that sets the area. Bondi's purpose (volumes), the surface
+calculators' purpose (areas and volumes) and the buried-volume papers' convention (Bondi's scale) all point to 1.20; a
+contact test, which is what the docking module does, points to 1.10. So **the two tables are not an inconsistency to
+remove but a difference of purpose to document**, and the geometry the application builds has X-H lengths within 0.01
+angstrom of the neutron-normalised ones Rowland and Taylor used (measured on seven molecules: C-H 1.093, N-H 1.014, O-H
+0.978 against their 1.083, 1.009, 0.983), which suits a contact table.
+
+**What follows for the other elements.** RDKit's values (Batsanov's crystallographic set) differ from Bondi's by 0.03 to
+0.05 angstrom for nitrogen, oxygen, fluorine, chlorine and bromine, which Rowland and Taylor's own scatter covers, and by
+0.15 for phosphorus and 0.12 for iodine, where Bondi's own evidence is thin (he had "only very few" phosphorus contacts and
+set 1.80 from them and from the ionisation potential). For areas the effect is small and measured above; for the
+buried volume it is not, which is why that calculator, and only that one, follows Bondi.
+
+## Options, and what was decided
+
+- **A. Relabel only** (done for the surface, volume, projection and Geometry calculators): the code comments, the Geometry
+  limitation line and the stored provenance say "RDKit's table" and no number moves.
+- **B. Adopt Bondi's own list** (done for the steric calculator): one project-owned table with its sources, method version
+  `steric-v2`, older results kept and labelled. Buried volumes move toward the published ones (mean error 0.8 points
+  against 1.8); the exact cone angle does not move.
+- **C. The CRC set, hydrogen 1.10** (not taken for areas): it would lower every area and volume 3 to 7% to buy a contact
+  compromise the area calculators do not need, and Bondi's, Rowland and Taylor's and Mantina et al.'s own words all put
+  1.20 on the volume side.
+
+**Still open, none of it urgent:** whether the surface calculators should one day move to Bondi's list as well (areas
+would shift about 0.5% on average, and it needs a method-version bump); the `Fe` entry in the docking table (1.56), which
+is in neither Bondi's nor Mantina's list and has not been traced; and the user-facing wording on a Geometry result saved
+before this change, which still carries the old "Bondi" line.
 
 ## Not verified
 
 - BODR's real origin. The identification with Batsanov rests on exact equality across 65 elements, not on any statement
   by RDKit or BODR.
 - The Open Babel header and the ChemAxon forum reply were seen through search summaries only.
-- Mantina et al. 2009 has not been read, and Batsanov was read from a public copy, not a supplied one.
+- Bondi's group increments for volume and area, and the other nine tables of Batsanov, were not read.
+- Mantina et al. 2009 and Rowland and Taylor 1996 are now read, and Alex's copy of Batsanov matches the public one first read. What was read of each is in its registry row, with what was not.
 - The published buried volumes come from crystal geometries; the application's from free ligands.
 
 ## Reproduce

@@ -75,6 +75,13 @@ GEOMETRY_METHOD = "geometry-v2"
 #: new result, labelled, never replayed as one.
 SURFACE_METHOD = "surface-v2"
 
+#: The method Ligand Steric Bulk is computed by today (`chem/steric.py`). v2 (2026-10-11) uses Bondi's own van der
+#: Waals radii (Table I of the 1964 paper, extended by Mantina et al. 2009) where the first version used RDKit's
+#: table and called it Bondi's: RDKit's phosphorus is 1.95 against Bondi's 1.80, which put percent buried volume of
+#: small phosphines 2 to 3.6 points high (the exact cone angle is unchanged). A saved result without a method was
+#: computed with RDKit's radii and is kept beside the new one, labelled, never replayed as it.
+STERIC_METHOD = "steric-v2"
+
 #: Result ids whose METHOD is part of their stored identity, and the method
 #: a result computed today is by. Only these carry a `method_version`, so no
 #: other result's identity (or saved project) changes.
@@ -83,6 +90,7 @@ CURRENT_METHOD_VERSIONS: dict[str, str] = {
     "geometry_analysis": GEOMETRY_METHOD,
     "surface_analysis": SURFACE_METHOD,
     "atom_sasa": SURFACE_METHOD,
+    "steric_analysis": STERIC_METHOD,
 }
 
 #: What a saved entry WITHOUT a `method_version` was computed by -- the rule
@@ -99,6 +107,10 @@ LEGACY_METHOD_VERSIONS: dict[str, tuple[str, str]] = {
     "atom_sasa": (
         "legacy-zero-radii-v1",
         "Accessible Surface Area (per atom) (previous method, withdrawn: atomic radii were zero, areas too small)",
+    ),
+    "steric_analysis": (
+        "legacy-rdkit-radii-v1",
+        "Ligand Steric Bulk (previous method: RDKit's radii, percent buried volume a few points high for small phosphines)",
     ),
 }
 

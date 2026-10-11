@@ -483,9 +483,15 @@ def is_stripped_residue(
         return strip_waters
     return strip_cofactors and name not in STANDARD_RECEPTOR_RESIDUES
 
-# Bondi van der Waals radii (Angstrom) for elements likely to appear in a
+# Van der Waals radii (Angstrom) for elements likely to appear in a
 # docking receptor/ligand -- anything else falls back to
-# _DEFAULT_VDW_RADIUS.
+# _DEFAULT_VDW_RADIUS. These are Bondi's 1964 values with hydrogen at
+# 1.10, Rowland and Taylor's value for CONTACT distances [source:rowland1996], as the CRC
+# Handbook has them: this table decides whether two atoms are in
+# contact, which is what that hydrogen is for. The surface and volume
+# calculators use a different table on purpose (docs/VDW_RADII_ASSESSMENT.md).
+# Zn, Mg and Na are Bondi's metal radii; Ca is Mantina's; the Fe value
+# is not in either source and has not been traced.
 _VDW_RADII = {
     "H": 1.10, "C": 1.70, "N": 1.55, "O": 1.52, "S": 1.80, "P": 1.80,
     "F": 1.47, "CL": 1.75, "BR": 1.85, "I": 1.98, "ZN": 1.39, "MG": 1.73,

@@ -11,8 +11,10 @@ returned a radius of ZERO for every atom. The calculation then ran on points: et
 where Bondi radii give 199, benzene 127 where they give 234, water 41 where they give 124 -- a
 fraction of the true figure, plausible-looking, and ordered correctly (a longer chain still read
 larger), which is why the tests that compared one molecule with another never noticed. The radii
-are now RDKit's own Bondi table, the same one the van der Waals volume, surface and projections
-use, so there is one definition of "how big is an atom" across the application.
+are now RDKit's own van der Waals table (`GetRvdw`), the same one the van der Waals volume, surface and
+projections use. IT IS NOT BONDI'S, which this once called it: RDKit's header says only "taken from BODR v10.1", and
+the values equal Batsanov's 2001 recommended crystallographic radii (`docs/VDW_RADII_ASSESSMENT.md`). The steric
+calculator uses Bondi's own radii (`chem/vdw_radii.py`); the docking module keeps a third table, for contacts.
 
 Marvin additionally splits the accessible surface into ASA+/ASA- (by
 partial-charge sign) and ASA_H/ASA_P (hydrophobic vs polar). Both are
@@ -57,7 +59,7 @@ _MIN_SOLVENT_RADIUS = 0.0
 #: The largest probe radius accepted, in Angstrom (the reason is in the block above).
 _MAX_SOLVENT_RADIUS = 5.0
 
-#: RDKit's periodic table, asked for its Bondi van der Waals radii.
+#: RDKit's periodic table, asked for its van der Waals radii (BODR 10-1; equal to Batsanov 2001, NOT Bondi's list).
 _PERIODIC_TABLE = Chem.GetPeriodicTable()
 
 #: Declared with the other result methods in `result_store`, which must not import this layer.
@@ -88,7 +90,7 @@ def solvent_radius(parameters: dict[str, Any] | None) -> float:
 
 
 def atomic_radii(mol: Chem.Mol) -> list[float]:
-    """The van der Waals radius of every atom, RDKit's Bondi table: one definition across the app."""
+    """The van der Waals radius of every atom, from RDKit's table (equal to Batsanov 2001, not Bondi's list)."""
     return [_PERIODIC_TABLE.GetRvdw(atom.GetAtomicNum()) for atom in mol.GetAtoms()]
 
 
@@ -189,7 +191,7 @@ def compute_surface_analysis(
     places = decimals(parameters)
     probe = solvent_radius(parameters)
     notes: list[str] = []
-    recorded: dict[str, Any] = {"solvent_radius": probe, "radii": "bondi", "method": SURFACE_METHOD}
+    recorded: dict[str, Any] = {"solvent_radius": probe, "radii": "rdkit_rvdw", "method": SURFACE_METHOD}
     try:
         _require_conformer(mol)
         if parameters.get("major_microspecies"):
@@ -265,7 +267,7 @@ def compute_sasa_dataset(
             parameters={
                 "decimal_places": _places,
                 "solvent_radius": probe,
-                "radii": "bondi",
+                "radii": "rdkit_rvdw",
                 "method": SURFACE_METHOD,
                 ATOM_BASIS: atom_basis_of(mol),
                 # SASA really is additive over atoms -- the accessible

@@ -23,7 +23,7 @@ from openchem.chem.projection_geometry import (
     van_der_waals_volume,
 )
 
-#: The Bondi radius RDKit carries for helium, and the only number in this
+#: The van der Waals radius RDKit carries for helium (1.40, the same as in Bondi's list), and the only number in this
 #: file taken from a table rather than derived.
 HELIUM_RADIUS = 1.4
 

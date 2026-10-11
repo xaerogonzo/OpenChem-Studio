@@ -273,7 +273,7 @@ def compute_geometry_analysis(
     scale_note = (
         f"Van der Waals radii scaled by {options.radius_scale:g}."
         if options.radius_scale != 1.0
-        else "Bondi van der Waals radii."
+        else "Van der Waals radii from RDKit's table (Batsanov's recommended set, not Bondi's)."
     )
     searched = (
         "Found by searching "

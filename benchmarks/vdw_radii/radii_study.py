@@ -7,7 +7,8 @@ Reproduces the measurements in `docs/VDW_RADII_ASSESSMENT.md`. Run from the repo
 Three tables are compared: RDKit's (equal to Batsanov 2001 Table 9), Bondi 1964 as printed (hydrogen 1.20), and the
 CRC Handbook 97th edition / the docking module's own table (Bondi's values with hydrogen 1.10). The geometry is one
 RDKit-embedded, MMFF94-relaxed conformer per molecule (seed 7), the area routine the application itself uses, and
-the steric series is the application's own `compute_steric_analysis` with its radius lookup swapped.
+the steric series is the application's own `compute_steric_analysis` with its radius lookup swapped (the application
+itself has used Bondi's list for the steric calculator since method steric-v2).
 
 It writes nothing and touches no settings.
 """
@@ -65,16 +66,14 @@ def _conformer(smiles: str) -> Chem.Mol:
     return mol
 
 
-class _Table:
-    """Stands in for RDKit's periodic table inside `steric`, answering from one of the tables above."""
+def _lookup(table: dict[str, float]):
+    """A stand-in for `steric.bondi_radius` that answers from one of the tables above."""
+    periodic = Chem.GetPeriodicTable()
 
-    def __init__(self, table: dict[str, float]) -> None:
-        self._table = table
+    def radius(number: int) -> float:
+        return table.get(periodic.GetElementSymbol(number), periodic.GetRvdw(number))
 
-    def GetRvdw(self, number: int) -> float:  # noqa: N802 - the name RDKit's own object uses
-        periodic = Chem.GetPeriodicTable()
-        symbol = periodic.GetElementSymbol(number)
-        return self._table.get(symbol, periodic.GetRvdw(number))
+    return radius
 
 
 def areas() -> None:
@@ -94,10 +93,10 @@ def areas() -> None:
 
 
 def steric_series() -> None:
-    original = steric._PERIODIC_TABLE
+    original = steric.bondi_radius  # since steric-v2 this IS Bondi's list; the study swaps it for each table in turn
     try:
         for label in ("RDKit/Batsanov", "Bondi 1964"):
-            steric._PERIODIC_TABLE = _Table(TABLES[label])
+            steric.bondi_radius = _lookup(TABLES[label])
             angles, volumes = [], []
             for _name, smiles in SERIES:
                 result = steric.compute_steric_analysis(Chem.MolFromSmiles(smiles), "m", {"conformers": 10})
@@ -108,7 +107,7 @@ def steric_series() -> None:
             print(f"{label:15} cone angles {angles}\n{'':15} %Vbur {volumes}\n{'':15} r(cone, Tolman) = {np.corrcoef(angles, TOLMAN)[0, 1]:.3f}; "
                   f"mean absolute error against the published %Vbur of PMe3, PEt3, PPh3, PCy3 = {error:.1f} points")
     finally:
-        steric._PERIODIC_TABLE = original
+        steric.bondi_radius = original
 
 
 if __name__ == "__main__":
