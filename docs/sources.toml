@@ -2250,6 +2250,29 @@ NOT CHECKED: the paper's Tables 2 and 4 in detail.
 """
 
 [[source]]
+key = "plip2015"
+kind = "literature"
+citation = "S. Salentin, S. Schreiber, V. J. Haupt, M. F. Adasme & M. Schroeder, 'PLIP: fully automated protein-ligand interaction profiler', Nucleic Acids Res. 2015, 43(W1), W443-W447."
+identifier_type = "doi"
+identifier = "10.1093/nar/gkv315"
+status = "reference_only"
+reason = "Cited in the Interaction Analysis explainer for how rule-based interaction detection describes its own thresholds; no value or rule of the application comes from it."
+used_by = ["docs/explainers/interaction_dynamics.md"]
+verification = "citation"
+verified_date = 2026-10-11
+note = """
+CHECKED: identity against Crossref (title, five authors, journal, volume, issue, pages, year). The open-access full text
+on PubMed Central was read through a page fetch on 2026-10-11, not from a PDF, and the explainer takes two statements
+from it and nothing numeric: that PLIP is "rule-based" with geometric constraints, and that its thresholds "are taken
+from literature and are thus knowledge based" and, "to account for low-quality structures and structural errors", some
+"have been modified to be more permissive".
+
+NOT CHECKED, AND NOT USED: any distance or angle. The paper's text gives none; they are in its supplementary data, which
+was not read. The cutoffs of `interaction_analysis` are therefore NOT claimed to come from PLIP, and the explainer says
+that no source is recorded for any individual number.
+"""
+
+[[source]]
 key = "tosco2014"
 kind = "literature"
 citation = "P. Tosco, N. Stiefl & G. Landrum, 'Bringing the MMFF force field to the RDKit: implementation and validation', J. Cheminform. 2014, 6:37."

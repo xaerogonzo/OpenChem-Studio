@@ -48,9 +48,9 @@ EXPLAINER_DEBT = frozenset({
     "bird_aromaticity", "cns_mpo", "crippen_logp_contrib", "crippen_mr_contrib", "detonation",
     "docking.vina", "elemental_analysis", "functional_groups",
     "hansen_solubility", "hbond_sites", "hbond_vs_ph", "homa_aromaticity", "huckel_analysis",
-    "huckel_pi_density", "interaction_analysis", "ionisable_sites", "iupac_name", "isoelectric_point",
+    "huckel_pi_density", "ionisable_sites", "iupac_name", "isoelectric_point",
     "joback_properties", "lewis_adduct", "lewis_hsab", "lewis_sites", "locants", "logd",
-    "major_microspecies", "markush_enumeration", "mass_spectrum", "molecular_dynamics",
+    "major_microspecies", "markush_enumeration", "mass_spectrum",
     "nmr_database", "orca.delta_scf", "orca.led", "orca.nmr", "orca.nmr_coupling", "orca.opt",
     "orca.opt_freq", "orca.sp", "orca.tautomer_distribution", "oxidation_states", "oxygen_balance",
     "pka", "pka_microspecies", "polarizability", "regulatory_screen",
@@ -59,7 +59,7 @@ EXPLAINER_DEBT = frozenset({
     "substructure_search", "tautomers", "topology_analysis",
     "topology_distance_degree", "topology_eccentricity", "tsei_projection",
 })
-_DEBT_CEILING = 61
+_DEBT_CEILING = 59
 
 
 @pytest.fixture(scope="module")
@@ -401,6 +401,8 @@ _SEARCHES = [
     ("Fibonacci", "atom_sasa"),
     ("chlorine counts as hydrophobic", "surface_analysis"),
     ("right circular cone", "steric_analysis"),
+    ("thiolate sulfur", "interaction_analysis"),
+    ("Maxwell-Boltzmann", "molecular_dynamics"),
 ]
 
 

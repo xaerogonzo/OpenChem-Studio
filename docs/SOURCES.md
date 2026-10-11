@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 36f346f225a6ef9bcc85187fd1bd11a59b7121d124159400e33896ec212b0a89 -->
+<!-- SOURCE SHA256: 5f5f28c68e91ea750d6cf60b1ecdcde4744872bbcd5bd0eb6fe97faaedc1e9cd -->
 
 # Sources
 
@@ -240,6 +240,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`perry2025`](#perry2025) | literature | reference only | citation |
 | [`pkasolver`](#pkasolver) | software | shipped | citation |
 | [`platts1999`](#platts1999) | literature | **not shipped** | citation + claim |
+| [`plip2015`](#plip2015) | literature | reference only | citation |
 | [`poater2009`](#poater2009) | literature | shipped | citation |
 | [`pyside6`](#pyside6) | software | shipped | citation |
 | [`quiroga2016`](#quiroga2016) | literature | shipped | citation + claim |
@@ -2201,6 +2202,32 @@ surface, volume and projection calculators keep hydrogen at 1.20 and only the co
 (`docs/VDW_RADII_ASSESSMENT.md`).
 
 NOT CHECKED: the paper's Tables 2 and 4 in detail.
+
+### plip2015
+
+<a id="plip2015"></a>
+
+> S. Salentin, S. Schreiber, V. J. Haupt, M. F. Adasme & M. Schroeder, 'PLIP: fully automated protein-ligand interaction profiler', Nucleic Acids Res. 2015, 43(W1), W443-W447.
+
+| | |
+| --- | --- |
+| Identifier | [10.1093/nar/gkv315](https://doi.org/10.1093/nar/gkv315) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-11 |
+| Used by | `docs/explainers/interaction_dynamics.md` |
+
+**Why it is reference only.** Cited in the Interaction Analysis explainer for how rule-based interaction detection describes its own thresholds; no value or rule of the application comes from it.
+
+CHECKED: identity against Crossref (title, five authors, journal, volume, issue, pages, year). The open-access full text
+on PubMed Central was read through a page fetch on 2026-10-11, not from a PDF, and the explainer takes two statements
+from it and nothing numeric: that PLIP is "rule-based" with geometric constraints, and that its thresholds "are taken
+from literature and are thus knowledge based" and, "to account for low-quality structures and structural errors", some
+"have been modified to be more permissive".
+
+NOT CHECKED, AND NOT USED: any distance or angle. The paper's text gives none; they are in its supplementary data, which
+was not read. The cutoffs of `interaction_analysis` are therefore NOT claimed to come from PLIP, and the explainer says
+that no source is recorded for any individual number.
 
 ### tosco2014
 
