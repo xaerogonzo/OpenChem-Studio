@@ -2,7 +2,7 @@
 
 Two methods, matching ChemAxon's plugin:
 
-EXTENDED ATOM TYPES -- Open3DAlign (O3A), which pairs atoms by MMFF atom
+EXTENDED ATOM TYPES -- Open3DAlign (O3A) [source:tosco2011], which pairs atoms by MMFF atom
 type and maximises the overlap of like-typed atoms. MMFF types encode
 atomic number, hybridization and aromaticity, so an aromatic nitrogen does
 not pair with a tertiary amine. That is the same discrimination ChemAxon

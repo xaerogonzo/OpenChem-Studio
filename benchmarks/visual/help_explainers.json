@@ -20,6 +20,15 @@
   {"do": "dialog", "name": "HelpDialog", "topic": "calc-steric-analysis", "width": 1100, "height": 900, "after_ms": 800},
   {"do": "shot", "path": "benchmarks/visual/artifacts/help_explainer_steric.png", "widget": "dialog", "after_ms": 300},
 
+  {"do": "dialog", "name": "HelpDialog", "topic": "calc-interaction-analysis", "width": 1100, "height": 900, "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/help_explainer_interactions.png", "widget": "dialog", "after_ms": 300},
+
+  {"do": "dialog", "name": "HelpDialog", "topic": "calc-molecular-dynamics", "width": 1100, "height": 900, "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/help_explainer_dynamics.png", "widget": "dialog", "after_ms": 300},
+
+  {"do": "dialog", "name": "HelpDialog", "topic": "calc-alignment-3d", "width": 1100, "height": 900, "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/help_explainer_alignment.png", "widget": "dialog", "after_ms": 300},
+
   {"do": "close_dialog"},
   {"do": "expect_clean"},
   {"do": "quit"}

@@ -1213,7 +1213,6 @@ _PROVENANCE_DEBT = frozenset({
     "src/openchem/chem/lewis.py",
     "src/openchem/chem/markush.py",
     "src/openchem/chem/mode_animation.py",
-    "src/openchem/chem/molecular_dynamics.py",
     "src/openchem/chem/molecule_report.py",
     "src/openchem/chem/naming_providers.py",
     "src/openchem/chem/nmr_reference.py",

@@ -32,6 +32,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `bilbrey2013`, `poater2009`, `clavier2010`), each with its DOI. The three old papers print no DOI, so those
   come from Crossref and each row says so; this retired `geometry_analysis.py`, `steric.py` and
   `surface_analysis.py` from the provenance debt.
+- Interactions, dynamics and alignment: Interaction Analysis, Molecular Dynamics (vacuum) and 3D Alignment have
+  explainers; `EXPLAINER_DEBT` is 58. Writing the first one **measured six results that are wrong in chemistry terms** and records them as
+  "Known limits" rather than hiding them: every nitro group reads as a cation (cation-π 2.86 A against its own
+  ring), two acceptors count as a hydrogen bond (1,2-dimethoxyethane), two bonded rings count as stacked
+  (biphenyl), sulfur is not a metal donor, a salt written as two fragments is embedded on top of itself, and a
+  hydrophobic contact has no lower bound. The fixes are a separate task, not made here. The molecular dynamics
+  measurements: energy conserved to under 0.1 kcal/mol over 0.5 ps, the 300 K you ask for becomes about half of
+  that when started from a minimised conformer, and the default run never leaves the starting conformer (50 ps at
+  300 K does not either; only 1000 K does). 3D Alignment: the score is not normalised (a perfect self-overlay scores
+  27.6 for ethanol and 138.2 for caffeine, and 0 below three heavy atoms), and Accuracy changes nothing when the
+  Flexible build succeeds, which corrects the user guide's "higher accuracy generates more conformers". `plip2015`,
+  `tosco2011` (read in full), `verlet1967` and `swope1982` join the sources registry, and `molecular_dynamics.py`
+  leaves the provenance debt.
 - **Found while checking Bondi's paper, researched, and decided:** the "Bondi radii" the surface and steric code used are
   RDKit's table, which is neither Bondi's list nor ever was. RDKit says only "taken from BODR v10.1", BODR cites nothing,
   and the values equal Batsanov (2001) Table 9's recommended crystallographic radii for all 65 elements it lists. On

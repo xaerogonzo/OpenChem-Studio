@@ -2250,6 +2250,105 @@ NOT CHECKED: the paper's Tables 2 and 4 in detail.
 """
 
 [[source]]
+key = "plip2015"
+kind = "literature"
+citation = "S. Salentin, S. Schreiber, V. J. Haupt, M. F. Adasme & M. Schroeder, 'PLIP: fully automated protein-ligand interaction profiler', Nucleic Acids Res. 2015, 43(W1), W443-W447."
+identifier_type = "doi"
+identifier = "10.1093/nar/gkv315"
+status = "reference_only"
+reason = "Cited in the Interaction Analysis explainer for how rule-based interaction detection describes its own thresholds; no value or rule of the application comes from it."
+used_by = ["docs/explainers/interaction_dynamics.md"]
+verification = "citation"
+verified_date = 2026-10-11
+note = """
+CHECKED: identity against Crossref (title, five authors, journal, volume, issue, pages, year). The open-access full text
+on PubMed Central was read through a page fetch on 2026-10-11, not from a PDF, and the explainer takes two statements
+from it and nothing numeric: that PLIP is "rule-based" with geometric constraints, and that its thresholds "are taken
+from literature and are thus knowledge based" and, "to account for low-quality structures and structural errors", some
+"have been modified to be more permissive".
+
+NOT CHECKED, AND NOT USED: any distance or angle. The paper's text gives none; they are in its supplementary data, which
+was not read. The cutoffs of `interaction_analysis` are therefore NOT claimed to come from PLIP, and the explainer says
+that no source is recorded for any individual number.
+"""
+
+[[source]]
+key = "tosco2011"
+kind = "literature"
+citation = "P. Tosco, T. Balle & F. Shiri, 'Open3DALIGN: an open-source software aimed at unsupervised ligand alignment', J. Comput. Aided Mol. Des. 2011, 25(8), 777-783."
+identifier_type = "doi"
+identifier = "10.1007/s10822-011-9462-9"
+status = "shipped"
+used_by = ["src/openchem/chem/alignment.py"]
+local = "tosco2011_open3dalign.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-11
+note = """
+CHECKED: read in full (7 pages; the DOI is printed on page 1 and matches Crossref). The explainer's account of the
+atom-based method is the paper's own: a cost matrix per heavy-atom pair from MMFF94 partial charges, an empirical
+MMFF94 atom-type similarity matrix (1 = identity, 20 = maximum dissimilarity) and K = 20 binned distance histograms
+(Eq. 1); minimisation by the Jonker-Volgenant linear assignment; ranking by how well intramolecular distances are
+respected; alignment by Kearsley's RMS method weighted by atom-type similarity; a Gaussian-weighted score over the pairs
+(Eq. 2, coefficients 2.0 and 5.0); iterative tuning of w1, w2, t and p; validation on Sutherland's eight datasets
+(average RMSD below 0.8 angstrom for the mixed scheme, below 0.2 for half of them, roughly double with conformer
+databases); misalignments on condensed heteroaromatics; the closing remark that highly flexible, diverse sets are not the
+best fit for rigid superposition of precomputed conformations.
+
+NOT CHECKED, AND NOT CLAIMED: that RDKit's `GetO3A` reproduces the paper's score (Eq. 2) or its cost function in
+detail. RDKit documents its class as the "Open3DALIGN object", matched on "MMFF atom types and charges", with a
+`Score()` called the "O3AScore". The application measured perfect self-overlay scores of 27.58 (ethanol), 45.00
+(benzene) and 138.20 (caffeine), which are not values Eq. 2 would give for MMFF94 charges, so the two scores are treated as
+different quantities. The Crippen-contribution variant the application falls back to for elements MMFF cannot type is
+RDKit's own addition and is not in this paper. The mixed (pharmacophore) scheme, which gave the paper's best figures, is
+not what the application calls.
+"""
+
+[[source]]
+key = "verlet1967"
+kind = "literature"
+citation = "L. Verlet, 'Computer \"Experiments\" on Classical Fluids. I. Thermodynamical Properties of Lennard-Jones Molecules', Phys. Rev. 1967, 159, 98-103."
+identifier_type = "doi"
+identifier = "10.1103/PhysRev.159.98"
+status = "shipped"
+used_by = ["src/openchem/chem/molecular_dynamics.py"]
+local = "verlet1967_classical_fluids.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-11
+note = """
+CHECKED: identity from page 1 (title, author, Physical Review volume 159, July 1967) and against Crossref; the PDF prints
+no DOI, so the DOI is Crossref's. What the explainer takes from it: the integration scheme of Eq. 4,
+r(t+h) = -r(t-h) + 2r(t) + f h^2 (for a system of 864 Lennard-Jones particles, in reduced units), with velocities from the
+central difference of Eq. 6 (the paper says its error, about 1/1000, "gives rise to small irregularities in the total
+energy which should be otherwise strictly constant"); that the starting velocities were chosen at random from a Gaussian
+law with 300 steps needed to reach equilibrium, so the temperature is measured and not imposed; and that conservation of
+the total energy was used as a check on the procedure.
+
+NOT CHECKED: the thermodynamic results (the paper's subject), which the explainer does not use.
+"""
+
+[[source]]
+key = "swope1982"
+kind = "literature"
+citation = "W. C. Swope, H. C. Andersen, P. H. Berens & K. R. Wilson, 'A computer simulation method for the calculation of equilibrium constants for the formation of physical clusters of molecules: Application to small water clusters', J. Chem. Phys. 1982, 76, 637-649."
+identifier_type = "doi"
+identifier = "10.1063/1.442716"
+status = "shipped"
+used_by = ["src/openchem/chem/molecular_dynamics.py"]
+local = "swope1982_water_clusters.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-11
+note = """
+CHECKED: identity from page 1 (title, four authors, J. Chem. Phys. 76, 637, doi printed) and against Crossref. The
+integration scheme the application uses is the one in this paper's APPENDIX, "Velocity form of the Verlet algorithm":
+r(n+1) = r(n) + h v(n) + h^2 f(r(n))/2 and v(n+1) = v(n) + h [f(r(n+1)) + f(r(n))]/2, which the paper says are equivalent to
+Verlet's equations and "retain the superior numerical precision of the summed form". The application's half-kick form
+(v += a h/2; r += v h; new a; v += a h/2) reduces to exactly those two lines, checked algebraically.
+
+NOT CHECKED: the paper's own subject (cluster equilibrium constants for water), which the explainer does not use. The paper
+does not say the scheme is symplectic or name its error; the explainer claims neither on its authority.
+"""
+
+[[source]]
 key = "tosco2014"
 kind = "literature"
 citation = "P. Tosco, N. Stiefl & G. Landrum, 'Bringing the MMFF force field to the RDKit: implementation and validation', J. Cheminform. 2014, 6:37."
