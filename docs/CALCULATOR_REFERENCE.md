@@ -199,6 +199,8 @@ electronegativity equalization, EEM charges, QEq charge equilibration, partial a
 
 **How it works**
 
+The stored name reads: **EEM**, the electronegativity equalization method, with the parameter set of **Bultinck et al. 2002, part I** (`eem_bultinck2002_part1`).
+
 The EEM of Mortier and co-workers with Bultinck et al.'s 2002 parameters. Their effective electronegativity and hardness for hydrogen, carbon, nitrogen, oxygen and fluorine were calibrated by weighted least squares against Mulliken charges from B3LYP/6-31G* calculations on a training set of 138 small organic molecules (930 hydrogens, 602 carbons, 105 nitrogens, 101 oxygens, 65 fluorines) [1]. The method therefore reproduces *those* quantum charges, not an independent truth about the molecule.
 
 Shipped: exactly those five elements and that parameter table. Any other element is refused by name; it is never given a neighbour's parameters.
@@ -217,6 +219,8 @@ Charges that approximate what a B3LYP/6-31G* Mulliken analysis would give for mo
 
 **How it works**
 
+The stored name reads: **QEq**, charge equilibration, **Rappé and Goddard 1991**, with **lambda = 1/2** (the paper's reading of the shielding, its equation 17') and the **experimental hydrogen** parameter set (`qeq_rg1991_lambda_half_h_experimental`). The paper also gives a Hartree-Fock hydrogen set and other readings of the shielding; they are not offered.
+
 Rappé and Goddard's charge equilibration. Instead of fitting parameters to quantum charges it takes experimental atomic data (ionization potentials, electron affinities and atomic radii), builds an atomic chemical potential from them, and requires all chemical potentials to be equal [5]. Its distinguishing feature is that the electrostatic interaction between atoms is **shielded**: each atom is a Slater orbital with a finite size, so two nearby charges do not interact as point charges. Mortier's EEM, by comparison, uses the unshielded Coulomb potential and fits to Mulliken charges from small STO-3G calculations [5]. Hydrogen is a special case: the paper redefines its electronegativity and lets its orbital size and hardness depend on its own charge, so hydrogen's charge is found iteratively [5].
 
 Shipped: the 16 elements of the paper's Table I; the lambda = 1/2 reading of the shielding (equation 17') and the experimental hydrogen parameter set, one of several readings the paper leaves open, fixed in advance in `benchmarks/charges/rappe_goddard/preregistration.md` (amendment A8). Each charge is bounded by the valence-electron range the paper writes out for Li, C and O (from -(8 - v) to +v for v valence electrons) and that this application derives by the same rule for the other elements. The calculator refuses when the hydrogen iteration does not settle, and when the final solution needs an atom held at a charge bound.
@@ -233,6 +237,8 @@ Charges that equalize chemical potential for this geometry, from atomic data rat
 #### Method: `eem_ionescu2013_e_mpa_631gs_gas`, `eem_ionescu2013_e_mpa_631gss_gas`
 
 **How it works**
+
+The two stored names read: **EEM**, **Ionescu et al. 2013**, then **e** (the paper's classification of atoms into types by chemical element alone; it has a second classification that is not offered), **mpa** (the reference charges are from Mulliken population analysis; the paper also uses Natural and iterative Hirshfeld analyses, not offered), the basis set (**631gs** is 6-31G*, **631gss** is 6-31G**) and **gas** (gas phase; the paper also has an implicit-solvent version, not offered) [2]. So `eem_ionescu2013_e_mpa_631gs_gas` is the paper's E-MPA/6-31G*/gas model.
 
 Ionescu et al.'s 2013 models are EEM models fitted for proteins. They use large protein fragments as the reference structures and fit the parameters to Mulliken charges at the Hartree-Fock level, with 6-31G* or 6-31G** and in the gas phase for the two shipped here; the paper parametrized and validated 24 such models over three population analyses, two basis sets and two environments [2]. The equation is not Bultinck's: it carries an adjusting factor k on the Coulomb term [2], and this application reads the distance there in angstrom, the reading that reproduces the paper's own results (36 of 36 model-by-dataset rows; bohr reproduced none; see `benchmarks/charges/models/ionescu_src_preregistration.md`). In the shipped parameter table some elements have a negative effective hardness (checked in that pre-registration, not stated in the paper), so for a molecule that contains one of them the charges returned are the model's unique stationary point and not an energy minimum; the result says so.
 
