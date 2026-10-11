@@ -11,10 +11,11 @@ returned a radius of ZERO for every atom. The calculation then ran on points: et
 where Bondi radii give 199, benzene 127 where they give 234, water 41 where they give 124 -- a
 fraction of the true figure, plausible-looking, and ordered correctly (a longer chain still read
 larger), which is why the tests that compared one molecule with another never noticed. The radii
-are now RDKit's own van der Waals table (`GetRvdw`), the same one the van der Waals volume, surface and
-projections use. IT IS NOT BONDI'S, which this once called it: RDKit's header says only "taken from BODR v10.1", and
-the values equal Batsanov's 2001 recommended crystallographic radii (`docs/VDW_RADII_ASSESSMENT.md`). The steric
-calculator uses Bondi's own radii (`chem/vdw_radii.py`); the docking module keeps a third table, for contacts.
+now Bondi's own list (`chem/vdw_radii.py`, method surface-v3, 2026-10-11), shared with the van der Waals volume,
+the projections and the steric calculator. From v2 they were RDKit's table, which this once called Bondi's and is
+not: it equals Batsanov's 2001 recommended crystallographic radii, and differs from Bondi's for N, O, F, P, Cl, Br and I
+(`docs/VDW_RADII_ASSESSMENT.md`). On 46 molecules whose volumes Bondi published, his list errs 1.84% on average against
+RDKit's 2.12%, all of the difference in halides. The docking module keeps its own table, for contacts.
 
 Marvin additionally splits the accessible surface into ASA+/ASA- (by
 partial-charge sign) and ASA_H/ASA_P (hydrophobic vs polar). Both are
@@ -41,6 +42,7 @@ from openchem.chem.calculator_options import (
 from openchem.chem.projection_geometry import van_der_waals_surface_area, van_der_waals_volume
 from openchem.chem.protonation_geometry import protonate_conformer
 from openchem.chem.sasa import accessible_areas
+from openchem.chem.vdw_radii import RADII_LABEL, bondi_radius
 from openchem.domain.calculator import CalculatorParameter
 from openchem.domain.common import ATOM_BASIS, TOTAL, CacheState, Provenance, declare_total
 from openchem.domain.result_store import SURFACE_METHOD as _SURFACE_METHOD
@@ -58,9 +60,6 @@ DEFAULT_SOLVENT_RADIUS = 1.4
 _MIN_SOLVENT_RADIUS = 0.0
 #: The largest probe radius accepted, in Angstrom (the reason is in the block above).
 _MAX_SOLVENT_RADIUS = 5.0
-
-#: RDKit's periodic table, asked for its van der Waals radii (BODR 10-1; equal to Batsanov 2001, NOT Bondi's list).
-_PERIODIC_TABLE = Chem.GetPeriodicTable()
 
 #: Declared with the other result methods in `result_store`, which must not import this layer.
 SURFACE_METHOD = _SURFACE_METHOD
@@ -90,8 +89,8 @@ def solvent_radius(parameters: dict[str, Any] | None) -> float:
 
 
 def atomic_radii(mol: Chem.Mol) -> list[float]:
-    """The van der Waals radius of every atom, from RDKit's table (equal to Batsanov 2001, not Bondi's list)."""
-    return [_PERIODIC_TABLE.GetRvdw(atom.GetAtomicNum()) for atom in mol.GetAtoms()]
+    """The van der Waals radius of every atom: Bondi's list, extended by Mantina et al., RDKit's table beyond them."""
+    return [bondi_radius(atom.GetAtomicNum()) for atom in mol.GetAtoms()]
 
 
 #: Same set pose_analysis.py treats as hydrogen-bond capable -- one
@@ -191,7 +190,7 @@ def compute_surface_analysis(
     places = decimals(parameters)
     probe = solvent_radius(parameters)
     notes: list[str] = []
-    recorded: dict[str, Any] = {"solvent_radius": probe, "radii": "rdkit_rvdw", "method": SURFACE_METHOD}
+    recorded: dict[str, Any] = {"solvent_radius": probe, "radii": RADII_LABEL, "method": SURFACE_METHOD}
     try:
         _require_conformer(mol)
         if parameters.get("major_microspecies"):
@@ -267,7 +266,7 @@ def compute_sasa_dataset(
             parameters={
                 "decimal_places": _places,
                 "solvent_radius": probe,
-                "radii": "rdkit_rvdw",
+                "radii": RADII_LABEL,
                 "method": SURFACE_METHOD,
                 ATOM_BASIS: atom_basis_of(mol),
                 # SASA really is additive over atoms -- the accessible

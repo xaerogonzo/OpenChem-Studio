@@ -18,6 +18,7 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 
 from openchem.chem.projection_geometry import van_der_waals_surface_area
+from openchem.chem.vdw_radii import bondi_radius
 from openchem.chem.surface_analysis import (
     DEFAULT_SOLVENT_RADIUS,
     compute_sasa_dataset,
@@ -29,7 +30,7 @@ from openchem.chem.surface_analysis import (
 from openchem.domain.calculator import GEOMETRY
 
 _TABLE = Chem.GetPeriodicTable()
-CHLORINE = _TABLE.GetRvdw(17)
+CHLORINE = bondi_radius(17)  # what the application uses since surface-v3: Bondi's 1.75, not RDKit's 1.80
 
 
 def _atoms(*positions, element: int = 17) -> Chem.Mol:
@@ -62,7 +63,7 @@ def _brute(mol: Chem.Mol, probe: float, per_atom: int = 60_000, seed: int = 11) 
     import numpy as np
 
     positions = np.array(mol.GetConformer().GetPositions())
-    reach = np.array([_TABLE.GetRvdw(atom.GetAtomicNum()) for atom in mol.GetAtoms()]) + probe
+    reach = np.array([bondi_radius(atom.GetAtomicNum()) for atom in mol.GetAtoms()]) + probe
     generator = np.random.default_rng(seed)
     total = 0.0
     for index in range(len(reach)):
@@ -280,7 +281,7 @@ def test_a_surface_result_saved_with_zero_radii_is_kept_but_labelled_withdrawn(p
     from openchem.domain.result_store import LEGACY_METHOD_VERSIONS, SURFACE_METHOD, SessionResultStore
 
     store, identity = _stored(producer(_embedded("CCO")))
-    assert identity.method_version == SURFACE_METHOD == "surface-v2"
+    assert identity.method_version == SURFACE_METHOD == "surface-v3"
     saved = store.to_dict()
     (entry,) = saved["molecules"]["m"]["results"]
     entry.pop("method_version")
