@@ -895,18 +895,18 @@ def test_a_real_embedded_engine_error_is_withheld_with_the_error_reason():
 
 
 def test_a_real_name_that_reads_back_as_another_structure_is_withheld_with_the_mismatch_reason():
-    """Cause two, with the real OPSIN read-back. D-212 (an OPEN defect: an N-acyl amidine on a ring nitrogen named as a methanamine, the C=N lost) is a real
-    wrong-structure name that is NOT an embedded error, so it can only be caught by the read-back. When D-212 is fixed this example has to move
-    to another open wrong-structure row -- the strict xfail in test_namer_known_defects.py fires in the same commit, which is the reminder.
-    (Round 13 used D-151 here; naming round 14 fixed it, and its first replacement D-153 the same round; D-162 was the example until naming round 38.)"""
+    """Cause two, with the real OPSIN read-back. A sulfonamidate anion: the engine writes `...benzene-1-sulfonamidate` (right), and OPSIN reads that
+    anion name as the NEUTRAL sulfonamide, so the name does not parse back to this structure and the app withholds it. It is a real name that is NOT an embedded
+    error, so only the read-back catches it. The example is a read-back MISREAD, not an engine defect, so no engine fix can make it stale. (Round 13 used D-151
+    here; round 14 fixed it, and its replacement D-153; D-162 was the example until round 38, D-212 until round 39, when both were fixed.)"""
     if not naming_providers.opsin_available():
         pytest.skip("the read-back gate needs OPSIN")
     import openchem.vendor.iupac_namer as namer
 
-    smiles = "Cc1cc(C)n(C(N)=NC(=O)c2ccccc2)n1"
+    smiles = "CCCn1nc([N-]S(=O)(=O)c2ccc(C)cc2)c2cc3ccccc3nc21"
     engine_output = namer.name_smiles(smiles)
     assert "NAMING ERROR" not in engine_output                   # a plain-looking name ...
-    assert "methanamine" in engine_output                        # ... and the wrong one (D-212's recorded output)
+    assert engine_output.endswith("sulfonamidate")               # ... the anion, written correctly
 
     with pytest.raises(naming_providers.NamingError) as raised:
         naming_providers.derived_name_for_structure(Chem.MolFromSmiles(smiles))
