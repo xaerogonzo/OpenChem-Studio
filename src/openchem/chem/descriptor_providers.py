@@ -31,6 +31,8 @@ from openchem.chem.mass_spectrum import (
 )
 from openchem.chem.geometry_analysis import compute_geometry_analysis
 from openchem.chem.geometry_options import geometry_parameters
+from openchem.chem.hbond_sites import compute_hbond_sites
+from openchem.chem.torsions import compute_torsion_table
 from openchem.chem.geometry_charges import (
     EEM_BULTINCK2002_PART1,
     GEOMETRY_CHARGE_METHOD_LABELS,
@@ -150,7 +152,7 @@ from openchem.chem.topology_analysis import (
 )
 from openchem.domain.mass_spectrum import DEFAULT_ION, SUPPORTED_IONS
 from openchem.chem import components
-from openchem.chem.components import drawing_index
+from openchem.chem.components import drawing_label
 from openchem.domain.calculator import (
     ELEMENT_OUTSIDE_PARAMETER_SET,
     GEOMETRY,
@@ -177,7 +179,7 @@ from openchem.domain.calculator_support import CalculatorSupport, SupportStage, 
 from openchem.domain.completeness import completeness_parameters
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.scientific_result import AlertResult, PerAtomDataset
-from openchem.domain.report import Fact, ReportResult
+from openchem.domain.report import Fact, FactCategory, ReportResult
 from openchem.domain.structure_issue import Basis, Severity
 from openchem.plugins.interfaces import DescriptorProvider
 
@@ -1695,6 +1697,145 @@ def compute_pka_dataset(
     )
 
 
+def compute_ionisable_sites(
+    mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any], interpreter_path: str | None = None
+) -> ReportResult:
+    """The "pka" category's ionisable-site summary: each centre `pKa` found, acid or base, and how much of
+    it is ionised at a pH.
+
+    It reads the SAME predictions `pKa` does (`compute_pka` keeps its answer for a structure) and adds
+    nothing to what the sidecar is asked, so the two cannot disagree about a value or an atom. Refusals are
+    `pKa`'s, word for word: not configured, a failed run, and a run that worked with nothing to say.
+    """
+    from openchem.chem.ionisable_sites import ACID, BASE, UNKNOWN, read_sites
+    from openchem.chem.pka_providers import compute_pka, pka_predictor_available
+
+    places = decimals(parameters)
+    try:
+        ph = min(14.0, max(0.0, float((parameters or {}).get("pH", DEFAULT_PH))))
+    except (TypeError, ValueError):
+        ph = DEFAULT_PH
+
+    def failed(error: str, summary: str = "", provenance: Provenance | None = None) -> ReportResult:
+        return ReportResult(
+            molecule_uuid=molecule_uuid,
+            report_id="ionisable_sites",
+            name="Ionisable Sites",
+            category="pka",
+            cache_state=CacheState.FAILED,
+            error=error,
+            error_summary=summary,
+            provenance=provenance or Provenance(created_by="core", method="pkasolver"),
+        )
+
+    if not pka_predictor_available(interpreter_path):
+        return failed(
+            _PKA_NOT_INSTALLED_MESSAGE,
+            _PKA_NOT_INSTALLED_SUMMARY,
+            Provenance(created_by="core", method="pkasolver", parameters={"refusal": SIDECAR_NOT_CONFIGURED}),
+        )
+    try:
+        predictions = compute_pka(mol, interpreter_path) or []
+    except RuntimeError as exc:
+        return failed(str(exc))
+
+    sites = read_sites(predictions, ph)
+    provenance = Provenance(created_by="core", method="pkasolver", parameters={"pH": ph})
+    if not sites:
+        return ReportResult(
+            molecule_uuid=molecule_uuid,
+            report_id="ionisable_sites",
+            name="Ionisable Sites",
+            category="pka",
+            facts=(
+                Fact(
+                    category=FactCategory.ELECTRONIC,
+                    label="Ionisable sites",
+                    value=0.0,
+                    display_value="None predicted",
+                    source="pkasolver",
+                    basis=Basis.HEURISTIC,
+                    limitations=(
+                        "pkasolver ran and has no pKa for this structure. That is not a statement that "
+                        "nothing here ionises: it is a model with a limited domain.",
+                    ),
+                ),
+            ),
+            provenance=provenance,
+        )
+
+    acids = sum(1 for s in sites if s.kind == ACID)
+    bases = sum(1 for s in sites if s.kind == BASE)
+    charged = sum(1 for s in sites if s.fraction_ionised is not None and s.fraction_ionised >= 0.5)
+    independent = (
+        "Treats this site ALONE (Henderson-Hasselbalch for one site): neighbouring sites shift each "
+        "other's pKa, a diacid's second more than its first, so this says which groups are mostly "
+        "charged and is not a species distribution. The whole molecule's dominant form is Major "
+        "Microspecies.",
+    )
+    facts = [
+        Fact(
+            category=FactCategory.ELECTRONIC,
+            label="Ionisable sites",
+            value=float(len(sites)),
+            display_value=f"{len(sites)} ({acids} acidic, {bases} basic)" if acids + bases == len(sites) else str(len(sites)),
+            source="pkasolver",
+            basis=Basis.HEURISTIC,
+        ),
+        Fact(
+            category=FactCategory.ELECTRONIC,
+            label=f"Mostly ionised at pH {ph:g}",
+            value=float(charged),
+            display_value=f"{charged} of {len(sites)}",
+            source="pkasolver",
+            basis=Basis.HEURISTIC,
+            limitations=("Sites more than half ionised, each judged alone.",) + independent,
+        ),
+    ]
+    for number, site in enumerate(sites, start=1):
+        where = ""
+        if site.atom_index is not None and 0 <= site.atom_index < mol.GetNumAtoms():
+            where = f" at {drawing_label(mol.GetAtomWithIdx(site.atom_index))}"
+        kind = {ACID: "Acid", BASE: "Base"}.get(site.kind, "Site")
+        spread = f" +/- {fmt(site.spread, parameters)}" if site.spread else ""
+        if site.fraction_ionised is None:
+            shown = f"pKa {fmt(site.pka, parameters)}{spread}; direction not known"
+        else:
+            shown = (
+                f"pKa {fmt(site.pka, parameters)}{spread}; "
+                f"{100.0 * site.fraction_ionised:.{max(0, min(places, 2))}f}% "
+                f"{'deprotonated' if site.kind == ACID else 'protonated'}"
+            )
+        notes = list(independent)
+        if site.fraction_range is not None:
+            low, high = site.fraction_range
+            notes.append(
+                f"Across the model's spread on this pKa the share ionised ranges from {100.0 * low:.1f}% "
+                f"to {100.0 * high:.1f}%. A spread is how far fifty models disagreed, not a confidence interval."
+            )
+        if site.kind == UNKNOWN:
+            notes.append("The prediction carried no protonation state, so whether this site is an acid or a base was not read.")
+        facts.append(
+            Fact(
+                category=FactCategory.ELECTRONIC,
+                label=f"{kind} {number}{where}",
+                value=site.pka,
+                display_value=shown,
+                source="pkasolver",
+                basis=Basis.HEURISTIC,
+                limitations=tuple(notes),
+            )
+        )
+    return ReportResult(
+        molecule_uuid=molecule_uuid,
+        report_id="ionisable_sites",
+        name="Ionisable Sites",
+        category="pka",
+        facts=tuple(facts),
+        provenance=provenance,
+    )
+
+
 def _pka_line(prediction, parameters: dict[str, Any] | None, mol: Chem.Mol | None = None) -> str:
     """One pKa, with the ionizable atom and the ensemble spread.
 
@@ -1724,7 +1865,7 @@ def _pka_line(prediction, parameters: dict[str, Any] | None, mol: Chem.Mol | Non
             # The DRAWING's number: on a salt the pKa is computed on the
             # ChEMBL parent, whose atoms are renumbered once a counter-ion
             # drawn before it is removed (`chem/components.py`).
-            site = f" at {atom.GetSymbol()}{drawing_index(atom)}"
+            site = f" at {drawing_label(atom)}"
     line = f"pKa {value}{site}"
     if not prediction.stddev:
         return line
@@ -2306,6 +2447,35 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         prediction_basis="empirical",
     ),
     CalculatorDefinition(
+        calculator_id="ionisable_sites",
+        scope=_PARENT_PROPERTY,
+        tags=["pka", "ionisation", "ionization", "acid", "base", "site", "charge", "ph"],
+        parameters=[
+            decimal_places_parameter(),
+            CalculatorParameter(name="pH", label="pH", kind="float", default=DEFAULT_PH, minimum=0.0, maximum=14.0),
+        ],
+        display_name="Ionisable Sites",
+        category="pka",
+        description=(
+            "Each ionisable centre pkasolver predicts, whether it is an acid or a base (read from the "
+            "model's own protonation state), and how much of it is ionised at a pH. A guide to which "
+            "groups are mostly charged, treating each site alone: neighbouring sites shift one "
+            "another's pKa, so it is not a species distribution. Uses the same predictions as pKa."
+        ),
+        execution=RegistryExecution(compute=compute_ionisable_sites),
+        prediction_basis="empirical",
+        support=CalculatorSupport(
+            SupportStage.LIMITED,
+            Visibility.SHOWN,
+            support_reason=(
+                "It inherits the pKa model's scope and error (a 24-compound check found a mean error of "
+                "0.15 where the model's fifty members agreed and 0.84 where they did not, and a confident "
+                "2.7 units out on 2,4-dinitrophenol), and its fraction ionised treats each site alone."
+            ),
+            scope_note="structures pkasolver has a prediction for; each site judged on its own",
+        ),
+    ),
+    CalculatorDefinition(
         calculator_id="logd",
         scope=_PARENT_PROPERTY,
         tags=['logd', 'lipophilicity', 'partition', 'ph', 'distribution', 'curve', 'logd vs ph'],
@@ -2539,6 +2709,26 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         parameters=[
             decimal_places_parameter(),
             *geometry_parameters(),
+        ],
+    ),
+    CalculatorDefinition(
+        calculator_id="torsion_table",
+        scope=_WHOLE_GEOMETRY,
+        calculation_input=GEOMETRY,
+        display_name="Torsion Table",
+        category="geometry",
+        description=(
+            "Every rotatable bond of the conformer with the dihedral angle about it, so 'flexible' can be "
+            "read bond by bond. The bonds are exactly the ones the Rotatable Bonds count counts, and the "
+            "angle is measured through the heaviest neighbour of each end (named on every row). One "
+            "conformer, not a scan. Needs a conformer."
+        ),
+        execution=RegistryExecution(compute=compute_torsion_table),
+        prediction_basis="deterministic",
+        support=CalculatorSupport(SupportStage.STABLE, Visibility.SHOWN),
+        tags=["geometry", "3d", "torsion", "dihedral", "rotatable", "flexibility"],
+        parameters=[
+            decimal_places_parameter(),
         ],
     ),
     CalculatorDefinition(
@@ -2956,6 +3146,33 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         ),
         execution=RegistryExecution(compute=compute_hbond_vs_ph),
         tags=["topology", "ph", "hydrogen-bonding", "curve"],
+    ),
+    CalculatorDefinition(
+        calculator_id="hbond_sites",
+        scope=_PARENT_PROPERTY,
+        parameters=microspecies_parameters(),
+        display_name="Hydrogen-Bond Sites",
+        category="topology",
+        description=(
+            "Which atoms are hydrogen-bond donors and which are acceptors, by the same definitions the "
+            "H-Bond Donors and H-Bond Acceptors properties count (atoms, not hydrogens; which atoms CAN "
+            "take part, not how strongly). Optionally on the major microspecies at a pH, with each atom "
+            "whose role changes when the molecule ionises flagged: an acid's hydroxyl donates as drawn "
+            "and its carboxylate oxygen accepts at pH 7.4."
+        ),
+        execution=RegistryExecution(compute=compute_hbond_sites),
+        support=CalculatorSupport(
+            SupportStage.LIMITED,
+            Visibility.SHOWN,
+            support_reason=(
+                "Donor and acceptor are conventions about which atoms can take part, not a strength or a "
+                "geometry (an amide nitrogen donates and does not accept; an aniline nitrogen does both). "
+                "At a pH the structure is Dimorphite-DL's dominant ionisation state, which does not "
+                "enumerate tautomers."
+            ),
+            scope_note="the atom definitions of RDKit's donor and acceptor counts; one dominant ionisation state at a pH",
+        ),
+        tags=["topology", "hydrogen-bonding", "donor", "acceptor", "ph", "sites"],
     ),
     # ---- Solubility ----------------------------------------------------
     # Registered UNCONDITIONALLY, both of them. The AqSolDB baseline and the

@@ -1,0 +1,9 @@
+[
+ {"do": "smiles", "smiles": "NCCCC(=O)O", "name": "GABA", "after_ms": 800},
+ {"do": "select", "molecule": -1, "after_ms": 1500},
+ {"do": "calculator", "id": "hbond_sites", "parameters": {"major_microspecies": true, "pH": 7.4}, "after_ms": 4000},
+ {"do": "results", "focus": "hbond_sites", "after_ms": 1500},
+ {"do": "shot", "path": "benchmarks/visual/artifacts/hbond_sites.png", "widget": "results"},
+ {"do": "expect_clean"},
+ {"do": "quit"}
+]

@@ -1,0 +1,62 @@
+[
+ {
+  "do": "smiles",
+  "smiles": "CC(C)Cc1ccc(cc1)C(C)C(=O)O",
+  "name": "Ibuprofen",
+  "after_ms": 800
+ },
+ {
+  "do": "select",
+  "molecule": -1,
+  "after_ms": 1500
+ },
+ {
+  "do": "conformers",
+  "count": 8,
+  "after_ms": 14000
+ },
+ {
+  "do": "calculator",
+  "id": "torsion_table",
+  "after_ms": 3000
+ },
+ {
+  "do": "results",
+  "focus": "torsion_table",
+  "after_ms": 1500
+ },
+ {
+  "do": "shot",
+  "path": "benchmarks/visual/artifacts/torsion_table.png",
+  "widget": "results"
+ },
+ {
+  "do": "calculator",
+  "id": "pka",
+  "after_ms": 14000
+ },
+ {
+  "do": "calculator",
+  "id": "ionisable_sites",
+  "parameters": {
+   "pH": 7.4
+  },
+  "after_ms": 6000
+ },
+ {
+  "do": "results",
+  "focus": "ionisable_sites",
+  "after_ms": 1500
+ },
+ {
+  "do": "shot",
+  "path": "benchmarks/visual/artifacts/ionisable_sites.png",
+  "widget": "results"
+ },
+ {
+  "do": "expect_clean"
+ },
+ {
+  "do": "quit"
+ }
+]

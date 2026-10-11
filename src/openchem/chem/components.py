@@ -43,8 +43,8 @@ from openchem.domain.calculator import (
 )
 
 #: Atom property set on every atom of a SELECTED structure: its index in the
-#: drawing. A report that names atoms in text (the pKa site, "at O3") reads
-#: it so the number it prints is the one on the user's drawing.
+#: drawing (counting from 0). A report that names atoms in text (the pKa site, "at O4") reads
+#: it, through `drawing_label`, so the number it prints is the one on the user's drawing.
 DRAWING_INDEX_PROP = "ocs_drawing_index"
 
 
@@ -67,6 +67,17 @@ def drawing_index(atom: Chem.Atom) -> int:
     if atom.HasProp(DRAWING_INDEX_PROP):
         return atom.GetIntProp(DRAWING_INDEX_PROP)
     return atom.GetIdx()
+
+
+def drawing_label(atom: Chem.Atom) -> str:
+    """`O4`: an atom's symbol and its number on the canvas, which counts from 1.
+
+    **ONE SPELLING OF "WHICH ATOM" FOR TEXT.** The drawing index above counts from 0, like every
+    RDKit index, and the canvas, the Atom Inspector and the bond reports all show `index + 1`. The
+    pKa line printed the zero-based one, so acetic acid's acidic oxygen read "O3" -- the number the
+    canvas gives the carbonyl oxygen next to it. A report that names an atom in words uses this.
+    """
+    return f"{atom.GetSymbol()}{drawing_index(atom) + 1}"
 
 
 def _stamp(mol: Chem.Mol, drawing_atoms: tuple[int, ...] | None) -> Chem.Mol:
