@@ -1208,7 +1208,6 @@ _PROVENANCE_DEBT = frozenset({
     "src/openchem/domain/compare.py",
     "src/openchem/chem/crystal_report.py",
     "src/openchem/chem/elemental_analysis.py",
-    "src/openchem/chem/geometry_analysis.py",
     "src/openchem/chem/huckel.py",
     "src/openchem/chem/interaction_analysis.py",
     "src/openchem/chem/lewis.py",
@@ -1235,13 +1234,11 @@ _PROVENANCE_DEBT = frozenset({
     "src/openchem/chem/oxidation_states.py",
     "src/openchem/chem/regulatory/calculator.py",
     "src/openchem/chem/report_adapter.py",
-    "src/openchem/chem/steric.py",
     "src/openchem/chem/structure_annotation.py",
     "src/openchem/chem/structure_check.py",
     "src/openchem/chem/structure_generators.py",
     "src/openchem/chem/substance.py",
     "src/openchem/chem/substructure.py",
-    "src/openchem/chem/surface_analysis.py",
     # IMPLEMENTS NO METHOD OF ITS OWN. The hydrogen-bond sites are RDKit's own donor and
     # acceptor definitions written out as patterns (RDKit exposes a count and no atoms), held
     # to RDKit's count over a corpus by tests/test_hbond_sites.py. A convention about which

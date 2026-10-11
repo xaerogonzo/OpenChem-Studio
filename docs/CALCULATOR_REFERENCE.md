@@ -609,6 +609,41 @@ Aligns this molecule onto a reference structure in 3D. "Extended atom types" pai
   - `optimisation_limit` -- Optimisation limit (loose, normal, strict, very_strict) default `normal`
   - `radius_scale` -- Projection radii (x van der Waals) default `1.0` range 0.5 to 3.0
 
+#### What it does
+
+Describes the size and shape of the conformer on screen and gives its energy under three force fields. For shape it reports how far the atoms lie from the centre, the smallest and the largest shadow the molecule casts over all viewing directions with the radius of the circle round each, and how far the molecule extends along that viewing direction. For energy it reports MMFF94, UFF and Dreiding, in kcal/mol or kJ/mol.
+
+#### How it works
+
+**Extent.** The distances from the centroid (the unweighted mean of the atom positions) to the nearest, the farthest and the average atom.
+
+**Shadows.** The molecule is drawn as a union of spheres, one per atom, of the atom's van der Waals radius times a scale factor (default 1). Its shadow in a viewing direction is the union of the discs they project, and the area of that union is computed exactly, not on a grid. The smallest and largest shadow are found by searching the viewing directions: about a thousand orientations are sampled over the sphere, the area is exact at each, and the best are refined locally (measured: benzene, 990 orientations, smallest shadow 18.75 square angstroms, where measuring on the three principal planes and calling the smaller "minimal" gives 20.07). The radii are RDKit's van der Waals table, which follows Bondi's scale (the most widely used scale of van der Waals radii [1]) but is not his recommended list: it differs for nitrogen, oxygen, fluorine and phosphorus, by at most about 2% in an area [2].
+
+**Energies.** Each force field is evaluated at the geometry as it is. **MMFF94** was derived mainly from high-quality computational data, about 500 structures optimized at HF/6-31G*, 475 at MP2/6-31G* and further sets evaluated at higher levels, as a combined organic and protein force field [3]; it is reached through RDKit's port [4]. **UFF**, the Universal force field, estimates its parameters from general rules that use only the element, its hybridization and its connectivity, so it covers the full periodic table [5]. **Dreiding** is also a generic force field: it takes bond lengths from atomic radii and uses one force constant each for bonds, angles and inversions and only six torsional barriers, all from simple hybridization rules [6]. Shipped: Dreiding is implemented here from that paper, with neither charges nor an explicit hydrogen-bond term, which is how the paper reports its own results, and it covers 37 atom types and declines outside them; the application's own check reproduces all eight rotational barriers the paper computes with Dreiding to within 0.008 kcal/mol (`docs/DREIDING_ASSESSMENT.md`). Any of the three can be absent for a molecule it has no parameters for, and nothing is substituted.
+
+**Options.** The energies and shadows can be taken on a relaxed **copy** of the geometry, never the one on screen, and a lowest-energy conformer can be taken from several generated ones ("lowest of those tried", never a global minimum). Changing the energy unit converts the same stored number.
+
+#### What the result means
+
+Shape numbers are for this conformer; a flexible molecule has many. The three energies are on **different scales and are never comparable with each other**, and each fact says so. Measured here on one conformer, in kcal/mol: ethanol MMFF94 -1.34, UFF 3.05, Dreiding 3.74; benzene 16.23, 10.65, 21.41; hexane -4.65, 5.91, 10.81. They differ even in sign. What is meaningful is to compare **one** of them across conformers of the **same** molecule.
+
+#### When to use it, when not
+
+Use it to compare conformers of one molecule, to size a molecule up (how big a shadow it casts, how far it reaches) or to see which of several conformers is the most compact. Do not compare an energy from one force field with another's, or between different molecules, and do not read the lowest energy among a handful of conformers as the global minimum. It needs a 3D conformer unless it is asked to generate one.
+
+#### Search for
+
+force field energy, MMFF94 UFF Dreiding, projection area, molecular shape
+
+#### Sources
+
+- [3] T. A. Halgren, 'Merck Molecular Force Field. I. Basis, Form, Scope, Parameterization, and Performance of MMFF94', J. Comput. Chem. 1996, 17(5-6), 490-519. Supports: what MMFF94 is, what it was derived from and what it is for
+- [5] A. K. Rappé, C. J. Casewit, K. S. Colwell, W. A. Goddard III & W. M. Skiff, 'UFF, a Full Periodic Table Force Field for Molecular Mechanics and Molecular Dynamics Simulations', J. Am. Chem. Soc. 1992, 114, 10024-10035. DOI 10.1021/ja00051a040. Supports: what UFF is and how its parameters are generated
+- [6] S. L. Mayo, B. D. Olafson & W. A. Goddard III, 'DREIDING: A Generic Force Field for Molecular Simulations', J. Phys. Chem. 1990, 94, 8897-8909. Supports: what Dreiding is and how its parameters are generated
+- [4] P. Tosco, N. Stiefl & G. Landrum, 'Bringing the MMFF force field to the RDKit: implementation and validation', J. Cheminform. 2014, 6:37. DOI 10.1186/s13321-014-0037-3. Supports: RDKit's implementation of MMFF94, through which the energy is computed
+- [1] CRC Handbook of Chemistry and Physics, 97th edition. ISBN CRC Handbook of Chemistry and Physics, 97th edition. Supports: Bondi's van der Waals radii as the most widely used scale
+- [2] A. Bondi, 'van der Waals Volumes and Radii', J. Phys. Chem. 1964, 68(3), 441-451. DOI 10.1021/j100785a001. Supports: Bondi's recommended radii, against which RDKit's table was compared
+
 <!-- help:calc-interaction-analysis -->
 ### Interaction Analysis
 
@@ -631,6 +666,40 @@ Exact cone angle (Bilbrey/Allen) and percent buried volume for a ligand, with th
   - `conformers` -- Conformers default `20` range 1 to 200
   - `metal_distance` -- Metal-donor distance (A) default `2.28` range 1.0 to 5.0
   - `sphere_radius` -- %Vbur sphere radius (A) default `3.5` range 1.0 to 10.0
+
+#### What it does
+
+Measures how much room a ligand takes up around a metal, by two established measures: the **exact cone angle** and the **percent buried volume**. It needs a donor atom (the atom that bonds to the metal), which it finds itself: a carbene carbon (a neutral, two-connected carbon with no hydrogen) first, otherwise the first phosphorus, nitrogen, arsenic or sulfur atom, in that order of preference. A ligand with several possible donors is therefore measured through only one of them. The ligand is a free molecule, with no metal drawn: the metal is placed where it would sit.
+
+#### How it works
+
+**Exact cone angle.** Tolman defined the cone angle as the apex angle of a cone centred 2.28 angstrom from the phosphorus atom that just touches the van der Waals radii of the outermost atoms of a space-filling model, with the substituents folded back to give the smallest cone [1]. That needs a physical model, a fixed bond length and a judgement about how substituents fold. Bilbrey and co-workers made it a well-posed geometry problem: the exact cone angle is the apex angle of the **most acute right circular cone, with its apex at the metal, that contains the entire ligand** [2]. Shipped: that, solved numerically, with the cone's axis solved for and not assumed to lie along the metal-donor bond; the donor's distance from the metal is an option, default 2.28 angstrom [1]. Measured: PEt3's tightest cone is 146 degrees, against 171 along the bond.
+
+**Percent buried volume.** The share of the volume of a sphere around the metal that the ligand occupies. Poater, Cavallo and co-workers defined it for N-heterocyclic carbene ligands [3], and Clavier and Nolan applied it to phosphines as well as carbenes [4]. Shipped with the conventions both papers give for SambVca: a sphere of radius 3.5 angstrom, atomic radii scaled by 1.17, and hydrogen atoms omitted [3] [4]; the volume is counted on a grid. The radii are **Bondi's own list scaled by 1.17**, as the papers scale it [5], with hydrogen at his 1.20 (hydrogens are omitted from the volume anyway) and, for main-group elements he gave no value for, the radii Mantina and co-workers derived to be compatible with his scale [6]; an element in neither list falls back to RDKit's table. This matters here as it does not for the surface areas: RDKit's phosphorus radius is 1.95 against Bondi's 1.80, so with RDKit's table the ligand's own phosphorus sphere was larger than SambVca's and small phosphines read 2 to 3.6 points too high. Measured on the same conformers, PH3 is 17.7 percent with Bondi's list (21.3 with RDKit's) and PMe3 22.4 (24.4); against Clavier and Nolan's published values for PMe3, PEt3, PPh3 and PCy3 at 2.28 angstrom (22.2, 27.8, 29.6, 31.8) [4] the mean absolute error is 0.8 points, against 1.8 before. The exact cone angle is unchanged, because hydrogen and carbon, which agree between the tables, set it. Hydrogen is deliberately not the 1.10 that the CRC Handbook and the docking module's contact table use: Rowland and Taylor recommend that value as a compromise for contact distances in crystals, while finding that hydrogen-hydrogen contacts support about 1.19 [7]. The reasoning is in `docs/VDW_RADII_ASSESSMENT.md`.
+
+**The geometry.** The ligand is taken from a set of conformers embedded and minimised with MMFF94 (default 20), and the result is reported across them.
+
+#### What the result means
+
+A cone angle in degrees (it can exceed 180 for a very bulky ligand) and a buried volume in percent, for the **free ligand**. Published exact cone angles and buried volumes are computed on the ligand **bound** to a metal, in DFT or crystal geometries, where the substituents splay differently, so these values are not directly comparable with those tables: PPh3's exact cone angle is 163.8 degrees here, and Bilbrey's value is about 170, 25 degrees above Tolman's 145 [2]. What survives is the **ranking**. Measured here (10 conformers), for the six phosphines of Tolman's appendix [1], the exact cone angle in degrees against Tolman's published value: PH3 86.4 (87), PMe3 117.2 (118), PEt3 146.3 (132), PPh3 163.8 (145), PCy3 169.6 (170), P(t-Bu)3 193.7 (182). The order is identical and the correlation with Tolman's values is r = 0.977; the buried volumes for the same series, 17.7, 22.4, 26.8, 29.3, 33.6 and 38.7 percent, rise in the same order, in line with the strong cone-angle and buried-volume relationship Clavier and Nolan report for phosphines (R2 = 0.96, for the set they studied) [4].
+
+#### When to use it, when not
+
+Use it to rank ligands by bulk, to see how a substituent change moves a ligand along that scale, or to estimate bulk for a ligand nobody has tabulated. Do not compare a number with a published table computed on bound geometries as if it were the same quantity, and do not read it as the bulk in a particular complex, where the ligand folds and the metal's own environment matters. It declines a structure with no donor atom it recognises.
+
+#### Search for
+
+cone angle, percent buried volume, ligand steric bulk, Tolman
+
+#### Sources
+
+- [1] C. A. Tolman, 'Steric effects of phosphorus ligands in organometallic chemistry and homogeneous catalysis', Chem. Rev. 1977, 77(3), 313-348. DOI 10.1021/cr60307a002. Supports: the cone angle's definition, the 2.28 angstrom distance and the published series
+- [2] J. A. Bilbrey, A. H. Kazez, J. Locklin & W. D. Allen, 'Exact ligand cone angles', J. Comput. Chem. 2013, 34(14), 1189-1197. DOI 10.1002/jcc.23217. Supports: the exact cone angle and its comparison with Tolman's
+- [3] A. Poater, B. Cosenza, A. Correa, S. Giudice, F. Ragone, V. Scarano & L. Cavallo, 'SambVca: A Web Application for the Calculation of the Buried Volume of N-Heterocyclic Carbene Ligands', Eur. J. Inorg. Chem. 2009, 1759-1766. DOI 10.1002/ejic.200801160. Supports: the buried volume and its SambVca conventions
+- [4] H. Clavier & S. P. Nolan, 'Percent buried volume for phosphine and N-heterocyclic carbene ligands: steric properties in organometallic chemistry', Chem. Commun. 2010, 46, 841-861. DOI 10.1039/b922984a. Supports: the buried volume for phosphines and the cone-angle relationship
+- [5] A. Bondi, 'van der Waals Volumes and Radii', J. Phys. Chem. 1964, 68(3), 441-451. DOI 10.1021/j100785a001. Supports: Bondi's recommended radii, which the buried-volume papers scale and this calculator uses
+- [6] M. Mantina, A. C. Chamberlin, R. Valero, C. J. Cramer & D. G. Truhlar, 'Consistent van der Waals Radii for the Whole Main Group', J. Phys. Chem. A 2009, 113(19), 5806-5812. DOI 10.1021/jp8111556. Supports: the radii for the main-group elements Bondi gave none for, compatible with his scale
+- [7] R. S. Rowland & R. Taylor, 'Intermolecular Nonbonded Contact Distances in Organic Crystal Structures: Comparison with Distances Expected from van der Waals Radii', J. Phys. Chem. 1996, 100(18), 7384-7391. Supports: the hydrogen 1.1 compromise for contact distances, and why it is not used here
 
 <!-- help:calc-molecular-dynamics -->
 ### Molecular Dynamics (vacuum)
@@ -657,6 +726,32 @@ Every rotatable bond of the conformer with the dihedral angle about it, so 'flex
 - Options:
   - `decimal_places` -- Decimal places default `2` range 0 to 8
 
+#### What it does
+
+Lists every rotatable bond of the conformer on screen with the twist about it, in degrees, so that "flexible" can be read bond by bond instead of as a single count. Each row names the four atoms the angle was measured through.
+
+#### How it works
+
+The angle about a bond B-C is the dihedral angle between the plane through A, B, C and the plane through B, C, D, where A is a neighbour of B and D a neighbour of C. Where an end has a choice of neighbour the heaviest is taken and, among equals, the lowest-numbered one, so the angle is never measured through a hydrogen when something heavier is there, and a renumbered drawing gives the same row.
+
+Which bonds count is the shipped part. They are exactly the ones in Properties' **Rotatable Bonds** count, which is RDKit's strict definition [1]: a single bond not in a ring between two atoms that are not terminal and not part of a triple bond, leaving out the spin of a trihalomethyl or tert-butyl group (which changes nothing) and the amide-like C(=X)-N, -O or -S linkage that is treated as rigid. RDKit gives only the count, so the same definition is written out as a pattern and a test holds the two equal over a corpus of structures, so the table and the count cannot disagree. The pattern is matched on the heavy-atom graph, so it gives the same bonds whether it is handed the drawing or a conformer with explicit hydrogens.
+
+#### What the result means
+
+One angle per rotatable bond, in the range minus 180 to 180 degrees, where 180 is anti and 0 is syn. It describes **this conformer only**: it is not a scan, not an energy and not a preference, and another conformer of the same molecule has different angles. A bond that is rotatable by definition may still be hindered in practice.
+
+#### When to use it, when not
+
+Use it to see where two conformers differ, to read which bonds make a molecule flexible, or to pick the bonds to scan in another calculation. Do not read an angle as the preferred or the lowest-energy one, and do not read the number of rows as a conformational count. It needs a 3D conformer, because an angle from flat 2D coordinates would be 0 or 180 and mean nothing.
+
+#### Search for
+
+torsion angle, dihedral angle, rotatable bonds
+
+#### Sources
+
+- [1] RDKit: Open-source cheminformatics. Supports: the rotatable-bond definition the table reproduces (cited for provenance; the pattern and its agreement with the count are this application's, tested here)
+
 ## Surface Area
 
 <!-- help:calc-atom-sasa -->
@@ -670,6 +765,34 @@ Per-atom solvent-accessible surface -- which atoms are actually exposed, for a s
   - `decimal_places` -- Decimal places default `2` range 0 to 8
   - `solvent_radius` -- Solvent probe radius (A) default `1.4` range 0.0 to 5.0
 
+#### What it does
+
+Gives each atom's **solvent-accessible surface area**: how much of its surface a solvent molecule of a chosen size could actually touch, in square angstroms. It shows which atoms are exposed and which are buried, and colours the structure by it. The probe is a water molecule's size (radius 1.4 angstrom) unless you change it.
+
+#### How it works
+
+Each atom is a sphere of its van der Waals radius, and the accessible surface is traced by the **centre** of a probe sphere rolling over them, so each atom's accessible sphere has the radius of the atom plus the probe. The surface of that enlarged sphere is covered with test points, and the share of points that lie inside no other atom's enlarged sphere, times the sphere's area, is the atom's accessible area. This is the point-counting method of Shrake and Rupley, who used 92 nearly equally spaced test points per sphere and a solvent radius of 1.4 angstrom for proteins; it follows the idea of Lee and Richards, who described the molecule as solvated van der Waals spheres [1].
+
+Shipped: the same idea with a different point set, **2000 points per atom on a Fibonacci spiral**, which is the same every call so that a repeat run agrees exactly. Measured against a 200,000-point reference at a 1.4 angstrom probe, it is within about 0.3% (worst error over four molecules: 0.9% at 300 points, 0.4% at 960, 0.3% at 2000, 0.13% at 5000), and a lone atom is exact at any count. The radii are RDKit's table, which is Batsanov's recommended crystallographic set and not Bondi's list (nitrogen 1.60 against 1.55, oxygen 1.55 against 1.52, fluorine 1.50 against 1.47, phosphorus 1.95 against 1.80; the effect on an area averages under 1% on a drug-like set, whereas the hydrogen radius alone, 1.20 here and 1.10 in the CRC Handbook, moves it 3 to 7%) [2] [3], and not the radii of the 1973 paper, which used Pauling's [1]. It needs a 3D conformer, and the probe can be set from 0 to 5 angstrom (at 0 it is the van der Waals surface itself).
+
+#### What the result means
+
+One area per atom for **this conformer**, in square angstroms; the areas of all atoms add up to the molecule's accessible surface. An atom's exposure depends on every other atom, so it changes with the conformer, with the probe size and with whether hydrogens are present. Measured on ethanol at the 1.4 angstrom probe: oxygen 35.49, the methyl carbon 7.73 and the CH2 carbon 3.50, because the hydrogens bonded to a carbon shield it, and each hydrogen 22.85 to 27.61, summing to 197.71 for the molecule. A large value means an atom is reachable, not that it is polar or reactive.
+
+#### When to use it, when not
+
+Use it to see which atoms of a conformer are exposed, to compare how buried an atom is between conformers, or to see how the picture changes with probe size. Do not compare areas computed with different probes or radii, and do not read exposure as hydrophobicity or as a binding contribution. For the whole-molecule total and its polar and hydrophobic splits use Molecular Surface Area (3D).
+
+#### Search for
+
+solvent accessible surface area, SASA, Shrake-Rupley, probe radius
+
+#### Sources
+
+- [1] A. Shrake & J. A. Rupley, 'Environment and exposure to solvent of protein atoms. Lysozyme and insulin', J. Mol. Biol. 1973, 79(2), 351-371. DOI 10.1016/0022-2836(73)90011-9. Supports: the point-counting method, the solvated-sphere picture and the 1.4 angstrom solvent radius
+- [2] A. Bondi, 'van der Waals Volumes and Radii', J. Phys. Chem. 1964, 68(3), 441-451. DOI 10.1021/j100785a001. Supports: Bondi's radii, against which RDKit's table was compared
+- [3] S. S. Batsanov, 'Van der Waals Radii of Elements', Inorganic Materials 2001, 37(9), 871-885 (translated from Neorganicheskie Materialy 37(9), 1031-1046). DOI 10.1023/a:1011625728803. Supports: the table RDKit's radii turned out to equal
+
 <!-- help:calc-griffin-hlb -->
 ### HLB (Griffin)
 
@@ -680,6 +803,32 @@ Griffin's hydrophile-lipophile balance: the weight percentage of ethylene oxide 
 - Basis: empirical (fitted to measured data, with real scatter).
 - Options:
   - `decimal_places` -- Decimal places default `2` range 0 to 8
+
+#### What it does
+
+Gives Griffin's hydrophile-lipophile balance (HLB) of a nonionic surfactant: a number from 0 to 20 for how water-loving versus oil-loving the molecule is, used to choose an emulsifier. It answers only for the surfactants the definition covers, and says so with a reason for any other structure, instead of returning a number that would mean nothing.
+
+#### How it works
+
+Griffin defined HLB for nonionic surfactants **whose only hydrophilic part is polyoxyethylene** as one fifth of the weight percentage of ethylene oxide in the molecule, HLB = E / 5, and fixed its scale by experiment, determining the HLB a surfactant must have to emulsify each of a variety of oils, fats and waxes in water [1]. For a polyoxyethylated dodecanol with p ethylene oxide units this becomes 881 p / (44.05 p + 186.3) [1].
+
+Shipped: the calculator counts the ethylene oxide units (-O-CH2-CH2-O- repeats) by substructure, takes each as 44.05 mass units, and divides by the whole molecular weight, so HLB = 20 x units x 44.05 / molecular weight. It reproduces the closed form above (measured: dodecanol with 4, 10 and 23 units gives 9.72, 14.05 and 16.89; the closed form gives 9.72, 14.06 and 16.89). It refuses a structure with no polyoxyethylene chain (measured: dodecanol, aspirin), and one that carries another hydrophilic group: a formal charge, an amine, an amide, a carboxylic acid, a sulfur or phosphorus oxyacid, a hydroxylated ring or more than one hydroxyl (measured: sodium laureth sulfate is refused for "a formal charge"). The refusal list is of what is excluded, not of what is allowed, so a hydrophile nobody thought of is not silently accepted.
+
+#### What the result means
+
+A classification aid, validated by Griffin's emulsification experiments rather than by a measurement of the molecule. Schott's Table I gives the working ranges: about 3 to 6 for water-in-oil emulsifiers, 8 to 17 for oil-in-water emulsifiers and 15 to 18 for solubilizers, and the scale approaches 20 asymptotically as the chain lengthens [1]. **Davies' HLB is a different scale** that shares the name: it was calculated from Griffin's results for sorbitan esters and polysorbates, none of which has polyoxyethylene as the sole hydrophile, and Schott shows it differs substantially from Griffin's over the whole practical range, for surfactants of that kind [1]. Davies' scale is therefore not offered, and the two numbers must never be reported under one label. Sorbitan esters (Span, Tween) are outside the formula: Griffin's experiments produced their published values, but sorbitan is a polyhydric alcohol, so his formula does not apply to them.
+
+#### When to use it, when not
+
+Use it for polyoxyethylated alcohols, alkylphenols and fatty acid esters of polyethylene glycol, which the paper says make up over 73% of the weight of nonionic surfactants produced in the United States at the time [1]. Do not use it for ionic surfactants, for anything with a second hydrophilic group, or for an ordinary drug, and do not read a refusal as a fault: it is the answer.
+
+#### Search for
+
+HLB, hydrophile-lipophile balance, Griffin, emulsifier
+
+#### Sources
+
+- [1] H. Schott, 'Comments on Hydrophile-Lipophile Balance Systems', Journal of Colloid and Interface Science 1989;133(2):527-529. Supports: Griffin's definition and the HLB = E / 5 form, the closed form for polyoxyethylated dodecanols, the application ranges, and why Davies' scale is not interchangeable
 
 <!-- help:calc-surface-analysis -->
 ### Molecular Surface Area (3D)
@@ -694,6 +843,35 @@ Solvent-accessible surface area with Marvin's ASA+/ASA-/ASA_H/ASA_P splits, plus
   - `major_microspecies` -- Take major microspecies default `False`
   - `pH` -- at pH default `7.4` range 0.0 to 14.0
 
+#### What it does
+
+Gives the **whole-molecule surface areas** of a 3D conformer, in square angstroms, with the splits chemists ask for: the solvent-accessible surface area (ASA), the part of it on positively and on negatively charged atoms (ASA+ and ASA-), the part on hydrophobic and on polar atoms (ASA_H and ASA_P), and the van der Waals surface area and volume. It can be taken for the molecule as it is or for the form that predominates at a pH.
+
+#### How it works
+
+The accessible surface is computed per atom exactly as in Accessible Surface Area (per atom), so the whole-molecule figures are sums of the same numbers; that is why the four splits cost nothing extra. The splits are rules over those per-atom values. **ASA+ and ASA-** add the atoms whose Gasteiger partial charge is above or below zero, with the charges taken from the same PEOE method as in Partial Charge (pH-dependent) and computed on a copy of the conformer [1]. **ASA_P** adds nitrogen, oxygen and fluorine atoms and the hydrogens bonded to them, the atoms that take part in hydrogen bonds, and **ASA_H is everything else**, so a sulfur or a chlorine counts as hydrophobic. The **van der Waals surface** is the surface of the fused atom spheres with no probe, and the **van der Waals volume** is the volume inside them, computed analytically and checked against a grid routine; at a probe of 0 the accessible area equals the van der Waals surface. The radii are RDKit's table, which is Batsanov's recommended crystallographic set and not Bondi's list (nitrogen 1.60 against 1.55, oxygen 1.55 against 1.52, fluorine 1.50 against 1.47, phosphorus 1.95 against 1.80; the effect on an area averages under 1% on a drug-like set, whereas the hydrogen radius alone, 1.20 here and 1.10 in the CRC Handbook, moves it 3 to 7%) [2] [3].
+
+Shipped: the probe radius and the pH option. With the pH option, the structure is the stored conformer with **only protons moved**: every heavy atom keeps its coordinates and only a hydrogen the new state adds is placed, and a structure for which that cannot be done is refused with the reason, never a surface of a different molecule.
+
+#### What the result means
+
+Measured on one conformer at the 1.4 angstrom probe. Ethanol: ASA 197.71, of which ASA+ 154.50 and ASA- 43.22; ASA_H 139.38 and ASA_P 58.34; van der Waals surface 81.45 and volume 54.14. Benzene: ASA 244.28, ASA_P 0.00 (no polar atoms), van der Waals surface 109.53 and volume 83.69. The two pairs each add to the total. Because ASA+ and ASA- follow the sign of a partial charge, they inherit that model's limits: a different charge model could move an atom across zero and change them. They are areas for one conformer, not averages.
+
+#### When to use it, when not
+
+Use it to compare conformers or molecules by exposed surface, to see how much of it is polar, or to size a molecule with a probe. Do not treat ASA_H as a measure of lipophilicity, do not compare areas taken with different probes or radii, and do not compare the charge-sign split between molecules whose charges come from different models. It needs a 3D conformer; the 2D Polar Surface Area calculator needs none.
+
+#### Search for
+
+molecular surface area, ASA, van der Waals surface, polar surface
+
+#### Sources
+
+- [4] A. Shrake & J. A. Rupley, 'Environment and exposure to solvent of protein atoms. Lysozyme and insulin', J. Mol. Biol. 1973, 79(2), 351-371. DOI 10.1016/0022-2836(73)90011-9. Supports: the point-counting method the accessible area is computed by
+- [2] A. Bondi, 'van der Waals Volumes and Radii', J. Phys. Chem. 1964, 68(3), 441-451. DOI 10.1021/j100785a001. Supports: Bondi's radii and van der Waals volume, against which RDKit's table was compared
+- [1] J. Gasteiger & M. Marsili, 'Iterative Partial Equalization of Orbital Electronegativity -- A Rapid Access to Atomic Charges', Tetrahedron 1980, 36, 3219-3228. DOI 10.1016/0040-4020(80)80168-2. Supports: the PEOE charges whose sign splits ASA+ from ASA-
+- [3] S. S. Batsanov, 'Van der Waals Radii of Elements', Inorganic Materials 2001, 37(9), 871-885 (translated from Neorganicheskie Materialy 37(9), 1031-1046). DOI 10.1023/a:1011625728803. Supports: the table RDKit's radii turned out to equal
+
 <!-- help:calc-polar-surface-area -->
 ### Polar Surface Area (2D)
 
@@ -703,6 +881,32 @@ Topological polar surface area, for the structure as drawn and for the dominant 
 - Runs on the 2D drawing, so no conformer is needed.
 - Options:
   - `pH` -- pH default `7.4` range 0.0 to 14.0
+
+#### What it does
+
+Estimates how much of a molecule's surface belongs to its polar atoms, the nitrogens and oxygens, in square angstroms, from the 2D drawing alone. It is reported twice: for the structure as drawn, and for the form that predominates at a chosen pH, because an acid that has lost a proton or an amine that has gained one has different polar atoms.
+
+#### How it works
+
+This is **topological polar surface area (TPSA)**. Rather than build a 3D structure and measure a surface, it adds up a fixed contribution for each polar fragment, where a fragment is an atom together with its bonding pattern: a neutral hydroxyl contributes 20.23, an ether oxygen 9.23, a primary amine nitrogen 26.02 [1]. The contributions were found by least-squares fitting to the polar surface measured on a single 3D conformer, taken from the van der Waals surface of the oxygens, nitrogens, sulfurs and phosphorus atoms with their attached hydrogens, for 34,810 drug-like molecules from the World Drug Index [1]. The fit has a correlation of 0.99 with the 3D value (standard deviation 7.83 square angstroms, average absolute error 5.62) [1].
+
+Shipped: RDKit's implementation of that table, which counts **nitrogen and oxygen only**. The paper also lists "slightly polar" sulfur and phosphorus fragments for those who want them [1]; they are not counted here (measured: thiophenol gives 0.00, where counting sulfur would give 38.80, and trimethyl phosphate 44.76, where counting phosphorus would give 54.57). At a pH, the dominant form is chosen with Dimorphite-DL and the same sum is taken over it, so the value changes only by the polar atoms' changed contributions (measured: acetic acid 37.30 as drawn and 40.13 as the carboxylate, which is the table's 23.06 for the anion oxygen plus 17.07 for the carbonyl; methylamine 26.02 as drawn and 27.64 as the ammonium).
+
+#### What the result means
+
+A fast, topological estimate of the polar surface a 3D calculation would give, not a measured surface. It uses no geometry, so every conformer of a molecule has the same value. The paper reports that it correlates with published intestinal absorption, Caco-2 permeability and blood-brain barrier data, with squared correlations from 0.56 to 0.96 across six data sets of 9 to 57 compounds, similar to the 3D value on the same data [1]. Its one reported weakness is large macrocycles with many polar substituents, whose polar groups sit buried in the ring, so the topological value is too large against the 3D one [1].
+
+#### When to use it, when not
+
+Use it to screen or rank many structures quickly, or to see how ionization shifts the polar surface. Do not read it as an accessible or measured surface, do not compare it with a value computed with sulfur and phosphorus counted, and treat it as an overestimate for macrocycles whose polar groups face inward. For a surface of a particular conformer use Molecular Surface Area (3D).
+
+#### Search for
+
+topological polar surface area, TPSA, Ertl, polar surface area
+
+#### Sources
+
+- [1] P. Ertl, B. Rohde & P. Selzer, 'Fast Calculation of Molecular Polar Surface Area as a Sum of Fragment-Based Contributions and Its Application to the Prediction of Drug Transport Properties', J. Med. Chem. 2000, 43, 3714-3717. DOI 10.1021/jm000942e. Supports: the method, the fragment contributions, how they were fitted, and the validation data
 
 ## Aromaticity
 

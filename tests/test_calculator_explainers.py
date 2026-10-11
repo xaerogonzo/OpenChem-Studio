@@ -44,22 +44,22 @@ _DOC = _ROOT / "docs" / "CALCULATOR_REFERENCE.md"
 #: Built-in calculators with no authored explainer yet. LOWER `_DEBT_CEILING` whenever ids
 #: leave this set; never raise it. Emptied by the last family PR, then deleted.
 EXPLAINER_DEBT = frozenset({
-    "admet_ml", "alignment_3d", "atom_sasa", "atomic_polarizability", "bbb_descriptors",
+    "admet_ml", "alignment_3d", "atomic_polarizability", "bbb_descriptors",
     "bird_aromaticity", "cns_mpo", "crippen_logp_contrib", "crippen_mr_contrib", "detonation",
-    "docking.vina", "elemental_analysis", "functional_groups", "geometry_analysis", "griffin_hlb",
+    "docking.vina", "elemental_analysis", "functional_groups",
     "hansen_solubility", "hbond_sites", "hbond_vs_ph", "homa_aromaticity", "huckel_analysis",
     "huckel_pi_density", "interaction_analysis", "ionisable_sites", "iupac_name", "isoelectric_point",
     "joback_properties", "lewis_adduct", "lewis_hsab", "lewis_sites", "locants", "logd",
     "major_microspecies", "markush_enumeration", "mass_spectrum", "molecular_dynamics",
     "nmr_database", "orca.delta_scf", "orca.led", "orca.nmr", "orca.nmr_coupling", "orca.opt",
     "orca.opt_freq", "orca.sp", "orca.tautomer_distribution", "oxidation_states", "oxygen_balance",
-    "pka", "pka_microspecies", "polar_surface_area", "polarizability", "regulatory_screen",
+    "pka", "pka_microspecies", "polarizability", "regulatory_screen",
     "resonance_forms", "ring_systems", "solubility", "stereo_descriptors", "stereocenters",
-    "stereoisomers", "steric_analysis", "structural_frameworks", "substance_analysis",
-    "substructure_search", "surface_analysis", "tautomers", "topology_analysis",
-    "topology_distance_degree", "topology_eccentricity", "torsion_table", "tsei_projection",
+    "stereoisomers", "structural_frameworks", "substance_analysis",
+    "substructure_search", "tautomers", "topology_analysis",
+    "topology_distance_degree", "topology_eccentricity", "tsei_projection",
 })
-_DEBT_CEILING = 68
+_DEBT_CEILING = 61
 
 
 @pytest.fixture(scope="module")
@@ -394,6 +394,13 @@ _SEARCHES = [
     ("damped by one half", "gasteiger_charge_at_ph"),
     ("SD-POE", "orbital_electronegativity"),
     ("centre of mass", "dipole_moment"),
+    ("World Drug Index", "polar_surface_area"),
+    ("asymptotically", "griffin_hlb"),
+    ("anti and 0 is syn", "torsion_table"),
+    ("Universal force field", "geometry_analysis"),
+    ("Fibonacci", "atom_sasa"),
+    ("chlorine counts as hydrophobic", "surface_analysis"),
+    ("right circular cone", "steric_analysis"),
 ]
 
 

@@ -1537,6 +1537,14 @@ paper**: each person's library is their own, so what it finds differs per person
 stand on its DOIs and search keywords alone for everyone else. Two rules carry over from the explainers: no URL
 in authored text (a DOI is built to outlive a site, a link is not), and Knowledge Vista stays optional.
 
+**Decided: which van der Waals radii (2026-10-11).** Ligand Steric Bulk uses Bondi's own list (`chem/vdw_radii.py`,
+method `steric-v2`); the surface, volume, projection and Geometry calculators keep RDKit's table, which the code now
+calls what it is (it equals Batsanov 2001's recommended radii, not Bondi's). Hydrogen 1.10 was not adopted for areas
+and volumes. Still open, none urgent: whether the surface calculators should one day follow Bondi too (areas move about
+0.5%, and it needs a method-version bump), and the docking table's `Fe` 1.56, which is in neither Bondi's nor Mantina's
+list and is untraced. Both were researched further the same day (Bondi's own group volumes as an oracle; a library
+search for Fe) and are Alex's to decide: see "The three open questions" in the assessment. `docs/VDW_RADII_ASSESSMENT.md` has the evidence.
+
 **Deferred, maintainer side:** replace the filename in `sources.toml`'s `local` field (a locator that drifts, and
 the subject of the deferred Sci Downloads naming round) with a `kv` lookup by DOI or hash, and add a coverage
 report of which registered sources the maintainer's library lacks, which is the list of papers to fetch before

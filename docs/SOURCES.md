@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 4493798010ff1fbd92400bbcce080f18808e6c70a97db8a18b2c3cf09ff098c8 -->
+<!-- SOURCE SHA256: 36f346f225a6ef9bcc85187fd1bd11a59b7121d124159400e33896ec212b0a89 -->
 
 # Sources
 
@@ -105,12 +105,15 @@ next run of `tools/build_lewis_parameters.py`.
 | [`balabin2009`](#balabin2009) | literature | reference only | citation + claim |
 | [`ballester2010`](#ballester2010) | literature | **not shipped** | citation |
 | [`barone2023`](#barone2023) | literature | reference only | citation |
+| [`batsanov2001`](#batsanov2001) | literature | reference only | citation |
 | [`belova2014`](#belova2014) | literature | shipped | citation + claim |
 | [`bento2020`](#bento2020) | literature | shipped | citation + claim |
 | [`bertz1981`](#bertz1981) | literature | shipped | citation |
 | [`bickerton2012`](#bickerton2012) | literature | shipped | citation |
+| [`bilbrey2013`](#bilbrey2013) | literature | shipped | citation |
 | [`bird1985`](#bird1985) | literature | shipped | citation |
 | [`bolovinos1984`](#bolovinos1984) | literature | shipped | citation + claim |
+| [`bondi1964`](#bondi1964) | literature | shipped | citation + claim |
 | [`bradley2014`](#bradley2014) | dataset | shipped | citation + claim |
 | [`bradley2015`](#bradley2015) | literature | shipped | citation + claim |
 | [`bravetti2023`](#bravetti2023) | literature | shipped | citation |
@@ -131,6 +134,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`cioslowski1989`](#cioslowski1989) | literature | reference only | citation |
 | [`cioslowski1989prl`](#cioslowski1989prl) | literature | reference only | citation + claim |
 | [`claesen2023`](#claesen2023) | literature | reference only | citation |
+| [`clavier2010`](#clavier2010) | literature | shipped | citation |
 | [`cod`](#cod) | dataset | shipped | citation |
 | [`coppens2006`](#coppens2006) | literature | **not shipped** | citation |
 | [`crc_handbook`](#crc_handbook) | reference_table | shipped | citation + claim |
@@ -157,6 +161,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`guo2006`](#guo2006) | literature | reference only | citation + claim |
 | [`gutmann1976`](#gutmann1976) | literature | shipped | citation + claim |
 | [`gutmann_frontiers2022`](#gutmann_frontiers2022) | literature | **not shipped** | citation |
+| [`halgren1996_mmff1`](#halgren1996_mmff1) | literature | shipped | citation |
 | [`halgren1996_mmff2`](#halgren1996_mmff2) | literature | shipped | citation + claim |
 | [`hall1981`](#hall1981) | literature | shipped | citation |
 | [`hancock1996`](#hancock1996) | literature | reference only | citation |
@@ -197,6 +202,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`lorentzon1995`](#lorentzon1995) | literature | reference only | citation + claim |
 | [`lovering2009`](#lovering2009) | literature | shipped | citation |
 | [`mann1947`](#mann1947) | literature | shipped | citation + claim |
+| [`mantina2009`](#mantina2009) | literature | shipped | citation + claim |
 | [`marsili1980`](#marsili1980) | literature | shipped | citation + claim |
 | [`mathieu2007`](#mathieu2007) | literature | reference only | citation + claim |
 | [`mayer1975`](#mayer1975) | literature | reference only | citation |
@@ -234,6 +240,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`perry2025`](#perry2025) | literature | reference only | citation |
 | [`pkasolver`](#pkasolver) | software | shipped | citation |
 | [`platts1999`](#platts1999) | literature | **not shipped** | citation + claim |
+| [`poater2009`](#poater2009) | literature | shipped | citation |
 | [`pyside6`](#pyside6) | software | shipped | citation |
 | [`quiroga2016`](#quiroga2016) | literature | shipped | citation + claim |
 | [`ramachandran1996`](#ramachandran1996) | literature | **not shipped** | citation + claim |
@@ -244,6 +251,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`rdkit`](#rdkit) | software | shipped | citation |
 | [`rdkit_bertz`](#rdkit_bertz) | software | shipped | citation + claim |
 | [`rendell1993`](#rendell1993) | literature | reference only | unverified |
+| [`rowland1996`](#rowland1996) | literature | shipped | citation + claim |
 | [`ruttkies2016`](#ruttkies2016) | literature | reference only | citation |
 | [`schindler2021`](#schindler2021) | literature | reference only | citation |
 | [`schindler2021_correction`](#schindler2021_correction) | literature | reference only | citation |
@@ -251,6 +259,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`sci_downloads_note`](#sci_downloads_note) | reference_table | reference only | citation |
 | [`sefcik2002`](#sefcik2002) | literature | reference only | citation + claim |
 | [`shannon1976`](#shannon1976) | literature | shipped | citation + claim |
+| [`shrake1973`](#shrake1973) | literature | shipped | citation |
 | [`snider2007`](#snider2007) | literature | reference only | citation |
 | [`souvignier2016`](#souvignier2016) | literature | shipped | citation |
 | [`stefanis2008`](#stefanis2008) | literature | shipped | citation + claim |
@@ -260,6 +269,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`tenbrink2009`](#tenbrink2009) | literature | shipped | citation + claim |
 | [`thompson2002`](#thompson2002) | literature | reference only | citation |
 | [`threedmol`](#threedmol) | software | shipped | citation |
+| [`tolman1977`](#tolman1977) | literature | shipped | citation |
 | [`tosco2014`](#tosco2014) | literature | reference only | citation |
 | [`trott_olson2010`](#trott_olson2010) | literature | shipped | citation + claim |
 | [`trygubenko2002`](#trygubenko2002) | literature | shipped | citation + claim |
@@ -1905,6 +1915,292 @@ that is. Its QEq column is Cerius 3.2 on MP2 geometries, and is no oracle
 for any QEq this application might add.
 
 The PDF carries no DOI (typeset 1996); the identifier is what page 1 prints.
+
+### halgren1996_mmff1
+
+<a id="halgren1996_mmff1"></a>
+
+> T. A. Halgren, 'Merck Molecular Force Field. I. Basis, Form, Scope, Parameterization, and Performance of MMFF94', J. Comput. Chem. 1996, 17(5-6), 490-519.
+
+| | |
+| --- | --- |
+| Identifier | Journal of Computational Chemistry, Vol. 17, Nos. 5 & 6, 490-519 (1996) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-10-11 |
+| Local copy | `halgren1996_I.pdf` (not checked) |
+| Used by | `src/openchem/chem/geometry_analysis.py` |
+
+CHECKED: the paper's identity, from page 1 of the PDF: title, author, journal, volume and issue
+and pages 490-519 are printed there, and so is the abstract that the explainer for Geometry quotes
+from (MMFF94 derived primarily from high-quality computational data: ca. 500 structures optimized at
+HF/6-31G*, 475 at MP2/6-31G*, and further sets evaluated at higher levels; intended as a combined
+organic/protein force field).
+
+NOT CHECKED: any number in the paper, and the energy this application reports. The MMFF94 energy in
+`Geometry` is computed by RDKit's port (see [source:tosco2014]), whose agreement with MMFF94 reference
+energies is not re-measured here. `verification` stays `citation` for that reason, and it is the
+charge paper, [source:halgren1996_mmff2], whose numbers were checked against its own Table V.
+
+The PDF carries no DOI (typeset 1996); the identifier is what page 1 prints.
+
+### bondi1964
+
+<a id="bondi1964"></a>
+
+> A. Bondi, 'van der Waals Volumes and Radii', J. Phys. Chem. 1964, 68(3), 441-451.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/j100785a001](https://doi.org/10.1021/j100785a001) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-11 |
+| Local copy | `bondi1964.pdf` (not checked) |
+| Used by | `src/openchem/chem/vdw_radii.py`, `src/openchem/chem/steric.py` |
+
+THE PDF PRINTS NO DOI (typeset 1964, before DOIs existed), so the identifier is not read from the file: it is Crossref's DOI for this journal, volume and first page (queried 2026-10-11), and its title, author, journal, volume and pages match what page 1 of the PDF prints.
+
+CHECKED, AND THE NUMBERS THE APPLICATION USES: Table I (the nonmetals' mean radii, single-bonded forms) was read from
+the page image, and Table XIV (the main-group metals from critical volumes) from its page; every value in
+`chem/vdw_radii.py` is held to them by `tests/test_vdw_radii.py`. Cross-checked against Poater et al.'s Table 1
+([source:poater2009]), which prints the same Bondi column and its x 1.17 values, and against Mantina et al.'s Table 9
+([source:mantina2009]), which differs from the paper in two places that the paper settles (bromine: Table I 1.85,
+Mantina 1.83; lithium: Table XIV 1.82, Mantina 1.81). Bondi's running text says 1.97 for iodine where his Table I says
+1.98; the table is used. The paper also gives aromatic carbon 1.77 and aromatic hydrogen 1.00, which a single radius
+per element does not carry, and says outright that its radii "have been selected for the calculation of volumes"
+and "may not always be suitable for the calculation of contact distances in crystals" (quoted by Rowland and Taylor).
+
+**RDKIT'S TABLE IS NOT THIS LIST, AND THE APPLICATION CALLS IT "BONDI".** `rdkit.Chem.GetPeriodicTable().GetRvdw` gives
+H 1.20, C 1.70, S 1.80 (equal to the paper) but N 1.60, O 1.55, F 1.50 and P 1.95 (larger than the paper's 1.55, 1.52,
+1.47 and 1.80). Measured 2026-10-11 on small molecules, the difference in a van der Waals or accessible area is at
+most about 2% (trifluoromethane +2.3% at probe 0, +1.4% at probe 1.4; benzene, which has only C and H, 0.0%), so
+the numbers are close but the label is not exact. This row records what the paper says; the application's
+`radii = "bondi"` provenance label and the code comments that say "Bondi" are a separate question left open.
+
+NOT CHECKED: Bondi's group increments for volume and area (the paper's later tables), which this application does
+not use.
+
+### shrake1973
+
+<a id="shrake1973"></a>
+
+> A. Shrake & J. A. Rupley, 'Environment and exposure to solvent of protein atoms. Lysozyme and insulin', J. Mol. Biol. 1973, 79(2), 351-371.
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/0022-2836(73)90011-9](https://doi.org/10.1016/0022-2836(73)90011-9) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-10-11 |
+| Local copy | `Environment-and-exposure-to-solvent-of-protein-atoms-Lysozyme-and-insulin.pdf` (not checked) |
+| Used by | `src/openchem/chem/sasa.py`, `src/openchem/chem/surface_analysis.py` |
+
+THE PDF PRINTS NO DOI (typeset 1973, before DOIs existed), so the identifier is not read from the file: it is Crossref's DOI for this journal, volume and first page (queried 2026-10-11), and its title, author, journal, volume and pages match what page 1 of the PDF prints.
+
+The PDF is a scan whose text layer is OCR: it reads the first page number as "361", where the paper's pages are
+351-371, so numbers were checked against the printed page and Crossref, not the OCR alone.
+
+CHECKED: the method. Like Lee and Richards (1971) it describes the protein as a set of solvated van der Waals
+spheres, represents each sphere's surface by a set of 92 nearly equally spaced test points, and takes an atom's
+exposure to be the part of its solvated sphere whose test points are not occluded by other atoms; the solvated
+radius is the atom's van der Waals radius plus the solvent's (1.4 A). That paper used Pauling's radii, where Lee
+and Richards had used Bondi's.
+
+NOT CHECKED: any of the paper's results for lysozyme and insulin. The application uses a different point set (a
+Fibonacci spiral of 2000 points per atom, measured to about 0.3% from a 200,000-point reference) and a different
+radius table; what it shares with the paper is the idea.
+
+### tolman1977
+
+<a id="tolman1977"></a>
+
+> C. A. Tolman, 'Steric effects of phosphorus ligands in organometallic chemistry and homogeneous catalysis', Chem. Rev. 1977, 77(3), 313-348.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/cr60307a002](https://doi.org/10.1021/cr60307a002) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-10-11 |
+| Local copy | `tolman1977.pdf` (not checked) |
+| Used by | `src/openchem/chem/steric.py` |
+
+THE PDF PRINTS NO DOI (typeset 1977, before DOIs existed), so the identifier is not read from the file: it is Crossref's DOI for this journal, volume and first page (queried 2026-10-11), and its title, author, journal, volume and pages match what page 1 of the PDF prints.
+
+CHECKED: the definition of the ligand cone angle (the apex angle of a cylindrical cone centred 2.28 A from the
+centre of the phosphorus atom that just touches the van der Waals radii of the outermost atoms of a space-filling
+model, with substituents folded back to the smallest cone; for an unsymmetrical ligand the angle is the average of its
+three substituents' cone angles, written as 2/3 of the sum of the half-angles) and Appendix B's list of values, which includes PH3 87, PMe3 118, PEt3 132, PPh3 145, PCy3
+170 and P(t-Bu)3 182 degrees. The application's free-ligand values (86.4, 117.2, 146.3, 163.8, 169.6, 193.7) have the
+same ordering and correlate with these at r = 0.977 (measured 2026-10-11).
+
+NOT CHECKED: the paper's electronic parameter and its equilibrium data. The application computes the EXACT cone angle
+([source:bilbrey2013]), not Tolman's, and uses Tolman only as the ranking reference.
+
+### bilbrey2013
+
+<a id="bilbrey2013"></a>
+
+> J. A. Bilbrey, A. H. Kazez, J. Locklin & W. D. Allen, 'Exact ligand cone angles', J. Comput. Chem. 2013, 34(14), 1189-1197.
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/jcc.23217](https://doi.org/10.1002/jcc.23217) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-10-11 |
+| Local copy | `bilbrey2013.pdf` (not checked) |
+| Used by | `src/openchem/chem/steric.py` |
+
+THE PDF PRINTS ITS OWN DOI on its first page (10.1002/jcc.23217), which matches Crossref's record (queried 2026-10-11).
+
+CHECKED: the method (the exact cone angle is the apex angle of the most acute right circular cone, with its apex at
+the metal, that contains the entire ligand), why it replaces Tolman's (a fixed 2.28 A bond length, an assumed
+tetrahedral phosphorus, free folding of the ligand), and that for PPh3 the exact angle is 25 degrees larger than
+Tolman's 145, i.e. about 170, which is the 'published' value the application's own tests compare against.
+
+NOT CHECKED: the paper's tables of computed angles beyond PPh3 and P(i-Bu)3, and the optimisation algorithm's
+details; the application's solver is its own and is checked by its tests.
+
+### poater2009
+
+<a id="poater2009"></a>
+
+> A. Poater, B. Cosenza, A. Correa, S. Giudice, F. Ragone, V. Scarano & L. Cavallo, 'SambVca: A Web Application for the Calculation of the Buried Volume of N-Heterocyclic Carbene Ligands', Eur. J. Inorg. Chem. 2009, 1759-1766.
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/ejic.200801160](https://doi.org/10.1002/ejic.200801160) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-10-11 |
+| Local copy | `poater2009.pdf` (not checked) |
+| Used by | `src/openchem/chem/steric.py` |
+
+THE PDF PRINTS ITS OWN DOI on its first page (10.1002/ejic.200801160), which matches Crossref's record (queried 2026-10-11).
+
+CHECKED: the definition of the buried volume (%VBur), the share of the space occupied by the ligand in the first
+coordination sphere of the metal; Table 1's Bondi and Bondi x 1.17 radii (H 1.40, C 1.99, N 1.81, O 1.78, F 1.72,
+P 2.11 scaled); and the paper's recommendation to use the Bondi radii scaled by 1.17 with a sphere radius of 3.5 A.
+It sets the metal-NHC distance at 2.00 A and notes 2.28 A is Tolman's value for phosphines.
+
+NOT CHECKED: the web application itself, or the paper's correlation study. This application's %Vbur follows these
+conventions but is its own grid calculation, and uses RDKit's radii times 1.17 (see [source:bondi1964] for how
+RDKit's table differs from Bondi's).
+
+### clavier2010
+
+<a id="clavier2010"></a>
+
+> H. Clavier & S. P. Nolan, 'Percent buried volume for phosphine and N-heterocyclic carbene ligands: steric properties in organometallic chemistry', Chem. Commun. 2010, 46, 841-861.
+
+| | |
+| --- | --- |
+| Identifier | [10.1039/b922984a](https://doi.org/10.1039/b922984a) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-10-11 |
+| Local copy | `clavier2010.pdf` (not checked) |
+| Used by | `src/openchem/chem/steric.py` |
+
+THE PDF PRINTS ITS OWN DOI on its first page (10.1039/b922984a), which matches Crossref's record (queried 2026-10-11).
+
+CHECKED: the parameters it states for SambVca calculations: a sphere radius of 3.50 A, metal-ligand distances of both
+2.00 and 2.28 A, hydrogen atoms omitted, and scaled Bondi radii as Cavallo recommends; and its finding that the cone
+angle and the buried volume are linearly related for phosphines (R2 = 0.96 at 2.28 A, for the set it studied).
+
+NOT CHECKED: the review's tables for individual ligands. The application's own correlation with Tolman's angles is
+measured separately (see [source:tolman1977]).
+
+### batsanov2001
+
+<a id="batsanov2001"></a>
+
+> S. S. Batsanov, 'Van der Waals Radii of Elements', Inorganic Materials 2001, 37(9), 871-885 (translated from Neorganicheskie Materialy 37(9), 1031-1046).
+
+| | |
+| --- | --- |
+| Identifier | [10.1023/a:1011625728803](https://doi.org/10.1023/a:1011625728803) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-11 |
+| Local copy | `batsanov2001.pdf` (not checked) |
+| Used by | `tests/test_vdw_radii_provenance.py`, `docs/VDW_RADII_ASSESSMENT.md` |
+
+**Why it is reference only.** It is not what the application implements. It is the table RDKit's van der Waals radii turned out to equal, which is why the surface and steric calculators' radii are not Bondi's (see docs/VDW_RADII_ASSESSMENT.md). Nothing here is built from it; a test holds RDKit's table equal to it so a dependency upgrade cannot change the radii unnoticed.
+
+CHECKED: the paper's Table 9 ("System of the van der Waals radii of elements"; upper figures crystallographic, lower
+figures equilibrium) and Table 1 (the radii of Pauling, Bondi, Zefirov, Gavezzotti, Wiberg and Rowland side by side),
+read from the text layer of a publicly hosted copy, with title, author, journal, volume and pages matching
+Crossref's record (queried 2026-10-11). The crystallographic figures were compared by program with RDKit's
+`GetRvdw` for every element the table lists, 65 in all, and are equal in every case (fixture
+`tests/fixtures/vdw/batsanov2001_table9.csv`). Table 1's Bondi row repeats Bondi's own values: F 1.47, Cl 1.75,
+Br 1.85, I 1.98, O 1.52, S 1.80, N 1.55, C 1.70.
+
+NOT CHECKED: the paper's argument and the other nine tables; hydrogen is not in Table 9. Alex's own copy was supplied
+afterwards (`batsanov2001.pdf`, 15 pages) and matches the public copy read first. That RDKit's table IS Batsanov's is
+an identification by exact agreement, not something RDKit or the Blue Obelisk Data Repository says.
+
+### mantina2009
+
+<a id="mantina2009"></a>
+
+> M. Mantina, A. C. Chamberlin, R. Valero, C. J. Cramer & D. G. Truhlar, 'Consistent van der Waals Radii for the Whole Main Group', J. Phys. Chem. A 2009, 113(19), 5806-5812.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jp8111556](https://doi.org/10.1021/jp8111556) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-11 |
+| Local copy | `mantina2009.pdf` (not checked) |
+| Used by | `src/openchem/chem/vdw_radii.py` |
+
+CHECKED: read. The sixteen radii the application uses for main-group elements Bondi gave none for (Be 1.53, B 1.92,
+Al 1.84, Ca 2.31, Ge 2.11, Rb 3.03, Sr 2.49, Sb 2.06, Cs 3.43, Ba 2.68, Bi 2.07, Po 1.97, At 2.02, Rn 2.20, Fr 3.48,
+Ra 2.83) are the abstract's own, held to it by `tests/test_vdw_radii.py`. The paper says its radii were determined
+"in a way designed to be compatible with Bondi's scale" by correlating Bondi's radii with repulsive-wall distances from
+relativistic coupled-cluster calculations. Its Table 9 lists Bondi's main-group radii beside its own correlation, and
+its introduction records that Bondi's hydrogen 1.2 "describes well the size of H in H...H contacts, but for
+interactions with other elements, the smaller value is more appropriate. Bondi had drawn similar conclusions, but he
+favored using the higher value as a standard", and that it adopts Rowland and Taylor's 1.1 ([source:rowland1996]).
+
+NOT CHECKED: the quantum-chemical method; the application uses only the sixteen results. Two of Table 9's "Bondi radius"
+entries disagree with Bondi's paper (bromine 1.83, lithium 1.81; see [source:bondi1964]) and were not used.
+
+### rowland1996
+
+<a id="rowland1996"></a>
+
+> R. S. Rowland & R. Taylor, 'Intermolecular Nonbonded Contact Distances in Organic Crystal Structures: Comparison with Distances Expected from van der Waals Radii', J. Phys. Chem. 1996, 100(18), 7384-7391.
+
+| | |
+| --- | --- |
+| Identifier | J. Phys. Chem. 1996, 100(18), 7384-7391; the paper prints its code as S0022-3654(95)03141-8, so its DOI ends in jp953141 followed by a plus sign (10.1021/jp953141+), which the repository's DOI pattern cannot carry |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-11 |
+| Local copy | `rowland1996.pdf` (not checked) |
+| Used by | `src/openchem/chem/pose_analysis.py` |
+
+CHECKED, AND THE NUMBER THE APPLICATION USES: hydrogen 1.10, the value the docking module's contact table carries
+(`pose_analysis._VDW_RADII`). The paper analyses intermolecular contacts in 28,403 organic crystal structures from the
+Cambridge Structural Database, with hydrogen positions "normalized" to neutron C-H, N-H and O-H lengths (1.083, 1.009
+and 0.983 angstrom), and finds Bondi's radii consistent with the data for every element "with the single exception of
+hydrogen, for which his radius is higher ... by about 0.1 A". It resolves the apparent paradox itself: H...H contacts in
+neutron structures support about 1.19, close to Bondi's value (Bondi's hydrogen was based largely on H...H contacts), and
+only the H...O and H...N contacts, shortened by electrostatic attraction, require a smaller radius; 1.1 is "a weighted
+average over several different types of H...X distribution" and is offered as "a better compromise" for transferability.
+For O, F, S, Cl, Br and I the differences from Bondi are 0.04 A or less ("we will continue to use the Bondi values"); for
+carbon and nitrogen they see "no reason to move away from Bondi's data" apart from N...N contacts.
+
+THE CAVEAT THAT DECIDES WHERE IT APPLIES: this is a radius for CONTACT DISTANCES. Bondi chose his "for the calculation of
+volumes" and warned they "may not always be suitable for the calculation of contact distances in crystals", so the
+surface, volume and projection calculators keep hydrogen at 1.20 and only the contact table uses 1.10
+(`docs/VDW_RADII_ASSESSMENT.md`).
+
+NOT CHECKED: the paper's Tables 2 and 4 in detail.
 
 ### tosco2014
 

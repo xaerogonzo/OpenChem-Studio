@@ -23,6 +23,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `OPENCHEM_DRIVE`'s `dialog` step takes `topic` and `search` for the Help window.
 - `USER_GUIDE.md`'s partial-charge comparison points at the explainers and adds a dated side-by-side
   of one atom under each model.
+- Shape and surface, first part: Polar Surface Area (Ertl's TPSA, N and O only, measured), Griffin HLB (with
+  the Davies scale kept apart and the refusals measured), Torsion Table and Geometry (extent, the exact-area
+  shadow search, and what MMFF94, UFF and Dreiding are and why their energies are never comparable, with
+  the three measured side by side). `EXPLAINER_DEBT` is 61 after the second part: Accessible Surface Area, Molecular
+  Surface Area (3D) and Ligand Steric Bulk, written once the papers were supplied. MMFF94 part I
+  (`halgren1996_mmff1`) and six more join the sources registry (`bondi1964`, `shrake1973`, `tolman1977`,
+  `bilbrey2013`, `poater2009`, `clavier2010`), each with its DOI. The three old papers print no DOI, so those
+  come from Crossref and each row says so; this retired `geometry_analysis.py`, `steric.py` and
+  `surface_analysis.py` from the provenance debt.
+- **Found while checking Bondi's paper, researched, and decided:** the "Bondi radii" the surface and steric code used are
+  RDKit's table, which is neither Bondi's list nor ever was. RDKit says only "taken from BODR v10.1", BODR cites nothing,
+  and the values equal Batsanov (2001) Table 9's recommended crystallographic radii for all 65 elements it lists. On
+  areas the choice is small (mean 0.4% on 17 molecules), but percent buried volume ran 2 to 3.6 points high for small
+  phosphines because of RDKit's phosphorus 1.95 against Bondi's 1.80. After reading Bondi, Batsanov, Mantina et al. and
+  Rowland and Taylor: **Ligand Steric Bulk now uses Bondi's own radii** (`chem/vdw_radii.py`, with Mantina et al.'s
+  sixteen for the elements he left out; method `steric-v2`, mean error against Clavier and Nolan's published volumes
+  0.8 points instead of 1.8, the exact cone angle unchanged), and a result saved by the earlier method is kept and
+  labelled `legacy-rdkit-radii-v1`. **Every other calculator keeps RDKit's table and now says so** (code comments, the
+  Geometry result's limitation line, stored `radii: "rdkit_rvdw"`); no number there moved. Hydrogen stays 1.20 for areas
+  and volumes (Bondi chose his radii for volumes; Rowland and Taylor's 1.10 is a contact-distance compromise, which is
+  what the docking module's own table, Bondi's with that hydrogen, is for). `docs/VDW_RADII_ASSESSMENT.md` has the
+  evidence, `tests/test_vdw_radii.py` and `tests/test_vdw_radii_provenance.py` pin the tables and the sources, and
+  `benchmarks/vdw_radii/radii_study.py` reproduces the numbers.
 
 ### Help window: three things found by using it
 - **Clearing a search lost your place.** The x in the search box re-rendered the page and put it back at

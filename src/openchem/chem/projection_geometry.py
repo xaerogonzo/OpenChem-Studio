@@ -60,7 +60,7 @@ from rdkit.Chem import AllChem, rdMolDescriptors
 from openchem.chem.projection_search import projection_at, projection_extremes
 from openchem.chem.sasa import accessible_areas
 
-#: RDKit's own Bondi radii, asked rather than duplicated -- a second copy
+#: RDKit's own van der Waals radii (Batsanov 2001's set, not Bondi's), asked rather than duplicated -- a second copy
 #: of a parameter table is a second thing to get out of step.
 _PERIODIC_TABLE = Chem.GetPeriodicTable()
 
