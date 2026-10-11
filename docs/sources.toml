@@ -1985,6 +1985,32 @@ The PDF carries no DOI (typeset 1996); the identifier is what page 1 prints.
 """
 
 [[source]]
+key = "halgren1996_mmff1"
+kind = "literature"
+citation = "T. A. Halgren, 'Merck Molecular Force Field. I. Basis, Form, Scope, Parameterization, and Performance of MMFF94', J. Comput. Chem. 1996, 17(5-6), 490-519."
+identifier_type = "bibliographic"
+identifier = "Journal of Computational Chemistry, Vol. 17, Nos. 5 & 6, 490-519 (1996)"
+status = "shipped"
+used_by = ["src/openchem/chem/geometry_analysis.py"]
+local = "halgren1996_I.pdf"
+verification = "citation"
+verified_date = 2026-10-11
+note = """
+CHECKED: the paper's identity, from page 1 of the PDF: title, author, journal, volume and issue
+and pages 490-519 are printed there, and so is the abstract that the explainer for Geometry quotes
+from (MMFF94 derived primarily from high-quality computational data: ca. 500 structures optimized at
+HF/6-31G*, 475 at MP2/6-31G*, and further sets evaluated at higher levels; intended as a combined
+organic/protein force field).
+
+NOT CHECKED: any number in the paper, and the energy this application reports. The MMFF94 energy in
+`Geometry` is computed by RDKit's port (see [source:tosco2014]), whose agreement with MMFF94 reference
+energies is not re-measured here. `verification` stays `citation` for that reason, and it is the
+charge paper, [source:halgren1996_mmff2], whose numbers were checked against its own Table V.
+
+The PDF carries no DOI (typeset 1996); the identifier is what page 1 prints.
+"""
+
+[[source]]
 key = "tosco2014"
 kind = "literature"
 citation = "P. Tosco, N. Stiefl & G. Landrum, 'Bringing the MMFF force field to the RDKit: implementation and validation', J. Cheminform. 2014, 6:37."

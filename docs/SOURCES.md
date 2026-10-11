@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 4493798010ff1fbd92400bbcce080f18808e6c70a97db8a18b2c3cf09ff098c8 -->
+<!-- SOURCE SHA256: 30b3158ba5b32a61897178d168f1f7bf90cb3cfdaa44a63ec67e8e2ff5263c37 -->
 
 # Sources
 
@@ -157,6 +157,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`guo2006`](#guo2006) | literature | reference only | citation + claim |
 | [`gutmann1976`](#gutmann1976) | literature | shipped | citation + claim |
 | [`gutmann_frontiers2022`](#gutmann_frontiers2022) | literature | **not shipped** | citation |
+| [`halgren1996_mmff1`](#halgren1996_mmff1) | literature | shipped | citation |
 | [`halgren1996_mmff2`](#halgren1996_mmff2) | literature | shipped | citation + claim |
 | [`hall1981`](#hall1981) | literature | shipped | citation |
 | [`hancock1996`](#hancock1996) | literature | reference only | citation |
@@ -1903,6 +1904,34 @@ Gasteiger column is SYBYL 5.5's implementation and differs from RDKit's
 it is not used to check anything; see [source:gasteiger1980] for the check
 that is. Its QEq column is Cerius 3.2 on MP2 geometries, and is no oracle
 for any QEq this application might add.
+
+The PDF carries no DOI (typeset 1996); the identifier is what page 1 prints.
+
+### halgren1996_mmff1
+
+<a id="halgren1996_mmff1"></a>
+
+> T. A. Halgren, 'Merck Molecular Force Field. I. Basis, Form, Scope, Parameterization, and Performance of MMFF94', J. Comput. Chem. 1996, 17(5-6), 490-519.
+
+| | |
+| --- | --- |
+| Identifier | Journal of Computational Chemistry, Vol. 17, Nos. 5 & 6, 490-519 (1996) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-10-11 |
+| Local copy | `halgren1996_I.pdf` (not checked) |
+| Used by | `src/openchem/chem/geometry_analysis.py` |
+
+CHECKED: the paper's identity, from page 1 of the PDF: title, author, journal, volume and issue
+and pages 490-519 are printed there, and so is the abstract that the explainer for Geometry quotes
+from (MMFF94 derived primarily from high-quality computational data: ca. 500 structures optimized at
+HF/6-31G*, 475 at MP2/6-31G*, and further sets evaluated at higher levels; intended as a combined
+organic/protein force field).
+
+NOT CHECKED: any number in the paper, and the energy this application reports. The MMFF94 energy in
+`Geometry` is computed by RDKit's port (see [source:tosco2014]), whose agreement with MMFF94 reference
+energies is not re-measured here. `verification` stays `citation` for that reason, and it is the
+charge paper, [source:halgren1996_mmff2], whose numbers were checked against its own Table V.
 
 The PDF carries no DOI (typeset 1996); the identifier is what page 1 prints.
 

@@ -23,6 +23,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `OPENCHEM_DRIVE`'s `dialog` step takes `topic` and `search` for the Help window.
 - `USER_GUIDE.md`'s partial-charge comparison points at the explainers and adds a dated side-by-side
   of one atom under each model.
+- Shape and surface, first part: Polar Surface Area (Ertl's TPSA, N and O only, measured), Griffin HLB (with
+  the Davies scale kept apart and the refusals measured), Torsion Table and Geometry (extent, the exact-area
+  shadow search, and what MMFF94, UFF and Dreiding are and why their energies are never comparable, with
+  the three measured side by side). `EXPLAINER_DEBT` is 64. MMFF94 part I joins the sources registry
+  (`halgren1996_mmff1`, citation verified only), which retired `geometry_analysis.py` from the provenance
+  debt. Three calculators in this group wait for papers the registry does not hold (Bondi, Shrake-Rupley,
+  Tolman and the exact cone angle) and are not written from memory.
 
 ### Naming: ring systems keep their heteroatoms, numbering, hydrogen and name
 - A spiro heterocycle on a bridged ring was `tricyclo[...]undecane-1,3-dione` (every N gone), an N-attached triazinedione was numbered as a ring OPSIN cannot build, a spiro partner lost an azole N-H, a tricycle of three monocycles had no name, and a protonated or iminium N in a fused 4-ring was a NAMING ERROR (D-215 .. D-219). Census 1968 -> 1978 exact, visible failures 4 -> 0; fresh_v1 1950 -> 1951 of 2000 read back after its one re-score (97.55%).

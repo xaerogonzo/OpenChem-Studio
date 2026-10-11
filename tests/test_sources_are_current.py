@@ -1208,7 +1208,6 @@ _PROVENANCE_DEBT = frozenset({
     "src/openchem/domain/compare.py",
     "src/openchem/chem/crystal_report.py",
     "src/openchem/chem/elemental_analysis.py",
-    "src/openchem/chem/geometry_analysis.py",
     "src/openchem/chem/huckel.py",
     "src/openchem/chem/interaction_analysis.py",
     "src/openchem/chem/lewis.py",
