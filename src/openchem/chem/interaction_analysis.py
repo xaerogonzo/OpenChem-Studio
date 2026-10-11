@@ -31,11 +31,11 @@ from openchem.chem.pose_analysis import (
     CLASH_TOLERANCE,
     HBOND_DISTANCE_CUTOFF,
     HYDROPHOBIC_CUTOFF,
-    METAL_COORDINATION_CUTOFF,
     PI_STACKING_CUTOFF,
     SALT_BRIDGE_CUTOFF,
     _DEFAULT_VDW_RADIUS,
     _METALS,
+    is_metal_bond,
     _POLAR_ELEMENTS,
     _VDW_RADII,
 )
@@ -234,7 +234,11 @@ def find_interactions(mol: Chem.Mol) -> dict[str, list[dict[str, Any]]]:
             donor = j if element_i.upper() in _METALS else i
             if (
                 _is_metal_donor(mol.GetAtomWithIdx(donor))
-                and distance <= METAL_COORDINATION_CUTOFF
+                and is_metal_bond(
+                    (element_i if element_i.upper() in _METALS else element_j).upper(),
+                    mol.GetAtomWithIdx(donor).GetSymbol(),
+                    distance,
+                )
                 and separated("metal_coordination", i, j)
             ):
                 found["metal_coordination"].append({"atoms": (i, j), "distance": distance})

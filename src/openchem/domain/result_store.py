@@ -94,8 +94,11 @@ STERIC_METHOD = "steric-v2"
 #: hydrogen bond to have a donor, keeps two directly or singly linked aromatic rings from counting as stacked, counts
 #: divalent sulfur as a metal donor, and gives a hydrophobic contact a lower bound at the van der Waals contact.
 #: A saved result without a method listed nitrobenzene's nitro nitrogen as a cation at 2.86 A from its own ring, and
-#: biphenyl's two joined rings as stacked; it is kept beside the new one, labelled, never replayed as it.
-INTERACTION_METHOD = "interactions-v2"
+#: biphenyl's two joined rings as stacked; it is kept beside the new one, labelled, never replayed as it. v3 (2026-10-12)
+#: replaces the one 2.8 A cutoff for every metal and donor with the per-metal, per-donor bond window of
+#: `pose_analysis.metal_bond_window` (zinc to nitrogen to 2.53 A, potassium to oxygen to 3.57 A): a metal contact the old
+#: cutoff counted as coordination at 2.7 A is not one now, and a potassium contact at 3.4 A is.
+INTERACTION_METHOD = "interactions-v3"
 
 #: Result ids whose METHOD is part of their stored identity, and the method
 #: a result computed today is by. Only these carry a `method_version`, so no
@@ -187,6 +190,9 @@ SUPERSEDED_METHOD_VERSIONS: dict[str, dict[str, str]] = {
     },
     "atom_sasa": {
         "surface-v2": "Accessible Surface Area (per atom) (previous method: RDKit's radii, which it called Bondi's)",
+    },
+    "interaction_analysis": {
+        "interactions-v2": "Interaction Analysis (previous method: one 2.8 A metal cutoff for every metal)",
     },
 }
 

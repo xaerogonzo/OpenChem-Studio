@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Docking and interactions: a metal's bond window is its own
+- **A bond to a metal no longer has one length for every metal and donor.** The 1.8 to 2.8 angstrom window `analyze_pose` and Interaction
+  Analysis shared is replaced by `pose_analysis.metal_bond_window(metal, donor)`: the target distance for that metal and donor
+  (Harding 2006 Table 4 for Zn, Fe, Co, Mn, Cu, Mg, Ca, Na and K; Zheng et al. 2017's CSD means for nickel) plus 0.5 angstrom,
+  0.75 for sodium and potassium, with a floor of the target less 0.5 and never under 1.8. Measured: a potassium to oxygen
+  contact at 3.5 angstrom was a steric clash and is now a coordination; zinc to a histidine nitrogen at 2.7 angstrom was a
+  coordination and is not; sodium and potassium contacts past the bond, to Harding's secondary sphere, are neither a bond nor a
+  clash. Interaction Analysis moves to method `interactions-v3` (a v2 result is kept and labelled). Docking results already
+  saved keep the clash list they were analysed with. `harding2001`, `harding2002`, `harding2006` and `zheng2017` become shipped
+  sources. The metal radii are untouched, and fluorine reads the metal's oxygen entry, an assumption with no source.
+
 ### Docking: a bond to a metal is no longer a steric clash
 - `analyze_pose` reported every coordinated metal as a clash as well as a metal coordination: an imidazole with Zn at 2.1,
   Fe at 2.0 or Mg at 2.1 angstrom from its nitrogen gave one clash, and Ca or Na at 2.4 gave three (the nitrogen's own ring
@@ -16,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   or S, is exempt the same way and is now reported as a coordination too. All five measured cases give 0 clashes and 1
   coordination; `tests/test_pose_analysis_metals.py` pins them, Harding's sourced distances, the boundaries and a sweep that
   no distance is both, and eleven mutants of the fix are killed. The radii are unchanged.
-- Not covered: one 2.8 angstrom window serves every metal (too short for K; sourced per-metal windows are the follow-up), and fluorine as a donor has no source. A docking result saved earlier keeps the clash list it was analysed with; re-docking replaces it. The same
+- Not covered then, built since (see below): one 2.8 angstrom window served every metal (too short for K), and fluorine as a donor still has no source. A docking result saved earlier keeps the clash list it was analysed with; re-docking replaces it. The same
   metal-as-separate-fragment defect exists in `interaction_analysis.find_interactions` (measured: one clash and one
   coordination) and is not fixed here. `harding1999` is now registered as shipped (its tables were read).
 
