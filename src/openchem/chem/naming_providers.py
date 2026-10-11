@@ -43,6 +43,7 @@ from enum import Enum
 import json
 import logging
 import os
+import re
 import tempfile
 import urllib.error
 import urllib.parse
@@ -525,20 +526,76 @@ def _opsin_scratch():
             pass
 
 
+_STEREO_DESCRIPTOR = re.compile(r"\((?:\d+[a-z]?'*[RSEZrsMP](?:,|(?=\)))|[RSEZ](?=\)))+\)-?|\((?:[EZ])\)-?")
+
+
+def _matching_close(text: str, open_at: int) -> int:
+    """Index of the bracket closing the one at `open_at`, or -1."""
+    pairs = {"(": ")", "[": "]", "{": "}"}
+    stack = []
+    for i in range(open_at, len(text)):
+        ch = text[i]
+        if ch in pairs:
+            stack.append(pairs[ch])
+        elif stack and ch == stack[-1]:
+            stack.pop()
+            if not stack:
+                return i
+    return -1
+
+
+def opsin_readable_spellings(name: str) -> list[str]:
+    """The name, then respellings of the same compound that OPSIN reads where it does not read the name (naming round 41).
+
+    Four gaps in OPSIN where the engine follows the book: (1) `N1,N2-...oxamide` (the PIN, p. 653) is read only as `ethanediamide`; (2) `oxobis[X]phosphanyl`
+    puts a multiplied group after `oxo` in alphabetical order, which OPSIN reads only multiplied-group first (`bis[X](oxo)`); (3) a multiplied fusion
+    prefix `bis([1,3]dioxolo)` is read only without the parentheses; (4) OPSIN cannot assign CIP descriptors on some cages (a bis-adamantane), so the last
+    resort is the name without them -- the compound's skeleton, which the round trip then reports as stereochemistry the name does not express.
+    Each respelling names the same compound as the original; the original is always tried first and a respelling only ever replaces a failure."""
+    spellings = [name]
+    fixed = name
+    if "oxamide" in fixed:
+        fixed = fixed.replace("oxamide", "ethanediamide")
+    for word in ("oxobis", "oxotris"):
+        while word in fixed:
+            at = fixed.index(word)
+            mult = word[3:]
+            start = at + len(word)
+            if start >= len(fixed) or fixed[start] not in "([{":
+                break
+            end = _matching_close(fixed, start)
+            if end < 0:
+                break
+            fixed = fixed[:at] + mult + fixed[start:end + 1] + "(oxo)" + fixed[end + 1:]
+    fixed = re.sub(r"(bis|tris|tetrakis)\((\[[^\]]+\][a-z]+)\)", r"\1\2", fixed)
+    if fixed != name:
+        spellings.append(fixed)
+    for base in list(spellings):
+        bare = _STEREO_DESCRIPTOR.sub("", base)
+        if bare != base:
+            spellings.append(bare)
+    return spellings
+
+
 def opsin_structure_for_name(name: str) -> StructureResult:
     """Parse an IUPAC name into a structure, offline and deterministically.
 
     Unlike PubChem this is a grammar, not a lookup: it handles names for
     compounds nobody has ever registered, and it fails cleanly on names it
-    cannot parse rather than guessing.
+    cannot parse rather than guessing. A name OPSIN does not read is tried in the
+    spellings of `opsin_readable_spellings` before it counts as unreadable.
     """
     if not opsin_available():
         raise NamingError(describe_opsin_status())
+    result = None
     with _java_on_path():
         from py2opsin import py2opsin as run_opsin
 
         with _opsin_scratch() as scratch:
-            result = run_opsin(name.strip(), tmp_fpath=scratch)
+            for spelling in opsin_readable_spellings(name.strip()):
+                result = run_opsin(spelling, tmp_fpath=scratch)
+                if result:
+                    break
     # py2opsin returns an empty string for an unparseable name.
     if not result:
         raise NamingError(f"OPSIN could not parse {name.strip()!r} as an IUPAC name.")

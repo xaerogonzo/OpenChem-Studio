@@ -4222,9 +4222,9 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-211", "OC(=O)CC(=O)N(C)O", "3-[hydroxy(methyl)amino]-3-oxopropanoic acid",
      "3-(hydroxycarbamoyl)propanoic acid",
      "WRONG MOLECULE: one carbon too many, and the N-methyl gone; 292 of 336 hydroxamic acids under an acid, an ester or a ring named another molecule (census row 322625 among them)"),
-    # D-212, found by naming round 38's census review and closed in round 39: an N-acyl imine that is not the principal group (`=N-C(=O)R`) was written as the acylamino prefix `acetamido`, which has a single bond: the C=N was dropped and the name read back as another molecule.
-    # The book's preferred form for the census row is "N'-benzoyl-3,5-dimethyl-1H-pyrazole-1-carboximidamide", which the engine does not reach (no amidine suffix on a ring-N carbon); the name it now writes is correct and reads back exact.
-    ("D-212", "Cc1cc(C)n(C(N)=NC(=O)c2ccccc2)n1", "(benzoylimino)(3,5-dimethyl-1H-pyrazol-1-yl)methanamine",
+    # D-212, found by naming round 38's census review: an N-acyl imine that is not the principal group (`=N-C(=O)R`) was written as the acylamino prefix `acetamido`, which has a single bond: the C=N was dropped and the name read back as another molecule.
+    # Round 39 wrote `(benzoylimino)(3,5-dimethyl-1H-pyrazol-1-yl)methanamine` (correct, not preferred); round 41 reached the book's target, the amidine on a ring nitrogen as a carboximidamide.
+    ("D-212", "Cc1cc(C)n(C(N)=NC(=O)c2ccccc2)n1", "N'-benzoyl-3,5-dimethyl-1H-pyrazole-1-carboximidamide",
      "benzamido(3,5-dimethyl-1H-pyrazol-1-yl)methanamine",
      "WRONG MOLECULE: the C=N lost (an N-acyl imine named as an amide); the same defect turned `O=C1CCCCC1=NC(C)=O` into 2-acetamidocyclohexanone (census row 325625)"),
     # D-213, found by naming round 38's census review: a carbamimidoyl whose amino nitrogen carries a double bond (`-N=C(N)S`) cited it as a single-bonded "N-(...methyl)".
@@ -4258,6 +4258,22 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-219", "C1CCC2=[N+](CC1)CC2", "1-azabicyclo[5.2.0]non-1(7)-en-1-ium",
      "[NAMING ERROR: No valid naming plan found for C1CCC2=[N+](CC1)CC2]",
      "28 of 288 bicyclic bridgehead iminiums (all with a four-membered ring) were visible failures"),
+    # D-220 (naming round 41): ring cations. An N-substituted fused cation of three rings was cited as the substituent of its own alkyl.
+    ("D-220", "C[n+]1cccc2ccc3ccccc3c21", "1-methylbenzo[h]quinolin-1-ium", "(benzo[h]quinolin-1-ium-1-yl)methane",
+     "the cation as a substituent of methane (the neutral twin kept the N-methyl bond and did not kekulise; a charged system of more than two rings was refused); also a protonated furan or 1-pyrroline in the Hantzsch-Widman spelling, and two names for one cyclic amidinium"),
+    # D-221: the curated adamantane and cubane numberings were assignments in atom order, not numberings.
+    ("D-221", "CC(=O)NC1C2CC3CC1CC(O)(C3)C2", "N-(5-hydroxyadamantan-2-yl)acetamide", "N-(3-hydroxyadamantan-2-yl)acetamide",
+     "WRONG MOLECULE: the second substituent on the wrong bridgehead (and 1,3- and 1,8-dimethylcubane were one name)"),
+    # D-222: thirteen curated ring entries gave no locant to a ring heteroatom.
+    ("D-222", "O=C1CC[N+]2(C)CCc3ccccc3C2C1", "5-methyl-2-oxo-1,3,4,6,7,11b-hexahydro-2H-pyrido[2,1-a]isoquinolin-5-ium",
+     "5-methyl-2-oxo-4-azoniatricyclo[8.4.0.0^{3,8}]tetradeca-1(10),3,5,7-tetraene",
+     "a cation named by the next plan (a von Baeyer name) rather than by its retained parent"),
+    # D-223: the cation of an amidine on a ring nitrogen lost its charge.
+    ("D-223", "NC(=[NH2+])N1CCCCC1", "piperidin-1-amidinium", "imino(piperidin-1-yl)methanamine",
+     "WRONG MOLECULE: the NEUTRAL compound for a cation (no guanidinium, no amidinium)"),
+    # D-224: an amidinium with a second acid group had BOTH acids turned into amidiniums (first refused, in this round, then named properly).
+    ("D-224", "NC(=[NH2+])CCC(=O)O", "3-carboxypropanamidinium", "butanediamidinium",
+     "WRONG MOLECULE: both acids turned into amidiniums (a cation outranks an acid: the acid is the prefix)"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",

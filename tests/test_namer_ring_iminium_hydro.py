@@ -21,9 +21,9 @@ needs_opsin = pytest.mark.skipif(shutil.which("java") is None, reason="needs jav
 
 # (label, SMILES, the name)
 NAMED = [
-    ("protonated 1-pyrroline", "C1CC=[NH+]C1", "3,4-dihydro-2H-azol-1-ium"),
+    ("protonated 1-pyrroline", "C1CC=[NH+]C1", "3,4-dihydro-2H-pyrrol-1-ium"),
     ("N-methyl 1-pyrrolinium", "C[N+]1=CCCC1", "1-methyl-3,4-dihydro-2H-azol-1-ium"),
-    ("protonated 2-methylimidazoline", "CC1=[NH+]CCN1", "2-methyl-4,5-dihydro-1H-1,3-diazol-3-ium"),
+    ("protonated 2-methylimidazoline", "CC1=[NH+]CCN1", "2-methyl-4,5-dihydro-1H-imidazol-3-ium"),
     ("N-methyl imidazolinium", "C[N+]1=C(C)NCC1", "2,3-dimethyl-4,5-dihydro-1H-1,3-diazol-3-ium"),
     ("protonated 2-methyloxazoline", "CC1=[NH+]CCO1", "2-methyl-4,5-dihydro-1,3-oxazol-3-ium"),
     ("protonated 2-methylthiazoline", "CC1=[NH+]CCS1", "2-methyl-4,5-dihydro-1,3-thiazol-3-ium"),

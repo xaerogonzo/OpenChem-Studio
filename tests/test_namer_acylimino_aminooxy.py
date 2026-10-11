@@ -28,8 +28,8 @@ ACYLIMINO = [
     ("under an acid", "OC(=O)CC(=NC(C)=O)C", "3-(acetylimino)butanoic acid"),
     ("on an amidine carbon, an ester O", "NC(=NC(C)=O)OC", "(acetylimino)(methoxy)methanamine"),
     ("on an amidine carbon, a ring N", "CC(=NC(C)=O)N1CCCC1", "1-[1-(acetylimino)ethyl]pyrrolidine"),
-    ("the census row (325625)", "Cc1cc(C)n(C(N)=NC(=O)c2ccccc2)n1", "(benzoylimino)(3,5-dimethyl-1H-pyrazol-1-yl)methanamine"),
-    ("an N-benzoyl imine on pyrazole", "NC(=NC(=O)c1ccccc1)n1cccn1", "(benzoylimino)(1H-pyrazol-1-yl)methanamine"),
+    ("the census row (325625)", "Cc1cc(C)n(C(N)=NC(=O)c2ccccc2)n1", "N'-benzoyl-3,5-dimethyl-1H-pyrazole-1-carboximidamide"),
+    ("an N-benzoyl imine on pyrazole", "NC(=NC(=O)c1ccccc1)n1cccn1", "N'-benzoyl-1H-pyrazole-1-carboximidamide"),
     ("a carbamate imine", "CC(=NC(=O)OC)C(=O)O", "2-[methoxy(oxo)methylimino]propanoic acid"),
     ("a urea imine", "CC(=NC(=O)N)C(=O)O", "2-(carbamoylimino)propanoic acid"),
 ]

@@ -797,6 +797,14 @@ def _classify_amidinium(mol) -> Iterable[ChargeClassification]:
                 if r_neighbour is None:
                     r_neighbour = other.GetIdx()
                     continue
+            # D-223 (naming round 41): the third substituent may be a RING nitrogen with no hydrogen (`NC(=[NH2+])N1CCCCC1`, the cation of
+            # piperidine-1-carboximidamide). It is not a guanidinium (that needs every N outside a ring) and it was not an amidinium (that needed a carbon), so
+            # it fell to the plan search, which dropped the charge: "imino(piperidin-1-yl)methanamine", the NEUTRAL compound. The carbamic acid
+            # `piperidine-1-carboxylic acid` is the parent surrogate like any carboxylic acid.
+            if (other.GetAtomicNum() == 7 and other.IsInRing() and other.GetFormalCharge() == 0 and other.GetTotalNumHs() == 0
+                    and bond.GetBondTypeAsDouble() == 1.0 and r_neighbour is None):
+                r_neighbour = other.GetIdx()
+                continue
         if eq_n_plus is None or s_n is None or r_neighbour is None:
             continue
         # Guard: the =[NH2+] partner must carry exactly +1 charge; the
@@ -3699,8 +3707,8 @@ def _neutral_skeleton_smiles(mol, atom_changes: dict[int, dict]) -> str | None:
     return Chem.MolToSmiles(rw)
 
 
-def _drive_engine(parent_smiles: str, strategy, session, depth: int) -> str | None:
-    """Drive the engine recursively on a constructed neutral parent."""
+def _drive_engine(parent_smiles: str, strategy, session, depth: int, output_form=OutputForm.STANDALONE) -> str | None:
+    """Drive the engine recursively on a constructed neutral parent (or, with `output_form`, a constructed ion)."""
     from rdkit import Chem
 
     parent_mol = Chem.MolFromSmiles(parent_smiles)
@@ -3713,7 +3721,7 @@ def _drive_engine(parent_smiles: str, strategy, session, depth: int) -> str | No
         tree = _recursive_name(
             parent_mol,
             strategy,
-            OutputForm.STANDALONE,
+            output_form,
             free_valence=None,
             decision_ctx=None,
             _session=session,
@@ -4323,7 +4331,52 @@ def _render_amidinium(
     parent_name = _drive_engine(parent_smiles, strategy, session, depth)
     if parent_name is None:
         return None
+    # D-224 (naming round 41): the surrogate is the ACID with the amidinium tail turned into -COOH. When the molecule has a second acid group the surrogate is a
+    # diacid, and the name transform turned BOTH acids into amidiniums ("butanediamidinium" for NC(=[NH2+])CCC(=O)O, "benzene-1,4-di-1-amidinium" for the
+    # 4-carboxy benzamidinium): another molecule. A cation outranks an acid (P-41, Table 4.1), so the amidinium is the parent and the other acid a "carboxy"
+    # prefix; the tail is therefore stood in for by a CARBOXYLATE, which outranks any acid group, and the engine's name of that anion is turned into the cation's.
+    if re.search(r"(di|tri|tetra)(carboxylic|oic|carbonic)|dicarboxy|dioic", parent_name):
+        return _render_amidinium_beside_acid(rw, n_neutral_idx, strategy, session, depth)
     return _acid_name_to_amidinium(parent_name)
+
+
+def _render_amidinium_beside_acid(rw, n_neutral_idx: int, strategy, session, depth: int) -> str | None:
+    """``3-carboxypropanamidinium``: an amidinium whose molecule has another acid group (D-224).
+
+    `rw` is the surrogate with the amidinium tail already a carboxylic acid; its OH becomes O- so the engine names the monoanion, whose
+    "-oate" / "-carboxylate" ending is read as the acid's and turned into "-amidinium"."""
+    from rdkit import Chem
+
+    anion = Chem.RWMol(rw)
+    o = anion.GetAtomWithIdx(n_neutral_idx)
+    o.SetFormalCharge(-1)
+    o.SetNumExplicitHs(0)
+    o.SetNoImplicit(True)
+    try:
+        Chem.SanitizeMol(anion)
+    except Exception:
+        return None
+    name = _drive_engine(Chem.MolToSmiles(anion), strategy, session, depth, OutputForm.ANION)
+    if not name or "NAMING ERROR" in name:
+        return None
+    acid = _anion_name_to_acid(name)
+    if acid is None or re.search(r"(di|tri|tetra)(carboxylic|oic|carbonic)|dicarboxy|dioic", acid):
+        return None
+    return _acid_name_to_amidinium(acid)
+
+
+def _anion_name_to_acid(name: str) -> str | None:
+    """``3-carboxypropanoate`` -> ``3-carboxypropanoic acid``; None unless the name is a single carboxylate."""
+    for retained, acid in (("acetate", "acetic acid"), ("benzoate", "benzoic acid"), ("formate", "formic acid")):
+        if name == retained:
+            return acid
+        if name.endswith(retained):
+            return name[: -len(retained)] + acid
+    if name.endswith("carboxylate"):
+        return name[: -len("carboxylate")] + "carboxylic acid"
+    if name.endswith("oate"):
+        return name[: -len("oate")] + "oic acid"
+    return None
 
 
 def _acid_name_to_amidinium(acid_name: str) -> str | None:
