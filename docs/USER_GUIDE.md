@@ -1027,6 +1027,39 @@ ADMET model is about six seconds — and before this the panel showed
 nothing at all for that whole stretch, then the result and its window
 arrived together. It reads as a slow dialog and is not one.
 
+### Choosing some of the always-on properties
+
+With **Run on** set to more than one molecule, **Include always-on properties** and
+**Include structural alerts** each have a **Choose...** button. Without one, the box means
+all of them. With it you can pick just logP and TPSA, or just PAINS: the list is grouped,
+has a filter box, and **All shown** / **None shown** act on what the filter is showing. The
+box then says how many are included ("2 of 41"). Presets saved while a choice is made keep
+it.
+
+**Tick all shown** (in Presets) ticks every calculator Find is showing, and right-clicking
+a calculator offers **Tick / Untick every calculator in this section**.
+
+**Details...** in the Results project table opens one molecule's results. If it is a
+molecule the table left out, or one whose structure changed since, it first computes the
+table's calculators for that molecule, with the same settings, and the project table keeps
+its rows.
+
+### Running by goal
+
+If you know the question and not the section, use **Tools > Run Calculators by Goal...**
+(or **Run by goal...** in Properties). Pick what you want to know (its charge, its
+solubility, its shape, whether it is drug-like) and the wizard says what it will run.
+**Run recommended** runs that set at once, on this molecule, on the whole project or on
+molecules you choose, as the **Run on** box says. **Customise...** lists the set with the
+reason for each calculator: recommended ones ticked, optional ones not, a **Settings...**
+button on each that has settings, and the size of the run before you press **Run**.
+
+Each group heading in Properties has its own **Run recommended** button for the same set.
+
+Running by goal never ticks or unticks anything in Properties, and never changes your
+presets. A molecule with no structure yet is left out and the status line says so. With
+several molecules the results go to **Results > Project table**, as with **Run selected**.
+
 ### Categories worth knowing about
 
 | Category | What's in it |

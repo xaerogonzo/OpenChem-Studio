@@ -1,0 +1,24 @@
+[
+  {"do": "smiles", "smiles": "CC(C)Cc1ccc(cc1)C(C)C(=O)O", "name": "Ibuprofen", "after_ms": 600},
+  {"do": "smiles", "smiles": "COc1ccc2cc(ccc2c1)C(C)C(=O)O", "name": "Naproxen", "after_ms": 600},
+  {"do": "select", "molecule": 1, "after_ms": 800},
+  {"do": "panel", "id": "Properties", "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/goal_properties.png"},
+
+  {"do": "goal_wizard", "goal": "identity", "scope": "this", "tag": "open", "after_ms": 600},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/goal_wizard_page1.png", "widget": "goal_wizard"},
+  {"do": "goal_wizard", "goal": "identity", "scope": "this", "press": "run_recommended", "tag": "quick",
+   "expect": {"ran_all": ["elemental_analysis", "functional_groups"], "status_contains": "Running"}, "after_ms": 4000},
+  {"do": "expect_results", "expect": {}},
+
+  {"do": "goal_wizard", "goal": "solubility", "scope": "all", "press": "customise", "untick": ["pka"], "after_ms": 600},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/goal_wizard_page2.png", "widget": "goal_wizard"},
+  {"do": "goal_wizard", "goal": "solubility", "scope": "all", "press": "run", "tag": "custom",
+   "expect": {"ran_none": ["pka"], "status_contains": "2 molecule"}, "after_ms": 8000},
+  {"do": "expect_project_table", "rows": 3, "showing": true},
+
+  {"do": "wait", "after_ms": 25000},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/goal_after.png"},
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

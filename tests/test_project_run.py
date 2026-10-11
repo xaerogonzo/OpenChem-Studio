@@ -359,7 +359,7 @@ def test_the_presets_menu_lists_presets_a_to_z_and_offers_delete(services, proje
     # By text, not `a.menu()`: asking an action for its sub-menu hands back a
     # wrapper whose collection takes the sub-menu (and its actions) with it.
     labels = [a.text() for a in menu.actions() if a.text() and a.text() != "Delete preset"]
-    assert labels == ["Save ticked as preset...", "Alpha", "zeta"]
+    assert labels == ["Save ticked as preset...", "Tick all shown", "Alpha", "zeta"]
     assert not actions["save"].isEnabled(), "nothing is ticked, so there is nothing to save"
     actions["delete:zeta"].trigger()
     assert panel._presets.names() == ["Alpha"]
@@ -457,13 +457,21 @@ def test_the_settings_entry_is_offered_only_where_a_project_run_exists(services,
     )
     built.append(alone)
     menu = alone._about_menu_for("polar_surface_area")
-    assert [a.text() for a in menu.actions()] == ["About this calculator"]
+    # No project route, so no settings entry; the section ticks work with or without one.
+    assert [a.text() for a in menu.actions()] == [
+        "About this calculator",
+        "Tick every calculator in this section",
+        "Untick every calculator in this section",
+    ]
     menu.deleteLater()
 
 
 def test_the_extra_project_controls_appear_with_a_project_scope_only(services, project, built):
     panel = _properties(services, project, built)
-    controls = (panel._scope_descriptors, panel._scope_alerts, panel._scope_aggregate)
+    controls = (
+        panel._scope_descriptors, panel._scope_alerts, panel._scope_aggregate,
+        panel._choose_descriptors, panel._choose_alerts,
+    )
     assert all(c.isHidden() for c in controls)
     panel.set_scope(_SCOPE_ALL)
     assert not any(c.isHidden() for c in controls)
