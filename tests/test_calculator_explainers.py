@@ -44,7 +44,7 @@ _DOC = _ROOT / "docs" / "CALCULATOR_REFERENCE.md"
 #: Built-in calculators with no authored explainer yet. LOWER `_DEBT_CEILING` whenever ids
 #: leave this set; never raise it. Emptied by the last family PR, then deleted.
 EXPLAINER_DEBT = frozenset({
-    "admet_ml", "alignment_3d", "atom_sasa", "atomic_polarizability", "bbb_descriptors",
+    "admet_ml", "alignment_3d", "atomic_polarizability", "bbb_descriptors",
     "bird_aromaticity", "cns_mpo", "crippen_logp_contrib", "crippen_mr_contrib", "detonation",
     "docking.vina", "elemental_analysis", "functional_groups",
     "hansen_solubility", "hbond_sites", "hbond_vs_ph", "homa_aromaticity", "huckel_analysis",
@@ -55,11 +55,11 @@ EXPLAINER_DEBT = frozenset({
     "orca.opt_freq", "orca.sp", "orca.tautomer_distribution", "oxidation_states", "oxygen_balance",
     "pka", "pka_microspecies", "polarizability", "regulatory_screen",
     "resonance_forms", "ring_systems", "solubility", "stereo_descriptors", "stereocenters",
-    "stereoisomers", "steric_analysis", "structural_frameworks", "substance_analysis",
-    "substructure_search", "surface_analysis", "tautomers", "topology_analysis",
+    "stereoisomers", "structural_frameworks", "substance_analysis",
+    "substructure_search", "tautomers", "topology_analysis",
     "topology_distance_degree", "topology_eccentricity", "tsei_projection",
 })
-_DEBT_CEILING = 64
+_DEBT_CEILING = 61
 
 
 @pytest.fixture(scope="module")
@@ -398,6 +398,9 @@ _SEARCHES = [
     ("asymptotically", "griffin_hlb"),
     ("anti and 0 is syn", "torsion_table"),
     ("Universal force field", "geometry_analysis"),
+    ("Fibonacci", "atom_sasa"),
+    ("chlorine counts as hydrophobic", "surface_analysis"),
+    ("right circular cone", "steric_analysis"),
 ]
 
 

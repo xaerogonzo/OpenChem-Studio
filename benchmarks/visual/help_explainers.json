@@ -17,6 +17,9 @@
   {"do": "dialog", "name": "HelpDialog", "topic": "calc-griffin-hlb", "width": 1100, "height": 900, "after_ms": 800},
   {"do": "shot", "path": "benchmarks/visual/artifacts/help_explainer_hlb.png", "widget": "dialog", "after_ms": 300},
 
+  {"do": "dialog", "name": "HelpDialog", "topic": "calc-steric-analysis", "width": 1100, "height": 900, "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/help_explainer_steric.png", "widget": "dialog", "after_ms": 300},
+
   {"do": "close_dialog"},
   {"do": "expect_clean"},
   {"do": "quit"}

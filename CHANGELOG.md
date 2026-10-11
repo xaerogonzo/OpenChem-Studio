@@ -26,10 +26,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Shape and surface, first part: Polar Surface Area (Ertl's TPSA, N and O only, measured), Griffin HLB (with
   the Davies scale kept apart and the refusals measured), Torsion Table and Geometry (extent, the exact-area
   shadow search, and what MMFF94, UFF and Dreiding are and why their energies are never comparable, with
-  the three measured side by side). `EXPLAINER_DEBT` is 64. MMFF94 part I joins the sources registry
-  (`halgren1996_mmff1`, citation verified only), which retired `geometry_analysis.py` from the provenance
-  debt. Three calculators in this group wait for papers the registry does not hold (Bondi, Shrake-Rupley,
-  Tolman and the exact cone angle) and are not written from memory.
+  the three measured side by side). `EXPLAINER_DEBT` is 61 after the second part: Accessible Surface Area, Molecular
+  Surface Area (3D) and Ligand Steric Bulk, written once the papers were supplied. MMFF94 part I
+  (`halgren1996_mmff1`) and six more join the sources registry (`bondi1964`, `shrake1973`, `tolman1977`,
+  `bilbrey2013`, `poater2009`, `clavier2010`), each with its DOI. The three old papers print no DOI, so those
+  come from Crossref and each row says so; this retired `geometry_analysis.py`, `steric.py` and
+  `surface_analysis.py` from the provenance debt.
+- **Found while checking Bondi's paper:** the "Bondi radii" the surface and steric code use are RDKit's
+  van der Waals table, which is not Bondi's recommended list (nitrogen 1.60 against 1.55, oxygen 1.55 against
+  1.52, fluorine 1.50 against 1.47, phosphorus 1.95 against 1.80). Measured effect on an area: at most about
+  2%. The explainers say so; the application's labels and stored `radii = "bondi"` are unchanged, pending a
+  decision.
 
 ### Naming: ring systems keep their heteroatoms, numbering, hydrogen and name
 - A spiro heterocycle on a bridged ring was `tricyclo[...]undecane-1,3-dione` (every N gone), an N-attached triazinedione was numbered as a ring OPSIN cannot build, a spiro partner lost an azole N-H, a tricycle of three monocycles had no name, and a protonated or iminium N in a fused 4-ring was a NAMING ERROR (D-215 .. D-219). Census 1968 -> 1978 exact, visible failures 4 -> 0; fresh_v1 1950 -> 1951 of 2000 read back after its one re-score (97.55%).
