@@ -114,6 +114,39 @@ LEGACY_METHOD_VERSIONS: dict[str, tuple[str, str]] = {
     ),
 }
 
+#: Wording a SAVED result carries that was wrong when it was written, and what a reader is shown for it instead.
+#: This is a READER'S NOTE, not a new method: the numbers, the provenance and the method version are untouched, and
+#: only a stored limitation or assumption that matches a key EXACTLY is replaced, at load. Geometry's older results
+#: said "Bondi van der Waals radii." for what is RDKit's table (equal to Batsanov 2001's recommended radii, not Bondi's
+#: list; `docs/VDW_RADII_ASSESSMENT.md`). A method-version bump would say the numbers differ, and they do not.
+STORED_TEXT_NOTES: dict[str, dict[str, str]] = {
+    "geometry_analysis": {
+        "Bondi van der Waals radii.": (
+            "Van der Waals radii from RDKit's table (Batsanov's recommended set, not Bondi's). "
+            "This result was saved when they were labelled Bondi's; its numbers are unchanged."
+        ),
+    },
+}
+
+
+def _with_reader_notes(result_id: str, result: object) -> object:
+    """`result` with any stored text in `STORED_TEXT_NOTES` replaced by its note; anything else untouched."""
+    notes = STORED_TEXT_NOTES.get(result_id)
+    if not notes or not hasattr(result, "facts"):
+        return result
+
+    def noted(texts: tuple[str, ...]) -> tuple[str, ...]:
+        return tuple(notes.get(text, text) for text in texts)
+
+    facts = tuple(replace(fact, limitations=noted(fact.limitations)) for fact in result.facts)  # type: ignore[attr-defined]
+    return replace(  # type: ignore[type-var]
+        result,
+        facts=facts,
+        limitations=noted(result.limitations),  # type: ignore[attr-defined]
+        assumptions=noted(result.assumptions),  # type: ignore[attr-defined]
+    )
+
+
 #: Methods a result id WAS computed by that carry an explicit `method_version`
 #: and are no longer current, with the label a restored one is shown under.
 #: Append-only, and every string in it once stood in `CURRENT_METHOD_VERSIONS`:
@@ -672,6 +705,7 @@ class SessionResultStore:
         if superseded is not None and hasattr(result, "name"):
             result = replace(result, name=superseded)  # type: ignore[type-var]
             self.load_problems["legacy_method"] += 1
+        result = _with_reader_notes(identity.result_id, result)
         try:
             if result_id_of(result) != identity.result_id:
                 raise TypeError("result id does not match its entry")

@@ -216,10 +216,32 @@ little, as an expectation not measured here: iron in a protein receptor is typic
 that sit at 2.0 angstrom, so the contact test is not about its van der Waals size. Replacing it needs a source for
 what the table means by a metal's radius, not a different number.
 
-**3. A Geometry result saved before this change.** Its stored limitation line says "Bondi radii", which was never true.
-The numbers in it are correct and unchanged, so a method-version bump (which would mark it as a previous method and
-imply its numbers differ) would say something false in the other direction. The honest options are to leave the stored
-line, or to show a reader's note on a result whose stored line names Bondi; neither is built, and neither is urgent.
+**3. A Geometry result saved before this change (decided and built, 2026-10-11).** Its stored limitation line said
+"Bondi van der Waals radii.", which was never true. The numbers in it are correct and unchanged, so a method-version bump
+(which marks a previous method and implies its numbers differ) would say something false in the other direction. Instead a
+**reader's note** is applied when the saved result is loaded (`STORED_TEXT_NOTES` in `domain/result_store.py`): that exact
+line is shown as "Van der Waals radii from RDKit's table (Batsanov's recommended set, not Bondi's). This result was saved
+when they were labelled Bondi's; its numbers are unchanged." The numbers, the provenance and the method version are not
+touched, and only an exact match is replaced.
+
+## A third published set, and what it did to the Fe question (2026-10-11)
+
+Alvarez's 2013 radii [source:alvarez2013], deduced from over five million contacts in the Cambridge Structural Database,
+are the first set that covers iron, and it puts it at **2.44 angstrom**, with Batsanov's 2.05 and no Bondi value. The
+application's 1.56 is therefore supported by none of the three published sets, and it is not close to any of them. The same
+table puts the docking table's other metals far above the application's values: Zn 2.39 (the application has 1.39), Mg 2.51
+(1.73), Na 2.50 (2.27), Ca 2.62 (2.31). Bondi's metal radii are, by the paper's own account, in several cases a cutoff
+distance and not a van der Waals radius, so the two sets are not measuring the same thing. For hydrogen the paper
+independently gets 1.20 from neutron-diffraction H...H contacts and says it needs no modification to Rowland and Taylor's
+1.10, which agrees with keeping 1.20 for areas and volumes.
+
+**The finding that changes the question: the docking pose analysis counts a coordinated metal as a clash.** The radius does
+not matter as much as how it is used. `analyze_pose` reports a clash for any pair closer than the sum of the two radii less
+0.4 angstrom, and treats a metal as an ordinary atom. Measured with an imidazole nitrogen placed at a coordination distance
+from each metal: zinc at 2.1 angstrom, iron at 2.0 and magnesium at 2.1 each give one clash (and one metal coordination),
+and calcium and sodium at 2.4 give three. A better radius would make it worse (Alvarez's 2.44 for iron puts the threshold at
+3.6 angstrom, far beyond the 2.0 angstrom used in the measurement; the coordination distances chosen there (2.0 to 2.4) are typical values that still need a source, and Harding's papers on metal-ligand geometry in proteins are the usual reference). The defect is that a bond to a metal is not a contact, so the fix is to
+leave a ligand donor within the metal-coordination cutoff out of the clash test, and the metal's radius then barely matters.
 
 ## Not verified
 

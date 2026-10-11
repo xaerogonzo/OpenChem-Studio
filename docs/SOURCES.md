@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 67c0f2c19539b99c0b50cf3e83c8535a572be76026891d2f5152a0bfe2a459b2 -->
+<!-- SOURCE SHA256: 03867bb8c58f8b871d656ab0106bd9f10e3724db39f737029c1261a8007092bf -->
 
 # Sources
 
@@ -94,6 +94,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`allen2016`](#allen2016) | literature | reference only | citation |
 | [`allred1961`](#allred1961) | reference_table | shipped | citation |
 | [`almenningen1963`](#almenningen1963) | literature | **not shipped** | citation + claim |
+| [`alvarez2013`](#alvarez2013) | literature | reference only | citation |
 | [`alves2014`](#alves2014) | literature | reference only | citation |
 | [`andersen1999`](#andersen1999) | literature | shipped | citation + claim |
 | [`aqsoldb`](#aqsoldb) | dataset | shipped | citation |
@@ -2313,6 +2314,39 @@ Verlet's equations and "retain the superior numerical precision of the summed fo
 
 NOT CHECKED: the paper's own subject (cluster equilibrium constants for water), which the explainer does not use. The paper
 does not say the scheme is symplectic or name its error; the explainer claims neither on its authority.
+
+### alvarez2013
+
+<a id="alvarez2013"></a>
+
+> S. Alvarez, 'A cartography of the van der Waals territories', Dalton Trans. 2013, 42(24), 8617-8636.
+
+| | |
+| --- | --- |
+| Identifier | [10.1039/C3DT50599E](https://doi.org/10.1039/C3DT50599E) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-11 |
+| Local copy | `alvarez2013_cartography.pdf` (not checked) |
+| Used by | `docs/VDW_RADII_ASSESSMENT.md` |
+
+**Why it is reference only.** The most complete published set of van der Waals radii for the whole periodic table, read to settle what the docking contact table's metal entries mean; no value of the application comes from it.
+
+CHECKED: identity against Crossref and the printed running head (Dalton Trans., 2013, 42, 8617-8636); the 20-page open-access
+copy (CC BY-NC 3.0, deposited by the University of Barcelona) was downloaded and read through its text layer, Table 1 and
+sections 4.1 and 5.1 and the discussion of Bondi's radii, not every page. Table 1 (radii in angstrom, with Bondi's and
+Batsanov's beside it): Fe 2.44 (Bondi none, Batsanov 2.05), Zn 2.39 (Bondi 1.39, Batsanov 2.1), Mg 2.51 (1.73, 2.2), Na 2.50
+(2.27, 2.4), K 2.73 (2.75, 2.8), Ca 2.62 (Batsanov 2.4), H 1.20 (from D...D contacts in neutron structures, O and N
+excluded), C 1.77, N 1.66, O 1.50, F 1.46, P 1.90, S 1.89, Cl 1.82, Br 1.86, I 2.04. The paper defines its radius as the
+leading edge of the van der Waals peak in the distribution of contact distances, a few tenths of an angstrom above the cutoff
+for contacts, and says some of Bondi's radii (it names Mg, Ga, In, Tl, Sn, Pb, I, Kr, Xe, Cd, La, Pd, Pt, Hg and U) correspond to
+a cutoff distance instead. It says differences of 0.1 angstrom or less should not be considered significant; that groups 6 to
+12 have similar radii of about 2.4 in the 3d and 4d series; that no different van der Waals regions for high- and low-spin
+Mn, Fe and Co could be found; and, on hydrogen, that Bondi's 1.20 "represents very well" the contacts in crystals, "without
+modifying it as proposed by Rowland and Taylor".
+
+NOT CHECKED: the fitting equations, the supplementary data, the f-block discussion and the comparison with ionic radii. The
+file is not in the maintainer's library until it is added there under the name above.
 
 ### tosco2014
 

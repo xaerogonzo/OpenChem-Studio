@@ -60,6 +60,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   evidence, `tests/test_vdw_radii.py` and `tests/test_vdw_radii_provenance.py` pin the tables and the sources, and
   `benchmarks/vdw_radii/radii_study.py` reproduces the numbers.
 
+- **Old Geometry results no longer say "Bondi".** A result saved before the radii were relabelled carried the stored line "Bondi
+  van der Waals radii.", which was never true of RDKit's table. It now loads with a reader's note in its place
+  (`STORED_TEXT_NOTES` in `domain/result_store.py`): the exact line only, with the numbers, the provenance and the method
+  version untouched, because a version bump would claim the numbers differ and they do not. `alvarez2013` joins the registry:
+  its Table 1 puts iron at 2.44 angstrom (the docking table has 1.56, supported by no published set), and measuring the
+  docking pose analysis showed that a ligand donor bonded to a zinc, iron or magnesium is also reported as a steric clash,
+  which is the real defect behind that number (not fixed here).
+
 ### Naming: ring systems keep their heteroatoms, numbering, hydrogen and name
 - A spiro heterocycle on a bridged ring was `tricyclo[...]undecane-1,3-dione` (every N gone), an N-attached triazinedione was numbered as a ring OPSIN cannot build, a spiro partner lost an azole N-H, a tricycle of three monocycles had no name, and a protonated or iminium N in a fused 4-ring was a NAMING ERROR (D-215 .. D-219). Census 1968 -> 1978 exact, visible failures 4 -> 0; fresh_v1 1950 -> 1951 of 2000 read back after its one re-score (97.55%).
 
