@@ -312,6 +312,11 @@ def test_a_large_molecule_does_not_cost_seconds():
 
     Asserted with a generous ceiling: the point is to catch a return to
     seconds-per-molecule, not to police a machine-dependent stopwatch.
+
+    The ceiling is 5 s, up from 2.5: `shape_descriptors` now also searches the
+    orientations for the smallest and largest shadow, which measured +37% on this
+    molecule (1.76 s -> 2.41 s best of three, 3.5 s for the cold first call under
+    a busy machine), and 2.5 s then failed three runs in a row.
     """
     import time
 
@@ -319,7 +324,7 @@ def test_a_large_molecule_does_not_cost_seconds():
     started = time.perf_counter()
     shape_descriptors(mol)
 
-    assert time.perf_counter() - started < 2.5
+    assert time.perf_counter() - started < 5.0
 
 
 def test_the_cap_does_not_touch_a_small_molecule():
