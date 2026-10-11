@@ -323,3 +323,95 @@ class TestSearch:
         dialog._filter.setText("")
         assert dialog._list.count() == browse_rows
         assert dialog._view.extraSelections() == []
+
+
+class TestHelpWindowBehaviour:
+    """What a person reading a long document in the help window runs into.
+
+    Each case is a defect reported from using the window, in the order it was reported: clearing a
+    search threw the reader back to the top, the window could not be maximised, and "Read the whole
+    document" did nothing on the page that already is the whole document.
+    """
+
+    @staticmethod
+    def _open(qapp, help_widgets, topic_key=""):
+        from openchem.ui.dialogs.help_dialog import HelpDialog
+
+        dialog = HelpDialog(topic_key=topic_key)
+        help_widgets.append(dialog)
+        dialog.resize(900, 500)
+        dialog.show()
+        qapp.processEvents()
+        return dialog
+
+    def test_clearing_the_search_keeps_the_readers_place_and_drops_the_marks(self, qapp, help_widgets):
+        dialog = self._open(qapp, help_widgets, "calculator-reference")
+        dialog._filter.setText("compar")
+        # The search opens its best hit; the reader then picks the long page from the results.
+        dialog.show_topic("calculator-reference")
+        qapp.processEvents()
+        assert dialog._current_key == "calculator-reference"
+        assert dialog._view.extraSelections(), "the search should have marked something to clear"
+        bar = dialog._view.verticalScrollBar()
+        assert bar.maximum() > 300, "the page must be long enough for a scroll position to mean anything"
+        bar.setValue(300)
+        key_before = dialog._current_key
+
+        reloads = []
+        original = dialog._view.setMarkdown
+        dialog._view.setMarkdown = lambda text: (reloads.append(1), original(text))[1]
+        dialog._filter.setText("")
+        qapp.processEvents()
+
+        assert dialog._view.extraSelections() == []
+        assert dialog._current_key == key_before
+        assert dialog._view.verticalScrollBar().value() == 300
+        assert not reloads, "clearing the search must not re-render the page"
+        assert dialog._list.currentItem().data(Qt.ItemDataRole.UserRole) == key_before
+
+    def test_clearing_a_search_with_nothing_open_still_works(self, qapp, help_widgets):
+        dialog = self._open(qapp, help_widgets)
+        dialog._current_key = ""
+        dialog._filter.setText("conformer")
+        dialog._filter.setText("")
+
+        assert dialog._list.count() > 10
+
+    def test_the_window_can_be_minimised_and_maximised(self, qapp, help_widgets):
+        dialog = self._open(qapp, help_widgets)
+        flags = dialog.windowFlags()
+
+        assert flags & Qt.WindowType.WindowMaximizeButtonHint
+        assert flags & Qt.WindowType.WindowMinimizeButtonHint
+        assert dialog.isSizeGripEnabled()
+
+    def test_the_whole_document_button_is_off_where_it_would_redraw_the_same_page(self, qapp, help_widgets):
+        dialog = self._open(qapp, help_widgets, "calculator-reference")
+        assert help_docs.topic("calculator-reference").level == 1
+        assert not dialog._whole_document_button.isEnabled()
+
+        section = next(t for t in help_docs.topics() if t.level > 1)
+        dialog.show_topic(section.key)
+        assert dialog._whole_document_button.isEnabled()
+
+    def test_open_the_file_hands_the_current_document_to_the_system(self, qapp, help_widgets, monkeypatch):
+        from openchem.ui.dialogs import help_dialog
+
+        opened = []
+        monkeypatch.setattr(help_dialog.QDesktopServices, "openUrl", lambda url: (opened.append(url), True)[1])
+        dialog = self._open(qapp, help_widgets, "calculator-reference")
+        dialog._open_file_button.click()
+
+        assert len(opened) == 1
+        assert opened[0].isLocalFile()
+        assert opened[0].toLocalFile().replace("\\", "/").endswith("docs/CALCULATOR_REFERENCE.md")
+
+    def test_open_the_file_says_so_when_the_system_has_no_program_for_it(self, qapp, help_widgets, monkeypatch):
+        from openchem.ui.dialogs import help_dialog
+
+        monkeypatch.setattr(help_dialog.QDesktopServices, "openUrl", lambda url: False)
+        dialog = self._open(qapp, help_widgets, "calculator-reference")
+        dialog._open_file_button.click()
+
+        assert "no program" in dialog._status.text()
+        assert "CALCULATOR_REFERENCE.md" in dialog._status.text()
