@@ -1516,6 +1516,32 @@ contract is a failing test rather than an entry in a backlog.
 brief for one control: its label, tier, docs anchor, source provenance and
 the standing prohibitions.
 
+### Calculator explainers, and finding the paper behind them (2026-10-11)
+
+**Built:** the mechanism and the partial-charge family (`docs/explainers/`, `tools/calculator_explainers.py`,
+`tests/test_calculator_explainers.py`). A calculator's reference entry now says what it DOES, not only what it
+needs and refuses, and each stored method code is decoded (`eem_bultinck2002_part1` is EEM with Bultinck et al.
+2002 part I's parameters). 68 calculators are still in `EXPLAINER_DEBT`; the order is by user value: Shape and
+surface, Solubility and pKa, Drug-likeness, Topology and stereo, Identity and naming, Spectra and energy,
+Structure generation, then the rest of the charge group. Wherever one calculator offers several methods that
+differ in what they were built from (polarizability, alignment, the pKa predictors), the same side-by-side
+table the guide now has for the charge models is owed.
+
+**Deferred: a "Find in my library" action on each reference in Help, through Knowledge Vista.** The Help window
+now prints each source as a citation plus its DOI as plain text, and that is the first screen in OpenChem that
+shows a paper's identity, which is the thing `services/knowledge_vista.py` said it was waiting for. The shape:
+with Knowledge Vista configured (Settings > External tools), a DOI in Help gets an action that runs
+`kv --json search doi:<doi>`, then `kv locate` and `kv open` at a page, and with it absent or the paper not in
+that person's library the action is simply not offered (or offers to copy the DOI). **It never ships or links a
+paper**: each person's library is their own, so what it finds differs per person, and the documentation must
+stand on its DOIs and search keywords alone for everyone else. Two rules carry over from the explainers: no URL
+in authored text (a DOI is built to outlive a site, a link is not), and Knowledge Vista stays optional.
+
+**Deferred, maintainer side:** replace the filename in `sources.toml`'s `local` field (a locator that drifts, and
+the subject of the deferred Sci Downloads naming round) with a `kv` lookup by DOI or hash, and add a coverage
+report of which registered sources the maintainer's library lacks, which is the list of papers to fetch before
+the next explainer family is written.
+
 ### Naming, and the annotation engine underneath it
 
 Structure-to-name offline and deterministically via the vendored IUPAC

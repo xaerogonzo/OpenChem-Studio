@@ -170,6 +170,8 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "shot",       "path": "...", "widget": "lewis"}
     {"do": "dialog",     "name": "HelpDialog"}   built by ui/dialogs/inventory
     {"do": "dialog",     "name": "PeriodicTableDialog", "tab": "Isotopes"}
+    {"do": "dialog",     "name": "HelpDialog", "topic": "calc-dipole-moment"}  the Help window on a
+                                          topic, or "search": "SD-POE" typed into its own box
     {"do": "dialog",     "name": "SettingsDialog", "section": "results"}
     {"do": "control",    "name": "railHidesPanels", "value": false}  a NAMED
                                           control of the open dialog, for real

@@ -523,6 +523,7 @@
   "tests/test_build_info.py": 1,
   "tests/test_calculation_input.py": 1,
   "tests/test_calculator_census.py": 2,
+  "tests/test_calculator_explainers.py": 2,
   "tests/test_calculator_goals.py": 0,
   "tests/test_calculator_inspector_copy.py": 1,
   "tests/test_calculator_inspector_dialog.py": 1,

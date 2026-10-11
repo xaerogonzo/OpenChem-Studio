@@ -5343,6 +5343,23 @@ class _Driver(QObject):
                     "OPENCHEM_DRIVE: %s has no tab %r (have %s)",
                     wanted, wanted_tab, titles,
                 )
+        # `"search": "SD-POE"` types into the Help window's own search box, the real filter
+        # (so what is shown is what a person typing it gets), and `"topic": "calc-dipole-moment"`
+        # then opens that topic. Both are HelpDialog's; any other dialog LOGS that it has no
+        # such control rather than photographing its default page.
+        for key, label in (("search", "a search box"), ("topic", "topics")):
+            value = str(step.get(key, ""))
+            if not value:
+                continue
+            if wanted != "HelpDialog":
+                logger.error("OPENCHEM_DRIVE: %s has no %s", wanted, label)
+            elif key == "search":
+                dialog._filter.setText(value)
+            else:
+                try:
+                    dialog.show_topic(value)
+                except Exception as exc:  # noqa: BLE001 - HelpUnavailable for an unknown key
+                    logger.error("OPENCHEM_DRIVE: help topic %r: %s", value, exc)
         logger.warning(
             "OPENCHEM_DRIVE: dialog %s open at %dx%d, tab %r, section %r",
             wanted,
