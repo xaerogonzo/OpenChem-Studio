@@ -1,0 +1,93 @@
+{
+ "artifact_schema_version": 2,
+ "stage": "r38-fresh-v1",
+ "recorded_at": "2026-10-10T20:16:35-0400",
+ "git_sha": "a5c2468c1a3a746991f25e11d58faa17b2229b6c",
+ "src_tree": "a33000831e16539c63c2ac0029802653ea734f06",
+ "git_branch": "claude/fresh-frozen-population",
+ "git_dirty": false,
+ "python": "3.13.7",
+ "platform": "Windows-11-10.0.26200-SP0",
+ "rdkit": "2025.09.6",
+ "opsin_jar": "opsin-cli-2.9.0-jar-with-dependencies.jar",
+ "java": "openjdk version \"21.0.12\" 2026-07-21 LTS",
+ "registry": {
+  "regression": {
+   "status": "tuning",
+   "file": "corpus.json"
+  },
+  "heldout": {
+   "status": "tuning",
+   "file": "heldout.json"
+  },
+  "heldout_v2": {
+   "status": "tuning",
+   "file": "heldout2.json"
+  },
+  "heldout_v3": {
+   "status": "tuning",
+   "file": "heldout3.json"
+  },
+  "heldout_v4": {
+   "status": "tuning",
+   "file": "heldout4.json"
+  },
+  "heldout_v5": {
+   "status": "tuning",
+   "file": "heldout5.json"
+  },
+  "heldout_v6": {
+   "status": "frozen",
+   "file": "heldout6.json",
+   "sha256": "ab2a9b3ecb926d64b3ae741640d86657949b0bd686f507daf8ea6be73edbeed4",
+   "rows": 40
+  },
+  "bluebook_tuning": {
+   "status": "tuning",
+   "file": "bluebook_tuning.json"
+  },
+  "bluebook_frozen": {
+   "status": "frozen",
+   "file": "bluebook_frozen.json",
+   "sha256": "7dd31cdcc767b3147dab84e9cb7bd6bdd7cb8913d94f8f63b2f0dd77ce4e323d",
+   "rows": 1126
+  },
+  "fresh_v1": {
+   "status": "frozen",
+   "file": "fresh_v1.json",
+   "sha256": "c27b573e6d24769c5a4e1d36fd5ed4682a0506db142f6623a79437521c981e16",
+   "rows": 2000
+  }
+ },
+ "comparator_spec_id": "nomenclature-preference-v1",
+ "strategy_id": "IUPACCanonical(default)",
+ "linter_spec_id": null,
+ "final_evaluation": true,
+ "populations": {
+  "fresh_v1": {
+   "source_file": "fresh_v1.json",
+   "source_sha256": "c27b573e6d24769c5a4e1d36fd5ed4682a0506db142f6623a79437521c981e16",
+   "rows": 2000,
+   "outcomes": {
+    "equivalent": 1614,
+    "exact": 336,
+    "unparsable": 16,
+    "wrong_structure": 17,
+    "tautomer": 1,
+    "gate_disagreement": 10,
+    "stereo_lost": 6
+   },
+   "pubchem_verbatim_exact": 336,
+   "adjudicated_preferred_exact": {
+    "adjudicated_rows": 0,
+    "engine": 0,
+    "pubchem": 0,
+    "known_deviation": 0
+   },
+   "records_sealed": {
+    "file": "sealed/r38-fresh-v1.fresh_v1.records.json",
+    "sha256": "7700459cf4ef2fc09f03447031edadfcd20ffc344ef26518956917ed31f8d6b3"
+   }
+  }
+ }
+}
