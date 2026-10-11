@@ -674,16 +674,15 @@ lights up.
 <!-- help:navigation -->
 ## Finding your way around
 
-The right-hand side has a **navigation rail**: a column of group icons,
-and beside it the full names of that group's panels.
+The right-hand side has a **navigation rail**: three labelled groups, each with
+a one-line description, and under them the names of that group's panels.
+Click the group already showing to fold the rail down to its icons.
 
 | Group | Panels |
 |---|---|
-| Analysis | Properties, Atom Inspector, Interactions, Structure Check |
-| Compute | Quantum Chemistry, Docking, 3D Alignment, Jobs |
-| Compare | Batch |
-| AI | assistant panels, when a plugin provides one |
-| Extensions | everything else a plugin adds |
+| Analyze | Properties, Results, then Atom Inspector, Interactions, Structure Check |
+| Compute | 3D Alignment, Batch, Docking, Jobs, Quantum Chemistry |
+| Compare and Extend | Compare, and every panel a plugin adds (A to Z) |
 
 One panel is shown at a time and it gets the whole column. Right-click any
 name and **Pin to top** to keep it above the groups, so a panel you use
@@ -2105,6 +2104,21 @@ gives its options and its limits.
 
 Everything else in the app answers a question about the molecule you have
 selected. The **Batch** panel answers it about all of them.
+
+**You can also do this from Properties.** Under the tick boxes, **Run on**
+chooses *this molecule* (the default), *all molecules* or *chosen molecules*.
+With the second or third, **Run selected** runs every ticked calculator on each
+of those molecules and fills a **Project table** page in Results (the switch
+between *This molecule* and *Project table* appears once there is a table). It
+has the same columns, cells, column menu, exports, Analyse and Virtual Screening
+as the table below, and a **Cancel run** button while it works. Extra switches
+appear with it: the always-on properties (on), the structural-alert catalogs
+(off), and how a per-atom result becomes one number. A calculator's own settings
+for project runs are in its right-click menu. A large run states how many
+calculations it will start and waits for you to agree; a calculator that runs
+from its own panel, or needs an input with no default, is left out and named.
+**Presets** saves a set of ticks under a name; the first time it opens, whatever
+the Batch panel had ticked is copied in as *From the Batch panel*.
 
 Tick any set of descriptors, structural-alert catalogs and calculators, and
 run them across every molecule in the project. The results arrive as a

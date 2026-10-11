@@ -625,3 +625,45 @@ both DERIVE what they check from the code rather than restating it:
 
 A guard that iterates the registry rather than a hand-written list is the
 only kind that survives an open vocabulary.
+
+## Finding 4 — SOLVED: nine task groups above the 22 categories, and one browse key
+
+Written 2026-10-09. After the 26 -> 18 category merge the Properties list
+was still read as "chaotic": sections in an editorial order, buttons in
+registration order, and no way to jump to a calculator by name. Measured
+at the start of this change: 22 sections (21 with a runnable button), about
+60 calculators.
+
+**A task group is navigation only.** It never replaces a category id, so
+stored results, caches and `ReportResult.category` are untouched.
+`domain/calculator_taxonomy.py` holds the table (`CATEGORY_TASK_GROUP`) and
+the one browse key every consumer uses, `(task group, category label
+casefolded, category id, display name casefolded, calculator id)`.
+
+| Task group | Categories |
+| --- | --- |
+| Identity and naming | identity, naming, physicochemical, substructure |
+| Charge and electrons | charge, electronic, quantum (Huckel), lewis |
+| Solubility and pKa | lipophilicity, pka, solubility |
+| Shape and surface | geometry, shape, surface |
+| Topology and stereo | aromaticity, stereochemistry, topology |
+| Drug-likeness | admet (with regulatory), medicinal_chemistry |
+| Structure generation | structures |
+| Spectra and energy | docking, energetic, nmr, quantum_chemistry, thermophysical |
+| Other calculators | any category nobody files (plugins) |
+
+- **Properties** orders sections by that key and sorts buttons A to Z.
+- **Results** orders sections by the same category key (the band still
+  comes first, so a task group never crosses the always-on entry) and keeps
+  its own registry order inside a section: Solubility stays ahead of Hansen
+  there, which `domain/result_ordering.py` measured and recorded.
+- **Plugins** may name a canonical group with
+  `CalculatorDefinition.task_group` for a category the application does not
+  already file; an absent or unknown value is "Other calculators", never an
+  error, and registration order never changes the display order.
+- **Find** (name, tags, description, heading; case-insensitive) opens the
+  matching sections and restores the previous expansion on clear.
+- Guards: `tests/test_task_groups.py` (labels fit the heading, every
+  category the application can produce is filed on purpose, the key is
+  total, Properties and Find behaviour). Mutated once: removing `lewis`
+  from the table fails the completeness guard.

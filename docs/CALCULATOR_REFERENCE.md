@@ -68,6 +68,31 @@ Reports the IUPAC name from every configured source, each labelled with its orig
 - Options:
   - `use_pubchem` -- Look up on PubChem (sends the structure) default `True`
 
+## Substructure Search
+
+<!-- help:calc-functional-groups -->
+### Functional Groups
+
+Functional groups, ring systems and structural features, coloured by kind and labelled at the atom each belongs to. Every feature is defined in one vocabulary, each cited to an IUPAC definition (the Gold Book, or the Blue Book where the Gold Book has none), and detected once: Fragment Counts counts the same detection this draws, and the Atom Inspector lists it per atom. Where one feature is the better description of another's atoms, the other is hidden here (an acetal's two oxygens are not also shown as ethers) and a more specific one is shown beside its general one (a lactam beside its amide). Charged forms are labelled as drawn -- a carboxylate is not called a carboxylic acid -- and nothing is inferred about pH. A ring system is reported as a ring system -- benzene, 1H-indole -- not as a group. Tick "Suffix-eligible groups only" to narrow it to the groups the naming engine would consider for a suffix.
+
+- Produces one value per atom, with a depiction coloured by them.
+- Runs on the 2D drawing, so no conformer is needed.
+- Options:
+  - `label_mode` -- Atom labels (Group name, Prefix form) default `Group name`
+  - `only_suffix_eligible` -- Suffix-eligible groups only default `False`
+
+<!-- help:calc-substructure-search -->
+### Substructure Search
+
+Match a SMARTS pattern and highlight the hits in 2D and 3D. Pick from a built-in library of common functional groups or type your own.
+
+- Produces one value per atom, with a depiction coloured by them.
+- Runs on the 2D drawing, so no conformer is needed.
+- Options:
+  - `decimal_places` -- Decimal places default `2` range 0 to 8
+  - `pattern` -- Common pattern (Carboxylic acid, Ester, Amide, Primary amine, Basic amine (hERG risk pattern), Alcohol, Phenol, Ether, Ketone, Aldehyde, Nitrile, Nitro, Sulfonamide, Halogen, Aromatic ring, Benzene ring) default `Carboxylic acid`
+  - `smarts` -- Custom SMARTS (overrides)
+
 ## Charge
 
 <!-- help:calc-dipole-moment -->
@@ -132,121 +157,6 @@ Partial charges, recomputed on the dominant protonation state at a given pH, by 
   - `pH` -- pH default `7.4` range 0.0 to 14.0
   - `include_hydrogens` -- Increment of Hs (add implicit H charge) default `False`
 
-## Lipophilicity
-
-<!-- help:calc-logd -->
-### LogD (pH-dependent)
-
-Distribution coefficient at a given pH, and the curve across pH it lies on. Real Henderson-Hasselbalch when a pkasolver environment is configured; otherwise the LogP of the dominant microspecies at that pH, labelled as an approximation and drawn as no curve. Hover the curve to read logD at a sampled pH. Under-predicts zwitterions (amino acids).
-
-Also known as **LogD vs pH** -- retired and folded in here. Folded into LogD, which now declares the curve it lies on -- the same Henderson-Hasselbalch function over the same pH range, with the chosen pH as a sample -- so reading logD at one pH and seeing the curve is one run.
-
-- Produces a list of facts, each with its own units, basis and evidence.
-- Runs on the 2D drawing, so no conformer is needed.
-- Basis: empirical (fitted to measured data, with real scatter).
-- Options:
-  - `pH` -- pH default `7.4` range 0.0 to 14.0
-  - `ph_min` -- pH from default `0.0` range -2.0 to 16.0
-  - `ph_max` -- pH to default `14.0` range -2.0 to 16.0
-  - `ph_step` -- Step default `0.25` range 0.01 to 2.0
-
-<!-- help:calc-crippen-logp-contrib -->
-### LogP Contribution
-
-Per-atom Crippen LogP contribution -- which atoms increase vs. decrease LogP. The molecule's own LogP is reported alongside them; on the structure as drawn the visible atoms do not sum to it, because Crippen gives each hydrogen its own increment and the editor's hydrogens are implicit. The Hydrogens option decides where those increments go.
-
-- Produces one value per atom, with a depiction coloured by them.
-- Runs on the 2D drawing, so no conformer is needed.
-- Options:
-  - `decimal_places` -- Decimal places default `2` range 0 to 8
-  - `hydrogens` -- Hydrogens (Heavy atoms only, Increment of Hs, Explicit hydrogens) default `Heavy atoms only`
-
-## Structure Generators
-
-<!-- help:calc-markush-enumeration -->
-### Markush Enumeration
-
-Enumerate the library of a Markush structure. Draw the core with dummy-atom attachment points ([*:1], [*:2]) and define substituents as "R1: Cl, F, Br; R2: O, N". Supports sequential and random enumeration, library sizing without enumerating, selected-part enumeration, and the valence filter. R-groups and atom lists are supported; bond lists and nested R-groups are not.
-
-- Produces a set of structures.
-- Runs on the 2D drawing, so no conformer is needed.
-- Options:
-  - `mode` -- Calculation (Sequential enumeration, Random enumeration, Markush library size) default `Sequential enumeration`
-  - `substituents` -- R-group definitions default `R1: Cl, F, Br`
-  - `max_structures` -- Generate maximum default `1000` range 1 to 100000
-  - `only_labels` -- Enumerate only R-labels (blank = all)
-  - `valence_filter` -- Valence filter default `True`
-  - `seed` -- Random seed (0 = none) default `0` range 0 to 999999
-
-<!-- help:calc-resonance-forms -->
-### Resonance Forms
-
-Resonance contributors. 'Major contributors' allows charge separation; the wider set also allows incomplete octets. RDKit's own defaults return NO forms at all for some molecules, so the flag set is an explicit choice here.
-
-- Produces a set of structures.
-- Runs on the 2D drawing, so no conformer is needed.
-- Options:
-  - `flag_set` -- Contributors (Major contributors, All forms (charge-separated, incomplete octets)) default `Major contributors`
-  - `max_structures` -- Maximum structures default `200` range 1 to 10000
-
-<!-- help:calc-stereoisomers -->
-### Stereoisomers
-
-Every stereoisomer, varying only the centres left unspecified by default.
-
-- Produces a set of structures.
-- Runs on the 2D drawing, so no conformer is needed.
-- Options:
-  - `max_structures` -- Maximum structures default `200` range 1 to 10000
-  - `only_unassigned` -- Vary only unspecified centres default `True`
-
-<!-- help:calc-structural-frameworks -->
-### Structural Frameworks
-
-Bemis-Murcko scaffold and the generic (all-carbon, all-single-bond) framework.
-
-- Produces a set of structures.
-- Runs on the 2D drawing, so no conformer is needed.
-- Options:
-  - `include_generic` -- Include generic framework default `True`
-
-<!-- help:calc-tautomers -->
-### Tautomers
-
-Tautomeric forms, ordered by RDKit's own heuristic preference score (a rule-of-thumb ranking: not an energy and not a probability; equal scores are shown as tied) with the canonical tautomer flagged. For a real energy-based ranking, see Tautomer Distribution in the Quantum Chemistry panel (needs ORCA).
-
-- Produces a set of structures.
-- Runs on the 2D drawing, so no conformer is needed.
-- Options:
-  - `max_structures` -- Maximum structures default `200` range 1 to 10000
-
-## Quantum (Huckel)
-
-<!-- help:calc-huckel-analysis -->
-### Huckel Analysis
-
-Simple Huckel MO analysis of the conjugated pi system: orbital energies, total pi energy, HOMO/LUMO and their gap, all in units of beta. Treats every pi centre as an identical carbon, so heteroatom densities are indicative only.
-
-- Produces a list of facts, each with its own units, basis and evidence.
-- Runs on the 2D drawing, so no conformer is needed.
-- Basis: ab initio (computed from theory rather than fitted).
-- Options:
-  - `decimal_places` -- Decimal places default `2` range 0 to 8
-  - `major_microspecies` -- Take major microspecies default `False`
-  - `pH` -- at pH default `7.4` range 0.0 to 14.0
-  - `pi_electrons` -- Pi electrons (0 = from structure and charge) default `0` range 0 to 200
-
-<!-- help:calc-huckel-pi-density -->
-### Pi Electron Density (Huckel)
-
-Per-atom pi electron density from the Huckel orbitals, projected onto 2D and 3D.
-
-- Produces one value per atom, with a depiction coloured by them.
-- Runs on the 2D drawing, so no conformer is needed.
-- Basis: ab initio (computed from theory rather than fitted).
-- Options:
-  - `decimal_places` -- Decimal places default `2` range 0 to 8
-
 ## Electronic Properties
 
 <!-- help:calc-crippen-mr-contrib -->
@@ -301,72 +211,169 @@ Per-atom polarizability contributions (Jensen et al.), projected onto 2D and 3D.
   - `major_microspecies` -- Take major microspecies default `False`
   - `pH` -- at pH default `7.4` range 0.0 to 14.0
 
-## Topology
+## Lewis Acid/Base
 
-<!-- help:calc-tsei-projection -->
-### Cao-Liu TSEI projection (per atom)
+<!-- help:calc-lewis-hsab -->
+### Hardness / Softness (HSAB)
 
-Cao & Liu's topological steric effect index with every atom in turn as the reaction centre -- how much of each atom's approach the rest of the molecule screens, read off the graph. Dimensionless. TSEI is defined for a SUBSTITUENT measured toward a named reaction centre; running it at every atom is OpenChem's projection of it, not a quantity the paper defines. Topological, so two conformers of one molecule score identically. Covers the 28 elements Lange's Handbook tabulates a covalent radius for, and refuses the rest by name. The equation is geometric, so any of those 28 computes -- but Cao and Liu validated it on alkyl, halogen and ether substituents, so a result on an organometallic is an extrapolation.
+Chemical hardness, softness, electronegativity, chemical potential and the electrophilicity index, from the frontier orbital energies of a quantum chemistry run. These are the quantities Pearson's hard/soft acid-base principle is stated in. Run any ORCA job from the Quantum Chemistry panel and they appear automatically -- no separate calculation. Koopmans values carry a caveat worth reading: measured against real B3LYP/def2-SVP runs they invert the hardness of ammonia and phosphine, which is one of the most-used hard/soft orderings there is.
+
+- Runs from the **Quantum Chemistry panel** panel rather than from a Properties button.
+- Runs on the 2D drawing, so no conformer is needed.
+- Basis: ab initio (computed from theory rather than fitted).
+- Options:
+  - `method_basis` -- Method/basis (B3LYP def2-SVP, PBE0 def2-TZVP, M062X def2-TZVP, B3LYP 6-31G(d), B3LYP pcSseg-1, B3LYP pcSseg-2) default `B3LYP def2-SVP`
+
+<!-- help:calc-lewis-adduct -->
+### Lewis Adduct
+
+Whether this molecule and a partner form a Lewis adduct, and what can be said about how strongly. Reports every applicable line of evidence side by side -- a Drago-Wayland enthalpy in kcal/mol where both species are parameterised, and orbital-based measures where a quantum job has run -- and deliberately gives no combined score, because the lines answer different questions and no accepted way of weighing them exists. The classic demonstration is carbon monoxide, which no pKa table has anything useful to say about and which forms an isolable adduct with borane.
+
+- Produces a list of facts, each with its own units, basis and evidence.
+- Runs on the 2D drawing, so no conformer is needed.
+- Basis: empirical (fitted to measured data, with real scatter).
+- Options:
+  - `partner_smiles` -- Partner molecule
+  - `role` -- Role of this molecule (auto, acid, base) default `auto`
+
+<!-- help:calc-lewis-sites -->
+### Lewis Sites
+
+Donor and acceptor sites from the structure as drawn, each with the rule that found it. Acceptors are found by mechanism -- empty valence orbital, low-lying pi* or sigma*, vacant coordination site -- rather than by looking only for an empty p orbital, which misses metals, SO3 and carbonyls. Strength is deliberately not reported: nothing offline can rank two donors, and carbon monoxide reports two candidate donor atoms without guessing between them.
+
+- Produces a list of facts, each with its own units, basis and evidence.
+- Runs on the 2D drawing, so no conformer is needed.
+- Basis: empirical (fitted to measured data, with real scatter).
+- Options:
+  - `major_microspecies` -- Take major microspecies default `False`
+  - `pH` -- at pH default `7.4` range 0.0 to 14.0
+  - `include_heuristic` -- Include motif-based sites (pi*, sigma hole, coordination) default `True`
+
+## Quantum (Huckel)
+
+<!-- help:calc-huckel-analysis -->
+### Huckel Analysis
+
+Simple Huckel MO analysis of the conjugated pi system: orbital energies, total pi energy, HOMO/LUMO and their gap, all in units of beta. Treats every pi centre as an identical carbon, so heteroatom densities are indicative only.
+
+- Produces a list of facts, each with its own units, basis and evidence.
+- Runs on the 2D drawing, so no conformer is needed.
+- Basis: ab initio (computed from theory rather than fitted).
+- Options:
+  - `decimal_places` -- Decimal places default `2` range 0 to 8
+  - `major_microspecies` -- Take major microspecies default `False`
+  - `pH` -- at pH default `7.4` range 0.0 to 14.0
+  - `pi_electrons` -- Pi electrons (0 = from structure and charge) default `0` range 0 to 200
+
+<!-- help:calc-huckel-pi-density -->
+### Pi Electron Density (Huckel)
+
+Per-atom pi electron density from the Huckel orbitals, projected onto 2D and 3D.
 
 - Produces one value per atom, with a depiction coloured by them.
+- Runs on the 2D drawing, so no conformer is needed.
+- Basis: ab initio (computed from theory rather than fitted).
+- Options:
+  - `decimal_places` -- Decimal places default `2` range 0 to 8
+
+## Lipophilicity
+
+<!-- help:calc-logd -->
+### LogD (pH-dependent)
+
+Distribution coefficient at a given pH, and the curve across pH it lies on. Real Henderson-Hasselbalch when a pkasolver environment is configured; otherwise the LogP of the dominant microspecies at that pH, labelled as an approximation and drawn as no curve. Hover the curve to read logD at a sampled pH. Under-predicts zwitterions (amino acids).
+
+Also known as **LogD vs pH** -- retired and folded in here. Folded into LogD, which now declares the curve it lies on -- the same Henderson-Hasselbalch function over the same pH range, with the chosen pH as a sample -- so reading logD at one pH and seeing the curve is one run.
+
+- Produces a list of facts, each with its own units, basis and evidence.
+- Runs on the 2D drawing, so no conformer is needed.
+- Basis: empirical (fitted to measured data, with real scatter).
+- Options:
+  - `pH` -- pH default `7.4` range 0.0 to 14.0
+  - `ph_min` -- pH from default `0.0` range -2.0 to 16.0
+  - `ph_max` -- pH to default `14.0` range -2.0 to 16.0
+  - `ph_step` -- Step default `0.25` range 0.01 to 2.0
+
+<!-- help:calc-crippen-logp-contrib -->
+### LogP Contribution
+
+Per-atom Crippen LogP contribution -- which atoms increase vs. decrease LogP. The molecule's own LogP is reported alongside them; on the structure as drawn the visible atoms do not sum to it, because Crippen gives each hydrogen its own increment and the editor's hydrogens are implicit. The Hydrogens option decides where those increments go.
+
+- Produces one value per atom, with a depiction coloured by them.
+- Runs on the 2D drawing, so no conformer is needed.
+- Options:
+  - `decimal_places` -- Decimal places default `2` range 0 to 8
+  - `hydrogens` -- Hydrogens (Heavy atoms only, Increment of Hs, Explicit hydrogens) default `Heavy atoms only`
+
+## pKa
+
+<!-- help:calc-major-microspecies -->
+### Major Microspecies
+
+The dominant protonation form at a given pH, via Dimorphite-DL.
+
+- Produces a set of structures.
+- Runs on the 2D drawing, so no conformer is needed.
+- Options:
+  - `pH` -- pH default `7.4` range 0.0 to 14.0
+
+<!-- help:calc-pka-microspecies -->
+### Microspecies Distribution
+
+Percentage of each protonation state across pH 0-14, from predicted pKa values. Needs a configured pkasolver environment.
+
+- Produces a curve against pH.
+- Runs on the 2D drawing, so no conformer is needed.
+- Basis: empirical (fitted to measured data, with real scatter).
+- Options:
+  - `ph_min` -- pH from default `0.0` range -2.0 to 16.0
+  - `ph_max` -- pH to default `14.0` range -2.0 to 16.0
+  - `ph_step` -- Step default `0.25` range 0.01 to 2.0
+
+<!-- help:calc-pka -->
+### pKa
+
+Numeric pKa via pkasolver, run out of process from its own environment (configure it in Tools > External Tools).
+
+- Produces a list of matched lines.
 - Runs on the 2D drawing, so no conformer is needed.
 - Basis: empirical (fitted to measured data, with real scatter).
 - Options:
   - `decimal_places` -- Decimal places default `2` range 0 to 8
-  - `include_hydrogens` -- Count hydrogens default `False`
-  - `crowded_branches` -- Apply the 6.5x crowding correction default `True`
 
-<!-- help:calc-topology-distance-degree -->
-### Distance Degree (per atom)
+## Solubility
 
-Sum of each atom's topological distances to every other atom.
+<!-- help:calc-hansen-solubility -->
+### Hansen Solubility Parameters
 
-- Produces one value per atom, with a depiction coloured by them.
-- Runs on the 2D drawing, so no conformer is needed.
-- Options:
-  - `decimal_places` -- Decimal places default `2` range 0 to 8
-
-<!-- help:calc-topology-eccentricity -->
-### Eccentricity (per atom)
-
-Greatest topological distance from each atom to any other -- how peripheral each atom is.
-
-- Produces one value per atom, with a depiction coloured by them.
-- Runs on the 2D drawing, so no conformer is needed.
-- Options:
-  - `decimal_places` -- Decimal places default `2` range 0 to 8
-
-<!-- help:calc-hbond-vs-ph -->
-### H-Bond Donors/Acceptors vs pH
-
-Donor and acceptor counts on the dominant microspecies at each pH. Works without pkasolver -- Dimorphite-DL alone gives the dominant form.
-
-- Produces a curve against pH.
-- Runs on the 2D drawing, so no conformer is needed.
-- Options:
-  - `ph_min` -- pH from default `0.0` range -2.0 to 16.0
-  - `ph_max` -- pH to default `14.0` range -2.0 to 16.0
-  - `ph_step` -- Step default `0.5` range 0.01 to 2.0
-
-<!-- help:calc-ring-systems -->
-### Ring Systems
-
-Which ring system each atom belongs to, classified as monocyclic, fused, bridged or spiro, with fusion atoms, bridgeheads and spiro centres marked. Perceived by the built-in nomenclature engine, so a ring system is one unit the way it is named -- naphthalene is one fused system of 10 atoms, not two benzenes. Works offline on any structure, with or without a conformer.
-
-- Produces one value per atom, with a depiction coloured by them.
-- Runs on the 2D drawing, so no conformer is needed.
-- Options:
-  - `label_mode` -- Atom labels (Locants, with roles, Structural roles only, Ring system) default `Locants, with roles`
-
-<!-- help:calc-topology-analysis -->
-### Topology Analysis
-
-Graph-theoretic descriptors: ring and chain counts, cyclomatic number, Platt/Randic/Balaban/Harary/Wiener/hyper-Wiener/Szeged indices, Wiener polarity, and stereo centre counts. Szeged is validated by identity rather than by a reference value -- it equals Wiener for any acyclic graph and strictly exceeds it for a cyclic one. The Cao-Liu steric index is measured toward a named reaction centre, so it is not a whole-molecule number and has its own per-atom calculator.
+The three Hansen partial solubility parameters -- dispersion, polar and hydrogen bonding -- and their Hildebrand total, from the structure alone by Stefanis and Panayiotou's group contributions. Two passes: first-order UNIFAC groups partition the molecule, then second-order conjugation groups correct it where they apply, which is what the paper's W switch selects. Below 3 MPa^0.5 the polar and hydrogen-bonding parameters come from the paper's SEPARATE low-range regression rather than from the main equations, and the result says which was used. Needs three or more carbons excluding the characteristic group's own atom, and refuses a structure carrying an atom in no group rather than returning a partial sum.
 
 - Produces a list of facts, each with its own units, basis and evidence.
 - Runs on the 2D drawing, so no conformer is needed.
+- Basis: empirical (fitted to measured data, with real scatter).
 - Options:
   - `decimal_places` -- Decimal places default `2` range 0 to 8
+
+<!-- help:calc-solubility -->
+### Solubility
+
+Predicted intrinsic aqueous solubility in logS, mg/mL and mol/L, its Low/Moderate/High category, the value at a chosen pH, an ICH M9 high-solubility screening estimate, and the solubility-versus-pH curve across the range you choose. Ampholytes and salts are refused rather than modelled; a molecule with no ionizable centre gets a flat line, which is an answer rather than a failure.
+
+Also known as **Solubility vs pH** -- retired and folded in here. Folded into Solubility, which reported the same nine facts and the same curve points and already honoured the pH range it now offers.
+
+- Produces a list of facts, each with its own units, basis and evidence.
+- Runs on the 2D drawing, so no conformer is needed.
+- Basis: empirical (fitted to measured data, with real scatter).
+- Options:
+  - `model` -- Baseline model (esol, aqsoldb) default `esol`
+  - `pH` -- at pH default `7.4` range 0.0 to 14.0
+  - `pka_values` -- pKa values (optional, e.g. 3.49, 9.4)
+  - `dose_mg` -- Highest single dose (mg, for BCS) default `0.0` range 0.0 to 100000.0
+  - `solvent` -- Solvent (water, 1,2-dichloroethane, 1,4-dioxane, 1,9-decadiene, 1-butanol, 1-chlorobutane, 1-decanol, 1-heptanol, 1-hexadecene, 1-hexanol, 1-octanol, 1-pentanol, 1-propanol, 2,2,4-trimethylpentane, 2-butanol, 2-methyl-1-propanol, 2-methyl-2-propanol, 2-pentanol, 2-propanol, 3-methyl-1-butanol, acetic acid, acetone, acetonitrile, benzene, benzonitrile, bromobenzene, butanone, butyl acetate, carbon disulfide, carbon tetrachloride, chlorobenzene, chloroform, cyclohexane, cyclohexanone, decane, dibutyl ether, dibutylformamide, dichloromethane, diethyl ether, dimethylacetamide, dmf, dmso, dodecane, ethanol, ethanol/water(10:90)vol, ethanol/water(20:80)vol, ethanol/water(30:70)vol, ethanol/water(40:60)vol, ethanol/water(50:50)vol, ethanol/water(60:40)vol, ethanol/water(70:30)vol, ethanol/water(80:20)vol, ethanol/water(90:10)vol, ethyl acetate, ethylbenzene, ethylene glycol, fluorobenzene, formamide, heptane, hexadecane, hexane, iodobenzene, isopropyl myristate, m-xylene, methanol, methyl acetate, methyl tert-butyl ether, methylcyclohexane, n,n-diethylacetamide, n-ethylacetamide, n-ethylformamide, n-formylmorpholine, n-methyl-2-piperidone, n-methylacetamide, n-methylformamide, n-methylpyrrolidinone, nitrobenzene, nitromethane, nonane, o-xylene, octadecanol, octane, p-xylene, peanut oil, pentane, propylene carbonate, sulfolane, thf, toluene, tributyl phosphate, trifluoroethanol, undecane) default `water`
+  - `compare_models` -- Compare against the other model default `False`
+  - `ph_min` -- pH from default `0.0` range -2.0 to 16.0
+  - `ph_max` -- pH to default `14.0` range -2.0 to 16.0
+  - `ph_step` -- Step default `0.25` range 0.01 to 2.0
 
 ## Geometry (3D)
 
@@ -473,53 +480,6 @@ Topological polar surface area, for the structure as drawn and for the dominant 
 - Options:
   - `pH` -- pH default `7.4` range 0.0 to 14.0
 
-## Substructure Search
-
-<!-- help:calc-functional-groups -->
-### Functional Groups
-
-Functional groups, ring systems and structural features, coloured by kind and labelled at the atom each belongs to. Every feature is defined in one vocabulary, each cited to an IUPAC definition (the Gold Book, or the Blue Book where the Gold Book has none), and detected once: Fragment Counts counts the same detection this draws, and the Atom Inspector lists it per atom. Where one feature is the better description of another's atoms, the other is hidden here (an acetal's two oxygens are not also shown as ethers) and a more specific one is shown beside its general one (a lactam beside its amide). Charged forms are labelled as drawn -- a carboxylate is not called a carboxylic acid -- and nothing is inferred about pH. A ring system is reported as a ring system -- benzene, 1H-indole -- not as a group. Tick "Suffix-eligible groups only" to narrow it to the groups the naming engine would consider for a suffix.
-
-- Produces one value per atom, with a depiction coloured by them.
-- Runs on the 2D drawing, so no conformer is needed.
-- Options:
-  - `label_mode` -- Atom labels (Group name, Prefix form) default `Group name`
-  - `only_suffix_eligible` -- Suffix-eligible groups only default `False`
-
-<!-- help:calc-substructure-search -->
-### Substructure Search
-
-Match a SMARTS pattern and highlight the hits in 2D and 3D. Pick from a built-in library of common functional groups or type your own.
-
-- Produces one value per atom, with a depiction coloured by them.
-- Runs on the 2D drawing, so no conformer is needed.
-- Options:
-  - `decimal_places` -- Decimal places default `2` range 0 to 8
-  - `pattern` -- Common pattern (Carboxylic acid, Ester, Amide, Primary amine, Basic amine (hERG risk pattern), Alcohol, Phenol, Ether, Ketone, Aldehyde, Nitrile, Nitro, Sulfonamide, Halogen, Aromatic ring, Benzene ring) default `Carboxylic acid`
-  - `smarts` -- Custom SMARTS (overrides)
-
-## Stereochemistry
-
-<!-- help:calc-stereo-descriptors -->
-### Stereo Descriptors
-
-R/S and E/Z labels for every stereo element, from RDKit's own CIP labeller. Topology Analysis reports how many stereocentres exist; this reports which is which, and flags the ones left undefined in the drawn structure.
-
-- Produces a list of facts, each with its own units, basis and evidence.
-- Runs on the 2D drawing, so no conformer is needed.
-- Options:
-  - `show_undefined` -- Show undefined elements default `True`
-
-<!-- help:calc-stereocenters -->
-### Stereocentres
-
-Stereocentres coloured by CIP descriptor -- R against S at a glance, plus E/Z double bonds and the lowercase pseudo-asymmetric r/s. Centres whose configuration has not been drawn are shown separately in grey rather than left unmarked, since an unspecified centre reads as no centre at all.
-
-- Produces one value per atom, with a depiction coloured by them.
-- Runs on the 2D drawing, so no conformer is needed.
-- Options:
-  - `include_unassigned` -- Show unspecified stereocentres default `True`
-
 ## Aromaticity
 
 <!-- help:calc-bird-aromaticity -->
@@ -544,113 +504,94 @@ The harmonic oscillator model of aromaticity, per ring, from Krygowski's referen
 - Options:
   - `decimal_places` -- Decimal places default `3` range 0 to 8
 
-## Solubility
+## Stereochemistry
 
-<!-- help:calc-hansen-solubility -->
-### Hansen Solubility Parameters
+<!-- help:calc-stereo-descriptors -->
+### Stereo Descriptors
 
-The three Hansen partial solubility parameters -- dispersion, polar and hydrogen bonding -- and their Hildebrand total, from the structure alone by Stefanis and Panayiotou's group contributions. Two passes: first-order UNIFAC groups partition the molecule, then second-order conjugation groups correct it where they apply, which is what the paper's W switch selects. Below 3 MPa^0.5 the polar and hydrogen-bonding parameters come from the paper's SEPARATE low-range regression rather than from the main equations, and the result says which was used. Needs three or more carbons excluding the characteristic group's own atom, and refuses a structure carrying an atom in no group rather than returning a partial sum.
+R/S and E/Z labels for every stereo element, from RDKit's own CIP labeller. Topology Analysis reports how many stereocentres exist; this reports which is which, and flags the ones left undefined in the drawn structure.
 
 - Produces a list of facts, each with its own units, basis and evidence.
+- Runs on the 2D drawing, so no conformer is needed.
+- Options:
+  - `show_undefined` -- Show undefined elements default `True`
+
+<!-- help:calc-stereocenters -->
+### Stereocentres
+
+Stereocentres coloured by CIP descriptor -- R against S at a glance, plus E/Z double bonds and the lowercase pseudo-asymmetric r/s. Centres whose configuration has not been drawn are shown separately in grey rather than left unmarked, since an unspecified centre reads as no centre at all.
+
+- Produces one value per atom, with a depiction coloured by them.
+- Runs on the 2D drawing, so no conformer is needed.
+- Options:
+  - `include_unassigned` -- Show unspecified stereocentres default `True`
+
+## Topology
+
+<!-- help:calc-tsei-projection -->
+### Cao-Liu TSEI projection (per atom)
+
+Cao & Liu's topological steric effect index with every atom in turn as the reaction centre -- how much of each atom's approach the rest of the molecule screens, read off the graph. Dimensionless. TSEI is defined for a SUBSTITUENT measured toward a named reaction centre; running it at every atom is OpenChem's projection of it, not a quantity the paper defines. Topological, so two conformers of one molecule score identically. Covers the 28 elements Lange's Handbook tabulates a covalent radius for, and refuses the rest by name. The equation is geometric, so any of those 28 computes -- but Cao and Liu validated it on alkyl, halogen and ether substituents, so a result on an organometallic is an extrapolation.
+
+- Produces one value per atom, with a depiction coloured by them.
 - Runs on the 2D drawing, so no conformer is needed.
 - Basis: empirical (fitted to measured data, with real scatter).
 - Options:
   - `decimal_places` -- Decimal places default `2` range 0 to 8
+  - `include_hydrogens` -- Count hydrogens default `False`
+  - `crowded_branches` -- Apply the 6.5x crowding correction default `True`
 
-<!-- help:calc-solubility -->
-### Solubility
+<!-- help:calc-topology-distance-degree -->
+### Distance Degree (per atom)
 
-Predicted intrinsic aqueous solubility in logS, mg/mL and mol/L, its Low/Moderate/High category, the value at a chosen pH, an ICH M9 high-solubility screening estimate, and the solubility-versus-pH curve across the range you choose. Ampholytes and salts are refused rather than modelled; a molecule with no ionizable centre gets a flat line, which is an answer rather than a failure.
+Sum of each atom's topological distances to every other atom.
 
-Also known as **Solubility vs pH** -- retired and folded in here. Folded into Solubility, which reported the same nine facts and the same curve points and already honoured the pH range it now offers.
-
-- Produces a list of facts, each with its own units, basis and evidence.
-- Runs on the 2D drawing, so no conformer is needed.
-- Basis: empirical (fitted to measured data, with real scatter).
-- Options:
-  - `model` -- Baseline model (esol, aqsoldb) default `esol`
-  - `pH` -- at pH default `7.4` range 0.0 to 14.0
-  - `pka_values` -- pKa values (optional, e.g. 3.49, 9.4)
-  - `dose_mg` -- Highest single dose (mg, for BCS) default `0.0` range 0.0 to 100000.0
-  - `solvent` -- Solvent (water, 1,2-dichloroethane, 1,4-dioxane, 1,9-decadiene, 1-butanol, 1-chlorobutane, 1-decanol, 1-heptanol, 1-hexadecene, 1-hexanol, 1-octanol, 1-pentanol, 1-propanol, 2,2,4-trimethylpentane, 2-butanol, 2-methyl-1-propanol, 2-methyl-2-propanol, 2-pentanol, 2-propanol, 3-methyl-1-butanol, acetic acid, acetone, acetonitrile, benzene, benzonitrile, bromobenzene, butanone, butyl acetate, carbon disulfide, carbon tetrachloride, chlorobenzene, chloroform, cyclohexane, cyclohexanone, decane, dibutyl ether, dibutylformamide, dichloromethane, diethyl ether, dimethylacetamide, dmf, dmso, dodecane, ethanol, ethanol/water(10:90)vol, ethanol/water(20:80)vol, ethanol/water(30:70)vol, ethanol/water(40:60)vol, ethanol/water(50:50)vol, ethanol/water(60:40)vol, ethanol/water(70:30)vol, ethanol/water(80:20)vol, ethanol/water(90:10)vol, ethyl acetate, ethylbenzene, ethylene glycol, fluorobenzene, formamide, heptane, hexadecane, hexane, iodobenzene, isopropyl myristate, m-xylene, methanol, methyl acetate, methyl tert-butyl ether, methylcyclohexane, n,n-diethylacetamide, n-ethylacetamide, n-ethylformamide, n-formylmorpholine, n-methyl-2-piperidone, n-methylacetamide, n-methylformamide, n-methylpyrrolidinone, nitrobenzene, nitromethane, nonane, o-xylene, octadecanol, octane, p-xylene, peanut oil, pentane, propylene carbonate, sulfolane, thf, toluene, tributyl phosphate, trifluoroethanol, undecane) default `water`
-  - `compare_models` -- Compare against the other model default `False`
-  - `ph_min` -- pH from default `0.0` range -2.0 to 16.0
-  - `ph_max` -- pH to default `14.0` range -2.0 to 16.0
-  - `ph_step` -- Step default `0.25` range 0.01 to 2.0
-
-## pKa
-
-<!-- help:calc-major-microspecies -->
-### Major Microspecies
-
-The dominant protonation form at a given pH, via Dimorphite-DL.
-
-- Produces a set of structures.
+- Produces one value per atom, with a depiction coloured by them.
 - Runs on the 2D drawing, so no conformer is needed.
 - Options:
-  - `pH` -- pH default `7.4` range 0.0 to 14.0
+  - `decimal_places` -- Decimal places default `2` range 0 to 8
 
-<!-- help:calc-pka-microspecies -->
-### Microspecies Distribution
+<!-- help:calc-topology-eccentricity -->
+### Eccentricity (per atom)
 
-Percentage of each protonation state across pH 0-14, from predicted pKa values. Needs a configured pkasolver environment.
+Greatest topological distance from each atom to any other -- how peripheral each atom is.
+
+- Produces one value per atom, with a depiction coloured by them.
+- Runs on the 2D drawing, so no conformer is needed.
+- Options:
+  - `decimal_places` -- Decimal places default `2` range 0 to 8
+
+<!-- help:calc-hbond-vs-ph -->
+### H-Bond Donors/Acceptors vs pH
+
+Donor and acceptor counts on the dominant microspecies at each pH. Works without pkasolver -- Dimorphite-DL alone gives the dominant form.
 
 - Produces a curve against pH.
 - Runs on the 2D drawing, so no conformer is needed.
-- Basis: empirical (fitted to measured data, with real scatter).
 - Options:
   - `ph_min` -- pH from default `0.0` range -2.0 to 16.0
   - `ph_max` -- pH to default `14.0` range -2.0 to 16.0
-  - `ph_step` -- Step default `0.25` range 0.01 to 2.0
+  - `ph_step` -- Step default `0.5` range 0.01 to 2.0
 
-<!-- help:calc-pka -->
-### pKa
+<!-- help:calc-ring-systems -->
+### Ring Systems
 
-Numeric pKa via pkasolver, run out of process from its own environment (configure it in Tools > External Tools).
+Which ring system each atom belongs to, classified as monocyclic, fused, bridged or spiro, with fusion atoms, bridgeheads and spiro centres marked. Perceived by the built-in nomenclature engine, so a ring system is one unit the way it is named -- naphthalene is one fused system of 10 atoms, not two benzenes. Works offline on any structure, with or without a conformer.
 
-- Produces a list of matched lines.
+- Produces one value per atom, with a depiction coloured by them.
 - Runs on the 2D drawing, so no conformer is needed.
-- Basis: empirical (fitted to measured data, with real scatter).
+- Options:
+  - `label_mode` -- Atom labels (Locants, with roles, Structural roles only, Ring system) default `Locants, with roles`
+
+<!-- help:calc-topology-analysis -->
+### Topology Analysis
+
+Graph-theoretic descriptors: ring and chain counts, cyclomatic number, Platt/Randic/Balaban/Harary/Wiener/hyper-Wiener/Szeged indices, Wiener polarity, and stereo centre counts. Szeged is validated by identity rather than by a reference value -- it equals Wiener for any acyclic graph and strictly exceeds it for a cyclic one. The Cao-Liu steric index is measured toward a named reaction centre, so it is not a whole-molecule number and has its own per-atom calculator.
+
+- Produces a list of facts, each with its own units, basis and evidence.
+- Runs on the 2D drawing, so no conformer is needed.
 - Options:
   - `decimal_places` -- Decimal places default `2` range 0 to 8
-
-## Lewis Acid/Base
-
-<!-- help:calc-lewis-hsab -->
-### Hardness / Softness (HSAB)
-
-Chemical hardness, softness, electronegativity, chemical potential and the electrophilicity index, from the frontier orbital energies of a quantum chemistry run. These are the quantities Pearson's hard/soft acid-base principle is stated in. Run any ORCA job from the Quantum Chemistry panel and they appear automatically -- no separate calculation. Koopmans values carry a caveat worth reading: measured against real B3LYP/def2-SVP runs they invert the hardness of ammonia and phosphine, which is one of the most-used hard/soft orderings there is.
-
-- Runs from the **Quantum Chemistry panel** panel rather than from a Properties button.
-- Runs on the 2D drawing, so no conformer is needed.
-- Basis: ab initio (computed from theory rather than fitted).
-- Options:
-  - `method_basis` -- Method/basis (B3LYP def2-SVP, PBE0 def2-TZVP, M062X def2-TZVP, B3LYP 6-31G(d), B3LYP pcSseg-1, B3LYP pcSseg-2) default `B3LYP def2-SVP`
-
-<!-- help:calc-lewis-adduct -->
-### Lewis Adduct
-
-Whether this molecule and a partner form a Lewis adduct, and what can be said about how strongly. Reports every applicable line of evidence side by side -- a Drago-Wayland enthalpy in kcal/mol where both species are parameterised, and orbital-based measures where a quantum job has run -- and deliberately gives no combined score, because the lines answer different questions and no accepted way of weighing them exists. The classic demonstration is carbon monoxide, which no pKa table has anything useful to say about and which forms an isolable adduct with borane.
-
-- Produces a list of facts, each with its own units, basis and evidence.
-- Runs on the 2D drawing, so no conformer is needed.
-- Basis: empirical (fitted to measured data, with real scatter).
-- Options:
-  - `partner_smiles` -- Partner molecule
-  - `role` -- Role of this molecule (auto, acid, base) default `auto`
-
-<!-- help:calc-lewis-sites -->
-### Lewis Sites
-
-Donor and acceptor sites from the structure as drawn, each with the rule that found it. Acceptors are found by mechanism -- empty valence orbital, low-lying pi* or sigma*, vacant coordination site -- rather than by looking only for an empty p orbital, which misses metals, SO3 and carbonyls. Strength is deliberately not reported: nothing offline can rank two donors, and carbon monoxide reports two candidate donor atoms without guessing between them.
-
-- Produces a list of facts, each with its own units, basis and evidence.
-- Runs on the 2D drawing, so no conformer is needed.
-- Basis: empirical (fitted to measured data, with real scatter).
-- Options:
-  - `major_microspecies` -- Take major microspecies default `False`
-  - `pH` -- at pH default `7.4` range 0.0 to 14.0
-  - `include_heuristic` -- Include motif-based sites (pi*, sigma hole, coordination) default `True`
 
 ## ADMET / Regulatory
 
@@ -701,6 +642,65 @@ Which regulatory frameworks have something to say about this structure -- chemic
   - `jurisdiction` -- Jurisdiction (All jurisdictions, International (treaties, UN), United States, European Union, United Kingdom, Canada, Australia, Japan, China, India) default `All jurisdictions`
   - `include_near_misses` -- Explain near misses default `True`
   - `as_of` -- Screen as of (YYYY-MM-DD, blank = every loaded rule)
+
+## Structure Generators
+
+<!-- help:calc-markush-enumeration -->
+### Markush Enumeration
+
+Enumerate the library of a Markush structure. Draw the core with dummy-atom attachment points ([*:1], [*:2]) and define substituents as "R1: Cl, F, Br; R2: O, N". Supports sequential and random enumeration, library sizing without enumerating, selected-part enumeration, and the valence filter. R-groups and atom lists are supported; bond lists and nested R-groups are not.
+
+- Produces a set of structures.
+- Runs on the 2D drawing, so no conformer is needed.
+- Options:
+  - `mode` -- Calculation (Sequential enumeration, Random enumeration, Markush library size) default `Sequential enumeration`
+  - `substituents` -- R-group definitions default `R1: Cl, F, Br`
+  - `max_structures` -- Generate maximum default `1000` range 1 to 100000
+  - `only_labels` -- Enumerate only R-labels (blank = all)
+  - `valence_filter` -- Valence filter default `True`
+  - `seed` -- Random seed (0 = none) default `0` range 0 to 999999
+
+<!-- help:calc-resonance-forms -->
+### Resonance Forms
+
+Resonance contributors. 'Major contributors' allows charge separation; the wider set also allows incomplete octets. RDKit's own defaults return NO forms at all for some molecules, so the flag set is an explicit choice here.
+
+- Produces a set of structures.
+- Runs on the 2D drawing, so no conformer is needed.
+- Options:
+  - `flag_set` -- Contributors (Major contributors, All forms (charge-separated, incomplete octets)) default `Major contributors`
+  - `max_structures` -- Maximum structures default `200` range 1 to 10000
+
+<!-- help:calc-stereoisomers -->
+### Stereoisomers
+
+Every stereoisomer, varying only the centres left unspecified by default.
+
+- Produces a set of structures.
+- Runs on the 2D drawing, so no conformer is needed.
+- Options:
+  - `max_structures` -- Maximum structures default `200` range 1 to 10000
+  - `only_unassigned` -- Vary only unspecified centres default `True`
+
+<!-- help:calc-structural-frameworks -->
+### Structural Frameworks
+
+Bemis-Murcko scaffold and the generic (all-carbon, all-single-bond) framework.
+
+- Produces a set of structures.
+- Runs on the 2D drawing, so no conformer is needed.
+- Options:
+  - `include_generic` -- Include generic framework default `True`
+
+<!-- help:calc-tautomers -->
+### Tautomers
+
+Tautomeric forms, ordered by RDKit's own heuristic preference score (a rule-of-thumb ranking: not an energy and not a probability; equal scores are shown as tied) with the canonical tautomer flagged. For a real energy-based ranking, see Tautomer Distribution in the Quantum Chemistry panel (needs ORCA).
+
+- Produces a set of structures.
+- Runs on the 2D drawing, so no conformer is needed.
+- Options:
+  - `max_structures` -- Maximum structures default `200` range 1 to 10000
 
 ## Docking
 

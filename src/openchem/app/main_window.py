@@ -118,9 +118,15 @@ from openchem.ui.widgets.checker_status_indicator import CheckerStatusIndicator
 from openchem.ui.widgets.dock_title_bar import DockTitleBar
 from openchem.ui.panels.comparison_panel import ComparisonPanel
 from openchem.ui.fact_link_router import FactLinkRouter
-from openchem.ui.widgets.panel_rail import DEFAULT_GROUP, PanelRail
+from openchem.ui.widgets.panel_rail import (
+    DEFAULT_GROUP,
+    PanelRail,
+    builtin_group_of,
+    builtin_order_of,
+)
 from openchem.ui.widgets.pop_out_host import PopOutHost
 from openchem.ui.widgets.results_view import ResultsView
+from openchem.ui.widgets.results_workspace import ResultsWorkspace
 from openchem.ui.widgets.molecule_editor_widget import MoleculeEditorWidget
 from openchem.ui.widgets.molecule_viewer3d_widget import MoleculeViewer3DWidget
 from openchem.ui.widgets.molstar_viewer_backend import MolStarViewerBackend
@@ -439,6 +445,8 @@ class MainWindow(QMainWindow):
             structure_version_of=services.structure_check_service.current_version,
             substance_perception_needed=self._substance_perception_needed,
             settings=self._settings,
+            # So "Run selected" can also run on several molecules, into the project table.
+            batch_service=services.batch_service,
         )
         # The footer's "N calculators hidden" link: the window owns the dialogs.
         self._property_panel.settings_requested.connect(self.show_settings)
@@ -684,8 +692,24 @@ class MainWindow(QMainWindow):
         self._results_view = ResultsView(
             display_order_of=services.calculator_registry.display_order
         )
-        self._results_host = PopOutHost(
+        # The reader and the project table share this dock as two pages; the
+        # switch between them only appears once a project run has made a table.
+        # Bound methods for the lookups, never lambdas closing over `self`.
+        self._results_workspace = ResultsWorkspace(
             self._results_view,
+            services.calculator_registry,
+            services.table_export_service,
+            services.event_bus,
+            services.chemistry_engine,
+            project_of=self._project_for_results,
+            structure_version_of=services.structure_check_service.current_version,
+            on_analyse=self._show_batch_analysis,
+            on_screen=self._show_virtual_screening,
+            batch_service=services.batch_service,
+        )
+        self._property_panel.project_run_started.connect(self._on_project_run_started)
+        self._results_host = PopOutHost(
+            self._results_workspace,
             title="Results",
             settings_id="results",
             settings=settings,
@@ -748,20 +772,18 @@ class MainWindow(QMainWindow):
             batch_dock,
             compare_dock,
         ]
-        for dock, group in (
-            (self._properties_dock, "analysis"),
-            (results_dock, "analysis"),
-            (atom_inspector_dock, "analysis"),
-            (interactions_dock, "analysis"),
-            (self._structure_check_dock, "analysis"),
-            (quantum_chemistry_dock, "compute"),
-            (docking_dock, "compute"),
-            (alignment_dock, "compute"),
-            (jobs_dock, "compute"),
-            (batch_dock, "compare"),
-            (compare_dock, "compare"),
-        ):
-            self._panel_rail.register(dock.objectName(), dock.windowTitle(), group)
+        # Each built-in panel's group and place come from ONE table
+        # (`panel_rail.BUILTIN_PANELS`). A dock missing from it is a
+        # development error -- it is filed under the default group so it is
+        # still reachable, and said so loudly; `tests/test_panel_rail.py`
+        # fails the build before it can ship.
+        for dock in self._right_docks:
+            panel_id = dock.objectName()
+            group = builtin_group_of(panel_id)
+            if group is None:
+                logger.warning("panel %r is not in BUILTIN_PANELS; filed under %r", panel_id, DEFAULT_GROUP)
+                group = DEFAULT_GROUP
+            self._panel_rail.register(panel_id, dock.windowTitle(), group, builtin_order_of(panel_id))
         # NESTED AND TABBED DROPS, so a panel can be dropped BESIDE or UNDER
         # another in the same column, or onto it as a tab. Without
         # `AllowNestedDocks` a column is one stack and "Properties with Results
@@ -1483,6 +1505,14 @@ class MainWindow(QMainWindow):
         return HELP_TOPIC_BY_CENTRE_TAB.get(
             self._center_tabs.tabText(self._center_tabs.currentIndex()), "projects"
         )
+
+    def _project_for_results(self):
+        return self._session.project
+
+    def _on_project_run_started(self, plan) -> None:
+        """A project run was submitted: the workspace adopts its table, and it is shown."""
+        self._results_workspace.begin_project_run(plan)
+        self.reveal_results()
 
     def reveal_results(self) -> None:
         """Put the results reader somewhere it can be read.

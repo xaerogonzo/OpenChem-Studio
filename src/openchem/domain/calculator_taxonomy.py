@@ -203,6 +203,146 @@ def category_sort_key(category: str) -> tuple[int, str]:
     return (CATEGORY_ORDER.index(category) if listed else len(CATEGORY_ORDER), category)
 
 
+#: **TASK GROUPS: THE BROWSE LAYER ABOVE CATEGORIES.** Twenty-two categories read
+#: as a wall; nine headings named for what somebody wants to FIND OUT do not.
+#: A group is navigation only -- it never replaces a category id, so stored
+#: results, caches and `ReportResult.category` are untouched. Order here is the
+#: order down the panel; labels are validated by a test (no `&`, which a
+#: `QToolButton` eats as a mnemonic, and 21 characters at most, the measured
+#: ceiling at the panel's real width).
+TASK_GROUPS: dict[str, str] = {
+    "identity": "Identity and naming",
+    "charge": "Charge and electrons",
+    "solubility": "Solubility and pKa",
+    "shape": "Shape and surface",
+    "topology": "Topology and stereo",
+    "druglike": "Drug-likeness",
+    "structures": "Structure generation",
+    "spectra": "Spectra and energy",
+    "other": "Other calculators",
+}
+
+#: Where a category without a mapping lands. Visible rather than dropped, so a
+#: plugin's calculators are always reachable and always say they are unfiled.
+FALLBACK_TASK_GROUP = "other"
+
+#: Category id -> task group. Every category this application can produce is
+#: here (a test enumerates the registry, both descriptor tables and the
+#: calculator results to prove it); `other` is the answer only for a category
+#: nobody here has met.
+#:
+#: Judgement calls, recorded because they are not obvious:
+#: - lipophilicity sits with solubility and pKa: logP/logD are read through
+#:   ionisation, and they answer "how does it partition".
+#: - substructure (functional groups, SMARTS) sits with identity: "what is in it".
+#: - docking and quantum_chemistry are service-run categories that hold only a
+#:   row opening their own panel; they sit with spectra and energy.
+CATEGORY_TASK_GROUP: dict[str, str] = {
+    "identity": "identity",
+    "naming": "identity",
+    "physicochemical": "identity",
+    "substructure": "identity",
+    "charge": "charge",
+    "electronic": "charge",
+    "quantum": "charge",
+    "lewis": "charge",
+    "solubility": "solubility",
+    "pka": "solubility",
+    "lipophilicity": "solubility",
+    "geometry": "shape",
+    "surface": "shape",
+    "shape": "shape",
+    "topology": "topology",
+    "stereochemistry": "topology",
+    "aromaticity": "topology",
+    "admet": "druglike",
+    "medicinal_chemistry": "druglike",
+    "regulatory": "druglike",
+    "structures": "structures",
+    "nmr": "spectra",
+    "energetic": "spectra",
+    "thermophysical": "spectra",
+    "docking": "spectra",
+    "quantum_chemistry": "spectra",
+}
+
+#: Category -> group claimed by a PLUGIN calculator that declares
+#: `task_group`. Only canonical group ids are accepted and a category this
+#: application already files cannot be moved, so a plugin cannot reshuffle
+#: built-in sections or invent a group. Module state on purpose: Properties and
+#: Results must agree and both read it here; tests clear it through
+#: `reset_plugin_category_groups`.
+_PLUGIN_CATEGORY_GROUPS: dict[str, str] = {}
+
+
+def assign_plugin_category_group(category: str, group: str | None) -> bool:
+    """Honour a plugin's `task_group` for a category nobody here files.
+
+    False (and nothing changes) for an absent or unknown group, or for a
+    category already mapped -- never an error, because a plugin that knows
+    nothing about groups must keep loading.
+    """
+    if not group or group not in TASK_GROUPS or group == FALLBACK_TASK_GROUP:
+        return False
+    if category in CATEGORY_TASK_GROUP or category in _PLUGIN_CATEGORY_GROUPS:
+        return False
+    _PLUGIN_CATEGORY_GROUPS[category] = group
+    return True
+
+
+def reset_plugin_category_groups() -> None:
+    _PLUGIN_CATEGORY_GROUPS.clear()
+
+
+def task_group_of(category: str) -> str:
+    """The task group id a category is browsed under."""
+    return (
+        CATEGORY_TASK_GROUP.get(category)
+        or _PLUGIN_CATEGORY_GROUPS.get(category)
+        or FALLBACK_TASK_GROUP
+    )
+
+
+def task_group_label(group: str) -> str:
+    return TASK_GROUPS.get(group) or TASK_GROUPS[FALLBACK_TASK_GROUP]
+
+
+def task_group_order(group: str) -> int:
+    ids = list(TASK_GROUPS)
+    return ids.index(group) if group in TASK_GROUPS else len(ids)
+
+
+def category_browse_key(category: str) -> tuple[int, str, str]:
+    """Where a category sits in the BROWSE order: group, then visible label.
+
+    **THE LABEL DECIDES, NOT THE ID.** `nmr` and `identity` sort one way as ids
+    and another as the headings a reader sees; the reader sees headings. The id
+    only breaks a tie between two categories that read identically. Properties
+    and Results both order sections with this, so the two cannot disagree.
+    """
+    return (
+        task_group_order(task_group_of(category)),
+        category_label(category).casefold(),
+        category,
+    )
+
+
+def calculator_browse_sort_key(definition) -> tuple:
+    """The full browse key for one calculator definition.
+
+    `(task group, category label, category id, display name, calculator id)`,
+    every text part casefolded where it is a name. The calculator id is the
+    last resort so two definitions with one display name still order the same
+    way on every run. One helper for Properties, Find and the wizard.
+    """
+    category = str(getattr(definition, "category", "") or "") or "other"
+    return (
+        *category_browse_key(category),
+        str(getattr(definition, "display_name", "") or "").casefold(),
+        str(getattr(definition, "calculator_id", "") or ""),
+    )
+
+
 #: `Fact` needs one of the nine `FactCategory` values. Anything unlisted
 #: becomes STRUCTURE rather than being dropped -- a fact filed under the
 #: wrong heading is recoverable, a missing one is not.

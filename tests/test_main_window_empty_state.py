@@ -345,15 +345,31 @@ def test_compare_with_falls_back_to_one_molecule_rather_than_failing(qapp, tmp_p
 
 def test_the_rail_follows_a_panel_opened_from_somewhere_else(qapp, tmp_path):
     """"Compare with..." showed the Compare panel while the rail still
-    highlighted Analysis -- navigation claiming one thing while the screen
+    highlighted Analyze -- navigation claiming one thing while the screen
     shows another, which is worse than either alone."""
     from openchem.domain.report import ReportResult
 
     window, session, _ = _make_window(tmp_path)
-    assert window._panel_rail.current_group() == "analysis"
+    assert window._panel_rail.current_group() == "analyze"
 
     window._on_compare_requested(
         ReportResult(molecule_uuid=session.project.molecules[0].uuid, report_id="x", name="X")
     )
 
-    assert window._panel_rail.current_group() == "compare"
+    assert window._panel_rail.current_group() == "extend"
+
+
+def test_every_builtin_panel_the_window_builds_has_exactly_one_destination(qapp, tmp_path):
+    """A new dock must be added to BUILTIN_PANELS: otherwise it would fall into
+    the default group and pass every other test."""
+    from openchem.ui.widgets.panel_rail import BUILTIN_PANELS, builtin_group_of
+    window, _session, _ = _make_window(tmp_path)
+    built = {dock.objectName() for dock in window._right_docks}
+    table = [pid for pid, _g in BUILTIN_PANELS]
+    assert len(table) == len(set(table)), "a panel appears twice in BUILTIN_PANELS"
+    assert built == set(table), (
+        f"docks not in the table: {sorted(built - set(table))}; "
+        f"table entries with no dock: {sorted(set(table) - built)}"
+    )
+    for panel_id in built:
+        assert window._panel_rail._panels[panel_id][1] == builtin_group_of(panel_id)

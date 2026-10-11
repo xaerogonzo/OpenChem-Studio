@@ -6,6 +6,7 @@ from rdkit import Chem
 
 from openchem.chem import components
 from openchem.domain.calculator import CalculatorDefinition, RegistryExecution, active_parameters
+from openchem.domain.calculator_taxonomy import assign_plugin_category_group
 from openchem.domain.common import ScientificResult
 
 
@@ -35,6 +36,9 @@ class CalculatorRegistry:
 
     def register(self, definition: CalculatorDefinition) -> None:
         self._definitions[definition.calculator_id] = definition
+        # A plugin may say which task group its NEW category is browsed under;
+        # one this application already files, or an unknown group, is ignored.
+        assign_plugin_category_group(definition.category, definition.task_group)
 
     def get(self, calculator_id: str) -> CalculatorDefinition | None:
         return self._definitions.get(calculator_id)
@@ -98,12 +102,13 @@ class CalculatorRegistry:
     def display_order(self, calculator_id: str) -> int | None:
         """Where this calculator sits among the registered ones, or None.
 
-        **REGISTRATION ORDER IS THE DISPLAY ORDER, AND IT ALREADY WAS.**
-        `by_category` above returns dict values, so it has always handed the
-        Properties panel its buttons in the order they were registered, and
-        the panel renders them in exactly that order. This does not introduce
-        an ordering -- it makes the one already in use askable, so the Results
-        reader can sort by it instead of inventing a second answer.
+        **REGISTRATION ORDER IS THE RESULTS ORDER INSIDE A SECTION -- NOT THE
+        PROPERTIES ORDER ANY MORE.** Properties browses A-Z within a category
+        (`calculator_taxonomy.calculator_browse_sort_key`); this editorial
+        order stays what the Results reader sorts by, so a result list does not
+        silently reorder when the launcher was alphabetised. `by_category`
+        still returns dict values in registration order. It makes that order
+        askable, so Results can sort by it instead of inventing a second answer.
 
         That order carries real editorial judgement rather than being an
         accident of import: within a section, Solubility is registered ahead

@@ -13,21 +13,26 @@ from PySide6.QtCore import QPoint, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QFontMetrics, QGuiApplication
 from PySide6.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QDialog,
     QHBoxLayout,
     QFormLayout,
+    QInputDialog,
     QLabel,
+    QLineEdit,
     QMenu,
     QMessageBox,
     QPushButton,
     QScrollArea,
     QSizePolicy,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
 from openchem.chem.calculation_input import canonical_conformer
 from openchem.chem.engine import ChemistryEngine
+from openchem.chem.result_reduction import PER_ATOM_AGGREGATES
 from openchem.chem.result_structure import NO_STRUCTURE, display_structure
 from openchem.domain.calculator import (
     GEOMETRY,
@@ -36,12 +41,16 @@ from openchem.domain.calculator import (
     RegistryExecution,
     ServiceExecution,
 )
+from openchem.domain.batch import BatchRequest
 from openchem.domain.calculator_support import help_anchor_for, is_offered_by_default
 from openchem.domain.calculator_taxonomy import (
     CATEGORY_LABELS,
     CATEGORY_ORDER,
+    calculator_browse_sort_key,
+    category_browse_key,
     category_label,
-    category_sort_key,
+    task_group_label,
+    task_group_of,
 )
 from openchem.domain.common import CacheState, describe_failure
 from openchem.domain.compare import (
@@ -54,6 +63,8 @@ from openchem.domain.compare import (
     spectrum_as_per_atom,
 )
 from openchem.domain.descriptor import DescriptorValue
+from openchem.domain.execution_plan import NEEDS_INPUT as EXCLUDED_NEEDS_INPUT
+from openchem.domain.execution_plan import ExecutionPlan, build_execution_plan
 from openchem.domain.descriptor_aggregate import (
     DESCRIPTOR_AGGREGATE_ID,
     aggregate_descriptors,
@@ -73,6 +84,7 @@ from openchem.domain.result_status import (
     status_of,
 )
 from openchem.domain.scientific_result import PerAtomDataset, SpectrumResult
+from openchem.domain.selection_presets import PresetStore
 from openchem.domain.structure_resolution import resolve_structure_for_report
 from openchem.ui import visual_check
 from openchem.ui.result_adapters import summarise
@@ -112,6 +124,7 @@ from openchem.ui.dialogs.calculator_settings_dialog import (
     needed_input_phrases,
     plain_label,
 )
+from openchem.ui.dialogs.molecule_scope_dialog import MoleculeScopeDialog
 from openchem.ui.dialogs.nmr_view_dialog import NmrViewDialog
 from openchem.ui.widgets.substance_card import SubstanceCard, card_data_from_report
 from openchem.ui.widgets.collapsible_section import CollapsibleSection as _CollapsibleSection
@@ -357,6 +370,113 @@ _RUN_SELECTED_HELP = HelpTooltip(
     ),
     tier=1,
     help_id="properties.run_selected",
+    topic="properties",
+    help_anchor="properties",
+)
+
+#: Which molecules "Run selected" covers. The default, this molecule, is what the
+#: panel always did; the other two send the same ticks through the batch service.
+_RUN_SCOPE_HELP = HelpTooltip(
+    text=(
+        "Choose which molecules the ticked calculators run on.\n\n"
+        "**This molecule** is the one selected, as always. **All molecules** and "
+        "**Chosen molecules** run every ticked calculator on each of them and "
+        "fill the project table in Results, one row per molecule. It starts "
+        "nothing until you press Run selected, and a large run tells you how "
+        "many calculations it is about to start and waits for you to agree.\n\n"
+        "The choice is read once when you press Run: changing it while a run is "
+        "going affects the next run, not this one."
+    ),
+    tier=2,
+    help_id="properties.run_scope",
+    topic="properties",
+    help_anchor="properties",
+)
+
+#: Whether a project run also fills in the always-on properties.
+_RUN_DESCRIPTORS_HELP = HelpTooltip(
+    text=(
+        "Also fill the always-on properties -- molecular weight, logP, TPSA and "
+        "the rest -- as columns of the project table.\n\n"
+        "They are cheap and make the table useful on its own. Untick it for a "
+        "table of only the calculators you ticked."
+    ),
+    tier=2,
+    help_id="properties.run_scope_descriptors",
+    topic="properties",
+    help_anchor="properties",
+)
+
+#: The three scopes of "Run selected". Plain strings carried as combo item data,
+#: so a label can be reworded without changing what a choice means.
+_SCOPE_THIS = "this"
+#: Every molecule in the project (the second scope).
+_SCOPE_ALL = "all"
+#: The molecules picked in the "Choose molecules" dialog (the third scope).
+_SCOPE_CHOSEN = "chosen"
+
+#: Whether a project run also runs the structural-alert catalogs (PAINS, Brenk...).
+_RUN_ALERTS_HELP = HelpTooltip(
+    text=(
+        "Also run the structural-alert catalogs, one column per catalog.\n\n"
+        "Off by default: the built-in catalogs are about 585 patterns checked "
+        "against every molecule, which is real work on a large project."
+    ),
+    tier=2,
+    help_id="properties.run_scope_alerts",
+    topic="properties",
+    help_anchor="properties",
+)
+
+#: How a per-atom result becomes one number per molecule in the project table.
+_RUN_AGGREGATE_HELP = HelpTooltip(
+    text=(
+        "How a result with one value per atom becomes one number per molecule.\n\n"
+        "There is no universally right answer: the SUMMED Crippen contribution is "
+        "the molecule's logP, but the mean of the same values is also real, and they "
+        "are different quantities. The column header records which was taken."
+    ),
+    tier=3,
+    help_id="properties.run_scope_aggregate",
+    topic="properties",
+    help_anchor="properties",
+)
+
+#: The Presets button beside the scope: named sets of ticked calculators.
+_PRESETS_HELP = HelpTooltip(
+    text=(
+        "Save the calculators you have ticked under a name, and tick them again "
+        "later with one click.\n\n"
+        "A preset is only a list of calculators: it holds no results, no settings "
+        "and no molecules. One that names a calculator this version no longer has "
+        "simply skips it. The first time this opens, the selection you had made in "
+        "the Batch panel is copied in as a preset called \"From the Batch panel\" "
+        "-- copied, so the Batch panel still has it."
+    ),
+    tier=2,
+    help_id="properties.presets",
+    topic="properties",
+    help_anchor="properties",
+)
+
+#: Above this many calculations a project run asks first. Not a refusal: the
+#: person decides. The same number the batch panel has always used, so the two
+#: routes interrupt at the same size.
+_CONFIRM_PROJECT_RUN_ABOVE = 200
+
+#: The Find box above the calculator list. Visibility only, which is the
+#: sentence the tooltip leads with because it is what somebody worries about.
+_FIND_CALCULATOR_HELP = HelpTooltip(
+    text=(
+        "Narrow the calculator list to what matches what you type.\n\n"
+        "It matches a calculator's name, its tags, its description and its "
+        "section heading, ignoring case. Matching sections open while you "
+        "search and go back to how you had them when you clear the box.\n\n"
+        "It only changes what is SHOWN: ticks, options and results are "
+        "untouched, and a calculator hidden by default stays hidden."
+    ),
+    tier=2,
+    help_id="properties.find_calculator",
     topic="properties",
     help_anchor="properties",
 )
@@ -1487,6 +1607,9 @@ class PropertyPanel(QWidget):
     #: calculator id. Routed by the window, which owns the panels; the second argument is
     #: what the panel should have chosen when it appears.
     service_panel_requested = Signal(str, str)
+    #: A project run was submitted. Carries its immutable `ExecutionPlan`, so the
+    #: Results table that will show it knows which run it is adopting.
+    project_run_started = Signal(object)
 
     #: A request to open the Help at a topic, by anchor. Routed by the window, for
     #: the reason `settings_requested` is.
@@ -1503,8 +1626,12 @@ class PropertyPanel(QWidget):
         structure_version_of=None,
         substance_perception_needed: Callable[[str], bool] | None = None,
         settings=None,
+        batch_service=None,
     ) -> None:
         super().__init__(parent)
+        #: Runs a set of molecules through the same calculators. None (a fixture, or an
+        #: application without one) leaves the panel as it always was: one molecule.
+        self._batch_service = batch_service
         #: `app.settings.Settings`, or None in a fixture. With None every
         #: calculator is offered as its own declaration says (an unclassified
         #: one is shown), so a panel built on its own behaves as it always did.
@@ -1668,6 +1795,8 @@ class PropertyPanel(QWidget):
         #: (`CalculatorDefinition.preflight`). Only calculators that declare a hook appear.
         self._preflight_reasons: dict[str, str] = {}
         self._sections: dict[str, _CollapsibleSection] = {}
+        #: Task-group heading labels, by group id (see `_group_header`).
+        self._group_headers: dict[str, QLabel] = {}
         # Which section each row currently lives in -- lets
         # _on_descriptor_computed detect a category change and re-parent the
         # row instead of leaving it stuck in whatever section it first drew
@@ -1755,10 +1884,73 @@ class PropertyPanel(QWidget):
         # answer belongs above the properties rather than among them.
         self._substance_card = SubstanceCard(self)
 
+        # FIND A CALCULATOR. Visibility only -- it never touches ticks, scope,
+        # parameters or saved presets. While a query is active the matching
+        # sections open; the expansion the person had is captured once, when
+        # the query goes from empty to non-empty, and put back on clear.
+        self._find_text = ""
+        self._find_snapshot: dict[str, bool] | None = None
+        self._find_box = QLineEdit(self)
+        self._find_box.setPlaceholderText("Find a calculator (name, tag, topic)...")
+        self._find_box.setClearButtonEnabled(True)
+        apply_help_tooltip(self._find_box, _FIND_CALCULATOR_HELP)
+        self._find_box.textChanged.connect(self._on_find_changed)
+        self._find_empty = QLabel("No calculator matches.", self)
+        self._find_empty.setStyleSheet(_INFORMATION_STYLE)
+        self._find_empty.setVisible(False)
+
+        # RUN ON: this molecule, every molecule, or a chosen few. Hidden when the
+        # panel has no batch service, so a panel built on its own is unchanged.
+        self._scope_chosen: set[str] = set()
+        self._scope_mode = _SCOPE_THIS
+        self._scope_combo = QComboBox(self)
+        self._scope_combo.addItem("Run on: this molecule", _SCOPE_THIS)
+        self._scope_combo.addItem("Run on: all molecules", _SCOPE_ALL)
+        self._scope_combo.addItem("Run on: chosen molecules...", _SCOPE_CHOSEN)
+        apply_help_tooltip(self._scope_combo, _RUN_SCOPE_HELP)
+        self._scope_combo.activated.connect(self._on_scope_activated)
+        self._scope_descriptors = QCheckBox("Include always-on properties", self)
+        self._scope_descriptors.setChecked(True)
+        apply_help_tooltip(self._scope_descriptors, _RUN_DESCRIPTORS_HELP)
+        self._scope_descriptors.setVisible(False)
+        self._scope_alerts = QCheckBox("Include structural alerts", self)
+        apply_help_tooltip(self._scope_alerts, _RUN_ALERTS_HELP)
+        self._scope_alerts.setVisible(False)
+        self._scope_aggregate = QComboBox(self)
+        for name in PER_ATOM_AGGREGATES:
+            self._scope_aggregate.addItem(f"Per-atom results as: {name}", name)
+        apply_help_tooltip(self._scope_aggregate, _RUN_AGGREGATE_HELP)
+        self._scope_aggregate.setVisible(False)
+        #: Settings chosen in a calculator's "Settings for project runs..." menu entry.
+        #: Only what was chosen; a calculator absent here runs on its registered
+        #: defaults, as the batch panel's own settings always did.
+        self._project_parameters: dict[str, dict] = {}
+        self._scope_combo.setVisible(batch_service is not None)
+
         layout = QVBoxLayout(self)
         layout.setContentsMargins(4, 4, 4, 4)
         layout.addWidget(self._substance_card)
         layout.addLayout(batch_row)
+        # PRESETS: named tick sets, saved in settings. The first time this panel is
+        # built, whatever the Batch panel had ticked is COPIED in (never moved), once.
+        self._presets = PresetStore(settings)
+        self._presets_button = QToolButton(self)
+        self._presets_button.setText("Presets")
+        self._presets_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        apply_help_tooltip(self._presets_button, _PRESETS_HELP)
+        self._presets_button.setVisible(settings is not None)
+        self._presets_button.pressed.connect(self._refresh_presets_menu)
+        self._presets_menu: QMenu | None = None
+        scope_row = QHBoxLayout()
+        scope_row.setContentsMargins(0, 0, 0, 0)
+        scope_row.addWidget(self._scope_combo, 1)
+        scope_row.addWidget(self._presets_button)
+        layout.addLayout(scope_row)
+        layout.addWidget(self._scope_descriptors)
+        layout.addWidget(self._scope_alerts)
+        layout.addWidget(self._scope_aggregate)
+        layout.addWidget(self._find_box)
+        layout.addWidget(self._find_empty)
         layout.addWidget(scroll_area)
         #: "N calculators hidden by default -- Settings...". An ELIDING button:
         #: a plain one reports its whole text as its minimum width, and this
@@ -1797,6 +1989,7 @@ class PropertyPanel(QWidget):
                 for d in calculator_registry.by_category(category)
             ):
                 self._section_for(category)
+        self._presets.migrate_batch_selection(set(self._calculator_ticks))
         self._apply_calculator_visibility()
 
         event_bus.subscribe(MoleculeSelected, self._on_molecule_selected)
@@ -1816,6 +2009,9 @@ class PropertyPanel(QWidget):
 
     def set_project(self, project: ProjectModel | None) -> None:
         self._project = project
+        # A chosen set names molecules of the project it was chosen in.
+        self._scope_chosen &= {m.uuid for m in project.molecules} if project else set()
+        self._refresh_scope_labels()
         # A new project's molecules carry new uuids, so nothing could be READ
         # back by mistake -- this is housekeeping rather than correctness, so a
         # long session does not accumulate the positions of molecules nothing
@@ -1879,7 +2075,12 @@ class PropertyPanel(QWidget):
         title = _category_label(category)
         section = _CollapsibleSection(title, expanded, self._sections_container)
         self._sections[category] = section
-        for definition in self._calculator_registry.by_category(category):
+        # A-Z inside a section (`calculator_browse_sort_key`), NOT registration
+        # order: the registry's editorial order is still what the Results reader
+        # sorts by, but a launcher is scanned by name.
+        for definition in sorted(
+            self._calculator_registry.by_category(category), key=calculator_browse_sort_key
+        ):
             if not isinstance(definition.execution, RegistryExecution):
                 # ServiceExecution-backed (Docking, QuantumChemistry): run from their own
                 # panel, so the row OPENS it -- a real control where there used to be one
@@ -2144,13 +2345,48 @@ class PropertyPanel(QWidget):
         # for the first time, not on every descriptor.
         while self._sections_layout.count():
             self._sections_layout.takeAt(0)
-        # `category_sort_key`, not a copy of it. This rule is now also the
-        # Results selector's, and two implementations of "where does this
-        # category sit" is exactly the drift this move exists to end.
-        ordered = sorted(self._sections, key=category_sort_key)
+        # `category_browse_key`, not a copy of it. This rule is also the
+        # Results selector's (task group, then the visible heading), and two
+        # implementations of "where does this category sit" is exactly the
+        # drift this exists to end.
+        ordered = sorted(self._sections, key=category_browse_key)
+        current_group = None
         for category in ordered:
+            group = task_group_of(category)
+            if group != current_group:
+                current_group = group
+                self._sections_layout.addWidget(self._group_header(group))
             self._sections_layout.addWidget(self._sections[category])
         self._sections_layout.addStretch()
+        self._refresh_group_headers()
+
+    def _group_header(self, group: str) -> QLabel:
+        """The heading above one task group's sections, built once and reused."""
+        header = self._group_headers.get(group)
+        if header is None:
+            header = QLabel(task_group_label(group), self._sections_container)
+            header.setObjectName("taskGroupHeader")
+            font = header.font()
+            font.setBold(True)
+            header.setFont(font)
+            header.setContentsMargins(2, 8, 0, 2)
+            self._group_headers[group] = header
+        return header
+
+    def _refresh_group_headers(self) -> None:
+        """Show a group's heading only while one of its sections is showing.
+
+        `isHidden`, not `isVisible`: a panel that has not been shown yet reports
+        every child not-visible, which would blank every heading at startup.
+        """
+        for group, header in self._group_headers.items():
+            header.setHidden(
+                all(
+                    section.isHidden()
+                    for category, section in self._sections.items()
+                    if task_group_of(category) == group
+                )
+            )
 
     def _on_descriptor_computed(self, event: DescriptorComputed) -> None:
         """Record an always-on descriptor. It is READ in the results panel.
@@ -3239,11 +3475,68 @@ class PropertyPanel(QWidget):
                 # A section with nothing left to offer goes too: an empty
                 # heading is a promise with nothing behind it.
                 section.setVisible(any(cid not in hidden for cid in calculator_ids))
+        self._apply_find()
+        self._refresh_group_headers()
         count = len(hidden)
         self._hidden_link.setVisible(count > 0)
         plural = "" if count == 1 else "s"
         self._hidden_link.setText(f"{count} calculator{plural} hidden by default -- Settings...")
         self._on_selection_toggled()
+
+    def _on_find_changed(self, text: str) -> None:
+        self._find_text = text
+        self._apply_calculator_visibility()
+
+    def _find_matches(self, definition: CalculatorDefinition, needle: str) -> bool:
+        """Case-insensitive substring over name, tags, description and heading.
+
+        Tags may be empty (a plugin need not declare any), so they are only
+        ever iterated, never assumed.
+        """
+        haystack = " ".join(
+            [
+                definition.display_name,
+                definition.description or "",
+                _category_label(definition.category),
+                *(definition.tags or []),
+            ]
+        ).casefold()
+        return needle in haystack
+
+    def _apply_find(self) -> None:
+        """Narrow the launcher to the query, or put back what it replaced.
+
+        Runs AFTER the offered/withdrawn pass, so it can only hide more: a
+        calculator withdrawn by default stays withdrawn whatever it matches.
+        """
+        needle = self._find_text.strip().casefold()
+        if not needle:
+            if self._find_snapshot is not None:
+                for category, was_open in self._find_snapshot.items():
+                    section = self._sections.get(category)
+                    if section is not None:
+                        section.set_expanded(was_open)
+                self._find_snapshot = None
+            self._find_empty.setVisible(False)
+            return
+        if self._find_snapshot is None:
+            self._find_snapshot = {c: s.is_expanded() for c, s in self._sections.items()}
+        any_match = False
+        for category, section in self._sections.items():
+            section_match = False
+            for definition in self._calculator_registry.by_category(category):
+                calculator_id = definition.calculator_id
+                widget = self._calculator_rows.get(calculator_id) or self._service_rows.get(calculator_id)
+                if widget is None or calculator_id in self._hidden_calculator_ids:
+                    continue
+                matched = self._find_matches(definition, needle)
+                widget.setVisible(matched)
+                section_match = section_match or matched
+            section.setVisible(section_match)
+            if section_match:
+                section.set_expanded(True)
+            any_match = any_match or section_match
+        self._find_empty.setVisible(not any_match)
 
     def _on_settings_changed(self, event: SettingsChanged) -> None:
         if str(event.key).startswith("calculators/"):
@@ -3260,7 +3553,40 @@ class PropertyPanel(QWidget):
         action = menu.addAction("About this calculator")
         action.setProperty(_CALCULATOR_ID_PROPERTY, calculator_id)
         action.triggered.connect(self._on_about_calculator_triggered)
+        definition = self._calculator_registry.get(calculator_id)
+        if (
+            self._batch_service is not None
+            and definition is not None
+            and isinstance(definition.execution, RegistryExecution)
+            and definition.parameters
+        ):
+            settings_action = menu.addAction("Settings for project runs...")
+            settings_action.setProperty(_CALCULATOR_ID_PROPERTY, calculator_id)
+            settings_action.triggered.connect(self._on_project_settings_triggered)
         return menu
+
+    def _on_project_settings_triggered(self, _checked: bool = False) -> None:
+        action = self.sender()
+        calculator_id = action.property(_CALCULATOR_ID_PROPERTY) if action is not None else None
+        if calculator_id:
+            self._open_project_settings(str(calculator_id))
+
+    def _open_project_settings(self, calculator_id: str) -> None:
+        """Choose the settings a PROJECT run uses for one calculator.
+
+        "Run selected" has always used defaults with no dialogs, because
+        answering six dialogs to avoid six clicks is no saving; a run over many
+        molecules is where a different setting matters, so it can be chosen once
+        here. It affects project runs only and is read when Run is pressed.
+        """
+        definition = self._calculator_registry.get(calculator_id)
+        if definition is None or not definition.parameters:
+            return
+        dialog = CalculatorSettingsDialog(definition, self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        self._project_parameters[calculator_id] = dialog.parameters()
+        self._batch_status.setText(f"{definition.display_name}: settings saved for project runs.")
 
     def _on_calculator_button_menu(self, position) -> None:
         button = self.sender()
@@ -3290,6 +3616,8 @@ class PropertyPanel(QWidget):
         hint = (
             f"{count} ticked - runs with default settings" if count else "Tick boxes to run several at once"
         )
+        if count and self._batch_service is not None and self._scope_mode != _SCOPE_THIS:
+            hint += f", on {len(self.scope_molecules())} molecule(s)"
         if self._batch_status.text() in ("", self._last_batch_hint):
             self._batch_status.setText(hint)
             self._batch_status.setToolTip(hint)
@@ -3325,6 +3653,9 @@ class PropertyPanel(QWidget):
         set: it exists to pop an inspector open when a result lands, and
         six inspectors stacking up is not what anybody asked for.
         """
+        if self._batch_service is not None and self._scope_mode != _SCOPE_THIS:
+            self._run_selected_on_project()
+            return
         if self._project is None or self._selected_molecule_uuid is None:
             self._batch_status.setText("Select a molecule first.")
             return
@@ -3332,32 +3663,36 @@ class PropertyPanel(QWidget):
         if molecule is None:
             return
 
+        # THE SAME PLAN A PROJECT RUN IS BUILT FROM, with one molecule in it. What
+        # may run (a retired id, a calculator that runs from its own panel) and
+        # what has no usable default (a REQUIRED parameter, which could only
+        # produce a refusal and a "Needs input" chip the person did not earn) are
+        # decided there, once, rather than re-derived here and in the batch path.
+        plan = build_execution_plan(
+            molecules=[molecule],
+            calculator_ids=self._selected_calculator_ids(),
+            definition_of=self._calculator_registry.get,
+            structure_version_of=self._version_of_molecule,
+            plain_label=plain_label,
+        )
+        skipped = [
+            f"{job.display_name} ({job.reason})" for job in plan.excluded if job.kind == EXCLUDED_NEEDS_INPUT
+        ]
         started: list[str] = []
-        skipped: list[str] = []
-        for calculator_id in self._selected_calculator_ids():
+        for calculator_id in plan.calculator_ids:
             definition = self._calculator_registry.get(calculator_id)
-            if definition is None or not isinstance(definition.execution, RegistryExecution):
-                continue
-            # A calculator with a REQUIRED parameter has no usable default, so running
-            # it here could only produce a refusal -- and a "Needs input" chip the person
-            # did not earn by asking. It is skipped and named, with what it wants.
-            wanted = [plain_label(p.label) for p in definition.parameters if p.required]
-            if wanted:
-                skipped.append(f"{definition.display_name} (needs {', '.join(wanted)})")
-                continue
             # Same calculator ticked and already running is the one
             # re-entrancy worth guarding: the pool would happily run it
             # twice and publish two results for one molecule.
             if calculator_id in self._running_calculator_ids:
                 continue
             self._set_running(calculator_id, True)
-            parameters = {p.name: p.default for p in definition.parameters}
             self._descriptor_service.run_calculator(
                 molecule,
                 CalculationRequest(
                     calculator_id=calculator_id,
                     molecule_uuid=molecule.uuid,
-                    parameters=parameters,
+                    parameters=plan.parameters_for(calculator_id),
                 ),
             )
             started.append(definition.display_name)
@@ -3375,6 +3710,237 @@ class PropertyPanel(QWidget):
             + ("..." if len(started) > 4 else "")
             + skipped_note
         )
+
+    # --- presets -------------------------------------------------------------------
+
+    def build_presets_menu(self) -> tuple[QMenu, dict[str, object]]:
+        """The Presets menu and its actions by name, built apart from showing it.
+
+        `QMenu.exec` blocks and cannot be patched, so a test (or a drive step)
+        drives the actions instead; the wiring is the same bound method a click
+        reaches. Rebuilt every time it opens, so it never lists a deleted preset.
+        """
+        menu = QMenu(self)
+        actions: dict[str, object] = {}
+        save = menu.addAction("Save ticked as preset...")
+        save.setEnabled(bool(self._selected_calculator_ids()))
+        save.setData(("save", ""))
+        actions["save"] = save
+        names = self._presets.names()
+        if names:
+            menu.addSeparator()
+        for name in names:
+            action = menu.addAction(name)
+            action.setData(("apply", name))
+            actions[f"apply:{name}"] = action
+        if names:
+            delete_menu = menu.addMenu("Delete preset")
+            # Held on the menu: PySide6 deletes a sub-menu whose only reference is a
+            # local, and its actions go with it.
+            menu._delete_menu = delete_menu  # type: ignore[attr-defined]
+            for name in names:
+                action = delete_menu.addAction(name)
+                action.setData(("delete", name))
+                actions[f"delete:{name}"] = action
+        # ONE bound method for every action, the action carrying (what, which):
+        # a lambda closing over `self` is the leak this window has paid for.
+        menu.triggered.connect(self._on_presets_triggered)
+        return menu, actions
+
+    def _refresh_presets_menu(self) -> None:
+        old = self._presets_menu
+        self._presets_menu, _actions = self.build_presets_menu()
+        self._presets_button.setMenu(self._presets_menu)
+        if old is not None:
+            old.deleteLater()
+
+    def _on_presets_triggered(self, action) -> None:
+        kind, name = action.data()
+        if kind == "save":
+            name, accepted = QInputDialog.getText(self, "Save preset", "Name for the ticked calculators:")
+            if accepted and not self._presets.save(name, self._selected_calculator_ids()):
+                self._batch_status.setText("A preset needs a name and at least one ticked calculator.")
+            elif accepted:
+                self._batch_status.setText(f"Saved preset '{name.strip()}'.")
+        elif kind == "apply":
+            self.apply_preset(name)
+        elif kind == "delete":
+            self._presets.delete(name)
+            self._batch_status.setText(f"Deleted preset '{name}'.")
+
+    def apply_preset(self, name: str) -> int:
+        """Tick exactly what preset `name` names, and return how many were ticked.
+
+        Replaces the current ticks rather than adding to them: a preset is "this
+        set", and adding to whatever happened to be ticked would make it mean
+        something different each time. A calculator the launcher is not offering
+        is left unticked -- "Run selected" never runs what the person cannot see.
+        """
+        wanted = self._presets.ids(name, set(self._calculator_ticks))
+        offered = [cid for cid in wanted if cid not in self._hidden_calculator_ids]
+        for tick in self._calculator_ticks.values():
+            tick.setChecked(False)
+        for calculator_id in offered:
+            self._calculator_ticks[calculator_id].setChecked(True)
+        skipped = len(wanted) - len(offered)
+        self._batch_status.setText(
+            f"Ticked {len(offered)} from '{name}'."
+            + (f" {skipped} hidden by default, not ticked." if skipped else "")
+        )
+        return len(offered)
+
+    # --- running on more than one molecule -------------------------------------
+
+    def _version_of_molecule(self, molecule_uuid: str) -> int:
+        """The structure version of one molecule, or 0 where nothing tracks it.
+
+        The checker's counter is PER MOLECULE -- `current_version(uuid)` -- which
+        is why a run carries one per molecule rather than a single number.
+        """
+        if self._structure_version_of is None:
+            return 0
+        try:
+            return int(self._structure_version_of(molecule_uuid))
+        except Exception:  # noqa: BLE001 - a version we cannot read is 0
+            return 0
+
+    def scope_molecules(self) -> list:
+        """The molecules the current scope names, in project order.
+
+        Read ON DEMAND and never stored: a stored copy is a second answer to
+        "what is chosen" that can disagree with the screen.
+        """
+        if self._project is None:
+            return []
+        if self._scope_mode == _SCOPE_ALL:
+            return list(self._project.molecules)
+        if self._scope_mode == _SCOPE_CHOSEN:
+            return [m for m in self._project.molecules if m.uuid in self._scope_chosen]
+        selected = self._selected_molecule_uuid
+        molecule = self._project.find_molecule(selected) if selected else None
+        return [molecule] if molecule is not None else []
+
+    def set_scope(self, mode: str, chosen: set[str] | None = None) -> None:
+        """Set the scope in code -- what a test or a drive script uses instead of a click."""
+        self._scope_mode = mode
+        if chosen is not None:
+            self._scope_chosen = set(chosen)
+        index = self._scope_combo.findData(mode)
+        if index >= 0:
+            self._scope_combo.setCurrentIndex(index)
+        self._refresh_scope_labels()
+
+    def _on_scope_activated(self, index: int) -> None:
+        mode = str(self._scope_combo.itemData(index))
+        if mode == _SCOPE_CHOSEN:
+            molecules = list(self._project.molecules) if self._project else []
+            dialog = MoleculeScopeDialog(molecules, self._scope_chosen, self)
+            if dialog.exec() != QDialog.DialogCode.Accepted:
+                # Back to what it was: a cancelled choice is no choice.
+                self._refresh_scope_labels()
+                return
+            self._scope_chosen = dialog.chosen()
+        self._scope_mode = mode
+        self._refresh_scope_labels()
+
+    def _refresh_scope_labels(self) -> None:
+        """Keep the combo's wording, the descriptors box and the hint in step with the scope."""
+        total = len(self._project.molecules) if self._project else 0
+        chosen = len(self._scope_chosen & {m.uuid for m in self._project.molecules}) if self._project else 0
+        self._scope_combo.setItemText(1, f"Run on: all molecules ({total})")
+        self._scope_combo.setItemText(2, f"Run on: chosen molecules ({chosen})..." if chosen else "Run on: chosen molecules...")
+        index = self._scope_combo.findData(self._scope_mode)
+        if index >= 0 and self._scope_combo.currentIndex() != index:
+            self._scope_combo.setCurrentIndex(index)
+        project_scope = self._batch_service is not None and self._scope_mode != _SCOPE_THIS
+        for control in (self._scope_descriptors, self._scope_alerts, self._scope_aggregate):
+            control.setVisible(project_scope)
+        self._on_selection_toggled()
+
+    def _run_selected_on_project(self) -> None:
+        """Run the ticked calculators on every molecule in scope, into the project table.
+
+        The scope, the ticks and the settings are read ONCE, into an immutable
+        plan, and the service is handed the plan's contents. Anything changed
+        while the run is going affects the next run.
+        """
+        molecules = self.scope_molecules()
+        if not molecules:
+            self._batch_status.setText("No molecules in that scope.")
+            return
+        if self._batch_service.is_running():
+            self._batch_status.setText("A project run is already going -- try again when it finishes.")
+            return
+        descriptor_ids: list[str] = []
+        if self._scope_descriptors.isChecked() or self._scope_alerts.isChecked():
+            from openchem.chem.descriptor_providers import RDKitDescriptorProvider
+
+            provider = RDKitDescriptorProvider()
+            if self._scope_descriptors.isChecked():
+                descriptor_ids += list(provider.descriptor_ids())
+            if self._scope_alerts.isChecked():
+                # Requested through the SAME list, as the batch panel does: from the
+                # person's side PAINS and TPSA are the same kind of thing.
+                descriptor_ids += list(provider.alert_ids())
+        # In the order the launcher shows them (task group, heading, name), so the
+        # table's calculator columns read left to right as the list reads top to
+        # bottom -- not in whatever order the tick boxes happened to be built.
+        ticked = sorted(
+            self._selected_calculator_ids(),
+            key=lambda cid: calculator_browse_sort_key(self._calculator_registry.get(cid)),
+        )
+        plan = build_execution_plan(
+            molecules=molecules,
+            calculator_ids=ticked,
+            descriptor_ids=descriptor_ids,
+            chosen_parameters=self._project_parameters,
+            definition_of=self._calculator_registry.get,
+            structure_version_of=self._version_of_molecule,
+            plain_label=plain_label,
+        )
+        # Everything the person ticked was left out: running only the always-on
+        # properties would answer a question they did not ask, so say what happened.
+        if plan.is_empty or (ticked and not plan.calculator_ids):
+            self._batch_status.setText(
+                "Nothing to run. " + (plan.describe_exclusions() or "Tick a calculator first.")
+            )
+            return
+        if plan.job_count > _CONFIRM_PROJECT_RUN_ABOVE and not self._confirm_project_run(plan):
+            self._batch_status.setText("Cancelled -- nothing was computed.")
+            return
+        self.project_run_started.emit(plan)
+        self._batch_service.request_batch(
+            BatchRequest(
+                molecule_uuids=list(plan.scope_uuids),
+                descriptor_ids=list(plan.descriptor_ids),
+                calculator_ids=list(plan.calculator_ids),
+                parameters=plan.overrides(self._project_parameters),
+                per_atom_aggregate=str(self._scope_aggregate.currentData()),
+                structure_versions=dict(plan.structure_versions),
+            ),
+            molecules,
+        )
+        left_out = plan.describe_exclusions()
+        self._batch_status.setText(
+            f"Running {len(plan.calculator_ids)} calculator(s) on {plan.molecule_count} molecule(s) "
+            f"-- see Results > Project table. {left_out}".strip()
+        )
+
+    def _confirm_project_run(self, plan: ExecutionPlan) -> bool:
+        """State the size of a large run before it starts, and let the person decide."""
+        answer = QMessageBox.question(
+            self,
+            "Run on many molecules?",
+            f"This will start about {plan.job_count:,} calculations "
+            f"({plan.molecule_count} molecules x "
+            f"{len(plan.calculator_ids) + len(plan.descriptor_ids)} properties).\n\n"
+            + (plan.describe_exclusions() + "\n\n" if plan.excluded or plan.unrunnable_molecules else "")
+            + "It runs in the background and can be cancelled; anything already "
+            "computed is kept.",
+            QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Ok,
+        )
+        return answer is QMessageBox.StandardButton.Ok
 
     # --- copying out ---------------------------------------------------------
 

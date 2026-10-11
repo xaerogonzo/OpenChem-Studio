@@ -100,7 +100,10 @@ def test_the_dock_holds_the_very_reader_the_panel_feeds(window):
     readers = dock.findChildren(ResultsView)
     assert len(readers) == 1, f"expected one reader in the dock, found {len(readers)}"
     assert readers[0] is window._property_panel._attached_reader
-    assert hosts[0].content() is readers[0]
+    # The host moves the WORKSPACE (reader page + project table page), and the
+    # reader is the one the panel feeds, sitting on its first page.
+    assert hosts[0].content() is window._results_workspace
+    assert window._results_workspace._reader is readers[0]
 
 
 def test_the_application_tells_the_reader_where_each_calculator_SITS(window):
@@ -119,12 +122,12 @@ def test_the_application_tells_the_reader_where_each_calculator_SITS(window):
     assert window._results_view._display_order_of == registry.display_order
 
 
-def test_the_dock_is_a_panel_in_the_analysis_group(window):
+def test_the_dock_is_a_panel_in_the_analyze_group(window):
     """Beside Properties rather than in a group of its own: starting a
     calculation and reading one are the same task seen from two ends."""
     assert window._panel_rail.panel_ids().count("Results") == 1
     _title, group = window._panel_rail._panels["Results"]
-    assert group == "analysis"
+    assert group == "analyze"
 
 
 # --- following the selection, which is the panel's half ----------------------
@@ -435,4 +438,7 @@ def test_the_title_bar_button_moves_the_reader_out_and_back(window, qapp_module)
     finally:
         host.return_home()
     assert not host.is_popped_out()
-    assert window._results_view.parentWidget() is host
+    # What travels is the workspace (reader page + project table page), and the
+    # reader is still inside it when it comes home.
+    assert window._results_workspace.parentWidget() is host
+    assert window._results_workspace.isAncestorOf(window._results_view)

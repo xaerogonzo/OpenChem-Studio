@@ -348,7 +348,9 @@ class _BatchTask(QRunnable):
                     molecule_uuid=molecule.uuid,
                     calculator_id=calculator_id,
                     parameters_key=parameters_key(parameters),
-                    structure_version=self._request.structure_version,
+                    structure_version=self._request.structure_versions.get(
+                        molecule.uuid, self._request.structure_version
+                    ),
                 ),
                 result,
             )

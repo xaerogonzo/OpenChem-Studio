@@ -42,33 +42,92 @@ from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from PySide6.QtWidgets import (
     QButtonGroup,
-    QHBoxLayout,
     QLabel,
     QListWidget,
     QListWidgetItem,
-    QToolButton,
+    QPushButton,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
 
 #: Group id -> label. The order here is the order down the rail.
 #:
+#: THREE GROUPS, NOT FIVE, AND EACH NAME SAYS WHAT IT HOLDS. Five icon buttons
+#: ("Analysis", "Compute", "Compare", "AI", "Extensions") were reported as
+#: "I click all of them to find what I need": two of the five held one panel
+#: and a third held none until a plugin loaded. What somebody wants is to read
+#: a result, start heavy work, or step outside the molecule on screen.
+#:
 #: "Compute" rather than "Quantum", deliberately: the group holds Docking
 #: and 3D Alignment as well as Quantum Chemistry, and filing a docking run
 #: under "Quantum" would be a chemistry error on the one label a new user
-#: reads first. Same slot, honest name.
+#: reads first.
 GROUP_LABELS: dict[str, str] = {
-    "analysis": "Analysis",
+    "analyze": "Analyze",
     "compute": "Compute",
-    "compare": "Compare",
-    "assist": "AI",
-    "extensions": "Extensions",
+    "extend": "Compare and Extend",
+}
+
+#: One sentence per group, shown under the heading and in the tooltip, so a
+#: group is explained where it is chosen rather than by opening each in turn.
+GROUP_DESCRIPTIONS: dict[str, str] = {
+    "analyze": "Run calculators and read what they found.",
+    "compute": "Start heavy jobs: quantum chemistry, docking, alignment.",
+    "extend": "Compare molecules, and panels added by plugins.",
 }
 
 #: Where a panel goes when nothing says otherwise. Plugins land here, so a
 #: third-party panel is reachable the moment it loads without the plugin
 #: having to know this vocabulary exists.
-DEFAULT_GROUP = "extensions"
+DEFAULT_GROUP = "extend"
+
+#: The group ids this rail used to have, mapped onto the three it has now. A
+#: plugin written against the old vocabulary keeps working and is filed, not
+#: lost: `register` reads this before it falls back to DEFAULT_GROUP.
+LEGACY_GROUPS: dict[str, str] = {
+    "analysis": "analyze",
+    "compare": "extend",
+    "assist": "extend",
+    "extensions": "extend",
+}
+
+#: EVERY BUILT-IN PANEL, ITS GROUP AND ITS PLACE, in the order they are listed.
+#: The order is explicit rather than a side effect of construction: the primary
+#: pair (Properties starts work, Results reads it) lead Analyze and the rest
+#: run A to Z, which is how a list is scanned. Panel ids are the dock object
+#: names.
+#:
+#: **BATCH SITS IN COMPUTE ONLY UNTIL IT MERGES INTO PROPERTIES.** That is a
+#: later stage of the same work; moving it now would put it in a group that
+#: describes it no better, and its removal is a one-line change here.
+#:
+#: A guard (`tests/test_panel_rail.py`) compares this table with the docks the
+#: window actually builds, so a new panel cannot fall into the default group
+#: and pass.
+BUILTIN_PANELS: tuple[tuple[str, str], ...] = (
+    ("Properties", "analyze"),
+    ("Results", "analyze"),
+    ("Atom_Inspector", "analyze"),
+    ("Interactions", "analyze"),
+    ("Structure_Check", "analyze"),
+    ("3D_Alignment", "compute"),
+    ("Batch", "compute"),
+    ("Docking", "compute"),
+    ("Jobs", "compute"),
+    ("Quantum_Chemistry", "compute"),
+    ("Compare", "extend"),
+)
+
+
+def builtin_group_of(panel_id: str) -> str | None:
+    """The group a built-in panel belongs to, or None for one not in the table."""
+    return next((group for pid, group in BUILTIN_PANELS if pid == panel_id), None)
+
+
+def builtin_order_of(panel_id: str) -> int | None:
+    return next((index for index, (pid, _g) in enumerate(BUILTIN_PANELS) if pid == panel_id), None)
+
 
 #: Carried on a list row so a chosen row resolves back to its panel.
 _PANEL_ID_ROLE = Qt.ItemDataRole.UserRole
@@ -76,9 +135,12 @@ _PANEL_ID_ROLE = Qt.ItemDataRole.UserRole
 #: lambda closing over `self`, which PySide6 holds strongly and which
 #: leaked a whole window the last time it was used here.
 _GROUP_PROPERTY = "openchem_group"
+#: The group's label, kept on its button so the text can be taken off when the
+#: list is folded and put back when it opens.
+_LABEL_PROPERTY = "openchem_label"
 
 #: ONE CONCEPT, FIVE RENDERINGS. Every group button means the same thing --
-#: "show this group's panels in the list beside me" -- and what differs is
+#: "show this group's panels in the list below me" -- and what differs is
 #: only WHICH group, which is a property of the button and not of the
 #: control's meaning. `instance_path` tells the five apart. Giving them an
 #: id each would be the batch-tick-box mutation shipped on purpose.
@@ -88,7 +150,7 @@ _GROUP_PROPERTY = "openchem_group"
 #: `test_no_contract_is_a_placeholder` refuses in a contract.
 _GROUP_HELP = HelpTooltip(
     text=(
-        "Show this group's panels in the list beside it.\n\n"
+        "Show this group's panels in the list below it.\n\n"
         "One right-hand panel is visible at a time, so choosing a name "
         "here replaces what is on screen rather than adding to it. Right-click "
         "a name to open it beside what is showing instead, or to lock it "
@@ -123,7 +185,7 @@ def _group_icon(group: str) -> QIcon:
     painter.setRenderHint(QPainter.RenderHint.Antialiasing)
     painter.setPen(QPen(QColor(70, 70, 70), 1.6))
     m, s = 3, _ICON_SIZE - 6
-    if group == "analysis":
+    if group == "analyze":
         # A magnifier: looking closely at one thing.
         painter.drawEllipse(m, m, s - 5, s - 5)
         painter.drawLine(m + s - 6, m + s - 6, m + s, m + s)
@@ -135,27 +197,17 @@ def _group_icon(group: str) -> QIcon:
         painter.rotate(60)
         painter.drawEllipse(-s // 2, -s // 4, s, s // 2)
         painter.restore()
-    elif group == "compare":
-        # Two bars of different height, side by side.
+    else:
+        # Compare and Extend: two bars of different height, with a plus
+        # beside them -- the "more of it, side by side" shape.
         painter.drawRect(m, m + s // 3, s // 3, s - s // 3)
         painter.drawRect(m + s // 2, m, s // 3, s)
-    elif group == "assist":
-        # A four-pointed spark.
-        c = _ICON_SIZE / 2
-        painter.drawLine(c, m, c, m + s)
-        painter.drawLine(m, c, m + s, c)
-        painter.drawLine(m + s // 4, m + s // 4, m + 3 * s // 4, m + 3 * s // 4)
-        painter.drawLine(m + 3 * s // 4, m + s // 4, m + s // 4, m + 3 * s // 4)
-    else:
-        # Extensions: a square with a piece out of it.
-        painter.drawRect(m, m, s, s)
-        painter.drawRect(m + s // 2, m + s // 2, s // 2, s // 2)
     painter.end()
     return QIcon(pixmap)
 
 
 class PanelRail(QWidget):
-    """Group icons in a column, the chosen group's panel names beside them.
+    """Three labelled groups stacked above the chosen group's panel names.
 
     Two levels because one was not enough either way round: twelve flat
     names do not fit, and five group names alone do not say what is in
@@ -184,6 +236,9 @@ class PanelRail(QWidget):
         #: pointer, which Qt frees with the parent. See
         #: `ui/widgets/empty_state.py` for what that cost.
         self._panels: dict[str, tuple[str, str]] = {}
+        #: panel id -> place in its group, for the built-in ones. Absent means a
+        #: plugin's, which is listed after them, A to Z, whatever order it loaded in.
+        self._order: dict[str, int] = {}
         self._favourites: list[str] = []
         #: Panels a rail click will not hide. Plain ids, set by MainWindow.
         self._locked: set[str] = set()
@@ -196,28 +251,42 @@ class PanelRail(QWidget):
         self._button_group = QButtonGroup(self)
         self._button_group.setExclusive(True)
         for group, label in GROUP_LABELS.items():
-            button = QToolButton(self._buttons)
+            button = QPushButton(self._buttons)
             button.setIcon(_group_icon(group))
             button.setIconSize(QSize(_ICON_SIZE, _ICON_SIZE))
             button.setText(label)
             apply_help_tooltip(button, _GROUP_HELP)
             button.setCheckable(True)
-            # ICON ONLY. With the label under each icon the column was 156
-            # px wide -- "Extensions" sets it -- and the whole rail 412,
-            # which is 22% of a 1900px window given over to navigation
-            # chrome. The group name is not lost: it is the heading above
-            # the list, which is where somebody looks to know where they
-            # are, and it is still the tooltip.
-            button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
-            button.setAutoRaise(True)
+            # TEXT BESIDE THE ICON WHILE THE LIST IS OPEN, ICON ONLY WHEN IT
+            # IS FOLDED (`_apply_button_style`). Icon-only was the fix for a
+            # 412 px rail, but it left five unlabelled glyphs that people
+            # clicked one by one to find what they wanted. The buttons now
+            # stack ABOVE the list instead of beside it, so the labels cost
+            # no width: the rail is as wide as its list, and folds to the
+            # icons alone.
+            button.setFlat(True)
+            # Left-aligned: a centred label under a left-hung icon reads as two
+            # unrelated things. A push button honours `text-align`; a tool
+            # button does not, and its hint put "Compare and Extend" at 274 px
+            # (measured) in a 230 px list.
+            button.setStyleSheet(
+                "QPushButton { text-align: left; padding: 5px 8px; }"
+                "QPushButton:checked { font-weight: bold; }"
+            )
+            button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            button.setProperty(_LABEL_PROPERTY, label)
+            button.setToolTip(f"{label}: {GROUP_DESCRIPTIONS[group]}")
             button.setProperty(_GROUP_PROPERTY, group)
             button.clicked.connect(self._on_group_clicked)
             self._button_group.addButton(button)
             self._buttons_layout.addWidget(button)
-        self._buttons_layout.addStretch(1)
 
         self._heading = QLabel("")
-        self._heading.setStyleSheet("font-weight: bold; padding: 4px 6px;")
+        self._heading.setStyleSheet("font-weight: bold; padding: 4px 6px 0 6px;")
+        #: The one-line "what is in this group", where the group is chosen.
+        self._description = QLabel("")
+        self._description.setWordWrap(True)
+        self._description.setStyleSheet("padding: 0 6px 4px 6px; color: palette(mid);")
 
         self._list = QListWidget()
         self._list.setAlternatingRowColors(False)
@@ -242,26 +311,45 @@ class PanelRail(QWidget):
         names.setContentsMargins(0, 0, 0, 0)
         names.setSpacing(0)
         names.addWidget(self._heading)
+        names.addWidget(self._description)
         names.addWidget(self._list, 1)
 
-        layout = QHBoxLayout(self)
+        layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
-        layout.addWidget(self._buttons)
+        # Pinned to the top: a folded rail has no list to take the spare height,
+        # and the icons would otherwise spread down the whole column.
+        layout.addWidget(self._buttons, 0, Qt.AlignmentFlag.AlignTop)
         layout.addWidget(self._names, 1)
 
+        self._apply_button_style()
         self._select_group(self._group)
 
     # --- registration --------------------------------------------------------
 
-    def register(self, panel_id: str, title: str, group: str = DEFAULT_GROUP) -> None:
+    def register(
+        self, panel_id: str, title: str, group: str = DEFAULT_GROUP, order: int | None = None
+    ) -> None:
         """Tell the rail a panel exists. Idempotent, so a plugin that
-        reloads does not double up."""
+        reloads does not double up.
+
+        `order` is a built-in panel's place in its group; a plugin gives none
+        and is listed after them by title, so load order never decides what
+        somebody sees. A group id from the old five-group vocabulary is filed
+        under the group that replaced it, and an unknown one under
+        DEFAULT_GROUP: a panel nobody can open is worse than a misfiled one.
+        """
+        group = LEGACY_GROUPS.get(group, group)
         self._panels[panel_id] = (title, group if group in GROUP_LABELS else DEFAULT_GROUP)
+        if order is None:
+            self._order.pop(panel_id, None)
+        else:
+            self._order[panel_id] = order
         self._rebuild()
 
     def unregister(self, panel_id: str) -> None:
         self._panels.pop(panel_id, None)
+        self._order.pop(panel_id, None)
         if panel_id in self._favourites:
             self._favourites.remove(panel_id)
         self._rebuild()
@@ -355,9 +443,25 @@ class PanelRail(QWidget):
         """
         if visible == self.is_list_visible():
             self._names.setVisible(visible)
+            self._apply_button_style()
             return
         self._names.setVisible(visible)
+        self._apply_button_style()
         self.list_visibility_changed.emit(visible)
+
+    def _apply_button_style(self) -> None:
+        """Name beside the icon while the list is open; the icon alone when folded."""
+        open_ = not self._names.isHidden()
+        for button in self._button_group.buttons():
+            label = str(button.property(_LABEL_PROPERTY) or "")
+            button.setText(label if open_ else "")
+            button.updateGeometry()
+        # Qt caches a layout's size hint until it is told it is stale; without
+        # this a fold reads as the same width until the next event-loop turn.
+        self._buttons.updateGeometry()
+        self._buttons_layout.invalidate()
+        self.layout().invalidate()
+        self.updateGeometry()
 
     def is_list_visible(self) -> bool:
         return not self._names.isHidden()
@@ -375,14 +479,29 @@ class PanelRail(QWidget):
         a diff is a second source of truth about what is on screen.
         """
         self._heading.setText(GROUP_LABELS.get(self._group, ""))
+        self._description.setText(GROUP_DESCRIPTIONS.get(self._group, ""))
         self._list.clear()
         for panel_id in self._favourites:
             entry = self._panels.get(panel_id)
             if entry is not None:
                 self._add_row(panel_id, f"★ {entry[0]}")
-        for panel_id, (title, group) in self._panels.items():
-            if group == self._group and panel_id not in self._favourites:
-                self._add_row(panel_id, title)
+        # Built-in panels in their declared order, then plugins A to Z; the id
+        # is the last tie-break so the order is total.
+        in_group = [
+            (panel_id, title)
+            for panel_id, (title, group) in self._panels.items()
+            if group == self._group and panel_id not in self._favourites
+        ]
+        in_group.sort(
+            key=lambda row: (
+                0 if row[0] in self._order else 1,
+                self._order.get(row[0], 0),
+                row[1].casefold(),
+                row[0],
+            )
+        )
+        for panel_id, title in in_group:
+            self._add_row(panel_id, title)
 
     def _add_row(self, panel_id: str, label: str) -> None:
         locked = panel_id in self._locked
