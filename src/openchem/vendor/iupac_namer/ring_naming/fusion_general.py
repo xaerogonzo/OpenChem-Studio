@@ -692,8 +692,10 @@ class FusionName:
     numberings: tuple             # fusion_orientation Numbering options
 
 
-def name_fusion(mol, ring_atom_tuples) -> FusionName:
-    """The fusion name of the mancude system, and its numberings."""
+def name_fusion(mol, ring_atom_tuples, second_order: bool = False) -> FusionName:
+    """The fusion name of the mancude system, and its numberings.
+
+    `second_order` also tries one level of second-order components, and only when no first-order name exists."""
     from rdkit import Chem  # noqa: F401
 
     rings = [tuple(r) for r in ring_atom_tuples]
@@ -753,6 +755,12 @@ def name_fusion(mol, ring_atom_tuples) -> FusionName:
             if best is None or key < best[0]:
                 best = (key, text)
     if best is None:
+        # D-217: a system of three or more rings whose parent is a monocycle or a small retained polycycle often has a ring that touches only a
+        # FIRST-order component ("pyrrolo[2',3':5,6]pyrido[2,3-d]pyrimidine"). The caller asks for it only after the von Baeyer fallback found no
+        # name, so no name built before this existed can change (a steroid acetonide kept its von Baeyer name).
+        second = _second_order_name(parents, components, system) if second_order else None
+        if second is not None:
+            return FusionName(text=second, numberings=tuple(numberings))
         raise Unsupported(
             "the rings outside the parent component need a second-order or "
             "unnamed attached component",
@@ -782,6 +790,149 @@ def _partitions(rest: frozenset[int], components, parent: Component, system: _Sy
             chosen.pop()
 
     yield from rec(rest, [])
+
+
+def _second_order_name(parents, components, system: _System) -> str | None:
+    """The fusion name of a system with one level of SECOND-order components, or None (P-25.3.4.1.2).
+
+    A second-order component is fused to a first-order one and to nothing else. It is cited before the first-order component it hangs on, with
+    its own locants primed and the first-order component's after a colon: `pyrrolo[2',3':5,6]pyrido[2,3-d]pyrimidine`, pyrrolo's atoms 2',3'
+    being pyrido's 5,6. A monocyclic hydrocarbon keeps only the first-order locants (`benzo[4,5]imidazo[1,2-a]pyridine`). Anything outside that
+    shape (a third order, two identical first-order components, a peri fusion between the orders) returns None and the caller refuses as before."""
+    best = None
+    for parent in parents:
+        rest = frozenset(range(len(system.rings))) - parent.rings
+        for cover in _exact_covers(rest, components):
+            first = [c for c in cover if _shares_bond(c, parent, system)]
+            second = [c for c in cover if c not in first]
+            if not first or not second:
+                continue
+            if any(_shares_bond(a, b, system) for a, b in itertools.combinations(first, 2)):
+                continue
+            if len({c.prefix for c in first}) != len(first):
+                continue
+            hosts: dict[int, list[Component]] = {}
+            ok = True
+            for s in second:
+                if _shares_bond(s, parent, system) or any(_shares_bond(s, o, system) for o in second if o is not s):
+                    ok = False
+                    break
+                host = [i for i, f in enumerate(first) if _shares_bond(s, f, system)]
+                if len(host) != 1 or len(s.atoms & first[host[0]].atoms) != 2:
+                    ok = False
+                    break
+                hosts.setdefault(host[0], []).append(s)
+            if not ok or any(first[i].monocyclic_hydrocarbon for i in hosts):
+                continue
+            if any(len({s.prefix for s in group}) != len(group) for group in hosts.values()):
+                continue
+            named = _name_second_order(parent, first, hosts, system)
+            if named is None:
+                continue
+            key, text = named
+            key = (-len(first), len(second)) + key
+            if best is None or key < best[0]:
+                best = (key, text)
+    return best[1] if best else None
+
+
+def _exact_covers(rest: frozenset[int], components):
+    """Every way to cover *rest* with disjoint components (each component's rings inside *rest*)."""
+    usable = [c for c in components if c.rings <= rest]
+
+    def rec(remaining, chosen):
+        if not remaining:
+            yield list(chosen)
+            return
+        first = min(remaining)
+        for c in usable:
+            if first not in c.rings or not c.rings <= remaining:
+                continue
+            chosen.append(c)
+            yield from rec(remaining - c.rings, chosen)
+            chosen.pop()
+
+    yield from rec(rest, [])
+
+
+def _name_second_order(parent: Component, first: list[Component], hosts, system: _System):
+    """(key, text) for one decomposition, or None when a descriptor cannot be built. Key: letters, then the locants, smaller is better."""
+    best = None
+    for pmap in parent.label_maps():
+        pieces = []
+        letters_all: list[int] = []
+        loc_keys: list[tuple] = []
+        for i, f in sorted(enumerate(first), key=lambda ic: _cite_key(ic[1])):
+            options = []
+            for fmap in f.label_maps():
+                d = fusion_descriptor(parent, pmap, f, fmap, system.ring_sets, system.ring_bonds)
+                if d is None:
+                    continue
+                idx, letters, locs = d
+                inner = []
+                for s in hosts.get(i, []):
+                    sd = _second_order_descriptor(f, fmap, s, system)
+                    if sd is None:
+                        inner = None
+                        break
+                    inner.append(sd)
+                if inner is None:
+                    continue
+                loc_key = tuple(_locant_key(x) for x in locs.split(","))
+                options.append((idx, loc_key, tuple(x[0] for x in inner), letters, locs, inner))
+            if not options:
+                break
+            options.sort(key=lambda o: o[:5])
+            idx, loc_key, _inner_key, letters, locs, inner = options[0]
+            front = "".join(text for _k, text, _plain in sorted(inner, key=lambda x: x[2]))
+            pieces.append((front, f, letters, locs))
+            letters_all.extend(idx)
+            loc_keys.append(loc_key)
+        else:
+            body = "".join(
+                f"{front}{f.prefix}" + ("" if f.monocyclic_hydrocarbon and parent.monocyclic_hydrocarbon else f"[{locs}-{letters}]")
+                for front, f, letters, locs in sorted(pieces, key=lambda p: _plain_key(p[0] + p[1].prefix))
+            )
+            key = (tuple(sorted(letters_all)), tuple(loc_keys))
+            if best is None or key < best[0]:
+                best = (key, body + parent.parent_name)
+    return best
+
+
+def _plain_key(text: str) -> str:
+    """Alphabetical order of a complex prefix: its first letter, brackets and locants ignored (P-25.3.4.2.3.1)."""
+    out = []
+    depth = 0
+    for ch in text:
+        if ch == "[":
+            depth += 1
+        elif ch == "]":
+            depth -= 1
+        elif depth == 0:
+            out.append(ch)
+    return "".join(out)
+
+
+def _second_order_descriptor(f: Component, fmap: dict[int, str], s: Component, system: _System):
+    """(key, text, plain) for one second-order component under one numbering of its host, or None.
+
+    The shared bond's atoms are listed in the host's ascending locants; the second-order locants follow in the same atom order, from the numbering of
+    the second-order component that gives them lowest, each primed."""
+    shared = sorted(f.atoms & s.atoms, key=lambda a: _locant_key(fmap[a]))
+    if len(shared) != 2 or frozenset(shared) not in system.ring_bonds:
+        return None
+    f_locs = ",".join(fmap[a] for a in shared)
+    options = []
+    for smap in s.label_maps():
+        s_locs = [smap[a] for a in shared]
+        options.append((tuple(sorted(_locant_key(x) for x in s_locs)), tuple(_locant_key(x) for x in s_locs), s_locs))
+    options.sort(key=lambda o: o[:2])
+    s_locs = options[0][2]
+    if s.monocyclic_hydrocarbon:
+        desc = f"[{f_locs}]"
+    else:
+        desc = "[" + ",".join(x + "'" for x in s_locs) + ":" + f_locs + "]"
+    return (options[0][0], s.prefix + desc, s.prefix)
 
 
 def _shares_bond(a: Component, b: Component, system: _System) -> bool:
@@ -981,7 +1132,7 @@ def _iminium_copies(mol, ring_system, bridgeheads):
     return twin, other
 
 
-def name_fusion_parents(ring_system, candidate, mol) -> list:
+def name_fusion_parents(ring_system, candidate, mol, second_order: bool = False) -> list:
     """NamedParents for the system by general fusion, one per numbering that
     survives P-25.3.3, each carrying its hydro and indicated-hydrogen block
     (P-31.1.4.2.4, planned by `indicated_hydrogen_p58.plan_hydrogens` on
@@ -1010,7 +1161,7 @@ def name_fusion_parents(ring_system, candidate, mol) -> list:
     else:
         mol = plan_mol = _neutral_ring_copy(mol, ring_system)
     cycles = _ordered_rings(ring_system, mol)
-    fusion = name_fusion(mol, cycles)
+    fusion = name_fusion(mol, cycles, second_order=second_order)
     whole_retained = "[" not in fusion.text and fusion.text in POLYCYCLES
     if whole_retained and fusion.text in _TRADITIONAL:
         # The ring table carries the traditional numbering the book keeps

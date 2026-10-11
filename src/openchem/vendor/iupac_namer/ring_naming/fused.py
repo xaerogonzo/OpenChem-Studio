@@ -2088,8 +2088,17 @@ def _name_fused_von_baeyer_fallback(
     # — worse than the prior NAMING_ERROR.  True charged von Baeyer cages
     # (e.g. a quaternary-N bridgehead salt) are perceived as ``type="bridged"``
     # and reach ``name_bridged`` directly, not through this fused fallback.
+    #
+    # D-219: the charge that makes this unsafe is a CARBON's (an arenium, whose Kekule pattern the saturated skeleton loses). A +1 N, O or S is a
+    # heteroatom of the ring and its "-ium" is a suffix on the von Baeyer name, as it already is for quinuclidinium: a protonated azetidine fused to
+    # an azepane (`C1CCC2[NH+](CC1)CC2`) or a bridgehead iminium with a four-membered ring (the DBU-type skeleton, `C1CCC2=[N+](CC1)CC2`) has
+    # no fusion name at all (P-52.2.4.1: fewer than two rings of five) and was a NAMING ERROR.
     if any(
         mol.GetAtomWithIdx(a).GetFormalCharge() != 0
+        and not (
+            mol.GetAtomWithIdx(a).GetFormalCharge() == 1
+            and mol.GetAtomWithIdx(a).GetAtomicNum() in (7, 8, 16)
+        )
         for a in ring_system.atom_indices
     ):
         return []
@@ -2205,7 +2214,20 @@ def name_fused(
             # that is not it ("furo[2,3-f]2-benzofuran" for the multiparent
             # benzo[1,2-b:4,5-c']difuran), so only the von Baeyer name -- a
             # legal, non-preferred name for any ring system -- remains.
-            return _name_fused_von_baeyer_fallback(ring_system, candidate, mol)
+            von_baeyer = _name_fused_von_baeyer_fallback(ring_system, candidate, mol)
+            if von_baeyer:
+                return von_baeyer
+            # D-217: no von Baeyer name either (a mancude system), so the second-order fusion name is the only one there is. An O-CH2-O bridge
+            # ring belongs to the methylenedioxy-bridge route (its own name outranks any fusion candidate), and a fusion candidate here would
+            # change what that route's partner emits.
+            from openchem.vendor.iupac_namer.ring_naming.methylenedioxy_bridge import _find_methylenedioxy_ring
+            if _find_methylenedioxy_ring(ring_system, mol) is not None:
+                return []
+            try:
+                return name_fusion_parents(ring_system, candidate, mol, second_order=True)
+            except Unsupported as exc2:
+                logger.debug("second-order fusion declined: %s", exc2)
+                return []
         general = []
     if general:
         return general

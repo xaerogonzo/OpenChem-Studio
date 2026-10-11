@@ -4235,6 +4235,29 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-214", "CNOCC(=O)O", "[(methylamino)oxy]acetic acid",
      "[(carboxymethoxy)(methyl)amino]acetic acid",
      "WRONG MOLECULE: the parent named twice and the O moved onto N (every R-NH-O-CH2-X with a principal group on X; both steroid and carboxylate census rows)"),
+    # D-215, found by naming round 40's census review (rows 167625 and 802625): a spiro join of a bicycle and a heterocycle lost every heteroatom.
+    ("D-215", "O=C1NC(=O)C2(N1)CC1CCC2C1", "spiro[imidazolidine-4,2'-bicyclo[2.2.1]heptane]-2,5-dione",
+     "tricyclo[5.4.2.1]undecane-1,3-dione",
+     "WRONG MOLECULE: the carbocycle name stood in for a ring whose heteroatoms could not be numbered (every spiro heterocycle on a bridged ring)"),
+    # D-216 (census row 150625): the attachment at locant 1 outranked the heteroatom locants, which numbered the ring with nitrogens at 1, 2, 5.
+    ("D-216", "OC(=O)CCn1ncc(=O)[nH]c1=O", "3-(3,5-dioxo-4,5-dihydro-1,2,4-triazin-2(3H)-yl)propanoic acid",
+     "3-(4,6-dioxo-5,6-dihydro-1,2,4-triazin-1(4H)-yl)propanoic acid",
+     "an N-attached 1,2,4-triazine substituent was numbered as a ring OPSIN cannot build (valency 4 on N)"),
+    # D-217 (census rows 1044625, 1202625, 1852625, 1968625): four NAMING ERROR rows.
+    ("D-217", "C1=COc2n[nH]cc2C12CCCC2", "spiro[2,4-dihydropyrano[2,3-c]pyrazole-4,1'-cyclopentane]",
+     "[NAMING ERROR: No valid naming plan found for C1=CC2(CCCC2)c2c[nH]nc2O1]",
+     "a spiro partner lost its azole N-H and could not be built"),
+    ("D-217", "c1ncc2cc3cc[nH]c3nc2n1", "8H-pyrrolo[3',2':5,6]pyrido[2,3-d]pyrimidine",
+     "[NAMING ERROR: No valid naming plan found for c1ncc2cc3cc[nH]c3nc2n1]",
+     "a tricycle of three monocycles needs a second-order component"),
+    # D-218: the hydro prefix of a spiro partner bracketed as a heteroatom locant.
+    ("D-218", "C1=CNc2ccccc2C12CCCC2", "spiro[1,4-dihydroquinoline-4,1'-cyclopentane]",
+     "spiro[[1,4]dihydroquinoline-4,1'-cyclopentane]",
+     "a malformed name OPSIN cannot read"),
+    # D-219: a protonated or iminium N in a fused system with a four-membered ring.
+    ("D-219", "C1CCC2=[N+](CC1)CC2", "1-azabicyclo[5.2.0]non-1(7)-en-1-ium",
+     "[NAMING ERROR: No valid naming plan found for C1CCC2=[N+](CC1)CC2]",
+     "28 of 288 bicyclic bridgehead iminiums (all with a four-membered ring) were visible failures"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",

@@ -776,6 +776,7 @@ def _build_component_submol(
         new_atom = Chem.Atom(orig.GetAtomicNum())
         if orig.GetFormalCharge():
             new_atom.SetFormalCharge(orig.GetFormalCharge())
+        _keep_aromatic_hydrogen(orig, new_atom)
         full_to_sub[old] = rw.AddAtom(new_atom)
     added: set[frozenset[int]] = set()
     for old in full_atoms:
@@ -995,6 +996,17 @@ def _split_ring_atoms_at(
     return [frozenset(c) for c in components]
 
 
+def _keep_aromatic_hydrogen(orig, new_atom) -> None:
+    """Carry the N-H (or O/S-H) of an aromatic heteroatom onto a copied atom.
+
+    A partner sub-mol is rebuilt atom by atom from bare elements, and RDKit then cannot kekulize a ring whose pyrrole-type nitrogen has lost its
+    hydrogen: the partner failed to build, so a spiro join onto a fused azole (`spiro[...-pyrano[2,3-c]pyrazole]`) was a NAMING ERROR (D-217).
+    """
+    if orig.GetIsAromatic() and orig.GetAtomicNum() != 6 and orig.GetTotalNumHs() > 0:
+        new_atom.SetNumExplicitHs(orig.GetTotalNumHs())
+        new_atom.SetNoImplicit(True)
+
+
 def _build_partner_submol(
     partner_atoms: frozenset[int], art_atom: int, mol
 ) -> tuple[Chem.Mol, dict[int, int]] | None:
@@ -1016,6 +1028,7 @@ def _build_partner_submol(
         new_atom = Chem.Atom(orig.GetAtomicNum())
         if orig.GetFormalCharge():
             new_atom.SetFormalCharge(orig.GetFormalCharge())
+        _keep_aromatic_hydrogen(orig, new_atom)
         full_to_sub[old] = rw.AddAtom(new_atom)
     added: set[frozenset[int]] = set()
     for old in full_atoms:
@@ -1072,7 +1085,7 @@ def _name_partner(sub_mol: Chem.Mol):
     return [(np, rs) for np in nps]
 
 
-def _format_smaller_partner_name(name: str) -> str:
+def _format_smaller_partner_name(name: str, first: bool = False) -> str:
     """Wrap a monocyclic HW partner name in brackets if it starts with a
     locant block (e.g. ``1,3-dioxolane`` → ``[1,3]dioxolane``).
 
@@ -1111,7 +1124,12 @@ def _format_smaller_partner_name(name: str) -> str:
             # bracketing for hydro-prefix forms; OPSIN accepts the bare
             # ``1,3-dihydro-2-benzofuran-1,9'-xanthene`` form inside spiro[].
             import re as _re_hyd
-            if _re_hyd.match(r"^(?:di|tetra|hexa|octa|deca|dodeca)?hydro-", rest):
+            # D-218: the hydro prefix is also directly followed by its stem, with no hyphen ("1,4-dihydroquinoline"). Cited FIRST in the descriptor
+            # the bracketed form "spiro[[1,4]dihydroquinoline-4,1'-...]" is not a name OPSIN reads, so it is left bare there; cited SECOND, after
+            # "3'-", both forms are read and the bracketed one is what the pinned names (D-159b, D-159c) already use.
+            if _re_hyd.match(r"^(?:di|tetra|hexa|octa|deca|dodeca)?hydro-", rest) or (
+                first and _re_hyd.match(r"^(?:di|tri|tetra|penta|hexa|hepta|octa|deca|dodeca)?hydro", rest)
+            ):
                 return name
             locants_part = name[:i]
             return f"[{locants_part}]{rest}"
@@ -1462,7 +1480,7 @@ def _try_articulation_split_spiro(
         first_np, first_rs, first_loc, first_map, first_sub_art, first_fb = np_b, rs_b, loc_b, map_b, sub_art_b, fallback_b
         second_np, second_rs, second_loc, second_map, second_sub_art, second_fb = np_a, rs_a, loc_a, map_a, sub_art_a, fallback_a
 
-    first_name = _format_smaller_partner_name(first_np.name)
+    first_name = _format_smaller_partner_name(first_np.name, first=True)
     second_name = _format_smaller_partner_name(second_np.name)
 
     # Compose the spiro descriptor.  Form: spiro[<first>-N,N'-<second>]

@@ -147,6 +147,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round40_ring_systems.py"
+why = "ring systems keep their heteroatoms, numbering, hydrogen and name (D-215..D-219): spiro[imidazolidine-4,2'-bicyclo[2.2.1]heptane], 3,5-dioxo-4,5-dihydro-1,2,4-triazin-2(3H)-yl, pyrrolo[3',2':5,6]pyrido[2,3-d]pyrimidine, 1-azabicyclo[5.2.0]nonan-1-ium"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_acylimino_aminooxy.py"
 why = "an N-acyl imine keeps its C=N (D-212), an N-ylidene amidine keeps its double bond (D-213), an N-substituted aminooxy group names its parent once (D-214): (acetylimino), ({[amino(sulfanyl)methylidene]amino}...), [(methylamino)oxy]acetic acid"
 scope = "core"
