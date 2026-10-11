@@ -588,19 +588,18 @@ def test_a_name_the_parser_cannot_read_is_shown_with_a_note(monkeypatch):
     assert "could not read this name back" in result.note
 
 
-def test_the_book_oxamide_opsin_cannot_parse_reaches_the_user():
-    """The input that made the split: 'N1,N2-bis(cyanomethyl)oxamide (PIN)'
-    (Blue Book p. 653). OPSIN cannot parse it; the app used to withhold it."""
+def test_the_book_oxamide_opsin_cannot_parse_is_now_verified_through_a_respelling():
+    """The input that made the split: 'N1,N2-bis(cyanomethyl)oxamide (PIN)' (Blue Book p. 653). OPSIN cannot parse it as written; the app used to withhold it, then
+    (naming round 5) showed it with a note that it could not be checked. Since naming round 41 the read-back also tries the spelling OPSIN reads
+    (`ethanediamide`), so the book's name is shown VERIFIED, with no note. The parser-failure path itself is held by the controlled tests below."""
     if not naming_providers.opsin_available():
         pytest.skip("needs OPSIN to show that OPSIN cannot parse it")
     mol = Chem.MolFromSmiles("N#CCNC(=O)C(=O)NCC#N")
 
-    assert verify_name_round_trip("N1,N2-bis(cyanomethyl)oxamide", mol) is (
-        naming_providers.RoundTrip.PARSER_FAILED
-    )
+    assert verify_name_round_trip("N1,N2-bis(cyanomethyl)oxamide", mol) is naming_providers.RoundTrip.MATCH
     result = naming_providers.derived_name_for_structure(mol)
     assert result.name == "N1,N2-bis(cyanomethyl)oxamide"
-    assert "Not verified" in result.note
+    assert "Not verified" not in result.note
 
 
 def test_the_calculator_reports_pubchem_and_the_engine_separately():

@@ -433,3 +433,9 @@ file = "tests/test_round26_polyol_esters.py"
 why = "the esters of one polyol named functional-class-multiplicatively (ethane-1,2-diyl diacetate), with the polyvalent organyl group, retained phenylene/methylene and the free-valence set numbering it needed (naming round 26, D-187 to D-190)"
 scope = "core"
 owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_round41_cations_cages.py"
+why = "ring cations, cages and amidines on a ring N keep their molecule and one name (D-220..D-224): a tricyclic bridgehead iminium, N'-benzoyl-1H-pyrazole-1-carboximidamide, 3-carboxypropanamidinium, adamantane and cubane numbering, 3,4-dihydro-2H-pyrrol-1-ium"
+scope = "core"
+owner = "namer"
