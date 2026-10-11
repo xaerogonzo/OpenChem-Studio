@@ -2006,9 +2006,13 @@ choice and does *not* follow the Project Explorer selection — the probe
 checkboxes are defined against it, so re-pointing it whenever you clicked
 elsewhere would reshuffle your selection underneath you.
 
-Higher accuracy levels generate more conformers per probe and allow the
-maximum-common-substructure search more time. That is the trade: alignment
-quality against wall clock.
+Higher accuracy levels allow the maximum-common-substructure search more time and,
+whenever the probe is not rebuilt around the reference, try more starting conformers
+(1, 5 or 20). In **Flexible** mode, the default, the probe is built once with the
+atoms it shares with the reference pinned in place, so the accuracy level changes
+nothing unless that build is impossible for the pair (measured: aspirin onto salicylic
+acid tried one conformer at every level, ibuprofen onto naproxen tried 1, 5 and 20).
+That is the trade where it applies: alignment quality against wall clock.
 
 You can also work with it inside **Properties**: open **Workflows > Align several
 molecules** and press **Move here**. It is the same panel, not a copy, so what you have

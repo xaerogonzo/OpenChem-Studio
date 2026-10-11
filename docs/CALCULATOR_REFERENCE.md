@@ -592,6 +592,61 @@ Aligns this molecule onto a reference structure in 3D. "Extended atom types" pai
   - `accuracy` -- Accuracy (Fast, Normal, Accurate) default `Normal`
   - `decimal_places` -- Decimal places default `2` range 0 to 8
 
+#### What it does
+
+Lays this molecule over a **reference structure** you give as a SMILES string, in 3D, and returns the reference and the aligned molecule together with a score (higher is better), an RMSD in angstroms (lower is better) and the number of atom pairs the overlay was fitted on. It is for seeing whether, and how well, two molecules can present their atoms in the same places. The molecule moves as a rigid body: it is turned and shifted, and its shape is not changed by the overlay.
+
+#### How it works
+
+Both molecules need 3D coordinates, and the application builds them: the reference is embedded once with RDKit and relaxed with MMFF94. For the probe, the default **Flexible** mode first finds the atoms the two molecules share, by a 2D maximum common substructure over heavy atoms, then builds the probe with those atoms pinned onto the reference's positions and relaxes it with a restrained MMFF94 minimisation, so that a side chain outside the shared part can still take a sensible shape. If that cannot be done, because the shared part cannot be laid on the reference in 3D (ibuprofen onto naproxen, whose shared part spans both rings of the naphthalene), it falls back to ordinary generated conformers and says so. The **Rigid** mode of the 3D Alignment panel instead uses the structure as it stands, with no re-embedding and no torsion moves, and the panel uses conformers already stored in the project where there are any. The final overlay is then found by Open3DAlign, by default matching atoms by MMFF atom type and charge; where MMFF cannot type the molecule (selenium was measured) it falls back to Crippen logP atom contributions and reports which one ran, since the two scores are on different scales. The coordinates are reproducible: the same inputs gave the same score and RMSD on two runs.
+
+**Accuracy** sets two things: how many starting conformers are tried (1, 5 or 20) and how long the common-substructure search may run (5, 15 or 60 seconds). Measured, **it changes nothing when the Flexible build succeeds**: aspirin onto salicylic acid tried 1 conformer at Fast, Normal and Accurate and gave the same score; it matters when the build falls back, where ibuprofen onto naproxen scored 81.98 with 1 conformer (Fast) and 106.15 with 5 or 20.
+
+#### What the result means
+
+The **score** is Open3DAlign's overlay quality, higher meaning a better overlay, and it is **not normalised**: it grows with the size and composition of the molecules, so it can compare two overlays of the same pair (two conformers, two methods) and nothing else. Measured, a molecule laid on itself, which cannot be improved, scores 27.58 for ethanol, 45.00 for benzene, 119.45 for aspirin, 121.14 for ibuprofen and 138.20 for caffeine. The **RMSD** is the distance between the paired atoms after the overlay, heavy atoms only, in angstroms, and measures how well those atoms coincide, not whether the pairing is chemically right: benzene onto cyclohexane by the common-scaffold method pairs 6 atoms and reports an RMSD of 0.207. A molecule with fewer than three heavy atoms cannot be superimposed (three points are needed to fix a rotation): methane, ethane and methanol onto themselves paired 0 atoms and scored 0.00, with a small RMSD that means nothing.
+
+Measured on pairs with a strong shared core: aspirin onto salicylic acid, 10 paired atoms, score 88.87 and RMSD 0.039 by atom types, 88.86 and 0.038 by common scaffold; ibuprofen onto naproxen, 14 paired atoms, score 106.15 and RMSD 0.404; caffeine onto ibuprofen, which share little, 9 paired atoms, score 66.93 and RMSD 0.544.
+
+#### When to use it, when not
+
+Use it to lay a series of molecules over a template for visual comparison or as a starting alignment, or to see how well one molecule can take the shape of another. Do not read the score as similarity between different molecules, do not read a low RMSD as proof that the right atoms were paired, and do not expect a good fit between molecules that are both very flexible and very different: the authors of the method note that such sets are not well suited to rigid superposition of precomputed conformations [1]. It needs a reference SMILES (without one it asks for it), and refuses a reference it cannot parse.
+
+#### Search for
+
+3D molecular alignment, molecular superposition, Open3DALIGN, maximum common substructure
+
+#### Method: `Extended atom types`
+
+**How it works**
+
+Open3DAlign pairs the heavy atoms of the two molecules by a cost for every possible pair, built from three things: the MMFF94 partial charges of the two atoms, an empirical score of how chemically similar their MMFF94 atom types are (1 for identical, 20 for most dissimilar), and a histogram of the distances from each atom to all the others, which describes its surroundings [1]. The pairing with the lowest total cost is found by the Jonker-Volgenant linear-assignment algorithm; the candidate pairs are ranked by how well distances inside each molecule are preserved; a rigid alignment is fitted to them by Kearsley's least-squares method, weighted by atom-type similarity; and the result is scored by a Gaussian function of the distances between paired atoms that favours pairs with similar charges. The weights and thresholds are then adjusted repeatedly to maximise that score [1]. The charges are those of MMFF94 [2].
+
+Shipped: RDKit's implementation, which RDKit documents as the "Open3DALIGN object", matching MMFF atom types and charges. This application has not shown that RDKit's score equals the paper's Gaussian function, and the values measured above suggest it is a different quantity, so none of the paper's score values is quoted for it. Because the cost depends on atom type, pairing an aromatic nitrogen with a tertiary amine is strongly disfavoured, though the paper presents this as a cost and not a prohibition.
+
+**What the result means**
+
+An overlay chosen by atom-type and charge similarity alone, with no regard to which atoms are bonded to which beyond the distances. The paper reports, for its own best scheme on eight benchmark sets of ligands aligned in the literature, an average RMSD from the published alignments below 0.8 angstrom, and below 0.2 for half the sets; with a library of conformers instead of one the figure roughly doubled; and it names the typical failure, molecules with many similar atom types close together such as condensed heteroaromatic rings [1]. Those figures are for the paper's scheme (which adds a pharmacophore-based step this application does not call) on drug-like ligands, not a measure of this application.
+
+**Sources**
+
+- [1] P. Tosco, T. Balle & F. Shiri, 'Open3DALIGN: an open-source software aimed at unsupervised ligand alignment', J. Comput. Aided Mol. Des. 2011, 25(8), 777-783. DOI 10.1007/s10822-011-9462-9. Supports: the method, its validation and its stated failure mode
+- [2] T. A. Halgren, 'Merck Molecular Force Field. II. MMFF94 van der Waals and Electrostatic Parameters for Intermolecular Interactions', J. Comput. Chem. 1996, 17(5-6), 520-552. Supports: the MMFF94 partial charges the matching uses
+
+#### Method: `Common scaffold (MCS)`
+
+**How it works**
+
+The 2D maximum common substructure of the two molecules, restricted to heavy atoms, fixes the pairing first, and Open3DAlign then fits the rest around it, treating those pairs as constraints. The two-stage design follows ChemAxon's description of its own plug-in and is not part of the Open3DALIGN paper [1]; the atom-type matching inside the second stage is the one described under Extended atom types. If the molecules share no common substructure, or only hydrogens, it refuses and suggests the atom-type method instead.
+
+**What the result means**
+
+Because the pairing comes from the 2D graph and not from chemical similarity, atoms are paired even where their environments differ: benzene onto cyclohexane was paired on all 6 ring atoms with an RMSD of 0.207, a fit of shape and not of chemistry. For molecules with a real shared core it agrees with the atom-type method (aspirin onto salicylic acid: score 88.86 against 88.87), and it is the one to prefer when you know which part of the molecules should coincide.
+
+**Sources**
+
+- [1] P. Tosco, T. Balle & F. Shiri, 'Open3DALIGN: an open-source software aimed at unsupervised ligand alignment', J. Comput. Aided Mol. Des. 2011, 25(8), 777-783. DOI 10.1007/s10822-011-9462-9. Supports: the underlying atom-type alignment that refines around the constrained pairs
+
 <!-- help:calc-geometry-analysis -->
 ### Geometry
 
@@ -765,7 +820,7 @@ Lets the atoms of one conformer **move under the forces of a force field** for a
 
 #### How it works
 
-At each step the force on every atom is the negative gradient of the molecule's MMFF94 energy, the Merck Molecular Force Field [1], as implemented in RDKit [2]; where MMFF94 has no parameters for the molecule it uses the UFF force field instead, and where neither does it declines with that reason, never integrating zero forces. The positions and velocities are advanced by the **velocity Verlet** scheme: a half-step of the velocities, a full step of the positions, new forces, and a second half-step of the velocities.
+At each step the force on every atom is the negative gradient of the molecule's MMFF94 energy, the Merck Molecular Force Field [1], as implemented in RDKit [2]; where MMFF94 has no parameters for the molecule it uses the UFF force field instead, and where neither does it declines with that reason, never integrating zero forces. The positions and velocities are advanced by the **velocity Verlet** scheme: a half-step of the velocities, a full step of the positions, new forces, and a second half-step of the velocities. That is Verlet's integration scheme, introduced for a simulation of Lennard-Jones particles [3], in the velocity form that Swope and co-workers give in an appendix, where the positions advance by r + hv + h²f/2 and the velocities by the average of the old and new accelerations; they show it is equivalent to Verlet's equations and keeps the numerical precision of the form usually programmed [4]. Verlet's own runs began, as these do, from random Gaussian velocities, and he measured the temperature from the kinetic energy and used the conservation of total energy as the check that the integration was sound [3].
 
 Shipped: the starting velocities are drawn at random from the Maxwell-Boltzmann distribution for the temperature you give, and the total linear momentum is removed so the molecule does not drift across the view; its rotation is not removed. The conformer is used as it stands, without minimising it first. There is **no thermostat, no barostat, no constraints, no periodic boundaries and no solvent**, so the temperature is where the velocities start and is not held. A random seed of 0 means an unseeded run; any other value repeats exactly (measured: two runs with seed 5 gave identical final coordinates, a run with seed 6 did not). The limits are 10 to 100000 steps of 0.1 to 2.0 femtoseconds, 1 to 2000 K, and a frame every 1 to 1000 steps (defaults 1000 steps of 0.5 fs at 300 K, a frame every 10). If the numbers blow up, the run stops at the first non-finite value and **fails with a message, keeping no trajectory**; at 5 fs, outside the allowed range, ibuprofen failed at 35 fs. MMFF94 and UFF energies are not Dreiding's, so they are not comparable with another program's Dreiding energies.
 
@@ -787,6 +842,8 @@ molecular dynamics, velocity Verlet, NVE ensemble, MMFF94 trajectory
 
 #### Sources
 
+- [3] L. Verlet, 'Computer "Experiments" on Classical Fluids. I. Thermodynamical Properties of Lennard-Jones Molecules', Phys. Rev. 1967, 159, 98-103. DOI 10.1103/PhysRev.159.98. Supports: the integration scheme, random Gaussian starting velocities, temperature measured from the kinetic energy, and total energy as the check
+- [4] W. C. Swope, H. C. Andersen, P. H. Berens & K. R. Wilson, 'A computer simulation method for the calculation of equilibrium constants for the formation of physical clusters of molecules: Application to small water clusters', J. Chem. Phys. 1982, 76, 637-649. DOI 10.1063/1.442716. Supports: the velocity form of the scheme, which is the one used
 - [1] T. A. Halgren, 'Merck Molecular Force Field. I. Basis, Form, Scope, Parameterization, and Performance of MMFF94', J. Comput. Chem. 1996, 17(5-6), 490-519. Supports: MMFF94, the force field the forces come from
 - [2] P. Tosco, N. Stiefl & G. Landrum, 'Bringing the MMFF force field to the RDKit: implementation and validation', J. Cheminform. 2014, 6:37. DOI 10.1186/s13321-014-0037-3. Supports: the implementation of MMFF94 in RDKit that this application uses
 

@@ -44,7 +44,7 @@ _DOC = _ROOT / "docs" / "CALCULATOR_REFERENCE.md"
 #: Built-in calculators with no authored explainer yet. LOWER `_DEBT_CEILING` whenever ids
 #: leave this set; never raise it. Emptied by the last family PR, then deleted.
 EXPLAINER_DEBT = frozenset({
-    "admet_ml", "alignment_3d", "atomic_polarizability", "bbb_descriptors",
+    "admet_ml", "atomic_polarizability", "bbb_descriptors",
     "bird_aromaticity", "cns_mpo", "crippen_logp_contrib", "crippen_mr_contrib", "detonation",
     "docking.vina", "elemental_analysis", "functional_groups",
     "hansen_solubility", "hbond_sites", "hbond_vs_ph", "homa_aromaticity", "huckel_analysis",
@@ -59,7 +59,7 @@ EXPLAINER_DEBT = frozenset({
     "substructure_search", "tautomers", "topology_analysis",
     "topology_distance_degree", "topology_eccentricity", "tsei_projection",
 })
-_DEBT_CEILING = 59
+_DEBT_CEILING = 58
 
 
 @pytest.fixture(scope="module")
@@ -403,6 +403,7 @@ _SEARCHES = [
     ("right circular cone", "steric_analysis"),
     ("thiolate sulfur", "interaction_analysis"),
     ("Maxwell-Boltzmann", "molecular_dynamics"),
+    ("Jonker-Volgenant", "alignment_3d"),
 ]
 
 
