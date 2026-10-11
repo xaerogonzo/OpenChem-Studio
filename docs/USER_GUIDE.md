@@ -2064,7 +2064,17 @@ The search box searches the **body text**, not just the headings, and ranks
 what it finds. Searching "Vina" returns four sections including the one
 explaining why its score is not a binding free energy — a word that appears
 in no heading anywhere in these documents. Matches are highlighted in the
-page and the view scrolls to the first one.
+page and the view scrolls to the first one. **Clearing the box (the x) removes
+the highlighting and leaves you where you were reading**; it does not send you
+back to the top.
+
+The window can be **minimised and maximised**, and resized by its corner; a long
+document reads better wide. Two buttons sit under the page. **Read the whole
+document** shows the whole file the section belongs to, and is greyed out when the
+section already is the whole file (a document's own title), because it would show
+the same page again. **Open the file** hands that markdown file to the program your
+system uses for `.md` files, for reading, searching or printing there; if your
+system has none, the status line says so.
 
 **Individual controls explain themselves.** Hover a button, a spin box or
 a results-table column heading and it says what it means — not a restatement
