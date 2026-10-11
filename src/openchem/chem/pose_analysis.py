@@ -28,10 +28,49 @@ SALT_BRIDGE_CUTOFF = 4.0  # charged-group centre separation
 PI_STACKING_CUTOFF = 5.5  # aromatic ring centroid separation
 CATION_PI_CUTOFF = 6.0  # cation to aromatic centroid
 HYDROPHOBIC_CUTOFF = 4.5  # apolar carbon to apolar carbon
+# 2.8 A was here before any source was checked against it. Harding accepted
+# Ca...O up to 2.80 A as a bond when retrieving structures (Mg...O up to
+# 2.45) [source:harding1999], and finds weakly bound N/O donors at 2.4-3.0 A
+# from Zn and 2.6-3.0 A from Cu, "shorter than a van der Waals contact"
+# [source:harding2000]. It is the loosest bond those papers support, not a
+# typical one (means are 2.0-2.4 A), and for Na, K, Co and Ni nothing read
+# supports a value at all.
 METAL_COORDINATION_CUTOFF = 2.8  # metal ion to coordinating N/O/S
 
 _METALS = {"ZN", "MG", "CA", "FE", "MN", "CU", "NA", "K", "CO", "NI"}
 _POLAR_ELEMENTS = {"N", "O", "F"}
+
+# A BOND TO A METAL IS NOT A CONTACT. Everything below is what the clash test
+# needs to know to leave one out, and `_contact_interactions` reports the same
+# pairs as `metal_coordination`, so the two cannot disagree about which atoms
+# are bonded.
+#
+#: Which atoms can donate to a metal. The detector has always taken N, O, F
+#: and S; the clash test takes exactly the same set (`_METAL_DONOR_ELEMENTS`),
+#: because a pair reported as coordination and also as a clash is the defect.
+#: Harding's tables cover N, O and S donors for Ca, Mg, Mn, Fe, Cu and Zn
+#: [source:harding1999]; fluorine, and the metals Na, K, Co and Ni, are in no
+#: table read for this project (Harding 2001 says Na+ and K+ are future work),
+#: so for those the cutoff below is the existing one, not a sourced bond length.
+_METAL_DONOR_ELEMENTS = _POLAR_ELEMENTS | {"S"}
+
+#: The shortest distance still treated as a bond. Below it the two atoms
+#: overlap and the pair stays in the clash test. 1.8 A sits just under the
+#: shortest metal--N/O/S distance in Harding's CSD survey of Ca, Mg, Mn, Fe, Cu
+#: and Zn (1.81 A, Cu--phenolate outliers; Mn 1.83 and Fe 1.84 are the shortest
+#: regular ones) [source:harding1999]. One value for all donors is deliberately
+#: loose for sulfur, whose own shortest bond there is 2.18 A (Fe--thiolate).
+METAL_DONOR_MIN_DISTANCE = 1.8  # Angstrom
+
+#: How far from a coordinating donor a ligand atom still counts as part of the
+#: bond's own geometry rather than a contact with the metal. 2 means the
+#: donor's neighbours (M--D--X, about 3.0-3.4 A away, fixed by the 126-131
+#: degree M--N--C angle [source:harding1999] Table 6) and their neighbours,
+#: which is where a six-membered chelate ring puts its far atom. It is the
+#: convention `interaction_analysis.MIN_SEPARATION` already uses for clashes
+#: inside one molecule (bond-path separation < 4, with the metal bonded to the
+#: donor).
+_BONDED_NEIGHBOUR_DEPTH = 2
 
 # Which residues receptor preparation removes. They live HERE, with the
 # cutoffs, for the same reason: `docking_providers` strips them before
@@ -491,7 +530,21 @@ def is_stripped_residue(
 # contact, which is what that hydrogen is for. The surface and volume
 # calculators use a different table on purpose (docs/VDW_RADII_ASSESSMENT.md).
 # Zn, Mg and Na are Bondi's metal radii; Ca is Mantina's; the Fe value
-# is not in either source and has not been traced.
+# is not in either source and has not been traced -- and no published set
+# supports it: Batsanov has iron at 2.05, Alvarez 2013 at 2.44
+# [source:alvarez2013]. Treat the metal entries as placeholders for a
+# NON-BONDED contact (Alvarez puts Zn 2.39, Mg 2.51, Na 2.50, Ca 2.62 -- all
+# well above these, partly because Bondi's metal values are in places a
+# cutoff, not a radius).
+#
+# They no longer decide anything about a metal's own ligands. A donor within
+# `METAL_COORDINATION_CUTOFF` of a metal, and the atoms next to it, are a
+# bond and are skipped by the clash test (`_metal_bonded_pairs`), so these
+# numbers only apply to ligand atoms further from the metal than that.
+# They were deliberately NOT replaced with Alvarez's: that would move every
+# non-bonded metal contact the application reports, on a radius whose
+# meaning (a contact-peak edge, not a cutoff) differs from the +/-0.4 A
+# tolerance used here, and nothing has measured what it would do.
 _VDW_RADII = {
     "H": 1.10, "C": 1.70, "N": 1.55, "O": 1.52, "S": 1.80, "P": 1.80,
     "F": 1.47, "CL": 1.75, "BR": 1.85, "I": 1.98, "ZN": 1.39, "MG": 1.73,
@@ -640,10 +693,18 @@ def _residue_number(residue) -> int:
     return int(getattr(residue, "idx", 0))
 
 
-def _ligand_heavy_atoms(pose_molblock: str) -> list[tuple[str, Position]]:
+def _ligand_heavy_atoms(
+    pose_molblock: str,
+) -> tuple[Chem.Mol | None, list[tuple[int, str, Position]]]:
+    """The pose and its heavy atoms as `(atom index, symbol, position)`.
+
+    The index is the atom's place in the MOLECULE (hydrogens included), not
+    in the returned list, because the bond graph that decides which atoms
+    sit next to a coordinating donor is indexed the first way.
+    """
     mol = Chem.MolFromMolBlock(pose_molblock, sanitize=False, removeHs=False)
     if mol is None or mol.GetNumConformers() == 0:
-        return []
+        return None, []
     conformer = mol.GetConformer()
     atoms = []
     for atom in mol.GetAtoms():
@@ -651,8 +712,67 @@ def _ligand_heavy_atoms(pose_molblock: str) -> list[tuple[str, Position]]:
         if symbol == "H":
             continue
         pos = conformer.GetAtomPosition(atom.GetIdx())
-        atoms.append((symbol, (pos.x, pos.y, pos.z)))
-    return atoms
+        atoms.append((atom.GetIdx(), symbol, (pos.x, pos.y, pos.z)))
+    return mol, atoms
+
+
+def _metal_bonded_pairs(
+    mol: Chem.Mol | None,
+    ligand_atoms: list[tuple[int, str, Position]],
+    receptor_atoms: list[ReceptorAtom],
+) -> set[tuple[int, int]]:
+    """`(ligand atom index, receptor atom index)` pairs that are a bond to a
+    metal, and so not a steric contact.
+
+    Three kinds of pair, all keyed the same way:
+
+    * a ligand donor (N, O, F, S) between `METAL_DONOR_MIN_DISTANCE` and
+      `METAL_COORDINATION_CUTOFF` of a RECEPTOR metal;
+    * every ligand atom within `_BONDED_NEIGHBOUR_DEPTH` bonds of such a donor,
+      against THAT metal only. Their distance to the metal is fixed by the
+      bond's geometry (the M--N--C angle is 126-131 degrees, which puts an
+      imidazole carbon 3.0-3.4 A from the metal whatever the metal is), so
+      measuring it against a van der Waals sum finds a "clash" in every
+      coordinated pose, and the larger and more correct the metal's radius,
+      the more of them. Atoms further out keep the ordinary test;
+    * a LIGAND metal and a RECEPTOR donor in the same distance window. Only
+      the pair itself: the receptor arrives as coordinates with no bonds, so
+      there is no neighbourhood to walk.
+
+    Computed once per pose. The bond graph is only built when a coordinating
+    pair actually exists, which is almost never.
+    """
+    bonded: set[tuple[int, int]] = set()
+    receptor_metals = [i for i, a in enumerate(receptor_atoms) if a.element in _METALS]
+    ligand_metals = [(i, p) for i, s, p in ligand_atoms if s in _METALS]
+    if not receptor_metals and not ligand_metals:
+        return bonded
+
+    def in_bonding_range(distance: float) -> bool:
+        return METAL_DONOR_MIN_DISTANCE <= distance <= METAL_COORDINATION_CUTOFF
+
+    path_lengths = None
+    for receptor_index in receptor_metals:
+        metal_position = receptor_atoms[receptor_index].position
+        for ligand_index, symbol, position in ligand_atoms:
+            if symbol not in _METAL_DONOR_ELEMENTS:
+                continue
+            if not in_bonding_range(math.dist(position, metal_position)):
+                continue
+            bonded.add((ligand_index, receptor_index))
+            if path_lengths is None:
+                path_lengths = Chem.GetDistanceMatrix(mol)
+            for other_index, _symbol, _position in ligand_atoms:
+                if path_lengths[ligand_index][other_index] <= _BONDED_NEIGHBOUR_DEPTH:
+                    bonded.add((other_index, receptor_index))
+
+    for ligand_index, metal_position in ligand_metals:
+        for receptor_index, atom in enumerate(receptor_atoms):
+            if atom.element in _METAL_DONOR_ELEMENTS and in_bonding_range(
+                math.dist(metal_position, atom.position)
+            ):
+                bonded.add((ligand_index, receptor_index))
+    return bonded
 
 
 def _vdw_radius(element: str) -> float:
@@ -826,7 +946,7 @@ def _ligand_features(pose_molblock: str) -> dict[str, Any]:
     """
     mol = Chem.MolFromMolBlock(pose_molblock, sanitize=False, removeHs=False)
     if mol is None or mol.GetNumConformers() == 0:
-        return {"apolar": [], "rings": [], "cations": [], "anions": [], "polar": []}
+        return {"apolar": [], "rings": [], "cations": [], "anions": [], "polar": [], "metals": []}
     conformer = mol.GetConformer()
     position = lambda index: tuple(conformer.GetAtomPosition(index))  # noqa: E731
 
@@ -836,7 +956,7 @@ def _ligand_features(pose_molblock: str) -> dict[str, Any]:
     except Exception:  # noqa: BLE001 - geometry is still usable without perception
         aromatic_ok = False
 
-    apolar, cations, anions, polar = [], [], [], []
+    apolar, cations, anions, polar, metals = [], [], [], [], []
     for atom in mol.GetAtoms():
         symbol = atom.GetSymbol().upper()
         if symbol == "H":
@@ -846,8 +966,10 @@ def _ligand_features(pose_molblock: str) -> dict[str, Any]:
             neighbours = {n.GetSymbol().upper() for n in atom.GetNeighbors()}
             if not (neighbours & _POLAR_ELEMENTS):
                 apolar.append(position(index))
-        if symbol in _POLAR_ELEMENTS or symbol == "S":
+        if symbol in _METAL_DONOR_ELEMENTS:
             polar.append((symbol, position(index)))
+        elif symbol in _METALS:
+            metals.append((symbol, position(index)))
         charge = atom.GetFormalCharge()
         if charge > 0:
             cations.append(position(index))
@@ -859,7 +981,10 @@ def _ligand_features(pose_molblock: str) -> dict[str, Any]:
         for ring in mol.GetRingInfo().AtomRings():
             if all(mol.GetAtomWithIdx(i).GetIsAromatic() for i in ring):
                 rings.append(_centroid([position(i) for i in ring]))
-    return {"apolar": apolar, "rings": rings, "cations": cations, "anions": anions, "polar": polar}
+    return {
+        "apolar": apolar, "rings": rings, "cations": cations, "anions": anions,
+        "polar": polar, "metals": metals,
+    }
 
 
 def analyze_pose(pose_molblock: str, receptor_atoms: list[ReceptorAtom]) -> dict[str, Any]:
@@ -872,10 +997,16 @@ def analyze_pose(pose_molblock: str, receptor_atoms: list[ReceptorAtom]) -> dict
     hbonds: list[dict[str, Any]] = []
     clashes: list[dict[str, Any]] = []
 
-    for ligand_element, ligand_position in _ligand_heavy_atoms(pose_molblock):
+    ligand_mol, ligand_atoms = _ligand_heavy_atoms(pose_molblock)
+    # A bond to a metal is not a contact: those pairs (and the donor's own
+    # neighbours, whose distance to the metal the bond fixes) are left out of
+    # the clash test and reported as `metal_coordination` instead.
+    metal_bonded = _metal_bonded_pairs(ligand_mol, ligand_atoms, receptor_atoms)
+
+    for ligand_index, ligand_element, ligand_position in ligand_atoms:
         ligand_radius = _vdw_radius(ligand_element)
         ligand_is_polar = ligand_element in _POLAR_ELEMENTS
-        for receptor_atom in receptor_atoms:
+        for receptor_index, receptor_atom in enumerate(receptor_atoms):
             distance = math.dist(ligand_position, receptor_atom.position)
             contact = {
                 "ligand_element": ligand_element,
@@ -897,6 +1028,8 @@ def analyze_pose(pose_molblock: str, receptor_atoms: list[ReceptorAtom]) -> dict
                 and distance <= HBOND_DISTANCE_CUTOFF
             ):
                 hbonds.append(contact)
+            if (ligand_index, receptor_index) in metal_bonded:
+                continue
             receptor_radius = _vdw_radius(receptor_atom.element)
             if distance < (ligand_radius + receptor_radius - CLASH_TOLERANCE):
                 clashes.append(contact)
@@ -964,6 +1097,25 @@ def _contact_interactions(
         metal_coordination += pairs(
             [point], receptor["metals"], METAL_COORDINATION_CUTOFF, {"ligand_element": element}
         )
+    # The other direction: a metal the LIGAND carries, bound by a receptor
+    # N/O/S. `analyze_pose` leaves exactly these pairs out of the clash test
+    # (`_metal_bonded_pairs`), so they must be reported here or the contact
+    # would vanish from both lists. The entry names the metal in
+    # `ligand_element` as it does for a ligand donor, and says which receptor
+    # element donates.
+    for element, point in ligand["metals"]:
+        for atom in receptor_atoms:
+            if atom.element not in _METAL_DONOR_ELEMENTS:
+                continue
+            distance = math.dist(point, atom.position)
+            if METAL_DONOR_MIN_DISTANCE <= distance <= METAL_COORDINATION_CUTOFF:
+                metal_coordination.append({
+                    "receptor_residue": f"{atom.residue_name}{atom.residue_number}",
+                    "receptor_chain": atom.chain,
+                    "distance": round(distance, 2),
+                    "ligand_element": element,
+                    "receptor_element": atom.element,
+                })
 
     return {
         "hydrophobic": hydrophobic,

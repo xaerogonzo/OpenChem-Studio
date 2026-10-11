@@ -319,13 +319,66 @@ distance and not a van der Waals radius, so the two sets are not measuring the s
 independently gets 1.20 from neutron-diffraction H...H contacts and says it needs no modification to Rowland and Taylor's
 1.10, which agrees with keeping 1.20 for areas and volumes.
 
-**The finding that changes the question: the docking pose analysis counts a coordinated metal as a clash.** The radius does
-not matter as much as how it is used. `analyze_pose` reports a clash for any pair closer than the sum of the two radii less
-0.4 angstrom, and treats a metal as an ordinary atom. Measured with an imidazole nitrogen placed at a coordination distance
-from each metal: zinc at 2.1 angstrom, iron at 2.0 and magnesium at 2.1 each give one clash (and one metal coordination),
-and calcium and sodium at 2.4 give three. A better radius would make it worse (Alvarez's 2.44 for iron puts the threshold at
-3.6 angstrom, far beyond the 2.0 angstrom used in the measurement; the coordination distances chosen there (2.0 to 2.4) are typical values that still need a source, and Harding's papers on metal-ligand geometry in proteins are the usual reference). The defect is that a bond to a metal is not a contact, so the fix is to
-leave a ligand donor within the metal-coordination cutoff out of the clash test, and the metal's radius then barely matters.
+**The finding that changes the question: the docking pose analysis counted a coordinated metal as a clash (fixed
+2026-10-11).** The radius does not matter as much as how it is used. `analyze_pose` reports a clash for any pair closer
+than the sum of the two radii less 0.4 angstrom, and it treated a metal as an ordinary atom. Measured with an imidazole
+(MMFF94-optimised) given a metal along the lone pair of its pyridine-type nitrogen: zinc at 2.1 angstrom, iron at 2.0 and
+magnesium at 2.1 each gave one clash and one metal coordination, and calcium and sodium at 2.4 gave three clashes and one
+coordination. The extra two were the nitrogen's own ring carbons, 3.39 and 3.40 angstrom from the metal, which is not a
+contact: it is what the bond's geometry puts there (the M-N-C angle at a coordinated imidazole is 126-131 degrees, Harding
+1999 Table 6 [source:harding1999]). A better radius would have made it worse (Alvarez's 2.44 for iron puts the threshold at
+3.6 angstrom, and every coordinated donor and its neighbours would clash).
+
+**What was decided**, in `_metal_bonded_pairs` (`chem/pose_analysis.py`), which `analyze_pose` consults before the clash test:
+
+1. **A ligand donor within bonding range of a receptor metal is not a contact.** Donors are N, O, F and S, exactly the set
+   the metal-coordination detector already used (so a pair can no longer be both), and the range is from
+   `METAL_DONOR_MIN_DISTANCE` = 1.8 to `METAL_COORDINATION_CUTOFF` = 2.8 angstrom. The upper bound was already there; it is
+   the loosest bond Harding supports (he accepted Ca...O to 2.80 as a bond, and found weak Zn donors at 2.4-3.0 and Cu at
+   2.6-3.0 [source:harding1999] [source:harding2000]), not a typical one, since his means for the donors tested run from
+   1.99 to 2.44. The lower bound is new and is there so an overlap does not pass as a bond: the shortest metal-N/O/S distance
+   in the survey is 1.81 angstrom (a Cu-phenolate outlier; Mn 1.83 and Fe 1.84 are the shortest regular ones). It is one
+   value for every donor, which is loose for sulfur (its own shortest is 2.18, Fe-thiolate); a per-donor floor was not built.
+   Harding's primary coordination sphere is the target plus 0.5 angstrom (about 2.5 for Zn-N, 2.9 for Ca-O) [source:harding2006], so the single
+   2.8 cutoff also exempts weakly bonded donors outside it for Zn, Fe, Mg and Cu, which Harding 2000 finds "shorter than a van
+   der Waals contact". A metal- and donor-specific cutoff from his Table 1 was not built.
+2. **The donor's neighbours are the bond's own geometry, against that metal only.** Every ligand atom within two bonds of a
+   coordinating donor is left out of the clash test against the metal the donor binds, and stays in it against every other
+   atom. Two bonds is `interaction_analysis.MIN_SEPARATION["clashes"]` (a bond-path separation under four is not a contact)
+   with the metal counted as bonded to the donor; it is also where a six-membered chelate ring puts its far atom (the
+   central carbon of acetylacetonate on calcium is two bonds from both oxygens and about 3.3 angstrom from the metal). Atoms
+   further out keep the ordinary radius test. A second metal pressed against another part of the same ligand still clashes.
+3. **A ligand's own metal bound by a receptor N, O, F or S is exempt the same way, and is now reported.** The detector used
+   to look only from the ligand's donors to the receptor's metals; exempting this pair without reporting it would have made
+   the contact vanish from both lists, so it appears in `metal_coordination` with the metal as `ligand_element` and the
+   donor as `receptor_element`. The receptor has no bonds, so only the pair itself is exempt, not a neighbourhood.
+4. **The radii are unchanged**, and the table's metal entries now say they are placeholders for a non-bonded contact. They
+   were not replaced with Alvarez's: that would move every non-bonded metal contact the application reports, on a radius
+   defined as the edge of a contact-distance peak rather than a cutoff, and nothing has measured what it would do. The Fe
+   1.56 stays untraced; it simply no longer decides anything about iron's own ligands.
+
+**Measured after** (the same five geometries): 0 clashes and 1 coordination for all of Zn at 2.1, Fe at 2.0, Mg at 2.1, Ca at
+2.4 and Na at 2.4. `tests/test_pose_analysis_metals.py` runs these through `analyze_pose`, with Harding's means for Zn, Fe, Mn,
+Cu, Ca and Mg, a chelate ring, the boundaries (overlap, just outside the cutoff, a non-bonded atom, a second metal), a sweep
+over every metal and donor that no distance is both a coordination and a clash, and the ligand-metal direction. Eleven
+mutants of the fix (no skip, depth 0, depth 1, no floor, a cutoff 0.5 too wide, neighbours exempt against every metal, the
+ligand direction not exempted or not reported, fluorine or sulfur dropped as a donor, any receptor atom as a donor) are all
+killed.
+
+**Not settled by this.** (a) **One window for every metal.** The donor window (1.8 to 2.8 angstrom) is a single pair of numbers, not a
+table. The sources are now in the registry ([source:harding2006], [source:zheng2017], [source:harding2002]): a donor is in the
+primary sphere within the target plus 0.5 angstrom for the transition metals, Mg and Ca, but plus 0.75 for Na and K, whose
+K-O target is 2.81 to 2.84. So 2.8 is right for most metals and **too short for potassium**, whose bonds run to about 3.5
+angstrom (a K...O contact there is still reported as a clash, as before). Sourced per-metal windows and floors are the agreed
+follow-up. Fluorine as a donor has no source either.
+(b) **A saved docking result keeps what it was analysed with.** Interaction data
+lives in `DockingPoseModel.metadata`, written once by the docking job and saved in the project file; nothing recomputes it
+on load. Results saved before this change still list the coordinated metal under clashes. The method-version mechanism in
+`domain/result_store.py` is keyed by calculator result id and does not reach docking poses, so no version was bumped and
+no note was attached; re-running the dock (or the analysis) replaces them. (c) **The same defect is in `interaction_analysis.find_interactions`, which analyses a ligand with itself, and is not fixed here.**
+Measured 2026-10-11 with a zinc 2.0 angstrom from an imidazole nitrogen: a zinc bonded in the molecule is correctly left alone
+(its bond-path separation from the nitrogen is under four), but a zinc drawn as a separate fragment (`c1c[nH]cn1.[Zn+2]`)
+gives one clash and one metal coordination.
 
 ## Not verified
 

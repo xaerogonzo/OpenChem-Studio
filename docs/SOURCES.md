@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: d3bd9df6aca120c43bdb619659c8eb83ec0ce17444a62383e9489fc505fe8fba -->
+<!-- SOURCE SHA256: 68ee513e8a65a078a86d0776d906e5a92105a3e2c4cf6f604c30b8d1d69c94c6 -->
 
 # Sources
 
@@ -169,7 +169,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`hall1981`](#hall1981) | literature | shipped | citation |
 | [`hancock1996`](#hancock1996) | literature | reference only | citation |
 | [`hanus2004`](#hanus2004) | literature | reference only | citation + claim |
-| [`harding1999`](#harding1999) | literature | reference only | citation |
+| [`harding1999`](#harding1999) | literature | shipped | citation + claim |
 | [`harding2000`](#harding2000) | literature | reference only | citation |
 | [`harding2001`](#harding2001) | literature | reference only | citation + claim |
 | [`harding2002`](#harding2002) | literature | reference only | citation + claim |
@@ -2367,21 +2367,27 @@ file is not in the maintainer's library until it is added there under the name a
 | | |
 | --- | --- |
 | Identifier | [10.1107/S0907444999007374](https://doi.org/10.1107/S0907444999007374) |
-| Status | reference only |
-| Verification | citation |
+| Status | shipped |
+| Verification | citation + claim |
 | Verified | 2026-10-11 |
 | Local copy | `harding1999.pdf` (not checked) |
-| Used by | `docs/VDW_RADII_ASSESSMENT.md` |
+| Used by | `src/openchem/chem/pose_analysis.py`, `docs/VDW_RADII_ASSESSMENT.md` |
 
-**Why it is reference only.** Read for the metal-donor distances in small-molecule structures, which Harding 2001 simplifies into the targets the assessment uses; no value of the application comes from it.
+CHECKED: identity against Crossref (title, volume 55, pages 1432-1443, 1999) and the printed running head; the whole text
+layer of the 12-page copy was read, including Tables 1 to 7. What the application takes from it, each checked against the
+printed table: the shortest metal-N/O/S distance in the survey is 1.81 angstrom (Table 5a, Cu-phenolate, "8 outliers,
+1.81-1.95"), with Mn-phenolate 1.83, Fe-phenolate 1.84 and Fe-thiolate (sulfur's own shortest) 2.18, which is why
+`METAL_DONOR_MIN_DISTANCE` is 1.8; the mean M-N-C angle at a coordinated imidazole is 126 (2), 131 (6) and 126 (3) degrees
+for the paper's three search queries and 128 (5) over all 201 observations (range 113-149; Table 6b); the geometry that
+follows from it (the metal 3.0-3.4 angstrom from the donor's neighbouring carbons) was measured here on an MMFF94 imidazole,
+not read from the paper; Ca...O up to 2.80 angstrom and Mg...O up to 2.45 were accepted as
+bonds when the structures were retrieved (section 2). The distances the tests use are the paper's means: Zn-N(imidazole)
+2.00, Fe-N 2.08, Mn-N 2.19, Cu-N 1.99 and Ca-N 2.44 (one observation) from Table 6a, and Mg-O(water) 2.07 from Table 2.
 
-CHECKED: identity from page 1 and against Crossref (title, author, Acta D 55, 1432-1443; the DOI is Crossref's, the
-typeset paper prints none), and the abstract: Cambridge Structural Database structures with R <= 0.065 containing Ca, Mg, Mn,
-Fe, Cu or Zn bound to analogues of protein side-chain ligands (carboxylate, alcohol, phenolate, thiolate, imidazole, water),
-4500 observations, with the mean metal-donor distance, standard deviation and range tabulated.
-
-NOT CHECKED: the paper's own tables. The distances the assessment quotes are from Harding 2001's Table 1, which says it is
-built from these with simplifications ([source:harding2001]).
+NOT CHECKED: the figures, the search queries, and the discussion of oxidation state and coordination number beyond what the
+tables say. The paper covers Ca, Mg, Mn, Fe, Cu and Zn with N, O and S donors only: it has nothing on Na, K, Co or Ni, nor
+on fluorine as a donor, so those are not supported by it. Magnesium's imidazole-nitrogen distance is not in this paper (Table
+6a lists none); the Mg tests use its water oxygen distance.
 
 ### harding2000
 
@@ -2398,13 +2404,16 @@ built from these with simplifications ([source:harding2001]).
 | Local copy | `harding2000.pdf` (not checked) |
 | Used by | `docs/VDW_RADII_ASSESSMENT.md` |
 
-**Why it is reference only.** Read for how far a weakly bonded donor can sit from a metal; no value of the application comes from it.
+**Why it is reference only.** Read to see whether a donor between the normal bond length and a van der Waals contact is a contact; its abstract says it is neither, which supports leaving donors up to the 2.8 angstrom cutoff out of the clash test. No number of the application comes from it.
 
-CHECKED: identity from page 1 and against Crossref, and the abstract's statement that four- and five-coordinate Zn and Cu
-complexes commonly have additional weakly coordinated ligands, usually N or O donors, at "M...N,O distances longer than a normal
-bond length but shorter than a van der Waals contact, e.g. in the range 2.4-3.0 A for Zn and 2.6-3.0 A for Cu".
+CHECKED: identity against Crossref (title, volume 56, pages 857-867, 2000) and the printed running head; the abstract and
+introduction were read, and the whole text layer was extracted and searched. The abstract states that for four- and
+five-coordinate Zn and Cu "it is quite common to find additional weakly coordinated ligands, usually with N or O donor
+atoms and with M...N,O distances longer than a normal bond length but shorter than a van der Waals contact, e.g. in the
+range 2.4-3.0 angstrom for Zn and 2.6-3.0 angstrom for Cu".
 
-NOT CHECKED: the angle tables and the bond-valence discussion.
+NOT CHECKED: the tables of those weak interactions, the angle analysis, and the Ca discussion; nothing here was used beyond
+the abstract's statement.
 
 ### harding2001
 
