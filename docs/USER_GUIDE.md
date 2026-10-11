@@ -2141,6 +2141,48 @@ application has validated any of them against *your* molecule: a charge is a
 model output, not a measurement, and only the **sum** of the charges equals
 the net charge.
 
+**What each one does, and what its number means, is explained in the
+[calculator reference](CALCULATOR_REFERENCE.md)** -- the idea behind the model,
+what it was fitted to, when to prefer it and when not: [Partial Charge
+(3D)](CALCULATOR_REFERENCE.md#partial-charge-3d) for EEM, QEq and Ionescu,
+[Partial Charge (pH-dependent)](CALCULATOR_REFERENCE.md#partial-charge-ph-dependent)
+for Gasteiger and MMFF94, and [Dipole Moment](CALCULATOR_REFERENCE.md#dipole-moment).
+This page is the short comparison; that one is the reason behind it.
+
+The same atom under each model, so "different numbers" is not an abstraction.
+**Measured 2026-10-11 on one RDKit-embedded, MMFF94-relaxed conformer per
+molecule (seed 7); an illustration, not a benchmark.** Charges in units of *e*:
+
+| Atom | EEM | QEq | Ionescu 6-31G* | Gasteiger | MMFF94 |
+|---|---|---|---|---|---|
+| ethanol, O | -0.58 | -0.67 | -0.82 | -0.40 | -0.68 |
+| nitromethane, N | +0.24 | +0.12 | -0.42 | +0.02 | +0.80 |
+| dimethyl sulfone, S | refused (no S parameters) | -0.10 | refused (S bonded to O) | +0.14 | +1.09 |
+
+Two things in it are worth reading closely: Ionescu's model, fitted for
+proteins, puts a **negative** charge on the nitro nitrogen where the others put a
+positive one, and QEq returns a slightly negative sulfur for a sulfone without
+refusing. A number that comes back is not thereby shown to be reasonable.
+
+**What actually differs between them.** The names in a calculator's *Method* list
+(`eem_bultinck2002_part1`, `qeq_rg1991_lambda_half_h_experimental`,
+`eem_ionescu2013_e_mpa_631gs_gas`) are stored codes, and each is decoded in the
+[calculator reference](CALCULATOR_REFERENCE.md#partial-charge-3d). The models differ
+in what they were built from and in how two charges interact, and those two choices
+are most of why the numbers differ:
+
+| Model | Built from | How two charges interact | Needs 3D | Paper |
+|---|---|---|---|---|
+| Gasteiger (PEOE) | each atom type's ionization potential and electron affinity, as a quadratic in its charge; not fitted to quantum charges | no pairwise term: charge moves bond by bond, damped by half each round | no | Gasteiger & Marsili 1980, DOI 10.1016/0040-4020(80)80168-2 |
+| MMFF94 | one fixed increment per bond type, fitted with the rest of the force field to Hartree-Fock dipoles and interaction energies | none: a lookup by atom types | no | Halgren 1996 (part II), J. Comput. Chem. 17, 520-552 |
+| EEM (Bultinck 2002) | an effective electronegativity and hardness per element, fitted to B3LYP/6-31G* Mulliken charges of 138 small molecules | plain Coulomb, 1/R between every pair | yes | Bultinck et al. 2002, DOI 10.1021/jp0205463 |
+| QEq (Rappé-Goddard 1991) | experimental ionization potentials, electron affinities and atomic radii; not fitted to quantum charges | Coulomb **shielded** by the atoms' size (Slater orbitals); hydrogen's parameters depend on its own charge | yes | Rappé & Goddard 1991, DOI 10.1021/j100161a070 |
+| EEM (Ionescu 2013) | an effective electronegativity and hardness per element, fitted to Hartree-Fock Mulliken charges of large protein fragments | Coulomb with an adjusting factor k | yes | Ionescu et al. 2013, DOI 10.1021/ci400448n |
+
+"Built from" is the paper's own description. Which one is right for *your*
+molecule is a question none of them answers on its own, which is why this
+application reports each as what it is and ranks none.
+
 | Calculator and method | Runs on | Covers | Refuses |
 |---|---|---|---|
 | **Partial Charge (pH-dependent)** — Gasteiger (PEOE) | the 2D drawing, on its dominant protonation state at the pH you give | computed for every structure tried (see below) | nothing in the structures tried |

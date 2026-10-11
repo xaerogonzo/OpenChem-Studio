@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Docs: calculator explainers, starting with the partial-charge family
+- `docs/CALCULATOR_REFERENCE.md` said what each calculator needs and refuses but not what it
+  DOES. Hand-written explainers in `docs/explainers/` (idea, how it works, what the result means,
+  when to use it and when not, search keywords, numbered sources) are now merged under each
+  calculator by `tools/build_calculator_reference.py`, so the in-app Help window shows them and
+  its search finds them. First family: the 3D partial charges (EEM, QEq, Ionescu), the pH-dependent
+  charges (Gasteiger PEOE, MMFF94), Dipole Moment and Orbital Electronegativity, each claim read
+  against its paper or measured, and labelled published, shipped or measured.
+- Citations are the repository's `[source:key]`, rendered as the registry's bibliography and the DOI
+  as plain text, never a link: a URL rots, a DOI is built to outlive the site. No URL is allowed in an
+  explainer. `tests/test_calculator_explainers.py` owns completeness as a named ratchet
+  (`EXPLAINER_DEBT`, 68 calculators still to do; it only shrinks), the schema, the citations, and
+  that Help search finds each explainer under its own calculator. Help stays as fast (17-18 ms a search).
+- `OPENCHEM_DRIVE`'s `dialog` step takes `topic` and `search` for the Help window.
+- `USER_GUIDE.md`'s partial-charge comparison points at the explainers and adds a dated side-by-side
+  of one atom under each model.
+
 ### Help window: three things found by using it
 - **Clearing a search lost your place.** The x in the search box re-rendered the page and put it back at
   the top, so removing the highlighting read as being thrown back to the main menu. It now drops the marks,
