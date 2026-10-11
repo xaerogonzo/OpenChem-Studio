@@ -92,7 +92,8 @@ STERIC_METHOD = "steric-v2"
 #: The method Interaction Analysis is computed by today (`chem/interaction_analysis.py`). v2 (2026-10-11) stops
 #: reading a nitro group (or any charge-separated drawing of a neutral group) as a cation or anion, requires a
 #: hydrogen bond to have a donor, keeps two directly or singly linked aromatic rings from counting as stacked, counts
-#: divalent sulfur as a metal donor, and gives a hydrophobic contact a lower bound at the van der Waals contact.
+#: divalent sulfur as a metal donor, gives a hydrophobic contact a lower bound at the van der Waals contact, and
+#: leaves a metal's bond to a donor out of the clash test even when the metal is a separate fragment.
 #: A saved result without a method listed nitrobenzene's nitro nitrogen as a cation at 2.86 A from its own ring, and
 #: biphenyl's two joined rings as stacked; it is kept beside the new one, labelled, never replayed as it.
 INTERACTION_METHOD = "interactions-v2"
