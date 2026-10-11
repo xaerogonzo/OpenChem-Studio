@@ -15141,6 +15141,13 @@ class SubstitutivePath:
                 if interpretation_fgs:
                     for _fg in interpretation_fgs:
                         if _fg.type in _TRIM_FG_TYPES and _fg.anchor in carbon_atoms:
+                            if _fg.type == "hydroxamic_acid" and any(
+                                perception.atoms[_nb].element == "N" and len(perception.atoms[_nb].neighbors) > 2
+                                for _nb in perception.atoms[_fg.anchor].neighbors
+                            ):
+                                # D-211: "hydroxycarbamoyl" has no place for an N-substituent, so an N-substituted hydroxamic acid keeps
+                                # its carbon in the chain ("2-[hydroxy(methyl)amino]-2-oxoethyl", as an N-methoxy amide already is).
+                                continue
                             _cooh_anchors.add(_fg.anchor)
                 for idx in carbon_atoms:
                     if idx not in _cooh_anchors:
@@ -16124,6 +16131,9 @@ class SubstitutivePath:
             # path as their amide counterparts so N-substituents are emitted
             # correctly when the C=S anchor lands in a parent chain.
             "thioamide", "secondary_thioamide", "tertiary_thioamide",
+            # D-211: the N-substituent of a demoted hydroxamic acid (its N-methyl, N-phenyl) is left for the flood-fill like an amide's.
+            # Its N-OH oxygen is a declared context atom (fg_detection), so it is left too and carved as "hydroxy" on the nitrogen.
+            "hydroxamic_acid",
         })
         for fg in non_pcg_fgs:
             off_parent = fg.atoms - parent_atoms
@@ -17142,6 +17152,9 @@ class SubstitutivePath:
             # already names: "4-carbamimidoylbutanoic acid" was a DIFFERENT
             # molecule, one carbon longer.
             "imidamide",
+            # Naming round 38 (D-211): a hydroxamic acid whose carbon is in the chain. The prefix "hydroxycarbamoyl" includes that carbon,
+            # so a chain that already names it gained a phantom one: "3-(hydroxycarbamoyl)propanoic acid" for HOOC-CH2-C(=O)NHOH.
+            "hydroxamic_acid",
         })
         _consumed_pas: set[int] = set()  # indices of PAs consumed by merging
         _extra_pas: list = []            # new PAs to inject
@@ -17688,6 +17701,9 @@ class SubstitutivePath:
                         # Phase 4 — thioamide demoted-acyl-chain naming
                         # mirrors amide.
                         "thioamide", "secondary_thioamide", "tertiary_thioamide",
+                        # D-211: an N-substituted hydroxamic acid off the parent ("2-[hydroxy(methyl)carbamoyl]benzoic acid"); the bare
+                        # prefix "hydroxycarbamoyl" dropped the N-methyl.
+                        "hydroxamic_acid",
                     })
                     if pa.role == "demoted_fg" and pa.fg.type in _DEMOTED_AMIDE_TYPES_EXEC:
                         # Check if anchor is off-parent (i.e., in substituent_atoms)
@@ -17735,6 +17751,7 @@ class SubstitutivePath:
                             if pa.fg.type in {
                                 "secondary_amide", "tertiary_amide",
                                 "secondary_thioamide", "tertiary_thioamide",
+                                "hydroxamic_acid",
                             }:
                                 for _nb in anchor_atom_exec.GetNeighbors():
                                     if _nb.GetAtomicNum() != 7:
