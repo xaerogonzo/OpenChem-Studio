@@ -397,6 +397,9 @@ def test_geometry_is_opt_in_and_the_default_is_the_drawing():
     # meets the same standard by construction: it refuses a drawing through the
     # same guard, and its charges follow the coordinates it was handed --
     # `tests/test_protonation_geometry.py::test_the_ph_charges_follow_the_geometry`.
+    # `torsion_table` meets the standard by definition: a dihedral is a function of the coordinates alone,
+    # a drawing's flat 2D ones give 0 or 180 and mean nothing, so it refuses one
+    # (`tests/test_torsions.py::test_a_structure_with_no_conformer_is_refused_with_the_way_out`).
     assert declared == {
         "atom_sasa",
         "bird_aromaticity",
@@ -408,6 +411,7 @@ def test_geometry_is_opt_in_and_the_default_is_the_drawing():
         "molecular_dynamics",
         "steric_analysis",
         "surface_analysis",
+        "torsion_table",
     }
 
 

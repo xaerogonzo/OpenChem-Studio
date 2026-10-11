@@ -51,7 +51,7 @@ def _unscoped(definitions) -> list[str]:
 def test_every_registry_calculator_declares_a_scope():
     """A missing scope is not a scope; an explicit WHOLE_STRUCTURE is."""
     assert not _unscoped(CALCULATOR_DEFINITIONS)
-    assert len(REGISTRY_DEFINITIONS) == 59
+    assert len(REGISTRY_DEFINITIONS) == 62
 
 
 def test_the_guard_names_a_calculator_whose_scope_was_stripped():
