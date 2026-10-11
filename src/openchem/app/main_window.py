@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from functools import partial
 
 import logging
@@ -125,6 +126,7 @@ from openchem.ui.widgets.panel_rail import (
     builtin_order_of,
 )
 from openchem.ui.widgets.pop_out_host import PopOutHost
+from openchem.ui.widgets.workflow_body import HOME_PROPERTIES, HOME_TAB, WorkflowPlaceholder
 from openchem.ui.widgets.results_view import ResultsView
 from openchem.ui.widgets.results_workspace import ResultsWorkspace
 from openchem.ui.widgets.molecule_editor_widget import MoleculeEditorWidget
@@ -332,6 +334,27 @@ HELP_TOPIC_BY_CENTRE_TAB = {
 }
 
 
+#: The rail panel id of each workflow that can live in Properties.
+_DOCK_BY_WORKFLOW = {"docking": "Docking", "alignment": "3D_Alignment"}
+
+#: The same table the other way round: a rail click names a dock, and this says which workflow it is.
+_WORKFLOW_BY_DOCK = {dock: workflow for workflow, dock in _DOCK_BY_WORKFLOW.items()}
+
+#: The Qt property that carries a workflow's id on the note its tab shows, so one bound
+#: method serves every workflow (a lambda capturing `self` would root the window).
+_WORKFLOW_ID_PROPERTY = "openchem_workflow_id"
+
+
+@dataclass
+class _WorkflowHome:
+    """Where one workflow's pieces are, so it can be moved without being rebuilt."""
+
+    panel: QWidget
+    title: str
+    scroll: QScrollArea | None = None
+    placeholder: QWidget | None = None
+
+
 class MainWindow(QMainWindow):
     """QMainWindow: menu bar, dock layout, owns the QUndoStack.
 
@@ -481,6 +504,36 @@ class MainWindow(QMainWindow):
             result_store_service=services.result_store_service,
         )
         self._alignment_panel = AlignmentPanel(services.alignment_service, services.event_bus, self, settings=settings)
+        # EACH WORKFLOW IS ONE PANEL WITH TWO HOMES: its own tab (what it always had) or a section
+        # of Properties. The panel is never built twice, so its inputs, result and 3D view are one
+        # wherever it is; `_move_workflow` moves it and `_workflow_homes` records where each lives.
+        self._workflow_homes: dict[str, _WorkflowHome] = {}
+        for workflow_id, title, panel, keywords in (
+            (
+                "alignment",
+                "Align several molecules",
+                self._alignment_panel,
+                "3D alignment superimpose overlay reference rmsd ensemble multiple molecules",
+            ),
+            (
+                "docking",
+                "Dock a molecule into a receptor",
+                self._docking_panel,
+                "docking autodock vina receptor ligand pose binding affinity search box rescore screening",
+            ),
+        ):
+            home = self._stored_workflow_home(workflow_id)
+            self._property_panel.add_workflow(
+                workflow_id, title, keywords, home, panel if home == HOME_PROPERTIES else None
+            )
+            self._workflow_homes[workflow_id] = _WorkflowHome(panel=panel, title=title)
+        # The search box is drawn on the structure while the docking workflow is OPEN where it
+        # lives; opening or closing its section changes that.
+        self._property_panel.workflow_section("docking").expansion_changed.connect(
+            self._sync_docking_box_overlay
+        )
+        self._property_panel.workflow_move_requested.connect(self._on_workflow_move_requested)
+        self._property_panel.workflow_tab_requested.connect(self._on_workflow_tab_requested)
         self._interactions_panel = InteractionsPanel(
             services.chemistry_engine, services.event_bus, self
         )
@@ -625,7 +678,7 @@ class MainWindow(QMainWindow):
         )
         self._add_dock("Console", self._console_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         docking_dock = self._add_dock(
-            "Docking", self._wrap_scrollable(self._docking_panel), Qt.DockWidgetArea.RightDockWidgetArea
+            "Docking", self._workflow_dock_content("docking"), Qt.DockWidgetArea.RightDockWidgetArea
         )
         quantum_chemistry_dock = self._add_dock(
             "Quantum Chemistry",
@@ -634,7 +687,7 @@ class MainWindow(QMainWindow):
         )
         alignment_dock = self._add_dock(
             "3D Alignment",
-            self._wrap_scrollable(self._alignment_panel),
+            self._workflow_dock_content("alignment"),
             Qt.DockWidgetArea.RightDockWidgetArea,
         )
         atom_inspector_dock = self._add_dock(
@@ -1061,7 +1114,31 @@ class MainWindow(QMainWindow):
             "window_minimum": [self.minimumSizeHint().width(), self.minimumSizeHint().height()],
         }
 
-    def _sync_docking_box_overlay(self) -> None:
+    def _active_docking_panel(self):
+        """The Docking panel, if its search box belongs on the structure right now.
+
+        There is ONE panel, so there is one box. It is drawn while the panel is on screen where
+        it lives: its own dock showing, or -- if it has moved into Properties -- Properties
+        showing with its section open (and not hidden by Find). Otherwise no box.
+        """
+        panel = getattr(self, "_docking_panel", None)
+        if panel is None or panel.selected_receptor_uuid() is None:
+            return None
+        if self._property_panel.workflow_home("docking") == HOME_PROPERTIES:
+            section = self._property_panel.workflow_section("docking")
+            properties_dock = self._dock_by_panel_id("Properties")
+            shown = (
+                section is not None
+                and not section.isHidden()
+                and section.is_expanded()
+                and properties_dock is not None
+                and not properties_dock.isHidden()
+            )
+            return panel if shown else None
+        dock = self._dock_by_panel_id("Docking")
+        return panel if dock is not None and not dock.isHidden() else None
+
+    def _sync_docking_box_overlay(self, *_args) -> None:
         """Draw the docking search box while, and only while, Docking shows.
 
         THE ONE AUTHORITY. Every route that can change the answer calls this
@@ -1080,11 +1157,10 @@ class MainWindow(QMainWindow):
         would draw nothing under a test harness while looking correct in the
         running app -- already on record here twice.
         """
-        dock = self._dock_by_panel_id("Docking")
-        panel = getattr(self, "_docking_panel", None)
-        if dock is None or panel is None:
+        if self._dock_by_panel_id("Docking") is None or getattr(self, "_docking_panel", None) is None:
             return
-        if dock.isHidden() or panel.selected_receptor_uuid() is None:
+        panel = self._active_docking_panel()
+        if panel is None:
             self._macromolecule_viewer.clear_search_box()
             return
         box = panel.displayed_box()
@@ -1097,6 +1173,8 @@ class MainWindow(QMainWindow):
         return self._plugin_panels.get(panel_id)
 
     def _on_panel_chosen(self, panel_id: str) -> None:
+        if self._reveal_if_in_properties(panel_id):
+            return
         dock = self._dock_by_panel_id(panel_id)
         if dock is None:
             return
@@ -1116,6 +1194,8 @@ class MainWindow(QMainWindow):
         A left click replaces the panel showing; this is the other half of the gesture. It does not lock anything, so
         the next left click elsewhere still replaces the unlocked ones -- lock the ones to keep.
         """
+        if self._reveal_if_in_properties(panel_id):
+            return
         dock = self._dock_by_panel_id(panel_id)
         if dock is None:
             return
@@ -1546,6 +1626,98 @@ class MainWindow(QMainWindow):
         if not self._results_dock.isHidden():
             return
         self._results_host.pop_out()
+
+    # --- workflows that move between their tab and Properties ----------------------------------
+
+    def _stored_workflow_home(self, workflow_id: str) -> str:
+        """Where this workflow was left. Its own tab until somebody moves it."""
+        stored = str(self._settings.get(f"workflows/{workflow_id}/home", HOME_TAB) or HOME_TAB)
+        return stored if stored in (HOME_TAB, HOME_PROPERTIES) else HOME_TAB
+
+    def _workflow_dock_content(self, workflow_id: str) -> QScrollArea:
+        """The contents of a workflow's dock: the workflow, or a note saying where it went.
+
+        Built with the dock, after `add_workflow` has said which home the workflow starts in.
+        The scroll area is kept: moving the workflow in and out of the tab is
+        `takeWidget`/`setWidget` on it, and the note is kept too so it is not deleted when
+        the workflow takes its place.
+        """
+        spec = self._workflow_homes[workflow_id]
+        scroll = QScrollArea(self)
+        scroll.setWidgetResizable(True)
+        spec.scroll = scroll
+        spec.placeholder = WorkflowPlaceholder(spec.title)
+        spec.placeholder.setProperty(_WORKFLOW_ID_PROPERTY, workflow_id)
+        spec.placeholder.show_requested.connect(self._on_workflow_show_requested)
+        spec.placeholder.move_back_requested.connect(self._on_workflow_move_back_requested)
+        in_properties = self._property_panel.workflow_home(workflow_id) == HOME_PROPERTIES
+        scroll.setWidget(spec.placeholder if in_properties else spec.panel)
+        return scroll
+
+    def _dock_name_of(self, workflow_id: str) -> str:
+        return _DOCK_BY_WORKFLOW[workflow_id]
+
+    def _reveal_if_in_properties(self, panel_id: str) -> bool:
+        """A rail click on a workflow that lives in Properties goes to its section instead.
+
+        The rail entry stays where it always was, so the habit of clicking it still works; it
+        just takes you to where the workflow is now. Returns True when it did.
+        """
+        workflow_id = _WORKFLOW_BY_DOCK.get(panel_id)
+        if workflow_id is None or not hasattr(self, "_workflow_homes"):
+            return False
+        if self._property_panel.workflow_home(workflow_id) != HOME_PROPERTIES:
+            return False
+        self._reveal_workflow(workflow_id)
+        return True
+
+    def _reveal_workflow(self, workflow_id: str) -> None:
+        self._on_panel_chosen("Properties")
+        self._property_panel.reveal_workflow(workflow_id)
+        self._sync_docking_box_overlay()
+
+    def _on_workflow_move_requested(self, workflow_id: str, home: str) -> None:
+        self._move_workflow(workflow_id, home)
+
+    def _on_workflow_tab_requested(self, workflow_id: str) -> None:
+        self._on_panel_chosen(self._dock_name_of(workflow_id))
+
+    def _on_workflow_show_requested(self) -> None:
+        workflow_id = self.sender().property(_WORKFLOW_ID_PROPERTY)
+        if workflow_id:
+            self._reveal_workflow(str(workflow_id))
+
+    def _on_workflow_move_back_requested(self) -> None:
+        workflow_id = self.sender().property(_WORKFLOW_ID_PROPERTY)
+        if workflow_id:
+            self._move_workflow(str(workflow_id), HOME_TAB)
+
+    def _move_workflow(self, workflow_id: str, home: str) -> None:
+        """Move a workflow between its own tab and Properties. THE SAME WIDGET, both ways.
+
+        Nothing is rebuilt, so every value the person set, the receptor and box, a result on
+        screen, and the 3D view all arrive with it. The order is the careful part: the widget is
+        taken OUT of its old container before it is put into the new one (a widget has one
+        parent), and the note a tab shows is kept by reference, because `QScrollArea.setWidget`
+        deletes whatever it replaces.
+        """
+        spec = self._workflow_homes[workflow_id]
+        if self._property_panel.workflow_home(workflow_id) == home:
+            return
+        if home == HOME_PROPERTIES:
+            spec.scroll.takeWidget()  # the panel; `spec.panel` still holds it
+            spec.scroll.setWidget(spec.placeholder)
+            self._property_panel.adopt_workflow(workflow_id, spec.panel)
+        else:
+            self._property_panel.release_workflow(workflow_id)
+            spec.scroll.takeWidget()  # the note; `spec.placeholder` still holds it
+            spec.scroll.setWidget(spec.panel)
+        self._settings.set(f"workflows/{workflow_id}/home", home)
+        if home == HOME_PROPERTIES:
+            self._reveal_workflow(workflow_id)
+        else:
+            self._on_panel_chosen(self._dock_name_of(workflow_id))
+        self._sync_docking_box_overlay()
 
     def _wrap_scrollable(self, widget: QWidget) -> QScrollArea:
         """Defensive floor for form-heavy panels (Docking, Quantum Chemistry):

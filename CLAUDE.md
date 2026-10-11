@@ -112,6 +112,25 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "expect_project_table", "rows": 2, "columns_contain": ["Atom count"],
      "showing": true}                     what the Results dock's PROJECT TABLE holds,
                                           read off the workspace the dock is built from
+    {"do": "expand", "section": "workflow:alignment"}   open a Properties WORKFLOW section
+    {"do": "workflow_move", "workflow": "docking", "to": "properties"}  move a workflow
+                                          between its own tab and Properties by pressing the
+                                          REAL button; `align_report` and `dock_panel` take
+                                          `expect` (`home`, `rows`/`poses_at_least`,
+                                          `viewer_built`, `settings_expanded`, `groups_expanded`)
+                                          and read where the widget is off its containers
+    {"do": "workflow_group", "workflow": "docking", "group": "search", "expanded": false}
+                                          open or close a collapsible group INSIDE a workflow
+                                          (alignment: settings; docking: box, prep, search)
+    {"do": "properties_height_report", "workflow": "alignment"}  each level from the workflow up to
+                                          the window: height against the minimum it asks for,
+                                          STARVED when shorter; `properties_width_report` says why
+                                          the list scrolls sideways; `properties_grab` saves the
+                                          whole list at full height. A script that moves a
+                                          workflow writes the real settings: end it in its tab
+    {"do": "properties_scroll", "to": "workflow:alignment"}  scroll the Properties list
+                                          ("end", "top", a pixel offset) so a tall section's
+                                          picture is in the shot
     {"do": "chip", "calculator": "detonation", "expect": {"status": "needs_input"}}
                                           PRESS a status chip and assert where
                                           the press went; `tool_setup` is the
@@ -374,6 +393,7 @@ message — this index is. **If a title below names what you are
 about to touch, read that section before you start.** Headings there
 are verbatim, so grep the file for the line.
 
+- A WORKFLOW IN A SCROLLED LIST WAS GIVEN HALF THE HEIGHT IT ASKED FOR, AND EVERY WIDGET REPORTED A SENSIBLE SIZE
 - THE NOTE COUNTED FIVE EXAMPLES AND THE BOOK PRINTS FIFTEEN, AND THE RULE'S FIRST WRONG NAME WAS A TREE IT HAD NEVER BEEN OFFERED
 - A RE-PIN CANNOT BUY HEADROOM THE SUM DOES NOT HAVE, AND THE WEIGHTS MODELLED THE SMALLER HALF OF A SHARD'S COST
 - A GROUP'S BONDING NUMBER AND A PREFIX'S NUCLIDE WERE IN NO TABLE, AND THE APP'S READ-BACK HID BOTH

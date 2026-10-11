@@ -13,8 +13,8 @@ and none works alone.
 
 from __future__ import annotations
 
-from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QRegion
+from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtGui import QFontMetrics, QRegion
 from PySide6.QtWidgets import (
     QFormLayout,
     QLabel,
@@ -464,6 +464,40 @@ _SECTION_TOGGLE_HELP = HelpTooltip(
 )
 
 
+class _SummaryLabel(QLabel):
+    """One line that may be narrower than its text, shown while a section is closed.
+
+    The same defect `ElidingLabel` records for a caption: a plain label reports its
+    whole text as its minimum width, and a docked column is narrower than a sentence.
+    `Ignored` drops that minimum to zero; the text is elided to what it is given and
+    the full line is the tooltip.
+    """
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__("", parent)
+        self._full_text = ""
+        self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
+        self.setStyleSheet("color: #666666;")
+
+    def set_full_text(self, text: str) -> None:
+        self._full_text = text
+        self.setToolTip(text)
+        self._elide()
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 - Qt override
+        super().resizeEvent(event)
+        self._elide()
+
+    def _elide(self) -> None:
+        margins = self.contentsMargins()
+        available = max(0, self.width() - margins.left() - margins.right())
+        shown = QFontMetrics(self.font()).elidedText(
+            self._full_text, Qt.TextElideMode.ElideRight, available
+        )
+        if shown != self.text():
+            self.setText(shown)
+
+
 class CollapsibleSection(QWidget):
     """A titled section that shows/hides its content on click — no native
     Qt widget does this, so a `QToolButton` (checkable, arrow icon) plus a
@@ -477,6 +511,11 @@ class CollapsibleSection(QWidget):
     switches instead of blinking away until the first descriptor for that
     category arrives again.
     """
+
+    #: Emitted when the section opens or closes, by a click or in code. Carries the new
+    #: state. For a host that must react to a section being open (the docking search box
+    #: is drawn on the structure only while its section is).
+    expansion_changed = Signal(bool)
 
     def __init__(self, title: str, expanded: bool, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -532,6 +571,13 @@ class CollapsibleSection(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         layout.addWidget(self._toggle_button)
+        # What the closed section still says: the settings it holds, in one line. Hidden
+        # while open and when nobody gave it text, so a section that never uses it is
+        # exactly the height it was.
+        self._summary_label = _SummaryLabel(self)
+        self._summary_label.setContentsMargins(20, 0, 2, 2)
+        self._summary_label.setVisible(False)
+        layout.addWidget(self._summary_label)
         layout.addWidget(self.content)
 
     def set_expanded(self, expanded: bool) -> None:
@@ -548,9 +594,33 @@ class CollapsibleSection(QWidget):
     def is_expanded(self) -> bool:
         return self._toggle_button.isChecked()
 
+    def title(self) -> str:
+        """The heading as given, for ordering and for a test to read."""
+        return self._toggle_button.text()
+
     def _on_toggled(self, checked: bool) -> None:
         self._toggle_button.setArrowType(Qt.ArrowType.DownArrow if checked else Qt.ArrowType.RightArrow)
         self.content.setVisible(checked)
+        self._refresh_summary_visibility()
+        self.expansion_changed.emit(checked)
+
+    def set_summary(self, text: str) -> None:
+        """The one line shown under the heading while the section is CLOSED.
+
+        Empty text shows nothing. It is the answer to "I closed the settings to
+        make room: what will Run do?", so a caller keeps it current as the settings
+        change.
+        """
+        self._summary_label.set_full_text(text)
+        self._refresh_summary_visibility()
+
+    def summary(self) -> str:
+        return self._summary_label._full_text
+
+    def _refresh_summary_visibility(self) -> None:
+        # `isHidden`-style state, not `isVisible`: an unshown window reports every
+        # child not-visible, which would blank the line at construction.
+        self._summary_label.setHidden(self.is_expanded() or not self._summary_label._full_text)
 
     def content_layout(self) -> QFormLayout:
         return self._content_layout

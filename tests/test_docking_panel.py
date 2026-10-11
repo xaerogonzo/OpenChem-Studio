@@ -1006,6 +1006,14 @@ def _header_shortfalls(panel):
     from PySide6.QtGui import QFontMetrics
     from PySide6.QtWidgets import QStyle
 
+    # The pose table is not shown until there are poses, and a hidden table is never
+    # laid out, so its sections sit at Qt's 100 px default and every header "clips".
+    # What is being asked is whether the table fits ONCE SHOWN, so show it.
+    if panel._table.isHidden():
+        panel._table.setVisible(True)
+        from PySide6.QtWidgets import QApplication
+
+        QApplication.processEvents()
     header = panel._table.horizontalHeader()
     metrics = QFontMetrics(header.font())
     margin = 2 * header.style().pixelMetric(QStyle.PixelMetric.PM_HeaderMargin)
@@ -1162,15 +1170,15 @@ def test_narrowing_the_coordinate_spins_really_shrinks_the_panel(qapp):
     384 at real fonts, 522 to 510 under `offscreen` -- which is the honest
     scope of the claim.
     """
-    from PySide6.QtWidgets import QGroupBox
-
     panel, _engine, _service = _make_panel()
     panel.show()
     panel.resize(420, 900)
     qapp.processEvents()
-    group = next(
-        g for g in panel.findChildren(QGroupBox) if g.title().startswith("Search box")
-    )
+    # The group is a collapsible section now (it was a QGroupBox): same widgets, same form.
+    # MEASURED ON THE GROUP'S FORM, not the section around it: the section is a stack of
+    # three widgets whose cached minimum is not refreshed within one `processEvents`, while the
+    # form -- the thing the spin caps act on -- is. Same claim, read where it is current.
+    group = panel.box_section._calculators_layout.itemAt(0).widget()
     fitted = group.minimumSizeHint().width()
 
     for spin in (
@@ -1196,15 +1204,13 @@ def test_the_short_form_labels_are_the_other_half_of_the_fit(qapp):
     Asserted on the box GROUP for the reason the spin guard is: the panel's own
     minimum is bound by a different group under `offscreen`.
     """
-    from PySide6.QtWidgets import QFormLayout, QGroupBox, QLabel
+    from PySide6.QtWidgets import QFormLayout, QLabel
 
     panel, _engine, _service = _make_panel()
     panel.show()
     panel.resize(420, 900)
     qapp.processEvents()
-    group = next(
-        g for g in panel.findChildren(QGroupBox) if g.title().startswith("Search box")
-    )
+    group = panel.box_section._calculators_layout.itemAt(0).widget()
     fitted = group.minimumSizeHint().width()
 
     form = group.layout()

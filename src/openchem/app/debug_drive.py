@@ -512,6 +512,51 @@ class _Driver(QObject):
             )
         )
 
+    def _expect_docking(self, panel, tag: str, expect: dict[str, Any]) -> None:
+        """ASSERT the pose table, where the panel lives, and its groups.
+
+        `{"expect": {"poses_at_least": 1, "home": "properties", "groups_expanded": false}}`.
+        `poses` is exact; `poses_at_least` is a minimum. `home` is where the ONE panel is
+        (`"tab"` or `"properties"`), read off the containers that hold the widget.
+        """
+        problems: list[str] = []
+
+        def cells_of(target) -> list[list[str]]:
+            table = target._table
+            return [
+                [
+                    table.item(row, column).text()
+                    for column in range(table.columnCount())
+                    if table.item(row, column) is not None
+                ]
+                for row in range(table.rowCount())
+            ]
+
+        mine = cells_of(panel)
+        if "poses" in expect and len(mine) != int(expect["poses"]):
+            problems.append(f"{len(mine)} pose row(s), wanted {expect['poses']}")
+        if "poses_at_least" in expect and len(mine) < int(expect["poses_at_least"]):
+            problems.append(f"{len(mine)} pose row(s), wanted at least {expect['poses_at_least']}")
+        if "home" in expect:
+            problems.extend(self._home_problems("docking", panel, str(expect["home"])))
+        if "groups_expanded" in expect:
+            groups = (panel.box_section, panel.prep_section, panel.search_section)
+            actual = [g.is_expanded() if g is not None else None for g in groups]
+            if actual != [bool(expect["groups_expanded"])] * 3:
+                problems.append(f"groups (box, prep, search) expanded {actual}, wanted all {expect['groups_expanded']}")
+        if problems:
+            logger.error("OPENCHEM_DRIVE: EXPECT docking FAILED[%s] -- %s", tag, "; ".join(problems))
+        else:
+            logger.warning("OPENCHEM_DRIVE: EXPECT docking ok[%s]", tag)
+
+    def _docking_target(self, step: dict[str, Any]):
+        """The docking panel -- ONE widget, wherever it lives (its tab or Properties).
+
+        `step` is accepted so every call site reads the same; there is nothing to choose.
+        None when the window has no such panel, which the caller reports.
+        """
+        return getattr(self._window, "_docking_panel", None)
+
     def _do_dock_receptor(self, step: dict[str, Any]) -> None:
         """Point the Docking panel's receptor combo at one entry.
 
@@ -525,7 +570,7 @@ class _Driver(QObject):
         which is what a run of this harness reported before this existed,
         and read at first as the box failing to reset.
         """
-        panel = getattr(self._window, "_docking_panel", None)
+        panel = self._docking_target(step)
         if panel is None:
             logger.error("OPENCHEM_DRIVE: no docking panel on this window")
             return
@@ -1008,7 +1053,7 @@ class _Driver(QObject):
         a healthy `dock_run` step and simply never dock -- the wrong-panel-id
         trap in another costume.
         """
-        panel = getattr(self._window, "_docking_panel", None)
+        panel = self._docking_target(step)
         if panel is None:
             logger.error("OPENCHEM_DRIVE: no docking panel on this window")
             return
@@ -1067,7 +1112,7 @@ class _Driver(QObject):
         difference between "the shot looks right" and "the box is on the
         site".
         """
-        panel = getattr(self._window, "_docking_panel", None)
+        panel = self._docking_target(step)
         if panel is None:
             logger.error("OPENCHEM_DRIVE: no docking panel on this window")
             return
@@ -1142,6 +1187,9 @@ class _Driver(QObject):
             panel.displayed_search_options(),
             panel._seed_spin.text(),
         )
+        expect = step.get("expect")
+        if expect:
+            self._expect_docking(panel, str(step.get("tag", "")), expect)
 
     def _do_select(self, step: dict[str, Any]) -> None:
         """Select a molecule by index (-1 is the most recent) or by name."""
@@ -1459,6 +1507,13 @@ class _Driver(QObject):
             over,
         )
 
+    def _alignment_target(self, step: dict[str, Any]):
+        """The alignment panel -- ONE widget, wherever it lives (its tab or Properties).
+
+        `step` is accepted so every call site reads the same; there is nothing to choose.
+        """
+        return self._window._alignment_panel
+
     def _do_align(self, step: dict[str, Any]) -> None:
         """Run the 3D Alignment panel on the project's molecules.
 
@@ -1476,7 +1531,7 @@ class _Driver(QObject):
         `probes` names which molecules to tick; without it every other
         molecule is ticked, starter included.
         """
-        panel = self._window._alignment_panel
+        panel = self._alignment_target(step)
         reference = step.get("reference")
         if reference is not None:
             index = panel._reference_combo.findText(str(reference))
@@ -1518,7 +1573,7 @@ class _Driver(QObject):
         off the rendered cells is the cheap half of checking that the two
         now agree; the shot is the other half.
         """
-        panel = self._window._alignment_panel
+        panel = self._alignment_target(step)
         table = panel._result_table
         tag = step.get("tag", "")
         headers = [
@@ -1552,6 +1607,46 @@ class _Driver(QObject):
                 else:
                     cells.append(item.text())
             logger.warning("OPENCHEM_DRIVE: align_report %s | %s", tag, " | ".join(cells))
+        expect = step.get("expect")
+        if expect:
+            self._expect_alignment(panel, tag, expect)
+
+    def _expect_alignment(self, panel, tag: str, expect: dict[str, Any]) -> None:
+        """ASSERT what the alignment table holds, and where the panel lives.
+
+        `{"expect": {"rows": 3, "home": "tab", "viewer_built": true, "settings_expanded": false}}`
+
+        `home` is where the ONE panel is (`"tab"` or `"properties"`), read off the
+        containers that hold the widget rather than off the setting.
+        """
+        problems: list[str] = []
+
+        def cells_of(target) -> list[list[str]]:
+            table = target._result_table
+            return [
+                [
+                    (table.item(row, column).text() if table.item(row, column) is not None else "")
+                    for column in range(table.columnCount())
+                ]
+                for row in range(table.rowCount())
+            ]
+
+        mine = cells_of(panel)
+        if "rows" in expect and len(mine) != int(expect["rows"]):
+            problems.append(f"{len(mine)} row(s), wanted {expect['rows']}")
+        if "home" in expect:
+            problems.extend(self._home_problems("alignment", panel, str(expect["home"])))
+        if "viewer_built" in expect and panel.viewer_is_built != bool(expect["viewer_built"]):
+            problems.append(f"viewer_is_built is {panel.viewer_is_built}")
+        if "settings_expanded" in expect:
+            section = panel.settings_section
+            actual = section.is_expanded() if section is not None else None
+            if actual != bool(expect["settings_expanded"]):
+                problems.append(f"settings_expanded is {actual}, wanted {expect['settings_expanded']}")
+        if problems:
+            logger.error("OPENCHEM_DRIVE: EXPECT align FAILED[%s] -- %s", tag, "; ".join(problems))
+        else:
+            logger.warning("OPENCHEM_DRIVE: EXPECT align ok[%s]", tag)
 
     def _do_ensemble_visible(self, step: dict[str, Any]) -> None:
         """Tick or untick one row's visibility box.
@@ -1561,7 +1656,7 @@ class _Driver(QObject):
         thing worth checking is the WIRING and a helper called directly
         proves only that the helper works.
         """
-        panel = self._window._alignment_panel
+        panel = self._alignment_target(step)
         row = int(step.get("row", 0))
         item = panel._result_table.item(row, 0)
         if item is None:
@@ -1577,7 +1672,7 @@ class _Driver(QObject):
     def _do_overlay_colour(self, step: dict[str, Any]) -> None:
         """`{"do": "overlay_colour", "mode": "element"}` -- by molecule or
         by element. Driven through the combo, for the reason above."""
-        panel = self._window._alignment_panel
+        panel = self._alignment_target(step)
         mode = str(step.get("mode", "molecule"))
         index = panel._color_mode_combo.findData(mode)
         if index < 0:
@@ -1937,12 +2032,226 @@ class _Driver(QObject):
         )
 
     def _do_expand(self, step: dict[str, Any]) -> None:
-        """Expand one Properties section, by category id (e.g. "admet")."""
-        section = self._window._property_panel._sections.get(str(step["section"]))
+        """Expand one Properties section, by category id (e.g. "admet"), or a
+        workflow section by `workflow:<id>` (e.g. "workflow:alignment")."""
+        name = str(step["section"])
+        panel = self._window._property_panel
+        section = (
+            panel.workflow_section(name.split(":", 1)[1])
+            if name.startswith("workflow:")
+            else panel._sections.get(name)
+        )
         if section is None:
             logger.error("OPENCHEM_DRIVE: no section %r", step["section"])
             return
         section.set_expanded(bool(step.get("expanded", True)))
+
+    def _do_properties_width_report(self, step: dict[str, Any]) -> None:
+        """Say WHY the Properties list scrolls sideways, if it does.
+
+        `{"do": "properties_width_report", "tag": "docking-open"}`. Logs the viewport
+        width, how far the horizontal bar can move, and the minimum width each open
+        workflow asks for, then that of each of its direct children -- the widest is
+        the one to argue with. A shot shows a thin bar; it cannot name the row.
+        """
+        panel = self._window._property_panel
+        area = panel._scroll_area
+        tag = step.get("tag", "")
+        logger.warning(
+            "OPENCHEM_DRIVE: width_report %s | viewport %d | h-bar max %d | container min %d",
+            tag,
+            area.viewport().width(),
+            area.horizontalScrollBar().maximum(),
+            panel._sections_container.minimumSizeHint().width(),
+        )
+        for workflow_id, section in panel._workflows.items():
+            if not section.is_expanded():
+                continue
+            body = section.content
+            logger.warning(
+                "OPENCHEM_DRIVE: width_report %s | workflow %s min %d (section %d)",
+                tag, workflow_id, body.minimumSizeHint().width(), section.minimumSizeHint().width(),
+            )
+            inner = {"alignment": "_alignment_panel", "docking": "_docking_panel"}.get(workflow_id)
+            target = getattr(self._window, inner, None) if inner else None
+            layout = target.layout() if target is not None else None
+            for index in range(layout.count() if layout is not None else 0):
+                item = layout.itemAt(index)
+                widget = item.widget()
+                width = widget.minimumSizeHint().width() if widget is not None else item.minimumSize().width()
+                kind = type(widget).__name__ if widget is not None else type(item).__name__
+                logger.warning("OPENCHEM_DRIVE: width_report %s |    %s min %d", tag, kind, width)
+
+    def _do_properties_height_report(self, step: dict[str, Any]) -> None:
+        """Walk from a workflow's panel up to the scroll area, saying for each level how
+        tall it IS against the minimum it ASKS for. A level shorter than its own minimum
+        is the one the layout above squeezed -- the "starved ancestor" this panel's
+        `_starved` helper names -- and the first one found going up is the one to fix.
+
+        `{"do": "properties_height_report", "workflow": "alignment", "tag": "after"}`
+        """
+        workflow = str(step.get("workflow", "alignment"))
+        target = {
+            "alignment": getattr(self._window, "_alignment_panel", None),
+            "docking": getattr(self._window, "_docking_panel", None),
+        }.get(workflow)
+        tag = step.get("tag", "")
+        widget = target
+        while widget is not None and widget is not self._window:
+            hint = widget.minimumSizeHint()
+            layout = widget.layout()
+            logger.warning(
+                "OPENCHEM_DRIVE: height_report %s | %-22s h=%4d  min=%4d  hint=%4d  minimumHeight=%d maxH=%d%s",
+                tag, type(widget).__name__, widget.height(), hint.height(), widget.sizeHint().height(),
+                widget.minimumHeight(), widget.maximumHeight(),
+                "  STARVED" if widget.height() < hint.height() else "",
+            )
+            widget = widget.parentWidget()
+        # The list's own items: how the height was SHARED OUT between them.
+        layout = self._window._property_panel._sections_layout
+        total_min = 0
+        total_h = 0
+        for index in range(layout.count()):
+            item = layout.itemAt(index)
+            w = item.widget()
+            if w is None or w.isHidden():
+                continue
+            total_min += w.minimumSizeHint().height()
+            total_h += w.height()
+            if w.height() < 60 and w.minimumSizeHint().height() < 60:
+                continue
+            logger.warning(
+                "OPENCHEM_DRIVE: height_report %s |   list item %-18s h=%4d min=%4d",
+                tag, type(w).__name__, w.height(), w.minimumSizeHint().height(),
+            )
+        logger.warning(
+            "OPENCHEM_DRIVE: height_report %s |   list items: sum of h=%d, sum of min=%d, layout min=%d",
+            tag, total_h, total_min, layout.minimumSize().height(),
+        )
+
+    def _do_properties_grab(self, step: dict[str, Any]) -> None:
+        """Save the WHOLE Properties list, at its full height, as one picture.
+
+        `{"do": "properties_grab", "path": "..."}`. A window shot shows what fits the
+        dock; this shows how tall the list really is, which is what comparing a section
+        with its settings open against closed needs (the closed one is shorter, and a
+        shot of the dock cannot say by how much). Widgets that render through a web view
+        come out blank here, so it is for layout, not for pictures.
+        """
+        container = self._window._property_panel._sections_container
+        pixmap = container.grab()
+        path = Path(str(step["path"]))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        pixmap.save(str(path))
+        logger.warning(
+            "OPENCHEM_DRIVE: properties_grab %dx%d -> %s", pixmap.width(), pixmap.height(), path
+        )
+
+    def _home_problems(self, workflow_id: str, panel, wanted: str) -> list[str]:
+        """What is wrong, if anything, with where a workflow's widget is.
+
+        Reads the CONTAINERS, not the setting: the property panel's body must hold the very
+        widget when the home is Properties, and the dock's scroll area must when it is the tab.
+        A setting that said "tab" while the widget sat in Properties would pass a check of the
+        setting alone.
+        """
+        window = self._window
+        home = window._property_panel.workflow_home(workflow_id)
+        spec = window._workflow_homes[workflow_id]
+        problems: list[str] = []
+        if home != wanted:
+            problems.append(f"home is {home!r}, wanted {wanted!r}")
+        in_body = window._property_panel.workflow_body(workflow_id).widget() is panel
+        in_dock = spec.scroll.widget() is panel
+        if wanted == "properties" and not (in_body and not in_dock):
+            problems.append(f"widget placement: in Properties={in_body}, in its tab={in_dock}")
+        if wanted == "tab" and not (in_dock and not in_body):
+            problems.append(f"widget placement: in Properties={in_body}, in its tab={in_dock}")
+        return problems
+
+    def _do_workflow_move(self, step: dict[str, Any]) -> None:
+        """Move a workflow between its tab and Properties by pressing the REAL button.
+
+        `{"do": "workflow_move", "workflow": "docking", "to": "properties"}` presses "Move
+        here" in the section; `"to": "tab"` presses "Move to its own tab". The buttons, not
+        `_move_workflow`, for the reason `jobs_cancel` presses a button: the wiring is what
+        is being exercised.
+        """
+        workflow = str(step.get("workflow", ""))
+        wanted = str(step.get("to", ""))
+        body = self._window._property_panel.workflow_body(workflow)
+        if body is None or wanted not in ("properties", "tab"):
+            logger.error("OPENCHEM_DRIVE: cannot move workflow %r to %r", workflow, wanted)
+            return
+        if body.home() == wanted:
+            logger.warning("OPENCHEM_DRIVE: workflow %s is already in %s", workflow, wanted)
+            return
+        button = body._move_here if wanted == "properties" else body._move_to_tab
+        button.click()
+        logger.warning(
+            "OPENCHEM_DRIVE: workflow %s moved to %s (home now %s)",
+            workflow, wanted, self._window._property_panel.workflow_home(workflow),
+        )
+
+    def _do_workflow_group(self, step: dict[str, Any]) -> None:
+        """Open or close one collapsible group INSIDE a workflow section.
+
+        `{"do": "workflow_group", "workflow": "docking", "group": "search", "expanded": false}`
+
+        Groups: alignment has `settings`; docking has `box`, `prep` and `search`. The
+        closed group keeps a one-line summary of what it holds, which is what the
+        shots taken with `"expanded": false` are for.
+        """
+        panels = {
+            "alignment": getattr(self._window, "_alignment_panel", None),
+            "docking": getattr(self._window, "_docking_panel", None),
+        }
+        groups = {
+            ("alignment", "settings"): "settings_section",
+            ("docking", "box"): "box_section",
+            ("docking", "prep"): "prep_section",
+            ("docking", "search"): "search_section",
+        }
+        workflow = str(step.get("workflow", ""))
+        group = str(step.get("group", ""))
+        attribute = groups.get((workflow, group))
+        panel = panels.get(workflow)
+        section = getattr(panel, attribute, None) if panel is not None and attribute else None
+        if section is None:
+            logger.error("OPENCHEM_DRIVE: no group %r in workflow %r", group, workflow)
+            return
+        section.set_expanded(bool(step.get("expanded", True)))
+        logger.warning(
+            "OPENCHEM_DRIVE: %s/%s expanded=%s summary=%r",
+            workflow, group, section.is_expanded(), section.summary(),
+        )
+
+    def _do_properties_scroll(self, step: dict[str, Any]) -> None:
+        """Scroll the Properties list: `{"do": "properties_scroll", "to": "end"}`.
+
+        `"to"` is `"end"`, `"top"`, `"workflow:<id>"` or a pixel offset. A section taller than the
+        dock's viewport (the alignment workflow is) has its picture below the fold,
+        and a shot of the top of the list cannot show whether the picture rendered.
+        """
+        panel = self._window._property_panel
+        bar = panel._scroll_area.verticalScrollBar()
+        target = step.get("to", "end")
+        if isinstance(target, str) and target.startswith("workflow:"):
+            # The BOTTOM of that workflow section lines up with the bottom of the
+            # viewport, which is where a tall section's output (its picture) is.
+            section = panel.workflow_section(target.split(":", 1)[1])
+            if section is None:
+                logger.error("OPENCHEM_DRIVE: no workflow section %r", target)
+                return
+            viewport = panel._scroll_area.viewport().height()
+            bar.setValue(max(0, section.y() + section.height() - viewport))
+        elif target == "end":
+            bar.setValue(bar.maximum())
+        elif target == "top":
+            bar.setValue(bar.minimum())
+        else:
+            bar.setValue(int(target))
+        logger.warning("OPENCHEM_DRIVE: properties scrolled to %d of %d", bar.value(), bar.maximum())
 
     def _do_calculator(self, step: dict[str, Any]) -> None:
         """Run a calculator with no settings dialog.

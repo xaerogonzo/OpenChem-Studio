@@ -1,0 +1,37 @@
+[
+  {"do": "smiles", "smiles": "CC(C)Cc1ccc(cc1)C(C)C(=O)O", "name": "Ibuprofen", "after_ms": 600},
+  {"do": "smiles", "smiles": "COc1ccc2cc(ccc2c1)C(C)C(=O)O", "name": "Naproxen", "after_ms": 600},
+  {"do": "select", "molecule": -1, "after_ms": 500},
+  {"do": "panel", "id": "Properties", "after_ms": 500},
+  {"do": "expand", "section": "workflow:alignment", "after_ms": 600},
+  {"do": "workflow_move", "workflow": "alignment", "to": "properties", "after_ms": 1200},
+  {"do": "align_report", "tag": "moved-in", "expect": {"home": "properties", "rows": 0}},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/alignment_section_before.png", "after_ms": 500},
+
+  {"do": "align", "reference": "Ibuprofen", "probes": ["Naproxen"],
+   "method": "Common scaffold (MCS)", "flexibility": "Flexible", "after_ms": 20000},
+  {"do": "align_report", "tag": "in-properties",
+   "expect": {"rows": 2, "home": "properties", "viewer_built": true, "settings_expanded": false}},
+  {"do": "properties_height_report", "workflow": "alignment", "tag": "in-properties"},
+  {"do": "properties_scroll", "to": "workflow:alignment", "after_ms": 1500},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/alignment_section_after.png", "after_ms": 1500},
+
+  {"do": "ensemble_visible", "row": 1, "on": false, "after_ms": 800},
+  {"do": "overlay_colour", "mode": "element", "after_ms": 800},
+
+  {"do": "workflow_move", "workflow": "alignment", "to": "tab", "after_ms": 3000},
+  {"do": "align_report", "tag": "in-its-tab",
+   "expect": {"rows": 2, "home": "tab", "viewer_built": true, "settings_expanded": false}},
+  {"do": "properties_height_report", "workflow": "alignment", "tag": "in-its-tab"},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/alignment_in_its_tab.png", "after_ms": 1500},
+
+  {"do": "workflow_move", "workflow": "alignment", "to": "properties", "after_ms": 3000},
+  {"do": "align_report", "tag": "moved-back-in",
+   "expect": {"rows": 2, "home": "properties", "viewer_built": true, "settings_expanded": false}},
+  {"do": "properties_scroll", "to": "workflow:alignment", "after_ms": 1500},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/alignment_moved_back.png", "after_ms": 1500},
+
+  {"do": "workflow_move", "workflow": "alignment", "to": "tab", "after_ms": 500},
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

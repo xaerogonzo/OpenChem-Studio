@@ -1,0 +1,35 @@
+[
+  {"do": "smiles", "smiles": "CN(C)CCc1c[nH]c2ccccc12", "name": "DMT", "after_ms": 600},
+  {"do": "select", "molecule": -1, "after_ms": 500},
+  {"do": "panel", "id": "Properties", "after_ms": 500},
+  {"do": "workflow_move", "workflow": "docking", "to": "properties", "after_ms": 1200},
+  {"do": "receptor", "pdb_id": "6WGT", "after_ms": 5000},
+  {"do": "dock_receptor", "index": -1, "after_ms": 800},
+  {"do": "dock_panel", "tag": "in-properties-before", "expect": {"home": "properties"}},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/docking_section_before.png", "after_ms": 1500},
+
+  {"do": "dock_run", "after_ms": 300000},
+  {"do": "dock_panel", "tag": "in-properties-after",
+   "expect": {"poses_at_least": 1, "home": "properties", "groups_expanded": false}},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/docking_section_pose_drawn.png", "after_ms": 8000},
+  {"do": "properties_height_report", "workflow": "docking", "tag": "in-properties"},
+  {"do": "properties_scroll", "to": "workflow:docking", "after_ms": 1500},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/docking_section_after.png", "after_ms": 1500},
+
+  {"do": "workflow_move", "workflow": "docking", "to": "tab", "after_ms": 3000},
+  {"do": "dock_panel", "tag": "in-its-tab",
+   "expect": {"poses_at_least": 1, "home": "tab", "groups_expanded": false}},
+  {"do": "properties_height_report", "workflow": "docking", "tag": "in-its-tab"},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/docking_in_its_tab.png", "after_ms": 2000},
+
+  {"do": "workflow_move", "workflow": "docking", "to": "properties", "after_ms": 3000},
+  {"do": "dock_panel", "tag": "moved-back-in",
+   "expect": {"poses_at_least": 1, "home": "properties", "groups_expanded": false}},
+  {"do": "workflow_group", "workflow": "docking", "group": "box", "expanded": false},
+  {"do": "workflow_group", "workflow": "docking", "group": "prep", "expanded": true, "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/docking_section_groups_toggled.png", "after_ms": 800},
+
+  {"do": "workflow_move", "workflow": "docking", "to": "tab", "after_ms": 500},
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

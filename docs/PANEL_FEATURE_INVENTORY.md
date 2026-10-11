@@ -245,20 +245,40 @@ design) and nothing here can be fanned out over a project today.
 Files: `src/openchem/ui/panels/alignment_panel.py`, `src/openchem/services/alignment_service.py`,
 `src/openchem/chem/alignment.py`, `src/openchem/domain/alignment.py`.
 
+**Status: can live in Properties.** The panel is ONE widget that lives in its own tab or in
+*Workflows > Align several molecules* and moves between them (`Move here` / `Move to its own
+tab`), so every row below holds in either home by construction. Shown live
+(`benchmarks/visual/alignment_section.json`, a real alignment, verdict PASS): A01, A02, A03 to A05
+(set from the script), A07 (run and status), A08 and A09 (the table, the reference dashes), A10
+(hiding a structure, which survived a move), A11 (Style, Colour, the overlay drawn in either
+home), A12 (the result survived two moves). **Presentation changed in the tab** (and is the same
+in both homes): the settings are a group that closes, and the table and picture are absent until a
+result exists. **Not yet shown live: the pop-out from the section, a failed-structure row, Rigid
+mode, and the Jobs-panel cancel.**
+
+**Docking: the same** (`Workflows > Dock a molecule into a receptor`). Shown live with a real Vina
+run (`benchmarks/visual/docking_section.json`, verdict PASS), including moving the workflow to its
+tab and back with the nine poses intact: D01, D03 (box derived from the bound ligand), D04, D05,
+D06, D09 to D14 (run at their defaults), D16, D18 and D19 (nine poses, the spread label), D20 (the
+dock is in the project), D21 (receptor and pose drawn in the macromolecule viewer). D07 now has a
+rule: the box is drawn while the panel is on screen where it lives (its tab showing, or its section
+open). **Not yet shown live: D02 Contents..., rescoring, replicates above 1, an undo of a dock, and
+the Virtual Screening dialog (D22) from the section.**
+
 It aligns **several project molecules onto one reference** and shows the result as an
 overlay. The single-molecule registry calculator "3D Alignment" (reference typed as
 SMILES) is separate and already in Properties.
 
 | ID | What it does today | Status / notes |
 |---|---|---|
-| A01 | **Reference** combo. Preserved by uuid; **deliberately not wired to the project selection** (the probe list is defined against it, so following the tree would reshuffle the ticks under the person). Changing it rebuilds the probe list and re-frames every number. | `MISSING` |
-| A02 | **Align onto it**: a tick list of every molecule except the reference. Ticks survive rebuilds by uuid, so renaming an unrelated molecule does not clear them. | `MISSING` |
+| A01 | **Reference** combo. Preserved by uuid; **deliberately not wired to the project selection** (the probe list is defined against it, so following the tree would reshuffle the ticks under the person). Changing it rebuilds the probe list and re-frames every number. | `SHARED` in the section |
+| A02 | **Align onto it**: a tick list of every molecule except the reference. Ticks survive rebuilds by uuid, so renaming an unrelated molecule does not clear them. | `SHARED` in the section |
 | A03 | **Method**: Extended atom types (MMFF type pairing, Open3DAlign) or Common scaffold (MCS first, then refine). | Also a parameter of the registry calculator. |
 | A04 | **Accuracy**: Fast (1 conformer / 5 s), Normal (5 / 15 s, default), Accurate (20 / 60 s). | Also on the registry calculator. |
 | A05 | **Flexibility**: Flexible (default; shared atoms pinned to the reference's coordinates) or Rigid. | **Panel only**: the registry calculator has no Flexibility parameter. |
 | A06 | A standing **note** under the controls saying Score is higher-is-better and RMSD lower-is-better and that they are different measures. | On screen on purpose. |
 | A07 | **Align**: refuses with no reference or no tick; disabled while running; status line shows "Aligning name (k/N)". The job is keyed **per reference**, so alignments to different references can run together and a second one against the same reference is refused with a message. Cancel is checked between molecules. | **There is no Cancel button in the panel**; the service registers a cancel callback, so it can be cancelled from the Jobs panel. |
-| A08 | **Result table** (8 columns): Show, Molecule, Score, RMSD (A), Core, Tail, Paired atoms, Geometry. Core and Tail split the RMSD over the rigid and flexible parts (measured: a 0.116 headline RMSD hid a 0.931 flexible part). Paired atoms reads "n (MCS)" or O3A's count. Geometry reads Project / Generated / Constrained. Eight column help contracts, six of them tier 3. Exports from the table menu (`alignment-results`). Height capped (64 to 160 px) so the picture keeps the space. | `MISSING` |
+| A08 | **Result table** (8 columns): Show, Molecule, Score, RMSD (A), Core, Tail, Paired atoms, Geometry. Core and Tail split the RMSD over the rigid and flexible parts (measured: a 0.116 headline RMSD hid a 0.931 flexible part). Paired atoms reads "n (MCS)" or O3A's count. Geometry reads Project / Generated / Constrained. Eight column help contracts, six of them tier 3. Exports from the table menu (`alignment-results`). Height capped (64 to 160 px) so the picture keeps the space. | `SHARED` in the section |
 | A09 | **Row semantics**: a failed molecule gets a reason spanning its numeric columns, no colour and no Show box (one unembeddable structure never discards the others); the reference row shows dashes. | |
 | A10 | **Show** tick per row hides that structure from the picture only (omitted, not made transparent); its colour is kept so showing it again changes nothing. | |
 | A11 | **Overlay viewer**, built on first show (it is a Chromium view and this is one of many docks): **Style** (stick, ballstick, sphere, line) and **Colour** (by molecule: 8 colour-blind-safe colours, reference grey first; or by element). The header controls stay in the dock while the view is popped out. Pop-out id `alignment.overlay`. | |

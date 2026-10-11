@@ -39,6 +39,7 @@ from openchem.events.base import EventBus
 from openchem.events.events import AlignmentJobStateChanged, EnsembleAlignmentReady
 from openchem.services.alignment_service import AlignmentService
 from openchem.ui.table_export import install_table_export
+from openchem.ui.widgets.collapsible_section import CollapsibleSection
 from openchem.ui.molecule_combo import repopulate
 from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
 from openchem.ui.widgets.flow_layout import flow_row
@@ -51,6 +52,19 @@ from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 #: difference.
 _TABLE_MAX_HEIGHT = 160
 _TABLE_MIN_HEIGHT = 64
+
+#: The left indent of the settings group inside the Properties section, in pixels. The section
+#: already indents its content, so the group takes a small one (see the docking panel's).
+_NESTED_INDENT = 4
+
+#: The overlay's floor. Both homes are scroll areas (a Properties section, the tab's own
+#: wrapper), which give a stretch widget only its minimum, so without this the picture --
+#: this panel's entire output -- would be a strip a few pixels tall.
+_VIEW_MIN_HEIGHT = 320
+
+#: Where the pop-out saves its placement, in either home. Unchanged from before workflows
+#: could move, so a saved window is still found.
+_POP_OUT_ID = "alignment.overlay"
 
 _RESULT_COLUMNS = (
     "Show",
@@ -319,7 +333,21 @@ class AlignmentPanel(QWidget):
         parent: QWidget | None = None,
         settings: object = None,
     ) -> None:
+        """One panel, which lives either in its own tab or in a section of Properties.
+
+        It is built ONCE and moved between those homes, so it has one set of inputs, one
+        result and one 3D view wherever it is. It is laid out to suit a section -- the
+        settings in a group that closes, the table and the picture shown only once there
+        is a result, the picture given a floor of its own height -- and that suits the tab
+        too, which is why there is one presentation rather than two.
+        """
         super().__init__(parent)
+        #: The collapsible group holding the settings.
+        self._settings_section: CollapsibleSection | None = None
+        #: Whether an alignment this panel asked for is in flight. The settings close
+        #: when ITS result arrives, and not for a result that someone else's run (a
+        #: script, a test) published.
+        self._run_started_here = False
         self._alignment_service = alignment_service
         self._event_bus = event_bus
         self._project: ProjectModel | None = None
@@ -389,6 +417,7 @@ class AlignmentPanel(QWidget):
         self._viewer: Mol3DViewerBackend | None = None
         self._viewer_container = QWidget(self)
         QVBoxLayout(self._viewer_container).setContentsMargins(0, 0, 0, 0)
+        self._viewer_container.setMinimumHeight(_VIEW_MIN_HEIGHT)
         self._pending_ensemble: list[tuple[str, str]] | None = None
         self._style_combo = QComboBox(self)
         self._style_combo.addItems(["stick", "ballstick", "sphere", "line"])
@@ -427,15 +456,11 @@ class AlignmentPanel(QWidget):
         options.layout().addWidget(self._flexibility_combo)
         form.addRow(options)
 
-        settings_box = QGroupBox("Alignment", self)
-        settings_layout = QVBoxLayout(settings_box)
-        settings_layout.addLayout(form)
-        settings_layout.addWidget(note)
-        buttons = QHBoxLayout()
-        buttons.addWidget(self._align_button)
-        buttons.addStretch(1)
-        settings_layout.addLayout(buttons)
-        settings_layout.addWidget(self._status_label)
+        # COLLAPSIBLE, with the Align button and the status line OUTSIDE the collapsing part:
+        # closing the settings to give the table and the picture the room must not take the
+        # way to run (or to see that a run is going) with it. The closed section still says
+        # what Run would do.
+        settings_box = self._build_collapsible_settings(form, note)
 
         # THE STYLE ROW BECOMES THE HOST'S HEADER rather than a row of its
         # own. This panel's whole problem is vertical space -- the group
@@ -452,7 +477,7 @@ class AlignmentPanel(QWidget):
         self._viewer_host = PopOutHost(
             self._viewer_container,
             title="3D Alignment",
-            settings_id="alignment.overlay",
+            settings_id=_POP_OUT_ID,
             settings=settings,
             header=[
                 QLabel("Style:", self),
@@ -467,9 +492,57 @@ class AlignmentPanel(QWidget):
         layout.addWidget(settings_box)
         layout.addWidget(self._result_table)
         layout.addWidget(self._viewer_host, 1)
+        # NO EMPTY BOXES. An empty score table and a blank 320 px picture area cost about
+        # 500 px and say nothing; they appear when there is an alignment to show.
+        self._result_table.setVisible(False)
+        self._viewer_host.setVisible(False)
 
         event_bus.subscribe(AlignmentJobStateChanged, self._on_job_state_changed)
         event_bus.subscribe(EnsembleAlignmentReady, self._on_alignment_ready)
+        self._reference_combo.currentIndexChanged.connect(self._refresh_summary)
+        self._probe_list.itemChanged.connect(self._refresh_summary)
+        self._method_combo.currentTextChanged.connect(self._refresh_summary)
+        self._accuracy_combo.currentTextChanged.connect(self._refresh_summary)
+        self._flexibility_combo.currentTextChanged.connect(self._refresh_summary)
+        self._refresh_summary()
+
+    def _build_collapsible_settings(self, form: QFormLayout, note: QLabel) -> QWidget:
+        section = CollapsibleSection("Settings", True, self)
+        section.content.layout().setContentsMargins(_NESTED_INDENT, 2, 2, 4)
+        body = QWidget(self)
+        body_layout = QVBoxLayout(body)
+        body_layout.setContentsMargins(0, 0, 0, 0)
+        body_layout.addLayout(form)
+        body_layout.addWidget(note)
+        section.add_calculator_widget(body)
+        self._settings_section = section
+
+        container = QWidget(self)
+        container_layout = QVBoxLayout(container)
+        container_layout.setContentsMargins(0, 0, 0, 0)
+        container_layout.addWidget(section)
+        buttons = QHBoxLayout()
+        buttons.addWidget(self._align_button)
+        buttons.addStretch(1)
+        container_layout.addLayout(buttons)
+        container_layout.addWidget(self._status_label)
+        return container
+
+    @property
+    def settings_section(self) -> CollapsibleSection | None:
+        return self._settings_section
+
+    def _refresh_summary(self, *_args) -> None:
+        """What the closed settings still say: what Align would do right now."""
+        if self._settings_section is None:
+            return
+        count = len(self._checked_uuids())
+        reference = self._reference_combo.currentText() or "no reference"
+        self._settings_section.set_summary(
+            f"{count} molecule{'' if count == 1 else 's'} onto {reference}"
+            f" · {self._method_combo.currentText()} · {self._accuracy_combo.currentText()}"
+            f" · {self._flexibility_combo.currentText()}"
+        )
 
     # --- project wiring ---------------------------------------------------
 
@@ -513,6 +586,7 @@ class AlignmentPanel(QWidget):
                 Qt.CheckState.Checked if molecule.uuid in checked else Qt.CheckState.Unchecked
             )
             self._probe_list.addItem(item)
+        self._refresh_summary()
 
     def _on_reference_changed(self) -> None:
         self._rebuild_probe_list()
@@ -544,6 +618,7 @@ class AlignmentPanel(QWidget):
 
         from openchem.chem.alignment import FLEXIBILITY_MODES
 
+        self._run_started_here = True
         self._alignment_service.request_alignment(
             reference,
             probes,
@@ -554,6 +629,9 @@ class AlignmentPanel(QWidget):
 
     def _on_job_state_changed(self, event: AlignmentJobStateChanged) -> None:
         running = event.state in (CacheState.QUEUED, CacheState.RUNNING)
+        if event.state is CacheState.FAILED:
+            # A failed run leaves the settings open: they are what the person edits next.
+            self._run_started_here = False
         self._align_button.setEnabled(not running)
         self._status_label.setText(event.message or event.state.value)
 
@@ -573,6 +651,20 @@ class AlignmentPanel(QWidget):
         self._colors = colors
         self._visible = {index: True for index in colors}
         self._populate_table(event.entries, colors)
+        self._result_table.setVisible(True)
+        self._viewer_host.setVisible(True)
+        # AFTER it is shown: `_populate_table` sized the table while it was still hidden, and a
+        # hidden table has not measured its header or its rows, so the second row was cut off.
+        self._fit_table_height()
+        if self._run_started_here and self._settings_section is not None:
+            # The settings did their job; the table and the picture are what the person
+            # is now here for, and a closed section still says what was run.
+            self._settings_section.set_expanded(False)
+        self._run_started_here = False
+        if self.isVisible():
+            # The panel was shown before any result existed, so `showEvent` skipped the
+            # build; this is the moment the picture has something to draw.
+            self._ensure_viewer()
         self._show_ensemble()
 
     def _populate_table(self, entries: list[EnsembleEntry], colors: dict[int, str]) -> None:

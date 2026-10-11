@@ -1954,6 +1954,15 @@ Higher accuracy levels generate more conformers per probe and allow the
 maximum-common-substructure search more time. That is the trade: alignment
 quality against wall clock.
 
+You can also work with it inside **Properties**: open **Workflows > Align several
+molecules** and press **Move here**. It is the same panel, not a copy, so what you have
+ticked and any result on screen come with it, and **Move to its own tab** puts it back.
+Typing "align" or "overlay" in Properties' Find box opens its section. Its **Settings**
+group can be closed to make room; while closed it still says what Align would do ("1
+molecule onto Ibuprofen · Common scaffold (MCS) · Normal · Flexible"), and the Align
+button stays in view. The group closes by itself when an alignment you started finishes,
+so the table and the picture have the room; a failed run leaves it open.
+
 The superimposed structures are the point of this panel, and a docked
 column is a poor place to read them. Press **↗** beside *Style* to move
 the overlay into its own window — see [Giving a picture more

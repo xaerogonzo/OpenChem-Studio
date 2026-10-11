@@ -654,6 +654,7 @@
   "tests/test_hansen_fragmenter.py": 0,
   "tests/test_hansen_table.py": 1,
   "tests/test_heavy_atom_correspondence_oracle.py": 0,
+  "tests/test_height_stating_host.py": 2,
   "tests/test_hello_plugin_example.py": 0,
   "tests/test_help.py": 0,
   "tests/test_hlb.py": 0,
@@ -992,7 +993,11 @@
   "tests/test_visualization.py": 1,
   "tests/test_visualizations_section.py": 1,
   "tests/test_webgl_gate.py": 0,
+  "tests/test_workflow_auto_collapse.py": 1,
+  "tests/test_workflow_docking.py": 0,
+  "tests/test_workflow_move.py": 2,
   "tests/test_workflow_safety.py": 1,
+  "tests/test_workflow_sections.py": 1,
   "tests/test_x_zoomable_charts.py": 0
  }
 }
