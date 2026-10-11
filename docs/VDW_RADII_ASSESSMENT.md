@@ -5,14 +5,32 @@ Investigated 2026-10-11, after reading Bondi's 1964 paper for the explainers and
 file), **measured** (a run, with the method stated) or **reported** (seen only through a search summary, not read
 directly). The decision it asks for is at the end.
 
-## The decision (Alex, 2026-10-11)
+## Update (Alex, 2026-10-12): the surface calculators moved to Bondi's list too
+
+After the evidence below (Bondi's own volumes reproduced best by his list, and a provenance gain for one table behind every
+calculator), Alex chose the version bump: **the accessible surface, van der Waals volume, projections and Geometry now use
+Bondi's own radii** (`chem/vdw_radii.py`), as Ligand Steric Bulk already did. Methods `surface-v3` and `geometry-v3`; results
+saved by `surface-v2` and `geometry-v2` are kept beside the new ones, labelled "previous method", never replayed as the new.
+Hydrogen stays 1.20. Two consequences worth recording:
+
+- **The volume routine had to change.** RDKit's `DoubleCubicLatticeVolume` and `ComputeMolVolume` take no radii, so the volume
+  is now `sasa.enclosed_volume` (the divergence theorem over the same surface points the areas use) with `sasa.grid_volume`
+  as the independent check. Measured on six molecules against a 0.03 angstrom grid, the new volume is within 0.25% and
+  RDKit's routine within 1.2%; a lone sphere is exact. The old "lone atom is the known exception to the cross-check" is gone.
+- **The size of the move, over 17 drug-like molecules** (v3 against v2): accessible area -0.4% on average (worst -1.9%), van der
+  Waals volume -1.4% (worst -4.5%), smallest shadow -0.8% (worst -2.8%), largest shadow -0.7% (worst -2.4%). All of it comes
+  from the elements the two tables disagree about; hydrocarbons are unchanged.
+
+What stays open is Question 2, the docking table's metals, which is a logic fix more than a radius.
+
+## The decision (Alex, 2026-10-11): what it was before the update above
 
 - **B for the steric calculator.** Ligand Steric Bulk now uses Bondi's own radii (`chem/vdw_radii.py`, method `steric-v2`),
   extended where Bondi gave none by Mantina et al.'s sixteen. Older saved results are kept and labelled
   (`legacy-rdkit-radii-v1`), never replayed as the new method.
-- **A for everything else.** The surface, volume, projection and Geometry calculators keep RDKit's table, now **called what
-  it is** in the code, the Geometry result's limitation line and the stored provenance (`radii: "rdkit_rvdw"`). No number
-  changes.
+- **A for everything else (superseded 2026-10-12, see above).** The surface, volume, projection and Geometry calculators kept
+  RDKit's table, **called what it is** in the code, the Geometry result's limitation line and the stored provenance
+  (`radii: "rdkit_rvdw"`). No number changed. They have since moved to Bondi's list.
 - **C (hydrogen 1.10) is not taken for the surface calculators**, after reading Rowland and Taylor and Mantina et al.: see
   "What the three papers add".
 - The docking module's table keeps hydrogen 1.10, which is the right value for the thing it does (contacts), and is now
@@ -216,10 +234,151 @@ little, as an expectation not measured here: iron in a protein receptor is typic
 that sit at 2.0 angstrom, so the contact test is not about its van der Waals size. Replacing it needs a source for
 what the table means by a metal's radius, not a different number.
 
-**3. A Geometry result saved before this change.** Its stored limitation line says "Bondi radii", which was never true.
-The numbers in it are correct and unchanged, so a method-version bump (which would mark it as a previous method and
-imply its numbers differ) would say something false in the other direction. The honest options are to leave the stored
-line, or to show a reader's note on a result whose stored line names Bondi; neither is built, and neither is urgent.
+**3. A Geometry result saved before this change (decided and built, 2026-10-11).** Its stored limitation line said
+"Bondi van der Waals radii.", which was never true. The numbers in it are correct and unchanged, so a method-version bump
+(which marks a previous method and implies its numbers differ) would say something false in the other direction. Instead a
+**reader's note** is applied when the saved result is loaded (`STORED_TEXT_NOTES` in `domain/result_store.py`): that exact
+line is shown as "Van der Waals radii from RDKit's table (Batsanov's recommended set, not Bondi's). This result was saved
+when they were labelled Bondi's; its numbers are unchanged." The numbers, the provenance and the method version are not
+touched, and only an exact match is replaced.
+
+## Five more papers, and what they say (2026-10-11, later)
+
+**The volume check, on 46 molecules from a second transcription of Bondi** [source:zhao2003]. Zhao, Abraham and Zissimos's
+Tables 1 and 3 give Bondi's group-contribution volumes for alkanes, alkenes and alkynes, heteroatom compounds, halides, rings
+and aromatics, and they agree with the application's own transcription of Bondi's tables to within 0.1 cubic angstrom. Measured with a
+0.04 angstrom grid on one MMFF94 geometry each (`radii_study.py`, `zhao_volumes`):
+
+| set | RDKit (Batsanov) mean abs | Bondi 1964 mean abs | CRC, hydrogen 1.10 mean abs |
+|---|---|---|---|
+| all 46 | 2.12% | 1.84% | 7.71% |
+| acyclic hydrocarbons (17) | 1.91% | 1.91% | 9.81% |
+| N, O, S, P compounds (11) | 2.04% | 1.86% | 7.26% |
+| halides (9) | 3.14% (mean +3.14%) | 1.95% (mean -0.40%) | 5.91% |
+| rings (5) | 1.13% | 1.09% | 8.22% |
+| aromatics (4) | 2.22% | 2.22% | 3.41% |
+
+**What this settles and what it does not.** Hydrocarbons are identical in the two tables, so nothing moves there. The whole
+gain from Bondi's list is in halides and some heteroatoms: about 1 to 3 points of volume, and for a typical drug-like molecule
+well under 1%. The largest errors for both tables are structural and are not fixed by any radii table: acetylene (-9.8%
+for both) and benzene (+4.0% for both) need Bondi's own special radii for sp and aromatic carbon, which one radius per element
+cannot supply. So moving the surface calculators to Bondi's list is a provenance and consistency improvement (one table
+behind steric and surface, every value traced to a paper), not an accuracy one for common molecules. Hydrogen 1.10 is
+refuted again, at 7.7%.
+
+**Gavezzotti's convention** [source:gavezzotti1983] is a fourth set (H 1.17, C 1.75, N 1.55, O 1.40, F 1.30, Cl 1.77, Br 1.95,
+I 2.10) computed by the same random-point counting used here, and he reports volumes within 10% of Bondi's. Zhao et al. note
+that programs give ethanol's volume as 76, 41 or 52 cubic angstrom. Together with Alvarez's larger contact-based radii, the
+literature offers no single true radius for a surface, only conventions, and Bondi's is the one the volume literature and the
+buried-volume papers share.
+
+**Metal-donor distances**, from Harding's papers, current table [source:harding2006] (supersedes [source:harding2001] and
+[source:harding2002]). Target metal-donor distances in angstrom, small-molecule and protein structures combined, read from the
+paper's own Table 4 (a mark of three stars means a standard deviation of about 0.05, two 0.10, one 0.15 to 0.20):
+
+| metal | O water | O carboxylate | O carbonyl | N histidine | S cysteine |
+|---|---|---|---|---|---|
+| Na | 2.41 | 2.41 | 2.38 | | |
+| K | 2.81 | 2.82 | 2.74 | | |
+| Mg | 2.07 | 2.07 | 2.26 | | |
+| Ca | 2.39 | 2.36 | 2.36 | | |
+| Fe | 2.09 | 2.04 | 2.04 | 2.16 | 2.30 |
+| Co | 2.09 | 2.05 | 2.08 | 2.14 | 2.25 |
+| Zn | 2.09 | 1.99 | 2.07 | 2.03 | 2.31 |
+
+**Nickel** is not in Harding. Zheng et al.'s Table 3, from the Cambridge Structural Database [source:zheng2017], gives Ni-O
+(water) 2.08, Ni-N 1.89 and 2.09 and Ni-S 2.18 and 2.46 (two values each where given), and for cobalt Co-N 1.95 and 2.14, which agrees
+with Harding's 2.14. A donor is in the primary coordination sphere within the target plus 0.5 angstrom for the transition
+metals, Mg and Ca, but **plus 0.75 for sodium and potassium** [source:harding2002], whose interactions are "predominantly
+electrostatic" and for which a distance 0.5 angstrom shorter than the target is not acceptable while one 0.5 longer is
+possible. Weakly bonded extra N and O donors of Zn and Cu sit at 2.4 to 3.0 and 2.6 to 3.0 angstrom [source:harding2000],
+"shorter than a van der Waals contact". Harding 2002's conclusions printed the sodium and potassium distances interchanged;
+the corrigendum gives K 2.84 and Na 2.42 [source:harding2013] (the tables were right).
+
+Four things follow for the code. **The 2.8 angstrom coordination cutoff** is a good size for the transition metals (target plus
+0.5 is 2.5 to 2.9) but is **too short for potassium** (target 2.81, so the primary sphere runs to about 3.6), and a single
+number cannot be right for both. **Sulfur belongs among the donors** (Zn-S 2.31, Fe-S 2.30, Co-S 2.25, Ni-S 2.18), which
+`interaction_analysis` excludes. **The docking table has no sourced distance for any metal not in the table above**; nickel
+now has one (Zheng), manganese and copper have Harding's. And a **bond to a metal is not a contact**, which is the logic fix
+described below; sodium and potassium are the cases where even that threshold is soft.
+
+**More on why no contact-based radius is used for metals.** Chernyshov, Ananyev and Pidko [source:chernyshov2020] find that sums
+of tabulated radii, Bondi's included, fall short of the energy-minimum distance by as much as 0.3 to 0.4 angstrom, which is a
+statement about contacts and not about volumes (Bondi chose his radii for volumes), and that the concept of a van der Waals
+radius should be applied with special care to atoms in confined tetrahedral or octahedral environments, naming most d and f
+elements. That is the same caution as Alvarez's, and the reason the metals' radii are not a free parameter to be tuned.
+
+## A third published set, and what it did to the Fe question (2026-10-11)
+
+Alvarez's 2013 radii [source:alvarez2013], deduced from over five million contacts in the Cambridge Structural Database,
+are the first set that covers iron, and it puts it at **2.44 angstrom**, with Batsanov's 2.05 and no Bondi value. The
+application's 1.56 is therefore supported by none of the three published sets, and it is not close to any of them. The same
+table puts the docking table's other metals far above the application's values: Zn 2.39 (the application has 1.39), Mg 2.51
+(1.73), Na 2.50 (2.27), Ca 2.62 (2.31). Bondi's metal radii are, by the paper's own account, in several cases a cutoff
+distance and not a van der Waals radius, so the two sets are not measuring the same thing. For hydrogen the paper
+independently gets 1.20 from neutron-diffraction H...H contacts and says it needs no modification to Rowland and Taylor's
+1.10, which agrees with keeping 1.20 for areas and volumes.
+
+**The finding that changes the question: the docking pose analysis counted a coordinated metal as a clash (fixed
+2026-10-11).** The radius does not matter as much as how it is used. `analyze_pose` reports a clash for any pair closer
+than the sum of the two radii less 0.4 angstrom, and it treated a metal as an ordinary atom. Measured with an imidazole
+(MMFF94-optimised) given a metal along the lone pair of its pyridine-type nitrogen: zinc at 2.1 angstrom, iron at 2.0 and
+magnesium at 2.1 each gave one clash and one metal coordination, and calcium and sodium at 2.4 gave three clashes and one
+coordination. The extra two were the nitrogen's own ring carbons, 3.39 and 3.40 angstrom from the metal, which is not a
+contact: it is what the bond's geometry puts there (the M-N-C angle at a coordinated imidazole is 126-131 degrees, Harding
+1999 Table 6 [source:harding1999]). A better radius would have made it worse (Alvarez's 2.44 for iron puts the threshold at
+3.6 angstrom, and every coordinated donor and its neighbours would clash).
+
+**What was decided**, in `_metal_bonded_pairs` (`chem/pose_analysis.py`), which `analyze_pose` consults before the clash test:
+
+1. **A ligand donor within bonding range of a receptor metal is not a contact.** Donors are N, O, F and S, exactly the set
+   the metal-coordination detector already used (so a pair can no longer be both), and the range is from
+   `METAL_DONOR_MIN_DISTANCE` = 1.8 to `METAL_COORDINATION_CUTOFF` = 2.8 angstrom. The upper bound was already there; it is
+   the loosest bond Harding supports (he accepted Ca...O to 2.80 as a bond, and found weak Zn donors at 2.4-3.0 and Cu at
+   2.6-3.0 [source:harding1999] [source:harding2000]), not a typical one, since his means for the donors tested run from
+   1.99 to 2.44. The lower bound is new and is there so an overlap does not pass as a bond: the shortest metal-N/O/S distance
+   in the survey is 1.81 angstrom (a Cu-phenolate outlier; Mn 1.83 and Fe 1.84 are the shortest regular ones). It is one
+   value for every donor, which is loose for sulfur (its own shortest is 2.18, Fe-thiolate); a per-donor floor was not built.
+   Harding's primary coordination sphere is the target plus 0.5 angstrom (about 2.5 for Zn-N, 2.9 for Ca-O) [source:harding2006], so the single
+   2.8 cutoff also exempts weakly bonded donors outside it for Zn, Fe, Mg and Cu, which Harding 2000 finds "shorter than a van
+   der Waals contact". A metal- and donor-specific cutoff from his Table 1 was not built.
+2. **The donor's neighbours are the bond's own geometry, against that metal only.** Every ligand atom within two bonds of a
+   coordinating donor is left out of the clash test against the metal the donor binds, and stays in it against every other
+   atom. Two bonds is `interaction_analysis.MIN_SEPARATION["clashes"]` (a bond-path separation under four is not a contact)
+   with the metal counted as bonded to the donor; it is also where a six-membered chelate ring puts its far atom (the
+   central carbon of acetylacetonate on calcium is two bonds from both oxygens and about 3.3 angstrom from the metal). Atoms
+   further out keep the ordinary radius test. A second metal pressed against another part of the same ligand still clashes.
+3. **A ligand's own metal bound by a receptor N, O, F or S is exempt the same way, and is now reported.** The detector used
+   to look only from the ligand's donors to the receptor's metals; exempting this pair without reporting it would have made
+   the contact vanish from both lists, so it appears in `metal_coordination` with the metal as `ligand_element` and the
+   donor as `receptor_element`. The receptor has no bonds, so only the pair itself is exempt, not a neighbourhood.
+4. **The radii are unchanged**, and the table's metal entries now say they are placeholders for a non-bonded contact. They
+   were not replaced with Alvarez's: that would move every non-bonded metal contact the application reports, on a radius
+   defined as the edge of a contact-distance peak rather than a cutoff, and nothing has measured what it would do. The Fe
+   1.56 stays untraced; it simply no longer decides anything about iron's own ligands.
+
+**Measured after** (the same five geometries): 0 clashes and 1 coordination for all of Zn at 2.1, Fe at 2.0, Mg at 2.1, Ca at
+2.4 and Na at 2.4. `tests/test_pose_analysis_metals.py` runs these through `analyze_pose`, with Harding's means for Zn, Fe, Mn,
+Cu, Ca and Mg, a chelate ring, the boundaries (overlap, just outside the cutoff, a non-bonded atom, a second metal), a sweep
+over every metal and donor that no distance is both a coordination and a clash, and the ligand-metal direction. Eleven
+mutants of the fix (no skip, depth 0, depth 1, no floor, a cutoff 0.5 too wide, neighbours exempt against every metal, the
+ligand direction not exempted or not reported, fluorine or sulfur dropped as a donor, any receptor atom as a donor) are all
+killed.
+
+**Not settled by this.** (a) **One window for every metal.** The donor window (1.8 to 2.8 angstrom) is a single pair of numbers, not a
+table. The sources are now in the registry ([source:harding2006], [source:zheng2017], [source:harding2002]): a donor is in the
+primary sphere within the target plus 0.5 angstrom for the transition metals, Mg and Ca, but plus 0.75 for Na and K, whose
+K-O target is 2.81 to 2.84. So 2.8 is right for most metals and **too short for potassium**, whose bonds run to about 3.5
+angstrom (a K...O contact there is still reported as a clash, as before). Sourced per-metal windows and floors are the agreed
+follow-up. Fluorine as a donor has no source either.
+(b) **A saved docking result keeps what it was analysed with.** Interaction data
+lives in `DockingPoseModel.metadata`, written once by the docking job and saved in the project file; nothing recomputes it
+on load. Results saved before this change still list the coordinated metal under clashes. The method-version mechanism in
+`domain/result_store.py` is keyed by calculator result id and does not reach docking poses, so no version was bumped and
+no note was attached; re-running the dock (or the analysis) replaces them. (c) **The same defect is in `interaction_analysis.find_interactions`, which analyses a ligand with itself, and is not fixed here.**
+Measured 2026-10-11 with a zinc 2.0 angstrom from an imidazole nitrogen: a zinc bonded in the molecule is correctly left alone
+(its bond-path separation from the nitrogen is under four), but a zinc drawn as a separate fragment (`c1c[nH]cn1.[Zn+2]`)
+gives one clash and one metal coordination.
 
 ## Not verified
 

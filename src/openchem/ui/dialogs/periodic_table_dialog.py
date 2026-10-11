@@ -1379,7 +1379,7 @@ def describe(facts: ElementFacts) -> str:
         ),
         _row(
             "Radii",
-            f"van der Waals {facts.van_der_waals_radius} &Aring;, "
+            f"van der Waals {facts.van_der_waals_radius} &Aring; ({facts.van_der_waals_source}), "
             f"covalent {facts.covalent_radius} &Aring;",
         ),
         _row("Naturally occurring isotopes", _isotope_text(facts)),

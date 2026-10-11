@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Docking: a bond to a metal is no longer a steric clash
+- `analyze_pose` reported every coordinated metal as a clash as well as a metal coordination: an imidazole with Zn at 2.1,
+  Fe at 2.0 or Mg at 2.1 angstrom from its nitrogen gave one clash, and Ca or Na at 2.4 gave three (the nitrogen's own ring
+  carbons, which the bond's geometry holds 3.4 angstrom away). A ligand N, O, F or S between 1.8 and 2.8 angstrom of a
+  receptor metal, and the ligand atoms within two bonds of it (against that metal only), now skip the clash test and stay
+  in `metal_coordination`; the 1.8 floor keeps an overlap a clash. A metal the ligand carries, bound by a receptor N, O, F
+  or S, is exempt the same way and is now reported as a coordination too. All five measured cases give 0 clashes and 1
+  coordination; `tests/test_pose_analysis_metals.py` pins them, Harding's sourced distances, the boundaries and a sweep that
+  no distance is both, and eleven mutants of the fix are killed. The radii are unchanged.
+- Not covered: one 2.8 angstrom window serves every metal (too short for K; sourced per-metal windows are the follow-up), and fluorine as a donor has no source. A docking result saved earlier keeps the clash list it was analysed with; re-docking replaces it. The same
+  metal-as-separate-fragment defect exists in `interaction_analysis.find_interactions` (measured: one clash and one
+  coordination) and is not fixed here. `harding1999` is now registered as shipped (its tables were read).
+
 ### Docs: calculator explainers, starting with the partial-charge family
 - `docs/CALCULATOR_REFERENCE.md` said what each calculator needs and refuses but not what it
   DOES. Hand-written explainers in `docs/explainers/` (idea, how it works, what the result means,
@@ -60,6 +73,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   evidence, `tests/test_vdw_radii.py` and `tests/test_vdw_radii_provenance.py` pin the tables and the sources, and
   `benchmarks/vdw_radii/radii_study.py` reproduces the numbers.
 
+- **Old Geometry results no longer say "Bondi".** A result saved before the radii were relabelled carried the stored line "Bondi
+  van der Waals radii.", which was never true of RDKit's table. It now loads with a reader's note in its place
+  (`STORED_TEXT_NOTES` in `domain/result_store.py`): the exact line only, with the numbers, the provenance and the method
+  version untouched, because a version bump would claim the numbers differ and they do not. `alvarez2013` joins the registry:
+  its Table 1 puts iron at 2.44 angstrom (the docking table has 1.56, supported by no published set), and measuring the
+  docking pose analysis showed that a ligand donor bonded to a zinc, iron or magnesium is also reported as a steric clash,
+  which is the real defect behind that number (fixed: see the entry below).
+
+- Five more papers read for the radii question (`harding1999`, `harding2000`, `harding2001`, `gavezzotti1983`, `zhao2003`).
+  Zhao et al.'s Tables 1 and 3 are a second transcription of Bondi's group volumes; on those 46 molecules Bondi's list errs
+  1.84% on average against RDKit's 2.12% and hydrogen 1.10's 7.71%, the whole difference being in halides (1.95% against
+  3.14%), so moving the surface calculators to Bondi is a provenance gain, not an accuracy one. Harding's tables give sourced
+  metal-donor distances (the current table is Harding 2006's: Zn-N 2.03, Fe-N 2.16, Mg-O 2.07, Ca-O 2.39 A) and a primary-sphere rule of target + 0.5 A, and show
+  sulfur is as good a donor as nitrogen. `benchmarks/vdw_radii/radii_study.py` gains the 46-molecule check.
+
 ### Help window: three things found by using it
 - **Clearing a search lost your place.** The x in the search box re-rendered the page and put it back at
   the top, so removing the highlighting read as being thrown back to the main menu. It now drops the marks,
@@ -106,6 +134,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   calls the same function and changes with it. `tests/test_interaction_analysis_rules.py` runs every structure that was
   reported through the registered calculator and measures its own precondition from the coordinates; each rule was
   reverted in turn and the tests failed. The explainer's limits are updated to match.
+
+- **The accessible surface, van der Waals volume, projections and Geometry now use Bondi's own radii** (`chem/vdw_radii.py`),
+  the table Ligand Steric Bulk already used: methods `surface-v3` and `geometry-v3`. Over 17 drug-like molecules, accessible area
+  moves -0.4% on average (worst -1.9%), van der Waals volume -1.4% (worst -4.5%), the smallest shadow -0.8%; hydrocarbons do
+  not move, the whole change is in the elements Bondi's list and RDKit's table disagree about. Results saved by v2 are kept
+  beside the new ones and labelled "previous method", never replayed as the new. Because RDKit's volume routines take no
+  radii, the volume is now the divergence theorem over the surface points (`sasa.enclosed_volume`, within 0.25% of a fine
+  grid against RDKit's 1.2%) with an independent grid count as its check (`sasa.grid_volume`), which also retires the lone
+  atom as the known exception to that check. Hydrogen stays 1.20.
+
+- **The periodic table's van der Waals radius is now the shared table's, and names its source.** It showed RDKit's value
+  (chlorine 1.80); it now shows Bondi's (1.75) with "(Bondi 1964)", "(Mantina et al. 2009, on Bondi's scale)" or "(RDKit's
+  table, Batsanov 2001's set)" beside it, so it agrees with every area and volume the application reports. The element colour
+  palette's range was widened to francium's 3.48. Five more papers join the registry (`harding2002` with its corrigendum
+  `harding2013`, `harding2006`, `zheng2017`, `chernyshov2020`); Harding's 2006 table supersedes his 2001 one and adds cobalt
+  and, with Zheng's, nickel, sodium and potassium; the Chernyshov DOI first given here was the cover profile's.
 
 ### Naming: ring systems keep their heteroatoms, numbering, hydrogen and name
 - A spiro heterocycle on a bridged ring was `tricyclo[...]undecane-1,3-dione` (every N gone), an N-attached triazinedione was numbered as a ring OPSIN cannot build, a spiro partner lost an azole N-H, a tricycle of three monocycles had no name, and a protonated or iminium N in a fused 4-ring was a NAMING ERROR (D-215 .. D-219). Census 1968 -> 1978 exact, visible failures 4 -> 0; fresh_v1 1950 -> 1951 of 2000 read back after its one re-score (97.55%).

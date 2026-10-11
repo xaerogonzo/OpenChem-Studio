@@ -227,7 +227,7 @@ def test_the_provenance_records_the_search_it_ran():
 
     assert recorded["conformer_policy"] == "if_2d" and recorded["conformer_count"] == 5
     assert recorded["conformers_tried"] >= recorded["conformers_ranked"] >= 1
-    assert recorded["search_seed"] and recorded["method"] == "geometry-v2"
+    assert recorded["search_seed"] and recorded["method"] == "geometry-v3"
 
 
 def test_a_structure_that_cannot_be_given_a_conformer_is_a_refusal_not_a_crash(monkeypatch):
@@ -298,7 +298,7 @@ def test_a_new_geometry_result_carries_the_new_method():
 
     _store, identity = _stored(_run(_raw()))
 
-    assert identity.method_version == GEOMETRY_METHOD == CURRENT_METHOD_VERSIONS["geometry_analysis"] == "geometry-v2"
+    assert identity.method_version == GEOMETRY_METHOD == CURRENT_METHOD_VERSIONS["geometry_analysis"] == "geometry-v3"
 
 
 def test_a_result_saved_before_the_search_loads_as_the_previous_method_and_says_so():
@@ -328,8 +328,8 @@ def test_the_old_and_new_methods_never_share_a_slot_and_only_the_new_is_replayed
     replayed = {s.identity.method_version for s in reloaded.fresh_results("m", {GEOMETRY: "fp"})}
     kept = {entry.get("method_version", "") for entry in reloaded.to_dict()["molecules"]["m"]["results"]}
 
-    assert replayed == {"geometry-v2"}, "the old measurement must not be replayed as if it were the new one"
-    assert kept == {"geometry-v2", "legacy-principal-planes-v1"}, "and it must not be thrown away either"
+    assert replayed == {"geometry-v3"}, "the old measurement must not be replayed as if it were the new one"
+    assert kept == {"geometry-v3", "legacy-principal-planes-v1"}, "and it must not be thrown away either"
 
 
 # --- the settings dialog, which is where a person meets these options ----------------------------------------
