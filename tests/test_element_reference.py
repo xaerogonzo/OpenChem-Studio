@@ -390,3 +390,29 @@ def test_the_awkward_cases_the_rule_has_to_survive(symbol, states):
     assert facts.common_oxidation_states == states
     for state in states:
         assert abs(state) <= facts.outer_electrons
+
+
+# --- the van der Waals radius is the shared table's, and says which source it came from -------------------------------
+
+
+@pytest.mark.parametrize("symbol, radius, source", [
+    ("Cl", 1.75, "Bondi 1964"),
+    ("P", 1.80, "Bondi 1964"),
+    ("B", 1.92, "Mantina et al. 2009, on Bondi's scale"),
+    ("Fe", 2.05, "RDKit's table, Batsanov 2001's set"),
+])
+def test_an_elements_radius_is_the_shared_tables_and_names_its_source(symbol, radius, source):
+    """Chlorine is 1.75 in Bondi's list and was shown as RDKit's 1.80 until the surface calculators moved to the shared
+    table; boron is Mantina's; iron is in neither list, so RDKit's value stands and is labelled as such."""
+    facts = facts_for(symbol)
+
+    assert facts.van_der_waals_radius == pytest.approx(radius)
+    assert facts.van_der_waals_source == source
+
+
+def test_the_detail_pane_prints_the_radius_with_its_source():
+    from openchem.ui.dialogs.periodic_table_dialog import describe
+
+    text = describe(facts_for("Cl"))
+
+    assert "van der Waals 1.75 &Aring; (Bondi 1964)" in text

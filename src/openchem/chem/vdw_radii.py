@@ -1,11 +1,13 @@
 """Bondi's van der Waals radii, as the paper prints them, for the calculators that say they use them.
 
-`docs/VDW_RADII_ASSESSMENT.md` is the investigation. The short version: the surface, volume and projection
-calculators take their radii from RDKit's periodic table, which is NOT Bondi's list (it equals Batsanov 2001's
-recommended crystallographic radii), and for most purposes that is fine. **Percent buried volume is the exception.**
-It is defined with Bondi's radii [source:bondi1964] scaled by 1.17 (SambVca, Poater et al. [source:poater2009] and Clavier and Nolan [source:clavier2010]), and RDKit's
-phosphorus radius (1.95) is far from Bondi's (1.80), which put small phosphines 2 to 3.6 points high. So the steric
-calculator, and only it, reads this table.
+`docs/VDW_RADII_ASSESSMENT.md` is the investigation. The short version: RDKit's periodic table, which this application
+used for the surface, volume and projection calculators and called Bondi's, is NOT Bondi's list (it equals Batsanov 2001's
+recommended crystallographic radii). **Percent buried volume needed Bondi's radii first.** It is defined with them
+[source:bondi1964] scaled by 1.17 (SambVca, Poater et al. [source:poater2009] and Clavier and Nolan [source:clavier2010]),
+and RDKit's phosphorus radius (1.95) is far from Bondi's (1.80), which put small phosphines 2 to 3.6 points high. The
+steric calculator moved in method steric-v2; the accessible surface, van der Waals volume, projections and Geometry moved
+in surface-v3 and geometry-v3 (2026-10-11), so this is now the one table for all of them. The docking module keeps its own,
+for contacts.
 
 **WHAT IS IN IT, AND WHERE EACH NUMBER IS FROM.**
 
@@ -59,6 +61,13 @@ SOURCE_MANTINA = "mantina2009"
 #: What `radius_source` answers for an element in neither table: RDKit's own radius is the fallback.
 SOURCE_RDKIT = "rdkit"
 
+#: How each source is named where a person reads it (the periodic table's detail pane).
+SOURCE_LABELS: dict[str, str] = {
+    SOURCE_BONDI: "Bondi 1964",
+    SOURCE_MANTINA: "Mantina et al. 2009, on Bondi's scale",
+    SOURCE_RDKIT: "RDKit's table, Batsanov 2001's set",
+}
+
 #: What a result computed with this table records as its radii, so a stored value says which table made it.
 RADII_LABEL = "bondi1964+mantina2009 (rdkit for other elements)"
 
@@ -78,6 +87,11 @@ def radius_source(atomic_number: int) -> str:
     if symbol in MANTINA_2009:
         return SOURCE_MANTINA
     return SOURCE_RDKIT
+
+
+def radius_source_label(atomic_number: int) -> str:
+    """`radius_source` as a phrase for a reader, e.g. "Bondi 1964"."""
+    return SOURCE_LABELS[radius_source(atomic_number)]
 
 
 def bondi_radius(atomic_number: int) -> float:

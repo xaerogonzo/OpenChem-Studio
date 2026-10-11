@@ -172,7 +172,7 @@ def _as_saved_before_the_relabel(result):
     from openchem.domain.result_store import STORED_TEXT_NOTES
 
     (old,) = STORED_TEXT_NOTES["geometry_analysis"]
-    current = "Van der Waals radii from RDKit's table (Batsanov's recommended set, not Bondi's)."
+    current = "Van der Waals radii: Bondi's list, with Mantina et al.'s for the elements he gave none for."
     facts = tuple(replace(f, limitations=tuple(old if t == current else t for t in f.limitations)) for f in result.facts)
     return replace(result, facts=facts)
 
@@ -220,7 +220,7 @@ def test_a_current_geometry_result_never_says_the_old_line_so_the_note_cannot_sh
     texts = {text for fact in _geometry_result().facts for text in fact.limitations}
 
     assert not texts & set(STORED_TEXT_NOTES["geometry_analysis"])
-    assert any("RDKit's table" in text for text in texts)
+    assert any("Bondi's list" in text for text in texts)
 
 
 def test_only_an_exact_match_is_replaced():
@@ -233,3 +233,83 @@ def test_only_an_exact_match_is_replaced():
     _identity, restored = _round_trip(unrelated)
 
     assert all(other in f.limitations for f in restored.result.facts)
+
+
+# --- the surface, volume, projection and Geometry calculators moved to this table (surface-v3, geometry-v3) --------------
+
+
+def test_the_surface_and_geometry_results_record_the_radii_and_the_new_methods():
+    from rdkit.Chem import AllChem
+
+    from openchem.chem.surface_analysis import compute_surface_analysis
+    from openchem.domain.result_store import GEOMETRY_METHOD, SURFACE_METHOD
+
+    assert SURFACE_METHOD == "surface-v3" and GEOMETRY_METHOD == "geometry-v3"
+    mol = Chem.AddHs(Chem.MolFromSmiles("CCCl"))
+    AllChem.EmbedMolecule(mol, randomSeed=7)
+    AllChem.MMFFOptimizeMolecule(mol)
+
+    surface = compute_surface_analysis(mol, "m", {})
+    geometry = _geometry_result()
+
+    assert surface.provenance.parameters["radii"] == vdw_radii.RADII_LABEL
+    assert surface.provenance.parameters["method"] == "surface-v3"
+    assert geometry.provenance.parameters["radii"] == vdw_radii.RADII_LABEL
+    assert geometry.provenance.parameters["method"] == "geometry-v3"
+
+
+def test_the_surface_calculators_use_bondis_chlorine_not_rdkits():
+    """Chlorine is 1.75 in Bondi's list and 1.80 in RDKit's: a lone chlorine's van der Waals surface says which."""
+    import math
+
+    from openchem.chem.surface_analysis import atomic_radii
+
+    chloride = Chem.MolFromSmiles("[Cl-]")
+
+    assert atomic_radii(chloride) == [1.75]
+    assert 4 * math.pi * 1.75**2 == pytest.approx(38.485, abs=1e-3)
+
+
+@pytest.mark.parametrize("result_id, method, label_start", [
+    ("geometry_analysis", "geometry-v2", "Geometry (previous method"),
+    ("surface_analysis", "surface-v2", "Molecular Surface Area (3D) (previous method"),
+    ("atom_sasa", "surface-v2", "Accessible Surface Area (per atom) (previous method"),
+])
+def test_a_v2_result_is_kept_beside_the_v3_one_and_labelled(result_id, method, label_start):
+    """The project's rule for a change of meaning: the old result is not replayed as the new method and not discarded."""
+    from dataclasses import replace
+
+    from openchem.chem.surface_analysis import compute_sasa_dataset, compute_surface_analysis
+    from openchem.domain.result_store import CURRENT_METHOD_VERSIONS, SessionResultStore, StoredResult
+    from openchem.services.result_identity import make_identity
+
+    from rdkit.Chem import AllChem
+
+    mol = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    AllChem.EmbedMolecule(mol, randomSeed=7)
+    AllChem.MMFFOptimizeMolecule(mol)
+    result = {
+        "geometry_analysis": lambda: _geometry_result(),
+        "surface_analysis": lambda: compute_surface_analysis(mol, "m", {}),
+        "atom_sasa": lambda: compute_sasa_dataset(mol, "m", {}),
+    }[result_id]()
+    identity = make_identity(
+        molecule_uuid="m", result=result, calculation_input=GEOMETRY, input_fingerprint="fp", producer="core"
+    )
+    assert identity.method_version == CURRENT_METHOD_VERSIONS[result_id] != method
+
+    store = SessionResultStore("project")
+    store.put(StoredResult(identity=identity, result=result))
+    saved = store.to_dict()
+    saved["molecules"]["m"]["results"][0]["method_version"] = method  # what a project saved by the previous version holds
+    reloaded = SessionResultStore.from_dict(saved, "project")
+    (restored,) = reloaded.fresh_results("m", {GEOMETRY: "fp"})
+
+    assert restored.identity.method_version == method
+    assert restored.result.name.startswith(label_start) and "RDKit's radii" in restored.result.name
+
+    reloaded.put(StoredResult(identity=identity, result=result))
+    replayed = {s.identity.method_version for s in reloaded.fresh_results("m", {GEOMETRY: "fp"})}
+    kept = {entry.get("method_version", "") for entry in reloaded.to_dict()["molecules"]["m"]["results"]}
+    assert replayed == {CURRENT_METHOD_VERSIONS[result_id]}, "the old measurement must not be replayed as the new one"
+    assert kept == {method, CURRENT_METHOD_VERSIONS[result_id]}, "and it must not be thrown away either"

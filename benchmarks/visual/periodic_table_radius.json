@@ -1,0 +1,8 @@
+[
+  {"do": "dialog", "name": "PeriodicTableDialog", "width": 1200, "height": 900, "after_ms": 1200},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/periodic_table_radius.png", "widget": "dialog", "after_ms": 300},
+
+  {"do": "close_dialog"},
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]
