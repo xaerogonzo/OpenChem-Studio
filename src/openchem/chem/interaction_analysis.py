@@ -31,9 +31,13 @@ from openchem.chem.pose_analysis import (
     CLASH_TOLERANCE,
     HBOND_DISTANCE_CUTOFF,
     HYDROPHOBIC_CUTOFF,
+    METAL_COORDINATION_CUTOFF,
+    METAL_DONOR_MIN_DISTANCE,
     PI_STACKING_CUTOFF,
     SALT_BRIDGE_CUTOFF,
+    _BONDED_NEIGHBOUR_DEPTH,
     _DEFAULT_VDW_RADIUS,
+    _METAL_DONOR_ELEMENTS,
     _METALS,
     _POLAR_ELEMENTS,
     _VDW_RADII,
@@ -104,6 +108,31 @@ def _formal_charge_sites(mol: Chem.Mol) -> tuple[list[int], list[int]]:
     return positive, negative
 
 
+def _metal_bonded_pairs(mol: Chem.Mol, positions, topological) -> set[tuple[int, int]]:
+    """`(lower index, higher index)` pairs inside one molecule that are a bond to a metal, and so not a clash.
+
+    The same rule `pose_analysis._metal_bonded_pairs` applies to a docked pose, for a metal that is NOT joined
+    to its donor by a bond in the molecule (a separate fragment, as in `c1c[nH]cn1.[Zn+2]`). Topological
+    separation cannot exclude those: the distance between fragments is infinite, so `MIN_SEPARATION['clashes']`
+    lets every such pair through and the donor was reported as a clash AND as `metal_coordination`.
+
+    A donor (`_METAL_DONOR_ELEMENTS`) between `METAL_DONOR_MIN_DISTANCE` and `METAL_COORDINATION_CUTOFF` of a
+    metal is bonded to it, and so is every atom within `_BONDED_NEIGHBOUR_DEPTH` bonds of that donor, against
+    THAT metal only (their distance to it is fixed by the M-D-X angle, not a contact). Closer than the floor
+    the two atoms overlap and the pair stays in the clash test.
+    """
+    metals = [a.GetIdx() for a in mol.GetAtoms() if a.GetSymbol().upper() in _METALS]
+    bonded: set[tuple[int, int]] = set()
+    for metal in metals:
+        for donor in (a.GetIdx() for a in mol.GetAtoms() if a.GetSymbol() in _METAL_DONOR_ELEMENTS):
+            if not METAL_DONOR_MIN_DISTANCE <= _distance(positions, metal, donor) <= METAL_COORDINATION_CUTOFF:
+                continue
+            for other in range(mol.GetNumAtoms()):
+                if other != metal and topological[donor][other] <= _BONDED_NEIGHBOUR_DEPTH:
+                    bonded.add((min(metal, other), max(metal, other)))
+    return bonded
+
+
 def find_interactions(mol: Chem.Mol) -> dict[str, list[dict[str, Any]]]:
     """Every detected intramolecular interaction, grouped by kind.
 
@@ -125,6 +154,8 @@ def find_interactions(mol: Chem.Mol) -> dict[str, list[dict[str, Any]]]:
 
     def separated(kind: str, i: int, j: int) -> bool:
         return topological[i][j] >= MIN_SEPARATION[kind]
+
+    metal_bonded = _metal_bonded_pairs(mol, positions, topological)
 
     heavy = [a.GetIdx() for a in mol.GetAtoms() if a.GetSymbol() != "H"]
     for i, j in itertools.combinations(heavy, 2):
@@ -150,6 +181,9 @@ def find_interactions(mol: Chem.Mol) -> dict[str, list[dict[str, Any]]]:
             not is_hydrogen_bond
             and distance < (_vdw_radius(element_i) + _vdw_radius(element_j) - CLASH_TOLERANCE)
             and separated("clashes", i, j)
+            # A bond to a metal is not a contact. Same reason as the hydrogen bond above: coordination is
+            # reported below, and a pair in both lists teaches the reader to ignore the clash list.
+            and (i, j) not in metal_bonded
         ):
             found["clashes"].append({"atoms": (i, j), "distance": distance})
 
@@ -168,8 +202,8 @@ def find_interactions(mol: Chem.Mol) -> dict[str, list[dict[str, Any]]]:
         if (element_i.upper() in _METALS) != (element_j.upper() in _METALS):
             donor = j if element_i.upper() in _METALS else i
             if (
-                mol.GetAtomWithIdx(donor).GetSymbol() in _POLAR_ELEMENTS
-                and distance <= 2.8
+                mol.GetAtomWithIdx(donor).GetSymbol() in _METAL_DONOR_ELEMENTS
+                and distance <= METAL_COORDINATION_CUTOFF
                 and separated("metal_coordination", i, j)
             ):
                 found["metal_coordination"].append({"atoms": (i, j), "distance": distance})

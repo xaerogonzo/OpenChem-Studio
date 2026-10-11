@@ -75,6 +75,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   metal-donor distances (Zn-N 2.00, Fe-N 2.08, Mg-O 2.07, Ca-O 2.39 A) and a primary-sphere rule of target + 0.5 A, and show
   sulfur is as good a donor as nitrogen. `benchmarks/vdw_radii/radii_study.py` gains the 46-molecule check.
 
+### Interaction Analysis: a metal in a separate fragment is no longer a clash
+- `find_interactions` (the Interaction Analysis calculator, a ligand with itself) reported a metal drawn as its own
+  fragment as a clash AND a metal coordination: `c1c[nH]cn1.[Zn+2]` with the zinc 2.0 angstrom from the pyridine-type
+  nitrogen gave one of each. A zinc bonded in the molecule was never affected, because the clash test needs a bond-path
+  separation of 4 and a bonded metal is 1; between fragments the separation is infinite, so nothing excluded the pair. The rule
+  `analyze_pose` already applies now applies here: a donor (N, O, F, S) between 1.8 and 2.8 angstrom of a metal, and the
+  atoms within two bonds of that donor (against that metal only), skip the clash test; closer than 1.8 is an overlap and
+  stays one. Measured: the case above gives 0 clashes and 1 coordination, as do Zn, Fe, Mn, Cu, Ca, Mg at Harding's mean
+  distances and Ca/Na at 2.4 (where the donor's two ring carbons, 3.4 angstrom away, were clashes too).
+- The coordination test now takes the donor set of the pose analysis (N, O, F, S) and its `METAL_COORDINATION_CUTOFF`
+  instead of N, O, F and a hard-coded 2.8. This is a behaviour change: a thiolate or thioether sulfur within 2.8
+  angstrom of a metal that is not bonded to it by two bonds or fewer is now reported as `metal_coordination` where it was
+  silently absent, and it has to be, or exempting it from the clash test would make the contact vanish from both lists.
+- `tests/test_interaction_analysis_metals.py` (56 tests, all through `find_interactions`) pins the cases above, the bonded
+  control, the exemption being for the bound metal only, the 1.8 floor, the 2.8 edge, and a sweep over every metal, donor
+  and 0.05 angstrom step that no pair is both. Five mutants of the fix (no exclusion, neighbour depth 0, no floor,
+  coordination without sulfur, exemption for every metal) each fail at least one test.
+
 ### Docking: a bond to a metal is no longer a steric clash
 - `analyze_pose` reported every coordinated metal as a clash as well as a metal coordination: an imidazole with Zn at 2.1,
   Fe at 2.0 or Mg at 2.1 angstrom from its nitrogen gave one clash, and Ca or Na at 2.4 gave three (the nitrogen's own ring
@@ -87,7 +105,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Not covered: Na, K, Co and Ni (and fluorine as a donor) have no source, so the old 2.8 angstrom cutoff stands unsourced for
   them. A docking result saved earlier keeps the clash list it was analysed with; re-docking replaces it. The same
   metal-as-separate-fragment defect exists in `interaction_analysis.find_interactions` (measured: one clash and one
-  coordination) and is not fixed here. `harding1999` (now read for its tables), `harding2000` and `harding2001` are in the
+  coordination); fixed in the next entry. `harding1999` (now read for its tables), `harding2000` and `harding2001` are in the
   source registry.
 
 ### Help window: three things found by using it
