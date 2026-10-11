@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import logging
 
-from PySide6.QtCore import QUrl, Qt
+from PySide6.QtCore import QSignalBlocker, QUrl, Qt
 from PySide6.QtGui import QDesktopServices, QTextCharFormat, QTextCursor
 from PySide6.QtWidgets import (
     QDialog,
@@ -75,10 +75,26 @@ _HELP: dict[str, HelpTooltip] = {
             "The topic list keeps its selection, so this is a way to read "
             "around a result rather than a way to leave it. Search "
             "highlighting is not carried over -- measured, the marks are "
-            "dropped when the document is swapped."
+            "dropped when the document is swapped.\n\n"
+            "Unavailable when the section already is the whole document "
+            "(a document's own title), because pressing it would show "
+            "the same page again."
         ),
         tier=1,
         help_id="help.whole_document",
+        topic="help",
+    ),
+    "open_file": HelpTooltip(
+        text=(
+            "Opens the markdown file this page is read from in whatever "
+            "program your system uses for .md files, so a long document "
+            "can be read, searched or printed there.\n\n"
+            "It opens the file as it is on disk and nothing more: if your "
+            "system has no program for markdown the status line says so "
+            "instead of opening nothing in silence."
+        ),
+        tier=1,
+        help_id="help.open_file",
         topic="help",
     ),
 }
@@ -113,6 +129,14 @@ class HelpDialog(QDialog):
         self.setWindowTitle("OpenChem Studio Help")
         self.resize(940, 680)
         self.setWindowFlag(Qt.WindowType.Window, True)
+        # A QDialog is drawn with a close button and nothing else on Windows. This window holds
+        # long documents and is read beside the work, so it can be minimised and maximised.
+        self.setWindowFlags(
+            self.windowFlags()
+            | Qt.WindowType.WindowMinMaxButtonsHint
+            | Qt.WindowType.WindowCloseButtonHint
+        )
+        self.setSizeGripEnabled(True)
 
         self._query = ""
         self._current_key = ""
@@ -135,6 +159,10 @@ class HelpDialog(QDialog):
         self._whole_document_button.clicked.connect(self._show_whole_document)
         apply_help_tooltip(self._whole_document_button, _HELP["whole_document"])
 
+        self._open_file_button = QPushButton("Open the file", self)
+        self._open_file_button.clicked.connect(self._open_document_file)
+        apply_help_tooltip(self._open_file_button, _HELP["open_file"])
+
         self._status = QLabel("", self)
         self._status.setWordWrap(True)
 
@@ -150,6 +178,7 @@ class HelpDialog(QDialog):
         right_layout.addWidget(self._view, 1)
         controls = QHBoxLayout()
         controls.addWidget(self._whole_document_button)
+        controls.addWidget(self._open_file_button)
         controls.addStretch(1)
         right_layout.addLayout(controls)
 
@@ -209,9 +238,7 @@ class HelpDialog(QDialog):
         query = text.strip()
         self._query = query
         if not query:
-            self._populate()
-            self.show_topic(self._current_key)
-            self._status.setText(self._source_note())
+            self._clear_search_keeping_place()
             return
 
         hits = help_docs.search(query)
@@ -240,6 +267,33 @@ class HelpDialog(QDialog):
         self._status.setText(f"{len(hits)} topic(s) mention '{query}'.")
         self._list.setCurrentRow(0)
 
+    def _clear_search_keeping_place(self) -> None:
+        """Back to the table of contents, with the marks gone and the reader still where they were.
+
+        The old path re-selected the topic, which re-rendered the page and put it back at the top:
+        clearing a search read as "thrown back to the main menu", and the marks were the only thing
+        the reader wanted gone. The page is not reloaded here, only its extra selections are
+        dropped, so the scroll position cannot move (an explicit restore was tried and mutation
+        showed it did nothing).
+        """
+        row = -1
+        with QSignalBlocker(self._list):
+            self._populate()
+            for index in range(self._list.count()):
+                if self._list.item(index).data(Qt.ItemDataRole.UserRole) == self._current_key:
+                    row = index
+                    break
+            if row >= 0:
+                self._list.setCurrentRow(row)
+        if row < 0:
+            # Nothing selected to keep (nothing was open yet): the ordinary path.
+            self.show_topic(self._current_key)
+            self._status.setText(self._source_note())
+            return
+        self._list.scrollToItem(self._list.item(row))
+        self._view.setExtraSelections([])
+        self._status.setText(self._source_note())
+
     # --- navigation --------------------------------------------------------
 
     def show_topic(self, key: str) -> None:
@@ -255,6 +309,7 @@ class HelpDialog(QDialog):
             item = self._list.item(row)
             if item.data(Qt.ItemDataRole.UserRole) == target:
                 self._list.setCurrentItem(item)
+                self._list.scrollToItem(item)
                 return
         logger.warning("No help topic keyed %r", target)
         self._status.setText(f"No help topic named '{target}'.")
@@ -273,6 +328,9 @@ class HelpDialog(QDialog):
             return
         self._current_key = key
         self._current_document = topic.document
+        # A document's own title (level 1) IS the whole document, so the button would redraw the
+        # page already showing, which read as "it does nothing".
+        self._whole_document_button.setEnabled(topic.level > 1)
         self._highlight_query()
         if not self._query:
             self._status.setText(self._source_note())
@@ -331,6 +389,20 @@ class HelpDialog(QDialog):
             self._view.setMarkdown(f"Could not load the document.\n\n`{exc}`")
             return
         self._view.verticalScrollBar().setValue(0)
+
+    def _open_document_file(self) -> None:
+        """Open the current document's markdown file in the system's program for it."""
+        document = getattr(self, "_current_document", "")
+        if not document:
+            return
+        path = help_docs.docs_directory() / document
+        if not path.is_file():
+            self._status.setText(f"Could not find {path}.")
+            return
+        if not QDesktopServices.openUrl(QUrl.fromLocalFile(str(path))):
+            self._status.setText(
+                f"Your system has no program set to open {path.suffix or 'this'} files; the file is at {path}."
+            )
 
     def _on_link(self, url: QUrl) -> None:
         """Keep cross-document links inside the help window.
