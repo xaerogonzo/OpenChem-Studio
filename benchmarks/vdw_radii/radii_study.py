@@ -1,4 +1,5 @@
-"""What the choice of van der Waals radius table changes: areas over a drug-like set, and the steric series.
+"""What the choice of van der Waals radius table changes: areas over a drug-like set, the steric series, and a check
+against Bondi's own published group volumes.
 
 Reproduces the measurements in `docs/VDW_RADII_ASSESSMENT.md`. Run from the repository root:
 
@@ -110,6 +111,50 @@ def steric_series() -> None:
         steric.bondi_radius = original
 
 
+#: Bondi 1964, Tables XV and XVI, in cm3/mole: the volume increments of the groups that make up the molecules below
+#: (read from the page images). None of these molecules has a hydrogen bond or a crowding correction (Table XVII).
+_CH3, _CH2, _CH, _C = 13.67, 10.23, 6.78, 3.33
+#: (name, SMILES, Bondi's group sum in cm3/mole).
+GROUP_CASES = [
+    ("methane", "C", 17.12), ("ethane", "CC", 2 * _CH3), ("propane", "CCC", 2 * _CH3 + _CH2),
+    ("n-hexane", "CCCCCC", 2 * _CH3 + 4 * _CH2), ("isobutane", "CC(C)C", 3 * _CH3 + _CH),
+    ("neopentane", "CC(C)(C)C", 4 * _CH3 + _C), ("fluoroethane", "CCF", _CH3 + _CH2 + 5.72),
+    ("chloromethane", "CCl", _CH3 + 11.62), ("chloroethane", "CCCl", _CH3 + _CH2 + 11.62),
+    ("bromoethane", "CCBr", _CH3 + _CH2 + 14.40), ("iodoethane", "CCI", _CH3 + _CH2 + 19.18),
+    ("diethyl ether", "CCOCC", 2 * _CH3 + 2 * _CH2 + 3.7), ("acetonitrile", "CC#N", _CH3 + 14.70),
+    ("acetone", "CC(C)=O", 2 * _CH3 + 11.70), ("nitromethane", "C[N+](=O)[O-]", _CH3 + 16.8),
+    ("dimethyl sulfide", "CSC", 2 * _CH3 + 10.8), ("trimethylamine", "CN(C)C", 3 * _CH3 + 4.33),
+]
+
+
+def _grid_volume(mol: Chem.Mol, table: dict[str, float], step: float = 0.04) -> float:
+    """The volume of the fused spheres by a 0.04 angstrom grid, so any radius table can be used."""
+    pos = mol.GetConformer().GetPositions()
+    radii = np.array([table[a.GetSymbol()] for a in mol.GetAtoms()])
+    low, high = (pos - radii[:, None]).min(0), (pos + radii[:, None]).max(0)
+    axes = [np.arange(low[k], high[k] + step, step) for k in range(3)]
+    xs, ys = np.meshgrid(axes[0], axes[1], indexing="ij")
+    inside = 0
+    for z in axes[2]:
+        d2 = (xs[..., None] - pos[:, 0]) ** 2 + (ys[..., None] - pos[:, 1]) ** 2 + (z - pos[:, 2]) ** 2
+        inside += int(((d2 <= radii**2).any(-1)).sum())
+    return inside * step**3
+
+
+def group_volumes() -> None:
+    """Which table reproduces the volumes Bondi himself published for these molecules (an implementation-and-table check)."""
+    errors: dict[str, list[float]] = {label: [] for label in TABLES}
+    for name, smiles, groups in GROUP_CASES:
+        mol = _conformer(smiles)
+        reference = groups / 0.602214  # cm3/mole -> cubic angstrom per molecule
+        for label, table in TABLES.items():
+            errors[label].append(100 * (_grid_volume(mol, table) - reference) / reference)
+    for label, values in errors.items():
+        print(f"vdW volume vs Bondi's group sums, {len(values)} molecules  {label:15} mean {statistics.mean(values):+.2f}%  "
+              f"mean abs {statistics.mean(abs(v) for v in values):.2f}%  max abs {max(abs(v) for v in values):.2f}%")
+
+
 if __name__ == "__main__":
     areas()
     steric_series()
+    group_volumes()

@@ -182,17 +182,51 @@ buried volume it is not, which is why that calculator, and only that one, follow
   compromise the area calculators do not need, and Bondi's, Rowland and Taylor's and Mantina et al.'s own words all put
   1.20 on the volume side.
 
-**Still open, none of it urgent:** whether the surface calculators should one day move to Bondi's list as well (areas
-would shift about 0.5% on average, and it needs a method-version bump); the `Fe` entry in the docking table (1.56), which
-is in neither Bondi's nor Mantina's list and has not been traced; and the user-facing wording on a Geometry result saved
-before this change, which still carries the old "Bondi" line.
+## The three open questions, researched further (2026-10-11)
+
+**1. Should the surface calculators follow Bondi's list too?** Bondi's own Tables XV and XVI give a volume increment for
+each functional group, which makes a published oracle for the one question the application can check against him: does
+a radius table reproduce his volumes? Seventeen molecules with no hydrogen bond and no crowding correction (alkanes,
+five halides, an ether, a nitrile, a ketone, a nitro compound, a sulfide, an amine) were measured with each table on one
+MMFF94 geometry each (`radii_study.py`, `group_volumes`):
+
+| table | mean signed | mean absolute | worst |
+|---|---|---|---|
+| Bondi 1964 | -0.3% | 1.3% | 2.9% |
+| RDKit (Batsanov) | +1.1% | 2.0% | 5.2% (nitromethane; iodoethane and chloromethane +4.6%) |
+| CRC, hydrogen 1.10 | -7.5% | 7.5% | 10.5% (every hydrocarbon about -10%) |
+
+Two things follow, and one does not. **Hydrogen 1.10 is settled for volumes**: it misses Bondi's own methane by 10%, so
+C stays refused for the surface and volume calculators. **RDKit's table is within a few percent of Bondi's convention
+for hydrocarbons (identical there) and overshoots for halides and nitro compounds**, which Bondi's list does not. What
+this does **not** show is that Bondi's list is the better description of a real molecule: the oracle is Bondi's own
+arithmetic, so it measures agreement with his convention, not with nature. The decision to move the surface
+calculators is therefore a question of which convention to follow, and the evidence is that Bondi's is the one the
+volume and area literature (and the buried-volume papers) use. It still needs a method-version bump and the legacy
+slot, and it is left for Alex.
+
+**2. The docking table's `Fe` 1.56.** It entered with the table on 2026-07-30 with no source in the commit or the comment.
+It is not Bondi's: Table I has no iron, and Table XIV's metals are Li, Na, Mg, K, Ni, Cu, Zn, Ga, Pd, Ag, Cd, In, Sn, Pt,
+Au, Hg, Tl, Pb and U (the application's Zn 1.39, Mg 1.73, Na 2.27 and K 2.75 do match it, and Ca 2.31 is Mantina's).
+It is not Mantina's, which treats main-group elements only, and it is not Batsanov's, whose Table 9 gives iron 2.05
+(which is also RDKit's). A search of the maintainer's library for a page holding "van der Waals", "1.56" and "iron"
+found nothing. The value is therefore untraced and should be read as an undocumented placeholder; **a hypothesis, not
+a finding**, is that it is a calculated atomic (not van der Waals) radius, but nothing read here says so. It matters
+little, as an expectation not measured here: iron in a protein receptor is typically the metal of a heme or an iron-sulfur cluster, bonded to atoms
+that sit at 2.0 angstrom, so the contact test is not about its van der Waals size. Replacing it needs a source for
+what the table means by a metal's radius, not a different number.
+
+**3. A Geometry result saved before this change.** Its stored limitation line says "Bondi radii", which was never true.
+The numbers in it are correct and unchanged, so a method-version bump (which would mark it as a previous method and
+imply its numbers differ) would say something false in the other direction. The honest options are to leave the stored
+line, or to show a reader's note on a result whose stored line names Bondi; neither is built, and neither is urgent.
 
 ## Not verified
 
 - BODR's real origin. The identification with Batsanov rests on exact equality across 65 elements, not on any statement
   by RDKit or BODR.
 - The Open Babel header and the ChemAxon forum reply were seen through search summaries only.
-- Bondi's group increments for volume and area, and the other nine tables of Batsanov, were not read.
+- Bondi's group increments for volume were read from Tables XV and XVI and used for the oracle above; his area increments, his Table XVII corrections and the other nine tables of Batsanov were not used. The oracle's molecules are 17 and share one MMFF94 geometry each.
 - Mantina et al. 2009 and Rowland and Taylor 1996 are now read, and Alex's copy of Batsanov matches the public one first read. What was read of each is in its registry row, with what was not.
 - The published buried volumes come from crystal geometries; the application's from free ligands.
 
