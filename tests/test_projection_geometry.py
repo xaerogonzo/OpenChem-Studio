@@ -23,7 +23,7 @@ from openchem.chem.projection_geometry import (
     van_der_waals_volume,
 )
 
-#: The Bondi radius RDKit carries for helium, and the only number in this
+#: The van der Waals radius RDKit carries for helium (1.40, the same as in Bondi's list), and the only number in this
 #: file taken from a table rather than derived.
 HELIUM_RADIUS = 1.4
 
@@ -126,18 +126,15 @@ def test_the_two_independent_routines_agree_on_real_molecules(smiles):
     assert disagreement < 0.03, f"{smiles}: {disagreement:.2%}"
 
 
-def test_a_lone_atom_is_the_known_exception_to_the_cross_check(helium):
-    """Recorded rather than hidden: the GRID routine is worst where the
-    surface-to-volume ratio is highest, so it misses a bare atom by 5%
-    while the analytic answer is exactly right.
-
-    It is a limitation of the check, not of the value -- which is why the
-    check is reported and not used to reject anything.
-    """
+def test_a_lone_atom_now_agrees_with_the_cross_check(helium):
+    """Until method v3 this was the KNOWN EXCEPTION: RDKit's grid routine missed a bare atom by 5% while the analytic
+    answer was exact (the grid is worst where the surface-to-volume ratio is highest). The check is now our own grid at
+    0.1 angstrom, which misses a bare helium by well under 1%, so the exception is gone and the test says so. The check is
+    still reported and never used to reject anything."""
     _volume, disagreement = van_der_waals_volume(helium)
 
-    assert disagreement > 0.03
-    assert not shape_descriptors(helium).volumes_agree
+    assert disagreement < 0.01
+    assert shape_descriptors(helium).volumes_agree
 
 
 # --- shape, on molecules where the ordering is obvious -----------------------
@@ -350,3 +347,23 @@ def test_descriptors_are_frozen():
     assert isinstance(shape, ShapeDescriptors)
     with pytest.raises(AttributeError):
         shape.volume = 0.0
+
+
+# --- the radii are Bondi's (method geometry-v3): a lone chlorine tells it from RDKit's 1.80 -------------------------
+
+
+def test_a_lone_chlorine_has_bondis_radius_in_every_figure_not_rdkits():
+    """Bondi's chlorine is 1.75; RDKit's table says 1.80. One atom is the case whose every descriptor is a closed form, so
+    the radius in use can be read straight off the volume, the surface and the shadow."""
+    mol = Chem.MolFromSmiles("[Cl-]")
+    AllChem.EmbedMolecule(mol, randomSeed=42)
+    radius = 1.75
+
+    volume, disagreement = van_der_waals_volume(mol)
+    shape = shape_descriptors(mol)
+
+    assert volume == pytest.approx(4 / 3 * math.pi * radius**3, abs=1e-3)
+    assert disagreement < 0.03
+    assert shape.surface_area == pytest.approx(4 * math.pi * radius**2, abs=1e-6)
+    assert shape.min_projection_area == pytest.approx(math.pi * radius**2, abs=1e-6)
+    assert shape.max_projection_area == pytest.approx(math.pi * radius**2, abs=1e-6)

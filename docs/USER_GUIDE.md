@@ -2006,9 +2006,13 @@ choice and does *not* follow the Project Explorer selection — the probe
 checkboxes are defined against it, so re-pointing it whenever you clicked
 elsewhere would reshuffle your selection underneath you.
 
-Higher accuracy levels generate more conformers per probe and allow the
-maximum-common-substructure search more time. That is the trade: alignment
-quality against wall clock.
+Higher accuracy levels allow the maximum-common-substructure search more time and,
+whenever the probe is not rebuilt around the reference, try more starting conformers
+(1, 5 or 20). In **Flexible** mode, the default, the probe is built once with the
+atoms it shares with the reference pinned in place, so the accuracy level changes
+nothing unless that build is impossible for the pair (measured: aspirin onto salicylic
+acid tried one conformer at every level, ibuprofen onto naproxen tried 1, 5 and 20).
+That is the trade where it applies: alignment quality against wall clock.
 
 You can also work with it inside **Properties**: open **Workflows > Align several
 molecules** and press **Move here**. It is the same panel, not a copy, so what you have
@@ -2064,7 +2068,17 @@ The search box searches the **body text**, not just the headings, and ranks
 what it finds. Searching "Vina" returns four sections including the one
 explaining why its score is not a binding free energy — a word that appears
 in no heading anywhere in these documents. Matches are highlighted in the
-page and the view scrolls to the first one.
+page and the view scrolls to the first one. **Clearing the box (the x) removes
+the highlighting and leaves you where you were reading**; it does not send you
+back to the top.
+
+The window can be **minimised and maximised**, and resized by its corner; a long
+document reads better wide. Two buttons sit under the page. **Read the whole
+document** shows the whole file the section belongs to, and is greyed out when the
+section already is the whole file (a document's own title), because it would show
+the same page again. **Open the file** hands that markdown file to the program your
+system uses for `.md` files, for reading, searching or printing there; if your
+system has none, the status line says so.
 
 **Individual controls explain themselves.** Hover a button, a spin box or
 a results-table column heading and it says what it means — not a restatement
@@ -2130,6 +2144,48 @@ needs and what each refuses. It does not rank them, because nothing in this
 application has validated any of them against *your* molecule: a charge is a
 model output, not a measurement, and only the **sum** of the charges equals
 the net charge.
+
+**What each one does, and what its number means, is explained in the
+[calculator reference](CALCULATOR_REFERENCE.md)** -- the idea behind the model,
+what it was fitted to, when to prefer it and when not: [Partial Charge
+(3D)](CALCULATOR_REFERENCE.md#partial-charge-3d) for EEM, QEq and Ionescu,
+[Partial Charge (pH-dependent)](CALCULATOR_REFERENCE.md#partial-charge-ph-dependent)
+for Gasteiger and MMFF94, and [Dipole Moment](CALCULATOR_REFERENCE.md#dipole-moment).
+This page is the short comparison; that one is the reason behind it.
+
+The same atom under each model, so "different numbers" is not an abstraction.
+**Measured 2026-10-11 on one RDKit-embedded, MMFF94-relaxed conformer per
+molecule (seed 7); an illustration, not a benchmark.** Charges in units of *e*:
+
+| Atom | EEM | QEq | Ionescu 6-31G* | Gasteiger | MMFF94 |
+|---|---|---|---|---|---|
+| ethanol, O | -0.58 | -0.67 | -0.82 | -0.40 | -0.68 |
+| nitromethane, N | +0.24 | +0.12 | -0.42 | +0.02 | +0.80 |
+| dimethyl sulfone, S | refused (no S parameters) | -0.10 | refused (S bonded to O) | +0.14 | +1.09 |
+
+Two things in it are worth reading closely: Ionescu's model, fitted for
+proteins, puts a **negative** charge on the nitro nitrogen where the others put a
+positive one, and QEq returns a slightly negative sulfur for a sulfone without
+refusing. A number that comes back is not thereby shown to be reasonable.
+
+**What actually differs between them.** The names in a calculator's *Method* list
+(`eem_bultinck2002_part1`, `qeq_rg1991_lambda_half_h_experimental`,
+`eem_ionescu2013_e_mpa_631gs_gas`) are stored codes, and each is decoded in the
+[calculator reference](CALCULATOR_REFERENCE.md#partial-charge-3d). The models differ
+in what they were built from and in how two charges interact, and those two choices
+are most of why the numbers differ:
+
+| Model | Built from | How two charges interact | Needs 3D | Paper |
+|---|---|---|---|---|
+| Gasteiger (PEOE) | each atom type's ionization potential and electron affinity, as a quadratic in its charge; not fitted to quantum charges | no pairwise term: charge moves bond by bond, damped by half each round | no | Gasteiger & Marsili 1980, DOI 10.1016/0040-4020(80)80168-2 |
+| MMFF94 | one fixed increment per bond type, fitted with the rest of the force field to Hartree-Fock dipoles and interaction energies | none: a lookup by atom types | no | Halgren 1996 (part II), J. Comput. Chem. 17, 520-552 |
+| EEM (Bultinck 2002) | an effective electronegativity and hardness per element, fitted to B3LYP/6-31G* Mulliken charges of 138 small molecules | plain Coulomb, 1/R between every pair | yes | Bultinck et al. 2002, DOI 10.1021/jp0205463 |
+| QEq (Rappé-Goddard 1991) | experimental ionization potentials, electron affinities and atomic radii; not fitted to quantum charges | Coulomb **shielded** by the atoms' size (Slater orbitals); hydrogen's parameters depend on its own charge | yes | Rappé & Goddard 1991, DOI 10.1021/j100161a070 |
+| EEM (Ionescu 2013) | an effective electronegativity and hardness per element, fitted to Hartree-Fock Mulliken charges of large protein fragments | Coulomb with an adjusting factor k | yes | Ionescu et al. 2013, DOI 10.1021/ci400448n |
+
+"Built from" is the paper's own description. Which one is right for *your*
+molecule is a question none of them answers on its own, which is why this
+application reports each as what it is and ranks none.
 
 | Calculator and method | Runs on | Covers | Refuses |
 |---|---|---|---|

@@ -117,6 +117,11 @@ SKIP_FILES = {REGISTRY, GENERATED, SURVEY_INVENTORY}
 SYNTAX_DOCUMENTING_FILES = {
     Path(__file__).resolve(),
     ROOT / "tools" / "build_sources_doc.py",
+    # Parses `[source:key]` in the hand-written calculator explainers and renders each as a
+    # numbered reference; its regex, its f-string and the test that holds it contain the
+    # syntax without citing anything. The explainer TEXT (docs/explainers/) is swept.
+    ROOT / "tools" / "calculator_explainers.py",
+    ROOT / "tests" / "test_calculator_explainers.py",
 }
 
 #: The key used when the SYNTAX is being shown rather than a source cited.
@@ -1203,13 +1208,11 @@ _PROVENANCE_DEBT = frozenset({
     "src/openchem/domain/compare.py",
     "src/openchem/chem/crystal_report.py",
     "src/openchem/chem/elemental_analysis.py",
-    "src/openchem/chem/geometry_analysis.py",
     "src/openchem/chem/huckel.py",
     "src/openchem/chem/interaction_analysis.py",
     "src/openchem/chem/lewis.py",
     "src/openchem/chem/markush.py",
     "src/openchem/chem/mode_animation.py",
-    "src/openchem/chem/molecular_dynamics.py",
     "src/openchem/chem/molecule_report.py",
     "src/openchem/chem/naming_providers.py",
     "src/openchem/chem/nmr_reference.py",
@@ -1230,13 +1233,11 @@ _PROVENANCE_DEBT = frozenset({
     "src/openchem/chem/oxidation_states.py",
     "src/openchem/chem/regulatory/calculator.py",
     "src/openchem/chem/report_adapter.py",
-    "src/openchem/chem/steric.py",
     "src/openchem/chem/structure_annotation.py",
     "src/openchem/chem/structure_check.py",
     "src/openchem/chem/structure_generators.py",
     "src/openchem/chem/substance.py",
     "src/openchem/chem/substructure.py",
-    "src/openchem/chem/surface_analysis.py",
     # IMPLEMENTS NO METHOD OF ITS OWN. The hydrogen-bond sites are RDKit's own donor and
     # acceptor definitions written out as patterns (RDKit exposes a count and no atoms), held
     # to RDKit's count over a corpus by tests/test_hbond_sites.py. A convention about which

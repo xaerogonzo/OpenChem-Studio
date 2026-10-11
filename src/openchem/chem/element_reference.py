@@ -67,6 +67,9 @@ class ElementFacts:
     common_oxidation_states: tuple[int, ...] = ()
     isotopes: tuple[Isotope, ...] = ()
     examples: tuple[str, ...] = field(default_factory=tuple)
+    #: Which table `van_der_waals_radius` came from (`chem/vdw_radii.py`): Bondi's, Mantina et al.'s extension of it, or
+    #: RDKit's own for the elements neither covers. The same radii every surface and volume calculator uses.
+    van_der_waals_source: str = ""
 
     @property
     def has_established_oxidation_states(self) -> bool:
@@ -94,6 +97,8 @@ def facts_for(symbol: str) -> ElementFacts | None:
 
     from rdkit import Chem
 
+    from openchem.chem.vdw_radii import bondi_radius, radius_source_label
+
     table = Chem.GetPeriodicTable()
     z = entry["atomic_number"]
 
@@ -110,7 +115,8 @@ def facts_for(symbol: str) -> ElementFacts | None:
         atomic_weight=table.GetAtomicWeight(z),
         outer_electrons=table.GetNOuterElecs(z),
         valences=None if valences == (-1,) else valences,
-        van_der_waals_radius=table.GetRvdw(z) or None,
+        van_der_waals_radius=bondi_radius(z) or None,
+        van_der_waals_source=radius_source_label(z),
         covalent_radius=table.GetRcovalent(z) or None,
         electronegativity=_electronegativities().get(symbol),
         melting_point_c=entry.get("melting_point_c"),

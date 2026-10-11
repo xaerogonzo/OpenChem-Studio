@@ -1,0 +1,35 @@
+[
+  {"do": "dialog", "name": "HelpDialog", "search": "SD-POE", "width": 1100, "height": 800, "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/help_explainer_search.png", "widget": "dialog", "after_ms": 300},
+
+  {"do": "dialog", "name": "HelpDialog", "topic": "calc-geometry-partial-charge", "width": 1100, "height": 900, "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/help_explainer_geometry_charge.png", "widget": "dialog", "after_ms": 300},
+
+  {"do": "dialog", "name": "HelpDialog", "topic": "calc-gasteiger-charge-at-ph", "width": 1100, "height": 900, "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/help_explainer_ph_charge.png", "widget": "dialog", "after_ms": 300},
+
+  {"do": "dialog", "name": "HelpDialog", "topic": "calc-dipole-moment", "width": 1100, "height": 900, "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/help_explainer_dipole.png", "widget": "dialog", "after_ms": 300},
+
+  {"do": "dialog", "name": "HelpDialog", "topic": "calc-geometry-analysis", "width": 1100, "height": 900, "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/help_explainer_geometry.png", "widget": "dialog", "after_ms": 300},
+
+  {"do": "dialog", "name": "HelpDialog", "topic": "calc-griffin-hlb", "width": 1100, "height": 900, "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/help_explainer_hlb.png", "widget": "dialog", "after_ms": 300},
+
+  {"do": "dialog", "name": "HelpDialog", "topic": "calc-steric-analysis", "width": 1100, "height": 900, "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/help_explainer_steric.png", "widget": "dialog", "after_ms": 300},
+
+  {"do": "dialog", "name": "HelpDialog", "topic": "calc-interaction-analysis", "width": 1100, "height": 900, "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/help_explainer_interactions.png", "widget": "dialog", "after_ms": 300},
+
+  {"do": "dialog", "name": "HelpDialog", "topic": "calc-molecular-dynamics", "width": 1100, "height": 900, "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/help_explainer_dynamics.png", "widget": "dialog", "after_ms": 300},
+
+  {"do": "dialog", "name": "HelpDialog", "topic": "calc-alignment-3d", "width": 1100, "height": 900, "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/help_explainer_alignment.png", "widget": "dialog", "after_ms": 300},
+
+  {"do": "close_dialog"},
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

@@ -12,6 +12,10 @@ return 3N genuine gradient components), useful for watching a molecule
 move and for teaching. It is not a production simulation package and does
 not pretend to be.
 
+THE INTEGRATOR is Verlet's scheme [source:verlet1967] in the velocity form of Swope
+et al.'s appendix [source:swope1982]: r += h v + h^2 a / 2, then v += h (a_old + a_new) / 2,
+which is what the half-kick loop below reduces to.
+
 WHY VELOCITY VERLET: it is symplectic, so total energy stays BOUNDED
 rather than drifting -- which is the property that distinguishes a correct
 integrator from one that merely produces convincing motion. That bound is

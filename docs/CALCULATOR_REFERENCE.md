@@ -106,6 +106,33 @@ Net molecular dipole as a vector and magnitude in Debye, from partial charges an
   - `charge_model` -- Charge model (gasteiger, eem_bultinck2002_part1, qeq_rg1991_lambda_half_h_experimental) default `gasteiger`
   - `decimal_places` -- Decimal places default `2` range 0 to 8
 
+#### What it does
+
+Computes the molecule's dipole moment as a vector and a magnitude in debye, from a set of partial charges and this conformer's geometry. The direction is where the molecule is, on balance, more negative than positive, and the magnitude says how strongly. Pick the charge model; Gasteiger (PEOE) is the default, with the 3D EEM or QEq charges of the same conformer as alternatives.
+
+#### How it works
+
+The dipole is the charge-weighted sum of the atoms' positions, taken about the molecule's centre of mass and converted from elementary charge times angstrom to debye. Every atom needs a charge, because a missing one would be a net charge the molecule does not have. A charge model that declines the molecule is reported as having declined; the calculator never substitutes another model's charges.
+
+#### What the result means
+
+A vector sum of point charges, so it inherits everything the charge model gets wrong. Direction and symmetry are the reliable parts (a symmetric molecule comes out near zero, which is the test that actually validates the arithmetic); the magnitude is only as good as the charges. Measured against experiment on 15 molecules of Gasteiger and Saller's Table I [1], on OpenChem conformers: Gasteiger mean absolute error 0.79 D over 15, EEM 1.79 D over the 14 it covers and QEq 1.69 D over 15, with EEM and QEq overestimating polar molecules. For a molecule with a net charge the dipole depends on where the origin is placed; it is computed about the centre of mass and the result says so.
+
+#### When to use it, when not
+
+Use it to see which way a molecule is polarised and to compare conformers of one molecule with each other, and use Gasteiger for the lowest error found here. Do not treat the magnitude as a prediction of the measured dipole, and do not compare a charged species' dipole with a neutral one's. It needs a 3D conformer, because a dipole is a property of an arrangement and flat coordinates would give a confident but meaningless number.
+
+#### Search for
+
+dipole moment, debye, point charge dipole
+
+#### Sources
+
+- [2] J. Gasteiger & M. Marsili, 'Iterative Partial Equalization of Orbital Electronegativity -- A Rapid Access to Atomic Charges', Tetrahedron 1980, 36, 3219-3228. DOI 10.1016/0040-4020(80)80168-2. Supports: the default (PEOE) charges
+- [3] P. Bultinck, W. Langenaeker, P. Lahorte, F. De Proft, P. Geerlings, M. Waroquier & J. P. Tollenaere, 'The Electronegativity Equalization Method I: Parametrization and Validation for Atomic Charge Calculations', J. Phys. Chem. A 2002, 106, 7887-7894. DOI 10.1021/jp0205463. Supports: the EEM charges offered as an alternative
+- [4] A. K. Rappé & W. A. Goddard III, 'Charge Equilibration for Molecular Dynamics Simulations', J. Phys. Chem. 1991, 95, 3358-3363. DOI 10.1021/j100161a070. Supports: the QEq charges offered as an alternative
+- [1] J. Gasteiger & H. Saller, 'Calculation of the Charge Distribution in Conjugated Systems by a Quantification of the Resonance Concept', Angew. Chem. Int. Ed. Engl. 1985, 24, 687-689. DOI 10.1002/anie.198506871. Supports: the experimental dipole moments the benchmark compares against
+
 <!-- help:calc-isoelectric-point -->
 ### Isoelectric Point
 
@@ -144,6 +171,87 @@ Partial charges that depend on the 3D geometry, by one of three models. EEM: Bul
   - `include_hydrogens` -- Increment of Hs (fold hydrogen charges onto their atom) default `False`
   - `decimal_places` -- Decimal places default `2` range 0 to 8
 
+#### What it does
+
+Puts a partial charge on every atom of a 3D conformer, by one of three published models that share one idea: **electronegativity equalization**. Each atom tends to pull electrons toward itself, and the more negative it becomes the less it wants more. The molecule settles where every atom pulls equally hard, and the charges that achieve that are the answer. Because the pull between charges depends on distance, the result depends on the conformer's geometry, which a drawing-only method cannot do.
+
+#### How it works
+
+The three models differ in their parameters and in how the pairwise term is written, but they solve the same kind of problem. Each atom type carries a parameter pair, an effective electronegativity and a hardness (how steeply its pull rises as it gains charge). The electronegativity of atom i in the molecule is its own parameter, plus a term proportional to its own charge, plus the electrostatic potential from every other charge, which falls off with distance. Requiring all atoms to end at the same electronegativity, together with the charges adding up to the molecule's net charge, gives N + 1 linear equations for N charges and the shared electronegativity [1]. Solving them is the whole calculation, which is why it is fast: the paper reports 12 neuroleptic structures in under 50 ms [1]. This is Sanderson's electronegativity-equalization principle in the formalism of Mortier and co-workers [1].
+
+Shipped, for all three: the conformer's own atoms, explicit hydrogens and net formal charge are used as stored, nothing is protonated or moved, and the net charge is spread over the whole molecule rather than left on the atom that was drawn charged. A molecule with hydrogens only implied, or whose hydrogens have no coordinates, is refused, and so is a pair of atoms closer than 0.1 angstrom. Each refusal is the calculator declining to guess; it never substitutes another model's answer. Tick *pH-dependent* to compute on the dominant ionization state at a pH instead of as drawn; only added hydrogens are placed and every other atom keeps its coordinates.
+
+#### What the result means
+
+One charge per atom, in units of the elementary charge. Atomic charges are not physical observables: there is no unique definition, and a model's number is only as meaningful as what it was built to reproduce [2]. Only the **sum** of the charges is constrained, and it equals the net charge exactly (measured here: ethanol, acetate, nitromethane, chloromethane and dimethyl sulfone summed to the net charge to six decimals under every model that accepted them). A correct sum is necessary and proves nothing about how the charge is distributed.
+
+The same atom gets quite different numbers from different models. Measured here, the oxygen of ethanol: EEM -0.58, QEq -0.67, Ionescu 6-31G* -0.82, Ionescu 6-31G** -0.76 (and Gasteiger -0.40, MMFF94 -0.68 from the other charge calculator). None of these is more right in general; compare one model across molecules, not models against each other.
+
+#### When to use it, when not
+
+Use it when you want charges that respond to the conformer's shape and need only a few seconds, for instance to colour a structure, to feed the dipole calculator, or to see how a conformational change moves charge. Pick by what each model was built for (see its method below) and by what it refuses. Do not use it as a substitute for a quantum-chemical calculation when the number matters, do not compare values across models, and do not read a number outside the element set of the model you chose as meaningful: a refusal is the model telling you that.
+
+#### Search for
+
+electronegativity equalization, EEM charges, QEq charge equilibration, partial atomic charges
+
+#### Method: `eem_bultinck2002_part1`
+
+**How it works**
+
+The stored name reads: **EEM**, the electronegativity equalization method, with the parameter set of **Bultinck et al. 2002, part I** (`eem_bultinck2002_part1`).
+
+The EEM of Mortier and co-workers with Bultinck et al.'s 2002 parameters. Their effective electronegativity and hardness for hydrogen, carbon, nitrogen, oxygen and fluorine were calibrated by weighted least squares against Mulliken charges from B3LYP/6-31G* calculations on a training set of 138 small organic molecules (930 hydrogens, 602 carbons, 105 nitrogens, 101 oxygens, 65 fluorines) [1]. The method therefore reproduces *those* quantum charges, not an independent truth about the molecule.
+
+Shipped: exactly those five elements and that parameter table. Any other element is refused by name; it is never given a neighbour's parameters.
+
+**What the result means**
+
+Charges that approximate what a B3LYP/6-31G* Mulliken analysis would give for molecules like the training set. Mulliken charges themselves depend heavily on the level of theory and basis set: the Gasteiger-Marsili paper's own example is the hydrogen of methane, whose population-analysis charge differs by a factor of about 15 and even in sign across levels of theory [3]. Measured here against experimental dipole moments (15 molecules of Gasteiger and Saller's Table I [4], on OpenChem conformers), dipoles from these charges have a mean absolute error of 1.79 D over the 14 molecules EEM covers, and overestimate polar molecules.
+
+**Sources**
+
+- [1] P. Bultinck, W. Langenaeker, P. Lahorte, F. De Proft, P. Geerlings, M. Waroquier & J. P. Tollenaere, 'The Electronegativity Equalization Method I: Parametrization and Validation for Atomic Charge Calculations', J. Phys. Chem. A 2002, 106, 7887-7894. DOI 10.1021/jp0205463. Supports: the equations, the parameter table, the training set and its size
+- [3] J. Gasteiger & M. Marsili, 'Iterative Partial Equalization of Orbital Electronegativity -- A Rapid Access to Atomic Charges', Tetrahedron 1980, 36, 3219-3228. DOI 10.1016/0040-4020(80)80168-2. Supports: Mulliken charges' dependence on method and basis set
+- [4] J. Gasteiger & H. Saller, 'Calculation of the Charge Distribution in Conjugated Systems by a Quantification of the Resonance Concept', Angew. Chem. Int. Ed. Engl. 1985, 24, 687-689. DOI 10.1002/anie.198506871. Supports: the experimental dipole moments the application's benchmark used
+
+#### Method: `qeq_rg1991_lambda_half_h_experimental`
+
+**How it works**
+
+The stored name reads: **QEq**, charge equilibration, **Rappé and Goddard 1991**, with **lambda = 1/2** (the paper's reading of the shielding, its equation 17') and the **experimental hydrogen** parameter set (`qeq_rg1991_lambda_half_h_experimental`). The paper also gives a Hartree-Fock hydrogen set and other readings of the shielding; they are not offered.
+
+Rappé and Goddard's charge equilibration. Instead of fitting parameters to quantum charges it takes experimental atomic data (ionization potentials, electron affinities and atomic radii), builds an atomic chemical potential from them, and requires all chemical potentials to be equal [5]. Its distinguishing feature is that the electrostatic interaction between atoms is **shielded**: each atom is a Slater orbital with a finite size, so two nearby charges do not interact as point charges. Mortier's EEM, by comparison, uses the unshielded Coulomb potential and fits to Mulliken charges from small STO-3G calculations [5]. Hydrogen is a special case: the paper redefines its electronegativity and lets its orbital size and hardness depend on its own charge, so hydrogen's charge is found iteratively [5].
+
+Shipped: the 16 elements of the paper's Table I; the lambda = 1/2 reading of the shielding (equation 17') and the experimental hydrogen parameter set, one of several readings the paper leaves open, fixed in advance in `benchmarks/charges/rappe_goddard/preregistration.md` (amendment A8). Each charge is bounded by the valence-electron range the paper writes out for Li, C and O (from -(8 - v) to +v for v valence electrons) and that this application derives by the same rule for the other elements. The calculator refuses when the hydrogen iteration does not settle, and when the final solution needs an atom held at a charge bound.
+
+**What the result means**
+
+Charges that equalize chemical potential for this geometry, from atomic data rather than a fit to a quantum calculation. They are not validated against any quantum method here beyond the recorded benchmark scope. Measured here against experimental dipole moments (the same 15 molecules), dipoles from these charges have a mean absolute error of 1.69 D and overestimate polar molecules. A single conformer of dimethyl sulfone gave a slightly negative sulfur (-0.10) where Gasteiger and MMFF94 give a positive one: no refusal fired, and a number that is returned is not thereby shown to be reasonable.
+
+**Sources**
+
+- [5] A. K. Rappé & W. A. Goddard III, 'Charge Equilibration for Molecular Dynamics Simulations', J. Phys. Chem. 1991, 95, 3358-3363. DOI 10.1021/j100161a070. Supports: the method, the parameters, the shielding, the hydrogen treatment, and the comparison with Mortier's EEM
+- [4] J. Gasteiger & H. Saller, 'Calculation of the Charge Distribution in Conjugated Systems by a Quantification of the Resonance Concept', Angew. Chem. Int. Ed. Engl. 1985, 24, 687-689. DOI 10.1002/anie.198506871. Supports: the experimental dipole moments the application's benchmark used
+
+#### Method: `eem_ionescu2013_e_mpa_631gs_gas`, `eem_ionescu2013_e_mpa_631gss_gas`
+
+**How it works**
+
+The two stored names read: **EEM**, **Ionescu et al. 2013**, then **e** (the paper's classification of atoms into types by chemical element alone; it has a second classification that is not offered), **mpa** (the reference charges are from Mulliken population analysis; the paper also uses Natural and iterative Hirshfeld analyses, not offered), the basis set (**631gs** is 6-31G*, **631gss** is 6-31G**) and **gas** (gas phase; the paper also has an implicit-solvent version, not offered) [2]. So `eem_ionescu2013_e_mpa_631gs_gas` is the paper's E-MPA/6-31G*/gas model.
+
+Ionescu et al.'s 2013 models are EEM models fitted for proteins. They use large protein fragments as the reference structures and fit the parameters to Mulliken charges at the Hartree-Fock level, with 6-31G* or 6-31G** and in the gas phase for the two shipped here; the paper parametrized and validated 24 such models over three population analyses, two basis sets and two environments [2]. The equation is not Bultinck's: it carries an adjusting factor k on the Coulomb term [2], and this application reads the distance there in angstrom, the reading that reproduces the paper's own results (36 of 36 model-by-dataset rows; bohr reproduced none; see `benchmarks/charges/models/ionescu_src_preregistration.md`). In the shipped parameter table some elements have a negative effective hardness (checked in that pre-registration, not stated in the paper), so for a molecule that contains one of them the charges returned are the model's unique stationary point and not an energy minimum; the result says so.
+
+Shipped: 2 of the paper's 24 models, the Mulliken gas-phase ones, for H, C, N, O, S and Ca. Anything the model has no parameters for is refused. A sulfur bonded to oxygen is refused as well, because every sulfonamide, sulfone and sulfoxide measured came out wrong by 0.84 to 1.75 e, several with the wrong sign, at magnitudes no charge bound catches. Any charge beyond 2.051 e (the largest on the protein fragments the model was validated on) is refused as a runaway solve.
+
+**What the result means**
+
+Charges that reproduce Hartree-Fock Mulliken charges on proteins. The paper reports, tested on insulin and ubiquitin, an average correlation of 0.961, RMSD of 0.097 e and average absolute error of 0.072 e across its 24 models [2]. On a molecule that is unlike a protein this is an extrapolation, and every result is labelled as one: it can be wrong in sign without any refusal. Measured here, nitromethane's nitrogen came out negative (-0.42 and -0.49 e) under these two models where EEM, QEq, Gasteiger and MMFF94 all give a positive one.
+
+**Sources**
+
+- [2] C.-M. Ionescu, S. Geidl, R. Svobodová Vařeková & J. Koča, 'Rapid Calculation of Accurate Atomic Charges for Proteins via the Electronegativity Equalization Method', J. Chem. Inf. Model. 2013, 53, 2548-2558. DOI 10.1021/ci400448n. Supports: the models, their reference charges, their validation numbers and the negative-hardness behaviour
+
 <!-- help:calc-gasteiger-charge-at-ph -->
 ### Partial Charge (pH-dependent)
 
@@ -156,6 +264,60 @@ Partial charges, recomputed on the dominant protonation state at a given pH, by 
   - `method` -- Charge method (gasteiger, mmff94) default `gasteiger`
   - `pH` -- pH default `7.4` range 0.0 to 14.0
   - `include_hydrogens` -- Increment of Hs (add implicit H charge) default `False`
+
+#### What it does
+
+Estimates a partial charge on each atom from the 2D drawing alone, with no conformer, after first choosing the form of the molecule that predominates at a given pH. A carboxylic acid is computed as the carboxylate at pH 7.4, and an amine as the ammonium, so the charges describe the species that is actually there. Two models are offered, and they are different models, so they give different numbers for the same atom.
+
+#### How it works
+
+First the dominant protonation state at the chosen pH is chosen with Dimorphite-DL [1]. It gives ionization states only: it does not move protons between atoms to make a different tautomer, and an amide nitrogen reported as protonated is corrected, because its lone pair is delocalised into the carbonyl. Then the charge model runs on that structure. The result is stored under the method you chose, so a Gasteiger result is never served as an MMFF94 one. The choice of *Increment of Hs* folds each added hydrogen's charge onto its heavy atom; that is an aggregation this application performs, not a property of either model.
+
+#### When to use it, when not
+
+Use it for a quick, conformer-free picture of where charge sits on the form of the molecule present at a pH, for example before docking or when comparing how ionization moves charge. Use the 3D calculator when geometry matters. Neither model here sees the 3D shape, and neither is a substitute for a quantum calculation.
+
+#### Search for
+
+Gasteiger charges, PEOE, MMFF94 charges, protonation state
+
+#### Sources
+
+- [1] P. J. Ropp, J. C. Kaminsky, S. Yablonski & J. D. Durrant, 'Dimorphite-DL: An open-source program for enumerating the ionization states of drug-like small molecules', J. Cheminform. 2019, 11, 14. Supports: the tool the application calls to choose the dominant protonation state (cited for provenance only; its algorithm is not described here)
+
+#### Method: `gasteiger`
+
+**How it works**
+
+Gasteiger and Marsili's partial equalization of orbital electronegativity (PEOE). Each atom's orbital electronegativity is a quadratic function of its charge, a + b q + c q squared, with coefficients from ionization potentials and electron affinities [2]. Complete equalization is chemically wrong (every atom of one kind would get the same charge, so all four hydrogens of acetic acid would match), so charge is moved only **partly**: along each bond, from the less to the more electronegative atom, in proportion to the difference, with the amount damped by one half at the first iteration, one quarter at the second and so on. Total charge is preserved at every step, and in the paper the transfer falls below 0.001 e by the fourth or fifth iteration [2]. It uses only which atoms are bonded; geometry plays no part.
+
+Shipped: RDKit's implementation of this iteration, at RDKit's default of 12 rounds (the paper stops at 6), on the protonated drawing. It is a sigma-charge method: it has no pi component, so a sigma/pi/total selector is deliberately not offered.
+
+**What the result means**
+
+A quick, topology-only estimate of how charge is shared along bonds, reflecting the inductive effect. The paper reports correlations with core-electron binding energies and with acidity constants [2], which is what it is for, not for absolute numbers. The same drawing gives the same charges whatever conformer exists. Measured here against experimental dipoles, charges of this kind give a mean absolute error of 0.79 D over 15 molecules (the dipole calculator's benchmark). It treats conjugated pi systems by extension, not as given [2].
+
+**Sources**
+
+- [2] J. Gasteiger & M. Marsili, 'Iterative Partial Equalization of Orbital Electronegativity -- A Rapid Access to Atomic Charges', Tetrahedron 1980, 36, 3219-3228. DOI 10.1016/0040-4020(80)80168-2. Supports: the method, its parameters, the damping, the convergence and what it correlates with
+- [3] J. Gasteiger & H. Saller, 'Calculation of the Charge Distribution in Conjugated Systems by a Quantification of the Resonance Concept', Angew. Chem. Int. Ed. Engl. 1985, 24, 687-689. DOI 10.1002/anie.198506871. Supports: the experimental dipole moments the application's benchmark used
+
+#### Method: `mmff94`
+
+**How it works**
+
+The partial charges of the MMFF94 force field. An atom's charge is its formal charge (shared with its bonded neighbours for some negatively charged atom types) plus the sum of **bond charge increments**, one for each bond, each a fixed amount that one atom type gains from the polarity of the bond to another and the other loses [4]. They are looked up by the atom types of the bonded pair, so the method needs MMFF94 to assign a type to every atom. They were derived for use inside the force field as part of its nonbonded interaction parameters, fitted to reproduce interaction energies and dipole moments from Hartree-Fock calculations, and Halgren describes the resulting potentials as effective pair potentials that include in an averaged way the increase in polarity that occurs in a high-dielectric medium [4]. The application reaches them through RDKit's port of MMFF94 [5].
+
+Shipped: it checks that the charges add up to the formal charge. A structure MMFF94 cannot type is reported as not covered, and so are drawn carbanions, where MMFF94's own output was measured to sum to 0 on a charge of -1.
+
+**What the result means**
+
+Charges built to work inside a force field, not an attempt at the electron population of an isolated molecule. They are often larger in magnitude than the other models here: measured on one conformer, the sulfur of dimethyl sulfone is +1.09 and the carboxylate carbon of acetate +0.91, against +0.14 and +0.04 from Gasteiger. That is consistent with their purpose, and a reason not to compare them with other models' values.
+
+**Sources**
+
+- [4] T. A. Halgren, 'Merck Molecular Force Field. II. MMFF94 van der Waals and Electrostatic Parameters for Intermolecular Interactions', J. Comput. Chem. 1996, 17(5-6), 520-552. Supports: the charge formula, the bond charge increments, and what they were fitted to
+- [5] P. Tosco, N. Stiefl & G. Landrum, 'Bringing the MMFF force field to the RDKit: implementation and validation', J. Cheminform. 2014, 6:37. DOI 10.1186/s13321-014-0037-3. Supports: RDKit's implementation of MMFF94
 
 ## Electronic Properties
 
@@ -184,6 +346,31 @@ Orbital electronegativity (eV) at each atom, in either component. Sigma is Gaste
   - `include_hydrogens` -- Include hydrogens (sigma only) default `False`
   - `major_microspecies` -- Take major microspecies default `False`
   - `pH` -- at pH default `7.4` range 0.0 to 14.0
+
+#### What it does
+
+Reports how strongly each atom attracts electrons in this molecule, in electronvolts. It is the Gasteiger-Marsili orbital electronegativity: an atom's own electronegativity, adjusted for the charge it currently carries. A more electronegative atom is one that will pull charge toward itself in a bond; this shows which atoms those are.
+
+#### How it works
+
+Each atom's orbital electronegativity is a + b q + c q squared evaluated at its charge q [1]. Two components can be chosen. **Sigma** uses the converged PEOE charge, read from RDKit's own implementation of the iteration. **Pi** uses Marsili and Gasteiger's sigma-dependent pi-orbital electronegativity (SD-POE): the pi-orbital electronegativity of an atom depends on the sigma charge on it, because the sigma charge changes how strongly the nucleus is screened [2]. The pi values here are the paper's starting values at the converged sigma charge and are not iterated to pi self-consistency; they cover conjugated atoms only.
+
+#### What the result means
+
+Absolute values depend on the parameter set and will not match another implementation digit for digit. What is meaningful is the ordering between atoms: oxygen above nitrogen above carbon, and aromatic carbon above aliphatic, which the tests pin. The pi ordering is not the sigma ordering: a sigma-negative atom is screened and comes out lower, which is the effect these parameters exist to carry. Because the pi values are not iterated, they do not reflect pi charge redistribution.
+
+#### When to use it, when not
+
+Use it to rank atoms by electron-attracting power, for instance to see which end of a bond will carry the negative charge, or to follow how substitution shifts it. Do not read the absolute number as an electronegativity on the Pauling scale, and do not read the pi column as a charge distribution.
+
+#### Search for
+
+orbital electronegativity, Gasteiger-Marsili, PEOE electronegativity
+
+#### Sources
+
+- [1] J. Gasteiger & M. Marsili, 'Iterative Partial Equalization of Orbital Electronegativity -- A Rapid Access to Atomic Charges', Tetrahedron 1980, 36, 3219-3228. DOI 10.1016/0040-4020(80)80168-2. Supports: the quadratic form and its sigma parameters
+- [2] M. Marsili & J. Gasteiger, 'pi-Charge Distribution from Molecular Topology and pi-Orbital Electronegativity', Croatica Chemica Acta 1980, 53, 601-614. Supports: the pi-orbital electronegativity and its dependence on sigma charge
 
 <!-- help:calc-polarizability -->
 ### Polarizability (molecular)
@@ -405,6 +592,61 @@ Aligns this molecule onto a reference structure in 3D. "Extended atom types" pai
   - `accuracy` -- Accuracy (Fast, Normal, Accurate) default `Normal`
   - `decimal_places` -- Decimal places default `2` range 0 to 8
 
+#### What it does
+
+Lays this molecule over a **reference structure** you give as a SMILES string, in 3D, and returns the reference and the aligned molecule together with a score (higher is better), an RMSD in angstroms (lower is better) and the number of atom pairs the overlay was fitted on. It is for seeing whether, and how well, two molecules can present their atoms in the same places. The molecule moves as a rigid body: it is turned and shifted, and its shape is not changed by the overlay.
+
+#### How it works
+
+Both molecules need 3D coordinates, and the application builds them: the reference is embedded once with RDKit and relaxed with MMFF94. For the probe, the default **Flexible** mode first finds the atoms the two molecules share, by a 2D maximum common substructure over heavy atoms, then builds the probe with those atoms pinned onto the reference's positions and relaxes it with a restrained MMFF94 minimisation, so that a side chain outside the shared part can still take a sensible shape. If that cannot be done, because the shared part cannot be laid on the reference in 3D (ibuprofen onto naproxen, whose shared part spans both rings of the naphthalene), it falls back to ordinary generated conformers and says so. The **Rigid** mode of the 3D Alignment panel instead uses the structure as it stands, with no re-embedding and no torsion moves, and the panel uses conformers already stored in the project where there are any. The final overlay is then found by Open3DAlign, by default matching atoms by MMFF atom type and charge; where MMFF cannot type the molecule (selenium was measured) it falls back to Crippen logP atom contributions and reports which one ran, since the two scores are on different scales. The coordinates are reproducible: the same inputs gave the same score and RMSD on two runs.
+
+**Accuracy** sets two things: how many starting conformers are tried (1, 5 or 20) and how long the common-substructure search may run (5, 15 or 60 seconds). Measured, **it changes nothing when the Flexible build succeeds**: aspirin onto salicylic acid tried 1 conformer at Fast, Normal and Accurate and gave the same score; it matters when the build falls back, where ibuprofen onto naproxen scored 81.98 with 1 conformer (Fast) and 106.15 with 5 or 20.
+
+#### What the result means
+
+The **score** is Open3DAlign's overlay quality, higher meaning a better overlay, and it is **not normalised**: it grows with the size and composition of the molecules, so it can compare two overlays of the same pair (two conformers, two methods) and nothing else. Measured, a molecule laid on itself, which cannot be improved, scores 27.58 for ethanol, 45.00 for benzene, 119.45 for aspirin, 121.14 for ibuprofen and 138.20 for caffeine. The **RMSD** is the distance between the paired atoms after the overlay, heavy atoms only, in angstroms, and measures how well those atoms coincide, not whether the pairing is chemically right: benzene onto cyclohexane by the common-scaffold method pairs 6 atoms and reports an RMSD of 0.207. A molecule with fewer than three heavy atoms cannot be superimposed (three points are needed to fix a rotation): methane, ethane and methanol onto themselves paired 0 atoms and scored 0.00, with a small RMSD that means nothing.
+
+Measured on pairs with a strong shared core: aspirin onto salicylic acid, 10 paired atoms, score 88.87 and RMSD 0.039 by atom types, 88.86 and 0.038 by common scaffold; ibuprofen onto naproxen, 14 paired atoms, score 106.15 and RMSD 0.404; caffeine onto ibuprofen, which share little, 9 paired atoms, score 66.93 and RMSD 0.544.
+
+#### When to use it, when not
+
+Use it to lay a series of molecules over a template for visual comparison or as a starting alignment, or to see how well one molecule can take the shape of another. Do not read the score as similarity between different molecules, do not read a low RMSD as proof that the right atoms were paired, and do not expect a good fit between molecules that are both very flexible and very different: the authors of the method note that such sets are not well suited to rigid superposition of precomputed conformations [1]. It needs a reference SMILES (without one it asks for it), and refuses a reference it cannot parse.
+
+#### Search for
+
+3D molecular alignment, molecular superposition, Open3DALIGN, maximum common substructure
+
+#### Method: `Extended atom types`
+
+**How it works**
+
+Open3DAlign pairs the heavy atoms of the two molecules by a cost for every possible pair, built from three things: the MMFF94 partial charges of the two atoms, an empirical score of how chemically similar their MMFF94 atom types are (1 for identical, 20 for most dissimilar), and a histogram of the distances from each atom to all the others, which describes its surroundings [1]. The pairing with the lowest total cost is found by the Jonker-Volgenant linear-assignment algorithm; the candidate pairs are ranked by how well distances inside each molecule are preserved; a rigid alignment is fitted to them by Kearsley's least-squares method, weighted by atom-type similarity; and the result is scored by a Gaussian function of the distances between paired atoms that favours pairs with similar charges. The weights and thresholds are then adjusted repeatedly to maximise that score [1]. The charges are those of MMFF94 [2].
+
+Shipped: RDKit's implementation, which RDKit documents as the "Open3DALIGN object", matching MMFF atom types and charges. This application has not shown that RDKit's score equals the paper's Gaussian function, and the values measured above suggest it is a different quantity, so none of the paper's score values is quoted for it. Because the cost depends on atom type, pairing an aromatic nitrogen with a tertiary amine is strongly disfavoured, though the paper presents this as a cost and not a prohibition.
+
+**What the result means**
+
+An overlay chosen by atom-type and charge similarity alone, with no regard to which atoms are bonded to which beyond the distances. The paper reports, for its own best scheme on eight benchmark sets of ligands aligned in the literature, an average RMSD from the published alignments below 0.8 angstrom, and below 0.2 for half the sets; with a library of conformers instead of one the figure roughly doubled; and it names the typical failure, molecules with many similar atom types close together such as condensed heteroaromatic rings [1]. Those figures are for the paper's scheme (which adds a pharmacophore-based step this application does not call) on drug-like ligands, not a measure of this application.
+
+**Sources**
+
+- [1] P. Tosco, T. Balle & F. Shiri, 'Open3DALIGN: an open-source software aimed at unsupervised ligand alignment', J. Comput. Aided Mol. Des. 2011, 25(8), 777-783. DOI 10.1007/s10822-011-9462-9. Supports: the method, its validation and its stated failure mode
+- [2] T. A. Halgren, 'Merck Molecular Force Field. II. MMFF94 van der Waals and Electrostatic Parameters for Intermolecular Interactions', J. Comput. Chem. 1996, 17(5-6), 520-552. Supports: the MMFF94 partial charges the matching uses
+
+#### Method: `Common scaffold (MCS)`
+
+**How it works**
+
+The 2D maximum common substructure of the two molecules, restricted to heavy atoms, fixes the pairing first, and Open3DAlign then fits the rest around it, treating those pairs as constraints. The two-stage design follows ChemAxon's description of its own plug-in and is not part of the Open3DALIGN paper [1]; the atom-type matching inside the second stage is the one described under Extended atom types. If the molecules share no common substructure, or only hydrogens, it refuses and suggests the atom-type method instead.
+
+**What the result means**
+
+Because the pairing comes from the 2D graph and not from chemical similarity, atoms are paired even where their environments differ: benzene onto cyclohexane was paired on all 6 ring atoms with an RMSD of 0.207, a fit of shape and not of chemistry. For molecules with a real shared core it agrees with the atom-type method (aspirin onto salicylic acid: score 88.86 against 88.87), and it is the one to prefer when you know which part of the molecules should coincide.
+
+**Sources**
+
+- [1] P. Tosco, T. Balle & F. Shiri, 'Open3DALIGN: an open-source software aimed at unsupervised ligand alignment', J. Comput. Aided Mol. Des. 2011, 25(8), 777-783. DOI 10.1007/s10822-011-9462-9. Supports: the underlying atom-type alignment that refines around the constrained pairs
+
 <!-- help:calc-geometry-analysis -->
 ### Geometry
 
@@ -422,6 +664,42 @@ Aligns this molecule onto a reference structure in 3D. "Extended atom types" pai
   - `optimisation_limit` -- Optimisation limit (loose, normal, strict, very_strict) default `normal`
   - `radius_scale` -- Projection radii (x van der Waals) default `1.0` range 0.5 to 3.0
 
+#### What it does
+
+Describes the size and shape of the conformer on screen and gives its energy under three force fields. For shape it reports how far the atoms lie from the centre, the smallest and the largest shadow the molecule casts over all viewing directions with the radius of the circle round each, and how far the molecule extends along that viewing direction. For energy it reports MMFF94, UFF and Dreiding, in kcal/mol or kJ/mol.
+
+#### How it works
+
+**Extent.** The distances from the centroid (the unweighted mean of the atom positions) to the nearest, the farthest and the average atom.
+
+**Shadows.** The molecule is drawn as a union of spheres, one per atom, of the atom's van der Waals radius times a scale factor (default 1). Its shadow in a viewing direction is the union of the discs they project, and the area of that union is computed exactly, not on a grid. The smallest and largest shadow are found by searching the viewing directions: about a thousand orientations are sampled over the sphere, the area is exact at each, and the best are refined locally (measured: benzene, 990 orientations, smallest shadow 18.75 square angstroms, where measuring on the three principal planes and calling the smaller "minimal" gives 20.07). The radii are Bondi's own list, the most widely used scale of van der Waals radii [1] [2], extended for the sixteen main-group elements he gave none for by the radii of Mantina and co-workers [3]; they are shared with the surface and steric calculators. Before method geometry-v3 the radii were RDKit's table, which is a different set (Batsanov's) that this application had called Bondi's; the change moved the smallest shadow by -0.8% on average and the largest by -0.7% over 17 drug-like molecules (worst -2.8% and -2.4%), because the two sets differ for nitrogen, oxygen, fluorine, phosphorus and the halogens, and not for hydrogen, carbon or sulfur. A result saved by the earlier method is kept beside the new one and labelled.
+
+**Energies.** Each force field is evaluated at the geometry as it is. **MMFF94** was derived mainly from high-quality computational data, about 500 structures optimized at HF/6-31G*, 475 at MP2/6-31G* and further sets evaluated at higher levels, as a combined organic and protein force field [4]; it is reached through RDKit's port [5]. **UFF**, the Universal force field, estimates its parameters from general rules that use only the element, its hybridization and its connectivity, so it covers the full periodic table [6]. **Dreiding** is also a generic force field: it takes bond lengths from atomic radii and uses one force constant each for bonds, angles and inversions and only six torsional barriers, all from simple hybridization rules [7]. Shipped: Dreiding is implemented here from that paper, with neither charges nor an explicit hydrogen-bond term, which is how the paper reports its own results, and it covers 37 atom types and declines outside them; the application's own check reproduces all eight rotational barriers the paper computes with Dreiding to within 0.008 kcal/mol (`docs/DREIDING_ASSESSMENT.md`). Any of the three can be absent for a molecule it has no parameters for, and nothing is substituted.
+
+**Options.** The energies and shadows can be taken on a relaxed **copy** of the geometry, never the one on screen, and a lowest-energy conformer can be taken from several generated ones ("lowest of those tried", never a global minimum). Changing the energy unit converts the same stored number.
+
+#### What the result means
+
+Shape numbers are for this conformer; a flexible molecule has many. The three energies are on **different scales and are never comparable with each other**, and each fact says so. Measured here on one conformer, in kcal/mol: ethanol MMFF94 -1.34, UFF 3.05, Dreiding 3.74; benzene 16.23, 10.65, 21.41; hexane -4.65, 5.91, 10.81. They differ even in sign. What is meaningful is to compare **one** of them across conformers of the **same** molecule.
+
+#### When to use it, when not
+
+Use it to compare conformers of one molecule, to size a molecule up (how big a shadow it casts, how far it reaches) or to see which of several conformers is the most compact. Do not compare an energy from one force field with another's, or between different molecules, and do not read the lowest energy among a handful of conformers as the global minimum. It needs a 3D conformer unless it is asked to generate one.
+
+#### Search for
+
+force field energy, MMFF94 UFF Dreiding, projection area, molecular shape
+
+#### Sources
+
+- [4] T. A. Halgren, 'Merck Molecular Force Field. I. Basis, Form, Scope, Parameterization, and Performance of MMFF94', J. Comput. Chem. 1996, 17(5-6), 490-519. Supports: what MMFF94 is, what it was derived from and what it is for
+- [6] A. K. Rappé, C. J. Casewit, K. S. Colwell, W. A. Goddard III & W. M. Skiff, 'UFF, a Full Periodic Table Force Field for Molecular Mechanics and Molecular Dynamics Simulations', J. Am. Chem. Soc. 1992, 114, 10024-10035. DOI 10.1021/ja00051a040. Supports: what UFF is and how its parameters are generated
+- [7] S. L. Mayo, B. D. Olafson & W. A. Goddard III, 'DREIDING: A Generic Force Field for Molecular Simulations', J. Phys. Chem. 1990, 94, 8897-8909. Supports: what Dreiding is and how its parameters are generated
+- [5] P. Tosco, N. Stiefl & G. Landrum, 'Bringing the MMFF force field to the RDKit: implementation and validation', J. Cheminform. 2014, 6:37. DOI 10.1186/s13321-014-0037-3. Supports: RDKit's implementation of MMFF94, through which the energy is computed
+- [1] CRC Handbook of Chemistry and Physics, 97th edition. ISBN CRC Handbook of Chemistry and Physics, 97th edition. Supports: Bondi's van der Waals radii as the most widely used scale
+- [2] A. Bondi, 'van der Waals Volumes and Radii', J. Phys. Chem. 1964, 68(3), 441-451. DOI 10.1021/j100785a001. Supports: Bondi's recommended radii, which the shadow is drawn with
+- [3] M. Mantina, A. C. Chamberlin, R. Valero, C. J. Cramer & D. G. Truhlar, 'Consistent van der Waals Radii for the Whole Main Group', J. Phys. Chem. A 2009, 113(19), 5806-5812. DOI 10.1021/jp8111556. Supports: the radii for the main-group elements Bondi gave none for
+
 <!-- help:calc-interaction-analysis -->
 ### Interaction Analysis
 
@@ -431,6 +709,50 @@ Intramolecular non-covalent contacts in the current conformer: hydrogen bonds, s
 - Runs on a real 3D conformer -- generate one first.
 - Options:
   - `decimal_places` -- Decimal places default `2` range 0 to 8
+
+#### What it does
+
+Looks through one 3D conformer for pairs of atoms or rings that are close enough to be **non-covalent contacts** inside the molecule itself, and lists each with the atoms involved and the distance in angstroms. It looks for seven kinds: hydrogen bonds, salt bridges, π-π stacking, cation-π contacts, hydrophobic contacts, metal coordination and steric clashes. It needs a 3D conformer; with none, it says so.
+
+#### How it works
+
+Every pair of heavy atoms is tested against a distance rule, with a minimum number of bonds between them so that atoms joined by one or two bonds are not reported as "contacts" of each other. Shipped, with the cutoffs in angstroms:
+
+- **Hydrogen bond:** both atoms are nitrogen, oxygen or fluorine, at most 3.5 apart and at least 3 bonds apart. The rule uses the two heavy atoms only: no hydrogen position, no angle, and no distinction between donor and acceptor.
+- **Salt bridge:** one atom with a formal positive charge and one with a formal negative charge, at most 4.0 apart and at least 4 bonds apart.
+- **π-π stacking:** two aromatic rings that share no atom, with their centres (centroids) at most 5.5 apart.
+- **Cation-π:** an atom with a formal positive charge that is not in the ring, at most 6.0 from an aromatic ring's centroid.
+- **Hydrophobic contact:** two carbons, neither aromatic and neither bonded to a nitrogen, oxygen or fluorine, at most 4.5 apart and at least 4 bonds apart. There is no lower limit.
+- **Metal coordination:** a metal (zinc, magnesium, calcium, iron, manganese, copper, sodium, potassium, cobalt or nickel) and a nitrogen, oxygen or fluorine, at most 2.8 apart and at least 3 bonds apart.
+- **Steric clash:** two heavy atoms at least 4 bonds apart that are closer than the sum of their van der Waals radii less 0.4. A pair already reported as a hydrogen bond is never also reported as a clash, since that closeness is the hydrogen bond.
+
+This is the kind of rule-based, purely geometric detection that protein-ligand interaction tools use, whose published description says its thresholds are taken from the literature and in places made deliberately permissive to tolerate imperfect structures [1]. The cutoffs here are conventional values: none is fitted or validated in this application, and no source is recorded for any individual number.
+
+#### What the result means
+
+A list of **candidate contacts in this one conformer**, one line each, such as `Hydrogen bond: atoms 0-9 (2.56 Å)`; the atom numbers are the structure's own, counted from 0. It is a geometric screen, not an energy, a score or a statement about strength: a short distance means two atoms are near each other, not that they attract. An empty answer means nothing met a rule in this conformer, not that no contact is possible: 1,2-diphenylethane and 4-phenylbutyl-trimethylammonium report nothing in their relaxed, extended shape, while phenethyl-trimethylammonium reports a cation-π contact of 4.36 angstroms.
+
+Measured, to show the kinds working: salicylic acid's textbook six-membered intramolecular hydrogen bond (O...O 2.56), ethylene glycol's (2.79) and glycine's N...O contact (2.65 as the neutral form, 2.47 as the zwitterion).
+
+**Known limits, each measured on 2026-10-11, and the reason to read the list with care:**
+- **Two acceptors count as a hydrogen bond.** 1,2-dimethoxyethane has two ether oxygens and no hydrogen on either; it reports a hydrogen bond between them at 3.01 angstroms.
+- **A nitro group's nitrogen counts as a cation.** Its formal charge is a way of drawing a neutral group, but the rule sees a positive atom: nitrobenzene reports a cation-π contact of 2.86 angstroms between the nitro nitrogen and its own ring, as does every nitro-substituted ring tried, and 2-nitrobenzoate also reports a salt bridge of 2.74 between the nitro nitrogen and the carboxylate oxygen. Any group drawn with charges on a neutral whole is read the same way.
+- **Two directly bonded aromatic rings count as stacked.** Biphenyl reports π-π stacking at 4.31 angstroms between its two rings; stacking needs one ring folded over the other, and here they are simply joined.
+- **Metal coordination looks at nitrogen, oxygen and fluorine only.** A thiolate sulfur on zinc is not counted, whereas its amine nitrogen is.
+- **A salt written as separate fragments has no meaningful geometry.** Sodium acetate is embedded with its two pieces on top of each other (a sodium-carbon distance of 0.64), so the calculator reports a salt bridge, two metal coordinations and four clashes that describe the embedding and not the compound.
+- **A "hydrophobic contact" can be crowding.** With no lower limit, the 3.00 angstrom contact between the methyl groups of 1,8-dimethylnaphthalene and the nine contacts between the tert-butyl groups of cis-1,3-di-tert-butylcyclohexane (3.56 to 4.49) are reported, though these groups are pushed together and not attracted.
+
+#### When to use it, when not
+
+Use it to see which atoms of a conformer are close enough to interact, to compare how conformers differ in their internal contacts, or to find where a hydrogen bond could close a ring. Do not read the count as strength or stability, do not treat it as a donor-and-acceptor analysis, and check any line that involves a nitro group, a drawn zwitterion or a metal against the structure before relying on it. For contacts between a ligand and a receptor, which this does not do, use the docking pose analysis.
+
+#### Search for
+
+intramolecular hydrogen bond, salt bridge, pi stacking, non-covalent interactions
+
+#### Sources
+
+- [1] S. Salentin, S. Schreiber, V. J. Haupt, M. F. Adasme & M. Schroeder, 'PLIP: fully automated protein-ligand interaction profiler', Nucleic Acids Res. 2015, 43(W1), W443-W447. DOI 10.1093/nar/gkv315. Supports: the rule-based, literature-threshold character of geometric interaction detection
 
 <!-- help:calc-steric-analysis -->
 ### Ligand Steric Bulk
@@ -444,6 +766,40 @@ Exact cone angle (Bilbrey/Allen) and percent buried volume for a ligand, with th
   - `conformers` -- Conformers default `20` range 1 to 200
   - `metal_distance` -- Metal-donor distance (A) default `2.28` range 1.0 to 5.0
   - `sphere_radius` -- %Vbur sphere radius (A) default `3.5` range 1.0 to 10.0
+
+#### What it does
+
+Measures how much room a ligand takes up around a metal, by two established measures: the **exact cone angle** and the **percent buried volume**. It needs a donor atom (the atom that bonds to the metal), which it finds itself: a carbene carbon (a neutral, two-connected carbon with no hydrogen) first, otherwise the first phosphorus, nitrogen, arsenic or sulfur atom, in that order of preference. A ligand with several possible donors is therefore measured through only one of them. The ligand is a free molecule, with no metal drawn: the metal is placed where it would sit.
+
+#### How it works
+
+**Exact cone angle.** Tolman defined the cone angle as the apex angle of a cone centred 2.28 angstrom from the phosphorus atom that just touches the van der Waals radii of the outermost atoms of a space-filling model, with the substituents folded back to give the smallest cone [1]. That needs a physical model, a fixed bond length and a judgement about how substituents fold. Bilbrey and co-workers made it a well-posed geometry problem: the exact cone angle is the apex angle of the **most acute right circular cone, with its apex at the metal, that contains the entire ligand** [2]. Shipped: that, solved numerically, with the cone's axis solved for and not assumed to lie along the metal-donor bond; the donor's distance from the metal is an option, default 2.28 angstrom [1]. Measured: PEt3's tightest cone is 146 degrees, against 171 along the bond.
+
+**Percent buried volume.** The share of the volume of a sphere around the metal that the ligand occupies. Poater, Cavallo and co-workers defined it for N-heterocyclic carbene ligands [3], and Clavier and Nolan applied it to phosphines as well as carbenes [4]. Shipped with the conventions both papers give for SambVca: a sphere of radius 3.5 angstrom, atomic radii scaled by 1.17, and hydrogen atoms omitted [3] [4]; the volume is counted on a grid. The radii are **Bondi's own list scaled by 1.17**, as the papers scale it [5], with hydrogen at his 1.20 (hydrogens are omitted from the volume anyway) and, for main-group elements he gave no value for, the radii Mantina and co-workers derived to be compatible with his scale [6]; an element in neither list falls back to RDKit's table. This matters here as it does not for the surface areas: RDKit's phosphorus radius is 1.95 against Bondi's 1.80, so with RDKit's table the ligand's own phosphorus sphere was larger than SambVca's and small phosphines read 2 to 3.6 points too high. Measured on the same conformers, PH3 is 17.7 percent with Bondi's list (21.3 with RDKit's) and PMe3 22.4 (24.4); against Clavier and Nolan's published values for PMe3, PEt3, PPh3 and PCy3 at 2.28 angstrom (22.2, 27.8, 29.6, 31.8) [4] the mean absolute error is 0.8 points, against 1.8 before. The exact cone angle is unchanged, because hydrogen and carbon, which agree between the tables, set it. Hydrogen is deliberately not the 1.10 that the CRC Handbook and the docking module's contact table use: Rowland and Taylor recommend that value as a compromise for contact distances in crystals, while finding that hydrogen-hydrogen contacts support about 1.19 [7]. The reasoning is in `docs/VDW_RADII_ASSESSMENT.md`.
+
+**The geometry.** The ligand is taken from a set of conformers embedded and minimised with MMFF94 (default 20), and the result is reported across them.
+
+#### What the result means
+
+A cone angle in degrees (it can exceed 180 for a very bulky ligand) and a buried volume in percent, for the **free ligand**. Published exact cone angles and buried volumes are computed on the ligand **bound** to a metal, in DFT or crystal geometries, where the substituents splay differently, so these values are not directly comparable with those tables: PPh3's exact cone angle is 163.8 degrees here, and Bilbrey's value is about 170, 25 degrees above Tolman's 145 [2]. What survives is the **ranking**. Measured here (10 conformers), for the six phosphines of Tolman's appendix [1], the exact cone angle in degrees against Tolman's published value: PH3 86.4 (87), PMe3 117.2 (118), PEt3 146.3 (132), PPh3 163.8 (145), PCy3 169.6 (170), P(t-Bu)3 193.7 (182). The order is identical and the correlation with Tolman's values is r = 0.977; the buried volumes for the same series, 17.7, 22.4, 26.8, 29.3, 33.6 and 38.7 percent, rise in the same order, in line with the strong cone-angle and buried-volume relationship Clavier and Nolan report for phosphines (R2 = 0.96, for the set they studied) [4].
+
+#### When to use it, when not
+
+Use it to rank ligands by bulk, to see how a substituent change moves a ligand along that scale, or to estimate bulk for a ligand nobody has tabulated. Do not compare a number with a published table computed on bound geometries as if it were the same quantity, and do not read it as the bulk in a particular complex, where the ligand folds and the metal's own environment matters. It declines a structure with no donor atom it recognises.
+
+#### Search for
+
+cone angle, percent buried volume, ligand steric bulk, Tolman
+
+#### Sources
+
+- [1] C. A. Tolman, 'Steric effects of phosphorus ligands in organometallic chemistry and homogeneous catalysis', Chem. Rev. 1977, 77(3), 313-348. DOI 10.1021/cr60307a002. Supports: the cone angle's definition, the 2.28 angstrom distance and the published series
+- [2] J. A. Bilbrey, A. H. Kazez, J. Locklin & W. D. Allen, 'Exact ligand cone angles', J. Comput. Chem. 2013, 34(14), 1189-1197. DOI 10.1002/jcc.23217. Supports: the exact cone angle and its comparison with Tolman's
+- [3] A. Poater, B. Cosenza, A. Correa, S. Giudice, F. Ragone, V. Scarano & L. Cavallo, 'SambVca: A Web Application for the Calculation of the Buried Volume of N-Heterocyclic Carbene Ligands', Eur. J. Inorg. Chem. 2009, 1759-1766. DOI 10.1002/ejic.200801160. Supports: the buried volume and its SambVca conventions
+- [4] H. Clavier & S. P. Nolan, 'Percent buried volume for phosphine and N-heterocyclic carbene ligands: steric properties in organometallic chemistry', Chem. Commun. 2010, 46, 841-861. DOI 10.1039/b922984a. Supports: the buried volume for phosphines and the cone-angle relationship
+- [5] A. Bondi, 'van der Waals Volumes and Radii', J. Phys. Chem. 1964, 68(3), 441-451. DOI 10.1021/j100785a001. Supports: Bondi's recommended radii, which the buried-volume papers scale and this calculator uses
+- [6] M. Mantina, A. C. Chamberlin, R. Valero, C. J. Cramer & D. G. Truhlar, 'Consistent van der Waals Radii for the Whole Main Group', J. Phys. Chem. A 2009, 113(19), 5806-5812. DOI 10.1021/jp8111556. Supports: the radii for the main-group elements Bondi gave none for, compatible with his scale
+- [7] R. S. Rowland & R. Taylor, 'Intermolecular Nonbonded Contact Distances in Organic Crystal Structures: Comparison with Distances Expected from van der Waals Radii', J. Phys. Chem. 1996, 100(18), 7384-7391. Supports: the hydrogen 1.1 compromise for contact distances, and why it is not used here
 
 <!-- help:calc-molecular-dynamics -->
 ### Molecular Dynamics (vacuum)
@@ -459,6 +815,39 @@ Velocity-Verlet dynamics over MMFF94/UFF forces. VACUUM only: no thermostat, no 
   - `frame_interval` -- Frame interval (steps) default `10` range 1 to 1000
   - `seed` -- Random seed (0 = none) default `0` range 0 to 999999
 
+#### What it does
+
+Lets the atoms of one conformer **move under the forces of a force field** for a short time, and records the motion as a trajectory you can play back, with the total energy at every recorded frame. It is a vacuum simulation of one isolated molecule, run at constant total energy. It needs a 3D conformer.
+
+#### How it works
+
+At each step the force on every atom is the negative gradient of the molecule's MMFF94 energy, the Merck Molecular Force Field [1], as implemented in RDKit [2]; where MMFF94 has no parameters for the molecule it uses the UFF force field instead, and where neither does it declines with that reason, never integrating zero forces. The positions and velocities are advanced by the **velocity Verlet** scheme: a half-step of the velocities, a full step of the positions, new forces, and a second half-step of the velocities. That is Verlet's integration scheme, introduced for a simulation of Lennard-Jones particles [3], in the velocity form that Swope and co-workers give in an appendix, where the positions advance by r + hv + h²f/2 and the velocities by the average of the old and new accelerations; they show it is equivalent to Verlet's equations and keeps the numerical precision of the form usually programmed [4]. Verlet's own runs began, as these do, from random Gaussian velocities, and he measured the temperature from the kinetic energy and used the conservation of total energy as the check that the integration was sound [3].
+
+Shipped: the starting velocities are drawn at random from the Maxwell-Boltzmann distribution for the temperature you give, and the total linear momentum is removed so the molecule does not drift across the view; its rotation is not removed. The conformer is used as it stands, without minimising it first. There is **no thermostat, no barostat, no constraints, no periodic boundaries and no solvent**, so the temperature is where the velocities start and is not held. A random seed of 0 means an unseeded run; any other value repeats exactly (measured: two runs with seed 5 gave identical final coordinates, a run with seed 6 did not). The limits are 10 to 100000 steps of 0.1 to 2.0 femtoseconds, 1 to 2000 K, and a frame every 1 to 1000 steps (defaults 1000 steps of 0.5 fs at 300 K, a frame every 10). If the numbers blow up, the run stops at the first non-finite value and **fails with a message, keeping no trajectory**; at 5 fs, outside the allowed range, ibuprofen failed at 35 fs. MMFF94 and UFF energies are not Dreiding's, so they are not comparable with another program's Dreiding energies.
+
+#### What the result means
+
+A trajectory of the structure at each frame, the time of each frame in femtoseconds, and the total (potential plus kinetic) energy of each in kcal/mol. It describes how this molecule would vibrate and flex **alone, in vacuum, near the conformer it started from**, within the accuracy of the force field. It is not an ensemble, a free energy or a prediction in solution.
+
+Measured, on MMFF94-minimised starts, 1000 steps of 0.5 fs (0.5 ps): the **total energy is conserved**, drifting by +0.013 kcal/mol for ethanol, +0.073 for ibuprofen and +0.034 for caffeine, with a range of at most 0.10; the same ibuprofen run drifts 0.23 kcal/mol at 1 fs and 1.20 at 2 fs, so the default step is the careful one. **The temperature you ask for is not the temperature you get.** The velocities drawn for 300 K gave an initial kinetic temperature of 255, 275 and 263 K for those three molecules (a small molecule's draw is noisy), and over the second half of a run started from a minimised conformer the average fell to 155, 139 and 135 K, about half. That is what an isolated system started at a minimum does when its energy is shared between motion and strain, and a conformer that was not relaxed first (raw embedding) kept 240 to 300 K, because it began with strain to release.
+
+It also does **not search conformations**. Over the default 0.5 ps, the heavy atoms of ibuprofen stayed within 0.27 angstrom of the start and the isobutyl-aryl torsion between 90 and 120 degrees; over the 50 ps maximum at 300 K, within 1.0 angstrom and 76 to 148 degrees, still the starting conformer; only at 1000 K did that torsion sweep through the full circle (heavy atoms up to 1.8 angstrom away). A run takes a fraction of a second for the default and about 7 seconds for 100000 steps of a 33-atom molecule.
+
+#### When to use it, when not
+
+Use it to watch a structure vibrate and flex, to see whether a geometry holds together, or to teach how a force field moves atoms. Do not use it to sample conformations (generate conformers for that), to estimate thermodynamic quantities, to describe behaviour in water or at a surface, or to read an energy off against another program's. Compare energies only within one run, and do not read the starting temperature as the temperature of the simulation.
+
+#### Search for
+
+molecular dynamics, velocity Verlet, NVE ensemble, MMFF94 trajectory
+
+#### Sources
+
+- [3] L. Verlet, 'Computer "Experiments" on Classical Fluids. I. Thermodynamical Properties of Lennard-Jones Molecules', Phys. Rev. 1967, 159, 98-103. DOI 10.1103/PhysRev.159.98. Supports: the integration scheme, random Gaussian starting velocities, temperature measured from the kinetic energy, and total energy as the check
+- [4] W. C. Swope, H. C. Andersen, P. H. Berens & K. R. Wilson, 'A computer simulation method for the calculation of equilibrium constants for the formation of physical clusters of molecules: Application to small water clusters', J. Chem. Phys. 1982, 76, 637-649. DOI 10.1063/1.442716. Supports: the velocity form of the scheme, which is the one used
+- [1] T. A. Halgren, 'Merck Molecular Force Field. I. Basis, Form, Scope, Parameterization, and Performance of MMFF94', J. Comput. Chem. 1996, 17(5-6), 490-519. Supports: MMFF94, the force field the forces come from
+- [2] P. Tosco, N. Stiefl & G. Landrum, 'Bringing the MMFF force field to the RDKit: implementation and validation', J. Cheminform. 2014, 6:37. DOI 10.1186/s13321-014-0037-3. Supports: the implementation of MMFF94 in RDKit that this application uses
+
 <!-- help:calc-torsion-table -->
 ### Torsion Table
 
@@ -469,6 +858,32 @@ Every rotatable bond of the conformer with the dihedral angle about it, so 'flex
 - Runs on a real 3D conformer -- generate one first.
 - Options:
   - `decimal_places` -- Decimal places default `2` range 0 to 8
+
+#### What it does
+
+Lists every rotatable bond of the conformer on screen with the twist about it, in degrees, so that "flexible" can be read bond by bond instead of as a single count. Each row names the four atoms the angle was measured through.
+
+#### How it works
+
+The angle about a bond B-C is the dihedral angle between the plane through A, B, C and the plane through B, C, D, where A is a neighbour of B and D a neighbour of C. Where an end has a choice of neighbour the heaviest is taken and, among equals, the lowest-numbered one, so the angle is never measured through a hydrogen when something heavier is there, and a renumbered drawing gives the same row.
+
+Which bonds count is the shipped part. They are exactly the ones in Properties' **Rotatable Bonds** count, which is RDKit's strict definition [1]: a single bond not in a ring between two atoms that are not terminal and not part of a triple bond, leaving out the spin of a trihalomethyl or tert-butyl group (which changes nothing) and the amide-like C(=X)-N, -O or -S linkage that is treated as rigid. RDKit gives only the count, so the same definition is written out as a pattern and a test holds the two equal over a corpus of structures, so the table and the count cannot disagree. The pattern is matched on the heavy-atom graph, so it gives the same bonds whether it is handed the drawing or a conformer with explicit hydrogens.
+
+#### What the result means
+
+One angle per rotatable bond, in the range minus 180 to 180 degrees, where 180 is anti and 0 is syn. It describes **this conformer only**: it is not a scan, not an energy and not a preference, and another conformer of the same molecule has different angles. A bond that is rotatable by definition may still be hindered in practice.
+
+#### When to use it, when not
+
+Use it to see where two conformers differ, to read which bonds make a molecule flexible, or to pick the bonds to scan in another calculation. Do not read an angle as the preferred or the lowest-energy one, and do not read the number of rows as a conformational count. It needs a 3D conformer, because an angle from flat 2D coordinates would be 0 or 180 and mean nothing.
+
+#### Search for
+
+torsion angle, dihedral angle, rotatable bonds
+
+#### Sources
+
+- [1] RDKit: Open-source cheminformatics. Supports: the rotatable-bond definition the table reproduces (cited for provenance; the pattern and its agreement with the count are this application's, tested here)
 
 ## Surface Area
 
@@ -483,6 +898,38 @@ Per-atom solvent-accessible surface -- which atoms are actually exposed, for a s
   - `decimal_places` -- Decimal places default `2` range 0 to 8
   - `solvent_radius` -- Solvent probe radius (A) default `1.4` range 0.0 to 5.0
 
+#### What it does
+
+Gives each atom's **solvent-accessible surface area**: how much of its surface a solvent molecule of a chosen size could actually touch, in square angstroms. It shows which atoms are exposed and which are buried, and colours the structure by it. The probe is a water molecule's size (radius 1.4 angstrom) unless you change it.
+
+#### How it works
+
+Each atom is a sphere of its van der Waals radius, and the accessible surface is traced by the **centre** of a probe sphere rolling over them, so each atom's accessible sphere has the radius of the atom plus the probe. The surface of that enlarged sphere is covered with test points, and the share of points that lie inside no other atom's enlarged sphere, times the sphere's area, is the atom's accessible area. This is the point-counting method of Shrake and Rupley, who used 92 nearly equally spaced test points per sphere and a solvent radius of 1.4 angstrom for proteins; it follows the idea of Lee and Richards, who described the molecule as solvated van der Waals spheres [1].
+
+Shipped: the same idea with a different point set, **2000 points per atom on a Fibonacci spiral**, which is the same every call so that a repeat run agrees exactly. Measured against a 200,000-point reference at a 1.4 angstrom probe, it is within about 0.3% (worst error over four molecules: 0.9% at 300 points, 0.4% at 960, 0.3% at 2000, 0.13% at 5000), and a lone atom is exact at any count. The radii are Bondi's (above), and not the radii of the 1973 paper, which used Pauling's [1]. The choice of table moves an area by under 1% on average over a drug-like set, whereas the hydrogen radius alone, 1.20 here and 1.10 in the CRC Handbook, would move it 3 to 7%. It needs a 3D conformer, and the probe can be set from 0 to 5 angstrom (at 0 it is the van der Waals surface itself).
+
+#### What the result means
+
+One area per atom for **this conformer**, in square angstroms; the areas of all atoms add up to the molecule's accessible surface. An atom's exposure depends on every other atom, so it changes with the conformer, with the probe size and with whether hydrogens are present. Measured on ethanol at the 1.4 angstrom probe: oxygen 35.49, the methyl carbon 7.73 and the CH2 carbon 3.50, because the hydrogens bonded to a carbon shield it, and each hydrogen 22.85 to 27.61, summing to 197.71 for the molecule. A large value means an atom is reachable, not that it is polar or reactive.
+
+#### When to use it, when not
+
+Use it to see which atoms of a conformer are exposed, to compare how buried an atom is between conformers, or to see how the picture changes with probe size. Do not compare areas computed with different probes or radii, and do not read exposure as hydrophobicity or as a binding contribution. For the whole-molecule total and its polar and hydrophobic splits use Molecular Surface Area (3D).
+
+#### Search for
+
+solvent accessible surface area, SASA, Shrake-Rupley, probe radius
+
+#### Sources
+
+- [1] A. Shrake & J. A. Rupley, 'Environment and exposure to solvent of protein atoms. Lysozyme and insulin', J. Mol. Biol. 1973, 79(2), 351-371. DOI 10.1016/0022-2836(73)90011-9. Supports: the point-counting method, the solvated-sphere picture and the 1.4 angstrom solvent radius
+- [2] A. Bondi, 'van der Waals Volumes and Radii', J. Phys. Chem. 1964, 68(3), 441-451. DOI 10.1021/j100785a001. Supports: Bondi's radii, which the surface is computed with
+- [3] M. Mantina, A. C. Chamberlin, R. Valero, C. J. Cramer & D. G. Truhlar, 'Consistent van der Waals Radii for the Whole Main Group', J. Phys. Chem. A 2009, 113(19), 5806-5812. DOI 10.1021/jp8111556. Supports: the radii for the main-group elements Bondi gave none for
+- [4] S. S. Batsanov, 'Van der Waals Radii of Elements', Inorganic Materials 2001, 37(9), 871-885 (translated from Neorganicheskie Materialy 37(9), 1031-1046). DOI 10.1023/a:1011625728803. Supports: the table RDKit's radii turned out to equal, which the application used before method surface-v3
+- [5] Y. H. Zhao, M. H. Abraham & A. M. Zissimos, 'Fast calculation of van der Waals volume as a sum of atomic and bond contributions and its application to drug compounds', J. Org. Chem. 2003, 68(19), 7368-7373. DOI 10.1021/jo034808o. Supports: Bondi's published volumes for 46 molecules, against which the radii tables were checked
+- [6] S. Alvarez, 'A cartography of the van der Waals territories', Dalton Trans. 2013, 42(24), 8617-8636. DOI 10.1039/C3DT50599E. Supports: hydrogen 1.20 from neutron-diffraction contacts
+- [7] A. Gavezzotti, 'The calculation of molecular volumes and the use of volume analysis in the investigation of structured media and of solid-state organic reactivity', J. Am. Chem. Soc. 1983, 105, 5220-5225. DOI 10.1021/ja00354a007. Supports: another radii convention, within 10% of Bondi's volumes
+
 <!-- help:calc-griffin-hlb -->
 ### HLB (Griffin)
 
@@ -493,6 +940,32 @@ Griffin's hydrophile-lipophile balance: the weight percentage of ethylene oxide 
 - Basis: empirical (fitted to measured data, with real scatter).
 - Options:
   - `decimal_places` -- Decimal places default `2` range 0 to 8
+
+#### What it does
+
+Gives Griffin's hydrophile-lipophile balance (HLB) of a nonionic surfactant: a number from 0 to 20 for how water-loving versus oil-loving the molecule is, used to choose an emulsifier. It answers only for the surfactants the definition covers, and says so with a reason for any other structure, instead of returning a number that would mean nothing.
+
+#### How it works
+
+Griffin defined HLB for nonionic surfactants **whose only hydrophilic part is polyoxyethylene** as one fifth of the weight percentage of ethylene oxide in the molecule, HLB = E / 5, and fixed its scale by experiment, determining the HLB a surfactant must have to emulsify each of a variety of oils, fats and waxes in water [1]. For a polyoxyethylated dodecanol with p ethylene oxide units this becomes 881 p / (44.05 p + 186.3) [1].
+
+Shipped: the calculator counts the ethylene oxide units (-O-CH2-CH2-O- repeats) by substructure, takes each as 44.05 mass units, and divides by the whole molecular weight, so HLB = 20 x units x 44.05 / molecular weight. It reproduces the closed form above (measured: dodecanol with 4, 10 and 23 units gives 9.72, 14.05 and 16.89; the closed form gives 9.72, 14.06 and 16.89). It refuses a structure with no polyoxyethylene chain (measured: dodecanol, aspirin), and one that carries another hydrophilic group: a formal charge, an amine, an amide, a carboxylic acid, a sulfur or phosphorus oxyacid, a hydroxylated ring or more than one hydroxyl (measured: sodium laureth sulfate is refused for "a formal charge"). The refusal list is of what is excluded, not of what is allowed, so a hydrophile nobody thought of is not silently accepted.
+
+#### What the result means
+
+A classification aid, validated by Griffin's emulsification experiments rather than by a measurement of the molecule. Schott's Table I gives the working ranges: about 3 to 6 for water-in-oil emulsifiers, 8 to 17 for oil-in-water emulsifiers and 15 to 18 for solubilizers, and the scale approaches 20 asymptotically as the chain lengthens [1]. **Davies' HLB is a different scale** that shares the name: it was calculated from Griffin's results for sorbitan esters and polysorbates, none of which has polyoxyethylene as the sole hydrophile, and Schott shows it differs substantially from Griffin's over the whole practical range, for surfactants of that kind [1]. Davies' scale is therefore not offered, and the two numbers must never be reported under one label. Sorbitan esters (Span, Tween) are outside the formula: Griffin's experiments produced their published values, but sorbitan is a polyhydric alcohol, so his formula does not apply to them.
+
+#### When to use it, when not
+
+Use it for polyoxyethylated alcohols, alkylphenols and fatty acid esters of polyethylene glycol, which the paper says make up over 73% of the weight of nonionic surfactants produced in the United States at the time [1]. Do not use it for ionic surfactants, for anything with a second hydrophilic group, or for an ordinary drug, and do not read a refusal as a fault: it is the answer.
+
+#### Search for
+
+HLB, hydrophile-lipophile balance, Griffin, emulsifier
+
+#### Sources
+
+- [1] H. Schott, 'Comments on Hydrophile-Lipophile Balance Systems', Journal of Colloid and Interface Science 1989;133(2):527-529. Supports: Griffin's definition and the HLB = E / 5 form, the closed form for polyoxyethylated dodecanols, the application ranges, and why Davies' scale is not interchangeable
 
 <!-- help:calc-surface-analysis -->
 ### Molecular Surface Area (3D)
@@ -507,6 +980,36 @@ Solvent-accessible surface area with Marvin's ASA+/ASA-/ASA_H/ASA_P splits, plus
   - `major_microspecies` -- Take major microspecies default `False`
   - `pH` -- at pH default `7.4` range 0.0 to 14.0
 
+#### What it does
+
+Gives the **whole-molecule surface areas** of a 3D conformer, in square angstroms, with the splits chemists ask for: the solvent-accessible surface area (ASA), the part of it on positively and on negatively charged atoms (ASA+ and ASA-), the part on hydrophobic and on polar atoms (ASA_H and ASA_P), and the van der Waals surface area and volume. It can be taken for the molecule as it is or for the form that predominates at a pH.
+
+#### How it works
+
+The accessible surface is computed per atom exactly as in Accessible Surface Area (per atom), so the whole-molecule figures are sums of the same numbers; that is why the four splits cost nothing extra. The splits are rules over those per-atom values. **ASA+ and ASA-** add the atoms whose Gasteiger partial charge is above or below zero, with the charges taken from the same PEOE method as in Partial Charge (pH-dependent) and computed on a copy of the conformer [1]. **ASA_P** adds nitrogen, oxygen and fluorine atoms and the hydrogens bonded to them, the atoms that take part in hydrogen bonds, and **ASA_H is everything else**, so a sulfur or a chlorine counts as hydrophobic. The **van der Waals surface** is the surface of the fused atom spheres with no probe, and the **van der Waals volume** is the volume inside them, computed from the same surface points as the areas (a third of the sum, over the exposed points, of the position times the outward normal) and checked against an independent count of grid points; measured on six molecules the volume is within 0.25% of a 0.03 angstrom grid, a lone sphere is exact, and a molecule the two methods disagree about by more than 3% is reported. At a probe of 0 the accessible area equals the van der Waals surface. The radii are Bondi's (above).
+
+Shipped: the probe radius and the pH option. With the pH option, the structure is the stored conformer with **only protons moved**: every heavy atom keeps its coordinates and only a hydrogen the new state adds is placed, and a structure for which that cannot be done is refused with the reason, never a surface of a different molecule.
+
+#### What the result means
+
+Measured on one conformer at the 1.4 angstrom probe. Ethanol: ASA 197.71, of which ASA+ 154.50 and ASA- 43.22; ASA_H 139.38 and ASA_P 58.34; van der Waals surface 81.45 and volume 54.14. Benzene: ASA 244.28, ASA_P 0.00 (no polar atoms), van der Waals surface 109.53 and volume 83.69. The two pairs each add to the total. Because ASA+ and ASA- follow the sign of a partial charge, they inherit that model's limits: a different charge model could move an atom across zero and change them. They are areas for one conformer, not averages.
+
+#### When to use it, when not
+
+Use it to compare conformers or molecules by exposed surface, to see how much of it is polar, or to size a molecule with a probe. Do not treat ASA_H as a measure of lipophilicity, do not compare areas taken with different probes or radii, and do not compare the charge-sign split between molecules whose charges come from different models. It needs a 3D conformer; the 2D Polar Surface Area calculator needs none.
+
+#### Search for
+
+molecular surface area, ASA, van der Waals surface, polar surface
+
+#### Sources
+
+- [2] A. Shrake & J. A. Rupley, 'Environment and exposure to solvent of protein atoms. Lysozyme and insulin', J. Mol. Biol. 1973, 79(2), 351-371. DOI 10.1016/0022-2836(73)90011-9. Supports: the point-counting method the accessible area is computed by
+- [3] A. Bondi, 'van der Waals Volumes and Radii', J. Phys. Chem. 1964, 68(3), 441-451. DOI 10.1021/j100785a001. Supports: Bondi's radii and van der Waals volume, which the surface and volume are computed with
+- [4] M. Mantina, A. C. Chamberlin, R. Valero, C. J. Cramer & D. G. Truhlar, 'Consistent van der Waals Radii for the Whole Main Group', J. Phys. Chem. A 2009, 113(19), 5806-5812. DOI 10.1021/jp8111556. Supports: the radii for the main-group elements Bondi gave none for
+- [1] J. Gasteiger & M. Marsili, 'Iterative Partial Equalization of Orbital Electronegativity -- A Rapid Access to Atomic Charges', Tetrahedron 1980, 36, 3219-3228. DOI 10.1016/0040-4020(80)80168-2. Supports: the PEOE charges whose sign splits ASA+ from ASA-
+- [5] S. S. Batsanov, 'Van der Waals Radii of Elements', Inorganic Materials 2001, 37(9), 871-885 (translated from Neorganicheskie Materialy 37(9), 1031-1046). DOI 10.1023/a:1011625728803. Supports: the table RDKit's radii turned out to equal, which the application used before method surface-v3
+
 <!-- help:calc-polar-surface-area -->
 ### Polar Surface Area (2D)
 
@@ -516,6 +1019,32 @@ Topological polar surface area, for the structure as drawn and for the dominant 
 - Runs on the 2D drawing, so no conformer is needed.
 - Options:
   - `pH` -- pH default `7.4` range 0.0 to 14.0
+
+#### What it does
+
+Estimates how much of a molecule's surface belongs to its polar atoms, the nitrogens and oxygens, in square angstroms, from the 2D drawing alone. It is reported twice: for the structure as drawn, and for the form that predominates at a chosen pH, because an acid that has lost a proton or an amine that has gained one has different polar atoms.
+
+#### How it works
+
+This is **topological polar surface area (TPSA)**. Rather than build a 3D structure and measure a surface, it adds up a fixed contribution for each polar fragment, where a fragment is an atom together with its bonding pattern: a neutral hydroxyl contributes 20.23, an ether oxygen 9.23, a primary amine nitrogen 26.02 [1]. The contributions were found by least-squares fitting to the polar surface measured on a single 3D conformer, taken from the van der Waals surface of the oxygens, nitrogens, sulfurs and phosphorus atoms with their attached hydrogens, for 34,810 drug-like molecules from the World Drug Index [1]. The fit has a correlation of 0.99 with the 3D value (standard deviation 7.83 square angstroms, average absolute error 5.62) [1].
+
+Shipped: RDKit's implementation of that table, which counts **nitrogen and oxygen only**. The paper also lists "slightly polar" sulfur and phosphorus fragments for those who want them [1]; they are not counted here (measured: thiophenol gives 0.00, where counting sulfur would give 38.80, and trimethyl phosphate 44.76, where counting phosphorus would give 54.57). At a pH, the dominant form is chosen with Dimorphite-DL and the same sum is taken over it, so the value changes only by the polar atoms' changed contributions (measured: acetic acid 37.30 as drawn and 40.13 as the carboxylate, which is the table's 23.06 for the anion oxygen plus 17.07 for the carbonyl; methylamine 26.02 as drawn and 27.64 as the ammonium).
+
+#### What the result means
+
+A fast, topological estimate of the polar surface a 3D calculation would give, not a measured surface. It uses no geometry, so every conformer of a molecule has the same value. The paper reports that it correlates with published intestinal absorption, Caco-2 permeability and blood-brain barrier data, with squared correlations from 0.56 to 0.96 across six data sets of 9 to 57 compounds, similar to the 3D value on the same data [1]. Its one reported weakness is large macrocycles with many polar substituents, whose polar groups sit buried in the ring, so the topological value is too large against the 3D one [1].
+
+#### When to use it, when not
+
+Use it to screen or rank many structures quickly, or to see how ionization shifts the polar surface. Do not read it as an accessible or measured surface, do not compare it with a value computed with sulfur and phosphorus counted, and treat it as an overestimate for macrocycles whose polar groups face inward. For a surface of a particular conformer use Molecular Surface Area (3D).
+
+#### Search for
+
+topological polar surface area, TPSA, Ertl, polar surface area
+
+#### Sources
+
+- [1] P. Ertl, B. Rohde & P. Selzer, 'Fast Calculation of Molecular Polar Surface Area as a Sum of Fragment-Based Contributions and Its Application to the Prediction of Drug Transport Properties', J. Med. Chem. 2000, 43, 3714-3717. DOI 10.1021/jm000942e. Supports: the method, the fragment contributions, how they were fitted, and the validation data
 
 ## Aromaticity
 

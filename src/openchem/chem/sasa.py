@@ -72,3 +72,71 @@ def accessible_areas(
         exposed = ~(gap < reach[near][None, :] - _BOUNDARY).any(axis=1)
         areas[index] = 4.0 * math.pi * reach[index] ** 2 * float(exposed.mean())
     return areas
+
+
+def _exposed_fractions(positions: np.ndarray, reach: np.ndarray, unit: np.ndarray):
+    """For each atom, the boolean mask over `unit` of the points of its sphere that no other sphere contains.
+
+    A sphere with no neighbour in range is entirely exposed and is returned as `None`, which both callers read as
+    "every point", so the common isolated case costs nothing.
+    """
+    count = len(reach)
+    separation = np.linalg.norm(positions[:, None, :] - positions[None, :, :], axis=2)
+    for index in range(count):
+        near = np.nonzero((separation[index] < reach[index] + reach) & (np.arange(count) != index))[0]
+        if len(near) == 0:
+            yield None
+            continue
+        surface = positions[index] + reach[index] * unit
+        gap = np.linalg.norm(surface[:, None, :] - positions[near][None, :, :], axis=2)
+        yield ~(gap < reach[near][None, :] - _BOUNDARY).any(axis=1)
+
+
+def enclosed_volume(
+    positions: np.ndarray, radii: np.ndarray, probe: float = 0.0, points: int = DEFAULT_POINTS
+) -> float:
+    """The volume inside the fused spheres of radius `radii + probe`, in A^3, from the same points as the areas.
+
+    By the divergence theorem the volume is a third of the integral of (position . outward normal) over the boundary,
+    and the boundary is exactly the exposed points `accessible_areas` counts, each carrying an equal share of its
+    sphere's area. So the volume and the area of one surface come from one set of points, and a lone sphere is exact
+    (4/3 pi r^3). `probe` 0 is the van der Waals volume; 1.4 is the solvent-accessible volume. The positions are
+    centred first, which keeps the position term from carrying a rounding error away from the origin.
+    """
+    positions = np.asarray(positions, dtype=float)
+    reach = np.asarray(radii, dtype=float) + float(probe)
+    if len(reach) == 0:
+        return 0.0
+    centred = positions - positions.mean(axis=0)
+    unit = sphere_points(points)
+    total = 0.0
+    for index, mask in enumerate(_exposed_fractions(centred, reach, unit)):
+        patch = unit if mask is None else unit[mask]
+        if len(patch) == 0:
+            continue
+        # sum over exposed points of (x . n) = c . u + R, times that point's share of the sphere's area
+        total += (centred[index] @ patch.sum(axis=0) + reach[index] * len(patch)) * 4.0 * math.pi * reach[index] ** 2 / points
+    return total / 3.0
+
+
+def grid_volume(positions: np.ndarray, radii: np.ndarray, spacing: float = 0.1) -> float:
+    """The volume inside the fused spheres by counting grid points, in A^3: a second method for `enclosed_volume`.
+
+    Independent of it (no surface, no normals), so a disagreement means one of them is wrong, which is the whole
+    reason it exists. Each sphere marks only the cells in its own bounding box, so the cost follows the atom count.
+    """
+    positions = np.asarray(positions, dtype=float)
+    radii = np.asarray(radii, dtype=float)
+    if len(radii) == 0:
+        return 0.0
+    origin = (positions - radii[:, None]).min(axis=0) - spacing
+    far = (positions + radii[:, None]).max(axis=0) + spacing
+    shape = np.ceil((far - origin) / spacing).astype(int) + 1
+    filled = np.zeros(shape, dtype=bool)
+    for centre, radius in zip(positions, radii):
+        low = np.maximum(np.floor((centre - radius - origin) / spacing).astype(int), 0)
+        high = np.minimum(np.ceil((centre + radius - origin) / spacing).astype(int) + 1, shape)
+        axes = [origin[k] + spacing * np.arange(low[k], high[k]) for k in range(3)]
+        dx, dy, dz = np.meshgrid(axes[0] - centre[0], axes[1] - centre[1], axes[2] - centre[2], indexing="ij")
+        filled[low[0]:high[0], low[1]:high[1], low[2]:high[2]] |= dx * dx + dy * dy + dz * dz <= radius * radius
+    return float(filled.sum()) * spacing**3

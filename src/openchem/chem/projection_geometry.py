@@ -11,7 +11,16 @@ from memory" trap this project has already paid for once. So the
 references are analytic -- one atom is a sphere, so its volume is
 4/3 pi r^3, its surface 4 pi r^2 and its shadow a circle of pi r^2.
 
-## Which routine is authoritative, and why it is not the obvious one
+## THE RADII, AND WHY THE VOLUME IS NOT RDKIT'S ROUTINE ANY MORE (method v3, 2026-10-11)
+
+The radii are Bondi's own list, extended by Mantina et al. for the elements he gave none for, and RDKit's table only for
+what neither covers (`chem/vdw_radii.py`; `docs/VDW_RADII_ASSESSMENT.md`). `DoubleCubicLatticeVolume` and
+`ComputeMolVolume` take no radii, so they cannot be told to use that list, and the volume is now `sasa.enclosed_volume`
+(the divergence theorem over the same surface points the areas use) with `sasa.grid_volume` as the independent check.
+Measured on six molecules against a 0.03 angstrom grid: the new volume within 0.25%, DCLV within 1.2%. The analysis below
+is why DCLV was chosen in the first place and is kept because it is why the probe radius must be passed explicitly there.
+
+## Which routine WAS authoritative, and why it was not the obvious one
 
 RDKit has two, and the plan named the wrong one as primary. Measured on a
 single helium atom against the analytic 11.4940 A^3:
@@ -55,14 +64,10 @@ from dataclasses import dataclass
 
 import numpy as np
 from rdkit import Chem
-from rdkit.Chem import AllChem, rdMolDescriptors
 
 from openchem.chem.projection_search import projection_at, projection_extremes
-from openchem.chem.sasa import accessible_areas
-
-#: RDKit's own Bondi radii, asked rather than duplicated -- a second copy
-#: of a parameter table is a second thing to get out of step.
-_PERIODIC_TABLE = Chem.GetPeriodicTable()
+from openchem.chem.sasa import accessible_areas, enclosed_volume, grid_volume
+from openchem.chem.vdw_radii import bondi_radius
 
 #: The conventional water probe, in Angstrom. Used ONLY for the
 #: deliberately solvent-accessible figures.
@@ -152,10 +157,7 @@ def _positions_and_radii(mol: Chem.Mol, conformer_id: int = -1):
             "Generate a real 3D conformer with Structure ▸ Generate Conformers...."
         )
     positions = np.array(conformer.GetPositions(), dtype=float)
-    radii = np.array(
-        [_PERIODIC_TABLE.GetRvdw(atom.GetAtomicNum()) for atom in mol.GetAtoms()],
-        dtype=float,
-    )
+    radii = np.array([bondi_radius(atom.GetAtomicNum()) for atom in mol.GetAtoms()], dtype=float)
     return positions, radii
 
 
@@ -202,24 +204,16 @@ def closest_fragment_approach(mol: Chem.Mol, conformer_id: int = -1) -> float | 
 def van_der_waals_volume(mol: Chem.Mol, conformer_id: int = -1) -> tuple[float, float]:
     """The volume enclosed by the fused vdW spheres, and the disagreement.
 
-    Returns `(volume, relative_disagreement)`. The volume is the analytic
-    one; the disagreement is how far the independent grid routine landed
-    from it, as a fraction. A disagreement above `_VOLUME_TOLERANCE` means
+    Returns `(volume, relative_disagreement)`. The volume is the divergence-theorem
+    one over the surface points; the disagreement is how far the independent grid
+    count landed from it, as a fraction. A disagreement above `_VOLUME_TOLERANCE` means
     something is wrong with the geometry, not with the caller.
     """
-    _positions_and_radii(mol, conformer_id)  # raises if there is no 3D geometry
-    lattice = rdMolDescriptors.DoubleCubicLatticeVolume(
-        mol, confId=conformer_id, probeRadius=0.0
-    )
-    volume = float(lattice.GetVolume())
-
-    try:
-        grid = float(AllChem.ComputeMolVolume(mol, confId=conformer_id))
-    except Exception:  # noqa: BLE001 - the cross-check is a bonus, not a requirement
-        return volume, 0.0
+    positions, radii = _positions_and_radii(mol, conformer_id)  # raises if there is no 3D geometry
+    volume = enclosed_volume(positions, radii)
     if volume <= 0:
         return volume, 0.0
-    return volume, abs(grid - volume) / volume
+    return volume, abs(grid_volume(positions, radii) - volume) / volume
 
 
 def van_der_waals_surface_area(mol: Chem.Mol, conformer_id: int = -1) -> float:
@@ -266,12 +260,8 @@ def shape_descriptors(
     positions, radii = _positions_and_radii(mol, conformer_id)
     volume, disagreement = van_der_waals_volume(mol, conformer_id)
 
-    # The solvent-accessible VOLUME is still the lattice routine's (probe on, named for what it is:
-    # that is its DEFAULT behaviour, which is why the vdW call above passes probeRadius=0). The
-    # SURFACES are `chem/sasa`'s, for the reason `van_der_waals_surface_area` gives.
-    solvated = rdMolDescriptors.DoubleCubicLatticeVolume(
-        mol, confId=conformer_id, probeRadius=_SOLVENT_PROBE
-    )
+    # The solvent-accessible VOLUME is the same routine with the probe on; the SURFACES are `chem/sasa`'s too.
+    solvated = enclosed_volume(positions, radii, _SOLVENT_PROBE)
 
     axes = _principal_axes(positions)
     scaled = radii * radius_scale
@@ -294,7 +284,7 @@ def shape_descriptors(
     return ShapeDescriptors(
         volume=volume,
         surface_area=float(accessible_areas(positions, radii, 0.0).sum()),
-        solvent_accessible_volume=float(solvated.GetVolume()),
+        solvent_accessible_volume=float(solvated),
         solvent_accessible_surface_area=float(accessible_areas(positions, radii, _SOLVENT_PROBE).sum()),
         volume_disagreement=disagreement,
         min_projection_area=extremes.minimum.area,

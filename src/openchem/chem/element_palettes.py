@@ -224,7 +224,7 @@ CONTINUOUS: dict[str, PaletteSpec] = {
         "covalent_radius", "Covalent radius", "Å", 0.25, 2.65
     ),
     "van_der_waals_radius": PaletteSpec(
-        "van_der_waals_radius", "Van der Waals radius", "Å", 1.1, 3.1
+        "van_der_waals_radius", "Van der Waals radius", "Å", 1.1, 3.5
     ),
     # **THE CASE THAT FORCED `transform` TO EXIST.** Linear over this
     # range gives hydrogen 0.000 and krypton 0.28, so four whole periods

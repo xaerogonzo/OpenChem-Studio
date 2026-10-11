@@ -20,7 +20,12 @@ coincide exactly.
 
 PERCENT BURIED VOLUME is the fraction of a sphere around the metal
 occupied by the ligand's van der Waals volume -- the SambVca convention,
-R = 3.5 A, Bondi radii scaled by 1.17, hydrogens omitted.
+R = 3.5 A, Bondi radii scaled by 1.17, hydrogens omitted. THE RADII ARE
+BONDI'S OWN (`chem/vdw_radii.py`) FROM METHOD steric-v2: before that they
+were RDKit's table, which the code called Bondi and is not, and its larger
+phosphorus (1.95 against 1.80) put small phosphines 2 to 3.6 points high.
+Against Clavier and Nolan's published values the mean error fell from
+1.8 to 0.8 points (docs/VDW_RADII_ASSESSMENT.md).
 
 WHY THE ABSOLUTE VALUES DIFFER FROM PUBLISHED TABLES, measured rather
 than assumed. Published exact cone angles are computed on B3LYP-optimised
@@ -62,8 +67,8 @@ from openchem.chem.calculator_options import decimals
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.report import ReportResult, ConeAnnotation, valid_spatial_annotation
 from openchem.chem.report_adapter import report_from_fields
-
-_PERIODIC_TABLE = Chem.GetPeriodicTable()
+from openchem.chem.vdw_radii import RADII_LABEL, bondi_radius
+from openchem.domain.result_store import STERIC_METHOD
 
 # SambVca's conventions, so the numbers mean what that name means.
 DEFAULT_SPHERE_RADIUS = 3.5
@@ -193,9 +198,7 @@ def exact_cone_angle(
     if not indices:
         raise NoDonorError("A bare donor atom has no cone angle.")
     points = positions[indices]
-    radii = np.array(
-        [_PERIODIC_TABLE.GetRvdw(mol.GetAtomWithIdx(i).GetAtomicNum()) for i in indices]
-    )
+    radii = np.array([bondi_radius(mol.GetAtomWithIdx(i).GetAtomicNum()) for i in indices])
     # An atom whose sphere swallows the apex has no well-defined angle;
     # it also cannot happen at a real metal-donor distance.
     outside = np.linalg.norm(points - apex, axis=1) > radii
@@ -263,7 +266,7 @@ def buried_volume(
     for atom in mol.GetAtoms():
         if atom.GetAtomicNum() == 1:
             continue
-        radius = _PERIODIC_TABLE.GetRvdw(atom.GetAtomicNum()) * BONDI_SCALE
+        radius = bondi_radius(atom.GetAtomicNum()) * BONDI_SCALE
         offset = positions[atom.GetIdx()] - apex
         occupied |= ((inside_sphere - offset) ** 2).sum(axis=1) <= radius**2
     return 100.0 * float(occupied.sum()) / len(inside_sphere)
@@ -374,6 +377,10 @@ def compute_steric_analysis(
                 "metal_distance_a": metal_distance,
                 "sphere_radius_a": sphere_radius,
                 "geometry_source": "provided_conformer" if own_geometry else "free_ligand_mmff",
+                # The METHOD and the radii, recorded because a change to either changes the numbers: Bondi's
+                # own radii from steric-v2 on; before that RDKit's table, whose phosphorus is 1.95 not 1.80.
+                "method": STERIC_METHOD,
+                "radii": RADII_LABEL,
             },
         ),
     )
@@ -393,7 +400,7 @@ def compute_steric_analysis(
         positions, apex, _toward = _ligand_geometry(prepared, donor, conformer_id, metal_distance)
         reach = max(
             float(np.linalg.norm(positions[a.GetIdx()] - apex))
-            + _PERIODIC_TABLE.GetRvdw(a.GetAtomicNum())
+            + bondi_radius(a.GetAtomicNum())
             for a in prepared.GetAtoms()
             if a.GetIdx() != donor
         )

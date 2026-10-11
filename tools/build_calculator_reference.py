@@ -15,6 +15,11 @@ taxonomy copy, and a guide that said 51 while the registry held 53). The
 declarations are what the APPLICATION reads; a reference derived from them
 cannot describe a tree that does not exist.
 
+**THE ONE HAND-WRITTEN INPUT.** `docs/explainers/*.md` holds prose about what a
+calculator DOES (the idea, what the output means, when to prefer it), which no
+declaration can carry. `calculator_explainers.py` parses it and this tool merges
+each block under its calculator, keyed by calculator id.
+
 **WHAT IT DOES NOT DO.** It does not validate anything -- that is
 `tests/test_calculator_reference.py`, which owns completeness and the
 relationships. A generator that also validated would report a problem in the
@@ -42,6 +47,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import calculator_explainers  # noqa: E402  -- the hand-written prose merged below
 
 GENERATED = ROOT / "docs" / "CALCULATOR_REFERENCE.md"
 
@@ -175,7 +183,7 @@ def _support_lines(definition) -> list[str]:
     return lines
 
 
-def _calculator_section(definition, retired_by_target) -> list[str]:
+def _calculator_section(definition, retired_by_target, explainers=None, sources=None) -> list[str]:
     from openchem.domain.calculator import ServiceExecution
 
     lines = [
@@ -217,6 +225,12 @@ def _calculator_section(definition, retired_by_target) -> list[str]:
         lines.append("- Options:")
         lines += ["  " + _parameter_line(p) for p in definition.parameters]
     lines.append("")
+    # The hand-written "what it does" prose, keyed by the calculator's id. A
+    # calculator without a block simply prints none; whether that is allowed is
+    # `tests/test_calculator_explainers.py`'s question, not this tool's.
+    block = (explainers.blocks.get(definition.calculator_id) if explainers else None)
+    if block is not None:
+        lines += calculator_explainers.render(block, sources or {})
     return lines
 
 
@@ -281,6 +295,8 @@ def render() -> str:
     )
 
     registry = build_service_container().calculator_registry
+    explainers = calculator_explainers.parse()
+    sources = calculator_explainers.load_sources()
 
     retired_by_target: dict[str, list] = {}
     for retirement in RETIREMENTS.values():
@@ -314,7 +330,7 @@ def render() -> str:
             continue
         lines += [f"## {category_label(category)}", ""]
         for definition in definitions:
-            lines += _calculator_section(definition, retired_by_target)
+            lines += _calculator_section(definition, retired_by_target, explainers, sources)
 
     lines += _descriptor_sections()
 

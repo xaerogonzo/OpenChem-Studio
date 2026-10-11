@@ -1516,6 +1516,40 @@ contract is a failing test rather than an entry in a backlog.
 brief for one control: its label, tier, docs anchor, source provenance and
 the standing prohibitions.
 
+### Calculator explainers, and finding the paper behind them (2026-10-11)
+
+**Built:** the mechanism and the partial-charge family (`docs/explainers/`, `tools/calculator_explainers.py`,
+`tests/test_calculator_explainers.py`). A calculator's reference entry now says what it DOES, not only what it
+needs and refuses, and each stored method code is decoded (`eem_bultinck2002_part1` is EEM with Bultinck et al.
+2002 part I's parameters). 68 calculators are still in `EXPLAINER_DEBT`; the order is by user value: Shape and
+surface, Solubility and pKa, Drug-likeness, Topology and stereo, Identity and naming, Spectra and energy,
+Structure generation, then the rest of the charge group. Wherever one calculator offers several methods that
+differ in what they were built from (polarizability, alignment, the pKa predictors), the same side-by-side
+table the guide now has for the charge models is owed.
+
+**Deferred: a "Find in my library" action on each reference in Help, through Knowledge Vista.** The Help window
+now prints each source as a citation plus its DOI as plain text, and that is the first screen in OpenChem that
+shows a paper's identity, which is the thing `services/knowledge_vista.py` said it was waiting for. The shape:
+with Knowledge Vista configured (Settings > External tools), a DOI in Help gets an action that runs
+`kv --json search doi:<doi>`, then `kv locate` and `kv open` at a page, and with it absent or the paper not in
+that person's library the action is simply not offered (or offers to copy the DOI). **It never ships or links a
+paper**: each person's library is their own, so what it finds differs per person, and the documentation must
+stand on its DOIs and search keywords alone for everyone else. Two rules carry over from the explainers: no URL
+in authored text (a DOI is built to outlive a site, a link is not), and Knowledge Vista stays optional.
+
+**Decided: which van der Waals radii (2026-10-11, updated 2026-10-12).** Bondi's own list (`chem/vdw_radii.py`) is now the one
+table behind Ligand Steric Bulk (`steric-v2`), the accessible surface and van der Waals volume (`surface-v3`) and the
+projections and Geometry (`geometry-v3`); results saved by the earlier methods are kept and labelled. Hydrogen 1.10 was not
+adopted (it errs 7.7% on Bondi's own published volumes). An older Geometry result's "Bondi" line loads with a reader's note.
+Still open: what to do about the docking table's metal radii. Alvarez 2013 puts iron at 2.44 angstrom against the table's
+untraced 1.56, and measuring the pose analysis showed the real defect: a ligand donor bonded to a metal is also reported as a
+steric clash, whatever the radius (a fix is on its own branch). `docs/VDW_RADII_ASSESSMENT.md` has the evidence.
+
+**Deferred, maintainer side:** replace the filename in `sources.toml`'s `local` field (a locator that drifts, and
+the subject of the deferred Sci Downloads naming round) with a `kv` lookup by DOI or hash, and add a coverage
+report of which registered sources the maintainer's library lacks, which is the list of papers to fetch before
+the next explainer family is written.
+
 ### Naming, and the annotation engine underneath it
 
 Structure-to-name offline and deterministically via the vendored IUPAC

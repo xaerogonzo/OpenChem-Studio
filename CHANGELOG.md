@@ -10,6 +10,101 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Naming: ring cations, cages and amidines on a ring nitrogen
 - A tricyclic bridgehead iminium, a ring-N amidinium cation (a different, neutral molecule before), an amidinium beside a carboxylic acid (refused before), N-substituted fused cations that came out as `(...-ium-1-yl)methane`, the two resonance forms of a bicyclic amidinium (two names), and the adamantane and cubane numbering all read back now (D-220 .. D-224, D-221/D-222, D-212 final form: `N'-benzoyl-1H-pyrazole-1-carboximidamide`). Twelve curated ring entries gained heteroatom locants and three partial rings were completed. Furan, thiophene, pyrroline and imidazoline cations keep their retained spelling. The app's read-back also tries the spelling OPSIN reads for four names whose engine form is right (`N1,N2-...oxamide`, `oxobis[...]phosphanyl`, a bis-adamantane CIP, `bis([1,3]dioxolo)...pyran`), so those are shown verified. Census 1978 -> 1979 exact (98.95%), visible failures 0; fresh_v1 re-scored once, 1956 of 2000 read back (97.8%).
 
+### Docs: calculator explainers, starting with the partial-charge family
+- `docs/CALCULATOR_REFERENCE.md` said what each calculator needs and refuses but not what it
+  DOES. Hand-written explainers in `docs/explainers/` (idea, how it works, what the result means,
+  when to use it and when not, search keywords, numbered sources) are now merged under each
+  calculator by `tools/build_calculator_reference.py`, so the in-app Help window shows them and
+  its search finds them. First family: the 3D partial charges (EEM, QEq, Ionescu), the pH-dependent
+  charges (Gasteiger PEOE, MMFF94), Dipole Moment and Orbital Electronegativity, each claim read
+  against its paper or measured, and labelled published, shipped or measured.
+- Citations are the repository's `[source:key]`, rendered as the registry's bibliography and the DOI
+  as plain text, never a link: a URL rots, a DOI is built to outlive the site. No URL is allowed in an
+  explainer. `tests/test_calculator_explainers.py` owns completeness as a named ratchet
+  (`EXPLAINER_DEBT`, 68 calculators still to do; it only shrinks), the schema, the citations, and
+  that Help search finds each explainer under its own calculator. Help stays as fast (17-18 ms a search).
+- `OPENCHEM_DRIVE`'s `dialog` step takes `topic` and `search` for the Help window.
+- `USER_GUIDE.md`'s partial-charge comparison points at the explainers and adds a dated side-by-side
+  of one atom under each model.
+- Shape and surface, first part: Polar Surface Area (Ertl's TPSA, N and O only, measured), Griffin HLB (with
+  the Davies scale kept apart and the refusals measured), Torsion Table and Geometry (extent, the exact-area
+  shadow search, and what MMFF94, UFF and Dreiding are and why their energies are never comparable, with
+  the three measured side by side). `EXPLAINER_DEBT` is 61 after the second part: Accessible Surface Area, Molecular
+  Surface Area (3D) and Ligand Steric Bulk, written once the papers were supplied. MMFF94 part I
+  (`halgren1996_mmff1`) and six more join the sources registry (`bondi1964`, `shrake1973`, `tolman1977`,
+  `bilbrey2013`, `poater2009`, `clavier2010`), each with its DOI. The three old papers print no DOI, so those
+  come from Crossref and each row says so; this retired `geometry_analysis.py`, `steric.py` and
+  `surface_analysis.py` from the provenance debt.
+- Interactions, dynamics and alignment: Interaction Analysis, Molecular Dynamics (vacuum) and 3D Alignment have
+  explainers; `EXPLAINER_DEBT` is 58. Writing the first one **measured six results that are wrong in chemistry terms** and records them as
+  "Known limits" rather than hiding them: every nitro group reads as a cation (cation-π 2.86 A against its own
+  ring), two acceptors count as a hydrogen bond (1,2-dimethoxyethane), two bonded rings count as stacked
+  (biphenyl), sulfur is not a metal donor, a salt written as two fragments is embedded on top of itself, and a
+  hydrophobic contact has no lower bound. The fixes are a separate task, not made here. The molecular dynamics
+  measurements: energy conserved to under 0.1 kcal/mol over 0.5 ps, the 300 K you ask for becomes about half of
+  that when started from a minimised conformer, and the default run never leaves the starting conformer (50 ps at
+  300 K does not either; only 1000 K does). 3D Alignment: the score is not normalised (a perfect self-overlay scores
+  27.6 for ethanol and 138.2 for caffeine, and 0 below three heavy atoms), and Accuracy changes nothing when the
+  Flexible build succeeds, which corrects the user guide's "higher accuracy generates more conformers". `plip2015`,
+  `tosco2011` (read in full), `verlet1967` and `swope1982` join the sources registry, and `molecular_dynamics.py`
+  leaves the provenance debt.
+- **Found while checking Bondi's paper, researched, and decided:** the "Bondi radii" the surface and steric code used are
+  RDKit's table, which is neither Bondi's list nor ever was. RDKit says only "taken from BODR v10.1", BODR cites nothing,
+  and the values equal Batsanov (2001) Table 9's recommended crystallographic radii for all 65 elements it lists. On
+  areas the choice is small (mean 0.4% on 17 molecules), but percent buried volume ran 2 to 3.6 points high for small
+  phosphines because of RDKit's phosphorus 1.95 against Bondi's 1.80. After reading Bondi, Batsanov, Mantina et al. and
+  Rowland and Taylor: **Ligand Steric Bulk now uses Bondi's own radii** (`chem/vdw_radii.py`, with Mantina et al.'s
+  sixteen for the elements he left out; method `steric-v2`, mean error against Clavier and Nolan's published volumes
+  0.8 points instead of 1.8, the exact cone angle unchanged), and a result saved by the earlier method is kept and
+  labelled `legacy-rdkit-radii-v1`. **Every other calculator keeps RDKit's table and now says so** (code comments, the
+  Geometry result's limitation line, stored `radii: "rdkit_rvdw"`); no number there moved. Hydrogen stays 1.20 for areas
+  and volumes (Bondi chose his radii for volumes; Rowland and Taylor's 1.10 is a contact-distance compromise, which is
+  what the docking module's own table, Bondi's with that hydrogen, is for). `docs/VDW_RADII_ASSESSMENT.md` has the
+  evidence, `tests/test_vdw_radii.py` and `tests/test_vdw_radii_provenance.py` pin the tables and the sources, and
+  `benchmarks/vdw_radii/radii_study.py` reproduces the numbers.
+
+- **Old Geometry results no longer say "Bondi".** A result saved before the radii were relabelled carried the stored line "Bondi
+  van der Waals radii.", which was never true of RDKit's table. It now loads with a reader's note in its place
+  (`STORED_TEXT_NOTES` in `domain/result_store.py`): the exact line only, with the numbers, the provenance and the method
+  version untouched, because a version bump would claim the numbers differ and they do not. `alvarez2013` joins the registry:
+  its Table 1 puts iron at 2.44 angstrom (the docking table has 1.56, supported by no published set), and measuring the
+  docking pose analysis showed that a ligand donor bonded to a zinc, iron or magnesium is also reported as a steric clash,
+  which is the real defect behind that number (not fixed here).
+
+- Five more papers read for the radii question (`harding1999`, `harding2000`, `harding2001`, `gavezzotti1983`, `zhao2003`).
+  Zhao et al.'s Tables 1 and 3 are a second transcription of Bondi's group volumes; on those 46 molecules Bondi's list errs
+  1.84% on average against RDKit's 2.12% and hydrogen 1.10's 7.71%, the whole difference being in halides (1.95% against
+  3.14%), so moving the surface calculators to Bondi is a provenance gain, not an accuracy one. Harding's tables give sourced
+  metal-donor distances (the current table is Harding 2006's: Zn-N 2.03, Fe-N 2.16, Mg-O 2.07, Ca-O 2.39 A) and a primary-sphere rule of target + 0.5 A, and show
+  sulfur is as good a donor as nitrogen. `benchmarks/vdw_radii/radii_study.py` gains the 46-molecule check.
+
+### Help window: three things found by using it
+- **Clearing a search lost your place.** The x in the search box re-rendered the page and put it back at
+  the top, so removing the highlighting read as being thrown back to the main menu. It now drops the marks,
+  restores the contents list and leaves the page where it was (the page is not reloaded).
+- **It could not be maximised.** A dialog is drawn with only a close button on Windows; the window now has
+  minimise, maximise and a size grip.
+- **"Read the whole document" did nothing** on a document's own title, because that page already is the
+  whole document. The button is disabled there, and a new **Open the file** button opens the markdown file
+  in the system's program for it (and says so when there is none).
+
+
+- **The accessible surface, van der Waals volume, projections and Geometry now use Bondi's own radii** (`chem/vdw_radii.py`),
+  the table Ligand Steric Bulk already used: methods `surface-v3` and `geometry-v3`. Over 17 drug-like molecules, accessible area
+  moves -0.4% on average (worst -1.9%), van der Waals volume -1.4% (worst -4.5%), the smallest shadow -0.8%; hydrocarbons do
+  not move, the whole change is in the elements Bondi's list and RDKit's table disagree about. Results saved by v2 are kept
+  beside the new ones and labelled "previous method", never replayed as the new. Because RDKit's volume routines take no
+  radii, the volume is now the divergence theorem over the surface points (`sasa.enclosed_volume`, within 0.25% of a fine
+  grid against RDKit's 1.2%) with an independent grid count as its check (`sasa.grid_volume`), which also retires the lone
+  atom as the known exception to that check. Hydrogen stays 1.20.
+
+- **The periodic table's van der Waals radius is now the shared table's, and names its source.** It showed RDKit's value
+  (chlorine 1.80); it now shows Bondi's (1.75) with "(Bondi 1964)", "(Mantina et al. 2009, on Bondi's scale)" or "(RDKit's
+  table, Batsanov 2001's set)" beside it, so it agrees with every area and volume the application reports. The element colour
+  palette's range was widened to francium's 3.48. Five more papers join the registry (`harding2002` with its corrigendum
+  `harding2013`, `harding2006`, `zheng2017`, `chernyshov2020`); Harding's 2006 table supersedes his 2001 one and adds cobalt
+  and, with Zheng's, nickel, sodium and potassium; the Chernyshov DOI first given here was the cover profile's.
+
 ### Naming: ring systems keep their heteroatoms, numbering, hydrogen and name
 - A spiro heterocycle on a bridged ring was `tricyclo[...]undecane-1,3-dione` (every N gone), an N-attached triazinedione was numbered as a ring OPSIN cannot build, a spiro partner lost an azole N-H, a tricycle of three monocycles had no name, and a protonated or iminium N in a fused 4-ring was a NAMING ERROR (D-215 .. D-219). Census 1968 -> 1978 exact, visible failures 4 -> 0; fresh_v1 1950 -> 1951 of 2000 read back after its one re-score (97.55%).
 
