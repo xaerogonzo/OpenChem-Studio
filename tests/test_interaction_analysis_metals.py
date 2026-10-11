@@ -198,7 +198,7 @@ def test_a_donor_just_outside_the_bonding_range_is_an_ordinary_contact():
 def test_no_distance_is_reported_as_both_a_coordination_and_a_clash(metal, donor):
     """The invariant behind the fix, swept over every distance a bond could have: for a donor above the overlap
     floor, being a coordination excludes being a clash. A pair that is both is the original defect. Sulfur is in
-    the sweep because the clash exemption takes `_METAL_DONOR_ELEMENTS`, and an exemption wider than the
+    the sweep because the clash exemption takes `_is_metal_donor`, and an exemption wider than the
     detector would make a Zn--S contact vanish from both lists."""
     steps = round((METAL_COORDINATION_CUTOFF - METAL_DONOR_MIN_DISTANCE) / 0.05)
     distances = [round(METAL_DONOR_MIN_DISTANCE + 0.05 * i, 2) for i in range(steps + 1)]
@@ -207,6 +207,24 @@ def test_no_distance_is_reported_as_both_a_coordination_and_a_clash(metal, donor
         found = find_interactions(_two_atom_molecule(donor, metal, distance))
         assert _pairs(found["metal_coordination"]) == [(0, 1)], f"{metal}-{donor} at {distance:.2f} is inside the cutoff"
         assert found["clashes"] == [], f"{metal}-{donor} at {distance:.2f} reported as a clash too"
+
+
+def test_a_sulfoxide_sulfur_is_not_a_donor_so_it_is_neither_exempt_nor_coordinated():
+    """The exemption is exactly the detector's donor set. A sulfoxide sulfur has valence 4 (its oxygen is the
+    donor), so a zinc 2.3 A from it is an ordinary contact: no coordination, and the clash stays. An exemption
+    wider than the detector would make this contact vanish from both lists."""
+    mol = Chem.AddHs(Chem.MolFromSmiles("CS(C)=O.[Zn]"))
+    assert AllChem.EmbedMolecule(mol, randomSeed=7) == 0
+    sulfur = next(a.GetIdx() for a in mol.GetAtoms() if a.GetSymbol() == "S")
+    zinc = next(a.GetIdx() for a in mol.GetAtoms() if a.GetSymbol() == "Zn")
+    conformer = mol.GetConformer()
+    conformer.SetAtomPosition(zinc, _lone_pair_point(mol, sulfur, 2.3))
+    assert _VDW_RADII["S"] + _VDW_RADII["ZN"] - CLASH_TOLERANCE > 2.3, "precondition: 2.3 A is inside the clash threshold"
+
+    found = find_interactions(mol)
+
+    assert (min(sulfur, zinc), max(sulfur, zinc)) in _pairs(found["clashes"])
+    assert not any(zinc in pair for pair in _pairs(found["metal_coordination"]))
 
 
 def test_a_molecule_with_no_metal_is_unchanged():
