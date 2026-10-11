@@ -60,6 +60,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   evidence, `tests/test_vdw_radii.py` and `tests/test_vdw_radii_provenance.py` pin the tables and the sources, and
   `benchmarks/vdw_radii/radii_study.py` reproduces the numbers.
 
+### Help window: three things found by using it
+- **Clearing a search lost your place.** The x in the search box re-rendered the page and put it back at
+  the top, so removing the highlighting read as being thrown back to the main menu. It now drops the marks,
+  restores the contents list and leaves the page where it was (the page is not reloaded).
+- **It could not be maximised.** A dialog is drawn with only a close button on Windows; the window now has
+  minimise, maximise and a size grip.
+- **"Read the whole document" did nothing** on a document's own title, because that page already is the
+  whole document. The button is disabled there, and a new **Open the file** button opens the markdown file
+  in the system's program for it (and says so when there is none).
+
 ### Naming: ring systems keep their heteroatoms, numbering, hydrogen and name
 - A spiro heterocycle on a bridged ring was `tricyclo[...]undecane-1,3-dione` (every N gone), an N-attached triazinedione was numbered as a ring OPSIN cannot build, a spiro partner lost an azole N-H, a tricycle of three monocycles had no name, and a protonated or iminium N in a fused 4-ring was a NAMING ERROR (D-215 .. D-219). Census 1968 -> 1978 exact, visible failures 4 -> 0; fresh_v1 1950 -> 1951 of 2000 read back after its one re-score (97.55%).
 
