@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 68ee513e8a65a078a86d0776d906e5a92105a3e2c4cf6f604c30b8d1d69c94c6 -->
+<!-- SOURCE SHA256: b7d5032d6f2952c5ec2266395e0d9210d9db64b348c74fd53c30cf48c340ed82 -->
 
 # Sources
 
@@ -2428,7 +2428,7 @@ the abstract's statement.
 | Verification | citation + claim |
 | Verified | 2026-10-11 |
 | Local copy | `harding2001.pdf` (not checked) |
-| Used by | `docs/VDW_RADII_ASSESSMENT.md` |
+| Used by | `docs/VDW_RADII_ASSESSMENT.md`, `docs/explainers/interaction_dynamics.md` |
 
 **Why it is reference only.** The tabulated target metal-donor distances the docking pose analysis should use to tell a metal bond from a contact; no value of the application comes from it yet.
 
@@ -2567,7 +2567,7 @@ author thanks Peter Artymiuk for pointing it out.
 | Verification | citation + claim |
 | Verified | 2026-10-12 |
 | Local copy | `harding2006.pdf` (not checked) |
-| Used by | `docs/VDW_RADII_ASSESSMENT.md` |
+| Used by | `docs/VDW_RADII_ASSESSMENT.md`, `docs/explainers/interaction_dynamics.md` |
 
 **Why it is reference only.** The current table of target metal-donor distances, which supersedes Harding 2001 and 2002; no value of the application comes from it yet.
 

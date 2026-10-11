@@ -88,6 +88,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   metal-donor distances (the current table is Harding 2006's: Zn-N 2.03, Fe-N 2.16, Mg-O 2.07, Ca-O 2.39 A) and a primary-sphere rule of target + 0.5 A, and show
   sulfur is as good a donor as nitrogen. `benchmarks/vdw_radii/radii_study.py` gains the 46-molecule check.
 
+- **The accessible surface, van der Waals volume, projections and Geometry now use Bondi's own radii** (`chem/vdw_radii.py`),
+  the table Ligand Steric Bulk already used: methods `surface-v3` and `geometry-v3`. Over 17 drug-like molecules, accessible area
+  moves -0.4% on average (worst -1.9%), van der Waals volume -1.4% (worst -4.5%), the smallest shadow -0.8%; hydrocarbons do
+  not move, the whole change is in the elements Bondi's list and RDKit's table disagree about. Results saved by v2 are kept
+  beside the new ones and labelled "previous method", never replayed as the new. Because RDKit's volume routines take no
+  radii, the volume is now the divergence theorem over the surface points (`sasa.enclosed_volume`, within 0.25% of a fine
+  grid against RDKit's 1.2%) with an independent grid count as its check (`sasa.grid_volume`), which also retires the lone
+  atom as the known exception to that check. Hydrogen stays 1.20.
+
+- **The periodic table's van der Waals radius is now the shared table's, and names its source.** It showed RDKit's value
+  (chlorine 1.80); it now shows Bondi's (1.75) with "(Bondi 1964)", "(Mantina et al. 2009, on Bondi's scale)" or "(RDKit's
+  table, Batsanov 2001's set)" beside it, so it agrees with every area and volume the application reports. The element colour
+  palette's range was widened to francium's 3.48. Five more papers join the registry (`harding2002` with its corrigendum
+  `harding2013`, `harding2006`, `zheng2017`, `chernyshov2020`); Harding's 2006 table supersedes his 2001 one and adds cobalt
+  and, with Zheng's, nickel, sodium and potassium; the Chernyshov DOI first given here was the cover profile's.
+
 ### Help window: three things found by using it
 - **Clearing a search lost your place.** The x in the search box re-rendered the page and put it back at
   the top, so removing the highlighting read as being thrown back to the main menu. It now drops the marks,
@@ -118,22 +134,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   calls the same function and changes with it. `tests/test_interaction_analysis_rules.py` runs every structure that was
   reported through the registered calculator and measures its own precondition from the coordinates; each rule was
   reverted in turn and the tests failed. The explainer's limits are updated to match.
-
-- **The accessible surface, van der Waals volume, projections and Geometry now use Bondi's own radii** (`chem/vdw_radii.py`),
-  the table Ligand Steric Bulk already used: methods `surface-v3` and `geometry-v3`. Over 17 drug-like molecules, accessible area
-  moves -0.4% on average (worst -1.9%), van der Waals volume -1.4% (worst -4.5%), the smallest shadow -0.8%; hydrocarbons do
-  not move, the whole change is in the elements Bondi's list and RDKit's table disagree about. Results saved by v2 are kept
-  beside the new ones and labelled "previous method", never replayed as the new. Because RDKit's volume routines take no
-  radii, the volume is now the divergence theorem over the surface points (`sasa.enclosed_volume`, within 0.25% of a fine
-  grid against RDKit's 1.2%) with an independent grid count as its check (`sasa.grid_volume`), which also retires the lone
-  atom as the known exception to that check. Hydrogen stays 1.20.
-
-- **The periodic table's van der Waals radius is now the shared table's, and names its source.** It showed RDKit's value
-  (chlorine 1.80); it now shows Bondi's (1.75) with "(Bondi 1964)", "(Mantina et al. 2009, on Bondi's scale)" or "(RDKit's
-  table, Batsanov 2001's set)" beside it, so it agrees with every area and volume the application reports. The element colour
-  palette's range was widened to francium's 3.48. Five more papers join the registry (`harding2002` with its corrigendum
-  `harding2013`, `harding2006`, `zheng2017`, `chernyshov2020`); Harding's 2006 table supersedes his 2001 one and adds cobalt
-  and, with Zheng's, nickel, sodium and potassium; the Chernyshov DOI first given here was the cover profile's.
+- The explainer's metal-coordination bullet cites Harding (2006, Table 4, read from the page image) for sulfur as a donor (Zn-S 2.31, Fe-S 2.30 A against Zn-N(His) 2.03) and records that the single 2.8 A cutoff is a convention: with the 2001 tolerance of target + 0.5 A the limit is 2.53 for Zn-N(His), 2.81 for Zn-S and 3.31 for K-O water, whose target of 2.81 is itself above the cutoff.
 
 ### Naming: ring systems keep their heteroatoms, numbering, hydrogen and name
 - A spiro heterocycle on a bridged ring was `tricyclo[...]undecane-1,3-dione` (every N gone), an N-attached triazinedione was numbered as a ring OPSIN cannot build, a spiro partner lost an azole N-H, a tricycle of three monocycles had no name, and a protonated or iminium N in a fused 4-ring was a NAMING ERROR (D-215 .. D-219). Census 1968 -> 1978 exact, visible failures 4 -> 0; fresh_v1 1950 -> 1951 of 2000 read back after its one re-score (97.55%).
