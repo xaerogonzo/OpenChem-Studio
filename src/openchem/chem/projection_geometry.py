@@ -37,13 +37,15 @@ quantities.
 The probe volume is genuinely wanted too, so it is computed deliberately
 and reported under its own name rather than being confused for this one.
 
-## What is approximated, said plainly
+## What is searched, said plainly
 
-The projection is taken on the principal axes rather than optimised over
-all orientations, so "minimal" and "maximal" mean "of the three principal
-planes". A shape whose true extreme lies off-axis reads slightly high.
-Full orientation optimisation is Phase 7b; until it exists the facts say
-which one they are.
+The minimal and maximal projection are found by SEARCHING the orientations
+(`projection_search`): the area at each is exact, and the extreme is the best
+of a sampling of the sphere refined locally. An earlier version measured on
+the three principal planes and called the smaller "minimal", which read
+slightly high -- benzene 20.07 A^2 there, 18.76 A^2 searched. The principal
+axes are still computed, because the drawn axes on the 3D view are the
+principal ones, but no reported extreme comes from them.
 """
 
 from __future__ import annotations
@@ -55,6 +57,9 @@ import numpy as np
 from rdkit import Chem
 from rdkit.Chem import AllChem, rdMolDescriptors
 
+from openchem.chem.projection_search import projection_at, projection_extremes
+from openchem.chem.sasa import accessible_areas
+
 #: RDKit's own Bondi radii, asked rather than duplicated -- a second copy
 #: of a parameter table is a second thing to get out of step.
 _PERIODIC_TABLE = Chem.GetPeriodicTable()
@@ -62,29 +67,6 @@ _PERIODIC_TABLE = Chem.GetPeriodicTable()
 #: The conventional water probe, in Angstrom. Used ONLY for the
 #: deliberately solvent-accessible figures.
 _SOLVENT_PROBE = 1.4
-
-#: Sample points per Angstrom on the projection plane. Measured against
-#: the analytic circle, which is the only shape with an exact answer:
-#:
-#:      20/A   -1.17%        60/A   -0.13%
-#:      40/A   -0.17%       100/A   -0.01%
-#:
-#: 60 is where the error stops mattering and the cost is still noise; the
-#: grid is a Riemann sum, so it always reads LOW, never high.
-_GRID_PER_ANGSTROM = 60
-
-#: Ceiling on grid cells per projection, which is what keeps a large
-#: molecule from costing seconds. At a FIXED 60/A the cost grows with
-#: (molecular cross-section x atom count) and triacontane took **4.27 s**
-#: -- far too slow for a panel that recomputes whenever the selection
-#: changes.
-#:
-#: Capping cells rather than lowering the resolution everywhere is the
-#: right trade, not merely the cheap one: the grid's error is set by the
-#: shape's perimeter-to-area ratio, so a bigger molecule tolerates a
-#: coarser grid at the SAME relative accuracy. Small molecules, where
-#: accuracy is hardest to get, never reach the cap and keep the full 60/A.
-_MAX_GRID_CELLS = 250_000
 
 #: How far the two volume routines may differ before the disagreement is
 #: worth reporting. Measured across ten molecules, the grid routine's own
@@ -123,8 +105,20 @@ class ShapeDescriptors:
     volume_disagreement: float
     min_projection_area: float
     max_projection_area: float
+    #: Radius of the smallest circle enclosing the shadow at that orientation.
     min_projection_radius: float
     max_projection_radius: float
+    #: The viewing directions the extremes were found along (unit vectors, the conformer's
+    #: frame; the sign is arbitrary because a shadow is the same from both sides) and the
+    #: extent of the molecule along each, surface to surface.
+    min_projection_direction: tuple[float, float, float] = (0.0, 0.0, 1.0)
+    max_projection_direction: tuple[float, float, float] = (0.0, 0.0, 1.0)
+    min_projection_size: float = 0.0
+    max_projection_size: float = 0.0
+    #: How many orientations the search computed an area for.
+    orientations_searched: int = 0
+    #: The multiplier the van der Waals radii carried in the projection figures.
+    radius_scale: float = 1.0
     #: The drawing half: the exact signed principal axes the projections
     #: above were measured along (widest atom spread first), the unweighted
     #: centroid they pass through, the half-span of atom centres along
@@ -228,6 +222,19 @@ def van_der_waals_volume(mol: Chem.Mol, conformer_id: int = -1) -> tuple[float, 
     return volume, abs(grid - volume) / volume
 
 
+def van_der_waals_surface_area(mol: Chem.Mol, conformer_id: int = -1) -> float:
+    """The area of the surface of the fused van der Waals spheres, in A^2.
+
+    The area partner of `van_der_waals_volume`, with the same radii, computed by `chem/sasa` at
+    probe 0. **NOT the double-cubic-lattice surface**: that is a lattice method, 1.1% high for
+    benzene and ethanol at probe 0 and 4.5% high at a 1.4 A probe (measured 2026-10-10 against a
+    200,000-point reference), and this application should have one surface routine, not two that
+    disagree. A lone sphere gives 4 pi r^2 exactly.
+    """
+    positions, radii = _positions_and_radii(mol, conformer_id)
+    return float(accessible_areas(positions, radii, 0.0).sum())
+
+
 def _principal_axes(positions: np.ndarray) -> np.ndarray:
     """The three principal axes of the atom cloud, widest spread first.
 
@@ -245,78 +252,31 @@ def _principal_axes(positions: np.ndarray) -> np.ndarray:
     return vectors.T[::-1]
 
 
-def _plane_basis(axis: np.ndarray) -> np.ndarray:
-    """Two orthonormal vectors spanning the plane perpendicular to `axis`."""
-    seed = np.eye(3)[int(np.argmin(np.abs(axis)))]
-    first = seed - np.dot(seed, axis) * axis
-    first /= np.linalg.norm(first)
-    second = np.cross(axis, first)
-    return np.array([first, second / np.linalg.norm(second)])
+def shape_descriptors(
+    mol: Chem.Mol, conformer_id: int = -1, radius_scale: float = 1.0
+) -> ShapeDescriptors:
+    """Volume, surface, and the projection extremes over every orientation.
 
-
-def _projection(positions: np.ndarray, radii: np.ndarray, axis: np.ndarray):
-    """Area and radius of the shadow cast along `axis`.
-
-    The area is the UNION of the overlapping circles, measured on a grid.
-    Summing pi r^2 per atom would count every overlap twice, and in a
-    fused structure the overlaps are most of the molecule -- benzene would
-    read about double.
-
-    The radius is the largest distance from the shadow's centroid to any
-    covered point: the enclosing circle a chemist means by "will it fit
-    through".
+    `radius_scale` multiplies the van der Waals radii in the PROJECTION figures only (area,
+    radius, size). The volume and surface are those of the unscaled radii: they are different
+    quantities, and a caller asking for a bigger shadow has not asked for a bigger molecule.
     """
-    basis = _plane_basis(axis)
-    flat = positions @ basis.T
-    low = (flat - radii[:, None]).min(axis=0)
-    high = (flat + radii[:, None]).max(axis=0)
-
-    span = high - low
-    resolution = _GRID_PER_ANGSTROM
-    cells = span[0] * span[1] * resolution * resolution
-    if cells > _MAX_GRID_CELLS:
-        resolution = math.sqrt(_MAX_GRID_CELLS / (span[0] * span[1]))
-    steps = [max(2, int(math.ceil(span[i] * resolution))) for i in range(2)]
-    xs = np.linspace(low[0], high[0], steps[0])
-    ys = np.linspace(low[1], high[1], steps[1])
-    grid_x, grid_y = np.meshgrid(xs, ys, indexing="ij")
-
-    covered = np.zeros(grid_x.shape, dtype=bool)
-    for (centre_x, centre_y), radius in zip(flat, radii):
-        covered |= (grid_x - centre_x) ** 2 + (grid_y - centre_y) ** 2 <= radius * radius
-    if not covered.any():
-        return 0.0, 0.0
-
-    cell = (xs[1] - xs[0]) * (ys[1] - ys[0])
-    area = float(covered.sum() * cell)
-
-    inside_x, inside_y = grid_x[covered], grid_y[covered]
-    centroid = (inside_x.mean(), inside_y.mean())
-    radius = float(
-        np.sqrt((inside_x - centroid[0]) ** 2 + (inside_y - centroid[1]) ** 2).max()
-    )
-    return area, radius
-
-
-def shape_descriptors(mol: Chem.Mol, conformer_id: int = -1) -> ShapeDescriptors:
-    """Volume, surface, and the projection extremes over the principal planes."""
+    if not radius_scale > 0:
+        raise ValueError(f"The radius scale must be positive, got {radius_scale!r}.")
     positions, radii = _positions_and_radii(mol, conformer_id)
     volume, disagreement = van_der_waals_volume(mol, conformer_id)
 
-    tight = rdMolDescriptors.DoubleCubicLatticeVolume(
-        mol, confId=conformer_id, probeRadius=0.0
-    )
-    # Recomputed with the probe on purpose, and named for what it is. This
-    # is the routine's DEFAULT behaviour, which is why the vdW call above
-    # has to pass probeRadius=0 explicitly.
+    # The solvent-accessible VOLUME is still the lattice routine's (probe on, named for what it is:
+    # that is its DEFAULT behaviour, which is why the vdW call above passes probeRadius=0). The
+    # SURFACES are `chem/sasa`'s, for the reason `van_der_waals_surface_area` gives.
     solvated = rdMolDescriptors.DoubleCubicLatticeVolume(
         mol, confId=conformer_id, probeRadius=_SOLVENT_PROBE
     )
 
     axes = _principal_axes(positions)
-    results = [_projection(positions, radii, axis) for axis in axes]
-    areas = [area for area, _radius in results]
-    extents = [radius for _area, radius in results]
+    scaled = radii * radius_scale
+    along_axes = [projection_at(positions, scaled, axis) for axis in axes]
+    extremes = projection_extremes(positions, scaled)
     # The drawing half, from the SAME arrays the numbers above came from.
     # `positions.mean` is the identical centring `_principal_axes` used,
     # so the drawn axes pass through the point the measurement pivoted on.
@@ -327,19 +287,25 @@ def shape_descriptors(mol: Chem.Mol, conformer_id: int = -1) -> ShapeDescriptors
             "centroid": tuple(float(v) for v in centroid),
             "principal_axes": tuple(tuple(float(v) for v in axis) for axis in axes),
             "axis_half_spans": tuple(float(np.abs(centred @ axis).max()) for axis in axes),
-            "projection_radii": tuple(float(radius) for _area, radius in results),
+            "projection_radii": tuple(float(shadow.radius) for shadow in along_axes),
         }
     else:
         spatial = {}
     return ShapeDescriptors(
         volume=volume,
-        surface_area=float(tight.GetSurfaceArea()),
+        surface_area=float(accessible_areas(positions, radii, 0.0).sum()),
         solvent_accessible_volume=float(solvated.GetVolume()),
-        solvent_accessible_surface_area=float(solvated.GetSurfaceArea()),
+        solvent_accessible_surface_area=float(accessible_areas(positions, radii, _SOLVENT_PROBE).sum()),
         volume_disagreement=disagreement,
-        min_projection_area=min(areas),
-        max_projection_area=max(areas),
-        min_projection_radius=min(extents),
-        max_projection_radius=max(extents),
+        min_projection_area=extremes.minimum.area,
+        max_projection_area=extremes.maximum.area,
+        min_projection_radius=extremes.minimum.radius,
+        max_projection_radius=extremes.maximum.radius,
+        min_projection_direction=extremes.minimum.direction,
+        max_projection_direction=extremes.maximum.direction,
+        min_projection_size=extremes.minimum.size,
+        max_projection_size=extremes.maximum.size,
+        orientations_searched=extremes.orientations,
+        radius_scale=float(radius_scale),
         **spatial,
     )

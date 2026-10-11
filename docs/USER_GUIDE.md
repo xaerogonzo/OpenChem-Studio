@@ -3004,11 +3004,31 @@ See [PLUGIN_SDK.md](PLUGIN_SDK.md) to write one.
   ab initio NMR is in the Quantum Chemistry panel.
 - **Shape and Geometry descriptors need a conformer.** They show a "needs a
   conformer" state with a button rather than silently reporting nothing.
-- **"Min/max projection area" is measured on the three principal planes**,
-  not searched over every orientation, so a molecule whose true narrowest
-  view lies off-axis reads a little high. Each of those facts says so in its
-  own tooltip, and the figures are exact for the case with a closed form —
-  a single atom's shadow comes out as πr² to within 0.13%.
+- **"Min/max projection area" is searched over every viewing direction.**
+  The area at each direction is exact (the union of the atoms' circles); which
+  direction is the extreme is found by sampling the sphere and refining the
+  best, and the fact says how many it looked at. Until 2026-10-10 it was
+  measured on the three principal planes and read a little high (benzene's
+  smallest shadow was 20.07 Å² there and is 18.75 Å² searched); a result saved
+  before that is kept beside the new one, labelled as the previous method.
+  The "radius" is the circle that encloses the shadow, and the "size" is the
+  molecule's extent along that view, surface to surface — ChemAxon defines
+  neither, so each fact states what it means here.
+- **Geometry takes options, and every one works on a copy.** Energy unit
+  (kcal/mol or kJ/mol — the same energy, converted); optimise before the MMFF94
+  energy and/or before the projections, at a chosen limit; use the lowest-energy
+  of several generated conformers (never the global minimum: the fact says how
+  many were tried, and a repeat gives the same answer); and a multiplier on the
+  van der Waals radii for the projections. The conformer on screen is never
+  moved, so the axes are drawn only when the numbers were measured on it.
+- **Molecular Surface Area (3D) takes a solvent radius and a pH.** The probe is
+  1.4 Å (water) by default. Asking for the major microspecies at a pH moves
+  protons on the stored conformer — every heavy atom stays where it was — and
+  the report says whether that changed the structure. It also reports the van
+  der Waals surface area. **Areas computed before 2026-10-10 were too small**
+  (ethanol 97 Å² against 199): the program gave every atom a radius of zero.
+  They are kept in a saved project, labelled withdrawn, and not shown as the
+  current result.
 - **Three force field energies are shown, and none of them is comparable
   to another.** MMFF94, UFF and Dreiding are three different scales. Use
   one of them to compare conformers of the same molecule; comparing
