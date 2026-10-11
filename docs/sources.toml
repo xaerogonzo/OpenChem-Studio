@@ -2163,6 +2163,51 @@ measured separately (see [source:tolman1977]).
 """
 
 [[source]]
+key = "batsanov2001"
+kind = "literature"
+citation = "S. S. Batsanov, 'Van der Waals Radii of Elements', Inorganic Materials 2001, 37(9), 871-885 (translated from Neorganicheskie Materialy 37(9), 1031-1046)."
+identifier_type = "doi"
+identifier = "10.1023/a:1011625728803"
+status = "reference_only"
+used_by = ["tests/test_vdw_radii_provenance.py", "docs/VDW_RADII_ASSESSMENT.md"]
+verification = "citation"
+verified_date = 2026-10-11
+reason = "It is not what the application implements. It is the table RDKit's van der Waals radii turned out to equal, which is why the surface and steric calculators' radii are not Bondi's (see docs/VDW_RADII_ASSESSMENT.md). Nothing here is built from it; a test holds RDKit's table equal to it so a dependency upgrade cannot change the radii unnoticed."
+note = """
+CHECKED: the paper's Table 9 ("System of the van der Waals radii of elements"; upper figures crystallographic, lower
+figures equilibrium) and Table 1 (the radii of Pauling, Bondi, Zefirov, Gavezzotti, Wiberg and Rowland side by side),
+read from the text layer of a publicly hosted copy, with title, author, journal, volume and pages matching
+Crossref's record (queried 2026-10-11). The crystallographic figures were compared by program with RDKit's
+`GetRvdw` for every element the table lists, 65 in all, and are equal in every case (fixture
+`tests/fixtures/vdw/batsanov2001_table9.csv`). Table 1's Bondi row repeats Bondi's own values: F 1.47, Cl 1.75,
+Br 1.85, I 1.98, O 1.52, S 1.80, N 1.55, C 1.70.
+
+NOT CHECKED: the paper's argument and the other nine tables; hydrogen is not in Table 9. The copy read is not
+Alex's own: his copy has not been supplied, so no `local` file is recorded. That RDKit's table IS Batsanov's is
+an identification by exact agreement, not something RDKit or the Blue Obelisk Data Repository says.
+"""
+
+[[source]]
+key = "mantina2009"
+kind = "literature"
+citation = "M. Mantina, A. C. Chamberlin, R. Valero, C. J. Cramer & D. G. Truhlar, 'Consistent van der Waals Radii for the Whole Main Group', J. Phys. Chem. A 2009, 113(19), 5806-5812."
+identifier_type = "doi"
+identifier = "10.1021/jp8111556"
+status = "reference_only"
+used_by = ["docs/VDW_RADII_ASSESSMENT.md"]
+verification = "citation"
+verified_date = 2026-10-11
+reason = "Cited for context: it is the source of the radii for the main-group elements Bondi did not cover, which the CRC Handbook adopts, and Open Babel's data file names it as its source. The application uses none of its values."
+note = """
+CHECKED: identity only. Title, authors, journal, volume, issue and pages match Crossref's record (queried
+2026-10-11) and the CRC Handbook's own reference [3] on its van der Waals radii page. That the radii were
+"designed to be compatible with Bondi's scale" and extend it from 28 of the 44 main-group elements to the rest is
+the Truhlar group's own description of the work, and the CRC Handbook says the same.
+
+NOT CHECKED: the paper itself, which has not been read.
+"""
+
+[[source]]
 key = "tosco2014"
 kind = "literature"
 citation = "P. Tosco, N. Stiefl & G. Landrum, 'Bringing the MMFF force field to the RDKit: implementation and validation', J. Cheminform. 2014, 6:37."

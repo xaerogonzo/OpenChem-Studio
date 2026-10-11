@@ -6,11 +6,13 @@ is documented in `tools/calculator_explainers.py`. Every claim is **published** 
 conformer per molecule, seed 7, unless it says otherwise).
 
 **A finding about the radii, recorded where it applies.** Wherever this application says "Bondi radii" it means
-RDKit's van der Waals table, and that table is **not** Bondi's recommended list: it matches for hydrogen (1.20),
-carbon (1.70) and sulfur (1.80) but gives nitrogen 1.60, oxygen 1.55, fluorine 1.50 and phosphorus 1.95 where
-Bondi's paper recommends 1.55, 1.52, 1.47 and 1.80 [source:bondi1964]. Measured on small molecules the effect on an
-area is at most about 2% (trifluoromethane +2.3% at probe 0; benzene, with only carbon and hydrogen, 0.0%). The
-explainers below say "RDKit's table" and leave the application's own labels untouched.
+RDKit's van der Waals table, and that table is **not** Bondi's recommended list. RDKit says only that its radii were
+taken from the Blue Obelisk Data Repository, which cites nothing; the values equal Batsanov's recommended
+crystallographic radii for all 65 elements his table lists [source:batsanov2001]. They match Bondi's for hydrogen
+(1.20), carbon (1.70) and sulfur (1.80) but give nitrogen 1.60, oxygen 1.55, fluorine 1.50 and phosphorus 1.95 where
+Bondi's paper recommends 1.55, 1.52, 1.47 and 1.80 [source:bondi1964]. The full investigation, with what the choice
+changes, is `docs/VDW_RADII_ASSESSMENT.md`. The explainers below say "RDKit's table" and leave the application's own
+labels untouched.
 
 ## atom_sasa
 
@@ -20,7 +22,7 @@ Gives each atom's **solvent-accessible surface area**: how much of its surface a
 ### How it works
 Each atom is a sphere of its van der Waals radius, and the accessible surface is traced by the **centre** of a probe sphere rolling over them, so each atom's accessible sphere has the radius of the atom plus the probe. The surface of that enlarged sphere is covered with test points, and the share of points that lie inside no other atom's enlarged sphere, times the sphere's area, is the atom's accessible area. This is the point-counting method of Shrake and Rupley, who used 92 nearly equally spaced test points per sphere and a solvent radius of 1.4 angstrom for proteins; it follows the idea of Lee and Richards, who described the molecule as solvated van der Waals spheres [source:shrake1973].
 
-Shipped: the same idea with a different point set, **2000 points per atom on a Fibonacci spiral**, which is the same every call so that a repeat run agrees exactly. Measured against a 200,000-point reference at a 1.4 angstrom probe, it is within about 0.3% (worst error over four molecules: 0.9% at 300 points, 0.4% at 960, 0.3% at 2000, 0.13% at 5000), and a lone atom is exact at any count. The radii are RDKit's table, which is not Bondi's recommended list (nitrogen 1.60 against 1.55, oxygen 1.55 against 1.52, fluorine 1.50 against 1.47, phosphorus 1.95 against 1.80; at most about 2% in an area) [source:bondi1964], and not the radii of the 1973 paper, which used Pauling's [source:shrake1973]. It needs a 3D conformer, and the probe can be set from 0 to 5 angstrom (at 0 it is the van der Waals surface itself).
+Shipped: the same idea with a different point set, **2000 points per atom on a Fibonacci spiral**, which is the same every call so that a repeat run agrees exactly. Measured against a 200,000-point reference at a 1.4 angstrom probe, it is within about 0.3% (worst error over four molecules: 0.9% at 300 points, 0.4% at 960, 0.3% at 2000, 0.13% at 5000), and a lone atom is exact at any count. The radii are RDKit's table, which is Batsanov's recommended crystallographic set and not Bondi's list (nitrogen 1.60 against 1.55, oxygen 1.55 against 1.52, fluorine 1.50 against 1.47, phosphorus 1.95 against 1.80; the effect on an area averages under 1% on a drug-like set, whereas the hydrogen radius alone, 1.20 here and 1.10 in the CRC Handbook, moves it 3 to 7%) [source:bondi1964] [source:batsanov2001], and not the radii of the 1973 paper, which used Pauling's [source:shrake1973]. It needs a 3D conformer, and the probe can be set from 0 to 5 angstrom (at 0 it is the van der Waals surface itself).
 
 ### What the result means
 One area per atom for **this conformer**, in square angstroms; the areas of all atoms add up to the molecule's accessible surface. An atom's exposure depends on every other atom, so it changes with the conformer, with the probe size and with whether hydrogens are present. Measured on ethanol at the 1.4 angstrom probe: oxygen 35.49, the methyl carbon 7.73 and the CH2 carbon 3.50, because the hydrogens bonded to a carbon shield it, and each hydrogen 22.85 to 27.61, summing to 197.71 for the molecule. A large value means an atom is reachable, not that it is polar or reactive.
@@ -34,6 +36,7 @@ solvent accessible surface area, SASA, Shrake-Rupley, probe radius
 ### Sources
 - [source:shrake1973] -- the point-counting method, the solvated-sphere picture and the 1.4 angstrom solvent radius
 - [source:bondi1964] -- Bondi's radii, against which RDKit's table was compared
+- [source:batsanov2001] -- the table RDKit's radii turned out to equal
 
 ## surface_analysis
 
@@ -41,7 +44,7 @@ solvent accessible surface area, SASA, Shrake-Rupley, probe radius
 Gives the **whole-molecule surface areas** of a 3D conformer, in square angstroms, with the splits chemists ask for: the solvent-accessible surface area (ASA), the part of it on positively and on negatively charged atoms (ASA+ and ASA-), the part on hydrophobic and on polar atoms (ASA_H and ASA_P), and the van der Waals surface area and volume. It can be taken for the molecule as it is or for the form that predominates at a pH.
 
 ### How it works
-The accessible surface is computed per atom exactly as in Accessible Surface Area (per atom), so the whole-molecule figures are sums of the same numbers; that is why the four splits cost nothing extra. The splits are rules over those per-atom values. **ASA+ and ASA-** add the atoms whose Gasteiger partial charge is above or below zero, with the charges taken from the same PEOE method as in Partial Charge (pH-dependent) and computed on a copy of the conformer [source:gasteiger1980]. **ASA_P** adds nitrogen, oxygen and fluorine atoms and the hydrogens bonded to them, the atoms that take part in hydrogen bonds, and **ASA_H is everything else**, so a sulfur or a chlorine counts as hydrophobic. The **van der Waals surface** is the surface of the fused atom spheres with no probe, and the **van der Waals volume** is the volume inside them, computed analytically and checked against a grid routine; at a probe of 0 the accessible area equals the van der Waals surface. The radii are RDKit's table, which is not Bondi's recommended list (nitrogen 1.60 against 1.55, oxygen 1.55 against 1.52, fluorine 1.50 against 1.47, phosphorus 1.95 against 1.80; at most about 2% in an area) [source:bondi1964].
+The accessible surface is computed per atom exactly as in Accessible Surface Area (per atom), so the whole-molecule figures are sums of the same numbers; that is why the four splits cost nothing extra. The splits are rules over those per-atom values. **ASA+ and ASA-** add the atoms whose Gasteiger partial charge is above or below zero, with the charges taken from the same PEOE method as in Partial Charge (pH-dependent) and computed on a copy of the conformer [source:gasteiger1980]. **ASA_P** adds nitrogen, oxygen and fluorine atoms and the hydrogens bonded to them, the atoms that take part in hydrogen bonds, and **ASA_H is everything else**, so a sulfur or a chlorine counts as hydrophobic. The **van der Waals surface** is the surface of the fused atom spheres with no probe, and the **van der Waals volume** is the volume inside them, computed analytically and checked against a grid routine; at a probe of 0 the accessible area equals the van der Waals surface. The radii are RDKit's table, which is Batsanov's recommended crystallographic set and not Bondi's list (nitrogen 1.60 against 1.55, oxygen 1.55 against 1.52, fluorine 1.50 against 1.47, phosphorus 1.95 against 1.80; the effect on an area averages under 1% on a drug-like set, whereas the hydrogen radius alone, 1.20 here and 1.10 in the CRC Handbook, moves it 3 to 7%) [source:bondi1964] [source:batsanov2001].
 
 Shipped: the probe radius and the pH option. With the pH option, the structure is the stored conformer with **only protons moved**: every heavy atom keeps its coordinates and only a hydrogen the new state adds is placed, and a structure for which that cannot be done is refused with the reason, never a surface of a different molecule.
 
@@ -58,6 +61,7 @@ molecular surface area, ASA, van der Waals surface, polar surface
 - [source:shrake1973] -- the point-counting method the accessible area is computed by
 - [source:bondi1964] -- Bondi's radii and van der Waals volume, against which RDKit's table was compared
 - [source:gasteiger1980] -- the PEOE charges whose sign splits ASA+ from ASA-
+- [source:batsanov2001] -- the table RDKit's radii turned out to equal
 
 ## steric_analysis
 
@@ -67,7 +71,7 @@ Measures how much room a ligand takes up around a metal, by two established meas
 ### How it works
 **Exact cone angle.** Tolman defined the cone angle as the apex angle of a cone centred 2.28 angstrom from the phosphorus atom that just touches the van der Waals radii of the outermost atoms of a space-filling model, with the substituents folded back to give the smallest cone [source:tolman1977]. That needs a physical model, a fixed bond length and a judgement about how substituents fold. Bilbrey and co-workers made it a well-posed geometry problem: the exact cone angle is the apex angle of the **most acute right circular cone, with its apex at the metal, that contains the entire ligand** [source:bilbrey2013]. Shipped: that, solved numerically, with the cone's axis solved for and not assumed to lie along the metal-donor bond; the donor's distance from the metal is an option, default 2.28 angstrom [source:tolman1977]. Measured: PEt3's tightest cone is 146 degrees, against 171 along the bond.
 
-**Percent buried volume.** The share of the volume of a sphere around the metal that the ligand occupies. Poater, Cavallo and co-workers defined it for N-heterocyclic carbene ligands [source:poater2009], and Clavier and Nolan applied it to phosphines as well as carbenes [source:clavier2010]. Shipped with the conventions both papers give for SambVca: a sphere of radius 3.5 angstrom, atomic radii scaled by 1.17, and hydrogen atoms omitted [source:poater2009] [source:clavier2010]; the volume is counted on a grid. The radii here are RDKit's table scaled by 1.17, where the papers scale Bondi's own list (RDKit's differs for nitrogen, oxygen, fluorine and phosphorus [source:bondi1964]), so a value can differ slightly from one computed with SambVca.
+**Percent buried volume.** The share of the volume of a sphere around the metal that the ligand occupies. Poater, Cavallo and co-workers defined it for N-heterocyclic carbene ligands [source:poater2009], and Clavier and Nolan applied it to phosphines as well as carbenes [source:clavier2010]. Shipped with the conventions both papers give for SambVca: a sphere of radius 3.5 angstrom, atomic radii scaled by 1.17, and hydrogen atoms omitted [source:poater2009] [source:clavier2010]; the volume is counted on a grid. The radii here are RDKit's table scaled by 1.17, where the papers scale Bondi's own list (RDKit's differs for nitrogen, oxygen, fluorine and phosphorus [source:bondi1964]), and for the buried volume that matters: RDKit's phosphorus radius is 1.95 against Bondi's 1.80, so the ligand's own phosphorus sphere is larger than SambVca's. Measured with Bondi's list substituted, PH3 falls from 21.3 to 17.7 percent and PMe3 from 24.4 to 22.4; against Clavier and Nolan's published values for PMe3, PEt3, PPh3 and PCy3 at 2.28 angstrom (22.2, 27.8, 29.6, 31.8) [source:clavier2010] the mean absolute error is 1.8 points with RDKit's table and 0.8 with Bondi's. The exact cone angle does not change, because hydrogen and carbon, which agree, set it. Which table to use is an open decision (`docs/VDW_RADII_ASSESSMENT.md`).
 
 **The geometry.** The ligand is taken from a set of conformers embedded and minimised with MMFF94 (default 20), and the result is reported across them.
 
@@ -86,3 +90,4 @@ cone angle, percent buried volume, ligand steric bulk, Tolman
 - [source:poater2009] -- the buried volume and its SambVca conventions
 - [source:clavier2010] -- the buried volume for phosphines and the cone-angle relationship
 - [source:bondi1964] -- Bondi's recommended radii, which the buried-volume papers scale and RDKit's table departs from
+- [source:batsanov2001] -- the table RDKit's radii turned out to equal

@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: fecfafecef195eb14c12a1a5b9b54334bb0f7836ced912c6b93c9a98a198145c -->
+<!-- SOURCE SHA256: d653c25e7d7991a11f10bfaa73072170dc5a151bd1d0899a69b66c8895b856b8 -->
 
 # Sources
 
@@ -105,6 +105,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`balabin2009`](#balabin2009) | literature | reference only | citation + claim |
 | [`ballester2010`](#ballester2010) | literature | **not shipped** | citation |
 | [`barone2023`](#barone2023) | literature | reference only | citation |
+| [`batsanov2001`](#batsanov2001) | literature | reference only | citation |
 | [`belova2014`](#belova2014) | literature | shipped | citation + claim |
 | [`bento2020`](#bento2020) | literature | shipped | citation + claim |
 | [`bertz1981`](#bertz1981) | literature | shipped | citation |
@@ -201,6 +202,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`lorentzon1995`](#lorentzon1995) | literature | reference only | citation + claim |
 | [`lovering2009`](#lovering2009) | literature | shipped | citation |
 | [`mann1947`](#mann1947) | literature | shipped | citation + claim |
+| [`mantina2009`](#mantina2009) | literature | reference only | citation |
 | [`marsili1980`](#marsili1980) | literature | shipped | citation + claim |
 | [`mathieu2007`](#mathieu2007) | literature | reference only | citation + claim |
 | [`mayer1975`](#mayer1975) | literature | reference only | citation |
@@ -2104,6 +2106,57 @@ angle and the buried volume are linearly related for phosphines (R2 = 0.96 at 2.
 
 NOT CHECKED: the review's tables for individual ligands. The application's own correlation with Tolman's angles is
 measured separately (see [source:tolman1977]).
+
+### batsanov2001
+
+<a id="batsanov2001"></a>
+
+> S. S. Batsanov, 'Van der Waals Radii of Elements', Inorganic Materials 2001, 37(9), 871-885 (translated from Neorganicheskie Materialy 37(9), 1031-1046).
+
+| | |
+| --- | --- |
+| Identifier | [10.1023/a:1011625728803](https://doi.org/10.1023/a:1011625728803) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-11 |
+| Used by | `tests/test_vdw_radii_provenance.py`, `docs/VDW_RADII_ASSESSMENT.md` |
+
+**Why it is reference only.** It is not what the application implements. It is the table RDKit's van der Waals radii turned out to equal, which is why the surface and steric calculators' radii are not Bondi's (see docs/VDW_RADII_ASSESSMENT.md). Nothing here is built from it; a test holds RDKit's table equal to it so a dependency upgrade cannot change the radii unnoticed.
+
+CHECKED: the paper's Table 9 ("System of the van der Waals radii of elements"; upper figures crystallographic, lower
+figures equilibrium) and Table 1 (the radii of Pauling, Bondi, Zefirov, Gavezzotti, Wiberg and Rowland side by side),
+read from the text layer of a publicly hosted copy, with title, author, journal, volume and pages matching
+Crossref's record (queried 2026-10-11). The crystallographic figures were compared by program with RDKit's
+`GetRvdw` for every element the table lists, 65 in all, and are equal in every case (fixture
+`tests/fixtures/vdw/batsanov2001_table9.csv`). Table 1's Bondi row repeats Bondi's own values: F 1.47, Cl 1.75,
+Br 1.85, I 1.98, O 1.52, S 1.80, N 1.55, C 1.70.
+
+NOT CHECKED: the paper's argument and the other nine tables; hydrogen is not in Table 9. The copy read is not
+Alex's own: his copy has not been supplied, so no `local` file is recorded. That RDKit's table IS Batsanov's is
+an identification by exact agreement, not something RDKit or the Blue Obelisk Data Repository says.
+
+### mantina2009
+
+<a id="mantina2009"></a>
+
+> M. Mantina, A. C. Chamberlin, R. Valero, C. J. Cramer & D. G. Truhlar, 'Consistent van der Waals Radii for the Whole Main Group', J. Phys. Chem. A 2009, 113(19), 5806-5812.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jp8111556](https://doi.org/10.1021/jp8111556) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-11 |
+| Used by | `docs/VDW_RADII_ASSESSMENT.md` |
+
+**Why it is reference only.** Cited for context: it is the source of the radii for the main-group elements Bondi did not cover, which the CRC Handbook adopts, and Open Babel's data file names it as its source. The application uses none of its values.
+
+CHECKED: identity only. Title, authors, journal, volume, issue and pages match Crossref's record (queried
+2026-10-11) and the CRC Handbook's own reference [3] on its van der Waals radii page. That the radii were
+"designed to be compatible with Bondi's scale" and extend it from 28 of the 44 main-group elements to the rest is
+the Truhlar group's own description of the work, and the CRC Handbook says the same.
+
+NOT CHECKED: the paper itself, which has not been read.
 
 ### tosco2014
 
