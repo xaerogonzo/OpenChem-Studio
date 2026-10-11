@@ -14,10 +14,11 @@ parent), and the two neighbouring criteria this one must not be mistaken for (do
 from __future__ import annotations
 
 import pytest
-from rdkit import Chem, rdBase
+from rdkit import Chem
 
 from openchem.chem.naming_providers import opsin_available
 from openchem.vendor.iupac_namer import name_smiles
+from tests.naming_spellings import checked_spellings
 
 needs_opsin = pytest.mark.skipif(not opsin_available(), reason="needs the managed JRE and py2opsin")
 
@@ -48,15 +49,7 @@ UNCHANGED = [
 
 def _spellings(smiles: str, count: int = SPELLINGS) -> list[str]:
     """Random roots and atom orders of one structure, each checked to BE that structure."""
-    mol = Chem.MolFromSmiles(smiles)
-    key = Chem.MolToInchiKey(mol)
-    rdBase.SeedRandomNumberGenerator(SEED)
-    out = [smiles]
-    for _ in range(count):
-        spelling = Chem.MolToSmiles(mol, doRandom=True)
-        assert Chem.MolToInchiKey(Chem.MolFromSmiles(spelling)) == key, spelling
-        out.append(spelling)
-    return out
+    return checked_spellings(smiles, count, SEED)
 
 
 def _names(smiles: str) -> set[str]:

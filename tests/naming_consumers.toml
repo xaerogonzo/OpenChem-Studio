@@ -147,6 +147,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_hydroxamic_prefix.py"
+why = "a hydroxamic acid that is not the principal group keeps its carbon count and its N-substituent (D-211): 3-[hydroxy(methyl)amino]-3-oxopropanoic acid, 2-[hydroxy(methyl)carbamoyl]benzoic acid, instead of a bare hydroxycarbamoyl prefix"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_bridgehead_iminium.py"
 why = "a fused ring system with a bridgehead N+ in a double bond is named (D-210): quinolizin-5-ium, the tetrahydro- and octahydro- cations, the bicyclic amidiniums drawn with the charge on the bridgehead, instead of a NAMING ERROR; a quaternary bridgehead ammonium keeps its old name"
 scope = "core"
@@ -317,6 +323,12 @@ owner = "benchmarks"
 [[consumer]]
 file = "tests/test_naming_census_scan.py"
 why = "the census scan tool: its classes, its refusal to scan a sample that does not match its meta hash, and the report"
+scope = "benchmark"
+owner = "benchmarks"
+
+[[consumer]]
+file = "tests/test_naming_variants_tool.py"
+why = "the variant generator and atom-order diagnostic (tools/naming_variants.py): the ported operators, the frozen-structure refusal, and that random spellings reach the namer as written"
 scope = "benchmark"
 owner = "benchmarks"
 

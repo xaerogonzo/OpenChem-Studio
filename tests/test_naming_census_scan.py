@@ -106,3 +106,83 @@ def test_naming_rows_leaves_logging_and_rdkit_as_it_found_them():
     before = (logging.root.manager.disable, rdBase.LogStatus())
     scan.name_rows([{"label": "r1", "smiles": "CCO"}])
     assert (logging.root.manager.disable, rdBase.LogStatus()) == before
+
+
+# ---------------------------------------------------------------------------
+# delta: what a wrong-molecule read-back lost or changed (a pure function of the two structures)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize(
+    ("smiles", "back", "labels"),
+    [
+        # each label alone, on a fixture built to show only it (the charge labels have their own tests below) (the charge labels have their own tests below)
+        ("CCN", "CC", ("heteroatom_dropped:N",)),
+        ("CC", "CCO", ("heteroatom_gained:O",)),
+        ("C1CCCCC1", "CCCCCC", ("ring_atom_count_changed",)),
+        ("Cc1ccccc1C", "Cc1cccc(C)c1", ("same_formula_connectivity_change",)),
+        ("CCCC", "CC(C)C", ("same_formula_connectivity_change",)),
+        # a swap is a drop AND a gain, never "no heteroatom change"
+        ("CCN", "CCO", ("heteroatom_dropped:N", "heteroatom_gained:O")),
+        # the fallback: formulas differ by hydrogens only, nothing else moved
+        ("CCCC", "CCC", ("other_formula_change",)),
+    ],
+)
+def test_delta_names_what_the_read_back_changed(smiles, back, labels):
+    assert scan.delta(smiles, back) == labels
+
+
+def test_a_lost_charge_is_the_first_label_whatever_else_changed():
+    got = scan.delta("C[NH3+]", "CO")
+    assert got[0] == "charge_lost"
+    assert "heteroatom_dropped:N" in got and "heteroatom_gained:O" in got
+
+
+def test_a_changed_charge_is_not_a_lost_one():
+    assert scan.delta("C[NH3+]", "[O-]C")[0] == "charge_changed"
+    # charge on both sides, but a different total: also a change, not a loss
+    assert scan.delta("C[N+](C)(C)C", "C[N+](C)(C)[O-]")[0] == "charge_changed"
+
+
+def test_an_empty_or_unreadable_read_back_gets_the_fallback_not_an_exception():
+    assert scan.delta("CCO", "") == ("other_formula_change",)
+    assert scan.delta("CCO", None) == ("other_formula_change",)
+    assert scan.delta("CCO", "this is not smiles(") == ("other_formula_change",)
+
+
+def test_two_different_defects_do_not_collapse_to_one_delta():
+    """A constant classifier would pass every test above that only has one fixture."""
+    assert scan.delta("CCN", "CC") != scan.delta("CC", "CCO") != scan.delta("C1CCCCC1", "CCCCCC")
+
+
+def test_scan_adds_delta_to_mismatch_rows_only(monkeypatch):
+    named = {
+        "ok": {"smiles": "CCO", "name": "ethanol"},
+        "bad": {"smiles": "CCN", "name": "ethane"},
+    }
+    monkeypatch.setattr(scan, "name_rows", lambda rows: named)
+    monkeypatch.setattr(scan, "read_back", lambda names: ["CCO", "CC"])
+    records = scan.scan([{"label": "ok", "smiles": "CCO"}, {"label": "bad", "smiles": "CCN"}])
+    assert "delta" not in records["ok"]
+    assert records["bad"]["cls"] == "mismatch_formula" and records["bad"]["delta"] == ["heteroatom_dropped:N"]
+
+
+def test_the_summary_groups_wrong_molecules_by_delta_and_buckets_old_records():
+    recs = {
+        "a": {"smiles": "CCN", "name": "x", "cls": "mismatch_formula", "delta": ["heteroatom_dropped:N"]},
+        "b": {"smiles": "CCN", "name": "x", "cls": "mismatch_formula", "delta": ["heteroatom_dropped:N"]},
+        "c": {"smiles": "CCC", "name": "x", "cls": "mismatch_same_formula", "delta": ["same_formula_connectivity_change"]},
+        "d": {"smiles": "CCC", "name": "x", "cls": "mismatch_formula"},  # scanned before `delta` existed
+        "e": {"smiles": "C", "name": "methane", "cls": "exact"},
+    }
+    text = "\n".join(scan.summarise(recs))
+    assert "2  heteroatom_dropped:N" in text
+    assert "1  same_formula_connectivity_change" in text
+    assert f"1  {scan.LEGACY_DELTA}" in text
+
+
+def test_a_scan_without_deltas_still_compares_and_summarises():
+    """The r12-r14 per-row files predate `delta`."""
+    old = {"a": {"smiles": "C", "name": "n1", "cls": "mismatch_formula"}}
+    new = {"a": {"smiles": "C", "name": "n2", "cls": "mismatch_formula", "delta": ["other_formula_change"]}}
+    assert "0 rows changed class; 1 rows changed name" in "\n".join(scan.compare(old, new))
+    assert scan.LEGACY_DELTA in "\n".join(scan.summarise(old))
