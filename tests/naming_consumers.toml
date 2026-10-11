@@ -321,6 +321,12 @@ scope = "benchmark"
 owner = "benchmarks"
 
 [[consumer]]
+file = "tests/test_naming_fresh_population.py"
+why = "the fresh frozen sample's draw (tools/naming_fresh_draw.py): its selection run offline, the 429 handling that its first version lacked, and the --only door that scores one frozen population"
+scope = "benchmark"
+owner = "benchmarks"
+
+[[consumer]]
 file = "tests/test_naming_census_scan.py"
 why = "the census scan tool: its classes, its refusal to scan a sample that does not match its meta hash, and the report"
 scope = "benchmark"
