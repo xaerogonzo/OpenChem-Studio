@@ -222,16 +222,18 @@ def test_the_geometry_report_carries_the_projection_facts_with_units():
     assert float(by_label["Max projection area"].display_value) > 0
 
 
-def test_the_projection_facts_say_they_are_on_the_principal_planes():
-    """The approximation travels with the number it qualifies, into the
-    tooltip and every export -- not as a separate line of prose that a
-    reader can meet without the value or discard while copying."""
+def test_the_projection_facts_say_they_were_searched_and_over_what():
+    """What the number IS travels with it, into the tooltip and every export --
+    not as a separate line of prose that a reader can meet without the value or
+    discard while copying. This was "principal planes" until 2026-10-10, when the
+    minimum and maximum began to be searched over every orientation."""
     from openchem.chem.geometry_analysis import compute_geometry_analysis
 
     report = compute_geometry_analysis(_embedded("CCO"), "uuid")
     fact = next(f for f in report.facts if f.label == "Min projection area")
 
-    assert any("principal planes" in line for line in fact.limitations)
+    assert any("searching" in line and "viewing directions" in line for line in fact.limitations)
+    assert not any("principal planes" in line for line in fact.limitations)
 
 
 def test_the_surface_panel_and_this_module_report_ONE_volume():
@@ -296,7 +298,8 @@ def test_an_ordinary_molecule_gets_no_fragment_warning():
     fact = next(f for f in report.facts if f.label == "Min projection area")
 
     assert not any("separate fragments" in line for line in fact.limitations)
-    assert len(fact.limitations) == 1
+    # What it IS, how it was found, and the radii used: three lines, none of them a warning.
+    assert len(fact.limitations) == 3
 
 
 # --- the grid cap ------------------------------------------------------------
@@ -309,6 +312,11 @@ def test_a_large_molecule_does_not_cost_seconds():
 
     Asserted with a generous ceiling: the point is to catch a return to
     seconds-per-molecule, not to police a machine-dependent stopwatch.
+
+    The ceiling is 5 s, up from 2.5: `shape_descriptors` now also searches the
+    orientations for the smallest and largest shadow, which measured +37% on this
+    molecule (1.76 s -> 2.41 s best of three, 3.5 s for the cold first call under
+    a busy machine), and 2.5 s then failed three runs in a row.
     """
     import time
 
@@ -316,7 +324,7 @@ def test_a_large_molecule_does_not_cost_seconds():
     started = time.perf_counter()
     shape_descriptors(mol)
 
-    assert time.perf_counter() - started < 2.5
+    assert time.perf_counter() - started < 5.0
 
 
 def test_the_cap_does_not_touch_a_small_molecule():

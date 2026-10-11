@@ -30,6 +30,7 @@ from openchem.chem.mass_spectrum import (
     compute_mass_spectrum,
 )
 from openchem.chem.geometry_analysis import compute_geometry_analysis
+from openchem.chem.geometry_options import geometry_parameters
 from openchem.chem.geometry_charges import (
     EEM_BULTINCK2002_PART1,
     GEOMETRY_CHARGE_METHOD_LABELS,
@@ -134,7 +135,12 @@ from openchem.chem.structure_annotation import (
     compute_stereocenters,
 )
 from openchem.chem.substructure import COMMON_PATTERNS, compute_substructure_search
-from openchem.chem.surface_analysis import compute_sasa_dataset, compute_surface_analysis
+from openchem.chem.surface_analysis import (
+    compute_sasa_dataset,
+    compute_surface_analysis,
+    solvent_radius_parameter,
+    surface_parameters,
+)
 from openchem.chem.substance import compute_substance_analysis
 from openchem.chem.tsei import compute_tsei_projection
 from openchem.chem.topology_analysis import (
@@ -2515,19 +2521,24 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         display_name="Geometry",
         category="geometry",
         description=(
-            "3D extent (min/max/mean radius from the centroid), projection area and "
-            "radius on the principal planes, and the force field energy of the current "
-            "conformer in MMFF94, UFF and Dreiding. The three are on different scales "
-            "and are never comparable with each other -- compare one of them across "
-            "conformers of the same molecule. Dreiding is implemented here from the "
-            "original paper and reproduces all eight rotational barriers that paper "
-            "publishes; it omits charges and hydrogen bonds, as the paper's own "
-            "reported results do. Needs a conformer."
+            "3D extent (min/max/mean radius from the centroid); the smallest and largest "
+            "shadow the molecule casts over ALL viewing directions, with the radius of the "
+            "circle round each and the size of the molecule along it; and the force field "
+            "energy of the conformer in MMFF94, UFF and Dreiding, in kcal/mol or kJ/mol. "
+            "The three energies are on different scales and are never comparable with each "
+            "other -- compare one of them across conformers of the same molecule. Dreiding "
+            "is implemented here from the original paper and reproduces all eight "
+            "rotational barriers that paper publishes; it omits charges and hydrogen bonds, "
+            "as the paper's own reported results do. Options can relax a COPY of the "
+            "geometry before the MMFF94 energy or the shadow, or use the lowest-energy of "
+            "several generated conformers (the lowest of those tried, never the global "
+            "minimum). Needs a conformer unless a conformer is to be generated."
         ),
         execution=RegistryExecution(compute=compute_geometry_analysis),
-        tags=["geometry", "3d", "energy"],
+        tags=["geometry", "3d", "energy", "projection", "dreiding", "mmff94"],
         parameters=[
             decimal_places_parameter(),
+            *geometry_parameters(),
         ],
     ),
     CalculatorDefinition(
@@ -2538,12 +2549,16 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         category="surface",
         description=(
             "Solvent-accessible surface area with Marvin's ASA+/ASA-/ASA_H/ASA_P splits, "
-            "plus van der Waals volume. Needs a conformer."
+            "plus the van der Waals surface area and volume. The solvent probe's radius can "
+            "be changed (1.4 A, a water molecule, by default), and the structure can be the "
+            "major microspecies at a pH, built on the stored conformer by moving protons "
+            "only. Needs a conformer."
         ),
         execution=RegistryExecution(compute=compute_surface_analysis),
-        tags=["surface", "3d", "solvent"],
+        tags=["surface", "3d", "solvent", "ph", "microspecies", "vdw"],
         parameters=[
             decimal_places_parameter(),
+            *surface_parameters(),
         ],
     ),
     CalculatorDefinition(
@@ -2552,11 +2567,12 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         calculation_input=GEOMETRY,
         display_name="Accessible Surface Area (per atom)",
         category="surface",
-        description="Per-atom solvent-accessible surface -- which atoms are actually exposed. Needs a conformer.",
+        description="Per-atom solvent-accessible surface -- which atoms are actually exposed, for a solvent probe of a chosen radius. Needs a conformer.",
         execution=RegistryExecution(compute=compute_sasa_dataset),
         tags=["surface", "3d", "per-atom"],
         parameters=[
             decimal_places_parameter(),
+            solvent_radius_parameter(),
         ],
     ),
     CalculatorDefinition(
