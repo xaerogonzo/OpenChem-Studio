@@ -15682,8 +15682,19 @@ class SubstitutivePath:
                 and not attachment_at_subordinate_hetero
             ):
                 attachment_atom = free_valence.attachment_atoms_in_fragment[0]
-                filtered = [
+                # D-216: "the attachment is locant 1" ranks BELOW the heteroatom locants (P-31.1.4.2.2). A ring walk that puts the attachment at 1 but the
+                # heteroatoms at {1,2,5} is no numbering of 1,2,4-triazine, and the name that cited it ("4,6-dioxo-5,6-dihydro-1,2,4-triazin-1(4H)-yl")
+                # described no ring OPSIN can build. Only the walks that tie on the heteroatom rule are candidates for the shortcut.
+                _hetero_ring = [
                     nb for nb in ring_numberings
+                ]
+                if (named_parent.candidate.ring_system is not None
+                        and len(named_parent.candidate.ring_system.rings) == 1):
+                    _hetero_ring = list(_lowest_free_valence_numberings(
+                        ring_numberings, named_parent, mol, (attachment_atom,), only_heteroatoms=True,
+                    )) or _hetero_ring
+                filtered = [
+                    nb for nb in _hetero_ring
                     if nb.atom_to_locant.get(attachment_atom, object()) == Locant.numeric(1)
                 ]
                 if filtered:
@@ -19676,8 +19687,11 @@ def _lowest_free_valence_numberings(
     named_parent,
     mol,
     attachment_atoms,
+    only_heteroatoms: bool = False,
 ) -> tuple:
     """The ring numberings a heterocyclyl SUBSTITUENT may use (P-31.1.4).
+
+    `only_heteroatoms` stops after the heteroatom rule and returns every numbering that ties on it, free valence unscored.
 
     Heteroatoms first (P-31.1.4.2.2: lowest locants to all heteroatoms
     together, then in the order O, S, Se, Te, N, ...), then the free
@@ -19751,6 +19765,8 @@ def _lowest_free_valence_numberings(
         return numberings
     best_hetero = min(hetero_key(nb) for nb in numberings)
     hetero_best = [nb for nb in numberings if hetero_key(nb) == best_hetero]
+    if only_heteroatoms:
+        return tuple(hetero_best)
     best_fv = min(free_valence_key(nb) for nb in hetero_best)
     chosen = tuple(nb for nb in hetero_best if free_valence_key(nb) == best_fv)
     return chosen or numberings

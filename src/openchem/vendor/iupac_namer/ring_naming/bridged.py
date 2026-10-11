@@ -1158,9 +1158,11 @@ def name_bridged(
                 name_str = carbocycle_name
                 stem = carbocycle_stem
         else:
+            # D-215: without a numbering the heteroatoms have no locants, and the CARBOCYCLE name stood in for the ring: a spiro join of a
+            # bicycle and a heterocycle was written "tricyclo[5.4.2.1]undecane" with every N and O gone, and outranked the spiro name that
+            # was also offered. A name that cannot cite its heteroatoms is not offered.
             logger.debug("Could not compute VB numbering for %s", ring_system)
-            name_str = carbocycle_name
-            stem = carbocycle_stem
+            return []
     else:
         name_str = carbocycle_name
         stem = carbocycle_stem

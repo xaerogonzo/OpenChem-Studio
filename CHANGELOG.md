@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: ring systems keep their heteroatoms, numbering, hydrogen and name
+- A spiro heterocycle on a bridged ring was `tricyclo[...]undecane-1,3-dione` (every N gone), an N-attached triazinedione was numbered as a ring OPSIN cannot build, a spiro partner lost an azole N-H, a tricycle of three monocycles had no name, and a protonated or iminium N in a fused 4-ring was a NAMING ERROR (D-215 .. D-219). Census 1968 -> 1978 exact, visible failures 4 -> 0; fresh_v1 1950 -> 1951 of 2000 read back after its one re-score (97.55%).
+
 ### Naming: an acyl imine keeps its C=N, an N-ylidene amidine its double bond, an aminooxy group its parent once
 - `O=C1CCCCC1=NC(C)=O` was `2-acetamidocyclohexan-1-one` (the C=N dropped), `CNOCC(=O)O` was `[(carboxymethoxy)(methyl)amino]acetic acid` (the parent written twice, a carboxylate refused), and a carbamimidoyl on an N-ylidene nitrogen lost its double bond. All three read back to their molecule now (D-212, D-213, D-214). Census 1968 -> 1972 exact; wrong-molecule rows 6 -> 3, all OPSIN charge misreads. The frozen sets are unchanged by the fix (blind check), so none was re-scored.
 - `naming_stage_artifact.py --frozen-impact` takes a comma-separated list of stages, since fresh_v1 is sealed at its own.
