@@ -669,6 +669,7 @@
   "tests/test_hose_codes.py": 0,
   "tests/test_identifiers.py": 1,
   "tests/test_input_snapshot.py": 1,
+  "tests/test_interaction_analysis_rules.py": 2,
   "tests/test_interactions_panel.py": 1,
   "tests/test_io_backends.py": 0,
   "tests/test_ionescu_charges.py": 0,

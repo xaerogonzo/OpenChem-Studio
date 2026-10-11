@@ -82,6 +82,14 @@ SURFACE_METHOD = "surface-v2"
 #: computed with RDKit's radii and is kept beside the new one, labelled, never replayed as it.
 STERIC_METHOD = "steric-v2"
 
+#: The method Interaction Analysis is computed by today (`chem/interaction_analysis.py`). v2 (2026-10-11) stops
+#: reading a nitro group (or any charge-separated drawing of a neutral group) as a cation or anion, requires a
+#: hydrogen bond to have a donor, keeps two directly or singly linked aromatic rings from counting as stacked, counts
+#: divalent sulfur as a metal donor, and gives a hydrophobic contact a lower bound at the van der Waals contact.
+#: A saved result without a method listed nitrobenzene's nitro nitrogen as a cation at 2.86 A from its own ring, and
+#: biphenyl's two joined rings as stacked; it is kept beside the new one, labelled, never replayed as it.
+INTERACTION_METHOD = "interactions-v2"
+
 #: Result ids whose METHOD is part of their stored identity, and the method
 #: a result computed today is by. Only these carry a `method_version`, so no
 #: other result's identity (or saved project) changes.
@@ -91,6 +99,7 @@ CURRENT_METHOD_VERSIONS: dict[str, str] = {
     "surface_analysis": SURFACE_METHOD,
     "atom_sasa": SURFACE_METHOD,
     "steric_analysis": STERIC_METHOD,
+    "interaction_analysis": INTERACTION_METHOD,
 }
 
 #: What a saved entry WITHOUT a `method_version` was computed by -- the rule
@@ -111,6 +120,11 @@ LEGACY_METHOD_VERSIONS: dict[str, tuple[str, str]] = {
     "steric_analysis": (
         "legacy-rdkit-radii-v1",
         "Ligand Steric Bulk (previous method: RDKit's radii, percent buried volume a few points high for small phosphines)",
+    ),
+    "interaction_analysis": (
+        "legacy-contact-rules-v1",
+        "Interaction Analysis (previous method: nitro groups read as cations, acceptor pairs as hydrogen bonds, "
+        "joined rings as stacked)",
     ),
 }
 

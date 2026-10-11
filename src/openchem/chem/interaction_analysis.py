@@ -31,6 +31,7 @@ from openchem.chem.pose_analysis import (
     CLASH_TOLERANCE,
     HBOND_DISTANCE_CUTOFF,
     HYDROPHOBIC_CUTOFF,
+    METAL_COORDINATION_CUTOFF,
     PI_STACKING_CUTOFF,
     SALT_BRIDGE_CUTOFF,
     _DEFAULT_VDW_RADIUS,
@@ -40,6 +41,7 @@ from openchem.chem.pose_analysis import (
 )
 from openchem.chem.calculator_options import decimals
 from openchem.domain.common import CacheState, Provenance
+from openchem.domain.result_store import INTERACTION_METHOD
 from openchem.domain.report import ReportResult
 from openchem.chem.report_adapter import report_from_fields
 
@@ -70,6 +72,12 @@ from openchem.chem.report_adapter import report_from_fields
 MIN_SEPARATION = {
     "hydrogen_bonds": 3,
     "metal_coordination": 3,
+    # BETWEEN THE NEAREST ATOMS OF TWO RINGS (`_ring_separation`), not of one pair. Two rings joined directly
+    # (biphenyl: 1 bond) or through one atom (diphenylmethane: 2) cannot lie face to face: the two ring atoms the link
+    # joins are 1.5 to about 2.5 A apart, so parallel planes could be no further apart than that, and a stack needs
+    # roughly 3.4 to 3.8. Two linking atoms (bibenzyl: 3) can fold over, and do. A bond-length argument, not a fitted
+    # value; the existing conformer test pins that bibenzyl still stacks.
+    "pi_stacking": 3,
     "salt_bridges": 4,
     "hydrophobic": 4,
     "clashes": 4,
@@ -98,10 +106,59 @@ def _aromatic_rings(mol: Chem.Mol) -> list[tuple[int, ...]]:
 
 
 def _formal_charge_sites(mol: Chem.Mol) -> tuple[list[int], list[int]]:
-    """Atoms carrying a formal positive / negative charge."""
-    positive = [a.GetIdx() for a in mol.GetAtoms() if a.GetFormalCharge() > 0]
-    negative = [a.GetIdx() for a in mol.GetAtoms() if a.GetFormalCharge() < 0]
-    return positive, negative
+    """Atoms that are a real cation / anion site, not just a charge in the drawing.
+
+    A formal charge is bookkeeping, and a neutral group is often DRAWN with a pair of them on neighbouring atoms: the
+    nitro group (`[N+](=O)[O-]`), an N-oxide, a sulfoxide or sulfone written `[S+][O-]`, an azide, a diazo
+    compound, an ylide. Reading each end as an ion reported nitrobenzene's nitro nitrogen as a cation 2.86 A from its
+    own ring. The rule: atoms that carry a charge and are bonded to one another form a cluster, and a cluster's
+    charges cancel as the drawing intends. A cluster that nets to zero contributes no site; one that does not
+    (nitrate, `O=[N+]([O-])[O-]`, nets -1) contributes the atoms of the sign it nets to, and none of the other.
+    A charge with no charged neighbour (an ammonium, a carboxylate O-) is a cluster of one and is kept.
+    """
+    charged = {a.GetIdx(): a.GetFormalCharge() for a in mol.GetAtoms() if a.GetFormalCharge()}
+    positive: list[int] = []
+    negative: list[int] = []
+    seen: set[int] = set()
+    for start in charged:
+        if start in seen:
+            continue
+        cluster, frontier = [start], [start]
+        seen.add(start)
+        while frontier:
+            for neighbor in mol.GetAtomWithIdx(frontier.pop()).GetNeighbors():
+                index = neighbor.GetIdx()
+                if index in charged and index not in seen:
+                    seen.add(index)
+                    cluster.append(index)
+                    frontier.append(index)
+        net = sum(charged[index] for index in cluster)
+        if net > 0:
+            positive += [index for index in cluster if charged[index] > 0]
+        elif net < 0:
+            negative += [index for index in cluster if charged[index] < 0]
+    return sorted(positive), sorted(negative)
+
+
+def _can_donate_hydrogen(atom: Chem.Atom) -> bool:
+    """Whether a hydrogen is attached, written out or implied. An N, O or F without one can accept a hydrogen bond
+    and cannot give one."""
+    return atom.GetTotalNumHs(includeNeighbors=True) > 0
+
+
+def _is_metal_donor(atom: Chem.Atom) -> bool:
+    """Nitrogen, oxygen and fluorine as before, plus sulfur with at most two bonds' worth of valence -- a thiolate,
+    thiol, thioether, thione or disulfide, all of which have lone pairs to give (cysteine to zinc is the standard
+    case). A sulfoxide, sulfone, sulfonamide or sulfonate sulfur (valence 4 or 6) is not one: its oxygens are
+    the donors there. The receptor-ligand analysis already counts sulfur (`pose_analysis._ligand_features`), and its
+    constant's comment has always said N/O/S."""
+    symbol = atom.GetSymbol()
+    return symbol in _POLAR_ELEMENTS or (symbol == "S" and atom.GetTotalValence() <= 2)
+
+
+def _ring_separation(topological, ring_a: tuple[int, ...], ring_b: tuple[int, ...]) -> float:
+    """Bonds between the nearest atoms of two rings; 1 when a bond joins them."""
+    return min(topological[i][j] for i in ring_a for j in ring_b)
 
 
 def find_interactions(mol: Chem.Mol) -> dict[str, list[dict[str, Any]]]:
@@ -132,11 +189,15 @@ def find_interactions(mol: Chem.Mol) -> dict[str, list[dict[str, Any]]]:
         element_i, element_j = atom_i.GetSymbol(), atom_j.GetSymbol()
         distance = _distance(positions, i, j)
 
+        # Both heavy atoms are N, O or F, and at least ONE can donate: two acceptors (the two ether oxygens of
+        # 1,2-dimethoxyethane, 3.01 A apart) are not a hydrogen bond. The docking analysis keeps its
+        # heavy-atom-only rule (`pose_analysis.analyze_pose`), where a receptor's hydrogens are not placed.
         is_hydrogen_bond = (
             element_i in _POLAR_ELEMENTS
             and element_j in _POLAR_ELEMENTS
             and distance <= HBOND_DISTANCE_CUTOFF
             and separated("hydrogen_bonds", i, j)
+            and (_can_donate_hydrogen(atom_i) or _can_donate_hydrogen(atom_j))
         )
         if is_hydrogen_bond:
             found["hydrogen_bonds"].append({"atoms": (i, j), "distance": distance})
@@ -161,6 +222,10 @@ def find_interactions(mol: Chem.Mol) -> dict[str, list[dict[str, Any]]]:
             and _is_apolar_carbon(atom_i)
             and _is_apolar_carbon(atom_j)
             and distance <= HYDROPHOBIC_CUTOFF
+            # A LOWER bound, at the van der Waals contact: nearer than the two radii sum the atoms overlap and
+            # repel, which is crowding (the peri methyls of 1,8-dimethylnaphthalene, 3.00 A), not attraction.
+            # The clash line is this sum less CLASH_TOLERANCE, so a pair reported as a clash is never also a contact.
+            and distance >= _vdw_radius(element_i) + _vdw_radius(element_j)
             and separated("hydrophobic", i, j)
         ):
             found["hydrophobic"].append({"atoms": (i, j), "distance": distance})
@@ -168,8 +233,8 @@ def find_interactions(mol: Chem.Mol) -> dict[str, list[dict[str, Any]]]:
         if (element_i.upper() in _METALS) != (element_j.upper() in _METALS):
             donor = j if element_i.upper() in _METALS else i
             if (
-                mol.GetAtomWithIdx(donor).GetSymbol() in _POLAR_ELEMENTS
-                and distance <= 2.8
+                _is_metal_donor(mol.GetAtomWithIdx(donor))
+                and distance <= METAL_COORDINATION_CUTOFF
                 and separated("metal_coordination", i, j)
             ):
                 found["metal_coordination"].append({"atoms": (i, j), "distance": distance})
@@ -187,6 +252,8 @@ def find_interactions(mol: Chem.Mol) -> dict[str, list[dict[str, Any]]]:
     for ring_a, ring_b in itertools.combinations(rings, 2):
         if set(ring_a) & set(ring_b):
             continue  # fused rings are one system, not a stacking pair
+        if _ring_separation(topological, ring_a, ring_b) < MIN_SEPARATION["pi_stacking"]:
+            continue  # joined directly or through one atom: biphenyl, diphenylmethane
         centroid_a, centroid_b = _centroid(positions, ring_a), _centroid(positions, ring_b)
         distance = float((((centroid_a - centroid_b) ** 2).sum()) ** 0.5)
         if distance <= PI_STACKING_CUTOFF:
@@ -266,5 +333,6 @@ def compute_interaction_analysis(
         molecule_uuid=molecule_uuid,
         matched=lines,
         category="geometry",
-        provenance=Provenance(created_by="core", method="rdkit"),
+        # The METHOD, recorded because a change to the rules changes the lines: see `INTERACTION_METHOD`.
+        provenance=Provenance(created_by="core", method="rdkit", parameters={"method": INTERACTION_METHOD}),
     )
