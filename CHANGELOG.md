@@ -68,6 +68,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   docking pose analysis showed that a ligand donor bonded to a zinc, iron or magnesium is also reported as a steric clash,
   which is the real defect behind that number (not fixed here).
 
+- Five more papers read for the radii question (`harding1999`, `harding2000`, `harding2001`, `gavezzotti1983`, `zhao2003`).
+  Zhao et al.'s Tables 1 and 3 are a second transcription of Bondi's group volumes; on those 46 molecules Bondi's list errs
+  1.84% on average against RDKit's 2.12% and hydrogen 1.10's 7.71%, the whole difference being in halides (1.95% against
+  3.14%), so moving the surface calculators to Bondi is a provenance gain, not an accuracy one. Harding's tables give sourced
+  metal-donor distances (Zn-N 2.00, Fe-N 2.08, Mg-O 2.07, Ca-O 2.39 A) and a primary-sphere rule of target + 0.5 A, and show
+  sulfur is as good a donor as nitrogen. `benchmarks/vdw_radii/radii_study.py` gains the 46-molecule check.
+
 ### Naming: ring systems keep their heteroatoms, numbering, hydrogen and name
 - A spiro heterocycle on a bridged ring was `tricyclo[...]undecane-1,3-dione` (every N gone), an N-attached triazinedione was numbered as a ring OPSIN cannot build, a spiro partner lost an azole N-H, a tricycle of three monocycles had no name, and a protonated or iminium N in a fused 4-ring was a NAMING ERROR (D-215 .. D-219). Census 1968 -> 1978 exact, visible failures 4 -> 0; fresh_v1 1950 -> 1951 of 2000 read back after its one re-score (97.55%).
 
