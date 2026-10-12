@@ -205,7 +205,6 @@
     "src/openchem/chem/pose_analysis.py::CLASH_TOLERANCE",
     "src/openchem/chem/pose_analysis.py::HBOND_DISTANCE_CUTOFF",
     "src/openchem/chem/pose_analysis.py::HYDROPHOBIC_CUTOFF",
-    "src/openchem/chem/pose_analysis.py::METAL_COORDINATION_CUTOFF",
     "src/openchem/chem/pose_analysis.py::PI_STACKING_CUTOFF",
     "src/openchem/chem/pose_analysis.py::SALT_BRIDGE_CUTOFF",
     "src/openchem/chem/pose_analysis.py::STANDARD_RECEPTOR_RESIDUES",

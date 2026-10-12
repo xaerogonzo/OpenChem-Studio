@@ -48,7 +48,7 @@ a much larger rule nobody agreed to.
 recorded set and would be a rule keyed on NAMING rather than on whether
 documentation is warranted -- which is how `inapplicable_calculators` rotted
 into 27 wrong entries. Both populations are mixed in practice:
-`METAL_COORDINATION_CUTOFF` is public and wants documentation,
+`METAL_BOND_MARGIN` is public and wants documentation,
 `_Q_CARBON_DIOXIDE` is private and wants it just as much, while `APP_NAME` is
 public and does not.
 """

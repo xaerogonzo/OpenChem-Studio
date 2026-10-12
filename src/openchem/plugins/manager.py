@@ -183,6 +183,22 @@ class PluginManager:
     # --- load/unload ------------------------------------------------------------
 
     def load_all(self) -> None:
+        # A configured folder that is not there loads nothing and, until now,
+        # said nothing: a stale `plugins/project_directory` (a deleted temp
+        # folder, measured 2026-10-12) turned off every plugin, the AI
+        # Assistant included, with only "(none found)" in the Plugins menu to
+        # show for it. Warn, naming the folder and the setting that chose it.
+        for setting, folder in (
+            ("plugins/project_directory", self._project_plugins_dir),
+            ("plugins/user_directory", self._user_plugins_dir),
+        ):
+            if not folder.is_dir() and self._settings.get(setting, None):
+                logger.warning(
+                    "Plugin folder %s (setting %s) does not exist, so nothing can load "
+                    "from it. Clear that setting to use the default folder.",
+                    folder,
+                    setting,
+                )
         disabled = self._disabled_ids()
         candidates = [m for m in self._discover_manifests() if m.plugin_id not in disabled]
 

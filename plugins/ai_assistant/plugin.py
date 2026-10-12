@@ -41,16 +41,28 @@ class AIAssistantMenuProvider(MenuProvider):
         self._cache = cache
 
     def menu_entries(self) -> list[tuple[str, str]]:
+        # "Open AI Assistant" leads: the other two entries are named for what
+        # they do, not for the assistant, and the rail files the panel under
+        # "Compare and Extend" -- so without it nothing on screen said the
+        # application HAS an assistant (measured in a driven run, 2026-10-12).
         return [
+            ("Open AI Assistant", "ai_assistant.open"),
             ("Explain Selected Molecule", "ai_assistant.explain"),
             ("Generate Molecule Report", "ai_assistant.report"),
         ]
 
     def handle_menu_action(self, action_id: str) -> None:
+        # Reveal first, before looking at our own panel reference. The host
+        # builds the panel when it is registered, so the reference is set by
+        # the time any entry can fire; this ordering just keeps "show the
+        # panel" independent of that detail.
+        self._context.panels.reveal(AIAssistantPanelProvider.panel_id)
         panel = self._panel_provider.panel
         if panel is None:
             return
-        self._context.panels.reveal(AIAssistantPanelProvider.panel_id)
+        if action_id == "ai_assistant.open":
+            panel.focus_input()
+            return
         if not self._cache.has_molecule():
             panel.prefill_and_focus("No molecule is currently selected.")
             return
