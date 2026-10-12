@@ -312,3 +312,14 @@ def test_alignment_needs_approval_because_it_was_measured_slow_on_realistic_mole
     slow = [r["seconds"] for r in _input_rows("alignment_3d") if r["molecule"] == "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O"]
     assert slow and max(slow) > SHORT_SECONDS
     assert BUILTIN_POLICIES["alignment_3d"].ai_run is AiRun.CONFIRM
+
+
+def test_every_automatic_calculator_is_automatic_at_its_own_defaults(registry):
+    """A policy whose own bound excluded the calculator's default would make it unusable unattended."""
+    for definition in _all(registry):
+        policy = policy_of(definition)
+        if policy.ai_run is not AiRun.AUTO:
+            continue
+        defaults = {p.name: p.default for p in definition.parameters}
+        decision = decide(policy, defaults)
+        assert decision.ai_run is AiRun.AUTO, (definition.calculator_id, decision.reason)

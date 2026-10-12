@@ -10,6 +10,7 @@ import keyring.errors
 from openchem.app.settings import Settings
 from openchem.domain.molecule import MoleculeModel
 from openchem.events.base import Event, EventBus
+from openchem.plugins.calculation_access import CalculationHost, PluginCalculations
 from openchem.plugins.interfaces import (
     ConformerProvider,
     AtomFactProvider,
@@ -237,7 +238,7 @@ class PluginContext:
 
     Grouped into small namespaces (`descriptors`, `conformers`, `docking`,
     `quantum_chemistry`, `importers`, `exporters`, `panels`, `menus`,
-    `events`, `settings`, `secrets`, `molecules`, `reactions`) rather than
+    `events`, `settings`, `secrets`, `molecules`, `reactions`, `calculations`) rather than
     one flat pile
     of `register_*` methods on this class directly.
 
@@ -254,6 +255,7 @@ class PluginContext:
         services: ServiceContainer,
         ui_registry: UIRegistry,
         settings: Settings,
+        calculation_host: CalculationHost | None = None,
     ) -> None:
         self.plugin_id = plugin_id
         self.logger = logging.getLogger(f"openchem.plugin.{plugin_id}")
@@ -276,6 +278,9 @@ class PluginContext:
             services.reaction_template_service, plugin_id, self._rollbacks
         )
         self.molecules = _PluginMolecules(ui_registry)
+        #: Find calculators, read what was computed, and ask for a run -- through the window's host,
+        #: with no way to approve a run that needs a person. Answers "unavailable" with no host.
+        self.calculations = PluginCalculations(calculation_host)
 
     def resource_path(self, relative: str) -> Path:
         """Path to a file bundled alongside this plugin (icons, templates, etc.)."""

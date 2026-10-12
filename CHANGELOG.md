@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### AI assistant bridge, step 2: the host adapter, the plugin handle, a frozen turn snapshot and parameter validation
+- **`context.calculations`** gives a plugin six calls: freeze a turn, search the calculators, describe one, read what is stored, prepare a
+  request and run it. It carries no container, bus, registry or window, and **no way to approve anything**: a request that needs a person is
+  decided on the panel's own button, through an object the tools are not given (a test pins the handle's surface). A context built without a
+  host answers every call "unavailable" instead of raising. The assistant still has no tool that uses any of this.
+- **A turn is frozen when the message is sent** (`domain/turn_snapshot.py`): the selected molecule, its input fingerprints and every stored
+  result record. Tools read only that, and `read_results` takes no molecule argument, so selecting another molecule or a result completing
+  mid-reply cannot change the evidence behind an answer. Results are classified by freshness (current, historical, unverifiable) and
+  outcome (computed, refused, failed); a not-current result is never shown as current and a calculator with nothing stored is "not run",
+  never a value. New `SessionResultStore.all_results`, because `fresh_results` shows only the current ones.
+- **Parameters are validated against the calculator's own definition**, all problems at once: unknown names, wrong kinds, bounds, choice
+  codes, required inputs left at their placeholder, unreadable SMILES. A calculator does not check these itself: `geometry_analysis` ran
+  with `conformer_policy="lowest_energy"`, which is not one of its choices. The normalised settings are the dialog's dict (a float stays a
+  float), so an AI run and a person's run with the same settings are one calculation in the store.
+- **A requested run goes through the path a click takes** (`DescriptorService.run_calculator`), so it is recorded and shown like any other.
+  It is dispatched once however many callers ask (an atomic claim; 40 racing threads start one calculation), re-checked against the live
+  structure and project at the moment it starts (an edit voids it), and a run that outlives its caller's wait is reported "still running"
+  rather than restarted. Previews can be approved or cancelled by the window; one left unanswered for 30 minutes is withdrawn.
+- `ChemistryEngine.heavy_atom_count` and `CalculatorRegistry.definitions()`. 134 new tests, 17 mutations each caught, the threaded ones
+  run 15 times without a failure, and `benchmarks/visual/ai_bridge_run.json` drives the real window from a real worker thread.
+
 ### AI assistant bridge, step 1: what may run unattended is measured, and the calculator search is one rule
 - **Execution policy** (`domain/execution_policy.py`, `domain/builtin_execution_policies.py`): every one of the 72 registered
   calculators now says whether a model may start it (`AUTO`: 43 instant, 14 short) or a person approves a preview first (`CONFIRM`: 15).
