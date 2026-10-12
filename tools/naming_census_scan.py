@@ -133,6 +133,19 @@ def read_back(names: list[str]) -> list[str]:
         batch = names[i:i + _BATCH]
         got = py2opsin(batch, output_format="SMILES") if len(batch) > 1 else [py2opsin(batch[0], output_format="SMILES")]
         back.extend(g or "" for g in got)
+    # Naming round 45: the application's own read-back (`naming_providers.opsin_readable_spellings`) tries the spelling OPSIN reads for four names whose engine form is
+    # the book's (`N1,N2-...oxamide`, `oxobis[...]phosphanyl`, `bis([1,3]dioxolo)...`, a CIP descriptor OPSIN cannot assign on a cage). Only a name OPSIN FAILED to
+    # parse is retried, the original is always tried first, and a respelling that parses still has to read back to the input to count as exact.
+    from openchem.chem.naming_providers import opsin_readable_spellings
+
+    for at, (name, got) in enumerate(zip(names, back)):
+        if got:
+            continue
+        for alt in opsin_readable_spellings(name)[1:]:
+            retry = py2opsin(alt, output_format="SMILES")
+            if retry:
+                back[at] = retry
+                break
     return back
 
 
