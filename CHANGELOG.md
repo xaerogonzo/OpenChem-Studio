@@ -28,6 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ChemistryEngine.heavy_atom_count` and `CalculatorRegistry.definitions()`. 134 new tests, 17 mutations each caught, the threaded ones
   run 15 times without a failure, and `benchmarks/visual/ai_bridge_run.json` drives the real window from a real worker thread.
 
+### Naming: the anion is the parent, a protonated acylhydrazone keeps its charge, E/Z survives a methyl branch, corrin has locants
+- A thiolate or phenolate beside a nitrile, aldehyde, amide or ketone is named as the anion it is, the senior class: `4-cyanobenzene-1-thiolate`, `4-cyanobenzen-1-olate` (round 43 cited it as an `oxido` prefix); beside a neutral acid the charge no longer moves to the wrong group (`OC(=O)c1ccc([O-])cc1` was `4-oxidobenzoate`, now `4-carboxybenzen-1-olate`) (D-229). A protonated acylhydrazone was written neutral (`C=[NH+]NC(=O)c1ccccc1`, a different molecule) and is the cation `benzamido(methylidene)azanium` (D-230). `N-(2-methylbut-2-en-1-yl)acetamide` named both stereoisomers; E/Z is kept (D-231). A spiro ammonium with a stereocentre at a protonated N was named with no descriptors at all; its carbons keep theirs (D-232: 73 -> 79 of 79 stereoisomers exact). The octahydropyridazino[1,2-a][1,2]diazepine and corrin have atom locants (corrin from the numbering the Blue Book draws, p. 1158, checked against OPSIN): sweep 38 wrong cases -> 0. Census 1989 -> 1991 (99.55%) exact; fresh_v1 re-scored once, 1964 of 2000 read back.
+
 ### AI assistant bridge, step 1: what may run unattended is measured, and the calculator search is one rule
 - **Execution policy** (`domain/execution_policy.py`, `domain/builtin_execution_policies.py`): every one of the 72 registered
   calculators now says whether a model may start it (`AUTO`: 43 instant, 14 short) or a person approves a preview first (`CONFIRM`: 15).
