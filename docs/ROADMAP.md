@@ -1489,6 +1489,15 @@ blocked by anything:
   result there is a much weaker statement than the same result on a
   form-shaped panel, and this defect class needs a guard of its own kind.
 
+### Recipes, derived scores and the assistant's bridge (2026-10-12)
+
+Phase 1 (the assistant reads and runs calculators, and asks before anything heavy) is merged: `docs/AI_CALCULATION_BRIDGE.md`. Phase 2 is
+**designed and not built**, in two records: `docs/RECIPES_DESIGN.md` (typed dependencies between calculators, with the Lewis pairing as
+the first recipe and a preregistered BH3/CO gate on real ORCA) and `docs/DERIVED_SCORES_DESIGN.md` (a restricted formula over approved
+outputs, labelled user-defined and unvalidated). Their slices are numbered there. Two things they depend on are not built and are not
+assumed: a dispatch adapter for service-run (ORCA) calculators, and the assistant's snapshot holding ORCA runs. The live provider run
+for Phase 1 is still not done.
+
 ### Visualization
 
 Per-atom colouring on 2D and 3D from one shared `ColorScale`; molecular

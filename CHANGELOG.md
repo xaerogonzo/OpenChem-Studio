@@ -10,6 +10,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Naming: a ring cation keeps its ketone suffix after `-ium`, and an amidinium zwitterion with a second acid is named
 - Camptothecin's cation was `...-3,14(4H)-dion-6-ium`, a form OPSIN cannot read; it is `...quinolin-6-ium-3,14(4H)-dione` and reads back, camptothecin itself included (D-233). An amidinium with a carboxylate and a second, neutral carboxylic acid was refused; it is `3-carboxylato-4-hydroxy-4-oxobutanamidinium` (D-234). The census scan's read-back now tries the application's OPSIN-readable respellings, so the four names whose engine form is the book's (`N1,N2-...oxamide`, `oxobis[...]phosphanyl`, `bis([1,3]dioxolo)...`, a bis-adamantane CIP) are no longer counted unparsable: census 1991 -> 1993 exact (99.65%), no unparsable row left. The frozen sets are unchanged (blind check), so none was re-scored.
 
+### Phase 2 design records: recipes with typed dependencies, the Lewis pairing, and derived scores (design only, nothing built)
+- **`docs/RECIPES_DESIGN.md`**: a recipe is an ordered plan whose steps read each other's typed outputs, distinct from the goal wizard's flat
+  list. Bindings fail closed in eight named states and a failed prerequisite never becomes a default; a recipe run is its own versioned
+  record (as a QC run is), with staleness derived when it is read. The first recipe wires the Lewis adduct to stored ORCA runs, with the
+  frontier-gap and HSAB lines still never combined. The gate (BH3/CO against BF3/CO on real ORCA) is preregistered in the record, including
+  the window its tolerance must be chosen in and what a miss means.
+- **`docs/DERIVED_SCORES_DESIGN.md`**: the "custom predictor" idea narrowed to a formula a person writes over a hand-approved table of
+  calculator outputs, in a small hand-written grammar (no `eval`, no Python parser), with strict units, an unremovable "user-defined,
+  unvalidated" label, and a rule that makes averaging two estimates of one quantity unexpressible.
+- **Measured while writing them**: the Lewis adduct calculator has never shown a frontier or HSAB line in the application (it passes
+  `predict` no quantum value); `QuantumChemistryRun.input_conformer_id` is declared and never set; an ORCA-optimized conformer is
+  stored with no energy, so with force-field conformers present `canonical_conformer` still returns the force-field one and the next
+  ORCA job does not run at the geometry just optimized; and an ORCA descriptor reaches the assistant as `method: orca` with no level of
+  theory, charge or multiplicity, because only the run records them. These are recorded as findings, not changed here.
+
 ### AI assistant bridge, step 3: the assistant can read and run calculators, and asks before anything heavy
 - **Five tools** (`plugins/ai_assistant/calculation_tools.py`): `find_calculators`, `list_goals`, `describe_calculator`, `read_results` and `run_calculator`. A
   question about a number, a property or a method is now answered from the application's own record and its calculators, not from the
