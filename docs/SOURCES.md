@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 66c7a6a0c4151fb158ca106b94d2f6c0efe394203b9c7a34608cf88ec5dc7463 -->
+<!-- SOURCE SHA256: 99bdfed357b5f7cdbd547562cce1851323ed2321f6331eb6fa8232c9868d8c91 -->
 
 # Sources
 
@@ -225,6 +225,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`moreland1974`](#moreland1974) | literature | shipped | citation |
 | [`mortier1986`](#mortier1986) | literature | reference only | citation |
 | [`moss1995`](#moss1995) | literature | reference only | citation |
+| [`murrayrust1983`](#murrayrust1983) | literature | shipped | citation + claim |
 | [`muser2012`](#muser2012) | literature | reference only | citation + claim |
 | [`naserifar2017`](#naserifar2017) | literature | reference only | citation + claim |
 | [`neudert2011`](#neudert2011) | literature | **not shipped** | citation |
@@ -249,6 +250,8 @@ next run of `tools/build_lewis_parameters.py`.
 | [`perry2025`](#perry2025) | literature | reference only | citation |
 | [`pkasolver`](#pkasolver) | software | shipped | citation |
 | [`platts1999`](#platts1999) | literature | **not shipped** | citation + claim |
+| [`plenio1997`](#plenio1997) | literature | shipped | citation + claim |
+| [`plenio2004`](#plenio2004) | literature | shipped | citation + claim |
 | [`plip2015`](#plip2015) | literature | reference only | citation |
 | [`poater2009`](#poater2009) | literature | shipped | citation |
 | [`pyside6`](#pyside6) | software | shipped | citation |
@@ -2615,6 +2618,105 @@ NOT CHECKED: the other metals' sections, the validation server itself, and Table
 
 THE APPLICATION: nickel's entries in `pose_analysis.METAL_DONOR_TARGETS` (O 2.08, N 2.09, S 2.46, the larger where two values are
 printed) are this table's.
+
+### plenio1997
+
+<a id="plenio1997"></a>
+
+> H. Plenio, 'The Coordination Chemistry of the CF Unit in Fluorocarbons', Chem. Rev. 1997, 97, 3363-3384.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/cr970465g](https://doi.org/10.1021/cr970465g) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-12 |
+| Local copy | `plenio1997_cf_unit_coordination.pdf` (not checked) |
+| Used by | `src/openchem/chem/pose_analysis.py`, `docs/VDW_RADII_ASSESSMENT.md` |
+
+CHECKED: the review's own criteria and three sections, read from the extracted text of the PDF (22 pages); the identity is from
+Crossref. (1) Pages 3364-3365: sums of van der Waals radii are rejected as a distance criterion for hard cations (Li 327,
+Na 377, K 427 pm); the acceptance limits are the metal's ionic radius plus fluorine's van der Waals radius (147 pm) at the short
+end and Kollman's ionic van der Waals radius plus 147 pm at the long end. Table 1 gives them in pm: Li 206-247, Na 249-307,
+K 298-347, Rb 313-367, Cs 328-387, Ca 253-313, Sr 273-330, Ba 299-348. A search of the CSD (to June 1997) was made with these
+limits. (2) Sodium: CF...Na+ contacts of 237.5-267.1 pm in fluoro-macrocycle complexes, the shortest 229.8 and 235.7 pm.
+(3) Calcium: the only crystal structure with a short CF...Ca2+ contact is [Ca(hfa)(H2O)2]2 at 252.4 pm. (4) Section IV,
+transition metals: with the exception of zirconium and silver, evidence is "limited to very few examples"; the search
+threshold was CF...metal under 270 pm (first row) and 300 pm (second and third); in the first row only titanium (215.1 pm) and
+vanadium (230.6 and 237.8 pm) are convincing, and weak contacts are listed for Co (265 pm, intramolecular) and Zn (253.2-273.3 pm
+in two organometallic structures and 265.2 pm in a tetrakis(pentafluorophenyl)porphyrin zinc). Intramolecular contacts count
+only with at least four bonds between the atoms.
+Magnesium appears only as a six-membered chelate proposed for an organomagnesium reaction (section III.I), with no distance.
+
+NOT CHECKED: the lithium, rubidium, cesium, silver, zirconium, lanthanide and heavy main-group sections, the force-field
+discussion of Hay and Rustad behind Table 1's other columns, the NMR sections, and the hydrogen-bond section.
+
+THE APPLICATION: `pose_analysis._FLUORINE_DONOR_METALS` (sodium, potassium, calcium, magnesium) and the absence of a fluorine
+window for zinc, iron, cobalt, manganese, copper and nickel. Magnesium is kept as an assumption this paper does not support.
+
+### plenio2004
+
+<a id="plenio2004"></a>
+
+> H. Plenio, 'The Coordination Chemistry of Fluorine in Fluorocarbons', ChemBioChem 2004, 5, 650-655.
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/cbic.200300752](https://doi.org/10.1002/cbic.200300752) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-12 |
+| Local copy | `plenio2004_cf_in_fluorocarbons.pdf` (not checked) |
+| Used by | `src/openchem/chem/pose_analysis.py`, `docs/VDW_RADII_ASSESSMENT.md` |
+
+CHECKED: read in full (6 pages; the DOI is printed on page 1). A mini-review of [source:plenio1997] by the same author. The
+CSD histogram for CF...Na+ (79 contacts, the most of any group I or II metal) has its maximum at 250-270 pm and tails off
+to longer distances; CF...Na+ distances in fluorinated macrocycle complexes run 229.8-267.1 pm against Na...O 224.9-285.7 pm
+(Table 2). For Li(OMe2)4 against Li(OMe2)3(C6H5F), DFT gives a CF...Li+ binding energy of about 64% of the O...Li+ one and a
+bond length of 198.0 pm. Stability constants of the F-[2.2.1]cryptand against its hydrogen analogue are higher by 0.1 to 2.2 log units (Na+ +2.1, Ca2+ +2.2,
+Cs+ +0.1; Table 1). The author concludes organic fluorine is an efficient donor to alkali and
+alkaline earth ions, and that it "remains to be shown" whether this matters for the biochemistry of fluorinated drugs. Fluorine
+hydrogen bonding is left to Dunitz's companion review in the same issue.
+
+NOT CHECKED: the references and the individual stability constants beyond Table 1.
+
+THE APPLICATION: the claim that the interaction is weaker than oxygen's (about 64% of Li...O) in the comment on
+`pose_analysis._FLUORINE_DONOR_METALS`.
+
+### murrayrust1983
+
+<a id="murrayrust1983"></a>
+
+> P. Murray-Rust, W. C. Stallings, C. T. Monti, R. K. Preston & J. P. Glusker, 'Intermolecular interactions of the carbon-fluorine bond: the crystallographic environment of fluorinated carboxylic acids and related structures', J. Am. Chem. Soc. 1983, 105, 3206-3214.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ja00348a041](https://doi.org/10.1021/ja00348a041) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-12 |
+| Local copy | `murrayrust1983_cf_interactions.pdf` (not checked) |
+| Used by | `src/openchem/chem/pose_analysis.py`, `docs/VDW_RADII_ASSESSMENT.md` |
+
+CHECKED: the discussion and conclusions (pages 4 to 8) from the extracted text; the DOI is from Crossref (a ChemInform abstract,
+10.1002/chin.198335066, is a different record). Two crystal structures of alkali-metal salts of fluoro acids: Na-F 2.470 A in
+sodium fluoropyruvate and Rb-F 2.979 and 3.095 A in a fluorocitrate. A CSD search (January 1982) of about 260 structures with
+C-F bonds found only seven with C-F and an alkali metal; all seven have M-F contacts about as long as M...F in ionic compounds;
+the only intermolecular C-F...X contacts under 2.7 A were to Na+; C-F-M angles of 108-120 degrees in six of them. A later
+potassium fluoromalonate has K-F 2.80 A. Of the non-alkali metals only an organomercurial (2.96 A) comes under 3.2 A, and the
+one cobalt contact (2.445 A, intramolecular) was put down by its authors to torsion. The only transition-metal complexes of
+fluoroalkanecarboxylic acids are Cu(II) fluoroacetates with the usual dimeric acetate structure, whose sixth site quinoline or
+urea fills ("presumably stronger ligands than C-F"). C-F...O contacts under 3.2 A have a minimum at
+about 2.85 A with no preferred direction, which the authors read as no C-F...O interaction; C-F...H-X hydrogen bonds are
+"very weak" and appear only where proton donors outnumber acceptors. The authors conclude that C-F can interact significantly
+with alkali metals and "presumably" other hard acids.
+
+TABLE IV (the bond-valence table) WAS NOT USED: its numbers come out of the PDF text scrambled, so no value was taken from it.
+
+NOT CHECKED: the synthesis, the structure determinations, Tables I to III and the B-F section.
+
+THE APPLICATION: the sodium and potassium fluorine distances (2.470 and 2.80 A) and the absence of transition-metal evidence behind
+`pose_analysis._FLUORINE_DONOR_METALS`.
 
 ### chernyshov2020
 

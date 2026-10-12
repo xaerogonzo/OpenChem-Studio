@@ -26,6 +26,7 @@ from openchem.chem.pose_analysis import (
     _METALS,
     _VDW_RADII,
     CLASH_TOLERANCE,
+    _vdw_radius,
     METAL_DONOR_MIN_DISTANCE,
     metal_bond_window,
 )
@@ -200,7 +201,14 @@ def test_no_distance_is_reported_as_both_a_coordination_and_a_clash(metal, donor
     floor, being a coordination excludes being a clash. A pair that is both is the original defect. Sulfur is in
     the sweep because the clash exemption takes `_is_metal_donor`, and an exemption wider than the
     detector would make a Zn--S contact vanish from both lists."""
-    low, high = metal_bond_window(metal, donor)
+    window = metal_bond_window(metal, donor)
+    if window is None:  # fluorine and a transition metal: never a bond, at any distance
+        assert donor == "F" and metal in {"ZN", "FE", "CO", "MN", "CU", "NI"}
+        for i in range(30):
+            found = find_interactions(_two_atom_molecule(donor, metal, 1.8 + 0.05 * i))
+            assert found["metal_coordination"] == [], f"{metal}-F at {1.8 + 0.05 * i:.2f}"
+        return
+    low, high = window
     edge = 1e-9  # the window's ends are floats (2.41 - 0.5 is 1.9100000000000001): test just inside them
     distances = [d for d in (low + edge + 0.05 * i for i in range(int((high - low) / 0.05) + 2)) if d < high - edge]
     distances.append(high - edge)
@@ -277,3 +285,25 @@ def test_the_neighbours_of_a_donor_are_exempt_only_inside_the_metals_window():
     assert _pairs(inside["metal_coordination"]) == [(0, 1)] and inside["clashes"] == []
     assert outside["metal_coordination"] == []
     assert (0, 2) in _pairs(outside["clashes"])
+
+
+# --- fluorine: a donor to the hard cations, not to the transition metals (Plenio 1997, Murray-Rust 1983) ------------------
+
+
+@pytest.mark.parametrize("metal", ["ZN", "FE", "CO", "MN", "CU", "NI"])
+def test_a_fluorine_beside_a_transition_metal_is_a_clash_and_not_a_coordination(metal):
+    distance = 2.3
+    assert distance < _vdw_radius("F") + _vdw_radius(metal) - CLASH_TOLERANCE
+
+    found = find_interactions(_two_atom_molecule("F", metal, distance))
+
+    assert found["metal_coordination"] == []
+    assert len(found["clashes"]) == 1
+
+
+@pytest.mark.parametrize(("metal", "distance"), [("NA", 2.47), ("K", 2.80), ("CA", 2.52), ("MG", 2.30)])
+def test_a_fluorine_beside_a_hard_cation_is_a_coordination_and_not_a_clash(metal, distance):
+    found = find_interactions(_two_atom_molecule("F", metal, distance))
+
+    assert len(found["metal_coordination"]) == 1
+    assert found["clashes"] == []

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Docking and interactions: fluorine is a metal donor to the hard cations, not to the transition metals
+- A fluorine read the metal's oxygen window for every metal, an assumption with no source. Plenio's CSD surveys and Murray-Rust
+  et al. support organic fluorine as a weak donor to sodium (2.30 to 2.67 angstrom), potassium (2.80) and calcium (2.52), and
+  find almost none for the first-row transition metals. Fluorine now keeps the oxygen window for Na, K, Ca and Mg (magnesium is an
+  assumption: no measured distance was found) and is no donor to Zn, Fe, Co, Mn, Cu and Ni: a fluorine at 2.3 angstrom of any
+  of those was a metal coordination and is a clash now. Interaction Analysis moves to method `interactions-v4` (a v3 result
+  is kept and labelled); docking results already saved keep what they were analysed with. `plenio1997`, `plenio2004` and
+  `murrayrust1983` become shipped sources. Known limit: a fluoride ion or a B-F or P-F fluorine is not told from a C-F one.
+
 ### Docking and interactions: a metal's bond window is its own
 - **A bond to a metal no longer has one length for every metal and donor.** The 1.8 to 2.8 angstrom window `analyze_pose` and Interaction
   Analysis shared is replaced by `pose_analysis.metal_bond_window(metal, donor)`: the target distance for that metal and donor
