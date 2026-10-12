@@ -481,9 +481,9 @@ def test_a_carbon_bound_fluorine_is_not_a_hydrogen_bond_acceptor_inside_one_mole
         assert _hydrogen_bond_atoms(mol, "F") == set(), _lines(mol, "Hydrogen bond")
 
 
-def test_a_fluorine_on_boron_still_accepts_a_hydrogen_bond_inside_one_molecule():
-    """B-F is a fluorine that is not on carbon. In (hydroxymethyl)trifluoroborate the OH is three bonds from the fluorine and
-    2.6 to 2.9 A from it; the contact is measured per conformer rather than assumed."""
+def test_a_fluorine_on_boron_is_not_a_hydrogen_bond_acceptor_either():
+    """Dunitz 2004: even ammonium tetrafluoroborate shows no short N-H...F contact. In (hydroxymethyl)trifluoroborate the OH
+    is three bonds from the fluorine and 2.6 to 2.9 A from it; the contact is measured per conformer rather than assumed."""
     def hydroxyl_distance(mol: Chem.Mol) -> float:
         positions = _xyz(mol)
         hydroxyl = [a.GetIdx() for a in mol.GetAtoms() if a.GetSymbol() == "O" and a.GetTotalNumHs(includeNeighbors=True)]
@@ -493,4 +493,5 @@ def test_a_fluorine_on_boron_still_accepts_a_hydrogen_bond_inside_one_molecule()
     close = [mol for mol in _conformers("OC[B-](F)(F)F") if hydroxyl_distance(mol) <= HBOND_DISTANCE_CUTOFF]
     assert close, "no conformer put a B-F fluorine within 3.5 A of the hydroxyl oxygen"
 
-    assert any(_hydrogen_bond_atoms(mol, "F") for mol in close)
+    for mol in close:
+        assert _hydrogen_bond_atoms(mol, "F") == set(), _lines(mol, "Hydrogen bond")

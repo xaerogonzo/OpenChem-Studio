@@ -417,19 +417,40 @@ Eight mutants (restriction removed, zinc or iron added, each hard cation dropped
 **Known limit:** the rule is by element, so a fluoride ion or a fluorine on boron or phosphorus (a tetrafluoroborate bound to
 nickel at 2.12 angstrom is in Murray-Rust's survey) is a real donor and is not recognised as one. Whether organic fluorine accepts a hydrogen bond is a separate question with its own change, below.
 
+**A direct measurement of the PDB (2026-10-12; `benchmarks/fluorine_pdb_survey/`).** Every entry of resolution 2.5 angstrom or better
+that holds a fluorine-containing ligand and one of the ten metals was fetched (1,240 entries: Zn 559, Mg 388, Ca 199, Na 219,
+K 49, Mn 60, Ni 25, Fe 17, Co 9, Cu 6; 1,211 with ligand fluorines), and every ligand fluorine with a carbon of its own residue
+within 1.65 angstrom was measured against every metal within 4.0. Only 31 such pairs exist. **Zinc: the closest fluorine is 3.48
+angstrom (two pairs in 559 entries); iron 3.35, manganese 3.69, magnesium 3.29; potassium, cobalt and nickel none.** **Calcium: one
+entry (7ZLU, a glucosyltransferase with a fluorinated nucleotide) has the fluorine at 2.57, 2.69 and 2.83 angstrom from three
+calciums, each already holding six oxygens: a genuine donor, inside the window and beside Plenio's 2.52.** Sodium's four
+close pairs are one entry (1GZG) in which the two sodiums are modelled 1.4 and 2.4 angstrom from a ligand carbon, which is not a real contact;
+the rest are 3.0 and 4.0. **Copper is the exception:** six pairs in two bacterial tyrosinase-inhibitor entries (6QXD at 2.3
+angstrom resolution, 6EI4 at 2.0) put the fluorine 1.88 to 2.61 angstrom from a copper that also has three histidines, with ligand
+carbons 2.0 to 2.3 angstrom from the same copper, so the inhibitor is modelled inside the copper site; all six are inside
+copper's oxygen window (to 2.63), and whether that is a real Cu-F interaction or a modelling choice at that resolution is not
+settled by a coordinate file. For magnesium the supplementary coordinates of Bakewell et al. give 3.20 to 3.49 angstrom to a C-F
+fluorine and 1.95 to a fluoride [source:bakewell2016], so **no measured magnesium to fluorine distance anywhere read is inside
+the oxygen window used (to 2.76); that assumption is unsupported and stays only until it is decided.** Brese and O'Keeffe's bond-valence parameters
+(read) are where a fluoride ion's metal distances would come from if a separate fluoride window is ever built; none is used.
+
 **Fluorine as a hydrogen-bond acceptor (read 2026-10-12; Interaction Analysis `interactions-v5`).** Both analysers counted a
 fluorine as an acceptor, as N and O are. Dunitz and Taylor searched the CSD for C-F bonds in structures with an O-H or N-H and
 found 37 of 5,947 (0.6%) in a contact under 2.3 angstrom (F...H, with the X-H...F angle over 90 degrees), against 42% of carbonyl
 oxygens and 32% of aromatic nitrogens; of the 37 only two are unequivocal hydrogen bonds, one to a fluorine with anionic
 character; a PDB survey of protein-ligand complexes finds only possible cases, all on an inhibitor with a formal negative charge
 [source:dunitz1997]. Murray-Rust et al. found C-F...O contacts bottom out near 2.85 angstrom with no preferred direction
-[source:murrayrust1983]. A fluorine bonded to carbon is therefore no longer an acceptor in `analyze_pose` (ligand side) or
-`find_interactions`; a fluoride ion, and a fluorine on boron or phosphorus, still is, since the evidence is about C-F.
+[source:murrayrust1983]. Dunitz's later review adds that even ammonium tetrafluoroborate shows no short N-H...F contact, so B-F
+is no better [source:dunitz2004]. A fluorine bonded to carbon or boron is therefore no longer an acceptor in `analyze_pose`
+(ligand side) or `find_interactions`; a fluoride ion, and a fluorine on phosphorus, sulfur or silicon, still is, since nothing read
+covers them.
 Measured, ten fluorinated molecules at six conformers each (seed 7, MMFF94): Interaction Analysis hydrogen-bond lines fall
 from 38 to 24, and every one removed was to a fluorine on carbon (2-fluoroethanol 6 to 0, 2-fluorobenzamide 3 to 0, fluconazole
-16 to 12, sitagliptin 3 to 2). A fluorine pressed within 2.62 angstrom of a nitrogen (F 1.47 plus N 1.55 less 0.4) is now a
-steric clash, not a hydrogen bond. Six mutants (each analyser's exclusion removed, every or no fluorine counted as organic, organic
-read as bonded to nitrogen, the wrong element selected) are all killed. **Known limits:** the docking receptor arrives as
+16 to 12, sitagliptin 3 to 2). The PDB survey above gives the same answer directly: of 1,967 ligand C-F fluorines, the protein nitrogens around them thin out at
+hydrogen-bond distance (0.167 per fluorine at 2.8 to 3.1 angstrom against 0.277 at 3.3 to 3.7, a ratio of 0.60), where 16,835
+terminal ligand C-O oxygens, the control, show a peak (1,123 and 1,268 nitrogens in the 2.8 and 2.9 bins; ratio 1.05). A fluorine pressed within 2.62 angstrom of a nitrogen (F 1.47 plus N 1.55 less 0.4) is now a
+steric clash, not a hydrogen bond. Mutants (each analyser's exclusion removed, every or no fluorine counted as weak, boron dropped from the partners, the wrong
+element selected) are all killed. **Known limits:** the docking receptor arrives as
 coordinates with no bonds, so a receptor fluorine (a fluoride ion, or a cofactor's C-F) is still counted; the separate
 H-Bond Acceptors property and Hydrogen-Bond Sites table follow RDKit's definition and were not changed; a saved docking
 result keeps the hydrogen bonds it was analysed with.

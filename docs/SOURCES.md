@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 2d0ef80b7239d1ad8a7d7dfc4e84ccbd73d700867e22073683e141735d2ab1d7 -->
+<!-- SOURCE SHA256: 5086b371dedaa6aec4818284e89ced737ba4307ca560fa6d1382d8750a484b83 -->
 
 # Sources
 
@@ -102,6 +102,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`avdeef2007`](#avdeef2007) | literature | shipped | citation + claim |
 | [`avdeef2020`](#avdeef2020) | literature | shipped | citation + claim |
 | [`baell2010`](#baell2010) | literature | shipped | citation |
+| [`bakewell2016`](#bakewell2016) | literature | reference only | citation |
 | [`bakowies1996`](#bakowies1996) | literature | **not shipped** | citation + claim |
 | [`balabin2009`](#balabin2009) | literature | reference only | citation + claim |
 | [`ballester2010`](#ballester2010) | literature | **not shipped** | citation |
@@ -149,6 +150,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`drago1990`](#drago1990) | literature | shipped | citation |
 | [`drago1993`](#drago1993) | literature | shipped | citation |
 | [`dunitz1997`](#dunitz1997) | literature | shipped | citation + claim |
+| [`dunitz2004`](#dunitz2004) | literature | shipped | citation + claim |
 | [`ertl2000`](#ertl2000) | literature | shipped | citation |
 | [`ertl2008`](#ertl2008) | literature | shipped | citation |
 | [`ertl2009`](#ertl2009) | literature | shipped | citation |
@@ -2714,8 +2716,64 @@ exceptional molecular and crystal environments.
 NOT CHECKED: the discussion of each of the 37 contacts beyond those two, the intermolecular perturbation theory section (read only
 for its conclusion that the evidence agrees), and the water-octanol and basicity tables beyond their direction.
 
-THE APPLICATION: `pose_analysis.is_organic_fluorine`, which both analysers use to leave a C-F fluorine out of the hydrogen-bond
-acceptors.
+THE APPLICATION: `pose_analysis.is_weak_acceptor_fluorine`, which both analysers use to leave a C-F fluorine out of the
+hydrogen-bond acceptors.
+
+### bakewell2016
+
+<a id="bakewell2016"></a>
+
+> C. Bakewell, A. J. P. White & M. R. Crimmin, 'Addition of Carbon-Fluorine Bonds to a Mg(I)-Mg(I) Bond: An Equivalent of Grignard Formation in Solution', J. Am. Chem. Soc. 2016, 138, 12763-12766.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jacs.6b08104](https://doi.org/10.1021/jacs.6b08104) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-12 |
+| Local copy | `bakewell2016_mgi_cf_addition.pdf` (not checked) |
+| Used by | `docs/VDW_RADII_ASSESSMENT.md` |
+
+**Why it is reference only.** Read for the only measured Mg...F distances found (a C-F fluorine near magnesium, 3.2 to 3.5 angstrom); no value of the application comes from it.
+
+CHECKED: the four-page paper, and the crystallographic information file of its supporting information (seven data blocks), from
+which the distances below were COMPUTED FROM THE FRACTIONAL COORDINATES and the cell, with no symmetry operations. The authors
+report close Mg...F contacts of 3.2 and 3.4 angstrom to the two ortho fluorines of one magnesium fluoroaryl (compound 2b) and call the
+interaction weak. The coordinates give Mg...F 3.216 and 3.370 (2b), 3.319 and 3.339 (2c), 3.487 (2d) and, for two molecules of 2a,
+3.201 and 3.393 / 3.201 and 3.369 angstrom; a magnesium bound to a fluoride ion (the mu-fluoride dimer) has Mg-F 1.953 angstrom.
+So a fluorine on carbon sits 3.2 to 3.5 angstrom from magnesium here, well outside a bond, while a fluoride ion bonds at 1.95.
+
+NOT CHECKED: the chemistry (the C-F bond addition), the NMR and DFT, and the supporting information's experimental sections. The
+fluorines here are 3 bonds from the magnesium (Mg-C-C-C-F), under Plenio's four-bond rule for intramolecular contacts
+([source:plenio1997]).
+
+### dunitz2004
+
+<a id="dunitz2004"></a>
+
+> J. D. Dunitz, 'Organic Fluorine: Odd Man Out', ChemBioChem 2004, 5, 614-621.
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/cbic.200300801](https://doi.org/10.1002/cbic.200300801) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-12 |
+| Local copy | `dunitz2004_organic_fluorine_odd_man_out.pdf` (not checked) |
+| Used by | `src/openchem/chem/pose_analysis.py`, `docs/VDW_RADII_ASSESSMENT.md` |
+
+CHECKED: the opening section (page 1 of 8; the DOI is printed on it). A review by the author of [source:dunitz1997]. It repeats
+that a CSD search with inspection of the individual structures and ab initio model calculations showed organic fluorine "hardly
+ever" accepts hydrogen bonds, that is only in the absence of a better acceptor (even ammonium trifluoroacetate, with four donors per
+anion, shows no N-H...F bonding), and that the evidence for it in protein-ligand complexes is "unconvincing". It then takes B-F:
+hydrogen bonding to a boron-bound fluorine "should be stronger", yet even crystalline ammonium tetrafluoroborate shows no short
+N-H...F length, and a CSD search finds only very few structures with short X-H...F-B contacts (4,4,8,8-tetrafluoropyrazabole and a
+difluorodiazaborine are given as genuine but rare). The author attributes this to fluorine's low polarizability and tightly
+contracted lone pairs. Pauling's third edition (1960) is quoted conceding that fluorine on carbon has no significant power to accept.
+
+NOT CHECKED: the remaining pages (fluorocarbon properties, packing, and the rest of the review).
+
+THE APPLICATION: the boron half of `pose_analysis.is_weak_acceptor_fluorine`.
 
 ### murrayrust1983
 

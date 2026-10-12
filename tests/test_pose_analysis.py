@@ -927,17 +927,24 @@ def test_a_fluorine_too_close_to_a_nitrogen_is_a_clash_now_that_it_is_no_hydroge
     ("ligand_atoms", "bonds"),
     [
         ([("F", (0.0, 0.0, 0.0))], []),  # a fluoride ion
-        ([("B", (0.0, 0.0, 0.0)), ("F", (1.39, 0.0, 0.0))], [(0, 1)]),  # a tetrafluoroborate-type B-F
         ([("P", (0.0, 0.0, 0.0)), ("F", (1.58, 0.0, 0.0))], [(0, 1)]),  # a hexafluorophosphate-type P-F
+        ([("S", (0.0, 0.0, 0.0)), ("F", (1.58, 0.0, 0.0))], [(0, 1)]),  # a sulfonyl-fluoride-type S-F
     ],
-    ids=["fluoride", "B-F", "P-F"],
+    ids=["fluoride", "P-F", "S-F"],
 )
-def test_a_fluorine_that_is_not_on_carbon_still_accepts_a_hydrogen_bond(ligand_atoms, bonds):
+def test_a_fluorine_that_is_not_on_carbon_or_boron_still_accepts_a_hydrogen_bond(ligand_atoms, bonds):
     fluorine_x = ligand_atoms[-1][1][0]
     found = _hbonds_to_a_receptor_nitrogen(ligand_atoms, bonds, (fluorine_x + 3.0, 0.0, 0.0))
 
     assert len(found["hbonds"]) == 1
     assert found["hbonds"][0]["ligand_element"] == "F"
+
+
+def test_a_boron_bound_fluorine_is_not_a_hydrogen_bond_acceptor():
+    """Dunitz 2004: ammonium tetrafluoroborate shows no short N-H...F contact."""
+    found = _hbonds_to_a_receptor_nitrogen([("B", (0.0, 0.0, 0.0)), ("F", (1.39, 0.0, 0.0))], [(0, 1)], (4.39, 0.0, 0.0))
+
+    assert found["hbonds"] == []
 
 
 def test_a_receptor_fluorine_is_still_counted_because_it_arrives_without_bonds():

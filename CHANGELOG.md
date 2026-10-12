@@ -7,13 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Docking and interactions: a fluorine on carbon is not a hydrogen-bond acceptor
+### Docking and interactions: a fluorine on carbon or boron is not a hydrogen-bond acceptor
 - Both `analyze_pose` and Interaction Analysis counted a fluorine as an acceptor like N and O. Dunitz and Taylor's CSD survey
   finds 0.6% of C-F bonds (37 of 5,947) in a short contact with an O-H or N-H, against 42% of carbonyl oxygens, and only two of
   the 37 unequivocal; Murray-Rust et al. find C-F...O contacts with no preferred direction. A fluorine bonded to carbon is no
-  longer an acceptor (a fluoride ion, or a B-F or P-F fluorine, still is). Measured on ten fluorinated molecules: hydrogen-bond lines
+  longer an acceptor, and nor is a boron-bound one (Dunitz 2004: ammonium tetrafluoroborate shows no short N-H...F contact); a fluoride ion, or a P-F, S-F or Si-F fluorine, still is. Measured on ten fluorinated molecules: hydrogen-bond lines
   fall from 38 to 24, all 14 removed ones to a C-F. Interaction Analysis moves to method `interactions-v5` (a v4 result is kept and
-  labelled); a saved docking result keeps what it was analysed with. `dunitz1997` becomes a shipped source. Not changed: a receptor
+  labelled); a saved docking result keeps what it was analysed with. `dunitz1997` and `dunitz2004` become shipped sources. A survey of 1,240 PDB entries (`benchmarks/fluorine_pdb_survey/`) found protein
+  nitrogens thin out around ligand C-F fluorines at hydrogen-bond distance, where terminal C-O oxygens show a peak. Not changed: a receptor
   fluorine (no bonds to read), and the H-Bond Acceptors property, which follows RDKit.
 
 ### Docking and interactions: fluorine is a metal donor to the hard cations, not to the transition metals

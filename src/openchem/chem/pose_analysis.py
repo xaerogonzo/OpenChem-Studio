@@ -148,15 +148,23 @@ _METALS = {"ZN", "MG", "CA", "FE", "MN", "CU", "NA", "K", "CO", "NI"}
 _POLAR_ELEMENTS = {"N", "O", "F"}
 
 
-def is_organic_fluorine(atom: Chem.Atom) -> bool:
-    """Whether `atom` is a fluorine bonded to carbon (C-F), as opposed to a fluoride ion or a fluorine on boron, silicon or
-    phosphorus. THE ONE THAT HARDLY EVER ACCEPTS A HYDROGEN BOND: Dunitz and Taylor found 37 of 5,947 C-F bonds (0.6%) in
-    a short contact with an O-H or N-H, against 42% of carbonyl oxygens and 32% of aromatic nitrogens, and only two of the
-    37 unequivocal, one of them a fluorine with anionic character [source:dunitz1997]; Murray-Rust et al. found C-F...O
+#: The elements a fluorine can be bonded to and still hardly ever accept a hydrogen bond: carbon, and boron.
+_WEAK_ACCEPTOR_FLUORINE_PARTNERS = frozenset({"C", "B"})
+
+
+def is_weak_acceptor_fluorine(atom: Chem.Atom) -> bool:
+    """Whether `atom` is a fluorine bonded to carbon (C-F) or boron (B-F), as opposed to a fluoride ion or a fluorine on
+    any other element. THESE HARDLY EVER ACCEPT A HYDROGEN BOND: Dunitz and Taylor found 37 of 5,947 C-F bonds (0.6%) in a
+    short contact with an O-H or N-H, against 42% of carbonyl oxygens and 32% of aromatic nitrogens, and only two of the 37
+    unequivocal, one of them a fluorine with anionic character [source:dunitz1997]; Murray-Rust et al. found C-F...O
     contacts with a minimum near 2.85 A and no preferred direction, which they read as van der Waals contact
-    [source:murrayrust1983]. It still counts as a polar atom everywhere else (a hydrophobic carbon's neighbour, a metal donor
-    to the hard cations)."""
-    return atom.GetSymbol().upper() == "F" and any(n.GetSymbol().upper() == "C" for n in atom.GetNeighbors())
+    [source:murrayrust1983]; and even ammonium tetrafluoroborate, the obvious candidate for B-F...H-N bonding, shows no short
+    N-H...F contact [source:dunitz2004]. Fluorine on phosphorus, sulfur or silicon, and the fluoride ion, are not covered
+    by any of that and keep counting. The fluorine is still a polar atom everywhere else (a hydrophobic carbon's neighbour,
+    a metal donor to the hard cations)."""
+    return atom.GetSymbol().upper() == "F" and any(
+        n.GetSymbol().upper() in _WEAK_ACCEPTOR_FLUORINE_PARTNERS for n in atom.GetNeighbors()
+    )
 
 # A BOND TO A METAL IS NOT A CONTACT. Everything below is what the clash test
 # needs to know to leave one out, and `_contact_interactions` reports the same
@@ -1160,17 +1168,17 @@ def analyze_pose(pose_molblock: str, receptor_atoms: list[ReceptorAtom]) -> dict
     # neighbours, whose distance to the metal the bond fixes) are left out of
     # the clash test and reported as `metal_coordination` instead.
     metal_bonded = _metal_bonded_pairs(ligand_mol, ligand_atoms, receptor_atoms)
-    # A C-F fluorine is not a hydrogen-bond acceptor (see `is_organic_fluorine`). The receptor's fluorine, which arrives as
+    # A C-F or B-F fluorine is not a hydrogen-bond acceptor (see `is_weak_acceptor_fluorine`). The receptor's fluorine, which arrives as
     # coordinates with no bonds, is a fluoride ion or a cofactor's and is still counted: it cannot be told apart.
-    organic_fluorine = {
+    weak_acceptor_fluorine = {
         index
         for index, element, _position in ligand_atoms
-        if element == "F" and ligand_mol is not None and is_organic_fluorine(ligand_mol.GetAtomWithIdx(index))
+        if element == "F" and ligand_mol is not None and is_weak_acceptor_fluorine(ligand_mol.GetAtomWithIdx(index))
     }
 
     for ligand_index, ligand_element, ligand_position in ligand_atoms:
         ligand_radius = _vdw_radius(ligand_element)
-        ligand_is_polar = ligand_element in _POLAR_ELEMENTS and ligand_index not in organic_fluorine
+        ligand_is_polar = ligand_element in _POLAR_ELEMENTS and ligand_index not in weak_acceptor_fluorine
         for receptor_index, receptor_atom in enumerate(receptor_atoms):
             distance = math.dist(ligand_position, receptor_atom.position)
             contact = {
