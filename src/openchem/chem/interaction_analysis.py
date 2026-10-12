@@ -40,6 +40,7 @@ from openchem.chem.pose_analysis import (
     _METALS,
     _POLAR_ELEMENTS,
     _VDW_RADII,
+    _formal_charge_sites,
 )
 from openchem.chem.calculator_options import decimals
 from openchem.domain.common import CacheState, Provenance
@@ -105,41 +106,6 @@ def _aromatic_rings(mol: Chem.Mol) -> list[tuple[int, ...]]:
         for ring in mol.GetRingInfo().AtomRings()
         if all(mol.GetAtomWithIdx(index).GetIsAromatic() for index in ring)
     ]
-
-
-def _formal_charge_sites(mol: Chem.Mol) -> tuple[list[int], list[int]]:
-    """Atoms that are a real cation / anion site, not just a charge in the drawing.
-
-    A formal charge is bookkeeping, and a neutral group is often DRAWN with a pair of them on neighbouring atoms: the
-    nitro group (`[N+](=O)[O-]`), an N-oxide, a sulfoxide or sulfone written `[S+][O-]`, an azide, a diazo
-    compound, an ylide. Reading each end as an ion reported nitrobenzene's nitro nitrogen as a cation 2.86 A from its
-    own ring. The rule: atoms that carry a charge and are bonded to one another form a cluster, and a cluster's
-    charges cancel as the drawing intends. A cluster that nets to zero contributes no site; one that does not
-    (nitrate, `O=[N+]([O-])[O-]`, nets -1) contributes the atoms of the sign it nets to, and none of the other.
-    A charge with no charged neighbour (an ammonium, a carboxylate O-) is a cluster of one and is kept.
-    """
-    charged = {a.GetIdx(): a.GetFormalCharge() for a in mol.GetAtoms() if a.GetFormalCharge()}
-    positive: list[int] = []
-    negative: list[int] = []
-    seen: set[int] = set()
-    for start in charged:
-        if start in seen:
-            continue
-        cluster, frontier = [start], [start]
-        seen.add(start)
-        while frontier:
-            for neighbor in mol.GetAtomWithIdx(frontier.pop()).GetNeighbors():
-                index = neighbor.GetIdx()
-                if index in charged and index not in seen:
-                    seen.add(index)
-                    cluster.append(index)
-                    frontier.append(index)
-        net = sum(charged[index] for index in cluster)
-        if net > 0:
-            positive += [index for index in cluster if charged[index] > 0]
-        elif net < 0:
-            negative += [index for index in cluster if charged[index] < 0]
-    return sorted(positive), sorted(negative)
 
 
 def _can_donate_hydrogen(atom: Chem.Atom) -> bool:

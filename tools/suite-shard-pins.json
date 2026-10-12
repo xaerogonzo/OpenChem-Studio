@@ -868,6 +868,7 @@
   "tests/test_pop_out_host.py": 0,
   "tests/test_pose_analysis.py": 0,
   "tests/test_pose_analysis_metals.py": 2,
+  "tests/test_pose_charge_sites.py": 0,
   "tests/test_powder_xrd.py": 0,
   "tests/test_project_and_plugin_inverses.py": 1,
   "tests/test_project_details.py": 0,

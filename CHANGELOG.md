@@ -118,6 +118,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   whole document. The button is disabled there, and a new **Open the file** button opens the markdown file
   in the system's program for it (and says so when there is none).
 
+### Fixed: docking pose analysis no longer reads a nitro group as a cation and an anion
+- `pose_analysis._ligand_features` called every ligand atom with a formal charge a cation or an anion, so a neutral
+  group drawn with two (a nitro group, an N-oxide, a sulfoxide written `[S+][O-]`, an azide) fed a phantom ligand
+  cation into cation-π and salt bridges. Measured on nitrobenzene with an Asp carboxylate 3.2 A from the nitro N, a
+  Lys NZ 2.8 A from a nitro O and a Phe ring 4.5 A over the nitro N: two salt bridges and one cation-π before, none
+  after; an ammonium and a carboxylate are still found. It now uses the same rule as the intramolecular analysis
+  (bonded charged atoms form a cluster, a cluster that sums to zero contributes no site, nitrate keeps its anion);
+  `_formal_charge_sites` moved from `interaction_analysis` into `pose_analysis`, which both import, so there is one
+  copy. The rule reads the molblock's bonds, so it holds when the pose does not sanitise.
+- **No method version is bumped, and that is deliberate.** Docking results are not in the result store
+  (`CURRENT_METHOD_VERSIONS` has no docking id): `analyze_pose` runs once, when the job finishes, and its output is
+  written into each pose's `metadata`, which nothing looks up by identity or replays. A project saved before keeps the
+  old contacts on its poses until the ligand is docked again; nothing re-runs the analysis on load.
+  `tests/test_pose_charge_sites.py` (11 tests) goes through `analyze_pose`; reverting to the raw charge fails 9 of
+  them, and a cluster that keeps both signs fails the nitrate test.
+
 ### Fixed: Interaction Analysis no longer reads a nitro group as a cation, or two acceptors as a hydrogen bond
 - Five of the six wrong results the explainer measured are fixed in `chem/interaction_analysis.py`, as method
   `interactions-v2`: **(1)** a formal charge that only draws a neutral group (a nitro group, an N-oxide, a sulfoxide or
