@@ -247,7 +247,10 @@ One serialiser, type-aware, in the host layer. Every number the model receives c
 and display name; method and version; the normalised parameters; the input fingerprint and which
 representation it describes (drawing, a named conformer, a microspecies at a pH); units, basis or
 applicability domain; status (including refusal kind) and freshness state; the caveats; and for
-per-atom data the atom-index space. A summary says it is a summary and names how to read the whole
+per-atom data the atom-index space. For a result a service ran (an ORCA job has no registry dialog dict)
+the parameters are the job's calculation type, method and basis, charge and multiplicity, stamped from its
+submission snapshot (`domain.common.RUN_SETTINGS`); they are provenance, never part of the result's identity,
+so the store key does not move. A summary says it is a summary and names how to read the whole
 thing. A result kind with no serialiser is reported `unsupported`; it is not forced through a
 generic dict. The set of supported kinds is explicit (`PerAtomDataset`, `ReportResult`/`StructureReport`,
 `AlertResult`, `SpectrumResult`, `PhCurveResult`, `StructureSetResult`, `TrajectoryResult`), and a

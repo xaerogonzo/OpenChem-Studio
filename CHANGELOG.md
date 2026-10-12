@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed: an ORCA number reached the assistant without its method, basis, charge or multiplicity
+- `QuantumChemistryService` now stamps each descriptor a job files (`run_calc_type`, `run_method_basis`, `run_charge`, `run_multiplicity`,
+  `run_provider`, `run_id`, the same `run_` words the spectra already carried) before the result event and the store see it, so the run history,
+  the revision cache and the event hold one set. The provider's own `orca_version` and `caveat` are kept. The ORCA provider is only ever
+  handed the output text, so a stored `orca.scf_energy` from B3LYP/def2-SVP and one from HF/STO-3G used to read identically: the assistant's
+  envelope showed `method.name == "orca"` and empty `parameters`. It now shows `calc_type`, `method_basis`, `charge` and `multiplicity`
+  (not the run id, which is an address into the run history rather than a setting). The settings block is bounded for any result (32 names, text cut
+  to the reply's caps, and a caveat says how many were left out). **The result's identity is unchanged**: nothing is added to
+  `parameters_key`, so no saved project is stranded, and a project saved before this loads and reads with empty `parameters`.
+
 ### AI assistant bridge, step 3: the assistant can read and run calculators, and asks before anything heavy
 - **Five tools** (`plugins/ai_assistant/calculation_tools.py`): `find_calculators`, `list_goals`, `describe_calculator`, `read_results` and `run_calculator`. A
   question about a number, a property or a method is now answered from the application's own record and its calculators, not from the
