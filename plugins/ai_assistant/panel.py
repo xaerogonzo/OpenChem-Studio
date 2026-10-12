@@ -170,9 +170,18 @@ class AIAssistantPanel(QWidget):
         self._provider_combo.currentTextChanged.connect(
             lambda value: context.settings.set("last_provider", value)
         )
+        self._provider_combo.currentTextChanged.connect(lambda _value: self._refresh_setup_hint())
 
         self._configure_button = QPushButton("Configure...", self)
         self._configure_button.clicked.connect(self._on_configure_clicked)
+
+        # Says what to do when the chosen provider cannot answer yet. Without
+        # it a first open was a blank chat above a provider box defaulting to
+        # one with no key, and the first sign anything was missing was an
+        # error after Send. Hidden whenever there is nothing to say.
+        self._setup_hint = QLabel(self)
+        self._setup_hint.setWordWrap(True)
+        self._setup_hint.setVisible(False)
 
         self._transcript = QTextEdit(self)
         self._transcript.setReadOnly(True)
@@ -196,18 +205,55 @@ class AIAssistantPanel(QWidget):
 
         layout = QVBoxLayout(self)
         layout.addLayout(top_bar)
+        layout.addWidget(self._setup_hint)
         layout.addWidget(self._transcript)
         layout.addLayout(input_bar)
+        self._refresh_setup_hint()
 
     def prefill_and_focus(self, text: str) -> None:
         self._input.setPlainText(text)
         self._input.setFocus()
+
+    def focus_input(self) -> None:
+        """Put the cursor in the question box without changing what is in it."""
+        self._input.setFocus()
+
+    def setup_hint(self) -> str:
+        """What the person has to do before the chosen provider can answer, or "".
+
+        Only claims what can be known without a network call: an API-key
+        provider with no stored key. A provider reached through a local CLI
+        or server cannot be checked here, so it says nothing rather than
+        guess, and an unreachable one still surfaces as an error on Send.
+        """
+        provider_id = self._provider_combo.currentText()
+        provider = self._providers.get(provider_id)
+        if provider is None or not provider.requires_api_key:
+            return ""
+        if getattr(provider, "_base_url", None):
+            return ""  # a local OpenAI-compatible server (Ollama) takes no key
+        try:
+            has_key = bool(self._context.secrets.get(f"{provider_id}_api_key"))
+        except Exception:  # noqa: BLE001 - no usable keychain is a reason to ask, not to crash
+            has_key = False
+        if has_key:
+            return ""
+        return (
+            f"No API key is set for {provider_id}. Click Configure... to add one, "
+            f"or choose claude_cli to use your claude.ai login instead."
+        )
+
+    def _refresh_setup_hint(self) -> None:
+        hint = self.setup_hint()
+        self._setup_hint.setText(hint)
+        self._setup_hint.setVisible(bool(hint))
 
     def _on_configure_clicked(self) -> None:
         provider_id = self._provider_combo.currentText()
         provider = self._providers[provider_id]
         dialog = _ProviderSettingsDialog(self._context, provider_id, provider, self)
         dialog.exec()
+        self._refresh_setup_hint()
 
     def _on_send_clicked(self) -> None:
         text = self._input.toPlainText().strip()

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### AI Assistant: findable, and honest about being unconfigured; a missing plugin folder is no longer silent
+- **Plugins > Open AI Assistant** is new and listed first. The assistant sat in the rail's "Compare and Extend" group and its two
+  menu entries named what they do, so nothing on screen said the application has one. Opening it no longer depends on the panel
+  reference existing (the host builds the panel at registration, so this is ordering hygiene, not a fix for a reported failure).
+- The panel says what to do when the chosen provider takes an API key and none is stored (`setup_hint`), instead of a blank chat that
+  first failed after Send. Ollama and the Claude CLI are not checked, since neither can be without a call.
+- `PluginManager.load_all` warns, naming the folder and the setting, when a configured `plugins/project_directory` or
+  `plugins/user_directory` does not exist. A leftover test value pointing at a deleted temp folder (measured 2026-10-12 in a
+  developer's real settings) had turned off every plugin with only "(none found)" in the Plugins menu to show for it.
+
 ### Naming: amidinium zwitterions, charges that were dropped, pyrrolinium spelling, helicenes
 - An amidinium beside a carboxylate, a carboxyl or a second carbonyl was refused; it is named now (`carboxylatoacetamidinium`, `carboxyformamidinium`) (D-226). A thiolate or phenolate beside a nitrile, aldehyde or amide was named as the NEUTRAL compound (`N#Cc1ccc([O-])cc1` was `4-hydroxybenzene-1-carbonitrile`, a different molecule); it keeps its charge now (`4-oxidobenzene-1-carbonitrile`), and a name that cannot place the charge is refused instead (D-227). N-substituted 1-pyrrolinium and imidazolinium cations take the retained spelling (`1-methyl-3,4-dihydro-2H-pyrrol-1-ium`), and penta- to octahelicene have atom locants (D-228: 224 of 260 sweep cases named another isomer, now 0). Census 1987 -> 1989 exact (99.45%); fresh_v1 re-scored once, 1962 of 2000 read back.
 
