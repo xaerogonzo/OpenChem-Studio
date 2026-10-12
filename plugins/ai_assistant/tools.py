@@ -13,6 +13,65 @@ class ToolDefinition:
     input_schema: dict[str, Any]
 
 
+_JSON_TYPES: dict[str, tuple[type, ...]] = {
+    "string": (str,),
+    "integer": (int,),
+    "number": (int, float),
+    "boolean": (bool,),
+    "object": (dict,),
+    "array": (list,),
+}
+
+
+def validate_arguments(schema: dict[str, Any], arguments: Any) -> list[str]:
+    """Every way `arguments` fails the tool's own `input_schema`, in words. Empty means acceptable.
+
+    **THE PROVIDER'S SCHEMA IS GUIDANCE TO THE MODEL, NOT A BOUNDARY.** A model can send a missing
+    required field, a string where a number belongs, or a field the tool never declared, and
+    `handler(**arguments)` would then raise a `TypeError` about its own signature, or worse, run with a
+    wrong value. So the loop checks the call against the schema first and returns the problems to the
+    model without running anything. It understands the subset these tools use: `type`, `required`,
+    `properties`, `enum`, `minimum`, `maximum` and array `items`; an undeclared property is refused.
+    """
+    if not isinstance(arguments, dict):
+        return [f"the arguments must be an object, not {type(arguments).__name__}"]
+    problems: list[str] = []
+    properties = schema.get("properties", {})
+    for name in schema.get("required", []):
+        if name not in arguments:
+            problems.append(f"{name} is required")
+    for name, value in arguments.items():
+        if name not in properties:
+            allowed = ", ".join(properties) or "none"
+            problems.append(f"{name!r} is not an argument of this tool; it takes: {allowed}")
+            continue
+        problems.extend(_check_value(name, properties[name], value))
+    return problems
+
+
+def _check_value(name: str, spec: dict[str, Any], value: Any) -> list[str]:
+    expected = spec.get("type")
+    if expected is not None:
+        types = _JSON_TYPES.get(expected, ())
+        # A bool is an int in Python and is not a JSON number; and a float with no fraction is a whole
+        # number only for a model that wrote `3.0`, which a schema asking for an integer should refuse.
+        wrong = (isinstance(value, bool) and expected != "boolean") or not isinstance(value, types)
+        if wrong:
+            return [f"{name} must be {expected}, not {type(value).__name__}"]
+    problems: list[str] = []
+    if "enum" in spec and value not in spec["enum"]:
+        problems.append(f"{name} must be one of {spec['enum']}")
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        if "minimum" in spec and value < spec["minimum"]:
+            problems.append(f"{name} must be at least {spec['minimum']}")
+        if "maximum" in spec and value > spec["maximum"]:
+            problems.append(f"{name} must be at most {spec['maximum']}")
+    if expected == "array" and isinstance(spec.get("items"), dict):
+        for index, item in enumerate(value):
+            problems.extend(_check_value(f"{name}[{index}]", spec["items"], item))
+    return problems
+
+
 def validate_smarts(pattern: str) -> str:
     """Validates a SMARTS substructure-query pattern via RDKit and reports
     the result as plain text for the assistant to read back to the user --

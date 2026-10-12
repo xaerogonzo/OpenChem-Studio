@@ -952,6 +952,37 @@ class MainWindow(QMainWindow):
 
     # --- which right-hand panel is in front ----------------------------------
 
+    def _ensure_in_layout(self, dock: QDockWidget) -> None:
+        """Put a docked panel that has no place in the layout back in its starting area.
+
+        **A PLUGIN PANEL CAN COME OUT OF THE FIRST `show()` WITH NO PLACE IN THE LAYOUT.** Plugin panels are
+        added at the end of construction, after `restoreState`, and hidden at once. Measured on the Windows
+        platform with a real saved layout (which lists no plugin panel): `dockWidgetArea` said Right when the
+        panel was added and when it was hidden, and `NoDockWidgetArea` once the window had been shown and the
+        first events had run. Revealing it then showed it as a bare child at the window's top-left corner
+        (256 x 240, over the Project Explorer and the menu bar) instead of in the right-hand column, and left
+        Properties on screen beside it, because `_show_only_right_dock` hides only docks in the chosen
+        dock's area. A window with no saved layout, or the offscreen platform the suite runs on, does not do
+        this, which is why only driving the real window found it. Putting the dock back BEFORE the window has
+        settled does not hold (a repair queued from `showEvent` was undone by the first layout pass), so this
+        runs when a panel is about to be shown rather than when the window is.
+
+        Floating panels are left alone: they were never in the layout. Hidden stays hidden: re-adding a dock is
+        not a request to show it, and the caller decides that.
+        """
+        if dock.isFloating() or self.dockWidgetArea(dock) != Qt.DockWidgetArea.NoDockWidgetArea:
+            return
+        was_hidden = dock.isHidden()
+        previous, self._arranging = self._arranging, True  # the window's own move, not a drop by the user
+        try:
+            self.addDockWidget(
+                self._default_dock_areas.get(dock.objectName(), Qt.DockWidgetArea.RightDockWidgetArea), dock
+            )
+        finally:
+            self._arranging = previous
+        if was_hidden:
+            dock.setVisible(False)
+
     def _show_only_right_dock(self, chosen: QDockWidget, alongside: bool = False) -> None:
         """Exactly one right-hand panel visible, and it is `chosen`.
 
@@ -979,6 +1010,7 @@ class MainWindow(QMainWindow):
         exactly one -- construction and Reset Panel Layout run under
         `_arranging` -- or the setting would open eleven panels at launch.
         """
+        self._ensure_in_layout(chosen)
         if not self._arranging and (alongside or not self._settings.preference(RAIL_HIDES_PANELS)):
             chosen.setVisible(True)
             if not chosen.isFloating():
@@ -4992,6 +5024,7 @@ class MainWindow(QMainWindow):
         dock = self._add_dock(panel_id, widget, Qt.DockWidgetArea.RightDockWidgetArea)
         self._plugin_panels[panel_id] = dock
         self._right_docks.append(dock)
+        dock.visibilityChanged.connect(self._on_plugin_dock_visibility_changed)
         # `group` is optional and defaults to Extensions, so the
         # `UIRegistry` signature this promises plugins does not change and
         # a plugin that knows nothing about groups is still reachable the
@@ -4999,6 +5032,17 @@ class MainWindow(QMainWindow):
         self._panel_rail.register(panel_id, panel_id, group)
         self._view_menu.addAction(dock.toggleViewAction())
         dock.setVisible(False)
+
+    def _on_plugin_dock_visibility_changed(self, visible: bool) -> None:
+        """A plugin panel shown by any route is put in the layout first if it has no place in it.
+
+        `_show_only_right_dock` does this for the rail and `reveal_panel`; the View menu's toggle for the panel
+        shows the dock directly and would otherwise leave it at the window's top-left corner. See
+        `_ensure_in_layout`.
+        """
+        dock = self.sender()
+        if visible and isinstance(dock, QDockWidget):
+            self._ensure_in_layout(dock)
 
     def remove_panel(self, panel_id: str) -> None:
         dock = self._plugin_panels.pop(panel_id, None)
@@ -5019,6 +5063,11 @@ class MainWindow(QMainWindow):
         # nothing at all. show()+raise_() actually switches to its tab.
         dock = self._plugin_panels.get(panel_id)
         if dock is None:
+            # Not a plugin's own panel. A BUILT-IN one (the Quantum Chemistry panel an assistant preview
+            # points at, Docking) is revealed the way the rail reveals it, so a plugin can send the person
+            # to the panel that owns a job. Anything else stays a no-op, as it always was.
+            if builtin_group_of(panel_id) is not None:
+                self._on_panel_chosen(panel_id)
             return
         # Routed through the same path a rail click takes, so the rail's
         # highlight agrees with what is actually on screen. `show()` alone

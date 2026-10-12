@@ -48,6 +48,7 @@ class AIAssistantMenuProvider(MenuProvider):
         return [
             ("Open AI Assistant", "ai_assistant.open"),
             ("Explain Selected Molecule", "ai_assistant.explain"),
+            ("Explain Stored Results", "ai_assistant.explain_results"),
             ("Generate Molecule Report", "ai_assistant.report"),
         ]
 
@@ -71,6 +72,16 @@ class AIAssistantMenuProvider(MenuProvider):
             panel.prefill_and_focus(
                 f"Explain the key properties of {name} shown above (molecular weight, "
                 "LogP, TPSA, stereochemistry, etc.) in plain language."
+            )
+        elif action_id == "ai_assistant.explain_results":
+            # Asks for the tool rather than quoting numbers here: what is stored is read by the model
+            # through read_results, with each result's method, units, structure and freshness, so the
+            # explanation is of the application's own record and not of whatever the prompt happened to say.
+            panel.prefill_and_focus(
+                f"Use read_results to read every result stored for {name}, then explain in plain language what each "
+                "one means: its method, its units, which structure it was computed on, and any caveat it carries. "
+                "Say which results are not current or were refused, and why; do not describe a calculator that has "
+                "no stored result."
             )
         elif action_id == "ai_assistant.report":
             panel.prefill_and_focus(

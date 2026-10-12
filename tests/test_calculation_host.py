@@ -8,6 +8,7 @@ threading bug hides behind.
 
 from __future__ import annotations
 
+import json
 import threading
 import time
 
@@ -287,6 +288,16 @@ def test_a_molecule_larger_than_anything_measured_needs_approval_for_any_calcula
     assert prep.route is Route.NEEDS_APPROVAL and "50 heavy atoms" in prep.decision.reason
 
 
+def test_every_line_of_a_preview_card_is_a_finished_sentence(world):
+    """The reasons are clauses (`... can take far longer`) and the card stacks lines under one another, so one
+    without a full stop read as running into the next. Seen in the real window's screenshot."""
+    world.add("C" * 50, "Fifty carbons")
+    prep = world.host.prepare(world.host.begin_turn(), "polar_surface_area", {}).preparation
+    assert prep.preview
+    for line in prep.preview:
+        assert line.endswith((".", "!", "?")), line
+
+
 def test_an_unclassified_plugin_calculator_needs_approval(world):
     world.services.calculator_registry.register(CalculatorDefinition(
         calculator_id="plugin_calc", display_name="Plugin", category="charge", description="",
@@ -544,3 +555,92 @@ def test_with_the_real_pool_a_finished_runs_result_is_in_the_next_turns_snapshot
     later = world.host.begin_turn()
     current = world.host.read_results(later, ["polar_surface_area"]).entries
     assert len(current) == 1 and current[0].producer == "polar_surface_area"
+
+
+# --- service-run calculators: a preview of what they would take, never a run ---------------------------------------
+
+
+def test_a_service_run_calculator_is_previewed_with_what_it_needs_and_nothing_is_prepared(world):
+    result = world.host.prepare(world.host.begin_turn(), "orca.sp", {})
+    assert not result.ok and [p.code for p in result.problems] == [ProblemCode.SERVICE_RUN]
+    preview = result.service_preview
+    assert preview.can_start_here is False and preview.panel_id == "Quantum_Chemistry"
+    assert [r.what for r in preview.requirements][0].startswith("a drawn structure for Aspirin")
+    assert world.host.pending() == () and world.pool.tasks == []
+    json.dumps(result.to_dict())
+
+
+def test_the_conformer_requirement_follows_the_molecule(world):
+    def conformer_requirement():
+        preview = world.host.prepare(world.host.begin_turn(), "orca.sp", {}).service_preview
+        return next(r for r in preview.requirements if r.what.startswith("a 3D conformer"))
+
+    assert conformer_requirement().ok is False and conformer_requirement().how_to_fix
+    world.add_conformer(world.molecule)
+    assert conformer_requirement().ok is True and conformer_requirement().how_to_fix == ""
+
+
+def test_the_orca_requirement_reads_the_live_configuration_and_starts_nothing(world, tmp_path, monkeypatch):
+    import shutil
+
+    monkeypatch.setattr(shutil, "which", lambda name: None)
+    qc = world.services.quantum_chemistry_service
+    qc._settings.set("orca/executable_path", "")
+
+    def requirement():
+        preview = world.host.prepare(world.host.begin_turn(), "orca.sp", {}).service_preview
+        return next(r for r in preview.requirements if r.what == "the ORCA executable"), preview
+
+    missing, preview = requirement()
+    assert missing.ok is False and "External Tools" in missing.how_to_fix and preview.ready is False
+
+    fake = tmp_path / "orca.exe"
+    fake.write_text("not really")
+    qc._settings.set("orca/executable_path", str(fake))
+    found, _ = requirement()
+    assert found.ok is True and qc.orca_executable() == str(fake)
+    assert world.pool.tasks == []
+
+
+def test_a_docking_preview_asks_for_a_receptor_and_for_vina(world):
+    preview = world.host.prepare(world.host.begin_turn(), "docking.vina", {}).service_preview
+    whats = {r.what: r for r in preview.requirements}
+    assert whats["a receptor macromolecule in the project"].ok is False
+    assert whats["AutoDock Vina"].ok is world.services.docking_service.is_available()
+
+
+def test_the_hsab_preview_needs_orca_but_not_a_conformer(world):
+    preview = world.host.prepare(world.host.begin_turn(), "lewis_hsab", {}).service_preview
+    whats = [r.what for r in preview.requirements]
+    assert "the ORCA executable" in whats and not any(w.startswith("a 3D conformer") for w in whats)
+
+
+def test_a_service_run_request_is_validated_like_any_other(world):
+    result = world.host.prepare(world.host.begin_turn(), "orca.sp", {"method_basis": "not a method"})
+    assert [p.code for p in result.problems] == [ProblemCode.NOT_A_CHOICE] and result.service_preview is None
+
+
+def test_a_service_run_preview_needs_a_drawn_structure(world):
+    world.add(None, "Blank")
+    result = world.host.prepare(world.host.begin_turn(), "orca.sp", {})
+    assert [p.code for p in result.problems] == [ProblemCode.NO_STRUCTURE] and result.service_preview is None
+
+
+# --- goals --------------------------------------------------------------------------------------------
+
+
+def test_the_hosts_goals_are_the_wizards_table_with_each_routes_read_from_the_live_registry(world):
+    from openchem.domain.calculator_goals import GOALS
+
+    cards = world.host.goals()
+    assert [c.goal_id for c in cards] == [g.goal_id for g in GOALS]
+    for card in cards:
+        for entry in card.entries:
+            described = world.host.describe(entry.calculator_id)
+            assert described is not None, (card.goal_id, entry.calculator_id)
+            assert entry.route is described.route and entry.route_reason == described.route_reason
+
+
+def test_reading_the_goals_starts_nothing_and_records_nothing(world):
+    world.host.goals()
+    assert world.pool.tasks == [] and world.host.pending() == ()

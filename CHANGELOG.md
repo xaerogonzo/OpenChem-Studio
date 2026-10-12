@@ -10,6 +10,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Naming: a ring cation keeps its ketone suffix after `-ium`, and an amidinium zwitterion with a second acid is named
 - Camptothecin's cation was `...-3,14(4H)-dion-6-ium`, a form OPSIN cannot read; it is `...quinolin-6-ium-3,14(4H)-dione` and reads back, camptothecin itself included (D-233). An amidinium with a carboxylate and a second, neutral carboxylic acid was refused; it is `3-carboxylato-4-hydroxy-4-oxobutanamidinium` (D-234). The census scan's read-back now tries the application's OPSIN-readable respellings, so the four names whose engine form is the book's (`N1,N2-...oxamide`, `oxobis[...]phosphanyl`, `bis([1,3]dioxolo)...`, a bis-adamantane CIP) are no longer counted unparsable: census 1991 -> 1993 exact (99.65%), no unparsable row left. The frozen sets are unchanged (blind check), so none was re-scored.
 
+### AI assistant bridge, step 3: the assistant can read and run calculators, and asks before anything heavy
+- **Five tools** (`plugins/ai_assistant/calculation_tools.py`): `find_calculators`, `list_goals`, `describe_calculator`, `read_results` and `run_calculator`. A
+  question about a number, a property or a method is now answered from the application's own record and its calculators, not from the
+  model's memory; the system prompt says so and no longer claims the assistant cannot touch the project. Arguments are validated before a
+  handler runs. A tool is handed only the tool-facing handle and the turn frozen when the message was sent, so a model has no call that
+  could approve a preview (a test pins it).
+- **A result reaches the model as an envelope** (`domain/result_envelope.py`): every number carries its result id and name, method and
+  version, the settings it ran with, the structure it describes, units, status (including the refusal's code and kind), freshness and
+  caveats, and per-atom data says which index space it is in. Eight result kinds are supported and any other is reported `unsupported`, never
+  forced through a generic dict. A reply over its size budget is shortened by dropping rows, never by dropping a unit or a caveat, and
+  says so.
+- **A preview card with real Approve and Cancel** for work that needs a person (a slow calculator, a molecule above 41 heavy atoms, anything
+  unclassified). Nothing starts until the button is pressed, once; the outcome reaches the model as a note on the next message, not as a
+  tool result it could have forged. A ledger under the cards lists what the assistant asked for and what became of it, and a note names
+  where the conversation is sent (this machine's server, or the provider), because tool output goes to it.
+- **`list_goals` reads the goal wizard's table** (`domain/calculator_goals.py`) as knowledge: the question each goal answers, the calculators the
+  application chose for it and why, each with what the assistant may do with it (`you_may_run`, `needs_user_approval`, `cannot_start_here`).
+  With no argument it lists every goal; with a `goal_id` it gives that goal's entries in full. It is deliberately NOT a way to run a goal:
+  `PropertyPanel.run_goal` never consults the execution policy, so nothing here calls it, and the assistant runs a goal's calculators one at
+  a time through `run_calculator`, each checked, gated and recorded on its own. The wizard's own caveat travels with it: the lists are
+  editorial, not a validated protocol. `context.calculations` gains a seventh call, `goals()`.
+- **ORCA and Vina calculators are described, not run.** The assistant can say what an ORCA job would take, whether the executable is
+  configured and whether the molecule has the conformer it needs, with an "Open" button for the panel that owns the job. Nothing is started and
+  no run id exists.
+- **Plugins > Explain Stored Results** asks the assistant to read every stored result for the selected molecule and explain it, with its
+  method, units and caveats and which are not current.
+- **Found by driving the real window, and fixed:** `reveal_panel` ignored built-in panel ids, so the card's "Open" did nothing; and on Windows with
+  a saved layout a plugin panel came out of the first `show()` with no place in the layout and opened as a bare 256 x 240 rectangle over the
+  Project Explorer with Properties still open beside it (every plugin panel, Database Search and Reaction Prediction included; the offscreen
+  platform the suite uses cannot show it). A panel is now put back in the layout when it is about to be shown, from the rail, the Plugins menu and the View
+  menu. `benchmarks/visual/ai_assistant_tools.json` drives all of it with a scripted provider (14 assertions).
+- **Not verified:** a live run on a real tool-capable provider needs an API key, so whether a real model calls these tools well is unmeasured.
+
 ### AI assistant bridge, step 2: the host adapter, the plugin handle, a frozen turn snapshot and parameter validation
 - **`context.calculations`** gives a plugin six calls: freeze a turn, search the calculators, describe one, read what is stored, prepare a
   request and run it. It carries no container, bus, registry or window, and **no way to approve anything**: a request that needs a person is

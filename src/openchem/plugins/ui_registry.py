@@ -35,7 +35,9 @@ class UIRegistry(Protocol):
         this -- a plain `widget.setFocus()` on a panel that's hidden behind
         another tab is invisible to the user, indistinguishable from the
         action having done nothing at all. A no-op if `panel_id` isn't
-        currently registered."""
+        currently registered, except that the id of a built-in panel (for
+        example "Quantum_Chemistry") is also accepted and revealed, so a
+        plugin can point the person at the panel that owns a job."""
         ...
 
     def add_menu_action(self, plugin_id: str, label: str, callback: Callable[[], None]) -> None:

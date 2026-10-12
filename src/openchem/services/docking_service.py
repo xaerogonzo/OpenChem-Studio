@@ -641,6 +641,12 @@ class DockingService:
         self._pool = QThreadPool.globalInstance()
         self._job_manager = job_manager if job_manager is not None else JobManager()
 
+    def is_available(self) -> bool:
+        """Whether any registered provider could dock right now. Read-only: nothing is started."""
+        return any(
+            bool(getattr(provider, "is_available", lambda: False)()) for provider in self._providers.values()
+        )
+
     def register_provider(self, provider: DockingProvider) -> None:
         self._providers[provider.provider_id] = provider
 
