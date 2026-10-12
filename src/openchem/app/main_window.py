@@ -94,6 +94,7 @@ from openchem.events.events import (
     PluginUnloaded,
     QuantumChemistryResultReady,
 )
+from openchem.app.calculation_host import CalculationHost
 from openchem.plugins.manager import PluginManager
 from openchem.services.container import ServiceContainer
 from openchem.services.result_store_service import SUBSTANCE_PART
@@ -908,7 +909,10 @@ class MainWindow(QMainWindow):
         # Constructed last: PluginManager depends only on the UIRegistry
         # protocol (add_panel/remove_panel/add_menu_action/remove_menu_actions
         # below), not on MainWindow itself — see plugins/ui_registry.py.
-        self._plugin_manager = PluginManager(services, self, settings)
+        # The calculator bridge a plugin (the AI assistant) reaches through `context.calculations`.
+        # Held here: the bus keeps only weak references to its handlers.
+        self._calculation_host = CalculationHost(services, session)
+        self._plugin_manager = PluginManager(services, self, settings, self._calculation_host)
         self._plugin_manager.load_all()
         self._refresh_installed_plugins_menu()
 

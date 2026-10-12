@@ -235,6 +235,13 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           what Properties HOLDS, asserted
     {"do": "pka_worker_report", "tag": "x"}  the pKa sidecar: state, pid, spawns, requests,
                                           its own startup/prediction times (never creates one)
+    {"do": "ai_bridge_run", "calculator": "polar_surface_area", "parameters": {"pH": 7}}
+                                          the assistant's calculator bridge in the REAL window: freeze a
+                                          turn, prepare the request and, if it is automatic, call `run`
+                                          from a worker thread as the tool loop would (give it `after_ms`)
+    {"do": "ai_bridge_decide", "approve": true}   a person's Approve or Cancel on the pending preview
+    {"do": "ai_bridge_expect", "expect": {"state": "completed", "has_number": true, "reads": [...],
+     "not_run": [...], "problems": ["not_a_choice"], "route": "auto"}}  asserts what the last run did
     {"do": "wait"} {"do": "quit"}
 
 **A DRIVEN RUN ENDS IN A VERDICT, AND EXITS NON-ZERO WHEN IT FAILED.**

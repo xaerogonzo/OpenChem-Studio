@@ -488,6 +488,18 @@ class SessionResultStore:
 
     # --- reading ----------------------------------------------------------
 
+    def all_results(self, molecule_uuid: str) -> list[StoredResult]:
+        """EVERY retained record for a molecule, current or not, in storage order.
+
+        `fresh_results` answers "what still describes this structure" and says nothing about the
+        rest, so a reader that must tell a current result from an earlier one (the assistant's
+        turn snapshot) cannot be built on it: it would see only the first kind and have no way to
+        know the second existed. Read-only: the list is a copy, and the records are the stored
+        objects (their results are frozen).
+        """
+        record = self._molecules.get(molecule_uuid)
+        return list(record.results.values()) if record is not None else []
+
     def fresh_results(self, molecule_uuid: str, fingerprints: dict[str, str]) -> list[StoredResult]:
         """Results whose input is still the input, in replay order.
 

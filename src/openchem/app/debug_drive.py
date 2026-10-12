@@ -7031,6 +7031,115 @@ class _Driver(QObject):
                 logger.warning("OPENCHEM_DRIVE: could not write the report to %s", self._report_path)
         return code
 
+    # -- the assistant's calculator bridge (`app/calculation_host.py`) --------
+    #
+    # Three steps drive the REAL host, in the real window, from a real worker thread -- the one
+    # place the unit tests' fake world cannot reach: does the session's selection follow the UI, is
+    # the result store wired to the open project, do the events cross the thread boundary, and does
+    # Properties show an AI-requested result as it shows a person's.
+
+    def _do_ai_bridge_run(self, step: dict[str, Any]) -> None:
+        """`{"do": "ai_bridge_run", "calculator": "polar_surface_area", "parameters": {...}}`
+        -- freeze a turn, prepare the request, and (if it is automatic) call `run` from a worker.
+
+        An automatic request is started on a thread, exactly as the assistant's tool loop would,
+        and its outcome is read later by `ai_bridge_expect`: give this step `after_ms`. A request
+        that needs a person stops at its preview, which `ai_bridge_decide` then answers.
+        """
+        import threading
+
+        from openchem.domain.calculation_bridge import Route
+
+        host = self._window._calculation_host
+        turn = host.begin_turn()
+        record: dict[str, Any] = {"turn": turn, "prepare": None, "run_id": "", "outcome": None, "thread": None}
+        self._bridge = record
+        if turn is None:
+            logger.error("OPENCHEM_DRIVE: ai_bridge_run -- nothing is selected")
+            return
+        prepared = host.prepare(turn, str(step["calculator"]), dict(step.get("parameters") or {}))
+        record["prepare"] = prepared
+        if not prepared.ok:
+            logger.warning("OPENCHEM_DRIVE: ai_bridge_run refused -- %s", [p.to_dict() for p in prepared.problems])
+            return
+        record["run_id"] = prepared.preparation.run_id
+        if prepared.preparation.route is not Route.AUTO:
+            logger.warning("OPENCHEM_DRIVE: ai_bridge_run previewed -- %s", prepared.preparation.decision.reason)
+            return
+        thread = threading.Thread(
+            target=lambda: record.update(outcome=host.run(turn, record["run_id"])), name="ai-bridge-run", daemon=True,
+        )
+        record["thread"] = thread
+        thread.start()
+
+    def _do_ai_bridge_decide(self, step: dict[str, Any]) -> None:
+        """`{"do": "ai_bridge_decide", "approve": true}` -- the person's Approve or Cancel on the pending preview."""
+        record = getattr(self, "_bridge", None)
+        if not record or not record.get("run_id"):
+            logger.error("OPENCHEM_DRIVE: ai_bridge_decide -- no prepared run; run ai_bridge_run first")
+            return
+        host = self._window._calculation_host
+        if step.get("approve", True):
+            record["state_after"] = host.approve(record["run_id"])
+        else:
+            host.cancel(record["run_id"])
+            record["state_after"] = host.state_of(record["run_id"])
+
+    def _do_ai_bridge_expect(self, step: dict[str, Any]) -> None:
+        """`{"do": "ai_bridge_expect", "tag": "x", "expect": {...}}` -- what the last `ai_bridge_run` did.
+
+        Keys: `problems` (the refusal codes, in order), `route`, `state` (the run's state: from the
+        worker's outcome for an automatic run, the ledger for a preview), `has_number`,
+        `message_contains`, `reads` (calculator ids a FRESH turn reads as current), `not_run`
+        (ids a fresh turn reports as never run). A run still going is named as such.
+        """
+        record = getattr(self, "_bridge", None) or {}
+        host = self._window._calculation_host
+        expect = dict(step.get("expect") or {})
+        tag = str(step.get("tag", ""))
+        problems: list[str] = []
+        prepared = record.get("prepare")
+        if "problems" in expect:
+            got = [p.code.value for p in prepared.problems] if prepared is not None else []
+            if got != list(expect["problems"]):
+                problems.append(f"problems {got}, wanted {list(expect['problems'])}")
+        if "route" in expect:
+            got_route = prepared.preparation.route.value if prepared is not None and prepared.ok else None
+            if got_route != expect["route"]:
+                problems.append(f"route {got_route!r}, wanted {expect['route']!r}")
+        outcome = record.get("outcome")
+        thread = record.get("thread")
+        if "state" in expect:
+            if thread is not None and outcome is None:
+                state = "running (give the step before this more after_ms)"
+            elif outcome is not None:
+                state = outcome.state.value
+            else:
+                live = host.state_of(record["run_id"]) if record.get("run_id") else None
+                state = live.value if live is not None else None
+            if state != expect["state"]:
+                problems.append(f"state {state!r}, wanted {expect['state']!r}")
+        if "has_number" in expect and (outcome is not None and outcome.has_number) != bool(expect["has_number"]):
+            problems.append(f"has_number {outcome.has_number if outcome else None}, wanted {expect['has_number']}")
+        for needle in ([expect["message_contains"]] if isinstance(expect.get("message_contains"), str) else expect.get("message_contains") or []):
+            if outcome is None or needle not in outcome.message:
+                problems.append(f"the outcome's message lacks {needle!r}: {outcome.message if outcome else None!r}")
+        if "reads" in expect or "not_run" in expect:
+            fresh = host.begin_turn()
+            wanted = list(expect.get("reads", [])) + list(expect.get("not_run", []))
+            view = host.read_results(fresh, wanted)
+            current = sorted({e.producer for e in view.entries})
+            for calculator_id in expect.get("reads", []):
+                if calculator_id not in current:
+                    problems.append(f"a fresh turn does not read {calculator_id} as current (reads {current})")
+            for calculator_id in expect.get("not_run", []):
+                if calculator_id not in view.not_run:
+                    problems.append(f"a fresh turn does not report {calculator_id} as not run")
+        if self._record_assertion("ai_bridge_expect", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT ai_bridge ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT ai_bridge FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
     def _do_wait(self, step: dict[str, Any]) -> None:
         """Nothing; the pause is `after_ms`. Present so a script can say
         it is waiting rather than hiding it in the previous step."""

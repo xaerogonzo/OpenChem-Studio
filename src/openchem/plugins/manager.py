@@ -11,6 +11,7 @@ from PySide6.QtCore import QFileSystemWatcher, QTimer
 
 from openchem.app.settings import Settings
 from openchem.events.events import PluginLoadFailed, PluginLoaded, PluginUnloaded
+from openchem.plugins.calculation_access import CalculationHost
 from openchem.plugins.context import PluginContext
 from openchem.plugins.interfaces import PLUGIN_API_VERSION, Plugin
 from openchem.plugins.manifest import ManifestError, PluginManifest, topological_order
@@ -111,10 +112,19 @@ class PluginManager:
     implementation, not a `PluginManager` change.
     """
 
-    def __init__(self, services: ServiceContainer, ui_registry: UIRegistry, settings: Settings) -> None:
+    def __init__(
+        self,
+        services: ServiceContainer,
+        ui_registry: UIRegistry,
+        settings: Settings,
+        calculation_host: CalculationHost | None = None,
+    ) -> None:
         self._services = services
         self._ui_registry = ui_registry
         self._settings = settings
+        #: Passed to every plugin's context as `context.calculations`. Not on `UIRegistry`, so the
+        #: protocol's test doubles are unaffected; a front end that has one hands it in here.
+        self._calculation_host = calculation_host
         self._loaded: dict[str, _LoadedPlugin] = {}
 
         self._project_plugins_dir = Path(
@@ -248,7 +258,8 @@ class PluginManager:
 
         module_name = f"openchem_plugin_{manifest.plugin_id}_{uuid.uuid4().hex[:8]}"
         context = PluginContext(
-            manifest.plugin_id, manifest.plugin_dir, self._services, self._ui_registry, self._settings
+            manifest.plugin_id, manifest.plugin_dir, self._services, self._ui_registry, self._settings,
+            self._calculation_host,
         )
         try:
             module = _import_plugin_module(manifest.plugin_dir, module_name)
