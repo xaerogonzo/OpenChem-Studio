@@ -457,3 +457,9 @@ file = "tests/test_namer_round44_parent_anion_and_stereo.py"
 why = "the anion is the parent (D-229: 4-cyanobenzene-1-thiolate), a protonated acylhydrazone keeps its charge (D-230: benzamido(methylidene)azanium), E/Z survives a methyl branch (D-231), a spiro ammonium keeps its carbons' stereo (D-232), and the pyridazino-diazepine has atom locants"
 scope = "core"
 owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_round45_cations_and_zwitterions.py"
+why = "a ring cation keeps -ium before a curated ketone suffix (D-233: ...quinolin-6-ium-3,14(4H)-dione), an amidinium zwitterion with a second acid is named (D-234: 3-carboxylato-4-hydroxy-4-oxobutanamidinium), and the census read-back tries OPSIN-readable respellings"
+scope = "core"
+owner = "namer"

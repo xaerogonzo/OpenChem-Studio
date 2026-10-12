@@ -4298,6 +4298,15 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-231", "C/C=C(C)/CNC(=O)C", "N-[(2E)-2-methylbut-2-en-1-yl]acetamide", "N-(2-methylbut-2-en-1-yl)acetamide",
      "STEREO LOST: both stereoisomers had one name (census row 1935625)"),
     # (D-232, a spiro ammonium at [N@H+], is in tests/test_namer_round44_parent_anion_and_stereo.py: this table's harness compares canonical SMILES, which keeps the nitrogen's tag, and a protonated N has no configuration to cite.)
+    # D-233 (naming round 45): `-ium` was appended after a curated ring name's own ketone suffix, a form OPSIN cannot read.
+    ("D-233", "O=C1Cc2cc3n(c(=O)c2CO1)Cc1cc2ccccc2[nH+]c1-3",
+     "1,12-dihydro-14H-pyrano[3',4':6,7]indolizino[1,2-b]quinolin-6-ium-3,14(4H)-dione",
+     "1,12-dihydro-14H-pyrano[3',4':6,7]indolizino[1,2-b]quinoline-3,14(4H)-dion-6-ium",
+     "UNREADABLE: the cation suffix after the ketone suffix (camptothecin's pentacycle; round 41's 'a curated ring cation OPSIN cannot check')"),
+    # D-234: an amidinium zwitterion with a SECOND, neutral carboxylic acid was refused (two `carboxy` words, no way to say which was the carboxylate).
+    ("D-234", "NC(=[NH2+])CC(C(=O)[O-])C(=O)O", "3-carboxylato-4-hydroxy-4-oxobutanamidinium",
+     "[REFUSED: charge perception claimed an 'amidinium' motif but could not complete it]",
+     "a visible refusal; the neutral acid is named as its methyl ester so its prefix cannot be confused with the carboxylate's, and mapped back"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",

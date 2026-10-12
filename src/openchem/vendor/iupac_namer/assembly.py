@@ -427,6 +427,9 @@ def without_stereo_descriptors(name: str) -> str:
     return _STEREO_GROUP_RE.sub("", name)
 
 
+#: A ketone suffix at the end of a curated ring name: `-3,14(4H)-dione`, `-2(1H)-one`, `-1,3-dione`.
+_CURATED_KETONE_TAIL = re.compile(r"-\d+(?:,\d+)*(?:\(\d+H\))?-(?:di|tri|tetra)?one$")
+
 # True while `assemble_without_stereo` runs: the two sites that write a descriptor group write nothing.
 _STEREO_SUPPRESSED: contextvars.ContextVar[bool] = contextvars.ContextVar("iupac_namer_stereo_suppressed", default=False)
 
@@ -3618,12 +3621,27 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
             # separate "e" part by terminal_vowel() at line ~1509.
             # For "-diium"/"-triium" (consonant-leading multiplier), the stem
             # keeps its 'e' (handled by the branch above).
-            if not rc_mult and not tree.unsaturation:
-                if len(parts) > stem_idx + 1 and parts[-1] == "e":
+            # Naming round 45: a curated ring whose NAME carries its ketone (`...quinoline-3,14(4H)-dione`, camptothecin's pentacycle) has no suffix group for
+            # the branch above to go before, so `-ium` was appended after the `dione`: `...-3,14(4H)-dion-6-ium`, which OPSIN cannot read. It goes before the
+            # ketone suffix, as it does before any other suffix (P-74): `...quinolin-6-ium-3,14(4H)-dione`.
+            # The terminal "e" of the stem is a part of its own when the name was built from a suffix-less curated ring (`['...-3,14(4H)-dion', 'e']`).
+            _tail_e = len(parts) == stem_idx + 2 and parts[-1] == "e"
+            _stem_full = parts[stem_idx] + ("e" if _tail_e else "")
+            _ketone = _CURATED_KETONE_TAIL.search(_stem_full) if not rc_mult and not tree.unsaturation else None
+            if _ketone is not None and (len(parts) == stem_idx + 1 or _tail_e):
+                _core = _stem_full[: _ketone.start()]
+                if _core.endswith("e"):
+                    _core = _core[:-1]
+                parts[stem_idx] = _core + rc_suffix + _ketone.group(0)
+                if _tail_e:
                     parts.pop()
-                elif parts[stem_idx].endswith("e"):
-                    parts[stem_idx] = parts[stem_idx][:-1]
-            parts.append(rc_suffix)
+            else:
+                if not rc_mult and not tree.unsaturation:
+                    if len(parts) > stem_idx + 1 and parts[-1] == "e":
+                        parts.pop()
+                    elif parts[stem_idx].endswith("e"):
+                        parts[stem_idx] = parts[stem_idx][:-1]
+                parts.append(rc_suffix)
 
     # 6c. Ring-embedded aromatic [n-] → -ide suffix (P-72.2 / P-73, anion
     # nomenclature).  Populated by SubstitutivePath.execute when the parent
