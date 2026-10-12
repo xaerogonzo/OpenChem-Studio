@@ -26,8 +26,8 @@ from openchem.chem.pose_analysis import (
     _METALS,
     _VDW_RADII,
     CLASH_TOLERANCE,
-    METAL_COORDINATION_CUTOFF,
     METAL_DONOR_MIN_DISTANCE,
+    metal_bond_window,
 )
 
 
@@ -138,7 +138,7 @@ def test_the_neighbourhood_exemption_is_for_the_metal_the_donor_binds_only():
     outward = (h - c) / np.linalg.norm(h - c)
     conformer.SetAtomPosition(other, tuple(float(x) for x in c + outward * 2.9))
     for index in (a.GetIdx() for a in mol.GetAtoms() if a.GetSymbol() == "N"):  # the second metal binds nothing
-        assert math.dist(tuple(conformer.GetAtomPosition(index)), tuple(conformer.GetAtomPosition(other))) > METAL_COORDINATION_CUTOFF
+        assert math.dist(tuple(conformer.GetAtomPosition(index)), tuple(conformer.GetAtomPosition(other))) > metal_bond_window("CA", "N")[1]
 
     found = find_interactions(mol)
 
@@ -155,7 +155,7 @@ def test_a_metal_bonded_in_the_molecule_is_unchanged():
     bonded_nitrogen = next(n.GetIdx() for n in mol.GetAtomWithIdx(zinc).GetNeighbors())
     assert Chem.GetDistanceMatrix(mol)[zinc][bonded_nitrogen] == 1
     conformer = mol.GetConformer()
-    assert math.dist(tuple(conformer.GetAtomPosition(zinc)), tuple(conformer.GetAtomPosition(bonded_nitrogen))) < METAL_COORDINATION_CUTOFF
+    assert math.dist(tuple(conformer.GetAtomPosition(zinc)), tuple(conformer.GetAtomPosition(bonded_nitrogen))) < metal_bond_window("ZN", "N")[1]
 
     found = find_interactions(mol)
 
@@ -185,7 +185,7 @@ def test_an_overlap_closer_than_any_observed_bond_is_still_a_clash():
 def test_a_donor_just_outside_the_bonding_range_is_an_ordinary_contact():
     """Calcium is where the two rules differ most: nitrogen 3.0 A from Ca is closer than the radius sum less the
     tolerance (3.46 A) yet outside the coordination cutoff, so it is a clash and not a bond."""
-    mol = _two_atom_molecule("N", "CA", METAL_COORDINATION_CUTOFF + 0.2)
+    mol = _two_atom_molecule("N", "CA", metal_bond_window("CA", "N")[1] + 0.12)
 
     found = find_interactions(mol)
 
@@ -200,9 +200,10 @@ def test_no_distance_is_reported_as_both_a_coordination_and_a_clash(metal, donor
     floor, being a coordination excludes being a clash. A pair that is both is the original defect. Sulfur is in
     the sweep because the clash exemption takes `_is_metal_donor`, and an exemption wider than the
     detector would make a Zn--S contact vanish from both lists."""
-    steps = round((METAL_COORDINATION_CUTOFF - METAL_DONOR_MIN_DISTANCE) / 0.05)
-    distances = [round(METAL_DONOR_MIN_DISTANCE + 0.05 * i, 2) for i in range(steps + 1)]
-    assert distances[0] == METAL_DONOR_MIN_DISTANCE and distances[-1] == METAL_COORDINATION_CUTOFF
+    low, high = metal_bond_window(metal, donor)
+    edge = 1e-9  # the window's ends are floats (2.41 - 0.5 is 1.9100000000000001): test just inside them
+    distances = [d for d in (low + edge + 0.05 * i for i in range(int((high - low) / 0.05) + 2)) if d < high - edge]
+    distances.append(high - edge)
     for distance in distances:
         found = find_interactions(_two_atom_molecule(donor, metal, distance))
         assert _pairs(found["metal_coordination"]) == [(0, 1)], f"{metal}-{donor} at {distance:.2f} is inside the cutoff"
@@ -237,3 +238,42 @@ def test_a_molecule_with_no_metal_is_unchanged():
 
     assert found["metal_coordination"] == []
     assert found["clashes"] == []
+
+
+@pytest.mark.parametrize(("distance", "bond", "clash"), [(3.50, True, False), (3.70, False, False), (3.80, False, True)])
+def test_potassium_beside_an_oxygen_in_one_molecule_follows_its_own_window(distance, bond, clash):
+    """The same zones as `analyze_pose` (tests/test_pose_analysis_metals.py): a bond to 3.57 A, a normal ion contact to
+    3.77 A that is neither a bond nor a clash, then the ordinary radius rule (K 2.75 + O 1.52 - 0.4 = 3.87)."""
+    found = find_interactions(_two_atom_molecule("O", "K", distance))
+
+    assert bool(found["metal_coordination"]) is bond
+    assert bool(found["clashes"]) is clash
+
+
+def _zinc_beside_a_methylamine(distance: float) -> Chem.Mol:
+    """Zn, N and C in one molecule, N-C bonded, Zn `distance` from N and the carbon placed 1.37 A from the nitrogen
+    and well inside zinc's clash threshold (1.39 + 1.70 - 0.4 = 2.69 A), as a donor's own neighbour is: its distance to
+    the metal is set by the bond's geometry, not by contact. Built by hand so the test can state the geometry."""
+    mol = Chem.RWMol()
+    zinc, nitrogen, carbon = (mol.AddAtom(Chem.Atom(symbol)) for symbol in ("Zn", "N", "C"))
+    mol.AddBond(nitrogen, carbon, Chem.BondType.SINGLE)
+    conformer = Chem.Conformer(3)
+    conformer.SetAtomPosition(zinc, (0.0, 0.0, 0.0))
+    conformer.SetAtomPosition(nitrogen, (distance, 0.0, 0.0))
+    conformer.SetAtomPosition(carbon, (distance - 0.5, 1.275, 0.0))
+    mol.AddConformer(conformer)
+    result = mol.GetMol()
+    Chem.SanitizeMol(result)
+    return result
+
+
+def test_the_neighbours_of_a_donor_are_exempt_only_inside_the_metals_window():
+    """Inside zinc's 2.53 A window the donor's carbon, 2.29 A from the metal, is the bond's own geometry and not a clash.
+    At 2.7 A, outside the window and inside the old single 2.8 A one, the nitrogen is no longer bonded, so the carbon
+    (2.55 A from zinc, under the 2.69 A threshold) is an ordinary clash."""
+    inside = find_interactions(_zinc_beside_a_methylamine(2.4))
+    outside = find_interactions(_zinc_beside_a_methylamine(2.7))
+
+    assert _pairs(inside["metal_coordination"]) == [(0, 1)] and inside["clashes"] == []
+    assert outside["metal_coordination"] == []
+    assert (0, 2) in _pairs(outside["clashes"])

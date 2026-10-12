@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Docking and interactions: a metal's bond window is its own
+- **A bond to a metal no longer has one length for every metal and donor.** The 1.8 to 2.8 angstrom window `analyze_pose` and Interaction
+  Analysis shared is replaced by `pose_analysis.metal_bond_window(metal, donor)`: the target distance for that metal and donor
+  (Harding 2006 Table 4 for Zn, Fe, Co, Mn, Cu, Mg, Ca, Na and K; Zheng et al. 2017's CSD means for nickel) plus 0.5 angstrom,
+  0.75 for sodium and potassium, with a floor of the target less 0.5 and never under 1.8. Measured: a potassium to oxygen
+  contact at 3.5 angstrom was a steric clash and is now a coordination; zinc to a histidine nitrogen at 2.7 angstrom was a
+  coordination and is not; sodium and potassium contacts past the bond, to Harding's secondary sphere, are neither a bond nor a
+  clash. Interaction Analysis moves to method `interactions-v3` (a v2 result is kept and labelled). Docking results already
+  saved keep the clash list they were analysed with. `harding2001`, `harding2002`, `harding2006` and `zheng2017` become shipped
+  sources. The metal radii are untouched, and fluorine reads the metal's oxygen entry, an assumption with no source.
+
 ### Naming: a spiro compound keeps the stereochemistry of its ring junctions
 - A spiro compound whose stereocentre sits at a primed or lettered position (`3a`, `10b'`, `1'`) lost its descriptor, or cited a junction atom without its letter (`10'` for `10b'`, `3R,3S` for `3aR,3S`, a locant OPSIN cannot place). The census's spiro oxindoles, pyrazolo[1,5-c][1,3]benzoxazines and the camphor spirohydantoin now name the stereoisomer they were drawn as (D-225): census 1979 -> 1987 exact (99.35%); of the census's spiro structures, 35 of 79 stereoisomers read back exactly before and 73 do now, none a different stereoisomer. fresh_v1 re-scored once, 1961 of 2000 read back.
 
@@ -22,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   or S, is exempt the same way and is now reported as a coordination too. All five measured cases give 0 clashes and 1
   coordination; `tests/test_pose_analysis_metals.py` pins them, Harding's sourced distances, the boundaries and a sweep that
   no distance is both, and eleven mutants of the fix are killed. The radii are unchanged.
-- Not covered: one 2.8 angstrom window serves every metal (too short for K; sourced per-metal windows are the follow-up), and fluorine as a donor has no source. A docking result saved earlier keeps the clash list it was analysed with; re-docking replaces it. The same
+- Not covered then, built since (see below): one 2.8 angstrom window served every metal (too short for K), and fluorine as a donor still has no source. A docking result saved earlier keeps the clash list it was analysed with; re-docking replaces it. The same
   metal-as-separate-fragment defect exists in `interaction_analysis.find_interactions` (measured: one clash and one
   coordination); fixed in "Interaction Analysis: a metal in a separate fragment" below. `harding1999` is now registered as shipped (its tables were read).
 

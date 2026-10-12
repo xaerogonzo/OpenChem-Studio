@@ -21,7 +21,7 @@ from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
 from openchem.chem.pose_analysis import (
     CATION_PI_CUTOFF,
     HBOND_DISTANCE_CUTOFF,
-    METAL_COORDINATION_CUTOFF,
+    metal_bond_window,
     PI_STACKING_CUTOFF,
     SALT_BRIDGE_CUTOFF,
 )
@@ -74,7 +74,7 @@ def _metal_beside(smiles: str, donor_symbol: str, distance: float) -> tuple[Chem
     mol = Chem.AddHs(Chem.MolFromSmiles(smiles))
     assert AllChem.EmbedMolecule(mol, randomSeed=7) == 0
     conformer = mol.GetConformer()
-    metal = next(a.GetIdx() for a in mol.GetAtoms() if a.GetSymbol() in ("Zn", "Na"))
+    metal = next(a.GetIdx() for a in mol.GetAtoms() if a.GetSymbol() in ("Zn", "Na", "K"))
     donor = next(a.GetIdx() for a in mol.GetAtoms() if a.GetSymbol() == donor_symbol)
     positions = conformer.GetPositions()
     outward = positions[donor] - np.delete(positions, [metal, donor], axis=0).mean(axis=0)
@@ -274,13 +274,27 @@ def test_a_sulfone_sulfoxide_or_sulfonamide_sulfur_is_not_a_donor(smiles):
     assert (metal, sulfur) not in coordinating and (sulfur, metal) not in coordinating
 
 
-def test_the_metal_cutoff_is_the_shared_constant():
-    """2.8 A used to be a literal here. Just inside the shared constant coordinates; just outside does not."""
-    inside, metal, sulfur = _metal_beside("[Zn+2].[S-]CCN", "S", METAL_COORDINATION_CUTOFF - 0.05)
-    outside, _, _ = _metal_beside("[Zn+2].[S-]CCN", "S", METAL_COORDINATION_CUTOFF + 0.05)
+def test_the_metal_window_is_the_shared_one():
+    """2.8 A used to be a literal here, then one shared constant. Now it is the shared per-metal window: just inside
+    zinc's longest Zn-S bond coordinates, just outside does not."""
+    longest = metal_bond_window("ZN", "S")[1]
+    inside, metal, sulfur = _metal_beside("[Zn+2].[S-]CCN", "S", longest - 0.05)
+    outside, _, _ = _metal_beside("[Zn+2].[S-]CCN", "S", longest + 0.05)
 
     assert (metal, sulfur) in _pairs(inside, "Metal coordination")
     assert (metal, sulfur) not in _pairs(outside, "Metal coordination")
+
+
+def test_the_window_depends_on_the_metal_and_the_donor_not_one_number():
+    """Zinc to an amine nitrogen at 2.7 A was inside the old single 2.8 A cutoff; Harding's bond is 2.03 A and the
+    window ends at 2.53. Potassium to oxygen at 3.4 A was outside it; K-O is 2.82 A and the window runs to 3.57."""
+    far, zinc, nitrogen = _metal_beside("[Zn+2].CCN", "N", 2.7)
+    near, _, _ = _metal_beside("[Zn+2].CCN", "N", 2.4)
+    potassium_mol, potassium, oxygen = _metal_beside("[K+].CC[O-]", "O", 3.4)
+
+    assert (zinc, nitrogen) not in _pairs(far, "Metal coordination")
+    assert (zinc, nitrogen) in _pairs(near, "Metal coordination")
+    assert (potassium, oxygen) in _pairs(potassium_mol, "Metal coordination")
 
 
 # --- 5. a hydrophobic contact has a lower bound -------------------------------------------------------------------
@@ -341,7 +355,7 @@ def test_a_result_records_its_method_and_the_identity_carries_it():
         molecule_uuid="m", result=result, calculation_input=GEOMETRY, input_fingerprint="fp", producer="core"
     )
 
-    assert result.provenance.parameters["method"] == INTERACTION_METHOD == "interactions-v2"
+    assert result.provenance.parameters["method"] == INTERACTION_METHOD == "interactions-v3"
     assert identity.method_version == INTERACTION_METHOD == CURRENT_METHOD_VERSIONS["interaction_analysis"]
 
 
@@ -366,3 +380,28 @@ def test_an_interaction_result_saved_before_the_change_is_kept_and_labelled():
     assert restored.identity.method_version == legacy == "legacy-contact-rules-v1"
     assert restored.result.name == label and label.startswith("Interaction Analysis") and "previous method" in label
     assert restored.identity.method_version != CURRENT_METHOD_VERSIONS["interaction_analysis"]
+
+
+def test_an_interactions_v2_result_is_kept_beside_the_v3_one_and_labelled():
+    """v3 (2026-10-12) made the metal window per metal and per donor. A project saved by v2 keeps its lines under their
+    own label and is not replayed as the current method."""
+    from openchem.services.result_identity import make_identity
+
+    result = _report(_conformers("CCO", count=1)[0])
+    identity = make_identity(
+        molecule_uuid="m", result=result, calculation_input=GEOMETRY, input_fingerprint="fp", producer="core"
+    )
+    store = SessionResultStore("project")
+    store.put(StoredResult(identity=identity, result=result))
+    saved = store.to_dict()
+    saved["molecules"]["m"]["results"][0]["method_version"] = "interactions-v2"
+    reloaded = SessionResultStore.from_dict(saved, "project")
+
+    (restored,) = reloaded.fresh_results("m", {GEOMETRY: "fp"})
+    assert restored.identity.method_version == "interactions-v2"
+    assert restored.result.name.startswith("Interaction Analysis (previous method")
+
+    reloaded.put(StoredResult(identity=identity, result=result))
+    replayed = {s.identity.method_version for s in reloaded.fresh_results("m", {GEOMETRY: "fp"})}
+    kept = {entry.get("method_version", "") for entry in reloaded.to_dict()["molecules"]["m"]["results"]}
+    assert replayed == {"interactions-v3"} and kept == {"interactions-v2", "interactions-v3"}

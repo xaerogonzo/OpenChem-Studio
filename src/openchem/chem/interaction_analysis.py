@@ -31,13 +31,13 @@ from openchem.chem.pose_analysis import (
     CLASH_TOLERANCE,
     HBOND_DISTANCE_CUTOFF,
     HYDROPHOBIC_CUTOFF,
-    METAL_COORDINATION_CUTOFF,
-    METAL_DONOR_MIN_DISTANCE,
     PI_STACKING_CUTOFF,
     SALT_BRIDGE_CUTOFF,
     _BONDED_NEIGHBOUR_DEPTH,
     _DEFAULT_VDW_RADIUS,
     _METALS,
+    is_metal_bond,
+    is_metal_contact,
     _POLAR_ELEMENTS,
     _VDW_RADII,
     _formal_charge_sites,
@@ -137,20 +137,26 @@ def _metal_bonded_pairs(mol: Chem.Mol, positions, topological) -> set[tuple[int,
     separation cannot exclude those: the distance between fragments is infinite, so `MIN_SEPARATION['clashes']`
     lets every such pair through and the donor was reported as a clash AND as `metal_coordination`.
 
-    A donor (`_is_metal_donor`, the same test the coordination detector below uses) between `METAL_DONOR_MIN_DISTANCE` and `METAL_COORDINATION_CUTOFF` of a
-    metal is bonded to it, and so is every atom within `_BONDED_NEIGHBOUR_DEPTH` bonds of that donor, against
-    THAT metal only (their distance to it is fixed by the M-D-X angle, not a contact). Closer than the floor
-    the two atoms overlap and the pair stays in the clash test.
+    A donor (`_is_metal_donor`, the same test the coordination detector below uses) inside the metal's bond window for
+    that donor (`pose_analysis.metal_bond_window`, per metal and per donor) is bonded to it, and so is every atom within
+    `_BONDED_NEIGHBOUR_DEPTH` bonds of that donor, against THAT metal only (their distance to it is fixed by the M-D-X
+    angle, not a contact). For sodium and potassium a donor out to Harding's secondary sphere is not a bond but is a
+    normal contact of the ion, so that pair alone is left out of the clash test (`pose_analysis.is_metal_contact`).
+    Closer than the window's floor the two atoms overlap and the pair stays in the clash test.
     """
     metals = [a.GetIdx() for a in mol.GetAtoms() if a.GetSymbol().upper() in _METALS]
     bonded: set[tuple[int, int]] = set()
     for metal in metals:
+        metal_symbol = mol.GetAtomWithIdx(metal).GetSymbol().upper()
         for donor in (a.GetIdx() for a in mol.GetAtoms() if _is_metal_donor(a)):
-            if not METAL_DONOR_MIN_DISTANCE <= _distance(positions, metal, donor) <= METAL_COORDINATION_CUTOFF:
-                continue
-            for other in range(mol.GetNumAtoms()):
-                if other != metal and topological[donor][other] <= _BONDED_NEIGHBOUR_DEPTH:
-                    bonded.add((min(metal, other), max(metal, other)))
+            donor_symbol = mol.GetAtomWithIdx(donor).GetSymbol()
+            distance = _distance(positions, metal, donor)
+            if is_metal_bond(metal_symbol, donor_symbol, distance):
+                for other in range(mol.GetNumAtoms()):
+                    if other != metal and topological[donor][other] <= _BONDED_NEIGHBOUR_DEPTH:
+                        bonded.add((min(metal, other), max(metal, other)))
+            elif is_metal_contact(metal_symbol, donor_symbol, distance):
+                bonded.add((min(metal, donor), max(metal, donor)))
     return bonded
 
 
@@ -232,7 +238,11 @@ def find_interactions(mol: Chem.Mol) -> dict[str, list[dict[str, Any]]]:
             donor = j if element_i.upper() in _METALS else i
             if (
                 _is_metal_donor(mol.GetAtomWithIdx(donor))
-                and distance <= METAL_COORDINATION_CUTOFF
+                and is_metal_bond(
+                    (element_i if element_i.upper() in _METALS else element_j).upper(),
+                    mol.GetAtomWithIdx(donor).GetSymbol(),
+                    distance,
+                )
                 and separated("metal_coordination", i, j)
             ):
                 found["metal_coordination"].append({"atoms": (i, j), "distance": distance})
