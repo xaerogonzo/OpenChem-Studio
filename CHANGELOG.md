@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: amidinium zwitterions, charges that were dropped, pyrrolinium spelling, helicenes
+- An amidinium beside a carboxylate, a carboxyl or a second carbonyl was refused; it is named now (`carboxylatoacetamidinium`, `carboxyformamidinium`) (D-226). A thiolate or phenolate beside a nitrile, aldehyde or amide was named as the NEUTRAL compound (`N#Cc1ccc([O-])cc1` was `4-hydroxybenzene-1-carbonitrile`, a different molecule); it keeps its charge now (`4-oxidobenzene-1-carbonitrile`), and a name that cannot place the charge is refused instead (D-227). N-substituted 1-pyrrolinium and imidazolinium cations take the retained spelling (`1-methyl-3,4-dihydro-2H-pyrrol-1-ium`), and penta- to octahelicene have atom locants (D-228: 224 of 260 sweep cases named another isomer, now 0). Census 1987 -> 1989 exact (99.45%); fresh_v1 re-scored once, 1962 of 2000 read back.
+
 ### Docking and interactions: magnesium is no donor to a carbon-bound fluorine, and a fluoride ion is told from one
 - A fluorine now has two donor keys, set by its bonds (`pose_analysis.metal_donor_symbol`): bonded to carbon or boron it is a donor
   to sodium, potassium and calcium only; bonded to neither (a fluoride ion) it keeps the oxygen window for every metal. Magnesium
@@ -245,6 +248,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Naming: a partly saturated ring cation keeps its hydro prefixes
 - A cyclic iminium or amidinium (`C[N+]1=C(C)NCC1`, `C1CC=[NH+]C1`, `CC1=[NH+]CCCC1`) was named as the aromatic or the fully saturated ring with an `-ium`: `2,3-dimethyl-1,3-diazol-3-ium` (an imidazolium), `azol-1-ium` (a pyrrolium), `6-methylazinan-1-ium` (a piperidinium), all different molecules. Two helpers refused a ring on its first charged atom, although an N+ in a C=N+ is in the double bond and is no hydro position. 1151 protonated or N-alkylated cyclic imines, amidines and their substituted forms, master -> now: wrong molecule 1005 -> 0, exact 146 -> 1151, none worse (`C[N+]1=C(C)NCC1` -> `2,3-dimethyl-4,5-dihydro-1H-1,3-diazol-3-ium`). D-207.
+
 ### Properties: "Dock a molecule into a receptor" as a section, and collapsible settings inside the workflow sections
 - Docking is now also a Workflows section of Properties, the second after alignment: receptor and ligand, the search box, preparation, search settings, Dock, and the pose table. It is the Docking panel's own class built a second time, so the pose table, the replicate-spread note, the rescore column and every message are the rail panel's; the rail panel stays as the baseline. A finished dock shows in both copies because they share the project.
 - **Each group inside a workflow section can be closed, and says what it holds while closed**: for example `pH 7.4 · waters removed · cofactors kept`, or `0 molecules onto Ibuprofen · Common scaffold (MCS) · Normal · Flexible`. The Align and Dock buttons and the status line stay outside the closing part. The search box starts open; Preparation and Search start closed with their summaries. With every group closed the two workflows take about 545 px less of the list.
@@ -259,6 +263,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - It is the panel's own class built a second time, not a copy, so the two cannot drift: one alignment fills both tables and both pictures. The 3D Alignment panel in the rail is still there and unchanged; it is the baseline until every row of `docs/PANEL_FEATURE_INVENTORY.md` is shown equal. The two differences are deliberate: the section saves its pop-out window under its own id, and its picture has a minimum height because a section sits in a scroll area.
 - `PropertyPanel.add_workflow()` is the mechanism, so Docking and Quantum Chemistry can follow. A workflow has no tick box and is not part of "Run selected": it has inputs and a Run of its own.
 - Drive: `align`, `align_report`, `ensemble_visible` and `overlay_colour` take `"in": "section"`; `align_report` can `expect` rows and that the two copies agree; `expand` opens `workflow:<id>`; new `properties_scroll`. `benchmarks/visual/alignment_section.json` ran a real alignment: both copies showed the same cells, the overlay rendered, hiding one structure and switching to element colours worked.
+
 ### Hydrogen-Bond Sites: which atoms donate and accept, and which change with pH
 - **Hydrogen-Bond Sites** (Topology, beside the H-Bond curve): every atom that can donate or accept, with its role and, for a donor, its hydrogens, named by canvas number. The definitions are the ones behind the **H-Bond Donors** and **H-Bond Acceptors** properties: RDKit exposes a count and no atoms, so both are written out as patterns and held to the count over 125 structures in the drawing's form and with explicit hydrogens. They count atoms (an NH2 is one donor) and say which atoms CAN take part, not how strongly or in what geometry.
 - **At a pH** (the shared "Take major microspecies" option): the same table on the major microspecies, each role carried back to the atom it is about, and every atom whose role changes flagged: acetic acid's hydroxyl is a donor as drawn and an acceptor at pH 7.4 (the carboxylate), GABA's amine becomes a three-hydrogen ammonium donor. If the structure at that pH cannot be built, the drawn table is still given and the pH half says why it is missing.
@@ -376,6 +381,7 @@ installed, a held file that is not at its recorded name is looked up by sha256 (
 evidence. KV absent, slow, wrong-protocol, malformed or crashing changes nothing about what is checked (tests drive a mock `kv` through
 each of those). `--link-kv [--write]` proposes the new optional `kv_document_id` field for held entries. OpenChem remains fully useful with
 KV absent. Not changed: `tools/library_index.py` (it records no hash for a name the caller types, so there is nothing to look up by).
+
 ### An optional Knowledge Vista tab in External Tools
 
 [Knowledge Vista](https://github.com/xaerogonzo/knowledgevista) (`kv`) is a separate local program that recognises PDFs by content, so a
