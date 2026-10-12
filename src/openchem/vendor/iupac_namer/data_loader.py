@@ -3221,8 +3221,14 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # back to a 5-ring von Baeyer name that OPSIN rejects.  Without substituent
     # verification we do not claim atom_locants; covers the bare-parent name only.
     # Stage 1 audit row (eval/stage1_raw.csv :: opsin_name == "corrin").
+    # Naming round 44: the atom locants are the numbering the Blue Book DRAWS for corrin (pdf p. 1158, "4. Miscellaneous"): carbons 1-19 (there is no 20: C1 and C19 are
+    # bonded directly), the bridge carbons 5, 10 and 15, the four nitrogens 21-24 with the NH on N24, ring A being the one bonded to ring D by the direct bond.
+    # Checked against OPSIN: `k-chlorocorrin` for each of the 13 positions that carry a hydrogen (1, 2, 3, 5, 7, 8, 10, 12, 13, 15, 17, 18, 19) is the same compound,
+    # full InChIKey, as chlorine on this table's atom k. The fusion numbering routine cannot derive it (a 15-membered ring needs a distorted shape).
     "C1=C2CCC(=N2)C=C2CCC(N2)C2CCC(=N2)C=C2CCC1=N2":
-                         {"name": "corrin",      "substituent_form": "corrinyl",   "alkyl_stem_ok": False},
+                         {"name": "corrin",      "substituent_form": "corrinyl",   "alkyl_stem_ok": False,
+                          "atom_locants": {12: 1, 13: 2, 14: 3, 15: 4, 17: 5, 18: 6, 19: 7, 20: 8, 21: 9, 0: 10, 1: 11, 2: 12, 3: 13,
+                                           4: 14, 6: 15, 7: 16, 8: 17, 9: 18, 10: 19, 16: 21, 22: 22, 5: 23, 11: 24}},
 
     # -----------------------------------------------------------------------
     # 5H-phenarsazine — the saturated NH/AsH tautomer of phenarsazine
@@ -4534,10 +4540,14 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # (unsubstituted parent only — bridged-N pyridazine system has internal
     # automorphism that makes single-locant probing ambiguous; substituted
     # forms can be probed individually if/when they appear in the corpus).
+    # Naming round 44: the atom locants are the numbering `fusion_orientation.preferred_numberings` derives (P-25.3.1.3: a heteroatom at a fusion position
+    # takes its own number, so the two nitrogens are 5 and 11; the pyridazine CH2 groups 1-4, the diazepine ones 6-10). OPSIN cannot be probed for it: a
+    # `k-chloro` on the octahydro name puts the chlorine on different atoms for different k. The mirror numbering differs only by the symmetry of the ring.
     "C1CCN2CCCCN2CC1": {
         "name": "octahydropyridazino[1,2-a][1,2]diazepine",
         "substituent_form": "octahydropyridazino[1,2-a][1,2]diazepin-N-yl",
-        "alkyl_stem_ok": False},
+        "alkyl_stem_ok": False,
+        "atom_locants": {0: 8, 1: 7, 2: 6, 3: 5, 4: 4, 5: 3, 6: 2, 7: 1, 8: 11, 9: 10, 10: 9}},
 
     # pyrazolo[3,4-d]pyrimidin-4(1H)-one: 5+6 fused bicyclic with pyrimidine
     # (aromatic, with C4=O) and a 1,2-dihydropyrazole (NH-NH-C=C).  Canonical

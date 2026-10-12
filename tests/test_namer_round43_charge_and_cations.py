@@ -4,7 +4,7 @@ senior group keeps its charge.
 D-226: an amidinium with a carboxylate (the zwitterion `NC(=[NH2+])CC(=O)[O-]`), a carboxyl on its own carbon (`NC(=[NH2+])C(=O)O`, whose surrogate acid is OXALIC acid) or a second acid was
 refused. The amidinium is the parent (a cation outranks an acid and an anion, P-41 / P-73), the other group a prefix: `carboxylatoacetamidinium`, `carboxyformamidinium`.
 
-D-227: `N#Cc1ccc([O-])cc1` was `4-hydroxybenzene-1-carbonitrile`, the NEUTRAL compound: a nitrile outranks the thiol or alcohol the renderer re-protonates the site to, so the site became a
+D-227 (round 44 moved its cases to `test_namer_round44_parent_anion_and_stereo.py`, where the anion is the PARENT: `4-cyanobenzen-1-olate`): `N#Cc1ccc([O-])cc1` was `4-hydroxybenzene-1-carbonitrile`, the NEUTRAL compound: a nitrile outranks the thiol or alcohol the renderer re-protonates the site to, so the site became a
 `hydroxy` / `sulfanyl` prefix and the charge was in no word of the name. Eight of the census's thiolate and phenolate rows had it; the molecule is `4-oxidobenzene-1-carbonitrile` (the anion
 cited as the prefix the book uses when it is not the principal group). A name that cannot say where the charge is (a real OH beside the phenolate) is refused.
 
@@ -51,18 +51,6 @@ PYRROLINIUM = [
     ('1,3-dimethylimidazolinium', 'C[N+]1=CN(C)CC1', '1,3-dimethyl-4,5-dihydro-1H-imidazol-3-ium'),
 ]
 
-ANION_PREFIX = [
-    ('thiolate beside a nitrile', 'N#Cc1ccc([S-])cc1', '4-sulfidobenzene-1-carbonitrile'),
-    ('the sodium salt of a thiolate beside a nitrile', 'N#Cc1ccc([S-])cc1.[Na+]', 'sodium 4-sulfidobenzene-1-carbonitrile'),
-    ('phenolate beside a nitrile', 'N#Cc1ccc([O-])cc1', '4-oxidobenzene-1-carbonitrile'),
-    ('thiolate on a purine with a nitrile chain', 'N#CCCn1cnc2c([S-])ncnc21', '3-(6-sulfido-9H-purin-9-yl)propanenitrile'),
-    ('thiolate beside an aldehyde', 'O=Cc1ccc([S-])cc1', '4-sulfidobenzene-1-carbaldehyde'),
-    ('thiolate beside an amide', 'NC(=O)c1ccc([S-])cc1', '4-sulfidobenzene-1-carboxamide'),
-    ('alkyl thiolate beside a nitrile', 'N#CCC[S-]', '3-sulfidopropanenitrile'),
-    ('two phenolates beside a nitrile', 'N#Cc1ccc([O-])c([O-])c1', '3,4-dioxidobenzene-1-carbonitrile'),
-    ('thiolate beside a thioether and a nitrile', 'CSc1ccc(C#N)cc1[S-]', '4-(methylsulfanyl)-3-sulfidobenzene-1-carbonitrile'),
-]
-
 ANION_UNCHANGED = [
     ('methoxide', 'C[O-]', 'methoxide'),
     ('ethoxide', 'CC[O-]', 'ethoxide'),
@@ -93,7 +81,7 @@ HELICENES = [
     ('octahelicene acetamido at 6', 'CC(=O)Nc1cc2ccccc2c2c1ccc1ccc3ccc4ccc5ccc6ccccc6c5c4c3c12', 'N-(octahelicen-6-yl)acetamide'),
 ]
 
-ALL = AMIDINIUM + PYRROLINIUM + ANION_PREFIX + ANION_UNCHANGED + HELICENES
+ALL = AMIDINIUM + PYRROLINIUM + ANION_UNCHANGED + HELICENES
 
 
 @pytest.mark.parametrize("label,smiles,expected", ALL, ids=[row[0] for row in ALL])
@@ -124,20 +112,12 @@ def test_a_pyrrolinium_has_no_hantzsch_widman_spelling():
         assert "diazol" not in expected.replace("imidazol", ""), expected
 
 
-def test_an_anion_beside_a_senior_group_always_carries_its_charge():
-    """The invariant behind D-227: the name of an anion has a word for the anion."""
-    for _label, _smiles, expected in ANION_PREFIX:
-        assert "sulfido" in expected or "oxido" in expected, expected
-        assert "sulfanyl" not in expected.replace("methylsulfanyl", "") and "hydroxy" not in expected, expected
-
-
 @pytest.mark.parametrize(
     "smiles",
     [
-        "N#Cc1ccc([O-])cc1O",  # a real OH beside the phenolate: which one is the anion cannot be said by a count
         "NC(=[NH2+])CC(C(=O)[O-])C(=O)O",  # a zwitterion with a second acid: which carboxy is the carboxylate
     ],
 )
-def test_a_name_that_cannot_place_the_charge_is_refused_not_written_neutral(smiles):
+def test_a_zwitterion_that_cannot_say_which_acid_is_the_carboxylate_is_refused(smiles):
     with pytest.raises(ValueError):
         name_smiles(smiles)

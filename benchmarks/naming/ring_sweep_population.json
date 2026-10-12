@@ -1,6 +1,6 @@
 {
  "n_rings": 371,
- "population_sha256": "f720062bdc35ac05f58309a2de9007f1ec1931e06a84ecb08a771836779bb01a",
+ "population_sha256": "dfd51894732ef8a2ceec63a0f638c12ca479287a3b1ec584c93a4c7285b11080",
  "purpose": "the frozen ring denominator for tools/naming_ring_locant_sweep.py (naming round 13)",
  "rings": [
   {
@@ -85,8 +85,32 @@
   },
   {
    "atoms": 23,
-   "has_atom_locants": false,
-   "locant_atoms": [],
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22
+   ],
    "name": "corrin",
    "sites": [
     0,
@@ -2697,8 +2721,20 @@
   },
   {
    "atoms": 11,
-   "has_atom_locants": false,
-   "locant_atoms": [],
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
    "name": "octahydropyridazino[1,2-a][1,2]diazepine",
    "sites": [
     0,
