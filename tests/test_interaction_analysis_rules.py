@@ -355,7 +355,7 @@ def test_a_result_records_its_method_and_the_identity_carries_it():
         molecule_uuid="m", result=result, calculation_input=GEOMETRY, input_fingerprint="fp", producer="core"
     )
 
-    assert result.provenance.parameters["method"] == INTERACTION_METHOD == "interactions-v4"
+    assert result.provenance.parameters["method"] == INTERACTION_METHOD == "interactions-v5"
     assert identity.method_version == INTERACTION_METHOD == CURRENT_METHOD_VERSIONS["interaction_analysis"]
 
 
@@ -404,7 +404,7 @@ def test_an_interactions_v2_result_is_kept_beside_the_v3_one_and_labelled():
     reloaded.put(StoredResult(identity=identity, result=result))
     replayed = {s.identity.method_version for s in reloaded.fresh_results("m", {GEOMETRY: "fp"})}
     kept = {entry.get("method_version", "") for entry in reloaded.to_dict()["molecules"]["m"]["results"]}
-    assert replayed == {"interactions-v4"} and kept == {"interactions-v2", "interactions-v4"}
+    assert replayed == {"interactions-v5"} and kept == {"interactions-v2", "interactions-v5"}
 
 
 def test_an_interactions_v3_result_is_kept_beside_the_v4_one_and_labelled():
@@ -428,4 +428,69 @@ def test_an_interactions_v3_result_is_kept_beside_the_v4_one_and_labelled():
 
     reloaded.put(StoredResult(identity=identity, result=result))
     kept = {entry.get("method_version", "") for entry in reloaded.to_dict()["molecules"]["m"]["results"]}
-    assert kept == {"interactions-v3", "interactions-v4"}
+    assert kept == {"interactions-v3", "interactions-v5"}
+
+
+def test_an_interactions_v4_result_is_kept_beside_the_v5_one_and_labelled():
+    """v5 (2026-10-12) stopped counting a fluorine on carbon as a hydrogen-bond acceptor."""
+    from openchem.services.result_identity import make_identity
+
+    result = _report(_conformers("CCO", count=1)[0])
+    identity = make_identity(
+        molecule_uuid="m", result=result, calculation_input=GEOMETRY, input_fingerprint="fp", producer="core"
+    )
+    store = SessionResultStore("project")
+    store.put(StoredResult(identity=identity, result=result))
+    saved = store.to_dict()
+    saved["molecules"]["m"]["results"][0]["method_version"] = "interactions-v4"
+    reloaded = SessionResultStore.from_dict(saved, "project")
+
+    (restored,) = reloaded.fresh_results("m", {GEOMETRY: "fp"})
+    assert restored.identity.method_version == "interactions-v4"
+    assert "hydrogen-bond acceptor" in restored.result.name
+
+
+# --- a C-F fluorine is not a hydrogen-bond acceptor (Dunitz & Taylor 1997) ----------------------------------------------------
+
+
+def _hydrogen_bond_atoms(mol: Chem.Mol, element: str) -> set[int]:
+    return {i for pair in _pairs(mol, "Hydrogen bond") for i in pair if mol.GetAtomWithIdx(i).GetSymbol() == element}
+
+
+def _closest(mol: Chem.Mol, a_symbol: str, b_symbol: str) -> float:
+    positions = _xyz(mol)
+    return min(
+        float(np.linalg.norm(positions[a.GetIdx()] - positions[b.GetIdx()]))
+        for a in mol.GetAtoms()
+        if a.GetSymbol() == a_symbol
+        for b in mol.GetAtoms()
+        if b.GetSymbol() == b_symbol
+    )
+
+
+def test_a_carbon_bound_fluorine_is_not_a_hydrogen_bond_acceptor_inside_one_molecule():
+    """2-fluoroethanol folds its O-H toward the fluorine (about 2.7 A between the heavy atoms in some conformers). The
+    precondition is measured; the control is the same molecule with the fluorine replaced by an oxygen (ethylene glycol),
+    where the very contact is reported."""
+    fluoroethanol = [mol for mol in _conformers("FCCO") if _closest(mol, "F", "O") <= HBOND_DISTANCE_CUTOFF]
+    glycol = [mol for mol in _conformers("OCCO") if _closest(mol, "O", "O") <= HBOND_DISTANCE_CUTOFF]
+    assert fluoroethanol and glycol
+    assert any(_pairs(mol, "Hydrogen bond") for mol in glycol)
+
+    for mol in fluoroethanol:
+        assert _hydrogen_bond_atoms(mol, "F") == set(), _lines(mol, "Hydrogen bond")
+
+
+def test_a_fluorine_on_boron_still_accepts_a_hydrogen_bond_inside_one_molecule():
+    """B-F is a fluorine that is not on carbon. In (hydroxymethyl)trifluoroborate the OH is three bonds from the fluorine and
+    2.6 to 2.9 A from it; the contact is measured per conformer rather than assumed."""
+    def hydroxyl_distance(mol: Chem.Mol) -> float:
+        positions = _xyz(mol)
+        hydroxyl = [a.GetIdx() for a in mol.GetAtoms() if a.GetSymbol() == "O" and a.GetTotalNumHs(includeNeighbors=True)]
+        fluorines = [a.GetIdx() for a in mol.GetAtoms() if a.GetSymbol() == "F"]
+        return min(float(np.linalg.norm(positions[o] - positions[f])) for o in hydroxyl for f in fluorines)
+
+    close = [mol for mol in _conformers("OC[B-](F)(F)F") if hydroxyl_distance(mol) <= HBOND_DISTANCE_CUTOFF]
+    assert close, "no conformer put a B-F fluorine within 3.5 A of the hydroxyl oxygen"
+
+    assert any(_hydrogen_bond_atoms(mol, "F") for mol in close)

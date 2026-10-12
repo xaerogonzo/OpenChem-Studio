@@ -38,6 +38,7 @@ from openchem.chem.pose_analysis import (
     _METALS,
     is_metal_bond,
     is_metal_contact,
+    is_organic_fluorine,
     _POLAR_ELEMENTS,
     _VDW_RADII,
     _formal_charge_sites,
@@ -112,6 +113,12 @@ def _can_donate_hydrogen(atom: Chem.Atom) -> bool:
     """Whether a hydrogen is attached, written out or implied. An N, O or F without one can accept a hydrogen bond
     and cannot give one."""
     return atom.GetTotalNumHs(includeNeighbors=True) > 0
+
+
+def _can_hydrogen_bond(atom: Chem.Atom) -> bool:
+    """Nitrogen, oxygen, or a fluorine that is not bonded to carbon: a C-F fluorine hardly ever accepts a hydrogen bond
+    (`pose_analysis.is_organic_fluorine`)."""
+    return atom.GetSymbol() in _POLAR_ELEMENTS and not is_organic_fluorine(atom)
 
 
 def _is_metal_donor(atom: Chem.Atom) -> bool:
@@ -194,8 +201,8 @@ def find_interactions(mol: Chem.Mol) -> dict[str, list[dict[str, Any]]]:
         # 1,2-dimethoxyethane, 3.01 A apart) are not a hydrogen bond. The docking analysis keeps its
         # heavy-atom-only rule (`pose_analysis.analyze_pose`), where a receptor's hydrogens are not placed.
         is_hydrogen_bond = (
-            element_i in _POLAR_ELEMENTS
-            and element_j in _POLAR_ELEMENTS
+            _can_hydrogen_bond(atom_i)
+            and _can_hydrogen_bond(atom_j)
             and distance <= HBOND_DISTANCE_CUTOFF
             and separated("hydrogen_bonds", i, j)
             and (_can_donate_hydrogen(atom_i) or _can_donate_hydrogen(atom_j))

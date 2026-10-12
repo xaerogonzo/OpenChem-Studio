@@ -882,3 +882,67 @@ def test_open_babel_really_does_lose_an_uppercase_symbol_without_the_fix():
 
     pdb = pybel.readstring("pdb", RECEPTOR_PDB_WITH_ZINC)
     assert 30 in [a.atomicnum for a in pdb.atoms], "PDB was never affected"
+
+
+# --- a C-F fluorine is not a hydrogen-bond acceptor (Dunitz & Taylor 1997; Murray-Rust 1983) -------------------------------
+
+
+def _bonded_ligand_molblock(atoms: list[tuple[str, tuple[float, float, float]]], bonds: list[tuple[int, int]]) -> str:
+    """Like `_make_ligand_molblock`, with bonds: whether a fluorine is on carbon is decided by its bond."""
+    mol = Chem.RWMol()
+    for symbol, _pos in atoms:
+        mol.AddAtom(Chem.Atom(symbol))
+    for a, b in bonds:
+        mol.AddBond(a, b, Chem.BondType.SINGLE)
+    conformer = Chem.Conformer(mol.GetNumAtoms())
+    for i, (_symbol, pos) in enumerate(atoms):
+        conformer.SetAtomPosition(i, pos)
+    mol.AddConformer(conformer)
+    return Chem.MolToMolBlock(mol.GetMol(), kekulize=False)
+
+
+def _hbonds_to_a_receptor_nitrogen(ligand_atoms, bonds, nitrogen_at):
+    receptor = [ReceptorAtom(element="N", position=nitrogen_at, residue_name="LYS", residue_number=1)]
+    return analyze_pose(_bonded_ligand_molblock(ligand_atoms, bonds), receptor)
+
+
+def test_a_carbon_bound_fluorine_is_not_a_hydrogen_bond_acceptor_but_an_oxygen_is():
+    """The control is the same geometry with oxygen in place of fluorine: the rig does find a hydrogen bond here."""
+    carbon_oxygen = _hbonds_to_a_receptor_nitrogen([("C", (0.0, 0.0, 0.0)), ("O", (1.43, 0.0, 0.0))], [(0, 1)], (4.43, 0.0, 0.0))
+    carbon_fluorine = _hbonds_to_a_receptor_nitrogen([("C", (0.0, 0.0, 0.0)), ("F", (1.38, 0.0, 0.0))], [(0, 1)], (4.38, 0.0, 0.0))
+
+    assert len(carbon_oxygen["hbonds"]) == 1
+    assert carbon_fluorine["hbonds"] == []
+    assert carbon_fluorine["clashes"] == []  # 3.0 A is a contact, not an overlap
+
+
+def test_a_fluorine_too_close_to_a_nitrogen_is_a_clash_now_that_it_is_no_hydrogen_bond():
+    found = _hbonds_to_a_receptor_nitrogen([("C", (0.0, 0.0, 0.0)), ("F", (1.38, 0.0, 0.0))], [(0, 1)], (3.78, 0.0, 0.0))
+
+    assert found["hbonds"] == []
+    assert len(found["clashes"]) == 1
+
+
+@pytest.mark.parametrize(
+    ("ligand_atoms", "bonds"),
+    [
+        ([("F", (0.0, 0.0, 0.0))], []),  # a fluoride ion
+        ([("B", (0.0, 0.0, 0.0)), ("F", (1.39, 0.0, 0.0))], [(0, 1)]),  # a tetrafluoroborate-type B-F
+        ([("P", (0.0, 0.0, 0.0)), ("F", (1.58, 0.0, 0.0))], [(0, 1)]),  # a hexafluorophosphate-type P-F
+    ],
+    ids=["fluoride", "B-F", "P-F"],
+)
+def test_a_fluorine_that_is_not_on_carbon_still_accepts_a_hydrogen_bond(ligand_atoms, bonds):
+    fluorine_x = ligand_atoms[-1][1][0]
+    found = _hbonds_to_a_receptor_nitrogen(ligand_atoms, bonds, (fluorine_x + 3.0, 0.0, 0.0))
+
+    assert len(found["hbonds"]) == 1
+    assert found["hbonds"][0]["ligand_element"] == "F"
+
+
+def test_a_receptor_fluorine_is_still_counted_because_it_arrives_without_bonds():
+    """Documented limit: the receptor is coordinates, so a fluoride ion cannot be told from a cofactor's C-F."""
+    receptor = [ReceptorAtom(element="F", position=(0.0, 0.0, 0.0), residue_name="F", residue_number=1)]
+    found = analyze_pose(_make_ligand_molblock([("N", (3.0, 0.0, 0.0))]), receptor)
+
+    assert len(found["hbonds"]) == 1

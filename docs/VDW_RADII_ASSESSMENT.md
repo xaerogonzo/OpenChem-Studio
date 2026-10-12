@@ -415,7 +415,24 @@ table has no entry for the metal and uses its 1.70 default). Measured through `a
 a coordination and is a clash; zinc at 2.55 is neither; sodium at 2.47, potassium at 2.80, calcium at 2.52 stay coordinations.
 Eight mutants (restriction removed, zinc or iron added, each hard cation dropped, fluorine reading nitrogen) are all killed.
 **Known limit:** the rule is by element, so a fluoride ion or a fluorine on boron or phosphorus (a tetrafluoroborate bound to
-nickel at 2.12 angstrom is in Murray-Rust's survey) is a real donor and is not recognised as one. Whether organic fluorine accepts a hydrogen bond is a separate question with its own change.
+nickel at 2.12 angstrom is in Murray-Rust's survey) is a real donor and is not recognised as one. Whether organic fluorine accepts a hydrogen bond is a separate question with its own change, below.
+
+**Fluorine as a hydrogen-bond acceptor (read 2026-10-12; Interaction Analysis `interactions-v5`).** Both analysers counted a
+fluorine as an acceptor, as N and O are. Dunitz and Taylor searched the CSD for C-F bonds in structures with an O-H or N-H and
+found 37 of 5,947 (0.6%) in a contact under 2.3 angstrom (F...H, with the X-H...F angle over 90 degrees), against 42% of carbonyl
+oxygens and 32% of aromatic nitrogens; of the 37 only two are unequivocal hydrogen bonds, one to a fluorine with anionic
+character; a PDB survey of protein-ligand complexes finds only possible cases, all on an inhibitor with a formal negative charge
+[source:dunitz1997]. Murray-Rust et al. found C-F...O contacts bottom out near 2.85 angstrom with no preferred direction
+[source:murrayrust1983]. A fluorine bonded to carbon is therefore no longer an acceptor in `analyze_pose` (ligand side) or
+`find_interactions`; a fluoride ion, and a fluorine on boron or phosphorus, still is, since the evidence is about C-F.
+Measured, ten fluorinated molecules at six conformers each (seed 7, MMFF94): Interaction Analysis hydrogen-bond lines fall
+from 38 to 24, and every one removed was to a fluorine on carbon (2-fluoroethanol 6 to 0, 2-fluorobenzamide 3 to 0, fluconazole
+16 to 12, sitagliptin 3 to 2). A fluorine pressed within 2.62 angstrom of a nitrogen (F 1.47 plus N 1.55 less 0.4) is now a
+steric clash, not a hydrogen bond. Six mutants (each analyser's exclusion removed, every or no fluorine counted as organic, organic
+read as bonded to nitrogen, the wrong element selected) are all killed. **Known limits:** the docking receptor arrives as
+coordinates with no bonds, so a receptor fluorine (a fluoride ion, or a cofactor's C-F) is still counted; the separate
+H-Bond Acceptors property and Hydrogen-Bond Sites table follow RDKit's definition and were not changed; a saved docking
+result keeps the hydrogen bonds it was analysed with.
 (b) **A saved docking result keeps what it was analysed with.** Interaction data
 lives in `DockingPoseModel.metadata`, written once by the docking job and saved in the project file; nothing recomputes it
 on load. Results saved before this change still list the coordinated metal under clashes. The method-version mechanism in

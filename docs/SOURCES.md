@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 99bdfed357b5f7cdbd547562cce1851323ed2321f6331eb6fa8232c9868d8c91 -->
+<!-- SOURCE SHA256: 2d0ef80b7239d1ad8a7d7dfc4e84ccbd73d700867e22073683e141735d2ab1d7 -->
 
 # Sources
 
@@ -148,6 +148,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`drago1965`](#drago1965) | literature | shipped | citation + claim |
 | [`drago1990`](#drago1990) | literature | shipped | citation |
 | [`drago1993`](#drago1993) | literature | shipped | citation |
+| [`dunitz1997`](#dunitz1997) | literature | shipped | citation + claim |
 | [`ertl2000`](#ertl2000) | literature | shipped | citation |
 | [`ertl2008`](#ertl2008) | literature | shipped | citation |
 | [`ertl2009`](#ertl2009) | literature | shipped | citation |
@@ -2682,6 +2683,39 @@ NOT CHECKED: the references and the individual stability constants beyond Table 
 
 THE APPLICATION: the claim that the interaction is weaker than oxygen's (about 64% of Li...O) in the comment on
 `pose_analysis._FLUORINE_DONOR_METALS`.
+
+### dunitz1997
+
+<a id="dunitz1997"></a>
+
+> J. D. Dunitz & R. Taylor, 'Organic Fluorine Hardly Ever Accepts Hydrogen Bonds', Chem. Eur. J. 1997, 3, 89-98.
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/chem.19970030115](https://doi.org/10.1002/chem.19970030115) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-12 |
+| Local copy | `dunitz1997_organic_fluorine.pdf` (not checked) |
+| Used by | `src/openchem/chem/pose_analysis.py`, `docs/VDW_RADII_ASSESSMENT.md` |
+
+CHECKED: the methods, the overall statistics, the two unequivocal cases, the PDB survey and the conclusions, from the extracted
+text of the PDF (10 pages); the DOI is from Crossref. CSD version 5.09 (April 1995), error-free structures with R under 10%, hydrogen
+coordinates present. A hydrogen bond to fluorine was defined by F...H under 2.3 angstrom and an X-H...F angle over 90 degrees (the
+authors call even that relaxed criterion open to criticism; nearly all O-H...O=C and N-H...N bonds have H...O or H...N under 2.2).
+Of 5,947 C-F bonds in 1,218 structures with an O-H or N-H group, 37 (0.6%) make such a contact, against 42% of carbonyl groups
+(17,718 of 42,301) and 32% of aromatic nitrogens (1,060 of 3,354). Of the 37, only two are unequivocal (CEVGUF, calcium
+bis(2-fluorobenzoate) dihydrate, O-H...F 2.02 angstrom, and KOVCAZ), one an anionic fluorine; some of the rest are incidental because the
+hydrogen is nearer a conventional acceptor. Organometallic cases were set aside. In protein-ligand structures from the PDB (October 1994)
+the few possible cases are all on an inhibitor with a formal negative charge, and contacts of 2.9 angstrom or more are
+"not conclusive". The conclusion is that covalently bonded fluorine "hardly ever" accepts a hydrogen bond, and then only in
+exceptional molecular and crystal environments.
+
+NOT CHECKED: the discussion of each of the 37 contacts beyond those two, the intermolecular perturbation theory section (read only
+for its conclusion that the evidence agrees), and the water-octanol and basicity tables beyond their direction.
+
+THE APPLICATION: `pose_analysis.is_organic_fluorine`, which both analysers use to leave a C-F fluorine out of the hydrogen-bond
+acceptors.
 
 ### murrayrust1983
 

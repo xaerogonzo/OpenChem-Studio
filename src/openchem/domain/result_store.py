@@ -100,8 +100,10 @@ STERIC_METHOD = "steric-v2"
 #: `pose_analysis.metal_bond_window` (zinc to nitrogen to 2.53 A, potassium to oxygen to 3.57 A): a metal contact the old
 #: cutoff counted as coordination at 2.7 A is not one now, and a potassium contact at 3.4 A is. v4 (2026-10-12) makes
 #: fluorine a metal donor only to sodium, potassium, calcium and magnesium: a fluorine within 2.59 A of zinc, iron, cobalt,
-#: manganese, copper or nickel is no longer coordination (and is a clash if it is inside the radius rule).
-INTERACTION_METHOD = "interactions-v4"
+#: manganese, copper or nickel is no longer coordination (and is a clash if it is inside the radius rule). v5 (2026-10-12)
+#: stops counting a fluorine bonded to carbon as a hydrogen-bond acceptor (Dunitz and Taylor: 0.6% of C-F bonds are in a
+#: short contact with an O-H or N-H, against 42% of carbonyl oxygens); a fluoride ion or a B-F or P-F fluorine still is one.
+INTERACTION_METHOD = "interactions-v5"
 
 #: Result ids whose METHOD is part of their stored identity, and the method
 #: a result computed today is by. Only these carry a `method_version`, so no
@@ -197,6 +199,7 @@ SUPERSEDED_METHOD_VERSIONS: dict[str, dict[str, str]] = {
     "interaction_analysis": {
         "interactions-v2": "Interaction Analysis (previous method: one 2.8 A metal cutoff for every metal)",
         "interactions-v3": "Interaction Analysis (previous method: fluorine a metal donor to every metal)",
+        "interactions-v4": "Interaction Analysis (previous method: a fluorine on carbon counted as a hydrogen-bond acceptor)",
     },
 }
 

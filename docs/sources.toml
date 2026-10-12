@@ -2675,6 +2675,37 @@ THE APPLICATION: the claim that the interaction is weaker than oxygen's (about 6
 """
 
 [[source]]
+key = "dunitz1997"
+kind = "literature"
+citation = "J. D. Dunitz & R. Taylor, 'Organic Fluorine Hardly Ever Accepts Hydrogen Bonds', Chem. Eur. J. 1997, 3, 89-98."
+identifier_type = "doi"
+identifier = "10.1002/chem.19970030115"
+status = "shipped"
+used_by = ["src/openchem/chem/pose_analysis.py", "docs/VDW_RADII_ASSESSMENT.md"]
+local = "dunitz1997_organic_fluorine.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-12
+note = """
+CHECKED: the methods, the overall statistics, the two unequivocal cases, the PDB survey and the conclusions, from the extracted
+text of the PDF (10 pages); the DOI is from Crossref. CSD version 5.09 (April 1995), error-free structures with R under 10%, hydrogen
+coordinates present. A hydrogen bond to fluorine was defined by F...H under 2.3 angstrom and an X-H...F angle over 90 degrees (the
+authors call even that relaxed criterion open to criticism; nearly all O-H...O=C and N-H...N bonds have H...O or H...N under 2.2).
+Of 5,947 C-F bonds in 1,218 structures with an O-H or N-H group, 37 (0.6%) make such a contact, against 42% of carbonyl groups
+(17,718 of 42,301) and 32% of aromatic nitrogens (1,060 of 3,354). Of the 37, only two are unequivocal (CEVGUF, calcium
+bis(2-fluorobenzoate) dihydrate, O-H...F 2.02 angstrom, and KOVCAZ), one an anionic fluorine; some of the rest are incidental because the
+hydrogen is nearer a conventional acceptor. Organometallic cases were set aside. In protein-ligand structures from the PDB (October 1994)
+the few possible cases are all on an inhibitor with a formal negative charge, and contacts of 2.9 angstrom or more are
+"not conclusive". The conclusion is that covalently bonded fluorine "hardly ever" accepts a hydrogen bond, and then only in
+exceptional molecular and crystal environments.
+
+NOT CHECKED: the discussion of each of the 37 contacts beyond those two, the intermolecular perturbation theory section (read only
+for its conclusion that the evidence agrees), and the water-octanol and basicity tables beyond their direction.
+
+THE APPLICATION: `pose_analysis.is_organic_fluorine`, which both analysers use to leave a C-F fluorine out of the hydrogen-bond
+acceptors.
+"""
+
+[[source]]
 key = "murrayrust1983"
 kind = "literature"
 citation = "P. Murray-Rust, W. C. Stallings, C. T. Monti, R. K. Preston & J. P. Glusker, 'Intermolecular interactions of the carbon-fluorine bond: the crystallographic environment of fluorinated carboxylic acids and related structures', J. Am. Chem. Soc. 1983, 105, 3206-3214."
