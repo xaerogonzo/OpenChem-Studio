@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: a ring cation keeps its ketone suffix after `-ium`, and an amidinium zwitterion with a second acid is named
+- Camptothecin's cation was `...-3,14(4H)-dion-6-ium`, a form OPSIN cannot read; it is `...quinolin-6-ium-3,14(4H)-dione` and reads back, camptothecin itself included (D-233). An amidinium with a carboxylate and a second, neutral carboxylic acid was refused; it is `3-carboxylato-4-hydroxy-4-oxobutanamidinium` (D-234). The census scan's read-back now tries the application's OPSIN-readable respellings, so the four names whose engine form is the book's (`N1,N2-...oxamide`, `oxobis[...]phosphanyl`, `bis([1,3]dioxolo)...`, a bis-adamantane CIP) are no longer counted unparsable: census 1991 -> 1993 exact (99.65%), no unparsable row left. The frozen sets are unchanged (blind check), so none was re-scored.
+
 ### AI assistant bridge, step 2: the host adapter, the plugin handle, a frozen turn snapshot and parameter validation
 - **`context.calculations`** gives a plugin six calls: freeze a turn, search the calculators, describe one, read what is stored, prepare a
   request and run it. It carries no container, bus, registry or window, and **no way to approve anything**: a request that needs a person is
