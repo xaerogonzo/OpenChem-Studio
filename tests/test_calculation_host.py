@@ -288,6 +288,16 @@ def test_a_molecule_larger_than_anything_measured_needs_approval_for_any_calcula
     assert prep.route is Route.NEEDS_APPROVAL and "50 heavy atoms" in prep.decision.reason
 
 
+def test_every_line_of_a_preview_card_is_a_finished_sentence(world):
+    """The reasons are clauses (`... can take far longer`) and the card stacks lines under one another, so one
+    without a full stop read as running into the next. Seen in the real window's screenshot."""
+    world.add("C" * 50, "Fifty carbons")
+    prep = world.host.prepare(world.host.begin_turn(), "polar_surface_area", {}).preparation
+    assert prep.preview
+    for line in prep.preview:
+        assert line.endswith((".", "!", "?")), line
+
+
 def test_an_unclassified_plugin_calculator_needs_approval(world):
     world.services.calculator_registry.register(CalculatorDefinition(
         calculator_id="plugin_calc", display_name="Plugin", category="charge", description="",

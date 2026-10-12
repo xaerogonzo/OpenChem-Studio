@@ -574,6 +574,7 @@ def _preview_lines(name: str, turn: TurnContext, parameters, policy, reason: str
     if policy.external_tools:
         lines.append(f"It starts: {', '.join(sorted(policy.external_tools))}.")
     if reason:
-        lines.append(f"Why a person approves it: {reason}")
+        # The reasons are written as clauses; the card puts a sentence after each, so end this one properly.
+        lines.append(f"Why a person approves it: {reason}{'' if reason.endswith(('.', '!', '?')) else '.'}")
     lines.append("The result will be recorded in the project like one you run yourself.")
     return tuple(lines)

@@ -1,0 +1,71 @@
+[
+  {"do": "smiles", "smiles": "CC(=O)Oc1ccccc1C(=O)O", "name": "Aspirin", "after_ms": 600},
+  {"do": "select", "molecule": -1, "after_ms": 800},
+  {"do": "panel", "id": "Properties", "after_ms": 400},
+
+  {"do": "ai_send", "text": "What is the polar surface area of the selected molecule?",
+   "script": [
+     {"tool": "read_results", "input": {"calculators": ["polar_surface_area"]}},
+     {"tool": "run_calculator", "input": {"calculator_id": "polar_surface_area", "parameters": {"pH": 7}}},
+     {"tool": "read_results", "input": {"calculators": ["polar_surface_area"]}},
+     {"text": "Its polar surface area is in the tool result above."}
+   ], "after_ms": 5000},
+  {"do": "ai_expect", "tag": "automatic-run-through-the-real-send",
+   "expect": {"tools_offered": ["find_calculators", "describe_calculator", "read_results", "run_calculator"],
+              "tool_results_contain": ["\"not_run\": [\"polar_surface_area\"]", "\"state\": \"completed\"", "\"freshness\": \"current\""],
+              "ledger_contains": ["polar_surface_area on Aspirin: completed"], "ledger_rows": 1,
+              "transcript_contains": ["in the tool result above"], "send_enabled": true, "pending": 0, "notes": 0}},
+  {"do": "expect_results", "tag": "properties-shows-what-the-assistant-ran", "expect": {"polar_surface_area": "ready"}},
+
+  {"do": "ai_send", "text": "Run geometry analysis with a made-up policy.",
+   "script": [
+     {"tool": "run_calculator", "input": {"calculator_id": "geometry_analysis", "parameters": {"conformer_policy": "lowest_energy"}}},
+     {"text": "That setting was refused."}
+   ], "after_ms": 3000},
+  {"do": "ai_expect", "tag": "invalid-setting-refused-and-shown",
+   "expect": {"tool_results_contain": ["not_a_choice", "\"started\": false"], "ledger_contains": ["geometry_analysis on Aspirin: not started"], "send_enabled": true}},
+
+  {"do": "smiles", "smiles": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC", "name": "Fifty carbons", "after_ms": 600},
+  {"do": "select", "molecule": -1, "after_ms": 800},
+
+  {"do": "ai_send", "text": "Run the polar surface area on this one.",
+   "script": [
+     {"tool": "run_calculator", "input": {"calculator_id": "polar_surface_area"}},
+     {"text": "A preview is waiting for your approval."}
+   ], "after_ms": 3000},
+  {"do": "ai_expect", "tag": "preview-waits-for-a-person",
+   "expect": {"pending": 1, "tool_results_contain": ["awaiting_approval"], "ledger_contains": ["Fifty carbons: waiting for your approval"],
+              "send_enabled": true, "notes": 0}},
+  {"do": "expect_results", "tag": "nothing-computed-while-it-waits", "expect": {"polar_surface_area": "not_run"}},
+  {"do": "shot", "path": "artifacts/visual/ai_assistant_preview.png", "after_ms": 500},
+
+  {"do": "ai_card", "action": "cancel", "after_ms": 600},
+  {"do": "ai_expect", "tag": "cancel-leaves-nothing-running",
+   "expect": {"pending": 0, "ledger_contains": ["Fifty carbons: cancelled; nothing was started"], "notes": 1}},
+  {"do": "expect_results", "tag": "still-nothing-computed-after-cancel", "expect": {"polar_surface_area": "not_run"}},
+
+  {"do": "ai_send", "text": "Try again.",
+   "script": [
+     {"tool": "run_calculator", "input": {"calculator_id": "polar_surface_area"}},
+     {"text": "Waiting again."}
+   ], "after_ms": 3000},
+  {"do": "ai_expect", "tag": "the-cancelled-notes-went-with-the-message-and-a-new-preview-waits", "expect": {"pending": 1, "notes": 0}},
+  {"do": "ai_card", "action": "approve", "after_ms": 3500},
+  {"do": "ai_expect", "tag": "approved-run-completed-and-the-model-has-a-note",
+   "expect": {"pending": 0, "ledger_contains": ["Fifty carbons: completed"], "notes": 1}},
+  {"do": "expect_results", "tag": "properties-shows-the-approved-run", "expect": {"polar_surface_area": "ready"}},
+
+  {"do": "ai_send", "text": "Can you run an ORCA single point?",
+   "script": [
+     {"tool": "run_calculator", "input": {"calculator_id": "orca.sp"}},
+     {"text": "I cannot start that; see the card."}
+   ], "after_ms": 3000},
+  {"do": "ai_expect", "tag": "service-run-calculator-is-described-not-started",
+   "expect": {"service_previews": 1, "pending": 0, "tool_results_contain": ["preview_only", "You cannot start this", "the ORCA executable"],
+              "ledger_contains": ["orca.sp on Fifty carbons: cannot be started from here"]}},
+  {"do": "ai_card", "action": "open", "after_ms": 800},
+  {"do": "ai_expect", "tag": "open-reveals-the-panel-that-owns-the-job", "expect": {"panel_visible": "Quantum_Chemistry"}},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

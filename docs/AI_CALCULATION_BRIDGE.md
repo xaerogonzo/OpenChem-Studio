@@ -1,11 +1,12 @@
 # The AI assistant's calculator bridge: design record
 
-**Status: design, written 2026-10-12, and built in two slices.** Part of Phase 1 of the plan in the
-session notes. **Slice 1** (the execution policy, the shared search, this record) and **slice 2**
+**Status: design, written 2026-10-12, and built in three slices.** Part of Phase 1 of the plan in the
+session notes. **Slice 1** (the execution policy, the shared search, this record), **slice 2**
 (the host adapter, the plugin handle, the frozen turn snapshot, parameter validation, the run
-ledger) are built; each section says "built" where it is. **No assistant tool exists yet and the
-assistant still cannot run anything:** the tools, the result envelope, the consent UI and the
-service preview adapter are slice 3. Where a review changes this document, change it here first.
+ledger) and **slice 3** (the result envelope, the four tools, the consent UI, the service preview
+adapter, the privacy note, "Explain Stored Results") are built; each section says "built" where it is.
+**What is not done is the live run on a real tool-capable provider** (section 11): it needs an API key,
+and every check so far used a scripted provider. Where a review changes this document, change it here first.
 
 Every statement about how the application works today was read in the source on the date above and
 cites the function. Statements about what to build are decisions, marked as such, and the ones most
@@ -236,9 +237,11 @@ is what a person would get, so it is recorded and passed through (`REFUSED`, wit
 
 ## 9. The result envelope
 
-**Not built yet (slice 3).** `RunOutcome` carries the recorded `StoredResult` and `read_results`
-carries classified entries, but nothing yet turns a result into the model-facing envelope below.
-The design:
+**Built (slice 3): `domain/result_envelope.py`.** `envelope_of` serialises one result,
+`results_view_envelope` a turn's whole read and `outcome_envelope` a run's outcome; `Caps` and `CAP_STEPS`
+are the size steps `plugins/ai_assistant/bridge.py::bounded_json` walks down until a reply fits
+`REPLY_BUDGET`, so a reply is shortened by dropping rows and never by dropping a unit or a caveat, and says
+`shortened_for_length` when it did. `tests/test_result_envelope.py` walks every supported kind. The design:
 
 One serialiser, type-aware, in the host layer. Every number the model receives carries: result id
 and display name; method and version; the normalised parameters; the input fingerprint and which
@@ -253,12 +256,16 @@ test walks every kind the bridge claims and asserts each number has its metadata
 ## 10. Recording, consent state and the system prompt
 
 An AI-requested run is recorded through the normal path, so it appears in Results like any other.
-**The assistant's system prompt currently says it cannot modify the project; that becomes false and
-changes in the same PR as the first tool that runs a calculation.** The alternative (a temporary,
+**Built (slice 3): the system prompt no longer says the assistant cannot modify the project.** It says
+what the four tools do, that a preview waits for the person and the assistant cannot approve it, that a
+run is recorded in the project, and that no number is stated that a tool did not return. The alternative (a temporary,
 per-conversation result) was rejected: it would show the model a number the person cannot see, and
 the two models must never be mixed. A visible ledger lists what the assistant proposed, ran and was
-refused, with molecule, parameters and state. Tool output is sent to the configured provider on the
-next request, so a remote provider sees calculator results; the panel says so.
+refused, with molecule, parameters and state (built: a wrapping list under the cards, one row per request,
+updated as the run moves). Tool output is sent to the configured provider on the next request, so a remote
+provider sees calculator results; the panel says so (built: `AIPrivacyNote`, which names the provider).
+The outcome of a run the person approved reaches the model as a note on the NEXT message, never as a
+fabricated tool result.
 
 ## 11. Acceptance, and what is honestly out of reach until later
 
@@ -270,9 +277,12 @@ by a fake provider, is single-dispatch, and cancel leaves nothing running; envel
 provenance.
 
 The live run (a tool-capable provider, with the sequence **tool call received, preview prepared, no
-job started, confirmation awaited** captured) needs the service preview adapter, and
-`ClaudeCLIProvider` is excluded because it takes no tools. Giving it a tool protocol is a separate,
-optional item with its own tests.
+job started, confirmation awaited** captured) is **not done**: the service preview adapter it waited on is
+built, but it needs a provider key, and `ClaudeCLIProvider` is excluded because it takes no tools. Every
+check so far, including `benchmarks/visual/ai_assistant_tools.json`, used a scripted provider, which proves
+everything around a model (the turn freeze, the loop on its worker thread, the host, the cards and their
+real buttons, the notes) and nothing about whether a real model calls the tools well. Giving the CLI
+provider a tool protocol is a separate, optional item with its own tests.
 
 ## 12. Slices
 
@@ -284,9 +294,15 @@ optional item with its own tests.
    check of the threaded ones, and `benchmarks/visual/ai_bridge_run.json`, which drives the real
    window from a real worker thread (13 assertions). **Not in this slice:** the serialiser, any tool,
    the panel's consent UI.
-3. **Still to build.** The result envelope and its serialiser; the tool definitions and the changed
-   system prompt; the panel's preview, approve, cancel, ledger and status; the service preview adapter;
-   the privacy disclosure; "Explain this result".
+3. **Built (this PR).** `domain/result_envelope.py` (51 tests); `plugins/ai_assistant/bridge.py` and
+   `calculation_tools.py` (`find_calculators`, `describe_calculator`, `read_results`, `run_calculator`) with
+   argument validation in `tools.py`; the panel's preview card, Approve and Cancel (through
+   `context.calculation_approvals`, which a tool is never given), ledger, status, privacy note and the
+   notes that go with the next message (30 tests); the service preview adapter, so an ORCA or Vina
+   calculator is DESCRIBED (what it needs, whether this machine is ready, an "Open" button for the panel
+   that owns it) and nothing is started; the "Explain Stored Results" menu entry. Verified by
+   `benchmarks/visual/ai_assistant_tools.json` against the real window (13 assertions), which found two
+   defects no unit test could (`docs/LESSONS.md`, the plugin-panel entry). **Not done:** the live provider run.
 
 ## 13. Decisions most worth challenging
 

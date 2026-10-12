@@ -350,7 +350,13 @@ class AIAssistantPanel(QWidget):
         self._ledger_label = QLabel("Calculations the assistant has asked for", self)
         self._ledger = QListWidget(self)
         self._ledger.setObjectName("AICalculationLedger")
-        self._ledger.setMaximumHeight(96)
+        # A refusal's reason is the part worth reading and it is long: wrap it. A row that scrolls sideways
+        # was measured in the real window (the first row read "... conformer_policy must be or", cut at the
+        # panel's edge, with a scroll bar to find the rest).
+        self._ledger.setWordWrap(True)
+        self._ledger.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._ledger.setTextElideMode(Qt.TextElideMode.ElideNone)
+        self._ledger.setMaximumHeight(160)
         self._ledger_label.setVisible(False)
         self._ledger.setVisible(False)
 
@@ -573,6 +579,7 @@ class AIAssistantPanel(QWidget):
             self._ledger_rows[key] = row
         else:
             row.setText(text)
+        row.setToolTip(text)
         self._ledger_label.setVisible(True)
         self._ledger.setVisible(True)
         self._ledger.scrollToBottom()

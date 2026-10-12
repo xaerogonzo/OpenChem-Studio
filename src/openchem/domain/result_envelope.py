@@ -39,6 +39,15 @@ import math
 from dataclasses import dataclass
 from typing import Any
 
+#: What the reachability guard accepts for a module nothing in the application imports. Its only
+#: importer is the AI Assistant plugin (`plugins/ai_assistant/bridge.py`), which the plugin manager
+#: loads from source at run time, so the static walk from `openchem.main` cannot see that edge.
+#: `tests/test_calculator_reachability.py` checks the claim is true.
+REACHED_BY = (
+    "plugin_source: imported only by plugins/ai_assistant/bridge.py, which the plugin manager "
+    "loads from source at run time rather than by an import from openchem.main"
+)
+
 from openchem.domain.common import ATOM_BASIS, CATEGORICAL_SCALE, TOTAL
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.refusal_kinds import REFUSAL_KEY, missing_inputs_of, refusal_kind_of_result
@@ -54,16 +63,24 @@ from openchem.domain.scientific_result import (
 )
 from openchem.domain.turn_snapshot import Freshness, Outcome, ResultEntry, ResultsView
 
-ENVELOPE_VERSION = 1
+#: The shape of what a model is sent, bumped when a reader of an old transcript would misread a new one.
+#: NOT `result_store.ENVELOPE_VERSION`, which is the version of the saved-project format: a different
+#: thing that happens to share the word.
+MODEL_ENVELOPE_VERSION = 1
 
 #: The keys `provenance.parameters` uses for the structure a result was computed on. They are
 #: written by `chem.calculation_input` (`INPUT_PREFIX`), which `domain/` may not import; a test pins
 #: that these are the same strings.
 _INPUT = "input_"
+#: Where the input came from: the drawing, or an automatically chosen lowest-energy conformer.
 INPUT_SOURCE_KEY = _INPUT + "source"
+#: The settings the structure was chosen with, when the producer recorded any.
 INPUT_PARAMETERS_KEY = _INPUT + "parameters"
+#: Which of the molecule's stored conformers was used.
 INPUT_CONFORMER_INDEX_KEY = _INPUT + "conformer_index"
+#: That conformer's energy as recorded, in the units of its own record.
 INPUT_CONFORMER_ENERGY_KEY = _INPUT + "conformer_energy"
+#: The force field that conformer was optimised with.
 INPUT_FORCE_FIELD_KEY = _INPUT + "force_field"
 #: `provenance.parameters["scale"]`, by which a producer says its per-atom values are category ids.
 SCALE_KEY = "scale"
@@ -92,6 +109,7 @@ class Caps:
         return Caps(cut(self.atoms), cut(self.facts), cut(self.items), cut(self.evidence), cut(self.points), max(60, cut(self.text)))
 
 
+#: The full-size caps: what a reply is built with first, before `CAP_STEPS` shrinks it.
 FULL = Caps()
 #: What is tried, in order, when a reply is over budget. The last still carries every header.
 CAP_STEPS = (FULL, FULL.scaled(0.5), FULL.scaled(0.25), FULL.scaled(0.1))
@@ -398,7 +416,7 @@ def envelope_of(entry: ResultEntry, caps: Caps = FULL) -> dict[str, Any]:
 def results_view_envelope(view: ResultsView, caps: Caps = FULL) -> dict[str, Any]:
     """A `ResultsView` as the dict `read_results` returns."""
     return {
-        "envelope_version": ENVELOPE_VERSION,
+        "envelope_version": MODEL_ENVELOPE_VERSION,
         "molecule_uuid": view.molecule_uuid,
         "results": [envelope_of(entry, caps) for entry in view.entries],
         "not_run": list(view.not_run),
@@ -414,7 +432,7 @@ def results_view_envelope(view: ResultsView, caps: Caps = FULL) -> dict[str, Any
 def outcome_envelope(outcome: RunOutcome, caps: Caps = FULL) -> dict[str, Any]:
     """What a run came to, with the result's envelope when it produced one."""
     data: dict[str, Any] = {
-        "envelope_version": ENVELOPE_VERSION,
+        "envelope_version": MODEL_ENVELOPE_VERSION,
         "run_id": outcome.run_id,
         "calculator": outcome.calculator_id,
         "state": outcome.state.value,

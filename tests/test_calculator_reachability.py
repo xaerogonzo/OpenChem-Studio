@@ -493,7 +493,10 @@ _ENTRY_POINT = "openchem.main"
 # mechanism rather than a `script_path` (which is a file handed to another interpreter), and
 # `tests/test_cli.py::test_the_declared_console_script_is_really_in_pyproject` checks the
 # declaration is true.
-_ENTRY_SURFACES = frozenset({"script_path", "tooling", "console_script"})
+# `plugin_source` is a module whose only importer is a plugin under `plugins/`, loaded from source by
+# the plugin manager at run time. The plugin directory is outside the package the walk covers, so the
+# edge is invisible to it; `test_a_plugin_source_declaration_is_true` checks a plugin really imports it.
+_ENTRY_SURFACES = frozenset({"script_path", "tooling", "console_script", "plugin_source"})
 
 _REACHED_BY = "REACHED_BY"
 
@@ -634,6 +637,32 @@ def test_a_declared_entry_surface_names_a_known_kind_and_a_reason(module):
         "real new mechanism; a kind nobody recognises must not read as one."
     )
     assert reason.strip(), f"{module} names a kind but no reason"
+
+
+def test_a_plugin_source_declaration_is_true():
+    """The `plugin_source` kind exempts a module from the walk, so it must be a module a plugin imports.
+
+    Without this the kind is `script_path` without the path: a sentence that turns a red guard green. The
+    plugin directory is parsed, not imported, because a plugin is loaded by the manager with its own
+    context and this test has none.
+    """
+    plugins = _SRC.parent.parent / "plugins"
+    imported: set[str] = set()
+    for path in sorted(plugins.rglob("*.py")):
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"), filename=str(path))):
+            if isinstance(node, ast.ImportFrom) and node.module and not node.level:
+                imported.add(node.module)
+                imported.update(f"{node.module}.{alias.name}" for alias in node.names)
+            elif isinstance(node, ast.Import):
+                imported.update(alias.name for alias in node.names)
+
+    declared = [m for m, why in _declared_entry_surfaces().items() if why.startswith("plugin_source:")]
+    assert declared, "nothing declares the plugin_source kind, so this proves nothing"
+    not_imported = sorted(m for m in declared if m not in imported)
+    assert not not_imported, (
+        f"{not_imported} declare plugin_source and no file under plugins/ imports them. Wire the "
+        "module to the application, or give it the kind that is true."
+    )
 
 
 def test_the_two_sidecar_runners_are_the_script_path_case():
