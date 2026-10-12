@@ -4447,6 +4447,54 @@ class _Driver(QObject):
             molecule.canonical_smiles,
         )
 
+    def _do_conformer_report(self, step: dict[str, Any]) -> None:
+        """Which conformer a calculation would be handed, and what each stored one is.
+
+        `{"do": "conformer_report", "tag": "after-opt",
+          "expect": {"canonical_method": "orca_opt", "canonical_mapped": true, "conformers": 3}}`
+
+        One line per stored conformer (id, method, energy, whether it carries the way back to the
+        drawing's atoms, the first 12 characters of its `GEOMETRY` fingerprint) and one for the one
+        `canonical_conformer` picks. The fingerprint is the SAME string `qc_run` logs as the identity the
+        service was handed, so "the job after the optimization ran on the optimized geometry" is a
+        comparison of two logged strings rather than a belief. `expect` keys: `canonical_method`,
+        `canonical_mapped` (true/false), `conformers` (count held); a miss is an `EXPECT ... FAILED`.
+        """
+        from openchem.chem.calculation_input import canonical_conformer, geometry_fingerprint
+
+        molecule = self._window._current_molecule()
+        tag = step.get("tag", "")
+        if molecule is None:
+            logger.error("OPENCHEM_DRIVE: conformer_report %s -- no molecule selected", tag)
+            return
+        best = canonical_conformer(molecule)
+        for position, conformer in enumerate(molecule.conformers):
+            logger.warning(
+                "OPENCHEM_DRIVE: conformer_report %s #%d id=%s method=%r energy=%s mapped=%s fingerprint=%s%s",
+                tag,
+                position,
+                conformer.conformer_id[:8],
+                conformer.method,
+                conformer.energy,
+                conformer.drawing_atom_ids is not None,
+                geometry_fingerprint(conformer)[:12],
+                "  <- canonical" if conformer is best else "",
+            )
+        if best is None:
+            logger.warning("OPENCHEM_DRIVE: conformer_report %s -- no conformer, so no canonical one", tag)
+        expect = step.get("expect") or {}
+        problems = []
+        if "conformers" in expect and len(molecule.conformers) != expect["conformers"]:
+            problems.append(f"{len(molecule.conformers)} conformers held, wanted {expect['conformers']}")
+        if "canonical_method" in expect and (best.method if best else None) != expect["canonical_method"]:
+            problems.append(f"canonical method is {best.method if best else None!r}, wanted {expect['canonical_method']!r}")
+        if "canonical_mapped" in expect and (best is not None and best.drawing_atom_ids is not None) != bool(
+            expect["canonical_mapped"]
+        ):
+            problems.append(f"canonical conformer mapped is {best is not None and best.drawing_atom_ids is not None}")
+        if problems:
+            logger.error("OPENCHEM_DRIVE: EXPECT conformer_report FAILED[%s] -- %s", tag, "; ".join(problems))
+
     def _do_rotate(self, step: dict[str, Any]) -> None:
         """Turn the structure in the 2D editor, as a real drag.
 

@@ -239,3 +239,74 @@ def test_adopting_stays_quiet_when_nothing_stereochemical_happened(qapp, tmp_pat
     # as a surviving mutation.
     assert "-- and" not in message, message
     assert message.endswith("."), message
+
+
+# --- an ORCA-optimized geometry becomes the geometry everything uses -----------------------------
+
+
+def _window_with_a_mapped_conformer(qapp, tmp_path):
+    from openchem.chem.calculation_input import geometry_fingerprint
+
+    window, services = _build_window(qapp, tmp_path)
+    molecule = _molecule_with_real_conformer(services)
+    source = molecule.conformers[0]
+    atoms = services.chemistry_engine.mol_from_molblock(source.molblock).GetNumAtoms()
+    source.drawing_atom_ids = list(range(atoms))
+    source.drawing_fingerprint = "drawing-at-creation"
+    window.add_molecule(molecule)
+    _drain(qapp)
+    return window, services, molecule, source, geometry_fingerprint(source)
+
+
+def _optimized_copy_of(source: ConformerModel) -> ConformerModel:
+    """What the ORCA engine returns: the same atoms in the same order, no energy, no map."""
+    from openchem.domain.conformer import ORCA_OPTIMIZED
+
+    return ConformerModel(molblock=source.molblock, energy=None, method=ORCA_OPTIMIZED)
+
+
+def test_an_optimized_conformer_is_added_with_the_map_and_becomes_the_calculation_input(qapp, tmp_path):
+    """THE WIRING, not the helper: the window handler must hand the helper the event's fingerprint and
+    the molecule's own conformers. Found by driving real ORCA first; this pins it for every run."""
+    from openchem.chem.calculation_input import canonical_conformer
+    from openchem.events.events import QuantumChemistryResultReady
+
+    window, services, molecule, source, fingerprint = _window_with_a_mapped_conformer(qapp, tmp_path)
+    optimized = _optimized_copy_of(source)
+    assert optimized.drawing_atom_ids is None
+
+    services.event_bus.publish(
+        QuantumChemistryResultReady(
+            molecule_uuid=molecule.uuid, descriptors=[], conformer=optimized, input_fingerprint=fingerprint
+        )
+    )
+    _drain(qapp)
+
+    added = molecule.conformers[-1]
+    assert added.conformer_id == optimized.conformer_id, "the run records this id as its output"
+    assert added.drawing_atom_ids == source.drawing_atom_ids
+    assert added.drawing_fingerprint == "drawing-at-creation"
+    assert canonical_conformer(molecule) is added
+
+    window._undo_stack.undo()
+    _drain(qapp)
+    assert canonical_conformer(molecule) is source
+
+
+def test_an_optimized_conformer_from_a_job_with_no_fingerprint_is_still_added(qapp, tmp_path):
+    """A Boltzmann sequence has no single source. The geometry is added and used; the map stays 'not
+    recorded' rather than being guessed."""
+    from openchem.chem.calculation_input import canonical_conformer
+    from openchem.events.events import QuantumChemistryResultReady
+
+    window, services, molecule, source, _ = _window_with_a_mapped_conformer(qapp, tmp_path)
+    optimized = _optimized_copy_of(source)
+
+    services.event_bus.publish(
+        QuantumChemistryResultReady(molecule_uuid=molecule.uuid, descriptors=[], conformer=optimized)
+    )
+    _drain(qapp)
+
+    added = molecule.conformers[-1]
+    assert added.drawing_atom_ids is None
+    assert canonical_conformer(molecule) is added

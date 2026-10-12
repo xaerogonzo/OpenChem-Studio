@@ -35,7 +35,8 @@ class AdoptConformerCommand(OpenChemCommand):
     was pressed in and threw away the set the user had just generated.
 
     **What this does NOT do is change which geometry anything computes
-    with.** `canonical_conformer` picks the LOWEST MMFF energy, not a
+    with.** `canonical_conformer` picks the newest ORCA-optimized geometry
+    if there is one and otherwise the LOWEST MMFF energy, not a
     position in the list, and export and every `GEOMETRY` calculator go
     through it -- so they already used a conformer before this command
     existed and use the same one after it. This changes the drawing.
@@ -236,6 +237,12 @@ class AddConformerCommand(OpenChemCommand):
     unlike `SetConformersCommand`, which replaces the whole list wholesale.
     Needed for ORCA (6.5): an optimized geometry should be added alongside
     whatever RDKit-generated conformers already exist, not wipe them.
+
+    **IT ALSO CHANGES WHICH GEOMETRY EVERYTHING COMPUTES WITH**, when the
+    conformer is an ORCA optimization: `canonical_conformer` prefers it to
+    every force-field conformer. `ConformersChanged` already makes the window
+    recompute the 3D calculators, and undo removes the conformer, so the
+    previous choice comes back with it.
     """
 
     def __init__(self, molecule: MoleculeModel, new_conformer: ConformerModel, event_bus: EventBus) -> None:

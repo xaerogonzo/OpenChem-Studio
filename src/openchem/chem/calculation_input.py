@@ -17,15 +17,17 @@ being skipped.
 
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import logging
+from collections.abc import Sequence
 from typing import NamedTuple
 
 from rdkit import Chem
 
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.calculator import DRAWING, ENSEMBLE, GEOMETRY
-from openchem.domain.conformer import ConformerModel
+from openchem.domain.conformer import QUANTUM_OPTIMIZED_METHODS, ConformerModel
 from openchem.domain.molecule import MoleculeModel
 
 logger = logging.getLogger("openchem.chemistry")
@@ -34,8 +36,20 @@ logger = logging.getLogger("openchem.chemistry")
 def canonical_conformer(model: MoleculeModel) -> ConformerModel | None:
     """The conformer a calculation should use, or None.
 
-    THE LOWEST MMFF94 ENERGY AMONG THE CONFORMERS RETAINED BY WHATEVER
-    SAMPLING RUN PRODUCED THEM. Never "the lowest-energy conformer"
+    **1. A GEOMETRY A QUANTUM OPTIMIZATION PRODUCED, THE NEWEST ONE.** A
+    person who optimizes a molecule in ORCA and then asks for anything else
+    -- an NMR, a hardness, a descriptor, a docking -- means the optimized
+    geometry. Before this rule an ORCA-optimized conformer was stored
+    without an energy, sorted last, and was never chosen while any
+    force-field conformer had one: measured 2026-10-12, the next job ran on
+    the force-field conformer. Newest rather than lowest, because an ORCA
+    energy and an MMFF energy are not on one scale and two optimizations at
+    different levels of theory are not comparable by energy either: the
+    most recent one is what the person last asked for. Undoing the
+    optimization removes the conformer, and the rule below applies again.
+
+    **2. OTHERWISE, THE LOWEST MMFF94 ENERGY AMONG THE CONFORMERS RETAINED BY
+    WHATEVER SAMPLING RUN PRODUCED THEM.** Never "the lowest-energy conformer"
     unqualified -- that is a claim about the molecule, and this is a
     claim about one random search under one force field. The provenance
     on each conformer carries the force field, the counts and the
@@ -50,6 +64,14 @@ def canonical_conformer(model: MoleculeModel) -> ConformerModel | None:
     """
     if not model.conformers:
         return None
+    optimized = [
+        (position, c)
+        for position, c in enumerate(model.conformers)
+        if c.method in QUANTUM_OPTIMIZED_METHODS and c.molblock
+    ]
+    if optimized:
+        # List position breaks a tie in the timestamps: the one appended last is the newest.
+        return max(optimized, key=lambda pair: (pair[1].timestamp, pair[0]))[1]
     energised = [c for c in model.conformers if c.energy is not None and c.molblock]
     if energised:
         return min(energised, key=lambda c: c.energy)
@@ -92,6 +114,49 @@ class ResolvedInput(NamedTuple):
     mol: Chem.Mol | None
     fingerprint: str
     used: str
+
+
+def geometry_fingerprint(conformer: ConformerModel) -> str:
+    """The `GEOMETRY` fingerprint of ONE stored conformer: kind, id and exact molblock.
+
+    The one place it is built, so `resolve_calculation_input` and anything that has to find
+    the conformer a result was computed on from its fingerprint cannot disagree.
+    """
+    return _fingerprint(GEOMETRY, conformer.conformer_id, conformer.molblock or "")
+
+
+def with_source_atom_map(
+    optimized: ConformerModel,
+    conformers: Sequence[ConformerModel],
+    source_fingerprint: str,
+    engine: ChemistryEngine,
+) -> ConformerModel:
+    """`optimized` carrying the drawing-atom map of the conformer it was optimized FROM.
+
+    **AN OPTIMIZATION KEEPS THE ATOM ORDER, SO THE MAP STILL HOLDS, AND NOTHING COPIED IT.** The
+    ORCA engine writes the final Cartesian block back onto the molecule it was handed, atom
+    for atom, but builds a new `ConformerModel` that knows nothing of `drawing_atom_ids`. That
+    was harmless while the optimized geometry was never used as an input; now that
+    `canonical_conformer` prefers it, every per-atom 3D result computed on it would have lost
+    its recorded way back to the drawing, and `chem.atom_identity` would fall back to matching
+    the structures, which refuses a symmetric molecule whose equivalent atoms differ.
+
+    The source is found by the fingerprint the job was submitted with. It is left alone (and
+    the map stays "not recorded", never guessed) when the source is gone, was never mapped, or
+    has a different atom count.
+    """
+    if not source_fingerprint or optimized.drawing_atom_ids is not None:
+        return optimized
+    source = next((c for c in conformers if geometry_fingerprint(c) == source_fingerprint), None)
+    if source is None or source.drawing_atom_ids is None or source.drawing_fingerprint is None:
+        return optimized
+    if len(source.drawing_atom_ids) != engine.mol_from_molblock(optimized.molblock).GetNumAtoms():
+        return optimized
+    return dataclasses.replace(
+        optimized,
+        drawing_atom_ids=list(source.drawing_atom_ids),
+        drawing_fingerprint=source.drawing_fingerprint,
+    )
 
 
 def _fingerprint(*parts: str) -> str:
@@ -231,11 +296,7 @@ def resolve_calculation_input(
                 )
             else:
                 if mol.GetNumConformers() > 0 and mol.GetConformer().Is3D():
-                    return ResolvedInput(
-                        mol,
-                        _fingerprint(GEOMETRY, conformer.conformer_id, conformer.molblock or ""),
-                        GEOMETRY,
-                    )
+                    return ResolvedInput(mol, geometry_fingerprint(conformer), GEOMETRY)
                 logger.info(
                     "Conformer %s of molecule %s is not 3D; using the drawn structure",
                     conformer.conformer_id,

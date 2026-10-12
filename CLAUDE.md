@@ -196,6 +196,10 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "select_atom", "atom": 4}       the inspector ROW, and
     {"do": "selection_report"}             BOTH id spaces off the page
     {"do": "report",     "tag": "after"}      conformers, undo depth, SMILES
+    {"do": "conformer_report", "tag": "x", "expect": {"canonical_method": "orca_opt",
+     "canonical_mapped": true, "conformers": 3}}   each stored conformer (method, energy, whether it
+                                          has the way back to the drawing's atoms, its GEOMETRY fingerprint,
+                                          the same string `qc_run` logs) and which one a calculation gets
     {"do": "jobs_report", "tag": "running"}   rows AND whether it is POLLING
     {"do": "jobs_cancel", "row": 0}           the real button in a real row
     {"do": "conformers_finish", "expect": {"enabled": true, "readout_contains": ["found"]}}

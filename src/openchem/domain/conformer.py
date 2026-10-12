@@ -7,6 +7,15 @@ from typing import Any
 
 from openchem.domain.common import Provenance
 
+#: `ConformerModel.method` of a geometry that a quantum-chemistry optimization produced (ORCA's final
+#: Cartesian block). It has no force-field energy, and it is the geometry a person means by "the
+#: optimized one": `chem.calculation_input.canonical_conformer` prefers it to every force-field conformer.
+ORCA_OPTIMIZED = "orca_opt"
+
+#: Every `method` that marks a quantum-optimized geometry. A set because a second engine would add its own
+#: label here and nothing else would change.
+QUANTUM_OPTIMIZED_METHODS = frozenset({ORCA_OPTIMIZED})
+
 
 @dataclass(slots=True)
 class ConformerModel:

@@ -329,6 +329,10 @@ class QuantumChemistryResultReady(Event):
     molecule_uuid: str
     descriptors: list[DescriptorValue]
     conformer: ConformerModel | None
+    #: The `GEOMETRY` fingerprint of the conformer the job was submitted on, so the window can find it and
+    #: carry its drawing-atom map onto `conformer` (`chem.calculation_input.with_source_atom_map`). Empty
+    #: for a result with no single source (a Boltzmann sequence).
+    input_fingerprint: str = ""
 
 
 @dataclass(frozen=True)
