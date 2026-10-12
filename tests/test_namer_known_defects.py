@@ -4274,6 +4274,11 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # D-224: an amidinium with a second acid group had BOTH acids turned into amidiniums (first refused, in this round, then named properly).
     ("D-224", "NC(=[NH2+])CCC(=O)O", "3-carboxypropanamidinium", "butanediamidinium",
      "WRONG MOLECULE: both acids turned into amidiniums (a cation outranks an acid: the acid is the prefix)"),
+    # D-225 (naming round 42): a spiro parent dropped the stereodescriptors of centres at a primed or lettered locant, and cited a fused partner's junction without its letter.
+    ("D-225", "O=C1Nc2ccccc2[C@]12Oc1ccc([N+](=O)[O-])cc1[C@H]1CC(c3ccc(Cl)cc3)=NN12",
+     "(3S,10b'R)-2'-(4-chlorophenyl)-9'-nitrospiro[2,3-dihydro-1H-indole-3,5'-1,10b-dihydro-5H-pyrazolo[1,5-c][1,3]benzoxazine]-2-one",
+     "(3S,10'R)-2'-(4-chlorophenyl)-9'-nitrospiro[2,3-dihydro-1H-indole-3,5'-1,10b-dihydro-5H-pyrazolo[1,5-c][1,3]benzoxazine]-2-one",
+     "STEREO LOST/UNREADABLE: the 10b centre cited as 10' (no such atom; OPSIN rejects the name and the descriptors were stripped); across the census's spiro structures 35 of 79 stereoisomers were exact, 73 now are"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",
