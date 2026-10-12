@@ -10,6 +10,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Naming: the anion is the parent, a protonated acylhydrazone keeps its charge, E/Z survives a methyl branch, corrin has locants
 - A thiolate or phenolate beside a nitrile, aldehyde, amide or ketone is named as the anion it is, the senior class: `4-cyanobenzene-1-thiolate`, `4-cyanobenzen-1-olate` (round 43 cited it as an `oxido` prefix); beside a neutral acid the charge no longer moves to the wrong group (`OC(=O)c1ccc([O-])cc1` was `4-oxidobenzoate`, now `4-carboxybenzen-1-olate`) (D-229). A protonated acylhydrazone was written neutral (`C=[NH+]NC(=O)c1ccccc1`, a different molecule) and is the cation `benzamido(methylidene)azanium` (D-230). `N-(2-methylbut-2-en-1-yl)acetamide` named both stereoisomers; E/Z is kept (D-231). A spiro ammonium with a stereocentre at a protonated N was named with no descriptors at all; its carbons keep theirs (D-232: 73 -> 79 of 79 stereoisomers exact). The octahydropyridazino[1,2-a][1,2]diazepine and corrin have atom locants (corrin from the numbering the Blue Book draws, p. 1158, checked against OPSIN): sweep 38 wrong cases -> 0. Census 1989 -> 1991 (99.55%) exact; fresh_v1 re-scored once, 1964 of 2000 read back.
 
+### AI assistant bridge, step 1: what may run unattended is measured, and the calculator search is one rule
+- **Execution policy** (`domain/execution_policy.py`, `domain/builtin_execution_policies.py`): every one of the 72 registered
+  calculators now says whether a model may start it (`AUTO`: 43 instant, 14 short) or a person approves a preview first (`CONFIRM`: 15).
+  It is separate from the support stage, and it separates cost, the external program started, effects beyond a stored result and
+  auto-run eligibility, because one "cheap" flag answers four different questions. Nothing runs on a model's request yet; this is the
+  foundation, and `docs/AI_CALCULATION_BRIDGE.md` is the design the next two PRs follow.
+- **Measured, in `benchmarks/calculator_cost/`**, and the figures are read back by `tests/test_execution_policy.py` so a bound
+  cannot be loosened without evidence. Four calculators' cost scales measurably with a parameter, which a default-settings sweep hides: `hbond_vs_ph`
+  0.6 s at a 0.5 pH step and 16.7 s at 0.01; molecular dynamics 0.17 s at 1,000 steps and 16.6 s at 100,000; Geometry (3D) under
+  `conformer_policy=always` 29.7 s at 200 conformers. Each carries its measured bound. **Alignment** took 31 s for a 41- against a
+  28-heavy-atom pair (0.6 s against a 13-atom reference), so it needs approval. A molecule above 41 heavy atoms, the largest measured,
+  needs approval whatever the calculator.
+- A built-in's policy is attached by `bootstrap`, never looked up by id, so a plugin registering a built-in's id does not inherit its
+  permission; an unclassified calculator needs approval.
+- **The launcher's Find box and the assistant's future search are one rule** (`domain/calculator_search.py`): every word of the query
+  must appear, in any order. The Find box used the whole query as one substring, so "lewis adduct" and "adduct lewis" disagreed;
+  single-word queries are unchanged.
+
 ### AI Assistant: findable, and honest about being unconfigured; a missing plugin folder is no longer silent
 - **Plugins > Open AI Assistant** is new and listed first. The assistant sat in the rail's "Compare and Extend" group and its two
   menu entries named what they do, so nothing on screen said the application has one. Opening it no longer depends on the panel

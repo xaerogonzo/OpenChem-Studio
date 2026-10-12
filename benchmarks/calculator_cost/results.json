@@ -1,0 +1,1848 @@
+{
+ "machine": {
+  "platform": "Windows-11-10.0.26200-SP0",
+  "processor": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+  "python": "3.13.7"
+ },
+ "defaults": [
+  {
+   "calculator": "gasteiger_charge_at_ph",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.094,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "gasteiger_charge_at_ph",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.004,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "gasteiger_charge_at_ph",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.018,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "geometry_partial_charge",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "geometry_partial_charge",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "geometry_partial_charge",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.002,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "crippen_logp_contrib",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "crippen_logp_contrib",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "crippen_logp_contrib",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "crippen_mr_contrib",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "crippen_mr_contrib",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "crippen_mr_contrib",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "admet_ml",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "needs_setup",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "admet_ml",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "needs_setup",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "admet_ml",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "needs_setup",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "pka",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "needs_setup",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "pka",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "needs_setup",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "pka",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "needs_setup",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "ionisable_sites",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "needs_setup",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "ionisable_sites",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "needs_setup",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "ionisable_sites",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "needs_setup",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "logd",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "logd",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.004,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "logd",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.017,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "elemental_analysis",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "elemental_analysis",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "elemental_analysis",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.002,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "mass_spectrum",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "mass_spectrum",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "mass_spectrum",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.002,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "substance_analysis",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.431,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "substance_analysis",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "substance_analysis",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "topology_analysis",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "topology_analysis",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "topology_analysis",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.004,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "topology_eccentricity",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "topology_eccentricity",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "topology_eccentricity",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "tsei_projection",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "tsei_projection",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.003,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "tsei_projection",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.049,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "topology_distance_degree",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "topology_distance_degree",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "topology_distance_degree",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "geometry_analysis",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.42,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "geometry_analysis",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.464,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "geometry_analysis",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 1.088,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "torsion_table",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "torsion_table",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "torsion_table",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "surface_analysis",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.01,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "surface_analysis",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.036,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "surface_analysis",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.206,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "atom_sasa",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.004,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "atom_sasa",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.018,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "atom_sasa",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.144,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "polar_surface_area",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.002,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "polar_surface_area",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.003,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "polar_surface_area",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.018,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "ring_systems",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.138,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "ring_systems",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.053,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "ring_systems",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.201,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "oxidation_states",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "oxidation_states",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "oxidation_states",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "regulatory_screen",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.029,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "regulatory_screen",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.036,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "regulatory_screen",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.095,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "locants",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.013,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "locants",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.037,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "locants",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.124,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "functional_groups",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.009,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "functional_groups",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.008,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "functional_groups",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.012,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "stereocenters",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.013,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "stereocenters",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.038,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "stereocenters",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.13,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "substructure_search",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "substructure_search",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "substructure_search",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "interaction_analysis",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "interaction_analysis",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "interaction_analysis",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.006,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "stereoisomers",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "stereoisomers",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "stereoisomers",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.003,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "tautomers",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.003,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "tautomers",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.003,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "tautomers",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.01,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "resonance_forms",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "resonance_forms",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "resonance_forms",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.004,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "markush_enumeration",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "needs_input",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "markush_enumeration",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "needs_input",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "markush_enumeration",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "needs_input",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "pka_microspecies",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "inapplicable",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "pka_microspecies",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "needs_setup",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "pka_microspecies",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "needs_setup",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "major_microspecies",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.002,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "major_microspecies",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.003,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "major_microspecies",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.017,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "isoelectric_point",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "inapplicable",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "isoelectric_point",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "needs_setup",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "isoelectric_point",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "needs_setup",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "hbond_vs_ph",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.048,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "hbond_vs_ph",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.087,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "hbond_vs_ph",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.488,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "hbond_sites",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "hbond_sites",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "hbond_sites",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "solubility",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "solubility",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "needs_setup",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "solubility",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "needs_setup",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "lewis_sites",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.004,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "lewis_sites",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "lewis_sites",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.002,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "lewis_adduct",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "needs_input",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "lewis_adduct",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "needs_input",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "lewis_adduct",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "needs_input",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "huckel_analysis",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "inapplicable",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "huckel_analysis",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "huckel_analysis",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "huckel_pi_density",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "inapplicable",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "huckel_pi_density",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "huckel_pi_density",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "dipole_moment",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "dipole_moment",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "dipole_moment",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "molecular_dynamics",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.021,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "molecular_dynamics",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.044,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "molecular_dynamics",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.173,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "cns_mpo",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "cns_mpo",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "cns_mpo",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "steric_analysis",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "inapplicable",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "steric_analysis",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "inapplicable",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "steric_analysis",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.207,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "nmr_database",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.019,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "nmr_database",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.02,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "nmr_database",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.049,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "bbb_descriptors",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "bbb_descriptors",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "bbb_descriptors",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "stereo_descriptors",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "stereo_descriptors",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "stereo_descriptors",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "structural_frameworks",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "structural_frameworks",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "structural_frameworks",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.002,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "griffin_hlb",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "inapplicable",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "griffin_hlb",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "inapplicable",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "griffin_hlb",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "inapplicable",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "detonation",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "inapplicable",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "detonation",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "needs_input",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "detonation",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "inapplicable",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "oxygen_balance",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "oxygen_balance",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "oxygen_balance",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "inapplicable",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "bird_aromaticity",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "inapplicable",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "bird_aromaticity",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "bird_aromaticity",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "homa_aromaticity",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "inapplicable",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "homa_aromaticity",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "homa_aromaticity",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "hansen_solubility",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "inapplicable",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "hansen_solubility",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.002,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "hansen_solubility",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "joback_properties",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "joback_properties",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "joback_properties",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "inapplicable",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "polarizability",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "polarizability",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "polarizability",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "atomic_polarizability",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "atomic_polarizability",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "atomic_polarizability",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "orbital_electronegativity",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "orbital_electronegativity",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "orbital_electronegativity",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.001,
+   "status": "ready",
+   "molecule_name": "atorvastatin"
+  },
+  {
+   "calculator": "alignment_3d",
+   "molecule": "CCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "needs_input",
+   "molecule_name": "ethanol"
+  },
+  {
+   "calculator": "alignment_3d",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "needs_input",
+   "molecule_name": "aspirin"
+  },
+  {
+   "calculator": "alignment_3d",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "needs_input",
+   "molecule_name": "atorvastatin"
+  }
+ ],
+ "with_inputs": [
+  {
+   "calculator": "lewis_adduct",
+   "molecule": "B",
+   "overrides": {
+    "partner_smiles": "[C-]#[O+]"
+   },
+   "seconds": 0.002,
+   "status": "ready"
+  },
+  {
+   "calculator": "lewis_adduct",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {
+    "partner_smiles": "N"
+   },
+   "seconds": 0.008,
+   "status": "ready"
+  },
+  {
+   "calculator": "detonation",
+   "molecule": "Cc1c([N+](=O)[O-])cc([N+](=O)[O-])cc1[N+](=O)[O-]",
+   "overrides": {
+    "loading_density_g_cm3": 1.64,
+    "enthalpy_of_formation_kcal_mol": -16.0
+   },
+   "seconds": 0.0,
+   "status": "ready"
+  },
+  {
+   "calculator": "alignment_3d",
+   "molecule": "CC(=O)Oc1ccccc1C(=O)O",
+   "overrides": {
+    "reference_smiles": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O"
+   },
+   "seconds": 0.173,
+   "status": "ready"
+  },
+  {
+   "calculator": "alignment_3d",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {
+    "reference_smiles": "CC(=O)Oc1ccccc1C(=O)O"
+   },
+   "seconds": 0.56,
+   "status": "ready"
+  },
+  {
+   "calculator": "alignment_3d",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {
+    "reference_smiles": "CC(C)Cc1ccc(cc1)C(C)C(=O)NC1CCN(CC1)c1ccc(F)cc1"
+   },
+   "seconds": 30.88,
+   "status": "ready"
+  },
+  {
+   "calculator": "alignment_3d",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {
+    "reference_smiles": "CC(C)Cc1ccc(cc1)C(C)C(=O)NC1CCN(CC1)c1ccc(F)cc1",
+    "accuracy": "Accurate"
+   },
+   "seconds": 73.62,
+   "status": "ready"
+  },
+  {
+   "calculator": "alignment_3d",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {
+    "reference_smiles": "CC(C)Cc1ccc(cc1)C(C)C(=O)NC1CCN(CC1)c1ccc(F)cc1",
+    "method": "Common scaffold (MCS)"
+   },
+   "seconds": 45.967,
+   "status": "ready"
+  },
+  {
+   "calculator": "alignment_3d",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {
+    "reference_smiles": "CC(C)Cc1ccc(cc1)C(C)C(=O)NC1CCN(CC1)c1ccc(F)cc1",
+    "method": "Common scaffold (MCS)",
+    "accuracy": "Accurate"
+   },
+   "seconds": 108.895,
+   "status": "ready"
+  },
+  {
+   "calculator": "griffin_hlb",
+   "molecule": "CCCCCCCCCCCCOCCOCCOCCOCCOCCO",
+   "overrides": {},
+   "seconds": 0.0,
+   "status": "ready"
+  },
+  {
+   "calculator": "markush_enumeration",
+   "molecule": "c1ccccc1[*:1]",
+   "overrides": {
+    "substituents": "R1: Cl, F, Br, C, CC, O, N",
+    "max_structures": 1000
+   },
+   "seconds": 0.002,
+   "status": "ready"
+  }
+ ],
+ "scaling": [
+  {
+   "calculator": "hbond_vs_ph",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {
+    "ph_step": 0.5,
+    "ph_min": -2.0,
+    "ph_max": 16.0
+   },
+   "seconds": 0.612,
+   "status": "ready"
+  },
+  {
+   "calculator": "hbond_vs_ph",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {
+    "ph_step": 0.1,
+    "ph_min": -2.0,
+    "ph_max": 16.0
+   },
+   "seconds": 3.032,
+   "status": "ready"
+  },
+  {
+   "calculator": "hbond_vs_ph",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {
+    "ph_step": 0.05,
+    "ph_min": -2.0,
+    "ph_max": 16.0
+   },
+   "seconds": 6.133,
+   "status": "ready"
+  },
+  {
+   "calculator": "hbond_vs_ph",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {
+    "ph_step": 0.02,
+    "ph_min": -2.0,
+    "ph_max": 16.0
+   },
+   "seconds": 15.096,
+   "status": "ready"
+  },
+  {
+   "calculator": "hbond_vs_ph",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {
+    "ph_step": 0.01,
+    "ph_min": -2.0,
+    "ph_max": 16.0
+   },
+   "seconds": 16.727,
+   "status": "ready"
+  },
+  {
+   "calculator": "molecular_dynamics",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {
+    "steps": 1000
+   },
+   "seconds": 0.168,
+   "status": "ready"
+  },
+  {
+   "calculator": "molecular_dynamics",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {
+    "steps": 5000
+   },
+   "seconds": 0.836,
+   "status": "ready"
+  },
+  {
+   "calculator": "molecular_dynamics",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {
+    "steps": 20000
+   },
+   "seconds": 3.338,
+   "status": "ready"
+  },
+  {
+   "calculator": "molecular_dynamics",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {
+    "steps": 100000
+   },
+   "seconds": 16.569,
+   "status": "ready"
+  },
+  {
+   "calculator": "geometry_analysis",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {
+    "conformer_count": 20
+   },
+   "seconds": 1.066,
+   "status": "ready"
+  },
+  {
+   "calculator": "geometry_analysis",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {
+    "conformer_count": 200
+   },
+   "seconds": 1.073,
+   "status": "ready"
+  },
+  {
+   "calculator": "stereoisomers",
+   "molecule": "OCC(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)CO",
+   "overrides": {
+    "max_structures": 200
+   },
+   "seconds": 0.104,
+   "status": "ready"
+  },
+  {
+   "calculator": "stereoisomers",
+   "molecule": "OCC(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)CO",
+   "overrides": {
+    "max_structures": 2000
+   },
+   "seconds": 1.103,
+   "status": "ready"
+  },
+  {
+   "calculator": "stereoisomers",
+   "molecule": "OCC(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)CO",
+   "overrides": {
+    "max_structures": 10000
+   },
+   "seconds": 2.934,
+   "status": "ready"
+  },
+  {
+   "calculator": "tautomers",
+   "molecule": "O=C(CC(=O)CC(=O)CC(=O)CC(=O)CC(=O)CC(=O)CC(=O)CC(=O)C)O",
+   "overrides": {
+    "max_structures": 200
+   },
+   "seconds": 0.125,
+   "status": "ready"
+  },
+  {
+   "calculator": "tautomers",
+   "molecule": "O=C(CC(=O)CC(=O)CC(=O)CC(=O)CC(=O)CC(=O)CC(=O)CC(=O)C)O",
+   "overrides": {
+    "max_structures": 2000
+   },
+   "seconds": 0.724,
+   "status": "ready"
+  },
+  {
+   "calculator": "tautomers",
+   "molecule": "O=C(CC(=O)CC(=O)CC(=O)CC(=O)CC(=O)CC(=O)CC(=O)CC(=O)C)O",
+   "overrides": {
+    "max_structures": 10000
+   },
+   "seconds": 0.741,
+   "status": "ready"
+  },
+  {
+   "calculator": "resonance_forms",
+   "molecule": "O=C(CC(=O)CC(=O)CC(=O)CC(=O)CC(=O)CC(=O)CC(=O)CC(=O)C)O",
+   "overrides": {
+    "max_structures": 200
+   },
+   "seconds": 0.001,
+   "status": "ready"
+  },
+  {
+   "calculator": "resonance_forms",
+   "molecule": "O=C(CC(=O)CC(=O)CC(=O)CC(=O)CC(=O)CC(=O)CC(=O)CC(=O)C)O",
+   "overrides": {
+    "max_structures": 2000
+   },
+   "seconds": 0.001,
+   "status": "ready"
+  },
+  {
+   "calculator": "resonance_forms",
+   "molecule": "O=C(CC(=O)CC(=O)CC(=O)CC(=O)CC(=O)CC(=O)CC(=O)CC(=O)C)O",
+   "overrides": {
+    "max_structures": 10000
+   },
+   "seconds": 0.001,
+   "status": "ready"
+  },
+  {
+   "calculator": "steric_analysis",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {
+    "conformers": 20
+   },
+   "seconds": 0.19,
+   "status": "ready"
+  },
+  {
+   "calculator": "steric_analysis",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {
+    "conformers": 200
+   },
+   "seconds": 0.192,
+   "status": "ready"
+  },
+  {
+   "calculator": "geometry_analysis",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {
+    "conformer_policy": "never",
+    "conformer_count": 20
+   },
+   "seconds": 1.091,
+   "status": "ready"
+  },
+  {
+   "calculator": "geometry_analysis",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {
+    "conformer_policy": "never",
+    "conformer_count": 200
+   },
+   "seconds": 1.075,
+   "status": "ready"
+  },
+  {
+   "calculator": "geometry_analysis",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {
+    "conformer_policy": "if_2d",
+    "conformer_count": 20
+   },
+   "seconds": 1.081,
+   "status": "ready"
+  },
+  {
+   "calculator": "geometry_analysis",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {
+    "conformer_policy": "if_2d",
+    "conformer_count": 200
+   },
+   "seconds": 1.097,
+   "status": "ready"
+  },
+  {
+   "calculator": "geometry_analysis",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {
+    "conformer_policy": "always",
+    "conformer_count": 20
+   },
+   "seconds": 3.963,
+   "status": "ready"
+  },
+  {
+   "calculator": "geometry_analysis",
+   "molecule": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+   "overrides": {
+    "conformer_policy": "always",
+    "conformer_count": 200
+   },
+   "seconds": 29.741,
+   "status": "ready"
+  }
+ ]
+}
