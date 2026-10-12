@@ -6452,6 +6452,12 @@ def _collect_stereo_descriptors(
             loc = atom_to_locant.get(sc.atom_idx)
             if loc is None:
                 continue
+            # Naming round 44: a PROTONATED amine (`[N@H+]`) has no configuration to cite: the nitrogen inverts and the proton exchanges, and only a quaternary N+
+            # (four substituents, no H) is a stable stereocentre. A descriptor was emitted for it anyway (`8'S`), OPSIN could not place it, and the validation pass
+            # then stripped EVERY tetrahedral descriptor of the spiro parent with it: a spiro ammonium with four real centres was named with none.
+            _centre = mol.GetAtomWithIdx(sc.atom_idx)
+            if _centre.GetSymbol() == "N" and _centre.GetFormalCharge() > 0 and _centre.GetTotalNumHs() > 0:
+                continue
             if skip_tetrahedral:
                 # R15-C: Allow fused-ring parent (not bridged/spiro) at
                 # plain-integer locants always.
@@ -6505,7 +6511,15 @@ def _collect_stereo_descriptors(
             begin = sc.atom_idx
             bond = None
             for b in mol.GetBonds():
-                if b.GetBeginAtomIdx() == begin and b.GetStereo() != Chem.BondStereo.STEREONONE:
+                # Naming round 44: a bond that STOPS being stereogenic once a substituent is carved (`CH3-CH=C(CH3)-CH2-N` cut at the CH2 leaves
+                # `CH3-CH=C(CH3)2`, two methyls on one end) has no stereo flag of its own, but stereo perception reports it from the descriptor it
+                # inherits from the parent (`_ParentCIPCode`). Looking the bond up by its flag alone dropped that descriptor here, so
+                # `N-(2-methylbut-2-en-1-yl)acetamide` named both stereoisomers; `N-[(2E)-but-2-en-1-yl]` and a chloro branch, whose carved bond stays
+                # stereogenic, kept theirs.
+                if b.GetBeginAtomIdx() == begin and (
+                    b.GetStereo() != Chem.BondStereo.STEREONONE
+                    or (b.GetBondTypeAsDouble() == 2.0 and b.HasProp("_ParentCIPCode"))
+                ):
                     bond = b
                     break
             if bond is None:
@@ -14514,6 +14528,15 @@ class SubstitutivePath:
                     type_groups[t] = carved
                 else:
                     del type_groups[t]
+            # Naming round 44: an ANION is senior to every neutral class that is not an acid (P-41: anions 4, cations 5, acids 7), so a deprotonated
+            # alcohol or thiol is the PARENT beside a nitrile, an aldehyde, an amide: `4-cyanophenolate`, `4-cyanobenzene-1-thiolate`, not the nitrile with
+            # an `oxido` prefix. Those types competed "normally" here and won on their own seniority, which is how the charge ended up in a prefix.
+            # A NEUTRAL acid goes too (anions 4, acids 7): `OC(=O)c1ccc([O-])cc1` took the carboxylic acid as the parent, wrote it in its anion form and
+            # moved the charge to it, `4-oxidobenzoate`; the molecule is `4-carboxybenzen-1-olate`. (A carved carboxylate has widened the family above.)
+            if _restricted_family is _CHALCOGEN_ACID_TYPES:
+                for t in list(type_groups.keys()):
+                    if t not in _CHALCOGEN_ACID_TYPES:
+                        del type_groups[t]
 
         # Charge conservation (naming round 7, R4a). In ANION mode the anion suffix must sit on
         # the CHARGED instance(s) of a type that has both charged and neutral instances: the number

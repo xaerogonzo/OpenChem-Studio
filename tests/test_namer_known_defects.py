@@ -4283,11 +4283,21 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-226", "NC(=[NH2+])CC(=O)[O-]", "carboxylatoacetamidinium", "[REFUSED: charge perception claimed an 'amidinium' motif but could not complete it]",
      "a visible refusal for a zwitterion; a cation outranks an acid and an anion, so the amidinium is the parent and the carboxylate a prefix"),
     # D-227: a thiolate or phenolate beside a group that outranks the thiol or alcohol was named as the NEUTRAL compound.
-    ("D-227", "N#Cc1ccc([O-])cc1", "4-oxidobenzene-1-carbonitrile", "4-hydroxybenzene-1-carbonitrile",
+    ("D-227", "N#Cc1ccc([O-])cc1", "4-cyanobenzen-1-olate", "4-hydroxybenzene-1-carbonitrile",
      "WRONG MOLECULE: the negative charge was in no word of the name (the nitrile took the suffix, the site became a `hydroxy` prefix)"),
     # D-228: the four helicenes had no atom-locant table, so every substituent landed on whichever atom the generic walk reached.
     ("D-228", "CC(=O)Nc1cccc2ccc3ccc4ccc5ccc6ccccc6c5c4c3c12", "N-(hexahelicen-1-yl)acetamide", "N-hexahelicenylacetamide",
      "WRONG MOLECULE by position: no locant at all, so every isomer had the same name; 224 of 260 ring-sweep cases on penta- to octahelicene"),
+    # D-229 (naming round 44): an anion is senior to every neutral class that is not an acid, so it is the PARENT (round 43 cited it as an oxido/sulfido prefix).
+    ("D-229", "N#Cc1ccc([S-])cc1", "4-cyanobenzene-1-thiolate", "4-sulfidobenzene-1-carbonitrile",
+     "the charge was in a prefix, not in the parent (round 43); before that the NEUTRAL compound, `4-sulfanylbenzene-1-carbonitrile`; beside a neutral acid the charge moved to the wrong group (`4-oxidobenzoate` for OC(=O)c1ccc([O-])cc1)"),
+    # D-230: the hydrazide group matched a charged N', so a protonated acylhydrazone was written neutral.
+    ("D-230", "C=[NH+]NC(=O)c1ccccc1", "benzamido(methylidene)azanium", "N'-methylidenebenzohydrazide",
+     "WRONG MOLECULE: the + charge was in no word of the name (census row 1936625)"),
+    # D-231: E/Z of a bond that stops being stereogenic once the substituent is carved.
+    ("D-231", "C/C=C(C)/CNC(=O)C", "N-[(2E)-2-methylbut-2-en-1-yl]acetamide", "N-(2-methylbut-2-en-1-yl)acetamide",
+     "STEREO LOST: both stereoisomers had one name (census row 1935625)"),
+    # (D-232, a spiro ammonium at [N@H+], is in tests/test_namer_round44_parent_anion_and_stereo.py: this table's harness compares canonical SMILES, which keeps the nitrogen's tag, and a protonated N has no configuration to cite.)
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",
