@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 5086b371dedaa6aec4818284e89ced737ba4307ca560fa6d1382d8750a484b83 -->
+<!-- SOURCE SHA256: 7c6e2f16b0f8d35c41cdd6cbfaf1bcfe53c34aaa5513c28f7d8ea737806aa9f7 -->
 
 # Sources
 
@@ -2654,8 +2654,8 @@ Magnesium appears only as a six-membered chelate proposed for an organomagnesium
 NOT CHECKED: the lithium, rubidium, cesium, silver, zirconium, lanthanide and heavy main-group sections, the force-field
 discussion of Hay and Rustad behind Table 1's other columns, the NMR sections, and the hydrogen-bond section.
 
-THE APPLICATION: `pose_analysis._FLUORINE_DONOR_METALS` (sodium, potassium, calcium, magnesium) and the absence of a fluorine
-window for zinc, iron, cobalt, manganese, copper and nickel. Magnesium is kept as an assumption this paper does not support.
+THE APPLICATION: `pose_analysis._ORGANIC_FLUORINE_DONOR_METALS` (sodium, potassium, calcium) and the absence of a window for a
+carbon-bound fluorine to zinc, iron, cobalt, manganese, copper, nickel and magnesium; this paper has no magnesium distance.
 
 ### plenio2004
 
@@ -2684,7 +2684,7 @@ hydrogen bonding is left to Dunitz's companion review in the same issue.
 NOT CHECKED: the references and the individual stability constants beyond Table 1.
 
 THE APPLICATION: the claim that the interaction is weaker than oxygen's (about 64% of Li...O) in the comment on
-`pose_analysis._FLUORINE_DONOR_METALS`.
+`pose_analysis._ORGANIC_FLUORINE_DONOR_METALS`.
 
 ### dunitz1997
 
@@ -2805,10 +2805,15 @@ with alkali metals and "presumably" other hard acids.
 
 TABLE IV (the bond-valence table) WAS NOT USED: its numbers come out of the PDF text scrambled, so no value was taken from it.
 
-NOT CHECKED: the synthesis, the structure determinations, Tables I to III and the B-F section.
+The supporting information (34 pages) was read for what it holds: Table A (atomic parameters of the fluorocitrate ester), B (structure
+factors), C (fluorocitrate dimensions) and Tables D and E, which are lists of the structures with C-F...O and C-F...N contacts by
+CSD refcode with their literature references, and no distances. Table D includes copper(II) hexafluoroacetylacetonate (FACECU10) and
+the urea copper(II) fluoroacetate (UFACCU10).
+
+NOT CHECKED: the structure determinations beyond what the text states, Tables I to III and the B-F section.
 
 THE APPLICATION: the sodium and potassium fluorine distances (2.470 and 2.80 A) and the absence of transition-metal evidence behind
-`pose_analysis._FLUORINE_DONOR_METALS`.
+`pose_analysis._ORGANIC_FLUORINE_DONOR_METALS`.
 
 ### chernyshov2020
 

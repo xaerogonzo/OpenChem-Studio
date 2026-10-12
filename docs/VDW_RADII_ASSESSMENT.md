@@ -368,7 +368,7 @@ killed.
 **Per-metal bond windows (built 2026-10-12), which close the first of the two things this left open.** The donor window was one
 pair of numbers (1.8 to 2.8 angstrom) for every metal and donor. It is now `pose_analysis.metal_bond_window(metal, donor)`,
 from `METAL_DONOR_TARGETS`: the distance a bond from that metal to that kind of donor is expected to have, by donor element
-(N, O, S; fluorine reads oxygen's for sodium, potassium, calcium and magnesium only, see below), taken from Harding 2006 Table 4 for Zn, Fe, Co, Mn, Cu,
+(N, O, S; fluorine reads oxygen's: for every metal if it is a fluoride ion, for sodium, potassium and calcium only if it is on carbon or boron, see below), taken from Harding 2006 Table 4 for Zn, Fe, Co, Mn, Cu,
 Mg, Ca, Na and K [source:harding2006] and, for nickel, which Harding does not cover, from Zheng et al.'s CSD means
 [source:zheng2017]. The N and S entries for Mg, Ca, Na and K are Harding's own estimates, marked as such in his 2001 and
 2002 tables [source:harding2001] [source:harding2002]. The window is **the target plus 0.5 angstrom, and plus 0.75 for
@@ -395,27 +395,30 @@ calculators cannot disagree, and the sweep that no distance is both a coordinati
 **What stays open:** the metal radii themselves are untouched, so a non-bonded contact with a metal is still judged by the
 placeholder radii above (Fe 1.56 among them), and a saved docking result keeps the clash list it was analysed with.
 
-**Fluorine as a metal donor (read 2026-10-12; Interaction Analysis `interactions-v4`).** Fluorine had no table, and read the oxygen
+**Fluorine as a metal donor (read 2026-10-12; Interaction Analysis `interactions-v4`, narrowed in `interactions-v5`).** Fluorine had no table, and read the oxygen
 entry for every metal. Four papers Alex supplied were read for what they measured. *Hard cations:* Plenio's CSD survey of
 carbon-bound fluorine to the alkali and alkaline-earth ions finds attractive contacts, sodium to fluorine 2.30 to 2.67 angstrom
 (the 79 contacts peak at 2.50 to 2.70), and derives acceptance limits (Na 2.49 to 3.07, K 2.98 to 3.47, Ca 2.53 to 3.13) that
 bracket the oxygen windows used (Na to 3.16, K to 3.57, Ca to 2.89); Murray-Rust et al. measured sodium to fluorine 2.470 and
 potassium to fluorine 2.80; the only calcium structure is at 2.524; a DFT binding energy for fluorine to Li+ is about 64% of
 oxygen's [source:plenio1997] [source:plenio2004] [source:murrayrust1983]. So sodium, potassium and calcium keep the oxygen
-window. *Magnesium keeps it too, but only by assumption:* no measured Mg to fluorine distance is in these papers (Plenio mentions
-magnesium only as a chelate proposed for a reaction), and it stays open until a survey of Mg to fluorine contacts is found.
-*Transition metals:* Plenio finds convincing first-row evidence
+window. *Magnesium first kept it as an assumption* (no measured Mg to fluorine distance is in these papers; Plenio mentions magnesium only
+as a chelate proposed for a reaction) *and lost it in v5*, when every later measurement fell outside the window it would have
+had (below). *Transition metals:* Plenio finds convincing first-row evidence
 only for titanium (2.15) and vanadium (2.31 and 2.38) in unusual organometallic complexes, a cobalt contact its authors put
 down to torsion, and zinc at 2.53 to 2.73 in crowded aryl-CF3 organometallics, with nothing for iron, manganese, copper or
-nickel [source:plenio1997] [source:murrayrust1983]. Fluorine is therefore no longer a donor to Zn, Fe, Co, Mn, Cu and Ni: a
+nickel [source:plenio1997] [source:murrayrust1983]. A fluorine on carbon is therefore no longer a donor to Zn, Fe, Co, Mn, Cu and Ni (nor, from v5, Mg): a
 fluorine inside the old oxygen window (zinc to 2.59, iron 2.59, manganese 2.69) is no longer a coordination, and is a clash
 only if it is inside the radius rule (F 1.47 plus the metal's radius less 0.4: 2.46 for zinc, 2.63 for iron, 2.77 where the
 table has no entry for the metal and uses its 1.70 default). Measured through `analyze_pose` and `find_interactions`
 (`tests/test_pose_analysis_metals.py`, `tests/test_interaction_analysis_metals.py`): fluorine at 2.3 of any transition metal was
 a coordination and is a clash; zinc at 2.55 is neither; sodium at 2.47, potassium at 2.80, calcium at 2.52 stay coordinations.
-Eight mutants (restriction removed, zinc or iron added, each hard cation dropped, fluorine reading nitrogen) are all killed.
-**Known limit:** the rule is by element, so a fluoride ion or a fluorine on boron or phosphorus (a tetrafluoroborate bound to
-nickel at 2.12 angstrom is in Murray-Rust's survey) is a real donor and is not recognised as one. Whether organic fluorine accepts a hydrogen bond is a separate question with its own change, below.
+Fourteen mutants of the final rule (the donor key removed or applied to every fluorine, magnesium, zinc or copper added, each of sodium, potassium and calcium dropped, the restriction removed, and each of the five call sites ignoring the key) are all killed.
+**A fluoride ion is not a carbon-bound fluorine, and is told from it by its bonds** (`pose_analysis.metal_donor_symbol`): a fluorine
+bonded to neither carbon nor boron keeps the oxygen window for every metal (a ligand's own fluoride at 1.95 angstrom from magnesium
+[source:bakewell2016] is a coordination and not a clash), so no real fluoride bond is lost to this change. **Known limit:** a receptor
+fluorine arrives as coordinates without bonds and is read as a fluoride ion, so a cofactor's C-F beside a metal the ligand carries is
+read as one too, and a fluorine on phosphorus, sulfur or silicon is read as a fluoride ion because no source covers it. Whether organic fluorine accepts a hydrogen bond is a separate question with its own change, below.
 
 **A direct measurement of the PDB (2026-10-12; `benchmarks/fluorine_pdb_survey/`).** Every entry of resolution 2.5 angstrom or better
 that holds a fluorine-containing ligand and one of the ten metals was fetched (1,240 entries: Zn 559, Mg 388, Ca 199, Na 219,
@@ -429,9 +432,9 @@ the rest are 3.0 and 4.0. **Copper is the exception:** six pairs in two bacteria
 angstrom resolution, 6EI4 at 2.0) put the fluorine 1.88 to 2.61 angstrom from a copper that also has three histidines, with ligand
 carbons 2.0 to 2.3 angstrom from the same copper, so the inhibitor is modelled inside the copper site; all six are inside
 copper's oxygen window (to 2.63), and whether that is a real Cu-F interaction or a modelling choice at that resolution is not
-settled by a coordinate file. For magnesium the supplementary coordinates of Bakewell et al. give 3.20 to 3.49 angstrom to a C-F
+settled by a coordinate file. Murray-Rust's survey adds that the only transition-metal fluoroalkanecarboxylates then known, copper(II) fluoroacetates, have the sixth site filled by urea or quinoline, and his supplementary tables list those structures without distances [source:murrayrust1983]; copper is left out of the donors for now, and putting it back is one entry in `_ORGANIC_FLUORINE_DONOR_METALS`. For magnesium the supplementary coordinates of Bakewell et al. give 3.20 to 3.49 angstrom to a C-F
 fluorine and 1.95 to a fluoride [source:bakewell2016], so **no measured magnesium to fluorine distance anywhere read is inside
-the oxygen window used (to 2.76); that assumption is unsupported and stays only until it is decided.** Brese and O'Keeffe's bond-valence parameters
+the oxygen window used (to 2.76); magnesium was therefore removed from the donors of a carbon-bound fluorine in v5.** Brese and O'Keeffe's bond-valence parameters
 (read) are where a fluoride ion's metal distances would come from if a separate fluoride window is ever built; none is used.
 
 **Fluorine as a hydrogen-bond acceptor (read 2026-10-12; Interaction Analysis `interactions-v5`).** Both analysers counted a

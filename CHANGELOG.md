@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Docking and interactions: magnesium is no donor to a carbon-bound fluorine, and a fluoride ion is told from one
+- A fluorine now has two donor keys, set by its bonds (`pose_analysis.metal_donor_symbol`): bonded to carbon or boron it is a donor
+  to sodium, potassium and calcium only; bonded to neither (a fluoride ion) it keeps the oxygen window for every metal. Magnesium
+  leaves the first group: every measured Mg...F(C) distance is 3.2 angstrom or more (3.20 to 3.49 from the supplementary coordinates of
+  Bakewell et al., 3.29 and beyond in 388 PDB entries) against a window that ended at 2.76, while a fluoride on magnesium is 1.95.
+  A direct survey of 1,240 PDB entries is in `benchmarks/fluorine_pdb_survey/`: no fluorine is nearer than 3.48 angstrom to a
+  zinc (559 entries), one calcium site takes a fluorinated nucleotide's fluorine at 2.57, and two tyrosinase-inhibitor entries put
+  a fluorine 1.88 to 2.61 angstrom from a copper, which is left out for now. Fourteen mutants of the rule are killed.
+
 ### Docking and interactions: a fluorine on carbon or boron is not a hydrogen-bond acceptor
 - Both `analyze_pose` and Interaction Analysis counted a fluorine as an acceptor like N and O. Dunitz and Taylor's CSD survey
   finds 0.6% of C-F bonds (37 of 5,947) in a short contact with an O-H or N-H, against 42% of carbonyl oxygens, and only two of
@@ -20,11 +29,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Docking and interactions: fluorine is a metal donor to the hard cations, not to the transition metals
 - A fluorine read the metal's oxygen window for every metal, an assumption with no source. Plenio's CSD surveys and Murray-Rust
   et al. support organic fluorine as a weak donor to sodium (2.30 to 2.67 angstrom), potassium (2.80) and calcium (2.52), and
-  find almost none for the first-row transition metals. Fluorine now keeps the oxygen window for Na, K, Ca and Mg (magnesium is an
-  assumption: no measured distance was found) and is no donor to Zn, Fe, Co, Mn, Cu and Ni: a fluorine at 2.3 angstrom of any
+  find almost none for the first-row transition metals. Fluorine now keeps the oxygen window for Na, K, Ca and Mg (magnesium was an
+  assumption, removed again in the next entry) and is no donor to Zn, Fe, Co, Mn, Cu and Ni: a fluorine at 2.3 angstrom of any
   of those was a metal coordination and is a clash now. Interaction Analysis moves to method `interactions-v4` (a v3 result
   is kept and labelled); docking results already saved keep what they were analysed with. `plenio1997`, `plenio2004` and
-  `murrayrust1983` become shipped sources. Known limit: a fluoride ion or a B-F or P-F fluorine is not told from a C-F one.
+  `murrayrust1983` become shipped sources. (Its known limit, that a fluoride ion was not told from a C-F fluorine, is closed in the next entry.)
 
 ### Docking and interactions: a metal's bond window is its own
 - **A bond to a metal no longer has one length for every metal and donor.** The 1.8 to 2.8 angstrom window `analyze_pose` and Interaction

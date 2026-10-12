@@ -39,6 +39,7 @@ from openchem.chem.pose_analysis import (
     is_metal_bond,
     is_metal_contact,
     is_weak_acceptor_fluorine,
+    metal_donor_symbol,
     _POLAR_ELEMENTS,
     _VDW_RADII,
     _formal_charge_sites,
@@ -156,7 +157,7 @@ def _metal_bonded_pairs(mol: Chem.Mol, positions, topological) -> set[tuple[int,
     for metal in metals:
         metal_symbol = mol.GetAtomWithIdx(metal).GetSymbol().upper()
         for donor in (a.GetIdx() for a in mol.GetAtoms() if _is_metal_donor(a)):
-            donor_symbol = mol.GetAtomWithIdx(donor).GetSymbol()
+            donor_symbol = metal_donor_symbol(mol.GetAtomWithIdx(donor))
             distance = _distance(positions, metal, donor)
             if is_metal_bond(metal_symbol, donor_symbol, distance):
                 for other in range(mol.GetNumAtoms()):
@@ -247,7 +248,7 @@ def find_interactions(mol: Chem.Mol) -> dict[str, list[dict[str, Any]]]:
                 _is_metal_donor(mol.GetAtomWithIdx(donor))
                 and is_metal_bond(
                     (element_i if element_i.upper() in _METALS else element_j).upper(),
-                    mol.GetAtomWithIdx(donor).GetSymbol(),
+                    metal_donor_symbol(mol.GetAtomWithIdx(donor)),
                     distance,
                 )
                 and separated("metal_coordination", i, j)

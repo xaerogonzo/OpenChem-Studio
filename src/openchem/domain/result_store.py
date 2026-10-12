@@ -102,7 +102,9 @@ STERIC_METHOD = "steric-v2"
 #: fluorine a metal donor only to sodium, potassium, calcium and magnesium: a fluorine within 2.59 A of zinc, iron, cobalt,
 #: manganese, copper or nickel is no longer coordination (and is a clash if it is inside the radius rule). v5 (2026-10-12)
 #: stops counting a fluorine bonded to carbon or boron as a hydrogen-bond acceptor (Dunitz and Taylor: 0.6% of C-F bonds are
-#: in a short contact with an O-H or N-H, against 42% of carbonyl oxygens); a fluoride ion or a P-F, S-F or Si-F fluorine still is one.
+#: in a short contact with an O-H or N-H, against 42% of carbonyl oxygens); a fluoride ion or a P-F, S-F or Si-F fluorine still is one. The same
+#: version closes magnesium to a carbon-bound fluorine (every measured Mg...F(C) is 3.2 A or more) and keeps the oxygen window
+#: for a fluoride ion on every metal, which v4 had lost.
 INTERACTION_METHOD = "interactions-v5"
 
 #: Result ids whose METHOD is part of their stored identity, and the method
