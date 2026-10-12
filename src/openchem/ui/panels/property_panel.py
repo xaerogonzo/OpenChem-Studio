@@ -43,6 +43,7 @@ from openchem.domain.calculator import (
 )
 from openchem.domain.batch import BatchRequest
 from openchem.domain.calculator_support import help_anchor_for, is_offered_by_default
+from openchem.domain import calculator_search
 from openchem.domain.calculator_taxonomy import (
     CATEGORY_LABELS,
     CATEGORY_ORDER,
@@ -3756,20 +3757,13 @@ class PropertyPanel(QWidget):
         self._apply_calculator_visibility()
 
     def _find_matches(self, definition: CalculatorDefinition, needle: str) -> bool:
-        """Case-insensitive substring over name, tags, description and heading.
+        """Case-insensitive match over name, tags, description and heading.
 
-        Tags may be empty (a plugin need not declare any), so they are only
-        ever iterated, never assumed.
+        The rule is `domain.calculator_search.matches`, shared with the AI
+        assistant's calculator search so what it can find is what typing the
+        same words here finds. Every word of the query must appear.
         """
-        haystack = " ".join(
-            [
-                definition.display_name,
-                definition.description or "",
-                _category_label(definition.category),
-                *(definition.tags or []),
-            ]
-        ).casefold()
-        return needle in haystack
+        return calculator_search.matches(definition, needle)
 
     def _apply_find(self) -> None:
         """Narrow the launcher to the query, or put back what it replaced.
