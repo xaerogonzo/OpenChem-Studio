@@ -6,6 +6,7 @@ from typing import Any, Callable
 
 from openchem.domain.calculator_support import CalculatorSupport
 from openchem.domain.common import ScientificResult
+from openchem.domain.execution_policy import ExecutionPolicy
 
 # Re-exported: every calculator module imports its refusal codes from here.
 from openchem.domain.refusal_kinds import (  # noqa: F401
@@ -396,6 +397,12 @@ class CalculatorDefinition:
     #: application does not already file; absent or unknown means "Other
     #: calculators", never an error, and a plugin cannot create a group.
     task_group: str | None = None
+    #: May a model start this on its own, or does a person approve it first
+    #: (`domain.execution_policy`). `None` is "nobody classified it" and reads as the cautious
+    #: answer, approval. A built-in's policy is attached by `bootstrap` from
+    #: `domain.builtin_execution_policies`; a plugin declares its own here. Never looked up by
+    #: calculator id, so a plugin cannot inherit a built-in's by reusing its id.
+    execution_policy: ExecutionPolicy | None = None
 
     def __post_init__(self) -> None:
         # At construction, so a dangling or circular dependency is a failing

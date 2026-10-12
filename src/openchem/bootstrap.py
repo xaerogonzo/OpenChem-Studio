@@ -15,6 +15,7 @@ from openchem.domain.calculator import (
     RegistryExecution,
     ServiceExecution,
 )
+from openchem.domain.builtin_execution_policies import BUILTIN_POLICIES
 from openchem.domain.calculator_support import (
     CalculatorSupport,
     SupportStage,
@@ -330,6 +331,20 @@ def _bind_settings(definition: CalculatorDefinition, settings: Settings) -> Calc
     return dataclasses.replace(definition, execution=RegistryExecution(compute=compute))
 
 
+def _with_policy(definition: CalculatorDefinition) -> CalculatorDefinition:
+    """A built-in's execution policy, put on its definition here and nowhere later.
+
+    Attached by the composition root rather than looked up by id when a decision is made, so a
+    plugin that registers a calculator under a built-in's id does not inherit that calculator's
+    permission to run unattended. A built-in with no entry keeps `None` and is treated as needing
+    approval; `tests/test_execution_policy.py` fails for one, so that never ships.
+    """
+    policy = BUILTIN_POLICIES.get(definition.calculator_id)
+    if policy is None or definition.execution_policy is not None:
+        return definition
+    return dataclasses.replace(definition, execution_policy=policy)
+
+
 def build_service_container() -> ServiceContainer:
     """Composition root: wires concrete services into a ServiceContainer.
 
@@ -362,9 +377,9 @@ def build_service_container() -> ServiceContainer:
     # (ServiceExecution) entries -- see _EXTERNAL_CALCULATOR_DEFINITIONS.
     calculator_registry = CalculatorRegistry()
     for definition in CALCULATOR_DEFINITIONS:
-        calculator_registry.register(_bind_settings(definition, settings))
+        calculator_registry.register(_with_policy(_bind_settings(definition, settings)))
     for definition in _EXTERNAL_CALCULATOR_DEFINITIONS:
-        calculator_registry.register(definition)
+        calculator_registry.register(_with_policy(definition))
     # Named rather than constructed inline like its siblings, because
     # ScreeningService below drives THIS instance -- it queues ligands
     # through the same service the Docking panel uses, so a screen and a

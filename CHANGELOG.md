@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### AI assistant bridge, step 1: what may run unattended is measured, and the calculator search is one rule
+- **Execution policy** (`domain/execution_policy.py`, `domain/builtin_execution_policies.py`): every one of the 72 registered
+  calculators now says whether a model may start it (`AUTO`: 43 instant, 14 short) or a person approves a preview first (`CONFIRM`: 15).
+  It is separate from the support stage, and it separates cost, the external program started, effects beyond a stored result and
+  auto-run eligibility, because one "cheap" flag answers four different questions. Nothing runs on a model's request yet; this is the
+  foundation, and `docs/AI_CALCULATION_BRIDGE.md` is the design the next two PRs follow.
+- **Measured, in `benchmarks/calculator_cost/`**, and the figures are read back by `tests/test_execution_policy.py` so a bound
+  cannot be loosened without evidence. Four calculators' cost scales measurably with a parameter, which a default-settings sweep hides: `hbond_vs_ph`
+  0.6 s at a 0.5 pH step and 16.7 s at 0.01; molecular dynamics 0.17 s at 1,000 steps and 16.6 s at 100,000; Geometry (3D) under
+  `conformer_policy=always` 29.7 s at 200 conformers. Each carries its measured bound. **Alignment** took 31 s for a 41- against a
+  28-heavy-atom pair (0.6 s against a 13-atom reference), so it needs approval. A molecule above 41 heavy atoms, the largest measured,
+  needs approval whatever the calculator.
+- A built-in's policy is attached by `bootstrap`, never looked up by id, so a plugin registering a built-in's id does not inherit its
+  permission; an unclassified calculator needs approval.
+- **The launcher's Find box and the assistant's future search are one rule** (`domain/calculator_search.py`): every word of the query
+  must appear, in any order. The Find box used the whole query as one substring, so "lewis adduct" and "adduct lewis" disagreed;
+  single-word queries are unchanged.
+
 ### AI Assistant: findable, and honest about being unconfigured; a missing plugin folder is no longer silent
 - **Plugins > Open AI Assistant** is new and listed first. The assistant sat in the rail's "Compare and Extend" group and its two
   menu entries named what they do, so nothing on screen said the application has one. Opening it no longer depends on the panel
