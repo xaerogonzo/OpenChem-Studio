@@ -13,7 +13,10 @@ a **`data` block that is present only for a result that computed something**:
 * `input`: which structure it was computed on (drawing or a stored conformer, the input fingerprint,
   which conformer and its energy), so a number is never read as belonging to the untouched drawing;
 * `method` and `parameters`: how, and with which settings (the dialog's dict, as recorded; each setting
-  is named as the calculator names it, and `describe_calculator` says what it means);
+  is named as the calculator names it, and `describe_calculator` says what it means). A result a SERVICE
+  ran, such as an ORCA job, has no registry dialog dict: its `parameters` are the run's calculation type,
+  method and basis, charge and multiplicity (`domain.common.RUN_SETTINGS`), stamped from the job's
+  submission snapshot. Without them B3LYP/def2-SVP and HF/STO-3G read the same;
 * `refusal`: for a result that declined, its code, kind, both sentences and the inputs it wants;
 * `caveats`: the report's own assumptions and limitations, never paraphrased away.
 
@@ -48,7 +51,7 @@ REACHED_BY = (
     "loads from source at run time rather than by an import from openchem.main"
 )
 
-from openchem.domain.common import ATOM_BASIS, CATEGORICAL_SCALE, TOTAL
+from openchem.domain.common import ATOM_BASIS, CATEGORICAL_SCALE, RUN_PREFIX, RUN_SETTINGS, TOTAL
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.refusal_kinds import REFUSAL_KEY, missing_inputs_of, refusal_kind_of_result
 from openchem.domain.report import Fact, ReportResult, StructureReport
@@ -158,6 +161,45 @@ def kind_of(result: object) -> str:
 def _provenance_parameters(result: object) -> dict[str, Any]:
     parameters = getattr(getattr(result, "provenance", None), "parameters", None)
     return parameters if isinstance(parameters, dict) else {}
+
+
+#: Most settings one envelope names. Settings are part of what a number MEANS, so unlike rows they are
+#: not halved with the caps; this only stops a pathological record (a project saved by something else)
+#: from flooding a reply. A real calculator has a handful.
+MAX_SETTINGS = 32
+
+
+def _setting_value(value: Any, caps: Caps, nested: bool = False) -> Any:
+    """One recorded setting, bounded. A number stays exact (it is a setting, not a measurement), except a
+    non-finite one, which JSON cannot carry and is named instead."""
+    if value is None or isinstance(value, (bool, int)):
+        return value
+    if isinstance(value, float):
+        return value if math.isfinite(value) else _n(value)
+    if isinstance(value, (list, tuple)) and not nested:
+        return [_setting_value(item, caps, nested=True) for item in value[: caps.items]]
+    return _t(value, caps.text)
+
+
+def _settings_of(parameters: dict[str, Any], caps: Caps) -> tuple[dict[str, Any], int]:
+    """What the result was run with, and how many settings were left out for length.
+
+    Two recorded forms, one block: the routing layer's `input_parameters` (the dict a registry calculator
+    was handed) and a service run's `run_*` keys (`RUN_SETTINGS`), shown WITHOUT the prefix, as the
+    panel names them. A result has one or the other, so they do not meet; if one ever did, the dialog's
+    own dict wins rather than being overwritten. Never `provenance.parameters` as a whole: that holds the
+    producer's working (`orca_version`, a caveat, a refusal code) and the structure keys, which have
+    blocks of their own.
+    """
+    recorded = parameters.get(INPUT_PARAMETERS_KEY)
+    settings: dict[str, Any] = dict(recorded) if isinstance(recorded, dict) else {}
+    for key in RUN_SETTINGS:
+        if key in parameters:
+            settings.setdefault(key[len(RUN_PREFIX):], parameters[key])
+    shown = {
+        _t(name, 80): _setting_value(value, caps) for name, value in list(settings.items())[:MAX_SETTINGS]
+    }
+    return shown, max(0, len(settings) - MAX_SETTINGS)
 
 
 def _name_of(result: object, fallback: str) -> str:
@@ -365,7 +407,7 @@ def envelope_of(entry: ResultEntry, caps: Caps = FULL) -> dict[str, Any]:
     identity = stored.identity
     kind = kind_of(result)
     parameters = _provenance_parameters(result)
-    settings = parameters.get(INPUT_PARAMETERS_KEY)
+    settings, settings_left_out = _settings_of(parameters, caps)
     envelope: dict[str, Any] = {
         "result_id": identity.result_id,
         "name": _t(_name_of(result, identity.result_id), caps.text),
@@ -383,9 +425,11 @@ def envelope_of(entry: ResultEntry, caps: Caps = FULL) -> dict[str, Any]:
             "application_version": stored.application_version,
             "from_saved_project": bool(stored.restored),
         },
-        "parameters": dict(settings) if isinstance(settings, dict) else {},
+        "parameters": settings,
         "caveats": _caveats(result, entry, caps),
     }
+    if settings_left_out:
+        envelope["caveats"].append(f"{settings_left_out} further recorded settings were left out for length")
     if entry.outcome is not Outcome.COMPUTED:
         envelope["refusal"] = _refusal_block(result, caps)
         return envelope

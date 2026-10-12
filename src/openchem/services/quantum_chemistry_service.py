@@ -46,7 +46,16 @@ from openchem.chem.tautomer_distribution import (
 )
 from openchem.chem.tautomer_nmr import NmrJob, TautomerNmrTarget
 from openchem.chem.tautomer_validation import validation_branch_for
-from openchem.domain.common import CacheState, Provenance
+from openchem.domain.common import (
+    RUN_CALC_TYPE,
+    RUN_CHARGE,
+    RUN_ID,
+    RUN_METHOD_BASIS,
+    RUN_MULTIPLICITY,
+    RUN_PROVIDER,
+    CacheState,
+    Provenance,
+)
 from openchem.domain.quantum_chemistry_run import (
     OutputStatus,
     QuantumChemistryRun,
@@ -280,6 +289,58 @@ class _ActiveJob:
     run_id: str = ""
     stdout_chunks: list[str] = field(default_factory=list)
     cancelled: bool = False
+
+
+def _run_record(job: _ActiveJob) -> dict[str, object]:
+    """What `job` was SUBMITTED with, under the `run_` provenance keys (`domain.common.RUN_*`).
+
+    ONE builder for the spectra (`QuantumChemistryService._stamped`) and the descriptors
+    (`_with_run_settings`), so the two cannot come to describe the same job in different words.
+    """
+    return {
+        RUN_CALC_TYPE: job.calc_type,
+        RUN_METHOD_BASIS: job.method_basis,
+        RUN_CHARGE: job.charge,
+        RUN_MULTIPLICITY: job.multiplicity,
+        RUN_PROVIDER: job.provider.provider_id,
+    }
+
+
+def _with_run_settings(descriptors: list, job: _ActiveJob) -> list:
+    """`descriptors` with the job's method, basis, calc type, charge, multiplicity and run id recorded
+    in each one's provenance.
+
+    **THE PROVIDER CANNOT DO THIS, AND THE STORE CANNOT RECOVER IT.** `parse_output` is handed the
+    output text and the molecule, never the method or basis, so before this a stored `orca.scf_energy`
+    from B3LYP/def2-SVP and one from HF/STO-3G carried identical provenance. The store keeps one current
+    value per calculator, so nothing but this stamp says which one is held.
+
+    Done once, BEFORE the result event and `_record_descriptors`, so the descriptors the run history
+    keeps, the revision cache files and the event carries are the same objects with the same record.
+    The provider's own keys (`orca_version`, `caveat`, ...) are kept; the `run_` prefix cannot collide
+    with them. Recording where a number came from must never lose the number, so a descriptor that
+    will not take it is passed on untouched.
+    """
+    record = _run_record(job)
+    if job.run_id:
+        record[RUN_ID] = job.run_id
+    stamped = []
+    for descriptor in descriptors:
+        try:
+            provenance = descriptor.provenance
+            if provenance is None:
+                provenance = Provenance(
+                    created_by="core", method=job.provider.provider_id, parameters=dict(record)
+                )
+            else:
+                provenance = dataclasses.replace(
+                    provenance, parameters={**provenance.parameters, **record}
+                )
+            stamped.append(dataclasses.replace(descriptor, provenance=provenance))
+        except Exception:  # noqa: BLE001 - a record of the settings must never cost the result
+            logger.exception("Could not record the run settings on a QC descriptor for %s", job.molecule_uuid)
+            stamped.append(descriptor)
+    return stamped
 
 
 @dataclass
@@ -1276,6 +1337,9 @@ class QuantumChemistryService(QObject):
             self._publish_state(molecule_uuid, CacheState.FAILED, str(exc))
             self._record_run(self._new_run(job, RunStatus.FAILED, warnings=[str(exc)]))
             return
+        # BEFORE the event and the store: the descriptors the event carries, the revision cache files
+        # and the run keeps must be one set, each saying which method and basis produced it.
+        descriptors = _with_run_settings(descriptors, job)
         self._event_bus.publish(
             QuantumChemistryResultReady(molecule_uuid=molecule_uuid, descriptors=descriptors, conformer=conformer)
         )
@@ -1442,7 +1506,11 @@ class QuantumChemistryService(QObject):
         # average of a HOMO/LUMO gap or a dipole would be a convention this
         # application invented, offered for every descriptor at once.
         lowest_index = min(range(len(run.energies)), key=run.energies.__getitem__)
-        lowest_descriptors = list(run.descriptors[lowest_index])
+        # Stamped BEFORE the averaged companion is built: that one copies its template's provenance, so
+        # it inherits the method and basis rather than needing its own stamp. `job` is the last
+        # conformer's, but its calc type, method, basis, charge and multiplicity are the RUN's (they are
+        # copied from it when each conformer is launched) and its `run_id` is the run's own.
+        lowest_descriptors = _with_run_settings(list(run.descriptors[lowest_index]), job)
         averaged_energy = self._boltzmann_average_energy_descriptor(run, lowest_descriptors, job)
         if averaged_energy is not None:
             lowest_descriptors.append(averaged_energy)
@@ -1887,13 +1955,7 @@ class QuantumChemistryService(QObject):
         into parameters the provider also writes.
         """
         provenance = spectrum.provenance
-        record = {
-            "run_calc_type": job.calc_type,
-            "run_method_basis": job.method_basis,
-            "run_charge": job.charge,
-            "run_multiplicity": job.multiplicity,
-            "run_provider": job.provider.provider_id,
-        }
+        record = _run_record(job)
         if provenance is None:
             provenance = Provenance(created_by="core", method=job.provider.provider_id, parameters=record)
         else:

@@ -28,7 +28,23 @@ from openchem.chem.calculation_input import INPUT_PREFIX
 from openchem.chem.engine import ChemistryEngine
 from openchem.cli import calculation as cli
 from openchem.domain import result_envelope as env
-from openchem.domain.common import ATOM_BASIS, CATEGORICAL_SCALE, TOTAL, CacheState, Provenance, ScientificResult, declare_total, decline_total
+from openchem.domain.common import (
+    ATOM_BASIS,
+    CATEGORICAL_SCALE,
+    RUN_CALC_TYPE,
+    RUN_CHARGE,
+    RUN_ID,
+    RUN_METHOD_BASIS,
+    RUN_MULTIPLICITY,
+    RUN_PROVIDER,
+    RUN_SETTINGS,
+    TOTAL,
+    CacheState,
+    Provenance,
+    ScientificResult,
+    declare_total,
+    decline_total,
+)
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.refusal_kinds import (
     INPUT_REQUIRED,
@@ -402,7 +418,73 @@ def test_an_outcome_with_no_result_is_just_its_state_and_message():
     assert "result" not in out and out["state"] == "previewed" and out["message"] == "needs a person"
 
 
+# --- the settings a result was run with --------------------------------------------------------------------
+
+
+def _qc_descriptor(parameters):
+    return DescriptorValue(
+        descriptor_id="orca.scf_energy", name="SCF Energy", units="Hartree", category="quantum_chemistry",
+        provider="orca", molecule_uuid=MOL, value=-154.987654, cache_state=CacheState.COMPLETED,
+        provenance=Provenance(created_by="core", method="orca", parameters=parameters),
+    )
+
+
+def test_a_service_runs_settings_are_shown_without_the_prefix_and_the_producers_working_is_not():
+    envelope = env.envelope_of(_entry(_qc_descriptor({
+        "orca_version": "6.1.1", "caveat": "no diffuse functions",
+        RUN_CALC_TYPE: "sp", RUN_METHOD_BASIS: "B3LYP def2-SVP", RUN_CHARGE: -1, RUN_MULTIPLICITY: 2,
+        RUN_PROVIDER: "orca", RUN_ID: "run-1",
+    })))
+    assert envelope["parameters"] == {
+        "calc_type": "sp", "method_basis": "B3LYP def2-SVP", "charge": -1, "multiplicity": 2,
+    }
+    # In the order the panel shows its fields, not however a dict happened to be built.
+    assert list(envelope["parameters"]) == ["calc_type", "method_basis", "charge", "multiplicity"]
+    json.dumps(envelope, allow_nan=False)
+
+
+def test_a_result_with_no_recorded_settings_has_none_rather_than_a_guess():
+    assert env.envelope_of(_entry(_qc_descriptor({"orca_version": "6.1.1"})))["parameters"] == {}
+
+
+def test_a_registry_dialogs_dict_wins_over_a_run_setting_of_the_same_name():
+    envelope = env.envelope_of(_entry(_qc_descriptor({
+        INPUT_PREFIX + "parameters": {"charge": 3}, RUN_CHARGE: -1, RUN_CALC_TYPE: "sp",
+    })))
+    assert envelope["parameters"] == {"charge": 3, "calc_type": "sp"}
+
+
+def test_recorded_settings_are_bounded_and_say_what_was_left_out():
+    settings = {
+        "method_basis": "B3LYP " + "x" * 5000, "window": list(range(500)), "ratio": 0.123456789,
+        "bad": math.nan, "nested": {"a": 1},
+    }
+    settings.update({f"s{i:03d}": i for i in range(100)})
+    result = _qc_descriptor({INPUT_PREFIX + "parameters": settings})
+
+    envelope = env.envelope_of(_entry(result))
+    shown = envelope["parameters"]
+    assert len(shown) == env.MAX_SETTINGS
+    assert len(shown["method_basis"]) == 400 and shown["method_basis"].endswith("…")
+    assert len(shown["window"]) == env.FULL.items
+    assert shown["ratio"] == 0.123456789  # a setting is not a measurement: no rounding
+    assert shown["bad"] == "nan" and shown["nested"] == "{'a': 1}"
+    assert f"{len(settings) - env.MAX_SETTINGS} further recorded settings were left out for length" in envelope["caveats"]
+    json.dumps(envelope, allow_nan=False)
+
+    # Settings are part of what a number means: shrinking the reply cuts their text, never their names.
+    smallest = env.envelope_of(_entry(result), env.CAP_STEPS[-1])["parameters"]
+    assert len(smallest) == env.MAX_SETTINGS and len(smallest["method_basis"]) == 60
+
+
 # --- drift guards ------------------------------------------------------------------------------------------
+
+
+def test_the_run_vocabulary_is_the_one_the_spectra_already_carry():
+    """`QuantumChemistryService._stamped` wrote these literal keys first (all but `run_id`, which only
+    the descriptors carry); panels and tests read them, so a rename here is not a local change."""
+    assert RUN_SETTINGS == ("run_calc_type", "run_method_basis", "run_charge", "run_multiplicity")
+    assert (RUN_PROVIDER, RUN_ID) == ("run_provider", "run_id")
 
 
 def test_the_provenance_keys_read_here_are_the_ones_the_calculation_path_writes():
