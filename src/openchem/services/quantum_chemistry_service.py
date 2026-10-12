@@ -46,6 +46,7 @@ from openchem.chem.tautomer_distribution import (
 )
 from openchem.chem.tautomer_nmr import NmrJob, TautomerNmrTarget
 from openchem.chem.tautomer_validation import validation_branch_for
+from openchem.domain.calculator import GEOMETRY
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.quantum_chemistry_run import (
     OutputStatus,
@@ -1277,7 +1278,13 @@ class QuantumChemistryService(QObject):
             self._record_run(self._new_run(job, RunStatus.FAILED, warnings=[str(exc)]))
             return
         self._event_bus.publish(
-            QuantumChemistryResultReady(molecule_uuid=molecule_uuid, descriptors=descriptors, conformer=conformer)
+            QuantumChemistryResultReady(
+                molecule_uuid=molecule_uuid,
+                descriptors=descriptors,
+                conformer=conformer,
+                # Only a stored conformer has a fingerprint to find it by; a job run on the drawing has none.
+                input_fingerprint=job.input_fingerprint if job.calculation_input == GEOMETRY else "",
+            )
         )
         self._record_descriptors(descriptors, job)
         run = self._new_run(job, RunStatus.COMPLETED)

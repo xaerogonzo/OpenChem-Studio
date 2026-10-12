@@ -1,0 +1,19 @@
+[
+  {"do": "smiles", "smiles": "CCO", "name": "Ethanol", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "conformers", "count": 3, "after_ms": 20000},
+  {"do": "conformer_report", "tag": "before-optimization", "expect": {"canonical_mapped": true}},
+
+  {"do": "panel", "id": "Quantum_Chemistry", "after_ms": 1500},
+  {"do": "qc_run", "calc_type": "Geometry Optimization", "method": "HF STO-3G", "after_ms": 90000},
+  {"do": "conformer_report", "tag": "after-optimization", "expect": {"canonical_method": "orca_opt", "canonical_mapped": true}},
+
+  {"do": "qc_run", "calc_type": "Single Point", "method": "HF STO-3G", "after_ms": 60000},
+  {"do": "conformer_report", "tag": "after-single-point"},
+
+  {"do": "calculator", "id": "geometry_partial_charge", "reveal": false, "after_ms": 8000},
+  {"do": "per_atom_report", "tag": "on-optimized", "property": "geometry_partial_charge", "expect_mismatches": false},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

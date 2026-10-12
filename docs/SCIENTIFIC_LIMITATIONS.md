@@ -1546,7 +1546,11 @@ and 10 embeddings could not find its minima at any threshold.
 
 **A 3D-dependent calculation uses one conformer, and says which.**
 Geometry, surface area, SASA, the dipole and the steric parameters are
-computed on the lowest-MMFF94-energy conformer *among those this sampling
+computed on the geometry of the newest quantum-chemistry optimization if
+there is one (2026-10-12: before this, an ORCA-optimized conformer was
+never chosen while any force-field conformer had an energy, so a job run
+after an optimization did not run on the optimized geometry), and
+otherwise on the lowest-MMFF94-energy conformer *among those this sampling
 run retained* — not "the lowest-energy conformer", which would be a claim
 about the molecule rather than about one random search under one force
 field. Each result records the conformer's id, so a number can be traced

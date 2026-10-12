@@ -19,12 +19,15 @@ from rdkit.Chem import AllChem
 
 from openchem.chem.calculation_input import (
     canonical_conformer,
+    geometry_fingerprint,
     geometry_provenance,
+    resolve_calculation_input,
     select_calculation_input,
+    with_source_atom_map,
 )
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.calculator import DRAWING, GEOMETRY
-from openchem.domain.conformer import ConformerModel
+from openchem.domain.conformer import ORCA_OPTIMIZED, QUANTUM_OPTIMIZED_METHODS, ConformerModel
 from openchem.domain.molecule import MoleculeModel
 
 ETHYLMORPHINE = "CN1CC[C@]23[C@@H]4[C@H]1CC5=C2C(=C(C=C5)OCC)O[C@H]3[C@H](C=C4)O"
@@ -648,3 +651,192 @@ def test_an_ensemble_with_an_unusable_member_is_refused_not_thinned(engine):
         resolve_ensemble(engine, model)
     with pytest.raises(ValueError, match="no conformers"):
         resolve_ensemble(engine, _model([]))
+
+
+# --------------------------------------------------------------------------
+# A geometry a quantum optimization produced is the geometry that is used
+# --------------------------------------------------------------------------
+
+
+def _optimized(seed: int, timestamp: float, **kwargs) -> ConformerModel:
+    """What `OrcaQuantumEngineProvider._parse_optimized_conformer` builds: no energy, the ORCA label."""
+    return ConformerModel(
+        molblock=_conformer_molblock(seed), energy=None, method=ORCA_OPTIMIZED, timestamp=timestamp, **kwargs
+    )
+
+
+def test_an_orca_optimized_conformer_is_chosen_over_force_field_ones(engine):
+    """THE CASE MEASURED 2026-10-12. With two energised force-field conformers present, the optimized
+    one (no energy) sorted last and was never selected, so the job after an optimization ran on the
+    force-field geometry. Asserts the symptom -- which geometry a GEOMETRY calculator is handed -- and
+    not only which object `canonical_conformer` returns."""
+    force_field = [
+        ConformerModel(molblock=_conformer_molblock(1), energy=-3.2, method="mmff"),
+        ConformerModel(molblock=_conformer_molblock(2), energy=4.7, method="mmff"),
+    ]
+    optimized = _optimized(3, timestamp=2_000.0)
+    model = _model([*force_field, optimized])
+    assert canonical_conformer(model) is optimized
+    handed = Chem.MolToMolBlock(select_calculation_input(engine, model, GEOMETRY))
+    expected = Chem.MolToMolBlock(engine.mol_from_molblock(optimized.molblock))
+    assert handed == expected
+    assert handed != Chem.MolToMolBlock(engine.mol_from_molblock(force_field[0].molblock))
+
+
+def test_the_resolved_fingerprint_is_the_optimized_conformers_own(engine):
+    """The fingerprint a result is stamped with must name the conformer it was computed on, or
+    `with_source_atom_map` and a stale-result check would be looking for a different one."""
+    optimized = _optimized(3, timestamp=2_000.0)
+    model = _model([ConformerModel(molblock=_conformer_molblock(1), energy=-3.2, method="mmff"), optimized])
+    assert resolve_calculation_input(engine, model, GEOMETRY).fingerprint == geometry_fingerprint(optimized)
+
+
+def test_the_newest_optimization_wins_whatever_the_list_order():
+    """Newest, not lowest and not first: an ORCA energy is not comparable with another level of theory's,
+    so the one the person last asked for is the one used."""
+    older = _optimized(3, timestamp=1_000.0)
+    newer = _optimized(4, timestamp=2_000.0)
+    assert canonical_conformer(_model([newer, older])) is newer
+    assert canonical_conformer(_model([older, newer])) is newer
+
+
+def test_two_optimizations_with_one_timestamp_take_the_one_appended_last():
+    first = _optimized(3, timestamp=1_000.0)
+    second = _optimized(4, timestamp=1_000.0)
+    assert canonical_conformer(_model([first, second])) is second
+
+
+def test_undoing_the_optimization_restores_the_force_field_choice():
+    """`AddConformerCommand.undo` removes the conformer; nothing else has to remember it was there."""
+    force_field = ConformerModel(molblock=_conformer_molblock(1), energy=-3.2, method="mmff")
+    model = _model([force_field])
+    assert canonical_conformer(model) is force_field
+    model.conformers.append(_optimized(3, timestamp=2_000.0))
+    model.conformers.pop()
+    assert canonical_conformer(model) is force_field
+
+
+def test_an_optimized_conformer_with_no_structure_is_not_chosen():
+    """A label is not a geometry: the rule needs something to hand a calculator."""
+    force_field = ConformerModel(molblock=_conformer_molblock(1), energy=-3.2, method="mmff")
+    empty = ConformerModel(molblock="", energy=None, method=ORCA_OPTIMIZED, timestamp=2_000.0)
+    assert canonical_conformer(_model([force_field, empty])) is force_field
+
+
+def test_without_an_optimization_the_force_field_rule_is_unchanged():
+    """The rule that was here before still decides every molecule nobody optimized."""
+    low = ConformerModel(molblock=_conformer_molblock(1), energy=-3.2, method="mmff")
+    high = ConformerModel(molblock=_conformer_molblock(2), energy=4.7, method="mmff")
+    assert canonical_conformer(_model([high, low])) is low
+
+
+def test_the_label_the_engine_writes_is_the_label_the_rule_looks_for():
+    """Through the engine's own parser, not a hand-built conformer: renaming the string on one side
+    would otherwise pass every test above and quietly turn the rule off."""
+    from openchem.chem.orca_engine import OrcaQuantumEngineProvider
+
+    source = Chem.AddHs(Chem.MolFromSmiles("O"))
+    AllChem.EmbedMolecule(source, randomSeed=1)
+    position = source.GetConformer().GetAtomPosition
+    rows = "\n".join(
+        f"  {a.GetSymbol():<2} {position(a.GetIdx()).x:12.6f} {position(a.GetIdx()).y:12.6f} {position(a.GetIdx()).z:12.6f}"
+        for a in source.GetAtoms()
+    )
+    text = f"CARTESIAN COORDINATES (ANGSTROEM)\n---------------------------------\n{rows}\n\n"
+    produced = OrcaQuantumEngineProvider()._parse_optimized_conformer(text, source, None)
+    assert produced is not None, "the fixture block was not read; fix the fixture, not the rule"
+    assert produced.method in QUANTUM_OPTIMIZED_METHODS
+    assert canonical_conformer(_model([produced])) is produced
+
+
+# --------------------------------------------------------------------------
+# The optimized geometry keeps the way back to the drawing's atoms
+# --------------------------------------------------------------------------
+
+
+def _mapped(seed: int, ids: list[int] | None, fingerprint: str | None = "drawing-fp") -> ConformerModel:
+    return ConformerModel(
+        molblock=_conformer_molblock(seed),
+        energy=-1.0,
+        method="mmff",
+        drawing_atom_ids=ids,
+        drawing_fingerprint=fingerprint,
+    )
+
+
+def _atoms(seed: int) -> int:
+    return Chem.MolFromMolBlock(_conformer_molblock(seed), removeHs=False).GetNumAtoms()
+
+
+def test_the_optimized_geometry_takes_the_source_conformers_atom_map(engine):
+    ids = list(range(_atoms(1)))
+    source = _mapped(1, ids)
+    optimized = _optimized(3, 2_000.0)
+    carried = with_source_atom_map(optimized, [source], geometry_fingerprint(source), engine)
+    assert carried.drawing_atom_ids == ids
+    assert carried.drawing_atom_ids is not source.drawing_atom_ids  # a copy: editing one must not edit the other
+    assert carried.drawing_fingerprint == "drawing-fp"
+    assert carried.conformer_id == optimized.conformer_id, "the run records this id as its output"
+    assert carried.molblock == optimized.molblock and carried.method == ORCA_OPTIMIZED
+
+
+def test_the_map_is_only_taken_from_the_conformer_the_job_was_submitted_on(engine):
+    """Two stored conformers with different maps: the fingerprint picks one, never 'the canonical' or
+    'the first'."""
+    n = _atoms(1)
+    a = _mapped(1, list(range(n)), "fp-a")
+    b = _mapped(2, list(reversed(range(n))), "fp-b")
+    carried = with_source_atom_map(_optimized(3, 2_000.0), [a, b], geometry_fingerprint(b), engine)
+    assert carried.drawing_atom_ids == list(reversed(range(n)))
+    assert carried.drawing_fingerprint == "fp-b"
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        "no fingerprint",
+        "source gone",
+        "source never mapped",
+        "source mapped without a drawing fingerprint",
+        "wrong atom count",
+        "already mapped",
+    ],
+)
+def test_the_map_is_left_not_recorded_rather_than_guessed(engine, case):
+    n = _atoms(1)
+    source = _mapped(1, list(range(n)))
+    optimized = _optimized(3, 2_000.0)
+    fingerprint = geometry_fingerprint(source)
+    conformers = [source]
+    if case == "no fingerprint":
+        fingerprint = ""
+    elif case == "source gone":
+        conformers = []
+    elif case == "source never mapped":
+        source.drawing_atom_ids = None
+    elif case == "source mapped without a drawing fingerprint":
+        source.drawing_fingerprint = None
+    elif case == "wrong atom count":
+        source.drawing_atom_ids = list(range(n - 1))
+    elif case == "already mapped":
+        optimized.drawing_atom_ids = [9] * n
+        optimized.drawing_fingerprint = "own"
+    carried = with_source_atom_map(optimized, conformers, fingerprint, engine)
+    assert carried is optimized
+    assert carried.drawing_atom_ids == ([9] * n if case == "already mapped" else None)
+
+
+def test_two_conformers_with_identical_coordinates_are_still_two_inputs(engine):
+    """A result names a RECORD, not a shape: the id is part of the fingerprint, so a map is never taken
+    from a twin that merely looks the same."""
+    n = _atoms(1)
+    first = _mapped(1, list(range(n)), "fp-a")
+    twin = ConformerModel(
+        molblock=first.molblock, energy=-1.0, method="mmff",
+        drawing_atom_ids=list(reversed(range(n))), drawing_fingerprint="fp-b",
+    )
+    assert first.molblock == twin.molblock and first.conformer_id != twin.conformer_id
+    assert geometry_fingerprint(first) != geometry_fingerprint(twin)
+    assert geometry_fingerprint(first) == geometry_fingerprint(first)
+    carried = with_source_atom_map(_optimized(3, 2_000.0), [first, twin], geometry_fingerprint(twin), engine)
+    assert carried.drawing_fingerprint == "fp-b"

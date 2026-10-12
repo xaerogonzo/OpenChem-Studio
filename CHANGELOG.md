@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### An ORCA-optimized geometry is now the geometry every later calculation uses
+- **`canonical_conformer` prefers the newest quantum-optimized conformer** (`ConformerModel.method` in `QUANTUM_OPTIMIZED_METHODS`, today `orca_opt`)
+  to every force-field one; with none, the lowest-MMFF-energy rule is unchanged. Before, an ORCA-optimized conformer is stored without an energy,
+  energyless conformers sort last, and so it was never chosen while any force-field conformer had an energy: measured, after an optimization was
+  added beside force-field conformers the canonical conformer was still the force-field one, so the next ORCA job (a delta-SCF, an NMR, a single
+  point), every 3D calculator and a docking ran on the geometry that had just been optimized away from. "Newest" rather than "lowest" because an ORCA
+  energy and an MMFF energy are not on one scale. Adding the conformer already made the window recompute the 3D calculators, and undo removes it.
+- **The optimized conformer keeps the way back to the drawing's atoms.** The engine built it with no `drawing_atom_ids`; the window now copies the map
+  from the conformer the job was submitted on (found by the fingerprint the result event now carries, `chem.calculation_input.with_source_atom_map`),
+  because the atom order is unchanged by an optimization. Without it the Atom Inspector falls back to matching structures, which refuses a symmetric
+  molecule whose equivalent atoms differ.
+- **Verified on real ORCA in the real window** (`benchmarks/visual/qm_optimized_geometry_is_used.json`, HF STO-3G on ethanol, VERDICT PASS): the
+  optimization ran on the force-field conformer; the single point after it was submitted with the optimized conformer's own fingerprint; the per-atom
+  charges on it projected through the recorded map with 0 element mismatches. New read-only drive step `conformer_report`.
+- Effect on saved projects: a project that already holds an ORCA-optimized conformer will now use it, so its 3D results (computed on the force-field
+  conformer) read as stale and recompute, as they would after any change of conformer.
+
 ### Phase 2 design records: recipes with typed dependencies, the Lewis pairing, and derived scores (design only, nothing built)
 - **`docs/RECIPES_DESIGN.md`**: a recipe is an ordered plan whose steps read each other's typed outputs, distinct from the goal wizard's flat
   list. Bindings fail closed in eight named states and a failed prerequisite never becomes a default; a recipe run is its own versioned

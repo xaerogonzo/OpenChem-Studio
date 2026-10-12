@@ -49,7 +49,7 @@ from openchem.app.settings import (
     remember_chosen_path,
     suggested_save_path,
 )
-from openchem.chem.calculation_input import canonical_conformer
+from openchem.chem.calculation_input import canonical_conformer, with_source_atom_map
 from openchem.chem.engine import StructureEditError
 from openchem.chem.identifiers import identifier_for_molblock
 from openchem.chem.isotopes import IsotopeError, element_at, set_isotope
@@ -4834,8 +4834,13 @@ class MainWindow(QMainWindow):
             return
         # AddConformerCommand, not SetConformersCommand -- an ORCA-optimized
         # geometry is added alongside whatever conformers already exist,
-        # never wiping them out.
-        command = AddConformerCommand(molecule, event.conformer, self._services.event_bus)
+        # never wiping them out. It then becomes the geometry every later
+        # calculation uses (`canonical_conformer`), so it first takes the
+        # drawing-atom map of the conformer it was optimized from.
+        conformer = with_source_atom_map(
+            event.conformer, molecule.conformers, event.input_fingerprint, self._services.chemistry_engine
+        )
+        command = AddConformerCommand(molecule, conformer, self._services.event_bus)
         self._undo_stack.push(command)
 
     def _on_docking_result_ready(self, event: DockingResultReady) -> None:

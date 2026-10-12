@@ -11,7 +11,7 @@ from rdkit import Chem
 from rdkit.Geometry import Point3D
 
 from openchem.domain.common import CacheState, Provenance
-from openchem.domain.conformer import ConformerModel
+from openchem.domain.conformer import ORCA_OPTIMIZED, ConformerModel
 from openchem.domain.descriptor import DescriptorValue
 from openchem.chem.conceptual_dft import from_delta_scf, from_frontier_energies
 from openchem.chem.orca_led import build_led_input, parse_led
@@ -1059,7 +1059,7 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
             conf.SetAtomPosition(idx, Point3D(x, y, z))
 
         return ConformerModel(
-            molblock=Chem.MolToMolBlock(new_mol), energy=None, method="orca_opt", provenance=provenance
+            molblock=Chem.MolToMolBlock(new_mol), energy=None, method=ORCA_OPTIMIZED, provenance=provenance
         )
 
     def parse_spectrum_output(

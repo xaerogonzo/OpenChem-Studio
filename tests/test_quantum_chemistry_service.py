@@ -1328,3 +1328,42 @@ def test_a_caller_with_no_model_behind_the_molecule_publishes_no_identity(qapp, 
     assert _wait_until(qapp, lambda: states and states[-1] in (CacheState.COMPLETED, CacheState.FAILED))
 
     assert [(e.input_fingerprint, e.calculation_input) for e in events] == [("", "")]
+
+
+def _run_to_completion(qapp, calculation_input: str, input_fingerprint: str):
+    provider = FakeQuantumEngineProvider()
+    service, bus = _make_service(None, provider)
+    results = []
+    bus.subscribe(QuantumChemistryResultReady, lambda e: results.append(e))
+    states = []
+    bus.subscribe(QuantumChemistryJobStateChanged, lambda e: states.append(e.state))
+    service.request_calculation(
+        mol=Chem.MolFromSmiles("CCO"),
+        molecule_uuid="mol-1",
+        calc_type="opt",
+        charge=0,
+        multiplicity=1,
+        method_basis="B3LYP def2-SVP",
+        provider_id="fake",
+        input_fingerprint=input_fingerprint,
+        calculation_input=calculation_input,
+    )
+    assert _wait_until(qapp, lambda: states and states[-1] in (CacheState.COMPLETED, CacheState.FAILED))
+    assert states[-1] == CacheState.COMPLETED
+    assert len(results) == 1
+    return results[0]
+
+
+def test_the_result_names_the_conformer_the_job_was_submitted_on(qapp):
+    """The window needs it to carry the drawing-atom map onto the optimized geometry, and it can only
+    find that conformer by the fingerprint the job was given."""
+    event = _run_to_completion(qapp, "geometry", "f" * 64)
+    assert event.conformer is not None
+    assert event.input_fingerprint == "f" * 64
+
+
+def test_a_job_run_on_the_drawing_names_no_conformer(qapp):
+    """A drawing fingerprint identifies no stored conformer, so the field stays empty rather than
+    sending the window looking for one."""
+    event = _run_to_completion(qapp, "drawing", "d" * 64)
+    assert event.input_fingerprint == ""
