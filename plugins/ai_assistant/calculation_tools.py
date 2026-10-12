@@ -1,4 +1,4 @@
-"""The four tools that let the assistant read and run the application's calculators.
+"""The five tools that let the assistant read and run the application's calculators.
 
 Each takes the turn's `ToolBridge` as its first argument, unlike the two older tools in `tools.py`, which
 take only what the model sent. The descriptions below are the model's whole understanding of what each
@@ -14,6 +14,8 @@ user's screen for the user to approve. See `bridge.py` and `docs/AI_CALCULATION_
 from __future__ import annotations
 
 from typing import Any, Callable
+
+from openchem.domain.calculator_goals import GOALS
 
 from .bridge import MAX_SEARCH, ToolBridge
 from .tools import ToolDefinition
@@ -33,6 +35,24 @@ FIND_CALCULATORS = ToolDefinition(
         "properties": {
             "query": {"type": "string", "description": "Words to look for, for example 'solubility' or 'lewis adduct'."},
             "limit": {"type": "integer", "minimum": 1, "maximum": MAX_SEARCH, "description": "At most this many (default 10)."},
+        },
+    },
+)
+
+LIST_GOALS = ToolDefinition(
+    name="list_goals",
+    description=(
+        "The questions this application's own 'goal wizard' offers (identity, charge, solubility, shape, drug-likeness "
+        "...) and the calculators it chose to answer each, with the reason each is there. Call it with no argument to "
+        "see every goal; call it with a goal_id to see that goal's calculators in full, each with what YOU can do with "
+        "it (you_may_run, needs_user_approval, cannot_start_here) and the settings the goal uses. Use it when the "
+        "question is 'what should I look at for X' rather than about one named calculator. The lists are editorial, "
+        "not a validated protocol; it starts nothing, so run the calculators you choose with run_calculator."
+    ),
+    input_schema={
+        "type": "object",
+        "properties": {
+            "goal_id": {"type": "string", "enum": [goal.goal_id for goal in GOALS], "description": "A goal to list in full."},
         },
     },
 )
@@ -103,11 +123,15 @@ RUN_CALCULATOR = ToolDefinition(
 )
 
 #: The definitions offered to a provider when a molecule is selected and the calculators are reachable.
-CALCULATION_TOOLS: list[ToolDefinition] = [FIND_CALCULATORS, DESCRIBE_CALCULATOR, READ_RESULTS, RUN_CALCULATOR]
+CALCULATION_TOOLS: list[ToolDefinition] = [FIND_CALCULATORS, LIST_GOALS, DESCRIBE_CALCULATOR, READ_RESULTS, RUN_CALCULATOR]
 
 
 def _find(bridge: ToolBridge, query: str = "", limit: int = 10) -> str:
     return bridge.find_calculators(query, limit)
+
+
+def _goals(bridge: ToolBridge, goal_id: str = "") -> str:
+    return bridge.list_goals(goal_id)
 
 
 def _describe(bridge: ToolBridge, calculator_id: str) -> str:
@@ -125,6 +149,7 @@ def _run(bridge: ToolBridge, calculator_id: str, parameters: dict[str, Any] | No
 #: Handler by tool name; every one takes the turn's `ToolBridge` first.
 CALCULATION_HANDLERS: dict[str, Callable[..., str]] = {
     "find_calculators": _find,
+    "list_goals": _goals,
     "describe_calculator": _describe,
     "read_results": _read,
     "run_calculator": _run,

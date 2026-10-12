@@ -52,16 +52,19 @@ from openchem.domain import calculator_search
 from openchem.domain import result_status as rs
 from openchem.domain.calculation_bridge import (
     CalculatorCard,
+    GoalCard,
     Problem,
     ProblemCode,
     Requirement,
     Route,
     ServicePreview,
     build_card,
+    goal_cards,
     route_of,
     validate_parameters,
 )
 from openchem.domain.calculator import CalculationRequest
+from openchem.domain.calculator_goals import GOALS
 from openchem.domain.execution_plan import build_execution_plan
 from openchem.domain.execution_policy import AiRun, ResourceClass, decide, policy_of
 from openchem.domain.refusal_kinds import REFUSAL_KEY, REFUSAL_KIND_KEY, refusal_kind_of_result
@@ -189,6 +192,14 @@ class CalculationHost(QObject):
     def describe(self, calculator_id: str) -> CalculatorCard | None:
         definition = self._services.calculator_registry.get(calculator_id)
         return build_card(definition) if definition is not None else None
+
+    def goals(self) -> tuple[GoalCard, ...]:
+        """The wizard's questions and the calculators that answer them, each entry's route read live.
+
+        Read-only knowledge: nothing here starts a calculation, and `PropertyPanel.run_goal` is not
+        reachable from it (it does not consult the execution policy).
+        """
+        return goal_cards(GOALS, self.describe)
 
     def read_results(
         self,

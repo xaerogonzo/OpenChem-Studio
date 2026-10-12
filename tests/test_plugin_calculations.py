@@ -41,6 +41,10 @@ class _FakeHost:
         self.calls.append(("describe", calculator_id))
         return None
 
+    def goals(self):
+        self.calls.append(("goals",))
+        return ()
+
     def prepare(self, turn, calculator_id, parameters=None):
         self.calls.append(("prepare", calculator_id, parameters))
         return PrepareResult()
@@ -55,7 +59,7 @@ class _FakeHost:
 
 def test_the_handle_offers_exactly_these_calls_and_none_that_approve():
     public = {name for name in dir(PluginCalculations) if not name.startswith("_")}
-    assert public == {"available", "begin_turn", "catalog", "describe", "read_results", "prepare", "run"}
+    assert public == {"available", "begin_turn", "catalog", "describe", "goals", "read_results", "prepare", "run"}
 
 
 def test_the_handle_does_not_hand_out_the_host():
@@ -70,6 +74,7 @@ def test_with_no_host_every_call_answers_unavailable_rather_than_raising():
     handle = PluginCalculations(None)
     assert handle.available is False
     assert handle.begin_turn() is None and handle.catalog("x") == () and handle.describe("x") is None
+    assert handle.goals() == ()
     prepared = handle.prepare(_turn(), "polar_surface_area", {})
     assert not prepared.ok and prepared.problems[0].code is ProblemCode.UNAVAILABLE
     outcome = handle.run(_turn(), "r1")
@@ -87,10 +92,11 @@ def test_the_handle_passes_every_call_to_the_host_unchanged():
     turn = handle.begin_turn()
     handle.catalog("lewis", 3)
     handle.describe("pka")
+    handle.goals()
     handle.prepare(turn, "polar_surface_area", {"pH": 7})
     handle.run(turn, "r1", timeout=2.5)
     assert host.calls == [
-        ("begin_turn",), ("catalog", "lewis", 3), ("describe", "pka"),
+        ("begin_turn",), ("catalog", "lewis", 3), ("describe", "pka"), ("goals",),
         ("prepare", "polar_surface_area", {"pH": 7}), ("run", "r1", 2.5),
     ]
 

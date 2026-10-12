@@ -36,6 +36,21 @@ REPLY_BUDGET = 12000
 #: How many calculators one search returns at most, whatever the model asks for.
 MAX_SEARCH = 30
 
+#: The wizard's own caveat about its goal lists, sent with every one so a model does not present a
+#: judgement as a protocol.
+GOALS_ARE_EDITORIAL = (
+    "These lists are editorial: the application's authors chose which calculators answer each question. "
+    "They are not a validated protocol, so do not present one as the established way to answer it."
+)
+
+#: What a model may do with a goal, which is not "run it".
+HOW_TO_USE_A_GOAL = (
+    "To act on a goal, run its recommended calculators one at a time with run_calculator, passing 'parameters' "
+    "where an entry gives some. Each is checked, gated and recorded on its own: 'you_may_run' runs when asked, "
+    "'needs_user_approval' leaves a preview the user must approve, and 'cannot_start_here' is run from its own "
+    "panel. Run an optional entry only when the question needs what it adds."
+)
+
 
 @dataclass(frozen=True)
 class BridgeEvent:
@@ -131,6 +146,24 @@ class ToolBridge:
                 "blocked": "it cannot be run here",
             },
         })
+
+    def list_goals(self, goal_id: str = "") -> str:
+        """The wizard's questions and the calculators that answer them. Read-only; starts nothing."""
+        if not self._calculations.available:
+            return self._unavailable()
+        goals = self._calculations.goals()
+        if not goal_id:
+            return _plain({
+                "ok": True,
+                "goals": [goal.summary_dict() for goal in goals],
+                "next": "call list_goals with a goal_id to see each entry's reason, route and settings",
+                "note": GOALS_ARE_EDITORIAL,
+            })
+        goal = next((g for g in goals if g.goal_id == goal_id), None)
+        if goal is None:
+            return _plain({"ok": False, "problem": "unknown_goal", "known": [g.goal_id for g in goals],
+                           "message": f"there is no goal {goal_id!r}; call list_goals with no argument to see them"})
+        return _plain({"ok": True, "goal": goal.to_dict(), "how_to_use": HOW_TO_USE_A_GOAL, "note": GOALS_ARE_EDITORIAL})
 
     def describe_calculator(self, calculator_id: str) -> str:
         if not self._calculations.available:

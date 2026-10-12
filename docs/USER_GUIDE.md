@@ -3076,7 +3076,8 @@ slow, any molecule above 41 heavy atoms and anything unclassified shows a previe
 **Approve** and **Cancel** first, and nothing starts until you press one. A calculator
 that runs from its own panel (ORCA, Vina) is described, with what it needs and whether
 this machine is ready, and you start it from that panel. What it asked for, and what
-became of it, is listed under the conversation. Those results are sent to the provider
+became of it, is listed under the conversation. It can also read the goal wizard's table (which calculators the
+application pairs with a question such as "where is the charge"), as a suggestion rather than a protocol. Those results are sent to the provider
 as part of the conversation, and a note under the box says where. **Plugins > Explain
 Stored Results** asks it to explain everything stored for the selected molecule.
 

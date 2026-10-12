@@ -58,6 +58,8 @@ SYSTEM_PROMPT_PREFIX = (
     "When tools are offered, they read this application's own results and run its calculators. Use them instead of "
     "answering from memory whenever a question is about a number, a property or a method for the selected molecule: "
     "find_calculators and describe_calculator say what exists, what each needs and whether you may run it; "
+    "list_goals says which calculators the application itself pairs with a common question (identity, charge, "
+    "solubility, shape ...) and why, and is editorial rather than a validated protocol; "
     "read_results returns what has already been computed; run_calculator runs one. A run you request is recorded in "
     "the user's project and appears in their Results like one they ran themselves, so run only what the question "
     "needs. Some calculators need the user to approve a preview first: tell them it is waiting for their approval, "

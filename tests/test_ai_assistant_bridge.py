@@ -25,6 +25,7 @@ from test_plugin_manager import FakeUIRegistry
 
 from openchem.app.settings import Settings
 from openchem.domain.calculation_bridge import ProblemCode
+from openchem.domain.calculator_goals import GOALS
 from openchem.domain.common import CacheState
 from openchem.domain.result_envelope import CAP_STEPS, envelope_of
 from openchem.domain.run_lifecycle import RunState
@@ -110,7 +111,8 @@ def test_a_bridge_with_no_host_or_no_molecule_says_unavailable_and_never_raises(
     bridge = _bridge()
     assert bridge.available is False
     for text in (
-        bridge.find_calculators("x"), bridge.describe_calculator("x"), bridge.read_results(), bridge.run_calculator("x"),
+        bridge.find_calculators("x"), bridge.list_goals(), bridge.describe_calculator("x"), bridge.read_results(),
+        bridge.run_calculator("x"),
     ):
         data = json.loads(text)
         assert data["ok"] is False and data["problem"] == "unavailable"
@@ -118,10 +120,12 @@ def test_a_bridge_with_no_host_or_no_molecule_says_unavailable_and_never_raises(
 
 def test_the_bridge_a_tool_receives_has_no_way_to_approve_or_cancel():
     surface = {name for name in dir(ToolBridge) if not name.startswith("_")}
-    assert surface == {"available", "turn", "find_calculators", "describe_calculator", "read_results", "run_calculator"}
+    assert surface == {
+        "available", "turn", "find_calculators", "list_goals", "describe_calculator", "read_results", "run_calculator",
+    }
     for name in ("approve", "cancel", "pending", "on_finished", "calculation_approvals"):
         assert not hasattr(_bridge(), name)
-    assert "approve" not in " ".join(CALCULATION_HANDLERS) and len(CALCULATION_TOOLS) == len(CALCULATION_HANDLERS) == 4
+    assert "approve" not in " ".join(CALCULATION_HANDLERS) and len(CALCULATION_TOOLS) == len(CALCULATION_HANDLERS) == 5
 
 
 def test_the_tool_descriptions_tell_the_model_what_it_must_not_do():
@@ -130,6 +134,7 @@ def test_the_tool_descriptions_tell_the_model_what_it_must_not_do():
     assert "never state a value" in by_name["read_results"]
     assert "cannot approve" in by_name["run_calculator"] and "never corrected" in by_name["run_calculator"]
     assert "route" in by_name["find_calculators"]
+    assert "editorial" in by_name["list_goals"] and "starts nothing" in by_name["list_goals"]
 
 
 def test_bounded_json_keeps_the_largest_detail_that_fits_and_says_when_it_shortened():
@@ -474,13 +479,77 @@ def test_find_and_describe_tell_the_model_what_it_may_run(rig):
     assert described["route"] == "needs_approval" and described["parameters"]
 
 
+# --- goals: the wizard's table, offered as knowledge and never as a way to run ---------------------------------
+
+
+def test_listing_goals_with_no_argument_summarises_every_goal_the_wizard_has(rig):
+    provider = _two_step([_call("list_goals")])
+    thread, _ = rig.loop(provider, rig.bridge())
+    rig.settle(thread)
+    text = _tool_message(provider)[0].content
+    data = json.loads(text)
+    assert data["ok"] is True and "editorial" in data["note"] and len(text) <= REPLY_BUDGET
+    assert [g["goal_id"] for g in data["goals"]] == [g.goal_id for g in GOALS]
+    for shown, goal in zip(data["goals"], GOALS):
+        assert shown["question"] == goal.question and shown["recommended"] == list(goal.recommended_ids())
+
+
+def test_listing_one_goal_gives_each_entry_its_reason_its_route_and_the_split_by_what_the_assistant_may_do(rig):
+    provider = _two_step([_call("list_goals", goal_id="charge"), _call("describe_calculator", calculator_id="alignment_3d")])
+    thread, _ = rig.loop(provider, rig.bridge())
+    rig.settle(thread)
+    goal = json.loads(_tool_message(provider)[0].content)["goal"]
+    wizard = next(g for g in GOALS if g.goal_id == "charge")
+    assert [e["calculator_id"] for e in goal["entries"]] == [e.calculator_id for e in wizard.entries]
+    assert [e["reason"] for e in goal["entries"]] == [e.reason for e in wizard.entries]
+    placed = goal["you_may_run"] + goal["needs_user_approval"] + goal["cannot_start_here"]
+    assert sorted(placed) == sorted(e["calculator_id"] for e in goal["entries"]) and len(set(placed)) == len(placed)
+    # the same words describe_calculator uses for the same calculator
+    described = json.loads(_tool_message(provider)[1].content)["calculator"]
+    assert described["route"] in {"auto", "needs_approval", "preview_only", "blocked"}
+
+
+def test_a_goal_tells_the_model_to_run_its_calculators_one_at_a_time_and_that_the_list_is_not_a_protocol(rig):
+    text = rig.bridge().list_goals("solubility")
+    data = json.loads(text)
+    assert "run_calculator" in data["how_to_use"] and "one at a time" in data["how_to_use"]
+    assert "not a validated protocol" in data["note"]
+
+
+def test_every_goal_fits_the_reply_budget_in_full(rig):
+    bridge = rig.bridge()
+    for goal in GOALS:
+        assert len(bridge.list_goals(goal.goal_id)) <= REPLY_BUDGET, goal.goal_id
+
+
+def test_a_goal_id_nobody_has_is_named_with_the_ones_that_exist(rig):
+    data = json.loads(rig.bridge().list_goals("make_gold"))
+    assert data["ok"] is False and data["problem"] == "unknown_goal" and data["known"] == [g.goal_id for g in GOALS]
+
+
+def test_the_loop_refuses_a_goal_id_outside_the_schema_before_the_tool_runs(rig):
+    provider = _two_step([_call("list_goals", goal_id="make_gold")])
+    thread, _ = rig.loop(provider, rig.bridge())
+    rig.settle(thread)
+    (message,) = _tool_message(provider)
+    assert "was not run" in message.content and "goal_id must be one of" in message.content
+
+
+def test_reading_every_goal_starts_nothing_asks_nobody_and_leaves_no_ledger_row(rig):
+    provider = _two_step([_call("list_goals")] + [_call("list_goals", goal_id=g.goal_id) for g in GOALS])
+    thread, _ = rig.loop(provider, rig.bridge())
+    rig.settle(thread)
+    assert rig.world.pool.tasks == [] and rig.panel.pending_run_ids() == [] and rig.panel.ledger_lines() == []
+    assert rig.panel._context.calculation_approvals.pending() == ()
+
+
 # --- the words and the disclosure --------------------------------------------------------------------------------
 
 
 def test_the_system_prompt_no_longer_claims_the_assistant_cannot_touch_the_project_and_states_the_rules():
     assert "no ability" not in SYSTEM_PROMPT_PREFIX and "Never claim to have modified" not in SYSTEM_PROMPT_PREFIX
     for needle in ("recorded in the user's project", "approve a preview", "never imply you approved", "historical",
-                   "never present a missing result as zero", "cannot name another"):
+                   "never present a missing result as zero", "cannot name another", "list_goals", "editorial"):
         assert needle in SYSTEM_PROMPT_PREFIX, needle
     assert SYSTEM_PROMPT_PREFIX.rstrip().endswith("selected molecule:")
 

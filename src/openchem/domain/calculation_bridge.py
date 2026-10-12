@@ -29,7 +29,7 @@ same calculation and cannot be told apart in the store.
 from __future__ import annotations
 
 import math
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
@@ -41,6 +41,7 @@ from openchem.domain.calculator import (
     RegistryExecution,
     active_parameters,
 )
+from openchem.domain.calculator_goals import OPTIONAL, RECOMMENDED, Goal
 from openchem.domain.calculator_support import SupportStage, Visibility, support_of
 from openchem.domain.calculator_taxonomy import category_label
 from openchem.domain.execution_policy import AiRun, policy_of
@@ -286,6 +287,104 @@ def build_card(definition: CalculatorDefinition) -> CalculatorCard:
         parameters=tuple(parameter_card(p) for p in definition.parameters),
         needs=tuple(p.name for p in definition.parameters if p.required),
     )
+
+
+# --- goals: the wizard's question -> calculators table, read-only -------------------------------
+
+
+@dataclass(frozen=True)
+class GoalEntryCard:
+    """One calculator in a goal: why it is there, and what THIS route can do with it."""
+
+    calculator_id: str
+    name: str
+    #: `calculator_goals.RECOMMENDED` or `OPTIONAL`.
+    role: str
+    #: The editorial one-liner the wizard shows beside the entry.
+    reason: str
+    #: Settings the goal runs it with when they differ from the registered defaults, by name.
+    parameters: Mapping[str, Any]
+    route: Route
+    route_reason: str
+    #: Parameters with no usable default, which a request must supply.
+    needs: tuple[str, ...] = ()
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "calculator_id": self.calculator_id,
+            "name": self.name,
+            "role": self.role,
+            "reason": self.reason,
+            "parameters": dict(self.parameters),
+            "route": self.route.value,
+            "route_reason": self.route_reason,
+            "needs": list(self.needs),
+        }
+
+
+@dataclass(frozen=True)
+class GoalCard:
+    """A question a person brings and the calculators that answer it, as `calculator_goals.GOALS` says.
+
+    **READ-ONLY, AND NOT A WAY TO RUN A GOAL.** `PropertyPanel.run_goal` does not consult the execution
+    policy, so nothing here calls it: a goal is knowledge about which calculators to reach for, and each one
+    is run, gated and recorded on its own through `run_calculator`. The wizard's own disclaimer travels with
+    it: the lists are editorial, never a validated protocol.
+    """
+
+    goal_id: str
+    label: str
+    question: str
+    entries: tuple[GoalEntryCard, ...]
+
+    def summary_dict(self) -> dict[str, Any]:
+        """The goal without its entries' detail: enough to choose one."""
+        return {
+            "goal_id": self.goal_id,
+            "label": self.label,
+            "question": self.question,
+            "recommended": [e.calculator_id for e in self.entries if e.role == RECOMMENDED],
+            "optional": [e.calculator_id for e in self.entries if e.role == OPTIONAL],
+        }
+
+    def to_dict(self) -> dict[str, Any]:
+        """Every entry in full, and the same entries sorted by what the assistant may do with them."""
+        by_route = {route: [e.calculator_id for e in self.entries if e.route is route] for route in Route}
+        return {
+            **self.summary_dict(),
+            "entries": [e.to_dict() for e in self.entries],
+            "you_may_run": by_route[Route.AUTO],
+            "needs_user_approval": by_route[Route.NEEDS_APPROVAL],
+            "cannot_start_here": by_route[Route.PREVIEW_ONLY] + by_route[Route.BLOCKED],
+        }
+
+
+def goal_cards(
+    goals: Sequence[Goal], describe: Callable[[str], CalculatorCard | None]
+) -> tuple[GoalCard, ...]:
+    """`goals` with each entry's route read from `describe`, in the order given.
+
+    An entry whose calculator is not registered stays in the list as BLOCKED with that reason, rather
+    than vanishing: `validate_goals` is what keeps the table and the registry together, and a card that
+    quietly dropped the entry would hide the drift from the one reader who could report it.
+    """
+    cards = []
+    for goal in goals:
+        entries = []
+        for entry in goal.entries:
+            card = describe(entry.calculator_id)
+            if card is None:
+                entries.append(GoalEntryCard(
+                    entry.calculator_id, entry.calculator_id, entry.role, entry.reason, dict(entry.parameters),
+                    Route.BLOCKED, "this application has no calculator with that id",
+                ))
+                continue
+            entries.append(GoalEntryCard(
+                entry.calculator_id, card.display_name, entry.role, entry.reason, dict(entry.parameters),
+                card.route, card.route_reason, card.needs,
+            ))
+        cards.append(GoalCard(goal.goal_id, goal.label, goal.question, tuple(entries)))
+    return tuple(cards)
 
 
 # --- validation -----------------------------------------------------------------------------

@@ -3,7 +3,7 @@
 **Status: design, written 2026-10-12, and built in three slices.** Part of Phase 1 of the plan in the
 session notes. **Slice 1** (the execution policy, the shared search, this record), **slice 2**
 (the host adapter, the plugin handle, the frozen turn snapshot, parameter validation, the run
-ledger) and **slice 3** (the result envelope, the four tools, the consent UI, the service preview
+ledger) and **slice 3** (the result envelope, the five tools, the consent UI, the service preview
 adapter, the privacy note, "Explain Stored Results") are built; each section says "built" where it is.
 **What is not done is the live run on a real tool-capable provider** (section 11): it needs an API key,
 and every check so far used a scripted provider. Where a review changes this document, change it here first.
@@ -257,7 +257,7 @@ test walks every kind the bridge claims and asserts each number has its metadata
 
 An AI-requested run is recorded through the normal path, so it appears in Results like any other.
 **Built (slice 3): the system prompt no longer says the assistant cannot modify the project.** It says
-what the four tools do, that a preview waits for the person and the assistant cannot approve it, that a
+what the five tools do, that a preview waits for the person and the assistant cannot approve it, that a
 run is recorded in the project, and that no number is stated that a tool did not return. The alternative (a temporary,
 per-conversation result) was rejected: it would show the model a number the person cannot see, and
 the two models must never be mixed. A visible ledger lists what the assistant proposed, ran and was
@@ -295,13 +295,14 @@ provider a tool protocol is a separate, optional item with its own tests.
    window from a real worker thread (13 assertions). **Not in this slice:** the serialiser, any tool,
    the panel's consent UI.
 3. **Built (this PR).** `domain/result_envelope.py` (51 tests); `plugins/ai_assistant/bridge.py` and
-   `calculation_tools.py` (`find_calculators`, `describe_calculator`, `read_results`, `run_calculator`) with
+   `calculation_tools.py` (`find_calculators`, `list_goals`, `describe_calculator`, `read_results`, `run_calculator`) with
    argument validation in `tools.py`; the panel's preview card, Approve and Cancel (through
    `context.calculation_approvals`, which a tool is never given), ledger, status, privacy note and the
    notes that go with the next message (30 tests); the service preview adapter, so an ORCA or Vina
    calculator is DESCRIBED (what it needs, whether this machine is ready, an "Open" button for the panel
-   that owns it) and nothing is started; the "Explain Stored Results" menu entry. Verified by
-   `benchmarks/visual/ai_assistant_tools.json` against the real window (13 assertions), which found two
+   that owns it) and nothing is started; the "Explain Stored Results" menu entry; and `list_goals`, the goal
+   wizard's question-to-calculators table as read-only knowledge (section 14). Verified by
+   `benchmarks/visual/ai_assistant_tools.json` against the real window (14 assertions), which found two
    defects no unit test could (`docs/LESSONS.md`, the plugin-panel entry). **Not done:** the live provider run.
 
 ## 13. Decisions most worth challenging
@@ -320,3 +321,24 @@ provider a tool protocol is a separate, optional item with its own tests.
 5. **The capability reaches plugins through `PluginManager`, not the `UIRegistry` protocol.** It
    keeps the protocol's test doubles working; it also means a second front end would pass a host
    explicitly.
+
+## 14. Goals: the wizard's table, as knowledge and never as a way to run
+
+`domain/calculator_goals.py` holds the goal wizard's table: a question a person brings ("Where is the
+charge, and how polar is it?"), and the calculators the application chose to answer it, each with a
+one-line reason and a role (recommended or optional). The assistant had no equivalent, only a keyword
+search. `list_goals` gives it the table as read-only knowledge (`GoalCard`, `goal_cards` in
+`domain/calculation_bridge.py`; `CalculationHost.goals()`; `context.calculations.goals()`), with each
+entry's route read from the live registry.
+
+**It does not run a goal.** `PropertyPanel.run_goal` builds an execution plan and starts the batch
+route, and it never consults the execution policy: a run on one molecule starts every calculator in
+the goal with no question at all (`_start_single_run`), and a project run asks only above 200
+calculations. A tool that called it would bypass the rule this whole design exists for (ORCA and large
+molecules ask first). So a goal is a list of calculators to reach for, and each one is run through
+`run_calculator`, checked, gated and recorded on its own. The wizard's caveat is sent with every reply:
+the lists are editorial, not a validated protocol.
+
+**Decision most worth challenging:** the assistant cannot run "the recommended set" in one step, which
+costs a model several calls where the wizard needs one click. The remedy, if it is wanted, is a typed
+recipe (the plan's Phase 2), where each step carries its own policy decision, not a call to `run_goal`.

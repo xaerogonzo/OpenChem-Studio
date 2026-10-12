@@ -624,3 +624,23 @@ def test_a_service_run_preview_needs_a_drawn_structure(world):
     world.add(None, "Blank")
     result = world.host.prepare(world.host.begin_turn(), "orca.sp", {})
     assert [p.code for p in result.problems] == [ProblemCode.NO_STRUCTURE] and result.service_preview is None
+
+
+# --- goals --------------------------------------------------------------------------------------------
+
+
+def test_the_hosts_goals_are_the_wizards_table_with_each_routes_read_from_the_live_registry(world):
+    from openchem.domain.calculator_goals import GOALS
+
+    cards = world.host.goals()
+    assert [c.goal_id for c in cards] == [g.goal_id for g in GOALS]
+    for card in cards:
+        for entry in card.entries:
+            described = world.host.describe(entry.calculator_id)
+            assert described is not None, (card.goal_id, entry.calculator_id)
+            assert entry.route is described.route and entry.route_reason == described.route_reason
+
+
+def test_reading_the_goals_starts_nothing_and_records_nothing(world):
+    world.host.goals()
+    assert world.pool.tasks == [] and world.host.pending() == ()

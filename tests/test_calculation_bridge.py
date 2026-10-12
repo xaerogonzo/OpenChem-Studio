@@ -13,6 +13,7 @@ from openchem.domain.calculation_bridge import (
     ProblemCode,
     Route,
     build_card,
+    goal_cards,
     route_of,
     validate_parameters,
 )
@@ -22,6 +23,8 @@ from openchem.domain.calculator import (
     CalculatorParameter,
     RegistryExecution,
 )
+from openchem.domain.calculator_goals import GOALS, OPTIONAL, RECOMMENDED, Goal, Recommendation
+from openchem.domain.calculator_taxonomy import TASK_GROUPS
 from openchem.services.result_cache import parameters_key
 
 
@@ -274,3 +277,61 @@ def test_the_docking_service_and_the_vina_provider_report_availability_without_s
     service = DockingService(bus, Settings(bus), providers={"fake": VinaDockingProvider(engine=_Engine())})
     assert service.is_available() is True
     assert DockingService(bus, Settings(bus), providers={}).is_available() is False
+
+
+# --- goals: the wizard's table, read-only ------------------------------------------------------------------
+
+
+def _goal():
+    return Goal(
+        "charge", "Where is the charge?",
+        (
+            Recommendation("polar_surface_area", RECOMMENDED, "How polar it is.", {"pH": 7.0}),
+            Recommendation("alignment_3d", OPTIONAL, "Shape overlap."),
+            Recommendation("ghost", RECOMMENDED, "Retired."),
+        ),
+    )
+
+
+def test_a_goal_card_carries_the_wizards_words_and_what_this_route_can_do_with_each_entry(registry):
+    (card,) = goal_cards([_goal()], lambda cid: build_card(registry.get(cid)) if registry.get(cid) else None)
+    assert card.goal_id == "charge" and card.question == "Where is the charge?" and card.label == TASK_GROUPS["charge"]
+    by_id = {e.calculator_id: e for e in card.entries}
+    assert list(by_id) == ["polar_surface_area", "alignment_3d", "ghost"], "the wizard's order"
+    assert by_id["polar_surface_area"].route is Route.AUTO and by_id["polar_surface_area"].reason == "How polar it is."
+    assert dict(by_id["polar_surface_area"].parameters) == {"pH": 7.0} and by_id["polar_surface_area"].role == RECOMMENDED
+    assert by_id["alignment_3d"].route is Route.NEEDS_APPROVAL and by_id["alignment_3d"].role == OPTIONAL
+    assert by_id["alignment_3d"].name == registry.get("alignment_3d").display_name
+
+
+def test_an_entry_the_registry_no_longer_has_stays_in_the_card_as_blocked(registry):
+    (card,) = goal_cards([_goal()], lambda cid: build_card(registry.get(cid)) if registry.get(cid) else None)
+    ghost = card.entries[-1]
+    assert ghost.route is Route.BLOCKED and "no calculator with that id" in ghost.route_reason
+
+
+def test_a_goal_card_sorts_its_entries_by_what_the_assistant_may_do_and_every_entry_lands_once(registry):
+    (card,) = goal_cards([_goal()], lambda cid: build_card(registry.get(cid)) if registry.get(cid) else None)
+    data = card.to_dict()
+    assert data["you_may_run"] == ["polar_surface_area"]
+    assert data["needs_user_approval"] == ["alignment_3d"]
+    assert data["cannot_start_here"] == ["ghost"]
+    placed = data["you_may_run"] + data["needs_user_approval"] + data["cannot_start_here"]
+    assert sorted(placed) == sorted(e["calculator_id"] for e in data["entries"])
+    json.dumps(data)  # plain values all the way down
+
+
+def test_the_summary_names_the_recommended_and_optional_ids_and_nothing_heavier(registry):
+    (card,) = goal_cards([_goal()], lambda cid: build_card(registry.get(cid)) if registry.get(cid) else None)
+    assert card.summary_dict() == {
+        "goal_id": "charge", "label": card.label, "question": "Where is the charge?",
+        "recommended": ["polar_surface_area", "ghost"], "optional": ["alignment_3d"],
+    }
+
+
+def test_the_real_goal_table_reads_through_the_real_registry_with_no_entry_blocked_as_unregistered(registry):
+    cards = goal_cards(GOALS, lambda cid: build_card(registry.get(cid)) if registry.get(cid) else None)
+    assert [c.goal_id for c in cards] == [g.goal_id for g in GOALS]
+    for card in cards:
+        for entry in card.entries:
+            assert "no calculator with that id" not in entry.route_reason, (card.goal_id, entry.calculator_id)

@@ -11,11 +11,21 @@
      {"text": "Its polar surface area is in the tool result above."}
    ], "after_ms": 5000},
   {"do": "ai_expect", "tag": "automatic-run-through-the-real-send",
-   "expect": {"tools_offered": ["find_calculators", "describe_calculator", "read_results", "run_calculator"],
+   "expect": {"tools_offered": ["find_calculators", "list_goals", "describe_calculator", "read_results", "run_calculator"],
               "tool_results_contain": ["\"not_run\": [\"polar_surface_area\"]", "\"state\": \"completed\"", "\"freshness\": \"current\""],
               "ledger_contains": ["polar_surface_area on Aspirin: completed"], "ledger_rows": 1,
               "transcript_contains": ["in the tool result above"], "send_enabled": true, "pending": 0, "notes": 0}},
   {"do": "expect_results", "tag": "properties-shows-what-the-assistant-ran", "expect": {"polar_surface_area": "ready"}},
+
+  {"do": "ai_send", "text": "What should I look at to understand where the charge is?",
+   "script": [
+     {"tool": "list_goals", "input": {}},
+     {"tool": "list_goals", "input": {"goal_id": "charge"}},
+     {"text": "The charge goal pairs these calculators; the list is editorial."}
+   ], "after_ms": 3000},
+  {"do": "ai_expect", "tag": "goals-are-read-and-nothing-is-started",
+   "expect": {"tool_results_contain": ["\"goal_id\": \"charge\"", "you_may_run", "needs_user_approval", "editorial", "gasteiger_charge_at_ph"],
+              "ledger_rows": 1, "pending": 0, "notes": 0, "send_enabled": true}},
 
   {"do": "ai_send", "text": "Run geometry analysis with a made-up policy.",
    "script": [

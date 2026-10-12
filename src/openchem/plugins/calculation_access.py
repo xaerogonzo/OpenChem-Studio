@@ -3,7 +3,7 @@
 A plugin never receives the service container, the registry, the result store, the event bus or the
 window -- `PluginContext` hides all of them on purpose (a plugin subscribing to the bus directly
 would leak on unload). The assistant needs to find a calculator, read what has been computed, and
-ask for a run; this is exactly that, as six calls that take and return plain values.
+ask for a run; this is exactly that, as seven calls that take and return plain values.
 
 **THE HANDLE HAS NO WAY TO APPROVE ANYTHING.** A request that needs a person is prepared here and
 decided on the panel's own Approve button, through `PluginCalculationApprovals` below -- a different
@@ -22,7 +22,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any, Protocol
 
-from openchem.domain.calculation_bridge import CalculatorCard, Problem, ProblemCode
+from openchem.domain.calculation_bridge import CalculatorCard, GoalCard, Problem, ProblemCode
 from openchem.domain.run_lifecycle import Preparation, PrepareResult, RunOutcome, RunState
 from openchem.domain.turn_snapshot import DEFAULT_READ_LIMIT, ResultsView, TurnContext, read_results
 
@@ -35,6 +35,8 @@ class CalculationHost(Protocol):
     def catalog(self, query: str = "", limit: int = 20) -> tuple[CalculatorCard, ...]: ...
 
     def describe(self, calculator_id: str) -> CalculatorCard | None: ...
+
+    def goals(self) -> tuple[GoalCard, ...]: ...
 
     def prepare(self, turn: TurnContext, calculator_id: str, parameters: dict[str, Any] | None = None) -> PrepareResult: ...
 
@@ -68,6 +70,11 @@ class PluginCalculations:
     def describe(self, calculator_id: str) -> CalculatorCard | None:
         """One calculator's card, or None for an id nothing registers. Any thread."""
         return self._host.describe(calculator_id) if self._host is not None else None
+
+    def goals(self) -> tuple[GoalCard, ...]:
+        """The questions the wizard offers and the calculators that answer each, with what this route can do
+        with every one. Read-only knowledge, not a way to run a goal. Any thread."""
+        return self._host.goals() if self._host is not None else ()
 
     def read_results(
         self,
