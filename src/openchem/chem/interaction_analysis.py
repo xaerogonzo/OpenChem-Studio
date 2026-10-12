@@ -38,6 +38,8 @@ from openchem.chem.pose_analysis import (
     _METALS,
     is_metal_bond,
     is_metal_contact,
+    is_weak_acceptor_fluorine,
+    metal_donor_symbol,
     _POLAR_ELEMENTS,
     _VDW_RADII,
     _formal_charge_sites,
@@ -114,6 +116,12 @@ def _can_donate_hydrogen(atom: Chem.Atom) -> bool:
     return atom.GetTotalNumHs(includeNeighbors=True) > 0
 
 
+def _can_hydrogen_bond(atom: Chem.Atom) -> bool:
+    """Nitrogen, oxygen, or a fluorine that is not bonded to carbon or boron: a C-F or B-F fluorine hardly ever accepts a
+    hydrogen bond (`pose_analysis.is_weak_acceptor_fluorine`)."""
+    return atom.GetSymbol() in _POLAR_ELEMENTS and not is_weak_acceptor_fluorine(atom)
+
+
 def _is_metal_donor(atom: Chem.Atom) -> bool:
     """Nitrogen, oxygen and fluorine as before, plus sulfur with at most two bonds' worth of valence -- a thiolate,
     thiol, thioether, thione or disulfide, all of which have lone pairs to give (cysteine to zinc is the standard
@@ -149,7 +157,7 @@ def _metal_bonded_pairs(mol: Chem.Mol, positions, topological) -> set[tuple[int,
     for metal in metals:
         metal_symbol = mol.GetAtomWithIdx(metal).GetSymbol().upper()
         for donor in (a.GetIdx() for a in mol.GetAtoms() if _is_metal_donor(a)):
-            donor_symbol = mol.GetAtomWithIdx(donor).GetSymbol()
+            donor_symbol = metal_donor_symbol(mol.GetAtomWithIdx(donor))
             distance = _distance(positions, metal, donor)
             if is_metal_bond(metal_symbol, donor_symbol, distance):
                 for other in range(mol.GetNumAtoms()):
@@ -194,8 +202,8 @@ def find_interactions(mol: Chem.Mol) -> dict[str, list[dict[str, Any]]]:
         # 1,2-dimethoxyethane, 3.01 A apart) are not a hydrogen bond. The docking analysis keeps its
         # heavy-atom-only rule (`pose_analysis.analyze_pose`), where a receptor's hydrogens are not placed.
         is_hydrogen_bond = (
-            element_i in _POLAR_ELEMENTS
-            and element_j in _POLAR_ELEMENTS
+            _can_hydrogen_bond(atom_i)
+            and _can_hydrogen_bond(atom_j)
             and distance <= HBOND_DISTANCE_CUTOFF
             and separated("hydrogen_bonds", i, j)
             and (_can_donate_hydrogen(atom_i) or _can_donate_hydrogen(atom_j))
@@ -240,7 +248,7 @@ def find_interactions(mol: Chem.Mol) -> dict[str, list[dict[str, Any]]]:
                 _is_metal_donor(mol.GetAtomWithIdx(donor))
                 and is_metal_bond(
                     (element_i if element_i.upper() in _METALS else element_j).upper(),
-                    mol.GetAtomWithIdx(donor).GetSymbol(),
+                    metal_donor_symbol(mol.GetAtomWithIdx(donor)),
                     distance,
                 )
                 and separated("metal_coordination", i, j)

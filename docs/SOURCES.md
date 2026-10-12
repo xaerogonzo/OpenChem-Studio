@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 99bdfed357b5f7cdbd547562cce1851323ed2321f6331eb6fa8232c9868d8c91 -->
+<!-- SOURCE SHA256: 4482a5e294c00c9119d2a0f1efc6df96746eec01b8fa7947439490792aa53cb5 -->
 
 # Sources
 
@@ -102,6 +102,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`avdeef2007`](#avdeef2007) | literature | shipped | citation + claim |
 | [`avdeef2020`](#avdeef2020) | literature | shipped | citation + claim |
 | [`baell2010`](#baell2010) | literature | shipped | citation |
+| [`bakewell2016`](#bakewell2016) | literature | reference only | citation |
 | [`bakowies1996`](#bakowies1996) | literature | **not shipped** | citation + claim |
 | [`balabin2009`](#balabin2009) | literature | reference only | citation + claim |
 | [`ballester2010`](#ballester2010) | literature | **not shipped** | citation |
@@ -148,11 +149,14 @@ next run of `tools/build_lewis_parameters.py`.
 | [`drago1965`](#drago1965) | literature | shipped | citation + claim |
 | [`drago1990`](#drago1990) | literature | shipped | citation |
 | [`drago1993`](#drago1993) | literature | shipped | citation |
+| [`dunitz1997`](#dunitz1997) | literature | shipped | citation + claim |
+| [`dunitz2004`](#dunitz2004) | literature | shipped | citation + claim |
 | [`ertl2000`](#ertl2000) | literature | shipped | citation |
 | [`ertl2008`](#ertl2008) | literature | shipped | citation |
 | [`ertl2009`](#ertl2009) | literature | shipped | citation |
 | [`ertl2017`](#ertl2017) | literature | reference only | citation |
 | [`feinstein2015`](#feinstein2015) | literature | shipped | citation + claim |
+| [`ferro2018`](#ferro2018) | literature | reference only | citation + claim |
 | [`fogarasi2010`](#fogarasi2010) | literature | shipped | citation + claim |
 | [`ganyecz2019`](#ganyecz2019) | literature | reference only | citation |
 | [`gasteiger1980`](#gasteiger1980) | literature | shipped | citation + claim |
@@ -181,6 +185,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`hopfinger2009`](#hopfinger2009) | dataset | shipped | citation |
 | [`huber1979`](#huber1979) | literature | reference only | citation + claim |
 | [`ich_m9`](#ich_m9) | standard | shipped | citation + claim |
+| [`ielo2019`](#ielo2019) | literature | reference only | citation + claim |
 | [`ionescu2013`](#ionescu2013) | literature | shipped | citation + claim |
 | [`ipsen2014`](#ipsen2014) | literature | reference only | citation |
 | [`iupac2013`](#iupac2013) | standard | shipped | citation + claim |
@@ -202,6 +207,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`krygowski1993`](#krygowski1993) | literature | shipped | citation + claim |
 | [`krykunov2017`](#krykunov2017) | literature | reference only | citation + claim |
 | [`kuchitsu1998`](#kuchitsu1998) | literature | reference only | citation + claim |
+| [`kulawiec1990`](#kulawiec1990) | literature | reference only | citation + claim |
 | [`kwon2018`](#kwon2018) | literature | reference only | citation |
 | [`kwon2023`](#kwon2023) | dataset | shipped | citation + claim |
 | [`langes15`](#langes15) | reference_table | shipped | citation + claim |
@@ -214,6 +220,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`mantina2009`](#mantina2009) | literature | shipped | citation + claim |
 | [`marsili1980`](#marsili1980) | literature | shipped | citation + claim |
 | [`mathieu2007`](#mathieu2007) | literature | reference only | citation + claim |
+| [`maverick2002`](#maverick2002) | literature | reference only | citation + claim |
 | [`mayer1975`](#mayer1975) | literature | reference only | citation |
 | [`mayo1990`](#mayo1990) | literature | shipped | citation + claim |
 | [`mcnutt2021`](#mcnutt2021) | literature | **not shipped** | citation |
@@ -301,6 +308,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`wells2014`](#wells2014) | literature | reference only | citation |
 | [`westwell1995`](#westwell1995) | literature | **not shipped** | citation |
 | [`wildman1999`](#wildman1999) | literature | shipped | citation |
+| [`willrett2025`](#willrett2025) | literature | reference only | citation + claim |
 | [`wilmer2011`](#wilmer2011) | literature | reference only | citation |
 | [`wilmer2012`](#wilmer2012) | literature | shipped | citation + claim |
 | [`wilmer2012_correction`](#wilmer2012_correction) | literature | reference only | citation |
@@ -2651,8 +2659,8 @@ Magnesium appears only as a six-membered chelate proposed for an organomagnesium
 NOT CHECKED: the lithium, rubidium, cesium, silver, zirconium, lanthanide and heavy main-group sections, the force-field
 discussion of Hay and Rustad behind Table 1's other columns, the NMR sections, and the hydrogen-bond section.
 
-THE APPLICATION: `pose_analysis._FLUORINE_DONOR_METALS` (sodium, potassium, calcium, magnesium) and the absence of a fluorine
-window for zinc, iron, cobalt, manganese, copper and nickel. Magnesium is kept as an assumption this paper does not support.
+THE APPLICATION: `pose_analysis._ORGANIC_FLUORINE_DONOR_METALS` (sodium, potassium, calcium) and the absence of a window for a
+carbon-bound fluorine to zinc, iron, cobalt, manganese, copper, nickel and magnesium; this paper has no magnesium distance.
 
 ### plenio2004
 
@@ -2681,7 +2689,222 @@ hydrogen bonding is left to Dunitz's companion review in the same issue.
 NOT CHECKED: the references and the individual stability constants beyond Table 1.
 
 THE APPLICATION: the claim that the interaction is weaker than oxygen's (about 64% of Li...O) in the comment on
-`pose_analysis._FLUORINE_DONOR_METALS`.
+`pose_analysis._ORGANIC_FLUORINE_DONOR_METALS`.
+
+### dunitz1997
+
+<a id="dunitz1997"></a>
+
+> J. D. Dunitz & R. Taylor, 'Organic Fluorine Hardly Ever Accepts Hydrogen Bonds', Chem. Eur. J. 1997, 3, 89-98.
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/chem.19970030115](https://doi.org/10.1002/chem.19970030115) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-12 |
+| Local copy | `dunitz1997_organic_fluorine.pdf` (not checked) |
+| Used by | `src/openchem/chem/pose_analysis.py`, `docs/VDW_RADII_ASSESSMENT.md` |
+
+CHECKED: the methods, the overall statistics, the two unequivocal cases, the PDB survey and the conclusions, from the extracted
+text of the PDF (10 pages); the DOI is from Crossref. CSD version 5.09 (April 1995), error-free structures with R under 10%, hydrogen
+coordinates present. A hydrogen bond to fluorine was defined by F...H under 2.3 angstrom and an X-H...F angle over 90 degrees (the
+authors call even that relaxed criterion open to criticism; nearly all O-H...O=C and N-H...N bonds have H...O or H...N under 2.2).
+Of 5,947 C-F bonds in 1,218 structures with an O-H or N-H group, 37 (0.6%) make such a contact, against 42% of carbonyl groups
+(17,718 of 42,301) and 32% of aromatic nitrogens (1,060 of 3,354). Of the 37, only two are unequivocal (CEVGUF, calcium
+bis(2-fluorobenzoate) dihydrate, O-H...F 2.02 angstrom, and KOVCAZ), one an anionic fluorine; some of the rest are incidental because the
+hydrogen is nearer a conventional acceptor. Organometallic cases were set aside. In protein-ligand structures from the PDB (October 1994)
+the few possible cases are all on an inhibitor with a formal negative charge, and contacts of 2.9 angstrom or more are
+"not conclusive". The conclusion is that covalently bonded fluorine "hardly ever" accepts a hydrogen bond, and then only in
+exceptional molecular and crystal environments.
+
+NOT CHECKED: the discussion of each of the 37 contacts beyond those two, the intermolecular perturbation theory section (read only
+for its conclusion that the evidence agrees), and the water-octanol and basicity tables beyond their direction.
+
+THE APPLICATION: `pose_analysis.is_weak_acceptor_fluorine`, which both analysers use to leave a C-F fluorine out of the
+hydrogen-bond acceptors.
+
+### bakewell2016
+
+<a id="bakewell2016"></a>
+
+> C. Bakewell, A. J. P. White & M. R. Crimmin, 'Addition of Carbon-Fluorine Bonds to a Mg(I)-Mg(I) Bond: An Equivalent of Grignard Formation in Solution', J. Am. Chem. Soc. 2016, 138, 12763-12766.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jacs.6b08104](https://doi.org/10.1021/jacs.6b08104) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-12 |
+| Local copy | `bakewell2016_mgi_cf_addition.pdf` (not checked) |
+| Used by | `docs/VDW_RADII_ASSESSMENT.md` |
+
+**Why it is reference only.** Read for the only measured Mg...F distances found (a C-F fluorine near magnesium, 3.2 to 3.5 angstrom); no value of the application comes from it.
+
+CHECKED: the four-page paper, and the crystallographic information file of its supporting information (seven data blocks), from
+which the distances below were COMPUTED FROM THE FRACTIONAL COORDINATES and the cell, with no symmetry operations. The authors
+report close Mg...F contacts of 3.2 and 3.4 angstrom to the two ortho fluorines of one magnesium fluoroaryl (compound 2b) and call the
+interaction weak. The coordinates give Mg...F 3.216 and 3.370 (2b), 3.319 and 3.339 (2c), 3.487 (2d) and, for two molecules of 2a,
+3.201 and 3.393 / 3.201 and 3.369 angstrom; a magnesium bound to a fluoride ion (the mu-fluoride dimer) has Mg-F 1.953 angstrom.
+So a fluorine on carbon sits 3.2 to 3.5 angstrom from magnesium here, well outside a bond, while a fluoride ion bonds at 1.95.
+
+NOT CHECKED: the chemistry (the C-F bond addition), the NMR and DFT, and the supporting information's experimental sections. The
+fluorines here are 3 bonds from the magnesium (Mg-C-C-C-F), under Plenio's four-bond rule for intramolecular contacts
+([source:plenio1997]).
+
+### dunitz2004
+
+<a id="dunitz2004"></a>
+
+> J. D. Dunitz, 'Organic Fluorine: Odd Man Out', ChemBioChem 2004, 5, 614-621.
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/cbic.200300801](https://doi.org/10.1002/cbic.200300801) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-12 |
+| Local copy | `dunitz2004_organic_fluorine_odd_man_out.pdf` (not checked) |
+| Used by | `src/openchem/chem/pose_analysis.py`, `docs/VDW_RADII_ASSESSMENT.md` |
+
+CHECKED: the opening section (page 1 of 8; the DOI is printed on it). A review by the author of [source:dunitz1997]. It repeats
+that a CSD search with inspection of the individual structures and ab initio model calculations showed organic fluorine "hardly
+ever" accepts hydrogen bonds, that is only in the absence of a better acceptor (even ammonium trifluoroacetate, with four donors per
+anion, shows no N-H...F bonding), and that the evidence for it in protein-ligand complexes is "unconvincing". It then takes B-F:
+hydrogen bonding to a boron-bound fluorine "should be stronger", yet even crystalline ammonium tetrafluoroborate shows no short
+N-H...F length, and a CSD search finds only very few structures with short X-H...F-B contacts (4,4,8,8-tetrafluoropyrazabole and a
+difluorodiazaborine are given as genuine but rare). The author attributes this to fluorine's low polarizability and tightly
+contracted lone pairs. Pauling's third edition (1960) is quoted conceding that fluorine on carbon has no significant power to accept.
+
+NOT CHECKED: the remaining pages (fluorocarbon properties, packing, and the rest of the review).
+
+THE APPLICATION: the boron half of `pose_analysis.is_weak_acceptor_fluorine`.
+
+### maverick2002
+
+<a id="maverick2002"></a>
+
+> A. W. Maverick, F. R. Fronczek, E. F. Maverick, D. R. Billodeaux, Z. T. Cygan & R. A. Isovitsch, 'Structures of Anhydrous and Hydrated Copper(II) Hexafluoroacetylacetonate', Inorg. Chem. 2002, 41(24), 6488-6492.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ic020448w](https://doi.org/10.1021/ic020448w) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-12 |
+| Local copy | `maverick2002_cu_hfac_structures.pdf` (not checked) |
+| Used by | `src/openchem/chem/pose_analysis.py`, `docs/VDW_RADII_ASSESSMENT.md` |
+
+**Why it is reference only.** Read for the only direct measurements of copper(II) to trifluoromethyl-fluorine contacts found (2.71 to 3.11 angstrom); no value of the application comes from it.
+
+CHECKED: the paper and the CIF of its supporting information (three structures). Anhydrous Cu(hfac)2 has centrosymmetric square-planar
+molecules with an intermolecular Cu...F3 contact of 2.709(2) angstrom; the monohydrate (square-pyramidal, apical water) has a close
+Cu...F in the sixth site of 2.895(2) angstrom, against 2.817 and 3.106 in the two earlier polymorphs; the five-coordinate adducts
+[Cu(hfac)2]2(mu-pyrazine) and [Cu(hfac)2]3(mu-5-methylpyrimidine)2 have 3.069 and 2.962; the trihydrate has none. Cu-O(hfac) is
+1.91 to 1.98 angstrom. RECOMPUTED FROM THE CIF with its symmetry operators and one cell of translations: Cu...F 2.709 (anhydrous), 2.895
+and next 3.463 (monohydrate), and no Cu...F under 3.5 in the trihydrate, which agrees with the paper.
+
+NOT CHECKED: the discussion of volatility and chemical vapour deposition, the other M(hfac)2(H2O)2 structures from a CSD search, and
+the packing figures of the supporting information.
+
+### ferro2018
+
+<a id="ferro2018"></a>
+
+> S. Ferro, B. Deri, M. P. Germano, R. Gitto, L. Ielo, M. R. Buemi, G. Certo, S. Vittorio, A. Rapisarda, Y. Pazy, A. Fishman & L. De Luca, 'Targeting Tyrosinase: Development and Structural Insights of Novel Inhibitors Bearing Arylpiperidine and Arylpiperazine Fragments', J. Med. Chem. 2018, 61(9), 3908-3917.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/acs.jmedchem.7b01745](https://doi.org/10.1021/acs.jmedchem.7b01745) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-12 |
+| Local copy | `ferro2018_tyrosinase_inhibitors.pdf` (not checked) |
+| Used by | `src/openchem/chem/pose_analysis.py`, `docs/VDW_RADII_ASSESSMENT.md` |
+
+**Why it is reference only.** Read for how its authors describe the fluorine of the tyrosinase-inhibitor complex 6EI4 (PDB), which puts a fluorine near copper; no value of the application comes from it.
+
+CHECKED: the text and the supporting information (two figures with polder maps, and a CSV of the compounds' SMILES). The crystal structure of
+amide 3 in Bacillus megaterium tyrosinase (TyBm) was solved at 2.7 angstrom (PDB 5OAE) and benzamide 16 at 2.0 angstrom (PDB 6EI4, the
+ligand B5N). The authors write that the 4-fluorobenzyl moiety is "oriented toward CuA at a distance of 1.9 A" and stabilised by
+hydrophobic pi-pi interaction with His208, like the substrates, with a hydrogen bond from the carbonyl oxygen to Arg209; they do not call
+the fluorine a ligand of the copper. The supporting information shows mFo-DFc polder maps contoured at 3 sigma (amide 3) and 2.0 sigma
+(compound 16). The PDB's own validation gives the B5N ligands a real-space correlation of 0.689 and 0.724.
+
+NOT CHECKED: the synthesis, the enzyme kinetics, the docking, and the crystallographic tables beyond the resolutions.
+
+### ielo2019
+
+<a id="ielo2019"></a>
+
+> L. Ielo, B. Deri, M. P. Germano, S. Vittorio, S. Mirabile, R. Gitto, A. Rapisarda, S. Ronsisvalle, S. Floris, Y. Pazy, A. Fais, A. Fishman & L. De Luca, 'Exploiting the 1-(4-fluorobenzyl)piperazine fragment for the development of novel tyrosinase inhibitors as anti-melanogenic agents: Design, synthesis, structural insights and biological profile', Eur. J. Med. Chem. 2019, 178, 380-389.
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/j.ejmech.2019.06.019](https://doi.org/10.1016/j.ejmech.2019.06.019) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-12 |
+| Local copy | `ielo2019_fluorobenzylpiperazine_tyrosinase.pdf` (not checked) |
+| Used by | `src/openchem/chem/pose_analysis.py`, `docs/VDW_RADII_ASSESSMENT.md` |
+
+**Why it is reference only.** Read for how its authors describe the fluorine of the tyrosinase-inhibitor complex 6QXD (PDB), which puts a fluorine near copper; no value of the application comes from it.
+
+CHECKED: the accepted-manuscript text (26 pages), section 2.5. A crystal structure of TyBm with compound 25 (PDB 6QXD, ligand JKB) at
+2.3 angstrom: "the 4-fluorobenzyl moiety of 25 is stabilized by pi-pi interactions with His208 and is oriented toward CuA at a
+distance of 1.9 A, similar to tyrosinase substrates", plus a polar interaction between Arg209 and the carbonyl oxygen. The fluorine is
+not called a copper ligand. The PDB's validation gives JKB a real-space correlation of 0.787 and an occupancy of 0.9.
+
+NOT CHECKED: the synthesis, the kinetics and the docking.
+
+### kulawiec1990
+
+<a id="kulawiec1990"></a>
+
+> R. J. Kulawiec & R. H. Crabtree, 'Coordination chemistry of halocarbons', Coord. Chem. Rev. 1990, 99, 89-115.
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/0010-8545(90)80061-W](https://doi.org/10.1016/0010-8545(90)80061-W) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-12 |
+| Local copy | `kulawiec1990_halocarbon_coordination.pdf` (not checked) |
+| Used by | `docs/VDW_RADII_ASSESSMENT.md` |
+
+**Why it is reference only.** Read for whether a transition-metal to fluorine-on-carbon distance for copper is reported; none is, and no value of the application comes from it.
+
+CHECKED: the s-block section and the passages that mention copper and fluorine. The review restates Glusker's contacts (Na 2.470,
+Rb 2.979 and 3.095 angstrom) and the further alkali-metal examples (Na 2.47 to 2.55, K 2.87 to 3.21, Rb 2.88 to 3.22). For
+transition metals it gives a cobalt(II) pentafluorothiophenoxide with an ortho fluorine at Co...F 2.64(2) angstrom, which its
+authors took as a ligand-induced non-bonding contact though "a secondary bond seems likely", and, for chlorocarbons, copper(II)
+complexes with short Cu...Cl distances (2.85 to 3.07 angstrom). It reports no copper to fluorine distance.
+
+NOT CHECKED: the sections on silver, mercury, the platinum metals and the spectroscopy.
+
+### willrett2025
+
+<a id="willrett2025"></a>
+
+> J. Willrett, M. Sellin, M. Lapersonne, M. Seiler & I. Krossing, 'Synthesis and Electrochemistry of Copper(I) Complexes with Weakly Basic, Fluorinated, and Multicyclic Arenes', Chem. Eur. J. 2025, 31(29), e202501134.
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/chem.202501134](https://doi.org/10.1002/chem.202501134) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-12 |
+| Local copy | `willrett2025_cu_i_fluoroarene_complexes.pdf` (not checked) |
+| Used by | `docs/VDW_RADII_ASSESSMENT.md` |
+
+**Why it is reference only.** Read for how copper(I) binds fluorinated arenes (through the pi system); no value of the application comes from it.
+
+CHECKED: the main text. Copper(I) complexes of benzene and mono- to tetrafluorobenzene with a weakly coordinating alkoxyaluminate
+anion; the crystal structures show eta-2 coordination of the arene ligands in the tris-arene complexes and eta-3 in the bis-arene ones,
+and more fluorination gives weaker binding and a higher Cu+/Cu potential; in the most fluorinated case studied (4FB) the anion
+acts as an auxiliary ligand in a contact ion pair. The arene binds through the pi system, not through a fluorine.
+
+NOT CHECKED: the supporting information's crystallographic tables (59 pages) and the quantum-chemical energies.
 
 ### murrayrust1983
 
@@ -2713,10 +2936,15 @@ with alkali metals and "presumably" other hard acids.
 
 TABLE IV (the bond-valence table) WAS NOT USED: its numbers come out of the PDF text scrambled, so no value was taken from it.
 
-NOT CHECKED: the synthesis, the structure determinations, Tables I to III and the B-F section.
+The supporting information (34 pages) was read for what it holds: Table A (atomic parameters of the fluorocitrate ester), B (structure
+factors), C (fluorocitrate dimensions) and Tables D and E, which are lists of the structures with C-F...O and C-F...N contacts by
+CSD refcode with their literature references, and no distances. Table D includes copper(II) hexafluoroacetylacetonate (FACECU10) and
+the urea copper(II) fluoroacetate (UFACCU10).
+
+NOT CHECKED: the structure determinations beyond what the text states, Tables I to III and the B-F section.
 
 THE APPLICATION: the sodium and potassium fluorine distances (2.470 and 2.80 A) and the absence of transition-metal evidence behind
-`pose_analysis._FLUORINE_DONOR_METALS`.
+`pose_analysis._ORGANIC_FLUORINE_DONOR_METALS`.
 
 ### chernyshov2020
 

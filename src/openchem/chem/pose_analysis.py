@@ -47,9 +47,9 @@ HYDROPHOBIC_CUTOFF = 4.5  # apolar carbon to apolar carbon
 #: * Ni: Harding has no nickel. Zheng et al.'s CSD means (water 2.08, N 2.09, S 2.46, taking the larger where two values are
 #:   given) [source:zheng2017]; they are survey means, not Harding's recommended targets.
 #:
-#: Fluorine has no table of its own. For the metals in `_FLUORINE_DONOR_METALS` (Na, K, Ca, Mg) it takes the metal's
-#: oxygen entry, which the crystallographic surveys support as a bond length for the first three (see there); for every
-#: other metal it is not a donor and has no entry.
+#: Fluorine has no table of its own: it takes the metal's oxygen entry. A fluoride ion (a fluorine bonded to neither carbon
+#: nor boron) does so for every metal; a fluorine bonded to carbon or boron, donor key "CF", only for the metals in
+#: `_ORGANIC_FLUORINE_DONOR_METALS` (see there).
 METAL_DONOR_TARGETS: dict[str, dict[str, float]] = {
     "ZN": {"O": 2.09, "N": 2.03, "S": 2.31},
     "FE": {"O": 2.09, "N": 2.16, "S": 2.30},
@@ -82,45 +82,61 @@ METAL_BOND_MARGIN_BELOW = 0.5
 #: the clash test. For the other metals, a donor beyond the primary sphere stays an ordinary contact.
 METAL_CONTACT_MARGIN_NA_K = 0.95
 
-#: Which donor entry a donor element reads: fluorine reads oxygen's, for the metals below only.
-_DONOR_TABLE_ELEMENT = {"N": "N", "O": "O", "F": "O", "S": "S"}
+#: Which donor entry a donor key reads: fluorine, whether a fluoride ion ("F") or one on carbon or boron ("CF"), reads oxygen's.
+_DONOR_TABLE_ELEMENT = {"N": "N", "O": "O", "F": "O", "CF": "O", "S": "S"}
 
-#: THE METALS A CARBON-BOUND FLUORINE COUNTS AS A DONOR TO. Organic fluorine is a real but weak donor to hard cations and
-#: is not shown to be one for the transition metals.
+#: THE METALS A CARBON-BOUND (OR BORON-BOUND) FLUORINE COUNTS AS A DONOR TO. Organic fluorine is a real but weak donor to sodium,
+#: potassium and calcium and is not shown to be one for any other metal. A fluoride ion is not covered by this: it is a donor
+#: to every metal, and `metal_donor_symbol` tells the two apart by what the fluorine is bonded to.
 #:
 #: * Sodium, potassium, calcium: Plenio's survey of crystal structures finds attractive contacts to them, with sodium to
 #:   fluorine at 2.30-2.67 A (the distribution of 79 contacts peaks at 2.50-2.70) and the acceptance limits he derives
 #:   (Na 2.49-3.07, K 2.98-3.47, Ca 2.53-3.13 A) bracketing the oxygen windows used here (Na to 3.16, K to 3.57, Ca to
 #:   2.89) [source:plenio1997]; Murray-Rust et al. find sodium to fluorine at 2.47 and potassium to fluorine at 2.80
 #:   [source:murrayrust1983]. The interaction is weaker than the oxygen one (about 64 % of Li...O, by DFT) [source:plenio2004].
-#: * Magnesium: kept on the same footing as calcium, but NO measured Mg...F distance was found in those papers; the only
-#:   mention is a six-membered chelate proposed for an organomagnesium reaction [source:plenio1997]. An assumption.
+#: * Calcium is also seen directly in the PDB: one entry puts a fluorinated nucleotide's fluorine 2.57-2.83 A from three calciums
+#:   that each already hold six oxygens (7ZLU); `benchmarks/fluorine_pdb_survey/`.
+#: * Magnesium: none. Every Mg...F(C) distance measured is 3.2 A or more: 3.20-3.49 A in the crystal structures of magnesium
+#:   fluoroaryls, computed from the coordinates of their supporting information [source:bakewell2016], and 3.29, 3.53 and 3.89 A
+#:   in the 388 PDB entries with a fluorinated ligand and a magnesium (survey above); the window it would have had, the oxygen
+#:   one, ends at 2.76 A. Plenio mentions magnesium only as a chelate proposed for a reaction [source:plenio1997].
 #: * Zinc, iron, cobalt, manganese, copper, nickel: none. Plenio finds convincing evidence in the first transition series
 #:   only for titanium and vanadium in unusual organometallic complexes; the cobalt contact (2.65 A) is intramolecular and
 #:   its authors attributed it to torsion, the zinc contacts (2.53-2.73 A) are all in crowded aryl-CF3 or C6F5 organometallics,
 #:   and there is nothing for iron, manganese, copper or nickel [source:plenio1997]. The only transition-metal fluoroalkane
 #:   carboxylates found in 1983 were copper(II) fluoroacetates, whose sixth site quinoline or urea fills [source:murrayrust1983].
-#:   A fluorine near one of these metals is therefore an ordinary contact, judged by the clash test, and not a bond.
-_FLUORINE_DONOR_METALS = frozenset({"NA", "K", "CA", "MG"})
+#:   The PDB survey agrees: no fluorine is nearer than 3.48 A to a zinc (559 entries), 3.35 to an iron or 3.69 to a manganese; the
+#:   exception is copper, six pairs in two tyrosinase-inhibitor entries at 1.88-2.61 A, but those ligands fit their density poorly
+#:   (real-space correlation 0.69-0.79 against 0.99 for the copper ions), the authors describe a substrate-mimic placement and not
+#:   coordination [source:ferro2018] [source:ielo2019], and the measured copper(II)...F(CF3) contacts are 2.71-3.11 A
+#:   [source:maverick2002], 0.8 A longer than that: copper stays out.
+#:   A fluorine on carbon near one of these metals is therefore an ordinary contact, judged by the clash test, and not a bond.
+_ORGANIC_FLUORINE_DONOR_METALS = frozenset({"NA", "K", "CA"})
 
 
 def _metal_donor_target(metal: str, donor: str) -> float | None:
     targets = METAL_DONOR_TARGETS.get(metal.upper())
     element = _DONOR_TABLE_ELEMENT.get(donor.upper())
-    if donor.upper() == "F" and metal.upper() not in _FLUORINE_DONOR_METALS:
+    if donor.upper() == "CF" and metal.upper() not in _ORGANIC_FLUORINE_DONOR_METALS:
         return None
     return None if targets is None or element is None else targets[element]
 
 
 def metal_bond_window(metal: str, donor: str) -> tuple[float, float] | None:
-    """`(shortest, longest)` distance, in angstrom, at which `donor` (N, O, F or S) is bonded to `metal`; None if either
-    is not one this table covers, or for fluorine and a metal outside `_FLUORINE_DONOR_METALS`. The longest is the target plus 0.5 (0.75 for sodium and potassium), the shortest the
+    """`(shortest, longest)` distance, in angstrom, at which `donor` (N, O, F, CF or S; see `metal_donor_symbol`) is bonded to
+    `metal`; None if either is not one this table covers, or for "CF" and a metal outside `_ORGANIC_FLUORINE_DONOR_METALS`. The longest is the target plus 0.5 (0.75 for sodium and potassium), the shortest the
     target less 0.5 but never below `METAL_DONOR_MIN_DISTANCE`."""
     target = _metal_donor_target(metal, donor)
     if target is None:
         return None
     above = METAL_BOND_MARGIN_NA_K if metal.upper() in _IONIC_METALS else METAL_BOND_MARGIN
     return (max(METAL_DONOR_MIN_DISTANCE, target - METAL_BOND_MARGIN_BELOW), target + above)
+
+
+def metal_donor_symbol(atom: Chem.Atom) -> str:
+    """The donor key `metal_bond_window` reads for `atom`: its element, except "CF" for a fluorine bonded to carbon or boron
+    (`is_weak_acceptor_fluorine`), which is a donor to far fewer metals than a fluoride ion is."""
+    return "CF" if is_weak_acceptor_fluorine(atom) else atom.GetSymbol().upper()
 
 
 def is_metal_bond(metal: str, donor: str, distance: float) -> bool:
@@ -147,6 +163,25 @@ _IONIC_METALS = frozenset({"NA", "K"})
 _METALS = {"ZN", "MG", "CA", "FE", "MN", "CU", "NA", "K", "CO", "NI"}
 _POLAR_ELEMENTS = {"N", "O", "F"}
 
+
+#: The elements a fluorine can be bonded to and still hardly ever accept a hydrogen bond: carbon, and boron.
+_WEAK_ACCEPTOR_FLUORINE_PARTNERS = frozenset({"C", "B"})
+
+
+def is_weak_acceptor_fluorine(atom: Chem.Atom) -> bool:
+    """Whether `atom` is a fluorine bonded to carbon (C-F) or boron (B-F), as opposed to a fluoride ion or a fluorine on
+    any other element. THESE HARDLY EVER ACCEPT A HYDROGEN BOND: Dunitz and Taylor found 37 of 5,947 C-F bonds (0.6%) in a
+    short contact with an O-H or N-H, against 42% of carbonyl oxygens and 32% of aromatic nitrogens, and only two of the 37
+    unequivocal, one of them a fluorine with anionic character [source:dunitz1997]; Murray-Rust et al. found C-F...O
+    contacts with a minimum near 2.85 A and no preferred direction, which they read as van der Waals contact
+    [source:murrayrust1983]; and even ammonium tetrafluoroborate, the obvious candidate for B-F...H-N bonding, shows no short
+    N-H...F contact [source:dunitz2004]. Fluorine on phosphorus, sulfur or silicon, and the fluoride ion, are not covered
+    by any of that and keep counting. The fluorine is still a polar atom everywhere else (a hydrophobic carbon's neighbour,
+    a metal donor to the hard cations)."""
+    return atom.GetSymbol().upper() == "F" and any(
+        n.GetSymbol().upper() in _WEAK_ACCEPTOR_FLUORINE_PARTNERS for n in atom.GetNeighbors()
+    )
+
 # A BOND TO A METAL IS NOT A CONTACT. Everything below is what the clash test
 # needs to know to leave one out, and `_contact_interactions` reports the same
 # pairs as `metal_coordination`, so the two cannot disagree about which atoms
@@ -156,7 +191,7 @@ _POLAR_ELEMENTS = {"N", "O", "F"}
 #: and S; the clash test takes exactly the same set (`_METAL_DONOR_ELEMENTS`),
 #: because a pair reported as coordination and also as a clash is the defect.
 #: Whether a given metal and donor are actually bonded is `metal_bond_window`'s
-#: question (fluorine is a donor only to `_FLUORINE_DONOR_METALS`).
+#: question (a fluorine on carbon or boron is a donor only to `_ORGANIC_FLUORINE_DONOR_METALS`).
 _METAL_DONOR_ELEMENTS = _POLAR_ELEMENTS | {"S"}
 
 #: The shortest distance still treated as a bond. Below it the two atoms
@@ -860,14 +895,15 @@ def _metal_bonded_pairs(
             if symbol not in _METAL_DONOR_ELEMENTS:
                 continue
             distance = math.dist(position, metal.position)
-            if is_metal_bond(metal.element, symbol, distance):
+            donor = metal_donor_symbol(mol.GetAtomWithIdx(ligand_index)) if symbol == "F" and mol is not None else symbol
+            if is_metal_bond(metal.element, donor, distance):
                 bonded.add((ligand_index, receptor_index))
                 if path_lengths is None:
                     path_lengths = Chem.GetDistanceMatrix(mol)
                 for other_index, _symbol, _position in ligand_atoms:
                     if path_lengths[ligand_index][other_index] <= _BONDED_NEIGHBOUR_DEPTH:
                         bonded.add((other_index, receptor_index))
-            elif is_metal_contact(metal.element, symbol, distance):
+            elif is_metal_contact(metal.element, donor, distance):
                 # an ion's normal contact beyond its primary sphere: not a bond, not a clash, and no neighbourhood
                 bonded.add((ligand_index, receptor_index))
 
@@ -1115,7 +1151,7 @@ def _ligand_features(pose_molblock: str) -> dict[str, Any]:
             if not (neighbours & _POLAR_ELEMENTS):
                 apolar.append(position(index))
         if symbol in _METAL_DONOR_ELEMENTS:
-            polar.append((symbol, position(index)))
+            polar.append((symbol, position(index), metal_donor_symbol(atom)))
         elif symbol in _METALS:
             metals.append((symbol, position(index)))
         if index in cation_sites:
@@ -1149,10 +1185,17 @@ def analyze_pose(pose_molblock: str, receptor_atoms: list[ReceptorAtom]) -> dict
     # neighbours, whose distance to the metal the bond fixes) are left out of
     # the clash test and reported as `metal_coordination` instead.
     metal_bonded = _metal_bonded_pairs(ligand_mol, ligand_atoms, receptor_atoms)
+    # A C-F or B-F fluorine is not a hydrogen-bond acceptor (see `is_weak_acceptor_fluorine`). The receptor's fluorine, which arrives as
+    # coordinates with no bonds, is a fluoride ion or a cofactor's and is still counted: it cannot be told apart.
+    weak_acceptor_fluorine = {
+        index
+        for index, element, _position in ligand_atoms
+        if element == "F" and ligand_mol is not None and is_weak_acceptor_fluorine(ligand_mol.GetAtomWithIdx(index))
+    }
 
     for ligand_index, ligand_element, ligand_position in ligand_atoms:
         ligand_radius = _vdw_radius(ligand_element)
-        ligand_is_polar = ligand_element in _POLAR_ELEMENTS
+        ligand_is_polar = ligand_element in _POLAR_ELEMENTS and ligand_index not in weak_acceptor_fluorine
         for receptor_index, receptor_atom in enumerate(receptor_atoms):
             distance = math.dist(ligand_position, receptor_atom.position)
             contact = {
@@ -1240,10 +1283,10 @@ def _contact_interactions(
         + pairs(ligand["anions"], receptor["cations"], SALT_BRIDGE_CUTOFF, {"charge": "ligand -"})
     )
     metal_coordination = []
-    for element, point in ligand["polar"]:
+    for element, point, donor in ligand["polar"]:
         for group in receptor["metals"]:
             distance = math.dist(point, group.position)
-            if is_metal_bond(group.element, element, distance):
+            if is_metal_bond(group.element, donor, distance):
                 metal_coordination.append({
                     "receptor_residue": group.residue,
                     "receptor_chain": group.chain,

@@ -201,14 +201,7 @@ def test_no_distance_is_reported_as_both_a_coordination_and_a_clash(metal, donor
     floor, being a coordination excludes being a clash. A pair that is both is the original defect. Sulfur is in
     the sweep because the clash exemption takes `_is_metal_donor`, and an exemption wider than the
     detector would make a Zn--S contact vanish from both lists."""
-    window = metal_bond_window(metal, donor)
-    if window is None:  # fluorine and a transition metal: never a bond, at any distance
-        assert donor == "F" and metal in {"ZN", "FE", "CO", "MN", "CU", "NI"}
-        for i in range(30):
-            found = find_interactions(_two_atom_molecule(donor, metal, 1.8 + 0.05 * i))
-            assert found["metal_coordination"] == [], f"{metal}-F at {1.8 + 0.05 * i:.2f}"
-        return
-    low, high = window
+    low, high = metal_bond_window(metal, donor)
     edge = 1e-9  # the window's ends are floats (2.41 - 0.5 is 1.9100000000000001): test just inside them
     distances = [d for d in (low + edge + 0.05 * i for i in range(int((high - low) / 0.05) + 2)) if d < high - edge]
     distances.append(high - edge)
@@ -287,23 +280,48 @@ def test_the_neighbours_of_a_donor_are_exempt_only_inside_the_metals_window():
     assert (0, 2) in _pairs(outside["clashes"])
 
 
-# --- fluorine: a donor to the hard cations, not to the transition metals (Plenio 1997, Murray-Rust 1983) ------------------
+# --- fluorine: a donor to Na, K and Ca when it is on carbon, to every metal when it is a fluoride ion (Plenio 1997, Bakewell 2016) --
 
 
-@pytest.mark.parametrize("metal", ["ZN", "FE", "CO", "MN", "CU", "NI"])
-def test_a_fluorine_beside_a_transition_metal_is_a_clash_and_not_a_coordination(metal):
+def _fluoromethane_and_metal(metal: str, distance: float) -> Chem.Mol:
+    """C-F with the fluorine at the origin and a separate metal `distance` away on the other side from the carbon."""
+    mol = Chem.RWMol()
+    mol.AddAtom(Chem.Atom("C"))
+    mol.AddAtom(Chem.Atom("F"))
+    mol.AddAtom(Chem.Atom(_symbol(metal)))
+    mol.AddBond(0, 1, Chem.BondType.SINGLE)
+    conformer = Chem.Conformer(3)
+    conformer.SetAtomPosition(0, (-1.38, 0.0, 0.0))
+    conformer.SetAtomPosition(1, (0.0, 0.0, 0.0))
+    conformer.SetAtomPosition(2, (float(distance), 0.0, 0.0))
+    mol.AddConformer(conformer)
+    result = mol.GetMol()
+    Chem.SanitizeMol(result)
+    return result
+
+
+@pytest.mark.parametrize("metal", ["ZN", "FE", "CO", "MN", "CU", "NI", "MG"])
+def test_a_carbon_bound_fluorine_beside_a_metal_that_is_not_a_hard_cation_donor_is_a_clash_and_not_a_coordination(metal):
     distance = 2.3
     assert distance < _vdw_radius("F") + _vdw_radius(metal) - CLASH_TOLERANCE
 
-    found = find_interactions(_two_atom_molecule("F", metal, distance))
+    found = find_interactions(_fluoromethane_and_metal(metal, distance))
 
     assert found["metal_coordination"] == []
     assert len(found["clashes"]) == 1
 
 
-@pytest.mark.parametrize(("metal", "distance"), [("NA", 2.47), ("K", 2.80), ("CA", 2.52), ("MG", 2.30)])
-def test_a_fluorine_beside_a_hard_cation_is_a_coordination_and_not_a_clash(metal, distance):
-    found = find_interactions(_two_atom_molecule("F", metal, distance))
+@pytest.mark.parametrize(("metal", "distance"), [("NA", 2.47), ("K", 2.80), ("CA", 2.52)])
+def test_a_carbon_bound_fluorine_beside_a_hard_cation_is_a_coordination_and_not_a_clash(metal, distance):
+    found = find_interactions(_fluoromethane_and_metal(metal, distance))
 
     assert len(found["metal_coordination"]) == 1
+    assert found["clashes"] == []
+
+
+@pytest.mark.parametrize("metal", ["ZN", "FE", "CO", "MN", "CU", "NI", "MG", "CA", "NA", "K"])
+def test_a_fluoride_ion_at_a_bonding_distance_from_any_metal_is_a_coordination_and_not_a_clash(metal):
+    found = find_interactions(_two_atom_molecule("F", metal, 2.8 if metal == "K" else 2.0))
+
+    assert _pairs(found["metal_coordination"]) == [(0, 1)]
     assert found["clashes"] == []
