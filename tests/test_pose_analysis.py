@@ -211,13 +211,13 @@ def test_a_salt_bridge_needs_opposite_charges():
 
 
 def test_metal_coordination_is_found_only_within_bonding_range():
-    from openchem.chem.pose_analysis import METAL_COORDINATION_CUTOFF
+    from openchem.chem.pose_analysis import metal_bond_window
 
     close = _pdb([("ZN", "ZN", 1, 2.0, 0.0, 0.0, "ZN")])
     far = _pdb([("ZN", "ZN", 1, 8.0, 0.0, 0.0, "ZN")])
     pose = _benzoate_at_origin()
 
-    assert METAL_COORDINATION_CUTOFF < 3.0
+    assert metal_bond_window("ZN", "O")[1] < 3.0
     assert analyze_pose(pose, receptor_atoms_from_structure(close, "pdb"))["metal_coordination"]
     assert analyze_pose(pose, receptor_atoms_from_structure(far, "pdb"))["metal_coordination"] == []
 

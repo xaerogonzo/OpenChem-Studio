@@ -340,8 +340,8 @@ contact: it is what the bond's geometry puts there (the M-N-C angle at a coordin
    in the survey is 1.81 angstrom (a Cu-phenolate outlier; Mn 1.83 and Fe 1.84 are the shortest regular ones). It is one
    value for every donor, which is loose for sulfur (its own shortest is 2.18, Fe-thiolate); a per-donor floor was not built.
    Harding's primary coordination sphere is the target plus 0.5 angstrom (about 2.5 for Zn-N, 2.9 for Ca-O) [source:harding2006], so the single
-   2.8 cutoff also exempts weakly bonded donors outside it for Zn, Fe, Mg and Cu, which Harding 2000 finds "shorter than a van
-   der Waals contact". A metal- and donor-specific cutoff from his Table 1 was not built.
+   2.8 cutoff also exempted weakly bonded donors outside it for Zn, Fe, Mg and Cu, which Harding 2000 finds "shorter than a van
+   der Waals contact". **Superseded 2026-10-12: the window is now per metal and per donor, see below.**
 2. **The donor's neighbours are the bond's own geometry, against that metal only.** Every ligand atom within two bonds of a
    coordinating donor is left out of the clash test against the metal the donor binds, and stays in it against every other
    atom. Two bonds is `interaction_analysis.MIN_SEPARATION["clashes"]` (a bond-path separation under four is not a contact)
@@ -365,12 +365,57 @@ mutants of the fix (no skip, depth 0, depth 1, no floor, a cutoff 0.5 too wide, 
 ligand direction not exempted or not reported, fluorine or sulfur dropped as a donor, any receptor atom as a donor) are all
 killed.
 
-**Not settled by this.** (a) **One window for every metal.** The donor window (1.8 to 2.8 angstrom) is a single pair of numbers, not a
-table. The sources are now in the registry ([source:harding2006], [source:zheng2017], [source:harding2002]): a donor is in the
-primary sphere within the target plus 0.5 angstrom for the transition metals, Mg and Ca, but plus 0.75 for Na and K, whose
-K-O target is 2.81 to 2.84. So 2.8 is right for most metals and **too short for potassium**, whose bonds run to about 3.5
-angstrom (a K...O contact there is still reported as a clash, as before). Sourced per-metal windows and floors are the agreed
-follow-up. Fluorine as a donor has no source either.
+**Per-metal bond windows (built 2026-10-12), which close the first of the two things this left open.** The donor window was one
+pair of numbers (1.8 to 2.8 angstrom) for every metal and donor. It is now `pose_analysis.metal_bond_window(metal, donor)`,
+from `METAL_DONOR_TARGETS`: the distance a bond from that metal to that kind of donor is expected to have, by donor element
+(N, O, S; fluorine reads oxygen's for sodium, potassium, calcium and magnesium only, see below), taken from Harding 2006 Table 4 for Zn, Fe, Co, Mn, Cu,
+Mg, Ca, Na and K [source:harding2006] and, for nickel, which Harding does not cover, from Zheng et al.'s CSD means
+[source:zheng2017]. The N and S entries for Mg, Ca, Na and K are Harding's own estimates, marked as such in his 2001 and
+2002 tables [source:harding2001] [source:harding2002]. The window is **the target plus 0.5 angstrom, and plus 0.75 for
+sodium and potassium; its floor is the target less 0.5, never below 1.8** (the shortest distance in his survey). For
+sodium and potassium a donor out to the target plus 0.95 (his secondary sphere) is not a bond but is a normal contact of an
+ion, so it is left out of the clash test as well.
+
+| pair | old window | new window |
+|---|---|---|
+| Zn to N | 1.8 to 2.8 | 1.80 to 2.53 |
+| Zn to S | 1.8 to 2.8 | 1.81 to 2.81 |
+| Fe to N | 1.8 to 2.8 | 1.80 to 2.66 |
+| Ca to O | 1.8 to 2.8 | 1.89 to 2.89 |
+| Na to O | 1.8 to 2.8 | 1.91 to 3.16 (not a clash to 3.36) |
+| K to O | 1.8 to 2.8 | 2.32 to 3.57 (not a clash to 3.77) |
+
+What moved, each measured through `analyze_pose` (`tests/test_pose_analysis_metals.py`): potassium to oxygen at 3.5 angstrom was
+a steric clash (the radius rule's threshold is 3.87) and is now a coordination; at 3.7 it is neither, and at 3.8, past
+Harding's secondary sphere and inside the radius rule, it is a clash again. Zinc to a histidine nitrogen at 2.7 angstrom was a
+coordination and is not (it is Harding's weak-interaction range for zinc, 2.4 to 3.0). Sodium to oxygen at 1.85 angstrom,
+above the survey floor but under sodium's own 1.91, is overlap and stays a clash. The same function decides the
+`metal_coordination` lines of Interaction Analysis (method `interactions-v3`; a v2 result is kept, labelled), so the two
+calculators cannot disagree, and the sweep that no distance is both a coordination and a clash now runs over every window.
+**What stays open:** the metal radii themselves are untouched, so a non-bonded contact with a metal is still judged by the
+placeholder radii above (Fe 1.56 among them), and a saved docking result keeps the clash list it was analysed with.
+
+**Fluorine as a metal donor (read 2026-10-12; Interaction Analysis `interactions-v4`).** Fluorine had no table, and read the oxygen
+entry for every metal. Four papers Alex supplied were read for what they measured. *Hard cations:* Plenio's CSD survey of
+carbon-bound fluorine to the alkali and alkaline-earth ions finds attractive contacts, sodium to fluorine 2.30 to 2.67 angstrom
+(the 79 contacts peak at 2.50 to 2.70), and derives acceptance limits (Na 2.49 to 3.07, K 2.98 to 3.47, Ca 2.53 to 3.13) that
+bracket the oxygen windows used (Na to 3.16, K to 3.57, Ca to 2.89); Murray-Rust et al. measured sodium to fluorine 2.470 and
+potassium to fluorine 2.80; the only calcium structure is at 2.524; a DFT binding energy for fluorine to Li+ is about 64% of
+oxygen's [source:plenio1997] [source:plenio2004] [source:murrayrust1983]. So sodium, potassium and calcium keep the oxygen
+window. *Magnesium keeps it too, but only by assumption:* no measured Mg to fluorine distance is in these papers (Plenio mentions
+magnesium only as a chelate proposed for a reaction), and it stays open until a survey of Mg to fluorine contacts is found.
+*Transition metals:* Plenio finds convincing first-row evidence
+only for titanium (2.15) and vanadium (2.31 and 2.38) in unusual organometallic complexes, a cobalt contact its authors put
+down to torsion, and zinc at 2.53 to 2.73 in crowded aryl-CF3 organometallics, with nothing for iron, manganese, copper or
+nickel [source:plenio1997] [source:murrayrust1983]. Fluorine is therefore no longer a donor to Zn, Fe, Co, Mn, Cu and Ni: a
+fluorine inside the old oxygen window (zinc to 2.59, iron 2.59, manganese 2.69) is no longer a coordination, and is a clash
+only if it is inside the radius rule (F 1.47 plus the metal's radius less 0.4: 2.46 for zinc, 2.63 for iron, 2.77 where the
+table has no entry for the metal and uses its 1.70 default). Measured through `analyze_pose` and `find_interactions`
+(`tests/test_pose_analysis_metals.py`, `tests/test_interaction_analysis_metals.py`): fluorine at 2.3 of any transition metal was
+a coordination and is a clash; zinc at 2.55 is neither; sodium at 2.47, potassium at 2.80, calcium at 2.52 stay coordinations.
+Eight mutants (restriction removed, zinc or iron added, each hard cation dropped, fluorine reading nitrogen) are all killed.
+**Known limit:** the rule is by element, so a fluoride ion or a fluorine on boron or phosphorus (a tetrafluoroborate bound to
+nickel at 2.12 angstrom is in Murray-Rust's survey) is a real donor and is not recognised as one. Whether organic fluorine accepts a hydrogen bond is a separate question with its own change.
 (b) **A saved docking result keeps what it was analysed with.** Interaction data
 lives in `DockingPoseModel.metadata`, written once by the docking job and saved in the project file; nothing recomputes it
 on load. Results saved before this change still list the coordinated metal under clashes. The method-version mechanism in

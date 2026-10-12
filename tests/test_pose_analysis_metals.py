@@ -27,10 +27,15 @@ from rdkit.Chem import AllChem, rdMolTransforms
 
 from openchem.chem.pose_analysis import (
     _METALS,
-    METAL_COORDINATION_CUTOFF,
+    CLASH_TOLERANCE,
     METAL_DONOR_MIN_DISTANCE,
+    METAL_DONOR_TARGETS,
     ReceptorAtom,
+    _vdw_radius,
     analyze_pose,
+    is_metal_bond,
+    is_metal_contact,
+    metal_bond_window,
 )
 
 
@@ -187,7 +192,7 @@ def test_an_overlap_closer_than_any_observed_bond_is_still_a_clash():
 def test_a_donor_just_outside_the_bonding_range_is_an_ordinary_contact():
     """Calcium is the case where the two rules differ most: nitrogen 3.0 A from Ca is closer than the radius
     sum less the tolerance (3.46 A) yet outside the coordination cutoff, so it is a clash and not a bond."""
-    distance = METAL_COORDINATION_CUTOFF + 0.2
+    distance = metal_bond_window("CA", "N")[1] + 0.12
     result = analyze_pose(_single_atom_pose("N"), [ReceptorAtom("CA", (distance, 0.0, 0.0), "CA", 1, atom_name="CA")])
 
     assert len(result["clashes"]) == 1
@@ -211,7 +216,7 @@ def test_the_neighbourhood_exemption_is_for_the_metal_the_donor_binds_only():
     outward = (h - c) / np.linalg.norm(h - c)
     other = ReceptorAtom("CA", tuple(float(x) for x in c + outward * 2.9), "OTH", 2, atom_name="CA")
     for index in donors:  # precondition: the second metal is not in bonding range of any donor
-        assert math.dist(tuple(conformer.GetAtomPosition(index)), other.position) > METAL_COORDINATION_CUTOFF
+        assert math.dist(tuple(conformer.GetAtomPosition(index)), other.position) > metal_bond_window("CA", "N")[1]
 
     result = _analyse(mol, [bound, other])
 
@@ -222,18 +227,30 @@ def test_the_neighbourhood_exemption_is_for_the_metal_the_donor_binds_only():
 @pytest.mark.parametrize("metal", sorted(_METALS))
 @pytest.mark.parametrize("donor", ["N", "O", "S", "F"])
 def test_no_distance_is_reported_as_both_a_coordination_and_a_clash(metal, donor):
-    """The invariant behind the whole fix, swept over every distance a bond could have: for a donor above the
-    overlap floor, being a coordination excludes being a clash. A pair that is both is the original defect."""
-    steps = round((METAL_COORDINATION_CUTOFF - METAL_DONOR_MIN_DISTANCE) / 0.05)
-    distances = [round(METAL_DONOR_MIN_DISTANCE + 0.05 * i, 2) for i in range(steps + 1)]
-    assert distances[0] == METAL_DONOR_MIN_DISTANCE and distances[-1] == METAL_COORDINATION_CUTOFF
+    """The invariant behind the whole fix, swept over every distance a bond could have: inside THIS metal's window for
+    THIS donor, being a coordination excludes being a clash. A pair that is both is the original defect."""
+    window = metal_bond_window(metal, donor)
+    if window is None:
+        # Fluorine and a transition metal: never a bond, at any distance, and so never a bond AND a clash.
+        assert donor == "F" and metal in {"ZN", "FE", "CO", "MN", "CU", "NI"}
+        for i in range(30):
+            found = analyze_pose(
+                _single_atom_pose(donor),
+                [ReceptorAtom(metal, (1.8 + 0.05 * i, 0.0, 0.0), metal, 1, atom_name=metal)],
+            )
+            assert found["metal_coordination"] == [], f"{metal}-F at {1.8 + 0.05 * i:.2f}"
+        return
+    low, high = window
+    edge = 1e-9  # the window's ends are floats (2.41 - 0.5 is 1.9100000000000001): test just inside them
+    distances = [d for d in (low + edge + 0.05 * i for i in range(int((high - low) / 0.05) + 2)) if d < high - edge]
+    distances.append(high - edge)
     for distance in distances:
         found = analyze_pose(
             _single_atom_pose(donor),
             [ReceptorAtom(metal, (float(distance), 0.0, 0.0), metal, 1, atom_name=metal)],
         )
-        assert found["metal_coordination"], f"{metal}-{donor} at {distance:.2f} is inside the cutoff"
-        assert found["clashes"] == [], f"{metal}-{donor} at {distance:.2f} reported as a clash too"
+        assert found["metal_coordination"], f"{metal}-{donor} at {distance:.3f} is inside its window {low:.2f}-{high:.2f}"
+        assert found["clashes"] == [], f"{metal}-{donor} at {distance:.3f} reported as a clash too"
 
 
 def test_a_ligand_metal_bound_by_a_receptor_donor_is_a_coordination_and_not_a_clash():
@@ -281,3 +298,205 @@ def test_a_pose_with_no_metal_anywhere_is_unchanged():
     assert len(found["hbonds"]) == 1
     assert len(found["clashes"]) == 1 and found["clashes"][0]["receptor_residue"] == "LEU2"
     assert found["metal_coordination"] == []
+
+
+# --- per-metal bond windows (the follow-up to the single 1.8-2.8 A window) -----------------------------------------------
+
+#: Harding 2006 Table 4, transcribed from the page image: O water, O Asp or Glu monodentate, O main-chain carbonyl,
+#: N histidine, S cysteine; None where the paper gives no value [source:harding2006].
+HARDING_2006_TABLE_4 = {
+    "NA": (2.41, 2.41, 2.38, None, None),
+    "MG": (2.07, 2.07, 2.26, None, None),
+    "K": (2.81, 2.82, 2.74, None, None),
+    "CA": (2.39, 2.36, 2.36, None, None),
+    "MN": (2.19, 2.15, 2.19, 2.21, 2.35),
+    "FE": (2.09, 2.04, 2.04, 2.16, 2.30),
+    "CO": (2.09, 2.05, 2.08, 2.14, 2.25),
+    "CU": (2.13, 1.99, 2.04, 2.02, 2.15),
+    "ZN": (2.09, 1.99, 2.07, 2.03, 2.31),
+}
+#: N and S entries Harding marks as estimates for want of data (2001 Table 1 for Mg and Ca; 2002 Table 2a for Na and K).
+HARDING_ESTIMATES = {"MG": (2.05, 2.23), "CA": (2.38, 2.56), "NA": (2.38, 2.56), "K": (2.80, 2.98)}
+#: Zheng et al. 2017 Table 3 (CSD means), the larger where two values are printed [source:zheng2017].
+ZHENG_NICKEL = {"O": 2.08, "N": 2.09, "S": 2.46}
+
+
+def test_every_metal_the_detector_knows_has_a_target_for_every_donor():
+    assert set(METAL_DONOR_TARGETS) == _METALS
+    assert all(set(targets) == {"O", "N", "S"} for targets in METAL_DONOR_TARGETS.values())
+
+
+@pytest.mark.parametrize("metal", sorted(HARDING_2006_TABLE_4))
+def test_the_targets_are_harding_2006_table_4(metal):
+    water, carboxylate, carbonyl, nitrogen, sulfur = HARDING_2006_TABLE_4[metal]
+    targets = METAL_DONOR_TARGETS[metal]
+
+    assert targets["O"] == max(water, carboxylate, carbonyl)
+    if nitrogen is not None:
+        assert (targets["N"], targets["S"]) == (nitrogen, sulfur)
+    else:
+        assert (targets["N"], targets["S"]) == HARDING_ESTIMATES[metal]
+
+
+def test_nickel_is_zhengs_csd_means_because_harding_has_none():
+    assert METAL_DONOR_TARGETS["NI"] == ZHENG_NICKEL
+
+
+@pytest.mark.parametrize(("metal", "donor", "low", "high"), [
+    ("ZN", "N", 1.80, 2.53),   # 2.03 + 0.5; 2.03 - 0.5 is under the 1.8 floor
+    ("ZN", "S", 1.81, 2.81),   # 2.31 -/+ 0.5
+    ("FE", "N", 1.80, 2.66),
+    ("MG", "O", 1.80, 2.76),   # carbonyl 2.26 is the longest Mg-O
+    ("CU", "N", 1.80, 2.52),
+    ("CA", "O", 1.89, 2.89),
+    ("NI", "S", 1.96, 2.96),
+    ("NA", "O", 1.91, 3.16),   # + 0.75 for sodium and potassium
+    ("K", "O", 2.32, 3.57),
+    ("K", "N", 2.30, 3.55),
+    ("CA", "F", 1.89, 2.89),   # fluorine reads the oxygen entry of the hard cations (and of no other metal)
+])
+def test_the_window_is_the_target_less_and_plus_the_margins(metal, donor, low, high):
+    assert metal_bond_window(metal, donor) == pytest.approx((low, high), abs=1e-9)
+
+
+def test_an_unknown_metal_or_donor_has_no_window():
+    assert metal_bond_window("PB", "O") is None and metal_bond_window("ZN", "C") is None
+    assert not is_metal_bond("PB", "O", 2.3) and not is_metal_contact("ZN", "C", 2.0)
+
+
+def test_a_metal_the_old_window_called_bonded_is_no_longer_when_it_is_too_far_for_that_donor():
+    """Zinc to a histidine nitrogen at 2.7 A was inside the single 2.8 A window. Harding's bond is 2.03 A (window to
+    2.53); 2.7 A is the weak-interaction range he describes for zinc (2.4-3.0), not a bond, and with zinc's 1.39 A
+    radius it is not a clash either."""
+    found = analyze_pose(_single_atom_pose("N"), [ReceptorAtom("ZN", (2.7, 0.0, 0.0), "ZN", 1, atom_name="ZN")])
+
+    assert found["metal_coordination"] == []
+    assert found["clashes"] == []
+
+
+@pytest.mark.parametrize(("distance", "bond", "clash"), [
+    (3.50, True, False),    # inside the primary sphere, 2.82 + 0.75 = 3.57: a bond, as Harding counts potassium
+    (3.70, False, False),   # his secondary sphere runs to 2.82 + 0.95 = 3.77: a normal contact of the ion, no clash
+    (3.80, False, True),    # past it, and still inside the radius rule's 3.87: ordinary again
+    (3.95, False, False),   # past that too
+])
+def test_potassium_contacts_run_on_past_the_bond_and_are_not_clashes(distance, bond, clash):
+    """With one 2.8 A window every real K+...O contact beyond it was a clash: 3.5 A is inside 2.75 + 1.52 - 0.4 = 3.87.
+    The fixture is checked against the old rule first, so the test cannot pass on a geometry that never mattered."""
+    assert distance < 3.87 or not clash
+    found = analyze_pose(_single_atom_pose("O"), [ReceptorAtom("K", (distance, 0.0, 0.0), "K", 1, atom_name="K")])
+
+    assert bool(found["metal_coordination"]) is bond
+    assert bool(found["clashes"]) is clash
+
+
+@pytest.mark.parametrize(("distance", "bond", "clash"), [
+    (3.10, True, False),    # 2.41 + 0.75 = 3.16
+    (3.25, False, False),   # secondary sphere to 2.41 + 0.95 = 3.36
+    (3.38, False, True),    # sodium's radius rule is 2.27 + 1.52 - 0.4 = 3.39
+])
+def test_sodium_contacts_run_on_past_the_bond_and_are_not_clashes(distance, bond, clash):
+    found = analyze_pose(_single_atom_pose("O"), [ReceptorAtom("NA", (distance, 0.0, 0.0), "NA", 1, atom_name="NA")])
+
+    assert bool(found["metal_coordination"]) is bond
+    assert bool(found["clashes"]) is clash
+
+
+def test_only_sodium_and_potassium_get_a_contact_zone_beyond_the_bond():
+    """For Ca, Mg and the transition metals a donor past the primary sphere (Harding: usually refinement error or
+    weak bonding) stays an ordinary contact."""
+    for metal in sorted(_METALS - {"NA", "K"}):
+        low, high = metal_bond_window(metal, "O")
+        assert is_metal_bond(metal, "O", high) and not is_metal_bond(metal, "O", high + 0.05)
+        assert not is_metal_contact(metal, "O", high + 0.05)
+    assert is_metal_contact("K", "O", 3.70) and not is_metal_bond("K", "O", 3.70)
+
+
+def test_sodium_and_potassium_have_a_floor_harding_states_the_others_the_survey_minimum():
+    """Harding 2002: a K+ or Na+ distance 0.5 A under the target is not acceptable. Na-O at 1.85 A is above the
+    survey floor of 1.8 and below Na's own 1.91, so it is overlap and stays a clash."""
+    found = analyze_pose(_single_atom_pose("O"), [ReceptorAtom("NA", (1.85, 0.0, 0.0), "NA", 1, atom_name="NA")])
+
+    assert found["metal_coordination"] == []
+    assert len(found["clashes"]) == 1
+    assert metal_bond_window("K", "O")[0] == pytest.approx(2.82 - 0.5)
+    assert metal_bond_window("ZN", "O")[0] == METAL_DONOR_MIN_DISTANCE
+
+
+def test_a_ligand_carried_potassium_bound_by_a_receptor_oxygen_follows_the_same_window():
+    receptor = [ReceptorAtom("O", (3.5, 0.0, 0.0), "HOH", 1, atom_name="O")]
+    found = analyze_pose(_single_atom_pose("K"), receptor)
+
+    assert found["clashes"] == []
+    assert len(found["metal_coordination"]) == 1
+
+
+# --- fluorine: a donor to the hard cations, not to the transition metals ---------------------------------------------------
+# Plenio 1997 and Murray-Rust 1983 (sodium, potassium, calcium contacts measured; first-row transition metals almost none).
+
+HARD_CATIONS = ["CA", "K", "MG", "NA"]
+TRANSITION_METALS = ["CO", "CU", "FE", "MN", "NI", "ZN"]
+
+
+def test_every_metal_is_either_a_fluorine_donor_or_not_and_the_two_lists_cover_them_all():
+    assert set(HARD_CATIONS) | set(TRANSITION_METALS) == _METALS
+    assert not set(HARD_CATIONS) & set(TRANSITION_METALS)
+
+
+@pytest.mark.parametrize("metal", HARD_CATIONS)
+def test_fluorine_reads_the_oxygen_window_of_a_hard_cation(metal):
+    assert metal_bond_window(metal, "F") == metal_bond_window(metal, "O")
+
+
+@pytest.mark.parametrize("metal", TRANSITION_METALS)
+def test_fluorine_has_no_window_to_a_transition_metal(metal):
+    assert metal_bond_window(metal, "F") is None
+    for distance in (1.9, 2.1, 2.5, 3.0):
+        assert not is_metal_bond(metal, "F", distance) and not is_metal_contact(metal, "F", distance)
+    assert metal_bond_window(metal, "O") is not None  # the restriction is about fluorine, not the metal
+
+
+@pytest.mark.parametrize("metal", TRANSITION_METALS)
+def test_a_fluorine_inside_a_transition_metals_old_oxygen_window_is_a_clash_and_not_a_coordination(metal):
+    """Before: fluorine at 2.3 A of zinc, iron, cobalt, manganese, copper or nickel was a bond and exempt from the clash
+    test. The precondition is checked, so the test cannot pass on a distance the radius rule never reached."""
+    distance = 2.3
+    assert distance < _vdw_radius("F") + _vdw_radius(metal) - CLASH_TOLERANCE
+
+    found = analyze_pose(_single_atom_pose("F"), [ReceptorAtom(metal, (distance, 0.0, 0.0), metal, 1, atom_name=metal)])
+
+    assert found["metal_coordination"] == []
+    assert len(found["clashes"]) == 1
+
+
+def test_a_fluorine_at_the_zinc_contact_distances_plenio_lists_is_neither_a_bond_nor_a_clash():
+    """Zn...F 2.53-2.73 A occurs in crowded organometallics [source:plenio1997]: an ordinary contact."""
+    found = analyze_pose(_single_atom_pose("F"), [ReceptorAtom("ZN", (2.55, 0.0, 0.0), "ZN", 1, atom_name="ZN")])
+
+    assert found["metal_coordination"] == []
+    assert found["clashes"] == []
+
+
+@pytest.mark.parametrize(("metal", "distance"), [("NA", 2.47), ("K", 2.80), ("CA", 2.52), ("MG", 2.30)])
+def test_a_fluorine_at_a_measured_hard_cation_distance_is_a_coordination_and_not_a_clash(metal, distance):
+    """Na...F 2.470 and K...F 2.80 are Murray-Rust's [source:murrayrust1983], Ca...F 2.524 is Plenio's
+    [source:plenio1997]; Mg...F has no measurement and its distance here is only inside the oxygen window."""
+    found = analyze_pose(_single_atom_pose("F"), [ReceptorAtom(metal, (distance, 0.0, 0.0), metal, 1, atom_name=metal)])
+
+    assert len(found["metal_coordination"]) == 1
+    assert found["metal_coordination"][0]["ligand_element"] == "F"
+    assert found["clashes"] == []
+
+
+def test_a_receptor_fluorine_beside_a_ligand_zinc_is_a_clash_and_not_a_coordination():
+    found = analyze_pose(_single_atom_pose("Zn"), [ReceptorAtom("F", (2.3, 0.0, 0.0), "LIG", 1, atom_name="F")])
+
+    assert found["metal_coordination"] == []
+    assert len(found["clashes"]) == 1
+
+
+def test_a_receptor_fluorine_beside_a_ligand_sodium_is_still_a_coordination():
+    found = analyze_pose(_single_atom_pose("Na"), [ReceptorAtom("F", (2.5, 0.0, 0.0), "LIG", 1, atom_name="F")])
+
+    assert len(found["metal_coordination"]) == 1
+    assert found["clashes"] == []

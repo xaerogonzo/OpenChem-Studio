@@ -28,14 +28,121 @@ SALT_BRIDGE_CUTOFF = 4.0  # charged-group centre separation
 PI_STACKING_CUTOFF = 5.5  # aromatic ring centroid separation
 CATION_PI_CUTOFF = 6.0  # cation to aromatic centroid
 HYDROPHOBIC_CUTOFF = 4.5  # apolar carbon to apolar carbon
-# 2.8 A was here before any source was checked against it. Harding accepted
-# Ca...O up to 2.80 A as a bond when retrieving structures (Mg...O up to
-# 2.45) [source:harding1999], and finds weakly bound N/O donors at 2.4-3.0 A
-# from Zn and 2.6-3.0 A from Cu, "shorter than a van der Waals contact"
-# [source:harding2000]. It is the loosest bond those papers support, not a
-# typical one (means are 2.0-2.4 A), and for Na, K, Co and Ni nothing read
-# supports a value at all.
-METAL_COORDINATION_CUTOFF = 2.8  # metal ion to coordinating N/O/S
+# A BOND TO A METAL HAS ITS OWN LENGTH, AND THE LENGTH DEPENDS ON THE METAL AND THE DONOR. This was one 2.8 A cutoff for
+# every metal and every donor, which Harding accepted as the loosest bond (Ca...O up to 2.80 A, Mg...O up to 2.45)
+# [source:harding1999] and which is right for none of them: a zinc to histidine nitrogen bond is 2.03 A, not 2.8, and a
+# potassium to oxygen "bond" is 2.8 A and runs to about 3.6.
+#
+#: The distance, in angstrom, a bond from each metal to each kind of donor is expected to have, by DONOR ELEMENT. Where a
+#: metal has several kinds of oxygen the entry is the longest of water, monodentate carboxylate and main-chain carbonyl, so
+#: that a window built on it takes in all of them. Sources, which are the entries' only authority:
+#:
+#: * Zn, Fe, Co, Mn, Cu: Harding 2006 Table 4, the current table (it supersedes Harding 2001's Table 1) [source:harding2006];
+#:   N is histidine and S is cysteine.
+#: * Mg, Ca: Harding 2006 for oxygen. Their N and S entries (Mg 2.05 and 2.23, Ca 2.38 and 2.56) are Harding 2001's
+#:   ESTIMATES, which he marks as such for want of data [source:harding2001]; 2006 has none.
+#: * Na, K: Harding 2006 for oxygen (K 2.82 is the longest of 2.81, 2.82 and 2.74). N and S (Na 2.38 and 2.56, K 2.80 and
+#:   2.98) are Harding 2002's estimates [source:harding2002]. The 2013 corrigendum corrects a sentence of that paper in which
+#:   the sodium and potassium distances were interchanged; the tables were right [source:harding2013].
+#: * Ni: Harding has no nickel. Zheng et al.'s CSD means (water 2.08, N 2.09, S 2.46, taking the larger where two values are
+#:   given) [source:zheng2017]; they are survey means, not Harding's recommended targets.
+#:
+#: Fluorine has no table of its own. For the metals in `_FLUORINE_DONOR_METALS` (Na, K, Ca, Mg) it takes the metal's
+#: oxygen entry, which the crystallographic surveys support as a bond length for the first three (see there); for every
+#: other metal it is not a donor and has no entry.
+METAL_DONOR_TARGETS: dict[str, dict[str, float]] = {
+    "ZN": {"O": 2.09, "N": 2.03, "S": 2.31},
+    "FE": {"O": 2.09, "N": 2.16, "S": 2.30},
+    "CO": {"O": 2.09, "N": 2.14, "S": 2.25},
+    "MN": {"O": 2.19, "N": 2.21, "S": 2.35},
+    "CU": {"O": 2.13, "N": 2.02, "S": 2.15},
+    "MG": {"O": 2.26, "N": 2.05, "S": 2.23},
+    "CA": {"O": 2.39, "N": 2.38, "S": 2.56},
+    "NA": {"O": 2.41, "N": 2.38, "S": 2.56},
+    "K": {"O": 2.82, "N": 2.80, "S": 2.98},
+    "NI": {"O": 2.08, "N": 2.09, "S": 2.46},
+}
+
+#: How far past the target a donor still counts as bonded, in angstrom. Harding's primary coordination sphere is the target
+#: plus 0.5 [source:harding2001].
+METAL_BOND_MARGIN = 0.5
+
+#: The same, for sodium and potassium: the target plus 0.75, because their interactions are "predominantly electrostatic"
+#: and a longer distance is not unusual [source:harding2002].
+METAL_BOND_MARGIN_NA_K = 0.75
+
+#: The same margin below the target, never below `METAL_DONOR_MIN_DISTANCE`. Harding says outright that for sodium and
+#: potassium a distance 0.5 shorter than the target is not acceptable [source:harding2002]; for the other metals the same
+#: 0.5 is applied by convention, and the floor of 1.8 (the shortest distance in his survey) is what actually binds.
+METAL_BOND_MARGIN_BELOW = 0.5
+
+#: Sodium and potassium contacts run on past the primary sphere (Harding's secondary sphere is the target plus 0.95,
+#: [source:harding2002]; his CSD histograms have substantial numbers of K...O distances out to 3.8 A, and Na...O to 3.4).
+#: A donor there is not reported as a bond, but it is a normal contact of an ion and not a steric clash, so it is left out of
+#: the clash test. For the other metals, a donor beyond the primary sphere stays an ordinary contact.
+METAL_CONTACT_MARGIN_NA_K = 0.95
+
+#: Which donor entry a donor element reads: fluorine reads oxygen's, for the metals below only.
+_DONOR_TABLE_ELEMENT = {"N": "N", "O": "O", "F": "O", "S": "S"}
+
+#: THE METALS A CARBON-BOUND FLUORINE COUNTS AS A DONOR TO. Organic fluorine is a real but weak donor to hard cations and
+#: is not shown to be one for the transition metals.
+#:
+#: * Sodium, potassium, calcium: Plenio's survey of crystal structures finds attractive contacts to them, with sodium to
+#:   fluorine at 2.30-2.67 A (the distribution of 79 contacts peaks at 2.50-2.70) and the acceptance limits he derives
+#:   (Na 2.49-3.07, K 2.98-3.47, Ca 2.53-3.13 A) bracketing the oxygen windows used here (Na to 3.16, K to 3.57, Ca to
+#:   2.89) [source:plenio1997]; Murray-Rust et al. find sodium to fluorine at 2.47 and potassium to fluorine at 2.80
+#:   [source:murrayrust1983]. The interaction is weaker than the oxygen one (about 64 % of Li...O, by DFT) [source:plenio2004].
+#: * Magnesium: kept on the same footing as calcium, but NO measured Mg...F distance was found in those papers; the only
+#:   mention is a six-membered chelate proposed for an organomagnesium reaction [source:plenio1997]. An assumption.
+#: * Zinc, iron, cobalt, manganese, copper, nickel: none. Plenio finds convincing evidence in the first transition series
+#:   only for titanium and vanadium in unusual organometallic complexes; the cobalt contact (2.65 A) is intramolecular and
+#:   its authors attributed it to torsion, the zinc contacts (2.53-2.73 A) are all in crowded aryl-CF3 or C6F5 organometallics,
+#:   and there is nothing for iron, manganese, copper or nickel [source:plenio1997]. The only transition-metal fluoroalkane
+#:   carboxylates found in 1983 were copper(II) fluoroacetates, whose sixth site quinoline or urea fills [source:murrayrust1983].
+#:   A fluorine near one of these metals is therefore an ordinary contact, judged by the clash test, and not a bond.
+_FLUORINE_DONOR_METALS = frozenset({"NA", "K", "CA", "MG"})
+
+
+def _metal_donor_target(metal: str, donor: str) -> float | None:
+    targets = METAL_DONOR_TARGETS.get(metal.upper())
+    element = _DONOR_TABLE_ELEMENT.get(donor.upper())
+    if donor.upper() == "F" and metal.upper() not in _FLUORINE_DONOR_METALS:
+        return None
+    return None if targets is None or element is None else targets[element]
+
+
+def metal_bond_window(metal: str, donor: str) -> tuple[float, float] | None:
+    """`(shortest, longest)` distance, in angstrom, at which `donor` (N, O, F or S) is bonded to `metal`; None if either
+    is not one this table covers, or for fluorine and a metal outside `_FLUORINE_DONOR_METALS`. The longest is the target plus 0.5 (0.75 for sodium and potassium), the shortest the
+    target less 0.5 but never below `METAL_DONOR_MIN_DISTANCE`."""
+    target = _metal_donor_target(metal, donor)
+    if target is None:
+        return None
+    above = METAL_BOND_MARGIN_NA_K if metal.upper() in _IONIC_METALS else METAL_BOND_MARGIN
+    return (max(METAL_DONOR_MIN_DISTANCE, target - METAL_BOND_MARGIN_BELOW), target + above)
+
+
+def is_metal_bond(metal: str, donor: str, distance: float) -> bool:
+    """Whether a `donor` at `distance` from `metal` is bonded to it: inside `metal_bond_window`."""
+    window = metal_bond_window(metal, donor)
+    return window is not None and window[0] <= distance <= window[1]
+
+
+def is_metal_contact(metal: str, donor: str, distance: float) -> bool:
+    """Whether the pair is a bond, or (sodium and potassium only) a normal contact of the ion beyond the primary sphere;
+    either way it is not a steric clash."""
+    window = metal_bond_window(metal, donor)
+    if window is None:
+        return False
+    longest = window[1]
+    if metal.upper() in _IONIC_METALS:
+        longest = _metal_donor_target(metal, donor) + METAL_CONTACT_MARGIN_NA_K
+    return window[0] <= distance <= longest
+
+
+#: The two metals whose interactions are mostly electrostatic and so get the wider margins.
+_IONIC_METALS = frozenset({"NA", "K"})
 
 _METALS = {"ZN", "MG", "CA", "FE", "MN", "CU", "NA", "K", "CO", "NI"}
 _POLAR_ELEMENTS = {"N", "O", "F"}
@@ -48,10 +155,8 @@ _POLAR_ELEMENTS = {"N", "O", "F"}
 #: Which atoms can donate to a metal. The detector has always taken N, O, F
 #: and S; the clash test takes exactly the same set (`_METAL_DONOR_ELEMENTS`),
 #: because a pair reported as coordination and also as a clash is the defect.
-#: Harding's tables cover N, O and S donors for Ca, Mg, Mn, Fe, Cu and Zn
-#: [source:harding1999]; fluorine, and the metals Na, K, Co and Ni, are in no
-#: table read for this project (Harding 2001 says Na+ and K+ are future work),
-#: so for those the cutoff below is the existing one, not a sourced bond length.
+#: Whether a given metal and donor are actually bonded is `metal_bond_window`'s
+#: question (fluorine is a donor only to `_FLUORINE_DONOR_METALS`).
 _METAL_DONOR_ELEMENTS = _POLAR_ELEMENTS | {"S"}
 
 #: The shortest distance still treated as a bond. Below it the two atoms
@@ -537,10 +642,10 @@ def is_stripped_residue(
 # well above these, partly because Bondi's metal values are in places a
 # cutoff, not a radius).
 #
-# They no longer decide anything about a metal's own ligands. A donor within
-# `METAL_COORDINATION_CUTOFF` of a metal, and the atoms next to it, are a
-# bond and are skipped by the clash test (`_metal_bonded_pairs`), so these
-# numbers only apply to ligand atoms further from the metal than that.
+# They no longer decide anything about a metal's own ligands. A donor inside
+# `metal_bond_window` of a metal, and the atoms next to it, are a bond and are
+# skipped by the clash test (`_metal_bonded_pairs`), so these numbers only
+# apply to ligand atoms further from the metal than that.
 # They were deliberately NOT replaced with Alvarez's: that would move every
 # non-bonded metal contact the application reports, on a radius whose
 # meaning (a contact-peak edge, not a cutoff) differs from the +/-0.4 A
@@ -726,8 +831,8 @@ def _metal_bonded_pairs(
 
     Three kinds of pair, all keyed the same way:
 
-    * a ligand donor (N, O, F, S) between `METAL_DONOR_MIN_DISTANCE` and
-      `METAL_COORDINATION_CUTOFF` of a RECEPTOR metal;
+    * a ligand donor (N, O, F, S) inside `metal_bond_window` of a RECEPTOR metal, which is per metal and per donor
+      (and, for sodium and potassium, extended to their normal contacts by `is_metal_contact`);
     * every ligand atom within `_BONDED_NEIGHBOUR_DEPTH` bonds of such a donor,
       against THAT metal only. Their distance to the metal is fixed by the
       bond's geometry (the M--N--C angle is 126-131 degrees, which puts an
@@ -735,7 +840,7 @@ def _metal_bonded_pairs(
       measuring it against a van der Waals sum finds a "clash" in every
       coordinated pose, and the larger and more correct the metal's radius,
       the more of them. Atoms further out keep the ordinary test;
-    * a LIGAND metal and a RECEPTOR donor in the same distance window. Only
+    * a LIGAND metal and a RECEPTOR donor in the same window. Only
       the pair itself: the receptor arrives as coordinates with no bonds, so
       there is no neighbourhood to walk.
 
@@ -744,32 +849,32 @@ def _metal_bonded_pairs(
     """
     bonded: set[tuple[int, int]] = set()
     receptor_metals = [i for i, a in enumerate(receptor_atoms) if a.element in _METALS]
-    ligand_metals = [(i, p) for i, s, p in ligand_atoms if s in _METALS]
+    ligand_metals = [(i, s, p) for i, s, p in ligand_atoms if s in _METALS]
     if not receptor_metals and not ligand_metals:
         return bonded
 
-    def in_bonding_range(distance: float) -> bool:
-        return METAL_DONOR_MIN_DISTANCE <= distance <= METAL_COORDINATION_CUTOFF
-
     path_lengths = None
     for receptor_index in receptor_metals:
-        metal_position = receptor_atoms[receptor_index].position
+        metal = receptor_atoms[receptor_index]
         for ligand_index, symbol, position in ligand_atoms:
             if symbol not in _METAL_DONOR_ELEMENTS:
                 continue
-            if not in_bonding_range(math.dist(position, metal_position)):
-                continue
-            bonded.add((ligand_index, receptor_index))
-            if path_lengths is None:
-                path_lengths = Chem.GetDistanceMatrix(mol)
-            for other_index, _symbol, _position in ligand_atoms:
-                if path_lengths[ligand_index][other_index] <= _BONDED_NEIGHBOUR_DEPTH:
-                    bonded.add((other_index, receptor_index))
+            distance = math.dist(position, metal.position)
+            if is_metal_bond(metal.element, symbol, distance):
+                bonded.add((ligand_index, receptor_index))
+                if path_lengths is None:
+                    path_lengths = Chem.GetDistanceMatrix(mol)
+                for other_index, _symbol, _position in ligand_atoms:
+                    if path_lengths[ligand_index][other_index] <= _BONDED_NEIGHBOUR_DEPTH:
+                        bonded.add((other_index, receptor_index))
+            elif is_metal_contact(metal.element, symbol, distance):
+                # an ion's normal contact beyond its primary sphere: not a bond, not a clash, and no neighbourhood
+                bonded.add((ligand_index, receptor_index))
 
-    for ligand_index, metal_position in ligand_metals:
+    for ligand_index, metal_symbol, metal_position in ligand_metals:
         for receptor_index, atom in enumerate(receptor_atoms):
-            if atom.element in _METAL_DONOR_ELEMENTS and in_bonding_range(
-                math.dist(metal_position, atom.position)
+            if atom.element in _METAL_DONOR_ELEMENTS and is_metal_contact(
+                metal_symbol, atom.element, math.dist(metal_position, atom.position)
             ):
                 bonded.add((ligand_index, receptor_index))
     return bonded
@@ -848,6 +953,8 @@ class _Group:
     #: folded into it, because `residue` is the label that reaches Mol*
     #: and must stay `NAME` + `NUMBER`.
     chain: str = ""
+    #: The element, for a metal (the bond window depends on which); empty for a ring or a charge site.
+    element: str = ""
 
 
 def _residues(
@@ -920,7 +1027,7 @@ def receptor_features(receptor_atoms: list[ReceptorAtom]) -> dict[str, list[_Gro
 
         for atom in atoms:
             if atom.element in _METALS:
-                metals.append(_Group(label, atom.position, chain))
+                metals.append(_Group(label, atom.position, chain, atom.element))
 
     return {"rings": rings, "cations": cations, "anions": anions, "metals": metals}
 
@@ -1134,9 +1241,15 @@ def _contact_interactions(
     )
     metal_coordination = []
     for element, point in ligand["polar"]:
-        metal_coordination += pairs(
-            [point], receptor["metals"], METAL_COORDINATION_CUTOFF, {"ligand_element": element}
-        )
+        for group in receptor["metals"]:
+            distance = math.dist(point, group.position)
+            if is_metal_bond(group.element, element, distance):
+                metal_coordination.append({
+                    "receptor_residue": group.residue,
+                    "receptor_chain": group.chain,
+                    "distance": round(distance, 2),
+                    "ligand_element": element,
+                })
     # The other direction: a metal the LIGAND carries, bound by a receptor
     # N/O/S. `analyze_pose` leaves exactly these pairs out of the clash test
     # (`_metal_bonded_pairs`), so they must be reported here or the contact
@@ -1148,7 +1261,7 @@ def _contact_interactions(
             if atom.element not in _METAL_DONOR_ELEMENTS:
                 continue
             distance = math.dist(point, atom.position)
-            if METAL_DONOR_MIN_DISTANCE <= distance <= METAL_COORDINATION_CUTOFF:
+            if is_metal_bond(element, atom.element, distance):
                 metal_coordination.append({
                     "receptor_residue": f"{atom.residue_name}{atom.residue_number}",
                     "receptor_chain": atom.chain,
