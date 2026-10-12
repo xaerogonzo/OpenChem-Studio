@@ -1,10 +1,11 @@
 # The AI assistant's calculator bridge: design record
 
-**Status: design, written 2026-10-12 before any assistant tool exists.** Part of Phase 1 of the plan
-in the session notes. The first PR carries the pieces that need no host code (the execution policy
-and the shared search) and this record. **Nothing here lets the assistant run anything yet.** The
-host adapter, the tools and the consent UI are the next two PRs, and they follow this document;
-where a review changes it, change it here first.
+**Status: design, written 2026-10-12, and built in two slices.** Part of Phase 1 of the plan in the
+session notes. **Slice 1** (the execution policy, the shared search, this record) and **slice 2**
+(the host adapter, the plugin handle, the frozen turn snapshot, parameter validation, the run
+ledger) are built; each section says "built" where it is. **No assistant tool exists yet and the
+assistant still cannot run anything:** the tools, the result envelope, the consent UI and the
+service preview adapter are slice 3. Where a review changes this document, change it here first.
 
 Every statement about how the application works today was read in the source on the date above and
 cites the function. Statements about what to build are decisions, marked as such, and the ones most
@@ -37,20 +38,26 @@ It is built from a host object the window hands the `PluginManager`; a context b
 | `begin_turn()` | GUI | an immutable `TurnContext` (section 6), or `None` when nothing is selected |
 | `catalog(query, limit)` | any | `CalculatorCard`s from the registry, by the shared search (section 7) |
 | `describe(calculator_id)` | any | one card with its parameters, or `UNKNOWN` |
-| `read_results(turn)` | any | the five-state view of the turn's snapshot (section 6) |
+| `read_results(turn, calculator_ids, include_not_current, limit)` | any | the turn's snapshot read by freshness and outcome (section 6). **Needs no host**: it reads only the frozen turn. |
 | `prepare(turn, calculator_id, parameters)` | any | a `Preparation`: validated and normalised parameters, the execution decision, and a preview, or a typed refusal. **Starts nothing.** |
 | `run(turn, run_id)` | worker | for an `AUTO` preparation only: dispatches and waits (section 3) |
 | `pending()` | GUI | previews awaiting approval, for the panel |
 | `approve(run_id)` / `cancel(run_id)` | **GUI only** | start or drop a pending preview |
 
-`approve` and `cancel` are not reachable from a tool. They are methods on the capability the
-**panel** holds, not on the handle the tools get: the tools receive a `ToolBridge` that has the
-first six. This is what makes "the model cannot approve its own request" a property of which
-object a caller holds, rather than of a check somebody has to remember.
+`approve` and `cancel` are not reachable from a tool. **Built:** they, `pending`, `state_of` and
+`outcome_of` are methods of `CalculationHost` (`app/calculation_host.py`) and are absent from
+`PluginCalculations` (`plugins/calculation_access.py`), the handle a plugin receives as
+`context.calculations` -- a test pins the handle's public surface to exactly the six operations and
+fails if an approval method is added. The panel will hold the host side in slice 3. This is what
+makes "the model cannot approve its own request" a property of which object a caller holds, rather
+than of a check somebody has to remember. The host also has a `finished` signal, emitted once per run
+when it reaches a final state, for the panel.
 
-*Decision: the adapter is `app/calculation_host.py`; the handle and its types are in `plugins/`
-and `domain/`; the host reaches the plugin through `PluginManager(..., calculation_host=...)`, not
-through the `UIRegistry` protocol, so existing test doubles of that protocol are untouched.*
+**Built, as decided:** the adapter is `app/calculation_host.py`; the handle and its types are in
+`plugins/` and `domain/`; the host reaches the plugin through `PluginManager(...,
+calculation_host=...)`, not through the `UIRegistry` protocol, so existing test doubles of that
+protocol are untouched. A context built without a host answers every call with a typed
+`UNAVAILABLE`.
 
 ## 3. Request lifecycle, and the thread contract
 
@@ -62,13 +69,18 @@ discover -> prepare -> validate -> decide -+-> AUTO ----------------------> disp
                                                               +-> cancel | invalidate | expire
 ```
 
-One `run_id` is minted by `prepare` and carried through every step. A tool call that names a
-`run_id` it did not receive from `prepare` is refused; one that repeats a `run_id` already
-dispatched returns the original outcome and starts nothing.
+One `run_id` is minted by `prepare` (it is the `ExecutionPlan`'s, so the plan the launcher already
+builds is the plan recorded) and carried through every step. A tool call that names a `run_id` it did
+not receive from `prepare` is refused (`REJECTED`, `NO_SUCH_RUN`); one from an earlier turn is refused
+(`WRONG_TURN`); one that repeats a `run_id` already dispatched returns the original outcome and
+starts nothing. **Built** (`domain/run_lifecycle.py`, `RunLedger`): each legal transition is a table
+and each absence is pinned by a test; `claim_dispatch` is atomic and answers True to one caller of
+forty racing for it.
 
 States: `PREPARED`, `PREVIEWED` (awaiting a person), `APPROVED`, `RUNNING`, `COMPLETED`, `REFUSED`
 (the calculator declined: a limit, needs input, needs setup, with its kind), `FAILED`,
-`CANCELLED`, `INVALIDATED`, `TIMED_OUT`. A preview is not a job; an approved plan is not evidence
+`CANCELLED`, `INVALIDATED`, `TIMED_OUT`, and `REJECTED` (the request named no run it may use;
+neither of the last two is a ledger state). A preview is not a job; an approved plan is not evidence
 of a calculation; **only `COMPLETED` carries a number**, and a `TIMED_OUT` run is still running --
 its result will arrive in Results by the normal path, and the model is told so rather than asked
 to retry.
@@ -87,8 +99,20 @@ to retry.
   the run completes, the outcome is appended to the conversation as a new, system-originated
   tool-result message with its own value snapshot, and the person decides whether to continue. No
   worker waits on an ORCA job, and an arriving result cannot cause a second dispatch.
-* Timeout: `AUTO` requests wait up to the policy's resource class (a few seconds for `INSTANT`,
-  a few tens for `SHORT`); on expiry the outcome is `TIMED_OUT` as above.
+* Timeout: `AUTO` requests wait up to the policy's resource class (**built**: 15 s for `INSTANT`,
+  60 s for `SHORT`, `WAIT_SECONDS` in the host); on expiry the outcome is `TIMED_OUT` as above.
+* **Built, and worth saying because it differs from the first sketch:** the worker does not claim
+  the run. It posts the request, and the GUI thread claims it inside `_start`, *after* re-checking the
+  plan against the live molecule. A claim made on the worker, before the check, would leave a run
+  `RUNNING` that must then be voided, and `RUNNING` has no way out but a result. The check is the
+  fingerprint of the input the plan was made on and the project it was made in; if either has moved,
+  the run is `INVALIDATED` and nothing starts, whether the request came from `run` or from a person's
+  Approve.
+* **Known limit, built as is:** the bus carries no run id, so a completion is matched to its run by
+  (calculator, molecule) and the result by its parameter identity. If a person runs the same
+  calculator on the same molecule with *different* settings in the same few milliseconds, their
+  "finished" can be taken for the AI's and the outcome reported as a failure. The AI's own result is
+  still recorded normally and a later read finds it; nothing is lost, only mis-described.
 
 ## 4. Two execution classes
 
@@ -143,16 +167,30 @@ what `read_results` returns; the explicit outcome of a `run` the model requested
 that call, which is the model's own request and not a read of the store.
 
 `SessionResultStore.fresh_results` returns only records whose fingerprint matches, so it is not an
-inventory. A new read-only accessor returns every retained record for a molecule, and each is put in
-exactly one state:
+inventory. **Built:** `SessionResultStore.all_results` is the read-only accessor for every retained
+record, and `domain/turn_snapshot.py` classifies each one.
 
-| State | Meaning | Never |
+**The five states of the first sketch are two axes, and this is a refinement of it:** *freshness*
+(`current`, `historical`, `unverifiable`) and *outcome* (`computed`, `refused`, `failed`). A
+refusal that no longer matches the structure is a historical refusal, which a single list of five
+could not say. `not_run` is the absence of any record and is reported per calculator.
+
+| Freshness | Meaning | Never |
 |---|---|---|
-| `current` | its input fingerprint equals the snapshot's for that input | |
-| `historical` | retained, fingerprint differs: computed on an earlier structure | shown beside current as if it still applied |
-| `refused` / `failed` | the calculator declined or crashed; keeps code, kind, summary, missing inputs | read as a low value |
-| `unverifiable` | no fingerprint, or the snapshot has none for its input | called fresh |
-| `not_run` | nothing stored | invented as a stale record |
+| `current` | its input fingerprint equals the snapshot's **and** it is the record the application itself would replay (`fresh_results`), so a superseded method stored beside the current one is not offered as current | |
+| `historical` | retained, fingerprint differs (an earlier structure), or a superseded method version | shown beside current as if it still applied |
+| `unverifiable` | no fingerprint on the record, or none in the snapshot for its input | called fresh |
+
+| Outcome | Meaning | Never |
+|---|---|---|
+| `computed` | it produced a result (which may hold no values: that is still a result) | |
+| `refused` | the method declined: a limit, a missing input, a missing setup; keeps its kind | read as a low value |
+| `failed` | it broke | |
+| `not_run` (per calculator) | nothing stored | invented as a stale record |
+
+`read_results` returns current entries by default; the others only when asked for, each carrying
+its freshness, and a requested calculator with nothing stored is `not_run` while one with only
+not-current records is `only_not_current`. Neither becomes a value.
 
 ## 7. Discovery returns runnability, not just existence
 
@@ -170,16 +208,37 @@ the whole query as one substring, so "lewis adduct" and "adduct lewis" disagreed
 
 ## 8. Validation before anything is prepared
 
-`prepare` rejects, with a typed refusal naming the parameter: an unknown calculator id; an unknown
-parameter name; a value of the wrong kind; a number outside the declared minimum or maximum; a choice
-that is not one of `choices` (stored codes, never the labels); a missing `required` parameter, which
-is a `needs_input` refusal listing what is wanted rather than a run; a molecule over the size limit
-for a run that must be `AUTO`; a `smiles` parameter that does not parse. Inactive parameters
-(`enabled_by`) are dropped by the same `active_parameters` the registry uses. A scientifically
-meaningful value is **never silently corrected**: it is refused. Bounded output size is enforced here
-too.
+**Built** (`domain/calculation_bridge.py`, `validate_parameters`). `prepare` rejects, with a typed
+problem naming the parameter and **all of them at once** (a model that fixes one and resubmits to
+find the next burns turns): an unknown calculator id; an unknown parameter name; a value of the wrong
+kind (a string where a number belongs, a boolean where a number belongs, NaN or infinity); a whole-
+number setting given a fraction; a number outside the declared minimum or maximum; a choice that is
+not one of `choices`; a boolean that is not a boolean; text over 4,000 characters; a `smiles`
+parameter that does not parse; a `required` parameter not given or left at its placeholder (a
+density of 0.0 is no density), which is a `needs_input` problem naming what is wanted.
+
+The single translation it makes is a choice's *display label* to its stored code, reported in
+`adjustments`, because the stored code is what identifies a result. A value for a switched-off
+setting (`enabled_by`) is kept and reported as ignored. Nothing else is corrected: a scientifically
+meaningful value is refused, never replaced.
+
+**The normalised parameters are the settings dialog's dict**: every declared parameter in order,
+defaults filled in, a float setting stored as a float (`parameters_key` serialises `7` and `7.0`
+differently, so an unnormalised `7` would be a different calculation from the dialog's `7.0`). A test
+pins that an AI run's `parameters_key` equals the dialog's for the same settings. The motivating
+measurement is real: `geometry_analysis` ran with `conformer_policy="lowest_energy"`, which is not one
+of its choices, so the calculator cannot be trusted to refuse it.
+
+**A change from the first sketch:** there is no "no conformer" pre-check. `GEOMETRY` means "prefer
+real 3D coordinates" and falls back to the drawing, so a molecule without a conformer still has a
+fingerprint, and the calculators that need one refuse on their own, with their own words. That refusal
+is what a person would get, so it is recorded and passed through (`REFUSED`, with its code and kind).
 
 ## 9. The result envelope
+
+**Not built yet (slice 3).** `RunOutcome` carries the recorded `StoredResult` and `read_results`
+carries classified entries, but nothing yet turns a result into the model-facing envelope below.
+The design:
 
 One serialiser, type-aware, in the host layer. Every number the model receives carries: result id
 and display name; method and version; the normalised parameters; the input fingerprint and which
@@ -217,14 +276,17 @@ optional item with its own tests.
 
 ## 12. Slices
 
-1. **This PR.** Execution policy and its measurements; the shared calculator search; this record. No
-   assistant tool, no host code.
-2. **Host and reads.** `app/calculation_host.py`, the plugin handle, the turn snapshot, the store
-   accessor, validation, the serialiser, `catalog`/`describe`/`read_results`/`prepare`/`run` for
-   `AUTO` registry calculators, with a fake-provider test harness.
-3. **Consent and tools.** Preview, approve, cancel, ledger and status in the panel; the tool
-   definitions and the changed system prompt; the service preview adapter; the privacy disclosure;
-   "Explain this result".
+1. **Built (#307).** Execution policy and its measurements; the shared calculator search; this record.
+2. **Built.** `app/calculation_host.py`, the plugin handle (`context.calculations`), the turn snapshot,
+   `SessionResultStore.all_results`, parameter validation, the run ledger,
+   `catalog`/`describe`/`read_results`/`prepare`/`run` for registry calculators, and
+   approve/cancel on the host. Verified three ways: 134 unit tests across five files, a 15-run flakiness
+   check of the threaded ones, and `benchmarks/visual/ai_bridge_run.json`, which drives the real
+   window from a real worker thread (13 assertions). **Not in this slice:** the serialiser, any tool,
+   the panel's consent UI.
+3. **Still to build.** The result envelope and its serialiser; the tool definitions and the changed
+   system prompt; the panel's preview, approve, cancel, ledger and status; the service preview adapter;
+   the privacy disclosure; "Explain this result".
 
 ## 13. Decisions most worth challenging
 

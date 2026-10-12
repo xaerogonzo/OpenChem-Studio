@@ -212,6 +212,13 @@ class ChemistryEngine:
             raise InvalidStructureError(f"Molecule {model.uuid} has no molblock")
         return self.mol_from_molblock(model.molblock)
 
+    def heavy_atom_count(self, model: MoleculeModel) -> int:
+        """Heavy atoms in the molecule's drawing: the size a cost measurement stands for.
+
+        Raises `InvalidStructureError` for a molecule with no usable drawing, like `mol_from_model`.
+        """
+        return self.mol_from_model(model).GetNumHeavyAtoms()
+
     def mol_from_molblock(self, molblock: str) -> Chem.Mol:
         # `removeHs=False` -- RDKit's default (True) converts any EXPLICIT
         # hydrogen atom into implicit H-count on its neighbor, which keeps

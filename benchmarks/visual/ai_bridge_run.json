@@ -1,0 +1,44 @@
+[
+  {"do": "smiles", "smiles": "CC(=O)Oc1ccccc1C(=O)O", "name": "Aspirin", "after_ms": 600},
+  {"do": "select", "molecule": -1, "after_ms": 800},
+  {"do": "panel", "id": "Properties", "after_ms": 500},
+
+  {"do": "ai_bridge_expect", "tag": "before-any-run", "expect": {"not_run": ["polar_surface_area"]}},
+
+  {"do": "ai_bridge_run", "calculator": "polar_surface_area", "parameters": {"pH": 7}, "after_ms": 3000},
+  {"do": "ai_bridge_expect", "tag": "automatic-run-completed",
+   "expect": {"route": "auto", "state": "completed", "has_number": true, "reads": ["polar_surface_area"]}},
+  {"do": "expect_results", "tag": "properties-shows-the-ai-run",
+   "expect": {"polar_surface_area": "ready"}},
+
+  {"do": "ai_bridge_run", "calculator": "geometry_analysis", "parameters": {"conformer_policy": "lowest_energy"}},
+  {"do": "ai_bridge_expect", "tag": "invalid-choice-refused-nothing-started",
+   "expect": {"problems": ["not_a_choice"]}},
+
+  {"do": "ai_bridge_run", "calculator": "lewis_adduct", "parameters": {}},
+  {"do": "ai_bridge_expect", "tag": "missing-input-named", "expect": {"problems": ["needs_input"]}},
+
+  {"do": "ai_bridge_run", "calculator": "orca.sp", "parameters": {}},
+  {"do": "ai_bridge_expect", "tag": "service-run-calculator-not-startable", "expect": {"problems": ["service_run"]}},
+
+  {"do": "smiles", "smiles": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC", "name": "Fifty carbons", "after_ms": 600},
+  {"do": "select", "molecule": -1, "after_ms": 800},
+
+  {"do": "ai_bridge_run", "calculator": "polar_surface_area", "parameters": {}, "after_ms": 800},
+  {"do": "ai_bridge_expect", "tag": "oversize-molecule-waits-for-a-person",
+   "expect": {"route": "needs_approval", "state": "previewed"}},
+  {"do": "ai_bridge_decide", "approve": false, "after_ms": 500},
+  {"do": "ai_bridge_expect", "tag": "cancel-leaves-nothing-running", "expect": {"state": "cancelled"}},
+  {"do": "expect_results", "tag": "nothing-was-computed-for-the-cancelled-run",
+   "expect": {"polar_surface_area": "not_run"}},
+
+  {"do": "ai_bridge_run", "calculator": "polar_surface_area", "parameters": {}, "after_ms": 800},
+  {"do": "ai_bridge_expect", "tag": "second-preview", "expect": {"route": "needs_approval", "state": "previewed"}},
+  {"do": "ai_bridge_decide", "approve": true, "after_ms": 3000},
+  {"do": "ai_bridge_expect", "tag": "approved-run-completed", "expect": {"state": "completed", "reads": ["polar_surface_area"]}},
+  {"do": "expect_results", "tag": "properties-shows-the-approved-run", "expect": {"polar_surface_area": "ready"}},
+
+  {"do": "shot", "path": "artifacts/visual/ai_bridge_run.png"},
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

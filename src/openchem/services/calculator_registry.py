@@ -43,6 +43,11 @@ class CalculatorRegistry:
     def get(self, calculator_id: str) -> CalculatorDefinition | None:
         return self._definitions.get(calculator_id)
 
+    def definitions(self) -> list[CalculatorDefinition]:
+        """Every registered calculator, in registration order -- a copy, safe to iterate from a
+        thread while a plugin registers another."""
+        return list(self._definitions.values())
+
     def compute(
         self, calculator_id: str, mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any]
     ) -> ScientificResult:
