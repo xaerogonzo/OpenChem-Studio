@@ -40,10 +40,14 @@ from types import MappingProxyType
 
 from openchem.domain.execution_policy import AiRun, ExecutionPolicy, ResourceClass
 
+#: Where the figures quoted in every `measured` string below come from, and when.
 _SWEEP = "benchmarks/calculator_cost/results.json, 2026-10-12"
+#: The `measured` text of every instant calculator: what was run, and at what size.
 _PANEL = (
     f"worst of ethanol, aspirin and atorvastatin (41 heavy atoms) at default settings ({_SWEEP})"
 )
+#: The `measured` text of every pkasolver-backed calculator. It is a cited figure, not a new
+#: measurement, and says so: the sidecar is unconfigured on the command line the sweep runs on.
 _PKASOLVER = (
     "a cold pkasolver call took 2.9 to 3.1 s and is cached per structure afterwards "
     "(docs/ROADMAP.md, 2026-09-14); the sidecar was unconfigured in "
@@ -76,6 +80,7 @@ _INSTANT = (
 _PKASOLVER_AUTO = (
     "pka", "ionisable_sites", "cns_mpo", "bbb_descriptors", "gasteiger_charge_at_ph",
 )
+#: The pkasolver-backed calculators that also sweep a pH range, so carry the pH-step floor.
 _PKASOLVER_SWEEP = ("logd", "pka_microspecies", "isoelectric_point")
 
 
