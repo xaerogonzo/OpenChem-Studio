@@ -242,6 +242,14 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "ai_bridge_decide", "approve": true}   a person's Approve or Cancel on the pending preview
     {"do": "ai_bridge_expect", "expect": {"state": "completed", "has_number": true, "reads": [...],
      "not_run": [...], "problems": ["not_a_choice"], "route": "auto"}}  asserts what the last run did
+    {"do": "ai_send", "text": "...", "script": [{"tool": "run_calculator", "input": {...}}, {"text": "..."}]}
+                                          the assistant PANEL with a SCRIPTED provider: its real Send, the
+                                          tool loop on its worker thread, the real host (give it `after_ms`)
+    {"do": "ai_card", "action": "approve"}   press a REAL button on the preview card showing
+                                          ("approve" | "cancel" | "open" | "dismiss")
+    {"do": "ai_expect", "expect": {"ledger_contains": [...], "pending": 1, "service_previews": 1,
+     "tool_results_contain": [...], "tools_offered": [...], "notes": 1, "panel_visible": "Quantum_Chemistry"}}
+                                          what the panel shows and what the model was told, asserted
     {"do": "wait"} {"do": "quit"}
 
 **A DRIVEN RUN ENDS IN A VERDICT, AND EXITS NON-ZERO WHEN IT FAILED.**
@@ -413,6 +421,7 @@ message — this index is. **If a title below names what you are
 about to touch, read that section before you start.** Headings there
 are verbatim, so grep the file for the line.
 
+- A PLUGIN PANEL OPENED AS A BARE RECTANGLE ON WINDOWS, AND NOTHING THE SUITE RUNS ON COULD SHOW IT
 - TWO CLOSE COPPER CONTACTS LOOKED LIKE A COUNTEREXAMPLE UNTIL THE LIGANDS' FIT AND THE PAPERS' OWN WORDS WERE READ
 - THE ACCESSIBLE SURFACE WAS COMPUTED WITH A RADIUS OF ZERO FOR EVERY ATOM, AND EVERY TEST COMPARED ONE MOLECULE WITH ANOTHER
 - A WORKFLOW IN A SCROLLED LIST WAS GIVEN HALF THE HEIGHT IT ASKED FOR, AND EVERY WIDGET REPORTED A SENSIBLE SIZE

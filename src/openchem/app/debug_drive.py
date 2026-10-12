@@ -7140,6 +7140,154 @@ class _Driver(QObject):
         else:
             logger.error("OPENCHEM_DRIVE: EXPECT ai_bridge FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
 
+    # -- the assistant panel itself, with a SCRIPTED provider ------------------------------------
+    #
+    # No network and no key: the provider says exactly what the script says, so what is measured is
+    # everything AROUND a model -- Send freezing the turn, the tool loop on its worker thread, the
+    # real host, the preview card and its real buttons, and the note that goes to the next message.
+
+    def _ai_panel(self):
+        dock = self._window._plugin_panels.get("AI Assistant")
+        if dock is None:
+            logger.error("OPENCHEM_DRIVE: the AI Assistant plugin is not loaded")
+            return None
+        return dock.widget()
+
+    def _do_ai_send(self, step: dict[str, Any]) -> None:
+        """`{"do": "ai_send", "text": "...", "script": [{"tool": "run_calculator", "input": {...}}, {"text": "reply"}]}`
+        -- type a message into the assistant and press its REAL Send, with a provider that follows `script`.
+
+        Each `{"tool": name, "input": {...}}` entry is one tool call the model makes; each `{"text": "..."}`
+        is a reply that ends the turn. What the tools answered is kept for `ai_expect`. Give it `after_ms`:
+        the loop runs on a worker thread.
+        """
+        import sys
+
+        panel = self._ai_panel()
+        if panel is None:
+            return
+        module = sys.modules[type(panel).__module__]
+        responses = []
+        calls = []
+        for index, item in enumerate(step["script"]):
+            if "tool" in item:
+                calls.append(module.ToolCall(id=f"drive-{index}", name=item["tool"], input=dict(item.get("input") or {})))
+            else:
+                if calls:
+                    responses.append(module.AIResponse(text="", tool_calls=calls, stop_reason="tool_use"))
+                    calls = []
+                responses.append(module.AIResponse(text=str(item["text"])))
+        if calls:
+            responses.append(module.AIResponse(text="", tool_calls=calls, stop_reason="tool_use"))
+            responses.append(module.AIResponse(text=""))
+
+        class _Scripted(module.AIProvider):
+            provider_id = "scripted"
+            default_model = "scripted"
+            requires_api_key = False
+            supports_tools = True
+
+            def __init__(self) -> None:
+                self.requests = []
+
+            def complete(self, request, tools=None):
+                raise AssertionError("the panel must call stream()")
+
+            def stream(self, request, on_chunk, tools=None):
+                self.requests.append((request, [tool.name for tool in tools] if tools else []))
+                response = responses.pop(0) if responses else module.AIResponse(text="(script exhausted)")
+                if response.text:
+                    on_chunk(response.text)
+                return response
+
+        provider = _Scripted()
+        panel._providers["scripted"] = provider
+        if panel._provider_combo.findText("scripted") < 0:
+            panel._provider_combo.addItem("scripted")
+        panel._provider_combo.setCurrentText("scripted")
+        self._window.reveal_panel("AI Assistant")
+        self._ai_provider = provider
+        panel._input.setPlainText(str(step["text"]))
+        panel._send_button.click()
+
+    def _do_ai_card(self, step: dict[str, Any]) -> None:
+        """`{"do": "ai_card", "action": "approve" | "cancel" | "open" | "dismiss"}` -- press a REAL button on the
+        first preview card the assistant is showing."""
+        panel = self._ai_panel()
+        if panel is None:
+            return
+        action = str(step["action"])
+        if action in ("approve", "cancel"):
+            cards = list(panel._cards.values())
+            button = None
+            if cards:
+                button = cards[0].approve_button if action == "approve" else cards[0].cancel_button
+        else:
+            cards = list(panel._service_cards.values())
+            button = None
+            if cards:
+                button = cards[0].open_button if action == "open" else cards[0].dismiss_button
+        if button is None:
+            logger.error("OPENCHEM_DRIVE: ai_card %s -- no such card is showing", action)
+            return
+        button.click()
+
+    def _do_ai_expect(self, step: dict[str, Any]) -> None:
+        """`{"do": "ai_expect", "tag": "x", "expect": {...}}` -- what the assistant panel shows, asserted.
+
+        Keys: `ledger_contains` (substrings, each in some ledger row), `ledger_rows` (exact count),
+        `pending` (preview cards waiting), `service_previews` (service cards showing), `tool_results_contain`
+        (substrings of what the tools returned to the model), `tools_offered` (names the provider was
+        given on its first request), `transcript_contains`, `notes` (how many previews' outcomes wait for
+        the next message), `send_enabled`, `panel_visible` (a dock's objectName that must be showing).
+        """
+        panel = self._ai_panel()
+        expect = dict(step.get("expect") or {})
+        tag = str(step.get("tag", ""))
+        problems: list[str] = []
+        if panel is None:
+            problems.append("no assistant panel")
+        else:
+            ledger = panel.ledger_lines()
+            for needle in expect.get("ledger_contains", []):
+                if not any(needle in line for line in ledger):
+                    problems.append(f"no ledger row contains {needle!r} (rows: {ledger})")
+            if "ledger_rows" in expect and len(ledger) != expect["ledger_rows"]:
+                problems.append(f"{len(ledger)} ledger rows, wanted {expect['ledger_rows']}")
+            if "pending" in expect and len(panel.pending_run_ids()) != expect["pending"]:
+                problems.append(f"{len(panel.pending_run_ids())} previews waiting, wanted {expect['pending']}")
+            if "service_previews" in expect and len(panel.service_preview_keys()) != expect["service_previews"]:
+                problems.append(f"{len(panel.service_preview_keys())} service previews, wanted {expect['service_previews']}")
+            if "notes" in expect and len(panel._notes) != expect["notes"]:
+                problems.append(f"{len(panel._notes)} notes waiting, wanted {expect['notes']}")
+            if "send_enabled" in expect and panel._send_button.isEnabled() != bool(expect["send_enabled"]):
+                problems.append(f"send enabled is {panel._send_button.isEnabled()}")
+            transcript = panel._transcript.toPlainText()
+            for needle in expect.get("transcript_contains", []):
+                if needle not in transcript:
+                    problems.append(f"the transcript lacks {needle!r}")
+            provider = getattr(self, "_ai_provider", None)
+            seen = "\n".join(
+                message.content for request, _tools in (provider.requests if provider else [])
+                for message in request.messages if message.role == "tool"
+            )
+            for needle in expect.get("tool_results_contain", []):
+                if needle not in seen:
+                    problems.append(f"no tool result contained {needle!r}")
+            if "tools_offered" in expect:
+                offered = provider.requests[0][1] if provider and provider.requests else []
+                missing = [name for name in expect["tools_offered"] if name not in offered]
+                if missing:
+                    problems.append(f"tools not offered: {missing} (offered {offered})")
+            if "panel_visible" in expect:
+                dock = self._dock(str(expect["panel_visible"]))
+                if dock is None or not dock.isVisible():
+                    problems.append(f"{expect['panel_visible']} is not showing")
+        if self._record_assertion("ai_expect", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT ai ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT ai FAILED[%s] -- %s", tag, "; ".join(problems)[:900])
+
     def _do_wait(self, step: dict[str, Any]) -> None:
         """Nothing; the pause is `after_ms`. Present so a script can say
         it is waiting rather than hiding it in the previous step."""

@@ -192,3 +192,21 @@ def test_an_unusable_keychain_is_treated_as_no_key_not_a_crash(tmp_path: Path, q
     panel._provider_combo.setCurrentText("anthropic")
 
     assert "No API key" in panel.setup_hint()
+
+
+def test_explain_stored_results_asks_the_model_to_read_them_through_the_tool(tmp_path: Path, qapp):
+    manager, services, ui = _make_manager(tmp_path)
+    manager.load_all()
+    services.event_bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
+    services.event_bus.publish(
+        MoleculeSnapshotUpdated(
+            molecule_uuid="mol-1", display_name="Ibuprofen", canonical_smiles="CC(C)Cc1ccc(cc1)C(C)C(=O)O",
+            inchi=None, inchikey=None, conformer_count=0, lowest_conformer_energy=None,
+        )
+    )
+    panel = ui.panels["AI Assistant"]
+    _entry(ui, "Explain Stored Results")()
+    text = panel._input.toPlainText()
+    assert "read_results" in text and "Ibuprofen" in text
+    assert "not current or were refused" in text and "no stored result" in text
+    assert "AI Assistant" in ui.revealed_panels

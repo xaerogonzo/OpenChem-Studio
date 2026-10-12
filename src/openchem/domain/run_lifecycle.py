@@ -34,7 +34,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-from openchem.domain.calculation_bridge import Problem, Route
+from openchem.domain.calculation_bridge import Problem, Route, ServicePreview
 from openchem.domain.execution_policy import RunDecision
 from openchem.domain.result_store import StoredResult
 
@@ -133,6 +133,8 @@ class PrepareResult:
 
     preparation: Preparation | None = None
     problems: tuple[Problem, ...] = ()
+    #: For a service-run calculator: what it would take, with nothing prepared and nothing startable.
+    service_preview: ServicePreview | None = None
 
     @property
     def ok(self) -> bool:
@@ -141,7 +143,10 @@ class PrepareResult:
     def to_dict(self) -> dict[str, Any]:
         if self.preparation is not None:
             return {"ok": True, **self.preparation.to_dict()}
-        return {"ok": False, "problems": [p.to_dict() for p in self.problems]}
+        data: dict[str, Any] = {"ok": False, "problems": [p.to_dict() for p in self.problems]}
+        if self.service_preview is not None:
+            data["service_preview"] = self.service_preview.to_dict()
+        return data
 
 
 @dataclass(frozen=True)

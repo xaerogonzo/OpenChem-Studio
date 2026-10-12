@@ -162,6 +162,13 @@ class VinaDockingProvider(DockingProvider):
         # via getattr, the same defensive shape as engine_id.
         self._last_run_settings: dict[str, Any] = {}
 
+    def is_available(self) -> bool:
+        """Whether a Vina engine can be found right now (the Python binding or a configured executable).
+
+        Read-only and re-resolved on every call, for the reason `_resolve_engine` is.
+        """
+        return self._resolve_engine() is not None
+
     def _resolve_engine(self) -> VinaEngine | None:
         if self._fixed_engine is not None:
             return self._fixed_engine

@@ -3069,8 +3069,17 @@ Prediction**. Enable or disable them from the plugin manager.
 The AI Assistant opens from **Plugins > Open AI Assistant** (its panel is in the
 right-hand rail under *Compare and Extend*). Choose a provider and click
 **Configure...** first; a provider that needs an API key says so until one is stored.
-It answers from what the application has already computed and does not run
-calculators itself yet.
+When the provider can use tools (an Anthropic or OpenAI-compatible one; the Claude
+CLI cannot) the assistant reads the results stored for the selected molecule and can
+run the quick calculators itself, recorded in your project like ones you ran. Anything
+slow, any molecule above 41 heavy atoms and anything unclassified shows a preview with
+**Approve** and **Cancel** first, and nothing starts until you press one. A calculator
+that runs from its own panel (ORCA, Vina) is described, with what it needs and whether
+this machine is ready, and you start it from that panel. What it asked for, and what
+became of it, is listed under the conversation. It can also read the goal wizard's table (which calculators the
+application pairs with a question such as "where is the charge"), as a suggestion rather than a protocol. Those results are sent to the provider
+as part of the conversation, and a note under the box says where. **Plugins > Explain
+Stored Results** asks it to explain everything stored for the selected molecule.
 
 Plugins are loaded as source from a `plugins/` directory beside the
 application, so you can add or edit one without a Python install. They

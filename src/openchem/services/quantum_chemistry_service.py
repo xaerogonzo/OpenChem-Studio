@@ -2494,6 +2494,14 @@ class QuantumChemistryService(QObject):
             cores = 0
         return cores if cores >= 1 else default_cores()
 
+    def orca_executable(self) -> str | None:
+        """The ORCA executable a run would use, or None when none is configured or found.
+
+        Public and read-only, so a caller that only needs to know whether a run COULD start (the
+        assistant's preview of one) does not reach into a private resolver or start anything.
+        """
+        return self._resolve_executable_path()
+
     def _resolve_executable_path(self) -> str | None:
         """The ORCA executable, in NATIVE separator form.
 
