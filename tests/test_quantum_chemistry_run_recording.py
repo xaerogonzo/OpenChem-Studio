@@ -9,6 +9,7 @@ so the service's actual QProcess lifecycle is exercised, not bypassed.
 
 from __future__ import annotations
 
+import json
 import sys
 import time
 from pathlib import Path
@@ -20,13 +21,25 @@ from openchem import paths as app_paths
 from openchem.app.settings import Settings
 from openchem.chem.calculation_input import input_fingerprint
 from openchem.chem.engine import ChemistryEngine
+from openchem.chem.orca_engine import OrcaQuantumEngineProvider
 from openchem.domain.calculator import DRAWING
-from openchem.domain.common import CacheState
+from openchem.domain.common import (
+    RUN_CALC_TYPE,
+    RUN_CHARGE,
+    RUN_ID,
+    RUN_METHOD_BASIS,
+    RUN_MULTIPLICITY,
+    RUN_PROVIDER,
+    CacheState,
+)
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
 from openchem.domain.quantum_chemistry_run import OutputStatus, RunStatus
+from openchem.domain.result_envelope import envelope_of
+from openchem.domain.result_store import SessionResultStore, StoredResult
 from openchem.domain.scientific_result import NMRSpectrumResult
+from openchem.domain.turn_snapshot import Freshness, Outcome, ResultEntry
 from openchem.events.base import EventBus
 from openchem.events.events import (
     DescriptorComputed,
@@ -35,12 +48,16 @@ from openchem.events.events import (
     QuantumChemistryResultReady,
     QuantumChemistryRunCompleted,
     ResultRecorded,
+    SpectrumComputed,
 )
 from openchem.plugins.interfaces import QuantumEngineProvider
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
+from openchem.services.result_cache import parameters_key
+from openchem.services.result_identity import make_identity
 from openchem.services.result_store_service import ResultStoreService
 
-from test_quantum_chemistry_service import FakeQuantumEngineProvider, _wait_until
+from test_orca_engine import REAL_DELTA_SCF_OUTPUT, SP_FIXTURE_OUTPUT, _delta_scf_mol
+from test_quantum_chemistry_service import FakeQuantumEngineProvider, _NmrSpectrumProvider, _wait_until
 
 
 @pytest.fixture(autouse=True)
@@ -487,3 +504,255 @@ def test_a_qc_descriptor_survives_replay_after_no_recompute(qapp, tmp_path):
 
     assert any(d.descriptor_id == "fake.scf_energy" and d.value == -1.0 for d in received)
     assert sent
+
+
+# ---------------------------------------------------------------------------
+# What a stored QC number says it was run with.
+#
+# The provider parses an output TEXT and is never handed the method, basis or
+# charge, so before the service stamped them a stored `orca.scf_energy` from
+# B3LYP/def2-SVP and one from HF/STO-3G were indistinguishable -- to the
+# reader, and to the assistant, which is promised every number's method and
+# settings. These run the REAL `OrcaQuantumEngineProvider` over a captured
+# transcript (streamed through a real subprocess and the service's real
+# QProcess lifecycle) and read the result back through the REAL envelope.
+# ---------------------------------------------------------------------------
+
+
+class _OrcaTranscriptProvider(FakeQuantumEngineProvider):
+    """A real subprocess that prints a captured ORCA transcript, which the real ORCA provider parses.
+
+    Only the process is a stand-in (there is no ORCA on a CI runner); `build_input` and `command_args`
+    are the fake's, `parse_output` is the real one's, so the descriptors are exactly what ORCA's would be.
+    """
+
+    provider_id = "orca"
+
+    def __init__(self, transcript: str) -> None:
+        super().__init__(stdout_text=transcript)
+        self._orca = OrcaQuantumEngineProvider()
+
+    def parse_output(self, output_text, mol, molecule_uuid: str, calc_type: str):
+        self.parse_calls.append(output_text)
+        return self._orca.parse_output(output_text, mol, molecule_uuid, calc_type)
+
+
+class _Filed:
+    """Everything one service publishes about its finished jobs, captured as it happens."""
+
+    def __init__(self, qapp, provider: QuantumEngineProvider) -> None:
+        self._qapp = qapp
+        self.service, bus = _make_service(provider)
+        self.provider_id = provider.provider_id
+        self.recorded: list[StoredResult] = []
+        self.ready: list[QuantumChemistryResultReady] = []
+        self.runs: list = []
+        self.spectra: list[SpectrumComputed] = []
+        bus.subscribe(ResultRecorded, lambda e: self.recorded.append(e.stored))
+        bus.subscribe(QuantumChemistryResultReady, self.ready.append)
+        bus.subscribe(QuantumChemistryRunCompleted, lambda e: self.runs.append(e.run))
+        bus.subscribe(SpectrumComputed, self.spectra.append)
+
+    def calculate(self, mol, *, calc_type, method_basis, charge=0, multiplicity=1, fingerprint="fp-1") -> None:
+        finished = len(self.runs)
+        self.service.request_calculation(
+            mol=mol, molecule_uuid="mol-1", calc_type=calc_type, charge=charge, multiplicity=multiplicity,
+            method_basis=method_basis, provider_id=self.provider_id,
+            input_fingerprint=fingerprint, calculation_input=DRAWING,
+        )
+        assert _wait_until(self._qapp, lambda: len(self.runs) > finished)
+        assert self.runs[-1].status is RunStatus.COMPLETED
+
+
+def _read(stored: StoredResult) -> dict:
+    """The envelope the assistant is sent for `stored`, checked to be strict JSON."""
+    envelope = envelope_of(ResultEntry(stored, Freshness.CURRENT, "ready", Outcome.COMPUTED))
+    json.dumps(envelope, allow_nan=False)
+    return envelope
+
+
+def _as_the_service_files_it(descriptor) -> StoredResult:
+    """The wrapping `_record_descriptors` does, for a descriptor that did not come through the service."""
+    return StoredResult(
+        identity=make_identity(
+            molecule_uuid="mol-1", result=descriptor, calculation_input=DRAWING,
+            input_fingerprint="fp-1", producer=descriptor.provider,
+        ),
+        result=descriptor,
+        application_version="9.9",
+    )
+
+
+def test_a_single_point_filed_by_the_service_reads_with_its_method_and_basis(qapp):
+    filed = _Filed(qapp, _OrcaTranscriptProvider(SP_FIXTURE_OUTPUT))
+    # NON-DEFAULT on purpose (charge 0 / multiplicity 1 would also be the answer of a stamp that
+    # invented its values): an anion doublet is the only reading that proves the job's own were used.
+    filed.calculate(Chem.MolFromSmiles("CCO"), calc_type="sp", method_basis="B3LYP def2-SVP",
+                    charge=-1, multiplicity=2)
+
+    (stored,) = filed.recorded
+    envelope = _read(stored)
+    assert envelope["parameters"] == {
+        "calc_type": "sp", "method_basis": "B3LYP def2-SVP", "charge": -1, "multiplicity": 2,
+    }
+    assert envelope["method"]["name"] == "orca"
+    assert envelope["data"]["descriptor_id"] == "orca.scf_energy"
+
+    # What the provider recorded survives beside it, and the run it came from is named.
+    recorded = stored.result.provenance.parameters
+    assert "orca_version" in recorded
+    assert recorded[RUN_PROVIDER] == "orca"
+    assert recorded[RUN_ID] == filed.runs[0].run_id and recorded[RUN_ID]
+
+    # Not shown to a model as a setting: an address into the run history is not one, and the provider
+    # is already the result's `calculator`. Nor is the producer's working.
+    assert not {"orca_version", "id", "provider", "caveat"} & set(envelope["parameters"])
+    assert not [name for name in envelope["parameters"] if name.startswith("run_")]
+
+
+def test_the_control_without_the_stamp_is_the_defect(qapp):
+    """What was filed before this: the provider's descriptor, straight. It reads as a bare 'orca'."""
+    descriptors, _ = OrcaQuantumEngineProvider().parse_output(
+        SP_FIXTURE_OUTPUT, Chem.MolFromSmiles("CCO"), "mol-1", "sp"
+    )
+    envelope = _read(_as_the_service_files_it(descriptors[0]))
+    assert envelope["method"]["name"] == "orca" and envelope["parameters"] == {}
+
+
+def test_the_event_the_store_and_the_run_hold_the_same_descriptors(qapp):
+    filed = _Filed(qapp, _OrcaTranscriptProvider(SP_FIXTURE_OUTPUT))
+    filed.calculate(Chem.MolFromSmiles("CCO"), calc_type="sp", method_basis="HF STO-3G")
+
+    (stored,) = filed.recorded
+    (event_descriptor,) = filed.ready[0].descriptors
+    (run_descriptor,) = filed.runs[0].results["descriptors"]
+    assert (
+        event_descriptor.provenance.parameters
+        == stored.result.provenance.parameters
+        == run_descriptor.provenance.parameters
+    )
+    assert event_descriptor.provenance.parameters[RUN_METHOD_BASIS] == "HF STO-3G"
+
+
+def test_a_delta_scf_result_reads_with_its_method_and_keeps_its_caveat(qapp):
+    raw, _ = OrcaQuantumEngineProvider().parse_output(
+        REAL_DELTA_SCF_OUTPUT, _delta_scf_mol(), "mol-1", "delta_scf"
+    )
+    caveats = {d.descriptor_id: d.provenance.parameters.get("caveat") for d in raw}
+    assert any(caveats.values())  # the control: the provider does attach one, so keeping it means something
+
+    filed = _Filed(qapp, _OrcaTranscriptProvider(REAL_DELTA_SCF_OUTPUT))
+    filed.calculate(_delta_scf_mol(), calc_type="delta_scf", method_basis="B3LYP def2-SVP")
+
+    assert {s.result.descriptor_id for s in filed.recorded} == set(caveats)
+    for stored in filed.recorded:
+        descriptor = stored.result
+        envelope = _read(stored)
+        assert envelope["parameters"] == {
+            "calc_type": "delta_scf", "method_basis": "B3LYP def2-SVP", "charge": 0, "multiplicity": 1,
+        }, descriptor.descriptor_id
+        assert descriptor.provenance.parameters.get("caveat") == caveats[descriptor.descriptor_id]
+        assert descriptor.provenance.parameters["orca_version"] == "6.1.1"
+    hardness = next(s for s in filed.recorded if s.result.descriptor_id == "orca.dscf_hardness")
+    assert hardness.result.value == pytest.approx(7.209887, abs=1e-6)
+    assert _read(hardness)["data"]["value"] == 7.20989  # the envelope's six significant figures
+
+
+def test_two_levels_of_theory_read_differently_but_are_filed_under_one_identity(qapp):
+    """The store key must NOT move: a `parameters_key` built from the method would strand every saved
+    project, and the store holds one current value per calculator by design. The label is what moves."""
+    filed = _Filed(qapp, _OrcaTranscriptProvider(SP_FIXTURE_OUTPUT))
+    mol = Chem.MolFromSmiles("CCO")
+    filed.calculate(mol, calc_type="sp", method_basis="B3LYP def2-SVP")
+    filed.calculate(mol, calc_type="sp", method_basis="HF STO-3G")
+
+    first, second = filed.recorded
+    assert first.identity == second.identity
+    assert second.identity.parameters_key == parameters_key(None)
+
+    # And it is the identity the unstamped descriptor would have had.
+    raw, _ = OrcaQuantumEngineProvider().parse_output(SP_FIXTURE_OUTPUT, mol, "mol-1", "sp")
+    assert _as_the_service_files_it(raw[0]).identity == first.identity
+
+    read = [_read(first), _read(second)]
+    assert read[0]["parameters"]["method_basis"] == "B3LYP def2-SVP"
+    assert read[1]["parameters"]["method_basis"] == "HF STO-3G"
+    assert read[0] != read[1]
+
+    # The one value the store keeps is the second run's, and it says so.
+    store = SessionResultStore("project-1")
+    for stored in filed.recorded:
+        store.put(stored)
+    (held,) = store.all_results("mol-1")
+    assert _read(held)["parameters"]["method_basis"] == "HF STO-3G"
+
+
+def test_a_boltzmann_run_stamps_the_lowest_conformer_and_its_averaged_companion(qapp):
+    from openchem.domain.calculator import ENSEMBLE
+
+    provider = _PerConformerProvider(energies=[-100.0, -100.5], shifts=[30.0, 10.0])
+    filed = _Filed(qapp, provider)
+    mol = Chem.MolFromSmiles("CCO")
+    filed.service.request_boltzmann_nmr(
+        mols=[mol, mol], molecule_uuid="mol-1", calc_type="nmr", charge=1, multiplicity=2,
+        method_basis="B3LYP pcSseg-1", provider_id="fake",
+        input_fingerprint="fp-set", calculation_input=ENSEMBLE,
+    )
+    assert _wait_until(qapp, lambda: filed.runs)
+
+    assert {s.result.descriptor_id for s in filed.recorded} == {
+        "fake.scf_energy", "fake.boltzmann_average_scf_energy",
+    }
+    for stored in filed.recorded:
+        assert _read(stored)["parameters"] == {
+            "calc_type": "nmr", "method_basis": "B3LYP pcSseg-1", "charge": 1, "multiplicity": 2,
+        }, stored.result.descriptor_id
+        assert stored.result.provenance.parameters[RUN_ID] == filed.runs[0].run_id
+    average = next(s for s in filed.recorded if s.result.descriptor_id.endswith("boltzmann_average_scf_energy"))
+    assert average.result.provenance.parameters["averaged_over_conformers"] == 2
+
+
+def test_a_jobs_spectra_and_descriptors_describe_it_in_the_same_words(qapp):
+    """One builder behind both, so they cannot drift: a spectrum and a number from the same job."""
+    filed = _Filed(qapp, _NmrSpectrumProvider())
+    filed.calculate(Chem.MolFromSmiles("O"), calc_type="nmr", method_basis="HF STO-3G",
+                    charge=-1, multiplicity=2)
+
+    spectrum = filed.spectra[0].spectrum.provenance.parameters
+    descriptor = filed.recorded[0].result.provenance.parameters
+    keys = (RUN_CALC_TYPE, RUN_METHOD_BASIS, RUN_CHARGE, RUN_MULTIPLICITY, RUN_PROVIDER)
+    assert {k: spectrum[k] for k in keys} == {k: descriptor[k] for k in keys}
+    assert descriptor[RUN_CHARGE] == -1
+
+
+def test_a_descriptor_saved_before_the_settings_were_recorded_still_loads_and_reads(qapp):
+    """A project saved by the previous version holds the provider's descriptor with no `run_*` keys."""
+    raw, _ = OrcaQuantumEngineProvider().parse_output(
+        SP_FIXTURE_OUTPUT, Chem.MolFromSmiles("CCO"), "mol-1", "sp"
+    )
+    assert not [k for k in raw[0].provenance.parameters if k.startswith("run_")]
+    old = SessionResultStore("project-1")
+    old.put(_as_the_service_files_it(raw[0]))
+
+    reloaded = SessionResultStore.from_dict(json.loads(json.dumps(old.to_dict())), "project-1")
+    (stored,) = reloaded.all_results("mol-1")
+    assert not reloaded.load_problems
+    envelope = _read(stored)
+    assert stored.result.value == pytest.approx(-154.987654123)
+    assert envelope["parameters"] == {} and envelope["data"]["value"] == -154.988
+
+
+def test_the_settings_survive_a_save_and_reload(qapp):
+    filed = _Filed(qapp, _OrcaTranscriptProvider(SP_FIXTURE_OUTPUT))
+    filed.calculate(Chem.MolFromSmiles("CCO"), calc_type="sp", method_basis="B3LYP def2-SVP",
+                    charge=-1, multiplicity=2)
+    saved = SessionResultStore("project-1")
+    saved.put(filed.recorded[0])
+
+    reloaded = SessionResultStore.from_dict(json.loads(json.dumps(saved.to_dict())), "project-1")
+    (stored,) = reloaded.all_results("mol-1")
+    assert not reloaded.load_problems
+    assert stored.identity == filed.recorded[0].identity
+    assert _read(stored)["parameters"] == {
+        "calc_type": "sp", "method_basis": "B3LYP def2-SVP", "charge": -1, "multiplicity": 2,
+    }

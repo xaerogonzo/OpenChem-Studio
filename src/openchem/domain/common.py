@@ -85,6 +85,35 @@ PI_SYSTEM = "pi_system"  # only the conjugated atoms (Huckel)
 
 ATOM_BASES = frozenset({HEAVY_ATOMS, EXPLICIT_H, PI_SYSTEM})
 
+#: `Provenance.parameters` keys for what a SERVICE-EXECUTED run was submitted with -- today the
+#: quantum-chemistry panel's four fields. Prefixed `run_` for the reason `INPUT_PREFIX` exists: they
+#: merge into parameters the provider also writes (`orca_version`, `caveat`), and the routing layer's
+#: `input_parameters` is a different thing, the dict a REGISTRY calculator can be replayed with
+#: (`spatial_overlay_service` feeds it back to `compute()`). A method and basis are not that, so they do
+#: not go there.
+#:
+#: Written by `QuantumChemistryService` from the job's submission snapshot, never from the panel (whose
+#: controls may have moved while the job ran), onto every spectrum AND every descriptor a run files.
+#: NOT part of a result's identity: `parameters_key` would then change and strand every saved project.
+#: The store keeps ONE current value per calculator, so these are how a reader tells B3LYP/def2-SVP from
+#: HF/STO-3G in the one it holds.
+RUN_PREFIX = "run_"
+#: What was calculated (`sp`, `opt`, `nmr`, `delta_scf`, ...): the panel's calculation type, as the engine names it.
+RUN_CALC_TYPE = RUN_PREFIX + "calc_type"
+#: The free-text level of theory the job ran at, exactly as submitted ("B3LYP def2-SVP").
+RUN_METHOD_BASIS = RUN_PREFIX + "method_basis"
+#: Total charge the job was submitted with.
+RUN_CHARGE = RUN_PREFIX + "charge"
+#: Spin multiplicity the job was submitted with.
+RUN_MULTIPLICITY = RUN_PREFIX + "multiplicity"
+#: Which engine provider ran it. A result already names its producer, so a reader does not show this one.
+RUN_PROVIDER = RUN_PREFIX + "provider"
+#: The `QuantumChemistryRun` this came from, so a stored number can be traced to its history record.
+RUN_ID = RUN_PREFIX + "id"
+#: The ones a reader is shown beside a number as "what it was run with", in this order. Not the provider
+#: (a result already names its producer) and not the run id (an address, not a setting).
+RUN_SETTINGS = (RUN_CALC_TYPE, RUN_METHOD_BASIS, RUN_CHARGE, RUN_MULTIPLICITY)
+
 
 def declare_total(
     value: float, label: str, units: str = "", basis: str = HEAVY_ATOMS, **extra: Any

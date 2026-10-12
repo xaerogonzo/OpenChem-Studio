@@ -24,6 +24,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Effect on saved projects: a project that already holds an ORCA-optimized conformer will now use it, so its 3D results (computed on the force-field
   conformer) read as stale and recompute, as they would after any change of conformer.
 
+### Fixed: an ORCA number reached the assistant without its method, basis, charge or multiplicity
+- `QuantumChemistryService` now stamps each descriptor a job files (`run_calc_type`, `run_method_basis`, `run_charge`, `run_multiplicity`,
+  `run_provider`, `run_id`, the same `run_` words the spectra already carried) before the result event and the store see it, so the run history,
+  the revision cache and the event hold one set. The provider's own `orca_version` and `caveat` are kept. The ORCA provider is only ever
+  handed the output text, so a stored `orca.scf_energy` from B3LYP/def2-SVP and one from HF/STO-3G used to read identically: the assistant's
+  envelope showed `method.name == "orca"` and empty `parameters`. It now shows `calc_type`, `method_basis`, `charge` and `multiplicity`
+  (not the run id, which is an address into the run history rather than a setting). The settings block is bounded for any result (32 names, text cut
+  to the reply's caps, and a caveat says how many were left out). **The result's identity is unchanged**: nothing is added to
+  `parameters_key`, so no saved project is stranded, and a project saved before this loads and reads with empty `parameters`.
+
 ### Naming: a ring cation keeps its ketone suffix after `-ium`, and an amidinium zwitterion with a second acid is named
 - Camptothecin's cation was `...-3,14(4H)-dion-6-ium`, a form OPSIN cannot read; it is `...quinolin-6-ium-3,14(4H)-dione` and reads back, camptothecin itself included (D-233). An amidinium with a carboxylate and a second, neutral carboxylic acid was refused; it is `3-carboxylato-4-hydroxy-4-oxobutanamidinium` (D-234). The census scan's read-back now tries the application's OPSIN-readable respellings, so the four names whose engine form is the book's (`N1,N2-...oxamide`, `oxobis[...]phosphanyl`, `bis([1,3]dioxolo)...`, a bis-adamantane CIP) are no longer counted unparsable: census 1991 -> 1993 exact (99.65%), no unparsable row left. The frozen sets are unchanged (blind check), so none was re-scored.
 
