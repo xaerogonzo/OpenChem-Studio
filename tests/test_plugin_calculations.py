@@ -161,3 +161,87 @@ def test_the_engine_counts_the_heavy_atoms_of_a_drawing():
     assert engine.heavy_atom_count(model) == 13
     with pytest.raises(InvalidStructureError):
         engine.heavy_atom_count(MoleculeModel())
+
+
+# --- the approvals face: for a panel, never a tool ------------------------------------------------------
+
+
+from PySide6.QtCore import QObject, Signal
+
+from openchem.plugins.calculation_access import PluginCalculationApprovals
+from openchem.plugins.context import PluginContext
+
+
+class _FakeApprovalHost(QObject):
+    finished = Signal(object)
+
+    def __init__(self):
+        super().__init__()
+        self.calls = []
+
+    def pending(self):
+        self.calls.append(("pending",))
+        return ()
+
+    def approve(self, run_id):
+        self.calls.append(("approve", run_id))
+        return RunState.RUNNING
+
+    def cancel(self, run_id):
+        self.calls.append(("cancel", run_id))
+        return True
+
+    def state_of(self, run_id):
+        return RunState.PREVIEWED
+
+    def outcome_of(self, run_id):
+        return None
+
+
+def test_the_approvals_face_offers_exactly_these_calls():
+    public = {name for name in dir(PluginCalculationApprovals) if not name.startswith("_")}
+    assert public == {"available", "pending", "approve", "cancel", "state_of", "outcome_of", "on_finished"}
+
+
+def test_with_no_host_nothing_is_pending_and_no_decision_does_anything():
+    approvals = PluginCalculationApprovals(None)
+    assert approvals.available is False and approvals.pending() == ()
+    assert approvals.approve("r") is None and approvals.cancel("r") is False
+    assert approvals.state_of("r") is None and approvals.outcome_of("r") is None
+    approvals.on_finished(lambda outcome: None)  # nothing to connect to, and no error
+
+
+def test_the_approvals_face_passes_decisions_to_the_host(qapp):
+    host = _FakeApprovalHost()
+    approvals = PluginCalculationApprovals(host)
+    approvals.pending()
+    assert approvals.approve("r1") is RunState.RUNNING and approvals.cancel("r2") is True
+    assert host.calls == [("pending",), ("approve", "r1"), ("cancel", "r2")]
+
+
+def _context(tmp_path, host):
+    services = build_service_container()
+    settings = Settings(services.event_bus)
+    return PluginContext("p", tmp_path, services, FakeUIRegistry(), settings, host)
+
+
+def test_the_context_gives_a_plugin_both_faces_as_different_objects(tmp_path, qapp):
+    context = _context(tmp_path, _FakeApprovalHost())
+    assert isinstance(context.calculations, PluginCalculations)
+    assert isinstance(context.calculation_approvals, PluginCalculationApprovals)
+    assert context.calculation_approvals is not context.calculations
+    assert not hasattr(context.calculations, "approve") and not hasattr(context.calculations, "on_finished")
+
+
+def test_a_finished_callback_runs_until_the_plugin_unloads_and_then_never_again(tmp_path, qapp):
+    host = _FakeApprovalHost()
+    context = _context(tmp_path, host)
+    seen = []
+    context.calculation_approvals.on_finished(seen.append)
+    outcome = RunOutcome("r1", "c", RunState.COMPLETED)
+    host.finished.emit(outcome)
+    assert seen == [outcome]
+
+    context.unwind()
+    host.finished.emit(RunOutcome("r2", "c", RunState.COMPLETED))
+    assert seen == [outcome], "a callback left connected would run against a panel that no longer exists"

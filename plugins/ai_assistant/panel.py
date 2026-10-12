@@ -3,16 +3,19 @@ from __future__ import annotations
 import html
 from typing import Callable
 
-from PySide6.QtCore import QObject, Signal
+from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
     QDialogButtonBox,
     QFileDialog,
     QFormLayout,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QListWidget,
+    QListWidgetItem,
     QPlainTextEdit,
     QPushButton,
     QTextEdit,
@@ -20,12 +23,16 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from openchem.domain.result_envelope import outcome_envelope
+from openchem.domain.run_lifecycle import RunOutcome, RunState
 from openchem.plugins.async_task import run_async
 from openchem.plugins.context import PluginContext
 
+from .bridge import BridgeEvent, ToolBridge, bounded_json
+from .calculation_tools import CALCULATION_HANDLERS, CALCULATION_TOOLS
 from .context_builder import MoleculeContextCache
 from .providers import AIMessage, AIProvider, AIProviderError, AIRequest, AIResponse, ToolCall
-from .tools import AVAILABLE_TOOLS, TOOL_REGISTRY
+from .tools import AVAILABLE_TOOLS, TOOL_REGISTRY, validate_arguments
 
 # A runaway model that keeps requesting tools forever must not hang the
 # chat indefinitely -- bounds the request/tool-result loop in
@@ -45,12 +52,35 @@ _MODEL_PRESETS: dict[str, list[str]] = {
 }
 
 SYSTEM_PROMPT_PREFIX = (
-    "You are a chemistry assistant embedded in OpenChem Studio, a molecular "
-    "editor. Explain results, suggest workflows, and generate SMARTS queries "
-    "or Python snippets as plain text for the user to review and apply "
-    "themselves. Never claim to have modified the user's project yourself — "
-    "you have no ability to. Here is the currently selected molecule:\n\n"
+    "You are a chemistry assistant embedded in OpenChem Studio, a molecular editor. Explain results, suggest "
+    "workflows, and generate SMARTS queries or Python snippets as plain text for the user to review and apply "
+    "themselves.\n\n"
+    "When tools are offered, they read this application's own results and run its calculators. Use them instead of "
+    "answering from memory whenever a question is about a number, a property or a method for the selected molecule: "
+    "find_calculators and describe_calculator say what exists, what each needs and whether you may run it; "
+    "read_results returns what has already been computed; run_calculator runs one. A run you request is recorded in "
+    "the user's project and appears in their Results like one they ran themselves, so run only what the question "
+    "needs. Some calculators need the user to approve a preview first: tell them it is waiting for their approval, "
+    "do not ask again, and never imply you approved or started it.\n\n"
+    "Rules for numbers: state a value only if a tool result contains it, with its units and method. If a result is "
+    "'historical' or 'unverifiable' it does not describe the molecule as it is now, and if a calculator was refused "
+    "or has not run, say exactly that and quote the application's reason; never present a missing result as zero or "
+    "fill it in from memory. Results are for the molecule that was selected when the user sent their message; you "
+    "cannot name another. Here is the currently selected molecule:\n\n"
 )
+
+#: What the ledger says about a run in each state, in the user's terms.
+_STATE_LABELS = {
+    "previewed": "waiting for your approval",
+    "running": "running",
+    "completed": "completed",
+    "refused": "the calculator declined",
+    "failed": "failed",
+    "cancelled": "cancelled; nothing was started",
+    "invalidated": "withdrawn",
+    "rejected": "not started",
+    "timed_out": "still running",
+}
 
 
 class _ChunkSignal(QObject):
@@ -64,6 +94,54 @@ class _ChunkSignal(QObject):
     """
 
     chunk_received = Signal(str)
+
+
+class _BridgeSignal(QObject):
+    """Carries a `BridgeEvent` from the provider's worker thread to the GUI thread, for the same
+    reason `_ChunkSignal` exists: a tool runs on the worker and must never touch a widget."""
+
+    event = Signal(object)
+
+
+class _PreviewCard(QFrame):
+    """One request that needs the user's decision. Approve and Cancel are the ONLY way it ever starts.
+
+    The card is drawn from the preview the application prepared, never from anything the model wrote, so
+    what the user approves is what the application would run.
+    """
+
+    approve_clicked = Signal(str)
+    cancel_clicked = Signal(str)
+
+    def __init__(self, preparation: dict, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.run_id: str = str(preparation.get("run_id", ""))
+        self.setObjectName("AIPreviewCard")
+        self.setFrameShape(QFrame.Shape.StyledPanel)
+        title = QLabel("<b>Approve this calculation?</b>", self)
+        body = QLabel("\n".join(preparation.get("preview", [])), self)
+        body.setWordWrap(True)
+        body.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.approve_button = QPushButton("Approve", self)
+        self.approve_button.setObjectName("AIPreviewApprove")
+        self.cancel_button = QPushButton("Cancel", self)
+        self.cancel_button.setObjectName("AIPreviewCancel")
+        self.approve_button.clicked.connect(self._on_approve)
+        self.cancel_button.clicked.connect(self._on_cancel)
+        buttons = QHBoxLayout()
+        buttons.addStretch()
+        buttons.addWidget(self.approve_button)
+        buttons.addWidget(self.cancel_button)
+        layout = QVBoxLayout(self)
+        layout.addWidget(title)
+        layout.addWidget(body)
+        layout.addLayout(buttons)
+
+    def _on_approve(self, _checked: bool = False) -> None:
+        self.approve_clicked.emit(self.run_id)
+
+    def _on_cancel(self, _checked: bool = False) -> None:
+        self.cancel_clicked.emit(self.run_id)
 
 
 class _ProviderSettingsDialog(QDialog):
@@ -161,6 +239,18 @@ class AIAssistantPanel(QWidget):
         # worker thread's lifetime -- same reasoning `async_task.py`'s
         # `_IN_FLIGHT_TASKS` documents for its own PluginAsyncTask.
         self._current_stream_signal: _ChunkSignal | None = None
+        # Tool events cross from the worker thread through this; see `_BridgeSignal`.
+        self._bridge_signal = _BridgeSignal()
+        self._bridge_signal.event.connect(self._on_bridge_event)
+        #: run id -> (calculator, molecule), so the ledger can name a run when its end is announced.
+        self._runs: dict[str, tuple[str, str]] = {}
+        #: previews waiting on the user. Only a run that WAS a preview is told to the model afterwards.
+        self._awaiting: set[str] = set()
+        #: what happened to a preview since the last message, held to go with the next one.
+        self._notes: list[str] = []
+        self._cards: dict[str, _PreviewCard] = {}
+        self._ledger_rows: dict[str, QListWidgetItem] = {}
+        self._refusal_count = 0
 
         self._provider_combo = QComboBox(self)
         self._provider_combo.addItems(list(providers.keys()))
@@ -171,6 +261,7 @@ class AIAssistantPanel(QWidget):
             lambda value: context.settings.set("last_provider", value)
         )
         self._provider_combo.currentTextChanged.connect(lambda _value: self._refresh_setup_hint())
+        self._provider_combo.currentTextChanged.connect(lambda _value: self._refresh_privacy())
 
         self._configure_button = QPushButton("Configure...", self)
         self._configure_button.clicked.connect(self._on_configure_clicked)
@@ -193,6 +284,25 @@ class AIAssistantPanel(QWidget):
         self._send_button = QPushButton("Send", self)
         self._send_button.clicked.connect(self._on_send_clicked)
 
+        # What leaves this machine. Tool results are part of the conversation, so with a remote provider
+        # the calculator results the assistant reads go to it; the person is told which case this is.
+        self._privacy = QLabel(self)
+        self._privacy.setWordWrap(True)
+        self._privacy.setObjectName("AIPrivacyNote")
+
+        # Previews waiting for a decision, and a ledger of everything the assistant asked for. Both stay
+        # hidden until there is something to show.
+        self._cards_host = QWidget(self)
+        self._cards_layout = QVBoxLayout(self._cards_host)
+        self._cards_layout.setContentsMargins(0, 0, 0, 0)
+        self._cards_host.setVisible(False)
+        self._ledger_label = QLabel("Calculations the assistant has asked for", self)
+        self._ledger = QListWidget(self)
+        self._ledger.setObjectName("AICalculationLedger")
+        self._ledger.setMaximumHeight(96)
+        self._ledger_label.setVisible(False)
+        self._ledger.setVisible(False)
+
         top_bar = QHBoxLayout()
         top_bar.addWidget(QLabel("Provider:"))
         top_bar.addWidget(self._provider_combo)
@@ -207,8 +317,14 @@ class AIAssistantPanel(QWidget):
         layout.addLayout(top_bar)
         layout.addWidget(self._setup_hint)
         layout.addWidget(self._transcript)
+        layout.addWidget(self._cards_host)
+        layout.addWidget(self._ledger_label)
+        layout.addWidget(self._ledger)
         layout.addLayout(input_bar)
+        layout.addWidget(self._privacy)
         self._refresh_setup_hint()
+        self._refresh_privacy()
+        context.calculation_approvals.on_finished(self._on_run_finished)
 
     def prefill_and_focus(self, text: str) -> None:
         self._input.setPlainText(text)
@@ -261,7 +377,10 @@ class AIAssistantPanel(QWidget):
             return
         self._input.clear()
         self._append_transcript("You", text)
-        self._history.append(AIMessage(role="user", content=text))
+        # What happened to a preview since the last message goes ahead of this one, so the model learns it
+        # as the application's note and the roles still alternate. The transcript shows the user's own words.
+        notes, self._notes = self._notes, []
+        self._history.append(AIMessage(role="user", content="\n\n".join([*notes, text])))
 
         provider_id = self._provider_combo.currentText()
         provider = self._providers[provider_id]
@@ -269,6 +388,14 @@ class AIAssistantPanel(QWidget):
         model = self._context.settings.get(f"{provider_id}_model", provider.default_model)
         system_context = SYSTEM_PROMPT_PREFIX + self._cache.build_context_text()
         history_snapshot = list(self._history)
+        # THE TURN IS FROZEN HERE, ON THE GUI THREAD, AT THE MOMENT OF SEND. Every calculator tool the model
+        # calls in this reply reads that and nothing else, so selecting another molecule while it streams
+        # cannot change what an answer was based on.
+        bridge = None
+        if provider.supports_tools:
+            bridge = ToolBridge(
+                self._context.calculations, self._context.calculations.begin_turn(), self._bridge_signal.event.emit
+            )
 
         self._stream_active = False
         signal = _ChunkSignal()
@@ -278,7 +405,7 @@ class AIAssistantPanel(QWidget):
         self._send_button.setEnabled(False)
         run_async(
             lambda: self._run_completion(
-                provider, system_context, history_snapshot, model, api_key, signal.chunk_received.emit
+                provider, system_context, history_snapshot, model, api_key, signal.chunk_received.emit, bridge
             ),
             AIProviderError,
             self._on_response,
@@ -293,6 +420,7 @@ class AIAssistantPanel(QWidget):
         model: str,
         api_key: str,
         on_chunk: Callable[[str], None],
+        bridge: ToolBridge | None = None,
     ) -> AIResponse:
         """Runs off the GUI thread (called from `run_async`'s lambda).
 
@@ -305,9 +433,17 @@ class AIAssistantPanel(QWidget):
         hang the chat indefinitely. Every tool call is executed locally
         against a small fixed registry (`ai_assistant/tools.py`) — the
         model never gets direct tool access of its own.
+
+        `bridge` is the turn's frozen access to the calculators (`bridge.py`). The calculator tools are
+        offered only when it is usable (a host, and a molecule selected); without one the loop is exactly
+        what it was before they existed.
         """
         messages = list(messages)
-        tools = AVAILABLE_TOOLS if provider.supports_tools else None
+        tools = None
+        if provider.supports_tools:
+            tools = list(AVAILABLE_TOOLS)
+            if bridge is not None and bridge.available:
+                tools.extend(CALCULATION_TOOLS)
         response = AIResponse(text="")
         for _ in range(MAX_TOOL_ITERATIONS):
             request = AIRequest(system_context=system_context, messages=messages, model=model, api_key=api_key)
@@ -317,18 +453,169 @@ class AIAssistantPanel(QWidget):
             messages.append(AIMessage(role="assistant", content=response.text, tool_calls=response.tool_calls))
             for tool_call in response.tool_calls:
                 messages.append(
-                    AIMessage(role="tool", content=self._execute_tool(tool_call), tool_call_id=tool_call.id)
+                    AIMessage(role="tool", content=self._execute_tool(tool_call, bridge), tool_call_id=tool_call.id)
                 )
         return response
 
-    def _execute_tool(self, tool_call: ToolCall) -> str:
-        handler = TOOL_REGISTRY.get(tool_call.name)
+    def _execute_tool(self, tool_call: ToolCall, bridge: ToolBridge | None = None) -> str:
+        """Run one tool call, after checking it against the tool's own schema.
+
+        The check is ours, not the provider's: a model can send a missing field, a wrong type or an
+        argument the tool never declared, and the handler would then raise about its own signature or run
+        on a wrong value. Problems are returned to the model and nothing runs.
+        """
+        calculation = tool_call.name in CALCULATION_HANDLERS
+        handler = CALCULATION_HANDLERS.get(tool_call.name) or TOOL_REGISTRY.get(tool_call.name)
         if handler is None:
             return f"Unknown tool: {tool_call.name}"
+        definition = next((d for d in [*AVAILABLE_TOOLS, *CALCULATION_TOOLS] if d.name == tool_call.name), None)
+        if definition is not None:
+            problems = validate_arguments(definition.input_schema, tool_call.input)
+            if problems:
+                return f"Tool {tool_call.name} was not run: " + "; ".join(problems)
         try:
+            if calculation:
+                if bridge is None:
+                    return '{"ok": false, "problem": "unavailable", "message": "calculator access is not available in this conversation"}'
+                return handler(bridge, **tool_call.input)
             return handler(**tool_call.input)
         except Exception as exc:  # noqa: BLE001 - a bad tool call must not crash the loop
             return f"Tool {tool_call.name} failed: {exc}"
+
+    # --- what leaves this machine ----------------------------------------------------------------------
+
+    def privacy_note(self) -> str:
+        """Where the conversation, and so every calculator result the assistant reads, is sent."""
+        provider_id = self._provider_combo.currentText()
+        provider = self._providers.get(provider_id)
+        if provider is None:
+            return ""
+        if not provider.supports_tools:
+            return (
+                f"{provider_id} cannot use this application's tools, so it can neither read nor run calculators. "
+                f"Your messages and the selected molecule's summary are sent to it."
+            )
+        if getattr(provider, "_base_url", None):
+            return (
+                f"Calculator results the assistant reads are sent to the server at {provider._base_url}, as part of "
+                f"the conversation."
+            )
+        return (
+            f"Calculator results the assistant reads or runs are sent to {provider_id} as part of the conversation, "
+            f"so they leave this machine."
+        )
+
+    def _refresh_privacy(self) -> None:
+        self._privacy.setText(self.privacy_note())
+
+    # --- the ledger and the previews ---------------------------------------------------------------------
+
+    def _ledger_text(self, calculator: str, molecule: str, label: str, detail: str = "") -> str:
+        text = f"{calculator} on {molecule}: {label}"
+        return f"{text} ({detail[:140]})" if detail else text
+
+    def _set_ledger(self, key: str, text: str) -> None:
+        row = self._ledger_rows.get(key)
+        if row is None:
+            row = QListWidgetItem(text)
+            self._ledger.addItem(row)
+            self._ledger_rows[key] = row
+        else:
+            row.setText(text)
+        self._ledger_label.setVisible(True)
+        self._ledger.setVisible(True)
+        self._ledger.scrollToBottom()
+
+    def ledger_lines(self) -> list[str]:
+        """What the ledger says, top to bottom."""
+        return [self._ledger.item(i).text() for i in range(self._ledger.count())]
+
+    def _on_bridge_event(self, event: BridgeEvent) -> None:
+        """A tool did something the user should see. GUI thread: it arrived through a queued signal."""
+        if event.kind == "refused":
+            self._refusal_count += 1
+            self._set_ledger(
+                f"refused-{self._refusal_count}",
+                self._ledger_text(event.calculator, event.molecule, _STATE_LABELS["rejected"], event.detail),
+            )
+            return
+        self._runs[event.run_id] = (event.calculator, event.molecule)
+        if event.kind == "previewed":
+            self._awaiting.add(event.run_id)
+            self._add_card(event)
+            self._set_ledger(
+                event.run_id, self._ledger_text(event.calculator, event.molecule, _STATE_LABELS["previewed"])
+            )
+        elif event.kind == "finished":
+            self._set_ledger(
+                event.run_id,
+                self._ledger_text(
+                    event.calculator, event.molecule, _STATE_LABELS.get(event.state, event.state),
+                    event.detail if event.state not in ("completed",) else "",
+                ),
+            )
+
+    def _add_card(self, event: BridgeEvent) -> None:
+        card = _PreviewCard(event.preparation, self._cards_host)
+        card.approve_clicked.connect(self._on_approve)
+        card.cancel_clicked.connect(self._on_cancel)
+        self._cards[event.run_id] = card
+        self._cards_layout.addWidget(card)
+        self._cards_host.setVisible(True)
+
+    def _remove_card(self, run_id: str) -> None:
+        card = self._cards.pop(run_id, None)
+        if card is not None:
+            self._cards_layout.removeWidget(card)
+            card.setParent(None)
+            card.deleteLater()
+        self._cards_host.setVisible(bool(self._cards))
+
+    def pending_run_ids(self) -> list[str]:
+        """Previews on screen waiting for a decision."""
+        return list(self._cards)
+
+    def _on_approve(self, run_id: str) -> None:
+        """The user pressed Approve. The only path by which a preview ever starts."""
+        self._remove_card(run_id)
+        state = self._context.calculation_approvals.approve(run_id)
+        calculator, molecule = self._runs.get(run_id, ("calculation", ""))
+        if state is RunState.RUNNING:
+            self._set_ledger(run_id, self._ledger_text(calculator, molecule, _STATE_LABELS["running"]))
+
+    def _on_cancel(self, run_id: str) -> None:
+        self._remove_card(run_id)
+        self._context.calculation_approvals.cancel(run_id)
+
+    def _on_run_finished(self, outcome: RunOutcome) -> None:
+        """A run reached a final state (the host announces it once). GUI thread."""
+        calculator, molecule = self._runs.get(outcome.run_id, (outcome.calculator_id, ""))
+        state = outcome.state.value
+        self._set_ledger(
+            outcome.run_id,
+            self._ledger_text(
+                calculator, molecule, _STATE_LABELS.get(state, state), outcome.message if state != "completed" else ""
+            ),
+        )
+        self._remove_card(outcome.run_id)
+        if outcome.run_id not in self._awaiting:
+            return  # an automatic run: the model already has its outcome from the tool call
+        self._awaiting.discard(outcome.run_id)
+        self._append_transcript("Application", f"{calculator} on {molecule}: {_STATE_LABELS.get(state, state)}.")
+        self._notes.append(self._note_for(outcome, calculator, molecule))
+
+    def _note_for(self, outcome: RunOutcome, calculator: str, molecule: str) -> str:
+        """What the model is told, with the next message, about a preview it left for the user.
+
+        The application's own record, not a paraphrase: the outcome carries the result's envelope with its
+        method, units and freshness, and a refusal carries the calculator's reason.
+        """
+        head = (
+            f"[Application note] The preview you prepared for {calculator} on {molecule} (run {outcome.run_id}) "
+            f"ended '{outcome.state.value}'."
+        )
+        body = bounded_json(lambda caps: outcome_envelope(outcome, caps), budget=6000)
+        return f"{head} The application's record of it:\n{body}"
 
     def _on_chunk_received(self, chunk: str) -> None:
         if not chunk:

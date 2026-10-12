@@ -10,7 +10,7 @@ import keyring.errors
 from openchem.app.settings import Settings
 from openchem.domain.molecule import MoleculeModel
 from openchem.events.base import Event, EventBus
-from openchem.plugins.calculation_access import CalculationHost, PluginCalculations
+from openchem.plugins.calculation_access import CalculationHost, PluginCalculationApprovals, PluginCalculations
 from openchem.plugins.interfaces import (
     ConformerProvider,
     AtomFactProvider,
@@ -281,6 +281,9 @@ class PluginContext:
         #: Find calculators, read what was computed, and ask for a run -- through the window's host,
         #: with no way to approve a run that needs a person. Answers "unavailable" with no host.
         self.calculations = PluginCalculations(calculation_host)
+        #: A person's decision on a preview: approve, cancel, and a callback when a run finishes. **For a
+        #: panel's buttons, never for a tool** -- a plugin must hand its tools `calculations` only.
+        self.calculation_approvals = PluginCalculationApprovals(calculation_host, self._rollbacks)
 
     def resource_path(self, relative: str) -> Path:
         """Path to a file bundled alongside this plugin (icons, templates, etc.)."""
