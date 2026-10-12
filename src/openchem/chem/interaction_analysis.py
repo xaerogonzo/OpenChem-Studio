@@ -33,11 +33,14 @@ from openchem.chem.pose_analysis import (
     HYDROPHOBIC_CUTOFF,
     PI_STACKING_CUTOFF,
     SALT_BRIDGE_CUTOFF,
+    _BONDED_NEIGHBOUR_DEPTH,
     _DEFAULT_VDW_RADIUS,
     _METALS,
     is_metal_bond,
+    is_metal_contact,
     _POLAR_ELEMENTS,
     _VDW_RADII,
+    _formal_charge_sites,
 )
 from openchem.chem.calculator_options import decimals
 from openchem.domain.common import CacheState, Provenance
@@ -105,41 +108,6 @@ def _aromatic_rings(mol: Chem.Mol) -> list[tuple[int, ...]]:
     ]
 
 
-def _formal_charge_sites(mol: Chem.Mol) -> tuple[list[int], list[int]]:
-    """Atoms that are a real cation / anion site, not just a charge in the drawing.
-
-    A formal charge is bookkeeping, and a neutral group is often DRAWN with a pair of them on neighbouring atoms: the
-    nitro group (`[N+](=O)[O-]`), an N-oxide, a sulfoxide or sulfone written `[S+][O-]`, an azide, a diazo
-    compound, an ylide. Reading each end as an ion reported nitrobenzene's nitro nitrogen as a cation 2.86 A from its
-    own ring. The rule: atoms that carry a charge and are bonded to one another form a cluster, and a cluster's
-    charges cancel as the drawing intends. A cluster that nets to zero contributes no site; one that does not
-    (nitrate, `O=[N+]([O-])[O-]`, nets -1) contributes the atoms of the sign it nets to, and none of the other.
-    A charge with no charged neighbour (an ammonium, a carboxylate O-) is a cluster of one and is kept.
-    """
-    charged = {a.GetIdx(): a.GetFormalCharge() for a in mol.GetAtoms() if a.GetFormalCharge()}
-    positive: list[int] = []
-    negative: list[int] = []
-    seen: set[int] = set()
-    for start in charged:
-        if start in seen:
-            continue
-        cluster, frontier = [start], [start]
-        seen.add(start)
-        while frontier:
-            for neighbor in mol.GetAtomWithIdx(frontier.pop()).GetNeighbors():
-                index = neighbor.GetIdx()
-                if index in charged and index not in seen:
-                    seen.add(index)
-                    cluster.append(index)
-                    frontier.append(index)
-        net = sum(charged[index] for index in cluster)
-        if net > 0:
-            positive += [index for index in cluster if charged[index] > 0]
-        elif net < 0:
-            negative += [index for index in cluster if charged[index] < 0]
-    return sorted(positive), sorted(negative)
-
-
 def _can_donate_hydrogen(atom: Chem.Atom) -> bool:
     """Whether a hydrogen is attached, written out or implied. An N, O or F without one can accept a hydrogen bond
     and cannot give one."""
@@ -159,6 +127,37 @@ def _is_metal_donor(atom: Chem.Atom) -> bool:
 def _ring_separation(topological, ring_a: tuple[int, ...], ring_b: tuple[int, ...]) -> float:
     """Bonds between the nearest atoms of two rings; 1 when a bond joins them."""
     return min(topological[i][j] for i in ring_a for j in ring_b)
+
+
+def _metal_bonded_pairs(mol: Chem.Mol, positions, topological) -> set[tuple[int, int]]:
+    """`(lower index, higher index)` pairs inside one molecule that are a bond to a metal, and so not a clash.
+
+    The same rule `pose_analysis._metal_bonded_pairs` applies to a docked pose, for a metal that is NOT joined
+    to its donor by a bond in the molecule (a separate fragment, as in `c1c[nH]cn1.[Zn+2]`). Topological
+    separation cannot exclude those: the distance between fragments is infinite, so `MIN_SEPARATION['clashes']`
+    lets every such pair through and the donor was reported as a clash AND as `metal_coordination`.
+
+    A donor (`_is_metal_donor`, the same test the coordination detector below uses) inside the metal's bond window for
+    that donor (`pose_analysis.metal_bond_window`, per metal and per donor) is bonded to it, and so is every atom within
+    `_BONDED_NEIGHBOUR_DEPTH` bonds of that donor, against THAT metal only (their distance to it is fixed by the M-D-X
+    angle, not a contact). For sodium and potassium a donor out to Harding's secondary sphere is not a bond but is a
+    normal contact of the ion, so that pair alone is left out of the clash test (`pose_analysis.is_metal_contact`).
+    Closer than the window's floor the two atoms overlap and the pair stays in the clash test.
+    """
+    metals = [a.GetIdx() for a in mol.GetAtoms() if a.GetSymbol().upper() in _METALS]
+    bonded: set[tuple[int, int]] = set()
+    for metal in metals:
+        metal_symbol = mol.GetAtomWithIdx(metal).GetSymbol().upper()
+        for donor in (a.GetIdx() for a in mol.GetAtoms() if _is_metal_donor(a)):
+            donor_symbol = mol.GetAtomWithIdx(donor).GetSymbol()
+            distance = _distance(positions, metal, donor)
+            if is_metal_bond(metal_symbol, donor_symbol, distance):
+                for other in range(mol.GetNumAtoms()):
+                    if other != metal and topological[donor][other] <= _BONDED_NEIGHBOUR_DEPTH:
+                        bonded.add((min(metal, other), max(metal, other)))
+            elif is_metal_contact(metal_symbol, donor_symbol, distance):
+                bonded.add((min(metal, donor), max(metal, donor)))
+    return bonded
 
 
 def find_interactions(mol: Chem.Mol) -> dict[str, list[dict[str, Any]]]:
@@ -182,6 +181,8 @@ def find_interactions(mol: Chem.Mol) -> dict[str, list[dict[str, Any]]]:
 
     def separated(kind: str, i: int, j: int) -> bool:
         return topological[i][j] >= MIN_SEPARATION[kind]
+
+    metal_bonded = _metal_bonded_pairs(mol, positions, topological)
 
     heavy = [a.GetIdx() for a in mol.GetAtoms() if a.GetSymbol() != "H"]
     for i, j in itertools.combinations(heavy, 2):
@@ -211,6 +212,9 @@ def find_interactions(mol: Chem.Mol) -> dict[str, list[dict[str, Any]]]:
             not is_hydrogen_bond
             and distance < (_vdw_radius(element_i) + _vdw_radius(element_j) - CLASH_TOLERANCE)
             and separated("clashes", i, j)
+            # A bond to a metal is not a contact. Same reason as the hydrogen bond above: coordination is
+            # reported below, and a pair in both lists teaches the reader to ignore the clash list.
+            and (i, j) not in metal_bonded
         ):
             found["clashes"].append({"atoms": (i, j), "distance": distance})
 

@@ -23,8 +23,8 @@ needs_opsin = pytest.mark.skipif(shutil.which("java") is None, reason="needs jav
 NAMED = [
     ("protonated imidazo-benzimidazole", "c1cn2c([nH+]1)[nH]c1ccccc12", "9H-imidazo[1,2-a][1,3]benzimidazol-1-ium"),
     ("its bridgehead cation", "c1c[n+]2c([nH]1)[nH]c1ccccc12", "9H-imidazo[1,2-a][1,3]benzimidazol-4-ium"),
-    ("N-methyl", "C[n+]1ccn2c1[nH]c1ccccc12", "1-methyl-1H-imidazo[1,2-a][1,3]benzimidazol-1-ium"),
-    ("N-methyl with substituents", "Cc1c(C)[n+](C)c2[nH]c3ccccc3n12", "1,2,3-trimethyl-1H-imidazo[1,2-a][1,3]benzimidazol-1-ium"),
+    ("N-methyl", "C[n+]1ccn2c1[nH]c1ccccc12", "1-methyl-9H-imidazo[1,2-a][1,3]benzimidazol-1-ium"),
+    ("N-methyl with substituents", "Cc1c(C)[n+](C)c2[nH]c3ccccc3n12", "1,2,3-trimethyl-9H-imidazo[1,2-a][1,3]benzimidazol-1-ium"),
     ("a purinium inside a substituent", "Cn1c(=O)[nH]c(=O)c2c1[nH]c(NCCC[n+]1cc[nH]c1)[n+]2CCO",
      "7-(2-hydroxyethyl)-8-{[3-(1H-imidazol-3-ium-3-yl)propyl]amino}-3-methyl-2,6-dioxo-1H-purin-7-ium"),
     ("a protonated pyrido[3,4-b]indole", "COc1cc2[nH+]c3c(C)[nH]ccc-3c2cc1Br", "6-bromo-7-methoxy-1-methyl-2H-pyrido[3,4-b]indol-9-ium"),

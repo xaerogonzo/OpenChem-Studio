@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   saved keep the clash list they were analysed with. `harding2001`, `harding2002`, `harding2006` and `zheng2017` become shipped
   sources. The metal radii are untouched, and fluorine reads the metal's oxygen entry, an assumption with no source.
 
+### Naming: ring cations, cages and amidines on a ring nitrogen
+- A tricyclic bridgehead iminium, a ring-N amidinium cation (a different, neutral molecule before), an amidinium beside a carboxylic acid (refused before), N-substituted fused cations that came out as `(...-ium-1-yl)methane`, the two resonance forms of a bicyclic amidinium (two names), and the adamantane and cubane numbering all read back now (D-220 .. D-224, D-221/D-222, D-212 final form: `N'-benzoyl-1H-pyrazole-1-carboximidamide`). Twelve curated ring entries gained heteroatom locants and three partial rings were completed. Furan, thiophene, pyrroline and imidazoline cations keep their retained spelling. The app's read-back also tries the spelling OPSIN reads for four names whose engine form is right (`N1,N2-...oxamide`, `oxobis[...]phosphanyl`, a bis-adamantane CIP, `bis([1,3]dioxolo)...pyran`), so those are shown verified. Census 1978 -> 1979 exact (98.95%), visible failures 0; fresh_v1 re-scored once, 1956 of 2000 read back (97.8%).
+
 ### Docking: a bond to a metal is no longer a steric clash
 - `analyze_pose` reported every coordinated metal as a clash as well as a metal coordination: an imidazole with Zn at 2.1,
   Fe at 2.0 or Mg at 2.1 angstrom from its nitrogen gave one clash, and Ca or Na at 2.4 gave three (the nitrogen's own ring
@@ -29,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   no distance is both, and eleven mutants of the fix are killed. The radii are unchanged.
 - Not covered then, built since (see below): one 2.8 angstrom window served every metal (too short for K), and fluorine as a donor still has no source. A docking result saved earlier keeps the clash list it was analysed with; re-docking replaces it. The same
   metal-as-separate-fragment defect exists in `interaction_analysis.find_interactions` (measured: one clash and one
-  coordination) and is not fixed here. `harding1999` is now registered as shipped (its tables were read).
+  coordination); fixed in "Interaction Analysis: a metal in a separate fragment" below. `harding1999` is now registered as shipped (its tables were read).
 
 ### Docs: calculator explainers, starting with the partial-charge family
 - `docs/CALCULATOR_REFERENCE.md` said what each calculator needs and refuses but not what it
@@ -99,6 +102,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   metal-donor distances (the current table is Harding 2006's: Zn-N 2.03, Fe-N 2.16, Mg-O 2.07, Ca-O 2.39 A) and a primary-sphere rule of target + 0.5 A, and show
   sulfur is as good a donor as nitrogen. `benchmarks/vdw_radii/radii_study.py` gains the 46-molecule check.
 
+### Interaction Analysis: a metal in a separate fragment is no longer a clash
+- `find_interactions` (the Interaction Analysis calculator, a ligand with itself) reported a metal drawn as its own
+  fragment as a clash AND a metal coordination: `c1c[nH]cn1.[Zn+2]` with the zinc 2.0 angstrom from the pyridine-type
+  nitrogen gave one of each. A zinc bonded in the molecule was never affected, because the clash test needs a bond-path
+  separation of 4 and a bonded metal is 1; between fragments the separation is infinite, so nothing excluded the pair. The rule
+  `analyze_pose` already applies now applies here: a donor (N, O, F, S) between 1.8 and 2.8 angstrom of a metal, and the
+  atoms within two bonds of that donor (against that metal only), skip the clash test; closer than 1.8 is an overlap and
+  stays one. Measured: the case above gives 0 clashes and 1 coordination, as do Zn, Fe, Mn, Cu, Ca, Mg at Harding's mean
+  distances and Ca/Na at 2.4 (where the donor's two ring carbons, 3.4 angstrom away, were clashes too).
+- The exemption uses the detector's own donor test (`_is_metal_donor`: N, O, F, and sulfur with valence 2 or less, which Interaction
+  Analysis v2 added), so a pair is exempt from the clash test exactly when it is reported as `metal_coordination`; a sulfoxide or
+  sulfone sulfur, which is not a donor, stays an ordinary contact. The hard-coded 2.8 is now `METAL_COORDINATION_CUTOFF`.
+- `tests/test_interaction_analysis_metals.py` (57 tests, all through `find_interactions`) pins the cases above, the bonded
+  control, the exemption being for the bound metal only, the 1.8 floor, the 2.8 edge, and a sweep over every metal, donor
+  and 0.05 angstrom step that no pair is both. Five mutants of the fix (no exclusion, neighbour depth 0, no floor,
+  a wider donor set than the detector's, exemption for every metal) each fail at least one test.
+
 ### Help window: three things found by using it
 - **Clearing a search lost your place.** The x in the search box re-rendered the page and put it back at
   the top, so removing the highlighting read as being thrown back to the main menu. It now drops the marks,
@@ -108,6 +128,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **"Read the whole document" did nothing** on a document's own title, because that page already is the
   whole document. The button is disabled there, and a new **Open the file** button opens the markdown file
   in the system's program for it (and says so when there is none).
+
+### Fixed: docking pose analysis no longer reads a nitro group as a cation and an anion
+- `pose_analysis._ligand_features` called every ligand atom with a formal charge a cation or an anion, so a neutral
+  group drawn with two (a nitro group, an N-oxide, a sulfoxide written `[S+][O-]`, an azide) fed a phantom ligand
+  cation into cation-π and salt bridges. Measured on nitrobenzene with an Asp carboxylate 3.2 A from the nitro N, a
+  Lys NZ 2.8 A from a nitro O and a Phe ring 4.5 A over the nitro N: two salt bridges and one cation-π before, none
+  after; an ammonium and a carboxylate are still found. It now uses the same rule as the intramolecular analysis
+  (bonded charged atoms form a cluster, a cluster that sums to zero contributes no site, nitrate keeps its anion);
+  `_formal_charge_sites` moved from `interaction_analysis` into `pose_analysis`, which both import, so there is one
+  copy. The rule reads the molblock's bonds, so it holds when the pose does not sanitise.
+- **No method version is bumped, and that is deliberate.** Docking results are not in the result store
+  (`CURRENT_METHOD_VERSIONS` has no docking id): `analyze_pose` runs once, when the job finishes, and its output is
+  written into each pose's `metadata`, which nothing looks up by identity or replays. A project saved before keeps the
+  old contacts on its poses until the ligand is docked again; nothing re-runs the analysis on load.
+  `tests/test_pose_charge_sites.py` (11 tests) goes through `analyze_pose`; reverting to the raw charge fails 9 of
+  them, and a cluster that keeps both signs fails the nitrate test.
 
 ### Fixed: Interaction Analysis no longer reads a nitro group as a cation, or two acceptors as a hydrogen bond
 - Five of the six wrong results the explainer measured are fixed in `chem/interaction_analysis.py`, as method

@@ -1056,24 +1056,43 @@ def _neutral_ring_copy(mol, ring_system):
     charged = [i for i in ring_system.atom_indices if mol.GetAtomWithIdx(i).GetFormalCharge()]
     if not charged:
         return mol
-    if len(ring_system.rings) > 2:
+    if len(ring_system.rings) > 4:
         # Verified for BICYCLIC cations only (8 census structures, each read back). The tricyclic purine-fused cations (imidazo[1,2-g]purin-9-ium
         # and the pyrimido analogue) got a fusion name OPSIN cannot read, where the von Baeyer fallback they had before read back exactly: three
         # census rows would have LEFT `exact`, so they stay on that fallback until a tricyclic cation is measured on its own.
         raise Unsupported("a charged ring system of more than two rings")
-    rw = Chem.RWMol(mol)
-    for i in charged:
-        atom = rw.GetAtomWithIdx(i)
-        if atom.GetFormalCharge() != 1 or atom.GetAtomicNum() not in (7, 8, 16):
-            raise Unsupported("a charged ring atom other than a +1 N, O or S")
-        atom.SetFormalCharge(0)
-        atom.SetNumExplicitHs(0)
-        atom.SetNoImplicit(False)
-    try:
+    ring = frozenset(ring_system.atom_indices)
+
+    def neutralise(detach: bool):
+        rw = Chem.RWMol(mol)
+        for i in charged:
+            atom = rw.GetAtomWithIdx(i)
+            if atom.GetFormalCharge() != 1 or atom.GetAtomicNum() not in (7, 8, 16):
+                raise Unsupported("a charged ring atom other than a +1 N, O or S")
+            if detach:
+                # D-220: an N-substituted cation (`C[n+]1cccc2ccc3ccccc3c21`) keeps its substituent bond, so the neutral N has three bonds, is pyrrole-type, and a
+                # six-membered ring does not kekulise: the system had no fusion name and was cited as "(benzo[h]quinolin-1-ium-1-yl)methane". The
+                # neutral SKELETON is the ring without that substituent (a pyridine-type N); the substituent is placed from the real molecule.
+                for nb in [n.GetIdx() for n in atom.GetNeighbors() if n.GetIdx() not in ring]:
+                    rw.RemoveBond(i, nb)
+            atom.SetFormalCharge(0)
+            atom.SetNumExplicitHs(0)
+            atom.SetNoImplicit(False)
         Chem.SanitizeMol(rw)
+        return rw.GetMol()
+
+    try:
+        return neutralise(detach=False)
+    except Unsupported:
+        raise
+    except Exception:  # noqa: BLE001 - try the substituent-free skeleton
+        pass
+    try:
+        return neutralise(detach=True)
+    except Unsupported:
+        raise
     except Exception as exc:  # noqa: BLE001
         raise Unsupported(f"the neutral ring graph does not sanitise ({exc})") from exc
-    return rw.GetMol()
 
 
 def _bridgehead_iminium(mol, ring_system) -> list[int]:

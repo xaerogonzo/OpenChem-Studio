@@ -1483,8 +1483,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
         "alkyl_stem_ok": False,
         # Atom_locants verified via OPSIN chloro-probing of positions 1–10, 6a, 10a.
         # Pos 4 = pyrrole NH (atom 7) — manual assignment (probe ambiguous on 4).
-        "atom_locants": {3: 1, 4: 2, 5: 3, 7: 4, 8: 5, 12: "6a",
-                         13: 7, 14: 8, 15: 9, 0: 10, 1: "10a"}},
+        "atom_locants": {0: 10, 1: "10a", 2: "10b", 3: 1, 4: 2, 5: 3, 6: "3a", 7: 4, 8: 5, 9: "5a", 10: "10c", 11: 6, 12: "6a", 13: 7, 14: 8, 15: 9}},
 
     # ---- 4,6,6a,7,8,9,10,10a-octahydroindolo[4,3-fg]quinoline (cabergoline / ergoloid) ----
     # OPSIN → C1=CC=C2NC=C3C2=C1C1CCCNC1C3
@@ -1497,8 +1496,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
         "alkyl_stem_ok": False,
         # Atom_locants verified via OPSIN chloro-probing of positions 1–10, 6a, 10a.
         # Pos 4 = pyrrole NH (atom 6) — manual assignment (probe ambiguous on 4).
-        "atom_locants": {1: 1, 0: 2, 8: 3, 6: 4, 5: 5, 10: "6a",
-                         11: 7, 12: 8, 13: 9, 14: 10, 15: "10a"}},
+        "atom_locants": {0: 2, 1: 1, 2: "10b", 3: "10c", 4: "5a", 5: 5, 6: 4, 7: "3a", 8: 3, 9: 6, 10: "6a", 11: 7, 12: 8, 13: 9, 14: 10, 15: "10a"}},
 
     # ---- 1,2,3,4,4a,5,7,8,13,14-decahydroindolo[2',3':3,4]pyrido[1,2-b]isoquinoline ----
     # Pentacyclic core of deserpidine (FDA-0375).  Five fused rings: benzene (ring A,
@@ -1617,7 +1615,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
         "name": "octahydro-8H-oxazolo[3,2-a]pyrrolo[2,1-c]pyrazine",
         "substituent_form": "octahydro-8H-oxazolo[3,2-a]pyrrolo[2,1-c]pyrazinyl",
         "alkyl_stem_ok": False,
-        "atom_locants": {5: 2, 6: 3, 8: 5, 9: 6, 11: 8, 0: 9, 1: 10,
+        "atom_locants": {4: 1, 7: 4, 10: 7, 5: 2, 6: 3, 8: 5, 9: 6, 11: 8, 0: 9, 1: 10,
                          2: "10a", 3: "10b"}},
 
     # -----------------------------------------------------------------------
@@ -2860,7 +2858,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     "c1ccc2c(c1)Oc1ccccc1C1CNCC21": {"name": "2,3,3a,12b-tetrahydro-1H-dibenzo[2,3:6,7]oxepino[4,5-c]pyrrole",
                                       "substituent_form": "2,3,3a,12b-tetrahydro-1H-dibenzo[2,3:6,7]oxepino[4,5-c]pyrrol-5-yl",
                                       "alkyl_stem_ok": False,
-                                      "atom_locants": {14: 1, 15: 2, 16: 3, 17: "3a",
+                                      "atom_locants": {6: 8, 14: 1, 15: 2, 16: 3, 17: "3a",
                                                        2: 4, 1: 5, 0: 6, 5: 7,
                                                        8: 9, 9: 10, 10: 11, 11: 12,
                                                        13: "12b"}},
@@ -2879,7 +2877,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     "C1=NCC2c3ccccc3Cc3ccccc3N12": {"name": "9,13b-dihydro-1H-dibenzo[c,f]imidazo[1,5-a]azepine",
                                      "substituent_form": None,
                                      "alkyl_stem_ok": False,
-                                     "atom_locants": {2: 1, 1: 2, 0: 3, 16: "4a",
+                                     "atom_locants": {17: 4, 2: 1, 1: 2, 0: 3, 16: "4a",
                                                       15: 5, 14: 6, 13: 7, 12: 8,
                                                       10: 9, 8: 10, 7: 11, 6: 12, 5: 13,
                                                       4: "13a", 3: "13b"}},
@@ -2945,7 +2943,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
         "name": "2,3-dihydropyrido[1,2,3-de][1,4]benzoxazin-7(4H)-one",
         "substituent_form": None,
         "alkyl_stem_ok": False,
-        "atom_locants": {1: 7, 2: 6, 3: 5, 4: 4, 7: 10, 8: 9, 9: 8, 12: 2, 13: 3}},
+        "atom_locants": {11: 1, 1: 7, 2: 6, 3: 5, 4: 4, 7: 10, 8: 9, 9: 8, 12: 2, 13: 3}},
 
     # -----------------------------------------------------------------------
     # Pyrido-fused isoquinoline ring systems (tetrahydro / hexahydro forms)
@@ -2964,7 +2962,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
         "name": "1,3,4,6,7,11b-hexahydro-2H-pyrido[2,1-a]isoquinolin-2-one",
         "substituent_form": "1,3,4,6,7,11b-hexahydro-2H-pyrido[2,1-a]isoquinolin-2-onyl",
         "alkyl_stem_ok": False,
-        "atom_locants": {14: 1, 1: 2, 2: 3, 3: 4, 5: 6, 6: 7, 8: 8, 9: 9,
+        "atom_locants": {4: 5, 14: 1, 1: 2, 2: 3, 3: 4, 5: 6, 6: 7, 8: 8, 9: 9,
                          10: 10, 11: 11, 12: "11a", 13: "11b"}},
 
     # 1,3,4,6,7,11b-hexahydro-2H-pyrido[2,1-a]isoquinoline  (no lactam — pos 2 is CH2)
@@ -2980,7 +2978,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
         "name": "1,3,4,6,7,11b-hexahydro-2H-pyrido[2,1-a]isoquinoline",
         "substituent_form": "1,3,4,6,7,11b-hexahydro-2H-pyrido[2,1-a]isoquinolinyl",
         "alkyl_stem_ok": False,
-        "atom_locants": {12: 1, 11: 2, 10: 3, 9: 4, 7: 6, 6: 7, 5: 8, 0: 9,
+        "atom_locants": {8: 5, 12: 1, 11: 2, 10: 3, 9: 4, 7: 6, 6: 7, 5: 8, 0: 9,
                          1: 10, 2: 11, 3: "11a", 13: "11b"}},
 
     # -----------------------------------------------------------------------
@@ -3025,7 +3023,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
         "name": "1,12-dihydro-14H-pyrano[3',4':6,7]indolizino[1,2-b]quinoline-3,14(4H)-dione",
         "substituent_form": "3,14-dioxo-1,4,12,14-tetrahydro-3H-pyrano[3',4':6,7]indolizino[1,2-b]quinolinyl",
         "alkyl_stem_ok": False,
-        "atom_locants": {10: 1, 1: 3, 2: 4, 4: 5, 21: 6, 19: 7, 18: 8, 17: 9,
+        "atom_locants": {11: 2, 10: 1, 1: 3, 2: 4, 4: 5, 21: 6, 19: 7, 18: 8, 17: 9,
                          16: 10, 14: 11, 12: 12, 6: 13, 7: 14}},
 
     # -----------------------------------------------------------------------
@@ -3094,7 +3092,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
         "name": "5,6,6a,7,8,9,10,12,13-nonahydro-6,9-methanopyrido[1',2':1,2]azepino[4,5-b]indole",
         "substituent_form": "5,6,6a,7,8,9,10,12,13-nonahydro-6,9-methanopyrido[1',2':1,2]azepino[4,5-b]indolyl",
         "alkyl_stem_ok": False,
-        "atom_locants": {2: 1, 1: 2, 0: 3, 8: 4, 6: 5, 9: 6, 14: "6a",
+        "atom_locants": {15: 11, 2: 1, 1: 2, 0: 3, 8: 4, 6: 5, 9: 6, 14: "6a",
                          13: 7, 12: 8, 11: 9, 18: 10, 16: 12, 17: 13,
                          10: 14}},
 
@@ -3112,7 +3110,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
         "name": "3a,4,5,5a,6,11,12,13-octahydro-1H-indolizino[8,1-cd]carbazole",
         "substituent_form": "3a,4,5,5a,6,11,12,13-octahydro-1H-indolizino[8,1-cd]carbazolyl",
         "alkyl_stem_ok": False,
-        "atom_locants": {17: 1, 0: 2, 1: 3, 3: 4, 4: 5, 6: 6, 8: 7, 9: 8,
+        "atom_locants": {16: 13, 17: 1, 0: 2, 1: 3, 3: 4, 4: 5, 6: 6, 8: 7, 9: 8,
                          10: 9, 11: 10, 14: 11, 15: 12,
                          2: "3a", 5: "5a", 18: "13a"}},
 
@@ -3123,14 +3121,18 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # Canonical RDKit SMILES: C1C2CC3CC1CC(C2)C3
     # Bridgeheads (CH, deg 3 in ring): idx 1, 3, 5, 7 -> locants 1, 3, 5, 7
     # Methylenes (CH2, deg 2 in ring): idx 0, 2, 4, 6, 8, 9 -> locants 2, 4, 6, 8, 9, 10
-    # All bridgeheads are symmetry-equivalent; all methylenes are symmetry-equivalent,
-    # so any consistent assignment (odd locants on bridgeheads) is valid.
+    # All bridgeheads are symmetry-equivalent; all methylenes are symmetry-equivalent. That is NOT "any assignment is valid" (D-221, naming round 41): the
+    # numbering has structure -- 2 lies between 1 and 3, 4 between 3 and 5, 6 between 5 and 7, 8 between 7 and 1, 9 between 1 and 5, 10 between 3 and 7 -- and the
+    # old map (bridgeheads 1,3,5,7 and methylenes 2,4,6,8,9,10 in atom order) satisfied none of it, so a second substituent landed on the wrong bridgehead:
+    # N-(5-hydroxyadamantan-2-yl)acetamide was written 3-hydroxy, another molecule. This map is one valid numbering (verified against OPSIN on every position).
     "C1C2CC3CC1CC(C2)C3": {"name": "adamantane", "substituent_form": "adamantan-1-yl", "alkyl_stem_ok": False,
-                           "atom_locants": {1: 1, 0: 2, 3: 3, 2: 4, 5: 5, 4: 6, 7: 7, 6: 8, 8: 9, 9: 10}},
+                           "atom_locants": {1: 1, 0: 2, 5: 3, 4: 4, 3: 5, 9: 6, 7: 7, 8: 8, 2: 9, 6: 10}},
 
     # Cubane = pentacyclo[4.2.0.0^{2,5}.0^{3,8}.0^{4,7}]octane; all 8 carbons equivalent by symmetry.
+    # D-221 (naming round 41): the old map {i: i+1} put locants on atoms in atom order, which is not a numbering (1 must be bonded to 2, 6 and 8, 2 to 1, 3 and 5, ...);
+    # 1,3- and 1,8-dimethylcubane were the same name for two compounds. This map keeps cubane's own adjacency (pentacyclo[4.2.0.0^{2,5}.0^{3,8}.0^{4,7}]octane).
     "C12C3C4C1C1C2C3C41": {"name": "cubane", "substituent_form": "cuban-1-yl", "alkyl_stem_ok": False,
-                           "atom_locants": {0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 7, 7: 8}},
+                           "atom_locants": {0: 1, 1: 2, 2: 3, 3: 8, 4: 7, 5: 6, 6: 5, 7: 4}},
 
     # Nortricyclane = tricyclo[2.2.1.0^{2,6}]heptane (norbornane with a C2-C6 zero-bridge).
     # OPSIN 'tricyclo[2.2.1.0^{2,6}]heptane' -> C12C3CC(CC31)C2; canonical 'C1C2CC3C1C3C2'.
@@ -3526,7 +3528,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     "c1ccc2ssc2c1":    {"name": "1,2-benzodithiete",
                         "substituent_form": "1,2-benzodithiet-yl",
                         "alkyl_stem_ok": False,
-                        "atom_locants": {0: 5, 7: 6}},
+                        "atom_locants": {4: 2, 5: 1, 0: 5, 7: 6}},
 
     # 6,7,8,9-tetrahydro-4H-pyrido[1,2-a]pyrimidin-4-one (paliperidone core, FDA-1012).
     # OPSIN '6,7,8,9-tetrahydro-4H-pyrido[1,2-a]pyrimidin-4-one' -> ...; RDKit canonical:
@@ -4050,7 +4052,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
         "name": "3,6,7,8-tetrahydroimidazo[4,5-d][1,3]diazepine",
         "substituent_form": "3,6,7,8-tetrahydroimidazo[4,5-d][1,3]diazepin-yl",
         "alkyl_stem_ok": False,
-        "atom_locants": {1: 1, 4: 2, 3: 3, 2: "3a", 0: 5, 9: 6, 8: 7, 7: 8, 6: "7a"}},
+        "atom_locants": {0: 5, 1: 4, 2: "3a", 3: 3, 4: 2, 5: 1, 6: "8a", 7: 8, 8: 7, 9: 6}},
 
     # 5,8,8a,9-tetrahydrofuro[3',4':6,7]naphtho[2,3-d][1,3]dioxol-6(5aH)-one — FDA-1088 (podophyllotoxin core).
     # The engine's exo-oxo fallback looks up the with-=O form O=C1OCC2Cc3cc4c(cc3CC12)OCO4.
@@ -4069,7 +4071,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
         "name": "5,8,8a,9-tetrahydrofuro[3',4':6,7]naphtho[2,3-d][1,3]dioxol-6(5aH)-one",
         "substituent_form": "5,8,8a,9-tetrahydrofuro[3',4':6,7]naphtho[2,3-d][1,3]dioxol-6(5aH)-on-yl",
         "alkyl_stem_ok": False,
-        "atom_locants": {1: 6, 2: 7, 3: 8, 4: "8a", 5: 9, 12: 5, 13: "5a"}},
+        "atom_locants": {1: 6, 2: 7, 3: 8, 4: "8a", 5: 9, 6: "9a", 7: 10, 8: "10a", 9: "3a", 10: 4, 11: "4a", 12: 5, 13: "5a", 14: 3, 15: 2, 16: 1}},
 
     # 1,2,3,4,4a,9,10,10a-octahydrophenanthrene — FDA-0462 (abietic acid / diterpene core).
     # RDKit canonical 'c1ccc2c(c1)CCC1CCCCC21' (14 atoms, 3 rings: 2 six-membered aliphatic + 1 aromatic).
@@ -4517,7 +4519,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
         "name": "tetrahydroazeto[2,1-b][1,3]oxazole",
         "substituent_form": "tetrahydroazeto[2,1-b][1,3]oxazol-N-yl",
         "alkyl_stem_ok": False,
-        "atom_locants": {0: 2, 1: 3, 3: 5, 4: 6, 5: "6a", 6: 1}},
+        "atom_locants": {2: 4, 0: 2, 1: 3, 3: 5, 4: 6, 5: "6a", 6: 1}},
 
     # octahydropyridazino[1,2-a][1,2]diazepine: 6+7 fused saturated bicyclic
     # with an N-N bridgehead bond.  Canonical 'C1CCN2CCCCN2CC1' (11 atoms).

@@ -31,13 +31,13 @@ NAMED = [
     ("a methyl on a bridgehead iminium", "CC1CCC[N+]2=C(CC1)CCC2", "8-methyl-2,3,5,6,7,8,9,10-octahydro-1H-pyrrolo[1,2-a]azocin-4-ium"),
     ("the DBU skeleton, charge on the bridgehead", "C1C[N+]2=C(CCCCC2)NC1", "2,3,4,6,7,8,9,10-octahydro-1H-pyrimido[1,2-a]azepin-5-ium"),
     ("the same with an N-methyl", "C1C[N+]2=C(CCCCC2)N(C)C1", "1-methyl-2,3,4,6,7,8,9,10-octahydro-1H-pyrimido[1,2-a]azepin-5-ium"),
-    ("an imidazo-pyridine amidinium", "C1CC[N+]2=C(C1)NCC2", "2,3,5,6,7,8-hexahydro-1H-imidazo[1,2-a]pyridin-4-ium"),
-    ("a pyrido-pyrimidine amidinium", "C1CC[N+]2=C(C1)NCCC2", "1,2,3,4,6,7,8,9-octahydropyrido[1,2-a]pyrimidin-5-ium"),
+    ("an imidazo-pyridine amidinium", "C1CC[N+]2=C(C1)NCC2", "2,3,5,6,7,8-hexahydroimidazo[1,2-a]pyridin-1-ium"),
+    ("a pyrido-pyrimidine amidinium", "C1CC[N+]2=C(C1)NCCC2", "3,4,6,7,8,9-hexahydro-2H-pyrido[1,2-a]pyrimidin-1-ium"),
 ]
 
 # Names that existed before keep them: the same amidinium with the charge on the other nitrogen, its neutral base, and a pyridinium.
 UNCHANGED = [
-    ("the DBU skeleton, charge on the imine nitrogen", "C1CCC2=[NH+]CCCN2CC1", "2,3,4,6,7,8,9,10-octahydropyrimido[1,2-a]azepin-1-ium"),
+    ("the DBU skeleton, charge on the imine nitrogen", "C1CCC2=[NH+]CCCN2CC1", "2,3,4,6,7,8,9,10-octahydro-1H-pyrimido[1,2-a]azepin-5-ium"),
     ("the neutral base", "C1CCC2=NCCCN2CC1", "2,3,4,6,7,8,9,10-octahydropyrimido[1,2-a]azepine"),
     ("an N-methylpyridinium", "C[n+]1ccccc1", "1-methylpyridin-1-ium"),
     ("a quaternary bridgehead ammonium (no double bond)", "C[N+]12CCCC1CCC2", "4-methylhexahydro-1H-pyrrolizin-4-ium"),

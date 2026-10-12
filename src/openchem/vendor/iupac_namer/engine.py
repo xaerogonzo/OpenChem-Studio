@@ -9456,6 +9456,53 @@ def _shift_bridgehead_cation_charge(mol):
     return mol
 
 
+def _canonical_amidinium_form(mol):
+    """The one resonance form of a cyclic amidinium that is named, whichever the caller drew (naming round 41).
+
+    `C1CC[N+]2=C(C1)NCCC2` and `C1CCN2CCC[NH+]=C2C1` are ONE cation (the same InChIKey): the charge sits on either nitrogen of the N-C=N+ unit. The
+    fusion namer numbers them differently, so the two drawings got two different names ("...octahydropyrido[1,2-a]pyrimidin-5-ium" and "...hexahydro-2H-
+    pyrido[1,2-a]pyrimidin-1-ium"), both of which read back. The form with the smaller canonical SMILES is named for both.
+
+    Applies only to a non-aromatic amidinium whose C=N+ and C-N bonds are both ring bonds, in a molecule that has exactly one charged atom and one fragment,
+    with exactly one neutral three-bonded nitrogen on the amidine carbon. Anything else, or a graph that does not sanitise, comes back unchanged."""
+    if len(Chem.GetMolFrags(mol)) != 1 or sum(1 for a in mol.GetAtoms() if a.GetFormalCharge()) != 1:
+        return mol
+    ring_info = mol.GetRingInfo()
+    for a in mol.GetAtoms():
+        if not (a.GetAtomicNum() == 7 and a.GetFormalCharge() == 1 and not a.GetIsAromatic()):
+            continue
+        doubles = [b for b in a.GetBonds() if b.GetBondType() == Chem.BondType.DOUBLE and b.GetOtherAtom(a).GetAtomicNum() == 6]
+        if len(doubles) != 1 or not ring_info.NumBondRings(doubles[0].GetIdx()):
+            continue
+        c = doubles[0].GetOtherAtom(a)
+        partners = [
+            b for b in c.GetBonds()
+            if b.GetOtherAtom(c).GetAtomicNum() == 7 and b.GetOtherAtom(c).GetIdx() != a.GetIdx() and b.GetBondType() == Chem.BondType.SINGLE
+            and b.GetOtherAtom(c).GetFormalCharge() == 0 and not b.GetOtherAtom(c).GetIsAromatic() and ring_info.NumBondRings(b.GetIdx())
+            and all(x.GetBondType() == Chem.BondType.SINGLE for x in b.GetOtherAtom(c).GetBonds())
+        ]
+        if len(partners) != 1:
+            continue
+        other = partners[0].GetOtherAtom(c)
+        rw = Chem.RWMol(mol)
+        rw.GetBondBetweenAtoms(a.GetIdx(), c.GetIdx()).SetBondType(Chem.BondType.SINGLE)
+        rw.GetBondBetweenAtoms(other.GetIdx(), c.GetIdx()).SetBondType(Chem.BondType.DOUBLE)
+        rw.GetAtomWithIdx(a.GetIdx()).SetFormalCharge(0)
+        rw.GetAtomWithIdx(other.GetIdx()).SetFormalCharge(1)
+        for x in (a, other):
+            rw.GetAtomWithIdx(x.GetIdx()).SetNumExplicitHs(x.GetTotalNumHs())
+            rw.GetAtomWithIdx(x.GetIdx()).SetNoImplicit(True)
+        try:
+            alt = rw.GetMol()
+            Chem.SanitizeMol(alt)
+        except Exception:  # noqa: BLE001 - keep the graph the caller gave
+            return mol
+        if Chem.MolToSmiles(alt) < Chem.MolToSmiles(mol):
+            return alt
+        return mol
+    return mol
+
+
 def name_smiles(smiles: str, strategy=None) -> str:
     """Name a molecule from SMILES, with *strategy* bound for the whole call
     (every helper reads it through ``active_strategy()``)."""
@@ -9573,6 +9620,7 @@ def _name_smiles_unchecked(smiles: str, strategy) -> str:
     if mol is None:
         raise ValueError(f"Invalid SMILES: {smiles}")
     mol = _shift_bridgehead_cation_charge(mol)
+    mol = _canonical_amidinium_form(mol)
     # NOTE: the whole-molecule curated-name dispatch (_name_radical_whole_mol /
     # _name_curated_whole_mol) was removed in the anti-pinning cleanup; the
     # backing tables are now empty.  The pipeline below names every molecule

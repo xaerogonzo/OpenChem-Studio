@@ -277,6 +277,51 @@ def _neutralize_ring_charged_n(ring_mol: Chem.Mol) -> Chem.Mol | None:
     return _try(with_h=False)
 
 
+def _ring_has_exocyclic_double_bond(mol, atom_indices) -> bool:
+    ring = set(atom_indices)
+    for i in ring:
+        for b in mol.GetAtomWithIdx(i).GetBonds():
+            if b.GetBondTypeAsDouble() >= 2.0 and b.GetOtherAtomIdx(i) not in ring:
+                return True
+    return False
+
+
+def _neutralize_ring_other_cations(ring_mol: Chem.Mol) -> Chem.Mol | None:
+    """A neutral copy of a ring whose cation is an aromatic [oH+]/[sH+] or a non-aromatic iminium [NH+]= (HW/retained spelling, naming round 41).
+
+    The retained table holds the NEUTRAL ring (furan, thiophene, 3,4-dihydro-2H-pyrrole); the charge is rendered as '-ium' from the full molecule. Only the
+    aromatic [n+] was neutralised before this, so a protonated furan was `oxol-1-ium` and a 1-pyrrolinium `3,4-dihydro-2H-azol-1-ium`, the Hantzsch-Widman
+    spelling beside the retained name the neutral ring has. Returns None when there is no such atom or the neutral ring does not sanitise."""
+    rw = Chem.RWMol(ring_mol)
+    changed = False
+    for a in rw.GetAtoms():
+        if a.GetFormalCharge() != 1:
+            continue
+        if a.GetAtomicNum() in (8, 16) and a.GetIsAromatic():
+            a.SetFormalCharge(0)
+            a.SetNumExplicitHs(0)
+            a.SetNoImplicit(False)
+            changed = True
+        elif a.GetAtomicNum() == 7 and not a.GetIsAromatic() and rw.GetNumAtoms() == 5 and any(
+            b.GetBondType() == Chem.BondType.DOUBLE for b in a.GetBonds()
+        ):
+            # Five-membered rings only: the retained spelling the HW name stood beside is pyrrole/imidazole/oxazole. A six-membered
+            # iminium (a tetrahydropyridinium) took the retained derivation's higher hydro set, "3,4,5,6-", where the name that was
+            # there, "2,3,4,5-", is the lower one (P-31.1.4.3.4).
+            a.SetFormalCharge(0)
+            a.SetNumExplicitHs(0)
+            a.SetNoImplicit(False)
+            changed = True
+    if not changed:
+        return None
+    candidate = rw.GetMol()
+    try:
+        Chem.SanitizeMol(candidate)
+    except Exception:
+        return None
+    return candidate
+
+
 # Backwards-compatibility alias for the pre-generalization name.  External
 # callers (if any) may still import _neutralize_ring_anion; the extended
 # helper handles both [n-] and [n+].
@@ -349,6 +394,10 @@ def extract_ring_mol(ring_system: "RingSystem", mol) -> Chem.Mol | None:
         if frag_mol is not None:
             # Neutralize any aromatic [n-] for scaffold lookup (see docstring).
             neutralized = _neutralize_ring_charged_n(frag_mol)
+            if neutralized is None and not _ring_has_exocyclic_double_bond(mol, atom_indices):
+                # Not for a ring with an exocyclic double bond (a ylidene or oxo): its numbering is decided by the hydro locants and the table's retained
+                # parent would take the higher set (naming round 34, D-209: `5-methylidene-2,3,4,5-tetrahydropyridin-1-ium`).
+                neutralized = _neutralize_ring_other_cations(frag_mol)
             if neutralized is not None:
                 return neutralized
         return frag_mol
