@@ -1,10 +1,18 @@
 """The result envelope: every number the assistant is told carries what gives it meaning.
 
-Run against REAL results from the registry wherever one exists (per-atom, report, spectrum,
-structure set, pH curve, trajectory), because an envelope tested only on hand-built results proves
-that it reads the shapes its author imagined. The two kinds with no calculator to run (the always-on
-descriptor, a computed alert) are built directly, and the failure shapes are built the way
+Run against REAL results from the registry wherever one exists (per-atom, report, structure set,
+pH curve, trajectory), because an envelope tested only on hand-built results proves that it reads the
+shapes its author imagined. The two kinds with no calculator to run (the always-on descriptor, a
+computed alert) are built directly, and the failure shapes are built the way
 `DescriptorService._publish_failed` builds them.
+
+**THE SPECTRUM IS THE ONE KIND THAT CANNOT COME FROM THE REGISTRY ON EVERY MACHINE.** The only
+registry calculator that makes one without ORCA is `nmr_database`, and it refuses "Database not built"
+wherever the shift index has not been built into the data root. It had been built on the machine this
+was written on, so the whole file was green there and three spectrum tests failed on CI's clean runner
+(measured: the same call under an empty `OPENCHEM_DATA_ROOT` returns that refusal). The shared fixture
+therefore uses the suite's `synthetic_nmr_spectrum` on the real aspirin, and a separate test reads the
+real database result where the machine has one.
 """
 
 from __future__ import annotations
@@ -13,6 +21,8 @@ import json
 import math
 
 import pytest
+from conftest import synthetic_nmr_spectrum
+from rdkit import Chem
 
 from openchem.chem.calculation_input import INPUT_PREFIX
 from openchem.chem.engine import ChemistryEngine
@@ -73,7 +83,7 @@ def real():
     return {
         "per_atom": run("crippen_logp_contrib"),
         "report": run("elemental_analysis"),
-        "spectrum": run("nmr_database"),
+        "spectrum": synthetic_nmr_spectrum(Chem.AddHs(Chem.MolFromSmiles(ASPIRIN)), MOL),
         "structure_set": run("tautomers"),
         "ph_curve": run("hbond_vs_ph"),
         "trajectory": run("molecular_dynamics"),
@@ -261,6 +271,21 @@ def test_a_spectrum_lists_its_peaks_with_their_element_and_units(real):
     data = env.envelope_of(_entry(real["spectrum"]))["data"]
     assert data["units"] and data["peak_columns"] == ["atom_index", "element", "value"]
     assert all(len(peak) == 3 and isinstance(peak[1], str) for peak in data["peaks"])
+
+
+def test_the_real_database_spectrum_reads_the_same_way_where_the_machine_has_the_database():
+    """The arm that needs the NMR shift index in the data root. Skipped, and says so, where it is not built."""
+    engine = ChemistryEngine()
+    registry = cli.build_registry()
+    model, _info = cli.build_model(engine, ASPIRIN, conformer=True, seed=1)
+    definition = registry.get("nmr_database")
+    outcome = cli.run_calculator(registry, engine, model, "nmr_database", {p.name: p.default for p in definition.parameters})
+    if outcome.result is None or outcome.result.cache_state is not CacheState.COMPLETED:
+        pytest.skip("the NMR shift database is not built on this machine, so nmr_database refuses")
+    envelope = env.envelope_of(_entry(outcome.result))
+    assert HEADER_KEYS <= set(envelope) and envelope["kind"] == "spectrum" and envelope["outcome"] == "computed"
+    data = envelope["data"]
+    assert data["units"] and data["peak_columns"] == ["atom_index", "element", "value"] and data["peaks"]
 
 
 def test_a_structure_set_gives_counts_and_labels_and_says_what_it_leaves_out(real):
