@@ -4439,6 +4439,18 @@ def _render_amidinium_zwitterion(mol, n_plus_idx: int, strategy, session, depth:
     o.SetFormalCharge(0)
     o.SetNumExplicitHs(1)
     o.SetNoImplicit(True)
+    # Naming round 45: a SECOND, neutral carboxylic acid left two `carboxy` words and no way to say which was the carboxylate, so the molecule was refused. The neutral
+    # acid is named as its methyl ester instead: its prefix `(methoxycarbonyl)` cannot be confused with the carboxylate's `carboxy`, and the two are mapped back below.
+    masked = False
+    acids = mol.GetSubstructMatches(Chem.MolFromSmarts("[CX3](=O)[OX2H1]"))
+    if len(acids) == 1:
+        methyl = rw.AddAtom(Chem.Atom(6))
+        rw.AddBond(acids[0][2], methyl, Chem.BondType.SINGLE)
+        rw.GetAtomWithIdx(acids[0][2]).SetNumExplicitHs(0)
+        rw.GetAtomWithIdx(acids[0][2]).SetNoImplicit(True)
+        masked = True
+    elif len(acids) > 1:
+        return None
     try:
         Chem.SanitizeMol(rw)
     except Exception:
@@ -4449,7 +4461,18 @@ def _render_amidinium_zwitterion(mol, n_plus_idx: int, strategy, session, depth:
     # Exactly one "carboxy" prefix (not "carboxylic" or "carboxylato"; a "carboxamide" has no y): the acid that was the carboxylate.
     if len(re.findall(r"carboxy(?!l)", name)) != 1:
         return None
-    return re.sub(r"carboxy(?!l)", "carboxylato", name)
+    name = re.sub(r"carboxy(?!l)", "carboxylato", name)
+    if masked:
+        # The ester is either a `(methoxycarbonyl)` prefix (on a ring) or, at the end of a chain, `4-methoxy-4-oxo` (the chain's own carbon).
+        as_prefix = re.findall(r"methoxycarbonyl", name)
+        in_chain = re.findall(r"(\d+)-methoxy-\1-oxo", name)
+        if len(as_prefix) + len(in_chain) != 1:
+            return None
+        if as_prefix:
+            name = re.sub(r"\(methoxycarbonyl\)|methoxycarbonyl", "carboxy", name)
+        else:
+            name = re.sub(r"(\d+)-methoxy-\1-oxo", r"\1-hydroxy-\1-oxo", name)
+    return name
 
 
 def _render_amidinium_beside_acid(rw, n_neutral_idx: int, strategy, session, depth: int) -> str | None:

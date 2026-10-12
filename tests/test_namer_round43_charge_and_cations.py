@@ -115,7 +115,9 @@ def test_a_pyrrolinium_has_no_hantzsch_widman_spelling():
 @pytest.mark.parametrize(
     "smiles",
     [
-        "NC(=[NH2+])CC(C(=O)[O-])C(=O)O",  # a zwitterion with a second acid: which carboxy is the carboxylate
+        # Round 45 (D-234) names a zwitterion beside ONE other acid (see test_namer_round45_*); what is still refused is a quaternary carbon carrying both acids,
+        # where the neutral acid cannot be masked and a count still cannot say which carboxy is the carboxylate.
+        "NC(=[NH2+])C(C)(C(=O)[O-])C(=O)O",
     ],
 )
 def test_a_zwitterion_that_cannot_say_which_acid_is_the_carboxylate_is_refused(smiles):
