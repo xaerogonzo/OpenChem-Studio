@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: a spiro compound keeps the stereochemistry of its ring junctions
+- A spiro compound whose stereocentre sits at a primed or lettered position (`3a`, `10b'`, `1'`) lost its descriptor, or cited a junction atom without its letter (`10'` for `10b'`, `3R,3S` for `3aR,3S`, a locant OPSIN cannot place). The census's spiro oxindoles, pyrazolo[1,5-c][1,3]benzoxazines and the camphor spirohydantoin now name the stereoisomer they were drawn as (D-225): census 1979 -> 1987 exact (99.35%); of the census's spiro structures, 35 of 79 stereoisomers read back exactly before and 73 do now, none a different stereoisomer. fresh_v1 re-scored once, 1961 of 2000 read back.
+
 ### Naming: ring cations, cages and amidines on a ring nitrogen
 - A tricyclic bridgehead iminium, a ring-N amidinium cation (a different, neutral molecule before), an amidinium beside a carboxylic acid (refused before), N-substituted fused cations that came out as `(...-ium-1-yl)methane`, the two resonance forms of a bicyclic amidinium (two names), and the adamantane and cubane numbering all read back now (D-220 .. D-224, D-221/D-222, D-212 final form: `N'-benzoyl-1H-pyrazole-1-carboximidamide`). Twelve curated ring entries gained heteroatom locants and three partial rings were completed. Furan, thiophene, pyrroline and imidazoline cations keep their retained spelling. The app's read-back also tries the spelling OPSIN reads for four names whose engine form is right (`N1,N2-...oxamide`, `oxobis[...]phosphanyl`, a bis-adamantane CIP, `bis([1,3]dioxolo)...pyran`), so those are shown verified. Census 1978 -> 1979 exact (98.95%), visible failures 0; fresh_v1 re-scored once, 1956 of 2000 read back (97.8%).
 

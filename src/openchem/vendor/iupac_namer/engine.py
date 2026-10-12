@@ -6317,6 +6317,10 @@ def register_path(decomp_type: str):
 # Stereo-descriptor collection
 # ---------------------------------------------------------------------------
 
+#: Naming methods of a spiro parent (ring_naming/spiro.py); their locants carry primes and junction letters.
+_SPIRO_NAMING_METHODS = frozenset({"spiro_systematic", "spiro_polycyclic", "polyspiro_articulation", "polyspiro_multicomponent", "polyspiro_von_baeyer"})
+
+
 def _collect_stereo_descriptors(
     mol,
     perception,
@@ -6386,6 +6390,7 @@ def _collect_stereo_descriptors(
     skip_tetrahedral = False
     allow_fused_tetrahedral_int_locant = False
     allow_bridged_tetrahedral_int_locant = False
+    allow_spiro_tetrahedral_any_locant = False
     if named_parent is not None:
         ring_sys = named_parent.candidate.ring_system
         if ring_sys is not None and ring_sys.type != "monocyclic":
@@ -6411,6 +6416,12 @@ def _collect_stereo_descriptors(
                 # for fused letter-suffix stereo: emit the descriptors;
                 # validate; if OPSIN rejects, strip and re-assemble.
                 allow_bridged_tetrahedral_int_locant = True
+        # Naming round 42: a spiro system whose partner is bridged or fused is classed "bridged" by perception, so the branch above never saw it. What marks
+        # it is the naming method. Such a name cites primed and lettered locants ("1'", "3a", "10b'"), and a descriptor at one was dropped: the spiro
+        # hydantoin of camphor lost its bridgeheads, the pyrrolo[3,4-c]pyrrole spirooxindoles all four of their ring centres.
+        if getattr(named_parent, "naming_method", "") in _SPIRO_NAMING_METHODS:
+            allow_bridged_tetrahedral_int_locant = True
+            allow_spiro_tetrahedral_any_locant = True
 
     try:
         stereo_centers = perception.stereo.stereocenters
@@ -6482,6 +6493,7 @@ def _collect_stereo_descriptors(
                     # locants (von-Baeyer numbering has no letter suffixes).
                     or (allow_bridged_tetrahedral_int_locant and _is_plain_int_locant)
                     or (_bridged_named_by_fusion and _is_admissible)
+                    or allow_spiro_tetrahedral_any_locant
                 )
                 if not _gate_open:
                     continue

@@ -1503,10 +1503,12 @@ def _try_articulation_split_spiro(
         """
         suffix = "'" if primed else ""
 
-        def _put(full_idx: int, numeric_loc: int):
+        def _put(full_idx: int, numeric_loc: int, letter: str = ""):
             if primed and full_idx == art_atom:
                 return  # first side owns the spiro atom's unprimed locant
-            atom_to_loc[full_idx] = Locant.numeric(numeric_loc, suffix)
+            # Naming round 42: a fused partner's junction locant ("3a", "10b") keeps its letter before the prime ("10b'"). It was rebuilt from the
+            # number alone, so two atoms of one system could share a locant ("3R,3S") and a primed junction centre was cited as "10'".
+            atom_to_loc[full_idx] = Locant.numeric(numeric_loc, letter + suffix)
 
         if side_fb is not None:
             for sub_idx, nloc in side_fb.items():
@@ -1522,7 +1524,7 @@ def _try_articulation_split_spiro(
                 if full_idx is None:
                     continue
                 if loc.is_numeric and loc._numeric_value is not None:
-                    _put(full_idx, loc._numeric_value)
+                    _put(full_idx, loc._numeric_value, loc.suffix if loc.suffix.isalpha() else "")
                 else:
                     # Non-numeric locants (e.g. fused ring junctions like "4a"):
                     # copy as-is with the primed suffix.
