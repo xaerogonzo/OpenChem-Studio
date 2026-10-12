@@ -154,6 +154,20 @@ class ToolBridge:
             return self._unavailable()
         turn = self._turn
         prepared = self._calculations.prepare(turn, calculator_id, dict(parameters or {}))
+        if prepared.service_preview is not None:
+            preview = prepared.service_preview
+            self._emit(BridgeEvent(
+                "service_preview", calculator_id, turn.display_name, detail=f"run it from the {preview.panel_name}",
+                preparation=preview.to_dict(),
+            ))
+            return _plain({
+                "ok": False, "started": False, "state": "preview_only", "service_preview": preview.to_dict(),
+                "message": (
+                    f"You cannot start this: it runs from the {preview.panel_name}. The user has been shown what it would "
+                    f"take and whether this machine is ready. Tell them what you found there, and that they can run it "
+                    f"from that panel. State no result: nothing was computed."
+                ),
+            })
         if not prepared.ok:
             self._emit(BridgeEvent(
                 "refused", calculator_id, turn.display_name,

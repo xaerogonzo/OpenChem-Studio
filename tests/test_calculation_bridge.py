@@ -234,3 +234,43 @@ def test_a_value_for_a_switched_off_setting_is_kept_in_the_dict_and_flagged_as_i
 def test_no_parameters_at_all_is_a_valid_request_for_a_calculator_without_any():
     result = validate_parameters(_definition([]), None)
     assert result.ok and dict(result.parameters) == {}
+
+
+# --- service previews ---------------------------------------------------------------------------------
+
+
+def test_a_service_preview_is_ready_only_when_every_requirement_is_met_and_is_never_startable_here():
+    from openchem.domain.calculation_bridge import Requirement, ServicePreview
+
+    def preview(*oks):
+        return ServicePreview(
+            calculator_id="orca.sp", display_name="Single Point", panel_id="Quantum_Chemistry",
+            panel_name="Quantum Chemistry panel", summary=("it runs ORCA",),
+            requirements=tuple(Requirement(f"r{i}", ok, "" if ok else "do the thing") for i, ok in enumerate(oks)),
+        )
+
+    assert preview(True, True).ready is True and preview(True, False).ready is False
+    assert preview(True).can_start_here is False
+    data = preview(True, False).to_dict()
+    json.dumps(data)
+    assert data["ready_to_run_there"] is False and data["panel_id"] == "Quantum_Chemistry"
+    assert data["requirements"] == [{"what": "r0", "ok": True}, {"what": "r1", "ok": False, "how_to_fix": "do the thing"}]
+
+
+def test_the_docking_service_and_the_vina_provider_report_availability_without_starting_anything():
+    from openchem.chem.docking_providers import VinaDockingProvider
+    from openchem.services.docking_service import DockingService
+    from openchem.events.base import EventBus
+    from openchem.app.settings import Settings
+
+    class _Engine:
+        engine_id = "fake"
+
+        def version(self):
+            return "0"
+
+    bus = EventBus()
+    assert VinaDockingProvider(engine=_Engine()).is_available() is True
+    service = DockingService(bus, Settings(bus), providers={"fake": VinaDockingProvider(engine=_Engine())})
+    assert service.is_available() is True
+    assert DockingService(bus, Settings(bus), providers={}).is_available() is False

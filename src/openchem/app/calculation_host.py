@@ -54,7 +54,9 @@ from openchem.domain.calculation_bridge import (
     CalculatorCard,
     Problem,
     ProblemCode,
+    Requirement,
     Route,
+    ServicePreview,
     build_card,
     route_of,
     validate_parameters,
@@ -224,7 +226,7 @@ class CalculationHost(QObject):
         if route is Route.BLOCKED:
             return PrepareResult(problems=(Problem(ProblemCode.NOT_FOR_MOLECULES, why),))
         if route is Route.PREVIEW_ONLY:
-            return PrepareResult(problems=(Problem(ProblemCode.SERVICE_RUN, why),))
+            return self._service_preview_result(definition, turn, parameters, why)
         if not turn.has_structure:
             return PrepareResult(problems=(Problem(
                 ProblemCode.NO_STRUCTURE, f"{turn.display_name} has no drawn structure yet, so there is nothing to calculate"
@@ -274,6 +276,71 @@ class CalculationHost(QObject):
         )
         self._ledger.register(preparation)
         return PrepareResult(preparation=preparation)
+
+    def _service_preview_result(self, definition, turn: TurnContext, parameters, why: str) -> PrepareResult:
+        """What a service-run calculator would take, with nothing prepared and nothing started.
+
+        The settings are validated exactly like a registry calculator's, so a model that names a method
+        the service does not offer is told so. The requirements are read from the live application: the
+        executable that is configured NOW, the conformer the molecule has NOW. See `ServicePreview`.
+        """
+        if not turn.has_structure:
+            return PrepareResult(problems=(Problem(
+                ProblemCode.NO_STRUCTURE, f"{turn.display_name} has no drawn structure yet, so there is nothing to calculate"
+            ),))
+        validation = validate_parameters(definition, parameters, smiles_ok=self._smiles_ok)
+        if not validation.ok:
+            return PrepareResult(problems=validation.problems)
+        policy = policy_of(definition)
+        preview = ServicePreview(
+            calculator_id=definition.calculator_id,
+            display_name=definition.display_name,
+            panel_id=definition.execution.panel_id,
+            panel_name=definition.execution.panel_name,
+            summary=(
+                (definition.description or "").strip()[:500],
+                policy.why_confirm,
+                "Settings it would run with: "
+                + (", ".join(f"{k}={v!r}" for k, v in validation.parameters.items()) or "none") + ".",
+            ),
+            requirements=self._service_requirements(definition, turn),
+            parameters=dict(validation.parameters),
+            external_tools=tuple(sorted(policy.external_tools)),
+        )
+        return PrepareResult(problems=(Problem(ProblemCode.SERVICE_RUN, why),), service_preview=preview)
+
+    def _service_requirements(self, definition, turn: TurnContext) -> tuple[Requirement, ...]:
+        """What this service needs, checked against the application as it is now. Starts nothing.
+
+        A requirement that is met carries no hint (see `Requirement`): the hint is only for what is missing.
+        """
+
+        def need(what: str, ok: bool, how_to_fix: str) -> Requirement:
+            return Requirement(what, ok, "" if ok else how_to_fix)
+
+        service = definition.execution.service_name
+        requirements = [need(f"a drawn structure for {turn.display_name}", turn.has_structure, "draw or import one")]
+        if definition.calculator_id != "lewis_hsab":
+            requirements.append(need(
+                f"a 3D conformer for {turn.display_name}", turn.conformer_count > 0,
+                "generate conformers first, from the Conformers tools",
+            ))
+        if service == "quantum_chemistry_service":
+            requirements.append(need(
+                "the ORCA executable", self._services.quantum_chemistry_service.orca_executable() is not None,
+                "set its path in Tools > External Tools",
+            ))
+        elif service == "docking_service":
+            project = self._session.project
+            requirements.append(need(
+                "a receptor macromolecule in the project", bool(project and project.macromolecules),
+                "import one with Import Macromolecule",
+            ))
+            requirements.append(need(
+                "AutoDock Vina", self._services.docking_service.is_available(),
+                "set its path in Tools > External Tools",
+            ))
+        return tuple(requirements)
 
     # --- running (a worker thread) ---------------------------------------------------------------
 

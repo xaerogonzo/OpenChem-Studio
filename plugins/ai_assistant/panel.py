@@ -144,6 +144,55 @@ class _PreviewCard(QFrame):
         self.cancel_clicked.emit(self.run_id)
 
 
+class _ServiceCard(QFrame):
+    """What a job that runs from its own panel (ORCA, Vina) would take, and whether this machine is ready.
+
+    There is NO Approve here, because there is nothing to approve: the assistant cannot start these, so the
+    card offers the one thing that can help, opening the panel that owns the job.
+    """
+
+    open_clicked = Signal(str)
+    dismiss_clicked = Signal(str)
+
+    def __init__(self, key: str, preview: dict, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.key = key
+        self.panel_id: str = str(preview.get("panel_id", ""))
+        self.setObjectName("AIServicePreviewCard")
+        self.setFrameShape(QFrame.Shape.StyledPanel)
+        lines = [line for line in preview.get("summary", []) if line]
+        for requirement in preview.get("requirements", []):
+            mark = "ready" if requirement.get("ok") else "missing"
+            fix = f" ({requirement['how_to_fix']})" if requirement.get("how_to_fix") else ""
+            lines.append(f"[{mark}] {requirement.get('what', '')}{fix}")
+        title = QLabel(f"<b>{html.escape(str(preview.get('name', 'Calculation')))}</b>: run it from the "
+                       f"{html.escape(str(preview.get('run_it_from', 'its own panel')))}", self)
+        title.setWordWrap(True)
+        body = QLabel("\n".join(lines), self)
+        body.setWordWrap(True)
+        body.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.open_button = QPushButton(f"Open {preview.get('run_it_from', 'panel')}", self)
+        self.open_button.setObjectName("AIServiceOpen")
+        self.dismiss_button = QPushButton("Dismiss", self)
+        self.dismiss_button.setObjectName("AIServiceDismiss")
+        self.open_button.clicked.connect(self._on_open)
+        self.dismiss_button.clicked.connect(self._on_dismiss)
+        buttons = QHBoxLayout()
+        buttons.addStretch()
+        buttons.addWidget(self.open_button)
+        buttons.addWidget(self.dismiss_button)
+        layout = QVBoxLayout(self)
+        layout.addWidget(title)
+        layout.addWidget(body)
+        layout.addLayout(buttons)
+
+    def _on_open(self, _checked: bool = False) -> None:
+        self.open_clicked.emit(self.panel_id)
+
+    def _on_dismiss(self, _checked: bool = False) -> None:
+        self.dismiss_clicked.emit(self.key)
+
+
 class _ProviderSettingsDialog(QDialog):
     """API-key providers (Anthropic/OpenAI/Ollama) and ClaudeCLIProvider
     need genuinely different configuration -- the latter authenticates via
@@ -249,6 +298,8 @@ class AIAssistantPanel(QWidget):
         #: what happened to a preview since the last message, held to go with the next one.
         self._notes: list[str] = []
         self._cards: dict[str, _PreviewCard] = {}
+        self._service_cards: dict[str, _ServiceCard] = {}
+        self._service_count = 0
         self._ledger_rows: dict[str, QListWidgetItem] = {}
         self._refusal_count = 0
 
@@ -539,6 +590,9 @@ class AIAssistantPanel(QWidget):
                 self._ledger_text(event.calculator, event.molecule, _STATE_LABELS["rejected"], event.detail),
             )
             return
+        if event.kind == "service_preview":
+            self._add_service_card(event)
+            return
         self._runs[event.run_id] = (event.calculator, event.molecule)
         if event.kind == "previewed":
             self._awaiting.add(event.run_id)
@@ -555,6 +609,35 @@ class AIAssistantPanel(QWidget):
                 ),
             )
 
+    def _add_service_card(self, event: BridgeEvent) -> None:
+        self._service_count += 1
+        key = f"service-{self._service_count}"
+        card = _ServiceCard(key, event.preparation, self._cards_host)
+        card.open_clicked.connect(self._on_open_service_panel)
+        card.dismiss_clicked.connect(self._on_dismiss_service)
+        self._service_cards[key] = card
+        self._cards_layout.addWidget(card)
+        self._cards_host.setVisible(True)
+        self._set_ledger(
+            key, self._ledger_text(event.calculator, event.molecule, "cannot be started from here", event.detail)
+        )
+
+    def _on_open_service_panel(self, panel_id: str) -> None:
+        if panel_id:
+            self._context.panels.reveal(panel_id)
+
+    def _on_dismiss_service(self, key: str) -> None:
+        card = self._service_cards.pop(key, None)
+        if card is not None:
+            self._cards_layout.removeWidget(card)
+            card.setParent(None)
+            card.deleteLater()
+        self._cards_host.setVisible(bool(self._cards or self._service_cards))
+
+    def service_preview_keys(self) -> list[str]:
+        """Service-run previews on screen."""
+        return list(self._service_cards)
+
     def _add_card(self, event: BridgeEvent) -> None:
         card = _PreviewCard(event.preparation, self._cards_host)
         card.approve_clicked.connect(self._on_approve)
@@ -569,7 +652,7 @@ class AIAssistantPanel(QWidget):
             self._cards_layout.removeWidget(card)
             card.setParent(None)
             card.deleteLater()
-        self._cards_host.setVisible(bool(self._cards))
+        self._cards_host.setVisible(bool(self._cards or self._service_cards))
 
     def pending_run_ids(self) -> list[str]:
         """Previews on screen waiting for a decision."""

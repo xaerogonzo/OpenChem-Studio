@@ -174,6 +174,65 @@ class CalculatorCard:
         }
 
 
+@dataclass(frozen=True)
+class Requirement:
+    """One thing a service-run job needs, and whether it is there NOW."""
+
+    what: str
+    ok: bool
+    #: What to do when it is not there. Empty when it is.
+    how_to_fix: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        data: dict[str, Any] = {"what": self.what, "ok": self.ok}
+        if self.how_to_fix:
+            data["how_to_fix"] = self.how_to_fix
+        return data
+
+
+@dataclass(frozen=True)
+class ServicePreview:
+    """What running a service-run calculator (ORCA, Vina) WOULD take, with nothing started.
+
+    **A PREVIEW IS NOT A JOB.** Dispatching these needs an adapter and a confirmed-approval path of its
+    own (`docs/AI_CALCULATION_BRIDGE.md`, section 4); until then the assistant can describe the work and
+    say whether this machine could do it, and the person starts it from the panel that owns it. So
+    `can_start_here` is False and there is no run id: nothing here can be approved, and a model that is
+    given one has nothing to wait for.
+    """
+
+    calculator_id: str
+    display_name: str
+    panel_id: str
+    panel_name: str
+    #: What the job would do, in sentences.
+    summary: tuple[str, ...]
+    requirements: tuple[Requirement, ...]
+    #: The validated settings it would run with (the dialog's dict).
+    parameters: Mapping[str, Any] = field(default_factory=dict)
+    external_tools: tuple[str, ...] = ()
+    can_start_here: bool = False
+
+    @property
+    def ready(self) -> bool:
+        """Every requirement is met on this machine right now."""
+        return all(r.ok for r in self.requirements)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "calculator_id": self.calculator_id,
+            "name": self.display_name,
+            "can_start_here": self.can_start_here,
+            "run_it_from": self.panel_name,
+            "panel_id": self.panel_id,
+            "ready_to_run_there": self.ready,
+            "summary": list(self.summary),
+            "requirements": [r.to_dict() for r in self.requirements],
+            "parameters": dict(self.parameters),
+            "external_tools": list(self.external_tools),
+        }
+
+
 def route_of(definition: CalculatorDefinition) -> tuple[Route, str]:
     """Which `Route` a definition is on, and the sentence that says why."""
     if MOLECULE not in definition.applies_to:

@@ -169,7 +169,7 @@ def _load_assistant(world, tmp_path):
     manager = PluginManager(world.services, ui, settings, world.host)
     manager.load_all()
     assert "ai_assistant" in manager.loaded_plugin_ids
-    return manager, ui.panels["AI Assistant"]
+    return manager, ui.panels["AI Assistant"], ui
 
 
 class _Rig:
@@ -178,7 +178,7 @@ class _Rig:
     def __init__(self, qapp, tmp_path, held=True):
         self.qapp = qapp
         self.world = _World(qapp, held=held)
-        self.manager, self.panel = _load_assistant(self.world, tmp_path)
+        self.manager, self.panel, self.ui = _load_assistant(self.world, tmp_path)
 
     def bridge(self):
         """A bridge for a turn frozen NOW, as Send would, on the GUI thread."""
@@ -285,15 +285,43 @@ def test_an_invalid_setting_is_refused_with_every_problem_and_nothing_starts(rig
     assert any("not started" in line for line in rig.panel.ledger_lines())
 
 
-def test_a_calculator_a_model_invents_or_cannot_start_is_refused_plainly(rig):
-    provider = _two_step([
-        _call("run_calculator", calculator_id="no_such_calculator"),
-        ToolCall(id="t2", name="run_calculator", input={"calculator_id": "orca.sp"}),
-    ])
+def test_a_calculator_a_model_invents_is_refused_plainly(rig):
+    provider = _two_step([_call("run_calculator", calculator_id="no_such_calculator")])
     thread, _ = rig.loop(provider, rig.bridge())
     rig.settle(thread)
-    codes = [json.loads(m.content)["problems"][0]["code"] for m in _tool_message(provider)]
-    assert codes == ["unknown_calculator", "service_run"] and rig.world.pool.tasks == []
+    data = json.loads(_tool_message(provider)[0].content)
+    assert data["problems"][0]["code"] == "unknown_calculator" and rig.world.pool.tasks == []
+
+
+def test_a_service_run_calculator_is_described_with_what_it_would_take_and_cannot_be_started(rig):
+    provider = _two_step([_call("run_calculator", calculator_id="orca.sp")])
+    thread, _ = rig.loop(provider, rig.bridge())
+    rig.settle(thread)
+    reply = json.loads(_tool_message(provider)[0].content)
+    assert reply["state"] == "preview_only" and reply["started"] is False and "You cannot start this" in reply["message"]
+    preview = reply["service_preview"]
+    assert preview["can_start_here"] is False and preview["run_it_from"] == "Quantum Chemistry panel"
+    assert {r["what"] for r in preview["requirements"]} >= {"the ORCA executable"}
+    assert "run_id" not in reply and rig.world.pool.tasks == [] and rig.world.host.pending() == ()
+
+    rig.qapp.processEvents()
+    (key,) = rig.panel.service_preview_keys()
+    card = rig.panel._service_cards[key]
+    assert not hasattr(card, "approve_button"), "nothing to approve: the assistant cannot start these"
+    assert rig.panel.pending_run_ids() == []
+    assert any("cannot be started from here" in line for line in rig.panel.ledger_lines())
+
+
+def test_the_service_card_opens_the_panel_that_owns_the_job_and_can_be_dismissed(rig):
+    provider = _two_step([_call("run_calculator", calculator_id="orca.sp")])
+    thread, _ = rig.loop(provider, rig.bridge())
+    rig.settle(thread)
+    (key,) = rig.panel.service_preview_keys()
+    card = rig.panel._service_cards[key]
+    card.open_button.click()
+    assert rig.ui.revealed_panels[-1] == "Quantum_Chemistry"
+    card.dismiss_button.click()
+    assert rig.panel.service_preview_keys() == [] and rig.panel._cards_host.isHidden()
 
 
 def test_a_request_that_needs_a_person_leaves_a_preview_and_starts_nothing(rig):
