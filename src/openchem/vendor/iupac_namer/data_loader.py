@@ -559,8 +559,10 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # scaffolds are unsubstituted parents (the audit probes only the parent
     # form); substituent numbering on them is deferred. (Naming round 14 filled heptacene, octacene, nonacene and the phene series pentaphene to
     # octaphene, each table one of the numberings `fusion_general.name_fusion` derives under P-25.3.3; the pentacene and hexacene tables below
-    # are one of those too, which is the check that the derivation agrees with the OPSIN-probed ones. The helicenes stay unnumbered: the orientation
-    # module declines them, "a helicene is oriented and numbered by its own rule" (P-25.3.3.1.1), which nothing here implements.)
+    # are one of those too, which is the check that the derivation agrees with the OPSIN-probed ones. The helicenes (below) are numbered from OPSIN: the orientation
+    # module declines them, "a helicene is oriented and numbered by its own rule" (P-25.3.3.1.1), which nothing here implements, so the table is the
+    # perimeter walk whose symmetry classes are the ones OPSIN reads for `k-chloro<helicene>` (naming round 43, D-228); only the CH numerals are given, the
+    # junction letters are filled by `fusion_locants.derive_fusion_locants`.)
     # -----------------------------------------------------------------------
     # Pentacene (Stage 14 R14-A-2) — 5-ring linear acene (D2h), 22 atoms:
     # 14 peripheral CH + 8 ring-junction. Canonical (RDKit) key as above.
@@ -658,10 +660,14 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # polyaromatic hydrocarbons.  Canonical SMILES from OPSIN
     # pentahelicene/hexahelicene/heptahelicene/octahelicene.
     # -----------------------------------------------------------------------
-    "c1ccc2c(c1)ccc1ccc3ccc4ccccc4c3c12":                                 {"name": "pentahelicene", "substituent_form": "pentahelicenyl", "alkyl_stem_ok": False},
-    "c1ccc2c(c1)ccc1ccc3ccc4ccc5ccccc5c4c3c12":                           {"name": "hexahelicene",  "substituent_form": "hexahelicenyl",  "alkyl_stem_ok": False},
-    "c1ccc2c(c1)ccc1ccc3ccc4ccc5ccc6ccccc6c5c4c3c12":                     {"name": "heptahelicene", "substituent_form": "heptahelicenyl", "alkyl_stem_ok": False},
-    "c1ccc2c(c1)ccc1ccc3ccc4ccc5ccc6ccc7ccccc7c6c5c4c3c12":               {"name": "octahelicene",  "substituent_form": "octahelicenyl",  "alkyl_stem_ok": False},
+    "c1ccc2c(c1)ccc1ccc3ccc4ccccc4c3c12":                                 {"name": "pentahelicene", "substituent_form": "pentahelicenyl", "alkyl_stem_ok": False,
+        "atom_locants": {0: 12, 1: 13, 2: 14, 5: 11, 6: 10, 7: 9, 9: 8, 10: 7, 12: 6, 13: 5, 15: 4, 16: 3, 17: 2, 18: 1}},
+    "c1ccc2c(c1)ccc1ccc3ccc4ccc5ccccc5c4c3c12":                           {"name": "hexahelicene",  "substituent_form": "hexahelicenyl",  "alkyl_stem_ok": False,
+        "atom_locants": {0: 14, 1: 15, 2: 16, 5: 13, 6: 12, 7: 11, 9: 10, 10: 9, 12: 8, 13: 7, 15: 6, 16: 5, 18: 4, 19: 3, 20: 2, 21: 1}},
+    "c1ccc2c(c1)ccc1ccc3ccc4ccc5ccc6ccccc6c5c4c3c12":                     {"name": "heptahelicene", "substituent_form": "heptahelicenyl", "alkyl_stem_ok": False,
+        "atom_locants": {0: 16, 1: 17, 2: 18, 5: 15, 6: 14, 7: 13, 9: 12, 10: 11, 12: 10, 13: 9, 15: 8, 16: 7, 18: 6, 19: 5, 21: 4, 22: 3, 23: 2, 24: 1}},
+    "c1ccc2c(c1)ccc1ccc3ccc4ccc5ccc6ccc7ccccc7c6c5c4c3c12":               {"name": "octahelicene",  "substituent_form": "octahelicenyl",  "alkyl_stem_ok": False,
+        "atom_locants": {0: 18, 1: 19, 2: 20, 5: 17, 6: 16, 7: 15, 9: 14, 10: 13, 12: 12, 13: 11, 15: 10, 16: 9, 18: 8, 19: 7, 21: 6, 22: 5, 24: 4, 25: 3, 26: 2, 27: 1}},
 
     # -----------------------------------------------------------------------
     # Polyalene series (IUPAC P-25.1.2.3) — two identical ortho-fused

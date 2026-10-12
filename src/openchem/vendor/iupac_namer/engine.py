@@ -9614,6 +9614,49 @@ def _check_nuclides_named(mol, name: str) -> None:
         )
 
 
+#: Every ending an alkoxide / thiolate takes in a name: the suffix (`olate`, `thiolate`), the retained alkoxide (`ethoxide`, `tert-butoxide`), a prefix (`oxido`, `sulfido`), a parent anion (`sulfanide`).
+_CHALCOGEN_ANION_WORD = re.compile(r"olate|thiolate|selenolate|tellurolate|oxide|oxido|sulfido|sulfanid|selenido|tellanido")
+_NEUTRAL_CHALCOGEN_PREFIX = {"O": ("hydroxy", "oxido"), "S": ("sulfanyl", "sulfido")}
+
+
+def _restore_dropped_chalcogen_anion(mol, name: str) -> str:
+    """Give a deprotonated alcohol or thiol back to a name that wrote it neutral, or refuse (naming round 43, D-227).
+
+    `N#Cc1ccc([O-])cc1` was `4-hydroxybenzene-1-carbonitrile`, `NC(=O)c1ccc([S-])cc1` `4-sulfanylbenzene-1-carboxamide`: a group senior to the thiol or alcohol
+    took the suffix, the site became a `hydroxy` / `sulfanyl` prefix, and the charge was in no word of the name. That is the neutral compound, a different molecule, and nothing
+    in the output said so. When the molecule is a single fragment with C-bonded O- / S- sites (not a carboxylate, which an acid suffix expresses) and the name has no
+    anion word, the site is cited as `oxido` / `sulfido` if the neutral prefix occurs exactly as often as there are sites (so no real OH or SH is rewritten);
+    otherwise the name is refused, as a lost nuclide is."""
+    if "NAMING ERROR" in name or len(Chem.GetMolFrags(mol)) != 1:
+        return name
+    sites = []
+    for atom in mol.GetAtoms():
+        if atom.GetFormalCharge() != -1 or atom.GetSymbol() not in _NEUTRAL_CHALCOGEN_PREFIX or atom.GetDegree() != 1 or atom.GetTotalNumHs():
+            continue
+        nb = atom.GetNeighbors()[0]
+        if nb.GetAtomicNum() != 6 or any(
+            b.GetBondTypeAsDouble() == 2.0 and b.GetOtherAtom(nb).GetAtomicNum() in (8, 16) for b in nb.GetBonds()
+        ):
+            continue
+        sites.append(atom)
+    if not sites or _CHALCOGEN_ANION_WORD.search(name):
+        return name
+    elements = {a.GetSymbol() for a in sites}
+    if len(elements) == 1:
+        neutral, anionic = _NEUTRAL_CHALCOGEN_PREFIX[next(iter(elements))]
+        pattern = re.compile(rf"(?<![a-z])((?:di|tri|tetra|penta|hexa)?){neutral}(?![a-z]*(?:idene|idyne))")
+        mult = {"": 1, "di": 2, "tri": 3, "tetra": 4, "penta": 5, "hexa": 6}
+        found = sum(mult[m.group(1)] for m in pattern.finditer(name))
+        if found == 0:
+            return name  # no neutral `hydroxy` / `sulfanyl` in the name: not the symptom (`thiocyanate`, a retained anion), so nothing to repair
+        if found == len(sites):
+            return pattern.sub(lambda m: f"{m.group(1)}{anionic}", name)
+    raise ValueError(
+        f"No name found that keeps the negative charge on {len(sites)} alkoxide / thiolate site(s) "
+        f"(the nearest name, {name!r}, is the neutral compound's)."
+    )
+
+
 def _name_smiles_bound(smiles: str, strategy) -> str:
     """Name a molecule from SMILES, *strategy* already bound (never None); refuse a name that loses a nuclide.
 
@@ -9623,6 +9666,7 @@ def _name_smiles_bound(smiles: str, strategy) -> str:
     mol = Chem.MolFromSmiles(smiles)
     if mol is not None:
         _check_nuclides_named(mol, name)
+        name = _restore_dropped_chalcogen_anion(mol, name)
     return name
 
 

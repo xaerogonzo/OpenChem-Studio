@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: amidinium zwitterions, charges that were dropped, pyrrolinium spelling, helicenes
+- An amidinium beside a carboxylate, a carboxyl or a second carbonyl was refused; it is named now (`carboxylatoacetamidinium`, `carboxyformamidinium`) (D-226). A thiolate or phenolate beside a nitrile, aldehyde or amide was named as the NEUTRAL compound (`N#Cc1ccc([O-])cc1` was `4-hydroxybenzene-1-carbonitrile`, a different molecule); it keeps its charge now (`4-oxidobenzene-1-carbonitrile`), and a name that cannot place the charge is refused instead (D-227). N-substituted 1-pyrrolinium and imidazolinium cations take the retained spelling (`1-methyl-3,4-dihydro-2H-pyrrol-1-ium`), and penta- to octahelicene have atom locants (D-228: 224 of 260 sweep cases named another isomer, now 0). Census 1987 -> 1989 exact (99.45%); fresh_v1 re-scored once, 1962 of 2000 read back.
+
 ### Docking and interactions: fluorine is a metal donor to the hard cations, not to the transition metals
 - A fluorine read the metal's oxygen window for every metal, an assumption with no source. Plenio's CSD surveys and Murray-Rust
   et al. support organic fluorine as a weak donor to sodium (2.30 to 2.67 angstrom), potassium (2.80) and calcium (2.52), and

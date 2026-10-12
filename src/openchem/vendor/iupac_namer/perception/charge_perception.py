@@ -819,6 +819,17 @@ def _classify_amidinium(mol) -> Iterable[ChargeClassification]:
             continue
         # Site atoms = central C + both Ns.
         site = (atom.GetIdx(), eq_n_plus, s_n)
+        # D-226 (naming round 43): the zwitterion `NC(=[NH2+])CC(=O)[O-]` has a lone carboxylate; detect() refused it as a partial claim because that
+        # oxygen's charge was claimed by no one. The amidinium is the cation and takes the carboxylate along (cited as "carboxylato").
+        anions = [a.GetIdx() for a in mol.GetAtoms() if a.GetFormalCharge() < 0]
+        cations = [a.GetIdx() for a in mol.GetAtoms() if a.GetFormalCharge() > 0]
+        if len(cations) == 1 and len(anions) == 1:
+            o = mol.GetAtomWithIdx(anions[0])
+            if o.GetAtomicNum() == 8 and o.GetDegree() == 1 and any(
+                n.GetAtomicNum() == 6 and any(b.GetBondTypeAsDouble() == 2.0 and b.GetOtherAtom(n).GetAtomicNum() == 8 for b in n.GetBonds())
+                for n in o.GetNeighbors()
+            ):
+                site = site + (anions[0],)
         yield ChargeClassification(
             site_atom_indices=site,
             charge_sign="+",
@@ -3234,7 +3245,36 @@ def _render_acidic_anion(
     name = assemble(tree)
     if name is None or "NAMING ERROR" in name:
         return None
-    return _balance_the_charge_ledger(name, tree, len(cls.site_atom_indices), cls.suffix_hint)
+    name = _balance_the_charge_ledger(name, tree, len(cls.site_atom_indices), cls.suffix_hint)
+    if name is None or cls.suffix_hint != "acidic_anion_olate":
+        return name
+    return _chalcogen_anion_as_prefix(name, mol, cls)
+
+
+_ANION_ENDING = re.compile(r"(olate|thiolate|selenolate|tellurolate|oxide|ate)(?![a-z])|(?<![a-z])(oxido|sulfido|selenido|tellanido)")
+_CHALCOGEN_PREFIX = {"O": ("hydroxy", "oxido"), "S": ("sulfanyl", "sulfido")}
+
+
+def _chalcogen_anion_as_prefix(name: str, mol, cls: ChargeClassification) -> str | None:
+    """A thiolate or phenolate beside a senior group is cited as a prefix, never dropped (D-227, naming round 43).
+
+    The renderer re-protonates the site and names the neutral parent. When a group that outranks the thiol or alcohol (a nitrile, an aldehyde, an amide) is the
+    parent's suffix, the engine writes the site as `sulfanyl` / `hydroxy` and the charge is gone from the name: `N#Cc1ccc([S-])cc1` was
+    `4-sulfanylbenzene-1-carbonitrile`, the neutral compound. P-73 makes the anion the senior class, so the parent of the name would be the thiolate
+    (`4-cyanobenzene-1-thiolate`); that needs the engine to choose its principal group by charge. Until then the anion is the `sulfido` / `oxido` prefix, which
+    OPSIN reads and which is the book's form for an anion that is not the principal group. Only when the count of neutral `sulfanyl` / `hydroxy` words equals the
+    number of sites, so no real SH or OH is rewritten; otherwise None (a refusal, not a name for another molecule)."""
+    if _ANION_ENDING.search(name):
+        return name
+    elements = {mol.GetAtomWithIdx(i).GetSymbol() for i in cls.site_atom_indices}
+    if len(elements) != 1 or next(iter(elements)) not in _CHALCOGEN_PREFIX:
+        return None
+    neutral, anionic = _CHALCOGEN_PREFIX[next(iter(elements))]
+    pattern = re.compile(rf"(?<![a-z])((?:di|tri|tetra|penta|hexa)?){neutral}(?![a-z]*(?:idene|idyne))")
+    found = sum(_MULTIPLIER_VALUE[m.group(1)] for m in pattern.finditer(name))
+    if found != len(cls.site_atom_indices):
+        return None
+    return pattern.sub(lambda m: f"{m.group(1)}{anionic}", name)
 
 
 def _render_amine_anion(
@@ -4306,7 +4346,13 @@ def _render_amidinium(
     acid ``-C(=O)OH`` so the engine can name the parent acid; we then
     transform the acid name into the amidinium form.
     """
-    c_idx, n_plus_idx, n_neutral_idx = cls.site_atom_indices
+    c_idx, n_plus_idx, n_neutral_idx, *_carboxylate = cls.site_atom_indices
+    # D-226 (naming round 43): an amidinium beside a CARBOXYLATE (the zwitterion `NC(=[NH2+])CC(=O)[O-]`) was refused: the surrogate acid was a dianion
+    # no name transform reads. The carboxylate is protonated, the cation is named like any amidinium beside an acid (D-224), and the acid's "carboxy"
+    # prefix is the carboxylate's "carboxylato" (a cation outranks an anion, P-73 / P-41: the amidinium is the parent, the anion a prefix).
+    zwitterion = _render_amidinium_zwitterion(mol, n_plus_idx, strategy, session, depth)
+    if zwitterion is not None:
+        return zwitterion
     # Convert =[NH2+] -> =O and -NH2 -> -OH (i.e. emulate the parent
     # carboxylic acid by mutating in place).  RDKit's RWMol supports
     # bond-order changes via GetBondBetweenAtoms.
@@ -4335,9 +4381,51 @@ def _render_amidinium(
     # diacid, and the name transform turned BOTH acids into amidiniums ("butanediamidinium" for NC(=[NH2+])CCC(=O)O, "benzene-1,4-di-1-amidinium" for the
     # 4-carboxy benzamidinium): another molecule. A cation outranks an acid (P-41, Table 4.1), so the amidinium is the parent and the other acid a "carboxy"
     # prefix; the tail is therefore stood in for by a CARBOXYLATE, which outranks any acid group, and the engine's name of that anion is turned into the cation's.
+    oxalyl = _oxalyl_amidinium(parent_name)
+    if oxalyl is not None:
+        return oxalyl
     if re.search(r"(di|tri|tetra)(carboxylic|oic|carbonic)|dicarboxy|dioic", parent_name):
         return _render_amidinium_beside_acid(rw, n_neutral_idx, strategy, session, depth)
     return _acid_name_to_amidinium(parent_name)
+
+
+def _oxalyl_amidinium(parent_name: str) -> str | None:
+    """``carboxyformamidinium`` for `NC(=[NH2+])C(=O)O` (D-226).
+
+    An amidinium carbon bonded straight to a carboxyl has OXALIC ACID as its surrogate, which no `-oic acid` transform reads. The amidinium is the parent (one
+    carbon, `formamidinium`) and the carboxyl a prefix. The other carbonyls on that carbon (an ester, an amide) have surrogates the engine writes as
+    `methoxy(oxo)acetic acid` and the like, which the ordinary transform already turns into `methoxy(oxo)acetamidinium`."""
+    if parent_name == "oxalic acid":
+        return "carboxyformamidinium"
+    return None
+
+
+def _render_amidinium_zwitterion(mol, n_plus_idx: int, strategy, session, depth: int) -> str | None:
+    """An amidinium with exactly one carboxylate elsewhere: name the cation with that carboxylate as an acid, then cite it as ``carboxylato`` (D-226)."""
+    from rdkit import Chem
+
+    patt = Chem.MolFromSmarts("[CX3](=O)[O-]")
+    hits = mol.GetSubstructMatches(patt)
+    if len(hits) != 1:
+        return None
+    if sum(a.GetFormalCharge() for a in mol.GetAtoms()) != 0 or sum(1 for a in mol.GetAtoms() if a.GetFormalCharge() > 0) != 1:
+        return None
+    rw = Chem.RWMol(mol)
+    o = rw.GetAtomWithIdx(hits[0][2])
+    o.SetFormalCharge(0)
+    o.SetNumExplicitHs(1)
+    o.SetNoImplicit(True)
+    try:
+        Chem.SanitizeMol(rw)
+    except Exception:
+        return None
+    name = _drive_engine(Chem.MolToSmiles(rw.GetMol()), strategy, session, depth)
+    if not name or "NAMING ERROR" in name or not name.endswith("amidinium"):
+        return None
+    # Exactly one "carboxy" prefix (not "carboxylic" or "carboxylato"; a "carboxamide" has no y): the acid that was the carboxylate.
+    if len(re.findall(r"carboxy(?!l)", name)) != 1:
+        return None
+    return re.sub(r"carboxy(?!l)", "carboxylato", name)
 
 
 def _render_amidinium_beside_acid(rw, n_neutral_idx: int, strategy, session, depth: int) -> str | None:
@@ -4402,6 +4490,10 @@ def _acid_name_to_amidinium(acid_name: str) -> str | None:
         return "benzamidinium"
     if acid_name == "formic acid":
         return "formamidinium"
+    # A substituted retained acid ("carboxyacetic acid", "4-carboxybenzoic acid"): the substituents stay, the acid becomes the amidinium.
+    for retained, amidinium in (("acetic acid", "acetamidinium"), ("benzoic acid", "benzamidinium")):
+        if acid_name.endswith(retained):
+            return acid_name[: -len(retained)] + amidinium
     if acid_name.endswith("oic acid"):
         # ``ethanoic acid`` would be unusual (we render ``acetic``),
         # but be defensive: ``pentanoic acid`` -> ``pentanamidinium``.
