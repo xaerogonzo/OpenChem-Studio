@@ -3066,6 +3066,12 @@ installed" state.
 Three plugins ship: **AI Assistant**, **Database Search** and **Reaction
 Prediction**. Enable or disable them from the plugin manager.
 
+The AI Assistant opens from **Plugins > Open AI Assistant** (its panel is in the
+right-hand rail under *Compare and Extend*). Choose a provider and click
+**Configure...** first; a provider that needs an API key says so until one is stored.
+It answers from what the application has already computed and does not run
+calculators itself yet.
+
 Plugins are loaded as source from a `plugins/` directory beside the
 application, so you can add or edit one without a Python install. They
 extend the app through the same interfaces the core uses — descriptor

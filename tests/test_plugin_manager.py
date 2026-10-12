@@ -203,3 +203,39 @@ def test_disabled_plugin_is_not_loaded(tmp_path: Path, qapp):
 
     manager.set_enabled("good", True)
     assert manager.loaded_plugin_ids == ["good"]
+
+
+def test_a_configured_plugin_folder_that_does_not_exist_is_warned_about(tmp_path: Path, caplog):
+    """A stale `plugins/project_directory` (a deleted temp folder was found in a
+    developer's real settings, 2026-10-12) used to turn off every plugin with
+    no message at all. It must name the folder and the setting."""
+    services = build_service_container()
+    settings = Settings(services.event_bus)
+    missing = tmp_path / "gone"
+    settings.set("plugins/project_directory", str(missing))
+    settings.set("plugins/user_directory", str(tmp_path / "also-gone"))
+    manager = PluginManager(services, FakeUIRegistry(), settings)
+
+    with caplog.at_level("WARNING", logger="openchem.plugin"):
+        manager.load_all()
+
+    warned = [r.getMessage() for r in caplog.records if "does not exist" in r.getMessage()]
+    assert len(warned) == 2, warned
+    assert any(str(missing) in m and "plugins/project_directory" in m for m in warned)
+    assert any("plugins/user_directory" in m for m in warned)
+
+
+def test_a_folder_nobody_configured_is_not_warned_about(tmp_path: Path, caplog):
+    """The default user folder may not exist yet on a fresh install; only a
+    folder somebody chose can be a stale choice."""
+    services = build_service_container()
+    settings = Settings(services.event_bus)
+    existing = tmp_path / "plugins"
+    existing.mkdir()
+    settings.set("plugins/project_directory", str(existing))
+    manager = PluginManager(services, FakeUIRegistry(), settings)
+
+    with caplog.at_level("WARNING", logger="openchem.plugin"):
+        manager.load_all()
+
+    assert not [r for r in caplog.records if "does not exist" in r.getMessage()]
