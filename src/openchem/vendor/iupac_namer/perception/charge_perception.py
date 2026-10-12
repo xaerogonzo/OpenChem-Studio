@@ -3248,14 +3248,35 @@ def _render_acidic_anion(
     name = _balance_the_charge_ledger(name, tree, len(cls.site_atom_indices), cls.suffix_hint)
     if name is None or cls.suffix_hint != "acidic_anion_olate":
         return name
-    return _chalcogen_anion_as_prefix(name, mol, cls)
+    return _chalcogen_anion_as_prefix(name, mol, cls, strategy, session, depth)
 
 
 _ANION_ENDING = re.compile(r"(olate|thiolate|selenolate|tellurolate|oxide|ate)(?![a-z])|(?<![a-z])(oxido|sulfido|selenido|tellanido)")
 _CHALCOGEN_PREFIX = {"O": ("hydroxy", "oxido"), "S": ("sulfanyl", "sulfido")}
 
 
-def _chalcogen_anion_as_prefix(name: str, mol, cls: ChargeClassification) -> str | None:
+def _chalcogen_anion_as_parent(mol, strategy, session, depth: int) -> str | None:
+    """The engine's own anion route, on the CHARGED molecule: ``4-cyanobenzene-1-thiolate`` (naming round 44).
+
+    The anion is senior to every neutral class that is not an acid (P-41), so with the carved-anion functional groups the plan search makes the deprotonated
+    site the principal group and cites the nitrile, the aldehyde, the amide as prefixes. Returns None unless the name carries an anion word."""
+    from openchem.vendor.iupac_namer.engine import name as _recursive_name
+    from openchem.vendor.iupac_namer.assembly import assemble
+    from openchem.vendor.iupac_namer.types import OutputForm
+
+    try:
+        tree = _recursive_name(
+            mol, strategy, OutputForm.ANION, free_valence=None, decision_ctx=None, _session=session, _depth=depth + 1,
+        )
+        text = assemble(tree)
+    except Exception:
+        return None
+    if not text or "NAMING ERROR" in text or not _ANION_ENDING.search(text):
+        return None
+    return text
+
+
+def _chalcogen_anion_as_prefix(name: str, mol, cls: ChargeClassification, strategy=None, session=None, depth: int = 0) -> str | None:
     """A thiolate or phenolate beside a senior group is cited as a prefix, never dropped (D-227, naming round 43).
 
     The renderer re-protonates the site and names the neutral parent. When a group that outranks the thiol or alcohol (a nitrile, an aldehyde, an amide) is the
@@ -3266,6 +3287,9 @@ def _chalcogen_anion_as_prefix(name: str, mol, cls: ChargeClassification) -> str
     number of sites, so no real SH or OH is rewritten; otherwise None (a refusal, not a name for another molecule)."""
     if _ANION_ENDING.search(name):
         return name
+    parent = _chalcogen_anion_as_parent(mol, strategy, session, depth) if strategy is not None else None
+    if parent is not None:
+        return parent
     elements = {mol.GetAtomWithIdx(i).GetSymbol() for i in cls.site_atom_indices}
     if len(elements) != 1 or next(iter(elements)) not in _CHALCOGEN_PREFIX:
         return None
