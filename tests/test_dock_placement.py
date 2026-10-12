@@ -272,3 +272,66 @@ def test_a_locked_panel_survives_a_click_that_would_replace_it(window, qapp):
     _choose(window, qapp, "Results")
     assert _visible(window, "Properties")
     assert "Properties" in window._panel_rail.locked_panels()
+
+
+def test_a_plugin_can_reveal_a_built_in_panel_and_an_unknown_id_is_still_a_no_op(window, qapp):
+    """The assistant's card for an ORCA job offers "Open the Quantum Chemistry panel". `reveal_panel` only knew
+    plugin panels, so that button did nothing (found by driving the real window, which a fake registry cannot)."""
+    _choose(window, qapp, "Properties")
+    assert not _visible(window, "Quantum_Chemistry")
+
+    window.reveal_panel("Quantum_Chemistry")
+    _settle(qapp)
+    assert _visible(window, "Quantum_Chemistry")
+
+    window.reveal_panel("No_Such_Panel")
+    _settle(qapp)
+    assert _visible(window, "Quantum_Chemistry"), "an unknown id changes nothing"
+
+
+# --- a plugin panel that came out of the first show() with no place in the layout ------------------------
+#
+# Found by driving the real window on Windows with Alex's saved layout: the AI Assistant opened as a bare
+# 256 x 240 rectangle over the Project Explorer, and Properties stayed on screen beside it. The trigger (a
+# saved layout that lists no plugin panel, then show()) does not happen on the offscreen platform the suite
+# runs on, so these tests produce the SYMPTOM -- `removeDockWidget` leaves a dock with no area, as measured --
+# and check the repair; the trigger itself is covered by benchmarks/visual/ai_assistant_tools.json.
+
+
+@pytest.fixture
+def dropped_panel(window, qapp):
+    from PySide6.QtWidgets import QWidget
+
+    window.add_panel("Probe Panel", QWidget)
+    dock = _dock(window, "Probe_Panel")
+    window.removeDockWidget(dock)
+    _settle(qapp)
+    assert window.dockWidgetArea(dock) == Qt.DockWidgetArea.NoDockWidgetArea, "the fixture must reproduce the symptom"
+    return dock
+
+
+def test_revealing_a_panel_that_has_no_place_in_the_layout_docks_it_on_the_right(window, qapp, dropped_panel):
+    window.reveal_panel("Probe Panel")
+    _settle(qapp)
+
+    assert window.dockWidgetArea(dropped_panel) == RIGHT
+    assert not dropped_panel.isHidden()
+    assert window.dock_layout_report()["overlaps"] == []
+    assert not _dock(window, "Properties").isVisibleTo(window), "the rail shows one right-hand panel at a time"
+
+
+def test_showing_such_a_panel_from_the_view_menu_docks_it_too(window, qapp, dropped_panel):
+    dropped_panel.toggleViewAction().trigger()
+    _settle(qapp)
+
+    assert window.dockWidgetArea(dropped_panel) == RIGHT
+    assert window.dock_layout_report()["overlaps"] == []
+
+
+def test_putting_a_hidden_panel_back_in_the_layout_does_not_show_it_or_mark_it_placed(window, qapp, dropped_panel):
+    window._ensure_in_layout(dropped_panel)
+    _settle(qapp)
+
+    assert window.dockWidgetArea(dropped_panel) == RIGHT
+    assert dropped_panel.isHidden(), "re-adding a dock is not a request to show it"
+    assert "Probe_Panel" not in window._user_placed_docks, "the window's own move is not a drop by the user"
