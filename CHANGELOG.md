@@ -14,7 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Bakewell et al., 3.29 and beyond in 388 PDB entries) against a window that ended at 2.76, while a fluoride on magnesium is 1.95.
   A direct survey of 1,240 PDB entries is in `benchmarks/fluorine_pdb_survey/`: no fluorine is nearer than 3.48 angstrom to a
   zinc (559 entries), one calcium site takes a fluorinated nucleotide's fluorine at 2.57, and two tyrosinase-inhibitor entries put
-  a fluorine 1.88 to 2.61 angstrom from a copper, which is left out for now. Fourteen mutants of the rule are killed.
+  a fluorine 1.88 to 2.61 angstrom from a copper in poorly fitted ligands (real-space correlation 0.69 to 0.79), against 2.71 to 3.11
+  angstrom for every measured copper(II) to CF3 contact (Maverick et al.), so copper stays out. Fourteen mutants of the rule are killed.
 
 ### Docking and interactions: a fluorine on carbon or boron is not a hydrogen-bond acceptor
 - Both `analyze_pose` and Interaction Analysis counted a fluorine as an acceptor like N and O. Dunitz and Taylor's CSD survey

@@ -106,8 +106,10 @@ _DONOR_TABLE_ELEMENT = {"N": "N", "O": "O", "F": "O", "CF": "O", "S": "S"}
 #:   and there is nothing for iron, manganese, copper or nickel [source:plenio1997]. The only transition-metal fluoroalkane
 #:   carboxylates found in 1983 were copper(II) fluoroacetates, whose sixth site quinoline or urea fills [source:murrayrust1983].
 #:   The PDB survey agrees: no fluorine is nearer than 3.48 A to a zinc (559 entries), 3.35 to an iron or 3.69 to a manganese; the
-#:   exception is copper, six pairs in two tyrosinase-inhibitor entries at 1.88-2.61 A with the inhibitor modelled inside the
-#:   copper site, which one coordinate file cannot settle, so copper is left out FOR NOW (open).
+#:   exception is copper, six pairs in two tyrosinase-inhibitor entries at 1.88-2.61 A, but those ligands fit their density poorly
+#:   (real-space correlation 0.69-0.79 against 0.99 for the copper ions), the authors describe a substrate-mimic placement and not
+#:   coordination [source:ferro2018] [source:ielo2019], and the measured copper(II)...F(CF3) contacts are 2.71-3.11 A
+#:   [source:maverick2002], 0.8 A longer than that: copper stays out.
 #:   A fluorine on carbon near one of these metals is therefore an ordinary contact, judged by the clash test, and not a bond.
 _ORGANIC_FLUORINE_DONOR_METALS = frozenset({"NA", "K", "CA"})
 

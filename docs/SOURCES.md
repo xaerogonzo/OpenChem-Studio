@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 7c6e2f16b0f8d35c41cdd6cbfaf1bcfe53c34aaa5513c28f7d8ea737806aa9f7 -->
+<!-- SOURCE SHA256: 4482a5e294c00c9119d2a0f1efc6df96746eec01b8fa7947439490792aa53cb5 -->
 
 # Sources
 
@@ -156,6 +156,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`ertl2009`](#ertl2009) | literature | shipped | citation |
 | [`ertl2017`](#ertl2017) | literature | reference only | citation |
 | [`feinstein2015`](#feinstein2015) | literature | shipped | citation + claim |
+| [`ferro2018`](#ferro2018) | literature | reference only | citation + claim |
 | [`fogarasi2010`](#fogarasi2010) | literature | shipped | citation + claim |
 | [`ganyecz2019`](#ganyecz2019) | literature | reference only | citation |
 | [`gasteiger1980`](#gasteiger1980) | literature | shipped | citation + claim |
@@ -184,6 +185,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`hopfinger2009`](#hopfinger2009) | dataset | shipped | citation |
 | [`huber1979`](#huber1979) | literature | reference only | citation + claim |
 | [`ich_m9`](#ich_m9) | standard | shipped | citation + claim |
+| [`ielo2019`](#ielo2019) | literature | reference only | citation + claim |
 | [`ionescu2013`](#ionescu2013) | literature | shipped | citation + claim |
 | [`ipsen2014`](#ipsen2014) | literature | reference only | citation |
 | [`iupac2013`](#iupac2013) | standard | shipped | citation + claim |
@@ -205,6 +207,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`krygowski1993`](#krygowski1993) | literature | shipped | citation + claim |
 | [`krykunov2017`](#krykunov2017) | literature | reference only | citation + claim |
 | [`kuchitsu1998`](#kuchitsu1998) | literature | reference only | citation + claim |
+| [`kulawiec1990`](#kulawiec1990) | literature | reference only | citation + claim |
 | [`kwon2018`](#kwon2018) | literature | reference only | citation |
 | [`kwon2023`](#kwon2023) | dataset | shipped | citation + claim |
 | [`langes15`](#langes15) | reference_table | shipped | citation + claim |
@@ -217,6 +220,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`mantina2009`](#mantina2009) | literature | shipped | citation + claim |
 | [`marsili1980`](#marsili1980) | literature | shipped | citation + claim |
 | [`mathieu2007`](#mathieu2007) | literature | reference only | citation + claim |
+| [`maverick2002`](#maverick2002) | literature | reference only | citation + claim |
 | [`mayer1975`](#mayer1975) | literature | reference only | citation |
 | [`mayo1990`](#mayo1990) | literature | shipped | citation + claim |
 | [`mcnutt2021`](#mcnutt2021) | literature | **not shipped** | citation |
@@ -304,6 +308,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`wells2014`](#wells2014) | literature | reference only | citation |
 | [`westwell1995`](#westwell1995) | literature | **not shipped** | citation |
 | [`wildman1999`](#wildman1999) | literature | shipped | citation |
+| [`willrett2025`](#willrett2025) | literature | reference only | citation + claim |
 | [`wilmer2011`](#wilmer2011) | literature | reference only | citation |
 | [`wilmer2012`](#wilmer2012) | literature | shipped | citation + claim |
 | [`wilmer2012_correction`](#wilmer2012_correction) | literature | reference only | citation |
@@ -2774,6 +2779,132 @@ contracted lone pairs. Pauling's third edition (1960) is quoted conceding that f
 NOT CHECKED: the remaining pages (fluorocarbon properties, packing, and the rest of the review).
 
 THE APPLICATION: the boron half of `pose_analysis.is_weak_acceptor_fluorine`.
+
+### maverick2002
+
+<a id="maverick2002"></a>
+
+> A. W. Maverick, F. R. Fronczek, E. F. Maverick, D. R. Billodeaux, Z. T. Cygan & R. A. Isovitsch, 'Structures of Anhydrous and Hydrated Copper(II) Hexafluoroacetylacetonate', Inorg. Chem. 2002, 41(24), 6488-6492.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ic020448w](https://doi.org/10.1021/ic020448w) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-12 |
+| Local copy | `maverick2002_cu_hfac_structures.pdf` (not checked) |
+| Used by | `src/openchem/chem/pose_analysis.py`, `docs/VDW_RADII_ASSESSMENT.md` |
+
+**Why it is reference only.** Read for the only direct measurements of copper(II) to trifluoromethyl-fluorine contacts found (2.71 to 3.11 angstrom); no value of the application comes from it.
+
+CHECKED: the paper and the CIF of its supporting information (three structures). Anhydrous Cu(hfac)2 has centrosymmetric square-planar
+molecules with an intermolecular Cu...F3 contact of 2.709(2) angstrom; the monohydrate (square-pyramidal, apical water) has a close
+Cu...F in the sixth site of 2.895(2) angstrom, against 2.817 and 3.106 in the two earlier polymorphs; the five-coordinate adducts
+[Cu(hfac)2]2(mu-pyrazine) and [Cu(hfac)2]3(mu-5-methylpyrimidine)2 have 3.069 and 2.962; the trihydrate has none. Cu-O(hfac) is
+1.91 to 1.98 angstrom. RECOMPUTED FROM THE CIF with its symmetry operators and one cell of translations: Cu...F 2.709 (anhydrous), 2.895
+and next 3.463 (monohydrate), and no Cu...F under 3.5 in the trihydrate, which agrees with the paper.
+
+NOT CHECKED: the discussion of volatility and chemical vapour deposition, the other M(hfac)2(H2O)2 structures from a CSD search, and
+the packing figures of the supporting information.
+
+### ferro2018
+
+<a id="ferro2018"></a>
+
+> S. Ferro, B. Deri, M. P. Germano, R. Gitto, L. Ielo, M. R. Buemi, G. Certo, S. Vittorio, A. Rapisarda, Y. Pazy, A. Fishman & L. De Luca, 'Targeting Tyrosinase: Development and Structural Insights of Novel Inhibitors Bearing Arylpiperidine and Arylpiperazine Fragments', J. Med. Chem. 2018, 61(9), 3908-3917.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/acs.jmedchem.7b01745](https://doi.org/10.1021/acs.jmedchem.7b01745) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-12 |
+| Local copy | `ferro2018_tyrosinase_inhibitors.pdf` (not checked) |
+| Used by | `src/openchem/chem/pose_analysis.py`, `docs/VDW_RADII_ASSESSMENT.md` |
+
+**Why it is reference only.** Read for how its authors describe the fluorine of the tyrosinase-inhibitor complex 6EI4 (PDB), which puts a fluorine near copper; no value of the application comes from it.
+
+CHECKED: the text and the supporting information (two figures with polder maps, and a CSV of the compounds' SMILES). The crystal structure of
+amide 3 in Bacillus megaterium tyrosinase (TyBm) was solved at 2.7 angstrom (PDB 5OAE) and benzamide 16 at 2.0 angstrom (PDB 6EI4, the
+ligand B5N). The authors write that the 4-fluorobenzyl moiety is "oriented toward CuA at a distance of 1.9 A" and stabilised by
+hydrophobic pi-pi interaction with His208, like the substrates, with a hydrogen bond from the carbonyl oxygen to Arg209; they do not call
+the fluorine a ligand of the copper. The supporting information shows mFo-DFc polder maps contoured at 3 sigma (amide 3) and 2.0 sigma
+(compound 16). The PDB's own validation gives the B5N ligands a real-space correlation of 0.689 and 0.724.
+
+NOT CHECKED: the synthesis, the enzyme kinetics, the docking, and the crystallographic tables beyond the resolutions.
+
+### ielo2019
+
+<a id="ielo2019"></a>
+
+> L. Ielo, B. Deri, M. P. Germano, S. Vittorio, S. Mirabile, R. Gitto, A. Rapisarda, S. Ronsisvalle, S. Floris, Y. Pazy, A. Fais, A. Fishman & L. De Luca, 'Exploiting the 1-(4-fluorobenzyl)piperazine fragment for the development of novel tyrosinase inhibitors as anti-melanogenic agents: Design, synthesis, structural insights and biological profile', Eur. J. Med. Chem. 2019, 178, 380-389.
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/j.ejmech.2019.06.019](https://doi.org/10.1016/j.ejmech.2019.06.019) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-12 |
+| Local copy | `ielo2019_fluorobenzylpiperazine_tyrosinase.pdf` (not checked) |
+| Used by | `src/openchem/chem/pose_analysis.py`, `docs/VDW_RADII_ASSESSMENT.md` |
+
+**Why it is reference only.** Read for how its authors describe the fluorine of the tyrosinase-inhibitor complex 6QXD (PDB), which puts a fluorine near copper; no value of the application comes from it.
+
+CHECKED: the accepted-manuscript text (26 pages), section 2.5. A crystal structure of TyBm with compound 25 (PDB 6QXD, ligand JKB) at
+2.3 angstrom: "the 4-fluorobenzyl moiety of 25 is stabilized by pi-pi interactions with His208 and is oriented toward CuA at a
+distance of 1.9 A, similar to tyrosinase substrates", plus a polar interaction between Arg209 and the carbonyl oxygen. The fluorine is
+not called a copper ligand. The PDB's validation gives JKB a real-space correlation of 0.787 and an occupancy of 0.9.
+
+NOT CHECKED: the synthesis, the kinetics and the docking.
+
+### kulawiec1990
+
+<a id="kulawiec1990"></a>
+
+> R. J. Kulawiec & R. H. Crabtree, 'Coordination chemistry of halocarbons', Coord. Chem. Rev. 1990, 99, 89-115.
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/0010-8545(90)80061-W](https://doi.org/10.1016/0010-8545(90)80061-W) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-12 |
+| Local copy | `kulawiec1990_halocarbon_coordination.pdf` (not checked) |
+| Used by | `docs/VDW_RADII_ASSESSMENT.md` |
+
+**Why it is reference only.** Read for whether a transition-metal to fluorine-on-carbon distance for copper is reported; none is, and no value of the application comes from it.
+
+CHECKED: the s-block section and the passages that mention copper and fluorine. The review restates Glusker's contacts (Na 2.470,
+Rb 2.979 and 3.095 angstrom) and the further alkali-metal examples (Na 2.47 to 2.55, K 2.87 to 3.21, Rb 2.88 to 3.22). For
+transition metals it gives a cobalt(II) pentafluorothiophenoxide with an ortho fluorine at Co...F 2.64(2) angstrom, which its
+authors took as a ligand-induced non-bonding contact though "a secondary bond seems likely", and, for chlorocarbons, copper(II)
+complexes with short Cu...Cl distances (2.85 to 3.07 angstrom). It reports no copper to fluorine distance.
+
+NOT CHECKED: the sections on silver, mercury, the platinum metals and the spectroscopy.
+
+### willrett2025
+
+<a id="willrett2025"></a>
+
+> J. Willrett, M. Sellin, M. Lapersonne, M. Seiler & I. Krossing, 'Synthesis and Electrochemistry of Copper(I) Complexes with Weakly Basic, Fluorinated, and Multicyclic Arenes', Chem. Eur. J. 2025, 31(29), e202501134.
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/chem.202501134](https://doi.org/10.1002/chem.202501134) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-12 |
+| Local copy | `willrett2025_cu_i_fluoroarene_complexes.pdf` (not checked) |
+| Used by | `docs/VDW_RADII_ASSESSMENT.md` |
+
+**Why it is reference only.** Read for how copper(I) binds fluorinated arenes (through the pi system); no value of the application comes from it.
+
+CHECKED: the main text. Copper(I) complexes of benzene and mono- to tetrafluorobenzene with a weakly coordinating alkoxyaluminate
+anion; the crystal structures show eta-2 coordination of the arene ligands in the tris-arene complexes and eta-3 in the bis-arene ones,
+and more fluorination gives weaker binding and a higher Cu+/Cu potential; in the most fluorinated case studied (4FB) the anion
+acts as an auxiliary ligand in a contact ion pair. The arene binds through the pi system, not through a fluorine.
+
+NOT CHECKED: the supporting information's crystallographic tables (59 pages) and the quantum-chemical energies.
 
 ### murrayrust1983
 

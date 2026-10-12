@@ -432,7 +432,21 @@ the rest are 3.0 and 4.0. **Copper is the exception:** six pairs in two bacteria
 angstrom resolution, 6EI4 at 2.0) put the fluorine 1.88 to 2.61 angstrom from a copper that also has three histidines, with ligand
 carbons 2.0 to 2.3 angstrom from the same copper, so the inhibitor is modelled inside the copper site; all six are inside
 copper's oxygen window (to 2.63), and whether that is a real Cu-F interaction or a modelling choice at that resolution is not
-settled by a coordinate file. Murray-Rust's survey adds that the only transition-metal fluoroalkanecarboxylates then known, copper(II) fluoroacetates, have the sixth site filled by urea or quinoline, and his supplementary tables list those structures without distances [source:murrayrust1983]; copper is left out of the donors for now, and putting it back is one entry in `_ORGANIC_FLUORINE_DONOR_METALS`. For magnesium the supplementary coordinates of Bakewell et al. give 3.20 to 3.49 angstrom to a C-F
+settled by a coordinate file. Murray-Rust's survey adds that the only transition-metal fluoroalkanecarboxylates then known, copper(II) fluoroacetates, have the sixth site filled by urea or quinoline, and his supplementary tables list those structures without distances [source:murrayrust1983]; Copper is left out, and further reading settles it. (1) The ligands there fit their density poorly: real-space correlation 0.787 (JKB) and 0.689 and 0.724
+(B5N), against 0.986 to 0.990 for the calcium case's fluorinated nucleotide and 0.98 to 0.99 for the copper ions themselves; the
+fluorines' B-factors are 57 and 35. (2) The papers describe the 4-fluorobenzyl group as "oriented toward CuA at a distance of 1.9
+angstrom", stabilised by stacking on His208, as the tyrosinase substrates are: a substrate-mimic placement with the fluorine where
+tyrosine's phenolic oxygen sits, and they do not call it coordination [source:ferro2018] [source:ielo2019]. (3) Every measured
+copper(II) to carbon-bound fluorine contact is far longer. In copper(II) bis(hexafluoroacetylacetonate) the trifluoromethyl
+fluorines take the sixth site at 2.709 (anhydrous) and 2.895 (monohydrate) angstrom, with 2.82, 2.96, 3.07 and 3.11 in related
+adducts; recomputed from its CIF, 2.709, 2.895 and nothing under 3.5 in the trihydrate [source:maverick2002]. Kulawiec and Crabtree's
+review has no copper to fluorine distance (copper(II) to chlorine in chlorocarbon complexes runs 2.85 to 3.07; one cobalt to fluorine
+2.64) [source:kulawiec1990], and copper(I) binds fluoroarenes through the pi system, more weakly the more fluorinated
+[source:willrett2025]. A 1.9 angstrom copper to fluorine on carbon is 0.8 under the shortest measured, and the oxygen window (to
+2.63) would take none of the real 2.7 to 3.1 contacts anyway. So copper is not a donor to a carbon-bound fluorine. **An edge to
+know:** copper is not in the application's radius table (it takes the 1.70 default), so the clash rule's line for it and fluorine is
+2.77 angstrom, and a genuine semi-coordination at 2.709 is flagged as a clash by 0.06 angstrom; contacts of 2.77 and beyond are
+ordinary. For magnesium the supplementary coordinates of Bakewell et al. give 3.20 to 3.49 angstrom to a C-F
 fluorine and 1.95 to a fluoride [source:bakewell2016], so **no measured magnesium to fluorine distance anywhere read is inside
 the oxygen window used (to 2.76); magnesium was therefore removed from the donors of a carbon-bound fluorine in v5.** Brese and O'Keeffe's bond-valence parameters
 (read) are where a fluoride ion's metal distances would come from if a separate fluoride window is ever built; none is used.
