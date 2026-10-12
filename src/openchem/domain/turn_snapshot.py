@@ -84,6 +84,8 @@ def _outcome_of(status: str) -> Outcome:
     return Outcome.REFUSED
 
 
+#: Where each freshness sorts in a read: what still describes the structure first, what cannot be vouched
+#: for last.
 _FRESHNESS_ORDER = {Freshness.CURRENT: 0, Freshness.HISTORICAL: 1, Freshness.UNVERIFIABLE: 2}
 
 

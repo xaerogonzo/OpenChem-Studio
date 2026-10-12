@@ -63,6 +63,7 @@ class RunState(str, Enum):
     REJECTED = "rejected"
 
 
+#: The states a run never leaves. A run in one of them is not dispatched, approved or cancelled again.
 TERMINAL = frozenset({
     RunState.COMPLETED, RunState.REFUSED, RunState.FAILED, RunState.CANCELLED, RunState.INVALIDATED,
 })
