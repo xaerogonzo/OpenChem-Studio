@@ -47,7 +47,9 @@ HYDROPHOBIC_CUTOFF = 4.5  # apolar carbon to apolar carbon
 #: * Ni: Harding has no nickel. Zheng et al.'s CSD means (water 2.08, N 2.09, S 2.46, taking the larger where two values are
 #:   given) [source:zheng2017]; they are survey means, not Harding's recommended targets.
 #:
-#: Fluorine has no table anywhere: it takes the metal's oxygen entry, a stated assumption and nothing more.
+#: Fluorine has no table of its own. For the metals in `_FLUORINE_DONOR_METALS` (Na, K, Ca, Mg) it takes the metal's
+#: oxygen entry, which the crystallographic surveys support as a bond length for the first three (see there); for every
+#: other metal it is not a donor and has no entry.
 METAL_DONOR_TARGETS: dict[str, dict[str, float]] = {
     "ZN": {"O": 2.09, "N": 2.03, "S": 2.31},
     "FE": {"O": 2.09, "N": 2.16, "S": 2.30},
@@ -80,19 +82,39 @@ METAL_BOND_MARGIN_BELOW = 0.5
 #: the clash test. For the other metals, a donor beyond the primary sphere stays an ordinary contact.
 METAL_CONTACT_MARGIN_NA_K = 0.95
 
-#: Which donor entry a donor element reads: fluorine reads oxygen's.
+#: Which donor entry a donor element reads: fluorine reads oxygen's, for the metals below only.
 _DONOR_TABLE_ELEMENT = {"N": "N", "O": "O", "F": "O", "S": "S"}
+
+#: THE METALS A CARBON-BOUND FLUORINE COUNTS AS A DONOR TO. Organic fluorine is a real but weak donor to hard cations and
+#: is not shown to be one for the transition metals.
+#:
+#: * Sodium, potassium, calcium: Plenio's survey of crystal structures finds attractive contacts to them, with sodium to
+#:   fluorine at 2.30-2.67 A (the distribution of 79 contacts peaks at 2.50-2.70) and the acceptance limits he derives
+#:   (Na 2.49-3.07, K 2.98-3.47, Ca 2.53-3.13 A) bracketing the oxygen windows used here (Na to 3.16, K to 3.57, Ca to
+#:   2.89) [source:plenio1997]; Murray-Rust et al. find sodium to fluorine at 2.47 and potassium to fluorine at 2.80
+#:   [source:murrayrust1983]. The interaction is weaker than the oxygen one (about 64 % of Li...O, by DFT) [source:plenio2004].
+#: * Magnesium: kept on the same footing as calcium, but NO measured Mg...F distance was found in those papers; the only
+#:   mention is a six-membered chelate proposed for an organomagnesium reaction [source:plenio1997]. An assumption.
+#: * Zinc, iron, cobalt, manganese, copper, nickel: none. Plenio finds convincing evidence in the first transition series
+#:   only for titanium and vanadium in unusual organometallic complexes; the cobalt contact (2.65 A) is intramolecular and
+#:   its authors attributed it to torsion, the zinc contacts (2.53-2.73 A) are all in crowded aryl-CF3 or C6F5 organometallics,
+#:   and there is nothing for iron, manganese, copper or nickel [source:plenio1997]. The only transition-metal fluoroalkane
+#:   carboxylates found in 1983 were copper(II) fluoroacetates, whose sixth site quinoline or urea fills [source:murrayrust1983].
+#:   A fluorine near one of these metals is therefore an ordinary contact, judged by the clash test, and not a bond.
+_FLUORINE_DONOR_METALS = frozenset({"NA", "K", "CA", "MG"})
 
 
 def _metal_donor_target(metal: str, donor: str) -> float | None:
     targets = METAL_DONOR_TARGETS.get(metal.upper())
     element = _DONOR_TABLE_ELEMENT.get(donor.upper())
+    if donor.upper() == "F" and metal.upper() not in _FLUORINE_DONOR_METALS:
+        return None
     return None if targets is None or element is None else targets[element]
 
 
 def metal_bond_window(metal: str, donor: str) -> tuple[float, float] | None:
     """`(shortest, longest)` distance, in angstrom, at which `donor` (N, O, F or S) is bonded to `metal`; None if either
-    is not one this table covers. The longest is the target plus 0.5 (0.75 for sodium and potassium), the shortest the
+    is not one this table covers, or for fluorine and a metal outside `_FLUORINE_DONOR_METALS`. The longest is the target plus 0.5 (0.75 for sodium and potassium), the shortest the
     target less 0.5 but never below `METAL_DONOR_MIN_DISTANCE`."""
     target = _metal_donor_target(metal, donor)
     if target is None:
@@ -133,10 +155,8 @@ _POLAR_ELEMENTS = {"N", "O", "F"}
 #: Which atoms can donate to a metal. The detector has always taken N, O, F
 #: and S; the clash test takes exactly the same set (`_METAL_DONOR_ELEMENTS`),
 #: because a pair reported as coordination and also as a clash is the defect.
-#: Harding's tables cover N, O and S donors for Ca, Mg, Mn, Fe, Cu and Zn
-#: [source:harding1999]; fluorine, and the metals Na, K, Co and Ni, are in no
-#: table read for this project (Harding 2001 says Na+ and K+ are future work),
-#: so for those the cutoff below is the existing one, not a sourced bond length.
+#: Whether a given metal and donor are actually bonded is `metal_bond_window`'s
+#: question (fluorine is a donor only to `_FLUORINE_DONOR_METALS`).
 _METAL_DONOR_ELEMENTS = _POLAR_ELEMENTS | {"S"}
 
 #: The shortest distance still treated as a bond. Below it the two atoms

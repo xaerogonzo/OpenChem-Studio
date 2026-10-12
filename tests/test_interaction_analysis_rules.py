@@ -355,7 +355,7 @@ def test_a_result_records_its_method_and_the_identity_carries_it():
         molecule_uuid="m", result=result, calculation_input=GEOMETRY, input_fingerprint="fp", producer="core"
     )
 
-    assert result.provenance.parameters["method"] == INTERACTION_METHOD == "interactions-v3"
+    assert result.provenance.parameters["method"] == INTERACTION_METHOD == "interactions-v4"
     assert identity.method_version == INTERACTION_METHOD == CURRENT_METHOD_VERSIONS["interaction_analysis"]
 
 
@@ -404,4 +404,28 @@ def test_an_interactions_v2_result_is_kept_beside_the_v3_one_and_labelled():
     reloaded.put(StoredResult(identity=identity, result=result))
     replayed = {s.identity.method_version for s in reloaded.fresh_results("m", {GEOMETRY: "fp"})}
     kept = {entry.get("method_version", "") for entry in reloaded.to_dict()["molecules"]["m"]["results"]}
-    assert replayed == {"interactions-v3"} and kept == {"interactions-v2", "interactions-v3"}
+    assert replayed == {"interactions-v4"} and kept == {"interactions-v2", "interactions-v4"}
+
+
+def test_an_interactions_v3_result_is_kept_beside_the_v4_one_and_labelled():
+    """v4 (2026-10-12) stopped counting fluorine as a donor to the transition metals. A project saved by v3 keeps its
+    lines under their own label."""
+    from openchem.services.result_identity import make_identity
+
+    result = _report(_conformers("CCO", count=1)[0])
+    identity = make_identity(
+        molecule_uuid="m", result=result, calculation_input=GEOMETRY, input_fingerprint="fp", producer="core"
+    )
+    store = SessionResultStore("project")
+    store.put(StoredResult(identity=identity, result=result))
+    saved = store.to_dict()
+    saved["molecules"]["m"]["results"][0]["method_version"] = "interactions-v3"
+    reloaded = SessionResultStore.from_dict(saved, "project")
+
+    (restored,) = reloaded.fresh_results("m", {GEOMETRY: "fp"})
+    assert restored.identity.method_version == "interactions-v3"
+    assert "fluorine" in restored.result.name and restored.result.name.startswith("Interaction Analysis (previous method")
+
+    reloaded.put(StoredResult(identity=identity, result=result))
+    kept = {entry.get("method_version", "") for entry in reloaded.to_dict()["molecules"]["m"]["results"]}
+    assert kept == {"interactions-v3", "interactions-v4"}
