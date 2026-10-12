@@ -310,6 +310,9 @@ def _neutralize_ring_other_cations(ring_mol: Chem.Mol) -> Chem.Mol | None:
             # there, "2,3,4,5-", is the lower one (P-31.1.4.3.4).
             a.SetFormalCharge(0)
             a.SetNumExplicitHs(0)
+            # Naming round 43: an N-SUBSTITUTED iminium (`C[N+]1=CCCC1`) carved from its substituent has three bonds and no H, which RDKit counts as a radical; it stayed
+            # on the neutral copy, the copy did not sanitise, and the cation was the Hantzsch-Widman `3,4-dihydro-2H-azol-1-ium` instead of `3,4-dihydro-2H-pyrrol-1-ium`.
+            a.SetNumRadicalElectrons(0)
             a.SetNoImplicit(False)
             changed = True
     if not changed:

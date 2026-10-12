@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: amidinium zwitterions, charges that were dropped, pyrrolinium spelling, helicenes
+- An amidinium beside a carboxylate, a carboxyl or a second carbonyl was refused; it is named now (`carboxylatoacetamidinium`, `carboxyformamidinium`) (D-226). A thiolate or phenolate beside a nitrile, aldehyde or amide was named as the NEUTRAL compound (`N#Cc1ccc([O-])cc1` was `4-hydroxybenzene-1-carbonitrile`, a different molecule); it keeps its charge now (`4-oxidobenzene-1-carbonitrile`), and a name that cannot place the charge is refused instead (D-227). N-substituted 1-pyrrolinium and imidazolinium cations take the retained spelling (`1-methyl-3,4-dihydro-2H-pyrrol-1-ium`), and penta- to octahelicene have atom locants (D-228: 224 of 260 sweep cases named another isomer, now 0). Census 1987 -> 1989 exact (99.45%); fresh_v1 re-scored once, 1962 of 2000 read back.
+
 ### Naming: a spiro compound keeps the stereochemistry of its ring junctions
 - A spiro compound whose stereocentre sits at a primed or lettered position (`3a`, `10b'`, `1'`) lost its descriptor, or cited a junction atom without its letter (`10'` for `10b'`, `3R,3S` for `3aR,3S`, a locant OPSIN cannot place). The census's spiro oxindoles, pyrazolo[1,5-c][1,3]benzoxazines and the camphor spirohydantoin now name the stereoisomer they were drawn as (D-225): census 1979 -> 1987 exact (99.35%); of the census's spiro structures, 35 of 79 stereoisomers read back exactly before and 73 do now, none a different stereoisomer. fresh_v1 re-scored once, 1961 of 2000 read back.
 

@@ -4203,7 +4203,7 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "6H-imidazo[1,2-g]purine",
      "WRONG MOLECULE: the bond N7-C8 is 'f', not 'g'; OPSIN reads the former name as another structure (9 of 32 purine-fused systems unreadable, 1 wrong)"),
     # D-207, found by naming round 33's census review: a partly saturated ring with a C=N+ lost every hydro prefix, so a cyclic iminium / amidinium named the aromatic or the saturated ring.
-    ("D-207", "C[N+]1=C(C)NCC1", "2,3-dimethyl-4,5-dihydro-1H-1,3-diazol-3-ium",
+    ("D-207", "C[N+]1=C(C)NCC1", "2,3-dimethyl-4,5-dihydro-1H-imidazol-3-ium",
      "2,3-dimethyl-1,3-diazol-3-ium",
      "WRONG MOLECULE: an imidazolinium named as an imidazolium; 1005 of 1151 protonated or N-alkylated cyclic imines, amidines and their substituted forms named another molecule"),
     # D-208, found by naming round 34's list of open items: six curated fused parents listed no locant for their ring heteroatoms, so the engine had no place for the -ium and skipped it.
@@ -4279,6 +4279,15 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "(3S,10b'R)-2'-(4-chlorophenyl)-9'-nitrospiro[2,3-dihydro-1H-indole-3,5'-1,10b-dihydro-5H-pyrazolo[1,5-c][1,3]benzoxazine]-2-one",
      "(3S,10'R)-2'-(4-chlorophenyl)-9'-nitrospiro[2,3-dihydro-1H-indole-3,5'-1,10b-dihydro-5H-pyrazolo[1,5-c][1,3]benzoxazine]-2-one",
      "STEREO LOST/UNREADABLE: the 10b centre cited as 10' (no such atom; OPSIN rejects the name and the descriptors were stripped); across the census's spiro structures 35 of 79 stereoisomers were exact, 73 now are"),
+    # D-226 (naming round 43): an amidinium beside a carboxylate, a carboxyl on its own carbon or a second acid was refused.
+    ("D-226", "NC(=[NH2+])CC(=O)[O-]", "carboxylatoacetamidinium", "[REFUSED: charge perception claimed an 'amidinium' motif but could not complete it]",
+     "a visible refusal for a zwitterion; a cation outranks an acid and an anion, so the amidinium is the parent and the carboxylate a prefix"),
+    # D-227: a thiolate or phenolate beside a group that outranks the thiol or alcohol was named as the NEUTRAL compound.
+    ("D-227", "N#Cc1ccc([O-])cc1", "4-oxidobenzene-1-carbonitrile", "4-hydroxybenzene-1-carbonitrile",
+     "WRONG MOLECULE: the negative charge was in no word of the name (the nitrile took the suffix, the site became a `hydroxy` prefix)"),
+    # D-228: the four helicenes had no atom-locant table, so every substituent landed on whichever atom the generic walk reached.
+    ("D-228", "CC(=O)Nc1cccc2ccc3ccc4ccc5ccc6ccccc6c5c4c3c12", "N-(hexahelicen-1-yl)acetamide", "N-hexahelicenylacetamide",
+     "WRONG MOLECULE by position: no locant at all, so every isomer had the same name; 224 of 260 ring-sweep cases on penta- to octahelicene"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",
