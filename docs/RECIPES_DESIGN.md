@@ -160,6 +160,19 @@ and its output, byte for byte. Its body after the parameter checks moves into on
 and putting six numeric fields into the calculator's visible parameters would add an unprovenanced channel into a
 result that sits beside a published-looking enthalpy.
 
+**Built (slice 2a).** `chem.lewis_adduct.lewis_report(mol, uuid, partner, role, evidence=None)` is that function;
+`tests/test_lewis_adduct_pin.py` holds the calculator to a recording made from the code before it moved (21 calls
+reaching every branch, compared as a projection of lines, facts, error, state and provenance, not as an encoding).
+`domain.lewis` has the types, and they are strict at the door rather than in the binder alone:
+an `EvidenceValue` is either `BOUND` (a number in eV with the copied `Evidence`, which must agree with it) or
+a gap (no number, a reason in words); a `MoleculeEvidence` refuses any hardness that is not `orca.dscf_hardness` (the
+Koopmans value is never accepted), frontier energies that do not come from a `sp` run and a hardness that does
+not come from a `delta_scf` run; and a `PairEvidence` refuses two numbers on different methods or solvents in
+any pairing a line uses, in either orientation. The evidence is appended to the report as facts (one per number,
+or per gap with its state and reason), so a line that reads "not available" says which of "nothing run", "another
+method" and "earlier geometries to choose between" it is. The partner's uuid is not passed: the acid and base uuids
+never leave `predict`, so there was nothing to observe.
+
 **What the result is.** A report built from `Fact`s directly: the role and how it was decided; per orientation the
 three lines, each with its value, unit, basis, and the run ids and inputs behind it; per molecule the evidence
 block and the binding state of each item; the existing assumptions and limitations unchanged, including the CO
@@ -336,8 +349,8 @@ with the UI slice. It will need a drive step for the pairing, which the harness 
 1. **The recipe model, the run record and the staleness rules** (built): pure, with the validator, the closed
    transform table, `RecipeRun`, its store, its envelope and the project key (`recipe_runs`). No UI, no ORCA, no
    chemistry. `domain/recipe.py`, `domain/recipe_run.py`, `ResultStoreService.record_recipe_run`.
-2. **Lewis evidence**: `PairEvidence`, the shared body of `compute_lewis_adduct`, the binder over
-   `QuantumChemistryRunStore` (it needs the host for the constitution comparison), the shipped recipe.
+2. **Lewis evidence**: `PairEvidence`, the shared body of `compute_lewis_adduct` (**2a, built**), the binder over
+   `QuantumChemistryRunStore` (it needs the host for the constitution comparison), the shipped recipe (**2b**).
 3. **Host and UI**: a pairing entry, the gap list with the service preview, the result in Results, the help
    topic every new surface needs, the drive step and script.
 4. **The gate** (section 10): preregistration commit, noise floor, the pair, the verdict recorded whichever way.
