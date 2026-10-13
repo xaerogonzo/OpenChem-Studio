@@ -1,0 +1,2855 @@
+{
+ "BF3 + carbon monoxide, acid": {
+  "parameters": {
+   "partner_smiles": "[C-]#[O+]",
+   "role": "acid"
+  },
+  "report": {
+   "cache_state": "completed",
+   "category": "lewis",
+   "error": null,
+   "facts": [
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Role: as you set it.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Role: as you set it."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Acid: FB(F)F",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Acid: FB(F)F"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Base: [C-]#[O+]",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Base: [C-]#[O+]"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "An adduct is possible on the structures alone, but no line of evidence could be evaluated. Run a quantum chemistry job on both molecules, or use a pair with tabulated Drago parameters.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "An adduct is possible on the structures alone, but no line of evidence could be evaluated. Run a quantum chemistry job on both molecules, or use a pair with tabulated Drago parameters."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  Drago-Wayland enthalpy: not available -- No tabulated E and C parameters for the acid and the base. The table covers the species with published calorimetry, which is a few dozen, not a general method.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  Drago-Wayland enthalpy: not available -- No tabulated E and C parameters for the acid and the base. The table covers the species with published calorimetry, which is a few dozen, not a general method."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: Without tabulated parameters there is no energy here at all -- the remaining lines order pairs, they do not tell you whether the adduct forms.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: Without tabulated parameters there is no energy here at all -- the remaining lines order pairs, they do not tell you whether the adduct forms."
+    }
+   ],
+   "matched": [
+    "Role: as you set it.",
+    "Acid: FB(F)F",
+    "Base: [C-]#[O+]",
+    "An adduct is possible on the structures alone, but no line of evidence could be evaluated. Run a quantum chemistry job on both molecules, or use a pair with tabulated Drago parameters.",
+    "  Drago-Wayland enthalpy: not available -- No tabulated E and C parameters for the acid and the base. The table covers the species with published calorimetry, which is a few dozen, not a general method.",
+    "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+    "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+    "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+    "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+    "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+    "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart.",
+    "Limitation: Without tabulated parameters there is no energy here at all -- the remaining lines order pairs, they do not tell you whether the adduct forms."
+   ],
+   "molecule_uuid": "uuid-1",
+   "name": "Lewis Adduct",
+   "provenance": {
+    "created_by": "core",
+    "method": "lewis_adduct",
+    "parameters": {
+     "orientation": "subject_acid",
+     "orientation_basis": "user",
+     "role_requested": "acid"
+    }
+   },
+   "report_id": "lewis_adduct",
+   "severity": "info"
+  },
+  "smiles": "FB(F)F"
+ },
+ "BF3 + carbon monoxide, base": {
+  "parameters": {
+   "partner_smiles": "[C-]#[O+]",
+   "role": "base"
+  },
+  "report": {
+   "cache_state": "completed",
+   "category": "lewis",
+   "error": null,
+   "facts": [
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Role: as you set it.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Role: as you set it."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Acid: [C-]#[O+]",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Acid: [C-]#[O+]"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Base: FB(F)F",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Base: FB(F)F"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "An adduct is possible on the structures alone, but no line of evidence could be evaluated. Run a quantum chemistry job on both molecules, or use a pair with tabulated Drago parameters.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "An adduct is possible on the structures alone, but no line of evidence could be evaluated. Run a quantum chemistry job on both molecules, or use a pair with tabulated Drago parameters."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  Drago-Wayland enthalpy: not available -- No tabulated E and C parameters for the acid and the base. The table covers the species with published calorimetry, which is a few dozen, not a general method.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  Drago-Wayland enthalpy: not available -- No tabulated E and C parameters for the acid and the base. The table covers the species with published calorimetry, which is a few dozen, not a general method."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: Without tabulated parameters there is no energy here at all -- the remaining lines order pairs, they do not tell you whether the adduct forms.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: Without tabulated parameters there is no energy here at all -- the remaining lines order pairs, they do not tell you whether the adduct forms."
+    }
+   ],
+   "matched": [
+    "Role: as you set it.",
+    "Acid: [C-]#[O+]",
+    "Base: FB(F)F",
+    "An adduct is possible on the structures alone, but no line of evidence could be evaluated. Run a quantum chemistry job on both molecules, or use a pair with tabulated Drago parameters.",
+    "  Drago-Wayland enthalpy: not available -- No tabulated E and C parameters for the acid and the base. The table covers the species with published calorimetry, which is a few dozen, not a general method.",
+    "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+    "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+    "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+    "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+    "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+    "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart.",
+    "Limitation: Without tabulated parameters there is no energy here at all -- the remaining lines order pairs, they do not tell you whether the adduct forms."
+   ],
+   "molecule_uuid": "uuid-1",
+   "name": "Lewis Adduct",
+   "provenance": {
+    "created_by": "core",
+    "method": "lewis_adduct",
+    "parameters": {
+     "orientation": "subject_base",
+     "orientation_basis": "user",
+     "role_requested": "base"
+    }
+   },
+   "report_id": "lewis_adduct",
+   "severity": "info"
+  },
+  "smiles": "FB(F)F"
+ },
+ "BF3 + trimethylamine, auto": {
+  "parameters": {
+   "partner_smiles": "CN(C)C"
+  },
+  "report": {
+   "cache_state": "completed",
+   "category": "lewis",
+   "error": null,
+   "facts": [
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Role: from the structures -- only this way round can the acid accept and the base donate. That is structural admissibility, not a determination of which molecule is the stronger acid.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Role: from the structures -- only this way round can the acid accept and the base donate. That is structural admissibility, not a determination of which molecule is the stronger acid."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Acid: FB(F)F",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Acid: FB(F)F"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Base: CN(C)C",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Base: CN(C)C"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "An adduct is possible on the structures alone, but no line of evidence could be evaluated. Run a quantum chemistry job on both molecules, or use a pair with tabulated Drago parameters.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "An adduct is possible on the structures alone, but no line of evidence could be evaluated. Run a quantum chemistry job on both molecules, or use a pair with tabulated Drago parameters."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  Drago-Wayland enthalpy: not available -- No tabulated E and C parameters for the acid. The table covers the species with published calorimetry, which is a few dozen, not a general method.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  Drago-Wayland enthalpy: not available -- No tabulated E and C parameters for the acid. The table covers the species with published calorimetry, which is a few dozen, not a general method."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: Without tabulated parameters there is no energy here at all -- the remaining lines order pairs, they do not tell you whether the adduct forms.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: Without tabulated parameters there is no energy here at all -- the remaining lines order pairs, they do not tell you whether the adduct forms."
+    }
+   ],
+   "matched": [
+    "Role: from the structures -- only this way round can the acid accept and the base donate. That is structural admissibility, not a determination of which molecule is the stronger acid.",
+    "Acid: FB(F)F",
+    "Base: CN(C)C",
+    "An adduct is possible on the structures alone, but no line of evidence could be evaluated. Run a quantum chemistry job on both molecules, or use a pair with tabulated Drago parameters.",
+    "  Drago-Wayland enthalpy: not available -- No tabulated E and C parameters for the acid. The table covers the species with published calorimetry, which is a few dozen, not a general method.",
+    "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+    "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+    "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+    "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+    "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+    "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart.",
+    "Limitation: Without tabulated parameters there is no energy here at all -- the remaining lines order pairs, they do not tell you whether the adduct forms."
+   ],
+   "molecule_uuid": "uuid-1",
+   "name": "Lewis Adduct",
+   "provenance": {
+    "created_by": "core",
+    "method": "lewis_adduct",
+    "parameters": {
+     "orientation": "subject_acid",
+     "orientation_basis": "site_admissibility",
+     "role_requested": "auto"
+    }
+   },
+   "report_id": "lewis_adduct",
+   "severity": "info"
+  },
+  "smiles": "FB(F)F"
+ },
+ "a stored role label (legacy)": {
+  "parameters": {
+   "partner_smiles": "CCN(CC)CC",
+   "role": "This molecule is the acid"
+  },
+  "report": {
+   "cache_state": "completed",
+   "category": "lewis",
+   "error": null,
+   "facts": [
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Role: as you set it.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Role: as you set it."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Acid: II",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Acid: II"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Base: CCN(CC)CC",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Base: CCN(CC)CC"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Drago-Wayland enthalpy 12.12 kcal/mol.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Drago-Wayland enthalpy 12.12 kcal/mol."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "12.12",
+     "evidence": [],
+     "label": "Drago-Wayland enthalpy",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "kcal/mol [deterministic] -- iodine + triethylamine. An empirical model, not a calculation from first principles: the parameters reproduce measured donor-iodine enthalpies to about 0.3 kcal/mol, and the observed values in Drago and Wayland's original 1965 paper to 0.36 (iodine) and 0.77 (phenol) kcal/mol.",
+     "value": "12.12"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart."
+    }
+   ],
+   "matched": [
+    "Role: as you set it.",
+    "Acid: II",
+    "Base: CCN(CC)CC",
+    "Drago-Wayland enthalpy 12.12 kcal/mol.",
+    "Drago-Wayland enthalpy: 12.12 kcal/mol [deterministic] -- iodine + triethylamine. An empirical model, not a calculation from first principles: the parameters reproduce measured donor-iodine enthalpies to about 0.3 kcal/mol, and the observed values in Drago and Wayland's original 1965 paper to 0.36 (iodine) and 0.77 (phenol) kcal/mol.",
+    "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+    "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+    "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+    "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+    "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+    "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart."
+   ],
+   "molecule_uuid": "uuid-1",
+   "name": "Lewis Adduct",
+   "provenance": {
+    "created_by": "core",
+    "method": "lewis_adduct",
+    "parameters": {
+     "orientation": "subject_acid",
+     "orientation_basis": "user",
+     "role_requested": "acid"
+    }
+   },
+   "report_id": "lewis_adduct",
+   "severity": "info"
+  },
+  "smiles": "II"
+ },
+ "ammonia + phosphine, auto": {
+  "parameters": {
+   "partner_smiles": "P"
+  },
+  "report": {
+   "cache_state": "completed",
+   "category": "lewis",
+   "error": null,
+   "facts": [
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Role: from the structures -- only this way round can the acid accept and the base donate. That is structural admissibility, not a determination of which molecule is the stronger acid.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Role: from the structures -- only this way round can the acid accept and the base donate. That is structural admissibility, not a determination of which molecule is the stronger acid."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Acid: N",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Acid: N"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Base: P",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Base: P"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "An adduct is possible on the structures alone, but no line of evidence could be evaluated. Run a quantum chemistry job on both molecules, or use a pair with tabulated Drago parameters.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "An adduct is possible on the structures alone, but no line of evidence could be evaluated. Run a quantum chemistry job on both molecules, or use a pair with tabulated Drago parameters."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  Drago-Wayland enthalpy: not available -- No tabulated E and C parameters for the acid and the base. The table covers the species with published calorimetry, which is a few dozen, not a general method.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  Drago-Wayland enthalpy: not available -- No tabulated E and C parameters for the acid and the base. The table covers the species with published calorimetry, which is a few dozen, not a general method."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: Without tabulated parameters there is no energy here at all -- the remaining lines order pairs, they do not tell you whether the adduct forms.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: Without tabulated parameters there is no energy here at all -- the remaining lines order pairs, they do not tell you whether the adduct forms."
+    }
+   ],
+   "matched": [
+    "Role: from the structures -- only this way round can the acid accept and the base donate. That is structural admissibility, not a determination of which molecule is the stronger acid.",
+    "Acid: N",
+    "Base: P",
+    "An adduct is possible on the structures alone, but no line of evidence could be evaluated. Run a quantum chemistry job on both molecules, or use a pair with tabulated Drago parameters.",
+    "  Drago-Wayland enthalpy: not available -- No tabulated E and C parameters for the acid and the base. The table covers the species with published calorimetry, which is a few dozen, not a general method.",
+    "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+    "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+    "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+    "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+    "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+    "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart.",
+    "Limitation: Without tabulated parameters there is no energy here at all -- the remaining lines order pairs, they do not tell you whether the adduct forms."
+   ],
+   "molecule_uuid": "uuid-1",
+   "name": "Lewis Adduct",
+   "provenance": {
+    "created_by": "core",
+    "method": "lewis_adduct",
+    "parameters": {
+     "orientation": "subject_acid",
+     "orientation_basis": "site_admissibility",
+     "role_requested": "auto"
+    }
+   },
+   "report_id": "lewis_adduct",
+   "severity": "info"
+  },
+  "smiles": "N"
+ },
+ "borane + carbon monoxide, auto": {
+  "parameters": {
+   "partner_smiles": "[C-]#[O+]"
+  },
+  "report": {
+   "cache_state": "completed",
+   "category": "lewis",
+   "error": null,
+   "facts": [
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Role: from the structures -- only this way round can the acid accept and the base donate. That is structural admissibility, not a determination of which molecule is the stronger acid.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Role: from the structures -- only this way round can the acid accept and the base donate. That is structural admissibility, not a determination of which molecule is the stronger acid."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Acid: B",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Acid: B"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Base: [C-]#[O+]",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Base: [C-]#[O+]"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "An adduct is possible on the structures alone, but no line of evidence could be evaluated. Run a quantum chemistry job on both molecules, or use a pair with tabulated Drago parameters.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "An adduct is possible on the structures alone, but no line of evidence could be evaluated. Run a quantum chemistry job on both molecules, or use a pair with tabulated Drago parameters."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  Drago-Wayland enthalpy: not available -- No tabulated E and C parameters for the acid and the base. The table covers the species with published calorimetry, which is a few dozen, not a general method.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  Drago-Wayland enthalpy: not available -- No tabulated E and C parameters for the acid and the base. The table covers the species with published calorimetry, which is a few dozen, not a general method."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: Without tabulated parameters there is no energy here at all -- the remaining lines order pairs, they do not tell you whether the adduct forms.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: Without tabulated parameters there is no energy here at all -- the remaining lines order pairs, they do not tell you whether the adduct forms."
+    }
+   ],
+   "matched": [
+    "Role: from the structures -- only this way round can the acid accept and the base donate. That is structural admissibility, not a determination of which molecule is the stronger acid.",
+    "Acid: B",
+    "Base: [C-]#[O+]",
+    "An adduct is possible on the structures alone, but no line of evidence could be evaluated. Run a quantum chemistry job on both molecules, or use a pair with tabulated Drago parameters.",
+    "  Drago-Wayland enthalpy: not available -- No tabulated E and C parameters for the acid and the base. The table covers the species with published calorimetry, which is a few dozen, not a general method.",
+    "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+    "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+    "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+    "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+    "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+    "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart.",
+    "Limitation: Without tabulated parameters there is no energy here at all -- the remaining lines order pairs, they do not tell you whether the adduct forms."
+   ],
+   "molecule_uuid": "uuid-1",
+   "name": "Lewis Adduct",
+   "provenance": {
+    "created_by": "core",
+    "method": "lewis_adduct",
+    "parameters": {
+     "orientation": "subject_acid",
+     "orientation_basis": "site_admissibility",
+     "role_requested": "auto"
+    }
+   },
+   "report_id": "lewis_adduct",
+   "severity": "info"
+  },
+  "smiles": "B"
+ },
+ "carbon monoxide + borane, auto": {
+  "parameters": {
+   "partner_smiles": "B"
+  },
+  "report": {
+   "cache_state": "completed",
+   "category": "lewis",
+   "error": null,
+   "facts": [
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Role: from the structures -- only this way round can the acid accept and the base donate. That is structural admissibility, not a determination of which molecule is the stronger acid.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Role: from the structures -- only this way round can the acid accept and the base donate. That is structural admissibility, not a determination of which molecule is the stronger acid."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Acid: B",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Acid: B"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Base: [C-]#[O+]",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Base: [C-]#[O+]"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "An adduct is possible on the structures alone, but no line of evidence could be evaluated. Run a quantum chemistry job on both molecules, or use a pair with tabulated Drago parameters.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "An adduct is possible on the structures alone, but no line of evidence could be evaluated. Run a quantum chemistry job on both molecules, or use a pair with tabulated Drago parameters."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  Drago-Wayland enthalpy: not available -- No tabulated E and C parameters for the acid and the base. The table covers the species with published calorimetry, which is a few dozen, not a general method.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  Drago-Wayland enthalpy: not available -- No tabulated E and C parameters for the acid and the base. The table covers the species with published calorimetry, which is a few dozen, not a general method."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: Without tabulated parameters there is no energy here at all -- the remaining lines order pairs, they do not tell you whether the adduct forms.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: Without tabulated parameters there is no energy here at all -- the remaining lines order pairs, they do not tell you whether the adduct forms."
+    }
+   ],
+   "matched": [
+    "Role: from the structures -- only this way round can the acid accept and the base donate. That is structural admissibility, not a determination of which molecule is the stronger acid.",
+    "Acid: B",
+    "Base: [C-]#[O+]",
+    "An adduct is possible on the structures alone, but no line of evidence could be evaluated. Run a quantum chemistry job on both molecules, or use a pair with tabulated Drago parameters.",
+    "  Drago-Wayland enthalpy: not available -- No tabulated E and C parameters for the acid and the base. The table covers the species with published calorimetry, which is a few dozen, not a general method.",
+    "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+    "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+    "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+    "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+    "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+    "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart.",
+    "Limitation: Without tabulated parameters there is no energy here at all -- the remaining lines order pairs, they do not tell you whether the adduct forms."
+   ],
+   "molecule_uuid": "uuid-1",
+   "name": "Lewis Adduct",
+   "provenance": {
+    "created_by": "core",
+    "method": "lewis_adduct",
+    "parameters": {
+     "orientation": "subject_base",
+     "orientation_basis": "site_admissibility",
+     "role_requested": "auto"
+    }
+   },
+   "report_id": "lewis_adduct",
+   "severity": "info"
+  },
+  "smiles": "[C-]#[O+]"
+ },
+ "iodine + benzene (pi donor), auto": {
+  "parameters": {
+   "partner_smiles": "c1ccccc1"
+  },
+  "report": {
+   "cache_state": "completed",
+   "category": "lewis",
+   "error": null,
+   "facts": [
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Role: from the Drago-Wayland table, which lists one as an acid and the other as a base.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Role: from the Drago-Wayland table, which lists one as an acid and the other as a base."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Acid: II",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Acid: II"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Base: c1ccccc1",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Base: c1ccccc1"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Drago-Wayland enthalpy 1.25 kcal/mol.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Drago-Wayland enthalpy 1.25 kcal/mol."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "1.25",
+     "evidence": [],
+     "label": "Drago-Wayland enthalpy",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "kcal/mol [deterministic] -- iodine + benzene. An empirical model, not a calculation from first principles: the parameters reproduce measured donor-iodine enthalpies to about 0.3 kcal/mol, and the observed values in Drago and Wayland's original 1965 paper to 0.36 (iodine) and 0.77 (phenol) kcal/mol.",
+     "value": "1.25"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: This base donates from a pi system rather than a lone pair, so there is no single donor ATOM -- the interaction is with the face of the pi cloud and its geometry is not what a lone-pair adduct's would be.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: This base donates from a pi system rather than a lone pair, so there is no single donor ATOM -- the interaction is with the face of the pi cloud and its geometry is not what a lone-pair adduct's would be."
+    }
+   ],
+   "matched": [
+    "Role: from the Drago-Wayland table, which lists one as an acid and the other as a base.",
+    "Acid: II",
+    "Base: c1ccccc1",
+    "Drago-Wayland enthalpy 1.25 kcal/mol.",
+    "Drago-Wayland enthalpy: 1.25 kcal/mol [deterministic] -- iodine + benzene. An empirical model, not a calculation from first principles: the parameters reproduce measured donor-iodine enthalpies to about 0.3 kcal/mol, and the observed values in Drago and Wayland's original 1965 paper to 0.36 (iodine) and 0.77 (phenol) kcal/mol.",
+    "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+    "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+    "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+    "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+    "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+    "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart.",
+    "Limitation: This base donates from a pi system rather than a lone pair, so there is no single donor ATOM -- the interaction is with the face of the pi cloud and its geometry is not what a lone-pair adduct's would be."
+   ],
+   "molecule_uuid": "uuid-1",
+   "name": "Lewis Adduct",
+   "provenance": {
+    "created_by": "core",
+    "method": "lewis_adduct",
+    "parameters": {
+     "orientation": "subject_acid",
+     "orientation_basis": "drago_table",
+     "role_requested": "auto"
+    }
+   },
+   "report_id": "lewis_adduct",
+   "severity": "info"
+  },
+  "smiles": "II"
+ },
+ "iodine + pyridine, acid": {
+  "parameters": {
+   "partner_smiles": "c1ccncc1",
+   "role": "acid"
+  },
+  "report": {
+   "cache_state": "completed",
+   "category": "lewis",
+   "error": null,
+   "facts": [
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Role: as you set it.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Role: as you set it."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Acid: II",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Acid: II"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Base: c1ccncc1",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Base: c1ccncc1"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Drago-Wayland enthalpy 7.97 kcal/mol.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Drago-Wayland enthalpy 7.97 kcal/mol."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "7.97",
+     "evidence": [],
+     "label": "Drago-Wayland enthalpy",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "kcal/mol [deterministic] -- iodine + pyridine. An empirical model, not a calculation from first principles: the parameters reproduce measured donor-iodine enthalpies to about 0.3 kcal/mol, and the observed values in Drago and Wayland's original 1965 paper to 0.36 (iodine) and 0.77 (phenol) kcal/mol.",
+     "value": "7.97"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart."
+    }
+   ],
+   "matched": [
+    "Role: as you set it.",
+    "Acid: II",
+    "Base: c1ccncc1",
+    "Drago-Wayland enthalpy 7.97 kcal/mol.",
+    "Drago-Wayland enthalpy: 7.97 kcal/mol [deterministic] -- iodine + pyridine. An empirical model, not a calculation from first principles: the parameters reproduce measured donor-iodine enthalpies to about 0.3 kcal/mol, and the observed values in Drago and Wayland's original 1965 paper to 0.36 (iodine) and 0.77 (phenol) kcal/mol.",
+    "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+    "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+    "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+    "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+    "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+    "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart."
+   ],
+   "molecule_uuid": "uuid-1",
+   "name": "Lewis Adduct",
+   "provenance": {
+    "created_by": "core",
+    "method": "lewis_adduct",
+    "parameters": {
+     "orientation": "subject_acid",
+     "orientation_basis": "user",
+     "role_requested": "acid"
+    }
+   },
+   "report_id": "lewis_adduct",
+   "severity": "info"
+  },
+  "smiles": "II"
+ },
+ "iodine + pyridine, base": {
+  "parameters": {
+   "partner_smiles": "c1ccncc1",
+   "role": "base"
+  },
+  "report": {
+   "cache_state": "failed",
+   "category": "lewis",
+   "error": "Nothing in the acid can accept an electron pair -- no empty valence orbital, no low-lying pi* or sigma*, no vacant coordination site.",
+   "facts": [],
+   "matched": [],
+   "molecule_uuid": "uuid-1",
+   "name": "Lewis Adduct",
+   "provenance": {
+    "created_by": "core",
+    "method": "lewis_adduct",
+    "parameters": {
+     "orientation": "subject_base",
+     "orientation_basis": "user",
+     "role_requested": "base"
+    }
+   },
+   "report_id": "lewis_adduct",
+   "severity": "info"
+  },
+  "smiles": "II"
+ },
+ "iodine + triethylamine, auto": {
+  "parameters": {
+   "partner_smiles": "CCN(CC)CC"
+  },
+  "report": {
+   "cache_state": "completed",
+   "category": "lewis",
+   "error": null,
+   "facts": [
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Role: from the Drago-Wayland table, which lists one as an acid and the other as a base.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Role: from the Drago-Wayland table, which lists one as an acid and the other as a base."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Acid: II",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Acid: II"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Base: CCN(CC)CC",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Base: CCN(CC)CC"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Drago-Wayland enthalpy 12.12 kcal/mol.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Drago-Wayland enthalpy 12.12 kcal/mol."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "12.12",
+     "evidence": [],
+     "label": "Drago-Wayland enthalpy",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "kcal/mol [deterministic] -- iodine + triethylamine. An empirical model, not a calculation from first principles: the parameters reproduce measured donor-iodine enthalpies to about 0.3 kcal/mol, and the observed values in Drago and Wayland's original 1965 paper to 0.36 (iodine) and 0.77 (phenol) kcal/mol.",
+     "value": "12.12"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart."
+    }
+   ],
+   "matched": [
+    "Role: from the Drago-Wayland table, which lists one as an acid and the other as a base.",
+    "Acid: II",
+    "Base: CCN(CC)CC",
+    "Drago-Wayland enthalpy 12.12 kcal/mol.",
+    "Drago-Wayland enthalpy: 12.12 kcal/mol [deterministic] -- iodine + triethylamine. An empirical model, not a calculation from first principles: the parameters reproduce measured donor-iodine enthalpies to about 0.3 kcal/mol, and the observed values in Drago and Wayland's original 1965 paper to 0.36 (iodine) and 0.77 (phenol) kcal/mol.",
+    "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+    "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+    "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+    "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+    "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+    "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart."
+   ],
+   "molecule_uuid": "uuid-1",
+   "name": "Lewis Adduct",
+   "provenance": {
+    "created_by": "core",
+    "method": "lewis_adduct",
+    "parameters": {
+     "orientation": "subject_acid",
+     "orientation_basis": "drago_table",
+     "role_requested": "auto"
+    }
+   },
+   "report_id": "lewis_adduct",
+   "severity": "info"
+  },
+  "smiles": "II"
+ },
+ "methane + ethane, acid (refused by predict)": {
+  "parameters": {
+   "partner_smiles": "CC",
+   "role": "acid"
+  },
+  "report": {
+   "cache_state": "failed",
+   "category": "lewis",
+   "error": "Nothing in the acid can accept an electron pair -- no empty valence orbital, no low-lying pi* or sigma*, no vacant coordination site.",
+   "facts": [],
+   "matched": [],
+   "molecule_uuid": "uuid-1",
+   "name": "Lewis Adduct",
+   "provenance": {
+    "created_by": "core",
+    "method": "lewis_adduct",
+    "parameters": {
+     "orientation": "subject_acid",
+     "orientation_basis": "user",
+     "role_requested": "acid"
+    }
+   },
+   "report_id": "lewis_adduct",
+   "severity": "info"
+  },
+  "smiles": "C"
+ },
+ "methane + ethane, auto (neither)": {
+  "parameters": {
+   "partner_smiles": "CC"
+  },
+  "report": {
+   "cache_state": "failed",
+   "category": "lewis",
+   "error": "Nothing in the acid can accept an electron pair -- no empty valence orbital, no low-lying pi* or sigma*, no vacant coordination site.",
+   "facts": [],
+   "matched": [],
+   "molecule_uuid": "uuid-1",
+   "name": "Lewis Adduct",
+   "provenance": {
+    "created_by": "core",
+    "method": "lewis_adduct",
+    "parameters": {
+     "attempt_reasons": [
+      "As the acid, C: Nothing in it can accept an electron pair -- no empty valence orbital, no low-lying pi* or sigma*, no vacant coordination site.",
+      "As the acid, CC: Nothing in it can accept an electron pair -- no empty valence orbital, no low-lying pi* or sigma*, no vacant coordination site."
+     ],
+     "orientation": "unresolved",
+     "orientation_basis": "",
+     "role_requested": "auto"
+    }
+   },
+   "report_id": "lewis_adduct",
+   "severity": "info"
+  },
+  "smiles": "C"
+ },
+ "methanol + ammonia, auto": {
+  "parameters": {
+   "partner_smiles": "N"
+  },
+  "report": {
+   "cache_state": "completed",
+   "category": "lewis",
+   "error": null,
+   "facts": [
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Role: not determined from the structures. Both molecules can act as either partner, so BOTH orientations are reported and neither is ranked. Set the role explicitly if you know which is which.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Role: not determined from the structures. Both molecules can act as either partner, so BOTH orientations are reported and neither is ranked. Set the role explicitly if you know which is which."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Orientation 1: this molecule as the acid",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Orientation 1: this molecule as the acid"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Acid: CO",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Acid: CO"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Base: N",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Base: N"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "An adduct is possible on the structures alone, but no line of evidence could be evaluated. Run a quantum chemistry job on both molecules, or use a pair with tabulated Drago parameters.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "An adduct is possible on the structures alone, but no line of evidence could be evaluated. Run a quantum chemistry job on both molecules, or use a pair with tabulated Drago parameters."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  Drago-Wayland enthalpy: not available -- No tabulated E and C parameters for the acid. The table covers the species with published calorimetry, which is a few dozen, not a general method.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  Drago-Wayland enthalpy: not available -- No tabulated E and C parameters for the acid. The table covers the species with published calorimetry, which is a few dozen, not a general method."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: Without tabulated parameters there is no energy here at all -- the remaining lines order pairs, they do not tell you whether the adduct forms.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: Without tabulated parameters there is no energy here at all -- the remaining lines order pairs, they do not tell you whether the adduct forms."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Orientation 2: this molecule as the base",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Orientation 2: this molecule as the base"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Acid: N",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Acid: N"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Base: CO",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Base: CO"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "An adduct is possible on the structures alone, but no line of evidence could be evaluated. Run a quantum chemistry job on both molecules, or use a pair with tabulated Drago parameters.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "An adduct is possible on the structures alone, but no line of evidence could be evaluated. Run a quantum chemistry job on both molecules, or use a pair with tabulated Drago parameters."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  Drago-Wayland enthalpy: not available -- No tabulated E and C parameters for the acid and the base. The table covers the species with published calorimetry, which is a few dozen, not a general method.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  Drago-Wayland enthalpy: not available -- No tabulated E and C parameters for the acid and the base. The table covers the species with published calorimetry, which is a few dozen, not a general method."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: Without tabulated parameters there is no energy here at all -- the remaining lines order pairs, they do not tell you whether the adduct forms.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: Without tabulated parameters there is no energy here at all -- the remaining lines order pairs, they do not tell you whether the adduct forms."
+    }
+   ],
+   "matched": [
+    "Role: not determined from the structures. Both molecules can act as either partner, so BOTH orientations are reported and neither is ranked. Set the role explicitly if you know which is which.",
+    "Orientation 1: this molecule as the acid",
+    "Acid: CO",
+    "Base: N",
+    "An adduct is possible on the structures alone, but no line of evidence could be evaluated. Run a quantum chemistry job on both molecules, or use a pair with tabulated Drago parameters.",
+    "  Drago-Wayland enthalpy: not available -- No tabulated E and C parameters for the acid. The table covers the species with published calorimetry, which is a few dozen, not a general method.",
+    "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+    "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+    "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+    "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+    "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+    "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart.",
+    "Limitation: Without tabulated parameters there is no energy here at all -- the remaining lines order pairs, they do not tell you whether the adduct forms.",
+    "Orientation 2: this molecule as the base",
+    "Acid: N",
+    "Base: CO",
+    "An adduct is possible on the structures alone, but no line of evidence could be evaluated. Run a quantum chemistry job on both molecules, or use a pair with tabulated Drago parameters.",
+    "  Drago-Wayland enthalpy: not available -- No tabulated E and C parameters for the acid and the base. The table covers the species with published calorimetry, which is a few dozen, not a general method.",
+    "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+    "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+    "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+    "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+    "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+    "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart.",
+    "Limitation: Without tabulated parameters there is no energy here at all -- the remaining lines order pairs, they do not tell you whether the adduct forms."
+   ],
+   "molecule_uuid": "uuid-1",
+   "name": "Lewis Adduct",
+   "provenance": {
+    "created_by": "core",
+    "method": "lewis_adduct",
+    "parameters": {
+     "orientation": "unresolved",
+     "orientation_basis": "",
+     "role_requested": "auto"
+    }
+   },
+   "report_id": "lewis_adduct",
+   "severity": "info"
+  },
+  "smiles": "CO"
+ },
+ "no parameters at all": {
+  "parameters": null,
+  "report": {
+   "cache_state": "failed",
+   "category": "lewis",
+   "error": "Choose or enter the partner molecule in this calculator's settings. An adduct needs two molecules and this one only has one.",
+   "facts": [],
+   "matched": [],
+   "molecule_uuid": "uuid-1",
+   "name": "Lewis Adduct",
+   "provenance": {
+    "created_by": "core",
+    "method": "lewis_adduct",
+    "parameters": {
+     "missing_inputs": [
+      {
+       "parameter": "partner_smiles",
+       "problem": "missing",
+       "units": ""
+      }
+     ],
+     "refusal": "INPUT_REQUIRED",
+     "refusal_kind": "needs_input"
+    }
+   },
+   "report_id": "lewis_adduct",
+   "severity": "info"
+  },
+  "smiles": "II"
+ },
+ "no partner": {
+  "parameters": {},
+  "report": {
+   "cache_state": "failed",
+   "category": "lewis",
+   "error": "Choose or enter the partner molecule in this calculator's settings. An adduct needs two molecules and this one only has one.",
+   "facts": [],
+   "matched": [],
+   "molecule_uuid": "uuid-1",
+   "name": "Lewis Adduct",
+   "provenance": {
+    "created_by": "core",
+    "method": "lewis_adduct",
+    "parameters": {
+     "missing_inputs": [
+      {
+       "parameter": "partner_smiles",
+       "problem": "missing",
+       "units": ""
+      }
+     ],
+     "refusal": "INPUT_REQUIRED",
+     "refusal_kind": "needs_input"
+    }
+   },
+   "report_id": "lewis_adduct",
+   "severity": "info"
+  },
+  "smiles": "II"
+ },
+ "phenol + pyridine, auto": {
+  "parameters": {
+   "partner_smiles": "c1ccncc1"
+  },
+  "report": {
+   "cache_state": "completed",
+   "category": "lewis",
+   "error": null,
+   "facts": [
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Role: from the Drago-Wayland table, which lists one as an acid and the other as a base.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Role: from the Drago-Wayland table, which lists one as an acid and the other as a base."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Acid: Oc1ccccc1",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Acid: Oc1ccccc1"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Base: c1ccncc1",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Base: c1ccncc1"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Drago-Wayland enthalpy 7.83 kcal/mol.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Drago-Wayland enthalpy 7.83 kcal/mol."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "7.83",
+     "evidence": [],
+     "label": "Drago-Wayland enthalpy",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "kcal/mol [deterministic] -- phenol + pyridine. An empirical model, not a calculation from first principles: the parameters reproduce measured donor-iodine enthalpies to about 0.3 kcal/mol, and the observed values in Drago and Wayland's original 1965 paper to 0.36 (iodine) and 0.77 (phenol) kcal/mol.",
+     "value": "7.83"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart."
+    }
+   ],
+   "matched": [
+    "Role: from the Drago-Wayland table, which lists one as an acid and the other as a base.",
+    "Acid: Oc1ccccc1",
+    "Base: c1ccncc1",
+    "Drago-Wayland enthalpy 7.83 kcal/mol.",
+    "Drago-Wayland enthalpy: 7.83 kcal/mol [deterministic] -- phenol + pyridine. An empirical model, not a calculation from first principles: the parameters reproduce measured donor-iodine enthalpies to about 0.3 kcal/mol, and the observed values in Drago and Wayland's original 1965 paper to 0.36 (iodine) and 0.77 (phenol) kcal/mol.",
+    "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+    "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+    "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+    "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+    "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+    "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart."
+   ],
+   "molecule_uuid": "uuid-1",
+   "name": "Lewis Adduct",
+   "provenance": {
+    "created_by": "core",
+    "method": "lewis_adduct",
+    "parameters": {
+     "orientation": "subject_acid",
+     "orientation_basis": "drago_table",
+     "role_requested": "auto"
+    }
+   },
+   "report_id": "lewis_adduct",
+   "severity": "info"
+  },
+  "smiles": "Oc1ccccc1"
+ },
+ "triethylamine + iodine, auto": {
+  "parameters": {
+   "partner_smiles": "II"
+  },
+  "report": {
+   "cache_state": "completed",
+   "category": "lewis",
+   "error": null,
+   "facts": [
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Role: from the Drago-Wayland table, which lists one as an acid and the other as a base.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Role: from the Drago-Wayland table, which lists one as an acid and the other as a base."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Acid: II",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Acid: II"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Base: CCN(CC)CC",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Base: CCN(CC)CC"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Drago-Wayland enthalpy 12.12 kcal/mol.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Drago-Wayland enthalpy 12.12 kcal/mol."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "12.12",
+     "evidence": [],
+     "label": "Drago-Wayland enthalpy",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "kcal/mol [deterministic] -- iodine + triethylamine. An empirical model, not a calculation from first principles: the parameters reproduce measured donor-iodine enthalpies to about 0.3 kcal/mol, and the observed values in Drago and Wayland's original 1965 paper to 0.36 (iodine) and 0.77 (phenol) kcal/mol.",
+     "value": "12.12"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart."
+    }
+   ],
+   "matched": [
+    "Role: from the Drago-Wayland table, which lists one as an acid and the other as a base.",
+    "Acid: II",
+    "Base: CCN(CC)CC",
+    "Drago-Wayland enthalpy 12.12 kcal/mol.",
+    "Drago-Wayland enthalpy: 12.12 kcal/mol [deterministic] -- iodine + triethylamine. An empirical model, not a calculation from first principles: the parameters reproduce measured donor-iodine enthalpies to about 0.3 kcal/mol, and the observed values in Drago and Wayland's original 1965 paper to 0.36 (iodine) and 0.77 (phenol) kcal/mol.",
+    "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+    "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+    "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+    "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+    "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+    "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart."
+   ],
+   "molecule_uuid": "uuid-1",
+   "name": "Lewis Adduct",
+   "provenance": {
+    "created_by": "core",
+    "method": "lewis_adduct",
+    "parameters": {
+     "orientation": "subject_base",
+     "orientation_basis": "drago_table",
+     "role_requested": "auto"
+    }
+   },
+   "report_id": "lewis_adduct",
+   "severity": "info"
+  },
+  "smiles": "CCN(CC)CC"
+ },
+ "unknown role": {
+  "parameters": {
+   "partner_smiles": "CCN(CC)CC",
+   "role": "stronger"
+  },
+  "report": {
+   "cache_state": "failed",
+   "category": "lewis",
+   "error": "unknown role 'stronger'",
+   "facts": [],
+   "matched": [],
+   "molecule_uuid": "uuid-1",
+   "name": "Lewis Adduct",
+   "provenance": {
+    "created_by": "core",
+    "method": "lewis_adduct",
+    "parameters": {}
+   },
+   "report_id": "lewis_adduct",
+   "severity": "info"
+  },
+  "smiles": "II"
+ },
+ "unparseable partner": {
+  "parameters": {
+   "partner_smiles": "not a molecule"
+  },
+  "report": {
+   "cache_state": "failed",
+   "category": "lewis",
+   "error": "Could not parse the partner SMILES: 'not a molecule'",
+   "facts": [],
+   "matched": [],
+   "molecule_uuid": "uuid-1",
+   "name": "Lewis Adduct",
+   "provenance": {
+    "created_by": "core",
+    "method": "lewis_adduct",
+    "parameters": {}
+   },
+   "report_id": "lewis_adduct",
+   "severity": "info"
+  },
+  "smiles": "II"
+ },
+ "water + water, auto (unresolved)": {
+  "parameters": {
+   "partner_smiles": "O"
+  },
+  "report": {
+   "cache_state": "completed",
+   "category": "lewis",
+   "error": null,
+   "facts": [
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Role: not determined from the structures. Both molecules can act as either partner, so BOTH orientations are reported and neither is ranked. Set the role explicitly if you know which is which.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Role: not determined from the structures. Both molecules can act as either partner, so BOTH orientations are reported and neither is ranked. Set the role explicitly if you know which is which."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Orientation 1: this molecule as the acid",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Orientation 1: this molecule as the acid"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Acid: O",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Acid: O"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Base: O",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Base: O"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "An adduct is possible on the structures alone, but no line of evidence could be evaluated. Run a quantum chemistry job on both molecules, or use a pair with tabulated Drago parameters.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "An adduct is possible on the structures alone, but no line of evidence could be evaluated. Run a quantum chemistry job on both molecules, or use a pair with tabulated Drago parameters."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  Drago-Wayland enthalpy: not available -- No tabulated E and C parameters for the acid and the base. The table covers the species with published calorimetry, which is a few dozen, not a general method.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  Drago-Wayland enthalpy: not available -- No tabulated E and C parameters for the acid and the base. The table covers the species with published calorimetry, which is a few dozen, not a general method."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: Without tabulated parameters there is no energy here at all -- the remaining lines order pairs, they do not tell you whether the adduct forms.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: Without tabulated parameters there is no energy here at all -- the remaining lines order pairs, they do not tell you whether the adduct forms."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Orientation 2: this molecule as the base",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Orientation 2: this molecule as the base"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Acid: O",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Acid: O"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Base: O",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Base: O"
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "An adduct is possible on the structures alone, but no line of evidence could be evaluated. Run a quantum chemistry job on both molecules, or use a pair with tabulated Drago parameters.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "An adduct is possible on the structures alone, but no line of evidence could be evaluated. Run a quantum chemistry job on both molecules, or use a pair with tabulated Drago parameters."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  Drago-Wayland enthalpy: not available -- No tabulated E and C parameters for the acid and the base. The table covers the species with published calorimetry, which is a few dozen, not a general method.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  Drago-Wayland enthalpy: not available -- No tabulated E and C parameters for the acid and the base. The table covers the species with published calorimetry, which is a few dozen, not a general method."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart."
+    },
+    {
+     "basis": "heuristic",
+     "category": "electronic",
+     "display_value": "Limitation: Without tabulated parameters there is no energy here at all -- the remaining lines order pairs, they do not tell you whether the adduct forms.",
+     "evidence": [],
+     "label": "Lewis Adduct",
+     "limitations": [],
+     "source": "Lewis Adduct",
+     "units": "",
+     "value": "Limitation: Without tabulated parameters there is no energy here at all -- the remaining lines order pairs, they do not tell you whether the adduct forms."
+    }
+   ],
+   "matched": [
+    "Role: not determined from the structures. Both molecules can act as either partner, so BOTH orientations are reported and neither is ranked. Set the role explicitly if you know which is which.",
+    "Orientation 1: this molecule as the acid",
+    "Acid: O",
+    "Base: O",
+    "An adduct is possible on the structures alone, but no line of evidence could be evaluated. Run a quantum chemistry job on both molecules, or use a pair with tabulated Drago parameters.",
+    "  Drago-Wayland enthalpy: not available -- No tabulated E and C parameters for the acid and the base. The table covers the species with published calorimetry, which is a few dozen, not a general method.",
+    "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+    "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+    "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+    "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+    "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+    "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart.",
+    "Limitation: Without tabulated parameters there is no energy here at all -- the remaining lines order pairs, they do not tell you whether the adduct forms.",
+    "Orientation 2: this molecule as the base",
+    "Acid: O",
+    "Base: O",
+    "An adduct is possible on the structures alone, but no line of evidence could be evaluated. Run a quantum chemistry job on both molecules, or use a pair with tabulated Drago parameters.",
+    "  Drago-Wayland enthalpy: not available -- No tabulated E and C parameters for the acid and the base. The table covers the species with published calorimetry, which is a few dozen, not a general method.",
+    "  Frontier orbital gap: not available -- Needs the acid's LUMO energy and the base's HOMO energy. Run a quantum chemistry job on both molecules and these appear.",
+    "  HSAB hardness match: not available -- Needs the chemical hardness of both. Run a quantum chemistry job on each -- prefer the delta-SCF calc type, since Koopmans hardness inverts ammonia against phosphine.",
+    "Assumption: Each line of evidence is reported on its own terms. There is no combined score, because the three answer different questions and no accepted way of weighing them against each other exists.",
+    "Assumption: Drago-Wayland enthalpies are for the 1:1 adduct in a poorly-coordinating solvent or the gas phase. A coordinating solvent competes with the base and the measured value drops.",
+    "Limitation: Sterics are not considered, and the size of that gap is measured rather than hypothetical. Drago and Wayland's own 1965 paper reports trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the electronics predict, because the methyl groups collide; the same table gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller amines. An E and C equation has no term for it.",
+    "Limitation: A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several of these acids are dimers until a base breaks them apart.",
+    "Limitation: Without tabulated parameters there is no energy here at all -- the remaining lines order pairs, they do not tell you whether the adduct forms."
+   ],
+   "molecule_uuid": "uuid-1",
+   "name": "Lewis Adduct",
+   "provenance": {
+    "created_by": "core",
+    "method": "lewis_adduct",
+    "parameters": {
+     "orientation": "unresolved",
+     "orientation_basis": "",
+     "role_requested": "auto"
+    }
+   },
+   "report_id": "lewis_adduct",
+   "severity": "info"
+  },
+  "smiles": "O"
+ }
+}

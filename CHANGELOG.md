@@ -16,6 +16,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   name. Found by deprotonating one acidic site of every census molecule (285 anions): 21 of the first 169 were wrong, 0 of 285 now are by this measure (the remaining 4 are thioamide
   thiolates). The census is unchanged at 1993 exact (it had no row this population would show); frozen sets: heldout_v6 unchanged; bluebook_frozen re-scored once (r46-final-evaluation): wrong_structure 21 -> 17 and no_prediction 13 -> 17, four silent wrong molecules are refusals now, every other count identical; fresh_v1 moved 2 rows and was re-scored once (r46-fresh-v1): every outcome count identical. The stage list for `--frozen-impact` becomes `r46-fresh-v1,r46-final-evaluation,r38-final-evaluation`.
 
+### Recipes, slice 2a: the Lewis lines can take evidence from stored quantum-chemistry runs
+- **`chem.lewis_adduct.lewis_report`** is the body of `compute_lewis_adduct` after its parameter checks, moved into one function that also takes an
+  optional `PairEvidence`. The registered calculator passes none and its output is unchanged: `tests/test_lewis_adduct_pin.py` holds it to a recording
+  of 21 calls (every branch) taken from the code before it moved. The calculator still has no parameter for a hardness or an orbital energy, so
+  there is no way to type a number into its settings and have it look computed.
+- **`domain.lewis.EvidenceValue / MoleculeEvidence / PairEvidence`** are strict at the door: a number exists only as `BOUND` evidence in eV with the
+  copied run it came from, and anything else is a gap with a reason in words; the hardness must be `orca.dscf_hardness` (the Koopmans value, which
+  inverts ammonia and phosphine, is refused), frontier energies must come from a single point and the hardness from a delta-SCF run; and two numbers
+  on different methods or solvents are refused in any pairing a line uses, in either orientation.
+- The evidence behind the numbers is appended to the report as facts (the run, method, basis, charge, multiplicity and input of each number, or the
+  state and reason of each gap). Nothing here is reachable from the UI yet; the binder over stored runs and the first shipped recipe are 2b.
+
 ### Recipes, slice 1: the plan model, the run record, and a `recipe_runs` block in the project file
 - **`domain/recipe.py`** (pure): a recipe is an ordered plan whose steps read each other's typed outputs (a slot, a recipe parameter, or an EARLIER step's
   output; a cycle cannot be written). Values have a closed type (scalar-with-unit, code, run reference, report, molecule) and a unit is part of it:
