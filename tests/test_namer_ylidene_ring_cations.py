@@ -31,7 +31,7 @@ UNCHANGED = [
     ("the neutral ring", "C=C1CCCN=C1", "3-methylidene-3,4,5,6-tetrahydropyridine"),
     ("a ylidene on a piperidinium", "C=C1CCC[NH2+]C1", "3-methylidenepiperidin-1-ium"),
     ("a ylidene on a tetralin", "C=C1CCCc2ccccc21", "1-methylidene-1,2,3,4-tetrahydronaphthalene"),
-    ("an oxo ring cation (the carbonyl is no ylidene)", "O=C1CCC[NH+]=C1", "5-oxo-2,3-dihydropyridin-1-ium"),
+    ("an oxo ring cation (the carbonyl is no ylidene)", "O=C1CCC[NH+]=C1", "5-oxo-2,3,4,5-tetrahydropyridin-1-ium"),
     ("the five ring cation", "C=C1CC[NH+]=C1", "4-methylidene-3,4-dihydro-2H-azol-1-ium"),
 ]
 

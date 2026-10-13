@@ -342,6 +342,35 @@ def _hydrogen_prefix(indicated: list[str], hydro: list[str], base: str, *, compl
     return text
 
 
+def _deprotonated_twin(mol, ring: frozenset[int]):
+    """``mol`` with each PROTONATED ring N+ (one carrying a hydrogen) given back its proton, same atoms and indices; None if the ring holds no such atom or another charge.
+
+    A ring cation is named for its NEUTRAL skeleton with `-ium` added (P-73.1.1), so its hydro and indicated hydrogens are those of the neutral parent. This module declines a
+    charged ring atom, which left a protonated hexahydroquinolinone to the retained route's own count: `5-oxo-1,4,6,7-tetrahydroquinolin-1-ium`, which omits the sp3 fusion
+    carbon 4a and the ketone carbon, a name OPSIN cannot read (naming round 47). A quaternary N+ (no hydrogen to give back) is not handled here.
+    """
+    from rdkit import Chem
+
+    plus = [i for i in ring if mol.GetAtomWithIdx(i).GetSymbol() == "N" and mol.GetAtomWithIdx(i).GetFormalCharge() == 1]
+    if not plus:
+        return None
+    if any(mol.GetAtomWithIdx(i).GetFormalCharge() != 0 for i in ring if i not in plus):
+        return None
+    rw = Chem.RWMol(mol)
+    for i in plus:
+        atom = rw.GetAtomWithIdx(i)
+        if atom.GetTotalNumHs() < 1:
+            return None
+        atom.SetFormalCharge(0)
+        atom.SetNumExplicitHs(atom.GetTotalNumHs() - 1)
+        atom.SetNoImplicit(True)
+    try:
+        Chem.SanitizeMol(rw)
+    except Exception:  # noqa: BLE001
+        return None
+    return rw.GetMol()
+
+
 def _resolve(mol, named_parent, numbering, suffix_groups, free_valence=None):
     """The P-58.2 plan for a named parent, or None where this module declines.
 
@@ -365,11 +394,18 @@ def _resolve(mol, named_parent, numbering, suffix_groups, free_valence=None):
         fv_atoms = tuple(free_valence.attachment_atoms_in_fragment or ())
         if not fv_atoms:
             return None
-    if not (suffix_groups or fv_atoms) or getattr(named_parent, "precomposed_retained_no_suffix", False):
+    if getattr(named_parent, "precomposed_retained_no_suffix", False):
         return None
     if named_parent.candidate.ring_system is None:
         return None
     ring = frozenset(named_parent.candidate.atom_indices)
+    # A protonated ring cation is planned on its neutral twin, with no suffix needed: the hydro positions are the parent's own (naming round 47).
+    twin = _deprotonated_twin(mol, ring)
+    plain = twin is not None
+    if plain:
+        mol = twin
+    if not (suffix_groups or fv_atoms or plain):
+        return None
     ring_double = _ring_double_bond_atoms(mol, ring)
     atom_at = {}
     for a in ring:
@@ -414,7 +450,11 @@ def _resolve(mol, named_parent, numbering, suffix_groups, free_valence=None):
         return None
     if base_name in _hydro_ring_names():
         return None  # "isoindoline" is 2,3-dihydroisoindole, not a mancude parent
-    if not groups and not sat_groups:
+    if not groups and not sat_groups and not plain:
+        return None
+    if plain and not groups and not sat_groups and not ring_double:
+        # A fully saturated parent keeps its saturated retained name: `indolizidine` is not `octahydroindolizine`, and the neutral planner, run on its cation, wrote
+        # `7-oxooctahydroindolizidin-4-ium`, which OPSIN cannot read.
         return None
     if not ring_double and _is_monocycle(mol, ring):
         # A fully saturated monocycle takes its saturated name ("piperidin-

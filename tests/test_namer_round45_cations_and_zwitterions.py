@@ -38,7 +38,7 @@ CAMPTOTHECIN = [
 
 KETONE_CATION_UNCHANGED = [
     ('an indolizidinone cation (an oxo prefix)', 'O=C1CC[NH+]2CCCC2C1', '7-oxoindolizidin-4-ium'),
-    ('a 4-pyridinone cation', 'O=C1C=C[NH+]=CC1', '4-oxopyridin-1-ium'),
+    ('a 4-pyridinone cation', 'O=C1C=C[NH+]=CC1', '4-oxo-3,4-dihydropyridin-1-ium'),
 ]
 
 SECOND_ACID = [
