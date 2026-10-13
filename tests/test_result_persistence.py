@@ -1118,3 +1118,70 @@ def test_no_two_result_producers_declare_the_same_id():
         assert not (payload_type == "AlertResult" and "alert" in owner), (
             f"{old_id!r} is still produced as an {payload_type} by {owner}"
         )
+
+
+# ---------------------------------------------------------------------------
+# Slice 3b: the readers of a kept answer are told when it is kept and when a run behind it goes
+# ---------------------------------------------------------------------------
+
+
+def _listen_to(window, event_type) -> list:
+    seen: list = []
+    window._services.event_bus.subscribe(event_type, seen.append)
+    return seen
+
+
+def test_keeping_a_recipe_run_tells_the_readers_which_molecules_took_part(window, qapp):
+    from openchem.events.events import RecipeRunRecorded
+
+    a, b = _two_molecule_project(window)
+    seen = _listen_to(window, RecipeRunRecorded)
+    assert window._services.result_store_service.record_recipe_run(_recipe_run(a.uuid, b.uuid))
+    [event] = seen
+    assert event.run_id == "recipe-run-1" and event.molecule_uuids == (a.uuid, b.uuid)
+
+
+def test_a_refused_recipe_run_tells_nobody(window, qapp):
+    from openchem.events.events import RecipeRunRecorded
+
+    a, _b = _two_molecule_project(window)
+    seen = _listen_to(window, RecipeRunRecorded)
+    assert not window._services.result_store_service.record_recipe_run(_recipe_run(a.uuid, "not-in-this-project"))
+    assert seen == []
+
+
+def _stored_qc_run(window, molecule, run_id: str = "qc-1"):
+    from openchem.domain.quantum_chemistry_run import QuantumChemistryRun, RunStatus
+
+    run = QuantumChemistryRun(
+        run_id=run_id, molecule_uuid=molecule.uuid, calc_type="sp", method_basis="B3LYP def2-SVP", charge=0,
+        multiplicity=1, calculation_input=GEOMETRY, input_fingerprint="f" * 64, input_molblock="m",
+        started_at=1.0, completed_at=2.0, status=RunStatus.COMPLETED,
+    )
+    window._services.result_store_service.record_quantum_chemistry_run(run)
+    assert window._services.result_store_service.qc_runs.get(run_id) is run
+    return run
+
+
+def test_deleting_a_run_through_the_service_removes_it_marks_the_session_unsaved_and_tells_the_readers(window, qapp):
+    from openchem.events.events import QuantumChemistryRunDeleted
+
+    a, _b = _two_molecule_project(window)
+    _stored_qc_run(window, a)
+    window._session.mark_clean()
+    seen = _listen_to(window, QuantumChemistryRunDeleted)
+    assert window._services.result_store_service.delete_quantum_chemistry_run("qc-1")
+    assert window._services.result_store_service.qc_runs.get("qc-1") is None
+    assert window._session.is_dirty, "the file holds a run it should no longer hold"
+    [event] = seen
+    assert (event.run_id, event.molecule_uuid) == ("qc-1", a.uuid)
+
+
+def test_deleting_a_run_that_is_not_there_is_not_a_change(window, qapp):
+    from openchem.events.events import QuantumChemistryRunDeleted
+
+    _two_molecule_project(window)
+    window._session.mark_clean()
+    seen = _listen_to(window, QuantumChemistryRunDeleted)
+    assert not window._services.result_store_service.delete_quantum_chemistry_run("never-existed")
+    assert seen == [] and not window._session.is_dirty

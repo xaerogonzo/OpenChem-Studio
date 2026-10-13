@@ -411,8 +411,8 @@ class LewisPairingDialog(QDialog):
             self._keep_note.setText("")
         elif run.run_id == self._kept_run_id:
             self._keep_note.setText(
-                "Kept. It is saved with the project, and reads as stale if a molecule in it is edited or a run it "
-                "used is deleted."
+                "Kept. It is saved with the project and listed in Results under each of the two molecules, and it reads "
+                "as stale if either is edited or a run it used is deleted."
             )
         else:
             self._keep_note.setText("Not kept. Looking at a pairing does not change the project.")

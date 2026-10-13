@@ -404,6 +404,7 @@ def test_keeping_files_the_shown_run_once_and_says_so(qapp):
     assert dialog.press_keep() is True
     assert project.kept == [shown] and dialog.snapshot()["kept"] and not dialog.snapshot()["keep_enabled"]
     assert "reads as stale" in dialog._keep_note.text()
+    assert "listed in Results under each of the two molecules" in dialog._keep_note.text()
     assert dialog.press_keep() is False, "a second press has nothing to keep"
 
 

@@ -260,6 +260,11 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           combos, "choose" a run by id, "press" Keep or a job row's button (which
                                           asks for the Quantum Chemistry panel and starts nothing); `expect` reads the
                                           screen, the project's recipe runs and where the press went
+    {"do": "recipe_results", "focus": true, "expect": {"entries": 1, "stale": 0, "title_contains": ["BH3 + CO"],
+     "summary_contains": ["was edited"], "stored_as_results": 0}}
+                                          what the Results READER holds of the recipe answers kept in the project, for the
+                                          selected molecule: how many, how many stale, the line above the facts, and that none
+                                          is also a stored result; `shot` takes "widget": "results_reader"
     {"do": "wait"} {"do": "quit"}
 
 **A DRIVEN RUN ENDS IN A VERDICT, AND EXITS NON-ZERO WHEN IT FAILED.**

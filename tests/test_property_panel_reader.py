@@ -998,3 +998,124 @@ def test_the_reader_keeps_the_WHOLE_reason_while_a_SUMMARY_takes_the_short_form(
     )
     assert fact.display_value == summary
     assert fact.limitations == (reason,)
+
+
+# --- the kept recipe answers (slice 3b): when the panel re-reads them -------------------------------------------------
+
+
+class _Answers:
+    """A stand-in for `RecipeService.answers_for`: records what it was asked and hands back what it is told to."""
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, int]] = []
+        self.entries: list = []
+
+    def __call__(self, uuid: str, version: int):
+        self.calls.append((uuid, version))
+        return tuple(self.entries)
+
+
+def _quiet(widget) -> None:
+    """Nothing but the event under test may rebuild the reader: selecting or editing a molecule also starts a
+    recomputation whose results land later and refresh it, which is a different path."""
+    from PySide6.QtCore import QThreadPool
+
+    QThreadPool.globalInstance().waitForDone(20000)
+    for _ in range(20):
+        QCoreApplication.processEvents()
+    widget._request_substance_perception = lambda: None
+
+
+def test_a_kept_answer_the_provider_returns_is_in_the_reader(panel):
+    widget, _bus, molecule, _project, _versions = panel
+    answers = _Answers()
+    answers.entries = [_report("lewis_pairing:run-1", "Lewis pairing: A + B", "Role", molecule.uuid)]
+    widget.attach_recipe_answers(answers)
+    reader = widget._attached_reader
+    assert reader.merged().report_for("lewis_pairing:run-1") is not None
+    assert answers.calls[-1][0] == molecule.uuid
+
+
+def test_the_provider_is_asked_with_the_structure_version_the_reader_is_on(panel):
+    widget, _bus, molecule, _project, versions = panel
+    versions.version = 9
+    answers = _Answers()
+    widget.attach_recipe_answers(answers)
+    assert answers.calls[-1] == (molecule.uuid, 9)
+
+
+def test_the_provider_is_never_asked_with_no_molecule_selected(panel):
+    widget, bus, _molecule, _project, _versions = panel
+    answers = _Answers()
+    widget.attach_recipe_answers(answers)
+    answers.calls.clear()
+    bus.publish(MoleculeSelected(molecule_uuid=None))
+    QCoreApplication.processEvents()
+    assert answers.calls == []
+
+
+def test_a_finished_edit_re_reads_the_kept_answers_without_waiting_for_a_result(panel):
+    from openchem.events.events import MoleculeChanged
+
+    widget, bus, molecule, _project, _versions = panel
+    answers = _Answers()
+    widget.attach_recipe_answers(answers)
+    _quiet(widget)
+    answers.calls.clear()
+    answers.entries = [_report("lewis_pairing:run-1", "Lewis pairing: A + B", "Role", molecule.uuid)]
+    bus.publish(MoleculeChanged(molecule_uuid=molecule.uuid, during_edit=False))
+    QCoreApplication.processEvents()
+    assert answers.calls, "the reader did not look again"
+    assert widget._attached_reader.merged().report_for("lewis_pairing:run-1") is not None
+
+
+def test_a_finished_edit_with_no_recipe_answers_attached_does_not_rebuild_the_reader(panel):
+    from openchem.events.events import MoleculeChanged
+
+    widget, bus, molecule, _project, _versions = panel
+    _quiet(widget)
+    rebuilt = []
+    reader = widget._attached_reader
+    original = reader.set_reports
+    reader.set_reports = lambda *a, **k: rebuilt.append(1) or original(*a, **k)
+    bus.publish(MoleculeChanged(molecule_uuid=molecule.uuid, during_edit=False))
+    QCoreApplication.processEvents()
+    assert rebuilt == []
+
+
+def test_a_kept_run_is_read_when_the_molecule_shown_took_part_and_not_otherwise(panel):
+    from openchem.events.events import RecipeRunRecorded
+
+    widget, bus, molecule, _project, _versions = panel
+    answers = _Answers()
+    widget.attach_recipe_answers(answers)
+    answers.calls.clear()
+    bus.publish(RecipeRunRecorded(run_id="r1", molecule_uuids=("someone-else", "another")))
+    assert answers.calls == []
+    bus.publish(RecipeRunRecorded(run_id="r1", molecule_uuids=("someone-else", molecule.uuid)))
+    assert answers.calls and answers.calls[-1][0] == molecule.uuid
+
+
+def test_a_deleted_run_is_read_for_the_molecule_shown_whichever_molecule_the_run_was_of(panel):
+    from openchem.events.events import QuantumChemistryRunDeleted
+
+    widget, bus, molecule, _project, _versions = panel
+    answers = _Answers()
+    widget.attach_recipe_answers(answers)
+    answers.calls.clear()
+    bus.publish(QuantumChemistryRunDeleted(run_id="qc-1", molecule_uuid="the-partner"))
+    assert answers.calls and answers.calls[-1][0] == molecule.uuid
+
+
+def test_a_deleted_run_with_no_recipe_answers_attached_does_not_rebuild_the_reader(panel):
+    from openchem.events.events import QuantumChemistryRunDeleted
+
+    widget, bus, _molecule, _project, _versions = panel
+    _quiet(widget)
+    rebuilt = []
+    reader = widget._attached_reader
+    original = reader.set_reports
+    reader.set_reports = lambda *a, **k: rebuilt.append(1) or original(*a, **k)
+    bus.publish(QuantumChemistryRunDeleted(run_id="qc-1", molecule_uuid="x"))
+    QCoreApplication.processEvents()
+    assert rebuilt == []

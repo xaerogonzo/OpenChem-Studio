@@ -2398,6 +2398,82 @@ class _Driver(QObject):
         else:
             logger.error("OPENCHEM_DRIVE: EXPECT lewis_pairing FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
 
+    def _do_recipe_results(self, step: dict[str, Any]) -> None:
+        """What the Results reader holds of the recipe answers kept in the project, for the SELECTED molecule.
+
+        `{"do": "recipe_results", "focus": true, "expect": {"entries": 1, "stale": 0, "title_contains": ["BH3 + CO"],
+        "marked_stale_in_list": false, "summary_contains": ["was edited"], "facts_contain": ["Frontier orbital gap"],
+        "note_contains": [], "kept_runs": 1, "stored_as_results": 0}}`
+
+        The READER, not the service: the wiring from a kept run through the panel to the reader is what is proved, and
+        so is the reader's own staleness mark and the sentence it prints above the facts. `focus` focuses the first
+        entry (what a person does by choosing it in the list), which is what makes the summary line and the fact rows
+        the ones on screen; it is also what a `shot` of `results_reader` then shows. `stored_as_results` counts the
+        entries of the same recipe in the session result store, which the design says must be none: a recipe answer is
+        never also a result.
+        """
+        from openchem.domain.recipe_answer import RecipeAnswer
+        from openchem.domain.recipe_catalogue import SHIPPED_RECIPES
+        from openchem.ui.widgets.results_view import STALE_MARK
+
+        reader = self._window._results_view
+        merged = reader.merged()
+        answers = [r for r in merged.reports if isinstance(r, RecipeAnswer)]
+        if answers and step.get("focus"):
+            # Where a person would read it: the reader is put somewhere it can be seen before it is focused.
+            self._window.reveal_results()
+            reader.set_focus(answers[0].report_id)
+        first = answers[0] if answers else None
+        listed = [reader._focus_box.itemText(i) for i in range(reader._focus_box.count())]
+        summary = reader._view.summary_text() if first is not None and reader.focus() == first.report_id else ""
+        facts = [f"{f.label}: {f.display_value}" for f in first.facts] if first is not None else []
+        molecule = reader.molecule_uuid()
+        store_service = self._window._services.result_store_service
+        recipe_ids = {recipe.recipe_id for recipe in SHIPPED_RECIPES}
+        stored = [
+            r for r in store_service.store.all_results(molecule)
+            if any(recipe_id in str(getattr(r.identity, "calculator_id", "")) for recipe_id in recipe_ids)
+        ] if molecule else []
+        logger.warning(
+            "OPENCHEM_DRIVE: recipe_results molecule=%s entries=%d stale=%d | %s | marked=%s | summary=%s",
+            molecule[:8], len(answers), sum(1 for a in answers if merged.is_stale(a)),
+            "; ".join(a.name for a in answers), [t for t in listed if STALE_MARK in t], summary[:200],
+        )
+        expect = step.get("expect")
+        if not expect:
+            return
+        problems: list[str] = []
+        wanted = {
+            "entries": len(answers),
+            "stale": sum(1 for a in answers if merged.is_stale(a)),
+            "kept_runs": len(store_service.recipe_runs.all_runs()),
+            "stored_as_results": len(stored),
+            "marked_stale_in_list": any(STALE_MARK in t and "Lewis pairing" in t for t in listed),
+        }
+        for key, actual in wanted.items():
+            if key in expect and expect[key] != actual:
+                problems.append(f"{key} is {actual!r}, expected {expect[key]!r}")
+        for needle in expect.get("title_contains", []):
+            if not any(needle in a.name for a in answers):
+                problems.append(f"no entry is titled with {needle!r} (have {[a.name for a in answers]})")
+        for needle in expect.get("note_contains", []):
+            if first is None or needle not in first.stale_note:
+                problems.append(f"the stale note lacks {needle!r}")
+        for needle in expect.get("summary_contains", []):
+            if needle not in summary:
+                problems.append(f"the line above the facts lacks {needle!r} (it reads {summary[:120]!r})")
+        for needle in expect.get("summary_absent", []):
+            if needle in summary:
+                problems.append(f"the line above the facts contains {needle!r}, which was ruled out")
+        for needle in expect.get("facts_contain", []):
+            if not any(needle in fact for fact in facts):
+                problems.append(f"no fact contains {needle!r}")
+        tag = str(step.get("tag", ""))
+        if self._record_assertion("recipe_results", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT recipe_results ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT recipe_results FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
     def _do_properties_scroll(self, step: dict[str, Any]) -> None:
         """Scroll the Properties list: `{"do": "properties_scroll", "to": "end"}`.
 
@@ -2645,6 +2721,9 @@ class _Driver(QObject):
                 logger.error("OPENCHEM_DRIVE: no Lewis pairing window open; run {'do': 'lewis_pairing'}")
                 return
             target = self._window._lewis_pairing
+        elif step.get("widget") == "results_reader":
+            # The docked Results reader as the window builds it, not a second one: the same widget a person reads.
+            target = self._window._results_view
         elif step.get("widget") == "dialog":
             if getattr(self, "_dialog", None) is None:
                 logger.error("OPENCHEM_DRIVE: no dialog open; run {'do': 'dialog', ...}")

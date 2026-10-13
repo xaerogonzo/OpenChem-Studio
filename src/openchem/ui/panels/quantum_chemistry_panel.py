@@ -1543,7 +1543,9 @@ class QuantumChemistryPanel(QWidget):
         )
         if choice != QMessageBox.StandardButton.Yes:
             return
-        self._result_store_service.qc_runs.delete(self._active_run.run_id)
+        # Through the service, not the store: a delete is unsaved work, and a kept recipe answer that consumed this run
+        # is stale from here (the service tells its readers).
+        self._result_store_service.delete_quantum_chemistry_run(self._active_run.run_id)
         self._refresh_active_run()
 
     def _on_compare_runs_clicked(self) -> None:
