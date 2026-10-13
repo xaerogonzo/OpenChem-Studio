@@ -1966,7 +1966,12 @@ class _Driver(QObject):
         if command.loaded_project is None:
             logger.error("OPENCHEM_DRIVE: could not load %s", path)
             return
-        self._window._set_project(command.loaded_project, command.loaded_results)
+        # EVERYTHING THE FILE MENU PASSES. This step used to hand over the results alone, so a driven reopen
+        # lost the saved quantum-chemistry runs the real File > Open keeps, and a save-then-reopen script
+        # could not have noticed: a harness disagreeing with the app about what a reopened project holds.
+        self._window._set_project(
+            command.loaded_project, command.loaded_results, command.loaded_qc_runs, command.loaded_recipe_runs
+        )
         logger.warning(
             "OPENCHEM_DRIVE: opened %s -- %d molecule(s)",
             path.name,

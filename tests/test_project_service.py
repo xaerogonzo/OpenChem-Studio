@@ -130,3 +130,84 @@ def test_a_conformers_identity_survives_a_save_and_reload(tmp_path):
     target = next(c for c in by_energy if c.conformer_id == conformers[0].conformer_id)
     assert target.molblock == "a\n"
     assert by_energy.index(target) != 0, "the re-sort must actually move it, or this proves nothing"
+
+
+# --- recipe runs: a block of their own in the file ---------------------------------------------------------
+
+
+def _recipe_run(*molecule_uuids: str):
+    from openchem.domain.recipe_run import RecipeRun, RecipeRunStatus, SlotInput, StepRecord, StepState
+
+    return RecipeRun(
+        run_id="run-1", recipe_id="probe_pair", recipe_version="1", status=RecipeRunStatus.COMPLETED,
+        inputs=tuple(SlotInput(f"slot{i}", uuid, f"key-{i}") for i, uuid in enumerate(molecule_uuids)),
+        steps=(StepRecord("compare", StepState.COMPLETED),), created_at=5.0,
+    )
+
+
+def test_recipe_runs_are_written_to_their_own_key_and_read_back(tmp_path: Path, qapp):
+    from openchem.domain.recipe_run import RecipeRunStore
+    from openchem.services.project_service import RECIPE_RUNS_KEY
+
+    service = ProjectService(EventBus())
+    project = ProjectModel(name="Recipes")
+    project.molecules.append(MoleculeModel(display_name="A", molblock="dummy"))
+    runs = RecipeRunStore(project.uuid)
+    runs.record(_recipe_run(project.molecules[0].uuid))
+
+    path = tmp_path / "recipes.ocsproj"
+    service.save(project, path, recipe_runs=runs)
+    assert RECIPE_RUNS_KEY in json.loads(path.read_text(encoding="utf-8"))
+
+    document = service.load_document(path)
+    assert document.recipe_runs.get("run-1") == runs.get("run-1")
+    assert document.recipe_runs.load_problems == []
+    assert document.project.uuid == project.uuid
+
+
+def test_a_project_saved_with_no_recipe_runs_is_an_ordinary_project(tmp_path: Path, qapp):
+    """A file from before this block, and a save from a caller that has none, both load with an empty store."""
+    from openchem.services.project_service import RECIPE_RUNS_KEY
+
+    service = ProjectService(EventBus())
+    project = ProjectModel(name="Plain")
+    path = tmp_path / "plain.ocsproj"
+    service.save(project, path)
+
+    assert RECIPE_RUNS_KEY not in json.loads(path.read_text(encoding="utf-8"))
+    document = service.load_document(path)
+    assert document.recipe_runs.all_runs() == [] and document.recipe_runs.project_uuid == project.uuid
+
+
+def test_a_newer_recipe_block_does_not_stop_the_project_opening(tmp_path: Path, qapp, caplog):
+    """The file opens, the runs it cannot read are not shown, and the load says so."""
+    import logging
+
+    from openchem.domain.recipe_run import ENVELOPE_VERSION, RecipeRunStore
+    from openchem.services.project_service import RECIPE_RUNS_KEY
+
+    service = ProjectService(EventBus())
+    project = ProjectModel(name="Future")
+    path = tmp_path / "future.ocsproj"
+    runs = RecipeRunStore(project.uuid)
+    service.save(project, path, recipe_runs=runs)
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data[RECIPE_RUNS_KEY]["envelope_version"] = ENVELOPE_VERSION + 1
+    path.write_text(json.dumps(data), encoding="utf-8")
+
+    with caplog.at_level(logging.WARNING):
+        document = service.load_document(path)
+    assert document.project.name == "Future" and document.recipe_runs.all_runs() == []
+    assert document.recipe_runs.load_problems
+    assert any("Saved recipe runs not restored" in r.getMessage() for r in caplog.records)
+
+
+def test_the_document_unpacks_as_a_tuple_and_reads_by_name(tmp_path: Path, qapp):
+    service = ProjectService(EventBus())
+    project = ProjectModel(name="Both ways")
+    path = tmp_path / "both.ocsproj"
+    service.save(project, path)
+    document = service.load_document(path)
+    unpacked_project, results, qc_runs, recipe_runs = document
+    assert (unpacked_project, results, qc_runs, recipe_runs) == (
+        document.project, document.results, document.qc_runs, document.recipe_runs)

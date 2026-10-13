@@ -32,6 +32,7 @@ from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
 from openchem.domain.quantum_chemistry_run import QuantumChemistryRun, QuantumChemistryRunStore
+from openchem.domain.recipe_run import RecipeRun, RecipeRunStore
 from openchem.domain.report import ReportResult, StructureReport
 from openchem.domain.result_store import (
     MAX_REVISIONS,
@@ -129,6 +130,8 @@ class ResultStoreService:
         #: above, deliberately; see `quantum_chemistry_run.py`'s module
         #: docstring for why a revision cache cannot hold this.
         self.qc_runs = QuantumChemistryRunStore("")
+        #: The durable recipe run history -- its own collection for the same reason (`domain/recipe_run.py`).
+        self.recipe_runs = RecipeRunStore("")
         #: Called with the molecule uuid whenever a NEW result is retained --
         #: how the session learns it has something unsaved. Plain callables
         #: held here, not Qt connections.
@@ -145,6 +148,7 @@ class ResultStoreService:
         project: ProjectModel | None,
         store: SessionResultStore | None = None,
         qc_runs: QuantumChemistryRunStore | None = None,
+        recipe_runs: RecipeRunStore | None = None,
     ) -> None:
         """Start a new project's store -- the lifecycle boundary.
 
@@ -155,7 +159,7 @@ class ResultStoreService:
         `SessionResultStore.from_dict` builds its store with the default, so
         without this an opened project would keep 8 revisions whatever the
         setting said, until the setting next changed. `qc_runs` has no such
-        limit to apply -- it is retained unconditionally.
+        limit to apply -- it is retained unconditionally, and so is `recipe_runs`.
         """
         self._project = project
         uuid = project.uuid if project is not None else ""
@@ -172,6 +176,34 @@ class ResultStoreService:
             if qc_runs is not None:
                 logger.warning("Ignoring quantum chemistry runs for project %s", qc_runs.project_uuid)
             self.qc_runs = QuantumChemistryRunStore(uuid)
+        if recipe_runs is not None and recipe_runs.project_uuid == uuid:
+            self.recipe_runs = recipe_runs
+        else:
+            if recipe_runs is not None:
+                logger.warning("Ignoring recipe runs for project %s", recipe_runs.project_uuid)
+            self.recipe_runs = RecipeRunStore(uuid)
+
+    def record_recipe_run(self, run: RecipeRun) -> bool:
+        """The one write path into `recipe_runs`. True when the run was kept.
+
+        Refused when there is no project, or when any molecule in a slot is not in it, the way a stray result or
+        quantum-chemistry run is: a run for a molecule this project does not have describes nothing here.
+
+        **IT TELLS THE SESSION IT HAS SOMETHING UNSAVED**, which nothing else would: a quantum-chemistry run arrives
+        beside descriptors that go through `ResultRecorded`, but a recipe run is never also a result in `store`, so
+        without this a person could close the window holding an answer that was never saved and be asked nothing.
+        """
+        if self._project is None or not run.inputs:
+            return False
+        if any(self._project.find_molecule(uuid) is None for uuid in run.molecule_uuids()):
+            return False
+        self.recipe_runs.record(run)
+        if self.recipe_runs.get(run.run_id) is not run:
+            return False
+        for molecule_uuid in run.molecule_uuids():
+            for callback in list(self._on_recorded):
+                callback(molecule_uuid)
+        return True
 
     def record_quantum_chemistry_run(self, run: QuantumChemistryRun) -> None:
         """The one write path into `qc_runs` -- never `ResultRecorded`

@@ -401,7 +401,7 @@ def test_the_project_file_round_trips_its_results(qapp, tmp_path):
 
     path = tmp_path / "p.ocsproj"
     service.save(project, path, store)
-    loaded_project, loaded, _qc_runs = service.load_document(path)
+    loaded_project, loaded, _qc_runs, _recipe_runs = service.load_document(path)
 
     assert loaded_project.uuid == project.uuid
     assert loaded.bundle_state("m", "fp", {"provider"})[0] is BundleState.COMPLETE
@@ -415,7 +415,7 @@ def test_a_project_saved_before_results_were_kept_still_opens(qapp, tmp_path):
     service.save(project, path)
     assert RESULTS_KEY not in json.loads(path.read_text(encoding="utf-8"))
 
-    loaded_project, loaded, _qc_runs = service.load_document(path)
+    loaded_project, loaded, _qc_runs, _recipe_runs = service.load_document(path)
     assert loaded_project.uuid == project.uuid
     assert loaded.molecule_uuids() == []
 
@@ -515,12 +515,13 @@ def test_saving_and_reopening_shows_results_before_anything_runs(window, qapp, t
     a, _b = _two_molecule_project(window)
     _select(window, qapp, a)
     project = window._session.project
-    results, fingerprints, qc_runs = window._current_results()
+    results, fingerprints, qc_runs, recipe_runs = window._current_results()
     path = tmp_path / "saved.ocsproj"
-    window._services.project_service.save(project, path, results, fingerprints, qc_runs)
+    window._services.project_service.save(project, path, results, fingerprints, qc_runs, recipe_runs)
 
-    loaded_project, loaded_results, loaded_qc_runs = window._services.project_service.load_document(path)
-    window._set_project(loaded_project, loaded_results, loaded_qc_runs)
+    document = window._services.project_service.load_document(path)
+    window._set_project(document.project, document.results, document.qc_runs, document.recipe_runs)
+    loaded_project = document.project
     calls = _counting(window)
     _select(window, qapp, loaded_project.find_molecule(a.uuid))
 
@@ -562,7 +563,7 @@ def test_unsaved_results_reach_a_recovery_copy_and_save_removes_it(window, qapp,
     _fire_recovery_timer(window, qapp)
 
     [candidate] = service.candidates()
-    _project, results, _qc_runs = service.load(candidate)
+    _project, results, _qc_runs, _recipe_runs = service.load(candidate)
     assert a.uuid in results.molecule_uuids()
 
     window.save_project_to(tmp_path / "saved.ocsproj")
@@ -623,6 +624,124 @@ def test_a_result_arriving_for_a_previous_project_is_not_kept(window, qapp):
     stranger = _stored("not-in-this-project", "x", DRAWING, "fp")
     window._services.event_bus.publish(ResultRecorded(stored=stranger))
     assert "not-in-this-project" not in window._services.result_store_service.store.molecule_uuids()
+
+
+# ---------------------------------------------------------------------------
+# Recipe runs: a collection of their own, carried by the window's own save, open and recovery
+# ---------------------------------------------------------------------------
+
+
+def _recipe_run(*molecule_uuids: str, run_id: str = "recipe-run-1"):
+    from openchem.domain.recipe_run import RecipeRun, RecipeRunStatus, SlotInput, StepRecord, StepState
+
+    return RecipeRun(
+        run_id=run_id, recipe_id="probe_pair", recipe_version="1", status=RecipeRunStatus.COMPLETED,
+        inputs=tuple(SlotInput(f"slot{i}", uuid, f"key-{i}") for i, uuid in enumerate(molecule_uuids)),
+        steps=(StepRecord("compare", StepState.COMPLETED),), created_at=5.0,
+    )
+
+
+def test_a_recipe_run_survives_the_windows_own_save_and_open(window, qapp, tmp_path, monkeypatch):
+    """Through `save_project_to` and `_open_project`, the paths a person's File menu takes, and not the service
+    alone: the wiring between them is what carries the fourth block."""
+    from PySide6.QtWidgets import QFileDialog
+
+    a, b = _two_molecule_project(window)
+    run = _recipe_run(a.uuid, b.uuid)
+    assert window._services.result_store_service.record_recipe_run(run)
+    path = tmp_path / "saved.ocsproj"
+    window.save_project_to(path)
+
+    window._set_project(ProjectModel(name="something else"))
+    assert window._services.result_store_service.recipe_runs.get(run.run_id) is None
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", staticmethod(lambda *a, **k: (str(path), "")))
+    window._open_project()
+
+    reopened = window._services.result_store_service.recipe_runs.get(run.run_id)
+    assert reopened == run
+    assert window._session.project.find_molecule(a.uuid) is not None
+
+
+def test_accepting_the_recovery_offer_restores_the_recipe_runs(window, qapp, tmp_path, monkeypatch):
+    from PySide6.QtWidgets import QMessageBox
+
+    _recovering(window, tmp_path)
+    a, b = _two_molecule_project(window)
+    assert window._services.result_store_service.record_recipe_run(_recipe_run(a.uuid, b.uuid))
+    _fire_recovery_timer(window, qapp)
+
+    window._set_project(ProjectModel(name="something else"))
+    assert window._services.result_store_service.recipe_runs.get("recipe-run-1") is None
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.Yes))
+    assert window.offer_recovery()
+    assert window._services.result_store_service.recipe_runs.get("recipe-run-1") is not None
+
+
+def test_the_drive_harness_reopens_a_project_with_everything_the_file_menu_keeps(window, qapp, tmp_path):
+    """`open_project` used to hand `_set_project` the results alone, so a driven save-then-reopen lost the saved
+    runs the real File > Open keeps, and no script could have noticed the harness disagreeing with the app."""
+    from openchem.app.debug_drive import _Driver
+    from openchem.domain.quantum_chemistry_run import QuantumChemistryRun, RunStatus
+
+    a, b = _two_molecule_project(window)
+    service = window._services.result_store_service
+    qc = QuantumChemistryRun(
+        run_id="qc-1", molecule_uuid=a.uuid, calc_type="sp", method_basis="HF STO-3G", charge=0, multiplicity=1,
+        calculation_input="geometry", input_fingerprint="fp", input_molblock=a.molblock, status=RunStatus.COMPLETED,
+    )
+    service.record_quantum_chemistry_run(qc)
+    assert service.record_recipe_run(_recipe_run(a.uuid, b.uuid))
+    path = tmp_path / "driven.ocsproj"
+
+    driver = _Driver(window, [])
+    driver._do_save_project({"path": str(path)})
+    window._set_project(ProjectModel(name="something else"))
+    assert service.qc_runs.get("qc-1") is None and service.recipe_runs.get("recipe-run-1") is None
+    driver._do_open_project({"path": str(path)})
+
+    assert service.qc_runs.get("qc-1") is not None, "the driven reopen dropped the quantum-chemistry runs"
+    assert service.recipe_runs.get("recipe-run-1") is not None
+
+
+def test_recording_a_recipe_run_marks_the_session_unsaved(window, qapp):
+    """A recipe run is never also a result in the store, so nothing else would tell the session."""
+    a, b = _two_molecule_project(window)
+    assert not window._session.is_dirty
+    assert window._services.result_store_service.record_recipe_run(_recipe_run(a.uuid, b.uuid))
+    assert window._session.is_dirty
+
+
+def test_a_recipe_run_reaches_the_recovery_copy(window, qapp, tmp_path):
+    service = _recovering(window, tmp_path)
+    a, b = _two_molecule_project(window)
+    assert window._services.result_store_service.record_recipe_run(_recipe_run(a.uuid, b.uuid))
+    _fire_recovery_timer(window, qapp)
+
+    [candidate] = service.candidates()
+    assert service.load(candidate).recipe_runs.get("recipe-run-1") is not None
+
+
+def test_a_recipe_run_for_a_molecule_the_project_lacks_is_refused(window, qapp):
+    a, _b = _two_molecule_project(window)
+    assert not window._services.result_store_service.record_recipe_run(_recipe_run(a.uuid, "not-in-this-project"))
+    assert window._services.result_store_service.recipe_runs.all_runs() == []
+    assert not window._session.is_dirty
+
+
+def test_a_recipe_run_with_no_molecule_in_it_is_refused(window, qapp):
+    _two_molecule_project(window)
+    assert not window._services.result_store_service.record_recipe_run(_recipe_run())
+
+
+def test_another_projects_recipe_runs_are_not_adopted(window, qapp):
+    from openchem.domain.recipe_run import RecipeRunStore
+
+    a, _b = _two_molecule_project(window)
+    strangers = RecipeRunStore("some-other-project")
+    strangers.record(_recipe_run(a.uuid))
+    window._set_project(window._session.project, None, None, strangers)
+    assert window._services.result_store_service.recipe_runs.all_runs() == []
+    assert window._services.result_store_service.recipe_runs.project_uuid == window._session.project.uuid
 
 
 # ---------------------------------------------------------------------------
