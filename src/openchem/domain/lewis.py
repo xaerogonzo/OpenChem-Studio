@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 from openchem.domain.common import ScientificResult
+from openchem.domain.recipe_run import BindingState, Evidence
 from openchem.domain.structure_issue import Basis
 
 
@@ -305,3 +306,124 @@ class RoleResolution:
     @property
     def resolved(self) -> bool:
         return self.orientation != ORIENTATION_UNRESOLVED
+
+
+# --- evidence a recipe supplies from stored quantum-chemistry runs -----------------------------------------
+
+#: Which descriptor each number must be, and the calculation that produces it (`docs/RECIPES_DESIGN.md` section 4).
+#: **THE HARDNESS IS THE DELTA-SCF ONE, AND ONLY THAT ONE.** `orca.hardness` is the Koopmans value, free from any job
+#: that has run, and it inverts ammonia against phosphine; accepting it would hand the HSAB line a number that is
+#: wrong in the way this application has already measured.
+EVIDENCE_DESCRIPTORS = {"homo": "orca.homo_energy", "lumo": "orca.lumo_energy", "hardness": "orca.dscf_hardness"}
+#: The calculation type each number is read from. A frontier energy is the orbital table of a single point, the
+#: geometry it was submitted at; an optimization's table is the OPTIMIZED geometry's, which the run does not keep.
+EVIDENCE_CALC_TYPES = {"homo": "sp", "lumo": "sp", "hardness": "delta_scf"}
+
+#: The only unit the three lines are defined in. A number in another unit is refused where it enters, not converted:
+#: a hartree read as an eV is off by a factor of 27.
+EVIDENCE_UNIT = "eV"
+
+
+@dataclass(frozen=True)
+class EvidenceValue:
+    """One number about one molecule (a HOMO energy, a LUMO energy, a hardness), or the reason there is none.
+
+    **A NUMBER ENTERS ONLY WITH ITS PROVENANCE.** Putting the six numbers `predict` takes into the calculator's
+    visible parameters would add a channel into a result that sits beside a published-looking enthalpy with nothing
+    saying where they came from, and "the calculator's settings" is where a person types a guess. So this is the
+    only way evidence arrives, and it is refused unless it is exactly one of two things:
+
+    * `BOUND`: a value, in eV, with the copied `Evidence` (which run, method, basis, charge, multiplicity, input)
+      that agrees with it; or
+    * any other state: NO value, and a reason in words, because "no hardness run exists" and "one exists at a
+      different method" are different sentences and the second tells the person what to do.
+
+    So `None` reaches `predict` only with its explanation attached, and a stale or incompatible number never
+    reaches it at all.
+    """
+
+    value: float | None = None
+    state: BindingState = BindingState.MISSING
+    reason: str = ""
+    evidence: Evidence | None = None
+
+    def __post_init__(self) -> None:
+        if self.state is BindingState.BOUND:
+            if self.value is None or self.evidence is None:
+                raise ValueError("a BOUND evidence value carries a number and the evidence it was copied from")
+            if self.evidence.unit != EVIDENCE_UNIT:
+                raise ValueError(
+                    f"evidence for the Lewis lines is in {EVIDENCE_UNIT}, not {self.evidence.unit!r}; units are never converted"
+                )
+            if self.evidence.value != self.value:
+                raise ValueError("the number and the evidence it was copied from disagree")
+        else:
+            if self.value is not None or self.evidence is not None:
+                raise ValueError(f"a {self.state.value} evidence value has no number; only BOUND does")
+            if not self.reason.strip():
+                raise ValueError(f"a {self.state.value} evidence value says why in words")
+
+
+@dataclass(frozen=True)
+class MoleculeEvidence:
+    """What the stored runs say about one molecule: its frontier energies and its hardness."""
+
+    #: Display name, for the evidence facts only. It takes part in no comparison.
+    label: str
+    homo: EvidenceValue
+    lumo: EvidenceValue
+    #: The delta-SCF hardness (`orca.dscf_hardness`). NEVER the Koopmans one, which inverts ammonia and phosphine.
+    hardness: EvidenceValue
+
+    def __post_init__(self) -> None:
+        for attribute, descriptor_id in EVIDENCE_DESCRIPTORS.items():
+            item: EvidenceValue = getattr(self, attribute)
+            if item.state is not BindingState.BOUND:
+                continue
+            if item.evidence.descriptor_id != descriptor_id:
+                raise ValueError(
+                    f"{attribute} is {descriptor_id}, not {item.evidence.descriptor_id}"
+                    + (" (the Koopmans hardness inverts ammonia and phosphine and is never accepted)"
+                       if attribute == "hardness" else "")
+                )
+            if item.evidence.calc_type != EVIDENCE_CALC_TYPES[attribute]:
+                raise ValueError(
+                    f"{attribute} is read from a {EVIDENCE_CALC_TYPES[attribute]} run, not {item.evidence.calc_type!r}"
+                )
+
+
+def _same_scale(a: EvidenceValue, b: EvidenceValue) -> bool:
+    """Whether two bound numbers are on one scale. A gap, or a number paired with a gap, is trivially fine."""
+    if a.state is not BindingState.BOUND or b.state is not BindingState.BOUND:
+        return True
+    return (a.evidence.method_basis, a.evidence.solvent) == (b.evidence.method_basis, b.evidence.solvent)
+
+
+@dataclass(frozen=True)
+class PairEvidence:
+    """Evidence for the two molecules of a pair, in the order the person gave them (`first`, `second`).
+
+    **IT SAYS NOTHING ABOUT WHICH IS THE ACID.** Each molecule carries both a HOMO and a LUMO, so the same evidence
+    serves both orientations of an unresolved pair: the orientation decides which number is read from which
+    molecule, and nothing else (`chem.lewis_adduct.lewis_report`).
+    """
+
+    first: MoleculeEvidence
+    second: MoleculeEvidence
+
+    def __post_init__(self) -> None:
+        """**A LINE NEVER SUBTRACTS TWO SCALES.** Hardness from different levels of theory is not a difference, it
+        is two scales. The binder reports such a pair as `INCOMPATIBLE` and supplies no number; this refuses the
+        pair if a number from each ever arrives anyway. Checked for every pairing a line uses in EITHER
+        orientation: the acid's LUMO against the base's HOMO, and the two hardnesses."""
+        for what, a, b in (
+            ("first LUMO with second HOMO", self.first.lumo, self.second.homo),
+            ("second LUMO with first HOMO", self.second.lumo, self.first.homo),
+            ("the two hardnesses", self.first.hardness, self.second.hardness),
+        ):
+            if not _same_scale(a, b):
+                raise ValueError(
+                    f"{what} come from different methods or solvents "
+                    f"({a.evidence.method_basis!r}/{a.evidence.solvent!r} against "
+                    f"{b.evidence.method_basis!r}/{b.evidence.solvent!r}); a line never subtracts two scales"
+                )

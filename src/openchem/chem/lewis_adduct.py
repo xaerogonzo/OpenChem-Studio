@@ -30,6 +30,7 @@ work, which is why the HSAB line is here at all.
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -52,9 +53,11 @@ from openchem.domain.lewis import (
     AdductEvidence,
     LewisAdduct,
     OrientationAttempt,
+    PairEvidence,
     RoleResolution,
 )
-from openchem.domain.report import ReportResult
+from openchem.domain.recipe_run import BindingState
+from openchem.domain.report import Fact, FactCategory, ReportResult
 from openchem.chem.report_adapter import report_from_fields
 from openchem.domain.structure_issue import Basis
 
@@ -391,18 +394,7 @@ def compute_lewis_adduct(
     partner_smiles = str(parameters.get("partner_smiles") or "").strip()
 
     def failed(error: str, note: dict[str, Any] | None = None) -> ReportResult:
-        return report_from_fields(
-            alert_id="lewis_adduct",
-            name="Lewis Adduct",
-            molecule_uuid=molecule_uuid,
-            matched=[],
-            category="lewis",
-            cache_state=CacheState.FAILED,
-            error=error,
-            provenance=Provenance(
-                created_by="core", method="lewis_adduct", parameters=note or {}
-            ),
-        )
+        return _failed(molecule_uuid, error, note)
 
     try:
         requested = _role_code(parameters.get("role", ROLE_AUTO))
@@ -418,6 +410,51 @@ def compute_lewis_adduct(
     partner = Chem.MolFromSmiles(partner_smiles)
     if partner is None:
         return failed(f"Could not parse the partner SMILES: {partner_smiles!r}")
+
+    return lewis_report(mol, molecule_uuid, partner, requested)
+
+
+def _failed(molecule_uuid: str, error: str, note: dict[str, Any] | None = None) -> ReportResult:
+    return report_from_fields(
+        alert_id="lewis_adduct",
+        name="Lewis Adduct",
+        molecule_uuid=molecule_uuid,
+        matched=[],
+        category="lewis",
+        cache_state=CacheState.FAILED,
+        error=error,
+        provenance=Provenance(
+            created_by="core", method="lewis_adduct", parameters=note or {}
+        ),
+    )
+
+
+def lewis_report(
+    mol: Any,
+    molecule_uuid: str,
+    partner: Any,
+    requested: str,
+    *,
+    evidence: PairEvidence | None = None,
+) -> ReportResult:
+    """Everything `compute_lewis_adduct` does once it has two molecules and a role, and the ONE place it is done.
+
+    **SHARED SO THAT THERE IS ONE RENDERER.** The registered calculator calls this with no `evidence` and its report
+    is what it always was (`tests/test_lewis_adduct_pin.py` holds that, case by case). A recipe
+    (`docs/RECIPES_DESIGN.md` section 4) calls it with a `PairEvidence` built from stored quantum-chemistry runs,
+    and gets the SAME role text, the same three lines, the same assumptions and limitations, because two
+    renderers would drift apart; the evidence arrives in `predict`'s own parameters and its provenance is appended
+    as facts afterwards. The numbers cannot arrive any other way: `compute_lewis_adduct` has no parameter for
+    them, so a person typing a hardness into the calculator's settings is not a route to a number that looks
+    computed.
+
+    `mol` is the FIRST molecule (the one the calculator runs on) and `requested` is ITS role, exactly as in
+    `resolve_roles`. `evidence.first` belongs to `mol` and `evidence.second` to `partner`, and which of the two is
+    the acid is decided here, never by the order they were supplied.
+    """
+
+    def failed(error: str, note: dict[str, Any] | None = None) -> ReportResult:
+        return _failed(molecule_uuid, error, note)
 
     resolution = resolve_roles(mol, partner, requested)
     # WHAT WAS ASKED, WHICH ORIENTATION WAS USED, AND HOW IT WAS DECIDED --
@@ -439,6 +476,7 @@ def compute_lewis_adduct(
             base,
             acid_uuid=molecule_uuid if subject_is_acid else "",
             base_uuid="" if subject_is_acid else molecule_uuid,
+            **_evidence_inputs(evidence, subject_is_acid),
         )
 
     if not resolution.resolved:
@@ -476,13 +514,16 @@ def compute_lewis_adduct(
             lines.extend(_orientation_lines(result))
             lines.extend(f"Assumption: {text}" for text in result.assumptions)
             lines.extend(f"Limitation: {text}" for text in result.limitations)
-        return report_from_fields(
-            alert_id="lewis_adduct",
-            name="Lewis Adduct",
-            molecule_uuid=molecule_uuid,
-            matched=lines,
-            category="lewis",
-            provenance=provenance,
+        return _with_evidence_facts(
+            report_from_fields(
+                alert_id="lewis_adduct",
+                name="Lewis Adduct",
+                molecule_uuid=molecule_uuid,
+                matched=lines,
+                category="lewis",
+                provenance=provenance,
+            ),
+            evidence,
         )
 
     subject_is_acid = resolution.orientation == ORIENTATION_SUBJECT_IS_ACID
@@ -507,14 +548,94 @@ def compute_lewis_adduct(
     lines.extend(f"Assumption: {text}" for text in result.assumptions)
     lines.extend(f"Limitation: {text}" for text in result.limitations)
 
-    return report_from_fields(
-        alert_id="lewis_adduct",
-        name="Lewis Adduct",
-        molecule_uuid=molecule_uuid,
-        matched=lines,
-        category="lewis",
-        provenance=provenance,
+    return _with_evidence_facts(
+        report_from_fields(
+            alert_id="lewis_adduct",
+            name="Lewis Adduct",
+            molecule_uuid=molecule_uuid,
+            matched=lines,
+            category="lewis",
+            provenance=provenance,
+        ),
+        evidence,
     )
+
+
+def _evidence_inputs(evidence: PairEvidence | None, subject_is_acid: bool) -> dict[str, float | None]:
+    """The four numbers `predict` takes, for one orientation. Empty when there is no evidence.
+
+    **WHICH MOLECULE'S NUMBER GOES WHERE IS THE WHOLE POINT, AND IT IS THE LEAST OBVIOUS THING HERE.** The acid
+    contributes its LUMO and its hardness; the base contributes its HOMO and its hardness; the acid is `first` in
+    one orientation and `second` in the other. A mutant that reads one molecule's frontier energy for the other
+    is the failure `tests/test_lewis_evidence.py` is built around, with a different sentinel for every number.
+    """
+    if evidence is None:
+        return {}
+    acid, base = (evidence.first, evidence.second) if subject_is_acid else (evidence.second, evidence.first)
+    return {
+        "acid_lumo_ev": acid.lumo.value,
+        "base_homo_ev": base.homo.value,
+        "acid_hardness": acid.hardness.value,
+        "base_hardness": base.hardness.value,
+    }
+
+
+def _with_evidence_facts(report: ReportResult, evidence: PairEvidence | None) -> ReportResult:
+    """`report` with the evidence behind its numbers appended as facts, or unchanged when there is none."""
+    if evidence is None:
+        return report
+    return replace(report, facts=report.facts + _evidence_facts(evidence))
+
+
+# The three numbers read from a molecule's runs: attribute on `MoleculeEvidence`, and what it is called.
+_EVIDENCE_ITEMS = (
+    ("homo", "E(HOMO)"),
+    ("lumo", "E(LUMO)"),
+    ("hardness", "Chemical hardness (delta-SCF)"),
+)
+
+
+def _evidence_facts(evidence: PairEvidence) -> tuple[Fact, ...]:
+    """One fact per number a molecule was given or went without, naming the run it was copied from.
+
+    **A GAP IS A FACT TOO**, with its state and its reason, because a line that reads "not available" is
+    otherwise silent about whether nothing was run, the run was at another method, or two earlier geometries are
+    waiting to be chosen between; those are three different next steps.
+    """
+    facts: list[Fact] = []
+    for slot, molecule in (("first", evidence.first), ("second", evidence.second)):
+        who = molecule.label or slot
+        for attribute, name in _EVIDENCE_ITEMS:
+            item = getattr(molecule, attribute)
+            label = f"{who}: {name}"
+            if item.state is BindingState.BOUND:
+                run = item.evidence
+                facts.append(Fact(
+                    category=FactCategory.QUANTUM,
+                    label=label,
+                    value=item.value,
+                    display_value=f"{item.value:.2f}",
+                    units="eV",
+                    source="Stored quantum-chemistry run",
+                    basis=Basis.DETERMINISTIC,
+                    evidence=(
+                        f"{run.descriptor_id} from run {run.run_id}",
+                        f"{run.calc_type}, {run.method_basis}, charge {run.charge}, multiplicity {run.multiplicity}"
+                        + (f", solvent {run.solvent}" if run.solvent else ""),
+                        f"input {run.input_fingerprint[:12]}",
+                    ),
+                ))
+            else:
+                facts.append(Fact(
+                    category=FactCategory.QUANTUM,
+                    label=label,
+                    value=None,
+                    display_value=f"not available ({item.state.value})",
+                    source="Stored quantum-chemistry run",
+                    basis=Basis.DETERMINISTIC,
+                    limitations=(item.reason,),
+                ))
+    return tuple(facts)
 
 
 def _summarise(evidence: tuple[AdductEvidence, ...]) -> str:
