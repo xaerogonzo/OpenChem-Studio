@@ -36,7 +36,6 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from openchem.domain import result_codec
-from openchem.domain.recipe import shipped_versions
 
 logger = logging.getLogger("openchem.recipe_run")
 
@@ -151,7 +150,8 @@ class BindingRecord:
     #: In words, for any state but `BOUND`: what is wrong and what would fix it.
     reason: str = ""
     evidence: Evidence | None = None
-    #: For `AMBIGUOUS`: the run ids that could be meant.
+    #: For `AMBIGUOUS` (and for a gap that names runs): the run ids that could be meant. For `BOUND`: the repeats of
+    #: the same job that were considered and NOT used, so the one that was used is not the only one a reader can see.
     candidates: tuple[str, ...] = ()
 
 
@@ -390,6 +390,18 @@ class StaleCause(str, enum.Enum):
     RECIPE_VERSION_UNKNOWN = "recipe_version_unknown"
 
 
+def _this_builds_recipe_versions() -> Mapping[str, Collection[str]]:
+    """`recipe_catalogue.shipped_versions()`, imported when it is called and not when this module loads.
+
+    The catalogue imports every recipe, a recipe's evidence types (`domain.lewis`) import this module's
+    `BindingState` and `Evidence`, and so a module-level import here closes a cycle. The dependency is real and
+    points the right way at call time: asking "does this build have that version" needs the catalogue.
+    """
+    from openchem.domain.recipe_catalogue import shipped_versions
+
+    return shipped_versions()
+
+
 @dataclass(frozen=True)
 class ProjectView:
     """What `assess` needs to know about the project today. The host builds it; this module does no chemistry."""
@@ -400,10 +412,10 @@ class ProjectView:
     #: The ids of the quantum-chemistry runs that exist now.
     qc_run_ids: Collection[str]
     #: recipe id -> the versions this build ships. **DEFAULTS TO THIS BUILD'S OWN CATALOGUE**
-    #: (`recipe.shipped_versions`), because the question it answers, "does THIS build have that version", has one
+    #: (`recipe_catalogue.shipped_versions`), because the question it answers, "does THIS build have that version", has one
     #: right answer, and a host that had to remember to hand it in is the "somebody remembers" failure. A test
     #: passes its own.
-    recipe_versions: Mapping[str, Collection[str]] = field(default_factory=shipped_versions)
+    recipe_versions: Mapping[str, Collection[str]] = field(default_factory=_this_builds_recipe_versions)
 
 
 @dataclass(frozen=True)

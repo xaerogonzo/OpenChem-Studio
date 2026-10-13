@@ -20,7 +20,7 @@ author fixes the spelling.
 
 **A RECIPE THAT FAILS VALIDATION IS A FAILING TEST, NOT A RECIPE THAT RUNS AND REFUSES.** `validate_recipe` reports
 every problem at once, each naming where it is, so an author fixes them in one pass. It is called by a test over
-`SHIPPED_RECIPES` against the real calculator registry; the lookup that finds a calculator by id is handed in, so
+`recipe_catalogue.SHIPPED_RECIPES` against the real calculator registry; the lookup that finds a calculator by id is handed in, so
 this module imports no registry.
 """
 
@@ -382,19 +382,6 @@ def require_valid(recipes: Iterable[Recipe], definitions: DefinitionLookup) -> N
     problems = validate_recipes(recipes, definitions)
     if problems:
         raise InvalidRecipe(problems)
-
-
-#: The recipes this build ships. Empty until the first one (the Lewis pairing) lands; `tests/test_recipe_model.py`
-#: validates whatever is here against the real registry, so adding one without it passing is a failing test.
-SHIPPED_RECIPES: tuple[Recipe, ...] = ()
-
-
-def shipped_versions(recipes: Iterable[Recipe] | None = None) -> dict[str, frozenset[str]]:
-    """recipe id -> the versions this build has. What a stored run's version is compared against."""
-    found: dict[str, set[str]] = {}
-    for recipe in SHIPPED_RECIPES if recipes is None else recipes:
-        found.setdefault(recipe.recipe_id, set()).add(recipe.version)
-    return {recipe_id: frozenset(versions) for recipe_id, versions in found.items()}
 
 
 # --- the checks ---------------------------------------------------------------------------------------------

@@ -19,6 +19,8 @@ from openchem.domain.calculator import (
 )
 from openchem.domain.execution_policy import AiRun, ExecutionPolicy, ResourceClass
 from openchem.domain import recipe as rc
+from openchem.domain import recipe_catalogue
+from openchem.domain.recipe_catalogue import shipped_versions
 from openchem.domain.recipe import (
     MOLECULE,
     MOLECULE_INPUT,
@@ -41,7 +43,6 @@ from openchem.domain.recipe import (
     from_slot,
     from_step,
     scalar,
-    shipped_versions,
     validate_recipe,
     validate_recipes,
 )
@@ -445,9 +446,9 @@ def test_require_valid_raises_with_every_problem():
 
 
 def test_the_shipped_recipes_are_valid_against_the_real_registry(registry):
-    """EMPTY UNTIL THE FIRST RECIPE LANDS, so today this proves only that the machinery runs on a real registry.
-    The day a recipe is added it is validated here, and a malformed one is a failing test."""
-    assert validate_recipes(rc.SHIPPED_RECIPES, registry.get) == ()
+    """The Lewis pairing is the first. A malformed recipe is a failing test here, not one that runs and refuses."""
+    assert recipe_catalogue.SHIPPED_RECIPES, "nothing is shipped, so this proves nothing"
+    assert validate_recipes(recipe_catalogue.SHIPPED_RECIPES, registry.get) == ()
 
 
 def test_shipped_versions_lists_each_version_by_recipe():
