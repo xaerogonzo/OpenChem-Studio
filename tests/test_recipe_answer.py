@@ -162,7 +162,7 @@ def test_editing_either_molecule_marks_it_stale_and_names_the_molecule():
         [answer] = _answers([run], viewing="bh3", views={run.run_id: view})
         assert _stale(answer) and answer.structure_version == STALE_STAMP
         assert f"The structure of {name} was edited after this answer was made." in answer.stale_note
-        assert "Evaluate it again to bring it up to date." in answer.stale_note
+        assert "Evaluate it again from the Tools menu to bring it up to date." in answer.stale_note
 
 
 def test_both_molecules_edited_are_both_named():

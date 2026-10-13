@@ -147,7 +147,7 @@ def _stale_note(run: RecipeRun, assessment: Assessment, names: Mapping[str, str]
             "is never evaluated again."
         )
     if assessment.can_reevaluate:
-        sentences.append("Evaluate it again to bring it up to date.")
+        sentences.append("Evaluate it again from the Tools menu to bring it up to date.")
     return " ".join(sentences)
 
 
