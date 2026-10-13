@@ -39,6 +39,7 @@ from openchem.services.qm_surface_service import QmSurfaceService
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
 from openchem.services.reaction_template_service import ReactionTemplateService
 from openchem.services.recalc_scheduler import RecalcScheduler
+from openchem.services.recipe_service import RecipeService
 from openchem.services.result_store_service import ResultStoreService
 from openchem.services.screening_service import ScreeningService
 from openchem.services.spatial_overlay_service import SpatialOverlayService
@@ -390,6 +391,8 @@ def build_service_container() -> ServiceContainer:
     # result records which revision of the structure it describes. A second
     # checker would count a different molecule's edits.
     structure_check_service = StructureCheckService(event_bus)
+    # Named because the recipe service below reads THIS instance's project and stored runs.
+    result_store_service = ResultStoreService(event_bus, engine, settings)
     return ServiceContainer(
         event_bus=event_bus,
         chemistry_engine=engine,
@@ -435,7 +438,8 @@ def build_service_container() -> ServiceContainer:
         reaction_template_service=ReactionTemplateService(),
         # Subscribes to the result envelopes at construction, so nothing a
         # calculator records can arrive before there is a store to take it.
-        result_store_service=ResultStoreService(event_bus, engine, settings),
+        result_store_service=result_store_service,
+        recipe_service=RecipeService(result_store_service, engine),
         # The policy is read from Settings at every edit, never captured, so changing it
         # in the Settings window applies to the next edit.
         recalc_scheduler=RecalcScheduler(event_bus, settings.recalc_policy),

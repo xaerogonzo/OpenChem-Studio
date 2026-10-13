@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Recipes, slice 2b: the Lewis pairing, the first recipe the application ships
+- **`domain/lewis_pairing.py` is the plan** (two molecule slots; recipe parameters for the ONE method, the solvent and the role; four ORCA jobs a
+  gap would need, each always approved by a person; one evaluating step), listed in the new **`domain/recipe_catalogue.py`**. `tests/test_recipe_model.py`
+  now validates it against the real calculator registry, so the validator's first real input is a recipe that ships. The method presets and solvents
+  moved to `domain/quantum_methods.py` (re-exported from `chem/orca_engine`), because a domain recipe cannot import the chemistry layer.
+- **`domain/lewis_binder.py` turns a molecule's stored runs into evidence or a reasoned gap.** Only a CURRENT run is used (this molecule, and the
+  geometry a run would be given today); an earlier geometry is ambiguous until a run id is chosen; repeats of one job use the newest, name the others and
+  write down their largest spread; a run at another method, solvent or charge is "incompatible" and its sentence names the levels it does have; a
+  failed run is a failure and not an absence; a run that kept no input is unverifiable and never fresh. The Koopmans hardness is never read.
+- **`chem/lewis_pairing_eval.py` evaluates it** into a `RecipeRun`: each of the four jobs is satisfied by a stored run or blocked with its gap, a missing
+  hardness makes the run PARTIAL, a pair with no evaluable line is BLOCKED with no result, and a pair that cannot form an adduct is refused as a limit.
+  The result is filed as `lewis_pairing`, not `lewis_adduct`. **`chem/recipe_host.py`** supplies the one chemistry question: does a run's stored 3D input
+  still describe the drawing (same constitution, charge and isotopes, and any stereochemistry the drawing specifies).
+- **`services/recipe_service.py`** (in the service container) builds all of that from the open project, evaluates without recording anything, and
+  answers `assess(run)` for a recorded answer. Reproduces BH3/CO and BF3/CO (frontier gap 8.13 / 10.90 eV, |d eta| 1.63 / 0.89 eV) through stored runs,
+  with the disagreement between the two lines intact. Not reachable from the UI yet (slice 3).
+
 ### Naming: an anion keeps its charge beside an amide, and the anion of an imide, acylurea or sulfamide is named
 - A sulfonamide anion beside an amide (`...S(=O)(=O)[N-]c3ncccn3` on an acetanilide) was named as the neutral amide, `...ethanamide`, with the charge in no word of the name; it is now
   `4-acetamido-N-(pyrimidin-2-yl)benzene-1-sulfonamidate` (D-235). The anion of an imide, an acylurea or an N-aryl sulfamide had no charge in its name either (succinimide's anion was

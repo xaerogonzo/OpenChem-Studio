@@ -183,6 +183,11 @@ class ResultStoreService:
                 logger.warning("Ignoring recipe runs for project %s", recipe_runs.project_uuid)
             self.recipe_runs = RecipeRunStore(uuid)
 
+    @property
+    def project(self) -> ProjectModel | None:
+        """The open project, which this service is the lifecycle boundary for."""
+        return self._project
+
     def record_recipe_run(self, run: RecipeRun) -> bool:
         """The one write path into `recipe_runs`. True when the run was kept.
 

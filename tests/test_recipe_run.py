@@ -388,17 +388,19 @@ def test_every_cause_is_reported_in_a_fixed_order_not_just_the_first():
 
 def test_the_view_defaults_to_the_versions_this_build_ships(monkeypatch):
     """The host is not asked to remember: with no table handed in, the build's own catalogue is the truth."""
-    from openchem.domain import recipe as recipe_module
+    from openchem.domain import recipe_catalogue
     from openchem.domain.recipe import Recipe, from_step
 
-    monkeypatch.setattr(recipe_module, "SHIPPED_RECIPES", (Recipe("probe_pair", "1", "q", (), (), from_step("s", "r")),))
+    monkeypatch.setattr(
+        recipe_catalogue, "SHIPPED_RECIPES", (Recipe("probe_pair", "1", "q", (), (), from_step("s", "r")),)
+    )
     view = ProjectView(constitution_keys={"mol-a": "key-a", "mol-b": "key-b"}, qc_run_ids={"qc-1", "qc-2"})
     assert not assess(_run(), view).stale
     assert assess(_run(recipe_version="2"), view).causes == (StaleCause.RECIPE_VERSION_UNKNOWN,)
 
 
-def test_with_nothing_shipped_every_run_is_of_an_unknown_version():
-    """True today, and the right answer: this build has no recipe, so it cannot re-evaluate one."""
+def test_a_run_of_a_recipe_this_build_does_not_ship_cannot_be_reevaluated():
+    """The default table is the real catalogue: `probe_pair` is a test recipe, not one this build has."""
     view = ProjectView(constitution_keys={"mol-a": "key-a", "mol-b": "key-b"}, qc_run_ids={"qc-1", "qc-2"})
     assert not assess(_run(), view).can_reevaluate
 

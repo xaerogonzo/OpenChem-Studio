@@ -349,8 +349,34 @@ with the UI slice. It will need a drive step for the pairing, which the harness 
 1. **The recipe model, the run record and the staleness rules** (built): pure, with the validator, the closed
    transform table, `RecipeRun`, its store, its envelope and the project key (`recipe_runs`). No UI, no ORCA, no
    chemistry. `domain/recipe.py`, `domain/recipe_run.py`, `ResultStoreService.record_recipe_run`.
-2. **Lewis evidence**: `PairEvidence`, the shared body of `compute_lewis_adduct` (**2a, built**), the binder over
-   `QuantumChemistryRunStore` (it needs the host for the constitution comparison), the shipped recipe (**2b**).
+2. **Lewis evidence** (**built**): `PairEvidence`, the shared body of `compute_lewis_adduct` (2a), the binder over
+   `QuantumChemistryRunStore`, the evaluator, the host service and the shipped recipe (2b).
+
+   **As built in 2b, and where it differs from or settles the text above:**
+   * **The solvent is a recipe parameter, like the method** (default gas phase). The design said the two molecules'
+     values "must share method and solvent"; making the solvent explicit means they do by construction, and a run at
+     another solvent is reported as `INCOMPATIBLE` with the levels it does have, the same sentence as for a method.
+   * **`AMBIGUOUS` covers an earlier-geometry run when no pick is made**, one or several. The text said "several earlier
+     geometries"; with one, the open question is still "use that one, or compute again".
+   * **A pick is keyed by calculation type** (`sp` or `delta_scf`), so one choice supplies both frontier numbers, and it
+     can choose a current or an earlier run but never one of another structure (`STALE`) or one that kept no input to
+     compare (`UNVERIFIABLE`).
+   * **A run at a charge other than the drawing's net formal charge is `INCOMPATIBLE`** (a different species), and current
+     runs at two multiplicities are `AMBIGUOUS`. Neither was in the text; both are one wrong number away.
+   * **A failed run is `FAILED` with the reason it recorded**, a cancelled one is `MISSING` with a note that it was
+     cancelled: a person who ran something should not be told nothing was run.
+   * **Does a run still describe the drawing** is two functions, not one: a KEY recorded in a run and compared later
+     (stereo exactly as the drawing specifies it, so adding a wedge reads as an edit), and a COMPARISON of a stored 3D
+     input with the drawing (constitution, charge and isotopes, then only the stereo the drawing specifies, because a
+     conformer of an unspecified centre has some stereo perceived from its coordinates and that is not an edit).
+   * **A pair for which no line can be evaluated is `BLOCKED` with no result**, not a report of three "not available".
+   * **A step record in this stage:** each of the four jobs is `COMPLETED` (a stored run supplied it) or `BLOCKED` (with
+     the gap as a sentence); the evaluating step is `COMPLETED`, `REFUSED` with kind `limit`, or `BLOCKED`.
+   * **`RecipeService.evaluate_lewis_pairing` records nothing**, so looking at a pairing does not change the project;
+     whoever asks records it. The result is filed as `lewis_pairing`, and its facts are relabelled with the report,
+     because `ReportResult.matched` omits a label only when it equals the report's name.
+   * The method presets and solvents moved to `domain/quantum_methods.py`, and the shipped list to
+     `domain/recipe_catalogue.py`, for the layering and the import cycle that would otherwise result.
 3. **Host and UI**: a pairing entry, the gap list with the service preview, the result in Results, the help
    topic every new surface needs, the drive step and script.
 4. **The gate** (section 10): preregistration commit, noise floor, the pair, the verdict recorded whichever way.
