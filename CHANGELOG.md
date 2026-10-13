@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: in a hydro azolium the cation and the indicated hydrogen are on different nitrogens
+- `Cn1c[n+](C)c2CCCCc12` was `1,3-dimethyl-4,5,6,7-tetrahydro-1H-benzimidazol-1-ium`, the `-ium` and the `1H` on one nitrogen, which OPSIN reads with a hydrogen too many (a different molecule). It is
+  `1,3-dimethyl-4,5,6,7-tetrahydro-1H-benzimidazol-3-ium`, as the aromatic benzimidazolium already was (D-240). Found by N-methylating one basic nitrogen of every census molecule (1036
+  quaternary cations): 3 flagged, 1 of them this, and none of them the hydro omission round 47 fixed for protonated cations. The census and the frozen sets are unchanged.
+
 ### Recipes, slice 3a: the Lewis pairing window (Tools > Lewis Acid-Base Pairing...)
 - **Pair two project molecules as Lewis acid and base from the quantum-chemistry runs already stored.** Pick the molecules, the method and basis, the solvent and
   the role of the first; the window shows the three lines of evidence side by side (never one score), each with the run its numbers came from, and for every
