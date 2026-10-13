@@ -133,3 +133,27 @@ does not give (a defect in the code, not a result about chemistry); or the gate 
 *(Empty at the freezing commit. The noise floor, the commit that fixes T, and the gate's outcome are appended below this rule, each with its commit, and nothing above it changes.)*
 
 ---
+
+
+### 9.1 The noise floor, measured 2026-10-13 17:41 to 17:43 (UTC-4), commit that adds this section
+
+`benchmarks/visual/lewis_gate_floor.json`, real ORCA 6.1.1, B3LYP def2-SVP, charge 0, multiplicity 1, `VERDICT PASS` (2 assertions, 0 app errors, 0 driver failures;
+`artifacts/floor.drive_report.json`). Carbon monoxide only; no borane has been run. Every value is the stored run's, as recorded.
+
+| Chain | Job | Run | Input fingerprint | HOMO (eV) | LUMO (eV) | Hardness, delta-SCF (eV) |
+|---|---|---|---|---|---|---|
+| a_first | sp | `b7e8f8fb` | `8a68e8fd8c59` | -10.1709 | -0.7212 |  |
+| a_first | delta_scf | `9ef28175` | `8a68e8fd8c59` |  |  | 8.402038211633789 |
+| a_second | sp | `59ec10a0` | `8a68e8fd8c59` | -10.1709 | -0.7212 |  |
+| a_second | delta_scf | `58e09afe` | `8a68e8fd8c59` |  |  | 8.402038211633789 |
+| b | sp | `53923d06` | `7cf038d0a9ba` | -10.1709 | -0.7212 |  |
+| b | delta_scf | `b5e9fd55` | `7cf038d0a9ba` |  |  | 8.402038211633789 |
+
+* **Same input twice** (`a_first` against `a_second`, one fingerprint): the largest difference of the HOMO, the LUMO and the hardness is **0.0 eV**.
+* **The whole chain twice** (`a_first` against `b`, a second carbon monoxide embedded, optimized and run independently): the largest difference is **0.0 eV**.
+* **F = 0.0 eV.** Six distinct ORCA jobs (distinct run ids; the service never reads its cache), identical to the four decimals ORCA prints orbital energies in and the full precision of the hardness,
+  with an identical SCF energy (-113.17287091914 Eh) in all six: ORCA is deterministic on an identical geometry, and the two optimizations converged to the same one.
+* **By the rule of section 5, T = max(0.01, 0.0 rounded up to 0.01) = 0.01 eV.** `tolerance.json` is written in this commit, with the floor artifact, and `lewis_gate_begin` checks it.
+
+**Disclosure, seen before T was fixed and not used in choosing it** (T follows from the rule, and is 0.01 eV whatever these were): the floor run also gave carbon monoxide's own numbers, HOMO -10.1709 eV and
+delta-SCF hardness 8.4020 eV, against the documented -10.17 and 8.40, so the base's half of both pairs reproduces on this machine. Nothing about a borane has been seen.
