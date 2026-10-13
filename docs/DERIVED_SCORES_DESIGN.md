@@ -170,10 +170,11 @@ benchmark showing it adds information, as a calculator, not as a formula.
 * **A build that has never heard of the key drops the block on save, as it does for every block beside the
   document** (`ProjectService` writes `project.to_dict()` plus the blocks it knows; `SCHEMA_VERSION` is 1 and
   has never moved). For derived data that costs a re-evaluation. For authored work it costs the work.
-  **Decision (section 12, item 10):** a file is stamped with a higher `schema_version` **only when it contains a
-  definition**, so an older build refuses to open that one file (`_migrate` already refuses a newer version with
-  a message) instead of opening it and deleting the definitions on the next save. Files without a score are
-  untouched and open everywhere.
+  **Decision (owner, 2026-10-12): accepted for now.** The suite is in beta and compatibility with earlier builds is
+  a low priority, so the file is **not** stamped with a newer `schema_version`: an older build opens a project that
+  holds definitions and drops them on its next save, like every other block it does not know. If that ever matters,
+  the remedy is to stamp only the files that contain a definition (`_migrate` already refuses a newer version with a
+  message); it is deliberately not built.
 * **A definition this build does not understand** (a newer `schema_version` or envelope) is **carried through
   unchanged on save** and shown as "written by a newer version, not evaluated". Ignoring it with a warning, which
   is what happens to a newer QC-run block, would delete a person's work on the next save, and a formula is
@@ -258,9 +259,10 @@ A driven run follows the UI slice, builds its own state, and ends in a verdict.
    Over-blocking is possible (a name containing "pKa") and is preferred to a hand-kept list that rots.
 9. **The assistant cannot author a definition.** A model that can write a formula can also write one that
    happens to confirm what the person hoped.
-10. **A file that holds a definition is stamped with a newer `schema_version`** (section 8), so an older build
-    refuses it. Every other block in the project file relies on "ignore a key you do not know"; this one does
-    not, because it is the only block a person wrote by hand. The cost is a project that older builds cannot open.
+10. **No file-level version stamp for older builds** (section 8). A build that has never heard of the `derived_scores`
+    key drops the block on its next save, as it does for every other block. This is the one block a person wrote by
+    hand, so it is the one place the cost is lost work, accepted while the suite is in beta. Reversible later by
+    stamping only files that contain a definition.
 
 ## 13. Not here, deliberately
 
