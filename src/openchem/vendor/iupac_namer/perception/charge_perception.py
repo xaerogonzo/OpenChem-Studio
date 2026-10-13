@@ -369,6 +369,8 @@ def classify_charges(
         _classify_imine_anion,
         # ---- P-72.2 / P-73 deprotonated amine N(-): R-[NH-] / R2-[N-] ----
         _classify_amine_anion,
+        # ---- Naming round 46: an N- bonded to an acyl or sulfamoyl group (imide, acylurea, N-aryl sulfamide) ----
+        _classify_azanide,
         # ---- Phase 3 R4 acidic-anion (O⁻ / S⁻ on neutral parent) ----
         _classify_acidic_anion,
     ):
@@ -1727,6 +1729,76 @@ def _classify_imine_anion(mol) -> Iterable[ChargeClassification]:
         site_atom_indices=(n.GetIdx(),),
         charge_sign="-",
         suffix_hint="imine_anion",
+        locant=None,
+        parent_smiles=None,
+        surface_name=None,
+    )
+
+
+def _acyl_like_neighbour(mol, n_idx: int, nb, allow_ester: bool = False) -> bool:
+    """A neighbour of an anionic N that makes it an imide / acylurea / sulfamide anion: an acyl carbon (a terminal =O or =S), or a sulfamoyl sulfur (S(=O)(=O) that also carries
+    another nitrogen, which is what separates a sulfamide from the sulfonamide the engine already names as `-sulfonamidate`)."""
+    bond = mol.GetBondBetweenAtoms(n_idx, nb.GetIdx())
+    if bond is None or bond.GetBondTypeAsDouble() != 1.0:
+        return False
+    if nb.GetAtomicNum() == 6:
+        found = False
+        for x in nb.GetNeighbors():
+            b = mol.GetBondBetweenAtoms(nb.GetIdx(), x.GetIdx())
+            if x.GetAtomicNum() in (8, 16) and b.GetBondTypeAsDouble() == 2.0 and x.GetDegree() == 1 and x.GetFormalCharge() == 0:
+                found = True
+            elif not allow_ester and x.GetIdx() != n_idx and x.GetAtomicNum() == 8 and b.GetBondTypeAsDouble() == 1.0:
+                # An ester or carbamate carbon: the acid it names is a carbonic monoester, whose acyl name (`methoxymethanoyl`) is not the book's `methoxycarbonyl`. Left to the charge guard.
+                return False
+        return found
+    if nb.GetAtomicNum() == 16:
+        oxo = sum(
+            1 for x in nb.GetNeighbors()
+            if x.GetAtomicNum() == 8 and x.GetDegree() == 1 and mol.GetBondBetweenAtoms(nb.GetIdx(), x.GetIdx()).GetBondTypeAsDouble() == 2.0
+        )
+        other_n = [x for x in nb.GetNeighbors() if x.GetAtomicNum() == 7 and x.GetIdx() != n_idx]
+        # In a ring (saccharin's sultam) the sulfonyl needs no second nitrogen: the ring's own `-ide` names the anion, and the engine's `-sulfonamidate` is an acyclic suffix.
+        return oxo == 2 and (len(other_n) == 1 or allow_ester)
+    return False
+
+
+def _classify_azanide(mol) -> Iterable[ChargeClassification]:
+    """An anionic N with two heavy neighbours, no H, at least one an acyl carbon or sulfamoyl sulfur (naming round 46).
+
+    `CC(=O)[N-]C(C)=O`, `O=C1CCC(=O)[N-]1` (succinimide), a barbiturate, an acylurea, `CNS(=O)(=O)[N-]c1ccccc1`. No classifier claimed these, so the plan search neutralised them
+    and the name carried NO charge: a different molecule, silently (`pyrrolidine-2,5-dione`, `sulfamoylmethane`). P-72.2.2.2 names the anion of an amide, hydrazide or imide with the parent
+    `azanide` (`diacetylazanide`); a ring N- is the ring's own `-ide` (`2,5-dioxopyrrolidin-1-ide`). The ordinary sulfonamide anion (S bonded to carbon) is not claimed: the engine names it
+    `-sulfonamidate` already."""
+    separated = _charge_separated_neutral_atoms(mol)
+    charged = [a for a in mol.GetAtoms() if a.GetFormalCharge() != 0 and a.GetIdx() not in separated]
+    if len(charged) != 1:
+        return
+    n = charged[0]
+    if n.GetAtomicNum() != 7 or n.GetFormalCharge() != -1 or n.GetNumRadicalElectrons() != 0 or n.GetTotalNumHs() != 0:
+        return
+    nbs = list(n.GetNeighbors())
+    if len(nbs) != 2:
+        return
+    ring = n.IsInRing()
+    # A ring nitrogen is named as the ring's own `-ide`, which has no acyl prefix to get wrong, so a cyclic carbamate (an oxazolidinedione) is claimed; an acyclic ester carbon is not.
+    if not any(_acyl_like_neighbour(mol, n.GetIdx(), nb, allow_ester=ring) for nb in nbs):
+        return
+    for nb in nbs:
+        bond = mol.GetBondBetweenAtoms(n.GetIdx(), nb.GetIdx())
+        if bond.GetBondTypeAsDouble() != 1.0:
+            return
+        if _acyl_like_neighbour(mol, n.GetIdx(), nb, allow_ester=ring):
+            continue
+        if nb.GetAtomicNum() == 6 and not any(
+            x.GetAtomicNum() in (8, 16) and x.GetDegree() == 1 and mol.GetBondBetweenAtoms(nb.GetIdx(), x.GetIdx()).GetBondTypeAsDouble() == 2.0
+            for x in nb.GetNeighbors()
+        ):
+            continue  # an alkyl or aryl carbon; an ester or carbamate carbon (a =O with an O-R) is not named here
+        return
+    yield ChargeClassification(
+        site_atom_indices=(n.GetIdx(), *sorted(separated)),
+        charge_sign="-",
+        suffix_hint="azanide_ring" if ring else "azanide",
         locant=None,
         parent_smiles=None,
         surface_name=None,
@@ -3150,6 +3222,8 @@ def _render(
         return _render_amine_anion(cls, mol, strategy, session, depth)
     if cls.suffix_hint == "amide_anion":
         return _render_amide_anion(cls, mol, strategy, session, depth)
+    if cls.suffix_hint in ("azanide", "azanide_ring"):
+        return _render_azanide(cls, mol, strategy, session, depth)
     return None
 
 
@@ -3481,6 +3555,84 @@ def _render_amide_anion(
     if any(ch in acyl_name for ch in "-,( "):
         return f"({acyl_name})azanide"
     return f"{acyl_name}azanide"
+
+
+_COMPOUND_PREFIX = re.compile(r"[-,\s()\[\]{}']|\d|[a-z](?:carbamoyl|sulfamoyl|amino|oxy|sulfanyl|carbonyl|amido)")
+
+
+def _alphabetical_key(prefix: str) -> str:
+    """The letters a prefix is ordered by: its locants, primes and `N,N-di` style multipliers do not count (P-14.5)."""
+    stripped = re.sub(r"^(?:[\d,NHPS'\s-]*(?:di|tri|tetra)?)", "", prefix)
+    return re.sub(r"[^a-z]", "", stripped.lower()) or prefix.lower()
+
+
+def _acyl_prefix_via_acid(mol, n_idx: int, acyl_idx: int, strategy, session, depth: int) -> str | None:
+    """The acyl (or sulfamoyl) group on one side of an anionic N, named as the engine names an acyl group: cut the N off, put an -OH where it was, name the ACID, and
+    turn the acid's name into its acyl name (`acetic acid` -> `acetyl`, `methylcarbamic acid` -> `methylcarbamoyl`). Naming the bare branch gives `1-oxoethyl`."""
+    from rdkit import Chem
+
+    from openchem.vendor.iupac_namer.assembly import assemble
+    from openchem.vendor.iupac_namer.engine import _acid_name_to_acyl, name as _recursive_name
+    from openchem.vendor.iupac_namer.types import OutputForm
+
+    rw = Chem.RWMol(mol)
+    oxygen = rw.AddAtom(Chem.Atom(8))
+    rw.GetAtomWithIdx(oxygen).SetNumExplicitHs(1)
+    rw.GetAtomWithIdx(oxygen).SetNoImplicit(True)
+    rw.AddBond(acyl_idx, oxygen, Chem.BondType.SINGLE)
+    rw.RemoveBond(acyl_idx, n_idx)
+    try:
+        frags = Chem.GetMolFrags(rw.GetMol(), asMols=True, sanitizeFrags=True)
+        acid = next(f for f in frags if f.GetNumAtoms() and any(a.GetSymbol() == "O" and a.GetTotalNumHs() == 1 and a.GetDegree() == 1 for a in f.GetAtoms()) and f.GetNumAtoms() > 1 and _contains_branch(f, mol, acyl_idx, n_idx))
+    except Exception:
+        return None
+    try:
+        text = assemble(_recursive_name(acid, strategy, OutputForm.STANDALONE, free_valence=None, decision_ctx=None, _session=session, _depth=depth + 1))
+    except Exception:
+        return None
+    if not text or "NAMING ERROR" in text:
+        return None
+    acyl = _acid_name_to_acyl(text)
+    # `sulfamic acid` becomes `sulfamyl`; the book's group is `sulfamoyl` (OPSIN reads both).
+    return re.sub(r"sulfamyl$", "sulfamoyl", acyl) if acyl else acyl
+
+
+def _contains_branch(fragment, mol, acyl_idx: int, n_idx: int) -> bool:
+    """Whether ``fragment`` is the side of the cut that holds the acyl atom (the other side holds the nitrogen and the other group)."""
+    return not any(a.GetFormalCharge() == -1 and a.GetSymbol() == "N" for a in fragment.GetAtoms())
+
+
+def _render_azanide(cls: ChargeClassification, mol, strategy, session, depth: int) -> str | None:
+    """`diacetylazanide`, `acetyl(methylcarbamoyl)azanide`, `(N,N-dimethylsulfamoyl)(phenyl)azanide`; a ring N- is its ring's `-ide` (naming round 46).
+
+    P-72.2.2.2 (pdf p. 807): the anion of an amide, hydrazide or imide is not named by the `-aminide` method; the parent `azanide` removes the ambiguity, and the
+    two groups on the nitrogen are prefixes. A ring nitrogen has no such prefixes, so it is named as the substituent group anchored at the nitrogen with its `yl`
+    changed to `ide` (`2,5-dioxopyrrolidin-1-yl` -> `2,5-dioxopyrrolidin-1-ide`), the technique the carbon `-ide` renderer uses."""
+    n_idx = cls.site_atom_indices[0]
+    if cls.suffix_hint == "azanide_ring":
+        group = _name_as_substituent(mol, n_idx, strategy, session, depth)
+        locant, stem = _split_substituent_locant(group)
+        if stem is None or locant is None:
+            return None
+        return f"{stem}ide"
+    prefixes: list[str] = []
+    for nb in mol.GetAtomWithIdx(n_idx).GetNeighbors():
+        if _acyl_like_neighbour(mol, n_idx, nb):
+            name = _acyl_prefix_via_acid(mol, n_idx, nb.GetIdx(), strategy, session, depth)
+        else:
+            name = _name_branch_as_prefix(mol, {n_idx}, nb.GetIdx(), strategy, session, depth)
+        if not name:
+            return None
+        prefixes.append(name)
+    prefixes.sort(key=_alphabetical_key)
+    a, b = prefixes
+    if a == b:
+        return f"bis({a})azanide" if _COMPOUND_PREFIX.search(a) else f"di{a}azanide"
+    def enclose(prefix: str) -> str:
+        return f"[{prefix}]" if "(" in prefix else f"({prefix})"
+
+    first = enclose(a) if _COMPOUND_PREFIX.search(a) else a
+    return f"{first}{enclose(b)}azanide"
 
 
 def _render_carbamate_anion(

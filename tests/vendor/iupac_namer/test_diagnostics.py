@@ -75,7 +75,10 @@ class TestGateAttribution:
         """
         monkeypatch.setattr(charge_perception, "classify_charges", lambda mol: ())
         with diagnostics.capture() as rec:
-            name_smiles("[CH2+]c1ccccc1")
+            try:
+                name_smiles("[CH2+]c1ccccc1")
+            except ValueError:
+                pass  # naming round 46: the neutraliser's name (no charge word) is refused now; the gap is recorded either way
         reasons = {g.reason for g in rec.gaps}
         assert "unclaimed" in reasons, rec.report()
 

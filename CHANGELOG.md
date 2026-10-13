@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: an anion keeps its charge beside an amide, and the anion of an imide, acylurea or sulfamide is named
+- A sulfonamide anion beside an amide (`...S(=O)(=O)[N-]c3ncccn3` on an acetanilide) was named as the neutral amide, `...ethanamide`, with the charge in no word of the name; it is now
+  `4-acetamido-N-(pyrimidin-2-yl)benzene-1-sulfonamidate` (D-235). The anion of an imide, an acylurea or an N-aryl sulfamide had no charge in its name either (succinimide's anion was
+  `pyrrolidine-2,5-dione`, a barbiturate's the neutral trione) or a visible error; they are `diacetylazanide`, `acetyl(methylcarbamoyl)azanide`, `2,5-dioxopyrrolidin-1-ide`,
+  `2,4,6-trioxo-1,3-diazinan-1-ide` (D-236). A sulfamide off a carboxylate lost its linking NH (`2-(N,N-dimethylsulfamoyl)benzoate`); it is `2-[(dimethylaminosulfonyl)amino]benzoate`
+  (D-237). And an ion whose name carries no word for its charge is now refused instead of returned (D-238): a molecule the engine cannot name as an ion no longer gets the neutral compound's
+  name. Found by deprotonating one acidic site of every census molecule (285 anions): 21 of the first 169 were wrong, 0 of 285 now are by this measure (the remaining 4 are thioamide
+  thiolates). The census is unchanged at 1993 exact (it had no row this population would show); frozen sets: heldout_v6 unchanged; bluebook_frozen re-scored once (r46-final-evaluation): wrong_structure 21 -> 17 and no_prediction 13 -> 17, four silent wrong molecules are refusals now, every other count identical; fresh_v1 moved 2 rows and was re-scored once (r46-fresh-v1): every outcome count identical. The stage list for `--frozen-impact` becomes `r46-fresh-v1,r46-final-evaluation,r38-final-evaluation`.
+
 ### An ORCA-optimized geometry is now the geometry every later calculation uses
 - **`canonical_conformer` prefers the newest quantum-optimized conformer** (`ConformerModel.method` in `QUANTUM_OPTIMIZED_METHODS`, today `orca_opt`)
   to every force-field one; with none, the lowest-MMFF-energy rule is unchanged. Before, an ORCA-optimized conformer is stored without an energy,
