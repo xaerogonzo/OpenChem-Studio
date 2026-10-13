@@ -6,7 +6,7 @@ before any other suffix (P-74): `...quinolin-6-ium-3,14(4H)-dione`, which reads 
 
 D-234: an amidinium with a carboxylate AND a neutral carboxylic acid was refused (round 44's open item): protonating the carboxylate left two `carboxy` words, and a count cannot say
 which was the anion. The neutral acid is named as its methyl ester, whose prefix cannot be confused, and the two are mapped back: `3-carboxylato-4-hydroxy-4-oxobutanamidinium`,
-`3-carboxylato-5-carboxybenzamidinium`. (A quaternary carbon carrying both acids is still refused.)
+`3-carboxylato-5-carboxybenzamidinium`. (A quaternary carbon carrying both acids was refused until naming round 49; a carboxylate beside TWO neutral acids still is.)
 
 The census scan's read-back now tries the application's OPSIN-readable respellings for a name OPSIN failed to parse (`N1,N2-...oxamide`, `oxobis[...]phosphanyl`, `bis([1,3]dioxolo)...`, a
 CIP descriptor OPSIN cannot assign on a cage), so the four names whose engine form is the book's are no longer counted as unparsable.
@@ -79,9 +79,9 @@ def test_a_carboxylate_beside_a_neutral_acid_is_cited_once_as_carboxylato():
         assert "methoxy" not in expected, expected
 
 
-def test_a_quaternary_carbon_with_both_acids_is_still_refused_not_named_wrongly():
+def test_a_carboxylate_beside_two_neutral_acids_is_still_refused_not_named_wrongly():
     with pytest.raises(ValueError):
-        name_smiles("NC(=[NH2+])C(C)(C(=O)[O-])C(=O)O")
+        name_smiles("NC(=[NH2+])C(C(=O)O)(C(=O)O)C(=O)[O-]")  # round 49 names the quaternary carbon with two acids; three acids is still refused
 
 
 @needs_opsin

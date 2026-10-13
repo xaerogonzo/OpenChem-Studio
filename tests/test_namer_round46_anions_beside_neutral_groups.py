@@ -139,4 +139,4 @@ def test_the_guard_leaves_everything_else_alone(smiles, name):
 
 def test_an_ion_the_engine_cannot_name_is_refused_not_named_neutral():
     with pytest.raises(ValueError):
-        name_smiles("O=C1[N-]S(=O)(=O)c2ccccc12")  # saccharin's anion: the ring renderer declines, and the name used to be the neutral sultam's
+        name_smiles("O=C1[N-]N=CC1")  # a pyrazolone anion: no renderer for an N-N anion, and the name used to be the neutral pyrazolone's (saccharin's anion, the first example, is named since round 49)
