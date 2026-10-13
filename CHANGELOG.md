@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: in a hydro azolium the cation and the indicated hydrogen are on different nitrogens
+- `Cn1c[n+](C)c2CCCCc12` was `1,3-dimethyl-4,5,6,7-tetrahydro-1H-benzimidazol-1-ium`, the `-ium` and the `1H` on one nitrogen, which OPSIN reads with a hydrogen too many (a different molecule). It is
+  `1,3-dimethyl-4,5,6,7-tetrahydro-1H-benzimidazol-3-ium`, as the aromatic benzimidazolium already was (D-240). Found by N-methylating one basic nitrogen of every census molecule (1036
+  quaternary cations): 3 flagged, 1 of them this, and none of them the hydro omission round 47 fixed for protonated cations. The census and the frozen sets are unchanged.
+
 ### Naming: a protonated ring cation with a ring ketone keeps every sp3 position in its hydro prefixes
 - `O=C1CCC=C2[NH2+]C=CCC12` was `5-oxo-1,4,6,7-tetrahydroquinolin-1-ium`: the sp3 fusion carbon 4a and the ketone carbon 5 were in no hydro locant, so OPSIN could not read the name (the
   Hantzsch hexahydroquinolinones) or read it as a different molecule. It is `5-oxo-1,4,4a,5,6,7-hexahydroquinolin-1-ium` (D-239). Found by protonating one basic site of every census molecule

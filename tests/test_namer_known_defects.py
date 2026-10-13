@@ -4319,6 +4319,9 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # D-239 (naming round 47): a protonated ring cation with a ring ketone left the sp3 fusion carbon and the ketone carbon out of its hydro prefixes.
     ("D-239", "O=C1CCC=C2[NH2+]C=CCC12", "5-oxo-1,4,4a,5,6,7-hexahydroquinolin-1-ium", "5-oxo-1,4,6,7-tetrahydroquinolin-1-ium",
      "UNREADABLE: OPSIN rejects the name (the Hantzsch hexahydroquinolinones); another 4a-H cation read back as a different molecule"),
+    # D-240 (naming round 48): in a hydro azolium the cation and the indicated hydrogen were on one nitrogen, a name OPSIN reads with a hydrogen too many.
+    ("D-240", "Cn1c[n+](C)c2CCCCc12", "1,3-dimethyl-4,5,6,7-tetrahydro-1H-benzimidazol-3-ium", "1,3-dimethyl-4,5,6,7-tetrahydro-1H-benzimidazol-1-ium",
+     "WRONG MOLECULE: the -1-ium and the 1H on one nitrogen; OPSIN reads a CH2 at C2"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",

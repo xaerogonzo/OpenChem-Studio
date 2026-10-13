@@ -793,6 +793,7 @@
   "tests/test_namer_round45_cations_and_zwitterions.py": 2,
   "tests/test_namer_round46_anions_beside_neutral_groups.py": 0,
   "tests/test_namer_round47_protonated_ring_cation_hydro.py": 0,
+  "tests/test_namer_round48_azolium_indicated_hydrogen.py": 0,
   "tests/test_namer_salt_multiplier.py": 0,
   "tests/test_namer_stereo_cache_identity.py": 0,
   "tests/test_namer_stereo_locant_tie.py": 2,
