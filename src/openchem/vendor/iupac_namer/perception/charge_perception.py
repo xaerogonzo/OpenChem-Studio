@@ -309,6 +309,8 @@ def classify_charges(
         # reject it anyway, leaving it to the neutralizer.
         _classify_guanidinium,
         _classify_amidinium,
+        # Naming round 49: an acyclic iminium C=[NH+] whose carbon carries O, S or another N is the CATION, named `(ylidene)azanium`; after the amidinium, which it must not steal from.
+        _classify_iminium_hetero,
         # The ylide form runs before the plain diazonium: it is the more
         # specific pattern, and the plain one would otherwise claim the two
         # nitrogens and leave the carbanion uncovered.
@@ -1735,6 +1737,101 @@ def _classify_imine_anion(mol) -> Iterable[ChargeClassification]:
     )
 
 
+def _classify_iminium_hetero(mol) -> Iterable[ChargeClassification]:
+    """An acyclic iminium `C=[NH2+]` / `C=[NHR+]` whose carbon carries a heteroatom: protonated imidates, thioimidates, isoureas, amidoximes (naming round 49).
+
+    `NC(=[NH2+])OC`, `CC(=[NH2+])S`, `NC(=[NH+]O)C(Cl)(Cl)Cl`. No classifier claimed them, so the plan search neutralised the nitrogen and promoted the thiol, the amine or the
+    hydroxylamine to the principal group: `1-iminoethane-1-thiol`, the neutral compound, which the charge guard now refuses. The cation is senior to every neutral class (P-41), so it is the
+    parent: `(1-sulfanylethylidene)azanium`, the form the engine already writes for `COC(=[NH2+])CC`. An amidinium (two nitrogens on the carbon, one of them NH2 and neutral) is left to its own
+    classifier; a ring double bond, a second charge or a carbon bearing nothing but carbon and hydrogen is not claimed."""
+    separated = _charge_separated_neutral_atoms(mol)
+    charged = [a for a in mol.GetAtoms() if a.GetFormalCharge() != 0 and a.GetIdx() not in separated]
+    if len(charged) != 1:
+        return
+    n = charged[0]
+    if n.GetAtomicNum() != 7 or n.GetFormalCharge() != 1 or n.GetNumRadicalElectrons() != 0 or n.GetTotalNumHs() < 1:
+        return
+    doubles = [b for b in n.GetBonds() if b.GetBondTypeAsDouble() == 2.0]
+    if len(doubles) != 1 or doubles[0].IsInRing() or n.GetDegree() > 2:
+        return
+    carbon = doubles[0].GetOtherAtom(n)
+    if carbon.GetAtomicNum() != 6 or carbon.GetFormalCharge() != 0 or carbon.GetDegree() != 3:
+        return
+    hetero = [x for x in carbon.GetNeighbors() if x.GetIdx() != n.GetIdx() and x.GetAtomicNum() in (7, 8, 16)]
+    if not hetero:
+        return
+    for x in n.GetNeighbors():
+        if x.GetIdx() == carbon.GetIdx():
+            continue
+        if x.GetAtomicNum() not in (6, 7, 8):  # the substituent on N+ (N-hydroxy, N-alkyl)
+            return
+    # A true amidinium (`CC(N)=[NH2+]`) never reaches the claim below: `_classify_amidinium` runs first and `classify_charges` keeps the first claimer of an atom. With a heteroatom
+    # instead of the carbon (`NC(=[NH2+])OC`, `NC(S)=[NH2+]`) that classifier declines, and this one names it. (An explicit exclusion here was an equivalent mutant: deleting it moved no name.)
+    yield ChargeClassification(
+        site_atom_indices=(n.GetIdx(), *sorted(separated)),
+        charge_sign="+",
+        suffix_hint="iminium_hetero",
+        locant=None,
+        parent_smiles=None,
+        surface_name=None,
+    )
+
+
+def _name_ylidene_group(mol, n_idx: int, c_idx: int, strategy, session, depth: int) -> str | None:
+    """The group on the iminium carbon, named as a substituent whose double bond goes to the nitrogen: `amino(methoxy)methylidene`, `1-sulfanylethylidene`."""
+    from openchem.vendor.iupac_namer.assembly import assemble
+    from openchem.vendor.iupac_namer.engine import (
+        _fvi_elide_locant_one, _select_substituent_method, name as _recursive_name,
+    )
+    from openchem.vendor.iupac_namer.perception.extraction import carve_substituent
+    from openchem.vendor.iupac_namer.types import FreeValenceInfo
+
+    branch: set[int] = set()
+    stack = [c_idx]
+    while stack:
+        cur = stack.pop()
+        if cur in branch:
+            continue
+        branch.add(cur)
+        for nb in mol.GetAtomWithIdx(cur).GetNeighbors():
+            if nb.GetIdx() != n_idx:
+                stack.append(nb.GetIdx())
+    try:
+        frag, att, bond_order = carve_substituent(mol, frozenset(branch), (n_idx, c_idx))
+        method = _select_substituent_method(frag, att)
+        free_valence = FreeValenceInfo(
+            bond_orders=(bond_order,), method=method, attachment_atoms_in_fragment=(att,), elide_locant_one=_fvi_elide_locant_one(frag, att),
+        )
+        tree = _recursive_name(frag, strategy, OutputForm.SUBSTITUENT, free_valence=free_valence, _session=session, _depth=depth + 1)
+        text = assemble(tree)
+    except Exception:  # noqa: BLE001 - a group the engine cannot name is no name
+        return None
+    if not text or "NAMING ERROR" in text or not text.endswith("ylidene"):
+        return None
+    return text
+
+
+def _render_iminium_hetero(cls: ChargeClassification, mol, strategy, session, depth: int) -> str | None:
+    """`[amino(methoxy)methylidene]azanium`, `(1-sulfanylethylidene)azanium`, `(1-aminoethylidene)(hydroxy)azanium` (naming round 49)."""
+    n_idx = cls.site_atom_indices[0]
+    n = mol.GetAtomWithIdx(n_idx)
+    carbon = next(b.GetOtherAtom(n) for b in n.GetBonds() if b.GetBondTypeAsDouble() == 2.0)
+    ylidene = _name_ylidene_group(mol, n_idx, carbon.GetIdx(), strategy, session, depth)
+    if ylidene is None:
+        return None
+    prefixes = [ylidene]
+    for x in n.GetNeighbors():
+        if x.GetIdx() == carbon.GetIdx():
+            continue
+        name = _name_branch_as_prefix(mol, {n_idx}, x.GetIdx(), strategy, session, depth)
+        if not name:
+            return None
+        prefixes.append(name)
+    prefixes.sort(key=_alphabetical_key)
+    parts = [f"[{p}]" if "(" in p else f"({p})" for p in prefixes]
+    return "".join(parts) + "azanium"
+
+
 def _acyl_like_neighbour(mol, n_idx: int, nb, allow_ester: bool = False) -> bool:
     """A neighbour of an anionic N that makes it an imide / acylurea / sulfamide anion: an acyl carbon (a terminal =O or =S), or a sulfamoyl sulfur (S(=O)(=O) that also carries
     another nitrogen, which is what separates a sulfamide from the sulfonamide the engine already names as `-sulfonamidate`)."""
@@ -1747,9 +1844,8 @@ def _acyl_like_neighbour(mol, n_idx: int, nb, allow_ester: bool = False) -> bool
             b = mol.GetBondBetweenAtoms(nb.GetIdx(), x.GetIdx())
             if x.GetAtomicNum() in (8, 16) and b.GetBondTypeAsDouble() == 2.0 and x.GetDegree() == 1 and x.GetFormalCharge() == 0:
                 found = True
-            elif not allow_ester and x.GetIdx() != n_idx and x.GetAtomicNum() == 8 and b.GetBondTypeAsDouble() == 1.0:
-                # An ester or carbamate carbon: the acid it names is a carbonic monoester, whose acyl name (`methoxymethanoyl`) is not the book's `methoxycarbonyl`. Left to the charge guard.
-                return False
+            # An ester or carbamate carbon (a =O and an O-R) is acyl too: its group is `alkoxycarbonyl`, built in `_render_azanide` (the acid -> acyl trick would give the
+            # carbonic monoester's `methoxymethanoyl`).
         return found
     if nb.GetAtomicNum() == 16:
         oxo = sum(
@@ -1793,7 +1889,7 @@ def _classify_azanide(mol) -> Iterable[ChargeClassification]:
             x.GetAtomicNum() in (8, 16) and x.GetDegree() == 1 and mol.GetBondBetweenAtoms(nb.GetIdx(), x.GetIdx()).GetBondTypeAsDouble() == 2.0
             for x in nb.GetNeighbors()
         ):
-            continue  # an alkyl or aryl carbon; an ester or carbamate carbon (a =O with an O-R) is not named here
+            continue  # an alkyl or aryl carbon
         return
     yield ChargeClassification(
         site_atom_indices=(n.GetIdx(), *sorted(separated)),
@@ -3224,6 +3320,8 @@ def _render(
         return _render_amide_anion(cls, mol, strategy, session, depth)
     if cls.suffix_hint in ("azanide", "azanide_ring"):
         return _render_azanide(cls, mol, strategy, session, depth)
+    if cls.suffix_hint == "iminium_hetero":
+        return _render_iminium_hetero(cls, mol, strategy, session, depth)
     return None
 
 
@@ -3566,6 +3664,34 @@ def _alphabetical_key(prefix: str) -> str:
     return re.sub(r"[^a-z]", "", stripped.lower()) or prefix.lower()
 
 
+def _single_bonded_oxygens(mol, n_idx: int, carbon) -> list:
+    return [
+        x for x in carbon.GetNeighbors()
+        if x.GetIdx() != n_idx and x.GetAtomicNum() == 8 and mol.GetBondBetweenAtoms(carbon.GetIdx(), x.GetIdx()).GetBondTypeAsDouble() == 1.0
+    ]
+
+
+def _is_ester_carbon(mol, n_idx: int, carbon) -> bool:
+    return carbon.GetAtomicNum() == 6 and bool(_single_bonded_oxygens(mol, n_idx, carbon))
+
+
+def _alkoxycarbonyl_prefix(mol, n_idx: int, carbon, strategy, session, depth: int) -> str | None:
+    """`methoxycarbonyl`, `(2-chloroethoxy)carbonyl`: the group on an anionic N when its carbon is an ester or carbamate carbon (naming round 49).
+
+    The acid -> acyl trick names the carbonic monoester (`methyl hydrogen carbonate`) and gets `methoxymethanoyl`. The alkoxy group is named as a substituent on its own and `carbonyl`
+    follows; a carbonate (two O-R) has no single such group and is declined."""
+    if not _is_ester_carbon(mol, n_idx, carbon):
+        return None
+    oxygens = _single_bonded_oxygens(mol, n_idx, carbon)
+    if len(oxygens) != 1 or oxygens[0].GetDegree() != 2:
+        return None
+    alkoxy = _name_branch_as_prefix(mol, {carbon.GetIdx()}, oxygens[0].GetIdx(), strategy, session, depth)
+    if not alkoxy or not alkoxy.endswith("oxy"):
+        return None
+    # `methoxycarbonyl`, `ethoxycarbonyl`; a locant, a space or an enclosing mark in the alkoxy name makes it compound (`(2-chloroethoxy)carbonyl`).
+    return f"({alkoxy})carbonyl" if re.search(r"[-,\s()\[\]{}']|\d", alkoxy) else f"{alkoxy}carbonyl"
+
+
 def _acyl_prefix_via_acid(mol, n_idx: int, acyl_idx: int, strategy, session, depth: int) -> str | None:
     """The acyl (or sulfamoyl) group on one side of an anionic N, named as the engine names an acyl group: cut the N off, put an -OH where it was, name the ACID, and
     turn the acid's name into its acyl name (`acetic acid` -> `acetyl`, `methylcarbamic acid` -> `methylcarbamoyl`). Naming the bare branch gives `1-oxoethyl`."""
@@ -3611,6 +3737,10 @@ def _render_azanide(cls: ChargeClassification, mol, strategy, session, depth: in
     n_idx = cls.site_atom_indices[0]
     if cls.suffix_hint == "azanide_ring":
         group = _name_as_substituent(mol, n_idx, strategy, session, depth)
+        # The group may cite an ADDED hydrogen before its final locant (`1,1,3-trioxo-1,2-benzothiazol-2(3H)-yl`, saccharin's nitrogen). The anion has no such hydrogen: the
+        # charge sits where it would have gone (`1,1,3-trioxo-1,2-benzothiazol-2-ide`, which OPSIN reads back to the anion).
+        if group:
+            group = re.sub(r"(\d+[a-z]?)\(\d+[a-z]?H\)-yl$", r"\1-yl", group)
         locant, stem = _split_substituent_locant(group)
         if stem is None or locant is None:
             return None
@@ -3618,7 +3748,9 @@ def _render_azanide(cls: ChargeClassification, mol, strategy, session, depth: in
     prefixes: list[str] = []
     for nb in mol.GetAtomWithIdx(n_idx).GetNeighbors():
         if _acyl_like_neighbour(mol, n_idx, nb):
-            name = _acyl_prefix_via_acid(mol, n_idx, nb.GetIdx(), strategy, session, depth)
+            name = _alkoxycarbonyl_prefix(mol, n_idx, nb, strategy, session, depth)
+            if name is None and not _is_ester_carbon(mol, n_idx, nb):
+                name = _acyl_prefix_via_acid(mol, n_idx, nb.GetIdx(), strategy, session, depth)
         else:
             name = _name_branch_as_prefix(mol, {n_idx}, nb.GetIdx(), strategy, session, depth)
         if not name:
@@ -4617,13 +4749,17 @@ def _render_amidinium_zwitterion(mol, n_plus_idx: int, strategy, session, depth:
     if masked:
         # The ester is either a `(methoxycarbonyl)` prefix (on a ring) or, at the end of a chain, `4-methoxy-4-oxo` (the chain's own carbon).
         as_prefix = re.findall(r"methoxycarbonyl", name)
-        in_chain = re.findall(r"(\d+)-methoxy-\1-oxo", name)
+        # Naming round 49: the chain-end ester is `3-methoxy-3-oxo`, but another prefix can sit between them alphabetically (`3-methoxy-2-methyl-3-oxo`), so the two locants are matched
+        # on their own: one locant that carries BOTH a methoxy and an oxo is the ester.
+        methoxy_at = set(re.findall(r"(?<![\d,])(\d+)-methoxy(?!carbonyl)", name))
+        oxo_at = set(re.findall(r"(?<![\d,])(\d+)-oxo", name))
+        in_chain = sorted(methoxy_at & oxo_at)
         if len(as_prefix) + len(in_chain) != 1:
             return None
         if as_prefix:
             name = re.sub(r"\(methoxycarbonyl\)|methoxycarbonyl", "carboxy", name)
         else:
-            name = re.sub(r"(\d+)-methoxy-\1-oxo", r"\1-hydroxy-\1-oxo", name)
+            name = re.sub(rf"(?<![\d,]){in_chain[0]}-methoxy(?!carbonyl)", f"{in_chain[0]}-hydroxy", name)
     return name
 
 

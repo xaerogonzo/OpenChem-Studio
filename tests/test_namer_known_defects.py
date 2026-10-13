@@ -4322,6 +4322,20 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # D-240 (naming round 48): in a hydro azolium the cation and the indicated hydrogen were on one nitrogen, a name OPSIN reads with a hydrogen too many.
     ("D-240", "Cn1c[n+](C)c2CCCCc12", "1,3-dimethyl-4,5,6,7-tetrahydro-1H-benzimidazol-3-ium", "1,3-dimethyl-4,5,6,7-tetrahydro-1H-benzimidazol-1-ium",
      "WRONG MOLECULE: the -1-ium and the 1H on one nitrogen; OPSIN reads a CH2 at C2"),
+    # D-241 .. D-245 (naming round 49): the ions rounds 44 to 48 left refused or unreadable.
+    ("D-241", "CC(=[NH2+])S", "(1-sulfanylethylidene)azanium", "[REFUSED: no name found that keeps the positive charge (the nearest name, '1-iminoethane-1-thiol', is the neutral compound's)]",
+     "a visible refusal; no classifier claimed a protonated thioimidate, imidate, isourea or amidoxime, so the plan search neutralised it"),
+    ("D-242", "CC(=O)[N-]C(=O)OC", "acetyl(methoxycarbonyl)azanide", "({[NAMING ERROR: No valid naming plan found for CC([NH-])=O]}(oxo)methoxy)methane",
+     "a visible error; an ester carbon on an anionic N is alkoxycarbonyl"),
+    ("D-242", "O=C1[N-]S(=O)(=O)c2ccccc12", "1,1,3-trioxo-1,2-benzothiazol-2-ide", "[REFUSED: charge perception claimed an 'azanide_ring' motif but could not complete it]",
+     "a visible refusal; the added hydrogen of the group, 2(3H)-yl, goes before the ring -ide"),
+    ("D-243", "[S-]C(=N)N", "amino(imino)methanethiolate", "aminoiminomethanethiolate",
+     "UNREADABLE AS WRITTEN: OPSIN reads aminoimino as an N-N bond (NN=C[S-]); amino and imino stay two groups"),
+    ("D-244", "OC(=O)c1ccccc1NS(=O)(=O)N(C)C", "2-[(dimethylaminosulfonyl)amino]benzoic acid", "N-(2-carboxyphenyl)-N',N'-dimethylsulfamide",
+     "the sulfamide (the amide of sulfuric acid) was the parent over a carboxylic acid (P-41)"),
+    ("D-245", "NC(=[NH2+])C(C)(C(=O)[O-])C(=O)O", "2-carboxylato-3-hydroxy-2-methyl-3-oxopropanamidinium",
+     "[REFUSED: charge perception claimed an 'amidinium' motif but could not complete it]",
+     "a visible refusal; the masked ester sits at the chain end with another prefix between its methoxy and oxo"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",

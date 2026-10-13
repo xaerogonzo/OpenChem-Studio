@@ -192,7 +192,7 @@ _SINGLE_ATOM_SUBSTITUENT: dict[tuple[str, int, int], str] = {
     ("N", +1,  1): "azaniumyl",   # NH3+, one heavy neighbour (attachment)
     ("N", -1,  1): "azanide",
     ("S",  0,  1): "sulfanyl",
-    ("S", -1,  1): "sulfanide",
+    ("S", -1,  1): "sulfido",     # the PREFIX for S-; `sulfanide` is the parent hydride anion and OPSIN cannot read it as a prefix (naming round 49)
     ("S", +1,  1): "sulfaniumyl",  # SH2+, one heavy neighbour (P-66.6.5)
     ("F",  0,  1): "fluoro",
     ("Cl", 0,  1): "chloro",
@@ -2339,6 +2339,7 @@ def _name_sulfamide_functional_parent(
     strategy,
     session: NamingSession,
     depth: int,
+    perception=None,
 ) -> LeafTree | None:
     """IUPAC P-66.4.1.2.4 retained sulfamide name for substituted
     (R)2N-S(=O)(=O)-N(R)2.
@@ -2440,6 +2441,14 @@ def _name_sulfamide_functional_parent(
                 comp = _reach_from(nb.GetIdx(), set(non_core), mol)
                 reachable |= comp
     if reachable != non_core:
+        return None
+    # Naming round 49: a sulfamide is the AMIDE of sulfuric acid (class 11), so a carboxylic or sulfonic acid, an ester, an acid halide or an anhydride elsewhere in the molecule
+    # outranks it (P-41), exactly as it outranks urea and the nitramides. `OC(=O)c1ccccc1NS(=O)(=O)N(C)C` was `N-(2-carboxyphenyl)-N',N'-dimethylsulfamide`, the amide named as the
+    # parent and the acid cited as `carboxy`; the acid is the parent and the sulfamide a prefix (`[(dimethylaminosulfonyl)amino]`).
+    if perception is not None and any(
+        fg.anchor not in core_atoms and fg.get_property("seniority", 9999) < _N_CORE_PARENT_SENIORITY_LIMIT
+        for fg in perception.fgs.detected_fgs
+    ):
         return None
 
     # Carve substituent components on each N.
@@ -10959,6 +10968,7 @@ def _name_bound(
         sulfamide_tree = _name_sulfamide_functional_parent(
             mol, output_form, decision_ctx,
             strategy=strategy, session=_session, depth=_depth,
+            perception=perception,
         )
         if sulfamide_tree is not None:
             _session.cache_store(fragment_key, output_form, fv_bond_orders, sulfamide_tree, attachment_indices)
