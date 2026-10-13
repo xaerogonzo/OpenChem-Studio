@@ -467,17 +467,25 @@ def lewis_report(
         "orientation": resolution.orientation,
         "orientation_basis": resolution.basis,
     }
-    provenance = Provenance(created_by="core", method="lewis_adduct", parameters=note)
+    # Lines that produced a number, over every orientation reported. Counted only to be recorded when there is
+    # evidence, so a recipe can tell "evaluated, and nothing came of it" from an answer.
+    available = [0]
+
+    def provenance_for() -> Provenance:
+        extra = {"lines_available": available[0]} if evidence is not None else {}
+        return Provenance(created_by="core", method="lewis_adduct", parameters=note | extra)
 
     def one_way(subject_is_acid: bool) -> LewisAdduct:
         acid, base = (mol, partner) if subject_is_acid else (partner, mol)
-        return predict(
+        outcome = predict(
             acid,
             base,
             acid_uuid=molecule_uuid if subject_is_acid else "",
             base_uuid="" if subject_is_acid else molecule_uuid,
             **_evidence_inputs(evidence, subject_is_acid),
         )
+        available[0] += len(outcome.available())
+        return outcome
 
     if not resolution.resolved:
         # NEITHER admissible: let `predict` produce the refusal, so exactly
@@ -521,7 +529,7 @@ def lewis_report(
                 molecule_uuid=molecule_uuid,
                 matched=lines,
                 category="lewis",
-                provenance=provenance,
+                provenance=provenance_for(),
             ),
             evidence,
         )
@@ -555,7 +563,7 @@ def lewis_report(
             molecule_uuid=molecule_uuid,
             matched=lines,
             category="lewis",
-            provenance=provenance,
+            provenance=provenance_for(),
         ),
         evidence,
     )

@@ -274,6 +274,10 @@ class QuantumChemistryRunStore:
                 return by_run[run_id]
         return None
 
+    def run_ids(self) -> frozenset[str]:
+        """Every run id in the project, for asking whether one that something recorded still exists."""
+        return frozenset(run_id for by_run in self._runs.values() for run_id in by_run)
+
     def runs_for(self, molecule_uuid: str) -> list[QuantumChemistryRun]:
         """Newest first."""
         return sorted(
