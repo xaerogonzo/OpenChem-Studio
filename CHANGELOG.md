@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: the ions rounds 44 to 48 left refused or unreadable
+- A protonated imidate, thioimidate, isourea or amidoxime is named as the cation, `(1-sulfanylethylidene)azanium`, `[amino(methoxy)methylidene]azanium`, `(1-aminoethylidene)(hydroxy)azanium` (D-241); before, the
+  charge guard refused it. The anion of an N-acyl carbamate is `acetyl(methoxycarbonyl)azanide` (was a visible error) and saccharin's is `1,1,3-trioxo-1,2-benzothiazol-2-ide` (was refused) (D-242). The prefix for S- is
+  `sulfido`, not the parent hydride's `sulfanide`, and `amino` and `imino` are bracketed so OPSIN does not read `aminoimino` as an N-N bond (D-243). A carboxylic or sulfonic acid, an ester or an acid halide outranks
+  a sulfamide: `2-[(dimethylaminosulfonyl)amino]benzoic acid`, not `N-(2-carboxyphenyl)-N',N'-dimethylsulfamide` (D-244). An amidinium zwitterion with both acids on one quaternary carbon is named (D-245). The census
+  is unchanged at 1993 exact; frozen sets: heldout_v6 unchanged; bluebook_frozen re-scored once (r49-final-evaluation): unparsable 43 -> 42 and equivalent 526 -> 527, every other count identical; fresh_v1 re-scored once (r49-fresh-v1): every outcome count identical. The stage list for `--frozen-impact` becomes `r49-fresh-v1,r49-final-evaluation,r38-final-evaluation`.
+
 ### Naming: in a hydro azolium the cation and the indicated hydrogen are on different nitrogens
 - `Cn1c[n+](C)c2CCCCc12` was `1,3-dimethyl-4,5,6,7-tetrahydro-1H-benzimidazol-1-ium`, the `-ium` and the `1H` on one nitrogen, which OPSIN reads with a hydrogen too many (a different molecule). It is
   `1,3-dimethyl-4,5,6,7-tetrahydro-1H-benzimidazol-3-ium`, as the aromatic benzimidazolium already was (D-240). Found by N-methylating one basic nitrogen of every census molecule (1036

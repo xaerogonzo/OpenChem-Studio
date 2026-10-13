@@ -2497,3 +2497,30 @@ every census molecule (1036 quaternary cations) and read each name back through 
 * New `tests/test_namer_round48_azolium_indicated_hydrogen.py` (34 tests; each name read back through OPSIN with its charge). **Mutants:** 1 of 3 killed. The two that survive are not distinguished by any structure
   found: the retagged candidate never beats its mirror-image numbering (it loses on the lowest indicated hydrogen, so dropping its hydro head changes no name), and `tetrahydro` is the only hydro prefix this path
   produces for an azolium (the multiplier alternation is the module's usual one). They are recorded, not claimed killed. D-240 in the fixed table of `tests/test_namer_known_defects.py`.
+
+## 2026-10-13 -- naming round 49: the ions rounds 44 to 48 left refused or unreadable (D-241 .. D-245)
+
+Round 48's open list, taken whole: the protonated amidoximes, imidates and thioamides the charge guard refuses, the thioamide thiolates, the N-acyl carbamate and saccharin anions, a neutral acid beside a sulfamide, and an
+amidinium zwitterion with both acids on one carbon. OPSIN was asked FIRST which spellings it reads, and every candidate did (several equal to the input exactly), so each item became a rendering choice, not a question of
+what can be verified.
+
+* **D-241.** No classifier claimed an acyclic iminium `C=[NH+]` whose carbon carries O, S or another N (`NC(=[NH2+])OC`, `CC(=[NH2+])S`, `NC(=[NH+]O)C(Cl)(Cl)Cl`), so the plan search neutralised it and promoted the thiol, amine or
+  hydroxylamine to the principal group: `1-iminoethane-1-thiol`, the neutral compound, which round 46's guard turned into a refusal. `_classify_iminium_hetero` / `_render_iminium_hetero` name the cation as the parent in the
+  form the engine already wrote for `COC(=[NH2+])CC`: the group on the carbon as an `-ylidene` (`engine._fvi_*` / `carve_substituent`, the executor's own path) and the other substituents of N+ as prefixes,
+  `(1-amino-2,2,2-trichloroethylidene)(hydroxy)azanium`. It runs after the amidinium classifier, which keeps its own (`CC(N)=[NH2+]`).
+* **D-242.** An ester or carbamate carbon on an anionic N was acyl-like in nothing but name: the acid -> acyl trick names the carbonic monoester and gives `methoxymethanoyl`. `_alkoxycarbonyl_prefix` names the alkoxy group on its
+  own and cites `carbonyl` (`acetyl(methoxycarbonyl)azanide`, `[(2-chloroethoxy)carbonyl](methyl)azanide`); a carbonate has no single such group and is declined. Saccharin's anion: the substituent namer returns
+  `1,1,3-trioxo-1,2-benzothiazol-2(3H)-yl`, and the added hydrogen `(3H)` broke the locant parse; the anion has no such hydrogen, so it goes: `1,1,3-trioxo-1,2-benzothiazol-2-ide`.
+* **D-243.** The single-atom prefix table named S- `sulfanide`, which is the parent hydride's anion (`disulfan-1-ide`) and unreadable as a prefix (`{[amino(sulfanide)methylidene]carbamoyl}benzene`); it is `sulfido`, as O- is
+  `oxido`. And `amino` + `imino` ran together as `aminoimino` (OPSIN: `NN=C[S-]`, an N-N bond; `hydroxyimino` is the group =N-OH); the assembler brackets the second: `amino(imino)methanethiolate`.
+* **D-244.** `_name_sulfamide_functional_parent` had no seniority check, unlike the urea and nitramide parents it mirrors. A sulfamide is the amide of sulfuric acid (class 11); an acid, ester or acid halide outside the core
+  outranks it (P-41). It now takes `perception` and declines on any group of the amide class or above outside its atoms: `2-[(dimethylaminosulfonyl)amino]benzoic acid` (round 46's D-237 prefix). A nitrile, alcohol
+  or ketone does not outrank it, and a carboxamide wins as the parent (`...benzamide`).
+* **D-245.** `NC(=[NH2+])C(C)(C(=O)[O-])C(=O)O` was refused: the masked ester is a chain-end `3-methoxy-3-oxo`, but another prefix sits between them alphabetically (`3-methoxy-2-methyl-3-oxo`), so the adjacency
+  regex missed it. The methoxy and oxo locants are matched on their own: `2-carboxylato-3-hydroxy-2-methyl-3-oxopropanamidinium`. A carboxylate beside TWO neutral acids is still refused.
+* **Measured.** Every name above reads back through OPSIN to its input, charge included. Census 1993 exact, unchanged (4 rows changed spelling, all still exact; two are this round's: a sulfamide beside an acid and an
+  exocyclic iminium). App naming tests 3960 passed (the full group on the final code, after three refusal pins were repointed); `tests/vendor` and the known-defects file: 7420 passed (the full vendored suite and the known-defects file). **Frozen sets** (blind `--frozen-impact`): heldout_v6 unchanged; bluebook_frozen moved 2 rows and
+  fresh_v1 1, re-scored once: heldout_v6 unchanged; bluebook_frozen re-scored once (r49-final-evaluation): unparsable 43 -> 42 and equivalent 526 -> 527, every other count identical; fresh_v1 re-scored once (r49-fresh-v1): every outcome count identical. The stage list for `--frozen-impact` becomes `r49-fresh-v1,r49-final-evaluation,r38-final-evaluation`.
+* New `tests/test_namer_round49_open_ions.py` (7 of 7 live mutants killed; an eighth, an amidinium exclusion in the new classifier, moved no name and was deleted as dead code). D-241 .. D-245 in the fixed table of
+  `tests/test_namer_known_defects.py`. Three earlier tests pinned refusals this round turned into names and now pin the cases still refused: a carboxylate beside two neutral acids
+  (`test_namer_round43_*`, `test_namer_round45_*`) and a pyrazolone anion (`test_namer_round46_*`).

@@ -1733,7 +1733,7 @@ are unreadable by OPSIN; 6 (0.3%) keep the skeleton and lose stereochemistry; 10
 (different, tuned-on) scale, reads 98.4% exact, 0.3% wrong molecule, 0.35% unreadable: the unseen sample's wrong-molecule rate is about three times the census's. The two reports
 define their classes a little differently, so compare the pattern and not the last digit.
 
-**The rules for it:** no fix is made to a row of this sample; it is not a candidate list. Round 39 and later check it only with `naming_stage_artifact.py --frozen-impact r46-fresh-v1,r46-final-evaluation,r38-final-evaluation` (each frozen set is compared with the first listed stage that sealed it; round 40 re-scored fresh_v1 once, 1950 -> 1951 of 2000 reading back, round 41 again, 1951 -> 1956, round 42, 1956 -> 1961, round 43, 1961 -> 1962, and round 44, 1962 -> 1964)
+**The rules for it:** no fix is made to a row of this sample; it is not a candidate list. Round 39 and later check it only with `naming_stage_artifact.py --frozen-impact r49-fresh-v1,r49-final-evaluation,r38-final-evaluation` (each frozen set is compared with the first listed stage that sealed it; round 40 re-scored fresh_v1 once, 1950 -> 1951 of 2000 reading back, round 41 again, 1951 -> 1956, round 42, 1956 -> 1961, round 43, 1961 -> 1962, and round 44, 1962 -> 1964)
 (counts only) and say so when a change moves it. When a future round has spent it as a measurement, it draws the next one, at a new unused offset.
 
 **What drawing it taught (so the next draw does not repeat it).** The first version asked for one CID per request at 4 a second and was answered `429 Too Many Requests` after about
