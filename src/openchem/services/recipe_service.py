@@ -12,7 +12,7 @@ today, which is Stage A of the design.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 
 from openchem.chem.calculation_input import resolve_calculation_input
 from openchem.chem.engine import ChemistryEngine
@@ -21,6 +21,7 @@ from openchem.chem.recipe_host import constitution_key, formal_charge, run_descr
 from openchem.domain.calculator import DRAWING
 from openchem.domain.lewis import ROLE_AUTO
 from openchem.domain.lewis_binder import MoleculeFacts
+from openchem.domain.recipe_answer import RecipeAnswer, project_answers
 from openchem.domain.recipe_run import Assessment, ProjectView, RecipeRun, assess
 from openchem.services.result_store_service import ResultStoreService
 
@@ -55,12 +56,19 @@ class RecipeService:
             role=role,
         )
 
-    def project_view(self) -> ProjectView:
+    def project_view(self, molecule_uuids: Collection[str] | None = None) -> ProjectView:
         """The project as `recipe_run.assess` needs it, read now. A molecule whose drawing cannot be read has a key of
-        None, which `assess` reports as unverifiable and never as unchanged."""
+        None, which `assess` reports as unverifiable and never as unchanged.
+
+        `molecule_uuids` limits the keys worked out to those molecules: each is a parse of a drawing, and the Results
+        reader asks on every refresh. A molecule outside the limit is simply absent, which `assess` would read as
+        "removed", so a caller that limits it must only assess runs whose molecules are all inside the limit.
+        """
         project = self._store.project
         keys: dict[str, str | None] = {}
         for molecule in project.molecules if project is not None else ():
+            if molecule_uuids is not None and molecule.uuid not in molecule_uuids:
+                continue
             try:
                 keys[molecule.uuid] = constitution_key(resolve_calculation_input(self._engine, molecule, DRAWING).mol)
             except Exception:  # noqa: BLE001 - one unreadable molecule must not stop the others being compared
@@ -70,6 +78,28 @@ class RecipeService:
     def assess(self, run: RecipeRun) -> Assessment:
         """Whether `run` still describes the project, and if not, every reason. Read now, never stored."""
         return assess(run, self.project_view())
+
+    def answers_for(self, molecule_uuid: str, structure_version: int) -> tuple[RecipeAnswer, ...]:
+        """The kept answers `molecule_uuid` took part in, as Results entries, each assessed against the project NOW.
+
+        Nothing is stored and nothing is evaluated again: the entries are read off the kept runs, so a stale answer
+        stays on screen as recorded and says why it is stale. Cheap when there is nothing kept for the molecule (the
+        common case: one dictionary scan), and otherwise a parse of the drawings those runs name and no more.
+        """
+        runs = [r for r in self._store.recipe_runs.runs_for_molecule(molecule_uuid) if r.result is not None]
+        if not runs:
+            return ()
+        named = {uuid for run in runs for uuid in run.molecule_uuids()}
+        view = self.project_view(named)
+        project = self._store.project
+        names = {m.uuid: m.display_name for m in project.molecules if m.uuid in named} if project is not None else {}
+        return project_answers(
+            runs,
+            viewing=molecule_uuid,
+            assessments={run.run_id: assess(run, view) for run in runs},
+            names=names,
+            structure_version=structure_version,
+        )
 
     def _member(self, molecule_uuid: str, picks: Mapping[str, str]) -> PairMember:
         project = self._store.project

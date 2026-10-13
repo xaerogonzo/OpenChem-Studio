@@ -1099,9 +1099,14 @@ class ResultsView(QWidget):
         return f"Partial result: could not evaluate {shown}{tail}. {completeness.reason}".rstrip()
 
     def _stale_line(self, report) -> str:
-        return (
+        if not self._merged.is_stale(report):
+            return ""
+        # **AN ENTRY THAT KNOWS WHY SAYS WHY.** A kept recipe answer is stale when either molecule was edited or a run it
+        # consumed was deleted, and "an earlier version of this structure" is wrong for the second (and for a pairing,
+        # for the first, which is a different molecule's structure). The generic sentence is for every result that does
+        # not carry a reason of its own.
+        note = str(getattr(report, "stale_note", "") or "")
+        return note or (
             "Computed for an earlier version of this structure -- re-run it "
             "to refresh."
-            if self._merged.is_stale(report)
-            else ""
         )

@@ -1314,6 +1314,36 @@ def test_deleting_the_active_run_leaves_the_other_one_selectable(qapp):
     assert panel._active_run is run_older
 
 
+def test_deleting_a_run_from_the_panel_tells_the_readers_and_marks_the_session_unsaved(qapp, monkeypatch):
+    """The button goes through the service, not the store: a kept recipe answer that consumed the run is stale from
+    here, and the project file no longer holds what it did."""
+    from PySide6.QtWidgets import QMessageBox
+
+    from openchem.events.events import QuantumChemistryRunDeleted
+
+    panel, store, molecule, _older, run_newer = _two_nmr_runs(qapp)
+    told, unsaved = [], []
+    store._event_bus.subscribe(QuantumChemistryRunDeleted, told.append)
+    store.add_recorded_listener(unsaved.append)
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.Yes))
+    panel._on_delete_run_clicked()
+    assert [(e.run_id, e.molecule_uuid) for e in told] == [(run_newer.run_id, molecule.uuid)]
+    assert unsaved == [molecule.uuid]
+
+
+def test_declining_the_delete_tells_nobody(qapp, monkeypatch):
+    from PySide6.QtWidgets import QMessageBox
+
+    from openchem.events.events import QuantumChemistryRunDeleted
+
+    panel, store, _molecule, _older, run_newer = _two_nmr_runs(qapp)
+    told = []
+    store._event_bus.subscribe(QuantumChemistryRunDeleted, told.append)
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.No))
+    panel._on_delete_run_clicked()
+    assert told == [] and store.qc_runs.get(run_newer.run_id) is run_newer
+
+
 def test_deleting_a_run_does_not_touch_the_wavefunction_cache(qapp, tmp_path, monkeypatch):
     """The store-level guarantee (tests/test_quantum_chemistry_run.py) is
     that delete() only removes the project record; this confirms the panel's

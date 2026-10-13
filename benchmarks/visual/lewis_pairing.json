@@ -38,13 +38,27 @@
   {"do": "lewis_pairing", "press": "keep", "tag": "keep-files-the-answer", "after_ms": 1000,
    "expect": {"pressed": true, "kept": true, "keep_enabled": false, "recorded_runs": 1}},
 
+  {"do": "select", "molecule": -2, "after_ms": 1500},
+  {"do": "recipe_results", "focus": true, "tag": "the-kept-answer-is-in-results-for-ammonia", "after_ms": 800,
+   "expect": {"entries": 1, "stale": 0, "kept_runs": 1, "stored_as_results": 0,
+              "title_contains": ["Ammonia", "Water", "B3LYP def2-SVP"], "facts_contain": ["Frontier orbital gap"],
+              "summary_absent": ["earlier version"], "marked_stale_in_list": false}},
+  {"do": "shot", "path": "artifacts/visual/lewis_pairing_in_results.png", "widget": "results_reader", "after_ms": 500},
+  {"do": "select", "molecule": -1, "after_ms": 1500},
+  {"do": "recipe_results", "tag": "and-for-water", "expect": {"entries": 1, "stale": 0, "stored_as_results": 0}},
+
   {"do": "save_project", "path": "artifacts/visual/lewis_pairing_project.ocsproj", "after_ms": 1500},
   {"do": "open_project", "path": "artifacts/visual/lewis_pairing_project.ocsproj", "after_ms": 4000},
   {"do": "lewis_pairing", "tag": "the-kept-answer-and-the-runs-survive-a-reopen", "after_ms": 2500,
    "expect": {"status": "completed", "jobs_done": 4, "has_result": true, "recorded_runs": 1}},
-
   {"do": "select", "molecule": -2, "after_ms": 1500},
+  {"do": "recipe_results", "focus": true, "tag": "the-kept-answer-survives-a-reopen-and-reads-current", "after_ms": 800,
+   "expect": {"entries": 1, "stale": 0, "kept_runs": 1, "title_contains": ["Ammonia", "Water"],
+              "facts_contain": ["HSAB hardness match"]}},
+
   {"do": "conformers", "count": 3, "after_ms": 15000},
+  {"do": "recipe_results", "tag": "a-new-geometry-is-not-an-edit-the-kept-answer-stays-current", "after_ms": 500,
+   "expect": {"entries": 1, "stale": 0}},
   {"do": "lewis_pairing", "tag": "a-new-geometry-puts-the-ammonia-runs-at-an-earlier-geometry", "after_ms": 2500,
    "expect": {"status": "partial", "choices": 2, "jobs_done": 2, "jobs_to_do": 2, "has_result": false}},
   {"do": "shot", "path": "artifacts/visual/lewis_pairing_choose.png", "widget": "lewis_pairing", "after_ms": 500},
@@ -53,6 +67,17 @@
               {"slot": "first", "calc": "delta_scf", "run": "first_candidate"}],
    "expect": {"status": "completed", "choices": 0, "jobs_done": 4, "has_result": true,
               "result_contains": ["Frontier orbital gap", "HSAB hardness match"]}},
+
+  {"do": "select", "molecule": -2, "after_ms": 1500},
+  {"do": "atom_action", "atom": 0, "submenu": "Change", "text": "O", "tag": "ammonia-redrawn-as-water", "after_ms": 4000,
+   "expect": {"smiles_equals": "O", "undo_delta": 1}},
+  {"do": "recipe_results", "focus": true, "tag": "editing-a-molecule-marks-the-kept-answer-stale-and-says-which", "after_ms": 800,
+   "expect": {"entries": 1, "stale": 1, "marked_stale_in_list": true, "note_contains": ["Ammonia was edited"],
+              "summary_contains": ["The structure of Ammonia was edited after this answer was made."],
+              "summary_absent": ["earlier version of this structure"], "facts_contain": ["Frontier orbital gap"]}},
+  {"do": "shot", "path": "artifacts/visual/lewis_pairing_stale_in_results.png", "widget": "results_reader", "after_ms": 500},
+  {"do": "select", "molecule": -1, "after_ms": 1500},
+  {"do": "recipe_results", "tag": "the-other-molecule-reads-it-stale-too", "expect": {"entries": 1, "stale": 1}},
 
   {"do": "expect_clean"},
   {"do": "quit"}

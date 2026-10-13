@@ -95,6 +95,7 @@ from openchem.events.events import (
     PluginUnloaded,
     QuantumChemistryResultReady,
     QuantumChemistryRunCompleted,
+    QuantumChemistryRunDeleted,
 )
 from openchem.app.calculation_host import CalculationHost
 from openchem.plugins.manager import PluginManager
@@ -491,6 +492,10 @@ class MainWindow(QMainWindow):
             # to live in the project file, so one that is not there yet is
             # exactly what the unsaved-changes prompt is for.
             services.result_store_service.add_recorded_listener(self._on_result_retained)
+        if services.recipe_service is not None:
+            # The answers kept in the project (Tools > Lewis Acid-Base Pairing > Keep) are read in Results, under each
+            # molecule that took part, and read stale when the project has moved on from them.
+            self._property_panel.attach_recipe_answers(services.recipe_service.answers_for)
         self._console_panel = ConsolePanel(self)
         self._docking_panel = DockingPanel(
             services.docking_service, services.chemistry_engine, self._settings, services.event_bus, self
@@ -908,6 +913,7 @@ class MainWindow(QMainWindow):
         # The pairing window evaluates over stored runs, so it follows everything that changes what they
         # describe: a run finishing, a structure edited, a geometry added.
         services.event_bus.subscribe(QuantumChemistryRunCompleted, self._refresh_lewis_pairing)
+        services.event_bus.subscribe(QuantumChemistryRunDeleted, self._refresh_lewis_pairing)
         services.event_bus.subscribe(MoleculeChanged, self._refresh_lewis_pairing)
         services.event_bus.subscribe(ConformersChanged, self._refresh_lewis_pairing)
         services.event_bus.subscribe(PluginLoaded, self._on_plugins_state_changed)

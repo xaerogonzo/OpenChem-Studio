@@ -351,6 +351,31 @@ class QuantumChemistryRunCompleted(Event):
 
 
 @dataclass(frozen=True)
+class QuantumChemistryRunDeleted(Event):
+    """A `QuantumChemistryRun` was removed from the project's history.
+
+    Published by `ResultStoreService.delete_quantum_chemistry_run`, the one way a run goes. It exists for the readers of
+    what a run supported: a kept recipe answer that consumed it is stale from this moment (`recipe_run.assess`), and
+    nothing else would tell the Results reader or the pairing window to look again.
+    """
+
+    run_id: str
+    molecule_uuid: str
+
+
+@dataclass(frozen=True)
+class RecipeRunRecorded(Event):
+    """A `RecipeRun` was kept in the project (`ResultStoreService.record_recipe_run`).
+
+    Carries the molecules that took part, because the Results reader shows a kept answer under each of them and only
+    refreshes for the one it is showing.
+    """
+
+    run_id: str
+    molecule_uuids: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class TautomerNmrResultReady(Event):
     """The NMR of every tautomer of a distribution, published once when the whole run ends (never per
     tautomer), including a run in which some tautomers failed. It is NOT a `SpectrumComputed`: its atom

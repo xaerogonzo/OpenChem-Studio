@@ -425,6 +425,12 @@ class Assessment:
     details: tuple[str, ...] = ()
     #: Slots that could not be compared: the run or the host had no constitution key. Never read as "unchanged".
     unverifiable_slots: tuple[str, ...] = ()
+    #: The same findings as DATA, for a reader that names molecules where `details` names slots (the Results entry,
+    #: `recipe_answer.py`): the slots whose structure differs now, the slots whose molecule is gone, and the consumed
+    #: quantum-chemistry runs that were deleted.
+    edited_slots: tuple[str, ...] = ()
+    removed_slots: tuple[str, ...] = ()
+    removed_run_ids: tuple[str, ...] = ()
 
     @property
     def stale(self) -> bool:
@@ -454,9 +460,11 @@ def assess(run: RecipeRun, view: ProjectView) -> Assessment:
 
     edited: list[str] = []
     removed: list[str] = []
+    removed_slots: list[str] = []
     for slot in run.inputs:
         if slot.molecule_uuid not in view.constitution_keys:
             removed.append(f"{slot.slot} (molecule {slot.molecule_uuid})")
+            removed_slots.append(slot.slot)
             continue
         now = view.constitution_keys[slot.molecule_uuid]
         if not slot.constitution_key or now is None:
@@ -475,4 +483,7 @@ def assess(run: RecipeRun, view: ProjectView) -> Assessment:
         causes.append(StaleCause.EVIDENCE_REMOVED)
         details.append(f"quantum-chemistry run(s) {', '.join(gone)} behind this answer were deleted")
 
-    return Assessment(tuple(causes), tuple(details), tuple(unverifiable))
+    return Assessment(
+        tuple(causes), tuple(details), tuple(unverifiable),
+        edited_slots=tuple(edited), removed_slots=tuple(removed_slots), removed_run_ids=tuple(gone),
+    )

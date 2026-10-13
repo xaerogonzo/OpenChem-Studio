@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Recipes, slice 3b: a kept pairing is in Results, and reads stale when the project moves on
+- **A pairing kept from Tools > Lewis Acid-Base Pairing... is listed in Results under each of the two molecules** (select either), titled with both and the level
+  of theory (`Lewis pairing: BH3 + CO at B3LYP def2-SVP (gas phase)`), with its facts and a limitation when the kept answer was partial. It is a projection of the kept
+  `RecipeRun` (`domain/recipe_answer.py`), built each time the reader refreshes and never stored: a kept answer is **not** also a result in the session result store.
+- **Stale is derived from `assess`, every time**: the entry reads stale when either molecule's structure was edited, a molecule was removed, a quantum-chemistry
+  run it used was deleted, or the build has no such recipe version, and the line above its facts names which (the reader's generic "earlier version of this structure"
+  is wrong for a deleted run). A new geometry is not an edit. A slot that could not be compared is neither current nor stale and says so.
+- **Deleting a quantum-chemistry run now goes through `ResultStoreService.delete_quantum_chemistry_run`**, which marks the project unsaved (it did not before: the file
+  held a run it should no longer hold) and publishes `QuantumChemistryRunDeleted`, which the Results reader and the pairing window follow. Keeping a recipe run publishes
+  `RecipeRunRecorded`. New drive step `recipe_results` and a Results shot (`results_reader`) in `benchmarks/visual/lewis_pairing.json`.
+
 ### Naming: in a hydro azolium the cation and the indicated hydrogen are on different nitrogens
 - `Cn1c[n+](C)c2CCCCc12` was `1,3-dimethyl-4,5,6,7-tetrahydro-1H-benzimidazol-1-ium`, the `-ium` and the `1H` on one nitrogen, which OPSIN reads with a hydrogen too many (a different molecule). It is
   `1,3-dimethyl-4,5,6,7-tetrahydro-1H-benzimidazol-3-ium`, as the aromatic benzimidazolium already was (D-240). Found by N-methylating one basic nitrogen of every census molecule (1036

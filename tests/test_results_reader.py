@@ -314,6 +314,50 @@ def test_a_focused_stale_report_says_so_above_its_facts(qapp):
     dispose(window)
 
 
+def test_a_focused_current_report_has_no_stale_line(qapp):
+    """Nothing asserted the absence, so a line printed above EVERY report would have gone unnoticed."""
+    current = _report("lewis_sites", "Lewis Sites", ["Donor sites"], version=2)
+    window = ResultsView("mol-1")
+    window.set_reports([current], structure_version=2)
+    window.set_focus("lewis_sites")
+    assert "earlier version" not in window._view._summary.text() and window._view._summary.text() == ""
+    dispose(window)
+
+
+def test_a_stale_report_that_knows_why_says_why_in_place_of_the_generic_line(qapp):
+    """A kept recipe answer is stale for reasons that are not "an earlier version of this structure"."""
+    from dataclasses import fields
+
+    from openchem.domain.recipe_answer import RecipeAnswer
+
+    old = _report("lewis_pairing:run-1", "Lewis pairing", ["Role"], version=-1)
+    answer = RecipeAnswer(
+        **{f.name: getattr(old, f.name) for f in fields(ReportResult)},
+        stale_note="The quantum-chemistry run behind its numbers (abc) was deleted.",
+    )
+    window = ResultsView("mol-1")
+    window.set_reports([answer], structure_version=2)
+    window.set_focus("lewis_pairing:run-1")
+    text = window._view._summary.text()
+    assert "was deleted" in text and "earlier version" not in text
+    dispose(window)
+
+
+def test_a_current_answer_with_a_stale_note_is_not_called_stale(qapp):
+    """The note is the cause, the version stamp is the verdict: a note on a current entry says nothing."""
+    from dataclasses import fields
+
+    from openchem.domain.recipe_answer import RecipeAnswer
+
+    current = _report("lewis_pairing:run-1", "Lewis pairing", ["Role"], version=2)
+    answer = RecipeAnswer(**{f.name: getattr(current, f.name) for f in fields(ReportResult)}, stale_note="left over")
+    window = ResultsView("mol-1")
+    window.set_reports([answer], structure_version=2)
+    window.set_focus("lewis_pairing:run-1")
+    assert "left over" not in window._view._summary.text() and STALE_MARK not in window._view._summary.text()
+    dispose(window)
+
+
 def test_the_stale_marks_update_in_an_OPEN_window(qapp):
     """**THE LIFECYCLE TEST, NOT THE SYNCHRONOUS ONE.** The behaviour a
     user experiences is editing the molecule while the window is open, and

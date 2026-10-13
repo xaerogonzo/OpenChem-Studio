@@ -923,6 +923,7 @@
   "tests/test_recalc_policy.py": 0,
   "tests/test_receptor_library.py": 1,
   "tests/test_receptor_library_dialog.py": 0,
+  "tests/test_recipe_answer.py": 2,
   "tests/test_recipe_host.py": 2,
   "tests/test_recipe_model.py": 1,
   "tests/test_recipe_preview.py": 1,
