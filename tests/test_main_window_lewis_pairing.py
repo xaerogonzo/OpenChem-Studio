@@ -23,6 +23,7 @@ from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
 from openchem.domain.quantum_chemistry_run import QuantumChemistryRun, RunStatus
 from openchem.events.events import MoleculeSelected, QuantumChemistryRunCompleted
+from openchem.ui.widgets.results_view import STALE_MARK
 from tests.conftest import dispose
 from tests.lewis_helpers import BH3, CO, METHOD, descriptor
 
@@ -275,3 +276,208 @@ def test_looking_without_keeping_changes_nothing_in_the_project(window, pair):
     window._session.mark_clean()
     window.show_lewis_pairing(borane.uuid, mono.uuid)
     assert window._services.result_store_service.recipe_runs.all_runs() == [] and not window._session.is_dirty
+
+
+# --- the kept answer in Results (slice 3b) --------------------------------------------------------------------------
+
+
+def _complete(window, mono) -> None:
+    """The delta-SCF run carbon monoxide lacked, so the pairing is a complete answer."""
+    _store(window, _run(window, mono, "co-dscf", "delta_scf", {"orca.dscf_hardness": CO["hardness"]}))
+
+
+def _select(window, molecule) -> None:
+    window._services.event_bus.publish(MoleculeSelected(molecule_uuid=molecule.uuid))
+
+
+def _reader(window):
+    return window._results_view
+
+
+def _entries(window) -> list[str]:
+    reader = _reader(window)
+    return [reader._focus_box.itemText(i) for i in range(reader._focus_box.count())]
+
+
+def _kept(window, pair_):
+    """Keep the complete pairing of the fixture's two molecules; returns the kept run."""
+    _, borane, mono = pair_
+    _complete(window, mono)
+    dialog = window.show_lewis_pairing(borane.uuid, mono.uuid)
+    dialog.set_parameters(role="acid")
+    shown = dialog._run
+    assert dialog.press_keep() is True
+    return shown
+
+
+def test_before_anything_is_kept_results_has_no_pairing(window, pair):
+    _, borane, _ = pair
+    _select(window, borane)
+    assert not any("Lewis pairing" in text for text in _entries(window))
+
+
+def test_keeping_the_answer_puts_it_in_results_for_the_molecule_being_looked_at(window, pair):
+    """The reader is already showing borane when Keep is pressed: nothing is reselected, so this is the event."""
+    _, borane, mono = pair
+    _select(window, borane)
+    kept = _kept(window, pair)
+    reader = _reader(window)
+    report = reader.merged().report_for(f"lewis_pairing:{kept.run_id}")
+    assert report is not None and report.molecule_uuid == borane.uuid
+    assert "Lewis pairing: BH3 + CO at B3LYP def2-SVP (gas phase)" in _entries(window)
+
+
+def test_it_is_in_results_for_the_other_molecule_too_stamped_with_that_molecule(window, pair):
+    _, borane, mono = pair
+    kept = _kept(window, pair)
+    _select(window, mono)
+    report = _reader(window).merged().report_for(f"lewis_pairing:{kept.run_id}")
+    assert report is not None and report.molecule_uuid == mono.uuid
+    assert any("Frontier orbital gap: 8.13 eV" in line for line in report.matched)
+
+
+def test_it_is_not_in_results_for_a_molecule_that_took_no_part(window, pair):
+    project, borane, mono = pair
+    other = _molecule(window._services.chemistry_engine, "O", "water")
+    project.molecules.append(other)
+    _kept(window, pair)
+    _select(window, other)
+    assert not any("Lewis pairing" in text for text in _entries(window))
+
+
+def test_a_kept_answer_is_not_also_a_result_in_the_session_store(window, pair):
+    _, borane, mono = pair
+    store = window._services.result_store_service.store
+    _kept(window, pair)
+    _select(window, borane)
+    assert not any("lewis_pairing" in stored.identity.calculator_id for stored in store.all_results(borane.uuid))
+
+
+def test_the_kept_answer_is_current_until_the_project_moves_on(window, pair):
+    _, borane, _ = pair
+    kept = _kept(window, pair)
+    _select(window, borane)
+    reader = _reader(window)
+    report = reader.merged().report_for(f"lewis_pairing:{kept.run_id}")
+    assert not reader.merged().is_stale(report) and STALE_MARK not in " ".join(_entries(window))
+
+
+def test_editing_the_other_molecule_marks_it_stale_and_says_which_structure(window, pair):
+    """Carbon monoxide is edited while it is the one shown, the way a canvas edit announces itself. The reader's own
+    version counter does not know a recipe answer is about two molecules; only the recipe's own assessment does."""
+    from openchem.events.events import MoleculeChanged
+
+    _, borane, mono = pair
+    kept = _kept(window, pair)
+    _select(window, mono)
+    window._services.chemistry_engine.set_structure_from_smiles(mono, "C=O")
+    window._services.event_bus.publish(MoleculeChanged(molecule_uuid=mono.uuid, during_edit=True))
+    reader = _reader(window)
+    report = reader.merged().report_for(f"lewis_pairing:{kept.run_id}")
+    assert reader.merged().is_stale(report)
+    assert "Lewis pairing: BH3 + CO at B3LYP def2-SVP (gas phase)" + STALE_MARK in _entries(window)
+    reader.set_focus(report.report_id)
+    assert "The structure of CO was edited after this answer was made." in reader._view.summary_text()
+    assert "an earlier version of this structure" not in reader._view.summary_text()
+
+
+def test_it_is_stale_under_the_unedited_molecule_too_when_it_is_next_looked_at(window, pair):
+    _, borane, mono = pair
+    kept = _kept(window, pair)
+    _select(window, mono)
+    window._services.chemistry_engine.set_structure_from_smiles(mono, "C=O")
+    _select(window, borane)
+    report = _reader(window).merged().report_for(f"lewis_pairing:{kept.run_id}")
+    assert _reader(window).merged().is_stale(report) and "CO was edited" in report.stale_note
+
+
+def test_deleting_a_run_behind_the_numbers_marks_it_stale_at_once_in_the_open_reader(window, pair, monkeypatch):
+    """Through the Quantum Chemistry panel's own Delete button: the event the service sends is what the reader waits
+    for, and the numbers stay on screen as recorded."""
+    from PySide6.QtWidgets import QMessageBox
+
+    _, borane, mono = pair
+    kept = _kept(window, pair)
+    _select(window, borane)
+    reader = _reader(window)
+    assert not reader.merged().is_stale(reader.merged().report_for(f"lewis_pairing:{kept.run_id}"))
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.Yes))
+    panel = window._quantum_chemistry_panel
+    panel._active_run = window._services.result_store_service.qc_runs.get("co-dscf")
+    panel._on_delete_run_clicked()
+    report = reader.merged().report_for(f"lewis_pairing:{kept.run_id}")
+    assert reader.merged().is_stale(report)
+    assert "co-dscf" in report.stale_note and "the numbers shown are the ones recorded" in report.stale_note
+    assert any("HSAB hardness match: 1.63 eV" in line for line in report.matched)
+
+
+def test_a_kept_answer_survives_reopening_the_project_and_reads_current(window, pair):
+    project, borane, mono = pair
+    kept = _kept(window, pair)
+    store = window._services.result_store_service
+    runs, qc = store.recipe_runs, store.qc_runs
+    window._set_project(project, None, qc, runs)
+    _select(window, borane)
+    report = _reader(window).merged().report_for(f"lewis_pairing:{kept.run_id}")
+    assert report is not None and not _reader(window).merged().is_stale(report)
+
+
+def test_a_kept_answer_whose_other_molecule_was_removed_still_reads_for_the_one_left(window, pair):
+    project, borane, mono = pair
+    kept = _kept(window, pair)
+    project.molecules.remove(mono)
+    _select(window, borane)
+    report = _reader(window).merged().report_for(f"lewis_pairing:{kept.run_id}")
+    assert report is not None and _reader(window).merged().is_stale(report)
+    assert "no longer in the project" in report.stale_note
+
+
+def test_a_reader_that_cannot_read_the_kept_answers_still_shows_everything_else(window, pair, monkeypatch, caplog):
+    _, borane, _ = pair
+    _kept(window, pair)
+
+    def broken(*_args):
+        raise RuntimeError("unreadable")
+
+    window._property_panel.attach_recipe_answers(broken)
+    _select(window, borane)
+    assert not any("Lewis pairing" in text for text in _entries(window))
+    assert "Could not read the recipe answers kept for" in caplog.text
+
+
+def test_a_finished_edit_marks_the_kept_answer_stale_even_when_nothing_else_arrives(window, pair, qapp):
+    """A menu edit is announced once, when it is done, and the recomputation that follows is not certain to produce
+    a result event. The reader must not wait for one to say a kept answer is stale."""
+    from openchem.events.events import MoleculeChanged
+
+    _, borane, mono = pair
+    kept = _kept(window, pair)
+    _select(window, mono)
+    qapp.processEvents()
+    window._services.chemistry_engine.set_structure_from_smiles(mono, "C=O")
+    window._services.event_bus.publish(MoleculeChanged(molecule_uuid=mono.uuid, during_edit=False))
+    qapp.processEvents()
+    report = _reader(window).merged().report_for(f"lewis_pairing:{kept.run_id}")
+    assert _reader(window).merged().is_stale(report) and "CO was edited" in report.stale_note
+
+
+def test_an_edit_of_a_molecule_that_is_not_shown_does_not_rebuild_the_reader(window, pair, qapp):
+    from openchem.events.events import MoleculeChanged
+
+    from PySide6.QtCore import QThreadPool
+
+    _, borane, mono = pair
+    _kept(window, pair)
+    _select(window, borane)
+    # What selecting a molecule starts (descriptors, perception) lands results that rebuild the reader: let all of it
+    # finish first, so only the event under test can.
+    QThreadPool.globalInstance().waitForDone(20000)
+    for _ in range(20):
+        qapp.processEvents()
+    rebuilt = []
+    reader = _reader(window)
+    original = reader.set_reports
+    reader.set_reports = lambda *a, **k: rebuilt.append(1) or original(*a, **k)
+    window._services.event_bus.publish(MoleculeChanged(molecule_uuid=mono.uuid, during_edit=False))
+    qapp.processEvents()
+    assert rebuilt == []

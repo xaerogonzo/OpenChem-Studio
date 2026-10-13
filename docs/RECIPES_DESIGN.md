@@ -378,8 +378,8 @@ with the UI slice. It will need a drive step for the pairing, which the harness 
    * The method presets and solvents moved to `domain/quantum_methods.py`, and the shipped list to
      `domain/recipe_catalogue.py`, for the layering and the import cycle that would otherwise result.
 3. **Host and UI**: a pairing entry, the gap list with the service preview, the result in Results, the help
-   topic every new surface needs, the drive step and script. **3a is built** (the window, below); the result in
-   Results is **3b**.
+   topic every new surface needs, the drive step and script. **3a is built** (the window, below), and so is
+   **3b** (the result in Results, after the 3a list).
 
    **As built in 3a, and the choices the design left open:**
    * **The entry is Tools > Lewis Acid-Base Pairing..., opening one modeless window** (`ui/dialogs/lewis_pairing_dialog.py`),
@@ -402,6 +402,27 @@ with the UI slice. It will need a drive step for the pairing, which the harness 
    * Verified on real ORCA in the real window: `benchmarks/visual/lewis_pairing.json` (ammonia and water, four stored jobs,
      Keep, save, reopen, then a new geometry and a choice). The BH3/BF3/CO pair is deliberately NOT used there: its numbers
      belong to the gate (section 10), whose tolerance is fixed before the pair is run.
+   **As built in 3b, and the choices the design left open:**
+   * **The kept answer is a `RecipeAnswer`** (`domain/recipe_answer.py`): a `ReportResult` built from the kept run each time the
+     reader refreshes, so ordering, search, copy and export apply to it unchanged. `RecipeService.answers_for(molecule, version)`
+     builds it, `PropertyPanel._reader_entries` appends it, and nothing is stored: the session result store never holds it (the
+     decision of section 6, asserted in `tests/test_recipe_service.py` and in the real window).
+   * **It is listed under every molecule that took part**, re-stamped with the one being looked at, because the reader drops anything
+     stamped with another molecule. Its report id is `<recipe>:<run id>`, so two kept runs never share one; the same pair kept twice
+     at one level is told apart by a short run id in the title.
+   * **Staleness is `assess`, read at each refresh, and the reader's one rule marks it.** The reader's rule is "structure version is
+     not the current one"; a pairing is about two molecules, so a stale answer is stamped with a version no structure can have
+     (`STALE_STAMP`, -1) and the cause travels in `stale_note`, which the reader prints in place of its generic line. A slot that
+     could not be compared is not stale; it is a limitation ("could not check whether the structure of X was edited since").
+   * **`Assessment` carries its findings as data** (`edited_slots`, `removed_slots`, `removed_run_ids`) so the sentences name molecules
+     and runs, not slots.
+   * **A deleted quantum-chemistry run had no event.** The Quantum Chemistry panel called `qc_runs.delete` on the store, so nothing told the
+     reader or the pairing window, and the session was not marked unsaved. `ResultStoreService.delete_quantum_chemistry_run` is now
+     the one way a run goes; it marks the session and publishes `QuantumChemistryRunDeleted`. Keeping publishes `RecipeRunRecorded`.
+   * **The reader re-reads on a finished edit** (`MoleculeChanged`, not during an edit) as well as during one, coalesced, because the
+     recomputation that follows an edit is not certain to produce a result event and a kept answer must not wait for one.
+   * **Not done:** the batch/project table does not show kept answers (a table of calculators over molecules has no column for a
+     two-molecule record), and the assistant cannot read them (section 9).
 4. **The gate** (section 10): preregistration commit, noise floor, the pair, the verdict recorded whichever way.
 5. **Later, each its own design review**: Stage B (the dispatch adapter), the snapshot extended to runs, the
    assistant's recipe tools.

@@ -292,3 +292,95 @@ def test_a_recipe_run_of_a_version_this_build_does_not_have_cannot_be_reevaluate
     run = replace(_recorded(services, borane, mono), recipe_version="99")
     assessment = services.recipe_service.assess(run)
     assert StaleCause.RECIPE_VERSION_UNKNOWN in assessment.causes and not assessment.can_reevaluate
+
+
+# --- the kept answers, as Results entries (slice 3b) --------------------------------------------------------------
+
+
+def _version(services, model) -> int:
+    return services.structure_check_service.current_version(model.uuid)
+
+
+def test_a_kept_answer_is_a_results_entry_under_each_molecule_that_took_part(services, pair):
+    _, borane, mono = pair
+    run = _recorded(services, borane, mono)
+    for model in (borane, mono):
+        [answer] = services.recipe_service.answers_for(model.uuid, _version(services, model))
+        assert answer.run_id == run.run_id and answer.molecule_uuid == model.uuid
+        assert answer.name == "Lewis pairing: BH3 + CO at B3LYP def2-SVP (gas phase)"
+        assert answer.facts == run.result.facts and answer.stale_note == ""
+
+
+def test_nothing_kept_means_no_entries_and_no_drawing_is_parsed(services, pair, monkeypatch):
+    _, borane, _ = pair
+    parsed = []
+    monkeypatch.setattr(
+        type(services.recipe_service), "project_view", lambda self, only=None: parsed.append(only) or None
+    )
+    assert services.recipe_service.answers_for(borane.uuid, 3) == () and parsed == []
+
+
+def test_a_molecule_that_took_no_part_has_no_entries(services, pair):
+    project, borane, mono = pair
+    _recorded(services, borane, mono)
+    other = _molecule(services.chemistry_engine, "N", "NH3")
+    project.molecules.append(other)
+    assert services.recipe_service.answers_for(other.uuid, 1) == ()
+
+
+def test_only_the_molecules_of_the_kept_runs_are_parsed(services, pair):
+    project, borane, mono = pair
+    _recorded(services, borane, mono)
+    other = _molecule(services.chemistry_engine, "N", "NH3")
+    project.molecules.append(other)
+    limited = services.recipe_service.project_view({borane.uuid, mono.uuid})
+    assert set(limited.constitution_keys) == {borane.uuid, mono.uuid}
+    assert set(services.recipe_service.project_view().constitution_keys) == {borane.uuid, mono.uuid, other.uuid}
+
+
+def test_editing_either_molecule_makes_the_entry_stale_under_both(services, pair):
+    _, borane, mono = pair
+    _recorded(services, borane, mono)
+    services.chemistry_engine.set_structure_from_smiles(mono, "C=O")
+    for model in (borane, mono):
+        [answer] = services.recipe_service.answers_for(model.uuid, _version(services, model))
+        assert answer.structure_version == -1
+        assert "The structure of CO was edited after this answer was made." in answer.stale_note
+
+
+def test_deleting_a_consumed_run_makes_the_entry_stale_and_the_numbers_stay(services, pair):
+    _, borane, mono = pair
+    _recorded(services, borane, mono)
+    assert services.result_store_service.delete_quantum_chemistry_run("co-dscf")
+    [answer] = services.recipe_service.answers_for(borane.uuid, _version(services, borane))
+    assert answer.structure_version == -1 and "co-dscf" in answer.stale_note
+    assert any("HSAB" in fact.label or "HSAB" in fact.display_value for fact in answer.facts)
+
+
+def test_a_removed_molecule_leaves_the_other_one_showing_the_answer_as_stale(services, pair):
+    project, borane, mono = pair
+    _recorded(services, borane, mono)
+    project.molecules.remove(mono)
+    [answer] = services.recipe_service.answers_for(borane.uuid, _version(services, borane))
+    assert "no longer in the project" in answer.stale_note and "BH3 + a molecule" in answer.name
+
+
+def test_undoing_the_edit_makes_the_entry_current_again_because_staleness_is_read(services, pair):
+    _, borane, mono = pair
+    _recorded(services, borane, mono)
+    original = mono.molblock
+    services.chemistry_engine.set_structure_from_smiles(mono, "C=O")
+    assert services.recipe_service.answers_for(borane.uuid, 5)[0].structure_version == -1
+    mono.molblock = original
+    assert services.recipe_service.answers_for(borane.uuid, 5)[0].structure_version == 5
+
+
+def test_the_entry_is_never_in_the_session_result_store(services, pair):
+    """The design's decision: a recipe answer is NOT also a result, so there is no second copy to disagree."""
+    _, borane, mono = pair
+    store = services.result_store_service.store
+    before = {uuid: len(store.all_results(uuid)) for uuid in (borane.uuid, mono.uuid)}
+    _recorded(services, borane, mono)
+    services.recipe_service.answers_for(borane.uuid, 1)
+    assert {uuid: len(store.all_results(uuid)) for uuid in (borane.uuid, mono.uuid)} == before
+    assert store.molecule_uuids() == [] and store.to_dict()["molecules"] == {}

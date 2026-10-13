@@ -5,7 +5,7 @@ from dataclasses import replace
 import logging
 import os
 import weakref
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from contextlib import contextmanager
 from typing import NamedTuple
 
@@ -104,7 +104,9 @@ from openchem.events.events import (
     MoleculeSelected,
     PerAtomDataComputed,
     PhCurveComputed,
+    QuantumChemistryRunDeleted,
     RecalculationDue,
+    RecipeRunRecorded,
     ResultRecorded,
     SettingsChanged,
     SpectrumComputed,
@@ -1848,6 +1850,9 @@ class PropertyPanel(QWidget):
         #: Depth of `batched_reader_refresh`, and whether a refresh was asked for inside it.
         self._reader_batch_depth = 0
         self._reader_batch_owed = False
+        #: `RecipeService.answers_for`, or None (a panel with no recipes behind it). A CALLABLE, for the reason
+        #: `structure_version_of` is: this needs the kept answers of one molecule and nothing else of the service.
+        self._recipe_answers: Callable[[str, int], Sequence] | None = None
         #: The structure version each held descriptor was computed for (its dispatch
         #: version, or arrival time where the producer did not say). The reader's
         #: "Molecular Properties" entry is only as current as the OLDEST of these: a set
@@ -2130,6 +2135,28 @@ class PropertyPanel(QWidget):
         event_bus.subscribe(CalculationFinished, self._on_calculation_finished)
         event_bus.subscribe(ResultRecorded, self._on_result_recorded)
         event_bus.subscribe(SettingsChanged, self._on_settings_changed)
+        event_bus.subscribe(RecipeRunRecorded, self._on_recipe_run_recorded)
+        event_bus.subscribe(QuantumChemistryRunDeleted, self._on_quantum_chemistry_run_deleted)
+
+    def attach_recipe_answers(self, answers_for: Callable[[str, int], Sequence] | None) -> None:
+        """Let the Results reader show the recipe answers kept in the project.
+
+        `answers_for(molecule_uuid, structure_version)` returns reader entries (`domain.recipe_answer`), built from the
+        kept runs each time it is asked: they are a projection, never stored here or in the result store.
+        """
+        self._recipe_answers = answers_for
+        self._refresh_reader()
+
+    def _on_recipe_run_recorded(self, event: RecipeRunRecorded) -> None:
+        """A recipe answer was kept: it joins the reader of every molecule that took part, if that is the one shown."""
+        if self._selected_molecule_uuid in event.molecule_uuids:
+            self._refresh_reader()
+
+    def _on_quantum_chemistry_run_deleted(self, _event: QuantumChemistryRunDeleted) -> None:
+        """A run was deleted: a kept answer that consumed it is stale now, and may belong to the other molecule of its
+        pair, so the reader looks again whichever molecule the run was of."""
+        if self._recipe_answers is not None:
+            self._refresh_reader()
 
     def set_project(self, project: ProjectModel | None) -> None:
         self._project = project
@@ -2912,6 +2939,11 @@ class PropertyPanel(QWidget):
         if not event.during_edit:
             self._update_preflight()
             self._refresh_status_chips()
+            if self._recipe_answers is not None:
+                # A kept recipe answer is stale the moment ITS molecule is edited, and nothing that follows is
+                # certain to say so: the recomputation that does is not guaranteed to produce a result event.
+                # Coalesced, so a burst of edits is one rebuild.
+                self._refresh_reader_soon()
         if event.during_edit:
             # A CANVAS EDIT IN PROGRESS: what is held describes a structure that is
             # already gone, so say so now (the version was bumped before this ran) and
@@ -3511,7 +3543,20 @@ class PropertyPanel(QWidget):
                     structure_version=min(self._descriptor_versions.values(), default=version),
                 )
             )
+        # **THE RECIPE ANSWERS KEPT IN THE PROJECT**, also a projection: they are not in `_reports` and never enter the
+        # result store (`domain/recipe_answer.py` says why), so they are added here and re-read on every refresh, which
+        # is also what keeps their staleness current.
+        entries.extend(self._kept_recipe_answers(version))
         return entries, version
+
+    def _kept_recipe_answers(self, version: int) -> list:
+        if self._recipe_answers is None or not self._selected_molecule_uuid:
+            return []
+        try:
+            return list(self._recipe_answers(self._selected_molecule_uuid, version))
+        except Exception:  # noqa: BLE001 - a kept answer that cannot be read must not take the other results with it
+            logger.exception("Could not read the recipe answers kept for %s", self._selected_molecule_uuid)
+            return []
 
     def _resolve_structure_for_report(self, report):
         """Coordinates for a report's depiction, or why it must not be drawn.

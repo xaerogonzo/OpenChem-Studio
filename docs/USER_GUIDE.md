@@ -1903,9 +1903,15 @@ same job use the newest and name the others.
 "Partial", and a gap is a row and a fact rather than a blank. When no line can be evaluated at all you get the list
 of jobs and no report.
 
-**Keep** files the answer with the project. It is saved with it, and it reads as stale when a molecule in it is
-edited or a run it used is deleted; the numbers it was computed from stay readable either way. Looking at a pairing
-does not keep it.
+**Keep** files the answer with the project. It is saved with it, and looking at a pairing does not keep it.
+
+**A kept answer is in Results**, listed under each of the two molecules (select either and it is there, named for
+both and the level it was made at). It is a record of what was found, not a result that can be run again, so it is
+not in the calculator list; evaluate the pairing again from this window to bring it up to date. It reads as
+**stale** when a molecule in it is edited, when a molecule in it is removed from the project, or when a quantum-chemistry
+run it used is deleted, and the line above its facts says which one, naming the molecule or the run. The numbers it
+was computed from stay readable either way, as recorded. Adding a new geometry to a molecule is not an edit and does
+not make it stale. An answer you kept while it was partial says so in Results too.
 
 <!-- help:ir-spectra -->
 ### IR spectra and normal modes

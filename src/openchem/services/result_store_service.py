@@ -58,6 +58,8 @@ from openchem.events.events import (
     PerAtomDataComputed,
     PhCurveComputed,
     QuantumChemistryRunCompleted,
+    QuantumChemistryRunDeleted,
+    RecipeRunRecorded,
     ReportComputed,
     ResultRecorded,
     SettingsChanged,
@@ -208,6 +210,7 @@ class ResultStoreService:
         for molecule_uuid in run.molecule_uuids():
             for callback in list(self._on_recorded):
                 callback(molecule_uuid)
+        self._event_bus.publish(RecipeRunRecorded(run_id=run.run_id, molecule_uuids=run.molecule_uuids()))
         return True
 
     def record_quantum_chemistry_run(self, run: QuantumChemistryRun) -> None:
@@ -219,6 +222,22 @@ class ResultStoreService:
         if self._project is None or self._project.find_molecule(run.molecule_uuid) is None:
             return
         self.qc_runs.record(run)
+
+    def delete_quantum_chemistry_run(self, run_id: str) -> bool:
+        """Remove a run from the project's history. True when there was one to remove.
+
+        **THE ONE WAY A RUN GOES**, because two things follow from it that a bare `qc_runs.delete` did neither of: the
+        session learns it has something unsaved (the file holds the run, and no longer should), and the readers of
+        what a run supported are told (`QuantumChemistryRunDeleted`): a kept recipe answer that consumed it is stale
+        from this moment, and a pairing window showing its numbers is out of date.
+        """
+        run = self.qc_runs.get(run_id)
+        if run is None or not self.qc_runs.delete(run_id):
+            return False
+        for callback in list(self._on_recorded):
+            callback(run.molecule_uuid)
+        self._event_bus.publish(QuantumChemistryRunDeleted(run_id=run_id, molecule_uuid=run.molecule_uuid))
+        return True
 
     def _on_quantum_chemistry_run_completed(self, event: QuantumChemistryRunCompleted) -> None:
         self.record_quantum_chemistry_run(event.run)
