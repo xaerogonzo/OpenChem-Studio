@@ -915,6 +915,8 @@
   "tests/test_recalc_policy.py": 0,
   "tests/test_receptor_library.py": 1,
   "tests/test_receptor_library_dialog.py": 0,
+  "tests/test_recipe_model.py": 1,
+  "tests/test_recipe_run.py": 0,
   "tests/test_recorded_parameters.py": 1,
   "tests/test_recovery_service.py": 1,
   "tests/test_redraw_in_2d.py": 0,

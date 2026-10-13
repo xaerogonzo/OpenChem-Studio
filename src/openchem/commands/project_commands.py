@@ -5,6 +5,7 @@ from pathlib import Path
 from openchem.commands.base import OpenChemCommand
 from openchem.domain.project import ProjectModel
 from openchem.domain.quantum_chemistry_run import QuantumChemistryRunStore
+from openchem.domain.recipe_run import RecipeRunStore
 from openchem.domain.result_store import SessionResultStore
 from openchem.services.project_service import ProjectService
 
@@ -13,7 +14,7 @@ class SaveProjectCommand(OpenChemCommand):
     """Saving to disk isn't meaningfully reversible; still expressed as a
     command so it appears wherever OpenChemCommands are logged or scripted.
 
-    `results`, `current_fingerprints` and `qc_runs` are optional so a caller
+    `results`, `current_fingerprints`, `qc_runs` and `recipe_runs` are optional so a caller
     with no result store saves exactly the file it always did.
     """
 
@@ -25,6 +26,7 @@ class SaveProjectCommand(OpenChemCommand):
         results: SessionResultStore | None = None,
         current_fingerprints: dict[str, dict[str, str]] | None = None,
         qc_runs: QuantumChemistryRunStore | None = None,
+        recipe_runs: RecipeRunStore | None = None,
     ) -> None:
         super().__init__(f"Save project '{project.name}'")
         self._project_service = project_service
@@ -33,10 +35,12 @@ class SaveProjectCommand(OpenChemCommand):
         self._results = results
         self._current_fingerprints = current_fingerprints
         self._qc_runs = qc_runs
+        self._recipe_runs = recipe_runs
 
     def redo(self) -> None:
         self._project_service.save(
-            self._project, self._path, self._results, self._current_fingerprints, self._qc_runs
+            self._project, self._path, self._results, self._current_fingerprints, self._qc_runs,
+            self._recipe_runs,
         )
 
     def undo(self) -> None:
@@ -46,8 +50,8 @@ class SaveProjectCommand(OpenChemCommand):
 class OpenProjectCommand(OpenChemCommand):
     """The loaded project is available on `.loaded_project` after push(),
     since QUndoStack.push() calls redo() synchronously -- its saved results
-    on `.loaded_results`, and its saved QC run history on `.loaded_qc_runs`,
-    all from the same read of the file.
+    on `.loaded_results`, its saved QC run history on `.loaded_qc_runs` and its recipe runs on
+    `.loaded_recipe_runs`, all from the same read of the file.
     """
 
     def __init__(self, project_service: ProjectService, path: Path) -> None:
@@ -57,11 +61,14 @@ class OpenProjectCommand(OpenChemCommand):
         self.loaded_project: ProjectModel | None = None
         self.loaded_results: SessionResultStore | None = None
         self.loaded_qc_runs: QuantumChemistryRunStore | None = None
+        self.loaded_recipe_runs: RecipeRunStore | None = None
 
     def redo(self) -> None:
-        self.loaded_project, self.loaded_results, self.loaded_qc_runs = (
-            self._project_service.load_document(self._path)
-        )
+        document = self._project_service.load_document(self._path)
+        self.loaded_project = document.project
+        self.loaded_results = document.results
+        self.loaded_qc_runs = document.qc_runs
+        self.loaded_recipe_runs = document.recipe_runs
 
     def undo(self) -> None:
         if self.loaded_project is not None:

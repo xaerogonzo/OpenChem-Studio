@@ -9,7 +9,8 @@ document, change it here first.
 
 Every statement about how the application works today was read in the source on the date above and names the
 function or file. Statements about what to build are decisions, and the ones most worth challenging are collected in
-section 13. Three findings that are not decisions, but that the design had to be built around, are in section 14.
+section 13. Three findings that are not decisions, but that the design had to be built around, are in section 14;
+A and B have since been fixed (#312, #313) and the section says what changed.
 
 ## 1. What exists, and what that forces
 
@@ -20,11 +21,11 @@ section 13. Three findings that are not decisions, but that the design had to be
 | `predict` already takes `acid_lumo_ev`, `base_homo_ev`, `acid_hardness`, `base_hardness`, each optional and independent, and treats `None` as "not available". `resolve_roles` is public and has, deliberately, no rule that uses hardness. | `chem/lewis_adduct.py` (`predict`, `resolve_roles`) | No equation is written. Orientation comes from `resolve_roles`, and the recipe only supplies numbers. |
 | The documented pair, B3LYP/def2-SVP: BH3 LUMO -2.04 eV, eta 6.77; BF3 LUMO +0.73, eta 9.29; CO HOMO -10.17, eta 8.40. Frontier gap 8.13 (BH3) and 10.90 eV (BF3); \|d eta\| 1.63 and 0.89 eV. The two lines **disagree on purpose** and a test pins it. | `tests/test_lewis_adduct.py` (`test_the_two_orbital_lines_disagree_on_carbon_monoxide`), `_hsab_line`'s docstring | The regression pair (section 10), and the reason the lines are never combined. |
 | The two Koopmans-or-delta-SCF families have **different descriptor ids**. `orca.homo_energy`, `orca.lumo_energy`, `orca.hardness` and the rest come from every calc type except `delta_scf` and `led`; `orca.dscf_hardness` and the rest come from `delta_scf` only. A compound job prints three orbital tables and the frontier parsers take the last, so Koopmans values are deliberately not emitted for it. | `chem/orca_engine.py` (`_CONCEPTUAL_DFT_FIELDS`, `_DELTA_SCF_FIELDS`, the branch in `parse_output`) | A binding names a descriptor id and a method. It never binds "hardness", because Koopmans hardness inverts ammonia and phosphine (`chem/conceptual_dft.py`). |
-| A finished ORCA job is recorded in **two places that say different amounts**. The `QuantumChemistryRun` in `QuantumChemistryRunStore` (held by `ResultStoreService.qc_runs`) has the molecule uuid, calc type, **method and basis**, charge, multiplicity, `calculation_input`, `input_fingerprint`, `input_molblock`, solvent, status, `output_conformer_id` and the descriptors, and is kept unconditionally. Separately, `_record_descriptors` also files each descriptor in `SessionResultStore` as a "current/latest value", so Results can show it after a reselect; that copy is keyed by descriptor id, input kind and input fingerprint with **no method or basis in the key**, and its provenance is `method='orca'` and the ORCA version, **nothing about the level of theory** (measured, section 14, finding B). Nothing classifies a run as fresh or stale. | `domain/quantum_chemistry_run.py`, `services/quantum_chemistry_service.py` (`_record_descriptors`), `services/result_store_service.py` | Only the run can say what level of theory a number is at. The recipe reads runs, never the cached descriptors, and computes freshness for them itself (section 5). |
+| A finished ORCA job is recorded in **two places that say different amounts**. The `QuantumChemistryRun` in `QuantumChemistryRunStore` (held by `ResultStoreService.qc_runs`) has the molecule uuid, calc type, **method and basis**, charge, multiplicity, `calculation_input`, `input_fingerprint`, `input_molblock`, solvent, status, `output_conformer_id` and the descriptors, and is kept unconditionally. Separately, `_record_descriptors` also files each descriptor in `SessionResultStore` as a "current/latest value", so Results can show it after a reselect; that copy is keyed by descriptor id, input kind and input fingerprint with **no method or basis in the key**, so it holds **one current value per calculator** and a later run at another level replaces the earlier one. Since #313 its provenance does say what it came from (`run_calc_type`, `run_method_basis`, `run_charge`, `run_multiplicity`, `run_provider` and `run_id`, the `RUN_*` names in `domain/common.py`), which closed finding B (section 14); the key was left alone. Nothing classifies a run as fresh or stale. | `domain/quantum_chemistry_run.py`, `services/quantum_chemistry_service.py` (`_record_descriptors`), `services/result_store_service.py` | Only the run store keeps every level of theory a molecule was computed at; the cached copy keeps the latest. The recipe reads runs, never the cached descriptors, and computes freshness for them itself (section 5). |
 | `QuantumChemistryRun` is a plain mutable dataclass, not a frozen one. | `domain/quantum_chemistry_run.py` | Phase 1's "holding references to frozen results is a value snapshot" does not hold for runs. Evidence is **copied** into an immutable record when it is read. |
 | `QuantumChemistryRun.input_conformer_id` is declared and **never set**: `_new_run` fills the other fields and no code writes this one. What identifies a run's geometry is `input_fingerprint`, which for the `GEOMETRY` input is SHA-256 over the kind, the conformer id and the molblock, and `input_molblock`, the exact text submitted. | `services/quantum_chemistry_service.py` (`_new_run`), `chem/calculation_input.py` (`resolve_calculation_input`) | "Same geometry" is `input_fingerprint` equality. The recipe does not read `input_conformer_id`. |
-| The Quantum Chemistry panel submits `resolve_calculation_input(GEOMETRY)`, the canonical conformer, whatever the person has since optimized. | `ui/panels/quantum_chemistry_panel.py` (the run handler) | See section 14, finding A: this has a measured consequence. |
-| Phase 1's turn snapshot, tools and envelope read `SessionResultStore` only. `calculation_host.py` names the quantum service only to say whether ORCA is configured. So the assistant can read the *latest* ORCA descriptors (the cached copy above) and **cannot see an ORCA run**, which means it is told a HOMO energy without being told the method. | `domain/turn_snapshot.py`, `domain/result_envelope.py`, `app/calculation_host.py` | A recipe reading runs is a new read path. The assistant seeing recipe results is a later slice (section 9), not an assumption. |
+| The Quantum Chemistry panel submits `resolve_calculation_input(GEOMETRY)`, the canonical conformer. Since #312 `canonical_conformer` prefers the newest quantum-optimized conformer (`QUANTUM_OPTIMIZED_METHODS`, today `orca_opt`), so a job after an ORCA optimization runs on the optimized geometry, and the result event carries the submitted fingerprint so the window can give the optimized conformer the source's way back to the drawing's atoms. | `ui/panels/quantum_chemistry_panel.py` (the run handler), `chem/calculation_input.py` (`canonical_conformer`, `with_source_atom_map`) | Finding A (section 14) is closed. A run's `input_fingerprint` still says which conformer it ran on; the recipe still reads that and never assumes it. |
+| Phase 1's turn snapshot, tools and envelope read `SessionResultStore` only. `calculation_host.py` names the quantum service only to say whether ORCA is configured. So the assistant can read the *latest* ORCA descriptors (the cached copy above), now with their calculation type, method and basis, charge and multiplicity (#313), and **cannot see an ORCA run**, so it cannot see a number that a later run at another level has replaced. | `domain/turn_snapshot.py`, `domain/result_envelope.py`, `app/calculation_host.py` | A recipe reading runs is a new read path. The assistant seeing recipe results is a later slice (section 9), not an assumption. |
 | Dispatching a service-run (ORCA) calculator is deliberately **not built**: Phase 1 ships a preview adapter only. The existing entry is `QuantumChemistryService.request_calculation(mol, molecule_uuid, calc_type, charge, multiplicity, method_basis, provider_id, input_fingerprint, calculation_input)`; one job per molecule uuid (`JobManager.try_start`); completion is a `QuantumChemistryRunCompleted` event. | `AI_CALCULATION_BRIDGE.md` section 4, `services/quantum_chemistry_service.py` | Two stages (section 8): a recipe that evaluates over stored runs and says what is missing, then, separately, one that can start the missing jobs. |
 | A QC run was given its own store because the revision cache drops a result whose fingerprint no longer matches the molecule when a project is saved, and its key has no room for parameters. | `domain/quantum_chemistry_run.py` module docstring | The same argument applies to a recipe run, and the same remedy (section 6). |
 | The result codec constructs only allow-listed dataclasses from six named modules, versions every type, and refuses a layout newer than the build. The QC block has an envelope version of its own, and a newer block is ignored with a warning. | `domain/result_codec.py`, `domain/quantum_chemistry_run.py`, `services/project_service.py` (`QC_RUNS_KEY`) | A new record either joins the allow-list or carries an envelope of its own. Section 6. |
@@ -48,8 +49,9 @@ different feature with a different safety argument: `DERIVED_SCORES_DESIGN.md`.)
   2. **Service step**: one ORCA job (calc type, method and basis, charge, multiplicity). Always `CONFIRM`:
      `ExecutionPolicy` refuses `AUTO` for any program in `HEAVY_TOOLS`, and this record does not weaken that.
   3. **Evaluate step**: a pure function over bound values. In process, instant, no external program.
-* **Binding**: `(target, source, transform)`. The source is a named output of an **earlier** step or a slot, so a
-  cycle cannot be written. The transform is from a **closed table** that starts with one member, `identity`. A unit
+* **Binding**: `(target, source, transform)`. The source is a slot, a **recipe parameter** (a choice made once for the
+  whole recipe, such as the one method every step shares), or a named output of an **earlier** step, so a cycle
+  cannot be written. The transform is from a **closed table** that starts with one member, `identity`. A unit
   conversion is added as its own reviewed entry with the constant it uses and a test, never as a function a recipe
   author supplies.
 * **Output type**: closed: a scalar with a unit, a code from a declared set, a reference to a stored run, a report.
@@ -58,7 +60,10 @@ different feature with a different safety argument: `DERIVED_SCORES_DESIGN.md`.)
 **Validated before it can run**, at import time for a shipped recipe and again for each instance: every reference
 resolves backwards; the target accepts the type; units are equal; each registry step's parameters pass
 `validate_parameters`; each step has a stated execution policy; the recipe version is unique. A recipe that fails
-validation is a failing test, not a recipe that runs and refuses.
+validation is a failing test, not a recipe that runs and refuses. (Built in slice 1: a registry step states no
+policy of its own and takes its calculator's, so a calculator nobody classified is an *unclassified step*; a service
+step must name a heavy program and be approved by a person; an evaluate step must be pure, instant and in process;
+a step on a molecule binds exactly one; and no step produces a molecule, which is a slot's type alone.)
 
 **Not here:** no `eval`, no expression language (that is the other record), no dynamic import, no plugin-registered
 recipes, no loops or branches in a plan. A branch is two recipes.
@@ -82,6 +87,12 @@ Every binding ends in exactly one of eight states, and the state is recorded wit
 `predict` already means by "not available"; it is never `0.0`. **A present-but-wrong binding is never reported as
 an absent one:** "no hardness run exists" and "a hardness run exists but at a different method" are different
 sentences, and the second one tells the person what to do.
+
+**What optional relaxes (settled while building slice 1).** The table above says "unless optional" on `MISSING` only.
+An optional binding relaxes **every** state but `BOUND`, because the value handed to the step is `None` in each (a
+stale or incompatible number is never handed over in its place) and the state is still recorded, which is what
+`PairEvidence` means by "a value or `None` with the state that explains the `None`". A required binding blocks in
+every state but `BOUND`.
 
 **Optional bindings** exist for one reason: the Lewis lines are independent evidence, and `predict`'s contract is
 that nothing fails because one line is unavailable. A binding is optional only where the step's own contract says
@@ -198,6 +209,13 @@ completed run is *projected* into the places a person looks (the Results list, t
   calc type, method and basis, charge, multiplicity, solvent, `input_fingerprint`, and which binding state it was
   in. The numbers are kept so the answer can still be read when the run they came from has since been deleted.
 * the **result**: the report, encoded with `result_codec`.
+* **As built (slice 1).** Also kept: the recipe parameters chosen; for each binding its state, its reason in words,
+  the candidate run ids when it was `AMBIGUOUS`, and the copied evidence; and the run is immutable, so a rerun cannot
+  alter it. **A run built `COMPLETED` while any step is unfinished or any binding is not `BOUND` is refused**, when it
+  is built and when it is read from a file, and `classify` is the one place the status is decided. The store
+  reports what it could not read through `load_problems` as well as the log, so a dropped run is never silent, and
+  `ResultStoreService.record_recipe_run` tells the session it has something unsaved, because a recipe run is never
+  also a result in the store and nothing else would.
 * an **envelope version** of its own, in a block of its own in the project file. A newer block is ignored with a
   warning; a damaged run is skipped without breaking the others; neither is silent. Two things can be unknown to a
   later build: the envelope, and the recipe version. A run whose recipe version this build does not have is
@@ -216,9 +234,13 @@ project today cannot. What is stored is the manifest.
 ## 7. Staleness, and what a rerun is
 
 A recipe run is **stale** when the recorded answer no longer describes the project. Each cause is named:
-`structure_edited` (a slot's constitution changed), `evidence_removed` (a consumed run is no longer in the
+`structure_edited` (a slot's constitution changed), `molecule_removed` (a slot's molecule is no longer in the
+project; added in slice 1, the design had no word for it), `evidence_removed` (a consumed run is no longer in the
 project; the recorded numbers stay on screen as recorded), `recipe_version_unknown`. A newer compatible run is
 **not** staleness (section 3). It is an offer.
+
+A slot with no constitution key to compare, because the run recorded none or the host could not compute one now, is
+listed as **unverifiable** and is neither stale nor "unchanged".
 
 **A rerun is a new `RecipeRun` with a new plan.** It never mutates the old one. The plan lists what is missing and
 what would supply it, step by step with its execution policy. In this phase a plan whose missing steps are ORCA
@@ -241,15 +263,16 @@ method and basis, charge and multiplicity), dispatched once each on the GUI thre
 binds the exact list; a job outside it needs a new approval. This is also what lets the assistant's
 `run_calculator` start an ORCA job after consent, which Phase 1 deferred. **It is its own design review and its
 own PR**, and nothing in this record relies on it. Its known constraints from the source: one job per molecule
-uuid at a time, an existing cancel path, and the geometry rule in finding A below.
+uuid at a time, an existing cancel path, and the geometry rule (an ORCA-optimized conformer is the next job's
+input, finding A in section 14).
 
 ## 9. The assistant (not built here)
 
 `list_goals` stays knowledge. A recipe tool would be `describe` (read the definition and its gaps), `read` (a
 `RecipeRun` through the envelope), and `prepare` returning a plan whose service steps are previews; running
 anything heavy stays a person's action. Three things are needed first: the turn snapshot extended to hold copies
-of the runs of the molecules in scope, or the level of theory stamped on the cached descriptors (section 14,
-finding B), an envelope branch for a recipe report, and Stage B.
+of the runs of the molecules in scope (the level of theory is already stamped on the cached descriptors, section 14
+finding B, but only the latest value per calculator is held), an envelope branch for a recipe report, and Stage B.
 None is a reason to shape the recipe model differently, and none is claimed.
 
 ## 10. The gate: BH3 and BF3 with carbon monoxide, on real ORCA
@@ -262,8 +285,9 @@ Fixed in the commit that adds the gate script, **before the pair is run**, and n
   comments in `tests/test_lewis_adduct.py`; the run records the version it used and a different one is a
   recorded difference, not a pass).
 * **Set-up.** For each of BH3 (`B`), BF3 (`FB(F)F`), CO (`[C-]#[O+]`): one ORCA geometry optimization, the
-  optimized conformer made the molecule's **only** conformer (finding A is why this step is needed), then an `sp`
-  and a `delta_scf` run at that geometry, through the application's own path. `role = acid` for the borane
+  optimized conformer being the canonical one since #312, then an `sp` and a `delta_scf` run at that geometry,
+  through the application's own path. The script asserts it with `conformer_report` (`canonical_method: orca_opt`)
+  before each run, and each run's `input_fingerprint` must equal the optimization's output conformer's. `role = acid` for the borane
   (the documented orientation).
 * **Quantities.** Per pair, the frontier gap and \|d eta\| (4 numbers), and the six per-molecule inputs behind them.
 * **The noise floor first.** The same `sp` and `delta_scf` input is run twice for CO and the difference is
@@ -309,8 +333,9 @@ with the UI slice. It will need a drive step for the pairing, which the harness 
 
 ## 12. Slices
 
-1. **The recipe model, the run record and the staleness rules**: pure, with the validator, the closed transform
-   table, `RecipeRun`, its store, its codec envelope and the project key. No UI, no ORCA, no chemistry.
+1. **The recipe model, the run record and the staleness rules** (built): pure, with the validator, the closed
+   transform table, `RecipeRun`, its store, its envelope and the project key (`recipe_runs`). No UI, no ORCA, no
+   chemistry. `domain/recipe.py`, `domain/recipe_run.py`, `ResultStoreService.record_recipe_run`.
 2. **Lewis evidence**: `PairEvidence`, the shared body of `compute_lewis_adduct`, the binder over
    `QuantumChemistryRunStore` (it needs the host for the constitution comparison), the shipped recipe.
 3. **Host and UI**: a pairing entry, the gap list with the service preview, the result in Results, the help
@@ -351,13 +376,21 @@ the optimized conformer is the canonical one: False
 optimized conformer alone: canonical -> method='orca_opt' energy=None
 ```
 
-So on a molecule that also has conformers with a recorded energy (Generate Conformers records one unless told not
-to optimize), an `opt` followed by a `delta_scf` in the panel runs the second job on the **force-field** conformer, not on
-the geometry just optimized. The documented BH3/CO numbers
-were computed at an ORCA geometry. This record does not change `canonical_conformer`, whose blast radius is
-every calculator's input fingerprint. It builds the gate so the optimized conformer is the molecule's only one,
-and it makes the recipe **say** which geometry each run used. Whether an ORCA-optimized conformer should become
-the preferred input is a product question for its own review.
+So on a molecule that also had conformers with a recorded energy (Generate Conformers records one unless told not
+to optimize), an `opt` followed by a `delta_scf` in the panel ran the second job on the **force-field** conformer, not on
+the geometry just optimized, while the documented BH3/CO numbers were computed at an ORCA geometry.
+
+**Resolved by #312 (2026-10-12), at the owner's decision.** `canonical_conformer` now returns the newest conformer
+whose method is in `QUANTUM_OPTIMIZED_METHODS` (today `orca_opt`), and falls back to the old lowest-MMFF-energy rule
+when there is none. Newest, not lowest, because an ORCA energy and an MMFF energy are not on one scale. Adding the
+conformer already recomputed the 3D calculators and undo removes it, so the previous choice comes back with it. The
+optimized conformer is built without the way back to the drawing's atoms, which would have cost every per-atom 3D
+result its atom map once it became the input; the result event now carries the fingerprint the job was submitted
+with and the window copies the map from that conformer (and leaves it "not recorded" when the source is gone,
+unmapped or has a different atom count). Verified on real ORCA in the real window by
+`benchmarks/visual/qm_optimized_geometry_is_used.json` (the single point after an optimization was submitted with the
+optimized conformer's fingerprint). The recipe still reads each run's `input_fingerprint` and says which geometry it
+used; it does not assume the rule.
 
 **B. The assistant is told an ORCA number without its level of theory.** `_record_descriptors` files the descriptors in the
 result store, so Phase 1's `read_results` can return them, and `parse_output` gives them `Provenance(method='orca',
@@ -374,9 +407,14 @@ envelope mentions of method/basis/charge/multiplicity/calc type: []
 ```
 
 The envelope's promise that every number carries its method and settings holds for registry calculators and **not** for these.
-B3LYP/def2-SVP and HF/STO-3G are indistinguishable in it, and the cache key has no method in it either. The run has all of it. The
-fix is small (the service knows `job.method_basis`, calc type, charge, multiplicity and run id when it files the descriptors) and is
-**not made here**; it is a Phase 1 follow-up, and this record does not depend on it, because a recipe reads runs.
+B3LYP/def2-SVP and HF/STO-3G were indistinguishable in it, and the cache key has no method in it either. The run has all of it.
+
+**Resolved by #313 (2026-10-12).** The service stamps `run_calc_type`, `run_method_basis`, `run_charge`,
+`run_multiplicity`, `run_provider` and `run_id` (the `RUN_*` names in `domain/common.py`) into the provenance before the
+result event and before `_record_descriptors`, and the Phase 1 envelope's `parameters` shows the first four (bounded
+to 32 entries). The identity and the cache key are unchanged, so the store **still keeps one current value per
+calculator**: a later run at another level replaces the earlier one, and the assistant sees only the latest. The recipe
+does not depend on either fix, because it reads runs.
 
 **C. The Lewis calculator has never shown a frontier or HSAB line in the application.** Section 1, the row on `compute_lewis_adduct`. Nothing
 is broken: the lines are labelled "not available" and say what to run. It is the reason this is a wiring task and
