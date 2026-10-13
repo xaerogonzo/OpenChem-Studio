@@ -4316,6 +4316,9 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # D-237: a sulfamide off a carboxylate lost its linking NH and a nitrogen's substituents.
     ("D-237", "[O-]C(=O)c1ccccc1NS(=O)(=O)N(C)C", "2-[(dimethylaminosulfonyl)amino]benzoate", "2-(N,N-dimethylsulfamoyl)benzoate",
      "WRONG MOLECULE: the NH between the ring and the sulfonyl was gone, and the methyls were cited on a sulfamoyl"),
+    # D-239 (naming round 47): a protonated ring cation with a ring ketone left the sp3 fusion carbon and the ketone carbon out of its hydro prefixes.
+    ("D-239", "O=C1CCC=C2[NH2+]C=CCC12", "5-oxo-1,4,4a,5,6,7-hexahydroquinolin-1-ium", "5-oxo-1,4,6,7-tetrahydroquinolin-1-ium",
+     "UNREADABLE: OPSIN rejects the name (the Hantzsch hexahydroquinolinones); another 4a-H cation read back as a different molecule"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",

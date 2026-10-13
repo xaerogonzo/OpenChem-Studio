@@ -2463,3 +2463,22 @@ carboxylic acid, phenol, thiol, tetrazole, imide, acylsulfonamide, sulfonic acid
   and fresh_v1 2 of 2000, both re-scored once: heldout_v6 unchanged; bluebook_frozen re-scored once (r46-final-evaluation): wrong_structure 21 -> 17 and no_prediction 13 -> 17, four silent wrong molecules are refusals now, every other count identical; fresh_v1 moved 2 rows and was re-scored once (r46-fresh-v1): every outcome count identical. The stage list for `--frozen-impact` becomes `r46-fresh-v1,r46-final-evaluation,r38-final-evaluation`.
 * New `tests/test_namer_round46_anions_beside_neutral_groups.py` (85 tests; each name read back through OPSIN with its charge, `-sulfonamidate` compared on neutral connectivity because OPSIN reads it neutral; 8 of 8 mutants killed).
   D-236 and D-237 in the fixed table of `tests/test_namer_known_defects.py`.
+
+## 2026-10-13 -- naming round 47: the hydro prefixes of a protonated ring cation (D-239)
+
+Round 46 looked for what the census could not show by deprotonating one site of every molecule. Round 47 did the same with the cations: it protonated ONE basic site of every census molecule (aromatic and
+azole N, primary, secondary, tertiary amines, anilines, imines, amidines: 1036 cations) and read each name back through OPSIN with its charge. 5 were flagged, 11 were refused by round 46's charge guard
+(protonated amidoximes, imidates, thioamides and exocyclic iminium cations: visible, not wrong), and the rest read back.
+
+* **D-239.** `O=C1CCC=C2[NH2+]C=CCC12` was `5-oxo-1,4,6,7-tetrahydroquinolin-1-ium`. The NEUTRAL route was right (`5-oxo-1,4,4a,5,6,7-hexahydroquinoline-4-carboxylic acid`): `indicated_hydrogen_p58` plans the
+  hydrogens, counting an exocyclic C=O as the saturated ring carbon it is once the ketone is a prefix, but it declined a charged ring atom, and a ring cation fell to the retained route's own count, which
+  leaves out the sp3 fusion carbon 4a and the ketone carbon. A ring cation is named for its NEUTRAL skeleton plus `-ium` (P-73.1.1), so `_resolve` now plans on the deprotonated twin of a protonated ring N+
+  (`_deprotonated_twin`: same atoms, the proton given back; a quaternary N+ has none to give back and is left to the old route; a fully saturated parent keeps its saturated retained name, `7-oxoindolizidin-4-ium`).
+  The `5-oxo-4a,5-dihydroquinolin-1-ium` case read back as a DIFFERENT molecule before (`5-oxoquinolin-1-ium`), the others were unparsable.
+* **Two earlier pins moved to the rigorous form**, both OPSIN-verified: round 45's `4-oxopyridin-1-ium` for `O=C1C=C[NH+]=CC1` is `4-oxo-3,4-dihydropyridin-1-ium`, and `5-oxo-2,3-dihydropyridin-1-ium` for
+  `O=C1CCC[NH+]=C1` is `5-oxo-2,3,4,5-tetrahydropyridin-1-ium` (the oxo carbon and its neighbour are cited, as the neutral route cites them). The old spellings were OPSIN-lenient, not wrong molecules.
+* **Measured.** Cation population 1036: 5 flagged -> 2 (both OPSIN limits: the bis([1,3]dioxolo)pyran and a bicyclo-heptyl phosphonate prefix); 11 refused, unchanged. Census 1993 exact, unchanged (two rows changed
+  spelling, both still exact). App naming tests 3847 passed; `tests/vendor` and the known-defects file: 7399 passed (the full vendored suite and the known-defects file). **Frozen sets** (blind `--frozen-impact`): all three unchanged, none re-scored; the stage
+  list stays `r46-fresh-v1,r46-final-evaluation,r38-final-evaluation`.
+* New `tests/test_namer_round47_protonated_ring_cation_hydro.py` (each name read back through OPSIN with charge and stereo; 4 of 4 mutants killed). D-239 in the fixed table of `tests/test_namer_known_defects.py`;
+  `tests/test_namer_round45_cations_and_zwitterions.py` and `tests/test_namer_ylidene_ring_cations.py` take the two moved pins.
