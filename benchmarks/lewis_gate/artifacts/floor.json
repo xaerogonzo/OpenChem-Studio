@@ -1,0 +1,159 @@
+{
+  "floor_ev": 0.0,
+  "orca_versions": [
+    "6.1.1"
+  ],
+  "pipeline_repeat_ev": {
+    "hardness": 0.0,
+    "homo": 0.0,
+    "lumo": 0.0
+  },
+  "proposed_tolerance_ev": 0.01,
+  "question": "the noise floor of the Lewis pairing gate, from carbon monoxide run twice",
+  "rule": "max(0.01, 0.0000 rounded up to 0.01) = 0.01 eV",
+  "runs": {
+    "a_first": [
+      {
+        "calc_type": "sp",
+        "charge": 0,
+        "input_fingerprint": "8a68e8fd8c591031244d3ecbe4c3f2c7736e4c7e0dc81b71ed41d51e952696f1",
+        "method_basis": "B3LYP def2-SVP",
+        "multiplicity": 1,
+        "orca_version": "6.1.1",
+        "run_id": "b7e8f8fb22214cfcb74adea37296c0f1",
+        "solvent": "",
+        "status": "completed",
+        "values": {
+          "orca.chemical_potential": -5.44605,
+          "orca.electron_affinity": 0.7212,
+          "orca.electronegativity": 5.44605,
+          "orca.electrophilicity": 3.1386668997428484,
+          "orca.hardness": 4.72485,
+          "orca.homo_energy": -10.1709,
+          "orca.ionization_potential": 10.1709,
+          "orca.lumo_energy": -0.7212,
+          "orca.scf_energy": -113.17287091914,
+          "orca.softness": 0.2116469305903891
+        }
+      },
+      {
+        "calc_type": "delta_scf",
+        "charge": 0,
+        "input_fingerprint": "8a68e8fd8c591031244d3ecbe4c3f2c7736e4c7e0dc81b71ed41d51e952696f1",
+        "method_basis": "B3LYP def2-SVP",
+        "multiplicity": 1,
+        "orca_version": "6.1.1",
+        "run_id": "9ef2817590f04722982a03684dca47ea",
+        "solvent": "",
+        "status": "completed",
+        "values": {
+          "orca.dscf_chemical_potential": -5.589926037917055,
+          "orca.dscf_electron_affinity": -2.8121121737167343,
+          "orca.dscf_electronegativity": 5.589926037917055,
+          "orca.dscf_electrophilicity": 1.8595055343902667,
+          "orca.dscf_hardness": 8.402038211633789,
+          "orca.dscf_ionization_potential": 13.991964249550843,
+          "orca.dscf_softness": 0.1190187398356938,
+          "orca.scf_energy": -113.17287091914
+        }
+      }
+    ],
+    "a_second": [
+      {
+        "calc_type": "sp",
+        "charge": 0,
+        "input_fingerprint": "8a68e8fd8c591031244d3ecbe4c3f2c7736e4c7e0dc81b71ed41d51e952696f1",
+        "method_basis": "B3LYP def2-SVP",
+        "multiplicity": 1,
+        "orca_version": "6.1.1",
+        "run_id": "59ec10a030e7482695c33d53864278cb",
+        "solvent": "",
+        "status": "completed",
+        "values": {
+          "orca.chemical_potential": -5.44605,
+          "orca.electron_affinity": 0.7212,
+          "orca.electronegativity": 5.44605,
+          "orca.electrophilicity": 3.1386668997428484,
+          "orca.hardness": 4.72485,
+          "orca.homo_energy": -10.1709,
+          "orca.ionization_potential": 10.1709,
+          "orca.lumo_energy": -0.7212,
+          "orca.scf_energy": -113.17287091914,
+          "orca.softness": 0.2116469305903891
+        }
+      },
+      {
+        "calc_type": "delta_scf",
+        "charge": 0,
+        "input_fingerprint": "8a68e8fd8c591031244d3ecbe4c3f2c7736e4c7e0dc81b71ed41d51e952696f1",
+        "method_basis": "B3LYP def2-SVP",
+        "multiplicity": 1,
+        "orca_version": "6.1.1",
+        "run_id": "58e09afecb764b10adde51d9a73cd01c",
+        "solvent": "",
+        "status": "completed",
+        "values": {
+          "orca.dscf_chemical_potential": -5.589926037917055,
+          "orca.dscf_electron_affinity": -2.8121121737167343,
+          "orca.dscf_electronegativity": 5.589926037917055,
+          "orca.dscf_electrophilicity": 1.8595055343902667,
+          "orca.dscf_hardness": 8.402038211633789,
+          "orca.dscf_ionization_potential": 13.991964249550843,
+          "orca.dscf_softness": 0.1190187398356938,
+          "orca.scf_energy": -113.17287091914
+        }
+      }
+    ],
+    "b": [
+      {
+        "calc_type": "sp",
+        "charge": 0,
+        "input_fingerprint": "7cf038d0a9ba01b3d62bd933e65262cd37fe1b00b8ecd889a55fe1d72e9b211a",
+        "method_basis": "B3LYP def2-SVP",
+        "multiplicity": 1,
+        "orca_version": "6.1.1",
+        "run_id": "53923d06da8346618551fa7009390e7d",
+        "solvent": "",
+        "status": "completed",
+        "values": {
+          "orca.chemical_potential": -5.44605,
+          "orca.electron_affinity": 0.7212,
+          "orca.electronegativity": 5.44605,
+          "orca.electrophilicity": 3.1386668997428484,
+          "orca.hardness": 4.72485,
+          "orca.homo_energy": -10.1709,
+          "orca.ionization_potential": 10.1709,
+          "orca.lumo_energy": -0.7212,
+          "orca.scf_energy": -113.17287091914,
+          "orca.softness": 0.2116469305903891
+        }
+      },
+      {
+        "calc_type": "delta_scf",
+        "charge": 0,
+        "input_fingerprint": "7cf038d0a9ba01b3d62bd933e65262cd37fe1b00b8ecd889a55fe1d72e9b211a",
+        "method_basis": "B3LYP def2-SVP",
+        "multiplicity": 1,
+        "orca_version": "6.1.1",
+        "run_id": "b5e9fd551e3a49caaca2e866f701e7f9",
+        "solvent": "",
+        "status": "completed",
+        "values": {
+          "orca.dscf_chemical_potential": -5.589926037917055,
+          "orca.dscf_electron_affinity": -2.8121121737167343,
+          "orca.dscf_electronegativity": 5.589926037917055,
+          "orca.dscf_electrophilicity": 1.8595055343902667,
+          "orca.dscf_hardness": 8.402038211633789,
+          "orca.dscf_ionization_potential": 13.991964249550843,
+          "orca.dscf_softness": 0.1190187398356938,
+          "orca.scf_energy": -113.17287091914
+        }
+      }
+    ]
+  },
+  "same_input_repeat_ev": {
+    "hardness": 0.0,
+    "homo": 0.0,
+    "lumo": 0.0
+  }
+}
