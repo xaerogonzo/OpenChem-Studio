@@ -1142,3 +1142,7 @@ P-45.2.3, "the lower locant set for substituent groups in order of citation in t
   the chain and OPSIN cannot read it (4 of 285 in the deprotonated-census population); an N-acyl carbamate anion (`CC(=O)[N-]C(=O)OC`) and saccharin's anion are REFUSED by the charge guard, not named; the neutral acid beside a sulfamide
   (`OC(=O)c1ccccc1NS(=O)(=O)N(C)C`) is named as the sulfamide with a `carboxy` prefix although an acid outranks it (P-41), which the guard cannot see; the guard judges a name by a word, so a wrong molecule whose name happens to carry an
   anion word is not caught; and the deprotonated-site population covers eight acidic sites, not the protonated (cation) counterpart.
+* **The hydro prefixes of a protonated ring cation, and what is still open (naming round 47, 2026-10-13; D-239).** See the vendor changelog. **Still open:** a QUATERNARY ring N+ (N-methylpyridinium type) has no proton
+  to give back, so its hydro block still comes from the retained route's own count and could carry the same omission; the 11 protonated amidoximes, imidates, thioamides and exocyclic iminium cations the charge guard
+  refuses are not named (which resonance form, and which protonation site, OPSIN reads is the obstacle: `N'-hydroxy...imidamidium` reads as the ammonium); the thioamide thiolates of round 46; and the cation
+  population covers eight basic-site kinds, not a quaternary N or a protonated carbonyl.

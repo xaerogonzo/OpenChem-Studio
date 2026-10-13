@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: a protonated ring cation with a ring ketone keeps every sp3 position in its hydro prefixes
+- `O=C1CCC=C2[NH2+]C=CCC12` was `5-oxo-1,4,6,7-tetrahydroquinolin-1-ium`: the sp3 fusion carbon 4a and the ketone carbon 5 were in no hydro locant, so OPSIN could not read the name (the
+  Hantzsch hexahydroquinolinones) or read it as a different molecule. It is `5-oxo-1,4,4a,5,6,7-hexahydroquinolin-1-ium` (D-239). Found by protonating one basic site of every census molecule
+  (1036 cations): 5 flagged, 3 of them this; 2 remain, both OPSIN limits. The census is unchanged at 1993 exact and the frozen sets are unchanged (nothing re-scored).
+
 ### Naming: an anion keeps its charge beside an amide, and the anion of an imide, acylurea or sulfamide is named
 - A sulfonamide anion beside an amide (`...S(=O)(=O)[N-]c3ncccn3` on an acetanilide) was named as the neutral amide, `...ethanamide`, with the charge in no word of the name; it is now
   `4-acetamido-N-(pyrimidin-2-yl)benzene-1-sulfonamidate` (D-235). The anion of an imide, an acylurea or an N-aryl sulfamide had no charge in its name either (succinimide's anion was
