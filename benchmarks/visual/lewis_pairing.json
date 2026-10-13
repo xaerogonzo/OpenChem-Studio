@@ -1,0 +1,59 @@
+[
+  {"do": "smiles", "smiles": "N", "name": "Ammonia", "after_ms": 2500},
+  {"do": "select", "molecule": -1, "after_ms": 2500},
+  {"do": "conformers", "count": 3, "after_ms": 15000},
+  {"do": "smiles", "smiles": "O", "name": "Water", "after_ms": 2500},
+  {"do": "select", "molecule": -1, "after_ms": 2500},
+  {"do": "conformers", "count": 3, "after_ms": 15000},
+
+  {"do": "lewis_pairing", "first": -2, "second": -1, "role": "base", "tag": "nothing-stored", "after_ms": 1500,
+   "expect": {"status": "blocked", "headline_starts": "Blocked", "jobs_to_do": 4, "jobs_done": 0,
+              "has_result": false, "keep_enabled": false, "recorded_runs": 0}},
+  {"do": "shot", "path": "artifacts/visual/lewis_pairing_blocked.png", "widget": "lewis_pairing", "after_ms": 500},
+
+  {"do": "lewis_pairing", "press": "job:sp_first", "tag": "a-jobs-button-opens-the-panel", "after_ms": 1500,
+   "expect": {"pressed": true, "panel_shown": "Quantum_Chemistry", "panel_calc_type": "sp",
+              "panel_method": "B3LYP def2-SVP", "panel_molecule": -2, "recorded_runs": 0}},
+
+  {"do": "select", "molecule": -2, "after_ms": 1500},
+  {"do": "qc_run", "calc_type": "Single Point", "method": "B3LYP def2-SVP", "after_ms": 25000},
+  {"do": "lewis_pairing", "tag": "one-job-done-from-a-real-run", "after_ms": 1500,
+   "expect": {"status": "partial", "headline_starts": "Partial", "jobs_done": 1, "jobs_to_do": 3, "has_result": false,
+              "keep_enabled": false}},
+
+  {"do": "qc_run", "calc_type": "Hardness / Softness (delta-SCF)", "method": "B3LYP def2-SVP", "after_ms": 45000},
+  {"do": "select", "molecule": -1, "after_ms": 1500},
+  {"do": "qc_run", "calc_type": "Single Point", "method": "B3LYP def2-SVP", "after_ms": 25000},
+  {"do": "lewis_pairing", "tag": "three-jobs-done-the-answer-is-partial", "after_ms": 1500,
+   "expect": {"status": "partial", "headline_starts": "Partial", "jobs_done": 3, "jobs_to_do": 1,
+              "has_result": true, "result_contains": ["Frontier orbital gap", "not available"], "keep_enabled": true}},
+  {"do": "shot", "path": "artifacts/visual/lewis_pairing_partial.png", "widget": "lewis_pairing", "after_ms": 500},
+
+  {"do": "qc_run", "calc_type": "Hardness / Softness (delta-SCF)", "method": "B3LYP def2-SVP", "after_ms": 45000},
+  {"do": "lewis_pairing", "tag": "every-job-done-the-answer-is-complete", "after_ms": 1500,
+   "expect": {"status": "completed", "headline_starts": "Complete", "jobs_done": 4, "jobs_to_do": 0,
+              "has_result": true, "result_contains": ["Frontier orbital gap", "HSAB hardness match"]}},
+  {"do": "shot", "path": "artifacts/visual/lewis_pairing_complete.png", "widget": "lewis_pairing", "after_ms": 500},
+
+  {"do": "lewis_pairing", "press": "keep", "tag": "keep-files-the-answer", "after_ms": 1000,
+   "expect": {"pressed": true, "kept": true, "keep_enabled": false, "recorded_runs": 1}},
+
+  {"do": "save_project", "path": "artifacts/visual/lewis_pairing_project.ocsproj", "after_ms": 1500},
+  {"do": "open_project", "path": "artifacts/visual/lewis_pairing_project.ocsproj", "after_ms": 4000},
+  {"do": "lewis_pairing", "tag": "the-kept-answer-and-the-runs-survive-a-reopen", "after_ms": 2500,
+   "expect": {"status": "completed", "jobs_done": 4, "has_result": true, "recorded_runs": 1}},
+
+  {"do": "select", "molecule": -2, "after_ms": 1500},
+  {"do": "conformers", "count": 3, "after_ms": 15000},
+  {"do": "lewis_pairing", "tag": "a-new-geometry-puts-the-ammonia-runs-at-an-earlier-geometry", "after_ms": 2500,
+   "expect": {"status": "partial", "choices": 2, "jobs_done": 2, "jobs_to_do": 2, "has_result": false}},
+  {"do": "shot", "path": "artifacts/visual/lewis_pairing_choose.png", "widget": "lewis_pairing", "after_ms": 500},
+  {"do": "lewis_pairing", "tag": "choosing-the-earlier-runs-settles-it", "after_ms": 1500,
+   "choose": [{"slot": "first", "calc": "sp", "run": "first_candidate"},
+              {"slot": "first", "calc": "delta_scf", "run": "first_candidate"}],
+   "expect": {"status": "completed", "choices": 0, "jobs_done": 4, "has_result": true,
+              "result_contains": ["Frontier orbital gap", "HSAB hardness match"]}},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

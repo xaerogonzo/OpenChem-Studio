@@ -119,6 +119,19 @@ def iter_dialog_fixtures() -> Iterator[DialogFixture]:
             lambda: (SCOPE_THIS, set()),
         )
 
+    def lewis_pairing(context: DialogContext):
+        from openchem.ui.dialogs.lewis_pairing_dialog import LewisPairingDialog, PairingContext, PairingHost
+
+        _require(context, "services")
+        molecules = list(context.project.molecules) if context.project is not None else []
+        return LewisPairingDialog(PairingHost(
+            molecules=lambda: [(m.display_name, m.uuid) for m in molecules],
+            selected_uuid=lambda: None,
+            evaluate=context.services.recipe_service.evaluate_lewis_pairing,
+            context=lambda: PairingContext({}, {}, {}, False),
+            keep=lambda run: False,
+        ))
+
     def particle(_context: DialogContext):
         from openchem.ui.dialogs.particle_dialog import ParticleDialog
 
@@ -394,6 +407,7 @@ def iter_dialog_fixtures() -> Iterator[DialogFixture]:
     yield DialogFixture("LewisDiagramDialog", lewis, needs="a molecule")
     yield DialogFixture("VirtualScreeningDialog", virtual_screening, needs="a project")
     yield DialogFixture("GoalWizardDialog", goal_wizard, needs="the service container")
+    yield DialogFixture("LewisPairingDialog", lewis_pairing, needs="the service container")
     yield DialogFixture("ConformerDetailsDialog", conformer_details, needs="a conformer")
     yield DialogFixture(
         "StructureContentsDialog", structure_contents, needs="a parsed structure summary"

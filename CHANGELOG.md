@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Recipes, slice 3a: the Lewis pairing window (Tools > Lewis Acid-Base Pairing...)
+- **Pair two project molecules as Lewis acid and base from the quantum-chemistry runs already stored.** Pick the molecules, the method and basis, the solvent and
+  the role of the first; the window shows the three lines of evidence side by side (never one score), each with the run its numbers came from, and for every
+  missing number a sentence saying what would supply it. **It starts no calculation**: a job still to do is a row saying what it would run with and whether this
+  machine could run it, and its button opens the Quantum Chemistry panel on that molecule and calculation at that level; when the job finishes the window updates.
+- **A partial answer says it is partial** (and "Complete" only when every job is satisfied and every number bound); when no line can be evaluated there is a list
+  of jobs and no report. Several runs that could be meant (an earlier geometry, two spin states) are offered for the person to **choose by run id**, and the
+  choice is recorded. A run of an edited structure, or at another method, solvent or charge, is reported and not used.
+- **Keep** files the answer with the project (saved with it; marks the project unsaved); looking does not. `domain/recipe_preview.py` is the pure view model
+  (a row per job, a choice per ambiguity, one headline sentence); the window is `ui/dialogs/lewis_pairing_dialog.py`. New drive step `lewis_pairing` and
+  `benchmarks/visual/lewis_pairing.json`. Showing a kept answer in Results is the next step.
+
 ### Recipes, slice 2b: the Lewis pairing, the first recipe the application ships
 - **`domain/lewis_pairing.py` is the plan** (two molecule slots; recipe parameters for the ONE method, the solvent and the role; four ORCA jobs a
   gap would need, each always approved by a person; one evaluating step), listed in the new **`domain/recipe_catalogue.py`**. `tests/test_recipe_model.py`
