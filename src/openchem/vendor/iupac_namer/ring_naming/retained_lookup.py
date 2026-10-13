@@ -2284,6 +2284,10 @@ _INDICATED_H_PREFIX_RE = _re.compile(
 )
 
 
+#: The hydro block that can precede an indicated hydrogen in a derived name: `4,5,6,7-tetrahydro-`, `2,3-dihydro-`.
+_HYDRO_HEAD_RE = _re.compile(r"^\d+[a-z]?(?:,\d+[a-z]?)*-(?:di|tri|tetra|penta|hexa|hepta|octa|nona|deca)hydro-")
+
+
 def _retag_indicated_h(
     *,
     name: str,
@@ -2386,7 +2390,13 @@ def _retag_indicated_h(
         #     indicated-H to a substituted ring N instead so OPSIN can place
         #     the substituent at that locant and leave the bare =N- at its
         #     correct sp2 position.
-        m_ih = _INDICATED_H_PREFIX_RE.match(name)
+        # Naming round 48: a hydro block may come BEFORE the indicated hydrogen (`4,5,6,7-tetrahydro-1H-benzimidazole`). The retag looked only at the start of the name, so a
+        # hydro parent was never retagged and a 1,3-disubstituted tetrahydrobenzimidazolium was `...tetrahydro-1H-benzimidazol-1-ium`, the ium and the indicated hydrogen on one
+        # nitrogen, which OPSIN reads with a hydrogen too many (a wrong molecule). The head is kept as it is: the hydro locants belong to the numbering, the H label to the structure.
+        _head_match = _HYDRO_HEAD_RE.match(name)
+        _hydro_head = _head_match.group(0) if _head_match else ""
+        _rest = name[len(_hydro_head):]
+        m_ih = _INDICATED_H_PREFIX_RE.match(_rest)
         if not m_ih:
             return name
         try:
@@ -2469,7 +2479,7 @@ def _retag_indicated_h(
             return name
         sub_n_sorted = sorted(set(sub_n_locants), key=_loc_key)
         new_ih_prefix = f"{sub_n_sorted[0]}H-"
-        return new_ih_prefix + name[m_ih.end():]
+        return _hydro_head + new_ih_prefix + _rest[m_ih.end():]
 
     nh_locants_sorted = sorted(set(nh_locants), key=_loc_key)
     new_prefix = ",".join(f"{loc}H" for loc in nh_locants_sorted) + "-"

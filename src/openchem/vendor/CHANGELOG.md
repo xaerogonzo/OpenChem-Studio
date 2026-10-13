@@ -2482,3 +2482,18 @@ azole N, primary, secondary, tertiary amines, anilines, imines, amidines: 1036 c
   list stays `r46-fresh-v1,r46-final-evaluation,r38-final-evaluation`.
 * New `tests/test_namer_round47_protonated_ring_cation_hydro.py` (each name read back through OPSIN with charge and stereo; 4 of 4 mutants killed). D-239 in the fixed table of `tests/test_namer_known_defects.py`;
   `tests/test_namer_round45_cations_and_zwitterions.py` and `tests/test_namer_ylidene_ring_cations.py` take the two moved pins.
+
+## 2026-10-13 -- naming round 48: the cation and the indicated hydrogen on different nitrogens in a hydro azolium (D-240)
+
+Round 47 left one open question: does a QUATERNARY ring N+ (no proton to give back) carry the hydro omission round 47 fixed for protonated cations? Round 48 measured it: it N-methylated ONE basic nitrogen of
+every census molecule (1036 quaternary cations) and read each name back through OPSIN with its charge. The answer is no: no hydro omission, 3 flagged (2 OPSIN limits), 2 refused by the charge guard.
+
+* **D-240.** The one real defect: `Cn1c[n+](C)c2CCCCc12` was `1,3-dimethyl-4,5,6,7-tetrahydro-1H-benzimidazol-1-ium`. An N-substituted [n+] takes the `-ium` and cannot also be the indicated-hydrogen site (the
+  same rule that already gave `1,3-dimethyl-1H-benzimidazol-3-ium`), so `_retag_indicated_h` moves the `1H` to a neutral substituted nitrogen. It read only the START of the name, and a hydro block comes first
+  (`4,5,6,7-tetrahydro-1H-...`), so a hydro parent was never retagged. The ring offered two candidates (the cation at 3, the cation at 1); the wrongly tagged one won on the lowest cation locant, and OPSIN reads
+  its name as a molecule with a CH2 at C2 (`C[NH+]1CN(C2=C1CCCC2)C`). `retained_lookup.py` now looks past a leading hydro block (`_HYDRO_HEAD_RE`) and keeps it.
+* **Measured.** Quaternary population 1036: 3 flagged -> 2 (both OPSIN limits: the bis([1,3]dioxolo)pyran and a bicyclo-heptyl phosphonate prefix), 2 refused, unchanged. Census 1993 exact, unchanged. App naming
+  tests 3849 passed; `tests/vendor` and the known-defects file: 7402 passed (the full vendored suite and the known-defects file). **Frozen sets** (blind `--frozen-impact`): all three unchanged, none re-scored.
+* New `tests/test_namer_round48_azolium_indicated_hydrogen.py` (34 tests; each name read back through OPSIN with its charge). **Mutants:** 1 of 3 killed. The two that survive are not distinguished by any structure
+  found: the retagged candidate never beats its mirror-image numbering (it loses on the lowest indicated hydrogen, so dropping its hydro head changes no name), and `tetrahydro` is the only hydro prefix this path
+  produces for an azolium (the multiplier alternation is the module's usual one). They are recorded, not claimed killed. D-240 in the fixed table of `tests/test_namer_known_defects.py`.
