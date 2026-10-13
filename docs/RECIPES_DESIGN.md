@@ -318,6 +318,12 @@ Fixed in the commit that adds the gate script, **before the pair is run**, and n
   widened. If the single-point and the optimization's own table differ by more than T, that is a finding about the
   documented procedure, reported as such.
 
+**Outcome (2026-10-13): PASS, at T = 0.01 eV, on the one attempt.** The noise floor on carbon monoxide was 0.0 eV (six distinct ORCA jobs, identical), so the preregistered rule gave T = 0.01 eV. BH3/CO measured
+gap 8.1260 and |d eta| 1.6321 eV against the documented 8.13 and 1.63; BF3/CO gap 10.8995 and |d eta| 0.8928 eV against 10.90 and 0.89. All four are within 0.004 eV, the frontier gap still orders BH3 below BF3 and the hardness
+difference still orders BF3 below BH3, no field combines the lines, every number was bound to a current run on ORCA 6.1.1, and the single point matched the optimization's own orbital table to 0.001 eV (so the
+documented procedure and the recipe's agree here). The full record, the preregistration it was held to and the artifacts are `benchmarks/lewis_gate/PREREGISTRATION.md` section 9. It says the recipe's wiring
+reproduces a documented number on this machine; it does not say the hardness line is right about this pair (section 4's caveat stands), or that another method, solvent or pair reproduces.
+
 ## 11. Tests
 
 Domain tests need no Qt and no ORCA, and run against fakes built from real `QuantumChemistryRun` objects:
@@ -423,7 +429,7 @@ with the UI slice. It will need a drive step for the pairing, which the harness 
      recomputation that follows an edit is not certain to produce a result event and a kept answer must not wait for one.
    * **Not done:** the batch/project table does not show kept answers (a table of calculators over molecules has no column for a
      two-molecule record), and the assistant cannot read them (section 9).
-4. **The gate** (section 10): preregistration commit, noise floor, the pair, the verdict recorded whichever way. **Preregistered** in `benchmarks/lewis_gate/PREREGISTRATION.md`
+4. **The gate** (section 10): preregistration commit, noise floor, the pair, the verdict recorded whichever way. **DONE: PASS (section 10's Outcome).** Preregistered in `benchmarks/lewis_gate/PREREGISTRATION.md`
    (frozen before any borane job): it settles what section 10 left open (the tolerance is `max(0.01, floor rounded up to 0.01)` from a floor that includes a second carbon monoxide put through the
    whole chain, none above 0.37 eV; NOT EVALUABLE takes precedence over FAIL; PASS and FAIL are final; a run that did not finish may be repeated unchanged). The arithmetic is `app/lewis_gate.py`.
 5. **Later, each its own design review**: Stage B (the dispatch adapter), the snapshot extended to runs, the

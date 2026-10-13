@@ -271,7 +271,7 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           the Lewis pairing GATE (benchmarks/lewis_gate/PREREGISTRATION.md): `begin` ends the run before any
                                           job unless tolerance.json holds the tolerance the preregistered rule gives the recorded floor;
                                           `floor` measures the noise floor from two repeats of CO; `pair` judges BH3/CO and BF3/CO against
-                                          the documented numbers. NEVER run lewis_gate_pair.json before the tolerance commit
+                                          the documented numbers. The gate was PASSED on 2026-10-13 (PREREGISTRATION.md section 9) and a decided outcome is final: do not re-run it to see whether the number moves
     {"do": "wait"} {"do": "quit"}
 
 **A DRIVEN RUN ENDS IN A VERDICT, AND EXITS NON-ZERO WHEN IT FAILED.**

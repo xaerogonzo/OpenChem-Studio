@@ -157,3 +157,57 @@ does not give (a defect in the code, not a result about chemistry); or the gate 
 
 **Disclosure, seen before T was fixed and not used in choosing it** (T follows from the rule, and is 0.01 eV whatever these were): the floor run also gave carbon monoxide's own numbers, HOMO -10.1709 eV and
 delta-SCF hardness 8.4020 eV, against the documented -10.17 and 8.40, so the base's half of both pairs reproduces on this machine. Nothing about a borane has been seen.
+
+
+### 9.2 The outcome: PASS, 2026-10-13 17:44 to 17:47 (UTC-4), commit that adds this section
+
+`benchmarks/visual/lewis_gate_pair.json`, **the one attempt**, real ORCA 6.1.1, B3LYP def2-SVP, gas phase, charge 0, multiplicity 1, tolerance **T = 0.01 eV** (fixed in section 9.1 before this ran).
+`lewis_gate_begin` passed (T is what the rule gives the recorded floor). `VERDICT PASS` of the drive (3 assertions, 0 app errors, 0 driver failures; `artifacts/pair.drive_report.json`);
+**the gate's own verdict, by `app/lewis_gate.judge`: PASS, with no reason against it.** The record is `artifacts/pair.json`; the pairing window as it stood at the end is `artifacts/gate_window.png`.
+
+**Chain, as preregistered.** For BH3, BF3 and CO the ORCA optimization ran on the RDKit conformer, `conformer_report` showed the `orca_opt` conformer as the canonical one with a mapping to the drawing, and the single point
+and the delta-SCF then ran on that conformer: each molecule's canonical fingerprint (`ba6c0bc3630b`, `15d9aeb7d594`, `718ed3c3b7f2`) is the input fingerprint of its single point and of its delta-SCF.
+
+| Quantity (eV) | Documented | Measured | Signed difference | Within T = 0.01 |
+|---|---|---|---|---|
+| BH3/CO frontier gap | 8.13 | 8.1260 | -0.0040 | yes |
+| BH3/CO \|d eta\| | 1.63 | 1.6321 | +0.0021 | yes |
+| BF3/CO frontier gap | 10.90 | 10.8995 | -0.0005 | yes |
+| BF3/CO \|d eta\| | 0.89 | 0.8928 | +0.0028 | yes |
+
+All four are within **0.004 eV**. The six bound values behind them, at the precision ORCA recorded, and the report's own two-decimal lines:
+
+| Pair | Acid LUMO | Acid hardness | Base HOMO | Base hardness | Printed gap / \|d eta\| |
+|---|---|---|---|---|---|
+| BH3 (acid) | -2.0449 | 6.7699 | -10.1709 (CO) | 8.4020 (CO) | 8.13 / 1.63 |
+| BF3 (acid) | 0.7286 | 9.2948 | -10.1709 (CO) | 8.4020 (CO) | 10.90 / 0.89 |
+
+* **The disagreement reproduces.** The frontier gap orders BH3 below BF3 (8.1260 against 10.8995 eV: BH3 binds CO better), and the hardness difference orders BF3 below BH3
+  (0.8928 against 1.6321 eV: the opposite). The recipe leaves the two lines disagreeing, as documented.
+* **No field combines the lines**, all three lines are present under the names the report prints them under, every one of the six numbers of each pair was bound to a current run, and the role was recorded as the one the person set.
+* **The single point against the optimization's own orbital table** (reported, not decided on; the documented numbers came from the latter): no difference exceeds T, the largest is 0.0008 eV.
+
+| Molecule | Orbital | Optimization's table (eV) | Single point (eV) | Difference | Beyond T |
+|---|---|---|---|---|---|
+| BH3 | HOMO | -9.5311 | -9.5308 | +0.0003 | no |
+| BH3 | LUMO | -2.0449 | -2.0449 | +0.0000 | no |
+| BF3 | HOMO | -11.4817 | -11.4815 | +0.0002 | no |
+| BF3 | LUMO | 0.7286 | 0.7286 | +0.0000 | no |
+| CO | HOMO | -10.1717 | -10.1709 | +0.0008 | no |
+| CO | LUMO | -0.7217 | -0.7212 | +0.0005 | no |
+
+| Molecule | Job | Run | Input fingerprint | ORCA | Status |
+|---|---|---|---|---|---|
+| BF3 | opt | `a5f0ccbc` | `b9428d6e7bba` | 6.1.1 | completed |
+| BF3 | sp | `b9b16fe3` | `15d9aeb7d594` | 6.1.1 | completed |
+| BF3 | delta_scf | `6c7d7b70` | `15d9aeb7d594` | 6.1.1 | completed |
+| BH3 | opt | `fc492429` | `fd836615b15b` | 6.1.1 | completed |
+| BH3 | sp | `6bd9f8eb` | `ba6c0bc3630b` | 6.1.1 | completed |
+| BH3 | delta_scf | `a53f0fcc` | `ba6c0bc3630b` | 6.1.1 | completed |
+| CO | opt | `3126b3ea` | `90f3c36baa27` | 6.1.1 | completed |
+| CO | sp | `e667e66b` | `718ed3c3b7f2` | 6.1.1 | completed |
+| CO | delta_scf | `7e4611a7` | `718ed3c3b7f2` | 6.1.1 | completed |
+
+**What this says, and does not.** On ORCA 6.1.1 at B3LYP/def2-SVP the Lewis pairing recipe, fed only by stored single-point and delta-SCF runs at the ORCA-optimized geometry of each molecule, reproduces the four documented numbers for
+BH3/CO and BF3/CO within 0.01 eV, with the two orbital lines still disagreeing. It does not say the lines are chemically right (the hardness line's verdict on this pair is a known failure of the metric, and the report says so), that another
+method, solvent or pair reproduces, or that a different ORCA does. The single point reproduces the optimization's own orbital table to 0.001 eV here, so the documented procedure and the recipe's agree on these three molecules.

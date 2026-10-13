@@ -1913,6 +1913,10 @@ run it used is deleted, and the line above its facts says which one, naming the 
 was computed from stay readable either way, as recorded. Adding a new geometry to a molecule is not an edit and does
 not make it stale. An answer you kept while it was partial says so in Results too.
 
+**How far it is checked.** For borane and boron trifluoride with carbon monoxide, at B3LYP/def2-SVP in the gas phase on ORCA 6.1.1, the numbers this window builds from stored runs reproduce
+the documented frontier gaps and hardness differences to within 0.01 eV, and the two lines still disagree about which borane binds carbon monoxide better (the hardness line gets this pair
+backwards, which is why they are never combined). That check does not cover other methods, solvents, molecules or ORCA versions.
+
 <!-- help:ir-spectra -->
 ### IR spectra and normal modes
 

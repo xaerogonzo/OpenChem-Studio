@@ -7,11 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Recipes, slice 4: the Lewis pairing gate is preregistered (BH3/CO and BF3/CO on real ORCA)
+### Recipes, slice 4: the Lewis pairing gate (BH3/CO and BF3/CO on real ORCA): preregistered, then PASSED at 0.01 eV
 - **`benchmarks/lewis_gate/PREREGISTRATION.md` freezes the gate before any ORCA job of BH3 or BF3**: the documented numbers, the procedure, the noise floor (carbon monoxide run twice on one input and through the whole
   chain twice), **the rule for the tolerance (`T = max(0.01 eV, floor rounded up to 0.01)`, none above 0.37 eV)**, and exactly what PASS, FAIL and NOT EVALUABLE mean. `app/lewis_gate.py` is the arithmetic, pure and tested with
   invented numbers; `lewis_gate_floor.json` and `lewis_gate_pair.json` are the scripts; `lewis_gate_begin` ends the pair run before one job unless `tolerance.json` holds the tolerance the rule gives the recorded floor.
-  New drive steps `qc_wait`, `lewis_gate_begin`, `lewis_gate_floor`, `lewis_gate_pair`. No measurement is in this change; the outcome is appended to the preregistration when it exists.
+  New drive steps `qc_wait`, `lewis_gate_begin`, `lewis_gate_floor`, `lewis_gate_pair`.
+- **Outcome, 2026-10-13: PASS on the one attempt.** The carbon monoxide noise floor was 0.0 eV (six distinct ORCA jobs gave identical numbers), so the rule fixed T = 0.01 eV before the pair ran. On real ORCA 6.1.1 at B3LYP/def2-SVP the
+  recipe, fed only by stored single-point and delta-SCF runs at the optimized geometries, gave BH3/CO gap 8.1260 and |d eta| 1.6321 eV (documented 8.13, 1.63) and BF3/CO gap 10.8995 and |d eta| 0.8928 eV (documented 10.90, 0.89):
+  all within 0.004 eV, the two lines still disagree as documented, and no field combines them. The single point matched the optimization's own orbital table to 0.001 eV. Record: `benchmarks/lewis_gate/PREREGISTRATION.md` section 9.
+  Testing the gate's reader on the real report before any measurement found that the Drago-Wayland line is a fact filed under the report's own name, so the lines are checked by the name they print under.
 
 ### Naming: the ions rounds 44 to 48 left refused or unreadable
 - A protonated imidate, thioimidate, isourea or amidoxime is named as the cation, `(1-sulfanylethylidene)azanium`, `[amino(methoxy)methylidene]azanium`, `(1-aminoethylidene)(hydroxy)azanium` (D-241); before, the

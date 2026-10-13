@@ -590,3 +590,53 @@ def test_a_line_that_is_not_there_is_no_number_and_a_sentence_naming_both_lines_
 
     assert _printed(["Role: as you set it."], "Frontier orbital gap") is None
     assert _printed(["  Frontier orbital gap 8.05 eV; HSAB hardness match 0.85 eV."], "Frontier orbital gap") is None
+
+
+# --- the committed record ------------------------------------------------------------------------------------------------
+#
+# `benchmarks/lewis_gate/artifacts/pair.json` is what the gate wrote on real ORCA. Re-deriving its verdict from its own
+# numbers with the code as it is now means the record cannot be made to disagree with the arithmetic, or the arithmetic edited
+# so that the recorded outcome no longer follows, without a test saying so.
+
+
+def _record() -> dict:
+    import json
+    from pathlib import Path
+
+    return json.loads((Path(__file__).resolve().parents[1] / "benchmarks" / "lewis_gate" / "artifacts" / "pair.json").read_text(encoding="utf-8"))
+
+
+def _recorded_pairs(record: dict) -> dict[str, MeasuredPair]:
+    fields = ("acid", "acid_lumo_ev", "acid_hardness_ev", "base_homo_ev", "base_hardness_ev", "printed_gap_ev",
+              "printed_hardness_difference_ev", "all_bound", "role_set_by_user")
+    return {
+        name: MeasuredPair(**{f: pair[f] for f in fields}, fact_labels=tuple(pair["fact_labels"]), line_names=tuple(pair["line_names"]))
+        for name, pair in record["pairs"].items()
+    }
+
+
+def test_the_recorded_verdict_follows_from_the_recorded_numbers_by_the_code_as_it_is():
+    record = _record()
+    verdict = judge(_recorded_pairs(record), record["tolerance_ev"], orca_versions=record["orca_versions"])
+    assert verdict.outcome.value == record["outcome"] == "pass" and verdict.reasons == ()
+    assert [(r.quantity, r.measured_ev, r.within) for r in verdict.rows] == [(r["quantity"], r["measured_ev"], r["within"]) for r in record["rows"]]
+
+
+def test_the_recorded_tolerance_is_the_one_the_rule_gives_the_recorded_floor_and_the_run_was_on_the_documented_orca():
+    import json
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1] / "benchmarks" / "lewis_gate"
+    floor = json.loads((root / "artifacts" / "floor.json").read_text(encoding="utf-8"))
+    assert tolerance_from_floor(floor["floor_ev"]).value_ev == _record()["tolerance_ev"] == 0.01
+    assert set(_record()["orca_versions"]) == set(floor["orca_versions"]) == {gate.ORCA_VERSION}
+
+
+def test_the_recorded_numbers_are_within_the_recorded_tolerance_of_the_documented_ones():
+    record = _record()
+    for row in record["rows"]:
+        assert abs(row["measured_ev"] - row["documented_ev"]) <= record["tolerance_ev"], row["quantity"]
+    pairs = _recorded_pairs(record)
+    for name, documented in DOCUMENTED.items():
+        assert pairs[name].gap_ev == pytest.approx(documented.gap_ev, abs=0.01)
+        assert pairs[name].hardness_difference_ev == pytest.approx(documented.hardness_difference_ev, abs=0.01)
