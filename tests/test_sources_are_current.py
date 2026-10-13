@@ -1201,6 +1201,13 @@ _PROVENANCE_DEBT = frozenset({
     # here to source, only a container. The walk finds it because it builds
     # `Fact`s, not because it computes one.
     "src/openchem/domain/descriptor_aggregate.py",
+    # IMPLEMENTS NO METHOD, the same third time. A kept recipe answer is re-read in Results as a report: `recipe_answer`
+    # re-titles the stored report, re-stamps it with the molecule being looked at and adds the sentences saying whether
+    # it is stale, and `RecipeService.answers_for` hands those to the reader. Every fact, number and unit in it was
+    # produced and sourced where the pairing was evaluated (`chem/lewis_adduct.py`, whose sources name it); the walk
+    # finds both because they RETURN a `RecipeAnswer`, a `ReportResult` subclass, not because they compute one.
+    "src/openchem/domain/recipe_answer.py",
+    "src/openchem/services/recipe_service.py",
     # IMPLEMENTS NO METHOD. `spectrum_as_per_atom` re-wraps a predicted spectrum's own numbers,
     # units and method label as the per-atom container the Compare window already reads; the walk
     # finds it because it RETURNS a `PerAtomDataset`, not because it computes one. The method is
