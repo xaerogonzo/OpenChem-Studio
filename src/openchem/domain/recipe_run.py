@@ -36,6 +36,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from openchem.domain import result_codec
+from openchem.domain.recipe import shipped_versions
 
 logger = logging.getLogger("openchem.recipe_run")
 
@@ -398,8 +399,11 @@ class ProjectView:
     constitution_keys: Mapping[str, str | None]
     #: The ids of the quantum-chemistry runs that exist now.
     qc_run_ids: Collection[str]
-    #: recipe id -> the versions this build ships (`recipe.shipped_versions`).
-    recipe_versions: Mapping[str, Collection[str]]
+    #: recipe id -> the versions this build ships. **DEFAULTS TO THIS BUILD'S OWN CATALOGUE**
+    #: (`recipe.shipped_versions`), because the question it answers, "does THIS build have that version", has one
+    #: right answer, and a host that had to remember to hand it in is the "somebody remembers" failure. A test
+    #: passes its own.
+    recipe_versions: Mapping[str, Collection[str]] = field(default_factory=shipped_versions)
 
 
 @dataclass(frozen=True)
