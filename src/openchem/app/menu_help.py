@@ -585,6 +585,18 @@ MENU_HELP: dict[str, HelpTooltip] = {
         tier=1, help_id="tools.goal_wizard", topic=_M,
         help_anchor="properties",
     ),
+    "lewis_pairing": HelpTooltip(
+        text=(
+            "Opens the Lewis acid-base pairing: pick two molecules in the project and see how well matched they are, "
+            "from the quantum-chemistry runs already stored. Three lines of evidence are shown side by side and never "
+            "combined into one score.\n\n"
+            "It starts no calculation. A number that is missing is a job row that says what is needed and opens the "
+            "Quantum Chemistry panel for it; when the job finishes the window updates. \"Keep\" files an answer with "
+            "the project."
+        ),
+        tier=1, help_id="tools.lewis_pairing", topic=_M,
+        help_anchor="lewis-pairing",
+    ),
     "virtual_screening": HelpTooltip(
         text=(
             "Opens virtual screening -- docking a set of molecules against one "

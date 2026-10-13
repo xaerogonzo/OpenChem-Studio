@@ -1875,6 +1875,38 @@ machine is likely to have.
 estimate knows this, but it is worth knowing yourself: a π-stacked pair is
 the expensive case, and it is usually the one you want.
 
+<!-- help:lewis-pairing -->
+### Pairing two molecules as Lewis acid and base
+
+**Tools ▸ Lewis Acid-Base Pairing…** asks how well matched two molecules in the project are as a Lewis acid and
+base, from the quantum-chemistry runs you have already made. Pick the **first** and **second** molecule, the
+**method and basis** and the **solvent** the runs were made in, and the **role** of the first molecule.
+
+**Three lines of evidence, side by side, never one score.** The Drago–Wayland enthalpy, the frontier-orbital gap and
+the HSAB hardness match answer different questions, and the two orbital lines can disagree on purpose (they do for
+borane and boron trifluoride with carbon monoxide). The window reports each with the run its numbers came from.
+
+**It starts no calculation.** The numbers come from two kinds of stored run for each molecule: a **single point**
+(the HOMO and LUMO energies) and a **delta-SCF job** (the hardness; never the Koopmans hardness, which gets
+ammonia and phosphine backwards). Under **Jobs** each is either *Done* (a stored run supplied it, and the row
+names it) or *To do* (nothing did). A job still to do says what is missing, what it would run with, and whether
+this machine could run it now; its button opens the Quantum Chemistry panel on that molecule and that
+calculation, and the window updates when the job finishes. Press Run there yourself.
+
+**Why a run may not count.** Only a *current* run is used: of this molecule as it is drawn now, at the geometry a
+run would be given now. A run at another method, solvent or charge is reported with the levels it does have (they
+are different scales), a run of an edited structure is reported as such, and runs at an earlier geometry are
+listed for you to **choose one by run id** (the choice is recorded) rather than used unasked. Several runs of the
+same job use the newest and name the others.
+
+**A partial answer says it is partial.** With one number missing you still get the lines the rest supports, headed
+"Partial", and a gap is a row and a fact rather than a blank. When no line can be evaluated at all you get the list
+of jobs and no report.
+
+**Keep** files the answer with the project. It is saved with it, and it reads as stale when a molecule in it is
+edited or a run it used is deleted; the numbers it was computed from stay readable either way. Looking at a pairing
+does not keep it.
+
 <!-- help:ir-spectra -->
 ### IR spectra and normal modes
 

@@ -94,6 +94,7 @@ from openchem.events.events import (
     PluginLoaded,
     PluginUnloaded,
     QuantumChemistryResultReady,
+    QuantumChemistryRunCompleted,
 )
 from openchem.app.calculation_host import CalculationHost
 from openchem.plugins.manager import PluginManager
@@ -112,6 +113,7 @@ from openchem.ui.panels.interactions_panel import InteractionsPanel
 from openchem.ui.panels.batch_panel import BatchPanel
 from openchem.ui.dialogs.calculator_settings_dialog import plain_label
 from openchem.ui.dialogs.goal_wizard_dialog import GoalWizardDialog
+from openchem.ui.dialogs.lewis_pairing_dialog import LewisPairingDialog, PairingContext, PairingHost
 from openchem.ui.panels.docking_panel import DockingPanel
 from openchem.ui.panels.jobs_panel import JobsPanel
 from openchem.ui.panels.project_explorer_panel import ProjectExplorerPanel
@@ -541,6 +543,8 @@ class MainWindow(QMainWindow):
         # THE GOAL WIZARD: one, built when first asked for and raised after that.
         self._goal_wizard: GoalWizardDialog | None = None
         self._property_panel.goal_wizard_requested.connect(self._on_goal_wizard_action)
+        # THE LEWIS PAIRING WINDOW: one, built when first asked for and raised after that.
+        self._lewis_pairing: LewisPairingDialog | None = None
         self._property_panel.workflow_tab_requested.connect(self._on_workflow_tab_requested)
         self._interactions_panel = InteractionsPanel(
             services.chemistry_engine, services.event_bus, self
@@ -901,6 +905,11 @@ class MainWindow(QMainWindow):
         services.event_bus.subscribe(ConformersChanged, self._on_conformers_changed)
         services.event_bus.subscribe(DockingResultReady, self._on_docking_result_ready)
         services.event_bus.subscribe(QuantumChemistryResultReady, self._on_quantum_chemistry_result_ready)
+        # The pairing window evaluates over stored runs, so it follows everything that changes what they
+        # describe: a run finishing, a structure edited, a geometry added.
+        services.event_bus.subscribe(QuantumChemistryRunCompleted, self._refresh_lewis_pairing)
+        services.event_bus.subscribe(MoleculeChanged, self._refresh_lewis_pairing)
+        services.event_bus.subscribe(ConformersChanged, self._refresh_lewis_pairing)
         services.event_bus.subscribe(PluginLoaded, self._on_plugins_state_changed)
         services.event_bus.subscribe(PluginUnloaded, self._on_plugins_state_changed)
 
@@ -1703,6 +1712,77 @@ class MainWindow(QMainWindow):
         wizard.activateWindow()
         return wizard
 
+    # --- the Lewis pairing window ------------------------------------------------------------------
+
+    def _on_lewis_pairing_action(self, _checked: bool = False) -> None:
+        self.show_lewis_pairing()
+
+    def show_lewis_pairing(
+        self, first_uuid: str | None = None, second_uuid: str | None = None
+    ) -> LewisPairingDialog:
+        """Open the Lewis pairing window, or raise the one that is open. There is never a second.
+
+        An open window is brought forward as it is, with the pair and the level of theory the person had chosen,
+        and re-reads the project. A caller that already knows the pair may name it.
+        """
+        if self._lewis_pairing is None:
+            dialog = LewisPairingDialog(self._lewis_pairing_host(), self)
+            dialog.job_requested.connect(self._on_pairing_job_requested)
+            self._lewis_pairing = dialog
+        else:
+            dialog = self._lewis_pairing
+            dialog.refresh()
+        if first_uuid or second_uuid:
+            dialog.select_molecules(first_uuid, second_uuid)
+        dialog.show()
+        dialog.raise_()
+        dialog.activateWindow()
+        return dialog
+
+    def _lewis_pairing_host(self) -> PairingHost:
+        return PairingHost(
+            molecules=lambda: [(m.display_name, m.uuid) for m in self._wizard_molecules()],
+            selected_uuid=self._property_panel.selected_molecule_uuid,
+            evaluate=self._services.recipe_service.evaluate_lewis_pairing,
+            context=self._lewis_pairing_context,
+            keep=self._services.result_store_service.record_recipe_run,
+        )
+
+    def _lewis_pairing_context(self) -> PairingContext:
+        """What the window needs to describe a job still to do, read from the application as it is NOW."""
+        engine = self._services.chemistry_engine
+        names, charges, conformers = {}, {}, {}
+        for molecule in self._wizard_molecules():
+            names[molecule.uuid] = molecule.display_name
+            conformers[molecule.uuid] = len(molecule.conformers)
+            try:
+                charges[molecule.uuid] = engine.formal_charge(molecule)
+            except Exception:  # noqa: BLE001 - a molecule with no readable structure has no charge to show
+                charges[molecule.uuid] = 0
+        return PairingContext(
+            names=names,
+            formal_charges=charges,
+            conformer_counts=conformers,
+            orca_configured=self._services.quantum_chemistry_service.orca_executable() is not None,
+        )
+
+    def _on_pairing_job_requested(self, molecule_uuid: str, calc_type: str) -> None:
+        """A job row asked for its panel: show the Quantum Chemistry panel with that molecule and that
+        calculation chosen, at the level of theory the pairing is set to. Choosing is all it does."""
+        self._services.event_bus.publish(MoleculeSelected(molecule_uuid=molecule_uuid))
+        self._on_panel_chosen("Quantum_Chemistry")
+        panel = self._quantum_chemistry_panel
+        panel.select_calculation_type(calc_type)
+        if self._lewis_pairing is not None:
+            snapshot = self._lewis_pairing.snapshot()
+            panel.select_level_of_theory(snapshot["method_basis"], snapshot["solvent"])
+
+    def _refresh_lewis_pairing(self, _event=None) -> None:
+        """Re-evaluate the open pairing window, if there is one showing. Cheap, and never opens one."""
+        dialog = self._lewis_pairing
+        if dialog is not None and not dialog.isHidden():
+            dialog.refresh()
+
     def _wizard_molecules(self) -> list:
         project = self._session.project
         return list(project.molecules) if project is not None else []
@@ -2334,6 +2414,10 @@ class MainWindow(QMainWindow):
             "goal_wizard",
         )
         self._document(
+            tools_menu.addAction("Lewis Acid-Base Pairing...", self._on_lewis_pairing_action),
+            "lewis_pairing",
+        )
+        self._document(
             tools_menu.addAction("Periodic Table...", self._show_periodic_table),
             "periodic_table",
         )
@@ -2891,6 +2975,8 @@ class MainWindow(QMainWindow):
         # Cleared AFTER the auto-create, which itself marks the session
         # dirty. A project the user has not touched yet must not prompt
         # "you have unsaved changes" the moment they open the next one.
+        if self._lewis_pairing is not None:
+            self._lewis_pairing.refresh()
         self._session.mark_clean()
 
     def _open_project(self) -> None:

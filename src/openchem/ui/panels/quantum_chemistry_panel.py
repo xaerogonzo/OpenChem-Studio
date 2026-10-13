@@ -2359,6 +2359,21 @@ class QuantumChemistryPanel(QWidget):
         )
         return answer == QMessageBox.StandardButton.Yes
 
+    def select_level_of_theory(self, method_basis: str, solvent: str = "") -> bool:
+        """Put the method/basis and the solvent where a job someone else described should run.
+
+        Used by the Lewis pairing window, whose job rows say what each job "would run with": opening this panel
+        from one should land on that level, not on whatever the combo was last left at. Selects only; Run is still
+        the person's. The method is a preset or any text (the combo is editable, and anything typed is passed on),
+        so this always succeeds for it; False means the SOLVENT is not one the panel offers.
+        """
+        self._method_combo.setCurrentText(method_basis)
+        index = self._solvent_combo.findData(solvent)
+        if index < 0:
+            return False
+        self._solvent_combo.setCurrentIndex(index)
+        return True
+
     def select_calculation_type(self, calc_type: str) -> bool:
         """Choose a calculation by its type code ("nmr", "sp", ...), as a click on its
         Properties row does. Returns whether there was such a calculation, so the caller

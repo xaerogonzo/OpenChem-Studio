@@ -378,7 +378,30 @@ with the UI slice. It will need a drive step for the pairing, which the harness 
    * The method presets and solvents moved to `domain/quantum_methods.py`, and the shipped list to
      `domain/recipe_catalogue.py`, for the layering and the import cycle that would otherwise result.
 3. **Host and UI**: a pairing entry, the gap list with the service preview, the result in Results, the help
-   topic every new surface needs, the drive step and script.
+   topic every new surface needs, the drive step and script. **3a is built** (the window, below); the result in
+   Results is **3b**.
+
+   **As built in 3a, and the choices the design left open:**
+   * **The entry is Tools > Lewis Acid-Base Pairing..., opening one modeless window** (`ui/dialogs/lewis_pairing_dialog.py`),
+     beside "Run Calculators by Goal...", which is the same kind of door. Not a dock panel: a thirteenth dock changes the
+     layout every other panel is arranged in, and a pairing is something a person opens, reads and closes.
+   * **It re-evaluates on its own and saves nothing.** Every control change, finished quantum-chemistry run, structure edit
+     and project change evaluates again (cheap, and only while the window is showing); **Keep** is the one button that files
+     an answer, and only an answer with a result can be kept. Looking never marks the project unsaved.
+   * **The service preview is a row per job, in the vocabulary Phase 1 already uses** (`Requirement`: what it needs,
+     whether it is there NOW, and what to do when it is not), built by `domain/recipe_preview.py`: what the job would run
+     with (level of theory, charge), whether ORCA is configured and the molecule has a conformer, and a button that opens
+     the Quantum Chemistry panel on that molecule, that calculation and that level. It starts nothing.
+   * **The sentence above the jobs never makes a partial answer sound complete**, and a pairing where nothing could be
+     evaluated shows the jobs and no report.
+   * **An ambiguity is a chooser per molecule and calculation** (one choice serves both frontier numbers), showing short run
+     ids with the full id as what is chosen; any change of the form forgets the choices, because they name runs at one level.
+   * **The second picker never defaults to the first molecule.** With one molecule in the project it used to, and the window
+     evaluated a molecule against itself instead of saying a pairing needs two. Pairing a molecule with itself stays possible
+     on purpose.
+   * Verified on real ORCA in the real window: `benchmarks/visual/lewis_pairing.json` (ammonia and water, four stored jobs,
+     Keep, save, reopen, then a new geometry and a choice). The BH3/BF3/CO pair is deliberately NOT used there: its numbers
+     belong to the gate (section 10), whose tolerance is fixed before the pair is run.
 4. **The gate** (section 10): preregistration commit, noise floor, the pair, the verdict recorded whichever way.
 5. **Later, each its own design review**: Stage B (the dispatch adapter), the snapshot extended to runs, the
    assistant's recipe tools.

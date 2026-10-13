@@ -12,6 +12,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `1,3-dimethyl-4,5,6,7-tetrahydro-1H-benzimidazol-3-ium`, as the aromatic benzimidazolium already was (D-240). Found by N-methylating one basic nitrogen of every census molecule (1036
   quaternary cations): 3 flagged, 1 of them this, and none of them the hydro omission round 47 fixed for protonated cations. The census and the frozen sets are unchanged.
 
+### Recipes, slice 3a: the Lewis pairing window (Tools > Lewis Acid-Base Pairing...)
+- **Pair two project molecules as Lewis acid and base from the quantum-chemistry runs already stored.** Pick the molecules, the method and basis, the solvent and
+  the role of the first; the window shows the three lines of evidence side by side (never one score), each with the run its numbers came from, and for every
+  missing number a sentence saying what would supply it. **It starts no calculation**: a job still to do is a row saying what it would run with and whether this
+  machine could run it, and its button opens the Quantum Chemistry panel on that molecule and calculation at that level; when the job finishes the window updates.
+- **A partial answer says it is partial** (and "Complete" only when every job is satisfied and every number bound); when no line can be evaluated there is a list
+  of jobs and no report. Several runs that could be meant (an earlier geometry, two spin states) are offered for the person to **choose by run id**, and the
+  choice is recorded. A run of an edited structure, or at another method, solvent or charge, is reported and not used.
+- **Keep** files the answer with the project (saved with it; marks the project unsaved); looking does not. `domain/recipe_preview.py` is the pure view model
+  (a row per job, a choice per ambiguity, one headline sentence); the window is `ui/dialogs/lewis_pairing_dialog.py`. New drive step `lewis_pairing` and
+  `benchmarks/visual/lewis_pairing.json`. Showing a kept answer in Results is the next step.
+
 ### Naming: a protonated ring cation with a ring ketone keeps every sp3 position in its hydro prefixes
 - `O=C1CCC=C2[NH2+]C=CCC12` was `5-oxo-1,4,6,7-tetrahydroquinolin-1-ium`: the sp3 fusion carbon 4a and the ketone carbon 5 were in no hydro locant, so OPSIN could not read the name (the
   Hantzsch hexahydroquinolinones) or read it as a different molecule. It is `5-oxo-1,4,4a,5,6,7-hexahydroquinolin-1-ium` (D-239). Found by protonating one basic site of every census molecule
