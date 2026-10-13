@@ -297,3 +297,43 @@ def test_an_empty_assessment_is_current():
         [run], viewing="bh3", assessments={run.run_id: Assessment()}, names=NAMES, structure_version=VERSION
     )
     assert not _stale(answer)
+
+
+# --- what the first pass of mutation found missing ----------------------------------------------------------------
+
+
+def test_the_limitations_the_kept_result_recorded_are_kept_and_come_first():
+    run = _run(second=carbon_monoxide(hardness=False))
+    recorded = replace(run, result=replace(run.result, limitations=("a limit the calculator recorded",)))
+    [answer] = _answers([recorded])
+    assert answer.limitations[0] == "a limit the calculator recorded"
+    assert answer.limitations[1].startswith("This answer is partial")
+
+
+def test_a_molecule_in_the_project_with_no_name_is_unnamed_not_gone():
+    [answer] = _answers([_run()], names={"bh3": "BH3", "co": ""})
+    assert answer.name.startswith("Lewis pairing: BH3 + an unnamed molecule at ")
+    assert "no longer in the project" not in answer.name
+
+
+def test_an_unnamed_molecule_is_unnamed_in_a_sentence_too_and_a_gone_one_is_gone():
+    run = _run()
+    view = _view(run, keys={"co": None})
+    [unnamed] = _answers([run], names={"bh3": "BH3", "co": ""}, views={run.run_id: view})
+    assert any("structure of an unnamed molecule was edited since" in t for t in unnamed.limitations)
+    [gone] = _answers([run], names={"bh3": "BH3"}, views={run.run_id: view})
+    assert any("structure of a molecule that is no longer in the project was edited since" in t for t in gone.limitations)
+
+
+def test_the_deleted_runs_in_a_note_are_named_by_their_short_ids_and_the_record_keeps_the_long_ones():
+    from tests.lewis_helpers import member, runs_of, stored_run
+
+    long_sp = "0123456789abcdef0123456789abcdef"
+    co = member("[C-]#[O+]", "co", "CO", [
+        stored_run("co", long_sp, "sp", {"orca.homo_energy": -10.17, "orca.lumo_energy": 99.0}),
+        runs_of("co", {"homo": 0, "lumo": 0, "hardness": 8.4})[1],
+    ])
+    run = _run(second=co)
+    [answer] = _answers([run], views={run.run_id: _view(run, deleted_runs=[long_sp])})
+    assert "(01234567)" in answer.stale_note and long_sp not in answer.stale_note
+    assert {e.run_id for e in run.evidence()} >= {long_sp}

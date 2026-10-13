@@ -481,3 +481,37 @@ def test_an_edit_of_a_molecule_that_is_not_shown_does_not_rebuild_the_reader(win
     window._services.event_bus.publish(MoleculeChanged(molecule_uuid=mono.uuid, during_edit=False))
     qapp.processEvents()
     assert rebuilt == []
+
+
+def test_keeping_a_pairing_does_not_rebuild_the_reader_of_a_molecule_that_took_no_part(window, pair, qapp):
+    from PySide6.QtCore import QThreadPool
+
+    project, borane, mono = pair
+    other = _molecule(window._services.chemistry_engine, "O", "water")
+    project.molecules.append(other)
+    _complete(window, mono)
+    dialog = window.show_lewis_pairing(borane.uuid, mono.uuid)
+    dialog.set_parameters(role="acid")
+    _select(window, other)
+    QThreadPool.globalInstance().waitForDone(20000)
+    for _ in range(20):
+        qapp.processEvents()
+    rebuilt = []
+    reader = _reader(window)
+    original = reader.set_reports
+    reader.set_reports = lambda *a, **k: rebuilt.append(1) or original(*a, **k)
+    assert dialog.press_keep() is True
+    assert rebuilt == []
+
+
+def test_deleting_a_run_updates_the_open_pairing_window(window, pair):
+    """The window shows numbers from stored runs; one deleted must not keep being shown as a number from a run."""
+    _, borane, mono = pair
+    _complete(window, mono)
+    dialog = window.show_lewis_pairing(borane.uuid, mono.uuid)
+    dialog.set_parameters(role="acid")
+    assert dialog.snapshot()["status"] == "completed"
+    assert window._services.result_store_service.delete_quantum_chemistry_run("co-dscf")
+    snapshot = dialog.snapshot()
+    assert snapshot["status"] == "partial"
+    assert any("CO has no delta-SCF run" in job["note"] for job in snapshot["jobs"])

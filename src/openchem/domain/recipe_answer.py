@@ -41,6 +41,10 @@ STALE_STAMP = -1
 #: What a slot is called in a sentence when its molecule is no longer in the project, and so has no name to give.
 GONE_MOLECULE = "a molecule that is no longer in the project"
 
+#: What a slot is called when its molecule IS in the project and its name is empty. Not `GONE_MOLECULE`: that would say a
+#: molecule had been removed that is sitting in the project.
+UNNAMED_MOLECULE = "an unnamed molecule"
+
 
 @dataclass(frozen=True, kw_only=True)
 class RecipeAnswer(ReportResult):
@@ -71,6 +75,7 @@ def project_answers(
     """The kept answers `viewing` took part in, as reader entries, newest run first.
 
     `assessments` is by run id and `names` by molecule uuid, both read by the host from the project as it is now.
+    `names` holds only molecules that are IN the project (a uuid absent from it is a molecule that is gone).
     A run with no result has nothing to show and is left out; a run `viewing` was not part of is left out. Every
     run shown needs an assessment (a `KeyError` otherwise): an answer nobody checked must not read as current.
     """
@@ -89,7 +94,7 @@ def project_answers(
 
 def _title(run: RecipeRun, names: Mapping[str, str]) -> str:
     parameters = dict(run.parameters)
-    molecules = " + ".join(names.get(i.molecule_uuid) or GONE_MOLECULE for i in run.inputs)
+    molecules = " + ".join(_name_of(i.molecule_uuid, names) for i in run.inputs)
     level = where(parameters.get("method_basis", ""), parameters.get("solvent", ""))
     return f"{run.result.name}: {molecules} at {level}"
 
@@ -151,8 +156,14 @@ def _stale_note(run: RecipeRun, assessment: Assessment, names: Mapping[str, str]
     return " ".join(sentences)
 
 
+def _name_of(molecule_uuid: str, names: Mapping[str, str]) -> str:
+    """What a molecule is called in a sentence: its name, or why it has none."""
+    if molecule_uuid not in names:
+        return GONE_MOLECULE
+    return names[molecule_uuid] or UNNAMED_MOLECULE
+
+
 def _called(run: RecipeRun, slots: Sequence[str], names: Mapping[str, str]) -> str:
     """The molecules in `slots`, named, joined for a sentence. "" for no slots."""
     by_slot = {i.slot: i.molecule_uuid for i in run.inputs}
-    called = [names.get(by_slot.get(slot, "")) or GONE_MOLECULE for slot in slots]
-    return " and ".join(called)
+    return " and ".join(_name_of(by_slot.get(slot, ""), names) for slot in slots)

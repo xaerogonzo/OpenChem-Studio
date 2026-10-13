@@ -384,3 +384,16 @@ def test_the_entry_is_never_in_the_session_result_store(services, pair):
     services.recipe_service.answers_for(borane.uuid, 1)
     assert {uuid: len(store.all_results(uuid)) for uuid in (borane.uuid, mono.uuid)} == before
     assert store.molecule_uuids() == [] and store.to_dict()["molecules"] == {}
+
+
+def test_a_kept_run_with_no_result_parses_no_drawing_and_shows_nothing(services, pair, monkeypatch):
+    from dataclasses import replace
+
+    _, borane, mono = pair
+    run = replace(services.recipe_service.evaluate_lewis_pairing(borane.uuid, mono.uuid, method_basis=M, role="acid"), result=None)
+    assert services.result_store_service.record_recipe_run(run)
+    parsed = []
+    monkeypatch.setattr(
+        type(services.recipe_service), "project_view", lambda self, only=None: parsed.append(only) or None
+    )
+    assert services.recipe_service.answers_for(borane.uuid, 1) == () and parsed == []

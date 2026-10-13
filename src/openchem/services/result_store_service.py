@@ -232,8 +232,9 @@ class ResultStoreService:
         from this moment, and a pairing window showing its numbers is out of date.
         """
         run = self.qc_runs.get(run_id)
-        if run is None or not self.qc_runs.delete(run_id):
+        if run is None:
             return False
+        self.qc_runs.delete(run_id)
         for callback in list(self._on_recorded):
             callback(run.molecule_uuid)
         self._event_bus.publish(QuantumChemistryRunDeleted(run_id=run_id, molecule_uuid=run.molecule_uuid))
