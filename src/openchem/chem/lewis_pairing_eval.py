@@ -44,7 +44,7 @@ from openchem.domain.refusal_kinds import RefusalKind
 
 #: The name the result is filed under. Not `lewis_adduct`: that is the registered calculator's id, and a pairing
 #: built from stored runs is a different answer that must not be mistaken for it in Results.
-RESULT_NAME = "Lewis pairing (stored quantum-chemistry runs)"
+RESULT_NAME = "Lewis pairing"
 
 #: The roles the recipe's `role` parameter accepts: the calculator's own codes.
 _ROLES = (ROLE_AUTO, ROLE_ACID, ROLE_BASE)

@@ -2291,6 +2291,113 @@ class _Driver(QObject):
             else:
                 logger.error("OPENCHEM_DRIVE: EXPECT goal_wizard FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
 
+    def _do_lewis_pairing(self, step: dict[str, Any]) -> None:
+        """Open the Lewis pairing window and press its REAL controls.
+
+        `{"do": "lewis_pairing", "first": 0, "second": 1, "method": "B3LYP def2-SVP", "role": "acid",
+        "press": "job:dscf_second", "expect": {"status": "partial", "jobs_to_do": 1, "panel_calc_type": "delta_scf"}}`
+
+        `first` and `second` are positions in the project (as `select` takes them); `method`, `solvent` and `role`
+        set the form's combos. `choose` is `{"slot": "second", "calc": "sp", "run": "<run id>"}` (or a list of them;
+        `"run": "first_candidate"` takes the newest the window offers), the "Use this run" answer to an ambiguity. `press` is `"keep"` (the REAL Keep button) or `"job:<step id>"` (the REAL
+        button of a job row, which asks the window for the Quantum Chemistry panel and starts nothing).
+
+        The window, not `RecipeService`, because the wiring from the window to the service, the panel and the
+        project is what is being proved. `expect` reads what is on screen (`status`, `headline_starts`,
+        `jobs_to_do`, `jobs_done`, `choices`, `has_result`, `result_contains`, `kept`, `keep_enabled`), the
+        project (`recorded_runs`) and where a job press went (`panel_shown`, `panel_calc_type`, `panel_method`,
+        `panel_molecule`: a position in the project).
+        """
+        molecules = list(self._window._session.project.molecules)
+
+        def uuid_at(key: str) -> str | None:
+            index = step.get(key)
+            if index is None or not -len(molecules) <= index < len(molecules):
+                return None
+            return molecules[index].uuid
+
+        dialog = self._window.show_lewis_pairing(uuid_at("first"), uuid_at("second"))
+        if any(key in step for key in ("method", "solvent", "role")):
+            dialog.set_parameters(method_basis=step.get("method"), solvent=step.get("solvent"), role=step.get("role"))
+        choose = step.get("choose")
+        for item in [choose] if isinstance(choose, dict) else choose or []:
+            run_id = item["run"]
+            if run_id == "first_candidate":
+                # A real run id is not known when a script is written; the window offers its candidates newest first.
+                run_id = next(
+                    (c["candidates"][0] for c in dialog.snapshot()["choices"]
+                     if c["slot"] == item["slot"] and c["calc"] == item["calc"]),
+                    None,
+                )
+                if run_id is None:
+                    logger.error("OPENCHEM_DRIVE: lewis_pairing -- no choice is offered for %s %s", item["slot"], item["calc"])
+                    continue
+            dialog.choose_run(item["slot"], item["calc"], run_id)
+        press = str(step.get("press") or "")
+        pressed: bool | None = None
+        if press == "keep":
+            pressed = dialog.press_keep()
+        elif press.startswith("job:"):
+            pressed = dialog.press_job(press[4:])
+        snapshot = dialog.snapshot()
+        jobs = snapshot["jobs"]
+        logger.warning(
+            "OPENCHEM_DRIVE: lewis_pairing status=%s | %s | jobs %s | choices %d | result=%s kept=%s pressed=%s",
+            snapshot["status"], snapshot["headline"][:90],
+            ", ".join(f"{j['step']}={j['state']}" for j in jobs), len(snapshot["choices"]),
+            snapshot["has_result"], snapshot["kept"], pressed,
+        )
+        for line in snapshot["result_lines"][:14]:
+            logger.warning("OPENCHEM_DRIVE: lewis_pairing | %s", line[:150])
+        expect = step.get("expect")
+        if not expect:
+            return
+        problems: list[str] = []
+        wanted = {
+            "status": snapshot["status"],
+            "jobs_to_do": sum(1 for j in jobs if j["state"] != "completed"),
+            "jobs_done": sum(1 for j in jobs if j["state"] == "completed"),
+            "choices": len(snapshot["choices"]),
+            "has_result": snapshot["has_result"],
+            "kept": snapshot["kept"],
+            "keep_enabled": snapshot["keep_enabled"],
+            "recorded_runs": len(self._window._services.result_store_service.recipe_runs.all_runs()),
+        }
+        for key, actual in wanted.items():
+            if key in expect and expect[key] != actual:
+                problems.append(f"{key} is {actual!r}, expected {expect[key]!r}")
+        prefix = expect.get("headline_starts")
+        if prefix and not snapshot["headline"].startswith(prefix):
+            problems.append(f"headline {snapshot['headline'][:60]!r} does not start {prefix!r}")
+        text = "\n".join(snapshot["result_lines"])
+        for needle in expect.get("result_contains", []):
+            if needle not in text:
+                problems.append(f"the answer lacks {needle!r}")
+        if "pressed" in expect and expect["pressed"] != pressed:
+            problems.append(f"pressed is {pressed!r}, expected {expect['pressed']!r}")
+        panel = self._window._quantum_chemistry_panel
+        if "panel_shown" in expect:
+            dock = self._window._dock_by_panel_id(expect["panel_shown"])
+            if dock is None or dock.isHidden():
+                problems.append(f"the {expect['panel_shown']} panel is not showing")
+        if "panel_calc_type" in expect:
+            from openchem.chem.orca_engine import CALC_TYPE_LABELS
+
+            actual = CALC_TYPE_LABELS.get(panel._calc_type_combo.currentText())
+            if actual != expect["panel_calc_type"]:
+                problems.append(f"the panel's calculation is {actual!r}, expected {expect['panel_calc_type']!r}")
+        if "panel_method" in expect and panel._method_combo.currentText() != expect["panel_method"]:
+            problems.append(f"the panel's method is {panel._method_combo.currentText()!r}")
+        if "panel_molecule" in expect:
+            wanted_uuid = molecules[expect["panel_molecule"]].uuid
+            if panel._molecule_combo.currentData() != wanted_uuid:
+                problems.append("the panel is on another molecule")
+        tag = str(step.get("tag", ""))
+        if self._record_assertion("lewis_pairing", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT lewis_pairing ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT lewis_pairing FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
     def _do_properties_scroll(self, step: dict[str, Any]) -> None:
         """Scroll the Properties list: `{"do": "properties_scroll", "to": "end"}`.
 
@@ -2533,6 +2640,11 @@ class _Driver(QObject):
                 logger.error("OPENCHEM_DRIVE: no goal wizard open; run {'do': 'goal_wizard'}")
                 return
             target = self._window._goal_wizard
+        elif step.get("widget") == "lewis_pairing":
+            if self._window._lewis_pairing is None:
+                logger.error("OPENCHEM_DRIVE: no Lewis pairing window open; run {'do': 'lewis_pairing'}")
+                return
+            target = self._window._lewis_pairing
         elif step.get("widget") == "dialog":
             if getattr(self, "_dialog", None) is None:
                 logger.error("OPENCHEM_DRIVE: no dialog open; run {'do': 'dialog', ...}")
