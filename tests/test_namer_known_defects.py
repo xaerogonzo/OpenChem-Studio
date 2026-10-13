@@ -4307,6 +4307,15 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-234", "NC(=[NH2+])CC(C(=O)[O-])C(=O)O", "3-carboxylato-4-hydroxy-4-oxobutanamidinium",
      "[REFUSED: charge perception claimed an 'amidinium' motif but could not complete it]",
      "a visible refusal; the neutral acid is named as its methyl ester so its prefix cannot be confused with the carboxylate's, and mapped back"),
+    # (D-235, a sulfonamide anion beside a neutral amide, is in tests/test_namer_round46_anions_beside_neutral_groups.py: OPSIN reads `-sulfonamidate` as the neutral sulfonamide, which this table's harness would compare as a different molecule.)
+    # D-236 (naming round 46): the anion of an imide had NO charge in its name (a different molecule), or a visible error.
+    ("D-236", "O=C1CCC(=O)[N-]1", "2,5-dioxopyrrolidin-1-ide", "pyrrolidine-2,5-dione",
+     "CHARGE LOST: succinimide's anion was named as succinimide (census-derived population: 16 of 40 deprotonated imides)"),
+    ("D-236", "CC(=O)[N-]C(=O)NC", "acetyl(methylcarbamoyl)azanide", "N-methyl-1-{[NAMING ERROR: No valid naming plan found for CC([NH-])=O]}methanamide",
+     "a visible error; P-72.2.2.2 names the anion of an amide, hydrazide or imide with the parent azanide"),
+    # D-237: a sulfamide off a carboxylate lost its linking NH and a nitrogen's substituents.
+    ("D-237", "[O-]C(=O)c1ccccc1NS(=O)(=O)N(C)C", "2-[(dimethylaminosulfonyl)amino]benzoate", "2-(N,N-dimethylsulfamoyl)benzoate",
+     "WRONG MOLECULE: the NH between the ring and the sulfonyl was gone, and the methyls were cited on a sulfamoyl"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",
