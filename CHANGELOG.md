@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Recipes, slice 1: the plan model, the run record, and a `recipe_runs` block in the project file
+- **`domain/recipe.py`** (pure): a recipe is an ordered plan whose steps read each other's typed outputs (a slot, a recipe parameter, or an EARLIER step's
+  output; a cycle cannot be written). Values have a closed type (scalar-with-unit, code, run reference, report, molecule) and a unit is part of it:
+  two scalars in different units are different types and nothing converts between them. The transform table is closed and starts with `identity`
+  alone. `validate_recipe` reports every problem at once, each naming where it is, and checks registry steps against the real definition
+  (registered, registry-run, classified, constants through the same `validate_parameters` the assistant's bridge uses), service steps (a heavy
+  program, always approved by a person) and evaluate steps (pure, instant, in process). Nothing ships yet: `SHIPPED_RECIPES` is empty until the
+  Lewis pairing.
+- **`domain/recipe_run.py`** (pure): `RecipeRun`, an immutable record of one evaluation, with its own store and its own envelope version, following
+  the quantum-chemistry run precedent. It is not a result in `SessionResultStore`, which drops a result when its structure is edited, and that is
+  the moment a person most needs to read "stale, because the structure was edited". Eight binding states with a reason each; the evidence is copied
+  in (value, unit, which run, method, basis, charge, multiplicity, input); **a run with a gap is never `COMPLETED`**, enforced when it is built and
+  again when it is read from a file. Staleness (edited structure, removed molecule, deleted quantum-chemistry run, unknown recipe version) is derived
+  at read from a `ProjectView` the host supplies and is never stored; a missing constitution key reads as unverifiable, never as unchanged.
+- **The project file** carries the block under `recipe_runs`; `ProjectService.parse/load_document` now return a `ProjectDocument` (a named tuple,
+  so the fourth block is the last to break every unpacker). A newer or foreign block, or a damaged run, is skipped and reported through
+  `load_problems` and the log, never silently. `ResultStoreService.record_recipe_run` is the one write path; it refuses a molecule the project lacks
+  and **marks the session unsaved**, which nothing else would, because a recipe run is never also a result.
+- Nothing is reachable from the UI yet: this is the model the Lewis pairing (slice 2) is built on. `docs/RECIPES_DESIGN.md` records the four refinements
+  made while building it.
+
 ### An ORCA-optimized geometry is now the geometry every later calculation uses
 - **`canonical_conformer` prefers the newest quantum-optimized conformer** (`ConformerModel.method` in `QUANTUM_OPTIMIZED_METHODS`, today `orca_opt`)
   to every force-field one; with none, the lowest-MMFF-energy rule is unchanged. Before, an ORCA-optimized conformer is stored without an energy,

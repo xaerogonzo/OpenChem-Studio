@@ -39,8 +39,9 @@ from pathlib import Path
 
 from openchem.domain.project import ProjectModel
 from openchem.domain.quantum_chemistry_run import QuantumChemistryRunStore
+from openchem.domain.recipe_run import RecipeRunStore
 from openchem.domain.result_store import SessionResultStore
-from openchem.services.project_service import ProjectService
+from openchem.services.project_service import ProjectDocument, ProjectService
 
 logger = logging.getLogger("openchem.recovery")
 
@@ -81,12 +82,13 @@ class RecoveryService:
         generation: int,
         source_path: str = "",
         qc_runs: QuantumChemistryRunStore | None = None,
+        recipe_runs: RecipeRunStore | None = None,
     ) -> bool:
         """Write a recovery copy, unless it was scheduled before a Save."""
         if generation != self.generation:
             logger.debug("Skipping a recovery write from generation %s (now %s)", generation, self.generation)
             return False
-        document = json.loads(self._project_service.serialise(project, results, fingerprints, qc_runs))
+        document = json.loads(self._project_service.serialise(project, results, fingerprints, qc_runs, recipe_runs))
         payload = {
             "recovery_version": RECOVERY_VERSION,
             "generation": generation,
@@ -135,7 +137,7 @@ class RecoveryService:
             if payload.get("recovery_version", 0) > RECOVERY_VERSION:
                 logger.warning("Recovery file %s is from a newer build; not offered", path.name)
                 return None
-            project, _results, _qc_runs = self._project_service.parse(payload["document"])
+            project = self._project_service.parse(payload["document"]).project
         except Exception as exc:  # noqa: BLE001 - a damaged file is unusable, never a crash
             logger.warning("Recovery file %s is unusable: %s", path.name, exc)
             return None
@@ -152,9 +154,7 @@ class RecoveryService:
             molecule_count=len(project.molecules),
         )
 
-    def load(
-        self, candidate: RecoveryCandidate
-    ) -> tuple[ProjectModel, SessionResultStore, QuantumChemistryRunStore]:
+    def load(self, candidate: RecoveryCandidate) -> ProjectDocument:
         payload = json.loads(candidate.path.read_text(encoding="utf-8"))
         return self._project_service.parse(payload["document"])
 

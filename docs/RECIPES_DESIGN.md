@@ -49,8 +49,9 @@ different feature with a different safety argument: `DERIVED_SCORES_DESIGN.md`.)
   2. **Service step**: one ORCA job (calc type, method and basis, charge, multiplicity). Always `CONFIRM`:
      `ExecutionPolicy` refuses `AUTO` for any program in `HEAVY_TOOLS`, and this record does not weaken that.
   3. **Evaluate step**: a pure function over bound values. In process, instant, no external program.
-* **Binding**: `(target, source, transform)`. The source is a named output of an **earlier** step or a slot, so a
-  cycle cannot be written. The transform is from a **closed table** that starts with one member, `identity`. A unit
+* **Binding**: `(target, source, transform)`. The source is a slot, a **recipe parameter** (a choice made once for the
+  whole recipe, such as the one method every step shares), or a named output of an **earlier** step, so a cycle
+  cannot be written. The transform is from a **closed table** that starts with one member, `identity`. A unit
   conversion is added as its own reviewed entry with the constant it uses and a test, never as a function a recipe
   author supplies.
 * **Output type**: closed: a scalar with a unit, a code from a declared set, a reference to a stored run, a report.
@@ -59,7 +60,10 @@ different feature with a different safety argument: `DERIVED_SCORES_DESIGN.md`.)
 **Validated before it can run**, at import time for a shipped recipe and again for each instance: every reference
 resolves backwards; the target accepts the type; units are equal; each registry step's parameters pass
 `validate_parameters`; each step has a stated execution policy; the recipe version is unique. A recipe that fails
-validation is a failing test, not a recipe that runs and refuses.
+validation is a failing test, not a recipe that runs and refuses. (Built in slice 1: a registry step states no
+policy of its own and takes its calculator's, so a calculator nobody classified is an *unclassified step*; a service
+step must name a heavy program and be approved by a person; an evaluate step must be pure, instant and in process;
+a step on a molecule binds exactly one; and no step produces a molecule, which is a slot's type alone.)
 
 **Not here:** no `eval`, no expression language (that is the other record), no dynamic import, no plugin-registered
 recipes, no loops or branches in a plan. A branch is two recipes.
@@ -83,6 +87,12 @@ Every binding ends in exactly one of eight states, and the state is recorded wit
 `predict` already means by "not available"; it is never `0.0`. **A present-but-wrong binding is never reported as
 an absent one:** "no hardness run exists" and "a hardness run exists but at a different method" are different
 sentences, and the second one tells the person what to do.
+
+**What optional relaxes (settled while building slice 1).** The table above says "unless optional" on `MISSING` only.
+An optional binding relaxes **every** state but `BOUND`, because the value handed to the step is `None` in each (a
+stale or incompatible number is never handed over in its place) and the state is still recorded, which is what
+`PairEvidence` means by "a value or `None` with the state that explains the `None`". A required binding blocks in
+every state but `BOUND`.
 
 **Optional bindings** exist for one reason: the Lewis lines are independent evidence, and `predict`'s contract is
 that nothing fails because one line is unavailable. A binding is optional only where the step's own contract says
@@ -199,6 +209,13 @@ completed run is *projected* into the places a person looks (the Results list, t
   calc type, method and basis, charge, multiplicity, solvent, `input_fingerprint`, and which binding state it was
   in. The numbers are kept so the answer can still be read when the run they came from has since been deleted.
 * the **result**: the report, encoded with `result_codec`.
+* **As built (slice 1).** Also kept: the recipe parameters chosen; for each binding its state, its reason in words,
+  the candidate run ids when it was `AMBIGUOUS`, and the copied evidence; and the run is immutable, so a rerun cannot
+  alter it. **A run built `COMPLETED` while any step is unfinished or any binding is not `BOUND` is refused**, when it
+  is built and when it is read from a file, and `classify` is the one place the status is decided. The store
+  reports what it could not read through `load_problems` as well as the log, so a dropped run is never silent, and
+  `ResultStoreService.record_recipe_run` tells the session it has something unsaved, because a recipe run is never
+  also a result in the store and nothing else would.
 * an **envelope version** of its own, in a block of its own in the project file. A newer block is ignored with a
   warning; a damaged run is skipped without breaking the others; neither is silent. Two things can be unknown to a
   later build: the envelope, and the recipe version. A run whose recipe version this build does not have is
@@ -217,9 +234,13 @@ project today cannot. What is stored is the manifest.
 ## 7. Staleness, and what a rerun is
 
 A recipe run is **stale** when the recorded answer no longer describes the project. Each cause is named:
-`structure_edited` (a slot's constitution changed), `evidence_removed` (a consumed run is no longer in the
+`structure_edited` (a slot's constitution changed), `molecule_removed` (a slot's molecule is no longer in the
+project; added in slice 1, the design had no word for it), `evidence_removed` (a consumed run is no longer in the
 project; the recorded numbers stay on screen as recorded), `recipe_version_unknown`. A newer compatible run is
 **not** staleness (section 3). It is an offer.
+
+A slot with no constitution key to compare, because the run recorded none or the host could not compute one now, is
+listed as **unverifiable** and is neither stale nor "unchanged".
 
 **A rerun is a new `RecipeRun` with a new plan.** It never mutates the old one. The plan lists what is missing and
 what would supply it, step by step with its execution policy. In this phase a plan whose missing steps are ORCA
@@ -312,8 +333,9 @@ with the UI slice. It will need a drive step for the pairing, which the harness 
 
 ## 12. Slices
 
-1. **The recipe model, the run record and the staleness rules**: pure, with the validator, the closed transform
-   table, `RecipeRun`, its store, its codec envelope and the project key. No UI, no ORCA, no chemistry.
+1. **The recipe model, the run record and the staleness rules** (built): pure, with the validator, the closed
+   transform table, `RecipeRun`, its store, its envelope and the project key (`recipe_runs`). No UI, no ORCA, no
+   chemistry. `domain/recipe.py`, `domain/recipe_run.py`, `ResultStoreService.record_recipe_run`.
 2. **Lewis evidence**: `PairEvidence`, the shared body of `compute_lewis_adduct`, the binder over
    `QuantumChemistryRunStore` (it needs the host for the constitution comparison), the shipped recipe.
 3. **Host and UI**: a pairing entry, the gap list with the service preview, the result in Results, the help
