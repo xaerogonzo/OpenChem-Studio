@@ -9671,8 +9671,35 @@ def _restore_dropped_chalcogen_anion(mol, name: str) -> str:
     )
 
 
+#: A word that says a name is an ANION: a suffix at the end of a word (`-ide`, not the `amide` / `imide` of a neutral class; `-ate`), or an anionic PREFIX anywhere in one (`sulfonatooxy`,
+#: `carboxylatomethyl`, `oxidosulfonyl`; not the `acetamido` / `imido` / `ureido` of a neutral group). A name with none of them for a molecule whose net charge is negative has left the charge out.
+_ANION_WORD_END = re.compile(r"(?:(?<!am)(?<!im)(?<!sulfam)ide|ate|ite)(?![a-z])|ato|(?<!am)(?<!im)(?<!ure)(?<!sulfam)ido|\(\d*-\)")
+#: A name that cites a cation: `ium` anywhere (`pyridin-1-ium`, `ammonium`, `azaniumyl`) or the `onio` prefix (`trimethylammonio`).
+_CATION_WORD = re.compile(r"ium|onio|\(\d*\+\)")
+#: The elements the guard judges: an organic name's. A metal complex or organyl is named with oxidation-state and charge notation (`methylmercury(1+)`, `iron(IV)`) that this word test does not model.
+_GUARDED_ELEMENTS = frozenset({1, 5, 6, 7, 8, 9, 14, 15, 16, 17, 33, 34, 35, 52, 53})
+
+
+def _check_charge_named(mol, name: str) -> None:
+    """Refuse a name that is the NEUTRAL compound's when the molecule is an ion (naming round 46, D-237).
+
+    The charge classifiers decline what they do not know ("unclaimed" falls through by design, because pyridinium and nitrobenzene are named by other paths), and the plan search then neutralises
+    the molecule: `O=C1CCC(=O)[N-]1` was `pyrrolidine-2,5-dione` and a sulfamide anion `sulfamoylmethane`, with nothing in the output to say so. Every fix for one shape (rounds 43 and 44 for
+    alkoxides and thiolates, this round for imides) left the next shape the same way. A single fragment whose net charge is not zero must have a word in its name that says so. A salt, a
+    zwitterion (net charge zero) and an error name are not judged here."""
+    if "NAMING ERROR" in name or len(Chem.GetMolFrags(mol)) != 1:
+        return
+    if any(a.GetAtomicNum() not in _GUARDED_ELEMENTS for a in mol.GetAtoms()):
+        return
+    net = sum(a.GetFormalCharge() for a in mol.GetAtoms())
+    if net < 0 and not _ANION_WORD_END.search(name):
+        raise ValueError(f"No name found that keeps the negative charge (the nearest name, {name!r}, is the neutral compound's).")
+    if net > 0 and not _CATION_WORD.search(name):
+        raise ValueError(f"No name found that keeps the positive charge (the nearest name, {name!r}, is the neutral compound's).")
+
+
 def _name_smiles_bound(smiles: str, strategy) -> str:
-    """Name a molecule from SMILES, *strategy* already bound (never None); refuse a name that loses a nuclide.
+    """Name a molecule from SMILES, *strategy* already bound (never None); refuse a name that loses a nuclide or a charge.
 
     Returns the final name string.
     """
@@ -9681,6 +9708,7 @@ def _name_smiles_bound(smiles: str, strategy) -> str:
     if mol is not None:
         _check_nuclides_named(mol, name)
         name = _restore_dropped_chalcogen_anion(mol, name)
+        _check_charge_named(mol, name)
     return name
 
 
@@ -14558,6 +14586,22 @@ class SubstitutivePath:
                 # list is reassigned to itself); kept so the intent reads as "restrict when a type is mixed".
                 if charged_insts and len(charged_insts) < len(insts):
                     type_groups[t] = charged_insts
+            # Naming round 46: an ANION outranks every NEUTRAL class (P-41: anions 4, acids 7, amides 8 ...), not only a neutral instance of its own type. A sulfonamide N-anion
+            # beside an amide (`CC(=O)Nc1ccc(S(=O)(=O)[N-]c2ncccn2)cc1`) left the amide, which is not in the anion-variant family, as the only parent that
+            # competed on seniority: it won, the charged sulfonamide fell to the `sulfamoyl` prefix and the charge was gone from the name, a different molecule (census row 2072).
+            # Drop the types that have no charged atom at all, so the anion is the parent and the amide is cited as a prefix (`acetamido`). A CATION type is kept (a
+            # zwitterion's cation is not a neutral class).
+            _anion_types = {
+                t for t, insts in type_groups.items()
+                if t in _FG_TYPES_WITH_ANION_VARIANT
+                and any(mol.GetAtomWithIdx(a).GetFormalCharge() < 0 for fg in insts for a in fg.atoms)
+            }
+            if _anion_types:
+                for t in list(type_groups.keys()):
+                    if t in _anion_types:
+                        continue
+                    if all(mol.GetAtomWithIdx(a).GetFormalCharge() == 0 for fg in type_groups[t] for a in fg.atoms):
+                        del type_groups[t]
 
         # P-73/P-74 salt-cation acid demotion.  When this fragment is a salt
         # CATION paired with a separate counter-anion (salt_demote_acid set by
@@ -17883,6 +17927,15 @@ class SubstitutivePath:
                                 and nb.GetIdx() in pa.substituent_atoms
                                 for nb in anchor_atom_exec.GetNeighbors()
                             )
+                            # Naming round 46: a SULFAMIDE (a sulfonyl with TWO nitrogens off the parent) is not a sulfonamide with one nitrogen. The compound-sulfamoyl
+                            # branch below takes the first nitrogen it finds and names the other's substituents `N,N-dimethylsulfamoyl`: `[O-]C(=O)c1ccccc1NS(=O)(=O)N(C)C`
+                            # lost the linking NH and was named `2-(N,N-dimethylsulfamoyl)benzoate`, a different molecule. Name the whole fragment recursively.
+                            if not has_acyl_chain and pa.fg.type == "sulfonamide":
+                                if sum(
+                                    1 for nb in anchor_atom_exec.GetNeighbors()
+                                    if nb.GetAtomicNum() == 7 and nb.GetIdx() in pa.substituent_atoms
+                                ) >= 2:
+                                    has_acyl_chain = True
                             # Sulfamate ester: a sulfonamide whose S bears a
                             # single-bonded -O-R (alkoxy/aryloxy) is R-O-SO2-N<,
                             # not R-SO2-NH2.  The bare "sulfamoyl" prefix would

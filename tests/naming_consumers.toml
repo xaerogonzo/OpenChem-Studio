@@ -463,3 +463,9 @@ file = "tests/test_namer_round45_cations_and_zwitterions.py"
 why = "a ring cation keeps -ium before a curated ketone suffix (D-233: ...quinolin-6-ium-3,14(4H)-dione), an amidinium zwitterion with a second acid is named (D-234: 3-carboxylato-4-hydroxy-4-oxobutanamidinium), and the census read-back tries OPSIN-readable respellings"
 scope = "core"
 owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_round46_anions_beside_neutral_groups.py"
+why = "an anion beside a neutral group keeps its charge: a sulfonamidate beside an amide (D-235), the azanide / ring -ide of an imide, acylurea or N-aryl sulfamide (D-236), a sulfamide prefix off a carboxylate (D-237), and the charge guard that refuses an ion named neutral (D-238)"
+scope = "core"
+owner = "namer"
