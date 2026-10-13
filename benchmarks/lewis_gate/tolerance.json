@@ -1,0 +1,7 @@
+{
+  "T_ev": null,
+  "floor_ev": null,
+  "floor_artifact": "benchmarks/lewis_gate/artifacts/floor.json",
+  "rule": "T = max(0.01, floor rounded UP to the next 0.01 eV), and no tolerance at all above 0.37 eV; see PREREGISTRATION.md section 5",
+  "note": "Unset on purpose. It is written once, by hand, in the commit that records the noise floor and BEFORE the pair is run. lewis_gate_begin refuses to start the pair while it is null or while it is not what the rule gives the floor."
+}

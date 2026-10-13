@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Recipes, slice 4: the Lewis pairing gate is preregistered (BH3/CO and BF3/CO on real ORCA)
+- **`benchmarks/lewis_gate/PREREGISTRATION.md` freezes the gate before any ORCA job of BH3 or BF3**: the documented numbers, the procedure, the noise floor (carbon monoxide run twice on one input and through the whole
+  chain twice), **the rule for the tolerance (`T = max(0.01 eV, floor rounded up to 0.01)`, none above 0.37 eV)**, and exactly what PASS, FAIL and NOT EVALUABLE mean. `app/lewis_gate.py` is the arithmetic, pure and tested with
+  invented numbers; `lewis_gate_floor.json` and `lewis_gate_pair.json` are the scripts; `lewis_gate_begin` ends the pair run before one job unless `tolerance.json` holds the tolerance the rule gives the recorded floor.
+  New drive steps `qc_wait`, `lewis_gate_begin`, `lewis_gate_floor`, `lewis_gate_pair`. No measurement is in this change; the outcome is appended to the preregistration when it exists.
+
 ### Naming: the ions rounds 44 to 48 left refused or unreadable
 - A protonated imidate, thioimidate, isourea or amidoxime is named as the cation, `(1-sulfanylethylidene)azanium`, `[amino(methoxy)methylidene]azanium`, `(1-aminoethylidene)(hydroxy)azanium` (D-241); before, the
   charge guard refused it. The anion of an N-acyl carbamate is `acetyl(methoxycarbonyl)azanide` (was a visible error) and saccharin's is `1,1,3-trioxo-1,2-benzothiazol-2-ide` (was refused) (D-242). The prefix for S- is

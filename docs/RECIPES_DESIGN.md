@@ -423,7 +423,9 @@ with the UI slice. It will need a drive step for the pairing, which the harness 
      recomputation that follows an edit is not certain to produce a result event and a kept answer must not wait for one.
    * **Not done:** the batch/project table does not show kept answers (a table of calculators over molecules has no column for a
      two-molecule record), and the assistant cannot read them (section 9).
-4. **The gate** (section 10): preregistration commit, noise floor, the pair, the verdict recorded whichever way.
+4. **The gate** (section 10): preregistration commit, noise floor, the pair, the verdict recorded whichever way. **Preregistered** in `benchmarks/lewis_gate/PREREGISTRATION.md`
+   (frozen before any borane job): it settles what section 10 left open (the tolerance is `max(0.01, floor rounded up to 0.01)` from a floor that includes a second carbon monoxide put through the
+   whole chain, none above 0.37 eV; NOT EVALUABLE takes precedence over FAIL; PASS and FAIL are final; a run that did not finish may be repeated unchanged). The arithmetic is `app/lewis_gate.py`.
 5. **Later, each its own design review**: Stage B (the dispatch adapter), the snapshot extended to runs, the
    assistant's recipe tools.
 
