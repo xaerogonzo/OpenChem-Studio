@@ -597,6 +597,7 @@
   "tests/test_depiction_annotations.py": 1,
   "tests/test_derived_name_reaches_opsin.py": 1,
   "tests/test_descriptor_aggregate.py": 0,
+  "tests/test_descriptor_input.py": 2,
   "tests/test_descriptor_providers.py": 0,
   "tests/test_descriptor_service.py": 1,
   "tests/test_dialog_directories.py": 1,

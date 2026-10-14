@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### A conformer no longer replaces the drawing's descriptors, alerts and per-atom data (reader, Project table and saved files)
+- **Reported:** draw aspirin, let the always-on descriptors compute, generate a conformer: Synthetic Accessibility 1.58 became 6.445, Bertz CT 343.2 became 609, H-bond acceptors 3 became 4, and the Project table showed the
+  same figures. The conformer carries explicit hydrogen atoms and the drawing's are implicit, and `request_descriptors(molecule, GEOMETRY)` ran the WHOLE provider on it; the results share an id with the drawing's, so they
+  replaced them. Reproduced in the driven application (`benchmarks/visual/descriptors_survive_a_conformer.json`), which also found four more that moved (`np_likeness`, its confidence, `esol_logs`, and `rule_of_three_pass`,
+  which flipped from Pass to Fail because the acceptor count crossed 3).
+- **Measured, not guessed** (`tools/survey_descriptor_inputs.py`, 29 census molecules, three structures each): the ten shape descriptors are refused on the flat drawing and vary between two embeddings of one molecule, so
+  they are the only ones a geometry can answer; nine others move between drawing and conformer and never between two conformers (a hydrogen-representation artefact); two alert catalogues moved (BRENK's long-chain alert on a
+  C12E6 surfactant, ferrocene's fragment counts); the three per-atom datasets came back describing 21 atoms for aspirin's 13 while their provenance still said `heavy_atoms`.
+- **A conformer request now computes the provider's geometric descriptors only** (`DescriptorProvider.geometric_descriptor_ids`; the built-in provider declares the ten shape descriptors, a plugin that declares none is never
+  handed a conformer). Everything else is computed on the drawing, which is what the Properties reader shows.
+- **The Project table had the wider form of the same defect:** it handed the conformer to every descriptor, alert catalogue and registered calculator. Measured with every census molecule given a conformer, 22 of the 51
+  drawing-declared calculators changed their answer (234 of 1479 cells; none unstable on its own input). Each column now gets the input it declares, as the Properties panel does.
+- **Saved projects** written by the earlier build hold the conformer's figures under the GEOMETRY identity, and a replay publishes GEOMETRY after DRAWING, so opening one would have put 6.445 back with nothing running.
+  They are dropped as the project opens (counted as `retired`); a calculator that declares GEOMETRY keeps its results.
+- `test_an_unusable_conformer_falls_back_instead_of_failing_every_descriptor` asserted that a conformer request re-publishes `mol_wt` and `formula`; it now asserts that it publishes neither.
+
 ### Naming: the anion of a hydrazide, ring anions with an added hydrogen or a prime, and a nitro group beside a ring anion
 - `tools/naming_ion_populations.py` gained five site patterns the first rounds never tried (a lactam NH, a hydrazide NH, an azole NH, a hydroxamic acid, and the oxygen of an amide or a ketone, protonated
   or methylated). The anion population went from 416 of 453 clean to 451 of 453. `CC(=O)[N-]N` is `acetyl(amino)azanide` (it was a `NAMING ERROR`) (D-248); a ring anion whose attachment locant

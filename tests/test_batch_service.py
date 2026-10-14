@@ -13,6 +13,7 @@ from PySide6.QtCore import QThreadPool
 from PySide6.QtWidgets import QApplication
 
 from openchem.bootstrap import build_service_container
+from openchem.chem.descriptor_providers import RDKitDescriptorProvider
 from openchem.domain.batch import BatchCell, BatchColumn, BatchRequest, BatchTable
 from openchem.domain.common import CacheState
 from openchem.domain.molecule import MoleculeModel
@@ -380,3 +381,69 @@ def test_naming_no_molecules_still_means_everything_given(services):
     molecules = _molecules(services)
     events = _run(services, BatchRequest(descriptor_ids=["mol_wt"]), molecules)
     assert len(events[-1].table.row_uuids) == len(molecules)
+
+
+# --- a conformer is the input of the geometric columns and of no others ----------------
+
+
+def _with_conformer(services, molecule):
+    from openchem.chem.conformer_providers import RDKitConformerProvider
+    from openchem.domain.conformer import ConformerModel
+
+    engine = services.chemistry_engine
+    mol, _energy = RDKitConformerProvider().generate_conformers(
+        engine.mol_from_model(molecule), num_conformers=1, optimize=False
+    )[0]
+    molecule.conformers.append(ConformerModel(molblock=engine.mol_to_molblock(mol), energy=-1.0))
+    return molecule
+
+
+#: Aspirin moves descriptors (SA score 1.58 -> 6.445) and the calculators; the C12E6 surfactant moves an ALERT
+#: catalogue (BRENK's long-chain alert is on the drawing and absent on the conformer), which aspirin does not.
+@pytest.mark.parametrize("smiles", ["CC(=O)Oc1ccccc1C(=O)O", "CCCCCCCCCCCCOCCOCCOCCOCCOCCO"])
+def test_a_conformer_changes_only_the_geometric_columns_of_a_row(services, smiles):
+    """**THE PROJECT TABLE HANDED EVERY COLUMN THE CONFORMER.** Aspirin with a conformer showed
+    Synthetic Accessibility 6.445 where the same aspirin without one -- and its Properties
+    reader -- showed 1.58, and 22 of the 51 drawing-declared calculators moved the same way.
+
+    The invariant is the whole point and needs no number: two copies of one molecule, one with
+    a conformer, differ in the columns that are ABOUT geometry (the shape descriptors, and a
+    calculator that declares `GEOMETRY`) and in nothing else.
+    """
+    plain, conformed = _molecules(services, [("plain", smiles), ("conformed", smiles)])
+    _with_conformer(services, conformed)
+    geometric_descriptors = {f"descriptor:{i}" for i in RDKitDescriptorProvider().geometric_descriptor_ids()}
+    events = _run(
+        services,
+        BatchRequest(
+            molecule_uuids=[plain.uuid, conformed.uuid],
+            descriptor_ids=["sa_score", "bertz_ct", "num_hba", "labute_asa", "mol_wt", "rule_of_three_pass",
+                            "pmi1", "radius_of_gyration", "brenk", "fragment_counts"],
+            calculator_ids=["polar_surface_area", "topology_analysis", "cns_mpo", "geometry_analysis"],
+        ),
+        [plain, conformed],
+    )
+    table = events[-1].table
+    differing = {
+        column.column_id
+        for column in table.columns
+        if (a := table.cell(plain.uuid, column.column_id)) is not None
+        and (b := table.cell(conformed.uuid, column.column_id)) is not None
+        and (a.text, a.cache_state) != (b.text, b.cache_state)
+    }
+    geometric = geometric_descriptors | {c.column_id for c in table.columns if c.column_id.startswith("calculator:geometry_analysis")}
+    assert {"descriptor:pmi1", "descriptor:radius_of_gyration"} <= differing, "setup: the conformer must change the shape columns"
+    assert differing <= geometric, f"a conformer moved columns that are not about geometry: {sorted(differing - geometric)}"
+    # And the figure itself, not only the equality: the drawing's, as the Properties reader holds it.
+    engine = services.chemistry_engine
+    drawn = {v.descriptor_id: v.value for v in RDKitDescriptorProvider().compute(engine.mol_from_model(conformed), conformed.uuid)}
+    assert abs(table.cell(conformed.uuid, "descriptor:sa_score").value - drawn["sa_score"]) < 1e-9
+
+
+def test_the_shape_columns_of_a_molecule_with_no_conformer_still_say_so(services):
+    plain, = _molecules(services, [("plain", "CCO")])
+    table = _run(
+        services, BatchRequest(descriptor_ids=["pmi1", "mol_wt"]), [plain]
+    )[-1].table
+    assert table.cell(plain.uuid, "descriptor:pmi1").failed
+    assert not table.cell(plain.uuid, "descriptor:mol_wt").failed

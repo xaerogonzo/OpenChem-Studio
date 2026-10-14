@@ -13,9 +13,13 @@ from openchem.chem.calculation_input import (
     recordable_parameters,
     resolve_calculation_input,
 )
-from openchem.chem.descriptor_providers import DescriptorProvider, RDKitDescriptorProvider
+from openchem.chem.descriptor_providers import (
+    DescriptorProvider,
+    RDKitDescriptorProvider,
+    geometric_descriptor_ids_of,
+)
 from openchem.chem.engine import ChemistryEngine
-from openchem.domain.calculator import DRAWING, CalculationRefusal, CalculationRequest
+from openchem.domain.calculator import DRAWING, GEOMETRY, CalculationRefusal, CalculationRequest
 from openchem.domain.refusal_kinds import MissingInput, RefusalKind, refusal_parameters
 from openchem.domain.input_snapshot import InputSnapshot, snapshot_model
 from openchem.domain.common import CacheState, Provenance
@@ -73,6 +77,7 @@ class _DescriptorComputeTask(QRunnable):
         event_bus: EventBus,
         calculation_input: str = DRAWING,
         structure_version: int | None = None,
+        only_descriptor_ids: frozenset[str] | None = None,
     ) -> None:
         super().__init__()
         self._provider = provider
@@ -86,10 +91,20 @@ class _DescriptorComputeTask(QRunnable):
         # WHICH STRUCTURE, stated as a POLICY rather than handed in as a
         # resolved molblock. See DescriptorService.request_descriptors.
         self._calculation_input = calculation_input
+        #: **A GEOMETRY RUN IS SCOPED TO WHAT THE GEOMETRY CHANGES.** None is the whole
+        #: provider (the DRAWING run); a set is the provider's geometric descriptors and
+        #: nothing else -- no other descriptor, no alert catalogue, no per-atom dataset.
+        #: See `DescriptorProvider.geometric_descriptor_ids` for why the rest must not be
+        #: computed on a conformer.
+        self._only = only_descriptor_ids
+
+    def _ids(self) -> list[str]:
+        """The descriptor ids this run speaks for."""
+        return [i for i in self._provider.descriptor_ids() if self._only is None or i in self._only]
 
     def run(self) -> None:
         categories = self._provider.descriptor_categories()
-        for descriptor_id in self._provider.descriptor_ids():
+        for descriptor_id in self._ids():
             self._publish(descriptor_id, CacheState.RUNNING, category=categories.get(descriptor_id, ""))
         #: What this run produced, for the manifest. See `_finish_part`.
         self._produced: list[str] = []
@@ -119,10 +134,20 @@ class _DescriptorComputeTask(QRunnable):
             self._fail_descriptors(exc, categories)
         else:
             for value in values:
+                if self._only is not None and value.descriptor_id not in self._only:
+                    continue
                 self._event_bus.publish(
                     DescriptorComputed(descriptor=value, structure_version=self._structure_version)
                 )
                 self._record(value)
+
+        if self._only is not None:
+            # The alert catalogues and the per-atom datasets are properties of the structure
+            # graph, so a geometry has nothing to add to them -- and measured on the 29-molecule
+            # panel it only changes them: BRENK's long-chain alert disappears on a C12E6
+            # conformer, and the Crippen/Gasteiger datasets come back describing 21 atoms
+            # (the hydrogens) while their provenance still says `heavy_atoms`.
+            return
 
         try:
             alerts = self._provider.compute_alerts(mol, self._model.uuid)
@@ -154,7 +179,7 @@ class _DescriptorComputeTask(QRunnable):
     def _fail_descriptors(self, exc: Exception, categories: dict[str, str]) -> None:
         logger.exception("Descriptor provider %s failed", self._provider.provider_id)
         self._part_failed = True
-        for descriptor_id in self._provider.descriptor_ids():
+        for descriptor_id in self._ids():
             self._publish(
                 descriptor_id, CacheState.FAILED, error=str(exc), category=categories.get(descriptor_id, ""),
                 record=True,
@@ -186,10 +211,13 @@ class _DescriptorComputeTask(QRunnable):
 
         Only a DRAWING run is part of the always-on set: that is the run a
         selection triggers and the one a replay would stand in for. A
-        GEOMETRY run's results are still recorded -- they are replayed on
-        top when the conformer is unchanged -- but they vouch for nothing.
+        GEOMETRY run's results (the geometric descriptors, nothing else) are
+        still recorded -- they are replayed on top when the conformer is
+        unchanged -- but they vouch for nothing. A SCOPED run likewise: it
+        speaks for some of the provider's output, so it cannot say the part
+        is whole.
         """
-        if self._calculation_input != DRAWING:
+        if self._calculation_input != DRAWING or self._only is not None:
             return
         self._event_bus.publish(
             AutomaticPartFinished(
@@ -653,6 +681,32 @@ class DescriptorService:
         """Every registered provider, which is what the always-on set holds."""
         return [p.provider_id for p in self._providers]
 
+    def is_misfiled_geometry_result(self, stored: StoredResult) -> bool:
+        """True for a result a provider's always-on run recorded under GEOMETRY that no run records now.
+
+        **WHAT AN EARLIER BUILD LEFT IN SAVED PROJECTS.** It re-ran the whole provider on the
+        conformer, so a project saved then holds, under the GEOMETRY identity, every descriptor,
+        alert catalogue and per-atom dataset the provider emits -- and a replay publishes
+        GEOMETRY after DRAWING, so those would replace the drawing's values on screen exactly as
+        the live run did (Synthetic Accessibility 1.58 -> 6.445). Only a provider's geometric
+        descriptors belong under GEOMETRY; the rest are dropped when the project is opened
+        (`ResultStoreService.set_project`).
+
+        Decided from the result's `producer`, which is the provider id for an always-on result
+        and a calculator id for a dispatched one, so a calculator that DECLARES GEOMETRY (and
+        owns an id like `gasteiger_charge`) is never touched. A producer no provider claims --
+        a plugin that is not loaded today -- is left alone, as `RETIRED_RESULT_IDS` leaves it.
+        """
+        identity = stored.identity
+        if identity.calculation_input != GEOMETRY:
+            return False
+        provider = next((p for p in self._providers if p.provider_id == identity.producer), None)
+        if provider is None:
+            return False
+        if isinstance(stored.result, DescriptorValue):
+            return stored.result.descriptor_id not in geometric_descriptor_ids_of(provider)
+        return isinstance(stored.result, (AlertResult, PerAtomDataset))
+
     def request_descriptors(
         self,
         model: MoleculeModel,
@@ -683,6 +737,24 @@ class DescriptorService:
         no-override behaviour: `mol_from_model` is
         `mol_from_molblock(model.molblock)` with a clearer error when
         there is none.
+
+        **ANYTHING ELSE IS A REQUEST FOR THE GEOMETRIC DESCRIPTORS ONLY.**
+        This used to run the whole provider on the conformer, and the
+        conformer's results then replaced the drawing's in every reader
+        (they share an id): drawing aspirin and generating a conformer moved
+        Synthetic Accessibility from 1.58 to 6.445, Bertz CT from 343 to 609
+        and H-bond acceptors from 3 to 4, because the conformer's hydrogens
+        are atoms and the drawing's are implicit. Measured over the
+        29-molecule census panel (`tools/survey_descriptor_inputs.py`): the
+        ten shape descriptors are refused on the flat drawing and vary
+        between two embeddings of one molecule, so they are the only ones a
+        geometry can answer; nine others move between the drawing and the
+        conformer and NEVER between two conformers, which makes them an
+        artefact of how the hydrogens are written; two alert catalogues moved;
+        and the per-atom datasets came back describing a different set of
+        atoms. Each provider says which descriptors are geometric
+        (`DescriptorProvider.geometric_descriptor_ids`); a provider that says
+        none is not run at all by such a request.
         """
         if not model.molblock and not model.conformers:
             # No structure of ANY kind -- neither a drawing nor a
@@ -707,8 +779,15 @@ class DescriptorService:
             # that did not come back, rather than the whole set.
             if only_providers is not None and provider.provider_id not in only_providers:
                 continue
+            scope = None
+            if calculation_input != DRAWING:
+                scope = geometric_descriptor_ids_of(provider)
+                if not scope:
+                    continue
             categories = provider.descriptor_categories()
             for descriptor_id in provider.descriptor_ids():
+                if scope is not None and descriptor_id not in scope:
+                    continue
                 self._event_bus.publish(
                     DescriptorComputed(
                         descriptor=DescriptorValue(
@@ -726,6 +805,6 @@ class DescriptorService:
             self._pool.start(
                 _DescriptorComputeTask(
                     provider, self._engine, snapshot, self._event_bus, calculation_input,
-                    structure_version=dispatched_version,
+                    structure_version=dispatched_version, only_descriptor_ids=scope,
                 )
             )

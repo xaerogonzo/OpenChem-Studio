@@ -99,6 +99,14 @@ The script is a JSON list of steps, run in order:
                                             "fragment_counts": {"facts_contain": ["Nitro"]}}}
                                               what the panels HOLD, so a clean
                                               log cannot pass by silence
+      {"do": "descriptors_report", "tag": "x", "values": {"sa_score": 1.58},
+       "equals_drawing": true, "alerts_equal_drawing": true}
+                                              the always-on descriptors the
+                                              READER holds against the same
+                                              computed on the DRAWING (see
+                                              `_do_descriptors_report`);
+                                              `expect_project_table` takes
+                                              `cells` to read the table's VALUES
       {"do": "expect_offered",   "hidden": ["detonation"], "footer": "1 calculator ..."}
                                               which calculators the Properties
                                               launcher OFFERS, by row visibility
@@ -6282,6 +6290,99 @@ class _Driver(QObject):
         else:
             logger.warning("OPENCHEM_DRIVE: EXPECT clean ok[%s]", tag)
 
+    def _do_descriptors_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "descriptors_report", "tag": "after-conformer", "values": {"sa_score": 1.58},
+        "equals_drawing": true, "alerts_equal_drawing": true}` -- the always-on descriptors the
+        READER holds for the selected molecule, against the same descriptors computed on the DRAWING.
+
+        **THE READER'S AGGREGATE, NOT THE SERVICE'S EVENTS.** What is asserted is what
+        `PropertyPanel._reader_entries` hands every reader, because a descriptor that is right when
+        computed and replaced on its way to the screen is the defect this exists for: the geometry
+        request published a correct number for the explicit-hydrogen conformer, and the reader showed
+        it in place of the drawing's.
+
+        `values`           id -> the number (bool / string) the reader must hold, within 5e-3.
+        `equals_drawing`   every descriptor the provider does NOT declare geometric must equal the one
+                           computed on the drawing here; the geometric ones are reported and not compared.
+        `alerts_equal_drawing`  the same for the alert catalogs (the facts each one reads).
+        `geometric_values` id -> the number a geometric descriptor must hold (None: it must HAVE a value).
+
+        Every disagreement is logged with both numbers, so a failure names what moved.
+        """
+        from openchem.chem.descriptor_providers import RDKitDescriptorProvider
+        from openchem.chem.report_adapter import report_from_alert
+        from openchem.domain.common import CacheState
+
+        window = self._window
+        panel = window._property_panel
+        tag = str(step.get("tag", ""))
+        molecule = window._current_molecule()
+        if molecule is None or not molecule.molblock:
+            logger.error("OPENCHEM_DRIVE: descriptors_report[%s] -- no molecule with a drawing is selected", tag)
+            self._record_assertion("descriptors_report", tag, False, "no molecule with a drawing is selected")
+            return
+        provider = RDKitDescriptorProvider()
+        entries, _version = panel._reader_entries()
+        aggregate = next((e for e in entries if getattr(e, "report_id", "") == "molecular_properties"), None)
+        held = {d.descriptor_id: d for d in aggregate.descriptors} if aggregate is not None else {}
+        problems: list[str] = []
+        if aggregate is None:
+            problems.append("the reader holds no Molecular Properties entry")
+
+        def same(left, right) -> bool:
+            if isinstance(left, bool) or isinstance(right, bool) or left is None or right is None:
+                return left == right
+            if isinstance(left, (int, float)) and isinstance(right, (int, float)):
+                return abs(left - right) <= 5e-3
+            return left == right
+
+        geometric = set(provider.geometric_descriptor_ids())
+        drawn = {
+            v.descriptor_id: v
+            for v in provider.compute(window._services.chemistry_engine.mol_from_model(molecule), molecule.uuid)
+        }
+        for descriptor_id, expected in (step.get("values") or {}).items():
+            now = held.get(descriptor_id)
+            if now is None or not same(now.value, expected):
+                problems.append(f"{descriptor_id}: the reader holds {getattr(now, 'value', None)!r}, wanted {expected!r}")
+        for descriptor_id, expected in (step.get("geometric_values") or {}).items():
+            now = held.get(descriptor_id)
+            value = getattr(now, "value", None)
+            if expected is None and (now is None or now.cache_state is not CacheState.COMPLETED or value is None):
+                problems.append(f"{descriptor_id}: the reader holds no computed value ({getattr(now, 'cache_state', None)})")
+            elif expected is not None and not same(value, expected):
+                problems.append(f"{descriptor_id}: the reader holds {value!r}, wanted {expected!r}")
+        moved = []
+        for descriptor_id, then in drawn.items():
+            now = held.get(descriptor_id)
+            if descriptor_id in geometric or now is None:
+                continue
+            if now.cache_state is not then.cache_state or not same(now.value, then.value):
+                moved.append(descriptor_id)
+                logger.warning(
+                    "OPENCHEM_DRIVE: descriptors_report[%s] %s reader=%r (%s) drawing=%r (%s)",
+                    tag, descriptor_id, now.value, now.cache_state.value, then.value, then.cache_state.value,
+                )
+        if step.get("equals_drawing") and moved:
+            problems.append(f"{len(moved)} structure-level descriptors differ from the drawing's: {moved}")
+        if step.get("alerts_equal_drawing"):
+            engine = window._services.chemistry_engine
+            for alert in provider.compute_alerts(engine.mol_from_model(molecule), molecule.uuid):
+                report = panel._reports.get(alert.alert_id)
+                want = [(f.label, f.display_value) for f in report_from_alert(alert).facts]
+                have = [(f.label, f.display_value) for f in (report.facts if report is not None else ())]
+                if report is None or sorted(have) != sorted(want):
+                    problems.append(f"alert {alert.alert_id}: the reader holds {have[:4]}, the drawing gives {want[:4]}")
+        logger.warning(
+            "OPENCHEM_DRIVE: descriptors_report[%s] %d held, %d structure-level compared, %d moved, geometric %s",
+            tag, len(held), len([i for i in drawn if i not in geometric]), len(moved),
+            {i: (held[i].value if i in held else None) for i in sorted(geometric)},
+        )
+        if self._record_assertion("descriptors_report", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT descriptors ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT descriptors FAILED[%s] -- %s", tag, "; ".join(problems)[:900])
+
     def _do_expect_results(self, step: dict[str, Any]) -> None:
         """`{"do": "expect_results", "expect": {"<calculator or alert id>": ...}}`
         -- what Properties HOLDS for the selected molecule, asserted.
@@ -6464,12 +6565,45 @@ class _Driver(QObject):
         else:
             logger.error("OPENCHEM_DRIVE: EXPECT results_details FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
 
+    @staticmethod
+    def _project_cell_problems(table, cells: dict[str, dict[str, Any]]) -> list[str]:
+        """What is wrong with the named cells of a project table; empty when they hold.
+
+        `cells` is `{row label: {column header (a substring): wanted}}`, where wanted is a number
+        (within 5e-3), `"number"` (any finite value that did not fail) or `"failed"`.
+        """
+        problems: list[str] = []
+        for label, columns in cells.items():
+            row = next((u for u in table.row_uuids if table.row_labels.get(u) == label), None)
+            if row is None:
+                problems.append(f"no row labelled {label!r} ({[table.row_labels.get(u) for u in table.row_uuids]})")
+                continue
+            for header, wanted in columns.items():
+                column = next((c for c in table.columns if header in c.header), None)
+                cell = table.cell(row, column.column_id) if column is not None else None
+                if cell is None:
+                    problems.append(f"{label}: no cell under a column containing {header!r}")
+                    continue
+                value = cell.value
+                if wanted == "failed":
+                    ok = cell.failed
+                elif wanted == "number":
+                    ok = not cell.failed and isinstance(value, (int, float)) and value == value
+                else:
+                    ok = not cell.failed and isinstance(value, (int, float)) and abs(value - float(wanted)) <= 5e-3
+                if not ok:
+                    problems.append(f"{label} / {column.header}: the table holds {value!r} ({cell.cache_state.value}), wanted {wanted!r}")
+        return problems
+
     def _do_expect_project_table(self, step: dict[str, Any]) -> None:
-        """`{"do": "expect_project_table", "rows": 2, "columns_contain": ["Polar"], "showing": true}`
+        """`{"do": "expect_project_table", "rows": 2, "columns_contain": ["Polar"], "showing": true,
+        "cells": {"Aspirin": {"Synthetic Accessibility": 1.58, "Principal Moment of Inertia 1": "number"}}}`
         -- what the Results dock's project table HOLDS, asserted.
 
         Reads the table off the workspace the dock is built from, so a table that
-        reached some other widget (the Batch panel's own) cannot satisfy it.
+        reached some other widget (the Batch panel's own) cannot satisfy it. `cells`
+        reads VALUES (see `_project_cell_problems`): a column that is present with the
+        conformer's figure in it is the defect this exists for, and `columns_contain` cannot see it.
         """
         workspace = self._window._results_workspace
         tag = str(step.get("tag", ""))
@@ -6490,6 +6624,7 @@ class _Driver(QObject):
             grid = workspace.table_view._results
             if grid.rowCount() != len(table.row_uuids):
                 problems.append(f"the grid draws {grid.rowCount()} rows for {len(table.row_uuids)}")
+            problems.extend(self._project_cell_problems(table, step.get("cells") or {}))
         if "showing" in step and workspace.showing_project_table() != bool(step["showing"]):
             problems.append(f"showing the table is {workspace.showing_project_table()}, wanted {bool(step['showing'])}")
         if self._record_assertion("expect_project_table", tag, not problems, "; ".join(problems) or "as expected"):

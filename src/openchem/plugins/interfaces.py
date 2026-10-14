@@ -88,6 +88,26 @@ class DescriptorProvider(ABC):
         up-front placeholder benefit."""
         return {}
 
+    def geometric_descriptor_ids(self) -> frozenset[str]:
+        """Optional: the ids of the descriptors MEASURED FROM 3D COORDINATES.
+
+        **EVERYTHING ELSE THIS PROVIDER EMITS IS A PROPERTY OF THE STRUCTURE
+        GRAPH, AND IS COMPUTED ON THE DRAWING ONLY.** A conformer arriving must
+        not re-run those on the explicit-hydrogen molecule it carries: they
+        answer a different question there. Measured on the 29-molecule census
+        panel, 7 of 17 structure-level RDKit descriptors moved (aspirin's
+        synthetic accessibility 1.58 -> 6.445, Bertz CT 343 -> 609), because
+        the drawing's hydrogens are implicit and the conformer's are atoms.
+
+        Empty by default, so a provider that has not said is treated as
+        structure-level and is never handed a conformer -- the safe side:
+        a provider opts INTO geometry, exactly as a registered calculator does
+        with `CalculatorDefinition.calculation_input`. The alert catalogs and
+        per-atom data it emits (`compute_alerts`, `compute_per_atom`) are
+        always structure-level.
+        """
+        return frozenset()
+
     def alert_ids(self) -> dict[str, str]:
         """Optional: alert_id -> display name, known WITHOUT computing.
 
