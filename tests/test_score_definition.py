@@ -312,3 +312,23 @@ def test_a_new_id_always_fits_the_id_rule_even_when_the_slug_is_at_its_longest()
         assert rule.fullmatch(new), new
         taken.add(new)
     assert len(taken) == 12 and SCORE_ID_PREFIX == "user."
+
+
+# --- the limits are these numbers, and the edge of each is the last thing accepted ---------------------------------------------------
+
+
+def test_the_limits_are_these_numbers():
+    """Pinned as numbers: a test that reads a limit by name moves with a mutant that moves it (slice 1's lesson, met again)."""
+    from openchem.domain.score_definition import MAX_DEFINITIONS, MIN_NAME_CHARACTERS, ON_MISSING_REFUSE
+
+    assert (MAX_LABEL, MAX_OWNER, MAX_NOTE, MAX_DEFINITIONS, MIN_NAME_CHARACTERS) == (80, 80, 500, 100, 3)
+    assert ON_MISSING_REFUSE == "refuse" and _definition().on_missing == "refuse" and _definition().to_dict()["on_missing"] == "refuse"
+
+
+def test_a_label_an_owner_and_a_note_of_exactly_the_limit_are_accepted():
+    check_score_definition(_definition(label="x" * 80))
+    check_score_definition(_definition(owner="o" * 80))
+    check_score_definition(_definition(note="n" * 500))
+    for change in ({"label": "x" * 81}, {"owner": "o" * 81}, {"note": "n" * 501}):
+        with pytest.raises(FormulaError):
+            check_score_definition(_definition(**change))

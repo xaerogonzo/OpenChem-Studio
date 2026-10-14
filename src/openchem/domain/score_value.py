@@ -188,7 +188,7 @@ def read_output(output_id: str, entries: Iterable[ResultEntry]) -> OutputRead:
     good = [read for read in reads if read.state is InputState.READ]
     if not good:
         return reads[0]
-    if len({(read.value, read.carried_as) for read in good}) > 1:
+    if len({read.value for read in good}) > 1:
         return OutputRead(
             InputState.AMBIGUOUS, note=f"{len(good)} current results, computed with different settings, give different numbers; the score cannot tell which was meant"
         )

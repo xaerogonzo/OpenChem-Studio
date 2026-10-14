@@ -267,3 +267,16 @@ def test_read_output_classes_come_from_the_assistants_one_rule_for_current():
     entries = _good()
     assert {e.freshness for e in entries} == {Freshness.CURRENT} and {e.outcome for e in entries} == {Outcome.COMPUTED}
     assert read_output("descriptor:tpsa", entries).state is InputState.READ
+
+
+def test_another_calculators_results_are_not_this_outputs():
+    """Reading an output looks at the records of what produces it. A report from a different calculator, however current, is not a record of this one."""
+    definition = _definition("ob", (("ob", "calculator:oxygen_balance:Oxygen balance (CO basis)"),), result_unit="%")
+    other = _report("solubility", _fact("Oxygen balance (CO basis)", -80.0, "%"))
+    value = evaluate_score(definition, _entries(other, _descriptor("tpsa", 100.0, "\u00c5\u00b2")))
+    assert value.status is ScoreStatus.REFUSED and value.inputs[0].state is InputState.NOT_RUN and value.value is None
+
+
+def test_another_descriptors_results_are_not_this_outputs():
+    value = evaluate_score(_definition(), _entries(_descriptor("labute_asa", 100.0, "\u00c5\u00b2"), _descriptor("mol_logp", 3.5)))
+    assert {i.name: i for i in value.inputs}["psa"].state is InputState.NOT_RUN
