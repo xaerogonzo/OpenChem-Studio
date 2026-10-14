@@ -310,7 +310,13 @@ A driven run follows the UI slice, builds its own state, and ends in a verdict.
 3. **Definitions, persistence, evaluation on read, and the surfaces**, in four parts (the recipes went the same way):
    * **3a. Definitions, the project block, the service and the evaluator. BUILT (2026-10-14).** Described below.
    * **3b. The Results reader. BUILT (2026-10-14).** Described below.
-   * **3c. The project-table column** (source `score`, not `derived`) and the exports.
+   * **3c. The project-table column** (source `score`, not `derived`) and the exports. **NOT BUILT, AND A DECISION IS OWED (found 2026-10-14).** The project table is filled by a batch run into its own `BatchResultStore`, apart from the
+     session result store the Results reader reads, and `BatchService._fill_row` hands every descriptor a conformer when one exists. **Measured on the census panel, 7 of the 17 approved descriptors give a different number on a conformer
+     than on the drawing** (`bertz_ct` by up to 2265, `sa_score` by up to 6.1, `labute_asa` by 72, `np_likeness`, `esol_logs`, `num_hba`, `num_rotatable_bonds`; an explicit-hydrogen molecule changes what these count), so a score computed from the
+     table's own cells would silently differ between molecules with and without a conformer: the "number of one conformer" trap that decision 12 avoids. The same defect is visible in Results today (after a conformer exists, aspirin's
+     Synthetic Accessibility reads 6.445 where it read 1.58; queued as its own task). Options: **(A)** evaluate the column against the session store, the drawing's current results: honest and the same as Results, but a project run does not fill the session
+     store, so cells read "not calculated" until a molecule has been selected; **(B)** evaluate against the table's cells and refuse any cell computed on a conformer (the batch would stamp which input each cell used); **(C)** first fix the batch to
+     compute structure-level descriptors on the drawing, then take (B) with the stamp. **Recommendation: C, then B; build nothing until the descriptor defect is fixed.** Scores already say, in their evidence, that they were read from the drawing.
    * **3d. The definition dialog** with live validation (offering a bare number and a named constant, and saying which is checked more strictly), its help topic (a new surface needs one, and a guard checks), and the drive script.
 
    **3a as built, and the choices the design left open:**

@@ -69,7 +69,9 @@ def _number(value: float) -> str:
 def _input_line(item: InputEvidence) -> str:
     """One input that WAS read: only a score with a value has evidence lines, and it has a value only when every input was read."""
     unit = f" {item.carried_as}" if item.carried_as else ""
-    return f"{item.name} = {item.value:.6g}{unit}   [{item.output_id}; read from the stored result {item.result_id}]"
+    # "Computed on the drawing" is said because the reader beside it can show a conformer's number for the same descriptor (the always-on descriptors are stored
+    # for both, and 7 of the 17 approved ones differ between the two), and a person comparing the two should know which this score read.
+    return f"{item.name} = {item.value:.6g}{unit}   [{item.output_id}; read from the stored result {item.result_id}, computed on the drawing]"
 
 
 def _evidence(value: ScoreValue) -> tuple[str, ...]:

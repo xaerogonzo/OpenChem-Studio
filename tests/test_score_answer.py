@@ -95,6 +95,7 @@ def test_the_evidence_names_the_formula_every_input_every_constant_and_the_diges
     text = "\n".join(answer.facts[0].evidence)
     assert "Formula: ramp(psa, hi, 60) * ramp(logp, 5, 2)" in text
     assert "psa = 100" in text and "Å²" in text and "descriptor:tpsa" in text and "descriptor:rdkit:tpsa" in text
+    assert "computed on the drawing" in text, "a person comparing with a conformer's number beside it must be told which this read"
     assert "logp = 3.5" in text and "descriptor:mol_logp" in text
     assert "hi = 140 Å^2" in text and "a constant of this definition" in text
     assert answer.digest in text and answer.facts[0].evidence[0].startswith("Formula:")
