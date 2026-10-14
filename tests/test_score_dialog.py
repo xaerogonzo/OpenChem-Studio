@@ -507,8 +507,9 @@ def test_when_the_project_goes_away_nothing_can_be_started_or_changed(dialog, wo
     world.has_project = False
     dialog.refresh()
     assert not dialog._empty.isHidden() and not dialog._splitter.isEnabled()
+    # `isEnabledTo` leaves out the disabled panes the buttons sit in: it is each button's OWN state that is asked.
     for button in (dialog._save, dialog._revert, dialog._delete, dialog._new, dialog._add_input, dialog._add_constant):
-        assert not button.isEnabled(), button.text()
+        assert not button.isEnabledTo(dialog._splitter), button.text()
 
 
 def test_without_a_project_a_result_arriving_reads_nothing(dialog, world):

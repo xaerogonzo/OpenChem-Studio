@@ -616,7 +616,7 @@ class ScoreDialog(QDialog):
     def _sync_buttons(self, result: DraftCheck) -> None:
         has_project = self._host.has_project()
         dirty = self.dirty
-        self._save.setEnabled(has_project and result.ok and (dirty or self._current_id is None))
+        self._save.setEnabled(has_project and result.ok and dirty)
         self._revert.setEnabled(has_project and dirty)
         self._delete.setEnabled(has_project and self._current_id is not None)
         self._new.setEnabled(has_project)
