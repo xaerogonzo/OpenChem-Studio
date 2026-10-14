@@ -50,6 +50,7 @@ import os
 import sys
 import time
 import tomllib
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -192,11 +193,16 @@ def run_census(
     *,
     calculator_ids: list[str] | None = None,
     timeout_ms: int = 180_000,
+    observer: Callable[[str, CensusRow, list], None] | None = None,
 ) -> dict[str, Any]:
     """Every row through the always-on set and every registry calculator.
 
     Returns `rows`, `calculators`, and `cells` keyed "<calculator>|<row>" -- each
     with its class, observation, the sampled log lines, and any unclassified code.
+
+    `observer(column, row, stored)` sees the stored results one run recorded, for a caller that
+    needs the numbers themselves and not the census's verdict on them (the derived-score
+    sweep, `tools/sweep_score_outputs.py`). It changes nothing the census records.
     """
     from openchem.bootstrap import build_service_container
     from openchem.domain.calculator import DRAWING, GEOMETRY, CalculationRequest, RegistryExecution
@@ -229,6 +235,8 @@ def run_census(
         finally:
             root.removeHandler(collector)
         mine = [s for s in recorded if s.identity.molecule_uuid == model.uuid]
+        if observer is not None:
+            observer(column, row, mine)
         results = [s.result for s in mine]
         if column == ALWAYS_ON:
             # Its descriptors legitimately fail on a drawing (a 3D one asked of

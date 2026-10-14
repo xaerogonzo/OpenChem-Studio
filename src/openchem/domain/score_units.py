@@ -26,10 +26,11 @@ REACHED_BY = (
 
 #: The symbols a unit may be made of. CLOSED: a symbol not here is a typo or a unit nobody approved, and either way the definition
 #: is refused rather than guessed at. This is a STARTER set, read off the unit strings the application's results carry today
-#: (`units="eV"`, `"kcal/mol"`, `"g/mol"`, `"ppm"`, `"%"`, and so on); the approved output table (slice 2) sweeps the real ones, reconciles
-#: the spellings the results use (`A` and `Å`, `deg` and `degrees`, `""` and `dimensionless`) and completes this list.
+#: (`units="eV"`, `"kcal/mol"`, `"g/mol"`, `"ppm"`, `"%"`, and so on). A symbol is added when an approved output (`score_outputs`) or a
+#: result a person needs to declare calls for it; the spellings the results use (`A` and `Å`, `deg` and `degrees`, `""` and `dimensionless`)
+#: are reconciled per approved output, in its `carried_as`, and not here.
 SYMBOLS: frozenset[str] = frozenset(
-    {"eV", "Hartree", "kcal", "kJ", "mol", "g", "mg", "mL", "cm", "nm", "Å", "K", "e", "%", "ppm", "D", "deg", "ps", "kbar"}
+    {"eV", "Hartree", "kcal", "kJ", "mol", "g", "mg", "mL", "L", "cm", "nm", "Å", "K", "e", "%", "ppm", "D", "deg", "ps", "kbar"}
 )
 
 #: The largest exponent a unit may carry. A unit like `eV^40` is a typo, and it keeps every product small.
