@@ -103,10 +103,46 @@ def test_every_endpoint_tag_is_used_and_described():
         assert description.strip() and description == description.strip()
 
 
-def test_the_table_holds_real_shared_endpoints():
-    """If no two entries shared a tag, the consensus rule below would be untested on real data."""
-    shared = {tag for tag in ENDPOINTS if sum(e.endpoint == tag for e in APPROVED) > 1}
-    assert {"hbond_donor_count", "hbond_acceptor_count", "aqueous_solubility_intrinsic", "logd_ph_7_4"} <= shared
+#: Which approved outputs estimate one quantity, written out. **THIS IS A REVIEW, NOT A TAUTOLOGY**: the endpoint tags are a person's
+#: judgement and are what make a consensus unexpressible, so changing which outputs share one has to be done on purpose, here, where a reviewer
+#: sees it. A wrong tag is a wrong guard; moving an output into or out of a group changes what the application will refuse to combine.
+_SHARED_ENDPOINTS = {
+    "aqueous_solubility_intrinsic": [
+        "calculator:solubility:Predicted intrinsic solubility (log mol/L)",
+        "calculator:solubility:Predicted intrinsic solubility (mg/mL)",
+        "calculator:solubility:Predicted intrinsic solubility (mol/L)",
+        "descriptor:esol_logs",
+    ],
+    "hbond_acceptor_count": ["calculator:hbond_sites:Acceptors", "descriptor:num_hba"],
+    "hbond_donor_count": ["calculator:hbond_sites:Donors", "descriptor:num_hbd"],
+    "logd_ph_7_4": ["calculator:logd:LogD at pH 7.4", "calculator:logd:LogD at pH 7.4 (approximation)"],
+}
+
+#: The unit of every approved output, written out for the same reason: it decides what a formula over it may add and what it works out to.
+_UNITS = {
+    "calculator:hbond_sites:Acceptors": "1", "calculator:hbond_sites:Donors": "1", "calculator:logd:LogD at pH 7.4": "1",
+    "calculator:logd:LogD at pH 7.4 (approximation)": "1", "calculator:oxygen_balance:Oxygen balance (CO basis)": "%",
+    "calculator:oxygen_balance:Oxygen balance (CO₂ basis)": "%",
+    "calculator:solubility:Predicted intrinsic solubility (log mol/L)": "1",
+    "calculator:solubility:Predicted intrinsic solubility (mg/mL)": "mg/mL",
+    "calculator:solubility:Predicted intrinsic solubility (mol/L)": "mol/L",
+    "descriptor:bertz_ct": "1", "descriptor:esol_logs": "1", "descriptor:exact_mass": "g/mol", "descriptor:fsp3": "1",
+    "descriptor:heavy_atom_count": "1", "descriptor:labute_asa": "Å^2", "descriptor:mol_logp": "1", "descriptor:mol_wt": "g/mol",
+    "descriptor:np_likeness": "1", "descriptor:num_hba": "1", "descriptor:num_hbd": "1", "descriptor:num_rotatable_bonds": "1",
+    "descriptor:num_stereocenters": "1", "descriptor:qed": "1", "descriptor:ring_count": "1", "descriptor:sa_score": "1",
+    "descriptor:tpsa": "Å^2",
+}
+
+
+def test_the_outputs_that_share_an_endpoint_are_exactly_these():
+    by_tag: dict[str, list[str]] = {}
+    for entry in APPROVED:
+        by_tag.setdefault(entry.endpoint, []).append(entry.output_id)
+    assert {tag: sorted(ids) for tag, ids in by_tag.items() if len(ids) > 1} == _SHARED_ENDPOINTS
+
+
+def test_the_unit_of_every_approved_output_is_exactly_this():
+    assert {entry.output_id: entry.unit for entry in APPROVED} == _UNITS
 
 
 # --- an output that is not approved is refused ------------------------------------------------------------------------------
@@ -492,6 +528,12 @@ def test_a_wrong_declared_unit_is_caught_on_real_data(swept):
     wrong = _entry(carried_as="Da")
     problems = sweep_tool.entry_problems(wrong, sweep, census)
     assert any("'Da'" in p for p in problems), problems
+
+
+def test_the_sweeps_limits_are_these_numbers():
+    """Pinned as numbers: a test that reads them by name moves with them, which is how a limit moved by one went unnoticed in slice 1."""
+    assert sweep_tool.MIN_ROWS == 5
+    assert sweep_tool.APPROVABLE_STAGES == {"stable", "limited"}
 
 
 def test_the_panel_resolves_each_entry_on_enough_rows_to_mean_something(swept):
