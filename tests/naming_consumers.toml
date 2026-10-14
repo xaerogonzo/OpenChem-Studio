@@ -487,3 +487,15 @@ file = "tests/test_namer_round49_open_ions.py"
 why = "the ions rounds 44 to 48 left refused or unreadable: protonated imidates, thioimidates and amidoximes are the cation (D-241), an ester carbon on an anionic N is alkoxycarbonyl and saccharin's anion is named (D-242), S- is the sulfido prefix and amino/imino stay two groups (D-243), a sulfamide yields to an acid (D-244), and an amidinium zwitterion with both acids on one carbon is named (D-245)"
 scope = "core"
 owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_round50_iminium_and_imino.py"
+why = "a bare imino after ANY prefix is enclosed (D-246: {...diazenyl}(imino)methanethiolate; OPSIN reads methylimino as =N-CH3), and an iminium with a heteroatom on its nitrogen or no hydrogen on it is the cation (D-247: methylsulfonyl(propan-2-ylidene)azanium, [amino(sulfanyl)methylidene]dimethylazanium)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_naming_ion_populations.py"
+why = "the ions tools/naming_ion_populations.py builds from census molecules (deprotonated, protonated, N-methylated) and how it classes each name (ok, refused, no_anion_word, charge_changed, wrong); the tool is how rounds 46 to 50 found their defects"
+scope = "core"
+owner = "namer"

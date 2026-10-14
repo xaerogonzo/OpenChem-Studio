@@ -4336,6 +4336,18 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-245", "NC(=[NH2+])C(C)(C(=O)[O-])C(=O)O", "2-carboxylato-3-hydroxy-2-methyl-3-oxopropanamidinium",
      "[REFUSED: charge perception claimed an 'amidinium' motif but could not complete it]",
      "a visible refusal; the masked ester sits at the chain end with another prefix between its methoxy and oxo"),
+    # D-246, D-247 (naming round 50): a bare imino after another prefix, and the iminium cations round 49 left refused.
+    ("D-246", "N=C([S-])N=NC=C1C=CC(N(O)O)=CC1=O",
+     "{[4-(dihydroxyamino)-6-oxocyclohexa-2,4-dien-1-ylidene]methyldiazenyl}(imino)methanethiolate",
+     "{[4-(dihydroxyamino)-6-oxocyclohexa-2,4-dien-1-ylidene]methyldiazenyl}iminomethanethiolate",
+     "UNREADABLE AS WRITTEN: OPSIN reads a bare imino after a prefix as =N-R (here an N-N bond); the only anion the deprotonated census population got wrong"),
+    ("D-247", "O=C1C(Cl)=CC(=[NH+]S(=O)(=O)c2ccc(Cl)cc2)c2ccccc21",
+     "(3-chloro-4-oxo-1,4-dihydronaphthalen-1-ylidene)(4-chlorophenylsulfonyl)azanium",
+     "[REFUSED: no name found that keeps the positive charge (the nearest name is the neutral sulfonamide's)]",
+     "a visible refusal; an N-sulfonyl iminium (the cation of a quinone imine) had no classifier"),
+    ("D-247", "C[N+](C)=C(N)S", "[amino(sulfanyl)methylidene]dimethylazanium",
+     "[REFUSED: no name found that keeps the positive charge (the nearest name is the neutral isothiourea's)]",
+     "a visible refusal; a QUATERNARY iminium (no hydrogen on the nitrogen) had no classifier"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",
