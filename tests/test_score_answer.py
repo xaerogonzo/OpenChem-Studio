@@ -12,7 +12,13 @@ import pytest
 from openchem.domain.common import CacheState
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.refusal_kinds import RefusalKind, refusal_kind_of_result
-from openchem.domain.report import CATEGORY_LABELS, CATEGORY_ORDER, DEFAULT_EXPANDED, Basis, FactCategory
+from openchem.domain.report import (
+    CATEGORY_LABELS,
+    CATEGORY_ORDER,
+    DEFAULT_EXPANDED,
+    Basis,
+    FactCategory,
+)
 from openchem.domain.result_status import NEEDS_INPUT, status_of
 from openchem.domain.result_store import ResultIdentity, StoredResult
 from openchem.domain.score_answer import (

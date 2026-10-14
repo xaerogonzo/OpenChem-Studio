@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Derived scores, slice 3b: the scores a person defined are read in Results
+- **A score appears in the Results reader under a new "Derived scores" section** for the selected molecule, labelled `<label> (user-defined, unvalidated)`, with its number; hovering the value shows the formula and every input with
+  its unit and the stored result it was read from, and the footer says "A formula a person wrote. Nothing has checked it against measurements." A score whose input cannot be read is a refusal that names the input and why, and gets
+  its number when the calculator finishes. It is never stored as a result, never a registered calculator, and never called a prediction.
+- **Found by driving the real application:** a calculator finished and the score stayed empty, because a result's own event reaches the reader before the result store has it. The reader now re-reads once when a result is recorded
+  for the molecule shown. New drive steps `score_define` and `score_results`; `benchmarks/visual/score_results.json` passes 12 assertions.
+
 ### Derived scores, slice 3a: definitions, the project-file block, the service and the evaluator (no screen yet)
 - **A score is data a person authors, kept in the project file** in a block of its own (`derived_scores`), written only when there is one, so a project that never used scores is the file it always was. `ScoreService` makes, edits and
   removes definitions under the label and formula rules (a label may not be close to a calculator's or an approved output's name; the suffix `(user-defined, unvalidated)` is never part of the stored text) and **evaluates them against the

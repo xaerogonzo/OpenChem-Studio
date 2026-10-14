@@ -1,6 +1,6 @@
 # Derived scores: a restricted formula over approved outputs: design record
 
-**Status: design, written 2026-10-12. Slices 1 (the grammar, the evaluator and the units), 2 (the approved output table, its sweep and guards) and 3a (definitions, the project-file block, the service and the evaluator) were built on 2026-10-14 and are described under section 11; the surfaces (3b to 3d) are not built.** It is the second half of Phase 2 of the
+**Status: design, written 2026-10-12. Slices 1 (the grammar, the evaluator and the units), 2 (the approved output table, its sweep and guards) 3a (definitions, the project-file block, the service and the evaluator) and 3b (the Results reader) were built on 2026-10-14 and are described under section 11; the project-table column and the dialog (3c, 3d) are not built.** It is the second half of Phase 2 of the
 plan in the session notes; the first half, typed recipes and the Lewis pairing, is
 [`RECIPES_DESIGN.md`](RECIPES_DESIGN.md). This is the "custom predictor" idea **narrowed**: a person writes a
 formula over numbers the application already computes, and the result is labelled as exactly what it is, a formula
@@ -309,7 +309,7 @@ A driven run follows the UI slice, builds its own state, and ends in a verdict.
    * **Mutation-checked: 57 mutants** of the adoption rule, the table's rules, the table's own entries and the sweep. 56 were caught; the survivor is equivalent (`abs` or `ln` adopting a unit: a one-argument call has nothing to adopt from). The limits of the sweep survived at first for slice 1's reason (the tests read them by name), so they are pinned as numbers.
 3. **Definitions, persistence, evaluation on read, and the surfaces**, in four parts (the recipes went the same way):
    * **3a. Definitions, the project block, the service and the evaluator. BUILT (2026-10-14).** Described below.
-   * **3b. The Results reader**: a one-fact report per score for the selected molecule, with the label suffix, the formula and every input as evidence, the fixed limitation, and the reason when there is no number.
+   * **3b. The Results reader. BUILT (2026-10-14).** Described below.
    * **3c. The project-table column** (source `score`, not `derived`) and the exports.
    * **3d. The definition dialog** with live validation (offering a bare number and a named constant, and saying which is checked more strictly), its help topic (a new surface needs one, and a guard checks), and the drive script.
 
@@ -336,6 +336,18 @@ A driven run follows the UI slice, builds its own state, and ends in a verdict.
      attribute, which is what its docstring asked for.
    * **Verified.** The evaluator is tested on every way an input can fail to be read (each refuses with no number), the store on carrying everything it cannot read through a save, and the whole route runs: the real always-on
      descriptors compute, the project saves its results and a score, reopens, and the score has its value without anything running. **Mutation-checked: 132 mutants** of the definition rules, the store, the evaluator, the service and the wiring through File > Save, Open and recovery. 130 were caught (the limits survived at first because the tests read them by name, as in slices 1 and 2, and one real gap: nothing had another calculator's records present while the wanted one was absent); one was removed by simplifying a comparison every successful read had already made, and one is equivalent (the blank-molecule guard before asking for fingerprints only avoids a pointless exception).
+   **3b as built, and what driving the real application found:**
+   * **A score is a `ScoreAnswer`** (`domain/score_answer.py`, a `ReportResult` subclass, built by `ScoreService.answers_for` each time the reader refreshes and never stored, the way `RecipeAnswer` is). **It is one fact** under a
+     new category, `FactCategory.DERIVED` ("Derived scores", ordered last, open by default), labelled `<label> (user-defined, unvalidated)`, basis HEURISTIC, with the formula, every input (name, value, unit, the output and the stored
+     result it was read from), every constant and the digest as the evidence that the value's tooltip shows, and the one limitation, "A formula a person wrote. Nothing has checked it against measurements.", in the footer.
+     `Provenance` says `created_by="user"`, `method="derived_score:<format>"` and `validation="user_defined_unvalidated"`.
+   * **A score with no number is a refusal in the application's own vocabulary** (a failed report of kind `NEEDS_INPUT`, so it counts and reads as every other refusal): the line above the facts names each input that could not be read
+     and why, and the footer says the formula once, as one sentence. It is never stale, because it is evaluated against the structure as it is now: after an edit its inputs are no longer current and it refuses, which says so.
+   * **Driving the real application found a defect no unit test had**: a calculator finished and the score stayed empty. A result's own event (`ReportComputed` and its kin) reaches the reader **before** the result store has recorded it,
+     so a score waiting for that result evaluated too early and was never told to look again. The panel now schedules one coalesced re-read when a result is recorded for the molecule shown (`ResultRecorded` arrives after the store has
+     it; a flood of descriptors is one refresh), and the regression test fails without it. The same run showed the label rule working as designed (an example label "TPSA window" was refused as too close to `tpsa`: decision 8), and a
+     footer that ran the per-input lines together, now one sentence.
+   * **Drive steps `score_define` and `score_results`** and `benchmarks/visual/score_results.json` (12 assertions; shots `score_results_value.png`, `score_results_refused.png`, `score_results_list.png`). **Mutation-checked: 56 mutants** of the projection, the service's reader entries and the panel wiring: 55 caught, one removed as dead code (an unread input's line, unreachable once the footer stopped carrying per-input lines). The survivors were all in the wiring (nothing had tested the entries with no project or a stranger, the panel with only scores attached, or that the re-read after a recorded result is deferred and not synchronous), plus a refusal code the tests read by name.
 4. **Later, each its own review**: `read_scores` for the assistant; assistant-authored definitions, if ever; any
    second `on_missing` policy; any conversion entry.
 
