@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: one tool for the ion populations, a bare `imino` enclosed after any prefix, and the iminium cations round 49 left refused
+- `tools/naming_ion_populations.py` makes ions out of the census molecules (`anion` deprotonates one acidic site, `cation` protonates one basic site, `quaternary` N-methylates it), names each and reads it
+  back through OPSIN: the method that found rounds 46 to 49's defects, which lived in scratch scripts. A bare `imino` after any prefix is now enclosed, `{...diazenyl}(imino)methanethiolate` (OPSIN reads
+  `methylimino` as `=N-CH3`) (D-246); an N-sulfonyl iminium (the cation of a quinone imine) and a quaternary iminium are named, `methylsulfonyl(propan-2-ylidene)azanium`,
+  `[amino(sulfanyl)methylidene]dimethylazanium` (D-247). The census is unchanged at 1993 exact; frozen sets: heldout_v6 and fresh_v1 unchanged; bluebook_frozen re-scored once (r50-final-evaluation): exact 523 -> 522 and equivalent 527 -> 528, every other count identical (one row's spelling moved, the same molecule). The stage list for `--frozen-impact` becomes `r49-fresh-v1,r50-final-evaluation,r38-final-evaluation`.
+
 ### Naming: the ions rounds 44 to 48 left refused or unreadable
 - A protonated imidate, thioimidate, isourea or amidoxime is named as the cation, `(1-sulfanylethylidene)azanium`, `[amino(methoxy)methylidene]azanium`, `(1-aminoethylidene)(hydroxy)azanium` (D-241); before, the
   charge guard refused it. The anion of an N-acyl carbamate is `acetyl(methoxycarbonyl)azanide` (was a visible error) and saccharin's is `1,1,3-trioxo-1,2-benzothiazol-2-ide` (was refused) (D-242). The prefix for S- is

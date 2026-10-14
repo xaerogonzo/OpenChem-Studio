@@ -2524,3 +2524,21 @@ what can be verified.
 * New `tests/test_namer_round49_open_ions.py` (7 of 7 live mutants killed; an eighth, an amidinium exclusion in the new classifier, moved no name and was deleted as dead code). D-241 .. D-245 in the fixed table of
   `tests/test_namer_known_defects.py`. Three earlier tests pinned refusals this round turned into names and now pin the cases still refused: a carboxylate beside two neutral acids
   (`test_namer_round43_*`, `test_namer_round45_*`) and a pyrazolone anion (`test_namer_round46_*`).
+
+## 2026-10-14 -- naming round 50: a bare imino after any prefix, and the iminium cations round 49 left refused (D-246, D-247)
+
+Round 49's open list asked whether the ion populations were saturated. The three scripts that had found rounds 46 to 49's defects (scratch folders and memory notes) became ONE tool,
+`tools/naming_ion_populations.py` (`anion`, `cation`, `quaternary`; 26 tests in `tests/test_naming_ion_populations.py`), and the baseline on master measured it: anions 284 of 285 ok (1 wrong), cations 1034 of 1036 (1 refused, 1 OPSIN limit), quaternary cations 1033 of 1036 (2 refused, 1 OPSIN limit); after this round 285 of 285, 1035 of 1036 and 1035 of 1036, ZERO refusals, the one left in each cation population the bis([1,3]dioxolo)pyran OPSIN cannot read.
+
+* **D-246.** The one wrong anion: `{[...]methyldiazenyl}iminomethanethiolate`, which OPSIN reads with an N-N bond. Round 49 had bracketed `imino` after `amino` and `hydroxy`; the rule is general. A bare `imino`
+  right after ANY prefix runs together into a substituted imino group (measured through OPSIN: `methyliminomethanethiol` -> `CN=CS`, `methyl(imino)methanethiol` -> `CC(S)=N`), so the assembler encloses it whenever a
+  prefix precedes it.
+* **D-247.** The three refused cations: an N-sulfonyl iminium (`O=C1C(Cl)=CC(=[NH+]S(=O)(=O)Ar)c2ccccc21`, the cation of a quinone imine) and two QUATERNARY iminiums (`C[N+](...)=C(N)S`, no hydrogen on the nitrogen).
+  Round 49's `_classify_iminium_hetero` now takes a nitrogen with no hydrogen (degree 3) and a SULFONYL on the nitrogen when the carbon bears only carbon; identical groups on the nitrogen are one multiplied prefix
+  (`dimethylazanium`, not `(methyl)(methyl)`). `[amino(sulfanyl)methylidene]dimethylazanium`, `(3-chloro-4-oxo-1,4-dihydronaphthalen-1-ylidene)(4-chlorophenylsulfonyl)azanium`.
+* **Two regressions the census caught on the first run, fixed before this PR.** The first widening claimed any iminium with a heteroatom on the nitrogen. A RING nitrogen (`c(=[N+]3CCOCC3)`, a morpholinium ylidene) has
+  two ring arms that were carved as two separate `2-ethoxyethyl` substituents: the ring cut, a different molecule (2 census rows, exact -> mismatch_formula). And an acylhydrazone cation
+  (`CC(=[NH+]NC(=O)C)C`), which the plan search already named correctly, was taken from it. The classifier now requires the nitrogen OUTSIDE any ring, and the nitrogen-side clause is a sulfonyl only.
+* **Measured.** Every name reads back through OPSIN to its input, charge included. Census 1993 exact, unchanged. App naming tests 4024 passed (the full group on the final tree); `tests/vendor` and the known-defects file: 7429 passed (the full vendored suite and the known-defects file).
+  **Frozen sets** (blind `--frozen-impact`): heldout_v6 and fresh_v1 unchanged; bluebook_frozen moved 1 row and was re-scored once: heldout_v6 and fresh_v1 unchanged; bluebook_frozen re-scored once (r50-final-evaluation): exact 523 -> 522 and equivalent 527 -> 528, every other count identical (one row's spelling moved, the same molecule). The stage list for `--frozen-impact` becomes `r49-fresh-v1,r50-final-evaluation,r38-final-evaluation`.
+* New `tests/test_namer_round50_iminium_and_imino.py` (35 tests; 6 of 6 live mutants killed) and `tests/test_naming_ion_populations.py`. D-246 and D-247 in the fixed table of `tests/test_namer_known_defects.py`.
