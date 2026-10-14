@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: the anion of a hydrazide, ring anions with an added hydrogen or a prime, and a nitro group beside a ring anion
+- `tools/naming_ion_populations.py` gained five site patterns the first rounds never tried (a lactam NH, a hydrazide NH, an azole NH, a hydroxamic acid, and the oxygen of an amide or a ketone, protonated
+  or methylated). The anion population went from 416 of 453 clean to 451 of 453. `CC(=O)[N-]N` is `acetyl(amino)azanide` (it was a `NAMING ERROR`) (D-248); a ring anion whose attachment locant
+  cites an added hydrogen or a prime is named, `2-oxo-1,3-benzothiazol-3(2H)-ide`, `2'-oxospiro[pyrrolidine-3,3'-2,3-dihydro-1H-indole]-1'-ide` (it was an unreadable name or a refusal) (D-249); a nitro
+  group elsewhere no longer hides a ring anion from its classifier, and the pyrazolone anion round 46 left refused is named, `5-oxo-4,5-dihydro-1H-pyrazol-1-ide`. The census is unchanged at 1993 exact.
+  Still open and recorded: fused lactams the engine names with an `-on` suffix (`...-2(1H)-on-1-ide`, unreadable), and the O-protonated or O-methylated amide and urea cations (a few refused, a few wrong).
+
 ### Naming: one tool for the ion populations, a bare `imino` enclosed after any prefix, and the iminium cations round 49 left refused
 - `tools/naming_ion_populations.py` makes ions out of the census molecules (`anion` deprotonates one acidic site, `cation` protonates one basic site, `quaternary` N-methylates it), names each and reads it
   back through OPSIN: the method that found rounds 46 to 49's defects, which lived in scratch scripts. A bare `imino` after any prefix is now enclosed, `{...diazenyl}(imino)methanethiolate` (OPSIN reads

@@ -113,3 +113,31 @@ def test_the_names_only_run_works_on_a_small_sample_without_opsin():
     rows = [{"label": "a", "smiles": "CC(=O)O"}, {"label": "b", "smiles": "c1ccncc1"}]
     results = pop.run("anion", rows, limit=None, names_only=True)
     assert [r["verdict"] for r in results] == ["ok"] and results[0]["name"] == "acetate"
+
+
+# Round 51: five site patterns the first populations never tried.
+def test_a_lactam_nitrogen_loses_its_proton_but_an_open_amide_does_not_count_as_one():
+    assert _smiles("anion", "O=C1CCCN1") == [_canon("O=C1CCC[N-]1")]
+    assert [c.kind for c in pop.generate("anion", [{"label": "a", "smiles": "CC(=O)NC"}])] == []
+
+
+def test_a_hydrazide_nitrogen_loses_its_proton():
+    assert _smiles("anion", "CC(=O)NN") == [_canon("CC(=O)[N-]N")]
+
+
+def test_an_azole_nh_loses_its_proton():
+    assert _smiles("anion", "c1cc[nH]n1") == [_canon("c1cc[n-]n1")]
+
+
+def test_a_hydroxamic_acid_loses_the_proton_of_its_oxygen():
+    assert _smiles("anion", "CC(=O)NO") == [_canon("CC(=O)N[O-]")]
+
+
+def test_an_amide_oxygen_is_protonated_and_methylated():
+    assert _smiles("cation", "CC(=O)N") == [_canon("CC(N)=[OH+]")]
+    assert _smiles("quaternary", "CC(=O)N") == [_canon("CC(N)=[O+]C")]
+
+
+def test_a_ketone_oxygen_is_a_site_of_its_own_and_an_amide_oxygen_is_not_one_too():
+    kinds = [(c.kind, c.smiles) for c in pop.generate("cation", [{"label": "k", "smiles": "CC(C)=O"}])]
+    assert kinds == [("carbonyl_o", _canon("CC(C)=[OH+]"))]
