@@ -28,7 +28,12 @@ from dataclasses import dataclass
 from typing import Any
 
 from openchem.domain.score_constants import Constant
-from openchem.domain.score_formula import Formula, FormulaError, Problem, check_definition
+from openchem.domain.score_formula import (
+    Formula,
+    FormulaError,
+    Problem,
+    check_definition,
+)
 from openchem.domain.score_outputs import APPROVED, check_inputs
 from openchem.domain.score_units import UnitError, parse_unit
 

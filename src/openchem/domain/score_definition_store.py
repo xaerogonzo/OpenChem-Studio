@@ -23,7 +23,12 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
-from openchem.domain.score_definition import MAX_DEFINITIONS, DefinitionError, NewerDefinition, ScoreDefinition
+from openchem.domain.score_definition import (
+    MAX_DEFINITIONS,
+    DefinitionError,
+    NewerDefinition,
+    ScoreDefinition,
+)
 
 logger = logging.getLogger("openchem.scores")
 

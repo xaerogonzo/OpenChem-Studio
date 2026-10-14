@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Derived scores, slice 3a: definitions, the project-file block, the service and the evaluator (no screen yet)
+- **A score is data a person authors, kept in the project file** in a block of its own (`derived_scores`), written only when there is one, so a project that never used scores is the file it always was. `ScoreService` makes, edits and
+  removes definitions under the label and formula rules (a label may not be close to a calculator's or an approved output's name; the suffix `(user-defined, unvalidated)` is never part of the stored text) and **evaluates them against the
+  molecule's current results only, refusing naming the input and why: never a zero, never a skipped term**, and never a guess between two current results that disagree. Nothing it reads is calculated by it.
+- **Nothing a person wrote is dropped because a build cannot read it**: a definition from a newer format, a damaged one and a block from a newer envelope are kept as read and written back unchanged. File > Save, Open, recovery and the drive harness carry
+  the definitions, and changing one marks the project unsaved. `ProjectDocument` gained a fifth field (five tests that unpacked it positionally now read it by name).
+- The four formula modules are reachable from the application now, so their tooling-only declarations are gone. The Results reader, the project-table column and the dialog are the next parts (design record, section 11).
+
 ### Derived scores, slice 2 (continued): named unit constants (pure)
 - **`domain/score_constants.py`: a named number with a declared unit**, the strict alternative to a bare number. A constant is used as a name, so it adopts no unit: a threshold in the wrong unit is refused (`ramp(tpsa, hi, lo)` with
   `hi = 140 nm^2`), and `log10(mw / one)` with `one = 1 g/mol` is writable, which a bare number could not do. At most 12, in the inputs' namespace; one nothing uses is refused. `tools/check_score_formula.py` takes

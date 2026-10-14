@@ -18,7 +18,12 @@ from openchem.domain.report import Basis, Fact, FactCategory, ReportResult
 from openchem.domain.result_store import ResultIdentity, StoredResult
 from openchem.domain.score_constants import Constant
 from openchem.domain.score_definition import ScoreDefinition
-from openchem.domain.score_value import InputState, ScoreStatus, evaluate_score, read_output
+from openchem.domain.score_value import (
+    InputState,
+    ScoreStatus,
+    evaluate_score,
+    read_output,
+)
 from openchem.domain.turn_snapshot import Freshness, Outcome, classify_results
 
 _FP = {"drawing": "fp-now", "geometry": "gfp-now"}

@@ -13,7 +13,11 @@ from dataclasses import replace
 import pytest
 
 from openchem.domain.score_constants import Constant
-from openchem.domain.score_definition import MAX_DEFINITIONS, SCHEMA_VERSION, ScoreDefinition
+from openchem.domain.score_definition import (
+    MAX_DEFINITIONS,
+    SCHEMA_VERSION,
+    ScoreDefinition,
+)
 from openchem.domain.score_definition_store import (
     ENVELOPE_VERSION,
     KEPT_DAMAGED,

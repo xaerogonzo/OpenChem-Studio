@@ -12,8 +12,18 @@ import math
 
 import pytest
 
-from openchem.domain.score_constants import MAX_CONSTANTS, Constant, check_constants, constant_values
-from openchem.domain.score_formula import FormulaError, Problem, check_definition, evaluate
+from openchem.domain.score_constants import (
+    MAX_CONSTANTS,
+    Constant,
+    check_constants,
+    constant_values,
+)
+from openchem.domain.score_formula import (
+    FormulaError,
+    Problem,
+    check_definition,
+    evaluate,
+)
 from openchem.domain.score_outputs import check_inputs, values_by_name
 from openchem.domain.score_units import DIMENSIONLESS, parse_unit
 

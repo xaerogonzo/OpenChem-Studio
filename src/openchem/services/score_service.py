@@ -18,13 +18,17 @@ from __future__ import annotations
 
 import datetime
 import logging
-from dataclasses import replace
 from collections.abc import Callable, Sequence
+from dataclasses import replace
 
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
 from openchem.domain.score_constants import Constant
-from openchem.domain.score_definition import ScoreDefinition, check_score_definition, new_score_id
+from openchem.domain.score_definition import (
+    ScoreDefinition,
+    check_score_definition,
+    new_score_id,
+)
 from openchem.domain.score_definition_store import ScoreDefinitionStore
 from openchem.domain.score_formula import Formula
 from openchem.domain.score_value import ScoreValue, evaluate_score

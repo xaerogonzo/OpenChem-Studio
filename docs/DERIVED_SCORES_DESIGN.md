@@ -1,6 +1,6 @@
 # Derived scores: a restricted formula over approved outputs: design record
 
-**Status: design, written 2026-10-12. Slices 1 (the grammar, the evaluator and the units) and 2 (the approved output table, its sweep and guards) were built on 2026-10-14 and are described under section 11; nothing else in this document is built.** It is the second half of Phase 2 of the
+**Status: design, written 2026-10-12. Slices 1 (the grammar, the evaluator and the units), 2 (the approved output table, its sweep and guards) and 3a (definitions, the project-file block, the service and the evaluator) were built on 2026-10-14 and are described under section 11; the surfaces (3b to 3d) are not built.** It is the second half of Phase 2 of the
 plan in the session notes; the first half, typed recipes and the Lewis pairing, is
 [`RECIPES_DESIGN.md`](RECIPES_DESIGN.md). This is the "custom predictor" idea **narrowed**: a person writes a
 formula over numbers the application already computes, and the result is labelled as exactly what it is, a formula
@@ -221,7 +221,7 @@ It may suggest formula text in conversation, for a person to enter.
 * **Names**: a collision with a registered display name, an id, a substring of one; a normalisation case; a name
   that is fine.
 * **Persistence**: a definition round trip; an unknown schema version carried through a save unchanged; a damaged
-  definition skipped without breaking others; digest stability.
+  definition kept as it was read, without breaking others; digest stability.
 * **Never zero**: an absent, refused and historical input each refuses the score, and a mutant that substitutes
   zero is caught.
 * **The label**: every surface that shows a score shows the suffix (walked, not listed); no generated string calls
@@ -307,9 +307,35 @@ A driven run follows the UI slice, builds its own state, and ends in a verdict.
      `polarizability` and `topology_analysis`'s indices, and only when someone wants them in a score; most of the rest repeat an always-on descriptor. (3) *Geometry-based outputs* need a
      rule for which conformer a score reads. (4) *An output whose main path needs an optional tool* (logD's pKa path, anything from the pKa or ADMET sidecars) waits until the census can run that tool.
    * **Mutation-checked: 57 mutants** of the adoption rule, the table's rules, the table's own entries and the sweep. 56 were caught; the survivor is equivalent (`abs` or `ln` adopting a unit: a one-argument call has nothing to adopt from). The limits of the sweep survived at first for slice 1's reason (the tests read them by name), so they are pinned as numbers.
-3. **Definitions, persistence, evaluation on read, and the surfaces**: the project block, the Results one-fact
-   report, the project-table column, the exports, the definition dialog, its help topic (a new surface needs one,
-   and a guard checks), the drive script.
+3. **Definitions, persistence, evaluation on read, and the surfaces**, in four parts (the recipes went the same way):
+   * **3a. Definitions, the project block, the service and the evaluator. BUILT (2026-10-14).** Described below.
+   * **3b. The Results reader**: a one-fact report per score for the selected molecule, with the label suffix, the formula and every input as evidence, the fixed limitation, and the reason when there is no number.
+   * **3c. The project-table column** (source `score`, not `derived`) and the exports.
+   * **3d. The definition dialog** with live validation (offering a bare number and a named constant, and saying which is checked more strictly), its help topic (a new surface needs one, and a guard checks), and the drive script.
+
+   **3a as built, and the choices the design left open:**
+   * **Five modules.** `domain/score_definition.py` (`ScoreDefinition`, its stored form, the label and field rules, the digest, ids), `domain/score_definition_store.py` (a project's definitions and the `derived_scores` block),
+     `domain/score_value.py` (reading the inputs and evaluating: `evaluate_score`), `services/score_service.py` (the host's side) and the `ScoreDefinitionsChanged` event. All pure but the service, which is built by `bootstrap`
+     and is why the four formula modules are now reachable and lose their `REACHED_BY = "tooling: ..."` declarations.
+   * **A score id is `user.<slug>`, made by the service from the label and never changed**, so a label can be edited without losing the score's identity; `_2`, `_3` are added when the slug is taken, counting ids a kept entry holds.
+     **The suffix `(user-defined, unvalidated)` is not stored**: `display_label` adds it, so editing the label cannot remove it.
+   * **The label may not be close to a name the application provides**: equal to, containing or contained by (case, accents and punctuation removed, three characters or more) the id or display name of any registered calculator, or the
+     name of an approved output. The registry's names are read when the check runs, and the approved outputs' from the table. It runs when a definition is made or edited and **not when a value is read**: a calculator registered
+     later can make an old label look like a name, and that is a reason to ask for a new label, not to refuse a number.
+   * **Nothing a person wrote is dropped because this build cannot read it.** A definition from a newer format, a damaged one (the design said "skipped"), and a block from a newer envelope are each kept as they were read and written
+     back unchanged (`KeptEntry`); a store holding a foreign block refuses every change. An id that is only being carried is never handed out again.
+   * **The block is written only when there is something to write.** A project that never used scores is byte for byte the file it always was, so an older build opening it loses nothing: the cost design section 12 decision 10
+     accepted (an older build drops a block it does not know) now falls only on a person who authored a score.
+   * **A value is read from the molecule's current results only, by the assistant's own classification** (`turn_snapshot.classify_results`: one rule for what "current" means). An input refuses the score, naming the input, when
+     nothing was ever calculated, when only results of an earlier structure exist, when the current result is a refusal or a failure, when the fact is missing or held twice, when the producer did not type it as a finite number,
+     when it carries another unit (nothing is converted), and **when two current results computed with different settings give different numbers** (the score will not guess between two pH values). Only the drawing is read.
+     Every unread input is named, not only the first. A zero is a number.
+   * **The service never starts a calculation.** `create`, `update` and `remove` check the definition under the label and formula rules and publish `ScoreDefinitionsChanged`, which the window turns into "this project has unsaved
+     work" (a definition is never also a result); `values_for(model)` classifies the molecule's stored results and evaluates every definition.
+   * **The window carries the store through File > Save, File > Open, recovery and the drive harness's `open_project`.** `ProjectDocument` gained its fifth field; five tests that unpacked it positionally now read it by
+     attribute, which is what its docstring asked for.
+   * **Verified.** The evaluator is tested on every way an input can fail to be read (each refuses with no number), the store on carrying everything it cannot read through a save, and the whole route runs: the real always-on
+     descriptors compute, the project saves its results and a score, reopens, and the score has its value without anything running. **Mutation-checked: 132 mutants** of the definition rules, the store, the evaluator, the service and the wiring through File > Save, Open and recovery. 130 were caught (the limits survived at first because the tests read them by name, as in slices 1 and 2, and one real gap: nothing had another calculator's records present while the wanted one was absent); one was removed by simplifying a comparison every successful read had already made, and one is equivalent (the blank-molecule guard before asking for fingerprints only avoids a pointless exception).
 4. **Later, each its own review**: `read_scores` for the assistant; assistant-authored definitions, if ever; any
    second `on_missing` policy; any conversion entry.
 
@@ -335,7 +361,7 @@ A driven run follows the UI slice, builds its own state, and ends in a verdict.
    happens to confirm what the person hoped.
 10. **No file-level version stamp for older builds** (section 8). A build that has never heard of the `derived_scores`
     key drops the block on its next save, as it does for every other block. This is the one block a person wrote by
-    hand, so it is the one place the cost is lost work, accepted while the suite is in beta. Reversible later by
+    hand, so it is the one place the cost is lost work, accepted while the suite is in beta; it falls only on a project that has a definition, because the block is not written otherwise. Reversible later by
     stamping only files that contain a definition.
 
 11. **A numbers-only operand takes the unit of what it is combined with** (slice 2). It makes thresholds writable and gives up nothing the check could ever catch, since a literal has no unit to check; but it is a relaxation
