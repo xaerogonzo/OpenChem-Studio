@@ -37,7 +37,12 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from openchem.domain.calculator import DRAWING
-from openchem.domain.score_formula import FormulaError, Problem, Refusal, check_input_names
+from openchem.domain.score_formula import (
+    FormulaError,
+    Problem,
+    Refusal,
+    check_input_names,
+)
 from openchem.domain.score_units import Unit, parse_unit
 
 #: Why a tooling script, and not the application, reaches this module for now (see `score_formula.REACHED_BY`).

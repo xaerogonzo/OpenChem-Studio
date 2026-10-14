@@ -983,6 +983,7 @@
   "tests/test_score_formula.py": 1,
   "tests/test_score_formula_guard.py": 1,
   "tests/test_score_formula_oracle.py": 1,
+  "tests/test_score_outputs.py": 2,
   "tests/test_score_units.py": 0,
   "tests/test_screening_is_configurable.py": 1,
   "tests/test_screening_service.py": 1,
