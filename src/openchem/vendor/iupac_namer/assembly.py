@@ -965,9 +965,11 @@ def render_merged_prefixes(merged_list: list[MergedPrefix]) -> str:
         # (and breaks the OPSIN round-trip).
         if prev_ends_alpha_or_close and (next_has_locant or next_starts_digit):
             result += "-" + part
-        elif part == "imino" and (result.endswith("amino") or result.endswith("hydroxy")):
-            # Naming round 49: two bare prefixes that run together into ANOTHER prefix. `amino` + `imino` is `aminoimino` (OPSIN reads an N-N bond, hydrazone-like) and `hydroxy` +
-            # `imino` is `hydroxyimino` (the group =N-OH): `amino(imino)methanethiol`, `hydroxy(imino)methanethiol` keep them two groups (P-16.5.1.2).
+        elif part == "imino" and prev_ends_alpha_or_close:
+            # Naming rounds 49 and 50: a bare `imino` right after ANOTHER prefix runs together into a SUBSTITUTED imino group. `amino` + `imino` is `aminoimino` (OPSIN reads an N-N bond),
+            # `hydroxy` + `imino` is `hydroxyimino` (=N-OH), `methyl` + `imino` is `methylimino` (=N-CH3), and after a bracket `{...diazenyl}imino` is =N-N=...: each is a different group
+            # (measured through OPSIN: `methyliminomethanethiol` -> `CN=CS`, `methyl(imino)methanethiol` -> `CC(S)=N`). Round 49 bracketed it after amino and hydroxy only; any preceding
+            # prefix does the same (P-16.5.1.2), so `imino` is enclosed whenever it follows one.
             result += "(imino)"
         else:
             result += part
