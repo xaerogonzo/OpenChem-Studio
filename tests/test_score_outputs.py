@@ -52,7 +52,7 @@ import sweep_score_outputs as sweep_tool  # noqa: E402
 
 #: The calculators the table draws from, plus the two controls: `joback_properties` is limited and HIDDEN by default, and
 #: `polar_surface_area` carries its number as text rounded by the decimal-places setting.
-_CALCULATORS_UNDER_TEST = ["hbond_sites", "logd", "oxygen_balance", "solubility", "joback_properties", "polar_surface_area"]
+_CALCULATORS_UNDER_TEST = ["oxygen_balance", "solubility", "joback_properties", "polar_surface_area", "logd"]
 
 
 def _entry(**changes) -> ApprovedOutput:
@@ -108,22 +108,16 @@ def test_every_endpoint_tag_is_used_and_described():
 #: sees it. A wrong tag is a wrong guard; moving an output into or out of a group changes what the application will refuse to combine.
 _SHARED_ENDPOINTS = {
     "aqueous_solubility_intrinsic": [
-        "calculator:solubility:Predicted intrinsic solubility (log mol/L)",
         "calculator:solubility:Predicted intrinsic solubility (mg/mL)",
         "calculator:solubility:Predicted intrinsic solubility (mol/L)",
         "descriptor:esol_logs",
     ],
-    "hbond_acceptor_count": ["calculator:hbond_sites:Acceptors", "descriptor:num_hba"],
-    "hbond_donor_count": ["calculator:hbond_sites:Donors", "descriptor:num_hbd"],
-    "logd_ph_7_4": ["calculator:logd:LogD at pH 7.4", "calculator:logd:LogD at pH 7.4 (approximation)"],
 }
 
 #: The unit of every approved output, written out for the same reason: it decides what a formula over it may add and what it works out to.
 _UNITS = {
-    "calculator:hbond_sites:Acceptors": "1", "calculator:hbond_sites:Donors": "1", "calculator:logd:LogD at pH 7.4": "1",
-    "calculator:logd:LogD at pH 7.4 (approximation)": "1", "calculator:oxygen_balance:Oxygen balance (CO basis)": "%",
+    "calculator:oxygen_balance:Oxygen balance (CO basis)": "%",
     "calculator:oxygen_balance:Oxygen balance (CO₂ basis)": "%",
-    "calculator:solubility:Predicted intrinsic solubility (log mol/L)": "1",
     "calculator:solubility:Predicted intrinsic solubility (mg/mL)": "mg/mL",
     "calculator:solubility:Predicted intrinsic solubility (mol/L)": "mol/L",
     "descriptor:bertz_ct": "1", "descriptor:esol_logs": "1", "descriptor:exact_mass": "g/mol", "descriptor:fsp3": "1",
@@ -219,7 +213,7 @@ def test_the_real_pair_a_person_would_try_is_stopped():
     with pytest.raises(FormulaError) as caught:
         check_inputs([
             ("esol", "descriptor:esol_logs"),
-            ("model", "calculator:solubility:Predicted intrinsic solubility (log mol/L)"),
+            ("model", "calculator:solubility:Predicted intrinsic solubility (mol/L)"),
         ])
     assert caught.value.problem is Problem.CONSENSUS
 
@@ -235,7 +229,7 @@ def test_outputs_of_different_endpoints_are_never_refused_as_consensus():
 
 def test_an_unapproved_output_is_reported_before_a_consensus():
     with pytest.raises(FormulaError) as caught:
-        check_inputs([("a", "descriptor:num_hbd"), ("b", "descriptor:nope"), ("c", "calculator:hbond_sites:Donors")])
+        check_inputs([("a", "descriptor:esol_logs"), ("b", "descriptor:nope"), ("c", "calculator:solubility:Predicted intrinsic solubility (mol/L)")])
     assert caught.value.problem is Problem.OUTPUT
 
 
@@ -528,6 +522,77 @@ def test_a_wrong_declared_unit_is_caught_on_real_data(swept):
     wrong = _entry(carried_as="Da")
     problems = sweep_tool.entry_problems(wrong, sweep, census)
     assert any("'Da'" in p for p in problems), problems
+
+
+def _paired_sweep(first_values, second_values, second_input="drawing"):
+    sweep = sweep_tool.Sweep()
+    for output_id, values, calc_input in (("descriptor:mol_wt", first_values, "drawing"), ("descriptor:qed", second_values, second_input)):
+        candidate = sweep_tool.Candidate(output_id, "label", "descriptor", output_id.split(":")[1])
+        candidate.observations = [(f"row{i}", calc_input, v, "") for i, v in enumerate(values)]
+        sweep.candidates[output_id] = candidate
+    return sweep
+
+
+def _pair(first_tag="molecular_weight", second_tag="qed_drug_likeness"):
+    return [_entry(endpoint=first_tag), _entry(output_id="descriptor:qed", endpoint=second_tag)]
+
+
+def test_two_outputs_that_agree_on_every_shared_row_but_carry_different_tags_are_reported():
+    same = [1.0, 2.0, 3.0, 4.0, 5.0]
+    found = sweep_tool.identical_pairs(_pair(), _paired_sweep(same, same))
+    assert [(a.output_id, b.output_id) for a, b in found] == [("descriptor:mol_wt", "descriptor:qed")]
+
+
+@pytest.mark.parametrize(
+    "first, second, tags",
+    [
+        ([1.0, 2.0, 3.0, 4.0, 5.0], [1.0, 2.0, 3.0, 4.0, 5.1], ("molecular_weight", "qed_drug_likeness")),  # one row differs
+        ([1.0, 2.0, 3.0, 4.0], [1.0, 2.0, 3.0, 4.0], ("molecular_weight", "qed_drug_likeness")),  # too few shared rows
+        ([1.0, 2.0, 3.0, 4.0, 5.0], [1.0, 2.0, 3.0, 4.0, 5.0], ("molecular_weight", "molecular_weight")),  # already one tag
+    ],
+)
+def test_agreement_that_is_not_a_copy_is_not_reported(first, second, tags):
+    assert sweep_tool.identical_pairs(_pair(*tags), _paired_sweep(first, second)) == []
+
+
+def test_only_the_drawing_is_compared():
+    same = [1.0, 2.0, 3.0, 4.0, 5.0]
+    assert sweep_tool.identical_pairs(_pair(), _paired_sweep(same, same, second_input="geometry")) == []
+
+
+def test_a_difference_in_the_last_digit_still_separates_two_outputs():
+    first = [1.0, 2.0, 3.0, 4.0, 5.0]
+    assert sweep_tool.identical_pairs(_pair(), _paired_sweep(first, [1.0, 2.0, 3.0, 4.0, 5.0 + 1e-6])) == []
+
+
+def test_no_two_approved_outputs_are_one_number_under_two_tags(swept):
+    sweep, _ = swept
+    assert [(a.output_id, b.output_id) for a, b in sweep_tool.identical_pairs(APPROVED, sweep)] == []
+
+
+def test_the_copy_guard_finds_a_real_copy_on_real_data(swept):
+    """The control arm: the solubility calculator's log mol/L IS the ESOL descriptor (16 of 16 rows), which is why that entry was dropped."""
+    sweep, _ = swept
+    esol = approved_output("descriptor:esol_logs")
+    copy = _entry(output_id="calculator:solubility:Predicted intrinsic solubility (log mol/L)", endpoint="logp_octanol_water")
+    found = sweep_tool.identical_pairs([esol, copy], sweep)
+    assert [(a.output_id, b.output_id) for a, b in found] == [(esol.output_id, copy.output_id)]
+
+
+def test_logd_is_not_approved_because_the_panel_can_only_show_its_degenerate_case(swept):
+    """The plain id exists, on the panel, only for molecules with no ionizable centre (where it equals LogP), and the approximation only for the
+    ionizable ones: the two never share a row. With pkasolver unconfigured the panel cannot exercise the plain id's main path, so it cannot be
+    approved. If this turns red the census can run the tool: revisit the withdrawal."""
+    sweep, _ = swept
+    plain = sweep.candidates["calculator:logd:LogD at pH 7.4"]
+    weaker = sweep.candidates["calculator:logd:LogD at pH 7.4 (approximation)"]
+
+    def drawing_rows(candidate):
+        return {row for row, calc_input, _value, _units in candidate.observations if calc_input == READ_FROM}
+
+    assert len(drawing_rows(plain)) == 16 and len(drawing_rows(weaker)) == 9
+    assert not drawing_rows(plain) & drawing_rows(weaker)
+    assert approved_output(plain.output_id) is None and approved_output(weaker.output_id) is None
 
 
 def test_the_sweeps_limits_are_these_numbers():
