@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### CI: four test shards, because the runner's speed, not the suite, decided whether three fit
+- **`test suite N/3` timed out with no failing test** on master's own push (`445de7e`), on `derived-scores-slice-1`, on PR #330 (shard 3 twice, shard 1 once). The same day master's run of `84469fd` took 20.0 minutes
+  on shard 3 and the pull request that merged it took 30.8, over the same files. The first 10% of the tests are identical in every run and took 2.9 minutes on the fast runner and 4.2 to 4.7 on the slow ones, and the
+  ratio held to 90% of the run: about 1.5x throughout. A shard sized for a fast runner does not fit on a slow one.
+- **The matrix is `[1, 2, 3, 4]`** (the count is written once; `-Splits` is the matrix size) and `tools/suite-shard-pins.json` has a `"4"` table: 145 files per shard, 1215 / 1213 / 1215 / 1215 s modelled, spread 0.16%, an
+  exact partition of 580 files (counted by collecting each shard separately). The `"2"` table stays for `windows-crash-rate.yml` and the `"3"` table so a past three-shard run's layout can be reproduced.
+- **The weights were rebuilt first**: 103 of the 580 files had no measured weight (the model said 3438 s for a suite that cost 4798 s of test time plus collection hook at the base commit's three shards), so `suite-durations.json` and
+  `suite-qapp-counts.json` come from that run's JUnit. On that run the model is within 7% of each shard; that is a fit to the run it was built from, and this pull request's own run is the test of it.
+- **The master ruleset has to change with this**: the required checks are matched by exact job name, so `test suite 1/3`, `2/3`, `3/3` become `1/4` ... `4/4`. Until then this pull request reports its four checks
+  and the three required names stay "Expected".
+- `test_pin_new_pins_unpinned_files_where_they_already_sit_and_moves_nobody` predicted the placement with `load_durations` while the tool packs by `load_costs`; the two agreed only while the old weights happened to name
+  the same lighter shard. It uses `load_costs` now.
+
 ### Naming: a second acid in an amide anion's acyl group, the thioamide anion, and S- or O-protonated thioureas and ureas that lost a nitrogen
 - `tools/naming_ion_populations.py` gained ten site patterns (an acyclic amide, a urea, a thioamide, an oxime, a phosphonic and a sulfinic acid; a thiocarbonyl sulfur, a sulfoxide oxygen, a phosphine, a nitrile
   nitrogen). An amide anion whose acyl group also carries an acid was written as a DIACYL group (`(pentanedioyl)...azanide`, the free acid dropped, unreadable); it is `(4-carboxy-1-oxobutyl)...azanide` (D-250).
