@@ -1,6 +1,6 @@
 # Derived scores: a restricted formula over approved outputs: design record
 
-**Status: design, written 2026-10-12. Slice 1 (the grammar, the evaluator and the units) was built on 2026-10-14 and is described under section 11; nothing else in this document is built.** It is the second half of Phase 2 of the
+**Status: design, written 2026-10-12. Slices 1 (the grammar, the evaluator and the units) and 2 (the approved output table, its sweep and guards) were built on 2026-10-14 and are described under section 11; nothing else in this document is built.** It is the second half of Phase 2 of the
 plan in the session notes; the first half, typed recipes and the Lewis pairing, is
 [`RECIPES_DESIGN.md`](RECIPES_DESIGN.md). This is the "custom predictor" idea **narrowed**: a person writes a
 formula over numbers the application already computes, and the result is labelled as exactly what it is, a formula
@@ -113,7 +113,8 @@ different symbols. Then:
 * `*` and `/` combine exponents; `^n` multiplies them;
 * `ramp(x, a, b)` requires `x`, `a` and `b` in one unit and gives the dimensionless unit;
 * `sqrt`, `ln`, `log10` and `exp` require a dimensionless argument;
-* a number literal is dimensionless;
+* a number literal is dimensionless, **except that a numbers-only operand of `+`, `-`, `min`, `max`, `clamp` and `ramp` takes the unit of the operands that name inputs** (added in slice 2, section 11):
+  without it no threshold on a quantity that has a unit could be written;
 * the unit the formula works out to must equal the declared `result_unit`, or the definition is refused.
 
 **There are no implicit conversions.** A conversion between two symbols is a named, tested entry in one table, with
@@ -121,7 +122,7 @@ the constant and its source; the table starts empty and an entry is added when a
 
 **What the unit check cannot do, stated so nobody trusts it for more.** It catches adding an energy to a length,
 or taking a logarithm of a dimensioned number. It cannot catch a wrong constant: a literal that is a conversion
-factor in disguise passes, because a literal is dimensionless. The definition's display therefore shows the
+factor in disguise passes, because a literal has no unit to check, and a threshold written in the wrong unit passes for the same reason. The definition's display therefore shows the
 formula with the unit beside every input, and says nothing further.
 
 ## 5. The label, and what it must never say
@@ -245,13 +246,45 @@ A driven run follows the UI slice, builds its own state, and ends in a verdict.
      counted as nodes are made, so a formula cannot build a tree it would then be refused for. 500 open parentheses are refused by the depth guard long before Python could run out of stack.
    * **A declared input the formula never uses is refused** (decided here; the design was silent): a number shown as evidence for an input the formula does not read is evidence of nothing.
    * **Units.** A unit is `1`, or `numerator` or `numerator/denominator`, each a `*`-separated product of `SYMBOL` or `SYMBOL^n`, **at most one `/`**, so there is one reading of every unit; an empty string is refused (write
-     `1`) so "no unit written" cannot mean "dimensionless" by accident, and an exponent is a non-zero whole number up to 12. The symbol list is a **starter** read off the unit strings the application's results carry today; the sweep
-     in slice 2 reconciles the spellings the results use (`A` and `Å`, `deg` and `degrees`, `""` and `dimensionless`) and completes it.
+     `1`) so "no unit written" cannot mean "dimensionless" by accident, and an exponent is a non-zero whole number up to 12. The symbol list is a **starter** read off the unit strings the application's results carry today; slice 2 reconciled the spellings the
+     results use (`A` and `Å`, `deg` and `degrees`, `""` and `dimensionless`) per approved output, in its `carried_as`, and not in this list, and added `L`.
    * **Verified three ways.** The rejection matrix (every construct the grammar does not have, one case each); **an independent oracle**: 6000 seeded random formulas in the grammar evaluated by the product and by a separate
      evaluator written in the test over Python's own parse tree, which agree to the value or both refuse (and a second pass that Python reads the canonical text the same way, so the minimal parentheses of `render` are right
      and not merely round-trippable through our own parser); and **a guard that reads the modules' syntax trees** and fails on an import of `ast` and its relatives or a call to `eval`, `exec`, `compile` or `__import__`
      (not on `re.compile`, which compiles a regular expression), tested against each way of doing it so a clean result means something.
-2. **The approved output table and its sweep and guards**: through the registry, on the census panel.
+2. **The approved output table and its sweep and guards**: through the registry, on the census panel. **BUILT (2026-10-14).**
+
+   **As built, what the sweep measured, and the one thing it made slice 1 change:**
+   * **Three pieces.** `domain/score_outputs.py` (the table, `check_inputs`, `accept_value`, `values_by_name`; pure), `tools/sweep_score_outputs.py` (observes the census run through a new `observer` hook on
+     `tools/calculator_census.py`, lists every typed number with its unit and the input it came from, and `--check` holds the table to what the registry produced) and `tests/test_score_outputs.py`. Like the formula
+     modules the table declares `REACHED_BY = "tooling: ..."` until slice 3.
+   * **What the panel produced** (29 rows; the always-on set and every registry calculator; the sidecars and the NMR database absent, as in the census): **191 numeric outputs: 31 descriptors, and 160 facts of `bird_aromaticity`, `geometry_analysis`, `griffin_hlb`, `hansen_solubility`, `hbond_sites`, `homa_aromaticity`, `joback_properties`, `logd`, `oxygen_balance`, `solubility`, `substance_analysis` and `torsion_table`.**
+     Most of the facts cannot be ids: 96 are torsions (named by their atoms) and 22 are ring aromaticity values (named by ring size and composition), and five ids are carried by two facts of one report. The sweep marks
+     those ambiguous and the guard refuses them.
+   * **First finding: most report calculators do not carry a number.** A `Fact`'s value is `Any`, and many calculators put a string there that is already rounded by the person's decimal-places setting
+     (`polar_surface_area` carries `'63.60'`; `cns_mpo`, `topology_analysis`, `surface_analysis`, `polarizability`, `dipole_moment`, `bbb_descriptors`, `elemental_analysis`, `huckel_analysis` and `mass_spectrum` do the same), and the
+     batch table's `_as_float` parses it back. **A score rests only on a number the producer typed** (`int` or `float`, not a `bool`, finite): a score over a rounded string would change when a display setting did. Those twelve
+     are the only report calculators on the panel that carry any typed number (of 31); the others have to type their values before they can be approved.
+   * **Second finding: the always-on descriptors are stored twice.** 21 of the 31 run on both the drawing and a geometry and store one result for each under one id (10 run only on a geometry). A score must read exactly one, so
+     **an approved output is read from the drawing** (`READ_FROM`). Geometry-based outputs (shape descriptors, force-field energies, projections) are a separate review: a number of one conformer is a number of that conformer.
+   * **The table: 26 outputs** (17 descriptors, and 9 facts of `hbond_sites`, `logd`, `oxygen_balance` and `solubility`) under **20 endpoint tags**, approved by hand from the sweep. An entry is `output_id`, the unit in the language of
+     `score_units`, **`carried_as`** (the exact string the result carries), the endpoint, and `approved` (a date: the design said `since`, an application version, which is not known when the entry is written).
+     **Not approved, and why:** every output of a hidden or experimental calculator (Joback is limited and hidden by default); `mcgowan_volume` (its unit, `cm³/mol ÷ 100`, cannot be written) and Hansen's parameters (`MPa^0.5`:
+     exponents are whole numbers); `molar_refractivity` (it carries no unit, and the sweep is not the place to supply one); formal charge, `np_likeness_confidence`, and the substance counts; every output whose id depends on the
+     structure; and every geometry-based output.
+   * **Spellings are reconciled per entry, not by a table of synonyms.** The application writes one unit several ways (`A^2` and `Å²`, `deg` and `degrees`, and no unit at all for a logarithm). An entry declares both the unit
+     and the string it must carry, and `accept_value` refuses any other string and converts nothing. `""` is accepted only for an entry declared `1`, and a logarithm (`log mol/L`, logP, logD) is declared `1`. A producer that changes
+     its units turns a score into a refusal, not into a different number.
+   * **The two rules, in code.** `check_inputs` returns the units a definition's inputs have, or a `FormulaError`: a bad name, an output that is not approved (`Problem.OUTPUT`), one output under two names, and two outputs of one
+     endpoint (`Problem.CONSENSUS`, saying why). `values_by_name` reads a value for each input or refuses naming the one that has none: never a zero, never a skipped term.
+   * **Guards.** Every entry resolves, through the registry on the census panel, to a finite number on at least five rows carrying `carried_as`; none comes from a calculator that is not stable or limited and offered by default;
+     and a rename of a fact label turns it red and says which scores it breaks. The control arms run **real** calculators: Joback (a number the panel really produced, refused as hidden) and `polar_surface_area` (an id that exists
+     whose value is text, refused). The endpoint groups and every unit are written out in the test, so changing either is a decision made where a reviewer sees it.
+   * **What slice 1 needed (found by writing the first example against a real output).** The unit rule "a number is dimensionless, and `ramp` needs x, a and b in one unit" made `ramp(tpsa, 140, 60)` a refusal, so **no threshold
+     on any quantity that has a unit could be written**, which is the whole use of `ramp` and of `clamp`. **A numbers-only operand of `+`, `-`, `min`, `max`, `clamp` and `ramp` now takes the unit of the operands that name inputs**
+     (`score_formula._adopt`). Nothing is converted and nothing is guessed (the other operands decide it); two named inputs in different units are still refused, a dimensioned argument of `ln`, `log10`, `sqrt` or `exp` is still
+     refused, and a wrong constant is still not caught, as before. **A consequence stands:** a logarithm of a dimensioned quantity cannot be written at all, because there is no way to divide by a unit.
+   * **Mutation-checked: 57 mutants** of the adoption rule, the table's rules, the table's own entries and the sweep. 56 were caught; the survivor is equivalent (`abs` or `ln` adopting a unit: a one-argument call has nothing to adopt from). The limits of the sweep survived at first for slice 1's reason (the tests read them by name), so they are pinned as numbers.
 3. **Definitions, persistence, evaluation on read, and the surfaces**: the project block, the Results one-fact
    report, the project-table column, the exports, the definition dialog, its help topic (a new surface needs one,
    and a guard checks), the drive script.
@@ -282,6 +315,12 @@ A driven run follows the UI slice, builds its own state, and ends in a verdict.
     key drops the block on its next save, as it does for every other block. This is the one block a person wrote by
     hand, so it is the one place the cost is lost work, accepted while the suite is in beta. Reversible later by
     stamping only files that contain a definition.
+
+11. **A numbers-only operand takes the unit of what it is combined with** (slice 2). It makes thresholds writable and gives up nothing the check could ever catch, since a literal has no unit to check; but it is a relaxation
+    of the strictest reading of section 4, and `energy + 5` is now valid. The alternative is a declared, named constant with a unit (`limit = 140 Å^2`), more explicit and heavier for the person; it can be added later without
+    changing the grammar.
+12. **Only typed numbers, only of the drawing** (slice 2). It excludes most report calculators until their producers type their values, and every geometry-based output until it is reviewed. Both are real losses of usefulness,
+    preferred to a score that moves with a display setting, or with whichever conformer happened to be stored.
 
 ## 13. Not here, deliberately
 

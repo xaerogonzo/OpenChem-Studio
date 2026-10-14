@@ -448,10 +448,10 @@ def test_a_power_multiplies_the_exponents_of_its_base():
     assert _check("a^0", "1", a="eV") == DIMENSIONLESS
 
 
-def test_a_number_is_dimensionless_so_scaling_keeps_the_unit_and_adding_one_does_not():
+def test_a_number_is_dimensionless_so_scaling_keeps_the_unit():
     assert _check("2 * a", "eV", a="eV") == parse_unit("eV")
-    with pytest.raises(FormulaError, match="cannot add eV and 1"):
-        _check("a + 1", "eV", a="eV")
+    assert _check("a / 2", "eV", a="eV") == parse_unit("eV")
+    assert _check("2 / a", "1/eV", a="eV") == parse_unit("1/eV")
 
 
 def test_a_negation_and_an_abs_keep_the_unit():
@@ -467,14 +467,75 @@ def test_min_and_max_need_every_argument_in_one_unit(function):
 
 def test_clamp_needs_all_three_in_one_unit_and_keeps_it():
     assert _check("clamp(a, b, c)", "eV", a="eV", b="eV", c="eV") == parse_unit("eV")
-    with pytest.raises(FormulaError, match="clamp needs every argument in one unit"):
-        _check("clamp(a, 0, 1)", "eV", a="eV")
+    with pytest.raises(FormulaError, match="clamp needs every argument in one unit, found eV, kcal, eV"):
+        _check("clamp(a, b, c)", "eV", a="eV", b="kcal", c="eV")
 
 
 def test_a_ramp_needs_x_a_and_b_in_one_unit_and_is_dimensionless():
     assert _check("ramp(a, b, c)", "1", a="eV", b="eV", c="eV") == DIMENSIONLESS
-    with pytest.raises(FormulaError, match="ramp needs x, a and b in one unit, found eV, 1, 1"):
-        _check("ramp(a, 1, 5)", "1", a="eV")
+    with pytest.raises(FormulaError, match="ramp needs x, a and b in one unit, found eV, kcal, eV"):
+        _check("ramp(a, b, c)", "1", a="eV", b="kcal", c="eV")
+    with pytest.raises(FormulaError, match="ramp needs x, a and b in one unit, found eV, 1, eV"):
+        _check("ramp(a, b, c)", "1", a="eV", b="1", c="eV")
+
+
+# --- a number takes the unit of what it is combined with (the thresholds a score needs) ---------------------------------------
+
+
+@pytest.mark.parametrize(
+    "text, result",
+    [
+        ("a + 1", "eV"), ("1 + a", "eV"), ("a - 0.5", "eV"), ("2 - a", "eV"), ("min(a, 5)", "eV"), ("max(3, a)", "eV"),
+        ("clamp(a, 0, 1)", "eV"), ("clamp(a, -2, 2)", "eV"), ("ramp(a, 140, 60)", "1"), ("ramp(a, b, 60)", "1"),
+        ("ramp(140, a, 60)", "1"), ("a + (-3)", "eV"), ("a - -3", "eV"),
+    ],
+)
+def test_a_number_in_a_sum_a_threshold_or_a_bound_takes_the_unit_of_the_other_operands(text, result):
+    assert _check(text, result, a="eV", b="eV") == parse_unit(result)
+
+
+@pytest.mark.parametrize("text", ["a + 2 * 30", "a - (140 - 20)", "a + 2^3", "min(a, sqrt(16))", "ramp(a, exp(0) * 140, 60 / 2)"])
+def test_an_expression_of_numbers_alone_is_treated_as_a_number(text):
+    _check(text, "1" if text.startswith("ramp") else "eV", a="eV")
+
+
+@pytest.mark.parametrize(
+    "text, message",
+    [
+        ("a + b", "cannot add eV and kcal"),
+        ("a + b + 1", "cannot add eV and kcal"),
+        ("a - b - 1", "cannot subtract eV and kcal"),
+        ("min(a, b, 5)", "min needs every argument in one unit, found eV, kcal, eV"),
+        ("clamp(a, 0, b)", "clamp needs every argument in one unit, found eV, eV, kcal"),
+        ("ramp(a, b, 1)", "ramp needs x, a and b in one unit, found eV, kcal, eV"),
+    ],
+)
+def test_a_number_never_lets_two_different_named_units_through(text, message):
+    with pytest.raises(FormulaError, match=message):
+        _check(text, "eV", a="eV", b="kcal")
+
+
+def test_a_number_beside_a_named_quantity_of_another_unit_is_still_not_a_named_quantity():
+    """`b` names an input, so it is not a number and does not adopt anything: adding a dimensionless input to an energy is refused."""
+    with pytest.raises(FormulaError, match="cannot add eV and 1"):
+        _check("a + b", "eV", a="eV", b="1")
+    with pytest.raises(FormulaError, match="cannot add eV and 1"):
+        _check("a + 2 * b", "eV", a="eV", b="1")
+
+
+def test_a_number_is_still_dimensionless_where_a_unit_is_not_being_matched():
+    with pytest.raises(FormulaError, match="ln needs a dimensionless argument, found eV"):
+        _check("ln(a + 1)", "1", a="eV")
+    with pytest.raises(FormulaError, match="exp needs a dimensionless argument, found eV"):
+        _check("exp(a / 2)", "1", a="eV")
+    assert _check("a * 140", "eV", a="eV") == parse_unit("eV")
+    assert _check("a^2 + 4", "eV^2", a="eV") == parse_unit("eV^2")
+
+
+def test_a_formula_of_numbers_alone_is_dimensionless_and_may_not_be_declared_otherwise():
+    assert _check("3 + 4 * 2", "1") == DIMENSIONLESS
+    with pytest.raises(FormulaError, match="works out to 1, and the definition declares eV"):
+        _check("3 + 4 * 2", "eV")
 
 
 @pytest.mark.parametrize("function", ["sqrt", "ln", "log10", "exp"])
@@ -665,7 +726,9 @@ def test_the_canonical_text_parses_back_to_the_same_tree(text):
 
 
 def test_every_problem_a_parse_can_report_is_one_of_the_closed_set():
-    assert {p.value for p in Problem} == {"syntax", "limit", "name", "function", "exponent", "inputs", "unit"}
+    assert {p.value for p in Problem} == {
+        "syntax", "limit", "name", "function", "exponent", "inputs", "unit", "output", "consensus"
+    }
 
 
 def test_a_syntax_error_carries_the_position_of_what_was_wrong():

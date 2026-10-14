@@ -101,6 +101,10 @@ class Problem(str, enum.Enum):
     EXPONENT = "exponent"
     INPUTS = "inputs"
     UNIT = "unit"
+    #: An input bound to something that is not an approved output (`score_outputs`).
+    OUTPUT = "output"
+    #: Two inputs that estimate one quantity (`score_outputs`, section 6 of the design).
+    CONSENSUS = "consensus"
 
 
 class FormulaError(ValueError):
@@ -511,12 +515,36 @@ def _unit_error(message: str, node: Node) -> FormulaError:
     return FormulaError(Problem.UNIT, f"{message} (in {render(node)})", node.pos)
 
 
+def _is_constant(node: Node) -> bool:
+    """True for an expression made only of numbers: it names no input, so the formula's own text fixes its value."""
+    if isinstance(node, Name):
+        return False
+    return all(_is_constant(child) for child in children(node))
+
+
+def _adopt(nodes: list[Node], units: list[Unit]) -> list[Unit]:
+    """The units of operands that must agree, with every numbers-only operand taking the unit of the operands that name inputs.
+
+    A number has no unit of its own, so a threshold or an offset is whatever unit the quantity it is compared with, added to or clamped
+    by has. That is not a conversion (nothing is scaled) and it is not a guess (the other operands decide it). It cannot catch a wrong
+    constant, which the unit check never could. When no operand names an input every one is a number and they are left as they are.
+    """
+    named = [unit for node, unit in zip(nodes, units) if not _is_constant(node)]
+    if not named:
+        return units
+    return [named[0] if _is_constant(node) else unit for node, unit in zip(nodes, units)]
+
+
 def infer_unit(node: Node, units: Mapping[str, Unit]) -> Unit:
     """The unit `node` works out to, by the rules of `docs/DERIVED_SCORES_DESIGN.md` section 4:
 
     `+`, `-`, `min`, `max` and `clamp` need identical units; `*` and `/` combine exponents; `^n` multiplies them; `ramp(x, a, b)` needs
     `x`, `a` and `b` in one unit and is dimensionless; `sqrt`, `ln`, `log10` and `exp` need a dimensionless argument and give one; a number
     is dimensionless; `abs` keeps its argument's unit.
+
+    **A numbers-only operand takes the unit of the others** in `+`, `-`, `min`, `max`, `clamp` and `ramp` (`_adopt`), because a threshold
+    has to be writable: `ramp(tpsa, 140, 60)` would otherwise be refused, and so would every threshold on a quantity that has a unit.
+    Two named inputs in different units are still refused, and so is a logarithm of a dimensioned number.
     """
     if isinstance(node, Number):
         return DIMENSIONLESS
@@ -532,11 +560,14 @@ def infer_unit(node: Node, units: Mapping[str, Unit]) -> Unit:
             return left * right
         if node.op == "/":
             return left / right
+        left, right = _adopt([node.left, node.right], [left, right])
         if left != right:
             verb = "add" if node.op == "+" else "subtract"
             raise _unit_error(f"cannot {verb} {left} and {right}: they are different units, and there are no conversions", node)
         return left
     argument_units = [infer_unit(a, units) for a in node.args]
+    if node.function in ("min", "max", "clamp", "ramp"):
+        argument_units = _adopt(list(node.args), argument_units)
     name = node.function
     if name == "abs":
         return argument_units[0]
