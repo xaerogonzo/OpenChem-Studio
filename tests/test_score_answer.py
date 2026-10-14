@@ -180,3 +180,12 @@ def test_scores_come_back_in_the_order_the_definitions_were_made():
 def test_the_derived_category_is_ordered_last_labelled_and_open_by_default():
     assert CATEGORY_ORDER[-1] is FactCategory.DERIVED and CATEGORY_LABELS[FactCategory.DERIVED] == "Derived scores"
     assert FactCategory.DERIVED in DEFAULT_EXPANDED and FactCategory.DERIVED.value == "derived"
+
+
+def test_the_codes_and_texts_are_these_literals():
+    """Pinned as literals: a test that reads them by name moves with a mutant that changes them."""
+    from openchem.domain.score_answer import SIGNIFICANT_DIGITS
+
+    assert (REFUSAL_CODE, NO_VALUE, SIGNIFICANT_DIGITS) == ("SCORE_NO_VALUE", "no value", 4)
+    assert _refused().provenance.parameters["refusal"] == "SCORE_NO_VALUE"
+    assert _refused().error_summary == "no value: an input cannot be read"

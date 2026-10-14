@@ -29,7 +29,7 @@ from openchem.domain.common import CacheState, Provenance
 from openchem.domain.refusal_kinds import RefusalKind, refusal_parameters
 from openchem.domain.report import Basis, Fact, FactCategory, ReportResult
 from openchem.domain.score_definition import VALIDATION
-from openchem.domain.score_value import InputEvidence, InputState, ScoreStatus, ScoreValue
+from openchem.domain.score_value import InputEvidence, ScoreStatus, ScoreValue
 
 #: The one limitation every score carries, in these words, because it is what a person reading the number most needs to be told.
 LIMITATION = "A formula a person wrote. Nothing has checked it against measurements."
@@ -67,8 +67,7 @@ def _number(value: float) -> str:
 
 
 def _input_line(item: InputEvidence) -> str:
-    if item.state is not InputState.READ:
-        return f"{item.name} ({item.output_id}): no value read: {item.note}"
+    """One input that WAS read: only a score with a value has evidence lines, and it has a value only when every input was read."""
     unit = f" {item.carried_as}" if item.carried_as else ""
     return f"{item.name} = {item.value:.6g}{unit}   [{item.output_id}; read from the stored result {item.result_id}]"
 

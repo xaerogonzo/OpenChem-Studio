@@ -289,3 +289,26 @@ def test_a_score_reads_what_the_real_always_on_descriptors_recorded(scores, serv
     assert by_name["psa"].value == pytest.approx(63.6, abs=0.1) and by_name["logp"].value == pytest.approx(1.31, abs=0.01)
     assert by_name["psa"].carried_as == "Å²" and by_name["psa"].result_id == "descriptor:rdkit:tpsa"
     assert 0.0 <= value.value <= 1.0
+
+
+# --- the reader entries ------------------------------------------------------------------------------------------------------------------
+
+
+def test_the_reader_entries_are_stamped_with_the_molecule_and_the_version_they_were_asked_for(scores, services, project):
+    model = project.molecules[0]
+    _make(scores)
+    _put(services, model, "tpsa", 100.0, "\u00c5\u00b2")
+    _put(services, model, "mol_logp", 3.5)
+    (answer,) = scores.answers_for(model.uuid, 9)
+    assert answer.molecule_uuid == model.uuid and answer.structure_version == 9 and answer.score_id == "user.my_blend"
+    assert answer.facts[0].value == pytest.approx(0.25)
+
+
+def test_a_molecule_the_project_does_not_have_has_no_reader_entries(scores):
+    _make(scores)
+    assert scores.answers_for("not-in-this-project", 0) == ()
+
+
+def test_with_no_project_there_are_no_reader_entries(services):
+    service = ScoreService(services.event_bus, services.result_store_service, services.calculator_registry)
+    assert service.answers_for("anything", 0) == ()
