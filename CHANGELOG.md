@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Derived scores, slice 1: the grammar, the units and the checked evaluator (pure; no UI or project data yet)
+- **`domain/score_formula.py` and `domain/score_units.py` are the formula language of a user-defined score** (`docs/DERIVED_SCORES_DESIGN.md` section 4): a recursive-descent parser written for it (no `eval`, no `exec`, no
+  `compile`, no Python parser), a closed set of nine functions, strict opaque units with no conversions, and an evaluator that refuses a division by zero, a domain error, an overflow or any non-finite step naming the step and never
+  returns a `nan` or an `inf`. Nothing in the application reaches it yet (slice 3 wires it into the project file and Results); `tools/check_score_formula.py` runs a definition and a value from the command line.
+- **Verified by a rejection matrix, an independent oracle and a syntax-tree guard**: 6000 random formulas agree with a separate evaluator over Python's own parse tree (or both refuse), the canonical text means the same to Python
+  as the original, and no scoring module imports a Python parser or runs a string. The design record said "eight" functions and listed nine; it is corrected. A declared input a formula never uses is refused.
+
 ### Recipes, slice 4: the Lewis pairing gate (BH3/CO and BF3/CO on real ORCA): preregistered, then PASSED at 0.01 eV
 - **`benchmarks/lewis_gate/PREREGISTRATION.md` freezes the gate before any ORCA job of BH3 or BF3**: the documented numbers, the procedure, the noise floor (carbon monoxide run twice on one input and through the whole
   chain twice), **the rule for the tolerance (`T = max(0.01 eV, floor rounded up to 0.01)`, none above 0.37 eV)**, and exactly what PASS, FAIL and NOT EVALUABLE mean. `app/lewis_gate.py` is the arithmetic, pure and tested with

@@ -710,3 +710,46 @@ def test_an_input_name_may_hold_underscores_and_digits():
 def test_a_name_may_not_start_with_an_underscore_or_a_digit():
     assert _problem("_a").problem is Problem.SYNTAX
     assert _problem("2a").problem is Problem.SYNTAX
+
+
+# --- what the three corners the first mutation pass found were ---------------------------------------------------------------------
+
+
+def test_a_clamp_with_equal_bounds_is_a_constant_and_is_not_refused():
+    assert _value("clamp(5, 2, 2)") == 2 and _value("clamp(-5, 2, 2)") == 2
+
+
+def test_the_depth_of_a_unary_chain_and_of_parentheses_is_refused_where_it_is_met_with_a_position():
+    """Refused while parsing, at the character that went too deep, not only after the tree exists: that is what keeps a
+    long run of minus signs from recursing far on its way to a refusal."""
+    for text in ("-" * MAX_DEPTH + "a", "(" * MAX_DEPTH + "a" + ")" * MAX_DEPTH, "abs(" * MAX_DEPTH + "a" + ")" * MAX_DEPTH):
+        error = _problem(text)
+        assert error.problem is Problem.LIMIT and error.position is not None, text
+
+
+def test_a_right_nested_tree_is_measured_by_its_deepest_branch():
+    a = Name("a")
+    right_deep = Binary("+", a, Binary("+", a, Binary("+", a, a)))
+    assert measure(right_deep) == (7, 4)
+    left_deep = Binary("+", Binary("+", Binary("+", a, a), a), a)
+    assert measure(left_deep) == (7, 4)
+    lopsided = Binary("+", Neg(Neg(Neg(a))), a)
+    assert measure(lopsided) == (6, 5)
+
+
+@pytest.mark.parametrize(
+    ("tree", "expected"),
+    [
+        (Number(1.0), (1, 1)),
+        (Name("a"), (1, 1)),
+        (Neg(Name("a")), (2, 2)),
+        (Power(Name("a"), 2), (2, 2)),
+        (Power(Neg(Name("a")), 2), (3, 3)),
+        (Call("abs", (Name("a"),)), (2, 2)),
+        (Call("clamp", (Name("a"), Number(0.0), Number(1.0))), (4, 2)),
+        (Call("max", (Name("a"), Power(Name("a"), 2))), (4, 3)),
+        (Binary("*", Name("a"), Name("a")), (3, 2)),
+    ],
+)
+def test_every_kind_of_node_is_counted_with_its_children(tree, expected):
+    assert measure(tree) == expected

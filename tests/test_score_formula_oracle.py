@@ -264,3 +264,41 @@ def test_the_canonical_text_means_the_same_to_python_as_the_original_text_does()
 def test_the_oracle_itself_reads_precedence_the_way_the_design_says(text, env, expected):
     """The oracle is only worth trusting if it is right on the cases that could go wrong in both."""
     assert oracle_value(text, env) == expected == product_value(text, env)
+
+
+# --- anything at all: terminates, and refuses in one way ----------------------------------------------------------------------------
+
+#: Characters the fuzz draws from: the grammar's own, whitespace, and everything a person might paste that is not in it.
+FUZZ_ALPHABET = (
+    "abcxyz_0123456789.eE+-*/^(),  \t\n"
+    "ABZ!@#$%&=<>?[]{}|\\;:'\"`~"
+    "\u00b2\u00d7\u00f7\u2212\u2044\u0663\uff11\u00e9\u03b1\u200b\u00a0"
+)
+
+
+def test_arbitrary_text_is_either_a_formula_or_a_formula_error_and_never_hangs_or_raises_anything_else():
+    """The tokenizer and the parser are loops over untrusted text. This draws 20000 strings from the grammar's characters and
+    from characters outside it, and requires that each one returns a formula or raises `FormulaError`, and that an accepted
+    formula evaluates to a finite number or a `Refusal`. (A non-ASCII digit once sent a mutated tokenizer round a loop it never
+    left; that is what this is for.)"""
+    rng = random.Random(20261014)
+    accepted = 0
+    for _ in range(20000):
+        text = "".join(rng.choice(FUZZ_ALPHABET) for _ in range(rng.randint(0, 40)))
+        try:
+            formula = parse_formula(text, NAMES)
+        except FormulaError:
+            continue
+        accepted += 1
+        try:
+            value = evaluate(formula, {"a": 1.5, "b": -2.0, "c": 0.0})
+        except Refusal:
+            continue
+        assert math.isfinite(value), text
+    assert accepted > 100, "the fuzz never produced a valid formula, so it exercised only the refusals"
+
+
+def test_a_long_run_of_one_character_terminates_and_is_refused_by_a_limit():
+    for text in ("-" * 495 + "a", "(" * 495 + "a", "a" + "+a" * 249, "1" * 500, "a^" * 250, "abs(" * 120 + "a" + ")" * 120):
+        with pytest.raises(FormulaError):
+            parse_formula(text, NAMES)

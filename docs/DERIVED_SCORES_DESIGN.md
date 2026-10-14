@@ -1,6 +1,6 @@
 # Derived scores: a restricted formula over approved outputs: design record
 
-**Status: design, written 2026-10-12. Nothing in this document is built.** It is the second half of Phase 2 of the
+**Status: design, written 2026-10-12. Slice 1 (the grammar, the evaluator and the units) was built on 2026-10-14 and is described under section 11; nothing else in this document is built.** It is the second half of Phase 2 of the
 plan in the session notes; the first half, typed recipes and the Lewis pairing, is
 [`RECIPES_DESIGN.md`](RECIPES_DESIGN.md). This is the "custom predictor" idea **narrowed**: a person writes a
 formula over numbers the application already computes, and the result is labelled as exactly what it is, a formula
@@ -94,7 +94,7 @@ atom   := NUMBER | NAME | NAME "(" expr ("," expr)* ")" | "(" expr ")"
   absolute value is at most 6, so no expression can build a huge number by exponentiation.
 * **Names.** A `NAME` that is not followed by `(` must be one of the definition's declared inputs. There are no
   globals, no constants by name, no attributes, no indexing, no strings, no comparisons, no conditionals.
-* **Functions, a closed set of eight.** `abs(x)`, `min(a, b, ...)`, `max(a, b, ...)`, `clamp(x, lo, hi)`,
+* **Functions, a closed set of nine** (the first draft of this record counted eight and listed nine). `abs(x)`, `min(a, b, ...)`, `max(a, b, ...)`, `clamp(x, lo, hi)`,
   `ramp(x, a, b)`, `sqrt(x)`, `ln(x)`, `log10(x)`, `exp(x)`. `ramp` is 0 at `a`, 1 at `b`, linear between, and
   clamped outside; the order of `a` and `b` gives the direction, so a falling desirability is `ramp(x, bad, good)`.
   It is the building block of the multiparameter scores already in the application (`chem/mpo_scores.py` uses the
@@ -231,7 +231,26 @@ A driven run follows the UI slice, builds its own state, and ends in a verdict.
 
 ## 11. Slices
 
-1. **Grammar, evaluator and units**: pure, no UI, with the oracle and the rejection matrix. Mutation-tested.
+1. **Grammar, evaluator and units**: pure, no UI, with the oracle and the rejection matrix. Mutation-tested. **BUILT (2026-10-14).**
+
+   **As built, and the choices the design left open:**
+   * **Two modules and a tool.** `domain/score_units.py` (the unit type and its parser) and `domain/score_formula.py` (tokenizer, recursive-descent parser, the tree, the unit inference and the evaluator), both pure;
+     `tools/check_score_formula.py` runs a definition and a value from the command line. The tool is what reaches the modules until slice 3, so both declare `REACHED_BY = "tooling: ..."` for the reachability guard, and that
+     declaration must go when slice 3 wires them in (the guard fails a declaration on a module that has become reachable, so it cannot be forgotten).
+   * **Three stages that can each refuse and none of which can return a wrong number**: `parse_formula` (syntax, limits, names, arity; a `FormulaError` with a closed `Problem` code and a character position), `check_units`
+     (the unit the formula works out to against the declared one) and `evaluate` (a `Refusal` naming the step). `check_definition` is the one call the dialog and the loader make: syntax, names, units, and that no input goes unused.
+   * **Numbers** are `digits`, an optional `.digits` and an optional `e[+-]digits`: `.5` and `5.` and `1e` are errors, not guessed at. **Whitespace** is space, tab and newlines. Anything outside ASCII is a syntax error.
+     **An exponent** is a whole number from -6 to 6, **a sign is allowed** (`x^-2`), and `x^2^3` is refused (`(x^2)^3` is the way to write it): the grammar's single `("^" INTEGER)?` has no chain.
+   * **The depth limit counts every parenthesis, unary minus and call argument as a level**, so none can hide depth, and a long chain of `+` (which nests nothing in the text) is measured after it is built; the node limit is
+     counted as nodes are made, so a formula cannot build a tree it would then be refused for. 500 open parentheses are refused by the depth guard long before Python could run out of stack.
+   * **A declared input the formula never uses is refused** (decided here; the design was silent): a number shown as evidence for an input the formula does not read is evidence of nothing.
+   * **Units.** A unit is `1`, or `numerator` or `numerator/denominator`, each a `*`-separated product of `SYMBOL` or `SYMBOL^n`, **at most one `/`**, so there is one reading of every unit; an empty string is refused (write
+     `1`) so "no unit written" cannot mean "dimensionless" by accident, and an exponent is a non-zero whole number up to 12. The symbol list is a **starter** read off the unit strings the application's results carry today; the sweep
+     in slice 2 reconciles the spellings the results use (`A` and `Å`, `deg` and `degrees`, `""` and `dimensionless`) and completes it.
+   * **Verified three ways.** The rejection matrix (every construct the grammar does not have, one case each); **an independent oracle**: 6000 seeded random formulas in the grammar evaluated by the product and by a separate
+     evaluator written in the test over Python's own parse tree, which agree to the value or both refuse (and a second pass that Python reads the canonical text the same way, so the minimal parentheses of `render` are right
+     and not merely round-trippable through our own parser); and **a guard that reads the modules' syntax trees** and fails on an import of `ast` and its relatives or a call to `eval`, `exec`, `compile` or `__import__`
+     (not on `re.compile`, which compiles a regular expression), tested against each way of doing it so a clean result means something.
 2. **The approved output table and its sweep and guards**: through the registry, on the census panel.
 3. **Definitions, persistence, evaluation on read, and the surfaces**: the project block, the Results one-fact
    report, the project-table column, the exports, the definition dialog, its help topic (a new surface needs one,
