@@ -672,3 +672,41 @@ def test_a_syntax_error_carries_the_position_of_what_was_wrong():
     assert _problem("a + $").position == 4
     assert _problem("a + * b").position == 4
     assert _problem("(a").position == 2
+
+
+# --- the numbers the design states, pinned as numbers ---------------------------------------------------------------------------
+#
+# Every test above reads the limits through their names, so a limit moved by one would move the tests with it. The design
+# (`docs/DERIVED_SCORES_DESIGN.md` section 4) states them, and these are what it states.
+
+
+def test_the_limits_are_the_numbers_the_design_states():
+    assert (MAX_CHARACTERS, MAX_NODES, MAX_DEPTH, MAX_EXPONENT, MAX_INPUTS) == (500, 200, 24, 6, 12)
+
+
+def test_the_formula_depth_limit_is_twenty_four_levels_in_numbers():
+    assert measure(_parse("-" * 23 + "a").tree)[1] == 24
+    assert _problem("-" * 24 + "a").problem is Problem.LIMIT
+
+
+def test_twelve_inputs_are_accepted_and_thirteen_are_not_in_numbers():
+    assert len(check_input_names([f"x{i}" for i in range(12)])) == 12
+    with pytest.raises(FormulaError, match="at most 12 inputs"):
+        check_input_names([f"x{i}" for i in range(13)])
+
+
+def test_a_formula_of_five_hundred_characters_is_accepted_and_five_hundred_and_one_is_not_in_numbers():
+    assert _parse("1" + " " * 499).tree == Number(1.0)
+    assert _problem("1" + " " * 500).problem is Problem.LIMIT
+
+
+# --- names ----------------------------------------------------------------------------------------------------------------------------
+
+
+def test_an_input_name_may_hold_underscores_and_digits():
+    assert _value("log_p + x2 + a_1_b", log_p=1.0, x2=2.0, a_1_b=4.0) == 7.0
+
+
+def test_a_name_may_not_start_with_an_underscore_or_a_digit():
+    assert _problem("_a").problem is Problem.SYNTAX
+    assert _problem("2a").problem is Problem.SYNTAX
