@@ -1749,22 +1749,27 @@ def _classify_iminium_hetero(mol) -> Iterable[ChargeClassification]:
     if len(charged) != 1:
         return
     n = charged[0]
-    if n.GetAtomicNum() != 7 or n.GetFormalCharge() != 1 or n.GetNumRadicalElectrons() != 0 or n.GetTotalNumHs() < 1:
+    if n.GetAtomicNum() != 7 or n.GetFormalCharge() != 1 or n.GetNumRadicalElectrons() != 0:
         return
     doubles = [b for b in n.GetBonds() if b.GetBondTypeAsDouble() == 2.0]
-    if len(doubles) != 1 or doubles[0].IsInRing() or n.GetDegree() > 2:
+    # Naming round 50: the nitrogen may carry no hydrogen (a QUATERNARY iminium, `C[N+](C)=C(N)S`: two substituents and the double bond), so the degree is 3 at most.
+    # A RING nitrogen is never claimed: its two ring bonds would be carved as two separate substituents and the ring cut (`c(=[N+]3CCOCC3)`, a morpholinium ylidene, was named with two
+    # `2-ethoxyethyl` groups: a different molecule, found by the census on the first run).
+    if len(doubles) != 1 or doubles[0].IsInRing() or n.IsInRing() or n.GetDegree() > 3:
         return
     carbon = doubles[0].GetOtherAtom(n)
     if carbon.GetAtomicNum() != 6 or carbon.GetFormalCharge() != 0 or carbon.GetDegree() != 3:
         return
     hetero = [x for x in carbon.GetNeighbors() if x.GetIdx() != n.GetIdx() and x.GetAtomicNum() in (7, 8, 16)]
-    if not hetero:
-        return
-    for x in n.GetNeighbors():
-        if x.GetIdx() == carbon.GetIdx():
-            continue
-        if x.GetAtomicNum() not in (6, 7, 8):  # the substituent on N+ (N-hydroxy, N-alkyl)
+    others = [x for x in n.GetNeighbors() if x.GetIdx() != carbon.GetIdx()]
+    for x in others:
+        if x.GetAtomicNum() not in (6, 7, 8, 16):  # the substituent on N+ (N-hydroxy, N-alkyl, N-sulfonyl)
             return
+    # A heteroatom on the carbon is what sent the plan search to a neutral principal group (round 49); so is a SULFONYL on the nitrogen (naming round 50: an N-sulfonyl iminium,
+    # `C=[NH+]S(=O)(=O)Ar`, the cation of a quinone imine, whose carbon carries only carbon). An N-acylamino or N-hydroxy iminium with a carbon-only carbon (a hydrazone cation,
+    # `CC(=[NH+]NC(=O)C)C`) keeps the route that already names it correctly.
+    if not hetero and not any(x.GetAtomicNum() == 16 for x in others):
+        return
     # A true amidinium (`CC(N)=[NH2+]`) never reaches the claim below: `_classify_amidinium` runs first and `classify_charges` keeps the first claimer of an atom. With a heteroatom
     # instead of the carbon (`NC(=[NH2+])OC`, `NC(S)=[NH2+]`) that classifier declines, and this one names it. (An explicit exclusion here was an equivalent mutant: deleting it moved no name.)
     yield ChargeClassification(
@@ -1827,8 +1832,22 @@ def _render_iminium_hetero(cls: ChargeClassification, mol, strategy, session, de
         if not name:
             return None
         prefixes.append(name)
-    prefixes.sort(key=_alphabetical_key)
-    parts = [f"[{p}]" if "(" in p else f"({p})" for p in prefixes]
+    # Identical groups are one prefix with a multiplier (naming round 50: `(methyl)(methyl)azanium` is `dimethyl`); a compound one is `bis(...)`. The first group is cited bare when it is
+    # simple, a later single simple one is enclosed so the words do not run together, and a group that holds enclosing marks is bracketed.
+    counts: dict[str, int] = {}
+    for p in prefixes:
+        counts[p] = counts.get(p, 0) + 1
+    ordered = sorted(counts, key=_alphabetical_key)
+    parts: list[str] = []
+    for position, p in enumerate(ordered):
+        compound = bool(_COMPOUND_PREFIX.search(p))
+        c = counts[p]
+        if c == 1:
+            text = (f"[{p}]" if "(" in p else f"({p})") if (compound or position > 0) else p
+        else:
+            multiplier = {2: "di", 3: "tri", 4: "tetra"}[c]
+            text = f"{'bis' if compound else multiplier}({p})" if compound else f"{multiplier}{p}"
+        parts.append(text)
     return "".join(parts) + "azanium"
 
 

@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Verified by a rejection matrix, an independent oracle and a syntax-tree guard**: 6000 random formulas agree with a separate evaluator over Python's own parse tree (or both refuse), the canonical text means the same to Python
   as the original, and no scoring module imports a Python parser or runs a string. The design record said "eight" functions and listed nine; it is corrected. A declared input a formula never uses is refused.
 
+### Naming: one tool for the ion populations, a bare `imino` enclosed after any prefix, and the iminium cations round 49 left refused
+- `tools/naming_ion_populations.py` makes ions out of the census molecules (`anion` deprotonates one acidic site, `cation` protonates one basic site, `quaternary` N-methylates it), names each and reads it
+  back through OPSIN: the method that found rounds 46 to 49's defects, which lived in scratch scripts. A bare `imino` after any prefix is now enclosed, `{...diazenyl}(imino)methanethiolate` (OPSIN reads
+  `methylimino` as `=N-CH3`) (D-246); an N-sulfonyl iminium (the cation of a quinone imine) and a quaternary iminium are named, `methylsulfonyl(propan-2-ylidene)azanium`,
+  `[amino(sulfanyl)methylidene]dimethylazanium` (D-247). The census is unchanged at 1993 exact; frozen sets: heldout_v6 and fresh_v1 unchanged; bluebook_frozen re-scored once (r50-final-evaluation): exact 523 -> 522 and equivalent 527 -> 528, every other count identical (one row's spelling moved, the same molecule). The stage list for `--frozen-impact` becomes `r49-fresh-v1,r50-final-evaluation,r38-final-evaluation`.
+
 ### Recipes, slice 4: the Lewis pairing gate (BH3/CO and BF3/CO on real ORCA): preregistered, then PASSED at 0.01 eV
 - **`benchmarks/lewis_gate/PREREGISTRATION.md` freezes the gate before any ORCA job of BH3 or BF3**: the documented numbers, the procedure, the noise floor (carbon monoxide run twice on one input and through the whole
   chain twice), **the rule for the tolerance (`T = max(0.01 eV, floor rounded up to 0.01)`, none above 0.37 eV)**, and exactly what PASS, FAIL and NOT EVALUABLE mean. `app/lewis_gate.py` is the arithmetic, pure and tested with

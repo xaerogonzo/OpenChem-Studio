@@ -1153,3 +1153,10 @@ P-45.2.3, "the lower locant set for substituent groups in order of citation in t
   one, so the name is right and the plan generation is not (its test runs in the default mode); (b) an N-sulfonyl iminium (`C=[NH+]S(=O)(=O)Ar`, quaternary or not) is still refused: the classifier takes only C, N and O
   on the cationic nitrogen; (c) the anions of an N-N bond are refused or visibly wrong (a pyrazolone anion is refused, `CC(=O)[N-]N` is a `NAMING ERROR`); (d) a carboxylate beside TWO neutral acids on an amidinium is refused;
   (e) a sulfonamide anion bearing an N-methoxycarbonyl group is `N-[methoxy(oxo)methyl]methanesulfonamidate`, readable but not the book's `methoxycarbonyl`; (f) the census's seven non-exact rows are unchanged.
+* **The ion populations are saturated at their patterns, and what is still open (naming round 50, 2026-10-14; D-246, D-247).** See the vendor changelog. The anion, cation and quaternary populations of
+  `tools/naming_ion_populations.py` leave only the bis([1,3]dioxolo)pyran (OPSIN cannot read the fusion name) and the cases below; they cover EIGHT site patterns each, so an acidic or basic site they do not match is
+  untested. **Still open:** (a) the ANION-mode plan of an N-acyl isothiourea thiolate (`NC([S-])=NC(=O)c1ccccc1`) with parent `methane` carries an `oxo_fallback` prefix built for ANOTHER parent (it attaches at an atom this
+  parent does not contain), so the carbonyl oxygen is claimed twice; strict ownership mode raises on it, the default mode rejects the plan and names the molecule through the next one; (b) the anions of an N-N bond
+  (a pyrazolone anion is refused, `CC(=O)[N-]N` is a `NAMING ERROR`); (c) a carboxylate beside TWO neutral acids on an amidinium is refused; (d) a sulfonamide anion bearing an N-methoxycarbonyl group is
+  `N-[methoxy(oxo)methyl]methanesulfonamidate`, readable but not the book's `methoxycarbonyl`; (e) the baseline `quaternary` run measured here included D-246's rule (it started after that edit), so its count is not a
+  pure master count; (f) the census's seven non-exact rows are unchanged.
