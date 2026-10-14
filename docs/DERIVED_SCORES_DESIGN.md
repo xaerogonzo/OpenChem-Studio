@@ -35,6 +35,7 @@ A **definition** is data, owned by a project:
 * `schema_version`: of the definition format, so a build can refuse one it does not understand (section 8).
 * `inputs`: an ordered list of `(name, output_id)`, where `name` is the identifier the formula uses and `output_id`
   is a key of the **approved output table** (section 3). At most 12.
+* `constants`: an ordered list of `(name, value, unit)`, named numbers with a unit that the formula uses as names (slice 2, section 11). At most 12, in the same namespace as the inputs.
 * `formula`: text in the grammar of section 4.
 * `result_unit`: declared, and **checked** against the unit the formula works out to (section 4).
 * `on_missing`: in this phase exactly one value, `refuse`. A second policy needs a reason in writing first.
@@ -119,6 +120,9 @@ different symbols. Then:
 
 **There are no implicit conversions.** A conversion between two symbols is a named, tested entry in one table, with
 the constant and its source; the table starts empty and an entry is added when an approved output needs one.
+
+**Named constants are the strict alternative to a bare number.** A bare number adopts the unit of what it is combined with; a constant is a name with a declared unit, so it adopts nothing, a threshold in the wrong unit is
+refused, and a logarithm of a dimensioned quantity is writable by dividing by a constant that carries the unit (`log10(mw / one)` with `one = 1 g/mol`).
 
 **What the unit check cannot do, stated so nobody trusts it for more.** It catches adding an energy to a length,
 or taking a logarithm of a dimensioned number. It cannot catch a wrong constant: a literal that is a conversion
@@ -293,9 +297,14 @@ A driven run follows the UI slice, builds its own state, and ends in a verdict.
      on any quantity that has a unit could be written**, which is the whole use of `ramp` and of `clamp`. **A numbers-only operand of `+`, `-`, `min`, `max`, `clamp` and `ramp` now takes the unit of the operands that name inputs**
      (`score_formula._adopt`). Nothing is converted and nothing is guessed (the other operands decide it); two named inputs in different units are still refused, a dimensioned argument of `ln`, `log10`, `sqrt` or `exp` is still
      refused, and a wrong constant is still not caught, as before. **A consequence stands:** a logarithm of a dimensioned quantity cannot be written at all, because there is no way to divide by a unit.
-   * **Left for later, each with its reason.** (1) *Named unit constants* (`limit = 140 Å^2`) would catch a threshold written in the wrong unit and make a logarithm of a dimensioned quantity writable; they live in the
-     definition model, so slice 3's review decides them. (2) *Typing the values of the report calculators that carry rounded text* (polarizability, the elemental percentages, the topology counts, ...) is a producer change with a
-     visible effect (the batch table and its exports would carry the unrounded number), so it is its own change, chosen by which outputs people want in scores and not done speculatively. (3) *Geometry-based outputs* need a
+   * **Named constants, added after the review** (`domain/score_constants.py`, pure): `Constant(name, value, unit)`, at most 12, under the rule for input names and in the inputs' namespace, a finite number (never a bool), a unit
+     from the same language. A constant is used as a name, so it adopts nothing: `ramp(tpsa, hi, lo)` with `hi = 140 Å^2` is accepted, with `hi = 140 nm^2` it is refused, and `log10(mw / one)` with `one = 1 g/mol` is
+     dimensionless. One nothing uses is refused like an input nothing uses. `check_inputs` and `values_by_name` take them, and `tools/check_score_formula.py` has `--constant NAME=NUMBER,UNIT`. 23 mutants, all caught.
+   * **Left for later, each with its reason.** (1) *How the dialog offers a bare number and a named constant* is slice 3's. (2) *Typing the values of the report calculators that carry rounded text* (bbb_descriptors, cns_mpo,
+     dipole_moment, elemental_analysis, huckel_analysis, mass_spectrum, polar_surface_area, polarizability, surface_analysis, topology_analysis on the census panel) is a change to each producer, and **it has no shortcut**:
+     typing integer-looking text in the adapter (`report_adapter._split`) would be wrong, because an integer-looking line is not necessarily an integer quantity (with `decimal_places=0` a rounded Randic index reads `6`). Each
+     producer must build typed `Fact`s itself, with a golden-file check that the lines people see do not move, and the batch table and its exports would then carry the unrounded number. The first worth doing are
+     `polarizability` and `topology_analysis`'s indices, and only when someone wants them in a score; most of the rest repeat an always-on descriptor. (3) *Geometry-based outputs* need a
      rule for which conformer a score reads. (4) *An output whose main path needs an optional tool* (logD's pKa path, anything from the pKa or ADMET sidecars) waits until the census can run that tool.
    * **Mutation-checked: 57 mutants** of the adoption rule, the table's rules, the table's own entries and the sweep. 56 were caught; the survivor is equivalent (`abs` or `ln` adopting a unit: a one-argument call has nothing to adopt from). The limits of the sweep survived at first for slice 1's reason (the tests read them by name), so they are pinned as numbers.
 3. **Definitions, persistence, evaluation on read, and the surfaces**: the project block, the Results one-fact
@@ -330,8 +339,8 @@ A driven run follows the UI slice, builds its own state, and ends in a verdict.
     stamping only files that contain a definition.
 
 11. **A numbers-only operand takes the unit of what it is combined with** (slice 2). It makes thresholds writable and gives up nothing the check could ever catch, since a literal has no unit to check; but it is a relaxation
-    of the strictest reading of section 4, and `energy + 5` is now valid. The alternative is a declared, named constant with a unit (`limit = 140 Å^2`), more explicit and heavier for the person; it can be added later without
-    changing the grammar.
+    of the strictest reading of section 4, and `energy + 5` is now valid. The explicit alternative, a declared named constant with a unit (`limit = 140 Å^2`), now exists beside it
+    (`domain/score_constants.py`); how the dialog offers the two is slice 3's to decide.
 12. **Only typed numbers, only of the drawing** (slice 2). It excludes most report calculators until their producers type their values, and every geometry-based output until it is reviewed. Both are real losses of usefulness,
     preferred to a score that moves with a display setting, or with whichever conformer happened to be stored.
 

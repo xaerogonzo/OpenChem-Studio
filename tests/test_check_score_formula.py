@@ -103,7 +103,8 @@ def test_a_bad_constant_is_refused_with_the_constants_own_problem(tool, capsys):
 
 
 def test_a_malformed_constant_argument_is_refused(tool, capsys):
-    assert _run(tool, capsys, "a * k", "--input", "a=1", "--constant", "k=5", "--result", "1")[0] == 1
+    code, out = _run(tool, capsys, "a * k", "--input", "a=1", "--constant", "k=5", "--result", "1")
+    assert code == 1 and "should be NAME=NUMBER,UNIT" in out
     assert _run(tool, capsys, "a * k", "--input", "a=1", "--constant", "k=five,1", "--result", "1")[0] == 1
     assert _run(tool, capsys, "a * k", "--input", "a=1", "--constant", "k", "--result", "1")[0] == 1
 

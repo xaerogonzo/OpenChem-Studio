@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Derived scores, slice 2 (continued): named unit constants (pure)
+- **`domain/score_constants.py`: a named number with a declared unit**, the strict alternative to a bare number. A constant is used as a name, so it adopts no unit: a threshold in the wrong unit is refused (`ramp(tpsa, hi, lo)` with
+  `hi = 140 nm^2`), and `log10(mw / one)` with `one = 1 g/mol` is writable, which a bare number could not do. At most 12, in the inputs' namespace; one nothing uses is refused. `tools/check_score_formula.py` takes
+  `--constant NAME=NUMBER,UNIT`. The design record's "left for later" list records why typing the rounded-text report calculators has no shortcut.
+
 ### Derived scores, slice 2: the approved outputs a formula may name (pure; no UI or project data yet)
 - **`domain/score_outputs.py` is the table of the 21 outputs a derived score may name** (`docs/DERIVED_SCORES_DESIGN.md` section 3), hand-approved from `tools/sweep_score_outputs.py`'s sweep of the census panel: 17 always-on
   descriptors and 4 facts of `oxygen_balance` and `solubility`. Each carries the unit the result must carry (any other spelling is refused, nothing is converted) and an **endpoint tag: two inputs of one

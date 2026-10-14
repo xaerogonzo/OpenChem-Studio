@@ -980,6 +980,7 @@
   "tests/test_scalar_field.py": 0,
   "tests/test_scatter_plot_zoom.py": 0,
   "tests/test_schindler_sqe_instrument.py": 1,
+  "tests/test_score_constants.py": 1,
   "tests/test_score_formula.py": 1,
   "tests/test_score_formula_guard.py": 1,
   "tests/test_score_formula_oracle.py": 1,
