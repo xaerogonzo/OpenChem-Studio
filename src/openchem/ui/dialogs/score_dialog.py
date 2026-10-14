@@ -196,8 +196,11 @@ class _Row(QWidget):
     def _remove_button(self, tip: HelpTooltip) -> QPushButton:
         button = QPushButton("Remove", self)
         apply_help_tooltip(button, tip)
-        button.clicked.connect(lambda _checked=False: self.removed.emit(self))
+        button.clicked.connect(self._on_remove_clicked)
         return button
+
+    def _on_remove_clicked(self, _checked: bool = False) -> None:
+        self.removed.emit(self)
 
 
 class _InputRowWidget(_Row):
@@ -232,8 +235,9 @@ class _InputRowWidget(_Row):
         self._layout.addWidget(self.name)
         self._layout.addWidget(self.output, 1)
         self._layout.addWidget(self.remove_button)
-        self.name.textChanged.connect(lambda _text: self.changed.emit())
-        self.output.currentIndexChanged.connect(lambda _index: self.changed.emit())
+        # Signal to signal: Qt drops the arguments `changed` does not take, and nothing here captures `self`.
+        self.name.textChanged.connect(self.changed)
+        self.output.currentIndexChanged.connect(self.changed)
 
     def row(self) -> InputRow:
         return InputRow(self.name.text(), self.output.currentData() or "")
@@ -264,7 +268,7 @@ class _ConstantRowWidget(_Row):
         self.remove_button.setObjectName("scoreRemoveConstant")
         for widget in (self.name, self.value, self.unit):
             self._layout.addWidget(widget)
-            widget.textChanged.connect(lambda _text: self.changed.emit())
+            widget.textChanged.connect(self.changed)
         self._layout.addStretch(1)
         self._layout.addWidget(self.remove_button)
 

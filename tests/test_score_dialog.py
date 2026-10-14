@@ -646,3 +646,32 @@ def test_a_problem_with_the_name_or_the_owner_outlines_that_box(dialog):
     assert dialog._label.styleSheet() == ""
     dialog._owner.setText("o" * (MAX_OWNER + 1))
     assert "border" in dialog._owner.styleSheet() and dialog._label.styleSheet() == ""
+
+
+def test_every_box_of_a_row_re_checks_the_form_as_it_is_typed_in(dialog):
+    """Each row's boxes are wired to one `changed` signal without a lambda (a lambda capturing the row would root it): typing in any of them must still check."""
+    dialog.set_draft(
+        Draft(label="Blend", formula="ramp(psa, hi, 60)", inputs=(InputRow("psa", _PSA),), constants=(ConstantRow("hi", "140", "Å^2"),))
+    )
+    assert dialog.snapshot()["ok"]
+    row = dialog._constant_rows[0]
+    row.value.setText("abc")
+    assert dialog.snapshot()["where"] == "constants"
+    row.value.setText("140")
+    assert dialog.snapshot()["ok"]
+    row.unit.setText("nm^2")
+    assert not dialog.snapshot()["ok"]
+    row.unit.setText("Å^2")
+    row.name.setText("lim")
+    assert not dialog.snapshot()["ok"], "the formula still names `hi`"
+    row.name.setText("hi")
+    assert dialog.snapshot()["ok"]
+    inputs = dialog._input_rows[0]
+    inputs.name.setText("area")
+    assert not dialog.snapshot()["ok"]
+    inputs.name.setText("psa")
+    assert dialog.snapshot()["ok"]
+    inputs.output.setCurrentIndex(inputs.output.findData("descriptor:mol_logp"))
+    assert dialog.draft().inputs[0].output_id == "descriptor:mol_logp"
+    snap = dialog.snapshot()
+    assert not snap["ok"] and snap["where"] == "formula", "a dimensionless input against a threshold in Å^2 is a unit clash, found by choosing in the picker"
