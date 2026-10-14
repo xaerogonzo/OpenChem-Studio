@@ -14,6 +14,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   group elsewhere no longer hides a ring anion from its classifier, and the pyrazolone anion round 46 left refused is named, `5-oxo-4,5-dihydro-1H-pyrazol-1-ide`. The census is unchanged at 1993 exact.
   Still open and recorded: fused lactams the engine names with an `-on` suffix (`...-2(1H)-on-1-ide`, unreadable), and the O-protonated or O-methylated amide and urea cations (a few refused, a few wrong).
 
+### Derived scores, slice 2: the approved outputs a formula may name (pure; no UI or project data yet)
+- **`domain/score_outputs.py` is the table of the 26 outputs a derived score may name** (`docs/DERIVED_SCORES_DESIGN.md` section 3), hand-approved from `tools/sweep_score_outputs.py`'s sweep of the census panel: 17 always-on
+  descriptors and 9 facts of `hbond_sites`, `logd`, `oxygen_balance` and `solubility`. Each carries the unit the result must carry (any other spelling is refused, nothing is converted) and an **endpoint tag: two inputs of one
+  tag are refused**, so a consensus of two estimates of one quantity cannot be written. A missing, non-numeric, non-finite or wrongly-united input refuses the score; never a zero, never a skipped term.
+- **The sweep found what the table could not hold.** Most report calculators put a string in a fact that is already rounded by the person's decimal-places setting (`'63.60'`), so a score rests only on a number the producer
+  typed (12 of 31 report calculators carry any); the always-on descriptors are stored twice, for the drawing and for a geometry, so an output is read from the drawing; Joback is limited and hidden by default and is refused;
+  Hansen's `MPa^0.5` and McGowan's `cm3/mol / 100` cannot be written in the unit language. 191 numeric outputs on the panel, 26 approved.
+- **A numbers-only operand of `+`, `-`, `min`, `max`, `clamp` and `ramp` now takes the unit of the operands that name inputs** (a change to slice 1): `ramp(tpsa, 140, 60)` was refused, so no threshold on a quantity with a unit
+  could be written. Two named inputs in different units, and a logarithm of a dimensioned number, are still refused.
+- `tools/calculator_census.py` gained an `observer` hook (the census itself is unchanged). Held to the registry by `tests/test_score_outputs.py`, with real-calculator control arms (a hidden one, and one whose number is text).
+
+### Derived scores, slice 1: the grammar, the units and the checked evaluator (pure; no UI or project data yet)
+- **`domain/score_formula.py` and `domain/score_units.py` are the formula language of a user-defined score** (`docs/DERIVED_SCORES_DESIGN.md` section 4): a recursive-descent parser written for it (no `eval`, no `exec`, no
+  `compile`, no Python parser), a closed set of nine functions, strict opaque units with no conversions, and an evaluator that refuses a division by zero, a domain error, an overflow or any non-finite step naming the step and never
+  returns a `nan` or an `inf`. Nothing in the application reaches it yet (slice 3 wires it into the project file and Results); `tools/check_score_formula.py` runs a definition and a value from the command line.
+- **Verified by a rejection matrix, an independent oracle and a syntax-tree guard**: 6000 random formulas agree with a separate evaluator over Python's own parse tree (or both refuse), the canonical text means the same to Python
+  as the original, and no scoring module imports a Python parser or runs a string. The design record said "eight" functions and listed nine; it is corrected. A declared input a formula never uses is refused.
+
 ### Naming: one tool for the ion populations, a bare `imino` enclosed after any prefix, and the iminium cations round 49 left refused
 - `tools/naming_ion_populations.py` makes ions out of the census molecules (`anion` deprotonates one acidic site, `cation` protonates one basic site, `quaternary` N-methylates it), names each and reads it
   back through OPSIN: the method that found rounds 46 to 49's defects, which lived in scratch scripts. A bare `imino` after any prefix is now enclosed, `{...diazenyl}(imino)methanethiolate` (OPSIN reads
