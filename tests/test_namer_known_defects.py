@@ -4358,6 +4358,16 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-249", "O=C1[N-]c2ccccc2C11CCNC1", "2'-oxospiro[pyrrolidine-3,3'-2,3-dihydro-1H-indole]-1'-ide",
      "[REFUSED: charge perception claimed a 'azanide_ring' motif but could not complete it (render_failed)]",
      "a visible refusal; the primed attachment locant `1'-` was not read"),
+    # D-250 .. D-252 (naming round 52): a second acid in an azanide's acyl group, the thioamide anion, a positive chalcogen taken for a carbonyl.
+    ("D-250", "Cc1ccc(-c2csc([N-]C(=O)CCCC(=O)O)n2)c(C)c1", "(4-carboxy-1-oxobutyl)[4-(2,4-dimethylphenyl)-1,3-thiazol-2-yl]azanide",
+     "[4-(2,4-dimethylphenyl)-1,3-thiazol-2-yl](pentanedioyl)azanide",
+     "UNREADABLE AS WRITTEN: the acid's name became a DIACYL group, so the free acid was dropped (OPSIN reads pentanedioyl as two acyl bonds)"),
+    ("D-251", "CC(=S)[N-]C", "ethanethioyl(methyl)azanide",
+     "[REFUSED: charge perception claimed a 'amine_anion' motif but could not complete it (render_failed)]",
+     "a visible refusal; the amine-anion classifier claimed a thioamide anion it could not render"),
+    ("D-252", "NC(N)=[SH+]", "(diaminomethylidene)sulfanium",
+     "thiocarbamoylsulfanium",
+     "WRONG MOLECULE, no refusal: the thioamide suffix group matched through the sulfonium sulfur, so one atom was claimed twice and a nitrogen dropped out"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",
