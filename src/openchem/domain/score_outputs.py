@@ -37,6 +37,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from openchem.domain.calculator import DRAWING
+from openchem.domain.score_constants import Constant, check_constants, constant_values
 from openchem.domain.score_formula import (
     FormulaError,
     Problem,
@@ -140,12 +141,12 @@ def unit_of(output: ApprovedOutput) -> Unit:
     return parse_unit(output.unit)
 
 
-def check_inputs(inputs: Sequence[tuple[str, str]]) -> dict[str, Unit]:
-    """The units of a definition's inputs, or a `FormulaError`.
+def check_inputs(inputs: Sequence[tuple[str, str]], constants: Sequence[Constant] = ()) -> dict[str, Unit]:
+    """The units of a definition's inputs and constants, or a `FormulaError`.
 
     `inputs` is `(name, output id)` in the order the definition lists them. Refused, in this order: a bad name or too many inputs; an output
-    that is not approved; one output bound under two names; and two outputs of one endpoint (section 6), which says why.
-    The result is what `score_formula.check_definition` takes as `input_units`.
+    that is not approved; one output bound under two names; two outputs of one endpoint (section 6), which says why; and then a constant
+    that is not usable (`score_constants.check_constants`). The result is what `score_formula.check_definition` takes as `input_units`.
     """
     check_input_names([name for name, _ in inputs])
     units: dict[str, Unit] = {}
@@ -172,6 +173,7 @@ def check_inputs(inputs: Sequence[tuple[str, str]]) -> dict[str, Unit]:
             )
         by_endpoint[output.endpoint] = (name, output_id)
         units[name] = unit_of(output)
+    units.update(check_constants(constants, list(units)))
     return units
 
 
@@ -194,8 +196,11 @@ def accept_value(output: ApprovedOutput, value: object, carried_as: str) -> floa
     return number
 
 
-def values_by_name(inputs: Sequence[tuple[str, str]], read: Mapping[str, tuple[object, str]]) -> dict[str, float]:
-    """The values to evaluate a formula with, one per input name, from what was read for each output id as `(value, carried units)`.
+def values_by_name(
+    inputs: Sequence[tuple[str, str]], read: Mapping[str, tuple[object, str]], constants: Sequence[Constant] = ()
+) -> dict[str, float]:
+    """The values to evaluate a formula with, one per input name and one per constant, from what was read for each output id as
+    `(value, carried units)`.
 
     An output with nothing read for it is a `Refusal` naming it: never a zero, never a skipped term (section 7).
     """
@@ -208,4 +213,5 @@ def values_by_name(inputs: Sequence[tuple[str, str]], read: Mapping[str, tuple[o
             raise Refusal(output_id, f"{name} has no current result to read")
         value, carried = read[output_id]
         values[name] = accept_value(output, value, carried)
+    values.update(constant_values(constants))
     return values

@@ -105,6 +105,8 @@ class Problem(str, enum.Enum):
     OUTPUT = "output"
     #: Two inputs that estimate one quantity (`score_outputs`, section 6 of the design).
     CONSENSUS = "consensus"
+    #: A named constant that is not usable (`score_constants`): its name, its value or its unit.
+    CONSTANT = "constant"
 
 
 class FormulaError(ValueError):
