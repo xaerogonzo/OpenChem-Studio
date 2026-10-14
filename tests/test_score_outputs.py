@@ -52,7 +52,7 @@ import sweep_score_outputs as sweep_tool  # noqa: E402
 
 #: The calculators the table draws from, plus the two controls: `joback_properties` is limited and HIDDEN by default, and
 #: `polar_surface_area` carries its number as text rounded by the decimal-places setting.
-_CALCULATORS_UNDER_TEST = ["hbond_sites", "logd", "oxygen_balance", "solubility", "joback_properties", "polar_surface_area"]
+_CALCULATORS_UNDER_TEST = ["logd", "oxygen_balance", "solubility", "joback_properties", "polar_surface_area"]
 
 
 def _entry(**changes) -> ApprovedOutput:
@@ -108,22 +108,17 @@ def test_every_endpoint_tag_is_used_and_described():
 #: sees it. A wrong tag is a wrong guard; moving an output into or out of a group changes what the application will refuse to combine.
 _SHARED_ENDPOINTS = {
     "aqueous_solubility_intrinsic": [
-        "calculator:solubility:Predicted intrinsic solubility (log mol/L)",
         "calculator:solubility:Predicted intrinsic solubility (mg/mL)",
         "calculator:solubility:Predicted intrinsic solubility (mol/L)",
         "descriptor:esol_logs",
     ],
-    "hbond_acceptor_count": ["calculator:hbond_sites:Acceptors", "descriptor:num_hba"],
-    "hbond_donor_count": ["calculator:hbond_sites:Donors", "descriptor:num_hbd"],
     "logd_ph_7_4": ["calculator:logd:LogD at pH 7.4", "calculator:logd:LogD at pH 7.4 (approximation)"],
 }
 
 #: The unit of every approved output, written out for the same reason: it decides what a formula over it may add and what it works out to.
 _UNITS = {
-    "calculator:hbond_sites:Acceptors": "1", "calculator:hbond_sites:Donors": "1", "calculator:logd:LogD at pH 7.4": "1",
-    "calculator:logd:LogD at pH 7.4 (approximation)": "1", "calculator:oxygen_balance:Oxygen balance (CO basis)": "%",
+    "calculator:logd:LogD at pH 7.4": "1", "calculator:logd:LogD at pH 7.4 (approximation)": "1", "calculator:oxygen_balance:Oxygen balance (CO basis)": "%",
     "calculator:oxygen_balance:Oxygen balance (CO₂ basis)": "%",
-    "calculator:solubility:Predicted intrinsic solubility (log mol/L)": "1",
     "calculator:solubility:Predicted intrinsic solubility (mg/mL)": "mg/mL",
     "calculator:solubility:Predicted intrinsic solubility (mol/L)": "mol/L",
     "descriptor:bertz_ct": "1", "descriptor:esol_logs": "1", "descriptor:exact_mass": "g/mol", "descriptor:fsp3": "1",
@@ -219,7 +214,7 @@ def test_the_real_pair_a_person_would_try_is_stopped():
     with pytest.raises(FormulaError) as caught:
         check_inputs([
             ("esol", "descriptor:esol_logs"),
-            ("model", "calculator:solubility:Predicted intrinsic solubility (log mol/L)"),
+            ("model", "calculator:solubility:Predicted intrinsic solubility (mol/L)"),
         ])
     assert caught.value.problem is Problem.CONSENSUS
 
@@ -235,7 +230,7 @@ def test_outputs_of_different_endpoints_are_never_refused_as_consensus():
 
 def test_an_unapproved_output_is_reported_before_a_consensus():
     with pytest.raises(FormulaError) as caught:
-        check_inputs([("a", "descriptor:num_hbd"), ("b", "descriptor:nope"), ("c", "calculator:hbond_sites:Donors")])
+        check_inputs([("a", "descriptor:esol_logs"), ("b", "descriptor:nope"), ("c", "calculator:solubility:Predicted intrinsic solubility (mol/L)")])
     assert caught.value.problem is Problem.OUTPUT
 
 
