@@ -23,6 +23,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   They are dropped as the project opens (counted as `retired`); a calculator that declares GEOMETRY keeps its results.
 - `test_an_unusable_conformer_falls_back_instead_of_failing_every_descriptor` asserted that a conformer request re-publishes `mol_wt` and `formula`; it now asserts that it publishes neither.
 
+### Naming: a second acid in an amide anion's acyl group, the thioamide anion, and S- or O-protonated thioureas and ureas that lost a nitrogen
+- `tools/naming_ion_populations.py` gained ten site patterns (an acyclic amide, a urea, a thioamide, an oxime, a phosphonic and a sulfinic acid; a thiocarbonyl sulfur, a sulfoxide oxygen, a phosphine, a nitrile
+  nitrogen). An amide anion whose acyl group also carries an acid was written as a DIACYL group (`(pentanedioyl)...azanide`, the free acid dropped, unreadable); it is `(4-carboxy-1-oxobutyl)...azanide` (D-250).
+  A thioamide or thiourea anion was refused; it is `ethanethioyl(methyl)azanide` (D-251). S-protonated thiourea was named `thiocarbamoylsulfanium`, a different molecule with no refusal, because the thioamide group
+  matched through the sulfonium sulfur; it is `(diaminomethylidene)sulfanium`, and the O-protonated ureas that came out as `carbamoyloxidanium` are named in full (D-252). The census is unchanged at 1993 exact.
+  Still open and recorded: nitrilium cations with substituents and O-protonated sulfoxides are refused (visibly), and an amide anion in a molecule with another charge is a `NAMING ERROR`.
+
 ### Naming: the anion of a hydrazide, ring anions with an added hydrogen or a prime, and a nitro group beside a ring anion
 - `tools/naming_ion_populations.py` gained five site patterns the first rounds never tried (a lactam NH, a hydrazide NH, an azole NH, a hydroxamic acid, and the oxygen of an amide or a ketone, protonated
   or methylated). The anion population went from 416 of 453 clean to 451 of 453. `CC(=O)[N-]N` is `acetyl(amino)azanide` (it was a `NAMING ERROR`) (D-248); a ring anion whose attachment locant

@@ -1980,8 +1980,9 @@ def _classify_amine_anion(mol) -> Iterable[ChargeClassification]:
             if nb2.GetIdx() == n.GetIdx():
                 continue
             b2 = mol.GetBondBetweenAtoms(nb.GetIdx(), nb2.GetIdx())
+            # A thioacyl carbon (`C=S`) is the thioamide anion, the azanide route's (round 52: it was claimed here and then could not be rendered).
             if (b2 is not None and b2.GetBondTypeAsDouble() == 2.0
-                    and nb2.GetAtomicNum() == 8 and nb2.GetDegree() == 1
+                    and nb2.GetAtomicNum() in (8, 16) and nb2.GetDegree() == 1
                     and nb2.GetFormalCharge() == 0):
                 return
     yield ChargeClassification(
@@ -3740,6 +3741,10 @@ def _acyl_prefix_via_acid(mol, n_idx: int, acyl_idx: int, strategy, session, dep
         acid = next(f for f in frags if f.GetNumAtoms() and any(a.GetSymbol() == "O" and a.GetTotalNumHs() == 1 and a.GetDegree() == 1 for a in f.GetAtoms()) and f.GetNumAtoms() > 1 and _contains_branch(f, mol, acyl_idx, n_idx))
     except Exception:
         return None
+    # A second acid in the same fragment (a glutaric or maleic half-amide) turns the acid's name into a DIACYL group (`pentanedioyl`), which silently drops the free acid (round 52):
+    # leave that case to the branch namer, which writes the carboxy as a prefix.
+    if len(acid.GetSubstructMatches(Chem.MolFromSmarts("[$([CX3]=[O,S]),$([SX4](=O)=O)][OX2H1]"))) > 1:
+        return None
     try:
         text = assemble(_recursive_name(acid, strategy, OutputForm.STANDALONE, free_valence=None, decision_ctx=None, _session=session, _depth=depth + 1))
     except Exception:
@@ -3779,6 +3784,8 @@ def _render_azanide(cls: ChargeClassification, mol, strategy, session, depth: in
             name = _alkoxycarbonyl_prefix(mol, n_idx, nb, strategy, session, depth)
             if name is None and not _is_ester_carbon(mol, n_idx, nb):
                 name = _acyl_prefix_via_acid(mol, n_idx, nb.GetIdx(), strategy, session, depth)
+                if name is None:
+                    name = _name_branch_as_prefix(mol, {n_idx}, nb.GetIdx(), strategy, session, depth)
         else:
             name = _name_branch_as_prefix(mol, {n_idx}, nb.GetIdx(), strategy, session, depth)
         if not name:
