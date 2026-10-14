@@ -1153,6 +1153,11 @@ P-45.2.3, "the lower locant set for substituent groups in order of citation in t
   one, so the name is right and the plan generation is not (its test runs in the default mode); (b) an N-sulfonyl iminium (`C=[NH+]S(=O)(=O)Ar`, quaternary or not) is still refused: the classifier takes only C, N and O
   on the cationic nitrogen; (c) the anions of an N-N bond are refused or visibly wrong (a pyrazolone anion is refused, `CC(=O)[N-]N` is a `NAMING ERROR`); (d) a carboxylate beside TWO neutral acids on an amidinium is refused;
   (e) a sulfonamide anion bearing an N-methoxycarbonyl group is `N-[methoxy(oxo)methyl]methanesulfonamidate`, readable but not the book's `methoxycarbonyl`; (f) the census's seven non-exact rows are unchanged.
+* **What the round 52 site patterns left open (naming round 52, 2026-10-15; D-250, D-251, D-252).** (a) A nitrilium cation with a substituent (`[NH+]#CC(=Cc1ccc(O)cc1)Ar`, 77 rows) and an O-protonated or O-methylated
+  sulfoxide are REFUSED (visible; OPSIN reads `hydroxy(dimethyl)sulfanium` for the sulfoxide, so a rendering exists); (b) an O-protonated or O-methylated urea beside another substituent is refused or a `NAMING ERROR`
+  (`NC(N)=[OH+]` itself); (c) an amide or hydrazide anion in a molecule that also carries another charge (a phenolate, a benzimidazolium) is a `NAMING ERROR`: the azanide classifier requires exactly one charge;
+  (d) one amide anion beside an amidine and a carboxylic acid on a nucleoside (`CN(CCC(N)CC(=O)[N-]...)C(=N)N`) is named by prefixes that read back as a different protonation; (e) an oxime anion beside a
+  piperazine is refused; (f) the populations still cover nineteen anion and fourteen cation site patterns.
 * **What the round 51 site patterns left open (naming round 51, 2026-10-15; D-248, D-249).** (a) A FUSED lactam anion that the engine names with an `-on` suffix is written `3,4-dihydroquinolin-2(1H)-on-1-ide`, which
   OPSIN cannot parse (the unfused ones use `oxo` and are fine; `2-oxo-3,4-dihydroquinolin-1(2H)-ide` is readable); (b) the pyrazolone `Cc1[n-]n(C(=N)S)c(=O)c1N=N...` is written `...carboximidothioic acid-2-ide`, unreadable;
   (c) the O-protonated or O-methylated amide and urea cations: a few are refused, a few are named as a different molecule (`carbamoyloxidanium`; the charge guard sees the cation word but the molecule is wrong), and

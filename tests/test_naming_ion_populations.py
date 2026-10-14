@@ -115,29 +115,49 @@ def test_the_names_only_run_works_on_a_small_sample_without_opsin():
     assert [r["verdict"] for r in results] == ["ok"] and results[0]["name"] == "acetate"
 
 
-# Round 51: five site patterns the first populations never tried.
+# Rounds 51 and 52: site patterns the first populations never tried. A molecule can match several kinds (an acethydrazide is a hydrazide AND an acyclic amide), so each test asks for one kind.
+def _of_kind(mode: str, smiles: str, kind: str) -> list[str]:
+    return [c.smiles for c in pop.generate(mode, [{"label": "m", "smiles": smiles}]) if c.kind == kind]
+
+
 def test_a_lactam_nitrogen_loses_its_proton_but_an_open_amide_does_not_count_as_one():
-    assert _smiles("anion", "O=C1CCCN1") == [_canon("O=C1CCC[N-]1")]
-    assert [c.kind for c in pop.generate("anion", [{"label": "a", "smiles": "CC(=O)NC"}])] == []
+    assert _of_kind("anion", "O=C1CCCN1", "lactam") == [_canon("O=C1CCC[N-]1")]
+    assert _of_kind("anion", "CC(=O)NC", "lactam") == []
 
 
 def test_a_hydrazide_nitrogen_loses_its_proton():
-    assert _smiles("anion", "CC(=O)NN") == [_canon("CC(=O)[N-]N")]
+    assert _of_kind("anion", "CC(=O)NN", "hydrazide") == [_canon("CC(=O)[N-]N")]
 
 
 def test_an_azole_nh_loses_its_proton():
-    assert _smiles("anion", "c1cc[nH]n1") == [_canon("c1cc[n-]n1")]
+    assert _of_kind("anion", "c1cc[nH]n1", "azole_nh") == [_canon("c1cc[n-]n1")]
 
 
 def test_a_hydroxamic_acid_loses_the_proton_of_its_oxygen():
-    assert _smiles("anion", "CC(=O)NO") == [_canon("CC(=O)N[O-]")]
+    assert _of_kind("anion", "CC(=O)NO", "hydroxamic") == [_canon("CC(=O)N[O-]")]
 
 
 def test_an_amide_oxygen_is_protonated_and_methylated():
-    assert _smiles("cation", "CC(=O)N") == [_canon("CC(N)=[OH+]")]
-    assert _smiles("quaternary", "CC(=O)N") == [_canon("CC(N)=[O+]C")]
+    assert _of_kind("cation", "CC(=O)N", "amide_o") == [_canon("CC(N)=[OH+]")]
+    assert _of_kind("quaternary", "CC(=O)N", "amide_o") == [_canon("CC(N)=[O+]C")]
 
 
 def test_a_ketone_oxygen_is_a_site_of_its_own_and_an_amide_oxygen_is_not_one_too():
     kinds = [(c.kind, c.smiles) for c in pop.generate("cation", [{"label": "k", "smiles": "CC(C)=O"}])]
     assert kinds == [("carbonyl_o", _canon("CC(C)=[OH+]"))]
+
+
+def test_round_52_anion_sites():
+    assert _of_kind("anion", "CC(=O)NC", "amide_acyclic") == [_canon("CC(=O)[N-]C")]
+    assert _of_kind("anion", "CNC(N)=O", "urea") == [_canon("C[N-]C(N)=O")]
+    assert _of_kind("anion", "CC(=S)NC", "thioamide") == [_canon("CC(=S)[N-]C")]
+    assert _of_kind("anion", "CC=NO", "oxime") == [_canon("CC=N[O-]")]
+    assert _of_kind("anion", "CP(=O)(O)C", "phosphonic") == [_canon("CP(=O)([O-])C")]
+    assert _of_kind("anion", "CS(=O)O", "sulfinic") == [_canon("CS(=O)[O-]")]
+
+
+def test_round_52_cation_sites():
+    assert _of_kind("cation", "CC(N)=S", "thiocarbonyl_s") == [_canon("CC(N)=[SH+]")]
+    assert _of_kind("cation", "CS(C)=O", "sulfoxide_o") == [_canon("CS(C)=[OH+]")]
+    assert _of_kind("cation", "CP(C)C", "phosphine_p") == [_canon("C[PH+](C)C")]
+    assert _of_kind("cation", "CC#N", "nitrile_n") == [_canon("CC#[NH+]")]

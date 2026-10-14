@@ -2525,6 +2525,25 @@ what can be verified.
   `tests/test_namer_known_defects.py`. Three earlier tests pinned refusals this round turned into names and now pin the cases still refused: a carboxylate beside two neutral acids
   (`test_namer_round43_*`, `test_namer_round45_*`) and a pyrazolone anion (`test_namer_round46_*`).
 
+## 2026-10-15 -- naming round 52: a second acid in an azanide's acyl group, the thioamide anion, a positive chalcogen taken for a carbonyl (D-250, D-251, D-252)
+
+Round 51's open list asked for site patterns the ion populations had not tried. `tools/naming_ion_populations.py` now also deprotonates an acyclic amide, a urea, a thioamide, an oxime, a phosphonic and a sulfinic
+acid, and protonates or methylates a thiocarbonyl sulfur, a sulfoxide oxygen, a phosphine and a nitrile nitrogen. Baseline on master: anions 1025 of 1046 ok (11 refused, 6 unparsable, 2 wrong, 2 naming errors);
+cations 1969 of 2081 (101 refused, 2 wrong); quaternary 2046 of 2081 (22 refused, 5 wrong, 5 naming errors).
+
+* **D-250.** An amide anion's acyl group is named by cutting the nitrogen off, naming the acid and turning its name into the acyl name. When the fragment held a SECOND acid (a glutaric or maleic half-amide) the name
+  became a diacyl group, `(pentanedioyl)(...)azanide`, which OPSIN cannot read and which dropped the free acid. `_acyl_prefix_via_acid` declines such a fragment (any second carboxylic, thiocarboxylic or sulfonic acid) and
+  `_render_azanide` falls back to the branch namer, which writes the carboxy as a prefix: `(4-carboxy-1-oxobutyl)(1,3-thiazol-2-yl)azanide`.
+* **D-251.** A thioamide / thiourea anion (`CC(=S)[N-]C`) was claimed by `_classify_amine_anion`, which excludes a C=O neighbour but not a C=S one, and then could not render it: a refusal. The exclusion now covers C=S, so
+  the azanide route names it, `ethanethioyl(methyl)azanide`, `aminomethanethioyl(phenyl)azanide`.
+* **D-252.** The one wrong molecule of the round, and no refusal: S-protonated thiourea `NC(N)=[SH+]` was `thiocarbamoylsulfanium`. `=S` and `=O` in a suffix-group SMARTS match a POSITIVE chalcogen, so the `thioamide`
+  group matched through the sulfonium sulfur, the sulfonium parent and the group both claimed that atom, and a nitrogen dropped out of the name. The same hole made `carbamoyloxidanium` of `CC(C)CNN(CC(C)C)C(N)=[OH+]`.
+  The group-matching loop in `fg_detection.py` now drops a match that contains a positively charged O, S, Se or Te. `(diaminomethylidene)sulfanium`, `[amino(hydrazinyl)methylidene]sulfanium`.
+* **Measured.** Anions 1042 of 1046 after the round; cations 1964 of 2081 and quaternary 2054 of 2081, with ZERO wrong names in either (the 108 and 18 refusals are visible: nitrilium cations with substituents and
+  O-protonated sulfoxides and ureas). Every name reads back through OPSIN. Census 1993 exact, unchanged. Vendored suite and known-defects file: 7447 passed, 14 xfailed. App naming group: all passed after the
+  site-pattern tests were made to ask for one kind. 4 of 4 live mutants killed.
+* New `tests/test_namer_round52_acyl_groups_thioamides_and_chalcogen_cations.py` (27 tests); eight site-pattern tests in `tests/test_naming_ion_populations.py`. D-250 to D-252 in the fixed table of `tests/test_namer_known_defects.py`.
+
 ## 2026-10-15 -- naming round 51: the anion of a hydrazide, ring anions with an added hydrogen or a prime, and a nitro group beside a ring anion (D-248, D-249)
 
 Round 50's open list asked for site patterns the ion populations had not tried. `tools/naming_ion_populations.py` now also deprotonates a lactam NH, a hydrazide NH, an azole NH and a hydroxamic acid, and
