@@ -68,29 +68,35 @@ def _help(help_id: str, text: str, tier: int = 1) -> HelpTooltip:
     return HelpTooltip(text=text, tier=tier, help_id=f"scores.{help_id}", topic=_TOPIC, help_anchor=_TOPIC)
 
 
+#: The tooltip of the list of scores, with the entries this build cannot use.
 _LIST_HELP = _help(
     "list",
     "The scores defined in this project. Choose one to read or change it. An entry that cannot be used is listed with the reason: one written by a newer "
     "version of the application, or one that is damaged. It is kept exactly as it is and saved back with the project.",
 )
+#: The tooltip of New score.
 _NEW_HELP = _help("new", "Start a new score. Nothing is stored until you press Save.")
+#: The tooltip of Delete: only the definition goes, never a number it was read from.
 _DELETE_HELP = _help(
     "delete",
     "Remove the chosen score from the project. Only the definition goes; the numbers it was read from are results of calculators and stay where they are. "
     "You are asked first.",
 )
+#: The tooltip of the name: its limit, the suffix it is always shown with, and the rule against a name close to a calculator's.
 _NAME_HELP = _help(
     "name",
     f"What you call the score, at most {MAX_LABEL} characters. It is always shown followed by \"{DISPLAY_SUFFIX}\", and that part cannot be removed. The name may "
     "not be close to the name of a calculator or of an output the application provides: a number you defined must not read as one it computes.",
     tier=2,
 )
+#: The tooltip of an input's name in the formula.
 _INPUT_NAME_HELP = _help(
     "input_name",
     f"The name the formula uses for this input: lowercase letters, digits and underscores, starting with a letter, not the name of a function. At most {MAX_INPUTS} "
     "inputs in one score.",
     tier=2,
 )
+#: The tooltip of an input's picker: an approved output, read from the CURRENT results, never calculated.
 _INPUT_OUTPUT_HELP = _help(
     "input_output",
     "The number this input reads: one of the outputs the application has approved for scores, with its unit. It is read from the molecule's CURRENT results "
@@ -98,27 +104,35 @@ _INPUT_OUTPUT_HELP = _help(
     "be used together.",
     tier=2,
 )
+#: The tooltip of an input row's Remove.
 _REMOVE_INPUT_HELP = _help("remove_input", "Take this input out of the score. A formula that still uses its name will say so.")
+#: The tooltip of Add an input.
 _ADD_INPUT_HELP = _help("add_input", "Add an input: a number the application computes, read by name in the formula.")
+#: The tooltip of a constant's name.
 _CONSTANT_NAME_HELP = _help(
     "constant_name",
     f"The name the formula uses for this constant, under the same rules as an input's name. At most {MAX_CONSTANTS} constants in one score.",
     tier=2,
 )
+#: The tooltip of a constant's value: a number as the formula writes one, and checked strictly where a bare number is not.
 _CONSTANT_VALUE_HELP = _help(
     "constant_value",
     "The constant's value: a plain number, written as in the formula (digits, then a point with digits after it, then an optional exponent: 0.5, not .5 or 5.). Unlike a bare number in the formula, a named constant carries the unit beside it "
     "and is checked strictly.",
     tier=2,
 )
+#: The tooltip of a constant's unit.
 _CONSTANT_UNIT_HELP = _help(
     "constant_unit",
     "The constant's unit, written like the others (for example \"Å^2\", \"g/mol\", \"kcal/mol\", \"1\" for none). A threshold written in the wrong unit is refused, "
     "and dividing by a constant with a unit is how to take the logarithm of a quantity that has one.",
     tier=2,
 )
+#: The tooltip of a constant row's Remove.
 _REMOVE_CONSTANT_HELP = _help("remove_constant", "Take this constant out of the score.")
+#: The tooltip of Add a constant.
 _ADD_CONSTANT_HELP = _help("add_constant", "Add a named constant: a number with a unit that the formula uses by name.")
+#: The tooltip of the formula: its limit, its operators and functions, `ramp`, and that nothing in it is run as code.
 _FORMULA_HELP = _help(
     "formula",
     f"The formula, at most {MAX_CHARACTERS} characters: numbers, the names above, + - * / and ^ with a whole-number exponent, parentheses, and abs, min, max, clamp, "
@@ -126,18 +140,23 @@ _FORMULA_HELP = _help(
     "it is added to or compared with. Nothing in it is run as code.",
     tier=2,
 )
+#: The tooltip of the declared unit: checked against what the formula works out to, never trusted, nothing converted.
 _UNIT_HELP = _help(
     "result_unit",
     "The unit the formula is declared to work out to (\"1\" for a plain number). It is CHECKED against what the formula really works out to, never trusted: "
     "adding an area to a mass is refused, and nothing is ever converted. Default: 1.",
     tier=2,
 )
+#: The tooltip of the owner: free text kept with the score.
 _OWNER_HELP = _help("owner", f"Who wrote it, free text, at most {MAX_OWNER} characters. Kept with the score; it changes no number.")
+#: The tooltip of the note: free text kept with the score.
 _NOTE_HELP = _help("note", f"A note about the score, at most {MAX_NOTE} characters. Kept with the score; it changes no number.")
+#: The tooltip of Save: a score that does not check is never stored.
 _SAVE_HELP = _help(
     "save",
     "Make the score, or save your changes to it. It is checked first; a score that does not check is never stored. The project is then marked as having unsaved changes.",
 )
+#: The tooltip of Revert.
 _REVERT_HELP = _help("revert", "Put the saved score back and discard what you have typed since.")
 
 
@@ -255,6 +274,7 @@ class _ConstantRowWidget(_Row):
 
 #: The least width of an input's or a constant's name, value and unit boxes: a three-letter name must not be a sliver beside a picker that takes the rest.
 _NAME_WIDTH = 90
+#: The least width of a constant's value and unit boxes.
 _VALUE_WIDTH = 80
 
 #: What each field of the dialog is called in the one-line message, so a problem reads "Formula: ..." and the person knows where to look.
@@ -262,8 +282,9 @@ _FIELD_NAMES = {
     "label": "Name", "formula": "Formula", "inputs": "Inputs", "constants": "Constants", "unit": "Unit", "owner": "Owner", "note": "Note",
 }
 
-#: Green and red that read on a light and on a dark window alike.
+#: The green of a draft that checks, on a light and on a dark window alike.
 _OK_COLOUR = "#2e7d32"
+#: The red of a problem, on a light and on a dark window alike.
 _BAD_COLOUR = "#c0392b"
 
 

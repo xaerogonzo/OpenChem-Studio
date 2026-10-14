@@ -2622,6 +2622,9 @@ class _Driver(QObject):
 
         window = self._window
         dialog = window.show_scores()
+        if dialog.dirty:
+            # What a step starts from, so a question nobody expected ("discard unsaved changes?") can be traced to the form's state.
+            logger.warning("OPENCHEM_DRIVE: score_dialog starts DIRTY: draft=%r saved=%r", dialog.draft(), dialog._saved)
         answers = {"yes": QMessageBox.StandardButton.Yes, "no": QMessageBox.StandardButton.No}
         real_question = QMessageBox.question
         asked: list[str] = []

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Derived scores, slice 3d: the Derived Scores window (Tools menu)
+- **A person can define a score now.** Tools > Derived Scores... opens one modeless window: a name (always shown as `<name> (user-defined, unvalidated)`), the approved outputs the formula reads (chosen from a list with each unit, never typed as an id), optional named constants with their own units, the formula and the unit it must work out to. It checks after every keystroke with the same rule the project loader and Save use, outlines the box a problem belongs to and puts a caret under the place in the formula; nothing is stored until Save, changing the shown score with unsaved changes asks first, and Delete asks. The last line shows the value for the selected molecule from its current results and starts no calculation; a score nothing has calculated says which input.
+- **Found by driving the real window:** a unit clash inside a formula was marked on the wrong box with no caret, a constant `14.` was accepted though the formula grammar refuses it, the picker said "(mol/L) (mol/L)", the longest picker entry made the form scroll sideways, an outline on a combo box squashed its arrow, and the caret was a few pixels off its text. New drive step `score_dialog` and `benchmarks/visual/score_dialog.json` (18 assertions, 7 shots); help topic `derived-scores` in the user guide.
+
 ### Derived scores, slice 3b: the scores a person defined are read in Results
 - **A score appears in the Results reader under a new "Derived scores" section** for the selected molecule, labelled `<label> (user-defined, unvalidated)`, with its number; hovering the value shows the formula and every input with
   its unit and the stored result it was read from, and the footer says "A formula a person wrote. Nothing has checked it against measurements." A score whose input cannot be read is a refusal that names the input and why, and gets
