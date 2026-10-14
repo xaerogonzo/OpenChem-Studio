@@ -95,6 +95,7 @@ class Unit:
 #: Dimensionless: what a number literal is, what `ramp` gives, and what `sqrt`, `ln`, `log10` and `exp` require of their argument.
 DIMENSIONLESS = Unit()
 
+#: A unit's exponent: a whole number, with an optional minus sign. ASCII digits only.
 _EXPONENT = re.compile(r"-?[0-9]+")
 
 

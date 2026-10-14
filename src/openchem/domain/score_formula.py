@@ -73,10 +73,21 @@ FUNCTIONS: dict[str, tuple[int, int | None]] = {
     "exp": (1, 1),
 }
 
+#: What an input name looks like: a lowercase ASCII letter, then lowercase letters, digits and underscores. Never Unicode, so a look-alike
+#: letter cannot stand for an input.
 _NAME = re.compile(r"[a-z][a-z0-9_]*")
+
+#: The digits, by listing them. `str.isdigit` would accept a Unicode digit (`\u0663`, `\u00b2`), and the tokenizer would then read a
+#: number it cannot convert and, worse, loop on it: a mutant that did exactly that is what the fuzz test is for.
 _DIGITS = "0123456789"
+
+#: The letters a name may be made of, by listing them, for the same reason as `_DIGITS`.
 _LOWER = "abcdefghijklmnopqrstuvwxyz"
+
+#: The characters that separate tokens and mean nothing else.
 _WHITESPACE = " \t\r\n"
+
+#: The single-character tokens of the grammar. Anything else that is not a number, a name or whitespace is a syntax error naming it.
 _OPERATORS = "+-*/^(),"
 
 
@@ -195,8 +206,13 @@ def measure(tree: Node) -> tuple[int, int]:
 
 # --- the text of a tree ----------------------------------------------------------------------------------------------------
 
+#: How tightly each binary operator binds, for `render` to decide where a parenthesis is needed. Both levels are left-associative.
 _PRECEDENCE = {"+": 1, "-": 1, "*": 2, "/": 2}
+
+#: A unary minus binds tighter than a product and looser than a power, which is why `-a^2` is `-(a^2)`.
 _NEG_PRECEDENCE = 3
+
+#: A power binds tightest of the operators.
 _POWER_PRECEDENCE = 4
 
 
