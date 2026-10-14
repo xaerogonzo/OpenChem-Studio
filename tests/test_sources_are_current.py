@@ -1208,6 +1208,12 @@ _PROVENANCE_DEBT = frozenset({
     # finds both because they RETURN a `RecipeAnswer`, a `ReportResult` subclass, not because they compute one.
     "src/openchem/domain/recipe_answer.py",
     "src/openchem/services/recipe_service.py",
+    # IMPLEMENTS NO METHOD, the fourth time. A user-defined score is read in Results as a report: `score_answer` wraps a `ScoreValue`
+    # (the number, or the reason there is none, and the inputs it was read from) as one fact or one refusal, and `ScoreService.answers_for`
+    # hands those to the reader. The number is the person's own formula over outputs sourced where they are produced; the walk finds both
+    # because they RETURN a `ScoreAnswer`, a `ReportResult` subclass, not because they compute a method.
+    "src/openchem/domain/score_answer.py",
+    "src/openchem/services/score_service.py",
     # IMPLEMENTS NO METHOD. `spectrum_as_per_atom` re-wraps a predicted spectrum's own numbers,
     # units and method label as the per-atom container the Compare window already reads; the walk
     # finds it because it RETURNS a `PerAtomDataset`, not because it computes one. The method is

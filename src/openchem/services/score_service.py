@@ -23,6 +23,7 @@ from dataclasses import replace
 
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
+from openchem.domain.score_answer import ScoreAnswer, project_score_answers
 from openchem.domain.score_constants import Constant
 from openchem.domain.score_definition import (
     ScoreDefinition,
@@ -150,6 +151,19 @@ class ScoreService:
         return True
 
     # --- reading --------------------------------------------------------------
+
+    def answers_for(self, molecule_uuid: str, structure_version: int) -> tuple[ScoreAnswer, ...]:
+        """The reader entries for the scores of `molecule_uuid`: what the Results reader is handed each time it refreshes.
+
+        `structure_version` is the molecule's current one; a score is evaluated against the structure as it is now, so it is never stamped with another.
+        A molecule that is not in the open project has none.
+        """
+        if self._project is None:
+            return ()
+        model = self._project.find_molecule(molecule_uuid)
+        if model is None:
+            return ()
+        return project_score_answers(self.values_for(model), viewing=molecule_uuid, structure_version=structure_version)
 
     def values_for(self, model: MoleculeModel) -> tuple[ScoreValue, ...]:
         """Every definition's value for `model`, from its stored results as they are now. Nothing is calculated and nothing is stored.

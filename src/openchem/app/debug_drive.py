@@ -2475,6 +2475,132 @@ class _Driver(QObject):
         else:
             logger.error("OPENCHEM_DRIVE: EXPECT recipe_results FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
 
+    # -- derived scores ------------------------------------------------------------------------------------------
+    # A score is defined through `ScoreService` (the call the definition dialog will make) and read through the Results
+    # reader (what a person sees): the wiring between them is what is proved, not either end.
+
+    def _do_score_define(self, step: dict[str, Any]) -> None:
+        """`{"do": "score_define", "label": "Window blend", "formula": "ramp(psa, 140, 60)", "result_unit": "1",
+        "inputs": [["psa", "descriptor:tpsa"]], "constants": [{"name": "hi", "value": 140, "unit": "Å^2"}],
+        "tag": "x", "expect": {"made": true}}`
+
+        Makes a score in the open project, or logs why not. `expect`: `made` (true/false) and, for a refusal, `problem`
+        (the `Problem` code) and `message_contains`; a refused definition must leave the project's scores as they were.
+        """
+        from openchem.domain.score_constants import Constant
+        from openchem.domain.score_formula import FormulaError
+
+        service = self._window._services.score_service
+        before = len(service.store)
+        constants = [Constant(c["name"], c["value"], c["unit"]) for c in step.get("constants", [])]
+        made, refusal = None, None
+        try:
+            made = service.create(
+                label=step["label"], formula=step["formula"], result_unit=step.get("result_unit", "1"),
+                inputs=[tuple(pair) for pair in step["inputs"]], constants=constants,
+                owner=step.get("owner", ""), note=step.get("note", ""),
+            )
+        except FormulaError as exc:
+            refusal = exc
+        except ValueError as exc:
+            logger.error("OPENCHEM_DRIVE: score_define could not make a score: %s", exc)
+            return
+        logger.warning(
+            "OPENCHEM_DRIVE: score_define %s -> %s | scores in the project: %d",
+            step["label"], made.score_id if made else f"refused [{refusal.problem.value}] {refusal.message[:160]}", len(service.store),
+        )
+        expect = step.get("expect")
+        if not expect:
+            return
+        problems: list[str] = []
+        if "made" in expect and expect["made"] != (made is not None):
+            problems.append(f"made is {made is not None!r}, expected {expect['made']!r}")
+        if refusal is not None:
+            if "problem" in expect and expect["problem"] != refusal.problem.value:
+                problems.append(f"problem is {refusal.problem.value!r}, expected {expect['problem']!r}")
+            for needle in expect.get("message_contains", []):
+                if needle not in refusal.message:
+                    problems.append(f"the message lacks {needle!r} (it reads {refusal.message[:120]!r})")
+            if len(service.store) != before:
+                problems.append("a refused definition changed the project's scores")
+        tag = str(step.get("tag", ""))
+        if self._record_assertion("score_define", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT score_define ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT score_define FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
+    def _do_score_results(self, step: dict[str, Any]) -> None:
+        """What the Results reader holds of the user-defined scores, for the SELECTED molecule.
+
+        `{"do": "score_results", "focus": true, "which": "part of a label", "expect": {"entries": 1, "has_value": true, "value_between": [0, 1],
+        "title_contains": ["(user-defined, unvalidated)"], "summary_contains": [], "facts_contain": [],
+        "evidence_contains": ["Formula:"], "reason_contains": [], "stored_as_results": 0}}`
+
+        The READER, not the service. `focus` focuses the first score (what a person does by choosing it in the list), which
+        is what makes the line above the facts and the fact rows the ones on screen, and what a `shot` of `results_reader`
+        then shows. `stored_as_results` counts the score's id among the session's stored results, which must be none.
+        """
+        from openchem.domain.score_answer import ScoreAnswer
+
+        reader = self._window._results_view
+        merged = reader.merged()
+        answers = [r for r in merged.reports if isinstance(r, ScoreAnswer)]
+        which = [a for a in answers if step.get("which", "") in a.name]
+        first = which[0] if which else (answers[0] if answers else None)
+        if first is not None and step.get("focus"):
+            self._window.reveal_results()
+            reader.set_focus(first.report_id)
+        listed = [reader._focus_box.itemText(i) for i in range(reader._focus_box.count())]
+        summary = reader._view.summary_text() if first is not None and reader.focus() == first.report_id else ""
+        facts = [f"{f.label}: {f.display_value}" for f in first.facts] if first is not None else []
+        evidence = [line for f in first.facts for line in f.evidence] + list(first.limitations) if first is not None else []
+        molecule = reader.molecule_uuid()
+        stored = [
+            r for r in self._window._services.result_store_service.store.all_results(molecule)
+            if str(getattr(r.identity, "result_id", "")).startswith(("score:", "user."))
+        ] if molecule else []
+        value = first.facts[0].value if first is not None and first.facts else None
+        logger.warning(
+            "OPENCHEM_DRIVE: score_results molecule=%s entries=%d | %s | value=%s | refused=%s | summary=%s",
+            molecule[:8], len(answers), "; ".join(a.name for a in answers), value,
+            (first.error or "")[:160] if first is not None and not first.facts else "", summary[:200],
+        )
+        expect = step.get("expect")
+        if not expect:
+            return
+        problems: list[str] = []
+        wanted = {"entries": len(answers), "stored_as_results": len(stored), "has_value": value is not None}
+        for key, actual in wanted.items():
+            if key in expect and expect[key] != actual:
+                problems.append(f"{key} is {actual!r}, expected {expect[key]!r}")
+        if "value_between" in expect:
+            low, high = expect["value_between"]
+            if value is None or not (low <= value <= high):
+                problems.append(f"the value is {value!r}, expected between {low} and {high}")
+        for needle in expect.get("title_contains", []):
+            if not any(needle in a.name for a in answers):
+                problems.append(f"no entry is titled with {needle!r} (have {[a.name for a in answers]})")
+        for needle in expect.get("listed", []):
+            if not any(needle in text for text in listed):
+                problems.append(f"the list of results lacks {needle!r} (it holds {listed})")
+        for needle in expect.get("summary_contains", []):
+            if needle not in summary:
+                problems.append(f"the line above the facts lacks {needle!r} (it reads {summary[:120]!r})")
+        for needle in expect.get("facts_contain", []):
+            if not any(needle in fact for fact in facts):
+                problems.append(f"no fact contains {needle!r} (have {facts})")
+        for needle in expect.get("evidence_contains", []):
+            if not any(needle in line for line in evidence):
+                problems.append(f"no evidence line contains {needle!r}")
+        for needle in expect.get("reason_contains", []):
+            if first is None or needle not in (first.error or ""):
+                problems.append(f"the reason lacks {needle!r} (it reads {(first.error if first else None)!r})")
+        tag = str(step.get("tag", ""))
+        if self._record_assertion("score_results", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT score_results ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT score_results FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
     # -- the Lewis pairing gate -----------------------------------------------------------------------------------
     # `benchmarks/lewis_gate/PREREGISTRATION.md` fixes what these assert before any number exists; the arithmetic is
     # `app/lewis_gate.py` and is pure. The steps read the stored runs and write what they read.

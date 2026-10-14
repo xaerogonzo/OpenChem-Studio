@@ -265,6 +265,14 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           what the Results READER holds of the recipe answers kept in the project, for the
                                           selected molecule: how many, how many stale, the line above the facts, and that none
                                           is also a stored result; `shot` takes "widget": "results_reader"
+    {"do": "score_define", "label": "Polar window", "formula": "ramp(psa, 140, 60)", "inputs": [["psa", "descriptor:tpsa"]],
+     "result_unit": "1", "constants": [], "expect": {"made": true}}      define a user-defined score through `ScoreService` (the call the
+                                          definition dialog will make); a refusal is asserted with `"made": false, "problem": "unit",
+                                          "message_contains": [...]` and must leave the project's scores as they were
+    {"do": "score_results", "focus": true, "which": "Polar window", "expect": {"entries": 1, "has_value": true,
+     "value_between": [0.95, 0.96], "evidence_contains": ["Formula:"], "reason_contains": [], "stored_as_results": 0}}
+                                          what the Results READER holds of the scores, for the selected molecule: the number or the
+                                          reason there is none, the label, the evidence, and that none is also a stored result
     {"do": "qc_wait", "timeout_ms": 600000}   hold the script until the Quantum Chemistry service has no job running (give up = an
                                           ERROR); use it after `qc_run` instead of guessing an `after_ms` for a job of unknown length
     {"do": "lewis_gate_begin"}  {"do": "lewis_gate_floor", "a": -2, "b": -1}  {"do": "lewis_gate_pair", "bh3": -3, "bf3": -2, "co": -1}

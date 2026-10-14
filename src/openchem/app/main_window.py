@@ -498,6 +498,9 @@ class MainWindow(QMainWindow):
             # The answers kept in the project (Tools > Lewis Acid-Base Pairing > Keep) are read in Results, under each
             # molecule that took part, and read stale when the project has moved on from them.
             self._property_panel.attach_recipe_answers(services.recipe_service.answers_for)
+        if services.score_service is not None:
+            # The scores a person defined are read in Results beside everything else, evaluated against the molecule's current results each time.
+            self._property_panel.attach_score_answers(services.score_service.answers_for)
         self._console_panel = ConsolePanel(self)
         self._docking_panel = DockingPanel(
             services.docking_service, services.chemistry_engine, self._settings, services.event_bus, self
