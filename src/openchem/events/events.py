@@ -376,6 +376,18 @@ class RecipeRunRecorded(Event):
 
 
 @dataclass(frozen=True)
+class ScoreDefinitionsChanged(Event):
+    """A derived score was made, edited or removed (`ScoreService`).
+
+    A definition is never also a result, so nothing else tells the session it has something unsaved; the window turns this into exactly that. The Results reader
+    refreshes for it too, because a score's value is read, not stored.
+    """
+
+    project_uuid: str
+    score_ids: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class TautomerNmrResultReady(Event):
     """The NMR of every tautomer of a distribution, published once when the whole run ends (never per
     tautomer), including a run in which some tautomers failed. It is NOT a `SpectrumComputed`: its atom

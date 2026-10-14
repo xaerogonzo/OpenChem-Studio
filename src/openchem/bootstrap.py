@@ -41,6 +41,7 @@ from openchem.services.reaction_template_service import ReactionTemplateService
 from openchem.services.recalc_scheduler import RecalcScheduler
 from openchem.services.recipe_service import RecipeService
 from openchem.services.result_store_service import ResultStoreService
+from openchem.services.score_service import ScoreService
 from openchem.services.screening_service import ScreeningService
 from openchem.services.spatial_overlay_service import SpatialOverlayService
 from openchem.services.structure_check_service import StructureCheckService
@@ -440,6 +441,7 @@ def build_service_container() -> ServiceContainer:
         # calculator records can arrive before there is a store to take it.
         result_store_service=result_store_service,
         recipe_service=RecipeService(result_store_service, engine),
+        score_service=ScoreService(event_bus, result_store_service, calculator_registry),
         # The policy is read from Settings at every edit, never captured, so changing it
         # in the Settings window applies to the next edit.
         recalc_scheduler=RecalcScheduler(event_bus, settings.recalc_policy),

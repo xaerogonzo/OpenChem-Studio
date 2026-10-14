@@ -34,14 +34,6 @@ from dataclasses import dataclass, field
 
 from openchem.domain.score_units import DIMENSIONLESS, Unit
 
-#: Why a tooling script, and not the application, reaches this module for now. Slice 3 of the design wires it into the project
-#: file and the Results reader, and this declaration goes then (`tests/test_calculator_reachability.py` fails a declaration on a
-#: module that has become reachable, so it cannot be forgotten).
-REACHED_BY = (
-    "tooling: tools/check_score_formula.py checks a formula from the command line; the application reaches it in slice 3 of "
-    "docs/DERIVED_SCORES_DESIGN.md"
-)
-
 #: The longest formula, in characters.
 MAX_CHARACTERS = 500
 
@@ -107,6 +99,8 @@ class Problem(str, enum.Enum):
     CONSENSUS = "consensus"
     #: A named constant that is not usable (`score_constants`): its name, its value or its unit.
     CONSTANT = "constant"
+    #: A field of a definition that is not usable (`score_definition`): its id, label, owner, note, date or missing-value policy.
+    DEFINITION = "definition"
 
 
 class FormulaError(ValueError):

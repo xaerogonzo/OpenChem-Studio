@@ -727,7 +727,7 @@ def test_the_canonical_text_parses_back_to_the_same_tree(text):
 
 def test_every_problem_a_parse_can_report_is_one_of_the_closed_set():
     assert {p.value for p in Problem} == {
-        "syntax", "limit", "name", "function", "exponent", "inputs", "unit", "output", "consensus", "constant"
+        "syntax", "limit", "name", "function", "exponent", "inputs", "unit", "output", "consensus", "constant", "definition"
     }
 
 

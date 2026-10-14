@@ -46,12 +46,6 @@ from openchem.domain.score_formula import (
 )
 from openchem.domain.score_units import Unit, parse_unit
 
-#: Why a tooling script, and not the application, reaches this module for now (see `score_formula.REACHED_BY`).
-REACHED_BY = (
-    "tooling: tools/sweep_score_outputs.py marks which candidates are approved; the application reaches it in slice 3 of "
-    "docs/DERIVED_SCORES_DESIGN.md"
-)
-
 #: The calculation input every approved output is read from. One input, so an output has exactly one current result to read.
 READ_FROM = DRAWING
 

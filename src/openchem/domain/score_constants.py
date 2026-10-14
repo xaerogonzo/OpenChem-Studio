@@ -21,12 +21,6 @@ from dataclasses import dataclass
 from openchem.domain.score_formula import FormulaError, Problem, check_input_names
 from openchem.domain.score_units import Unit, UnitError, parse_unit
 
-#: Why a tooling script, and not the application, reaches this module for now (see `score_formula.REACHED_BY`).
-REACHED_BY = (
-    "tooling: tools/check_score_formula.py takes constants with --constant; the application reaches it in slice 3 of "
-    "docs/DERIVED_SCORES_DESIGN.md"
-)
-
 #: The most constants a definition may declare, separate from the inputs' limit: a score with a dozen thresholds is already a long definition.
 MAX_CONSTANTS = 12
 

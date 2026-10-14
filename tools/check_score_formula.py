@@ -8,7 +8,7 @@
 application will read it, the unit it works out to and the value, or the reason it was refused, and exits 0 when everything asked
 for was accepted and 1 when anything was refused.
 
-It exists so a formula can be tried without a project, and it is what reaches `domain/score_formula.py` until the application does.
+It exists so a formula can be tried without a project or an application window.
 """
 
 from __future__ import annotations

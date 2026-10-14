@@ -78,6 +78,7 @@ from openchem.domain.project import ProjectModel
 from openchem.domain.quantum_chemistry_run import QuantumChemistryRunStore
 from openchem.domain.recipe_run import RecipeRunStore
 from openchem.domain.result_store import SessionResultStore
+from openchem.domain.score_definition_store import ScoreDefinitionStore
 from openchem.events.events import (
     CrystalSelected,
     ConformersChanged,
@@ -96,6 +97,7 @@ from openchem.events.events import (
     QuantumChemistryResultReady,
     QuantumChemistryRunCompleted,
     QuantumChemistryRunDeleted,
+    ScoreDefinitionsChanged,
 )
 from openchem.app.calculation_host import CalculationHost
 from openchem.plugins.manager import PluginManager
@@ -914,6 +916,8 @@ class MainWindow(QMainWindow):
         # describe: a run finishing, a structure edited, a geometry added.
         services.event_bus.subscribe(QuantumChemistryRunCompleted, self._refresh_lewis_pairing)
         services.event_bus.subscribe(QuantumChemistryRunDeleted, self._refresh_lewis_pairing)
+        # A definition is never also a result, so nothing else would tell the session it has something unsaved.
+        services.event_bus.subscribe(ScoreDefinitionsChanged, self._on_score_definitions_changed)
         services.event_bus.subscribe(MoleculeChanged, self._refresh_lewis_pairing)
         services.event_bus.subscribe(ConformersChanged, self._refresh_lewis_pairing)
         services.event_bus.subscribe(PluginLoaded, self._on_plugins_state_changed)
@@ -2946,6 +2950,7 @@ class MainWindow(QMainWindow):
         results: SessionResultStore | None = None,
         qc_runs: QuantumChemistryRunStore | None = None,
         recipe_runs: RecipeRunStore | None = None,
+        derived_scores: ScoreDefinitionStore | None = None,
     ) -> None:
         # THE UNDO STACK BELONGS TO THE DOCUMENT, and every command holds a
         # direct reference to the project it was built against. Without
@@ -2961,6 +2966,9 @@ class MainWindow(QMainWindow):
         # molecule, and that selection has to find this project's results.
         if self._services.result_store_service is not None:
             self._services.result_store_service.set_project(project, results, qc_runs, recipe_runs)
+        # The score definitions are swapped on the same call, for the same reason.
+        if self._services.score_service is not None:
+            self._services.score_service.set_project(project, derived_scores)
         self._project_explorer.set_project(project)
         self._docking_panel.set_project(project)
         self._quantum_chemistry_panel.set_project(project)
@@ -3001,7 +3009,8 @@ class MainWindow(QMainWindow):
         self._undo_stack.push(command)
         if command.loaded_project is not None:
             self._set_project(
-                command.loaded_project, command.loaded_results, command.loaded_qc_runs, command.loaded_recipe_runs
+                command.loaded_project, command.loaded_results, command.loaded_qc_runs, command.loaded_recipe_runs,
+                command.loaded_derived_scores,
             )
 
     def _save_project(self) -> bool:
@@ -3039,7 +3048,7 @@ class MainWindow(QMainWindow):
         results, fingerprints, qc_runs, recipe_runs = self._current_results()
         command = SaveProjectCommand(
             self._services.project_service, self._session.project, path, results, fingerprints, qc_runs,
-            recipe_runs,
+            recipe_runs, self._current_scores(),
         )
         self._undo_stack.push(command)
         self._session.mark_clean()
@@ -3105,6 +3114,7 @@ class MainWindow(QMainWindow):
                 source_path=getattr(self, "_project_path", ""),
                 qc_runs=qc_runs,
                 recipe_runs=recipe_runs,
+                derived_scores=self._current_scores(),
             )
         except Exception:  # noqa: BLE001 - a recovery copy must never interrupt work
             logger.exception("Could not write a recovery copy of %s", project.uuid)
@@ -3148,7 +3158,9 @@ class MainWindow(QMainWindow):
             service.discard(newest)
             return False
         document = service.load(newest)
-        self._set_project(document.project, document.results, document.qc_runs, document.recipe_runs)
+        self._set_project(
+            document.project, document.results, document.qc_runs, document.recipe_runs, document.derived_scores
+        )
         self._project_path = newest.source_path
         # Recovered work is unsaved by definition; keep the copy until it is.
         self._session.mark_dirty()
@@ -3926,6 +3938,14 @@ class MainWindow(QMainWindow):
             store_service.qc_runs,
             store_service.recipe_runs,
         )
+
+    def _current_scores(self) -> ScoreDefinitionStore | None:
+        """The project's score definitions as a save writes them, or None without a score service."""
+        service = self._services.score_service
+        return service.store if service is not None else None
+
+    def _on_score_definitions_changed(self, _event) -> None:
+        self._session.mark_dirty()
 
     # --- structure checking ----------------------------------------------------
 
