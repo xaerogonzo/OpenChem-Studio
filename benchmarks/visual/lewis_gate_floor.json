@@ -1,0 +1,34 @@
+[
+  {"do": "smiles", "smiles": "[C-]#[O+]", "name": "CO a", "after_ms": 2500},
+  {"do": "select", "molecule": -1, "after_ms": 2500},
+  {"do": "conformers", "count": 3, "after_ms": 15000},
+  {"do": "qc_run", "calc_type": "Geometry Optimization", "method": "B3LYP def2-SVP", "after_ms": 1000},
+  {"do": "qc_wait", "timeout_ms": 900000},
+  {"do": "conformer_report", "tag": "co-a-optimized-geometry-is-the-canonical-one",
+   "expect": {"canonical_method": "orca_opt", "canonical_mapped": true}},
+  {"do": "qc_run", "calc_type": "Single Point", "method": "B3LYP def2-SVP", "after_ms": 1000},
+  {"do": "qc_wait", "timeout_ms": 900000},
+  {"do": "qc_run", "calc_type": "Hardness / Softness (delta-SCF)", "method": "B3LYP def2-SVP", "after_ms": 1000},
+  {"do": "qc_wait", "timeout_ms": 900000},
+
+  {"do": "qc_run", "calc_type": "Single Point", "method": "B3LYP def2-SVP", "after_ms": 1000},
+  {"do": "qc_wait", "timeout_ms": 900000},
+  {"do": "qc_run", "calc_type": "Hardness / Softness (delta-SCF)", "method": "B3LYP def2-SVP", "after_ms": 1000},
+  {"do": "qc_wait", "timeout_ms": 900000},
+
+  {"do": "smiles", "smiles": "[C-]#[O+]", "name": "CO b", "after_ms": 2500},
+  {"do": "select", "molecule": -1, "after_ms": 2500},
+  {"do": "conformers", "count": 3, "after_ms": 15000},
+  {"do": "qc_run", "calc_type": "Geometry Optimization", "method": "B3LYP def2-SVP", "after_ms": 1000},
+  {"do": "qc_wait", "timeout_ms": 900000},
+  {"do": "conformer_report", "tag": "co-b-optimized-geometry-is-the-canonical-one",
+   "expect": {"canonical_method": "orca_opt", "canonical_mapped": true}},
+  {"do": "qc_run", "calc_type": "Single Point", "method": "B3LYP def2-SVP", "after_ms": 1000},
+  {"do": "qc_wait", "timeout_ms": 900000},
+  {"do": "qc_run", "calc_type": "Hardness / Softness (delta-SCF)", "method": "B3LYP def2-SVP", "after_ms": 1000},
+  {"do": "qc_wait", "timeout_ms": 900000},
+
+  {"do": "lewis_gate_floor", "a": -2, "b": -1, "tag": "the-noise-floor", "artifact": "benchmarks/lewis_gate/artifacts/floor.json"},
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

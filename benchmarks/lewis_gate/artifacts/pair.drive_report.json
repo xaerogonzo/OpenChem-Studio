@@ -1,0 +1,63 @@
+{
+  "verdict": "PASS",
+  "exit_code": 0,
+  "tolerate_errors": false,
+  "run": {
+    "run_id": "f545fc90d57b47788b1c3380c03ae2b9",
+    "pid": 56328,
+    "started": "2026-10-13T21:44:48+00:00",
+    "script": "benchmarks/visual/lewis_gate_pair.json",
+    "script_sha256": "90020137ab77bdfd8d806df797e2b320388e69597e6bfb7d295875e8db763064",
+    "commit": "e5649c19cfbd91db4beef3b8bde1db273de42bce",
+    "dirty": false,
+    "lockfile_sha256": "56a63e1efc21dd43e26f7e32f6817db69cd502914ae15d5a5297345bca2dd07d",
+    "ketcher_bundle": "6295fe8c0bc479c2a77e140849d9a4b30df6cb955a4e7d166b7fd521e50d4eb0",
+    "versions": {
+      "python": "3.13.7",
+      "platform": "Windows-11-10.0.26200-SP0",
+      "pyside6": "6.11.1",
+      "qt": "6.11.1",
+      "rdkit": "2025.9.6",
+      "java": ""
+    },
+    "log_start": 1397
+  },
+  "steps": {
+    "in_script": 35,
+    "run": 35
+  },
+  "log_file": {
+    "path": "D:\\Random Programs\\OpenChemStudio_Data\\logs\\drive-56328.log",
+    "start": 1397,
+    "end": 10387
+  },
+  "assertions": [
+    {
+      "step": "lewis_gate_begin",
+      "tag": "the-tolerance-is-fixed-before-the-pair-runs",
+      "ok": true,
+      "detail": "T = 0.01 eV"
+    },
+    {
+      "step": "lewis_gate_pair",
+      "tag": "the-gate",
+      "ok": true,
+      "detail": "pass: every condition of the preregistration holds"
+    },
+    {
+      "step": "expect_clean",
+      "tag": "",
+      "ok": true,
+      "detail": "no unexpected application errors"
+    }
+  ],
+  "measurements": {
+    "window_ready_epoch": 1791927888.5324667
+  },
+  "ledger": {
+    "errors": [],
+    "warnings": [],
+    "driver_failures": [],
+    "dropped": 0
+  }
+}

@@ -265,6 +265,13 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           what the Results READER holds of the recipe answers kept in the project, for the
                                           selected molecule: how many, how many stale, the line above the facts, and that none
                                           is also a stored result; `shot` takes "widget": "results_reader"
+    {"do": "qc_wait", "timeout_ms": 600000}   hold the script until the Quantum Chemistry service has no job running (give up = an
+                                          ERROR); use it after `qc_run` instead of guessing an `after_ms` for a job of unknown length
+    {"do": "lewis_gate_begin"}  {"do": "lewis_gate_floor", "a": -2, "b": -1}  {"do": "lewis_gate_pair", "bh3": -3, "bf3": -2, "co": -1}
+                                          the Lewis pairing GATE (benchmarks/lewis_gate/PREREGISTRATION.md): `begin` ends the run before any
+                                          job unless tolerance.json holds the tolerance the preregistered rule gives the recorded floor;
+                                          `floor` measures the noise floor from two repeats of CO; `pair` judges BH3/CO and BF3/CO against
+                                          the documented numbers. The gate was PASSED on 2026-10-13 (PREREGISTRATION.md section 9) and a decided outcome is final: do not re-run it to see whether the number moves
     {"do": "wait"} {"do": "quit"}
 
 **A DRIVEN RUN ENDS IN A VERDICT, AND EXITS NON-ZERO WHEN IT FAILED.**

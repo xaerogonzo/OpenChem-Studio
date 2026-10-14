@@ -1,0 +1,7 @@
+{
+  "T_ev": 0.01,
+  "floor_ev": 0.0,
+  "floor_artifact": "benchmarks/lewis_gate/artifacts/floor.json",
+  "rule": "T = max(0.01, floor rounded UP to the next 0.01 eV), and no tolerance at all above 0.37 eV; see PREREGISTRATION.md section 5",
+  "note": "Fixed once, by hand, from the floor measured in PREREGISTRATION.md section 9.1, BEFORE the pair was run. lewis_gate_begin refuses to start the pair unless this is exactly what the rule gives the floor artifact."
+}

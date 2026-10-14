@@ -2474,6 +2474,270 @@ class _Driver(QObject):
         else:
             logger.error("OPENCHEM_DRIVE: EXPECT recipe_results FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
 
+    # -- the Lewis pairing gate -----------------------------------------------------------------------------------
+    # `benchmarks/lewis_gate/PREREGISTRATION.md` fixes what these assert before any number exists; the arithmetic is
+    # `app/lewis_gate.py` and is pure. The steps read the stored runs and write what they read.
+
+    def _do_qc_wait(self, step: dict[str, Any]) -> None:
+        """`{"do": "qc_wait", "timeout_ms": 600000, "quiet_ms": 1500, "after_ms": 500}` -- hold the script until the
+        Quantum Chemistry service has no job running, steadily for `quiet_ms`.
+
+        **REPLACES A GUESSED `after_ms` AFTER `qc_run`.** A job still running when the next `qc_run` is pressed finds the
+        Run button disabled and is lost, and a gate that sleeps "long enough" decides a delta-SCF of boron trifluoride by
+        how fast this machine happened to be. Giving up is an ERROR, which fails the run, never a silent move on.
+        """
+        import time
+
+        panel = getattr(self._window, "_quantum_chemistry_panel", None)
+        if panel is None:
+            logger.error("OPENCHEM_DRIVE: qc_wait -- no Quantum Chemistry panel on this window")
+            return
+        self._qc_wait = {
+            "service": panel._quantum_chemistry_service, "started": time.monotonic(),
+            "deadline": time.monotonic() + int(step.get("timeout_ms", 600000)) / 1000.0,
+            "quiet": int(step.get("quiet_ms", 1500)) / 1000.0, "quiet_since": None,
+            "after_ms": int(step.get("after_ms", 500)),
+        }
+        self._hold_chain = True
+        self._poll_qc_wait()
+
+    def _poll_qc_wait(self) -> None:
+        import time
+
+        wait = self._qc_wait
+        service = wait["service"]
+        busy = bool(service._active_jobs) or bool(getattr(service, "_boltzmann_runs", {}))
+        now = time.monotonic()
+        if busy:
+            wait["quiet_since"] = None
+        elif wait["quiet_since"] is None:
+            wait["quiet_since"] = now
+        timed_out = now >= wait["deadline"]
+        if timed_out or (wait["quiet_since"] is not None and now - wait["quiet_since"] >= wait["quiet"]):
+            logger.warning("OPENCHEM_DRIVE: qc_wait idle after %.1f s", now - wait["started"])
+            if timed_out and busy:
+                logger.error("OPENCHEM_DRIVE: qc_wait gave up after %.0f s with a job still running", now - wait["started"])
+            QTimer.singleShot(wait["after_ms"], self._window, self._run_next)
+            return
+        QTimer.singleShot(500, self._window, self._poll_qc_wait)
+
+    @staticmethod
+    def _gate_descriptors(run) -> dict[str, float]:
+        """The numbers a stored run holds, by descriptor id, at the precision it recorded."""
+        return {d.descriptor_id: float(d.value) for d in run.results.get("descriptors", []) if isinstance(d.value, (int, float))}
+
+    @staticmethod
+    def _gate_version(run) -> str:
+        for d in run.results.get("descriptors", []):
+            provenance = getattr(d, "provenance", None)
+            if provenance is not None and provenance.parameters.get("orca_version"):
+                return str(provenance.parameters["orca_version"])
+        return "unknown"
+
+    def _gate_run_record(self, run) -> dict[str, Any]:
+        return {
+            "run_id": run.run_id, "calc_type": run.calc_type, "status": run.status.value, "method_basis": run.method_basis,
+            "solvent": run.solvent, "charge": run.charge, "multiplicity": run.multiplicity,
+            "input_fingerprint": run.input_fingerprint, "orca_version": self._gate_version(run),
+            "values": self._gate_descriptors(run),
+        }
+
+    def _gate_write(self, path: str, payload: dict[str, Any]) -> None:
+        target = Path(path)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        logger.warning("OPENCHEM_DRIVE: wrote %s", target)
+
+    def _do_lewis_gate_floor(self, step: dict[str, Any]) -> None:
+        """`{"do": "lewis_gate_floor", "a": 0, "b": 1, "artifact": "benchmarks/lewis_gate/artifacts/floor.json"}` -- the noise
+        floor of the gate, from two repeats of carbon monoxide, and the tolerance the preregistered rule gives it.
+
+        `a` has had its single point and its delta-SCF run TWICE on one input; `b` is a second carbon monoxide put through
+        the whole chain (optimization, single point, delta-SCF) once. The floor is the largest difference of the HOMO,
+        the LUMO and the hardness over both repeats. It writes the artifact and proposes a tolerance; it does NOT fix
+        one: `benchmarks/lewis_gate/tolerance.json` is written by hand, in a commit, before the pair is run.
+        """
+        from openchem.app.lewis_gate import noise_floor_ev, repeat_differences, tolerance_from_floor
+        from openchem.domain.quantum_chemistry_run import RunStatus
+
+        molecules = list(self._window._session.project.molecules)
+        runs = self._window._services.result_store_service.qc_runs
+        problems: list[str] = []
+
+        def chain(index: int, wanted: int) -> list[tuple[Any, Any]]:
+            uuid = molecules[index].uuid
+            ordered = sorted(runs.runs_for(uuid), key=lambda r: r.started_at)
+            sp = [r for r in ordered if r.calc_type == "sp" and r.status in (RunStatus.COMPLETED, RunStatus.COMPLETED_WITH_WARNINGS)]
+            dscf = [r for r in ordered if r.calc_type == "delta_scf" and r.status in (RunStatus.COMPLETED, RunStatus.COMPLETED_WITH_WARNINGS)]
+            if len(sp) < wanted or len(dscf) < wanted:
+                problems.append(f"molecule {index} has {len(sp)} single point(s) and {len(dscf)} delta-SCF run(s); wanted {wanted}")
+                return []
+            return list(zip(sp, dscf))
+
+        def numbers(pair: tuple[Any, Any]) -> dict[str, float]:
+            sp, dscf = pair
+            sp_values, dscf_values = self._gate_descriptors(sp), self._gate_descriptors(dscf)
+            return {
+                "homo": sp_values["orca.homo_energy"], "lumo": sp_values["orca.lumo_energy"],
+                "hardness": dscf_values["orca.dscf_hardness"],
+            }
+
+        a_chain, b_chain = chain(int(step["a"]), 2), chain(int(step["b"]), 1)
+        if problems:
+            self._record_assertion("lewis_gate_floor", str(step.get("tag", "")), False, "; ".join(problems))
+            logger.error("OPENCHEM_DRIVE: lewis_gate_floor FAILED -- %s", "; ".join(problems))
+            return
+        (a1, a2), (b1,) = a_chain[:2], b_chain[:1]
+        if a1[0].input_fingerprint != a2[0].input_fingerprint or a1[1].input_fingerprint != a2[1].input_fingerprint:
+            problems.append("the two repeats of a were not on one input (their fingerprints differ)")
+        same_input = repeat_differences(numbers(a1), numbers(a2))
+        pipeline = repeat_differences(numbers(a1), numbers(b1))
+        floor = noise_floor_ev(same_input, pipeline)
+        tolerance = tolerance_from_floor(floor)
+        versions = sorted({self._gate_version(r) for pair in (a1, a2, b1) for r in pair})
+        payload = {
+            "question": "the noise floor of the Lewis pairing gate, from carbon monoxide run twice",
+            "same_input_repeat_ev": same_input, "pipeline_repeat_ev": pipeline, "floor_ev": floor,
+            "proposed_tolerance_ev": tolerance.value_ev, "rule": tolerance.reason, "orca_versions": versions,
+            "runs": {
+                "a_first": [self._gate_run_record(r) for r in a1], "a_second": [self._gate_run_record(r) for r in a2],
+                "b": [self._gate_run_record(r) for r in b1],
+            },
+        }
+        self._gate_write(str(step.get("artifact", "benchmarks/lewis_gate/artifacts/floor.json")), payload)
+        logger.warning(
+            "OPENCHEM_DRIVE: GATE FLOOR same-input %s | pipeline %s | floor %.6f eV | %s | ORCA %s",
+            {k: round(v, 6) for k, v in same_input.items()}, {k: round(v, 6) for k, v in pipeline.items()}, floor,
+            tolerance.reason, versions,
+        )
+        ok = not problems
+        self._record_assertion("lewis_gate_floor", str(step.get("tag", "")), ok, "; ".join(problems) or tolerance.reason)
+        if not ok:
+            logger.error("OPENCHEM_DRIVE: EXPECT lewis_gate_floor FAILED -- %s", "; ".join(problems))
+
+    def _do_lewis_gate_begin(self, step: dict[str, Any]) -> None:
+        """`{"do": "lewis_gate_begin"}` -- REFUSE TO GO ON UNTIL THE TOLERANCE IS FIXED, which is the preregistered order.
+
+        The first step of the pair script. `benchmarks/lewis_gate/tolerance.json` must hold a tolerance, the noise floor it
+        came from and the floor artifact, and the tolerance must be exactly what the rule gives that floor: a number
+        typed in by hand that the rule does not give is refused. With none, the run ends here, before one ORCA job of
+        boron hydride or boron trifluoride has started.
+        """
+        from openchem.app.lewis_gate import tolerance_from_floor
+
+        path = Path(str(step.get("tolerance", "benchmarks/lewis_gate/tolerance.json")))
+        problem = ""
+        fixed: dict[str, Any] = {}
+        try:
+            fixed = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            problem = f"{path} cannot be read: {exc}"
+        if not problem and fixed.get("T_ev") is None:
+            problem = "no tolerance is fixed: run benchmarks/visual/lewis_gate_floor.json, then commit tolerance.json"
+        if not problem:
+            try:
+                artifact = json.loads(Path(str(fixed["floor_artifact"])).read_text(encoding="utf-8"))
+                floor = float(artifact["floor_ev"])
+                rule = tolerance_from_floor(floor)
+            except (OSError, ValueError, KeyError) as exc:
+                problem = f"the floor artifact named in {path} cannot be used: {exc}"
+            else:
+                if rule.value_ev is None or abs(rule.value_ev - float(fixed["T_ev"])) > 1e-9 or abs(floor - float(fixed.get("floor_ev", -1))) > 1e-12:
+                    problem = f"the tolerance {fixed['T_ev']} is not what the rule gives the floor {floor}: {rule.reason}"
+        if problem:
+            logger.error("OPENCHEM_DRIVE: lewis_gate_begin REFUSED -- %s", problem)
+            self._record_assertion("lewis_gate_begin", str(step.get("tag", "")), False, problem)
+            self._hold_chain = True
+            self._do_quit({})
+            return
+        self._gate_tolerance = float(fixed["T_ev"])
+        logger.warning("OPENCHEM_DRIVE: lewis_gate_begin T=%.2f eV fixed from floor %.6f eV", self._gate_tolerance, float(fixed["floor_ev"]))
+        self._record_assertion("lewis_gate_begin", str(step.get("tag", "")), True, f"T = {self._gate_tolerance} eV")
+
+    def _do_lewis_gate_pair(self, step: dict[str, Any]) -> None:
+        """`{"do": "lewis_gate_pair", "bh3": 0, "bf3": 1, "co": 2, "artifact": "benchmarks/lewis_gate/artifacts/pair.json"}`
+        -- the gate itself: evaluate BH3 and BF3 with CO in the REAL pairing window, derive the four numbers from the six
+        bound values, judge them against the documented ones and the tolerance `lewis_gate_begin` read, and write all of it.
+
+        The record asserts that the gate DECIDED (PASS or FAIL); the outcome is in the log and the artifact, because a
+        failing gate is a result and not a broken script.
+        """
+        from openchem.app.lewis_gate import METHOD_BASIS, MeasuredPair, judge, measure_pair
+        from openchem.domain.quantum_chemistry_run import RunStatus
+
+        tolerance = getattr(self, "_gate_tolerance", None)
+        molecules = list(self._window._session.project.molecules)
+        runs = self._window._services.result_store_service.qc_runs
+        pairs: dict[str, MeasuredPair] = {}
+        recipe_runs: dict[str, Any] = {}
+        co = molecules[int(step["co"])]
+
+        for name, key in (("BH3", "bh3"), ("BF3", "bf3")):
+            acid = molecules[int(step[key])]
+            dialog = self._window.show_lewis_pairing(acid.uuid, co.uuid)
+            dialog.set_parameters(method_basis=METHOD_BASIS, solvent="", role="acid")
+            run = dialog._run
+            if run is None or run.result is None:
+                logger.error("OPENCHEM_DRIVE: lewis_gate_pair -- %s with CO has no answer to read", name)
+                continue
+            recipe_runs[name] = run
+            try:
+                pairs[name] = measure_pair(name, run)
+            except ValueError as exc:
+                logger.error("OPENCHEM_DRIVE: lewis_gate_pair -- %s", exc)
+
+        stored = [r for m in (molecules[int(step["bh3"])], molecules[int(step["bf3"])], co) for r in runs.runs_for(m.uuid)]
+        done = (RunStatus.COMPLETED, RunStatus.COMPLETED_WITH_WARNINGS)
+        unfinished = [r.run_id for r in stored if r.status not in done]
+        versions = {self._gate_version(r) for r in stored}
+        verdict = judge(pairs, tolerance, orca_versions=versions, unfinished_runs=unfinished)
+
+        # What the optimization's own orbital table says beside the single point at its geometry: the documented numbers
+        # came from the former, the recipe uses the latter, and a difference beyond the tolerance is a finding about the
+        # documented procedure and not a failure of the recipe.
+        sp_vs_opt: dict[str, Any] = {}
+        for label, molecule in (("BH3", molecules[int(step["bh3"])]), ("BF3", molecules[int(step["bf3"])]), ("CO", co)):
+            ordered = sorted((r for r in runs.runs_for(molecule.uuid) if r.status in done), key=lambda r: r.started_at)
+            opt = next((r for r in reversed(ordered) if r.calc_type == "opt"), None)
+            sp = next((r for r in reversed(ordered) if r.calc_type == "sp"), None)
+            if opt is None or sp is None:
+                sp_vs_opt[label] = {"error": "no optimization or no single point"}
+                continue
+            o, s = self._gate_descriptors(opt), self._gate_descriptors(sp)
+            row = {k: {"opt_table_ev": o.get(f"orca.{k}_energy"), "single_point_ev": s.get(f"orca.{k}_energy")} for k in ("homo", "lumo")}
+            for k, v in row.items():
+                v["difference_ev"] = None if v["opt_table_ev"] is None or v["single_point_ev"] is None else v["single_point_ev"] - v["opt_table_ev"]
+                v["beyond_tolerance"] = None if v["difference_ev"] is None or tolerance is None else abs(v["difference_ev"]) > tolerance + 1e-9
+            sp_vs_opt[label] = row
+
+        payload = {
+            "outcome": verdict.outcome.value, "tolerance_ev": verdict.tolerance_ev, "reasons": list(verdict.reasons),
+            "rows": [r.__dict__ for r in verdict.rows],
+            "pairs": {n: {**p.__dict__, "gap_ev": p.gap_ev, "hardness_difference_ev": p.hardness_difference_ev} for n, p in pairs.items()},
+            "orca_versions": sorted(versions), "sp_vs_opt_table": sp_vs_opt,
+            "recipe_runs": {n: r.run_id for n, r in recipe_runs.items()},
+            "runs": {label: [self._gate_run_record(r) for r in sorted(runs.runs_for(m.uuid), key=lambda r: r.started_at)]
+                     for label, m in (("BH3", molecules[int(step["bh3"])]), ("BF3", molecules[int(step["bf3"])]), ("CO", co))},
+        }
+        self._gate_write(str(step.get("artifact", "benchmarks/lewis_gate/artifacts/pair.json")), payload)
+        for row in verdict.rows:
+            logger.warning(
+                "OPENCHEM_DRIVE: GATE ROW %-20s documented %.2f measured %.4f diff %+.4f within=%s",
+                row.quantity, row.documented_ev, row.measured_ev, row.difference_ev, row.within,
+            )
+        logger.warning("OPENCHEM_DRIVE: GATE VERDICT %s (T=%s eV)%s", verdict.outcome.value.upper(), verdict.tolerance_ev,
+                       "".join(f" | {reason}" for reason in verdict.reasons))
+        decided = verdict.outcome.value in ("pass", "fail")
+        self._record_assertion(
+            "lewis_gate_pair", str(step.get("tag", "")), decided,
+            f"{verdict.outcome.value}: " + ("; ".join(verdict.reasons) or "every condition of the preregistration holds"),
+        )
+        if not decided:
+            logger.error("OPENCHEM_DRIVE: EXPECT lewis_gate_pair FAILED -- the gate could not decide: %s", "; ".join(verdict.reasons)[:600])
+        for dialog_run in recipe_runs.values():
+            # Kept so Results shows what the gate evaluated; they are the same answers the window showed.
+            self._window.show_lewis_pairing(dialog_run.inputs[0].molecule_uuid, dialog_run.inputs[1].molecule_uuid).press_keep()
+
     def _do_properties_scroll(self, step: dict[str, Any]) -> None:
         """Scroll the Properties list: `{"do": "properties_scroll", "to": "end"}`.
 
