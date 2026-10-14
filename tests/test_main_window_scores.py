@@ -399,3 +399,80 @@ def test_a_saved_score_stays_clean_while_results_arrive_and_choosing_another_doe
     dialog._list.setCurrentRow(0)
     assert asked == [] and dialog.current_score_id() == "user.polar_window"
     dialog.close()
+
+
+# --- what the mutation run found missing (slice 3d) -----------------------------------------------------------------------------------------
+
+
+def test_a_window_closed_while_scores_changed_shows_them_when_it_is_opened_again(window, pair, qapp):
+    dialog = window.show_scores()
+    dialog.close()
+    _make(window)
+    qapp.processEvents()
+    assert dialog.snapshot()["scores"] == [], "a closed window is not refreshed, which is what makes opening it a re-read"
+    assert window.show_scores() is dialog and dialog.snapshot()["scores"] == [LABEL]
+    dialog.close()
+
+
+def test_the_window_says_there_is_no_project_when_the_score_service_has_none(window, pair):
+    host = window._score_host()
+    assert host.has_project()
+    window._services.score_service.set_project(None)
+    assert not host.has_project()
+
+
+def test_a_molecule_the_project_does_not_have_is_not_previewed(window, pair):
+    from openchem.domain.score_editor import Draft, InputRow
+
+    definition = Draft(label="Polar", formula="psa", result_unit="Å^2", inputs=(InputRow("psa", "descriptor:tpsa"),)).to_definition()
+    host = window._score_host()
+    assert host.preview(definition, "no-such-molecule") is None
+    assert host.preview(definition, pair[0].uuid) is not None
+
+
+def test_the_window_lists_what_this_build_cannot_use_and_knows_the_calculators_names(window, pair):
+    from openchem.domain.score_definition_store import ENVELOPE_VERSION, ScoreDefinitionStore
+
+    block = {"version": ENVELOPE_VERSION, "definitions": [{"score_id": "user.future", "label": "From later", "schema_version": 999}]}
+    service = window._services.score_service
+    service.set_project(window._session.project, ScoreDefinitionStore.from_dict(block, window._session.project.uuid))
+    host = window._score_host()
+    assert [entry.label for entry in host.kept()] == ["From later"]
+    assert "dipole_moment" in host.reserved_names()
+    dialog = window.show_scores()
+    assert dialog.snapshot()["scores"][0].startswith("From later: ")
+    dialog.close()
+
+
+def test_a_name_close_to_a_calculators_is_refused_in_the_window(window, pair):
+    from openchem.domain.score_editor import Draft, InputRow
+
+    dialog = window.show_scores()
+    dialog.set_draft(Draft(label="Dipole moment", formula="psa", result_unit="Å^2", inputs=(InputRow("psa", "descriptor:tpsa"),)))
+    assert dialog.snapshot()["where"] == "label" and "too close" in dialog.snapshot()["message"]
+    dialog.close()
+
+
+def test_a_closed_window_is_not_asked_to_read_its_preview(window, pair, qapp):
+    dialog = window.show_scores()
+    dialog.close()
+    calls = []
+    real = dialog.refresh_preview
+    dialog.refresh_preview = lambda: (calls.append(1), real())[1]
+    window._services.event_bus.publish(MoleculeSelected(molecule_uuid=pair[1].uuid))
+    qapp.processEvents()
+    assert calls == []
+    dialog.show()
+    window._services.event_bus.publish(MoleculeChanged(molecule_uuid=pair[1].uuid, during_edit=False))
+    assert calls, "an open window is"
+    dialog.close()
+
+
+def test_the_window_reads_its_preview_again_for_each_of_the_three_events(window):
+    """Each event is its own subscription: selecting a molecule publishes more than one, so the behaviour of a selection cannot show that one is missing."""
+    from openchem.events.events import ResultRecorded
+
+    bus = window._services.event_bus
+    handler = window._refresh_scores_preview
+    for event_type in (MoleculeSelected, MoleculeChanged, ResultRecorded):
+        assert any(entry.matches(handler) for entry in bus._handlers[event_type]), event_type.__name__

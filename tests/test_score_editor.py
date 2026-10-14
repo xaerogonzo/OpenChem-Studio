@@ -19,7 +19,7 @@ from openchem.domain.score_editor import (
     pointer_lines,
     suggest_name,
 )
-from openchem.domain.score_formula import FormulaError, Problem, check_input_names
+from openchem.domain.score_formula import MAX_CHARACTERS, FormulaError, Problem, check_input_names
 from openchem.domain.score_outputs import APPROVED, ENDPOINTS
 
 _TPSA = "descriptor:tpsa"
@@ -271,3 +271,50 @@ def test_whitespace_other_than_a_space_is_one_column_each_so_it_cannot_shift_the
 
 def test_a_position_outside_the_formula_is_pulled_in():
     assert _lines("abc", 99)[1] == "   ^" and _lines("abc", -4)[1] == "^"
+
+
+# --- what the mutation run found missing (slice 3d) -----------------------------------------------------------------------------------------
+
+
+def test_a_formula_over_a_limit_is_a_problem_of_the_formula():
+    result = check_draft(_draft(formula="ramp(psa, hi, 60) * ramp(logp, 5, 2)" + " " * MAX_CHARACTERS))
+    assert not result.ok and result.problem == "limit" and result.where == "formula"
+
+
+def test_a_unit_spelled_another_way_is_said_the_way_it_works_out():
+    """`Å*Å` is accepted as `Å^2`, and the line under the formula says what it works out to, not how it was typed."""
+    result = check_draft(Draft(label="Area", formula="psa", result_unit="Å*Å", inputs=(InputRow("psa", _TPSA),)))
+    assert result.ok and result.worked_out == "Å^2" and result.message == f"{OK}: it works out to Å^2."
+
+
+def test_every_string_of_a_draft_is_stripped_but_the_formula_which_the_caret_indexes():
+    draft = Draft(
+        label=" Area ", formula="  psa  ", result_unit=" Å^2 ", inputs=(InputRow(" psa ", _TPSA),),
+        constants=(ConstantRow(" hi ", " 140 ", " Å^2 "),), owner=" Alex ", note=" a note \n",
+    )
+    definition = draft.to_definition()
+    assert (definition.label, definition.result_unit, definition.owner, definition.note) == ("Area", "Å^2", "Alex", "a note")
+    assert definition.inputs == (("psa", _TPSA),) and definition.constants[0].name == "hi" and definition.constants[0].unit == "Å^2"
+    assert definition.formula == "  psa  ", "a position in the formula points into the text as typed"
+
+
+def test_a_constant_comes_back_to_the_form_as_the_number_it_was():
+    definition = _draft(constants=(ConstantRow("hi", "140.123456789", "Å^2"),)).to_definition()
+    assert Draft.from_definition(definition).constants[0].value == "140.123456789"
+
+
+def test_a_suggested_name_is_cut_at_thirty_characters_without_a_trailing_underscore():
+    from openchem.domain.score_editor import _slug
+
+    assert _slug("x" * 100) == "x" * 30
+    assert _slug("a" * 29 + " b") == "a" * 29, "the cut falls on the separator, which is not kept"
+
+
+def test_the_excerpt_has_its_full_width_at_the_end_of_a_long_formula():
+    excerpt, caret = _lines("x" * 100, 100, width=40)
+    assert excerpt == "..." + "x" * 40 and caret.index("^") == len(excerpt)
+
+
+def test_the_default_excerpt_is_sixty_characters_wide():
+    excerpt, _ = _lines("x" * 200, 100)
+    assert excerpt == "..." + "x" * 60 + "..."

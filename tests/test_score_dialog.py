@@ -19,13 +19,14 @@ from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
 from openchem.domain.result_store import ResultIdentity, StoredResult
-from openchem.domain.score_definition import DISPLAY_SUFFIX
+from openchem.domain.score_constants import MAX_CONSTANTS
+from openchem.domain.score_definition import DISPLAY_SUFFIX, MAX_OWNER
 from openchem.domain.score_definition_store import ENVELOPE_VERSION, ScoreDefinitionStore
-from openchem.domain.score_editor import ConstantRow, Draft, InputRow
+from openchem.domain.score_editor import SHOWN_AS, ConstantRow, Draft, InputRow
 from openchem.domain.score_formula import MAX_INPUTS
 from openchem.domain.score_outputs import APPROVED
 from openchem.services.score_service import ScoreService
-from openchem.ui.dialogs.score_dialog import ScoreDialog, ScoreHost
+from openchem.ui.dialogs.score_dialog import _BAD_COLOUR, _OK_COLOUR, ScoreDialog, ScoreHost
 
 _PSA = "descriptor:tpsa"
 _LOGP = "descriptor:mol_logp"
@@ -488,3 +489,159 @@ def test_previewing_stores_nothing_and_starts_nothing(dialog, world):
     dialog.set_draft(_BLEND)
     dialog.refresh_preview()
     assert len(world.service.store) == before == 0
+
+
+# --- what the mutation run found missing (slice 3d) -----------------------------------------------------------------------------------------
+
+
+def test_with_a_project_the_no_project_notice_is_not_there(dialog):
+    assert dialog._empty.isHidden() and dialog._splitter.isEnabled()
+
+
+def test_when_the_project_goes_away_nothing_can_be_started_or_changed(dialog, world):
+    dialog.set_draft(_BLEND)
+    dialog.save()
+    dialog._formula.setText("ramp(psa, 140, 60) + ramp(logp, 5, 2)")
+    snap = dialog.snapshot()
+    assert snap["dirty"] and dialog._save.isEnabled() and dialog._revert.isEnabled() and dialog._delete.isEnabled()
+    world.has_project = False
+    dialog.refresh()
+    assert not dialog._empty.isHidden() and not dialog._splitter.isEnabled()
+    for button in (dialog._save, dialog._revert, dialog._delete, dialog._new, dialog._add_input, dialog._add_constant):
+        assert not button.isEnabled(), button.text()
+
+
+def test_without_a_project_a_result_arriving_reads_nothing(dialog, world):
+    asked = []
+    real = dialog._host.preview
+    dialog._host.preview = lambda definition, uuid: asked.append(uuid) or real(definition, uuid)
+    dialog.set_draft(_BLEND)
+    asked.clear()
+    world.has_project = False
+    dialog.refresh_preview()
+    assert asked == []
+    world.has_project = True
+    dialog.refresh_preview()
+    assert len(asked) == 1
+
+
+def test_a_score_reads_at_most_the_limit_of_constants(dialog):
+    for _ in range(MAX_CONSTANTS + 3):
+        dialog._add_constant.click()
+    assert len(dialog.draft().constants) == MAX_CONSTANTS and str(MAX_CONSTANTS) in dialog._message.text()
+
+
+def test_a_saved_score_emptied_of_everything_is_still_an_unsaved_change(dialog, monkeypatch):
+    dialog.set_draft(_BLEND)
+    dialog.save()
+    dialog.set_draft(Draft())
+    assert dialog.dirty and dialog.draft().is_blank
+    asked = _answer(monkeypatch, QMessageBox.StandardButton.No)
+    dialog._new.click()
+    assert len(asked) == 1 and dialog.current_score_id() == "user.blend"
+
+
+def test_choosing_the_score_already_shown_does_not_reload_it(dialog, monkeypatch):
+    dialog.set_draft(_BLEND)
+    dialog.save()
+    dialog._formula.setText("ramp(psa, 140, 60) + ramp(logp, 5, 2)")
+    asked = _answer(monkeypatch, QMessageBox.StandardButton.Yes)
+    dialog._on_list_changed(dialog._list.currentItem(), None)
+    assert asked == [] and dialog.draft().formula == "ramp(psa, 140, 60) + ramp(logp, 5, 2)"
+
+
+def test_after_a_refresh_the_shown_score_is_still_the_selected_row(dialog):
+    _two_scores(dialog)
+    dialog._list.setCurrentRow(0)
+    dialog.refresh()
+    assert dialog._list.currentRow() == 0 and dialog._list.currentItem().text() == "Blend (user-defined, unvalidated)"
+
+
+def test_a_long_label_elides_in_the_list_instead_of_scrolling_it_sideways(dialog):
+    assert dialog._list.horizontalScrollBarPolicy() == Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+    dialog.set_draft(_BLEND)
+    dialog.save()
+    assert dialog._list.item(0).toolTip() == "Blend (user-defined, unvalidated)"
+
+
+def test_a_new_form_is_clean_and_has_nothing_to_revert(dialog):
+    dialog.set_draft(_BLEND)
+    dialog.save()
+    dialog.start_new()
+    assert not dialog.dirty and not dialog._revert.isEnabled() and dialog.current_score_id() is None
+
+
+def test_a_service_key_error_is_shown_and_the_form_keeps_what_was_typed(dialog):
+    dialog.set_draft(_BLEND)
+
+    def refuse(**_fields):
+        raise KeyError("user.gone")
+
+    dialog._host.create = refuse
+    assert dialog.save() is None
+    assert "user.gone" in dialog._message.text() and dialog.draft().label == "Blend"
+
+
+def test_the_owner_and_the_note_are_saved_with_the_score(dialog, world):
+    dialog.set_draft(Draft(_BLEND.label, _BLEND.formula, _BLEND.result_unit, _BLEND.inputs, owner="Alex", note="the default window"))
+    made = dialog.save()
+    stored = world.service.store.get(made.score_id)
+    assert (stored.owner, stored.note) == ("Alex", "the default window")
+
+
+def test_the_constants_are_saved_with_the_score(dialog, world):
+    dialog.set_draft(
+        Draft(label="Blend", formula="ramp(psa, hi, 60)", inputs=(InputRow("psa", _PSA),), constants=(ConstantRow("hi", "140", "Å^2"),))
+    )
+    made = dialog.save()
+    assert [(c.name, c.value, c.unit) for c in world.service.store.get(made.score_id).constants] == [("hi", 140.0, "Å^2")]
+
+
+def test_saving_a_draft_whose_constant_is_not_a_number_is_a_refusal_not_a_crash(dialog, world):
+    dialog.set_draft(
+        Draft(label="Blend", formula="ramp(psa, hi, 60)", inputs=(InputRow("psa", _PSA),), constants=(ConstantRow("hi", "abc", "Å^2"),))
+    )
+    assert dialog.save() is None and len(world.service.store) == 0
+
+
+def test_removing_a_constant_takes_that_row_out(dialog):
+    dialog.set_draft(
+        Draft(label="Blend", formula="ramp(psa, lo, hi)", inputs=(InputRow("psa", _PSA),),
+              constants=(ConstantRow("lo", "60", "Å^2"), ConstantRow("hi", "140", "Å^2")))
+    )
+    dialog._constant_rows[0].remove_button.click()
+    assert [row.name for row in dialog.draft().constants] == ["hi"]
+    assert len(dialog._constant_rows) == 1
+
+
+def test_the_label_is_shown_as_it_will_be_stored_without_its_spaces(dialog):
+    dialog._label.setText("  Polar window  ")
+    assert dialog.snapshot()["shown_as"] == f"{SHOWN_AS} Polar window {DISPLAY_SUFFIX}"
+
+
+def test_a_problem_is_red_and_a_clean_draft_is_green_and_an_empty_form_is_neither(dialog):
+    assert dialog._message.styleSheet() == ""
+    dialog.set_draft(_BLEND)
+    assert _OK_COLOUR in dialog._message.styleSheet()
+    dialog._formula.setText("ramp(")
+    assert _BAD_COLOUR in dialog._message.styleSheet()
+
+
+def test_the_caret_row_is_there_only_while_it_points_at_something(dialog):
+    assert dialog._pointer.isHidden()
+    dialog.set_draft(_BLEND)
+    assert dialog._pointer.isHidden()
+    dialog._formula.setText("ramp(psa, 140, 60) *")
+    assert not dialog._pointer.isHidden()
+    dialog._formula.setText("ramp(psa, 140, 60) * ramp(logp, 5, 2)")
+    assert dialog._pointer.isHidden()
+
+
+def test_a_problem_with_the_name_or_the_owner_outlines_that_box(dialog):
+    dialog.set_draft(Draft(_BLEND.label, _BLEND.formula, _BLEND.result_unit, _BLEND.inputs))
+    dialog._label.setText("Dipole moment")
+    assert "border" in dialog._label.styleSheet() and dialog._owner.styleSheet() == ""
+    dialog._label.setText("Blend")
+    assert dialog._label.styleSheet() == ""
+    dialog._owner.setText("o" * (MAX_OWNER + 1))
+    assert "border" in dialog._owner.styleSheet() and dialog._label.styleSheet() == ""

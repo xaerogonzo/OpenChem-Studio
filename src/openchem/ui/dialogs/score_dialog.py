@@ -288,8 +288,7 @@ class ScoreDialog(QDialog):
         # --- the list ---
         self._list = QListWidget(self)
         self._list.setObjectName("scoreList")
-        # "<name> (user-defined, unvalidated)" is long: elide it (the tooltip has all of it) rather than scroll the list sideways.
-        self._list.setTextElideMode(Qt.TextElideMode.ElideRight)
+        # "<name> (user-defined, unvalidated)" is long: it elides (the list's default; the tooltip has all of it) rather than scrolling the list sideways.
         self._list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         apply_help_tooltip(self._list, _LIST_HELP)
         self._list.currentItemChanged.connect(self._on_list_changed)
@@ -707,8 +706,8 @@ class ScoreDialog(QDialog):
         return self._current_id
 
     def _confirm_discard(self) -> bool:
-        """True when it is fine to replace the form: nothing unsaved, or the person said to discard it."""
-        if not self.dirty or self.draft().is_blank:
+        """True when it is fine to replace the form: nothing unsaved, or the person said to discard it. A saved score emptied of everything is an unsaved change like any other."""
+        if not self.dirty:
             return True
         answer = QMessageBox.question(
             self, "Unsaved changes", "The score you were editing has changes that are not saved. Discard them?",

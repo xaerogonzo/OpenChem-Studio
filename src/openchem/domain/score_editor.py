@@ -150,7 +150,7 @@ def _worked_out_unit(definition: ScoreDefinition) -> str:
         units = check_inputs(definition.inputs, definition.constants)
         formula = parse_formula(definition.formula, list(units))
         return str(infer_unit(formula.tree, units))
-    except (FormulaError, KeyError):
+    except FormulaError:
         return ""
 
 
