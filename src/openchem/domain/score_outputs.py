@@ -60,7 +60,6 @@ ENDPOINTS: dict[str, str] = {
     "molecular_weight": "the average molecular mass",
     "exact_mass": "the monoisotopic mass",
     "logp_octanol_water": "the octanol-water partition coefficient of the neutral molecule, as a logarithm",
-    "logd_ph_7_4": "the octanol-water distribution coefficient at pH 7.4, as a logarithm",
     "polar_surface_area": "the topological polar surface area",
     "labute_surface_area": "Labute's approximate accessible surface area",
     "hbond_donor_count": "the number of hydrogen-bond donors",
@@ -104,13 +103,8 @@ def _entry(output_id: str, unit: str, carried_as: str, endpoint: str) -> Approve
 #: The table. Sorted by id, so a review diff reads as additions. Every entry resolves, through the registry, to a finite number carrying
 #: `carried_as` on the census panel (`tests/test_score_outputs.py`), and a rename of a fact label turns that red and says which scores it breaks.
 APPROVED: tuple[ApprovedOutput, ...] = (
-    _entry("calculator:hbond_sites:Acceptors", "1", "", "hbond_acceptor_count"),
-    _entry("calculator:hbond_sites:Donors", "1", "", "hbond_donor_count"),
-    _entry("calculator:logd:LogD at pH 7.4", "1", "", "logd_ph_7_4"),
-    _entry("calculator:logd:LogD at pH 7.4 (approximation)", "1", "", "logd_ph_7_4"),
     _entry("calculator:oxygen_balance:Oxygen balance (CO basis)", "%", "%", "oxygen_balance_co"),
     _entry("calculator:oxygen_balance:Oxygen balance (CO₂ basis)", "%", "%", "oxygen_balance_co2"),
-    _entry("calculator:solubility:Predicted intrinsic solubility (log mol/L)", "1", "log mol/L", "aqueous_solubility_intrinsic"),
     _entry("calculator:solubility:Predicted intrinsic solubility (mg/mL)", "mg/mL", "mg/mL", "aqueous_solubility_intrinsic"),
     _entry("calculator:solubility:Predicted intrinsic solubility (mol/L)", "mol/L", "mol/L", "aqueous_solubility_intrinsic"),
     _entry("descriptor:bertz_ct", "1", "", "bertz_complexity"),
