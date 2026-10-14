@@ -1,0 +1,401 @@
+{
+  "orca_versions": [
+    "6.1.1"
+  ],
+  "outcome": "pass",
+  "pairs": {
+    "BF3": {
+      "acid": "BF3",
+      "acid_hardness_ev": 9.294809649979118,
+      "acid_lumo_ev": 0.7286,
+      "all_bound": true,
+      "base_hardness_ev": 8.402038211633789,
+      "base_homo_ev": -10.1709,
+      "fact_labels": [
+        "Lewis pairing",
+        "Lewis pairing",
+        "Lewis pairing",
+        "Lewis pairing",
+        "Lewis pairing",
+        "Frontier orbital gap",
+        "HSAB hardness match",
+        "Lewis pairing",
+        "Lewis pairing",
+        "Lewis pairing",
+        "Lewis pairing",
+        "Lewis pairing",
+        "BF3: E(HOMO)",
+        "BF3: E(LUMO)",
+        "BF3: Chemical hardness (delta-SCF)",
+        "CO: E(HOMO)",
+        "CO: E(LUMO)",
+        "CO: Chemical hardness (delta-SCF)"
+      ],
+      "gap_ev": 10.8995,
+      "hardness_difference_ev": 0.8927714383453296,
+      "line_names": [
+        "Role",
+        "Acid",
+        "Base",
+        "Drago-Wayland enthalpy",
+        "Frontier orbital gap",
+        "HSAB hardness match",
+        "Assumption",
+        "Assumption",
+        "Limitation",
+        "Limitation",
+        "Limitation",
+        "BF3",
+        "BF3",
+        "BF3",
+        "CO",
+        "CO",
+        "CO"
+      ],
+      "printed_gap_ev": 10.9,
+      "printed_hardness_difference_ev": 0.89,
+      "role_set_by_user": true
+    },
+    "BH3": {
+      "acid": "BH3",
+      "acid_hardness_ev": 6.769943299493384,
+      "acid_lumo_ev": -2.0449,
+      "all_bound": true,
+      "base_hardness_ev": 8.402038211633789,
+      "base_homo_ev": -10.1709,
+      "fact_labels": [
+        "Lewis pairing",
+        "Lewis pairing",
+        "Lewis pairing",
+        "Lewis pairing",
+        "Lewis pairing",
+        "Frontier orbital gap",
+        "HSAB hardness match",
+        "Lewis pairing",
+        "Lewis pairing",
+        "Lewis pairing",
+        "Lewis pairing",
+        "Lewis pairing",
+        "BH3: E(HOMO)",
+        "BH3: E(LUMO)",
+        "BH3: Chemical hardness (delta-SCF)",
+        "CO: E(HOMO)",
+        "CO: E(LUMO)",
+        "CO: Chemical hardness (delta-SCF)"
+      ],
+      "gap_ev": 8.126,
+      "hardness_difference_ev": 1.6320949121404045,
+      "line_names": [
+        "Role",
+        "Acid",
+        "Base",
+        "Drago-Wayland enthalpy",
+        "Frontier orbital gap",
+        "HSAB hardness match",
+        "Assumption",
+        "Assumption",
+        "Limitation",
+        "Limitation",
+        "Limitation",
+        "BH3",
+        "BH3",
+        "BH3",
+        "CO",
+        "CO",
+        "CO"
+      ],
+      "printed_gap_ev": 8.13,
+      "printed_hardness_difference_ev": 1.63,
+      "role_set_by_user": true
+    }
+  },
+  "reasons": [],
+  "recipe_runs": {
+    "BF3": "8d51cb3898d641eb8feaa365e6d48517",
+    "BH3": "bc1bc777d5554195ad34485e4d6f7515"
+  },
+  "rows": [
+    {
+      "difference_ev": -0.0005000000000006111,
+      "documented_ev": 10.9,
+      "measured_ev": 10.8995,
+      "quantity": "BF3/CO frontier gap",
+      "within": true
+    },
+    {
+      "difference_ev": 0.0027714383453295577,
+      "documented_ev": 0.89,
+      "measured_ev": 0.8927714383453296,
+      "quantity": "BF3/CO |d eta|",
+      "within": true
+    },
+    {
+      "difference_ev": -0.004000000000001336,
+      "documented_ev": 8.13,
+      "measured_ev": 8.126,
+      "quantity": "BH3/CO frontier gap",
+      "within": true
+    },
+    {
+      "difference_ev": 0.002094912140404581,
+      "documented_ev": 1.63,
+      "measured_ev": 1.6320949121404045,
+      "quantity": "BH3/CO |d eta|",
+      "within": true
+    }
+  ],
+  "runs": {
+    "BF3": [
+      {
+        "calc_type": "opt",
+        "charge": 0,
+        "input_fingerprint": "b9428d6e7bba6dbad16f3223780d1ede2ea0ea8b9a1f6b080cfb6c48f42c0331",
+        "method_basis": "B3LYP def2-SVP",
+        "multiplicity": 1,
+        "orca_version": "6.1.1",
+        "run_id": "a5f0ccbc45b440e0a604cd1aaeb66076",
+        "solvent": "",
+        "status": "completed",
+        "values": {
+          "orca.chemical_potential": -5.37655,
+          "orca.electron_affinity": -0.7286,
+          "orca.electronegativity": 5.37655,
+          "orca.electrophilicity": 2.3674512421889715,
+          "orca.hardness": 6.10515,
+          "orca.homo_energy": -11.4817,
+          "orca.ionization_potential": 11.4817,
+          "orca.lumo_energy": 0.7286,
+          "orca.scf_energy": -324.192488541106,
+          "orca.softness": 0.16379613932499612
+        }
+      },
+      {
+        "calc_type": "sp",
+        "charge": 0,
+        "input_fingerprint": "15d9aeb7d594e3a56887f6a11e1aa294073b44d29eb4870043d033b090ae76db",
+        "method_basis": "B3LYP def2-SVP",
+        "multiplicity": 1,
+        "orca_version": "6.1.1",
+        "run_id": "b9b16fe3d109468c93acc6a4e78a6594",
+        "solvent": "",
+        "status": "completed",
+        "values": {
+          "orca.chemical_potential": -5.37645,
+          "orca.electron_affinity": -0.7286,
+          "orca.electronegativity": 5.37645,
+          "orca.electrophilicity": 2.3674019543246985,
+          "orca.hardness": 6.10505,
+          "orca.homo_energy": -11.4815,
+          "orca.ionization_potential": 11.4815,
+          "orca.lumo_energy": 0.7286,
+          "orca.scf_energy": -324.192448650974,
+          "orca.softness": 0.16379882228646775
+        }
+      },
+      {
+        "calc_type": "delta_scf",
+        "charge": 0,
+        "input_fingerprint": "15d9aeb7d594e3a56887f6a11e1aa294073b44d29eb4870043d033b090ae76db",
+        "method_basis": "B3LYP def2-SVP",
+        "multiplicity": 1,
+        "orca_version": "6.1.1",
+        "run_id": "6c7d7b7076554188a17f7738ee86531e",
+        "solvent": "",
+        "status": "completed",
+        "values": {
+          "orca.dscf_chemical_potential": -5.6727971245303594,
+          "orca.dscf_electron_affinity": -3.6220125254487585,
+          "orca.dscf_electronegativity": 5.6727971245303594,
+          "orca.dscf_electrophilicity": 1.7311073829334531,
+          "orca.dscf_hardness": 9.294809649979118,
+          "orca.dscf_ionization_potential": 14.967606774509477,
+          "orca.dscf_softness": 0.10758692621556232,
+          "orca.scf_energy": -324.192448650974
+        }
+      }
+    ],
+    "BH3": [
+      {
+        "calc_type": "opt",
+        "charge": 0,
+        "input_fingerprint": "fd836615b15b95a7ade4542087dfef02deeb461178e54d83bcfed56e873e92bc",
+        "method_basis": "B3LYP def2-SVP",
+        "multiplicity": 1,
+        "orca_version": "6.1.1",
+        "run_id": "fc49242948e14ca9850264aa68760770",
+        "solvent": "",
+        "status": "completed",
+        "values": {
+          "orca.chemical_potential": -5.788,
+          "orca.electron_affinity": 2.0449,
+          "orca.electronegativity": 5.788,
+          "orca.electrophilicity": 4.475026582244664,
+          "orca.hardness": 3.7431,
+          "orca.homo_energy": -9.5311,
+          "orca.ionization_potential": 9.5311,
+          "orca.lumo_energy": -2.0449,
+          "orca.scf_energy": -26.561520749855,
+          "orca.softness": 0.2671582378242633
+        }
+      },
+      {
+        "calc_type": "sp",
+        "charge": 0,
+        "input_fingerprint": "ba6c0bc3630b508f795623251e9b3a642554768b19285776d879b50dace1ebf0",
+        "method_basis": "B3LYP def2-SVP",
+        "multiplicity": 1,
+        "orca_version": "6.1.1",
+        "run_id": "6bd9f8eb40fd4c0bab6eb85fe91eba95",
+        "solvent": "",
+        "status": "completed",
+        "values": {
+          "orca.chemical_potential": -5.78785,
+          "orca.electron_affinity": 2.0449,
+          "orca.electronegativity": 5.78785,
+          "orca.electrophilicity": 4.47497396739203,
+          "orca.hardness": 3.7429499999999996,
+          "orca.homo_energy": -9.5308,
+          "orca.ionization_potential": 9.5308,
+          "orca.lumo_energy": -2.0449,
+          "orca.scf_energy": -26.561539787763,
+          "orca.softness": 0.2671689442819167
+        }
+      },
+      {
+        "calc_type": "delta_scf",
+        "charge": 0,
+        "input_fingerprint": "ba6c0bc3630b508f795623251e9b3a642554768b19285776d879b50dace1ebf0",
+        "method_basis": "B3LYP def2-SVP",
+        "multiplicity": 1,
+        "orca_version": "6.1.1",
+        "run_id": "a53f0fccf5de4f08b2ef335ae083edac",
+        "solvent": "",
+        "status": "completed",
+        "values": {
+          "orca.dscf_chemical_potential": -6.19613070240092,
+          "orca.dscf_electron_affinity": -0.5738125970924652,
+          "orca.dscf_electronegativity": 6.19613070240092,
+          "orca.dscf_electrophilicity": 2.8354769000877975,
+          "orca.dscf_hardness": 6.769943299493384,
+          "orca.dscf_ionization_potential": 12.966074001894304,
+          "orca.dscf_softness": 0.14771172456862866,
+          "orca.scf_energy": -26.561539787763
+        }
+      }
+    ],
+    "CO": [
+      {
+        "calc_type": "opt",
+        "charge": 0,
+        "input_fingerprint": "90f3c36baa27eefadcbe55113414e67cc110f1870241bb58bab713b9309a07b6",
+        "method_basis": "B3LYP def2-SVP",
+        "multiplicity": 1,
+        "orca_version": "6.1.1",
+        "run_id": "3126b3eaf4e04bcda21fba7c32234a12",
+        "solvent": "",
+        "status": "completed",
+        "values": {
+          "orca.chemical_potential": -5.4467,
+          "orca.electron_affinity": 0.7217,
+          "orca.electronegativity": 5.4467,
+          "orca.electrophilicity": 3.1393164962962965,
+          "orca.hardness": 4.725,
+          "orca.homo_energy": -10.1717,
+          "orca.ionization_potential": 10.1717,
+          "orca.lumo_energy": -0.7217,
+          "orca.scf_energy": -113.172826547134,
+          "orca.softness": 0.21164021164021166
+        }
+      },
+      {
+        "calc_type": "sp",
+        "charge": 0,
+        "input_fingerprint": "718ed3c3b7f2da7f2d21feaca223d56d6db709f4e1fa2cbf2903ac272c56f11c",
+        "method_basis": "B3LYP def2-SVP",
+        "multiplicity": 1,
+        "orca_version": "6.1.1",
+        "run_id": "e667e66bd07e464987d3a2fbb7279492",
+        "solvent": "",
+        "status": "completed",
+        "values": {
+          "orca.chemical_potential": -5.44605,
+          "orca.electron_affinity": 0.7212,
+          "orca.electronegativity": 5.44605,
+          "orca.electrophilicity": 3.1386668997428484,
+          "orca.hardness": 4.72485,
+          "orca.homo_energy": -10.1709,
+          "orca.ionization_potential": 10.1709,
+          "orca.lumo_energy": -0.7212,
+          "orca.scf_energy": -113.17287091914,
+          "orca.softness": 0.2116469305903891
+        }
+      },
+      {
+        "calc_type": "delta_scf",
+        "charge": 0,
+        "input_fingerprint": "718ed3c3b7f2da7f2d21feaca223d56d6db709f4e1fa2cbf2903ac272c56f11c",
+        "method_basis": "B3LYP def2-SVP",
+        "multiplicity": 1,
+        "orca_version": "6.1.1",
+        "run_id": "7e4611a7672f40ba85e30efca76fc3fe",
+        "solvent": "",
+        "status": "completed",
+        "values": {
+          "orca.dscf_chemical_potential": -5.589926037917055,
+          "orca.dscf_electron_affinity": -2.8121121737167343,
+          "orca.dscf_electronegativity": 5.589926037917055,
+          "orca.dscf_electrophilicity": 1.8595055343902667,
+          "orca.dscf_hardness": 8.402038211633789,
+          "orca.dscf_ionization_potential": 13.991964249550843,
+          "orca.dscf_softness": 0.1190187398356938,
+          "orca.scf_energy": -113.17287091914
+        }
+      }
+    ]
+  },
+  "sp_vs_opt_table": {
+    "BF3": {
+      "homo": {
+        "beyond_tolerance": false,
+        "difference_ev": 0.00019999999999953388,
+        "opt_table_ev": -11.4817,
+        "single_point_ev": -11.4815
+      },
+      "lumo": {
+        "beyond_tolerance": false,
+        "difference_ev": 0.0,
+        "opt_table_ev": 0.7286,
+        "single_point_ev": 0.7286
+      }
+    },
+    "BH3": {
+      "homo": {
+        "beyond_tolerance": false,
+        "difference_ev": 0.0003000000000010772,
+        "opt_table_ev": -9.5311,
+        "single_point_ev": -9.5308
+      },
+      "lumo": {
+        "beyond_tolerance": false,
+        "difference_ev": 0.0,
+        "opt_table_ev": -2.0449,
+        "single_point_ev": -2.0449
+      }
+    },
+    "CO": {
+      "homo": {
+        "beyond_tolerance": false,
+        "difference_ev": 0.0007999999999999119,
+        "opt_table_ev": -10.1717,
+        "single_point_ev": -10.1709
+      },
+      "lumo": {
+        "beyond_tolerance": false,
+        "difference_ev": 0.000500000000000056,
+        "opt_table_ev": -0.7217,
+        "single_point_ev": -0.7212
+      }
+    }
+  },
+  "tolerance_ev": 0.01
+}

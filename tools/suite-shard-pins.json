@@ -717,6 +717,8 @@
   "tests/test_lewis_diagram_dialog.py": 1,
   "tests/test_lewis_diagram_model.py": 1,
   "tests/test_lewis_evidence.py": 2,
+  "tests/test_lewis_gate.py": 1,
+  "tests/test_lewis_gate_scripts.py": 2,
   "tests/test_lewis_layout.py": 1,
   "tests/test_lewis_pairing_dialog.py": 1,
   "tests/test_lewis_pairing_eval.py": 1,

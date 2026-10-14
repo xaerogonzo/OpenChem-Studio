@@ -1,0 +1,57 @@
+{
+  "verdict": "PASS",
+  "exit_code": 0,
+  "tolerate_errors": false,
+  "run": {
+    "run_id": "36141f4f6ca2448caeaf192c12c12a95",
+    "pid": 3964,
+    "started": "2026-10-13T21:41:23+00:00",
+    "script": "benchmarks/visual/lewis_gate_floor.json",
+    "script_sha256": "1cca6c5f3e9098b16689f8857e8834db5149b46d1b9ab3d874575eb71b173421",
+    "commit": "4994424dae6ddbd7b0b3685bdc2cc079ec1287dc",
+    "dirty": false,
+    "lockfile_sha256": "56a63e1efc21dd43e26f7e32f6817db69cd502914ae15d5a5297345bca2dd07d",
+    "ketcher_bundle": "6295fe8c0bc479c2a77e140849d9a4b30df6cb955a4e7d166b7fd521e50d4eb0",
+    "versions": {
+      "python": "3.13.7",
+      "platform": "Windows-11-10.0.26200-SP0",
+      "pyside6": "6.11.1",
+      "qt": "6.11.1",
+      "rdkit": "2025.9.6",
+      "java": ""
+    },
+    "log_start": 1397
+  },
+  "steps": {
+    "in_script": 27,
+    "run": 27
+  },
+  "log_file": {
+    "path": "D:\\Random Programs\\OpenChemStudio_Data\\logs\\drive-3964.log",
+    "start": 1397,
+    "end": 8040
+  },
+  "assertions": [
+    {
+      "step": "lewis_gate_floor",
+      "tag": "the-noise-floor",
+      "ok": true,
+      "detail": "max(0.01, 0.0000 rounded up to 0.01) = 0.01 eV"
+    },
+    {
+      "step": "expect_clean",
+      "tag": "",
+      "ok": true,
+      "detail": "no unexpected application errors"
+    }
+  ],
+  "measurements": {
+    "window_ready_epoch": 1791927683.3862464
+  },
+  "ledger": {
+    "errors": [],
+    "warnings": [],
+    "driver_failures": [],
+    "dropped": 0
+  }
+}

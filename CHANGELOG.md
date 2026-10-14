@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `methylimino` as `=N-CH3`) (D-246); an N-sulfonyl iminium (the cation of a quinone imine) and a quaternary iminium are named, `methylsulfonyl(propan-2-ylidene)azanium`,
   `[amino(sulfanyl)methylidene]dimethylazanium` (D-247). The census is unchanged at 1993 exact; frozen sets: heldout_v6 and fresh_v1 unchanged; bluebook_frozen re-scored once (r50-final-evaluation): exact 523 -> 522 and equivalent 527 -> 528, every other count identical (one row's spelling moved, the same molecule). The stage list for `--frozen-impact` becomes `r49-fresh-v1,r50-final-evaluation,r38-final-evaluation`.
 
+### Recipes, slice 4: the Lewis pairing gate (BH3/CO and BF3/CO on real ORCA): preregistered, then PASSED at 0.01 eV
+- **`benchmarks/lewis_gate/PREREGISTRATION.md` freezes the gate before any ORCA job of BH3 or BF3**: the documented numbers, the procedure, the noise floor (carbon monoxide run twice on one input and through the whole
+  chain twice), **the rule for the tolerance (`T = max(0.01 eV, floor rounded up to 0.01)`, none above 0.37 eV)**, and exactly what PASS, FAIL and NOT EVALUABLE mean. `app/lewis_gate.py` is the arithmetic, pure and tested with
+  invented numbers; `lewis_gate_floor.json` and `lewis_gate_pair.json` are the scripts; `lewis_gate_begin` ends the pair run before one job unless `tolerance.json` holds the tolerance the rule gives the recorded floor.
+  New drive steps `qc_wait`, `lewis_gate_begin`, `lewis_gate_floor`, `lewis_gate_pair`.
+- **Outcome, 2026-10-13: PASS on the one attempt.** The carbon monoxide noise floor was 0.0 eV (six distinct ORCA jobs gave identical numbers), so the rule fixed T = 0.01 eV before the pair ran. On real ORCA 6.1.1 at B3LYP/def2-SVP the
+  recipe, fed only by stored single-point and delta-SCF runs at the optimized geometries, gave BH3/CO gap 8.1260 and |d eta| 1.6321 eV (documented 8.13, 1.63) and BF3/CO gap 10.8995 and |d eta| 0.8928 eV (documented 10.90, 0.89):
+  all within 0.004 eV, the two lines still disagree as documented, and no field combines them. The single point matched the optimization's own orbital table to 0.001 eV. Record: `benchmarks/lewis_gate/PREREGISTRATION.md` section 9.
+  Testing the gate's reader on the real report before any measurement found that the Drago-Wayland line is a fact filed under the report's own name, so the lines are checked by the name they print under.
+
 ### Naming: the ions rounds 44 to 48 left refused or unreadable
 - A protonated imidate, thioimidate, isourea or amidoxime is named as the cation, `(1-sulfanylethylidene)azanium`, `[amino(methoxy)methylidene]azanium`, `(1-aminoethylidene)(hydroxy)azanium` (D-241); before, the
   charge guard refused it. The anion of an N-acyl carbamate is `acetyl(methoxycarbonyl)azanide` (was a visible error) and saccharin's is `1,1,3-trioxo-1,2-benzothiazol-2-ide` (was refused) (D-242). The prefix for S- is
