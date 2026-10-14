@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Derived scores, slice 1: the grammar, the units and the checked evaluator (pure; no UI or project data yet)
+- **`domain/score_formula.py` and `domain/score_units.py` are the formula language of a user-defined score** (`docs/DERIVED_SCORES_DESIGN.md` section 4): a recursive-descent parser written for it (no `eval`, no `exec`, no
+  `compile`, no Python parser), a closed set of nine functions, strict opaque units with no conversions, and an evaluator that refuses a division by zero, a domain error, an overflow or any non-finite step naming the step and never
+  returns a `nan` or an `inf`. Nothing in the application reaches it yet (slice 3 wires it into the project file and Results); `tools/check_score_formula.py` runs a definition and a value from the command line.
+- **Verified by a rejection matrix, an independent oracle and a syntax-tree guard**: 6000 random formulas agree with a separate evaluator over Python's own parse tree (or both refuse), the canonical text means the same to Python
+  as the original, and no scoring module imports a Python parser or runs a string. The design record said "eight" functions and listed nine; it is corrected. A declared input a formula never uses is refused.
+
 ### Naming: one tool for the ion populations, a bare `imino` enclosed after any prefix, and the iminium cations round 49 left refused
 - `tools/naming_ion_populations.py` makes ions out of the census molecules (`anion` deprotonates one acidic site, `cation` protonates one basic site, `quaternary` N-methylates it), names each and reads it
   back through OPSIN: the method that found rounds 46 to 49's defects, which lived in scratch scripts. A bare `imino` after any prefix is now enclosed, `{...diazenyl}(imino)methanethiolate` (OPSIN reads
