@@ -4348,6 +4348,16 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-247", "C[N+](C)=C(N)S", "[amino(sulfanyl)methylidene]dimethylazanium",
      "[REFUSED: no name found that keeps the positive charge (the nearest name is the neutral isothiourea's)]",
      "a visible refusal; a QUATERNARY iminium (no hydrogen on the nitrogen) had no classifier"),
+    # D-248, D-249 (naming round 51): the anion of a hydrazide, and a ring anion whose attachment locant cites an added hydrogen or a prime.
+    ("D-248", "CC(=O)[N-]N", "acetyl(amino)azanide",
+     "1-{[NAMING ERROR: No valid naming plan found for [NH-]N]}-1-oxoethane",
+     "a visible error; the azanide classifier refused a neutral nitrogen beside the anionic one, so nothing claimed the hydrazide anion"),
+    ("D-249", "O=c1[n-]c2ccccc2s1", "2-oxo-1,3-benzothiazol-3(2H)-ide",
+     "1,3-benzothiazol-2(3H)-on-1-ide",
+     "UNREADABLE AS WRITTEN: the attachment locant `3(2H)-` was not read, the parent-hydride splice wrote the wrong locant and a spelling OPSIN cannot parse"),
+    ("D-249", "O=C1[N-]c2ccccc2C11CCNC1", "2'-oxospiro[pyrrolidine-3,3'-2,3-dihydro-1H-indole]-1'-ide",
+     "[REFUSED: charge perception claimed a 'azanide_ring' motif but could not complete it (render_failed)]",
+     "a visible refusal; the primed attachment locant `1'-` was not read"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",

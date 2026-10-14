@@ -91,7 +91,11 @@ from openchem.vendor.iupac_namer.types import (
 )
 
 # Trailing "-<n>-" of a substituent stem, e.g. the "2" of "propan-2-".
-_TRAILING_LOCANT_RE = re.compile(r"-(\d+)-$")
+# The attachment locant may carry its own added hydrogen -- "benzothiazol-3(2H)-yl",
+# "pyrano[2,3-c]pyrazol-2(4H)-yl" -- and a stem that stopped at "-3(2H)-" used to parse as
+# "no locant", so the ring anion fell through to the parent-hydride splice and read
+# "...-2(3H)-on-1-ide", a name OPSIN cannot parse (round 51).
+_TRAILING_LOCANT_RE = re.compile(r"-(\d+)'*(?:\(\d+[a-z]?H\))?-$")
 
 # The locant of an "-ide" name, e.g. the "2" of "propan-2-ide".
 _TRAILING_IDE_LOCANT_RE = re.compile(r"-(\d+)-ide$")
@@ -1167,7 +1171,9 @@ def _classify_aromatic_ring_anion(mol) -> Iterable[ChargeClassification]:
     """
     from rdkit import Chem
 
-    charged = [a for a in mol.GetAtoms() if a.GetFormalCharge() != 0]
+    # A nitro group is charge-separated and neutral overall; it must not hide the ring anion beside it (round 51: a triazolide with a nitrophenyl elsewhere was refused).
+    separated = _charge_separated_neutral_atoms(mol)
+    charged = [a for a in mol.GetAtoms() if a.GetFormalCharge() != 0 and a.GetIdx() not in separated]
     if len(charged) != 1:
         return
     c = charged[0]
@@ -1194,7 +1200,7 @@ def _classify_aromatic_ring_anion(mol) -> Iterable[ChargeClassification]:
     if not probe.GetAtomWithIdx(c.GetIdx()).GetIsAromatic():
         return
     yield ChargeClassification(
-        site_atom_indices=(c.GetIdx(),),
+        site_atom_indices=(c.GetIdx(), *sorted(separated)),
         charge_sign="-",
         suffix_hint="ide",
         locant=None,
@@ -1909,6 +1915,9 @@ def _classify_azanide(mol) -> Iterable[ChargeClassification]:
             for x in nb.GetNeighbors()
         ):
             continue  # an alkyl or aryl carbon
+        # A neutral nitrogen is a hydrazide's other nitrogen (round 51): `acetyl(amino)azanide`, which OPSIN reads back, where the plan search once left `[NH-]N` unnamed.
+        if nb.GetAtomicNum() == 7 and nb.GetFormalCharge() == 0:
+            continue
         return
     yield ChargeClassification(
         site_atom_indices=(n.GetIdx(), *sorted(separated)),

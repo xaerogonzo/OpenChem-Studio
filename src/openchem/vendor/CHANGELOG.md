@@ -2525,6 +2525,21 @@ what can be verified.
   `tests/test_namer_known_defects.py`. Three earlier tests pinned refusals this round turned into names and now pin the cases still refused: a carboxylate beside two neutral acids
   (`test_namer_round43_*`, `test_namer_round45_*`) and a pyrazolone anion (`test_namer_round46_*`).
 
+## 2026-10-15 -- naming round 51: the anion of a hydrazide, ring anions with an added hydrogen or a prime, and a nitro group beside a ring anion (D-248, D-249)
+
+Round 50's open list asked for site patterns the ion populations had not tried. `tools/naming_ion_populations.py` now also deprotonates a lactam NH, a hydrazide NH, an azole NH and a hydroxamic acid, and
+protonates or methylates the oxygen of an amide or a ketone. The baseline on master: anions 416 of 453 ok (18 naming errors, 11 unparsable, 8 refused); cations 1882 of 1909; quaternary 1881 of 1909.
+
+* **D-248.** `CC(=O)[N-]N` and the other hydrazide anions were a `NAMING ERROR` (`[NH-]N` unnamed): the azanide classifier refused any neighbour that was not carbon or a sulfamoyl sulfur. A neutral nitrogen beside
+  the anionic one is the hydrazide's other nitrogen, and the name is `acetyl(amino)azanide` (OPSIN reads it back; measured before the fix, together with `1-acetylhydrazin-1-ide`).
+* **D-249.** A ring anion is the ring's substituent group with `yl` changed to `ide`, and the attachment locant was read by a regex that stopped at `3(2H)-` and at `1'-`. A group it could not read fell through
+  to the parent-hydride splice (`1,3-benzothiazol-2(3H)-on-1-ide`: wrong locant, a spelling OPSIN cannot parse) or was refused (a spiro oxindole anion). The locant may now carry an added hydrogen or a prime.
+  A nitro group elsewhere in the molecule (charge-separated, neutral overall) also hid the ring anion from `_classify_aromatic_ring_anion`, which counted its charges; it now uses the same
+  `_charge_separated_neutral_atoms` the azanide classifier uses, and claims those atoms so the ownership check passes.
+* **Measured.** Anions 451 of 453 after the round (the two left are recorded). Census 1993 exact, unchanged. Vendored suite and known-defects file: 7438 passed, 14 xfailed. App naming group: 2422 passed.
+  4 of 4 live mutants killed. The round 46 test that pinned the pyrazolone anion as a refusal now pins a carboxylate beside two neutral acids on an amidinium.
+* New `tests/test_namer_round51_nn_and_added_hydrogen_anions.py` (31 tests); six site-pattern tests in `tests/test_naming_ion_populations.py`. D-248 and D-249 in the fixed table of `tests/test_namer_known_defects.py`.
+
 ## 2026-10-14 -- naming round 50: a bare imino after any prefix, and the iminium cations round 49 left refused (D-246, D-247)
 
 Round 49's open list asked whether the ion populations were saturated. The three scripts that had found rounds 46 to 49's defects (scratch folders and memory notes) became ONE tool,

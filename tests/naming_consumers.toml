@@ -489,6 +489,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round51_nn_and_added_hydrogen_anions.py"
+why = "the anion of a hydrazide is acetyl(amino)azanide (D-248), and a ring anion's attachment locant may cite an added hydrogen or a prime (D-249: 2-oxo-1,3-benzothiazol-3(2H)-ide)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round50_iminium_and_imino.py"
 why = "a bare imino after ANY prefix is enclosed (D-246: {...diazenyl}(imino)methanethiolate; OPSIN reads methylimino as =N-CH3), and an iminium with a heteroatom on its nitrogen or no hydrogen on it is the cation (D-247: methylsulfonyl(propan-2-ylidene)azanium, [amino(sulfanyl)methylidene]dimethylazanium)"
 scope = "core"
