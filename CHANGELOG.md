@@ -31,6 +31,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `hi = 140 nm^2`), and `log10(mw / one)` with `one = 1 g/mol` is writable, which a bare number could not do. At most 12, in the inputs' namespace; one nothing uses is refused. `tools/check_score_formula.py` takes
   `--constant NAME=NUMBER,UNIT`. The design record's "left for later" list records why typing the rounded-text report calculators has no shortcut.
 
+### Naming: the anion of a hydrazide, ring anions with an added hydrogen or a prime, and a nitro group beside a ring anion
+- `tools/naming_ion_populations.py` gained five site patterns the first rounds never tried (a lactam NH, a hydrazide NH, an azole NH, a hydroxamic acid, and the oxygen of an amide or a ketone, protonated
+  or methylated). The anion population went from 416 of 453 clean to 451 of 453. `CC(=O)[N-]N` is `acetyl(amino)azanide` (it was a `NAMING ERROR`) (D-248); a ring anion whose attachment locant
+  cites an added hydrogen or a prime is named, `2-oxo-1,3-benzothiazol-3(2H)-ide`, `2'-oxospiro[pyrrolidine-3,3'-2,3-dihydro-1H-indole]-1'-ide` (it was an unreadable name or a refusal) (D-249); a nitro
+  group elsewhere no longer hides a ring anion from its classifier, and the pyrazolone anion round 46 left refused is named, `5-oxo-4,5-dihydro-1H-pyrazol-1-ide`. The census is unchanged at 1993 exact.
+  Still open and recorded: fused lactams the engine names with an `-on` suffix (`...-2(1H)-on-1-ide`, unreadable), and the O-protonated or O-methylated amide and urea cations (a few refused, a few wrong).
+
 ### Derived scores, slice 2: the approved outputs a formula may name (pure; no UI or project data yet)
 - **`domain/score_outputs.py` is the table of the 21 outputs a derived score may name** (`docs/DERIVED_SCORES_DESIGN.md` section 3), hand-approved from `tools/sweep_score_outputs.py`'s sweep of the census panel: 17 always-on
   descriptors and 4 facts of `oxygen_balance` and `solubility`. Each carries the unit the result must carry (any other spelling is refused, nothing is converted) and an **endpoint tag: two inputs of one

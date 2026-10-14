@@ -45,6 +45,11 @@ ANION_SITES = {
     "imide": "[NX3;H1](C=O)C=O",
     "acylsulfonamide": "[NX3;H1](C=O)S(=O)=O",
     "sulfonic": "[OX2H1]S(=O)=O",
+    # round 51: the sites rounds 46-50 never changed
+    "lactam": "[NX3;H1;R]C(=O)",
+    "hydrazide": "[NX3;H1](C=O)[NX3]",
+    "azole_nh": "[nX3;H1;r5]",
+    "hydroxamic": "[OX2H1][NX3]C=O",
 }
 
 #: Basic sites, protonated or N-methylated (rounds 47 and 48). The first atom gains the proton or the methyl.
@@ -57,6 +62,8 @@ CATION_SITES = {
     "aniline": "[NX3;H2,H1;$(N-[a]);!$(NC=[O,S,N]);!$(NS=O)]",
     "imine": "[NX2;!R]=C",
     "amidine": "[NX2]=C[NX3]",
+    "amide_o": "[OX1;$(O=C[NX3])]",
+    "carbonyl_o": "[OX1;$(O=[CX3]([#6])[#6])]",
 }
 
 MODES = ("anion", "cation", "quaternary")
