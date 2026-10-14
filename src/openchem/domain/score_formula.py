@@ -106,11 +106,13 @@ class Problem(str, enum.Enum):
 class FormulaError(ValueError):
     """A formula or a definition that cannot be accepted. `position` is a 0-based character index into the text when there is one."""
 
-    def __init__(self, problem: Problem, message: str, position: int | None = None) -> None:
+    def __init__(self, problem: Problem, message: str, position: int | None = None, *, field: str = "") -> None:
         super().__init__(message)
         self.problem = problem
         self.message = message
         self.position = position
+        #: The field of a definition the problem is about, when the problem names one ("label", "owner", "note", "inputs"); empty otherwise.
+        self.field = field
 
 
 class Refusal(Exception):

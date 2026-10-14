@@ -256,8 +256,8 @@ def new_score_id(label: str, taken: Iterable[str]) -> str:
 # --- the rules a definition must meet -------------------------------------------------------------------------------------------
 
 
-def _refuse(message: str) -> FormulaError:
-    return FormulaError(Problem.DEFINITION, message)
+def _refuse(message: str, field: str = "") -> FormulaError:
+    return FormulaError(Problem.DEFINITION, message, field=field)
 
 
 def _check_fields(definition: ScoreDefinition, reserved_names: Iterable[str]) -> None:
@@ -269,27 +269,28 @@ def _check_fields(definition: ScoreDefinition, reserved_names: Iterable[str]) ->
         raise _refuse(f"on_missing is {definition.on_missing!r}; the only policy is {ON_MISSING_REFUSE!r}: a missing input refuses the score")
     label = definition.label
     if not label.strip() or label != label.strip():
-        raise _refuse("the label is empty or has spaces at either end")
+        raise _refuse("the label is empty or has spaces at either end", "label")
     if len(label) > MAX_LABEL:
-        raise _refuse(f"the label has at most {MAX_LABEL} characters, not {len(label)}")
+        raise _refuse(f"the label has at most {MAX_LABEL} characters, not {len(label)}", "label")
     if not label.isprintable():
-        raise _refuse("the label has a character that cannot be shown (a line break, a tab or a control character)")
+        raise _refuse("the label has a character that cannot be shown (a line break, a tab or a control character)", "label")
     if not normalise_name(label):
-        raise _refuse("the label needs at least one letter or digit")
+        raise _refuse("the label needs at least one letter or digit", "label")
     collision = name_collision(label, reserved_names)
     if collision is not None:
         raise _refuse(
             f"the label {label!r} is too close to {collision!r}, the name of a calculator or an output the application provides. "
-            "A number a person defined must not read as one the application computes; choose a different name."
+            "A number a person defined must not read as one the application computes; choose a different name.",
+            "label",
         )
     if len(definition.owner) > MAX_OWNER or not definition.owner.isprintable():
-        raise _refuse(f"the owner has at most {MAX_OWNER} printable characters")
+        raise _refuse(f"the owner has at most {MAX_OWNER} printable characters", "owner")
     if len(definition.note) > MAX_NOTE or not all(ch.isprintable() or ch == "\n" for ch in definition.note):
-        raise _refuse(f"the note has at most {MAX_NOTE} characters")
+        raise _refuse(f"the note has at most {MAX_NOTE} characters", "note")
     if definition.created and not _DATE.fullmatch(definition.created):
         raise _refuse(f"created is {definition.created!r}, not YYYY-MM-DD")
     if not definition.inputs:
-        raise _refuse("a score reads at least one approved output")
+        raise _refuse("a score reads at least one approved output", "inputs")
 
 
 def check_computation(definition: ScoreDefinition) -> Formula:

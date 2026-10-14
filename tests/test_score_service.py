@@ -312,3 +312,35 @@ def test_a_molecule_the_project_does_not_have_has_no_reader_entries(scores):
 def test_with_no_project_there_are_no_reader_entries(services):
     service = ScoreService(services.event_bus, services.result_store_service, services.calculator_registry)
     assert service.answers_for("anything", 0) == ()
+
+
+# --- a draft's preview ---------------------------------------------------------------------------------------------------------------
+
+
+def test_a_preview_is_the_value_a_saved_score_would_have_and_stores_nothing(scores, services, project, events):
+    from openchem.domain.score_definition import ScoreDefinition
+
+    model = project.molecules[0]
+    _put(services, model, "tpsa", 100.0, "\u00c5\u00b2")
+    draft = ScoreDefinition("user.draft", "Draft", "ramp(psa, 140, 60)", "1", (("psa", _PSA),))
+    value = scores.preview(draft, model)
+    assert value.status is ScoreStatus.VALUE and value.value == pytest.approx(0.5)
+    assert len(scores.store) == 0 and events == []
+    saved = _make(scores, label="Same thing", formula="ramp(psa, 140, 60)", inputs=[("psa", _PSA)])
+    assert scores.values_for(model)[0].value == value.value and saved.digest == draft.digest
+
+
+def test_a_preview_refuses_in_the_same_words_a_saved_score_does(scores, project):
+    from openchem.domain.score_definition import ScoreDefinition
+
+    draft = ScoreDefinition("user.draft", "Draft", "ramp(psa, 140, 60)", "1", (("psa", _PSA),))
+    value = scores.preview(draft, project.molecules[0])
+    assert value.status is ScoreStatus.REFUSED and "has not been calculated for this molecule" in value.reason
+
+
+def test_a_preview_of_a_definition_that_does_not_check_is_a_refusal_not_an_exception(scores, project):
+    from openchem.domain.score_definition import ScoreDefinition
+
+    draft = ScoreDefinition("user.draft", "Draft", "ramp(psa, 140", "1", (("psa", _PSA),))
+    value = scores.preview(draft, project.molecules[0])
+    assert value.status is ScoreStatus.REFUSED and "no longer checks" in value.reason

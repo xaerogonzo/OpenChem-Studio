@@ -255,3 +255,147 @@ def test_a_reader_that_cannot_read_the_scores_still_shows_everything_else(window
     window._property_panel.attach_score_answers(broken)
     _select(window, qapp, aspirin)
     assert _entries(window) != [] and "Could not read the scores for" in caplog.text
+
+
+# --- the Derived Scores window (slice 3d) -----------------------------------------------------------------------------------------------------
+
+
+_KEEP_ALIVE: list = []
+
+
+def _tools_actions(window) -> dict[str, object]:
+    [tools] = [a for a in window.menuBar().actions() if a.text().replace("&", "") == "Tools"]
+    # PySide deletes the menu when the wrapper of the menu-bar action that owns it is collected, and a temporary menu takes its actions' wrappers with it.
+    menu = tools.menu()
+    _KEEP_ALIVE.extend([tools, menu])
+    found = {a.text().replace("&", ""): a for a in menu.actions() if not a.isSeparator()}
+    _KEEP_ALIVE.extend(found.values())
+    return found
+
+
+def test_the_tools_menu_has_the_derived_scores_entry_and_it_opens_one_window(window, pair, qapp):
+    action = _tools_actions(window)["Derived Scores..."]
+    action.trigger()
+    first = window._score_dialog
+    assert first is not None and first.isVisible()
+    action.trigger()
+    assert window._score_dialog is first, "there is never a second window"
+    first.close()
+
+
+def test_the_window_makes_a_score_that_reaches_results_and_marks_the_project_unsaved(window, pair, qapp):
+    from openchem.domain.score_editor import Draft, InputRow
+
+    aspirin, _ = pair
+    _select(window, qapp, aspirin)
+    window._session.mark_clean()
+    dialog = window.show_scores()
+    dialog.set_draft(
+        Draft(label="Window blend", formula="ramp(psa, 140, 60) * ramp(logp, 5, 2)", inputs=(InputRow("psa", "descriptor:tpsa"), InputRow("logp", "descriptor:mol_logp")))
+    )
+    assert dialog.save() is not None
+    _drain(qapp)
+    assert window._session.is_dirty, "a score is project data: closing without saving must ask"
+    report = _report(window)
+    assert report is not None and report.facts and 0.0 < report.facts[0].value < 1.0
+    dialog.close()
+
+
+def test_the_open_window_follows_a_score_made_elsewhere_and_a_project_change(window, pair, qapp):
+    dialog = window.show_scores()
+    assert dialog.snapshot()["scores"] == []
+    _make(window)
+    qapp.processEvents()
+    assert dialog.snapshot()["scores"] == [LABEL]
+    window._set_project(ProjectModel(name="another"))
+    qapp.processEvents()
+    assert dialog.snapshot()["scores"] == [] and dialog.current_score_id() is None
+    dialog.close()
+
+
+def test_the_open_window_reads_its_preview_again_when_the_molecule_or_a_result_changes(window, pair, qapp):
+    from openchem.domain.score_editor import Draft, InputRow
+
+    aspirin, ethanol = pair
+    window._services.descriptor_service.request_descriptors = lambda *args, **kwargs: None
+    _select(window, qapp, aspirin)
+    dialog = window.show_scores()
+    dialog.set_draft(Draft(label="Weight", formula="mw", result_unit="g/mol", inputs=(InputRow("mw", "descriptor:mol_wt"),)))
+    assert "no value" in dialog.snapshot()["preview"] and "Aspirin" in dialog.snapshot()["preview"]
+    _select(window, qapp, ethanol)
+    assert "Ethanol" in dialog.snapshot()["preview"], "the preview follows the molecule selected in the project"
+    _select(window, qapp, aspirin)
+
+    from openchem.domain.common import CacheState
+    from openchem.domain.descriptor import DescriptorValue
+    from openchem.domain.result_store import ResultIdentity, StoredResult
+    from openchem.events.events import ResultRecorded
+
+    fingerprint = window._services.result_store_service.fingerprints_for(aspirin)["drawing"]
+    result = DescriptorValue("mol_wt", "mol_wt", "g/mol", "c", "rdkit", aspirin.uuid, value=180.16, cache_state=CacheState.COMPLETED)
+    stored = StoredResult(ResultIdentity(aspirin.uuid, "descriptor:rdkit:mol_wt", "drawing", fingerprint, "rdkit"), result)
+    window._services.result_store_service.store.put(stored)
+    window._services.event_bus.publish(ResultRecorded(stored=stored))
+    qapp.processEvents()
+    assert dialog.snapshot()["preview"] == "For Aspirin: 180.2 g/mol", "a result arriving while the window is open gives the preview its number"
+    dialog.close()
+
+
+def test_a_closed_window_is_not_refreshed_or_reopened_by_events(window, pair, qapp):
+    dialog = window.show_scores()
+    dialog.close()
+    calls = []
+    real = dialog.refresh
+    dialog.refresh = lambda: (calls.append(1), real())[1]
+    _make(window)
+    qapp.processEvents()
+    assert calls == [] and dialog.isHidden()
+
+
+def test_the_window_has_no_way_to_start_a_calculation(window, pair, qapp):
+    """Reading `descriptor_service` is not enough: the window is built from a host that holds no service, so this checks that typing and saving ask for nothing."""
+    from openchem.domain.score_editor import Draft, InputRow
+
+    aspirin, _ = pair
+    asked = []
+    window._services.descriptor_service.request_descriptors = lambda *args, **kwargs: asked.append("descriptors")
+    window._services.descriptor_service.run_calculator = lambda *args, **kwargs: asked.append("calculator")
+    _select(window, qapp, aspirin)
+    asked.clear()
+    dialog = window.show_scores()
+    dialog.set_draft(Draft(label="Weight", formula="mw", result_unit="g/mol", inputs=(InputRow("mw", "descriptor:mol_wt"),)))
+    dialog._formula.setText("mw + mw")
+    dialog.refresh_preview()
+    assert asked == []
+    dialog.close()
+
+
+def test_a_saved_score_stays_clean_while_results_arrive_and_choosing_another_does_not_ask(window, pair, qapp, monkeypatch):
+    """Found by driving: Delete on another score asked 'discard unsaved changes?' about a form nobody had touched, after a calculator finished."""
+    from PySide6.QtWidgets import QMessageBox
+
+    from openchem.domain.calculator import CalculationRequest
+    from openchem.domain.score_editor import Draft, InputRow
+
+    aspirin, _ = pair
+    _select(window, qapp, aspirin)
+    dialog = window.show_scores()
+    dialog.set_draft(Draft(label="Polar window", formula="ramp(psa, 140, 60)", inputs=(InputRow("psa", "descriptor:tpsa"),)))
+    dialog.save()
+    dialog.start_new()
+    dialog.set_draft(Draft(label="Needs a calculator", formula="ob", result_unit="%", inputs=(InputRow("ob", "calculator:oxygen_balance:Oxygen balance (CO basis)"),)))
+    dialog.save()
+    assert not dialog.dirty
+    definition = window._services.calculator_registry.get("oxygen_balance")
+    window._services.descriptor_service.run_calculator(
+        aspirin, CalculationRequest(calculator_id="oxygen_balance", molecule_uuid=aspirin.uuid, parameters={p.name: p.default for p in definition.parameters})
+    )
+    _drain(qapp)
+    assert dialog.snapshot()["preview"].startswith("For Aspirin: -79.9")
+    assert not dialog.dirty, (dialog.draft(), dialog._saved)
+    asked = []
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: asked.append(a[1]) or QMessageBox.StandardButton.Yes))
+    window.show_scores()
+    dialog._list.setCurrentRow(0)
+    assert asked == [] and dialog.current_score_id() == "user.polar_window"
+    dialog.close()

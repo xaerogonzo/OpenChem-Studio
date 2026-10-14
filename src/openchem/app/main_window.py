@@ -97,6 +97,7 @@ from openchem.events.events import (
     QuantumChemistryResultReady,
     QuantumChemistryRunCompleted,
     QuantumChemistryRunDeleted,
+    ResultRecorded,
     ScoreDefinitionsChanged,
 )
 from openchem.app.calculation_host import CalculationHost
@@ -117,6 +118,7 @@ from openchem.ui.panels.batch_panel import BatchPanel
 from openchem.ui.dialogs.calculator_settings_dialog import plain_label
 from openchem.ui.dialogs.goal_wizard_dialog import GoalWizardDialog
 from openchem.ui.dialogs.lewis_pairing_dialog import LewisPairingDialog, PairingContext, PairingHost
+from openchem.ui.dialogs.score_dialog import ScoreDialog, ScoreHost
 from openchem.ui.panels.docking_panel import DockingPanel
 from openchem.ui.panels.jobs_panel import JobsPanel
 from openchem.ui.panels.project_explorer_panel import ProjectExplorerPanel
@@ -555,6 +557,7 @@ class MainWindow(QMainWindow):
         self._property_panel.goal_wizard_requested.connect(self._on_goal_wizard_action)
         # THE LEWIS PAIRING WINDOW: one, built when first asked for and raised after that.
         self._lewis_pairing: LewisPairingDialog | None = None
+        self._score_dialog: ScoreDialog | None = None
         self._property_panel.workflow_tab_requested.connect(self._on_workflow_tab_requested)
         self._interactions_panel = InteractionsPanel(
             services.chemistry_engine, services.event_bus, self
@@ -921,6 +924,8 @@ class MainWindow(QMainWindow):
         services.event_bus.subscribe(QuantumChemistryRunDeleted, self._refresh_lewis_pairing)
         # A definition is never also a result, so nothing else would tell the session it has something unsaved.
         services.event_bus.subscribe(ScoreDefinitionsChanged, self._on_score_definitions_changed)
+        for event_type in (MoleculeSelected, MoleculeChanged, ResultRecorded):
+            services.event_bus.subscribe(event_type, self._refresh_scores_preview)
         services.event_bus.subscribe(MoleculeChanged, self._refresh_lewis_pairing)
         services.event_bus.subscribe(ConformersChanged, self._refresh_lewis_pairing)
         services.event_bus.subscribe(PluginLoaded, self._on_plugins_state_changed)
@@ -2431,6 +2436,10 @@ class MainWindow(QMainWindow):
             "lewis_pairing",
         )
         self._document(
+            tools_menu.addAction("Derived Scores...", self._on_scores_action),
+            "derived_scores",
+        )
+        self._document(
             tools_menu.addAction("Periodic Table...", self._show_periodic_table),
             "periodic_table",
         )
@@ -2994,6 +3003,7 @@ class MainWindow(QMainWindow):
         # "you have unsaved changes" the moment they open the next one.
         if self._lewis_pairing is not None:
             self._lewis_pairing.refresh()
+        self._refresh_scores_dialog()
         self._session.mark_clean()
 
     def _open_project(self) -> None:
@@ -3949,6 +3959,61 @@ class MainWindow(QMainWindow):
 
     def _on_score_definitions_changed(self, _event) -> None:
         self._session.mark_dirty()
+        self._refresh_scores_dialog()
+
+    # --- the Derived Scores window ------------------------------------------------------------------
+
+    def _on_scores_action(self, _checked: bool = False) -> None:
+        self.show_scores()
+
+    def show_scores(self) -> ScoreDialog:
+        """Open the Derived Scores window, or raise the one that is open. There is never a second."""
+        if self._score_dialog is None:
+            self._score_dialog = ScoreDialog(self._score_host(), self)
+        else:
+            self._score_dialog.refresh()
+        self._score_dialog.show()
+        self._score_dialog.raise_()
+        self._score_dialog.activateWindow()
+        return self._score_dialog
+
+    def _score_host(self) -> ScoreHost:
+        service = self._services.score_service
+
+        def molecule() -> tuple[str, str] | None:
+            uuid = self._property_panel.selected_molecule_uuid()
+            project = self._session.project
+            found = project.find_molecule(uuid) if project is not None and uuid else None
+            return (found.display_name, found.uuid) if found is not None else None
+
+        def preview(definition, uuid):
+            project = self._session.project
+            found = project.find_molecule(uuid) if project is not None else None
+            return service.preview(definition, found) if found is not None else None
+
+        return ScoreHost(
+            has_project=lambda: self._session.project is not None and service.project is not None,
+            scores=lambda: service.store.definitions(),
+            kept=lambda: service.store.kept(),
+            reserved_names=service.reserved_names,
+            molecule=molecule,
+            preview=preview,
+            create=service.create,
+            update=service.update,
+            remove=service.remove,
+        )
+
+    def _refresh_scores_dialog(self, _event=None) -> None:
+        """Re-read the open Derived Scores window: the project's scores changed, or another project is open. Cheap, and never opens one."""
+        dialog = self._score_dialog
+        if dialog is not None and not dialog.isHidden():
+            dialog.refresh()
+
+    def _refresh_scores_preview(self, _event=None) -> None:
+        """The selected molecule or its results changed: the open window's preview reads them again, and nothing else of it moves."""
+        dialog = self._score_dialog
+        if dialog is not None and not dialog.isHidden():
+            dialog.refresh_preview()
 
     # --- structure checking ----------------------------------------------------
 

@@ -273,6 +273,15 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
      "value_between": [0.95, 0.96], "evidence_contains": ["Formula:"], "reason_contains": [], "stored_as_results": 0}}
                                           what the Results READER holds of the scores, for the selected molecule: the number or the
                                           reason there is none, the label, the evidence, and that none is also a stored result
+    {"do": "score_dialog", "new": true, "fill": {"label": "Polar window", "inputs": [["psa", "descriptor:tpsa"]], "formula": "ramp(psa, 140, 60)",
+     "constants": [{"name": "hi", "value": "140", "unit": "\u00c5^2"}], "result_unit": "1"}, "press": "save", "confirm": "yes",
+     "expect": {"ok": true, "marked": [], "preview_contains": ["For Aspirin: 0.955"], "stored": 1, "project_unsaved": true,
+     "results_listed": ["Polar window"], "asked": ["Unsaved changes"]}}
+                                          the Derived Scores window (Tools menu) driven through its REAL controls: `new`, `choose` a list entry,
+                                          `fill` (presses Remove/Add and types into the edits, so it checks after every keystroke), `press`
+                                          save/revert/delete/new (a disabled button is logged, not pressed), `confirm` answers its two questions;
+                                          `expect` reads the window (message, `where`, fields outlined as `marked`, `pointer_column` of the caret, preview, buttons, list) and the project
+                                          (definitions stored, unsaved, listed in Results); `shot` takes "widget": "scores"
     {"do": "qc_wait", "timeout_ms": 600000}   hold the script until the Quantum Chemistry service has no job running (give up = an
                                           ERROR); use it after `qc_run` instead of guessing an `after_ms` for a job of unknown length
     {"do": "lewis_gate_begin"}  {"do": "lewis_gate_floor", "a": -2, "b": -1}  {"do": "lewis_gate_pair", "bh3": -3, "bf3": -2, "co": -1}

@@ -173,6 +173,16 @@ class ScoreService:
         definitions = self.store.definitions()
         if not definitions:
             return ()
+        entries = self._classified_results(model)
+        return tuple(evaluate_score(definition, entries) for definition in definitions)
+
+    def preview(self, definition: ScoreDefinition, model: MoleculeModel) -> ScoreValue:
+        """The value `definition` WOULD have for `model`, for a definition that is not in the project (a draft being typed). Nothing is stored and nothing is
+        calculated; it is the same reading and the same refusals as a saved score gets."""
+        return evaluate_score(definition, self._classified_results(model))
+
+    def _classified_results(self, model: MoleculeModel):
+        """`model`'s stored results, each classified as current, historical or unverifiable and as computed, refused or failed."""
         fingerprints: dict[str, str] = {}
         if model.molblock:
             try:
@@ -181,5 +191,4 @@ class ScoreService:
                 logger.debug("No fingerprints for %s", model.uuid, exc_info=True)
         records = self._results.store.all_results(model.uuid)
         fresh = self._results.store.fresh_results(model.uuid, fingerprints)
-        entries = classify_results(records, fresh, fingerprints)
-        return tuple(evaluate_score(definition, entries) for definition in definitions)
+        return classify_results(records, fresh, fingerprints)

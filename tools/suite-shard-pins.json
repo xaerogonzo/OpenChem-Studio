@@ -985,6 +985,8 @@
   "tests/test_score_constants.py": 1,
   "tests/test_score_definition.py": 1,
   "tests/test_score_definition_store.py": 1,
+  "tests/test_score_dialog.py": 1,
+  "tests/test_score_editor.py": 1,
   "tests/test_score_formula.py": 1,
   "tests/test_score_formula_guard.py": 1,
   "tests/test_score_formula_oracle.py": 1,
