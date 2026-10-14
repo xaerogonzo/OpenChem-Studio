@@ -800,7 +800,7 @@
   "tests/test_namer_round47_protonated_ring_cation_hydro.py": 0,
   "tests/test_namer_round48_azolium_indicated_hydrogen.py": 0,
   "tests/test_namer_round49_open_ions.py": 0,
-  "tests/test_namer_round50_iminium_and_imino.py": 2,
+  "tests/test_namer_round50_iminium_and_imino.py": 1,
   "tests/test_namer_salt_multiplier.py": 0,
   "tests/test_namer_stereo_cache_identity.py": 0,
   "tests/test_namer_stereo_locant_tie.py": 2,
