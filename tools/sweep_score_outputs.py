@@ -193,6 +193,33 @@ def entry_problems(entry, sweep: Sweep, census: dict[str, Any]) -> list[str]:
     return problems
 
 
+def identical_pairs(entries, sweep: Sweep) -> list[tuple[Any, Any]]:
+    """Pairs of approved outputs with DIFFERENT endpoints that gave the same value on every census row they share.
+
+    An endpoint tag is a person's judgement that two outputs estimate one quantity, and a judgement is forgotten. Two outputs that agree to
+    the last digit on at least `MIN_ROWS` rows are one number under two names (the ESOL descriptor and the solubility calculator's log
+    mol/L did, on 16 of 16 rows), so they must share a tag or the consensus rule would let a formula combine a number with itself. This
+    catches a copy, not two methods that merely estimate the same thing: those differ in value, and only a person can tag them.
+    """
+    from openchem.domain.score_outputs import READ_FROM
+
+    values: dict[str, dict[str, float]] = {}
+    for entry in entries:
+        candidate = sweep.candidates.get(entry.output_id)
+        if candidate is not None:
+            values[entry.output_id] = {row: value for row, calc_input, value, _units in candidate.observations if calc_input == READ_FROM}
+    found = []
+    for i, first in enumerate(entries):
+        for second in entries[i + 1:]:
+            if first.endpoint == second.endpoint:
+                continue
+            a, b = values.get(first.output_id, {}), values.get(second.output_id, {})
+            shared = sorted(set(a) & set(b))
+            if len(shared) >= MIN_ROWS and all(math.isclose(a[row], b[row], rel_tol=1e-9, abs_tol=1e-12) for row in shared):
+                found.append((first, second))
+    return found
+
+
 def _report(sweep: Sweep, census: dict[str, Any], json_path: str | None) -> None:
     rows = len(census["rows"])
     by_source: dict[str, list[Candidate]] = {}
@@ -254,8 +281,11 @@ def main(argv: list[str] | None = None) -> int:
         for problem in problems:
             print(f"{output_id}: {problem}")
     bad = sum(1 for problems in found.values() if problems)
-    print(f"{len(found) - bad} of {len(found)} approved outputs hold")
-    return 1 if bad else 0
+    copies = identical_pairs(APPROVED, sweep)
+    for first, second in copies:
+        print(f"{first.output_id} and {second.output_id} agree on every shared row but carry different endpoints ({first.endpoint}, {second.endpoint})")
+    print(f"{len(found) - bad} of {len(found)} approved outputs hold; {len(copies)} untagged copies")
+    return 1 if bad or copies else 0
 
 
 if __name__ == "__main__":
