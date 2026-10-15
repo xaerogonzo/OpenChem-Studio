@@ -112,7 +112,7 @@ def test_a_bridge_with_no_host_or_no_molecule_says_unavailable_and_never_raises(
     assert bridge.available is False
     for text in (
         bridge.find_calculators("x"), bridge.list_goals(), bridge.describe_calculator("x"), bridge.read_results(), bridge.read_scores(),
-        bridge.run_calculator("x"),
+        bridge.propose_score({"label": "x"}), bridge.run_calculator("x"),
     ):
         data = json.loads(text)
         assert data["ok"] is False and data["problem"] == "unavailable"
@@ -121,11 +121,11 @@ def test_a_bridge_with_no_host_or_no_molecule_says_unavailable_and_never_raises(
 def test_the_bridge_a_tool_receives_has_no_way_to_approve_or_cancel():
     surface = {name for name in dir(ToolBridge) if not name.startswith("_")}
     assert surface == {
-        "available", "turn", "find_calculators", "list_goals", "describe_calculator", "read_results", "read_scores", "run_calculator",
+        "available", "turn", "find_calculators", "list_goals", "describe_calculator", "read_results", "read_scores", "list_score_outputs", "propose_score", "run_calculator",
     }
     for name in ("approve", "cancel", "pending", "on_finished", "calculation_approvals"):
         assert not hasattr(_bridge(), name)
-    assert "approve" not in " ".join(CALCULATION_HANDLERS) and len(CALCULATION_TOOLS) == len(CALCULATION_HANDLERS) == 6
+    assert "approve" not in " ".join(CALCULATION_HANDLERS) and len(CALCULATION_TOOLS) == len(CALCULATION_HANDLERS) == 8
 
 
 def test_the_tool_descriptions_tell_the_model_what_it_must_not_do():

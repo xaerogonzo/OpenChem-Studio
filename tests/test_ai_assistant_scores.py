@@ -109,7 +109,7 @@ def test_reading_scores_needs_no_host_and_there_is_no_call_that_writes_one(world
 
 
 def test_the_tool_is_offered_with_the_others_and_has_a_handler_that_takes_the_bridge():
-    assert READ_SCORES in CALCULATION_TOOLS and "read_scores" in CALCULATION_HANDLERS and len(CALCULATION_TOOLS) == len(CALCULATION_HANDLERS) == 6
+    assert READ_SCORES in CALCULATION_TOOLS and "read_scores" in CALCULATION_HANDLERS and len(CALCULATION_TOOLS) == len(CALCULATION_HANDLERS) == 8
     assert validate_arguments(READ_SCORES.input_schema, {}) == []
     assert validate_arguments(READ_SCORES.input_schema, {"scores": ["user.window", "Another"]}) == []
     assert validate_arguments(READ_SCORES.input_schema, {"scores": "user.window"}) and validate_arguments(READ_SCORES.input_schema, {"scores": [1]})
@@ -126,7 +126,7 @@ def test_the_description_tells_the_model_what_a_score_is_and_what_it_must_not_do
 
 
 def test_the_system_prompt_names_the_tool_and_what_it_is_not():
-    assert "read_scores" in SYSTEM_PROMPT_PREFIX and "not predictions" in SYSTEM_PROMPT_PREFIX and "not something you can create or change" in SYSTEM_PROMPT_PREFIX
+    assert "read_scores" in SYSTEM_PROMPT_PREFIX and "not predictions" in SYSTEM_PROMPT_PREFIX and "only if the person approves" in SYSTEM_PROMPT_PREFIX
 
 
 def test_a_bridge_with_no_molecule_says_unavailable_for_scores_too(qapp):

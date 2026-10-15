@@ -207,8 +207,11 @@ benchmark showing it adds information, as a calculator, not as a formula.
 ## 9. The assistant
 
 **Built (slice 4a): the assistant can read a score, with its label, its formula, every input and its limitation intact.** Scores are not stored, so `read_results` (which reads the result store) does not see
-them; `read_scores` evaluates the project's definitions against the turn's frozen snapshot. **The assistant cannot create or edit a definition.** A formula written by a model is an agent-authored predictor, and that
-is a decision for its own review, not a side effect. It may suggest formula text in conversation, for a person to enter.
+them; `read_scores` evaluates the project's definitions against the turn's frozen snapshot.
+
+**Built (slice 4d, which amends decision 9 of section 12): the assistant can PROPOSE a score, and only a person can save one.** `propose_score` checks a model's request by exactly the rules a typed definition meets and
+leaves a card in the assistant's panel; **the score exists only after the person presses Approve** on that card. The assistant still cannot create, edit or delete a definition: a proposal is not one, the approval is on an
+object a tool is never handed (as a run's is), and what is saved is the definition that was shown.
 
 ## 10. Tests
 
@@ -443,9 +446,33 @@ A driven run follows the UI slice, builds its own state, and ends in a verdict.
    * **Mutation-checked: 102 mutants** of the definition, the evaluator, the Results reader, the project table, the service, the assistant's envelope and tool, the window's view model and the dialog. **94 were caught the first time and 8 survived.** Seven were missing tests (that the digest of a definition without defaults is the literal master computes for it, and that a default is hashed at the precision it is declared; that a default carries its output's unit; that the table does not use defaults the evaluator would not; that the declared defaults are cut by the caps; that a default comes back to the form to twelve figures; that typing a default checks and previews again) and **one was equivalent**: a guard that only repeated one the outcome already made, removed from the code. After the new tests every survivor is caught or gone**
    * **Not here, deliberately:** a default for an input that was calculated and refused (it would hide the refusal); skipping a term; a default that varies by molecule; a default in a unit other than the output's; the
      Batch panel's own table (still no scores).
+   **4d as built, the assistant proposes a score and a person approves it, and what driving it found:**
+   * **Parts.** `domain/score_proposal.py` (pure: `check_request` turns a request into a definition by the rules a typed one meets, `ProposalBook` holds proposals for a person, `card_of` says what the person is shown);
+     `CalculationHost.propose_score` (any thread, **stores nothing**), `pending_scores`, and `approve_score` / `cancel_score` (GUI thread, for a button); `PluginCalculations.propose_score` and `list_score_outputs` for a tool
+     and `PluginCalculationApprovals.approve_score` / `cancel_score` / `on_score_finished` for the panel only; the envelope serialisers; the seventh and eighth tools, `list_score_outputs` and `propose_score`; and the panel's
+     `_ScoreCard`.
+   * **What a model may say, and may not.** A request has `label`, `formula`, `result_unit`, `inputs` (`{name, output}` with an id from `list_score_outputs`), optional `constants` and `note`, and **no other key**: an owner, an id,
+     a format, a policy or a default is refused by name, because none is the model's to give. Types are never coerced (a string where a number belongs, a bool, a non-finite number, an input that is not an object). The owner of
+     an approved score is `AI assistant (you approved it)`, set by the application. The label is checked against the application's own names, so a model cannot call its formula "TPSA" or "CNS MPO". A refused request comes
+     back in the request's own terms (the field, the rule, the place in the formula) so the model can correct it, and **nothing is shown to the person for one**.
+   * **What the person sees and decides.** A card of plain text (a label, a formula or a note a model wrote is never read as markup): the label as it will be shown, the formula, each input as the application names it, each
+     constant with its unit, the declared unit, **the value it gives for the selected molecule from the turn's frozen results** (or why it has none yet) and who it will say wrote it, with "Nothing is saved unless you approve".
+     Approve makes the score through the same `ScoreService.create` the Derived Scores window uses, from the definition that was shown (the request is not read again), and it is refused, and says why, if the project is
+     no longer the one it was proposed in or the rules now refuse it (a label that has since become too close to a calculator's name, a full project). Cancel saves nothing. Each decision is announced once, shown in the
+     ledger and the transcript, and **told to the model with the user's next message**.
+   * **Limits.** At most five proposals wait together, the same score proposed again while it waits is the one that waits, a proposal is bound to its project (and decided void at the next Send if the project changed), and a
+     project already holding the most scores refuses a proposal.
+   * **The residual risk, stated.** A model that can write a formula can write one that happens to confirm what a person hoped, and a person can approve a card without reading it. The card is built to make reading cheap
+     (the formula, what each input is, the value, the owner) and the application never calls the result a prediction, but it cannot make anyone read.
+   * **Verified.** **112 new tests** (`test_score_proposal.py`: the request rules, the book, the card; `test_ai_assistant_score_proposals.py`: the real host and panel with a scripted provider on a real worker thread, the real Approve and Cancel buttons, notes riding with the next message, a model that cannot save or approve) plus the pins in `test_plugin_calculations.py` and `test_ai_assistant_bridge.py`. **`benchmarks/visual/ai_score_proposals.json` passes 9 assertions** in the real window with the assistant's real Send and a real Approve and Cancel button: a proposal is a card and
+     nothing is saved; Approve saves it with the assistant as owner, it is in Results like any other, and the next message carries the note; a label like the application's own name, and a formula that adds an area to a plain
+     number, are refused with a field and a place; a second proposal is cancelled and nothing is saved. New drive inputs: `ai_card` takes `"card": "score"`, `ai_expect` takes `score_proposals`, `scores_stored`,
+     `scores_owner` and `sent_contains`. The drive passed on its first run and found nothing the unit tests had not.
+   * **Mutation-checked: 120 mutants** of the request rules, the book, the card, the host, the plugin handles, the envelopes, the bridge, the tools and the panel. **101 were caught the first time and 19 survived.** Seventeen were missing tests or code that reached around what it should have gone through (the list of outputs bypassed its own handle, a card event could add a second card, two clauses of the host did the same thing and are one now), and the tests were written: that an input or a constant may carry no extra key and a constant's name is text, the owner's words and the limit of five, a turn begun in another project, the project one short of full, an approval after both the window and the score service moved, a project with no room at approval, the ledger and transcript lines of a decision, the strip of cards, a button taking its card away even when the host announces nothing, and a listener undone on unload. **One is equivalent and left**: the bridge's `bounded_json` on a proposal's reply, which cannot exceed its budget at the sizes the definition rules allow. After the new tests every survivor is caught or gone**
+   * **Not here, deliberately:** the assistant editing or deleting a score, choosing the owner, proposing a default or a policy, or a score over a geometry; and a model that approves its own proposal (there is no such call).
    **4b, a conversion entry: measured, not built** (section 4). No approved output needs one, and the guard that says when one does is in `tests/test_score_outputs.py`.
 
-4. **Later, each its own review**: assistant-authored definitions, if ever.
+Slice 4 is complete: 4a (the assistant reads a score), 4b (no unit conversion is needed), 4c (a default for an input nobody calculated) and 4d (the assistant proposes a score and a person approves it).
 
 ## 12. Decisions most worth challenging
 
@@ -465,8 +492,9 @@ A driven run follows the UI slice, builds its own state, and ends in a verdict.
    resting on another, and it removes some of the outputs people would most like to combine.
 8. **The name check is derived from the registry and cannot see a published score the application lacks.**
    Over-blocking is possible (a name containing "pKa") and is preferred to a hand-kept list that rots.
-9. **The assistant cannot author a definition.** A model that can write a formula can also write one that
-   happens to confirm what the person hoped.
+9. **The assistant can propose a definition and cannot save one** (amended in slice 4d; the first reading was "the assistant cannot author a definition"). The concern stands: a model that can write a formula can
+   also write one that happens to confirm what the person hoped. What changed is that a person who wants the assistant's help writing a formula is better served by a card they read and approve than by text they retype,
+   which is where a wrong unit, a dropped constant or a mistyped name enters. The residual risk is a person approving what they did not read; the card is designed to make reading cheap and cannot prevent the other.
 10. **No file-level version stamp for older builds** (section 8). A build that has never heard of the `derived_scores`
     key drops the block on its next save, as it does for every other block. This is the one block a person wrote by
     hand, so it is the one place the cost is lost work, accepted while the suite is in beta; it falls only on a project that has a definition, because the block is not written otherwise. Reversible later by

@@ -30,7 +30,7 @@ worth challenging are collected at the end.
 
 ## 2. The capability
 
-**A plugin gets `context.calculations`, a handle with nine operations and no objects behind it.**
+**A plugin gets `context.calculations`, a handle with eleven operations and no objects behind it.**
 It is built from a host object the window hands the `PluginManager`; a context built without one
 (a headless run, a test) answers every call with a typed `UNAVAILABLE`, never an exception.
 
@@ -44,7 +44,10 @@ It is built from a host object the window hands the `PluginManager`; a context b
 | `prepare(turn, calculator_id, parameters)` | any | a `Preparation`: validated and normalised parameters, the execution decision, and a preview, or a typed refusal. **Starts nothing.** |
 | `run(turn, run_id)` | worker | for an `AUTO` preparation only: dispatches and waits (section 3) |
 | `pending()` | GUI | previews awaiting approval, for the panel |
+| `list_score_outputs()` | any | the outputs a derived score's formula may read, with units and endpoints (`docs/DERIVED_SCORES_DESIGN.md`, slice 4d). Fixed knowledge; needs no host. |
+| `propose_score(turn, request)` | any | checks a model's request for a score by the rules a typed definition meets and **leaves a card for a person**; it stores nothing and is the only score call here that can lead to a score existing. |
 | `approve(run_id)` / `cancel(run_id)` | **GUI only** | start or drop a pending preview |
+| `approve_score(proposal_id)` / `cancel_score(proposal_id)` | **GUI only** | make, or drop, a score the assistant proposed. The same split as a run's: a panel is given them and a tool is not. |
 
 `approve` and `cancel` are not reachable from a tool. **Built:** they, `pending`, `state_of` and
 `outcome_of` are methods of `CalculationHost` (`app/calculation_host.py`) and are absent from

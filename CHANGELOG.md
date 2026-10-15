@@ -14,6 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   suffix is `7-methyl-4-oxo-4H-pyrido[1,2-a]pyrimidin-1-ium-2-aminium`, not the unreadable `...-4-on-1-ium-2-aminium` (D-270). All six ion populations are now clean except for 25 visible refusals
   (O-acylated isothioureas, O-methylated sulfoxides on S-S or S-P, two amidoxime dications) and the bis-dioxolopyran OPSIN limit.
 
+### Derived scores, slice 4d: the assistant can propose a score, and only a person can save one
+- **Two new assistant tools:** `list_score_outputs` (what a score's formula may read) and `propose_score`. A proposal is checked by exactly the rules a score you typed meets, and if it passes **a card appears in the
+  assistant's panel** with the formula, what each input reads, the declared unit, what it gives for the selected molecule, and who it will say wrote it. **Nothing is saved unless you press Approve**; Cancel saves nothing; the
+  assistant is told what you decided with your next message. An approved score is saved as any other, with the owner "AI assistant (you approved it)", and you can change it in Tools > Derived Scores.
+- **A refused request** comes back to the assistant in the request's own terms (the field, the rule, the place in the formula) and shows nothing to you. A request cannot name an owner, an id, a policy or a default; a label
+  cannot read like a calculator's name; at most five proposals wait; and a proposal made in another project is never saved. There is no tool or handle call that approves one.
+- This **amends decision 9** of `docs/DERIVED_SCORES_DESIGN.md` (the assistant cannot author a definition) to: the assistant can propose one and cannot save one; the design record states the residual risk.
+- Real-window check `benchmarks/visual/ai_score_proposals.json` (9 assertions; `ai_card` takes `"card": "score"`). Mutation-checked: 120 mutants, 101 caught first time; the real gaps found have tests, one is equivalent.
+
 ### Naming: three new ion populations (zwitterions, dianions, dications), and what they found
 - `tools/naming_ion_populations.py` now also changes TWO sites of one census molecule: `zwitterion` (an acid deprotonated and a base protonated), `dianion` and `dication`. A net-neutral ion was never judged
   by the charge guard at all, which looked only at the net charge. It judges each polarity now (a bonded + and - pair, the isocyanide `[N+]#[C-]` or `[Cl+]([O-])O`, is one dipole and not two ions), so an
