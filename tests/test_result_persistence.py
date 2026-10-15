@@ -1187,3 +1187,128 @@ def test_deleting_a_run_that_is_not_there_is_not_a_change(window, qapp):
     seen = _listen_to(window, QuantumChemistryRunDeleted)
     assert not window._services.result_store_service.delete_quantum_chemistry_run("never-existed")
     assert seen == [] and not window._session.is_dirty
+
+
+# --- an earlier build saved the whole always-on set under the GEOMETRY identity ---------
+
+
+def _what_the_earlier_build_recorded_on_the_conformer(engine, model) -> list[StoredResult]:
+    """Every descriptor, alert catalogue and per-atom dataset, computed on the conformer.
+
+    That is not a reconstruction of what the old task did, it IS what it did: `provider.compute`,
+    `compute_alerts` and `compute_per_atom` on the molecule `resolve_calculation_input(GEOMETRY)`
+    returned, each recorded under that conformer's fingerprint.
+    """
+    from openchem.services.result_identity import make_identity
+
+    resolved = resolve_calculation_input(engine, model, GEOMETRY)
+    assert resolved.used == GEOMETRY, "setup: the molecule needs a usable conformer"
+    provider = RDKitDescriptorProvider()
+    results = [
+        *provider.compute(resolved.mol, model.uuid),
+        *provider.compute_alerts(resolved.mol, model.uuid),
+        *provider.compute_per_atom(resolved.mol, model.uuid),
+    ]
+    return [
+        StoredResult(
+            identity=make_identity(
+                molecule_uuid=model.uuid, result=r, calculation_input=GEOMETRY,
+                input_fingerprint=resolved.fingerprint, producer=provider.provider_id,
+            ),
+            result=r,
+        )
+        for r in results
+    ]
+
+
+def test_discarding_a_result_forgets_a_revision_only_it_held():
+    store = SessionResultStore("p")
+    store.put(_stored("m", "gone", GEOMETRY, "geo-1"))
+    store.put(_stored("m", "kept", GEOMETRY, "geo-2"))
+    store.put(_stored("m", "also-kept", DRAWING, "draw-1"))
+
+    assert store.discard_where(lambda s: s.identity.result_id == "gone") == 1
+
+    assert {s.identity.result_id for s in store.all_results("m")} == {"kept", "also-kept"}
+    assert store._molecules["m"].revisions[GEOMETRY] == ["geo-2"], "a dropped result went on counting against the limit"
+    assert store._molecules["m"].revisions[DRAWING] == ["draw-1"]
+
+
+def test_a_project_saved_by_the_build_that_ran_everything_on_the_conformer_opens_with_the_drawings_values(
+    window, qapp, tmp_path
+):
+    """**THE SAME DEFECT, ON DISK.** A project saved while the whole always-on set was re-run on
+    each conformer holds, under the GEOMETRY identity, a Synthetic Accessibility of the
+    explicit-hydrogen conformer. Replay publishes GEOMETRY after DRAWING, so on opening it would
+    put the wrong figure back on screen without anything having run.
+
+    The C12E6 surfactant, because it moves a descriptor (SA score) AND an alert catalogue (BRENK's
+    long-chain alert is on the drawing and absent on the conformer) AND the per-atom datasets.
+    """
+    engine = window._services.chemistry_engine
+    project = ProjectModel(name="old")
+    molecule = _molecule(engine, "CCCCCCCCCCCCOCCOCCOCCOCCOCCO")
+    molecule.conformers = [_conformer(engine, molecule, 7)]
+    project.molecules.append(molecule)
+    window._set_project(project)
+    _select(window, qapp, molecule)
+    drawing_sa = RDKitDescriptorProvider().compute(engine.mol_from_model(molecule), molecule.uuid)
+    drawing_sa = next(v.value for v in drawing_sa if v.descriptor_id == "sa_score")
+
+    old_records = _what_the_earlier_build_recorded_on_the_conformer(engine, molecule)
+    conformer_sa = next(s.result.value for s in old_records if getattr(s.result, "descriptor_id", "") == "sa_score")
+    assert abs(conformer_sa - drawing_sa) > 0.5, "setup: the conformer must move the figure for this to prove anything"
+    store_service = window._services.result_store_service
+    for stored in old_records:
+        store_service.store.put(stored)
+    results, fingerprints, qc_runs, recipe_runs = window._current_results()
+    path = tmp_path / "old.ocsproj"
+    window._services.project_service.save(window._session.project, path, results, fingerprints, qc_runs, recipe_runs)
+
+    document = window._services.project_service.load_document(path)
+    assert any(
+        s.identity.calculation_input == GEOMETRY and s.identity.result_id == "descriptor:rdkit:sa_score"
+        for s in document.results.all_results(molecule.uuid)
+    ), "setup: the file must carry the earlier build's record"
+    window._set_project(document.project, document.results, document.qc_runs, document.recipe_runs)
+    reopened = document.project.find_molecule(molecule.uuid)
+    _select(window, qapp, reopened)
+
+    panel = window._property_panel
+    assert abs(panel._descriptor_values[("rdkit", "sa_score")].value - drawing_sa) < 1e-9
+    assert any("Aliphatic_long_chain" in str(fact.display_value) for fact in panel._reports["brenk"].facts), (
+        "BRENK's long-chain alert was replaced by the conformer's"
+    )
+    kept = {(s.identity.calculation_input, s.identity.result_id) for s in store_service.store.all_results(molecule.uuid)}
+    assert (GEOMETRY, "descriptor:rdkit:sa_score") not in kept
+    assert (GEOMETRY, "brenk") not in kept and (GEOMETRY, "crippen_logp_contrib") not in kept
+    # What belongs under GEOMETRY is still there, and still replayed on top of the drawing's refusal.
+    assert (GEOMETRY, "descriptor:rdkit:pmi1") in kept
+    assert panel._descriptor_values[("rdkit", "pmi1")].cache_state is CacheState.COMPLETED
+    assert store_service.store.load_problems["retired"] > 0
+
+
+def test_a_calculator_that_declares_geometry_keeps_its_geometry_results_when_a_project_opens(window, qapp):
+    """The check is by PRODUCER: a dispatched calculator's id is not a provider's, so a calculator whose
+    result id happens to equal an always-on one (`gasteiger_charge`) and which declares GEOMETRY is left alone."""
+    engine = window._services.chemistry_engine
+    molecule = _molecule(engine, "CCO")
+    molecule.conformers = [_conformer(engine, molecule, 3)]
+    fingerprint = input_fingerprint(engine, molecule, GEOMETRY)
+    store = SessionResultStore("p")
+    store.put(StoredResult(
+        identity=ResultIdentity(molecule.uuid, "gasteiger_charge", GEOMETRY, fingerprint, "geometry_partial_charge"),
+        result=_dataset("gasteiger_charge", molecule.uuid),
+    ))
+    store.put(StoredResult(
+        identity=ResultIdentity(molecule.uuid, "gasteiger_charge", GEOMETRY, "other", "rdkit"),
+        result=_dataset("gasteiger_charge", molecule.uuid),
+    ))
+    project = ProjectModel(name="p")
+    project.uuid = "p"
+    project.molecules.append(molecule)
+
+    window._services.result_store_service.set_project(project, store)
+
+    held = window._services.result_store_service.store.all_results(molecule.uuid)
+    assert [(s.identity.producer, s.identity.input_fingerprint) for s in held] == [("geometry_partial_charge", fingerprint)]

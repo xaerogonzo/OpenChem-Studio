@@ -31,14 +31,14 @@ from __future__ import annotations
 
 import logging
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from PySide6.QtCore import QRunnable, QThreadPool
 
-from openchem.chem.descriptor_providers import RDKitDescriptorProvider
-from openchem.chem.calculation_input import select_calculation_input
+from openchem.chem.descriptor_providers import RDKitDescriptorProvider, geometric_descriptor_ids_of
+from openchem.chem.calculation_input import resolve_calculation_input
 from openchem.chem.engine import ChemistryEngine
-from openchem.domain.calculator import GEOMETRY, CalculationRefusal
+from openchem.domain.calculator import DRAWING, GEOMETRY, CalculationRefusal
 from openchem.domain.refusal_kinds import refusal_parameters
 from openchem.chem.result_reduction import (
     alert_catalog_columns,
@@ -211,20 +211,23 @@ class _BatchTask(QRunnable):
             self._fail_row(table, molecule, "This molecule has no structure yet.")
             return
         try:
-            mol = self._engine.mol_from_model(molecule)
+            drawing = self._engine.mol_from_model(molecule)
         except Exception as exc:  # noqa: BLE001 - one bad structure must not end the run
             logger.exception("Batch could not read molecule %s", molecule.uuid)
             self._fail_row(table, molecule, f"Could not read this structure: {exc}")
             return
-        # A 3D conformer where one exists, for the same reason MainWindow
-        # passes one to `request_descriptors`: shape and surface descriptors
-        # compute for real against a real conformer and report "needs a
-        # conformer" against the flat 2D molblock.
-        # `select_calculation_input` owns the choice and the fallback,
-        # including the unusable-molblock case this used to handle inline.
-        mol = select_calculation_input(self._engine, molecule, GEOMETRY)
-        self._run_descriptors(table, molecule, mol)
-        self._run_calculators(table, molecule, mol)
+        # **EACH PROPERTY IS COMPUTED ON THE INPUT THAT BELONGS TO IT, as the Properties
+        # panel does -- not on a conformer wherever one exists.** This used to resolve
+        # `GEOMETRY` once and hand that molecule to every descriptor and every
+        # calculator, so a molecule with a conformer had its Synthetic Accessibility,
+        # Bertz CT and H-bond acceptor columns computed on the explicit-hydrogen
+        # conformer (aspirin: 1.58 -> 6.445, 343 -> 609, 3 -> 4) while the same
+        # molecule's Properties reader showed the drawing's. The geometric descriptors
+        # (the shape family) are the only always-on ones that need the conformer; a
+        # registered calculator gets what its definition declares.
+        # `resolve_calculation_input` owns the choice and the fallback.
+        self._run_descriptors(table, molecule, drawing)
+        self._run_calculators(table, molecule, drawing)
 
     def _fail_row(self, table: BatchTable, molecule: MoleculeModel, reason: str) -> None:
         """Mark every column of this row as failed, with the reason.
@@ -242,14 +245,14 @@ class _BatchTask(QRunnable):
                 BatchCell(text="", cache_state=CacheState.FAILED, error=reason),
             )
 
-    def _run_descriptors(self, table: BatchTable, molecule: MoleculeModel, mol) -> None:
+    def _run_descriptors(self, table: BatchTable, molecule: MoleculeModel, drawing) -> None:
         wanted = set(self._request.descriptor_ids)
         if not wanted:
             return
         for provider in self._providers:
             provided = set(provider.descriptor_ids())
             if wanted & provided:
-                self._run_one_provider(table, molecule, mol, provider, wanted)
+                self._run_one_provider(table, molecule, drawing, provider, wanted)
             # Alert catalogs are requested through the SAME `descriptor_ids`
             # list -- from the user's side PAINS and TPSA are the same kind
             # of thing, a per-molecule property this provider computes, and
@@ -257,11 +260,11 @@ class _BatchTask(QRunnable):
             # Only run them when one was actually asked for: the built-in
             # catalogs are 585 SMARTS patterns per molecule.
             if wanted & set(provider.alert_ids()):
-                self._run_alerts(table, molecule, mol, provider, wanted)
+                self._run_alerts(table, molecule, drawing, provider, wanted)
 
-    def _run_one_provider(self, table: BatchTable, molecule: MoleculeModel, mol, provider, wanted: set[str]) -> None:
+    def _run_one_provider(self, table: BatchTable, molecule: MoleculeModel, drawing, provider, wanted: set[str]) -> None:
         try:
-            values = provider.compute(mol, molecule.uuid)
+            values = provider.compute(drawing, molecule.uuid)
         except Exception as exc:  # noqa: BLE001 - one provider must not end the run
             logger.exception("Descriptor provider %s failed in batch", provider.provider_id)
             for descriptor_id in sorted(wanted & set(provider.descriptor_ids())):
@@ -271,6 +274,7 @@ class _BatchTask(QRunnable):
                     BatchCell(text="", cache_state=CacheState.FAILED, error=str(exc)),
                 )
             return
+        values = self._with_geometric_values(molecule, provider, values, wanted)
         for value in values:
             if value.descriptor_id not in wanted:
                 continue
@@ -278,9 +282,35 @@ class _BatchTask(QRunnable):
             table.add_column(column)
             table.set_cell(molecule.uuid, column.column_id, descriptor_cell(value))
 
-    def _run_alerts(self, table: BatchTable, molecule: MoleculeModel, mol, provider, wanted: set[str]) -> None:
+    def _with_geometric_values(self, molecule: MoleculeModel, provider, values, wanted: set[str]):
+        """`values` with the provider's GEOMETRIC descriptors measured on the conformer.
+
+        The same split the Properties panel makes (`DescriptorService.request_descriptors`):
+        every other descriptor is a property of the structure graph and keeps the DRAWING's
+        value. Costs a second `compute` only for a molecule that has a usable conformer and a
+        request that names a geometric descriptor; a molecule without one keeps the drawing's
+        honest "needs a 3D conformer".
+        """
+        geometric = geometric_descriptor_ids_of(provider) & wanted
+        if not geometric:
+            return values
+        resolved = resolve_calculation_input(self._engine, molecule, GEOMETRY)
+        if resolved.used != GEOMETRY:
+            return values
         try:
-            alerts = provider.compute_alerts(mol, molecule.uuid)
+            measured = {v.descriptor_id: v for v in provider.compute(resolved.mol, molecule.uuid)}
+        except Exception as exc:  # noqa: BLE001 - the structure-level columns do not depend on it
+            logger.exception("Descriptor provider %s failed on the conformer in batch", provider.provider_id)
+            return [
+                replace(v, value=None, cache_state=CacheState.FAILED, error=str(exc), error_summary=None)
+                if v.descriptor_id in geometric else v
+                for v in values
+            ]
+        return [measured.get(v.descriptor_id, v) if v.descriptor_id in geometric else v for v in values]
+
+    def _run_alerts(self, table: BatchTable, molecule: MoleculeModel, drawing, provider, wanted: set[str]) -> None:
+        try:
+            alerts = provider.compute_alerts(drawing, molecule.uuid)
         except Exception:  # noqa: BLE001 - alerts are an enhancement here too
             logger.exception("Alert computation failed in batch for %s", provider.provider_id)
             return
@@ -291,7 +321,9 @@ class _BatchTask(QRunnable):
                 table.add_column(column)
                 table.set_cell(molecule.uuid, column.column_id, cell)
 
-    def _run_calculators(self, table: BatchTable, molecule: MoleculeModel, mol) -> None:
+    def _run_calculators(self, table: BatchTable, molecule: MoleculeModel, drawing) -> None:
+        #: The molecule each declared input resolves to, resolved once per row.
+        inputs = {DRAWING: drawing}
         for calculator_id in self._request.calculator_ids:
             if self._progress.is_cancelled():
                 return
@@ -303,7 +335,16 @@ class _BatchTask(QRunnable):
             )
             started = time.time()
             try:
-                result = self._registry.compute(calculator_id, mol, molecule.uuid, parameters)
+                # What its definition DECLARES, as `DescriptorService.run_calculator` hands it.
+                # Measured over the 29-molecule census panel with every molecule given a
+                # conformer: 22 of the 51 drawing-declared calculators changed their answer
+                # when handed it (234 of 1479 cells; none was unstable on its own input),
+                # purely because the conformer's hydrogens are atoms. A batch must not differ
+                # from the Properties panel it is the table form of.
+                declared = definition.calculation_input
+                if declared not in inputs:
+                    inputs[declared] = resolve_calculation_input(self._engine, molecule, declared).mol
+                result = self._registry.compute(calculator_id, inputs[declared], molecule.uuid, parameters)
             except Exception as exc:  # noqa: BLE001 - one calculator must not end the run
                 refused = isinstance(exc, CalculationRefusal)
                 if refused:

@@ -608,8 +608,28 @@ def test_the_panel_resolves_each_entry_on_enough_rows_to_mean_something(swept):
         assert len(rows) >= sweep_tool.MIN_ROWS, (entry.output_id, len(rows))
 
 
-def test_the_always_on_descriptors_reach_the_drawing_and_the_geometry_under_one_id(swept):
-    """The reason `READ_FROM` is one input: the same id is stored twice, and a score must read exactly one of the two."""
+def test_every_approved_descriptor_is_stored_under_the_drawing_alone(swept):
+    """`READ_FROM` is one input, and for the always-on descriptors it is now also the ONLY input.
+
+    This test used to assert the opposite: that `descriptor:mol_wt` was observed under both the drawing and a
+    geometry, "the same id stored twice, and a score must read exactly one of the two". That double storage was
+    a defect and not a design: a conformer carries explicit hydrogens, the drawing's are implicit, and re-running
+    the descriptors on it moved Synthetic Accessibility from 1.58 to 6.445 in the reader. A conformer request
+    computes only the provider's geometric descriptors now (`DescriptorProvider.geometric_descriptor_ids`), so an
+    approved output exists under the drawing alone and the choice of input cannot change a score.
+    """
     sweep, _ = swept
-    inputs = {calc_input for _row, calc_input, _v, _u in sweep.candidates["descriptor:mol_wt"].observations}
-    assert inputs == {"drawing", "geometry"}
+    stored_elsewhere = {
+        entry.output_id: sorted({i for _r, i, _v, _u in sweep.candidates[entry.output_id].observations} - {READ_FROM})
+        for entry in APPROVED
+        if entry.output_id.startswith("descriptor:")
+    }
+    assert {k: v for k, v in stored_elsewhere.items() if v} == {}
+    assert {i for _r, i, _v, _u in sweep.candidates["descriptor:mol_wt"].observations} == {"drawing"}
+
+
+def test_a_geometric_descriptor_is_stored_under_the_geometry_alone(swept):
+    """The other half: the ten shape descriptors exist only where a conformer does, so they are not approved outputs."""
+    sweep, _ = swept
+    assert {i for _r, i, _v, _u in sweep.candidates["descriptor:pmi1"].observations} == {"geometry"}
+    assert not any(entry.output_id == "descriptor:pmi1" for entry in APPROVED)

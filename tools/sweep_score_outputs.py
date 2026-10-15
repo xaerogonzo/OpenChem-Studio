@@ -67,8 +67,9 @@ class Candidate:
     #: The descriptor id, or the registered calculator's id.
     source_id: str
     #: `(row id, calculation input, value, units string as carried)` for every run where it came back as a finite
-    #: number. The input is part of it because the always-on descriptors run on the drawing AND on a geometry, and the
-    #: two are two stored results with one id.
+    #: number. The input is part of it because the always-on descriptors used to run on the drawing AND on a geometry,
+    #: as two stored results with one id (the design's second finding). Since 2026-10-14 only the ten shape descriptors
+    #: are stored under a geometry; an approved output is still read from the drawing (`READ_FROM`).
     observations: list[tuple[str, str, float, str]] = field(default_factory=list)
     #: True when two facts of one report carry this id, so it names no single number.
     ambiguous: bool = False

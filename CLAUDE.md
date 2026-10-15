@@ -237,6 +237,11 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "expect_results", "expect": {"solubility": "ready",
                              "fragment_counts": {"facts_contain": ["nitro (2)"]}}}
                                           what Properties HOLDS, asserted
+    {"do": "descriptors_report", "tag": "x", "values": {"sa_score": 1.58}, "equals_drawing": true,
+     "alerts_equal_drawing": true}        the always-on descriptors the READER holds, against the same
+                                          computed on the DRAWING (a conformer must leave every one the
+                                          provider does not declare geometric alone); the geometric ones
+                                          are reported and need `geometric_values`
     {"do": "pka_worker_report", "tag": "x"}  the pKa sidecar: state, pid, spawns, requests,
                                           its own startup/prediction times (never creates one)
     {"do": "ai_bridge_run", "calculator": "polar_surface_area", "parameters": {"pH": 7}}
@@ -460,6 +465,7 @@ message — this index is. **If a title below names what you are
 about to touch, read that section before you start.** Headings there
 are verbatim, so grep the file for the line.
 
+- A CONFORMER RE-RAN THE WHOLE ALWAYS-ON SET ON ITS HYDROGENS, AND THE READER, THE PROJECT TABLE AND THE SAVED FILE ALL TOOK ITS ANSWER
 - A SHARD THAT FIT ON A FAST RUNNER DID NOT FIT ON A SLOW ONE, AND THE FIRST TEN PERCENT OF THE TESTS SAID SO
 - A PLUGIN PANEL OPENED AS A BARE RECTANGLE ON WINDOWS, AND NOTHING THE SUITE RUNS ON COULD SHOW IT
 - TWO CLOSE COPPER CONTACTS LOOKED LIKE A COUNTEREXAMPLE UNTIL THE LIGANDS' FIT AND THE PAPERS' OWN WORDS WERE READ
