@@ -489,6 +489,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round58_carbon_acids_and_sulfonium_guard.py"
+why = "a carbanion stabilised by acceptors on a ring is named (D-275: 2,4,6-trioxo-1,3-diazinan-5-ide), an ester's ...oate is not an anion word (D-276), and a cation parent fused with a suffix is refused while a thiosulfonate S-oxide cation is named as its sulfonium (D-277)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round57_acyl_azanide_prefixes_and_second_cations.py"
 why = "an acylsulfonamide anion beside a cation (D-271), a sulfonamide or amide anion cited as an (azanidyl)sulfonyl / (azanidyl)carbonyl prefix (D-272), a protonated amidoxime beside a second cation (D-273: hydroxyazaniumylidene) and an O-protonated acylurea (D-274)"
 scope = "core"

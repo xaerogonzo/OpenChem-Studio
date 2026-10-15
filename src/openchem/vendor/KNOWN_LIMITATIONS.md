@@ -1153,6 +1153,10 @@ P-45.2.3, "the lower locant set for substituent groups in order of citation in t
   one, so the name is right and the plan generation is not (its test runs in the default mode); (b) an N-sulfonyl iminium (`C=[NH+]S(=O)(=O)Ar`, quaternary or not) is still refused: the classifier takes only C, N and O
   on the cationic nitrogen; (c) the anions of an N-N bond are refused or visibly wrong (a pyrazolone anion is refused, `CC(=O)[N-]N` is a `NAMING ERROR`); (d) a carboxylate beside TWO neutral acids on an amidinium is refused;
   (e) a sulfonamide anion bearing an N-methoxycarbonyl group is `N-[methoxy(oxo)methyl]methanesulfonamidate`, readable but not the book's `methoxycarbonyl`; (f) the census's seven non-exact rows are unchanged.
+* **What round 58 left open (naming round 58, 2026-10-16; D-275 .. D-277).** (a) A carbanion with a ring HETERO neighbour (the oxazolone `[c-]1nc(...)oc1=O`, a thiazolidinedione) is refused: the stabilised-carbanion
+  classifier takes carbon neighbours only; (b) the census molecule with a `N([O-])O` group (a dihydroxyamino anion) beside a pyridinium is still refused with the cation dropped; (c) `C[SH+]C1=NC2C(=O)N=CN=C2N1`
+  (a protonated thioether on an odd purinone tautomer) reads back with different hydro prefixes; (d) a cation hydride glued to a suffix is REFUSED, not named: the sulfonium that should be a prefix of the
+  carboximidamide has no renderer.
 * **What round 57 left open (naming round 57, 2026-10-15; D-271 .. D-274).** (a) An O-methylated or O-protonated sulfoxide on a sulfur bonded to sulfur or phosphorus (a thiosulfonate S-oxide) is refused: the
   sulfoxide-cation classifier needs two carbons on the sulfur; (b) nested enclosing marks repeat a pair (`{1-{[anilino(oxo)methyl]amino}butylidene}oxidanium`): OPSIN reads it, the book would alternate;
   (c) in a two-anion molecule the parent is still whichever the plan search takes.

@@ -2525,6 +2525,24 @@ what can be verified.
   `tests/test_namer_known_defects.py`. Three earlier tests pinned refusals this round turned into names and now pin the cases still refused: a carboxylate beside two neutral acids
   (`test_namer_round43_*`, `test_namer_round45_*`) and a pyrazolone anion (`test_namer_round46_*`).
 
+## 2026-10-16 -- naming round 58: carbon acids, an ester taken for an anion, a cation fused with a suffix (D-275, D-276, D-277)
+
+Round 57's open list asked for sites the populations had never tried. `tools/naming_ion_populations.py` now deprotonates a 1,3-dicarbonyl CH and a malononitrile CH (the first CARBON acids), an enol, a
+hydroxylamine, a sultam and a carbamate, and protonates or methylates a thioether sulfur. Baseline on master (with the new kinds added): anions 1121 ions, the new kinds giving 3 refused and 3 wrong carbon-acid anions
+(two of the wrong ones the neutral ester of the guard's loophole) and cations 2245 ions with 3 wrong thioether cations.
+
+* **D-275.** A carbanion stabilised by acceptors on a ring: the simple-carbon classifier refuses an aromatic charged atom (RDKit calls the barbiturate carbon aromatic) and a ring with a double bond (the fused
+  indane-1,3-dione), and the aromatic-ring-anion classifier needs the neutral ring to stay aromatic. Nothing claimed it; the plan search neutralised the carbon. `_classify_stabilised_carbanion` takes a lone
+  carbanion whose neighbours are all carbons and one of them carries a carbonyl, thiocarbonyl or nitrile; the renderer kekulises the molecule first, then uses the carbon `-ide` renderer:
+  `2,4,6-trioxo-1,3-diazinan-5-ide`, `5-butyl-1-methyl-4,6-dioxo-2-sulfanyl-1,4,5,6-tetrahydropyrimidin-5-ide` (OPSIN reads both).
+* **D-276 (silent wrong molecule).** The guard's anion word `ate` matched an ESTER's name: `COC(=O)CCC(=O)[c-]1nc(...)oc1=O` was `methyl 4-oxo-4-(5-oxo-2-phenyl-1,3-oxazol-4-yl)butanoate`, the neutral compound,
+  and it passed. A name that opens with an alkyl or aryl word and a space and ends in `ate` is an ester's; its final `ate` is no longer an anion word. The carbanion beside a ring nitrogen is refused, visibly.
+* **D-277.** `CNC(=N)[SH+]C` was `dimethylsulfaniumcarboximidamide`: a cation parent hydride fused with a suffix, never a name, and a different molecule. The guard refuses a cation hydride (`sulfanium`, `azanium`,
+  `oxidanium`...) immediately followed by `carbox`/`carbon`. Separately, `_classify_sulfoxide_cation` now takes a sulfur with ONE carbon (the other group a sulfonyl or phosphoryl, a thiosulfonate S-oxide):
+  `(benzenesulfonyl)(methoxy)(phenyl)sulfanium`.
+* **Measured.** Anions 1118 of 1121 (three visible refusals: the oxazolone carbanion, a nitro-pyrimidinone carbanion, the `N([O-])O` census molecule), cations 2227 of 2245 and quaternary 2237 of 2245 (the rest visible refusals, OPSIN limits and the odd purinone tautomer), every multi-charge population 100%. Census 1993 exact, unchanged. Vendored suite and known-defects file 7510 passed. App naming group passed after the round 46 refusal test took a new example. 7 of 8 live mutants killed by the file's tests (the eighth's pattern did not match the mutation script; a unit test covers it).
+* New `tests/test_namer_round58_carbon_acids_and_sulfonium_guard.py` (26 tests); three tool tests in `tests/test_naming_ion_populations.py`. D-275 in the fixed table of `tests/test_namer_known_defects.py`.
+
 ## 2026-10-15 -- naming round 57: the multi-charge ions that were still refused (D-271 .. D-274)
 
 Round 56's open list: a protonated amidoxime beside a second cation (refused), the acylsulfonamide anion beside an azolium (refused since round 55), a sulfonamide anion with a second anion as the parent,

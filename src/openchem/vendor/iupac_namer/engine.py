@@ -9759,6 +9759,9 @@ def _restore_dropped_chalcogen_anion(mol, name: str) -> str:
 _ANION_WORD_END = re.compile(r"(?:(?<!am)(?<!im)(?<!sulfam)ide|ate|ite)(?![a-z])|ato|(?<!am)(?<!im)(?<!ure)(?<!sulfam)ido|\(\d*-\)|\d-id-|azanidyl")
 #: A name that cites a cation: `ium` anywhere (`pyridin-1-ium`, `ammonium`, `azaniumyl`) or the `onio` prefix (`trimethylammonio`).
 _CATION_WORD = re.compile(r"ium|onio|\(\d*\+\)")
+#: A name that is an ester: one alkyl or aryl word, a space, then the acid part (`methyl 4-oxobutanoate`, `ethyl benzoate`).
+_ESTER_SHAPED = re.compile(r"^[a-z][a-z0-9,\-\(\)\[\]\{\}']*yl [^ ]+ate$|^[a-z][a-z0-9,\-\(\)\[\]\{\}']*yl [^ ]+oate$")
+_ESTER_ENDING = re.compile(r"ate$")
 #: A multiplier right before an ion word's stem (`dioxido`, `bis(azaniumyl)`, `1,4-diium`, `tricarboxylato`): one word then stands for several centres, and the count test below does not judge the name.
 _MULTIPLIED_ION_WORD = re.compile(r"(?:di|tri|tetra|penta|hexa|bis|tris|tetrakis)\(?[a-z]{0,10}(?:ium|ide|ate|ato|ido|ylat)")
 #: The elements the guard judges: an organic name's. A metal complex or organyl is named with oxidation-state and charge notation (`methylmercury(1+)`, `iron(IV)`) that this word test does not model.
@@ -9777,6 +9780,16 @@ def _check_charge_named(mol, name: str) -> None:
     if any(a.GetAtomicNum() not in _GUARDED_ELEMENTS for a in mol.GetAtoms()):
         return
     net = sum(a.GetFormalCharge() for a in mol.GetAtoms())
+    # A cation parent hydride with a suffix GLUED to it (`dimethylsulfaniumcarboximidamide` for `CNC(=N)[SH+]C`) is never a name: the cation suffix ends the name, and the
+    # amide class it was fused with is junior to it. The molecule is not the one in the input (naming round 58).
+    if re.search(r"(?:sulfanium|azanium|oxidanium|phosphanium|selanium|chloranium)(?:carbox|carbon|carbo)", name):
+        raise ValueError(f"No name found for this ion (the nearest name, {name!r}, fuses a cation parent hydride with a suffix).")
+    # An ESTER's name ends in `...oate` too (`methyl 4-oxo-4-(5-oxo-2-phenyl-1,3-oxazol-4-yl)butanoate` for a carbanion): a name that opens with an alkyl or aryl WORD and a space is an ester or a
+    # salt-like two-word name, and its final `ate` says nothing about the molecule being an anion (naming round 58). Another anion word still counts.
+    if net < 0 and _ESTER_SHAPED.match(name):
+        _ester_free = _ESTER_ENDING.sub("", name)
+        if not _ANION_WORD_END.search(_ester_free):
+            raise ValueError(f"No name found that keeps the negative charge (the nearest name, {name!r}, is an ester's, which has no anion word).")
     if net < 0 and not _ANION_WORD_END.search(name):
         raise ValueError(f"No name found that keeps the negative charge (the nearest name, {name!r}, is the neutral compound's).")
     if net > 0 and not _CATION_WORD.search(name):

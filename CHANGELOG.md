@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: carbon acids, a guard that mistook an ester for an anion, and a cation fused with a suffix
+- The anion population gained the first CARBON acids (the CH between two carbonyls or two nitriles), enols, hydroxylamines, sultams and carbamates. A stabilised carbanion on a ring was named as the neutral compound
+  (`1,3-diazinane-2,4,6-trione` for the barbiturate carbanion) or refused; it is `2,4,6-trioxo-1,3-diazinan-5-ide`, `1,3-dioxo-2,3-dihydro-1H-inden-2-ide` (D-275). The charge guard took an ester's `...butanoate` for an anion
+  word, so a carbanion beside a ring nitrogen was named as its neutral ester and passed (D-276). A cation parent hydride fused with a suffix (`dimethylsulfaniumcarboximidamide`) is refused, and a thiosulfonate S-oxide
+  cation is named as its sulfonium (D-277). The census is unchanged at 1993 exact.
+
 ### Derived scores: the Batch panel's own table shows them too
 - **Your scores are columns of the Batch panel's table**, as they already were in the Results dock's project table: the first after the molecule's name, labelled "(user-defined, unvalidated)", worked out from that table's own
   cells, named under the table when a score's inputs were not in the run, in its CSV and report, and following a definition you define, edit or remove without another run. Until now the same run showed a score in one

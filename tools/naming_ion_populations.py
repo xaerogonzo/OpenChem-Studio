@@ -57,6 +57,13 @@ ANION_SITES = {
     "oxime": "[OX2H1]N=C",
     "phosphonic": "[OX2H1]P(=O)",
     "sulfinic": "[OX2H1]S(=O)[#6]",
+    # round 58: the first CARBON acids and a few more
+    "enol": "[OX2H1][CX3]=[CX3]",
+    "hydroxylamine": "[OX2H1][NX3;!$(N=*);!$(NC=O)]",
+    "sultam": "[NX3;H1;R]S(=O)(=O)",
+    "carbamate": "[NX3;H1;!R]C(=O)O",
+    "dicarbonyl_ch": "[CX4;H2,H1]([CX3]=O)[CX3]=O",
+    "dinitrile_ch": "[CX4;H2,H1](C#N)C#N",
 }
 
 #: Basic sites, protonated or N-methylated (rounds 47 and 48). The first atom gains the proton or the methyl.
@@ -76,6 +83,8 @@ CATION_SITES = {
     "sulfoxide_o": "[OX1]=[SX3]",
     "phosphine_p": "[PX3;H0]",
     "nitrile_n": "[NX1]#C",
+    # round 58
+    "thioether_s": "[SX2;!R]([#6])[#6]",
 }
 
 MODES = ("anion", "cation", "quaternary", "zwitterion", "dianion", "dication", "betaine", "quat_dication")
