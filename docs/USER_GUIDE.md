@@ -1965,7 +1965,8 @@ which for a few descriptors (the synthetic-accessibility and complexity scores a
 conformer. Scores are saved with the project. They are not calculators, so they are not in the calculator list and
 the assistant's calculator search does not offer them. The AI Assistant can read your scores and propose a new one (see Plugins), but a score exists only after you approve its card. In the **Project table** (Results, after a project run) a score is a column of its own, the first after the molecule's name: it is worked out from that table's other columns, so
 it needs the properties it reads to have been in the run, and a score whose inputs were not run is named under the table instead of shown as a column of dashes. It follows
-the definition as you edit it, without another run, and it is in the CSV and the report. To include what your scores read in a project run, open **Presets** in Properties and choose
+the definition as you edit it, without another run, and it is in the CSV and the report. The **Batch** panel's own table (its **Fill table** run) has the same score columns,
+named and exported the same way. To include what your scores read in a project run, open **Presets** in Properties and choose
 **Tick what my scores read**: it ticks the calculators they read and adds the always-on properties they read, on top of what you had ticked (it never unticks or narrows anything), and the line
 beside **Run selected** says what it did, including any calculator the launcher is not offering. A table is a snapshot of a run, so its score is as current as the run; the
 **This molecule** page is where a score is worked out against the structure as it is now.

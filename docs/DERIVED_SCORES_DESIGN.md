@@ -395,8 +395,8 @@ A driven run follows the UI slice, builds its own state, and ends in a verdict.
    * **The table drive found two more** (`benchmarks/visual/score_table.json`, 12 assertions, three shots; new steps `table_scores` and a `project_table` shot): the score columns were off screen (above), and the Derived
      Scores window's Save stored the lists it passes in the definition, because `ScoreService.update` stored what it was given while `create` made tuples; a list made the definition unhashable, the parsed-formula cache
      refused it and Results said "Could not read the scores". `update` stores the same shapes `create` does.
-   * **Not here, deliberately.** The older Batch panel's own table does not show scores (its view is built without a provider; `ProjectTableView` takes one), and the run picker does not tick a score's inputs for a person: a
-     score whose inputs were not run says so under the table, which is the whole of the help it gives. Both are small follow-ups.
+   * **Not here, deliberately.** The older Batch panel's own table did not show scores (its view was built without a provider; `ProjectTableView` takes one: done afterwards, see "The Batch panel's own table" below), and the run picker did not tick a score's inputs for a person (done afterwards, see "Ticking what the scores read"): a
+     score whose inputs were not run said so under the table, which was the whole of the help it gave. Both were small follow-ups.
    * **Mutation-checked: 102 mutants of the table module, the evaluator seam, the view and dock wiring, the window's provider, the service's edit and the report. **85 were caught the first time, 16 survived and one pattern did not match.** Eleven survivors were missing tests (that a placeholder column with no cell for a row says "not computed" and not "not a column", that a cell with no column is never a number, that a unit refusal names the unit, that a placeholder cell that did not fail is not a refusal, the four digits, the refusal's kind, the separators of a note that names two things or two scores, that a table with no columns has nothing to say, that the per-atom data and the rows are the copy's own) and **five are equivalent and left**: a descriptor's "placeholder" is its own column, a placeholder lookup with no name finds nothing, a `bool` guard on a name that is empty for a descriptor, the unread-input filter on a value that has none, and the `str()` of a name that is already a string. After the new tests every real survivor is caught.**
 
    **4a as built (`read_scores`, the assistant reads a score), and what driving it found:**
@@ -445,7 +445,7 @@ A driven run follows the UI slice, builds its own state, and ends in a verdict.
      `table_scores` takes `csv_text`.
    * **Mutation-checked: 102 mutants** of the definition, the evaluator, the Results reader, the project table, the service, the assistant's envelope and tool, the window's view model and the dialog. **94 were caught the first time and 8 survived.** Seven were missing tests (that the digest of a definition without defaults is the literal master computes for it, and that a default is hashed at the precision it is declared; that a default carries its output's unit; that the table does not use defaults the evaluator would not; that the declared defaults are cut by the caps; that a default comes back to the form to twelve figures; that typing a default checks and previews again) and **one was equivalent**: a guard that only repeated one the outcome already made, removed from the code. After the new tests every survivor is caught or gone**
    * **Not here, deliberately:** a default for an input that was calculated and refused (it would hide the refusal); skipping a term; a default that varies by molecule; a default in a unit other than the output's; the
-     Batch panel's own table (still no scores).
+     Batch panel's own table (still no scores then; see "The Batch panel's own table").
    **4d as built, the assistant proposes a score and a person approves it, and what driving it found:**
    * **Parts.** `domain/score_proposal.py` (pure: `check_request` turns a request into a definition by the rules a typed one meets, `ProposalBook` holds proposals for a person, `card_of` says what the person is shown);
      `CalculationHost.propose_score` (any thread, **stores nothing**), `pending_scores`, and `approve_score` / `cancel_score` (GUI thread, for a button); `PluginCalculations.propose_score` and `list_score_outputs` for a tool
@@ -492,6 +492,16 @@ A driven run follows the UI slice, builds its own state, and ends in a verdict.
      quantity, sweep), and `tests/test_main_window_scores.py` (the real window: a score over the polarizability is the formula of the recorded number, refused after each other way of asking, and the table agrees). **Mutation-checked: 9 mutants of the
      producer and the table entry, all caught.** `benchmarks/visual/score_typed_polarizability.json`: VERDICT PASS, 5 assertions; with the typing removed it fails 2.
    * **Not here.** `topology_analysis`'s indices (the other first candidate) and the rest of the rounded-text calculators, each its own PR under the same rule.
+
+   **The Batch panel's own table, as built (a follow-up after slice 4):**
+   * **Two tables, one rule.** The Results dock's project table and the older Batch panel's table are two `ProjectTableView`s over separate runs; only the first was given the project's score lookup, so one run showed a score in one table and not in the other.
+     `BatchPanel` now takes the same lookup (`MainWindow._score_definitions`) and rebuilds its score columns on `ScoreDefinitionsChanged` as the dock does. Nothing else about a score changed: it is still computed from the table's own cells,
+     never run, never stored, and a score whose inputs the run did not compute is named under the table.
+   * **Tested** in `tests/test_project_table_scores.py` (the panel with a hand-made table: the column, the follow of a definition, the missing-input note, no provider, a detail run not replacing the table) and `tests/test_main_window_scores.py`
+     (the panel's real Fill-table button and the same numbers as Results; both tables for one run agree cell for cell). **Mutation-checked: 4 mutants (the provider not handed on, no subscription, a handler that does nothing, the window not passing
+     the lookup), all caught.**
+   * **Driven** by `benchmarks/visual/score_batch_table.json` (new `table_scores` option `"panel": "batch"` and `shot` widget `batch_table`): VERDICT PASS, 10 assertions, and the same script with the window's argument removed fails 4 of them.
+     (The run picker's half, ticking a score's inputs for a person, was done after this: see "Ticking what the scores read".)
 
    **Ticking what the scores read, as built (a follow-up after slice 4):**
    * **The gap.** A score is a project-table column only when the run computed what it reads, and the table could say so only afterwards. Nothing helped a person include those inputs beforehand: a score on a calculator's output

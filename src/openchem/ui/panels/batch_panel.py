@@ -51,6 +51,7 @@ from openchem.domain.calculator import RegistryExecution
 from openchem.domain.common import CacheState
 from openchem.domain.project import ProjectModel
 from openchem.events.base import EventBus
+from openchem.events.events import ScoreDefinitionsChanged
 from openchem.services.batch_service import BatchProgress, BatchService
 from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.table_export_service import TableExportService
@@ -244,6 +245,7 @@ class BatchPanel(QWidget):
         on_screen=None,
         structure_check_service=None,
         settings=None,
+        score_definitions=None,
     ) -> None:
         """Built in three steps under one layout.
 
@@ -294,6 +296,7 @@ class BatchPanel(QWidget):
             self,
             on_analyse=on_analyse,
             on_screen=on_screen,
+            score_definitions=score_definitions,
         )
         self._view.details_requested.connect(self._show_details)
 
@@ -382,6 +385,10 @@ class BatchPanel(QWidget):
         if not running:
             self._filling_table = False
             self._open_pending_details()
+
+    def _on_score_definitions_changed(self, _event) -> None:
+        """A score was defined, edited or removed: this table's score columns follow, without a second run (the Results dock's table does the same)."""
+        self._view.refresh_scores()
 
     def _build_selection(self, layout: QVBoxLayout) -> None:
         """What to run: the scope line, the filter, the property tree and
@@ -511,6 +518,7 @@ class BatchPanel(QWidget):
         both read controls the steps above create.
         """
         event_bus.subscribe(BatchProgress, self._on_progress)
+        event_bus.subscribe(ScoreDefinitionsChanged, self._on_score_definitions_changed)
         self._populate_tree()
         self._make_groups_checkable()
         self._refresh_group_states()

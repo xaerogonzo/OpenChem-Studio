@@ -1,0 +1,51 @@
+[
+  {"do": "smiles", "smiles": "CC(=O)Oc1ccccc1C(=O)O", "name": "Aspirin", "after_ms": 1000},
+  {"do": "smiles", "smiles": "CCO", "name": "Ethanol", "after_ms": 1000},
+  {"do": "smiles", "smiles": "Cn1cnc2c1c(=O)n(C)c(=O)n2C", "name": "Caffeine", "after_ms": 1000},
+  {"do": "select", "molecule": 0, "after_ms": 3000},
+
+  {"do": "score_define", "label": "Polar window", "formula": "ramp(psa, 140, 60)", "inputs": [["psa", "descriptor:tpsa"]], "result_unit": "1",
+   "tag": "a-score-on-the-polar-surface-area", "expect": {"made": true}},
+  {"do": "score_define", "label": "Lipophilic window", "formula": "ramp(logp, 0, 2)", "inputs": [["logp", "descriptor:mol_logp"]], "result_unit": "1",
+   "tag": "a-score-on-logp", "expect": {"made": true}},
+
+  {"do": "panel", "id": "Batch", "after_ms": 900},
+  {"do": "batch_molecules", "all": true, "after_ms": 300},
+  {"do": "batch_select", "clear": true, "after_ms": 300},
+  {"do": "batch_select", "property": "tpsa", "after_ms": 200},
+  {"do": "batch_select", "property": "mol_logp", "after_ms": 200},
+  {"do": "batch_fill", "after_ms": 9000},
+  {"do": "batch_report", "tag": "the-batch-panel-s-own-run-landed", "after_ms": 300},
+  {"do": "table_scores", "panel": "batch", "tag": "the-batch-panel-s-own-table-has-the-two-scores-first-and-its-csv-button-writes-them",
+   "export_csv": "artifacts/visual/score_batch_table.csv",
+   "expect": {"columns": ["Polar window (user-defined, unvalidated)", "Lipophilic window (user-defined, unvalidated)"], "note": "",
+              "grid": {"Aspirin": {"Polar window": "0.955", "Lipophilic window": "0.6551"}, "Ethanol": {"Polar window": "1", "Lipophilic window": "0"},
+                       "Caffeine": {"Polar window": "0.9773"}},
+              "tooltips": {"Aspirin": {"Polar window": ["Inputs: psa = 63.6", "validation = user_defined_unvalidated"]}},
+              "column_tooltips": {"Polar window": ["Formula: ramp(psa, 140, 60)", "Reads: psa = tpsa", "Nothing has checked it against measurements"]},
+              "csv_header_contains": ["Polar window (user-defined, unvalidated)", "Lipophilic window (user-defined, unvalidated)"],
+              "csv_cells": {"Aspirin": {"Polar window": 0.955, "Lipophilic window": 0.655}, "Caffeine": {"Polar window": 0.977}}}},
+  {"do": "shot", "path": "artifacts/visual/score_batch_table_columns.png", "widget": "batch_table", "after_ms": 500},
+
+  {"do": "score_define", "label": "Dissolution proxy", "formula": "sol", "result_unit": "mol/L",
+   "inputs": [["sol", "calculator:solubility:Predicted intrinsic solubility (mol/L)"]], "tag": "a-score-on-something-the-batch-run-did-not-compute",
+   "after_ms": 800, "expect": {"made": true}},
+  {"do": "table_scores", "panel": "batch", "tag": "a-score-whose-input-was-not-run-has-no-column-and-the-batch-table-says-which",
+   "expect": {"columns": ["Polar window (user-defined, unvalidated)", "Lipophilic window (user-defined, unvalidated)"],
+              "note": "Scores not shown, because this run did not compute what they read: Dissolution proxy (user-defined, unvalidated) reads Predicted intrinsic solubility (mol/L)."}},
+  {"do": "shot", "path": "artifacts/visual/score_batch_table_note.png", "widget": "batch_table", "after_ms": 500},
+
+  {"do": "score_dialog", "choose": "Polar window", "fill": {"formula": "ramp(psa, 100, 60)"}, "press": "save", "tag": "edit-a-score-in-its-window", "after_ms": 1200,
+   "expect": {"ok": true, "dirty": false}},
+  {"do": "table_scores", "panel": "batch", "tag": "the-edit-reached-the-batch-table-without-another-run",
+   "expect": {"grid": {"Aspirin": {"Polar window": "0.91"}, "Ethanol": {"Polar window": "1"}, "Caffeine": {"Polar window": "0.9545"}}}},
+
+  {"do": "score_dialog", "choose": "Lipophilic window", "press": "delete", "confirm": "yes", "tag": "remove-a-score", "after_ms": 1200,
+   "expect": {"stored": 2}},
+  {"do": "table_scores", "panel": "batch", "tag": "the-removed-score-is-no-longer-a-column-of-the-batch-table",
+   "expect": {"columns": ["Polar window (user-defined, unvalidated)"]}},
+  {"do": "shot", "path": "artifacts/visual/score_batch_table_after.png", "widget": "batch_table", "after_ms": 500},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

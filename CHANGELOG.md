@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unrounded number. **Only the default answer is typed** (the additive Jensen scheme on the drawing): Miller's two methods and the major-microspecies option are a different estimator or a different structure under the same id and label, so a score
   over the polarizability has no number after one of those is run, and its reason now says why instead of naming a Python type.
 
+### Derived scores: the Batch panel's own table shows them too
+- **Your scores are columns of the Batch panel's table**, as they already were in the Results dock's project table: the first after the molecule's name, labelled "(user-defined, unvalidated)", worked out from that table's own
+  cells, named under the table when a score's inputs were not in the run, in its CSV and report, and following a definition you define, edit or remove without another run. Until now the same run showed a score in one
+  table and not the other.
+
 ### Naming: the multi-charge ions that were still refused, and two more population modes
 - `tools/naming_ion_populations.py` gained `betaine` (an N-methylated base beside a deprotonated acid) and `quat_dication`. An acylsulfonamide anion beside a cation, which the round 55 guard refused, is
   `carbamoyl[4-(1,3-thiazol-3-ium-2-yl)benzene-1-sulfonyl]azanide` (D-271); a sulfonamide or amide anion cited as a prefix because another anion is the parent is `4-[(carbamoylazanidyl)sulfonyl]benzen-1-olate`
