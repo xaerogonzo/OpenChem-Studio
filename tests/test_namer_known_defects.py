@@ -4368,6 +4368,15 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-252", "NC(N)=[SH+]", "(diaminomethylidene)sulfanium",
      "thiocarbamoylsulfanium",
      "WRONG MOLECULE, no refusal: the thioamide suffix group matched through the sulfonium sulfur, so one atom was claimed twice and a nitrogen dropped out"),
+    # D-253, D-254 (naming round 53): a nitrilium with a heteroatom in its group, and an O-protonated or O-alkylated sulfoxide.
+    ("D-253", "[NH+]#Cc1ccc(O)cc1", "[(4-hydroxyphenyl)methylidyne]azanium",
+     "[REFUSED: no name found that keeps the positive charge (the nearest name, '4-(azanylidynemethyl)phenol', is the neutral compound's)]",
+     "a visible refusal; the plan search promoted the hydroxy to the principal group and named the neutral nitrile"),
+    # D-254 (an O-protonated sulfoxide) is not in this table: its name denotes the sulfonium drawing of the same cation, so the table's SMILES comparison cannot hold it;
+    # `test_namer_round53_nitrilium_and_sulfoxide_cations.py` compares through that drawing.
+    ("D-255", "[NH3+]c1ccc(C(=O)CC(=O)O)cc1", "4-(2-carboxy-1-oxoethyl)anilinium",
+     "4-propanedioylanilinium",
+     "WRONG MOLECULE, no refusal: an acyl prefix whose fragment holds a second acid became a DIACYL group, so the free acid was dropped"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",

@@ -2525,6 +2525,23 @@ what can be verified.
   `tests/test_namer_known_defects.py`. Three earlier tests pinned refusals this round turned into names and now pin the cases still refused: a carboxylate beside two neutral acids
   (`test_namer_round43_*`, `test_namer_round45_*`) and a pyrazolone anion (`test_namer_round46_*`).
 
+## 2026-10-15 -- naming round 53: nitrilium cations with a heteroatom, O-protonated sulfoxides, an acyl prefix that dropped its free acid (D-253, D-254, D-255)
+
+Round 52's open list: 77 refused nitrilium cations and 6 refused O-protonated sulfoxides. Baseline on master (round 52 tree): cations 1964 of 2081 ok (108 refused); quaternary 2054 of 2081.
+
+* **D-253.** `[NH+]#Cc1ccc(O)cc1`: the plan search promoted the hydroxy to the principal group and named the neutral nitrile, which the charge guard refused. The hydrocarbon nitriliums were named already (`benzylidyneazanium`).
+  `_classify_nitrilium` takes a nitrilium (N+ triple-bonded to a carbon, no ring, at most one carbon on N) whose group holds a heteroatom; the cation is the parent (P-41) and the group an `ylidyne` prefix:
+  `[(4-hydroxyphenyl)methylidyne]azanium`, `[(4-hydroxyphenyl)methylidyne](methyl)azanium`. `_render_iminium_hetero` and `_name_ylidene_group` follow a triple bond and expect `ylidyne`.
+* **D-254.** An acyclic `C-S(=[OH+])-C` / `C-S(=[O+]R)-C` had no classifier. The same cation drawn with a single S-O bond is a sulfonium with a hydroxy or alkoxy substituent, which the engine names:
+  `hydroxydi(methyl)sulfanium` (OPSIN reads it as `O[S+](C)C`; the ion population's verdict now treats the two drawings as one ion). A ring sulfur is not claimed (the recursive drive neutralises it).
+* **D-255.** Found by the cation population beside D-253: `[NH3+]c1ccc(C(=O)CC(=O)O)cc1` was `4-propanedioylanilinium`. The engine's acyl substituent builds the acid by adding an OH at the attachment and turns its name
+  into the acyl name; a SECOND acid in the fragment makes that a diacid and the name a diacyl group, which drops the free acid. The block now steps aside for such a fragment and the generic substituent path writes
+  the carboxy: `4-(2-carboxy-1-oxoethyl)anilinium`. The same guard as D-250, in the engine rather than the azanide renderer.
+* **Measured.** Cations 2046 of 2081, quaternary 2059 of 2081, anions 1042 of 1046 (unchanged); NO wrong name in the cation or quaternary population. Every name reads back through OPSIN. Census 1993 exact,
+  unchanged. Vendored suite and known-defects file: all passed. App naming group: 2486 passed. 7 of 7 live mutants killed.
+* New `tests/test_namer_round53_nitrilium_and_sulfoxide_cations.py` (32 tests); one verdict test in `tests/test_naming_ion_populations.py`. D-253 and D-255 in the fixed table of
+  `tests/test_namer_known_defects.py` (D-254 is not: its name denotes the sulfonium drawing, which that table's SMILES comparison cannot hold).
+
 ## 2026-10-15 -- naming round 52: a second acid in an azanide's acyl group, the thioamide anion, a positive chalcogen taken for a carbonyl (D-250, D-251, D-252)
 
 Round 51's open list asked for site patterns the ion populations had not tried. `tools/naming_ion_populations.py` now also deprotonates an acyclic amide, a urea, a thioamide, an oxime, a phosphonic and a sulfinic

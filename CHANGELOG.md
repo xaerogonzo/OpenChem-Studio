@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: nitrilium cations with a heteroatom, O-protonated sulfoxides, and an acyl prefix that dropped its free acid
+- A nitrilium whose group holds a hydroxy, amino or halogen was refused (the plan search named the neutral nitrile); it is the cation with an `ylidyne` prefix, `[(4-hydroxyphenyl)methylidyne]azanium` (D-253).
+  An acyclic O-protonated or O-alkylated sulfoxide is named as a hydroxy- or alkoxysulfanium, `hydroxydi(methyl)sulfanium` (D-254). An acyl PREFIX whose fragment also held a second acid became a diacyl
+  group, `4-propanedioylanilinium`, a different molecule with no refusal; it is `4-(2-carboxy-1-oxoethyl)anilinium` (D-255, the sibling of round 52's D-250, in the engine's generic acyl substituent).
+  The census is unchanged at 1993 exact; the cation population is down to 27 refusals (from 108) and the quaternary to 14, with no wrong names in either.
+
 ### Derived scores, slice 4b: no unit conversion is needed yet, and a test now says when one is
 - **Measured, not built.** The 21 approved outputs carry six units; the only quantity offered in two is the solubility (`mg/mL` and `mol/L`), both of one endpoint, so no formula can name both and converting between them
   would need the molecule's molar mass. The conversion table stays empty. `tests/test_score_outputs.py` now makes every unit say what it measures and turns red if outputs of different endpoints ever offer one quantity in two

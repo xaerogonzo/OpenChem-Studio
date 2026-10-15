@@ -1400,6 +1400,7 @@
   "tests/test_namer_round50_iminium_and_imino.py": 1,
   "tests/test_namer_round51_nn_and_added_hydrogen_anions.py": 3,
   "tests/test_namer_round52_acyl_groups_thioamides_and_chalcogen_cations.py": 1,
+  "tests/test_namer_round53_nitrilium_and_sulfoxide_cations.py": 1,
   "tests/test_namer_salt_multiplier.py": 1,
   "tests/test_namer_stereo_cache_identity.py": 3,
   "tests/test_namer_stereo_locant_tie.py": 3,
