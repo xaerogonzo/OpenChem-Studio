@@ -71,6 +71,7 @@ ENDPOINTS: dict[str, str] = {
     "aqueous_solubility_intrinsic": "the intrinsic aqueous solubility, in any of its units",
     "oxygen_balance_co2": "the oxygen balance to carbon dioxide",
     "oxygen_balance_co": "the oxygen balance to carbon monoxide",
+    "molecular_polarizability": "the isotropic molecular polarizability, as a volume",
 }
 
 
@@ -100,6 +101,7 @@ def _entry(output_id: str, unit: str, carried_as: str, endpoint: str) -> Approve
 APPROVED: tuple[ApprovedOutput, ...] = (
     _entry("calculator:oxygen_balance:Oxygen balance (CO basis)", "%", "%", "oxygen_balance_co"),
     _entry("calculator:oxygen_balance:Oxygen balance (CO₂ basis)", "%", "%", "oxygen_balance_co2"),
+    _entry("calculator:polarizability:Molecular polarizability", "Å^3", "A^3", "molecular_polarizability"),
     _entry("calculator:solubility:Predicted intrinsic solubility (mg/mL)", "mg/mL", "mg/mL", "aqueous_solubility_intrinsic"),
     _entry("calculator:solubility:Predicted intrinsic solubility (mol/L)", "mol/L", "mol/L", "aqueous_solubility_intrinsic"),
     _entry("descriptor:bertz_ct", "1", "", "bertz_complexity"),
