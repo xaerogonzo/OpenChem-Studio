@@ -18,12 +18,6 @@ import re
 from collections.abc import Collection
 from dataclasses import dataclass
 
-#: Why a tooling script, and not the application, reaches this module for now (see `score_formula.REACHED_BY`).
-REACHED_BY = (
-    "tooling: imported by score_formula.py, which tools/check_score_formula.py reaches; the application reaches both in slice 3 of "
-    "docs/DERIVED_SCORES_DESIGN.md"
-)
-
 #: The symbols a unit may be made of. CLOSED: a symbol not here is a typo or a unit nobody approved, and either way the definition
 #: is refused rather than guessed at. This is a STARTER set, read off the unit strings the application's results carry today
 #: (`units="eV"`, `"kcal/mol"`, `"g/mol"`, `"ppm"`, `"%"`, and so on). A symbol is added when an approved output (`score_outputs`) or a

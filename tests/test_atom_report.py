@@ -340,8 +340,10 @@ def test_an_empty_search_returns_everything():
 
 def test_identity_and_electronic_open_expanded():
     """Progressive disclosure from the start. A hundred-odd facts rendered
-    flat is a wall, and this is much cheaper to design in than retrofit."""
-    assert DEFAULT_EXPANDED == frozenset({FactCategory.IDENTITY, FactCategory.ELECTRONIC})
+    flat is a wall, and this is much cheaper to design in than retrofit.
+
+    The user-defined scores are open too: there are few of them, and a person who wrote one wants to see it without a click."""
+    assert DEFAULT_EXPANDED == frozenset({FactCategory.IDENTITY, FactCategory.ELECTRONIC, FactCategory.DERIVED})
     assert all(category in CATEGORY_ORDER for category in DEFAULT_EXPANDED)
 
 

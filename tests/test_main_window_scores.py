@@ -1,0 +1,478 @@
+"""The scores a person defined, in the REAL main window's Results reader (`docs/DERIVED_SCORES_DESIGN.md` sections 5 and 8; slice 3b).
+
+A real `MainWindow`, a real project with aspirin and ethanol, and the application's own always-on descriptors computing on selection, so 'current' is produced and
+not asserted. Nothing here defines a score through a dialog (that is slice 3d); the service makes it, which is the call the dialog will make.
+"""
+
+from __future__ import annotations
+
+import pytest
+from PySide6.QtCore import QThreadPool
+
+from openchem.app.main_window import MainWindow
+from openchem.app.session import SessionManager
+from openchem.app.settings import Settings
+from openchem.bootstrap import build_service_container
+from openchem.domain.molecule import MoleculeModel
+from openchem.domain.project import ProjectModel
+from openchem.events.events import MoleculeChanged, MoleculeSelected
+
+ASPIRIN = "CC(=O)Oc1ccccc1C(=O)O"
+LABEL = "Window blend (user-defined, unvalidated)"
+SCORE = "score:user.window_blend"
+
+
+@pytest.fixture
+def window(qapp, tmp_path):
+    services = build_service_container()
+    settings = Settings(services.event_bus)
+    settings.set("plugins/project_directory", str(tmp_path / "none"))
+    settings.set("plugins/user_directory", str(tmp_path / "none2"))
+    built = MainWindow(services, settings, SessionManager())
+    yield built
+    built.close()
+
+
+@pytest.fixture
+def pair(window):
+    engine = window._services.chemistry_engine
+    aspirin, ethanol = MoleculeModel(display_name="Aspirin"), MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(aspirin, ASPIRIN)
+    engine.set_structure_from_smiles(ethanol, "CCO")
+    project = ProjectModel(name="scores")
+    project.molecules.extend([aspirin, ethanol])
+    window._set_project(project)
+    return aspirin, ethanol
+
+
+def _drain(qapp):
+    QThreadPool.globalInstance().waitForDone(60_000)
+    for _ in range(60):
+        qapp.processEvents()
+
+
+def _select(window, qapp, model):
+    window._services.event_bus.publish(MoleculeSelected(molecule_uuid=model.uuid))
+    _drain(qapp)
+
+
+def _make(window, **changes):
+    arguments = dict(
+        label="Window blend", formula="ramp(psa, 140, 60) * ramp(logp, 5, 2)", result_unit="1",
+        inputs=[("psa", "descriptor:tpsa"), ("logp", "descriptor:mol_logp")],
+    )
+    arguments.update(changes)
+    return window._services.score_service.create(**arguments)
+
+
+def _report(window):
+    return window._results_view.merged().report_for(SCORE)
+
+
+def _entries(window) -> list[str]:
+    reader = window._results_view
+    return [reader._focus_box.itemText(i) for i in range(reader._focus_box.count())]
+
+
+# --- it is in Results, labelled, and has the number the real descriptors give --------------------------------------------------------
+
+
+def test_before_any_score_is_defined_results_has_none(window, pair, qapp):
+    aspirin, _ = pair
+    _select(window, qapp, aspirin)
+    assert not any("user-defined" in text for text in _entries(window)) and _report(window) is None
+
+
+def test_a_defined_score_is_in_results_for_the_selected_molecule_with_its_value(window, pair, qapp):
+    aspirin, _ = pair
+    _select(window, qapp, aspirin)
+    _make(window)
+    _drain(qapp)
+    report = _report(window)
+    assert report is not None and report.molecule_uuid == aspirin.uuid and LABEL in _entries(window)
+    (fact,) = report.facts
+    assert fact.label == LABEL and 0.0 < fact.value < 1.0, "TPSA 63.6 and logP 1.31 are inside the ramps: a number strictly between 0 and 1"
+    assert fact.value == pytest.approx(window._services.score_service.values_for(aspirin)[0].value)
+
+
+def test_the_number_is_what_the_formula_gives_for_the_applications_own_descriptors(window, pair, qapp):
+    """Computed here by hand from the two descriptors the application stored, so the score is not checked against itself."""
+    aspirin, _ = pair
+    _select(window, qapp, aspirin)
+    _make(window)
+    _drain(qapp)
+    by_id = {s.result.descriptor_id: s.result.value for s in window._services.result_store_service.store.all_results(aspirin.uuid) if hasattr(s.result, "descriptor_id")}
+    ramp_psa = min(1.0, max(0.0, (by_id["tpsa"] - 140) / (60 - 140)))
+    ramp_logp = min(1.0, max(0.0, (by_id["mol_logp"] - 5) / (2 - 5)))
+    assert _report(window).facts[0].value == pytest.approx(ramp_psa * ramp_logp)
+
+
+def test_a_score_made_while_the_molecule_is_shown_appears_without_reselecting(window, pair, qapp):
+    aspirin, _ = pair
+    _select(window, qapp, aspirin)
+    assert _report(window) is None
+    _make(window)
+    qapp.processEvents()
+    assert _report(window) is not None
+
+
+def test_removing_a_score_takes_it_out_of_the_open_reader(window, pair, qapp):
+    aspirin, _ = pair
+    _select(window, qapp, aspirin)
+    made = _make(window)
+    _drain(qapp)
+    assert _report(window) is not None
+    window._services.score_service.remove(made.score_id)
+    qapp.processEvents()
+    assert _report(window) is None and LABEL not in _entries(window)
+
+
+def test_editing_a_score_changes_the_shown_number(window, pair, qapp):
+    aspirin, _ = pair
+    _select(window, qapp, aspirin)
+    made = _make(window)
+    _drain(qapp)
+    before = _report(window).facts[0].value
+    window._services.score_service.update(made.score_id, formula="ramp(logp, 5, 2)", inputs=(("logp", "descriptor:mol_logp"),), constants=())
+    qapp.processEvents()
+    after = _report(window).facts[0].value
+    assert after != before and after == pytest.approx(min(1.0, max(0.0, (1.31 - 5) / (2 - 5))), abs=0.01)
+
+
+def test_each_molecule_has_its_own_value(window, pair, qapp):
+    aspirin, ethanol = pair
+    _make(window)
+    _select(window, qapp, aspirin)
+    on_aspirin = _report(window).facts[0].value
+    _select(window, qapp, ethanol)
+    report = _report(window)
+    assert report.molecule_uuid == ethanol.uuid and report.facts[0].value != on_aspirin
+
+
+# --- no number, and why ------------------------------------------------------------------------------------------------------------------
+
+
+def test_a_score_whose_inputs_have_not_been_calculated_says_so_in_results(window, pair, qapp):
+    aspirin, _ = pair
+    window._services.descriptor_service.request_descriptors = lambda *args, **kwargs: None
+    _make(window)
+    _select(window, qapp, aspirin)
+    report = _report(window)
+    assert report is not None and not report.facts
+    assert "psa (descriptor:tpsa)" in report.error and "has not been calculated for this molecule" in report.error
+    assert report.error_summary == "no value: an input cannot be read"
+
+
+def test_a_calculator_finishing_gives_a_score_that_was_waiting_for_it_its_number(window, pair, qapp):
+    """Found by driving the real application: the score evaluated when the result's own event reached the reader, before the store had the result, and was never
+    told to look again. A result recorded for the molecule shown must make the reader read the scores once more."""
+    from openchem.domain.calculator import CalculationRequest
+
+    aspirin, _ = pair
+    window._services.descriptor_service.request_descriptors = lambda *args, **kwargs: None
+    _make(
+        window, label="Needs a calculator", formula="ob", result_unit="%", inputs=[("ob", "calculator:oxygen_balance:Oxygen balance (CO basis)")],
+    )
+    _select(window, qapp, aspirin)
+    waiting = window._results_view.merged().report_for("score:user.needs_a_calculator")
+    assert waiting is not None and not waiting.facts and "has not been calculated" in waiting.error
+
+    definition = window._services.calculator_registry.get("oxygen_balance")
+    window._services.descriptor_service.run_calculator(
+        aspirin,
+        CalculationRequest(
+            calculator_id="oxygen_balance", molecule_uuid=aspirin.uuid, parameters={p.name: p.default for p in definition.parameters}
+        ),
+    )
+    _drain(qapp)
+    done = window._results_view.merged().report_for("score:user.needs_a_calculator")
+    assert done.facts and done.facts[0].value == pytest.approx(-79.93, abs=0.05) and done.facts[0].units == "%"
+
+
+def test_a_burst_of_recorded_results_is_one_refresh_of_the_reader(window, pair, qapp):
+    aspirin, _ = pair
+    _make(window)
+    _select(window, qapp, aspirin)
+    panel = window._property_panel
+    counted = []
+    real = panel._refresh_reader
+    panel._refresh_reader = lambda *args, **kwargs: (counted.append(1), real(*args, **kwargs))[1]
+    from openchem.domain.common import CacheState
+    from openchem.domain.descriptor import DescriptorValue
+    from openchem.domain.result_store import ResultIdentity, StoredResult
+    from openchem.events.events import ResultRecorded
+
+    fingerprint = window._services.result_store_service.fingerprints_for(aspirin)["drawing"]
+    for i in range(30):
+        result = DescriptorValue(f"x{i}", f"x{i}", "", "c", "rdkit", aspirin.uuid, value=1.0, cache_state=CacheState.COMPLETED)
+        stored = StoredResult(ResultIdentity(aspirin.uuid, f"descriptor:rdkit:x{i}", "drawing", fingerprint, "rdkit"), result)
+        window._services.event_bus.publish(ResultRecorded(stored=stored))
+    counted.clear()
+    qapp.processEvents()
+    assert len(counted) <= 1
+
+
+def test_editing_the_structure_makes_the_score_refuse_and_say_why(window, pair, qapp):
+    aspirin, _ = pair
+    _select(window, qapp, aspirin)
+    _make(window)
+    _drain(qapp)
+    assert _report(window).facts, "a number first"
+    window._services.chemistry_engine.set_structure_from_smiles(aspirin, "CCO")
+    window._services.event_bus.publish(MoleculeChanged(molecule_uuid=aspirin.uuid, during_edit=False))
+    window._property_panel._request_substance_perception = lambda: None
+    qapp.processEvents()
+    report = _report(window)
+    assert report is not None and not report.facts
+    assert "earlier structure" in report.error or "has not been calculated" in report.error
+
+
+# --- it is a projection: never stored, never a calculator -----------------------------------------------------------------------------------
+
+
+def test_a_score_is_not_a_stored_result(window, pair, qapp):
+    aspirin, _ = pair
+    _select(window, qapp, aspirin)
+    _make(window)
+    _drain(qapp)
+    stored_ids = {s.identity.result_id for s in window._services.result_store_service.store.all_results(aspirin.uuid)}
+    assert stored_ids and SCORE not in stored_ids and not any(i.startswith(("score:", "user.")) for i in stored_ids)
+
+
+def test_a_score_is_not_a_registered_calculator(window, pair):
+    _make(window)
+    ids = {d.calculator_id for d in window._services.calculator_registry.definitions()}
+    assert not any(i.startswith(("user.", "score:")) for i in ids)
+    assert not any(d.display_name.endswith("(user-defined, unvalidated)") for d in window._services.calculator_registry.definitions())
+
+
+def test_a_reader_that_cannot_read_the_scores_still_shows_everything_else(window, pair, qapp, caplog):
+    aspirin, _ = pair
+
+    def broken(*_args):
+        raise RuntimeError("unreadable")
+
+    window._property_panel.attach_score_answers(broken)
+    _select(window, qapp, aspirin)
+    assert _entries(window) != [] and "Could not read the scores for" in caplog.text
+
+
+# --- the Derived Scores window (slice 3d) -----------------------------------------------------------------------------------------------------
+
+
+_KEEP_ALIVE: list = []
+
+
+def _tools_actions(window) -> dict[str, object]:
+    [tools] = [a for a in window.menuBar().actions() if a.text().replace("&", "") == "Tools"]
+    # PySide deletes the menu when the wrapper of the menu-bar action that owns it is collected, and a temporary menu takes its actions' wrappers with it.
+    menu = tools.menu()
+    _KEEP_ALIVE.extend([tools, menu])
+    found = {a.text().replace("&", ""): a for a in menu.actions() if not a.isSeparator()}
+    _KEEP_ALIVE.extend(found.values())
+    return found
+
+
+def test_the_tools_menu_has_the_derived_scores_entry_and_it_opens_one_window(window, pair, qapp):
+    action = _tools_actions(window)["Derived Scores..."]
+    action.trigger()
+    first = window._score_dialog
+    assert first is not None and first.isVisible()
+    action.trigger()
+    assert window._score_dialog is first, "there is never a second window"
+    first.close()
+
+
+def test_the_window_makes_a_score_that_reaches_results_and_marks_the_project_unsaved(window, pair, qapp):
+    from openchem.domain.score_editor import Draft, InputRow
+
+    aspirin, _ = pair
+    _select(window, qapp, aspirin)
+    window._session.mark_clean()
+    dialog = window.show_scores()
+    dialog.set_draft(
+        Draft(label="Window blend", formula="ramp(psa, 140, 60) * ramp(logp, 5, 2)", inputs=(InputRow("psa", "descriptor:tpsa"), InputRow("logp", "descriptor:mol_logp")))
+    )
+    assert dialog.save() is not None
+    _drain(qapp)
+    assert window._session.is_dirty, "a score is project data: closing without saving must ask"
+    report = _report(window)
+    assert report is not None and report.facts and 0.0 < report.facts[0].value < 1.0
+    dialog.close()
+
+
+def test_the_open_window_follows_a_score_made_elsewhere_and_a_project_change(window, pair, qapp):
+    dialog = window.show_scores()
+    assert dialog.snapshot()["scores"] == []
+    _make(window)
+    qapp.processEvents()
+    assert dialog.snapshot()["scores"] == [LABEL]
+    window._set_project(ProjectModel(name="another"))
+    qapp.processEvents()
+    assert dialog.snapshot()["scores"] == [] and dialog.current_score_id() is None
+    dialog.close()
+
+
+def test_the_open_window_reads_its_preview_again_when_the_molecule_or_a_result_changes(window, pair, qapp):
+    from openchem.domain.score_editor import Draft, InputRow
+
+    aspirin, ethanol = pair
+    window._services.descriptor_service.request_descriptors = lambda *args, **kwargs: None
+    _select(window, qapp, aspirin)
+    dialog = window.show_scores()
+    dialog.set_draft(Draft(label="Weight", formula="mw", result_unit="g/mol", inputs=(InputRow("mw", "descriptor:mol_wt"),)))
+    assert "no value" in dialog.snapshot()["preview"] and "Aspirin" in dialog.snapshot()["preview"]
+    _select(window, qapp, ethanol)
+    assert "Ethanol" in dialog.snapshot()["preview"], "the preview follows the molecule selected in the project"
+    _select(window, qapp, aspirin)
+
+    from openchem.domain.common import CacheState
+    from openchem.domain.descriptor import DescriptorValue
+    from openchem.domain.result_store import ResultIdentity, StoredResult
+    from openchem.events.events import ResultRecorded
+
+    fingerprint = window._services.result_store_service.fingerprints_for(aspirin)["drawing"]
+    result = DescriptorValue("mol_wt", "mol_wt", "g/mol", "c", "rdkit", aspirin.uuid, value=180.16, cache_state=CacheState.COMPLETED)
+    stored = StoredResult(ResultIdentity(aspirin.uuid, "descriptor:rdkit:mol_wt", "drawing", fingerprint, "rdkit"), result)
+    window._services.result_store_service.store.put(stored)
+    window._services.event_bus.publish(ResultRecorded(stored=stored))
+    qapp.processEvents()
+    assert dialog.snapshot()["preview"] == "For Aspirin: 180.2 g/mol", "a result arriving while the window is open gives the preview its number"
+    dialog.close()
+
+
+def test_a_closed_window_is_not_refreshed_or_reopened_by_events(window, pair, qapp):
+    dialog = window.show_scores()
+    dialog.close()
+    calls = []
+    real = dialog.refresh
+    dialog.refresh = lambda: (calls.append(1), real())[1]
+    _make(window)
+    qapp.processEvents()
+    assert calls == [] and dialog.isHidden()
+
+
+def test_the_window_has_no_way_to_start_a_calculation(window, pair, qapp):
+    """Reading `descriptor_service` is not enough: the window is built from a host that holds no service, so this checks that typing and saving ask for nothing."""
+    from openchem.domain.score_editor import Draft, InputRow
+
+    aspirin, _ = pair
+    asked = []
+    window._services.descriptor_service.request_descriptors = lambda *args, **kwargs: asked.append("descriptors")
+    window._services.descriptor_service.run_calculator = lambda *args, **kwargs: asked.append("calculator")
+    _select(window, qapp, aspirin)
+    asked.clear()
+    dialog = window.show_scores()
+    dialog.set_draft(Draft(label="Weight", formula="mw", result_unit="g/mol", inputs=(InputRow("mw", "descriptor:mol_wt"),)))
+    dialog._formula.setText("mw + mw")
+    dialog.refresh_preview()
+    assert asked == []
+    dialog.close()
+
+
+def test_a_saved_score_stays_clean_while_results_arrive_and_choosing_another_does_not_ask(window, pair, qapp, monkeypatch):
+    """Found by driving: Delete on another score asked 'discard unsaved changes?' about a form nobody had touched, after a calculator finished."""
+    from PySide6.QtWidgets import QMessageBox
+
+    from openchem.domain.calculator import CalculationRequest
+    from openchem.domain.score_editor import Draft, InputRow
+
+    aspirin, _ = pair
+    _select(window, qapp, aspirin)
+    dialog = window.show_scores()
+    dialog.set_draft(Draft(label="Polar window", formula="ramp(psa, 140, 60)", inputs=(InputRow("psa", "descriptor:tpsa"),)))
+    dialog.save()
+    dialog.start_new()
+    dialog.set_draft(Draft(label="Needs a calculator", formula="ob", result_unit="%", inputs=(InputRow("ob", "calculator:oxygen_balance:Oxygen balance (CO basis)"),)))
+    dialog.save()
+    assert not dialog.dirty
+    definition = window._services.calculator_registry.get("oxygen_balance")
+    window._services.descriptor_service.run_calculator(
+        aspirin, CalculationRequest(calculator_id="oxygen_balance", molecule_uuid=aspirin.uuid, parameters={p.name: p.default for p in definition.parameters})
+    )
+    _drain(qapp)
+    assert dialog.snapshot()["preview"].startswith("For Aspirin: -79.9")
+    assert not dialog.dirty, (dialog.draft(), dialog._saved)
+    asked = []
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: asked.append(a[1]) or QMessageBox.StandardButton.Yes))
+    window.show_scores()
+    dialog._list.setCurrentRow(0)
+    assert asked == [] and dialog.current_score_id() == "user.polar_window"
+    dialog.close()
+
+
+# --- what the mutation run found missing (slice 3d) -----------------------------------------------------------------------------------------
+
+
+def test_a_window_closed_while_scores_changed_shows_them_when_it_is_opened_again(window, pair, qapp):
+    dialog = window.show_scores()
+    dialog.close()
+    _make(window)
+    qapp.processEvents()
+    assert dialog.snapshot()["scores"] == [], "a closed window is not refreshed, which is what makes opening it a re-read"
+    assert window.show_scores() is dialog and dialog.snapshot()["scores"] == [LABEL]
+    dialog.close()
+
+
+def test_the_window_says_there_is_no_project_when_the_score_service_has_none(window, pair):
+    host = window._score_host()
+    assert host.has_project()
+    window._services.score_service.set_project(None)
+    assert not host.has_project()
+
+
+def test_a_molecule_the_project_does_not_have_is_not_previewed(window, pair):
+    from openchem.domain.score_editor import Draft, InputRow
+
+    definition = Draft(label="Polar", formula="psa", result_unit="Å^2", inputs=(InputRow("psa", "descriptor:tpsa"),)).to_definition()
+    host = window._score_host()
+    assert host.preview(definition, "no-such-molecule") is None
+    assert host.preview(definition, pair[0].uuid) is not None
+
+
+def test_the_window_lists_what_this_build_cannot_use_and_knows_the_calculators_names(window, pair):
+    from openchem.domain.score_definition_store import ENVELOPE_VERSION, ScoreDefinitionStore
+
+    block = {"version": ENVELOPE_VERSION, "definitions": [{"score_id": "user.future", "label": "From later", "schema_version": 999}]}
+    service = window._services.score_service
+    service.set_project(window._session.project, ScoreDefinitionStore.from_dict(block, window._session.project.uuid))
+    host = window._score_host()
+    assert [entry.label for entry in host.kept()] == ["From later"]
+    assert "dipole_moment" in host.reserved_names()
+    dialog = window.show_scores()
+    assert dialog.snapshot()["scores"][0].startswith("From later: ")
+    dialog.close()
+
+
+def test_a_name_close_to_a_calculators_is_refused_in_the_window(window, pair):
+    from openchem.domain.score_editor import Draft, InputRow
+
+    dialog = window.show_scores()
+    dialog.set_draft(Draft(label="Dipole moment", formula="psa", result_unit="Å^2", inputs=(InputRow("psa", "descriptor:tpsa"),)))
+    assert dialog.snapshot()["where"] == "label" and "too close" in dialog.snapshot()["message"]
+    dialog.close()
+
+
+def test_a_closed_window_is_not_asked_to_read_its_preview(window, pair, qapp):
+    dialog = window.show_scores()
+    dialog.close()
+    calls = []
+    real = dialog.refresh_preview
+    dialog.refresh_preview = lambda: (calls.append(1), real())[1]
+    window._services.event_bus.publish(MoleculeSelected(molecule_uuid=pair[1].uuid))
+    qapp.processEvents()
+    assert calls == []
+    dialog.show()
+    window._services.event_bus.publish(MoleculeChanged(molecule_uuid=pair[1].uuid, during_edit=False))
+    assert calls, "an open window is"
+    dialog.close()
+
+
+def test_the_window_reads_its_preview_again_for_each_of_the_three_events(window):
+    """Each event is its own subscription: selecting a molecule publishes more than one, so the behaviour of a selection cannot show that one is missing."""
+    from openchem.events.events import ResultRecorded
+
+    bus = window._services.event_bus
+    handler = window._refresh_scores_preview
+    for event_type in (MoleculeSelected, MoleculeChanged, ResultRecorded):
+        assert any(entry.matches(handler) for entry in bus._handlers[event_type]), event_type.__name__

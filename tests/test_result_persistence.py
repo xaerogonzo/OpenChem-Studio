@@ -401,7 +401,8 @@ def test_the_project_file_round_trips_its_results(qapp, tmp_path):
 
     path = tmp_path / "p.ocsproj"
     service.save(project, path, store)
-    loaded_project, loaded, _qc_runs, _recipe_runs = service.load_document(path)
+    document = service.load_document(path)
+    loaded_project, loaded = document.project, document.results
 
     assert loaded_project.uuid == project.uuid
     assert loaded.bundle_state("m", "fp", {"provider"})[0] is BundleState.COMPLETE
@@ -415,7 +416,8 @@ def test_a_project_saved_before_results_were_kept_still_opens(qapp, tmp_path):
     service.save(project, path)
     assert RESULTS_KEY not in json.loads(path.read_text(encoding="utf-8"))
 
-    loaded_project, loaded, _qc_runs, _recipe_runs = service.load_document(path)
+    document = service.load_document(path)
+    loaded_project, loaded = document.project, document.results
     assert loaded_project.uuid == project.uuid
     assert loaded.molecule_uuids() == []
 
@@ -563,7 +565,7 @@ def test_unsaved_results_reach_a_recovery_copy_and_save_removes_it(window, qapp,
     _fire_recovery_timer(window, qapp)
 
     [candidate] = service.candidates()
-    _project, results, _qc_runs, _recipe_runs = service.load(candidate)
+    results = service.load(candidate).results
     assert a.uuid in results.molecule_uuids()
 
     window.save_project_to(tmp_path / "saved.ocsproj")
