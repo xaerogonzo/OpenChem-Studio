@@ -241,3 +241,9 @@ def test_a_score_that_would_be_worked_out_from_defaults_alone_is_the_refusal_it_
     assert answer.facts == () and "defaults alone" in answer.error and answer.error_summary.startswith(NO_VALUE)
     assert refusal_kind_of_result(answer) is RefusalKind.NEEDS_INPUT
     assert "defaulted" not in answer.provenance.parameters, "there is no number, so no number used a default"
+
+
+def test_the_line_for_a_default_carries_its_unit_and_never_says_it_was_read_from_a_result():
+    answer = _answer(_value(_defaulting(psa=100.0), _entries(_descriptor("mol_logp", 3.5))))
+    line = next(line for line in answer.facts[0].evidence if line.startswith("psa = 100"))
+    assert line.startswith("psa = 100 Å²") and "A DEFAULT" in line and "read from the stored result" not in line

@@ -360,3 +360,8 @@ def test_a_default_for_an_input_whose_name_was_then_changed_is_still_a_default_f
     """The default belongs to the row, so renaming the input does not strand it (the definition names inputs, and the row's name is what it is saved under)."""
     renamed = _draft(inputs=(InputRow("psa", _TPSA), InputRow("lp", _LOGP, "3.5")), formula="ramp(psa, hi, 60) * ramp(lp, 5, 2)")
     assert renamed.to_definition().defaults == (("lp", 3.5),) and check_draft(renamed).ok
+
+
+def test_a_default_with_many_digits_comes_back_to_the_draft_as_typed_to_twelve_figures():
+    definition = _defaulting(logp="3.14159265358").to_definition(score_id="user.x", created="2026-10-15")
+    assert [row.default for row in Draft.from_definition(definition).inputs] == ["", "3.14159265358"]

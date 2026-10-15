@@ -381,3 +381,9 @@ def test_a_default_for_a_name_the_definition_has_no_input_for_is_ignored():
 
 def test_a_score_with_no_defaults_has_none_defaulted():
     assert evaluate_score(_definition(), _good()).defaulted == ()
+
+
+def test_a_default_carries_the_unit_its_output_is_approved_in():
+    value = evaluate_score(_defaulting(psa=100.0), _entries(_descriptor("mol_logp", 3.5)))
+    item = {i.name: i for i in value.inputs}["psa"]
+    assert item.state is InputState.DEFAULT and item.unit == "Å^2" and item.carried_as == "Å²" and item.value == 100.0

@@ -743,3 +743,13 @@ def test_a_draft_whose_every_input_has_a_default_says_there_is_no_value_for_a_mo
     dialog.set_draft(Draft(label="Blend", formula="ramp(psa, 140, 60)", inputs=(InputRow("psa", _PSA, "100"),)))
     text = dialog.snapshot()["preview"]
     assert text.startswith("For Aspirin: no value.") and "defaults alone" in text
+
+
+def test_typing_a_default_checks_and_previews_again_without_anything_else_being_touched(dialog, world):
+    world.put("tpsa", 100.0, "Å²")
+    dialog.set_draft(_BLEND)
+    assert "no value" in dialog.snapshot()["preview"]
+    dialog._input_rows[1].default.setText("3.5")
+    assert dialog.snapshot()["preview"] == f"For Aspirin: {0.25:.4g} (a default was used for logp: not calculated)"
+    dialog._input_rows[1].default.setText("abc")
+    assert not dialog.snapshot()["ok"] and dialog.snapshot()["preview"] == "" and dialog.snapshot()["where"] == "inputs"

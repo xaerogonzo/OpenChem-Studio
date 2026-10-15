@@ -499,3 +499,10 @@ def test_a_refused_row_has_no_companion_cell_and_a_defaults_column_is_text():
     scored = table_with_scores(table, [_defaulting(logp=3.5)]).table
     assert scored.cell(_ROWS[0], "score:user.window").failed and scored.cell(_ROWS[0], "score_defaults:user.window") is None
     assert defaults_column(_defaulting(logp=3.5)).numeric is False
+
+
+def test_defaults_on_a_definition_whose_policy_is_not_the_second_one_are_never_used_to_show_a_column():
+    """The evaluator reads a policy this build does not know as the first one, so the table must not give such a score a column on the strength of a default the evaluator would not use."""
+    odd = _definition(on_missing="zero", defaults=(("logp", 3.5),))
+    scored = table_with_scores(_table(logp=None), [odd])
+    assert [c.column_id for c in scored.table.columns] == [_TPSA] and scored.omitted[0].missing == ("mol_logp",)

@@ -426,3 +426,12 @@ def test_a_label_an_owner_and_a_note_of_exactly_the_limit_are_accepted():
     for change in ({"label": "x" * 81}, {"owner": "o" * 81}, {"note": "n" * 501}):
         with pytest.raises(FormulaError):
             check_score_definition(_definition(**change))
+
+
+def test_the_digest_of_a_definition_without_defaults_is_the_literal_origin_master_computes_for_it():
+    """Computed by `origin/master`'s `score_definition` (loaded from git) for this very definition before defaults existed: a definition made then keeps its digest."""
+    assert _definition().digest == "e8bde0269b3e3ffe"
+
+
+def test_a_default_is_hashed_at_the_precision_it_is_declared():
+    assert _with_defaults(logp=3.5).digest != _with_defaults(logp=3.6).digest != _with_defaults(logp=3.0).digest != _with_defaults(logp=3.0000001).digest

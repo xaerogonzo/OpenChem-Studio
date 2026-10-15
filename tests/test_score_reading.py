@@ -300,3 +300,10 @@ def test_a_refused_score_with_a_defaulted_input_names_only_the_input_that_could_
 
 def test_the_note_every_read_carries_tells_the_model_what_to_say_of_a_default():
     assert "computed_with_defaults" in SCORES_NOTE and "defaults_used" in SCORES_NOTE and "never present the number as the result of calculating them" in SCORES_NOTE
+
+
+def test_the_declared_defaults_are_cut_by_the_caps_like_the_inputs():
+    definition = _defaulting(psa=100.0, logp=3.5)
+    value = read_scores(_turn([definition])).values[0]
+    assert [d["input"] for d in score_envelope_of(value)["declared_defaults"]] == ["psa", "logp"]
+    assert [d["input"] for d in score_envelope_of(value, Caps(items=1))["declared_defaults"]] == ["psa"]
