@@ -489,6 +489,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round56_two_anions_and_ion_counts.py"
+why = "an anionic nitrogen as a prefix beside a second anion (D-268: 4-(acetylazanidyl)benzen-1-olate), the charge guard that counts centres (D-269) and a ketone ring cation with a cation suffix (D-270)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round55_multi_charge_ions.py"
 why = "what the multi-charge populations found: a cationic ring in a ring-N amide (D-265), the ium before a curated ketone suffix in a substituent (D-266), and the per-polarity charge guard for net-neutral ions (D-267)"
 scope = "core"

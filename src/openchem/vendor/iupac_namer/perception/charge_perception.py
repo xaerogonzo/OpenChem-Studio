@@ -3922,6 +3922,14 @@ def _render_azanide(cls: ChargeClassification, mol, strategy, session, depth: in
         if stem is None or locant is None:
             return None
         return f"{stem}ide"
+    return _azanide_text(mol, n_idx, strategy, session, depth, "azanide")
+
+
+def _azanide_text(mol, n_idx: int, strategy, session, depth: int, ending: str) -> str | None:
+    """The groups on an anionic nitrogen as prefixes of `azanide`, or, with `ending="azanidyl"`, of the prefix `azanidyl` (naming round 56).
+
+    The same groups name the anion as a PARENT (`acetyl(methyl)azanide`, two groups) and as a PREFIX on another anion (`4-(acetylazanidyl)benzen-1-olate`, one group: the other bond of
+    the nitrogen is the attachment). OPSIN reads `azanidyl`; measured before it was written."""
     prefixes: list[str] = []
     for nb in mol.GetAtomWithIdx(n_idx).GetNeighbors():
         if _acyl_like_neighbour(mol, n_idx, nb):
@@ -3936,15 +3944,19 @@ def _render_azanide(cls: ChargeClassification, mol, strategy, session, depth: in
         if not name:
             return None
         prefixes.append(name)
-    prefixes.sort(key=_alphabetical_key)
-    a, b = prefixes
-    if a == b:
-        return f"bis({a})azanide" if _COMPOUND_PREFIX.search(a) else f"di{a}azanide"
+
     def enclose(prefix: str) -> str:
         return f"[{prefix}]" if "(" in prefix else f"({prefix})"
 
+    if len(prefixes) == 1:
+        (only,) = prefixes
+        return f"{enclose(only) if _COMPOUND_PREFIX.search(only) else only}{ending}"
+    prefixes.sort(key=_alphabetical_key)
+    a, b = prefixes
+    if a == b:
+        return f"bis({a}){ending}" if _COMPOUND_PREFIX.search(a) else f"di{a}{ending}"
     first = enclose(a) if _COMPOUND_PREFIX.search(a) else a
-    return f"{first}{enclose(b)}azanide"
+    return f"{first}{enclose(b)}{ending}"
 
 
 def _render_carbamate_anion(

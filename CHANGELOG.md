@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: two anions in one molecule, a charge guard that counts centres, and a ketone ring cation with a cation suffix
+- A second anionic nitrogen is cited as an `azanidyl` prefix, `4-(acetylazanidyl)benzen-1-olate` (it was a `NAMING ERROR`, and a sulfonamide anion beside a phenolate was `[N-(4-oxidophenyl)sulfamoyl]methane`
+  with the sulfonamide's charge silently dropped) (D-268). The charge guard compared WORDS with polarity, not centres; it now needs as many ion words as the molecule has centres of that polarity unless
+  the name multiplies an ion word (`dioxido`, `bis(aminium)`, `diium`), so a protonated amidoxime beside a second cation, which lost its charge, is refused (D-269). A ketone ring cation that carries a cation
+  suffix is `7-methyl-4-oxo-4H-pyrido[1,2-a]pyrimidin-1-ium-2-aminium`, not the unreadable `...-4-on-1-ium-2-aminium` (D-270). All six ion populations are now clean except for 25 visible refusals
+  (O-acylated isothioureas, O-methylated sulfoxides on S-S or S-P, two amidoxime dications) and the bis-dioxolopyran OPSIN limit.
+
 ### Derived scores, slice 4d: the assistant can propose a score, and only a person can save one
 - **Two new assistant tools:** `list_score_outputs` (what a score's formula may read) and `propose_score`. A proposal is checked by exactly the rules a score you typed meets, and if it passes **a card appears in the
   assistant's panel** with the formula, what each input reads, the declared unit, what it gives for the selected molecule, and who it will say wrote it. **Nothing is saved unless you press Approve**; Cancel saves nothing; the
