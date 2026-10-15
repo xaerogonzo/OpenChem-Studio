@@ -24,6 +24,7 @@ from typing import Any, Protocol
 
 from openchem.domain.calculation_bridge import CalculatorCard, GoalCard, Problem, ProblemCode
 from openchem.domain.run_lifecycle import Preparation, PrepareResult, RunOutcome, RunState
+from openchem.domain.score_reading import ScoresView, read_scores
 from openchem.domain.turn_snapshot import DEFAULT_READ_LIMIT, ResultsView, TurnContext, read_results
 
 
@@ -86,6 +87,11 @@ class PluginCalculations:
     ) -> ResultsView:
         """What was stored when `turn` began, never what is stored now. Needs no host."""
         return read_results(turn, calculator_ids, include_not_current=include_not_current, limit=limit)
+
+    def read_scores(self, turn: TurnContext, names: list[str] | None = None) -> ScoresView:
+        """The user-defined scores of the turn's molecule, worked out from what was stored and defined when `turn` began. Needs no host, and can only READ: there is no
+        call here that makes, changes or removes a score."""
+        return read_scores(turn, names)
 
     def prepare(self, turn: TurnContext, calculator_id: str, parameters: dict[str, Any] | None = None) -> PrepareResult:
         """Validate a request and decide who may start it. Starts nothing. Any thread."""

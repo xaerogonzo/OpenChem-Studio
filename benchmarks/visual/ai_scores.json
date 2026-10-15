@@ -1,0 +1,67 @@
+[
+  {"do": "smiles", "smiles": "CC(=O)Oc1ccccc1C(=O)O", "name": "Aspirin", "after_ms": 1500},
+  {"do": "select", "molecule": -1, "after_ms": 6000},
+
+  {"do": "ai_send", "text": "Are there any scores defined in this project?",
+   "script": [
+     {"tool": "read_scores", "input": {}},
+     {"text": "There are none."}
+   ], "after_ms": 3000},
+  {"do": "ai_expect", "tag": "a-project-with-no-scores-says-so-and-offers-the-tool",
+   "expect": {"tools_offered": ["read_results", "read_scores", "run_calculator"],
+              "tool_results_contain": ["\"scores\": []", "\"defined_in_this_project\": 0", "cannot create, change or delete a score"],
+              "ledger_rows": 0, "pending": 0, "notes": 0, "send_enabled": true}},
+
+  {"do": "score_define", "label": "Polar window", "formula": "ramp(psa, 140, 60)", "inputs": [["psa", "descriptor:tpsa"]], "result_unit": "1",
+   "owner": "Alex Private", "note": "private note about my project",
+   "tag": "a-score-over-a-descriptor-that-is-already-computed", "after_ms": 1500, "expect": {"made": true}},
+  {"do": "score_define", "label": "Needs a calculator", "formula": "ob", "inputs": [["ob", "calculator:oxygen_balance:Oxygen balance (CO basis)"]],
+   "result_unit": "%", "tag": "a-score-over-a-calculator-nobody-has-run", "after_ms": 1500, "expect": {"made": true}},
+
+  {"do": "ai_send", "text": "What do my scores say about this molecule?",
+   "script": [
+     {"tool": "read_scores", "input": {}},
+     {"text": "One score has a value and one cannot be worked out yet."}
+   ], "after_ms": 3000},
+  {"do": "ai_expect", "tag": "a-score-with-inputs-has-a-number-and-one-without-is-a-refusal",
+   "expect": {"tools_offered": ["read_scores"],
+              "tool_results_contain": [
+                "\"name\": \"Polar window (user-defined, unvalidated)\"", "\"outcome\": \"computed\"", "\"formula\": \"ramp(psa, 140, 60)\"",
+                "\"declared_units\": \"1\"", "\"freshness\": \"current\"", "\"kind\": \"user_defined_score\"",
+                "\"name\": \"Needs a calculator (user-defined, unvalidated)\"", "\"outcome\": \"refused\"",
+                "has not been calculated for this molecule", "\"inputs_not_read\": [\"ob\"]",
+                "is not a prediction of anything and nothing has validated it"],
+              "tool_results_exclude": ["Alex Private", "private note about my project"],
+              "ledger_rows": 0, "pending": 0, "notes": 0, "send_enabled": true,
+              "transcript_contains": ["One score has a value"]}},
+  {"do": "score_results", "which": "Polar window", "tag": "reading-a-score-stored-nothing-and-did-not-run-anything",
+   "expect": {"entries": 2, "has_value": true, "value_between": [0.95, 0.96], "stored_as_results": 0}},
+  {"do": "expect_results", "tag": "the-calculator-the-refused-score-waits-on-was-not-started", "expect": {"oxygen_balance": "not_run"}},
+  {"do": "shot", "path": "artifacts/visual/ai_scores_refusal.png", "after_ms": 500},
+
+  {"do": "calculator", "id": "oxygen_balance", "reveal": false, "after_ms": 4000},
+  {"do": "ai_send", "text": "And now that oxygen balance is calculated? Also read one that does not exist.",
+   "script": [
+     {"tool": "read_scores", "input": {"scores": ["needs a calculator", "Imaginary"]}},
+     {"text": "It has a value now; Imaginary is not defined."}
+   ], "after_ms": 3000},
+  {"do": "ai_expect", "tag": "a-score-is-named-by-label-and-a-new-turn-sees-the-new-result",
+   "expect": {"tool_results_contain": [
+                "\"score_id\": \"user.needs_a_calculator\"", "\"outcome\": \"computed\"", "\"not_found\": [\"Imaginary\"]",
+                "\"defined_in_this_project\": 2", "\"state\": \"read\""],
+              "tool_results_exclude": ["Polar window", "\"outcome\": \"refused\""],
+              "ledger_rows": 0, "pending": 0, "notes": 0, "send_enabled": true}},
+
+  {"do": "ai_send", "text": "Please make me a score for lipophilicity.",
+   "script": [
+     {"tool": "read_scores", "input": {"molecule": "Aspirin"}},
+     {"text": "I cannot create one; here is formula text for you to enter in Tools > Derived Scores."}
+   ], "after_ms": 3000},
+  {"do": "ai_expect", "tag": "a-model-cannot-name-a-molecule-and-no-score-is-written",
+   "expect": {"tool_results_contain": ["was not run", "molecule"], "ledger_rows": 0, "pending": 0, "send_enabled": true}},
+  {"do": "score_results", "which": "Polar window", "tag": "still-two-scores-after-the-assistant-was-asked-for-a-third", "expect": {"entries": 2}},
+  {"do": "shot", "path": "artifacts/visual/ai_scores_final.png", "after_ms": 500},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

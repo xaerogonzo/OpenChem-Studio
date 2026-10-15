@@ -29,6 +29,10 @@ fails if a numeric value has no unit statement or the header is incomplete.
 sample of at most `Caps.atoms`, and the minimum, maximum and mean over ALL of them, with `truncated`
 stating how many were left out. Identity, units and caveats are never the thing dropped to make room.
 
+**A USER-DEFINED SCORE IS ANSWERED THE SAME WAY, THOUGH IT IS NOT A STORED RESULT** (`scores_view_envelope`, behind `read_scores`): a header that is always present (its label with the
+suffix `(user-defined, unvalidated)`, its formula, its declared unit, the definition's digest, every input with the state it was read in) and a `data` block only for a score that has a
+number. It says it is a formula a person wrote and is not a prediction; owner and note, which are a person's free text, are never sent.
+
 **A KIND WITH NO SAFE SERIALISER IS `unsupported`, NOT FORCED THROUGH A GENERIC DICT.** Its header still
 says what it is and where it came from; its numbers are not offered. Eight kinds are stored today and all
 eight are handled; the fallback is for the ninth nobody has taught this yet.
@@ -56,6 +60,11 @@ from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.refusal_kinds import REFUSAL_KEY, missing_inputs_of, refusal_kind_of_result
 from openchem.domain.report import Fact, ReportResult, StructureReport
 from openchem.domain.run_lifecycle import RunOutcome
+from openchem.domain.score_answer import LIMITATION as SCORE_LIMITATION
+from openchem.domain.score_definition import VALIDATION as SCORE_VALIDATION
+from openchem.domain.score_outputs import output_title
+from openchem.domain.score_reading import ScoresView
+from openchem.domain.score_value import InputEvidence, InputState, ScoreStatus, ScoreValue
 from openchem.domain.scientific_result import (
     AlertResult,
     PerAtomDataset,
@@ -470,6 +479,70 @@ def results_view_envelope(view: ResultsView, caps: Caps = FULL) -> dict[str, Any
             "A result is current only if its freshness says so. Anything not run is absent, never zero. "
             "Do not state a value that is not in a result here."
         ),
+    }
+
+
+#: Said with every score, because it is what a model reporting one most needs to be told.
+SCORE_NOT_A_PREDICTION = (
+    "A score is a formula a person wrote over numbers this application computes. It is not a prediction of anything and nothing has validated it: report it with its label and unit, "
+    "and never as an experimental or predicted property."
+)
+
+#: What a model is told about reading and changing scores, sent with every read.
+SCORES_NOTE = (
+    "Each score is worked out from this molecule's CURRENT results as of this turn (the drawing's, never a conformer's), so its value is current or it has none. "
+    "A score whose outcome is 'refused' has no value: say which input could not be read and why, and never state a value or treat it as zero. A unit of 1 means a plain number. "
+    "You cannot create, change or delete a score; you may suggest formula text for the person to enter in Tools > Derived Scores."
+)
+
+
+def _input_envelope(item: InputEvidence, caps: Caps) -> dict[str, Any]:
+    data: dict[str, Any] = {"name": item.name, "reads": output_title(item.output_id) or item.output_id, "output_id": item.output_id, "state": item.state.value}
+    if item.state is InputState.READ:
+        data["value"] = _n(item.value)
+        data["units"] = item.carried_as
+    else:
+        data["note"] = _t(item.note, caps.text)
+    return data
+
+
+def score_envelope_of(value: ScoreValue, caps: Caps = FULL) -> dict[str, Any]:
+    """One score as the model is told it: the header always, the number only when there is one."""
+    definition = value.definition
+    computed = value.status is ScoreStatus.VALUE
+    data: dict[str, Any] = {
+        "score_id": definition.score_id,
+        "name": definition.display_label,
+        "kind": "user_defined_score",
+        "validation": SCORE_VALIDATION,
+        "freshness": "current",
+        "freshness_note": "worked out from the molecule's current results as of this turn; a score is never stored",
+        "outcome": "computed" if computed else "refused",
+        "formula": _t(value.formula or definition.formula, caps.text),
+        "declared_units": definition.result_unit,
+        "definition": definition.digest,
+        "inputs": [_input_envelope(item, caps) for item in value.inputs[: caps.items]],
+        "constants": [{"name": c.name, "value": _n(c.value), "units": c.unit} for c in definition.constants[: caps.items]],
+        "caveats": [SCORE_LIMITATION, SCORE_NOT_A_PREDICTION],
+    }
+    if computed:
+        data["data"] = {"value": _n(value.value), "units": definition.result_unit}
+    else:
+        data["refusal"] = {"reason": _t(value.reason, caps.text * 2), "inputs_not_read": [i.name for i in value.inputs if i.state is not InputState.READ]}
+    return data
+
+
+def scores_view_envelope(view: ScoresView, caps: Caps = FULL) -> dict[str, Any]:
+    """A `ScoresView` as the dict `read_scores` returns."""
+    shown = view.values[: caps.items]
+    return {
+        "envelope_version": MODEL_ENVELOPE_VERSION,
+        "molecule_uuid": view.molecule_uuid,
+        "scores": [score_envelope_of(value, caps) for value in shown],
+        "not_found": list(view.not_found),
+        "defined_in_this_project": view.defined,
+        "left_out_for_length": view.truncated + (len(view.values) - len(shown)),
+        "note": SCORES_NOTE,
     }
 
 
