@@ -2525,6 +2525,36 @@ what can be verified.
   `tests/test_namer_known_defects.py`. Three earlier tests pinned refusals this round turned into names and now pin the cases still refused: a carboxylate beside two neutral acids
   (`test_namer_round43_*`, `test_namer_round45_*`) and a pyrazolone anion (`test_namer_round46_*`).
 
+## 2026-10-15 -- naming round 54: the limitations rounds 50 to 53 left open (D-256 .. D-264)
+
+Round 53's open list, all of it: the ureas, the lactam and pyrazolone anions, the amidinium beside acids, the oxime anion, the strict-ownership double claim, an anion beside another charge, and an audit of
+the engine's acyl blocks for the second-acid defect. Baseline on master (round 53 tree): anions 1042 of 1046; cations 2046 of 2081 (27 refused); quaternary 2059 of 2081.
+
+* **D-256 (silent wrong molecule).** The audit of the acylamino blocks of `engine.py` found it: `[NH3+]c1ccc(NC(=S)CC(=O)O)cc1` was `{[hydroxy(thioxo)methyl]acetamido}`. Replacing a thioamide's N by OH makes a
+  THIO acid, so the other acid was the only `carboxylic_acid` and became the parent, and the O and S swapped. A thioamide beside any second acid now goes to the generic path (`2-carboxy-1-thioxoethyl`).
+  The oxo/oxo acylamino blocks were correct (measured on twelve shapes, all read back).
+* **D-257.** `_classify_oxonium_urea`: an acyclic O+ double-bonded to a carbon that holds two heteroatoms (a urea, a carbamate, a guanidine-like carbonyl) is the cation parent, `(diaminomethylidene)oxidanium`,
+  rendered by `_render_iminium_hetero` with `oxidanium` for the ending. A ring sulfoxide cation (`(1lambda4-thiolan-1-ylidene)oxidanium`) was checked through OPSIN and reads back.
+* **D-258 (silent wrong molecule).** `_name_branch_as_prefix` cuts a branch off the molecule; a stereo centre (`[C@H]`) carries its hydrogen as an explicit count with implicit hydrogens off, so the cut left a
+  RADICAL `[CH]1C=CCOC1`, which was named `oxan-3-yl`: the ring double bond lost. The carbon gets its implicit hydrogens back.
+* **D-259 (silent stereo loss).** The same cut dropped the CIP descriptor of the attachment atom: `acetyl(butan-2-yl)azanide` for `CC[C@H](C)[N-]C(C)=O`, where the group on an oxygen is `[(2S)-butan-2-yl]oxy`.
+  `_with_attachment_stereo` adds the label the centre has in the WHOLE molecule (its nitrogen is a ligand), in locant order with the group's own descriptors.
+* **D-260.** A lactam anion the engine names with a ketone SUFFIX was `3,4-dihydroquinolin-2(1H)-on-1-ide`, which OPSIN cannot parse. The `ide` goes in as an infix before the suffix:
+  `3,4-dihydroquinolin-1-id-2(1H)-one` (measured, read back). The charge guard's anion word learned the `-N-id-` infix.
+* **D-261.** `_render_amidinium_zwitterion` masked at most ONE neutral acid as a methyl ester. It masks every one now, with at most one carboxylate (or none, for two or more acids), and reads back a repeated
+  group (`bis(methoxycarbonyl)` -> `dicarboxy`): `3-carboxylato-2,2-dicarboxypropanamidinium`, `3,5-dicarboxybenzamidinium`.
+* **D-262.** `_restore_dropped_oximate`: a deprotonated amidoxime the plan search wrote with a neutral `hydroxyimino` (`1-[1-(hydroxyimino)ethyl]pyrrolidine`, which the guard refused) cites `oxidoimino`, which
+  OPSIN reads as the anion. Done only for a single O- on an oxime nitrogen whose neutral prefix occurs exactly once.
+* **D-263.** `NC([S-])=NC(=O)c1ccccc1` claimed its carbonyl oxygen twice (strict ownership raised, the default mode renamed it via a second plan). The amide split in `SubstitutivePath.execute` put an `oxo` at the
+  anchor for every chalcogen in the demoted group's atoms, defaulting the bond order to 2 for an oxygen that is not bonded to the anchor at all (the N-acyl substituent's carbonyl). It skips such an atom now.
+  The name is `amino(benzoylimino)methanethiolate` in both modes.
+* **D-264.** `_classify_azanide` required exactly one charge in the molecule. The anion is the senior class (P-41), so it is the parent and a CATION elsewhere is a prefix, as `4-(azaniumylmethyl)benzoate` is for
+  a carboxylate: only one NEGATIVE charge is allowed, and the positive ones are claimed with it. `acetyl[4-(azaniumylmethyl)phenyl]azanide`.
+* Also: enclosing marks in an iminium or oxonium prefix now nest `( )` in `[ ]` in `{ }`. The population tool's verdict normalises the sulfoxide cation's two drawings.
+* **Measured.** Anions 1044 of 1046; cations 2061 of 2081, quaternary 2074 of 2081; NO wrong name in any population. Every new name reads back through OPSIN. Census 1993 exact, unchanged. Vendored suite and
+  known-defects file: all passed. App naming group: all passed after five tests that pinned old refusals or names were repointed (round 43, 45, 46, 49, 52). 10 of 10 live mutants killed.
+* New `tests/test_namer_round54_open_limitations.py` (60 tests). D-256 to D-264 in the fixed table of `tests/test_namer_known_defects.py`.
+
 ## 2026-10-15 -- naming round 53: nitrilium cations with a heteroatom, O-protonated sulfoxides, an acyl prefix that dropped its free acid (D-253, D-254, D-255)
 
 Round 52's open list: 77 refused nitrilium cations and 6 refused O-protonated sulfoxides. Baseline on master (round 52 tree): cations 1964 of 2081 ok (108 refused); quaternary 2054 of 2081.
