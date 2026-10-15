@@ -137,10 +137,6 @@ def test_a_protonated_amide_and_isourea_keep_their_names():
     assert name_smiles("COC(N)=[OH+]") == "[amino(methoxy)methylidene]oxidanium"
 
 
-def test_two_anions_in_one_molecule_are_still_refused_or_errored_not_named_wrong():
-    """An amide anion beside a phenolate (two anions) is outside D-264: it must stay a visible failure, never a name that drops a charge."""
-    try:
-        name = name_smiles("CC(=O)[N-]c1ccc([O-])cc1")
-    except ValueError:
-        return
-    assert "NAMING ERROR" in name or ("azanide" in name and "olate" in name) or ("oxido" in name and "azanide" in name)
+def test_two_anions_in_one_molecule_are_named_since_round_56():
+    """Round 54 left an amide anion beside a phenolate a visible failure; round 56 cites the second anion as an `azanidyl` prefix (see test_namer_round56_*)."""
+    assert name_smiles("CC(=O)[N-]c1ccc([O-])cc1") == "4-(acetylazanidyl)benzen-1-olate"
