@@ -1443,3 +1443,44 @@ def test_a_partial_set_reruns_the_provider_with_its_geometry_in_one_request(wind
 
     assert calls == [(held.uuid, DRAWING, {"rdkit"})], "the geometry run was asked for separately, or not at all"
     _assert_shape_computed(window, "partial rerun")
+
+
+class _HeldPool:
+    """Keeps every task the service starts, so a test decides which finishes first."""
+
+    def __init__(self) -> None:
+        self.tasks: list = []
+
+    def start(self, task) -> None:
+        self.tasks.append(task)
+
+    def run_descriptor_tasks(self, *calculation_inputs: str) -> None:
+        from openchem.services.descriptor_service import _DescriptorComputeTask
+
+        for calculation_input in calculation_inputs:
+            for task in [t for t in self.tasks if isinstance(t, _DescriptorComputeTask)]:
+                if task._calculation_input == calculation_input:
+                    task.run()
+
+
+def test_a_conformer_that_lands_while_the_drawing_run_is_waiting_shows_its_values(window, qapp):
+    """The other order from the restore path: the selection came first, the conformer second.
+
+    Real window, real bus, real panel and `_on_conformers_changed`; only the pool is held, so the
+    geometry run finishes BEFORE the drawing run that was dispatched ahead of it -- the order that
+    left all ten shape descriptors FAILED (263 of 300 runs on aspirin when the conformer landed
+    within 10 ms of the selection).
+    """
+    from openchem.events.events import ConformersChanged
+
+    a, _b = _two_molecule_project(window)
+    pool = _HeldPool()
+    window._services.descriptor_service._pool = pool
+
+    _select(window, qapp, a)  # the drawing run is dispatched and held: no conformer yet
+    a.conformers.append(_conformer(window._services.chemistry_engine, a, 7))
+    window._services.event_bus.publish(ConformersChanged(molecule_uuid=a.uuid))
+    pool.run_descriptor_tasks(GEOMETRY, DRAWING)
+    _drain(qapp)
+
+    _assert_shape_computed(window, "the conformer landed while the drawing run was waiting")
