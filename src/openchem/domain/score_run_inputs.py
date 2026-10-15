@@ -13,8 +13,9 @@ from dataclasses import dataclass
 
 from openchem.domain.score_definition import ScoreDefinition
 
-#: The two prefixes of a batch column id, which is what a score names (`score_outputs.ApprovedOutput.output_id`): `descriptor:<id>` and `calculator:<calculator id>:<fact label>`.
+#: The prefix of an always-on property's batch column id, which is what a score names (`score_outputs.ApprovedOutput.output_id`): `descriptor:<id>`.
 DESCRIPTOR_PREFIX = "descriptor:"
+#: The prefix of a calculator's batch column id: `calculator:<calculator id>:<fact label>`.
 CALCULATOR_PREFIX = "calculator:"
 
 

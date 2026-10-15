@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Derived scores: tick what they read
+- **Presets > Tick what my scores read (N)** in Properties (shown when the project has scores): ticks the calculators your scores read and adds the always-on properties they read to a project run, **on top of what you had
+  ticked**, so the run gives every score a column. It never unticks or narrows anything; a calculator the launcher is not offering is named and left unticked; and scores that read only always-on properties are told that
+  Run selected still needs a calculator ticked. Until now the only help was the note under the table, after the run.
+- **The status line beside Run selected shows its whole text on hover.** It is one line and clips; the sentence worth reading (what a run left out) was the part that was cut off.
+
 ### Derived scores, slice 4d: the assistant can propose a score, and only a person can save one
 - **Two new assistant tools:** `list_score_outputs` (what a score's formula may read) and `propose_score`. A proposal is checked by exactly the rules a score you typed meets, and if it passes **a card appears in the
   assistant's panel** with the formula, what each input reads, the declared unit, what it gives for the selected molecule, and who it will say wrote it. **Nothing is saved unless you press Approve**; Cancel saves nothing; the
