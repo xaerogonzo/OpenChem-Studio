@@ -25,8 +25,18 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
-from openchem.domain.result_envelope import CAP_STEPS, Caps, outcome_envelope, results_view_envelope, scores_view_envelope
+from openchem.domain.result_envelope import (
+    CAP_STEPS,
+    Caps,
+    outcome_envelope,
+    results_view_envelope,
+    score_outputs_envelope,
+    score_proposal_envelope,
+    score_refusal_envelope,
+    scores_view_envelope,
+)
 from openchem.domain.run_lifecycle import RunState
+from openchem.domain.score_proposal import ProposalRefusal, card_of
 from openchem.domain.turn_snapshot import TurnContext
 from openchem.plugins.calculation_access import PluginCalculations
 
@@ -188,6 +198,27 @@ class ToolBridge:
             return self._unavailable()
         view = self._calculations.read_scores(self._turn, list(scores) if scores else None)
         return bounded_json(lambda caps: scores_view_envelope(view, caps))
+
+    def list_score_outputs(self) -> str:
+        """What a score's formula may read. Fixed knowledge: it reads nothing of the user's molecule."""
+        return bounded_json(lambda caps: score_outputs_envelope(caps))
+
+    def propose_score(self, request: dict[str, Any]) -> str:
+        """Check a request for a score and leave it for the person to approve. **Stores nothing**, and has no way to: the approving is on an object this bridge is never given."""
+        if not self.available:
+            return self._unavailable()
+        result = self._calculations.propose_score(self._turn, request)
+        molecule = self._turn.display_name
+        if isinstance(result, ProposalRefusal):
+            label = request.get("label") if isinstance(request, dict) and isinstance(request.get("label"), str) else "a score"
+            self._emit(BridgeEvent(kind="refused", calculator=f"score {label!r}", molecule=molecule, detail=result.message))
+            return bounded_json(lambda caps: score_refusal_envelope(result, caps))
+        proposal = result.proposal
+        if not result.already_waiting:
+            self._emit(BridgeEvent(
+                kind="score_proposed", calculator=f"score {proposal.definition.label!r}", molecule=molecule, run_id=proposal.proposal_id, preparation=card_of(proposal),
+            ))
+        return bounded_json(lambda caps: score_proposal_envelope(result, caps))
 
     def run_calculator(self, calculator_id: str, parameters: dict[str, Any] | None = None) -> str:
         if not self.available:

@@ -77,6 +77,19 @@ from openchem.domain.run_lifecycle import (
     RunOutcome,
     RunState,
 )
+from openchem.domain.score_definition import MAX_DEFINITIONS
+from openchem.domain.score_formula import FormulaError
+from openchem.domain.score_proposal import (
+    ProposalBook,
+    ProposalOutcome,
+    ProposalProblem,
+    ProposalRefusal,
+    ProposalState,
+    Registered,
+    ScoreProposal,
+    check_request,
+)
+from openchem.domain.score_value import evaluate_score
 from openchem.domain.turn_snapshot import DEFAULT_READ_LIMIT, ResultsView, TurnContext, build_turn_context, read_results
 from openchem.events.events import CalculationFinished, ResultRecorded
 from openchem.services.container import ServiceContainer
@@ -109,6 +122,9 @@ class CalculationHost(QObject):
     #: A run reached a final state (including one voided before it started). For the panel.
     finished = Signal(object)
 
+    #: A score the assistant proposed was decided: saved, cancelled, voided or refused when it was saved (a `ProposalOutcome`). For the panel.
+    score_finished = Signal(object)
+
     _dispatch_requested = Signal(str)
 
     def __init__(self, services: ServiceContainer, session: SessionManager, parent: QObject | None = None) -> None:
@@ -126,6 +142,8 @@ class CalculationHost(QObject):
         self._inflight: dict[tuple[str, str], list[str]] = {}
         #: run id -> the result recorded for it, held until the matching "finished" arrives.
         self._recorded: dict[str, StoredResult] = {}
+        #: The scores the assistant proposed that wait for a person. Nothing in it is stored: only `approve_score` makes a score, on the GUI thread, for a button.
+        self._proposals = ProposalBook()
         self._dispatch_requested.connect(self._on_dispatch_requested, Qt.ConnectionType.QueuedConnection)
         services.event_bus.subscribe(ResultRecorded, self._on_result_recorded)
         services.event_bus.subscribe(CalculationFinished, self._on_calculation_finished)
@@ -144,6 +162,7 @@ class CalculationHost(QObject):
         """
         self._require_gui_thread("begin_turn")
         project = self._session.project
+        self._void_stale_proposals(project.uuid if project is not None else "")
         molecule_uuid = self._session.selected_molecule_uuid
         if project is None or molecule_uuid is None:
             return None
@@ -190,6 +209,78 @@ class CalculationHost(QObject):
         if service is None or service.project is None or service.project.uuid != project.uuid:
             return ()
         return tuple(service.store.definitions())
+
+    # --- a score the assistant proposes, and a person approves --------------------------------------------
+
+    def propose_score(self, turn: TurnContext, request: Any) -> Registered | ProposalRefusal:
+        """Check a model's request for a score against every rule a typed definition meets, and hold it for a person. **Any thread. Stores nothing.**
+
+        The preview in the proposal is what it gives for the turn's molecule from the turn's FROZEN results, so what the card says and what the model was told are one number.
+        """
+        service = getattr(self._services, "score_service", None)
+        if service is None or service.project is None or service.project.uuid != turn.project_uuid:
+            return ProposalRefusal(ProposalProblem.NO_PROJECT, "the open project cannot hold a score right now (none is open, or it is not the one this conversation began in)")
+        if len(turn.scores) >= MAX_DEFINITIONS:
+            return ProposalRefusal(ProposalProblem.PROJECT_FULL, f"the project already holds {len(turn.scores)} scores, the most one may")
+        checked = check_request(request, service.reserved_names())
+        if isinstance(checked, ProposalRefusal):
+            return checked
+        preview = evaluate_score(checked, turn.entries)
+        proposal = ScoreProposal(ProposalBook.new_id(), turn.project_uuid, turn.molecule_uuid, turn.display_name, checked, preview)
+        return self._proposals.register(proposal)
+
+    def pending_scores(self) -> tuple[ScoreProposal, ...]:
+        """The proposals waiting for a person, oldest first."""
+        return self._proposals.pending()
+
+    def approve_score(self, proposal_id: str) -> ProposalOutcome | None:
+        """A person approved a proposed score: make it, through the same service the Derived Scores window uses. **GUI thread**, for a button.
+
+        The score is exactly the definition that was proposed and shown (the model's request is not read again). It is refused, and says why, if the project is no longer the one it was
+        proposed in or the rules now refuse it (a label that has since become too close to a name, a project that has filled). Returns what became of it; asking again about one that is
+        decided returns the same outcome and does nothing.
+        """
+        self._require_gui_thread("approve_score")
+        proposal = self._proposals.get(proposal_id)
+        if proposal is None:
+            return self._proposals.outcome_of(proposal_id)
+        service = getattr(self._services, "score_service", None)
+        project = self._session.project
+        if service is None or service.project is None or project is None or not (service.project.uuid == project.uuid == proposal.project_uuid):
+            return self._settle_score(proposal_id, ProposalState.VOID, "the project is not the one this score was proposed in, so nothing was saved")
+        definition = proposal.definition
+        try:
+            made = service.create(
+                label=definition.label, formula=definition.formula, result_unit=definition.result_unit, inputs=list(definition.inputs),
+                constants=list(definition.constants), owner=definition.owner, note=definition.note,
+            )
+        except FormulaError as exc:
+            return self._settle_score(proposal_id, ProposalState.FAILED, f"it could not be saved: {exc.message}")
+        except ValueError as exc:
+            return self._settle_score(proposal_id, ProposalState.FAILED, f"it could not be saved: {exc}")
+        return self._settle_score(proposal_id, ProposalState.SAVED, f"saved as {made.score_id}", made.score_id)
+
+    def cancel_score(self, proposal_id: str) -> bool:
+        """A person declined a proposed score. Nothing is saved. **GUI thread.**"""
+        self._require_gui_thread("cancel_score")
+        return self._settle_score(proposal_id, ProposalState.CANCELLED, "cancelled by the user; nothing was saved") is not None
+
+    def score_state_of(self, proposal_id: str) -> ProposalState | None:
+        return self._proposals.state_of(proposal_id)
+
+    def score_outcome_of(self, proposal_id: str) -> ProposalOutcome | None:
+        return self._proposals.outcome_of(proposal_id)
+
+    def _settle_score(self, proposal_id: str, state: ProposalState, message: str, score_id: str = "") -> ProposalOutcome | None:
+        outcome = self._proposals.settle(proposal_id, state, message, score_id)
+        if outcome is not None:
+            self.score_finished.emit(outcome)
+        return outcome
+
+    def _void_stale_proposals(self, project_uuid: str) -> None:
+        """At Send: a proposal made in another project (or when none is open) can never be saved, so it is decided now and its card goes."""
+        for outcome in self._proposals.void_outside(project_uuid, "the project changed, so nothing was saved"):
+            self.score_finished.emit(outcome)
 
     # --- discovery and reading (any thread) ---------------------------------------------------------
 

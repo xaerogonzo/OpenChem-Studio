@@ -62,7 +62,8 @@ from openchem.domain.report import Fact, ReportResult, StructureReport
 from openchem.domain.run_lifecycle import RunOutcome
 from openchem.domain.score_answer import LIMITATION as SCORE_LIMITATION
 from openchem.domain.score_definition import VALIDATION as SCORE_VALIDATION
-from openchem.domain.score_outputs import output_title
+from openchem.domain.score_outputs import APPROVED, ENDPOINTS, output_title
+from openchem.domain.score_proposal import ASSISTANT_OWNER, ProposalRefusal, Registered
 from openchem.domain.score_reading import ScoresView
 from openchem.domain.score_value import InputEvidence, InputState, ScoreStatus, ScoreValue
 from openchem.domain.scientific_result import (
@@ -544,6 +545,64 @@ def scores_view_envelope(view: ScoresView, caps: Caps = FULL) -> dict[str, Any]:
         "left_out_for_length": view.truncated + (len(view.values) - len(shown)),
         "note": SCORES_NOTE,
     }
+
+
+#: What a model is told with the list of outputs a score may read.
+SCORE_OUTPUTS_NOTE = (
+    "Name an output in propose_score by its output_id. `unit` is how to write that output's unit for a constant or the result_unit (for example 'Å^2'); `1` is a plain number. "
+    "Two outputs with the same endpoint estimate one quantity and cannot be in one score. Units are never converted: a formula that adds two different units is refused, and a bare number "
+    "in a formula takes the unit of what it is added to or compared with."
+)
+
+#: What a model is told when a proposal is waiting, which is what it most needs to say correctly to the person.
+SCORE_PROPOSAL_NOTE = (
+    "A card showing this score is on the user's screen. NOTHING IS SAVED until they press Approve, and you cannot approve it: say that it is waiting for them, never that it is saved or "
+    "that you created it. Do not propose it again; you will be told what they decided with their next message. If it is approved the owner is recorded as the AI assistant."
+)
+
+
+def score_outputs_envelope(caps: Caps = FULL) -> dict[str, Any]:
+    """The outputs a score may read, as `list_score_outputs` returns them."""
+    shown = APPROVED[: caps.items]
+    return {
+        "envelope_version": MODEL_ENVELOPE_VERSION,
+        "outputs": [
+            {"output_id": entry.output_id, "reads": output_title(entry.output_id) or entry.output_id, "unit": entry.unit, "endpoint": entry.endpoint, "measures": ENDPOINTS.get(entry.endpoint, "")}
+            for entry in shown
+        ],
+        "left_out_for_length": len(APPROVED) - len(shown),
+        "note": SCORE_OUTPUTS_NOTE,
+    }
+
+
+def score_proposal_envelope(registered: Registered, caps: Caps = FULL) -> dict[str, Any]:
+    """A proposal that is waiting for a person, as the model is told: what it would be and give, and that nothing is saved."""
+    proposal = registered.proposal
+    score = score_envelope_of(proposal.preview, caps)
+    score.pop("score_id", None)  # the draft's id is not the id it will have, and a model must not refer to it
+    return {
+        "ok": True,
+        "state": "awaiting_approval",
+        "proposal_id": proposal.proposal_id,
+        "already_waiting": registered.already_waiting,
+        "molecule_uuid": proposal.molecule_uuid,
+        "score": score,
+        "owner_if_approved": ASSISTANT_OWNER,
+        "message": SCORE_PROPOSAL_NOTE,
+    }
+
+
+def score_refusal_envelope(refusal: ProposalRefusal, caps: Caps = FULL) -> dict[str, Any]:
+    """A request that was not made a proposal, said in the request's own terms so the model can fix it. Nothing is on the user's screen."""
+    data: dict[str, Any] = {"ok": False, "problem": refusal.problem.value, "message": _t(refusal.message, caps.text * 2), "nothing_saved": True}
+    if refusal.where:
+        data["where"] = refusal.where
+    if refusal.rule:
+        data["rule"] = refusal.rule
+    if refusal.position is not None:
+        data["position_in_formula"] = refusal.position
+    data["next"] = "nothing is on the user's screen; correct the request and call propose_score again, or tell the user what cannot be done"
+    return data
 
 
 def outcome_envelope(outcome: RunOutcome, caps: Caps = FULL) -> dict[str, Any]:

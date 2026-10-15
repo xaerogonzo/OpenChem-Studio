@@ -34,7 +34,8 @@ from typing import Any
 from openchem.domain.score_constants import Constant
 from openchem.domain.score_definition import ScoreDefinition, check_score_definition
 from openchem.domain.score_formula import FormulaError
-from openchem.domain.score_value import ScoreValue
+from openchem.domain.score_outputs import output_title
+from openchem.domain.score_value import ScoreStatus, ScoreValue
 
 #: Who an approved score says wrote it. Fixed here: a model cannot choose it, and a person reading the owner in the Derived Scores window sees where the formula came from.
 ASSISTANT_OWNER = "AI assistant (you approved it)"
@@ -64,6 +65,8 @@ class ProposalProblem(str, Enum):
     TOO_MANY_WAITING = "too_many_waiting"
     #: There is no project to hold a score, or the score service is holding another one.
     NO_PROJECT = "no_project"
+    #: The project already holds as many scores as one may.
+    PROJECT_FULL = "project_full"
 
 
 @dataclass(frozen=True)
@@ -217,6 +220,35 @@ def _where_of(exc: FormulaError) -> str:
         "syntax": "formula", "limit": "formula", "name": "formula", "function": "formula", "exponent": "formula",
         "inputs": "inputs", "output": "inputs", "consensus": "inputs", "constant": "constants", "unit": "result_unit", "definition": "label",
     }.get(exc.problem.value, "")
+
+
+# --- the card --------------------------------------------------------------------------------------------------------------------------------
+
+
+def card_of(proposal: ScoreProposal) -> dict[str, Any]:
+    """What a person is shown to decide on a proposal, as plain text: the label as it will be shown, the formula, each input and constant with its unit, the declared unit, what
+    it gives for the molecule that was selected, and who it will say wrote it. Nothing a model could dress up: every line is the definition's own."""
+    definition = proposal.definition
+    value = proposal.preview
+    inputs = [f"{name} = {output_title(output_id) or output_id}" for name, output_id in definition.inputs]
+    constants = [f"{constant.name} = {constant.value:.6g} {constant.unit}" for constant in definition.constants]
+    unit = "" if definition.result_unit == "1" else f" {definition.result_unit}"
+    if value.status is ScoreStatus.VALUE:
+        preview = f"For {proposal.molecule_name}: {value.value:.4g}{unit}"
+    else:
+        preview = f"For {proposal.molecule_name}: no value yet. {value.reason}"
+    return {
+        "proposal_id": proposal.proposal_id,
+        "label": definition.display_label,
+        "formula": definition.formula,
+        "inputs": inputs,
+        "constants": constants,
+        "declared_unit": definition.result_unit,
+        "preview": preview,
+        "molecule": proposal.molecule_name,
+        "owner": definition.owner,
+        "note": definition.note,
+    }
 
 
 # --- the book --------------------------------------------------------------------------------------------------------------------------------

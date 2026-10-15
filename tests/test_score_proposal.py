@@ -15,6 +15,7 @@ from openchem.domain.score_definition import ON_MISSING_REFUSE, ScoreDefinition
 from openchem.domain.score_formula import Problem
 from openchem.domain.score_proposal import (
     ASSISTANT_OWNER,
+    card_of,
     DRAFT_ID,
     MAX_PENDING,
     REQUEST_KEYS,
@@ -262,3 +263,46 @@ def test_the_problems_a_rule_can_raise_all_have_a_place_in_the_request():
     """`_where_of` is a table over the rule problems: a new one that nobody placed would come back with no field."""
     placed = {"syntax", "limit", "name", "function", "exponent", "inputs", "output", "consensus", "constant", "unit", "definition"}
     assert {problem.value for problem in Problem} == placed, "a rule problem nobody placed would come back from a proposal with no field"
+
+
+# --- the card -----------------------------------------------------------------------------------------------------------------------------------
+
+
+def _calculated_proposal(*, value_for_psa: float = 63.6) -> ScoreProposal:
+    from openchem.domain.calculator import DRAWING
+    from openchem.domain.common import CacheState
+    from openchem.domain.descriptor import DescriptorValue
+    from openchem.domain.result_store import ResultIdentity, StoredResult
+    from openchem.domain.turn_snapshot import classify_results
+
+    result = DescriptorValue("tpsa", "tpsa", "Å²", "c", "rdkit", "m1", value=value_for_psa, cache_state=CacheState.COMPLETED)
+    stored = StoredResult(ResultIdentity("m1", "descriptor:rdkit:tpsa", DRAWING, "fp", "rdkit"), result)
+    entries = classify_results([stored], [stored], {DRAWING: "fp"})
+    definition = check_request(_request(formula="ramp(psa, hi, 60)", inputs=[{"name": "psa", "output": _TPSA}]))
+    return ScoreProposal("p1", "project-1", "m1", "Aspirin", definition, evaluate_score(definition, entries))
+
+
+def test_the_card_says_what_a_person_decides_on_in_plain_lines():
+    card = card_of(_calculated_proposal())
+    assert card["proposal_id"] == "p1" and card["label"] == "Polar window (user-defined, unvalidated)" and card["formula"] == "ramp(psa, hi, 60)"
+    assert card["inputs"] == ["psa = tpsa"]
+    assert card["constants"] == ["hi = 140 Å^2"] and card["declared_unit"] == "1" and card["molecule"] == "Aspirin" and card["owner"] == ASSISTANT_OWNER and card["note"] == "a first try"
+    assert card["preview"] == "For Aspirin: 0.955"
+
+
+def test_the_card_gives_the_unit_after_a_number_that_has_one_and_not_after_a_plain_number():
+    definition = check_request(_request(formula="psa", inputs=[{"name": "psa", "output": _TPSA}], result_unit="Å^2", constants=[]))
+    from openchem.domain.score_value import evaluate_score as evaluate
+
+    proposal = ScoreProposal("p1", "project-1", "m1", "Aspirin", definition, evaluate(definition, ()))
+    assert card_of(proposal)["declared_unit"] == "Å^2" and card_of(proposal)["preview"].startswith("For Aspirin: no value yet.")
+
+
+def test_a_score_nothing_has_been_calculated_for_says_why_it_has_no_value_yet():
+    card = card_of(_proposal())
+    assert card["preview"].startswith("For Aspirin: no value yet.") and "has not been calculated for this molecule" in card["preview"]
+
+
+def test_the_card_is_the_definitions_own_words_and_nothing_a_model_could_add():
+    card = card_of(_calculated_proposal())
+    assert set(card) == {"proposal_id", "label", "formula", "inputs", "constants", "declared_unit", "preview", "molecule", "owner", "note"}
