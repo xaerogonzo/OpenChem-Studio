@@ -1,0 +1,30 @@
+[
+  {"do": "smiles", "smiles": "CC(=O)Oc1ccccc1C(=O)O", "name": "Aspirin", "after_ms": 800},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "conformers", "count": 2, "after_ms": 9000},
+  {"do": "descriptors_report", "tag": "aspirin-conformer-generated-this-session",
+   "geometric_values": {"pmi1": null, "pbf": null, "radius_of_gyration": null}, "equals_drawing": true},
+
+  {"do": "save_project", "path": "artifacts/visual/descriptors_restored_with_a_conformer.ocsproj", "results": false,
+   "after_ms": 1500},
+  {"do": "open_project", "path": "artifacts/visual/descriptors_restored_with_a_conformer.ocsproj", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 5000},
+  {"do": "panel", "id": "Properties", "after_ms": 500},
+  {"do": "descriptors_report", "tag": "aspirin-opened-holding-a-conformer-and-no-results",
+   "values": {"sa_score": 1.58, "bertz_ct": 343.22, "labute_asa": 74.76, "num_hba": 3},
+   "geometric_values": {"pmi1": null, "pmi2": null, "pmi3": null, "npr1": null, "npr2": null, "pbf": null,
+                        "radius_of_gyration": null, "asphericity": null, "spherocity_index": null,
+                        "inertial_shape_factor": null},
+   "equals_drawing": true, "alerts_equal_drawing": true},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/descriptors_restored_with_a_conformer.png"},
+
+  {"do": "project_run", "calculators": ["polar_surface_area"], "scope": "chosen", "chosen": [1], "descriptors": true,
+   "descriptor_ids": ["sa_score", "bertz_ct", "num_hba", "labute_asa", "pmi1"], "alert_ids": ["brenk"],
+   "after_ms": 7000},
+  {"do": "expect_project_table", "tag": "aspirin-project-table-after-reopening", "showing": true,
+   "columns_contain": ["Synthetic Accessibility", "Principal Moment of Inertia 1"],
+   "cells": {"Aspirin": {"Synthetic Accessibility": 1.58, "Principal Moment of Inertia 1": "number"}}},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]
