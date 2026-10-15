@@ -671,6 +671,8 @@ class MainWindow(QMainWindow):
             # So a batch selection is not reassembled from 91 check boxes
             # every launch. IDS are stored, never tree positions.
             settings=settings,
+            # The same lookup the Results dock's project table gets, so a score is a column of this table too.
+            score_definitions=self._score_definitions,
         )
 
         # Connected after the panels exist, since the handler reads them.

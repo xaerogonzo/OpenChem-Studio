@@ -607,3 +607,65 @@ def test_a_score_the_run_did_not_compute_the_inputs_of_is_named_in_the_table_not
     qapp.processEvents()
     assert not any(c.source == "score" for c in view.table().columns)
     assert not view._score_note.isHidden() and "mol_logp" in view._score_note.text() and LABEL in view._score_note.text()
+
+
+# --- the Batch panel's own table ---------------------------------------------------------------------------------------------------------
+
+
+def _press_batch_run(window, qapp, *property_ids):
+    """The Batch panel's REAL Fill-table button, with only these properties ticked, and the run waited out."""
+    panel = window._batch_panel
+    panel._clear_selection()
+    for property_id in property_ids:
+        panel.check(property_id)
+    assert panel._run_button.isEnabled(), "the Fill table button is pressable"
+    panel._run_button.click()
+    _drain(qapp)
+    return panel
+
+
+def _batch_grid(panel) -> dict[str, dict[str, str]]:
+    grid = panel._results
+    headers = [grid.horizontalHeaderItem(i).text() for i in range(grid.columnCount())]
+    return {grid.item(r, 0).text(): {headers[c]: grid.item(r, c).text() for c in range(1, grid.columnCount())} for r in range(grid.rowCount())}
+
+
+def test_a_score_is_a_column_of_the_batch_panel_s_own_table_after_its_real_run_and_agrees_with_the_results_reader(window, pair, qapp):
+    aspirin, ethanol = pair
+    made = _make(window)
+    panel = _press_batch_run(window, qapp, "tpsa", "mol_logp")
+    column = next(c for c in panel._view.table().columns if c.source == "score")
+    assert column.label == LABEL and column.column_id == f"score:{made.score_id}"
+    shown = _batch_grid(panel)
+    assert set(shown) == {"Aspirin", "Ethanol"}
+    for molecule in (aspirin, ethanol):
+        assert shown[molecule.display_name][LABEL] != "—"
+        _select(window, qapp, molecule)
+        assert float(shown[molecule.display_name][LABEL]) == pytest.approx(_report(window).facts[0].value, abs=5e-3)
+
+
+def test_a_score_defined_while_the_batch_panel_holds_a_table_joins_it_at_once_and_a_removed_one_leaves(window, pair, qapp):
+    panel = _press_batch_run(window, qapp, "tpsa", "mol_logp")
+    assert not any(c.source == "score" for c in panel._view.table().columns)
+    made = _make(window)
+    qapp.processEvents()
+    assert any(c.source == "score" for c in panel._view.table().columns) and LABEL in _batch_grid(panel)["Aspirin"]
+    window._services.score_service.remove(made.score_id)
+    qapp.processEvents()
+    assert not any(c.source == "score" for c in panel._view.table().columns) and LABEL not in _batch_grid(panel)["Aspirin"]
+
+
+def test_the_batch_panel_and_the_results_dock_hold_the_same_score_columns_for_the_same_run(window, pair, qapp):
+    aspirin, ethanol = pair
+    _make(window)
+    panel = _press_batch_run(window, qapp, "tpsa", "mol_logp")
+    dock = window._results_workspace.table_view
+    event = _run_batch(window, qapp, [aspirin, ethanol], ["tpsa", "mol_logp"], [])
+    window._results_workspace.begin_project_run(type("Plan", (), {"run_id": "run-1"})())
+    dock.apply_progress(event, adopt=True)
+    batch_cells = _batch_grid(panel)
+    dock_grid = dock._results
+    dock_headers = [dock_grid.horizontalHeaderItem(i).text() for i in range(dock_grid.columnCount())]
+    column = dock_headers.index(LABEL)
+    for r in range(dock_grid.rowCount()):
+        assert dock_grid.item(r, column).text() == batch_cells[dock_grid.item(r, 0).text()][LABEL]
