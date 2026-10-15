@@ -1495,6 +1495,7 @@
   "tests/test_polarity_and_balance.py": 3,
   "tests/test_polarizability_methods.py": 0,
   "tests/test_polarizability_miller.py": 0,
+  "tests/test_polarizability_typed.py": 2,
   "tests/test_pop_out_host.py": 1,
   "tests/test_pose_analysis.py": 2,
   "tests/test_pose_analysis_metals.py": 3,

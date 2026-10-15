@@ -324,7 +324,9 @@ def test_the_outputs_a_score_may_read_are_listed_with_their_units_and_endpoints(
     rig.settle(thread)
     data = json.loads(_tool_message(provider)[0].content)
     by_id = {entry["output_id"]: entry for entry in data["outputs"]}
-    assert len(by_id) == 21 and by_id[_PSA]["unit"] == "Å^2" and by_id[_PSA]["endpoint"] == "polar_surface_area" and by_id[_LOGP]["unit"] == "1"
+    assert set(by_id) == {entry.output_id for entry in APPROVED}, "every approved output is listed, however many there are"
+    assert by_id["calculator:polarizability:Molecular polarizability"]["unit"] == "Å^3"
+    assert by_id[_PSA]["unit"] == "Å^2" and by_id[_PSA]["endpoint"] == "polar_surface_area" and by_id[_LOGP]["unit"] == "1"
     assert "never converted" in data["note"].lower() or "never converted" in data["note"] or "Units are never converted" in data["note"]
     assert data["left_out_for_length"] == 0
 

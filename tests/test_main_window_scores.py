@@ -609,6 +609,82 @@ def test_a_score_the_run_did_not_compute_the_inputs_of_is_named_in_the_table_not
     assert not view._score_note.isHidden() and "mol_logp" in view._score_note.text() and LABEL in view._score_note.text()
 
 
+# --- a score over the polarizability (the first report calculator typed for scores) -------------------------------------------------------
+
+_ALPHA = "calculator:polarizability:Molecular polarizability"
+
+
+def _run_polarizability(window, qapp, model, **parameters):
+    """The calculator as the Properties panel runs it for one molecule, with its registered defaults and then `parameters` over them."""
+    from openchem.domain.calculator import CalculationRequest
+
+    definition = window._services.calculator_registry.get("polarizability")
+    arguments = {p.name: p.default for p in definition.parameters}
+    arguments.update(parameters)
+    window._services.descriptor_service.run_calculator(model, CalculationRequest(calculator_id="polarizability", molecule_uuid=model.uuid, parameters=arguments))
+    _drain(qapp)
+
+
+def _recorded_alpha(window, model) -> float:
+    """The number the calculator recorded in its own provenance, unrounded: the figure the score has to read."""
+    held = [
+        s.result.provenance.parameters["polarizability_a3"]
+        for s in window._services.result_store_service.store.all_results(model.uuid)
+        if getattr(s.result, "report_id", "") == "polarizability"
+    ]
+    assert held, "the calculator's result is stored for the molecule"
+    return held[-1]
+
+
+def test_a_score_over_the_polarizability_is_the_formula_of_the_number_the_calculator_recorded(window, pair, qapp):
+    aspirin, _ = pair
+    _select(window, qapp, aspirin)
+    made = _make(window, label="Polarisable", formula="ramp(alpha, 25, 10)", inputs=[("alpha", _ALPHA)])
+    before = window._services.score_service.values_for(aspirin)[0]
+    assert before.value is None and "has not been calculated" in before.reason
+    _run_polarizability(window, qapp, aspirin)
+    alpha = _recorded_alpha(window, aspirin)
+    assert 12.0 < alpha < 22.0, "aspirin's polarizability is about 16 A^3: a sanity bound on the number, independent of the typing"
+    value = window._services.score_service.values_for(aspirin)[0]
+    assert value.status.value == "value" and value.value == pytest.approx(min(1.0, max(0.0, (25.0 - alpha) / 15.0)), abs=1e-12)
+    assert value.inputs[0].value == alpha, "the exact number the calculator recorded, not the two-decimal text of its line"
+    assert made.score_id == value.definition.score_id
+
+
+@pytest.mark.parametrize("ask", [{"method": "Miller ahp"}, {"method": "Miller ahc"}, {"major_microspecies": True, "pH": 7.4}])
+def test_a_polarizability_from_another_method_or_structure_gives_the_score_no_number(window, pair, qapp, ask):
+    aspirin, _ = pair
+    _select(window, qapp, aspirin)
+    _make(window, label="Polarisable", formula="ramp(alpha, 25, 10)", inputs=[("alpha", _ALPHA)])
+    _run_polarizability(window, qapp, aspirin, **ask)
+    value = window._services.score_service.values_for(aspirin)[0]
+    assert value.value is None and value.status.value == "refused" and _ALPHA in value.reason, value.reason
+
+
+def test_the_project_table_cell_of_the_score_is_the_same_number_as_the_reader_gives(window, pair, qapp):
+    from openchem.domain.batch import BatchRequest
+    from openchem.services.batch_service import BatchProgress
+
+    aspirin, ethanol = pair
+    _select(window, qapp, aspirin)
+    made = _make(window, label="Polarisable", formula="ramp(alpha, 25, 10)", inputs=[("alpha", _ALPHA)])
+    _run_polarizability(window, qapp, aspirin)
+    events = []
+    window._services.event_bus.subscribe(BatchProgress, events.append)
+    window._services.batch_service.request_batch(BatchRequest(molecule_uuids=[m.uuid for m in pair], descriptor_ids=[], calculator_ids=["polarizability"]), list(pair))
+    _drain(qapp)
+    table = events[-1].table
+    from openchem.domain.score_table import score_value_in_table
+
+    for molecule in pair:
+        in_table = score_value_in_table(window._services.score_service.store.definitions()[0], table, molecule.uuid)
+        assert in_table.status.value == "value", (molecule.display_name, in_table.reason)
+    assert score_value_in_table(window._services.score_service.store.definitions()[0], table, aspirin.uuid).value == pytest.approx(
+        window._services.score_service.values_for(aspirin)[0].value
+    )
+    assert made.score_id
+
+
 # --- the Batch panel's own table ---------------------------------------------------------------------------------------------------------
 
 
