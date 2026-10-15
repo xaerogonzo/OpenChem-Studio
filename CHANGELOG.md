@@ -17,8 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   records the shape descriptors (so the always-on manifest does not depend on whether a conformer was present) but does not show them. The tests choose the finishing order with a manual pool instead of hoping for one.
 - A complete restore with no geometry answer (an older project) asks for the shape descriptors only (`DescriptorService.request_missing_geometric_descriptors`); a refusal that is already held is not retried on every selection.
 - The Project table was named in the report but is not affected: its "Run selected" path already reads the conformer (`batch_service`). The drive script keeps a cell assertion as a guard.
-- **Known, measured, not fixed here:** a conformer that lands while a drawing run dispatched BEFORE it is still in flight loses the same race (37 of 40 in a service-level probe). Narrower than this one (a search takes seconds,
-  the drawing run about one), and the fix is a different mechanism (a request-time suppression for in-flight tasks).
+- **Known, measured, not fixed here:** a conformer that lands while a drawing run dispatched BEFORE it is still running loses the same race, but is reached far less often. With the conformer landing 0-10 ms after the
+  selection 263 of 300 runs on aspirin and 235 of 300 on C12E6 ended FAILED; from 20 ms on none did, because a warm drawing run takes about 10 ms (a 90-atom peptide, 19 ms). The first run in a process takes about 2 s and did
+  not lose it either (0 of 12 fresh processes: the geometry run waits on the same one-time start and finishes second). So it takes a fast arrival or a slow provider (a plugin), not a person clicking. The mechanism is a
+  different one: a later geometry request taking the ids from drawing runs already running.
 - Drive harness: `save_project` takes `"results": false`, and creates the folder it saves into.
 
 ### A conformer no longer replaces the drawing's descriptors, alerts and per-atom data (reader, Project table and saved files)
