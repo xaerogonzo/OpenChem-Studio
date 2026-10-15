@@ -53,7 +53,7 @@ def _module():
     return module
 
 
-@pytest.mark.parametrize("splits", [1, 2, 3, 5])
+@pytest.mark.parametrize("splits", [1, 2, 3, 4, 5])
 def test_every_test_file_lands_in_exactly_one_shard(splits):
     """The partition is exact: no file dropped, none run twice.
 
@@ -224,11 +224,12 @@ def test_the_committed_pins_are_what_the_split_uses():
     assert all(placed[name] == shard for name, shard in pins.items() if name in placed)
 
 
-@pytest.mark.parametrize("table", [2, 3])
-@pytest.mark.parametrize("splits", [1, 2, 3, 5])
+@pytest.mark.parametrize("table", [2, 3, 4])
+@pytest.mark.parametrize("splits", [1, 2, 3, 4, 5])
 def test_pinned_assignment_is_still_an_exact_partition(splits, table):
     """Pins made for one shard count must never drop a file when asked for another: an out-of-range pin is
-    ignored, not obeyed. Both committed tables are checked (the 2-way one is kept for the crash-rate workflow)."""
+    ignored, not obeyed. Every committed table is checked (the 2-way one is kept for the crash-rate workflow,
+    the 3-way one so a past three-shard run's layout can still be reproduced when its crash log is bisected)."""
     module = _module()
     files = module.test_files() + ["tests/test_a_brand_new_file.py"]
     pins = _pins(module, table)
@@ -301,7 +302,9 @@ def test_pin_new_pins_unpinned_files_where_they_already_sit_and_moves_nobody(tmp
     # Where those files SIT with their pins removed: the packer puts each on the lighter shard once the pinned files are counted. That is
     # what `pin_new` must record. It is NOT where the committed pins had them: which shard is lighter changes whenever any test file is
     # added, so comparing with the old pins failed for a PR that added one file and said nothing about this tool.
-    sit_now = module.assign(files, module.load_durations(), 2, table["2"])
+    # Predicted with `load_costs`, the function `pin_new` packs by (time plus the gc hook). This used `load_durations`, which agreed only while
+    # both weightings happened to name the same lighter shard; refreshing the weights on 2026-10-14 (103 of 580 files had none) made them differ.
+    sit_now = module.assign(files, module.load_costs(), 2, table["2"])
     placed_now = {name: i for i, group in enumerate(sit_now) for name in group}
 
     fresh = module.pin_new(2, out)
