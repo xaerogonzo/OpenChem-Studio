@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### A molecule that is selected already holding a conformer now shows its shape descriptors
+- **Reported:** a molecule with a usable conformer and nothing stored for it (a project saved before results were kept, a result set from another build, an import) showed pmi1/pmi2/pmi3, npr1/npr2, pbf, radius of gyration,
+  asphericity, spherocity index and inertial shape factor as FAILED "Needs a 3D conformer" in the Results reader until its conformers next changed. `MainWindow._restore_or_compute` asked for the drawing only; the one
+  geometry request was `_on_conformers_changed`. Reproduced through the real window and service (`tests/test_result_persistence.py`) and in the driven application
+  (`benchmarks/visual/descriptors_restored_with_a_conformer.json`: VERDICT FAIL on the old code, PASS now).
+- **The obvious fix loses.** A geometry request next to the drawing one put two tasks on one pool writing one reader id, and the reader keeps the latest: the geometry run (ten descriptors) finishes before the drawing run
+  (the whole provider), so the drawing's refusal arrived last in 37 of 40 measured runs. Each id now has ONE owner: a drawing request on a molecule that holds a conformer carries the geometry run with it, and the drawing run
+  records the shape descriptors (so the always-on manifest does not depend on whether a conformer was present) but does not show them. The tests choose the finishing order with a manual pool instead of hoping for one.
+- A complete restore with no geometry answer (an older project) asks for the shape descriptors only (`DescriptorService.request_missing_geometric_descriptors`); a refusal that is already held is not retried on every selection.
+- The Project table was named in the report but is not affected: its "Run selected" path already reads the conformer (`batch_service`). The drive script keeps a cell assertion as a guard.
+- **Known, measured, not fixed here:** a conformer that lands while a drawing run dispatched BEFORE it is still in flight loses the same race (37 of 40 in a service-level probe). Narrower than this one (a search takes seconds,
+  the drawing run about one), and the fix is a different mechanism (a request-time suppression for in-flight tasks).
+- Drive harness: `save_project` takes `"results": false`, and creates the folder it saves into.
+
 ### A conformer no longer replaces the drawing's descriptors, alerts and per-atom data (reader, Project table and saved files)
 - **Reported:** draw aspirin, let the always-on descriptors compute, generate a conformer: Synthetic Accessibility 1.58 became 6.445, Bertz CT 343.2 became 609, H-bond acceptors 3 became 4, and the Project table showed the
   same figures. The conformer carries explicit hydrogen atoms and the drawing's are implicit, and `request_descriptors(molecule, GEOMETRY)` ran the WHOLE provider on it; the results share an id with the drawing's, so they

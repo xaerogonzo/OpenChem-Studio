@@ -3898,7 +3898,7 @@ class MainWindow(QMainWindow):
             # One reader rebuild for the whole replay, not one per stored result: 50
             # calculators on two molecules cost 398 rebuilds and 2-4 s a switch.
             with self._property_panel.batched_reader_refresh():
-                store_service.replay(
+                replayed = store_service.replay(
                     molecule,
                     self._services.structure_check_service.current_version(molecule.uuid),
                 )
@@ -3909,6 +3909,14 @@ class MainWindow(QMainWindow):
         providers = missing - {SUBSTANCE_PART}
         if providers:
             self._services.descriptor_service.request_descriptors(molecule, only_providers=providers)
+        # **A COMPLETE RESTORE IS NOT AN ANSWER FOR THE SHAPE DESCRIPTORS.** The manifest is keyed on
+        # the drawing, whose answer for them is "Needs a 3D conformer", so a molecule that already
+        # holds a conformer (an older project, another build's set, an import) would show all ten
+        # FAILED until its conformers next changed -- the only place a geometry request was made.
+        # A provider re-run above already carried its own geometry run.
+        self._services.descriptor_service.request_missing_geometric_descriptors(
+            molecule, replayed, skip_providers=providers
+        )
 
     def _on_result_retained(self, molecule_uuid: str) -> None:
         self._session.mark_dirty()

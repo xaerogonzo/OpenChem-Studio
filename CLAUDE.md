@@ -225,7 +225,8 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                               newest distribution run (answer its cost question with
                                               OPENCHEM_DRIVE_MODAL=yes); `tautomer_nmr_report` reads
                                               the traces DRAWN, the stored result and the combo
-    {"do": "save_project", "path": "..."}     the REAL save, results included
+    {"do": "save_project", "path": "..."}     the REAL save, results included; "results": false
+                                          writes the file an older build wrote (conformers, no results)
     {"do": "dock_move", "panel": "Results", "area": "top"}   as a drop
     {"do": "dock_move", "panel": "Results", "beside": "Properties"}
     {"do": "dock_tabify", "panel": "Results", "onto": "Properties"}
@@ -448,6 +449,7 @@ message — this index is. **If a title below names what you are
 about to touch, read that section before you start.** Headings there
 are verbatim, so grep the file for the line.
 
+- A MOLECULE THAT ARRIVED WITH A CONFORMER SHOWED ITS SHAPE DESCRIPTORS AS FAILED, AND THE OBVIOUS FIX LOST ITS OWN RACE 37 TIMES IN 40
 - A CONFORMER RE-RAN THE WHOLE ALWAYS-ON SET ON ITS HYDROGENS, AND THE READER, THE PROJECT TABLE AND THE SAVED FILE ALL TOOK ITS ANSWER
 - A SHARD THAT FIT ON A FAST RUNNER DID NOT FIT ON A SLOW ONE, AND THE FIRST TEN PERCENT OF THE TESTS SAID SO
 - A PLUGIN PANEL OPENED AS A BARE RECTANGLE ON WINDOWS, AND NOTHING THE SUITE RUNS ON COULD SHOW IT

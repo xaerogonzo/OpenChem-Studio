@@ -387,3 +387,181 @@ def test_a_plugin_that_cannot_say_what_is_geometric_does_not_break_the_conformer
 
     assert plugin.computed == []
     assert reader.descriptors["pmi1"].cache_state is CacheState.COMPLETED, "the other providers still ran"
+
+
+# --- a molecule that ALREADY holds a conformer when it is selected -----------------------
+#
+# Reported 2026-10-14: a molecule selected with a usable conformer and no stored results (a project
+# saved before results were kept, a set from another build, an import) showed all ten shape
+# descriptors as FAILED "Needs a 3D conformer" until its conformers next changed, because the only
+# GEOMETRY request was `MainWindow._on_conformers_changed`. The obvious fix -- a GEOMETRY request next
+# to the DRAWING one -- LOSES: both tasks go to one pool, both write the same reader id, the reader
+# keeps the latest, and the geometry run (ten descriptors) finishes before the drawing run (the whole
+# provider), so the drawing's refusal arrived last in 37 of 40 measured runs. The fix gives each id
+# one owner instead, so these tests pick the finishing order rather than hoping for one.
+
+
+class _ManualPool:
+    """Holds the tasks `DescriptorService` starts, so a test decides when and in what order they run."""
+
+    def __init__(self) -> None:
+        self.tasks: list = []
+
+    def start(self, task) -> None:
+        self.tasks.append(task)
+
+    def task(self, calculation_input: str):
+        return next(t for t in self.tasks if t._calculation_input == calculation_input)
+
+    def run(self, *calculation_inputs: str) -> None:
+        for calculation_input in calculation_inputs:
+            self.task(calculation_input).run()
+
+
+def _manual_service(qapp):
+    bus, engine, service, reader = _service(qapp)
+    pool = _ManualPool()
+    service._pool = pool
+    return bus, engine, service, reader, pool
+
+
+@pytest.mark.parametrize("order", [(DRAWING, GEOMETRY), (GEOMETRY, DRAWING)], ids=["drawing-first", "geometry-first"])
+def test_a_selection_answers_the_shape_descriptors_whichever_run_finishes_last(qapp, order):
+    bus, engine, service, reader, pool = _manual_service(qapp)
+    model = _molecule(engine, _smiles_of("aspirin"), conformer=True)
+
+    service.request_descriptors(model)
+    assert sorted(task._calculation_input for task in pool.tasks) == [DRAWING, GEOMETRY]
+    pool.run(*order)
+    qapp.processEvents()
+
+    geometric = RDKitDescriptorProvider().geometric_descriptor_ids()
+    assert all(
+        reader.descriptors[i].cache_state is CacheState.COMPLETED and reader.descriptors[i].value is not None
+        for i in geometric
+    ), {i: reader.descriptors[i].cache_state for i in geometric}
+    refused = [d.descriptor_id for d in reader.descriptor_events
+               if d.descriptor_id in geometric and d.cache_state is CacheState.FAILED]
+    assert not refused, "the drawing run showed a refusal for an id the geometry run owns"
+    # And the structure-level ones are still the drawing's.
+    drawn = {d.descriptor_id: d.value for d in RDKitDescriptorProvider().compute(
+        engine.mol_from_model(model), model.uuid) if d.descriptor_id not in geometric}
+    assert {i: reader.descriptors[i].value for i in drawn} == drawn
+
+
+def test_the_two_runs_split_the_ids_between_them_at_every_state(qapp):
+    """The invariant behind the order test: an id has ONE publisher, queued, running and finished alike."""
+    bus, engine, service, reader, pool = _manual_service(qapp)
+    model = _molecule(engine, _smiles_of("aspirin"), conformer=True)
+
+    service.request_descriptors(model)
+    geometric = RDKitDescriptorProvider().geometric_descriptor_ids()
+    assert pool.task(DRAWING)._unshown == geometric
+    assert pool.task(GEOMETRY)._only == geometric and not pool.task(GEOMETRY)._unshown
+
+    pool.run(DRAWING, GEOMETRY)
+    qapp.processEvents()
+    for state in (CacheState.QUEUED, CacheState.RUNNING, CacheState.COMPLETED):
+        announced = [d.descriptor_id for d in reader.descriptor_events if d.cache_state is state]
+        assert len(announced) == len(set(announced)), f"an id was announced as {state.value} by both runs"
+
+
+def test_the_drawing_run_still_records_the_shape_descriptors_so_the_manifest_does_not_depend_on_a_conformer(qapp):
+    """RECORDED, NOT SHOWN: the always-on part names the same results with or without a conformer.
+
+    `bundle_state` looks a part up by the DRAWING fingerprint alone. If the drawing run recorded fewer
+    results when a conformer happened to be present, deleting the conformer would leave a COMPLETE part
+    that never held the shape descriptors' refusal, and nothing would show "Needs a 3D conformer".
+    """
+    parts: dict[bool, tuple[str, ...]] = {}
+    for with_conformer in (False, True):
+        bus, engine, service, reader, pool = _manual_service(qapp)
+        finished = []
+        bus.subscribe(AutomaticPartFinished, lambda e, f=finished: f.append(e.part))
+        model = _molecule(engine, _smiles_of("aspirin"), conformer=with_conformer)
+        service.request_descriptors(model)
+        pool.run(DRAWING)
+        qapp.processEvents()
+        (part,) = [p for p in finished if p.part_id == "rdkit"]
+        parts[with_conformer] = tuple(sorted(part.result_ids))
+        assert not part.failed
+    assert parts[True] == parts[False]
+    geometric = RDKitDescriptorProvider().geometric_descriptor_ids()
+    assert {f"descriptor:rdkit:{i}" for i in geometric} <= set(parts[True])
+
+
+def test_a_molecule_with_no_conformer_is_still_answered_by_the_drawing_run_alone(qapp):
+    bus, engine, service, reader, pool = _manual_service(qapp)
+    model = _molecule(engine, _smiles_of("aspirin"))
+
+    service.request_descriptors(model)
+
+    assert [task._calculation_input for task in pool.tasks] == [DRAWING]
+    pool.run(DRAWING)
+    qapp.processEvents()
+    assert reader.descriptors["pmi1"].cache_state is CacheState.FAILED
+    assert reader.descriptors["pmi1"].error_summary == "Needs a 3D conformer"
+
+
+def test_a_plugin_that_declares_nothing_gets_no_geometry_run_with_its_selection(qapp):
+    bus = EventBus()
+    engine = ChemistryEngine()
+    service = DescriptorService(bus, engine, providers=[_Recording(declares=None)])
+    pool = _ManualPool()
+    service._pool = pool
+    model = _molecule(engine, "CCO", conformer=True)
+
+    service.request_descriptors(model)
+
+    assert [task._calculation_input for task in pool.tasks] == [DRAWING]
+    assert pool.tasks[0]._unshown == frozenset()
+
+
+def _recorded_geometry(qapp, model):
+    """The GEOMETRY-input results a geometry run records for `model`, as a replay would hand them back."""
+    bus, engine, service, reader, pool = _manual_service(qapp)
+    service.request_descriptors(model, GEOMETRY)
+    pool.run(GEOMETRY)
+    qapp.processEvents()
+    return [s for s in reader.recorded if s.identity.calculation_input == GEOMETRY]
+
+
+def test_the_shape_descriptors_a_replay_did_not_bring_back_are_asked_for(qapp):
+    bus, engine, service, reader, pool = _manual_service(qapp)
+    model = _molecule(engine, _smiles_of("aspirin"), conformer=True)
+
+    assert service.request_missing_geometric_descriptors(model, []) is True
+    assert [(t._calculation_input, t._only) for t in pool.tasks] == [
+        (GEOMETRY, RDKitDescriptorProvider().geometric_descriptor_ids())
+    ]
+
+
+def test_nothing_is_asked_for_when_the_replay_already_holds_them_or_the_provider_is_being_run(qapp):
+    bus, engine, service, reader, pool = _manual_service(qapp)
+    model = _molecule(engine, _smiles_of("aspirin"), conformer=True)
+    held = _recorded_geometry(qapp, model)
+    assert held, "setup: the geometry run recorded nothing"
+
+    assert service.request_missing_geometric_descriptors(model, held) is False
+    assert service.request_missing_geometric_descriptors(model, [], skip_providers={"rdkit"}) is False
+    assert pool.tasks == [], "a dispatch was made that should not have been"
+
+
+def test_nothing_is_asked_for_when_the_molecule_has_no_conformer(qapp):
+    bus, engine, service, reader, pool = _manual_service(qapp)
+    model = _molecule(engine, _smiles_of("aspirin"))
+
+    assert service.request_missing_geometric_descriptors(model, []) is False
+    assert pool.tasks == []
+
+
+def test_a_recorded_refusal_counts_as_an_answer_so_it_is_not_retried_on_every_selection(qapp):
+    """A 'conformer' that is not 3D makes the geometry run fall back to the drawing and be refused; that is held."""
+    bus, engine, service, reader, pool = _manual_service(qapp)
+    model = _molecule(engine, _smiles_of("aspirin"))
+    model.conformers.append(ConformerModel(molblock=model.molblock, energy=-1.0))  # flat: not 3D
+
+    held = _recorded_geometry(qapp, model)
+
+    assert held and all(s.result.cache_state is CacheState.FAILED for s in held)
+    assert service.request_missing_geometric_descriptors(model, held) is False

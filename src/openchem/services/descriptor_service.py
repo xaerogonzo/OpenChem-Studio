@@ -78,6 +78,7 @@ class _DescriptorComputeTask(QRunnable):
         calculation_input: str = DRAWING,
         structure_version: int | None = None,
         only_descriptor_ids: frozenset[str] | None = None,
+        unshown_descriptor_ids: frozenset[str] = frozenset(),
     ) -> None:
         super().__init__()
         self._provider = provider
@@ -97,6 +98,15 @@ class _DescriptorComputeTask(QRunnable):
         #: See `DescriptorProvider.geometric_descriptor_ids` for why the rest must not be
         #: computed on a conformer.
         self._only = only_descriptor_ids
+        #: **RECORDED, NOT SHOWN.** Descriptors this run still computes and records under its own
+        #: input (so the always-on manifest does not depend on whether the molecule happened to
+        #: hold a conformer) but publishes no `DescriptorComputed` for: a GEOMETRY run dispatched
+        #: in the same request owns what the reader shows for them. Both runs write the same
+        #: reader id, the reader keeps the LATEST per id, and the two tasks share a thread pool,
+        #: so with both publishing the drawing's "Needs a 3D conformer" beat the conformer's
+        #: values in 37 of 40 measured runs (the geometry run is ten descriptors and finishes
+        #: first). Disjoint ownership makes the order irrelevant instead of hoping for one.
+        self._unshown = unshown_descriptor_ids
 
     def _ids(self) -> list[str]:
         """The descriptor ids this run speaks for."""
@@ -136,9 +146,10 @@ class _DescriptorComputeTask(QRunnable):
             for value in values:
                 if self._only is not None and value.descriptor_id not in self._only:
                     continue
-                self._event_bus.publish(
-                    DescriptorComputed(descriptor=value, structure_version=self._structure_version)
-                )
+                if value.descriptor_id not in self._unshown:
+                    self._event_bus.publish(
+                        DescriptorComputed(descriptor=value, structure_version=self._structure_version)
+                    )
                 self._record(value)
 
         if self._only is not None:
@@ -246,9 +257,10 @@ class _DescriptorComputeTask(QRunnable):
             error=error,
             timestamp=time.time(),
         )
-        self._event_bus.publish(
-            DescriptorComputed(descriptor=descriptor, structure_version=self._structure_version)
-        )
+        if descriptor_id not in self._unshown:
+            self._event_bus.publish(
+                DescriptorComputed(descriptor=descriptor, structure_version=self._structure_version)
+            )
         # RUNNING placeholders are never recorded: they are a statement about
         # a run in progress, and replaying one would claim work is happening.
         if record:
@@ -755,6 +767,11 @@ class DescriptorService:
         atoms. Each provider says which descriptors are geometric
         (`DescriptorProvider.geometric_descriptor_ids`); a provider that says
         none is not run at all by such a request.
+
+        **AND A DRAWING REQUEST ON A MOLECULE THAT HOLDS A CONFORMER CARRIES THAT GEOMETRY RUN
+        WITH IT**, the two splitting the provider's ids between them (the drawing run records the
+        shape descriptors but does not show them), so one selection answers every descriptor on the
+        structure it declares and the order the two runs finish in cannot matter.
         """
         if not model.molblock and not model.conformers:
             # No structure of ANY kind -- neither a drawing nor a
@@ -779,32 +796,103 @@ class DescriptorService:
             # that did not come back, rather than the whole set.
             if only_providers is not None and provider.provider_id not in only_providers:
                 continue
-            scope = None
+            # Asked only when it matters: a plugin that cannot answer is logged each time, and a
+            # molecule with no conformer has nothing for a geometry run to measure.
+            geometric = (
+                geometric_descriptor_ids_of(provider)
+                if calculation_input != DRAWING or snapshot.conformers else frozenset()
+            )
             if calculation_input != DRAWING:
-                scope = geometric_descriptor_ids_of(provider)
-                if not scope:
-                    continue
-            categories = provider.descriptor_categories()
-            for descriptor_id in provider.descriptor_ids():
-                if scope is not None and descriptor_id not in scope:
-                    continue
-                self._event_bus.publish(
-                    DescriptorComputed(
-                        descriptor=DescriptorValue(
-                            descriptor_id=descriptor_id,
-                            name=descriptor_id,
-                            units="",
-                            category=categories.get(descriptor_id, ""),
-                            provider=provider.provider_id,
-                            molecule_uuid=model.uuid,
-                            cache_state=CacheState.QUEUED,
-                        ),
-                        structure_version=dispatched_version,
-                    )
-                )
-            self._pool.start(
-                _DescriptorComputeTask(
-                    provider, self._engine, snapshot, self._event_bus, calculation_input,
-                    structure_version=dispatched_version, only_descriptor_ids=scope,
+                if geometric:
+                    self._dispatch(provider, snapshot, calculation_input, dispatched_version, scope=geometric)
+                continue
+            # **A DRAWING REQUEST FOR A MOLECULE THAT HOLDS A CONFORMER IS ALSO THE GEOMETRY
+            # REQUEST FOR ITS SHAPE DESCRIPTORS, AND THE TWO RUNS SPLIT THE IDS BETWEEN THEM.**
+            # The drawing run refuses the shape descriptors ("Needs a 3D conformer") and used to
+            # be the only run a selection made, so a molecule that arrived with a conformer --
+            # a project saved before results were kept, a result set from another build, an
+            # import -- showed all ten as FAILED until its conformers changed. Dispatching the
+            # geometry run next to it is not enough: see `_DescriptorComputeTask._unshown`.
+            geometry_owned = geometric if snapshot.conformers else frozenset()
+            self._dispatch(
+                provider, snapshot, DRAWING, dispatched_version, unshown=geometry_owned
+            )
+            if geometry_owned:
+                self._dispatch(provider, snapshot, GEOMETRY, dispatched_version, scope=geometry_owned)
+
+    def _dispatch(
+        self,
+        provider: DescriptorProvider,
+        snapshot: MoleculeModel,
+        calculation_input: str,
+        structure_version: int | None,
+        scope: frozenset[str] | None = None,
+        unshown: frozenset[str] = frozenset(),
+    ) -> None:
+        """Queue one provider's run: QUEUED placeholders for what it will SHOW, then the task."""
+        categories = provider.descriptor_categories()
+        for descriptor_id in provider.descriptor_ids():
+            if (scope is not None and descriptor_id not in scope) or descriptor_id in unshown:
+                continue
+            self._event_bus.publish(
+                DescriptorComputed(
+                    descriptor=DescriptorValue(
+                        descriptor_id=descriptor_id,
+                        name=descriptor_id,
+                        units="",
+                        category=categories.get(descriptor_id, ""),
+                        provider=provider.provider_id,
+                        molecule_uuid=snapshot.uuid,
+                        cache_state=CacheState.QUEUED,
+                    ),
+                    structure_version=structure_version,
                 )
             )
+        self._pool.start(
+            _DescriptorComputeTask(
+                provider, self._engine, snapshot, self._event_bus, calculation_input,
+                structure_version=structure_version, only_descriptor_ids=scope,
+                unshown_descriptor_ids=unshown,
+            )
+        )
+
+    def request_missing_geometric_descriptors(
+        self,
+        model: MoleculeModel,
+        replayed: list[StoredResult],
+        skip_providers: set[str] | frozenset[str] = frozenset(),
+    ) -> bool:
+        """Ask for the shape descriptors a replay did not bring back. True when it dispatched.
+
+        **A COMPLETE RESTORE CAN STILL LEAVE THE SHAPE DESCRIPTORS UNANSWERED.** The always-on set
+        is vouched for by the DRAWING fingerprint alone, and the drawing's answer for these ids is
+        "Needs a 3D conformer", so a molecule whose set is whole can still have a conformer nothing
+        has been measured on: a project saved before results were kept, a set from another build, an
+        imported molecule. `replayed` is what the store just published; a provider whose geometric
+        descriptors are not among its GEOMETRY-input results has not been asked, and is now.
+
+        A provider already being run by the caller (`skip_providers`) is not asked twice: its
+        DRAWING request carried the geometry run (`request_descriptors`).
+
+        Nothing is dispatched for a molecule with no conformer, and a failed geometry run counts as
+        an answer (it is replayed, so it is not retried on every selection; failures are not
+        written to a file, so the next session retries).
+        """
+        if not model.conformers:
+            return False
+        answered = {
+            (stored.identity.producer, stored.result.descriptor_id)
+            for stored in replayed
+            if stored.identity.calculation_input == GEOMETRY and isinstance(stored.result, DescriptorValue)
+        }
+        lacking: set[str] = set()
+        for provider in self._providers:
+            if provider.provider_id in skip_providers:
+                continue
+            geometric = geometric_descriptor_ids_of(provider)
+            if geometric and not any((provider.provider_id, i) in answered for i in geometric):
+                lacking.add(provider.provider_id)
+        if not lacking:
+            return False
+        self.request_descriptors(model, GEOMETRY, only_providers=lacking)
+        return True

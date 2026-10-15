@@ -1310,3 +1310,134 @@ def test_a_calculator_that_declares_geometry_keeps_its_geometry_results_when_a_p
 
     held = window._services.result_store_service.store.all_results(molecule.uuid)
     assert [(s.identity.producer, s.identity.input_fingerprint) for s in held] == [("geometry_partial_charge", fingerprint)]
+
+
+# ---------------------------------------------------------------------------
+# A molecule that arrives HOLDING a conformer (reported 2026-10-14)
+#
+# `MainWindow._restore_or_compute` asked for the always-on descriptors on the DRAWING only, and the one
+# place a GEOMETRY request was made was `_on_conformers_changed`. So a molecule that already had a usable
+# conformer when it was selected, and whose results were not in the store (a project saved before results
+# were kept, a result set from another build, an import), showed all ten shape descriptors as FAILED
+# "Needs a 3D conformer" in the reader and the Project table until its conformers changed.
+# ---------------------------------------------------------------------------
+
+_SHAPE_IDS = tuple(sorted(RDKitDescriptorProvider().geometric_descriptor_ids()))
+
+
+def _shape_descriptors(window) -> dict[str, tuple]:
+    held = window._property_panel._descriptor_values
+    return {i: (held[("rdkit", i)].cache_state, held[("rdkit", i)].value) for i in _SHAPE_IDS if ("rdkit", i) in held}
+
+
+def _assert_shape_computed(window, where: str) -> None:
+    shape = _shape_descriptors(window)
+    assert set(shape) == set(_SHAPE_IDS), f"{where}: the reader holds only {sorted(shape)}"
+    assert all(state is CacheState.COMPLETED and value is not None for state, value in shape.values()), (
+        f"{where}: {shape}"
+    )
+
+
+def _requests(window):
+    """Every `request_descriptors` the window makes: (molecule uuid, calculation input, providers)."""
+    calls: list[tuple] = []
+    service = window._services.descriptor_service
+    real = service.request_descriptors
+
+    def request(model, calculation_input=DRAWING, only_providers=None):
+        calls.append((model.uuid, calculation_input, None if only_providers is None else set(only_providers)))
+        return real(model, calculation_input, only_providers)
+
+    service.request_descriptors = request
+    return calls
+
+
+def _project_with_a_conformer(window, smiles="CC(=O)Oc1ccccc1C(=O)O"):
+    """A conformer-bearing molecule beside a plain one, opened with NO stored results."""
+    engine = window._services.chemistry_engine
+    project = ProjectModel(name="conformers")
+    held = _molecule(engine, smiles)
+    held.conformers.append(_conformer(engine, held, 7))
+    other = _molecule(engine, "CCO")
+    project.molecules.extend([held, other])
+    window._set_project(project)
+    return held, other
+
+
+def test_a_molecule_selected_with_a_conformer_and_no_stored_results_shows_its_shape_descriptors(window, qapp):
+    held, _other = _project_with_a_conformer(window)
+    calls = _requests(window)
+
+    _select(window, qapp, held)
+
+    _assert_shape_computed(window, "selected with a conformer, nothing stored")
+    # ONE request for the provider: its DRAWING request carries the geometry run. A second, separate
+    # GEOMETRY request for it would put two writers on one reader id again.
+    assert [(uuid, calculation_input) for uuid, calculation_input, _providers in calls] == [(held.uuid, DRAWING)]
+    # And the structure-level descriptors are still the drawing's, not the conformer's.
+    drawn = {d.descriptor_id: d.value for d in RDKitDescriptorProvider().compute(
+        window._services.chemistry_engine.mol_from_model(held), held.uuid)
+        if d.descriptor_id not in _SHAPE_IDS}
+    shown = {i: window._property_panel._descriptor_values[("rdkit", i)].value for i in drawn}
+    assert shown == drawn
+
+
+def test_a_complete_drawing_set_with_no_geometry_answer_asks_for_the_shape_descriptors_only(window, qapp):
+    """The older-project case: the always-on set is whole, the conformer was never measured."""
+    held, other = _project_with_a_conformer(window)
+    held.conformers.clear()
+    _select(window, qapp, held)  # the drawing's set is stored, shape descriptors refused
+    assert _shape_descriptors(window)["pmi1"][0] is CacheState.FAILED
+    held.conformers.append(_conformer(window._services.chemistry_engine, held, 7))
+    _select(window, qapp, other)
+    calls = _requests(window)
+
+    _select(window, qapp, held)
+
+    assert calls == [(held.uuid, GEOMETRY, {"rdkit"})], "the drawing's complete set was recomputed, or nothing was asked"
+    _assert_shape_computed(window, "complete drawing set, conformer never measured")
+
+
+def test_the_shape_descriptors_are_replayed_on_the_next_visit_not_recomputed(window, qapp):
+    held, other = _project_with_a_conformer(window)
+    _select(window, qapp, held)
+    _select(window, qapp, other)
+    calls = _requests(window)
+
+    _select(window, qapp, held)
+
+    assert calls == [], "a molecule whose shape descriptors are held was computed again"
+    _assert_shape_computed(window, "second visit")
+
+
+def test_saving_and_reopening_keeps_the_conformers_values_over_the_drawings_refusal(window, qapp, tmp_path):
+    held, _other = _project_with_a_conformer(window)
+    _select(window, qapp, held)
+    _assert_shape_computed(window, "before the save")
+    results, fingerprints, qc_runs, recipe_runs = window._current_results()
+    path = tmp_path / "saved.ocsproj"
+    window._services.project_service.save(window._session.project, path, results, fingerprints, qc_runs, recipe_runs)
+
+    document = window._services.project_service.load_document(path)
+    window._set_project(document.project, document.results, document.qc_runs, document.recipe_runs)
+    calls = _requests(window)
+    _select(window, qapp, document.project.find_molecule(held.uuid))
+
+    assert calls == [], "a reopened project recomputed what it had just restored"
+    _assert_shape_computed(window, "after reopening")
+    assert not window._session.is_dirty, "selecting a molecule whose results are held made the project unsaved"
+
+
+def test_a_partial_set_reruns_the_provider_with_its_geometry_in_one_request(window, qapp):
+    held, other = _project_with_a_conformer(window)
+    _select(window, qapp, held)
+    _select(window, qapp, other)
+    record = window._services.result_store_service.store._molecules[held.uuid]
+    lost = next(key for key, stored in record.results.items() if stored.identity.result_id == "pains")
+    del record.results[lost]  # one result the manifest names is gone: PARTIAL, so the provider reruns
+    calls = _requests(window)
+
+    _select(window, qapp, held)
+
+    assert calls == [(held.uuid, DRAWING, {"rdkit"})], "the geometry run was asked for separately, or not at all"
+    _assert_shape_computed(window, "partial rerun")
