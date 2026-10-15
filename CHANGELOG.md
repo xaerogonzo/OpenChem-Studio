@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Derived scores: the Batch panel's own table shows them too
+- **Your scores are columns of the Batch panel's table**, as they already were in the Results dock's project table: the first after the molecule's name, labelled "(user-defined, unvalidated)", worked out from that table's own
+  cells, named under the table when a score's inputs were not in the run, in its CSV and report, and following a definition you define, edit or remove without another run. Until now the same run showed a score in one
+  table and not the other.
+
 ### Derived scores, slice 4d: the assistant can propose a score, and only a person can save one
 - **Two new assistant tools:** `list_score_outputs` (what a score's formula may read) and `propose_score`. A proposal is checked by exactly the rules a score you typed meets, and if it passes **a card appears in the
   assistant's panel** with the formula, what each input reads, the declared unit, what it gives for the selected molecule, and who it will say wrote it. **Nothing is saved unless you press Approve**; Cancel saves nothing; the

@@ -297,7 +297,8 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           the user-defined SCORES in the Results dock's project table, read off the grid a person looks at (the exact score
                                           headers in order, the note under the status, what a cell SHOWS, tooltips) and off the file the REAL "Export CSV"
                                           button writes (the file dialog answered); pair it with `project_run` and `expect_project_table`; `shot` takes
-                                          "widget": "project_table"
+                                          "widget": "project_table"; `"panel": "batch"` reads the Batch panel's OWN table (after `batch_fill`) and
+                                          `shot` then takes "widget": "batch_table"
     {"do": "qc_wait", "timeout_ms": 600000}   hold the script until the Quantum Chemistry service has no job running (give up = an
                                           ERROR); use it after `qc_run` instead of guessing an `after_ms` for a job of unknown length
     {"do": "lewis_gate_begin"}  {"do": "lewis_gate_floor", "a": -2, "b": -1}  {"do": "lewis_gate_pair", "bh3": -3, "bf3": -2, "co": -1}
