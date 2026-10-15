@@ -3250,6 +3250,9 @@ class _Driver(QObject):
                 logger.error("OPENCHEM_DRIVE: no Lewis pairing window open; run {'do': 'lewis_pairing'}")
                 return
             target = self._window._lewis_pairing
+        elif step.get("widget") == "project_table":
+            # The Results dock's own project table, as the window builds it: the grid, its progress and status lines and the export row.
+            target = self._window._results_workspace.table_view
         elif step.get("widget") == "scores":
             if self._window._score_dialog is None:
                 logger.error("OPENCHEM_DRIVE: no Derived Scores window open; run {'do': 'score_dialog'}")
@@ -6893,6 +6896,97 @@ class _Driver(QObject):
             logger.warning("OPENCHEM_DRIVE: EXPECT project table ok[%s]", tag)
         else:
             logger.error("OPENCHEM_DRIVE: EXPECT project table FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
+    def _do_table_scores(self, step: dict[str, Any]) -> None:
+        """What the Results dock's project table shows of the user-defined SCORES, read off the grid a person looks at and off the files its REAL export button writes.
+
+        `{"do": "table_scores", "tag": "x", "export_csv": "C:/tmp/table.csv", "expect": {"columns": ["Polar window (user-defined, unvalidated)"],
+        "note": "", "grid": {"Aspirin": {"Polar window": "0.955"}}, "tooltips": {"Aspirin": {"Polar window": ["Inputs: psa = 63.6"]}},
+        "column_tooltips": {"Polar window": ["Formula:"]}, "csv_header_contains": ["Polar window"], "csv_cells": {"Aspirin": {"Polar window": 0.955}}}}`
+
+        `columns` is the exact list of score headers, in grid order. `note` is the line under the status ("" means it is hidden). `grid` is what a cell SHOWS (the text,
+        so a refusal reads `—`); `tooltips` and `column_tooltips` are substrings of what hovering shows. `export_csv` presses the REAL "Export CSV..." button with the file
+        dialog answered, and the `csv_*` expectations read the file it wrote: the exact header cells, and the full-precision number of a cell.
+        """
+        import csv
+
+        from PySide6.QtWidgets import QFileDialog
+
+        workspace = self._window._results_workspace
+        view = workspace.table_view
+        grid = view._results
+        table = view.table()
+        problems: list[str] = []
+        headers = [grid.horizontalHeaderItem(i).text() for i in range(grid.columnCount())]
+        score_headers = [column.header for column in (table.columns if table is not None else []) if column.source == "score"]
+        csv_rows: list[list[str]] = []
+        if step.get("export_csv"):
+            target = str(step["export_csv"])
+            real = QFileDialog.getSaveFileName
+            QFileDialog.getSaveFileName = staticmethod(lambda *_args, **_kwargs: (target, ""))
+            try:
+                if not view._csv_button.isEnabled():
+                    problems.append("the Export CSV button is disabled")
+                else:
+                    view._csv_button.click()
+            finally:
+                QFileDialog.getSaveFileName = real
+            try:
+                with open(target, encoding="utf-8-sig", newline="") as handle:
+                    csv_rows = list(csv.reader(handle))
+            except OSError as exc:
+                problems.append(f"the export wrote nothing readable: {exc}")
+        logger.warning(
+            "OPENCHEM_DRIVE: table_scores columns=%s | note=%r (hidden=%s) | csv header=%s",
+            score_headers, view._score_note.text()[:160], view._score_note.isHidden(), csv_rows[0] if csv_rows else None,
+        )
+        expect = step.get("expect") or {}
+        if "columns" in expect and score_headers != list(expect["columns"]):
+            problems.append(f"the score columns are {score_headers}, wanted {expect['columns']}")
+        if "note" in expect:
+            shown = "" if view._score_note.isHidden() else view._score_note.text()
+            if shown != expect["note"] and not (expect["note"].startswith("~") and expect["note"][1:] in shown):
+                problems.append(f"the note reads {shown!r}, wanted {expect['note']!r}")
+
+        def locate(label: str, header_part: str):
+            rows = [r for r in range(grid.rowCount()) if grid.item(r, 0).text() == label]
+            cols = [c for c, text in enumerate(headers) if header_part in text]
+            return (rows[0], cols[0]) if rows and cols else None
+
+        for label, wanted_cells in (expect.get("grid") or {}).items():
+            for header_part, wanted in wanted_cells.items():
+                found = locate(label, header_part)
+                shown = grid.item(*found).text() if found else None
+                if shown != wanted:
+                    problems.append(f"{label} / {header_part}: the grid shows {shown!r}, wanted {wanted!r}")
+        for label, wanted_cells in (expect.get("tooltips") or {}).items():
+            for header_part, needles in wanted_cells.items():
+                found = locate(label, header_part)
+                tip = grid.item(*found).toolTip() if found else ""
+                problems.extend(f"{label} / {header_part}: the tooltip lacks {needle!r} (it reads {tip[:160]!r})" for needle in needles if needle not in tip)
+        for header_part, needles in (expect.get("column_tooltips") or {}).items():
+            index = next((c for c, text in enumerate(headers) if header_part in text), None)
+            tip = grid.horizontalHeaderItem(index).toolTip() if index is not None else ""
+            problems.extend(f"column {header_part}: the tooltip lacks {needle!r}" for needle in needles if needle not in tip)
+        if csv_rows:
+            for needle in expect.get("csv_header_contains") or []:
+                if not any(needle in cell for cell in csv_rows[0]):
+                    problems.append(f"the CSV header has no cell containing {needle!r} ({csv_rows[0]})")
+            for label, wanted_cells in (expect.get("csv_cells") or {}).items():
+                row = next((r for r in csv_rows[1:] if r and r[0] == label), None)
+                for header_part, wanted in wanted_cells.items():
+                    column = next((i for i, text in enumerate(csv_rows[0]) if header_part in text), None)
+                    cell = row[column] if row is not None and column is not None and column < len(row) else None
+                    ok = (cell == "") if wanted is None else (cell not in (None, "") and abs(float(cell) - float(wanted)) <= 5e-3)
+                    if not ok:
+                        problems.append(f"CSV {label} / {header_part}: {cell!r}, wanted {wanted!r}")
+        elif expect.get("csv_header_contains") or expect.get("csv_cells"):
+            problems.append("a CSV expectation without an `export_csv` path")
+        tag = str(step.get("tag", ""))
+        if self._record_assertion("table_scores", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT table_scores ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT table_scores FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
 
     def _do_edit_burst(self, step: dict[str, Any]) -> None:
         """`{"do": "edit_burst", "structures": ["CCO", "CCCO"], "edits": 20, "gap_ms": 150, "tag": "..."}`

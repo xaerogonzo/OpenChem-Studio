@@ -344,3 +344,25 @@ def test_a_preview_of_a_definition_that_does_not_check_is_a_refusal_not_an_excep
     draft = ScoreDefinition("user.draft", "Draft", "ramp(psa, 140", "1", (("psa", _PSA),))
     value = scores.preview(draft, project.molecules[0])
     assert value.status is ScoreStatus.REFUSED and "no longer checks" in value.reason
+
+
+# --- an edit stores the shapes `create` stores (found by the project table's drive) ---------------------------------------------------------------
+
+
+def test_an_edit_given_lists_stores_tuples_so_the_definition_is_hashable_and_equal_to_one_read_back(scores):
+    made = _make(scores)
+    changed = scores.update(
+        made.score_id, inputs=[("psa", _PSA)], constants=[Constant("hi", 140.0, "Å^2")], formula="ramp(psa, hi, 60)"
+    )
+    assert changed.inputs == (("psa", _PSA),) and isinstance(changed.inputs, tuple) and isinstance(changed.inputs[0], tuple)
+    assert changed.constants == (Constant("hi", 140.0, "Å^2"),) and isinstance(changed.constants, tuple)
+    assert hash(changed) == hash(scores.store.get(made.score_id)), "a definition is a dict key, as the parsed-formula cache uses it"
+
+
+def test_an_edit_given_lists_can_still_be_read_for_a_molecule(scores, services, project):
+    model = project.molecules[0]
+    _put(services, model, "tpsa", 100.0, "Å²")
+    made = _make(scores)
+    scores.update(made.score_id, inputs=[("psa", _PSA)], constants=[], formula="ramp(psa, 140, 60)")
+    (value,) = scores.values_for(model)
+    assert value.status is ScoreStatus.VALUE and value.value == pytest.approx(0.5)
