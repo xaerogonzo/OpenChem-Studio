@@ -47,7 +47,7 @@ DIACYL_PREFIX = [
     ("a malonyl half on an anilinium", "[NH3+]c1ccc(C(=O)CC(=O)O)cc1", "4-(2-carboxy-1-oxoethyl)anilinium"),
     ("an oxalyl half on an anilinium", "[NH3+]c1ccc(C(=O)C(=O)O)cc1", "4-[carboxy(oxo)methyl]anilinium"),
     ("a succinyl half on an anilinium", "[NH3+]c1ccc(C(=O)CCC(=O)O)cc1", "4-(3-carboxy-1-oxopropyl)anilinium"),
-    ("a dioxobutanoic half on a nitrilium", "[NH+]#Cc1ccc(C(=O)CC(=O)C(=O)O)cc1", "[[4-(3-carboxy-1,3-dioxopropyl)phenyl]methylidyne]azanium"),
+    ("a dioxobutanoic half on a nitrilium", "[NH+]#Cc1ccc(C(=O)CC(=O)C(=O)O)cc1", "{[4-(3-carboxy-1,3-dioxopropyl)phenyl]methylidyne}azanium"),
 ]
 
 ALL = NITRILIUM + NITRILIUM_KEPT + SULFOXIDE + DIACYL_PREFIX

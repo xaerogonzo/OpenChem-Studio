@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: the limitations rounds 50 to 53 left open, and three silent wrong molecules found on the way
+- A thioamide N-prefix beside a second acid had its O and S swapped, `[hydroxy(thioxo)methyl]acetamido` (D-256); a prefix cut off a stereo centre lost its ring double bond because the centre's hydrogen left a
+  radical, `acetyl(oxan-3-yl)azanide` for a dihydropyran (D-258); the CIP descriptor of the attachment atom of a prefix on an azanide was dropped (D-259). O-protonated and O-alkylated ureas are named,
+  `(diaminomethylidene)oxidanium` (D-257); a lactam anion named with a ketone suffix reads `3,4-dihydroquinolin-1-id-2(1H)-one` (D-260); an amidinium beside two or more acids is named (D-261); an
+  amidoxime anion is `1-[1-(oxidoimino)ethyl]pyrrolidine` (D-262); the N-acyl isothiourea thiolate no longer claims its carbonyl oxygen twice (D-263); an amide or hydrazide anion beside a cation is named
+  with the anion as the parent (D-264). The census is unchanged at 1993 exact; anions 1044 of 1046, cations 2061 of 2081 (12 refusals), quaternary 2074 of 2081, no wrong name in any population.
+  Still open: two anions in one molecule beside a cation, and the book's `methoxycarbonyl` for an N-acyl sulfonamidate.
+
 ### Naming: nitrilium cations with a heteroatom, O-protonated sulfoxides, and an acyl prefix that dropped its free acid
 - A nitrilium whose group holds a hydroxy, amino or halogen was refused (the plan search named the neutral nitrile); it is the cation with an `ylidyne` prefix, `[(4-hydroxyphenyl)methylidyne]azanium` (D-253).
   An acyclic O-protonated or O-alkylated sulfoxide is named as a hydroxy- or alkoxysulfanium, `hydroxydi(methyl)sulfanium` (D-254). An acyl PREFIX whose fragment also held a second acid became a diacyl
