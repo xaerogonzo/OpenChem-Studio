@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Derived scores, slice 3c: a score is a column of the project table
+- **The scores a person defined are the first columns of the Results dock's project table**, labelled `<label> (user-defined, unvalidated)`, with the number each formula gives for each row. A score is computed when the table is
+  shown, from the table's own cells, by the rule the Results reader uses, and never run or stored: a score defined, edited or removed changes the table at once, without another run. The CSV carries the suffix in its header and
+  the number whole, the report's methods section says what the column is, and the analytics see it as any other numeric column. A row whose input failed, was refused or was not computed shows a dash and says which on hover.
+  A score whose inputs the run did not compute has no column; the table says which score and what it reads.
+- **Safe because of #330, and held there by a test:** every approved output is read both from a real batch run and from the Results reader's stored results for a molecule that has a conformer, and the two must agree. It found
+  that a calculator which declined had only a placeholder column, now read as the refusal it is. The table drive found the score columns off the dock's right edge (they are first now) and that editing a score through its window
+  stored lists that made Results unable to read it (`ScoreService.update` stores what `create` does). New drive step `table_scores`, `benchmarks/visual/score_table.json` (12 assertions, 3 shots).
+
 ### A conformer that lands while an earlier drawing run is still running now wins
 - **The other order of the race the next entry closes.** A selection with no conformer dispatches a drawing run that owns the ten shape descriptors and will publish "Needs a 3D conformer" for them; if the conformer lands
   first, the geometry run (ten descriptors) usually finishes first and the late refusal beat its values. Measured on the real pool with the conformer landing 0-10 ms after the selection (random delay): 263 of 300 runs on

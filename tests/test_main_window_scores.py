@@ -476,3 +476,109 @@ def test_the_window_reads_its_preview_again_for_each_of_the_three_events(window)
     handler = window._refresh_scores_preview
     for event_type in (MoleculeSelected, MoleculeChanged, ResultRecorded):
         assert any(entry.matches(handler) for entry in bus._handlers[event_type]), event_type.__name__
+
+
+# --- the project table's score column (slice 3c) ----------------------------------------------------------------------------------------------
+
+
+def _with_a_conformer(window, qapp, model):
+    """A conformer for `model`, and the descriptors asked for on it, as the window does when conformers change (`_on_conformers_changed`)."""
+    from openchem.chem.conformer_providers import RDKitConformerProvider
+    from openchem.domain.calculator import GEOMETRY
+    from openchem.domain.conformer import ConformerModel
+
+    engine = window._services.chemistry_engine
+    mol, _energy = RDKitConformerProvider().generate_conformers(engine.mol_from_model(model), num_conformers=1, optimize=False)[0]
+    model.conformers.append(ConformerModel(molblock=engine.mol_to_molblock(mol), energy=-1.0))
+    window._services.descriptor_service.request_descriptors(model, GEOMETRY)
+    _drain(qapp)
+
+
+def _run_batch(window, qapp, molecules, descriptor_ids, calculator_ids):
+    from openchem.domain.batch import BatchRequest
+    from openchem.services.batch_service import BatchProgress
+
+    events = []
+    window._services.event_bus.subscribe(BatchProgress, events.append)
+    window._services.batch_service.request_batch(
+        BatchRequest(molecule_uuids=[m.uuid for m in molecules], descriptor_ids=list(descriptor_ids), calculator_ids=list(calculator_ids)), molecules
+    )
+    _drain(qapp)
+    assert events and events[-1].table is not None
+    return events[-1]
+
+
+def test_every_approved_output_reads_the_same_in_the_table_as_in_results_for_a_molecule_that_has_a_conformer(window, pair, qapp):
+    """The reason the table's own cells are safe to read: before #330 the project run handed a conformer to every descriptor, so seven of these seventeen differed.
+
+    Both sides are the application's own: Results is the stored results the Properties panel made (the conformer's request included), the table is a real batch run over
+    the same molecule. Every approved output of both kinds is compared, state and number.
+    """
+    from openchem.domain.calculator import CalculationRequest
+    from openchem.domain.score_outputs import APPROVED
+    from openchem.domain.score_table import read_cell_output
+    from openchem.domain.score_value import InputState, read_output
+
+    aspirin, ethanol = pair
+    _select(window, qapp, aspirin)
+    _with_a_conformer(window, qapp, aspirin)
+    descriptor_ids = [e.output_id.partition(":")[2] for e in APPROVED if e.output_id.startswith("descriptor:")]
+    calculator_ids = sorted({e.output_id.split(":")[1] for e in APPROVED if e.output_id.startswith("calculator:")})
+    for calculator_id in calculator_ids:
+        definition = window._services.calculator_registry.get(calculator_id)
+        window._services.descriptor_service.run_calculator(
+            aspirin, CalculationRequest(calculator_id=calculator_id, molecule_uuid=aspirin.uuid, parameters={p.name: p.default for p in definition.parameters})
+        )
+    _drain(qapp)
+    event = _run_batch(window, qapp, [aspirin, ethanol], descriptor_ids, calculator_ids)
+    entries = window._services.score_service._classified_results(aspirin)
+    assert aspirin.conformers, "the molecule has a conformer, which is the case #330 was about"
+    compared = 0
+    for output in APPROVED:
+        in_results = read_output(output.output_id, entries)
+        in_table = read_cell_output(output.output_id, event.table, aspirin.uuid)
+        assert (in_table.state, in_table.carried_as) == (in_results.state, in_results.carried_as), output.output_id
+        if in_results.state is InputState.READ:
+            assert in_table.value == pytest.approx(in_results.value, rel=1e-9), output.output_id
+            compared += 1
+    assert compared >= len(descriptor_ids), "the sweep compared the descriptors at least, and not nothing"
+    sa = read_cell_output("descriptor:sa_score", event.table, aspirin.uuid).value
+    assert sa == pytest.approx(1.58, abs=0.05), "the drawing's value, not the conformer's 6.445"
+
+
+def test_a_score_defined_after_a_project_run_is_a_column_of_the_table_at_once_and_follows_its_edits(window, pair, qapp):
+    aspirin, ethanol = pair
+    event = _run_batch(window, qapp, [aspirin, ethanol], ["tpsa", "mol_logp"], [])
+    view = window._results_workspace.table_view
+    window._results_workspace.begin_project_run(type("Plan", (), {"run_id": "run-1"})())
+    view.apply_progress(event, adopt=True)
+    assert not any(c.source == "score" for c in view.table().columns)
+
+    made = _make(window)
+    qapp.processEvents()
+    column = next(c for c in view.table().columns if c.source == "score")
+    assert column.label == LABEL and column.column_id == f"score:{made.score_id}"
+    from openchem.domain.score_table import score_value_in_table
+
+    for molecule in (aspirin, ethanol):
+        assert view.table().cell(molecule.uuid, column.column_id).value == pytest.approx(score_value_in_table(made, event.table, molecule.uuid).value)
+    window._services.score_service.update(made.score_id, formula="ramp(psa, 100, 60)", inputs=(("psa", "descriptor:tpsa"),), constants=())
+    qapp.processEvents()
+    assert view.table().cell(aspirin.uuid, column.column_id).value == pytest.approx(0.0, abs=1.0) and view.table().cell(aspirin.uuid, column.column_id).value != view.table().cell(
+        ethanol.uuid, column.column_id
+    ).value
+    window._services.score_service.remove(made.score_id)
+    qapp.processEvents()
+    assert not any(c.source == "score" for c in view.table().columns)
+
+
+def test_a_score_the_run_did_not_compute_the_inputs_of_is_named_in_the_table_not_shown_as_a_column_of_dashes(window, pair, qapp):
+    aspirin, ethanol = pair
+    event = _run_batch(window, qapp, [aspirin, ethanol], ["tpsa"], [])
+    view = window._results_workspace.table_view
+    window._results_workspace.begin_project_run(type("Plan", (), {"run_id": "run-1"})())
+    view.apply_progress(event, adopt=True)
+    _make(window)
+    qapp.processEvents()
+    assert not any(c.source == "score" for c in view.table().columns)
+    assert not view._score_note.isHidden() and "mol_logp" in view._score_note.text() and LABEL in view._score_note.text()

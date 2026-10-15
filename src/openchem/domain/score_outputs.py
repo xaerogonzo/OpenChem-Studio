@@ -130,6 +130,12 @@ def approved_output(output_id: str) -> ApprovedOutput | None:
     return _BY_ID.get(output_id)
 
 
+def output_title(output_id: str) -> str:
+    """What an output is called without its namespace: a descriptor's id (`tpsa`), or a calculator's fact label (`Oxygen balance (CO basis)`)."""
+    kind, _, rest = output_id.partition(":")
+    return rest if kind == "descriptor" else rest.partition(":")[2]
+
+
 def unit_of(output: ApprovedOutput) -> Unit:
     """The unit of an entry, parsed. Raises `UnitError` for an entry whose unit is not written correctly, which a test forbids."""
     return parse_unit(output.unit)

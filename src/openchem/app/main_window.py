@@ -784,6 +784,7 @@ class MainWindow(QMainWindow):
             on_analyse=self._show_batch_analysis,
             on_screen=self._show_virtual_screening,
             batch_service=services.batch_service,
+            score_definitions=self._score_definitions,
         )
         self._property_panel.project_run_started.connect(self._on_project_run_started)
         self._results_host = PopOutHost(
@@ -3964,6 +3965,11 @@ class MainWindow(QMainWindow):
         """The project's score definitions as a save writes them, or None without a score service."""
         service = self._services.score_service
         return service.store if service is not None else None
+
+    def _score_definitions(self):
+        """The project's score definitions as they are now, for the project table's score columns."""
+        service = self._services.score_service
+        return service.store.definitions() if service is not None else ()
 
     def _on_score_definitions_changed(self, _event) -> None:
         self._session.mark_dirty()
