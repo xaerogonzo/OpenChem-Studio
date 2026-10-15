@@ -597,6 +597,15 @@ MENU_HELP: dict[str, HelpTooltip] = {
         tier=1, help_id="tools.lewis_pairing", topic=_M,
         help_anchor="lewis-pairing",
     ),
+    "derived_scores": HelpTooltip(
+        text=(
+            "Opens the scores of this project: formulas you write over numbers the application already computes, such as a weighted sum of desirabilities.\n\n"
+            "A score is always shown as \"<name> (user-defined, unvalidated)\", is read from the molecule's current results, starts no calculation and is not a "
+            "prediction. The formula is checked as you type: its units, its names, and that two estimates of one quantity are never combined."
+        ),
+        tier=1, help_id="tools.derived_scores", topic=_M,
+        help_anchor="derived-scores",
+    ),
     "virtual_screening": HelpTooltip(
         text=(
             "Opens virtual screening -- docking a set of molecules against one "
