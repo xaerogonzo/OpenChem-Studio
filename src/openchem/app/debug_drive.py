@@ -6759,14 +6759,19 @@ class _Driver(QObject):
         service is what this step exists to prove. `scope` is "this", "all" or
         "chosen" (with `chosen`: molecule indexes). Ticks are set from scratch, so
         a run is what the script says rather than what a previous step left ticked.
+
+        `"keep_ticks": true` is the one exception: the ticks and the always-on box stay exactly as they are (a `tick_score_inputs` step's, say) and only the scope is set, so the run is what the
+        person's own clicks left.
         """
         from openchem.ui.panels.property_panel import _SCOPE_ALL, _SCOPE_CHOSEN, _SCOPE_THIS
 
         panel = self._window._property_panel
-        for tick in panel._calculator_ticks.values():
-            tick.setChecked(False)
+        keep = bool(step.get("keep_ticks", False))
+        if not keep:
+            for tick in panel._calculator_ticks.values():
+                tick.setChecked(False)
         missing = []
-        for calculator_id in step.get("calculators", []):
+        for calculator_id in [] if keep else step.get("calculators", []):
             tick = panel._calculator_ticks.get(calculator_id)
             if tick is None:
                 missing.append(calculator_id)
@@ -6776,7 +6781,8 @@ class _Driver(QObject):
         scope = {"this": _SCOPE_THIS, "all": _SCOPE_ALL, "chosen": _SCOPE_CHOSEN}[step.get("scope", "all")]
         chosen = {molecules[i].uuid for i in step.get("chosen", []) if 0 <= i < len(molecules)}
         panel.set_scope(scope, chosen)
-        panel._scope_descriptors.setChecked(bool(step.get("descriptors", False)))
+        if not keep:
+            panel._scope_descriptors.setChecked(bool(step.get("descriptors", False)))
         # A SUBSET of the always-on properties or alert catalogs, by id (the picker's answer;
         # the picker is a modal, which a driven run cannot answer). Choosing ticks the box.
         if "descriptor_ids" in step:
@@ -6792,6 +6798,54 @@ class _Driver(QObject):
         )
         panel._run_selected_button.click()
         logger.warning("OPENCHEM_DRIVE: project_run status=%r", panel._batch_status.text())
+
+    def _do_tick_score_inputs(self, step: dict[str, Any]) -> None:
+        """`{"do": "tick_score_inputs", "tag": "x", "expect": {"menu_label": "Tick what my scores read (2)", "calculators": ["oxygen_balance"], "descriptor_choice": null,
+        "descriptors_box": true, "status_contains": ["Ticked 1 calculator(s)"], "run_enabled": true}}`
+        -- press the Presets menu's REAL "Tick what my scores read" entry in Properties, and read what it left ticked.
+
+        The menu is built apart from showing it (a `QMenu.exec` blocks a driven run) and the ACTION is triggered, which is what a click on the entry reaches. A menu with no such entry is a
+        failure, so a window that never gave the panel the score lookup cannot pass. `calculators` is the exact list of ticked calculators (sorted); `descriptor_choice` is the chosen subset
+        of always-on properties (sorted) or null for "all"; `descriptors_box` is whether "Include always-on properties" is ticked; `status_contains` are substrings of the line beside
+        Run selected. Pair it with `project_run` and `"keep_ticks": true`, which runs with the ticks as this step left them.
+        """
+        panel = self._window._property_panel
+        menu, actions = panel.build_presets_menu()
+        action = actions.get("tick_scores")
+        problems: list[str] = []
+        label = None
+        if action is None:
+            problems.append("the Presets menu has no 'Tick what my scores read' entry")
+        else:
+            label = action.text()
+            action.trigger()
+        menu.deleteLater()
+        ticked = sorted(panel._selected_calculator_ids())
+        choice = panel.descriptor_choice()
+        status = panel._batch_status.text()
+        logger.warning(
+            "OPENCHEM_DRIVE: tick_score_inputs entry=%r ticked=%s descriptor_choice=%s box=%s run_enabled=%s status=%r",
+            label, ticked, None if choice is None else sorted(choice), panel._scope_descriptors.isChecked(), panel._run_selected_button.isEnabled(), status[:200],
+        )
+        expect = step.get("expect") or {}
+        if "menu_label" in expect and label != expect["menu_label"]:
+            problems.append(f"the entry reads {label!r}, wanted {expect['menu_label']!r}")
+        if "calculators" in expect and ticked != sorted(expect["calculators"]):
+            problems.append(f"ticked {ticked}, wanted {sorted(expect['calculators'])}")
+        if "descriptor_choice" in expect:
+            wanted = None if expect["descriptor_choice"] is None else sorted(expect["descriptor_choice"])
+            if (None if choice is None else sorted(choice)) != wanted:
+                problems.append(f"the always-on choice is {None if choice is None else sorted(choice)}, wanted {wanted}")
+        if "descriptors_box" in expect and panel._scope_descriptors.isChecked() != bool(expect["descriptors_box"]):
+            problems.append(f"the always-on box is {panel._scope_descriptors.isChecked()}, wanted {expect['descriptors_box']}")
+        if "run_enabled" in expect and panel._run_selected_button.isEnabled() != bool(expect["run_enabled"]):
+            problems.append(f"Run selected enabled is {panel._run_selected_button.isEnabled()}, wanted {expect['run_enabled']}")
+        problems.extend(f"the status lacks {needle!r} (it reads {status[:200]!r})" for needle in expect.get("status_contains") or [] if needle not in status)
+        tag = str(step.get("tag", ""))
+        if self._record_assertion("tick_score_inputs", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT tick_score_inputs ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT tick_score_inputs FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
 
     def _do_results_details(self, step: dict[str, Any]) -> None:
         """`{"do": "results_details", "molecule": 1, "expect": {"computed": ["polar_surface_area"]}}`

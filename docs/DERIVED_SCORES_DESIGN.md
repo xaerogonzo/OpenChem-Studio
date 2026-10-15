@@ -395,8 +395,8 @@ A driven run follows the UI slice, builds its own state, and ends in a verdict.
    * **The table drive found two more** (`benchmarks/visual/score_table.json`, 12 assertions, three shots; new steps `table_scores` and a `project_table` shot): the score columns were off screen (above), and the Derived
      Scores window's Save stored the lists it passes in the definition, because `ScoreService.update` stored what it was given while `create` made tuples; a list made the definition unhashable, the parsed-formula cache
      refused it and Results said "Could not read the scores". `update` stores the same shapes `create` does.
-   * **Not here, deliberately.** The older Batch panel's own table did not show scores (its view was built without a provider; `ProjectTableView` takes one: done afterwards, see "The Batch panel's own table" below), and the run picker does not tick a score's inputs for a person: a
-     score whose inputs were not run says so under the table, which is the whole of the help it gives. Both are small follow-ups.
+   * **Not here, deliberately.** The older Batch panel's own table did not show scores (its view was built without a provider; `ProjectTableView` takes one: done afterwards, see "The Batch panel's own table" below), and the run picker did not tick a score's inputs for a person (done afterwards, see "Ticking what the scores read"): a
+     score whose inputs were not run said so under the table, which was the whole of the help it gave. Both were small follow-ups.
    * **Mutation-checked: 102 mutants of the table module, the evaluator seam, the view and dock wiring, the window's provider, the service's edit and the report. **85 were caught the first time, 16 survived and one pattern did not match.** Eleven survivors were missing tests (that a placeholder column with no cell for a row says "not computed" and not "not a column", that a cell with no column is never a number, that a unit refusal names the unit, that a placeholder cell that did not fail is not a refusal, the four digits, the refusal's kind, the separators of a note that names two things or two scores, that a table with no columns has nothing to say, that the per-atom data and the rows are the copy's own) and **five are equivalent and left**: a descriptor's "placeholder" is its own column, a placeholder lookup with no name finds nothing, a `bool` guard on a name that is empty for a descriptor, the unread-input filter on a value that has none, and the `str()` of a name that is already a string. After the new tests every real survivor is caught.**
 
    **4a as built (`read_scores`, the assistant reads a score), and what driving it found:**
@@ -480,7 +480,27 @@ A driven run follows the UI slice, builds its own state, and ends in a verdict.
      (the panel's real Fill-table button and the same numbers as Results; both tables for one run agree cell for cell). **Mutation-checked: 4 mutants (the provider not handed on, no subscription, a handler that does nothing, the window not passing
      the lookup), all caught.**
    * **Driven** by `benchmarks/visual/score_batch_table.json` (new `table_scores` option `"panel": "batch"` and `shot` widget `batch_table`): VERDICT PASS, 10 assertions, and the same script with the window's argument removed fails 4 of them.
-     Still open: the run picker does not tick a score's inputs for a person.
+     (The run picker's half, ticking a score's inputs for a person, was done after this: see "Ticking what the scores read".)
+
+   **Ticking what the scores read, as built (a follow-up after slice 4):**
+   * **The gap.** A score is a project-table column only when the run computed what it reads, and the table could say so only afterwards. Nothing helped a person include those inputs beforehand: a score on a calculator's output
+     needed that calculator ticked by hand, and an always-on box unticked or narrowed to a subset left a descriptor out.
+   * **What it is.** `domain/score_run_inputs.py` (pure: `run_inputs_of(definitions)` returns the always-on property ids and the calculator ids, the id and not the fact label, that the scores read, and any output id nothing can be
+     ticked for). The Properties panel's Presets menu offers "Tick what my scores read (N)" when the project has scores (`PropertyPanel.attach_score_definitions`, `tick_score_inputs`; the lookup is the window's `_score_definitions`,
+     asked each time, so a score defined, edited or removed is in the next tick).
+   * **Decisions.** It ADDS and never replaces or narrows: a preset means "this set" and replaces the ticks, this means "also what my scores need", so a tick the person made stays, an unticked always-on box is ticked with exactly the
+     properties read, a box left at "all" stays at all and a chosen subset is widened. A calculator the launcher is not offering (hidden by default, or not in the registry) is named and left unticked, because Run selected never runs what the
+     person cannot see. Scores that read only always-on properties tick no calculator, and the existing rule that Run selected is enabled by a ticked CALCULATOR stands, so the status line says so rather than the button doing something else.
+   * **What driving it found.** The status line beside Run selected is one line and clips, and only the idle hint ever set its tooltip, so the part of this message that matters (what could not be ticked) was cut off with no way to read
+     it: the label now keeps its tooltip equal to its text for every message. The first runs of the drive script failed for the script's own mistakes (it selected the starter molecule, index 0, which has no structure, and it expected
+     the Results reader to hold a number after a project run, which fills the table and not the molecule's own results: the reader correctly said "it has not been calculated for this molecule", and the script now asserts that and then
+     runs the calculator on the molecule). Hand check of the numbers: oxygen balance on the CO basis is -79.93 % for aspirin, -138.9 % for ethanol and -90.63 % for caffeine, so `ramp(ob, -150, -50)` is 0.7007, 0.1108 and 0.5937, which
+     is what the table and (for aspirin) the reader show.
+   * **Tested** in `tests/test_score_run_inputs.py` (the pure part, and a sweep that every approved output names something the application can tick), `tests/test_project_run.py` (the menu entry, additive ticking, the always-on box in each
+     of its three states, a calculator the launcher lacks, the status and its tooltip, and the claim itself: a project run after the tick gives the score a column and the same run without it names the score under the table) and
+     `tests/test_main_window_scores.py` (the real window's menu). **Mutation-checked: 26 mutants, all caught.** **Driven** by `benchmarks/visual/score_tick_inputs.json` (new `tick_score_inputs` step; `project_run` takes
+     `"keep_ticks": true`): VERDICT PASS, 8 assertions; with the window's attach removed it fails 2.
+   * **Not here.** The Batch panel's own property tree has no such button (it has its own ticks, and a person ticks it by hand as before).
 
 Slice 4 is complete: 4a (the assistant reads a score), 4b (no unit conversion is needed), 4c (a default for an input nobody calculated) and 4d (the assistant proposes a score and a person approves it).
 

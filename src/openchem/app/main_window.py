@@ -503,6 +503,8 @@ class MainWindow(QMainWindow):
         if services.score_service is not None:
             # The scores a person defined are read in Results beside everything else, evaluated against the molecule's current results each time.
             self._property_panel.attach_score_answers(services.score_service.answers_for)
+            # And the Presets menu can tick what they read, so a project run gives each of them a column.
+            self._property_panel.attach_score_definitions(self._score_definitions)
         self._console_panel = ConsolePanel(self)
         self._docking_panel = DockingPanel(
             services.docking_service, services.chemistry_engine, self._settings, services.event_bus, self
