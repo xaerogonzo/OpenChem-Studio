@@ -744,6 +744,8 @@ class AIAssistantPanel(QWidget):
 
     def _add_score_card(self, event: BridgeEvent) -> None:
         """A tool left a proposed score for the user. GUI thread: it arrived through a queued signal."""
+        if event.run_id in self._score_cards:
+            return  # already on screen: a second card for one proposal would be one the person could press twice
         card = _ScoreCard(event.preparation, self._cards_host)
         card.approve_clicked.connect(self._on_score_approve)
         card.cancel_clicked.connect(self._on_score_cancel)

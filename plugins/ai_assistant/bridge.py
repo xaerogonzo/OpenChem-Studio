@@ -201,7 +201,8 @@ class ToolBridge:
 
     def list_score_outputs(self) -> str:
         """What a score's formula may read. Fixed knowledge: it reads nothing of the user's molecule."""
-        return bounded_json(lambda caps: score_outputs_envelope(caps))
+        outputs = self._calculations.list_score_outputs()
+        return bounded_json(lambda caps: score_outputs_envelope(outputs, caps))
 
     def propose_score(self, request: dict[str, Any]) -> str:
         """Check a request for a score and leave it for the person to approve. **Stores nothing**, and has no way to: the approving is on an object this bridge is never given."""

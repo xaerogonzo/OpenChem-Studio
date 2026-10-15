@@ -95,6 +95,8 @@ def test_a_missing_required_field_is_named(missing):
         ({"label": 5}, "label"), ({"formula": None}, "formula"), ({"result_unit": 1}, "result_unit"), ({"note": ["x"]}, "note"),
         ({"inputs": "psa"}, "inputs"), ({"inputs": []}, "inputs"), ({"inputs": [{"name": "psa"}]}, "inputs"),
         ({"inputs": [{"name": "psa", "output": _TPSA, "default": 1}]}, "inputs"), ({"inputs": [{"name": 1, "output": _TPSA}]}, "inputs"),
+        ({"inputs": [{"name": "psa", "output": _TPSA, "owner": "someone"}]}, "inputs"),
+        ({"constants": [{"name": "hi", "value": 140, "unit": "Å^2", "owner": "someone"}]}, "constants"), ({"constants": [{"name": 5, "value": 140, "unit": "Å^2"}]}, "constants"),
         ({"inputs": ["psa"]}, "inputs"), ({"constants": "hi"}, "constants"), ({"constants": [{"name": "hi", "value": 1}]}, "constants"),
         ({"constants": [{"name": "hi", "value": 1, "unit": 3}]}, "constants"), ({"constants": ["hi"]}, "constants"),
     ],
@@ -306,3 +308,8 @@ def test_a_score_nothing_has_been_calculated_for_says_why_it_has_no_value_yet():
 def test_the_card_is_the_definitions_own_words_and_nothing_a_model_could_add():
     card = card_of(_calculated_proposal())
     assert set(card) == {"proposal_id", "label", "formula", "inputs", "constants", "declared_unit", "preview", "molecule", "owner", "note"}
+
+
+def test_the_numbers_a_card_and_a_model_are_told_are_the_ones_the_description_promises():
+    assert MAX_PENDING == 5, "the tool's description says at most 5 proposals wait at once"
+    assert ASSISTANT_OWNER == "AI assistant (you approved it)", "the card, the stored owner and the model's note all quote this"

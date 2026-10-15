@@ -24,7 +24,9 @@ from openchem.domain.calculator import DRAWING
 from openchem.domain.common import CacheState
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.project import ProjectModel
+from openchem.domain.result_envelope import Caps, score_outputs_envelope
 from openchem.domain.result_store import ResultIdentity, StoredResult
+from openchem.domain.score_outputs import APPROVED
 from openchem.domain.score_proposal import ASSISTANT_OWNER, MAX_PENDING, ProposalState
 from openchem.plugins.calculation_access import PluginCalculationApprovals, PluginCalculations
 
@@ -382,3 +384,136 @@ def test_proposals_from_many_worker_threads_at_once_neither_exceed_the_limit_nor
         thread.join()
     waiting = rig.world.host.pending_scores()
     assert len(waiting) == MAX_PENDING and sum(1 for r in results if hasattr(r, "proposal")) == MAX_PENDING and _scores(rig) == ()
+
+
+# --- the gaps the mutation check found -------------------------------------------------------------------------------------------------------------------
+
+
+def test_a_turn_begun_in_another_project_cannot_be_proposed_into_this_one(rig):
+    calculations = rig.panel._context.calculations
+    turn = calculations.begin_turn()
+    rig.world.services.score_service.set_project(ProjectModel(name="Another"))
+    refused = calculations.propose_score(turn, _request())
+    assert refused.problem.value == "no_project" and rig.world.host.pending_scores() == ()
+
+
+def test_a_project_one_short_of_the_most_scores_can_still_be_proposed_into_and_a_full_one_cannot(rig, monkeypatch):
+    from openchem.domain import turn_snapshot
+
+    original = turn_snapshot.build_turn_context
+    holding = {"count": 99}
+
+    def build(**kwargs):
+        kwargs["scores"] = [object()] * holding["count"]
+        return original(**kwargs)
+
+    monkeypatch.setattr("openchem.app.calculation_host.build_turn_context", build)
+    data, _ = _propose(rig)
+    assert data["ok"] is True, "99 scores held: there is room for one more"
+    holding["count"] = 100
+    data, _ = _propose(rig, label="One more")
+    assert data["ok"] is False and data["problem"] == "project_full"
+
+
+def test_an_approval_after_both_the_window_and_the_score_service_moved_to_another_project_is_void(rig):
+    data, _ = _propose(rig)
+    other = ProjectModel(name="Another")
+    rig.world.session.set_project(other)
+    rig.world.services.score_service.set_project(other)
+    outcome = rig.panel._context.calculation_approvals.approve_score(data["proposal_id"])
+    assert outcome.state is ProposalState.VOID and rig.world.services.score_service.store.definitions() == ()
+
+
+def test_a_project_with_no_room_at_approval_is_a_failure_with_its_reason_and_nothing_saved(rig, monkeypatch):
+    data, _ = _propose(rig)
+
+    def no_room(**kwargs):
+        raise ValueError("the project already holds the most scores")
+
+    monkeypatch.setattr(rig.world.services.score_service, "create", no_room)
+    outcome = rig.panel._context.calculation_approvals.approve_score(data["proposal_id"])
+    assert outcome.state is ProposalState.FAILED and outcome.message == "it could not be saved: the project already holds the most scores"
+    assert _scores(rig) == () and "could not be saved (it could not be saved: the project already holds" in rig.panel._notes[0]
+
+
+def test_what_a_rule_now_refuses_is_shown_in_the_ledger_and_the_transcript_with_its_reason(rig):
+    data, _ = _propose(rig)
+    rig.world.register("polar_window", lambda request: None)
+    rig.panel._score_cards[data["proposal_id"]].approve_button.click()
+    rig.qapp.processEvents()
+    assert any("approved but could not be saved (it could not be saved: the label" in line for line in rig.panel.ledger_lines())
+    assert "Score 'Polar window': approved but could not be saved." in rig.panel._transcript.toPlainText()
+
+
+def test_a_decision_is_in_the_transcript_in_the_users_terms(rig):
+    data, _ = _propose(rig)
+    rig.panel._score_cards[data["proposal_id"]].approve_button.click()
+    rig.qapp.processEvents()
+    assert "Score 'Polar window': saved after you approved it." in rig.panel._transcript.toPlainText()
+
+
+def test_the_strip_of_cards_is_there_while_a_proposal_waits_and_goes_when_it_is_decided(rig):
+    assert rig.panel._cards_host.isHidden()
+    data, _ = _propose(rig)
+    assert not rig.panel._cards_host.isHidden()
+    rig.panel._score_cards[data["proposal_id"]].cancel_button.click()
+    rig.qapp.processEvents()
+    assert rig.panel._cards_host.isHidden()
+
+
+def test_a_button_always_takes_its_card_away_even_when_the_host_has_nothing_to_announce(rig, monkeypatch):
+    data, _ = _propose(rig)
+    approvals = rig.panel._context.calculation_approvals
+    monkeypatch.setattr(approvals, "approve_score", lambda proposal_id: None)
+    rig.panel._score_cards[data["proposal_id"]].approve_button.click()
+    assert rig.panel.pending_score_ids() == [] and rig.panel._cards_layout.count() == 0, "pressing a button must never leave a card that can be pressed again"
+    data, _ = _propose(rig, label="Second")
+    monkeypatch.setattr(approvals, "cancel_score", lambda proposal_id: False)
+    rig.panel._score_cards[data["proposal_id"]].cancel_button.click()
+    assert rig.panel.pending_score_ids() == [] and rig.panel._cards_layout.count() == 0
+
+
+def test_a_proposal_repeated_shows_one_event_and_one_card_not_two(rig):
+    events = []
+    calculations = rig.panel._context.calculations
+    bridge = ToolBridge(calculations, calculations.begin_turn(), events.append)
+    first = json.loads(bridge.propose_score(_request()))
+    again = json.loads(bridge.propose_score(_request()))
+    assert first["already_waiting"] is False and again["already_waiting"] is True and again["proposal_id"] == first["proposal_id"]
+    assert [e.kind for e in events] == ["score_proposed"], "the second ask is not shown to the user again"
+
+
+def test_an_event_for_a_card_already_on_screen_adds_no_second_card(rig):
+    data, _ = _propose(rig)
+    (card_event,) = [data["proposal_id"]]
+    from ai_assistant.bridge import BridgeEvent
+
+    rig.panel._on_bridge_event(BridgeEvent(kind="score_proposed", calculator="score 'Polar window'", molecule="Aspirin", run_id=card_event, preparation={"proposal_id": card_event}))
+    assert rig.panel.pending_score_ids() == [card_event] and rig.panel._cards_layout.count() == 1
+
+
+def test_the_outputs_come_from_the_handle_and_are_capped_like_everything_the_model_reads(rig):
+    class Few(PluginCalculations):
+        def list_score_outputs(self):
+            return APPROVED[:3]
+
+    bridge = ToolBridge(Few(rig.world.host), rig.panel._context.calculations.begin_turn())
+    data = json.loads(bridge.list_score_outputs())
+    assert len(data["outputs"]) == 3 and data["left_out_for_length"] == 0, "what the handle says is what the model is told"
+    capped = score_outputs_envelope(APPROVED, Caps(items=5))
+    assert len(capped["outputs"]) == 5 and capped["left_out_for_length"] == len(APPROVED) - 5
+
+
+def test_a_listener_for_decisions_is_undone_when_the_plugin_unloads(rig):
+    seen = []
+    rollbacks = []
+    approvals = PluginCalculationApprovals(rig.world.host, rollbacks)
+    approvals.on_score_finished(seen.append)
+    data, _ = _propose(rig)
+    approvals.cancel_score(data["proposal_id"])
+    assert len(seen) == 1
+    for rollback in rollbacks:
+        rollback()
+    data, _ = _propose(rig, label="Another")
+    approvals.cancel_score(data["proposal_id"])
+    assert len(seen) == 1, "once unloaded, the callback is not called against a panel that no longer exists"

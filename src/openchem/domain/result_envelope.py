@@ -43,6 +43,7 @@ Pure: no Qt, no RDKit.
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -62,7 +63,7 @@ from openchem.domain.report import Fact, ReportResult, StructureReport
 from openchem.domain.run_lifecycle import RunOutcome
 from openchem.domain.score_answer import LIMITATION as SCORE_LIMITATION
 from openchem.domain.score_definition import VALIDATION as SCORE_VALIDATION
-from openchem.domain.score_outputs import APPROVED, ENDPOINTS, output_title
+from openchem.domain.score_outputs import ENDPOINTS, ApprovedOutput, output_title
 from openchem.domain.score_proposal import ASSISTANT_OWNER, ProposalRefusal, Registered
 from openchem.domain.score_reading import ScoresView
 from openchem.domain.score_value import InputEvidence, InputState, ScoreStatus, ScoreValue
@@ -561,16 +562,16 @@ SCORE_PROPOSAL_NOTE = (
 )
 
 
-def score_outputs_envelope(caps: Caps = FULL) -> dict[str, Any]:
-    """The outputs a score may read, as `list_score_outputs` returns them."""
-    shown = APPROVED[: caps.items]
+def score_outputs_envelope(entries: Sequence[ApprovedOutput], caps: Caps = FULL) -> dict[str, Any]:
+    """The outputs a score may read (`entries`, from the plugin handle), as `list_score_outputs` returns them."""
+    shown = entries[: caps.items]
     return {
         "envelope_version": MODEL_ENVELOPE_VERSION,
         "outputs": [
             {"output_id": entry.output_id, "reads": output_title(entry.output_id) or entry.output_id, "unit": entry.unit, "endpoint": entry.endpoint, "measures": ENDPOINTS.get(entry.endpoint, "")}
             for entry in shown
         ],
-        "left_out_for_length": len(APPROVED) - len(shown),
+        "left_out_for_length": len(entries) - len(shown),
         "note": SCORE_OUTPUTS_NOTE,
     }
 

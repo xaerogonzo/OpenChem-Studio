@@ -78,7 +78,6 @@ from openchem.domain.run_lifecycle import (
     RunState,
 )
 from openchem.domain.score_definition import MAX_DEFINITIONS
-from openchem.domain.score_formula import FormulaError
 from openchem.domain.score_proposal import (
     ProposalBook,
     ProposalOutcome,
@@ -254,9 +253,8 @@ class CalculationHost(QObject):
                 label=definition.label, formula=definition.formula, result_unit=definition.result_unit, inputs=list(definition.inputs),
                 constants=list(definition.constants), owner=definition.owner, note=definition.note,
             )
-        except FormulaError as exc:
-            return self._settle_score(proposal_id, ProposalState.FAILED, f"it could not be saved: {exc.message}")
         except ValueError as exc:
+            # A rule that now refuses it (`FormulaError`, with the rule's own message) or a project with no room: either way nothing was saved, and a person is told why.
             return self._settle_score(proposal_id, ProposalState.FAILED, f"it could not be saved: {exc}")
         return self._settle_score(proposal_id, ProposalState.SAVED, f"saved as {made.score_id}", made.score_id)
 
