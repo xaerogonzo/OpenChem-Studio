@@ -513,7 +513,7 @@ def score_envelope_of(value: ScoreValue, caps: Caps = FULL) -> dict[str, Any]:
     """One score as the model is told it: the header always, the number only when there is one."""
     definition = value.definition
     computed = value.status is ScoreStatus.VALUE
-    defaulted = [item.name for item in value.defaulted] if computed else []
+    defaulted = [item.name for item in value.defaulted]
     outcome = ("computed_with_defaults" if defaulted else "computed") if computed else "refused"
     data: dict[str, Any] = {
         "score_id": definition.score_id,

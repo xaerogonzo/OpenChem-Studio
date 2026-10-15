@@ -2646,7 +2646,8 @@ class _Driver(QObject):
         from PySide6.QtWidgets import QApplication, QMessageBox
 
         window = self._window
-        dialog = window.show_scores()
+        # Never activated: a person typing in another window would otherwise have the keys land in this one's Name field (see `MainWindow.show_scores`).
+        dialog = window.show_scores(activate=False)
         if dialog.dirty:
             # What a step starts from, so a question nobody expected ("discard unsaved changes?") can be traced to the form's state.
             logger.warning("OPENCHEM_DRIVE: score_dialog starts DIRTY: draft=%r saved=%r", dialog.draft(), dialog._saved)
@@ -2692,10 +2693,14 @@ class _Driver(QObject):
         marked = sorted(name for name, widget in marks.items() if "border" in widget.styleSheet())
         shown = next((d.display_label for d in window._services.score_service.store.definitions() if d.score_id == snap["current"]), None)
         logger.warning(
-            "OPENCHEM_DRIVE: score_dialog ok=%s where=%s | %s | works_out=%s | preview=%s | save=%s revert=%s delete=%s dirty=%s | scores=%s | asked=%s",
+            "OPENCHEM_DRIVE: score_dialog ok=%s where=%s | %s | works_out=%s | preview=%s | save=%s revert=%s delete=%s dirty=%s | scores=%s | asked=%s | active=%s",
             snap["ok"], snap["where"] or "-", snap["message"][:200], snap["works_out"], snap["preview"][:160],
             snap["save_enabled"], snap["revert_enabled"], snap["delete_enabled"], snap["dirty"], snap["scores"], asked,
+            type(QApplication.activeWindow()).__name__,
         )
+        if snap["dirty"] and step.get("press") in ("save", "revert"):
+            # A form that is still unsaved after the button that makes it clean: what each side holds, so the one intermittent failure of this step can be traced.
+            logger.warning("OPENCHEM_DRIVE: score_dialog ends DIRTY after %s: draft=%r saved=%r current=%r", step["press"], dialog.draft(), dialog._saved, dialog.current_score_id())
         expect = step.get("expect")
         if not expect:
             return

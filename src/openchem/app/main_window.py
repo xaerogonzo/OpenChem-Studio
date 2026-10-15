@@ -3980,15 +3980,23 @@ class MainWindow(QMainWindow):
     def _on_scores_action(self, _checked: bool = False) -> None:
         self.show_scores()
 
-    def show_scores(self) -> ScoreDialog:
-        """Open the Derived Scores window, or raise the one that is open. There is never a second."""
+    def show_scores(self, *, activate: bool = True) -> ScoreDialog:
+        """Open the Derived Scores window, or raise the one that is open. There is never a second.
+
+        `activate=False` is for a driven run (`OPENCHEM_DRIVE`): it shows the window without taking the keyboard from whatever the person is typing in. A person who asked for the window
+        wants it in front and focused, so that is the default; a script that opens it on a timer must not, because the keys that person types next land in its Name field
+        (measured: 2 of 15 driven saves ended with a stray letter in the label and an "unsaved" form, which is also the cause of the one unexplained `score_dialog.json` failure).
+        """
         if self._score_dialog is None:
             self._score_dialog = ScoreDialog(self._score_host(), self)
+            if not activate:
+                self._score_dialog.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
         else:
             self._score_dialog.refresh()
         self._score_dialog.show()
-        self._score_dialog.raise_()
-        self._score_dialog.activateWindow()
+        if activate:
+            self._score_dialog.raise_()
+            self._score_dialog.activateWindow()
         return self._score_dialog
 
     def _score_host(self) -> ScoreHost:

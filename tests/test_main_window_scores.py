@@ -7,7 +7,7 @@ not asserted. Nothing here defines a score through a dialog (that is slice 3d); 
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QThreadPool
+from PySide6.QtCore import QThreadPool, Qt
 
 from openchem.app.main_window import MainWindow
 from openchem.app.session import SessionManager
@@ -402,6 +402,31 @@ def test_a_saved_score_stays_clean_while_results_arrive_and_choosing_another_doe
 
 
 # --- what the mutation run found missing (slice 3d) -----------------------------------------------------------------------------------------
+
+
+def test_a_person_asking_for_the_scores_window_gets_it_raised_and_focused(window, qapp, monkeypatch):
+    from openchem.ui.dialogs.score_dialog import ScoreDialog
+
+    calls = []
+    monkeypatch.setattr(ScoreDialog, "activateWindow", lambda self: calls.append("activate"))
+    monkeypatch.setattr(ScoreDialog, "raise_", lambda self: calls.append("raise"))
+    dialog = window.show_scores()
+    assert calls == ["raise", "activate"] and dialog.isVisible()
+    assert not dialog.testAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
+    dialog.close()
+
+
+def test_a_driven_run_shows_the_scores_window_without_taking_the_keyboard(window, qapp, monkeypatch):
+    """A script that opens the window on a timer must not take the keyboard from whatever a person is typing in: their next keys would land in the Name field."""
+    from openchem.ui.dialogs.score_dialog import ScoreDialog
+
+    calls = []
+    monkeypatch.setattr(ScoreDialog, "activateWindow", lambda self: calls.append("activate"))
+    monkeypatch.setattr(ScoreDialog, "raise_", lambda self: calls.append("raise"))
+    dialog = window.show_scores(activate=False)
+    assert calls == [] and dialog.isVisible() and dialog.testAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
+    assert window.show_scores(activate=False) is dialog and calls == [], "opened again it is still not activated"
+    dialog.close()
 
 
 def test_a_window_closed_while_scores_changed_shows_them_when_it_is_opened_again(window, pair, qapp):

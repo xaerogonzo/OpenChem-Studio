@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Derived scores, slice 4c: a default for an input nobody calculated
+- **A score may declare a default for an input** (a box beside the input in Tools > Derived Scores). It is used only when that input was **never calculated** for the molecule: an input that was calculated and refused, failed,
+  belongs to an earlier structure or carries another unit still refuses the score, and a score worked out from defaults alone is refused. It is the second `on_missing` policy the design record allowed only with a reason in
+  writing (`docs/DERIVED_SCORES_DESIGN.md` sections 7 and 11).
+- **A number that used a default says so wherever it is shown:** Results ("0.4775 (default used for ob)", the input named in the evidence and the limitations); the project table (a `*` on the cell, a hover naming the input,
+  and a companion column listing the inputs a default stood in for, so the exported CSV carries it); the assistant (`computed_with_defaults`, `defaults_used`); and the window's own preview.
+- **No change for any score that declares none:** such a definition is byte-for-byte what an earlier build wrote, with the digest it always had. A definition with a default is format 2; a build that reads only format 1 keeps it
+  and writes it back unchanged.
+- Real-window check `benchmarks/visual/score_defaults.json` (11 assertions, three shots). It found that a refused answer said it had used a default though it had no number. Mutation-checked: 102 mutants, 94 caught first time; the seven real gaps found have tests and one was an equivalent guard, removed.
+
 ### Derived scores, slice 4a: the assistant can read the scores a person defined, and cannot write one
 - **A new assistant tool, `read_scores`** (the sixth), returns the project's user-defined scores worked out for the molecule selected when the message was sent: each with its label (always ending "(user-defined, unvalidated)"),
   formula, declared unit and every input with the state it was read in, and a value **only when every input was read from the molecule's current results**. A score with an input nobody calculated, that was calculated for an earlier
