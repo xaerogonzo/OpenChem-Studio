@@ -27,7 +27,7 @@ TWO_ANIONS = [
     ("a sulfonamide anion beside a phenolate", "CS(=O)(=O)[N-]c1ccc([O-])cc1", "4-(methylsulfonylazanidyl)benzen-1-olate"),
     ("a sulfonamide anion beside a thiolate", "CS(=O)(=O)[N-]c1ccc([S-])cc1", "4-(methylsulfonylazanidyl)benzene-1-thiolate"),
     ("a sulfamide anion beside a carboxylate", "CN(C)S(=O)(=O)[N-]c1ccc(C(=O)[O-])cc1", "1-[(N,N-dimethylsulfamoyl)azanidyl]-4-[oxido(oxo)methyl]benzene"),
-    ("an acylurea anion beside a thiolate", "Cc1ccccc1C(=O)[N-]C(=O)N=C([S-])c1ccccc1", "{[(2-methylbenzoyl)azanidyl](oxo)methylimino}phenylmethanethiolate"),
+    ("an acylurea anion beside a thiolate", "Cc1ccccc1C(=O)[N-]C(=O)N=C([S-])c1ccccc1", "[((2-methylbenzoyl)azanidyl)carbonylimino]phenylmethanethiolate"),
 ]
 
 KETONE_RING_CATION = [
@@ -104,6 +104,7 @@ def test_a_multiplied_ion_word_stands_for_several_centres(smiles, name):
     assert name_smiles(smiles) == name
 
 
-def test_the_protonated_amidoxime_beside_a_second_cation_is_refused_not_named_with_a_charge_lost():
-    with pytest.raises(ValueError, match="positive"):
-        name_smiles("O[NH+]=C(c1ncc(C(F)(F)F)cc1Cl)N1CC[NH+](Cc2ccccc2)CC1")
+def test_the_protonated_amidoxime_beside_a_second_cation_keeps_both_charges():
+    """Round 56 refused it (a neutral hydroxyimino hid one of two cations); round 57 writes the prefix `hydroxyazaniumylidene`."""
+    name = name_smiles("O[NH+]=C(c1ncc(C(F)(F)F)cc1Cl)N1CC[NH+](Cc2ccccc2)CC1")
+    assert "hydroxyazaniumylidene" in name and name.endswith("piperazin-1-ium")

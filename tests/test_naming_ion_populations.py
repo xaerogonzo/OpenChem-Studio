@@ -201,3 +201,19 @@ def test_each_sulfonamidate_in_a_name_accounts_for_one_charge_opsin_does_not_rea
     smiles = "Cc1ccc(S(=O)(=O)[N-]C)cc1.[Na+]"
     assert pop.verdict("dianion", "O=C([O-])c1ccc(S(=O)(=O)[N-]C)cc1", "4-(methylsulfamoyl)benzoate-sulfonamidate", "O=C([O-])c1ccc(S(=O)(=O)NC)cc1") == "ok"
     assert pop.verdict("dianion", "O=C([O-])c1ccc(S(=O)(=O)[N-]C)cc1", "4-(methylsulfamoyl)benzoate", "O=C([O-])c1ccc(S(=O)(=O)NC)cc1") == "charge_changed"
+
+
+# Round 57: a permanent cation (an N-methylated base) beside an acid or a protonated base.
+def test_a_betaine_methylates_a_base_and_deprotonates_an_acid_of_one_molecule():
+    rows = [{"label": "b", "smiles": "OC(=O)CCc1ccncc1"}]
+    ions = [(c.kind, c.smiles) for c in pop.generate("betaine", rows)]
+    assert ("carboxylic+aromatic_n", _canon("[O-]C(=O)CCc1cc[n+](C)cc1")) in ions
+
+
+def test_a_quaternary_dication_methylates_the_first_base_and_protonates_the_second():
+    rows = [{"label": "q", "smiles": "NCCc1ccncc1"}]
+    assert [c.smiles for c in pop.generate("quat_dication", rows)] == [_canon("C[NH2+]CCc1cc[nH+]cc1")]
+
+
+def test_the_new_modes_are_listed():
+    assert {"betaine", "quat_dication"} <= set(pop.MODES)

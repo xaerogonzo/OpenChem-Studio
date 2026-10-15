@@ -5718,6 +5718,43 @@ def _name_single_fg_substituent(
                         text=cm_prefix,
                     )
 
+    # Special case: a sulfonyl or an acyl group whose own nitrogen is the ANION (naming round 57): `(carbamoylazanidyl)sulfonyl`, `(methylazanidyl)carbonyl`. An acylsulfonamide anion beside
+    # a cation takes the cation as parent and cites the rest as a prefix; the ordinary `N-carbamoylsulfamoyl` prefix has no charge, and the anion was dropped (the guard refused it).
+    att_atom_acylazanidyl = mol.GetAtomWithIdx(attachment_idx)
+    if (
+        att_atom_acylazanidyl.GetFormalCharge() == 0
+        and tuple(free_valence.bond_orders) == (1,)
+        and strategy is not None
+        and session is not None
+        and (
+            (att_atom_acylazanidyl.GetAtomicNum() == 16 and sum(
+                1 for nb in att_atom_acylazanidyl.GetNeighbors()
+                if nb.GetAtomicNum() == 8 and mol.GetBondBetweenAtoms(attachment_idx, nb.GetIdx()).GetBondTypeAsDouble() == 2.0
+            ) == 2)
+            or (att_atom_acylazanidyl.GetAtomicNum() == 6 and any(
+                nb.GetAtomicNum() == 8 and mol.GetBondBetweenAtoms(attachment_idx, nb.GetIdx()).GetBondTypeAsDouble() == 2.0 and nb.GetDegree() == 1
+                for nb in att_atom_acylazanidyl.GetNeighbors()
+            ))
+        )
+    ):
+        anionic_n = [nb for nb in att_atom_acylazanidyl.GetNeighbors() if nb.GetAtomicNum() == 7 and nb.GetFormalCharge() == -1 and nb.GetTotalNumHs() == 0]
+        others = [nb for nb in att_atom_acylazanidyl.GetNeighbors() if nb.GetAtomicNum() > 1 and nb.GetIdx() not in {x.GetIdx() for x in anionic_n}]
+        # Only the group's own shape: the sulfonyl has the nitrogen and no other heavy neighbour but its oxygens; the acyl has the nitrogen, its oxygen and nothing else.
+        if len(anionic_n) == 1 and all(nb.GetAtomicNum() == 8 for nb in others):
+            from openchem.vendor.iupac_namer.perception.charge_perception import _azanide_text
+
+            inner = _azanide_text(mol, anionic_n[0].GetIdx(), strategy, session, depth, "azanidyl", frozenset({attachment_idx}))
+            if inner:
+                ending = "sulfonyl" if att_atom_acylazanidyl.GetAtomicNum() == 16 else "carbonyl"
+                return LeafTree(
+                    output_form=output_form,
+                    free_valence=free_valence,
+                    choices_made=(Choice(type="acyl_azanidyl_substituent", detail=f"prefix=({inner}){ending}"),),
+                    decision_ctx=decision_ctx,
+                    validity_warnings=None,
+                    text=f"({inner}){ending}",
+                )
+
     # Special case: sulfonyl/sulfinyl substituent (S as attachment).
     # Fragment pattern: R-S(=O)(=O)- or R-S(=O)- with free valence at S.
     # Name as: {name_of_R}sulfonyl or {name_of_R}sulfinyl.
@@ -9805,6 +9842,27 @@ def _restore_dropped_oximate(mol, name: str) -> str:
     return re.sub(r"(?<![a-z])hydroxyimino", "oxidoimino", name)
 
 
+def _restore_dropped_oximium(mol, name: str) -> str:
+    """Give a protonated oxime / amidoxime beside a SECOND cation its charge back (naming round 57).
+
+    `O[NH+]=C(Ar)N1CC[NH+](Bn)CC1` was `1-benzyl-4-{[Ar](hydroxyimino)methyl}piperazin-1-ium`: the piperazinium took the parent and the protonated oxime became a neutral `hydroxyimino`
+    prefix, so one of two cations was gone from the name (the iminium classifier needs a single charge, and the old guard counted a word, not a centre). The prefix for `=[NH+]OH` is
+    `hydroxyazaniumylidene`, which OPSIN reads. Done only for ONE such centre whose neutral prefix occurs exactly once; anything else is left for the guard."""
+    if "NAMING ERROR" in name or len(Chem.GetMolFrags(mol)) != 1:
+        return name
+    sites = [
+        a for a in mol.GetAtoms()
+        if a.GetSymbol() == "N" and a.GetFormalCharge() == 1 and a.GetTotalNumHs() == 1 and a.GetDegree() == 2
+        and any(n.GetSymbol() == "O" and n.GetDegree() == 1 and n.GetFormalCharge() == 0 for n in a.GetNeighbors())
+        and any(b.GetBondTypeAsDouble() == 2.0 and b.GetOtherAtom(a).GetSymbol() == "C" for b in a.GetBonds())
+    ]
+    if len(sites) != 1:
+        return name
+    if len(re.findall(r"(?<![a-z])hydroxyimino", name)) != 1:
+        return name
+    return re.sub(r"(?<![a-z])hydroxyimino", "hydroxyazaniumylidene", name)
+
+
 def _name_smiles_bound(smiles: str, strategy) -> str:
     """Name a molecule from SMILES, *strategy* already bound (never None); refuse a name that loses a nuclide or a charge.
 
@@ -9816,6 +9874,7 @@ def _name_smiles_bound(smiles: str, strategy) -> str:
         _check_nuclides_named(mol, name)
         name = _restore_dropped_chalcogen_anion(mol, name)
         name = _restore_dropped_oximate(mol, name)
+        name = _restore_dropped_oximium(mol, name)
         _check_charge_named(mol, name)
     return name
 
@@ -18048,6 +18107,14 @@ class SubstitutivePath:
                                     1 for nb in anchor_atom_exec.GetNeighbors()
                                     if nb.GetAtomicNum() == 7 and nb.GetIdx() in pa.substituent_atoms
                                 ) >= 2:
+                                    has_acyl_chain = True
+                            # A sulfonamide whose nitrogen is the ANION cannot be the bare `sulfamoyl` prefix, which has no charge: the whole fragment is named recursively and the carved group is
+                            # `(R-azanidyl)sulfonyl` (naming round 57; with a second anion in the molecule the charge was dropped and the guard refused the name).
+                            if not has_acyl_chain and pa.fg.type == "sulfonamide":
+                                if any(
+                                    nb.GetAtomicNum() == 7 and nb.GetFormalCharge() == -1 and nb.GetIdx() in pa.substituent_atoms
+                                    for nb in anchor_atom_exec.GetNeighbors()
+                                ):
                                     has_acyl_chain = True
                             # Sulfamate ester: a sulfonamide whose S bears a
                             # single-bonded -O-R (alkoxy/aryloxy) is R-O-SO2-N<,

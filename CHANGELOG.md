@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: the multi-charge ions that were still refused, and two more population modes
+- `tools/naming_ion_populations.py` gained `betaine` (an N-methylated base beside a deprotonated acid) and `quat_dication`. An acylsulfonamide anion beside a cation, which the round 55 guard refused, is
+  `carbamoyl[4-(1,3-thiazol-3-ium-2-yl)benzene-1-sulfonyl]azanide` (D-271); a sulfonamide or amide anion cited as a prefix because another anion is the parent is `4-[(carbamoylazanidyl)sulfonyl]benzen-1-olate`
+  (D-272); a protonated amidoxime beside a second cation is `...(hydroxyazaniumylidene)methyl...piperazin-1-ium` (D-273); an O-protonated N-acyl urea or thiourea is named, `[1-(anilinomethanethioylamino)butylidene]oxidanium`
+  (D-274). Every multi-charge population is now clean apart from 2 visible refusals (an O-methylated sulfoxide on S-S or S-P).
+
 ### Naming: two anions in one molecule, a charge guard that counts centres, and a ketone ring cation with a cation suffix
 - A second anionic nitrogen is cited as an `azanidyl` prefix, `4-(acetylazanidyl)benzen-1-olate` (it was a `NAMING ERROR`, and a sulfonamide anion beside a phenolate was `[N-(4-oxidophenyl)sulfamoyl]methane`
   with the sulfonamide's charge silently dropped) (D-268). The charge guard compared WORDS with polarity, not centres; it now needs as many ion words as the molecule has centres of that polarity unless
