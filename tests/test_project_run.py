@@ -661,3 +661,19 @@ def test_without_ticking_what_the_scores_read_the_same_project_run_leaves_the_sc
     table = workspace.table_view.table()
     assert not any(c.source == "score" for c in table.columns)
     assert not workspace.table_view._score_note.isHidden() and "Oxygen balance" in workspace.table_view._score_note.text()
+
+
+def test_a_calculator_the_launcher_does_not_have_at_all_is_named_by_its_id_and_nothing_breaks(services, project, built):
+    panel, _held = _with_scores(services, project, built, _score([("a", "calculator:retired_thing:Some fact")], formula="a"))
+    assert panel.tick_score_inputs() == 0
+    assert "Not ticked, because the launcher is not offering them: retired_thing." in panel._batch_status.text()
+
+
+def test_scores_that_read_no_always_on_property_leave_that_box_exactly_as_it_was(services, project, built):
+    panel, _held = _with_scores(services, project, built, _score([("ob", _OB)], formula="ramp(ob, -100, 0)"))
+    panel._scope_descriptors.setChecked(False)
+    panel.tick_score_inputs()
+    assert not panel._scope_descriptors.isChecked() and panel.descriptor_choice() is None
+    panel.set_descriptor_choice({"mol_wt"})
+    panel.tick_score_inputs()
+    assert panel.descriptor_choice() == {"mol_wt"}

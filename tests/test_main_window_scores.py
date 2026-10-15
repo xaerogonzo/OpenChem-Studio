@@ -607,3 +607,26 @@ def test_a_score_the_run_did_not_compute_the_inputs_of_is_named_in_the_table_not
     qapp.processEvents()
     assert not any(c.source == "score" for c in view.table().columns)
     assert not view._score_note.isHidden() and "mol_logp" in view._score_note.text() and LABEL in view._score_note.text()
+
+
+# --- ticking what the scores read, in the real window ------------------------------------------------------------------------------------
+
+
+def test_the_real_windows_presets_menu_offers_what_the_scores_read_and_it_ticks_and_runs_them_into_the_table(window, pair, qapp):
+    panel = window._property_panel
+    menu, actions = panel.build_presets_menu()
+    assert "tick_scores" not in actions, "no scores yet, so no entry"
+    menu.deleteLater()
+    _make(window, label="Oxidation window", formula="ramp(psa, 140, 60) * ramp(ob, -100, 0)", inputs=[("psa", "descriptor:tpsa"), ("ob", "calculator:oxygen_balance:Oxygen balance (CO basis)")])
+    menu, actions = panel.build_presets_menu()
+    assert actions["tick_scores"].text() == "Tick what my scores read (1)"
+    actions["tick_scores"].trigger()
+    menu.deleteLater()
+    assert panel._selected_calculator_ids() == ["oxygen_balance"]
+    from openchem.ui.panels.property_panel import _SCOPE_ALL
+
+    panel.set_scope(_SCOPE_ALL)
+    panel._run_selected_button.click()
+    _drain(qapp)
+    table = window._results_workspace.table_view.table()
+    assert any(c.source == "score" and c.label.startswith("Oxidation window") for c in table.columns)
