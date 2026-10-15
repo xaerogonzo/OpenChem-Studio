@@ -194,12 +194,9 @@ benchmark showing it adds information, as a calculator, not as a formula.
 
 ## 9. The assistant
 
-The assistant can read a score through the envelope's `report` branch, with its label, its evidence and its
-limitation intact, **once** there is a read for it: scores are not stored, so `read_results` (which reads the
-result store) does not see them. A `read_scores` that evaluates against the turn's frozen snapshot is a separate,
-small step and is not assumed. **The assistant cannot create or edit a definition in this phase.** A formula
-written by a model is an agent-authored predictor, and that is a decision for its own review, not a side effect.
-It may suggest formula text in conversation, for a person to enter.
+**Built (slice 4a): the assistant can read a score, with its label, its formula, every input and its limitation intact.** Scores are not stored, so `read_results` (which reads the result store) does not see
+them; `read_scores` evaluates the project's definitions against the turn's frozen snapshot. **The assistant cannot create or edit a definition.** A formula written by a model is an agent-authored predictor, and that
+is a decision for its own review, not a side effect. It may suggest formula text in conversation, for a person to enter.
 
 ## 10. Tests
 
@@ -387,8 +384,33 @@ A driven run follows the UI slice, builds its own state, and ends in a verdict.
      score whose inputs were not run says so under the table, which is the whole of the help it gives. Both are small follow-ups.
    * **Mutation-checked: 102 mutants of the table module, the evaluator seam, the view and dock wiring, the window's provider, the service's edit and the report. **85 were caught the first time, 16 survived and one pattern did not match.** Eleven survivors were missing tests (that a placeholder column with no cell for a row says "not computed" and not "not a column", that a cell with no column is never a number, that a unit refusal names the unit, that a placeholder cell that did not fail is not a refusal, the four digits, the refusal's kind, the separators of a note that names two things or two scores, that a table with no columns has nothing to say, that the per-atom data and the rows are the copy's own) and **five are equivalent and left**: a descriptor's "placeholder" is its own column, a placeholder lookup with no name finds nothing, a `bool` guard on a name that is empty for a descriptor, the unread-input filter on a value that has none, and the `str()` of a name that is already a string. After the new tests every real survivor is caught.**
 
-4. **Later, each its own review**: `read_scores` for the assistant; assistant-authored definitions, if ever; any
-   second `on_missing` policy; any conversion entry.
+   **4a as built (`read_scores`, the assistant reads a score), and what driving it found:**
+   * **Parts.** `domain/score_reading.py` (pure: `read_scores(turn, names, limit)` -> `ScoresView`; a name is a score id, a label or the label as shown, case-folded, and a name that matches none is `not_found`, never matched
+     loosely), `TurnContext.scores` (the project's definitions, frozen with the results when the turn begins; `CalculationHost.begin_turn` captures them only when the score service holds the turn's own project),
+     `PluginCalculations.read_scores` (needs no host: it reads only the frozen turn), `result_envelope.score_envelope_of` / `scores_view_envelope`, `ToolBridge.read_scores` and the sixth tool, `READ_SCORES`, with the system prompt
+     and the panel's privacy note.
+   * **Both halves of a read are frozen at Send.** A formula edited, a score removed or made, a calculator that finishes or another molecule selected while the reply streams changes nothing about what the turn reads; the
+     next turn sees it. The evaluation is the one Results and the project table use (`score_value.evaluate_score`), so the model is told exactly what a person looking at Results is.
+   * **What a model is told per score:** the label always ending "(user-defined, unvalidated)", the formula, the declared unit, the definition's digest, every input with the output it reads and the state it was read in (and
+     its value and unit when it was), every constant, the freshness ("current": a score is never stored) and two caveats (the limitation the Results reader shows, and that a score is not a prediction and is never to be reported as
+     an experimental or predicted property). **A value only when every input was read from CURRENT results**; otherwise `outcome: refused`, a reason naming each input that could not be read, and no `data` block, which the tool
+     description tells the model never to fill with a number or a zero. A list is cut to the result caps and says how many it left out; at most 40 are read at once.
+   * **What a model is never told:** the owner and the note, which are a person's free text (asserted in the real tool loop by a script that defines a score with a private owner and note), and **a molecule other than the
+     selected one** (`scores` is the only argument; an undeclared argument is refused before the handler runs). **There is no call that writes a score**: the plugin handle and the tool bridge have none, and a test reads
+     their public surface for any create, update, remove, define, delete, save or write.
+   * **What leaves the machine changed**, and the panel now says it: a remote provider sees a score's name and formula (a person's own text) when the assistant reads it. Found by reading the drive's screenshot, not by a test: the
+     note under the conversation still said only "calculator results".
+   * **Verified.** 56 tests across `test_score_reading.py` (the module, the envelope, rounding, caps, refusals) and `test_ai_assistant_scores.py` (the real host's `begin_turn`, edits and removals after the turn, the tool's schema,
+     description and system prompt, and a scripted provider on a real worker thread), plus the pins in `test_plugin_calculations.py` and `test_ai_assistant_bridge.py`. **`benchmarks/visual/ai_scores.json` passes 10 assertions** in the
+     real window with the assistant's real Send: no scores in the project, a score with a number and one refused, the calculator the refused one waits on is NOT started by reading it, a score named by its label and a name
+     that does not exist, and a model that names a molecule or asks for a score to be made is refused with nothing written. New `ai_expect` key `tool_results_exclude` (what must NOT appear in anything a tool returned).
+     The drive passed on its first run: it found nothing the unit tests had not.
+   * **Mutation-checked: 91 mutants** of the reading module, the envelope, the host and turn wiring, the plugin handle, the bridge and the tool. **79 were caught the first time, 10 survived and two patterns did not match (rewritten, and then caught).** Nine survivors were missing tests (that `defined` counts the project's scores and not only those named; that the default limit is the module's forty; that another project's scores are never frozen into a turn; a host with no score service; the freshness note; the caps on one score's inputs and on its constants; that scores the read limit left out are counted in the envelope too; that the bridge cuts a long list to the reply budget and says so) and **one is equivalent and left**: the host's `tuple(...)` of the store's definitions, which `build_turn_context` makes again.
+   * **Not here, deliberately:** a score in `read_results` (it is not a stored result), the assistant making or changing a definition, a tool that runs the calculators a score is waiting on (it has `run_calculator` already,
+     under the execution policy that decides whether a person approves first).
+
+4. **Later, each its own review**: assistant-authored definitions, if ever; any second `on_missing` policy; any
+   conversion entry.
 
 ## 12. Decisions most worth challenging
 

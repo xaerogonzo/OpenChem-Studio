@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Derived scores, slice 4a: the assistant can read the scores a person defined, and cannot write one
+- **A new assistant tool, `read_scores`** (the sixth), returns the project's user-defined scores worked out for the molecule selected when the message was sent: each with its label (always ending "(user-defined, unvalidated)"),
+  formula, declared unit and every input with the state it was read in, and a value **only when every input was read from the molecule's current results**. A score with an input nobody calculated, that was calculated for an earlier
+  structure or that a calculator declined comes back as a refusal naming the input, with no number, and the tool tells the model never to supply one or treat it as zero. A score is not a stored result, so `read_results` never showed one.
+- **The definitions are frozen with the results at Send**: a formula edited, a score removed or a calculator finished while the reply streams changes nothing about what the turn reads. The model cannot name another molecule, and
+  **there is no tool or handle call that creates, edits or deletes a score**; it may suggest formula text for a person to enter in Tools > Derived Scores. A score's owner and note are never sent.
+- **What leaves the machine changed**, and the note under the conversation says so: a remote provider sees a score's name and formula when the assistant reads it.
+- Real-window check `benchmarks/visual/ai_scores.json` (10 assertions; new `ai_expect` key `tool_results_exclude`). Design record: `docs/DERIVED_SCORES_DESIGN.md`, "4a as built". Mutation-checked: 91 mutants, 79 caught first time; the nine real gaps found have tests and one is equivalent.
+
 ### Derived scores, slice 3c: a score is a column of the project table
 - **The scores a person defined are the first columns of the Results dock's project table**, labelled `<label> (user-defined, unvalidated)`, with the number each formula gives for each row. A score is computed when the table is
   shown, from the table's own cells, by the rule the Results reader uses, and never run or stored: a score defined, edited or removed changes the table at once, without another run. The CSV carries the suffix in its header and

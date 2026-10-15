@@ -258,7 +258,7 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "ai_card", "action": "approve"}   press a REAL button on the preview card showing
                                           ("approve" | "cancel" | "open" | "dismiss")
     {"do": "ai_expect", "expect": {"ledger_contains": [...], "pending": 1, "service_previews": 1,
-     "tool_results_contain": [...], "tools_offered": [...], "notes": 1, "panel_visible": "Quantum_Chemistry"}}
+     "tool_results_contain": [...], "tool_results_exclude": [...], "tools_offered": [...], "notes": 1, "panel_visible": "Quantum_Chemistry"}}
                                           what the panel shows and what the model was told, asserted
     {"do": "lewis_pairing", "first": 0, "second": 1, "method": "B3LYP def2-SVP", "role": "acid",
      "press": "job:dscf_second", "expect": {"status": "partial", "jobs_to_do": 1, "panel_calc_type": "delta_scf"}}
