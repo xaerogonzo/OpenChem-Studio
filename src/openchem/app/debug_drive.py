@@ -8248,7 +8248,8 @@ class _Driver(QObject):
 
         Keys: `ledger_contains` (substrings, each in some ledger row), `ledger_rows` (exact count),
         `pending` (preview cards waiting), `service_previews` (service cards showing), `tool_results_contain`
-        (substrings of what the tools returned to the model), `tools_offered` (names the provider was
+        (substrings of what the tools returned to the model), `tool_results_exclude` (substrings that
+        must NOT be in anything a tool returned: a person's free text that was never to leave), `tools_offered` (names the provider was
         given on its first request), `transcript_contains`, `notes` (how many previews' outcomes wait for
         the next message), `send_enabled`, `panel_visible` (a dock's objectName that must be showing).
         """
@@ -8285,6 +8286,9 @@ class _Driver(QObject):
             for needle in expect.get("tool_results_contain", []):
                 if needle not in seen:
                     problems.append(f"no tool result contained {needle!r}")
+            for needle in expect.get("tool_results_exclude", []):
+                if needle in seen:
+                    problems.append(f"a tool result contained {needle!r}, which must never be sent")
             if "tools_offered" in expect:
                 offered = provider.requests[0][1] if provider and provider.requests else []
                 missing = [name for name in expect["tools_offered"] if name not in offered]

@@ -60,7 +60,8 @@ SYSTEM_PROMPT_PREFIX = (
     "find_calculators and describe_calculator say what exists, what each needs and whether you may run it; "
     "list_goals says which calculators the application itself pairs with a common question (identity, charge, "
     "solubility, shape ...) and why, and is editorial rather than a validated protocol; "
-    "read_results returns what has already been computed; run_calculator runs one. A run you request is recorded in "
+    "read_results returns what has already been computed; read_scores returns the user's own score formulas worked out for "
+    "this molecule (formulas a person wrote, not predictions, and not something you can create or change); run_calculator runs one. A run you request is recorded in "
     "the user's project and appears in their Results like one they ran themselves, so run only what the question "
     "needs. Some calculators need the user to approve a preview first: tell them it is waiting for their approval, "
     "do not ask again, and never imply you approved or started it.\n\n"
@@ -544,24 +545,24 @@ class AIAssistantPanel(QWidget):
     # --- what leaves this machine ----------------------------------------------------------------------
 
     def privacy_note(self) -> str:
-        """Where the conversation, and so every calculator result the assistant reads, is sent."""
+        """Where the conversation, and so every calculator result and score the assistant reads, is sent."""
         provider_id = self._provider_combo.currentText()
         provider = self._providers.get(provider_id)
         if provider is None:
             return ""
         if not provider.supports_tools:
             return (
-                f"{provider_id} cannot use this application's tools, so it can neither read nor run calculators. "
+                f"{provider_id} cannot use this application's tools, so it can neither read nor run calculators, nor read your scores. "
                 f"Your messages and the selected molecule's summary are sent to it."
             )
         if getattr(provider, "_base_url", None):
             return (
-                f"Calculator results the assistant reads are sent to the server at {provider._base_url}, as part of "
-                f"the conversation."
+                f"Calculator results the assistant reads, and the names and formulas of your scores it reads, are sent to the server at "
+                f"{provider._base_url}, as part of the conversation."
             )
         return (
-            f"Calculator results the assistant reads or runs are sent to {provider_id} as part of the conversation, "
-            f"so they leave this machine."
+            f"Calculator results the assistant reads or runs, and the names and formulas of your scores it reads, are sent to "
+            f"{provider_id} as part of the conversation, so they leave this machine."
         )
 
     def _refresh_privacy(self) -> None:

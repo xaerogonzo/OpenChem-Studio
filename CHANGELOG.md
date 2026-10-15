@@ -13,6 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   group, `4-propanedioylanilinium`, a different molecule with no refusal; it is `4-(2-carboxy-1-oxoethyl)anilinium` (D-255, the sibling of round 52's D-250, in the engine's generic acyl substituent).
   The census is unchanged at 1993 exact; the cation population is down to 27 refusals (from 108) and the quaternary to 14, with no wrong names in either.
 
+### Derived scores, slice 4a: the assistant can read the scores a person defined, and cannot write one
+- **A new assistant tool, `read_scores`** (the sixth), returns the project's user-defined scores worked out for the molecule selected when the message was sent: each with its label (always ending "(user-defined, unvalidated)"),
+  formula, declared unit and every input with the state it was read in, and a value **only when every input was read from the molecule's current results**. A score with an input nobody calculated, that was calculated for an earlier
+  structure or that a calculator declined comes back as a refusal naming the input, with no number, and the tool tells the model never to supply one or treat it as zero. A score is not a stored result, so `read_results` never showed one.
+- **The definitions are frozen with the results at Send**: a formula edited, a score removed or a calculator finished while the reply streams changes nothing about what the turn reads. The model cannot name another molecule, and
+  **there is no tool or handle call that creates, edits or deletes a score**; it may suggest formula text for a person to enter in Tools > Derived Scores. A score's owner and note are never sent.
+- **What leaves the machine changed**, and the note under the conversation says so: a remote provider sees a score's name and formula when the assistant reads it.
+- Real-window check `benchmarks/visual/ai_scores.json` (10 assertions; new `ai_expect` key `tool_results_exclude`). Design record: `docs/DERIVED_SCORES_DESIGN.md`, "4a as built". Mutation-checked: 91 mutants, 79 caught first time; the nine real gaps found have tests and one is equivalent.
+
 ### Derived scores, slice 3c: a score is a column of the project table
 - **The scores a person defined are the first columns of the Results dock's project table**, labelled `<label> (user-defined, unvalidated)`, with the number each formula gives for each row. A score is computed when the table is
   shown, from the table's own cells, by the rule the Results reader uses, and never run or stored: a score defined, edited or removed changes the table at once, without another run. The CSV carries the suffix in its header and
@@ -21,6 +30,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Safe because of #330, and held there by a test:** every approved output is read both from a real batch run and from the Results reader's stored results for a molecule that has a conformer, and the two must agree. It found
   that a calculator which declined had only a placeholder column, now read as the refusal it is. The table drive found the score columns off the dock's right edge (they are first now) and that editing a score through its window
   stored lists that made Results unable to read it (`ScoreService.update` stores what `create` does). New drive step `table_scores`, `benchmarks/visual/score_table.json` (12 assertions, 3 shots).
+
+### A conformer that lands while an earlier drawing run is still running now wins
+- **The other order of the race the next entry closes.** A selection with no conformer dispatches a drawing run that owns the ten shape descriptors and will publish "Needs a 3D conformer" for them; if the conformer lands
+  first, the geometry run (ten descriptors) usually finishes first and the late refusal beat its values. Measured on the real pool with the conformer landing 0-10 ms after the selection (random delay): 263 of 300 runs on
+  aspirin and 235 of 300 on C12E6 ended FAILED; with this change 300 of 300 and 300 of 300 completed.
+- **How far it reaches:** a warm drawing run takes about 10 ms (a 90-atom peptide, 19 ms), so from a 20 ms delay on neither version loses; the first run in a process takes about 2 s and did not lose it either (0 of 12 fresh
+  processes: the geometry run waits on the same one-time start and finishes second). It takes a fast arrival or a slow provider (a plugin), not a person clicking.
+- **Mechanism:** a GEOMETRY dispatch CLAIMS the provider's geometric ids for its molecule (`_GeometryClaims`), and a drawing run stamped before the claim stops publishing them, though it still records them, so the always-on
+  manifest is unchanged. The check and the emit are one step under a lock, because a check followed by an emit lets the claim land between them; emits from a worker reach the GUI thread in emit order, so a refusal emitted
+  before the claim is delivered before anything the claiming run emits after it. Cost: none measurable (median warm run 7.6 ms before, 7.7 ms after, interleaved).
+- Tested with a manual pool in both finishing orders, with the claim made inside the drawing run's own `compute` (the narrowest interleaving), through the real window, and with a threaded test that a claim cannot land
+  between a run's check and its emit; six mutations each turn a test red. Not driven: the real pool cannot be made to produce the interleaving on demand, so a driven run would prove what the window test proves.
 
 ### A molecule that is selected already holding a conformer now shows its shape descriptors
 - **Reported:** a molecule with a usable conformer and nothing stored for it (a project saved before results were kept, a result set from another build, an import) showed pmi1/pmi2/pmi3, npr1/npr2, pbf, radius of gyration,
@@ -32,10 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   records the shape descriptors (so the always-on manifest does not depend on whether a conformer was present) but does not show them. The tests choose the finishing order with a manual pool instead of hoping for one.
 - A complete restore with no geometry answer (an older project) asks for the shape descriptors only (`DescriptorService.request_missing_geometric_descriptors`); a refusal that is already held is not retried on every selection.
 - The Project table was named in the report but is not affected: its "Run selected" path already reads the conformer (`batch_service`). The drive script keeps a cell assertion as a guard.
-- **Known, measured, not fixed here:** a conformer that lands while a drawing run dispatched BEFORE it is still running loses the same race, but is reached far less often. With the conformer landing 0-10 ms after the
-  selection 263 of 300 runs on aspirin and 235 of 300 on C12E6 ended FAILED; from 20 ms on none did, because a warm drawing run takes about 10 ms (a 90-atom peptide, 19 ms). The first run in a process takes about 2 s and did
-  not lose it either (0 of 12 fresh processes: the geometry run waits on the same one-time start and finishes second). So it takes a fast arrival or a slow provider (a plugin), not a person clicking. The mechanism is a
-  different one: a later geometry request taking the ids from drawing runs already running.
+- The other order (the conformer lands while an EARLIER drawing run is still running) loses the same race and is closed by the entry above this one.
 - Drive harness: `save_project` takes `"results": false`, and creates the folder it saves into.
 
 ### Derived scores, slice 3d: the Derived Scores window (Tools menu)

@@ -30,7 +30,7 @@ worth challenging are collected at the end.
 
 ## 2. The capability
 
-**A plugin gets `context.calculations`, a handle with eight operations and no objects behind it.**
+**A plugin gets `context.calculations`, a handle with nine operations and no objects behind it.**
 It is built from a host object the window hands the `PluginManager`; a context built without one
 (a headless run, a test) answers every call with a typed `UNAVAILABLE`, never an exception.
 
@@ -40,6 +40,7 @@ It is built from a host object the window hands the `PluginManager`; a context b
 | `catalog(query, limit)` | any | `CalculatorCard`s from the registry, by the shared search (section 7) |
 | `describe(calculator_id)` | any | one card with its parameters, or `UNKNOWN` |
 | `read_results(turn, calculator_ids, include_not_current, limit)` | any | the turn's snapshot read by freshness and outcome (section 6). **Needs no host**: it reads only the frozen turn. |
+| `read_scores(turn, names)` | any | the user's own derived scores (`docs/DERIVED_SCORES_DESIGN.md`, slice 4a), worked out against the turn's frozen results and the definitions frozen with them. **Needs no host.** A score is not a stored result, so `read_results` never shows one; there is no call that makes, changes or removes a score. |
 | `prepare(turn, calculator_id, parameters)` | any | a `Preparation`: validated and normalised parameters, the execution decision, and a preview, or a typed refusal. **Starts nothing.** |
 | `run(turn, run_id)` | worker | for an `AUTO` preparation only: dispatches and waits (section 3) |
 | `pending()` | GUI | previews awaiting approval, for the panel |
@@ -266,7 +267,7 @@ per-conversation result) was rejected: it would show the model a number the pers
 the two models must never be mixed. A visible ledger lists what the assistant proposed, ran and was
 refused, with molecule, parameters and state (built: a wrapping list under the cards, one row per request,
 updated as the run moves). Tool output is sent to the configured provider on the next request, so a remote
-provider sees calculator results; the panel says so (built: `AIPrivacyNote`, which names the provider).
+provider sees calculator results; the panel says so (built: `AIPrivacyNote`, which names the provider). **Reading a score (derived scores slice 4a) sends its name and formula, which are a person's own text, too; the owner and note are never sent, and the note says so.**
 The outcome of a run the person approved reaches the model as a note on the NEXT message, never as a
 fabricated tool result.
 

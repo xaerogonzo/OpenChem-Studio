@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import logging
+import threading
 import time
+from collections.abc import Callable
 from dataclasses import replace
 
 from PySide6.QtCore import QRunnable, QThreadPool
@@ -60,6 +62,56 @@ logger = logging.getLogger("openchem.chemistry")
 AUTOMATIC_CALCULATOR_IDS = frozenset({"substance_analysis"})
 
 
+class _GeometryClaims:
+    """Which geometric descriptors a GEOMETRY request has taken over from drawing runs already running.
+
+    **OWNERSHIP AT DISPATCH COVERS A DRAWING REQUEST THAT SEES THE CONFORMER; THIS COVERS THE ONE
+    THAT DID NOT.** A drawing run dispatched while the molecule had no conformer owns the shape
+    descriptors and will publish "Needs a 3D conformer" for them when it finishes. If the conformer
+    lands first (`MainWindow._on_conformers_changed` asks for GEOMETRY), the geometry run -- ten
+    descriptors, against the whole provider -- usually finishes before it, and the reader keeps the
+    LATEST value per id: measured 19 of 20 runs ended FAILED when the conformer landed at once.
+    A geometry dispatch therefore claims the provider's geometric ids for its molecule, and every
+    drawing run stamped before the claim stops publishing them.
+
+    **THE CHECK AND THE EMIT ARE ONE STEP UNDER A LOCK**, because "check, then publish" lets a claim
+    land between the two and the late refusal out-race the values anyway. Emits from a worker are
+    queued to the GUI thread in emit order, so a refusal emitted before the claim is delivered before
+    anything the claiming geometry run emits afterwards: the values always end up last.
+
+    Reentrant, because a test (or a plugin) can run a task on the GUI thread, where a handler may
+    itself ask for a geometry run from inside the emit.
+    """
+
+    def __init__(self) -> None:
+        self._lock = threading.RLock()
+        self._sequence = 0
+        #: (molecule uuid, provider id) -> (sequence of the latest claim, the ids it took)
+        self._claims: dict[tuple[str, str], tuple[int, frozenset[str]]] = {}
+
+    def stamp(self) -> int:
+        """A place in line for a drawing run: it is claimed against by any claim made after this."""
+        with self._lock:
+            self._sequence += 1
+            return self._sequence
+
+    def claim(self, molecule_uuid: str, provider_id: str, descriptor_ids: frozenset[str]) -> None:
+        with self._lock:
+            self._sequence += 1
+            self._claims[(molecule_uuid, provider_id)] = (self._sequence, frozenset(descriptor_ids))
+
+    def publish(
+        self, molecule_uuid: str, provider_id: str, descriptor_id: str, stamp: int, send: Callable[[], None]
+    ) -> bool:
+        """Call `send` unless a later claim took `descriptor_id`; True when it was sent."""
+        with self._lock:
+            claim = self._claims.get((molecule_uuid, provider_id))
+            if claim is not None and claim[0] > stamp and descriptor_id in claim[1]:
+                return False
+            send()
+            return True
+
+
 class _DescriptorComputeTask(QRunnable):
     """Runs one provider's `compute()` off the GUI thread.
 
@@ -79,6 +131,8 @@ class _DescriptorComputeTask(QRunnable):
         structure_version: int | None = None,
         only_descriptor_ids: frozenset[str] | None = None,
         unshown_descriptor_ids: frozenset[str] = frozenset(),
+        claims: _GeometryClaims | None = None,
+        claim_stamp: int = 0,
     ) -> None:
         super().__init__()
         self._provider = provider
@@ -107,6 +161,23 @@ class _DescriptorComputeTask(QRunnable):
         #: values in 37 of 40 measured runs (the geometry run is ten descriptors and finishes
         #: first). Disjoint ownership makes the order irrelevant instead of hoping for one.
         self._unshown = unshown_descriptor_ids
+        #: A DRAWING run that was dispatched without a conformer still owns the geometric ids, until a
+        #: GEOMETRY dispatch made after it takes them (`_GeometryClaims`). It keeps recording them.
+        self._claims = claims
+        self._claim_stamp = claim_stamp
+
+    def _show(self, descriptor_id: str, descriptor: DescriptorValue) -> None:
+        """Publish `descriptor` unless this run does not (or no longer) own what the reader shows for it."""
+        if descriptor_id in self._unshown:
+            return
+        event = DescriptorComputed(descriptor=descriptor, structure_version=self._structure_version)
+        if self._claims is None or self._calculation_input != DRAWING:
+            self._event_bus.publish(event)
+            return
+        self._claims.publish(
+            self._model.uuid, self._provider.provider_id, descriptor_id, self._claim_stamp,
+            lambda: self._event_bus.publish(event),
+        )
 
     def _ids(self) -> list[str]:
         """The descriptor ids this run speaks for."""
@@ -146,10 +217,7 @@ class _DescriptorComputeTask(QRunnable):
             for value in values:
                 if self._only is not None and value.descriptor_id not in self._only:
                     continue
-                if value.descriptor_id not in self._unshown:
-                    self._event_bus.publish(
-                        DescriptorComputed(descriptor=value, structure_version=self._structure_version)
-                    )
+                self._show(value.descriptor_id, value)
                 self._record(value)
 
         if self._only is not None:
@@ -257,10 +325,7 @@ class _DescriptorComputeTask(QRunnable):
             error=error,
             timestamp=time.time(),
         )
-        if descriptor_id not in self._unshown:
-            self._event_bus.publish(
-                DescriptorComputed(descriptor=descriptor, structure_version=self._structure_version)
-            )
+        self._show(descriptor_id, descriptor)
         # RUNNING placeholders are never recorded: they are a statement about
         # a run in progress, and replaying one would claim work is happening.
         if record:
@@ -636,6 +701,7 @@ class DescriptorService:
         #: build a checker too.
         self._structure_version_of = structure_version_of
         self._pool = QThreadPool.globalInstance()
+        self._claims = _GeometryClaims()
 
     def preflight(self, model: MoleculeModel, calculator_id: str) -> str:
         """Why `calculator_id` is certain to refuse this molecule, or "" (see `CalculatorDefinition.preflight`).
@@ -772,6 +838,10 @@ class DescriptorService:
         WITH IT**, the two splitting the provider's ids between them (the drawing run records the
         shape descriptors but does not show them), so one selection answers every descriptor on the
         structure it declares and the order the two runs finish in cannot matter.
+
+        **A GEOMETRY REQUEST ALSO TAKES THOSE IDS FROM A DRAWING RUN THAT IS ALREADY RUNNING**
+        (`_GeometryClaims`): a selection made before the conformer existed dispatched a drawing run
+        that owns them, and its late refusal would otherwise beat the geometry run's values.
         """
         if not model.molblock and not model.conformers:
             # No structure of ANY kind -- neither a drawing nor a
@@ -791,6 +861,9 @@ class DescriptorService:
         dispatched_version = (
             int(self._structure_version_of(model.uuid)) if self._structure_version_of is not None else None
         )
+        # Taken BEFORE any dispatch of this request, so a geometry claim made from here on (this
+        # request's own, or a later one) reaches every drawing run this request starts.
+        stamp = self._claims.stamp()
         for provider in self._providers:
             # `only_providers` is how a partial restore reruns just the part
             # that did not come back, rather than the whole set.
@@ -815,7 +888,7 @@ class DescriptorService:
             # geometry run next to it is not enough: see `_DescriptorComputeTask._unshown`.
             geometry_owned = geometric if snapshot.conformers else frozenset()
             self._dispatch(
-                provider, snapshot, DRAWING, dispatched_version, unshown=geometry_owned
+                provider, snapshot, DRAWING, dispatched_version, unshown=geometry_owned, stamp=stamp
             )
             if geometry_owned:
                 self._dispatch(provider, snapshot, GEOMETRY, dispatched_version, scope=geometry_owned)
@@ -828,8 +901,15 @@ class DescriptorService:
         structure_version: int | None,
         scope: frozenset[str] | None = None,
         unshown: frozenset[str] = frozenset(),
+        stamp: int = 0,
     ) -> None:
-        """Queue one provider's run: QUEUED placeholders for what it will SHOW, then the task."""
+        """Queue one provider's run: QUEUED placeholders for what it will SHOW, then the task.
+
+        A run on a geometry first CLAIMS its ids from every drawing run already started for this
+        molecule (`_GeometryClaims`), before it announces or starts anything.
+        """
+        if calculation_input != DRAWING and scope:
+            self._claims.claim(snapshot.uuid, provider.provider_id, scope)
         categories = provider.descriptor_categories()
         for descriptor_id in provider.descriptor_ids():
             if (scope is not None and descriptor_id not in scope) or descriptor_id in unshown:
@@ -852,7 +932,7 @@ class DescriptorService:
             _DescriptorComputeTask(
                 provider, self._engine, snapshot, self._event_bus, calculation_input,
                 structure_version=structure_version, only_descriptor_ids=scope,
-                unshown_descriptor_ids=unshown,
+                unshown_descriptor_ids=unshown, claims=self._claims, claim_stamp=stamp,
             )
         )
 

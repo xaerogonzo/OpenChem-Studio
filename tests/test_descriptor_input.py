@@ -24,6 +24,8 @@ descriptor that is right when computed and replaced on its way to the reader is 
 from __future__ import annotations
 
 import sys
+import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -49,7 +51,7 @@ from openchem.events.events import (
     ResultRecorded,
 )
 from openchem.plugins.interfaces import DescriptorProvider
-from openchem.services.descriptor_service import DescriptorService
+from openchem.services.descriptor_service import DescriptorService, _GeometryClaims
 
 _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT / "tools"))
@@ -413,6 +415,10 @@ class _ManualPool:
     def task(self, calculation_input: str):
         return next(t for t in self.tasks if t._calculation_input == calculation_input)
 
+    def task_for(self, calculation_input: str, molecule_uuid: str):
+        return next(t for t in self.tasks
+                    if t._calculation_input == calculation_input and t._model.uuid == molecule_uuid)
+
     def run(self, *calculation_inputs: str) -> None:
         for calculation_input in calculation_inputs:
             self.task(calculation_input).run()
@@ -565,3 +571,158 @@ def test_a_recorded_refusal_counts_as_an_answer_so_it_is_not_retried_on_every_se
 
     assert held and all(s.result.cache_state is CacheState.FAILED for s in held)
     assert service.request_missing_geometric_descriptors(model, held) is False
+
+
+# --- the conformer lands while an EARLIER drawing run is still running -----------------------
+#
+# The tests above cover a DRAWING request that sees the conformer. This is the other order: the
+# selection dispatched a drawing run with no conformer to see (so it owns the shape descriptors and
+# will publish "Needs a 3D conformer" for them), the conformer lands, `_on_conformers_changed` asks
+# for GEOMETRY, and the drawing run is still running or still waiting in the pool. The geometry run
+# (ten descriptors) usually finishes first and the late refusal beat its values: with the conformer
+# landing 0-10 ms after the selection, 263 of 300 runs on aspirin and 235 of 300 on C12E6 ended
+# FAILED. A GEOMETRY dispatch now CLAIMS the geometric ids from every drawing run started before it.
+
+
+def _conformer_of(engine, smiles: str) -> ConformerModel:
+    return _molecule(engine, smiles, conformer=True).conformers[0]
+
+
+@pytest.mark.parametrize("order", [(GEOMETRY, DRAWING), (DRAWING, GEOMETRY)], ids=["geometry-first", "drawing-first"])
+def test_a_conformer_that_lands_while_a_drawing_run_is_waiting_still_wins(qapp, order):
+    bus, engine, service, reader, pool = _manual_service(qapp)
+    model = _molecule(engine, _smiles_of("aspirin"))
+    conformer = _conformer_of(engine, _smiles_of("aspirin"))
+
+    service.request_descriptors(model)  # the selection: no conformer yet
+    assert [task._calculation_input for task in pool.tasks] == [DRAWING]
+    model.conformers.append(conformer)  # the search finishes
+    service.request_descriptors(model, GEOMETRY)  # MainWindow._on_conformers_changed
+    assert sorted(task._calculation_input for task in pool.tasks) == [DRAWING, GEOMETRY]
+
+    pool.run(*order)
+    qapp.processEvents()
+
+    geometric = RDKitDescriptorProvider().geometric_descriptor_ids()
+    assert all(
+        reader.descriptors[i].cache_state is CacheState.COMPLETED and reader.descriptors[i].value is not None
+        for i in geometric
+    ), {i: reader.descriptors[i].cache_state for i in geometric}
+    refused = [d.descriptor_id for d in reader.descriptor_events
+               if d.descriptor_id in geometric and d.cache_state is CacheState.FAILED]
+    assert not refused, "a drawing run that started before the conformer showed its refusal after it"
+    # The drawing run still RECORDED them: the always-on manifest does not depend on this timing.
+    recorded = {s.result.descriptor_id for s in reader.recorded
+                if s.identity.calculation_input == DRAWING and isinstance(s.result, DescriptorValue)}
+    assert geometric <= recorded
+
+
+def test_a_drawing_run_that_finished_before_the_conformer_is_left_alone(qapp):
+    """The claim reaches only runs that have not published yet: the ordinary sequence is unchanged."""
+    bus, engine, service, reader, pool = _manual_service(qapp)
+    model = _molecule(engine, _smiles_of("aspirin"))
+
+    service.request_descriptors(model)
+    pool.run(DRAWING)
+    qapp.processEvents()
+    assert reader.descriptors["pmi1"].error_summary == "Needs a 3D conformer"
+
+    model.conformers.append(_conformer_of(engine, _smiles_of("aspirin")))
+    service.request_descriptors(model, GEOMETRY)
+    pool.run(GEOMETRY)
+    qapp.processEvents()
+    assert reader.descriptors["pmi1"].cache_state is CacheState.COMPLETED
+
+
+class _LandsMidRun(_Recording):
+    """A provider whose `compute` is where the conformer lands, as when a search ends during a run."""
+
+    def __init__(self, on_compute) -> None:
+        super().__init__(declares=frozenset({"coordinate_thing"}))
+        self._on_compute = on_compute
+
+    def compute(self, mol, molecule_uuid):
+        hook, self._on_compute = self._on_compute, None
+        if hook is not None:
+            hook()
+        return super().compute(mol, molecule_uuid)
+
+
+def test_a_conformer_that_lands_in_the_middle_of_a_drawing_run_takes_the_ids_from_it(qapp):
+    """The claim arrives AFTER the run has started and BEFORE it publishes: the narrowest interleaving."""
+    bus = EventBus()
+    engine = ChemistryEngine()
+    model = _molecule(engine, "CCO")
+    conformer = _conformer_of(engine, "CCO")
+    holder: dict = {}
+
+    def lands() -> None:
+        model.conformers.append(conformer)
+        holder["service"].request_descriptors(model, GEOMETRY)
+
+    service = DescriptorService(bus, engine, providers=[_LandsMidRun(lands)])
+    holder["service"] = service
+    reader = _Reader(bus)
+    pool = _ManualPool()
+    service._pool = pool
+
+    service.request_descriptors(model)
+    pool.run(DRAWING)  # the claim is made inside this run's compute()
+    pool.run(GEOMETRY)
+    qapp.processEvents()
+
+    assert [d.value for d in reader.descriptor_events if d.descriptor_id == "coordinate_thing" and d.value is not None] == [9.0], (
+        "the drawing run's 3.0 (heavy atoms only) reached the reader"
+    )
+    assert reader.descriptors["coordinate_thing"].value == 9.0
+    assert reader.descriptors["graph_thing"].value == 3.0, "an id the geometry run does not own was taken too"
+    recorded = {s.result.descriptor_id: s.result.value for s in reader.recorded if s.identity.calculation_input == DRAWING}
+    assert recorded["coordinate_thing"] == 3.0, "the drawing run stopped recording what it no longer shows"
+
+
+def test_a_claim_does_not_reach_another_molecule_or_a_later_drawing_run(qapp):
+    bus, engine, service, reader, pool = _manual_service(qapp)
+    claimed = _molecule(engine, _smiles_of("aspirin"))
+    bystander = _molecule(engine, _smiles_of("ibuprofen"))
+    service.request_descriptors(bystander)
+    claimed.conformers.append(_conformer_of(engine, _smiles_of("aspirin")))
+    service.request_descriptors(claimed, GEOMETRY)
+
+    pool.task_for(DRAWING, bystander.uuid).run()
+    qapp.processEvents()
+    assert reader.descriptors["pmi1"].error_summary == "Needs a 3D conformer", "a claim for one molecule hid another's refusal"
+
+    # The conformer goes away again (an undo), and the selection recomputes: that drawing run was
+    # dispatched AFTER the claim, so it owns the ids and its refusal is the right answer.
+    claimed.conformers.clear()
+    service.request_descriptors(claimed)
+    pool.task_for(DRAWING, claimed.uuid).run()
+    qapp.processEvents()
+    shown = [d for d in reader.descriptor_events if d.descriptor_id == "pmi1" and d.molecule_uuid == claimed.uuid]
+    assert shown and shown[-1].cache_state is CacheState.FAILED, "a drawing run started after the claim was silenced"
+
+
+def test_a_claim_cannot_land_between_a_runs_check_and_its_emit():
+    """The check and the emit are one step: otherwise the refusal can still out-race the values."""
+    claims = _GeometryClaims()
+    stamp = claims.stamp()
+    inside, claimed = threading.Event(), threading.Event()
+    landed_during_emit: list[bool] = []
+
+    def send() -> None:
+        inside.set()
+        time.sleep(0.2)  # long enough for the other thread to try, short enough not to slow the suite
+        landed_during_emit.append(claimed.is_set())
+
+    def claimant() -> None:
+        inside.wait(5)
+        claims.claim("m", "p", frozenset({"x"}))
+        claimed.set()
+
+    thread = threading.Thread(target=claimant)
+    thread.start()
+    assert claims.publish("m", "p", "x", stamp, send) is True
+    thread.join(5)
+
+    assert landed_during_emit == [False], "a claim was made while a drawing run was in the middle of emitting"
+    assert claims.publish("m", "p", "x", stamp, lambda: None) is False, "and once made it must hold"
