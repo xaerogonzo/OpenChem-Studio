@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (D-272); a protonated amidoxime beside a second cation is `...(hydroxyazaniumylidene)methyl...piperazin-1-ium` (D-273); an O-protonated N-acyl urea or thiourea is named, `[1-(anilinomethanethioylamino)butylidene]oxidanium`
   (D-274). Every multi-charge population is now clean apart from 2 visible refusals (an O-methylated sulfoxide on S-S or S-P).
 
+### Derived scores: tick what they read
+- **Presets > Tick what my scores read (N)** in Properties (shown when the project has scores): ticks the calculators your scores read and adds the always-on properties they read to a project run, **on top of what you had
+  ticked**, so the run gives every score a column. It never unticks or narrows anything; a calculator the launcher is not offering is named and left unticked; and scores that read only always-on properties are told that
+  Run selected still needs a calculator ticked. Until now the only help was the note under the table, after the run.
+- **The status line beside Run selected shows its whole text on hover.** It is one line and clips; the sentence worth reading (what a run left out) was the part that was cut off.
+
 ### Naming: two anions in one molecule, a charge guard that counts centres, and a ketone ring cation with a cation suffix
 - A second anionic nitrogen is cited as an `azanidyl` prefix, `4-(acetylazanidyl)benzen-1-olate` (it was a `NAMING ERROR`, and a sulfonamide anion beside a phenolate was `[N-(4-oxidophenyl)sulfamoyl]methane`
   with the sulfonamide's charge silently dropped) (D-268). The charge guard compared WORDS with polarity, not centres; it now needs as many ion words as the molecule has centres of that polarity unless
