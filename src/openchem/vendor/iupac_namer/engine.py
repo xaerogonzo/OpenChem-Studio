@@ -5917,6 +5917,31 @@ def _name_single_fg_substituent(
                 except Exception as e_chal:
                     logger.debug("chalcogen acylamino naming failed: %s", e_chal)
 
+    # Special case: an anionic nitrogen as a SUBSTITUENT (naming round 56): `4-(acetylazanidyl)benzen-1-olate`. A molecule with TWO anions names one as the parent and cites the other as a
+    # prefix; the carved `CC(=O)[N-]` fragment was named as a standalone anion and failed (`NAMING ERROR ... [NH-]`). The groups on the nitrogen are its azanide prefixes.
+    att_atom_azanidyl = mol.GetAtomWithIdx(attachment_idx)
+    if (
+        att_atom_azanidyl.GetAtomicNum() == 7
+        and att_atom_azanidyl.GetFormalCharge() == -1
+        and att_atom_azanidyl.GetTotalNumHs() == 1  # the carve gives the open valence its hydrogen: `CC([NH-])=O`
+        and tuple(free_valence.bond_orders) == (1,)
+        and sum(1 for nb in att_atom_azanidyl.GetNeighbors() if nb.GetAtomicNum() > 1) == 1
+        and strategy is not None
+        and session is not None
+    ):
+        from openchem.vendor.iupac_namer.perception.charge_perception import _azanide_text
+
+        azanidyl = _azanide_text(mol, attachment_idx, strategy, session, depth, "azanidyl")
+        if azanidyl:
+            return LeafTree(
+                output_form=output_form,
+                free_valence=free_valence,
+                choices_made=(Choice(type="azanidyl_substituent", detail=f"prefix={azanidyl}"),),
+                decision_ctx=decision_ctx,
+                validity_warnings=None,
+                text=azanidyl,
+            )
+
     # Special case: acyl substituent (R-C(=O)-) — IUPAC P-66.6.3 retained
     # acyl prefixes ("acetyl", "propanoyl", "benzoyl", "formyl", ...).
     # Fragment pattern: attachment atom is a neutral sp2 C with exactly one =O
@@ -9694,9 +9719,11 @@ def _restore_dropped_chalcogen_anion(mol, name: str) -> str:
 
 #: A word that says a name is an ANION: a suffix at the end of a word (`-ide`, not the `amide` / `imide` of a neutral class; `-ate`), or an anionic PREFIX anywhere in one (`sulfonatooxy`,
 #: `carboxylatomethyl`, `oxidosulfonyl`; not the `acetamido` / `imido` / `ureido` of a neutral group). A name with none of them for a molecule whose net charge is negative has left the charge out.
-_ANION_WORD_END = re.compile(r"(?:(?<!am)(?<!im)(?<!sulfam)ide|ate|ite)(?![a-z])|ato|(?<!am)(?<!im)(?<!ure)(?<!sulfam)ido|\(\d*-\)|\d-id-")
+_ANION_WORD_END = re.compile(r"(?:(?<!am)(?<!im)(?<!sulfam)ide|ate|ite)(?![a-z])|ato|(?<!am)(?<!im)(?<!ure)(?<!sulfam)ido|\(\d*-\)|\d-id-|azanidyl")
 #: A name that cites a cation: `ium` anywhere (`pyridin-1-ium`, `ammonium`, `azaniumyl`) or the `onio` prefix (`trimethylammonio`).
 _CATION_WORD = re.compile(r"ium|onio|\(\d*\+\)")
+#: A multiplier right before an ion word's stem (`dioxido`, `bis(azaniumyl)`, `1,4-diium`, `tricarboxylato`): one word then stands for several centres, and the count test below does not judge the name.
+_MULTIPLIED_ION_WORD = re.compile(r"(?:di|tri|tetra|penta|hexa|bis|tris|tetrakis)\(?[a-z]{0,10}(?:ium|ide|ate|ato|ido|ylat)")
 #: The elements the guard judges: an organic name's. A metal complex or organyl is named with oxidation-state and charge notation (`methylmercury(1+)`, `iron(IV)`) that this word test does not model.
 _GUARDED_ELEMENTS = frozenset({1, 5, 6, 7, 8, 9, 14, 15, 16, 17, 33, 34, 35, 52, 53})
 
@@ -9735,6 +9762,26 @@ def _check_charge_named(mol, name: str) -> None:
             raise ValueError(f"No name found that keeps the negative charge (the nearest name, {name!r}, names only the cation).")
         if not _CATION_WORD.search(name):
             raise ValueError(f"No name found that keeps the positive charge (the nearest name, {name!r}, names only the anion).")
+    # Words are not centres (naming round 56): `CS(=O)(=O)[N-]c1ccc([O-])cc1` was `[N-(4-oxidophenyl)sulfamoyl]methane`, TWO anions with one `oxido` in the name, and a protonated
+    # amidoxime beside a second cation lost its charge the same way. When the name never multiplies an ion word, it needs at least as many of them as the molecule has centres of that polarity.
+    # Charged atoms on the SAME neighbour, or next to each other, are one centre: the two O- of a selenate, a carbonate or an azonite are one word (`selenate`), not two.
+    def _centres(atoms) -> int:
+        groups: list[set[int]] = []
+        for atom in atoms:
+            near = {n.GetIdx() for n in atom.GetNeighbors()} | {atom.GetIdx()}  # adjacent like charges (oxalylium, `O=[C+][C+]=O`) are one centre too
+            for group in groups:
+                if group & near:
+                    group |= near
+                    break
+            else:
+                groups.append(set(near))
+        return len(groups)
+
+    if not _MULTIPLIED_ION_WORD.search(name):
+        if negatives and _centres(negatives) > len(_ANION_WORD_END.findall(name)):
+            raise ValueError(f"No name found that keeps every negative charge (the nearest name, {name!r}, has fewer anion words than the molecule has anions).")
+        if positives and _centres(positives) > len(_CATION_WORD.findall(name)):
+            raise ValueError(f"No name found that keeps every positive charge (the nearest name, {name!r}, has fewer cation words than the molecule has cations).")
 
 
 def _restore_dropped_oximate(mol, name: str) -> str:
