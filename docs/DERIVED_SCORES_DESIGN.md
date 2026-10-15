@@ -120,6 +120,10 @@ different symbols. Then:
 
 **There are no implicit conversions.** A conversion between two symbols is a named, tested entry in one table, with
 the constant and its source; the table starts empty and an entry is added when an approved output needs one.
+**Measured 2026-10-15 (slice 4b): none does, so the table is still empty.** The 21 approved outputs carry six units (`1`, `%`, `g/mol`, `Å^2`, `mg/mL`, `mol/L`). Every unit is carried by outputs that measure
+one quantity, except the solubility, which is offered in two: `mg/mL` and `mol/L`, both of the one endpoint `aqueous_solubility_intrinsic`. A formula cannot name both (two inputs of one endpoint are refused as
+consensus), and a conversion between them needs the molecule's molar mass, which is not a constant a table can hold. So a conversion would be built for no formula anybody can write. `tests/test_score_outputs.py` pins
+this: every unit must say what it measures, and a quantity offered in two units by outputs of different endpoints turns it red, which is the moment to add an entry (or to say in writing why not).
 
 **Named constants are the strict alternative to a bare number.** A bare number adopts the unit of what it is combined with; a constant is a name with a declared unit, so it adopts nothing, a threshold in the wrong unit is
 refused, and a logarithm of a dimensioned quantity is writable by dividing by a constant that carries the unit (`log10(mw / one)` with `one = 1 g/mol`).
@@ -436,9 +440,9 @@ A driven run follows the UI slice, builds its own state, and ends in a verdict.
      `scores_owner` and `sent_contains`. The drive passed on its first run and found nothing the unit tests had not.
    * **Mutation-checked: 120 mutants** of the request rules, the book, the card, the host, the plugin handles, the envelopes, the bridge, the tools and the panel. **101 were caught the first time and 19 survived.** Seventeen were missing tests or code that reached around what it should have gone through (the list of outputs bypassed its own handle, a card event could add a second card, two clauses of the host did the same thing and are one now), and the tests were written: that an input or a constant may carry no extra key and a constant's name is text, the owner's words and the limit of five, a turn begun in another project, the project one short of full, an approval after both the window and the score service moved, a project with no room at approval, the ledger and transcript lines of a decision, the strip of cards, a button taking its card away even when the host announces nothing, and a listener undone on unload. **One is equivalent and left**: the bridge's `bounded_json` on a proposal's reply, which cannot exceed its budget at the sizes the definition rules allow. After the new tests every survivor is caught or gone**
    * **Not here, deliberately:** the assistant editing or deleting a score, choosing the owner, proposing a default or a policy, or a score over a geometry; and a model that approves its own proposal (there is no such call).
+   **4b, a conversion entry: measured, not built** (section 4). No approved output needs one, and the guard that says when one does is in `tests/test_score_outputs.py`.
 
-4. **Later, each its own review**: any second `on_missing` policy; any
-   conversion entry.
+4. **Later, each its own review**: any second `on_missing` policy.
 
 ## 12. Decisions most worth challenging
 

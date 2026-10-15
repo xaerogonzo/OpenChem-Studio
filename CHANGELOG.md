@@ -22,6 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   group, `4-propanedioylanilinium`, a different molecule with no refusal; it is `4-(2-carboxy-1-oxoethyl)anilinium` (D-255, the sibling of round 52's D-250, in the engine's generic acyl substituent).
   The census is unchanged at 1993 exact; the cation population is down to 27 refusals (from 108) and the quaternary to 14, with no wrong names in either.
 
+### Derived scores, slice 4b: no unit conversion is needed yet, and a test now says when one is
+- **Measured, not built.** The 21 approved outputs carry six units; the only quantity offered in two is the solubility (`mg/mL` and `mol/L`), both of one endpoint, so no formula can name both and converting between them
+  would need the molecule's molar mass. The conversion table stays empty. `tests/test_score_outputs.py` now makes every unit say what it measures and turns red if outputs of different endpoints ever offer one quantity in two
+  units, which is when an entry (or a written reason not to) is owed. Design record section 4.
+
 ### Derived scores, slice 4a: the assistant can read the scores a person defined, and cannot write one
 - **A new assistant tool, `read_scores`** (the sixth), returns the project's user-defined scores worked out for the molecule selected when the message was sent: each with its label (always ending "(user-defined, unvalidated)"),
   formula, declared unit and every input with the state it was read in, and a value **only when every input was read from the molecule's current results**. A score with an input nobody calculated, that was calculated for an earlier
