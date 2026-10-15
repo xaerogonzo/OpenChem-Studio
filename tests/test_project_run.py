@@ -18,6 +18,7 @@ import conftest
 from openchem.bootstrap import build_service_container
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
+from openchem.domain.score_definition import DISPLAY_SUFFIX, ScoreDefinition
 from openchem.ui.panels import property_panel as property_panel_module
 from openchem.ui.panels.batch_panel import BatchPanel
 from openchem.ui.panels.property_panel import (
@@ -503,3 +504,160 @@ def test_cancel_on_the_results_page_asks_the_service_to_stop(services, project, 
     monkeypatch.setattr(services.batch_service, "cancel", lambda: cancelled.append(True) or True)
     workspace.table_view._cancel_button.click()
     assert cancelled == [True]
+
+
+# --- ticking what the user's scores read ------------------------------------------------
+
+
+_OB = "calculator:oxygen_balance:Oxygen balance (CO basis)"
+_SOLUBILITY = "calculator:solubility:Predicted intrinsic solubility (mol/L)"
+
+
+def _score(inputs, score_id="user.s", formula="ramp(psa, 140, 60)"):
+    return ScoreDefinition(
+        score_id=score_id, label="Window", formula=formula, result_unit="1", inputs=tuple(inputs), schema_version=1, owner="", created="2026-10-15", note="",
+    )
+
+
+def _with_scores(services, project, built, *definitions):
+    panel, _settings = _with_settings(services, project, built)
+    held = list(definitions)
+    panel.attach_score_definitions(lambda: tuple(held))
+    return panel, held
+
+
+def _workspace_with_scores(services, project, built, definitions):
+    workspace = ResultsWorkspace(
+        QWidget(), services.calculator_registry, services.table_export_service, services.event_bus, services.chemistry_engine,
+        project_of=lambda: project, structure_version_of=services.structure_check_service.current_version, score_definitions=lambda: tuple(definitions),
+    )
+    built.append(workspace)
+    return workspace
+
+
+def test_the_presets_menu_offers_to_tick_what_scores_read_only_when_there_are_scores(services, project, built):
+    panel, held = _with_scores(services, project, built)
+    menu, actions = panel.build_presets_menu()
+    assert "tick_scores" not in actions
+    menu.deleteLater()
+    held.append(_score([("psa", "descriptor:tpsa")]))
+    menu, actions = panel.build_presets_menu()
+    labels = [a.text() for a in menu.actions() if a.text()]
+    assert labels == ["Save ticked as preset...", "Tick all shown", "Tick what my scores read (1)"]
+    menu.deleteLater()
+
+
+def test_a_panel_given_no_score_lookup_has_no_such_entry_and_ticks_nothing(services, project, built):
+    panel, _settings = _with_settings(services, project, built)
+    menu, actions = panel.build_presets_menu()
+    assert "tick_scores" not in actions
+    menu.deleteLater()
+    assert panel.tick_score_inputs() == 0 and panel._batch_status.text() == "No scores are defined in this project."
+    assert panel._selected_calculator_ids() == []
+
+
+def test_the_calculators_a_score_reads_are_ticked_on_top_of_what_was_ticked(services, project, built):
+    panel, _held = _with_scores(
+        services, project, built, _score([("psa", "descriptor:tpsa"), ("ob", _OB)]), _score([("sol", _SOLUBILITY)], "user.t", "sol")
+    )
+    panel._calculator_ticks["topology_analysis"].setChecked(True)
+    assert panel.tick_score_inputs() == 2
+    assert sorted(panel._selected_calculator_ids()) == ["oxygen_balance", "solubility", "topology_analysis"]
+    assert panel._batch_status.text().startswith("Ticked 2 calculator(s) and included 1 always-on property that 2 score(s) read.")
+
+
+def test_ticking_from_the_menu_entry_is_the_same_as_calling_it(services, project, built):
+    panel, _held = _with_scores(services, project, built, _score([("ob", _OB)], formula="ramp(ob, -100, 0)"))
+    menu, actions = panel.build_presets_menu()
+    actions["tick_scores"].trigger()
+    menu.deleteLater()
+    assert panel._selected_calculator_ids() == ["oxygen_balance"]
+
+
+def test_an_unticked_always_on_box_is_ticked_with_exactly_the_properties_the_scores_read(services, project, built):
+    panel, _held = _with_scores(services, project, built, _score([("psa", "descriptor:tpsa"), ("lp", "descriptor:mol_logp")]))
+    panel._scope_descriptors.setChecked(False)
+    panel.tick_score_inputs()
+    assert panel._scope_descriptors.isChecked() and panel.descriptor_choice() == {"tpsa", "mol_logp"}
+
+
+def test_a_box_left_at_all_stays_at_all(services, project, built):
+    panel, _held = _with_scores(services, project, built, _score([("psa", "descriptor:tpsa")]))
+    assert panel._scope_descriptors.isChecked() and panel.descriptor_choice() is None
+    panel.tick_score_inputs()
+    assert panel._scope_descriptors.isChecked() and panel.descriptor_choice() is None
+
+
+def test_a_subset_that_was_chosen_is_widened_and_never_narrowed(services, project, built):
+    panel, _held = _with_scores(services, project, built, _score([("psa", "descriptor:tpsa")]))
+    panel.set_descriptor_choice({"mol_wt", "mol_logp"})
+    panel.tick_score_inputs()
+    assert panel.descriptor_choice() == {"mol_wt", "mol_logp", "tpsa"}
+
+
+def test_a_calculator_the_launcher_is_not_offering_is_named_and_not_ticked(services, project, built):
+    panel, _held = _with_scores(services, project, built, _score([("ob", _OB), ("sol", _SOLUBILITY)], formula="sol"))
+    panel._hidden_calculator_ids = {"solubility"}
+    assert panel.tick_score_inputs() == 1
+    assert panel._selected_calculator_ids() == ["oxygen_balance"]
+    assert "Not ticked, because the launcher is not offering them: " in panel._batch_status.text()
+    assert services.calculator_registry.get("solubility").display_name in panel._batch_status.text()
+
+
+def test_scores_that_read_only_always_on_properties_say_that_a_calculator_is_still_needed_to_run(services, project, built):
+    panel, _held = _with_scores(services, project, built, _score([("psa", "descriptor:tpsa")]))
+    assert panel.tick_score_inputs() == 0
+    assert not panel._run_selected_button.isEnabled()
+    assert panel._batch_status.text().endswith("Run selected needs a calculator ticked.")
+    panel._calculator_ticks["topology_analysis"].setChecked(True)
+    panel.tick_score_inputs()
+    assert "Run selected needs" not in panel._batch_status.text()
+
+
+def test_an_output_nothing_can_be_ticked_for_is_named(services, project, built):
+    panel, _held = _with_scores(services, project, built, _score([("a", "geometry:dipole")], formula="a"))
+    panel.tick_score_inputs()
+    assert "Nothing can be ticked for: geometry:dipole." in panel._batch_status.text()
+
+
+def test_the_next_tick_reads_the_scores_as_they_are_then(services, project, built):
+    panel, held = _with_scores(services, project, built, _score([("ob", _OB)], formula="ramp(ob, -100, 0)"))
+    panel.tick_score_inputs()
+    assert panel._selected_calculator_ids() == ["oxygen_balance"]
+    panel._on_clear_selection()
+    held.clear()
+    held.append(_score([("sol", _SOLUBILITY)], formula="sol"))
+    panel.tick_score_inputs()
+    assert panel._selected_calculator_ids() == ["solubility"]
+
+
+def test_a_project_run_after_ticking_what_the_scores_read_gives_every_score_a_column(services, project, built):
+    """The claim itself: nothing hand-ticked, and the project table has the score whose input is a calculator."""
+    definitions = [_score([("psa", "descriptor:tpsa"), ("ob", _OB)], "user.a", "ramp(psa, 140, 60) * ramp(ob, -100, 0)")]
+    panel, _held = _with_scores(services, project, built, *definitions)
+    workspace = _workspace_with_scores(services, project, built, definitions)
+    panel.project_run_started.connect(workspace.begin_project_run)
+    panel.set_scope(_SCOPE_ALL)
+    panel.tick_score_inputs()
+    panel._on_run_selected()
+    _wait()
+    table = workspace.table_view.table()
+    scores = [c for c in table.columns if c.source == "score"]
+    assert [c.label for c in scores] == [f"Window {DISPLAY_SUFFIX}"], "the score has a column, with nothing hand-ticked"
+    assert workspace.table_view._score_note.isHidden()
+    assert all(table.cell(uuid, scores[0].column_id) is not None for uuid in table.row_uuids)
+
+
+def test_without_ticking_what_the_scores_read_the_same_project_run_leaves_the_score_out_and_says_so(services, project, built):
+    """The control for the test above: the same run with no tick has no column, and the table names why."""
+    definitions = [_score([("psa", "descriptor:tpsa"), ("ob", _OB)], "user.a", "ramp(psa, 140, 60) * ramp(ob, -100, 0)")]
+    panel, _held = _with_scores(services, project, built, *definitions)
+    workspace = _workspace_with_scores(services, project, built, definitions)
+    panel.project_run_started.connect(workspace.begin_project_run)
+    panel.set_scope(_SCOPE_ALL)
+    panel._calculator_ticks["topology_analysis"].setChecked(True)
+    panel._on_run_selected()
+    _wait()
+    table = workspace.table_view.table()
+    assert not any(c.source == "score" for c in table.columns)
+    assert not workspace.table_view._score_note.isHidden() and "Oxygen balance" in workspace.table_view._score_note.text()
