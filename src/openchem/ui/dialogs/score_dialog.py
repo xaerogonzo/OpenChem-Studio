@@ -96,6 +96,14 @@ _INPUT_NAME_HELP = _help(
     "inputs in one score.",
     tier=2,
 )
+#: The tooltip of an input's default: used only for an input nobody calculated, and never hidden.
+_INPUT_DEFAULT_HELP = _help(
+    "input_default",
+    "Optional. A number to use for this input when it has not been calculated for the molecule, in the unit shown beside the picker. It stands in for NOTHING else: an input "
+    "that was calculated and refused, failed, belongs to an earlier structure or has another unit still refuses the score. A score worked out from defaults alone is refused, "
+    "and every place a number that used a default is shown says so and names the input. Leave it empty to refuse the score instead.",
+    tier=2,
+)
 #: The tooltip of an input's picker: an approved output, read from the CURRENT results, never calculated.
 _INPUT_OUTPUT_HELP = _help(
     "input_output",
@@ -230,17 +238,25 @@ class _InputRowWidget(_Row):
             self.output.insertItem(0, f"{row.output_id} (not approved)", row.output_id)
             self.output.setCurrentIndex(0)
         apply_help_tooltip(self.output, _INPUT_OUTPUT_HELP)
+        self.default = QLineEdit(row.default, self)
+        self.default.setPlaceholderText("default if not calculated")
+        self.default.setMinimumWidth(_DEFAULT_WIDTH)
+        self.default.setMaximumWidth(190)
+        self.default.setObjectName("scoreInputDefault")
+        apply_help_tooltip(self.default, _INPUT_DEFAULT_HELP)
         self.remove_button = self._remove_button(_REMOVE_INPUT_HELP)
         self.remove_button.setObjectName("scoreRemoveInput")
         self._layout.addWidget(self.name)
         self._layout.addWidget(self.output, 1)
+        self._layout.addWidget(self.default)
         self._layout.addWidget(self.remove_button)
         # Signal to signal: Qt drops the arguments `changed` does not take, and nothing here captures `self`.
         self.name.textChanged.connect(self.changed)
         self.output.currentIndexChanged.connect(self.changed)
+        self.default.textChanged.connect(self.changed)
 
     def row(self) -> InputRow:
-        return InputRow(self.name.text(), self.output.currentData() or "")
+        return InputRow(self.name.text(), self.output.currentData() or "", self.default.text())
 
 
 class _ConstantRowWidget(_Row):
@@ -280,6 +296,8 @@ class _ConstantRowWidget(_Row):
 _NAME_WIDTH = 90
 #: The least width of a constant's value and unit boxes.
 _VALUE_WIDTH = 80
+#: The least width of an input's default box: its placeholder is a sentence, and a sliver would show only "default i".
+_DEFAULT_WIDTH = 150
 
 #: What each field of the dialog is called in the one-line message, so a problem reads "Formula: ..." and the person knows where to look.
 _FIELD_NAMES = {
@@ -634,7 +652,8 @@ class ScoreDialog(QDialog):
             self._preview.setText("")
         elif value.status is ScoreStatus.VALUE:
             unit = "" if definition.result_unit == "1" else f" {definition.result_unit}"
-            self._preview.setText(f"For {name or 'the selected molecule'}: {value.value:.4g}{unit}")
+            used = f" (a default was used for {', '.join(item.name for item in value.defaulted)}: not calculated)" if value.defaulted else ""
+            self._preview.setText(f"For {name or 'the selected molecule'}: {value.value:.4g}{unit}{used}")
         else:
             self._preview.setText(f"For {name or 'the selected molecule'}: no value. {value.reason}")
 
@@ -794,7 +813,7 @@ class ScoreDialog(QDialog):
         definition = draft.to_definition()
         fields = dict(
             label=definition.label, formula=definition.formula, result_unit=definition.result_unit, inputs=list(definition.inputs),
-            constants=list(definition.constants), owner=definition.owner, note=definition.note,
+            constants=list(definition.constants), defaults=list(definition.defaults), owner=definition.owner, note=definition.note,
         )
         try:
             if self._current_id is None:

@@ -271,6 +271,74 @@ def test_constants_reach_the_value(scores, services, project):
     assert scores.values_for(model)[0].value == pytest.approx(0.5)
 
 
+# --- the second policy ------------------------------------------------------------------------------------------------------------------
+
+
+def test_a_score_made_with_a_default_is_the_second_policy_in_format_two_and_one_without_is_as_it_always_was(scores):
+    plain = _make(scores)
+    assert plain.on_missing == "refuse" and plain.schema_version == 1 and plain.defaults == ()
+    defaulting = _make(scores, label="With a default", defaults=[("logp", 2)])
+    assert defaulting.on_missing == "default" and defaulting.schema_version == 2 and defaulting.defaults == (("logp", 2.0),)
+    assert isinstance(defaulting.defaults[0][1], float) and hash(defaulting), "the shape a file gives back, so the parsed-formula cache can key on it"
+
+
+def test_a_default_for_an_input_the_score_does_not_read_is_refused_and_stores_nothing(scores, events):
+    with pytest.raises(FormulaError, match="not one of the inputs"):
+        _make(scores, defaults=[("ghost", 1.0)])
+    assert len(scores.store) == 0 and events == []
+
+
+def test_a_default_that_is_not_a_finite_number_is_refused(scores):
+    with pytest.raises(FormulaError, match="finite number"):
+        _make(scores, defaults=[("logp", float("nan"))])
+    with pytest.raises(ValueError, match="bool"):
+        _make(scores, defaults=[("logp", True)])
+    assert len(scores.store) == 0
+
+
+def test_editing_the_defaults_moves_the_policy_and_the_format_with_them_and_keeps_the_id(scores, events):
+    made = _make(scores)
+    gained = scores.update(made.score_id, defaults=[("logp", 3.5)])
+    assert gained.score_id == made.score_id and (gained.on_missing, gained.schema_version) == ("default", 2) and gained.defaults == (("logp", 3.5),)
+    assert scores.store.get(made.score_id) is gained and events[-1].score_ids == (made.score_id,)
+    lost = scores.update(made.score_id, defaults=[])
+    assert (lost.on_missing, lost.schema_version, lost.defaults) == ("refuse", 1, ()) and lost.digest == made.digest, "no defaults is the definition it was before"
+
+
+def test_an_edit_that_leaves_a_default_for_an_input_it_removed_is_refused(scores):
+    made = _make(scores, defaults=[("logp", 2.0)])
+    with pytest.raises(FormulaError, match="not one of the inputs"):
+        scores.update(made.score_id, formula="ramp(psa, 140, 60)", inputs=[("psa", _PSA)])
+    assert scores.store.get(made.score_id) is made
+
+
+def test_the_policy_cannot_be_edited_apart_from_the_defaults(scores):
+    made = _make(scores)
+    with pytest.raises(ValueError, match="cannot be changed.*follows the defaults"):
+        scores.update(made.score_id, on_missing="default")
+
+
+def test_a_default_stands_in_for_a_calculator_nobody_ran_and_the_value_says_so(scores, services, project):
+    model = project.molecules[0]
+    _make(scores, defaults=[("logp", 3.5)])
+    _put(services, model, "tpsa", 100.0, "Å²")
+    (value,) = scores.values_for(model)
+    assert value.status is ScoreStatus.VALUE and value.value == pytest.approx(0.25)
+    assert [item.name for item in value.defaulted] == ["logp"] and {i.name: i.state for i in value.inputs}["psa"] is InputState.READ
+    (answer,) = scores.answers_for(model.uuid, 1)
+    assert "default used for logp" in answer.facts[0].display_value
+
+
+def test_a_preview_of_a_draft_with_defaults_is_the_value_a_saved_one_has(scores, services, project):
+    from openchem.domain.score_definition import ScoreDefinition
+
+    model = project.molecules[0]
+    _put(services, model, "tpsa", 100.0, "Å²")
+    draft = ScoreDefinition("user.draft", "Draft", "ramp(psa, 140, 60) * ramp(logp, 5, 2)", "1", (("psa", _PSA), ("logp", _LOGP)), schema_version=2, on_missing="default", defaults=(("logp", 3.5),))
+    value = scores.preview(draft, model)
+    assert value.status is ScoreStatus.VALUE and value.defaulted[0].name == "logp" and len(scores.store) == 0
+
+
 # --- through the application's own path -----------------------------------------------------------------------------------------------
 
 

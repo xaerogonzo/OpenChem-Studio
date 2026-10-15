@@ -255,3 +255,39 @@ def test_a_tool_thread_cannot_have_changed_the_projects_scores(rig):
     _read(rig)
     _read(rig, scores=["Window"])
     assert tuple(rig.world.services.score_service.store.definitions()) == before
+
+
+# --- the second policy, through the real host and tool ---------------------------------------------------------------------------------------
+
+
+def test_a_model_that_reads_a_score_with_a_default_is_told_which_input_was_not_calculated(rig):
+    _put(rig.world.services, rig.world.molecule, "tpsa", 63.6, _UNITS)
+    _make(rig.world, defaults=[("logp", 3.5)])
+    data, _provider, _box = _read(rig)
+    (score,) = data["scores"]
+    assert score["outcome"] == "computed_with_defaults" and score["defaults_used"] == ["logp"] and score["data"]["value"] > 0
+    assert {i["name"]: i["state"] for i in score["inputs"]} == {"psa": "read", "logp": "default"}
+
+
+def test_the_same_score_is_computed_once_the_calculator_has_run_and_the_default_is_not_used(rig):
+    _put(rig.world.services, rig.world.molecule, "tpsa", 63.6, _UNITS)
+    _put(rig.world.services, rig.world.molecule, "mol_logp", 1.31)
+    _make(rig.world, defaults=[("logp", 3.5)])
+    data, _provider, _box = _read(rig)
+    (score,) = data["scores"]
+    assert score["outcome"] == "computed" and "defaults_used" not in score and {i["name"]: i["state"] for i in score["inputs"]}["logp"] == "read"
+
+
+def test_the_tool_description_tells_the_model_what_a_default_is_and_what_to_say_of_one():
+    assert "computed_with_defaults" in READ_SCORES.description and "defaults_used" in READ_SCORES.description
+    assert "never present the number as the result of calculating them" in READ_SCORES.description
+
+
+def test_a_default_declared_after_the_turn_began_changes_nothing_about_what_the_turn_reads(rig):
+    made = _make(rig.world)
+    _put(rig.world.services, rig.world.molecule, "tpsa", 63.6, _UNITS)
+    frozen = rig.bridge()
+    assert json.loads(frozen.read_scores())["scores"][0]["outcome"] == "refused"
+    rig.world.services.score_service.update(made.score_id, defaults=[("logp", 3.5)])
+    assert json.loads(frozen.read_scores())["scores"][0]["outcome"] == "refused", "the definitions were frozen with the results"
+    assert json.loads(rig.bridge().read_scores())["scores"][0]["outcome"] == "computed_with_defaults"

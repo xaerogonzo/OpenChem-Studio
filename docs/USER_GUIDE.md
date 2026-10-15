@@ -1947,8 +1947,16 @@ formula is ever run as code.
 **It reads current results and starts nothing.** A score is evaluated against the molecule's current results of the
 drawing every time it is shown, never stored. If an input has not been calculated for the molecule, or was calculated
 for an earlier structure, or the calculator refused it, the score says which input and why instead of a number: never
-a zero, and never a term left out. When the calculator finishes the score has its number. The window's last line shows
-what the score gives for the selected molecule while you edit it.
+a zero, and never a term left out unless you have given that input a default (below). When the calculator finishes the
+score has its number. The window's last line shows what the score gives for the selected molecule while you edit it.
+
+**A default for an input nobody calculated.** For an optional input you may type a number in the box beside it. It is
+used only when that input has not been calculated for the molecule. An input that was calculated and refused, failed,
+belongs to an earlier structure or has another unit still refuses the score, and a score that would be worked out from
+defaults alone is refused. A default is not a result, and every number that used one says so: Results shows "(default
+used for ob)" and names the input in the evidence, the project table marks the cell with `*` and has a column beside the
+score that lists the inputs a default stood in for (so the exported CSV carries it), and the AI Assistant is told the
+score was computed with defaults and which inputs. It is your statement of what to assume, and nothing has checked it.
 
 **Where it appears.** In Results, under **Derived scores**, for the selected molecule; hover its value to see the
 formula and every input with its unit and the stored result it came from. The number a score reads is the drawing's,

@@ -17,7 +17,7 @@ from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.report import Basis, Fact, FactCategory, ReportResult
 from openchem.domain.result_store import ResultIdentity, StoredResult
 from openchem.domain.score_constants import Constant
-from openchem.domain.score_definition import ScoreDefinition
+from openchem.domain.score_definition import FORMAT_DEFAULTS, ON_MISSING_DEFAULT, ScoreDefinition
 from openchem.domain.score_value import (
     InputState,
     ScoreStatus,
@@ -285,3 +285,105 @@ def test_another_calculators_results_are_not_this_outputs():
 def test_another_descriptors_results_are_not_this_outputs():
     value = evaluate_score(_definition(), _entries(_descriptor("labute_asa", 100.0, "\u00c5\u00b2"), _descriptor("mol_logp", 3.5)))
     assert {i.name: i for i in value.inputs}["psa"].state is InputState.NOT_RUN
+
+
+# --- the second policy: a default stands in for an input nobody calculated, and for nothing else ----------------------------------
+
+
+def _defaulting(**defaults) -> ScoreDefinition:
+    """The usual two-input score, declaring these defaults (by input name)."""
+    return _definition(on_missing=ON_MISSING_DEFAULT, schema_version=FORMAT_DEFAULTS, defaults=tuple(defaults.items()))
+
+
+def test_an_input_nobody_calculated_takes_the_default_the_definition_declares_and_says_so():
+    value = evaluate_score(_defaulting(logp=5.0), _entries(_descriptor("tpsa", 100.0, "Å²")))
+    assert value.status is ScoreStatus.VALUE and value.reason == ""
+    assert value.value == pytest.approx(0.5 * 0.0), "ramp(5, 5, 2) is 0: the default is what the formula read"
+    by_name = {item.name: item for item in value.inputs}
+    assert by_name["psa"].state is InputState.READ and by_name["logp"].state is InputState.DEFAULT
+    assert by_name["logp"].value == 5.0 and by_name["logp"].unit == "1" and by_name["logp"].result_id == ""
+    assert "not calculated for this molecule" in by_name["logp"].note and "default of 5 is used" in by_name["logp"].note
+    assert [item.name for item in value.defaulted] == ["logp"] and value.defaulted[0] is by_name["logp"]
+
+
+def test_the_default_is_what_the_formula_reads_and_a_changed_default_changes_the_number():
+    entries = _entries(_descriptor("tpsa", 100.0, "Å²"))
+    assert evaluate_score(_defaulting(logp=2.0), entries).value == pytest.approx(0.5 * 1.0)
+    assert evaluate_score(_defaulting(logp=3.5), entries).value == pytest.approx(0.5 * 0.5)
+
+
+def test_a_default_of_zero_is_a_declared_number_and_is_marked_like_any_other():
+    value = evaluate_score(_defaulting(logp=0.0), _entries(_descriptor("tpsa", 100.0, "Å²")))
+    assert value.status is ScoreStatus.VALUE and value.defaulted[0].value == 0.0 and value.defaulted[0].state is InputState.DEFAULT
+
+
+def test_a_result_that_exists_is_read_and_the_default_is_not_used():
+    value = evaluate_score(_defaulting(logp=5.0), _good())
+    assert value.status is ScoreStatus.VALUE and value.defaulted == ()
+    assert {i.name: i for i in value.inputs}["logp"].state is InputState.READ
+    assert value.value == evaluate_score(_definition(), _good()).value == pytest.approx(0.25), "a default never overrides what was calculated"
+
+
+@pytest.mark.parametrize(
+    "entries, state, fragment",
+    [
+        (_entries(_descriptor("tpsa", 100.0, "Å²"), _descriptor("mol_logp", 3.5, "", fingerprint="fp-OLD")), InputState.NOT_CURRENT, "earlier structure"),
+        (_entries(_descriptor("tpsa", 100.0, "Å²"), _descriptor("mol_logp", None, "", state=CacheState.FAILED, error="needs a 3D conformer")), InputState.FAILED, "needs a 3D conformer"),
+        (_entries(_descriptor("tpsa", 100.0, "Å²"), _descriptor("mol_logp", "3.5", "")), InputState.NOT_A_NUMBER, "number"),
+        (_entries(_descriptor("tpsa", 100.0, "Å²"), _descriptor("mol_logp", 3.5, "mol/L")), InputState.UNIT, "nothing is converted"),
+    ],
+)
+def test_a_default_never_stands_in_for_an_answer_about_this_molecule(entries, state, fragment):
+    """An input that WAS calculated and refused, failed, belongs to an earlier structure or carries another unit is an answer; a default would hide it."""
+    value = evaluate_score(_defaulting(logp=2.0), entries)
+    item = {i.name: i for i in value.inputs}["logp"]
+    assert value.status is ScoreStatus.REFUSED and value.value is None and value.defaulted == ()
+    assert item.state is state and fragment in value.reason and "logp" in value.reason
+
+
+def test_a_declined_calculator_is_not_defaulted_either():
+    definition = _definition(
+        "ob + ob2", (("ob", "calculator:oxygen_balance:Oxygen balance (CO basis)"), ("ob2", "calculator:oxygen_balance:Oxygen balance (CO₂ basis)")), result_unit="%",
+        on_missing=ON_MISSING_DEFAULT, schema_version=FORMAT_DEFAULTS, defaults=(("ob", -50.0),),
+    )
+    entries = _entries(_report("oxygen_balance", state=CacheState.FAILED, error="no oxygen balance for this molecule", inapplicable=True))
+    value = evaluate_score(definition, entries)
+    assert value.status is ScoreStatus.REFUSED and {i.name: i for i in value.inputs}["ob"].state is InputState.REFUSED
+    assert "no oxygen balance for this molecule" in value.reason
+
+
+def test_a_score_worked_out_from_defaults_alone_is_refused_and_says_so():
+    value = evaluate_score(_defaulting(psa=100.0, logp=3.5), _entries())
+    assert value.status is ScoreStatus.REFUSED and value.value is None
+    assert "defaults alone" in value.reason and "psa (descriptor:tpsa)" in value.reason and "logp (descriptor:mol_logp)" in value.reason
+    assert [i.state for i in value.inputs] == [InputState.DEFAULT, InputState.DEFAULT], "the evidence still says what each input was"
+
+
+def test_an_input_with_no_default_still_refuses_when_nobody_calculated_it():
+    value = evaluate_score(_defaulting(logp=2.0), _entries(_descriptor("mol_logp", 3.5)))
+    assert value.status is ScoreStatus.REFUSED and {i.name: i for i in value.inputs}["psa"].state is InputState.NOT_RUN
+    assert "psa (descriptor:tpsa)" in value.reason and "logp (descriptor:mol_logp)" not in value.reason, "only the input with no default is named"
+
+
+def test_a_default_is_not_applied_unless_the_definition_says_it_is_the_second_policy():
+    """A stored definition whose policy is something this build does not know is read as the first one: its defaults are never used."""
+    odd = _definition(on_missing="zero", defaults=(("logp", 2.0),))
+    value = evaluate_score(odd, _entries(_descriptor("tpsa", 100.0, "Å²")))
+    assert value.status is ScoreStatus.REFUSED and value.defaulted == ()
+    first = _definition(on_missing="refuse", defaults=(("logp", 2.0),))
+    assert evaluate_score(first, _entries(_descriptor("tpsa", 100.0, "Å²"))).status is ScoreStatus.REFUSED
+
+
+def test_a_default_for_a_name_the_definition_has_no_input_for_is_ignored():
+    value = evaluate_score(_defaulting(ghost=1.0), _entries(_descriptor("tpsa", 100.0, "Å²")))
+    assert value.status is ScoreStatus.REFUSED and value.defaulted == ()
+
+
+def test_a_score_with_no_defaults_has_none_defaulted():
+    assert evaluate_score(_definition(), _good()).defaulted == ()
+
+
+def test_a_default_carries_the_unit_its_output_is_approved_in():
+    value = evaluate_score(_defaulting(psa=100.0), _entries(_descriptor("mol_logp", 3.5)))
+    item = {i.name: i for i in value.inputs}["psa"]
+    assert item.state is InputState.DEFAULT and item.unit == "Å^2" and item.carried_as == "Å²" and item.value == 100.0

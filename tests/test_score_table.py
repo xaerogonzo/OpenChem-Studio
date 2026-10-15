@@ -15,12 +15,15 @@ from openchem.domain.common import CacheState, Provenance
 from openchem.domain.refusal_kinds import REFUSAL_KEY, REFUSAL_KIND_KEY, RefusalKind, refusal_parameters
 from openchem.domain.score_answer import LIMITATION, REFUSAL_CODE
 from openchem.domain.score_constants import Constant
-from openchem.domain.score_definition import DISPLAY_SUFFIX, ScoreDefinition
+from openchem.domain.score_definition import DISPLAY_SUFFIX, FORMAT_DEFAULTS, ON_MISSING_DEFAULT, ScoreDefinition
 from openchem.domain.score_outputs import approved_output
 from openchem.domain.score_table import (
     CATEGORY,
+    DEFAULTED_MARK,
     READ_FROM_TABLE,
     column_id_of,
+    defaults_column,
+    defaults_column_id_of,
     read_cell_output,
     score_cell,
     score_column,
@@ -423,3 +426,83 @@ def test_the_scored_table_keeps_the_per_atom_data_and_owns_its_rows():
     assert scored.row_uuids is not table.row_uuids and scored.row_labels is not table.row_labels
     scored.add_row("new-uuid", "New")
     assert "new-uuid" not in table.row_uuids and "new-uuid" not in table.row_labels
+
+
+# --- the second policy: a number that used a default is marked, and the table says which input --------------------------------------------
+
+
+def _defaulting(**defaults) -> ScoreDefinition:
+    return _definition(on_missing=ON_MISSING_DEFAULT, schema_version=FORMAT_DEFAULTS, defaults=tuple(defaults.items()))
+
+
+def test_a_cell_that_used_a_default_ends_in_the_mark_keeps_its_number_whole_and_its_hover_says_which_input():
+    table = _table(logp=None)
+    value = score_value_in_table(_defaulting(logp=3.5), table, _ROWS[0])
+    cell = score_cell(value)
+    assert cell.value == value.value and cell.text == f"{value.value:.4g}{DEFAULTED_MARK}" and DEFAULTED_MARK == "*"
+    assert isinstance(cell.value, float) and not cell.failed
+    assert cell.detail == f"Inputs: psa = 63.6 {approved_output(_TPSA).carried_as}; logp = 3.5 (a default; not computed in this run)"
+
+
+def test_a_cell_that_used_no_default_is_exactly_as_it_was():
+    cell = score_cell(score_value_in_table(_defaulting(logp=3.5), _table(), _ROWS[0]))
+    assert not cell.text.endswith(DEFAULTED_MARK) and "default" not in cell.detail
+
+
+def test_the_column_says_what_its_defaults_are_and_what_the_mark_means():
+    note = score_column(_defaulting(logp=3.5)).note
+    assert "Defaults, used only for an input this run did not compute: logp = 3.5" in note and f"marked {DEFAULTED_MARK}" in note
+    assert "Defaults" not in score_column(_definition()).note
+
+
+def test_a_score_whose_defaulted_input_the_run_did_not_compute_still_gets_its_column_and_a_companion_right_after_it():
+    scored = table_with_scores(_table(logp=None), [_defaulting(logp=3.5)])
+    assert scored.omitted == () and scored.note() == ""
+    assert [c.column_id for c in scored.table.columns] == ["score:user.window", "score_defaults:user.window", _TPSA]
+    value_column, companion = scored.table.columns[:2]
+    assert companion.numeric is False and companion.source == SOURCE_SCORE and companion.units == "" and value_column.numeric is True
+    assert companion.label == f"Window {DISPLAY_SUFFIX}: inputs given a default" and companion.column_id == defaults_column_id_of("user.window")
+    for uuid in _ROWS:
+        assert scored.table.cell(uuid, companion.column_id).text == "logp" and scored.table.cell(uuid, value_column.column_id).text.endswith(DEFAULTED_MARK)
+
+
+def test_a_row_that_used_no_default_has_no_companion_cell_and_no_mark():
+    table = _table()
+    scored = table_with_scores(table, [_defaulting(logp=3.5)]).table
+    assert scored.cell(_ROWS[0], "score_defaults:user.window") is None
+    assert not scored.cell(_ROWS[0], "score:user.window").text.endswith(DEFAULTED_MARK)
+
+
+def test_a_score_with_no_defaults_has_no_companion_column():
+    scored = table_with_scores(_table(), [_definition()]).table
+    assert [c.column_id for c in scored.columns] == ["score:user.window", _TPSA, _LOGP]
+
+
+def test_an_input_the_run_did_not_compute_and_the_definition_gave_no_default_for_still_omits_the_score():
+    scored = table_with_scores(_table(logp=None), [_defaulting(psa=100.0)])
+    assert [c.column_id for c in scored.table.columns] == [_TPSA]
+    (omission,) = scored.omitted
+    assert omission.missing == ("mol_logp",) and "mol_logp" in scored.note()
+
+
+def test_a_run_that_computed_none_of_what_the_score_reads_has_no_column_even_when_every_input_has_a_default():
+    other = (_column("descriptor:mol_wt"), (_cell(180.0), _cell(46.0)))
+    scored = table_with_scores(_table(tpsa=None, logp=None, extra=[other]), [_defaulting(psa=100.0, logp=3.5)])
+    assert [c.column_id for c in scored.table.columns] == ["descriptor:mol_wt"], "every row would be a number worked out from defaults alone"
+    (omission,) = scored.omitted
+    assert omission.missing == ("tpsa", "mol_logp")
+
+
+def test_a_refused_row_has_no_companion_cell_and_a_defaults_column_is_text():
+    table = _table(logp=None)
+    table.set_cell(_ROWS[0], _TPSA, BatchCell(text="", cache_state=CacheState.FAILED, error="boom"))
+    scored = table_with_scores(table, [_defaulting(logp=3.5)]).table
+    assert scored.cell(_ROWS[0], "score:user.window").failed and scored.cell(_ROWS[0], "score_defaults:user.window") is None
+    assert defaults_column(_defaulting(logp=3.5)).numeric is False
+
+
+def test_defaults_on_a_definition_whose_policy_is_not_the_second_one_are_never_used_to_show_a_column():
+    """The evaluator reads a policy this build does not know as the first one, so the table must not give such a score a column on the strength of a default the evaluator would not use."""
+    odd = _definition(on_missing="zero", defaults=(("logp", 3.5),))
+    scored = table_with_scores(_table(logp=None), [odd])
+    assert [c.column_id for c in scored.table.columns] == [_TPSA] and scored.omitted[0].missing == ("mol_logp",)

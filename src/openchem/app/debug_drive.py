@@ -2501,7 +2501,7 @@ class _Driver(QObject):
 
     def _do_score_define(self, step: dict[str, Any]) -> None:
         """`{"do": "score_define", "label": "Window blend", "formula": "ramp(psa, 140, 60)", "result_unit": "1",
-        "inputs": [["psa", "descriptor:tpsa"]], "constants": [{"name": "hi", "value": 140, "unit": "Å^2"}],
+        "inputs": [["psa", "descriptor:tpsa"]], "constants": [{"name": "hi", "value": 140, "unit": "Å^2"}], "defaults": [["logp", 3.5]],
         "tag": "x", "expect": {"made": true}}`
 
         Makes a score in the open project, or logs why not. `expect`: `made` (true/false) and, for a refusal, `problem`
@@ -2518,6 +2518,7 @@ class _Driver(QObject):
             made = service.create(
                 label=step["label"], formula=step["formula"], result_unit=step.get("result_unit", "1"),
                 inputs=[tuple(pair) for pair in step["inputs"]], constants=constants,
+                defaults=[tuple(pair) for pair in step.get("defaults", [])],
                 owner=step.get("owner", ""), note=step.get("note", ""),
             )
         except FormulaError as exc:
@@ -2554,7 +2555,7 @@ class _Driver(QObject):
 
         `{"do": "score_results", "focus": true, "which": "part of a label", "expect": {"entries": 1, "has_value": true, "value_between": [0, 1],
         "title_contains": ["(user-defined, unvalidated)"], "summary_contains": [], "facts_contain": [],
-        "evidence_contains": ["Formula:"], "reason_contains": [], "stored_as_results": 0}}`
+        "evidence_contains": ["Formula:"], "reason_contains": [], "stored_as_results": 0, "defaulted": ["ob"]}}`
 
         The READER, not the service. `focus` focuses the first score (what a person does by choosing it in the list), which
         is what makes the line above the facts and the fact rows the ones on screen, and what a `shot` of `results_reader`
@@ -2615,6 +2616,10 @@ class _Driver(QObject):
         for needle in expect.get("reason_contains", []):
             if first is None or needle not in (first.error or ""):
                 problems.append(f"the reason lacks {needle!r} (it reads {(first.error if first else None)!r})")
+        if "defaulted" in expect:
+            used = list(first.provenance.parameters.get("defaulted", [])) if first is not None and first.provenance is not None else None
+            if used != list(expect["defaulted"]):
+                problems.append(f"the inputs that used a default are {used!r}, expected {list(expect['defaulted'])!r}")
         tag = str(step.get("tag", ""))
         if self._record_assertion("score_results", tag, not problems, "; ".join(problems) or "as expected"):
             logger.warning("OPENCHEM_DRIVE: EXPECT score_results ok[%s]", tag)
@@ -2641,7 +2646,8 @@ class _Driver(QObject):
         from PySide6.QtWidgets import QApplication, QMessageBox
 
         window = self._window
-        dialog = window.show_scores()
+        # Never activated: a person typing in another window would otherwise have the keys land in this one's Name field (see `MainWindow.show_scores`).
+        dialog = window.show_scores(activate=False)
         if dialog.dirty:
             # What a step starts from, so a question nobody expected ("discard unsaved changes?") can be traced to the form's state.
             logger.warning("OPENCHEM_DRIVE: score_dialog starts DIRTY: draft=%r saved=%r", dialog.draft(), dialog._saved)
@@ -2687,10 +2693,14 @@ class _Driver(QObject):
         marked = sorted(name for name, widget in marks.items() if "border" in widget.styleSheet())
         shown = next((d.display_label for d in window._services.score_service.store.definitions() if d.score_id == snap["current"]), None)
         logger.warning(
-            "OPENCHEM_DRIVE: score_dialog ok=%s where=%s | %s | works_out=%s | preview=%s | save=%s revert=%s delete=%s dirty=%s | scores=%s | asked=%s",
+            "OPENCHEM_DRIVE: score_dialog ok=%s where=%s | %s | works_out=%s | preview=%s | save=%s revert=%s delete=%s dirty=%s | scores=%s | asked=%s | active=%s",
             snap["ok"], snap["where"] or "-", snap["message"][:200], snap["works_out"], snap["preview"][:160],
             snap["save_enabled"], snap["revert_enabled"], snap["delete_enabled"], snap["dirty"], snap["scores"], asked,
+            type(QApplication.activeWindow()).__name__,
         )
+        if snap["dirty"] and step.get("press") in ("save", "revert"):
+            # A form that is still unsaved after the button that makes it clean: what each side holds, so the one intermittent failure of this step can be traced.
+            logger.warning("OPENCHEM_DRIVE: score_dialog ends DIRTY after %s: draft=%r saved=%r current=%r", step["press"], dialog.draft(), dialog._saved, dialog.current_score_id())
         expect = step.get("expect")
         if not expect:
             return
@@ -2727,9 +2737,12 @@ class _Driver(QObject):
         if "inputs" in fill:
             for row in list(dialog._input_rows):
                 row.remove_button.click()
-            for name, output_id in fill["inputs"]:
+            for entry in fill["inputs"]:
+                name, output_id = entry[0], entry[1]
                 dialog._add_input.click()
                 row = dialog._input_rows[-1]
+                if len(entry) > 2:
+                    row.default.setText(str(entry[2]))
                 index = row.output.findData(output_id)
                 if index < 0:
                     logger.error("OPENCHEM_DRIVE: score_dialog: the picker offers no output %r", output_id)
@@ -6914,7 +6927,8 @@ class _Driver(QObject):
 
         `{"do": "table_scores", "tag": "x", "export_csv": "C:/tmp/table.csv", "expect": {"columns": ["Polar window (user-defined, unvalidated)"],
         "note": "", "grid": {"Aspirin": {"Polar window": "0.955"}}, "tooltips": {"Aspirin": {"Polar window": ["Inputs: psa = 63.6"]}},
-        "column_tooltips": {"Polar window": ["Formula:"]}, "csv_header_contains": ["Polar window"], "csv_cells": {"Aspirin": {"Polar window": 0.955}}}}`
+        "column_tooltips": {"Polar window": ["Formula:"]}, "csv_header_contains": ["Polar window"], "csv_cells": {"Aspirin": {"Polar window": 0.955}},
+        "csv_text": {"Aspirin": {"inputs given a default": "ob"}}}}`
 
         `columns` is the exact list of score headers, in grid order. `note` is the line under the status ("" means it is hidden). `grid` is what a cell SHOWS (the text,
         so a refusal reads `—`); `tooltips` and `column_tooltips` are substrings of what hovering shows. `export_csv` presses the REAL "Export CSV..." button with the file
@@ -6992,7 +7006,14 @@ class _Driver(QObject):
                     ok = (cell == "") if wanted is None else (cell not in (None, "") and abs(float(cell) - float(wanted)) <= 5e-3)
                     if not ok:
                         problems.append(f"CSV {label} / {header_part}: {cell!r}, wanted {wanted!r}")
-        elif expect.get("csv_header_contains") or expect.get("csv_cells"):
+            for label, wanted_cells in (expect.get("csv_text") or {}).items():
+                row = next((r for r in csv_rows[1:] if r and r[0] == label), None)
+                for header_part, wanted in wanted_cells.items():
+                    column = next((i for i, text in enumerate(csv_rows[0]) if header_part in text), None)
+                    cell = row[column] if row is not None and column is not None and column < len(row) else None
+                    if cell != wanted:
+                        problems.append(f"CSV {label} / {header_part}: the text is {cell!r}, wanted {wanted!r}")
+        elif expect.get("csv_header_contains") or expect.get("csv_cells") or expect.get("csv_text"):
             problems.append("a CSV expectation without an `export_csv` path")
         tag = str(step.get("tag", ""))
         if self._record_assertion("table_scores", tag, not problems, "; ".join(problems) or "as expected"):

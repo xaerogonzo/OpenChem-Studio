@@ -9,6 +9,12 @@ used, and the refusal says so. A refused, failed or absent input refuses the sco
 dropping a term from a sum silently changes what the sum is. The classification is the assistant's (`turn_snapshot.classify_results`), so there is one
 rule for what "current" means.
 
+**A DEFAULT STANDS IN FOR AN INPUT NOBODY CALCULATED, AND FOR NOTHING ELSE** (the second `on_missing` policy, `score_definition`). When the definition declares a default for an input
+and that input was NEVER CALCULATED for this molecule, the default is read in its place and the input's state is `DEFAULT`, which no surface can mistake for `READ`. An input that was
+calculated and refused, failed, belongs to an earlier structure, carries another unit or is ambiguous still refuses the score: each of those is an answer about this molecule, and a
+default would hide it. **A score worked out from defaults alone is refused**, because that number says nothing about the molecule. The score's value then carries `defaulted`, the
+inputs it used one for, and every surface that shows the number shows that too.
+
 **TWO CURRENT RESULTS THAT DISAGREE ARE NOT GUESSED BETWEEN.** The same output computed with two sets of settings (two pH values, say) can both be current;
 if they give different numbers the score cannot know which was meant, and it refuses. If they agree it reads either.
 
@@ -26,7 +32,7 @@ from functools import lru_cache
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.report import ReportResult
 from openchem.domain.score_constants import constant_values
-from openchem.domain.score_definition import ScoreDefinition, check_computation
+from openchem.domain.score_definition import ON_MISSING_DEFAULT, ScoreDefinition, check_computation
 from openchem.domain.score_formula import FormulaError, Refusal, evaluate, render
 from openchem.domain.score_outputs import READ_FROM, accept_value, approved_output
 from openchem.domain.turn_snapshot import Freshness, Outcome, ResultEntry
@@ -61,6 +67,8 @@ class InputState(str, Enum):
     UNIT = "unit"
     #: Two current results give different numbers.
     AMBIGUOUS = "ambiguous"
+    #: Nothing was calculated and the definition declares a default for this input, which is what `value` is. It yields a number, and is never a `READ`.
+    DEFAULT = "default"
 
 
 @dataclass(frozen=True)
@@ -70,7 +78,7 @@ class InputEvidence:
     name: str
     output_id: str
     state: InputState
-    #: The number, when `state` is `READ`.
+    #: The number, when `state` is `READ` or `DEFAULT`.
     value: float | None = None
     #: The unit the output is approved in (the language of `score_units`), and the string the result carried.
     unit: str = ""
@@ -101,6 +109,11 @@ class ScoreValue:
     @property
     def digest(self) -> str:
         return self.definition.digest
+
+    @property
+    def defaulted(self) -> tuple[InputEvidence, ...]:
+        """The inputs this value used a default for, in the order the definition lists them. Empty for a value worked out from results alone."""
+        return tuple(item for item in self.inputs if item.state is InputState.DEFAULT)
 
 
 @dataclass(frozen=True)
@@ -196,6 +209,20 @@ def read_output(output_id: str, entries: Iterable[ResultEntry]) -> OutputRead:
     return good[0]
 
 
+def _with_default(definition: ScoreDefinition, item: InputEvidence) -> InputEvidence:
+    """`item` as the second policy reads it: an input that was never calculated, for which the definition declares a default, is that default. Anything else is `item`."""
+    if definition.on_missing != ON_MISSING_DEFAULT or item.state is not InputState.NOT_RUN:
+        return item
+    declared = dict(definition.defaults).get(item.name)
+    if declared is None:
+        return item
+    output = approved_output(item.output_id)
+    return InputEvidence(
+        name=item.name, output_id=item.output_id, state=InputState.DEFAULT, value=float(declared), unit=item.unit,
+        carried_as=output.carried_as if output else "", note=f"not calculated for this molecule; this score's default of {declared:.6g} is used in its place",
+    )
+
+
 def _evidence(name: str, output_id: str, read: OutputRead) -> InputEvidence:
     output = approved_output(output_id)
     return InputEvidence(
@@ -228,10 +255,14 @@ def evaluate_score_with(definition: ScoreDefinition, read: Callable[[str], Outpu
     except FormulaError as exc:
         return ScoreValue(definition, ScoreStatus.REFUSED, None, definition.result_unit, f"the definition no longer checks: {exc.message}", (), "")
     shown = render(formula.tree)
-    evidence = tuple(_evidence(name, output_id, read(output_id)) for name, output_id in definition.inputs)
-    unread = [item for item in evidence if item.state is not InputState.READ]
+    evidence = tuple(_with_default(definition, _evidence(name, output_id, read(output_id))) for name, output_id in definition.inputs)
+    unread = [item for item in evidence if item.state not in (InputState.READ, InputState.DEFAULT)]
     if unread:
         reason = "; ".join(f"{item.name} ({item.output_id}): {item.note}" for item in unread)
+        return ScoreValue(definition, ScoreStatus.REFUSED, None, definition.result_unit, reason, evidence, shown)
+    if not any(item.state is InputState.READ for item in evidence):
+        # Every input would be a default: a number that says nothing about this molecule, so it is not given.
+        reason = "no input was calculated for this molecule, so the score would be worked out from defaults alone: " + "; ".join(f"{item.name} ({item.output_id})" for item in evidence)
         return ScoreValue(definition, ScoreStatus.REFUSED, None, definition.result_unit, reason, evidence, shown)
     values: Mapping[str, float] = {**{item.name: float(item.value) for item in evidence}, **constant_values(definition.constants)}
     try:
