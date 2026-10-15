@@ -3278,6 +3278,9 @@ class _Driver(QObject):
         elif step.get("widget") == "project_table":
             # The Results dock's own project table, as the window builds it: the grid, its progress and status lines and the export row.
             target = self._window._results_workspace.table_view
+        elif step.get("widget") == "batch_table":
+            # The Batch panel's own table view (grid, status line, export row), not the panel with its property picker.
+            target = self._window._batch_panel._view
         elif step.get("widget") == "scores":
             if self._window._score_dialog is None:
                 logger.error("OPENCHEM_DRIVE: no Derived Scores window open; run {'do': 'score_dialog'}")
@@ -6984,6 +6987,8 @@ class _Driver(QObject):
         "column_tooltips": {"Polar window": ["Formula:"]}, "csv_header_contains": ["Polar window"], "csv_cells": {"Aspirin": {"Polar window": 0.955}},
         "csv_text": {"Aspirin": {"inputs given a default": "ob"}}}}`
 
+        `"panel": "batch"` reads the Batch panel's OWN table (its Fill table run) instead of the Results dock's; the two are separate views of separate runs.
+
         `columns` is the exact list of score headers, in grid order. `note` is the line under the status ("" means it is hidden). `grid` is what a cell SHOWS (the text,
         so a refusal reads `—`); `tooltips` and `column_tooltips` are substrings of what hovering shows. `export_csv` presses the REAL "Export CSV..." button with the file
         dialog answered, and the `csv_*` expectations read the file it wrote: the exact header cells, and the full-precision number of a cell.
@@ -6992,8 +6997,11 @@ class _Driver(QObject):
 
         from PySide6.QtWidgets import QFileDialog
 
-        workspace = self._window._results_workspace
-        view = workspace.table_view
+        which = str(step.get("panel", "results"))
+        if which not in ("results", "batch"):
+            logger.error("OPENCHEM_DRIVE: table_scores panel %r is not 'results' or 'batch'", which)
+            return
+        view = self._window._batch_panel._view if which == "batch" else self._window._results_workspace.table_view
         grid = view._results
         table = view.table()
         problems: list[str] = []

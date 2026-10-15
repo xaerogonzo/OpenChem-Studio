@@ -318,3 +318,69 @@ def test_the_workspace_rebuilds_the_score_columns_when_a_definition_changes(serv
     services.event_bus.publish(ScoreDefinitionsChanged(project_uuid="p", score_ids=("user.window",)))
     assert any(c.source == "score" for c in workspace.table_view.table().columns)
     assert dataclasses.is_dataclass(ScoreDefinitionsChanged)
+
+
+# --- the Batch panel's own table ---------------------------------------------------------------------------------------------------------
+
+
+def _batch_panel(services, definitions):
+    from openchem.ui.panels.batch_panel import BatchPanel
+
+    return BatchPanel(
+        services.batch_service, services.calculator_registry, services.table_export_service, services.event_bus, services.chemistry_engine, None,
+        score_definitions=definitions,
+    )
+
+
+def _batch_headers(panel) -> list[str]:
+    grid = panel._results
+    return [grid.horizontalHeaderItem(i).text() for i in range(grid.columnCount())]
+
+
+def test_the_batch_panel_s_own_table_has_the_score_column_when_the_run_it_adopts_lands(services):
+    panel = _batch_panel(services, Definitions(_definition()))
+    panel._filling_table = True
+    services.event_bus.publish(_event(_table()))
+    assert [h for h in _batch_headers(panel) if h.startswith("Window")] == [_LABEL]
+    assert panel._view.table().columns[0].source == "score"
+
+
+def test_the_batch_panel_s_scores_follow_a_definition_without_a_second_run(services):
+    definitions = Definitions()
+    panel = _batch_panel(services, definitions)
+    panel._filling_table = True
+    services.event_bus.publish(_event(_table()))
+    assert not any(h.startswith("Window") for h in _batch_headers(panel))
+    definitions.items.append(_definition())
+    services.event_bus.publish(ScoreDefinitionsChanged(project_uuid="p", score_ids=("user.window",)))
+    assert [h for h in _batch_headers(panel) if h.startswith("Window")] == [_LABEL]
+    definitions.items.clear()
+    services.event_bus.publish(ScoreDefinitionsChanged(project_uuid="p", score_ids=("user.window",)))
+    assert not any(h.startswith("Window") for h in _batch_headers(panel))
+
+
+def test_the_batch_panel_says_which_score_has_no_column_because_the_run_did_not_compute_its_inputs(services):
+    panel = _batch_panel(services, Definitions(_definition()))
+    panel._filling_table = True
+    services.event_bus.publish(_event(_table(logp=False)))
+    assert not any(h.startswith("Window") for h in _batch_headers(panel))
+    assert not panel._view._score_note.isHidden() and "mol_logp" in panel._view._score_note.text()
+
+
+def test_a_batch_panel_built_without_a_score_provider_shows_the_run_s_table_alone(services):
+    panel = _batch_panel(services, None)
+    panel._filling_table = True
+    services.event_bus.publish(_event(_table()))
+    assert not any(c.source == "score" for c in panel._view.table().columns)
+    services.event_bus.publish(ScoreDefinitionsChanged(project_uuid="p", score_ids=()))
+
+
+def test_a_one_molecule_detail_run_does_not_replace_the_batch_panel_s_table_or_its_scores(services):
+    panel = _batch_panel(services, Definitions(_definition()))
+    panel._filling_table = True
+    services.event_bus.publish(_event(_table()))
+    narrow = BatchTable()
+    narrow.add_row(_ROWS[0], "Aspirin")
+    panel._filling_table = False
+    services.event_bus.publish(_event(narrow))
+    assert panel._results.rowCount() == 2 and [h for h in _batch_headers(panel) if h.startswith("Window")] == [_LABEL]

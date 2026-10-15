@@ -297,7 +297,8 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           the user-defined SCORES in the Results dock's project table, read off the grid a person looks at (the exact score
                                           headers in order, the note under the status, what a cell SHOWS, tooltips) and off the file the REAL "Export CSV"
                                           button writes (the file dialog answered); pair it with `project_run` and `expect_project_table`; `shot` takes
-                                          "widget": "project_table"
+                                          "widget": "project_table"; `"panel": "batch"` reads the Batch panel's OWN table (after `batch_fill`) and
+                                          `shot` then takes "widget": "batch_table"
     {"do": "tick_score_inputs", "tag": "x", "expect": {"menu_label": "Tick what my scores read (2)", "calculators": ["oxygen_balance"], "descriptor_choice": null,
      "descriptors_box": true, "run_enabled": true, "status_contains": ["Ticked 1 calculator(s)"]}}
                                           the Presets menu's REAL "Tick what my scores read" entry in Properties (a menu with no such entry fails), asserted off the
