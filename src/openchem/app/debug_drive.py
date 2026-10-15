@@ -1995,11 +1995,23 @@ class _Driver(QObject):
         Through `MainWindow.save_project_to`, which is everything the File
         menu's Save does once a path is chosen -- including the retained
         results, which is what a save-then-reopen check is checking.
+
+        `"results": false` writes the file a build from before results were
+        kept wrote: the molecules and their conformers, no `calculation_results`
+        block. That is how a driven run opens a molecule that already HOLDS a
+        conformer and has nothing stored, which no sequence of edits in one
+        session reaches (a conformer change always runs the geometry request).
+        This one bypasses the window's save, so the project stays unsaved.
         """
         from pathlib import Path as _Path
 
         path = _Path(str(step.get("path", "")))
-        self._window.save_project_to(path)
+        # `artifacts/` is untracked, so a fresh checkout has no such folder to save into.
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if step.get("results") is False:
+            self._window._services.project_service.save(self._window._session.project, path)
+        else:
+            self._window.save_project_to(path)
         logger.warning("OPENCHEM_DRIVE: saved %s (%d bytes)", path, path.stat().st_size if path.exists() else -1)
 
     def _do_pop_out(self, step: dict[str, Any]) -> None:
