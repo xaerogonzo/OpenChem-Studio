@@ -16,9 +16,13 @@ import pytest
 from openchem.domain.score_constants import Constant
 from openchem.domain.score_definition import (
     DISPLAY_SUFFIX,
+    FORMAT_DEFAULTS,
+    FORMAT_REFUSE,
     MAX_LABEL,
     MAX_NOTE,
     MAX_OWNER,
+    ON_MISSING_DEFAULT,
+    ON_MISSING_REFUSE,
     SCHEMA_VERSION,
     SCORE_ID_PREFIX,
     DamagedDefinition,
@@ -30,6 +34,7 @@ from openchem.domain.score_definition import (
     new_score_id,
     normalise_name,
     output_names,
+    policy_for,
     slugify,
 )
 from openchem.domain.score_formula import FormulaError, Problem
@@ -168,8 +173,9 @@ def test_a_good_definition_checks_and_returns_its_formula():
         ({"score_id": "user.My_Score"}, "user\\."),
         ({"score_id": "user.1abc"}, "user\\."),
         ({"score_id": "user." + "a" * 41}, "user\\."),
-        ({"schema_version": SCHEMA_VERSION + 1}, "definition format"),
-        ({"on_missing": "zero"}, "only policy"),
+        ({"schema_version": SCHEMA_VERSION + 1}, "is format 3"),
+        ({"schema_version": FORMAT_DEFAULTS}, "no defaults is format 1"),
+        ({"on_missing": "zero"}, "policies are"),
         ({"label": ""}, "empty"),
         ({"label": "  "}, "empty"),
         ({"label": " padded"}, "spaces"),
@@ -191,6 +197,90 @@ def test_a_field_that_is_not_usable_is_refused_with_the_definition_code(change, 
     with pytest.raises(FormulaError, match=why) as caught:
         check_score_definition(_definition(**change))
     assert caught.value.problem is Problem.DEFINITION
+
+
+# --- the second policy: a default for an input nobody calculated -----------------------------------------------------------------------
+
+
+def _with_defaults(**defaults) -> ScoreDefinition:
+    return _definition(on_missing=ON_MISSING_DEFAULT, schema_version=FORMAT_DEFAULTS, defaults=tuple(defaults.items()))
+
+
+def test_a_definition_with_no_default_is_the_first_policy_and_format_one_as_every_earlier_one_was():
+    definition = _definition()
+    assert definition.defaults == () and definition.on_missing == ON_MISSING_REFUSE == "refuse" and definition.schema_version == FORMAT_REFUSE == 1
+    assert "defaults" not in definition.to_dict(), "a definition without defaults is byte-for-byte what an earlier build wrote"
+    assert policy_for(()) == ("refuse", 1) and policy_for([]) == ("refuse", 1)
+
+
+def test_a_default_makes_the_definition_the_second_policy_and_format_two():
+    assert policy_for([("logp", 1.0)]) == (ON_MISSING_DEFAULT, FORMAT_DEFAULTS) == ("default", 2)
+    check_score_definition(_with_defaults(logp=1.0))
+
+
+def test_a_default_is_stored_and_read_back_unchanged():
+    definition = _with_defaults(logp=2.5, psa=0.0)
+    stored = definition.to_dict()
+    assert stored["defaults"] == [["logp", 2.5], ["psa", 0.0]] and stored["on_missing"] == "default" and stored["schema_version"] == 2
+    again = ScoreDefinition.from_dict(json.loads(json.dumps(stored)))
+    assert again == definition and again.digest == definition.digest and again.defaults == (("logp", 2.5), ("psa", 0.0))
+
+
+def test_the_digest_of_a_definition_without_defaults_is_the_digest_it_always_had_and_a_default_changes_it():
+    assert _definition().digest == _definition(defaults=()).digest
+    assert _with_defaults(logp=1.0).digest != _definition().digest
+    assert _with_defaults(logp=1.0).digest != _with_defaults(logp=2.0).digest
+    assert _with_defaults(logp=1.0).digest != _with_defaults(psa=1.0).digest
+
+
+@pytest.mark.parametrize(
+    "definition, why",
+    [
+        (_definition(on_missing=ON_MISSING_DEFAULT, schema_version=FORMAT_DEFAULTS), "needs at least one"),
+        (_definition(defaults=(("logp", 1.0),)), "needs none"),
+        (_definition(on_missing=ON_MISSING_DEFAULT, schema_version=FORMAT_REFUSE, defaults=(("logp", 1.0),)), "is format 1"),
+        (_definition(on_missing=ON_MISSING_REFUSE, schema_version=FORMAT_DEFAULTS), "no defaults is format 1"),
+        (_definition(on_missing=ON_MISSING_DEFAULT, schema_version=FORMAT_DEFAULTS, defaults=(("ghost", 1.0),)), "not one of the inputs"),
+        (_definition(on_missing=ON_MISSING_DEFAULT, schema_version=FORMAT_DEFAULTS, defaults=(("logp", 1.0), ("logp", 2.0))), "two defaults"),
+        (_definition(on_missing=ON_MISSING_DEFAULT, schema_version=FORMAT_DEFAULTS, defaults=(("logp", math.nan),)), "finite number"),
+        (_definition(on_missing=ON_MISSING_DEFAULT, schema_version=FORMAT_DEFAULTS, defaults=(("logp", math.inf),)), "finite number"),
+        (_definition(on_missing=ON_MISSING_DEFAULT, schema_version=FORMAT_DEFAULTS, defaults=(("logp", True),)), "finite number"),
+    ],
+)
+def test_defaults_and_the_policy_must_say_the_same_thing(definition, why):
+    with pytest.raises(FormulaError, match=why) as caught:
+        check_score_definition(definition)
+    assert caught.value.problem is Problem.DEFINITION
+    assert caught.value.field == ("" if "format" in why else "inputs"), "a problem with a default belongs to the inputs box; one with the format belongs to nothing the person types"
+
+
+@pytest.mark.parametrize(
+    "mutate, why",
+    [
+        (lambda d: {**d, "defaults": "logp"}, "defaults is not a list"),
+        (lambda d: {**d, "defaults": [["logp"]]}, r"\[input name, number\]"),
+        (lambda d: {**d, "defaults": [[1, 2.0]]}, r"\[input name, number\]"),
+        (lambda d: {**d, "defaults": [["a", 1, 2]]}, r"\[input name, number\]"),
+        (lambda d: {**d, "defaults": [["logp", "1"]]}, "finite number"),
+        (lambda d: {**d, "defaults": [["logp", True]]}, "finite number"),
+        (lambda d: {**d, "defaults": [["logp", math.nan]]}, "finite number"),
+        (lambda d: {**d, "defaults": [["logp", math.inf]]}, "finite number"),
+    ],
+)
+def test_a_default_that_is_not_one_is_damaged_and_says_why(mutate, why):
+    with pytest.raises(DamagedDefinition, match=why):
+        ScoreDefinition.from_dict(mutate(_with_defaults(logp=1.0).to_dict()))
+
+
+def test_an_integer_default_is_read_as_a_float():
+    data = _with_defaults(logp=1.0).to_dict()
+    data["defaults"] = [["logp", 1]]
+    assert ScoreDefinition.from_dict(data).defaults == (("logp", 1.0),) and isinstance(ScoreDefinition.from_dict(data).defaults[0][1], float)
+
+
+def test_a_definition_in_a_format_after_this_one_is_kept_and_not_read_whatever_it_holds():
+    with pytest.raises(NewerDefinition):
+        ScoreDefinition.from_dict({**_with_defaults(logp=1.0).to_dict(), "schema_version": SCHEMA_VERSION + 1, "defaults": "something new"})
 
 
 def test_a_note_may_have_line_breaks_and_is_otherwise_free_text():

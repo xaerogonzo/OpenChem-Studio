@@ -29,6 +29,7 @@ from openchem.domain.score_definition import (
     ScoreDefinition,
     check_score_definition,
     new_score_id,
+    policy_for,
 )
 from openchem.domain.score_definition_store import ScoreDefinitionStore
 from openchem.domain.score_formula import Formula
@@ -40,6 +41,16 @@ from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.result_store_service import ResultStoreService
 
 logger = logging.getLogger("openchem.scores")
+
+
+def _defaults_of(defaults: Sequence[tuple[str, float]]) -> tuple[tuple[str, float], ...]:
+    """The shape a definition holds: `((name, float), ...)`, so it is hashable and equal to one read back from a file. A bool is not a number here."""
+    declared = []
+    for name, value in defaults:
+        if isinstance(value, bool):
+            raise ValueError(f"the default for {name!r} is a bool, not a number")
+        declared.append((str(name), float(value)))
+    return tuple(declared)
 
 
 class ScoreService:
@@ -104,11 +115,17 @@ class ScoreService:
         result_unit: str,
         inputs: Sequence[tuple[str, str]],
         constants: Sequence[Constant] = (),
+        defaults: Sequence[tuple[str, float]] = (),
         owner: str = "",
         note: str = "",
     ) -> ScoreDefinition:
-        """A new score in the open project. Raises `FormulaError` for a definition that does not check and `ValueError` for no project or no room."""
+        """A new score in the open project. Raises `FormulaError` for a definition that does not check and `ValueError` for no project or no room.
+
+        `defaults` are `(input name, number)`: what an input that was never calculated is read as. Declaring any makes the score the second policy (and format 2); none is the first.
+        """
         self._require_project()
+        declared = _defaults_of(defaults)
+        on_missing, schema_version = policy_for(declared)
         definition = ScoreDefinition(
             score_id=new_score_id(label, self.store.score_ids()),
             label=label,
@@ -116,6 +133,9 @@ class ScoreService:
             result_unit=result_unit,
             inputs=tuple((str(name), str(output_id)) for name, output_id in inputs),
             constants=tuple(constants),
+            schema_version=schema_version,
+            on_missing=on_missing,
+            defaults=declared,
             owner=owner,
             created=self._today().isoformat(),
             note=note,
@@ -134,14 +154,18 @@ class ScoreService:
         current = self.store.get(score_id)
         if current is None:
             raise KeyError(score_id)
-        for forbidden in ("schema_version", "created"):
+        for forbidden in ("schema_version", "created", "on_missing"):
             if forbidden in fields:
-                raise ValueError(f"{forbidden} cannot be changed")
+                raise ValueError(f"{forbidden} cannot be changed" + (" (it follows the defaults)" if forbidden == "on_missing" else ""))
         # The same shapes `create` makes: a definition is hashable (the parsed-formula cache keys on it) and equal to one read back from a file.
         if "inputs" in fields:
             fields["inputs"] = tuple((str(name), str(output_id)) for name, output_id in fields["inputs"])
         if "constants" in fields:
             fields["constants"] = tuple(fields["constants"])
+        if "defaults" in fields:
+            # The policy and the format follow what is declared: a definition is the second policy and format 2 exactly when it has a default.
+            fields["defaults"] = _defaults_of(fields["defaults"])
+            fields["on_missing"], fields["schema_version"] = policy_for(fields["defaults"])
         changed = replace(current, **fields)
         self.check(changed)
         self.store.replace(changed)

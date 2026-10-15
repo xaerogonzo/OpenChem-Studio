@@ -318,3 +318,45 @@ def test_the_excerpt_has_its_full_width_at_the_end_of_a_long_formula():
 def test_the_default_excerpt_is_sixty_characters_wide():
     excerpt, _ = _lines("x" * 200, 100)
     assert excerpt == "..." + "x" * 60 + "..."
+
+
+# --- a default for an input nobody calculated -------------------------------------------------------------------------------------------
+
+
+def _defaulting(**defaults) -> Draft:
+    rows = tuple(InputRow(row.name, row.output_id, str(defaults.get(row.name, ""))) for row in _draft().inputs)
+    return _draft(inputs=rows)
+
+
+def test_a_draft_with_no_default_is_the_first_policy_and_format_one():
+    definition = _draft().to_definition()
+    assert (definition.on_missing, definition.schema_version, definition.defaults) == ("refuse", 1, ())
+
+
+def test_a_default_typed_makes_a_definition_with_it_the_second_policy_and_format_two():
+    definition = _defaulting(logp="3.5").to_definition()
+    assert (definition.on_missing, definition.schema_version, definition.defaults) == ("default", 2, (("logp", 3.5),))
+    assert check_draft(_defaulting(logp="3.5")).ok
+
+
+def test_a_default_is_trimmed_may_be_negative_and_an_empty_one_is_none():
+    assert _defaulting(psa=" -2.5 ").to_definition().defaults == (("psa", -2.5),)
+    assert _defaulting(psa="   ").to_definition().defaults == ()
+
+
+@pytest.mark.parametrize("text", ["abc", "1.", ".5", "1,5", "nan", "inf", "1_0", "١٢", "1e999"])
+def test_a_default_that_is_not_a_plain_number_is_refused_in_the_inputs_box(text):
+    result = check_draft(_defaulting(logp=text))
+    assert not result.ok and result.where == "inputs" and result.problem == "inputs" and "default" in result.message and "logp" in result.message
+
+
+def test_a_definition_and_the_draft_made_from_it_say_the_same_thing_with_defaults_too():
+    definition = _defaulting(logp="3.5", psa="0").to_definition(score_id="user.x", created="2026-10-15")
+    assert Draft.from_definition(definition).to_definition(score_id="user.x", created="2026-10-15") == definition
+    assert [row.default for row in Draft.from_definition(definition).inputs] == ["0", "3.5"]
+
+
+def test_a_default_for_an_input_whose_name_was_then_changed_is_still_a_default_for_that_row():
+    """The default belongs to the row, so renaming the input does not strand it (the definition names inputs, and the row's name is what it is saved under)."""
+    renamed = _draft(inputs=(InputRow("psa", _TPSA), InputRow("lp", _LOGP, "3.5")), formula="ramp(psa, hi, 60) * ramp(lp, 5, 2)")
+    assert renamed.to_definition().defaults == (("lp", 3.5),) and check_draft(renamed).ok

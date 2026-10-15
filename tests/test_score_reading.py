@@ -15,9 +15,9 @@ from openchem.domain.common import CacheState
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.result_envelope import CAP_STEPS, FULL, SCORE_NOT_A_PREDICTION, SCORES_NOTE, Caps, score_envelope_of, scores_view_envelope
 from openchem.domain.result_store import ResultIdentity, StoredResult
-from openchem.domain.score_answer import LIMITATION
+from openchem.domain.score_answer import DEFAULTED, LIMITATION
 from openchem.domain.score_constants import Constant
-from openchem.domain.score_definition import ScoreDefinition
+from openchem.domain.score_definition import FORMAT_DEFAULTS, ON_MISSING_DEFAULT, ScoreDefinition
 from openchem.domain.score_outputs import approved_output
 from openchem.domain.score_reading import DEFAULT_READ_LIMIT, read_scores
 from openchem.domain.score_value import ScoreStatus, evaluate_score
@@ -255,3 +255,48 @@ def test_the_scores_left_out_by_the_read_limit_are_counted_in_the_envelope_too()
 
 def test_the_full_caps_are_the_first_step():
     assert CAP_STEPS[0] == FULL
+
+
+# --- the second policy, as a model is told it --------------------------------------------------------------------------------------------
+
+
+def _defaulting(**defaults) -> ScoreDefinition:
+    return _definition(on_missing=ON_MISSING_DEFAULT, schema_version=FORMAT_DEFAULTS, defaults=tuple(defaults.items()))
+
+
+def test_a_score_that_used_a_default_is_not_called_computed_and_names_what_it_used_one_for():
+    (item,) = _envelope([_defaulting(logp=3.5)], records=[_record("tpsa", 63.6)])["scores"]
+    assert item["outcome"] == "computed_with_defaults" and item["defaults_used"] == ["logp"]
+    assert item["data"]["value"] == pytest.approx(0.4775) and item["data"]["units"] == "1"
+    assert DEFAULTED.format(names="logp") in item["caveats"] and SCORE_NOT_A_PREDICTION in item["caveats"] and LIMITATION in item["caveats"]
+    by_name = {i["name"]: i for i in item["inputs"]}
+    assert by_name["psa"]["state"] == "read" and "note" not in by_name["psa"]
+    assert by_name["logp"]["state"] == "default" and by_name["logp"]["value"] == 3.5 and by_name["logp"]["units"] == ""
+    assert "not calculated for this molecule" in by_name["logp"]["note"]
+    assert item["declared_defaults"] == [{"input": "logp", "value": 3.5}]
+
+
+def test_a_score_that_needed_no_default_is_computed_and_still_says_what_it_would_have_used():
+    (item,) = _envelope([_defaulting(logp=3.5)])["scores"]
+    assert item["outcome"] == "computed" and "defaults_used" not in item and item["declared_defaults"] == [{"input": "logp", "value": 3.5}]
+    assert DEFAULTED.format(names="logp") not in item["caveats"]
+
+
+def test_a_score_with_no_defaults_has_none_of_it():
+    (item,) = _envelope()["scores"]
+    assert "declared_defaults" not in item and "defaults_used" not in item and len(item["caveats"]) == 2
+
+
+def test_a_score_worked_out_from_defaults_alone_is_a_refusal_that_names_the_defaulted_inputs_and_not_as_unread():
+    (item,) = _envelope([_defaulting(psa=100.0, logp=3.5)], records=[])["scores"]
+    assert item["outcome"] == "refused" and "data" not in item and "defaults_used" not in item
+    assert "defaults alone" in item["refusal"]["reason"] and item["refusal"]["inputs_defaulted"] == ["psa", "logp"] and item["refusal"]["inputs_not_read"] == []
+
+
+def test_a_refused_score_with_a_defaulted_input_names_only_the_input_that_could_not_be_read():
+    (item,) = _envelope([_defaulting(logp=3.5)], records=[_record("tpsa", 63.6, fingerprint="fp-OLD")])["scores"]
+    assert item["outcome"] == "refused" and item["refusal"]["inputs_not_read"] == ["psa"] and item["refusal"]["inputs_defaulted"] == ["logp"]
+
+
+def test_the_note_every_read_carries_tells_the_model_what_to_say_of_a_default():
+    assert "computed_with_defaults" in SCORES_NOTE and "defaults_used" in SCORES_NOTE and "never present the number as the result of calculating them" in SCORES_NOTE

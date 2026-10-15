@@ -22,6 +22,7 @@ from openchem.domain.report import (
 from openchem.domain.result_status import NEEDS_INPUT, status_of
 from openchem.domain.result_store import ResultIdentity, StoredResult
 from openchem.domain.score_answer import (
+    DEFAULTED,
     LIMITATION,
     NO_VALUE,
     REFUSAL_CODE,
@@ -30,7 +31,7 @@ from openchem.domain.score_answer import (
     report_id_of,
 )
 from openchem.domain.score_constants import Constant
-from openchem.domain.score_definition import VALIDATION, ScoreDefinition
+from openchem.domain.score_definition import FORMAT_DEFAULTS, ON_MISSING_DEFAULT, VALIDATION, ScoreDefinition
 from openchem.domain.score_value import evaluate_score
 from openchem.domain.turn_snapshot import classify_results
 
@@ -196,3 +197,47 @@ def test_the_codes_and_texts_are_these_literals():
     assert (REFUSAL_CODE, NO_VALUE, SIGNIFICANT_DIGITS) == ("SCORE_NO_VALUE", "no value", 4)
     assert _refused().provenance.parameters["refusal"] == "SCORE_NO_VALUE"
     assert _refused().error_summary == "no value: an input cannot be read"
+
+
+# --- a number that used a default says so, wherever it is read ----------------------------------------------------------------------
+
+
+def _defaulting(**defaults) -> ScoreDefinition:
+    return _definition(on_missing=ON_MISSING_DEFAULT, schema_version=FORMAT_DEFAULTS, defaults=tuple(defaults.items()))
+
+
+def _used_a_default() -> ScoreAnswer:
+    return _answer(_value(_defaulting(logp=3.5), _entries(_descriptor("tpsa", 100.0, "Å²"))))
+
+
+def test_a_number_that_used_a_default_says_so_in_its_value_its_evidence_and_its_limitations():
+    answer = _used_a_default()
+    (fact,) = answer.facts
+    assert fact.value == pytest.approx(0.25) and isinstance(fact.value, float), "the number is kept whole and numeric"
+    assert fact.display_value.endswith("(default used for logp)") and fact.display_value.startswith("0.25")
+    said = DEFAULTED.format(names="logp")
+    assert said in fact.evidence and fact.limitations == (LIMITATION, said) and answer.limitations == (LIMITATION, said)
+    assert any(line.startswith("logp = 3.5") and "A DEFAULT of this definition" in line and "not a result" in line for line in fact.evidence)
+    assert any(line.startswith("psa = 100") and "read from the stored result" in line for line in fact.evidence), "the input that was read is still told as one"
+    assert answer.provenance.parameters["defaulted"] == ["logp"] and answer.provenance.parameters["schema_version"] == 2
+
+
+def test_a_number_that_used_no_default_is_told_exactly_as_before():
+    answer = _answer()
+    (fact,) = answer.facts
+    assert "default" not in fact.display_value and fact.limitations == (LIMITATION,) and answer.limitations == (LIMITATION,)
+    assert "defaulted" not in answer.provenance.parameters
+    assert not any("DEFAULT" in line or "default" in line for line in fact.evidence)
+
+
+def test_a_score_with_a_default_that_was_not_needed_is_told_as_a_score_that_used_none():
+    answer = _answer(_value(_defaulting(logp=5.0)))
+    (fact,) = answer.facts
+    assert "default" not in fact.display_value and fact.limitations == (LIMITATION,) and "defaulted" not in answer.provenance.parameters
+
+
+def test_a_score_that_would_be_worked_out_from_defaults_alone_is_the_refusal_it_always_was():
+    answer = _answer(_value(_defaulting(psa=100.0, logp=3.5), _entries()))
+    assert answer.facts == () and "defaults alone" in answer.error and answer.error_summary.startswith(NO_VALUE)
+    assert refusal_kind_of_result(answer) is RefusalKind.NEEDS_INPUT
+    assert "defaulted" not in answer.provenance.parameters, "there is no number, so no number used a default"
