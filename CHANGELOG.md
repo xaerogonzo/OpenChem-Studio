@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: nitrilium cations with a heteroatom, O-protonated sulfoxides, and an acyl prefix that dropped its free acid
+- A nitrilium whose group holds a hydroxy, amino or halogen was refused (the plan search named the neutral nitrile); it is the cation with an `ylidyne` prefix, `[(4-hydroxyphenyl)methylidyne]azanium` (D-253).
+  An acyclic O-protonated or O-alkylated sulfoxide is named as a hydroxy- or alkoxysulfanium, `hydroxydi(methyl)sulfanium` (D-254). An acyl PREFIX whose fragment also held a second acid became a diacyl
+  group, `4-propanedioylanilinium`, a different molecule with no refusal; it is `4-(2-carboxy-1-oxoethyl)anilinium` (D-255, the sibling of round 52's D-250, in the engine's generic acyl substituent).
+  The census is unchanged at 1993 exact; the cation population is down to 27 refusals (from 108) and the quaternary to 14, with no wrong names in either.
+
 ### Derived scores, slice 4a: the assistant can read the scores a person defined, and cannot write one
 - **A new assistant tool, `read_scores`** (the sixth), returns the project's user-defined scores worked out for the molecule selected when the message was sent: each with its label (always ending "(user-defined, unvalidated)"),
   formula, declared unit and every input with the state it was read in, and a value **only when every input was read from the molecule's current results**. A score with an input nobody calculated, that was calculated for an earlier

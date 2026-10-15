@@ -315,6 +315,8 @@ def classify_charges(
         _classify_amidinium,
         # Naming round 49: an acyclic iminium C=[NH+] whose carbon carries O, S or another N is the CATION, named `(ylidene)azanium`; after the amidinium, which it must not steal from.
         _classify_iminium_hetero,
+        _classify_nitrilium,
+        _classify_sulfoxide_cation,
         # The ylide form runs before the plain diazonium: it is the more
         # specific pattern, and the plain one would otherwise claim the two
         # nitrogens and leave the carbanion uncovered.
@@ -1788,8 +1790,103 @@ def _classify_iminium_hetero(mol) -> Iterable[ChargeClassification]:
     )
 
 
+def _classify_nitrilium(mol) -> Iterable[ChargeClassification]:
+    """A nitrilium `R-C#[NH+]` / `R-C#[N+]-R'` whose group holds a heteroatom (naming round 53).
+
+    `[NH+]#Cc1ccc(O)cc1`, `[NH+]#CC(O)C`. The simple ones (`benzylidyneazanium`) were named by the plan search; with a hydroxy, an amino or a halogen in the group it promoted that group to the
+    principal one and named the neutral nitrile, which the charge guard refused. The cation is senior (P-41), so it is the parent and the carbon's group is an `ylidyne` prefix:
+    `(4-hydroxybenzylidyne)azanium`, which OPSIN reads. A group of carbon and hydrogen only keeps the route that already names it."""
+    separated = _charge_separated_neutral_atoms(mol)
+    charged = [a for a in mol.GetAtoms() if a.GetFormalCharge() != 0 and a.GetIdx() not in separated]
+    if len(charged) != 1:
+        return
+    n = charged[0]
+    if n.GetAtomicNum() != 7 or n.GetFormalCharge() != 1 or n.GetNumRadicalElectrons() != 0 or n.IsInRing() or n.GetDegree() > 2:
+        return
+    triples = [b for b in n.GetBonds() if b.GetBondTypeAsDouble() == 3.0]
+    if len(triples) != 1 or triples[0].IsInRing():
+        return
+    carbon = triples[0].GetOtherAtom(n)
+    if carbon.GetAtomicNum() != 6 or carbon.GetFormalCharge() != 0 or carbon.GetDegree() != 2:
+        return
+    others = [x for x in n.GetNeighbors() if x.GetIdx() != carbon.GetIdx()]
+    if any(x.GetAtomicNum() != 6 for x in others):
+        return
+    # Only a group holding a heteroatom is taken; a hydrocarbon group keeps its old name.
+    seen, stack = set(), [carbon.GetIdx()]
+    while stack:
+        cur = stack.pop()
+        if cur in seen:
+            continue
+        seen.add(cur)
+        stack.extend(x.GetIdx() for x in mol.GetAtomWithIdx(cur).GetNeighbors() if x.GetIdx() != n.GetIdx())
+    if all(mol.GetAtomWithIdx(i).GetAtomicNum() in (1, 6) for i in seen):
+        return
+    yield ChargeClassification(
+        site_atom_indices=(n.GetIdx(), *sorted(separated)),
+        charge_sign="+",
+        suffix_hint="iminium_hetero",
+        locant=None,
+        parent_smiles=None,
+        surface_name=None,
+    )
+
+
+def _classify_sulfoxide_cation(mol) -> Iterable[ChargeClassification]:
+    """An O-protonated or O-alkylated sulfoxide `C-S(=[OH+])-C` / `C-S(=[O+]R)-C` (naming round 53).
+
+    No classifier claimed it, so the plan search neutralised the oxygen and the name was the neutral sulfoxide's, which the charge guard refused. The same cation drawn with the S-O bond single is
+    a sulfonium with a hydroxy or alkoxy substituent, and the engine names that: `hydroxydi(methyl)sulfanium`, which OPSIN reads. Two carbons and the oxygen on the sulfur, nothing else charged."""
+    separated = _charge_separated_neutral_atoms(mol)
+    charged = [a for a in mol.GetAtoms() if a.GetFormalCharge() != 0 and a.GetIdx() not in separated]
+    if len(charged) != 1:
+        return
+    o = charged[0]
+    if o.GetAtomicNum() != 8 or o.GetFormalCharge() != 1 or o.GetNumRadicalElectrons() != 0 or o.IsInRing() or o.GetDegree() > 2:
+        return
+    doubles = [b for b in o.GetBonds() if b.GetBondTypeAsDouble() == 2.0]
+    if len(doubles) != 1:
+        return
+    s = doubles[0].GetOtherAtom(o)
+    # An acyclic sulfur only: a ring sulfonium (`1-hydroxythiolan-1-ium`) is named by a path that does not survive the recursive drive, so it stays a visible refusal.
+    if s.GetAtomicNum() != 16 or s.GetFormalCharge() != 0 or s.GetDegree() != 3 or s.IsInRing():
+        return
+    if sum(1 for x in s.GetNeighbors() if x.GetAtomicNum() == 6) != 2:
+        return
+    yield ChargeClassification(
+        site_atom_indices=(o.GetIdx(), s.GetIdx(), *sorted(separated)),
+        charge_sign="+",
+        suffix_hint="sulfoxide_cation",
+        locant=None,
+        parent_smiles=None,
+        surface_name=None,
+    )
+
+
+def _render_sulfoxide_cation(cls: ChargeClassification, mol, strategy, session, depth: int) -> str | None:
+    """The sulfoxide cation drawn as a sulfonium: the S=O bond made single, the charge moved to the sulfur."""
+    from rdkit import Chem
+
+    o_idx, s_idx = cls.site_atom_indices[0], cls.site_atom_indices[1]
+    rw = Chem.RWMol(mol)
+    rw.GetBondBetweenAtoms(o_idx, s_idx).SetBondType(Chem.BondType.SINGLE)
+    rw.GetAtomWithIdx(o_idx).SetFormalCharge(0)
+    rw.GetAtomWithIdx(s_idx).SetFormalCharge(1)
+    rw.GetAtomWithIdx(s_idx).SetNoImplicit(True)
+    try:
+        Chem.SanitizeMol(rw)
+        smiles = Chem.MolToSmiles(rw.GetMol())
+    except Exception:  # noqa: BLE001 - a drawing that will not sanitise is no name
+        return None
+    text = _drive_engine(smiles, strategy, session, depth)
+    if not text or "NAMING ERROR" in text or not text.endswith("ium"):
+        return None
+    return text
+
+
 def _name_ylidene_group(mol, n_idx: int, c_idx: int, strategy, session, depth: int) -> str | None:
-    """The group on the iminium carbon, named as a substituent whose double bond goes to the nitrogen: `amino(methoxy)methylidene`, `1-sulfanylethylidene`."""
+    """The group on the iminium carbon, named as a substituent whose double bond goes to the nitrogen: `amino(methoxy)methylidene`, `1-sulfanylethylidene`. A nitrilium's
+    triple bond makes it an `ylidyne` (round 53)."""
     from openchem.vendor.iupac_namer.assembly import assemble
     from openchem.vendor.iupac_namer.engine import (
         _fvi_elide_locant_one, _select_substituent_method, name as _recursive_name,
@@ -1817,7 +1914,7 @@ def _name_ylidene_group(mol, n_idx: int, c_idx: int, strategy, session, depth: i
         text = assemble(tree)
     except Exception:  # noqa: BLE001 - a group the engine cannot name is no name
         return None
-    if not text or "NAMING ERROR" in text or not text.endswith("ylidene"):
+    if not text or "NAMING ERROR" in text or not text.endswith("ylidyne" if bond_order == 3 else "ylidene"):
         return None
     return text
 
@@ -1826,7 +1923,7 @@ def _render_iminium_hetero(cls: ChargeClassification, mol, strategy, session, de
     """`[amino(methoxy)methylidene]azanium`, `(1-sulfanylethylidene)azanium`, `(1-aminoethylidene)(hydroxy)azanium` (naming round 49)."""
     n_idx = cls.site_atom_indices[0]
     n = mol.GetAtomWithIdx(n_idx)
-    carbon = next(b.GetOtherAtom(n) for b in n.GetBonds() if b.GetBondTypeAsDouble() == 2.0)
+    carbon = next(b.GetOtherAtom(n) for b in n.GetBonds() if b.GetBondTypeAsDouble() in (2.0, 3.0))
     ylidene = _name_ylidene_group(mol, n_idx, carbon.GetIdx(), strategy, session, depth)
     if ylidene is None:
         return None
@@ -3351,6 +3448,8 @@ def _render(
         return _render_azanide(cls, mol, strategy, session, depth)
     if cls.suffix_hint == "iminium_hetero":
         return _render_iminium_hetero(cls, mol, strategy, session, depth)
+    if cls.suffix_hint == "sulfoxide_cation":
+        return _render_sulfoxide_cation(cls, mol, strategy, session, depth)
     return None
 
 

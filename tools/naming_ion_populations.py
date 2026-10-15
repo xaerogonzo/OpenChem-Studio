@@ -152,6 +152,35 @@ def generate(mode: str, rows: list[dict], limit: int | None = None) -> list[Cand
     return out
 
 
+def _sulfoxide_drawing(mol):
+    """OPSIN draws an O-protonated sulfoxide as a sulfonium, `O[S+](C)C`; the ion population draws it `CS(C)=[OH+]`. They are one species, but InChI keeps them apart (round 53)."""
+    from rdkit import Chem
+
+    rw = Chem.RWMol(mol)
+    changed = False
+    for s in rw.GetAtoms():
+        if s.GetSymbol() != "S" or s.GetFormalCharge() != 1:
+            continue
+        for bond in s.GetBonds():
+            o = bond.GetOtherAtom(s)
+            if o.GetSymbol() == "O" and o.GetFormalCharge() == 0 and bond.GetBondTypeAsDouble() == 1.0 and o.GetDegree() <= 2 and not o.IsInRing():
+                hydrogens = o.GetTotalNumHs()
+                bond.SetBondType(Chem.BondType.DOUBLE)
+                s.SetFormalCharge(0)
+                o.SetFormalCharge(1)
+                o.SetNoImplicit(True)
+                o.SetNumExplicitHs(hydrogens)
+                changed = True
+                break
+    if not changed:
+        return mol
+    try:
+        Chem.SanitizeMol(rw)
+    except Exception:  # noqa: BLE001 - keep the original drawing
+        return mol
+    return rw.GetMol()
+
+
 def _inchikey(smiles_or_mol, neutral: bool = False) -> str:
     from rdkit import Chem
     from rdkit.Chem.MolStandardize import rdMolStandardize
@@ -159,6 +188,7 @@ def _inchikey(smiles_or_mol, neutral: bool = False) -> str:
     mol = Chem.MolFromSmiles(smiles_or_mol) if isinstance(smiles_or_mol, str) else smiles_or_mol
     if mol is None:
         return ""
+    mol = _sulfoxide_drawing(mol)
     if neutral:
         mol = rdMolStandardize.Uncharger().uncharge(Chem.Mol(mol))
         return Chem.MolToInchiKey(mol).split("-")[0]

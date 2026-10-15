@@ -489,6 +489,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round53_nitrilium_and_sulfoxide_cations.py"
+why = "a nitrilium with a heteroatom in its group is the cation with an ylidyne prefix (D-253: [(4-hydroxyphenyl)methylidyne]azanium), and an acyclic O-protonated or O-alkylated sulfoxide is a hydroxy- or alkoxysulfanium (D-254)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round52_acyl_groups_thioamides_and_chalcogen_cations.py"
 why = "a second acid in an azanide's acyl group is a carboxy prefix, not a diacyl (D-250), the thioamide anion is an azanide (D-251: ethanethioyl(methyl)azanide), and a suffix group never names a positive chalcogen (D-252: (diaminomethylidene)sulfanium)"
 scope = "core"
