@@ -3604,7 +3604,15 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
             # must be elided (P-16.3.3); for "-diium"/"-triium"
             # (consonant-leading multiplier) the 'e' is kept.
             suf_idx = len(parts) - 1
-            if not rc_mult:
+            # A curated ring whose NAME carries its ketone (`...pyrimidin-4-on`) cannot also carry a suffix: the cation suffix (`-2-aminium`) outranks the ketone, which becomes the
+            # prefix `oxo` (`7-methyl-4-oxo-4H-pyrido[1,2-a]pyrimidin-1-ium-2-aminium`, which OPSIN reads; `...-4-on-1-ium-2-aminium` it cannot; naming round 56).
+            _suffix_ketone = re.search(r"-(\d+)-on$", parts[stem_idx]) if not rc_mult else None
+            if _suffix_ketone is not None:
+                parts[stem_idx] = parts[stem_idx][: _suffix_ketone.start()]
+                parts.insert(stem_idx, f"{_suffix_ketone.group(1)}-oxo-")
+                stem_idx += 1
+                suf_idx += 1
+            elif not rc_mult:
                 if parts[stem_idx].endswith("e"):
                     parts[stem_idx] = parts[stem_idx][:-1]
             else:

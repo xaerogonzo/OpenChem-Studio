@@ -2525,6 +2525,24 @@ what can be verified.
   `tests/test_namer_known_defects.py`. Three earlier tests pinned refusals this round turned into names and now pin the cases still refused: a carboxylate beside two neutral acids
   (`test_namer_round43_*`, `test_namer_round45_*`) and a pyrazolone anion (`test_namer_round46_*`).
 
+## 2026-10-15 -- naming round 56: two anions in one molecule, the guard that counts centres, a ketone ring cation with a cation suffix (D-268, D-269, D-270)
+
+Round 55's open list: the dianion population's naming errors, a protonated amidoxime beside a second cation (charge lost), and the unreadable cationic ketone ring with an aminium suffix.
+
+* **D-268.** A molecule with two anions names one as the parent and cites the other as a PREFIX. For a carboxylate, a phenolate and a thiolate that is `oxido(oxo)methyl`, `oxido`, `sulfido`; for an anionic
+  nitrogen there was no prefix: the carved `CC(=O)[N-]` fragment went through the standalone anion route and failed (`NAMING ERROR: ... [NH-]`), and a sulfonamide anion beside a phenolate was named
+  `[N-(4-oxidophenyl)sulfamoyl]methane` -- the sulfonamide charge DROPPED, with one `oxido` left in the name to satisfy the guard. OPSIN reads `azanidyl` (measured: `4-(acetylazanidyl)benzen-1-olate` ->
+  the dianion); `_azanide_text` now composes the groups on the nitrogen for both the parent (`acetyl(methyl)azanide`, two groups) and the prefix (`acetylazanidyl`, one group), and the engine's substituent
+  naming has a block for the carved `[NH-]` fragment (the carve gives the open valence its hydrogen).
+* **D-269.** `_check_charge_named` asked whether the name had A word of each polarity, so D-268's name passed with one `oxido` for two anions. When the name never multiplies an ion word
+  (`_MULTIPLIED_ION_WORD`: `dioxido`, `bis(azaniumyl)`, `1,4-diium`, `dioate`, `diolate`...) it needs at least as many anion words (or cation words) as there are charged centres of that polarity
+  (charge-separated neutral groups and bonded +/- pairs excluded, as round 55). `azanidyl` joined the anion words. A name that multiplies a word is not judged by count, which is conservative.
+* **D-270.** A curated ring whose name carries its ketone, cationic, with a cation SUFFIX: `...pyrimidin-4-on-1-ium-2-aminium`, unreadable. The cation suffix outranks the ketone, which becomes the prefix
+  `oxo`: `7-methyl-4-oxo-4H-pyrido[1,2-a]pyrimidin-1-ium-2-aminium` (read back).
+* **Measured.** Populations: anions 1046 of 1046, dianions 18 of 18, dications 169 of 171 (two protonated amidoximes refused, visibly, by D-269), zwitterions 88 of 89 (the one refusal is D-267's),
+  cations 2061 of 2081 and quaternary 2074 of 2081 (the rest visible refusals or OPSIN limits). Census, vendored suite and app naming group are in the final numbers of the pull request. 7 of 7 live mutants killed.
+* New `tests/test_namer_round56_two_anions_and_ion_counts.py` (26 tests). D-268 and D-270 in the fixed table of `tests/test_namer_known_defects.py`.
+
 ## 2026-10-15 -- naming round 55: three multi-charge ion populations, and the charge guard learns polarity (D-265, D-266, D-267)
 
 Every earlier population changed ONE site, so an ion with two charges was reachable only by accident, and the charge guard judged the NET charge, which a zwitterion does not have. `tools/naming_ion_populations.py`
