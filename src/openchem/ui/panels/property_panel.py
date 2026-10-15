@@ -108,6 +108,7 @@ from openchem.events.events import (
     RecalculationDue,
     RecipeRunRecorded,
     ResultRecorded,
+    ScoreDefinitionsChanged,
     SettingsChanged,
     SpectrumComputed,
     StructureSetComputed,
@@ -1853,6 +1854,7 @@ class PropertyPanel(QWidget):
         #: `RecipeService.answers_for`, or None (a panel with no recipes behind it). A CALLABLE, for the reason
         #: `structure_version_of` is: this needs the kept answers of one molecule and nothing else of the service.
         self._recipe_answers: Callable[[str, int], Sequence] | None = None
+        self._score_answers: Callable[[str, int], Sequence] | None = None
         #: The structure version each held descriptor was computed for (its dispatch
         #: version, or arrival time where the producer did not say). The reader's
         #: "Molecular Properties" entry is only as current as the OLDEST of these: a set
@@ -2137,6 +2139,7 @@ class PropertyPanel(QWidget):
         event_bus.subscribe(SettingsChanged, self._on_settings_changed)
         event_bus.subscribe(RecipeRunRecorded, self._on_recipe_run_recorded)
         event_bus.subscribe(QuantumChemistryRunDeleted, self._on_quantum_chemistry_run_deleted)
+        event_bus.subscribe(ScoreDefinitionsChanged, self._on_score_definitions_changed)
 
     def attach_recipe_answers(self, answers_for: Callable[[str, int], Sequence] | None) -> None:
         """Let the Results reader show the recipe answers kept in the project.
@@ -2146,6 +2149,21 @@ class PropertyPanel(QWidget):
         """
         self._recipe_answers = answers_for
         self._refresh_reader()
+
+    def attach_score_answers(self, answers_for: Callable[[str, int], Sequence] | None) -> None:
+        """Let the Results reader show the user-defined scores of the project.
+
+        `answers_for(molecule_uuid, structure_version)` returns reader entries (`domain.score_answer`), built from the definitions and the molecule's current
+        results each time it is asked: a score's value is read, never stored here or anywhere.
+        """
+        self._score_answers = answers_for
+        self._refresh_reader()
+
+    def _on_score_definitions_changed(self, _event: ScoreDefinitionsChanged) -> None:
+        """A score was made, edited or removed: it joins, changes in or leaves the reader of the molecule shown. Definitions belong to the project, so
+        whichever molecule it is, the reader looks again."""
+        if self._score_answers is not None:
+            self._refresh_reader()
 
     def _on_recipe_run_recorded(self, event: RecipeRunRecorded) -> None:
         """A recipe answer was kept: it joins the reader of every molecule that took part, if that is the one shown."""
@@ -2939,8 +2957,8 @@ class PropertyPanel(QWidget):
         if not event.during_edit:
             self._update_preflight()
             self._refresh_status_chips()
-            if self._recipe_answers is not None:
-                # A kept recipe answer is stale the moment ITS molecule is edited, and nothing that follows is
+            if self._recipe_answers is not None or self._score_answers is not None:
+                # A score's inputs stop being current the moment ITS molecule is edited, and a kept recipe answer is stale the moment ITS molecule is edited, and nothing that follows is
                 # certain to say so: the recomputation that does is not guaranteed to produce a result event.
                 # Coalesced, so a burst of edits is one rebuild.
                 self._refresh_reader_soon()
@@ -3288,6 +3306,11 @@ class PropertyPanel(QWidget):
         identity = event.stored.identity
         if identity.molecule_uuid != self._selected_molecule_uuid:
             return
+        if self._score_answers is not None:
+            # **A SCORE READS THE STORE, AND A RESULT'S OWN EVENT REACHES THE READER BEFORE THE STORE HAS IT.** `ReportComputed` and its kin refresh the reader first;
+            # a score waiting for that result evaluated then, found nothing, and was never told to look again (found by driving the real app: a calculator finished and the
+            # score stayed empty). This envelope arrives after the store recorded the result, and the refresh is coalesced, so a flood of descriptors is one.
+            self._refresh_reader_soon()
         producer = identity.producer
         if producer == identity.result_id or self._calculator_registry.get(producer) is None:
             return
@@ -3547,7 +3570,19 @@ class PropertyPanel(QWidget):
         # result store (`domain/recipe_answer.py` says why), so they are added here and re-read on every refresh, which
         # is also what keeps their staleness current.
         entries.extend(self._kept_recipe_answers(version))
+        # **THE SCORES A PERSON DEFINED**, a projection of the same kind: evaluated against this molecule's current results every time the reader refreshes,
+        # which is what keeps them current without anything being stored (`domain/score_answer.py`).
+        entries.extend(self._project_score_answers(version))
         return entries, version
+
+    def _project_score_answers(self, version: int) -> list:
+        if self._score_answers is None or not self._selected_molecule_uuid:
+            return []
+        try:
+            return list(self._score_answers(self._selected_molecule_uuid, version))
+        except Exception:  # noqa: BLE001 - a score that cannot be read must not take the other results with it
+            logger.exception("Could not read the scores for %s", self._selected_molecule_uuid)
+            return []
 
     def _kept_recipe_answers(self, version: int) -> list:
         if self._recipe_answers is None or not self._selected_molecule_uuid:

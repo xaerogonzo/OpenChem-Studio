@@ -1917,6 +1917,45 @@ not make it stale. An answer you kept while it was partial says so in Results to
 the documented frontier gaps and hardness differences to within 0.01 eV, and the two lines still disagree about which borane binds carbon monoxide better (the hardness line gets this pair
 backwards, which is why they are never combined). That check does not cover other methods, solvents, molecules or ORCA versions.
 
+<!-- help:derived-scores -->
+### Derived scores: a formula over numbers the application computes
+
+**Tools ▸ Derived Scores…** is where you write a score of your own: a formula over numbers the application already
+computes, such as a weighted sum of desirabilities. Press **New score**, give it a name, choose what it **reads**,
+write the **formula**, say what **unit** it works out to, and press **Save**. The window checks everything as you
+type and says what is wrong in the field it belongs to; a syntax error points at the place in the formula.
+
+**It is always labelled for what it is.** Every place a score appears it is shown as *name (user-defined,
+unvalidated)*, and that part cannot be edited away. Nothing has checked a formula you wrote against measurements, so
+a score is never called a prediction. Its name may not be close to the name of a calculator or of an output the
+application provides: a number you defined must not read as one the application computes.
+
+**What it can read.** Only outputs the application has approved for scores, each with its unit: typed numbers of the
+drawing such as the molecular weight, the topological polar surface area, the Crippen logP, the hydrogen-bond counts,
+the QED and synthetic-accessibility scores, and the oxygen balance and intrinsic solubility calculators' numbers. You
+choose them from a list; you never type an identifier. Two inputs that estimate the same quantity (the ESOL solubility
+and the solubility calculator's, say) cannot be used together, because two estimates of one quantity combined are a
+consensus predictor, which this project has measured and does not offer.
+
+**The units are checked, never converted.** Adding an area to a mass is refused, and so is declaring a unit the formula
+does not work out to. A bare number in the formula takes the unit of what it is added to or compared with, so
+`ramp(psa, 140, 60)` works. A **named constant** has a value and a unit of its own and is checked strictly: `hi = 140
+Å^2` is accepted, `hi = 140 nm^2` is refused, and `log10(mw / one)` with `one = 1 g/mol` is how to take the logarithm
+of a quantity that has a unit. The functions are abs, min, max, clamp, ramp, sqrt, ln, log10 and exp, and nothing in a
+formula is ever run as code.
+
+**It reads current results and starts nothing.** A score is evaluated against the molecule's current results of the
+drawing every time it is shown, never stored. If an input has not been calculated for the molecule, or was calculated
+for an earlier structure, or the calculator refused it, the score says which input and why instead of a number: never
+a zero, and never a term left out. When the calculator finishes the score has its number. The window's last line shows
+what the score gives for the selected molecule while you edit it.
+
+**Where it appears.** In Results, under **Derived scores**, for the selected molecule; hover its value to see the
+formula and every input with its unit and the stored result it came from. The number a score reads is the drawing's,
+which for a few descriptors (the synthetic-accessibility and complexity scores among them) is not the number shown for a
+conformer. Scores are saved with the project. They are not calculators, so they are not in the calculator list and
+the assistant's calculator search does not offer them. The project table does not carry a score column yet.
+
 <!-- help:ir-spectra -->
 ### IR spectra and normal modes
 

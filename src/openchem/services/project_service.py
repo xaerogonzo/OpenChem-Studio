@@ -9,6 +9,7 @@ from openchem.domain.project import SCHEMA_VERSION, ProjectModel
 from openchem.domain.quantum_chemistry_run import QuantumChemistryRunStore
 from openchem.domain.recipe_run import RecipeRunStore
 from openchem.domain.result_store import SessionResultStore
+from openchem.domain.score_definition_store import ScoreDefinitionStore
 from openchem.events.base import EventBus
 from openchem.events.events import ProjectClosed, ProjectLoaded
 
@@ -23,6 +24,9 @@ QC_RUNS_KEY = "quantum_chemistry_runs"
 #: The key the recipe run history is written under -- a block of its own, for the reason the QC runs have one:
 #: a recipe's answer must survive exactly the edit that makes it stale; see `domain/recipe_run.py`.
 RECIPE_RUNS_KEY = "recipe_runs"
+#: The key the user's derived-score definitions are written under. Written only when there is something to write (`ScoreDefinitionStore.is_empty`), so a project that
+#: never used scores is the file it always was; see `domain/score_definition_store.py` for what happens to definitions a build cannot read.
+DERIVED_SCORES_KEY = "derived_scores"
 
 
 class ProjectDocument(NamedTuple):
@@ -36,6 +40,7 @@ class ProjectDocument(NamedTuple):
     results: SessionResultStore
     qc_runs: QuantumChemistryRunStore
     recipe_runs: RecipeRunStore
+    derived_scores: ScoreDefinitionStore
 
 
 class ProjectService:
@@ -57,9 +62,10 @@ class ProjectService:
         current_fingerprints: dict[str, dict[str, str]] | None = None,
         qc_runs: QuantumChemistryRunStore | None = None,
         recipe_runs: RecipeRunStore | None = None,
+        derived_scores: ScoreDefinitionStore | None = None,
     ) -> None:
         path.write_text(
-            self.serialise(project, results, current_fingerprints, qc_runs, recipe_runs), encoding="utf-8"
+            self.serialise(project, results, current_fingerprints, qc_runs, recipe_runs, derived_scores), encoding="utf-8"
         )
         logger.info("Saved project %s to %s", project.uuid, path)
 
@@ -70,6 +76,7 @@ class ProjectService:
         current_fingerprints: dict[str, dict[str, str]] | None = None,
         qc_runs: QuantumChemistryRunStore | None = None,
         recipe_runs: RecipeRunStore | None = None,
+        derived_scores: ScoreDefinitionStore | None = None,
     ) -> str:
         """The file's text. Shared by Save and the recovery writer.
 
@@ -97,6 +104,8 @@ class ProjectService:
             data[QC_RUNS_KEY] = qc_runs.to_dict()
         if recipe_runs is not None:
             data[RECIPE_RUNS_KEY] = recipe_runs.to_dict()
+        if derived_scores is not None and not derived_scores.is_empty:
+            data[DERIVED_SCORES_KEY] = derived_scores.to_dict()
         return json.dumps(data, indent=2)
 
     def load(self, path: Path) -> ProjectModel:
@@ -112,6 +121,8 @@ class ProjectService:
             logger.warning("Saved results not restored: %s", dict(document.results.load_problems))
         if document.recipe_runs.load_problems:
             logger.warning("Saved recipe runs not restored: %s", document.recipe_runs.load_problems)
+        if document.derived_scores.load_problems:
+            logger.warning("Saved score definitions kept but not used: %s", document.derived_scores.load_problems)
         return document
 
     def parse(self, data: dict[str, Any]) -> ProjectDocument:
@@ -122,7 +133,8 @@ class ProjectService:
         results = SessionResultStore.from_dict(data.get(RESULTS_KEY), project.uuid)
         qc_runs = QuantumChemistryRunStore.from_dict(data.get(QC_RUNS_KEY), project.uuid)
         recipe_runs = RecipeRunStore.from_dict(data.get(RECIPE_RUNS_KEY), project.uuid)
-        return ProjectDocument(project, results, qc_runs, recipe_runs)
+        derived_scores = ScoreDefinitionStore.from_dict(data.get(DERIVED_SCORES_KEY), project.uuid)
+        return ProjectDocument(project, results, qc_runs, recipe_runs, derived_scores)
 
     def close(self, project: ProjectModel) -> None:
         self._event_bus.publish(ProjectClosed(project_uuid=project.uuid))

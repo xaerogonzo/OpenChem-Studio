@@ -1978,7 +1978,8 @@ class _Driver(QObject):
         # lost the saved quantum-chemistry runs the real File > Open keeps, and a save-then-reopen script
         # could not have noticed: a harness disagreeing with the app about what a reopened project holds.
         self._window._set_project(
-            command.loaded_project, command.loaded_results, command.loaded_qc_runs, command.loaded_recipe_runs
+            command.loaded_project, command.loaded_results, command.loaded_qc_runs, command.loaded_recipe_runs,
+            command.loaded_derived_scores,
         )
         logger.warning(
             "OPENCHEM_DRIVE: opened %s -- %d molecule(s)",
@@ -2481,6 +2482,262 @@ class _Driver(QObject):
             logger.warning("OPENCHEM_DRIVE: EXPECT recipe_results ok[%s]", tag)
         else:
             logger.error("OPENCHEM_DRIVE: EXPECT recipe_results FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
+    # -- derived scores ------------------------------------------------------------------------------------------
+    # A score is defined through `ScoreService` (the call the definition dialog will make) and read through the Results
+    # reader (what a person sees): the wiring between them is what is proved, not either end.
+
+    def _do_score_define(self, step: dict[str, Any]) -> None:
+        """`{"do": "score_define", "label": "Window blend", "formula": "ramp(psa, 140, 60)", "result_unit": "1",
+        "inputs": [["psa", "descriptor:tpsa"]], "constants": [{"name": "hi", "value": 140, "unit": "Å^2"}],
+        "tag": "x", "expect": {"made": true}}`
+
+        Makes a score in the open project, or logs why not. `expect`: `made` (true/false) and, for a refusal, `problem`
+        (the `Problem` code) and `message_contains`; a refused definition must leave the project's scores as they were.
+        """
+        from openchem.domain.score_constants import Constant
+        from openchem.domain.score_formula import FormulaError
+
+        service = self._window._services.score_service
+        before = len(service.store)
+        constants = [Constant(c["name"], c["value"], c["unit"]) for c in step.get("constants", [])]
+        made, refusal = None, None
+        try:
+            made = service.create(
+                label=step["label"], formula=step["formula"], result_unit=step.get("result_unit", "1"),
+                inputs=[tuple(pair) for pair in step["inputs"]], constants=constants,
+                owner=step.get("owner", ""), note=step.get("note", ""),
+            )
+        except FormulaError as exc:
+            refusal = exc
+        except ValueError as exc:
+            logger.error("OPENCHEM_DRIVE: score_define could not make a score: %s", exc)
+            return
+        logger.warning(
+            "OPENCHEM_DRIVE: score_define %s -> %s | scores in the project: %d",
+            step["label"], made.score_id if made else f"refused [{refusal.problem.value}] {refusal.message[:160]}", len(service.store),
+        )
+        expect = step.get("expect")
+        if not expect:
+            return
+        problems: list[str] = []
+        if "made" in expect and expect["made"] != (made is not None):
+            problems.append(f"made is {made is not None!r}, expected {expect['made']!r}")
+        if refusal is not None:
+            if "problem" in expect and expect["problem"] != refusal.problem.value:
+                problems.append(f"problem is {refusal.problem.value!r}, expected {expect['problem']!r}")
+            for needle in expect.get("message_contains", []):
+                if needle not in refusal.message:
+                    problems.append(f"the message lacks {needle!r} (it reads {refusal.message[:120]!r})")
+            if len(service.store) != before:
+                problems.append("a refused definition changed the project's scores")
+        tag = str(step.get("tag", ""))
+        if self._record_assertion("score_define", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT score_define ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT score_define FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
+    def _do_score_results(self, step: dict[str, Any]) -> None:
+        """What the Results reader holds of the user-defined scores, for the SELECTED molecule.
+
+        `{"do": "score_results", "focus": true, "which": "part of a label", "expect": {"entries": 1, "has_value": true, "value_between": [0, 1],
+        "title_contains": ["(user-defined, unvalidated)"], "summary_contains": [], "facts_contain": [],
+        "evidence_contains": ["Formula:"], "reason_contains": [], "stored_as_results": 0}}`
+
+        The READER, not the service. `focus` focuses the first score (what a person does by choosing it in the list), which
+        is what makes the line above the facts and the fact rows the ones on screen, and what a `shot` of `results_reader`
+        then shows. `stored_as_results` counts the score's id among the session's stored results, which must be none.
+        """
+        from openchem.domain.score_answer import ScoreAnswer
+
+        reader = self._window._results_view
+        merged = reader.merged()
+        answers = [r for r in merged.reports if isinstance(r, ScoreAnswer)]
+        which = [a for a in answers if step.get("which", "") in a.name]
+        first = which[0] if which else (answers[0] if answers else None)
+        if first is not None and step.get("focus"):
+            self._window.reveal_results()
+            reader.set_focus(first.report_id)
+        listed = [reader._focus_box.itemText(i) for i in range(reader._focus_box.count())]
+        summary = reader._view.summary_text() if first is not None and reader.focus() == first.report_id else ""
+        facts = [f"{f.label}: {f.display_value}" for f in first.facts] if first is not None else []
+        evidence = [line for f in first.facts for line in f.evidence] + list(first.limitations) if first is not None else []
+        molecule = reader.molecule_uuid()
+        stored = [
+            r for r in self._window._services.result_store_service.store.all_results(molecule)
+            if str(getattr(r.identity, "result_id", "")).startswith(("score:", "user."))
+        ] if molecule else []
+        value = first.facts[0].value if first is not None and first.facts else None
+        logger.warning(
+            "OPENCHEM_DRIVE: score_results molecule=%s entries=%d | %s | value=%s | refused=%s | summary=%s",
+            molecule[:8], len(answers), "; ".join(a.name for a in answers), value,
+            (first.error or "")[:160] if first is not None and not first.facts else "", summary[:200],
+        )
+        expect = step.get("expect")
+        if not expect:
+            return
+        problems: list[str] = []
+        wanted = {"entries": len(answers), "stored_as_results": len(stored), "has_value": value is not None}
+        for key, actual in wanted.items():
+            if key in expect and expect[key] != actual:
+                problems.append(f"{key} is {actual!r}, expected {expect[key]!r}")
+        if "value_between" in expect:
+            low, high = expect["value_between"]
+            if value is None or not (low <= value <= high):
+                problems.append(f"the value is {value!r}, expected between {low} and {high}")
+        for needle in expect.get("title_contains", []):
+            if not any(needle in a.name for a in answers):
+                problems.append(f"no entry is titled with {needle!r} (have {[a.name for a in answers]})")
+        for needle in expect.get("listed", []):
+            if not any(needle in text for text in listed):
+                problems.append(f"the list of results lacks {needle!r} (it holds {listed})")
+        for needle in expect.get("summary_contains", []):
+            if needle not in summary:
+                problems.append(f"the line above the facts lacks {needle!r} (it reads {summary[:120]!r})")
+        for needle in expect.get("facts_contain", []):
+            if not any(needle in fact for fact in facts):
+                problems.append(f"no fact contains {needle!r} (have {facts})")
+        for needle in expect.get("evidence_contains", []):
+            if not any(needle in line for line in evidence):
+                problems.append(f"no evidence line contains {needle!r}")
+        for needle in expect.get("reason_contains", []):
+            if first is None or needle not in (first.error or ""):
+                problems.append(f"the reason lacks {needle!r} (it reads {(first.error if first else None)!r})")
+        tag = str(step.get("tag", ""))
+        if self._record_assertion("score_results", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT score_results ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT score_results FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
+    def _do_score_dialog(self, step: dict[str, Any]) -> None:
+        """The Derived Scores window, driven through its REAL controls (the Tools menu's own opener, the Add buttons, the line edits, Save).
+
+        `{"do": "score_dialog", "new": true, "fill": {"label": "Window blend", "formula": "ramp(psa, 140, 60)", "result_unit": "1",
+        "inputs": [["psa", "descriptor:tpsa"]], "constants": [{"name": "hi", "value": "140", "unit": "Å^2"}], "owner": "", "note": ""},
+        "choose": "Window blend", "press": "save", "confirm": "yes", "tag": "x", "expect": {"ok": true, "save_enabled": true}}`
+
+        Every part is optional and runs in this order: `new` presses New score; `choose` picks the list entry whose text starts with it; `fill` replaces the form
+        (it presses Remove on each row, Add on each new one, and types into the edits, so the window checks after every keystroke as it does for a person); `press`
+        is `"save"`, `"revert"`, `"delete"` or `"new"` (the REAL button, and nothing happens when it is disabled, which is logged). `confirm` is the answer to the
+        window's "discard changes?" and "delete?" questions (`yes` or `no`; the question is otherwise a modal nobody can answer).
+
+        `expect` reads what the window shows and the project: `ok`, `where`, `message_contains`, `works_out`, `pointer_column` (the formula's caret), `marked`
+        (the fields outlined: label, formula, unit, inputs, constants), `preview_contains`, `save_enabled`, `revert_enabled`, `delete_enabled`, `dirty`,
+        `scores` (the list, exactly), `current` (the score shown, by label), `stored` (definitions in the project), `project_unsaved`, `results_listed` (the Results
+        reader's list has these), `n_inputs`, `n_constants`, `asked` (the questions put to the person) and `shown_as_contains`.
+        """
+        from PySide6.QtWidgets import QApplication, QMessageBox
+
+        window = self._window
+        dialog = window.show_scores()
+        if dialog.dirty:
+            # What a step starts from, so a question nobody expected ("discard unsaved changes?") can be traced to the form's state.
+            logger.warning("OPENCHEM_DRIVE: score_dialog starts DIRTY: draft=%r saved=%r", dialog.draft(), dialog._saved)
+        answers = {"yes": QMessageBox.StandardButton.Yes, "no": QMessageBox.StandardButton.No}
+        real_question = QMessageBox.question
+        asked: list[str] = []
+
+        def answer(_parent, title, _text, *_args, **_kwargs):
+            asked.append(str(title))
+            return answers[str(step.get("confirm", "no"))]
+
+        QMessageBox.question = staticmethod(answer)
+        try:
+            if step.get("new"):
+                dialog._new.click()
+            if "choose" in step:
+                rows = [dialog._list.item(i).text() for i in range(dialog._list.count())]
+                wanted = next((i for i, text in enumerate(rows) if text.startswith(str(step["choose"]))), None)
+                if wanted is None:
+                    logger.error("OPENCHEM_DRIVE: score_dialog has no list entry starting %r (it lists %s)", step["choose"], rows)
+                else:
+                    dialog._list.setCurrentRow(wanted)
+            if "fill" in step:
+                self._fill_score_form(dialog, step["fill"])
+            press = step.get("press")
+            if press:
+                button = {"save": dialog._save, "revert": dialog._revert, "delete": dialog._delete, "new": dialog._new}.get(str(press))
+                if button is None:
+                    logger.error("OPENCHEM_DRIVE: score_dialog cannot press %r", press)
+                elif not button.isEnabled():
+                    logger.warning("OPENCHEM_DRIVE: score_dialog %s is DISABLED, so nothing was pressed", press)
+                else:
+                    button.click()
+        finally:
+            QMessageBox.question = real_question
+        for _ in range(4):
+            QApplication.processEvents()
+        snap = dialog.snapshot()
+        marks = {
+            "label": dialog._label, "formula": dialog._formula, "unit": dialog._unit, "owner": dialog._owner,
+            "inputs": dialog._inputs_host, "constants": dialog._constants_host,
+        }
+        marked = sorted(name for name, widget in marks.items() if "border" in widget.styleSheet())
+        shown = next((d.display_label for d in window._services.score_service.store.definitions() if d.score_id == snap["current"]), None)
+        logger.warning(
+            "OPENCHEM_DRIVE: score_dialog ok=%s where=%s | %s | works_out=%s | preview=%s | save=%s revert=%s delete=%s dirty=%s | scores=%s | asked=%s",
+            snap["ok"], snap["where"] or "-", snap["message"][:200], snap["works_out"], snap["preview"][:160],
+            snap["save_enabled"], snap["revert_enabled"], snap["delete_enabled"], snap["dirty"], snap["scores"], asked,
+        )
+        expect = step.get("expect")
+        if not expect:
+            return
+        problems: list[str] = []
+        results_box = window._results_view._focus_box
+        results = [results_box.itemText(i) for i in range(results_box.count())]
+        wanted_values = {
+            "ok": snap["ok"], "where": snap["where"], "works_out": snap["works_out"], "marked": marked, "save_enabled": snap["save_enabled"],
+            "revert_enabled": snap["revert_enabled"], "delete_enabled": snap["delete_enabled"], "dirty": snap["dirty"], "scores": snap["scores"],
+            "current": shown, "stored": len(window._services.score_service.store), "project_unsaved": window._session.is_dirty,
+            "pointer_column": snap["caret"], "n_inputs": len(snap["draft"].inputs),
+            "n_constants": len(snap["draft"].constants), "asked": asked,
+        }
+        for key, actual in wanted_values.items():
+            if key in expect and expect[key] != actual:
+                problems.append(f"{key} is {actual!r}, expected {expect[key]!r}")
+        for key, haystack in (
+            ("message_contains", snap["message"]), ("preview_contains", snap["preview"]), ("shown_as_contains", snap["shown_as"]),
+        ):
+            for needle in expect.get(key, []):
+                if needle not in haystack:
+                    problems.append(f"{key}: {needle!r} is not in {haystack[:140]!r}")
+        for needle in expect.get("results_listed", []):
+            if not any(needle in text for text in results):
+                problems.append(f"the Results list lacks {needle!r} (it holds {results})")
+        tag = str(step.get("tag", ""))
+        if self._record_assertion("score_dialog", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT score_dialog ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT score_dialog FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
+    def _fill_score_form(self, dialog, fill: dict[str, Any]) -> None:
+        """Replace the Derived Scores form's contents by pressing its buttons and typing into its edits, row by row."""
+        if "inputs" in fill:
+            for row in list(dialog._input_rows):
+                row.remove_button.click()
+            for name, output_id in fill["inputs"]:
+                dialog._add_input.click()
+                row = dialog._input_rows[-1]
+                index = row.output.findData(output_id)
+                if index < 0:
+                    logger.error("OPENCHEM_DRIVE: score_dialog: the picker offers no output %r", output_id)
+                else:
+                    row.output.setCurrentIndex(index)
+                row.name.setText(name)
+        if "constants" in fill:
+            for row in list(dialog._constant_rows):
+                row.remove_button.click()
+            for constant in fill["constants"]:
+                dialog._add_constant.click()
+                row = dialog._constant_rows[-1]
+                row.name.setText(str(constant["name"]))
+                row.value.setText(str(constant["value"]))
+                row.unit.setText(str(constant["unit"]))
+        for key, edit in (("label", dialog._label), ("formula", dialog._formula), ("result_unit", dialog._unit), ("owner", dialog._owner)):
+            if key in fill:
+                edit.setText(str(fill[key]))
+        if "note" in fill:
+            dialog._note.setPlainText(str(fill["note"]))
 
     # -- the Lewis pairing gate -----------------------------------------------------------------------------------
     # `benchmarks/lewis_gate/PREREGISTRATION.md` fixes what these assert before any number exists; the arithmetic is
@@ -2993,6 +3250,11 @@ class _Driver(QObject):
                 logger.error("OPENCHEM_DRIVE: no Lewis pairing window open; run {'do': 'lewis_pairing'}")
                 return
             target = self._window._lewis_pairing
+        elif step.get("widget") == "scores":
+            if self._window._score_dialog is None:
+                logger.error("OPENCHEM_DRIVE: no Derived Scores window open; run {'do': 'score_dialog'}")
+                return
+            target = self._window._score_dialog
         elif step.get("widget") == "results_reader":
             # The docked Results reader as the window builds it, not a second one: the same widget a person reads.
             target = self._window._results_view

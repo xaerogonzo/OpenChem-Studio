@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Derived scores, slice 3d: the Derived Scores window (Tools menu)
+- **A person can define a score now.** Tools > Derived Scores... opens one modeless window: a name (always shown as `<name> (user-defined, unvalidated)`), the approved outputs the formula reads (chosen from a list with each unit, never typed as an id), optional named constants with their own units, the formula and the unit it must work out to. It checks after every keystroke with the same rule the project loader and Save use, outlines the box a problem belongs to and puts a caret under the place in the formula; nothing is stored until Save, changing the shown score with unsaved changes asks first, and Delete asks. The last line shows the value for the selected molecule from its current results and starts no calculation; a score nothing has calculated says which input.
+- **Found by driving the real window:** a unit clash inside a formula was marked on the wrong box with no caret, a constant `14.` was accepted though the formula grammar refuses it, the picker said "(mol/L) (mol/L)", the longest picker entry made the form scroll sideways, an outline on a combo box squashed its arrow, and the caret was a few pixels off its text. New drive step `score_dialog` and `benchmarks/visual/score_dialog.json` (18 assertions, 7 shots); help topic `derived-scores` in the user guide.
+
+### Derived scores, slice 3b: the scores a person defined are read in Results
+- **A score appears in the Results reader under a new "Derived scores" section** for the selected molecule, labelled `<label> (user-defined, unvalidated)`, with its number; hovering the value shows the formula and every input with
+  its unit and the stored result it was read from, and the footer says "A formula a person wrote. Nothing has checked it against measurements." A score whose input cannot be read is a refusal that names the input and why, and gets
+  its number when the calculator finishes. It is never stored as a result, never a registered calculator, and never called a prediction.
+- **Found by driving the real application:** a calculator finished and the score stayed empty, because a result's own event reaches the reader before the result store has it. The reader now re-reads once when a result is recorded
+  for the molecule shown. New drive steps `score_define` and `score_results`; `benchmarks/visual/score_results.json` passes 12 assertions.
+
+### Derived scores, slice 3a: definitions, the project-file block, the service and the evaluator (no screen yet)
+- **A score is data a person authors, kept in the project file** in a block of its own (`derived_scores`), written only when there is one, so a project that never used scores is the file it always was. `ScoreService` makes, edits and
+  removes definitions under the label and formula rules (a label may not be close to a calculator's or an approved output's name; the suffix `(user-defined, unvalidated)` is never part of the stored text) and **evaluates them against the
+  molecule's current results only, refusing naming the input and why: never a zero, never a skipped term**, and never a guess between two current results that disagree. Nothing it reads is calculated by it.
+- **Nothing a person wrote is dropped because a build cannot read it**: a definition from a newer format, a damaged one and a block from a newer envelope are kept as read and written back unchanged. File > Save, Open, recovery and the drive harness carry
+  the definitions, and changing one marks the project unsaved. `ProjectDocument` gained a fifth field (five tests that unpacked it positionally now read it by name).
+- The four formula modules are reachable from the application now, so their tooling-only declarations are gone. The Results reader, the project-table column and the dialog are the next parts (design record, section 11).
+
+### Derived scores, slice 2 (continued): named unit constants (pure)
+- **`domain/score_constants.py`: a named number with a declared unit**, the strict alternative to a bare number. A constant is used as a name, so it adopts no unit: a threshold in the wrong unit is refused (`ramp(tpsa, hi, lo)` with
+  `hi = 140 nm^2`), and `log10(mw / one)` with `one = 1 g/mol` is writable, which a bare number could not do. At most 12, in the inputs' namespace; one nothing uses is refused. `tools/check_score_formula.py` takes
+  `--constant NAME=NUMBER,UNIT`. The design record's "left for later" list records why typing the rounded-text report calculators has no shortcut.
+
 ### A conformer no longer replaces the drawing's descriptors, alerts and per-atom data (reader, Project table and saved files)
 - **Reported:** draw aspirin, let the always-on descriptors compute, generate a conformer: Synthetic Accessibility 1.58 became 6.445, Bertz CT 343.2 became 609, H-bond acceptors 3 became 4, and the Project table showed the
   same figures. The conformer carries explicit hydrogen atoms and the drawing's are implicit, and `request_descriptors(molecule, GEOMETRY)` ran the WHOLE provider on it; the results share an id with the drawing's, so they

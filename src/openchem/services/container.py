@@ -24,6 +24,7 @@ from openchem.services.quantum_chemistry_service import QuantumChemistryService
 from openchem.services.screening_service import ScreeningService
 from openchem.services.atom_fact_service import AtomFactService
 from openchem.services.reaction_template_service import ReactionTemplateService
+from openchem.services.score_service import ScoreService
 from openchem.services.structure_check_service import StructureCheckService
 from openchem.services.table_export_service import TableExportService
 
@@ -69,6 +70,8 @@ class ServiceContainer:
     #: Evaluates recipes over the project's stored runs. Defaulted for the same reason, and built from the
     #: result store, so a container without one has no recipes.
     recipe_service: RecipeService | None = None
+    #: The project's derived-score definitions, and their values read from the stored results. Defaulted for the same reason: a container without one has no scores.
+    score_service: ScoreService | None = None
     #: When a canvas edit's recomputation runs. Defaulted for the same reason: a container
     #: without it recomputes on every edit, as drawing always did.
     recalc_scheduler: RecalcScheduler | None = None

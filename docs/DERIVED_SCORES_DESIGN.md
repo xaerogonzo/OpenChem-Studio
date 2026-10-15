@@ -1,6 +1,6 @@
 # Derived scores: a restricted formula over approved outputs: design record
 
-**Status: design, written 2026-10-12. Slices 1 (the grammar, the evaluator and the units) and 2 (the approved output table, its sweep and guards) were built on 2026-10-14 and are described under section 11; nothing else in this document is built.** It is the second half of Phase 2 of the
+**Status: design, written 2026-10-12. Slices 1 (the grammar, the evaluator and the units), 2 (the approved output table, its sweep and guards) 3a (definitions, the project-file block, the service and the evaluator) 3b (the Results reader) and 3d (the definition dialog) were built on 2026-10-14 and are described under section 11; the project-table column (3c) is not built, and a decision is owed on it.** It is the second half of Phase 2 of the
 plan in the session notes; the first half, typed recipes and the Lewis pairing, is
 [`RECIPES_DESIGN.md`](RECIPES_DESIGN.md). This is the "custom predictor" idea **narrowed**: a person writes a
 formula over numbers the application already computes, and the result is labelled as exactly what it is, a formula
@@ -35,6 +35,7 @@ A **definition** is data, owned by a project:
 * `schema_version`: of the definition format, so a build can refuse one it does not understand (section 8).
 * `inputs`: an ordered list of `(name, output_id)`, where `name` is the identifier the formula uses and `output_id`
   is a key of the **approved output table** (section 3). At most 12.
+* `constants`: an ordered list of `(name, value, unit)`, named numbers with a unit that the formula uses as names (slice 2, section 11). At most 12, in the same namespace as the inputs.
 * `formula`: text in the grammar of section 4.
 * `result_unit`: declared, and **checked** against the unit the formula works out to (section 4).
 * `on_missing`: in this phase exactly one value, `refuse`. A second policy needs a reason in writing first.
@@ -119,6 +120,9 @@ different symbols. Then:
 
 **There are no implicit conversions.** A conversion between two symbols is a named, tested entry in one table, with
 the constant and its source; the table starts empty and an entry is added when an approved output needs one.
+
+**Named constants are the strict alternative to a bare number.** A bare number adopts the unit of what it is combined with; a constant is a name with a declared unit, so it adopts nothing, a threshold in the wrong unit is
+refused, and a logarithm of a dimensioned quantity is writable by dividing by a constant that carries the unit (`log10(mw / one)` with `one = 1 g/mol`).
 
 **What the unit check cannot do, stated so nobody trusts it for more.** It catches adding an energy to a length,
 or taking a logarithm of a dimensioned number. It cannot catch a wrong constant: a literal that is a conversion
@@ -217,7 +221,7 @@ It may suggest formula text in conversation, for a person to enter.
 * **Names**: a collision with a registered display name, an id, a substring of one; a normalisation case; a name
   that is fine.
 * **Persistence**: a definition round trip; an unknown schema version carried through a save unchanged; a damaged
-  definition skipped without breaking others; digest stability.
+  definition kept as it was read, without breaking others; digest stability.
 * **Never zero**: an absent, refused and historical input each refuses the score, and a mutant that substitutes
   zero is caught.
 * **The label**: every surface that shows a score shows the suffix (walked, not listed); no generated string calls
@@ -296,14 +300,73 @@ A driven run follows the UI slice, builds its own state, and ends in a verdict.
      on any quantity that has a unit could be written**, which is the whole use of `ramp` and of `clamp`. **A numbers-only operand of `+`, `-`, `min`, `max`, `clamp` and `ramp` now takes the unit of the operands that name inputs**
      (`score_formula._adopt`). Nothing is converted and nothing is guessed (the other operands decide it); two named inputs in different units are still refused, a dimensioned argument of `ln`, `log10`, `sqrt` or `exp` is still
      refused, and a wrong constant is still not caught, as before. **A consequence stands:** a logarithm of a dimensioned quantity cannot be written at all, because there is no way to divide by a unit.
-   * **Left for later, each with its reason.** (1) *Named unit constants* (`limit = 140 Å^2`) would catch a threshold written in the wrong unit and make a logarithm of a dimensioned quantity writable; they live in the
-     definition model, so slice 3's review decides them. (2) *Typing the values of the report calculators that carry rounded text* (polarizability, the elemental percentages, the topology counts, ...) is a producer change with a
-     visible effect (the batch table and its exports would carry the unrounded number), so it is its own change, chosen by which outputs people want in scores and not done speculatively. (3) *Geometry-based outputs* need a
+   * **Named constants, added after the review** (`domain/score_constants.py`, pure): `Constant(name, value, unit)`, at most 12, under the rule for input names and in the inputs' namespace, a finite number (never a bool), a unit
+     from the same language. A constant is used as a name, so it adopts nothing: `ramp(tpsa, hi, lo)` with `hi = 140 Å^2` is accepted, with `hi = 140 nm^2` it is refused, and `log10(mw / one)` with `one = 1 g/mol` is
+     dimensionless. One nothing uses is refused like an input nothing uses. `check_inputs` and `values_by_name` take them, and `tools/check_score_formula.py` has `--constant NAME=NUMBER,UNIT`. 23 mutants, all caught.
+   * **Left for later, each with its reason.** (1) *How the dialog offers a bare number and a named constant* is slice 3's. (2) *Typing the values of the report calculators that carry rounded text* (bbb_descriptors, cns_mpo,
+     dipole_moment, elemental_analysis, huckel_analysis, mass_spectrum, polar_surface_area, polarizability, surface_analysis, topology_analysis on the census panel) is a change to each producer, and **it has no shortcut**:
+     typing integer-looking text in the adapter (`report_adapter._split`) would be wrong, because an integer-looking line is not necessarily an integer quantity (with `decimal_places=0` a rounded Randic index reads `6`). Each
+     producer must build typed `Fact`s itself, with a golden-file check that the lines people see do not move, and the batch table and its exports would then carry the unrounded number. The first worth doing are
+     `polarizability` and `topology_analysis`'s indices, and only when someone wants them in a score; most of the rest repeat an always-on descriptor. (3) *Geometry-based outputs* need a
      rule for which conformer a score reads. (4) *An output whose main path needs an optional tool* (logD's pKa path, anything from the pKa or ADMET sidecars) waits until the census can run that tool.
    * **Mutation-checked: 57 mutants** of the adoption rule, the table's rules, the table's own entries and the sweep. 56 were caught; the survivor is equivalent (`abs` or `ln` adopting a unit: a one-argument call has nothing to adopt from). The limits of the sweep survived at first for slice 1's reason (the tests read them by name), so they are pinned as numbers.
-3. **Definitions, persistence, evaluation on read, and the surfaces**: the project block, the Results one-fact
-   report, the project-table column, the exports, the definition dialog, its help topic (a new surface needs one,
-   and a guard checks), the drive script.
+3. **Definitions, persistence, evaluation on read, and the surfaces**, in four parts (the recipes went the same way):
+   * **3a. Definitions, the project block, the service and the evaluator. BUILT (2026-10-14).** Described below.
+   * **3b. The Results reader. BUILT (2026-10-14).** Described below.
+   * **3c. The project-table column** (source `score`, not `derived`) and the exports. **NOT BUILT, AND A DECISION IS OWED (found 2026-10-14).** The project table is filled by a batch run into its own `BatchResultStore`, apart from the
+     session result store the Results reader reads, and `BatchService._fill_row` hands every descriptor a conformer when one exists. **Measured on the census panel, 7 of the 17 approved descriptors give a different number on a conformer
+     than on the drawing** (`bertz_ct` by up to 2265, `sa_score` by up to 6.1, `labute_asa` by 72, `np_likeness`, `esol_logs`, `num_hba`, `num_rotatable_bonds`; an explicit-hydrogen molecule changes what these count), so a score computed from the
+     table's own cells would silently differ between molecules with and without a conformer: the "number of one conformer" trap that decision 12 avoids. The same defect is visible in Results today (after a conformer exists, aspirin's
+     Synthetic Accessibility reads 6.445 where it read 1.58; queued as its own task). Options: **(A)** evaluate the column against the session store, the drawing's current results: honest and the same as Results, but a project run does not fill the session
+     store, so cells read "not calculated" until a molecule has been selected; **(B)** evaluate against the table's cells and refuse any cell computed on a conformer (the batch would stamp which input each cell used); **(C)** first fix the batch to
+     compute structure-level descriptors on the drawing, then take (B) with the stamp. **Recommendation: C, then B; build nothing until the descriptor defect is fixed.** Scores already say, in their evidence, that they were read from the drawing.
+   * **3d. The definition dialog. BUILT (2026-10-14).** Tools > Derived Scores...; live validation, a bare number and a named constant both offered with the stricter one said, its help topic and the drive script. Described below.
+
+   **3a as built, and the choices the design left open:**
+   * **Five modules.** `domain/score_definition.py` (`ScoreDefinition`, its stored form, the label and field rules, the digest, ids), `domain/score_definition_store.py` (a project's definitions and the `derived_scores` block),
+     `domain/score_value.py` (reading the inputs and evaluating: `evaluate_score`), `services/score_service.py` (the host's side) and the `ScoreDefinitionsChanged` event. All pure but the service, which is built by `bootstrap`
+     and is why the four formula modules are now reachable and lose their `REACHED_BY = "tooling: ..."` declarations.
+   * **A score id is `user.<slug>`, made by the service from the label and never changed**, so a label can be edited without losing the score's identity; `_2`, `_3` are added when the slug is taken, counting ids a kept entry holds.
+     **The suffix `(user-defined, unvalidated)` is not stored**: `display_label` adds it, so editing the label cannot remove it.
+   * **The label may not be close to a name the application provides**: equal to, containing or contained by (case, accents and punctuation removed, three characters or more) the id or display name of any registered calculator, or the
+     name of an approved output. The registry's names are read when the check runs, and the approved outputs' from the table. It runs when a definition is made or edited and **not when a value is read**: a calculator registered
+     later can make an old label look like a name, and that is a reason to ask for a new label, not to refuse a number.
+   * **Nothing a person wrote is dropped because this build cannot read it.** A definition from a newer format, a damaged one (the design said "skipped"), and a block from a newer envelope are each kept as they were read and written
+     back unchanged (`KeptEntry`); a store holding a foreign block refuses every change. An id that is only being carried is never handed out again.
+   * **The block is written only when there is something to write.** A project that never used scores is byte for byte the file it always was, so an older build opening it loses nothing: the cost design section 12 decision 10
+     accepted (an older build drops a block it does not know) now falls only on a person who authored a score.
+   * **A value is read from the molecule's current results only, by the assistant's own classification** (`turn_snapshot.classify_results`: one rule for what "current" means). An input refuses the score, naming the input, when
+     nothing was ever calculated, when only results of an earlier structure exist, when the current result is a refusal or a failure, when the fact is missing or held twice, when the producer did not type it as a finite number,
+     when it carries another unit (nothing is converted), and **when two current results computed with different settings give different numbers** (the score will not guess between two pH values). Only the drawing is read.
+     Every unread input is named, not only the first. A zero is a number.
+   * **The service never starts a calculation.** `create`, `update` and `remove` check the definition under the label and formula rules and publish `ScoreDefinitionsChanged`, which the window turns into "this project has unsaved
+     work" (a definition is never also a result); `values_for(model)` classifies the molecule's stored results and evaluates every definition.
+   * **The window carries the store through File > Save, File > Open, recovery and the drive harness's `open_project`.** `ProjectDocument` gained its fifth field; five tests that unpacked it positionally now read it by
+     attribute, which is what its docstring asked for.
+   * **Verified.** The evaluator is tested on every way an input can fail to be read (each refuses with no number), the store on carrying everything it cannot read through a save, and the whole route runs: the real always-on
+     descriptors compute, the project saves its results and a score, reopens, and the score has its value without anything running. **Mutation-checked: 132 mutants** of the definition rules, the store, the evaluator, the service and the wiring through File > Save, Open and recovery. 130 were caught (the limits survived at first because the tests read them by name, as in slices 1 and 2, and one real gap: nothing had another calculator's records present while the wanted one was absent); one was removed by simplifying a comparison every successful read had already made, and one is equivalent (the blank-molecule guard before asking for fingerprints only avoids a pointless exception).
+   **3b as built, and what driving the real application found:**
+   * **A score is a `ScoreAnswer`** (`domain/score_answer.py`, a `ReportResult` subclass, built by `ScoreService.answers_for` each time the reader refreshes and never stored, the way `RecipeAnswer` is). **It is one fact** under a
+     new category, `FactCategory.DERIVED` ("Derived scores", ordered last, open by default), labelled `<label> (user-defined, unvalidated)`, basis HEURISTIC, with the formula, every input (name, value, unit, the output and the stored
+     result it was read from), every constant and the digest as the evidence that the value's tooltip shows, and the one limitation, "A formula a person wrote. Nothing has checked it against measurements.", in the footer.
+     `Provenance` says `created_by="user"`, `method="derived_score:<format>"` and `validation="user_defined_unvalidated"`.
+   * **A score with no number is a refusal in the application's own vocabulary** (a failed report of kind `NEEDS_INPUT`, so it counts and reads as every other refusal): the line above the facts names each input that could not be read
+     and why, and the footer says the formula once, as one sentence. It is never stale, because it is evaluated against the structure as it is now: after an edit its inputs are no longer current and it refuses, which says so.
+   * **Driving the real application found a defect no unit test had**: a calculator finished and the score stayed empty. A result's own event (`ReportComputed` and its kin) reaches the reader **before** the result store has recorded it,
+     so a score waiting for that result evaluated too early and was never told to look again. The panel now schedules one coalesced re-read when a result is recorded for the molecule shown (`ResultRecorded` arrives after the store has
+     it; a flood of descriptors is one refresh), and the regression test fails without it. The same run showed the label rule working as designed (an example label "TPSA window" was refused as too close to `tpsa`: decision 8), and a
+     footer that ran the per-input lines together, now one sentence.
+   * **Drive steps `score_define` and `score_results`** and `benchmarks/visual/score_results.json` (12 assertions; shots `score_results_value.png`, `score_results_refused.png`, `score_results_list.png`). **Mutation-checked: 56 mutants** of the projection, the service's reader entries and the panel wiring: 55 caught, one removed as dead code (an unread input's line, unreachable once the footer stopped carrying per-input lines). The survivors were all in the wiring (nothing had tested the entries with no project or a stranger, the panel with only scores attached, or that the re-read after a recorded result is deferred and not synchronous), plus a refusal code the tests read by name.
+   **3d as built, and what driving the real window found:**
+   * **Four parts.** `domain/score_editor.py` (pure: the `Draft` a form holds as strings, `check_draft` -> `DraftCheck(ok, message, problem, where, position, worked_out)`, the picker's `output_choices` (the approved table in words, each with its unit and what it measures), `suggest_name`, `pointer_lines`), `ui/dialogs/score_dialog.py` (`ScoreDialog` and `ScoreHost`), `ScoreService.preview` (the value a draft would have, stored nowhere) and the Tools-menu entry with its wiring in `main_window.py`. One modeless window, raised when it is already open.
+   * **The dialog knows no rules.** It asks `check_draft` after every keystroke, which asks the very `check_score_definition` that `ScoreService.create` and the project loader ask, so what it says while a person types is what Save and Open will say. A problem is shown with the box it belongs to outlined (one outline round the whole group for the inputs and for the constants) and, for a syntax or unit problem inside the formula, a caret under the place. A rule that knows the box says so (`FormulaError.field`: the label, an input name, the owner, the note); otherwise the problem's code decides.
+   * **Nothing is stored until Save.** Typing changes a draft; Save makes or changes the score (an edit keeps its id), Revert puts the saved one back, changing which score is shown while the form has unsaved changes asks first, Delete asks, and a score a build cannot use (a newer format, a damaged one) is listed with its reason and cannot be chosen, and is written back as it was.
+   * **The preview is a read, not a run.** The last line shows what the draft gives for the molecule selected in the project, read from its CURRENT results through the same reader a saved score uses (`ScoreService.preview`), so a draft whose input nobody calculated says which, and the window has its number when the calculator finishes (it re-reads on `MoleculeSelected`, `MoleculeChanged` and `ResultRecorded`, and never opens itself). `ScoreHost` holds lookups and the three writes of the score service and nothing that could start a calculation, and a test fails if typing, saving or previewing asks the descriptor service for anything.
+   * **The two ways to write a threshold are both offered, and the window says which is stricter**: a bare number in the formula takes the unit of what it is added to or compared with; a named constant (name, value, unit) carries its own and is checked strictly. A constant's value is spelled as a number in the formula is (`14.` and `.5` are problems, not guessed at): the first version accepted `14.`, which the formula grammar refuses, and the drive found it because it typed one.
+   * **What driving the real window found, none of it visible to the unit tests that were green** (each is fixed and pinned): a unit clash inside the formula (`psa + logp`) was pinned on the Unit box and drew no caret, because the unit problem was mapped to a field by its code alone (a unit problem that has a place in the formula is the formula's; one without, the declared unit, is the unit box's); a constant `14.` checked; the picker said "(mol/L) (mol/L)" for an output whose title already carries its unit; the longest picker entry (ninety characters) sized the combo box and made the whole form scroll sideways; an outline set on a combo box replaces the style's drawing and squashed its arrow, so the groups are outlined in frames; and the caret was drawn under the edit, a few pixels off the text it pointed at, because the edit's padding is the style's, so it is now drawn under a copy of the formula in the same monospaced font. The list also showed a sideways scroll bar for a label that is always followed by "(user-defined, unvalidated)": it elides, with the full text in the tooltip.
+   * **Drive step `score_dialog`** (`new`, `choose`, `fill`, `press`, `confirm`, `expect`) works the REAL controls (it presses Add and Remove, types into the edits and presses Save), and `benchmarks/visual/score_dialog.json` passes 18 assertions with seven shots (`score_dialog_*.png`). **One of fourteen full runs failed an assertion that the other thirteen passed** (Delete first asked "discard unsaved changes?" about a form nobody had touched, so the form was dirty when it should have been clean); it was not reproduced by a regression test written to catch it or by the thirteen runs after it, and **its cause is not known**. The drive step now logs the form's draft and its saved copy whenever a step starts with the form dirty, so a recurrence can be traced.
+   * **Mutation-checked: 161 mutants of the view model, the dialog and the window wiring. **103 were caught the first time and 56 survived** (two more had a pattern that matched twice and were re-run). The survivors were: **one real defect** (a saved score emptied of everything was treated as a blank form, so choosing another score discarded the emptying without asking), **three lines that did nothing** (a `KeyError` that cannot be raised, a list elide mode that is the list's default, and an or-it-is-a-new-score clause in Save that a form with content already satisfied), **about forty missing tests** (each button's own state without a project, which the disabled panes round them had hidden from `isEnabled()`; what Save stores, owner, note and constants; that a constant that is not a number is a refusal and not a crash; the three preview subscriptions; that a closed window is read again when it is opened; the caret's width at the end of a long formula; a formula over the limit; a unit spelled another way) and **eight equivalent or untestable mutants**, left as they are: a default field for a problem no draft can raise, a unit rule on problems with a place (only the formula has one), a negative caret position (repeating a space a negative number of times is empty either way), a revert that does not mark the form clean (it leaves the saved copy as it was), a list guard two others make redundant, an outline condition that `where` already implies, a caret for any field that has a place (none has), and `raise_()` (nothing to observe offscreen). After the new tests every survivor is one of those eight.**
+
 4. **Later, each its own review**: `read_scores` for the assistant; assistant-authored definitions, if ever; any
    second `on_missing` policy; any conversion entry.
 
@@ -329,12 +392,12 @@ A driven run follows the UI slice, builds its own state, and ends in a verdict.
    happens to confirm what the person hoped.
 10. **No file-level version stamp for older builds** (section 8). A build that has never heard of the `derived_scores`
     key drops the block on its next save, as it does for every other block. This is the one block a person wrote by
-    hand, so it is the one place the cost is lost work, accepted while the suite is in beta. Reversible later by
+    hand, so it is the one place the cost is lost work, accepted while the suite is in beta; it falls only on a project that has a definition, because the block is not written otherwise. Reversible later by
     stamping only files that contain a definition.
 
 11. **A numbers-only operand takes the unit of what it is combined with** (slice 2). It makes thresholds writable and gives up nothing the check could ever catch, since a literal has no unit to check; but it is a relaxation
-    of the strictest reading of section 4, and `energy + 5` is now valid. The alternative is a declared, named constant with a unit (`limit = 140 Å^2`), more explicit and heavier for the person; it can be added later without
-    changing the grammar.
+    of the strictest reading of section 4, and `energy + 5` is now valid. The explicit alternative, a declared named constant with a unit (`limit = 140 Å^2`), now exists beside it
+    (`domain/score_constants.py`); how the dialog offers the two is slice 3's to decide.
 12. **Only typed numbers, only of the drawing** (slice 2). It excludes most report calculators until their producers type their values, and every geometry-based output until it is reviewed. Both are real losses of usefulness,
     preferred to a score that moves with a display setting, or with whichever conformer happened to be stored.
 
