@@ -493,6 +493,26 @@ A driven run follows the UI slice, builds its own state, and ends in a verdict.
      producer and the table entry, all caught.** `benchmarks/visual/score_typed_polarizability.json`: VERDICT PASS, 5 assertions; with the typing removed it fails 2.
    * **Not here.** `topology_analysis`'s indices (the other first candidate) and the rest of the rounded-text calculators, each its own PR under the same rule.
 
+   **Ticking what the scores read, as built (a follow-up after slice 4):**
+   * **The gap.** A score is a project-table column only when the run computed what it reads, and the table could say so only afterwards. Nothing helped a person include those inputs beforehand: a score on a calculator's output
+     needed that calculator ticked by hand, and an always-on box unticked or narrowed to a subset left a descriptor out.
+   * **What it is.** `domain/score_run_inputs.py` (pure: `run_inputs_of(definitions)` returns the always-on property ids and the calculator ids, the id and not the fact label, that the scores read, and any output id nothing can be
+     ticked for). The Properties panel's Presets menu offers "Tick what my scores read (N)" when the project has scores (`PropertyPanel.attach_score_definitions`, `tick_score_inputs`; the lookup is the window's `_score_definitions`,
+     asked each time, so a score defined, edited or removed is in the next tick).
+   * **Decisions.** It ADDS and never replaces or narrows: a preset means "this set" and replaces the ticks, this means "also what my scores need", so a tick the person made stays, an unticked always-on box is ticked with exactly the
+     properties read, a box left at "all" stays at all and a chosen subset is widened. A calculator the launcher is not offering (hidden by default, or not in the registry) is named and left unticked, because Run selected never runs what the
+     person cannot see. Scores that read only always-on properties tick no calculator, and the existing rule that Run selected is enabled by a ticked CALCULATOR stands, so the status line says so rather than the button doing something else.
+   * **What driving it found.** The status line beside Run selected is one line and clips, and only the idle hint ever set its tooltip, so the part of this message that matters (what could not be ticked) was cut off with no way to read
+     it: the label now keeps its tooltip equal to its text for every message. The first runs of the drive script failed for the script's own mistakes (it selected the starter molecule, index 0, which has no structure, and it expected
+     the Results reader to hold a number after a project run, which fills the table and not the molecule's own results: the reader correctly said "it has not been calculated for this molecule", and the script now asserts that and then
+     runs the calculator on the molecule). Hand check of the numbers: oxygen balance on the CO basis is -79.93 % for aspirin, -138.9 % for ethanol and -90.63 % for caffeine, so `ramp(ob, -150, -50)` is 0.7007, 0.1108 and 0.5937, which
+     is what the table and (for aspirin) the reader show.
+   * **Tested** in `tests/test_score_run_inputs.py` (the pure part, and a sweep that every approved output names something the application can tick), `tests/test_project_run.py` (the menu entry, additive ticking, the always-on box in each
+     of its three states, a calculator the launcher lacks, the status and its tooltip, and the claim itself: a project run after the tick gives the score a column and the same run without it names the score under the table) and
+     `tests/test_main_window_scores.py` (the real window's menu). **Mutation-checked: 26 mutants, all caught.** **Driven** by `benchmarks/visual/score_tick_inputs.json` (new `tick_score_inputs` step; `project_run` takes
+     `"keep_ticks": true`): VERDICT PASS, 8 assertions; with the window's attach removed it fails 2.
+   * **Not here.** The Batch panel's own property tree has no such button (it has its own ticks, and a person ticks it by hand as before).
+
 Slice 4 is complete: 4a (the assistant reads a score), 4b (no unit conversion is needed), 4c (a default for an input nobody calculated) and 4d (the assistant proposes a score and a person approves it).
 
 ## 12. Decisions most worth challenging
