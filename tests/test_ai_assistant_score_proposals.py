@@ -517,3 +517,14 @@ def test_a_listener_for_decisions_is_undone_when_the_plugin_unloads(rig):
     data, _ = _propose(rig, label="Another")
     approvals.cancel_score(data["proposal_id"])
     assert len(seen) == 1, "once unloaded, the callback is not called against a panel that no longer exists"
+
+
+def test_the_strip_of_cards_stays_while_another_proposal_still_waits(rig):
+    first, _ = _propose(rig)
+    second, _ = _propose(rig, label="Second")
+    rig.panel._score_cards[first["proposal_id"]].cancel_button.click()
+    rig.qapp.processEvents()
+    assert rig.panel.pending_score_ids() == [second["proposal_id"]] and not rig.panel._cards_host.isHidden()
+    rig.panel._score_cards[second["proposal_id"]].cancel_button.click()
+    rig.qapp.processEvents()
+    assert rig.panel._cards_host.isHidden()
