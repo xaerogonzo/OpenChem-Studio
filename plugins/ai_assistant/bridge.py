@@ -25,7 +25,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
-from openchem.domain.result_envelope import CAP_STEPS, Caps, outcome_envelope, results_view_envelope
+from openchem.domain.result_envelope import CAP_STEPS, Caps, outcome_envelope, results_view_envelope, scores_view_envelope
 from openchem.domain.run_lifecycle import RunState
 from openchem.domain.turn_snapshot import TurnContext
 from openchem.plugins.calculation_access import PluginCalculations
@@ -125,7 +125,7 @@ class ToolBridge:
             why = "no molecule is selected, so there is nothing to read or calculate"
         return _plain({"ok": False, "problem": "unavailable", "message": why})
 
-    # --- the four tools ---------------------------------------------------------------------------
+    # --- the tools --------------------------------------------------------------------------------
 
     def find_calculators(self, query: str = "", limit: int = 10) -> str:
         if not self._calculations.available:
@@ -181,6 +181,13 @@ class ToolBridge:
             self._turn, list(calculators) if calculators else None, include_not_current=bool(include_not_current)
         )
         return bounded_json(lambda caps: results_view_envelope(view, caps))
+
+    def read_scores(self, scores: list[str] | None = None) -> str:
+        """The user-defined scores of the selected molecule, worked out from what was stored and defined when the turn began. Read-only: a score cannot be made here."""
+        if not self.available:
+            return self._unavailable()
+        view = self._calculations.read_scores(self._turn, list(scores) if scores else None)
+        return bounded_json(lambda caps: scores_view_envelope(view, caps))
 
     def run_calculator(self, calculator_id: str, parameters: dict[str, Any] | None = None) -> str:
         if not self.available:

@@ -1,4 +1,4 @@
-"""The five tools that let the assistant read and run the application's calculators.
+"""The six tools that let the assistant read and run the application's calculators and read the user's own scores.
 
 Each takes the turn's `ToolBridge` as its first argument, unlike the two older tools in `tools.py`, which
 take only what the model sent. The descriptions below are the model's whole understanding of what each
@@ -96,6 +96,25 @@ READ_RESULTS = ToolDefinition(
     },
 )
 
+READ_SCORES = ToolDefinition(
+    name="read_scores",
+    description=(
+        "Read the user-defined SCORES of this project for the molecule the user had selected when they sent their message: formulas a person wrote over numbers this application "
+        "computes, such as a weighted sum of desirabilities. A score is not stored with the results, so read_results never shows one. Each score has its label (always ending "
+        "'(user-defined, unvalidated)'), its formula, its declared units, every input with the state it was read in, and a value only when every input could be read from the "
+        "molecule's CURRENT results. A score with outcome 'refused' has no value: say which input could not be read and why, and never state a value or treat it as zero. A score "
+        "is not a prediction and nothing has validated it, so never present one as an experimental or predicted property. Omit `scores` to read every score, or name some by id "
+        "or label; a name that matches nothing is returned under 'not_found'. You cannot create, change or delete a score; you may suggest formula text for the person to enter "
+        "in Tools > Derived Scores. A score whose input has not been calculated gets its value when the calculator has run (run_calculator)."
+    ),
+    input_schema={
+        "type": "object",
+        "properties": {
+            "scores": {"type": "array", "items": {"type": "string"}, "description": "Score ids (such as user.polar_window) or labels to read; omit for every score."},
+        },
+    },
+)
+
 RUN_CALCULATOR = ToolDefinition(
     name="run_calculator",
     description=(
@@ -123,7 +142,7 @@ RUN_CALCULATOR = ToolDefinition(
 )
 
 #: The definitions offered to a provider when a molecule is selected and the calculators are reachable.
-CALCULATION_TOOLS: list[ToolDefinition] = [FIND_CALCULATORS, LIST_GOALS, DESCRIBE_CALCULATOR, READ_RESULTS, RUN_CALCULATOR]
+CALCULATION_TOOLS: list[ToolDefinition] = [FIND_CALCULATORS, LIST_GOALS, DESCRIBE_CALCULATOR, READ_RESULTS, READ_SCORES, RUN_CALCULATOR]
 
 
 def _find(bridge: ToolBridge, query: str = "", limit: int = 10) -> str:
@@ -142,6 +161,10 @@ def _read(bridge: ToolBridge, calculators: list[str] | None = None, include_not_
     return bridge.read_results(calculators, include_not_current)
 
 
+def _scores(bridge: ToolBridge, scores: list[str] | None = None) -> str:
+    return bridge.read_scores(scores)
+
+
 def _run(bridge: ToolBridge, calculator_id: str, parameters: dict[str, Any] | None = None) -> str:
     return bridge.run_calculator(calculator_id, parameters)
 
@@ -152,5 +175,6 @@ CALCULATION_HANDLERS: dict[str, Callable[..., str]] = {
     "list_goals": _goals,
     "describe_calculator": _describe,
     "read_results": _read,
+    "read_scores": _scores,
     "run_calculator": _run,
 }

@@ -59,7 +59,7 @@ class _FakeHost:
 
 def test_the_handle_offers_exactly_these_calls_and_none_that_approve():
     public = {name for name in dir(PluginCalculations) if not name.startswith("_")}
-    assert public == {"available", "begin_turn", "catalog", "describe", "goals", "read_results", "prepare", "run"}
+    assert public == {"available", "begin_turn", "catalog", "describe", "goals", "read_results", "read_scores", "prepare", "run"}
 
 
 def test_the_handle_does_not_hand_out_the_host():

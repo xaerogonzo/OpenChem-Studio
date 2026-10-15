@@ -181,7 +181,15 @@ class CalculationHost(QObject):
             fingerprints=fingerprints,
             records=records,
             fresh=fresh,
+            scores=self._score_definitions(project),
         )
+
+    def _score_definitions(self, project) -> tuple:
+        """The project's score definitions, frozen into the turn with its results. None when the score service is not holding THIS project's."""
+        service = getattr(self._services, "score_service", None)
+        if service is None or service.project is None or service.project.uuid != project.uuid:
+            return ()
+        return tuple(service.store.definitions())
 
     # --- discovery and reading (any thread) ---------------------------------------------------------
 
