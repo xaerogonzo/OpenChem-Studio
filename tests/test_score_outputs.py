@@ -327,6 +327,17 @@ def test_a_value_the_producer_did_not_type_as_a_finite_number_is_refused(value):
         accept_value(approved_output("descriptor:mol_wt"), value, "g/mol")
 
 
+def test_a_text_result_says_it_is_text_and_why_and_does_not_name_a_python_type():
+    """A person reaches this by running another method of a calculator whose default answer is typed (Polarizability, Miller's method): the reason is the one thing they will read."""
+    with pytest.raises(Refusal) as caught:
+        accept_value(approved_output("descriptor:mol_wt"), "180.16", "g/mol")
+    message = str(caught.value)
+    assert "is text" in message and "default answer" in message and "str" not in message.split("text")[0]
+    with pytest.raises(Refusal) as other:
+        accept_value(approved_output("descriptor:mol_wt"), [1.0], "g/mol")
+    assert "(list)" in str(other.value), "a value that is not text still names what it was"
+
+
 @pytest.mark.parametrize("carried", ["", "kg/mol", "G/MOL", "g/mol ", "Da"])
 def test_a_result_carrying_other_units_is_refused_and_nothing_is_converted(carried):
     with pytest.raises(Refusal) as caught:

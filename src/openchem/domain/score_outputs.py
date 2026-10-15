@@ -185,6 +185,13 @@ def accept_value(output: ApprovedOutput, value: object, carried_as: str) -> floa
     Refused: a value that is not a number the producer typed (a bool, a string), a non-finite one, and a result carrying any units string but
     the one the entry declares.
     """
+    if isinstance(value, str):
+        # The case a person reaches by an ordinary action: a calculator with several methods or options types only its DEFAULT answer (`Polarizability`: Jensen on the drawing), and the others
+        # stay text, so running Miller's method leaves a score over it with this reason, which has to say why and not name a Python type.
+        raise Refusal(
+            output.output_id,
+            "the result is text, not a number a score may read: only a calculator's default answer is typed as a number, so another method or option of it gives none",
+        )
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise Refusal(output.output_id, f"the result is not a number ({type(value).__name__})")
     number = float(value)

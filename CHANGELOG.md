@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Derived scores: the polarizability can be read
+- **The Polarizability calculator's default answer is a number now, and a score may read it** (`Å^3`; the 22nd approved output). Its first line carried the text it shows (`'18.11'`), which a score must not rest on, so the calculator now hands over
+  the number itself; the lines, labels, units and the project table's cell text do not move (a recording made before the change, 91 observations over a panel and every way of asking, holds them), and the table's cell and exports now carry the
+  unrounded number. **Only the default answer is typed** (the additive Jensen scheme on the drawing): Miller's two methods and the major-microspecies option are a different estimator or a different structure under the same id and label, so a score
+  over the polarizability has no number after one of those is run, and its reason now says why instead of naming a Python type.
+
 ### Derived scores, slice 4d: the assistant can propose a score, and only a person can save one
 - **Two new assistant tools:** `list_score_outputs` (what a score's formula may read) and `propose_score`. A proposal is checked by exactly the rules a score you typed meets, and if it passes **a card appears in the
   assistant's panel** with the formula, what each input reads, the declared unit, what it gives for the selected molecule, and who it will say wrote it. **Nothing is saved unless you press Approve**; Cancel saves nothing; the
