@@ -4413,6 +4413,16 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "N-(2-methoxyphenyl)-5-{[(7-methyl-4H-pyrido[1,2-a]pyrimidin-1-ium-4-on-2-yl)methyl]sulfanyl}-1,3,4-thiadiazol-2-aminium",
      "N-(2-methoxyphenyl)-5-{[(7-methyl-4H-pyrido[1,2-a]pyrimidin-4-on-1-ium-2-yl)methyl]sulfanyl}-1,3,4-thiadiazol-2-aminium",
      "UNREADABLE AS WRITTEN: in a substituent the ring cation's `ium` followed the curated ketone suffix"),
+    # D-268, D-270 (naming round 56): an anionic nitrogen cited as a prefix beside a second anion, and a ketone ring cation with a cation suffix. D-269 (the guard that counts centres) is a refusal and has no target name.
+    ("D-268", "CC(=O)[N-]c1ccc([O-])cc1", "4-(acetylazanidyl)benzen-1-olate",
+     "4-{[NAMING ERROR: No valid naming plan found for CC([NH-])=O]}benzen-1-olate",
+     "a visible error; the carved `CC(=O)[N-]` fragment was named as a standalone anion"),
+    ("D-268", "CS(=O)(=O)[N-]c1ccc([O-])cc1", "4-(methylsulfonylazanidyl)benzen-1-olate",
+     "[N-(4-oxidophenyl)sulfamoyl]methane",
+     "WRONG MOLECULE, no refusal: the sulfonamide anion's charge was dropped (two anions, one `oxido` in the name)"),
+    ("D-270", "Cc1ccc2[nH+]c([NH3+])cc(=O)n2c1", "7-methyl-4-oxo-4H-pyrido[1,2-a]pyrimidin-1-ium-2-aminium",
+     "7-methyl-4H-pyrido[1,2-a]pyrimidin-4-on-1-ium-2-aminium",
+     "UNREADABLE AS WRITTEN: the cation suffix outranks the curated ring's ketone, which is the prefix oxo"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",
