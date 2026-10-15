@@ -86,6 +86,8 @@ from openchem.domain.result_status import (
     status_of,
 )
 from openchem.domain.scientific_result import PerAtomDataset, SpectrumResult
+from openchem.domain.score_definition import ScoreDefinition
+from openchem.domain.score_run_inputs import run_inputs_of
 from openchem.domain.selection_presets import PresetStore
 from openchem.domain.structure_resolution import resolve_structure_for_report
 from openchem.ui import visual_check
@@ -515,7 +517,10 @@ _PRESETS_HELP = HelpTooltip(
         "and no molecules. One that names a calculator this version no longer has "
         "simply skips it. The first time this opens, the selection you had made in "
         "the Batch panel is copied in as a preset called \"From the Batch panel\" "
-        "-- copied, so the Batch panel still has it."
+        "-- copied, so the Batch panel still has it.\n\n"
+        "When the project has scores you defined, the menu also offers \"Tick what my scores read\": "
+        "it ticks the calculators they read and adds the always-on properties they read, "
+        "on top of what is ticked, so a project run gives each score a column."
     ),
     tier=2,
     help_id="properties.presets",
@@ -1332,6 +1337,19 @@ def _mnemonic_safe(text: str) -> str:
     return text.replace("&", "&&")
 
 
+class _StatusLabel(QLabel):
+    """The status line beside "Run selected": one line, and the whole text on hover.
+
+    A one-line label clips what does not fit, and the sentence most worth reading is often the last ("Left out: ...", "Not ticked, because the launcher is not offering them: ...").
+    Every caller sets the text with `setText` and only the idle hint ever set the tooltip, so a long message was cut off with no way to read it. Keeping the tooltip equal to the text
+    HERE covers every caller, and a line set to nothing has no tooltip left over from the one before.
+    """
+
+    def setText(self, text: str) -> None:
+        super().setText(text)
+        self.setToolTip(text)
+
+
 class _ElidingPushButton(QPushButton):
     """An "Open [Calculator]..." button that may be narrower than its label.
 
@@ -1855,6 +1873,8 @@ class PropertyPanel(QWidget):
         #: `structure_version_of` is: this needs the kept answers of one molecule and nothing else of the service.
         self._recipe_answers: Callable[[str, int], Sequence] | None = None
         self._score_answers: Callable[[str, int], Sequence] | None = None
+        #: The project's score definitions as they are now, or None (a panel with no scores behind it): what "Tick what my scores read" reads. A CALLABLE, asked each time, so a score defined, edited or removed is in the next tick.
+        self._score_definitions: Callable[[], Sequence[ScoreDefinition]] | None = None
         #: The structure version each held descriptor was computed for (its dispatch
         #: version, or arrival time where the producer did not say). The reader's
         #: "Molecular Properties" entry is only as current as the OLDEST of these: a set
@@ -1970,7 +1990,7 @@ class PropertyPanel(QWidget):
         #
         # One line, with the full text on hover, because this is transient
         # status and not a result.
-        self._batch_status = QLabel("", self)
+        self._batch_status = _StatusLabel("", self)
         self._batch_status.setWordWrap(False)
         self._batch_status.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self._batch_status.setStyleSheet(_INFORMATION_STYLE)
@@ -2158,6 +2178,10 @@ class PropertyPanel(QWidget):
         """
         self._score_answers = answers_for
         self._refresh_reader()
+
+    def attach_score_definitions(self, definitions: Callable[[], Sequence[ScoreDefinition]] | None) -> None:
+        """Let the Presets menu offer to tick what the project's scores read (`domain/score_run_inputs.py`)."""
+        self._score_definitions = definitions
 
     def _on_score_definitions_changed(self, _event: ScoreDefinitionsChanged) -> None:
         """A score was made, edited or removed: it joins, changes in or leaves the reader of the molecule shown. Definitions belong to the project, so
@@ -4111,6 +4135,11 @@ class PropertyPanel(QWidget):
         tick_shown = menu.addAction("Tick all shown")
         tick_shown.setData(("tick_shown", ""))
         actions["tick_shown"] = tick_shown
+        scores = len(self._score_definitions()) if self._score_definitions is not None else 0
+        if scores:
+            tick_scores = menu.addAction(f"Tick what my scores read ({scores})")
+            tick_scores.setData(("tick_scores", ""))
+            actions["tick_scores"] = tick_scores
         names = self._presets.names()
         if names:
             menu.addSeparator()
@@ -4151,6 +4180,8 @@ class PropertyPanel(QWidget):
             self.apply_preset(name)
         elif kind == "tick_shown":
             self.tick_all_shown()
+        elif kind == "tick_scores":
+            self.tick_score_inputs()
         elif kind == "delete":
             self._presets.delete(name)
             self._batch_status.setText(f"Deleted preset '{name}'.")
@@ -4323,6 +4354,41 @@ class PropertyPanel(QWidget):
             self._calculator_ticks[calculator_id].setChecked(True)
         self._batch_status.setText(f"Ticked {len(ids)} shown.")
         return len(ids)
+
+    def tick_score_inputs(self) -> int:
+        """Tick what the project's scores read, so a run gives each of them a column. Returns how many calculators it ticked.
+
+        **IT ADDS, AND NEVER REPLACES OR NARROWS.** A tick the person made stays, and the always-on properties are widened to include the ones a score reads (a box that was unticked is
+        ticked; "all" stays all). A preset replaces the ticks because it means "this set"; this means "also what my scores need". A calculator the launcher is not offering is left unticked and
+        named, because Run selected never runs what the person cannot see.
+        """
+        definitions = tuple(self._score_definitions()) if self._score_definitions is not None else ()
+        if not definitions:
+            self._batch_status.setText("No scores are defined in this project.")
+            return 0
+        inputs = run_inputs_of(definitions)
+        offered = [cid for cid in inputs.calculator_ids if cid in self._calculator_ticks and cid not in self._hidden_calculator_ids]
+        for calculator_id in offered:
+            self._calculator_ticks[calculator_id].setChecked(True)
+        if inputs.descriptor_ids:
+            known = set(self._descriptor_choices_flat())
+            if self._descriptor_choice is not None:
+                included = set(self._descriptor_choice)
+            else:
+                included = known if self._scope_descriptors.isChecked() else set()
+            self.set_descriptor_choice(included | set(inputs.descriptor_ids))
+        left_out = [cid for cid in inputs.calculator_ids if cid not in offered]
+        names = [definition.display_name if (definition := self._calculator_registry.get(cid)) is not None else cid for cid in left_out]
+        parts = [f"Ticked {len(offered)} calculator(s)" + (f" and included {len(inputs.descriptor_ids)} always-on propert{'y' if len(inputs.descriptor_ids) == 1 else 'ies'}" if inputs.descriptor_ids else "")
+                 + f" that {inputs.scores} score(s) read."]
+        if names:
+            parts.append("Not ticked, because the launcher is not offering them: " + ", ".join(names) + ".")
+        if inputs.unreadable:
+            parts.append("Nothing can be ticked for: " + ", ".join(inputs.unreadable) + ".")
+        if not self._selected_calculator_ids():
+            parts.append("Run selected needs a calculator ticked.")
+        self._batch_status.setText(" ".join(parts))
+        return len(offered)
 
     def set_section_ticks(self, category: str, ticked: bool) -> int:
         """Tick or untick every calculator in one section that is showing. Returns how many."""

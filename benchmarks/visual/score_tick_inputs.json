@@ -1,0 +1,37 @@
+[
+  {"do": "smiles", "smiles": "CC(=O)Oc1ccccc1C(=O)O", "name": "Aspirin", "after_ms": 1000},
+  {"do": "smiles", "smiles": "CCO", "name": "Ethanol", "after_ms": 1000},
+  {"do": "smiles", "smiles": "Cn1cnc2c1c(=O)n(C)c(=O)n2C", "name": "Caffeine", "after_ms": 1000},
+  {"do": "select", "molecule": 1, "after_ms": 3000},
+
+  {"do": "score_define", "label": "Polar window", "formula": "ramp(psa, 140, 60)", "inputs": [["psa", "descriptor:tpsa"]], "result_unit": "1",
+   "tag": "a-score-on-an-always-on-property", "expect": {"made": true}},
+  {"do": "score_define", "label": "Oxidation window", "formula": "ramp(ob, -150, -50)", "inputs": [["ob", "calculator:oxygen_balance:Oxygen balance (CO basis)"]], "result_unit": "1",
+   "tag": "a-score-on-a-calculator", "expect": {"made": true}},
+
+  {"do": "panel", "id": "Properties", "after_ms": 800},
+  {"do": "project_run", "calculators": ["topology_analysis"], "scope": "all", "descriptors": true, "after_ms": 9000},
+  {"do": "table_scores", "tag": "the-run-without-the-ticks-leaves-the-calculator-score-out-and-the-table-says-which",
+   "expect": {"columns": ["Polar window (user-defined, unvalidated)"],
+              "note": "Scores not shown, because this run did not compute what they read: Oxidation window (user-defined, unvalidated) reads Oxygen balance (CO basis)."}},
+  {"do": "shot", "path": "artifacts/visual/score_tick_before.png", "widget": "project_table", "after_ms": 500},
+
+  {"do": "tick_score_inputs", "tag": "the-presets-entry-ticks-what-the-scores-read-on-top-of-what-was-ticked",
+   "expect": {"menu_label": "Tick what my scores read (2)", "calculators": ["oxygen_balance", "topology_analysis"], "descriptor_choice": null, "descriptors_box": true,
+              "run_enabled": true, "status_contains": ["Ticked 1 calculator(s) and included 1 always-on property that 2 score(s) read."]}},
+  {"do": "shot", "path": "artifacts/visual/score_tick_properties.png", "after_ms": 500},
+  {"do": "project_run", "keep_ticks": true, "scope": "all", "after_ms": 9000},
+  {"do": "table_scores", "tag": "the-same-run-with-the-ticks-has-both-score-columns-and-no-note", "export_csv": "artifacts/visual/score_tick_inputs.csv",
+   "expect": {"columns": ["Polar window (user-defined, unvalidated)", "Oxidation window (user-defined, unvalidated)"], "note": "",
+              "grid": {"Aspirin": {"Polar window": "0.955", "Oxidation window": "0.7007"}},
+              "csv_header_contains": ["Polar window (user-defined, unvalidated)", "Oxidation window (user-defined, unvalidated)"]}},
+  {"do": "shot", "path": "artifacts/visual/score_tick_after.png", "widget": "project_table", "after_ms": 500},
+  {"do": "score_results", "focus": true, "which": "Oxidation window", "tag": "a-project-run-fills-the-table-and-not-the-molecule-s-own-results-so-the-reader-says-so",
+   "expect": {"entries": 2, "has_value": false, "reason_contains": ["has not been calculated for this molecule"]}},
+  {"do": "calculator", "id": "oxygen_balance", "reveal": false, "after_ms": 3000},
+  {"do": "score_results", "focus": true, "which": "Oxidation window", "tag": "once-the-molecule-has-its-own-result-the-reader-gives-the-number-the-table-gave",
+   "expect": {"entries": 2, "has_value": true, "value_between": [0.7002, 0.7012]}},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]
