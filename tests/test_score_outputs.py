@@ -52,7 +52,7 @@ import sweep_score_outputs as sweep_tool  # noqa: E402
 
 #: The calculators the table draws from, plus the two controls: `joback_properties` is limited and HIDDEN by default, and
 #: `polar_surface_area` carries its number as text rounded by the decimal-places setting.
-_CALCULATORS_UNDER_TEST = ["oxygen_balance", "solubility", "joback_properties", "polar_surface_area", "logd"]
+_CALCULATORS_UNDER_TEST = ["oxygen_balance", "polarizability", "solubility", "joback_properties", "polar_surface_area", "logd"]
 
 
 def _entry(**changes) -> ApprovedOutput:
@@ -118,6 +118,7 @@ _SHARED_ENDPOINTS = {
 _UNITS = {
     "calculator:oxygen_balance:Oxygen balance (CO basis)": "%",
     "calculator:oxygen_balance:Oxygen balance (CO₂ basis)": "%",
+    "calculator:polarizability:Molecular polarizability": "Å^3",
     "calculator:solubility:Predicted intrinsic solubility (mg/mL)": "mg/mL",
     "calculator:solubility:Predicted intrinsic solubility (mol/L)": "mol/L",
     "descriptor:bertz_ct": "1", "descriptor:esol_logs": "1", "descriptor:exact_mass": "g/mol", "descriptor:fsp3": "1",
@@ -147,6 +148,7 @@ _QUANTITY = {
     "%": "a percentage",
     "g/mol": "molar mass",
     "Å^2": "an area",
+    "Å^3": "a volume",
     "mg/mL": "a solubility",
     "mol/L": "a solubility",
 }
@@ -323,6 +325,17 @@ def test_a_number_with_the_declared_units_is_accepted_and_an_int_is_a_float():
 def test_a_value_the_producer_did_not_type_as_a_finite_number_is_refused(value):
     with pytest.raises(Refusal):
         accept_value(approved_output("descriptor:mol_wt"), value, "g/mol")
+
+
+def test_a_text_result_says_it_is_text_and_why_and_does_not_name_a_python_type():
+    """A person reaches this by running another method of a calculator whose default answer is typed (Polarizability, Miller's method): the reason is the one thing they will read."""
+    with pytest.raises(Refusal) as caught:
+        accept_value(approved_output("descriptor:mol_wt"), "180.16", "g/mol")
+    message = str(caught.value)
+    assert "is text" in message and "default answer" in message and "str" not in message.split("text")[0]
+    with pytest.raises(Refusal) as other:
+        accept_value(approved_output("descriptor:mol_wt"), [1.0], "g/mol")
+    assert "(list)" in str(other.value), "a value that is not text still names what it was"
 
 
 @pytest.mark.parametrize("carried", ["", "kg/mol", "G/MOL", "g/mol ", "Da"])

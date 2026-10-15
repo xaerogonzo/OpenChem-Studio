@@ -71,6 +71,7 @@ ENDPOINTS: dict[str, str] = {
     "aqueous_solubility_intrinsic": "the intrinsic aqueous solubility, in any of its units",
     "oxygen_balance_co2": "the oxygen balance to carbon dioxide",
     "oxygen_balance_co": "the oxygen balance to carbon monoxide",
+    "molecular_polarizability": "the isotropic molecular polarizability, as a volume",
 }
 
 
@@ -100,6 +101,7 @@ def _entry(output_id: str, unit: str, carried_as: str, endpoint: str) -> Approve
 APPROVED: tuple[ApprovedOutput, ...] = (
     _entry("calculator:oxygen_balance:Oxygen balance (CO basis)", "%", "%", "oxygen_balance_co"),
     _entry("calculator:oxygen_balance:Oxygen balance (CO₂ basis)", "%", "%", "oxygen_balance_co2"),
+    _entry("calculator:polarizability:Molecular polarizability", "Å^3", "A^3", "molecular_polarizability"),
     _entry("calculator:solubility:Predicted intrinsic solubility (mg/mL)", "mg/mL", "mg/mL", "aqueous_solubility_intrinsic"),
     _entry("calculator:solubility:Predicted intrinsic solubility (mol/L)", "mol/L", "mol/L", "aqueous_solubility_intrinsic"),
     _entry("descriptor:bertz_ct", "1", "", "bertz_complexity"),
@@ -183,6 +185,13 @@ def accept_value(output: ApprovedOutput, value: object, carried_as: str) -> floa
     Refused: a value that is not a number the producer typed (a bool, a string), a non-finite one, and a result carrying any units string but
     the one the entry declares.
     """
+    if isinstance(value, str):
+        # The case a person reaches by an ordinary action: a calculator with several methods or options types only its DEFAULT answer (`Polarizability`: Jensen on the drawing), and the others
+        # stay text, so running Miller's method leaves a score over it with this reason, which has to say why and not name a Python type.
+        raise Refusal(
+            output.output_id,
+            "the result is text, not a number a score may read: only a calculator's default answer is typed as a number, so another method or option of it gives none",
+        )
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise Refusal(output.output_id, f"the result is not a number ({type(value).__name__})")
     number = float(value)

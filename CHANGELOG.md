@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   word, so a carbanion beside a ring nitrogen was named as its neutral ester and passed (D-276). A cation parent hydride fused with a suffix (`dimethylsulfaniumcarboximidamide`) is refused, and a thiosulfonate S-oxide
   cation is named as its sulfonium (D-277). The census is unchanged at 1993 exact.
 
+### Derived scores: the polarizability can be read
+- **The Polarizability calculator's default answer is a number now, and a score may read it** (`Å^3`; the 22nd approved output). Its first line carried the text it shows (`'18.11'`), which a score must not rest on, so the calculator now hands over
+  the number itself; the lines, labels, units and the project table's cell text do not move (a recording made before the change, 91 observations over a panel and every way of asking, holds them), and the table's cell and exports now carry the
+  unrounded number. **Only the default answer is typed** (the additive Jensen scheme on the drawing): Miller's two methods and the major-microspecies option are a different estimator or a different structure under the same id and label, so a score
+  over the polarizability has no number after one of those is run, and its reason now says why instead of naming a Python type.
+
 ### Derived scores: the Batch panel's own table shows them too
 - **Your scores are columns of the Batch panel's table**, as they already were in the Results dock's project table: the first after the molecule's name, labelled "(user-defined, unvalidated)", worked out from that table's own
   cells, named under the table when a score's inputs were not in the run, in its CSV and report, and following a definition you define, edit or remove without another run. Until now the same run showed a score in one
