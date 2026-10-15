@@ -60,6 +60,7 @@ from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.refusal_kinds import REFUSAL_KEY, missing_inputs_of, refusal_kind_of_result
 from openchem.domain.report import Fact, ReportResult, StructureReport
 from openchem.domain.run_lifecycle import RunOutcome
+from openchem.domain.score_answer import DEFAULTED as SCORE_DEFAULTED
 from openchem.domain.score_answer import LIMITATION as SCORE_LIMITATION
 from openchem.domain.score_definition import VALIDATION as SCORE_VALIDATION
 from openchem.domain.score_outputs import output_title
@@ -492,16 +493,18 @@ SCORE_NOT_A_PREDICTION = (
 SCORES_NOTE = (
     "Each score is worked out from this molecule's CURRENT results as of this turn (the drawing's, never a conformer's), so its value is current or it has none. "
     "A score whose outcome is 'refused' has no value: say which input could not be read and why, and never state a value or treat it as zero. A unit of 1 means a plain number. "
+    "A score whose outcome is 'computed_with_defaults' used a default its definition declares for an input nobody calculated (`defaults_used`): say so, name those inputs, "
+    "and never present the number as the result of calculating them. "
     "You cannot create, change or delete a score; you may suggest formula text for the person to enter in Tools > Derived Scores."
 )
 
 
 def _input_envelope(item: InputEvidence, caps: Caps) -> dict[str, Any]:
     data: dict[str, Any] = {"name": item.name, "reads": output_title(item.output_id) or item.output_id, "output_id": item.output_id, "state": item.state.value}
-    if item.state is InputState.READ:
+    if item.state in (InputState.READ, InputState.DEFAULT):
         data["value"] = _n(item.value)
         data["units"] = item.carried_as
-    else:
+    if item.state is not InputState.READ:
         data["note"] = _t(item.note, caps.text)
     return data
 
@@ -510,6 +513,8 @@ def score_envelope_of(value: ScoreValue, caps: Caps = FULL) -> dict[str, Any]:
     """One score as the model is told it: the header always, the number only when there is one."""
     definition = value.definition
     computed = value.status is ScoreStatus.VALUE
+    defaulted = [item.name for item in value.defaulted]
+    outcome = ("computed_with_defaults" if defaulted else "computed") if computed else "refused"
     data: dict[str, Any] = {
         "score_id": definition.score_id,
         "name": definition.display_label,
@@ -517,7 +522,7 @@ def score_envelope_of(value: ScoreValue, caps: Caps = FULL) -> dict[str, Any]:
         "validation": SCORE_VALIDATION,
         "freshness": "current",
         "freshness_note": "worked out from the molecule's current results as of this turn; a score is never stored",
-        "outcome": "computed" if computed else "refused",
+        "outcome": outcome,
         "formula": _t(value.formula or definition.formula, caps.text),
         "declared_units": definition.result_unit,
         "definition": definition.digest,
@@ -525,10 +530,20 @@ def score_envelope_of(value: ScoreValue, caps: Caps = FULL) -> dict[str, Any]:
         "constants": [{"name": c.name, "value": _n(c.value), "units": c.unit} for c in definition.constants[: caps.items]],
         "caveats": [SCORE_LIMITATION, SCORE_NOT_A_PREDICTION],
     }
+    if definition.defaults:
+        data["declared_defaults"] = [{"input": name, "value": _n(number)} for name, number in definition.defaults[: caps.items]]
     if computed:
         data["data"] = {"value": _n(value.value), "units": definition.result_unit}
+        if defaulted:
+            data["defaults_used"] = defaulted
+            data["caveats"] = [*data["caveats"], SCORE_DEFAULTED.format(names=", ".join(defaulted))]
     else:
-        data["refusal"] = {"reason": _t(value.reason, caps.text * 2), "inputs_not_read": [i.name for i in value.inputs if i.state is not InputState.READ]}
+        data["refusal"] = {
+            "reason": _t(value.reason, caps.text * 2),
+            "inputs_not_read": [i.name for i in value.inputs if i.state not in (InputState.READ, InputState.DEFAULT)],
+        }
+        if value.defaulted:
+            data["refusal"]["inputs_defaulted"] = [i.name for i in value.defaulted]
     return data
 
 

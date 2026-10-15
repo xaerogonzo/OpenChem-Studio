@@ -675,3 +675,81 @@ def test_every_box_of_a_row_re_checks_the_form_as_it_is_typed_in(dialog):
     assert dialog.draft().inputs[0].output_id == "descriptor:mol_logp"
     snap = dialog.snapshot()
     assert not snap["ok"] and snap["where"] == "formula", "a dimensionless input against a threshold in Å^2 is a unit clash, found by choosing in the picker"
+
+
+# --- a default for an input nobody calculated -------------------------------------------------------------------------------------------
+
+
+_BLEND_DEFAULTING = Draft(
+    label="Blend", formula="ramp(psa, 140, 60) * ramp(logp, 5, 2)", result_unit="1",
+    inputs=(InputRow("psa", _PSA), InputRow("logp", _LOGP, "3.5")),
+)
+
+
+def test_every_input_row_has_a_default_box_that_is_empty_until_a_default_is_typed(dialog):
+    dialog.set_draft(_BLEND)
+    assert [row.default.text() for row in dialog._input_rows] == ["", ""]
+    assert all(row.default.placeholderText() == "default if not calculated" and row.default.objectName() == "scoreInputDefault" for row in dialog._input_rows)
+
+
+def test_a_default_typed_in_a_row_is_in_the_draft_and_makes_the_form_unsaved(dialog):
+    dialog.set_draft(_BLEND, saved=True)
+    assert not dialog.dirty
+    dialog._input_rows[1].default.setText("3.5")
+    assert [row.default for row in dialog.draft().inputs] == ["", "3.5"] and dialog.dirty
+
+
+def test_a_default_is_saved_with_the_score_and_comes_back_in_the_row(dialog, world):
+    dialog.set_draft(_BLEND_DEFAULTING)
+    made = dialog.save()
+    assert made is not None and made.defaults == (("logp", 3.5),) and (made.on_missing, made.schema_version) == ("default", 2)
+    assert world.service.store.get(made.score_id) is made
+    dialog.set_draft(Draft(), saved=True)
+    dialog.show_score(made.score_id)
+    assert [row.default.text() for row in dialog._input_rows] == ["", "3.5"] and not dialog.dirty
+
+
+def test_removing_the_last_default_and_saving_makes_the_score_the_first_policy_again(dialog, world):
+    dialog.set_draft(_BLEND_DEFAULTING)
+    made = dialog.save()
+    dialog._input_rows[1].default.setText("")
+    again = dialog.save()
+    assert again.score_id == made.score_id and again.defaults == () and (again.on_missing, again.schema_version) == ("refuse", 1)
+
+
+def test_a_default_that_is_not_a_number_marks_the_inputs_box_and_cannot_be_saved(dialog, world):
+    dialog.set_draft(Draft(label="Blend", formula="ramp(psa, 140, 60)", inputs=(InputRow("psa", _PSA, "abc"),)))
+    snap = dialog.snapshot()
+    assert not snap["ok"] and snap["where"] == "inputs" and "default" in snap["message"] and "psa" in snap["message"]
+    assert not snap["save_enabled"] and dialog.save() is None and len(world.service.store) == 0
+    assert _BAD_COLOUR in dialog._inputs_host.styleSheet()
+
+
+def test_the_preview_says_a_default_was_used_and_for_which_input(dialog, world):
+    world.put("tpsa", 100.0, "Å²")
+    dialog.set_draft(_BLEND_DEFAULTING)
+    text = dialog.snapshot()["preview"]
+    assert text == f"For Aspirin: {0.25:.4g} (a default was used for logp: not calculated)"
+
+
+def test_the_preview_is_a_plain_number_once_the_calculator_has_run(dialog, world):
+    world.put("tpsa", 100.0, "Å²")
+    world.put("mol_logp", 3.5)
+    dialog.set_draft(_BLEND_DEFAULTING)
+    assert dialog.snapshot()["preview"] == f"For Aspirin: {0.25:.4g}"
+
+
+def test_a_draft_whose_every_input_has_a_default_says_there_is_no_value_for_a_molecule_nothing_was_calculated_for(dialog):
+    dialog.set_draft(Draft(label="Blend", formula="ramp(psa, 140, 60)", inputs=(InputRow("psa", _PSA, "100"),)))
+    text = dialog.snapshot()["preview"]
+    assert text.startswith("For Aspirin: no value.") and "defaults alone" in text
+
+
+def test_typing_a_default_checks_and_previews_again_without_anything_else_being_touched(dialog, world):
+    world.put("tpsa", 100.0, "Å²")
+    dialog.set_draft(_BLEND)
+    assert "no value" in dialog.snapshot()["preview"]
+    dialog._input_rows[1].default.setText("3.5")
+    assert dialog.snapshot()["preview"] == f"For Aspirin: {0.25:.4g} (a default was used for logp: not calculated)"
+    dialog._input_rows[1].default.setText("abc")
+    assert not dialog.snapshot()["ok"] and dialog.snapshot()["preview"] == "" and dialog.snapshot()["where"] == "inputs"

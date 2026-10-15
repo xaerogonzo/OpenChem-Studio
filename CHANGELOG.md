@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Derived scores, slice 4c: a default for an input nobody calculated
+- **A score may declare a default for an input** (a box beside the input in Tools > Derived Scores). It is used only when that input was **never calculated** for the molecule: an input that was calculated and refused, failed,
+  belongs to an earlier structure or carries another unit still refuses the score, and a score worked out from defaults alone is refused. It is the second `on_missing` policy the design record allowed only with a reason in
+  writing (`docs/DERIVED_SCORES_DESIGN.md` sections 7 and 11).
+- **A number that used a default says so wherever it is shown:** Results ("0.4775 (default used for ob)", the input named in the evidence and the limitations); the project table (a `*` on the cell, a hover naming the input,
+  and a companion column listing the inputs a default stood in for, so the exported CSV carries it); the assistant (`computed_with_defaults`, `defaults_used`); and the window's own preview.
+- **No change for any score that declares none:** such a definition is byte-for-byte what an earlier build wrote, with the digest it always had. A definition with a default is format 2; a build that reads only format 1 keeps it
+  and writes it back unchanged.
+- Real-window check `benchmarks/visual/score_defaults.json` (11 assertions, three shots). It found that a refused answer said it had used a default though it had no number. Mutation-checked: 102 mutants, 94 caught first time; the seven real gaps found have tests and one was an equivalent guard, removed.
+
 ### Naming: the limitations rounds 50 to 53 left open, and three silent wrong molecules found on the way
 - A thioamide N-prefix beside a second acid had its O and S swapped, `[hydroxy(thioxo)methyl]acetamido` (D-256); a prefix cut off a stereo centre lost its ring double bond because the centre's hydrogen left a
   radical, `acetyl(oxan-3-yl)azanide` for a dihydropyran (D-258); the CIP descriptor of the attachment atom of a prefix on an azanide was dropped (D-259). O-protonated and O-alkylated ureas are named,

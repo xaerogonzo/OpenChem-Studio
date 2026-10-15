@@ -272,14 +272,14 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           selected molecule: how many, how many stale, the line above the facts, and that none
                                           is also a stored result; `shot` takes "widget": "results_reader"
     {"do": "score_define", "label": "Polar window", "formula": "ramp(psa, 140, 60)", "inputs": [["psa", "descriptor:tpsa"]],
-     "result_unit": "1", "constants": [], "expect": {"made": true}}      define a user-defined score through `ScoreService` (the call the
+     "result_unit": "1", "constants": [], "defaults": [["logp", 3.5]], "expect": {"made": true}}      define a user-defined score through `ScoreService` (the call the
                                           definition dialog will make); a refusal is asserted with `"made": false, "problem": "unit",
                                           "message_contains": [...]` and must leave the project's scores as they were
     {"do": "score_results", "focus": true, "which": "Polar window", "expect": {"entries": 1, "has_value": true,
-     "value_between": [0.95, 0.96], "evidence_contains": ["Formula:"], "reason_contains": [], "stored_as_results": 0}}
+     "value_between": [0.95, 0.96], "evidence_contains": ["Formula:"], "reason_contains": [], "stored_as_results": 0, "defaulted": ["logp"]}}
                                           what the Results READER holds of the scores, for the selected molecule: the number or the
                                           reason there is none, the label, the evidence, and that none is also a stored result
-    {"do": "score_dialog", "new": true, "fill": {"label": "Polar window", "inputs": [["psa", "descriptor:tpsa"]], "formula": "ramp(psa, 140, 60)",
+    {"do": "score_dialog", "new": true, "fill": {"label": "Polar window", "inputs": [["psa", "descriptor:tpsa"], ["ob", "calculator:oxygen_balance:Oxygen balance (CO basis)", "-50"]], "formula": "ramp(psa, 140, 60)",
      "constants": [{"name": "hi", "value": "140", "unit": "\u00c5^2"}], "result_unit": "1"}, "press": "save", "confirm": "yes",
      "expect": {"ok": true, "marked": [], "preview_contains": ["For Aspirin: 0.955"], "stored": 1, "project_unsaved": true,
      "results_listed": ["Polar window"], "asked": ["Unsaved changes"]}}
@@ -290,7 +290,8 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           (definitions stored, unsaved, listed in Results); `shot` takes "widget": "scores"
     {"do": "table_scores", "export_csv": "C:/tmp/table.csv", "expect": {"columns": ["Polar window (user-defined, unvalidated)"], "note": "",
      "grid": {"Aspirin": {"Polar window": "0.955"}}, "tooltips": {"Aspirin": {"Polar window": ["Inputs: psa = 63.6"]}},
-     "column_tooltips": {"Polar window": ["Formula:"]}, "csv_header_contains": ["Polar window"], "csv_cells": {"Aspirin": {"Polar window": 0.955}}}}
+     "column_tooltips": {"Polar window": ["Formula:"]}, "csv_header_contains": ["Polar window"], "csv_cells": {"Aspirin": {"Polar window": 0.955}},
+     "csv_text": {"Aspirin": {"inputs given a default": "ob"}}}}
                                           the user-defined SCORES in the Results dock's project table, read off the grid a person looks at (the exact score
                                           headers in order, the note under the status, what a cell SHOWS, tooltips) and off the file the REAL "Export CSV"
                                           button writes (the file dialog answered); pair it with `project_run` and `expect_project_table`; `shot` takes
@@ -452,7 +453,7 @@ the window handle rather than through the machine:
   strictly better -- that one was a race, this asks whether the handle
   belongs to the expected pid, which cannot be.
 
-Three things that cost a run each:
+Four things that cost a run each:
 
 - **`quit()` closes all windows in Qt 6**, so a scripted run ended on a
   modal "Unsaved changes" box with nobody to answer it -- and removing
@@ -464,6 +465,15 @@ Three things that cost a run each:
 - **Do not `Set-StrictMode` in a dot-sourced module.** It applies to the
   caller's session; here it broke the harness's own exit-code handling
   and read as a failure of a capture that had just succeeded.
+- **A step that opens a window must not ACTIVATE it.** `MainWindow.show_scores()`
+  raises and focuses the Derived Scores window, which is right for a person and
+  wrong for a script on a timer: the keys a person types in another window next
+  land in its Name field. Measured 2026-10-15: 2 of 15 driven saves ended with one
+  stray letter in the label and a form that was "unsaved" (the cause of the one
+  unexplained `score_dialog.json` failure); 0 of 15 once the driven open used
+  `show_scores(activate=False)`. A new drive step that shows a window with text
+  fields takes the same care, and the app still takes the foreground when a run
+  starts, so type nothing into it in the first seconds.
 
 ## Lessons (moved out of this file)
 

@@ -30,7 +30,12 @@ a score on a table every row of which was refused says why in each row rather th
 person who defined a score came to read it, so it is the first thing the table shows after the molecule's name.
 
 **A SCORE WHOSE INPUTS THE RUN DID NOT COMPUTE HAS NO COLUMN.** Every row would say the same thing, so the table says it once instead (`Omission`): which score, and
-which of the things it reads are not in the table.
+which of the things it reads are not in the table. An input the definition declares a default for does not count as missing (the second `on_missing` policy), unless no input at all
+was computed, which would make every row a number worked out from defaults alone.
+
+**A NUMBER THAT USED A DEFAULT SAYS SO IN THE TABLE, IN THE CSV, AND IN THE GRID.** The cell's text ends in `*` and its hover names the inputs and their defaults; and a score with defaults has
+a companion column (`defaults_column`), right after it, that lists for each row the inputs a default stood in for. The companion is a column, not a mark, because a CSV carries the
+number whole (`cell.value`), so a `*` would be lost the moment the table is exported, and a number that used a default must not look like one that did not once it has left the window.
 
 Pure: no Qt, no chemistry.
 """
@@ -44,7 +49,7 @@ from openchem.domain.batch import SOURCE_SCORE, BatchCell, BatchColumn, BatchTab
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.refusal_kinds import REFUSAL_KEY, RefusalKind, refusal_parameters
 from openchem.domain.score_answer import LIMITATION, REFUSAL_CODE, SIGNIFICANT_DIGITS
-from openchem.domain.score_definition import VALIDATION, ScoreDefinition
+from openchem.domain.score_definition import ON_MISSING_DEFAULT, VALIDATION, ScoreDefinition
 from openchem.domain.score_formula import Refusal
 from openchem.domain.score_outputs import accept_value, approved_output, output_title
 from openchem.domain.score_value import InputState, OutputRead, ScoreStatus, ScoreValue, evaluate_score_with
@@ -55,10 +60,18 @@ CATEGORY = "Derived scores"
 #: Where a score column's numbers come from, said in its cells' provenance.
 READ_FROM_TABLE = "the project table's own cells"
 
+#: What a displayed number ends in when it used a default (the cell's hover says which inputs, and what the defaults were).
+DEFAULTED_MARK = "*"
+
 
 def column_id_of(score_id: str) -> str:
     """The id of a score's column. The prefix keeps it from ever equalling a descriptor's or a calculator's."""
     return f"{SOURCE_SCORE}:{score_id}"
+
+
+def defaults_column_id_of(score_id: str) -> str:
+    """The id of the companion column that says which inputs a row's number used a default for."""
+    return f"{SOURCE_SCORE}_defaults:{score_id}"
 
 
 def read_cell_output(output_id: str, table: BatchTable, molecule_uuid: str) -> OutputRead:
@@ -116,8 +129,14 @@ def _column_note(definition: ScoreDefinition) -> str:
     """What the column is: the formula and what it reads, so a table that is exported or hovered says it once rather than in every cell."""
     reads = "; ".join(f"{name} = {output_title(output_id) or output_id}" for name, output_id in definition.inputs)
     constants = "".join(f"; {constant.name} = {constant.value:.6g} {constant.unit}" for constant in definition.constants)
+    defaults = ""
+    if definition.on_missing == ON_MISSING_DEFAULT and definition.defaults:
+        said = ", ".join(f"{name} = {value:.6g}" for name, value in definition.defaults)
+        defaults = (
+            f" Defaults, used only for an input this run did not compute: {said}. A value marked {DEFAULTED_MARK} used at least one, and the column beside this one names which."
+        )
     return (
-        f"Formula: {definition.formula}. Reads: {reads}{constants}. Declared unit: {definition.result_unit}. Definition {definition.digest}. "
+        f"Formula: {definition.formula}. Reads: {reads}{constants}. Declared unit: {definition.result_unit}.{defaults} Definition {definition.digest}. "
         f"Read from {READ_FROM_TABLE}. {LIMITATION}"
     )
 
@@ -136,13 +155,31 @@ def score_column(definition: ScoreDefinition) -> BatchColumn:
     )
 
 
+def defaults_column(definition: ScoreDefinition) -> BatchColumn:
+    """The companion of a score that declares defaults: for each row, the inputs a default stood in for (blank for a row that used none). Text, never numeric."""
+    return BatchColumn(
+        column_id=defaults_column_id_of(definition.score_id),
+        label=f"{definition.display_label}: inputs given a default",
+        units="",
+        source=SOURCE_SCORE,
+        source_id=definition.score_id,
+        numeric=False,
+        note=(
+            f"Which inputs of {definition.display_label} were not computed in this run and were given the default the definition declares. "
+            "A number that used one is not the result of a calculation for that input."
+        ),
+    )
+
+
 def _number(value: float) -> str:
     return f"{value:.{SIGNIFICANT_DIGITS}g}"
 
 
 def _inputs_said(value: ScoreValue) -> str:
     return "; ".join(
-        f"{item.name} = {item.value:.6g}{' ' + item.carried_as if item.carried_as else ''}" for item in value.inputs if item.state is InputState.READ
+        f"{item.name} = {item.value:.6g}{' ' + item.carried_as if item.carried_as else ''}{' (a default; not computed in this run)' if item.state is InputState.DEFAULT else ''}"
+        for item in value.inputs
+        if item.state in (InputState.READ, InputState.DEFAULT)
     )
 
 
@@ -153,7 +190,8 @@ def score_cell(value: ScoreValue) -> BatchCell:
     parameters: dict[str, object] = {"validation": VALIDATION, "digest": definition.digest, "score_id": definition.score_id, "read_from": READ_FROM_TABLE}
     if value.status is ScoreStatus.VALUE:
         provenance = Provenance(created_by="user", method=f"derived_score:{definition.schema_version}", parameters=parameters)
-        return BatchCell(value=value.value, text=_number(value.value), provenance=provenance, detail=f"Inputs: {_inputs_said(value)}")
+        mark = DEFAULTED_MARK if value.defaulted else ""
+        return BatchCell(value=value.value, text=_number(value.value) + mark, provenance=provenance, detail=f"Inputs: {_inputs_said(value)}")
     parameters.update(refusal_parameters(REFUSAL_CODE, RefusalKind.NEEDS_INPUT))
     provenance = Provenance(created_by="user", method=f"derived_score:{definition.schema_version}", parameters=parameters)
     return BatchCell(text="", cache_state=CacheState.FAILED, error=value.reason, provenance=provenance)
@@ -186,7 +224,14 @@ class ScoredTable:
 
 
 def _missing_inputs(definition: ScoreDefinition, table: BatchTable) -> tuple[str, ...]:
-    return tuple(output_title(output_id) or output_id for _name, output_id in definition.inputs if not _is_filed(table, output_id))
+    """What the score reads that the run did not compute and the definition has no default for. When it has one for every input the run did not compute but NOT ONE input
+    was computed, every row would be a number worked out from defaults alone, so all of it is missing."""
+    defaults = dict(definition.defaults) if definition.on_missing == ON_MISSING_DEFAULT else {}
+    unfiled = [(name, output_id) for name, output_id in definition.inputs if not _is_filed(table, output_id)]
+    needed = [(name, output_id) for name, output_id in unfiled if name not in defaults]
+    if not needed and len(unfiled) == len(definition.inputs):
+        needed = unfiled
+    return tuple(output_title(output_id) or output_id for _name, output_id in needed)
 
 
 def _has_any_cell(table: BatchTable, molecule_uuid: str, definition: ScoreDefinition) -> bool:
@@ -216,10 +261,16 @@ def table_with_scores(table: BatchTable, definitions: Sequence[ScoreDefinition])
             continue
         column = score_column(definition)
         score_columns.append(column)
+        companion = defaults_column(definition) if definition.on_missing == ON_MISSING_DEFAULT and definition.defaults else None
+        if companion is not None:
+            score_columns.append(companion)
         for molecule_uuid in table.row_uuids:
             if not _has_any_cell(table, molecule_uuid, definition):
                 continue
-            cells[(molecule_uuid, column.column_id)] = score_cell(score_value_in_table(definition, table, molecule_uuid))
+            value = score_value_in_table(definition, table, molecule_uuid)
+            cells[(molecule_uuid, column.column_id)] = score_cell(value)
+            if companion is not None and value.status is ScoreStatus.VALUE and value.defaulted:
+                cells[(molecule_uuid, companion.column_id)] = BatchCell(text=", ".join(item.name for item in value.defaulted))
     scored = BatchTable(
         row_uuids=list(table.row_uuids), row_labels=dict(table.row_labels), columns=[*score_columns, *table.columns], cells=cells, per_atom=table.per_atom
     )

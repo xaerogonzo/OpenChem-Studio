@@ -189,5 +189,5 @@ def test_a_store_holding_a_foreign_block_refuses_every_change():
     assert store.to_dict() == {"version": 9, "definitions": []}
 
 
-def test_the_envelope_version_is_one():
-    assert ENVELOPE_VERSION == 1 and SCHEMA_VERSION == 1
+def test_the_envelope_version_is_one_and_the_definition_format_this_build_reads_is_two():
+    assert ENVELOPE_VERSION == 1 and SCHEMA_VERSION == 2
