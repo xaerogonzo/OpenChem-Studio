@@ -80,7 +80,7 @@ CATION_SITES = {
 
 MODES = ("anion", "cation", "quaternary")
 
-_ANION_WORD = re.compile(r"(?:(?<!am)(?<!im)(?<!sulfam)ide|ate|ite)(?![a-z])|ato|(?<!am)(?<!im)(?<!ure)(?<!sulfam)ido|\(\d*-\)")
+_ANION_WORD = re.compile(r"(?:(?<!am)(?<!im)(?<!sulfam)ide|ate|ite)(?![a-z])|ato|(?<!am)(?<!im)(?<!ure)(?<!sulfam)ido|\(\d*-\)|\d-id-")
 _CATION_WORD = re.compile(r"ium|onio|\(\d*\+\)")
 
 
