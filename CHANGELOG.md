@@ -16,6 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - This **amends decision 9** of `docs/DERIVED_SCORES_DESIGN.md` (the assistant cannot author a definition) to: the assistant can propose one and cannot save one; the design record states the residual risk.
 - Real-window check `benchmarks/visual/ai_score_proposals.json` (9 assertions; `ai_card` takes `"card": "score"`). Mutation-checked: 120 mutants, 101 caught first time; the real gaps found have tests, one is equivalent.
 
+### Naming: three new ion populations (zwitterions, dianions, dications), and what they found
+- `tools/naming_ion_populations.py` now also changes TWO sites of one census molecule: `zwitterion` (an acid deprotonated and a base protonated), `dianion` and `dication`. A net-neutral ion was never judged
+  by the charge guard at all, which looked only at the net charge. It judges each polarity now (a bonded + and - pair, the isocyanide `[N+]#[C-]` or `[Cl+]([O-])O`, is one dipole and not two ions), so an
+  acylsulfonamide anion beside a thiazolium, named with the anion dropped, is refused (D-267). A cationic ring in a ring-nitrogen amide was `4-methylpiperazin-4-iume-1-carbonyl`, unreadable; it is
+  `4-ium-1-carbonyl` (D-265). A cationic curated ketone ring in a substituent put `ium` after the ketone (`...-4-on-1-ium-2-yl`); it goes before it (D-266).
+  Still open and recorded: two anions in one molecule where the second anion's prefix cannot be named, and a cationic ketone ring that also carries an aminium suffix.
+
 ### Derived scores, slice 4c: a default for an input nobody calculated
 - **A score may declare a default for an input** (a box beside the input in Tools > Derived Scores). It is used only when that input was **never calculated** for the molecule: an input that was calculated and refused, failed,
   belongs to an earlier structure or carries another unit still refuses the score, and a score worked out from defaults alone is refused. It is the second `on_missing` policy the design record allowed only with a reason in

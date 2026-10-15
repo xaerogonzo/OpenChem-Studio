@@ -167,3 +167,37 @@ def test_a_protonated_sulfoxide_and_its_sulfonium_drawing_are_one_ion():
     """OPSIN reads `hydroxydi(methyl)sulfanium` as `O[S+](C)C`; the population draws `CS(C)=[OH+]`. InChI keeps them apart, the verdict must not (round 53)."""
     assert pop.verdict("cation", "CS(C)=[OH+]", "hydroxydi(methyl)sulfanium", "O[S+](C)C") == "ok"
     assert pop.verdict("cation", "CS(C)=[OH+]", "hydroxydi(methyl)sulfanium", "CS(C)=O") == "charge_changed"
+
+
+# Round 55: the multi-charge modes.
+def test_a_zwitterion_changes_an_acid_site_and_a_base_site_of_one_molecule():
+    rows = [{"label": "z", "smiles": "NCCC(=O)O"}]
+    ions = [(c.kind, c.smiles) for c in pop.generate("zwitterion", rows)]
+    assert ("carboxylic+amine_primary", _canon("[NH3+]CCC(=O)[O-]")) in ions
+
+
+def test_a_molecule_with_two_sites_of_a_kind_makes_no_pair_of_that_kind():
+    rows = [{"label": "d", "smiles": "OC(=O)CC(=O)O"}]
+    assert pop.generate("dianion", rows) == []
+
+
+def test_a_dianion_deprotonates_two_different_acid_sites():
+    rows = [{"label": "d", "smiles": "OC(=O)c1ccc(O)cc1"}]
+    assert [c.smiles for c in pop.generate("dianion", rows)] == [_canon("[O-]C(=O)c1ccc([O-])cc1")]
+
+
+def test_a_dication_protonates_two_different_base_sites():
+    rows = [{"label": "d", "smiles": "NCCc1ccncc1"}]
+    smiles = [c.smiles for c in pop.generate("dication", rows)]
+    assert _canon("[NH3+]CCc1cc[nH+]cc1") in smiles
+
+
+def test_the_two_sites_of_a_pair_are_different_atoms():
+    rows = [{"label": "s", "smiles": "CC(=O)O"}]
+    assert pop.generate("zwitterion", rows) == []
+
+
+def test_each_sulfonamidate_in_a_name_accounts_for_one_charge_opsin_does_not_read():
+    smiles = "Cc1ccc(S(=O)(=O)[N-]C)cc1.[Na+]"
+    assert pop.verdict("dianion", "O=C([O-])c1ccc(S(=O)(=O)[N-]C)cc1", "4-(methylsulfamoyl)benzoate-sulfonamidate", "O=C([O-])c1ccc(S(=O)(=O)NC)cc1") == "ok"
+    assert pop.verdict("dianion", "O=C([O-])c1ccc(S(=O)(=O)[N-]C)cc1", "4-(methylsulfamoyl)benzoate", "O=C([O-])c1ccc(S(=O)(=O)NC)cc1") == "charge_changed"

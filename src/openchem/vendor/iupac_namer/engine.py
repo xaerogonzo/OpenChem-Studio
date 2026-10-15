@@ -654,7 +654,8 @@ def _name_ring_nitrogen_acyl_substituent(
     m = _re_ra.fullmatch(r"(.+?)([a-z]*[a-z])-(\d+)-yl", ring_name)
     if m is None or m.group(2).endswith("e"):
         return None
-    text = f"{m.group(1)}{m.group(2)}e-{m.group(3)}-carbonyl"
+    # A ring cation's `-N-ium` infix ends the stem (`4-methylpiperazin-4-ium-1-yl`): no `e` goes after it, `piperazin-4-iume-1-carbonyl` is unreadable (naming round 55).
+    text = f"{m.group(1)}{m.group(2)}{'' if m.group(2) == 'ium' else 'e'}-{m.group(3)}-carbonyl"
     return LeafTree(
         output_form=output_form,
         free_valence=free_valence,
@@ -9716,6 +9717,24 @@ def _check_charge_named(mol, name: str) -> None:
         raise ValueError(f"No name found that keeps the negative charge (the nearest name, {name!r}, is the neutral compound's).")
     if net > 0 and not _CATION_WORD.search(name):
         raise ValueError(f"No name found that keeps the positive charge (the nearest name, {name!r}, is the neutral compound's).")
+    # Each POLARITY must be named (naming round 55). A zwitterion has net charge zero, so the two tests above never judged it, and an ion with a cation and an anion
+    # could lose one of them while the other kept a word in the name (`4-(N-carbamoylsulfamoyl)phenyl...thiazol-3-ium` for an acylsulfonamide anion beside an azolium).
+    # The nitro group and the N-oxide are charge-separated and neutral overall; they are not ions.
+    from openchem.vendor.iupac_namer.perception.charge_perception import _charge_separated_neutral_atoms
+
+    # A + and a - on BONDED atoms are one neutral dipole, not two ions: an isocyanide `[N+]#[C-]`, a hypervalent halogen oxoacid drawn `[Cl+]([O-])O`, an ylide, a diazo group.
+    separated = set(_charge_separated_neutral_atoms(mol))
+    for bond in mol.GetBonds():
+        begin, end = bond.GetBeginAtom(), bond.GetEndAtom()
+        if begin.GetFormalCharge() * end.GetFormalCharge() < 0:
+            separated.update((begin.GetIdx(), end.GetIdx()))
+    positives = [a for a in mol.GetAtoms() if a.GetFormalCharge() > 0 and a.GetIdx() not in separated]
+    negatives = [a for a in mol.GetAtoms() if a.GetFormalCharge() < 0 and a.GetIdx() not in separated]
+    if positives and negatives:
+        if not _ANION_WORD_END.search(name):
+            raise ValueError(f"No name found that keeps the negative charge (the nearest name, {name!r}, names only the cation).")
+        if not _CATION_WORD.search(name):
+            raise ValueError(f"No name found that keeps the positive charge (the nearest name, {name!r}, names only the anion).")
 
 
 def _restore_dropped_oximate(mol, name: str) -> str:

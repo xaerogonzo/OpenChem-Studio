@@ -1153,6 +1153,10 @@ P-45.2.3, "the lower locant set for substituent groups in order of citation in t
   one, so the name is right and the plan generation is not (its test runs in the default mode); (b) an N-sulfonyl iminium (`C=[NH+]S(=O)(=O)Ar`, quaternary or not) is still refused: the classifier takes only C, N and O
   on the cationic nitrogen; (c) the anions of an N-N bond are refused or visibly wrong (a pyrazolone anion is refused, `CC(=O)[N-]N` is a `NAMING ERROR`); (d) a carboxylate beside TWO neutral acids on an amidinium is refused;
   (e) a sulfonamide anion bearing an N-methoxycarbonyl group is `N-[methoxy(oxo)methyl]methanesulfonamidate`, readable but not the book's `methoxycarbonyl`; (f) the census's seven non-exact rows are unchanged.
+* **What round 55 left open (naming round 55, 2026-10-15; D-265 .. D-267).** (a) A molecule with TWO anions beside which a prefix has to cite the second one (a sulfonamide anion beside a phenolate or a
+  carboxylate, a sulfamide anion beside a carboxylate, an acylurea anion beside a thiolate) is a `NAMING ERROR`: the plan search has no prefix form for `[N-]`; (b) a cationic curated ketone ring that ALSO
+  carries an aminium suffix is written `...-4-on-1-ium-2-aminium` (unreadable); (c) a protonated amidoxime beside a second cation is named with a neutral hydroxyimino and the charge lost, which the guard
+  does not catch because the other cation supplies the word (it counts words, not centres); (d) the acylsulfonamide anion beside an azolium is now REFUSED rather than mis-named.
 * **What round 54 left open (naming round 54, 2026-10-15; D-256 .. D-264).** (a) An amide or hydrazide anion in a molecule with TWO anions (a phenolate or a second amide anion) beside a cation is still a
   `NAMING ERROR`: the azanide classifier takes one negative charge; (b) an N-acyl sulfonamidate is `N-[methoxy(oxo)methyl]methanesulfonamidate`, readable but not the book's `methoxycarbonyl`; (c) the O-acylated
   isothioureas (`CCCC(=[OH+])NC(=S)NAr`, 4 cation rows) and a few O-methylated amides beside a second charge are refused or a `NAMING ERROR`; (d) an O-methylated sulfoxide on a sulfur bonded to another
