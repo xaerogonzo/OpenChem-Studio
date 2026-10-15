@@ -13,7 +13,7 @@ import pytest
 from openchem.domain.calculator import DRAWING
 from openchem.domain.common import CacheState
 from openchem.domain.descriptor import DescriptorValue
-from openchem.domain.result_envelope import CAP_STEPS, FULL, SCORE_NOT_A_PREDICTION, SCORES_NOTE, score_envelope_of, scores_view_envelope
+from openchem.domain.result_envelope import CAP_STEPS, FULL, SCORE_NOT_A_PREDICTION, SCORES_NOTE, Caps, score_envelope_of, scores_view_envelope
 from openchem.domain.result_store import ResultIdentity, StoredResult
 from openchem.domain.score_answer import LIMITATION
 from openchem.domain.score_constants import Constant
@@ -102,6 +102,18 @@ def test_naming_nothing_reads_nothing_and_naming_none_reads_everything():
     assert read_scores(turn, []).values == () and len(read_scores(turn, None).values) == 1
 
 
+def test_defined_counts_every_score_the_project_has_and_not_only_those_asked_for():
+    view = read_scores(_turn([_definition(), _definition("user.b", "B")]), ["Window"])
+    assert len(view.values) == 1 and view.defined == 2
+    assert read_scores(_turn([_definition(), _definition("user.b", "B")]), ["ghost"]).defined == 2
+
+
+def test_with_no_limit_given_forty_scores_are_read_and_the_rest_are_counted():
+    definitions = [_definition(f"user.s{i}", f"S{i}") for i in range(DEFAULT_READ_LIMIT + 5)]
+    view = read_scores(_turn(definitions))
+    assert len(view.values) == DEFAULT_READ_LIMIT == 40 and view.truncated == 5 and view.defined == 45
+
+
 def test_a_score_named_twice_is_read_once():
     view = read_scores(_turn([_definition()]), ["Window", "user.window"])
     assert len(view.values) == 1
@@ -144,6 +156,7 @@ def test_a_score_with_a_number_has_a_header_and_a_data_block_with_units():
     assert item["score_id"] == "user.window" and item["name"] == "Window (user-defined, unvalidated)"
     assert item["kind"] == "user_defined_score" and item["validation"] == "user_defined_unvalidated"
     assert item["freshness"] == "current" and item["outcome"] == "computed" and "refusal" not in item
+    assert "never stored" in item["freshness_note"] and "this turn" in item["freshness_note"], "a model is told how current a score is, and why it is not stored"
     assert item["declared_units"] == "1" and item["definition"] == _definition().digest and item["formula"] == _definition().formula
     assert item["data"]["units"] == "1" and item["data"]["value"] == pytest.approx(evaluate_score(_definition(), _turn([_definition()]).entries).value, rel=1e-5)
 
@@ -207,6 +220,18 @@ def test_the_caps_shrink_the_number_of_scores_and_inputs_and_say_how_many_were_l
     assert all(item["score_id"] and item["name"] and item["outcome"] and item["caveats"] for item in smallest["scores"]), "a header is never what is cut"
 
 
+def test_a_tight_cap_cuts_the_inputs_and_the_constants_of_one_score_and_nothing_else():
+    definition = _definition(
+        formula="ramp(psa, hi, lo) * ramp(logp, 5, 2)", constants=(Constant("hi", 140.0, "Å^2"), Constant("lo", 60.0, "Å^2")),
+    )
+    value = read_scores(_turn([definition])).values[0]
+    full = score_envelope_of(value)
+    assert [i["name"] for i in full["inputs"]] == ["psa", "logp"] and [c["name"] for c in full["constants"]] == ["hi", "lo"]
+    tight = score_envelope_of(value, Caps(items=1))
+    assert [i["name"] for i in tight["inputs"]] == ["psa"] and [c["name"] for c in tight["constants"]] == ["hi"]
+    assert tight["outcome"] == "computed" and tight["data"] == full["data"], "the number is never what is cut"
+
+
 def test_the_longest_text_is_cut_and_says_so_but_the_header_stays():
     long_formula = " + ".join(["psa"] * 80)
     item = score_envelope_of(read_scores(_turn([_definition(formula=long_formula, inputs=(("psa", _TPSA),))])).values[0], CAP_STEPS[-1])
@@ -220,6 +245,12 @@ def test_a_value_is_rounded_for_the_model_to_six_figures_and_a_non_finite_one_is
     zero = _definition(formula="psa / z", inputs=(("psa", _TPSA),), constants=(Constant("z", 0.0, "Å^2"),), result_unit="1")
     (refused,) = scores_view_envelope(read_scores(_turn([zero]))).get("scores")
     assert refused["outcome"] == "refused" and "data" not in refused
+
+
+def test_the_scores_left_out_by_the_read_limit_are_counted_in_the_envelope_too():
+    definitions = [_definition(f"user.s{i}", f"S{i}") for i in range(5)]
+    data = scores_view_envelope(read_scores(_turn(definitions), limit=2))
+    assert len(data["scores"]) == 2 and data["left_out_for_length"] == 3 and data["defined_in_this_project"] == 5
 
 
 def test_the_full_caps_are_the_first_step():

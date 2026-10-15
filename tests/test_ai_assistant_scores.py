@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 
 import pytest
-from ai_assistant.bridge import ToolBridge
+from ai_assistant.bridge import REPLY_BUDGET, ToolBridge
 from ai_assistant.calculation_tools import CALCULATION_HANDLERS, CALCULATION_TOOLS, READ_SCORES
 from ai_assistant.panel import SYSTEM_PROMPT_PREFIX
 from ai_assistant.tools import validate_arguments
@@ -66,6 +66,22 @@ def test_a_score_made_or_edited_or_removed_after_the_turn_began_changes_nothing_
     assert turn.scores == (made,) and [v.definition for v in PluginCalculations(None).read_scores(turn).values] == [made]
     later = world.host.begin_turn()
     assert [d.label for d in later.scores] == ["Another"]
+
+
+def test_a_stranger_projects_scores_are_never_frozen_into_this_projects_turn(world):
+    from openchem.domain.project import ProjectModel
+
+    _make(world)
+    stranger = ProjectModel(name="Another")
+    world.services.score_service.set_project(stranger)
+    world.services.score_service.create(label="Stranger", formula="psa", result_unit="Å^2", inputs=[("psa", _PSA)])
+    assert len(world.services.score_service.store) == 1
+    assert world.host.begin_turn().scores == (), "the service held another project's scores, and this project's turn must not read them"
+
+
+def test_a_host_with_no_score_service_gives_a_turn_with_no_scores(world):
+    world.services.score_service = None
+    assert world.host.begin_turn().scores == ()
 
 
 def test_a_project_with_no_scores_gives_a_turn_with_none(world):
@@ -170,6 +186,16 @@ def test_a_model_names_a_score_by_label_and_one_that_does_not_exist_is_reported(
 def test_a_project_without_scores_says_so_and_does_not_invent_one(rig):
     data, _provider, _box = _read(rig)
     assert data["scores"] == [] and data["defined_in_this_project"] == 0
+
+
+def test_a_long_list_of_scores_is_cut_to_the_reply_budget_and_says_so(rig):
+    for index in range(40):
+        _make(rig.world, label=f"Blend {chr(97 + index // 26)}{chr(97 + index % 26)}")
+    text = rig.bridge().read_scores()
+    data = json.loads(text)
+    assert len(text) <= REPLY_BUDGET, "a reply is read in full on every later request"
+    assert data["shortened_for_length"] is True and 0 < len(data["scores"]) < 40
+    assert data["left_out_for_length"] == 40 - len(data["scores"]) and data["defined_in_this_project"] == 40
 
 
 def test_bad_arguments_never_reach_the_tool(rig):
