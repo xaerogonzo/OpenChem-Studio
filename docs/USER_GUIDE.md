@@ -1954,7 +1954,10 @@ what the score gives for the selected molecule while you edit it.
 formula and every input with its unit and the stored result it came from. The number a score reads is the drawing's,
 which for a few descriptors (the synthetic-accessibility and complexity scores among them) is not the number shown for a
 conformer. Scores are saved with the project. They are not calculators, so they are not in the calculator list and
-the assistant's calculator search does not offer them. The project table does not carry a score column yet.
+the assistant's calculator search does not offer them. In the **Project table** (Results, after a project run) a score is a column of its own, the first after the molecule's name: it is worked out from that table's other columns, so
+it needs the properties it reads to have been in the run, and a score whose inputs were not run is named under the table instead of shown as a column of dashes. It follows
+the definition as you edit it, without another run, and it is in the CSV and the report. A table is a snapshot of a run, so its score is as current as the run; the
+**This molecule** page is where a score is worked out against the structure as it is now.
 
 <!-- help:ir-spectra -->
 ### IR spectra and normal modes

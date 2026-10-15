@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Derived scores, slice 3c: a score is a column of the project table
+- **The scores a person defined are the first columns of the Results dock's project table**, labelled `<label> (user-defined, unvalidated)`, with the number each formula gives for each row. A score is computed when the table is
+  shown, from the table's own cells, by the rule the Results reader uses, and never run or stored: a score defined, edited or removed changes the table at once, without another run. The CSV carries the suffix in its header and
+  the number whole, the report's methods section says what the column is, and the analytics see it as any other numeric column. A row whose input failed, was refused or was not computed shows a dash and says which on hover.
+  A score whose inputs the run did not compute has no column; the table says which score and what it reads.
+- **Safe because of #330, and held there by a test:** every approved output is read both from a real batch run and from the Results reader's stored results for a molecule that has a conformer, and the two must agree. It found
+  that a calculator which declined had only a placeholder column, now read as the refusal it is. The table drive found the score columns off the dock's right edge (they are first now) and that editing a score through its window
+  stored lists that made Results unable to read it (`ScoreService.update` stores what `create` does). New drive step `table_scores`, `benchmarks/visual/score_table.json` (12 assertions, 3 shots).
+
 ### Derived scores, slice 3d: the Derived Scores window (Tools menu)
 - **A person can define a score now.** Tools > Derived Scores... opens one modeless window: a name (always shown as `<name> (user-defined, unvalidated)`), the approved outputs the formula reads (chosen from a list with each unit, never typed as an id), optional named constants with their own units, the formula and the unit it must work out to. It checks after every keystroke with the same rule the project loader and Save use, outlines the box a problem belongs to and puts a caret under the place in the formula; nothing is stored until Save, changing the shown score with unsaved changes asks first, and Delete asks. The last line shows the value for the selected molecule from its current results and starts no calculation; a score nothing has calculated says which input.
 - **Found by driving the real window:** a unit clash inside a formula was marked on the wrong box with no caret, a constant `14.` was accepted though the formula grammar refuses it, the picker said "(mol/L) (mol/L)", the longest picker entry made the form scroll sideways, an outline on a combo box squashed its arrow, and the caret was a few pixels off its text. New drive step `score_dialog` and `benchmarks/visual/score_dialog.json` (18 assertions, 7 shots); help topic `derived-scores` in the user guide.
