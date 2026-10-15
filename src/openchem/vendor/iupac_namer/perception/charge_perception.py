@@ -1853,7 +1853,10 @@ def _classify_oxonium_urea(mol) -> Iterable[ChargeClassification]:
     if carbon.GetAtomicNum() != 6 or carbon.GetFormalCharge() != 0 or carbon.GetDegree() != 3:
         return
     hetero = [x for x in carbon.GetNeighbors() if x.GetIdx() != o.GetIdx() and x.GetAtomicNum() in (7, 8, 16)]
-    if len(hetero) < 2:
+    # An N-acyl urea or thiourea (`CCCC(=[OH+])NC(=S)NAr`): the urea group elsewhere claimed the carbon and the plan search named the neutral compound (round 57).
+    from rdkit import Chem
+
+    if len(hetero) < 2 and not (hetero and mol.HasSubstructMatch(Chem.MolFromSmarts("[NX3]C(=[O,S])[NX3]"))):
         return
     if any(x.GetAtomicNum() != 6 for x in o.GetNeighbors() if x.GetIdx() != carbon.GetIdx()):
         return
@@ -2012,7 +2015,11 @@ def _acyl_like_neighbour(mol, n_idx: int, nb, allow_ester: bool = False) -> bool
         )
         other_n = [x for x in nb.GetNeighbors() if x.GetAtomicNum() == 7 and x.GetIdx() != n_idx]
         # In a ring (saccharin's sultam) the sulfonyl needs no second nitrogen: the ring's own `-ide` names the anion, and the engine's `-sulfonamidate` is an acyclic suffix.
-        return oxo == 2 and (len(other_n) == 1 or allow_ester)
+        # Naming round 57: with a CATION elsewhere in the molecule the anion is still the parent (P-41), and the engine's `-sulfonamidate` suffix cannot be the answer (the cation takes the
+        # parent and the ordinary `N-carbamoylsulfamoyl` prefix has no charge: an acylsulfonamide anion beside a thiazolium was refused), so the sulfonyl is a group of the azanide.
+        separated = _charge_separated_neutral_atoms(mol)
+        beside_cation = any(a.GetFormalCharge() > 0 and a.GetIdx() not in separated for a in mol.GetAtoms())
+        return oxo == 2 and (len(other_n) == 1 or allow_ester or beside_cation)
     return False
 
 
@@ -3925,13 +3932,15 @@ def _render_azanide(cls: ChargeClassification, mol, strategy, session, depth: in
     return _azanide_text(mol, n_idx, strategy, session, depth, "azanide")
 
 
-def _azanide_text(mol, n_idx: int, strategy, session, depth: int, ending: str) -> str | None:
+def _azanide_text(mol, n_idx: int, strategy, session, depth: int, ending: str, skip: frozenset[int] = frozenset()) -> str | None:
     """The groups on an anionic nitrogen as prefixes of `azanide`, or, with `ending="azanidyl"`, of the prefix `azanidyl` (naming round 56).
 
     The same groups name the anion as a PARENT (`acetyl(methyl)azanide`, two groups) and as a PREFIX on another anion (`4-(acetylazanidyl)benzen-1-olate`, one group: the other bond of
     the nitrogen is the attachment). OPSIN reads `azanidyl`; measured before it was written."""
     prefixes: list[str] = []
     for nb in mol.GetAtomWithIdx(n_idx).GetNeighbors():
+        if nb.GetIdx() in skip:  # the attachment atom of an acyl-type prefix: `(carbamoylazanidyl)sulfonyl` names the nitrogen's OTHER group
+            continue
         if _acyl_like_neighbour(mol, n_idx, nb):
             name = _alkoxycarbonyl_prefix(mol, n_idx, nb, strategy, session, depth)
             if name is None and not _is_ester_carbon(mol, n_idx, nb):

@@ -2525,6 +2525,22 @@ what can be verified.
   `tests/test_namer_known_defects.py`. Three earlier tests pinned refusals this round turned into names and now pin the cases still refused: a carboxylate beside two neutral acids
   (`test_namer_round43_*`, `test_namer_round45_*`) and a pyrazolone anion (`test_namer_round46_*`).
 
+## 2026-10-15 -- naming round 57: the multi-charge ions that were still refused (D-271 .. D-274)
+
+Round 56's open list: a protonated amidoxime beside a second cation (refused), the acylsulfonamide anion beside an azolium (refused since round 55), a sulfonamide anion with a second anion as the parent,
+and O-acylated isothioureas. Two population modes were added first to look for more: `betaine` (a base N-methylated, an acid deprotonated; 89 ions) and `quat_dication` (171). They found nothing new
+that was not already on the list: betaines 88 of 89 ok, quaternary dications 169 of 171.
+
+* **D-271.** With a CATION in the molecule the plan search takes the cation as parent and writes the acylsulfonamide as the charge-free `N-carbamoylsulfamoyl` prefix. The anion is the senior class, so
+  `_acyl_like_neighbour` treats a sulfonyl as acyl-like for the azanide when a cation is present (it required a second nitrogen on the sulfur): `carbamoyl[4-(1,3-thiazol-3-ium-2-yl)benzene-1-sulfonyl]azanide`.
+* **D-272.** When another ANION is the parent, a sulfonamide whose own nitrogen is the anion was still the bare `sulfamoyl` prefix (no charge): the guard refused it. The compound-sulfamoyl branch of
+  `SubstitutivePath.execute` now sends such a nitrogen to the recursive carve, and the engine's substituent naming has a block for a sulfonyl or an acyl group whose nitrogen is `[N-]`:
+  `(R-azanidyl)sulfonyl`, `(R-azanidyl)carbonyl` (`_azanide_text` takes a `skip` set for the attachment atom). OPSIN reads both (measured).
+* **D-273.** `_restore_dropped_oximium`: a single protonated oxime centre written with a neutral `hydroxyimino` has its prefix changed to `hydroxyazaniumylidene` (the same repair as round 54's oximate).
+* **D-274.** `_classify_oxonium_urea` also claims an O+=C with ONE heteroatom on the carbon when an N-C(=O/S)-N urea group is elsewhere in the molecule (the urea group took the carbon).
+* **Measured.** See the pull request for the census, vendored suite and app group on the final tree. 6 of 6 live mutants killed. Four non-exact census rows were re-read (listed in the pull request).
+* New `tests/test_namer_round57_acyl_azanide_prefixes_and_second_cations.py` (31 tests); three tool tests in `tests/test_naming_ion_populations.py`. D-271 to D-273 in the fixed table of `tests/test_namer_known_defects.py`.
+
 ## 2026-10-15 -- naming round 56: two anions in one molecule, the guard that counts centres, a ketone ring cation with a cation suffix (D-268, D-269, D-270)
 
 Round 55's open list: the dianion population's naming errors, a protonated amidoxime beside a second cation (charge lost), and the unreadable cationic ketone ring with an aminium suffix.
