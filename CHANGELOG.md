@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cells, named under the table when a score's inputs were not in the run, in its CSV and report, and following a definition you define, edit or remove without another run. Until now the same run showed a score in one
   table and not the other.
 
+### Naming: the multi-charge ions that were still refused, and two more population modes
+- `tools/naming_ion_populations.py` gained `betaine` (an N-methylated base beside a deprotonated acid) and `quat_dication`. An acylsulfonamide anion beside a cation, which the round 55 guard refused, is
+  `carbamoyl[4-(1,3-thiazol-3-ium-2-yl)benzene-1-sulfonyl]azanide` (D-271); a sulfonamide or amide anion cited as a prefix because another anion is the parent is `4-[(carbamoylazanidyl)sulfonyl]benzen-1-olate`
+  (D-272); a protonated amidoxime beside a second cation is `...(hydroxyazaniumylidene)methyl...piperazin-1-ium` (D-273); an O-protonated N-acyl urea or thiourea is named, `[1-(anilinomethanethioylamino)butylidene]oxidanium`
+  (D-274). Every multi-charge population is now clean apart from 2 visible refusals (an O-methylated sulfoxide on S-S or S-P).
+
 ### Derived scores: tick what they read
 - **Presets > Tick what my scores read (N)** in Properties (shown when the project has scores): ticks the calculators your scores read and adds the always-on properties they read to a project run, **on top of what you had
   ticked**, so the run gives every score a column. It never unticks or narrows anything; a calculator the launcher is not offering is named and left unticked; and scores that read only always-on properties are told that

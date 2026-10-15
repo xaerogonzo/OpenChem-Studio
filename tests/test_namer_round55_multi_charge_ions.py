@@ -60,10 +60,10 @@ def test_a_neutral_ring_nitrogen_acyl_keeps_its_e():
     assert name_smiles("[NH3+]c1ccccc1C(=O)N1CCCCC1") == "2-(piperidine-1-carbonyl)anilinium"
 
 
-def test_a_zwitterion_that_lost_its_anion_is_refused():
-    """The acylsulfonamide anion beside a thiazolium was named with the anion dropped, and nothing checked a net-neutral ion."""
-    with pytest.raises(ValueError, match="negative charge"):
-        name_smiles("N#C/C(=C\\Nc1ccc(S(=O)(=O)[N-]C(N)=O)cc1)c1[nH+]c(-c2ccc(Br)cc2)cs1")
+def test_a_zwitterion_that_lost_its_anion_is_named_since_round_57():
+    """Round 55 refused the acylsulfonamide anion beside a thiazolium (the name had dropped the anion); round 57 names it with the anion as the parent."""
+    name = name_smiles(r"N#C/C(=C\Nc1ccc(S(=O)(=O)[N-]C(N)=O)cc1)c1[nH+]c(-c2ccc(Br)cc2)cs1")
+    assert name.startswith("carbamoyl[") and name.endswith("azanide") and "thiazol-3-ium" in name
 
 
 @pytest.mark.parametrize(

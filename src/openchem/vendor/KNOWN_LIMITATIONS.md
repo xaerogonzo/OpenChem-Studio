@@ -1153,6 +1153,9 @@ P-45.2.3, "the lower locant set for substituent groups in order of citation in t
   one, so the name is right and the plan generation is not (its test runs in the default mode); (b) an N-sulfonyl iminium (`C=[NH+]S(=O)(=O)Ar`, quaternary or not) is still refused: the classifier takes only C, N and O
   on the cationic nitrogen; (c) the anions of an N-N bond are refused or visibly wrong (a pyrazolone anion is refused, `CC(=O)[N-]N` is a `NAMING ERROR`); (d) a carboxylate beside TWO neutral acids on an amidinium is refused;
   (e) a sulfonamide anion bearing an N-methoxycarbonyl group is `N-[methoxy(oxo)methyl]methanesulfonamidate`, readable but not the book's `methoxycarbonyl`; (f) the census's seven non-exact rows are unchanged.
+* **What round 57 left open (naming round 57, 2026-10-15; D-271 .. D-274).** (a) An O-methylated or O-protonated sulfoxide on a sulfur bonded to sulfur or phosphorus (a thiosulfonate S-oxide) is refused: the
+  sulfoxide-cation classifier needs two carbons on the sulfur; (b) nested enclosing marks repeat a pair (`{1-{[anilino(oxo)methyl]amino}butylidene}oxidanium`): OPSIN reads it, the book would alternate;
+  (c) in a two-anion molecule the parent is still whichever the plan search takes.
 * **What round 56 left open (naming round 56, 2026-10-15; D-268 .. D-270).** (a) In a molecule with two anions the PARENT is whichever the plan search takes, so a carboxylate can be cited as a prefix
   (`1-(acetylazanidyl)-4-[oxido(oxo)methyl]benzene`) where `4-(acetylazanidyl)benzoate` is the senior-anion name; both read back; (b) a protonated amidoxime beside a second cation is REFUSED (D-269) rather than
   named: the amidoxime cation has no classifier when another cation is present; (c) the guard does not count a name that multiplies an ion word (`dioxido`), so a lost charge inside such a name is not caught;

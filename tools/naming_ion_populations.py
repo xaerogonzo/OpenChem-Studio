@@ -78,7 +78,7 @@ CATION_SITES = {
     "nitrile_n": "[NX1]#C",
 }
 
-MODES = ("anion", "cation", "quaternary", "zwitterion", "dianion", "dication")
+MODES = ("anion", "cation", "quaternary", "zwitterion", "dianion", "dication", "betaine", "quat_dication")
 
 #: The pairs rounds 55 onward make (the multi-charge modes): which kinds of site go together. A zwitterion deprotonates an acid AND protonates a base in one molecule (a net-neutral ion,
 #: which the charge guard does not judge at all); a dianion deprotonates two different acid sites; a dication protonates two different base sites.
@@ -119,7 +119,7 @@ def generate(mode: str, rows: list[dict], limit: int | None = None) -> list[Cand
     if mode not in MODES:
         raise ValueError(f"unknown mode {mode!r}; one of {MODES}")
     RDLogger.DisableLog("rdApp.*")
-    if mode in ("zwitterion", "dianion", "dication"):
+    if mode in ("zwitterion", "dianion", "dication", "betaine", "quat_dication"):
         return _generate_pairs(mode, rows, limit)
     sites = ANION_SITES if mode == "anion" else CATION_SITES
     out: list[Candidate] = []
@@ -162,10 +162,18 @@ def generate(mode: str, rows: list[dict], limit: int | None = None) -> list[Cand
 
 
 def _apply_site(rw, idx: int, how: str) -> None:
-    """Deprotonate (`minus`) or protonate (`plus`) one atom of an editable molecule."""
+    """Deprotonate (`minus`), protonate (`plus`) or N-methylate (`methyl`, a permanent cation) one atom of an editable molecule."""
+    from rdkit import Chem
+
     atom = rw.GetAtomWithIdx(idx)
     hydrogens = atom.GetTotalNumHs()
-    if how == "minus":
+    if how == "methyl":
+        atom.SetFormalCharge(1)
+        atom.SetNumExplicitHs(hydrogens)
+        atom.SetNoImplicit(True)
+        methyl = rw.AddAtom(Chem.Atom(6))
+        rw.AddBond(idx, methyl, Chem.BondType.SINGLE)
+    elif how == "minus":
         atom.SetFormalCharge(-1)
         atom.SetNumExplicitHs(0)
         atom.SetNoImplicit(False)
@@ -183,14 +191,17 @@ def _generate_pairs(mode: str, rows: list[dict], limit: int | None) -> list[Cand
 
     from rdkit import Chem
 
-    if mode == "zwitterion":
+    if mode in ("zwitterion", "betaine"):
         pairs = list(product(ZWITTERION_ACIDS, ZWITTERION_BASES))
     elif mode == "dianion":
         pairs = list(combinations(DIANION_KINDS, 2))
     else:
         pairs = list(combinations(DICATION_KINDS, 2))
     queries = {k: Chem.MolFromSmarts(s) for k, s in {**ANION_SITES, **CATION_SITES}.items()}
-    hows = ("minus", "plus") if mode == "zwitterion" else (("minus", "minus") if mode == "dianion" else ("plus", "plus"))
+    hows = {
+        "zwitterion": ("minus", "plus"), "dianion": ("minus", "minus"), "dication": ("plus", "plus"),
+        "betaine": ("minus", "methyl"), "quat_dication": ("methyl", "plus"),
+    }[mode]
     out: list[Candidate] = []
     for first, second in pairs:
         count = 0
@@ -265,15 +276,15 @@ def verdict(mode: str, smiles: str, name: str | None, back: str | None, refusal:
         return "refused"
     if "NAMING ERROR" in name:
         return "naming_error"
-    if mode in ("anion", "dianion", "zwitterion") and not _ANION_WORD.search(name):
+    if mode in ("anion", "dianion", "zwitterion", "betaine") and not _ANION_WORD.search(name):
         return "no_anion_word"
-    if mode in ("cation", "quaternary", "dication", "zwitterion") and not _CATION_WORD.search(name):
+    if mode in ("cation", "quaternary", "dication", "zwitterion", "betaine", "quat_dication") and not _CATION_WORD.search(name):
         return "no_cation_word"
     if back is None:
         return "ok"           # names-only: nothing to compare
     if not back:
         return "unparsable"
-    if mode in ("zwitterion", "dianion", "dication"):
+    if mode in ("zwitterion", "dianion", "dication", "betaine", "quat_dication"):
         # Standard InChI normalises where a proton sits, so the same key is the same ion; a different charge count with the same skeleton is the compound with a charge lost.
         if _inchikey(back) == _inchikey(smiles):
             return "ok"
