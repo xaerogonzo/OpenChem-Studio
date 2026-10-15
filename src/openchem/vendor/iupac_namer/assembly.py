@@ -3496,13 +3496,19 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
                 ) or ""
                 # Singular -ium: "i" is a vowel -> drop terminal 'e' on stem.
                 # Multiplied -diium/-triium: leading consonant -> keep 'e'.
-                if not rc_mult:
-                    if parts[stem_idx].endswith("e"):
-                        parts[stem_idx] = parts[stem_idx][:-1]
+                # A curated ring whose NAME carries its ketone (`...pyrimidin-4-on`) takes the `ium` BEFORE that suffix, as in the standalone form (`...pyrimidin-1-ium-4-one`):
+                # `...-4-on-1-ium-2-yl` is unreadable (naming round 55).
+                _ketone_stem = re.search(r"-\d+(?:,\d+)*(?:\(\d+H\))?-(?:di|tri|tetra)?on$", parts[stem_idx]) if not rc_mult else None
+                if _ketone_stem is not None:
+                    parts[stem_idx] = parts[stem_idx][: _ketone_stem.start()] + f"-{rc_locant_str}-ium" + parts[stem_idx][_ketone_stem.start():]
                 else:
-                    if not parts[stem_idx].endswith("e"):
-                        parts[stem_idx] += "e"
-                parts.append(f"-{rc_locant_str}-{rc_mult}ium")
+                    if not rc_mult:
+                        if parts[stem_idx].endswith("e"):
+                            parts[stem_idx] = parts[stem_idx][:-1]
+                    else:
+                        if not parts[stem_idx].endswith("e"):
+                            parts[stem_idx] += "e"
+                    parts.append(f"-{rc_locant_str}-{rc_mult}ium")
             # P-31.1.2.1: when the parent's unsaturation is baked into the
             # stem (e.g. monocyclic ring "cyclohex-1-en"), tree.unsaturation
             # is empty but the substituent is still unsaturated.  Detect a

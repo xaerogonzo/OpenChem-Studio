@@ -78,7 +78,14 @@ CATION_SITES = {
     "nitrile_n": "[NX1]#C",
 }
 
-MODES = ("anion", "cation", "quaternary")
+MODES = ("anion", "cation", "quaternary", "zwitterion", "dianion", "dication")
+
+#: The pairs rounds 55 onward make (the multi-charge modes): which kinds of site go together. A zwitterion deprotonates an acid AND protonates a base in one molecule (a net-neutral ion,
+#: which the charge guard does not judge at all); a dianion deprotonates two different acid sites; a dication protonates two different base sites.
+ZWITTERION_ACIDS = ("carboxylic", "phenol", "sulfonic", "tetrazole", "imide", "acylsulfonamide")
+ZWITTERION_BASES = ("amine_primary", "amine_secondary", "amine_tertiary", "aniline", "aromatic_n", "azole_n", "amidine")
+DIANION_KINDS = ("carboxylic", "phenol", "sulfonic", "tetrazole", "imide", "sulfonamide", "thiol")
+DICATION_KINDS = ("amine_primary", "amine_secondary", "amine_tertiary", "aniline", "aromatic_n", "azole_n", "amidine")
 
 _ANION_WORD = re.compile(r"(?:(?<!am)(?<!im)(?<!sulfam)ide|ate|ite)(?![a-z])|ato|(?<!am)(?<!im)(?<!ure)(?<!sulfam)ido|\(\d*-\)|\d-id-")
 _CATION_WORD = re.compile(r"ium|onio|\(\d*\+\)")
@@ -112,6 +119,8 @@ def generate(mode: str, rows: list[dict], limit: int | None = None) -> list[Cand
     if mode not in MODES:
         raise ValueError(f"unknown mode {mode!r}; one of {MODES}")
     RDLogger.DisableLog("rdApp.*")
+    if mode in ("zwitterion", "dianion", "dication"):
+        return _generate_pairs(mode, rows, limit)
     sites = ANION_SITES if mode == "anion" else CATION_SITES
     out: list[Candidate] = []
     for kind, smarts in sites.items():
@@ -149,6 +158,61 @@ def generate(mode: str, rows: list[dict], limit: int | None = None) -> list[Cand
             if limit is not None and count > limit:
                 break
             out.append(Candidate(mode, kind, row.get("label", ""), Chem.MolToSmiles(rw), row["smiles"]))
+    return out
+
+
+def _apply_site(rw, idx: int, how: str) -> None:
+    """Deprotonate (`minus`) or protonate (`plus`) one atom of an editable molecule."""
+    atom = rw.GetAtomWithIdx(idx)
+    hydrogens = atom.GetTotalNumHs()
+    if how == "minus":
+        atom.SetFormalCharge(-1)
+        atom.SetNumExplicitHs(0)
+        atom.SetNoImplicit(False)
+    else:
+        atom.SetFormalCharge(1)
+        atom.SetNumExplicitHs(hydrogens + 1)
+        atom.SetNoImplicit(True)
+
+
+def _generate_pairs(mode: str, rows: list[dict], limit: int | None) -> list[Candidate]:
+    """Two sites changed in ONE molecule (rounds 55 on): an acid and a base (`zwitterion`), two acids (`dianion`), two bases (`dication`).
+
+    Each kind must occur exactly once in the molecule and the two sites must be different atoms, so the ion is the one a person would draw. One ion per molecule per pair of kinds."""
+    from itertools import combinations, product
+
+    from rdkit import Chem
+
+    if mode == "zwitterion":
+        pairs = list(product(ZWITTERION_ACIDS, ZWITTERION_BASES))
+    elif mode == "dianion":
+        pairs = list(combinations(DIANION_KINDS, 2))
+    else:
+        pairs = list(combinations(DICATION_KINDS, 2))
+    queries = {k: Chem.MolFromSmarts(s) for k, s in {**ANION_SITES, **CATION_SITES}.items()}
+    hows = ("minus", "plus") if mode == "zwitterion" else (("minus", "minus") if mode == "dianion" else ("plus", "plus"))
+    out: list[Candidate] = []
+    for first, second in pairs:
+        count = 0
+        for row in rows:
+            mol = Chem.MolFromSmiles(row["smiles"])
+            if not _usable(mol, row["smiles"]):
+                continue
+            hits_a = mol.GetSubstructMatches(queries[first])
+            hits_b = mol.GetSubstructMatches(queries[second])
+            if len(hits_a) != 1 or len(hits_b) != 1 or hits_a[0][0] == hits_b[0][0]:
+                continue
+            rw = Chem.RWMol(mol)
+            _apply_site(rw, hits_a[0][0], hows[0])
+            _apply_site(rw, hits_b[0][0], hows[1])
+            try:
+                Chem.SanitizeMol(rw)
+            except Exception:  # noqa: BLE001 - a pair that will not sanitise as an ion is not a candidate
+                continue
+            count += 1
+            if limit is not None and count > limit:
+                break
+            out.append(Candidate(mode, f"{first}+{second}", row.get("label", ""), Chem.MolToSmiles(rw), row["smiles"]))
     return out
 
 
@@ -201,14 +265,28 @@ def verdict(mode: str, smiles: str, name: str | None, back: str | None, refusal:
         return "refused"
     if "NAMING ERROR" in name:
         return "naming_error"
-    if mode == "anion" and not _ANION_WORD.search(name):
+    if mode in ("anion", "dianion", "zwitterion") and not _ANION_WORD.search(name):
         return "no_anion_word"
-    if mode != "anion" and not _CATION_WORD.search(name):
+    if mode in ("cation", "quaternary", "dication", "zwitterion") and not _CATION_WORD.search(name):
         return "no_cation_word"
     if back is None:
         return "ok"           # names-only: nothing to compare
     if not back:
         return "unparsable"
+    if mode in ("zwitterion", "dianion", "dication"):
+        # Standard InChI normalises where a proton sits, so the same key is the same ion; a different charge count with the same skeleton is the compound with a charge lost.
+        if _inchikey(back) == _inchikey(smiles):
+            return "ok"
+        if _inchikey(back, neutral=True) == _inchikey(smiles, neutral=True):
+            # OPSIN reads `-sulfonamidate` as the NEUTRAL sulfonamide (the single-anion mode compares on neutral connectivity for the same reason), so each one in the name
+            # accounts for one charge the read-back does not have.
+            from rdkit import Chem
+
+            lost = Chem.GetFormalCharge(Chem.MolFromSmiles(smiles)) - Chem.GetFormalCharge(Chem.MolFromSmiles(back))
+            if lost and lost == -name.count("sulfonamidate") or (lost and abs(lost) == name.count("sulfonamidate")):
+                return "ok"
+            return "charge_changed"
+        return "wrong"
     if mode == "anion":
         return "ok" if _inchikey(back, neutral=True) == _inchikey(smiles, neutral=True) else "wrong"
     if _inchikey(back) == _inchikey(smiles):

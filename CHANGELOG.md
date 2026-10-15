@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: three new ion populations (zwitterions, dianions, dications), and what they found
+- `tools/naming_ion_populations.py` now also changes TWO sites of one census molecule: `zwitterion` (an acid deprotonated and a base protonated), `dianion` and `dication`. A net-neutral ion was never judged
+  by the charge guard at all, which looked only at the net charge. It judges each polarity now (a bonded + and - pair, the isocyanide `[N+]#[C-]` or `[Cl+]([O-])O`, is one dipole and not two ions), so an
+  acylsulfonamide anion beside a thiazolium, named with the anion dropped, is refused (D-267). A cationic ring in a ring-nitrogen amide was `4-methylpiperazin-4-iume-1-carbonyl`, unreadable; it is
+  `4-ium-1-carbonyl` (D-265). A cationic curated ketone ring in a substituent put `ium` after the ketone (`...-4-on-1-ium-2-yl`); it goes before it (D-266).
+  Still open and recorded: two anions in one molecule where the second anion's prefix cannot be named, and a cationic ketone ring that also carries an aminium suffix.
+
 ### Naming: the limitations rounds 50 to 53 left open, and three silent wrong molecules found on the way
 - A thioamide N-prefix beside a second acid had its O and S swapped, `[hydroxy(thioxo)methyl]acetamido` (D-256); a prefix cut off a stereo centre lost its ring double bond because the centre's hydrogen left a
   radical, `acetyl(oxan-3-yl)azanide` for a dihydropyran (D-258); the CIP descriptor of the attachment atom of a prefix on an azanide was dropped (D-259). O-protonated and O-alkylated ureas are named,
