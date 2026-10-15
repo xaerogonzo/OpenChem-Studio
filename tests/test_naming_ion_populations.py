@@ -161,3 +161,9 @@ def test_round_52_cation_sites():
     assert _of_kind("cation", "CS(C)=O", "sulfoxide_o") == [_canon("CS(C)=[OH+]")]
     assert _of_kind("cation", "CP(C)C", "phosphine_p") == [_canon("C[PH+](C)C")]
     assert _of_kind("cation", "CC#N", "nitrile_n") == [_canon("CC#[NH+]")]
+
+
+def test_a_protonated_sulfoxide_and_its_sulfonium_drawing_are_one_ion():
+    """OPSIN reads `hydroxydi(methyl)sulfanium` as `O[S+](C)C`; the population draws `CS(C)=[OH+]`. InChI keeps them apart, the verdict must not (round 53)."""
+    assert pop.verdict("cation", "CS(C)=[OH+]", "hydroxydi(methyl)sulfanium", "O[S+](C)C") == "ok"
+    assert pop.verdict("cation", "CS(C)=[OH+]", "hydroxydi(methyl)sulfanium", "CS(C)=O") == "charge_changed"

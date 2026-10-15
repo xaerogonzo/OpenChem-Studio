@@ -5972,6 +5972,10 @@ def _name_single_fg_substituent(
                 rw.AddBond(attachment_idx, new_o_idx, Chem.BondType.SINGLE)
                 acid_mol = rw.GetMol()
                 Chem.SanitizeMol(acid_mol)
+                # A SECOND acid in the fragment makes the acid's name a diacid and `_acid_name_to_acyl` turns it into a DIACYL group (`4-propanedioylanilinium`: the free
+                # acid dropped, a different molecule; naming round 53, the sibling of D-250). Leave such a fragment to the generic substituent path, which writes the carboxy.
+                if len(acid_mol.GetSubstructMatches(Chem.MolFromSmarts("[$([CX3]=[O,S]),$([SX4](=O)=O)][OX2H1]"))) > 1:
+                    raise ValueError("a second acid in the acyl fragment")
                 acid_tree = name(
                     acid_mol, strategy, _standalone_or_cation(acid_mol),
                     decision_ctx=DecisionContext(
