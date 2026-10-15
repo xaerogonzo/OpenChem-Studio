@@ -18,9 +18,10 @@ Pure: no Qt, no chemistry.
 from __future__ import annotations
 
 import math
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import Enum
+from functools import lru_cache
 
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.report import ReportResult
@@ -203,18 +204,31 @@ def _evidence(name: str, output_id: str, read: OutputRead) -> InputEvidence:
     )
 
 
+#: A definition's parsed formula, kept: a project table asks for the same few formulas once per row, and a parse is not free. A definition that does not check raises, and
+#: an exception is never cached, so it is checked afresh each time and says the same thing.
+_computation = lru_cache(maxsize=512)(check_computation)
+
+
 def evaluate_score(definition: ScoreDefinition, entries: Sequence[ResultEntry]) -> ScoreValue:
-    """The value of `definition` for a molecule whose results are `entries`, or the reason there is none.
+    """The value of `definition` for a molecule whose results are `entries` (`turn_snapshot.classify_results`), or the reason there is none."""
+    return evaluate_score_with(definition, lambda output_id: read_output(output_id, entries))
+
+
+def evaluate_score_with(definition: ScoreDefinition, read: Callable[[str], OutputRead]) -> ScoreValue:
+    """The value of `definition` when `read(output_id)` says what each approved output has, or the reason there is none.
+
+    `read` is the only thing that differs between the places a score is shown: the Results reader reads a molecule's stored results (`read_output`), a project table
+    reads its own cells (`score_table.read_cell_output`). Everything after the reading is one rule.
 
     Three things can refuse, in order: the definition (it no longer checks: an output left the approved table, say), an input (it cannot be read), and
     the evaluation (a division by zero, a domain error, an overflow, any non-finite step). None of them returns a number.
     """
     try:
-        formula = check_computation(definition)
+        formula = _computation(definition)
     except FormulaError as exc:
         return ScoreValue(definition, ScoreStatus.REFUSED, None, definition.result_unit, f"the definition no longer checks: {exc.message}", (), "")
     shown = render(formula.tree)
-    evidence = tuple(_evidence(name, output_id, read_output(output_id, entries)) for name, output_id in definition.inputs)
+    evidence = tuple(_evidence(name, output_id, read(output_id)) for name, output_id in definition.inputs)
     unread = [item for item in evidence if item.state is not InputState.READ]
     if unread:
         reason = "; ".join(f"{item.name} ({item.output_id}): {item.note}" for item in unread)

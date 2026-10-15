@@ -40,6 +40,7 @@ from PySide6.QtWidgets import (
 from openchem.domain.batch import BatchRequest, BatchResultStore
 from openchem.domain.execution_plan import ExecutionPlan
 from openchem.events.base import EventBus
+from openchem.events.events import ScoreDefinitionsChanged
 from openchem.services.batch_service import BatchProgress
 from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.table_export_service import TableExportService
@@ -88,6 +89,7 @@ class ResultsWorkspace(QWidget):
         on_screen=None,
         batch_service=None,
         parent: QWidget | None = None,
+        score_definitions=None,
     ) -> None:
         super().__init__(parent)
         self._batch_service = batch_service
@@ -110,6 +112,7 @@ class ResultsWorkspace(QWidget):
             on_analyse=on_analyse,
             on_screen=on_screen,
             show_cancel=True,
+            score_definitions=score_definitions,
         )
         self._table_view.details_requested.connect(self._on_details_requested)
         self._table_view.cancel_requested.connect(self._on_cancel_requested)
@@ -144,6 +147,11 @@ class ResultsWorkspace(QWidget):
         layout.addWidget(self._stack, 1)
 
         event_bus.subscribe(BatchProgress, self._on_progress)
+        event_bus.subscribe(ScoreDefinitionsChanged, self._on_score_definitions_changed)
+
+    def _on_score_definitions_changed(self, _event) -> None:
+        """A score was defined, edited or removed: the table's score columns follow, without a second run."""
+        self._table_view.refresh_scores()
 
     # -- the two pages -------------------------------------------------------
 

@@ -137,6 +137,11 @@ class ScoreService:
         for forbidden in ("schema_version", "created"):
             if forbidden in fields:
                 raise ValueError(f"{forbidden} cannot be changed")
+        # The same shapes `create` makes: a definition is hashable (the parsed-formula cache keys on it) and equal to one read back from a file.
+        if "inputs" in fields:
+            fields["inputs"] = tuple((str(name), str(output_id)) for name, output_id in fields["inputs"])
+        if "constants" in fields:
+            fields["constants"] = tuple(fields["constants"])
         changed = replace(current, **fields)
         self.check(changed)
         self.store.replace(changed)

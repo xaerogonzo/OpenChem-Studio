@@ -23,7 +23,7 @@ from dataclasses import dataclass
 from openchem.domain.score_constants import Constant
 from openchem.domain.score_definition import SCHEMA_VERSION, ScoreDefinition, check_score_definition
 from openchem.domain.score_formula import FUNCTIONS, FormulaError, Problem, infer_unit
-from openchem.domain.score_outputs import APPROVED, ENDPOINTS, check_inputs
+from openchem.domain.score_outputs import APPROVED, ENDPOINTS, check_inputs, output_title
 
 #: The id a draft has before it is saved. Never stored: the service makes the real one from the label.
 DRAFT_ID = "user.draft"
@@ -215,11 +215,6 @@ class OutputChoice:
     endpoint: str
 
 
-def _title_of(output_id: str) -> str:
-    kind, _, rest = output_id.partition(":")
-    return rest if kind == "descriptor" else rest.partition(":")[2]
-
-
 def _slug(text: str) -> str:
     # NFKD first, so a subscript two is a two: "CO₂ basis" and "CO basis" must not become the same suggested name.
     folded = unicodedata.normalize("NFKD", text).casefold()
@@ -233,7 +228,7 @@ def output_choices() -> tuple[OutputChoice, ...]:
     """The approved table as a picker's entries, sorted by what they are called."""
     choices = []
     for entry in APPROVED:
-        title = _title_of(entry.output_id)
+        title = output_title(entry.output_id)
         # A title that already says its unit ("Predicted intrinsic solubility (mol/L)") is not given it twice.
         unit = f" ({entry.unit})" if entry.unit != "1" and f"({entry.unit})" not in title else ""
         choices.append(
@@ -251,7 +246,7 @@ def output_choices() -> tuple[OutputChoice, ...]:
 def suggest_name(output_id: str, taken: Iterable[str]) -> str:
     """A name for a new input reading `output_id`: valid as an input name, not a function, and not in `taken`."""
     taken_names = set(taken) | set(FUNCTIONS)
-    base = _slug(_title_of(output_id))
+    base = _slug(output_title(output_id))
     candidate, number = base, 2
     while candidate in taken_names:
         candidate = f"{base}_{number}"

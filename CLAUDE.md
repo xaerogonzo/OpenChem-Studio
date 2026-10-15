@@ -288,6 +288,13 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           save/revert/delete/new (a disabled button is logged, not pressed), `confirm` answers its two questions;
                                           `expect` reads the window (message, `where`, fields outlined as `marked`, `pointer_column` of the caret, preview, buttons, list) and the project
                                           (definitions stored, unsaved, listed in Results); `shot` takes "widget": "scores"
+    {"do": "table_scores", "export_csv": "C:/tmp/table.csv", "expect": {"columns": ["Polar window (user-defined, unvalidated)"], "note": "",
+     "grid": {"Aspirin": {"Polar window": "0.955"}}, "tooltips": {"Aspirin": {"Polar window": ["Inputs: psa = 63.6"]}},
+     "column_tooltips": {"Polar window": ["Formula:"]}, "csv_header_contains": ["Polar window"], "csv_cells": {"Aspirin": {"Polar window": 0.955}}}}
+                                          the user-defined SCORES in the Results dock's project table, read off the grid a person looks at (the exact score
+                                          headers in order, the note under the status, what a cell SHOWS, tooltips) and off the file the REAL "Export CSV"
+                                          button writes (the file dialog answered); pair it with `project_run` and `expect_project_table`; `shot` takes
+                                          "widget": "project_table"
     {"do": "qc_wait", "timeout_ms": 600000}   hold the script until the Quantum Chemistry service has no job running (give up = an
                                           ERROR); use it after `qc_run` instead of guessing an `after_ms` for a job of unknown length
     {"do": "lewis_gate_begin"}  {"do": "lewis_gate_floor", "a": -2, "b": -1}  {"do": "lewis_gate_pair", "bh3": -3, "bf3": -2, "co": -1}
