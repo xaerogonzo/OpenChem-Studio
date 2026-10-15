@@ -489,6 +489,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round57_acyl_azanide_prefixes_and_second_cations.py"
+why = "an acylsulfonamide anion beside a cation (D-271), a sulfonamide or amide anion cited as an (azanidyl)sulfonyl / (azanidyl)carbonyl prefix (D-272), a protonated amidoxime beside a second cation (D-273: hydroxyazaniumylidene) and an O-protonated acylurea (D-274)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round56_two_anions_and_ion_counts.py"
 why = "an anionic nitrogen as a prefix beside a second anion (D-268: 4-(acetylazanidyl)benzen-1-olate), the charge guard that counts centres (D-269) and a ketone ring cation with a cation suffix (D-270)"
 scope = "core"

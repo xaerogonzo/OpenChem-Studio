@@ -4423,6 +4423,17 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-270", "Cc1ccc2[nH+]c([NH3+])cc(=O)n2c1", "7-methyl-4-oxo-4H-pyrido[1,2-a]pyrimidin-1-ium-2-aminium",
      "7-methyl-4H-pyrido[1,2-a]pyrimidin-4-on-1-ium-2-aminium",
      "UNREADABLE AS WRITTEN: the cation suffix outranks the curated ring's ketone, which is the prefix oxo"),
+    # D-271 .. D-274 (naming round 57): an acylsulfonamide anion beside a cation, a sulfonamide/amide anion cited as a prefix, a protonated amidoxime beside a second cation, an O-protonated acylurea.
+    ("D-271", "NC(=O)[N-]S(=O)(=O)c1ccc(-c2[nH+]ccs2)cc1", "carbamoyl[4-(1,3-thiazol-3-ium-2-yl)benzene-1-sulfonyl]azanide",
+     "[REFUSED: no name found that keeps the negative charge (the nearest name, '2-[4-(N-carbamoylsulfamoyl)phenyl]-1,3-thiazol-3-ium', names only the cation)]",
+     "a visible refusal; the cation took the parent and the sulfonamide became a charge-free sulfamoyl prefix"),
+    ("D-272", "NC(=O)[N-]S(=O)(=O)c1ccc([O-])cc1", "4-[(carbamoylazanidyl)sulfonyl]benzen-1-olate",
+     "[REFUSED: no name found that keeps every negative charge (the nearest name has fewer anion words than the molecule has anions)]",
+     "a visible refusal; the sulfonamide anion's charge was dropped from the sulfamoyl prefix"),
+    ("D-273", "O[NH+]=C(c1ncc(C(F)(F)F)cc1Cl)N1CC[NH+](Cc2ccccc2)CC1",
+     "1-benzyl-4-{[3-chloro-5-(trifluoromethyl)pyridin-2-yl](hydroxyazaniumylidene)methyl}piperazin-1-ium",
+     "[REFUSED: no name found that keeps every positive charge (the nearest name has a neutral hydroxyimino)]",
+     "a visible refusal; one of two cations was written as a neutral hydroxyimino prefix"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",
