@@ -59,7 +59,7 @@ class _FakeHost:
 
 def test_the_handle_offers_exactly_these_calls_and_none_that_approve():
     public = {name for name in dir(PluginCalculations) if not name.startswith("_")}
-    assert public == {"available", "begin_turn", "catalog", "describe", "goals", "read_results", "read_scores", "prepare", "run"}
+    assert public == {"available", "begin_turn", "catalog", "describe", "goals", "read_results", "read_scores", "list_score_outputs", "propose_score", "prepare", "run"}
 
 
 def test_the_handle_does_not_hand_out_the_host():
@@ -206,7 +206,10 @@ class _FakeApprovalHost(QObject):
 
 def test_the_approvals_face_offers_exactly_these_calls():
     public = {name for name in dir(PluginCalculationApprovals) if not name.startswith("_")}
-    assert public == {"available", "pending", "approve", "cancel", "state_of", "outcome_of", "on_finished"}
+    assert public == {
+        "available", "pending", "approve", "cancel", "state_of", "outcome_of", "on_finished",
+        "pending_scores", "approve_score", "cancel_score", "score_state_of", "score_outcome_of", "on_score_finished",
+    }
 
 
 def test_with_no_host_nothing_is_pending_and_no_decision_does_anything():

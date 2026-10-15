@@ -8243,12 +8243,22 @@ class _Driver(QObject):
         panel._send_button.click()
 
     def _do_ai_card(self, step: dict[str, Any]) -> None:
-        """`{"do": "ai_card", "action": "approve" | "cancel" | "open" | "dismiss"}` -- press a REAL button on the
-        first preview card the assistant is showing."""
+        """`{"do": "ai_card", "action": "approve" | "cancel" | "open" | "dismiss", "card": "score"}` -- press a REAL button on the
+        first preview card the assistant is showing; `"card": "score"` means a score the assistant PROPOSED, whose Approve is the only way it is saved."""
         panel = self._ai_panel()
         if panel is None:
             return
         action = str(step["action"])
+        if step.get("card") == "score":
+            cards = list(panel._score_cards.values())
+            button = None
+            if cards and action in ("approve", "cancel"):
+                button = cards[0].approve_button if action == "approve" else cards[0].cancel_button
+            if button is None:
+                logger.error("OPENCHEM_DRIVE: ai_card score %s -- no such card is showing", action)
+                return
+            button.click()
+            return
         if action in ("approve", "cancel"):
             cards = list(panel._cards.values())
             button = None
@@ -8272,7 +8282,9 @@ class _Driver(QObject):
         (substrings of what the tools returned to the model), `tool_results_exclude` (substrings that
         must NOT be in anything a tool returned: a person's free text that was never to leave), `tools_offered` (names the provider was
         given on its first request), `transcript_contains`, `notes` (how many previews' outcomes wait for
-        the next message), `send_enabled`, `panel_visible` (a dock's objectName that must be showing).
+        the next message), `send_enabled`, `panel_visible` (a dock's objectName that must be showing), `score_proposals` (proposed-score cards waiting),
+        `scores_stored` (scores in the project), `scores_owner` (the owners stored, in order) and `sent_contains` (substrings of everything sent to the
+        provider, notes included).
         """
         panel = self._ai_panel()
         expect = dict(step.get("expect") or {})
@@ -8315,6 +8327,17 @@ class _Driver(QObject):
                 missing = [name for name in expect["tools_offered"] if name not in offered]
                 if missing:
                     problems.append(f"tools not offered: {missing} (offered {offered})")
+            if "score_proposals" in expect and len(panel.pending_score_ids()) != expect["score_proposals"]:
+                problems.append(f"{len(panel.pending_score_ids())} proposed scores waiting, wanted {expect['score_proposals']}")
+            stored_scores = self._window._services.score_service.store.definitions()
+            if "scores_stored" in expect and len(stored_scores) != expect["scores_stored"]:
+                problems.append(f"{len(stored_scores)} scores stored, wanted {expect['scores_stored']}")
+            if "scores_owner" in expect and [d.owner for d in stored_scores] != list(expect["scores_owner"]):
+                problems.append(f"the stored scores' owners are {[d.owner for d in stored_scores]}, wanted {list(expect['scores_owner'])}")
+            sent = "\n".join(message.content for request, _tools in (provider.requests if provider else []) for message in request.messages)
+            for needle in expect.get("sent_contains", []):
+                if needle not in sent:
+                    problems.append(f"nothing sent to the provider contained {needle!r}")
             if "panel_visible" in expect:
                 dock = self._dock(str(expect["panel_visible"]))
                 if dock is None or not dock.isVisible():

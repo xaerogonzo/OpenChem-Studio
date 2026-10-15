@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
 
 from openchem.domain.result_envelope import outcome_envelope
 from openchem.domain.run_lifecycle import RunOutcome, RunState
+from openchem.domain.score_proposal import ProposalOutcome, ProposalState
 from openchem.plugins.async_task import run_async
 from openchem.plugins.context import PluginContext
 
@@ -61,7 +62,8 @@ SYSTEM_PROMPT_PREFIX = (
     "list_goals says which calculators the application itself pairs with a common question (identity, charge, "
     "solubility, shape ...) and why, and is editorial rather than a validated protocol; "
     "read_results returns what has already been computed; read_scores returns the user's own score formulas worked out for "
-    "this molecule (formulas a person wrote, not predictions, and not something you can create or change); run_calculator runs one. A run you request is recorded in "
+    "this molecule (formulas a person wrote, not predictions); list_score_outputs and propose_score let you suggest a new one, which exists only if the person approves a card "
+    "that you cannot approve for them; run_calculator runs one. A run you request is recorded in "
     "the user's project and appears in their Results like one they ran themselves, so run only what the question "
     "needs. Some calculators need the user to approve a preview first: tell them it is waiting for their approval, "
     "do not ask again, and never imply you approved or started it.\n\n"
@@ -83,6 +85,15 @@ _STATE_LABELS = {
     "invalidated": "withdrawn",
     "rejected": "not started",
     "timed_out": "still running",
+}
+
+
+#: What the ledger says about a proposed score once it is decided, in the user's terms.
+_SCORE_LABELS = {
+    ProposalState.SAVED: "saved after you approved it",
+    ProposalState.CANCELLED: "cancelled; nothing was saved",
+    ProposalState.VOID: "not saved: the project changed",
+    ProposalState.FAILED: "approved but could not be saved",
 }
 
 
@@ -145,6 +156,61 @@ class _PreviewCard(QFrame):
 
     def _on_cancel(self, _checked: bool = False) -> None:
         self.cancel_clicked.emit(self.run_id)
+
+
+class _ScoreCard(QFrame):
+    """A score the assistant proposed. Approve and Cancel are the ONLY way it is ever saved, and a model has no call that presses either.
+
+    The card is drawn from the DEFINITION the application checked (`score_proposal.card_of`), as plain text: a label, a formula or a note a model wrote is shown as written and never read as
+    markup. What the person approves is exactly what is stored.
+    """
+
+    approve_clicked = Signal(str)
+    cancel_clicked = Signal(str)
+
+    def __init__(self, card: dict, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.proposal_id: str = str(card.get("proposal_id", ""))
+        self.setObjectName("AIScoreCard")
+        self.setFrameShape(QFrame.Shape.StyledPanel)
+        title = QLabel("Save this score?", self)
+        font = title.font()
+        font.setBold(True)
+        title.setFont(font)
+        title.setTextFormat(Qt.TextFormat.PlainText)
+        lines = [str(card.get("label", "")), f"Formula: {card.get('formula', '')}"]
+        lines.extend(f"  {line}" for line in card.get("inputs", []))
+        lines.extend(f"  {line}" for line in card.get("constants", []))
+        lines.append(f"Declared unit: {card.get('declared_unit', '')}")
+        lines.append(str(card.get("preview", "")))
+        if card.get("note"):
+            lines.append(f"Note: {card['note']}")
+        lines.append(f"Proposed by the assistant. Nothing is saved unless you approve; it will be saved with the owner \"{card.get('owner', '')}\".")
+        self.body = QLabel("\n".join(lines), self)
+        self.body.setObjectName("AIScoreCardBody")
+        self.body.setTextFormat(Qt.TextFormat.PlainText)
+        self.body.setWordWrap(True)
+        self.body.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.approve_button = QPushButton("Approve", self)
+        self.approve_button.setObjectName("AIScoreApprove")
+        self.cancel_button = QPushButton("Cancel", self)
+        self.cancel_button.setObjectName("AIScoreCancel")
+        self.approve_button.clicked.connect(self._on_approve)
+        self.cancel_button.clicked.connect(self._on_cancel)
+        buttons = QHBoxLayout()
+        buttons.addStretch()
+        buttons.addWidget(self.approve_button)
+        buttons.addWidget(self.cancel_button)
+        layout = QVBoxLayout(self)
+        layout.addWidget(title)
+        layout.addWidget(self.body)
+        layout.addLayout(buttons)
+
+    def _on_approve(self, _checked: bool = False) -> None:
+        self.approve_clicked.emit(self.proposal_id)
+
+    def _on_cancel(self, _checked: bool = False) -> None:
+        self.cancel_clicked.emit(self.proposal_id)
 
 
 class _ServiceCard(QFrame):
@@ -300,6 +366,8 @@ class AIAssistantPanel(QWidget):
         self._awaiting: set[str] = set()
         #: what happened to a preview since the last message, held to go with the next one.
         self._notes: list[str] = []
+        #: proposal id -> the card on screen for a score the assistant proposed.
+        self._score_cards: dict[str, _ScoreCard] = {}
         self._cards: dict[str, _PreviewCard] = {}
         self._service_cards: dict[str, _ServiceCard] = {}
         self._service_count = 0
@@ -385,6 +453,7 @@ class AIAssistantPanel(QWidget):
         self._refresh_setup_hint()
         self._refresh_privacy()
         context.calculation_approvals.on_finished(self._on_run_finished)
+        context.calculation_approvals.on_score_finished(self._on_score_finished)
 
     def prefill_and_focus(self, text: str) -> None:
         self._input.setPlainText(text)
@@ -603,6 +672,9 @@ class AIAssistantPanel(QWidget):
         if event.kind == "service_preview":
             self._add_service_card(event)
             return
+        if event.kind == "score_proposed":
+            self._add_score_card(event)
+            return
         self._runs[event.run_id] = (event.calculator, event.molecule)
         if event.kind == "previewed":
             self._awaiting.add(event.run_id)
@@ -642,7 +714,11 @@ class AIAssistantPanel(QWidget):
             self._cards_layout.removeWidget(card)
             card.setParent(None)
             card.deleteLater()
-        self._cards_host.setVisible(bool(self._cards or self._service_cards))
+        self._sync_cards_host()
+
+    def _sync_cards_host(self) -> None:
+        """The strip of cards is there while any card is: a run's preview, a service-run description or a proposed score."""
+        self._cards_host.setVisible(bool(self._cards or self._service_cards or self._score_cards))
 
     def service_preview_keys(self) -> list[str]:
         """Service-run previews on screen."""
@@ -662,7 +738,63 @@ class AIAssistantPanel(QWidget):
             self._cards_layout.removeWidget(card)
             card.setParent(None)
             card.deleteLater()
-        self._cards_host.setVisible(bool(self._cards or self._service_cards))
+        self._sync_cards_host()
+
+    # --- a score the assistant proposed ------------------------------------------------------------------
+
+    def _add_score_card(self, event: BridgeEvent) -> None:
+        """A tool left a proposed score for the user. GUI thread: it arrived through a queued signal."""
+        if event.run_id in self._score_cards:
+            return  # already on screen: a second card for one proposal would be one the person could press twice
+        card = _ScoreCard(event.preparation, self._cards_host)
+        card.approve_clicked.connect(self._on_score_approve)
+        card.cancel_clicked.connect(self._on_score_cancel)
+        self._score_cards[event.run_id] = card
+        self._cards_layout.addWidget(card)
+        self._cards_host.setVisible(True)
+        self._set_ledger(event.run_id, self._ledger_text(event.calculator, event.molecule, "waiting for your approval"))
+
+    def _remove_score_card(self, proposal_id: str) -> None:
+        card = self._score_cards.pop(proposal_id, None)
+        if card is not None:
+            self._cards_layout.removeWidget(card)
+            card.setParent(None)
+            card.deleteLater()
+        self._sync_cards_host()
+
+    def pending_score_ids(self) -> list[str]:
+        """Proposed scores on screen waiting for a decision."""
+        return list(self._score_cards)
+
+    def _on_score_approve(self, proposal_id: str) -> None:
+        """The user pressed Approve on a proposed score. The only path by which one is ever saved."""
+        self._remove_score_card(proposal_id)
+        self._context.calculation_approvals.approve_score(proposal_id)
+
+    def _on_score_cancel(self, proposal_id: str) -> None:
+        self._remove_score_card(proposal_id)
+        self._context.calculation_approvals.cancel_score(proposal_id)
+
+    def _on_score_finished(self, outcome: ProposalOutcome) -> None:
+        """A proposed score was decided (the host announces each once). GUI thread."""
+        self._remove_score_card(outcome.proposal_id)
+        label = _SCORE_LABELS.get(outcome.state, outcome.state.value)
+        detail = outcome.message if outcome.state not in (ProposalState.SAVED, ProposalState.CANCELLED) else ""
+        self._set_ledger(outcome.proposal_id, self._ledger_text(f"score {outcome.label!r}", outcome.molecule_name, label, detail))
+        self._append_transcript("Application", f"Score {outcome.label!r}: {label}.")
+        self._notes.append(self._score_note_for(outcome))
+
+    @staticmethod
+    def _score_note_for(outcome: ProposalOutcome) -> str:
+        """What the model is told, with the next message, about a score it proposed: the application's own words, not a paraphrase."""
+        head = f"[Application note] The score you proposed, {outcome.label!r}"
+        if outcome.state is ProposalState.SAVED:
+            return f"{head}, was saved after the user approved it (id {outcome.score_id}). You can read its value for the selected molecule with read_scores."
+        if outcome.state is ProposalState.CANCELLED:
+            return f"{head}, was cancelled by the user. Nothing was saved."
+        if outcome.state is ProposalState.VOID:
+            return f"{head}, could not be saved because the project changed. Nothing was saved."
+        return f"{head}, was approved but could not be saved ({outcome.message}). Nothing was saved."
 
     def pending_run_ids(self) -> list[str]:
         """Previews on screen waiting for a decision."""
