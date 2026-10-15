@@ -120,7 +120,7 @@ jobs:
       # problem is local, are destroyed.
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4]
     # 30 WAS NOT A CEILING, IT WAS A COIN FLIP -- measured across five
     # consecutive runs, four of them on unmodified master:
     #
@@ -177,6 +177,20 @@ jobs:
     # balanced to 32 s, so MOVING FILES COULD NOT HAVE FIXED IT: the sum was the problem. Three shards carry the same
     # ~3500 s at ~1170 s each (65%). The count is not written here or in the script: `-Splits ${{ strategy.job-total }}`
     # is the size of this matrix, and `tests/test_suite_shards.py` asserts the pin table for that size exists.
+    #
+    # **FOUR SHARDS SINCE 2026-10-14, THE SAME SENTENCE FOLLOWED AGAIN, FOR A DIFFERENT REASON: THE RUNNER, NOT THE
+    # SUITE.** On 2026-10-14 shard 3 hit this step's 30 minutes with no test failing on master's own push (`445de7e`) and on
+    # two pull requests, and shard 1 did on a later run of one of them. The same day master's run of `84469fd` took 20.0
+    # minutes on shard 3 while a pull request's merge of that commit took 30.8, over the same files. The tell is the FIRST 10% of the tests, which
+    # are identical in every run: 2.9 minutes on the fast runner and 4.2 to 4.7 on the slow ones, and the ratio held to 90%
+    # of the run, about 1.5x throughout. A shard sized for a fast runner does not fit on a slow one, whoever's change it is.
+    # The three shards of the base commit cost 1638 / 1536 / 1624 s (reported test time plus the gc hook; 4798 s in all,
+    # where the committed weights had said 3438 because 103 of the 580 files had no measured weight). With the weights
+    # rebuilt from that run's JUnit the model is within 7% of each of those shards (a fit to the run it came from), and
+    # four shards carry 4859 s modelled at 1215 s each: about 21 minutes with the ~30 s fixed cost at that run's speed
+    # (69% of this 30), about 80% on a runner 1.15x slower, against 91% to over 100% of the step for three (1638 s and
+    # 1792 s of 1800 were measured). The required checks are matched by exact job name, so this matrix and the master
+    # ruleset (`test suite 1/4` ... `4/4`) change together; see the pull request.
     #
     # THE SPLIT WAS BALANCED ON WALL TIME, NOT ON THE TIME TESTS REPORT. A shard's wall time is its tests + the
     # `gc.collect()` after each Qt test + ~30 s, to the second in both shards of both runs read; the weights modelled
