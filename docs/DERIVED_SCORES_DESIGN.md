@@ -120,6 +120,10 @@ different symbols. Then:
 
 **There are no implicit conversions.** A conversion between two symbols is a named, tested entry in one table, with
 the constant and its source; the table starts empty and an entry is added when an approved output needs one.
+**Measured 2026-10-15 (slice 4b): none does, so the table is still empty.** The 21 approved outputs carry six units (`1`, `%`, `g/mol`, `Å^2`, `mg/mL`, `mol/L`). Every unit is carried by outputs that measure
+one quantity, except the solubility, which is offered in two: `mg/mL` and `mol/L`, both of the one endpoint `aqueous_solubility_intrinsic`. A formula cannot name both (two inputs of one endpoint are refused as
+consensus), and a conversion between them needs the molecule's molar mass, which is not a constant a table can hold. So a conversion would be built for no formula anybody can write. `tests/test_score_outputs.py` pins
+this: every unit must say what it measures, and a quantity offered in two units by outputs of different endpoints turns it red, which is the moment to add an entry (or to say in writing why not).
 
 **Named constants are the strict alternative to a bare number.** A bare number adopts the unit of what it is combined with; a constant is a name with a declared unit, so it adopts nothing, a threshold in the wrong unit is
 refused, and a logarithm of a dimensioned quantity is writable by dividing by a constant that carries the unit (`log10(mw / one)` with `one = 1 g/mol`).
@@ -409,8 +413,9 @@ A driven run follows the UI slice, builds its own state, and ends in a verdict.
    * **Not here, deliberately:** a score in `read_results` (it is not a stored result), the assistant making or changing a definition, a tool that runs the calculators a score is waiting on (it has `run_calculator` already,
      under the execution policy that decides whether a person approves first).
 
-4. **Later, each its own review**: assistant-authored definitions, if ever; any second `on_missing` policy; any
-   conversion entry.
+   **4b, a conversion entry: measured, not built** (section 4). No approved output needs one, and the guard that says when one does is in `tests/test_score_outputs.py`.
+
+4. **Later, each its own review**: assistant-authored definitions, if ever; any second `on_missing` policy.
 
 ## 12. Decisions most worth challenging
 

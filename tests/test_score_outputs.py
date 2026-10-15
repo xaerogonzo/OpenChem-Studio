@@ -139,6 +139,47 @@ def test_the_unit_of_every_approved_output_is_exactly_this():
     assert {entry.output_id: entry.unit for entry in APPROVED} == _UNITS
 
 
+#: What each unit the approved outputs carry MEASURES. A new unit has to be classified here, which is the moment someone must decide whether the table needs a conversion entry
+#: (`docs/DERIVED_SCORES_DESIGN.md`, "4b: no conversion"): the unit system converts nothing, so a quantity offered in two units by outputs a formula could combine is a formula
+#: that is refused for a reason no person can see from the formula.
+_QUANTITY = {
+    "1": "a plain number",
+    "%": "a percentage",
+    "g/mol": "molar mass",
+    "Å^2": "an area",
+    "mg/mL": "a solubility",
+    "mol/L": "a solubility",
+}
+
+
+def test_every_unit_the_approved_outputs_carry_says_what_it_measures():
+    unclassified = sorted({entry.unit for entry in APPROVED} - set(_QUANTITY))
+    assert not unclassified, f"{unclassified} are new units: say what each measures in _QUANTITY, then decide whether a conversion entry is needed (design record, 4b)"
+
+
+def test_no_quantity_is_offered_in_two_units_by_outputs_a_formula_could_combine():
+    """The measured reason the conversion table is still empty: the one quantity offered in two units is the solubility, and both of its outputs are one endpoint, so
+    a formula cannot name both (consensus is refused) and a conversion between them would need the molecule's molar mass, which is not a constant a table can hold."""
+    units_by_quantity: dict[str, dict[str, set[str]]] = {}
+    for entry in APPROVED:
+        units_by_quantity.setdefault(_QUANTITY[entry.unit], {}).setdefault(entry.unit, set()).add(entry.endpoint)
+    offenders = {}
+    for quantity, by_unit in units_by_quantity.items():
+        if len(by_unit) < 2:
+            continue
+        endpoints = set().union(*by_unit.values())
+        if len(endpoints) > 1:
+            offenders[quantity] = {unit: sorted(tags) for unit, tags in by_unit.items()}
+    assert not offenders, f"outputs of different endpoints offer one quantity in two units, so a formula could combine them and the unit check would refuse it: {offenders}. Add a conversion entry, or say why not"
+    assert units_by_quantity["a solubility"] == {"mg/mL": {"aqueous_solubility_intrinsic"}, "mol/L": {"aqueous_solubility_intrinsic"}}
+
+
+def test_the_two_solubility_outputs_cannot_be_combined_and_so_need_no_conversion():
+    with pytest.raises(FormulaError) as refused:
+        check_inputs([("a", "calculator:solubility:Predicted intrinsic solubility (mg/mL)"), ("b", "calculator:solubility:Predicted intrinsic solubility (mol/L)")])
+    assert refused.value.problem is Problem.CONSENSUS
+
+
 # --- an output that is not approved is refused ------------------------------------------------------------------------------
 
 
