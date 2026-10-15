@@ -489,6 +489,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round55_multi_charge_ions.py"
+why = "what the multi-charge populations found: a cationic ring in a ring-N amide (D-265), the ium before a curated ketone suffix in a substituent (D-266), and the per-polarity charge guard for net-neutral ions (D-267)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round54_open_limitations.py"
 why = "the limitations rounds 50 to 53 left open: a thioamide beside an acid (D-256), an O-protonated urea (D-257), a cut stereo centre (D-258), attachment stereo (D-259), lactam anion infix (D-260), amidinium beside acids (D-261), oximate (D-262), double oxo claim (D-263), an anion beside a cation (D-264)"
 scope = "core"

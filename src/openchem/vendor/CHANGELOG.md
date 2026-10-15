@@ -2525,6 +2525,23 @@ what can be verified.
   `tests/test_namer_known_defects.py`. Three earlier tests pinned refusals this round turned into names and now pin the cases still refused: a carboxylate beside two neutral acids
   (`test_namer_round43_*`, `test_namer_round45_*`) and a pyrazolone anion (`test_namer_round46_*`).
 
+## 2026-10-15 -- naming round 55: three multi-charge ion populations, and the charge guard learns polarity (D-265, D-266, D-267)
+
+Every earlier population changed ONE site, so an ion with two charges was reachable only by accident, and the charge guard judged the NET charge, which a zwitterion does not have. `tools/naming_ion_populations.py`
+gained `zwitterion` (one acid site deprotonated and one base site protonated: 89 ions), `dianion` (two different acid sites: 18) and `dication` (two base sites: 171).
+
+* **D-267.** The first run: an acylsulfonamide anion beside a thiazolium (`...S(=O)(=O)[N-]C(N)=O...[nH+]...`) was named `4-(N-carbamoylsulfamoyl)phenyl...thiazol-3-ium`: the anion dropped, the cation kept, a net-neutral
+  name for a net-neutral molecule, so nothing judged it. `_check_charge_named` asks each polarity of a molecule that has both: the anion needs an anion word and the cation a cation word. A positive and a negative on
+  BONDED atoms are one neutral dipole (an isocyanide, `Cl(=O)O` drawn `[Cl+]([O-])O`, an ylide) and count for neither: the first version of this guard did not know that and failed 33 vendored tests.
+* **D-265.** `_ring_nitrogen_acyl` turns a ring group's name `...-1-yl` into `...e-1-carbonyl` ("piperidine-1-carbonyl"); for a cationic ring the stem ends in the `ium` infix, and the `e` landed after it:
+  `4-methylpiperazin-4-iume-1-carbonyl`, which OPSIN cannot read. No `e` follows `ium`.
+* **D-266.** A curated ring whose name carries its ketone (`pyrido[1,2-a]pyrimidin-4-on`), cationic, as a SUBSTITUENT: the assembly appended `-1-ium` after the ketone, `...-4-on-1-ium-2-yl`. The standalone
+  form has it before (`...-1-ium-4-one`); the substituent form takes the same order.
+* The population tool's dianion verdict allows for OPSIN reading `-sulfonamidate` as the neutral sulfonamide (each one in a name accounts for one charge the read-back lacks).
+* **Measured.** The zwitterion population: 88 of 89 ok, the one refusal the D-267 case. Dianions and dications are listed in the final numbers below. Every new name reads back through OPSIN. 5 of 6 live mutants
+  killed; the survivor (two kinds hitting the same atom) is dead protective code for today's site lists, which no pair overlaps.
+* New `tests/test_namer_round55_multi_charge_ions.py`; seven tests for the new modes in `tests/test_naming_ion_populations.py`. D-265 and D-266 in the fixed table of `tests/test_namer_known_defects.py`.
+
 ## 2026-10-15 -- naming round 54: the limitations rounds 50 to 53 left open (D-256 .. D-264)
 
 Round 53's open list, all of it: the ureas, the lactam and pyrazolone anions, the amidinium beside acids, the oxime anion, the strict-ownership double claim, an anion beside another charge, and an audit of

@@ -4405,6 +4405,14 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-264", "CC(=O)[N-]c1ccc(cc1)C[NH3+]", "acetyl[4-(azaniumylmethyl)phenyl]azanide",
      "[(4-{[NAMING ERROR: No valid naming plan found for CC([NH-])=O]}phenyl)methyl]azanium",
      "a visible error; an amide anion beside a cation was claimed by no classifier"),
+    # D-265, D-266 (naming round 55): a cationic ring in a ring-nitrogen amide, and a cationic curated ketone ring as a substituent. D-267 (the per-polarity charge guard) is a refusal and has no target name.
+    ("D-265", "[NH3+]c1ccccc1C(=O)N1CC[NH+](C)CC1", "2-(4-methylpiperazin-4-ium-1-carbonyl)benzen-1-aminium",
+     "2-(4-methylpiperazin-4-iume-1-carbonyl)benzen-1-aminium",
+     "UNREADABLE AS WRITTEN: the acyl-prefix builder put the `e` after the ring cation's `ium` infix"),
+    ("D-266", "COc1ccccc1[NH2+]c1nnc(SCc2cc(=O)n3cc(C)ccc3[nH+]2)s1",
+     "N-(2-methoxyphenyl)-5-{[(7-methyl-4H-pyrido[1,2-a]pyrimidin-1-ium-4-on-2-yl)methyl]sulfanyl}-1,3,4-thiadiazol-2-aminium",
+     "N-(2-methoxyphenyl)-5-{[(7-methyl-4H-pyrido[1,2-a]pyrimidin-4-on-1-ium-2-yl)methyl]sulfanyl}-1,3,4-thiadiazol-2-aminium",
+     "UNREADABLE AS WRITTEN: in a substituent the ring cation's `ium` followed the curated ketone suffix"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",
