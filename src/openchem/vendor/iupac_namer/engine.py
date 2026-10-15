@@ -6071,6 +6071,13 @@ def _name_single_fg_substituent(
                 # acid FG beyond the one we just introduced?  If so, we are
                 # in the α-carboxy-acetamido family and must avoid the diacid
                 # parent — construct the name manually.
+                # A THIOAMIDE's carbon carries =S: replacing its N by OH gives a thio acid, so the OTHER acid is the only `carboxylic_acid` and becomes the parent (`N-C(=S)CH2COOH`
+                # came out `[hydroxy(thioxo)methyl]acetamido`, the O and S swapped). Neither the handcrafted `acetamido` nor the acid-based name can say it: leave it to the generic path (round 54).
+                if any(
+                    _nb.GetAtomicNum() == 16 and mol.GetBondBetweenAtoms(amide_fg.anchor, _nb.GetIdx()).GetBondTypeAsDouble() == 2.0
+                    for _nb in mol.GetAtomWithIdx(amide_fg.anchor).GetNeighbors()
+                ) and mol.HasSubstructMatch(Chem.MolFromSmarts("[$([CX3]=[O,S]),$([SX4](=O)=O)][OX2H1]")):
+                    raise ValueError("a thioamide beside a second acid")
                 acid_perception = Perception(acid_mol)
                 n_cooh = sum(
                     1 for _fg in acid_perception.fgs.detected_fgs
@@ -9686,7 +9693,7 @@ def _restore_dropped_chalcogen_anion(mol, name: str) -> str:
 
 #: A word that says a name is an ANION: a suffix at the end of a word (`-ide`, not the `amide` / `imide` of a neutral class; `-ate`), or an anionic PREFIX anywhere in one (`sulfonatooxy`,
 #: `carboxylatomethyl`, `oxidosulfonyl`; not the `acetamido` / `imido` / `ureido` of a neutral group). A name with none of them for a molecule whose net charge is negative has left the charge out.
-_ANION_WORD_END = re.compile(r"(?:(?<!am)(?<!im)(?<!sulfam)ide|ate|ite)(?![a-z])|ato|(?<!am)(?<!im)(?<!ure)(?<!sulfam)ido|\(\d*-\)")
+_ANION_WORD_END = re.compile(r"(?:(?<!am)(?<!im)(?<!sulfam)ide|ate|ite)(?![a-z])|ato|(?<!am)(?<!im)(?<!ure)(?<!sulfam)ido|\(\d*-\)|\d-id-")
 #: A name that cites a cation: `ium` anywhere (`pyridin-1-ium`, `ammonium`, `azaniumyl`) or the `onio` prefix (`trimethylammonio`).
 _CATION_WORD = re.compile(r"ium|onio|\(\d*\+\)")
 #: The elements the guard judges: an organic name's. A metal complex or organyl is named with oxidation-state and charge notation (`methylmercury(1+)`, `iron(IV)`) that this word test does not model.
@@ -9711,6 +9718,27 @@ def _check_charge_named(mol, name: str) -> None:
         raise ValueError(f"No name found that keeps the positive charge (the nearest name, {name!r}, is the neutral compound's).")
 
 
+def _restore_dropped_oximate(mol, name: str) -> str:
+    """Give a deprotonated oxime / amidoxime back to a name that wrote it neutral (naming round 54).
+
+    `CC(N1CCCC1)=N[O-]` was `1-[1-(hydroxyimino)ethyl]pyrrolidine`: the ring took the parent and the oxime became a `hydroxyimino` prefix with no charge in the name, which the guard refused. The
+    prefix is `oxidoimino` when the oxygen is the anion (OPSIN reads `1-[1-(oxidoimino)ethyl]pyrrolidine` as the anion), so a single O- on an oxime nitrogen is cited that way if the neutral
+    prefix occurs exactly once. Anything else is left for the guard."""
+    if "NAMING ERROR" in name or len(Chem.GetMolFrags(mol)) != 1 or _ANION_WORD_END.search(name):
+        return name
+    sites = [
+        a for a in mol.GetAtoms()
+        if a.GetFormalCharge() == -1 and a.GetSymbol() == "O" and a.GetDegree() == 1 and not a.GetTotalNumHs()
+        and a.GetNeighbors()[0].GetSymbol() == "N"
+        and any(b.GetBondTypeAsDouble() == 2.0 and b.GetOtherAtom(a.GetNeighbors()[0]).GetSymbol() == "C" for b in a.GetNeighbors()[0].GetBonds())
+    ]
+    if len(sites) != 1 or sum(a.GetFormalCharge() for a in mol.GetAtoms()) != -1:
+        return name
+    if len(re.findall(r"(?<![a-z])hydroxyimino", name)) != 1:
+        return name
+    return re.sub(r"(?<![a-z])hydroxyimino", "oxidoimino", name)
+
+
 def _name_smiles_bound(smiles: str, strategy) -> str:
     """Name a molecule from SMILES, *strategy* already bound (never None); refuse a name that loses a nuclide or a charge.
 
@@ -9721,6 +9749,7 @@ def _name_smiles_bound(smiles: str, strategy) -> str:
     if mol is not None:
         _check_nuclides_named(mol, name)
         name = _restore_dropped_chalcogen_anion(mol, name)
+        name = _restore_dropped_oximate(mol, name)
         _check_charge_named(mol, name)
     return name
 
@@ -17395,7 +17424,11 @@ class SubstitutivePath:
                 # The chalcogen is double-bonded to the parent anchor C; so is
                 # an amidine's =N ("imino"), which the N loop below skips.
                 _o_bond = mol.GetBondBetweenAtoms(_anchor_idx_pp, _o_idx)
-                _o_bo = int(_o_bond.GetBondTypeAsDouble()) if _o_bond else 2
+                # Only a chalcogen BONDED TO THE ANCHOR is the group's `=X`. An amidine's N-acyl substituent (`NC([S-])=NC(=O)Ph`) puts its carbonyl oxygen in `substituent_atoms` too;
+                # it was given a second `oxo` at the anchor (the bond order defaulted to 2), and the oxygen was claimed twice (strict ownership raised; naming round 54).
+                if _o_bond is None:
+                    continue
+                _o_bo = int(_o_bond.GetBondTypeAsDouble())
                 if _o_an not in (8, 16) and not (_o_an == 7 and _o_bo == 2):
                     continue
                 if _o_an == 7:
