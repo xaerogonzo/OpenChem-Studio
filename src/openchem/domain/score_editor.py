@@ -21,7 +21,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 
 from openchem.domain.score_constants import Constant
-from openchem.domain.score_definition import SCHEMA_VERSION, ScoreDefinition, check_score_definition
+from openchem.domain.score_definition import ScoreDefinition, check_score_definition, policy_for
 from openchem.domain.score_formula import FUNCTIONS, FormulaError, Problem, infer_unit
 from openchem.domain.score_outputs import APPROVED, ENDPOINTS, check_inputs, output_title
 
@@ -57,10 +57,12 @@ SHOWN_AS = "Shown everywhere as"
 
 @dataclass(frozen=True)
 class InputRow:
-    """One input as typed: the name the formula uses, and the approved output it reads."""
+    """One input as typed: the name the formula uses, the approved output it reads, and the default to use when nobody has calculated it (empty for none, as a
+    constant's value is text until it is checked)."""
 
     name: str = ""
     output_id: str = ""
+    default: str = ""
 
 
 @dataclass(frozen=True)
@@ -86,11 +88,12 @@ class Draft:
 
     @classmethod
     def from_definition(cls, definition: ScoreDefinition) -> Draft:
+        defaults = dict(definition.defaults)
         return cls(
             label=definition.label,
             formula=definition.formula,
             result_unit=definition.result_unit,
-            inputs=tuple(InputRow(name, output_id) for name, output_id in definition.inputs),
+            inputs=tuple(InputRow(name, output_id, f"{defaults[name]:.12g}" if name in defaults else "") for name, output_id in definition.inputs),
             constants=tuple(ConstantRow(c.name, f"{c.value:.12g}", c.unit) for c in definition.constants),
             owner=definition.owner,
             note=definition.note,
@@ -107,6 +110,21 @@ class Draft:
             if not math.isfinite(value):
                 raise FormulaError(Problem.CONSTANT, f"constant {row.name!r}: the value {row.value!r} is too large to use")
             constants.append(Constant(row.name.strip(), value, row.unit.strip()))
+        defaults = []
+        for row in self.inputs:
+            text = row.default.strip()
+            if not text:
+                continue
+            if not _NUMBER.fullmatch(text):
+                raise FormulaError(
+                    Problem.INPUTS, f"input {row.name!r}: the default {row.default!r} is not a plain number (digits, then a point with digits after it, then an exponent, each optional after the digits)",
+                    field="inputs",
+                )
+            value = float(text)
+            if not math.isfinite(value):
+                raise FormulaError(Problem.INPUTS, f"input {row.name!r}: the default {row.default!r} is too large to use", field="inputs")
+            defaults.append((row.name.strip(), value))
+        on_missing, schema_version = policy_for(defaults)
         return ScoreDefinition(
             score_id=score_id,
             label=self.label.strip(),
@@ -114,7 +132,9 @@ class Draft:
             result_unit=self.result_unit.strip(),
             inputs=tuple((row.name.strip(), row.output_id) for row in self.inputs),
             constants=tuple(constants),
-            schema_version=SCHEMA_VERSION,
+            schema_version=schema_version,
+            on_missing=on_missing,
+            defaults=tuple(defaults),
             owner=self.owner.strip(),
             created=created,
             note=self.note.strip(),
@@ -165,7 +185,7 @@ def check_draft(draft: Draft, *, reserved_names: Iterable[str] = ()) -> DraftChe
     try:
         definition = draft.to_definition()
     except FormulaError as exc:
-        return DraftCheck(False, exc.message, exc.problem.value, "constants")
+        return DraftCheck(False, exc.message, exc.problem.value, exc.field or "constants")
     try:
         check_score_definition(definition, reserved_names)
     except FormulaError as exc:

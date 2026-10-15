@@ -65,6 +65,45 @@ def test_definitions_round_trip_through_a_saved_project(tmp_path: Path, qapp):
     assert loaded.definitions() == store.definitions() and loaded.project_uuid == project.uuid
 
 
+def test_a_definition_with_a_default_round_trips_through_a_saved_project_in_format_two(tmp_path: Path, qapp):
+    service = ProjectService(EventBus())
+    project = ProjectModel(name="with a default")
+    defaulting = ScoreDefinition(
+        "user.d", "Defaulting", "ramp(psa, 140, 60) * ramp(logp, 5, 2)", "1", (("psa", "descriptor:tpsa"), ("logp", "descriptor:mol_logp")),
+        schema_version=2, on_missing="default", defaults=(("logp", 3.5),), created="2026-10-15",
+    )
+    store = _store(project, _definition("user.a"), defaulting)
+    path = tmp_path / "defaults.ocsproj"
+    service.save(project, path, derived_scores=store)
+    written = json.loads(path.read_text(encoding="utf-8"))[DERIVED_SCORES_KEY]["definitions"]
+    assert "defaults" not in written[0] and written[0]["schema_version"] == 1, "a score with no default is the file an earlier build wrote"
+    assert written[1]["defaults"] == [["logp", 3.5]] and written[1]["schema_version"] == 2 and written[1]["on_missing"] == "default"
+    loaded = service.load_document(path).derived_scores
+    assert loaded.definitions() == store.definitions() and loaded.definitions()[1].digest == defaulting.digest
+
+
+def test_a_build_that_reads_only_format_one_keeps_a_score_with_a_default_and_writes_it_back_as_it_was(tmp_path: Path, qapp, monkeypatch):
+    """The older build must neither evaluate the definition without its default nor drop it: it is kept, shown as not readable, and saved unchanged."""
+    from openchem.domain import score_definition
+
+    defaulting = ScoreDefinition(
+        "user.d", "Defaulting", "ramp(psa, 140, 60) * ramp(logp, 5, 2)", "1", (("psa", "descriptor:tpsa"), ("logp", "descriptor:mol_logp")),
+        schema_version=2, on_missing="default", defaults=(("logp", 3.5),), created="2026-10-15",
+    )
+    service = ProjectService(EventBus())
+    project = ProjectModel(name="older build")
+    path = tmp_path / "defaults.ocsproj"
+    service.save(project, path, derived_scores=_store(project, _definition("user.a"), defaulting))
+    monkeypatch.setattr(score_definition, "SCHEMA_VERSION", 1)
+    older = service.load_document(path).derived_scores
+    assert [d.score_id for d in older.definitions()] == ["user.a"]
+    (kept,) = older.kept()
+    assert kept.score_id == "user.d" and "newer version" in kept.reason
+    again = tmp_path / "again.ocsproj"
+    service.save(project, again, derived_scores=older)
+    assert json.loads(again.read_text(encoding="utf-8"))[DERIVED_SCORES_KEY]["definitions"][1] == defaulting.to_dict()
+
+
 def test_a_project_saved_before_scores_existed_opens_with_an_empty_store(tmp_path: Path, qapp):
     service = ProjectService(EventBus())
     path = tmp_path / "old.ocsproj"

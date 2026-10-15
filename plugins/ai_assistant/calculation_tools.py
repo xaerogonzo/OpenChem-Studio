@@ -102,7 +102,7 @@ READ_SCORES = ToolDefinition(
         "Read the user-defined SCORES of this project for the molecule the user had selected when they sent their message: formulas a person wrote over numbers this application "
         "computes, such as a weighted sum of desirabilities. A score is not stored with the results, so read_results never shows one. Each score has its label (always ending "
         "'(user-defined, unvalidated)'), its formula, its declared units, every input with the state it was read in, and a value only when every input could be read from the "
-        "molecule's CURRENT results. A score with outcome 'refused' has no value: say which input could not be read and why, and never state a value or treat it as zero. A score "
+        "molecule's CURRENT results. A score with outcome 'refused' has no value: say which input could not be read and why, and never state a value or treat it as zero. A score with outcome 'computed_with_defaults' used a default its definition declares for an input nobody calculated: name those inputs (defaults_used) and never present the number as the result of calculating them. A score "
         "is not a prediction and nothing has validated it, so never present one as an experimental or predicted property. Omit `scores` to read every score, or name some by id "
         "or label; a name that matches nothing is returned under 'not_found'. You cannot create, change or delete a score; you may suggest formula text for the person to enter "
         "in Tools > Derived Scores. A score whose input has not been calculated gets its value when the calculator has run (run_calculator)."

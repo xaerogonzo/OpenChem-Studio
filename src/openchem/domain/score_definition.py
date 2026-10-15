@@ -10,6 +10,14 @@ number the person defined must not read as one the application provides; the com
 as a hand-kept list of published names would. It cannot know a published score the application lacks, and for those the suffix and the provenance carry
 the burden.
 
+**A DEFAULT IS A NUMBER THE DEFINITION DECLARES FOR AN INPUT NOBODY CALCULATED, AND ONLY THAT** (slice 4c, the second `on_missing` policy). The reason it exists: a score may read an
+optional input whose calculator a person has not run, and a person who knows what value they mean by "not known" (a neutral desirability of 1, say) can say so once, in the
+definition, rather than leave the whole score refused. It changes the meaning of the number without changing the formula, which is why it is the narrowest thing that could be
+built: a default is per input, never a policy for the whole score; it applies only to an input that was NEVER CALCULATED (an input a calculator declined, that failed, that was
+computed for an earlier structure or that carries another unit still refuses, because each of those is an answer, not an absence); a score worked out from defaults alone is
+refused; and every surface that shows a number that used one says so, with the inputs it used it for (`score_value.ScoreValue.defaulted`). A definition with defaults is format
+2, so a build that reads only format 1 keeps it and shows it refused instead of evaluating it as though the defaults were not there.
+
 **A STORED DEFINITION IS NEVER SILENTLY DROPPED.** One written by a newer build, or damaged, is kept as it was read (`ScoreDefinitionStore`), because a
 formula is authored work: discarding it with a warning on the next save would delete it.
 
@@ -37,8 +45,14 @@ from openchem.domain.score_formula import (
 from openchem.domain.score_outputs import APPROVED, check_inputs
 from openchem.domain.score_units import UnitError, parse_unit
 
-#: The version of the definition format. A build refuses (and carries through) a definition with a higher one.
-SCHEMA_VERSION = 1
+#: The highest definition format this build reads. A build refuses (and carries through) a definition with a higher one.
+SCHEMA_VERSION = 2
+
+#: Format 1: a missing input refuses the score. A definition that declares no defaults stays in it, so an older build keeps reading it.
+FORMAT_REFUSE = 1
+
+#: Format 2: adds per-input defaults (`ScoreDefinition.defaults`). Only a definition that declares one is written in it.
+FORMAT_DEFAULTS = 2
 
 #: Shown after every score's label on every surface. Not part of the stored label, so it cannot be removed by editing it.
 DISPLAY_SUFFIX = "(user-defined, unvalidated)"
@@ -49,9 +63,20 @@ VALIDATION = "user_defined_unvalidated"
 #: Every score id starts with this, so it can never be taken for a registry calculator's id.
 SCORE_ID_PREFIX = "user."
 
-#: The only missing-value policy in this phase: an absent, refused or historical input refuses the score. A second one changes the meaning of the number
-#: without changing its label, so it needs a reason in writing first.
+#: The first missing-value policy: an absent, refused or historical input refuses the score. This is every definition that declares no default.
 ON_MISSING_REFUSE = "refuse"
+
+#: The second (slice 4c): an input that was NEVER CALCULATED takes the default the definition declares for it; every other way an input can fail to be read still refuses.
+ON_MISSING_DEFAULT = "default"
+
+#: The policies this build knows. A stored one that is not here is shown refused, never read as a policy of its own.
+ON_MISSING_POLICIES = (ON_MISSING_REFUSE, ON_MISSING_DEFAULT)
+
+
+def policy_for(defaults: Iterable[tuple[str, float]]) -> tuple[str, int]:
+    """`(on_missing, schema_version)` a definition with these defaults must carry: the first and format 1 for none, the second and format 2 for any."""
+    return (ON_MISSING_DEFAULT, FORMAT_DEFAULTS) if tuple(defaults) else (ON_MISSING_REFUSE, FORMAT_REFUSE)
+
 
 #: The longest label, in characters.
 MAX_LABEL = 80
@@ -103,8 +128,10 @@ class ScoreDefinition:
     inputs: tuple[tuple[str, str], ...]
     #: Named numbers with units (`score_constants`).
     constants: tuple[Constant, ...] = ()
-    schema_version: int = SCHEMA_VERSION
+    schema_version: int = FORMAT_REFUSE
     on_missing: str = ON_MISSING_REFUSE
+    #: `(input name, number)`: what an input that was never calculated is read as, in the unit its approved output carries. Empty for the first policy, and never empty for the second.
+    defaults: tuple[tuple[str, float], ...] = ()
     #: Who wrote it, free text.
     owner: str = ""
     #: `YYYY-MM-DD`, or empty.
@@ -128,10 +155,20 @@ class ScoreDefinition:
             "inputs": [list(pair) for pair in self.inputs],
             "constants": [[c.name, float(c.value), c.unit] for c in self.constants],
         }
+        if self.defaults:
+            # Only when there are some, so the digest of every definition made before defaults existed is the digest it always had.
+            payload["defaults"] = [[name, float(value)] for name, value in self.defaults]
         encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
         return hashlib.sha256(encoded.encode("ascii")).hexdigest()[:16]
 
     def to_dict(self) -> dict[str, Any]:
+        data = self._to_dict()
+        if self.defaults:
+            # Written only when there are some: a definition without any is byte-for-byte what an earlier build wrote.
+            data["defaults"] = [[name, float(value)] for name, value in self.defaults]
+        return data
+
+    def _to_dict(self) -> dict[str, Any]:
         return {
             "score_id": self.score_id,
             "label": self.label,
@@ -180,6 +217,17 @@ class ScoreDefinition:
             if not (isinstance(item, (list, tuple)) and len(item) == 2 and all(isinstance(part, str) for part in item)):
                 raise DamagedDefinition(f"an input is {item!r}, not [name, output id]")
             inputs.append((item[0], item[1]))
+        raw_defaults = data.get("defaults", [])
+        if not isinstance(raw_defaults, list):
+            raise DamagedDefinition("defaults is not a list")
+        defaults = []
+        for item in raw_defaults:
+            if not (isinstance(item, (list, tuple)) and len(item) == 2 and isinstance(item[0], str)):
+                raise DamagedDefinition(f"a default is {item!r}, not [input name, number]")
+            number = item[1]
+            if isinstance(number, bool) or not isinstance(number, (int, float)) or not math.isfinite(number):
+                raise DamagedDefinition(f"the default for {item[0]!r} is {number!r}, which is not a finite number")
+            defaults.append((item[0], float(number)))
         raw_constants = data.get("constants", [])
         if not isinstance(raw_constants, list):
             raise DamagedDefinition("constants is not a list")
@@ -195,7 +243,7 @@ class ScoreDefinition:
             constants.append(Constant(name, float(value), unit))
         return cls(
             score_id=text["score_id"], label=text["label"], formula=text["formula"], result_unit=text["result_unit"],
-            inputs=tuple(inputs), constants=tuple(constants), schema_version=version, on_missing=text["on_missing"], **optional,
+            inputs=tuple(inputs), constants=tuple(constants), schema_version=version, on_missing=text["on_missing"], defaults=tuple(defaults), **optional,
         )
 
 
@@ -263,10 +311,12 @@ def _refuse(message: str, field: str = "") -> FormulaError:
 def _check_fields(definition: ScoreDefinition, reserved_names: Iterable[str]) -> None:
     if not (definition.score_id.startswith(SCORE_ID_PREFIX) and _SLUG.fullmatch(definition.score_id[len(SCORE_ID_PREFIX):])):
         raise _refuse(f"the score id {definition.score_id!r} must be {SCORE_ID_PREFIX} then a lowercase name of at most 40 letters, digits and underscores")
-    if definition.schema_version != SCHEMA_VERSION:
-        raise _refuse(f"this build reads definition format {SCHEMA_VERSION}, not {definition.schema_version}")
-    if definition.on_missing != ON_MISSING_REFUSE:
-        raise _refuse(f"on_missing is {definition.on_missing!r}; the only policy is {ON_MISSING_REFUSE!r}: a missing input refuses the score")
+    if definition.on_missing not in ON_MISSING_POLICIES:
+        raise _refuse(f"on_missing is {definition.on_missing!r}; the policies are {ON_MISSING_REFUSE!r} (a missing input refuses the score) and {ON_MISSING_DEFAULT!r}")
+    _check_defaults(definition)
+    wanted_format = policy_for(definition.defaults)[1]
+    if definition.schema_version != wanted_format:
+        raise _refuse(f"this definition is format {definition.schema_version}, and one with {'defaults' if definition.defaults else 'no defaults'} is format {wanted_format}")
     label = definition.label
     if not label.strip() or label != label.strip():
         raise _refuse("the label is empty or has spaces at either end", "label")
@@ -291,6 +341,27 @@ def _check_fields(definition: ScoreDefinition, reserved_names: Iterable[str]) ->
         raise _refuse(f"created is {definition.created!r}, not YYYY-MM-DD")
     if not definition.inputs:
         raise _refuse("a score reads at least one approved output", "inputs")
+
+
+def _check_defaults(definition: ScoreDefinition) -> None:
+    """The defaults and the policy say the same thing, and each default is a finite number for an input the definition has, once."""
+    declared = bool(definition.defaults)
+    if (definition.on_missing == ON_MISSING_DEFAULT) != declared:
+        raise _refuse(
+            f"on_missing is {definition.on_missing!r} but the definition declares {len(definition.defaults)} default(s): "
+            f"{ON_MISSING_DEFAULT!r} needs at least one, and {ON_MISSING_REFUSE!r} needs none",
+            "inputs",
+        )
+    names = {name for name, _output in definition.inputs}
+    seen: set[str] = set()
+    for name, value in definition.defaults:
+        if name not in names:
+            raise _refuse(f"a default is declared for {name!r}, which is not one of the inputs", "inputs")
+        if name in seen:
+            raise _refuse(f"{name!r} has two defaults", "inputs")
+        seen.add(name)
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+            raise _refuse(f"the default for {name!r} is {value!r}, which is not a finite number", "inputs")
 
 
 def check_computation(definition: ScoreDefinition) -> Formula:
