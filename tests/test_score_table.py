@@ -12,7 +12,7 @@ import pytest
 
 from openchem.domain.batch import SOURCE_SCORE, BatchCell, BatchColumn, BatchTable
 from openchem.domain.common import CacheState, Provenance
-from openchem.domain.refusal_kinds import REFUSAL_KEY, refusal_parameters
+from openchem.domain.refusal_kinds import REFUSAL_KEY, REFUSAL_KIND_KEY, RefusalKind, refusal_parameters
 from openchem.domain.score_answer import LIMITATION, REFUSAL_CODE
 from openchem.domain.score_constants import Constant
 from openchem.domain.score_definition import DISPLAY_SUFFIX, ScoreDefinition
@@ -353,3 +353,73 @@ def test_a_cell_filed_without_a_column_is_a_failure_and_not_a_number():
     read = read_cell_output(_LOGP, table, _ROWS[0])
     assert read.state is InputState.FAILED and read.note == "provider failed"
     assert read_cell_output(_LOGP, table, _ROWS[1]).note == "it is not a column of this table: the run did not compute it"
+
+
+# --- what the first mutation round found missing (slice 3c) -------------------------------------------------------------------------------------
+
+
+def test_a_row_the_run_never_reached_says_it_was_not_computed_even_when_only_a_placeholder_column_exists():
+    """The calculator failed for another row, so its placeholder column is in the table, but this row has no cell anywhere: not 'not a column'."""
+    table = _table(extra=[(_placeholder_column(), (None, _declined()))])
+    read = read_cell_output(_OB, table, _ROWS[0])
+    assert read.state is InputState.NOT_RUN and read.note == "it was not computed for this molecule in this run"
+
+
+def test_a_cell_filed_under_no_column_at_all_is_not_run_and_never_a_number():
+    table = _table()
+    table.set_cell(_ROWS[0], _OB, BatchCell(value=-79.9, text="-79.9"))
+    read = read_cell_output(_OB, table, _ROWS[0])
+    assert read.state is InputState.NOT_RUN and read.value is None and "not a column of this table" in read.note
+
+
+def test_a_placeholder_cell_that_did_not_fail_is_not_a_refusal():
+    table = _table(extra=[(_placeholder_column(), (_cell(1.0), None))])
+    read = read_cell_output(_OB, table, _ROWS[0])
+    assert read.state is InputState.NOT_RUN and read.note == "it was not computed for this molecule in this run"
+
+
+def test_a_unit_refusal_says_which_unit_the_column_carried():
+    table = _table()
+    table.columns[0] = _column(_TPSA, units="nm^2")
+    assert read_cell_output(_TPSA, table, _ROWS[0]).carried_as == "nm^2"
+
+
+def test_the_cell_shows_four_significant_digits_and_keeps_the_whole_number():
+    table = _table(tpsa=(61.82, 20.2))
+    cell = score_cell(score_value_in_table(_definition(formula="ramp(psa, 140, 60)", inputs=(("psa", _TPSA),)), table, _ROWS[0]))
+    assert cell.text == "0.9773" and cell.value == pytest.approx(0.97725)
+
+
+def test_a_refusal_is_classified_as_one_that_needs_an_input():
+    cell = score_cell(score_value_in_table(_definition(), _table(logp=None), _ROWS[0]))
+    assert cell.provenance.parameters[REFUSAL_KIND_KEY] == RefusalKind.NEEDS_INPUT.value
+
+
+def test_a_score_reading_two_things_the_run_did_not_compute_names_both():
+    scored = table_with_scores(_table(tpsa=None, logp=None, extra=[(_column(_OB), (_cell(-79.9), _cell(-206.0)))]), [_definition()])
+    (omission,) = scored.omitted
+    assert omission.missing == ("tpsa", "mol_logp") and str(omission) == "Window (user-defined, unvalidated) reads tpsa, mol_logp"
+
+
+def test_two_scores_the_run_could_not_compute_are_both_named_in_the_note():
+    other = _definition(score_id="user.other", label="Other", formula="ramp(logp, 5, 2)", inputs=(("logp", _LOGP),))
+    scored = table_with_scores(_table(tpsa=None, logp=None, extra=[(_column(_OB), (_cell(-79.9), _cell(-206.0)))]), [_definition(), other])
+    assert scored.note() == (
+        "Scores not shown, because this run did not compute what they read: "
+        "Window (user-defined, unvalidated) reads tpsa, mol_logp; Other (user-defined, unvalidated) reads mol_logp."
+    )
+
+
+def test_a_table_with_no_columns_yet_has_nothing_to_say_about_scores():
+    scored = table_with_scores(BatchTable(), [_definition()])
+    assert scored.omitted == () and scored.note() == ""
+
+
+def test_the_scored_table_keeps_the_per_atom_data_and_owns_its_rows():
+    table = _table()
+    table.set_per_atom(_ROWS[0], "gasteiger", object())
+    scored = table_with_scores(table, [_definition()]).table
+    assert scored.per_atom == table.per_atom and scored.per_atom_for(_ROWS[0], "gasteiger") is table.per_atom_for(_ROWS[0], "gasteiger")
+    assert scored.row_uuids is not table.row_uuids and scored.row_labels is not table.row_labels
+    scored.add_row("new-uuid", "New")
+    assert "new-uuid" not in table.row_uuids and "new-uuid" not in table.row_labels
