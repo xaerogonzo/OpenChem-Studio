@@ -1954,7 +1954,7 @@ what the score gives for the selected molecule while you edit it.
 formula and every input with its unit and the stored result it came from. The number a score reads is the drawing's,
 which for a few descriptors (the synthetic-accessibility and complexity scores among them) is not the number shown for a
 conformer. Scores are saved with the project. They are not calculators, so they are not in the calculator list and
-the assistant's calculator search does not offer them. The AI Assistant can read your scores (see Plugins) but cannot make or change one. In the **Project table** (Results, after a project run) a score is a column of its own, the first after the molecule's name: it is worked out from that table's other columns, so
+the assistant's calculator search does not offer them. The AI Assistant can read your scores and propose a new one (see Plugins), but a score exists only after you approve its card. In the **Project table** (Results, after a project run) a score is a column of its own, the first after the molecule's name: it is worked out from that table's other columns, so
 it needs the properties it reads to have been in the run, and a score whose inputs were not run is named under the table instead of shown as a column of dashes. It follows
 the definition as you edit it, without another run, and it is in the CSV and the report. A table is a snapshot of a run, so its score is as current as the run; the
 **This molecule** page is where a score is worked out against the structure as it is now.
@@ -3162,8 +3162,9 @@ that runs from its own panel (ORCA, Vina) is described, with what it needs and w
 this machine is ready, and you start it from that panel. What it asked for, and what
 became of it, is listed under the conversation. It can also read the goal wizard's table (which calculators the
 application pairs with a question such as "where is the charge"), as a suggestion rather than a protocol. It can also read the **derived scores** you
-defined (their names, formulas and values for the selected molecule; never the owner or the note), and says so when one cannot be worked out; it cannot create or
-change one, though it may suggest formula text for you to enter in **Tools > Derived Scores**. Those results, and a score's name and formula, are sent to the provider
+defined (their names, formulas and values for the selected molecule; never the owner or the note), and says so when one cannot be worked out. It cannot save or change one, but it can propose a new one: a card shows the formula, what each
+input reads, the unit and what it gives for the selected molecule, and nothing is saved unless you press **Approve** (it is then saved with the assistant
+as its owner, and you change it in **Tools > Derived Scores** like any other). Those results, and a score's name and formula, are sent to the provider
 as part of the conversation, and a note under the box says where. **Plugins > Explain
 Stored Results** asks it to explain everything stored for the selected molecule.
 

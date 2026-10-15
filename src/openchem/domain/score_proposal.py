@@ -51,6 +51,7 @@ _REMEMBERED = 50
 
 #: The request's keys. Only these: owner, id, format, policy and defaults are not the model's to give.
 REQUEST_KEYS = ("label", "formula", "result_unit", "inputs", "constants", "note")
+#: The fields a request cannot leave out; `constants` and `note` are optional.
 _REQUIRED = ("label", "formula", "result_unit", "inputs")
 
 
