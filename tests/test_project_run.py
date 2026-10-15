@@ -677,3 +677,18 @@ def test_scores_that_read_no_always_on_property_leave_that_box_exactly_as_it_was
     panel.set_descriptor_choice({"mol_wt"})
     panel.tick_score_inputs()
     assert panel.descriptor_choice() == {"mol_wt"}
+
+
+def test_the_status_line_keeps_its_whole_text_on_hover_for_every_message_and_clears_it_with_the_text(services, project, built):
+    panel, _held = _with_scores(
+        services, project, built, _score([("ob", _OB), ("sol", _SOLUBILITY)], formula="sol")
+    )
+    panel._hidden_calculator_ids = {"solubility"}
+    panel.tick_score_inputs()
+    shown = panel._batch_status.text()
+    assert "Not ticked, because the launcher is not offering them:" in shown
+    assert panel._batch_status.toolTip() == shown, "the sentence a one-line label clips is the one on hover"
+    panel._batch_status.setText("")
+    assert panel._batch_status.toolTip() == ""
+    panel.tick_all_shown()
+    assert panel._batch_status.toolTip() == panel._batch_status.text() and panel._batch_status.text().startswith("Ticked ")

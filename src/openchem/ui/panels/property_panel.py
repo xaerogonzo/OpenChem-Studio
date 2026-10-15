@@ -1337,6 +1337,19 @@ def _mnemonic_safe(text: str) -> str:
     return text.replace("&", "&&")
 
 
+class _StatusLabel(QLabel):
+    """The status line beside "Run selected": one line, and the whole text on hover.
+
+    A one-line label clips what does not fit, and the sentence most worth reading is often the last ("Left out: ...", "Not ticked, because the launcher is not offering them: ...").
+    Every caller sets the text with `setText` and only the idle hint ever set the tooltip, so a long message was cut off with no way to read it. Keeping the tooltip equal to the text
+    HERE covers every caller, and a line set to nothing has no tooltip left over from the one before.
+    """
+
+    def setText(self, text: str) -> None:
+        super().setText(text)
+        self.setToolTip(text)
+
+
 class _ElidingPushButton(QPushButton):
     """An "Open [Calculator]..." button that may be narrower than its label.
 
@@ -1977,7 +1990,7 @@ class PropertyPanel(QWidget):
         #
         # One line, with the full text on hover, because this is transient
         # status and not a result.
-        self._batch_status = QLabel("", self)
+        self._batch_status = _StatusLabel("", self)
         self._batch_status.setWordWrap(False)
         self._batch_status.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self._batch_status.setStyleSheet(_INFORMATION_STYLE)
