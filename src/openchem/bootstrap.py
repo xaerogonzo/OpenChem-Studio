@@ -393,15 +393,20 @@ def build_service_container() -> ServiceContainer:
     structure_check_service = StructureCheckService(event_bus)
     # Named because the recipe service below reads THIS instance's project and stored runs.
     result_store_service = ResultStoreService(event_bus, engine, settings)
+    # Named because the store asks THIS instance, as a project is opened, which of the results a
+    # file brings back no build records any more (an earlier build re-ran the whole always-on
+    # set on a conformer and saved it under the GEOMETRY identity).
+    descriptor_service = DescriptorService(
+        event_bus,
+        engine,
+        calculator_registry=calculator_registry,
+        structure_version_of=structure_check_service.current_version,
+    )
+    result_store_service.set_obsolete_check(descriptor_service.is_misfiled_geometry_result)
     return ServiceContainer(
         event_bus=event_bus,
         chemistry_engine=engine,
-        descriptor_service=DescriptorService(
-            event_bus,
-            engine,
-            calculator_registry=calculator_registry,
-            structure_version_of=structure_check_service.current_version,
-        ),
+        descriptor_service=descriptor_service,
         import_service=ImportService(engine),
         export_service=ExportService(engine),
         project_service=ProjectService(event_bus),

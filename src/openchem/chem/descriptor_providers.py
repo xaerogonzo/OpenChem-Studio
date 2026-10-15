@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import io
+import logging
 import sys
 import time
 from dataclasses import replace
@@ -182,6 +183,25 @@ from openchem.domain.scientific_result import AlertResult, PerAtomDataset
 from openchem.domain.report import Fact, FactCategory, ReportResult
 from openchem.domain.structure_issue import Basis, Severity
 from openchem.plugins.interfaces import DescriptorProvider
+
+logger = logging.getLogger("openchem.chemistry")
+
+
+def geometric_descriptor_ids_of(provider: DescriptorProvider) -> frozenset[str]:
+    """The descriptors `provider` measures from 3D coordinates; empty when it says none.
+
+    A provider is plugin code and this is read on the GUI thread inside the conformer
+    handler, so one that raises (or predates the declaration entirely) counts as having
+    none -- logged -- rather than taking the handler's other work down with it. Only ids
+    the provider also lists are kept: a declaration of something it does not emit would
+    otherwise scope a run to nothing.
+    """
+    try:
+        return frozenset(provider.geometric_descriptor_ids()) & frozenset(provider.descriptor_ids())
+    except Exception:  # noqa: BLE001 - see above
+        logger.exception("Descriptor provider %s could not say which descriptors are geometric", provider.provider_id)
+        return frozenset()
+
 
 # RDKitDescriptorProvider implements the same DescriptorProvider ABC a future
 # plugin would (openchem.plugins.interfaces.DescriptorProvider) — DescriptorService
@@ -853,6 +873,16 @@ class RDKitDescriptorProvider(DescriptorProvider):
         categories = {descriptor_id: category for descriptor_id, _name, _units, category in _DESCRIPTOR_SPECS}
         categories.update({descriptor_id: "shape" for descriptor_id, _name, _units in _SHAPE_DESCRIPTOR_SPECS})
         return categories
+
+    def geometric_descriptor_ids(self) -> frozenset[str]:
+        """The ten shape descriptors, and only those.
+
+        See `DescriptorProvider.geometric_descriptor_ids`. Everything in
+        `_DESCRIPTOR_SPECS` is a function of the structure graph, measured
+        against the drawing (see the 29-molecule comparison recorded in
+        `tests/test_descriptor_input.py`).
+        """
+        return frozenset(descriptor_id for descriptor_id, _name, _units in _SHAPE_DESCRIPTOR_SPECS)
 
     def compute(self, mol: Chem.Mol, molecule_uuid: str) -> list[DescriptorValue]:
         """The descriptor set, each on the structure its scope names.

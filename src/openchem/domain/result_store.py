@@ -30,6 +30,7 @@ from __future__ import annotations
 import enum
 import logging
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from typing import Any
 
@@ -261,8 +262,13 @@ MIGRATED_RESULT_IDS: dict[tuple[str, str], str] = {
 }
 
 #: Replay order. Drawing results first, geometry on top: the geometry
-#: descriptor run publishes the SAME descriptor ids as the drawing run, and
-#: the panel keeps the latest, which must be the one a conformer produced.
+#: descriptor run publishes the SAME ids as the drawing run for the shape
+#: descriptors (refused on the drawing, measured on a conformer), and the panel
+#: keeps the latest, which must be the one a conformer produced. Nothing else
+#: the always-on set makes is recorded under GEOMETRY any more -- a file from
+#: an earlier build that holds such results has them dropped on open
+#: (`DescriptorService.is_misfiled_geometry_result`), because replayed on top
+#: they would replace the drawing's values.
 _INPUT_ORDER = {DRAWING: 0, GEOMETRY: 1}
 
 
@@ -478,6 +484,30 @@ class SessionResultStore:
         self.max_revisions = limit
         for record in self._molecules.values():
             self._trim(record)
+
+    def discard_where(self, predicate: Callable[[StoredResult], bool]) -> int:
+        """Drop every retained result `predicate` accepts; the number dropped.
+
+        For a result that was valid to STORE and is not valid to REPLAY -- a file written by a
+        build that recorded something no build records now. The manifests are left alone: a
+        part names the results of a DRAWING run, and the caller decides what to discard.
+        A calculation input left holding no result for a fingerprint forgets that revision
+        too, so a dropped result cannot go on counting against `max_revisions`.
+        """
+        dropped = 0
+        for record in self._molecules.values():
+            gone = {key for key, stored in record.results.items() if predicate(stored)}
+            if not gone:
+                continue
+            dropped += len(gone)
+            record.results = {key: stored for key, stored in record.results.items() if key not in gone}
+            held = {(key[1], key[2]) for key in record.results}
+            held.update((DRAWING, fingerprint) for _part, fingerprint in record.parts)
+            for (_rid, calculation_input, fingerprint, _method) in gone:
+                revisions = record.revisions.get(calculation_input, [])
+                if fingerprint in revisions and (calculation_input, fingerprint) not in held:
+                    revisions.remove(fingerprint)
+        return dropped
 
     def forget_molecule(self, molecule_uuid: str) -> None:
         self._molecules.pop(molecule_uuid, None)

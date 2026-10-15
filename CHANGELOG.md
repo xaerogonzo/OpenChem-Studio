@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### A conformer no longer replaces the drawing's descriptors, alerts and per-atom data (reader, Project table and saved files)
+- **Reported:** draw aspirin, let the always-on descriptors compute, generate a conformer: Synthetic Accessibility 1.58 became 6.445, Bertz CT 343.2 became 609, H-bond acceptors 3 became 4, and the Project table showed the
+  same figures. The conformer carries explicit hydrogen atoms and the drawing's are implicit, and `request_descriptors(molecule, GEOMETRY)` ran the WHOLE provider on it; the results share an id with the drawing's, so they
+  replaced them. Reproduced in the driven application (`benchmarks/visual/descriptors_survive_a_conformer.json`), which also found four more that moved (`np_likeness`, its confidence, `esol_logs`, and `rule_of_three_pass`,
+  which flipped from Pass to Fail because the acceptor count crossed 3).
+- **Measured, not guessed** (`tools/survey_descriptor_inputs.py`, 29 census molecules, three structures each): the ten shape descriptors are refused on the flat drawing and vary between two embeddings of one molecule, so
+  they are the only ones a geometry can answer; nine others move between drawing and conformer and never between two conformers (a hydrogen-representation artefact); two alert catalogues moved (BRENK's long-chain alert on a
+  C12E6 surfactant, ferrocene's fragment counts); the three per-atom datasets came back describing 21 atoms for aspirin's 13 while their provenance still said `heavy_atoms`.
+- **A conformer request now computes the provider's geometric descriptors only** (`DescriptorProvider.geometric_descriptor_ids`; the built-in provider declares the ten shape descriptors, a plugin that declares none is never
+  handed a conformer). Everything else is computed on the drawing, which is what the Properties reader shows.
+- **The Project table had the wider form of the same defect:** it handed the conformer to every descriptor, alert catalogue and registered calculator. Measured with every census molecule given a conformer, 22 of the 51
+  drawing-declared calculators changed their answer (234 of 1479 cells; none unstable on its own input). Each column now gets the input it declares, as the Properties panel does.
+- **Saved projects** written by the earlier build hold the conformer's figures under the GEOMETRY identity, and a replay publishes GEOMETRY after DRAWING, so opening one would have put 6.445 back with nothing running.
+  They are dropped as the project opens (counted as `retired`); a calculator that declares GEOMETRY keeps its results.
+- `test_an_unusable_conformer_falls_back_instead_of_failing_every_descriptor` asserted that a conformer request re-publishes `mol_wt` and `formula`; it now asserts that it publishes neither.
+
 ### CI: four test shards, because the runner's speed, not the suite, decided whether three fit
 - **`test suite N/3` timed out with no failing test** on master's own push (`445de7e`), on `derived-scores-slice-1`, on PR #330 (shard 3 twice, shard 1 once). The same day master's run of `84469fd` took 20.0 minutes
   on shard 3 and the pull request that merged it took 30.8, over the same files. The first 10% of the tests are identical in every run and took 2.9 minutes on the fast runner and 4.2 to 4.7 on the slow ones, and the

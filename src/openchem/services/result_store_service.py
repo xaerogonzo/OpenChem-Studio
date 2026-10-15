@@ -138,6 +138,10 @@ class ResultStoreService:
         #: how the session learns it has something unsaved. Plain callables
         #: held here, not Qt connections.
         self._on_recorded: list[Callable[[str], None]] = []
+        #: Says of a stored result that no build records it any more, so a file that holds one
+        #: must not replay it. Set by whoever knows what the producers make
+        #: (`DescriptorService.is_misfiled_geometry_result`); None drops nothing.
+        self._is_obsolete: Callable[[StoredResult], bool] | None = None
         event_bus.subscribe(ResultRecorded, self._on_result_recorded)
         event_bus.subscribe(AutomaticPartFinished, self._on_part_finished)
         event_bus.subscribe(SettingsChanged, self._on_settings_changed)
@@ -172,6 +176,7 @@ class ResultStoreService:
                 logger.warning("Ignoring a result store for project %s", store.project_uuid)
             self.store = SessionResultStore(uuid)
         self.store.set_max_revisions(self.revision_limit())
+        self._drop_obsolete_results()
         if qc_runs is not None and qc_runs.project_uuid == uuid:
             self.qc_runs = qc_runs
         else:
@@ -184,6 +189,29 @@ class ResultStoreService:
             if recipe_runs is not None:
                 logger.warning("Ignoring recipe runs for project %s", recipe_runs.project_uuid)
             self.recipe_runs = RecipeRunStore(uuid)
+
+    def set_obsolete_check(self, check: Callable[[StoredResult], bool] | None) -> None:
+        """Install the question `set_project` asks of every result a file brings back."""
+        self._is_obsolete = check
+
+    def _drop_obsolete_results(self) -> None:
+        """Drop what a file holds that no build records now, counted as `retired`.
+
+        **AT THE LIFECYCLE BOUNDARY, NOT AT REPLAY.** A result left in the store would still
+        be saved again, offered to the assistant's turn snapshot (`all_results` lists every
+        retained record, current or not) and replayed on the next selection; dropping it once,
+        as the file is adopted, leaves nothing for any of those to find.
+        """
+        if self._is_obsolete is None:
+            return
+        try:
+            dropped = self.store.discard_where(self._is_obsolete)
+        except Exception:  # noqa: BLE001 - a check that fails must not cost the project its results
+            logger.exception("Could not check the opened project's results for obsolete ones")
+            return
+        if dropped:
+            logger.info("Dropped %d saved result(s) that no build records any more", dropped)
+            self.store.load_problems["retired"] += dropped
 
     @property
     def project(self) -> ProjectModel | None:

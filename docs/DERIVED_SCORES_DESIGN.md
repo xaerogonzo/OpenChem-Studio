@@ -267,6 +267,9 @@ A driven run follows the UI slice, builds its own state, and ends in a verdict.
      are the only report calculators on the panel that carry any typed number (of 31); the others have to type their values before they can be approved.
    * **Second finding: the always-on descriptors are stored twice.** 21 of the 31 run on both the drawing and a geometry and store one result for each under one id (10 run only on a geometry). A score must read exactly one, so
      **an approved output is read from the drawing** (`READ_FROM`). Geometry-based outputs (shape descriptors, force-field energies, projections) are a separate review: a number of one conformer is a number of that conformer.
+     *(Measured on 2026-10-14, and the cause of the double storage was a defect, not a design: the 21 differed between the two inputs because the conformer's hydrogens are atoms and the drawing's are implicit, so the reader
+     showed a different Synthetic Accessibility after a conformer arrived. A conformer request now computes only the ten geometric descriptors, `DescriptorProvider.geometric_descriptor_ids`; the 21 exist under the drawing
+     alone. `READ_FROM` is unchanged and was right: a score reading the drawing never saw the conformer's figures.)*
    * **The table: 21 outputs** (17 descriptors, and 4 facts of `oxygen_balance` and `solubility`) under **19 endpoint tags**, approved by hand from the sweep. An entry is `output_id`, the unit in the language of
      `score_units`, **`carried_as`** (the exact string the result carries), the endpoint, and `approved` (a date: the design said `since`, an application version, which is not known when the entry is written).
      **Not approved, and why:** both `logd` outputs (see the next bullet); `hbond_sites` Donors and Acceptors and the solubility calculator's log mol/L (each measured identical to an always-on output on every census row where both exist, 25 of 25 and 16 of 16, and available only after an
