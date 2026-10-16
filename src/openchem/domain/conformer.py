@@ -5,7 +5,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
-from openchem.domain.common import Provenance
+from openchem.domain.common import RUN_METHOD_BASIS, Provenance
 
 #: `ConformerModel.method` of a geometry that a quantum-chemistry optimization produced (ORCA's final
 #: Cartesian block). It has no force-field energy, and it is the geometry a person means by "the
@@ -15,6 +15,15 @@ ORCA_OPTIMIZED = "orca_opt"
 #: Every `method` that marks a quantum-optimized geometry. A set because a second engine would add its own
 #: label here and nothing else would change.
 QUANTUM_OPTIMIZED_METHODS = frozenset({ORCA_OPTIMIZED})
+
+#: Provenance parameter naming the `conformer_id` of the conformer a quantum optimization started from. The id
+#: is the identity; the slot below is for a reader who counts conformers 1..N.
+OPTIMIZED_FROM_ID = "optimized_from_conformer_id"
+#: Provenance parameter: the ONE-BASED slot of the source conformer AS IT STOOD WHEN RUN WAS PRESSED. It describes
+#: the input the calculation actually used and does not follow the geometry around: a regeneration that keeps ORCA
+#: conformers can move the replacement while the viewer says "4/20", and it was still optimized from "number 7".
+#: Where the geometry is NOW is read off the conformer list. Absent = not recorded.
+OPTIMIZED_FROM_SLOT = "optimized_from_slot"
 
 
 @dataclass(slots=True)
@@ -77,3 +86,21 @@ class ConformerModel:
             drawing_atom_ids=[int(i) for i in ids] if ids is not None else None,
             drawing_fingerprint=data.get("drawing_fingerprint"),
         )
+
+
+def is_quantum_optimized(conformer: ConformerModel) -> bool:
+    """Did a quantum-chemistry optimization produce this geometry (see `QUANTUM_OPTIMIZED_METHODS`)?"""
+    return conformer.method in QUANTUM_OPTIMIZED_METHODS
+
+
+def quantum_level_of_theory(conformer: ConformerModel) -> str:
+    """The level of theory a quantum-optimized conformer was run at, as submitted ("B3LYP def2-SVP"), or "".
+
+    Empty means NOT RECORDED, never "the default": a conformer from a project saved before the run's method
+    was written into its provenance has none, and a reader must be able to say so.
+    """
+    provenance = conformer.provenance
+    if provenance is None:
+        return ""
+    return str(provenance.parameters.get(RUN_METHOD_BASIS, "") or "")
+

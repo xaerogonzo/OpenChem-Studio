@@ -796,3 +796,39 @@ def test_the_gallery_status_line_carries_no_overlay_value(gallery):
     assert label, "the arrow carried no label, so this test cannot detect one"
     assert label not in widget._status_label.text()
     assert widget._status_label.text() == f"Conformers 1-{_PAGE} of 8"
+
+
+def test_an_answer_computed_on_the_geometry_an_orca_swap_replaced_is_never_drawn_on_the_new_one(viewer):
+    """An ORCA geometry takes the SLOT of the conformer it was optimized from. The overlay cache is keyed by
+    cell and conformer INDEX, and the index did not change -- so the only thing keeping the old geometry's
+    arrow off the optimized one is the request made when the swap landed superseding the one in flight."""
+    from openchem.domain.conformer import ORCA_OPTIMIZED
+    from openchem.events.events import ConformersChanged
+
+    widget, backend, _service, pool, bus = viewer
+    molecule = _molecule_with_two_conformers()
+    widget.set_molecule(molecule)
+    widget.note_spatial_report(_dipole_report(molecule.uuid))
+    widget._overlay_check.setChecked(True)
+    old_token = widget._overlay_tokens[SINGLE_VIEW_CELL]  # asked about the force-field geometry in slot 0
+
+    optimized = ConformerModel(molblock=molecule.conformers[0].molblock, method=ORCA_OPTIMIZED)
+    molecule.conformers[0] = optimized
+    bus.publish(ConformersChanged(molecule_uuid=molecule.uuid, show_conformer_id=optimized.conformer_id))
+    new_token = widget._overlay_tokens[SINGLE_VIEW_CELL]
+    assert new_token != old_token, "the landing asked again about the geometry now on screen"
+    backend.shapes.clear()
+
+    bus.publish(
+        SpatialAnnotationsReady(
+            molecule_uuid=molecule.uuid,
+            structure_key="old geometry",
+            conformer_index=0,  # the same slot, which is exactly why the index cannot tell
+            cell_index=SINGLE_VIEW_CELL,
+            token=old_token,
+            annotations=compute_dipole_moment(_mol(), molecule.uuid).spatial,
+        )
+    )
+    QCoreApplication.processEvents()
+
+    assert not any(shapes for shapes in backend.shapes), "the replaced geometry's arrow was drawn on the optimized one"

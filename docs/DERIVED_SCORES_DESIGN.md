@@ -1,6 +1,6 @@
 # Derived scores: a restricted formula over approved outputs: design record
 
-**Status: design, written 2026-10-12. Slices 1 (the grammar, the evaluator and the units), 2 (the approved output table, its sweep and guards) 3a (definitions, the project-file block, the service and the evaluator) 3b (the Results reader) and 3d (the definition dialog) were built on 2026-10-14 and are described under section 11; the project-table column (3c) was built on 2026-10-15, after the descriptor defect that blocked it was fixed (#330).** It is the second half of Phase 2 of the
+**Status: design, written 2026-10-12. Slices 1 (the grammar, the evaluator and the units), 2 (the approved output table, its sweep and guards) 3a (definitions, the project-file block, the service and the evaluator) 3b (the Results reader) and 3d (the definition dialog) were built on 2026-10-14 and are described under section 11; the project-table column (3c) was built on 2026-10-15, after the descriptor defect that blocked it was fixed (#330); slice 4 (the assistant reads, and proposes, a score; a default for an input nobody calculated) and a run of follow-ups (the Batch panel's table, "Tick what my scores read", and typing the polarizability, the topology indices and counts and the aromatic ring count so that a score may read them) were built on 2026-10-15 and 2026-10-16 and are described under section 11; the geometry questions were decided on 2026-10-16 and not built.** It is the second half of Phase 2 of the
 plan in the session notes; the first half, typed recipes and the Lewis pairing, is
 [`RECIPES_DESIGN.md`](RECIPES_DESIGN.md). This is the "custom predictor" idea **narrowed**: a person writes a
 formula over numbers the application already computes, and the result is labelled as exactly what it is, a formula
@@ -282,7 +282,7 @@ A driven run follows the UI slice, builds its own state, and ends in a verdict.
      batch table's `_as_float` parses it back. **A score rests only on a number the producer typed** (`int` or `float`, not a `bool`, finite): a score over a rounded string would change when a display setting did. Those twelve
      are the only report calculators on the panel that carry any typed number (of 31); the others have to type their values before they can be approved.
    * **Second finding: the always-on descriptors are stored twice.** 21 of the 31 run on both the drawing and a geometry and store one result for each under one id (10 run only on a geometry). A score must read exactly one, so
-     **an approved output is read from the drawing** (`READ_FROM`). Geometry-based outputs (shape descriptors, force-field energies, projections) are a separate review: a number of one conformer is a number of that conformer.
+     **an approved output is read from the drawing** (`READ_FROM`). Geometry-based outputs (shape descriptors, force-field energies, projections) are a separate review: a number of one conformer is a number of that conformer (decided on 2026-10-16, not built: see the entry on geometry-based outputs in section 11).
      *(Measured on 2026-10-14, and the cause of the double storage was a defect, not a design: the 21 differed between the two inputs because the conformer's hydrogens are atoms and the drawing's are implicit, so the reader
      showed a different Synthetic Accessibility after a conformer arrived. A conformer request now computes only the ten geometric descriptors, `DescriptorProvider.geometric_descriptor_ids`; the 21 exist under the drawing
      alone. `READ_FROM` is unchanged and was right: a score reading the drawing never saw the conformer's figures.)*
@@ -319,8 +319,8 @@ A driven run follows the UI slice, builds its own state, and ends in a verdict.
      dipole_moment, elemental_analysis, huckel_analysis, mass_spectrum, polar_surface_area, polarizability, surface_analysis, topology_analysis on the census panel) is a change to each producer, and **it has no shortcut**:
      typing integer-looking text in the adapter (`report_adapter._split`) would be wrong, because an integer-looking line is not necessarily an integer quantity (with `decimal_places=0` a rounded Randic index reads `6`). Each
      producer must build typed `Fact`s itself, with a golden-file check that the lines people see do not move, and the batch table and its exports would then carry the unrounded number. The first worth doing are
-     `polarizability` and `topology_analysis`'s indices, and only when someone wants them in a score; most of the rest repeat an always-on descriptor. (3) *Geometry-based outputs* need a
-     rule for which conformer a score reads. (4) *An output whose main path needs an optional tool* (logD's pKa path, anything from the pKa or ADMET sidecars) waits until the census can run that tool.
+     `polarizability` and `topology_analysis`'s indices, and only when someone wants them in a score; most of the rest repeat an always-on descriptor. (3) *Geometry-based outputs* needed a
+     rule for which conformer a score reads (decided on 2026-10-16, not built: see section 11). (4) *An output whose main path needs an optional tool* (logD's pKa path, anything from the pKa or ADMET sidecars) waits until the census can run that tool.
    * **Mutation-checked: 57 mutants** of the adoption rule, the table's rules, the table's own entries and the sweep. 56 were caught; the survivor is equivalent (`abs` or `ln` adopting a unit: a one-argument call has nothing to adopt from). The limits of the sweep survived at first for slice 1's reason (the tests read them by name), so they are pinned as numbers.
 3. **Definitions, persistence, evaluation on read, and the surfaces**, in four parts (the recipes went the same way):
    * **3a. Definitions, the project block, the service and the evaluator. BUILT (2026-10-14).** Described below.
@@ -577,6 +577,24 @@ A driven run follows the UI slice, builds its own state, and ends in a verdict.
      aromatic ring count). It also shows the shared tag refusing a formula that reads the cyclomatic number and the ring count.
    * **Not here.** The seven counts above that stay text, and the rest of the rounded-text calculators (`elemental_analysis`, `polar_surface_area`, `surface_analysis`, `dipole_moment`, `huckel_analysis`, `mass_spectrum`, `cns_mpo`), whose verdicts are in the entry before.
 
+   **Geometry-based outputs, decided on 2026-10-16 (not built):**
+   * **The questions.** Which conformer's number does a score read, which geometry-based outputs may a score read, and is it built now. They were raised in the slice 2 review and carried as "needs a rule" until they were answered on 2026-10-16.
+   * **What there is to read (measured 2026-10-16).** The sweep of the census panel found 211 typed numeric outputs, 135 of them only on a geometry input: the ten shape descriptors; 12 of Geometry Analysis (three force-field energies and nine size and
+     projection numbers); 11 of the HOMA ring-aromaticity index and 6 of Bird's, whose ids name the ring type (`6-membered C6`); and 96 of the torsion table, whose ids name the atoms. The last three groups fail the id rule of section 3 (an id may not depend on
+     the structure) whatever is decided here.
+   * **Decision 1, the rule: a score reads the conformer every calculation already gets**, `chem/calculation_input.py`'s `canonical_conformer`: the newest ORCA-optimised geometry if there is one, otherwise the lowest-MMFF94-energy conformer, otherwise the first with a
+     molblock. One rule in one place, so a score cannot disagree with Properties, the table or a docking about which geometry it means. Rejected: the conformer selected in the 3D viewer (it moves with a click, and the project table has no viewer, so Results and the table
+     could show two numbers for one score), and a rule written into each score (two scores on one molecule could silently use different conformers).
+   * **Decision 2, the scope: the ten shape descriptors, and nothing else for now** (principal moments of inertia 1 to 3, normalised ratios 1 and 2, the plane of best fit, the radius of gyration, asphericity, the spherocity index and the inertial shape factor). Left out by
+     choice: Geometry Analysis's nine size and projection numbers, and its three force-field energies (an absolute force-field energy is not comparable between molecules). They can follow under the typing rule if someone wants one.
+   * **Decision 3, the timing: built as the next pull request, not in the one that records this.**
+   * **How it will be built.** (a) An approved output gains an `input` (`drawing` by default, `geometry` for these ten), where `READ_FROM` is one constant today. (b) Results reads the stored result whose geometry fingerprint is that conformer's CURRENT one
+     (`geometry_fingerprint`, which `input_fingerprint` already builds for a `GEOMETRY` input), and the hover names the conformer (id, index, energy, force field: what `geometry_provenance` records). (c) The refusals are new sentences and never a number from another
+     conformer: "needs a conformer", and "calculated for an earlier geometry of this molecule". (d) The project table stamps each geometry cell with the conformer it used and stays a snapshot, as it is for the drawing. (e) The copy guard compares only rows read from the
+     same input. (f) Tests: a molecule with two conformers whose canonical one changes, the table-versus-Results parity test extended, a mutation run, and a real-window drive with its control.
+   * **A consequence to expect.** After an ORCA optimisation the canonical conformer changes, and a score over a shape descriptor changes with it (the descriptors recompute on the new conformer by themselves). That is the rule working, not a fault.
+   * **Not here.** Quantum-chemistry results (orbital energies, total energies: they have their own identity rules, section 3), an average over conformers, and a score that names one particular conformer.
+
    **The Batch panel's own table, as built (a follow-up after slice 4):**
    * **Two tables, one rule.** The Results dock's project table and the older Batch panel's table are two `ProjectTableView`s over separate runs; only the first was given the project's score lookup, so one run showed a score in one table and not in the other.
      `BatchPanel` now takes the same lookup (`MainWindow._score_definitions`) and rebuilds its score columns on `ScoreDefinitionsChanged` as the dock does. Nothing else about a score changed: it is still computed from the table's own cells,
@@ -645,7 +663,7 @@ Slice 4 is complete: 4a (the assistant reads a score), 4b (no unit conversion is
     the formula. Three things keep it honest: it never stands in for an answer (a refusal, a failure, an earlier structure), it never makes a score out of defaults alone, and every number that used one says so everywhere
     it is shown, including in the exported CSV. A person who defines a default of 1 for a desirability and forgets it is still reading a number that carries `*` and a column naming the input; what this cannot prevent is a
     default that is simply a bad assumption.
-12. **Only typed numbers, only of the drawing** (slice 2). It excludes most report calculators until their producers type their values, and every geometry-based output until it is reviewed. Both are real losses of usefulness,
+12. **Only typed numbers, only of the drawing** (slice 2). It excludes most report calculators until their producers type their values, and every geometry-based output until it is built (reviewed and decided on 2026-10-16: section 11). Both are real losses of usefulness,
     preferred to a score that moves with a display setting, or with whichever conformer happened to be stored.
 
 ## 13. Not here, deliberately

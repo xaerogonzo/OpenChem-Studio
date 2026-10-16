@@ -524,6 +524,17 @@ flexible drug-like molecules it used about a quarter fewer embeddings and found 
 against about 19; the single lowest was the same every time. Details says when a run ended this way. It is a small
 sample, so it stays opt-in.
 
+**Settings > Conformers > Keep ORCA-optimized conformers when generating
+conformers again** is on by default. Generating again replaces the force-field
+conformers with new ones and carries the ORCA-optimized geometries over
+unchanged, after the new ones, because an optimization is the slow thing in the
+list and every later calculation prefers it. Untick it to have Generate replace
+everything. The kept geometries follow the new conformers, so their numbers
+change when you regenerate (the "7 of 20 stays 7 of 20" promise is about an
+optimization landing, not about a regeneration). Undo restores the previous set
+either way, and editing the structure clears every conformer, ORCA ones
+included, because a geometry no longer fits an edited molecule.
+
 **Generate Conformers** asks for the counts, and hides the search
 settings behind **Advanced** — on **Automatic** it spends a documented
 budget, which is what you want unless you have a reason not to. Under
@@ -570,6 +581,20 @@ superposition is a viewing aid, recomputed each time.
 The energy shown is relative to the lowest (`+0.55 kcal/mol`), because the
 raw force-field number is not a quantity anybody compares to anything. The
 absolute value is in the tooltip.
+
+**An ORCA-optimized conformer is marked wherever you step to it.** The status
+line reads `Conformer 7/20 - ORCA optimized (HF STO-3G)`, and in the gallery
+the cell's label reads `7 - ORCA`. It shows no energy relative to the others,
+because an ORCA energy and a force-field energy are not on one scale. When an
+optimization finishes, the optimized geometry **takes the place of the
+conformer it was run on**, so 7 of 20 stays 7 of 20, and the viewer jumps to
+it; Undo puts the original back. **Details** says which level of theory made
+it, the ORCA version, and which conformer it was optimized from, by the number
+that conformer had when you pressed Run (older projects, saved before that was
+recorded, say *not recorded*). That number does not follow the geometry around:
+if you generate conformers again while a job runs and the source moves, the
+result still replaces it wherever it now is, and still says it started from
+number 7.
 
 **The gallery** shows several conformers at once, each in its own cell and
 each rotatable on its own — tick *Gallery* in the 3D Viewer's toolbar. Six
@@ -1526,6 +1551,18 @@ string (the presets are editable; anything you type, including dispersion or
 solvation keywords, is passed through and is part of the calibration cache
 key).
 
+**Where an optimized geometry goes.** A geometry optimization (or optimization
+plus frequencies) takes the place of the conformer it was run on, which is the
+one every calculation uses, and the 3D Viewer shows it, marked as ORCA
+optimized. If you **edit the structure while the job runs**, the job still
+finishes and its run stays in the history, but its geometry and numbers are not
+applied to the edited molecule, and the status bar says why: they describe the
+structure you had when you pressed Run, not the one on screen. The same goes
+for **Use in 2D Editor** while a job runs, when it gives the drawing a
+stereocentre it did not have: the structure is more specific than the one the job
+was run on. A multi-conformer (Boltzmann) run is not cut short by an edit either;
+it finishes on the inputs it was started with and applies nothing.
+
 **Calibrate Reference (TMS)** runs the reference calculation once per
 method/basis and caches it, so subsequent NMR jobs return real ppm shifts
 rather than raw shielding constants. Until you do, results are labelled as
@@ -1920,6 +1957,41 @@ backwards, which is why they are never combined). That check does not cover othe
 <!-- help:derived-scores -->
 ### Derived scores: a formula over numbers the application computes
 
+**What a score is for.** A score turns several numbers into one that says how well a molecule fits a preference you hold.
+Suppose you have forty molecules and you want each to be polar enough but not too polar, with few aromatic rings. You can
+read two columns and apply that rule in your head forty times, or write the rule once as a formula and get one column to
+sort by. That is all a score is: a spreadsheet formula over numbers OpenChem has already computed, with its units
+checked, saved with the project, and shown as a column of the project table and as an entry in Results. It is for
+**triaging a table** (sort by it and read from the top), for **writing a rule of thumb down once** so that it is applied
+the same way every time and travels with the project, and for **handing one number to someone else** in the CSV. It is not
+a prediction (nothing checks a formula you wrote against measurements, which is why it is always labelled *user-defined,
+unvalidated*), it does not run any calculation for you (it reads results that already exist, so run the calculators
+first), and it does not replace a published score such as QED, which a calculator computes. It is how you write down your
+own preference.
+
+**A worked example, start to finish.** Put aspirin, ethanol and caffeine in a project. The numbers below were produced by
+running exactly these steps in the real application, so yours should match.
+
+1. **Tools ▸ Derived Scores…**, **New score**. Name it `Polar window`. Under what it **reads**, choose the topological polar
+   surface area and call it `psa`. Formula: `ramp(psa, 140, 60)`. Unit: `1`. **Save**. `ramp(x, bad, good)` is 0 at `bad` or
+   worse, 1 at `good` or better and a straight line between, so this reads: a polar surface area of 140 Å² or more scores 0
+   and 60 Å² or less scores 1.
+2. Make a second score, `Light on rings`, that reads the aromatic ring count (it comes from the BBB Score Descriptors
+   calculator) as `rings`, with the formula `ramp(rings, 4, 0)`: no aromatic ring scores 1 and four or more score 0.
+3. In **Properties**, set **Run on** to *all molecules*, open **Presets** and choose **Tick what my scores read**. It ticks
+   the calculator the second score needs and makes sure the always-on properties are included, and the line beside **Run
+   selected** says so. Press **Run selected** and let the table fill; it takes a little while.
+4. In **Results**, the **Project table** page has your two scores as the first columns after the molecule's name. For this
+   panel the polar window is 0.955 for aspirin, 1 for ethanol and 0.9773 for caffeine, and the other score is 0.75, 1 and
+   0.5 (aspirin has one aromatic ring and caffeine two). Click a header to sort. Hover a cell to see the formula and each
+   input with its unit. **Export CSV** carries the column.
+5. Change the first formula to `ramp(psa, 100, 60)` in the same window and save: the table follows (aspirin 0.91, caffeine
+   0.9545) without another run.
+6. The **This molecule** page of Results shows each score against the structure as it is now. You can also ask the AI
+   Assistant to propose a score; it shows a card, and nothing is saved until you press **Approve**.
+
+The rest of this topic is the reference: what each field accepts and what each refusal means.
+
 **Tools ▸ Derived Scores…** is where you write a score of your own: a formula over numbers the application already
 computes, such as a weighted sum of desirabilities. Press **New score**, give it a name, choose what it **reads**,
 write the **formula**, say what **unit** it works out to, and press **Save**. The window checks everything as you
@@ -1944,6 +2016,11 @@ Descriptors calculator's RDKit aromatic ring count is the one offered). The cycl
 on cages such as cubane), so a formula can read one of each pair and not both.
 From the BBB Score Descriptors calculator it offers the aromatic ring count (RDKit's count: a score over it has no number after you compute the calculator on the major microspecies, and says so). That calculator's other numbers
 are not offered: two are always-on properties already, and the rest have a unit a score cannot be written in or come from an optional tool.
+
+**Today a score reads the drawing's numbers only.** A number that exists only for a 3D conformer (the shape descriptors, for
+instance) is not offered yet. How it will be read is decided and not built: the conformer every calculation already gets (the
+newest ORCA-optimised geometry, otherwise the lowest-energy force-field one), starting with the ten shape descriptors. The
+decision is recorded in `docs/DERIVED_SCORES_DESIGN.md`.
 
 **The units are checked, never converted.** Adding an area to a mass is refused, and so is declaring a unit the formula
 does not work out to. A bare number in the formula takes the unit of what it is added to or compared with, so

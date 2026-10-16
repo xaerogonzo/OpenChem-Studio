@@ -387,7 +387,25 @@ it).
   the whole list.** ORCA (6.5) needs to add one optimized-geometry
   conformer without wiping out whatever RDKit-generated conformers already
   exist — `SetConformersCommand`'s wholesale-replace semantics would do
-  exactly that if reused as-is.
+  exactly that if reused as-is. It is now the fallback: a landing whose
+  source conformer cannot be found (a Boltzmann run's lowest conformer, or
+  conformers regenerated while the job ran) is appended and shown.
+- **An ORCA optimization lands through `ReplaceConformerCommand`, in the slot
+  of the conformer it started from.** The window finds the source by its
+  `GEOMETRY` fingerprint (`find_source_conformer`), so 7 of 20 stays 7 of 20,
+  and `ConformersChanged.show_conformer_id` makes the 3D viewer land on it.
+  The command records whether redo replaced or appended, because undo must
+  reverse what was done. Regenerating conformers keeps the quantum-optimized
+  ones unless Settings > Conformers says otherwise
+  (`with_kept_quantum_optimized`).
+- **A quantum job that finishes after its molecule's structure was edited
+  installs nothing and shows nothing as current.** The panel stamps the
+  molecule's canonical SMILES on the submission, the service carries it on
+  `QuantumChemistryResultReady.structure_identity`, and the window compares it
+  at landing with `chem.isotopes.same_structure` (fails closed; an isotope
+  label and a moved atom are the same structure, the editor's own rule).
+  It is deliberately NOT a subscription to `ConformersInvalidated`, which is
+  only published when there are conformers to clear.
 - **Quantum-chemistry descriptor results reuse the existing
   `DescriptorComputed` event, not a new display mechanism.** Descriptors
   were never cached on the molecule to begin with (see above) — ORCA's
@@ -844,6 +862,25 @@ so the command line registers the definitions unbound and those calculators refu
   envelope, whichever of the run and the deadline gets there first.
 - stdout is the envelope's alone: `sys.stdout` is pointed at stderr while a command runs, so a
   calculator that prints cannot corrupt it.
+
+### Scores, recipes and the assistant's bridge sit beside the calculators, not among them
+
+Three features added in October 2026 read the calculators' results without being calculators, and each keeps a boundary worth
+knowing before touching it. Their design records are `docs/DERIVED_SCORES_DESIGN.md`, `docs/RECIPES_DESIGN.md` and
+`docs/AI_CALCULATION_BRIDGE.md`.
+
+- **A derived score is a projection, not a result.** It is a formula a person wrote over an approved output (`domain/score_outputs.py`),
+  parsed by a hand-written parser that runs nothing (`domain/score_formula.py`), and evaluated every time it is shown against the molecule's
+  CURRENT results, never stored (`services/score_service.py` makes, edits and reads; it never starts a calculation). It is not a registry
+  calculator, so it is absent from the calculator list, the goals and the assistant's calculator search, by decision. The project table
+  computes a score column from the table's own cells, so a score there is only as current as the run that filled them.
+- **A recipe is a plan whose steps read each other's typed outputs, and a recipe run is its own record** (`domain/recipe.py`,
+  `domain/recipe_run.py`, a `recipe_runs` block in the project file, one write path in `ResultStoreService`). Staleness is derived when it
+  is read and never flagged when it is written, and evaluating a recipe starts no calculation (`services/recipe_service.py`).
+- **The assistant reaches the calculators through a narrow handle, never the service container** (`plugins/calculation_access.py`, with the
+  window's side in `app/calculation_host.py`). A tool is given a turn frozen when the message was sent (`domain/turn_snapshot.py`) and a
+  handle with no way to approve anything; a person's approval is a separate handle the tools never hold, and what may run unattended is a
+  measured property of each calculator (`domain/execution_policy.py`).
 
 ## Known TODOs
 

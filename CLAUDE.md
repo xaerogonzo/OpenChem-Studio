@@ -199,7 +199,11 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "conformer_report", "tag": "x", "expect": {"canonical_method": "orca_opt",
      "canonical_mapped": true, "conformers": 3}}   each stored conformer (method, energy, whether it
                                           has the way back to the drawing's atoms, its GEOMETRY fingerprint,
-                                          the same string `qc_run` logs) and which one a calculation gets
+                                          the same string `qc_run` logs) and which one a calculation gets;
+                                          it also reads the 3D VIEWER and the status bar: `viewer_index`,
+                                          `viewer_on_canonical`, `viewer_label_contains`/`_excludes`,
+                                          `orca_conformers`, `origin_slot`, `status_contains` -- "the geometry
+                                          is stored" and "the viewer shows it" are different claims
     {"do": "jobs_report", "tag": "running"}   rows AND whether it is POLLING
     {"do": "jobs_cancel", "row": 0}           the real button in a real row
     {"do": "conformers_finish", "expect": {"enabled": true, "readout_contains": ["found"]}}

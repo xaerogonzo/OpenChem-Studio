@@ -811,3 +811,52 @@ def test_the_backend_says_whether_it_armed(qapp, tmp_path):
         assert backend.set_atom_tool("C", 13) is True
     finally:
         conftest.dispose(host)
+
+
+# --- `same_structure`: does a finished ORCA job still describe this molecule? ------------------------------------
+
+
+def _canonical(smiles: str) -> str:
+    return Chem.MolToSmiles(Chem.MolFromSmiles(smiles))
+
+
+def test_same_structure_matrix():
+    """The editor's matrix, seen from the other side. An isotope label and a moved atom leave the
+    structure alone; a changed bond or a flipped wedge does not."""
+    from openchem.chem.isotopes import same_structure
+
+    ethanol = _canonical("CCO")
+    assert same_structure(ethanol, ethanol), "nothing changed"
+    assert same_structure(ethanol, _canonical("[13CH3]CO")), "an isotope label moves no atom"
+    assert same_structure(_canonical("[2H]C(F)(Cl)Br"), _canonical("FC(Cl)(Br)[2H]")), "the same molecule written twice"
+    assert not same_structure(ethanol, _canonical("CCCO")), "a constitution edit"
+    assert not same_structure(ethanol, _canonical("CC=O")), "a bond-order edit"
+    assert not same_structure(_canonical("C[C@H](F)Cl"), _canonical("C[C@@H](F)Cl")), "a flipped wedge is a different compound"
+    assert not same_structure(
+        _canonical("[2H][C@](F)(Cl)Br"), _canonical("[2H][C@@](F)(Cl)Br")
+    ), "stereochemistry survives the isotope stripping, on an isotopic centre too"
+
+
+@pytest.mark.parametrize("submitted, current", [("", "CCO"), ("CCO", ""), ("", ""), (None, "CCO"), ("CCO", None)])
+def test_an_identity_that_cannot_be_read_is_withheld_never_assumed_current(submitted, current):
+    from openchem.chem.isotopes import same_structure
+
+    assert same_structure(submitted, current) is False
+
+
+def test_two_different_unparseable_strings_are_not_the_same_structure():
+    from openchem.chem.isotopes import same_structure
+
+    assert same_structure("not a smiles", "also not") is False, "fails closed: keeping geometry through an unreadable edit is the expensive mistake"
+    assert same_structure("not a smiles", "not a smiles") is True, "nothing changed, whatever it says"
+
+
+def test_the_editor_and_the_landing_rule_share_one_isotope_definition():
+    """If they ever disagreed, an isotope edit would keep the conformers (editor) while the job's geometry
+    was withheld (landing), or the reverse."""
+    from openchem.chem.isotopes import differs_only_in_isotopes, same_structure
+
+    pairs = [("CCO", "[13CH3]CO"), ("CCO", "CCCO"), ("C[C@H](F)Cl", "C[C@@H](F)Cl")]
+    for before, after in pairs:
+        before, after = _canonical(before), _canonical(after)
+        assert same_structure(before, after) == (before == after or differs_only_in_isotopes(before, after))
