@@ -756,6 +756,33 @@ def test_a_score_over_a_topology_index_reads_the_drawings_graph_when_the_molecul
     assert score_value_in_table(definition, event.table, ethanol.uuid).inputs[0].value == 4.0
 
 
+_CHAIN = "calculator:topology_analysis:Chain atom count"
+
+
+def test_a_score_over_a_topology_count_reads_the_drawings_atoms_when_the_molecule_has_a_conformer(window, pair, qapp):
+    """A conformer's graph carries the hydrogens: aspirin has 7 atoms outside a ring as drawn and 15 over its 21 atoms. The score reads the drawing's, in Results and in the table."""
+    from rdkit import Chem
+
+    from openchem.domain.score_table import score_value_in_table
+
+    aspirin, ethanol = pair
+    _select(window, qapp, aspirin)
+    _with_a_conformer(window, qapp, aspirin)
+    assert aspirin.conformers
+    _make(window, label="Chainy", formula="ramp(chain, 8, 0)", inputs=[("chain", _CHAIN)])
+    _run_topology(window, qapp, aspirin)
+    value = window._services.score_service.values_for(aspirin)[0]
+    assert value.status.value == "value" and value.inputs[0].value == 7.0 and value.value == pytest.approx(0.125, abs=1e-12)
+    explicit = window._services.chemistry_engine.mol_from_model(aspirin)
+    on_a_conformer = window._services.calculator_registry.compute("topology_analysis", Chem.AddHs(explicit), "uuid", {})
+    assert [f.value for f in on_a_conformer.facts if f.label == "Chain atom count"] == [15], "the same calculator on the explicit-hydrogen graph is another number, which the score must never read"
+    event = _run_batch(window, qapp, [aspirin, ethanol], [], ["topology_analysis"])
+    definition = window._services.score_service.store.definitions()[0]
+    in_table = score_value_in_table(definition, event.table, aspirin.uuid)
+    assert in_table.status.value == "value" and in_table.inputs[0].value == 7.0 and in_table.value == pytest.approx(value.value)
+    assert score_value_in_table(definition, event.table, ethanol.uuid).value == pytest.approx(0.625, abs=1e-12), "ethanol: 3 atoms in no ring"
+
+
 # --- a score over the aromatic ring count (the third report calculator typed for scores) ---------------------------------------------------------
 
 _RINGS = "calculator:bbb_descriptors:Aromatic rings"

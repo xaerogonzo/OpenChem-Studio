@@ -1,0 +1,42 @@
+[
+  {"do": "smiles", "smiles": "CC(=O)Oc1ccccc1C(=O)O", "name": "Aspirin", "after_ms": 1000},
+  {"do": "smiles", "smiles": "CCO", "name": "Ethanol", "after_ms": 1000},
+  {"do": "smiles", "smiles": "Cn1cnc2c1c(=O)n(C)c(=O)n2C", "name": "Caffeine", "after_ms": 1000},
+  {"do": "select", "molecule": 1, "after_ms": 3000},
+
+  {"do": "score_define", "label": "Chainy", "formula": "ramp(chain, 8, 0)", "inputs": [["chain", "calculator:topology_analysis:Chain atom count"]], "result_unit": "1",
+   "tag": "a-score-on-the-atoms-outside-a-ring", "expect": {"made": true}},
+  {"do": "score_define", "label": "Fusion", "formula": "ramp(fused, 3, 0)", "inputs": [["fused", "calculator:topology_analysis:Fused ring count"]], "result_unit": "1",
+   "tag": "a-score-on-the-fused-rings", "expect": {"made": true}},
+  {"do": "score_define", "label": "Cycles twice", "formula": "ramp(cycles + rings, 8, 0)",
+   "inputs": [["cycles", "calculator:topology_analysis:Cyclomatic number"], ["rings", "descriptor:ring_count"]], "result_unit": "1",
+   "tag": "the-cyclomatic-number-and-the-ring-count-are-two-estimates-of-one-quantity", "expect": {"made": false, "problem": "consensus", "message_contains": ["consensus predictor"]}},
+
+  {"do": "panel", "id": "Properties", "after_ms": 800},
+  {"do": "project_run", "calculators": ["topology_analysis"], "scope": "all", "descriptors": false, "after_ms": 9000},
+  {"do": "table_scores", "tag": "the-project-table-has-both-scores-from-the-typed-counts-and-its-csv-has-them", "export_csv": "artifacts/visual/score_typed_topology_counts.csv",
+   "expect": {"columns": ["Chainy (user-defined, unvalidated)", "Fusion (user-defined, unvalidated)"], "note": "",
+              "grid": {"Aspirin": {"Chainy": "0.125", "Fusion": "1"}, "Ethanol": {"Chainy": "0.625", "Fusion": "1"}, "Caffeine": {"Chainy": "0.375", "Fusion": "0.3333"}},
+              "tooltips": {"Aspirin": {"Chainy": ["Inputs: chain = 7"]}, "Caffeine": {"Fusion": ["Inputs: fused = 2"]}},
+              "csv_header_contains": ["Chainy (user-defined, unvalidated)", "Fusion (user-defined, unvalidated)"],
+              "csv_cells": {"Aspirin": {"Chainy": 0.125, "Fusion": 1.0}, "Caffeine": {"Chainy": 0.375, "Fusion": 0.3333}}}},
+  {"do": "shot", "path": "artifacts/visual/score_typed_topology_counts_table.png", "widget": "project_table", "after_ms": 500},
+
+  {"do": "calculator", "id": "topology_analysis", "reveal": false, "after_ms": 3000},
+  {"do": "score_results", "focus": true, "which": "Chainy", "tag": "the-reader-gives-the-same-number-once-the-molecule-has-its-own-result",
+   "expect": {"entries": 2, "has_value": true, "value_between": [0.1249, 0.1251], "evidence_contains": ["chain = 7"]}},
+  {"do": "score_results", "focus": true, "which": "Fusion", "tag": "and-for-the-fused-rings",
+   "expect": {"entries": 2, "has_value": true, "value_between": [0.9999, 1.0001], "evidence_contains": ["fused = 0"]}},
+  {"do": "shot", "path": "artifacts/visual/score_typed_topology_counts_reader.png", "widget": "results_reader", "after_ms": 500},
+
+  {"do": "conformers", "count": 2, "after_ms": 9000},
+  {"do": "project_run", "calculators": ["topology_analysis"], "scope": "all", "descriptors": false, "after_ms": 9000},
+  {"do": "table_scores", "tag": "a-molecule-with-a-conformer-is-still-scored-on-its-drawings-atoms-in-the-table",
+   "expect": {"grid": {"Aspirin": {"Chainy": "0.125"}, "Ethanol": {"Chainy": "0.625"}}}},
+  {"do": "calculator", "id": "topology_analysis", "reveal": false, "after_ms": 3000},
+  {"do": "score_results", "focus": true, "which": "Chainy", "tag": "and-in-the-reader-where-the-explicit-hydrogen-graph-would-have-15-such-atoms-and-score-0",
+   "expect": {"entries": 2, "has_value": true, "value_between": [0.1249, 0.1251], "evidence_contains": ["chain = 7"]}},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

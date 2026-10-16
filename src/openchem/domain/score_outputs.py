@@ -83,6 +83,16 @@ ENDPOINTS: dict[str, str] = {
     "szeged_index": "the Szeged index: the sum over bonds of the atoms nearer one end times the atoms nearer the other, of the molecular graph without hydrogens",
     "wiener_index": "the Wiener index: half the sum of all topological distances between atoms, of the molecular graph without hydrogens",
     "wiener_polarity": "the Wiener polarity number: the count of atom pairs exactly three bonds apart, in the molecular graph without hydrogens",
+    # PROVISIONAL, like the eight above (eight counts, 2026-10-16; two more share the tags `ring_count` and `stereocentre_count`). The ring counts are of the rings RDKit's ring information lists, which is why a cage has
+    # more rings than independent cycles.
+    "bond_count": "the number of bonds between non-hydrogen atoms",
+    "carbocyclic_ring_count": "the number of rings made only of carbon atoms, of the rings RDKit's ring information lists",
+    "chain_atom_count": "the number of non-hydrogen atoms that are in no ring",
+    "chain_bond_count": "the number of bonds between non-hydrogen atoms that are in no ring",
+    "fused_ring_count": "the number of rings that share at least one bond with another ring, of the rings RDKit's ring information lists",
+    "heterocyclic_ring_count": "the number of rings with at least one atom that is not carbon, of the rings RDKit's ring information lists",
+    "ring_atom_count": "the number of non-hydrogen atoms that are in a ring",
+    "ring_bond_count": "the number of bonds between non-hydrogen atoms that are in a ring",
 }
 
 
@@ -116,11 +126,23 @@ APPROVED: tuple[ApprovedOutput, ...] = (
     _entry("calculator:polarizability:Molecular polarizability", "Å^3", "A^3", "molecular_polarizability"),
     _entry("calculator:solubility:Predicted intrinsic solubility (mg/mL)", "mg/mL", "mg/mL", "aqueous_solubility_intrinsic"),
     _entry("calculator:solubility:Predicted intrinsic solubility (mol/L)", "mol/L", "mol/L", "aqueous_solubility_intrinsic"),
+    # Shares the tag of `descriptor:num_stereocenters`: the same on every census row (`identical_pairs`), and different only where a centre is stereogenic without being asymmetric (cubane 0 against 8).
+    _entry("calculator:topology_analysis:Asymmetric atom count", "1", "", "stereocentre_count"),
     _entry("calculator:topology_analysis:Balaban index", "1", "", "balaban_j_index"),
+    _entry("calculator:topology_analysis:Bond count", "1", "", "bond_count"),
+    _entry("calculator:topology_analysis:Carbo ring count", "1", "", "carbocyclic_ring_count"),
+    _entry("calculator:topology_analysis:Chain atom count", "1", "", "chain_atom_count"),
+    _entry("calculator:topology_analysis:Chain bond count", "1", "", "chain_bond_count"),
+    # Shares the tag of `descriptor:ring_count`: the same on every census row (`identical_pairs`), and different only on a cage (cubane 5 independent cycles against RDKit's 6 rings).
+    _entry("calculator:topology_analysis:Cyclomatic number", "1", "", "ring_count"),
+    _entry("calculator:topology_analysis:Fused ring count", "1", "", "fused_ring_count"),
     _entry("calculator:topology_analysis:Harary index", "1", "", "harary_index"),
+    _entry("calculator:topology_analysis:Hetero ring count", "1", "", "heterocyclic_ring_count"),
     _entry("calculator:topology_analysis:Hyper Wiener index", "1", "", "hyper_wiener_index"),
     _entry("calculator:topology_analysis:Platt index", "1", "", "platt_index"),
     _entry("calculator:topology_analysis:Randic index", "1", "", "randic_index"),
+    _entry("calculator:topology_analysis:Ring atom count", "1", "", "ring_atom_count"),
+    _entry("calculator:topology_analysis:Ring bond count", "1", "", "ring_bond_count"),
     _entry("calculator:topology_analysis:Szeged index", "1", "", "szeged_index"),
     _entry("calculator:topology_analysis:Wiener index", "1", "", "wiener_index"),
     _entry("calculator:topology_analysis:Wiener polarity", "1", "", "wiener_polarity"),

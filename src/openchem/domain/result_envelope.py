@@ -577,9 +577,15 @@ SCORE_PROPOSAL_NOTE = (
 )
 
 
+#: How many outputs `list_score_outputs` lists at full size, scaled with the caps like every other list. Its own limit and not `Caps.items` (40, for facts and structures): the approved table passed 40 outputs
+#: and the 41st, the last by id, fell off the model's list with only `left_out_for_length` to say so. A row is about 215 bytes, so the reply budget (`REPLY_BUDGET`, 12000) holds about 55 before the stepped caps
+#: shrink the list: `tests/test_ai_assistant_score_proposals.py` turns red before then.
+SCORE_OUTPUT_ROWS = 120
+
+
 def score_outputs_envelope(entries: Sequence[ApprovedOutput], caps: Caps = FULL) -> dict[str, Any]:
     """The outputs a score may read (`entries`, from the plugin handle), as `list_score_outputs` returns them."""
-    shown = entries[: caps.items]
+    shown = entries[: max(1, SCORE_OUTPUT_ROWS * caps.items // FULL.items)]
     return {
         "envelope_version": MODEL_ENVELOPE_VERSION,
         "outputs": [

@@ -24,7 +24,7 @@ from openchem.domain.calculator import DRAWING
 from openchem.domain.common import CacheState
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.project import ProjectModel
-from openchem.domain.result_envelope import Caps, score_outputs_envelope
+from openchem.domain.result_envelope import FULL, SCORE_OUTPUT_ROWS, Caps, score_outputs_envelope
 from openchem.domain.result_store import ResultIdentity, StoredResult
 from openchem.domain.score_outputs import APPROVED
 from openchem.domain.score_proposal import ASSISTANT_OWNER, MAX_PENDING, ProposalState
@@ -502,8 +502,9 @@ def test_the_outputs_come_from_the_handle_and_are_capped_like_everything_the_mod
     bridge = ToolBridge(Few(rig.world.host), rig.panel._context.calculations.begin_turn())
     data = json.loads(bridge.list_score_outputs())
     assert len(data["outputs"]) == 3 and data["left_out_for_length"] == 0, "what the handle says is what the model is told"
+    rows = SCORE_OUTPUT_ROWS * 5 // FULL.items
     capped = score_outputs_envelope(APPROVED, Caps(items=5))
-    assert len(capped["outputs"]) == 5 and capped["left_out_for_length"] == len(APPROVED) - 5
+    assert len(capped["outputs"]) == rows < len(APPROVED) and capped["left_out_for_length"] == len(APPROVED) - rows
 
 
 def test_a_listener_for_decisions_is_undone_when_the_plugin_unloads(rig):
@@ -530,3 +531,14 @@ def test_the_strip_of_cards_stays_while_another_proposal_still_waits(rig):
     rig.panel._score_cards[second["proposal_id"]].cancel_button.click()
     rig.qapp.processEvents()
     assert rig.panel._cards_host.isHidden()
+
+
+def test_the_whole_list_of_outputs_fits_the_reply_budget_with_room_to_grow():
+    """A row is about 215 bytes, so the 12000-character budget holds about 55 outputs before the stepped caps shrink the list and the model stops seeing the last ones. This goes red first, so the approval
+    that would cross the budget is a decision about the budget and not a silent omission."""
+    from ai_assistant.bridge import REPLY_BUDGET
+
+    full = score_outputs_envelope(APPROVED, FULL)
+    size = len(json.dumps(full))
+    assert full["left_out_for_length"] == 0
+    assert size < REPLY_BUDGET * 0.85, f"{len(APPROVED)} outputs take {size} of {REPLY_BUDGET} characters: shorten a row or raise the budget before approving more"
