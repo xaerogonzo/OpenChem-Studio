@@ -863,6 +863,25 @@ so the command line registers the definitions unbound and those calculators refu
 - stdout is the envelope's alone: `sys.stdout` is pointed at stderr while a command runs, so a
   calculator that prints cannot corrupt it.
 
+### Scores, recipes and the assistant's bridge sit beside the calculators, not among them
+
+Three features added in October 2026 read the calculators' results without being calculators, and each keeps a boundary worth
+knowing before touching it. Their design records are `docs/DERIVED_SCORES_DESIGN.md`, `docs/RECIPES_DESIGN.md` and
+`docs/AI_CALCULATION_BRIDGE.md`.
+
+- **A derived score is a projection, not a result.** It is a formula a person wrote over an approved output (`domain/score_outputs.py`),
+  parsed by a hand-written parser that runs nothing (`domain/score_formula.py`), and evaluated every time it is shown against the molecule's
+  CURRENT results, never stored (`services/score_service.py` makes, edits and reads; it never starts a calculation). It is not a registry
+  calculator, so it is absent from the calculator list, the goals and the assistant's calculator search, by decision. The project table
+  computes a score column from the table's own cells, so a score there is only as current as the run that filled them.
+- **A recipe is a plan whose steps read each other's typed outputs, and a recipe run is its own record** (`domain/recipe.py`,
+  `domain/recipe_run.py`, a `recipe_runs` block in the project file, one write path in `ResultStoreService`). Staleness is derived when it
+  is read and never flagged when it is written, and evaluating a recipe starts no calculation (`services/recipe_service.py`).
+- **The assistant reaches the calculators through a narrow handle, never the service container** (`plugins/calculation_access.py`, with the
+  window's side in `app/calculation_host.py`). A tool is given a turn frozen when the message was sent (`domain/turn_snapshot.py`) and a
+  handle with no way to approve anything; a person's approval is a separate handle the tools never hold, and what may run unattended is a
+  measured property of each calculator (`domain/execution_policy.py`).
+
 ## Known TODOs
 
 **Every item carries a verdict**, because this list had become half

@@ -1489,14 +1489,15 @@ blocked by anything:
   result there is a much weaker statement than the same result on a
   form-shaped panel, and this defect class needs a guard of its own kind.
 
-### Recipes, derived scores and the assistant's bridge (2026-10-12)
+### Recipes, derived scores and the assistant's bridge (2026-10-12, updated 2026-10-16)
 
-Phase 1 (the assistant reads and runs calculators, and asks before anything heavy) is merged: `docs/AI_CALCULATION_BRIDGE.md`. Phase 2 is
-**designed and not built**, in two records: `docs/RECIPES_DESIGN.md` (typed dependencies between calculators, with the Lewis pairing as
-the first recipe and a preregistered BH3/CO gate on real ORCA) and `docs/DERIVED_SCORES_DESIGN.md` (a restricted formula over approved
-outputs, labelled user-defined and unvalidated). Their slices are numbered there. Two things they depend on are not built and are not
-assumed: a dispatch adapter for service-run (ORCA) calculators, and the assistant's snapshot holding ORCA runs. The live provider run
-for Phase 1 is still not done.
+Phase 1 (the assistant reads and runs calculators, and asks before anything heavy) is merged: `docs/AI_CALCULATION_BRIDGE.md`. **Phase 2 is
+built** (on 2026-10-12 it was designed and not built; the slices merged between 2026-10-13 and 2026-10-16): the recipe model, the run record, the
+Lewis pairing, its window and the kept answer in Results, and the preregistered BH3/CO gate, PASSED on 2026-10-13 (`docs/RECIPES_DESIGN.md`); and derived
+scores, slices 1 to 4 and their follow-ups (`docs/DERIVED_SCORES_DESIGN.md`). Still not built: a dispatch adapter for service-run (ORCA) calculators,
+so the assistant describes an ORCA job and a person starts it from its panel, and the assistant's frozen turn holds no quantum-chemistry runs
+(`domain/turn_snapshot.py` names none, checked 2026-10-16); scores over 3D numbers (decided on 2026-10-16, in the derived scores record); Phase 3 (the
+ORCA reactivity calculators) and Phase 4 (the synthesis helper). The live provider run for Phase 1 is still not done. `docs/WHATS_NEW.md` is a tour of all of it.
 
 ### Visualization
 

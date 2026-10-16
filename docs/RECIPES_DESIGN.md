@@ -1,6 +1,6 @@
 # Recipes: typed dependencies between calculators, and the Lewis pairing as the first one: design record
 
-**Status: design, written 2026-10-12. Nothing in this document is built.** It is the first half of Phase 2 of the
+**Status: design, written 2026-10-12, and built since (2026-10-13 to 2026-10-14), slice by slice: the plan model and run record (1), the Lewis evidence (2a) and the pairing itself (2b), its window (3a), the kept answer in Results (3b) and the gate, PASSED on 2026-10-13 (4). Section 12 says "built" where each is.** The text below was written before any of it existed, and where it says "not built" it describes that day. It is the first half of Phase 2 of the
 plan in the session notes; the second half, user-defined derived scores, is
 [`DERIVED_SCORES_DESIGN.md`](DERIVED_SCORES_DESIGN.md). Phase 1 (the assistant's calculator bridge,
 [`AI_CALCULATION_BRIDGE.md`](AI_CALCULATION_BRIDGE.md)) is merged and this record builds on its vocabulary:

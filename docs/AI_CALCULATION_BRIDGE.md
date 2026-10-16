@@ -5,7 +5,7 @@ session notes. **Slice 1** (the execution policy, the shared search, this record
 (the host adapter, the plugin handle, the frozen turn snapshot, parameter validation, the run
 ledger) and **slice 3** (the result envelope, the five tools, the consent UI, the service preview
 adapter, the privacy note, "Explain Stored Results") are built; each section says "built" where it is.
-**What is not done is the live run on a real tool-capable provider** (section 11): it needs an API key,
+**Since then three tools were added for derived scores** (`read_scores`, `list_score_outputs` and `propose_score`; `DERIVED_SCORES_DESIGN.md`, slices 4a and 4d), so the five tools described below are eight. **What is not done is the live run on a real tool-capable provider** (section 11): it needs an API key,
 and every check so far used a scripted provider. Where a review changes this document, change it here first.
 
 Every statement about how the application works today was read in the source on the date above and
