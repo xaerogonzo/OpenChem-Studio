@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   heteroaromatic ring counts test atoms for aromaticity, which is not RDKit's count.
 - **The cyclomatic number and the asymmetric atom count share an endpoint tag with the ring count and the stereocentre count.** They are identical to those always-on properties on every census row, so a formula can read either of a pair and never both;
   they are still offered because they differ on cages (cubane: 5 independent cycles against 6 rings, and 0 asymmetric atoms against 8 stereocentres).
+- **The assistant's list of score outputs no longer drops the last one.** `list_score_outputs` stopped at 40 rows, and the 41st approved output (the polar surface area, last by id) fell off the model's list with only a `left_out_for_length` to say so. The
+  list has its own limit now, and a test goes red when the whole list stops fitting the assistant's reply budget with room to spare (it holds about 55 outputs).
 
 ### Derived scores: the aromatic ring count can be read
 - **The BBB Score Descriptors calculator's aromatic ring count is a number now, and a score may read it** (the 31st approved output, a plain number). It is RDKit's count, an exact integer, and only for the default answer: the
