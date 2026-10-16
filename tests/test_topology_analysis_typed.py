@@ -235,3 +235,47 @@ def test_a_typed_report_is_saved_and_reopened_whole(registry):
     restored = result_codec.decode(json.loads(json.dumps(result_codec.encode(result))))
     assert restored == result and _typed(restored) == _typed(result)
     assert [type(v) for v in _typed(restored).values()] == [type(v) for v in _typed(result).values()]
+
+
+# --- approved as score outputs ---------------------------------------------------------------------------------------------------------
+
+
+def _approved_indices() -> dict:
+    from openchem.domain.score_outputs import APPROVED
+
+    prefix = "calculator:topology_analysis:"
+    return {entry.output_id[len(prefix):]: entry for entry in APPROVED if entry.output_id.startswith(prefix)}
+
+
+def test_exactly_the_eight_indices_are_approved_each_dimensionless_and_each_with_an_endpoint_of_its_own():
+    approved = _approved_indices()
+    assert list(approved) == sorted(INDICES), "the table is sorted by id"
+    assert all(entry.unit == "1" and entry.carried_as == "" for entry in approved.values())
+    assert len({entry.endpoint for entry in approved.values()}) == 8, "eight different quantities: none of them is a consensus of another"
+
+
+def test_the_counts_of_the_report_are_not_approved(registry):
+    from openchem.domain.score_outputs import approved_output
+
+    for label in ("Atom count", "Bond count", "Cyclomatic number", "Ring count", "Aromatic ring count", "Fused ring count", "Rotatable bond count", "Chiral center count"):
+        assert approved_output(f"calculator:topology_analysis:{label}") is None, label
+
+
+def test_all_eight_indices_can_be_named_in_one_formula():
+    from openchem.domain.score_outputs import check_inputs
+
+    units = check_inputs([(f"i{n}", entry.output_id) for n, entry in enumerate(_approved_indices().values())])
+    assert len(units) == 8
+
+
+@pytest.mark.parametrize("name", ["aspirin", "caffeine", "benzene", "cubane", "18-crown-6"])
+def test_a_score_reads_the_same_number_whatever_the_decimal_places(registry, name):
+    from openchem.domain.score_outputs import accept_value
+
+    for label, entry in _approved_indices().items():
+        read = []
+        for places in (0, 1, 8):
+            [fact] = [f for f in _completed(registry, name, {"decimal_places": places}).facts if f.label == label]
+            read.append(accept_value(entry, fact.value, fact.units))
+        assert read[0] == read[1] == read[2], f"{name}: {label} moved with the setting: {read}"
+        assert type(read[0]) is float

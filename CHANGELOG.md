@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Derived scores: the topology indices can be read
+- **Eight of the Topology Analysis calculator's numbers are numbers now, and a score may read them** (the 23rd to 30th approved outputs, all dimensionless): the Wiener, hyper-Wiener, Harary, Randić, Balaban J, Szeged and Platt indices and the Wiener polarity
+  number, each of the molecular graph without hydrogens. Their lines carried the text they show (`'6.11'`), which a score must not rest on, so the calculator now hands over the number itself; the lines, labels, units and the project table's cell
+  text do not move (a recording made before the change, 132 observations over 22 molecules and six ways of asking, holds them), and the table's cell and exports now carry the unrounded number. The report's counts (atoms, bonds, rings, rotatable bonds,
+  stereocentres) stay text and are not offered. A score reads the drawing's graph and never a conformer's: aspirin's Wiener index is 246 as drawn and 850 over a conformer's explicit hydrogens.
+- **The calculator's description no longer says the Szeged index exceeds the Wiener index on any cyclic graph.** The two are equal where every ring is a triangle (cyclopropane, oxirane, aziridine and spiropentane measured) and Szeged was larger on every molecule
+  with a ring of four or more atoms that was measured; found by the test that asserted the old sentence on cyclopropane.
+
 ### Derived scores: the polarizability can be read
 - **The Polarizability calculator's default answer is a number now, and a score may read it** (`Å^3`; the 22nd approved output). Its first line carried the text it shows (`'18.11'`), which a score must not rest on, so the calculator now hands over
   the number itself; the lines, labels, units and the project table's cell text do not move (a recording made before the change, 91 observations over a panel and every way of asking, holds them), and the table's cell and exports now carry the
