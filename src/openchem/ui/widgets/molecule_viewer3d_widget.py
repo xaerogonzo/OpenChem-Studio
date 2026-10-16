@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.domain.common import CacheState
+from openchem.domain.conformer import is_quantum_optimized, quantum_level_of_theory
 from openchem.domain.report import ArrowAnnotation
 from openchem.services.spatial_overlay_service import SINGLE_VIEW_CELL
 from openchem.ui.widgets.flow_layout import flow_row
@@ -652,6 +653,16 @@ class MoleculeViewer3DWidget(QWidget):
     def _on_conformers_changed(self, event: ConformersChanged) -> None:
         if self._molecule is not None and event.molecule_uuid == self._molecule.uuid:
             self._conformer_index = 0
+            # A change about ONE conformer (an ORCA geometry landing in its slot, or an undo restoring the
+            # one it replaced) names it, and the viewer lands on it instead of returning to the first. In the
+            # gallery the page holding it is shown too: `_refresh_gallery` would otherwise move the selection
+            # to the first cell of whichever page was up.
+            if event.show_conformer_id:
+                for index, conformer in enumerate(self._molecule.conformers):
+                    if conformer.conformer_id == event.show_conformer_id:
+                        self._conformer_index = index
+                        self._page_start = (index // self._page_size()) * self._page_size()
+                        break
             self._refresh_view()
 
     def _on_job_state_changed(self, event: ConformerJobStateChanged) -> None:
@@ -936,11 +947,7 @@ class MoleculeViewer3DWidget(QWidget):
         self._use_button.setEnabled(True)
         self._details_button.setEnabled(True)
         self._status_label.setText(self._conformer_label(conformer))
-        self._status_label.setToolTip(
-            f"Absolute energy {conformer.energy:.4f} kcal/mol"
-            if conformer.energy is not None
-            else "This conformer has no computed energy."
-        )
+        self._status_label.setToolTip(self._conformer_tooltip(conformer))
 
     # --- the gallery ---------------------------------------------------
 
@@ -1122,6 +1129,11 @@ class MoleculeViewer3DWidget(QWidget):
 
     def _cell_label(self, index: int) -> str:
         conformer = self._molecule.conformers[index]
+        # The gallery clears the shared tooltip, so this visible text is the only place a cell can say that
+        # its geometry came from ORCA. Never a force-field-relative energy: it has none, and a "+0.00" would
+        # claim a comparison nothing made.
+        if is_quantum_optimized(conformer):
+            return f"{index + 1} - ORCA"
         energies = [c.energy for c in self._molecule.conformers if c.energy is not None]
         if conformer.energy is None or not energies:
             return f"{index + 1}"
@@ -1400,6 +1412,18 @@ class MoleculeViewer3DWidget(QWidget):
             tuple(conformer.timestamp for conformer in self._molecule.conformers),
         )
 
+    def _conformer_tooltip(self, conformer) -> str:
+        """What the status line's tooltip says about the conformer on screen."""
+        if is_quantum_optimized(conformer):
+            level = quantum_level_of_theory(conformer)
+            return (
+                f"Optimized with ORCA{f' at {level}' if level else ''}, so it has no force-field energy to "
+                "compare with the others. It replaced the conformer it was optimized from; Details says which."
+            )
+        if conformer.energy is not None:
+            return f"Absolute energy {conformer.energy:.4f} kcal/mol"
+        return "This conformer has no computed energy."
+
     def _conformer_label(self, conformer) -> str:
         """`Conformer 2/11 - +0.55 kcal/mol`.
 
@@ -1416,6 +1440,10 @@ class MoleculeViewer3DWidget(QWidget):
         # a widget of its own, so it cannot survive a state change the
         # rest of the line reacts to.
         overlay = f" - {self._overlay_value}" if getattr(self, "_overlay_value", "") else ""
+        if is_quantum_optimized(conformer):
+            # Marked wherever you step, so an ORCA geometry is never mistaken for a force-field one.
+            level = quantum_level_of_theory(conformer)
+            return f"{position} - ORCA optimized{f' ({level})' if level else ''}{overlay}"
         energies = [c.energy for c in self._molecule.conformers if c.energy is not None]
         if conformer.energy is None or not energies:
             return f"{position} - energy n/a{overlay}"

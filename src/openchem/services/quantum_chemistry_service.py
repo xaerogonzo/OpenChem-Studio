@@ -215,6 +215,9 @@ class _BoltzmannRun:
     #: conformer's `_ActiveJob` carries this same id, so QC run history
     #: shows one entry for the whole averaged run, not one per conformer.
     run_id: str = ""
+    #: As `_ActiveJob.structure_identity`, frozen at submission for the whole sequence: a run that finishes
+    #: on its original inputs after the structure was edited is withheld by the window, not re-planned.
+    structure_identity: str = ""
 
 
 @dataclass
@@ -288,6 +291,12 @@ class _ActiveJob:
     #: `_TautomerDistributionRun.run_id`, one id per logical operation, not
     #: per candidate.
     run_id: str = ""
+    #: The molecule's canonical SMILES AT SUBMISSION, stamped on the result event so the window can tell
+    #: whether the structure was edited while the job ran (`chem.isotopes.same_structure`).
+    structure_identity: str = ""
+    #: One-based slot of the conformer submitted on, when Run was pressed (0 = not known); see
+    #: `QuantumChemistryResultReady.source_slot`.
+    source_slot: int = 0
     stdout_chunks: list[str] = field(default_factory=list)
     cancelled: bool = False
 
@@ -342,6 +351,32 @@ def _with_run_settings(descriptors: list, job: _ActiveJob) -> list:
             logger.exception("Could not record the run settings on a QC descriptor for %s", job.molecule_uuid)
             stamped.append(descriptor)
     return stamped
+
+
+def _conformer_with_run_record(conformer, job: _ActiveJob):
+    """`conformer` with the run's method, basis and run id merged into its provenance, or untouched.
+
+    **THE GEOMETRY MUST SAY WHAT PRODUCED IT.** The provider's own provenance holds only `orca_version`, so
+    before this an ORCA-optimized conformer could not tell a viewer or the details dialog which level of
+    theory made it. MERGED, never replaced (the provider's keys survive), and a conformer with no provenance
+    gets one. Recording where a geometry came from must never lose the geometry, so any failure passes the
+    conformer on as it was.
+    """
+    if conformer is None:
+        return None
+    record = _run_record(job)
+    if job.run_id:
+        record[RUN_ID] = job.run_id
+    try:
+        provenance = conformer.provenance
+        if provenance is None:
+            provenance = Provenance(created_by="core", method=job.provider.provider_id, parameters=dict(record))
+        else:
+            provenance = dataclasses.replace(provenance, parameters={**provenance.parameters, **record})
+        return dataclasses.replace(conformer, provenance=provenance)
+    except Exception:  # noqa: BLE001 - a record of the settings must never cost the geometry
+        logger.exception("Could not record the run settings on a QC conformer for %s", job.molecule_uuid)
+        return conformer
 
 
 @dataclass
@@ -497,6 +532,8 @@ class QuantumChemistryService(QObject):
         provider_id: str = "orca",
         input_fingerprint: str = "",
         calculation_input: str = "",
+        structure_identity: str = "",
+        source_slot: int = 0,
     ) -> None:
         """Run `calc_type` on `mol`, one ORCA job.
 
@@ -562,6 +599,8 @@ class QuantumChemistryService(QObject):
             calculation_input=calculation_input,
             input_molblock=input_molblock,
             run_id=new_run_id(),
+            structure_identity=structure_identity,
+            source_slot=source_slot,
         )
 
     def request_boltzmann_nmr(
@@ -575,6 +614,7 @@ class QuantumChemistryService(QObject):
         provider_id: str = "orca",
         input_fingerprint: str = "",
         calculation_input: str = "",
+        structure_identity: str = "",
     ) -> None:
         """Runs `calc_type` on every conformer in `mols`, one after another,
         and publishes a single Boltzmann-averaged spectrum.
@@ -634,6 +674,7 @@ class QuantumChemistryService(QObject):
             input_fingerprint=input_fingerprint,
             calculation_input=calculation_input,
             run_id=new_run_id(),
+            structure_identity=structure_identity,
         )
         self._boltzmann_runs[molecule_uuid] = run
         self._launch_next_conformer(run)
@@ -659,6 +700,7 @@ class QuantumChemistryService(QObject):
             input_fingerprint=run.input_fingerprint,
             calculation_input=run.calculation_input,
             run_id=run.run_id,
+            structure_identity=run.structure_identity,
         )
 
     def request_tautomer_distribution(
@@ -1045,6 +1087,8 @@ class QuantumChemistryService(QObject):
         calculation_input: str = "",
         input_molblock: str = "",
         run_id: str = "",
+        structure_identity: str = "",
+        source_slot: int = 0,
     ) -> None:
         """Shared QProcess launch mechanics for both `request_calculation`
         (a real molecule) and `request_reference_calibration` (TMS) --
@@ -1118,6 +1162,8 @@ class QuantumChemistryService(QObject):
             calculation_input=calculation_input,
             input_molblock=input_molblock,
             run_id=run_id,
+            structure_identity=structure_identity,
+            source_slot=source_slot,
         )
         self._active_jobs[key] = job
 
@@ -1341,6 +1387,7 @@ class QuantumChemistryService(QObject):
         # BEFORE the event and the store: the descriptors the event carries, the revision cache files
         # and the run keeps must be one set, each saying which method and basis produced it.
         descriptors = _with_run_settings(descriptors, job)
+        conformer = _conformer_with_run_record(conformer, job)
         self._event_bus.publish(
             QuantumChemistryResultReady(
                 molecule_uuid=molecule_uuid,
@@ -1348,6 +1395,8 @@ class QuantumChemistryService(QObject):
                 conformer=conformer,
                 # Only a stored conformer has a fingerprint to find it by; a job run on the drawing has none.
                 input_fingerprint=job.input_fingerprint if job.calculation_input == GEOMETRY else "",
+                structure_identity=job.structure_identity,
+                source_slot=job.source_slot,
             )
         )
         self._record_descriptors(descriptors, job)
@@ -1521,10 +1570,13 @@ class QuantumChemistryService(QObject):
         averaged_energy = self._boltzmann_average_energy_descriptor(run, lowest_descriptors, job)
         if averaged_energy is not None:
             lowest_descriptors.append(averaged_energy)
-        lowest_conformer = run.conformers[lowest_index]
+        lowest_conformer = _conformer_with_run_record(run.conformers[lowest_index], job)
         self._event_bus.publish(
             QuantumChemistryResultReady(
-                molecule_uuid=molecule_uuid, descriptors=lowest_descriptors, conformer=lowest_conformer
+                molecule_uuid=molecule_uuid,
+                descriptors=lowest_descriptors,
+                conformer=lowest_conformer,
+                structure_identity=run.structure_identity,
             )
         )
         self._record_descriptors(lowest_descriptors, job)

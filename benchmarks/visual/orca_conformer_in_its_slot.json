@@ -1,0 +1,49 @@
+[
+  {"do": "smiles", "smiles": "CCO", "name": "Ethanol", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "view_3d", "after_ms": 2000},
+  {"do": "conformers", "count": 3, "after_ms": 20000},
+  {"do": "conformer_report", "tag": "before-optimization",
+   "expect": {"conformers": 2, "orca_conformers": 0, "viewer_index": 0, "viewer_label_excludes": "ORCA"}},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/orca_slot_before.png"},
+
+  {"do": "panel", "id": "Quantum_Chemistry", "after_ms": 1500},
+  {"do": "qc_run", "calc_type": "Geometry Optimization", "method": "HF STO-3G"},
+  {"do": "qc_wait", "timeout_ms": 600000},
+  {"do": "conformer_report", "tag": "after-optimization",
+   "expect": {"conformers": 2, "orca_conformers": 1, "canonical_method": "orca_opt", "canonical_mapped": true,
+              "viewer_on_canonical": true, "viewer_label_contains": "ORCA optimized (HF STO-3G)",
+              "origin_slot": 1}},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/orca_slot_after.png"},
+
+  {"do": "menu", "text": "Undo", "prefix": true, "after_ms": 3000},
+  {"do": "conformer_report", "tag": "after-undo",
+   "expect": {"conformers": 2, "orca_conformers": 0, "viewer_label_excludes": "ORCA"}},
+  {"do": "menu", "text": "Redo", "prefix": true, "after_ms": 3000},
+  {"do": "conformer_report", "tag": "after-redo",
+   "expect": {"conformers": 2, "orca_conformers": 1, "viewer_on_canonical": true,
+              "viewer_label_contains": "ORCA optimized (HF STO-3G)"}},
+
+  {"do": "conformers", "count": 3, "after_ms": 20000},
+  {"do": "conformer_report", "tag": "regenerated-keeping",
+   "expect": {"conformers": 3, "orca_conformers": 1, "canonical_method": "orca_opt"}},
+
+  {"do": "dialog", "name": "SettingsDialog", "section": "conformers", "after_ms": 1200},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/orca_slot_settings.png", "widget": "dialog"},
+  {"do": "control", "name": "conformerKeepOptimized", "value": false, "after_ms": 800},
+  {"do": "close_dialog", "after_ms": 800},
+  {"do": "conformers", "count": 3, "after_ms": 20000},
+  {"do": "conformer_report", "tag": "regenerated-replacing-everything",
+   "expect": {"conformers": 2, "orca_conformers": 0}},
+
+  {"do": "menu", "text": "Undo", "prefix": true, "after_ms": 3000},
+  {"do": "conformer_report", "tag": "undo-of-the-regeneration",
+   "expect": {"conformers": 3, "orca_conformers": 1}},
+
+  {"do": "dialog", "name": "SettingsDialog", "section": "conformers", "after_ms": 1200},
+  {"do": "control", "name": "conformerKeepOptimized", "value": true, "after_ms": 800},
+  {"do": "close_dialog", "after_ms": 800},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

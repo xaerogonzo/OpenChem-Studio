@@ -34,11 +34,13 @@ from PySide6.QtWidgets import (
 from openchem.app.settings import Settings
 from openchem.chem.calculation_input import (
     canonical_conformer,
+    find_source_conformer,
     input_fingerprint,
     resolve_calculation_input,
     resolve_ensemble,
 )
 from openchem.chem.engine import ChemistryEngine
+from openchem.chem.isotopes import same_structure
 from openchem.chem.nmr_correlation import (
     compute_cosy_pairs,
     compute_hmbc_pairs,
@@ -1853,6 +1855,7 @@ class QuantumChemistryPanel(QWidget):
                 method_basis=method_basis,
                 input_fingerprint=ensemble.fingerprint,
                 calculation_input=ENSEMBLE,
+                structure_identity=molecule.canonical_smiles or "",
             )
             return
 
@@ -1865,6 +1868,12 @@ class QuantumChemistryPanel(QWidget):
             method_basis=method_basis,
             input_fingerprint=resolved.fingerprint,
             calculation_input=GEOMETRY,
+            # What the molecule IS now: the window compares it with what it is when the job lands, because
+            # an edit while ORCA runs must not hand the old structure's geometry to the new one.
+            structure_identity=molecule.canonical_smiles or "",
+            # Which conformer this is, as it stands NOW (one-based): the geometry that comes back records it as
+            # what it was optimized from, even if a regeneration moves that conformer while the job runs.
+            source_slot=self._slot_of(molecule, resolved.fingerprint),
         )
 
     def _on_cancel_clicked(self) -> None:
@@ -2485,12 +2494,33 @@ class QuantumChemistryPanel(QWidget):
             # Failed keeps it OPEN: the log is where the reason is, and
             # collapsing it would hide the one thing worth reading.
 
+    @staticmethod
+    def _slot_of(molecule, fingerprint: str) -> int:
+        """The one-based slot of the conformer `fingerprint` names, or 0 when it is none of the stored ones."""
+        located = find_source_conformer(molecule.conformers, fingerprint)
+        return located[0] + 1 if located is not None else 0
+
+    def _structure_still_matches(self, event: QuantumChemistryResultReady) -> bool:
+        """Is the pending molecule still the structure this job was submitted on? Fails closed."""
+        if self._project is None:
+            return False
+        molecule = self._project.find_molecule(event.molecule_uuid)
+        return molecule is not None and same_structure(event.structure_identity, molecule.canonical_smiles)
+
     def _on_result_ready(self, event: QuantumChemistryResultReady) -> None:
         if event.molecule_uuid != self._pending_molecule_uuid:
             return
         lines = [f"{d.name}: {d.value:.6f} {d.units}" for d in event.descriptors]
         if event.conformer is not None:
-            lines.append("Optimized geometry added as a new conformer.")
+            if self._structure_still_matches(event):
+                lines.append("Optimized geometry applied to the molecule's conformers.")
+            else:
+                # The window withheld it (`MainWindow._on_quantum_chemistry_result_ready` asks the same
+                # question); saying "added" here would claim what did not happen.
+                lines.append(
+                    "The structure was edited while this job ran, so its geometry was not applied "
+                    "to the current structure."
+                )
             # Held for the IR view, which must animate about the optimised
             # geometry. `QuantumChemistryResultReady` is published before
             # the vibrational `SpectrumComputed` from the same job

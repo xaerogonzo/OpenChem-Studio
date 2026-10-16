@@ -40,6 +40,7 @@ from PySide6.QtWidgets import (
 
 from openchem.app.settings import (
     CONFORMER_EARLY_STOP,
+    CONFORMER_KEEP_OPTIMIZED,
     CONFORMER_MAX_EMBEDDINGS,
     DRAWING_BOND_CLICK,
     DRAWING_BOND_KEYS,
@@ -246,6 +247,23 @@ _HELP = {
         ),
         tier=2,
         help_id="settings.conformer_early_stop",
+        topic="settings",
+        help_anchor="settings",
+    ),
+    "conformer_keep_optimized": HelpTooltip(
+        text=(
+            "On (the default): generating conformers again keeps the geometries an ORCA optimization produced. "
+            "The new conformers come first and the kept ORCA ones follow them, in the order they had, with "
+            "their level of theory and origin intact.\n\n"
+            "Off: generating replaces everything, ORCA geometries included, which is what it did before this "
+            "choice existed. Undo restores the previous set either way.\n\n"
+            "Why on: an ORCA geometry takes minutes to hours and is the one every later calculation uses, so "
+            "losing it as a side effect of pressing Generate was the surprise.\n\n"
+            "Editing the structure still clears every conformer, ORCA ones included: the geometry no longer "
+            "fits the molecule."
+        ),
+        tier=2,
+        help_id="settings.conformer_keep_optimized",
         topic="settings",
         help_anchor="settings",
     ),
@@ -613,6 +631,14 @@ class SettingsDialog(QDialog):
         apply_help_tooltip(self._conformer_early_stop, _HELP["conformer_early_stop"])
         self._conformer_early_stop.toggled.connect(self._on_conformer_early_stop_toggled)
 
+        self._conformer_keep_optimized = QCheckBox(
+            "Keep ORCA-optimized conformers when generating conformers again", page
+        )
+        self._conformer_keep_optimized.setObjectName("conformerKeepOptimized")
+        self._conformer_keep_optimized.setChecked(bool(self._settings.preference(CONFORMER_KEEP_OPTIMIZED)))
+        apply_help_tooltip(self._conformer_keep_optimized, _HELP["conformer_keep_optimized"])
+        self._conformer_keep_optimized.toggled.connect(self._on_conformer_keep_optimized_toggled)
+
         row = QHBoxLayout()
         row.addWidget(QLabel("Automatic search tries up to", page))
         row.addWidget(self._conformer_embeddings)
@@ -634,6 +660,12 @@ class SettingsDialog(QDialog):
             "will hand back. Faster, at the cost of sometimes missing a shape a full search would find.",
             page,
         ))
+        layout.addWidget(self._conformer_keep_optimized)
+        layout.addWidget(_note(
+            "An ORCA optimization is expensive and every later calculation prefers it, so generating again "
+            "keeps it by default. Untick to have Generate replace everything.",
+            page,
+        ))
         layout.addStretch(1)
         return page
 
@@ -642,6 +674,9 @@ class SettingsDialog(QDialog):
 
     def _on_conformer_early_stop_toggled(self, checked: bool) -> None:
         self._store(CONFORMER_EARLY_STOP, checked)
+
+    def _on_conformer_keep_optimized_toggled(self, checked: bool) -> None:
+        self._store(CONFORMER_KEEP_OPTIMIZED, checked)
 
     # --- Results -----------------------------------------------------------------
 

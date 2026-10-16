@@ -216,8 +216,13 @@ class SetConformersCommand(OpenChemCommand):
         molecule: MoleculeModel,
         new_conformers: list[ConformerModel],
         event_bus: EventBus,
+        kept: int = 0,
     ) -> None:
-        super().__init__(f"Generate {len(new_conformers)} conformer(s) for '{molecule.display_name}'")
+        # `kept` = how many of `new_conformers` are earlier ORCA-optimized ones carried over, so the Undo menu
+        # counts what was generated and says what was kept.
+        generated = len(new_conformers) - kept
+        note = f", keeping {kept} ORCA-optimized" if kept else ""
+        super().__init__(f"Generate {generated} conformer(s){note} for '{molecule.display_name}'")
         self._molecule = molecule
         self._new_conformers = list(new_conformers)
         self._old_conformers = list(molecule.conformers)
@@ -245,19 +250,107 @@ class AddConformerCommand(OpenChemCommand):
     previous choice comes back with it.
     """
 
-    def __init__(self, molecule: MoleculeModel, new_conformer: ConformerModel, event_bus: EventBus) -> None:
+    def __init__(
+        self,
+        molecule: MoleculeModel,
+        new_conformer: ConformerModel,
+        event_bus: EventBus,
+        show: bool = False,
+    ) -> None:
         super().__init__(f"Add conformer ({new_conformer.method}) to '{molecule.display_name}'")
         self._molecule = molecule
         self._new_conformer = new_conformer
         self._event_bus = event_bus
+        #: True = the 3D viewer lands on the appended conformer instead of returning to the first one.
+        #: Used for a geometry the user just asked ORCA for; undo removes it and the viewer returns.
+        self._show = show
 
     def redo(self) -> None:
         self._molecule.conformers.append(self._new_conformer)
-        self._event_bus.publish(ConformersChanged(molecule_uuid=self._molecule.uuid))
+        self._event_bus.publish(
+            ConformersChanged(
+                molecule_uuid=self._molecule.uuid,
+                show_conformer_id=self._new_conformer.conformer_id if self._show else "",
+            )
+        )
 
     def undo(self) -> None:
         self._molecule.conformers.remove(self._new_conformer)
         self._event_bus.publish(ConformersChanged(molecule_uuid=self._molecule.uuid))
+
+
+class ReplaceConformerCommand(OpenChemCommand):
+    """Swaps one conformer for another IN ITS SLOT, so 7 of 20 stays 7 of 20.
+
+    **Why this exists.** An ORCA geometry optimization starts from one
+    conformer and ends with that same conformer, relaxed. Appending the
+    result (`AddConformerCommand`) made it conformer 21 of 21, so the
+    conformer the user had been looking at went on showing its force-field
+    geometry while every later calculation ran on the optimized one.
+
+    **The source is found by IDENTITY at redo, and never mutated.** The
+    command holds the object it was built to replace; the list may have
+    been regenerated between the job's start and its landing, and an index
+    taken earlier would then name a different conformer. The original object
+    is left exactly as it was, so undo can put the very same object back.
+
+    **It records what redo ACTUALLY did, because undo must reverse that and
+    nothing else.** If the source is gone at redo the replacement is appended
+    (the geometry is still the user's, and dropping it silently would lose a
+    finished job); undo of that removes the appended object. Undo of a real
+    replacement restores the original at the slot it occupied.
+
+    **Every outcome shows the geometry that is now current**, via
+    `ConformersChanged.show_conformer_id`: the replacement on redo, the
+    restored original on undo of a replacement, nothing in particular after an
+    appended one is removed.
+    """
+
+    def __init__(
+        self,
+        molecule: MoleculeModel,
+        source: ConformerModel,
+        replacement: ConformerModel,
+        event_bus: EventBus,
+    ) -> None:
+        super().__init__(f"Replace conformer with {replacement.method} geometry for '{molecule.display_name}'")
+        self._molecule = molecule
+        self._source = source
+        self._replacement = replacement
+        self._event_bus = event_bus
+        #: Set by `redo`: the slot the replacement took, or None when it was appended instead.
+        self._replaced_index: int | None = None
+
+    def redo(self) -> None:
+        conformers = self._molecule.conformers
+        index = next((i for i, c in enumerate(conformers) if c is self._source), None)
+        if index is None:
+            conformers.append(self._replacement)
+            self._replaced_index = None
+        else:
+            conformers[index] = self._replacement
+            self._replaced_index = index
+        self._event_bus.publish(
+            ConformersChanged(molecule_uuid=self._molecule.uuid, show_conformer_id=self._replacement.conformer_id)
+        )
+
+    def undo(self) -> None:
+        conformers = self._molecule.conformers
+        # By identity again: the list may have been rebuilt since redo, and a stored index is only a hint.
+        current = next((i for i, c in enumerate(conformers) if c is self._replacement), None)
+        if current is None:
+            # Nothing of ours is in the list any more (a later regeneration replaced it wholesale); restoring
+            # the original would put a stale conformer into a list it was never part of.
+            self._event_bus.publish(ConformersChanged(molecule_uuid=self._molecule.uuid))
+            return
+        if self._replaced_index is None:
+            del conformers[current]
+            self._event_bus.publish(ConformersChanged(molecule_uuid=self._molecule.uuid))
+            return
+        conformers[current] = self._source
+        self._event_bus.publish(
+            ConformersChanged(molecule_uuid=self._molecule.uuid, show_conformer_id=self._source.conformer_id)
+        )
 
 
 class RotateStructureCommand(OpenChemCommand):

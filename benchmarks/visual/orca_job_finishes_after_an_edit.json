@@ -1,0 +1,39 @@
+[
+  {"do": "smiles", "smiles": "CCO", "name": "Ethanol", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "view_3d", "after_ms": 2000},
+  {"do": "conformers", "count": 3, "after_ms": 20000},
+  {"do": "expect_conformers", "tag": "a-before", "min": 2},
+
+  {"do": "panel", "id": "Quantum_Chemistry", "after_ms": 1500},
+  {"do": "qc_run", "calc_type": "Geometry Optimization", "method": "HF STO-3G", "after_ms": 3000},
+
+  {"do": "menu", "text": "Undo", "prefix": true, "after_ms": 2500},
+  {"do": "conformer_report", "tag": "a-generation-undone", "expect": {"conformers": 0}},
+  {"do": "erase", "element": "O", "after_ms": 4000},
+  {"do": "report", "tag": "a-after-erase"},
+  {"do": "conformer_report", "tag": "a-edited-no-conformers-to-clear", "expect": {"conformers": 0}},
+
+  {"do": "qc_wait", "timeout_ms": 600000},
+  {"do": "conformer_report", "tag": "a-job-landed-on-an-edited-molecule",
+   "expect": {"conformers": 0, "orca_conformers": 0, "status_contains": "edited while the ORCA job ran"}},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/orca_job_after_an_edit_a.png"},
+
+  {"do": "smiles", "smiles": "CCCO", "name": "Propanol", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "conformers", "count": 3, "after_ms": 20000},
+  {"do": "expect_conformers", "tag": "b-before", "min": 2},
+  {"do": "panel", "id": "Quantum_Chemistry", "after_ms": 1500},
+  {"do": "qc_run", "calc_type": "Geometry Optimization", "method": "HF STO-3G", "after_ms": 3000},
+
+  {"do": "erase", "element": "O", "after_ms": 4000},
+  {"do": "conformer_report", "tag": "b-edited-conformers-cleared", "expect": {"conformers": 0}},
+
+  {"do": "qc_wait", "timeout_ms": 600000},
+  {"do": "conformer_report", "tag": "b-job-landed-on-an-edited-molecule",
+   "expect": {"conformers": 0, "orca_conformers": 0, "status_contains": "edited while the ORCA job ran"}},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/orca_job_after_an_edit_b.png"},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]
