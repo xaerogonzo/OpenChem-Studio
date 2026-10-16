@@ -6167,7 +6167,9 @@ def _name_single_fg_substituent(
                             validity_warnings=None,
                             text=handcrafted,
                         )
-                    # Fall through to STANDALONE-acid path as best-effort
+                    # NOT the acid's own name (naming round 60): the diacid names a diacyl, `benzene-1,2-dicarbonylamino`, and the free acid is gone (OPSIN cannot read it). The generic
+                    # path says `(2-carboxybenzoyl)amino`.
+                    raise ValueError("an acyl group with a second carboxylic acid")
                 acid_tree = name(
                     acid_mol, strategy, _standalone_or_cation(acid_mol),
                     decision_ctx=DecisionContext(
@@ -9914,18 +9916,23 @@ def _restore_dropped_oximium(mol, name: str) -> str:
 
 
 def _restore_dropped_oxidanium(mol, name: str) -> str:
-    """Give an O-protonated carbonyl (`C=[OH+]`) beside ANOTHER charge its charge back (naming round 59).
+    """Give a protonated carbonyl chalcogen (`C=[OH+]`, `C=[SH+]`) beside ANOTHER charge its charge back (naming rounds 59 and 60).
 
     `[NH3+][C@@H](CCCCNC(=[OH+])OCc1ccccc1)C(=O)[O-]` named the protonated carbamate with a neutral `(oxo)(phenylmethoxy)methyl`, so one of its two cations was missing from the name. The prefix for
-    `=[OH+]` is `oxidaniumylidene`, which OPSIN reads. Done only for ONE such centre whose neutral prefix `oxo` occurs exactly once; anything else is left for the guard."""
+    `=[OH+]` is `oxidaniumylidene` (`=[SH+]`: `sulfaniumylidene`), which OPSIN reads. Done only for ONE such centre whose neutral prefix (`oxo`, `thioxo`) occurs exactly once; anything else is left for the guard."""
     if "NAMING ERROR" in name or len(Chem.GetMolFrags(mol)) != 1:
         return name
     sites = [
         a for a in mol.GetAtoms()
-        if a.GetSymbol() == "O" and a.GetFormalCharge() == 1 and a.GetTotalNumHs() == 1 and a.GetDegree() == 1
+        if a.GetSymbol() in ("O", "S") and a.GetFormalCharge() == 1 and a.GetTotalNumHs() == 1 and a.GetDegree() == 1
         and a.GetBonds()[0].GetBondTypeAsDouble() == 2.0 and a.GetNeighbors()[0].GetSymbol() == "C"
     ]
-    if len(sites) != 1 or len(re.findall(r"(?<![a-z])oxo", name)) != 1:
+    if len(sites) != 1:
+        return name
+    neutral, charged = ("oxo", "oxidaniumylidene") if sites[0].GetSymbol() == "O" else ("thioxo", "sulfaniumylidene")
+    # `oxolan-2-yl` and `oxocane` begin with `oxo` and are rings, not the prefix (round 60: `(oxidaniumylidene)lan-2-yl`)
+    _bare = neutral + r"(?!l[aeo]|ca[n]|cin|nin)"
+    if len(re.findall(r"(?<![a-z])" + _bare, name)) != 1:
         return name
     # Only when the name is SHORT of cation words: `COC(=O)CC(=[OH+])C` is `(4-methoxy-4-oxobutan-2-ylidene)oxidanium`, whose `oxo` is the ester's and whose cation is cited.
     from openchem.vendor.iupac_namer.perception.charge_perception import _charge_separated_neutral_atoms
@@ -9937,11 +9944,11 @@ def _restore_dropped_oxidanium(mol, name: str) -> str:
     _positives = sum(1 for a in mol.GetAtoms() if a.GetFormalCharge() > 0 and a.GetIdx() not in _separated)
     if len(_CATION_WORD.findall(name)) >= _positives:
         return name
-    if "(oxo)" in name:
-        return name.replace("(oxo)", "(oxidaniumylidene)")
-    if re.search(r"\d-oxo", name):
-        return re.sub(r"(?<=\d-)oxo", "oxidaniumylidene", name)  # `1-oxoethyl` stays one prefix inside its brackets
-    return re.sub(r"(?<![a-z])oxo", "(oxidaniumylidene)", name)
+    if f"({neutral})" in name:
+        return name.replace(f"({neutral})", f"({charged})")
+    if re.search(r"\d-" + _bare, name):
+        return re.sub(r"(?<=\d-)" + _bare, charged, name)  # `1-oxoethyl` stays one prefix inside its brackets
+    return re.sub(r"(?<![a-z])" + _bare, f"({charged})", name)
 
 
 def _name_smiles_bound(smiles: str, strategy) -> str:
@@ -12798,6 +12805,10 @@ def _acid_name_to_amido(acid_name: str) -> str | None:
     The engine wrote the acylamino form, method (2), everywhere. None where
     the amide name is not derivable here, so the caller keeps "acylamino".
     """
+    # A DIACID has one amide here and a free acid: `benzene-1,2-dicarboxamido` is two amides (naming round 60: the phthalamic acid was named `4-(benzene-1,2-dicarboxamido)-N-methylanilinium`,
+    # the carboxylic acid gone, which OPSIN cannot read); the acylamino form keeps both groups.
+    if re.search(r"(?:di|tri|tetra|penta|hexa)(?:carboxylic|oic) acid$", acid_name):
+        return None
     for retained, amido in (("formic acid", "formamido"), ("acetic acid", "acetamido"),
                             ("benzoic acid", "benzamido")):
         if acid_name.endswith(retained):
@@ -16981,6 +16992,10 @@ class SubstitutivePath:
             # hydrogens lost). Unclaimed, the atom is carved and named by `_name_single_atom_substituent`, which knows the number.
             if _hypervalent_group_name(atom, atom.GetTotalValence(), 2) is not None:
                 continue
+            # An O- or S-alkylated carbonyl (`C=[O+]C`, `C=[S+]C`) is no `oxo`/`thioxo`: the bare prefix claimed the chalcogen and left its alkyl unclaimed ('heavy atoms unclaimed', round 60).
+            if atomic_num in (8, 16, 34, 52) and atom.GetFormalCharge() == 1 and any(
+                    nb2.GetAtomicNum() != 1 and nb2.GetIdx() not in parent_atoms for nb2 in atom.GetNeighbors()):
+                continue
             # For N atoms (imino): skip if N has non-parent, non-H heavy neighbors
             # (substituents like isopropyl or OH from oxime).  These are compound
             # groups that require recursive naming, not a bare prefix.
@@ -19216,7 +19231,9 @@ class SubstitutivePath:
                 continue
             if not atom.IsInRing():
                 continue
-            if not atom.GetIsAromatic():
+            # A lactam's ring `[N-]` that is not aromatic is cited the same way, but only where the group is a SUBSTITUENT (the standalone anion has its own route): naming round 60,
+            # `acetyl{2-[(3-oxo-3,4-dihydro-2H-1,4-benzothiazin-4-id-2-yl)methyl]phenyl}azanide`.
+            if not atom.GetIsAromatic() and output_form != OutputForm.SUBSTITUENT:
                 continue
             loc = atom_to_loc.get(atom_idx)
             if loc is None:
