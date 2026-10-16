@@ -1920,6 +1920,41 @@ backwards, which is why they are never combined). That check does not cover othe
 <!-- help:derived-scores -->
 ### Derived scores: a formula over numbers the application computes
 
+**What a score is for.** A score turns several numbers into one that says how well a molecule fits a preference you hold.
+Suppose you have forty molecules and you want each to be polar enough but not too polar, with few aromatic rings. You can
+read two columns and apply that rule in your head forty times, or write the rule once as a formula and get one column to
+sort by. That is all a score is: a spreadsheet formula over numbers OpenChem has already computed, with its units
+checked, saved with the project, and shown as a column of the project table and as an entry in Results. It is for
+**triaging a table** (sort by it and read from the top), for **writing a rule of thumb down once** so that it is applied
+the same way every time and travels with the project, and for **handing one number to someone else** in the CSV. It is not
+a prediction (nothing checks a formula you wrote against measurements, which is why it is always labelled *user-defined,
+unvalidated*), it does not run any calculation for you (it reads results that already exist, so run the calculators
+first), and it does not replace a published score such as QED, which a calculator computes. It is how you write down your
+own preference.
+
+**A worked example, start to finish.** Put aspirin, ethanol and caffeine in a project. The numbers below were produced by
+running exactly these steps in the real application, so yours should match.
+
+1. **Tools ▸ Derived Scores…**, **New score**. Name it `Polar window`. Under what it **reads**, choose the topological polar
+   surface area and call it `psa`. Formula: `ramp(psa, 140, 60)`. Unit: `1`. **Save**. `ramp(x, bad, good)` is 0 at `bad` or
+   worse, 1 at `good` or better and a straight line between, so this reads: a polar surface area of 140 Å² or more scores 0
+   and 60 Å² or less scores 1.
+2. Make a second score, `Light on rings`, that reads the aromatic ring count (it comes from the BBB Score Descriptors
+   calculator) as `rings`, with the formula `ramp(rings, 4, 0)`: no aromatic ring scores 1 and four or more score 0.
+3. In **Properties**, set **Run on** to *all molecules*, open **Presets** and choose **Tick what my scores read**. It ticks
+   the calculator the second score needs and makes sure the always-on properties are included, and the line beside **Run
+   selected** says so. Press **Run selected** and let the table fill; it takes a little while.
+4. In **Results**, the **Project table** page has your two scores as the first columns after the molecule's name. For this
+   panel the polar window is 0.955 for aspirin, 1 for ethanol and 0.9773 for caffeine, and the other score is 0.75, 1 and
+   0.5 (aspirin has one aromatic ring and caffeine two). Click a header to sort. Hover a cell to see the formula and each
+   input with its unit. **Export CSV** carries the column.
+5. Change the first formula to `ramp(psa, 100, 60)` in the same window and save: the table follows (aspirin 0.91, caffeine
+   0.9545) without another run.
+6. The **This molecule** page of Results shows each score against the structure as it is now. You can also ask the AI
+   Assistant to propose a score; it shows a card, and nothing is saved until you press **Approve**.
+
+The rest of this topic is the reference: what each field accepts and what each refusal means.
+
 **Tools ▸ Derived Scores…** is where you write a score of your own: a formula over numbers the application already
 computes, such as a weighted sum of desirabilities. Press **New score**, give it a name, choose what it **reads**,
 write the **formula**, say what **unit** it works out to, and press **Save**. The window checks everything as you
@@ -1944,6 +1979,11 @@ Descriptors calculator's RDKit aromatic ring count is the one offered). The cycl
 on cages such as cubane), so a formula can read one of each pair and not both.
 From the BBB Score Descriptors calculator it offers the aromatic ring count (RDKit's count: a score over it has no number after you compute the calculator on the major microspecies, and says so). That calculator's other numbers
 are not offered: two are always-on properties already, and the rest have a unit a score cannot be written in or come from an optional tool.
+
+**Today a score reads the drawing's numbers only.** A number that exists only for a 3D conformer (the shape descriptors, for
+instance) is not offered yet. How it will be read is decided and not built: the conformer every calculation already gets (the
+newest ORCA-optimised geometry, otherwise the lowest-energy force-field one), starting with the ten shape descriptors. The
+decision is recorded in `docs/DERIVED_SCORES_DESIGN.md`.
 
 **The units are checked, never converted.** Adding an area to a mass is refused, and so is declaring a unit the formula
 does not work out to. A bare number in the formula takes the unit of what it is added to or compared with, so
