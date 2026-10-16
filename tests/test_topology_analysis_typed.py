@@ -1,4 +1,4 @@
-"""The Topology Analysis calculator carries the graph indices of its report as NUMBERS (typing the values of the report calculators that carry rounded text, `docs/DERIVED_SCORES_DESIGN.md` section 3).
+"""The Topology Analysis calculator carries the graph indices and ten of the counts of its report as NUMBERS (typing the values of the report calculators that carry rounded text, `docs/DERIVED_SCORES_DESIGN.md` section 3).
 
 Until now every line of the report was text (`'6.11'`) that the project table parsed back, so a derived score over the Randic index would have changed with the decimal-places setting. The producer holds
 the number, so the producer hands it over: the same `Fact`, with its `value` the number and its `display_value` still the rounded text.
@@ -7,8 +7,10 @@ the number, so the producer hands it over: the same `Fact`, with its `value` the
 every way of asking (the decimal places it is given, and the ones it is not allowed to take), recorded from the code BEFORE the change. `observe` is the one function that produced the fixture and that
 reads it back.
 
-**THE TYPED NUMBERS ARE THE EIGHT GRAPH INDICES AND NO OTHER FACT OF THE REPORT.** The counts (atoms, bonds, rings, rotatable bonds, stereocentres) stay text until somebody wants one in a score. An index is an `int`
-where it is one by construction and a plain `float` otherwise: the project file's codec refuses a NumPy float, so a number that had been left as one would fail to SAVE, which is a defect no display would show.
+**THE TYPED NUMBERS ARE THE EIGHT GRAPH INDICES AND TEN OF THE COUNTS, AND NO OTHER FACT OF THE REPORT.** The ten are the counts that are neither an always-on descriptor under another label (atoms, rings, rotatable
+bonds, stereocentres: identical on every molecule compared) nor ambiguous (the ring sizes read 0 when there is no ring, and the aromatic, aliphatic and heteroaromatic ring counts test the atoms for aromaticity, which is not
+RDKit's count). An index is an `int` where it is one by construction and a plain `float` otherwise: the project file's codec refuses a NumPy float, so a number that had been left as one would fail to SAVE, which is a defect no
+display would show.
 """
 
 from __future__ import annotations
@@ -77,6 +79,17 @@ INDICES = {
     "Wiener polarity": int,
 }
 
+#: The ten counts whose value is the number as well, each an `int` (a count of atoms, bonds or rings).
+COUNTS = {
+    label: int
+    for label in (
+        "Bond count", "Cyclomatic number", "Ring atom count", "Ring bond count", "Chain atom count", "Chain bond count", "Carbo ring count", "Hetero ring count", "Fused ring count", "Asymmetric atom count",
+    )
+}
+
+#: Every typed fact of the report.
+TYPED = {**INDICES, **COUNTS}
+
 
 def observe(registry, smiles: str, parameters: dict) -> dict:
     """What the calculator says for one molecule asked one way, through the registry: the lines, the facts without their values, and the cells the project table would hold (text only)."""
@@ -139,16 +152,16 @@ def _completed(registry, name: str, parameters: dict | None = None):
 
 
 @pytest.mark.parametrize("name", sorted(PANEL))
-def test_the_eight_indices_have_their_number_typed_and_no_other_fact_does(registry, name):
+def test_the_indices_and_ten_counts_have_their_number_typed_and_no_other_fact_does(registry, name):
     result = _completed(registry, name)
     if result is None:
         return
     typed = _typed(result)
-    assert list(typed) == list(INDICES), name
-    for label, kind in INDICES.items():
+    assert set(typed) == set(TYPED), name
+    for label, kind in TYPED.items():
         assert type(typed[label]) is kind, f"{name}: {label} is {type(typed[label]).__name__}, and the project file's codec takes only the exact types int and float"
         assert math.isfinite(typed[label])
-    assert all(isinstance(f.value, str) for f in result.facts if f.label not in INDICES), "a count is still text"
+    assert all(isinstance(f.value, str) for f in result.facts if f.label not in TYPED), "the other counts are still text"
 
 
 @pytest.mark.parametrize("ask", sorted(ASKS))
@@ -159,9 +172,9 @@ def test_each_line_is_its_typed_number_rounded_and_nothing_else(registry, ask):
         if result is None:
             continue
         for fact in result.facts:
-            if fact.label not in INDICES:
+            if fact.label not in TYPED:
                 continue
-            expected = f"{fact.value:.{places}f}" if INDICES[fact.label] is float else str(fact.value)
+            expected = f"{fact.value:.{places}f}" if TYPED[fact.label] is float else str(fact.value)
             assert fact.display_value == expected, f"{name} | {ask}: {fact.label}"
             assert fact.units == "", "an index carries no unit"
 
@@ -201,7 +214,9 @@ def test_szeged_does_not_exceed_wiener_where_every_ring_is_a_triangle(registry):
 
 def test_a_single_atom_has_every_index_zero_and_is_still_a_number(registry):
     for name in ("water", "methane", "copper(II)"):
-        assert set(_typed(_completed(registry, name)).values()) == {0}, name
+        typed = _typed(_completed(registry, name))
+        assert {typed[label] for label in INDICES} == {0}, name
+        assert typed["Chain atom count"] == 1 and typed["Ring atom count"] == 0 and typed["Bond count"] == 0, "the one atom is in no ring"
 
 
 def test_a_salt_reads_as_its_parent_and_a_salt_with_no_parent_is_refused(registry):
@@ -240,42 +255,132 @@ def test_a_typed_report_is_saved_and_reopened_whole(registry):
 # --- approved as score outputs ---------------------------------------------------------------------------------------------------------
 
 
-def _approved_indices() -> dict:
+def _approved_topology() -> dict:
     from openchem.domain.score_outputs import APPROVED
 
     prefix = "calculator:topology_analysis:"
     return {entry.output_id[len(prefix):]: entry for entry in APPROVED if entry.output_id.startswith(prefix)}
 
 
-def test_exactly_the_eight_indices_are_approved_each_dimensionless_and_each_with_an_endpoint_of_its_own():
-    approved = _approved_indices()
-    assert list(approved) == sorted(INDICES), "the table is sorted by id"
+def test_exactly_the_typed_facts_are_approved_each_dimensionless_and_each_with_an_endpoint_of_its_own():
+    approved = _approved_topology()
+    assert list(approved) == sorted(TYPED), "the table is sorted by id"
     assert all(entry.unit == "1" and entry.carried_as == "" for entry in approved.values())
-    assert len({entry.endpoint for entry in approved.values()}) == 8, "eight different quantities: none of them is a consensus of another"
+    assert len({entry.endpoint for entry in approved.values()}) == len(TYPED) == 18, "eighteen different quantities: none of them is a consensus of another"
 
 
-def test_the_counts_of_the_report_are_not_approved(registry):
+def test_the_counts_that_are_duplicates_or_ambiguous_are_not_approved():
     from openchem.domain.score_outputs import approved_output
 
-    for label in ("Atom count", "Bond count", "Cyclomatic number", "Ring count", "Aromatic ring count", "Fused ring count", "Rotatable bond count", "Chiral center count"):
+    for label in (
+        "Atom count", "Ring count", "Rotatable bond count", "Chiral center count",  # the always-on descriptors under other labels
+        "Largest ring size", "Smallest ring size",  # 0 when there is no ring
+        "Aromatic ring count", "Aliphatic ring count", "Heteroaromatic ring count",  # atom-based aromaticity, which is not RDKit's count
+    ):
         assert approved_output(f"calculator:topology_analysis:{label}") is None, label
 
 
-def test_all_eight_indices_can_be_named_in_one_formula():
+def test_the_eight_indices_and_the_ten_counts_can_each_be_named_in_one_formula():
     from openchem.domain.score_outputs import check_inputs
 
-    units = check_inputs([(f"i{n}", entry.output_id) for n, entry in enumerate(_approved_indices().values())])
-    assert len(units) == 8
+    for labels in (list(INDICES), list(COUNTS)):
+        approved = _approved_topology()
+        units = check_inputs([(f"i{n}", approved[label].output_id) for n, label in enumerate(labels)])
+        assert len(units) == len(labels)
 
 
 @pytest.mark.parametrize("name", ["aspirin", "caffeine", "benzene", "cubane", "18-crown-6"])
 def test_a_score_reads_the_same_number_whatever_the_decimal_places(registry, name):
     from openchem.domain.score_outputs import accept_value
 
-    for label, entry in _approved_indices().items():
+    for label, entry in _approved_topology().items():
         read = []
         for places in (0, 1, 8):
             [fact] = [f for f in _completed(registry, name, {"decimal_places": places}).facts if f.label == label]
             read.append(accept_value(entry, fact.value, fact.units))
         assert read[0] == read[1] == read[2], f"{name}: {label} moved with the setting: {read}"
         assert type(read[0]) is float
+
+
+# --- the ten counts: what they are, and why the other counts are left out ----------------------------------------------------------------------
+
+#: Worked out by hand from the structures, not read off the calculator: a ring of atoms and the bonds between them, and what is left outside.
+COUNT_VALUES = {
+    "benzene": {"Bond count": 6, "Cyclomatic number": 1, "Ring atom count": 6, "Ring bond count": 6, "Chain atom count": 0, "Chain bond count": 0, "Carbo ring count": 1, "Hetero ring count": 0, "Fused ring count": 0, "Asymmetric atom count": 0},
+    "naphthalene": {"Bond count": 11, "Cyclomatic number": 2, "Ring atom count": 10, "Ring bond count": 11, "Chain atom count": 0, "Chain bond count": 0, "Carbo ring count": 2, "Hetero ring count": 0, "Fused ring count": 2, "Asymmetric atom count": 0},
+    "aspirin": {"Bond count": 13, "Cyclomatic number": 1, "Ring atom count": 6, "Ring bond count": 6, "Chain atom count": 7, "Chain bond count": 7, "Carbo ring count": 1, "Hetero ring count": 0, "Fused ring count": 0, "Asymmetric atom count": 0},
+    "caffeine": {"Bond count": 15, "Cyclomatic number": 2, "Ring atom count": 9, "Ring bond count": 10, "Chain atom count": 5, "Chain bond count": 5, "Carbo ring count": 0, "Hetero ring count": 2, "Fused ring count": 2, "Asymmetric atom count": 0},
+    "18-crown-6": {"Bond count": 18, "Cyclomatic number": 1, "Ring atom count": 18, "Ring bond count": 18, "Chain atom count": 0, "Chain bond count": 0, "Carbo ring count": 0, "Hetero ring count": 1, "Fused ring count": 0, "Asymmetric atom count": 0},
+    "L-alanine": {"Bond count": 5, "Cyclomatic number": 0, "Ring atom count": 0, "Ring bond count": 0, "Chain atom count": 6, "Chain bond count": 5, "Carbo ring count": 0, "Hetero ring count": 0, "Fused ring count": 0, "Asymmetric atom count": 1},
+    "cubane": {"Bond count": 12, "Cyclomatic number": 5, "Ring atom count": 8, "Ring bond count": 12, "Chain atom count": 0, "Chain bond count": 0, "Carbo ring count": 6, "Hetero ring count": 0, "Fused ring count": 6, "Asymmetric atom count": 0},
+}
+
+
+@pytest.mark.parametrize("name", sorted(COUNT_VALUES))
+def test_the_counts_a_person_can_check_by_hand(registry, name):
+    typed = _typed(_completed(registry, name))
+    assert {label: typed[label] for label in COUNTS} == COUNT_VALUES[name]
+
+
+def test_the_counts_obey_the_identities_that_define_them_on_every_molecule_of_the_panel(registry):
+    for name in PANEL:
+        result = _completed(registry, name)
+        if result is None:
+            continue
+        typed = _typed(result)
+        text = {f.label: int(f.display_value) for f in result.facts if f.label in ("Atom count", "Ring count")}
+        assert typed["Ring atom count"] + typed["Chain atom count"] == text["Atom count"], name
+        assert typed["Ring bond count"] + typed["Chain bond count"] == typed["Bond count"], name
+        assert typed["Carbo ring count"] + typed["Hetero ring count"] == text["Ring count"], name
+        assert typed["Cyclomatic number"] == typed["Bond count"] - text["Atom count"] + 1, f"{name}: one component, the parent"
+        assert typed["Fused ring count"] <= text["Ring count"], name
+
+
+def _always_on(name: str) -> dict:
+    from openchem.chem.descriptor_providers import RDKitDescriptorProvider
+
+    return {value.descriptor_id: value.value for value in RDKitDescriptorProvider().compute(Chem.MolFromSmiles(PANEL[name]), "uuid")}
+
+
+def _single_component_names() -> list[str]:
+    return [name for name, smiles in PANEL.items() if "." not in smiles]
+
+
+def test_the_four_counts_left_out_are_the_always_on_descriptors_under_other_labels(registry):
+    """Why they are not approved: identical on every single-component molecule of the panel, so a score gains nothing and has to run this calculator to read what is always there."""
+    duplicates = {"Atom count": "heavy_atom_count", "Ring count": "ring_count", "Rotatable bond count": "num_rotatable_bonds", "Chiral center count": "num_stereocenters"}
+    for name in _single_component_names():
+        result = _completed(registry, name)
+        if result is None:
+            continue
+        text = {f.label: float(f.display_value) for f in result.facts if f.label in duplicates}
+        always_on = _always_on(name)
+        for label, descriptor in duplicates.items():
+            assert text[label] == float(always_on[descriptor]), f"{name}: {label} against {descriptor}"
+
+
+def test_the_cyclomatic_number_is_not_the_ring_count_on_a_cage_so_it_is_offered(registry):
+    """RDKit lists cubane's six faces as six rings and the cyclomatic number is the five that are independent: the two are different quantities, and only the second is not an always-on descriptor."""
+    for name, (cyclomatic, rings) in {"cubane": (5, 6), "adamantane": (3, 4), "benzene": (1, 1)}.items():
+        result = _completed(registry, name)
+        assert (_typed(result)["Cyclomatic number"], int([f.display_value for f in result.facts if f.label == "Ring count"][0])) == (cyclomatic, rings), name
+
+
+def test_the_asymmetric_atom_count_is_not_the_stereocentre_descriptor_on_a_cage_or_a_symmetric_ring(registry):
+    """Four different substituents (the legacy rule) against the always-on stereocentre count: they differ where a centre is stereogenic without being asymmetric, as the module says. So this one is offered."""
+    differ = {}
+    for name in _single_component_names():
+        result = _completed(registry, name)
+        if result is None:
+            continue
+        counts = (_typed(result)["Asymmetric atom count"], int(_always_on(name)["num_stereocenters"]))
+        if counts[0] != counts[1]:
+            differ[name] = counts
+    assert differ == {"cubane": (0, 8), "adamantane": (0, 4), "trans-1,4-dimethylcyclohexane": (0, 2)}
+
+
+def test_the_ring_sizes_read_zero_without_a_ring_which_is_why_they_are_left_out(registry):
+    for name in ("water", "butane", "ethanol"):
+        result = _completed(registry, name)
+        shown = {f.label: f.display_value for f in result.facts if f.label in ("Largest ring size", "Smallest ring size")}
+        assert shown == {"Largest ring size": "0", "Smallest ring size": "0"}, name
