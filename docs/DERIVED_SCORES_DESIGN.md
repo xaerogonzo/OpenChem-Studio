@@ -519,6 +519,7 @@ A driven run follows the UI slice, builds its own state, and ends in a verdict.
      parent; the explicit-hydrogen graph is another number; the table cell; a saved and reopened report; the entries approved, the counts not), the output tests (unit, quantity, sweep: 30 of 30 hold) and `tests/test_main_window_scores.py` (the real window: a score from 6.109 where the line reads 6, and a
      molecule with a conformer scored on its drawing in Results and in the table). **Mutation-checked: 16 mutants of the producer and the table entries, all caught** (one pattern first missed its target and was rerun). `benchmarks/visual/score_typed_topology.json`: VERDICT PASS, 8 assertions;
      with the typing removed it fails 5.
+   * **The endpoint tags are provisional** (section 12, decision 6): accepted "for now", to be revisited; see there for what changing one moves.
    * **Not here.** The counts of this report and the rest of the rounded-text calculators (`elemental_analysis`, `polar_surface_area`, `surface_analysis`, `dipole_moment`, `huckel_analysis`, `mass_spectrum`, `bbb_descriptors`, `cns_mpo`), each its own PR under the same rule.
 
    **The Batch panel's own table, as built (a follow-up after slice 4):**
@@ -566,7 +567,10 @@ Slice 4 is complete: 4a (the assistant reads a score), 4b (no unit conversion is
    shows the definition and no value.
 5. **Definitions are project-scoped.** A person's favourite scores do not follow them from project to project
    except by export and import. The alternative (per user) makes a number unreproducible by anyone else.
-6. **Endpoint tags make consensus unexpressible, and a hand-reviewed list can be wrong** (section 3).
+6. **Endpoint tags make consensus unexpressible, and a hand-reviewed list can be wrong** (section 3). **The eight Topology Analysis tags are PROVISIONAL**: Alex accepted them "for now" on 2026-10-15 (#351) and
+   expects to revisit them. They are my judgement, were checked against no literature, and are cheap to change: a tag is never stored in a definition or a project file, so a rename or a split changes only the sentence
+   beside the output in the Derived Scores window (`score_editor`), the `endpoint` the assistant is told (`list_score_outputs`) and which pairs are refused. A MERGE of two tags (Wiener with hyper-Wiener, say) is the one
+   change that can touch a saved score: a definition that reads but no longer checks is kept and shown refused, never deleted, so look at the stored definitions before merging two.
 7. **Outputs of experimental or hidden calculators are excluded.** It keeps one layer of "unvalidated" from
    resting on another, and it removes some of the outputs people would most like to combine.
 8. **The name check is derived from the registry and cannot see a published score the application lacks.**

@@ -72,6 +72,8 @@ ENDPOINTS: dict[str, str] = {
     "oxygen_balance_co2": "the oxygen balance to carbon dioxide",
     "oxygen_balance_co": "the oxygen balance to carbon monoxide",
     "molecular_polarizability": "the isotropic molecular polarizability, as a volume",
+    # PROVISIONAL: the eight Topology Analysis tags below were accepted "for now" (2026-10-15, #351) and are meant to be revisited. A tag is never stored in a definition or a project file, so changing
+    # one is cheap, except that MERGING two can turn a saved score into a refused one: `docs/DERIVED_SCORES_DESIGN.md`, decision 6.
     "balaban_j_index": "the Balaban J index, as RDKit computes it, of the molecular graph without hydrogens",
     "harary_index": "the Harary index: half the sum of the reciprocal topological distances between atoms, of the molecular graph without hydrogens",
     "hyper_wiener_index": "the hyper-Wiener index: half the sum of every topological distance and its square, of the molecular graph without hydrogens",
