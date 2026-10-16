@@ -180,6 +180,41 @@ def isotope_free_smiles(smiles: str | None) -> str | None:
     return Chem.MolToSmiles(mol)
 
 
+def differs_only_in_isotopes(before: str | None, after: str | None) -> bool:
+    """Do two canonical SMILES describe one structure up to its mass labels?
+
+    **FAILS CLOSED.** Either side missing or unparseable answers False, because
+    the callers use "yes" to KEEP geometry through an edit nobody could read,
+    which is the expensive mistake; dropping it is the cheap one.
+
+    The one definition behind two decisions that must not drift apart:
+    `EditStructureCommand` (an isotope label keeps the molecule's conformers)
+    and `same_structure` (a finished ORCA job still describes the molecule).
+    """
+    stripped_before = isotope_free_smiles(before)
+    return stripped_before is not None and stripped_before == isotope_free_smiles(after)
+
+
+def same_structure(submitted: str | None, current: str | None) -> bool:
+    """Is the molecule now the structure a job was submitted on?
+
+    Canonical SMILES carries constitution and stereochemistry and no
+    coordinates, so a Layout, a Clean Up or a dragged atom is the same
+    structure; a mass label is the same structure too (the editor's own
+    exemption, `differs_only_in_isotopes`); a changed bond or a flipped wedge
+    is not.
+
+    **An empty identity is "cannot tell", which answers False**: a landing
+    that cannot be matched to a structure is withheld, never assumed current
+    (the rule the Atom Inspector applies to an empty fingerprint). Two equal
+    non-empty strings are the same structure even if neither parses, since
+    nothing changed.
+    """
+    if not submitted or not current:
+        return False
+    return submitted == current or differs_only_in_isotopes(submitted, current)
+
+
 def _parse(molblock: str) -> Chem.Mol:
     """**`removeHs=False`, and it is load-bearing.**
 

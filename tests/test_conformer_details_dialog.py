@@ -224,3 +224,42 @@ def test_the_shortfall_note_is_silent_when_the_CAP_is_why():
 
     assert ConformerDetailsDialog._shortfall_note(capped) == ""
     assert ConformerDetailsDialog._truncation_note(capped) != ""
+
+
+# --- an ORCA-optimized conformer has no generation funnel; it says what produced it ------------------------------
+
+
+def _orca_conformer(parameters: dict) -> ConformerModel:
+    from openchem.domain.conformer import ORCA_OPTIMIZED
+
+    return ConformerModel(
+        molblock="x", method=ORCA_OPTIMIZED, provenance=Provenance(created_by="core", method="orca", parameters=parameters)
+    )
+
+
+def test_an_orca_conformer_shows_its_level_of_theory_version_and_source_number(qapp):
+    from openchem.domain.common import RUN_METHOD_BASIS
+    from openchem.domain.conformer import OPTIMIZED_FROM_SLOT
+
+    dialog = ConformerDetailsDialog(
+        _orca_conformer({"orca_version": "6.0.1", RUN_METHOD_BASIS: "HF STO-3G", OPTIMIZED_FROM_SLOT: 7})
+    )
+    try:
+        shown = _shown(dialog)
+        assert "HF STO-3G" in shown
+        assert "6.0.1" in shown
+        assert "the conformer that was number 7 when the job started" in shown
+        assert "Embeddings attempted" not in shown, "none of the generation funnel applies to it"
+        assert "never recorded" not in shown, "it must not read as a damaged project"
+    finally:
+        _dispose(dialog)
+
+
+def test_an_orca_conformer_from_an_older_project_says_not_recorded_rather_than_inventing(qapp):
+    dialog = ConformerDetailsDialog(_orca_conformer({"orca_version": "6.0.1"}))
+    try:
+        shown = _shown(dialog)
+        assert shown.count("not recorded") == 2, "the level of theory and the source, each said to be missing"
+        assert "6.0.1" in shown
+    finally:
+        _dispose(dialog)

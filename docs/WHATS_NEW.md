@@ -10,7 +10,8 @@ linked from each section says why it was built the way it was. Where a claim her
 - **The AI Assistant is easy to find, and it can now look things up in the application and run the quick calculators
   itself.** It asks you first before anything slow, large or unclassified.
 - **After an ORCA geometry optimisation, every later calculation uses the optimised geometry.** Before, they quietly kept
-  using a force-field conformer.
+  using a force-field conformer. It now also replaces the conformer it was run on, in its slot, and the 3D viewer shows
+  and marks it (#358).
 - **A Lewis acid-base pairing window** that builds three separate lines of evidence from the quantum-chemistry runs you
   already made, and starts nothing by itself.
 - **Derived scores:** a formula of your own over numbers the application already computes, shown as a column you can sort in
@@ -86,13 +87,22 @@ Read more: [`DERIVED_SCORES_DESIGN.md`](DERIVED_SCORES_DESIGN.md) (pull requests
 Read more: [`AI_CALCULATION_BRIDGE.md`](AI_CALCULATION_BRIDGE.md); the **Plugins** section of the guide;
 [`PLUGIN_SDK.md`](PLUGIN_SDK.md) for the plugin-side handle.
 
-## An ORCA-optimised geometry is the geometry (#312)
+## An ORCA-optimised geometry is the geometry (#312, #358)
 
 After an ORCA geometry optimisation, the next NMR, single point, 3D calculator or docking runs on the optimised conformer. It
 used not to: the optimised conformer was stored without a force-field energy, so it sorted last and was never chosen while any
 force-field conformer had an energy. The rule is now the newest quantum-optimised conformer, and otherwise the lowest MMFF94
 energy; undoing the optimisation removes it and the old rule applies again. It matters for scores, too: it is the rule a score
 over a 3D number will follow.
+
+**Where it lands, and what you see (#358).** The optimised geometry replaces the conformer it was run on, in its slot, so 7 of
+20 stays 7 of 20, and the 3D viewer jumps to it and marks it: `Conformer 7/20 - ORCA optimized (HF STO-3G)` in the single view,
+`7 - ORCA` in a gallery cell. Details says which level of theory made it and which conformer it was optimised from, by the
+number that conformer had when you pressed Run. Generating conformers again keeps it (Settings ▸ Conformers ▸ Keep
+ORCA-optimized conformers, on by default). A job that finishes after you edited the structure no longer puts its geometry or
+its numbers on the edited molecule; the status bar says why and the finished run stays in the history. Not built yet: an "ORCA
+optimize" button in the viewer (so a conformer other than the canonical one can be optimised), a Tools entry and a badge, and an
+option to optimise the lowest-energy conformer when generating.
 
 ## The Lewis acid-base pairing (#311, #314 to #324)
 

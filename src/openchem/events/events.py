@@ -262,6 +262,11 @@ class ConformersReady(Event):
 @dataclass(frozen=True)
 class ConformersChanged(Event):
     molecule_uuid: str
+    #: The `conformer_id` the 3D viewer should land on, when the change is about ONE conformer (an
+    #: ORCA-optimized geometry arriving, or an undo restoring the one it replaced). Empty = no
+    #: preference, and the viewer returns to the first conformer as it always did, so every other
+    #: publisher is unchanged.
+    show_conformer_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -333,6 +338,16 @@ class QuantumChemistryResultReady(Event):
     #: carry its drawing-atom map onto `conformer` (`chem.calculation_input.with_source_atom_map`). Empty
     #: for a result with no single source (a Boltzmann sequence).
     input_fingerprint: str = ""
+    #: The molecule's canonical SMILES AT SUBMISSION. The window compares it with the molecule's
+    #: current one before it installs the geometry or shows the numbers as current
+    #: (`chem.isotopes.same_structure`), because a job can finish after the structure it ran on was
+    #: edited. Empty = unverifiable, and an unverifiable landing is withheld, never assumed current.
+    structure_identity: str = ""
+    #: The ONE-BASED slot of the conformer the job was submitted on, AS IT STOOD WHEN RUN WAS PRESSED. 0 = not
+    #: known (a Boltzmann run has no single source). Carried here and not re-derived at landing because a
+    #: regeneration that keeps ORCA conformers can move the source while the job runs; the geometry's provenance
+    #: must say what the calculation actually started from.
+    source_slot: int = 0
 
 
 @dataclass(frozen=True)

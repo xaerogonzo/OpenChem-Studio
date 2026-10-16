@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from openchem.chem.engine import ChemistryEngine
-from openchem.chem.isotopes import isotope_free_smiles
+from openchem.chem.isotopes import differs_only_in_isotopes
 from openchem.commands.base import OpenChemCommand
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.molecule import MoleculeModel
@@ -210,8 +210,8 @@ class EditStructureCommand(OpenChemCommand):
         False, so the conformers clear -- the same direction the rest of
         this method takes, because keeping geometry through an edit
         nobody could read is the expensive mistake and dropping it is the
-        cheap one.
+        cheap one. The rule itself is `differs_only_in_isotopes`, shared with
+        the check that decides whether a finished ORCA job still describes
+        this molecule, so the two cannot drift.
         """
-        before = isotope_free_smiles(self._old_smiles)
-        after = isotope_free_smiles(self._molecule.canonical_smiles)
-        return before is not None and before == after
+        return differs_only_in_isotopes(self._old_smiles, self._molecule.canonical_smiles)

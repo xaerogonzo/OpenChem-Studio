@@ -2394,3 +2394,83 @@ def test_the_summary_names_the_conformer_search_and_says_it_is_not_exhaustive():
     text = QuantumChemistryPanel._tautomer_distribution_summary(result)
 
     assert "Conformer search: MMFF top-3 of" in text and "not exhaustive" in text
+
+
+# --- the structure a run is submitted on, and what the panel claims when the structure moved ---------------------
+
+
+def test_a_single_run_is_submitted_with_the_molecules_structure(qapp):
+    """The window compares this with the molecule's structure when the job lands. Without it every
+    landing is unverifiable and is withheld, so a panel that forgot to pass it would silently stop
+    ORCA geometries from ever being applied."""
+    panel, service, molecule = _panel_with_conformers(1)
+
+    panel._on_run_clicked()
+
+    assert service.requests[0]["structure_identity"] == molecule.canonical_smiles != ""
+
+
+def test_a_boltzmann_run_is_submitted_with_the_molecules_structure(qapp):
+    panel, service, molecule = _panel_with_conformers(3)
+    panel._boltzmann_check.setChecked(True)
+
+    panel._on_run_clicked()
+
+    assert service.boltzmann_requests[0]["structure_identity"] == molecule.canonical_smiles != ""
+
+
+def _result_for(molecule, identity: str):
+    from openchem.domain.conformer import ORCA_OPTIMIZED
+    from openchem.events.events import QuantumChemistryResultReady
+
+    return QuantumChemistryResultReady(
+        molecule_uuid=molecule.uuid,
+        descriptors=[],
+        conformer=ConformerModel(molblock=molecule.conformers[0].molblock, method=ORCA_OPTIMIZED),
+        structure_identity=identity,
+    )
+
+
+def test_the_panel_says_the_geometry_was_applied_when_the_structure_still_matches(qapp):
+    panel, _service, molecule = _panel_with_conformers(1)
+    panel._pending_molecule_uuid = molecule.uuid
+
+    panel._on_result_ready(_result_for(molecule, molecule.canonical_smiles))
+
+    assert "applied to the molecule's conformers" in panel._results_label.text()
+    assert "edited" not in panel._results_label.text()
+
+
+def test_the_panel_does_not_claim_a_geometry_the_window_withheld(qapp):
+    """The window refuses a landing on an edited structure; the panel must not print the opposite."""
+    panel, _service, molecule = _panel_with_conformers(1)
+    panel._pending_molecule_uuid = molecule.uuid
+
+    panel._on_result_ready(_result_for(molecule, "CCCCC"))
+
+    assert "was not applied" in panel._results_label.text()
+    assert "applied to the molecule's conformers" not in panel._results_label.text()
+    assert panel._optimized_conformer_molblock, "the panel still holds the geometry for its own IR view"
+
+
+def test_a_single_run_is_submitted_with_the_one_based_slot_of_its_conformer(qapp):
+    """The slot is read when Run is pressed and rides with the job, so the geometry that comes back can say what
+    it was optimized from even if the list is rearranged while ORCA runs. Not slot 1 on purpose: the lowest
+    energy is the third conformer."""
+    panel, service, molecule = _panel_with_conformers(3)
+    for energy, conformer in zip((2.0, 1.0, -5.0), molecule.conformers):
+        conformer.energy = energy
+
+    panel._on_run_clicked()
+
+    assert service.requests[0]["source_slot"] == 3
+
+
+def test_a_boltzmann_run_names_no_source_slot(qapp):
+    """It runs over the whole set; there is no single source to number."""
+    panel, service, _molecule = _panel_with_conformers(3)
+    panel._boltzmann_check.setChecked(True)
+
+    panel._on_run_clicked()
+
+    assert "source_slot" not in service.boltzmann_requests[0]

@@ -105,12 +105,19 @@ CONFORMER_MAX_EMBEDDINGS = Preference(
 #: twenty of the kept set on the flexible molecules measured; see `chem.conformer_providers.STOP_RULE_KEPT_SET`.
 CONFORMER_EARLY_STOP = Preference("conformers/early_stop_kept_set", bool, False)
 
+#: Whether generating conformers again KEEPS the ones an ORCA optimization produced. ON by default, because an
+#: optimized geometry is the most expensive thing in the list and the one every later calculation prefers
+#: (`chem.calculation_input.canonical_conformer`); wiping it as a side effect of pressing Generate was the
+#: surprise. The kept geometries follow the new conformers, in their original order; OFF replaces everything, as
+#: it always did. A structure edit still clears all of them either way: the geometry no longer fits.
+CONFORMER_KEEP_OPTIMIZED = Preference("conformers/keep_quantum_optimized", bool, True)
+
 #: Every preference, in the order the Settings window groups them. Tests
 #: iterate this, so a preference added here is covered without a new test.
 PREFERENCES = (
     RAIL_HIDES_PANELS, RECOVERY_ENABLED, RECOVERY_DELAY_SECONDS, MAX_REVISIONS_KEPT,
     SHOW_HIDDEN_CALCULATORS, RECALC_MODE, RECALC_QUIET_MS, DRAWING_BOND_KEYS,
-    CONFORMER_MAX_EMBEDDINGS, DRAWING_BOND_CLICK, CONFORMER_EARLY_STOP,
+    CONFORMER_MAX_EMBEDDINGS, DRAWING_BOND_CLICK, CONFORMER_EARLY_STOP, CONFORMER_KEEP_OPTIMIZED,
 )
 
 #: Where one calculator's own visibility choice is stored: a plain

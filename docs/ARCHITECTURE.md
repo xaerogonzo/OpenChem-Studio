@@ -387,7 +387,25 @@ it).
   the whole list.** ORCA (6.5) needs to add one optimized-geometry
   conformer without wiping out whatever RDKit-generated conformers already
   exist — `SetConformersCommand`'s wholesale-replace semantics would do
-  exactly that if reused as-is.
+  exactly that if reused as-is. It is now the fallback: a landing whose
+  source conformer cannot be found (a Boltzmann run's lowest conformer, or
+  conformers regenerated while the job ran) is appended and shown.
+- **An ORCA optimization lands through `ReplaceConformerCommand`, in the slot
+  of the conformer it started from.** The window finds the source by its
+  `GEOMETRY` fingerprint (`find_source_conformer`), so 7 of 20 stays 7 of 20,
+  and `ConformersChanged.show_conformer_id` makes the 3D viewer land on it.
+  The command records whether redo replaced or appended, because undo must
+  reverse what was done. Regenerating conformers keeps the quantum-optimized
+  ones unless Settings > Conformers says otherwise
+  (`with_kept_quantum_optimized`).
+- **A quantum job that finishes after its molecule's structure was edited
+  installs nothing and shows nothing as current.** The panel stamps the
+  molecule's canonical SMILES on the submission, the service carries it on
+  `QuantumChemistryResultReady.structure_identity`, and the window compares it
+  at landing with `chem.isotopes.same_structure` (fails closed; an isotope
+  label and a moved atom are the same structure, the editor's own rule).
+  It is deliberately NOT a subscription to `ConformersInvalidated`, which is
+  only published when there are conformers to clear.
 - **Quantum-chemistry descriptor results reuse the existing
   `DescriptorComputed` event, not a new display mechanism.** Descriptors
   were never cached on the molecule to begin with (see above) — ORCA's

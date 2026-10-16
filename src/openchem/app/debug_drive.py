@@ -5220,8 +5220,16 @@ class _Driver(QObject):
         service was handed, so "the job after the optimization ran on the optimized geometry" is a
         comparison of two logged strings rather than a belief. `expect` keys: `canonical_method`,
         `canonical_mapped` (true/false), `conformers` (count held); a miss is an `EXPECT ... FAILED`.
+
+        **THE 3D VIEWER AND THE STATUS BAR ARE READ TOO**, because "the optimized geometry is stored" and "the
+        viewer shows it" are different claims and only the second is what a person sees: `viewer_index` (which
+        conformer the viewer is on, zero-based, or None when it holds another molecule), `viewer_on_canonical`
+        (it is on the one a calculation would be handed), `viewer_label_contains` / `viewer_label_excludes` (its
+        status line), `orca_conformers` (how many held came from a quantum optimization), `origin_slot` (the
+        one-based slot the canonical conformer says it took) and `status_contains` (the window's status bar).
         """
         from openchem.chem.calculation_input import canonical_conformer, geometry_fingerprint
+        from openchem.domain.conformer import OPTIMIZED_FROM_SLOT, is_quantum_optimized
 
         molecule = self._window._current_molecule()
         tag = step.get("tag", "")
@@ -5243,8 +5251,36 @@ class _Driver(QObject):
             )
         if best is None:
             logger.warning("OPENCHEM_DRIVE: conformer_report %s -- no conformer, so no canonical one", tag)
+        viewer = self._window._viewer3d
+        shows_this_molecule = getattr(viewer, "_molecule", None) is molecule
+        viewer_index = viewer._conformer_index if shows_this_molecule and molecule.conformers else None
+        viewer_label = viewer._status_label.text() if shows_this_molecule else ""
+        status = self._window.statusBar().currentMessage()
+        orca_held = sum(1 for c in molecule.conformers if is_quantum_optimized(c))
+        logger.warning(
+            "OPENCHEM_DRIVE: conformer_report %s viewer_index=%s viewer_label=%r orca_conformers=%d status=%r",
+            tag, viewer_index, viewer_label, orca_held, status,
+        )
         expect = step.get("expect") or {}
         problems = []
+        if "orca_conformers" in expect and orca_held != expect["orca_conformers"]:
+            problems.append(f"{orca_held} ORCA conformers held, wanted {expect['orca_conformers']}")
+        if "viewer_index" in expect and viewer_index != expect["viewer_index"]:
+            problems.append(f"viewer is on {viewer_index}, wanted {expect['viewer_index']}")
+        if expect.get("viewer_on_canonical"):
+            canonical_position = next((i for i, c in enumerate(molecule.conformers) if c is best), None)
+            if viewer_index is None or viewer_index != canonical_position:
+                problems.append(f"viewer is on {viewer_index}, the canonical conformer is {canonical_position}")
+        if "viewer_label_contains" in expect and expect["viewer_label_contains"] not in viewer_label:
+            problems.append(f"viewer label {viewer_label!r} lacks {expect['viewer_label_contains']!r}")
+        if "viewer_label_excludes" in expect and expect["viewer_label_excludes"] in viewer_label:
+            problems.append(f"viewer label {viewer_label!r} contains {expect['viewer_label_excludes']!r}")
+        if "status_contains" in expect and expect["status_contains"] not in status:
+            problems.append(f"status bar {status!r} lacks {expect['status_contains']!r}")
+        if "origin_slot" in expect:
+            recorded = best.provenance.parameters.get(OPTIMIZED_FROM_SLOT) if best and best.provenance else None
+            if recorded != expect["origin_slot"]:
+                problems.append(f"the canonical conformer records origin slot {recorded}, wanted {expect['origin_slot']}")
         if "conformers" in expect and len(molecule.conformers) != expect["conformers"]:
             problems.append(f"{len(molecule.conformers)} conformers held, wanted {expect['conformers']}")
         if "canonical_method" in expect and (best.method if best else None) != expect["canonical_method"]:
