@@ -1067,6 +1067,12 @@ def _neutral_ring_copy(mol, ring_system):
         rw = Chem.RWMol(mol)
         for i in charged:
             atom = rw.GetAtomWithIdx(i)
+            if atom.GetFormalCharge() == -1 and atom.GetAtomicNum() == 7:
+                # An azolide (`c1[n-]nc2c1CC=CO2`) or a lactam anion (`O=C1CSc2ccccc2[N-]1`) is its neutral ring less one hydrogen (naming round 60): the parent is the `[nH]` ring, and the `-N-id-` infix is placed from the real molecule.
+                atom.SetFormalCharge(0)
+                atom.SetNumExplicitHs(1)
+                atom.SetNoImplicit(True)
+                continue
             if atom.GetFormalCharge() != 1 or atom.GetAtomicNum() not in (7, 8, 16):
                 raise Unsupported("a charged ring atom other than a +1 N, O or S")
             if detach:

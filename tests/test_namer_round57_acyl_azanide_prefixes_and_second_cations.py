@@ -84,11 +84,11 @@ def test_the_name_reads_back_to_the_ion(label, smiles, expected):
 
 def test_the_single_anion_acylsulfonamide_is_still_a_sulfonamidate():
     assert name_smiles("NC(=O)[N-]S(=O)(=O)c1ccccc1") == "N-carbamoylbenzenesulfonamidate"
-    assert name_smiles("NC(=O)[N-]S(=O)(=O)c1ccc(C(=O)[O-])cc1") == "N-carbamoyl-4-[oxido(oxo)methyl]benzene-1-sulfonamidate"
+    assert name_smiles("NC(=O)[N-]S(=O)(=O)c1ccc(C(=O)[O-])cc1") == "4-[(carbamoylazanidyl)sulfonyl]benzoate"
 
 
-def test_a_sulfonamide_anion_beside_a_carboxylate_keeps_its_suffix():
-    assert name_smiles("C[N-]S(=O)(=O)c1ccc(C(=O)[O-])cc1") == "N-methyl-4-[oxido(oxo)methyl]benzene-1-sulfonamidate"
+def test_a_sulfonamide_anion_beside_a_carboxylate_is_a_prefix_on_the_carboxylate():
+    assert name_smiles("C[N-]S(=O)(=O)c1ccc(C(=O)[O-])cc1") == "4-[(methylazanidyl)sulfonyl]benzoate"
 
 
 def test_a_neutral_sulfonamide_and_amidoxime_are_untouched():

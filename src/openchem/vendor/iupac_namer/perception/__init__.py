@@ -507,7 +507,8 @@ class Perception:
             if atom_info.idx in _prefix_fg_atoms:
                 continue
             _cat_atom = self._mol.GetAtomWithIdx(atom_info.idx)  # type: ignore[attr-defined]
-            if _cat_atom.GetTotalValence() != _std_val + 1:
+            # A CARVED `C[O+]=` branch (an O-alkylated carbonyl beside another charge) is the cation with its free valence as radical electrons: the bonds the cut took count.
+            if _cat_atom.GetTotalValence() + _cat_atom.GetNumRadicalElectrons() != _std_val + 1:
                 continue
             yield CandidateParent(
                 atom_indices=frozenset({atom_info.idx}),

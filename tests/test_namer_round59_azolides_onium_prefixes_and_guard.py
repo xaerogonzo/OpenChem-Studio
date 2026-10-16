@@ -39,7 +39,7 @@ needs_opsin = pytest.mark.skipif(shutil.which("java") is None, reason="needs jav
 # (label, SMILES, the name)
 NAMED = [
     # D-278
-    ("a pyrazol-5-yl carboxylate beside a second anion", "O=C([O-])Cc1ccn[n-]1", "5-(carboxylatomethyl)-1H-pyrazol-1-ide"),
+    ("a pyrazol-5-yl carboxylate beside a second anion", "O=C([O-])Cc1ccn[n-]1", "(1H-pyrazol-1-id-5-yl)acetate"),   # round 60: the acid anion is the parent
     ("a pyrazolide with an O-protonated acyl", "CC(=[OH+])c1cc(-c2ccccc2)n[n-]1", "5-(1-oxidaniumylideneethyl)-3-phenyl-1H-pyrazol-1-ide"),
     ("a pyrazolide as a substituent of an ammonium", "C[N+](C)(C)c1ccn[n-]1", "trimethyl(1H-pyrazol-1-id-5-yl)ammonium"),
     ("an imidazolide as a substituent", "C[NH+](C)CCc1ncc[n-]1", "[2-(1H-imidazol-1-id-2-yl)ethyl]di(methyl)azanium"),
@@ -144,7 +144,8 @@ def test_a_cation_hydride_parent_takes_no_suffix_that_stands_beside_it():
 def test_the_deprotonated_azole_is_the_indicated_hydrogen_slot():
     from openchem.vendor.iupac_namer.engine import _filter_indicated_h_numberings  # noqa: F401  (the filter is exercised through the names above)
 
-    assert name_smiles("O=C([O-])Cc1ccn[n-]1").startswith("5-(")
+    assert name_smiles("Cc1ccn[n-]1") == "5-methyl-1H-pyrazol-1-ide"
+    assert name_smiles("O=C([O-])Cc1ccn[n-]1").endswith("5-yl)acetate")
 
 
 # --- the last four of the round ---------------------------------------------------------------------------------------------------------------------------------------
@@ -174,8 +175,10 @@ def test_an_ion_word_inside_an_atom_prefix_is_not_a_multiplied_word():
 
 
 def test_an_ester_word_in_front_of_a_cation_parent_is_refused():
+    # the molecule is named properly since round 60 (an O-alkylated carbonyl is a prefix); the guard's rule is exercised on the name it was written for
+    mol = Chem.MolFromSmiles("CCOC(=O)C[SH+]C1=CCCNC1=[O+]C")
     with pytest.raises(ValueError, match="ester"):
-        name_smiles("CCOC(=O)C[SH+]C1=CCCNC1=[O+]C")
+        _check_charge_named(mol, "ethyl {5-[(carboxymethyl)sulfaniumyl]-3,4-dihydropyridin-2(1H)-ylidene}(methyl)oxidanium")
 
 
 def test_a_protonated_carbonyl_whose_cation_is_already_cited_keeps_its_oxo():

@@ -68,6 +68,9 @@ ANION_SITES = {
     "selenol": "[SeX2H1]",
     "boronic": "[OX2H1]B",
     "phosphinic": "[OX2H1][PX4](=O)([#6])[#6]",
+    # round 60: an alkoxide and an anilide (the azanide prefix of round 56), never deprotonated before
+    "alcohol": "[OX2H1][CX4]",
+    "aniline_nh": "[NX3;H2,H1;$(N-[a]);!$(NC=[O,S,N]);!$(NS=O)]",
 }
 
 #: Basic sites, protonated or N-methylated (rounds 47 and 48). The first atom gains the proton or the methyl.
@@ -93,6 +96,12 @@ CATION_SITES = {
     "n_oxide_o": "[OX1-][#7+;!$([#7+](~[OX1])~[OX1])]",   # an N-oxide; a NITRO group is not one (its protonated form is another species)
     "selenoether_se": "[SeX2;!R]([#6])[#6]",
     "phosphine_oxide_o": "[OX1]=[PX4]",
+    # round 60: the oxygens no earlier round protonated (an ester, an acid, an aldehyde, an ether, an alcohol)
+    "ester_o": "[OX1;$(O=C([#6,#1])[OX2][#6])]",
+    "acid_o": "[OX1;$(O=C[OX2H1])]",
+    "aldehyde_o": "[OX1;$(O=[CX3H1])]",
+    "ether_o": "[OX2;!R;!$(O[CX3]=[O,N,S])]([#6])[#6]",
+    "alcohol_o": "[OX2H1][CX4]",
 }
 
 MODES = ("anion", "cation", "quaternary", "zwitterion", "dianion", "dication", "betaine", "quat_dication", "trianion", "trication")

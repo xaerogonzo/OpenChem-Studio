@@ -23,10 +23,10 @@ needs_opsin = pytest.mark.skipif(shutil.which("java") is None, reason="needs jav
 # (label, SMILES, the name)
 TWO_ANIONS = [
     ("an anilide anion beside a phenolate", "CC(=O)[N-]c1ccc([O-])cc1", "4-(acetylazanidyl)benzen-1-olate"),
-    ("an anilide anion beside a carboxylate", "CC(=O)[N-]c1ccc(C(=O)[O-])cc1", "1-(acetylazanidyl)-4-[oxido(oxo)methyl]benzene"),
+    ("an anilide anion beside a carboxylate", "CC(=O)[N-]c1ccc(C(=O)[O-])cc1", "4-(acetylazanidyl)benzoate"),
     ("a sulfonamide anion beside a phenolate", "CS(=O)(=O)[N-]c1ccc([O-])cc1", "4-(methylsulfonylazanidyl)benzen-1-olate"),
     ("a sulfonamide anion beside a thiolate", "CS(=O)(=O)[N-]c1ccc([S-])cc1", "4-(methylsulfonylazanidyl)benzene-1-thiolate"),
-    ("a sulfamide anion beside a carboxylate", "CN(C)S(=O)(=O)[N-]c1ccc(C(=O)[O-])cc1", "1-[(N,N-dimethylsulfamoyl)azanidyl]-4-[oxido(oxo)methyl]benzene"),
+    ("a sulfamide anion beside a carboxylate", "CN(C)S(=O)(=O)[N-]c1ccc(C(=O)[O-])cc1", "4-[(N,N-dimethylsulfamoyl)azanidyl]benzoate"),
     ("an acylurea anion beside a thiolate", "Cc1ccccc1C(=O)[N-]C(=O)N=C([S-])c1ccccc1", "[((2-methylbenzoyl)azanidyl)carbonylimino]phenylmethanethiolate"),
 ]
 

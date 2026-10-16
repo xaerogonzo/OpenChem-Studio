@@ -2143,7 +2143,9 @@ def _classify_amine_anion(mol) -> Iterable[ChargeClassification]:
       secondary amine anion (the all-H ``[NH2-]`` azanide and the
       tertiary ``R3N`` cannot be deprotonated, so they never reach here).
     """
-    charged = [a for a in mol.GetAtoms() if a.GetFormalCharge() != 0]
+    # A nitro group or an N-oxide beside the amine anion is charge-separated and neutral overall (naming round 60: `[NH-]c1ccc([N+](=O)[O-])cc1` was `1-azanide-4-nitrobenzene`).
+    separated = _charge_separated_neutral_atoms(mol)
+    charged = [a for a in mol.GetAtoms() if a.GetFormalCharge() != 0 and a.GetIdx() not in separated]
     if len(charged) != 1:
         return
     n = charged[0]
@@ -2173,7 +2175,7 @@ def _classify_amine_anion(mol) -> Iterable[ChargeClassification]:
                     and nb2.GetFormalCharge() == 0):
                 return
     yield ChargeClassification(
-        site_atom_indices=(n.GetIdx(),),
+        site_atom_indices=(n.GetIdx(), *sorted(separated)),
         charge_sign="-",
         suffix_hint="amine_anion",
         locant=None,
@@ -2444,7 +2446,9 @@ def acid_anion_route(mol) -> str | None:
         # cation, and no route claimed the sites: the carved route takes them, and the cation is
         # the 'azaniumyl' prefix as it already is in a net-neutral zwitterion.
         net = sum(a.GetFormalCharge() for a in charged)
-        if net < 0 and all(a.GetFormalCharge() > 0 for a in others):
+        # A JUNIOR anion beside the acid anion (an azolide `[n-]`, an amide's `[N-]`) is a prefix on the acid's parent, as a cation is (naming round 60): `[O-]C(=O)c1ccc(-c2cc[n-]n2)cc1`
+        # was `3-{4-[oxido(oxo)methyl]phenyl}-1H-pyrazol-1-ide`, the right molecule on the junior anion's parent; the book's is `4-(1H-pyrazol-1-id-3-yl)benzoate`.
+        if net < 0 and all(a.GetFormalCharge() > 0 or (a.GetFormalCharge() == -1 and a.GetSymbol() == "N") for a in others):
             return "carved"
         return None
     if separated or olates or _has_neutral_acid(mol) or len(set(kinds.values())) != 1:
@@ -3731,6 +3735,9 @@ def _render_amine_anion(
     parent_mol = Chem.MolFromSmiles(parent_smiles)
     if parent_mol is None:
         return None
+    # A second amine in the molecule can take the `-aminide` (an anilide beside a dimethylaniline was `...-N,N-dimethylbenzen-1-aminide`, the charge on the wrong nitrogen; round 60): refuse.
+    if len(parent_mol.GetSubstructMatches(Chem.MolFromSmarts("[NX3;!$(N-C=[O,S,N]);!$(N-[S,P]=O);!$([N+]);!$(N-[N,O])]"))) > 1:
+        return None
     try:
         tree = _recursive_name(
             parent_mol,
@@ -4566,6 +4573,8 @@ def _with_attachment_stereo(mol, atom_idx: int, name: str | None) -> str | None:
         locant = match.group(1)
     head = re.match(r"^\(((?:\d+[a-z]?'*[RSEZrsez]+)(?:,\d+[a-z]?'*[RSEZrsez]+)*)\)-", name)
     items = head.group(1).split(",") if head else []
+    # the same centre may already be cited (an outer carve stamped the whole molecule's label on it, round 60): replace it, never cite it twice
+    items = [item for item in items if re.fullmatch(re.escape(locant) + r"[RSEZrsez]+", item) is None]
     items.append(f"{locant}{label}")
     items.sort(key=lambda item: int(re.match(r"\d+", item).group(0)))
     rest = name[head.end():] if head else name
@@ -4617,42 +4626,36 @@ def _name_branch_as_prefix(
         Chem.SanitizeMol(frag)
     except Exception:
         return None
-    return _with_whole_molecule_cip(
-        mol, frag, branch, drop,
-        _name_as_substituent(frag, new_root, strategy, session, depth, elide_locant_one=True),
-    )
+    _stamp_whole_molecule_cip(mol, frag, branch, drop, root)
+    return _name_as_substituent(frag, new_root, strategy, session, depth, elide_locant_one=True)
 
 
-def _with_whole_molecule_cip(mol, frag, branch: set[int], drop: list[int], name: str | None) -> str | None:
-    """Give the ONE stereo centre of a carved branch the label it has in the WHOLE molecule (naming round 59).
+def _stamp_whole_molecule_cip(mol, frag, branch: set[int], drop: list[int], root: int) -> None:
+    """Give every stereo centre of a carved branch the label it has in the WHOLE molecule (naming rounds 59 and 60).
 
     The branch is named without the atom it was cut from, so a centre next to the cut can rank its ligands differently there than in the molecule: `C[NH+](C)[C@@H](C[N-]C(=O)C)c1ccccc1`
-    cited `(2S)` for the group whose centre is R (the cut CH2-N- became CH2-H, below the phenyl). Only a branch with exactly one centre and one descriptor is corrected; a name with several is left,
-    and the read-back catches it."""
+    cited `(2S)` for the group whose centre is R (the cut CH2-N- became CH2-H, below the phenyl). Round 59 flipped the letter of a branch with ONE descriptor after the fact; a branch with
+    two centres (a pyrrolidine with an O-protonated lactam, beside an azolide) was left and read back as the other diastereomer. The carve that names a substituent from the parent already
+    stamps the parent's codes on the fragment (`_ParentCIPCode`, read by the stereo perception, which prefers it); this does the same here, so any number of centres is right."""
     from rdkit import Chem
     from rdkit.Chem import rdCIPLabeler
 
-    if not name or len(re.findall(r"\d+[a-z]?'*[RS](?=[,)])", name)) != 1:
-        return name
     try:
         whole = Chem.Mol(mol)
+        Chem.AssignStereochemistry(whole, cleanIt=True, force=True)
         rdCIPLabeler.AssignCIPLabels(whole)
-        carved = Chem.Mol(frag)
-        rdCIPLabeler.AssignCIPLabels(carved)
-    except Exception:  # noqa: BLE001 - no labels, no correction
-        return name
-    centres = [a.GetIdx() for a in carved.GetAtoms() if a.HasProp("_CIPCode") and a.GetProp("_CIPCode") in ("R", "S")]
-    if len(centres) != 1:
-        return name
-    new_idx = centres[0]
-    old_idx = next((i for i in sorted(branch) if i - sum(1 for d in drop if d < i) == new_idx), None)
-    if old_idx is None:
-        return name
-    in_whole = whole.GetAtomWithIdx(old_idx)
-    in_frag = carved.GetAtomWithIdx(new_idx).GetProp("_CIPCode")
-    if not in_whole.HasProp("_CIPCode") or in_whole.GetProp("_CIPCode") not in ("R", "S") or in_whole.GetProp("_CIPCode") == in_frag:
-        return name
-    return re.sub(r"(\d+[a-z]?'*)([RS])(?=[,)])", lambda m: m.group(1) + ("R" if m.group(2) == "S" else "S"), name, count=1)
+        from openchem.vendor.iupac_namer.perception.stereo import label_azolide_on_neutral_view
+
+        label_azolide_on_neutral_view(whole)
+    except Exception:  # noqa: BLE001 - no labels, the branch keeps its own
+        return
+    new_of = {old: old - sum(1 for d in drop if d < old) for old in branch}
+    for old, new in new_of.items():
+        if old == root:
+            continue        # the attachment atom's own label is cited by `_with_attachment_stereo`; stamping it too cited it twice
+        atom = whole.GetAtomWithIdx(old)
+        if atom.HasProp("_CIPCode") and atom.GetProp("_CIPCode") in ("R", "S", "r", "s"):
+            frag.GetAtomWithIdx(new).SetProp("_ParentCIPCode", atom.GetProp("_CIPCode"))
 
 
 def _render_diazonium_ylide(
@@ -4754,6 +4757,9 @@ def _name_as_substituent(
     for atom in probe.GetAtoms():
         if atom.GetAtomMapNum() == atom_idx + 1:
             target = atom.GetIdx()
+        # the probe is rebuilt from SMILES, which drops properties: carry the whole molecule's CIP codes through the atom map (round 60)
+        if atom.GetAtomMapNum() and mol.GetAtomWithIdx(atom.GetAtomMapNum() - 1).HasProp("_ParentCIPCode"):
+            atom.SetProp("_ParentCIPCode", mol.GetAtomWithIdx(atom.GetAtomMapNum() - 1).GetProp("_ParentCIPCode"))
         atom.SetAtomMapNum(0)
     if target is None:
         return None
