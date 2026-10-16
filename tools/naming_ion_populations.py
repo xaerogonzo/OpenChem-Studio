@@ -68,6 +68,9 @@ ANION_SITES = {
     "selenol": "[SeX2H1]",
     "boronic": "[OX2H1]B",
     "phosphinic": "[OX2H1][PX4](=O)([#6])[#6]",
+    # round 60: an alkoxide and an anilide (the azanide prefix of round 56), never deprotonated before
+    "alcohol": "[OX2H1][CX4]",
+    "aniline_nh": "[NX3;H2,H1;$(N-[a]);!$(NC=[O,S,N]);!$(NS=O)]",
 }
 
 #: Basic sites, protonated or N-methylated (rounds 47 and 48). The first atom gains the proton or the methyl.
@@ -93,6 +96,12 @@ CATION_SITES = {
     "n_oxide_o": "[OX1-][#7+;!$([#7+](~[OX1])~[OX1])]",   # an N-oxide; a NITRO group is not one (its protonated form is another species)
     "selenoether_se": "[SeX2;!R]([#6])[#6]",
     "phosphine_oxide_o": "[OX1]=[PX4]",
+    # round 60: the oxygens no earlier round protonated (an ester, an acid, an aldehyde, an ether, an alcohol)
+    "ester_o": "[OX1;$(O=C([#6,#1])[OX2][#6])]",
+    "acid_o": "[OX1;$(O=C[OX2H1])]",
+    "aldehyde_o": "[OX1;$(O=[CX3H1])]",
+    "ether_o": "[OX2;!R;!$(O[CX3]=[O,N,S])]([#6])[#6]",
+    "alcohol_o": "[OX2H1][CX4]",
 }
 
 MODES = ("anion", "cation", "quaternary", "zwitterion", "dianion", "dication", "betaine", "quat_dication", "trianion", "trication")
@@ -101,13 +110,17 @@ MODES = ("anion", "cation", "quaternary", "zwitterion", "dianion", "dication", "
 #: which the charge guard does not judge at all); a dianion deprotonates two different acid sites; a dication protonates two different base sites.
 ZWITTERION_ACIDS = ("carboxylic", "phenol", "sulfonic", "tetrazole", "imide", "acylsulfonamide",
                     # round 59: the acid kinds the single-charge mode reached after round 55
-                    "lactam", "azole_nh", "amide_acyclic", "urea", "hydroxamic", "enol", "dicarbonyl_ch", "thioamide", "hydrazide")
+                    "lactam", "azole_nh", "amide_acyclic", "urea", "hydroxamic", "enol", "dicarbonyl_ch", "thioamide", "hydrazide",
+                    "alcohol", "aniline_nh")  # round 61: the acids round 60 added
 ZWITTERION_BASES = ("amine_primary", "amine_secondary", "amine_tertiary", "aniline", "aromatic_n", "azole_n", "amidine",
-                    "imine", "amide_o", "carbonyl_o", "thioether_s", "n_oxide_o")
+                    "imine", "amide_o", "carbonyl_o", "thioether_s", "n_oxide_o",
+                    "ester_o", "acid_o", "aldehyde_o", "ether_o", "alcohol_o")  # round 61
 DIANION_KINDS = ("carboxylic", "phenol", "sulfonic", "tetrazole", "imide", "sulfonamide", "thiol",
-                 "lactam", "azole_nh", "amide_acyclic", "urea", "hydroxamic", "enol", "dicarbonyl_ch", "thioamide", "hydrazide")
+                 "lactam", "azole_nh", "amide_acyclic", "urea", "hydroxamic", "enol", "dicarbonyl_ch", "thioamide", "hydrazide",
+                 "alcohol", "aniline_nh")
 DICATION_KINDS = ("amine_primary", "amine_secondary", "amine_tertiary", "aniline", "aromatic_n", "azole_n", "amidine",
-                  "imine", "amide_o", "carbonyl_o", "thioether_s", "n_oxide_o")
+                  "imine", "amide_o", "carbonyl_o", "thioether_s", "n_oxide_o",
+                  "ester_o", "acid_o", "aldehyde_o", "ether_o", "alcohol_o")
 
 _ANION_WORD = re.compile(r"(?:(?<!am)(?<!im)(?<!sulfam)ide|ate|ite)(?![a-z])|ato|(?<!am)(?<!im)(?<!ure)(?<!sulfam)ido|\(\d*-\)|\d-id-|azanidyl")
 _CATION_WORD = re.compile(r"ium|onio|\(\d*\+\)")

@@ -190,7 +190,7 @@ _SINGLE_ATOM_SUBSTITUENT: dict[tuple[str, int, int], str] = {
     ("O", -1,  1): "oxido",
     ("N",  0,  1): "amino",
     ("N", +1,  1): "azaniumyl",   # NH3+, one heavy neighbour (attachment)
-    ("N", -1,  1): "azanide",
+    ("N", -1,  1): "azanidyl",   # the prefix for NH- (round 61); `azanide` is the parent hydride anion and OPSIN cannot read it as a prefix
     ("S",  0,  1): "sulfanyl",
     ("S", -1,  1): "sulfido",     # the PREFIX for S-; `sulfanide` is the parent hydride anion and OPSIN cannot read it as a prefix (naming round 49)
     ("S", +1,  1): "sulfaniumyl",  # SH2+, one heavy neighbour (P-66.6.5)
@@ -6167,7 +6167,9 @@ def _name_single_fg_substituent(
                             validity_warnings=None,
                             text=handcrafted,
                         )
-                    # Fall through to STANDALONE-acid path as best-effort
+                    # NOT the acid's own name (naming round 60): the diacid names a diacyl, `benzene-1,2-dicarbonylamino`, and the free acid is gone (OPSIN cannot read it). The generic
+                    # path says `(2-carboxybenzoyl)amino`.
+                    raise ValueError("an acyl group with a second carboxylic acid")
                 acid_tree = name(
                     acid_mol, strategy, _standalone_or_cation(acid_mol),
                     decision_ctx=DecisionContext(
@@ -9756,7 +9758,7 @@ def _restore_dropped_chalcogen_anion(mol, name: str) -> str:
 
 #: A word that says a name is an ANION: a suffix at the end of a word (`-ide`, not the `amide` / `imide` of a neutral class; `-ate`), or an anionic PREFIX anywhere in one (`sulfonatooxy`,
 #: `carboxylatomethyl`, `oxidosulfonyl`; not the `acetamido` / `imido` / `ureido` of a neutral group). A name with none of them for a molecule whose net charge is negative has left the charge out.
-_ANION_WORD_END = re.compile(r"(?:(?<!am)(?<!im)(?<!sulfam)ide|ate|ite)(?![a-z])|ato|(?<!am)(?<!im)(?<!ure)(?<!sulfam)ido|\(\d*-\)|\d-id-|azanidyl")
+_ANION_WORD_END = re.compile(r"(?:(?<!am)(?<!im)(?<!sulfam)ide|ate|ite)(?![a-z])|ato|(?<!am)(?<!im)(?<!ure)(?<!sulfam)(?<!pyr)ido|\(\d*-\)|\d-id-|azanidyl")   # `pyrido` is a fused ring, not an oxido (round 61)
 #: A name that cites a cation: `ium` anywhere (`pyridin-1-ium`, `ammonium`, `azaniumyl`) or the `onio` prefix (`trimethylammonio`).
 _CATION_WORD = re.compile(r"ium|onio|\(\d*\+\)")
 #: A name that is an ester: one alkyl or aryl word, a space, then the acid part (`methyl 4-oxobutanoate`, `ethyl benzoate`).
@@ -9764,18 +9766,22 @@ _ESTER_SHAPED = re.compile(r"^[a-z0-9([{][A-Za-z0-9,\-\(\)\[\]\{\}']*yl [^ ]+ate
 _ESTER_ENDING = re.compile(r"ate$")
 #: A multiplier right before an ion word's stem (`dioxido`, `bis(azaniumyl)`, `1,4-diium`, `tricarboxylato`): one word then stands for several centres, and the count test below does not judge the name.
 #: The ion word must END its word (naming round 59: `tetraazatetracyclo` held `tetra` + `az` + `ate` and a tetracyclic cation was never counted).
-_MULTIPLIED_ION_WORD = re.compile(r"(?:di|tri|tetra|penta|hexa|bis|tris|tetrakis)\(?[a-z]{0,10}(?:(?:ium(?:yl(?:idene)?)?|ide|ate)(?![a-z])|ato|ido|ylat)")
+_MULTIPLIED_ION_WORD = re.compile(r"(?:di(?!nium)|tri|tetra|(?:penta|hexa)(?!n)|bis|tris|tetrakis)\(?[a-z]{0,10}(?:(?:ium(?:yl(?:idene)?)?|ide|ate)(?![a-z])|ato|(?<!pyr)ido|ylat)")
 
 
 _MULTIPLIER_VALUE = {"di": 2, "bis": 2, "tri": 3, "tris": 3, "tetra": 4, "tetrakis": 4, "penta": 5, "hexa": 6}
 
 
+# `pentanamido` / `hexanamido` are alkane stems with an amide, not `penta` + an ion word (naming round 61: an O-protonated acid beside an ammonium counted five cations and passed).
 def _ion_word_weight(name: str, word: "re.Pattern[str]") -> int:
     """How many charges the ion words of *name* stand for: a multiplied word counts its multiplier (`1,4-diium` is two), any other word one (naming round 59).
 
     A multiplied word used to switch the count test OFF, so a third cation of `pyrazolo[1,5-a]pyrimidine-1,4-diium` (an O-protonated amide) was never missed. Over-counting only
     makes the test lenient; it raises when the weight is SHORT of the molecule's centres."""
-    multiplied = [m for m in _MULTIPLIED_ION_WORD.finditer(name) if not m.group().endswith("anoate")]
+    # a multiplied word counts for ITS polarity only (naming round 61: `dichloroacetate` was two cations in a name that cited one)
+    _is_cation = word is _CATION_WORD
+    multiplied = [m for m in _MULTIPLIED_ION_WORD.finditer(name) if not m.group().endswith("anoate")
+                  and bool(re.search(r"ium(?:yl(?:idene)?)?$", m.group())) == _is_cation]
     total = len(word.findall(name)) - len(multiplied)
     for m in multiplied:
         stem = re.match(r"(tetrakis|tetra|penta|hexa|tris|tri|bis|di)", m.group())
@@ -9837,6 +9843,25 @@ def _check_charge_named(mol, name: str) -> None:
             separated.update((begin.GetIdx(), end.GetIdx()))
     positives = [a for a in mol.GetAtoms() if a.GetFormalCharge() > 0 and a.GetIdx() not in separated]
     negatives = [a for a in mol.GetAtoms() if a.GetFormalCharge() < 0 and a.GetIdx() not in separated]
+    # A charge-separated GROUP whose charges do not cancel is an ion (naming round 61): the nitronate-like `[c-][N+](=O)[O-]` of a nitro carbon acid is -1 over three atoms, one anion; dropping the
+    # whole group as a dipole let `...-5-nitro-1,3-diazine-4,6-dione` stand for it beside a cation, with the anion gone. One atom of the group stands for its net charge.
+    _seen: set[int] = set()
+    for _start in sorted(separated):
+        if _start in _seen:
+            continue
+        _cluster, _stack = set(), [_start]
+        while _stack:
+            _i = _stack.pop()
+            if _i in _cluster:
+                continue
+            _cluster.add(_i)
+            _stack.extend(n.GetIdx() for n in mol.GetAtomWithIdx(_i).GetNeighbors() if n.GetIdx() in separated and n.GetIdx() not in _cluster)
+        _seen |= _cluster
+        _net = sum(mol.GetAtomWithIdx(i).GetFormalCharge() for i in _cluster)
+        if _net < 0:
+            negatives.append(mol.GetAtomWithIdx(min(i for i in _cluster if mol.GetAtomWithIdx(i).GetFormalCharge() < 0)))
+        elif _net > 0:
+            positives.append(mol.GetAtomWithIdx(min(i for i in _cluster if mol.GetAtomWithIdx(i).GetFormalCharge() > 0)))
     # An ester's final `ate` is no anion word in a zwitterion either (naming round 59: a carbanion beside a protonated thioether was `methyl ...-3-carboxylate`, the ester, net zero).
     _anion_name = _ESTER_ENDING.sub("", name) if _ESTER_SHAPED.match(name) else name
     if positives and negatives:
@@ -9914,18 +9939,34 @@ def _restore_dropped_oximium(mol, name: str) -> str:
 
 
 def _restore_dropped_oxidanium(mol, name: str) -> str:
-    """Give an O-protonated carbonyl (`C=[OH+]`) beside ANOTHER charge its charge back (naming round 59).
+    """Give a protonated carbonyl chalcogen (`C=[OH+]`, `C=[SH+]`) beside ANOTHER charge its charge back (naming rounds 59 and 60).
 
     `[NH3+][C@@H](CCCCNC(=[OH+])OCc1ccccc1)C(=O)[O-]` named the protonated carbamate with a neutral `(oxo)(phenylmethoxy)methyl`, so one of its two cations was missing from the name. The prefix for
-    `=[OH+]` is `oxidaniumylidene`, which OPSIN reads. Done only for ONE such centre whose neutral prefix `oxo` occurs exactly once; anything else is left for the guard."""
+    `=[OH+]` is `oxidaniumylidene` (`=[SH+]`: `sulfaniumylidene`), which OPSIN reads. Done only for ONE such centre whose neutral prefix (`oxo`, `thioxo`) occurs exactly once; anything else is left for the guard."""
     if "NAMING ERROR" in name or len(Chem.GetMolFrags(mol)) != 1:
         return name
     sites = [
         a for a in mol.GetAtoms()
-        if a.GetSymbol() == "O" and a.GetFormalCharge() == 1 and a.GetTotalNumHs() == 1 and a.GetDegree() == 1
+        if a.GetSymbol() in ("O", "S") and a.GetFormalCharge() == 1 and a.GetTotalNumHs() == 1 and a.GetDegree() == 1
         and a.GetBonds()[0].GetBondTypeAsDouble() == 2.0 and a.GetNeighbors()[0].GetSymbol() == "C"
     ]
-    if len(sites) != 1 or len(re.findall(r"(?<![a-z])oxo", name)) != 1:
+    if len(sites) != 1:
+        return name
+    # Which `oxo` is the protonated one? An ester, acid or amide carbon is not cited with `oxo` at all (`ethoxycarbonyl`, `carboxy`), so with another neutral C=O in the molecule the single `oxo`
+    # in the name is that other group's, and giving IT the charge names a different protonation site (naming round 61: an O-protonated pyrrole ester beside a ketone). Left for the guard.
+    _site = sites[0]
+    _carbon = _site.GetNeighbors()[0]
+    if any(n.GetSymbol() in ("N", "O", "S") for n in _carbon.GetNeighbors() if n.GetIdx() != _site.GetIdx()) and any(
+        a.GetIdx() != _site.GetIdx() and a.GetSymbol() == _site.GetSymbol() and a.GetFormalCharge() == 0 and a.GetDegree() == 1
+        and a.GetBonds()[0].GetBondTypeAsDouble() == 2.0 and a.GetNeighbors()[0].GetSymbol() == "C"
+        and not any(n.GetFormalCharge() < 0 for n in a.GetNeighbors()[0].GetNeighbors())     # a carboxylate's =O is cited as the anion, never as `oxo`
+        for a in mol.GetAtoms()
+    ):
+        return name
+    neutral, charged = ("oxo", "oxidaniumylidene") if sites[0].GetSymbol() == "O" else ("thioxo", "sulfaniumylidene")
+    # `oxolan-2-yl` and `oxocane` begin with `oxo` and are rings, not the prefix (round 60: `(oxidaniumylidene)lan-2-yl`)
+    _bare = neutral + r"(?!l[aeo]|ca[n]|cin|nin)"
+    if len(re.findall(r"(?<![a-z])" + _bare, name)) != 1:
         return name
     # Only when the name is SHORT of cation words: `COC(=O)CC(=[OH+])C` is `(4-methoxy-4-oxobutan-2-ylidene)oxidanium`, whose `oxo` is the ester's and whose cation is cited.
     from openchem.vendor.iupac_namer.perception.charge_perception import _charge_separated_neutral_atoms
@@ -9937,11 +9978,11 @@ def _restore_dropped_oxidanium(mol, name: str) -> str:
     _positives = sum(1 for a in mol.GetAtoms() if a.GetFormalCharge() > 0 and a.GetIdx() not in _separated)
     if len(_CATION_WORD.findall(name)) >= _positives:
         return name
-    if "(oxo)" in name:
-        return name.replace("(oxo)", "(oxidaniumylidene)")
-    if re.search(r"\d-oxo", name):
-        return re.sub(r"(?<=\d-)oxo", "oxidaniumylidene", name)  # `1-oxoethyl` stays one prefix inside its brackets
-    return re.sub(r"(?<![a-z])oxo", "(oxidaniumylidene)", name)
+    if f"({neutral})" in name:
+        return name.replace(f"({neutral})", f"({charged})")
+    if re.search(r"\d-" + _bare, name):
+        return re.sub(r"(?<=\d-)" + _bare, charged, name)  # `1-oxoethyl` stays one prefix inside its brackets
+    return re.sub(r"(?<![a-z])" + _bare, f"({charged})", name)
 
 
 def _name_smiles_bound(smiles: str, strategy) -> str:
@@ -12798,6 +12839,10 @@ def _acid_name_to_amido(acid_name: str) -> str | None:
     The engine wrote the acylamino form, method (2), everywhere. None where
     the amide name is not derivable here, so the caller keeps "acylamino".
     """
+    # A DIACID has one amide here and a free acid: `benzene-1,2-dicarboxamido` is two amides (naming round 60: the phthalamic acid was named `4-(benzene-1,2-dicarboxamido)-N-methylanilinium`,
+    # the carboxylic acid gone, which OPSIN cannot read); the acylamino form keeps both groups.
+    if re.search(r"(?:di|tri|tetra|penta|hexa)(?:carboxylic|oic) acid$", acid_name):
+        return None
     for retained, amido in (("formic acid", "formamido"), ("acetic acid", "acetamido"),
                             ("benzoic acid", "benzamido")):
         if acid_name.endswith(retained):
@@ -16981,6 +17026,10 @@ class SubstitutivePath:
             # hydrogens lost). Unclaimed, the atom is carved and named by `_name_single_atom_substituent`, which knows the number.
             if _hypervalent_group_name(atom, atom.GetTotalValence(), 2) is not None:
                 continue
+            # An O- or S-alkylated carbonyl (`C=[O+]C`, `C=[S+]C`) is no `oxo`/`thioxo`: the bare prefix claimed the chalcogen and left its alkyl unclaimed ('heavy atoms unclaimed', round 60).
+            if atomic_num in (8, 16, 34, 52) and atom.GetFormalCharge() == 1 and any(
+                    nb2.GetAtomicNum() != 1 and nb2.GetIdx() not in parent_atoms for nb2 in atom.GetNeighbors()):
+                continue
             # For N atoms (imino): skip if N has non-parent, non-H heavy neighbors
             # (substituents like isopropyl or OH from oxime).  These are compound
             # groups that require recursive naming, not a bare prefix.
@@ -19216,7 +19265,9 @@ class SubstitutivePath:
                 continue
             if not atom.IsInRing():
                 continue
-            if not atom.GetIsAromatic():
+            # A lactam's ring `[N-]` that is not aromatic is cited the same way, but only where the group is a SUBSTITUENT (the standalone anion has its own route): naming round 60,
+            # `acetyl{2-[(3-oxo-3,4-dihydro-2H-1,4-benzothiazin-4-id-2-yl)methyl]phenyl}azanide`.
+            if not atom.GetIsAromatic() and output_form != OutputForm.SUBSTITUENT:
                 continue
             loc = atom_to_loc.get(atom_idx)
             if loc is None:
