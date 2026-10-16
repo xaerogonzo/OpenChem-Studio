@@ -52,7 +52,7 @@ import sweep_score_outputs as sweep_tool  # noqa: E402
 
 #: The calculators the table draws from, plus the two controls: `joback_properties` is limited and HIDDEN by default, and
 #: `polar_surface_area` carries its number as text rounded by the decimal-places setting.
-_CALCULATORS_UNDER_TEST = ["oxygen_balance", "polarizability", "solubility", "topology_analysis", "joback_properties", "polar_surface_area", "logd"]
+_CALCULATORS_UNDER_TEST = ["bbb_descriptors", "oxygen_balance", "polarizability", "solubility", "topology_analysis", "joback_properties", "polar_surface_area", "logd"]
 
 
 def _entry(**changes) -> ApprovedOutput:
@@ -116,6 +116,7 @@ _SHARED_ENDPOINTS = {
 
 #: The unit of every approved output, written out for the same reason: it decides what a formula over it may add and what it works out to.
 _UNITS = {
+    "calculator:bbb_descriptors:Aromatic rings": "1",
     "calculator:oxygen_balance:Oxygen balance (CO basis)": "%",
     "calculator:oxygen_balance:Oxygen balance (CO₂ basis)": "%",
     "calculator:polarizability:Molecular polarizability": "Å^3",

@@ -40,6 +40,7 @@ approximation of one.
 from __future__ import annotations
 
 import math
+from dataclasses import replace
 from typing import Any
 
 from rdkit import Chem
@@ -121,7 +122,7 @@ def compute_bbb_descriptors(
         "in ChemAxon's documentation, and one worked example cannot validate five unknown "
         "curves. For reference, that score runs 0-6 with 4-6 indicating a CNS drug."
     )
-    return report_from_fields(
+    report = report_from_fields(
         alert_id="bbb_descriptors",
         name="BBB Score Descriptors",
         molecule_uuid=molecule_uuid,
@@ -133,6 +134,14 @@ def compute_bbb_descriptors(
             parameters={**values, "most_basic_pka": most_basic_pka, "decimal_places": places},
         ),
     )
+    if parameters.get("major_microspecies"):
+        return report
+    # **ONE NUMBER OF THIS REPORT IS TYPED: THE AROMATIC RING COUNT, FOR THE DEFAULT ANSWER ONLY.** Its fact's value was the text its line shows (`'1'`), which a derived score cannot read. The
+    # line, the label, the units and the cell's text do not move (`tests/test_bbb_descriptors_typed.py` holds them to a recording made before this change). The other numbers stay text on purpose: the heavy
+    # atoms and the TPSA are the always-on descriptors under other labels, and MWHBN has a unit the score language cannot write. The major-microspecies option counts the rings of another structure under the
+    # same label, so its answer is not typed either. An `int`, since it is a count and the project file's codec takes only the exact types.
+    facts = tuple(replace(fact, value=int(values["aromatic_rings"])) if fact.label == "Aromatic rings" else fact for fact in report.facts)
+    return replace(report, facts=facts)
 
 
 def stereo_descriptors(mol: Chem.Mol) -> list[tuple[int, str, str]]:

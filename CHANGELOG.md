@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Derived scores: the aromatic ring count can be read
+- **The BBB Score Descriptors calculator's aromatic ring count is a number now, and a score may read it** (the 31st approved output, a plain number). It is RDKit's count, an exact integer, and only for the default answer: the
+  major-microspecies option counts another structure's rings under the same label, so a score over it has no number then and says why. The report's lines, labels, units and table-cell text do not move (a recording made before the change,
+  119 observations over 17 molecules and seven ways of asking, holds them). The report's other numbers are not offered: the heavy atoms and TPSA are always-on descriptors already, MWHBN has a unit the score language cannot write, and the
+  pKa line belongs to an optional tool.
+- **Topology Analysis's aromatic ring count is not the same number, and its docstring said it was.** It filters the rings to those whose atoms are all aromatic; RDKit's count wants the ring's bonds aromatic. They differ on biphenylene (3 against 2)
+  and azulene (2 against 0) and agree on the other 23 molecules measured. The docstring now says what the code does; no line moved.
+
 ### Naming: azolide anions, onium prefixes, and a charge guard that counted words for charges
 - Round 59 widened the ion populations to sites no earlier round changed (N-oxide O, selenium, phosphine oxide, boronic and phosphinic acids, an O-protonated carbonyl beside another ion) and to three charges. A pyrazole or imidazole ANION beside a second ion was named with its substituent on a nitrogen (`1-(carboxylatomethyl)-1H-pyrazol-2-ide` for the 5-substituted pyrazol-1-ide: the numbering filter read the `[n-]` as a bare `=N-`), and as a substituent it had no `-id-` infix (D-278). A protonated thioether or ether beside another ion lost its charge as an ether prefix (D-279). The charge guard grouped a sulfonium and a pyridinium nitrogen as one centre, took `hexanoate` for a multiplier, let a multiplied word switch the count off, and took an ester's `ate` for an anion in a zwitterion (D-280); a ring cation beside a prefix-only anion lost its `-ium` (D-281); an O-protonated carbonyl was a neutral `oxo` (D-282); a sulfanium took the suffix of the group beside it (D-283); and a carved branch's lone stereo centre could carry the wrong CIP label (D-284). Anions 1123 of 1123 clean, census 1994 of 2000 exact (the other six are OPSIN artifacts).
 

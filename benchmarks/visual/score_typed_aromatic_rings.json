@@ -1,0 +1,30 @@
+[
+  {"do": "smiles", "smiles": "CC(=O)Oc1ccccc1C(=O)O", "name": "Aspirin", "after_ms": 1000},
+  {"do": "smiles", "smiles": "CCO", "name": "Ethanol", "after_ms": 1000},
+  {"do": "smiles", "smiles": "Cn1cnc2c1c(=O)n(C)c(=O)n2C", "name": "Caffeine", "after_ms": 1000},
+  {"do": "select", "molecule": 1, "after_ms": 3000},
+
+  {"do": "score_define", "label": "Flat", "formula": "ramp(rings, 4, 0)", "inputs": [["rings", "calculator:bbb_descriptors:Aromatic rings"]], "result_unit": "1",
+   "tag": "a-score-on-the-aromatic-ring-count", "expect": {"made": true}},
+
+  {"do": "panel", "id": "Properties", "after_ms": 800},
+  {"do": "project_run", "calculators": ["bbb_descriptors"], "scope": "all", "descriptors": false, "after_ms": 9000},
+  {"do": "table_scores", "tag": "the-project-table-has-the-score-from-the-typed-count-and-its-csv-has-it", "export_csv": "artifacts/visual/score_typed_aromatic_rings.csv",
+   "expect": {"columns": ["Flat (user-defined, unvalidated)"], "note": "",
+              "grid": {"Aspirin": {"Flat": "0.75"}, "Ethanol": {"Flat": "1"}, "Caffeine": {"Flat": "0.5"}},
+              "tooltips": {"Aspirin": {"Flat": ["Inputs: rings = 1"]}, "Caffeine": {"Flat": ["Inputs: rings = 2"]}},
+              "csv_header_contains": ["Flat (user-defined, unvalidated)"],
+              "csv_cells": {"Aspirin": {"Flat": 0.75}, "Ethanol": {"Flat": 1.0}, "Caffeine": {"Flat": 0.5}}}},
+  {"do": "shot", "path": "artifacts/visual/score_typed_aromatic_rings_table.png", "widget": "project_table", "after_ms": 500},
+
+  {"do": "calculator", "id": "bbb_descriptors", "reveal": false, "after_ms": 3000},
+  {"do": "score_results", "focus": true, "which": "Flat", "tag": "the-reader-gives-the-same-number-for-the-default-answer",
+   "expect": {"entries": 1, "has_value": true, "value_between": [0.7499, 0.7501], "evidence_contains": ["rings = 1"]}},
+  {"do": "calculator", "id": "bbb_descriptors", "parameters": {"major_microspecies": true, "pH": 7.4}, "reveal": false, "after_ms": 3000},
+  {"do": "score_results", "focus": true, "which": "Flat", "tag": "the-microspecies-answer-under-the-same-id-gives-the-score-no-number",
+   "expect": {"entries": 1, "has_value": false, "reason_contains": ["Aromatic rings", "the result is text", "default answer"]}},
+  {"do": "shot", "path": "artifacts/visual/score_typed_aromatic_rings_reader.png", "widget": "results_reader", "after_ms": 500},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

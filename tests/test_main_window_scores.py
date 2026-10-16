@@ -756,6 +756,58 @@ def test_a_score_over_a_topology_index_reads_the_drawings_graph_when_the_molecul
     assert score_value_in_table(definition, event.table, ethanol.uuid).inputs[0].value == 4.0
 
 
+# --- a score over the aromatic ring count (the third report calculator typed for scores) ---------------------------------------------------------
+
+_RINGS = "calculator:bbb_descriptors:Aromatic rings"
+
+
+def _run_bbb(window, qapp, model, **parameters):
+    """The calculator as the Properties panel runs it for one molecule, with its registered defaults and then `parameters` over them."""
+    from openchem.domain.calculator import CalculationRequest
+
+    definition = window._services.calculator_registry.get("bbb_descriptors")
+    arguments = {p.name: p.default for p in definition.parameters}
+    arguments.update(parameters)
+    window._services.descriptor_service.run_calculator(model, CalculationRequest(calculator_id="bbb_descriptors", molecule_uuid=model.uuid, parameters=arguments))
+    _drain(qapp)
+
+
+def test_a_score_over_the_aromatic_ring_count_is_the_formula_of_the_count_the_calculator_recorded(window, pair, qapp):
+    aspirin, _ = pair
+    _select(window, qapp, aspirin)
+    _make(window, label="Flat", formula="ramp(rings, 4, 0)", inputs=[("rings", _RINGS)])
+    before = window._services.score_service.values_for(aspirin)[0]
+    assert before.value is None and "has not been calculated" in before.reason
+    _run_bbb(window, qapp, aspirin)
+    value = window._services.score_service.values_for(aspirin)[0]
+    assert value.status.value == "value" and value.inputs[0].value == 1.0, "aspirin has one aromatic ring"
+    assert value.value == pytest.approx(0.75, abs=1e-12)
+
+
+def test_the_aromatic_ring_count_of_the_microspecies_gives_the_score_no_number(window, pair, qapp):
+    aspirin, _ = pair
+    _select(window, qapp, aspirin)
+    _make(window, label="Flat", formula="ramp(rings, 4, 0)", inputs=[("rings", _RINGS)])
+    _run_bbb(window, qapp, aspirin, major_microspecies=True, pH=7.4)
+    value = window._services.score_service.values_for(aspirin)[0]
+    assert value.value is None and value.status.value == "refused" and _RINGS in value.reason, value.reason
+
+
+def test_the_project_table_holds_the_same_aromatic_ring_score_as_the_reader(window, pair, qapp):
+    from openchem.domain.score_table import score_value_in_table
+
+    aspirin, ethanol = pair
+    _select(window, qapp, aspirin)
+    _make(window, label="Flat", formula="ramp(rings, 4, 0)", inputs=[("rings", _RINGS)])
+    _run_bbb(window, qapp, aspirin)
+    event = _run_batch(window, qapp, [aspirin, ethanol], [], ["bbb_descriptors"])
+    definition = window._services.score_service.store.definitions()[0]
+    in_table = {m.display_name: score_value_in_table(definition, event.table, m.uuid) for m in (aspirin, ethanol)}
+    assert [v.status.value for v in in_table.values()] == ["value", "value"]
+    assert in_table[aspirin.display_name].value == pytest.approx(window._services.score_service.values_for(aspirin)[0].value)
+    assert in_table[ethanol.display_name].inputs[0].value == 0.0 and in_table[ethanol.display_name].value == 1.0
+
+
 # --- the Batch panel's own table ---------------------------------------------------------------------------------------------------------
 
 

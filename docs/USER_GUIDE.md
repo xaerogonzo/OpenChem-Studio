@@ -1939,6 +1939,8 @@ consensus predictor, which this project has measured and does not offer. The pol
 keeps the others' numbers as text, so a score over the polarizability has no number after you run Miller's method or compute it on the major microspecies, and says so.
 From Topology Analysis it offers the eight graph indices (Wiener, hyper-Wiener, Harary, Randić, Balaban J, Szeged, Platt and the Wiener polarity number), which are numbers of the structure drawn without its hydrogens: a score reads the
 drawing's, never a conformer's, and the decimal places you ask the calculator for change what its lines show and never what a score is made from. Its counts (atoms, rings, rotatable bonds and the rest) are not offered.
+From the BBB Score Descriptors calculator it offers the aromatic ring count (RDKit's count: a score over it has no number after you compute the calculator on the major microspecies, and says so). That calculator's other numbers
+are not offered: two are always-on properties already, and the rest have a unit a score cannot be written in or come from an optional tool.
 
 **The units are checked, never converted.** Adding an area to a mass is refused, and so is declaring a unit the formula
 does not work out to. A bare number in the formula takes the unit of what it is added to or compared with, so
