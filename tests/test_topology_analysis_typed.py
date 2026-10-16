@@ -6,18 +6,24 @@ the number, so the producer hands it over: the same `Fact`, with its `value` the
 **THE LINES A PERSON SEES MUST NOT MOVE**, which is what `tests/fixtures/topology_analysis_lines.json` is: every line, label, unit, basis and table-cell text of the calculator over a panel of molecules and
 every way of asking (the decimal places it is given, and the ones it is not allowed to take), recorded from the code BEFORE the change. `observe` is the one function that produced the fixture and that
 reads it back.
+
+**THE TYPED NUMBERS ARE THE EIGHT GRAPH INDICES AND NO OTHER FACT OF THE REPORT.** The counts (atoms, bonds, rings, rotatable bonds, stereocentres) stay text until somebody wants one in a score. An index is an `int`
+where it is one by construction and a plain `float` otherwise: the project file's codec refuses a NumPy float, so a number that had been left as one would fail to SAVE, which is a defect no display would show.
 """
 
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 
 import pytest
 from rdkit import Chem
 
 from openchem.bootstrap import build_service_container
+from openchem.chem.calculator_options import decimals
 from openchem.chem.result_reduction import reduce_result
+from openchem.domain import result_codec
 from openchem.domain.calculator import CalculationRefusal
 
 FIXTURE = Path(__file__).parent / "fixtures" / "topology_analysis_lines.json"
@@ -57,6 +63,18 @@ ASKS = {
     "8 places": {"decimal_places": 8},
     "99 places": {"decimal_places": 99},
     "not a number": {"decimal_places": "x"},
+}
+
+#: The facts whose value is the number, in the order the report lists them, and what each is (a count of pairs, paths or edges is an `int`).
+INDICES = {
+    "Platt index": int,
+    "Randic index": float,
+    "Balaban index": float,
+    "Harary index": float,
+    "Hyper Wiener index": int,
+    "Wiener index": int,
+    "Szeged index": int,
+    "Wiener polarity": int,
 }
 
 
@@ -101,3 +119,119 @@ def test_no_line_label_unit_basis_or_cell_text_moved(registry, golden, ask):
         if observe(registry, smiles, ASKS[ask]) != golden[f"{name} | {ask}"]
     }
     assert not moved, f"what a person sees moved for: {sorted(moved)}"
+
+
+def _compute(registry, smiles: str, parameters: dict | None = None):
+    return registry.compute("topology_analysis", Chem.MolFromSmiles(smiles), "uuid", dict(parameters or {}))
+
+
+def _typed(result) -> dict:
+    return {f.label: f.value for f in result.facts if not isinstance(f.value, str)}
+
+
+def _completed(registry, name: str, parameters: dict | None = None):
+    """The result for a panel molecule, or None where the registry declines it (a salt, a metal complex): there is no number to type."""
+    try:
+        result = _compute(registry, PANEL[name], parameters)
+    except CalculationRefusal:
+        return None
+    return result if result.cache_state.value == "completed" else None
+
+
+@pytest.mark.parametrize("name", sorted(PANEL))
+def test_the_eight_indices_have_their_number_typed_and_no_other_fact_does(registry, name):
+    result = _completed(registry, name)
+    if result is None:
+        return
+    typed = _typed(result)
+    assert list(typed) == list(INDICES), name
+    for label, kind in INDICES.items():
+        assert type(typed[label]) is kind, f"{name}: {label} is {type(typed[label]).__name__}, and the project file's codec takes only the exact types int and float"
+        assert math.isfinite(typed[label])
+    assert all(isinstance(f.value, str) for f in result.facts if f.label not in INDICES), "a count is still text"
+
+
+@pytest.mark.parametrize("ask", sorted(ASKS))
+def test_each_line_is_its_typed_number_rounded_and_nothing_else(registry, ask):
+    places = decimals(ASKS[ask])
+    for name in PANEL:
+        result = _completed(registry, name, ASKS[ask])
+        if result is None:
+            continue
+        for fact in result.facts:
+            if fact.label not in INDICES:
+                continue
+            expected = f"{fact.value:.{places}f}" if INDICES[fact.label] is float else str(fact.value)
+            assert fact.display_value == expected, f"{name} | {ask}: {fact.label}"
+            assert fact.units == "", "an index carries no unit"
+
+
+def test_the_number_does_not_depend_on_the_decimal_places(registry):
+    """The point of typing: a display setting must not move a score."""
+    for name in PANEL:
+        low, high = _completed(registry, name, {"decimal_places": 0}), _completed(registry, name, {"decimal_places": 8})
+        if low is None:
+            continue
+        assert _typed(low) == _typed(high), name
+
+
+def test_the_values_a_person_can_check_by_hand(registry):
+    """Benzene and n-butane, the two molecules the module's header checks against published values, and the identity it validates the Szeged index by."""
+    benzene, butane = _typed(_completed(registry, "benzene")), _typed(_completed(registry, "butane"))
+    assert (benzene["Wiener index"], benzene["Platt index"], benzene["Wiener polarity"]) == (27, 12, 3)
+    assert benzene["Randic index"] == pytest.approx(3.0)
+    assert (butane["Wiener index"], butane["Platt index"], butane["Wiener polarity"]) == (10, 4, 1)
+    assert butane["Randic index"] == pytest.approx(1.914, abs=5e-4)
+    for tree in ("ethanol", "butane", "isobutane", "L-alanine"):
+        typed = _typed(_completed(registry, tree))
+        assert typed["Szeged index"] == typed["Wiener index"], f"{tree}: Szeged equals Wiener on any acyclic graph"
+    for cyclic in ("benzene", "naphthalene", "cubane", "adamantane", "aspirin", "caffeine", "18-crown-6"):
+        typed = _typed(_completed(registry, cyclic))
+        assert typed["Szeged index"] > typed["Wiener index"], f"{cyclic}: Szeged exceeds Wiener where there is a ring of four or more atoms"
+
+
+def test_szeged_does_not_exceed_wiener_where_every_ring_is_a_triangle(registry):
+    """The calculator used to say Szeged "strictly exceeds" Wiener "for a cyclic graph". Measured 2026-10-15: not for cyclopropane (3 and 3), nor for any molecule here whose only rings are triangles."""
+    for smiles in ("C1CC1", "C1CO1", "C1CN1", "C1CC12CC2", "C1CC1C1CC1"):
+        typed = _typed(_compute(registry, smiles))
+        assert typed["Szeged index"] == typed["Wiener index"], smiles
+    ring_of_four = _typed(_compute(registry, "C1CCC1"))
+    assert (ring_of_four["Wiener index"], ring_of_four["Szeged index"]) == (8, 16)
+
+
+def test_a_single_atom_has_every_index_zero_and_is_still_a_number(registry):
+    for name in ("water", "methane", "copper(II)"):
+        assert set(_typed(_completed(registry, name)).values()) == {0}, name
+
+
+def test_a_salt_reads_as_its_parent_and_a_salt_with_no_parent_is_refused(registry):
+    """The registry hands this calculator the ChEMBL parent (it used to print RDKit's unreachable-pair sentinel as a Wiener index of 400000009), so a counter-ion adds nothing."""
+    with_chloride = _typed(_completed(registry, "metformin hydrochloride"))
+    assert with_chloride == _typed(_compute(registry, "CN(C)C(=N)NC(N)=N")), "the hydrochloride's indices are the free base's"
+    assert max(with_chloride.values()) < 1e6
+    assert _completed(registry, "sodium acetate") is None and _completed(registry, "ionic ferrocene") is None
+
+
+def test_an_index_is_of_the_graph_without_hydrogens_so_a_conformer_is_a_different_number(registry):
+    """Why a score reads the DRAWING's result and never a conformer's (`calculator.py`: eight calculators change only by the explicit hydrogens): ethanol is 3 atoms as drawn and 9 as a conformer."""
+    drawn = _typed(_compute(registry, "CCO"))
+    embedded = _typed(registry.compute("topology_analysis", Chem.AddHs(Chem.MolFromSmiles("CCO")), "uuid", {}))
+    assert drawn["Wiener index"] == 4 and embedded["Wiener index"] != drawn["Wiener index"]
+
+
+def test_the_project_table_cell_holds_the_exact_number_and_shows_the_rounded_text(registry):
+    for places, text in ((None, "6.11"), (0, "6"), (8, "6.10906091")):
+        result = _compute(registry, PANEL["aspirin"], {} if places is None else {"decimal_places": places})
+        [(column, cell)] = [(c, k) for c, k in reduce_result(result, "topology_analysis", "Topology Analysis") if c.label == "Randic index"]
+        assert column.column_id == "calculator:topology_analysis:Randic index" and column.units == "" and column.numeric
+        assert cell.text == text
+        assert cell.value == _typed(result)["Randic index"], "the exact number, not the rounded one"
+        assert places in (None, 8) or cell.value != float(cell.text)
+
+
+def test_a_typed_report_is_saved_and_reopened_whole(registry):
+    """The project file's codec takes only the exact types int, float and str: a NumPy float left in a fact would fail the SAVE, which no display shows."""
+    result = _compute(registry, PANEL["aspirin"])
+    restored = result_codec.decode(json.loads(json.dumps(result_codec.encode(result))))
+    assert restored == result and _typed(restored) == _typed(result)
+    assert [type(v) for v in _typed(restored).values()] == [type(v) for v in _typed(result).values()]
