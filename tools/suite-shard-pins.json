@@ -1410,6 +1410,7 @@
   "tests/test_namer_round58_carbon_acids_and_sulfonium_guard.py": 0,
   "tests/test_namer_round59_azolides_onium_prefixes_and_guard.py": 3,
   "tests/test_namer_round60_oalkylated_carbonyls_fused_azolides_and_acid_anions.py": 3,
+  "tests/test_namer_round61_azanidyl_prefix_and_guard_word_counts.py": 1,
   "tests/test_namer_salt_multiplier.py": 1,
   "tests/test_namer_stereo_cache_identity.py": 3,
   "tests/test_namer_stereo_locant_tie.py": 3,
