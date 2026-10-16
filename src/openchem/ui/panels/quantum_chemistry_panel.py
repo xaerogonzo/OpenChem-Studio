@@ -36,7 +36,7 @@ from openchem.chem.calculation_input import (
     canonical_conformer,
     find_source_conformer,
     input_fingerprint,
-    resolve_calculation_input,
+    resolve_conformer_input,
     resolve_ensemble,
 )
 from openchem.chem.engine import ChemistryEngine
@@ -63,6 +63,7 @@ from openchem.chem.tautomer_distribution import (
 )
 from openchem.domain.calculator import DRAWING, ENSEMBLE, GEOMETRY
 from openchem.domain.compare import ComparedResult, CompareRefusal, compare
+from openchem.domain.conformer import conformer_choice_text
 from openchem.domain.project import ProjectModel
 from openchem.domain.scientific_result import (
     CrossPeak,
@@ -72,6 +73,7 @@ from openchem.domain.scientific_result import (
 )
 from openchem.events.base import EventBus
 from openchem.events.events import (
+    ConformersChanged,
     MoleculeSelected,
     NmrReferenceCalibrated,
     NmrScalingCalibrated,
@@ -196,6 +198,22 @@ _HELP: dict[str, HelpTooltip] = {
         ),
         tier=2,
         help_id="quantum.calculation_type",
+        topic="quantum-chemistry",
+        help_anchor="quantum-chemistry",
+    ),
+    "conformer": HelpTooltip(
+        text=(
+            "Which conformer a single calculation runs on.\n\n"
+            "Automatic is the one every calculation uses: the newest ORCA-optimized geometry if there is one, "
+            "otherwise the lowest force-field energy. Pick a numbered one to run on THAT conformer: the "
+            "viewer's \"ORCA optimize\" button and Tools > ORCA Geometry Optimization... point this at the "
+            "conformer you are looking at, so you do not have to pick it here.\n\n"
+            "An optimization replaces the conformer it was run on, in its slot, so 7 of 20 stays 7 of 20. "
+            "Any other calculation is filed under the conformer it ran on.\n\n"
+            "Not used by \"Average over all conformers\", which runs on every one."
+        ),
+        tier=2,
+        help_id="quantum.conformer",
         topic="quantum-chemistry",
         help_anchor="quantum-chemistry",
     ),
@@ -718,6 +736,7 @@ def _document_header(table: QTableWidget, keys: tuple[str, ...]) -> None:
             apply_help_tooltip(item, _HELP[key])
 
 
+
 class QuantumChemistryPanel(QWidget):
     """Pick a molecule from the current project, configure a calculation,
     and run it via whichever `QuantumEngineProvider` is registered
@@ -759,6 +778,8 @@ class QuantumChemistryPanel(QWidget):
         self._build_controls()
         self._build_tabs()
         self._build_form_and_layout()
+        # The Conformer box reads "None yet" rather than sitting empty before any molecule is chosen.
+        self._refresh_conformer_combo()
         self._subscribe_to_events(event_bus)
 
     def _init_state(
@@ -805,6 +826,10 @@ class QuantumChemistryPanel(QWidget):
         # tangle), the 3D pane from the conformer.
         self._pending_molblock: str = ""
         self._pending_conformer_molblock: str = ""
+        #: What the result of the job now running must say about the conformer it ran on, or "" (see
+        #: `_chosen_conformer_note`). Set when Run is pressed, so it describes the submission and not whatever the
+        #: Conformer box reads when the result arrives.
+        self._pending_conformer_note: str = ""
         #: The geometry ORCA optimised, once it arrives. Kept separate from
         #: the submitted one because the normal modes describe motion about
         #: THIS structure, not the one that was sent.
@@ -846,6 +871,16 @@ class QuantumChemistryPanel(QWidget):
         self._calc_type_combo.addItems(list(CALC_TYPE_LABELS.keys()))
         self._calc_type_combo.currentTextChanged.connect(self._on_calc_type_changed)
         self._scroll_safe_guards.append(make_scroll_safe(self._calc_type_combo))
+
+        # WHICH CONFORMER A SINGLE JOB RUNS ON. The control, not a hidden mode: the 3D viewer's button and the
+        # Tools menu only POINT it at a conformer and open this panel, so what Run will do is always the thing
+        # written here. The state is the combo's own (`currentData()`): "" is Automatic, the conformer every
+        # calculation uses, and a conformer id is that conformer.
+        self._conformer_combo = QComboBox(self)
+        apply_help_tooltip(self._conformer_combo, _HELP["conformer"])
+        self._conformer_combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self._conformer_combo.setMinimumContentsLength(12)
+        self._scroll_safe_guards.append(make_scroll_safe(self._conformer_combo))
 
         self._charge_spin = QSpinBox(self)
         self._charge_spin.setRange(-10, 10)
@@ -902,6 +937,7 @@ class QuantumChemistryPanel(QWidget):
         # default so nobody accidentally turns a 5-minute job into an hour.
         self._boltzmann_check = QCheckBox("Average over all conformers (Boltzmann)", self)
         apply_help_tooltip(self._boltzmann_check, _HELP["boltzmann_averaging"])
+        self._boltzmann_check.toggled.connect(self._on_boltzmann_toggled)
 
         # A separate button, not a Run modifier like Boltzmann above: this
         # produces a structurally different result (a set of candidate
@@ -1294,6 +1330,7 @@ class QuantumChemistryPanel(QWidget):
         form = QFormLayout()
         form.addRow("Molecule:", self._molecule_combo)
         form.addRow("Calculation:", self._calc_type_combo)
+        form.addRow("Conformer:", self._conformer_combo)
         form.addRow("Charge:", self._charge_spin)
         form.addRow("Multiplicity:", self._multiplicity_spin)
         form.addRow("Method/basis:", self._method_combo)
@@ -1367,7 +1404,7 @@ class QuantumChemistryPanel(QWidget):
         self._reset_empty_states()
 
     def _subscribe_to_events(self, event_bus: EventBus) -> None:
-        """The nine events this panel listens for."""
+        """The ten events this panel listens for."""
         event_bus.subscribe(QuantumChemistryJobStateChanged, self._on_job_state_changed)
         event_bus.subscribe(QuantumChemistryRunCompleted, self._on_run_completed)
         event_bus.subscribe(QuantumChemistryResultReady, self._on_result_ready)
@@ -1376,12 +1413,14 @@ class QuantumChemistryPanel(QWidget):
         event_bus.subscribe(NmrReferenceCalibrated, self._on_reference_calibrated)
         event_bus.subscribe(NmrScalingCalibrated, self._on_scaling_calibrated)
         event_bus.subscribe(MoleculeSelected, self._on_molecule_selected)
+        event_bus.subscribe(ConformersChanged, self._on_conformers_changed)
         event_bus.subscribe(TautomerDistributionResultReady, self._on_tautomer_distribution_ready)
         event_bus.subscribe(TautomerNmrResultReady, self._on_tautomer_nmr_ready)
 
     def set_project(self, project: ProjectModel | None) -> None:
         self._project = project
         self._refresh_molecule_combo()
+        self._refresh_conformer_combo()
         self._refresh_active_run()
 
     def _refresh_molecule_combo(self) -> None:
@@ -1411,7 +1450,124 @@ class QuantumChemistryPanel(QWidget):
         molecule = self._current_molecule()
         if molecule is not None and molecule.molblock:
             self._charge_spin.setValue(self._chemistry_engine.formal_charge(molecule))
+        self._refresh_conformer_combo()
         self._refresh_active_run()
+
+    def _conformer_choosable(self) -> bool:
+        """Does a choice apply to the calculation the panel is set to? Every single-job calculation, never averaging.
+
+        An averaged run (`Average over all conformers`) is over the whole set and has no one conformer to choose.
+        """
+        return not self._boltzmann_check.isChecked()
+
+    def _on_conformers_changed(self, event: ConformersChanged) -> None:
+        molecule = self._current_molecule()
+        if molecule is not None and molecule.uuid == event.molecule_uuid:
+            self._refresh_conformer_combo()
+
+    def _on_boltzmann_toggled(self, _checked: bool) -> None:
+        self._refresh_conformer_combo()
+
+    def _refresh_conformer_combo(self) -> None:
+        """Rebuild the Conformer list from the selected molecule, keeping the pick if it is still there.
+
+        **A pick that is gone falls back to Automatic, and the combo says so by showing Automatic**: the
+        optimization that was run on it replaced it in its slot, or the conformers were generated again, and
+        the thing Run will use is always what the combo reads. Repopulating blocks signals (`repopulate`), so
+        this never looks like the person choosing.
+        """
+        molecule = self._current_molecule()
+        conformers = list(molecule.conformers) if molecule is not None else []
+        canonical = canonical_conformer(molecule) if molecule is not None else None
+        if canonical is None:
+            automatic = "None yet - generate conformers first"
+        else:
+            slot = next(i for i, c in enumerate(conformers) if c is canonical) + 1
+            automatic = f"Automatic (conformer {slot} of {len(conformers)})"
+        entries = [(automatic, "")] + [
+            (conformer_choice_text(conformers, index), conformer.conformer_id)
+            for index, conformer in enumerate(conformers)
+        ]
+        repopulate(self._conformer_combo, entries)
+        choosable = self._conformer_choosable()
+        self._conformer_combo.setEnabled(bool(conformers) and choosable)
+        if not choosable:
+            # A greyed box shows what Run WILL do, which is Automatic: never a stale pick it is about to ignore.
+            self._conformer_combo.setCurrentIndex(0)
+            self._conformer_combo.setToolTip("Averaging runs on every conformer, so there is none to choose.")
+        else:
+            # The contract text again: setToolTip above would have replaced it.
+            apply_help_tooltip(self._conformer_combo, _HELP["conformer"])
+
+    @staticmethod
+    def _chosen_conformer_note(molecule, chosen, calc_type: str) -> str:
+        """What a result must say when it was computed on a conformer that is NOT the one every calculation uses.
+
+        **A MEASURED FACT, NOT A WARNING FOR ITS OWN SAKE.** Properties shows the results for the conformer every
+        calculation uses (a stored result is replayed only while its input is still that conformer's), so a single
+        point or an NMR run on another conformer shows here and in the run history, and is not replayed in Properties
+        when the molecule is selected again. Said at the moment it matters. An optimization is not noted: its result
+        is a geometry that REPLACES the conformer it came from, and the 3D viewer shows it.
+        """
+        if chosen is None or calc_type in ("opt", "opt_freq"):
+            return ""
+        automatic = canonical_conformer(molecule)
+        if chosen is automatic:
+            return ""
+        slot = next(i for i, c in enumerate(molecule.conformers) if c is chosen) + 1
+        automatic_slot = next(i for i, c in enumerate(molecule.conformers) if c is automatic) + 1
+        return (
+            f"Computed on conformer {slot}, not the one every calculation uses (conformer {automatic_slot}). It is "
+            "kept in this panel's run history; Properties shows results for the other one, so it does not come back "
+            "there when the molecule is selected again."
+        )
+
+    def _chosen_conformer(self, molecule):
+        """The conformer the Conformer box names, or None for Automatic (and for a pick that is not there)."""
+        conformer_id = self._conformer_combo.currentData() or ""
+        if not conformer_id or not self._conformer_choosable():
+            return None
+        return next((c for c in molecule.conformers if c.conformer_id == conformer_id), None)
+
+    def choose_conformer(self, molecule_uuid: str, conformer_id: str) -> bool:
+        """Point the panel at one conformer of one molecule. True when it was there to choose AND a choice applies.
+
+        False while averaging over the conformers is ticked (`_conformer_choosable`), rather than quietly picking
+        something Run would ignore. Selects only: nothing runs, because Run takes a charge, a multiplicity and a
+        method. The same shape as `select_calculation_type`, which a Properties row uses.
+        """
+        if not select(self._molecule_combo, molecule_uuid):
+            return False
+        self._refresh_conformer_combo()
+        if not self._conformer_choosable():
+            return False
+        index = self._conformer_combo.findData(conformer_id)
+        if index < 0:
+            return False
+        self._conformer_combo.setCurrentIndex(index)
+        return True
+
+    def prepare_optimization(self, molecule_uuid: str, conformer_id: str) -> bool:
+        """Set the panel up to optimize ONE conformer and stop. Returns whether it could.
+
+        The conformer chosen, the calculation set to Geometry Optimization, averaging off (an averaged run
+        has no single conformer to optimize), and a line in the status label that says what Run will do.
+        **Starts nothing**: the method and basis, charge and multiplicity are still the person's to check.
+        """
+        molecule = self._project.find_molecule(molecule_uuid) if self._project is not None else None
+        if molecule is None or all(c.conformer_id != conformer_id for c in molecule.conformers):
+            return False
+        # Averaging off FIRST: a choice does not apply to an averaged run.
+        self._boltzmann_check.setChecked(False)
+        self.select_calculation_type("opt")
+        if not self.choose_conformer(molecule_uuid, conformer_id):
+            return False
+        molecule = self._current_molecule()
+        slot = next(i for i, c in enumerate(molecule.conformers) if c.conformer_id == conformer_id) + 1
+        self._status_label.setText(
+            f"Ready: Geometry Optimization of conformer {slot} of {len(molecule.conformers)}. Press Run."
+        )
+        return True
 
     def _refresh_active_run(self) -> None:
         """Populate the Runs combo for the selected molecule and show its
@@ -1792,7 +1948,9 @@ class QuantumChemistryPanel(QWidget):
         # stamped on its spectra come from one resolution (the canonical
         # conformer, not `conformers[0]`, which agrees only while the list
         # happens to be energy-sorted).
-        resolved = resolve_calculation_input(self._chemistry_engine, molecule, GEOMETRY)
+        chosen = self._chosen_conformer(molecule)
+        target = chosen if chosen is not None else canonical_conformer(molecule)
+        resolved = resolve_conformer_input(self._chemistry_engine, molecule, target)
         if resolved.used != GEOMETRY:
             # The resolver fell back to the DRAWING -- the conformer would not
             # parse or is flat. Refused, never run: the drawing carries no
@@ -1804,7 +1962,7 @@ class QuantumChemistryPanel(QWidget):
             )
             return
         mol = resolved.mol
-        molblock = canonical_conformer(molecule).molblock
+        molblock = target.molblock
 
         calc_type = CALC_TYPE_LABELS[self._calc_type_combo.currentText()]
         method_basis = self._effective_method_basis()
@@ -1827,6 +1985,7 @@ class QuantumChemistryPanel(QWidget):
             return
 
         self._pending_molecule_uuid = molecule.uuid
+        self._pending_conformer_note = self._chosen_conformer_note(molecule, chosen, calc_type)
         self._pending_mol = mol
         self._pending_molblock = molecule.molblock
         self._pending_conformer_molblock = molblock
@@ -1975,6 +2134,7 @@ class QuantumChemistryPanel(QWidget):
         self._pending_mol = mol
         self._pending_molblock = molecule.molblock
         self._pending_conformer_molblock = ""
+        self._pending_conformer_note = ""
         self._optimized_conformer_molblock = ""
         self._run_button.setEnabled(False)
         self._tautomer_distribution_button.setEnabled(False)
@@ -2511,6 +2671,8 @@ class QuantumChemistryPanel(QWidget):
         if event.molecule_uuid != self._pending_molecule_uuid:
             return
         lines = [f"{d.name}: {d.value:.6f} {d.units}" for d in event.descriptors]
+        if self._pending_conformer_note:
+            lines.append(self._pending_conformer_note)
         if event.conformer is not None:
             if self._structure_still_matches(event):
                 lines.append("Optimized geometry applied to the molecule's conformers.")

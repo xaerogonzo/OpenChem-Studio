@@ -398,6 +398,17 @@ it).
   reverse what was done. Regenerating conformers keeps the quantum-optimized
   ones unless Settings > Conformers says otherwise
   (`with_kept_quantum_optimized`).
+- **The Quantum Chemistry panel's Conformer box is the one place a single job's conformer is held**, and the 3D
+  viewer's "ORCA optimize" button and Tools > ORCA Geometry Optimization... only POINT it there
+  (`QuantumChemistryPanel.prepare_optimization`, reached through `MainWindow._on_orca_optimize_requested`) and start
+  nothing. A Run on a chosen conformer goes through `resolve_conformer_input`, so it is validated and fingerprinted
+  like the canonical one, and the landing machinery below needs no change: the source is found by that fingerprint.
+  **The box applies to every single calculation**, and a result computed on a conformer that is not the canonical one
+  is filed under THAT conformer's fingerprint: `ResultStoreService.replay` publishes only results whose input is still
+  the canonical conformer, so such a result is live in Properties until the molecule is selected again and stays in the
+  panel's run history (`_chosen_conformer_note` says so when it lands). Replaying results by the conformer they were
+  computed on is not designed.
+  The ORCA badges (`quantum_optimized_note`) are read off the conformers on demand, never stored.
 - **A quantum job that finishes after its molecule's structure was edited
   installs nothing and shows nothing as current.** The panel stamps the
   molecule's canonical SMILES on the submission, the service carries it on

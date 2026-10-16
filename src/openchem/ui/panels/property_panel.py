@@ -54,6 +54,7 @@ from openchem.domain.calculator_taxonomy import (
     task_group_of,
 )
 from openchem.domain.common import CacheState, describe_failure
+from openchem.domain.conformer import quantum_optimized_note
 from openchem.domain.compare import (
     MAX_COMPARED,
     ComparedResult,
@@ -100,6 +101,7 @@ from openchem.events.base import EventBus
 from openchem.events.events import (
     AlertComputed,
     CalculationFinished,
+    ConformersChanged,
     DescriptorComputed,
     ReportComputed,
     MoleculeChanged,
@@ -2145,6 +2147,7 @@ class PropertyPanel(QWidget):
 
         event_bus.subscribe(MoleculeSelected, self._on_molecule_selected)
         event_bus.subscribe(MoleculeChanged, self._on_molecule_changed)
+        event_bus.subscribe(ConformersChanged, self._on_conformers_changed)
         event_bus.subscribe(RecalculationDue, self._on_recalculation_due)
         event_bus.subscribe(DescriptorComputed, self._on_descriptor_computed)
         event_bus.subscribe(AlertComputed, self._on_alert_computed)
@@ -2211,6 +2214,24 @@ class PropertyPanel(QWidget):
         # can reach any more.
         self._reader_memory.clear()
 
+    def _refresh_geometry_badge(self) -> None:
+        """The line under the header's name that says the molecule holds an ORCA geometry, or none.
+
+        Read off the selected molecule's conformers every time it is asked: it is a fact about the molecule
+        and not a result, so it must follow an ORCA geometry landing, being undone, or the conformers being
+        generated again without waiting for any calculation.
+        """
+        molecule = (
+            self._project.find_molecule(self._selected_molecule_uuid)
+            if self._project is not None and self._selected_molecule_uuid is not None
+            else None
+        )
+        self._substance_card.set_badge(quantum_optimized_note(molecule.conformers) if molecule is not None else "")
+
+    def _on_conformers_changed(self, event: ConformersChanged) -> None:
+        if event.molecule_uuid == self._selected_molecule_uuid:
+            self._refresh_geometry_badge()
+
     def _on_molecule_selected(self, event: MoleculeSelected) -> None:
         self._selected_molecule_uuid = event.molecule_uuid
         self._pending_calculator_id = None
@@ -2244,6 +2265,7 @@ class PropertyPanel(QWidget):
         for section in self._sections.values():
             section.clear_rows()
         self._substance_card.clear()
+        self._refresh_geometry_badge()
         self._update_preflight()
         # **THE DOCKED READER FOLLOWS RATHER THAN CLOSING**, which is the one
         # behaviour that separates it from the window three lines above. It

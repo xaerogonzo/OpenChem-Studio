@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -103,4 +104,44 @@ def quantum_level_of_theory(conformer: ConformerModel) -> str:
     if provenance is None:
         return ""
     return str(provenance.parameters.get(RUN_METHOD_BASIS, "") or "")
+
+
+def conformer_choice_text(conformers: Sequence[ConformerModel], index: int) -> str:
+    """How one conformer reads where somebody CHOOSES between them: `4 - ORCA optimized (HF STO-3G)`.
+
+    The number is the one-based slot the 3D viewer shows, so "conformer 4" means the same thing in both
+    places. A force-field conformer says how far above the lowest it is (`2 - +0.55 kcal/mol`, `1 - lowest
+    energy`), as the viewer's status line does; an ORCA geometry says so and says at what level of theory,
+    because it has no energy on the force-field scale to put beside the others.
+    """
+    conformer = conformers[index]
+    position = index + 1
+    if is_quantum_optimized(conformer):
+        level = quantum_level_of_theory(conformer)
+        return f"{position} - ORCA optimized ({level})" if level else f"{position} - ORCA optimized"
+    energies = [c.energy for c in conformers if c.energy is not None]
+    if conformer.energy is None or not energies:
+        return f"{position} - no energy"
+    relative = conformer.energy - min(energies)
+    if relative < 0.005:
+        return f"{position} - lowest energy"
+    return f"{position} - +{relative:.2f} kcal/mol"
+
+
+def quantum_optimized_note(conformers: Sequence[ConformerModel]) -> str:
+    """The badge a molecule wears when it holds ORCA-optimized geometry, or "" when it holds none.
+
+    `ORCA-optimized geometry (HF STO-3G)` for one, `2 ORCA-optimized conformers (newest: HF STO-3G)` for
+    several: the NEWEST is the one every later calculation uses (`chem.calculation_input.canonical_conformer`),
+    so it is the level of theory worth naming. An unrecorded level is left out rather than guessed.
+    """
+    optimized = [c for c in conformers if is_quantum_optimized(c)]
+    if not optimized:
+        return ""
+    newest = max(optimized, key=lambda c: c.timestamp)
+    level = quantum_level_of_theory(newest)
+    if len(optimized) == 1:
+        return f"ORCA-optimized geometry ({level})" if level else "ORCA-optimized geometry"
+    suffix = f" (newest: {level})" if level else ""
+    return f"{len(optimized)} ORCA-optimized conformers{suffix}"
 

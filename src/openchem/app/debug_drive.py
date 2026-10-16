@@ -597,7 +597,9 @@ class _Driver(QObject):
         identity the SERVICE was handed.
 
         `{"do": "qc_run", "calc_type": "NMR (raw shielding)", "method": "HF-3c",
-        "boltzmann": false, "after_ms": 120000}`
+        "boltzmann": false, "conformer": 1, "after_ms": 120000}` -- `conformer` is the zero-based slot the panel's
+        Conformer box is pointed at first, or `"automatic"` to put it back (the pick PERSISTS between runs, as it does for a
+        person; omit the key to leave the box as it is).
 
         **WHAT THE SERVICE RECEIVED, read off its own job record** --
         `_active_jobs` or `_boltzmann_runs`, both set synchronously by the
@@ -637,6 +639,19 @@ class _Driver(QObject):
         if step.get("method") is not None:
             panel._method_combo.setCurrentText(str(step["method"]))
         panel._boltzmann_check.setChecked(bool(step.get("boltzmann", False)))
+        if step.get("conformer") == "automatic":
+            panel._conformer_combo.setCurrentIndex(0)
+        elif step.get("conformer") is not None:
+            # The Conformer box, as the viewer's button or the Tools entry would fill it. `conformer` is the
+            # ZERO-BASED slot; a refusal (averaging is ticked, or the slot is not there) is an ERROR, never a
+            # run on some other conformer.
+            molecule = self._window._current_molecule()
+            slot = int(step["conformer"])
+            if molecule is None or not (0 <= slot < len(molecule.conformers)) or not panel.choose_conformer(
+                molecule.uuid, molecule.conformers[slot].conformer_id
+            ):
+                logger.error("OPENCHEM_DRIVE: qc_run -- could not choose conformer slot %s; not run", slot)
+                return
         if not panel._run_button.isEnabled():
             logger.error("OPENCHEM_DRIVE: qc_run -- the Run button is DISABLED; not clicked")
             return
@@ -5227,6 +5242,11 @@ class _Driver(QObject):
         (it is on the one a calculation would be handed), `viewer_label_contains` / `viewer_label_excludes` (its
         status line), `orca_conformers` (how many held came from a quantum optimization), `origin_slot` (the
         one-based slot the canonical conformer says it took) and `status_contains` (the window's status bar).
+
+        **AND WHAT SAYS THE MOLECULE HOLDS AN ORCA GEOMETRY**, the two places a person looks: `badge_contains` (the
+        Properties header's line under the name; `badge_empty: true` asserts there is none), `explorer_contains` (the Project
+        Explorer row of the selected molecule) and `methods` (every conformer's method in slot order, which is how
+        "it replaced slot 2 and nothing else moved" is asserted rather than believed).
         """
         from openchem.chem.calculation_input import canonical_conformer, geometry_fingerprint
         from openchem.domain.conformer import OPTIMIZED_FROM_SLOT, is_quantum_optimized
@@ -5261,8 +5281,37 @@ class _Driver(QObject):
             "OPENCHEM_DRIVE: conformer_report %s viewer_index=%s viewer_label=%r orca_conformers=%d status=%r",
             tag, viewer_index, viewer_label, orca_held, status,
         )
+        badge = self._window._property_panel._substance_card.badge_text()
+        explorer = self._window._project_explorer
+        row_text = next(
+            (
+                explorer._list.item(i).text()
+                for i in range(explorer._list.count())
+                if explorer._list.item(i).data(Qt.ItemDataRole.UserRole) == molecule.uuid
+            ),
+            "",
+        )
+        methods = [c.method for c in molecule.conformers]
+        logger.warning(
+            "OPENCHEM_DRIVE: conformer_report %s badge=%r explorer_row=%r methods=%s", tag, badge, row_text, methods
+        )
         expect = step.get("expect") or {}
         problems = []
+        results_text = self._window._quantum_chemistry_panel._results_label.text()
+        if "qc_results_contains" in expect and expect["qc_results_contains"] not in results_text:
+            problems.append(f"Quantum Chemistry results {results_text!r} lack {expect['qc_results_contains']!r}")
+        if "qc_results_excludes" in expect and expect["qc_results_excludes"] in results_text:
+            problems.append(f"Quantum Chemistry results {results_text!r} contain {expect['qc_results_excludes']!r}")
+        if "badge_contains" in expect and expect["badge_contains"] not in badge:
+            problems.append(f"Properties badge {badge!r} lacks {expect['badge_contains']!r}")
+        if expect.get("badge_empty") and badge:
+            problems.append(f"Properties badge is {badge!r}, wanted none")
+        if "explorer_contains" in expect and expect["explorer_contains"] not in row_text:
+            problems.append(f"Project Explorer row {row_text!r} lacks {expect['explorer_contains']!r}")
+        if "explorer_excludes" in expect and expect["explorer_excludes"] in row_text:
+            problems.append(f"Project Explorer row {row_text!r} contains {expect['explorer_excludes']!r}")
+        if "methods" in expect and methods != expect["methods"]:
+            problems.append(f"conformer methods {methods}, wanted {expect['methods']}")
         if "orca_conformers" in expect and orca_held != expect["orca_conformers"]:
             problems.append(f"{orca_held} ORCA conformers held, wanted {expect['orca_conformers']}")
         if "viewer_index" in expect and viewer_index != expect["viewer_index"]:
@@ -5291,6 +5340,67 @@ class _Driver(QObject):
             problems.append(f"canonical conformer mapped is {best is not None and best.drawing_atom_ids is not None}")
         if problems:
             logger.error("OPENCHEM_DRIVE: EXPECT conformer_report FAILED[%s] -- %s", tag, "; ".join(problems))
+
+    def _do_orca_optimize_button(self, step: dict[str, Any]) -> None:
+        """Ask for an ORCA optimization of one conformer through the REAL door, and assert it started nothing.
+
+        `{"do": "orca_optimize_button", "conformer": 1, "via": "button",
+          "expect": {"chosen_slot": 2, "calc_type": "Geometry Optimization", "job_started": false}}`
+
+        `conformer` is the ZERO-BASED slot the 3D viewer is put on first (the viewer's own state, as pressing `>` would);
+        `via` is `"button"` (the viewer's "ORCA optimize") or `"menu"` (Tools > ORCA Geometry Optimization...). Nothing is
+        pressed past that: the panel is only SET UP, and Run is a separate `qc_run` step. What the panel reads afterwards
+        is logged and asserted: `chosen_slot` (one-based slot its Conformer box holds, 0 = Automatic), `calc_type`,
+        `job_started` and `status_contains`.
+        """
+        from PySide6.QtGui import QAction
+
+        window = self._window
+        molecule = window._current_molecule()
+        if molecule is None or not molecule.conformers:
+            logger.error("OPENCHEM_DRIVE: orca_optimize_button -- no molecule with conformers is selected")
+            return
+        viewer = window._viewer3d
+        if "conformer" in step:
+            viewer._conformer_index = int(step["conformer"])
+            viewer._refresh_view()
+        service = window._services.quantum_chemistry_service
+        busy_before = len(service._active_jobs)
+        if step.get("via", "button") == "menu":
+            action = next(
+                (a for a in window.menuBar().findChildren(QAction) if a.text() == "ORCA Geometry Optimization..."), None
+            )
+            if action is None:
+                logger.error("OPENCHEM_DRIVE: orca_optimize_button -- the Tools menu has no such entry")
+                return
+            action.trigger()
+        else:
+            if not viewer._orca_button.isEnabled():
+                logger.error("OPENCHEM_DRIVE: orca_optimize_button -- the button is DISABLED; not clicked")
+                return
+            viewer._orca_button.click()
+        panel = window._quantum_chemistry_panel
+        chosen_id = panel._conformer_combo.currentData() or ""
+        chosen_slot = next((i + 1 for i, c in enumerate(molecule.conformers) if c.conformer_id == chosen_id), 0)
+        calc_type = panel._calc_type_combo.currentText()
+        started = len(service._active_jobs) > busy_before
+        status = window.statusBar().currentMessage()
+        logger.warning(
+            "OPENCHEM_DRIVE: orca_optimize_button via=%s chosen_slot=%s box=%r calc_type=%r job_started=%s status=%r",
+            step.get("via", "button"), chosen_slot, panel._conformer_combo.currentText(), calc_type, started, status,
+        )
+        expect = step.get("expect") or {}
+        problems = []
+        if "chosen_slot" in expect and chosen_slot != expect["chosen_slot"]:
+            problems.append(f"the Conformer box holds slot {chosen_slot}, wanted {expect['chosen_slot']}")
+        if "calc_type" in expect and calc_type != expect["calc_type"]:
+            problems.append(f"calculation is {calc_type!r}, wanted {expect['calc_type']!r}")
+        if "job_started" in expect and started != bool(expect["job_started"]):
+            problems.append(f"job_started is {started}, wanted {expect['job_started']}")
+        if "status_contains" in expect and expect["status_contains"] not in status:
+            problems.append(f"status bar {status!r} lacks {expect['status_contains']!r}")
+        if problems:
+            logger.error("OPENCHEM_DRIVE: EXPECT orca_optimize_button FAILED -- %s", "; ".join(problems))
 
     def _do_rotate(self, step: dict[str, Any]) -> None:
         """Turn the structure in the 2D editor, as a real drag.
