@@ -2525,6 +2525,17 @@ what can be verified.
   `tests/test_namer_known_defects.py`. Three earlier tests pinned refusals this round turned into names and now pin the cases still refused: a carboxylate beside two neutral acids
   (`test_namer_round43_*`, `test_namer_round45_*`) and a pyrazolone anion (`test_namer_round46_*`).
 
+## 2026-10-16 -- naming round 61: the azanidyl prefix and four ways the charge guard let a charge go (D-291 .. D-294)
+
+The pair populations (`zwitterion`, `dianion`, `betaine`, `dication`, `quat_dication`, `trianion`, `trication`) take the kinds round 60 added to the single-charge modes: an alcohol and an anilide NH as acids, the oxygens of an ester, an acid, an aldehyde, an ether and an alcohol as bases (dianion grew from 173 to 280 ions, dication from 866 to 1930).
+
+* **D-291.** An aryl `[NH-]` beside another anion was cited as `azanide` (`4-azanidebenzoate`, refused; in a longer name unreadable, 28 ions): `azanide` is the parent hydride anion, and the prefix OPSIN reads is `azanidyl`: `4-azanidylbenzoate`.
+* **D-292 (a silent lost anion).** The guard dropped every group of bonded + and - atoms as a neutral dipole. A nitro carbon acid's `[c-][N+](=O)[O-]` is -1 over three atoms: one anion. `...-5-nitro-1,3-diazine-4,6-dione` stood for it beside an oxonium, the anion gone. A group whose charges do not cancel now counts as one centre of its net polarity.
+* **D-293 (silent lost charges).** The multiplier pattern of the count test took `pentanamido` (`penta` + `nam` + `ido`), `dihydropyrido`, `pyridinium` (`di` + `n` + `ium`) and `dichloroacetate` (as a cation word) for multiplied ion words, so a name citing ONE cation counted five, and an O-protonated acid or ester beside another cation passed with its charge gone. `pyrido` was also an `oxido` anion word, so a lost ring anion passed. A multiplied word now counts for its own polarity, alkane stems and `pyri`-`dinium` are not multipliers, and `pyrido` is no `oxido`.
+* **D-294.** `_restore_dropped_oxidanium` handed the `oxidaniumylidene` to the only `oxo` in the name; with an O-protonated ESTER (cited as `ethoxycarbonyl`, without an `oxo`) and a ketone, the ketone got the charge: the same neutral compound with a different cation. With another neutral C=O in the molecule it now leaves the name to the guard, which refuses it.
+* **Measured.** Cations and quaternary 3148 each: 3139 and 3141 clean, the rest the same artifacts as round 60; anions 1399 (1264 clean, 135 refused); dianion 246 of 280 (34 refused); trianion 27 of 27; the pair modes with the new kinds have no silent wrong name left, only refusals and the artifacts of round 60. Census 1994 of 2000 exact. Vendored suite 5881 passed. 9 of 9 mutants killed.
+* New `tests/test_namer_round61_azanidyl_prefix_and_guard_word_counts.py`.
+
 ## 2026-10-16 -- naming round 60: O-alkylated carbonyls, fused azolides, the acid anion as parent, a diacid that lost its acid (D-285 .. D-290)
 
 Round 59's open list, and populations widened once more: `tools/naming_ion_populations.py` deprotonates an alcohol and an anilide NH, protonates the oxygen of an ester, an acid, an aldehyde, an ether and an alcohol (a sulfone has two oxygens, so no single site). Baseline on round 59's tree for the pair modes: betaine 21 embedded `NAMING ERROR`s, dianion one.

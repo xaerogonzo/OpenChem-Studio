@@ -60,6 +60,8 @@ def test_a_nitro_group_alone_is_still_neutral():
     ("4-(pyridinium-4-yl)quinolin-1-ium", _CATION_WORD, 2),                                                                  # `pyridinium`
     ("4-oxidaniumyl-16,18-dioxo-pentacyclo[10.7.0.0]nonadeca-5-yl dichloroacetate", _CATION_WORD, 1),                         # an anion word is no cation
     ("propane-1,3-diium", _CATION_WORD, 2),
+    ("1-(3-{3-amino-5-[carbamimidoyl(methyl)amino]pentanamido}-pyran-6-yl)-2-oxopyrimidin-4-aminium", _ANION_WORD_END, 0),   # `pentanamido` is no anion either
+    ("9-(ethoxycarbonyl)-4,10-dimethyl-2-oxo-2,7-dihydropyrido[2,3-f]quinolin-1-ium", _ANION_WORD_END, 0),
     ("propanedioate", _ANION_WORD_END, 2),
     ("6-oxidaniumylidene-2,3,4,5-decahydro-1H-cyclopenta[c]pyrido[3,2-h]quinoline", _ANION_WORD_END, 0),                      # `pyrido` is no oxido
 ])
