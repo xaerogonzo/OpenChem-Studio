@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: a protonated carbonyl beside another cation is cited as what it is
+- Round 62 took the largest class of refusals the pair populations had left: an O- or S-protonated amide, ester, acid or ketone beside a second cation (786 of 1930 dications). The engine named the carbonyl with the neutral prefix (`oxo`, `ethoxycarbonyl`) and the guard refused the name for the cation it had lost. The fallback now names the atom it has, `oxidaniumylidene` or `sulfaniumylidene`, where it stands (D-295); an O-protonated ester is no `alkoxycarbonyl` (D-296, `2-[ethoxy(oxidaniumylidene)methyl]anilinium`); the prefix is bracketed on a one-carbon parent (D-297) and a multiplied one is `bis(oxidaniumylidene)` (D-298). Dications named: 1143 of 1930 became 1877.
+
 ### Naming: the azanidyl prefix and four ways the charge guard let a charge go
 - Round 61 widened the pair populations to the sites round 60 added (an alkoxide, an anilide NH, the oxygens of an ester, an acid, an aldehyde, an ether and an alcohol). An aryl `[NH-]` beside another anion was the prefix `azanide`, which OPSIN cannot read; it is `azanidyl` (D-291). The charge guard let charges go in four ways, each turning into a refusal now: a nitro carbon acid's `[c-][N+](=O)[O-]` was dropped as a dipole although it is one anion (D-292); the multiplier pattern took `dihydropyrido`, `pentanamido`, `pyridinium` and an ester's `dichloroacetate` for multiplied ion words, so a name citing one cation counted several and a protonated ester or acid beside another cation passed with its charge gone, and `pyrido` was an `oxido` (D-293); and an O-protonated ester beside a ketone was named with the ketone's `oxidaniumylidene` (D-294).
 

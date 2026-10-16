@@ -2525,6 +2525,17 @@ what can be verified.
   `tests/test_namer_known_defects.py`. Three earlier tests pinned refusals this round turned into names and now pin the cases still refused: a carboxylate beside two neutral acids
   (`test_namer_round43_*`, `test_namer_round45_*`) and a pyrazolone anion (`test_namer_round46_*`).
 
+## 2026-10-16 -- naming round 62: a protonated carbonyl beside another cation is cited as what it is (D-295 .. D-298)
+
+Round 61's open list named the biggest class of visible failures: an O- or S-protonated carbonyl beside a second cation. Of 1930 dications (round 61's tree), 786 were refused (amide 458 of 841, ester 306 of 355, acid 100 of 118, ketone 137 of 257); of 1523 betaines 212.
+
+* **D-295.** The engine cited the carbonyl with the NEUTRAL prefix (`oxo`, `carbamoyl`, `carboxy`) and the guard refused the name for the cation it had lost. Round 59's restore swapped the single `oxo` of the NAME for `oxidaniumylidene`, which needed exactly one `oxo` and gave the charge to the wrong carbonyl when there were two (D-294). The unclaimed-`=O` fallback now names the atom it has, in the plan and when it executes: `=[OH+]` is `oxidaniumylidene`, `=[SH+]` `sulfaniumylidene`, where it stands.
+* **D-296.** An O-protonated ester carbonyl was detected as `alkoxycarbonyl` (the neutral group's prefix, the charge ignored): it is `[ethoxy(oxidaniumylidene)methyl]`.
+* **D-297.** `oxidaniumylidene` is a simple ylidene, so beside another prefix on a one-carbon parent it was unbracketed: `(2-azanidylphenyl)oxidaniumylidenemethanamine`, which OPSIN reads as another molecule. It is bracketed there in any output form.
+* **D-298.** A multiplied one, `2,3-dioxidaniumylidene`, is unreadable: `2,3-bis(oxidaniumylidene)`.
+* **Measured.** Dications 1877 of 1930 clean (was 1143; 51 refused, one unparsable, one `NAMING ERROR`: the isothiourea tautomer of round 60), quat_dication 1892 of 1930 (was 1447), trication 602 of 631 (was 277), betaine 1376 of 1523 (was 1309), zwitterion 1365 of 1523 (was 1119); anions, cations, quaternary, dianion and trianion unchanged. Three earlier expectations moved (a three-cation molecule that was refused is named; the D-290 spiro name has `2'-oxidaniumylidenespiro`; D-294's ester beside a ketone is named). See the verification lines at the end of this round.
+* New `tests/test_namer_round62_protonated_carbonyls_beside_cations.py`.
+
 ## 2026-10-16 -- naming round 61: the azanidyl prefix and four ways the charge guard let a charge go (D-291 .. D-294)
 
 The pair populations (`zwitterion`, `dianion`, `betaine`, `dication`, `quat_dication`, `trianion`, `trication`) take the kinds round 60 added to the single-charge modes: an alcohol and an anilide NH as acids, the oxygens of an ester, an acid, an aldehyde, an ether and an alcohol as bases (dianion grew from 173 to 280 ions, dication from 866 to 1930).

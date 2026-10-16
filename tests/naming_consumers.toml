@@ -495,6 +495,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round62_protonated_carbonyls_beside_cations.py"
+why = "an O- or S-protonated carbonyl beside another cation is cited as oxidaniumylidene / sulfaniumylidene where it stands (D-295), an O-protonated ester carbonyl is no alkoxycarbonyl (D-296), the prefix is bracketed on a one-carbon parent (D-297) and a multiplied one is bis(oxidaniumylidene) (D-298)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round61_azanidyl_prefix_and_guard_word_counts.py"
 why = "an aryl NH- beside another anion is the prefix azanidyl (D-291), a charge-separated group whose charges do not cancel is an ion in the guard (D-292), the guard's multiplier pattern does not take pyrido, pentanamido, pyridinium or an ester's dichloroacetate for multiplied ion words (D-293), and a protonation is not handed to another carbonyl's oxo (D-294)"
 scope = "core"
