@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Derived scores: ten of the topology counts can be read
+- **Ten of the Topology Analysis report's counts are numbers now, and a score may read them** (the 32nd to 41st approved outputs, all plain numbers): the bond count, the cyclomatic number, the ring atom and ring bond counts, the chain atom and chain
+  bond counts, the carbo, hetero and fused ring counts and the asymmetric atom count, each an exact integer. The report's lines, labels, units and table-cell text do not move (the recording made before the indices were typed holds them). Left out,
+  each for a measured reason: the atom, ring, rotatable-bond and chiral-centre counts are the always-on properties under other labels (identical on all 34 molecules compared); the ring sizes read 0 when there is no ring; and the aromatic, aliphatic and
+  heteroaromatic ring counts test atoms for aromaticity, which is not RDKit's count.
+- **The cyclomatic number and the asymmetric atom count share an endpoint tag with the ring count and the stereocentre count.** They are identical to those always-on properties on every census row, so a formula can read either of a pair and never both;
+  they are still offered because they differ on cages (cubane: 5 independent cycles against 6 rings, and 0 asymmetric atoms against 8 stereocentres).
+
 ### Derived scores: the aromatic ring count can be read
 - **The BBB Score Descriptors calculator's aromatic ring count is a number now, and a score may read it** (the 31st approved output, a plain number). It is RDKit's count, an exact integer, and only for the default answer: the
   major-microspecies option counts another structure's rings under the same label, so a score over it has no number then and says why. The report's lines, labels, units and table-cell text do not move (a recording made before the change,
