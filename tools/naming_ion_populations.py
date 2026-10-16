@@ -110,13 +110,17 @@ MODES = ("anion", "cation", "quaternary", "zwitterion", "dianion", "dication", "
 #: which the charge guard does not judge at all); a dianion deprotonates two different acid sites; a dication protonates two different base sites.
 ZWITTERION_ACIDS = ("carboxylic", "phenol", "sulfonic", "tetrazole", "imide", "acylsulfonamide",
                     # round 59: the acid kinds the single-charge mode reached after round 55
-                    "lactam", "azole_nh", "amide_acyclic", "urea", "hydroxamic", "enol", "dicarbonyl_ch", "thioamide", "hydrazide")
+                    "lactam", "azole_nh", "amide_acyclic", "urea", "hydroxamic", "enol", "dicarbonyl_ch", "thioamide", "hydrazide",
+                    "alcohol", "aniline_nh")  # round 61: the acids round 60 added
 ZWITTERION_BASES = ("amine_primary", "amine_secondary", "amine_tertiary", "aniline", "aromatic_n", "azole_n", "amidine",
-                    "imine", "amide_o", "carbonyl_o", "thioether_s", "n_oxide_o")
+                    "imine", "amide_o", "carbonyl_o", "thioether_s", "n_oxide_o",
+                    "ester_o", "acid_o", "aldehyde_o", "ether_o", "alcohol_o")  # round 61
 DIANION_KINDS = ("carboxylic", "phenol", "sulfonic", "tetrazole", "imide", "sulfonamide", "thiol",
-                 "lactam", "azole_nh", "amide_acyclic", "urea", "hydroxamic", "enol", "dicarbonyl_ch", "thioamide", "hydrazide")
+                 "lactam", "azole_nh", "amide_acyclic", "urea", "hydroxamic", "enol", "dicarbonyl_ch", "thioamide", "hydrazide",
+                 "alcohol", "aniline_nh")
 DICATION_KINDS = ("amine_primary", "amine_secondary", "amine_tertiary", "aniline", "aromatic_n", "azole_n", "amidine",
-                  "imine", "amide_o", "carbonyl_o", "thioether_s", "n_oxide_o")
+                  "imine", "amide_o", "carbonyl_o", "thioether_s", "n_oxide_o",
+                  "ester_o", "acid_o", "aldehyde_o", "ether_o", "alcohol_o")
 
 _ANION_WORD = re.compile(r"(?:(?<!am)(?<!im)(?<!sulfam)ide|ate|ite)(?![a-z])|ato|(?<!am)(?<!im)(?<!ure)(?<!sulfam)ido|\(\d*-\)|\d-id-|azanidyl")
 _CATION_WORD = re.compile(r"ium|onio|\(\d*\+\)")
