@@ -190,9 +190,13 @@ def cyclomatic_number(mol: Chem.Mol) -> int:
 def ring_counts(mol: Chem.Mol) -> dict[str, int]:
     """The ring-related counts from Marvin's Topology Analysis list.
 
-    Aromatic ring count can exceed what SSSR alone reports for a
-    macroaromatic system, which is why RDKit's own aromatic-ring count is
-    used rather than filtering the SSSR set.
+    The aromatic ring count here FILTERS the SSSR rings to those whose atoms
+    are all aromatic. This docstring used to say RDKit's own aromatic-ring
+    count was used instead, which it is not: RDKit's `CalcNumAromaticRings`
+    wants a ring's BONDS aromatic, and the two differ on biphenylene (3 here,
+    2 there) and azulene (2 here, 0 there), measured 2026-10-16 and pinned by
+    `tests/test_bbb_descriptors_typed.py`. The BBB Score Descriptors calculator
+    reports RDKit's count, and that is the one a derived score may read.
     """
     ring_info = mol.GetRingInfo()
     rings = ring_info.AtomRings()

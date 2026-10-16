@@ -72,6 +72,7 @@ ENDPOINTS: dict[str, str] = {
     "oxygen_balance_co2": "the oxygen balance to carbon dioxide",
     "oxygen_balance_co": "the oxygen balance to carbon monoxide",
     "molecular_polarizability": "the isotropic molecular polarizability, as a volume",
+    "aromatic_ring_count": "the number of aromatic rings, as RDKit's CalcNumAromaticRings counts them (biphenylene is 2 and azulene 0)",
     # PROVISIONAL: the eight Topology Analysis tags below were accepted "for now" (2026-10-15, #351) and are meant to be revisited. A tag is never stored in a definition or a project file, so changing
     # one is cheap, except that MERGING two can turn a saved score into a refused one: `docs/DERIVED_SCORES_DESIGN.md`, decision 6.
     "balaban_j_index": "the Balaban J index, as RDKit computes it, of the molecular graph without hydrogens",
@@ -109,6 +110,7 @@ def _entry(output_id: str, unit: str, carried_as: str, endpoint: str) -> Approve
 #: The table. Sorted by id, so a review diff reads as additions. Every entry resolves, through the registry, to a finite number carrying
 #: `carried_as` on the census panel (`tests/test_score_outputs.py`), and a rename of a fact label turns that red and says which scores it breaks.
 APPROVED: tuple[ApprovedOutput, ...] = (
+    _entry("calculator:bbb_descriptors:Aromatic rings", "1", "", "aromatic_ring_count"),
     _entry("calculator:oxygen_balance:Oxygen balance (CO basis)", "%", "%", "oxygen_balance_co"),
     _entry("calculator:oxygen_balance:Oxygen balance (CO₂ basis)", "%", "%", "oxygen_balance_co2"),
     _entry("calculator:polarizability:Molecular polarizability", "Å^3", "A^3", "molecular_polarizability"),

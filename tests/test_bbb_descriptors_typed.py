@@ -104,3 +104,148 @@ def test_no_line_label_unit_basis_or_cell_text_moved(registry, golden, ask):
         if observe(registry, smiles, ASKS[ask]) != golden[f"{name} | {ask}"]
     }
     assert not moved, f"what a person sees moved for: {sorted(moved)}"
+
+
+AROMATIC_RINGS = "Aromatic rings"
+OUTPUT_ID = "calculator:bbb_descriptors:Aromatic rings"
+
+
+def _compute(registry, smiles: str, parameters: dict | None = None):
+    return registry.compute("bbb_descriptors", Chem.MolFromSmiles(smiles), "uuid", dict(parameters or {}))
+
+
+def _typed(result) -> dict:
+    return {f.label: f.value for f in result.facts if not isinstance(f.value, str)}
+
+
+def _completed(registry, name: str, parameters: dict | None = None):
+    """The result for a panel molecule, or None where the registry declines it (a salt, a metal complex): there is no number to type."""
+    try:
+        result = _compute(registry, PANEL[name], parameters)
+    except CalculationRefusal:
+        return None
+    return result if result.cache_state.value == "completed" else None
+
+
+def _default_asks() -> list[str]:
+    return [ask for ask, parameters in ASKS.items() if not parameters.get("major_microspecies")]
+
+
+@pytest.mark.parametrize("name", sorted(PANEL))
+def test_the_aromatic_ring_count_is_the_one_typed_number_and_an_exact_int(registry, name):
+    result = _completed(registry, name)
+    if result is None:
+        return
+    typed = _typed(result)
+    assert list(typed) == [AROMATIC_RINGS], name
+    assert type(typed[AROMATIC_RINGS]) is int and typed[AROMATIC_RINGS] >= 0, "a count, and the project file's codec takes only the exact types"
+    assert all(isinstance(f.value, str) for f in result.facts if f.label != AROMATIC_RINGS), "the other numbers are still text"
+
+
+@pytest.mark.parametrize("ask", [a for a in ASKS if ASKS[a].get("major_microspecies")])
+def test_the_major_microspecies_answer_is_never_typed(registry, ask):
+    for name in PANEL:
+        result = _completed(registry, name, ASKS[ask])
+        if result is not None:
+            assert not _typed(result), f"{name} | {ask}: the rings of another structure under the same label"
+
+
+@pytest.mark.parametrize("ask", _default_asks())
+def test_the_line_is_the_typed_count_whatever_the_decimal_places(registry, ask):
+    for name in PANEL:
+        result = _completed(registry, name, ASKS[ask])
+        if result is None:
+            continue
+        [fact] = [f for f in result.facts if f.label == AROMATIC_RINGS]
+        assert fact.display_value == str(fact.value) and fact.units == "", f"{name} | {ask}"
+
+
+def test_the_count_is_the_one_rdkit_gives_for_the_structure_the_registry_hands_over(registry):
+    """Independent of the calculator: RDKit's own function on the drawing (the parent, for a salt)."""
+    for name, smiles in PANEL.items():
+        result = _completed(registry, name)
+        if result is None:
+            continue
+        mol = Chem.MolFromSmiles("CN(C)C(=N)NC(N)=N" if name == "metformin hydrochloride" else smiles)
+        assert _typed(result)[AROMATIC_RINGS] == rdMolDescriptors.CalcNumAromaticRings(mol), name
+
+
+def test_the_values_a_person_can_check_by_hand(registry):
+    expected = {"water": 0, "butane": 0, "cyclohexane": 0, "benzene": 1, "pyridine": 1, "naphthalene": 2, "aspirin": 1, "caffeine": 2, "propranolol": 2, "sildenafil": 3}
+    assert {name: _typed(_completed(registry, name))[AROMATIC_RINGS] for name in expected} == expected
+    # The module's own worked example: ChemAxon's sildenafil has 3 aromatic rings, "exact".
+    assert expected["sildenafil"] == 3
+
+
+def test_this_count_and_topology_analysis_s_disagree_on_exactly_two_molecules_of_the_panel(registry):
+    """Why THIS count is the one approved. Topology Analysis counts a ring whose ATOMS are all aromatic; RDKit's function wants the ring's BONDS aromatic. Biphenylene's four-membered ring and azulene differ."""
+    differ = {}
+    for name in PANEL:
+        bbb = _completed(registry, name)
+        topology = registry.compute("topology_analysis", Chem.MolFromSmiles(PANEL[name]), "uuid", {}) if bbb is not None else None
+        if bbb is None:
+            continue
+        counts = (_typed(bbb)[AROMATIC_RINGS], int([f.display_value for f in topology.facts if f.label == "Aromatic ring count"][0]))
+        if counts[0] != counts[1]:
+            differ[name] = counts
+    assert differ == {"biphenylene": (2, 3), "azulene": (0, 2)}
+
+
+def test_a_typed_report_is_saved_and_reopened_whole(registry):
+    result = _compute(registry, PANEL["sildenafil"])
+    restored = result_codec.decode(json.loads(json.dumps(result_codec.encode(result))))
+    assert restored == result and _typed(restored) == {AROMATIC_RINGS: 3} and type(_typed(restored)[AROMATIC_RINGS]) is int
+
+
+def test_the_project_table_cell_holds_the_count_and_shows_the_text(registry):
+    result = _compute(registry, PANEL["sildenafil"])
+    [(column, cell)] = [(c, k) for c, k in reduce_result(result, "bbb_descriptors", "BBB Score Descriptors") if c.label == AROMATIC_RINGS]
+    assert column.column_id == OUTPUT_ID and column.units == "" and column.numeric
+    assert cell.text == "3" and cell.value == 3.0
+
+
+# --- approved as a score output ---------------------------------------------------------------------------------------------------------
+
+
+def _approved() -> dict:
+    from openchem.domain.score_outputs import APPROVED
+
+    return {entry.output_id: entry for entry in APPROVED if entry.output_id.startswith("calculator:bbb_descriptors:")}
+
+
+def test_exactly_the_aromatic_ring_count_is_approved_from_this_report():
+    approved = _approved()
+    assert list(approved) == [OUTPUT_ID]
+    entry = approved[OUTPUT_ID]
+    assert entry.unit == "1" and entry.carried_as == "" and entry.endpoint == "aromatic_ring_count"
+
+
+def test_the_other_numbers_of_the_report_are_not_approved():
+    """Heavy atoms and TPSA are always-on descriptors already; MWHBN's unit cannot be written; the pKa line is the optional tool's."""
+    from openchem.domain.score_outputs import approved_output
+
+    for label in ("Heavy atoms", "MWHBN", "TPSA", "pKa (most basic)"):
+        assert approved_output(f"calculator:bbb_descriptors:{label}") is None, label
+
+
+@pytest.mark.parametrize("name", ["sildenafil", "benzene", "caffeine", "naphthalene", "water"])
+def test_a_score_reads_the_same_count_whatever_the_decimal_places(registry, name):
+    from openchem.domain.score_outputs import accept_value
+
+    entry = _approved()[OUTPUT_ID]
+    read = []
+    for places in (0, 1, 8):
+        [fact] = [f for f in _completed(registry, name, {"decimal_places": places}).facts if f.label == AROMATIC_RINGS]
+        read.append(accept_value(entry, fact.value, fact.units))
+    assert read[0] == read[1] == read[2] and type(read[0]) is float
+
+
+def test_the_microspecies_answer_is_refused_by_a_score_and_says_why(registry):
+    from openchem.domain.score_formula import Refusal
+    from openchem.domain.score_outputs import accept_value
+
+    [fact] = [f for f in _completed(registry, "propranolol", ASKS["microspecies 7.4"]).facts if f.label == AROMATIC_RINGS]
+    with pytest.raises(Refusal) as caught:
+        accept_value(_approved()[OUTPUT_ID], fact.value, fact.units)
+    assert "is text" in str(caught.value) and "default answer" in str(caught.value)
+    assert math.isfinite(float(fact.display_value)), "the line still shows the count"
