@@ -1021,7 +1021,7 @@ def _classify_stabilised_carbanion(mol) -> Iterable[ChargeClassification]:
 
     `O=C1[CH-]C(=O)NC(=O)N1` (barbiturate; RDKit calls the carbon aromatic), `O=C1[CH-]C(=O)c2ccccc12` (a fused ring), `COC(=O)CCC(=O)[c-]1nc(-c2ccccc2)oc1=O`: no classifier claimed them, so the plan
     search neutralised the carbon and the name was the neutral compound's (`1,3-diazinane-2,4,6-trione`; an ester-shaped `...butanoate` slipped past the guard's `ate`). The carbon is the only
-    charge, bears no heteroatom, and has a neighbour that is a carbonyl, nitrile or ring-carbonyl carbon (the acceptor that makes the position a carbon acid). It is named like any carbanion: the group
+    charge, and has a neighbour that is a carbonyl, nitrile or ring-carbonyl carbon (the acceptor that makes the position a carbon acid). It is named like any carbanion: the group
     anchored at the carbon with its `yl` made `ide` (`2,4,6-trioxo-1,3-diazinan-5-ide`)."""
     separated = _charge_separated_neutral_atoms(mol)
     charged = [a for a in mol.GetAtoms() if a.GetFormalCharge() != 0 and a.GetIdx() not in separated]
@@ -1030,8 +1030,7 @@ def _classify_stabilised_carbanion(mol) -> Iterable[ChargeClassification]:
     c = charged[0]
     if c.GetAtomicNum() != 6 or c.GetFormalCharge() != -1 or c.GetNumRadicalElectrons() != 0 or c.GetDegree() < 2:
         return
-    if any(nb.GetAtomicNum() != 6 for nb in c.GetNeighbors()):
-        return
+    # A ring HETERO neighbour is allowed since round 59 (the oxazolone `[c-]1nc(...)oc1=O`, a thiazolidinedione): the carbon is still the only charge and still has an acceptor beside it.
 
     def accepting(nb) -> bool:
         for x in nb.GetNeighbors():
@@ -4618,9 +4617,42 @@ def _name_branch_as_prefix(
         Chem.SanitizeMol(frag)
     except Exception:
         return None
-    return _name_as_substituent(
-        frag, new_root, strategy, session, depth, elide_locant_one=True
+    return _with_whole_molecule_cip(
+        mol, frag, branch, drop,
+        _name_as_substituent(frag, new_root, strategy, session, depth, elide_locant_one=True),
     )
+
+
+def _with_whole_molecule_cip(mol, frag, branch: set[int], drop: list[int], name: str | None) -> str | None:
+    """Give the ONE stereo centre of a carved branch the label it has in the WHOLE molecule (naming round 59).
+
+    The branch is named without the atom it was cut from, so a centre next to the cut can rank its ligands differently there than in the molecule: `C[NH+](C)[C@@H](C[N-]C(=O)C)c1ccccc1`
+    cited `(2S)` for the group whose centre is R (the cut CH2-N- became CH2-H, below the phenyl). Only a branch with exactly one centre and one descriptor is corrected; a name with several is left,
+    and the read-back catches it."""
+    from rdkit import Chem
+    from rdkit.Chem import rdCIPLabeler
+
+    if not name or len(re.findall(r"\d+[a-z]?'*[RS](?=[,)])", name)) != 1:
+        return name
+    try:
+        whole = Chem.Mol(mol)
+        rdCIPLabeler.AssignCIPLabels(whole)
+        carved = Chem.Mol(frag)
+        rdCIPLabeler.AssignCIPLabels(carved)
+    except Exception:  # noqa: BLE001 - no labels, no correction
+        return name
+    centres = [a.GetIdx() for a in carved.GetAtoms() if a.HasProp("_CIPCode") and a.GetProp("_CIPCode") in ("R", "S")]
+    if len(centres) != 1:
+        return name
+    new_idx = centres[0]
+    old_idx = next((i for i in sorted(branch) if i - sum(1 for d in drop if d < i) == new_idx), None)
+    if old_idx is None:
+        return name
+    in_whole = whole.GetAtomWithIdx(old_idx)
+    in_frag = carved.GetAtomWithIdx(new_idx).GetProp("_CIPCode")
+    if not in_whole.HasProp("_CIPCode") or in_whole.GetProp("_CIPCode") not in ("R", "S") or in_whole.GetProp("_CIPCode") == in_frag:
+        return name
+    return re.sub(r"(\d+[a-z]?'*)([RS])(?=[,)])", lambda m: m.group(1) + ("R" if m.group(2) == "S" else "S"), name, count=1)
 
 
 def _render_diazonium_ylide(

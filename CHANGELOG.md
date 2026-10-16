@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: azolide anions, onium prefixes, and a charge guard that counted words for charges
+- Round 59 widened the ion populations to sites no earlier round changed (N-oxide O, selenium, phosphine oxide, boronic and phosphinic acids, an O-protonated carbonyl beside another ion) and to three charges. A pyrazole or imidazole ANION beside a second ion was named with its substituent on a nitrogen (`1-(carboxylatomethyl)-1H-pyrazol-2-ide` for the 5-substituted pyrazol-1-ide: the numbering filter read the `[n-]` as a bare `=N-`), and as a substituent it had no `-id-` infix (D-278). A protonated thioether or ether beside another ion lost its charge as an ether prefix (D-279). The charge guard grouped a sulfonium and a pyridinium nitrogen as one centre, took `hexanoate` for a multiplier, let a multiplied word switch the count off, and took an ester's `ate` for an anion in a zwitterion (D-280); a ring cation beside a prefix-only anion lost its `-ium` (D-281); an O-protonated carbonyl was a neutral `oxo` (D-282); a sulfanium took the suffix of the group beside it (D-283); and a carved branch's lone stereo centre could carry the wrong CIP label (D-284). Anions 1123 of 1123 clean, census 1994 of 2000 exact (the other six are OPSIN artifacts).
+
 ### Naming: carbon acids, a guard that mistook an ester for an anion, and a cation fused with a suffix
 - The anion population gained the first CARBON acids (the CH between two carbonyls or two nitriles), enols, hydroxylamines, sultams and carbamates. A stabilised carbanion on a ring was named as the neutral compound
   (`1,3-diazinane-2,4,6-trione` for the barbiturate carbanion) or refused; it is `2,4,6-trioxo-1,3-diazinan-5-ide`, `1,3-dioxo-2,3-dihydro-1H-inden-2-ide` (D-275). The charge guard took an ester's `...butanoate` for an anion
