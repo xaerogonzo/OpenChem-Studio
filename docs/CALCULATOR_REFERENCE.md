@@ -1180,7 +1180,7 @@ Which ring system each atom belongs to, classified as monocyclic, fused, bridged
 <!-- help:calc-topology-analysis -->
 ### Topology Analysis
 
-Graph-theoretic descriptors: ring and chain counts, cyclomatic number, Platt/Randic/Balaban/Harary/Wiener/hyper-Wiener/Szeged indices, Wiener polarity, and stereo centre counts. Szeged is validated by identity rather than by a reference value -- it equals Wiener for any acyclic graph and strictly exceeds it for a cyclic one. The Cao-Liu steric index is measured toward a named reaction centre, so it is not a whole-molecule number and has its own per-atom calculator.
+Graph-theoretic descriptors: ring and chain counts, cyclomatic number, Platt/Randic/Balaban/Harary/Wiener/hyper-Wiener/Szeged indices, Wiener polarity, and stereo centre counts. Szeged is validated by identity rather than by a reference value -- it equals Wiener for any acyclic graph, and on every molecule measured with a ring of four or more atoms it exceeds it (where every ring is a triangle, as in cyclopropane, the two are equal). The Cao-Liu steric index is measured toward a named reaction centre, so it is not a whole-molecule number and has its own per-atom calculator.
 
 - Produces a list of facts, each with its own units, basis and evidence.
 - Runs on the 2D drawing, so no conformer is needed.

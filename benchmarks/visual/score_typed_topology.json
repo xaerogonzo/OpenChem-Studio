@@ -1,0 +1,39 @@
+[
+  {"do": "smiles", "smiles": "CC(=O)Oc1ccccc1C(=O)O", "name": "Aspirin", "after_ms": 1000},
+  {"do": "smiles", "smiles": "CCO", "name": "Ethanol", "after_ms": 1000},
+  {"do": "smiles", "smiles": "Cn1cnc2c1c(=O)n(C)c(=O)n2C", "name": "Caffeine", "after_ms": 1000},
+  {"do": "select", "molecule": 1, "after_ms": 3000},
+
+  {"do": "score_define", "label": "Branching", "formula": "ramp(randic, 8, 1)", "inputs": [["randic", "calculator:topology_analysis:Randic index"]], "result_unit": "1",
+   "tag": "a-score-on-the-randic-index", "expect": {"made": true}},
+  {"do": "score_define", "label": "Compact", "formula": "ramp(wiener, 300, 0)", "inputs": [["wiener", "calculator:topology_analysis:Wiener index"]], "result_unit": "1",
+   "tag": "a-score-on-the-wiener-index", "expect": {"made": true}},
+
+  {"do": "panel", "id": "Properties", "after_ms": 800},
+  {"do": "project_run", "calculators": ["topology_analysis"], "scope": "all", "descriptors": false, "after_ms": 9000},
+  {"do": "table_scores", "tag": "the-project-table-has-both-scores-from-the-typed-numbers-and-its-csv-has-them-whole", "export_csv": "artifacts/visual/score_typed_topology.csv",
+   "expect": {"columns": ["Branching (user-defined, unvalidated)", "Compact (user-defined, unvalidated)"], "note": "",
+              "grid": {"Aspirin": {"Branching": "0.2701", "Compact": "0.18"}, "Ethanol": {"Branching": "0.9408", "Compact": "0.9867"}, "Caffeine": {"Branching": "0.2091", "Compact": "0.14"}},
+              "tooltips": {"Aspirin": {"Branching": ["Inputs: randic = 6.109"], "Compact": ["Inputs: wiener = 246"]}},
+              "csv_header_contains": ["Branching (user-defined, unvalidated)", "Compact (user-defined, unvalidated)"],
+              "csv_cells": {"Aspirin": {"Branching": 0.2701, "Compact": 0.18}, "Ethanol": {"Branching": 0.9408, "Compact": 0.9867}}}},
+  {"do": "shot", "path": "artifacts/visual/score_typed_topology_table.png", "widget": "project_table", "after_ms": 500},
+
+  {"do": "calculator", "id": "topology_analysis", "parameters": {"decimal_places": 0}, "reveal": false, "after_ms": 3000},
+  {"do": "score_results", "focus": true, "which": "Branching", "tag": "the-reader-asked-for-no-decimal-places-still-scores-the-exact-number-not-the-six-the-line-shows",
+   "expect": {"entries": 2, "has_value": true, "value_between": [0.2700, 0.2703], "evidence_contains": ["randic = 6.109"]}},
+  {"do": "score_results", "focus": true, "which": "Compact", "tag": "an-integer-index-is-the-same-whatever-the-setting",
+   "expect": {"entries": 2, "has_value": true, "value_between": [0.1799, 0.1801], "evidence_contains": ["wiener = 246"]}},
+  {"do": "shot", "path": "artifacts/visual/score_typed_topology_reader.png", "widget": "results_reader", "after_ms": 500},
+
+  {"do": "conformers", "count": 2, "after_ms": 9000},
+  {"do": "project_run", "calculators": ["topology_analysis"], "scope": "all", "descriptors": false, "after_ms": 9000},
+  {"do": "table_scores", "tag": "a-molecule-with-a-conformer-is-still-scored-on-its-drawings-graph-in-the-table",
+   "expect": {"grid": {"Aspirin": {"Branching": "0.2701", "Compact": "0.18"}, "Ethanol": {"Compact": "0.9867"}}}},
+  {"do": "calculator", "id": "topology_analysis", "reveal": false, "after_ms": 3000},
+  {"do": "score_results", "focus": true, "which": "Compact", "tag": "and-in-the-reader-where-the-explicit-hydrogen-graph-would-be-a-far-larger-number",
+   "expect": {"entries": 2, "has_value": true, "value_between": [0.1799, 0.1801], "evidence_contains": ["wiener = 246"]}},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

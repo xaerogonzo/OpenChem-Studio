@@ -1932,11 +1932,13 @@ application provides: a number you defined must not read as one the application 
 
 **What it can read.** Only outputs the application has approved for scores, each with its unit: typed numbers of the
 drawing such as the molecular weight, the topological polar surface area, the Crippen logP, the hydrogen-bond counts,
-the QED and synthetic-accessibility scores, and the oxygen balance, intrinsic solubility and polarizability calculators' numbers. You
+the QED and synthetic-accessibility scores, and the oxygen balance, intrinsic solubility, polarizability and Topology Analysis calculators' numbers. You
 choose them from a list; you never type an identifier. Two inputs that estimate the same quantity (the ESOL solubility
 and the solubility calculator's, say) cannot be used together, because two estimates of one quantity combined are a
 consensus predictor, which this project has measured and does not offer. The polarizability is offered for its default answer only (the additive Jensen scheme, on the drawing): a calculator with several methods
 keeps the others' numbers as text, so a score over the polarizability has no number after you run Miller's method or compute it on the major microspecies, and says so.
+From Topology Analysis it offers the eight graph indices (Wiener, hyper-Wiener, Harary, Randić, Balaban J, Szeged, Platt and the Wiener polarity number), which are numbers of the structure drawn without its hydrogens: a score reads the
+drawing's, never a conformer's, and the decimal places you ask the calculator for change what its lines show and never what a score is made from. Its counts (atoms, rings, rotatable bonds and the rest) are not offered.
 
 **The units are checked, never converted.** Adding an area to a mass is refused, and so is declaring a unit the formula
 does not work out to. A bare number in the formula takes the unit of what it is added to or compared with, so
