@@ -64,6 +64,10 @@ ANION_SITES = {
     "carbamate": "[NX3;H1;!R]C(=O)O",
     "dicarbonyl_ch": "[CX4;H2,H1]([CX3]=O)[CX3]=O",
     "dinitrile_ch": "[CX4;H2,H1](C#N)C#N",
+    # round 59: heavier acids
+    "selenol": "[SeX2H1]",
+    "boronic": "[OX2H1]B",
+    "phosphinic": "[OX2H1][PX4](=O)([#6])[#6]",
 }
 
 #: Basic sites, protonated or N-methylated (rounds 47 and 48). The first atom gains the proton or the methyl.
@@ -85,18 +89,27 @@ CATION_SITES = {
     "nitrile_n": "[NX1]#C",
     # round 58
     "thioether_s": "[SX2;!R]([#6])[#6]",
+    # round 59: N-oxide O (protonated), selenium, phosphine oxide
+    "n_oxide_o": "[OX1-][#7+;!$([#7+](~[OX1])~[OX1])]",   # an N-oxide; a NITRO group is not one (its protonated form is another species)
+    "selenoether_se": "[SeX2;!R]([#6])[#6]",
+    "phosphine_oxide_o": "[OX1]=[PX4]",
 }
 
-MODES = ("anion", "cation", "quaternary", "zwitterion", "dianion", "dication", "betaine", "quat_dication")
+MODES = ("anion", "cation", "quaternary", "zwitterion", "dianion", "dication", "betaine", "quat_dication", "trianion", "trication")
 
 #: The pairs rounds 55 onward make (the multi-charge modes): which kinds of site go together. A zwitterion deprotonates an acid AND protonates a base in one molecule (a net-neutral ion,
 #: which the charge guard does not judge at all); a dianion deprotonates two different acid sites; a dication protonates two different base sites.
-ZWITTERION_ACIDS = ("carboxylic", "phenol", "sulfonic", "tetrazole", "imide", "acylsulfonamide")
-ZWITTERION_BASES = ("amine_primary", "amine_secondary", "amine_tertiary", "aniline", "aromatic_n", "azole_n", "amidine")
-DIANION_KINDS = ("carboxylic", "phenol", "sulfonic", "tetrazole", "imide", "sulfonamide", "thiol")
-DICATION_KINDS = ("amine_primary", "amine_secondary", "amine_tertiary", "aniline", "aromatic_n", "azole_n", "amidine")
+ZWITTERION_ACIDS = ("carboxylic", "phenol", "sulfonic", "tetrazole", "imide", "acylsulfonamide",
+                    # round 59: the acid kinds the single-charge mode reached after round 55
+                    "lactam", "azole_nh", "amide_acyclic", "urea", "hydroxamic", "enol", "dicarbonyl_ch", "thioamide", "hydrazide")
+ZWITTERION_BASES = ("amine_primary", "amine_secondary", "amine_tertiary", "aniline", "aromatic_n", "azole_n", "amidine",
+                    "imine", "amide_o", "carbonyl_o", "thioether_s", "n_oxide_o")
+DIANION_KINDS = ("carboxylic", "phenol", "sulfonic", "tetrazole", "imide", "sulfonamide", "thiol",
+                 "lactam", "azole_nh", "amide_acyclic", "urea", "hydroxamic", "enol", "dicarbonyl_ch", "thioamide", "hydrazide")
+DICATION_KINDS = ("amine_primary", "amine_secondary", "amine_tertiary", "aniline", "aromatic_n", "azole_n", "amidine",
+                  "imine", "amide_o", "carbonyl_o", "thioether_s", "n_oxide_o")
 
-_ANION_WORD = re.compile(r"(?:(?<!am)(?<!im)(?<!sulfam)ide|ate|ite)(?![a-z])|ato|(?<!am)(?<!im)(?<!ure)(?<!sulfam)ido|\(\d*-\)|\d-id-")
+_ANION_WORD = re.compile(r"(?:(?<!am)(?<!im)(?<!sulfam)ide|ate|ite)(?![a-z])|ato|(?<!am)(?<!im)(?<!ure)(?<!sulfam)ido|\(\d*-\)|\d-id-|azanidyl")
 _CATION_WORD = re.compile(r"ium|onio|\(\d*\+\)")
 
 
@@ -128,7 +141,7 @@ def generate(mode: str, rows: list[dict], limit: int | None = None) -> list[Cand
     if mode not in MODES:
         raise ValueError(f"unknown mode {mode!r}; one of {MODES}")
     RDLogger.DisableLog("rdApp.*")
-    if mode in ("zwitterion", "dianion", "dication", "betaine", "quat_dication"):
+    if mode in ("zwitterion", "dianion", "dication", "betaine", "quat_dication", "trianion", "trication"):
         return _generate_pairs(mode, rows, limit)
     sites = ANION_SITES if mode == "anion" else CATION_SITES
     out: list[Candidate] = []
@@ -150,11 +163,11 @@ def generate(mode: str, rows: list[dict], limit: int | None = None) -> list[Cand
                 atom.SetNumExplicitHs(0)
                 atom.SetNoImplicit(False)
             elif mode == "cation":
-                atom.SetFormalCharge(1)
+                atom.SetFormalCharge(atom.GetFormalCharge() + 1)
                 atom.SetNumExplicitHs(hydrogens + 1)
                 atom.SetNoImplicit(True)
             else:
-                atom.SetFormalCharge(1)
+                atom.SetFormalCharge(atom.GetFormalCharge() + 1)   # an N-oxide O- methylated is a neutral alkoxy on N+ (round 59)
                 atom.SetNumExplicitHs(hydrogens)
                 atom.SetNoImplicit(True)
                 methyl = rw.AddAtom(Chem.Atom(6))
@@ -177,7 +190,7 @@ def _apply_site(rw, idx: int, how: str) -> None:
     atom = rw.GetAtomWithIdx(idx)
     hydrogens = atom.GetTotalNumHs()
     if how == "methyl":
-        atom.SetFormalCharge(1)
+        atom.SetFormalCharge(atom.GetFormalCharge() + 1)
         atom.SetNumExplicitHs(hydrogens)
         atom.SetNoImplicit(True)
         methyl = rw.AddAtom(Chem.Atom(6))
@@ -187,7 +200,7 @@ def _apply_site(rw, idx: int, how: str) -> None:
         atom.SetNumExplicitHs(0)
         atom.SetNoImplicit(False)
     else:
-        atom.SetFormalCharge(1)
+        atom.SetFormalCharge(atom.GetFormalCharge() + 1)   # an N-oxide O- becomes a neutral hydroxy (round 59)
         atom.SetNumExplicitHs(hydrogens + 1)
         atom.SetNoImplicit(True)
 
@@ -204,27 +217,36 @@ def _generate_pairs(mode: str, rows: list[dict], limit: int | None) -> list[Cand
         pairs = list(product(ZWITTERION_ACIDS, ZWITTERION_BASES))
     elif mode == "dianion":
         pairs = list(combinations(DIANION_KINDS, 2))
+    elif mode == "trianion":
+        pairs = list(combinations(DIANION_KINDS, 3))
+    elif mode == "trication":
+        pairs = list(combinations(DICATION_KINDS, 3))
     else:
         pairs = list(combinations(DICATION_KINDS, 2))
     queries = {k: Chem.MolFromSmarts(s) for k, s in {**ANION_SITES, **CATION_SITES}.items()}
     hows = {
         "zwitterion": ("minus", "plus"), "dianion": ("minus", "minus"), "dication": ("plus", "plus"),
         "betaine": ("minus", "methyl"), "quat_dication": ("methyl", "plus"),
+        "trianion": ("minus", "minus", "minus"), "trication": ("plus", "plus", "plus"),
     }[mode]
     out: list[Candidate] = []
-    for first, second in pairs:
+    for kinds in pairs:
         count = 0
         for row in rows:
             mol = Chem.MolFromSmiles(row["smiles"])
             if not _usable(mol, row["smiles"]):
                 continue
-            hits_a = mol.GetSubstructMatches(queries[first])
-            hits_b = mol.GetSubstructMatches(queries[second])
-            if len(hits_a) != 1 or len(hits_b) != 1 or hits_a[0][0] == hits_b[0][0]:
+            hits = [mol.GetSubstructMatches(queries[k]) for k in kinds]
+            if any(len(h) != 1 for h in hits) or len({h[0][0] for h in hits}) != len(kinds):
+                continue
+            # Two sites within two bonds of each other are one group drawn as a charge-separated tautomer (an azole's [n-] beside its own [nH+], an amide's N- beside its O-protonated
+            # oxygen): a neutral compound, not an ion anyone would draw (naming round 59).
+            dm = Chem.GetDistanceMatrix(mol)
+            if any(dm[a[0][0]][b[0][0]] <= 2 for i, a in enumerate(hits) for b in hits[i + 1:]):
                 continue
             rw = Chem.RWMol(mol)
-            _apply_site(rw, hits_a[0][0], hows[0])
-            _apply_site(rw, hits_b[0][0], hows[1])
+            for h, how in zip(hits, hows):
+                _apply_site(rw, h[0][0], how)
             try:
                 Chem.SanitizeMol(rw)
             except Exception:  # noqa: BLE001 - a pair that will not sanitise as an ion is not a candidate
@@ -232,7 +254,7 @@ def _generate_pairs(mode: str, rows: list[dict], limit: int | None) -> list[Cand
             count += 1
             if limit is not None and count > limit:
                 break
-            out.append(Candidate(mode, f"{first}+{second}", row.get("label", ""), Chem.MolToSmiles(rw), row["smiles"]))
+            out.append(Candidate(mode, "+".join(kinds), row.get("label", ""), Chem.MolToSmiles(rw), row["smiles"]))
     return out
 
 
@@ -285,15 +307,15 @@ def verdict(mode: str, smiles: str, name: str | None, back: str | None, refusal:
         return "refused"
     if "NAMING ERROR" in name:
         return "naming_error"
-    if mode in ("anion", "dianion", "zwitterion", "betaine") and not _ANION_WORD.search(name):
+    if mode in ("anion", "dianion", "trianion", "zwitterion", "betaine") and not _ANION_WORD.search(name):
         return "no_anion_word"
-    if mode in ("cation", "quaternary", "dication", "zwitterion", "betaine", "quat_dication") and not _CATION_WORD.search(name):
+    if mode in ("cation", "quaternary", "dication", "trication", "zwitterion", "betaine", "quat_dication") and not _CATION_WORD.search(name):
         return "no_cation_word"
     if back is None:
         return "ok"           # names-only: nothing to compare
     if not back:
         return "unparsable"
-    if mode in ("zwitterion", "dianion", "dication", "betaine", "quat_dication"):
+    if mode in ("zwitterion", "dianion", "dication", "betaine", "quat_dication", "trianion", "trication"):
         # Standard InChI normalises where a proton sits, so the same key is the same ion; a different charge count with the same skeleton is the compound with a charge lost.
         if _inchikey(back) == _inchikey(smiles):
             return "ok"

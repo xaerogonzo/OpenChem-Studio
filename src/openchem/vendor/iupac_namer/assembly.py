@@ -3509,6 +3509,13 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
                         if not parts[stem_idx].endswith("e"):
                             parts[stem_idx] += "e"
                     parts.append(f"-{rc_locant_str}-{rc_mult}ium")
+            # A ring `[n-]` in SUBSTITUENT form takes the same infix, `-N-id-` (naming round 59): `[2-(1H-pyrazol-1-id-5-yl)ethyl]dimethylazanium`, which OPSIN reads. It used to be
+            # dropped, so the group was written as the NEUTRAL azole beside the cation and the charge guard refused the ion. One anion only: a multiplied `-diid-` is not measured.
+            if tree.ring_anion_locants and len(tree.ring_anion_locants) == 1:
+                ra_loc = tree.ring_anion_locants[0]
+                if parts[stem_idx].endswith("e"):
+                    parts[stem_idx] = parts[stem_idx][:-1]
+                parts.append(f"-{ra_loc}-id")
             # P-31.1.2.1: when the parent's unsaturation is baked into the
             # stem (e.g. monocyclic ring "cyclohex-1-en"), tree.unsaturation
             # is empty but the substituent is still unsaturated.  Detect a
@@ -3685,6 +3692,15 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
         ra_mult = get_multiplier(ra_count, complex=False) if ra_count > 1 else ""
         ra_mult = ra_mult or ""
         ra_suffix = f"-{ra_locant_str}-{ra_mult}ide"
+        if tree.suffix_groups and not ra_mult and not tree.unsaturation and len(parts) > stem_idx + 1:
+            # The ring anion goes BEFORE a suffix as the infix `-N-id-` (naming round 59): `1H-indol-1-id-5-ol`, `1H-imidazol-1-id-5-carboxamide` are read by OPSIN, and the
+            # trailing `1H-indol-5-ol-1-ide` / `...carboxamid-1-ide` are not (the ion was named and could not be read back).
+            if parts[stem_idx].endswith("e"):
+                parts[stem_idx] = parts[stem_idx][:-1]
+            elif parts[-1] == "e":
+                parts.pop()
+            parts.insert(len(parts) - 1, f"-{ra_locant_str}-id")
+            ra_suffix = ""
         if ra_mult and not tree.suffix_groups and not tree.unsaturation:
             if not (parts[stem_idx].endswith("e")
                     or (len(parts) > stem_idx + 1 and parts[-1] == "e")):
@@ -3694,7 +3710,8 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
                 parts.pop()
             elif parts[stem_idx].endswith("e"):
                 parts[stem_idx] = parts[stem_idx][:-1]
-        parts.append(ra_suffix)
+        if ra_suffix:
+            parts.append(ra_suffix)
 
     # P-82.2.1's exception, resolved now that the following part exists: a
     # hyphen goes in only when what follows the nuclide parentheses starts

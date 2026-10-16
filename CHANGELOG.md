@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: azolide anions, onium prefixes, and a charge guard that counted words for charges
+- Round 59 widened the ion populations to sites no earlier round changed (N-oxide O, selenium, phosphine oxide, boronic and phosphinic acids, an O-protonated carbonyl beside another ion) and to three charges. A pyrazole or imidazole ANION beside a second ion was named with its substituent on a nitrogen (`1-(carboxylatomethyl)-1H-pyrazol-2-ide` for the 5-substituted pyrazol-1-ide: the numbering filter read the `[n-]` as a bare `=N-`), and as a substituent it had no `-id-` infix (D-278). A protonated thioether or ether beside another ion lost its charge as an ether prefix (D-279). The charge guard grouped a sulfonium and a pyridinium nitrogen as one centre, took `hexanoate` for a multiplier, let a multiplied word switch the count off, and took an ester's `ate` for an anion in a zwitterion (D-280); a ring cation beside a prefix-only anion lost its `-ium` (D-281); an O-protonated carbonyl was a neutral `oxo` (D-282); a sulfanium took the suffix of the group beside it (D-283); and a carved branch's lone stereo centre could carry the wrong CIP label (D-284). Anions 1123 of 1123 clean, census 1994 of 2000 exact (the other six are OPSIN artifacts).
+
 ### Derived scores: the topology indices can be read
 - **Eight of the Topology Analysis calculator's numbers are numbers now, and a score may read them** (the 23rd to 30th approved outputs, all dimensionless): the Wiener, hyper-Wiener, Harary, Randić, Balaban J, Szeged and Platt indices and the Wiener polarity
   number, each of the molecular graph without hydrogens. Their lines carried the text they show (`'6.11'`), which a score must not rest on, so the calculator now hands over the number itself; the lines, labels, units and the project table's cell

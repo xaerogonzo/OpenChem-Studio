@@ -1407,6 +1407,7 @@
   "tests/test_namer_round56_two_anions_and_ion_counts.py": 2,
   "tests/test_namer_round57_acyl_azanide_prefixes_and_second_cations.py": 1,
   "tests/test_namer_round58_carbon_acids_and_sulfonium_guard.py": 0,
+  "tests/test_namer_round59_azolides_onium_prefixes_and_guard.py": 3,
   "tests/test_namer_salt_multiplier.py": 1,
   "tests/test_namer_stereo_cache_identity.py": 3,
   "tests/test_namer_stereo_locant_tie.py": 3,

@@ -236,3 +236,34 @@ def test_a_carbon_acid_needs_both_acceptors():
 def test_a_thioether_sulfur_is_protonated_and_methylated():
     assert _of_kind("cation", "CSC", "thioether_s") == [_canon("C[SH+]C")]
     assert _of_kind("quaternary", "CSC", "thioether_s") == [_canon("C[S+](C)C")]
+
+
+# Round 59: heavier sites, three charges, and pairs that are one group drawn two ways.
+def test_round_59_sites():
+    assert _of_kind("anion", "C[SeH]", "selenol") == [_canon("C[Se-]")]
+    assert _of_kind("anion", "CB(O)O", "boronic") == []                         # two B-OH: not a single site
+    assert _of_kind("anion", "CP(=O)(C)O", "phosphinic") == [_canon("CP(=O)(C)[O-]")]
+    assert _of_kind("cation", "C[Se]C", "selenoether_se") == [_canon("C[SeH+]C")]
+    assert _of_kind("cation", "CP(C)(C)=O", "phosphine_oxide_o") == [_canon("CP(C)(C)=[OH+]")]
+
+
+def test_an_n_oxide_oxygen_is_protonated_but_a_nitro_group_is_not_an_n_oxide():
+    assert _of_kind("cation", "[O-][n+]1ccccc1", "n_oxide_o") == [_canon("O[n+]1ccccc1")]
+    assert _of_kind("cation", "O=[N+]([O-])c1ccccc1", "n_oxide_o") == []
+
+
+def test_an_n_oxide_oxygen_is_methylated_to_a_neutral_alkoxy_on_the_cationic_nitrogen():
+    assert _of_kind("quaternary", "[O-][n+]1ccccc1", "n_oxide_o") == [_canon("CO[n+]1ccccc1")]
+
+
+def test_three_charges_are_three_different_sites():
+    rows = [{"label": "t", "smiles": "NCCN(C)CCc1ccncc1"}]
+    ions = [c.smiles for c in pop.generate("trication", rows)]
+    assert ions == [_canon("[NH3+]CC[NH+](C)CCc1cc[nH+]cc1")]
+    assert "trianion" in pop.MODES and "trication" in pop.MODES
+
+
+def test_two_sites_within_two_bonds_are_one_group_not_an_ion_pair():
+    # an amide N- and its own O-protonated oxygen, an azole [n-] beside its [nH+]: a neutral compound drawn charge-separated
+    assert pop.generate("zwitterion", [{"label": "a", "smiles": "CC(=O)NC"}]) == []
+    assert pop.generate("zwitterion", [{"label": "a", "smiles": "c1cc[nH]n1"}]) == []

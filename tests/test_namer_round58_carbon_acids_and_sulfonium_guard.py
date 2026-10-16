@@ -88,9 +88,9 @@ def test_an_ester_shaped_name_is_not_an_anion_word():
         _check_charge_named(carbanion, "methyl 4-oxo-4-(5-oxo-2-phenyl-1,3-oxazol-4-yl)butanoate")
 
 
-def test_the_carbanion_beside_a_ring_nitrogen_is_refused_not_named_as_its_ester():
-    with pytest.raises(ValueError):
-        name_smiles("COC(=O)CCC(=O)[c-]1nc(-c2ccccc2)oc1=O")
+def test_the_carbanion_beside_a_ring_nitrogen_is_not_named_as_its_ester():
+    # refused until round 59, when the classifier took a ring HETERO neighbour; the ester-shaped name stays unacceptable either way
+    assert "butanoate" not in name_smiles("COC(=O)CCC(=O)[c-]1nc(-c2ccccc2)oc1=O")
 
 
 @pytest.mark.parametrize(
@@ -109,9 +109,9 @@ def test_a_neutral_ester_is_untouched():
     assert name_smiles("COC(=O)c1ccccc1") == "methyl benzoate"
 
 
-def test_a_cation_parent_fused_with_a_suffix_is_refused():
-    with pytest.raises(ValueError, match="fuses"):
-        name_smiles("CNC(=N)[SH+]C")
+def test_a_cation_parent_fused_with_a_suffix_is_named_as_a_prefix_since_round_59():
+    # refused ("fuses") in round 58; the cation is the parent and the amidine stands as its prefix since round 59
+    assert name_smiles("CNC(=N)[SH+]C") == "[(imino)(methylamino)methyl](methyl)sulfanium"
 
 
 def test_the_guard_names_the_fusion():
@@ -133,5 +133,5 @@ def test_the_carbanion_classifier_wants_carbon_neighbours_and_an_acceptor():
     assert taken("[CH-](C#N)C#N")
     # no acceptor: a fluorenide is not a stabilised carbanion in this sense
     assert taken("[CH-]1c2ccccc2-c2ccccc12") == []
-    # a ring nitrogen beside the carbanion (the oxazolone): not claimed, so the guard refuses it
-    assert taken("COC(=O)CCC(=O)[c-]1nc(-c2ccccc2)oc1=O") == []
+    # a ring nitrogen beside the carbanion (the oxazolone): claimed since round 59
+    assert taken("COC(=O)CCC(=O)[c-]1nc(-c2ccccc2)oc1=O")
