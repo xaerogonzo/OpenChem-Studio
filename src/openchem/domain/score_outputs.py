@@ -13,7 +13,7 @@ registry):
 * from the always-on descriptors, or from a calculator that is STABLE or LIMITED and offered by default (an EXPERIMENTAL or hidden
   calculator's output would put one unvalidated thing on top of another);
 * of the DRAWING, not of a conformer: the always-on descriptors run on both and store two results under one id, and a number of one
-  conformer is a number of that conformer. Geometry-based outputs are a separate review;
+  conformer is a number of that conformer. Geometry-based outputs are a separate piece of work (decided on 2026-10-16, not built: `docs/DERIVED_SCORES_DESIGN.md`);
 * whose id does not depend on the structure (a torsion is named by its atoms and a ring by its size, so neither is an id);
 * whose unit this language can say truthfully (`MPa^0.5` and `cm3/mol / 100` cannot be written, so Hansen's parameters and McGowan's
   volume wait).
