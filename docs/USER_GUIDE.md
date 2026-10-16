@@ -524,6 +524,17 @@ flexible drug-like molecules it used about a quarter fewer embeddings and found 
 against about 19; the single lowest was the same every time. Details says when a run ended this way. It is a small
 sample, so it stays opt-in.
 
+**Settings > Conformers > Keep ORCA-optimized conformers when generating
+conformers again** is on by default. Generating again replaces the force-field
+conformers with new ones and carries the ORCA-optimized geometries over
+unchanged, after the new ones, because an optimization is the slow thing in the
+list and every later calculation prefers it. Untick it to have Generate replace
+everything. The kept geometries follow the new conformers, so their numbers
+change when you regenerate (the "7 of 20 stays 7 of 20" promise is about an
+optimization landing, not about a regeneration). Undo restores the previous set
+either way, and editing the structure clears every conformer, ORCA ones
+included, because a geometry no longer fits an edited molecule.
+
 **Generate Conformers** asks for the counts, and hides the search
 settings behind **Advanced** — on **Automatic** it spends a documented
 budget, which is what you want unless you have a reason not to. Under
@@ -570,6 +581,20 @@ superposition is a viewing aid, recomputed each time.
 The energy shown is relative to the lowest (`+0.55 kcal/mol`), because the
 raw force-field number is not a quantity anybody compares to anything. The
 absolute value is in the tooltip.
+
+**An ORCA-optimized conformer is marked wherever you step to it.** The status
+line reads `Conformer 7/20 - ORCA optimized (HF STO-3G)`, and in the gallery
+the cell's label reads `7 - ORCA`. It shows no energy relative to the others,
+because an ORCA energy and a force-field energy are not on one scale. When an
+optimization finishes, the optimized geometry **takes the place of the
+conformer it was run on**, so 7 of 20 stays 7 of 20, and the viewer jumps to
+it; Undo puts the original back. **Details** says which level of theory made
+it, the ORCA version, and which conformer it was optimized from, by the number
+that conformer had when you pressed Run (older projects, saved before that was
+recorded, say *not recorded*). That number does not follow the geometry around:
+if you generate conformers again while a job runs and the source moves, the
+result still replaces it wherever it now is, and still says it started from
+number 7.
 
 **The gallery** shows several conformers at once, each in its own cell and
 each rotatable on its own — tick *Gallery* in the 3D Viewer's toolbar. Six
@@ -1525,6 +1550,18 @@ with spin-spin coupling — plus charge, multiplicity and a method/basis
 string (the presets are editable; anything you type, including dispersion or
 solvation keywords, is passed through and is part of the calibration cache
 key).
+
+**Where an optimized geometry goes.** A geometry optimization (or optimization
+plus frequencies) takes the place of the conformer it was run on, which is the
+one every calculation uses, and the 3D Viewer shows it, marked as ORCA
+optimized. If you **edit the structure while the job runs**, the job still
+finishes and its run stays in the history, but its geometry and numbers are not
+applied to the edited molecule, and the status bar says why: they describe the
+structure you had when you pressed Run, not the one on screen. The same goes
+for **Use in 2D Editor** while a job runs, when it gives the drawing a
+stereocentre it did not have: the structure is more specific than the one the job
+was run on. A multi-conformer (Boltzmann) run is not cut short by an edit either;
+it finishes on the inputs it was started with and applies nothing.
 
 **Calibrate Reference (TMS)** runs the reference calculation once per
 method/basis and caches it, so subsequent NMR jobs return real ppm shifts

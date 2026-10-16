@@ -1047,3 +1047,124 @@ def test_the_experimental_stop_rule_reaches_the_dialog_only_when_ticked(qapp, mo
         assert built == [setting_on]
     finally:
         widget.deleteLater()
+
+
+# --- an ORCA-optimized conformer lands in its slot, and the viewer shows and marks it ----------------------------
+
+
+def _with_an_orca_conformer_in_slot(molecule: MoleculeModel, slot: int, level: str = "HF STO-3G") -> ConformerModel:
+    """Swap the force-field conformer in `slot` for what the QC landing builds: no energy, the ORCA method, the
+    run's level of theory in its provenance."""
+    from openchem.domain.common import RUN_METHOD_BASIS, Provenance
+    from openchem.domain.conformer import ORCA_OPTIMIZED
+
+    provenance = Provenance(created_by="core", method="orca", parameters={RUN_METHOD_BASIS: level} if level else {})
+    orca = ConformerModel(molblock=f"orca-{slot}", energy=None, method=ORCA_OPTIMIZED, provenance=provenance)
+    molecule.conformers[slot] = orca
+    return orca
+
+
+def test_the_viewer_lands_on_the_conformer_the_event_names_and_says_it_is_orca(qapp):
+    from openchem.events.events import ConformersChanged
+
+    widget, backend, molecule = _gallery_widget(qapp, count=20)
+    orca = _with_an_orca_conformer_in_slot(molecule, 6)  # "7 of 20"
+
+    widget._on_conformers_changed(ConformersChanged(molecule_uuid=molecule.uuid, show_conformer_id=orca.conformer_id))
+
+    assert widget._conformer_index == 6
+    assert widget._status_label.text() == "Conformer 7/20 - ORCA optimized (HF STO-3G)"
+    assert "HF STO-3G" in widget._status_label.toolTip()
+    assert "no force-field energy" in widget._status_label.toolTip()
+    assert backend.loaded_molblocks[-1] == "orca-6", "the geometry on screen is the optimized one"
+
+
+def test_without_a_named_conformer_the_viewer_still_returns_to_the_first(qapp):
+    from openchem.events.events import ConformersChanged
+
+    widget, _backend, molecule = _gallery_widget(qapp, count=8)
+    widget._conformer_index = 5
+
+    widget._on_conformers_changed(ConformersChanged(molecule_uuid=molecule.uuid))
+
+    assert widget._conformer_index == 0, "every other publisher behaves as it always did"
+
+
+def test_a_named_conformer_that_is_not_in_the_list_falls_back_to_the_first(qapp):
+    from openchem.events.events import ConformersChanged
+
+    widget, _backend, molecule = _gallery_widget(qapp, count=8)
+    widget._conformer_index = 5
+
+    widget._on_conformers_changed(ConformersChanged(molecule_uuid=molecule.uuid, show_conformer_id="nope"))
+
+    assert widget._conformer_index == 0
+
+
+def test_another_molecules_landing_does_not_move_this_viewer(qapp):
+    from openchem.events.events import ConformersChanged
+
+    widget, _backend, molecule = _gallery_widget(qapp, count=8)
+    orca = _with_an_orca_conformer_in_slot(molecule, 6)
+    widget._conformer_index = 2
+
+    widget._on_conformers_changed(ConformersChanged(molecule_uuid="someone-else", show_conformer_id=orca.conformer_id))
+
+    assert widget._conformer_index == 2
+
+
+def test_stepping_onto_an_orca_conformer_marks_it_wherever_you_arrive(qapp):
+    """The marker belongs to the conformer, not to the moment it landed."""
+    widget, _backend, molecule = _gallery_widget(qapp, count=4)
+    _with_an_orca_conformer_in_slot(molecule, 2)
+
+    for _ in range(2):
+        widget._show_next_conformer()
+
+    assert widget._status_label.text() == "Conformer 3/4 - ORCA optimized (HF STO-3G)"
+    widget._show_next_conformer()
+    assert "ORCA" not in widget._status_label.text()
+    assert "kcal/mol" in widget._status_label.text() or "lowest" in widget._status_label.text()
+
+
+def test_an_orca_conformer_with_no_recorded_level_says_orca_and_nothing_invented(qapp):
+    """An older project: the provenance has no method and basis. The label must not guess one."""
+    from openchem.events.events import ConformersChanged
+
+    widget, _backend, molecule = _gallery_widget(qapp, count=4)
+    orca = _with_an_orca_conformer_in_slot(molecule, 1, level="")
+
+    widget._on_conformers_changed(ConformersChanged(molecule_uuid=molecule.uuid, show_conformer_id=orca.conformer_id))
+
+    assert widget._status_label.text() == "Conformer 2/4 - ORCA optimized"
+
+
+def test_the_gallery_opens_on_the_page_holding_the_landed_conformer_and_labels_its_cell(qapp):
+    from openchem.events.events import ConformersChanged
+
+    widget, backend, molecule = _gallery_widget(qapp, count=20)
+    widget._gallery_check.setChecked(True)
+    orca = _with_an_orca_conformer_in_slot(molecule, 6)  # the first cell of the SECOND page of six
+
+    widget._on_conformers_changed(ConformersChanged(molecule_uuid=molecule.uuid, show_conformer_id=orca.conformer_id))
+
+    assert widget._page_start == 6
+    assert widget._conformer_index == 6
+    labels = [label for _mb, label in backend.grids[-1]["entries"]]
+    assert labels[0] == "7 - ORCA"
+    assert all("ORCA" not in label for label in labels[1:])
+    assert "lowest" not in labels[0] and "+" not in labels[0], "no force-field-relative energy for a geometry that has none"
+
+
+def test_the_gallery_lands_on_a_conformer_in_the_middle_of_a_page(qapp):
+    from openchem.events.events import ConformersChanged
+
+    widget, backend, molecule = _gallery_widget(qapp, count=20)
+    widget._gallery_check.setChecked(True)
+    orca = _with_an_orca_conformer_in_slot(molecule, 9)  # 10 of 20: the fourth cell of page 7-12
+
+    widget._on_conformers_changed(ConformersChanged(molecule_uuid=molecule.uuid, show_conformer_id=orca.conformer_id))
+
+    assert widget._page_start == 6
+    assert widget._conformer_index == 9
+    assert [label for _mb, label in backend.grids[-1]["entries"]][3] == "10 - ORCA"

@@ -39,6 +39,7 @@ from openchem.app.session import SessionManager
 from openchem.app.menu_help import MENU_HELP
 from openchem.app.shortcut_registry import ShortcutRegistry
 from openchem.app.settings import (
+    CONFORMER_KEEP_OPTIMIZED,
     DRAWING_BOND_CLICK,
     DRAWING_BOND_KEYS,
     RAIL_HIDES_PANELS,
@@ -49,16 +50,23 @@ from openchem.app.settings import (
     remember_chosen_path,
     suggested_save_path,
 )
-from openchem.chem.calculation_input import canonical_conformer, with_source_atom_map
+from openchem.chem.calculation_input import (
+    canonical_conformer,
+    find_source_conformer,
+    with_kept_quantum_optimized,
+    with_optimization_origin,
+    with_source_atom_map,
+)
 from openchem.chem.engine import StructureEditError
 from openchem.chem.identifiers import identifier_for_molblock
-from openchem.chem.isotopes import IsotopeError, element_at, set_isotope
+from openchem.chem.isotopes import IsotopeError, element_at, same_structure, set_isotope
 from openchem.chem.stereochemistry import StereochemistryConflict
 from openchem.chem.structure_clipboard import parse_structure_text
 from openchem.commands.conformer_commands import (
     AdoptConformerCommand,
     AddConformerCommand,
     RedrawFlatCommand,
+    ReplaceConformerCommand,
     SetConformersCommand,
 )
 from openchem.commands.docking_commands import SetDockingResultCommand
@@ -5008,7 +5016,14 @@ class MainWindow(QMainWindow):
         molecule = self._current_molecule()
         if molecule is None or molecule.uuid != event.molecule_uuid:
             return
-        command = SetConformersCommand(molecule, event.conformers, self._services.event_bus)
+        # The ORCA-optimized conformers already on the molecule are carried over unless the user turned that
+        # off in Settings > Conformers: an optimization is the expensive thing in the list.
+        conformers = with_kept_quantum_optimized(
+            event.conformers, molecule.conformers, bool(self._settings.preference(CONFORMER_KEEP_OPTIMIZED))
+        )
+        command = SetConformersCommand(
+            molecule, conformers, self._services.event_bus, kept=len(conformers) - len(event.conformers)
+        )
         self._undo_stack.push(command)
 
     def _on_conformers_changed(self, event: ConformersChanged) -> None:
@@ -5035,6 +5050,24 @@ class MainWindow(QMainWindow):
         self._publish_molecule_snapshot(molecule)
 
     def _on_quantum_chemistry_result_ready(self, event: QuantumChemistryResultReady) -> None:
+        molecule = self._session.project.find_molecule(event.molecule_uuid) if self._session.project else None
+        if molecule is None:
+            return
+        # **THE STRUCTURE GATE, BEFORE ANYTHING IS INSTALLED OR SHOWN.** Nothing cancels an ORCA job when its
+        # molecule is edited, so it can land on a structure it was not run on: its geometry would be appended
+        # to the edited molecule and its numbers shown as that molecule's (`DescriptorComputed` with no
+        # version means "the current one"). The submitted canonical SMILES against the current one decides,
+        # and it does NOT ask whether conformers existed or whether `ConformersInvalidated` fired: that event
+        # is only published when there are conformers to clear, so a molecule that held none (the generation
+        # undone, then the structure edited) never raises it. Fails closed: an empty identity is withheld.
+        # The job's own run history and fingerprinted results are already recorded and stay as they are.
+        if not same_structure(event.structure_identity, molecule.canonical_smiles):
+            self.statusBar().showMessage(
+                "The structure was edited while the ORCA job ran, so its geometry and numbers were not "
+                "applied to the current structure. The finished run is still in the job history.",
+                15000,
+            )
+            return
         # Descriptors reuse the EXISTING DescriptorComputed mechanism
         # (PropertyPanel already displays these) rather than inventing a
         # separate quantum-chemistry-specific display path -- descriptors
@@ -5046,18 +5079,23 @@ class MainWindow(QMainWindow):
 
         if event.conformer is None:
             return
-        molecule = self._session.project.find_molecule(event.molecule_uuid) if self._session.project else None
-        if molecule is None:
-            return
-        # AddConformerCommand, not SetConformersCommand -- an ORCA-optimized
-        # geometry is added alongside whatever conformers already exist,
-        # never wiping them out. It then becomes the geometry every later
-        # calculation uses (`canonical_conformer`), so it first takes the
-        # drawing-atom map of the conformer it was optimized from.
+        # An ORCA-optimized geometry takes the SLOT of the conformer it was optimized from, so 7 of 20 stays
+        # 7 of 20 and the viewer lands on it (`ConformersChanged.show_conformer_id`). It then becomes the
+        # geometry every later calculation uses (`canonical_conformer`), so it first takes the drawing-atom
+        # map of that source.
+        located = find_source_conformer(molecule.conformers, event.input_fingerprint)
         conformer = with_source_atom_map(
             event.conformer, molecule.conformers, event.input_fingerprint, self._services.chemistry_engine
         )
-        command = AddConformerCommand(molecule, conformer, self._services.event_bus)
+        if located is None:
+            # No single source to take the place of (a Boltzmann run's lowest conformer), or the conformers
+            # were regenerated while the job ran with the structure unchanged: the geometry is still the
+            # user's, so it is added, and shown, rather than dropped.
+            command = AddConformerCommand(molecule, conformer, self._services.event_bus, show=True)
+        else:
+            _slot, source = located
+            conformer = with_optimization_origin(conformer, source.conformer_id, event.source_slot)
+            command = ReplaceConformerCommand(molecule, source, conformer, self._services.event_bus)
         self._undo_stack.push(command)
 
     def _on_docking_result_ready(self, event: DockingResultReady) -> None:
