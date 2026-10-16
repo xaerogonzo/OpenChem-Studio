@@ -4495,14 +4495,24 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "4-(benzene-1,2-dicarboxamido)-N-methylanilinium",
      "a WRONG MOLECULE (unreadable): the acid of a diacid monoamide became a second amide, the carboxylic acid gone"),
     ("D-290", "COc1ccc(OC)c(-c2[n-]nc3c2[C@]2(C(=[OH+])Nc4ccc(C)c(Br)c42)C(C#N)=C(N)O3)c1",
-     "(4R)-6-amino-4'-bromo-3-(2,5-dimethoxyphenyl)-5'-methyl-2'-(oxidaniumylidene)spiro[2,4-dihydropyrano[2,3-c]pyrazole-4,3'-2,3-dihydro-1H-indole]-2-id-5-carbonitrile",
-     "(4S)-6-amino-4'-bromo-3-(2,5-dimethoxyphenyl)-5'-methyl-2'-(oxidaniumylidene)spiro[2,4-dihydropyrano[2,3-c]pyrazole-4,3'-2,3-dihydro-1H-indole]-2-id-5-carbonitrile",
+     "(4R)-6-amino-4'-bromo-3-(2,5-dimethoxyphenyl)-5'-methyl-2'-oxidaniumylidenespiro[2,4-dihydropyrano[2,3-c]pyrazole-4,3'-2,3-dihydro-1H-indole]-2-id-5-carbonitrile",
+     "(4S)-6-amino-4'-bromo-3-(2,5-dimethoxyphenyl)-5'-methyl-2'-oxidaniumylidenespiro[2,4-dihydropyrano[2,3-c]pyrazole-4,3'-2,3-dihydro-1H-indole]-2-id-5-carbonitrile",
      "a WRONG STEREO label: RDKit reads a deprotonated aromatic N with other duplicate atoms than the neutral azole, and OPSIN agrees with the neutral view"),
     # Naming round 61 (D-291 .. D-294). The guard changes (a charge-separated group's net charge, the multiplier pattern, a protonation not moved to another carbonyl) turn a silent wrong name
     # into a refusal and have no row: a refusal has no target name.
     ("D-291", "[NH-]c1ccc(C(=O)[O-])cc1", "4-azanidylbenzoate",
      "[REFUSED: no name found that keeps every negative charge (the nearest name, '4-azanidebenzoate', has fewer anion words than the molecule has anions)]",
      "the prefix for NH- was `azanide`, the parent hydride anion, which OPSIN cannot read as a prefix"),
+    # Naming round 62 (D-295 .. D-298). A protonated carbonyl beside another cation was cited with the neutral prefix and refused by the guard (786 of 1930 dications): no row, a refusal has no target name.
+    ("D-296", "CCOC(=[OH+])c1ccccc1[NH3+]", "2-[ethoxy(oxidaniumylidene)methyl]anilinium",
+     "[REFUSED: no name found that keeps every positive charge (the nearest name, '2-(ethoxycarbonyl)anilinium', has fewer cation words than the molecule has cations)]",
+     "an O-protonated ester carbonyl was cited as the neutral `ethoxycarbonyl`"),
+    ("D-297", "NC(=[OH+])c1ccccc1[NH-]", "(2-azanidylphenyl)(oxidaniumylidene)methanamine",
+     "(2-azanidylphenyl)oxidaniumylidenemethanamine",
+     "the prefix was unbracketed on a one-carbon parent, which OPSIN reads as another molecule"),
+    ("D-298", "CN(CC(O)C(O)C(O)C(O)CO)CN1C(=[OH+])C(=[OH+])c2ccccc21", "6-({[2,3-bis(oxidaniumylidene)-2,3-dihydro-1H-indol-1-yl]methyl}(methyl)amino)hexane-1,2,3,4,5-pentol",
+     "6-({[2,3-dioxidaniumylidene-2,3-dihydro-1H-indol-1-yl]methyl}(methyl)amino)hexane-1,2,3,4,5-pentol",
+     "a multiplied `oxidaniumylidene` is unreadable"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",

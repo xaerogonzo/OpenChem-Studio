@@ -757,6 +757,9 @@ def merge_identical_prefixes(
         # says what it is. The book prints no multiplied 'azaniumyl', so the form is derived from the rule above, not quoted.
         if not compound and count > 1 and name.startswith("aza"):
             compound = True
+        # And a multiplied protonated carbonyl: OPSIN cannot read `3,4-dioxidaniumylidene`, it reads `3,4-bis(oxidaniumylidene)` (naming round 62).
+        if not compound and count > 1 and name in ("oxidaniumylidene", "sulfaniumylidene"):
+            compound = True
         sort_name = derive_sort_name(name)
 
         if not compound:
@@ -3149,6 +3152,14 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
         #     (P-65.1): "oxosulfanylmethyl" is misread by OPSIN as O=S-CH2-
         #     (a phantom chain), so the =X prefix must be bracketed to give
         #     "(oxo)sulfanylmethyl" / "oxo(sulfanyl)methyl".
+        # An O- or S-PROTONATED carbonyl on a one-carbon parent is bracketed like `oxo`, in ANY output form (naming round 62: `(2-azanidylphenyl)oxidaniumylidenemethanamine`, which OPSIN misreads).
+        if (tree.named_parent.candidate.type == "chain" and tree.named_parent.candidate.length == 1 and len(merged) >= 2):
+            import dataclasses as _dc_pz
+
+            merged = [
+                _dc_pz.replace(mp, needs_brackets=True) if (mp.name in ("oxidaniumylidene", "sulfaniumylidene") and mp.multiplier is None) else mp
+                for mp in merged
+            ]
         if (tree.output_form == OutputForm.SUBSTITUENT
                 and tree.named_parent.candidate.type == "chain"
                 and tree.named_parent.candidate.length == 1
