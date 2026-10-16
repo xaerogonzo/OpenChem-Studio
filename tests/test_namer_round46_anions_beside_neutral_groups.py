@@ -139,4 +139,4 @@ def test_the_guard_leaves_everything_else_alone(smiles, name):
 
 def test_an_ion_the_engine_cannot_name_is_refused_not_named_neutral():
     with pytest.raises(ValueError):
-        name_smiles("C[O+]=S(c1ccccc1)S(=O)(=O)c1ccccc1")  # an O-methylated sulfinyl on a sulfur bonded to sulfur: no renderer, the name used to be the neutral compound's (saccharin's anion is named since round 49, the pyrazolone anion since round 51, a carboxylate beside two acids since round 54)
+        name_smiles("COC(=O)CCC(=O)[c-]1nc(-c2ccccc2)oc1=O")  # a carbanion beside a ring nitrogen (an oxazolone): no renderer (an O-methylated thiosulfonate S-oxide was this example until round 58), the name used to be the neutral compound's (saccharin's anion is named since round 49, the pyrazolone anion since round 51, a carboxylate beside two acids since round 54)

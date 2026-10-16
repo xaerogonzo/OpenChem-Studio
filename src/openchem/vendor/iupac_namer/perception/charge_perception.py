@@ -307,6 +307,8 @@ def classify_charges(
         # before _classify_simple_carbon_charge, which refuses an aromatic
         # charged atom and would otherwise leave these to the neutralizer.
         _classify_aromatic_ring_anion,
+        # Naming round 58: a carbanion flanked by acceptors (barbiturate, indane-1,3-dione, an oxazolone): the CARBON ACIDS the single-site populations never reached.
+        _classify_stabilised_carbanion,
         # ---- R2-B closed-shell motifs (unchanged) ----
         # Guanidinium before amidinium: it is the more specific pattern
         # (three N on the central carbon), and amidinium's guards would
@@ -1012,6 +1014,46 @@ def _classify_acylium(mol) -> Iterable[ChargeClassification]:
             parent_smiles=None,
             surface_name=None,
         )
+
+
+def _classify_stabilised_carbanion(mol) -> Iterable[ChargeClassification]:
+    """A carbanion stabilised by acceptors on a ring or chain the simple-carbon classifier refuses (naming round 58).
+
+    `O=C1[CH-]C(=O)NC(=O)N1` (barbiturate; RDKit calls the carbon aromatic), `O=C1[CH-]C(=O)c2ccccc12` (a fused ring), `COC(=O)CCC(=O)[c-]1nc(-c2ccccc2)oc1=O`: no classifier claimed them, so the plan
+    search neutralised the carbon and the name was the neutral compound's (`1,3-diazinane-2,4,6-trione`; an ester-shaped `...butanoate` slipped past the guard's `ate`). The carbon is the only
+    charge, bears no heteroatom, and has a neighbour that is a carbonyl, nitrile or ring-carbonyl carbon (the acceptor that makes the position a carbon acid). It is named like any carbanion: the group
+    anchored at the carbon with its `yl` made `ide` (`2,4,6-trioxo-1,3-diazinan-5-ide`)."""
+    separated = _charge_separated_neutral_atoms(mol)
+    charged = [a for a in mol.GetAtoms() if a.GetFormalCharge() != 0 and a.GetIdx() not in separated]
+    if len(charged) != 1:
+        return
+    c = charged[0]
+    if c.GetAtomicNum() != 6 or c.GetFormalCharge() != -1 or c.GetNumRadicalElectrons() != 0 or c.GetDegree() < 2:
+        return
+    if any(nb.GetAtomicNum() != 6 for nb in c.GetNeighbors()):
+        return
+
+    def accepting(nb) -> bool:
+        for x in nb.GetNeighbors():
+            if x.GetIdx() == c.GetIdx():
+                continue
+            order = mol.GetBondBetweenAtoms(nb.GetIdx(), x.GetIdx()).GetBondTypeAsDouble()
+            if x.GetAtomicNum() in (8, 16) and order == 2.0:
+                return True
+            if x.GetAtomicNum() == 7 and order == 3.0:
+                return True
+        return False
+
+    if not any(accepting(nb) for nb in c.GetNeighbors()):
+        return
+    yield ChargeClassification(
+        site_atom_indices=(c.GetIdx(), *sorted(separated)),
+        charge_sign="-",
+        suffix_hint="stabilised_ide",
+        locant=None,
+        parent_smiles=None,
+        surface_name=None,
+    )
 
 
 def _classify_simple_carbon_charge(mol) -> Iterable[ChargeClassification]:
@@ -1889,7 +1931,8 @@ def _classify_sulfoxide_cation(mol) -> Iterable[ChargeClassification]:
     # An acyclic sulfur only: a ring sulfonium (`1-hydroxythiolan-1-ium`) is named by a path that does not survive the recursive drive, so it stays a visible refusal.
     if s.GetAtomicNum() != 16 or s.GetFormalCharge() != 0 or s.GetDegree() != 3 or s.IsInRing():
         return
-    if sum(1 for x in s.GetNeighbors() if x.GetAtomicNum() == 6) != 2:
+    # One or two carbons (round 58: the other group may be a sulfonyl or a phosphoryl, a thiosulfonate S-oxide); the sulfonium naming takes any substituent.
+    if not 1 <= sum(1 for x in s.GetNeighbors() if x.GetAtomicNum() == 6) <= 2:
         return
     yield ChargeClassification(
         site_atom_indices=(o.GetIdx(), s.GetIdx(), *sorted(separated)),
@@ -3442,6 +3485,16 @@ def _render(
         return cls.surface_name
     if cls.suffix_hint in ("ylium", "ide"):
         return _render_simple_carbon(cls, mol, strategy, session, depth)
+    if cls.suffix_hint == "stabilised_ide":
+        # RDKit calls the carbon of a barbiturate AROMATIC, and the neutral ring it would then rebuild cannot be kekulised; the carbon acid is named from the Kekule drawing.
+        from rdkit import Chem
+
+        kek = Chem.Mol(mol)
+        try:
+            Chem.Kekulize(kek, clearAromaticFlags=True)
+        except Exception:  # noqa: BLE001 - no Kekule form, no name
+            return None
+        return _render_simple_carbon(cls, kek, strategy, session, depth)
     if cls.suffix_hint == "aromatic_ring_ylium":
         return _render_aromatic_ring_cation(cls, mol, strategy, session, depth)
     if cls.suffix_hint == "diazonium":
