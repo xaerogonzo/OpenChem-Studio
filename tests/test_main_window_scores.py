@@ -685,6 +685,77 @@ def test_the_project_table_cell_of_the_score_is_the_same_number_as_the_reader_gi
     assert made.score_id
 
 
+# --- a score over the topology indices (the second report calculator typed for scores) ---------------------------------------------------------
+
+_WIENER = "calculator:topology_analysis:Wiener index"
+_RANDIC = "calculator:topology_analysis:Randic index"
+
+
+def _run_topology(window, qapp, model, **parameters):
+    """The calculator as the Properties panel runs it for one molecule, with its registered defaults and then `parameters` over them."""
+    from openchem.domain.calculator import CalculationRequest
+
+    definition = window._services.calculator_registry.get("topology_analysis")
+    arguments = {p.name: p.default for p in definition.parameters}
+    arguments.update(parameters)
+    window._services.descriptor_service.run_calculator(model, CalculationRequest(calculator_id="topology_analysis", molecule_uuid=model.uuid, parameters=arguments))
+    _drain(qapp)
+
+
+def _recorded_fact(window, model, label):
+    """The fact the calculator recorded in its stored result, which carries the number and the rounded text the line shows."""
+    held = [
+        fact
+        for s in window._services.result_store_service.store.all_results(model.uuid)
+        if getattr(s.result, "report_id", "") == "topology_analysis"
+        for fact in s.result.facts
+        if fact.label == label
+    ]
+    assert held, f"the calculator's {label} is stored for the molecule"
+    return held[-1]
+
+
+def test_a_score_over_a_topology_index_is_the_formula_of_the_exact_number_and_not_of_the_rounded_line(window, pair, qapp):
+    """Asked for no decimal places the line reads `Randic index: 6`; the score has to be made from 6.109..., which is the whole point of typing the number."""
+    aspirin, _ = pair
+    _select(window, qapp, aspirin)
+    _make(window, label="Branching", formula="ramp(randic, 10, 2)", inputs=[("randic", _RANDIC)])
+    before = window._services.score_service.values_for(aspirin)[0]
+    assert before.value is None and "has not been calculated" in before.reason
+    _run_topology(window, qapp, aspirin, decimal_places=0)
+    fact = _recorded_fact(window, aspirin, "Randic index")
+    assert fact.display_value == "6" and 6.1 < fact.value < 6.12, "the line is rounded to nothing and the number is not"
+    value = window._services.score_service.values_for(aspirin)[0]
+    assert value.status.value == "value" and value.inputs[0].value == fact.value
+    assert value.value == pytest.approx((10.0 - fact.value) / 8.0, abs=1e-12)
+    assert value.value != pytest.approx(0.5, abs=1e-3), "a score made from the text '6' would be 0.5"
+
+
+def test_a_score_over_a_topology_index_reads_the_drawings_graph_when_the_molecule_has_a_conformer(window, pair, qapp):
+    """A conformer carries explicit hydrogens, and a Wiener index over 21 atoms is a different number from one over 13: the score must read the drawing's, in Results and in the table."""
+    from rdkit import Chem
+
+    from openchem.domain.score_table import score_value_in_table
+
+    aspirin, ethanol = pair
+    _select(window, qapp, aspirin)
+    _with_a_conformer(window, qapp, aspirin)
+    assert aspirin.conformers
+    _make(window, label="Compact", formula="ramp(wiener, 400, 100)", inputs=[("wiener", _WIENER)])
+    _run_topology(window, qapp, aspirin)
+    value = window._services.score_service.values_for(aspirin)[0]
+    assert value.status.value == "value" and value.inputs[0].value == 246.0, "aspirin's heavy-atom graph (13 atoms)"
+    explicit = window._services.chemistry_engine.mol_from_model(aspirin)
+    on_a_conformer = window._services.calculator_registry.compute("topology_analysis", Chem.AddHs(explicit), "uuid", {})
+    other = [f.value for f in on_a_conformer.facts if f.label == "Wiener index"][0]
+    assert other != 246 and other > 246, "the same calculator on the explicit-hydrogen graph is another number, which the score must never read"
+    event = _run_batch(window, qapp, [aspirin, ethanol], [], ["topology_analysis"])
+    definition = window._services.score_service.store.definitions()[0]
+    in_table = score_value_in_table(definition, event.table, aspirin.uuid)
+    assert in_table.status.value == "value" and in_table.inputs[0].value == 246.0 and in_table.value == pytest.approx(value.value)
+    assert score_value_in_table(definition, event.table, ethanol.uuid).inputs[0].value == 4.0
+
+
 # --- the Batch panel's own table ---------------------------------------------------------------------------------------------------------
 
 

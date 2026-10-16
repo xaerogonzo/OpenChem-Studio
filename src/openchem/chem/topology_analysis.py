@@ -11,11 +11,18 @@ All confirmed live. Balaban J is RDKit's own `Descriptors.BalabanJ`.
 
 The SZEGED INDEX is now included, validated by a THEOREM rather than by a
 reference value: for any acyclic graph the Szeged and Wiener indices are
-equal (Gutman 1994), and for a cyclic graph Szeged strictly exceeds
-Wiener. Checked live -- n-butane 10 = 10, isobutane 9 = 9, benzene 54 > 27,
-naphthalene 243 > 109. That identity pins the implementation more firmly
-than agreeing with one tool's output would, since it cannot be satisfied
-by accident.
+equal (Gutman 1994). Checked live -- n-butane 10 = 10, isobutane 9 = 9.
+That identity pins the implementation more firmly than agreeing with one
+tool's output would, since it cannot be satisfied by accident.
+
+THE OTHER HALF OF THAT SENTENCE CLAIMED MORE THAN HAD BEEN MEASURED. It said
+that on a cyclic graph Szeged "strictly exceeds" Wiener. It does on every
+molecule with a ring of four or more atoms that was tried (cyclobutane 16 >
+8, cyclopentane 20 > 15, benzene 54 > 27, cycloheptane 63 > 42,
+bicyclobutane 9 > 7), and it does NOT where every ring is a triangle:
+cyclopropane, oxirane, aziridine and spiropentane are equal (3 = 3, 3 = 3,
+3 = 3, 14 = 14). Found 2026-10-15 by a test that asserted the old sentence
+on cyclopropane.
 
     (Mordred was investigated as a cross-check and does NOT implement it:
     its `SZ` descriptor is "sum of constitutional descriptor", giving 5.67
@@ -49,6 +56,7 @@ values.
 from __future__ import annotations
 
 import math
+from dataclasses import replace
 from typing import Any
 
 from rdkit import Chem
@@ -77,8 +85,9 @@ def harary_index(mol: Chem.Mol) -> float:
     reciprocal analogue, so close pairs dominate instead of distant ones."""
     matrix = _distance_matrix(mol)
     count = mol.GetNumAtoms()
-    return sum(
-        1.0 / matrix[i][j] for i in range(count) for j in range(i + 1, count) if matrix[i][j]
+    # `float(...)`: the sum of an empty generator is the int 0 and the sum of NumPy elements is a NumPy float, and the project file's codec takes only an exact `float`.
+    return float(
+        sum(1.0 / matrix[i][j] for i in range(count) for j in range(i + 1, count) if matrix[i][j])
     )
 
 
@@ -111,9 +120,12 @@ def platt_index(mol: Chem.Mol) -> int:
 def randic_index(mol: Chem.Mol) -> float:
     """Sum over bonds of 1/sqrt(deg(a)*deg(b)) -- the classic connectivity
     index (chi-1). Benzene 3.000, n-butane 1.914 (confirmed)."""
-    return sum(
-        1.0 / math.sqrt(bond.GetBeginAtom().GetDegree() * bond.GetEndAtom().GetDegree())
-        for bond in mol.GetBonds()
+    # `float(...)` for the reason `harary_index` gives: a molecule with no bond summed to the int 0.
+    return float(
+        sum(
+            1.0 / math.sqrt(bond.GetBeginAtom().GetDegree() * bond.GetEndAtom().GetDegree())
+            for bond in mol.GetBonds()
+        )
     )
 
 
@@ -243,6 +255,17 @@ def compute_topology_analysis(
     places = decimals(parameters)
     rings = ring_counts(mol)
     stereo = stereo_counts(mol)
+    # The eight graph indices, computed once: the line shows each rounded to the person's decimal places and the fact keeps the number itself (below).
+    indices = {
+        "Platt index": platt_index(mol),
+        "Randic index": randic_index(mol),
+        "Balaban index": float(Descriptors.BalabanJ(mol)),
+        "Harary index": harary_index(mol),
+        "Hyper Wiener index": hyper_wiener_index(mol),
+        "Wiener index": wiener_index(mol),
+        "Szeged index": szeged_index(mol),
+        "Wiener polarity": wiener_polarity(mol),
+    }
     lines = [
         f"Atom count: {mol.GetNumAtoms()}",
         f"Bond count: {mol.GetNumBonds()}",
@@ -260,19 +283,19 @@ def compute_topology_analysis(
         f"Fused ring count: {rings['fused_ring_count']}",
         f"Largest ring size: {rings['largest_ring_size']}",
         f"Smallest ring size: {rings['smallest_ring_size']}",
-        f"Platt index: {platt_index(mol)}",
-        f"Randic index: {randic_index(mol):.{places}f}",
-        f"Balaban index: {Descriptors.BalabanJ(mol):.{places}f}",
-        f"Harary index: {harary_index(mol):.{places}f}",
-        f"Hyper Wiener index: {hyper_wiener_index(mol)}",
-        f"Wiener index: {wiener_index(mol)}",
-        f"Szeged index: {szeged_index(mol)}",
-        f"Wiener polarity: {wiener_polarity(mol)}",
+        f"Platt index: {indices['Platt index']}",
+        f"Randic index: {indices['Randic index']:.{places}f}",
+        f"Balaban index: {indices['Balaban index']:.{places}f}",
+        f"Harary index: {indices['Harary index']:.{places}f}",
+        f"Hyper Wiener index: {indices['Hyper Wiener index']}",
+        f"Wiener index: {indices['Wiener index']}",
+        f"Szeged index: {indices['Szeged index']}",
+        f"Wiener polarity: {indices['Wiener polarity']}",
         f"Asymmetric atom count: {stereo['asymmetric_atom_count']}",
         f"Chiral center count: {stereo['chiral_center_count']}",
         f"Rotatable bond count: {rdMolDescriptors.CalcNumRotatableBonds(mol)}",
     ]
-    return report_from_fields(
+    report = report_from_fields(
         alert_id="topology_analysis",
         name="Topology Analysis",
         molecule_uuid=molecule_uuid,
@@ -280,6 +303,13 @@ def compute_topology_analysis(
         category="topology",
         provenance=Provenance(created_by="core", method="rdkit"),
     )
+    # **THE EIGHT INDICES CARRY THEIR NUMBER, AND NOTHING ELSE IN THE REPORT DOES YET.** Each fact's value was the text its line shows (`'6.11'`), which a derived score must not rest on: it
+    # would move with the decimal-places setting. The producer holds the number, so it hands it over, and the line, the label, the units and the cell's text do not move
+    # (`tests/test_topology_analysis_typed.py` holds them to a recording made before this change). The counts stay text because nothing reads them: four of them are always-on descriptors already
+    # (heavy atoms, rings, rotatable bonds, stereocentres) and the rest wait for somebody to want one in a score. An integer index stays an `int`, since it is one by construction (a
+    # count of pairs, paths or edges); a rounded Randic index reading `6` is not, which is why this types at the producer and no parser could do it.
+    facts = tuple(replace(fact, value=indices[fact.label]) if fact.label in indices else fact for fact in report.facts)
+    return replace(report, facts=facts)
 
 
 def compute_eccentricity_dataset(
