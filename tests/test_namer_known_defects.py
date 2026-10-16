@@ -4434,6 +4434,15 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "1-benzyl-4-{[3-chloro-5-(trifluoromethyl)pyridin-2-yl](hydroxyazaniumylidene)methyl}piperazin-1-ium",
      "[REFUSED: no name found that keeps every positive charge (the nearest name has a neutral hydroxyimino)]",
      "a visible refusal; one of two cations was written as a neutral hydroxyimino prefix"),
+    # D-275 (naming round 58): a stabilised carbanion (a carbon acid) on a ring the simple-carbon classifier refused. D-276 (the guard no longer takes an ester's `...oate` for an anion word) and
+    # D-277 (a cation parent fused with a suffix is refused; a thiosulfonate S-oxide cation is named as its sulfonium drawing) have no row: a refusal has no target name, and the sulfonium's name
+    # denotes a different drawing of the cation, which this table's SMILES comparison cannot hold.
+    ("D-275", "O=C1[CH-]C(=O)NC(=O)N1", "2,4,6-trioxo-1,3-diazinan-5-ide",
+     "[REFUSED: no name found that keeps the negative charge (the nearest name, '1,3-diazinane-2,4,6-trione', is the neutral compound's)]",
+     "a visible refusal; nothing claimed the carbon acid, so the plan search neutralised it"),
+    ("D-275", "O=C1[CH-]C(=O)c2ccccc12", "1,3-dioxo-2,3-dihydro-1H-inden-2-ide",
+     "[NAMING ERROR: No valid naming plan found for O=C1[CH-]C(=O)c2ccccc21]",
+     "a visible error; the carbanion's ring has a fused benzene, which the simple-carbon classifier excludes"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",

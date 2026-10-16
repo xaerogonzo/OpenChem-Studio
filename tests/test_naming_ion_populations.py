@@ -217,3 +217,22 @@ def test_a_quaternary_dication_methylates_the_first_base_and_protonates_the_seco
 
 def test_the_new_modes_are_listed():
     assert {"betaine", "quat_dication"} <= set(pop.MODES)
+
+
+# Round 58: carbon acids and a few more sites.
+def test_round_58_anion_sites():
+    assert _of_kind("anion", "CC(=O)CC(C)=O", "dicarbonyl_ch") == [_canon("CC(=O)[CH-]C(C)=O")]
+    assert _of_kind("anion", "N#CCC#N", "dinitrile_ch") == [_canon("N#C[CH-]C#N")]
+    assert _of_kind("anion", "CC(O)=CC", "enol") == [_canon("CC([O-])=CC")]
+    assert _of_kind("anion", "CNO", "hydroxylamine") == [_canon("C[NH][O-]")]
+    assert _of_kind("anion", "O=C1CCCS(=O)(=O)N1", "sultam") == [_canon("O=C1CCCS(=O)(=O)[N-]1")]
+    assert _of_kind("anion", "CNC(=O)OC", "carbamate") == [_canon("C[N-]C(=O)OC")]
+
+
+def test_a_carbon_acid_needs_both_acceptors():
+    assert _of_kind("anion", "CC(=O)CC", "dicarbonyl_ch") == []
+
+
+def test_a_thioether_sulfur_is_protonated_and_methylated():
+    assert _of_kind("cation", "CSC", "thioether_s") == [_canon("C[SH+]C")]
+    assert _of_kind("quaternary", "CSC", "thioether_s") == [_canon("C[S+](C)C")]
