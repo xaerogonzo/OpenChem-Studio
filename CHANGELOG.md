@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Docs: a plain-language guide to derived scores, a tour of what was built, and a sweep of stale claims
+- **The Derived Scores topic of the guide now starts with what a score is for and a worked example** (aspirin, ethanol and caffeine, from an empty project to a sorted column), in the in-app Help window. The example is a committed script driven through the real window
+  (`benchmarks/visual/scores_walkthrough.json`, 9 assertions), so every number in it is the application's own; writing it showed that "Run selected" needs a calculator ticked and that the table is empty until the run has finished.
+- **`docs/WHATS_NEW.md` is a dated tour** of the assistant's calculator bridge, the ORCA-optimised geometry rule, the Lewis pairing recipe and derived scores: what each is for, where it is in the application, what it does not do, and what is not built.
+- **The README had no row for any of them**; it has rows for derived scores, the assistant and the Lewis pairing now, and two "does not" rows. **The docs index left out 15 of the documents in the directory**; it lists them all.
+- **Stale claims fixed:** the ROADMAP said Phase 2 was "designed and not built", `RECIPES_DESIGN.md` said "Nothing in this document is built", the derived scores record's status stopped at slice 3 and the bridge record described five tools where there are eight. The architecture
+  document gained a section on where scores, recipes and the bridge sit, and the scientific limitations a section on derived scores.
+- **Geometry-based derived scores are decided and not built:** a score will read the conformer every calculation already gets, and the first outputs will be the ten shape descriptors. The record is in `docs/DERIVED_SCORES_DESIGN.md`; the build is the next pull request.
+
 ### Derived scores: ten of the topology counts can be read
 - **Ten of the Topology Analysis report's counts are numbers now, and a score may read them** (the 32nd to 41st approved outputs, all plain numbers): the bond count, the cyclomatic number, the ring atom and ring bond counts, the chain atom and chain
   bond counts, the carbo, hetero and fused ring counts and the asymmetric atom count, each an exact integer. The report's lines, labels, units and table-cell text do not move (the recording made before the indices were typed holds them). Left out,
