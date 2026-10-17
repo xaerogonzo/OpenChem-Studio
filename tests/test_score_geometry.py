@@ -484,3 +484,17 @@ def test_the_copy_guard_compares_outputs_of_one_input_only():
     assert [(a.output_id, b.output_id) for a, b in sweep_tool.identical_pairs([first, copy], both(copy))] == [(first.output_id, copy.output_id)]
     on_the_drawing = replace(copy, input=DRAWING)
     assert sweep_tool.identical_pairs([first, on_the_drawing], both(on_the_drawing)) == [], "a number of the drawing and of a conformer are two measurements even where they agree"
+
+
+@pytest.mark.parametrize(("conformers", "needle"), [(0, NEEDS_A_CONFORMER), (3, "not been calculated on this molecule's conformer yet")])
+def test_the_assistant_is_told_a_shape_score_needs_a_conformer_when_its_turn_has_none(conformers, needle):
+    """The turn froze how many conformers the molecule had; a score the assistant reads says "it needs a conformer" from that, and not only "not calculated"."""
+    from openchem.domain.score_reading import read_scores
+    from openchem.domain.turn_snapshot import build_turn_context
+
+    turn = build_turn_context(
+        project_uuid="p", molecule_uuid="m", display_name="Hexanol", canonical_smiles="CCCCCCO", heavy_atoms=7, has_structure=True,
+        conformer_count=conformers, fingerprints=_FP, records=[], fresh=[], scores=[_score()],
+    )
+    (value,) = read_scores(turn).values
+    assert value.status is ScoreStatus.REFUSED and needle in value.reason

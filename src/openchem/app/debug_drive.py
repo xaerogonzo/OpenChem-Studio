@@ -2604,7 +2604,11 @@ class _Driver(QObject):
 
         `{"do": "score_results", "focus": true, "which": "part of a label", "expect": {"entries": 1, "has_value": true, "value_between": [0, 1],
         "title_contains": ["(user-defined, unvalidated)"], "summary_contains": [], "facts_contain": [],
-        "evidence_contains": ["Formula:"], "reason_contains": [], "stored_as_results": 0, "defaulted": ["ob"]}}`
+        "evidence_contains": ["Formula:"], "evidence_excludes": [], "reason_contains": [], "stored_as_results": 0, "defaulted": ["ob"],
+        "differs_from": "before", "same_as": "before"}, "remember": "before"}`
+
+        `remember` keeps this step's value under a name, and a later step's `differs_from` / `same_as` compares its own value with it: how a script says "the score MOVED when the geometry
+        changed" and "undo put it back" without writing down a number the application computes.
 
         The READER, not the service. `focus` focuses the first score (what a person does by choosing it in the list), which
         is what makes the line above the facts and the fact rows the ones on screen, and what a `shot` of `results_reader`
@@ -2635,6 +2639,9 @@ class _Driver(QObject):
             molecule[:8], len(answers), "; ".join(a.name for a in answers), value,
             (first.error or "")[:160] if first is not None and not first.facts else "", summary[:200],
         )
+        remembered = self.__dict__.setdefault("_remembered_scores", {})
+        if step.get("remember") and value is not None:
+            remembered[str(step["remember"])] = float(value)
         expect = step.get("expect")
         if not expect:
             return
@@ -2662,9 +2669,19 @@ class _Driver(QObject):
         for needle in expect.get("evidence_contains", []):
             if not any(needle in line for line in evidence):
                 problems.append(f"no evidence line contains {needle!r}")
+        for needle in expect.get("evidence_excludes", []):
+            if any(needle in line for line in evidence):
+                problems.append(f"an evidence line contains {needle!r}, which it must not")
         for needle in expect.get("reason_contains", []):
             if first is None or needle not in (first.error or ""):
                 problems.append(f"the reason lacks {needle!r} (it reads {(first.error if first else None)!r})")
+        for key, same in (("differs_from", False), ("same_as", True)):
+            if key in expect:
+                other = remembered.get(str(expect[key]))
+                if other is None or value is None:
+                    problems.append(f"{key} {expect[key]!r}: nothing was remembered under that name, or this step has no value")
+                elif (abs(value - other) <= 1e-9 * max(1.0, abs(other))) is not same:
+                    problems.append(f"the value {value!r} {'differs from' if same else 'equals'} the remembered {expect[key]!r} ({other!r}), expected the opposite")
         if "defaulted" in expect:
             used = list(first.provenance.parameters.get("defaulted", [])) if first is not None and first.provenance is not None else None
             if used != list(expect["defaulted"]):

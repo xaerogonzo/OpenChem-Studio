@@ -893,7 +893,11 @@ knowing before touching it. Their design records are `docs/DERIVED_SCORES_DESIGN
   parsed by a hand-written parser that runs nothing (`domain/score_formula.py`), and evaluated every time it is shown against the molecule's
   CURRENT results, never stored (`services/score_service.py` makes, edits and reads; it never starts a calculation). It is not a registry
   calculator, so it is absent from the calculator list, the goals and the assistant's calculator search, by decision. The project table
-  computes a score column from the table's own cells, so a score there is only as current as the run that filled them.
+  computes a score column from the table's own cells, so a score there is only as current as the run that filled them. **An approved output is read
+  from one input its entry names** (`ApprovedOutput.input`): the drawing for nearly all, and for the ten shape descriptors the geometry of
+  `canonical_conformer`, current only while its fingerprint is that conformer's now. A geometry run records which conformer it measured
+  (`geometry_provenance`), and a project saved with a shape descriptor in an earlier unit has that copy dropped on open
+  (`DescriptorService.is_obsolete_result`) and measured again.
 - **A recipe is a plan whose steps read each other's typed outputs, and a recipe run is its own record** (`domain/recipe.py`,
   `domain/recipe_run.py`, a `recipe_runs` block in the project file, one write path in `ResultStoreService`). Staleness is derived when it
   is read and never flagged when it is written, and evaluating a recipe starts no calculation (`services/recipe_service.py`).
