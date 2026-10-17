@@ -4424,7 +4424,7 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "7-methyl-4H-pyrido[1,2-a]pyrimidin-4-on-1-ium-2-aminium",
      "UNREADABLE AS WRITTEN: the cation suffix outranks the curated ring's ketone, which is the prefix oxo"),
     # D-271 .. D-274 (naming round 57): an acylsulfonamide anion beside a cation, a sulfonamide/amide anion cited as a prefix, a protonated amidoxime beside a second cation, an O-protonated acylurea.
-    ("D-271", "NC(=O)[N-]S(=O)(=O)c1ccc(-c2[nH+]ccs2)cc1", "carbamoyl[4-(1,3-thiazol-3-ium-2-yl)benzene-1-sulfonyl]azanide",
+    ("D-271", "NC(=O)[N-]S(=O)(=O)c1ccc(-c2[nH+]ccs2)cc1", "carbamoyl[4-(1,3-thiazol-3-ium-2-yl)phenylsulfonyl]azanide",
      "[REFUSED: no name found that keeps the negative charge (the nearest name, '2-[4-(N-carbamoylsulfamoyl)phenyl]-1,3-thiazol-3-ium', names only the cation)]",
      "a visible refusal; the cation took the parent and the sulfonamide became a charge-free sulfamoyl prefix"),
     ("D-272", "NC(=O)[N-]S(=O)(=O)c1ccc([O-])cc1", "4-[(carbamoylazanidyl)sulfonyl]benzen-1-olate",
