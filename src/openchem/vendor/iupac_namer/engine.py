@@ -17529,6 +17529,9 @@ class SubstitutivePath:
                                 _extra_heavy = True
                         else:
                             _extra_heavy = True  # C or other atom in fragment
+                    # An O-PROTONATED ester carbonyl is no alkoxycarbonyl: that prefix is the neutral group's, and the charge was lost (naming round 62).
+                    if _keto_o is not None and mol.GetAtomWithIdx(_keto_o).GetFormalCharge() != 0:
+                        _extra_heavy = True
                     if (_keto_o is not None and _ester_o is not None
                             and not _extra_heavy):
                         role = "alkoxycarbonyl"
@@ -18524,6 +18527,9 @@ class SubstitutivePath:
                     atom_oxo = mol.GetAtomWithIdx(atom_idx_oxo)
                     _DOUBLE_BOND_PREFIXES_EXEC = {8: "oxo", 16: "thioxo", 34: "selenoxo", 52: "telluroxo", 7: "imino"}
                     prefix_name = _DOUBLE_BOND_PREFIXES_EXEC.get(atom_oxo.GetAtomicNum(), "oxo")
+                    if atom_oxo.GetFormalCharge() == 1 and atom_oxo.GetTotalNumHs() == 1 and atom_oxo.GetAtomicNum() in (8, 16):
+                        # an O- or S-PROTONATED carbonyl is cited as what it is (naming round 62)
+                        prefix_name = "oxidaniumylidene" if atom_oxo.GetAtomicNum() == 8 else "sulfaniumylidene"
                     sub_tree = LeafTree(
                         output_form=OutputForm.SUBSTITUENT,
                         free_valence=None,
