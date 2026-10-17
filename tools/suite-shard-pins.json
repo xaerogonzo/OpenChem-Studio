@@ -1466,6 +1466,7 @@
   "tests/test_orca_engine.py": 2,
   "tests/test_orca_landing_in_slot.py": 2,
   "tests/test_orca_led.py": 0,
+  "tests/test_orca_optimize_lowest_at_generation.py": 3,
   "tests/test_orca_parallel.py": 2,
   "tests/test_orca_scratch_path.py": 3,
   "tests/test_orca_surfaces.py": 2,

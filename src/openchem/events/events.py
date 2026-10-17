@@ -257,6 +257,10 @@ class ConformerJobStateChanged(Event):
 class ConformersReady(Event):
     molecule_uuid: str
     conformers: list[ConformerModel]
+    #: The person asked, in the Generate Conformers window, for the lowest-energy conformer of THIS generation to be
+    #: ORCA-optimized as soon as the set is installed. It travels with the set it belongs to (rather than being a
+    #: window setting read later) so the answer cannot change between asking and the conformers arriving.
+    optimize_lowest: bool = False
 
 
 @dataclass(frozen=True)

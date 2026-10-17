@@ -115,6 +115,7 @@ from openchem.services.result_store_service import SUBSTANCE_PART
 from openchem.ui.widgets.help_tooltip import apply_help_tooltip
 from openchem.ui.dialogs.about_dialog import AboutDialog
 from openchem.ui.dialogs.settings_dialog import EXTERNAL_TOOLS, PANELS, SettingsDialog
+from openchem.ui.dialogs.conformer_options_dialog import OrcaGenerationOffer
 from openchem.ui.dialogs.help_dialog import HelpDialog
 from openchem.ui.dialogs.periodic_table_dialog import PeriodicTableDialog
 from openchem.ui.dialogs.structure_lookup_dialog import StructureLookupDialog
@@ -656,6 +657,8 @@ class MainWindow(QMainWindow):
         self._viewer3d.conformer_adopted.connect(self._adopt_conformer)
         # The way to ORCA from the conformers -- see `_on_orca_optimize_requested`.
         self._viewer3d.orca_optimize_requested.connect(self._on_orca_optimize_requested)
+        # What "also ORCA-optimize the lowest-energy conformer" would run with, asked when the Generate window opens.
+        self._viewer3d.set_orca_offer_provider(self._orca_generation_offer)
         self._jobs_panel = JobsPanel(services.job_manager, self)
         self._structure_check_panel = StructureCheckPanel(
             services.structure_check_service,
@@ -5036,6 +5039,49 @@ class MainWindow(QMainWindow):
             molecule, conformers, self._services.event_bus, kept=len(conformers) - len(event.conformers)
         )
         self._undo_stack.push(command)
+        if event.optimize_lowest:
+            self._optimize_lowest_generated(molecule, event.conformers)
+
+    def _orca_generation_offer(self, molecule) -> OrcaGenerationOffer:
+        """What the Generate Conformers window can promise about the optional ORCA step for `molecule`."""
+        if molecule is None:
+            return OrcaGenerationOffer(False, "Select a molecule first.")
+        if self._services.quantum_chemistry_service.orca_executable() is None:
+            return OrcaGenerationOffer(
+                False, "ORCA is not set up. Choose its executable in Settings > External Tools to enable this."
+            )
+        ok, text = self._quantum_chemistry_panel.optimization_offer(molecule)
+        return OrcaGenerationOffer(ok, text)
+
+    def _optimize_lowest_generated(self, molecule: MoleculeModel, generated: list) -> None:
+        """The Generate Conformers window's "also ORCA-optimize the lowest-energy conformer", once the set is in.
+
+        **LOWEST OF THE CONFORMERS JUST GENERATED**, by force-field energy: the ORCA geometries the molecule keeps
+        from an earlier run have no force-field energy to compare, and `canonical_conformer` (which prefers them)
+        is exactly the wrong question here. The run is the Quantum Chemistry panel's own Run on that conformer, so
+        its slot is recorded and the optimized geometry replaces it where it stands. **Whatever stops it is said in
+        the status bar**: the conformers are installed either way, and a person who ticked the box and sees no job
+        has to be told why.
+        """
+        ranked = [(c.energy, index) for index, c in enumerate(generated) if c.energy is not None]
+        if not ranked:
+            self.statusBar().showMessage(
+                "Conformers generated. None of them has an energy, so there is no lowest one to ORCA-optimize.", 12000
+            )
+            return
+        lowest = generated[min(ranked)[1]]
+        reason = self._quantum_chemistry_panel.start_optimization(molecule.uuid, lowest.conformer_id)
+        if reason:
+            self.statusBar().showMessage(
+                f"Conformers generated. The lowest-energy one was not ORCA-optimized: {reason}", 15000
+            )
+            return
+        slot = next(i for i, c in enumerate(molecule.conformers) if c.conformer_id == lowest.conformer_id) + 1
+        self.statusBar().showMessage(
+            f"Conformers generated. ORCA is optimizing conformer {slot} of {len(molecule.conformers)}, the "
+            "lowest in energy; follow or cancel it in the Jobs panel.",
+            15000,
+        )
 
     def _on_conformers_changed(self, event: ConformersChanged) -> None:
         # Fires after SetConformersCommand/AddConformerCommand redo AND

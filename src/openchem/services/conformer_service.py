@@ -90,9 +90,11 @@ class _ConformerGenerationTask(QRunnable):
         progress: ProgressHandle,
         num_embeddings: int | None = None,
         options: GenerationOptions | None = None,
+        optimize_lowest: bool = False,
     ) -> None:
         super().__init__()
         self._provider = provider
+        self._optimize_lowest = bool(optimize_lowest)
         self._engine = engine
         self._model = model
         # Two different numbers, and conflating them is what made the UI
@@ -347,7 +349,11 @@ class _ConformerGenerationTask(QRunnable):
                     drawing_fingerprint=drawing_fingerprint if ids is not None else None,
                 )
             )
-        self._event_bus.publish(ConformersReady(molecule_uuid=self._model.uuid, conformers=conformers))
+        self._event_bus.publish(
+            ConformersReady(
+                molecule_uuid=self._model.uuid, conformers=conformers, optimize_lowest=self._optimize_lowest
+            )
+        )
         # Say so when fewer came back than were asked for, rather than
         # leaving the user to notice "Conformer 1/1" after requesting ten
         # and conclude something failed. Fewer is the correct answer for a
@@ -455,6 +461,7 @@ class ConformerService:
         provider_id: str = "rdkit",
         num_embeddings: int | None = None,
         options: GenerationOptions | None = None,
+        optimize_lowest: bool = False,
     ) -> None:
         """`num_conformers` is how many distinct conformers to KEEP;
         `num_embeddings` is how many random embeddings to try in order to
@@ -507,6 +514,7 @@ class ConformerService:
                 progress,
                 num_embeddings=num_embeddings,
                 options=options,
+                optimize_lowest=optimize_lowest,
             )
         )
 
