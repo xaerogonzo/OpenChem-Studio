@@ -51,8 +51,8 @@ from openchem.domain.refusal_kinds import REFUSAL_KEY, RefusalKind, refusal_para
 from openchem.domain.score_answer import LIMITATION, REFUSAL_CODE, SIGNIFICANT_DIGITS
 from openchem.domain.score_definition import ON_MISSING_DEFAULT, VALIDATION, ScoreDefinition
 from openchem.domain.score_formula import Refusal
-from openchem.domain.score_outputs import accept_value, approved_output, output_title
-from openchem.domain.score_value import InputState, OutputRead, ScoreStatus, ScoreValue, evaluate_score_with
+from openchem.domain.score_outputs import READ_FROM, accept_value, approved_output, output_title
+from openchem.domain.score_value import InputState, OutputRead, ScoreStatus, ScoreValue, evaluate_score_with, geometry_text
 
 #: The column group a score column is listed under in the table's "Columns" menu.
 CATEGORY = "Derived scores"
@@ -98,7 +98,9 @@ def read_cell_output(output_id: str, table: BatchTable, molecule_uuid: str) -> O
     except Refusal as exc:
         state = InputState.UNIT if column.units != output.carried_as else InputState.NOT_A_NUMBER
         return OutputRead(state, carried_as=column.units, note=exc.reason)
-    return OutputRead(InputState.READ, number, column.units)
+    # A geometry cell is stamped with the conformer the run measured it on, and the hover says which: a table is a snapshot, so this is the conformer of THAT run.
+    where = geometry_text(cell.provenance.parameters if cell.provenance is not None else None) if output.input != READ_FROM else ""
+    return OutputRead(InputState.READ, number, column.units, geometry=where)
 
 
 def _placeholder_id(output_id: str) -> str:
@@ -178,6 +180,7 @@ def _number(value: float) -> str:
 def _inputs_said(value: ScoreValue) -> str:
     return "; ".join(
         f"{item.name} = {item.value:.6g}{' ' + item.carried_as if item.carried_as else ''}{' (a default; not computed in this run)' if item.state is InputState.DEFAULT else ''}"
+        f"{' (measured on ' + item.geometry + ')' if item.geometry else ''}"
         for item in value.inputs
         if item.state in (InputState.READ, InputState.DEFAULT)
     )

@@ -36,7 +36,7 @@ from dataclasses import dataclass, replace
 from PySide6.QtCore import QRunnable, QThreadPool
 
 from openchem.chem.descriptor_providers import RDKitDescriptorProvider, geometric_descriptor_ids_of
-from openchem.chem.calculation_input import resolve_calculation_input
+from openchem.chem.calculation_input import geometry_provenance, resolve_calculation_input
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.calculator import DRAWING, GEOMETRY, CalculationRefusal
 from openchem.domain.refusal_kinds import refusal_parameters
@@ -306,7 +306,9 @@ class _BatchTask(QRunnable):
                 if v.descriptor_id in geometric else v
                 for v in values
             ]
-        return [measured.get(v.descriptor_id, v) if v.descriptor_id in geometric else v for v in values]
+        # Stamped with the conformer it was measured on, as a stored geometry result is (`geometry_provenance`), so the table's score hover can name it. The provider's own keys win a collision.
+        stamp = geometry_provenance(molecule, GEOMETRY)
+        return [_stamped(measured[v.descriptor_id], stamp) if v.descriptor_id in geometric and v.descriptor_id in measured else v for v in values]
 
     def _run_alerts(self, table: BatchTable, molecule: MoleculeModel, drawing, provider, wanted: set[str]) -> None:
         try:
@@ -404,6 +406,13 @@ class _BatchTask(QRunnable):
             ):
                 table.add_column(column)
                 table.set_cell(molecule.uuid, column.column_id, cell)
+
+
+def _stamped(value, stamp: dict):
+    """`value` with `stamp` merged into its provenance, the provider's own keys winning a collision. A value with no provenance is returned as it is."""
+    if value.provenance is None:
+        return value
+    return replace(value, provenance=replace(value.provenance, parameters={**stamp, **value.provenance.parameters}))
 
 
 def _status_column() -> BatchColumn:

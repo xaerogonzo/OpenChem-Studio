@@ -43,6 +43,10 @@ from openchem.plugins.calculation_access import PluginCalculations
 #: The most characters a tool reply may have. A model reads every one of them on every later request.
 REPLY_BUDGET = 12000
 
+#: The budget of `list_score_outputs` alone. The approved table is fixed knowledge the model reads once to propose a score, and with the ten shape outputs (51 rows, 2026-10-17) it no longer fit
+#: the general budget: the stepped caps dropped the last rows, so the model could not name them. Raised for this one reply and not for the others, which are read in full on every later request.
+SCORE_OUTPUTS_BUDGET = 16000
+
 #: How many calculators one search returns at most, whatever the model asks for.
 MAX_SEARCH = 30
 
@@ -202,7 +206,7 @@ class ToolBridge:
     def list_score_outputs(self) -> str:
         """What a score's formula may read. Fixed knowledge: it reads nothing of the user's molecule."""
         outputs = self._calculations.list_score_outputs()
-        return bounded_json(lambda caps: score_outputs_envelope(outputs, caps))
+        return bounded_json(lambda caps: score_outputs_envelope(outputs, caps), SCORE_OUTPUTS_BUDGET)
 
     def propose_score(self, request: dict[str, Any]) -> str:
         """Check a request for a score and leave it for the person to approve. **Stores nothing**, and has no way to: the approving is on an object this bridge is never given."""

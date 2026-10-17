@@ -140,7 +140,7 @@ class ResultStoreService:
         self._on_recorded: list[Callable[[str], None]] = []
         #: Says of a stored result that no build records it any more, so a file that holds one
         #: must not replay it. Set by whoever knows what the producers make
-        #: (`DescriptorService.is_misfiled_geometry_result`); None drops nothing.
+        #: (`DescriptorService.is_obsolete_result`); None drops nothing.
         self._is_obsolete: Callable[[StoredResult], bool] | None = None
         event_bus.subscribe(ResultRecorded, self._on_result_recorded)
         event_bus.subscribe(AutomaticPartFinished, self._on_part_finished)
