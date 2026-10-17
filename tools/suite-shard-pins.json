@@ -1608,6 +1608,7 @@
   "tests/test_score_formula_guard.py": 1,
   "tests/test_score_formula_oracle.py": 1,
   "tests/test_score_geometry.py": 0,
+  "tests/test_score_geometry_sizes.py": 1,
   "tests/test_score_outputs.py": 0,
   "tests/test_score_persistence.py": 0,
   "tests/test_score_proposal.py": 3,
