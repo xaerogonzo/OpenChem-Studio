@@ -112,6 +112,7 @@ def test_the_stored_keys_are_stable_names():
         "drawing/bond_click_cycle",
         "conformers/early_stop_kept_set",
         "conformers/keep_quantum_optimized",
+        "conformers/orca_optimize_lowest",
     }
 
 

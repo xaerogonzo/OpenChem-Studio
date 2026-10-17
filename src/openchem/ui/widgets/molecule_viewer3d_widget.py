@@ -28,7 +28,7 @@ from openchem.events.events import (
 )
 from openchem.services.conformer_service import ConformerService
 from openchem.services.measurement_service import MeasurementService
-from openchem.app.settings import CONFORMER_EARLY_STOP, CONFORMER_MAX_EMBEDDINGS
+from openchem.app.settings import CONFORMER_EARLY_STOP, CONFORMER_MAX_EMBEDDINGS, CONFORMER_OPTIMIZE_LOWEST
 from openchem.ui.dialogs.conformer_options_dialog import ConformerOptionsDialog
 from openchem.ui.viewer_backend import ViewerBackend
 from openchem.ui.visualization import (
@@ -355,6 +355,10 @@ class MoleculeViewer3DWidget(QWidget):
         super().__init__(parent)
         #: Settings > Conformers; None for a bare widget, which then uses the documented budget.
         self._settings = settings
+        #: Asked, when the Generate Conformers window is built, what "also ORCA-optimize the lowest-energy
+        #: conformer" would do for the molecule on screen. Supplied by the application window (it alone sees the
+        #: ORCA install and the Quantum Chemistry panel); None for a bare widget, which then offers nothing.
+        self._orca_offer_provider = None
         self._init_state(conformer_service, measurement_service, spatial_overlay_service)
         self._init_backend(backend)
         self._build_controls()
@@ -635,6 +639,14 @@ class MoleculeViewer3DWidget(QWidget):
     def _on_generate_clicked(self) -> None:
         self.generate_conformers()
 
+    def set_orca_offer_provider(self, provider) -> None:
+        """`provider(molecule) -> OrcaGenerationOffer`: what the optional ORCA step would be for that molecule.
+
+        A bound method of the application window, so it is looked up each time the Generate window is built and
+        never describes the Quantum Chemistry panel as it was at start-up.
+        """
+        self._orca_offer_provider = provider
+
     def generate_conformers(self) -> None:
         """Ask for conformers, from wherever the user started.
 
@@ -660,6 +672,7 @@ class MoleculeViewer3DWidget(QWidget):
             optimize=True,
             num_embeddings=dialog.embeddings_to_try(),
             options=dialog.options(),
+            optimize_lowest=dialog.optimize_lowest(),
         )
 
     def options_dialog(self):
@@ -670,12 +683,15 @@ class MoleculeViewer3DWidget(QWidget):
         rule. Public because a driven run must reach the same decisions the button does, and a step must not `exec()`
         the dialog.
         """
+        offer = self._orca_offer_provider(self._molecule) if self._orca_offer_provider is not None else None
         if self._settings is None:
-            return ConformerOptionsDialog(self)
+            return ConformerOptionsDialog(self, orca_offer=offer)
         return ConformerOptionsDialog(
             self,
             automatic_embeddings=int(self._settings.preference(CONFORMER_MAX_EMBEDDINGS)),
             early_stop=bool(self._settings.preference(CONFORMER_EARLY_STOP)),
+            orca_offer=offer,
+            optimize_lowest=bool(self._settings.preference(CONFORMER_OPTIMIZE_LOWEST)),
         )
 
     def _on_conformers_changed(self, event: ConformersChanged) -> None:

@@ -930,11 +930,14 @@ def test_generate_conformers_asks_with_the_ceiling_from_settings(qapp, monkeypat
             return [c.molblock for c in molecule.conformers]
 
     class _Dialog:
-        def __init__(self, parent=None, automatic_embeddings=1000, early_stop=False):
+        def __init__(self, parent=None, automatic_embeddings=1000, early_stop=False, **_what_the_window_adds):
             self._n = automatic_embeddings
 
         def exec(self):
             return module.QDialog.DialogCode.Accepted
+
+        def optimize_lowest(self):
+            return False
 
         def conformers_to_keep(self):
             return 30
@@ -1022,11 +1025,14 @@ def test_the_experimental_stop_rule_reaches_the_dialog_only_when_ticked(qapp, mo
             return [c.molblock for c in molecule.conformers]
 
     class _Dialog:
-        def __init__(self, parent=None, automatic_embeddings=1000, early_stop=False):
+        def __init__(self, parent=None, automatic_embeddings=1000, early_stop=False, **_what_the_window_adds):
             built.append(early_stop)
 
         def exec(self):
             return module.QDialog.DialogCode.Accepted
+
+        def optimize_lowest(self):
+            return False
 
         def conformers_to_keep(self):
             return 20
