@@ -918,3 +918,92 @@ def test_the_real_windows_presets_menu_offers_what_the_scores_read_and_it_ticks_
     _drain(qapp)
     table = window._results_workspace.table_view.table()
     assert any(c.source == "score" and c.label.startswith("Oxidation window") for c in table.columns)
+
+
+# --- a score over a shape descriptor: read from the conformer every calculation uses ----------------------------------------------------------
+
+
+_RG = "descriptor:radius_of_gyration"
+
+
+def _radius(window, conformer) -> float:
+    from rdkit.Chem import Descriptors3D
+
+    return Descriptors3D.RadiusOfGyration(window._services.chemistry_engine.mol_from_molblock(conformer.molblock))
+
+
+def _shape_score(window):
+    """`2 * rg`, in Å, under the label the other tests in this file read the reader by."""
+    return _make(window, formula="2 * rg", result_unit="Å", inputs=[("rg", _RG)])
+
+
+def test_a_shape_cell_in_the_table_names_the_conformer_it_was_measured_on_and_the_score_reads_it(window, pair, qapp):
+    from openchem.domain.score_table import read_cell_output, score_value_in_table
+
+    aspirin, ethanol = pair
+    _select(window, qapp, aspirin)
+    _with_a_conformer(window, qapp, aspirin)
+    made = _shape_score(window)
+    event = _run_batch(window, qapp, [aspirin, ethanol], ["radius_of_gyration"], [])
+    conformer = aspirin.conformers[0]
+
+    cell = event.table.cell(aspirin.uuid, _RG)
+    assert cell.provenance.parameters["input_conformer_id"] == conformer.conformer_id, "the cell is stamped with the conformer the run measured"
+    read = read_cell_output(_RG, event.table, aspirin.uuid)
+    assert read.geometry.startswith("conformer 1 (id ") and conformer.conformer_id[:8] in read.geometry
+    value = score_value_in_table(made, event.table, aspirin.uuid)
+    assert value.value == pytest.approx(2 * _radius(window, conformer), rel=1e-9)
+    assert conformer.conformer_id[:8] in value.inputs[0].geometry
+
+
+def test_a_molecule_with_no_conformer_has_no_shape_number_in_the_table_and_its_score_row_says_why(window, pair, qapp):
+    from openchem.domain.score_table import score_value_in_table
+    from openchem.domain.score_value import ScoreStatus
+
+    aspirin, ethanol = pair
+    _select(window, qapp, aspirin)
+    _with_a_conformer(window, qapp, aspirin)
+    made = _shape_score(window)
+    event = _run_batch(window, qapp, [aspirin, ethanol], ["radius_of_gyration"], [])
+    assert not ethanol.conformers
+    value = score_value_in_table(made, event.table, ethanol.uuid)
+    assert value.status is ScoreStatus.REFUSED and value.value is None
+    assert "conformer" in value.reason.lower(), "the producer's own refusal, which says what to do: generate one"
+    assert score_value_in_table(made, event.table, aspirin.uuid).status is ScoreStatus.VALUE
+
+
+def test_the_reader_follows_an_orca_optimized_geometry_landing_and_its_undo(window, pair, qapp):
+    """The consequence the design record names, in the real window: a geometry lands as the newest ORCA conformer, the conformer every calculation uses changes, the shape
+    descriptors are measured on it by themselves, and the score reads the new number, naming the new conformer. Undo puts the first one back and the score with it."""
+    from rdkit import Chem  # noqa: F401 - the engine owns parsing; this keeps the test's own measurement independent of the score path
+
+    from openchem.chem.conformer_providers import RDKitConformerProvider
+    from openchem.commands.conformer_commands import AddConformerCommand
+    from openchem.domain.conformer import ORCA_OPTIMIZED, ConformerModel
+
+    aspirin, _ethanol = pair
+    engine = window._services.chemistry_engine
+    _select(window, qapp, aspirin)
+    _with_a_conformer(window, qapp, aspirin)
+    _shape_score(window)
+    _drain(qapp)
+    first = aspirin.conformers[0]
+    before = _report(window).facts[0].value
+    assert before == pytest.approx(2 * _radius(window, first), rel=1e-9)
+
+    candidates = RDKitConformerProvider(random_seed=5).generate_conformers(engine.mol_from_model(aspirin), num_conformers=4, optimize=True)
+    blocks = [engine.mol_to_molblock(mol) for mol, _energy in candidates]
+    other = max(blocks, key=lambda block: abs(_radius(window, ConformerModel(molblock=block)) - _radius(window, first)))
+    optimized = ConformerModel(molblock=other, energy=None, method=ORCA_OPTIMIZED)
+    assert abs(_radius(window, optimized) - _radius(window, first)) > 1e-3, "the premise: the optimized geometry is a different size"
+
+    window._undo_stack.push(AddConformerCommand(aspirin, optimized, window._services.event_bus))
+    _drain(qapp)
+    fact = _report(window).facts[0]
+    assert fact.value == pytest.approx(2 * _radius(window, optimized), rel=1e-9)
+    assert fact.value != pytest.approx(before, abs=1e-3)
+    assert any(optimized.conformer_id[:8] in line for line in fact.evidence), "the evidence names the conformer it read"
+
+    window._undo_stack.undo()
+    _drain(qapp)
+    assert _report(window).facts[0].value == pytest.approx(before, rel=1e-9)

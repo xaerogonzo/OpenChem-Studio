@@ -16,6 +16,7 @@ from openchem.chem.calculation_input import (
     resolve_calculation_input,
 )
 from openchem.chem.descriptor_providers import (
+    SHAPE_DESCRIPTOR_UNITS,
     DescriptorProvider,
     RDKitDescriptorProvider,
     geometric_descriptor_ids_of,
@@ -217,6 +218,10 @@ class _DescriptorComputeTask(QRunnable):
             for value in values:
                 if self._only is not None and value.descriptor_id not in self._only:
                     continue
+                if self._calculation_input != DRAWING:
+                    # A geometry run says WHICH conformer it measured (`geometry_provenance`: id, position, energy, force field), as a calculator's result on a conformer does, so a score
+                    # over a shape descriptor can name the conformer it read. The identity key does not depend on it (`make_identity` takes its parameters explicitly).
+                    value = _with_geometry_provenance(value, self._model, self._calculation_input)
                 self._show(value.descriptor_id, value)
                 self._record(value)
 
@@ -784,6 +789,26 @@ class DescriptorService:
         if isinstance(stored.result, DescriptorValue):
             return stored.result.descriptor_id not in geometric_descriptor_ids_of(provider)
         return isinstance(stored.result, (AlertResult, PerAtomDataset))
+
+    def is_unit_superseded_shape_result(self, stored: StoredResult) -> bool:
+        """True for a saved shape descriptor that carries a unit string this build no longer declares for it.
+
+        **WHAT AN EARLIER BUILD LEFT IN SAVED PROJECTS.** It declared no unit for the three principal moments and the
+        inertial shape factor, which are not dimensionless (amu*Å^2 and its inverse), so a project saved then holds those
+        four with an empty unit. A score over one refuses such a copy by the unit rule, and Properties would show a
+        number with no unit beside the same descriptor measured now with one. Dropped when the project is opened, the
+        shape descriptors it has no copy of are measured again when the molecule is selected
+        (`request_missing_geometric_descriptors`), and nothing is converted or rewritten: the number is measured again.
+        """
+        result = stored.result
+        if not isinstance(result, DescriptorValue) or stored.identity.producer != RDKitDescriptorProvider.provider_id:
+            return False
+        declared = SHAPE_DESCRIPTOR_UNITS.get(result.descriptor_id)
+        return declared is not None and result.units != declared
+
+    def is_obsolete_result(self, stored: StoredResult) -> bool:
+        """Whether an opened project's saved result is one no build records now: a descriptor filed where no run files it, or one in a unit this build no longer uses."""
+        return self.is_misfiled_geometry_result(stored) or self.is_unit_superseded_shape_result(stored)
 
     def request_descriptors(
         self,
