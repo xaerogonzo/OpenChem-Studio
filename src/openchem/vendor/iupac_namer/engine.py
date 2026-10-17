@@ -618,7 +618,7 @@ def _name_ring_nitrogen_acyl_substituent(
     oxygen = ring_n = None
     for bond in carbonyl.GetBonds():
         other = bond.GetOtherAtom(carbonyl)
-        if other.GetAtomicNum() == 8 and bond.GetBondTypeAsDouble() == 2.0 and other.GetDegree() == 1:
+        if other.GetAtomicNum() == 8 and bond.GetBondTypeAsDouble() == 2.0 and other.GetDegree() == 1 and other.GetFormalCharge() == 0:   # an O-PROTONATED one is no `-carbonyl` (round 63)
             oxygen = other
         elif other.GetAtomicNum() == 7 and bond.GetBondTypeAsDouble() == 1.0 and other.IsInRing() and other.GetFormalCharge() == 0:
             ring_n = other
@@ -18530,6 +18530,8 @@ class SubstitutivePath:
                     if atom_oxo.GetFormalCharge() == 1 and atom_oxo.GetTotalNumHs() == 1 and atom_oxo.GetAtomicNum() in (8, 16):
                         # an O- or S-PROTONATED carbonyl is cited as what it is (naming round 62)
                         prefix_name = "oxidaniumylidene" if atom_oxo.GetAtomicNum() == 8 else "sulfaniumylidene"
+                    elif atom_oxo.GetFormalCharge() == 1 and atom_oxo.GetTotalNumHs() == 2 and atom_oxo.GetAtomicNum() == 7:
+                        prefix_name = "azaniumylidene"      # an amidinium's =[NH2+] is no neutral `imino` (naming round 63)
                     sub_tree = LeafTree(
                         output_form=OutputForm.SUBSTITUENT,
                         free_valence=None,
