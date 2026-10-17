@@ -58,10 +58,14 @@ KEPT = [
     ("an ammonium salt", "CC[NH3+].[Cl-]", "ethanaminium chloride"),
     ("a sodium carboxylate", "[Na+].CC(=O)[O-]", "sodium acetate"),
     ("a pyridinium salt", "c1cc[nH+]cc1.[Cl-]", "pyridin-1-ium chloride"),
-    ("a bare ion is not judged (a hydron has no heavy atom)", "[H+].[Cl-]", "hydron chloride"),
 ]
 
 ALL = NAMED + KEPT
+
+
+def test_a_bare_ion_is_not_judged():
+    # a hydron has no heavy atom and a name with no cation word (`hydron chloride`); the fragment check leaves a one-atom ion to the retained-name leaf
+    assert name_smiles("[H+].[Cl-]") == "hydron chloride"
 
 
 @pytest.mark.parametrize("label,smiles,expected", ALL, ids=[row[0] for row in ALL])
