@@ -71,7 +71,7 @@ def read_scores(turn: TurnContext, names: Iterable[str] | None = None, *, limit:
     return ScoresView(
         turn_id=turn.turn_id,
         molecule_uuid=turn.molecule_uuid,
-        values=tuple(evaluate_score(definition, turn.entries) for definition in shown),
+        values=tuple(evaluate_score(definition, turn.entries, turn.conformer_count) for definition in shown),
         not_found=tuple(missing),
         truncated=max(0, len(chosen) - limit),
         defined=len(definitions),

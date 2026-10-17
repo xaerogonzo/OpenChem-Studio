@@ -29,6 +29,7 @@ from openchem.domain.common import CacheState, Provenance
 from openchem.domain.refusal_kinds import RefusalKind, refusal_parameters
 from openchem.domain.report import Basis, Fact, FactCategory, ReportResult
 from openchem.domain.score_definition import VALIDATION
+from openchem.domain.score_outputs import READ_FROM
 from openchem.domain.score_value import InputEvidence, InputState, ScoreStatus, ScoreValue
 
 #: The one limitation every score carries, in these words, because it is what a person reading the number most needs to be told.
@@ -74,9 +75,16 @@ def _input_line(item: InputEvidence) -> str:
     unit = f" {item.carried_as}" if item.carried_as else ""
     if item.state is InputState.DEFAULT:
         return f"{item.name} = {item.value:.6g}{unit}   [A DEFAULT of this definition: {item.output_id} was not calculated for this molecule, so this is not a result]"
-    # "Computed on the drawing" is said because the reader beside it can show a conformer's number for the same descriptor (the always-on descriptors are stored
-    # for both, and 7 of the 17 approved ones differ between the two), and a person comparing the two should know which this score read.
-    return f"{item.name} = {item.value:.6g}{unit}   [{item.output_id}; read from the stored result {item.result_id}, computed on the drawing]"
+    # Which structure is said because the same descriptor can have a number of the drawing and of a conformer (the always-on descriptors were stored for both, and 7 of the 17
+    # approved ones differed between the two), and a person comparing the reader beside it should know which this score read.
+    return f"{item.name} = {item.value:.6g}{unit}   [{item.output_id}; read from the stored result {item.result_id}, computed on {_computed_on(item)}]"
+
+
+def _computed_on(item: InputEvidence) -> str:
+    """The structure an input was measured on: the drawing, or the conformer (named when the result recorded which)."""
+    if item.calculation_input != READ_FROM:
+        return item.geometry or "the conformer every calculation uses (which one was not recorded)"
+    return "the drawing"
 
 
 def _defaulted_said(value: ScoreValue) -> str:

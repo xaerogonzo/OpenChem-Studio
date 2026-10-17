@@ -138,7 +138,7 @@ The honest version of a comparison table: this one is about our own software.
 | Solvent-dependent pKa | needs a QM/COSMO-RS-scale undertaking |
 | Missing-residue repair | measured and rejected — unsafe near a binding site |
 | macOS / Linux packaging | untested; source install may work, unverified |
-| Derived scores over 3D numbers (the shape descriptors) | the rule is decided (the conformer every calculation already gets) and not built, so a score reads the drawing's numbers today |
+| Derived scores over other 3D numbers (force-field energies, size and projection numbers, torsions) | not offered: the ten shape descriptors are, read from the conformer every calculation uses |
 | The assistant starting an ORCA or Vina job | it describes the job and a person starts it from its panel |
 | Crystal structure prediction — a lattice from a drawing or a SMILES | an open research problem, not a missing menu item: real polymorphs sit under 1 kJ/mol apart, below the error of the methods ranking them. A crystal enters only as a measured structure |
 

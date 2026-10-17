@@ -534,11 +534,12 @@ def test_the_strip_of_cards_stays_while_another_proposal_still_waits(rig):
 
 
 def test_the_whole_list_of_outputs_fits_the_reply_budget_with_room_to_grow():
-    """A row is about 215 bytes, so the 12000-character budget holds about 55 outputs before the stepped caps shrink the list and the model stops seeing the last ones. This goes red first, so the approval
-    that would cross the budget is a decision about the budget and not a silent omission."""
-    from ai_assistant.bridge import REPLY_BUDGET
+    """A row is about 215 bytes. The ten shape outputs took the table past what the general 12000-character budget holds, and the stepped caps then dropped the last rows, so `list_score_outputs` has a
+    budget of its own. This goes red first, so the approval that would cross THAT budget is a decision about the budget and not a silent omission."""
+    from ai_assistant.bridge import REPLY_BUDGET, SCORE_OUTPUTS_BUDGET
 
     full = score_outputs_envelope(APPROVED, FULL)
     size = len(json.dumps(full))
     assert full["left_out_for_length"] == 0
-    assert size < REPLY_BUDGET * 0.85, f"{len(APPROVED)} outputs take {size} of {REPLY_BUDGET} characters: shorten a row or raise the budget before approving more"
+    assert SCORE_OUTPUTS_BUDGET > REPLY_BUDGET, "this reply's budget is the larger one, on purpose"
+    assert size < SCORE_OUTPUTS_BUDGET * 0.85, f"{len(APPROVED)} outputs take {size} of {SCORE_OUTPUTS_BUDGET} characters: shorten a row or raise the budget before approving more"

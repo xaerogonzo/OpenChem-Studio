@@ -2063,6 +2063,11 @@ Descriptors calculator's RDKit aromatic ring count is the one offered). The cycl
 on cages such as cubane), so a formula can read one of each pair and not both.
 From the BBB Score Descriptors calculator it offers the aromatic ring count (RDKit's count: a score over it has no number after you compute the calculator on the major microspecies, and says so). That calculator's other numbers
 are not offered: two are always-on properties already, and the rest have a unit a score cannot be written in or come from an optional tool.
+From the always-on properties it also offers the ten shape descriptors: the radius of gyration, the plane of best fit, the asphericity, the spherocity index, the two normalised moment ratios (NPR1 and NPR2), the three principal moments of inertia
+and the inertial shape factor. These are measured on a conformer, and a score reads them from the one every calculation uses: the newest ORCA-optimized geometry, otherwise the lowest force-field energy. The score's evidence names that conformer, and
+the project table's hover names the one its run measured. A molecule with no conformer has no number for them, and the score says it needs one (generate conformers first). When that conformer changes, because you generated again or an ORCA
+optimization landed, the old number is refused as "calculated for an earlier geometry of this molecule" until the shape descriptors have been measured again, which happens by itself, and the score then follows the new geometry. A principal moment
+is in amu·Å² and the inertial shape factor in 1/(amu·Å²), so a formula cannot add a moment to a ratio, and nothing is converted. A project saved by an earlier version had those four without a unit: they are measured again when you open it.
 
 **Today a score reads the drawing's numbers only.** A number that exists only for a 3D conformer (the shape descriptors, for
 instance) is not offered yet. How it will be read is decided and not built: the conformer every calculation already gets (the

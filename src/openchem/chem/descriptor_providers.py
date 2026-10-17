@@ -302,18 +302,28 @@ _DESCRIPTOR_SPECS: list[tuple[str, str, str, str]] = [
 # exactly what `ChemistryEngine.mol_from_model` does before handing `mol` to
 # this provider. No `DescriptorProvider`/`DescriptorService` signature
 # change needed -- this is entirely a `compute()`-local check.
+#
+# **THE UNITS ARE MEASURED, NOT ASSUMED** (2026-10-17, `docs/DERIVED_SCORES_DESIGN.md` section 11). RDKit's principal moments are mass-weighted, so they are amu*Å^2:
+# a hand-built inertia tensor (atomic masses in amu, coordinates in Å) reproduces PMI1 to PMI3 to six digits, and doubling every length multiplies each by four. The inertial
+# shape factor is pm2/(pm1*pm3), so doubling every length divides it by four: 1/(amu*Å^2). These four used to declare no unit at all, which reads as dimensionless and
+# is false, and a score over one would have passed the unit check while adding a moment of inertia to a dimensionless output such as a ratio. The other six are what they always said: the radius of
+# gyration and the plane of best fit scale with length (Å), and the asphericity, the spherocity index and the two normalised ratios are unchanged by scaling.
 _SHAPE_DESCRIPTOR_SPECS: list[tuple[str, str, str]] = [
     ("radius_of_gyration", "Radius of Gyration", "Å"),
     ("asphericity", "Asphericity", ""),
     ("spherocity_index", "Spherocity Index", ""),
-    ("inertial_shape_factor", "Inertial Shape Factor", ""),
-    ("pmi1", "Principal Moment of Inertia 1", ""),
-    ("pmi2", "Principal Moment of Inertia 2", ""),
-    ("pmi3", "Principal Moment of Inertia 3", ""),
+    ("inertial_shape_factor", "Inertial Shape Factor", "1/(amu·Å²)"),
+    ("pmi1", "Principal Moment of Inertia 1", "amu·Å²"),
+    ("pmi2", "Principal Moment of Inertia 2", "amu·Å²"),
+    ("pmi3", "Principal Moment of Inertia 3", "amu·Å²"),
     ("npr1", "Normalized PMI Ratio 1", ""),
     ("npr2", "Normalized PMI Ratio 2", ""),
     ("pbf", "Plane of Best Fit", "Å"),
 ]
+
+#: The unit each shape descriptor declares, by id. What a saved project's copy is held to when it is opened (`DescriptorService.is_obsolete_result`): a copy that carries an
+#: earlier build's unit string is dropped and measured again, and never shown beside a current one.
+SHAPE_DESCRIPTOR_UNITS: dict[str, str] = {descriptor_id: units for descriptor_id, _name, units in _SHAPE_DESCRIPTOR_SPECS}
 
 #: The CELL form. Measured in the running application at Segoe UI 9,
 #: which is the font a user actually gets -- NOT under `offscreen`, whose

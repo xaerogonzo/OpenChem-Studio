@@ -1,0 +1,39 @@
+[
+  {"do": "smiles", "smiles": "CCCCO", "name": "Butanol", "after_ms": 1500},
+  {"do": "select", "molecule": -1, "after_ms": 6000},
+
+  {"do": "score_define", "label": "Wide or narrow", "formula": "2 * rg", "inputs": [["rg", "descriptor:radius_of_gyration"]], "result_unit": "Å",
+   "tag": "a-score-over-a-shape-descriptor", "after_ms": 1500, "expect": {"made": true}},
+  {"do": "score_results", "focus": true, "tag": "no-conformer-so-it-needs-one", "after_ms": 800,
+   "expect": {"entries": 1, "has_value": false, "reason_contains": ["it needs a conformer", "descriptor:radius_of_gyration"]}},
+
+  {"do": "conformers", "count": 3, "after_ms": 20000},
+  {"do": "expect_conformers", "min": 2},
+  {"do": "score_results", "focus": true, "remember": "force-field", "tag": "the-score-reads-the-conformer-every-calculation-uses", "after_ms": 3000,
+   "expect": {"entries": 1, "has_value": true, "value_between": [2.0, 6.0], "stored_as_results": 0,
+              "evidence_contains": ["Formula: 2 * rg", "rg = ", "computed on conformer 1 (id ", "MMFF94/UFF energy"], "evidence_excludes": ["computed on the drawing"]}},
+  {"do": "shot", "path": "artifacts/visual/score_geometry_force_field.png", "widget": "results_reader", "after_ms": 500},
+
+  {"do": "qc_run", "calc_type": "Geometry Optimization", "method": "HF STO-3G"},
+  {"do": "qc_wait", "timeout_ms": 600000},
+  {"do": "conformer_report", "tag": "orca-geometry-landed-in-its-slot",
+   "expect": {"orca_conformers": 1, "canonical_method": "orca_opt", "viewer_on_canonical": true}},
+  {"do": "score_results", "focus": true, "tag": "the-score-follows-the-optimized-geometry", "after_ms": 4000,
+   "expect": {"entries": 1, "has_value": true, "differs_from": "force-field",
+              "evidence_contains": ["computed on conformer 1 (id "], "evidence_excludes": ["MMFF94/UFF energy", "computed on the drawing"]}},
+  {"do": "shot", "path": "artifacts/visual/score_geometry_orca.png", "widget": "results_reader", "after_ms": 500},
+
+  {"do": "menu", "text": "Undo", "prefix": true, "after_ms": 6000},
+  {"do": "conformer_report", "tag": "undo-puts-the-force-field-conformer-back", "expect": {"orca_conformers": 0}},
+  {"do": "score_results", "focus": true, "tag": "and-the-score-with-it", "after_ms": 2000,
+   "expect": {"entries": 1, "has_value": true, "same_as": "force-field", "evidence_contains": ["MMFF94/UFF energy"]}},
+
+  {"do": "smiles", "smiles": "CCO", "name": "Ethanol", "after_ms": 1500},
+  {"do": "select", "molecule": -1, "after_ms": 6000},
+  {"do": "score_results", "focus": true, "tag": "a-molecule-with-no-conformer-needs-one", "after_ms": 800,
+   "expect": {"entries": 1, "has_value": false, "reason_contains": ["it needs a conformer"]}},
+  {"do": "shot", "path": "artifacts/visual/score_geometry_needs_a_conformer.png", "widget": "results_reader", "after_ms": 500},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]
