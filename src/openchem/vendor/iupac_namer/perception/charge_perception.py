@@ -608,6 +608,10 @@ def detect(
     text = _render(cls, mol, strategy=strategy, session=session, depth=depth)
     _record_render_outcome(cls, mol, text, "charge_perception.detect")
     if text is None:
+        # An anilide beside a group senior to the amine (a ketone, an amide, a ring amine) has no `-aminide` name: the plan search cites the anion as the `azanidyl` prefix instead (naming
+        # round 66), and the charge guard refuses whatever it names without the charge.
+        if cls.suffix_hint == "amine_anion":
+            return None
         _refuse_rather_than_neutralize(mol, "render_failed", cls.suffix_hint)
         return None
 

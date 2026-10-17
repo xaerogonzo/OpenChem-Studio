@@ -4534,6 +4534,16 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-305", "O=C([N-]C)c1cc[nH+]cc1", "methyl(pyridin-1-ium-4-carbonyl)azanide",
      "[REFUSED: no name found that keeps the positive charge (the nearest name, 'methyl(pyridine-4-carbonyl)azanide', names only the anion)]",
      "the acid of a ring-cation acyl was named neutral, so the acyl lost its -ium (52 of the betaine population's 56 refusals)"),
+    # Naming round 66 (D-306 .. D-308).
+    ("D-306", "NC(S)=[NH+]C(=NOCc1ccccc1)c1ccccc1.[Cl-]", "[amino(sulfanyl)methylidene][phenyl(phenylmethoxyimino)methyl]azanium chloride",
+     "N-[amino(sulfanyl)methylidene]-N'-(phenylmethoxy)benzenecarboximidamide chloride",
+     "a WRONG MOLECULE: a salt's cation was named as the neutral compound beside its chloride (the guard judged a single fragment only, and the salt path asks a fragment for the cation form only where a suffix can carry the charge)"),
+    ("D-307", "Cc1cccc([N-]CC(=O)C)c1", "1-[(3-methylphenyl)azanidyl]propan-2-one",
+     "[REFUSED: charge perception claimed a 'amine_anion' motif but could not complete it (render_failed); refusing]",
+     "an anilide beside a group senior to the amine (a ketone, an amide, a ring amine) had no -aminide name, and the refusal closed the road to the azanidyl prefix (135 refusals of the salt population)"),
+    ("D-308", "[Na+].[Na+].[O-]C(=O)C(=O)[O-]", "disodium oxalate",
+     "[REFUSED: no name found that keeps every negative charge (the nearest name, 'oxalate', has fewer anion words than the molecule has anions)]",
+     "the guard counted the retained name oxalate as one anion for two carboxylates (the dianion alone was refused, and a salt's fragment is judged since D-306)"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",

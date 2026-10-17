@@ -136,7 +136,12 @@ def test_dichloro_on_one_ring_falls_through() -> None:
     The salt-path name need not be IUPAC-canonical; the load-bearing
     assertion is that R22-E does NOT mis-claim it.
     """
-    out = name_smiles("Clc1ccc[c-]1Cl.[Fe+2].c1cc[cH-]c1")
+    # Since naming round 66 a salt's charged fragment is judged by the charge guard, and the salt path's name for the dichlorocyclopentadienide
+    # (`1,5-dichlorocyclopenta-1,3-diene`, the NEUTRAL hydrocarbon) lost the anion, so the engine refuses the input instead of naming it: neither is R22-E.
+    try:
+        out = name_smiles("Clc1ccc[c-]1Cl.[Fe+2].c1cc[cH-]c1")
+    except ValueError:
+        out = None
     # Should not be a clean ``-ferrocene`` retained-name composition
     # (multi-sub on one ring needs locant handling we deferred).  The
     # salt-path emission falls through and the recursive Cp-anion

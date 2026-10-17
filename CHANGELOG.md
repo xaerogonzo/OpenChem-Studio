@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: salts keep the charge of their organic ion
+- Round 66 names salts, a population the earlier rounds never built (every census ion paired with a counter-ion: 14,881 salts, 14,697 read back, the rest OPSIN artifacts or the known tails). A protonated amidine or nitrile beside a chloride was named as the NEUTRAL compound plus `chloride` (a different substance; the charge guard judged a single fragment and the salt path asked for the cation form only where a suffix could carry the charge). Each charged fragment of a salt is now judged by the guard (a zwitterion by polarity) and, when it fails, named the way it is named alone (D-306). An anilide beside a ketone, an amide or a ring amine, refused for lack of an `-aminide` name, is the `azanidyl` prefix (D-307, 135 refusals). The guard counted `oxalate` as one anion for two carboxylates, so `disodium oxalate` would have been refused; it counts for two (D-308).
+
 ### Naming: a ring-cation acyl on an amide anion
 - Round 65 took 52 of the 56 refusals the betaine population had left. An amide anion whose acyl group carries a ring cation (`O=C([N-]C)c1cc[nH+]cc1`) was refused: the acyl is named from its acid, and the acid of a ring cation was named neutral by the plan search, so the acyl was `pyridine-4-carbonyl` and the cation was gone. The acid is named as a cation and that name becomes the acyl, `methyl(pyridin-1-ium-4-carbonyl)azanide`, which OPSIN reads (D-305). Betaines named 1465 of 1523 became 1518, zwitterions 1466 became 1519.
 
