@@ -19275,8 +19275,6 @@ class SubstitutivePath:
                 continue
             # A lactam's ring `[N-]` that is not aromatic is cited the same way, but only where the group is a SUBSTITUENT (the standalone anion has its own route): naming round 60,
             # `acetyl{2-[(3-oxo-3,4-dihydro-2H-1,4-benzothiazin-4-id-2-yl)methyl]phenyl}azanide`.
-            if not atom.GetIsAromatic() and output_form != OutputForm.SUBSTITUENT:
-                continue
             loc = atom_to_loc.get(atom_idx)
             if loc is None:
                 continue
