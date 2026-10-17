@@ -3980,7 +3980,7 @@ def _acyl_prefix_via_acid(mol, n_idx: int, acyl_idx: int, strategy, session, dep
         return None
     if not text or "NAMING ERROR" in text:
         return None
-    cationic = re.fullmatch(r"(.*?)(?:^|(?<=-))(\d+)-carboxy-?(.*ium)", text) if text.endswith("ium") else None
+    cationic = re.fullmatch(r"(.*?)(?:^|(?<=-))(\d+)-carboxy-?(.*ium)", text) if text.endswith("ium") and not text.endswith("aminium") else None      # a ring cation only: an aminium is a suffix, and `...thiophen-2-aminium-3-carbonyl` cannot be read
     if cationic is not None:
         # `4-carboxypyridin-1-ium` -> `pyridin-1-ium-4-carbonyl`; `3-bromo-5-carboxypyridin-1-ium` -> `5-bromo...` keeps its own prefixes in front
         before, locant, rest = cationic.group(1), cationic.group(2), cationic.group(3)

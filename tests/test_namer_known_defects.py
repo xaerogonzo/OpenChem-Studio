@@ -4530,6 +4530,10 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-303", "CC1CC(=O)[N-]C1C(=O)[O-]", "3-methyl-5-oxopyrrolidin-1-id-2-carboxylate",
      "[REFUSED: no name found that keeps every negative charge (the nearest name, '3-methyl-5-oxopyrrolidine-2-carboxylate', has fewer anion words than the molecule has anions)]",
      "a lactam anion beside a carboxylate: the ring [N-] infix was written only for an aromatic [n-] and, since round 60, for a lactam substituent"),
+    # Naming round 65 (D-305).
+    ("D-305", "O=C([N-]C)c1cc[nH+]cc1", "methyl(pyridin-1-ium-4-carbonyl)azanide",
+     "[REFUSED: no name found that keeps the positive charge (the nearest name, 'methyl(pyridine-4-carbonyl)azanide', names only the anion)]",
+     "the acid of a ring-cation acyl was named neutral, so the acyl lost its -ium (52 of the betaine population's 56 refusals)"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",
