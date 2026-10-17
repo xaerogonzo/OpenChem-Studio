@@ -2525,6 +2525,15 @@ what can be verified.
   `tests/test_namer_known_defects.py`. Three earlier tests pinned refusals this round turned into names and now pin the cases still refused: a carboxylate beside two neutral acids
   (`test_namer_round43_*`, `test_namer_round45_*`) and a pyrazolone anion (`test_namer_round46_*`).
 
+## 2026-10-17 -- naming round 64: a lactam anion beside an acid anion (D-303, D-304)
+
+Round 63's open list: the dianion, betaine and zwitterion populations still refused ions with a lactam's ring `[N-]` beside a carboxylate (34 of 280 dianions; `lactam` was in 12 of 17 refusals of that kind).
+
+* **D-303.** `CC1CC(=O)[N-]C1C(=O)[O-]` was refused (the acid anion is the parent and the lactam `[N-]` was left out of the name, which the guard caught). The ring-anion locants of `SubstitutivePath.execute` took an aromatic `[n-]` and, since round 60, a lactam as a SUBSTITUENT; they now take a non-aromatic ring `[N-]` in every output form when it is the ONE ring anion of the parent. The assembler already put the infix before a suffix (`1H-indol-1-id-5-ol`): `3-methyl-5-oxopyrrolidin-1-id-2-carboxylate`, `(2-oxo-2,3-dihydro-1H-indol-1-id-3-yl)acetate`. Two ring anions with a lactam (`...-5-carbonitrile-1',2-diide`, `...-6-one-4,5-diide`) came out unparsable, a worse failure than the refusal: the lactam is left out then and the guard refuses.
+* **D-304.** Round 63's stabilised-carbanion classifier returns when a CATION is bonded to the carbanion (a diazo carbon, `[CH-][N+]#N`, is an ylide); a nitro group's `N+` is bonded to the carbon of a nitro carbon acid and is charge-separated and neutral, so `COc1ccccc1Nc1nc(=O)[c-]([N+](=O)[O-])c(=O)[nH]1` was refused. The test skips the charge-separated atoms.
+* **Measured.** Dianion 268 of 280 (was 246), betaine 1465 of 1523 (was 1436), zwitterion 1466 of 1523 (was 1437); anions 1264 of 1399 as before, cations, quaternary, dication, quat_dication, trianion and trication unchanged. See the verification lines at the end of this round.
+* New `tests/test_namer_round64_lactam_anion_beside_an_acid_anion.py`.
+
 ## 2026-10-17 -- naming round 63: a guanidinium, an amidinium or a carbon acid beside another charge (D-299 .. D-302)
 
 Round 62's open list: about 50 ions per pair mode still refused. Three classifiers (`_classify_guanidinium`, `_classify_amidinium`, `_classify_stabilised_carbanion`) claim a motif when it is the molecule's only charge, and detection refuses ('partial_claim') when a classification leaves a charged atom uncovered, so a second charge refused the whole molecule.
