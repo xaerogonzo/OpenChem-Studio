@@ -1045,7 +1045,8 @@ def _classify_stabilised_carbanion(mol) -> Iterable[ChargeClassification]:
     c = charged[0]
     cations = [a.GetIdx() for a in all_charged if a.GetFormalCharge() > 0]
     # a cation BONDED to the carbanion is an ylide (`[CH-][N+]#N`, a diazo carbon), another classifier's
-    if any(n.GetFormalCharge() > 0 for n in c.GetNeighbors()):
+    # (a nitro group's N+ beside the carbon is charge-separated and neutral, not an ylide: naming round 64)
+    if any(n.GetFormalCharge() > 0 and n.GetIdx() not in separated for n in c.GetNeighbors()):
         return
     if c.GetAtomicNum() != 6 or c.GetFormalCharge() != -1 or c.GetNumRadicalElectrons() != 0 or c.GetDegree() < 2:
         return

@@ -4526,6 +4526,10 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-302", "CC(=O)[CH-]C(=O)CC[NH3+]", "6-azaniumyl-2,4-dioxohexan-3-ide",
      "[REFUSED: no name found that keeps the negative charge (the nearest name, '6-azaniumylhexane-2,4-dione', is the neutral compound's)]",
      "a carbon acid beside a cation: the stabilised-carbanion classifier needed the carbanion to be the only charge"),
+    # Naming round 64 (D-303, D-304). D-303 was a refusal; D-304 was a refusal introduced and fixed inside the round 63 -> 64 stack, with no row of its own.
+    ("D-303", "CC1CC(=O)[N-]C1C(=O)[O-]", "3-methyl-5-oxopyrrolidin-1-id-2-carboxylate",
+     "[REFUSED: no name found that keeps every negative charge (the nearest name, '3-methyl-5-oxopyrrolidine-2-carboxylate', has fewer anion words than the molecule has anions)]",
+     "a lactam anion beside a carboxylate: the ring [N-] infix was written only for an aromatic [n-] and, since round 60, for a lactam substituent"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",
