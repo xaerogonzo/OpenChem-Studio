@@ -103,8 +103,9 @@ ORCA-optimized conformers, on by default). A job that finishes after you edited 
 its numbers on the edited molecule; the status bar says why and the finished run stays in the history. Since then an **ORCA optimize** button in
 the viewer, **Tools ▸ ORCA Geometry Optimization…** and a **Conformer** box in the Quantum Chemistry panel let you optimise a
 conformer other than the canonical one (they set the panel up and start nothing), and a molecule that holds an ORCA geometry is
-marked `[ORCA-optimized]` in the project list and under its name in Properties. Not built yet: an option to optimise the
-lowest-energy conformer when generating.
+marked `[ORCA-optimized]` in the project list and under its name in Properties. **Generate Conformers** can also optimise the
+lowest-energy conformer it just made: an unticked box in its window (Settings ▸ Conformers can start it ticked) that presses the
+Quantum Chemistry panel's Run for you with whatever method the panel shows, and the result takes that conformer's place.
 
 ## The Lewis acid-base pairing (#311, #314 to #324)
 

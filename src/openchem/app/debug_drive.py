@@ -82,6 +82,8 @@ The script is a JSON list of steps, run in order:
                                  "method": "HF-3c"}   the REAL Run button,
                                                       and the identity the
                                                       SERVICE was handed
+      {"do": "qc_setup",         "method": "HF STO-3G"}   set the panel,
+                                                      press nothing
       {"do": "inspector_report", "expect_spectrum": "stale"}   asserts it
       {"do": "atom_numbers",     "mode": "locants", "tag": "on"}  the View
                                               menu's mode, and what the PAGE
@@ -671,6 +673,38 @@ class _Driver(QObject):
             record.input_fingerprint[:12],
             record.method_basis,
             panel._status_label.text(),
+        )
+
+    def _do_qc_setup(self, step: dict[str, Any]) -> None:
+        """Set the Quantum Chemistry panel up and press NOTHING.
+
+        `{"do": "qc_setup", "method": "HF STO-3G", "calc_type": "Geometry Optimization"}`
+
+        For a run that something ELSE starts: the Generate Conformers window's "also ORCA-optimize the lowest-energy
+        conformer" presses the panel's Run itself, with whatever the panel shows at that moment, so a script has to put
+        a fast method there first and then not press anything. The panel's molecule combo is pointed at the Properties
+        selection, as `qc_run` does, because the panel describes (and runs) whatever that combo holds.
+        """
+        from openchem.ui.molecule_combo import select
+
+        panel = getattr(self._window, "_quantum_chemistry_panel", None)
+        if panel is None:
+            logger.error("OPENCHEM_DRIVE: qc_setup -- no Quantum Chemistry panel on this window")
+            return
+        if not select(panel._molecule_combo, self._window._property_panel._selected_molecule_uuid):
+            logger.error("OPENCHEM_DRIVE: qc_setup -- the selected molecule is not in the panel's combo")
+            return
+        if step.get("calc_type") is not None:
+            index = panel._calc_type_combo.findText(str(step["calc_type"]))
+            if index < 0:
+                logger.error("OPENCHEM_DRIVE: qc_setup -- calc_type %r matches no item", step["calc_type"])
+                return
+            panel._calc_type_combo.setCurrentIndex(index)
+        if step.get("method") is not None:
+            panel._method_combo.setCurrentText(str(step["method"]))
+        logger.warning(
+            "OPENCHEM_DRIVE: qc_setup method=%r calc_type=%r (nothing pressed)",
+            panel._method_combo.currentText(), panel._calc_type_combo.currentText(),
         )
 
     def _do_tautomer_run(self, step: dict[str, Any]) -> None:

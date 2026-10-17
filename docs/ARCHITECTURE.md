@@ -409,6 +409,15 @@ it).
   panel's run history (`_chosen_conformer_note` says so when it lands). Replaying results by the conformer they were
   computed on is not designed.
   The ORCA badges (`quantum_optimized_note`) are read off the conformers on demand, never stored.
+- **Generating conformers can start that optimization** (`ConformersReady.optimize_lowest`, carried by
+  `ConformerService.request_conformers(optimize_lowest=)` from the Generate Conformers window's checkbox, so the
+  answer travels with the set it belongs to). `MainWindow._optimize_lowest_generated` picks the lowest FORCE-FIELD
+  energy of the JUST GENERATED set, never `canonical_conformer`, which prefers an ORCA geometry kept from before, and
+  calls `QuantumChemistryPanel.start_optimization`: `prepare_optimization` plus the panel's own Run handler, so the
+  checks, the structure identity and the slot are a pressed Run's. What stops it comes back as text for the status
+  bar, and the conformers are installed either way. The window learns what its checkbox can promise from
+  `MainWindow._orca_generation_offer` through `MoleculeViewer3DWidget.set_orca_offer_provider` (a lookup each time the
+  window opens, never a copy taken at start-up), and the dialog gets it as an `OrcaGenerationOffer`.
 - **A quantum job that finishes after its molecule's structure was edited
   installs nothing and shows nothing as current.** The panel stamps the
   molecule's canonical SMILES on the submission, the service carries it on
