@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: a guanidinium, an amidinium or a carbon acid beside another charge
+- Round 63 took the refusals round 62 left. Three charge classifiers claimed their motif only when it was the molecule's ONLY charge, so any second charge made the whole molecule refuse: arginine drawn as the zwitterion (a guanidinium, an ammonium and a carboxylate) was refused. A guanidinium or amidinium beside another charge now goes to the plan search, the guanidinium a `(diaminomethylidene)azaniumyl` prefix and the amidinium's `=[NH2+]` an `azaniumylidene` (D-299, D-300: `(2S)-2-azaniumyl-5-[(diaminomethylidene)azaniumyl]pentanoate`); an O-protonated amide on a ring nitrogen is no neutral `morpholine-4-carbonyl` (D-301); a carbon acid beside a cation, refused in all 57 such ions, is named (D-302: `6-azaniumyl-2,4-dioxohexan-3-ide`). Dications named 1877 of 1930 became 1913, trications 602 of 631 became 629, zwitterions 1365 of 1523 became 1437.
+
 ### Naming: a protonated carbonyl beside another cation is cited as what it is
 - Round 62 took the largest class of refusals the pair populations had left: an O- or S-protonated amide, ester, acid or ketone beside a second cation (786 of 1930 dications). The engine named the carbonyl with the neutral prefix (`oxo`, `ethoxycarbonyl`) and the guard refused the name for the cation it had lost. The fallback now names the atom it has, `oxidaniumylidene` or `sulfaniumylidene`, where it stands (D-295); an O-protonated ester is no `alkoxycarbonyl` (D-296, `2-[ethoxy(oxidaniumylidene)methyl]anilinium`); the prefix is bracketed on a one-carbon parent (D-297) and a multiplied one is `bis(oxidaniumylidene)` (D-298). Dications named: 1143 of 1930 became 1877.
 

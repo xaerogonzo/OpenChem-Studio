@@ -1044,6 +1044,9 @@ def _classify_stabilised_carbanion(mol) -> Iterable[ChargeClassification]:
         return
     c = charged[0]
     cations = [a.GetIdx() for a in all_charged if a.GetFormalCharge() > 0]
+    # a cation BONDED to the carbanion is an ylide (`[CH-][N+]#N`, a diazo carbon), another classifier's
+    if any(n.GetFormalCharge() > 0 for n in c.GetNeighbors()):
+        return
     if c.GetAtomicNum() != 6 or c.GetFormalCharge() != -1 or c.GetNumRadicalElectrons() != 0 or c.GetDegree() < 2:
         return
     # A ring HETERO neighbour is allowed since round 59 (the oxazolone `[c-]1nc(...)oc1=O`, a thiazolidinedione): the carbon is still the only charge and still has an acceptor beside it.
