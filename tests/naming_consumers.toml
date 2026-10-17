@@ -495,6 +495,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round64_lactam_anion_beside_an_acid_anion.py"
+why = "a lactam's ring N- beside an acid anion is cited with the -N-id- infix when it is the one ring anion (D-303), and a nitro group's N+ beside a carbon acid is no ylide cation (D-304)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round63_guanidinium_amidinium_and_carbon_acids_beside_other_charges.py"
 why = "a guanidinium or an amidinium beside another charge goes to the plan search (arginine as the zwitterion is named) and an amidinium's =[NH2+] is azaniumylidene (D-299, D-300), an O-protonated amide on a ring nitrogen is no -carbonyl prefix (D-301) and a carbon acid beside a cation is named (D-302)"
 scope = "core"

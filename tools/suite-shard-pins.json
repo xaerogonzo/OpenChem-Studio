@@ -1414,6 +1414,7 @@
   "tests/test_namer_round61_azanidyl_prefix_and_guard_word_counts.py": 1,
   "tests/test_namer_round62_protonated_carbonyls_beside_cations.py": 2,
   "tests/test_namer_round63_guanidinium_amidinium_and_carbon_acids_beside_other_charges.py": 0,
+  "tests/test_namer_round64_lactam_anion_beside_an_acid_anion.py": 3,
   "tests/test_namer_salt_multiplier.py": 1,
   "tests/test_namer_stereo_cache_identity.py": 3,
   "tests/test_namer_stereo_locant_tie.py": 3,
