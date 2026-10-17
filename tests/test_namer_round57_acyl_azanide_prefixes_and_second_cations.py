@@ -24,7 +24,7 @@ needs_opsin = pytest.mark.skipif(shutil.which("java") is None, reason="needs jav
 
 # (label, SMILES, the name)
 ACYLSULFONAMIDE_BESIDE_CATION = [
-    ("an acylsulfonamide anion beside a thiazolium", "NC(=O)[N-]S(=O)(=O)c1ccc(-c2[nH+]ccs2)cc1", "carbamoyl[4-(1,3-thiazol-3-ium-2-yl)benzene-1-sulfonyl]azanide"),
+    ("an acylsulfonamide anion beside a thiazolium", "NC(=O)[N-]S(=O)(=O)c1ccc(-c2[nH+]ccs2)cc1", "carbamoyl[4-(1,3-thiazol-3-ium-2-yl)phenylsulfonyl]azanide"),
     ("the same beside an ammonium", "NC(=O)[N-]S(=O)(=O)c1ccc(C[NH3+])cc1", "[4-(azaniumylmethyl)phenylsulfonyl](carbamoyl)azanide"),
     ("a methylsulfonamide anion beside a thiazolium", "CS(=O)(=O)[N-]c1ccc(-c2[nH+]ccs2)cc1", "methanesulfonyl[4-(1,3-thiazol-3-ium-2-yl)phenyl]azanide"),
 ]

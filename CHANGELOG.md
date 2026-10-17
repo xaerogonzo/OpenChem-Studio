@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: a ring-cation acyl on an amide anion
+- Round 65 took 52 of the 56 refusals the betaine population had left. An amide anion whose acyl group carries a ring cation (`O=C([N-]C)c1cc[nH+]cc1`) was refused: the acyl is named from its acid, and the acid of a ring cation was named neutral by the plan search, so the acyl was `pyridine-4-carbonyl` and the cation was gone. The acid is named as a cation and that name becomes the acyl, `methyl(pyridin-1-ium-4-carbonyl)azanide`, which OPSIN reads (D-305). Betaines named 1465 of 1523 became 1518, zwitterions 1466 became 1519.
+
 ### Naming: a lactam anion beside an acid anion
 - Round 64 named the pyroglutamate-type ions: a lactam's ring `[N-]` beside a carboxylate (the dianion population's biggest refusal class) was refused because the `-N-id-` infix of rounds 59 and 60 was written only for an aromatic `[n-]` and a lactam substituent. `3-methyl-5-oxopyrrolidin-1-id-2-carboxylate` is the name OPSIN reads; it is cited when it is the one ring anion, and two ring anions with a lactam stay refused (the multiplied `-ide` after the suffixes is unreadable) (D-303). Round 63's ylide test took a nitro group's `N+` beside a carbon acid for an ylide cation and refused `...-5-nitro-...-5-ide`; the nitro group is charge-separated and neutral (D-304). Dianions named 246 of 280 became 268, betaines 1436 of 1523 became 1465, zwitterions 1437 became 1466.
 

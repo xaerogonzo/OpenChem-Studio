@@ -495,6 +495,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round65_cationic_acyl_on_an_amide_anion.py"
+why = "the acid of a ring-cation acyl on an amide anion is named as a cation, so the acyl keeps its -ium (methyl(pyridin-1-ium-4-carbonyl)azanide, D-305)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round64_lactam_anion_beside_an_acid_anion.py"
 why = "a lactam's ring N- beside an acid anion is cited with the -N-id- infix when it is the one ring anion (D-303), and a nitro group's N+ beside a carbon acid is no ylide cation (D-304)"
 scope = "core"
