@@ -2525,6 +2525,17 @@ what can be verified.
   `tests/test_namer_known_defects.py`. Three earlier tests pinned refusals this round turned into names and now pin the cases still refused: a carboxylate beside two neutral acids
   (`test_namer_round43_*`, `test_namer_round45_*`) and a pyrazolone anion (`test_namer_round46_*`).
 
+## 2026-10-17 -- naming round 63: a guanidinium, an amidinium or a carbon acid beside another charge (D-299 .. D-302)
+
+Round 62's open list: about 50 ions per pair mode still refused. Three classifiers (`_classify_guanidinium`, `_classify_amidinium`, `_classify_stabilised_carbanion`) claim a motif when it is the molecule's only charge, and detection refuses ('partial_claim') when a classification leaves a charged atom uncovered, so a second charge refused the whole molecule.
+
+* **D-299.** `NC(N)=[NH+]CCC[C@H]([NH3+])C(=O)[O-]` (arginine as the zwitterion) was refused. The guanidinium classifier declines beside any other charge; the plan search names the group `(diaminomethylidene)azaniumyl`, which OPSIN reads: `(2S)-2-azaniumyl-5-[(diaminomethylidene)azaniumyl]pentanoate`.
+* **D-300.** The amidinium declines the same way (its round-43 lone carboxylate stays its own case); its `=[NH2+]` was a neutral `imino` once the plan search named it, and the unclaimed-`=X` fallback now says `azaniumylidene`: `{2-[amino(azaniumylidene)methyl]phenyl}methanaminium`.
+* **D-301.** `_name_ring_nitrogen_acyl_substituent` took an O-PROTONATED carbonyl for the neutral one (`pyrrolidine-1-carbonyl`), losing the cation: it requires a neutral oxygen, and the protonated amide is `(oxidaniumylidene)(pyrrolidin-1-yl)methyl`.
+* **D-302.** A carbon acid beside a cation was refused in every case (`CC(=O)[CH-]C(=O)CC[NH3+]`, 57 of 57 in the zwitterion population): the stabilised-carbanion classifier needed the carbanion to be the only charge. The cations ride along in the claim and are cited as prefixes: `6-azaniumyl-2,4-dioxohexan-3-ide`. A second ANION is not this classifier's.
+* **Measured.** Dications 1913 of 1930 (was 1877), quat_dication 1913 (was 1892), trication 629 of 631 (was 602), betaine 1436 of 1523 (was 1376), zwitterion 1437 of 1523 (was 1365); anions, cations, quaternary, dianion and trianion unchanged. Every named ion reads back to itself apart from the artifacts of round 60.
+* New `tests/test_namer_round63_guanidinium_amidinium_and_carbon_acids_beside_other_charges.py`.
+
 ## 2026-10-16 -- naming round 62: a protonated carbonyl beside another cation is cited as what it is (D-295 .. D-298)
 
 Round 61's open list named the biggest class of visible failures: an O- or S-protonated carbonyl beside a second cation. Of 1930 dications (round 61's tree), 786 were refused (amide 458 of 841, ester 306 of 355, acid 100 of 118, ketone 137 of 257); of 1523 betaines 212.

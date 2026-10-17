@@ -763,6 +763,10 @@ def _classify_guanidinium(mol) -> Iterable[ChargeClassification]:
             break
         if other_neighbour or n_plus is None or len(neutral_ns) != 2:
             continue
+        # A guanidinium beside ANOTHER charge (arginine drawn `NC(N)=[NH+]CCC[C@H]([NH3+])C(=O)[O-]`) is claimed by no classifier as a whole: claiming it left the other charges uncovered and the
+        # molecule was refused ('partial_claim'). It declines and the plan search names it, the guanidinium a `(diaminomethylidene)azaniumyl` prefix (naming round 63).
+        if any(a.GetFormalCharge() != 0 and a.GetIdx() not in (atom.GetIdx(), n_plus, *neutral_ns) for a in mol.GetAtoms()):
+            continue
         yield ChargeClassification(
             site_atom_indices=(atom.GetIdx(), n_plus, *neutral_ns),
             charge_sign="+",
@@ -832,6 +836,14 @@ def _classify_amidinium(mol) -> Iterable[ChargeClassification]:
             continue
         # Site atoms = central C + both Ns.
         site = (atom.GetIdx(), eq_n_plus, s_n)
+        # An amidinium beside charges other than the D-226 carboxylate declines, as the guanidinium does (naming round 63).
+        _others = [a for a in mol.GetAtoms() if a.GetFormalCharge() != 0 and a.GetIdx() not in site]
+        _lone_carboxylate = (
+            len(_others) == 1 and _others[0].GetFormalCharge() < 0 and _others[0].GetAtomicNum() == 8 and _others[0].GetDegree() == 1
+            and sum(1 for a in mol.GetAtoms() if a.GetFormalCharge() > 0) == 1
+        )
+        if _others and not _lone_carboxylate:
+            continue
         # D-226 (naming round 43): the zwitterion `NC(=[NH2+])CC(=O)[O-]` has a lone carboxylate; detect() refused it as a partial claim because that
         # oxygen's charge was claimed by no one. The amidinium is the cation and takes the carboxylate along (cited as "carboxylato").
         anions = [a.GetIdx() for a in mol.GetAtoms() if a.GetFormalCharge() < 0]
@@ -1024,10 +1036,17 @@ def _classify_stabilised_carbanion(mol) -> Iterable[ChargeClassification]:
     charge, and has a neighbour that is a carbonyl, nitrile or ring-carbonyl carbon (the acceptor that makes the position a carbon acid). It is named like any carbanion: the group
     anchored at the carbon with its `yl` made `ide` (`2,4,6-trioxo-1,3-diazinan-5-ide`)."""
     separated = _charge_separated_neutral_atoms(mol)
-    charged = [a for a in mol.GetAtoms() if a.GetFormalCharge() != 0 and a.GetIdx() not in separated]
+    all_charged = [a for a in mol.GetAtoms() if a.GetFormalCharge() != 0 and a.GetIdx() not in separated]
+    # CATIONS beside the carbanion are cited as prefixes (`azaniumyl`) on its parent, so they ride along in the claim (naming round 63: `CC(=O)[CH-]C(=O)CC[NH3+]` was refused, the
+    # carbon acid beside any cation); a second ANION is another classifier's.
+    charged = [a for a in all_charged if a.GetFormalCharge() < 0]
     if len(charged) != 1:
         return
     c = charged[0]
+    cations = [a.GetIdx() for a in all_charged if a.GetFormalCharge() > 0]
+    # a cation BONDED to the carbanion is an ylide (`[CH-][N+]#N`, a diazo carbon), another classifier's
+    if any(n.GetFormalCharge() > 0 for n in c.GetNeighbors()):
+        return
     if c.GetAtomicNum() != 6 or c.GetFormalCharge() != -1 or c.GetNumRadicalElectrons() != 0 or c.GetDegree() < 2:
         return
     # A ring HETERO neighbour is allowed since round 59 (the oxazolone `[c-]1nc(...)oc1=O`, a thiazolidinedione): the carbon is still the only charge and still has an acceptor beside it.
@@ -1046,7 +1065,7 @@ def _classify_stabilised_carbanion(mol) -> Iterable[ChargeClassification]:
     if not any(accepting(nb) for nb in c.GetNeighbors()):
         return
     yield ChargeClassification(
-        site_atom_indices=(c.GetIdx(), *sorted(separated)),
+        site_atom_indices=(c.GetIdx(), *sorted(separated), *cations),
         charge_sign="-",
         suffix_hint="stabilised_ide",
         locant=None,

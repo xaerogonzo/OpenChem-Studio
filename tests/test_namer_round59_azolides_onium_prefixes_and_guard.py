@@ -120,9 +120,10 @@ def test_an_ester_ending_is_no_anion_word_in_a_zwitterion():
         _check_charge_named(mol, "methyl (4R)-4-(2-chlorophenyl)-5-cyano-6-(ethylsulfaniumyl)-2-oxoazinane-3-carboxylate")
 
 
-def test_a_carbanion_beside_a_protonated_thioether_is_refused_not_named_as_its_ester():
-    with pytest.raises(ValueError):
-        name_smiles("CC[SH+]C1=C(C#N)[C@H](c2ccccc2Cl)[C-](C(=O)OC)C(=O)N1")
+def test_a_carbanion_beside_a_protonated_thioether_is_named_with_its_anion():
+    # refused in round 59 (the ester's `ate` was the only anion word); named since round 63, when the carbon acid takes the cation along as a prefix
+    name = name_smiles("CC[SH+]C1=C(C#N)[C@H](c2ccccc2Cl)[C-](C(=O)OC)C(=O)N1")
+    assert name.endswith("-3-ide") and "sulfaniumyl" in name
 
 
 def test_an_aryl_ester_ending_is_no_anion_word_either():
