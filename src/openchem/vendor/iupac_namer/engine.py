@@ -19265,6 +19265,7 @@ class SubstitutivePath:
         parent_atom_indices = plan.named_parent.candidate.atom_indices
         atom_to_loc = plan.numbering.atom_to_locant
         ring_n_minus_locants: list[Locant] = []
+        _nonaromatic_ring_anion = False
         for atom_idx in parent_atom_indices:
             atom = mol.GetAtomWithIdx(atom_idx)
             if atom.GetSymbol() != "N":
@@ -19273,14 +19274,22 @@ class SubstitutivePath:
                 continue
             if not atom.IsInRing():
                 continue
-            # A lactam's ring `[N-]` that is not aromatic is cited the same way, but only where the group is a SUBSTITUENT (the standalone anion has its own route): naming round 60,
-            # `acetyl{2-[(3-oxo-3,4-dihydro-2H-1,4-benzothiazin-4-id-2-yl)methyl]phenyl}azanide`.
-            if not atom.GetIsAromatic() and output_form != OutputForm.SUBSTITUENT:
-                continue
+            # A lactam's ring `[N-]` that is not aromatic is cited the same way (naming rounds 60 and 64): as a substituent
+            # `acetyl{2-[(3-oxo-3,4-dihydro-2H-1,4-benzothiazin-4-id-2-yl)methyl]phenyl}azanide`, and beside an acid anion `3-methyl-5-oxopyrrolidin-1-id-2-carboxylate`.
             loc = atom_to_loc.get(atom_idx)
             if loc is None:
                 continue
             ring_n_minus_locants.append(loc)
+            if not atom.GetIsAromatic():
+                _nonaromatic_ring_anion = True
+        # ...but ONE ring anion only: two (`...-5-carbonitrile-1',2-diide`, `...-6-one-4,5-diide`) are written with the multiplied `-ide` AFTER the suffixes, which OPSIN cannot read; the
+        # lactam is then left out and the guard refuses the name, a visible failure.
+        if len(ring_n_minus_locants) > 1 and _nonaromatic_ring_anion:
+            ring_n_minus_locants = [
+                atom_to_loc[i] for i in parent_atom_indices
+                if i in atom_to_loc and mol.GetAtomWithIdx(i).GetSymbol() == "N" and mol.GetAtomWithIdx(i).GetFormalCharge() == -1
+                and mol.GetAtomWithIdx(i).IsInRing() and mol.GetAtomWithIdx(i).GetIsAromatic()
+            ]
         if ring_n_minus_locants:
             parent_name = plan.named_parent.name
             # Skip if the parent name already encodes the anion (e.g. a

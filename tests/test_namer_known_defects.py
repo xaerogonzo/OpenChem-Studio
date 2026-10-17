@@ -4424,7 +4424,7 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "7-methyl-4H-pyrido[1,2-a]pyrimidin-4-on-1-ium-2-aminium",
      "UNREADABLE AS WRITTEN: the cation suffix outranks the curated ring's ketone, which is the prefix oxo"),
     # D-271 .. D-274 (naming round 57): an acylsulfonamide anion beside a cation, a sulfonamide/amide anion cited as a prefix, a protonated amidoxime beside a second cation, an O-protonated acylurea.
-    ("D-271", "NC(=O)[N-]S(=O)(=O)c1ccc(-c2[nH+]ccs2)cc1", "carbamoyl[4-(1,3-thiazol-3-ium-2-yl)benzene-1-sulfonyl]azanide",
+    ("D-271", "NC(=O)[N-]S(=O)(=O)c1ccc(-c2[nH+]ccs2)cc1", "carbamoyl[4-(1,3-thiazol-3-ium-2-yl)phenylsulfonyl]azanide",
      "[REFUSED: no name found that keeps the negative charge (the nearest name, '2-[4-(N-carbamoylsulfamoyl)phenyl]-1,3-thiazol-3-ium', names only the cation)]",
      "a visible refusal; the cation took the parent and the sulfonamide became a charge-free sulfamoyl prefix"),
     ("D-272", "NC(=O)[N-]S(=O)(=O)c1ccc([O-])cc1", "4-[(carbamoylazanidyl)sulfonyl]benzen-1-olate",
@@ -4526,6 +4526,14 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-302", "CC(=O)[CH-]C(=O)CC[NH3+]", "6-azaniumyl-2,4-dioxohexan-3-ide",
      "[REFUSED: no name found that keeps the negative charge (the nearest name, '6-azaniumylhexane-2,4-dione', is the neutral compound's)]",
      "a carbon acid beside a cation: the stabilised-carbanion classifier needed the carbanion to be the only charge"),
+    # Naming round 64 (D-303, D-304). D-303 was a refusal; D-304 was a refusal introduced and fixed inside the round 63 -> 64 stack, with no row of its own.
+    ("D-303", "CC1CC(=O)[N-]C1C(=O)[O-]", "3-methyl-5-oxopyrrolidin-1-id-2-carboxylate",
+     "[REFUSED: no name found that keeps every negative charge (the nearest name, '3-methyl-5-oxopyrrolidine-2-carboxylate', has fewer anion words than the molecule has anions)]",
+     "a lactam anion beside a carboxylate: the ring [N-] infix was written only for an aromatic [n-] and, since round 60, for a lactam substituent"),
+    # Naming round 65 (D-305).
+    ("D-305", "O=C([N-]C)c1cc[nH+]cc1", "methyl(pyridin-1-ium-4-carbonyl)azanide",
+     "[REFUSED: no name found that keeps the positive charge (the nearest name, 'methyl(pyridine-4-carbonyl)azanide', names only the anion)]",
+     "the acid of a ring-cation acyl was named neutral, so the acyl lost its -ium (52 of the betaine population's 56 refusals)"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",

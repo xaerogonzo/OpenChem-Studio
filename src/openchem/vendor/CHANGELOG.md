@@ -2525,6 +2525,23 @@ what can be verified.
   `tests/test_namer_known_defects.py`. Three earlier tests pinned refusals this round turned into names and now pin the cases still refused: a carboxylate beside two neutral acids
   (`test_namer_round43_*`, `test_namer_round45_*`) and a pyrazolone anion (`test_namer_round46_*`).
 
+## 2026-10-17 -- naming round 65: a ring-cation acyl on an amide anion (D-305)
+
+Round 64's open list: 52 of the betaine population's 56 refusals and 52 of the zwitterion's 55 were one shape, an amide anion `C(=O)[N-]` whose acyl group is a cationic ring (a pyridinium, a pyrazolium, a thiazolium).
+
+* **D-305.** `_acyl_prefix_via_acid` (the acyl group on an anionic nitrogen, named by cutting the nitrogen off, putting an -OH where it was and naming the acid) named the acid with `OutputForm.STANDALONE`, which neutralised a ring cation: `methyl(pyridine-4-carbonyl)azanide`, refused by the guard. It names the acid with `_standalone_or_cation` (`4-carboxypyridin-1-ium`) and turns that into `pyridin-1-ium-4-carbonyl` (`3-bromopyridin-1-ium-5-carbonyl`); a name ending `aminium` is a suffix, not a ring cation, and keeps the `[(azaniumyl...)(oxo)methyl]` form it had. D-271's thiazolium sulfonamide is now `carbamoyl[4-(1,3-thiazol-3-ium-2-yl)phenylsulfonyl]azanide` (the acid is named as a cation too; OPSIN reads it back).
+* **Measured.** Betaine 1518 of 1523 (was 1465), zwitterion 1519 of 1523 (was 1466); dianion 268 of 280, anions 1264 of 1399, cations, quaternary, dication, quat_dication, trianion and trication as before. See the verification lines at the end of this round.
+* New `tests/test_namer_round65_cationic_acyl_on_an_amide_anion.py`.
+
+## 2026-10-17 -- naming round 64: a lactam anion beside an acid anion (D-303, D-304)
+
+Round 63's open list: the dianion, betaine and zwitterion populations still refused ions with a lactam's ring `[N-]` beside a carboxylate (34 of 280 dianions; `lactam` was in 12 of 17 refusals of that kind).
+
+* **D-303.** `CC1CC(=O)[N-]C1C(=O)[O-]` was refused (the acid anion is the parent and the lactam `[N-]` was left out of the name, which the guard caught). The ring-anion locants of `SubstitutivePath.execute` took an aromatic `[n-]` and, since round 60, a lactam as a SUBSTITUENT; they now take a non-aromatic ring `[N-]` in every output form when it is the ONE ring anion of the parent. The assembler already put the infix before a suffix (`1H-indol-1-id-5-ol`): `3-methyl-5-oxopyrrolidin-1-id-2-carboxylate`, `(2-oxo-2,3-dihydro-1H-indol-1-id-3-yl)acetate`. Two ring anions with a lactam (`...-5-carbonitrile-1',2-diide`, `...-6-one-4,5-diide`) came out unparsable, a worse failure than the refusal: the lactam is left out then and the guard refuses.
+* **D-304.** Round 63's stabilised-carbanion classifier returns when a CATION is bonded to the carbanion (a diazo carbon, `[CH-][N+]#N`, is an ylide); a nitro group's `N+` is bonded to the carbon of a nitro carbon acid and is charge-separated and neutral, so `COc1ccccc1Nc1nc(=O)[c-]([N+](=O)[O-])c(=O)[nH]1` was refused. The test skips the charge-separated atoms.
+* **Measured.** Dianion 268 of 280 (was 246), betaine 1465 of 1523 (was 1436), zwitterion 1466 of 1523 (was 1437); anions 1264 of 1399 as before, cations, quaternary, dication, quat_dication, trianion and trication unchanged. See the verification lines at the end of this round.
+* New `tests/test_namer_round64_lactam_anion_beside_an_acid_anion.py`.
+
 ## 2026-10-17 -- naming round 63: a guanidinium, an amidinium or a carbon acid beside another charge (D-299 .. D-302)
 
 Round 62's open list: about 50 ions per pair mode still refused. Three classifiers (`_classify_guanidinium`, `_classify_amidinium`, `_classify_stabilised_carbanion`) claim a motif when it is the molecule's only charge, and detection refuses ('partial_claim') when a classification leaves a charged atom uncovered, so a second charge refused the whole molecule.

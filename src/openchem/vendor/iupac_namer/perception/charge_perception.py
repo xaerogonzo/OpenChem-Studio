@@ -1045,7 +1045,8 @@ def _classify_stabilised_carbanion(mol) -> Iterable[ChargeClassification]:
     c = charged[0]
     cations = [a.GetIdx() for a in all_charged if a.GetFormalCharge() > 0]
     # a cation BONDED to the carbanion is an ylide (`[CH-][N+]#N`, a diazo carbon), another classifier's
-    if any(n.GetFormalCharge() > 0 for n in c.GetNeighbors()):
+    # (a nitro group's N+ beside the carbon is charge-separated and neutral, not an ylide: naming round 64)
+    if any(n.GetFormalCharge() > 0 and n.GetIdx() not in separated for n in c.GetNeighbors()):
         return
     if c.GetAtomicNum() != 6 or c.GetFormalCharge() != -1 or c.GetNumRadicalElectrons() != 0 or c.GetDegree() < 2:
         return
@@ -3970,11 +3971,21 @@ def _acyl_prefix_via_acid(mol, n_idx: int, acyl_idx: int, strategy, session, dep
     # leave that case to the branch namer, which writes the carboxy as a prefix.
     if len(acid.GetSubstructMatches(Chem.MolFromSmarts("[$([CX3]=[O,S]),$([SX4](=O)=O)][OX2H1]"))) > 1:
         return None
+    from openchem.vendor.iupac_namer.engine import _standalone_or_cation
+
     try:
-        text = assemble(_recursive_name(acid, strategy, OutputForm.STANDALONE, free_valence=None, decision_ctx=None, _session=session, _depth=depth + 1))
+        # The acid of a RING-CATION acyl (`O=C([N-]C)c1cc[nH+]cc1`) is named as a cation, or its `-ium` is lost (naming round 65: `methyl(pyridine-4-carbonyl)azanide`).
+        text = assemble(_recursive_name(acid, strategy, _standalone_or_cation(acid), free_valence=None, decision_ctx=None, _session=session, _depth=depth + 1))
     except Exception:
         return None
     if not text or "NAMING ERROR" in text:
+        return None
+    cationic = re.fullmatch(r"(.*?)(?:^|(?<=-))(\d+)-carboxy-?(.*ium)", text) if text.endswith("ium") and not text.endswith("aminium") else None      # a ring cation only: an aminium is a suffix, and `...thiophen-2-aminium-3-carbonyl` cannot be read
+    if cationic is not None:
+        # `4-carboxypyridin-1-ium` -> `pyridin-1-ium-4-carbonyl`; `3-bromo-5-carboxypyridin-1-ium` -> `5-bromo...` keeps its own prefixes in front
+        before, locant, rest = cationic.group(1), cationic.group(2), cationic.group(3)
+        if not any(ch in before + rest for ch in "([{"):
+            return f"{before.rstrip('-')}{rest}-{locant}-carbonyl"
         return None
     acyl = _acid_name_to_acyl(text)
     # `sulfamic acid` becomes `sulfamyl`; the book's group is `sulfamoyl` (OPSIN reads both).
