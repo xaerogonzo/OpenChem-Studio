@@ -82,6 +82,8 @@ The script is a JSON list of steps, run in order:
                                  "method": "HF-3c"}   the REAL Run button,
                                                       and the identity the
                                                       SERVICE was handed
+      {"do": "qc_setup",         "method": "HF STO-3G"}   set the panel,
+                                                      press nothing
       {"do": "inspector_report", "expect_spectrum": "stale"}   asserts it
       {"do": "atom_numbers",     "mode": "locants", "tag": "on"}  the View
                                               menu's mode, and what the PAGE
@@ -671,6 +673,38 @@ class _Driver(QObject):
             record.input_fingerprint[:12],
             record.method_basis,
             panel._status_label.text(),
+        )
+
+    def _do_qc_setup(self, step: dict[str, Any]) -> None:
+        """Set the Quantum Chemistry panel up and press NOTHING.
+
+        `{"do": "qc_setup", "method": "HF STO-3G", "calc_type": "Geometry Optimization"}`
+
+        For a run that something ELSE starts: the Generate Conformers window's "also ORCA-optimize the lowest-energy
+        conformer" presses the panel's Run itself, with whatever the panel shows at that moment, so a script has to put
+        a fast method there first and then not press anything. The panel's molecule combo is pointed at the Properties
+        selection, as `qc_run` does, because the panel describes (and runs) whatever that combo holds.
+        """
+        from openchem.ui.molecule_combo import select
+
+        panel = getattr(self._window, "_quantum_chemistry_panel", None)
+        if panel is None:
+            logger.error("OPENCHEM_DRIVE: qc_setup -- no Quantum Chemistry panel on this window")
+            return
+        if not select(panel._molecule_combo, self._window._property_panel._selected_molecule_uuid):
+            logger.error("OPENCHEM_DRIVE: qc_setup -- the selected molecule is not in the panel's combo")
+            return
+        if step.get("calc_type") is not None:
+            index = panel._calc_type_combo.findText(str(step["calc_type"]))
+            if index < 0:
+                logger.error("OPENCHEM_DRIVE: qc_setup -- calc_type %r matches no item", step["calc_type"])
+                return
+            panel._calc_type_combo.setCurrentIndex(index)
+        if step.get("method") is not None:
+            panel._method_combo.setCurrentText(str(step["method"]))
+        logger.warning(
+            "OPENCHEM_DRIVE: qc_setup method=%r calc_type=%r (nothing pressed)",
+            panel._method_combo.currentText(), panel._calc_type_combo.currentText(),
         )
 
     def _do_tautomer_run(self, step: dict[str, Any]) -> None:
@@ -3642,16 +3676,44 @@ class _Driver(QObject):
             logger.error("OPENCHEM_DRIVE: no molecule selected for conformers")
             return
         options = None
-        if step.get("with_settings"):
+        optimize_lowest = False
+        if step.get("with_settings") or "optimize_lowest" in step:
             # What the viewer's button would ask with, from Settings > Conformers: the SAME dialog the button builds,
             # never shown (a step must not `exec()` a modal).
-            options = window._viewer3d.options_dialog().options()
+            dialog = window._viewer3d.options_dialog()
+            options = dialog.options()
+            if "optimize_lowest" in step:
+                # THE CHECKBOX, not the argument behind it: the window has to offer the step, and a greyed box takes
+                # no tick (`optimize_lowest()` is then False, which is what a person would get).
+                check = dialog._orca_check
+                if check is None:
+                    logger.error("OPENCHEM_DRIVE: conformers -- the Generate window has no ORCA checkbox")
+                else:
+                    check.setChecked(bool(step["optimize_lowest"]))
+            optimize_lowest = dialog.optimize_lowest()
+            check, note = dialog._orca_check, dialog._orca_note
+            offered_enabled = check is not None and check.isEnabled()
+            offered_text = note.text() if note is not None else ""
+            logger.warning(
+                "OPENCHEM_DRIVE: conformers window | orca_box=%s enabled=%s ticked=%s | %r",
+                check is not None, offered_enabled, optimize_lowest, offered_text,
+            )
+            expect = step.get("expect_offer") or {}
+            if "available" in expect and bool(expect["available"]) != offered_enabled:
+                logger.error(
+                    "OPENCHEM_DRIVE: EXPECT conformers offer FAILED -- available is %s, wanted %s",
+                    offered_enabled, expect["available"],
+                )
+            for needle in expect.get("text_contains", []):
+                if needle not in offered_text:
+                    logger.error("OPENCHEM_DRIVE: EXPECT conformers offer FAILED -- %r lacks %r", offered_text, needle)
         window._services.conformer_service.request_conformers(
             molecule,
             num_conformers=int(step.get("count", 3)),
             optimize=bool(step.get("optimize", True)),
             num_embeddings=step.get("embeddings"),
             options=options,
+            optimize_lowest=optimize_lowest,
         )
 
     def _do_conformers_finish(self, step: dict[str, Any]) -> None:

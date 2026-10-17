@@ -219,7 +219,9 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           before it is pressed; "press": false only looks
     {"do": "conformers_provenance", "expect": {"stop_reason": "finished_early"}}  how the
                                           stored run ended; `conformers` takes "with_settings":
-                                          true for what Settings > Conformers adds
+                                          true for what Settings > Conformers adds, and
+                                          "optimize_lowest": true to tick the Generate window's ORCA box
+                                          (its real checkbox; `expect_offer` asserts what the window offered)
     {"do": "screen_run",  "receptor": 0}      the REAL Run button, and the
                                               PREP DICT the service got
     {"do": "qc_run", "calc_type": "NMR (raw shielding)", "method": "HF def2-SVP"}
@@ -319,6 +321,8 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
      "descriptors_box": true, "run_enabled": true, "status_contains": ["Ticked 1 calculator(s)"]}}
                                           the Presets menu's REAL "Tick what my scores read" entry in Properties (a menu with no such entry fails), asserted off the
                                           ticks, the always-on choice and the status line; `project_run` then takes `"keep_ticks": true` to run with the ticks as they are
+    {"do": "qc_setup", "method": "HF STO-3G"}   set the Quantum Chemistry panel's method (and "calc_type") and press NOTHING:
+                                          for a run something else starts, such as the Generate window's ORCA box
     {"do": "qc_wait", "timeout_ms": 600000}   hold the script until the Quantum Chemistry service has no job running (give up = an
                                           ERROR); use it after `qc_run` instead of guessing an `after_ms` for a job of unknown length
     {"do": "lewis_gate_begin"}  {"do": "lewis_gate_floor", "a": -2, "b": -1}  {"do": "lewis_gate_pair", "bh3": -3, "bf3": -2, "co": -1}

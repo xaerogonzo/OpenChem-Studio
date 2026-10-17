@@ -537,6 +537,19 @@ optimization landing, not about a regeneration). Undo restores the previous set
 either way, and editing the structure clears every conformer, ORCA ones
 included, because a geometry no longer fits an edited molecule.
 
+**Also ORCA-optimize the lowest-energy conformer** is a checkbox in the Generate Conformers window, unticked
+unless **Settings > Conformers > Start the Generate Conformers window with "Also ORCA-optimize the lowest-energy
+conformer" ticked** says otherwise. Ticked, it does one thing more once the new conformers are in: it presses the
+Quantum Chemistry panel's Run for you on the conformer of this set with the lowest force-field energy, as a geometry
+optimization with the method, basis, charge and multiplicity the panel shows at that moment. The window names them
+beside the box, and greys the box with the reason when ORCA is not set up. The optimized geometry takes that
+conformer's place, as it does for any optimization, and Undo puts the force-field one back. It is an ordinary job: it is
+in the Jobs panel, which can cancel it, and the status bar says which conformer it is optimizing. Two things to know.
+*Lowest* means among the conformers just generated, because an ORCA geometry kept from an earlier run has no
+force-field energy to compare. And nothing asks again before ORCA starts, so look at the panel's method first if you
+have left it on something slow. If it cannot start (the panel is already running something, or ORCA was unset after the
+window opened) the conformers are still installed and the status bar says why.
+
 **Generate Conformers** asks for the counts, and hides the search
 settings behind **Advanced** — on **Automatic** it spends a documented
 budget, which is what you want unless you have a reason not to. Under
@@ -1591,6 +1604,11 @@ for **Use in 2D Editor** while a job runs, when it gives the drawing a
 stereocentre it did not have: the structure is more specific than the one the job
 was run on. A multi-conformer (Boltzmann) run is not cut short by an edit either;
 it finishes on the inputs it was started with and applies nothing.
+
+**Started from Generate Conformers.** With *Also ORCA-optimize the lowest-energy conformer* ticked in that window,
+the panel is set up and Run is pressed for you on the lowest-energy conformer of the new set, with whatever method and
+basis the panel shows. Everything above applies to it: the result takes that conformer's place, and an edit while it
+runs applies nothing.
 
 **Calibrate Reference (TMS)** runs the reference calculation once per
 method/basis and caches it, so subsequent NMR jobs return real ppm shifts

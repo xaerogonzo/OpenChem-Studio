@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from openchem.chem.conformer_providers import (  # noqa: F401 - re-exported
     DEFAULT_EMBEDDING_BATCH_SIZE,
     DEFAULT_PLATEAU_BATCHES,
@@ -231,6 +233,22 @@ _HELP: dict[str, HelpTooltip] = {
         help_id="conformers.time_limit",
         topic="conformers",
     ),
+    "optimize_lowest": HelpTooltip(
+        text=(
+            "After the conformers are installed, ORCA optimizes the one with the lowest force-field energy, "
+            "with the method, basis, charge and multiplicity the Quantum Chemistry panel shows when they "
+            "arrive, exactly as if you had pressed Run there.\n\n"
+            "The optimized geometry replaces that conformer in its slot, and Undo puts the force-field one "
+            "back. It is an ordinary ORCA job: it appears in the Jobs panel, which can cancel it.\n\n"
+            "LOWEST means lowest force-field energy among the conformers just generated. An ORCA geometry "
+            "kept from an earlier run is not a candidate, and its energy is not comparable.\n\n"
+            "Off unless ticked here or started ticked in Settings > Conformers, because an optimization "
+            "takes minutes to hours."
+        ),
+        tier=3,
+        help_id="conformers.optimize_lowest",
+        topic="conformers",
+    ),
     "refine": HelpTooltip(
         text=(
             "Put every surviving conformer through a second, stricter "
@@ -245,6 +263,19 @@ _HELP: dict[str, HelpTooltip] = {
         topic="conformers",
     ),
 }
+
+
+@dataclass(frozen=True)
+class OrcaGenerationOffer:
+    """What the window can say about "also ORCA-optimize the lowest-energy conformer" for THIS molecule.
+
+    Built by the application window (it alone can see both the ORCA install and the Quantum Chemistry panel) and
+    handed in, so this dialog names no service. `available` False carries the reason in `text`, and the checkbox
+    is then greyed with that reason beside it rather than offered and failing later.
+    """
+
+    available: bool
+    text: str
 
 
 class ConformerOptionsDialog(QDialog):
@@ -271,6 +302,8 @@ class ConformerOptionsDialog(QDialog):
         parent: QWidget | None = None,
         automatic_embeddings: int = DEFAULT_EMBEDDINGS_TO_TRY,
         early_stop: bool = False,
+        orca_offer: OrcaGenerationOffer | None = None,
+        optimize_lowest: bool = False,
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle("Generate Conformers")
@@ -379,6 +412,21 @@ class ConformerOptionsDialog(QDialog):
         )
         note.setWordWrap(True)
 
+        # **ONLY WHEN THE APPLICATION CAN SAY WHAT WOULD RUN.** A bare dialog (a test, a plugin) has no ORCA and no
+        # panel to describe, and a checkbox promising an optimization it cannot name is worse than none.
+        self._orca_check: QCheckBox | None = None
+        self._orca_note: QLabel | None = None
+        if orca_offer is not None:
+            self._orca_check = QCheckBox("Also ORCA-optimize the lowest-energy conformer")
+            self._orca_check.setObjectName("optimizeLowest")
+            self._orca_check.setEnabled(orca_offer.available)
+            # Never ticked while it cannot run: the Settings default must not leave a ticked, greyed box.
+            self._orca_check.setChecked(bool(optimize_lowest) and orca_offer.available)
+            apply_help_tooltip(self._orca_check, _HELP["optimize_lowest"])
+            self._orca_note = QLabel(orca_offer.text)
+            self._orca_note.setObjectName("optimizeLowestNote")
+            self._orca_note.setWordWrap(True)
+
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
@@ -392,6 +440,9 @@ class ConformerOptionsDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.addLayout(form)
         layout.addWidget(note)
+        if self._orca_check is not None and self._orca_note is not None:
+            layout.addWidget(self._orca_check)
+            layout.addWidget(self._orca_note)
         layout.addWidget(buttons)
 
     def _on_advanced_toggled(self, advanced: bool) -> None:
@@ -420,6 +471,14 @@ class ConformerOptionsDialog(QDialog):
 
     def conformers_to_keep(self) -> int:
         return self._keep_spin.value()
+
+    def optimize_lowest(self) -> bool:
+        """Whether the lowest-energy conformer of this generation is to be ORCA-optimized when it arrives.
+
+        False when the checkbox is absent or greyed: an offer that cannot be taken is never taken.
+        """
+        check = self._orca_check
+        return check is not None and check.isEnabled() and check.isChecked()
 
     def options(self) -> GenerationOptions:
         """Everything beyond the two counts, as one object.

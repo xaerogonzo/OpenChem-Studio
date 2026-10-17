@@ -112,12 +112,18 @@ CONFORMER_EARLY_STOP = Preference("conformers/early_stop_kept_set", bool, False)
 #: it always did. A structure edit still clears all of them either way: the geometry no longer fits.
 CONFORMER_KEEP_OPTIMIZED = Preference("conformers/keep_quantum_optimized", bool, True)
 
+#: What the Generate Conformers window STARTS with for "also ORCA-optimize the lowest-energy conformer". OFF by
+#: default: an optimization takes minutes to hours and the person did not ask for one by pressing Generate. The
+#: window still decides each generation; this is only where its checkbox begins.
+CONFORMER_OPTIMIZE_LOWEST = Preference("conformers/orca_optimize_lowest", bool, False)
+
 #: Every preference, in the order the Settings window groups them. Tests
 #: iterate this, so a preference added here is covered without a new test.
 PREFERENCES = (
     RAIL_HIDES_PANELS, RECOVERY_ENABLED, RECOVERY_DELAY_SECONDS, MAX_REVISIONS_KEPT,
     SHOW_HIDDEN_CALCULATORS, RECALC_MODE, RECALC_QUIET_MS, DRAWING_BOND_KEYS,
     CONFORMER_MAX_EMBEDDINGS, DRAWING_BOND_CLICK, CONFORMER_EARLY_STOP, CONFORMER_KEEP_OPTIMIZED,
+    CONFORMER_OPTIMIZE_LOWEST,
 )
 
 #: Where one calculator's own visibility choice is stored: a plain

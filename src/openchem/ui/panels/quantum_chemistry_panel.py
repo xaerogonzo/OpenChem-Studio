@@ -1569,6 +1569,49 @@ class QuantumChemistryPanel(QWidget):
         )
         return True
 
+    def optimization_offer(self, molecule) -> tuple[bool, str]:
+        """Can an optimization be started from here for `molecule`, and what would it run with? (ok, one line).
+
+        What the Generate Conformers window shows beside its ORCA checkbox, so the person sees the method before
+        ticking it. **The charge is the one Run would use**: the panel keeps the value in its box while it is on
+        this molecule and takes the structure's own charge when it moves to another, so a molecule the panel is
+        not showing yet is described with its formal charge, not with the last molecule's.
+        """
+        method_basis = self._effective_method_basis()
+        if not method_basis:
+            return False, "The Quantum Chemistry panel has no method and basis set, so there is nothing to run."
+        on_it = self._molecule_combo.currentData() == molecule.uuid
+        charge = self._charge_spin.value() if on_it else self._chemistry_engine.formal_charge(molecule)
+        return True, (
+            f"Runs with the Quantum Chemistry panel's settings: {method_basis}, charge {charge}, "
+            f"multiplicity {self._multiplicity_spin.value()}."
+        )
+
+    def start_optimization(self, molecule_uuid: str, conformer_id: str) -> str:
+        """Optimize ONE conformer now, as if the person had set the panel up and pressed Run. "" when it started.
+
+        **THE SAME RUN, NOT A SECOND ONE**: `prepare_optimization` (the panel set to Geometry Optimization on that
+        conformer, averaging off) and then the real Run handler, so the checks, the structure identity, the slot and
+        the landing are exactly the ones a pressed Run has. What a pressed Run refuses is refused here, and the
+        reason comes back as text for the caller to say, because nobody is watching this panel to read it.
+
+        A calculation the panel is already running is not interrupted: its Run button is the state of that.
+        """
+        if not self._run_button.isEnabled():
+            return "another calculation is still running in the Quantum Chemistry panel."
+        if not self.prepare_optimization(molecule_uuid, conformer_id):
+            return "that conformer is no longer there."
+        self._on_run_clicked()
+        if self._cancel_button.isEnabled():
+            return ""
+        # Run's own refusals put their sentence in the status line; a service that declined (no ORCA, a job already
+        # running for this molecule) leaves "failed" there and its reason as the last line of the log.
+        reason = self._status_label.text().strip()
+        if reason in ("", "failed", "queued"):
+            lines = self._output_log.toPlainText().strip().splitlines()
+            reason = lines[-1].strip() if lines else "the job did not start."
+        return reason
+
     def _refresh_active_run(self) -> None:
         """Populate the Runs combo for the selected molecule and show its
         newest entry, if this session's `ResultStoreService` has history
