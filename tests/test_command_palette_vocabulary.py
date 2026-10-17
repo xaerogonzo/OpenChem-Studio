@@ -155,7 +155,11 @@ _EXPECTED_FIRST = {
     # whatever tab was last used.
     "isotope": "Isotopes...",
     "pubchem": "Identify Structure Online...",
-    "orca": "External Tools...",
+    # **WAS "External Tools...", AND THE CHANGE IS THE RANKING WORKING**, the "isotope" case again: there is now a real
+    # menu item with ORCA in its label ("ORCA Geometry Optimization...", the 3D viewer's button as a menu entry), and
+    # a label match beats a keyword. Setting ORCA's path up is still one query away, below.
+    "orca": "ORCA Geometry Optimization...",
+    "executable": "External Tools...",
     # NOT "valence": there is a real menu item called "Show Valence",
     # and it beating "Check Structure..." is the ranking working. The
     # keyword still gets Check Structure into the list, second.

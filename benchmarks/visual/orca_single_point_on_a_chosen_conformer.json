@@ -1,0 +1,25 @@
+[
+  {"do": "smiles", "smiles": "CCO", "name": "Ethanol", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "view_3d", "after_ms": 2000},
+  {"do": "conformers", "count": 3, "after_ms": 20000},
+  {"do": "conformer_report", "tag": "before",
+   "expect": {"conformers": 2, "orca_conformers": 0, "methods": ["rdkit+MMFF94/UFF", "rdkit+MMFF94/UFF"]}},
+
+  {"do": "panel", "id": "Quantum_Chemistry", "after_ms": 1500},
+  {"do": "qc_run", "calc_type": "Single Point", "method": "HF STO-3G", "conformer": 1},
+  {"do": "qc_wait", "timeout_ms": 600000},
+  {"do": "conformer_report", "tag": "single-point-on-the-second",
+   "expect": {"conformers": 2, "orca_conformers": 0, "methods": ["rdkit+MMFF94/UFF", "rdkit+MMFF94/UFF"],
+              "qc_results_contains": "Computed on conformer 2, not the one every calculation uses (conformer 1)",
+              "badge_empty": true}},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/orca_sp_on_chosen.png", "after_ms": 1500},
+
+  {"do": "qc_run", "calc_type": "Single Point", "method": "HF STO-3G", "conformer": "automatic"},
+  {"do": "qc_wait", "timeout_ms": 600000},
+  {"do": "conformer_report", "tag": "single-point-on-automatic",
+   "expect": {"conformers": 2, "qc_results_excludes": "Computed on conformer"}},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

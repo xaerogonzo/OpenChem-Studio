@@ -100,9 +100,11 @@ over a 3D number will follow.
 `7 - ORCA` in a gallery cell. Details says which level of theory made it and which conformer it was optimised from, by the
 number that conformer had when you pressed Run. Generating conformers again keeps it (Settings ▸ Conformers ▸ Keep
 ORCA-optimized conformers, on by default). A job that finishes after you edited the structure no longer puts its geometry or
-its numbers on the edited molecule; the status bar says why and the finished run stays in the history. Not built yet: an "ORCA
-optimize" button in the viewer (so a conformer other than the canonical one can be optimised), a Tools entry and a badge, and an
-option to optimise the lowest-energy conformer when generating.
+its numbers on the edited molecule; the status bar says why and the finished run stays in the history. Since then an **ORCA optimize** button in
+the viewer, **Tools ▸ ORCA Geometry Optimization…** and a **Conformer** box in the Quantum Chemistry panel let you optimise a
+conformer other than the canonical one (they set the panel up and start nothing), and a molecule that holds an ORCA geometry is
+marked `[ORCA-optimized]` in the project list and under its name in Properties. Not built yet: an option to optimise the
+lowest-energy conformer when generating.
 
 ## The Lewis acid-base pairing (#311, #314 to #324)
 

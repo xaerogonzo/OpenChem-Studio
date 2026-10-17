@@ -203,7 +203,15 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           it also reads the 3D VIEWER and the status bar: `viewer_index`,
                                           `viewer_on_canonical`, `viewer_label_contains`/`_excludes`,
                                           `orca_conformers`, `origin_slot`, `status_contains` -- "the geometry
-                                          is stored" and "the viewer shows it" are different claims
+                                          is stored" and "the viewer shows it" are different claims;
+                                          also `badge_contains`/`badge_empty` (the Properties header),
+                                          `explorer_contains`/`explorer_excludes` (the Project Explorer row)
+                                          and `methods` (every conformer's method in slot order)
+    {"do": "orca_optimize_button", "via": "button", "conformer": 1, "expect": {"chosen_slot": 2,
+     "calc_type": "Geometry Optimization", "job_started": false}}    put the viewer on a slot and press the REAL
+                                          "ORCA optimize" button (or `"via": "menu"`, Tools > ORCA Geometry
+                                          Optimization...), then assert what the Quantum Chemistry panel was SET UP
+                                          to do and that NOTHING started; Run is a separate `qc_run` step
     {"do": "jobs_report", "tag": "running"}   rows AND whether it is POLLING
     {"do": "jobs_cancel", "row": 0}           the real button in a real row
     {"do": "conformers_finish", "expect": {"enabled": true, "readout_contains": ["found"]}}
@@ -216,7 +224,11 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                               PREP DICT the service got
     {"do": "qc_run", "calc_type": "NMR (raw shielding)", "method": "HF def2-SVP"}
                                               REAL ORCA, and the IDENTITY
-                                              the service was handed
+                                              the service was handed; add
+                                              `"conformer": 1` (zero-based slot) to
+                                              point the Conformer box first, or
+                                              `"automatic"` to put it back: the pick
+                                              PERSISTS between runs
     {"do": "inspector_report", "expect_spectrum": "stale"}  ASSERTS the held
                                               spectrum carries that identity
     {"do": "tautomer_run", "method": "HF STO-3G"}  the REAL "Tautomers..." button,

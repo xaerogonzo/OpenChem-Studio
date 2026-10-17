@@ -160,6 +160,15 @@ class SubstanceCard(QFrame):
         self._subtitle.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         layout.addWidget(self._subtitle)
 
+        # What kind of GEOMETRY the molecule holds, one line under the name. A separate widget set by `set_badge`,
+        # not a field of `SubstanceCardData`: the card's data is replaced by every substance report, and an ORCA
+        # geometry arriving or being undone is not a report.
+        self._badge = QLabel("", self)
+        self._badge.setStyleSheet("color: #1f6f3f; font-weight: bold;")
+        self._badge.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self._badge.hide()
+        layout.addWidget(self._badge)
+
         self._rows_container = QWidget(self)
         self._rows = QGridLayout(self._rows_container)
         self._rows.setContentsMargins(0, 4, 0, 0)
@@ -193,6 +202,16 @@ class SubstanceCard(QFrame):
 
     def clear(self) -> None:
         self.set_data(SubstanceCardData())
+        self.set_badge("")
+
+    def badge_text(self) -> str:
+        """The badge on screen, or "" when there is none."""
+        return self._badge.text() if not self._badge.isHidden() else ""
+
+    def set_badge(self, text: str) -> None:
+        """Show `text` (for example "ORCA-optimized geometry (HF STO-3G)") under the name, or hide the line for ""."""
+        self._badge.setText(text)
+        self._badge.setVisible(bool(text))
 
     def set_data(self, data: SubstanceCardData) -> None:
         self._data = data
@@ -231,6 +250,8 @@ class SubstanceCard(QFrame):
         subtitle = "   ".join(p for p in (self._data.formula, self._data.classification) if p)
         if subtitle:
             lines.append(subtitle)
+        if not self._badge.isHidden():
+            lines.append(self._badge.text())
         lines.extend(f"{label}: {value}" for label, value in self._data.rows)
         if self._data.reason:
             lines.append(self._data.reason)

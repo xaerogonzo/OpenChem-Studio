@@ -10,11 +10,13 @@ from openchem.chem.identifiers import identifier_for_molblock
 from openchem.commands.crystal_commands import DeleteCrystalCommand, RenameCrystalCommand
 from openchem.commands.formulation_commands import DeleteFormulationCommand
 from openchem.commands.molecule_commands import DeleteMoleculeCommand, RenameMoleculeCommand
+from openchem.domain.conformer import quantum_optimized_note
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
 from openchem.events.base import EventBus
 from openchem.events.events import (
     CrystalChanged,
+    ConformersChanged,
     CrystalSelected,
     FormulationChanged,
     FormulationSelected,
@@ -40,6 +42,10 @@ _CRYSTAL_SUFFIX = "  [crystal]"
 #: -- which is what the editor dialog already does, with every other
 #: field in front of the user rather than one of them alone.
 _FORMULATION_SUFFIX = "  [formulation]"
+#: Chrome on a MOLECULE row that holds an ORCA-optimized geometry, the same shape as the two above: it says at a
+#: glance, in the one list every project has, which molecules have a quantum geometry. Never part of the name; the
+#: tooltip says at what level of theory.
+_ORCA_SUFFIX = "  [ORCA-optimized]"
 
 
 class ProjectExplorerPanel(QWidget):
@@ -96,6 +102,7 @@ class ProjectExplorerPanel(QWidget):
         event_bus.subscribe(MoleculeChanged, self._on_molecule_changed)
         event_bus.subscribe(CrystalChanged, self._on_molecule_changed)
         event_bus.subscribe(FormulationChanged, self._on_molecule_changed)
+        event_bus.subscribe(ConformersChanged, self._on_conformers_changed)
 
     def set_project(self, project: ProjectModel | None) -> None:
         self._project = project
@@ -111,6 +118,7 @@ class ProjectExplorerPanel(QWidget):
                 item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
                 item.setData(Qt.ItemDataRole.UserRole, molecule.uuid)
                 item.setData(_KIND_ROLE, _MOLECULE)
+                self._show_geometry_badge(item, molecule)
                 self._list.addItem(item)
             for crystal in self._project.crystals:
                 item = QListWidgetItem(f"{crystal.display_name}{_CRYSTAL_SUFFIX}")
@@ -159,6 +167,36 @@ class ProjectExplorerPanel(QWidget):
 
     def _on_molecule_changed(self, event: MoleculeChanged) -> None:
         self.refresh()
+
+    @staticmethod
+    def _show_geometry_badge(item: QListWidgetItem, molecule: MoleculeModel) -> None:
+        """Put (or take away) the ORCA badge on one molecule's row. The stored name is never touched."""
+        note = quantum_optimized_note(molecule.conformers)
+        item.setText(f"{molecule.display_name}{_ORCA_SUFFIX}" if note else molecule.display_name)
+        item.setToolTip(note)
+
+    def _on_conformers_changed(self, event: ConformersChanged) -> None:
+        """A molecule gained or lost an ORCA geometry (it landed, Undo took it back, conformers were generated again).
+
+        Only that row is touched, with signals blocked: rebuilding the list would drop the selection, and an
+        item's text changing must not look like a rename.
+        """
+        if self._project is None:
+            return
+        molecule = self._project.find_molecule(event.molecule_uuid)
+        if molecule is None:
+            return
+        for row in range(self._list.count()):
+            item = self._list.item(row)
+            if item.data(_KIND_ROLE) == _MOLECULE and item.data(Qt.ItemDataRole.UserRole) == molecule.uuid:
+                self._refreshing = True
+                self._list.blockSignals(True)
+                try:
+                    self._show_geometry_badge(item, molecule)
+                finally:
+                    self._list.blockSignals(False)
+                    self._refreshing = False
+                return
 
     def _crystal_for_item(self, item: QListWidgetItem):
         """The crystal a row stands for, or None for a molecule row."""
@@ -340,7 +378,8 @@ class ProjectExplorerPanel(QWidget):
         molecule = self._molecule_for_item(item)
         if molecule is None:
             return
-        new_name = item.text().strip()
+        # The ORCA badge is chrome, handed back by editing the row exactly as the crystal suffix is.
+        new_name = item.text().removesuffix(_ORCA_SUFFIX).strip()
         if not new_name or new_name == molecule.display_name:
             # Empty/unchanged edit -- restore the displayed text instead of
             # pushing a no-op (or blank-name) rename command.
