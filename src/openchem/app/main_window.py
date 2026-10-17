@@ -222,6 +222,8 @@ _MENU_KEYWORDS: dict[str, tuple[str, ...]] = {
     ),
     "Receptor Library...": ("pdb", "protein", "target", "docking"),
     "Run Calculators by Goal...": ("wizard", "guided", "recommended", "charge", "solubility", "shape", "drug-likeness"),
+    # NOT "orca", "geometry" or "optimization": words of the label, which the palette finds directly.
+    "ORCA Geometry Optimization...": ("optimize", "optimise", "relax", "minimize", "quantum", "conformer"),
     "Periodic Table...": ("element", "isotope", "atomic number", "electron configuration"),
     # NOT "quark" or "hadron": both are words of the label, so the palette
     # finds them directly and a keyword would only pad the map.
@@ -652,6 +654,8 @@ class MainWindow(QMainWindow):
         self._editor.atom_number_status.connect(self._on_atom_number_status)
         # The way back from the 3D viewer -- see `_adopt_conformer`.
         self._viewer3d.conformer_adopted.connect(self._adopt_conformer)
+        # The way to ORCA from the conformers -- see `_on_orca_optimize_requested`.
+        self._viewer3d.orca_optimize_requested.connect(self._on_orca_optimize_requested)
         self._jobs_panel = JobsPanel(services.job_manager, self)
         self._structure_check_panel = StructureCheckPanel(
             services.structure_check_service,
@@ -2451,6 +2455,13 @@ class MainWindow(QMainWindow):
         self._document(
             tools_menu.addAction("Derived Scores...", self._on_scores_action),
             "derived_scores",
+        )
+        # The same door as the 3D viewer's "ORCA optimize" button, from the menu: an ORCA optimization used to be
+        # reachable from the Quantum Chemistry panel alone, which is the kind of one-place-only option that goes
+        # unfound. It sets the panel up and starts nothing.
+        self._document(
+            tools_menu.addAction("ORCA Geometry Optimization...", self._on_orca_optimize_action),
+            "orca_optimize",
         )
         self._document(
             tools_menu.addAction("Periodic Table...", self._show_periodic_table),
@@ -5411,6 +5422,41 @@ class MainWindow(QMainWindow):
 
     def _show_settings(self) -> None:
         self.show_settings()
+
+    def _on_orca_optimize_requested(self, molecule_uuid: str, conformer_id: str) -> None:
+        """Open the Quantum Chemistry panel set up to optimize ONE conformer, and stop.
+
+        The 3D viewer's "ORCA optimize" button and Tools > ORCA Geometry Optimization... both land here. The
+        panel's own Conformer box holds the choice and Run is still the person's: it takes a charge, a
+        multiplicity and a method, and an optimization can run for hours.
+        """
+        self._on_panel_chosen("Quantum_Chemistry")
+        if self._quantum_chemistry_panel.prepare_optimization(molecule_uuid, conformer_id):
+            self.statusBar().showMessage(
+                "Quantum Chemistry is set up to optimize that conformer. Check the method and basis, then press Run.",
+                10000,
+            )
+        else:
+            self.statusBar().showMessage(
+                "That conformer is no longer there (the conformers changed), so nothing was set up.", 8000
+            )
+
+    def _on_orca_optimize_action(self) -> None:
+        """Tools > ORCA Geometry Optimization...: the conformer the 3D viewer shows, or the one every calculation uses.
+
+        With nothing to optimize it SAYS so rather than doing nothing: a menu entry that is silently inert reads as
+        broken, and the way to get a conformer is one menu away.
+        """
+        molecule = self._current_molecule()
+        if molecule is None or not molecule.conformers:
+            self.statusBar().showMessage(
+                "ORCA optimizes a conformer: generate some first (Structure > Generate Conformers...).", 8000
+            )
+            return
+        conformer_id = self._viewer3d.conformer_id_on_screen(molecule)
+        if conformer_id is None:
+            conformer_id = canonical_conformer(molecule).conformer_id
+        self._on_orca_optimize_requested(molecule.uuid, conformer_id)
 
     def _on_service_panel_requested(self, panel_id: str, calculator_id: str) -> None:
         """Show the panel a Properties row stands for, with its calculation chosen.

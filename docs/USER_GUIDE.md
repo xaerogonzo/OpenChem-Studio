@@ -16,7 +16,9 @@ and provenance stay attached to the right structure.
 
 The **Project Explorer** panel lists them. Right-click to delete or rename;
 both go through the undo stack, so Ctrl+Z works on them like any structural
-edit.
+edit. A molecule that holds an ORCA-optimized geometry is marked
+`[ORCA-optimized]` in the list (hover for the level of theory), and the
+Properties header says the same under its name; neither is part of the name.
 
 A project file never stores a raw RDKit molecule. It stores the molblock
 plus canonical SMILES/InChI/InChIKey and metadata, and the structure is
@@ -581,6 +583,15 @@ superposition is a viewing aid, recomputed each time.
 The energy shown is relative to the lowest (`+0.55 kcal/mol`), because the
 raw force-field number is not a quantity anybody compares to anything. The
 absolute value is in the tooltip.
+
+**ORCA optimize** sets up an ORCA geometry optimization of THE CONFORMER ON SCREEN
+(in the gallery, the cell you last clicked) and opens the Quantum Chemistry
+panel with that conformer chosen. It starts nothing: check the method and basis
+there and press Run. **Tools ▸ ORCA Geometry Optimization…** is the same door
+from the menu (it uses the conformer the viewer shows, or the one every
+calculation uses when the viewer shows another molecule), and the panel's own
+**Conformer** box is where the choice is held, so you can also pick a conformer
+there directly.
 
 **An ORCA-optimized conformer is marked wherever you step to it.** The status
 line reads `Conformer 7/20 - ORCA optimized (HF STO-3G)`, and in the gallery
@@ -1550,6 +1561,24 @@ with spin-spin coupling — plus charge, multiplicity and a method/basis
 string (the presets are editable; anything you type, including dispersion or
 solvation keywords, is passed through and is part of the calibration cache
 key).
+
+**Which conformer a single calculation runs on** is the **Conformer** box.
+**Automatic** is the one every calculation uses (the newest ORCA-optimized
+geometry if there is one, otherwise the lowest force-field energy) and says which
+number that is; a numbered conformer runs on that one. The 3D viewer's **ORCA
+optimize** button and **Tools ▸ ORCA Geometry Optimization…** fill it in for you
+and set the calculation to Geometry Optimization, then stop: nothing runs until
+you press **Run**. The box is greyed while **Average over all conformers** is
+ticked, since that runs on every conformer. After an optimization lands, the
+conformer you chose is gone (the result replaced it), so the box goes back to
+Automatic, which is now the optimized geometry.
+
+**A calculation other than an optimization, run on a conformer that is not the one
+every calculation uses, is kept under that conformer** and the panel says so when it
+finishes. Properties shows the results for the conformer every calculation uses (a
+stored result is replayed only while its input is still that conformer), so such a
+result is shown here and kept in the run history, and does not come back in
+Properties when you select the molecule again.
 
 **Where an optimized geometry goes.** A geometry optimization (or optimization
 plus frequencies) takes the place of the conformer it was run on, which is the
@@ -2894,7 +2923,7 @@ the structure:
 | **Edit** | Undo/redo, Copy Structure As, Paste Structure, Duplicate, Rename, Settings |
 | **Structure** | Aromatize/Dearomatize, Layout, Clean Up, explicit hydrogens, CIP stereo descriptors, Generate Conformers, Check Structure |
 | **View** | Which panels are shown, and 2D Structure Display toggles |
-| **Tools** | Periodic Table, Identify Structure Online, Virtual Screening, External Tools |
+| **Tools** | ORCA Geometry Optimization, Periodic Table, Identify Structure Online, Virtual Screening, External Tools |
 
 The structure operations used to sit under Edit, between "Redo" and "Copy
 Structure As", where neither group was easy to find.

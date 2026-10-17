@@ -349,27 +349,49 @@ def resolve_calculation_input(
     `batch_service` already did for the same case.
     """
     if calculation_input == GEOMETRY:
-        conformer = canonical_conformer(model)
-        if conformer is not None:
-            try:
-                mol = engine.mol_from_molblock(conformer.molblock)
-            except Exception:  # noqa: BLE001 - the drawing remains a valid answer
-                logger.exception(
-                    "Conformer %s of molecule %s is unusable; using the drawn structure",
-                    conformer.conformer_id,
-                    model.uuid,
-                )
-            else:
-                if mol.GetNumConformers() > 0 and mol.GetConformer().Is3D():
-                    return ResolvedInput(mol, geometry_fingerprint(conformer), GEOMETRY)
-                logger.info(
-                    "Conformer %s of molecule %s is not 3D; using the drawn structure",
-                    conformer.conformer_id,
-                    model.uuid,
-                )
-    # The DRAWING fingerprint for a geometry request that fell back, on
-    # purpose: the calculator really was handed the drawing, so a result
-    # computed that way is the same input as a drawing-policy one.
+        return resolve_conformer_input(engine, model, canonical_conformer(model))
+    return _drawing_input(engine, model)
+
+
+def resolve_conformer_input(
+    engine: ChemistryEngine, model: MoleculeModel, conformer: ConformerModel | None
+) -> ResolvedInput:
+    """The molecule to hand a calculation that runs on ONE named conformer.
+
+    **The same validation `resolve_calculation_input` applies to the canonical conformer, for any
+    conformer**, so a job started on the one a person picked can neither be handed an unusable
+    geometry nor stamped with an identity that does not describe what it received. A conformer that
+    will not parse, or is not 3D, falls back to the drawing exactly as the canonical one does; the
+    caller can tell from `used`, and must not present the fallback as the conformer it asked for.
+
+    `conformer` None (a molecule with none) is the drawing.
+    """
+    if conformer is not None:
+        try:
+            mol = engine.mol_from_molblock(conformer.molblock)
+        except Exception:  # noqa: BLE001 - the drawing remains a valid answer
+            logger.exception(
+                "Conformer %s of molecule %s is unusable; using the drawn structure",
+                conformer.conformer_id,
+                model.uuid,
+            )
+        else:
+            if mol.GetNumConformers() > 0 and mol.GetConformer().Is3D():
+                return ResolvedInput(mol, geometry_fingerprint(conformer), GEOMETRY)
+            logger.info(
+                "Conformer %s of molecule %s is not 3D; using the drawn structure",
+                conformer.conformer_id,
+                model.uuid,
+            )
+    return _drawing_input(engine, model)
+
+
+def _drawing_input(engine: ChemistryEngine, model: MoleculeModel) -> ResolvedInput:
+    """The drawing, fingerprinted as the DRAWING.
+
+    The DRAWING fingerprint for a geometry request that fell back, on purpose: the calculator really
+    was handed the drawing, so a result computed that way is the same input as a drawing-policy one.
+    """
     molblock = model.molblock or ""
     return ResolvedInput(engine.mol_from_model(model), _fingerprint(DRAWING, molblock), DRAWING)
 
