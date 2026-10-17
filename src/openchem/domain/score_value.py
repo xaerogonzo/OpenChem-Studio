@@ -4,10 +4,17 @@
 with its inputs. What a read produces is the number and the evidence behind it: every input with its output id, value, unit and the result it came
 from, and the definition's digest. Evaluating never runs a calculator, so a score has no execution policy to decide.
 
-**AN OUTPUT HAS ONE INPUT, AND ONLY A RESULT OF THAT INPUT IS READ FOR IT** (`score_outputs.ApprovedOutput.input`). Nearly all are read from the drawing; the ten shape descriptors are read from the
+**AN OUTPUT HAS ONE INPUT, AND ONLY A RESULT OF THAT INPUT IS READ FOR IT** (`score_outputs.ApprovedOutput.input`). Nearly all are read from the drawing; the shape descriptors and Geometry Analysis's eight sizes are read from the
 GEOMETRY of the conformer every calculation uses (`chem/calculation_input.canonical_conformer`), so a score cannot disagree with Properties or the project table about which structure it means.
 A geometry result is current only while its fingerprint is that conformer's CURRENT one: when the conformers are generated again or an ORCA optimisation lands, the conformer every calculation uses
 changes, the old result reads "calculated for an earlier geometry of this molecule", and a number of another conformer is never offered in its place. A molecule with no conformer says it needs one.
+
+**A CURRENT GEOMETRY RESULT IS STILL NOT READ WHEN IT IS NOT A NUMBER OF THAT CONFORMER, OR NOT OF ONE COMPOUND** (`not_applicable_reason`, state `NOT_APPLICABLE`). Geometry Analysis measures the WHOLE structure, and a
+structure of several fragments (a salt, a hydrate) has no 3D shape of its own: the embedder packs the pieces together at an arbitrary offset, which the calculator's own caveat says (every one of the five multi-fragment
+census structures carries "every figure here is smaller than the true one"). The always-on shape descriptors need no such rule, because they are computed on the ChEMBL parent compound and refused when there is no single
+parent. And Geometry Analysis can be set to measure another geometry than the one it was handed (the lowest of several it generates, or a copy it relaxed) or to scale its radii, which its record says: a number
+measured that way is not the conformer's, so it is refused naming the setting, and a result whose record does not say is refused as unknown. Both come from the result's own provenance, so Results, the project table
+and the assistant read one rule.
 
 **AN INPUT IS READ FROM THE MOLECULE'S CURRENT RESULTS ONLY.** A result computed on an earlier structure, or one the application has superseded, is not
 used, and the refusal says so. A refused, failed or absent input refuses the score, naming the input and why. **Never a zero, and never a skipped term:**
@@ -40,7 +47,7 @@ from openchem.domain.report import ReportResult
 from openchem.domain.score_constants import constant_values
 from openchem.domain.score_definition import ON_MISSING_DEFAULT, ScoreDefinition, check_computation
 from openchem.domain.score_formula import FormulaError, Refusal, evaluate, render
-from openchem.domain.score_outputs import READ_FROM, ApprovedOutput, accept_value, approved_output
+from openchem.domain.score_outputs import AS_STORED_UNSCALED, READ_FROM, ApprovedOutput, accept_value, approved_output
 from openchem.domain.turn_snapshot import Freshness, Outcome, ResultEntry
 
 
@@ -75,6 +82,9 @@ class InputState(str, Enum):
     AMBIGUOUS = "ambiguous"
     #: Nothing was calculated and the definition declares a default for this input, which is what `value` is. It yields a number, and is never a `READ`.
     DEFAULT = "default"
+    #: A current result of a geometry output that the application declines to read: the structure it was measured on is several fragments, the calculator measured something other than the stored conformer
+    #: (or with scaled radii), or its record does not say which. The note names which.
+    NOT_APPLICABLE = "not_applicable"
 
 
 @dataclass(frozen=True)
@@ -165,6 +175,68 @@ def geometry_text(parameters: Mapping[str, object] | None) -> str:
     return f"{where} ({', '.join(details)})"
 
 
+#: The provenance key `chem.calculation_input.geometry_provenance` writes (domain cannot import it): how many separate pieces the conformer a result was measured on is made of.
+FRAGMENTS_KEY = "input_fragments"
+
+#: What a refusal for a result whose record does not say names, so a person knows the cure.
+_RERUN = "run it again"
+
+
+def _is_count(value: object) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 1
+
+
+def not_applicable_reason(output: ApprovedOutput, parameters: Mapping[str, object] | None) -> str:
+    """Why a number of a GEOMETRY output may not be read from a result recorded with these provenance `parameters`, or `""` when it may.
+
+    Three questions, in this order, each answered from what the result says about itself and never guessed:
+
+    1. **Is the structure one compound?** Only for an output the producer measures on the whole structure (`whole_structure`). `input_fragments` (`geometry_provenance`) counts the separate pieces of the conformer.
+       More than one is refused, and a result with no count (one an earlier build made) is refused as unknown, because reading it as one piece would let a salt through.
+    2. **Did the calculator measure the stored conformer?** Only for an output with `measured_as`: Geometry Analysis records the fingerprint of the geometry it was handed (`input_geometry`) and of the one it
+       measured (`measured_geometry`), and they differ when it chose a conformer of its own or relaxed a copy.
+    3. **Were the radii unscaled?** Only for `AS_STORED_UNSCALED`: the six projection numbers rescale with `radius_scale`.
+
+    A drawing output has none of these questions.
+    """
+    if output.input != GEOMETRY:
+        return ""
+    values = parameters or {}
+    if output.whole_structure:
+        fragments = values.get(FRAGMENTS_KEY)
+        if not _is_count(fragments):
+            return f"its record does not say how many separate pieces the structure it was measured on is made of (an earlier build made it), so it cannot be told from a salt: {_RERUN}"
+        if fragments > 1:
+            return (
+                f"it was measured on the whole structure, which is {fragments} separate fragments (a salt, a hydrate, a complex), and where one fragment sits beside another in 3D is arbitrary, "
+                "so a shape number of it says nothing about the compound: score the parent structure"
+            )
+    if not output.measured_as:
+        return ""
+    measured, handed = values.get("measured_geometry"), values.get("input_geometry")
+    if not isinstance(measured, str) or not isinstance(handed, str):
+        return f"its record does not say which geometry the calculator measured, so it cannot be told from the stored conformer: {_RERUN} with its default settings"
+    if measured != handed:
+        how = (
+            "a copy of the conformer that it relaxed with MMFF94 first" if values.get("optimise_projection") is True
+            else "a conformer it generated itself (the lowest of several)" if values.get("conformer_policy") == "always"
+            else "another geometry than the stored conformer"
+        )
+        return f"it was measured on {how}, and a score reads only a number measured on the conformer every calculation uses, as it is: {_RERUN} with its default settings"
+    if output.measured_as == AS_STORED_UNSCALED:
+        scale = values.get("radius_scale")
+        if isinstance(scale, bool) or not isinstance(scale, (int, float)):
+            return f"its record does not say how the van der Waals radii were scaled: {_RERUN} with its default settings"
+        if float(scale) != 1.0:
+            return f"its projections used van der Waals radii scaled by {float(scale):g}, and a score reads only unscaled ones: {_RERUN} with its default settings"
+    return ""
+
+
+def _parameters_of(result: object) -> Mapping[str, object] | None:
+    """The provenance parameters a stored result records, or None when it records none."""
+    return getattr(getattr(result, "provenance", None), "parameters", None)
+
+
 def _records_of(output: ApprovedOutput, entries: Iterable[ResultEntry]) -> list[ResultEntry]:
     """The stored results made by whatever produces `output`, of the input the entry says it is read from, in any state."""
     kind, _, rest = output.output_id.partition(":")
@@ -241,6 +313,11 @@ def read_output(output_id: str, entries: Iterable[ResultEntry], conformers: int 
     reads: list[OutputRead] = []
     for entry in computed:
         identity = entry.stored.identity
+        recorded = _parameters_of(entry.stored.result)
+        declined = not_applicable_reason(output, recorded)
+        if declined:
+            reads.append(OutputRead(InputState.NOT_APPLICABLE, result_id=entry.result_id, parameters_key=identity.parameters_key, note=declined))
+            continue
         found, value, carried, note = _typed_value(output_id, entry)
         if not found:
             reads.append(OutputRead(InputState.MISSING_FACT, result_id=entry.result_id, parameters_key=identity.parameters_key, note=note))
@@ -253,7 +330,7 @@ def read_output(output_id: str, entries: Iterable[ResultEntry], conformers: int 
         except Refusal as exc:
             reads.append(OutputRead(state, carried_as=carried, result_id=entry.result_id, parameters_key=identity.parameters_key, note=exc.reason))
             continue
-        where = geometry_text(getattr(getattr(entry.stored.result, "provenance", None), "parameters", None)) if on_geometry else ""
+        where = geometry_text(recorded) if on_geometry else ""
         reads.append(OutputRead(InputState.READ, number, carried, entry.result_id, identity.parameters_key, geometry=where))
     good = [read for read in reads if read.state is InputState.READ]
     if not good:

@@ -54,6 +54,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
 import sweep_score_outputs as sweep_tool  # noqa: E402
 
 _GEOMETRY_ENTRIES = [entry for entry in APPROVED if entry.input == GEOMETRY]
+#: The ten shape descriptors: the geometry outputs that are always-on descriptors of the RDKit provider. The other eight are Geometry Analysis's (`tests/test_score_geometry_sizes.py`).
+_SHAPE_ENTRIES = [entry for entry in _GEOMETRY_ENTRIES if entry.output_id.startswith("descriptor:")]
 _RG = "descriptor:radius_of_gyration"
 _ID = "1a2b3c4d5e6f"
 
@@ -82,7 +84,8 @@ def _lengths_scaled(mol, factor: float):
 
 
 def test_the_providers_declared_unit_is_the_one_the_approved_entry_carries():
-    for entry in _GEOMETRY_ENTRIES:
+    assert len(_SHAPE_ENTRIES) == 10
+    for entry in _SHAPE_ENTRIES:
         assert SHAPE_DESCRIPTOR_UNITS[entry.output_id.partition(":")[2]] == entry.carried_as, entry.output_id
 
 
@@ -91,7 +94,7 @@ def test_each_numbers_length_dependence_is_the_one_its_declared_unit_says(smiles
     """Double every length: a quantity of dimension length^n becomes 2^n times as large. The unit of each entry names its Å exponent, so a unit that is not what the number does fails here."""
     mol = _embedded(smiles)
     base, doubled = _shape_values(mol), _shape_values(_lengths_scaled(mol, 2.0))
-    for entry in _GEOMETRY_ENTRIES:
+    for entry in _SHAPE_ENTRIES:
         descriptor_id = entry.output_id.partition(":")[2]
         exponent = dict(unit_of(entry).parts).get("Å", 0)
         if base[descriptor_id] == 0:
@@ -407,19 +410,19 @@ def test_opening_a_project_drops_a_shape_copy_in_an_old_unit_and_keeps_the_rest(
     assert services.result_store_service.store.load_problems["retired"] == 1
 
 
-def test_every_approved_geometry_output_resolves_to_a_descriptor_the_provider_makes_with_that_unit():
+def test_every_approved_shape_output_resolves_to_a_descriptor_the_provider_makes_with_that_unit():
     provider = RDKitDescriptorProvider()
-    for entry in _GEOMETRY_ENTRIES:
+    for entry in _SHAPE_ENTRIES:
         descriptor_id = entry.output_id.partition(":")[2]
         assert descriptor_id in provider.geometric_descriptor_ids()
         assert approved_output(entry.output_id) is entry
-    assert {entry.output_id.partition(":")[2] for entry in _GEOMETRY_ENTRIES} == set(provider.geometric_descriptor_ids())
+    assert {entry.output_id.partition(":")[2] for entry in _SHAPE_ENTRIES} == set(provider.geometric_descriptor_ids())
 
 
 # --- the surfaces that say what an output is read from -------------------------------------------------------------------------------------
 
 
-def test_the_assistants_list_of_outputs_says_geometry_for_the_ten_and_nothing_for_the_rest():
+def test_the_assistants_list_of_outputs_says_geometry_for_the_geometry_outputs_and_nothing_for_the_rest():
     from openchem.domain.result_envelope import FULL, score_outputs_envelope
 
     rows = {row["output_id"]: row for row in score_outputs_envelope(APPROVED, FULL)["outputs"]}

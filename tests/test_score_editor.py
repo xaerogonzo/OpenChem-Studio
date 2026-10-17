@@ -283,7 +283,7 @@ def test_a_formula_over_a_limit_is_a_problem_of_the_formula():
 
 def test_a_unit_spelled_another_way_is_said_the_way_it_works_out():
     """`Å*Å` is accepted as `Å^2`, and the line under the formula says what it works out to, not how it was typed."""
-    result = check_draft(Draft(label="Area", formula="psa", result_unit="Å*Å", inputs=(InputRow("psa", _TPSA),)))
+    result = check_draft(Draft(label="Footprint", formula="psa", result_unit="Å*Å", inputs=(InputRow("psa", _TPSA),)))
     assert result.ok and result.worked_out == "Å^2" and result.message == f"{OK}: it works out to Å^2."
 
 

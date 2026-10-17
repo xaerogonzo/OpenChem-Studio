@@ -52,7 +52,7 @@ import sweep_score_outputs as sweep_tool  # noqa: E402
 
 #: The calculators the table draws from, plus the two controls: `joback_properties` is limited and HIDDEN by default, and
 #: `polar_surface_area` carries its number as text rounded by the decimal-places setting.
-_CALCULATORS_UNDER_TEST = ["bbb_descriptors", "oxygen_balance", "polarizability", "solubility", "topology_analysis", "joback_properties", "polar_surface_area", "logd"]
+_CALCULATORS_UNDER_TEST = ["bbb_descriptors", "geometry_analysis", "oxygen_balance", "polarizability", "solubility", "topology_analysis", "joback_properties", "polar_surface_area", "logd"]
 
 
 def _entry(**changes) -> ApprovedOutput:
@@ -119,6 +119,14 @@ _SHARED_ENDPOINTS = {
 #: The unit of every approved output, written out for the same reason: it decides what a formula over it may add and what it works out to.
 _UNITS = {
     "calculator:bbb_descriptors:Aromatic rings": "1",
+    "calculator:geometry_analysis:Max projection area": "Å^2",
+    "calculator:geometry_analysis:Max projection radius": "Å",
+    "calculator:geometry_analysis:Max radius (from centroid)": "Å",
+    "calculator:geometry_analysis:Mean radius (from centroid)": "Å",
+    "calculator:geometry_analysis:Min projection area": "Å^2",
+    "calculator:geometry_analysis:Min projection radius": "Å",
+    "calculator:geometry_analysis:Size perpendicular to the max projection": "Å",
+    "calculator:geometry_analysis:Size perpendicular to the min projection": "Å",
     "calculator:oxygen_balance:Oxygen balance (CO basis)": "%",
     "calculator:oxygen_balance:Oxygen balance (CO₂ basis)": "%",
     "calculator:polarizability:Molecular polarizability": "Å^3",
@@ -151,10 +159,21 @@ _UNITS = {
 }
 
 #: The outputs read from a CONFORMER's geometry and not from the drawing, written out for the same reason: it decides which structure a score means, and a score over one has no value for a
-#: molecule that has no conformer. Every other approved output is the drawing's.
+#: molecule that has no conformer. Every other approved output is the drawing's. The ten shape descriptors, then eight of Geometry Analysis's sizes.
 _GEOMETRY_OUTPUTS = {
     "descriptor:asphericity", "descriptor:inertial_shape_factor", "descriptor:npr1", "descriptor:npr2", "descriptor:pbf", "descriptor:pmi1", "descriptor:pmi2", "descriptor:pmi3",
     "descriptor:radius_of_gyration", "descriptor:spherocity_index",
+    "calculator:geometry_analysis:Max projection area", "calculator:geometry_analysis:Max projection radius", "calculator:geometry_analysis:Max radius (from centroid)",
+    "calculator:geometry_analysis:Mean radius (from centroid)", "calculator:geometry_analysis:Min projection area", "calculator:geometry_analysis:Min projection radius",
+    "calculator:geometry_analysis:Size perpendicular to the max projection", "calculator:geometry_analysis:Size perpendicular to the min projection",
+}
+
+#: Which outputs ask more than "is it a number of the stored conformer": Geometry Analysis's own settings change what it measures (`score_value.not_applicable_reason`). The two radii from the
+#: centroid must be of the stored conformer as it is; the six projection numbers also of unscaled van der Waals radii.
+_AS_STORED = {"calculator:geometry_analysis:Max radius (from centroid)", "calculator:geometry_analysis:Mean radius (from centroid)"}
+_AS_STORED_UNSCALED = {
+    "calculator:geometry_analysis:Max projection area", "calculator:geometry_analysis:Max projection radius", "calculator:geometry_analysis:Min projection area",
+    "calculator:geometry_analysis:Min projection radius", "calculator:geometry_analysis:Size perpendicular to the max projection", "calculator:geometry_analysis:Size perpendicular to the min projection",
 }
 
 
@@ -164,10 +183,20 @@ def test_exactly_these_outputs_are_read_from_a_conformer_and_all_the_others_from
     assert all(entry.input == READ_FROM for entry in APPROVED if entry.output_id not in _GEOMETRY_OUTPUTS)
 
 
-def test_the_ten_shape_outputs_are_each_their_own_quantity():
-    """Three principal moments, two ratios, a radius, a plane distance and three anisotropy measures are different numbers, so none shares a tag: a formula may combine them."""
+def test_the_eighteen_geometry_outputs_are_each_their_own_quantity():
+    """Three principal moments, two ratios, a radius, a plane distance and three anisotropy measures; two radii from the centroid and six projection numbers: all different numbers, so none shares a tag, and a formula may combine them."""
     tags = [entry.endpoint for entry in APPROVED if entry.input == "geometry"]
-    assert len(tags) == len(set(tags)) == 10
+    assert len(tags) == len(set(tags)) == 18
+
+
+def test_exactly_these_outputs_ask_how_the_calculator_measured_them():
+    from openchem.domain.score_outputs import AS_STORED, AS_STORED_UNSCALED, MEASURED_AS
+
+    asking = {entry.output_id: entry.measured_as for entry in APPROVED if entry.measured_as}
+    assert asking == {**{output_id: AS_STORED for output_id in _AS_STORED}, **{output_id: AS_STORED_UNSCALED for output_id in _AS_STORED_UNSCALED}}
+    assert len(_AS_STORED) == 2 and len(_AS_STORED_UNSCALED) == 6
+    assert all(entry.measured_as in MEASURED_AS for entry in APPROVED)
+    assert all(entry.input == "geometry" for entry in APPROVED if entry.measured_as), "a drawing output has no geometry to have measured"
 
 
 def test_the_outputs_that_share_an_endpoint_are_exactly_these():

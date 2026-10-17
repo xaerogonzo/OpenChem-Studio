@@ -44,8 +44,9 @@ from openchem.plugins.calculation_access import PluginCalculations
 REPLY_BUDGET = 12000
 
 #: The budget of `list_score_outputs` alone. The approved table is fixed knowledge the model reads once to propose a score, and with the ten shape outputs (51 rows, 2026-10-17) it no longer fit
-#: the general budget: the stepped caps dropped the last rows, so the model could not name them. Raised for this one reply and not for the others, which are read in full on every later request.
-SCORE_OUTPUTS_BUDGET = 16000
+#: the general budget: the stepped caps dropped the last rows, so the model could not name them. Raised for this one reply and not for the others, which are read in full on every later request. It was 16,000 until
+#: Geometry Analysis's eight sizes (59 rows, 14,249 characters: the guard in `tests/test_ai_assistant_score_proposals.py` stops at 85%), and is 20,000 now.
+SCORE_OUTPUTS_BUDGET = 20000
 
 #: How many calculators one search returns at most, whatever the model asks for.
 MAX_SEARCH = 30

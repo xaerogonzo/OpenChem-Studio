@@ -52,7 +52,7 @@ from openchem.domain.score_answer import LIMITATION, REFUSAL_CODE, SIGNIFICANT_D
 from openchem.domain.score_definition import ON_MISSING_DEFAULT, VALIDATION, ScoreDefinition
 from openchem.domain.score_formula import Refusal
 from openchem.domain.score_outputs import READ_FROM, accept_value, approved_output, output_title
-from openchem.domain.score_value import InputState, OutputRead, ScoreStatus, ScoreValue, evaluate_score_with, geometry_text
+from openchem.domain.score_value import InputState, OutputRead, ScoreStatus, ScoreValue, evaluate_score_with, geometry_text, not_applicable_reason
 
 #: The column group a score column is listed under in the table's "Columns" menu.
 CATEGORY = "Derived scores"
@@ -91,6 +91,10 @@ def read_cell_output(output_id: str, table: BatchTable, molecule_uuid: str) -> O
         return OutputRead(InputState.REFUSED if refused else InputState.FAILED, note=cell.error or "the calculation failed")
     if column is None:
         return OutputRead(InputState.NOT_RUN, note="it is not a column of this table: the run did not compute it")
+    # The same rule Results reads by, from the cell's own provenance: a shape number of several fragments, or one the calculator did not measure on the stored conformer, is declined here as there.
+    declined = not_applicable_reason(output, cell.provenance.parameters if cell.provenance is not None else None)
+    if declined:
+        return OutputRead(InputState.NOT_APPLICABLE, note=declined)
     if cell.value is None:
         return OutputRead(InputState.NOT_A_NUMBER, note="the cell holds no number")
     try:

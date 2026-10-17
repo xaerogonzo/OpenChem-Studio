@@ -493,9 +493,11 @@ SCORE_NOT_A_PREDICTION = (
 
 #: What a model is told about reading and changing scores, sent with every read.
 SCORES_NOTE = (
-    "Each score is worked out from this molecule's CURRENT results as of this turn, so its value is current or it has none. An input is read from the drawing, except the ten shape outputs "
-    "(their input has `calculation_input` set to `geometry`; every other input has none), which are read from the conformer every calculation uses and named in the input's `conformer`: a score over one has no value for a molecule with no conformer, "
-    "or one measured on an earlier conformer than the one used now, and you must say so rather than substitute another. "
+    "Each score is worked out from this molecule's CURRENT results as of this turn, so its value is current or it has none. An input is read from the drawing, except the geometry outputs "
+    "(the shape descriptors and eight of Geometry Analysis's sizes; their input has `calculation_input` set to `geometry`; every other input has none), which are read from the conformer every calculation uses and named in the input's `conformer`: "
+    "a score over one has no value for a molecule with no conformer, or one measured on an earlier conformer than the one used now, and you must say so rather than substitute another. "
+    "An input in the state `not_applicable` is a geometry output the application declines to read for this molecule (it is several fragments, such as a salt, whose 3D shape is not a property of the compound, "
+    "or Geometry Analysis measured another geometry than the conformer or scaled its radii): its `note` says which, and you must pass that on and never suggest a number for it. "
     "A score whose outcome is 'refused' has no value: say which input could not be read and why, and never state a value or treat it as zero. A unit of 1 means a plain number. "
     "A score whose outcome is 'computed_with_defaults' used a default its definition declares for an input nobody calculated (`defaults_used`): say so, name those inputs, "
     "and never present the number as the result of calculating them. "
@@ -574,7 +576,7 @@ def scores_view_envelope(view: ScoresView, caps: Caps = FULL) -> dict[str, Any]:
 SCORE_OUTPUTS_NOTE = (
     "Name an output in propose_score by its output_id. `unit` is how to write that output's unit for a constant or the result_unit (for example 'Å^2'); `1` is a plain number. "
     "Two outputs with the same endpoint estimate one quantity and cannot be in one score. Units are never converted: a formula that adds two different units is refused, and a bare number "
-    "in a formula takes the unit of what it is added to or compared with. An output whose `input` is `geometry` is measured on a conformer: it has no value for a molecule that has none."
+    "in a formula takes the unit of what it is added to or compared with. An output whose `input` is `geometry` is measured on a conformer: it has no value for a molecule that has none, or whose structure is several fragments (a salt)."
 )
 
 #: What a model is told when a proposal is waiting, which is what it most needs to say correctly to the person.
@@ -586,7 +588,8 @@ SCORE_PROPOSAL_NOTE = (
 
 #: How many outputs `list_score_outputs` lists at full size, scaled with the caps like every other list. Its own limit and not `Caps.items` (40, for facts and structures): the approved table passed 40 outputs
 #: and the 41st, the last by id, fell off the model's list with only `left_out_for_length` to say so. A row is about 215 bytes, and with the ten shape outputs (2026-10-17) the table passed what `REPLY_BUDGET` (12000) holds, so the stepped caps
-#: began dropping the last rows. `list_score_outputs` therefore has a budget of its own (`plugins/ai_assistant/bridge.SCORE_OUTPUTS_BUDGET`); `tests/test_ai_assistant_score_proposals.py` turns red before it is crossed.
+#: began dropping the last rows. `list_score_outputs` therefore has a budget of its own (`plugins/ai_assistant/bridge.SCORE_OUTPUTS_BUDGET`); `tests/test_ai_assistant_score_proposals.py` turns red before it is crossed. With Geometry Analysis's
+#: eight sizes (59 outputs, rows of about 350 bytes for the long ids) the list took 14,249 of 16,000, so the budget is 20,000.
 SCORE_OUTPUT_ROWS = 120
 
 
