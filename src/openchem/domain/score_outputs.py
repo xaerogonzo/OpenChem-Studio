@@ -12,8 +12,10 @@ registry):
   value before it can be approved;
 * from the always-on descriptors, or from a calculator that is STABLE or LIMITED and offered by default (an EXPERIMENTAL or hidden
   calculator's output would put one unvalidated thing on top of another);
-* of the DRAWING, not of a conformer: the always-on descriptors run on both and store two results under one id, and a number of one
-  conformer is a number of that conformer. Geometry-based outputs are a separate piece of work (decided on 2026-10-16, not built: `docs/DERIVED_SCORES_DESIGN.md`);
+* of ONE input, which the entry names (`ApprovedOutput.input`): the DRAWING for nearly all of them, and for the ten shape descriptors the GEOMETRY of the conformer every
+  calculation already gets (`chem/calculation_input.canonical_conformer`: the newest ORCA-optimised one, otherwise the lowest force-field energy). The always-on descriptors
+  used to run on both and store two results under one id, which is why an output now has exactly one input and a result of the other is never read for it
+  (`docs/DERIVED_SCORES_DESIGN.md`, section 11);
 * whose id does not depend on the structure (a torsion is named by its atoms and a ring by its size, so neither is an id);
 * whose unit this language can say truthfully (`MPa^0.5` and `cm3/mol / 100` cannot be written, so Hansen's parameters and McGowan's
   volume wait).
@@ -36,7 +38,7 @@ import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
-from openchem.domain.calculator import DRAWING
+from openchem.domain.calculator import DRAWING, GEOMETRY
 from openchem.domain.score_constants import Constant, check_constants, constant_values
 from openchem.domain.score_formula import (
     FormulaError,
@@ -46,7 +48,7 @@ from openchem.domain.score_formula import (
 )
 from openchem.domain.score_units import Unit, parse_unit
 
-#: The calculation input every approved output is read from. One input, so an output has exactly one current result to read.
+#: The calculation input an approved output is read from unless its entry says otherwise. An output has exactly ONE input, so it has exactly one current result to read.
 READ_FROM = DRAWING
 
 #: The reviewed list of endpoint tags, each with the quantity it names. A tag is shared by every output that estimates that quantity, which is
@@ -83,6 +85,19 @@ ENDPOINTS: dict[str, str] = {
     "szeged_index": "the Szeged index: the sum over bonds of the atoms nearer one end times the atoms nearer the other, of the molecular graph without hydrogens",
     "wiener_index": "the Wiener index: half the sum of all topological distances between atoms, of the molecular graph without hydrogens",
     "wiener_polarity": "the Wiener polarity number: the count of atom pairs exactly three bonds apart, in the molecular graph without hydrogens",
+    # PROVISIONAL, like the sixteen above (the ten shape descriptors, 2026-10-17). Each is measured on a CONFORMER, hydrogens included, and is one quantity of its own: the three principal
+    # moments are three different numbers, so they carry three tags, and a formula may combine them (a ratio of two of them is a legitimate thing to write). Their definitions were checked against RDKit's
+    # numbers by reproducing each (`docs/DERIVED_SCORES_DESIGN.md`, section 11).
+    "principal_moment_1": "the smallest principal moment of inertia of the conformer (mass-weighted, amu*Å^2)",
+    "principal_moment_2": "the middle principal moment of inertia of the conformer (mass-weighted, amu*Å^2)",
+    "principal_moment_3": "the largest principal moment of inertia of the conformer (mass-weighted, amu*Å^2)",
+    "normalized_pmi_ratio_1": "the smallest principal moment of the conformer over the largest (NPR1)",
+    "normalized_pmi_ratio_2": "the middle principal moment of the conformer over the largest (NPR2)",
+    "radius_of_gyration": "the mass-weighted radius of gyration of the conformer, in Å",
+    "asphericity": "the asphericity of the conformer's mass-weighted gyration tensor, as RDKit computes it",
+    "spherocity_index": "the spherocity index of the conformer: three times the smallest covariance eigenvalue of its atom positions over their sum",
+    "inertial_shape_factor": "the inertial shape factor of the conformer: the middle moment over the product of the other two, in 1/(amu*Å^2)",
+    "plane_of_best_fit": "the mean distance of the conformer's atoms from their best-fit plane, in Å",
     # PROVISIONAL, like the eight above (eight counts, 2026-10-16; two more share the tags `ring_count` and `stereocentre_count`). The ring counts are of the rings RDKit's ring information lists, which is why a cage has
     # more rings than independent cycles.
     "bond_count": "the number of bonds between non-hydrogen atoms",
@@ -111,10 +126,17 @@ class ApprovedOutput:
     endpoint: str
     #: The date this was approved (ISO), because the version it first shipped in is not known when it is written.
     approved: str
+    #: The calculation input the number is read from: `drawing` (`READ_FROM`) or `geometry`, the conformer every calculation uses. A result stored under the other input is never read for this output.
+    input: str = READ_FROM
 
 
 def _entry(output_id: str, unit: str, carried_as: str, endpoint: str) -> ApprovedOutput:
     return ApprovedOutput(output_id, unit, carried_as, endpoint, "2026-10-14")
+
+
+def _geometry_entry(output_id: str, unit: str, carried_as: str, endpoint: str) -> ApprovedOutput:
+    """An output measured on the conformer every calculation gets, and read from the result stored under its geometry fingerprint."""
+    return ApprovedOutput(output_id, unit, carried_as, endpoint, "2026-10-17", GEOMETRY)
 
 
 #: The table. Sorted by id, so a review diff reads as additions. Every entry resolves, through the registry, to a finite number carrying
@@ -146,22 +168,32 @@ APPROVED: tuple[ApprovedOutput, ...] = (
     _entry("calculator:topology_analysis:Szeged index", "1", "", "szeged_index"),
     _entry("calculator:topology_analysis:Wiener index", "1", "", "wiener_index"),
     _entry("calculator:topology_analysis:Wiener polarity", "1", "", "wiener_polarity"),
+    _geometry_entry("descriptor:asphericity", "1", "", "asphericity"),
     _entry("descriptor:bertz_ct", "1", "", "bertz_complexity"),
     _entry("descriptor:esol_logs", "1", "", "aqueous_solubility_intrinsic"),
     _entry("descriptor:exact_mass", "g/mol", "g/mol", "exact_mass"),
     _entry("descriptor:fsp3", "1", "", "fraction_sp3_carbon"),
     _entry("descriptor:heavy_atom_count", "1", "", "heavy_atom_count"),
+    _geometry_entry("descriptor:inertial_shape_factor", "1/amu*Å^2", "1/(amu·Å²)", "inertial_shape_factor"),
     _entry("descriptor:labute_asa", "Å^2", "Å²", "labute_surface_area"),
     _entry("descriptor:mol_logp", "1", "", "logp_octanol_water"),
     _entry("descriptor:mol_wt", "g/mol", "g/mol", "molecular_weight"),
     _entry("descriptor:np_likeness", "1", "", "natural_product_likeness"),
+    _geometry_entry("descriptor:npr1", "1", "", "normalized_pmi_ratio_1"),
+    _geometry_entry("descriptor:npr2", "1", "", "normalized_pmi_ratio_2"),
     _entry("descriptor:num_hba", "1", "", "hbond_acceptor_count"),
     _entry("descriptor:num_hbd", "1", "", "hbond_donor_count"),
     _entry("descriptor:num_rotatable_bonds", "1", "", "rotatable_bond_count"),
     _entry("descriptor:num_stereocenters", "1", "", "stereocentre_count"),
+    _geometry_entry("descriptor:pbf", "Å", "Å", "plane_of_best_fit"),
+    _geometry_entry("descriptor:pmi1", "amu*Å^2", "amu·Å²", "principal_moment_1"),
+    _geometry_entry("descriptor:pmi2", "amu*Å^2", "amu·Å²", "principal_moment_2"),
+    _geometry_entry("descriptor:pmi3", "amu*Å^2", "amu·Å²", "principal_moment_3"),
     _entry("descriptor:qed", "1", "", "qed_drug_likeness"),
+    _geometry_entry("descriptor:radius_of_gyration", "Å", "Å", "radius_of_gyration"),
     _entry("descriptor:ring_count", "1", "", "ring_count"),
     _entry("descriptor:sa_score", "1", "", "synthetic_accessibility"),
+    _geometry_entry("descriptor:spherocity_index", "1", "", "spherocity_index"),
     _entry("descriptor:tpsa", "Å^2", "Å²", "polar_surface_area"),
 )
 

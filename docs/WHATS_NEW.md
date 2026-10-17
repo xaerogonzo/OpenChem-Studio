@@ -16,7 +16,7 @@ linked from each section says why it was built the way it was. Where a claim her
   already made, and starts nothing by itself.
 - **Derived scores:** a formula of your own over numbers the application already computes, shown as a column you can sort in
   the project table. This is the biggest piece, and the one that needs the most explaining: see the next section.
-- **Decided but not built:** scores over 3D numbers (such as the shape descriptors). The rule is settled and written down.
+- **Scores over the shape descriptors** (2026-10-17): a score may read the ten shape descriptors, from the conformer every calculation already gets.
 
 ## Derived scores: what they are for
 
@@ -59,9 +59,12 @@ What was built, in the order a person meets it:
 - **Why some numbers are not on the list.** A number must be a typed number (not rounded text), of the drawing, with an id
   that does not depend on the structure, and a unit the language can write. The calculators that were read for this and not
   offered, and the reason for each, are in the Derived scores design record (the entry on the aromatic ring count).
-- **Decided on 2026-10-16, not built:** a score over a number that exists only for a 3D conformer will read the conformer
-  every calculation already gets (the newest ORCA-optimised geometry, otherwise the lowest-energy force-field one), starting
-  with the ten shape descriptors. Today a score reads the drawing only.
+- **Scores over the ten shape descriptors (2026-10-17).** A score over a number that exists only for a 3D conformer reads the
+  conformer every calculation already gets (the newest ORCA-optimised geometry, otherwise the lowest-energy force-field one),
+  and says which one. With no conformer it says it needs one; after you generate again or an ORCA geometry lands, the old
+  number is refused as measured for an earlier geometry until the descriptors are measured again, and the score follows the
+  new one. Building it found that four of the ten (the three principal moments of inertia and the inertial shape factor) had
+  no unit although they are amu·Å² and its inverse; they now carry them, and a formula cannot add a moment to a ratio.
 
 Read more: [`DERIVED_SCORES_DESIGN.md`](DERIVED_SCORES_DESIGN.md) (pull requests #326 to #355).
 
@@ -136,7 +139,7 @@ Read more: the **Pairing two molecules** topic of the guide; [`RECIPES_DESIGN.md
 
 - **The live provider run** for the assistant (needs an API key).
 - **The assistant starting an ORCA or Vina job.** It previews only.
-- **Scores over 3D numbers:** decided, not built (above).
+- **Scores over the other 3D numbers** (force-field energies, size and projection numbers, ring-aromaticity indices, torsions): not offered. The ten shape descriptors are (above).
 - **Reactivity calculators from ORCA** (Fukui functions, proton affinity, bond dissociation energy) and **the synthesis
   helper:** not started. The first would each sit behind a preregistered gate and may be recorded as "measured, not shipped".
 - **Calculators read for scores and not offered**, each for a measured reason (a duplicate of an always-on property, a label that

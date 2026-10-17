@@ -1533,13 +1533,13 @@ Hovering a name in that panel shows the same definition given here.
 ### Shape
 
 - **Asphericity** -- How far the mass distribution departs from spherical, 0 to 1: 0 is a perfect sphere and 1 is a straight line. Computed from the principal moments of inertia of one conformer.
-- **Inertial Shape Factor** -- The middle principal moment divided by the product of the smallest and largest. It distinguishes rod-like from disc-like mass distributions where a single size number cannot, and it has no units.
+- **Inertial Shape Factor** -- The middle principal moment divided by the product of the smallest and largest. It distinguishes rod-like from disc-like mass distributions where a single size number cannot, and it has no units. _Units: 1/(amu·Å²)._
 - **Normalized PMI Ratio 1** -- The smallest principal moment divided by the largest, 0 to 1. With NPR2 it places the conformer on the rod/disc/sphere triangle: a rod sits near (0, 1), a disc near (0.5, 0.5) and a sphere at (1, 1).
 - **Normalized PMI Ratio 2** -- The middle principal moment divided by the largest, 0.5 to 1. Plotted against NPR1 it is half of the standard shape triangle -- neither number means much alone.
 - **Plane of Best Fit** -- The mean distance of the atoms from their own plane of best fit, in A. Near zero for a flat molecule and larger the more three-dimensional the conformer is; it needs real 3D coordinates, so a flat drawing cannot produce one. _Units: Å._
-- **Principal Moment of Inertia 1** -- The smallest principal moment of inertia of this conformer. The three moments are meaningful mainly as ratios -- the absolute values scale with both mass and size.
-- **Principal Moment of Inertia 2** -- The middle principal moment of inertia of this conformer. Read it alongside the other two: their ratios describe shape where any one alone describes size.
-- **Principal Moment of Inertia 3** -- The largest principal moment of inertia of this conformer, about the axis the mass is spread furthest from.
+- **Principal Moment of Inertia 1** -- The smallest principal moment of inertia of this conformer. The three moments are meaningful mainly as ratios -- the absolute values scale with both mass and size. _Units: amu·Å²._
+- **Principal Moment of Inertia 2** -- The middle principal moment of inertia of this conformer. Read it alongside the other two: their ratios describe shape where any one alone describes size. _Units: amu·Å²._
+- **Principal Moment of Inertia 3** -- The largest principal moment of inertia of this conformer, about the axis the mass is spread furthest from. _Units: amu·Å²._
 - **Radius of Gyration** -- The mass-weighted root-mean-square distance of the atoms from the centre of mass, in A. Measured on a real 3D conformer, so it describes the conformer it was run on rather than the molecule in general. _Units: Å._
 - **Spherocity Index** -- Spherocity, 0 to 1, where 1 is a sphere. It rises as the three principal moments of inertia converge, so it separates globular shapes from rods and discs -- a property of the conformer, not of the molecule.
 

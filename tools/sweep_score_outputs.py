@@ -69,7 +69,7 @@ class Candidate:
     #: `(row id, calculation input, value, units string as carried)` for every run where it came back as a finite
     #: number. The input is part of it because the always-on descriptors used to run on the drawing AND on a geometry,
     #: as two stored results with one id (the design's second finding). Since 2026-10-14 only the ten shape descriptors
-    #: are stored under a geometry; an approved output is still read from the drawing (`READ_FROM`).
+    #: are stored under a geometry, and an approved output is read from the ONE input its entry names (`ApprovedOutput.input`).
     observations: list[tuple[str, str, float, str]] = field(default_factory=list)
     #: True when two facts of one report carry this id, so it names no single number.
     ambiguous: bool = False
@@ -163,8 +163,6 @@ def entry_problems(entry, sweep: Sweep, census: dict[str, Any]) -> list[str]:
     Every message ends by saying what a failure here costs, because the person who sees it renamed a fact label and did not know a score
     read it.
     """
-    from openchem.domain.score_outputs import READ_FROM
-
     cost = f" -- this breaks every score that uses {entry.output_id}"
     candidate = sweep.candidates.get(entry.output_id)
     if candidate is None:
@@ -181,10 +179,10 @@ def entry_problems(entry, sweep: Sweep, census: dict[str, Any]) -> list[str]:
                 problems.append(f"{candidate.source_id} is {support['stage']}; only {sorted(APPROVABLE_STAGES)} outputs may be approved" + cost)
             if support["visibility"] != "shown":
                 problems.append(f"{candidate.source_id} is {support['visibility']} by default; only an output offered by default may be approved" + cost)
-    seen = [(row, units) for row, calc_input, _value, units in candidate.observations if calc_input == READ_FROM]
+    seen = [(row, units) for row, calc_input, _value, units in candidate.observations if calc_input == entry.input]
     rows = {row for row, _units in seen}
     if not seen:
-        problems.append(f"it was never a finite typed number on the {READ_FROM} input" + cost)
+        problems.append(f"it was never a finite typed number on the {entry.input} input" + cost)
     elif len(rows) < MIN_ROWS:
         problems.append(f"it was a finite number on {len(rows)} census rows; at least {MIN_ROWS} are needed" + cost)
     wrong = sorted({units for _row, units in seen if units != entry.carried_as})
@@ -201,17 +199,16 @@ def identical_pairs(entries, sweep: Sweep) -> list[tuple[Any, Any]]:
     mol/L did, on 16 of 16 rows), so they must share a tag or the consensus rule would let a formula combine a number with itself. This
     catches a copy, not two methods that merely estimate the same thing: those differ in value, and only a person can tag them.
     """
-    from openchem.domain.score_outputs import READ_FROM
-
     values: dict[str, dict[str, float]] = {}
     for entry in entries:
         candidate = sweep.candidates.get(entry.output_id)
         if candidate is not None:
-            values[entry.output_id] = {row: value for row, calc_input, value, _units in candidate.observations if calc_input == READ_FROM}
+            values[entry.output_id] = {row: value for row, calc_input, value, _units in candidate.observations if calc_input == entry.input}
     found = []
     for i, first in enumerate(entries):
         for second in entries[i + 1:]:
-            if first.endpoint == second.endpoint:
+            # Only outputs read from one input are compared: a number of the drawing and a number of a conformer are two measurements even where they agree.
+            if first.endpoint == second.endpoint or first.input != second.input:
                 continue
             a, b = values.get(first.output_id, {}), values.get(second.output_id, {})
             shared = sorted(set(a) & set(b))

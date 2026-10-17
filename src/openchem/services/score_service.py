@@ -203,12 +203,12 @@ class ScoreService:
         if not definitions:
             return ()
         entries = self._classified_results(model)
-        return tuple(evaluate_score(definition, entries) for definition in definitions)
+        return tuple(evaluate_score(definition, entries, len(model.conformers)) for definition in definitions)
 
     def preview(self, definition: ScoreDefinition, model: MoleculeModel) -> ScoreValue:
         """The value `definition` WOULD have for `model`, for a definition that is not in the project (a draft being typed). Nothing is stored and nothing is
         calculated; it is the same reading and the same refusals as a saved score gets."""
-        return evaluate_score(definition, self._classified_results(model))
+        return evaluate_score(definition, self._classified_results(model), len(model.conformers))
 
     def _classified_results(self, model: MoleculeModel):
         """`model`'s stored results, each classified as current, historical or unverifiable and as computed, refused or failed."""

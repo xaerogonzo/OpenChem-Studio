@@ -23,7 +23,7 @@ from dataclasses import dataclass
 from openchem.domain.score_constants import Constant
 from openchem.domain.score_definition import ScoreDefinition, check_score_definition, policy_for
 from openchem.domain.score_formula import FUNCTIONS, FormulaError, Problem, infer_unit
-from openchem.domain.score_outputs import APPROVED, ENDPOINTS, check_inputs, output_title
+from openchem.domain.score_outputs import APPROVED, ENDPOINTS, READ_FROM, check_inputs, output_title
 
 #: The id a draft has before it is saved. Never stored: the service makes the real one from the label.
 DRAFT_ID = "user.draft"
@@ -233,6 +233,8 @@ class OutputChoice:
     suggested_name: str
     unit: str
     endpoint: str
+    #: What it is measured on: `drawing`, or `geometry` (a conformer the molecule must have).
+    input: str = READ_FROM
 
 
 def _slug(text: str) -> str:
@@ -254,10 +256,11 @@ def output_choices() -> tuple[OutputChoice, ...]:
         choices.append(
             OutputChoice(
                 output_id=entry.output_id,
-                text=f"{title}{unit}: {ENDPOINTS[entry.endpoint]}",
+                text=f"{title}{unit}: {ENDPOINTS[entry.endpoint]}" + ("" if entry.input == READ_FROM else " [needs a conformer]"),
                 suggested_name=_slug(title),
                 unit=entry.unit,
                 endpoint=entry.endpoint,
+                input=entry.input,
             )
         )
     return tuple(sorted(choices, key=lambda c: c.text.casefold()))

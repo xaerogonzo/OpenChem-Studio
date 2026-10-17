@@ -142,12 +142,32 @@ _UNITS = {
     "calculator:topology_analysis:Szeged index": "1",
     "calculator:topology_analysis:Wiener index": "1",
     "calculator:topology_analysis:Wiener polarity": "1",
-    "descriptor:bertz_ct": "1", "descriptor:esol_logs": "1", "descriptor:exact_mass": "g/mol", "descriptor:fsp3": "1",
-    "descriptor:heavy_atom_count": "1", "descriptor:labute_asa": "Å^2", "descriptor:mol_logp": "1", "descriptor:mol_wt": "g/mol",
-    "descriptor:np_likeness": "1", "descriptor:num_hba": "1", "descriptor:num_hbd": "1", "descriptor:num_rotatable_bonds": "1",
-    "descriptor:num_stereocenters": "1", "descriptor:qed": "1", "descriptor:ring_count": "1", "descriptor:sa_score": "1",
+    "descriptor:asphericity": "1", "descriptor:bertz_ct": "1", "descriptor:esol_logs": "1", "descriptor:exact_mass": "g/mol", "descriptor:fsp3": "1",
+    "descriptor:heavy_atom_count": "1", "descriptor:inertial_shape_factor": "1/amu*Å^2", "descriptor:labute_asa": "Å^2", "descriptor:mol_logp": "1", "descriptor:mol_wt": "g/mol",
+    "descriptor:np_likeness": "1", "descriptor:npr1": "1", "descriptor:npr2": "1", "descriptor:num_hba": "1", "descriptor:num_hbd": "1", "descriptor:num_rotatable_bonds": "1",
+    "descriptor:num_stereocenters": "1", "descriptor:pbf": "Å", "descriptor:pmi1": "amu*Å^2", "descriptor:pmi2": "amu*Å^2", "descriptor:pmi3": "amu*Å^2",
+    "descriptor:qed": "1", "descriptor:radius_of_gyration": "Å", "descriptor:ring_count": "1", "descriptor:sa_score": "1", "descriptor:spherocity_index": "1",
     "descriptor:tpsa": "Å^2",
 }
+
+#: The outputs read from a CONFORMER's geometry and not from the drawing, written out for the same reason: it decides which structure a score means, and a score over one has no value for a
+#: molecule that has no conformer. Every other approved output is the drawing's.
+_GEOMETRY_OUTPUTS = {
+    "descriptor:asphericity", "descriptor:inertial_shape_factor", "descriptor:npr1", "descriptor:npr2", "descriptor:pbf", "descriptor:pmi1", "descriptor:pmi2", "descriptor:pmi3",
+    "descriptor:radius_of_gyration", "descriptor:spherocity_index",
+}
+
+
+def test_exactly_these_outputs_are_read_from_a_conformer_and_all_the_others_from_the_drawing():
+    assert {entry.output_id for entry in APPROVED if entry.input == "geometry"} == _GEOMETRY_OUTPUTS
+    assert {entry.input for entry in APPROVED} == {"drawing", "geometry"}
+    assert all(entry.input == READ_FROM for entry in APPROVED if entry.output_id not in _GEOMETRY_OUTPUTS)
+
+
+def test_the_ten_shape_outputs_are_each_their_own_quantity():
+    """Three principal moments, two ratios, a radius, a plane distance and three anisotropy measures are different numbers, so none shares a tag: a formula may combine them."""
+    tags = [entry.endpoint for entry in APPROVED if entry.input == "geometry"]
+    assert len(tags) == len(set(tags)) == 10
 
 
 def test_the_outputs_that_share_an_endpoint_are_exactly_these():
@@ -168,7 +188,10 @@ _QUANTITY = {
     "1": "a plain number",
     "%": "a percentage",
     "g/mol": "molar mass",
+    "Å": "a length",
     "Å^2": "an area",
+    "amu*Å^2": "a moment of inertia",
+    "1/amu*Å^2": "an inverse moment of inertia",
     "Å^3": "a volume",
     "mg/mL": "a solubility",
     "mol/L": "a solubility",
@@ -679,23 +702,23 @@ def test_the_sweeps_limits_are_these_numbers():
 def test_the_panel_resolves_each_entry_on_enough_rows_to_mean_something(swept):
     sweep, _ = swept
     for entry in APPROVED:
-        rows = {row for row, calc_input, _v, _u in sweep.candidates[entry.output_id].observations if calc_input == READ_FROM}
-        assert len(rows) >= sweep_tool.MIN_ROWS, (entry.output_id, len(rows))
+        rows = {row for row, calc_input, _v, _u in sweep.candidates[entry.output_id].observations if calc_input == entry.input}
+        assert len(rows) >= sweep_tool.MIN_ROWS, (entry.output_id, entry.input, len(rows))
 
 
-def test_every_approved_descriptor_is_stored_under_the_drawing_alone(swept):
-    """`READ_FROM` is one input, and for the always-on descriptors it is now also the ONLY input.
+def test_every_approved_descriptor_is_stored_under_the_input_its_entry_names_and_no_other(swept):
+    """An output has one input, and an approved descriptor is stored under that input ALONE: the drawing for the structure-level ones, the geometry for the ten shape ones.
 
     This test used to assert the opposite: that `descriptor:mol_wt` was observed under both the drawing and a
     geometry, "the same id stored twice, and a score must read exactly one of the two". That double storage was
     a defect and not a design: a conformer carries explicit hydrogens, the drawing's are implicit, and re-running
     the descriptors on it moved Synthetic Accessibility from 1.58 to 6.445 in the reader. A conformer request
     computes only the provider's geometric descriptors now (`DescriptorProvider.geometric_descriptor_ids`), so an
-    approved output exists under the drawing alone and the choice of input cannot change a score.
+    approved output exists under one input alone and the choice of input cannot change a score.
     """
     sweep, _ = swept
     stored_elsewhere = {
-        entry.output_id: sorted({i for _r, i, _v, _u in sweep.candidates[entry.output_id].observations} - {READ_FROM})
+        entry.output_id: sorted({i for _r, i, _v, _u in sweep.candidates[entry.output_id].observations} - {entry.input})
         for entry in APPROVED
         if entry.output_id.startswith("descriptor:")
     }
@@ -703,8 +726,9 @@ def test_every_approved_descriptor_is_stored_under_the_drawing_alone(swept):
     assert {i for _r, i, _v, _u in sweep.candidates["descriptor:mol_wt"].observations} == {"drawing"}
 
 
-def test_a_geometric_descriptor_is_stored_under_the_geometry_alone(swept):
-    """The other half: the ten shape descriptors exist only where a conformer does, so they are not approved outputs."""
+def test_a_geometric_descriptor_is_stored_under_the_geometry_alone_and_is_approved_as_such(swept):
+    """The other half: the ten shape descriptors exist only where a conformer does, so they are read from the geometry, and a molecule without one has no number for them."""
     sweep, _ = swept
     assert {i for _r, i, _v, _u in sweep.candidates["descriptor:pmi1"].observations} == {"geometry"}
-    assert not any(entry.output_id == "descriptor:pmi1" for entry in APPROVED)
+    pmi1 = approved_output("descriptor:pmi1")
+    assert pmi1 is not None and pmi1.input == "geometry"

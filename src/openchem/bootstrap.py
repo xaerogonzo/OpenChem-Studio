@@ -403,7 +403,7 @@ def build_service_container() -> ServiceContainer:
         calculator_registry=calculator_registry,
         structure_version_of=structure_check_service.current_version,
     )
-    result_store_service.set_obsolete_check(descriptor_service.is_misfiled_geometry_result)
+    result_store_service.set_obsolete_check(descriptor_service.is_obsolete_result)
     return ServiceContainer(
         event_bus=event_bus,
         chemistry_engine=engine,

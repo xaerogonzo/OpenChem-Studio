@@ -64,7 +64,7 @@ from openchem.domain.run_lifecycle import RunOutcome
 from openchem.domain.score_answer import DEFAULTED as SCORE_DEFAULTED
 from openchem.domain.score_answer import LIMITATION as SCORE_LIMITATION
 from openchem.domain.score_definition import VALIDATION as SCORE_VALIDATION
-from openchem.domain.score_outputs import ENDPOINTS, ApprovedOutput, output_title
+from openchem.domain.score_outputs import ENDPOINTS, READ_FROM, ApprovedOutput, output_title
 from openchem.domain.score_proposal import ASSISTANT_OWNER, ProposalRefusal, Registered
 from openchem.domain.score_reading import ScoresView
 from openchem.domain.score_value import InputEvidence, InputState, ScoreStatus, ScoreValue
@@ -493,7 +493,9 @@ SCORE_NOT_A_PREDICTION = (
 
 #: What a model is told about reading and changing scores, sent with every read.
 SCORES_NOTE = (
-    "Each score is worked out from this molecule's CURRENT results as of this turn (the drawing's, never a conformer's), so its value is current or it has none. "
+    "Each score is worked out from this molecule's CURRENT results as of this turn, so its value is current or it has none. An input is read from the drawing, except the ten shape outputs "
+    "(their input has `calculation_input` set to `geometry`; every other input has none), which are read from the conformer every calculation uses and named in the input's `conformer`: a score over one has no value for a molecule with no conformer, "
+    "or one measured on an earlier conformer than the one used now, and you must say so rather than substitute another. "
     "A score whose outcome is 'refused' has no value: say which input could not be read and why, and never state a value or treat it as zero. A unit of 1 means a plain number. "
     "A score whose outcome is 'computed_with_defaults' used a default its definition declares for an input nobody calculated (`defaults_used`): say so, name those inputs, "
     "and never present the number as the result of calculating them. "
@@ -506,6 +508,11 @@ def _input_envelope(item: InputEvidence, caps: Caps) -> dict[str, Any]:
     if item.state in (InputState.READ, InputState.DEFAULT):
         data["value"] = _n(item.value)
         data["units"] = item.carried_as
+    if item.state is InputState.READ and item.calculation_input != READ_FROM:
+        # Said only for an input that is NOT the drawing's: the absence of the key is the drawing, which is what nearly every output is.
+        data["calculation_input"] = item.calculation_input
+        if item.geometry:
+            data["conformer"] = _t(item.geometry, 120)
     if item.state is not InputState.READ:
         data["note"] = _t(item.note, caps.text)
     return data
@@ -567,7 +574,7 @@ def scores_view_envelope(view: ScoresView, caps: Caps = FULL) -> dict[str, Any]:
 SCORE_OUTPUTS_NOTE = (
     "Name an output in propose_score by its output_id. `unit` is how to write that output's unit for a constant or the result_unit (for example 'Å^2'); `1` is a plain number. "
     "Two outputs with the same endpoint estimate one quantity and cannot be in one score. Units are never converted: a formula that adds two different units is refused, and a bare number "
-    "in a formula takes the unit of what it is added to or compared with."
+    "in a formula takes the unit of what it is added to or compared with. An output whose `input` is `geometry` is measured on a conformer: it has no value for a molecule that has none."
 )
 
 #: What a model is told when a proposal is waiting, which is what it most needs to say correctly to the person.
@@ -578,8 +585,8 @@ SCORE_PROPOSAL_NOTE = (
 
 
 #: How many outputs `list_score_outputs` lists at full size, scaled with the caps like every other list. Its own limit and not `Caps.items` (40, for facts and structures): the approved table passed 40 outputs
-#: and the 41st, the last by id, fell off the model's list with only `left_out_for_length` to say so. A row is about 215 bytes, so the reply budget (`REPLY_BUDGET`, 12000) holds about 55 before the stepped caps
-#: shrink the list: `tests/test_ai_assistant_score_proposals.py` turns red before then.
+#: and the 41st, the last by id, fell off the model's list with only `left_out_for_length` to say so. A row is about 215 bytes, and with the ten shape outputs (2026-10-17) the table passed what `REPLY_BUDGET` (12000) holds, so the stepped caps
+#: began dropping the last rows. `list_score_outputs` therefore has a budget of its own (`plugins/ai_assistant/bridge.SCORE_OUTPUTS_BUDGET`); `tests/test_ai_assistant_score_proposals.py` turns red before it is crossed.
 SCORE_OUTPUT_ROWS = 120
 
 
@@ -589,7 +596,12 @@ def score_outputs_envelope(entries: Sequence[ApprovedOutput], caps: Caps = FULL)
     return {
         "envelope_version": MODEL_ENVELOPE_VERSION,
         "outputs": [
-            {"output_id": entry.output_id, "reads": output_title(entry.output_id) or entry.output_id, "unit": entry.unit, "endpoint": entry.endpoint, "measures": ENDPOINTS.get(entry.endpoint, "")}
+            {
+                "output_id": entry.output_id, "reads": output_title(entry.output_id) or entry.output_id, "unit": entry.unit,
+                "endpoint": entry.endpoint, "measures": ENDPOINTS.get(entry.endpoint, ""),
+                # Only a geometry row says its input: a row with none is the drawing's, and 41 rows saying so would cost a fifth of a reply that has a budget.
+                **({} if entry.input == READ_FROM else {"input": entry.input}),
+            }
             for entry in shown
         ],
         "left_out_for_length": len(entries) - len(shown),
