@@ -3642,16 +3642,44 @@ class _Driver(QObject):
             logger.error("OPENCHEM_DRIVE: no molecule selected for conformers")
             return
         options = None
-        if step.get("with_settings"):
+        optimize_lowest = False
+        if step.get("with_settings") or "optimize_lowest" in step:
             # What the viewer's button would ask with, from Settings > Conformers: the SAME dialog the button builds,
             # never shown (a step must not `exec()` a modal).
-            options = window._viewer3d.options_dialog().options()
+            dialog = window._viewer3d.options_dialog()
+            options = dialog.options()
+            if "optimize_lowest" in step:
+                # THE CHECKBOX, not the argument behind it: the window has to offer the step, and a greyed box takes
+                # no tick (`optimize_lowest()` is then False, which is what a person would get).
+                check = dialog._orca_check
+                if check is None:
+                    logger.error("OPENCHEM_DRIVE: conformers -- the Generate window has no ORCA checkbox")
+                else:
+                    check.setChecked(bool(step["optimize_lowest"]))
+            optimize_lowest = dialog.optimize_lowest()
+            check, note = dialog._orca_check, dialog._orca_note
+            offered_enabled = check is not None and check.isEnabled()
+            offered_text = note.text() if note is not None else ""
+            logger.warning(
+                "OPENCHEM_DRIVE: conformers window | orca_box=%s enabled=%s ticked=%s | %r",
+                check is not None, offered_enabled, optimize_lowest, offered_text,
+            )
+            expect = step.get("expect_offer") or {}
+            if "available" in expect and bool(expect["available"]) != offered_enabled:
+                logger.error(
+                    "OPENCHEM_DRIVE: EXPECT conformers offer FAILED -- available is %s, wanted %s",
+                    offered_enabled, expect["available"],
+                )
+            for needle in expect.get("text_contains", []):
+                if needle not in offered_text:
+                    logger.error("OPENCHEM_DRIVE: EXPECT conformers offer FAILED -- %r lacks %r", offered_text, needle)
         window._services.conformer_service.request_conformers(
             molecule,
             num_conformers=int(step.get("count", 3)),
             optimize=bool(step.get("optimize", True)),
             num_embeddings=step.get("embeddings"),
             options=options,
+            optimize_lowest=optimize_lowest,
         )
 
     def _do_conformers_finish(self, step: dict[str, Any]) -> None:

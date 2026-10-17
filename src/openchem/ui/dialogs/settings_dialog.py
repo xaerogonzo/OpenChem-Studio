@@ -41,6 +41,7 @@ from PySide6.QtWidgets import (
 from openchem.app.settings import (
     CONFORMER_EARLY_STOP,
     CONFORMER_KEEP_OPTIMIZED,
+    CONFORMER_OPTIMIZE_LOWEST,
     CONFORMER_MAX_EMBEDDINGS,
     DRAWING_BOND_CLICK,
     DRAWING_BOND_KEYS,
@@ -264,6 +265,22 @@ _HELP = {
         ),
         tier=2,
         help_id="settings.conformer_keep_optimized",
+        topic="settings",
+        help_anchor="settings",
+    ),
+    "conformer_optimize_lowest": HelpTooltip(
+        text=(
+            "Off (the default): Generate Conformers only generates.\n\n"
+            "On: the Generate Conformers window starts with \"Also ORCA-optimize the lowest-energy conformer\" "
+            "ticked. When the set is installed, ORCA optimizes the conformer with the lowest force-field energy "
+            "in it, with the method, basis, charge and multiplicity the Quantum Chemistry panel shows at that "
+            "moment, exactly as if you had pressed Run there. The result replaces that conformer in its slot.\n\n"
+            "This is only where the window's checkbox starts: each generation can still tick or untick it. "
+            "Nothing starts when ORCA is not set up, and the window says so.\n\n"
+            "Why off: an optimization takes minutes to hours, and pressing Generate did not ask for one."
+        ),
+        tier=2,
+        help_id="settings.conformer_optimize_lowest",
         topic="settings",
         help_anchor="settings",
     ),
@@ -639,6 +656,14 @@ class SettingsDialog(QDialog):
         apply_help_tooltip(self._conformer_keep_optimized, _HELP["conformer_keep_optimized"])
         self._conformer_keep_optimized.toggled.connect(self._on_conformer_keep_optimized_toggled)
 
+        self._conformer_optimize_lowest = QCheckBox(
+            "Start the Generate Conformers window with \"Also ORCA-optimize the lowest-energy conformer\" ticked", page
+        )
+        self._conformer_optimize_lowest.setObjectName("conformerOptimizeLowest")
+        self._conformer_optimize_lowest.setChecked(bool(self._settings.preference(CONFORMER_OPTIMIZE_LOWEST)))
+        apply_help_tooltip(self._conformer_optimize_lowest, _HELP["conformer_optimize_lowest"])
+        self._conformer_optimize_lowest.toggled.connect(self._on_conformer_optimize_lowest_toggled)
+
         row = QHBoxLayout()
         row.addWidget(QLabel("Automatic search tries up to", page))
         row.addWidget(self._conformer_embeddings)
@@ -666,6 +691,12 @@ class SettingsDialog(QDialog):
             "keeps it by default. Untick to have Generate replace everything.",
             page,
         ))
+        layout.addWidget(self._conformer_optimize_lowest)
+        layout.addWidget(_note(
+            "Off by default, because an ORCA optimization takes minutes to hours. Each generation can still "
+            "tick it in its own window; this is only where that checkbox starts.",
+            page,
+        ))
         layout.addStretch(1)
         return page
 
@@ -677,6 +708,9 @@ class SettingsDialog(QDialog):
 
     def _on_conformer_keep_optimized_toggled(self, checked: bool) -> None:
         self._store(CONFORMER_KEEP_OPTIMIZED, checked)
+
+    def _on_conformer_optimize_lowest_toggled(self, checked: bool) -> None:
+        self._store(CONFORMER_OPTIMIZE_LOWEST, checked)
 
     # --- Results -----------------------------------------------------------------
 
