@@ -71,8 +71,9 @@ def test_the_weight_of_a_name(name, word, weight):
 
 # --- D-294 -----------------------------------------------------------------------------------------------------------------------------------------------------------
 def test_a_protonated_ester_beside_a_ketone_does_not_hand_its_charge_to_the_ketone():
-    with pytest.raises(ValueError):
-        name_smiles("CCOC(=[OH+])c1[nH]c(C)c(C(=O)[C@@H]2C(=O)C(=O)N(CC[NH+](C)C)[C@@H]2c2ccc(C(C)C)cc2)c1C")
+    # refused in round 61; named since round 62, with the charge on the ESTER's carbonyl and the ketone's `oxo` neutral
+    name = name_smiles("CCOC(=[OH+])c1[nH]c(C)c(C(=O)[C@@H]2C(=O)C(=O)N(CC[NH+](C)C)[C@@H]2c2ccc(C(C)C)cc2)c1C")
+    assert "[ethoxy(oxidaniumylidene)methyl]" in name and "(oxo)methyl" in name
 
 
 # --- the tool --------------------------------------------------------------------------------------------------------------------------------------------------------

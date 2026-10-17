@@ -158,8 +158,8 @@ def test_a_carved_branchs_only_stereo_centre_keeps_the_label_it_has_in_the_whole
 def test_a_multiplied_ion_word_counts_its_multiplier_and_no_more():
     # `1,4-diium` stands for two cations; a third (the O-protonated amide) was never missed while a multiplied word switched the count test off (D-280)
     mol = Chem.MolFromSmiles("COc1ccc([C@@H]2C[C@H](C(F)(F)F)n3[nH+]cc(C(=[OH+])Nc4ccccc4SC)c3[NH2+]2)cc1")
-    with pytest.raises(ValueError, match="fewer cation words"):
-        name_smiles("COc1ccc([C@@H]2C[C@H](C(F)(F)F)n3[nH+]cc(C(=[OH+])Nc4ccccc4SC)c3[NH2+]2)cc1")
+    # named since round 62 (the protonated amide is cited as `oxidaniumylidene` where it stands): three cations, the multiplied `1,4-diium` and the prefix
+    assert name_smiles("COc1ccc([C@@H]2C[C@H](C(F)(F)F)n3[nH+]cc(C(=[OH+])Nc4ccccc4SC)c3[NH2+]2)cc1").endswith("-4,5,6,7-tetrahydropyrazolo[1,5-a]pyrimidine-1,4-diium")
     assert name_smiles("C[NH+]1CC[NH+](C)CC1") == "1,4-dimethylpiperazine-1,4-diium"
     assert name_smiles("[NH3+]CC[NH3+]") == "ethane-1,2-bis(aminium)"
     assert name_smiles("O=S(=O)([O-])c1cccc(S(=O)(=O)[O-])c1") == "benzene-1,3-disulfonate"

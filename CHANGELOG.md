@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: a protonated carbonyl beside another cation is cited as what it is
+- Round 62 took the largest class of refusals the pair populations had left: an O- or S-protonated amide, ester, acid or ketone beside a second cation (786 of 1930 dications). The engine named the carbonyl with the neutral prefix (`oxo`, `ethoxycarbonyl`) and the guard refused the name for the cation it had lost. The fallback now names the atom it has, `oxidaniumylidene` or `sulfaniumylidene`, where it stands (D-295); an O-protonated ester is no `alkoxycarbonyl` (D-296, `2-[ethoxy(oxidaniumylidene)methyl]anilinium`); the prefix is bracketed on a one-carbon parent (D-297) and a multiplied one is `bis(oxidaniumylidene)` (D-298). Dications named: 1143 of 1930 became 1877.
+
 ### Docs: a plain-language guide to derived scores, a tour of what was built, and a sweep of stale claims
 - **The Derived Scores topic of the guide now starts with what a score is for and a worked example** (aspirin, ethanol and caffeine, from an empty project to a sorted column), in the in-app Help window. The example is a committed script driven through the real window
   (`benchmarks/visual/scores_walkthrough.json`, 9 assertions), so every number in it is the application's own; writing it showed that "Run selected" needs a calculator ticked and that the table is empty until the run has finished.

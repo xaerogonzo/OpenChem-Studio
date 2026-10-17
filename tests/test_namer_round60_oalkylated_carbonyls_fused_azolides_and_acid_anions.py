@@ -65,7 +65,7 @@ NAMED = [
     # D-290: every stereo centre of a carved branch keeps its label from the whole molecule
     ("a carved branch whose centre is its attachment", "CC(C)[C@H]([N-]C(=O)C)C(=O)Nc1ccccc1", "acetyl[(2S)-1-anilino-3-methyl-1-oxobutan-2-yl]azanide"),
     ("a spiro centre beside a pyrazolide and an O-protonated lactam", "COc1ccc(OC)c(-c2[n-]nc3c2[C@]2(C(=[OH+])Nc4ccc(C)c(Br)c42)C(C#N)=C(N)O3)c1",
-     "(4R)-6-amino-4'-bromo-3-(2,5-dimethoxyphenyl)-5'-methyl-2'-(oxidaniumylidene)spiro[2,4-dihydropyrano[2,3-c]pyrazole-4,3'-2,3-dihydro-1H-indole]-2-id-5-carbonitrile"),
+     "(4R)-6-amino-4'-bromo-3-(2,5-dimethoxyphenyl)-5'-methyl-2'-oxidaniumylidenespiro[2,4-dihydropyrano[2,3-c]pyrazole-4,3'-2,3-dihydro-1H-indole]-2-id-5-carbonitrile"),
 ]
 
 # Unchanged: the neighbours of each change keep what they had.
