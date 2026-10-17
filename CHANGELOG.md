@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: a lactam anion beside an acid anion
+- Round 64 named the pyroglutamate-type ions: a lactam's ring `[N-]` beside a carboxylate (the dianion population's biggest refusal class) was refused because the `-N-id-` infix of rounds 59 and 60 was written only for an aromatic `[n-]` and a lactam substituent. `3-methyl-5-oxopyrrolidin-1-id-2-carboxylate` is the name OPSIN reads; it is cited when it is the one ring anion, and two ring anions with a lactam stay refused (the multiplied `-ide` after the suffixes is unreadable) (D-303). Round 63's ylide test took a nitro group's `N+` beside a carbon acid for an ylide cation and refused `...-5-nitro-...-5-ide`; the nitro group is charge-separated and neutral (D-304). Dianions named 246 of 280 became 268, betaines 1436 of 1523 became 1465, zwitterions 1437 became 1466.
+
 ### Naming: a guanidinium, an amidinium or a carbon acid beside another charge
 - Round 63 took the refusals round 62 left. Three charge classifiers claimed their motif only when it was the molecule's ONLY charge, so any second charge made the whole molecule refuse: arginine drawn as the zwitterion (a guanidinium, an ammonium and a carboxylate) was refused. A guanidinium or amidinium beside another charge now goes to the plan search, the guanidinium a `(diaminomethylidene)azaniumyl` prefix and the amidinium's `=[NH2+]` an `azaniumylidene` (D-299, D-300: `(2S)-2-azaniumyl-5-[(diaminomethylidene)azaniumyl]pentanoate`); an O-protonated amide on a ring nitrogen is no neutral `morpholine-4-carbonyl` (D-301); a carbon acid beside a cation, refused in all 57 such ions, is named (D-302: `6-azaniumyl-2,4-dioxohexan-3-ide`). Dications named 1877 of 1930 became 1913, trications 602 of 631 became 629, zwitterions 1365 of 1523 became 1437.
 
