@@ -2068,11 +2068,14 @@ and the inertial shape factor. These are measured on a conformer, and a score re
 the project table's hover names the one its run measured. A molecule with no conformer has no number for them, and the score says it needs one (generate conformers first). When that conformer changes, because you generated again or an ORCA
 optimization landed, the old number is refused as "calculated for an earlier geometry of this molecule" until the shape descriptors have been measured again, which happens by itself, and the score then follows the new geometry. A principal moment
 is in amu·Å² and the inertial shape factor in 1/(amu·Å²), so a formula cannot add a moment to a ratio, and nothing is converted. A project saved by an earlier version had those four without a unit: they are measured again when you open it.
+From **Geometry Analysis** it offers eight sizes, measured on that same conformer after you run the calculator: the largest and the mean distance of an atom from the centroid, the smallest and the largest shadow the molecule casts over every
+viewing direction, the radius of the circle round each of those two shadows, and the size of the molecule along each of those two views. A score reads only a number measured on the stored conformer as it is, so a Geometry Analysis run that
+used another geometry (the lowest of several conformers it generated, or a copy it relaxed first) gives no number, and neither does a projection measured with van der Waals radii you scaled; the score names the setting and says to run the calculator
+with its defaults again. A structure of **more than one fragment** (a salt, a hydrate) has no size either, because Geometry Analysis measures the whole structure and the fragments are placed side by side at an arbitrary offset: the score says to use the
+parent structure. (The always-on shape descriptors need no such rule: they are computed on the parent compound already, and refused when there is none.)
 
-**Today a score reads the drawing's numbers only.** A number that exists only for a 3D conformer (the shape descriptors, for
-instance) is not offered yet. How it will be read is decided and not built: the conformer every calculation already gets (the
-newest ORCA-optimised geometry, otherwise the lowest-energy force-field one), starting with the ten shape descriptors. The
-decision is recorded in `docs/DERIVED_SCORES_DESIGN.md`.
+**What a score does not read.** Geometry Analysis's smallest radius from the centroid (it is zero when the centroid is on an atom) and its three force-field energies (an absolute force-field energy has no meaning between molecules), the
+ring-aromaticity indices and the torsion table, quantum-chemistry results, an average over conformers, and a score that names one particular conformer. The decisions are recorded in `docs/DERIVED_SCORES_DESIGN.md`.
 
 **The units are checked, never converted.** Adding an area to a mass is refused, and so is declaring a unit the formula
 does not work out to. A bare number in the formula takes the unit of what it is added to or compared with, so

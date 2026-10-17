@@ -327,8 +327,9 @@ def test_a_current_size_is_read_and_names_its_conformer():
     assert read.geometry.startswith("conformer 1 (id 1a2b3c4d") and "MMFF94 energy -4.50 kcal/mol" in read.geometry
 
 
-def test_a_result_with_scaled_radii_is_set_aside_and_the_unscaled_one_beside_it_is_read():
-    """Two current results of one calculator under different settings used to be `AMBIGUOUS` when their numbers differed; a scaled one is not a candidate at all."""
+def test_a_result_with_scaled_radii_is_set_aside_and_the_unscaled_one_beside_it_is_read_if_both_are_held():
+    """The store keeps one Geometry Analysis result per geometry, so the application's own runs never leave two. If two were held (two settings, different numbers) they used to be `AMBIGUOUS`;
+    a scaled one is not a candidate at all."""
     plain = _stored(_MAX_AREA_LABEL, 51.4, "A^2", key="plain")
     scaled = _stored(_MAX_AREA_LABEL, 60.0, "A^2", key="scaled", radius_scale=1.2)
     read = read_output(_AREA, _entries(plain, scaled), 3)
@@ -419,7 +420,7 @@ def test_a_geometry_analysis_run_with_scaled_radii_is_not_what_a_score_reads_and
     assert reach.status is ScoreStatus.VALUE, "the radii from the centroid are not rescaled by it"
     _run(services, qapp, model)
     (footprint, _reach) = service.values_for(model)
-    assert footprint.status is ScoreStatus.VALUE, "two stored results, two settings: the unscaled one is read and the scaled one is no obstacle"
+    assert footprint.status is ScoreStatus.VALUE, "the store keeps one result per geometry, so the default run replaces the scaled one and the score has its number again"
     mol = services.chemistry_engine.mol_from_molblock(canonical_conformer(model).molblock)
     shape = shape_descriptors(mol)
     assert footprint.value == pytest.approx(shape.max_projection_area / shape.min_projection_area, rel=1e-9)
