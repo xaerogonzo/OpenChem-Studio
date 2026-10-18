@@ -60,12 +60,58 @@ H        1.350216      0.804784     -0.791516"""
 CYANIDE_B3LYP = """C        0.000000      0.000000      0.000000
 N        1.183918      0.000000      0.000000"""
 
-#: (fixture name, smiles, charge, method/basis, explicit coordinates or None, the number of the job to give two SCF iterations or None)
+#: The three molecules of the Fukui v3 fixtures at their ORCA B3LYP/6-31G* optimized geometries (`! B3LYP 6-31G* Opt` from an RDKit ETKDG seed-7 + MMFF embedding, the recipe of
+#: `cation_states_probe.py`), in the orientation ORCA left them in. Atom order is the one the application embeds (the heavy atoms in SMILES order, then the hydrogens).
+HCN_B3LYP = """C       -0.028892      0.000975      0.000000
+N        1.127654     -0.037938     -0.000000
+H       -1.098762      0.036963     -0.000000"""
+
+BENZENE_B3LYP = """C        1.279487      0.560508     -0.034170
+C        1.123435     -0.827423     -0.074694
+C       -0.156035     -1.387923     -0.040522
+C       -1.279487     -0.560508      0.034171
+C       -1.123435      0.827422      0.074695
+C        0.156035      1.387923      0.040522
+H        2.275079      0.996607     -0.060734
+H        1.997617     -1.471281     -0.132830
+H       -0.277431     -2.467925     -0.072072
+H       -2.275079     -0.996608      0.060733
+H       -1.997618      1.471280      0.132831
+H        0.277430      2.467925      0.072070"""
+
+BENZALDEHYDE_B3LYP = """O        2.871096     -1.433418     -0.112420
+C        2.314946     -0.359057     -0.239995
+C        0.858628     -0.137733     -0.088207
+C        0.327127      1.147804     -0.257971
+C       -1.043579      1.364044     -0.116397
+C       -1.884775      0.292581      0.195403
+C       -1.358450     -0.994352      0.365932
+C        0.008722     -1.210606      0.224988
+H        2.898135      0.556363     -0.488987
+H        0.991602      1.974995     -0.500779
+H       -1.455488      2.360937     -0.247765
+H       -2.953317      0.458815      0.306313
+H       -2.018655     -1.822877      0.608318
+H        0.444007     -2.197495      0.351567"""
+
+#: Water at its textbook geometry (O-H 0.9572 A, H-O-H 104.52 degrees), the geometry of `water_fukui.out`.
+WATER_TEXTBOOK = """O        0.000000      0.000000      0.117300
+H        0.000000      0.757350     -0.468070
+H        0.000000     -0.757350     -0.468070"""
+
+#: (fixture name, smiles, charge, method/basis, explicit coordinates or None, the number of the job to give two SCF iterations or None, whether the input carries the
+#: hole starts of the cation search). The first four are the fixtures of Fukui v2 and the anion's f+, written WITHOUT the search (their `.inp` files are that plan);
+#: the others are written with it.
 CASES = (
-    ("acetone_fukui_diffuse_hf", "CC(C)=O", 0, "HF 6-311+G**", ACETONE_HF_A, None),
-    ("methoxide_fukui_anion", "C[O-]", -1, "B3LYP 6-31+G*", None, None),
-    ("cyanide_fukui_anion_no_diffuse", "[C-]#N", -1, "B3LYP 6-31G**", CYANIDE_B3LYP, None),
-    ("methoxide_fukui_failed_dianion", "C[O-]", -1, "B3LYP 6-31+G*", None, 5),
+    ("acetone_fukui_diffuse_hf", "CC(C)=O", 0, "HF 6-311+G**", ACETONE_HF_A, None, False),
+    ("methoxide_fukui_anion", "C[O-]", -1, "B3LYP 6-31+G*", None, None, False),
+    ("cyanide_fukui_anion_no_diffuse", "[C-]#N", -1, "B3LYP 6-31G**", CYANIDE_B3LYP, None, False),
+    ("methoxide_fukui_failed_dianion", "C[O-]", -1, "B3LYP 6-31+G*", None, 5, False),
+    ("hcn_fukui_cation_search", "C#N", 0, "B3LYP 6-31G*", HCN_B3LYP, None, True),
+    ("hcn_fukui_cation_search_failed_hole", "C#N", 0, "B3LYP 6-31G*", HCN_B3LYP, 5, True),
+    ("benzaldehyde_fukui_cation_search", "O=Cc1ccccc1", 0, "B3LYP 6-31G*", BENZALDEHYDE_B3LYP, None, True),
+    ("benzene_fukui_cation_search", "c1ccccc1", 0, "B3LYP 6-31G*", BENZENE_B3LYP, None, True),
+    ("water_fukui_cation_search", "O", 0, "B3LYP 6-31G*", WATER_TEXTBOOK, None, True),
 )
 
 JOB_ECHO = re.compile(r" Total Charge\s+Charge\s+\.\.\.\.\s+-?\d+")
@@ -96,10 +142,28 @@ def fail_job(text: str, number: int) -> str:
     return "$new_job".join(jobs)
 
 
+def input_echo(lines: list[str]) -> list[str]:
+    """ORCA's echo of the whole compound input (the `INPUT FILE` block, from its dashed title to `****END OF INPUT****`), which is how a hole start is told from a default one."""
+    begin = next(index for index, line in enumerate(lines) if line.strip() == "INPUT FILE") - 1
+    end = next(index for index in range(begin, len(lines)) if "****END OF INPUT****" in lines[index])
+    return lines[begin:end + 1] + [""]
+
+
+def orbital_table(job: list[str]) -> list[str]:
+    """The ORBITAL ENERGIES table of a job (its dashed title, the rows, up to the blank line that ends them): the occupied orbitals' energies are what the search's
+    'first orbital that was not tried' reads."""
+    for index, line in enumerate(job):
+        if line.strip() == "ORBITAL ENERGIES":
+            end = next(i for i in range(index + 3, len(job)) if not job[i].strip() or job[i].startswith("*"))
+            return job[index - 1:end] + [""]
+    return []
+
+
 def extract(output: str) -> str:
     """The verbatim lines the parsers read (see the module docstring), from a full ORCA output."""
     lines = output.splitlines()
     kept = [next(line for line in lines if "Program Version" in line), ""]
+    kept.extend(input_echo(lines))
     echoes = [index for index, line in enumerate(lines) if JOB_ECHO.match(line)]
     for number, begin in enumerate(echoes):
         end = echoes[number + 1] if number + 1 < len(echoes) else len(lines)
@@ -107,6 +171,7 @@ def extract(output: str) -> str:
         kept.extend(job[:3])
         if number == 0:
             kept.extend(block(job, "MULLIKEN ATOMIC CHARGES", 1) + block(job, "LOEWDIN ATOMIC CHARGES", 1))
+            kept.extend(orbital_table(job))
         guess = [line for line in job if line.startswith("INITIAL GUESS:")]
         kept.extend(guess[:1])
         kept.extend(line for line in job if line.startswith(("Expectation value of <S**2>", "Ideal value S*(S+1)")))
@@ -138,11 +203,11 @@ def main() -> None:
     destination = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "orca"
     destination.mkdir(parents=True, exist_ok=True)
     work_root = Path(tempfile.mkdtemp(prefix="fukui_v2_fixtures_"))
-    provider = OrcaQuantumEngineProvider()
     only = set(sys.argv[2:])
-    for name, smiles, charge, method_basis, coordinates, failing_job in CASES:
+    for name, smiles, charge, method_basis, coordinates, failing_job, search in CASES:
         if only and name not in only:
             continue
+        provider = OrcaQuantumEngineProvider(cation_search=lambda search=search: search)
         mol = molecule(smiles, coordinates)
         text = provider.build_input(mol, charge, 1, method_basis, "fukui")
         if failing_job is not None:

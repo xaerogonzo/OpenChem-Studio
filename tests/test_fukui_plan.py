@@ -6,6 +6,7 @@ import pytest
 
 from openchem.chem.fukui_plan import (
     EXTRA_STARTS,
+    HOLE_OFFSETS,
     START_DEFAULT,
     START_HCORE,
     START_HUECKEL,
@@ -17,7 +18,10 @@ from openchem.chem.fukui_plan import (
     JobResult,
     choose_solutions,
     has_diffuse_functions,
+    hole_of_start,
+    hole_start,
     plan_fukui,
+    searchable_holes,
     state_name,
     state_of,
 )
@@ -92,6 +96,114 @@ def test_the_switch_does_not_touch_a_neutral_species_or_a_cation(charge, diffuse
 @pytest.mark.parametrize("charge", [-2, -1, 0, 1])
 def test_f_plus_of_an_anion_is_on_unless_asked_off(charge):
     assert plan_fukui(charge, 1, diffuse=True) == plan_fukui(charge, 1, diffuse=True, anion_f_plus=True)
+
+
+# --- hole starts (the cation search) ------------------------------------------------------------------------------------------
+
+
+def test_the_hole_offsets_are_the_homo_minus_one_two_and_three_and_a_start_names_its_hole():
+    assert HOLE_OFFSETS == (1, 2, 3)
+    assert [hole_start(offset) for offset in HOLE_OFFSETS] == ["HOMO-1", "HOMO-2", "HOMO-3"]
+    assert [hole_of_start(hole_start(offset)) for offset in HOLE_OFFSETS] == [1, 2, 3]
+    # Every other start is no hole: the default one, the two extra starts and whatever ORCA's guess line could be turned into.
+    assert [hole_of_start(start) for start in (START_DEFAULT, START_HCORE, START_HUECKEL, "Moread", "", "HOMO", "HOMO-", "HOMO-x", "xHOMO-2")] == [0] * 9
+
+
+def test_a_plan_with_no_holes_is_the_plan_it_always_was():
+    for charge in (-2, -1, 0, 1):
+        for diffuse in (False, True):
+            assert plan_fukui(charge, 1, diffuse=diffuse, holes=()) == plan_fukui(charge, 1, diffuse=diffuse)
+
+
+@pytest.mark.parametrize("diffuse", [False, True])
+@pytest.mark.parametrize("charge", [0, 1])
+def test_for_a_neutral_species_or_a_cation_the_holes_come_last_after_the_n_plus_one_state_that_f_plus_needs(charge, diffuse):
+    """A hole start that does not converge ends the whole run, and the N+1 state of a neutral or a cation is NEEDED (its f+ is half the answer), so the holes follow it."""
+    jobs = plan_fukui(charge, 1, diffuse=diffuse, holes=(1, 2, 3)).jobs
+    holes = [job for job in jobs if job.hole]
+    assert [job.hole for job in holes] == [1, 2, 3] and jobs[-3:] == tuple(holes)
+    assert all(job.state == STATE_OXIDISED and (job.charge, job.multiplicity) == (charge + 1, 2) and job.start == hole_start(job.hole) for job in holes)
+    last_reduced = max(index for index, job in enumerate(jobs) if job.state == STATE_REDUCED)
+    assert last_reduced == len(jobs) - 4
+
+
+@pytest.mark.parametrize("diffuse", [False, True])
+@pytest.mark.parametrize("charge", [-3, -2, -1])
+def test_for_an_anion_the_holes_come_before_the_dianion_that_nothing_needs(charge, diffuse):
+    """The dianion of an anion is optional and is the one job that is only the basis set's state; the holes make f-, the function that describes an anion, reproducible,
+    so a dianion that fails must not take them with it."""
+    jobs = plan_fukui(charge, 1, diffuse=diffuse, holes=(1, 2, 3)).jobs
+    first_reduced = next(index for index, job in enumerate(jobs) if job.state == STATE_REDUCED)
+    assert [job.hole for job in jobs[:first_reduced] if job.hole] == [1, 2, 3]
+    assert all(job.state == STATE_REDUCED for job in jobs[first_reduced:])
+    without_dianion = plan_fukui(charge, 1, diffuse=diffuse, anion_f_plus=False, holes=(1, 2, 3)).jobs
+    assert all(job.state != STATE_REDUCED for job in without_dianion) and [job.hole for job in without_dianion if job.hole] == [1, 2, 3]
+
+
+def test_every_job_the_answer_needs_precedes_every_hole():
+    """The N state, the default N-1 job and the extra starts of an anionic N or N-1 state come first, whatever the species."""
+    for charge in (-2, -1, 0, 1):
+        jobs = plan_fukui(charge, 1, diffuse=True, holes=(1, 2, 3)).jobs
+        first_hole = next(index for index, job in enumerate(jobs) if job.hole)
+        needed = [job for job in jobs if job.state in (STATE_N, STATE_OXIDISED) and not job.hole]
+        assert all(jobs.index(job) < first_hole for job in needed)
+
+
+def test_a_hole_is_written_once_and_in_the_order_it_was_given():
+    assert [job.hole for job in plan_fukui(0, 1, diffuse=False, holes=(2, 1, 2, 3, 1)).jobs if job.hole] == [2, 1, 3]
+
+
+def test_the_default_n_minus_one_job_is_no_hole_and_is_first_of_its_state():
+    jobs = plan_fukui(0, 1, diffuse=False, holes=(1, 2, 3)).jobs
+    assert jobs[1] == FukuiJob(STATE_OXIDISED, 1, 2, START_DEFAULT) and jobs[1].hole == 0
+
+
+# searchable_holes: which holes a species can have, from its atoms and charge alone.
+
+
+def test_water_can_be_searched_with_all_three_holes_and_the_homo_is_orbital_four():
+    """Water has 10 electrons, so its HOMO is orbital 4 (ORCA numbers from 0); the oxygen 1s is orbital 0, so the holes go to orbitals 3, 2 and 1, all valence."""
+    found = searchable_holes([8, 1, 1], 0)
+    assert found.offsets == (1, 2, 3) and found.homo == 4 and found.reason == ""
+
+
+def test_a_hole_never_reaches_into_the_core():
+    """Methane's carbon 1s is orbital 0 and its HOMO is orbital 4: offsets 1 to 3 reach orbitals 3 to 1, and a fourth would be the core."""
+    assert searchable_holes([6, 1, 1, 1, 1], 0, offsets=(1, 2, 3, 4)).offsets == (1, 2, 3)
+    # Lithium hydride: 4 electrons, orbitals 0 (Li 1s), 1 (HOMO). No offset keeps the hole out of the core.
+    nothing = searchable_holes([3, 1], 0)
+    assert nothing.offsets == () and "no occupied valence orbital below its HOMO" in nothing.reason
+
+
+def test_the_core_is_the_noble_gas_core_of_each_atoms_period():
+    """Worked by hand. HCl: 18 electrons, HOMO orbital 8, a chlorine core of five orbitals (1s, 2s, 2p x3), so holes reach orbitals 7, 6, 5, the last the lowest valence one.
+    A sulfur atom has 16 electrons, HOMO orbital 7, the same core of five: the third hole would be orbital 4, the 2p core, and is dropped. HBr's bromine core is the
+    argon core, nine orbitals, and its 36 electrons put the HOMO at orbital 17, so all three holes are valence."""
+    assert (searchable_holes([17, 1], 0).offsets, searchable_holes([17, 1], 0).homo) == ((1, 2, 3), 8)
+    assert (searchable_holes([16], 0).offsets, searchable_holes([16], 0).homo) == ((1, 2), 7)
+    assert (searchable_holes([35, 1], 0).offsets, searchable_holes([35, 1], 0).homo) == ((1, 2, 3), 17)
+    assert searchable_holes([9, 1], 0).offsets == (1, 2, 3)  # HF: 10 electrons, HOMO 4, a core of one
+
+
+def test_the_charge_changes_the_electron_count_and_so_the_homo():
+    """The atoms of an ammonium ion add to 11 electrons and its +1 charge takes one: 10 electrons, HOMO orbital 4. The same atoms uncharged are an odd number of electrons."""
+    ammonium = searchable_holes([7, 1, 1, 1, 1], 1)
+    assert ammonium.homo == 4 and ammonium.offsets == (1, 2, 3)
+    assert searchable_holes([7, 1, 1, 1, 1], 0).offsets == ()
+    water_anion = searchable_holes([8, 1, 1], -1)
+    assert water_anion.offsets == () and "closed shell" in water_anion.reason
+
+
+def test_an_element_heavier_than_krypton_gets_no_search_and_the_reason_says_why():
+    found = searchable_holes([53, 1], 0)
+    assert found.offsets == () and "heavier than krypton" in found.reason and "core" in found.reason
+    # Krypton itself is the last element the search is written for: 36 electrons, HOMO orbital 17, argon core of nine.
+    assert searchable_holes([36], 0).offsets == (1, 2, 3)
+
+
+def test_dihydrogen_has_no_orbital_below_its_homo():
+    found = searchable_holes([1, 1], 0)
+    assert found.offsets == () and found.homo == -1 and "no occupied valence orbital" in found.reason
 
 
 @pytest.mark.parametrize("multiplicity", [2, 3, 4])

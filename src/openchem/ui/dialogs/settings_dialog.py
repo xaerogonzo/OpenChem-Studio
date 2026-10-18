@@ -46,6 +46,7 @@ from openchem.app.settings import (
     DRAWING_BOND_CLICK,
     DRAWING_BOND_KEYS,
     FUKUI_ANION_F_PLUS,
+    FUKUI_CATION_SEARCH,
     MAX_REVISIONS_KEPT,
     RAIL_HIDES_PANELS,
     RECALC_MODE,
@@ -303,6 +304,24 @@ _HELP = {
         ),
         tier=2,
         help_id="settings.fukui_anion_f_plus",
+        topic="settings",
+        help_anchor="settings",
+    ),
+    "fukui_cation_search": HelpTooltip(
+        text=(
+            "On (the default): a Fukui run also looks for other states of the cation. It starts three more cation jobs from the "
+            "neutral's orbitals, with the electron taken from the HOMO-1, HOMO-2 and HOMO-3, and f- is read from the LOWEST state "
+            "found (the average of the states if the lowest level is degenerate). When another state lies within 0.5 eV of it, the "
+            "result says so and how far that state's f- is from the one used.\n\n"
+            "Why: a cation can have several states a few tenths of an eV apart, and one cation job reaches only the one ORCA's SCF "
+            "falls into. For benzaldehyde that was not a function of the structure: 6 of 14 runs of the same molecule reached one "
+            "state and 8 the other, depending on a rotation, a displacement of 0.001 A or the embedding.\n\n"
+            "Off: one cation job, as before, and the result says no search was run. A search that finds nothing else costs the three "
+            "jobs and changes no number. Species of any charge are searched; molecules with an element heavier than krypton are not.\n\n"
+            "Applies to the next Fukui run; results already computed are not changed."
+        ),
+        tier=2,
+        help_id="settings.fukui_cation_search",
         topic="settings",
         help_anchor="settings",
     ),
@@ -758,11 +777,32 @@ class SettingsDialog(QDialog):
             "neutral radical. Neutral molecules and cations always get all four. Applies to the next run.",
             page,
         ))
+
+        self._fukui_cation_search = QCheckBox(
+            "Look for other states of the cation (three more ORCA jobs) and read f- from the lowest", page
+        )
+        self._fukui_cation_search.setObjectName("fukuiCationSearch")
+        self._fukui_cation_search.setChecked(bool(self._settings.preference(FUKUI_CATION_SEARCH)))
+        apply_help_tooltip(self._fukui_cation_search, _HELP["fukui_cation_search"])
+        self._fukui_cation_search.toggled.connect(self._on_fukui_cation_search_toggled)
+        layout.addWidget(self._fukui_cation_search)
+        layout.addWidget(_note(
+            "f- is a difference between the neutral and its cation, and a cation can have several states a few tenths of an eV "
+            "apart. With one cation job, f- was taken from whichever state ORCA's SCF happened to reach, which for benzaldehyde "
+            "was not a function of the structure: 6 of 14 runs reached one state and 8 the other. The search also starts the "
+            "cation from the neutral's orbitals with the electron taken from the HOMO-1, HOMO-2 and HOMO-3, reads f- from the "
+            "lowest state it finds, and says when another lies within 0.5 eV and how far its f- is. Untick to run the one job. "
+            "Applies to the next run.",
+            page,
+        ))
         layout.addStretch(1)
         return page
 
     def _on_fukui_anion_f_plus_toggled(self, checked: bool) -> None:
         self._store(FUKUI_ANION_F_PLUS, checked)
+
+    def _on_fukui_cation_search_toggled(self, checked: bool) -> None:
+        self._store(FUKUI_CATION_SEARCH, checked)
 
     # --- Results -----------------------------------------------------------------
 

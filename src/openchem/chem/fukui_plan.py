@@ -18,6 +18,13 @@ start, inside a compound input, is the previous job's orbitals, so the solution 
 the default start's solution was 0.6 to 1.0 eV above one that another start found in three, and where another start lowered the energy it moved f+ by
 up to 0.31; HCore or Hueckel found the lowest in all six. At the 6-31G** levels the first gate decided on, and for bound anions at 6-31+G*, every
 start ended in the same solution to within 0.004 eV, so a basis with no diffuse functions gets no extra start and a run costs what it did.
+
+**Hole starts, for the N-1 state (Fukui v3).** The cation of a molecule can have several states a few tenths of an eV apart, one for each orbital the electron
+may have left, and ORCA's default start reaches ONE of them: the one that empties the neutral's HOMO, and then whichever the SCF relaxes into. Measured
+(`benchmarks/fukui_gate_2/PREREGISTRATION.md` 11.4), the state it reached for benzaldehyde was not a function of the structure: 6 of 14 runs reached one state
+and 8 the other, 0.145 eV apart and 0.05 apart in f-, depending on a rotation of the molecule, a displacement of 0.001 A or the embedding it was optimized from.
+A hole start begins the cation from the NEUTRAL's orbitals with the electron taken from the HOMO-k instead (`%scf Rotate {HOMO-k, HOMO, 90, 1, 1} end` on the
+beta orbitals, the procedure of that probe), so that the lowest of several states can be read and a close second reported (`chem.fukui_states`).
 """
 
 from __future__ import annotations
@@ -41,6 +48,66 @@ START_HCORE = "HCore"
 START_HUECKEL = "Hueckel"
 #: The extra starts an anionic state gets at a basis with diffuse functions, in the order they are written.
 EXTRA_STARTS = (START_HCORE, START_HUECKEL)
+
+#: The orbitals below the HOMO that the cation search puts a hole in: the HOMO-1, the HOMO-2 and the HOMO-3, each a job that starts from the NEUTRAL's orbitals
+#: (the default N-1 job already empties the HOMO). Three is what the probe that found the problem used (the default start and holes in the HOMO-1, HOMO-2 and
+#: HOMO-3), and on the eleven molecules it ran a hole in the HOMO-3 ended in a state one of the others had already found. That is a choice made from eleven
+#: small molecules and not a derived number: a molecule with more orbitals close to its HOMO is said to have been searched only so far (`chem.fukui_states`).
+HOLE_OFFSETS = (1, 2, 3)
+
+#: A hole start's name as `hole_start` writes it ("HOMO-2"), which is also how a job's start is named once it has been read back out of ORCA's output.
+_HOLE_START = re.compile(r"HOMO-(\d+)")
+
+
+def hole_start(offset: int) -> str:
+    """The name of the start that puts the N-1 state's hole in the orbital `offset` below the HOMO."""
+    return f"HOMO-{offset}"
+
+
+def hole_of_start(start: str) -> int:
+    """How far below the HOMO a start's hole is, or 0 for a start that is not a hole start (`START_DEFAULT`, `START_HCORE`, ...)."""
+    match = _HOLE_START.fullmatch(start or "")
+    return int(match.group(1)) if match else 0
+
+
+#: The orbitals of the noble-gas core of an atom, by the largest atomic number of its period: none for hydrogen and helium, the 1s for lithium to neon, 1s 2s 2p for
+#: sodium to argon, and the argon core for potassium to krypton. A hole in one of these is a core-ionized state, thirty eV or more up, which is nothing a Fukui function means.
+_CORE_ORBITALS = ((2, 0), (10, 1), (18, 5), (36, 9))
+
+#: The heaviest element the search is written for. Beyond krypton the basis sets that carry the app's methods use an effective core potential, which takes
+#: electrons out of the orbital count, so the HOMO's number cannot be read off the species' electron count.
+_HEAVIEST_ELEMENT = 36
+
+
+@dataclass(frozen=True)
+class HoleSearch:
+    """Which holes a species can be searched with, and why none if there are none."""
+
+    offsets: tuple[int, ...]
+    #: A phrase that completes "The search for other cation states was not run: ...", or "" when `offsets` is not empty.
+    reason: str = ""
+    #: The HOMO's orbital number (ORCA numbers from 0) when there are offsets, which is what a hole job swaps the orbital `homo - offset` with; -1 otherwise.
+    homo: int = -1
+
+
+def searchable_holes(atomic_numbers: Sequence[int], charge: int, offsets: Sequence[int] = HOLE_OFFSETS) -> HoleSearch:
+    """The hole offsets (`HOLE_OFFSETS`) whose orbital is a VALENCE orbital of this species, or the reason it has none.
+
+    The HOMO of a closed-shell species with ``n`` electrons is orbital ``n/2 - 1`` (ORCA numbers from 0), which is how a job names the orbital to swap
+    without the neutral's output in hand: the plan is written before anything runs. The count is exact only where no electron is taken out of the problem, so
+    an element beyond krypton, whose basis sets carry a core potential, gets no search. A hole offset is dropped when it reaches into the core.
+    """
+    if any(number > _HEAVIEST_ELEMENT for number in atomic_numbers):
+        return HoleSearch((), "it has an element heavier than krypton, whose basis set may replace its core electrons, so the HOMO's number cannot be read off the electron count")
+    electrons = sum(atomic_numbers) - charge
+    if electrons % 2 or electrons < 2:
+        return HoleSearch((), "its electron count is not that of a closed shell")
+    core = sum(next(orbitals for largest, orbitals in _CORE_ORBITALS if number <= largest) for number in atomic_numbers)
+    homo = electrons // 2 - 1
+    usable = tuple(offset for offset in offsets if homo - offset >= core)
+    if not usable:
+        return HoleSearch((), "it has no occupied valence orbital below its HOMO")
+    return HoleSearch(usable, homo=homo)
 
 #: A start replaces ORCA's default one only if its energy is LOWER by more than this. Two starts that reach the same solution differ by
 #: the SCF's own convergence (0.004 eV in every bound or gated case measured), and a choice made on that would be a choice made on noise; the
@@ -75,16 +142,18 @@ class FukuiJob:
     state: str
     charge: int
     multiplicity: int
-    #: `START_DEFAULT`, or the extra start that replaces ORCA's default one for this job.
+    #: `START_DEFAULT`, or the extra start that replaces ORCA's default one for this job (`hole_start(k)` for a hole start).
     start: str = START_DEFAULT
+    #: For a hole start, how far below the HOMO the hole is (`hole_start`); 0 for every other job.
+    hole: int = 0
 
 
 @dataclass(frozen=True)
 class FukuiPlan:
-    """The jobs of one Fukui run, in the order they are written: the N and N-1 states and their extra starts, then the N+1 state and its own (`plan_fukui`).
+    """The jobs of one Fukui run, in the order they are written (`plan_fukui`).
 
     The order is load-bearing. ORCA ends the whole compound input at the first job that does not converge, so the jobs the answer cannot do without
-    come first and an extra start, or the N+1 state of an anion, that fails costs nothing but itself.
+    come first and an extra start, a hole start, or the N+1 state of an anion, that fails costs nothing but itself.
     """
 
     charge: int
@@ -110,31 +179,40 @@ def state_name(charge: int) -> str:
     return names.get(charge, f"state of charge {charge:+d}")
 
 
-def plan_fukui(charge: int, multiplicity: int, *, diffuse: bool, anion_f_plus: bool = True) -> FukuiPlan:
+def plan_fukui(charge: int, multiplicity: int, *, diffuse: bool, anion_f_plus: bool = True, holes: Sequence[int] = ()) -> FukuiPlan:
     """The jobs for a species of this charge, or ValueError for one with unpaired electrons.
 
     **`anion_f_plus=False` leaves the N+1 state out of a species with a negative charge** (its dianion, and the extra starts of it): the plan Fukui v2 had, which
     its second gate tested, and the one a person who switched f+ of an anion off in Settings asks for. A neutral species or a cation always has its N+1 state.
 
+    **`holes` are the hole starts of the N-1 state** (`hole_start`, from `searchable_holes`): one job each, started from the NEUTRAL's orbitals, so that the lowest
+    of several cation states can be read. With none (the default) the plan is the one Fukui v2 and the anion's f+ had, job for job.
+
     Every species gets three states: N and N-1, which f- needs, then N+1, which f+ needs. At a basis with diffuse functions each ANIONIC state (a total
     charge below zero: the N+1 state of a neutral, and the N and N-1 states of an anion or a dianion, and the N+1 state of an anion) also gets
-    `EXTRA_STARTS` after its default job. The order is N, N-1, the extra starts of those two, N+1, the extra starts of N+1: for a neutral species or a
-    cation that is the three default jobs and then the extra starts there are, as it was before an anion had an N+1 state, and for an anion it puts the dianion,
-    the one job here that is a state the basis set merely describes, after everything f- needs.
+    `EXTRA_STARTS` after its default job. **The jobs the answer needs come first and each optional job after everything it is optional for**: N, N-1 and the
+    extra starts of those two, and then, for a neutral species or a cation, whose N+1 state is needed, the N+1 state and its extra starts and the hole starts
+    last, since a hole start that does not converge ends the run and f+ must not be lost to it; but for an anion, whose dianion is optional and is the one job here
+    that is a state the basis set merely describes, the hole starts (which make f-, the function that describes an anion, reproducible) come BEFORE the dianion.
     """
     if multiplicity != 1:
         raise ValueError(f"A Fukui plan needs a closed-shell species (multiplicity 1); this has multiplicity {multiplicity}.")
     states = state_charges(charge)
 
-    def job(state: str, start: str = START_DEFAULT) -> FukuiJob:
-        return FukuiJob(state, *states[state], start)
+    def job(state: str, start: str = START_DEFAULT, hole: int = 0) -> FukuiJob:
+        return FukuiJob(state, *states[state], start, hole)
 
     def extra_starts(state: str) -> list[FukuiJob]:
         return [job(state, start) for start in EXTRA_STARTS] if diffuse and states[state][0] < 0 else []
 
+    hole_jobs = [job(STATE_OXIDISED, hole_start(offset), offset) for offset in dict.fromkeys(holes)]
     jobs = [job(STATE_N), job(STATE_OXIDISED), *extra_starts(STATE_N), *extra_starts(STATE_OXIDISED)]
-    if anion_f_plus or charge >= 0:
-        jobs += [job(STATE_REDUCED), *extra_starts(STATE_REDUCED)]
+    if charge < 0:
+        jobs += hole_jobs
+        if anion_f_plus:
+            jobs += [job(STATE_REDUCED), *extra_starts(STATE_REDUCED)]
+    else:
+        jobs += [job(STATE_REDUCED), *extra_starts(STATE_REDUCED), *hole_jobs]
     return FukuiPlan(charge=charge, jobs=tuple(jobs))
 
 
