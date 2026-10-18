@@ -205,8 +205,8 @@ def test_a_result_that_does_not_say_what_made_its_geometry_is_declined_and_not_r
 
 def test_only_the_two_extremes_ask_what_made_the_geometry():
     for entry in APPROVED:
-        if entry in _OUTPUTS or entry.input != GEOMETRY:
-            continue
+        if entry in _OUTPUTS or entry.input != GEOMETRY or entry.run_with:
+            continue  # a number that asks which settings the calculator ran with has its own record to read: tests/test_score_dipole_surface.py
         values = {CONFORMER_METHOD_KEY: "mmff94", "input_fragments": 1, "input_geometry": "g", "measured_geometry": "g", "radius_scale": 1.0}
         assert not_applicable_reason(entry, values) == "", entry.output_id
 
