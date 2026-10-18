@@ -17,6 +17,7 @@ linked from each section says why it was built the way it was. Where a claim her
 - **Derived scores:** a formula of your own over numbers the application already computes, shown as a column you can sort in
   the project table. This is the biggest piece, and the one that needs the most explaining: see the next section.
 - **Scores over the shape descriptors, eight of Geometry Analysis's sizes and HOMA's two extremes** (2026-10-17): a score may read them from the conformer every calculation already gets (HOMA only from an ORCA geometry).
+- **Scores over the dipole's magnitude and five surface numbers** (2026-10-18): the Gasteiger dipole of a neutral species, and the accessible area at the default probe with its polar and hydrophobic parts and the van der Waals area and volume.
 
 ## Derived scores: what they are for
 
@@ -77,6 +78,15 @@ What was built, in the order a person meets it:
   read 0.94 on one and 0.66 to 0.77 on an ORCA geometry, depending on the level). The evidence names the ORCA level, which is
   also shown now for the shape descriptors and the sizes, and a score on a force-field conformer says to optimise the molecule in
   ORCA and run HOMA again. Bird's index and the torsions stay out.
+- **Scores over the dipole's magnitude and five surface numbers (2026-10-18).** The Dipole Moment calculator's magnitude, and
+  Molecular Surface Area (3D)'s accessible area (a water-sized 1.4 Å probe), its polar and hydrophobic parts, and the van der
+  Waals area and volume, all measured on the conformer every calculation uses. A score reads the dipole only from Gasteiger's
+  charges (the three charge models differ by a factor of up to five on one molecule: aspirin 0.89, 4.76 and 3.60 D) and only for
+  a species with no net charge (an ion's dipole depends on where the origin is put). It reads the accessible areas only at the
+  default probe and on the structure as it is, never on the major microspecies; the van der Waals numbers touch no probe. A salt
+  has none of them. The three dipole components, and ASA+ and ASA-, stay out: the reasons are measured in the design record.
+  Running the calculator again with another charge model or probe replaces the default result, so run it again with the
+  defaults to get the score's number back.
 
 Read more: [`DERIVED_SCORES_DESIGN.md`](DERIVED_SCORES_DESIGN.md) (pull requests #326 to #355).
 
@@ -151,7 +161,7 @@ Read more: the **Pairing two molecules** topic of the guide; [`RECIPES_DESIGN.md
 
 - **The live provider run** for the assistant (needs an API key).
 - **The assistant starting an ORCA or Vina job.** It previews only.
-- **Scores over the other 3D numbers** (force-field energies, the smallest radius from the centroid, Bird's index, per-ring HOMA values, torsions): not offered. The ten shape descriptors, eight of Geometry Analysis's sizes and HOMA's two extremes are (above).
+- **Scores over the other 3D numbers** (force-field energies, the smallest radius from the centroid, Bird's index, per-ring HOMA values, torsions, the dipole's components and other charge models, ASA+ and ASA-): not offered. The ten shape descriptors, eight of Geometry Analysis's sizes, HOMA's two extremes, the dipole's magnitude and five surface numbers are (above).
 - **Reactivity calculators from ORCA** (Fukui functions, proton affinity, bond dissociation energy) and **the synthesis
   helper:** not started. The first would each sit behind a preregistered gate and may be recorded as "measured, not shipped".
 - **Calculators read for scores and not offered**, each for a measured reason (a duplicate of an always-on property, a label that

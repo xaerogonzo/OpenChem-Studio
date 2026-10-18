@@ -138,7 +138,7 @@ The honest version of a comparison table: this one is about our own software.
 | Solvent-dependent pKa | needs a QM/COSMO-RS-scale undertaking |
 | Missing-residue repair | measured and rejected — unsafe near a binding site |
 | macOS / Linux packaging | untested; source install may work, unverified |
-| Derived scores over other 3D numbers (force-field energies, the smallest radius from the centroid, Bird's index, per-ring HOMA values, torsions) | not offered: the ten shape descriptors, eight of Geometry Analysis's sizes and HOMA's highest and lowest ring value are, read from the conformer every calculation uses (a salt has no size, and HOMA only from an ORCA-optimised geometry) |
+| Derived scores over other 3D numbers (force-field energies, the smallest radius from the centroid, Bird's index, per-ring HOMA values, torsions, the dipole's components and other charge models, ASA+ and ASA-) | not offered: the ten shape descriptors, eight of Geometry Analysis's sizes, HOMA's highest and lowest ring value, the Gasteiger dipole's magnitude and five surface numbers are, read from the conformer every calculation uses (a salt has none of the sizes, the dipole or the surface numbers; HOMA only from an ORCA-optimised geometry; the dipole only of a neutral species; the accessible areas only at the default probe on the structure as it is) |
 | The assistant starting an ORCA or Vina job | it describes the job and a person starts it from its panel |
 | Crystal structure prediction — a lattice from a drawing or a SMILES | an open research problem, not a missing menu item: real polymorphs sit under 1 kJ/mol apart, below the error of the methods ranking them. A crystal enters only as a measured structure |
 

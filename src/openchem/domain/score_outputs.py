@@ -12,7 +12,8 @@ registry):
   value before it can be approved;
 * from the always-on descriptors, or from a calculator that is STABLE or LIMITED and offered by default (an EXPERIMENTAL or hidden
   calculator's output would put one unvalidated thing on top of another);
-* of ONE input, which the entry names (`ApprovedOutput.input`): the DRAWING for nearly all of them, and for the ten shape descriptors the GEOMETRY of the conformer every
+* of ONE input, which the entry names (`ApprovedOutput.input`): the DRAWING for nearly all of them, and for the geometry outputs (the ten shape descriptors, eight of Geometry Analysis's sizes, HOMA's two extremes, the
+  dipole's magnitude and five surface numbers) the GEOMETRY of the conformer every
   calculation already gets (`chem/calculation_input.canonical_conformer`: the newest ORCA-optimised one, otherwise the lowest force-field energy). The always-on descriptors
   used to run on both and store two results under one id, which is why an output now has exactly one input and a result of the other is never read for it
   (`docs/DERIVED_SCORES_DESIGN.md`, section 11);

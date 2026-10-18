@@ -2079,8 +2079,18 @@ with a ring HOMA has no parameters for has neither). HOMA reads bond lengths, so
 conformer's bond lengths are the force field's own (naphthalene's rings read 0.94 on one, and 0.66, 0.74 or 0.77 on an ORCA geometry depending on the level), so a score on one says to optimise the molecule in ORCA and run HOMA again. HOMA is not
 recomputed by itself, so after an ORCA geometry lands, run the calculator again: until then the old number is refused as measured for an earlier geometry. Any ORCA level is accepted and named, and a minimal basis gives the lowest numbers.
 
+From **Dipole Moment** it offers the magnitude, in debye, measured on that conformer. A score reads only the **Gasteiger** dipole (the three charge models differ by a factor of up to five on one molecule: aspirin is 0.89 D from Gasteiger, 4.76 D from EEM and
+3.60 D from QEq, and the application's own benchmark error against experiment is 0.79, 1.79 and 1.69 D), and only for a **species with no net charge**: an ion's dipole depends on where the origin is put (acetate is 4.0 D about its centre of mass and 7.7 D about the centroid
+of its atoms), so it is not a property of the molecule, and a zwitterion, whose net charge is nothing, is read. The three components are not offered (they are the dipole in the conformer's own frame), and a salt has no dipole for the reason it has no size. A dipole is of one
+conformer, and a flexible molecule's differs between its conformers (1,2-dichloroethane is nothing anti and about 2 D gauche), so the evidence names which one. Running the calculator with EEM or QEq replaces the Gasteiger result, and the score then has no number until you run it again with Gasteiger.
+
+From **Molecular Surface Area (3D)** it offers five numbers, also of that conformer: the solvent-accessible area, its polar part (N, O and F and the hydrogens bonded to them) and its hydrophobic part (the rest), the van der Waals surface area and the van der Waals volume. A score
+reads the accessible areas only at the **default 1.4 Å probe** and on **the structure as it is**: a water-sized probe is the calculator's default, a smaller or larger probe changes the area (aspirin's is 7% lower at 1.2 Å and 24% higher at 2.0 Å) without changing the label of the polar and hydrophobic
+parts, and the major microspecies is another structure (acetic acid's ASA+ falls 29%). A result made another way gives no number and names the probe or the pH. The van der Waals area and volume touch no probe, so they are read from a result made with any probe, but never of the
+major microspecies. ASA+ and ASA- are not offered: they are the area of the atoms whose Gasteiger charge is above or below nothing, which in a hydrocarbon is simply the hydrogens' surface and is decided by tiny charges elsewhere.
+
 **What a score does not read.** Geometry Analysis's smallest radius from the centroid (it is zero when the centroid is on an atom) and its three force-field energies (an absolute force-field energy has no meaning between molecules), Bird's
-index, the per-ring HOMA values and the torsion table, quantum-chemistry results, an average over conformers, and a score that names one particular conformer. The decisions are recorded in `docs/DERIVED_SCORES_DESIGN.md`.
+index, the per-ring HOMA values and the torsion table, the dipole's components and its other charge models, ASA+ and ASA-, quantum-chemistry results, an average over conformers, and a score that names one particular conformer. The decisions are recorded in `docs/DERIVED_SCORES_DESIGN.md`.
 
 **The units are checked, never converted.** Adding an area to a mass is refused, and so is declaring a unit the formula
 does not work out to. A bare number in the formula takes the unit of what it is added to or compared with, so

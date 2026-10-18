@@ -17,7 +17,7 @@ measured that way is not the conformer's, so it is refused naming the setting, a
 and the assistant read one rule.
 
 **AND A NUMBER IS READ ONLY AT THE SETTINGS THAT MAKE IT ONE QUANTITY** (`ApprovedOutput.run_with`). The dipole has one fact label under three charge models whose answers differ by a factor of up to five on a molecule, and a
-charged species has a dipole that depends on the origin; the accessible areas carry their probe in one label out of four, and the major microspecies is a different structure under the same labels. The result's own record
+charged species has a dipole that depends on the origin; the surface calculator's accessible areas carry their probe in one label out of five, and the major microspecies is a different structure under the same labels. The result's own record
 says which was used, and a number made another way is declined, naming it, instead of being read as the default.
 
 **AN INPUT IS READ FROM THE MOLECULE'S CURRENT RESULTS ONLY.** A result computed on an earlier structure, or one the application has superseded, is not

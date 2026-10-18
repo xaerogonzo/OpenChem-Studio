@@ -286,7 +286,7 @@ def test_a_lone_atom_is_a_sphere_whose_volume_and_areas_are_the_formulas_of_a_sp
 
 def test_two_fused_spheres_have_the_volume_and_areas_the_cap_formulas_give(registry):
     """Dinitrogen, two spheres of Bondi's 1.55 Å whose centres are 1.098 Å apart: the lens they share and the two caps it removes are closed formulas of the radius and the distance. RDKit's own table gives 1.60
-    for nitrogen, which would move each of these by about 6%."""
+    for nitrogen, which would move these by 3% (the accessible area) to 10% (the volume)."""
     bond, r = 1.098, _BONDI["N"]
     typed = _typed(_compute(registry, _two_atoms("N", bond), {}))
 
