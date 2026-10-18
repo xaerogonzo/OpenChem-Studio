@@ -495,6 +495,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round66_a_salt_fragment_keeps_its_charge.py"
+why = "a charged fragment of a salt is judged by the charge guard, zwitterions by polarity (D-306), an anilide beside a senior group is the azanidyl prefix (D-307) and oxalate counts for two anions (D-308)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round65_cationic_acyl_on_an_amide_anion.py"
 why = "the acid of a ring-cation acyl on an amide anion is named as a cation, so the acyl keeps its -ium (methyl(pyridin-1-ium-4-carbonyl)azanide, D-305)"
 scope = "core"

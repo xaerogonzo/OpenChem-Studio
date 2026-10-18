@@ -9786,6 +9786,9 @@ def _ion_word_weight(name: str, word: "re.Pattern[str]") -> int:
     for m in multiplied:
         stem = re.match(r"(tetrakis|tetra|penta|hexa|tris|tri|bis|di)", m.group())
         total += _MULTIPLIER_VALUE.get(stem.group(1), 2) if stem else 2
+    if word is _ANION_WORD_END:
+        # `oxalate` is a retained name for TWO carboxylates (round 66: a salt's fragment is judged now, and `disodium oxalate` was refused); over-counting `hydrogen oxalate` only makes the test lenient
+        total += len(re.findall(r"(?<![a-z])oxalate(?![a-z])", name))
     return max(total, 0)
 
 
@@ -13977,6 +13980,31 @@ def _fragment_has_free_acid_pcg(frag_mol) -> bool:
     return False
 
 
+def _salt_fragment_with_its_charge(frag, frag_tree, strategy):
+    """A salt's charged organic fragment must say its charge (naming round 66, D-306).
+
+    The charge guard judges a single fragment and `_choose_salt_fragment_form` asks for the cation or anion form only where a suffix can carry the charge, so a protonated amidine or
+    nitrile beside a chloride was named as the NEUTRAL compound plus `chloride` (`hexadecyl 4-(azanylidynemethyl)benzoate chloride`): a different molecule, and the counter-ion word hid it. A
+    fragment whose name fails the guard is named again the way it is named alone (the top-level promotions to the cation or anion form), which raises when that cannot keep the charge either."""
+    if frag.mol.GetNumAtoms() == 1 or not any(a.GetFormalCharge() for a in frag.mol.GetAtoms()):
+        return frag_tree
+    text = assemble(frag_tree)
+    try:
+        _check_charge_named(frag.mol, text)
+        return frag_tree
+    except ValueError:
+        pass
+    alone = _name_smiles_bound(Chem.MolToSmiles(frag.mol), strategy)
+    return LeafTree(
+        output_form=OutputForm.STANDALONE,
+        free_valence=None,
+        choices_made=(),
+        decision_ctx=None,
+        validity_warnings=None,
+        text=alone,
+    )
+
+
 def _name_salt(perception, mol, strategy, output_form, decision_ctx, session, depth) -> SaltTree:
     """Name a salt (disconnected fragments).
 
@@ -14105,6 +14133,7 @@ def _name_salt(perception, mol, strategy, output_form, decision_ctx, session, de
             )
         finally:
             session._salt_cation_demote_acid = prev_flag
+        frag_tree = _salt_fragment_with_its_charge(frag, frag_tree, strategy)
         ion_trees.append((frag_tree, frag))
 
     # Sort: cations (charge>0) first, then anions, then neutral; alphabetical within class

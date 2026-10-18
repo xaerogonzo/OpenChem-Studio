@@ -132,10 +132,11 @@ def test_the_new_base_kinds_protonate_one_site(kind, parent, ion):
 
 
 # --- the other changes -------------------------------------------------------------------------------------------------------------------------------------------------
-def test_an_anilide_beside_a_second_amine_is_refused_and_not_put_on_the_wrong_nitrogen():
-    # `...-N,N-dimethylbenzen-1-aminide` put the charge on the dimethylaniline
-    with pytest.raises(ValueError):
-        name_smiles("Cc1ccc([C@H]([N-]c2ccccc2)P(=O)(OC2CCCCC2)c2ccc(N(C)C)cc2)cc1")
+def test_an_anilide_beside_a_second_amine_is_not_put_on_the_wrong_nitrogen():
+    # `...-N,N-dimethylbenzen-1-aminide` put the charge on the dimethylaniline. Round 60 refused it; since round 66 the plan search names the anion as the `azanidyl` prefix on the
+    # right nitrogen, and the name reads back to the same ion.
+    name = name_smiles("Cc1ccc([C@H]([N-]c2ccccc2)P(=O)(OC2CCCCC2)c2ccc(N(C)C)cc2)cc1")
+    assert name == "4-{(cyclohexyloxy)[(1R)-(4-methylphenyl)(phenylazanidyl)methyl](oxo)phosphanyl}-N,N-dimethylaniline"
 
 
 def test_a_ring_that_begins_with_oxo_is_not_the_prefix():
