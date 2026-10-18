@@ -121,4 +121,15 @@ charge..."; **VERDICT PASS**. These are the same numbers the real-ORCA fixtures 
   (`position == 1 and state != STATE_N`, unreachable because a first job that is not a closed-shell state is refused one line earlier; removed) and the rule that a job's LAST energy line is its energy
   (a test was added).
 * **The standing sentence:** every result's closing sentence now says an EARLIER version of the calculation failed its check and this version has not been checked, which is what is true of v2 until
-  the second gate decides (`chem/fukui.py` `NOT_VALIDATED_SENTENCE`).
+  the second gate decides (`chem/fukui.py` `NOT_VALIDATED_SENTENCE`). *Superseded by the Outcome below: the sentence now says this version failed its second check.*
+
+## Outcome (appended after the gate ran; nothing above this line changes)
+
+The second gate was run on 2026-10-18 on the calculation this record describes and **FAILED**: 33 of 47 numbers within 0.02 and 9 of 11 site statements; eight of the 15 species were reproduced in every number and seven were not
+(`PREREGISTRATION.md` section 11, with the records in `artifacts/`). One prediction of this record was tested by it and held: for the two anions of the gate (SCN- and NO2-) no extra start was lower than the default
+(`start_gain_ev` 0.0, four jobs each), as 2.2 expected. The anion route itself worked: both ran as two states with f- alone, NO2- to within 0.0053 of the published numbers and SCN- in two of its three (its sulfur is 0.0243 off).
+
+The misses are in neutral molecules and one cation, and **none of v2's changes concerns the N-1 state of a neutral or a cation**: v2 reads the state its SCF reaches from the neutral's orbitals and does not look for a lower one or say
+that another is close. A probe made after the outcome (11.4, a candidate cause and not an established one) found that for anilinium, benzaldehyde and thiophene the published values match a cation state 0.09 to 0.45 eV above the lowest,
+and that for benzaldehyde the state the application's own input reached depended on the geometry. The standing sentence of every result now says the calculation failed its second check (`chem/fukui.py` `NOT_VALIDATED_SENTENCE`);
+the calculator stays EXPERIMENTAL and hidden.

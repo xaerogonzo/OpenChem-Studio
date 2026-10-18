@@ -184,6 +184,136 @@ Every row is marked `decided: false`; the verdict never reads them. **One attemp
 
 ---
 
+### 11.1 The noise floors, measured 2026-10-18 09:27 to 09:33, before the freeze (committed in `95cf12a2`)
+
+`benchmarks/visual/fukui2_gate_floor.json`, real ORCA 6.1.1, at commit `fa8850aa`; `VERDICT PASS` of the drive (8 assertions, 0 app errors, 0 driver failures; `artifacts/floor.drive_report.json`). Two molecules that are in neither gate: pyridine at
+`B3LYP/6-31G*` and formate at `B3LYP/6-31+G*`. For each, the same input twice and the whole chain twice (a second molecule embedded, optimized and run independently): the largest difference of any atom's f-, f+, f0 or dual descriptor
+(formate: f- alone) is **0.0 on both routes of both molecules**. **F = 0.0** against the limit of 0.005, so the gate could use T = 0.02, and `fukui2_begin` checked the artifact before the gate started a job.
+
+The drive report's whole-tree `dirty: true` is not the code: the six floor records say `src/` did not differ from its commit, and between that commit and the freeze only this document and the floor artifacts changed
+(`git diff --stat fa8850aa 40bf48c7` lists those four files). Small rigid molecules are an easy case for a repeat to agree on, and a floor of exactly zero says ORCA and the application are deterministic here, not that the published values will be reproduced.
+
+### 11.2 The outcome: FAIL, 2026-10-18 09:35 to 09:55 (the one attempt, at the freeze commit `40bf48c7`; committed in `4177a038`)
+
+`benchmarks/visual/fukui2_gate_run.json`, real ORCA 6.1.1, gas phase, **T = 0.02** (section 6; the floor of 11.1 was 0.0). `VERDICT PASS` of the drive (18 assertions, 0 app errors, 0 driver failures; `artifacts/run.drive_report.json`);
+**the gate's own verdict, by `app/fukui_gate_2.judge`: FAIL** (`artifacts/verdict.json`).
+
+`artifacts/records.json` holds 15 lines, one per species, every one attempt 1 and completed, **every one on the ORCA-optimized geometry** (`canonical_method: orca_opt`), at ORCA 6.1.1 and `IntAcc 6.0`, at commit `40bf48c7` with `src/` unmodified, 15 distinct stored runs.
+The neutral species and anilinium ran three jobs and the two anions four; **no extra start was lower than the default in any of the 15 runs** (`start_gain_ev` 0.0), which is the calculation doing what it is specified to do. Acrolein's optimized O=C-C=C dihedral is 179.96 degrees (s-trans), so the
+input-validity check of section 4 held. No condition of section 7's NOT EVALUABLE list applied.
+
+**33 of the 47 numbers are within T (31 within 0.01, 23 within 0.002) and 9 of the 11 site statements are reproduced.** Because F = 0.0, each difference below is a difference from the published value and not run-to-run noise. The 14 numbers outside T belong to seven molecules:
+
+| Molecule (charge) | Atom or site | Published (`deproft2002`) | Measured | Signed difference |
+|---|---|---|---|---|
+| HCN (0) | C | 0.389 | 0.4361 | +0.0471 |
+| HCN (0) | N | 0.502 | 0.4494 | -0.0526 |
+| SCN- (-1) | S | 0.606 | 0.6303 | +0.0243 |
+| anilinium (+1) | ortho | 0.067 | 0.1441 | +0.0771 |
+| anilinium (+1) | meta | 0.095 | 0.1313 | +0.0363 |
+| anilinium (+1) | para | 0.175 | 0.0544 | -0.1206 |
+| benzaldehyde (0) | ortho (a published pair, the worse atom) | 0.044 | 0.0837 | +0.0397 |
+| benzaldehyde (0) | meta (a published pair, the worse atom) | 0.045 | 0.0968 | +0.0518 |
+| benzaldehyde (0) | para | 0.072 | 0.0924 | +0.0204 |
+| pyrrole (0) | position 3 | 0.068 | 0.1198 | +0.0518 |
+| furan (0) | position 2 | 0.272 | 0.1966 | -0.0754 |
+| furan (0) | position 3 | 0.107 | 0.1292 | +0.0222 |
+| thiophene (0) | position 2 | 0.059 | 0.1762 | +0.1172 |
+| thiophene (0) | position 3 | 0.138 | 0.1076 | -0.0304 |
+
+**The two site statements that were not reproduced:** anilinium (published: the largest ring value is para; measured: ortho, 0.1441 against para 0.0544) and thiophene (published: position 3; measured: position 2). The other nine were: HCN's f- on N, SCN-'s on S, the largest ring site
+para in phenol, aniline, fluorobenzene and styrene, position 2 in pyrrole and furan, and acrolein's f+ on C-beta.
+
+**Eight of the 15 species have every number within T, and within 0.0067:** phenol (largest difference 0.0016), aniline (0.0009), fluorobenzene (0.0012), styrene (0.0019), nitrobenzene (0.0017), acrolein (0.0024), NO2- (0.0053) and N2O (0.0067). SCN- has two of its three numbers within T (C and N).
+
+By section 7 the **neutral** species with a number outside T (HCN, benzaldehyde, pyrrole, furan, thiophene) make the outcome **FAIL**; the two charged misses (anilinium, SCN-) alone would have made it PARTIAL. T is not widened, the word "reproduces" is not used of the gate as a whole,
+and the gate is not re-run: a decided outcome is final (section 9).
+
+### 11.3 The reported arm, 2026-10-18 09:56 to 10:22: decides nothing
+
+`benchmarks/visual/fukui2_gate_reported.json`, real ORCA 6.1.1, at commit `7e1e140a` (the outcome commit as it stood when the arm ran; its message was amended afterwards into `4177a038`, which has the same tree, `ea61f252`), `VERDICT PASS` of the drive (22 assertions, 0 app errors, 0 driver failures;
+`artifacts/reported.drive_report.json`). 19 jobs, every one attempt 1 and completed (`artifacts/reported_records.json`), written as 60 rows, each marked `decided: false`, of which **48 are within 0.02** (`artifacts/reported.json`).
+
+| Rows | Level | Rows | Within 0.02 | Largest difference |
+|---|---|---|---|---|
+| CO f- (cross-source consistency) | `B3LYP/6-31G*` | 2 | 2 | 0.0033 |
+| formaldehyde f- and f+ | `B3LYP/6-31G*` | 6 | 6 | 0.0033 |
+| enolate f- (a partial column) | `B3LYP/6-31+G*` | 3 | 3 | 0.0063 |
+| phenolate f- (a partial column) | `B3LYP/6-31+G*` | 3 | 3 | 0.0026 |
+| maleic anhydride f+ (a partial column) | `B3LYP/6-31G*` | 2 | 2 | 0.0003 |
+| maleimide f+ (a partial column) | `B3LYP/6-31G*` | 2 | 2 | 0.0005 |
+| the 13 neutral and cation species' decided numbers, at the application's default preset | `B3LYP/def2-SVP` | 42 | 30 | 0.1211 (anilinium, para) |
+
+* **At the source's own levels all 18 rows are within 0.0063**, including the three partial-column species the rules kept out of the decision and the two molecules the first gate shares with this source.
+* **The default preset reproduces the 6-31G* numbers, misses included.** Over the 42 numbers, the median difference between the `6-31G*` value and the `def2-SVP` one is 0.0006 and the largest 0.0047 (HCN, N). The 12 rows outside 0.02 at `def2-SVP` belong to the same six molecules as at `6-31G*` (HCN, anilinium, benzaldehyde, pyrrole,
+  furan, thiophene; the anions SCN- and NO2- were not run there); benzaldehyde's para is the one number that changes side (0.0204 at `6-31G*`, within at `def2-SVP`). **The misses are not a matter of the basis set.** Running this arm made those `def2-SVP` numbers seen, so `def2-SVP` cannot be added to a validated scope by this gate (section 10).
+* **The four statements the rules left out** (`artifacts/reported_sites.json`; **written afterwards**: the drive step `fukui2_report` was given the reported arm's records only, and `reported_site_rows` looks each statement up under the species' gate level, so `reported.json` has an empty `site_rows`; `reported_sites.py` makes the one
+  call it should have made, with the same function and the gate's own records, and runs nothing). N2O f-: published O, measured O. NO2- f-: published O, measured O. Benzaldehyde: published largest ring site para, **measured meta** (the experimental order printed beside it in Table 5 is m > o >> p). Nitrobenzene: published meta,
+  measured meta (experiment m >> o > p). These decide nothing, and the experimental column is not a target: the 2019 benchmark found the Fukui function the weaker descriptor of where a reaction goes [source:wang2019].
+
+### 11.4 After the outcome: two probes of one candidate cause, neither of them the gate and neither able to change it
+
+Written after 11.2 existed, **with the published numbers in view**. They are a search and not a preregistered test: each looks for the cation state a published number belongs to, among a handful of candidates, so what they find is a candidate cause and not an established one.
+Files: `cation_states_probe.py` and `route_check.py`, standalone ORCA 6.1.1 in fresh directories (the second writes through the application's own input builder), results in `artifacts/cation_states_probe.json` and `artifacts/route_check.json`.
+
+**The candidate, as it stood when the probe was written.** The molecules that missed were thought to have cations whose lowest states lie close together (benzaldehyde, the five-membered rings, anilinium, HCN), while eight others reproduce to 0.0067. The application's N-1 job starts from the neutral's converged
+orbitals and removes the electron of the HOMO, so it reaches one state, whichever its SCF falls into; the source's program may have reached another. The probe tests that, and finds it fits three of the molecules and not the rest.
+
+**Probe 1, `cation_states_probe.py`.** The seven molecules and four that did not miss (phenol, aniline, styrene, N2O), `B3LYP/6-31G*` (`6-31+G*` for SCN-), each geometry ORCA-optimized from an RDKit ETKDG (seed 7) + MMFF embedding, **so not the gate's geometry**; the N state restricted, the N-1 state unrestricted,
+`IntAcc 6.0`, Hirshfeld printed. The N-1 state is converged four times, with its hole put in the HOMO, HOMO-1, HOMO-2 and HOMO-3 of the N state by rotating the beta orbitals of the guess (`%scf Rotate {HOMO-k, HOMO, 90, 1, 1} end`; checked first on water, where the 3a1 hole came out 2.2 eV above the 1b1 one).
+A start can relax into another state, so the four are not four distinct states; for each the probe records the state it ended in (energy above the lowest found, `<S^2>`, Hirshfeld f-) and the largest distance of that f- from the published numbers.
+
+| Molecule | Lowest state found: largest distance to the published numbers | A state that matches the published numbers |
+|---|---|---|
+| anilinium | 0.1206 | **+0.094 eV above the lowest, distance 0.0013** |
+| benzaldehyde | 0.0518 (two starts reach it) | **+0.145 eV above the lowest, distance 0.0011** (a third state, +0.127 eV, is 0.0696 away) |
+| thiophene | 0.1172 | **+0.449 eV above the lowest, distance 0.0021** |
+| HCN | 0.0526 (the pi-hole state; two starts, a degenerate pair) | none: the sigma-hole state (+0.392 eV) is 0.0382 away; the published C 0.389 and N 0.502 lie between the two states' values (C 0.436 and 0.351, N 0.449 and 0.531) at mixing fractions that differ (0.55 and 0.65), and the published H 0.109 lies below both (0.1145, 0.1183) |
+| pyrrole | 0.0518 | none: the next state (+0.837 eV) is 0.1123 away |
+| furan | 0.0754 | none: the next state (+1.370 eV) is 0.1762 away |
+| SCN- (S) | 0.0243 (all four starts reach one state) | none to find |
+| phenol, aniline, styrene, N2O (did not miss) | 0.0016, 0.0009, 0.0019, 0.0067 | the lowest state is the one that matches; phenol, styrene and N2O have no distinct competing state (every start ended in the lowest), and aniline's (+1.213 eV) is 0.0799 away |
+
+**For anilinium, benzaldehyde and thiophene the published numbers match, to between 0.0011 and 0.0021 (a tenth of T), the f- of a cation state that lies 0.094, 0.145 and 0.449 eV above the lowest state this calculation finds.** In those three the neutral's HOMO and the next orbital lie 0.11, 0.24 (HOMO-1; HOMO-2 at 0.32) and 0.42 eV apart, and
+where the competing state was found as a distinct state its energy above the lowest tracks the neutral's orbital-energy gap (orbital gap and ΔSCF gap, in eV: anilinium 0.109 and 0.094, thiophene 0.419 and 0.449, pyrrole 0.835 and 0.837, furan 1.332 and 1.370, aniline 1.151 and 1.213; the differences are 0.002 to 0.062).
+**The gap does not tell a missing molecule from one that matched**: pyrrole's 0.835 eV is above phenol's 0.815 eV and pyrrole is the one that missed.
+
+**Probe 2, `route_check.py`.** Probe 1's plain-aufbau start (hole 0) for benzaldehyde landed 0.145 eV above the lowest state, where the gate's run, made by the application, had landed on the lowest. Two things differed: the geometry, and the form of the input (a separate `MORead` job, against
+the application's compound input whose second job reads the first job's orbitals by default). This writes **the application's own three-job input** (`OrcaQuantumEngineProvider._build_fukui_input`, the builder the service calls) on probe 1's geometries of the three molecules and runs it once:
+
+| Molecule | N-1 state the application's input reached, on probe 1's geometry | Largest distance to the published numbers |
+|---|---|---|
+| benzaldehyde | **+0.145 eV above the lowest** | **0.0011** |
+| anilinium | the lowest | 0.1206 |
+| thiophene | the lowest | 0.1172 |
+
+**So the application's own route reaches the state that matches the published benzaldehyde numbers on one geometry and the lowest state on another**: two ORCA-optimized geometries of one molecule at one level (the gate's and probe 1's), the same code, N-1 states 0.145 eV apart. The gate's geometry is not stored, so how the two
+differ was not measured, and nothing here says which is nearer the true minimum. For anilinium and thiophene the application's route lands on the lowest state on this geometry as it did on the gate's, so those two misses do not depend on the geometry.
+
+### 11.5 What this says, and what it does not
+
+* **The outcome stands.** FAIL, with T = 0.02, one attempt, no re-run, and the word "reproduces" not used of the gate. Nothing in 11.3 or 11.4 changes a number of 11.2.
+* **The misses are not a fault of wiring or arithmetic that any measurement here shows.** Eight species reproduce in every number to 0.0067; all 18 own-level rows of the reported arm are within 0.0063; the same numbers come out at two basis sets (median difference 0.0006); the floor is 0.0.
+* **For three of the six molecules that missed in a neutral or a cation (anilinium, benzaldehyde, thiophene), the published numbers belong to a cation state above the lowest one this calculation finds.** That is a candidate cause found after the outcome by choosing among a few states with the published numbers in view; it is strong (three
+  matches to 0.0021 or better against a tolerance of 0.02) and it is not a preregistered result.
+* **What it implies about the calculator, measured:** for a molecule whose cation has close-lying states, the application's f- is the f- of whichever state ORCA's SCF reaches from the neutral's orbitals. It does not look for a lower state or say that another one is close (it does that for the starts of an anion, not for the N-1 state), and for
+  benzaldehyde the state it reached depended on which geometry it was given.
+* **HCN, pyrrole, furan and the sulfur of SCN- are not explained.** Nothing measured here accounts for them, and the cation-state candidate does not: neither alternative state lies near their published numbers.
+* **It does not say the published values are wrong or ours are.** Which state a condensed Fukui function ought to describe is not decided by anything measured here, and the order of states 0.1 eV apart in a B3LYP ΔSCF is itself uncertain. It does not say that taking the lowest of several holes would reproduce
+  the published numbers: for these three molecules the lowest state is the one that does **not**. And it does not say that a small orbital gap marks a molecule that will miss (the pyrrole and phenol numbers above).
+
+### 11.6 The consequence, and what was left open
+
+Section 8 for a FAIL: **the calculator stays EXPERIMENTAL and hidden.** Its standing sentence and its support reason were rewritten to say it failed two preregistered checks, with the numbers (33 of 47 within 0.02, the other 14 in seven named molecules, three of them matched by a higher cation state, and the first check's miss by 0.0014),
+and `docs/explainers/reactivity.md`, the user guide and the changelog were brought into line with this section.
+
+**A failure is a reason to find the cause, not to retire the work (section 8).** The cause is found for three of the six neutral and cation molecules and not for HCN, pyrrole, furan or the sulfur of SCN-. Anything further needs a new preregistration with data not seen here. Two shapes it could take, neither started, both Alex's call:
+(a) a calculation that converges the N-1 state from several holes, reads the lowest and says when another lies within a stated window; it would be gated on its own reproducibility (the same molecule at two geometries) and against a reference whose states are identified, and not on this source for these three molecules, whose numbers
+it would not reproduce; (b) a caveat only, which says when the neutral's HOMO and next orbital are within a stated gap and claims nothing else, gated on whether it fires on the molecules that miss and stays quiet on those that match. Alex's earlier answer that an anion's f+ might come back as an option later (C1) is untouched: it
+could not change what this gate tested.
+
+---
+
 ## Decisions (kept as a record)
 
 Decided by Alex on 2026-10-18: **A1** T = 0.02. **A2** the anions are decided, through an f- only mode (so the calculation had to be changed first). **A4** a pass promotes to LIMITED and SHOWN, scoped to `B3LYP 6-31G*` and `B3LYP 6-31G**`. **A5** the calculation tested is the

@@ -1,0 +1,177 @@
+{
+  "verdict": "PASS",
+  "exit_code": 0,
+  "tolerate_errors": false,
+  "run": {
+    "run_id": "a2de0c8bf0a044689dc5b35a9c451a85",
+    "pid": 45844,
+    "started": "2026-10-18T13:56:58+00:00",
+    "script": "benchmarks/visual/fukui2_gate_reported.json",
+    "script_sha256": "eb499bb03be2a854b7a9e679e75c5a06110ec44664057473930637035af19393",
+    "commit": "7e1e140a37e71e35475464a14b4c7d9d10aeaee4",
+    "dirty": false,
+    "lockfile_sha256": "56a63e1efc21dd43e26f7e32f6817db69cd502914ae15d5a5297345bca2dd07d",
+    "ketcher_bundle": "6295fe8c0bc479c2a77e140849d9a4b30df6cb955a4e7d166b7fd521e50d4eb0",
+    "versions": {
+      "python": "3.13.7",
+      "platform": "Windows-11-10.0.26200-SP0",
+      "pyside6": "6.11.1",
+      "qt": "6.11.1",
+      "rdkit": "2025.9.6",
+      "java": ""
+    },
+    "log_start": 1403
+  },
+  "steps": {
+    "in_script": 175,
+    "run": 175
+  },
+  "log_file": {
+    "path": "D:\\Random Programs\\OpenChemStudio_Data\\logs\\drive-45844.log",
+    "start": 1403,
+    "end": 51512
+  },
+  "assertions": [
+    {
+      "step": "fukui2_begin",
+      "tag": "",
+      "ok": true,
+      "detail": "floor 0.0"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "CO@B3LYP/6-31G*",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "H2CO@B3LYP/6-31G*",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "maleic anhydride@B3LYP/6-31G*",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "maleimide@B3LYP/6-31G*",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "enolate@B3LYP/6-31+G*",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "phenolate@B3LYP/6-31+G*",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "HCN@B3LYP/def2-SVP",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "N2O@B3LYP/def2-SVP",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "anilinium@B3LYP/def2-SVP",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "phenol@B3LYP/def2-SVP",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "aniline@B3LYP/def2-SVP",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "fluorobenzene@B3LYP/def2-SVP",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "benzaldehyde@B3LYP/def2-SVP",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "styrene@B3LYP/def2-SVP",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "nitrobenzene@B3LYP/def2-SVP",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "pyrrole@B3LYP/def2-SVP",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "furan@B3LYP/def2-SVP",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "thiophene@B3LYP/def2-SVP",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "acrolein@B3LYP/def2-SVP",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_report",
+      "tag": "reported",
+      "ok": true,
+      "detail": "48 of 60"
+    },
+    {
+      "step": "expect_clean",
+      "tag": "",
+      "ok": true,
+      "detail": "no unexpected application errors"
+    }
+  ],
+  "measurements": {
+    "window_ready_epoch": 1792331818.7165985
+  },
+  "ledger": {
+    "errors": [],
+    "warnings": [],
+    "driver_failures": [],
+    "dropped": 0
+  }
+}
