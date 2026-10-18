@@ -1144,3 +1144,70 @@ def test_the_homa_extremes_are_declined_for_a_force_field_conformer_and_read_for
     assert in_results.state is in_table.state is InputState.READ
     assert in_table.value == pytest.approx(in_results.value, rel=1e-9) == pytest.approx(by_producer, rel=1e-9)
     assert in_table.geometry == in_results.geometry and "ORCA-optimised at B3LYP def2-SVP" in in_table.geometry and orca.conformer_id[:8] in in_table.geometry
+
+
+# --- the dipole's magnitude and five surface numbers: one rule in the table and in Results ----------------------------------------------------------
+
+
+_DIPOLE_OUT = "calculator:dipole_moment:Dipole"
+_ASA_OUT = "calculator:surface_analysis:ASA (solvent accessible)"
+_VOLUME_OUT = "calculator:surface_analysis:van der Waals volume"
+
+
+def _run_calculator(window, qapp, model, calculator_id):
+    from openchem.domain.calculator import CalculationRequest
+
+    definition = window._services.calculator_registry.get(calculator_id)
+    window._services.descriptor_service.run_calculator(
+        model, CalculationRequest(calculator_id=calculator_id, molecule_uuid=model.uuid, parameters={p.name: p.default for p in definition.parameters})
+    )
+    _drain(qapp)
+
+
+def test_the_dipole_and_the_surface_are_read_the_same_in_the_table_and_in_results_for_a_molecule_an_ion_and_a_salt(window, pair, qapp):
+    from openchem.domain.score_table import read_cell_output, score_value_in_table
+    from openchem.domain.score_value import InputState, ScoreStatus, read_output
+    from tests.test_dipole_typed import _gasteiger_dipole
+
+    aspirin, _ethanol = pair
+    engine = window._services.chemistry_engine
+    acetate, salt = MoleculeModel(display_name="Acetate"), MoleculeModel(display_name="Sodium acetate")
+    engine.set_structure_from_smiles(acetate, "CC(=O)[O-]")
+    engine.set_structure_from_smiles(salt, _SALT)
+    project = ProjectModel(name="dipoles")
+    project.molecules.extend([aspirin, acetate, salt])
+    window._set_project(project)
+    for model in (aspirin, acetate, salt):
+        _select(window, qapp, model)
+        _with_a_conformer(window, qapp, model)
+        for calculator_id in ("dipole_moment", "surface_analysis"):
+            _run_calculator(window, qapp, model, calculator_id)
+    made = _make(window, label="Twice the moment", formula="2 * a", result_unit="D", inputs=[("a", _DIPOLE_OUT)])
+    event = _run_batch(window, qapp, [aspirin, acetate, salt], [], ["dipole_moment", "surface_analysis"])
+
+    def both(model, output_id):
+        in_results = read_output(output_id, window._services.score_service._classified_results(model), len(model.conformers))
+        return in_results, read_cell_output(output_id, event.table, model.uuid)
+
+    in_results, in_table = both(aspirin, _DIPOLE_OUT)
+    by_hand = _gasteiger_dipole(engine.mol_from_molblock(aspirin.conformers[0].molblock))
+    assert in_results.state is in_table.state is InputState.READ
+    assert in_table.value == pytest.approx(in_results.value, rel=1e-9) == pytest.approx(by_hand, rel=1e-5)
+    assert aspirin.conformers[0].conformer_id[:8] in in_table.geometry and in_table.geometry == in_results.geometry
+    assert score_value_in_table(made, event.table, aspirin.uuid).value == pytest.approx(2 * by_hand, rel=1e-5)
+    for output_id in (_ASA_OUT, _VOLUME_OUT):
+        in_results, in_table = both(aspirin, output_id)
+        assert in_results.state is in_table.state is InputState.READ and in_table.value == pytest.approx(in_results.value, rel=1e-9), output_id
+
+    in_results, in_table = both(acetate, _DIPOLE_OUT)
+    assert in_results.state is in_table.state is InputState.NOT_APPLICABLE and in_results.note == in_table.note and "net charge" in in_table.note
+    refused = score_value_in_table(made, event.table, acetate.uuid)
+    assert refused.status is ScoreStatus.REFUSED and refused.value is None and "neutral species only" in refused.reason
+    for output_id in (_ASA_OUT, _VOLUME_OUT):
+        in_results, in_table = both(acetate, output_id)
+        assert in_results.state is in_table.state is InputState.READ, f"an ion has a surface of its own: {output_id}"
+
+    for output_id in (_DIPOLE_OUT, _ASA_OUT, _VOLUME_OUT):
+        in_results, in_table = both(salt, output_id)
+        assert in_results.state is in_table.state is InputState.NOT_APPLICABLE and in_results.note == in_table.note, output_id
+        assert "2 separate fragments" in in_table.note and "score the parent structure" in in_table.note, output_id
