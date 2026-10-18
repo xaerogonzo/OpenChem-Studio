@@ -1496,8 +1496,9 @@ built** (on 2026-10-12 it was designed and not built; the slices merged between 
 Lewis pairing, its window and the kept answer in Results, and the preregistered BH3/CO gate, PASSED on 2026-10-13 (`docs/RECIPES_DESIGN.md`); and derived
 scores, slices 1 to 4 and their follow-ups (`docs/DERIVED_SCORES_DESIGN.md`). Still not built: a dispatch adapter for service-run (ORCA) calculators,
 so the assistant describes an ORCA job and a person starts it from its panel, and the assistant's frozen turn holds no quantum-chemistry runs
-(`domain/turn_snapshot.py` names none, checked 2026-10-16); scores over 3D numbers (decided on 2026-10-16, in the derived scores record); Phase 3 (the
-ORCA reactivity calculators) and Phase 4 (the synthesis helper). The live provider run for Phase 1 is still not done. `docs/WHATS_NEW.md` is a tour of all of it.
+(`domain/turn_snapshot.py` names none, checked 2026-10-16); scores over 3D numbers (decided on 2026-10-16, in the derived scores record); Phase 3 beyond its first calculator (Fukui functions were built on 2026-10-18 and
+failed their preregistered gate by 0.0014 on one quantity, so they are offered as experimental and not validated, `benchmarks/fukui_gate/PREREGISTRATION.md`;
+proton affinity and bond dissociation energy are not started) and Phase 4 (the synthesis helper). The live provider run for Phase 1 is still not done. `docs/WHATS_NEW.md` is a tour of all of it.
 
 ### Visualization
 
