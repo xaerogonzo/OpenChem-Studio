@@ -249,7 +249,7 @@ def compute_surface_analysis(
     )
     # **FIVE OF THE SEVEN NUMBERS ARE NUMBERS.** Their facts' values were the text the lines show (`'361.31'`), which a derived score must not rest on: it would move with a display setting. The producer holds the
     # numbers, so it hands them over, and the lines, the labels, the units and the cells' text do not move (`tests/test_surface_typed.py` holds them to a recording made before this change). ASA+ and ASA- stay text:
-    # they are the area of the atoms whose Gasteiger charge is above or below nothing, a sign that tiny charges decide (`docs/DERIVED_SCORES_DESIGN.md`, section 12). Whether a score may READ a number is the
+    # they are the area of the atoms whose Gasteiger charge is above or below nothing, a sign that tiny charges decide (`docs/DERIVED_SCORES_DESIGN.md`, section 11). Whether a score may READ a number is the
     # reader's question, answered from this result's own provenance (the probe, the microspecies): they are typed whatever the settings, and a result made with another probe is declined there, naming it.
     typed = {
         asa: areas["asa"], ASA_HYDROPHOBIC_LABEL: areas["asa_hydrophobic"], ASA_POLAR_LABEL: areas["asa_polar"],

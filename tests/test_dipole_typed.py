@@ -1,4 +1,4 @@
-"""The Dipole Moment calculator carries its MAGNITUDE as a number, and a derived score reads it only when the dipole means one thing (`docs/DERIVED_SCORES_DESIGN.md`, section 12).
+"""The Dipole Moment calculator carries its MAGNITUDE as a number, and a derived score reads it only when the dipole means one thing (`docs/DERIVED_SCORES_DESIGN.md`, section 11).
 
 Until now its first line was text (`'1.62'`), which a score must not rest on: it would move with a display setting. The producer holds the number, so the producer hands it over: the same `Fact`, its `value` the float and its
 `display_value` still the rounded text. The three components stay text: they are the dipole in the conformer's own frame, so the same molecule turned over gives other components, and no score may rest on a frame.

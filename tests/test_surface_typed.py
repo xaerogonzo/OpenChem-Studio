@@ -1,4 +1,4 @@
-"""The Molecular Surface Area (3D) calculator carries five of its numbers as numbers, and a derived score reads them only at the settings that make them one thing (`docs/DERIVED_SCORES_DESIGN.md`, section 12).
+"""The Molecular Surface Area (3D) calculator carries five of its numbers as numbers, and a derived score reads them only at the settings that make them one thing (`docs/DERIVED_SCORES_DESIGN.md`, section 11).
 
 Until now every line was text (`'361.31'`), which a score must not rest on: it would move with a display setting. The producer holds the numbers, so the producer hands them over: the same `Fact`, its `value` the float and its
 `display_value` still the rounded text. Five are typed (the accessible area, its hydrophobic and polar parts, and the van der Waals area and volume); ASA+ and ASA- stay text, because they are the sum of the area of the atoms whose

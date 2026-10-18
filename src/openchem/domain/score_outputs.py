@@ -117,7 +117,7 @@ ENDPOINTS: dict[str, str] = {
     # PROVISIONAL, like the geometry tags above (the dipole and five surface numbers, 2026-10-18). Each is measured on the conformer every calculation uses, hydrogens included, from Bondi's van der Waals radii (the surface
     # numbers) or Gasteiger's partial charges (the dipole), and is read only at the settings that make it one quantity: a neutral species for the dipole, the 1.4 Å probe and the structure as it is for the
     # accessible areas (`ApprovedOutput.run_with`). Left out by decision: the dipole's three components (the dipole in the conformer's own frame), the dipole under any other charge model (aspirin: 0.89 D from
-    # Gasteiger, 4.76 D from EEM, 3.60 D from QEq), and ASA+ and ASA- (the area of the atoms whose Gasteiger charge is above or below nothing, which tiny charges decide: `docs/DERIVED_SCORES_DESIGN.md`, section 12).
+    # Gasteiger, 4.76 D from EEM, 3.60 D from QEq), and ASA+ and ASA- (the area of the atoms whose Gasteiger charge is above or below nothing, which tiny charges decide: `docs/DERIVED_SCORES_DESIGN.md`, section 11).
     "dipole_magnitude": "the magnitude of the molecular dipole of the conformer, from Gasteiger (PEOE) partial charges, about the centre of mass, of a species with no net charge, in Debye",
     "accessible_surface_area": "the area of the surface traced by the centre of a probe of radius 1.4 Å (a water molecule's) rolling over the conformer's atoms, each a sphere of its Bondi van der Waals radius, in Å^2",
     "hydrophobic_accessible_surface_area": "the part of the conformer's accessible area (1.4 Å probe) that lies on atoms that are not polar, meaning not N, O or F nor a hydrogen bonded to one of them, in Å^2",

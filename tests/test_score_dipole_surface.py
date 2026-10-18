@@ -1,4 +1,4 @@
-"""Scores over the dipole's magnitude and five surface numbers, and the one rule they add: a number is read only at the settings that make it one quantity (`docs/DERIVED_SCORES_DESIGN.md`, section 12).
+"""Scores over the dipole's magnitude and five surface numbers, and the one rule they add: a number is read only at the settings that make it one quantity (`docs/DERIVED_SCORES_DESIGN.md`, section 11).
 
 What is pinned, because each was a way to ship a wrong number:
 
