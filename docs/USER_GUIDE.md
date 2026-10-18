@@ -1617,10 +1617,11 @@ raw shielding — not silently presented as shifts.
 
 **Fukui functions (Hirshfeld)** say, atom by atom, where an added or a removed electron goes: f+ (attack by a nucleophile),
 f- (attack by an electrophile), f0 (a radical) and the dual descriptor f+ - f-. One job runs three single points, the neutral
-molecule, its cation and its anion (a species that is itself an **anion** gets two, the anion and the neutral radical it becomes, and f- alone:
-its own anion would be a dianion, which no basis set binds, so f+, f0 and the dual descriptor are not computed for it and the result says
-so), all at the geometry as supplied (so the numbers are vertical; optimise first if the drawn geometry is not good enough), and the per-atom
-results (four, or f- alone) appear in the Atom Inspector and in Properties like any other. The
+molecule, its cation and its anion (a species that is itself an **anion** is run the same way, its third state being a **dianion**, which no basis
+set binds: an anion's f+, f0 and dual descriptor are therefore the least trustworthy numbers here, the result says so with the energy by which the
+dianion lies above the anion, and f- does not depend on them. The dianion is run last, so if it does not converge, or its Hirshfeld table does not sum to
+its charge, you get f- alone and the result says why), all at the geometry as supplied (so the numbers are vertical; optimise first if the drawn geometry is
+not good enough), and the per-atom results (four, or f- alone) appear in the Atom Inspector and in Properties like any other. The
 results line names the atom where each is largest, numbered from 1 as the Atom Inspector numbers them. It takes a closed-shell
 molecule (an open-shell one is refused before a job starts, since its ions have more than one spin state) and one conformer
 (**Average over all conformers** is refused for it), and Hirshfeld charges are the only scheme offered.
