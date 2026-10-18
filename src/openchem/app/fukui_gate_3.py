@@ -226,6 +226,10 @@ def judge(
         problems.append(f"the runs were made with ORCA {sorted(str(version) for version in versions)}, not {ORCA_VERSION}")
     if any(record.get("dirty") for record in runs):
         problems.append("a run was made from a src/ that differed from its commit")
+    # Input validity, not a result: acrolein has two planar minima and the published one is s-trans, so its optimized O=C-C=C dihedral must be within the second gate's limit of 180 degrees.
+    for run in published_runs:
+        if run.molecule == "acrolein" and (run.dihedral_degrees is None or abs(180.0 - abs(run.dihedral_degrees)) > second.DIHEDRAL_LIMIT_DEGREES + _SLACK):
+            problems.append(f"acrolein's optimized dihedral is {run.dihedral_degrees}, not within {second.DIHEDRAL_LIMIT_DEGREES} degrees of 180: it is not the molecule the source published")
     if len({record.get("commit") for record in runs}) > 1:
         problems.append("the runs were made from more than one version of the code")
 

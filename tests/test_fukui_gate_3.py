@@ -46,7 +46,9 @@ def _perfect(name: str) -> second.MeasuredRun:
         indices = [index for index, label in enumerate(species.labels) if label == entry.label]
         for index, value in zip(indices, sorted(entry.values) if len(entry.values) > 1 else entry.values * len(indices)):
             values[entry.attack][index] = value
-    return second.MeasuredRun(name, species.level, species.atoms, tuple(values["f+"]), tuple(values["f-"]), (), (), species.charge, 1, "6.1.1")
+    return second.MeasuredRun(
+        name, species.level, species.atoms, tuple(values["f+"]), tuple(values["f-"]), (), (), species.charge, 1, "6.1.1", dihedral_degrees=178.0 if name == "acrolein" else None
+    )
 
 
 def _published() -> list[second.MeasuredRun]:
@@ -159,6 +161,16 @@ def test_a_gate_whose_instrument_is_not_fit_is_not_evaluable_and_says_why(overri
     verdict = _judge(**overrides)
     assert verdict.outcome == "NOT EVALUABLE" and any(fragment in reason for reason in verdict.reasons)
     assert not verdict
+
+
+@pytest.mark.parametrize("dihedral, evaluable", [(180.0, True), (-150.0, True), (150.0, True), (149.9, False), (0.0, False), (None, False)])
+def test_acroleins_input_validity_is_the_second_gates_dihedral_rule(dihedral, evaluable):
+    """The published acrolein is s-trans; an optimization that found the s-cis minimum is not that molecule, and nothing is claimed either way."""
+    published = [dataclasses.replace(run, dihedral_degrees=dihedral) if run.molecule == "acrolein" else run for run in _published()]
+    verdict = _judge(published_runs=published)
+    assert (verdict.outcome != "NOT EVALUABLE") is evaluable
+    if not evaluable:
+        assert any("acrolein's optimized dihedral" in reason for reason in verdict.reasons)
 
 
 def test_runs_from_two_commits_are_not_evaluable():

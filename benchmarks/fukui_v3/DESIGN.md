@@ -1,6 +1,6 @@
 # Fukui v3: the search for other states of the cation
 
-Written 2026-10-18 and 2026-10-19, before the third check of the calculator is preregistered (`PREREGISTRATION.md`), while the calculation was being built. It records what was measured before the code,
+Written 2026-10-18, before the third check of the calculator is preregistered (`PREREGISTRATION.md`), while the calculation was being built. It records what was measured before the code,
 what the code does and why each number in it is what it is, what was considered and not done, and what is not known. The measurements it cites are in `benchmarks/fukui_gate_2/PREREGISTRATION.md` 11.4 and its artifacts.
 
 ## 1. The problem, as measured
@@ -38,7 +38,7 @@ Four molecules (ORCA's own B3LYP/6-31G* optimized geometries, or RDKit's for the
 Methane was also run (RDKit geometry): the default job, the HOMO-2 and the HOMO-3 holes reached one state and the HOMO-1 hole one 0.105 eV above it, which is not the third component of a degenerate level and shows
 that a single-determinant description of a triply degenerate cation is not what these jobs give. **Degenerate cations of more than two components are not claimed.**
 
-### The pilot (exploratory, 2026-10-19; `pilot_v3.py`, `artifacts/pilot_benzaldehyde_search_*.log`)
+### The pilot (exploratory, 2026-10-18; `pilot_v3.py`, `artifacts/pilot_benzaldehyde_search_*.log`)
 
 The question of the second gate's probe 4, asked of the code as built: benzaldehyde (ORCA B3LYP/6-31G* geometry from the seed-7 embedding), the application's own input through real ORCA at 4 cores, on that geometry (the reference), on 4
 rigid rotations and on 4 copies with every coordinate displaced by Gaussian noise of 0.001 A (the same rng stream for both columns), each read with the application's own parse. The control is the same nine runs with the search off, which is v2's input.

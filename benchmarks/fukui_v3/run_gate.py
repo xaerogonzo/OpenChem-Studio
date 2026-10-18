@@ -4,7 +4,7 @@
     python run_gate.py r           arm R: the reference run and its perturbations of every panel species
     python run_gate.py c           arm C: the exhaustive search (holes down to the HOMO-7) on every panel species' reference geometry
     python run_gate.py n           arm N: the eight species of the second gate with this calculation, against the published numbers
-    python run_gate.py reported    the reported arm: benzene and methane, and the recall of competing states under perturbation
+    python run_gate.py reported    the reported arm: benzene and methane (seen); then `report` writes reported.json: the recall of the note under perturbation, how often the default job was not on the lowest state, timings
     python run_gate.py judge       reads the records and writes verdict.json
 
 Common options: ``--out DIR`` (default `artifacts/` beside this file), ``--cores 4`` per ORCA job, ``--workers 6`` jobs at once, ``--species NAME`` to run one species.
@@ -159,7 +159,7 @@ def states_of(reading) -> list[dict]:
     return sorted(({"energy_hartree": s.energy_hartree, "charges": list(s.charges)} for s in states), key=lambda s: s["energy_hartree"])
 
 
-def fukui_run(ctx: Context, kind: str, species_name: str, variant: str, mol: Chem.Mol, charge: int, method_basis: str, *, holes: tuple[int, ...] | None = None) -> dict:
+def fukui_run(ctx: Context, kind: str, species_name: str, variant: str, mol: Chem.Mol, charge: int, method_basis: str, *, holes: tuple[int, ...] | None = None, extra: dict | None = None) -> dict:
     """One Fukui job and its record. `holes` replaces the application's holes (the exhaustive search); None is the application's own input."""
     done = ctx.completed(species_name, variant, kind)
     if done is not None:
@@ -178,7 +178,7 @@ def fukui_run(ctx: Context, kind: str, species_name: str, variant: str, mol: Che
     record = {
         "kind": kind, "species": species_name, "variant": variant, "attempt": attempt, "commit": ctx.commit, "dirty": ctx.dirty, "seconds": round(seconds, 1), "orca_exit": code,
         "input_sha256": hashlib.sha256(add_parallel_block(text, ctx.cores).encode()).hexdigest(), "method_basis": method_basis, "charge": charge,
-        "orca_version": (re.search(r"Program Version\s+(\S+)", out) or [None, None])[1],
+        "orca_version": (re.search(r"Program Version\s+(\S+)", out) or [None, None])[1], **(extra or {}),
     }
     try:
         result = provider._condensed_fukui(out, mol)
@@ -234,8 +234,24 @@ def variant_geometry(ctx: Context, species: gate.PanelSpecies, variant: str) -> 
 
 
 def arm_r(ctx: Context, only: str | None) -> None:
+    species_list = panel_species(only)
+    # Phase 1: every ORCA optimization (the reference geometry of each species and the independent ones), in parallel and each once, so that two workers never optimize one key twice.
+    keys = []
+    for species in species_list:
+        keys.append((f"{species.name}_reference", species, 7))
+        keys += [(f"{species.name}_embedding{seed}", species, seed) for seed in gate.EMBEDDING_SEEDS if species.embeddings]
+
+    def optimize(item):
+        key, species, seed = item
+        optimized(ctx, key, species.smiles, species.charge, species.method_basis, seed)
+        print(f"optimized {key}", flush=True)
+
+    with ThreadPoolExecutor(max_workers=ctx.workers) as pool:
+        list(pool.map(optimize, keys))
+
+    # Phase 2: the Fukui runs.
     tasks = []
-    for species in panel_species(only):
+    for species in species_list:
         mol = embed(species.smiles, 7)
         for variant in species.variants():
             tasks.append((species, variant, mol))
@@ -265,12 +281,9 @@ def arm_n(ctx: Context, only: str | None) -> None:
         mol = embed(species.smiles, 7)
         key = f"N_{name}"
         base = optimized(ctx, key, species.smiles, species.charge, species.method_basis, 7)
-        record = run_with_attempts(ctx, "N", name, "reference", with_coordinates(mol, base), species.charge, species.method_basis)
-        if name == "acrolein" and record["completed"]:
-            labels = list(species.labels)
-            positions = [base[labels.index(label)].tolist() for label in ("beta", "alpha", "carbonyl", "O")]
-            record["dihedral_degrees"] = second.acrolein_dihedral(labels, base.tolist())
-            ctx.append({**record, "kind": "N-dihedral", "attempt": 0})
+        # Acrolein has two planar minima and the published one is s-trans: its optimized O=C-C=C dihedral is recorded with the run, and the judge refuses it beyond the second gate's limit.
+        extra = {"dihedral_degrees": second.acrolein_dihedral(list(species.labels), base.tolist())} if name == "acrolein" else None
+        record = run_with_attempts(ctx, "N", name, "reference", with_coordinates(mol, base), species.charge, species.method_basis, extra=extra)
         print(f"N {name:14s} completed={record['completed']} {record['seconds']} s", flush=True)
 
     with ThreadPoolExecutor(max_workers=ctx.workers) as pool:
@@ -303,10 +316,7 @@ def arm_floors(ctx: Context) -> None:
 
 def judged(ctx: Context) -> dict:
     records = ctx.records()
-    runs = []
-    for record in (r for r in records if r["kind"] == "R" and r["completed"] is not None):
-        # The last attempt of each run decides: a completed one if there is one.
-        pass
+    # Of the attempts of one run the completed one decides, and otherwise the last.
     by_key: dict[tuple, dict] = {}
     for record in (r for r in records if r["kind"] == "R"):
         key = (record["species"], record["variant"])
@@ -332,6 +342,7 @@ def judged(ctx: Context) -> dict:
         published.append(second.MeasuredRun(
             name, species.level, tuple(record["symbols"]), tuple(record["f_plus"]), tuple(record["f_minus"]), tuple(record["f_zero"]), tuple(record["dual"]), species.charge, 1,
             record["orca_version"], species.method_basis, second.GRID, second.FUNCTIONS_FULL, species.charge, True, True, record["commit"], record["dirty"],
+            record.get("dihedral_degrees"),
         ))
     floors = json.loads((ctx.out / "floors.json").read_text())["floor"] if (ctx.out / "floors.json").exists() else None
     classes = {species.name: symmetry_classes(species.smiles) for species in gate.PANEL}
@@ -341,6 +352,27 @@ def judged(ctx: Context) -> dict:
         "reproducibility": [vars(row) for row in verdict.reproducibility], "completeness": [{**vars(row), "missed": list(row.missed)} for row in verdict.completeness],
         "regression": [vars(row) for row in verdict.regression], "sites": list(verdict.site_rows),
     }
+
+
+def reported_summary(ctx: Context) -> dict:
+    """The reported arm's numbers (PREREGISTRATION.md section 10), from the records: nothing here decides."""
+    records = [r for r in ctx.records() if r["kind"] == "R" and r["completed"]]
+    species_rows = []
+    for species in gate.PANEL:
+        runs = [r for r in records if r["species"] == species.name]
+        reference = next((r for r in runs if r["variant"] == "reference"), None)
+        perturbed = [r for r in runs if r["variant"] != "reference"]
+        noted = lambda record: bool([gap for gap in record["competing_ev"]]) or record["degenerate"]  # noqa: E731
+        species_rows.append({
+            "species": species.name,
+            "reference_reported_a_competing_state": bool(reference and noted(reference)),
+            "runs_with_a_note": sum(1 for r in perturbed if noted(r)), "perturbed_runs": len(perturbed),
+            "runs_whose_default_state_was_not_the_lowest": sum(1 for r in runs if (r["default_above_lowest_ev"] or 0.0) > 0.01), "runs": len(runs),
+            "largest_default_above_lowest_ev": max((r["default_above_lowest_ev"] or 0.0 for r in runs), default=None),
+            "median_seconds": float(np.median([r["seconds"] for r in runs])) if runs else None,
+        })
+    degenerate = [r for r in ctx.records() if r["kind"] == "reported" and r["completed"]]
+    return {"species": species_rows, "degenerate_and_seen": [{k: r[k] for k in ("species", "f_minus", "states_found", "degenerate", "cation_note")} for r in degenerate]}
 
 
 def arm_reported(ctx: Context, only: str | None) -> None:
@@ -355,7 +387,7 @@ def arm_reported(ctx: Context, only: str | None) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("command", choices=["floors", "r", "c", "n", "reported", "judge"])
+    parser.add_argument("command", choices=["floors", "r", "c", "n", "reported", "report", "judge"])
     parser.add_argument("--out", type=Path, default=HERE / "artifacts")
     parser.add_argument("--cores", type=int, default=4)
     parser.add_argument("--workers", type=int, default=6)
@@ -373,6 +405,9 @@ def main() -> None:
         arm_n(ctx, args.species)
     elif args.command == "reported":
         arm_reported(ctx, args.species)
+    elif args.command == "report":
+        (ctx.out / "reported.json").write_text(json.dumps(reported_summary(ctx), indent=1))
+        print(json.dumps(reported_summary(ctx), indent=1))
     else:
         verdict = judged(ctx)
         (ctx.out / "verdict.json").write_text(json.dumps(verdict, indent=1, default=str))
