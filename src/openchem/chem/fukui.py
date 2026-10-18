@@ -270,7 +270,7 @@ SPIN_CONTAMINATION_WARNING = 0.825
 NOT_VALIDATED_SENTENCE = (
     "Not validated: this calculation did not pass its preregistered check against published Hirshfeld values "
     "(52 of 54 numbers were within 0.02 and all 13 documented sites were reproduced; carbon monoxide's f- at "
-    "HF/6-31G** was 0.0214 off, and that cation is spin-contaminated). The calculator's help has the details."
+    "HF/6-31G** was 0.0214 off, and that cation is spin-contaminated, which may be why). The calculator's help has the details."
 )
 
 
