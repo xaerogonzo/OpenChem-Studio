@@ -16,7 +16,7 @@ linked from each section says why it was built the way it was. Where a claim her
   already made, and starts nothing by itself.
 - **Derived scores:** a formula of your own over numbers the application already computes, shown as a column you can sort in
   the project table. This is the biggest piece, and the one that needs the most explaining: see the next section.
-- **Scores over the shape descriptors and eight of Geometry Analysis's sizes** (2026-10-17): a score may read them from the conformer every calculation already gets.
+- **Scores over the shape descriptors, eight of Geometry Analysis's sizes and HOMA's two extremes** (2026-10-17): a score may read them from the conformer every calculation already gets (HOMA only from an ORCA geometry).
 
 ## Derived scores: what they are for
 
@@ -70,8 +70,13 @@ What was built, in the order a person meets it:
   from the same conformer. A score reads only a number measured on the stored conformer as it is, so a Geometry Analysis run that
   generated its own conformer, relaxed a copy or scaled its radii gives no number and says which setting. A salt or a hydrate has
   no size (the fragments are placed side by side at an arbitrary offset), and the score says to use the parent structure. The
-  smallest radius from the centroid and the three force-field energies stay out, and so do the ring-aromaticity indices and the
-  torsions: the reasons are measured in the design record.
+  smallest radius from the centroid and the three force-field energies stay out: the reasons are measured in the design record.
+- **Scores over the highest and lowest ring HOMA (2026-10-17).** The Aromaticity (HOMA) report now ends with two lines: the highest
+  and the lowest HOMA of any ring, each one ring's own value and never a sum or a mean. A score reads them only from a conformer
+  ORCA optimised, because HOMA reads bond lengths and a force-field conformer's are the force field's own (naphthalene's rings
+  read 0.94 on one and 0.66 to 0.77 on an ORCA geometry, depending on the level). The evidence names the ORCA level, which is
+  also shown now for the shape descriptors and the sizes, and a score on a force-field conformer says to optimise the molecule in
+  ORCA and run HOMA again. Bird's index and the torsions stay out.
 
 Read more: [`DERIVED_SCORES_DESIGN.md`](DERIVED_SCORES_DESIGN.md) (pull requests #326 to #355).
 
@@ -146,7 +151,7 @@ Read more: the **Pairing two molecules** topic of the guide; [`RECIPES_DESIGN.md
 
 - **The live provider run** for the assistant (needs an API key).
 - **The assistant starting an ORCA or Vina job.** It previews only.
-- **Scores over the other 3D numbers** (force-field energies, the smallest radius from the centroid, ring-aromaticity indices, torsions): not offered. The ten shape descriptors and eight of Geometry Analysis's sizes are (above).
+- **Scores over the other 3D numbers** (force-field energies, the smallest radius from the centroid, Bird's index, per-ring HOMA values, torsions): not offered. The ten shape descriptors, eight of Geometry Analysis's sizes and HOMA's two extremes are (above).
 - **Reactivity calculators from ORCA** (Fukui functions, proton affinity, bond dissociation energy) and **the synthesis
   helper:** not started. The first would each sit behind a preregistered gate and may be recorded as "measured, not shipped".
 - **Calculators read for scores and not offered**, each for a measured reason (a duplicate of an always-on property, a label that

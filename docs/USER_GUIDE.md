@@ -2064,7 +2064,7 @@ on cages such as cubane), so a formula can read one of each pair and not both.
 From the BBB Score Descriptors calculator it offers the aromatic ring count (RDKit's count: a score over it has no number after you compute the calculator on the major microspecies, and says so). That calculator's other numbers
 are not offered: two are always-on properties already, and the rest have a unit a score cannot be written in or come from an optional tool.
 From the always-on properties it also offers the ten shape descriptors: the radius of gyration, the plane of best fit, the asphericity, the spherocity index, the two normalised moment ratios (NPR1 and NPR2), the three principal moments of inertia
-and the inertial shape factor. These are measured on a conformer, and a score reads them from the one every calculation uses: the newest ORCA-optimized geometry, otherwise the lowest force-field energy. The score's evidence names that conformer, and
+and the inertial shape factor. These are measured on a conformer, and a score reads them from the one every calculation uses: the newest ORCA-optimized geometry, otherwise the lowest force-field energy. The score's evidence names that conformer (and the level of theory of an ORCA one), and
 the project table's hover names the one its run measured. A molecule with no conformer has no number for them, and the score says it needs one (generate conformers first). When that conformer changes, because you generated again or an ORCA
 optimization landed, the old number is refused as "calculated for an earlier geometry of this molecule" until the shape descriptors have been measured again, which happens by itself, and the score then follows the new geometry. A principal moment
 is in amu·Å² and the inertial shape factor in 1/(amu·Å²), so a formula cannot add a moment to a ratio, and nothing is converted. A project saved by an earlier version had those four without a unit: they are measured again when you open it.
@@ -2074,8 +2074,13 @@ used another geometry (the lowest of several conformers it generated, or a copy 
 with its defaults again. A structure of **more than one fragment** (a salt, a hydrate) has no size either, because Geometry Analysis measures the whole structure and the fragments are placed side by side at an arbitrary offset: the score says to use the
 parent structure. (The always-on shape descriptors need no such rule: they are computed on the parent compound already, and refused when there is none.)
 
-**What a score does not read.** Geometry Analysis's smallest radius from the centroid (it is zero when the centroid is on an atom) and its three force-field energies (an absolute force-field energy has no meaning between molecules), the
-ring-aromaticity indices and the torsion table, quantum-chemistry results, an average over conformers, and a score that names one particular conformer. The decisions are recorded in `docs/DERIVED_SCORES_DESIGN.md`.
+From **Aromaticity (HOMA)** it offers two numbers: the highest and the lowest HOMA of any ring of the molecule. Each is one ring's own value, never a sum or a mean (they are equal for a molecule with one ring, and a molecule
+with a ring HOMA has no parameters for has neither). HOMA reads bond lengths, so a score reads these two **only from a conformer ORCA optimised**, and its evidence names the level of theory (`ORCA-optimised at B3LYP def2-SVP`): a force-field
+conformer's bond lengths are the force field's own (naphthalene's rings read 0.94 on one, and 0.66, 0.74 or 0.77 on an ORCA geometry depending on the level), so a score on one says to optimise the molecule in ORCA and run HOMA again. HOMA is not
+recomputed by itself, so after an ORCA geometry lands, run the calculator again: until then the old number is refused as measured for an earlier geometry. Any ORCA level is accepted and named, and a minimal basis gives the lowest numbers.
+
+**What a score does not read.** Geometry Analysis's smallest radius from the centroid (it is zero when the centroid is on an atom) and its three force-field energies (an absolute force-field energy has no meaning between molecules), Bird's
+index, the per-ring HOMA values and the torsion table, quantum-chemistry results, an average over conformers, and a score that names one particular conformer. The decisions are recorded in `docs/DERIVED_SCORES_DESIGN.md`.
 
 **The units are checked, never converted.** Adding an area to a mass is refused, and so is declaring a unit the formula
 does not work out to. A bare number in the formula takes the unit of what it is added to or compared with, so

@@ -1,0 +1,47 @@
+[
+  {"do": "smiles", "smiles": "c1ccc2[nH]ccc2c1", "name": "Indole", "after_ms": 1500},
+  {"do": "select", "molecule": -1, "after_ms": 6000},
+
+  {"do": "score_define", "label": "Ring ceiling", "formula": "h", "inputs": [["h", "calculator:homa_aromaticity:Highest HOMA of any ring"]], "result_unit": "1",
+   "tag": "a-score-over-the-highest-ring-value", "after_ms": 1200, "expect": {"made": true}},
+  {"do": "score_define", "label": "Ring floor", "formula": "l", "inputs": [["l", "calculator:homa_aromaticity:Lowest HOMA of any ring"]], "result_unit": "1",
+   "tag": "a-score-over-the-lowest-ring-value", "after_ms": 1200, "expect": {"made": true}},
+  {"do": "score_define", "label": "Ring gap", "formula": "h - l", "inputs": [["h", "calculator:homa_aromaticity:Highest HOMA of any ring"], ["l", "calculator:homa_aromaticity:Lowest HOMA of any ring"]], "result_unit": "1",
+   "tag": "and-one-that-combines-them", "after_ms": 1200, "expect": {"made": true}},
+
+  {"do": "conformers", "count": 3, "after_ms": 20000},
+  {"do": "expect_conformers", "min": 1},
+  {"do": "score_results", "focus": true, "which": "Ring ceiling", "tag": "not-calculated-and-it-says-what-it-needs", "after_ms": 3000,
+   "expect": {"entries": 3, "has_value": false, "reason_contains": ["has not been calculated on this molecule's conformer yet", "a conformer that ORCA optimised"]}},
+
+  {"do": "calculator", "id": "homa_aromaticity", "reveal": false, "after_ms": 4000},
+  {"do": "score_results", "focus": true, "which": "Ring ceiling", "tag": "a-force-field-conformer-gives-no-number", "after_ms": 1500,
+   "expect": {"entries": 3, "has_value": false, "reason_contains": ["ORCA did not optimise", "force field's own", "optimise the molecule in ORCA, then run it again"]}},
+  {"do": "shot", "path": "artifacts/visual/score_homa_force_field.png", "widget": "results_reader", "after_ms": 500},
+
+  {"do": "qc_run", "calc_type": "Geometry Optimization", "method": "HF STO-3G"},
+  {"do": "qc_wait", "timeout_ms": 900000},
+  {"do": "conformer_report", "tag": "orca-geometry-landed-in-its-slot",
+   "expect": {"orca_conformers": 1, "canonical_method": "orca_opt", "viewer_on_canonical": true}},
+  {"do": "score_results", "focus": true, "which": "Ring ceiling", "tag": "the-old-result-is-of-an-earlier-geometry", "after_ms": 4000,
+   "expect": {"entries": 3, "has_value": false, "reason_contains": ["calculated for an earlier geometry of this molecule"]}},
+
+  {"do": "calculator", "id": "homa_aromaticity", "reveal": false, "after_ms": 4000},
+  {"do": "score_results", "focus": true, "which": "Ring ceiling", "remember": "ceiling", "tag": "on-the-orca-geometry-it-has-a-number-and-names-the-level", "after_ms": 1500,
+   "expect": {"entries": 3, "has_value": true, "value_between": [0.0, 1.0], "stored_as_results": 0,
+              "evidence_contains": ["computed on conformer 1 (id ", "ORCA-optimised at HF STO-3G"], "evidence_excludes": ["MMFF94/UFF energy", "computed on the drawing"]}},
+  {"do": "shot", "path": "artifacts/visual/score_homa_orca.png", "widget": "results_reader", "after_ms": 500},
+  {"do": "score_results", "focus": true, "which": "Ring floor", "remember": "floor", "tag": "the-lowest-ring-too", "after_ms": 1500,
+   "expect": {"entries": 3, "has_value": true, "value_between": [-1.0, 1.0], "evidence_contains": ["ORCA-optimised at HF STO-3G"]}},
+  {"do": "score_results", "focus": true, "which": "Ring gap", "tag": "and-the-two-combine-to-a-positive-gap", "after_ms": 1500,
+   "expect": {"entries": 3, "has_value": true, "value_between": [0.01, 2.0]}},
+
+  {"do": "menu", "text": "Undo", "prefix": true, "after_ms": 6000},
+  {"do": "conformer_report", "tag": "undo-puts-the-force-field-conformer-back", "expect": {"orca_conformers": 0}},
+  {"do": "score_results", "focus": true, "which": "Ring ceiling", "tag": "and-the-number-goes-with-it", "after_ms": 2500,
+   "expect": {"entries": 3, "has_value": false, "reason_contains": ["ORCA did not optimise"]}},
+  {"do": "shot", "path": "artifacts/visual/score_homa_undone.png", "widget": "results_reader", "after_ms": 500},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

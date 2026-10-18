@@ -302,9 +302,9 @@ def test_the_calculator_runs_through_the_registry():
     )
 
     assert result.cache_state is CacheState.COMPLETED
-    assert len(result.facts) == 1
-    assert result.facts[0].label == "6-membered C5N"
-    assert len(result.facts[0].display_value.split(".")[1]) == 4
+    # One ring's own value, then the two extremes a derived score reads (`tests/test_score_homa.py`): equal for one ring.
+    assert [fact.label for fact in result.facts] == ["6-membered C5N", "Highest HOMA of any ring", "Lowest HOMA of any ring"]
+    assert all(len(fact.display_value.split(".")[1]) == 4 for fact in result.facts)
 
 
 def test_the_calculator_declines_a_total():

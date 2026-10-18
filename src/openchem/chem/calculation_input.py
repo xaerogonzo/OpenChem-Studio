@@ -34,6 +34,8 @@ from openchem.domain.conformer import (
     OPTIMIZED_FROM_SLOT,
     QUANTUM_OPTIMIZED_METHODS,
     ConformerModel,
+    is_quantum_optimized,
+    quantum_level_of_theory,
 )
 from openchem.domain.molecule import MoleculeModel
 
@@ -425,6 +427,12 @@ INPUT_PREFIX = "input_"
 #: (`score_value.FRAGMENTS_KEY`, which cannot import this layer), and a test holds the two together.
 FRAGMENTS_KEY = f"{INPUT_PREFIX}fragments"
 
+#: The key that says what made the conformer a result was computed on (`ConformerModel.method`: `mmff94`, `orca_opt`...). The domain reads it by this literal (`score_value.CONFORMER_METHOD_KEY`), and a test holds the two together.
+CONFORMER_METHOD_KEY = f"{INPUT_PREFIX}conformer_method"
+
+#: The key that names the level of theory of a quantum-optimized conformer (`"B3LYP def2-SVP"`); absent when it was not recorded. Read by the domain as `score_value.LEVEL_OF_THEORY_KEY`.
+LEVEL_OF_THEORY_KEY = f"{INPUT_PREFIX}level_of_theory"
+
 
 #: What a recorded parameter value may be. **JSON-safe scalars only**, and
 #: that is a persistence constraint rather than fastidiousness:
@@ -523,6 +531,13 @@ def geometry_provenance(model: MoleculeModel, calculation_input: str) -> dict[st
             conformer.provenance.parameters.get("force_field") if conformer.provenance else None
         ),
     }
+    # What made the geometry, because a number that reads bond lengths means something different on a force-field conformer (the force field's own lengths) than on a measured one: the level of
+    # theory is named for a quantum-optimized conformer, and left out when it was not recorded (a project saved before the run's method was written into the conformer).
+    stamp[CONFORMER_METHOD_KEY] = conformer.method
+    if is_quantum_optimized(conformer):
+        level = quantum_level_of_theory(conformer)
+        if level:
+            stamp[LEVEL_OF_THEORY_KEY] = level
     fragments = fragment_count(conformer.molblock)
     if fragments is not None:
         stamp[FRAGMENTS_KEY] = fragments
