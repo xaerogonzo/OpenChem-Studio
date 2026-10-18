@@ -4567,6 +4567,13 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "sodium chloride 9-[(carbamoyloxy)methyl]-7-methoxy-6-methyl-2-(methylazaniumyl)-5,8-dioxo-2,3,5,8-tetrahydro-1H-pyrrolo[1,2-a]indol-1-olate",
      "sodium chloride [7-methoxy-6-methyl-2-(methylazaniumyl)-1-oxido-5,8-dioxo-2,3,5,8-tetrahydro-1H-pyrrolo[1,2-a]indol-9-yl]methanecarbamate",
      "a WRONG MOLECULE: a zwitterion with a carved alkoxide beside NaCl took the STANDALONE form in the salt path, and its carbamate was run into the alcohol (`methanecarbamate`)"),
+    # Naming round 68 (D-315, D-316).
+    ("D-315", "CC(=O)[CH-]C(=O)C(=O)[O-]", "1-oxido-1-oxopentan-3-id-2,4-dione",
+     "[REFUSED: no name found that keeps every negative charge (the carbanion is in no word of the name)]",
+     "a chain carbanion beside a carboxylate was dropped from the name; it takes the -id- infix a ring carbanion took in round 67"),
+    ("D-316", "Oc1ccccc1C=[NH+]c1ccccc1", "[(2-hydroxyphenyl)methylidene](phenyl)azanium",
+     "2-[(phenylazaniumylidene)methyl]phenol",
+     "a cation is senior to an alcohol (P-41), but an acyclic iminium, hydrazinium or nitrilium was a PREFIX and the name ended in -ol; beside a counter-ion OPSIN read the anion word as an ESTER of the phenol (27 salts)"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",

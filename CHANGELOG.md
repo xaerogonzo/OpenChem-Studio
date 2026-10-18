@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: the cation is the parent, and a chain carbanion beside another anion
+- Round 68. An acyclic iminium, hydrazinium, nitrilium or phosphonium that is no part of the suffix group outranks an alcohol, acid or amide (P-41): `[(2-hydroxyphenyl)methylidene](phenyl)azanium`, not `2-[(phenylazaniumylidene)methyl]phenol`, whose `-ol` made OPSIN read a following counter-ion word as an ester (D-316; the salts that read back rose from 14,736 to 14,768 of 14,881). A chain carbanion beside a carboxylate takes the `-id-` infix a ring carbanion took in round 67 (`1-oxido-1-oxopentan-3-id-2,4-dione`, D-315).
+
 ### Naming: the open items with a cause
 - Round 67 took the open items of rounds 60 to 66 that had one. A neutral dithiocarbonimidate such as `CCSC(S)=NC` carried a visible `NAMING ERROR` inside its name; the N-methyl of the demoted imido is now cited (`{[(methylimino)(sulfanyl)methyl]sulfanyl}ethane`, D-309). Two cations in an ester are named by the substitutive route instead of refused (D-310, 13 ions per dication mode). An ammonium beside a nitro group and a hydroxyl is the aminium parent, so a salt's anion word no longer reads as an ester of the alcohol (D-311). A ring carbanion beside another anion takes the `-id-` infix (D-312) and a primed `-2'-id-` is read as an anion word (D-313): 14 dianions, betaines and zwitterions named. A zwitterion with an alkoxide and a carbamate beside NaCl was a wrong molecule (D-314). Dianions 277 of 280 named (was 268), dications and quat-dications 1926 of 1930 (was 1913), salts 14,736 of 14,881 (was 14,697).
 
