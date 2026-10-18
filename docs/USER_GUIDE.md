@@ -1627,9 +1627,11 @@ molecule (an open-shell one is refused before a job starts, since its ions have 
 values by 0.0014 on one quantity (52 of 54 numbers and all 13 documented reactive sites were reproduced), so it is marked
 experimental and kept out of the Properties launcher's default list (Settings > "Offer calculators that are hidden by default"
 brings it back; the Quantum Chemistry panel offers it either way). Read f- before f+: the anion of a neutral molecule is usually not
-bound at an ordinary basis set (the result gives the energy by which it lies above the neutral), f+ differed far more than f- from
-published values at a basis set with diffuse functions, and a state whose Hirshfeld charges do not sum to its charge is refused, which
-happened to half the jobs at 6-311+G**. An ion whose spin contamination is high (S squared more than 10% above 0.75) is named in
+bound at an ordinary basis set (the result gives the energy by which it lies above the neutral). **Do not add diffuse functions to improve f+**: with
+them the anion has more than one SCF solution and f+ was not reproducible in the cases measured (it changed by up to 0.31 between solutions, and
+one molecule embedded two ways gave two different anions), and a state whose Hirshfeld charges do not sum to its charge is refused, which happened to
+half the jobs at 6-311+G** (ORCA's default integration grid missing part of a diffuse electron). Without diffuse functions, at 6-31G**, every job
+reproduced across three starting geometries to 0.0004. An ion whose spin contamination is high (S squared more than 10% above 0.75) is named in
 the result. Do not take the largest value as where a reaction goes; the calculator's help has the measurements.
 
 NMR results arrive with several views: a **1D signals** tab (grouped

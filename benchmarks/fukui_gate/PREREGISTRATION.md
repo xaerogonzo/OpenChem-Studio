@@ -230,25 +230,25 @@ The sources' ions were **single-annihilated** UHF (`olah2002`); ORCA's UHF is no
 The gate's number (0.6717) is the UHF one, to the digit. The unrestricted cation of CO at HF is heavily spin-contaminated, and the published value lies between the contaminated
 and the uncontaminated ones, as a partially annihilated density would. That is a measured cause for the one failing number, and it is a **difference of method**, not a defect in the arithmetic.
 Whether the other HF cations are contaminated was not measured: CN- at HF has the next largest difference (0.0101), and its cation is the CN radical, a doublet. A new preregistration may
-build on this; this one does not.
+build on this; this one does not. *(Qualified in 11.6.3: "a measured cause" overstated it. Spin contamination is a candidate for this one number and not an established cause.)*
 
 ### 11.4 The reported arm, 2026-10-18: measured twice, decides nothing
 
 `benchmarks/visual/fukui_gate_reported.json`, real ORCA 6.1.1, gas phase. Every row is marked `decided: false` and the verdict never reads them (section 10); the tolerance of 0.02 is shown beside the rows so
-they can be read, not to judge them. 46 rows from 7 species at two diffuse levels plus formaldehyde at the application's default level (`artifacts/reported.json`, `artifacts/reported_records.json`).
+they can be read, not to judge them. 50 rows (*corrected, 11.6.1: 46 as first written*) from 7 species at two diffuse levels plus formaldehyde at the application's default level (`artifacts/reported.json`, `artifacts/reported_records.json`).
 
 **The arm was run twice, and the two runs agree to every stored digit.** The first run (04:30 to 04:45) ended with the drive's own `VERDICT FAIL`, and not for the numbers: seven of its 14 diffuse-level jobs
 were *refused by the application* (below), the refusal is logged as an error, and the script had not declared those errors as expected. The script (`make_scripts.py`, the reported arm only) now declares
 `state's charges sum to` as expected, with a comment saying why, and the arm was run again from scratch (04:47 to 05:01): `VERDICT PASS` (18 assertions, 0 unexpected app errors, 0 driver failures;
-`artifacts/reported.drive_report.json`). The largest difference between the two runs' measured values is **0.0**, both refuse the same seven jobs for the same sums, and both give 31 of 46 rows within 0.02.
+`artifacts/reported.drive_report.json`). The largest difference between the two runs' measured values is **0.0**, both refuse the same seven jobs for the same sums, and both give the same rows within 0.02 (31 of 46 as first written, 37 of 50 as corrected in 11.6.1).
 The first run's drive report is kept as `artifacts/reported.first_run.drive_report.json`. Nothing about the decided gate (sections 7 and 11.2) changes.
 
 **Rows within 0.02, by level and quantity:**
 
 | Level | f+ | f- | Notes |
 |---|---|---|---|
-| `B3LYP/6-311+G**` (Olah) | 2 of 9 (median \|diff\| 0.119, largest 0.327) | 8 of 9 (median 0.004, largest 0.037) | 4 of 7 species ran |
-| `HF/6-311+G**` (Olah) | 2 of 6 (median 0.202, largest 0.278) | 5 of 6 (median 0.010, largest 0.061) | 3 of 7 species ran |
+| `B3LYP/6-311+G**` (Olah) | 4 of 10 (median difference 0.096, largest 0.327) | 10 of 10 (median 0.004, largest 0.008) | 4 of 7 species ran (*corrected, 11.6.1*) |
+| `HF/6-311+G**` (Olah) | 2 of 7 (median 0.197, largest 0.278) | 7 of 7 (median 0.007, largest 0.012) | 3 of 7 species ran (*corrected, 11.6.1*) |
 | `B3LYP/def2-SVP`, formaldehyde (Olah B3LYP/6-31G**, Thanikaivelan Table 5, Bultinck Table I) | 8 of 8 (median 0.007, largest 0.012) | 6 of 8 (median 0.005, largest 0.056) | the application's default level |
 
 **Seven of the 14 diffuse-level jobs were refused, all in the anion state**, by the rule that a state's Hirshfeld charges must sum to its charge to 0.01 (`chem/fukui.py`). The refusal is the application doing
@@ -269,10 +269,10 @@ H2CO, acetone and CN- ran at both levels, and CNO- at `B3LYP/6-311+G**`. The sum
 **What this shows, and what it does not.**
 
 * With diffuse functions, **f+ is the quantity that departs from the published values** (acetone's f+ at `HF/6-311+G**` is 0.245 on carbon against 0.037 published, CN-'s at `B3LYP/6-311+G**` is 0.878 on carbon against 0.636),
-  and f- stays near them except in acetone (-0.037 and -0.061 on the carbonyl carbon at the two levels). This is the other side of what the exploration measured (`exploration.md`: Hirshfeld's own f+ moved by at most 0.023 per atom between
+  and f- stays near them in every row (*corrected, 11.6.1: first written "except in acetone", which was the comparison error*; all 17 rows are within 0.012). This is the other side of what the exploration measured (`exploration.md`: Hirshfeld's own f+ moved by at most 0.023 per atom between
   def2-SVP and def2-SVPD on three molecules), and it **retires a sentence this work had been carrying, unreleased**: the unbound-anion caveat ended "Adding diffuse functions is the check", and the explainer said to check f+ with a basis set
   that has them. Both are replaced; diffuse functions are not a cure, and with them seven of the 14 jobs, covering four of the seven species, are refused by the rule below.
-* The cause of the disagreement was **not diagnosed**. The unbound anion's extra electron sits in the diffuse functions, far from the nuclei, and a Hirshfeld integral on a grid can miss it; the published program, its geometry
+* The cause of the disagreement was **not diagnosed here** (11.5 and 11.6 test the integration grid, spin, the SCF solution and the starting embedding afterwards). The unbound anion's extra electron sits in the diffuse functions, far from the nuclei, and a Hirshfeld integral on a grid can miss it; the published program, its geometry
   (the application runs the ions at the neutral geometry ORCA optimized at def2-SVP; whether a published table used another is not known here) and the spin treatment of section 11.3 are all candidates. None was tested. A cause can be put to the test by a
   new preregistration; this section only records the measurement.
 * The refusal threshold of 0.01 was fixed before any job ran (`chem/fukui.py`, section 7) and is **not changed here**: loosening it after seeing seven refusals would choose the threshold by its result. A rule loosened to 0.02 would admit five of the seven, and the values it admitted would need the same
@@ -301,3 +301,86 @@ not close it there. That makes part of the refusals a limitation of ORCA's defau
 that the other six refused jobs behave as CO2 does (one molecule); or what the neutral and the cation states' own shortfalls are. The application does **not** use a finer grid. A different numerical setting is a different calculation from
 the one that was gated, so whether it should become the default, and at which setting, is for a new preregistration and this probe is not one. Two earlier spellings of the keyword (`Grid7 NoFinalGrid`, and `IntAcc 6` on the simple input
 line) were rejected by ORCA as unrecognized input, produced no output, and say nothing.
+
+### 11.6 After 11.5: a correction to 11.4, and four measurements, none of which is the gate
+
+Standalone ORCA 6.1.1 in fresh directories (or saved records re-read), after the outcome, deciding nothing, and changing neither the calculation nor the verdict. Scripts and summaries: `grid_sweep.py`,
+`rohf_cation_sweep.py`, `anion_guess_probe.py`, `seed_sweep.py` and their JSON in `artifacts/`. Each species is ORCA-optimized at its own level from an RDKit embedding and then given the application's own
+three-job Fukui input, as the gate's blocks do.
+
+#### 11.6.1 A correction to 11.4 (an error of mine, found by reading the per-atom values of the acetone runs)
+
+`MeasuredRun.of_element` matched the element symbol. Acetone has three carbons and the published table two labels for them (the carbonyl carbon, "C", and the two methyl carbons, "Cm"), so the carbonyl row was compared with
+whichever of the three carbons was farthest from the published value, usually a methyl carbon, and the "Cm" rows were compared with nothing. Effect on the reported arm: three rows change (acetone C: B3LYP f+ 0.1063 to 0.0293,
+B3LYP f- 0.0811 to 0.1152, HF f- 0.0641 to 0.1216, each now within 0.02) and four are added (Cm), so the arm has **50 rows, 37 within 0.02** (first written: 31 of 46). **The decided gate is unaffected**: no acetone number is
+decided (section 7), every decided element has one atom or equivalent atoms, and `judge_records` on the committed `records.json` returns a verdict **identical** to the committed `verdict.json` (FAIL, 54 rows, 13 site rows).
+Fix: `Species.labels` and `MeasuredRun.labels()`; five new tests, four mutants killed, a test that every published number names atoms its species has (the "Cm" rows had been skipped without a word). The reported artifact was regenerated from the
+saved `reported_records.json`; no ORCA job was run again. What 11.4 got wrong is marked where it stands. In short: at the diffuse levels **f- agrees with the published value in all 17 rows (largest difference 0.012)**; f+ does not.
+
+#### 11.6.2 The integration grid, for all seven species (`grid_sweep.py`)
+
+Each species at the four levels of the published table, the three-job input at ORCA's default grid and with `%method IntAcc 6.0` in every job's header. The charge-sum rule is not applied here, so a state the application
+would refuse is still read; the comparison with the published numbers is `fukui_gate.compare` with the corrected labels, undecided.
+
+* **At the two 6-31G** levels the gate decided on, the finer grid changes no value**: the largest change of any atom's f+ or f- is 0.0000 on all 14 jobs, and no state is short of its charge. The decided numbers do not depend on the grid.
+* **At 6-311+G** the grid is the whole of the refusals.** The anion's charge sum was short by up to 0.0226 at the default grid and by 0.0050 or less on the finer one for all 14 jobs; no neutral or cation state was off by more than 0.0002 at either.
+  The finer grid moved a species' largest f by 0.0002 to 0.0248.
+
+  | Level | CO | CO2 | H2CO | acetone | CN- | NCO- | CNO- |
+  |---|---|---|---|---|---|---|---|
+  | `B3LYP/6-311+G**`, anion short by, default grid | 0.0142 | 0.0197 | 0.0061 | -0.0004 | -0.0009 | 0.0100 | 0.0179 |
+  | on the finer grid | 0.0045 | 0.0028 | 0.0019 | 0.0006 | -0.0012 | -0.0009 | 0.0022 |
+  | `HF/6-311+G**`, default grid | 0.0164 | 0.0226 | 0.0062 | 0.0003 | -0.0031 | 0.0171 | 0.0141 |
+  | on the finer grid | 0.0050 | 0.0028 | 0.0019 | 0.0001 | -0.0045 | 0.0012 | 0.0013 |
+
+  (The application's own sums for the seven refused jobs are in 11.4; CO2 at B3LYP was 0.073 short there and 0.0197 here, because its anion is a different SCF solution: 11.6.4.)
+* **It does not bring f+ to the published values.** At 6-311+G** f+ is within 0.02 for 5 of 17 rows at the default grid and 4 of 17 on the finer one at B3LYP, and 3 of 17 and 3 of 17 at HF; f- is within for 17 and 17 of 17 at B3LYP and
+  15 and 15 of 17 at HF (CO's, 0.0205 from the published value). The refusals are the grid. The f+ disagreement is something else.
+
+#### 11.6.3 Spin (`rohf_cation_sweep.py`)
+
+S squared of every cation and anion of the 28 species and levels, read from the sweep's outputs: **every B3LYP ion is at most 0.78** (CO2's cation) and **no anion is above 0.77**. At HF the cations of CO (0.967), CN- (1.121), CO2 (0.934) and NCO- (0.885) are
+contaminated and those of H2CO (0.784), acetone (0.773) and CNO- (0.788) are not; at 6-311+G** each is within 0.02 of its 6-31G** value. The cation of CN- is the most contaminated of all and its f- is 0.0101 from the published value; CO's is 0.0214.
+With the cation as a restricted open-shell (ROHF) doublet and the anion unchanged, at HF/6-31G** against the decided numbers: CO's f- goes from 0.0214 to **0.0171** from the published value (inside 0.02), CN-'s from 0.0101 to 0.0050,
+CO2's from 0.0060 to 0.0066, NCO-'s stays 0.0050, H2CO's 0.0042. **The ROHF cation of CNO- is another electronic state** (f- on oxygen 1.331, a value above 1), so 28 of the 31 decided numbers are within 0.02 where the unrestricted ones give 29.
+What stands: spin contamination is **a candidate** for CO's miss, because its ROHF value moves toward the published one and so does CN-'s, and it is **not an established cause**, because CO2 and NCO- are contaminated and indifferent, and ROHF
+is not a drop-in replacement (it lands on another state for CNO-). The sentence of 11.3 that called it a measured cause is qualified there.
+
+#### 11.6.4 The anion's SCF solution (`anion_guess_probe.py`)
+
+The same anion, standalone, at the sweep's geometry and with the application's keywords, run from five starts: ORCA's default guess, Hueckel, PAtom, HCore and the UHF stability analysis with restart. Inside the application's compound input ORCA does not use the default
+guess for the cation and anion: it reads **the cation's orbitals as the anion's guess** ("INITIAL GUESS: MOREAD" from `job_job2.gbw`), so the anion's solution there depends on the path.
+
+* **At the two 6-31G** levels the default solution is the lowest found in all 14 jobs**: no start found anything lower than the default by more than 0.005 eV (the largest was 0.004 eV), and the starts that reached its energy agree on every heavy atom's f+ to 0.0004.
+  (HCore sometimes ends in a state higher by up to 7.3 eV, which is not a solution anyone wants; the stability analysis stopped with an error for CN- at both levels and NCO- at HF.)
+* **At 6-311+G** there is more than one solution.** Of the six cases probed, three had a solution **lower** than the default one:
+
+  | Case | default solution: f+ (heavy atoms) | lowest found | f+ at the lowest | published f+ (Olah) |
+  |---|---|---|---|---|
+  | acetone `HF/6-311+G**` | carbonyl C 0.245, methyl C 0.054, O 0.251 | HCore, **1.013 eV lower** | carbonyl C 0.032, methyl C 0.103, O 0.058 | 0.037, 0.104, 0.055 |
+  | CN- `HF/6-311+G**` | C 0.872, N 0.128 | Hueckel, HCore, stability, 0.681 eV lower | C 0.592, N 0.411 | C 0.867, N 0.133 |
+  | CN- `B3LYP/6-311+G**` | C 0.878, N 0.122 | all four others, 0.615 eV lower | C 0.573, N 0.431 | C 0.636, N 0.364 |
+  | H2CO `B3LYP/6-311+G**` | C 0.438, O 0.220 | stability, 0.017 eV lower | C 0.428, O 0.194 | C 0.428, O 0.339 |
+  | acetone `B3LYP/6-311+G**` | carbonyl C 0.030, methyl C 0.106, O 0.057 | none | | 0.047, 0.103, 0.060 |
+  | CNO- `B3LYP/6-311+G**` | C 0.632, N 0.156, O 0.194 | none lower (stability job failed) | | 0.520, 0.139, 0.342 |
+
+  f+ differs by up to **0.31** between the solutions of one anion (CN- at B3LYP). **The published values do not pick a solution**: acetone's published f+ at HF is the lower one (within 0.005 on all three atoms) and CN-'s at HF is the higher one (within 0.005).
+  A published f+ at a basis set with diffuse functions is the value of whichever solution the published program reached, which is not a single well-defined target.
+
+#### 11.6.5 Reproducibility across starting embeddings (`seed_sweep.py`)
+
+Every species at the four levels, three RDKit embedding seeds (7, 11, 23), each ORCA-optimized and given the three-job input at the default grid: the largest difference between the seeds in any heavy atom's f+ and f-. (Hydrogens are left out: the equivalent
+hydrogens of a methyl group are numbered by position, which differs between embeddings, and acetone's all-atom spread of 0.02 to 0.07 is that and not a result. The optimized energies of the three seeds agree to 0.0004 eV everywhere, so they are one minimum.)
+
+* **At the two 6-31G** levels all 14 jobs reproduce to 0.0004 or better** (0.0001 typical), at both methods. The decided numbers are not a property of one embedding, and the grid sweep's own embeddings (11.6.2) reproduce the gate's result the same way: of Olah's 48 decided numbers 46 are within 0.02, and the two that are not are CO's f- at `HF/6-31G**`, 0.0214 from the published value, as in 11.2.
+* **At 6-311+G** 12 of 14 reproduce** (largest difference 0.0066, acetone at B3LYP, whose two equivalent methyl carbons exchange). **Two do not**: CO2 and CNO- at `B3LYP/6-311+G**`, where two seeds give one anion and the third another:
+  f+ on CO2's carbon 0.591, 0.712, 0.591 (spread 0.121) and on CNO-'s carbon 0.632, 0.846, 0.632 (spread 0.214), where f- agrees to 0.0001. **The application's own run of CNO- (11.4) is the 0.846 one.** f+ at a basis set with diffuse functions is not
+  a reproducible number of this calculation.
+
+#### 11.6.6 What this changes, and what it does not
+
+* **Not changed**: the calculation, the 0.01 rule, the tolerance, the verdict of 11.2 (FAIL, by 0.0014 on CO's f-), and the decision to ship as experimental and not validated.
+* **Changed, text only**: the refusal of a state that is a few hundredths of an electron short now says it is the numerical integration and what helps (it used to say "the table read is not that state's", which was wrong for all seven refusals); the
+  unbound-anion caveat says that with diffuse functions the anion has more than one SCF solution; the explainer, the guide and the changelog say that spin contamination is a candidate and not the cause, and that f+ with diffuse functions is not reproducible.
+* **For a new preregistration, not done here**: a finer integration grid by default (it removes the refusals and moves no 6-31G** value); the lowest of several anion starts with a flag when they differ (the gated levels would not change); and a validation against published
+  values at a basis set **without** diffuse functions, which needs tables other than Olah's, because Olah's diffuse columns are themselves the value of one arbitrary solution (11.6.4). The gate of this document cannot be re-run, and these would not be it.
