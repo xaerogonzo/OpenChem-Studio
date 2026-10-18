@@ -122,7 +122,7 @@ DICATION_KINDS = ("amine_primary", "amine_secondary", "amine_tertiary", "aniline
                   "imine", "amide_o", "carbonyl_o", "thioether_s", "n_oxide_o",
                   "ester_o", "acid_o", "aldehyde_o", "ether_o", "alcohol_o")
 
-_ANION_WORD = re.compile(r"(?:(?<!am)(?<!im)(?<!sulfam)ide|ate|ite)(?![a-z])|ato|(?<!am)(?<!im)(?<!ure)(?<!sulfam)ido|\(\d*-\)|\d-id-|azanidyl")
+_ANION_WORD = re.compile(r"(?:(?<!am)(?<!im)(?<!sulfam)ide|ate|ite)(?![a-z])|ato|(?<!am)(?<!im)(?<!ure)(?<!sulfam)ido|\(\d*-\)|\d'*-id-|azanidyl")
 _CATION_WORD = re.compile(r"ium|onio|\(\d*\+\)")
 
 
