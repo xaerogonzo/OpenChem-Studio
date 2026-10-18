@@ -98,6 +98,18 @@ ENDPOINTS: dict[str, str] = {
     "spherocity_index": "the spherocity index of the conformer: three times the smallest covariance eigenvalue of its atom positions over their sum",
     "inertial_shape_factor": "the inertial shape factor of the conformer: the middle moment over the product of the other two, in 1/(amu*Å^2)",
     "plane_of_best_fit": "the mean distance of the conformer's atoms from their best-fit plane, in Å",
+    # PROVISIONAL, like the ten above (eight of Geometry Analysis's sizes, 2026-10-17). Each is measured on the conformer every calculation uses, hydrogens included, and is one quantity of its own. The two radii
+    # from the centroid are of the UNWEIGHTED centroid of the atom positions; the six projection numbers are of the shadow the atoms cast as circles of Bondi's van der Waals radii
+    # (`chem/projection_geometry.py`, whose search for the extremes is tested against a denser sweep). Left out by decision: the smallest radius from the centroid (0 for a molecule whose centroid is on an
+    # atom, and the least stable of the sizes across the conformers of one molecule) and the three force-field energies (no meaning between molecules).
+    "max_radius_from_centroid": "the largest distance from the centroid of the conformer's atom positions (every atom, hydrogens included, unweighted) to an atom, in Å",
+    "mean_radius_from_centroid": "the mean distance of the conformer's atoms from the centroid of their positions (every atom, hydrogens included, unweighted), in Å",
+    "min_projection_area": "the smallest area of the shadow the conformer's atoms cast, each a circle of its Bondi van der Waals radius, over every viewing direction, in Å^2",
+    "max_projection_area": "the largest area of the shadow the conformer's atoms cast, each a circle of its Bondi van der Waals radius, over every viewing direction, in Å^2",
+    "min_projection_radius": "the radius of the smallest circle that encloses the conformer's shadow in its smallest-area view (the round hole it passes through), in Å",
+    "max_projection_radius": "the radius of the smallest circle that encloses the conformer's shadow in its largest-area view, in Å",
+    "size_perpendicular_to_min_projection": "the extent of the conformer along its smallest-area viewing direction, from surface to surface (van der Waals radii included), in Å",
+    "size_perpendicular_to_max_projection": "the extent of the conformer along its largest-area viewing direction, from surface to surface (van der Waals radii included), in Å",
     # PROVISIONAL, like the eight above (eight counts, 2026-10-16; two more share the tags `ring_count` and `stereocentre_count`). The ring counts are of the rings RDKit's ring information lists, which is why a cage has
     # more rings than independent cycles.
     "bond_count": "the number of bonds between non-hydrogen atoms",
@@ -128,21 +140,46 @@ class ApprovedOutput:
     approved: str
     #: The calculation input the number is read from: `drawing` (`READ_FROM`) or `geometry`, the conformer every calculation uses. A result stored under the other input is never read for this output.
     input: str = READ_FROM
+    #: What must hold of HOW the calculator measured it, beyond the input: `""` asks nothing more, `AS_STORED` that it measured the stored conformer itself (not a copy it relaxed, nor a conformer it chose), and
+    #: `AS_STORED_UNSCALED` that, and that its van der Waals radii were not scaled. Only Geometry Analysis has options that change what it measures, and its record says which were used (`score_value.not_applicable_reason`).
+    measured_as: str = ""
+    #: True when the producer measures EVERY fragment of the structure (Geometry Analysis's scope is the whole structure). A structure of several fragments (a salt, a hydrate) then has no shape of its
+    #: own, because the embedder packs the pieces together at an arbitrary offset, and a score declines it. False for the always-on shape descriptors, which are computed on the ChEMBL parent compound
+    #: (`chem/components.py`) and refused by the producer when there is no single parent, so a salt is already handled where they are made.
+    whole_structure: bool = False
 
 
 def _entry(output_id: str, unit: str, carried_as: str, endpoint: str) -> ApprovedOutput:
     return ApprovedOutput(output_id, unit, carried_as, endpoint, "2026-10-14")
 
 
-def _geometry_entry(output_id: str, unit: str, carried_as: str, endpoint: str) -> ApprovedOutput:
+#: `ApprovedOutput.measured_as`: the number must be of the stored conformer itself, as it is.
+AS_STORED = "as_stored"
+
+#: `ApprovedOutput.measured_as`: of the stored conformer as it is, and with the van der Waals radii unscaled (the six projection numbers).
+AS_STORED_UNSCALED = "as_stored_unscaled"
+
+#: Every value `ApprovedOutput.measured_as` may take; a guard holds each entry to it.
+MEASURED_AS = frozenset({"", AS_STORED, AS_STORED_UNSCALED})
+
+
+def _geometry_entry(output_id: str, unit: str, carried_as: str, endpoint: str, measured_as: str = "", whole_structure: bool = False) -> ApprovedOutput:
     """An output measured on the conformer every calculation gets, and read from the result stored under its geometry fingerprint."""
-    return ApprovedOutput(output_id, unit, carried_as, endpoint, "2026-10-17", GEOMETRY)
+    return ApprovedOutput(output_id, unit, carried_as, endpoint, "2026-10-17", GEOMETRY, measured_as, whole_structure)
 
 
 #: The table. Sorted by id, so a review diff reads as additions. Every entry resolves, through the registry, to a finite number carrying
 #: `carried_as` on the census panel (`tests/test_score_outputs.py`), and a rename of a fact label turns that red and says which scores it breaks.
 APPROVED: tuple[ApprovedOutput, ...] = (
     _entry("calculator:bbb_descriptors:Aromatic rings", "1", "", "aromatic_ring_count"),
+    _geometry_entry("calculator:geometry_analysis:Max projection area", "Å^2", "A^2", "max_projection_area", AS_STORED_UNSCALED, True),
+    _geometry_entry("calculator:geometry_analysis:Max projection radius", "Å", "A", "max_projection_radius", AS_STORED_UNSCALED, True),
+    _geometry_entry("calculator:geometry_analysis:Max radius (from centroid)", "Å", "A", "max_radius_from_centroid", AS_STORED, True),
+    _geometry_entry("calculator:geometry_analysis:Mean radius (from centroid)", "Å", "A", "mean_radius_from_centroid", AS_STORED, True),
+    _geometry_entry("calculator:geometry_analysis:Min projection area", "Å^2", "A^2", "min_projection_area", AS_STORED_UNSCALED, True),
+    _geometry_entry("calculator:geometry_analysis:Min projection radius", "Å", "A", "min_projection_radius", AS_STORED_UNSCALED, True),
+    _geometry_entry("calculator:geometry_analysis:Size perpendicular to the max projection", "Å", "A", "size_perpendicular_to_max_projection", AS_STORED_UNSCALED, True),
+    _geometry_entry("calculator:geometry_analysis:Size perpendicular to the min projection", "Å", "A", "size_perpendicular_to_min_projection", AS_STORED_UNSCALED, True),
     _entry("calculator:oxygen_balance:Oxygen balance (CO basis)", "%", "%", "oxygen_balance_co"),
     _entry("calculator:oxygen_balance:Oxygen balance (CO₂ basis)", "%", "%", "oxygen_balance_co2"),
     _entry("calculator:polarizability:Molecular polarizability", "Å^3", "A^3", "molecular_polarizability"),

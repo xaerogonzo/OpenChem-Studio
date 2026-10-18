@@ -1007,3 +1007,89 @@ def test_the_reader_follows_an_orca_optimized_geometry_landing_and_its_undo(wind
     window._undo_stack.undo()
     _drain(qapp)
     assert _report(window).facts[0].value == pytest.approx(before, rel=1e-9)
+
+
+# --- Geometry Analysis's sizes: the table and Results read one rule -----------------------------------------------------------------------
+
+
+_MAX_REACH = "calculator:geometry_analysis:Max radius (from centroid)"
+_SALT = "CC(=O)[O-].[Na+]"
+
+
+def _reach_score(window):
+    """`2 * reach`, in Å, over the largest distance of an atom from the centroid."""
+    return _make(window, label="Reach", formula="2 * reach", result_unit="Å", inputs=[("reach", _MAX_REACH)])
+
+
+def _size_run(window, qapp, model):
+    from openchem.domain.calculator import CalculationRequest
+
+    definition = window._services.calculator_registry.get("geometry_analysis")
+    window._services.descriptor_service.run_calculator(
+        model, CalculationRequest(calculator_id="geometry_analysis", molecule_uuid=model.uuid, parameters={p.name: p.default for p in definition.parameters})
+    )
+    _drain(qapp)
+
+
+def test_a_size_cell_in_the_table_names_the_conformer_and_the_score_reads_the_number_results_reads(window, pair, qapp):
+    """Geometry Analysis is a calculator and the table runs it without the service's stamp, so the batch stamps the conformer it handed (`geometry_provenance`) on the cell, the way a stored result is."""
+    import numpy as np
+
+    from openchem.domain.score_outputs import approved_output
+    from openchem.domain.score_table import read_cell_output, score_value_in_table
+    from openchem.domain.score_value import InputState, read_output
+
+    aspirin, ethanol = pair
+    _select(window, qapp, aspirin)
+    _with_a_conformer(window, qapp, aspirin)
+    made = _reach_score(window)
+    _size_run(window, qapp, aspirin)
+    event = _run_batch(window, qapp, [aspirin, ethanol], [], ["geometry_analysis"])
+    conformer = aspirin.conformers[0]
+
+    cell = event.table.cell(aspirin.uuid, _MAX_REACH)
+    assert cell.provenance.parameters["input_conformer_id"] == conformer.conformer_id and cell.provenance.parameters["input_fragments"] == 1
+    mol = window._services.chemistry_engine.mol_from_molblock(conformer.molblock)
+    xyz = mol.GetConformer().GetPositions()
+    by_hand = float(np.linalg.norm(xyz - xyz.mean(axis=0), axis=1).max())
+    in_table = read_cell_output(_MAX_REACH, event.table, aspirin.uuid)
+    in_results = read_output(_MAX_REACH, window._services.score_service._classified_results(aspirin), len(aspirin.conformers))
+    assert in_table.state is in_results.state is InputState.READ
+    assert in_table.value == pytest.approx(by_hand, rel=1e-9) == pytest.approx(in_results.value, rel=1e-9)
+    assert conformer.conformer_id[:8] in in_table.geometry and in_table.geometry == in_results.geometry, "the table's hover names the conformer as Results does"
+    assert score_value_in_table(made, event.table, aspirin.uuid).value == pytest.approx(2 * by_hand, rel=1e-9)
+    assert approved_output(_MAX_REACH).whole_structure
+
+
+def test_a_salt_has_no_size_in_the_table_or_in_results_and_both_say_the_same_thing(window, pair, qapp):
+    from openchem.domain.score_outputs import APPROVED
+    from openchem.domain.score_table import read_cell_output, score_value_in_table
+    from openchem.domain.score_value import InputState, ScoreStatus, read_output
+
+    aspirin, ethanol = pair
+    salt = MoleculeModel(display_name="Sodium acetate")
+    window._services.chemistry_engine.set_structure_from_smiles(salt, _SALT)
+    project = ProjectModel(name="salted")
+    project.molecules.extend([aspirin, salt])
+    window._set_project(project)
+    _select(window, qapp, salt)
+    _with_a_conformer(window, qapp, salt)
+    made = _reach_score(window)
+    _size_run(window, qapp, salt)
+    event = _run_batch(window, qapp, [aspirin, salt], [], ["geometry_analysis"])
+
+    entries = window._services.score_service._classified_results(salt)
+    sizes = [entry for entry in APPROVED if entry.output_id.startswith("calculator:geometry_analysis:")]
+    assert len(sizes) == 8
+    for entry in sizes:
+        in_results = read_output(entry.output_id, entries, len(salt.conformers))
+        in_table = read_cell_output(entry.output_id, event.table, salt.uuid)
+        assert in_results.state is in_table.state is InputState.NOT_APPLICABLE, entry.output_id
+        assert in_results.note == in_table.note and "2 separate fragments" in in_table.note, entry.output_id
+    refused = score_value_in_table(made, event.table, salt.uuid)
+    assert refused.status is ScoreStatus.REFUSED and refused.value is None and "score the parent structure" in refused.reason
+    window._services.event_bus.publish(MoleculeSelected(molecule_uuid=salt.uuid))
+    _drain(qapp)
+    report = window._results_view.merged().report_for("score:user.reach")
+    assert report is not None and not report.facts, "no number is offered for the salt"
+    assert "2 separate fragments" in report.error and "score the parent structure" in report.error

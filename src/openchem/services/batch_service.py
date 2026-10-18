@@ -326,6 +326,8 @@ class _BatchTask(QRunnable):
     def _run_calculators(self, table: BatchTable, molecule: MoleculeModel, drawing) -> None:
         #: The molecule each declared input resolves to, resolved once per row.
         inputs = {DRAWING: drawing}
+        #: Whether a calculator that declares GEOMETRY was really handed a conformer (it is handed the drawing when the molecule has none).
+        handed_conformer = False
         for calculator_id in self._request.calculator_ids:
             if self._progress.is_cancelled():
                 return
@@ -345,8 +347,14 @@ class _BatchTask(QRunnable):
                 # from the Properties panel it is the table form of.
                 declared = definition.calculation_input
                 if declared not in inputs:
-                    inputs[declared] = resolve_calculation_input(self._engine, molecule, declared).mol
+                    resolved = resolve_calculation_input(self._engine, molecule, declared)
+                    inputs[declared] = resolved.mol
+                    handed_conformer = handed_conformer or (declared == GEOMETRY and resolved.used == GEOMETRY)
                 result = self._registry.compute(calculator_id, inputs[declared], molecule.uuid, parameters)
+                # Stamped with the conformer it was handed, as `DescriptorService.run_calculator` stamps a stored result (`geometry_provenance`), so a derived score that reads this cell names the conformer and
+                # can refuse a structure of several fragments. The calculator's own keys win a collision.
+                if declared == GEOMETRY and handed_conformer and getattr(result, "provenance", None) is not None:
+                    result = _stamped(result, geometry_provenance(molecule, GEOMETRY))
             except Exception as exc:  # noqa: BLE001 - one calculator must not end the run
                 refused = isinstance(exc, CalculationRefusal)
                 if refused:

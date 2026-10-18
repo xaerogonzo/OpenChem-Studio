@@ -18,6 +18,7 @@ being skipped.
 from __future__ import annotations
 
 import dataclasses
+import functools
 import hashlib
 import logging
 from collections.abc import Sequence
@@ -420,6 +421,10 @@ def _drawing_input(engine: ChemistryEngine, model: MoleculeModel) -> ResolvedInp
 #: any parameter name it likes without this layer having to know.
 INPUT_PREFIX = "input_"
 
+#: The key that says how many separate pieces the conformer a result was computed on is made of (`geometry_provenance`). The domain reads it by this literal
+#: (`score_value.FRAGMENTS_KEY`, which cannot import this layer), and a test holds the two together.
+FRAGMENTS_KEY = f"{INPUT_PREFIX}fragments"
+
 
 #: What a recorded parameter value may be. **JSON-safe scalars only**, and
 #: that is a persistence constraint rather than fastidiousness:
@@ -472,6 +477,16 @@ def recordable_parameters(parameters: dict[str, object] | None) -> dict[str, obj
     return kept
 
 
+@functools.lru_cache(maxsize=256)
+def fragment_count(molblock: str) -> int | None:
+    """How many separate pieces the structure in `molblock` is made of (a salt is two, a hydrate two), or None when it cannot be read.
+
+    Unsanitised on purpose: this counts bonded components and nothing else, so a metal complex that sanitisation would refuse is still counted.
+    """
+    mol = Chem.MolFromMolBlock(molblock, sanitize=False, removeHs=False) if molblock else None
+    return len(Chem.GetMolFrags(mol)) if mol is not None and mol.GetNumAtoms() else None
+
+
 def geometry_provenance(model: MoleculeModel, calculation_input: str) -> dict[str, object]:
     """What to record about which geometry a result was computed on.
 
@@ -484,6 +499,12 @@ def geometry_provenance(model: MoleculeModel, calculation_input: str) -> dict[st
     that cites only a position cannot be traced back to a geometry. The
     index is kept alongside because it is what the viewer shows, and
     "conformer 1 of 23" is how a person will describe it.
+
+    THE FRAGMENT COUNT is the number of separate pieces of that conformer. Where one piece sits
+    relative to another in 3D is not a property of the compound (the embedder packs them together at
+    an arbitrary offset), so a derived score declines a number a calculator measured on the WHOLE
+    structure when it has more than one (`score_value.not_applicable_reason`). Left out when the
+    count cannot be read, which that rule treats as unknown and refuses.
     """
     if calculation_input != GEOMETRY:
         return {f"{INPUT_PREFIX}source": "drawing"}
@@ -493,7 +514,7 @@ def geometry_provenance(model: MoleculeModel, calculation_input: str) -> dict[st
             f"{INPUT_PREFIX}source": "drawing",
             f"{INPUT_PREFIX}reason": "no conformer available",
         }
-    return {
+    stamp: dict[str, object] = {
         f"{INPUT_PREFIX}source": "automatic_lowest_energy",
         f"{INPUT_PREFIX}conformer_id": conformer.conformer_id,
         f"{INPUT_PREFIX}conformer_index": model.conformers.index(conformer),
@@ -502,3 +523,7 @@ def geometry_provenance(model: MoleculeModel, calculation_input: str) -> dict[st
             conformer.provenance.parameters.get("force_field") if conformer.provenance else None
         ),
     }
+    fragments = fragment_count(conformer.molblock)
+    if fragments is not None:
+        stamp[FRAGMENTS_KEY] = fragments
+    return stamp

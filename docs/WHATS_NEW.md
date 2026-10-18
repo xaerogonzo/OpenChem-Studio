@@ -16,7 +16,7 @@ linked from each section says why it was built the way it was. Where a claim her
   already made, and starts nothing by itself.
 - **Derived scores:** a formula of your own over numbers the application already computes, shown as a column you can sort in
   the project table. This is the biggest piece, and the one that needs the most explaining: see the next section.
-- **Scores over the shape descriptors** (2026-10-17): a score may read the ten shape descriptors, from the conformer every calculation already gets.
+- **Scores over the shape descriptors and eight of Geometry Analysis's sizes** (2026-10-17): a score may read them from the conformer every calculation already gets.
 
 ## Derived scores: what they are for
 
@@ -65,6 +65,13 @@ What was built, in the order a person meets it:
   number is refused as measured for an earlier geometry until the descriptors are measured again, and the score follows the
   new one. Building it found that four of the ten (the three principal moments of inertia and the inertial shape factor) had
   no unit although they are amu·Å² and its inverse; they now carry them, and a formula cannot add a moment to a ratio.
+- **Scores over eight of Geometry Analysis's sizes (2026-10-17).** The largest and mean distance of an atom from the centroid, the
+  smallest and largest shadow the molecule casts, the circle round each shadow and the size along each of those two views, read
+  from the same conformer. A score reads only a number measured on the stored conformer as it is, so a Geometry Analysis run that
+  generated its own conformer, relaxed a copy or scaled its radii gives no number and says which setting. A salt or a hydrate has
+  no size (the fragments are placed side by side at an arbitrary offset), and the score says to use the parent structure. The
+  smallest radius from the centroid and the three force-field energies stay out, and so do the ring-aromaticity indices and the
+  torsions: the reasons are measured in the design record.
 
 Read more: [`DERIVED_SCORES_DESIGN.md`](DERIVED_SCORES_DESIGN.md) (pull requests #326 to #355).
 
@@ -139,7 +146,7 @@ Read more: the **Pairing two molecules** topic of the guide; [`RECIPES_DESIGN.md
 
 - **The live provider run** for the assistant (needs an API key).
 - **The assistant starting an ORCA or Vina job.** It previews only.
-- **Scores over the other 3D numbers** (force-field energies, size and projection numbers, ring-aromaticity indices, torsions): not offered. The ten shape descriptors are (above).
+- **Scores over the other 3D numbers** (force-field energies, the smallest radius from the centroid, ring-aromaticity indices, torsions): not offered. The ten shape descriptors and eight of Geometry Analysis's sizes are (above).
 - **Reactivity calculators from ORCA** (Fukui functions, proton affinity, bond dissociation energy) and **the synthesis
   helper:** not started. The first would each sit behind a preregistered gate and may be recorded as "measured, not shipped".
 - **Calculators read for scores and not offered**, each for a measured reason (a duplicate of an always-on property, a label that
