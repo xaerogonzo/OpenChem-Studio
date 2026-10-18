@@ -317,7 +317,7 @@ _HELP = {
             "falls into. For benzaldehyde that was not a function of the structure: 6 of 14 runs of the same molecule reached one "
             "state and 8 the other, depending on a rotation, a displacement of 0.001 A or the embedding.\n\n"
             "Off: one cation job, as before, and the result says no search was run. A search that finds nothing else costs the three "
-            "jobs and changes no number. Species of any charge are searched; molecules with an element heavier than krypton are not.\n\n"
+            "jobs (about 2.5 times the time of a run without it, measured) and changes no number. Species of any charge are searched; molecules with an element heavier than krypton are not.\n\n"
             "Applies to the next Fukui run; results already computed are not changed."
         ),
         tier=2,
@@ -791,7 +791,7 @@ class SettingsDialog(QDialog):
             "apart. With one cation job, f- was taken from whichever state ORCA's SCF happened to reach, which for benzaldehyde "
             "was not a function of the structure: 6 of 14 runs reached one state and 8 the other. The search also starts the "
             "cation from the neutral's orbitals with the electron taken from the HOMO-1, HOMO-2 and HOMO-3, reads f- from the "
-            "lowest state it finds, and says when another lies within 0.5 eV and how far its f- is. Untick to run the one job. "
+            "lowest state it finds, and says when another lies within 0.5 eV and how far its f- is. It takes about 2.5 times as long as the one job, which is what unticking runs. "
             "Applies to the next run.",
             page,
         ))

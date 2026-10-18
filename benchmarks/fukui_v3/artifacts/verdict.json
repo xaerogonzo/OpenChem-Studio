@@ -1,0 +1,1162 @@
+{
+ "outcome": "FAIL",
+ "reasons": [
+  "R anilinium embedding101: f- differs from the reference by 0.0133 (limit 0.01)"
+ ],
+ "arms": {
+  "R": false,
+  "C": true,
+  "N": true
+ },
+ "floor": 0.00013099999999999223,
+ "reproducibility": [
+  {
+   "species": "benzaldehyde",
+   "variant": "rotation0",
+   "difference": 8.500000000000174e-05,
+   "within": true
+  },
+  {
+   "species": "benzaldehyde",
+   "variant": "rotation1",
+   "difference": 7.899999999999574e-05,
+   "within": true
+  },
+  {
+   "species": "benzaldehyde",
+   "variant": "rotation2",
+   "difference": 0.00015499999999998848,
+   "within": true
+  },
+  {
+   "species": "benzaldehyde",
+   "variant": "rotation3",
+   "difference": 6.50000000000095e-05,
+   "within": true
+  },
+  {
+   "species": "benzaldehyde",
+   "variant": "displacement0",
+   "difference": 0.005719000000000002,
+   "within": true
+  },
+  {
+   "species": "benzaldehyde",
+   "variant": "displacement1",
+   "difference": 0.003601000000000007,
+   "within": true
+  },
+  {
+   "species": "benzaldehyde",
+   "variant": "displacement2",
+   "difference": 0.0014460000000000028,
+   "within": true
+  },
+  {
+   "species": "benzaldehyde",
+   "variant": "displacement3",
+   "difference": 0.0013729999999999992,
+   "within": true
+  },
+  {
+   "species": "benzaldehyde",
+   "variant": "embedding101",
+   "difference": 0.0002329999999999971,
+   "within": true
+  },
+  {
+   "species": "benzaldehyde",
+   "variant": "embedding102",
+   "difference": 4.099999999999937e-05,
+   "within": true
+  },
+  {
+   "species": "benzaldehyde",
+   "variant": "embedding103",
+   "difference": 0.00017000000000000348,
+   "within": true
+  },
+  {
+   "species": "anilinium",
+   "variant": "rotation0",
+   "difference": 0.0025470000000000215,
+   "within": true
+  },
+  {
+   "species": "anilinium",
+   "variant": "rotation1",
+   "difference": 2.599999999997049e-05,
+   "within": true
+  },
+  {
+   "species": "anilinium",
+   "variant": "rotation2",
+   "difference": 7.999999999999674e-05,
+   "within": true
+  },
+  {
+   "species": "anilinium",
+   "variant": "rotation3",
+   "difference": 4.499999999998949e-05,
+   "within": true
+  },
+  {
+   "species": "anilinium",
+   "variant": "displacement0",
+   "difference": 0.0016479999999999828,
+   "within": true
+  },
+  {
+   "species": "anilinium",
+   "variant": "displacement1",
+   "difference": 0.005352999999999997,
+   "within": true
+  },
+  {
+   "species": "anilinium",
+   "variant": "displacement2",
+   "difference": 0.0025200000000000222,
+   "within": true
+  },
+  {
+   "species": "anilinium",
+   "variant": "displacement3",
+   "difference": 0.00287100000000004,
+   "within": true
+  },
+  {
+   "species": "anilinium",
+   "variant": "embedding101",
+   "difference": 0.013307000000000027,
+   "within": false
+  },
+  {
+   "species": "anilinium",
+   "variant": "embedding102",
+   "difference": 2.699999999997149e-05,
+   "within": true
+  },
+  {
+   "species": "anilinium",
+   "variant": "embedding103",
+   "difference": 5.199999999996874e-05,
+   "within": true
+  },
+  {
+   "species": "thiophene",
+   "variant": "rotation0",
+   "difference": 6.999999999979245e-06,
+   "within": true
+  },
+  {
+   "species": "thiophene",
+   "variant": "rotation1",
+   "difference": 1.0999999999997123e-05,
+   "within": true
+  },
+  {
+   "species": "thiophene",
+   "variant": "rotation2",
+   "difference": 9.000000000009e-06,
+   "within": true
+  },
+  {
+   "species": "thiophene",
+   "variant": "rotation3",
+   "difference": 1.6000000000002124e-05,
+   "within": true
+  },
+  {
+   "species": "thiophene",
+   "variant": "displacement0",
+   "difference": 0.0026310000000000083,
+   "within": true
+  },
+  {
+   "species": "thiophene",
+   "variant": "displacement1",
+   "difference": 0.00044199999999999795,
+   "within": true
+  },
+  {
+   "species": "thiophene",
+   "variant": "displacement2",
+   "difference": 0.0011160000000000059,
+   "within": true
+  },
+  {
+   "species": "thiophene",
+   "variant": "displacement3",
+   "difference": 0.0017739999999999978,
+   "within": true
+  },
+  {
+   "species": "thiophene",
+   "variant": "embedding101",
+   "difference": 1.6000000000016e-05,
+   "within": true
+  },
+  {
+   "species": "thiophene",
+   "variant": "embedding102",
+   "difference": 4.000000000004e-06,
+   "within": true
+  },
+  {
+   "species": "thiophene",
+   "variant": "embedding103",
+   "difference": 1.8999999999991246e-05,
+   "within": true
+  },
+  {
+   "species": "HCN",
+   "variant": "rotation0",
+   "difference": 4.999999999977245e-06,
+   "within": true
+  },
+  {
+   "species": "HCN",
+   "variant": "rotation1",
+   "difference": 2.000000000002e-06,
+   "within": true
+  },
+  {
+   "species": "HCN",
+   "variant": "rotation2",
+   "difference": 6.000000000117023e-06,
+   "within": true
+  },
+  {
+   "species": "HCN",
+   "variant": "rotation3",
+   "difference": 2.000000000002e-06,
+   "within": true
+  },
+  {
+   "species": "HCN",
+   "variant": "displacement0",
+   "difference": 7.500000000004725e-05,
+   "within": true
+  },
+  {
+   "species": "HCN",
+   "variant": "displacement1",
+   "difference": 0.0003549999999999942,
+   "within": true
+  },
+  {
+   "species": "HCN",
+   "variant": "displacement2",
+   "difference": 4.8000000000048004e-05,
+   "within": true
+  },
+  {
+   "species": "HCN",
+   "variant": "displacement3",
+   "difference": 0.00013299999999999423,
+   "within": true
+  },
+  {
+   "species": "HCN",
+   "variant": "embedding101",
+   "difference": 2.0000000000297558e-06,
+   "within": true
+  },
+  {
+   "species": "HCN",
+   "variant": "embedding102",
+   "difference": 9.999999999732445e-07,
+   "within": true
+  },
+  {
+   "species": "HCN",
+   "variant": "embedding103",
+   "difference": 1.0000000000287557e-06,
+   "within": true
+  },
+  {
+   "species": "phenol",
+   "variant": "rotation0",
+   "difference": 4.000000000004e-06,
+   "within": true
+  },
+  {
+   "species": "phenol",
+   "variant": "rotation1",
+   "difference": 1.0000000000010001e-05,
+   "within": true
+  },
+  {
+   "species": "phenol",
+   "variant": "rotation2",
+   "difference": 6.0000000000060005e-06,
+   "within": true
+  },
+  {
+   "species": "phenol",
+   "variant": "rotation3",
+   "difference": 1.2000000000012001e-05,
+   "within": true
+  },
+  {
+   "species": "phenol",
+   "variant": "displacement0",
+   "difference": 0.0007969999999999922,
+   "within": true
+  },
+  {
+   "species": "phenol",
+   "variant": "displacement1",
+   "difference": 0.0006589999999999929,
+   "within": true
+  },
+  {
+   "species": "phenol",
+   "variant": "displacement2",
+   "difference": 0.0005720000000000031,
+   "within": true
+  },
+  {
+   "species": "phenol",
+   "variant": "displacement3",
+   "difference": 0.0006540000000000018,
+   "within": true
+  },
+  {
+   "species": "aniline",
+   "variant": "rotation0",
+   "difference": 1.0999999999983245e-05,
+   "within": true
+  },
+  {
+   "species": "aniline",
+   "variant": "rotation1",
+   "difference": 1.3999999999986246e-05,
+   "within": true
+  },
+  {
+   "species": "aniline",
+   "variant": "rotation2",
+   "difference": 1.1999999999998123e-05,
+   "within": true
+  },
+  {
+   "species": "aniline",
+   "variant": "rotation3",
+   "difference": 1.7000000000017e-05,
+   "within": true
+  },
+  {
+   "species": "aniline",
+   "variant": "displacement0",
+   "difference": 0.0004759999999999903,
+   "within": true
+  },
+  {
+   "species": "aniline",
+   "variant": "displacement1",
+   "difference": 0.0009010000000000129,
+   "within": true
+  },
+  {
+   "species": "aniline",
+   "variant": "displacement2",
+   "difference": 0.0004589999999999872,
+   "within": true
+  },
+  {
+   "species": "aniline",
+   "variant": "displacement3",
+   "difference": 0.0003359999999999752,
+   "within": true
+  },
+  {
+   "species": "pyrrole",
+   "variant": "rotation0",
+   "difference": 5.0000000000050004e-06,
+   "within": true
+  },
+  {
+   "species": "pyrrole",
+   "variant": "rotation1",
+   "difference": 2.9999999999891225e-06,
+   "within": true
+  },
+  {
+   "species": "pyrrole",
+   "variant": "rotation2",
+   "difference": 3.0000000000030003e-06,
+   "within": true
+  },
+  {
+   "species": "pyrrole",
+   "variant": "rotation3",
+   "difference": 8.999999999995123e-06,
+   "within": true
+  },
+  {
+   "species": "pyrrole",
+   "variant": "displacement0",
+   "difference": 0.001465000000000008,
+   "within": true
+  },
+  {
+   "species": "pyrrole",
+   "variant": "displacement1",
+   "difference": 0.001121999999999998,
+   "within": true
+  },
+  {
+   "species": "pyrrole",
+   "variant": "displacement2",
+   "difference": 0.0002550000000000052,
+   "within": true
+  },
+  {
+   "species": "pyrrole",
+   "variant": "displacement3",
+   "difference": 0.0005199999999999927,
+   "within": true
+  },
+  {
+   "species": "furan",
+   "variant": "rotation0",
+   "difference": 3.999999999976245e-06,
+   "within": true
+  },
+  {
+   "species": "furan",
+   "variant": "rotation1",
+   "difference": 5.999999999978245e-06,
+   "within": true
+  },
+  {
+   "species": "furan",
+   "variant": "rotation2",
+   "difference": 3.0000000000030003e-06,
+   "within": true
+  },
+  {
+   "species": "furan",
+   "variant": "rotation3",
+   "difference": 3.0000000000030003e-06,
+   "within": true
+  },
+  {
+   "species": "furan",
+   "variant": "displacement0",
+   "difference": 0.0008730000000000127,
+   "within": true
+  },
+  {
+   "species": "furan",
+   "variant": "displacement1",
+   "difference": 0.0012310000000000099,
+   "within": true
+  },
+  {
+   "species": "furan",
+   "variant": "displacement2",
+   "difference": 0.0009000000000000119,
+   "within": true
+  },
+  {
+   "species": "furan",
+   "variant": "displacement3",
+   "difference": 0.0004510000000000347,
+   "within": true
+  },
+  {
+   "species": "pyridine",
+   "variant": "rotation0",
+   "difference": 1.0999999999983245e-05,
+   "within": true
+  },
+  {
+   "species": "pyridine",
+   "variant": "rotation1",
+   "difference": 7.999999999994123e-06,
+   "within": true
+  },
+  {
+   "species": "pyridine",
+   "variant": "rotation2",
+   "difference": 5.999999999999062e-06,
+   "within": true
+  },
+  {
+   "species": "pyridine",
+   "variant": "rotation3",
+   "difference": 9.000000000036756e-06,
+   "within": true
+  },
+  {
+   "species": "pyridine",
+   "variant": "displacement0",
+   "difference": 0.0007249999999999895,
+   "within": true
+  },
+  {
+   "species": "pyridine",
+   "variant": "displacement1",
+   "difference": 0.0005420000000000008,
+   "within": true
+  },
+  {
+   "species": "pyridine",
+   "variant": "displacement2",
+   "difference": 0.0004989999999999994,
+   "within": true
+  },
+  {
+   "species": "pyridine",
+   "variant": "displacement3",
+   "difference": 0.0004559999999999981,
+   "within": true
+  },
+  {
+   "species": "toluene",
+   "variant": "rotation0",
+   "difference": 3.0000000000002247e-05,
+   "within": true
+  },
+  {
+   "species": "toluene",
+   "variant": "rotation1",
+   "difference": 1.2999999999985246e-05,
+   "within": true
+  },
+  {
+   "species": "toluene",
+   "variant": "rotation2",
+   "difference": 9.999999999996123e-06,
+   "within": true
+  },
+  {
+   "species": "toluene",
+   "variant": "rotation3",
+   "difference": 1.5000000000001124e-05,
+   "within": true
+  },
+  {
+   "species": "toluene",
+   "variant": "displacement0",
+   "difference": 0.0005509999999999959,
+   "within": true
+  },
+  {
+   "species": "toluene",
+   "variant": "displacement1",
+   "difference": 0.0047719999999999985,
+   "within": true
+  },
+  {
+   "species": "toluene",
+   "variant": "displacement2",
+   "difference": 0.0012899999999999856,
+   "within": true
+  },
+  {
+   "species": "toluene",
+   "variant": "displacement3",
+   "difference": 0.0019829999999999848,
+   "within": true
+  },
+  {
+   "species": "toluene",
+   "variant": "embedding101",
+   "difference": 2.8000000000000247e-05,
+   "within": true
+  },
+  {
+   "species": "toluene",
+   "variant": "embedding102",
+   "difference": 3.599999999999437e-05,
+   "within": true
+  },
+  {
+   "species": "toluene",
+   "variant": "embedding103",
+   "difference": 2.1999999999994246e-05,
+   "within": true
+  },
+  {
+   "species": "naphthalene",
+   "variant": "rotation0",
+   "difference": 8.000000000001062e-06,
+   "within": true
+  },
+  {
+   "species": "naphthalene",
+   "variant": "rotation1",
+   "difference": 0.00014200000000000323,
+   "within": true
+  },
+  {
+   "species": "naphthalene",
+   "variant": "rotation2",
+   "difference": 0.00013900000000000023,
+   "within": true
+  },
+  {
+   "species": "naphthalene",
+   "variant": "rotation3",
+   "difference": 2.9999999999960614e-06,
+   "within": true
+  },
+  {
+   "species": "naphthalene",
+   "variant": "displacement0",
+   "difference": 0.0005199999999999927,
+   "within": true
+  },
+  {
+   "species": "naphthalene",
+   "variant": "displacement1",
+   "difference": 0.0006209999999999966,
+   "within": true
+  },
+  {
+   "species": "naphthalene",
+   "variant": "displacement2",
+   "difference": 0.0006220000000000114,
+   "within": true
+  },
+  {
+   "species": "naphthalene",
+   "variant": "displacement3",
+   "difference": 0.00021200000000000385,
+   "within": true
+  },
+  {
+   "species": "acetophenone",
+   "variant": "rotation0",
+   "difference": 0.0001510000000000053,
+   "within": true
+  },
+  {
+   "species": "acetophenone",
+   "variant": "rotation1",
+   "difference": 0.00019200000000005324,
+   "within": true
+  },
+  {
+   "species": "acetophenone",
+   "variant": "rotation2",
+   "difference": 0.00015800000000000536,
+   "within": true
+  },
+  {
+   "species": "acetophenone",
+   "variant": "rotation3",
+   "difference": 0.00010300000000000586,
+   "within": true
+  },
+  {
+   "species": "acetophenone",
+   "variant": "displacement0",
+   "difference": 0.0008320000000000133,
+   "within": true
+  },
+  {
+   "species": "acetophenone",
+   "variant": "displacement1",
+   "difference": 0.0023269999999999957,
+   "within": true
+  },
+  {
+   "species": "acetophenone",
+   "variant": "displacement2",
+   "difference": 0.0007660000000000167,
+   "within": true
+  },
+  {
+   "species": "acetophenone",
+   "variant": "displacement3",
+   "difference": 0.0017560000000000076,
+   "within": true
+  },
+  {
+   "species": "acetophenone",
+   "variant": "embedding101",
+   "difference": 0.00016100000000005,
+   "within": true
+  },
+  {
+   "species": "acetophenone",
+   "variant": "embedding102",
+   "difference": 0.0002250000000000585,
+   "within": true
+  },
+  {
+   "species": "acetophenone",
+   "variant": "embedding103",
+   "difference": 0.0002370000000000011,
+   "within": true
+  }
+ ],
+ "completeness": [
+  {
+   "species": "benzaldehyde",
+   "lowest_missed_ev": 0.0,
+   "missed": [],
+   "within": true
+  },
+  {
+   "species": "anilinium",
+   "lowest_missed_ev": 0.0,
+   "missed": [],
+   "within": true
+  },
+  {
+   "species": "thiophene",
+   "lowest_missed_ev": 0.0009886562500129401,
+   "missed": [],
+   "within": true
+  },
+  {
+   "species": "HCN",
+   "lowest_missed_ev": 0.0,
+   "missed": [],
+   "within": true
+  },
+  {
+   "species": "phenol",
+   "lowest_missed_ev": 0.0,
+   "missed": [],
+   "within": true
+  },
+  {
+   "species": "aniline",
+   "lowest_missed_ev": 0.0,
+   "missed": [],
+   "within": true
+  },
+  {
+   "species": "pyrrole",
+   "lowest_missed_ev": 0.00020729506078513357,
+   "missed": [],
+   "within": true
+  },
+  {
+   "species": "furan",
+   "lowest_missed_ev": 0.0,
+   "missed": [],
+   "within": true
+  },
+  {
+   "species": "pyridine",
+   "lowest_missed_ev": 0.0007235724471473089,
+   "missed": [],
+   "within": true
+  },
+  {
+   "species": "toluene",
+   "lowest_missed_ev": 8.281839815926738e-05,
+   "missed": [],
+   "within": true
+  },
+  {
+   "species": "naphthalene",
+   "lowest_missed_ev": 0.00014791176179107757,
+   "missed": [],
+   "within": true
+  },
+  {
+   "species": "acetophenone",
+   "lowest_missed_ev": 0.0,
+   "missed": [],
+   "within": true
+  }
+ ],
+ "regression": [
+  {
+   "source": "deproft2002",
+   "molecule": "N2O",
+   "element": "Nt",
+   "attack": "f-",
+   "level": "B3LYP/6-31G*",
+   "published": 0.399,
+   "measured": 0.405683,
+   "difference": 0.0066829999999999945,
+   "within": true,
+   "neutral": true,
+   "decided": true
+  },
+  {
+   "source": "deproft2002",
+   "molecule": "N2O",
+   "element": "Nc",
+   "attack": "f-",
+   "level": "B3LYP/6-31G*",
+   "published": 0.173,
+   "measured": 0.16769299999999998,
+   "difference": -0.005307000000000006,
+   "within": true,
+   "neutral": true,
+   "decided": true
+  },
+  {
+   "source": "deproft2002",
+   "molecule": "N2O",
+   "element": "O",
+   "attack": "f-",
+   "level": "B3LYP/6-31G*",
+   "published": 0.428,
+   "measured": 0.426624,
+   "difference": -0.0013759999999999883,
+   "within": true,
+   "neutral": true,
+   "decided": true
+  },
+  {
+   "source": "deproft2002",
+   "molecule": "NO2-",
+   "element": "N",
+   "attack": "f-",
+   "level": "B3LYP/6-31+G*",
+   "published": 0.31,
+   "measured": 0.315282,
+   "difference": 0.005282000000000009,
+   "within": true,
+   "neutral": false,
+   "decided": true
+  },
+  {
+   "source": "deproft2002",
+   "molecule": "NO2-",
+   "element": "O",
+   "attack": "f-",
+   "level": "B3LYP/6-31+G*",
+   "published": 0.345,
+   "measured": 0.342265,
+   "difference": -0.0027349999999999874,
+   "within": true,
+   "neutral": false,
+   "decided": true
+  },
+  {
+   "source": "deproft2002",
+   "molecule": "phenol",
+   "element": "ortho",
+   "attack": "f-",
+   "level": "B3LYP/6-31G*",
+   "published": 0.081,
+   "measured": 0.082013,
+   "difference": 0.001013,
+   "within": true,
+   "neutral": true,
+   "decided": true
+  },
+  {
+   "source": "deproft2002",
+   "molecule": "phenol",
+   "element": "ortho",
+   "attack": "f-",
+   "level": "B3LYP/6-31G*",
+   "published": 0.091,
+   "measured": 0.09109999999999999,
+   "difference": 9.999999999998899e-05,
+   "within": true,
+   "neutral": true,
+   "decided": true
+  },
+  {
+   "source": "deproft2002",
+   "molecule": "phenol",
+   "element": "meta",
+   "attack": "f-",
+   "level": "B3LYP/6-31G*",
+   "published": 0.064,
+   "measured": 0.065358,
+   "difference": 0.001357999999999998,
+   "within": true,
+   "neutral": true,
+   "decided": true
+  },
+  {
+   "source": "deproft2002",
+   "molecule": "phenol",
+   "element": "meta",
+   "attack": "f-",
+   "level": "B3LYP/6-31G*",
+   "published": 0.073,
+   "measured": 0.07462099999999999,
+   "difference": 0.0016209999999999974,
+   "within": true,
+   "neutral": true,
+   "decided": true
+  },
+  {
+   "source": "deproft2002",
+   "molecule": "phenol",
+   "element": "para",
+   "attack": "f-",
+   "level": "B3LYP/6-31G*",
+   "published": 0.144,
+   "measured": 0.144173,
+   "difference": 0.00017300000000000648,
+   "within": true,
+   "neutral": true,
+   "decided": true
+  },
+  {
+   "source": "deproft2002",
+   "molecule": "aniline",
+   "element": "ortho",
+   "attack": "f-",
+   "level": "B3LYP/6-31G*",
+   "published": 0.08,
+   "measured": 0.08066799999999999,
+   "difference": 0.000667999999999988,
+   "within": true,
+   "neutral": true,
+   "decided": true
+  },
+  {
+   "source": "deproft2002",
+   "molecule": "aniline",
+   "element": "meta",
+   "attack": "f-",
+   "level": "B3LYP/6-31G*",
+   "published": 0.061,
+   "measured": 0.06192399999999999,
+   "difference": 0.0009239999999999943,
+   "within": true,
+   "neutral": true,
+   "decided": true
+  },
+  {
+   "source": "deproft2002",
+   "molecule": "aniline",
+   "element": "para",
+   "attack": "f-",
+   "level": "B3LYP/6-31G*",
+   "published": 0.131,
+   "measured": 0.130874,
+   "difference": -0.000126000000000015,
+   "within": true,
+   "neutral": true,
+   "decided": true
+  },
+  {
+   "source": "deproft2002",
+   "molecule": "fluorobenzene",
+   "element": "ortho",
+   "attack": "f-",
+   "level": "B3LYP/6-31G*",
+   "published": 0.087,
+   "measured": 0.088029,
+   "difference": 0.0010290000000000021,
+   "within": true,
+   "neutral": true,
+   "decided": true
+  },
+  {
+   "source": "deproft2002",
+   "molecule": "fluorobenzene",
+   "element": "meta",
+   "attack": "f-",
+   "level": "B3LYP/6-31G*",
+   "published": 0.078,
+   "measured": 0.07917,
+   "difference": 0.0011700000000000044,
+   "within": true,
+   "neutral": true,
+   "decided": true
+  },
+  {
+   "source": "deproft2002",
+   "molecule": "fluorobenzene",
+   "element": "para",
+   "attack": "f-",
+   "level": "B3LYP/6-31G*",
+   "published": 0.158,
+   "measured": 0.158497,
+   "difference": 0.0004969999999999974,
+   "within": true,
+   "neutral": true,
+   "decided": true
+  },
+  {
+   "source": "deproft2002",
+   "molecule": "styrene",
+   "element": "ortho",
+   "attack": "f-",
+   "level": "B3LYP/6-31G*",
+   "published": 0.059,
+   "measured": 0.060894000000000004,
+   "difference": 0.0018940000000000068,
+   "within": true,
+   "neutral": true,
+   "decided": true
+  },
+  {
+   "source": "deproft2002",
+   "molecule": "styrene",
+   "element": "ortho",
+   "attack": "f-",
+   "level": "B3LYP/6-31G*",
+   "published": 0.065,
+   "measured": 0.06504499999999999,
+   "difference": 4.499999999998949e-05,
+   "within": true,
+   "neutral": true,
+   "decided": true
+  },
+  {
+   "source": "deproft2002",
+   "molecule": "styrene",
+   "element": "meta",
+   "attack": "f-",
+   "level": "B3LYP/6-31G*",
+   "published": 0.054,
+   "measured": 0.054162,
+   "difference": 0.00016200000000000242,
+   "within": true,
+   "neutral": true,
+   "decided": true
+  },
+  {
+   "source": "deproft2002",
+   "molecule": "styrene",
+   "element": "meta",
+   "attack": "f-",
+   "level": "B3LYP/6-31G*",
+   "published": 0.059,
+   "measured": 0.059326,
+   "difference": 0.0003259999999999999,
+   "within": true,
+   "neutral": true,
+   "decided": true
+  },
+  {
+   "source": "deproft2002",
+   "molecule": "styrene",
+   "element": "para",
+   "attack": "f-",
+   "level": "B3LYP/6-31G*",
+   "published": 0.115,
+   "measured": 0.115434,
+   "difference": 0.00043399999999998995,
+   "within": true,
+   "neutral": true,
+   "decided": true
+  },
+  {
+   "source": "deproft2002",
+   "molecule": "nitrobenzene",
+   "element": "ortho",
+   "attack": "f-",
+   "level": "B3LYP/6-31G*",
+   "published": 0.118,
+   "measured": 0.11656550000000002,
+   "difference": -0.0014344999999999775,
+   "within": true,
+   "neutral": true,
+   "decided": true
+  },
+  {
+   "source": "deproft2002",
+   "molecule": "nitrobenzene",
+   "element": "meta",
+   "attack": "f-",
+   "level": "B3LYP/6-31G*",
+   "published": 0.126,
+   "measured": 0.1244165,
+   "difference": -0.0015835000000000016,
+   "within": true,
+   "neutral": true,
+   "decided": true
+  },
+  {
+   "source": "deproft2002",
+   "molecule": "nitrobenzene",
+   "element": "para",
+   "attack": "f-",
+   "level": "B3LYP/6-31G*",
+   "published": 0.048,
+   "measured": 0.049858,
+   "difference": 0.0018579999999999985,
+   "within": true,
+   "neutral": true,
+   "decided": true
+  },
+  {
+   "source": "deproft2002",
+   "molecule": "acrolein",
+   "element": "beta",
+   "attack": "f+",
+   "level": "B3LYP/6-31G*",
+   "published": 0.211,
+   "measured": 0.212791,
+   "difference": 0.0017910000000000148,
+   "within": true,
+   "neutral": true,
+   "decided": true
+  },
+  {
+   "source": "deproft2002",
+   "molecule": "acrolein",
+   "element": "alpha",
+   "attack": "f+",
+   "level": "B3LYP/6-31G*",
+   "published": 0.116,
+   "measured": 0.118424,
+   "difference": 0.0024239999999999956,
+   "within": true,
+   "neutral": true,
+   "decided": true
+  },
+  {
+   "source": "deproft2002",
+   "molecule": "acrolein",
+   "element": "carbonyl",
+   "attack": "f+",
+   "level": "B3LYP/6-31G*",
+   "published": 0.171,
+   "measured": 0.171525,
+   "difference": 0.0005249999999999977,
+   "within": true,
+   "neutral": true,
+   "decided": true
+  }
+ ],
+ "sites": [
+  {
+   "molecule": "phenol",
+   "attack": "f-",
+   "expected": "para",
+   "found": "para",
+   "reproduced": true
+  },
+  {
+   "molecule": "aniline",
+   "attack": "f-",
+   "expected": "para",
+   "found": "para",
+   "reproduced": true
+  },
+  {
+   "molecule": "fluorobenzene",
+   "attack": "f-",
+   "expected": "para",
+   "found": "para",
+   "reproduced": true
+  },
+  {
+   "molecule": "styrene",
+   "attack": "f-",
+   "expected": "para",
+   "found": "para",
+   "reproduced": true
+  },
+  {
+   "molecule": "acrolein",
+   "attack": "f+",
+   "expected": "beta",
+   "found": "beta",
+   "reproduced": true
+  }
+ ]
+}

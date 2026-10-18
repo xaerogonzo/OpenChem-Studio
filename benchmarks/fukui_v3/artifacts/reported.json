@@ -1,0 +1,159 @@
+{
+ "species": [
+  {
+   "species": "benzaldehyde",
+   "reference_reported_a_competing_state": true,
+   "runs_with_a_note": 2,
+   "perturbed_runs": 11,
+   "runs_whose_default_state_was_not_the_lowest": 3,
+   "runs": 12,
+   "largest_default_above_lowest_ev": 0.14592521294368926,
+   "median_seconds": 273.35
+  },
+  {
+   "species": "anilinium",
+   "reference_reported_a_competing_state": true,
+   "runs_with_a_note": 11,
+   "perturbed_runs": 11,
+   "runs_whose_default_state_was_not_the_lowest": 0,
+   "runs": 12,
+   "largest_default_above_lowest_ev": 0.0011662917146200624,
+   "median_seconds": 165.95
+  },
+  {
+   "species": "thiophene",
+   "reference_reported_a_competing_state": true,
+   "runs_with_a_note": 11,
+   "perturbed_runs": 11,
+   "runs_whose_default_state_was_not_the_lowest": 0,
+   "runs": 12,
+   "largest_default_above_lowest_ev": 0.0012047584105066293,
+   "median_seconds": 100.95
+  },
+  {
+   "species": "HCN",
+   "reference_reported_a_competing_state": true,
+   "runs_with_a_note": 11,
+   "perturbed_runs": 11,
+   "runs_whose_default_state_was_not_the_lowest": 0,
+   "runs": 12,
+   "largest_default_above_lowest_ev": 0.0001599955494490538,
+   "median_seconds": 33.2
+  },
+  {
+   "species": "phenol",
+   "reference_reported_a_competing_state": false,
+   "runs_with_a_note": 0,
+   "perturbed_runs": 8,
+   "runs_whose_default_state_was_not_the_lowest": 0,
+   "runs": 9,
+   "largest_default_above_lowest_ev": 0.0013708237058335172,
+   "median_seconds": 176.7
+  },
+  {
+   "species": "aniline",
+   "reference_reported_a_competing_state": false,
+   "runs_with_a_note": 0,
+   "perturbed_runs": 8,
+   "runs_whose_default_state_was_not_the_lowest": 0,
+   "runs": 9,
+   "largest_default_above_lowest_ev": 0.0016400954478756106,
+   "median_seconds": 148.1
+  },
+  {
+   "species": "pyrrole",
+   "reference_reported_a_competing_state": false,
+   "runs_with_a_note": 0,
+   "perturbed_runs": 8,
+   "runs_whose_default_state_was_not_the_lowest": 0,
+   "runs": 9,
+   "largest_default_above_lowest_ev": 4.4541311440434076e-05,
+   "median_seconds": 103.7
+  },
+  {
+   "species": "furan",
+   "reference_reported_a_competing_state": false,
+   "runs_with_a_note": 0,
+   "perturbed_runs": 8,
+   "runs_whose_default_state_was_not_the_lowest": 0,
+   "runs": 9,
+   "largest_default_above_lowest_ev": 0.0,
+   "median_seconds": 91.9
+  },
+  {
+   "species": "pyridine",
+   "reference_reported_a_competing_state": true,
+   "runs_with_a_note": 8,
+   "perturbed_runs": 8,
+   "runs_whose_default_state_was_not_the_lowest": 0,
+   "runs": 9,
+   "largest_default_above_lowest_ev": 0.0,
+   "median_seconds": 83.7
+  },
+  {
+   "species": "toluene",
+   "reference_reported_a_competing_state": true,
+   "runs_with_a_note": 10,
+   "perturbed_runs": 11,
+   "runs_whose_default_state_was_not_the_lowest": 0,
+   "runs": 12,
+   "largest_default_above_lowest_ev": 0.0006555400644629115,
+   "median_seconds": 196.8
+  },
+  {
+   "species": "naphthalene",
+   "reference_reported_a_competing_state": false,
+   "runs_with_a_note": 0,
+   "perturbed_runs": 8,
+   "runs_whose_default_state_was_not_the_lowest": 0,
+   "runs": 9,
+   "largest_default_above_lowest_ev": 0.0004929400573605575,
+   "median_seconds": 183.0
+  },
+  {
+   "species": "acetophenone",
+   "reference_reported_a_competing_state": true,
+   "runs_with_a_note": 7,
+   "perturbed_runs": 11,
+   "runs_whose_default_state_was_not_the_lowest": 5,
+   "runs": 12,
+   "largest_default_above_lowest_ev": 0.09246848673184002,
+   "median_seconds": 320.55
+  }
+ ],
+ "degenerate_and_seen": [
+  {
+   "species": "methane",
+   "f_minus": [
+    0.312699,
+    0.170845,
+    0.172033,
+    0.171607,
+    0.172814
+   ],
+   "states_found": 2,
+   "degenerate": false,
+   "cation_note": "Another state of the cation lies 0.09 eV (its f- differs by up to 0.076, at H (atom 4)) above the one f- is read from, which is the lowest found. f- depends on which state is meant."
+  },
+  {
+   "species": "benzene",
+   "f_minus": [
+    0.1122345,
+    0.1114655,
+    0.1111535,
+    0.112234,
+    0.111465,
+    0.1111545,
+    0.055111499999999994,
+    0.054950000000000006,
+    0.055087,
+    0.055111499999999994,
+    0.054950000000000006,
+    0.055087
+   ],
+   "states_found": 4,
+   "degenerate": true,
+   "cation_note": "The cation has 2 states within 0.01 eV of each other (a degenerate level), and f- is read from the average of their Hirshfeld charges because which of them an SCF reaches is arbitrary; they differ by up to 0.104 electrons in one atom's charge."
+  }
+ ]
+}

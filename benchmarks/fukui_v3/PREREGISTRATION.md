@@ -119,7 +119,50 @@ A job that did not finish may be repeated unchanged up to three attempts, each a
 
 ## 11. Outcome
 
-(Written below a rule, in later commits, after the run.)
+*Everything below the rule was written after the gate ran, in later commits. Sections 0 to 10 are as frozen.*
+
+---
+
+### 11.1 The run
+
+2026-10-18, 17:22 to 18:49, at the freeze commit `876fc0d0` with a clean `src/` (`dirty: false` in every record), ORCA 6.1.1, six jobs at once at 4 cores each. 149 records: R 126 (12 species, every run computed), C 12, N 9, the reported arm 2; **no attempt failed and no search was incomplete** (no hole job failed in any of the 126 runs of R).
+**The first run of the judge said NOT EVALUABLE, for one reason**: acrolein's optimized O=C-C=C dihedral was 0.012 degrees, the s-cis minimum, not within 30 degrees of 180 (section 7: it is not the molecule the source published). The cause was the runner's, not the calculation's: it started acrolein from the seed-7 RDKit embedding, which happened to be s-cis, and ORCA stays in the planar minimum it is started in.
+Sections 7 and 9 allow the repetition of a NOT EVALUABLE run after its cause is fixed, with the same limits: `run_gate.py` now starts acrolein with that dihedral set to 180 degrees (variant `s-trans`; its dihedral came out 179.95), **the first record is kept in `runs.jsonl` as variant `reference`**, and the judge reads the last completed run of each N species. That is the only change made to the runner or the judge after the freeze; `src/openchem/chem/` is byte-identical to the frozen commit.
+
+### 11.2 The outcome: FAIL
+
+| Arm | Held? | |
+|---|---|---|
+| **R** | **no** | 113 of 114 perturbed runs agreed with their reference to **0.0057 or better** (rotations 0.0025, displacements 0.0057, the 17 re-embeddings other than one 0.0002); **one run did not: anilinium `embedding101`, 0.0133 against the limit 0.01** |
+| **C** | yes | for all 12 species the exhaustive search (holes to the HOMO-7) found no state within 0.5 eV of its lowest that the application's search missed, and the application's lowest was at most 0.0010 eV above it |
+| **N** | yes | all **27** numbers within 0.02 (largest 0.0067, N2O's terminal nitrogen; 22 within 0.002) and all 5 decided site statements |
+
+The floor was 0.000131 (limit 0.005). Outcome by the rule of section 7: **R does not hold, so the outcome is FAIL**, whatever the other two arms say. It is final: the limit of 0.01 is not widened and R is not rerun. The worst run of each species (every species but anilinium within the limit):
+benzaldehyde 0.0057 (displacement 0), toluene 0.0048 (displacement 1), thiophene 0.0026, acetophenone 0.0023, pyrrole 0.0015, furan 0.0012, aniline 0.0009, phenol 0.0008, pyridine 0.0007, naphthalene 0.0006, HCN 0.0004, **anilinium 0.0133 (embedding 101)**; the next-worst anilinium run was 0.0054. The measured values are in `artifacts/verdict.json`, every run in `artifacts/runs.jsonl`.
+
+### 11.3 The reported arm (`artifacts/reported.json`; decides nothing)
+
+* **The default job was not on the lowest state, the situation v2 would have given a draw in** (its state's energy above the lowest found): benzaldehyde in **3 of 12** runs (0.146 eV), **acetophenone, a held-out molecule, in 5 of 12 (0.092 eV)**, and in none of the 102 runs of the other ten species (at most 0.002 eV, which is noise). Acetophenone is a second molecule where the one N-1 job is a draw, found by this gate and not by the second gate's probes.
+* **The note about a competing state appeared in** benzaldehyde 2 of its 11 perturbed runs (the reference had it), anilinium 11 of 11, thiophene 11 of 11, HCN 11 of 11, pyridine 8 of 8, toluene 10 of 11, acetophenone 7 of 11, and in none of phenol, aniline, pyrrole, furan or naphthalene (their next states lie beyond 0.5 eV, or there is none). **So the note is reproducible for molecules whose second state is a strong competitor and partial for benzaldehyde and acetophenone, which is what the pilot said**; no note is not evidence that there is no other state.
+* **Benzene** (seen): the two e1g components differ by up to 0.104 in an atom's charge and the averaged f- is uniform: 0.1111 to 0.1122 on the six carbons, 0.0550 to 0.0551 on the hydrogens. **Methane** (seen): two states, the second 0.09 eV above and 0.076 away in f- at a hydrogen; not a degenerate level by the rule, which is what the first look at it suggested.
+* **Cost** (median seconds a run, 4 cores, six at once): HCN 33, pyridine 84, furan 92, pyrrole 104, thiophene 101, aniline 148, anilinium 166, phenol 177, naphthalene 183, toluene 197, benzaldehyde 273, acetophenone 321. **The search roughly multiplies the time of a Fukui run by 2.5**: benzaldehyde's three jobs of v2 took about 100 to 144 s in the pilot, the six jobs here 273 s; anilinium 28 to 34 s (search off) against 66 to 83 s (search on) at 8 cores. The three hole jobs are unrestricted cations like the existing one, so the number of unrestricted jobs goes from two to five.
+
+### 11.4 After the outcome: what the anilinium run was (written with the result in view)
+
+The geometries of the two anilinium runs differ in the NH3+ group: the reference's H-N-C-C torsions are -150, -31 and 89 degrees and `embedding101`'s are 60, 180 and -61 (`artifacts/anilinium_torsions.txt`), two rotamers 1.4 meV apart in energy; `embedding102` and `103` landed in the reference's rotamer and differ by 0.0000 and 0.0001. Both runs found the same two cation states (a competing one at 0.094 and 0.097 eV).
+**`anilinium_rotamer_check.py` ran both geometries with the search OFF as well as ON: they differ by 0.0133 either way** (artifacts/`anilinium_rotamer_check.log`). **So the one run beyond the limit is a difference of geometry, a different rotamer of a soft rotor, and not a difference of cation state; the search is not what moved it.** It does not change the outcome, which is the preregistered rule's:
+R as designed compared a run with its reference whatever conformer ORCA's optimizer had landed in, and an independent optimization of a molecule with a soft rotor can land in another. The six species with embeddings were benzaldehyde, anilinium, thiophene, HCN, toluene and acetophenone; only anilinium's NH3+ moved f- by more than 0.0002 (the methyl rotors of toluene and acetophenone did not).
+
+### 11.5 What this says, and what it does not
+
+* **The outcome stands**: FAIL, with the limit 0.01, one attempt, no rerun, and the word "reproduces" is not used of R.
+* **What the numbers show, measured**: with the search on, the f- of 12 molecules changed by at most 0.0057 under four rigid rotations and four displacements of 0.001 A each (and, but for one rotamer, under a re-embedding), where the control on benzaldehyde without the search was off by 0.13 in 5 of 8 of the same perturbations; the search found no state within 0.5 eV that an exhaustive search of the HOMO-1 to the HOMO-7 would have found; and it lost none of the 27 numbers the second gate's calculation reproduced.
+* **What it does not show**: that f- of a molecule with a soft rotor is the same whichever rotamer it is computed at (it is not, by up to 0.013 for anilinium); that a note about a competing state is always given (11.3); that the lowest state is the state a condensed Fukui function ought to describe, or that the calculation matches the published values the second gate missed; or anything about degenerate levels of more than two components.
+
+### 11.6 The consequence, and what was left open
+
+Section 8 for a FAIL: **the search ships** (it is a switch in Settings, on by default as Alex answered, and it moved benzaldehyde's spread from 0.13 to 0.006 and found a second molecule, acetophenone, where the default job is a draw), **with the failure stated** in the documentation and the changelog, and **the calculator stays EXPERIMENTAL and hidden**, as it would have after a pass.
+**A failure is a reason to find the cause, not to retire the work**; the cause is found, and anything further needs a new preregistration with data not seen here: a version of R that compares runs of one conformer (by torsion, or by restricting the perturbations to rigid molecules), new seeds or new molecules, and the literature-based checks Alex asked for (section "Decisions").
 
 ---
 

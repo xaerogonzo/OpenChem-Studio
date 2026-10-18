@@ -24,7 +24,7 @@ A compound ORCA input can hold the neutral, the ordinary cation job and further 
 * the first job of a compound input writes `<name>.gbw` and the later ones `<name>_job2.gbw`, `<name>_job3.gbw` ...; the service always names its input `job.inp`, so `%moinp "job.gbw"` is the neutral's orbitals in every run;
 * `%scf Rotate {HOMO-k, HOMO, 90, 1, 1} end` (the beta orbitals, the probe's own procedure) inside such a job gave states that converged in every case tried, and the output's `INITIAL GUESS:` line says MOREAD for it exactly as for an ordinary
   later job: **the guess line cannot tell a hole start from a default one**, but ORCA echoes the whole input at the top of its output, and that echo names every job's `Rotate` (read back by `OrcaQuantumEngineProvider._echoed_holes`);
-* HCN (3 atoms, 5 jobs): 11 s at 4 cores. Benzaldehyde (14 atoms, 5 jobs, 8 cores): 83 s, against about 50 s for the three jobs of v2.
+* HCN (3 atoms, 5 jobs): 11 s at 4 cores. Benzaldehyde (14 atoms, 5 jobs, 8 cores): 83 s. **The cost of the search, measured afterwards (the pilot and the gate, 4 cores, six jobs at once): about 2.5 times a Fukui run of v2's three jobs** (benzaldehyde 100 to 144 s without it, a median of 273 s with it; anilinium at 8 cores 28 to 34 s against 66 to 83 s), because the three hole jobs are unrestricted cations like the existing one and the number of unrestricted jobs goes from two to five; an earlier figure in this file, about 50 s for v2's three jobs at 8 cores, was not measured and was wrong.
 
 Four molecules (ORCA's own B3LYP/6-31G* optimized geometries, or RDKit's for the first two runs), recorded as the fixtures of `tests/test_orca_fukui_v3.py`:
 

@@ -28,7 +28,7 @@ from pathlib import Path
 
 import numpy as np
 from rdkit import Chem
-from rdkit.Chem import AllChem
+from rdkit.Chem import AllChem, rdMolTransforms
 from rdkit.Geometry import Point3D
 
 from openchem.app import fukui_gate_2 as second
@@ -111,12 +111,17 @@ def with_coordinates(mol: Chem.Mol, xyz: np.ndarray) -> Chem.Mol:
     return clone
 
 
-def optimized(ctx: Context, key: str, smiles: str, charge: int, method_basis: str, seed: int) -> np.ndarray:
-    """The ORCA optimization of an RDKit ETKDG + MMFF embedding (the probe's recipe), cached under `key`."""
+def optimized(ctx: Context, key: str, smiles: str, charge: int, method_basis: str, seed: int, *, s_trans: bool = False) -> np.ndarray:
+    """The ORCA optimization of an RDKit ETKDG + MMFF embedding (the probe's recipe), cached under `key`.
+
+    `s_trans` starts from the O=C-C=C dihedral set to 180 degrees (acrolein's four heavy atoms are 0 to 3 in the order the application embeds them), for the molecule the source published: its
+    s-cis minimum is a different planar minimum, and ORCA stays in whichever it is started in."""
     cached = ctx.geometry(key)
     if cached is not None:
         return cached
     mol = embed(smiles, seed)
+    if s_trans:
+        rdMolTransforms.SetDihedralDeg(mol.GetConformer(), 0, 1, 2, 3, 180.0)
     conf = mol.GetConformer()
     start = [f"{a.GetSymbol():<3}{conf.GetAtomPosition(a.GetIdx()).x:>14.6f}{conf.GetAtomPosition(a.GetIdx()).y:>14.6f}{conf.GetAtomPosition(a.GetIdx()).z:>14.6f}" for a in mol.GetAtoms()]
     out, _code, _seconds = orca(ctx, f"{key}_opt", f"! {method_basis} Opt\n* xyz {charge} 1\n" + "\n".join(start) + "\n*\n")
@@ -279,11 +284,14 @@ def arm_n(ctx: Context, only: str | None) -> None:
     def work(name):
         species = second.SPECIES[name]
         mol = embed(species.smiles, 7)
-        key = f"N_{name}"
-        base = optimized(ctx, key, species.smiles, species.charge, species.method_basis, 7)
+        # Acrolein is started s-trans (the published molecule): its first run, from the seed-7 embedding, stayed in the s-cis minimum (dihedral 0.01 degrees), the judge refused it as input
+        # validity (the run is kept in runs.jsonl as variant "reference"), and it was repeated from this start as variant "s-trans" (PREREGISTRATION.md 7 and 9: NOT EVALUABLE may be repeated after its cause is fixed).
+        s_trans = name == "acrolein"
+        key = f"N_{name}_strans" if s_trans else f"N_{name}"
+        base = optimized(ctx, key, species.smiles, species.charge, species.method_basis, 7, s_trans=s_trans)
         # Acrolein has two planar minima and the published one is s-trans: its optimized O=C-C=C dihedral is recorded with the run, and the judge refuses it beyond the second gate's limit.
         extra = {"dihedral_degrees": second.acrolein_dihedral(list(species.labels), base.tolist())} if name == "acrolein" else None
-        record = run_with_attempts(ctx, "N", name, "reference", with_coordinates(mol, base), species.charge, species.method_basis, extra=extra)
+        record = run_with_attempts(ctx, "N", name, "s-trans" if s_trans else "reference", with_coordinates(mol, base), species.charge, species.method_basis, extra=extra)
         print(f"N {name:14s} completed={record['completed']} {record['seconds']} s", flush=True)
 
     with ThreadPoolExecutor(max_workers=ctx.workers) as pool:
@@ -335,7 +343,8 @@ def judged(ctx: Context) -> dict:
         exhaustive.append({"species": species.name, "completed": True, "states_application": reference["states"], "states_exhaustive": record["states"]})
     published = []
     for name in gate.N_SPECIES:
-        record = next((r for r in records if r["kind"] == "N" and r["species"] == name and r["completed"]), None)
+        # The last completed run of the species: acrolein's first run (s-cis, refused as input) is kept in the file and superseded by its s-trans one.
+        record = next((r for r in reversed(records) if r["kind"] == "N" and r["species"] == name and r["completed"]), None)
         if record is None:
             continue
         species = second.SPECIES[name]
