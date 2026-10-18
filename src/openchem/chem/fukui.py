@@ -343,9 +343,9 @@ def condensed_fukui(
     if problem:
         if anion is None or total_charge >= 0 or _states_problem(states[:2]):
             return _refuse(problem)
-        # Nothing else of the dianion is kept either: its energy and its <S**2> belong to a table that is not used.
+        # Its <S**2> belongs to a table that is not used; its energy is read below only for a state that is.
         anion, anion_unavailable, states = None, problem, states[:2]
-        energy_anion_hartree = anion_s_squared = None
+        anion_s_squared = None
 
     f_minus = tuple(c - n for n, c in zip(neutral, cation))
     if anion is not None:

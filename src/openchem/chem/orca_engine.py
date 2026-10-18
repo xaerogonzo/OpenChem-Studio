@@ -976,7 +976,7 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
         chosen = {state: solution.chosen for state, solution in solutions.items()}
         reduced = chosen.get(STATE_REDUCED)
         unavailable = ""
-        if reduced is None and reference < 0:
+        if reduced is None:  # only an anion can be here: the N+1 state of every other species was required above
             dianion_jobs = [position for position, result in enumerate(results, start=1) if result.state == STATE_REDUCED]
             unfinished = [position for position, result in enumerate(results, start=1) if not result.complete]
             if dianion_jobs:
