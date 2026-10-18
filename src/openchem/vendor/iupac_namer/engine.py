@@ -15217,6 +15217,26 @@ class SubstitutivePath:
             ):
                 continue
 
+            # An ACYCLIC N+ that is no part of the suffix group outranks it (P-41 Table 4.1, cations before acids, amides, alcohols ...; naming round 68, D-316): a
+            # salt's cation named `...azaniumylidene]methyl}benzen-1-ol` ended in `-ol`, and OPSIN read the anion word after it as an ESTER of the phenol.
+            if (
+                output_form in (OutputForm.STANDALONE, OutputForm.CATION)
+                and pcg_instances
+                # EQUIVALENT MUTANT, noted so it is not rediscovered: dropping the next line changes no name on any input tried (a molecule with an anion takes the ANION
+                # form, which never reaches this loop with a STANDALONE or CATION request); it is kept because the rule must not outrank an anion if that ever changes.
+                and not any(a.GetFormalCharge() < 0 for a in mol.GetAtoms())
+                and any(
+                    a.GetSymbol() in ("N", "P", "S") and a.GetFormalCharge() == 1 and (not a.IsInRing() or a.GetSymbol() != "N")
+                    for a in mol.GetAtoms()
+                )
+                and not any(
+                    mol.GetAtomWithIdx(atom).GetFormalCharge() > 0
+                    for fg in pcg_instances
+                    for atom in fg.atoms
+                )
+            ):
+                continue
+
             # Guard: sulfonamide with ring-embedded N (cyclic sulfonamide,
             # e.g. CS(=O)(=O)-N<pyrrolidine>) cannot be expressed as a
             # standard "-sulfonamide" suffix.  Generating plans for every
@@ -19351,7 +19371,8 @@ class SubstitutivePath:
                 continue
             if atom.GetFormalCharge() != -1:
                 continue
-            if not atom.IsInRing():
+            # a chain carbanion (naming round 68, D-315) is cited the same way beside another anion's suffix: `...-2,4-dioxobutan-3-id-1-oate`
+            if not atom.IsInRing() and atom.GetSymbol() != "C":
                 continue
             # A lactam's ring `[N-]` that is not aromatic is cited the same way (naming rounds 60 and 64): as a substituent
             # `acetyl{2-[(3-oxo-3,4-dihydro-2H-1,4-benzothiazin-4-id-2-yl)methyl]phenyl}azanide`, and beside an acid anion `3-methyl-5-oxopyrrolidin-1-id-2-carboxylate`.

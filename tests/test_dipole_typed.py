@@ -88,7 +88,8 @@ def test_no_line_label_unit_arrow_or_cell_text_moved(registry, golden, molecules
         for name, mol in molecules.items()
         if (seen := observe(registry, mol, ASKS[ask])) != golden[f"{name} | {ask}"]
     }
-    assert not moved, f"what a person sees moved for: {sorted(moved)}"
+    detail = {k: {f: (v, golden[k].get(f)) for f, v in seen.items() if v != golden[k].get(f)} for k, seen in moved.items()}
+    assert not moved, f"what a person sees moved for: {sorted(moved)} DETAIL {detail!r}"
 
 
 # --- the magnitude is a number, and it is the one the line rounds ----------------------------------------------------------------------------------

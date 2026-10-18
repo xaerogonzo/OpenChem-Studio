@@ -28,7 +28,7 @@ needs_opsin = pytest.mark.skipif(shutil.which("java") is None, reason="needs jav
 
 NAMED = [
     ("arginine as the zwitterion", "NC(N)=[NH+]CCC[C@H]([NH3+])C(=O)[O-]", "(2S)-2-azaniumyl-5-[(diaminomethylidene)azaniumyl]pentanoate"),
-    ("a guanidinium beside a protonated amide", "NC(N)=[NH+]CCCC(=[OH+])N", "[(4-amino-4-oxidaniumylidenebutyl)azaniumylidene]methanediamine"),
+    ("a guanidinium beside a protonated amide", "NC(N)=[NH+]CCCC(=[OH+])N", "(4-amino-4-oxidaniumylidenebutyl)(diaminomethylidene)azanium"),
     ("an amidinium beside an ammonium", "NC(=[NH2+])c1ccccc1C[NH3+]", "{2-[amino(azaniumylidene)methyl]phenyl}methanaminium"),
     ("a protonated amide on a pyrrolidine nitrogen beside a quinolinium", "COc1ccc(-c2cc(C(=[OH+])N3CCCC3)c3ccccc3[nH+]2)c(OC)c1",
      "2-(2,4-dimethoxyphenyl)-4-[(oxidaniumylidene)(pyrrolidin-1-yl)methyl]quinolin-1-ium"),
