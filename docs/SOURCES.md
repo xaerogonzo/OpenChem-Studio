@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: e440d0a9f3614ebc152d4ddcedcaf39c6efd58a28f5cffeaad0a4ca743b42c04 -->
+<!-- SOURCE SHA256: e143822d4384d07e1eaee30784d1f84b997fb3d6dd0fa57f7716d4564fd41031 -->
 
 # Sources
 
@@ -307,6 +307,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`vogel_drago1996`](#vogel_drago1996) | literature | shipped | citation + claim |
 | [`vogt2019`](#vogt2019) | literature | **not shipped** | citation |
 | [`waasmaier1995`](#waasmaier1995) | literature | shipped | citation + claim |
+| [`wang2019`](#wang2019) | literature | shipped | citation + claim |
 | [`wang2021`](#wang2021) | literature | reference only | citation |
 | [`wang2022`](#wang2022) | literature | reference only | citation |
 | [`wells2014`](#wells2014) | literature | reference only | citation |
@@ -1144,7 +1145,7 @@ transcription self-check needs a tolerance of 0.15, not 0.05.
 | Status | shipped |
 | Verification | citation + claim |
 | Verified | 2026-10-18 |
-| Local copy | `10.1021@jp014039h.pdf` (not checked) |
+| Local copy | `olah2002.pdf` (not checked) |
 | Used by | `src/openchem/chem/fukui.py`, `docs/explainers/reactivity.md`, `benchmarks/fukui_gate/PREREGISTRATION.md` |
 
 THE LARGEST PUBLISHED TABLE OF HIRSHFELD (STOCKHOLDER) CONDENSED FUKUI
@@ -1249,6 +1250,42 @@ Loewdin, electrostatic-potential-derived, natural) turn negative in some cases
 target: the tables report local softness s+ and s- in atomic units for the
 protonation-site atoms of anilines only, which need the global softness to
 become f.
+
+### wang2019
+
+<a id="wang2019"></a>
+
+> B. Wang, C. Rong, P. K. Chattaraj & S. Liu, 'A comparative study to predict regioselectivity, electrophilicity and nucleophilicity with Fukui function and Hirshfeld charge', Theor. Chem. Acc. 2019, 138, 124, Tables 1-3.
+
+| | |
+| --- | --- |
+| Identifier | [10.1007/s00214-019-2515-1](https://doi.org/10.1007/s00214-019-2515-1) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-18 |
+| Local copy | `wang2019.pdf` (not checked) |
+| Used by | `docs/explainers/reactivity.md` |
+
+THE BENCHMARK THAT BOUNDS WHAT THE CALCULATOR MAY CLAIM. Seven molecules with
+experimentally established reaction sites (four electrophilic attacks, three
+nucleophilic), and 43 systems with experimental electrophilicity and
+nucleophilicity scales (21 and 22), at M06-2X/6-311+G(d) in CPCM
+dichloromethane with Multiwfn, 15 charge schemes. Its definitions are this
+application's, in charges: f- = q(N-1) - q(N), f+ = q(N) - q(N+1),
+f0 = [q(N-1) - q(N+1)]/2 (its eqs 5-7).
+
+Taken from it: Table 3's Hirshfeld row (electrophilicity R = 0.995 with the charge and 0.905
+with the Fukui function; nucleophilicity 0.988 and 0.344); the statement that the
+Hirshfeld charge placed the site in all seven systems and the Fukui function from
+none of the 15 schemes did; and, read from its Tables 1 and 2, that Hirshfeld-charge
+Fukui values matched the Hirshfeld charge's (established) site for three of four
+electrophilic attacks (systems a, c, d) and one of three nucleophilic (f). The
+atom numbers behind Tables 1 and 2 are in Scheme 1, a picture, so the count is
+read from the two tables' rows, not from the structures.
+
+It does not test intramolecular ranking of atoms as the small-molecule tables of
+`olah2002` do; it tests whether the largest value is the experimental site and
+whether the value tracks an experimental scale between molecules.
 
 ### avdeef2007
 

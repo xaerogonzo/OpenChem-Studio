@@ -17,6 +17,7 @@ The drive steps in `app/debug_drive.py` read the stored runs and call these. Not
 
 from __future__ import annotations
 
+import dataclasses
 import enum
 from collections.abc import Collection, Mapping
 from dataclasses import dataclass, field
@@ -48,22 +49,41 @@ SITE_MARGIN_FACTOR = 2.0
 #: by a few 1e-6); more means the run is broken, which is not a chemistry result.
 RUN_SUM_TOLERANCE = 1e-3
 
+#: How many times one job may be run before ORCA is taken to be unable to compute it. A job that did not finish (a scratch
+#: fault, a crash) may be repeated unchanged; a species whose three states still do not complete in this many attempts is
+#: recorded as NOT COMPUTED, and counts against the calculator as a failure to reproduce.
+MAX_ATTEMPTS = 3
+
+#: Float slack for "within" and "at least" comparisons, so a value exactly on a bound is on the right side of it.
 _SLACK = 1e-9
 
-DFT_A, DFT_B, HF_A, HF_B = "B3LYP/6-311+G**", "B3LYP/6-31G**", "HF/6-311+G**", "HF/6-31G**"
+#: The four models Olah's tables print for each atom: B3LYP and HF, each with 6-311+G** ("A", diffuse) and 6-31G** ("B").
+DFT_A = "B3LYP/6-311+G**"
+#: B3LYP/6-31G**, one of the two levels the verdict is decided on.
+DFT_B = "B3LYP/6-31G**"
+#: HF/6-311+G**, a reported level.
+HF_A = "HF/6-311+G**"
+#: HF/6-31G**, the other level the verdict is decided on.
+HF_B = "HF/6-31G**"
 #: The four models of Olah's tables, in the order each atom's four values are printed.
 OLAH_LEVELS = (DFT_A, DFT_B, HF_A, HF_B)
 #: The levels the verdict is decided on. The diffuse-basis columns are reported, never decided: the paper's own f+ moves
 #: by up to 0.1 with that basis.
 DECIDED_LEVELS = (DFT_B, HF_B)
+#: The level of the application's own default (the panel's), reported against the published formaldehyde values and never decided.
+DEFAULT_LEVEL = "B3LYP/def2-SVP"
+#: The diffuse-basis columns of Olah's tables, run and compared but never decided on.
+REPORTED_LEVELS = (DFT_A, HF_A)
 #: What the application is asked to run at each level (the panel's method/basis string).
 METHOD_BASIS = {
     DFT_A: "B3LYP 6-311+G**",
     DFT_B: "B3LYP 6-31G**",
     HF_A: "HF 6-311+G**",
     HF_B: "HF 6-31G**",
+    DEFAULT_LEVEL: "B3LYP def2-SVP",
 }
 
+#: The two functions a published number can be of: f+ (an electron added) and f- (an electron removed).
 ATTACKS = ("f+", "f-")
 
 
@@ -82,6 +102,7 @@ class Species:
         return self.charge == 0
 
 
+#: The seven species the gate runs, by name: what the application is given and what it should embed.
 SPECIES = {
     "CO": Species("CO", "[C-]#[O+]", 0, ("C", "O")),
     "CO2": Species("CO2", "O=C=O", 0, ("O", "C", "O")),
@@ -99,6 +120,7 @@ SPECIES = {
 # for each atom under the four models of OLAH_LEVELS, four decimals. molecule -> element -> (atoms of that element,
 # f+ by level, f- by level). Copied from the PDF's text layer. Only the atoms the paper tabulates are listed (formaldehyde
 # and acetone omit their hydrogens), so a molecule is COMPLETE only if `OLAH_COMPLETE` says so.
+#: Olah's Tables 1-3, typed: molecule -> element label -> (atoms of it, f+ by `OLAH_LEVELS`, f- by `OLAH_LEVELS`).
 OLAH: dict[str, dict[str, tuple[int, tuple[float, ...], tuple[float, ...]]]] = {
     "CO": {"C": (1, (.7473, .6705, .7646, .6801), (.6966, .6883, .7003, .6931)),
            "O": (1, (.2527, .3295, .2359, .3198), (.3034, .3117, .2997, .3069))},
@@ -123,9 +145,11 @@ OLAH_COMPLETE = frozenset({"CO", "CO2", "CN-", "NCO-", "CNO-"})
 
 # Bultinck et al., J. Chem. Phys. 2007, 127, 034102, Table I: formaldehyde, RHF/6-31G** geometry, UHF/6-31G** ions,
 # plain Hirshfeld. element -> (atoms of that element, f+, f-); the hydrogens are per atom. Each column sums to 1.000.
+#: Bultinck's Table I, typed: element -> (atoms of it, f+, f-), formaldehyde at HF/6-31G**.
 BULTINCK: dict[str, tuple[int, float, float]] = {"C": (1, .402, .226), "H": (2, .146, .146), "O": (1, .306, .482)}
 
 # Thanikaivelan et al., Theor. Chem. Acc. 2002, 107, 326, Table 5: formaldehyde, Hirshfeld, DMol3 BLYP/dnd. Sums .998/1.000.
+#: Thanikaivelan's Table 5, typed: element -> (atoms of it, f+, f-), formaldehyde, Hirshfeld, BLYP/dnd.
 THANIKAIVELAN: dict[str, tuple[int, float, float]] = {"C": (1, .395, .236), "H": (2, .150, .169), "O": (1, .303, .426)}
 
 
@@ -159,6 +183,26 @@ def bultinck_entries() -> tuple[Entry, ...]:
         for element, (count, plus, minus) in BULTINCK.items()
         for attack, value in (("f+", plus), ("f-", minus))
     )
+
+
+def reported_entries() -> tuple[Entry, ...]:
+    """The published numbers the REPORTED arm compares and the verdict never reads.
+
+    Olah's diffuse-basis columns (every one, the three that fail the sum rule included: `reported_rows` marks them), and
+    formaldehyde at the application's own default level against the three sources: Olah's and Thanikaivelan's and Bultinck's
+    values, each re-labelled with the default level because they are what that level is compared to."""
+    entries = [e for e in olah_entries() if e.level in REPORTED_LEVELS]
+    for source, table in (("thanikaivelan2002", THANIKAIVELAN), ("bultinck2007", BULTINCK)):
+        for element, (count, plus, minus) in table.items():
+            for attack, value in (("f+", plus), ("f-", minus)):
+                entries.append(Entry(source, "H2CO", element, attack, DEFAULT_LEVEL, value, count))
+    for element in ("C", "O"):
+        for attack in ATTACKS:
+            for level in (DFT_B,):
+                position = 1 if attack == "f+" else 2
+                entries.append(Entry("olah2002", "H2CO", element, attack, DEFAULT_LEVEL,
+                                     OLAH["H2CO"][element][position][OLAH_LEVELS.index(level)], 1))
+    return tuple(entries)
 
 
 # --- the rules that decide which published numbers may be targets ------------------------------------------------------------
@@ -266,6 +310,7 @@ class SiteStatement:
     basis: str
 
 
+#: The documented sites (section 3 of the preregistration), each from Olah's text and each supported by the paper's own numbers.
 SITE_STATEMENTS = (
     SiteStatement("CO", "f-", "C", "protonation at carbon (HCO+ is more stable than HOC+ by about 38 kcal/mol)"),
     SiteStatement("CO2", "f-", "O", "protonation at oxygen"),
@@ -430,6 +475,7 @@ def judge(
     floor: float | None,
     orca_versions: Collection[str],
     unfinished_runs: Collection[str] = (),
+    not_computed: Collection[tuple[str, str]] = (),
 ) -> Verdict:
     """The verdict, decided by the conditions of the preregistration and no others.
 
@@ -453,7 +499,7 @@ def judge(
         )
     if unfinished_runs:
         undecided.append(f"a run did not complete: {', '.join(sorted(unfinished_runs))}")
-    needed = {(name, level) for name in SPECIES for level in DECIDED_LEVELS}
+    needed = {(name, level) for name in SPECIES for level in DECIDED_LEVELS} - set(not_computed)
     absent = sorted(needed - set(runs))
     if absent:
         undecided.append(f"no run for: {', '.join(f'{m} at {level}' for m, level in absent)}")
@@ -486,7 +532,9 @@ def judge(
     rows = compare(decided_entries(), runs, used_tolerance)
     site_rows: list[SiteRow] = []
     for statement, level in decidable_site_statements(used_tolerance):
-        run = runs[(statement.molecule, level)]
+        run = runs.get((statement.molecule, level))
+        if run is None:
+            continue  # NOT COMPUTED: already a failure of its own, in `never`
         values = run.values(statement.attack)
         top = max(range(len(values)), key=lambda i: values[i])
         site_rows.append(SiteRow(
@@ -495,14 +543,18 @@ def judge(
             SPECIES[statement.molecule].neutral,
         ))
 
-    neutral_failures = [
+    never = [
+        f"{molecule} at {level}: ORCA did not complete the three states in {MAX_ATTEMPTS} attempts"
+        for molecule, level in sorted(not_computed) if molecule in SPECIES
+    ]
+    neutral_failures = [line for line in never if SPECIES[line.split(" ", 1)[0]].neutral] + [
         f"{r.molecule} {r.element} {r.attack} at {r.level}: {r.measured:.4f} is {r.difference:+.4f} from {r.source}'s {r.published:.4f}"
         for r in rows if r.within is False and r.neutral
     ] + [
         f"{s.molecule} {s.attack} at {s.level}: the largest value is on {s.found}, the documented site is {s.expected}"
         for s in site_rows if not s.reproduced and s.neutral
     ]
-    anion_failures = [
+    anion_failures = [line for line in never if not SPECIES[line.split(" ", 1)[0]].neutral] + [
         f"{r.molecule} {r.element} {r.attack} at {r.level}: {r.measured:.4f} is {r.difference:+.4f} from {r.source}'s {r.published:.4f}"
         for r in rows if r.within is False and not r.neutral
     ] + [
@@ -536,3 +588,80 @@ def repeat_differences(first: MeasuredRun, second: MeasuredRun) -> dict[str, flo
             out[f"{name}[{index}]"] = abs(a - b)
     return out
 
+
+# --- from the stored runs to a verdict ---------------------------------------------------------------------------------------
+
+
+def measured_from_record(record: Mapping) -> MeasuredRun:
+    """The `MeasuredRun` a record of one stored run (written by the drive step `fukui_gate_record`) describes."""
+    return MeasuredRun(
+        molecule=str(record["species"]),
+        level=str(record["level"]),
+        symbols=tuple(record["symbols"]),
+        f_plus=tuple(float(v) for v in record["f_plus"]),
+        f_minus=tuple(float(v) for v in record["f_minus"]),
+        f_zero=tuple(float(v) for v in record["f_zero"]),
+        dual=tuple(float(v) for v in record["dual"]),
+        charge=int(record["charge"]),
+        multiplicity=int(record["multiplicity"]),
+        orca_version=str(record["orca_version"]),
+        completed=bool(record.get("completed", True)),
+        on_optimized_geometry=bool(record.get("on_optimized_geometry", False)),
+    )
+
+
+def settle_attempts(records: list[Mapping]) -> tuple[dict[tuple[str, str], Mapping], set[tuple[str, str]], list[str], list[str]]:
+    """Which record stands for each (species, level), after the rule for repeats.
+
+    Returns (chosen, not_computed, unfinished, conflicts). A pair with exactly one COMPLETED attempt is chosen. A pair with
+    none, after `MAX_ATTEMPTS` attempts, is NOT COMPUTED; with fewer it is UNFINISHED (the gate cannot decide yet). A pair with
+    two completed attempts is a CONFLICT: a repeat of a job that finished is not an attempt, it is a second draw, and the
+    gate does not choose between them."""
+    by_pair: dict[tuple[str, str], list[Mapping]] = {}
+    for record in records:
+        by_pair.setdefault((str(record["species"]), str(record["level"])), []).append(record)
+    chosen: dict[tuple[str, str], Mapping] = {}
+    never: set[tuple[str, str]] = set()
+    unfinished: list[str] = []
+    conflicts: list[str] = []
+    for pair, attempts in sorted(by_pair.items()):
+        done = [a for a in attempts if a.get("completed")]
+        label = f"{pair[0]} at {pair[1]}"
+        if len(done) > 1:
+            conflicts.append(f"{label} has {len(done)} completed attempts")
+        elif done:
+            chosen[pair] = done[0]
+        elif len(attempts) >= MAX_ATTEMPTS:
+            never.add(pair)
+        else:
+            unfinished.append(label)
+    return chosen, never, unfinished, conflicts
+
+
+def judge_records(records: list[Mapping], *, floor: float | None, tolerance: float | None = TOLERANCE) -> Verdict:
+    """The verdict from the records the drive wrote: attempts settled by the rule, the runs built, `judge` called.
+
+    A conflict (two completed attempts of one job) makes the gate unable to decide and says so."""
+    chosen, never, unfinished, conflicts = settle_attempts(records)
+    runs = {pair: measured_from_record(record) for pair, record in chosen.items()}
+    versions = {run.orca_version for run in runs.values()}
+    verdict = judge(
+        runs, tolerance=tolerance, floor=floor, orca_versions=versions,
+        unfinished_runs=unfinished, not_computed=never,
+    )
+    if conflicts:
+        return Verdict(Outcome.NOT_EVALUABLE, tuple(conflicts) + verdict.reasons if verdict.outcome is Outcome.NOT_EVALUABLE else tuple(conflicts))
+    return verdict
+
+
+def reported_rows(runs: Mapping[tuple[str, str], MeasuredRun], tolerance: float = TOLERANCE) -> list[dict]:
+    """The reported arm as plain dicts: each reported entry against the run at its level, never decided on.
+
+    `suspect` marks a row whose published column fails the sum rule: it is a misprint's neighbour and is shown, not trusted."""
+    failing = {(m, a, level) for m, a, level, _ in failing_columns()}
+    out = []
+    for row in compare(reported_entries(), runs, tolerance, decided=False):
+        item = dataclasses.asdict(row)
+        item["suspect"] = (row.molecule, row.attack, row.level) in failing
+        out.append(item)
+    return out

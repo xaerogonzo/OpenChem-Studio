@@ -960,7 +960,7 @@ used_by = [
     "docs/explainers/reactivity.md",
     "benchmarks/fukui_gate/PREREGISTRATION.md",
 ]
-local = "10.1021@jp014039h.pdf"
+local = "olah2002.pdf"
 verification = "citation_and_claim"
 verified_date = 2026-10-18
 note = """
@@ -1071,6 +1071,42 @@ Loewdin, electrostatic-potential-derived, natural) turn negative in some cases
 target: the tables report local softness s+ and s- in atomic units for the
 protonation-site atoms of anilines only, which need the global softness to
 become f.
+"""
+
+[[source]]
+key = "wang2019"
+kind = "literature"
+citation = "B. Wang, C. Rong, P. K. Chattaraj & S. Liu, 'A comparative study to predict regioselectivity, electrophilicity and nucleophilicity with Fukui function and Hirshfeld charge', Theor. Chem. Acc. 2019, 138, 124, Tables 1-3."
+identifier_type = "doi"
+identifier = "10.1007/s00214-019-2515-1"
+status = "shipped"
+used_by = [
+    "docs/explainers/reactivity.md",
+]
+local = "wang2019.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-18
+note = """
+THE BENCHMARK THAT BOUNDS WHAT THE CALCULATOR MAY CLAIM. Seven molecules with
+experimentally established reaction sites (four electrophilic attacks, three
+nucleophilic), and 43 systems with experimental electrophilicity and
+nucleophilicity scales (21 and 22), at M06-2X/6-311+G(d) in CPCM
+dichloromethane with Multiwfn, 15 charge schemes. Its definitions are this
+application's, in charges: f- = q(N-1) - q(N), f+ = q(N) - q(N+1),
+f0 = [q(N-1) - q(N+1)]/2 (its eqs 5-7).
+
+Taken from it: Table 3's Hirshfeld row (electrophilicity R = 0.995 with the charge and 0.905
+with the Fukui function; nucleophilicity 0.988 and 0.344); the statement that the
+Hirshfeld charge placed the site in all seven systems and the Fukui function from
+none of the 15 schemes did; and, read from its Tables 1 and 2, that Hirshfeld-charge
+Fukui values matched the Hirshfeld charge's (established) site for three of four
+electrophilic attacks (systems a, c, d) and one of three nucleophilic (f). The
+atom numbers behind Tables 1 and 2 are in Scheme 1, a picture, so the count is
+read from the two tables' rows, not from the structures.
+
+It does not test intramolecular ranking of atoms as the small-molecule tables of
+`olah2002` do; it tests whether the largest value is the experimental site and
+whether the value tracks an experimental scale between molecules.
 """
 
 [[source]]

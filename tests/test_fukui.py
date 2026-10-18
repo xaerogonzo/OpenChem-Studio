@@ -276,3 +276,25 @@ def test_the_open_shell_message_names_the_multiplicity_and_the_reason():
 
     message = open_shell_message(3)
     assert "multiplicity 3" in message and "closed-shell" in message and "spin state" in message
+
+
+def test_a_value_of_exactly_zero_is_not_a_negative_one():
+    """An atom whose charge is the same in the neutral and the anion has f+ = 0.0: no density went there, which is not the
+    partition compensating. Only a value BELOW zero is flagged."""
+    result = condensed_fukui([0.5, -0.5], [0.8, 0.2], [0.5, -1.5])
+    assert result
+    assert result.f_plus == pytest.approx([0.0, 1.0])
+    assert not result.has_negative
+    assert not any("negative" in caveat for caveat in result.caveats)
+
+
+def test_atoms_that_tie_to_the_printed_digits_are_one_site_and_atoms_a_digit_apart_are_not():
+    from openchem.chem.fukui import summary_lines
+
+    # 0.4500004 and 0.4500000 are the same six-decimal number as ORCA prints them: named together
+    tied = [_dataset("orca.fukui_plus", [0.1, 0.4500004, 0.4500000])]
+    assert "H (atom 2) and H (atom 3)" in summary_lines(tied, ["O", "H", "H"])[1]
+    # 0.450002 is two millionths ahead: a different value, so only the larger is named
+    apart = [_dataset("orca.fukui_plus", [0.1, 0.450002, 0.4500000])]
+    line = summary_lines(apart, ["O", "H", "H"])[1]
+    assert "H (atom 2)" in line and "H (atom 3)" not in line

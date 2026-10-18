@@ -35,10 +35,10 @@ def2-SVPD moved the largest per-atom value like this:
 
     scheme      f+ moved (per atom)   f- moved    negative f-
     Hirshfeld   0.011 - 0.023         0.003 - 0.009   none
-    Loewdin     0.067 - 0.107         0.055 - 0.105   none
-    Mulliken    0.107 - 0.222         0.030 - 0.079   one (propene)
+    Loewdin     0.067 - 0.107         0.055 - 0.104   none
+    Mulliken    0.106 - 0.222         0.030 - 0.079   one (propene)
     MBIS        0.051 - 0.210         0.023 - 0.032   yes
-    CHELPG      0.043 - 0.279         0.045 - 0.077   yes
+    CHELPG      0.042 - 0.279         0.045 - 0.077   yes
 
 The same measurement showed Mulliken putting 0.23 on EACH hydrogen of
 formaldehyde and about the same on the oxygen as on the carbon, where
