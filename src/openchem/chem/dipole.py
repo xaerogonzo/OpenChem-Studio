@@ -49,6 +49,10 @@ DIPOLE_BENCHMARK: dict[str, str] = {
                                               "over 15; it overestimates polar molecules."),
 }
 
+#: The label of the fact that holds the dipole's magnitude, and the only number of this report a derived score can read: it is part of the id of an approved output (`domain/score_outputs.py`), so a rename
+#: turns the guard red and says which scores it breaks. The three components beside it are the dipole in the conformer's own frame, so turning the molecule over gives other components, and they stay text.
+MAGNITUDE_LABEL = "Dipole"
+
 #: elementary charge * angstrom -> Debye. 1 D = 3.33564e-30 C*m;
 #: e*A = 1.602176634e-19 * 1e-10 C*m.
 _E_ANGSTROM_TO_DEBYE = 1.602176634e-19 * 1e-10 / 3.33564e-30
@@ -156,7 +160,7 @@ def compute_dipole_moment(
 
     places = decimals(parameters)
     lines = [
-        f"Dipole: {magnitude:.{places}f} Debye",
+        f"{MAGNITUDE_LABEL}: {magnitude:.{places}f} Debye",
         f"Dipole X: {vector[0]:+.{places}f} Debye",
         f"Dipole Y: {vector[1]:+.{places}f} Debye",
         f"Dipole Z: {vector[2]:+.{places}f} Debye",
@@ -200,6 +204,13 @@ def compute_dipole_moment(
                 "rdkit_version": rdkit.__version__,
             },
         ),
+    )
+    # **THE MAGNITUDE IS A NUMBER, WHATEVER THE CHARGE MODEL.** Its fact's value was the text the line shows (`'1.62'`), which a derived score must not rest on: it would move with a display setting. The
+    # producer holds the number, so it hands it over, and the line, the label, the unit and the cell's text do not move (`tests/test_dipole_typed.py` holds them to a recording made before this change).
+    # Whether a score may READ it is the reader's question, answered from this result's own provenance (`charge_model`, `origin_independent`): the charge models disagree by a factor of up to five on one
+    # molecule and a charged species has no origin-free dipole, and neither of those is this function's to hide by leaving the number as text.
+    result = dataclasses.replace(
+        result, facts=tuple(dataclasses.replace(fact, value=float(magnitude)) if fact.label == MAGNITUDE_LABEL else fact for fact in result.facts)
     )
     # THE ARROW, only when there is one. A magnitude that rounds to zero
     # at the displayed precision means the direction is numerical noise --

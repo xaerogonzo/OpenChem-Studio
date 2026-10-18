@@ -52,7 +52,9 @@ import sweep_score_outputs as sweep_tool  # noqa: E402
 
 #: The calculators the table draws from, plus the two controls: `joback_properties` is limited and HIDDEN by default, and
 #: `polar_surface_area` carries its number as text rounded by the decimal-places setting.
-_CALCULATORS_UNDER_TEST = ["bbb_descriptors", "geometry_analysis", "homa_aromaticity", "oxygen_balance", "polarizability", "solubility", "topology_analysis", "joback_properties", "polar_surface_area", "logd"]
+_CALCULATORS_UNDER_TEST = [
+    "bbb_descriptors", "dipole_moment", "geometry_analysis", "homa_aromaticity", "oxygen_balance", "polarizability", "solubility", "surface_analysis", "topology_analysis", "joback_properties", "polar_surface_area", "logd",
+]
 
 
 def _entry(**changes) -> ApprovedOutput:
@@ -119,6 +121,7 @@ _SHARED_ENDPOINTS = {
 #: The unit of every approved output, written out for the same reason: it decides what a formula over it may add and what it works out to.
 _UNITS = {
     "calculator:bbb_descriptors:Aromatic rings": "1",
+    "calculator:dipole_moment:Dipole": "D",
     "calculator:geometry_analysis:Max projection area": "Å^2",
     "calculator:geometry_analysis:Max projection radius": "Å",
     "calculator:geometry_analysis:Max radius (from centroid)": "Å",
@@ -151,6 +154,11 @@ _UNITS = {
     "calculator:topology_analysis:Ring bond count": "1",
     "calculator:topology_analysis:Szeged index": "1",
     "calculator:topology_analysis:Wiener index": "1",
+    "calculator:surface_analysis:ASA (solvent accessible)": "Å^2",
+    "calculator:surface_analysis:ASA_H (hydrophobic)": "Å^2",
+    "calculator:surface_analysis:ASA_P (polar)": "Å^2",
+    "calculator:surface_analysis:van der Waals surface area": "Å^2",
+    "calculator:surface_analysis:van der Waals volume": "Å^3",
     "calculator:topology_analysis:Wiener polarity": "1",
     "descriptor:asphericity": "1", "descriptor:bertz_ct": "1", "descriptor:esol_logs": "1", "descriptor:exact_mass": "g/mol", "descriptor:fsp3": "1",
     "descriptor:heavy_atom_count": "1", "descriptor:inertial_shape_factor": "1/amu*Å^2", "descriptor:labute_asa": "Å^2", "descriptor:mol_logp": "1", "descriptor:mol_wt": "g/mol",
@@ -161,7 +169,7 @@ _UNITS = {
 }
 
 #: The outputs read from a CONFORMER's geometry and not from the drawing, written out for the same reason: it decides which structure a score means, and a score over one has no value for a
-#: molecule that has no conformer. Every other approved output is the drawing's. The ten shape descriptors, then eight of Geometry Analysis's sizes.
+#: molecule that has no conformer. Every other approved output is the drawing's. The ten shape descriptors, eight of Geometry Analysis's sizes, HOMA's two extremes, the dipole's magnitude and five surface numbers.
 _GEOMETRY_OUTPUTS = {
     "descriptor:asphericity", "descriptor:inertial_shape_factor", "descriptor:npr1", "descriptor:npr2", "descriptor:pbf", "descriptor:pmi1", "descriptor:pmi2", "descriptor:pmi3",
     "descriptor:radius_of_gyration", "descriptor:spherocity_index",
@@ -169,6 +177,8 @@ _GEOMETRY_OUTPUTS = {
     "calculator:geometry_analysis:Mean radius (from centroid)", "calculator:geometry_analysis:Min projection area", "calculator:geometry_analysis:Min projection radius",
     "calculator:geometry_analysis:Size perpendicular to the max projection", "calculator:geometry_analysis:Size perpendicular to the min projection",
     "calculator:homa_aromaticity:Highest HOMA of any ring", "calculator:homa_aromaticity:Lowest HOMA of any ring",
+    "calculator:dipole_moment:Dipole", "calculator:surface_analysis:ASA (solvent accessible)", "calculator:surface_analysis:ASA_H (hydrophobic)", "calculator:surface_analysis:ASA_P (polar)",
+    "calculator:surface_analysis:van der Waals surface area", "calculator:surface_analysis:van der Waals volume",
 }
 
 #: Which outputs ask more than "is it a number of the stored conformer": Geometry Analysis's own settings change what it measures (`score_value.not_applicable_reason`). The two radii from the
@@ -186,11 +196,11 @@ def test_exactly_these_outputs_are_read_from_a_conformer_and_all_the_others_from
     assert all(entry.input == READ_FROM for entry in APPROVED if entry.output_id not in _GEOMETRY_OUTPUTS)
 
 
-def test_the_twenty_geometry_outputs_are_each_their_own_quantity():
-    """Three principal moments, two ratios, a radius, a plane distance and three anisotropy measures; two radii from the centroid and six projection numbers; the highest and the lowest ring HOMA: all different
-    numbers, so none shares a tag, and a formula may combine them."""
+def test_the_twenty_six_geometry_outputs_are_each_their_own_quantity():
+    """Three principal moments, two ratios, a radius, a plane distance and three anisotropy measures; two radii from the centroid and six projection numbers; the highest and the lowest ring HOMA; a dipole
+    and five surface numbers: all different numbers, so none shares a tag, and a formula may combine them."""
     tags = [entry.endpoint for entry in APPROVED if entry.input == "geometry"]
-    assert len(tags) == len(set(tags)) == 20
+    assert len(tags) == len(set(tags)) == 26
 
 
 #: The outputs that read bond lengths and so only from a geometry a quantum calculation optimised: HOMA's two extremes.
@@ -211,6 +221,27 @@ def test_exactly_these_outputs_ask_how_the_calculator_measured_them():
     assert len(_AS_STORED) == 2 and len(_AS_STORED_UNSCALED) == 6
     assert all(entry.measured_as in MEASURED_AS for entry in APPROVED)
     assert all(entry.input == "geometry" for entry in APPROVED if entry.measured_as), "a drawing output has no geometry to have measured"
+
+
+#: The outputs whose number is read only at the settings the calculator ran with, and which: the dipole from Gasteiger's charges of a neutral species, the accessible areas at the default probe on the structure
+#: as it is, and the two van der Waals numbers (no probe) on the structure as it is. Written out because it decides which result a score will not read (`score_value._settings_reason`).
+_RUN_WITH = {
+    "calculator:dipole_moment:Dipole": "gasteiger_neutral",
+    "calculator:surface_analysis:ASA (solvent accessible)": "default_probe_as_drawn",
+    "calculator:surface_analysis:ASA_H (hydrophobic)": "default_probe_as_drawn",
+    "calculator:surface_analysis:ASA_P (polar)": "default_probe_as_drawn",
+    "calculator:surface_analysis:van der Waals surface area": "as_drawn",
+    "calculator:surface_analysis:van der Waals volume": "as_drawn",
+}
+
+
+def test_exactly_these_outputs_ask_which_settings_the_calculator_ran_with():
+    from openchem.domain.score_outputs import RUN_WITH
+
+    assert {entry.output_id: entry.run_with for entry in APPROVED if entry.run_with} == _RUN_WITH
+    assert all(entry.run_with in RUN_WITH for entry in APPROVED)
+    assert all(entry.input == "geometry" and entry.whole_structure for entry in APPROVED if entry.run_with), "they are numbers of the whole 3D structure, and a salt of them is declined"
+    assert not any(entry.needs_quantum_geometry or entry.measured_as for entry in APPROVED if entry.run_with)
 
 
 def test_the_outputs_that_share_an_endpoint_are_exactly_these():
@@ -236,6 +267,7 @@ _QUANTITY = {
     "amu*Å^2": "a moment of inertia",
     "1/amu*Å^2": "an inverse moment of inertia",
     "Å^3": "a volume",
+    "D": "a dipole moment",
     "mg/mL": "a solubility",
     "mol/L": "a solubility",
 }
