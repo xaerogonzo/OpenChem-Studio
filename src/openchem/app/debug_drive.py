@@ -3079,6 +3079,224 @@ class _Driver(QObject):
                        verdict.outcome.value.upper(), len(verdict.rows), len(verdict.site_rows), list(verdict.reasons), path)
         self._record_assertion("fukui_gate_judge", "verdict", True, verdict.outcome.value)
 
+    # -- the second Fukui gate ----------------------------------------------------------------------------------------
+    # `benchmarks/fukui_gate_2/PREREGISTRATION.md` fixes what these assert before any number exists; the arithmetic is
+    # `app/fukui_gate_2.py` and is pure. The steps are the first gate's, widened for what the second one needs: an anion's
+    # run holds one dataset and not four, every record carries the provenance the judge checks (grid, functions, the
+    # reference charge, the commit), and two noise floors are measured, one for each route.
+
+    @staticmethod
+    def _fukui2_calculation_identity() -> tuple[str, bool]:
+        """(the commit the application runs from, whether the CODE differs from it): `src/`, `plugins/` and the lockfile only,
+        because the artifacts a gate writes into the repository are untracked files and would make every later record 'dirty'."""
+        import subprocess
+        from pathlib import Path
+
+        import openchem
+
+        repo = Path(openchem.__file__).resolve().parents[2]
+
+        def git(*arguments: str) -> str:
+            done = subprocess.run(["git", *arguments], cwd=repo, capture_output=True, text=True, timeout=60)
+            return done.stdout.strip() if done.returncode == 0 else ""
+
+        commit = git("rev-parse", "HEAD")
+        return commit, (not commit) or bool(git("status", "--porcelain", "--", "src", "plugins", "pyproject.toml", "uv.lock"))
+
+    def _do_fukui2_record(self, step: dict[str, Any]) -> None:
+        """`{"do": "fukui2_record", "species": "phenol", "level": "B3LYP/6-31G*", "attempt": 1, "artifact": ".../records.json"}` -- append
+        what the newest stored Fukui run of the selected molecule says to a records file (the second gate).
+
+        Read off the STORED RUN, never off a panel, as the first gate's step is, and widened: an anion's run must hold `orca.fukui_minus`
+        alone and any other species all four datasets; the record keeps the run's method and basis and the provenance of its datasets (the
+        grid, the functions computed, the reference charge, how many starts ran and failed and how far below the default one the chosen
+        start was), the commit and whether the code differs from it, and for acrolein the optimized O=C-C=C dihedral. A run that is missing,
+        failed or at another method than the level names is recorded as NOT completed, with why."""
+        from openchem.app import fukui_gate_2 as gate
+        from openchem.chem.calculation_input import canonical_conformer, geometry_fingerprint
+        from openchem.domain.quantum_chemistry_run import RunStatus
+
+        panel = getattr(self._window, "_quantum_chemistry_panel", None)
+        molecule = self._window._current_molecule()
+        if panel is None or molecule is None or panel._result_store_service is None:
+            logger.error("OPENCHEM_DRIVE: fukui2_record -- no panel, molecule or result store")
+            return
+        species_name, level = str(step["species"]), str(step["level"])
+        species = gate.ALL_SPECIES[species_name]
+        runs = [r for r in panel._result_store_service.qc_runs.runs_for(molecule.uuid) if r.calc_type == "fukui"]
+        problems: list[str] = []
+        record: dict[str, Any] = {
+            "species": species_name, "level": level, "label": step.get("label", ""), "attempt": int(step.get("attempt", 1)), "completed": False,
+        }
+        if not runs:
+            problems.append("no stored Fukui run for the selected molecule")
+        else:
+            run = runs[0]
+            datasets = {d.property_id: d for d in (run.results.get("per_atom") or [])}
+            record.update({
+                "run_id": run.run_id, "status": run.status.value, "method_basis": run.method_basis, "charge": run.charge,
+                "multiplicity": run.multiplicity, "input_fingerprint": run.input_fingerprint, "warnings": list(run.warnings),
+            })
+            if run.status not in (RunStatus.COMPLETED, RunStatus.COMPLETED_WITH_WARNINGS):
+                problems.append(f"the run's status is {run.status.value}")
+            expected_method = gate.METHOD_BASIS.get(level, step.get("method_basis", ""))
+            if run.method_basis != expected_method:
+                problems.append(f"the run used {run.method_basis!r}, the level names {expected_method!r}")
+            names = ("orca.fukui_minus",) if species.charge < 0 else ("orca.fukui_plus", "orca.fukui_minus", "orca.fukui_zero", "orca.fukui_dual")
+            if sorted(datasets) != sorted(names):
+                problems.append(f"the run holds {sorted(datasets)}, a species of charge {species.charge} should hold {sorted(names)}")
+            if not problems:
+                mol = panel._chemistry_engine.mol_from_molblock(run.input_molblock)
+                size = mol.GetNumAtoms()
+                ordered = {name: [datasets[name].values[i] for i in range(size)] for name in names}
+                parameters = datasets["orca.fukui_minus"].provenance.parameters
+                canonical = canonical_conformer(molecule)
+                commit, dirty = self._fukui2_calculation_identity()
+                record.update({
+                    "symbols": [atom.GetSymbol() for atom in mol.GetAtoms()],
+                    "f_plus": ordered.get("orca.fukui_plus", []), "f_minus": ordered["orca.fukui_minus"],
+                    "f_zero": ordered.get("orca.fukui_zero", []), "dual": ordered.get("orca.fukui_dual", []),
+                    "orca_version": parameters.get("orca_version", ""), "grid": parameters.get("grid", ""),
+                    "functions": parameters.get("functions", ""), "reference_charge": parameters.get("reference_charge"),
+                    "starts_run": parameters.get("starts_run"), "starts_failed": parameters.get("starts_failed"),
+                    "start_gain_ev": parameters.get("start_gain_ev"), "start_note": parameters.get("start_note", ""),
+                    "unbound_anion_ev": parameters.get("unbound_anion_ev"),
+                    "canonical_method": None if canonical is None else canonical.method,
+                    "canonical_fingerprint": "" if canonical is None else geometry_fingerprint(canonical),
+                    "calculation_commit": commit, "calculation_dirty": dirty,
+                })
+                record["on_optimized_geometry"] = bool(
+                    canonical is not None and canonical.method == "orca_opt"
+                    and run.calculation_input == "geometry" and run.input_fingerprint == record["canonical_fingerprint"]
+                )
+                if species_name == "acrolein":
+                    conformer = mol.GetConformer()
+                    positions = [(p.x, p.y, p.z) for p in (conformer.GetAtomPosition(i) for i in range(size))]
+                    record["dihedral_degrees"] = gate.acrolein_dihedral(species.labels, positions)
+                record["completed"] = True
+        record["problems"] = problems
+        path = Path(str(step["artifact"]))
+        existing = json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
+        existing.append(record)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(existing, indent=1, default=str), encoding="utf-8")
+        logger.warning(
+            "OPENCHEM_DRIVE: fukui2_record %s at %s attempt %s -- completed=%s on_optimized=%s functions=%s grid=%s problems=%s -> %s",
+            species_name, level, record["attempt"], record["completed"], record.get("on_optimized_geometry"), record.get("functions"),
+            record.get("grid"), problems, path,
+        )
+        self._record_assertion("fukui2_record", f"{species_name}@{level}", True, "recorded; " + ("; ".join(problems) or "completed"))
+
+    def _do_fukui2_floor(self, step: dict[str, Any]) -> None:
+        """`{"do": "fukui2_floor", "records": "...floor_records.json", "artifact": "...floor.json"}` -- the noise floor of each route, from
+        three recorded runs of each floor species (pyridine for the neutral and cation route, formate for the anion route): `a1` and `a2`
+        (the same input twice) and `b` (the whole chain a second time). The gate's floor is the larger of the two routes'. The same-input
+        pair must carry ONE input fingerprint and two different run ids, or the floor is not recorded."""
+        from openchem.app import fukui_gate_2 as gate
+
+        records = json.loads(Path(str(step["records"])).read_text(encoding="utf-8"))
+        results: dict[str, Any] = {}
+        detail: dict[str, Any] = {}
+        for name in gate.FLOOR_SPECIES:
+            by_label = {r.get("label"): r for r in records if r.get("species") == name and r.get("completed")}
+            missing = [label for label in ("a1", "a2", "b") if label not in by_label]
+            if missing:
+                logger.error("OPENCHEM_DRIVE: fukui2_floor -- no completed record of %s labelled %s", name, missing)
+                return
+            a1, a2, b = (gate.measured_from_record(by_label[label]) for label in ("a1", "a2", "b"))
+            same_input = by_label["a1"]["input_fingerprint"] == by_label["a2"]["input_fingerprint"]
+            distinct = by_label["a1"]["run_id"] != by_label["a2"]["run_id"]
+            if not (same_input and distinct):
+                logger.error(
+                    "OPENCHEM_DRIVE: fukui2_floor -- %s: the repeat is not a repeat (same input: %s, distinct runs: %s)", name, same_input, distinct
+                )
+                return
+            same = gate.repeat_differences(a1, a2)
+            chain = gate.repeat_differences(a1, b)
+            results[name] = gate.FloorResult(name, max(same.values()), max(chain.values()))
+            detail[name] = {
+                "same_input_largest": results[name].same_input, "whole_chain_largest": results[name].whole_chain,
+                "input_fingerprints": {k: by_label[k]["input_fingerprint"] for k in ("a1", "a2", "b")},
+                "run_ids": {k: by_label[k]["run_id"] for k in ("a1", "a2", "b")},
+            }
+        floor = gate.combined_floor(list(results.values()))
+        out = {"floor": floor, "limit": gate.FLOOR_LIMIT, "usable": floor <= gate.FLOOR_LIMIT + 1e-9, "routes": detail}
+        path = Path(str(step["artifact"]))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(out, indent=1), encoding="utf-8")
+        logger.warning("OPENCHEM_DRIVE: fukui2_floor F=%.6f limit=%s usable=%s -> %s", floor, gate.FLOOR_LIMIT, out["usable"], path)
+        self._record_assertion("fukui2_floor", "floor", True, f"F={floor:.6f}")
+
+    def _do_fukui2_begin(self, step: dict[str, Any]) -> None:
+        """`{"do": "fukui2_begin", "floor": "benchmarks/fukui_gate_2/artifacts/floor.json"}` -- REFUSE TO GO ON UNTIL BOTH NOISE FLOORS
+        ARE MEASURED AND USABLE, the preregistered order. With none the run ends here, before one ORCA job of a gate species has started."""
+        from openchem.app import fukui_gate_2 as gate
+
+        path = Path(str(step.get("floor", "benchmarks/fukui_gate_2/artifacts/floor.json")))
+        problem = ""
+        try:
+            floor = json.loads(path.read_text(encoding="utf-8"))
+            value = float(floor["floor"])
+            if value > gate.FLOOR_LIMIT + 1e-9 or not floor.get("usable"):
+                problem = f"the noise floor {value} is above the limit {gate.FLOOR_LIMIT}"
+        except (OSError, ValueError, KeyError) as exc:
+            problem = f"{path} cannot be used: {exc}"
+        if problem:
+            logger.error("OPENCHEM_DRIVE: fukui2_begin REFUSED -- %s", problem)
+            self._record_assertion("fukui2_begin", "", False, problem)
+            self._hold_chain = True
+            self._do_quit({})
+            return
+        logger.warning("OPENCHEM_DRIVE: fukui2_begin T=%s, noise floor %.6f <= %s", gate.TOLERANCE, value, gate.FLOOR_LIMIT)
+        self._record_assertion("fukui2_begin", "", True, f"floor {value}")
+
+    def _do_fukui2_judge(self, step: dict[str, Any]) -> None:
+        """`{"do": "fukui2_judge", "records": "...records.json", "floor": "...floor.json", "artifact": "...verdict.json"}` -- the second gate's
+        verdict, by `fukui_gate_2.judge_records`, which is pure and tested, with the share of the decided numbers within 0.01 written beside it.
+        The drive's own VERDICT says whether the step ran; the gate's outcome is logged and written, and is not the drive's to fail."""
+        import dataclasses
+
+        from openchem.app import fukui_gate_2 as gate
+
+        records = json.loads(Path(str(step["records"])).read_text(encoding="utf-8"))
+        floor_path = Path(str(step["floor"]))
+        floor = json.loads(floor_path.read_text(encoding="utf-8"))["floor"] if floor_path.exists() else None
+        verdict = gate.judge_records(records, floor=floor)
+        within, total = gate.share_within(verdict.rows, 0.01)
+        out = {
+            "outcome": verdict.outcome.value, "reasons": list(verdict.reasons), "charged_outside": list(verdict.anions_outside),
+            "floor": floor, "tolerance": gate.TOLERANCE, "within_0_01": [within, total],
+            "rows": [dataclasses.asdict(row) for row in verdict.rows],
+            "site_rows": [dataclasses.asdict(row) for row in verdict.site_rows],
+        }
+        path = Path(str(step["artifact"]))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(out, indent=1), encoding="utf-8")
+        logger.warning("OPENCHEM_DRIVE: FUKUI GATE 2 %s -- %d decided rows (%d within 0.01), %d site rows, reasons=%s -> %s",
+                       verdict.outcome.value.upper(), len(verdict.rows), within, len(verdict.site_rows), list(verdict.reasons), path)
+        self._record_assertion("fukui2_judge", "verdict", True, verdict.outcome.value)
+
+    def _do_fukui2_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "fukui2_report", "records": "...reported_records.json", "artifact": "...reported.json"}` -- the REPORTED arm: every published
+        number outside the decision, and the decided numbers again at the application's default preset, beside what a stored run measured, plus the
+        statements the rules leave out with the experimental class of Table 5. Written, never judged."""
+        from openchem.app import fukui_gate_2 as gate
+
+        records = json.loads(Path(str(step["records"])).read_text(encoding="utf-8"))
+        chosen, never, unfinished, conflicts = gate.settle_attempts(records)
+        runs = {pair: gate.measured_from_record(record) for pair, record in chosen.items()}
+        rows = gate.reported_rows(runs)
+        out = {
+            "rows": rows, "site_rows": gate.reported_site_rows(runs), "not_computed": sorted(f"{m} at {level}" for m, level in never),
+            "unfinished": unfinished, "conflicts": conflicts, "tolerance": gate.TOLERANCE,
+            "within": sum(1 for row in rows if row["within"]), "total": len(rows),
+        }
+        path = Path(str(step["artifact"]))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(out, indent=1), encoding="utf-8")
+        logger.warning("OPENCHEM_DRIVE: fukui2_report %d of %d reported rows within %s (not decided on) -> %s", out["within"], out["total"], gate.TOLERANCE, path)
+        self._record_assertion("fukui2_report", "reported", True, f"{out['within']} of {out['total']}")
+
     def _do_qc_wait(self, step: dict[str, Any]) -> None:
         """`{"do": "qc_wait", "timeout_ms": 600000, "quiet_ms": 1500, "after_ms": 500}` -- hold the script until the
         Quantum Chemistry service has no job running, steadily for `quiet_ms`.
