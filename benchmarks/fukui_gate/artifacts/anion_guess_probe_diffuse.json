@@ -1,0 +1,426 @@
+{
+ "scratch": "C:\\Users\\pmpd\\AppData\\Local\\Temp\\fukui_anion_probe_07nw4c8_",
+ "mode": "diffuse",
+ "rows": [
+  {
+   "species": "acetone",
+   "level": "HF/6-311+G**",
+   "variant": "default",
+   "energy_hartree": -191.917667868133,
+   "s2": 0.767079,
+   "f_plus": [
+    0.0537,
+    0.2449,
+    0.0537,
+    0.251,
+    0.0788,
+    0.0724,
+    0.0469,
+    0.0469,
+    0.0787,
+    0.0725
+   ]
+  },
+  {
+   "species": "acetone",
+   "level": "HF/6-311+G**",
+   "variant": "Hueckel",
+   "energy_hartree": -191.917667794757,
+   "s2": 0.767086,
+   "f_plus": [
+    0.0537,
+    0.245,
+    0.0537,
+    0.2509,
+    0.0788,
+    0.0724,
+    0.0469,
+    0.0469,
+    0.0787,
+    0.0725
+   ]
+  },
+  {
+   "species": "acetone",
+   "level": "HF/6-311+G**",
+   "variant": "PAtom",
+   "energy_hartree": -191.917667865263,
+   "s2": 0.76709,
+   "f_plus": [
+    0.0537,
+    0.245,
+    0.0537,
+    0.251,
+    0.0788,
+    0.0724,
+    0.0469,
+    0.0469,
+    0.0787,
+    0.0725
+   ]
+  },
+  {
+   "species": "acetone",
+   "level": "HF/6-311+G**",
+   "variant": "HCore",
+   "energy_hartree": -191.954893804735,
+   "s2": 0.750566,
+   "f_plus": [
+    0.1027,
+    0.0324,
+    0.1028,
+    0.0581,
+    0.1327,
+    0.1468,
+    0.0721,
+    0.0722,
+    0.1327,
+    0.147
+   ]
+  },
+  {
+   "species": "acetone",
+   "level": "HF/6-311+G**",
+   "variant": "stability",
+   "energy_hartree": -191.917667868133,
+   "s2": 0.767079,
+   "f_plus": [
+    0.0537,
+    0.2449,
+    0.0537,
+    0.251,
+    0.0788,
+    0.0724,
+    0.0469,
+    0.0469,
+    0.0787,
+    0.0725
+   ]
+  },
+  {
+   "species": "acetone",
+   "level": "B3LYP/6-311+G**",
+   "variant": "default",
+   "energy_hartree": -193.063269237145,
+   "s2": 0.750115,
+   "f_plus": [
+    0.1062,
+    0.0297,
+    0.1042,
+    0.0571,
+    0.13,
+    0.1429,
+    0.0811,
+    0.0797,
+    0.1275,
+    0.142
+   ]
+  },
+  {
+   "species": "acetone",
+   "level": "B3LYP/6-311+G**",
+   "variant": "Hueckel",
+   "energy_hartree": -193.063242676065,
+   "s2": 0.750115,
+   "f_plus": [
+    0.1055,
+    0.0295,
+    0.1051,
+    0.0569,
+    0.1289,
+    0.1425,
+    0.0806,
+    0.0805,
+    0.1286,
+    0.1422
+   ]
+  },
+  {
+   "species": "acetone",
+   "level": "B3LYP/6-311+G**",
+   "variant": "PAtom",
+   "energy_hartree": -193.063270665645,
+   "s2": 0.750118,
+   "f_plus": [
+    0.1055,
+    0.0296,
+    0.1051,
+    0.0569,
+    0.1288,
+    0.1424,
+    0.0807,
+    0.0805,
+    0.1285,
+    0.1423
+   ]
+  },
+  {
+   "species": "acetone",
+   "level": "B3LYP/6-311+G**",
+   "variant": "HCore",
+   "energy_hartree": -193.063281539779,
+   "s2": 0.750118,
+   "f_plus": [
+    0.1057,
+    0.0296,
+    0.1051,
+    0.0569,
+    0.1283,
+    0.1429,
+    0.081,
+    0.0807,
+    0.1287,
+    0.1415
+   ]
+  },
+  {
+   "species": "acetone",
+   "level": "B3LYP/6-311+G**",
+   "variant": "stability",
+   "energy_hartree": -193.063269237145,
+   "s2": 0.750115,
+   "f_plus": [
+    0.1062,
+    0.0297,
+    0.1042,
+    0.0571,
+    0.13,
+    0.1429,
+    0.0811,
+    0.0797,
+    0.1275,
+    0.142
+   ]
+  },
+  {
+   "species": "CN-",
+   "level": "HF/6-311+G**",
+   "variant": "default",
+   "energy_hartree": -92.066071173656,
+   "s2": 0.763004,
+   "f_plus": [
+    0.8722,
+    0.1283
+   ]
+  },
+  {
+   "species": "CN-",
+   "level": "HF/6-311+G**",
+   "variant": "Hueckel",
+   "energy_hartree": -92.091090691681,
+   "s2": 0.751443,
+   "f_plus": [
+    0.5923,
+    0.4108
+   ]
+  },
+  {
+   "species": "CN-",
+   "level": "HF/6-311+G**",
+   "variant": "PAtom",
+   "energy_hartree": -92.066071220876,
+   "s2": 0.762979,
+   "f_plus": [
+    0.8722,
+    0.1283
+   ]
+  },
+  {
+   "species": "CN-",
+   "level": "HF/6-311+G**",
+   "variant": "HCore",
+   "energy_hartree": -92.091090626952,
+   "s2": 0.751471,
+   "f_plus": [
+    0.5922,
+    0.4108
+   ]
+  },
+  {
+   "species": "CN-",
+   "level": "HF/6-311+G**",
+   "variant": "stability",
+   "energy_hartree": -92.091090606708,
+   "s2": 0.75144,
+   "f_plus": [
+    0.592,
+    0.411
+   ]
+  },
+  {
+   "species": "CN-",
+   "level": "B3LYP/6-311+G**",
+   "variant": "default",
+   "energy_hartree": -92.60345113961,
+   "s2": 0.751667,
+   "f_plus": [
+    0.8783,
+    0.1224
+   ]
+  },
+  {
+   "species": "CN-",
+   "level": "B3LYP/6-311+G**",
+   "variant": "Hueckel",
+   "energy_hartree": -92.6260682746,
+   "s2": 0.750413,
+   "f_plus": [
+    0.5725,
+    0.4309
+   ]
+  },
+  {
+   "species": "CN-",
+   "level": "B3LYP/6-311+G**",
+   "variant": "PAtom",
+   "energy_hartree": -92.626134992201,
+   "s2": 0.750417,
+   "f_plus": [
+    0.5725,
+    0.4309
+   ]
+  },
+  {
+   "species": "CN-",
+   "level": "B3LYP/6-311+G**",
+   "variant": "HCore",
+   "energy_hartree": -92.626003445559,
+   "s2": 0.750417,
+   "f_plus": [
+    0.5727,
+    0.4307
+   ]
+  },
+  {
+   "species": "CN-",
+   "level": "B3LYP/6-311+G**",
+   "variant": "stability",
+   "energy_hartree": -92.62606375396,
+   "s2": 0.75042,
+   "f_plus": [
+    0.5726,
+    0.4308
+   ]
+  },
+  {
+   "species": "CNO-",
+   "level": "B3LYP/6-311+G**",
+   "variant": "default",
+   "energy_hartree": -167.791142684061,
+   "s2": 0.750289,
+   "f_plus": [
+    0.6319,
+    0.1558,
+    0.1943
+   ]
+  },
+  {
+   "species": "CNO-",
+   "level": "B3LYP/6-311+G**",
+   "variant": "Hueckel",
+   "energy_hartree": -167.790981003704,
+   "s2": 0.750212,
+   "f_plus": [
+    0.591,
+    0.174,
+    0.2151
+   ]
+  },
+  {
+   "species": "CNO-",
+   "level": "B3LYP/6-311+G**",
+   "variant": "PAtom",
+   "energy_hartree": -167.791127345258,
+   "s2": 0.750288,
+   "f_plus": [
+    0.6319,
+    0.1558,
+    0.1944
+   ]
+  },
+  {
+   "species": "CNO-",
+   "level": "B3LYP/6-311+G**",
+   "variant": "HCore",
+   "energy_hartree": -167.790831347417,
+   "s2": 0.750212,
+   "f_plus": [
+    0.5904,
+    0.1745,
+    0.215
+   ]
+  },
+  {
+   "species": "CNO-",
+   "level": "B3LYP/6-311+G**",
+   "variant": "stability",
+   "energy_hartree": null,
+   "s2": null
+  },
+  {
+   "species": "H2CO",
+   "level": "B3LYP/6-311+G**",
+   "variant": "default",
+   "energy_hartree": -114.452299449984,
+   "s2": 0.751776,
+   "f_plus": [
+    0.4382,
+    0.22,
+    0.1678,
+    0.1679
+   ]
+  },
+  {
+   "species": "H2CO",
+   "level": "B3LYP/6-311+G**",
+   "variant": "Hueckel",
+   "energy_hartree": -114.437937487291,
+   "s2": 0.7501,
+   "f_plus": [
+    0.3271,
+    0.077,
+    0.2976,
+    0.2992
+   ]
+  },
+  {
+   "species": "H2CO",
+   "level": "B3LYP/6-311+G**",
+   "variant": "PAtom",
+   "energy_hartree": -114.452200000066,
+   "s2": 0.751763,
+   "f_plus": [
+    0.4382,
+    0.22,
+    0.1678,
+    0.1679
+   ]
+  },
+  {
+   "species": "H2CO",
+   "level": "B3LYP/6-311+G**",
+   "variant": "HCore",
+   "energy_hartree": -114.452203005271,
+   "s2": 0.751761,
+   "f_plus": [
+    0.4382,
+    0.22,
+    0.1678,
+    0.1679
+   ]
+  },
+  {
+   "species": "H2CO",
+   "level": "B3LYP/6-311+G**",
+   "variant": "stability",
+   "energy_hartree": -114.452936916484,
+   "s2": 0.751703,
+   "f_plus": [
+    0.4275,
+    0.1939,
+    0.1865,
+    0.1866
+   ]
+  }
+ ]
+}

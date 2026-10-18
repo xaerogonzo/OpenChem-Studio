@@ -40,6 +40,7 @@ from openchem.chem.calculation_input import (
     resolve_ensemble,
 )
 from openchem.chem.engine import ChemistryEngine
+from openchem.chem.fukui import conformer_average_message, open_shell_message, summary_lines
 from openchem.chem.isotopes import same_structure
 from openchem.chem.nmr_correlation import (
     compute_cosy_pairs,
@@ -1657,6 +1658,7 @@ class QuantumChemistryPanel(QWidget):
         `_render_run`: the live path has already drawn this run, and repainting
         it from the stored record would reset tabs the user is looking at.
         """
+        self._append_per_atom_summary(event.run)
         molecule = self._current_molecule()
         if molecule is None or self._result_store_service is None:
             return
@@ -1691,6 +1693,24 @@ class QuantumChemistryPanel(QWidget):
             current.results.get("tautomer_distribution") is not None
         )
         self._update_tautomer_nmr_buttons(current)
+
+    def _per_atom_summary_lines(self, run, mol) -> list[str]:
+        """What a run's per-atom datasets say, in words (`chem.fukui.summary_lines`): the one rendering both the
+        live job and a stored run get, so they cannot come to say different things. `mol` supplies the elements
+        in the atom order the indices refer to."""
+        datasets = run.results.get("per_atom") or []
+        symbols = [atom.GetSymbol() for atom in mol.GetAtoms()] if mol is not None else []
+        return summary_lines(datasets, symbols)
+
+    def _append_per_atom_summary(self, run) -> None:
+        """The live job's summary, added under the descriptor lines `_on_result_ready` wrote. Published after
+        them (`_finish_calculation_job` sends the result, then the run), so there is something to add to."""
+        if run.molecule_uuid != self._pending_molecule_uuid:
+            return
+        lines = self._per_atom_summary_lines(run, self._pending_mol)
+        if lines:
+            existing = self._results_label.text()
+            self._results_label.setText("\n".join([existing, *lines]) if existing else "\n".join(lines))
 
     def _run_label(self, run) -> str:
         when = time.strftime("%Y-%m-%d %H:%M", time.localtime(run.started_at))
@@ -1908,6 +1928,7 @@ class QuantumChemistryPanel(QWidget):
 
         descriptors = run.results.get("descriptors") or []
         lines = [f"{d.name}: {d.value:.6f} {d.units}" for d in descriptors]
+        lines.extend(self._per_atom_summary_lines(run, self._display_mol))
         self._results_label.setText("\n".join(lines))
 
         spectrum = run.results.get("spectrum")
@@ -2012,6 +2033,17 @@ class QuantumChemistryPanel(QWidget):
         if not method_basis:
             self._status_label.setText("Enter a method/basis (e.g. 'B3LYP def2-SVP').")
             return
+
+        # Said here as well as by the engine and the service, so the person is told before a job is queued and
+        # not by a failed one: an open-shell species has no Fukui function until a spin state is chosen, and
+        # the per-atom values do not survive the conformer-averaging path.
+        if calc_type == "fukui":
+            if self._multiplicity_spin.value() != 1:
+                self._status_label.setText(open_shell_message(self._multiplicity_spin.value()))
+                return
+            if self._boltzmann_check.isChecked() and len(molecule.conformers) > 1:
+                self._status_label.setText(conformer_average_message())
+                return
 
         boltzmann = self._boltzmann_check.isChecked() and len(molecule.conformers) > 1
         ensemble = None

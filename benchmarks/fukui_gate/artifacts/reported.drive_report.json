@@ -1,0 +1,165 @@
+{
+  "verdict": "PASS",
+  "exit_code": 0,
+  "tolerate_errors": false,
+  "run": {
+    "run_id": "9b5e9a19f1a54bc4ac1325c4f954b05b",
+    "pid": 29116,
+    "started": "2026-10-18T08:47:41+00:00",
+    "script": "benchmarks/visual/fukui_gate_reported.json",
+    "script_sha256": "07056215c4826323cada80e703bdd992007f28188fe8b0602dd5cbc0960d4230",
+    "commit": "425edc9e325a2061a3c6f3b111cb8258ce85c027",
+    "dirty": true,
+    "lockfile_sha256": "56a63e1efc21dd43e26f7e32f6817db69cd502914ae15d5a5297345bca2dd07d",
+    "ketcher_bundle": "6295fe8c0bc479c2a77e140849d9a4b30df6cb955a4e7d166b7fd521e50d4eb0",
+    "versions": {
+      "python": "3.13.7",
+      "platform": "Windows-11-10.0.26200-SP0",
+      "pyside6": "6.11.1",
+      "qt": "6.11.1",
+      "rdkit": "2025.9.6",
+      "java": ""
+    },
+    "log_start": 1402
+  },
+  "steps": {
+    "in_script": 139,
+    "run": 139
+  },
+  "log_file": {
+    "path": "D:\\Random Programs\\OpenChemStudio_Data\\logs\\drive-29116.log",
+    "start": 1402,
+    "end": 49884
+  },
+  "assertions": [
+    {
+      "step": "fukui_gate_begin",
+      "tag": "",
+      "ok": true,
+      "detail": "floor 0.0"
+    },
+    {
+      "step": "fukui_gate_record",
+      "tag": "CO@B3LYP/6-311+G**",
+      "ok": true,
+      "detail": "recorded; the run's status is failed; the run holds [], not all four Fukui datasets"
+    },
+    {
+      "step": "fukui_gate_record",
+      "tag": "CO2@B3LYP/6-311+G**",
+      "ok": true,
+      "detail": "recorded; the run's status is failed; the run holds [], not all four Fukui datasets"
+    },
+    {
+      "step": "fukui_gate_record",
+      "tag": "H2CO@B3LYP/6-311+G**",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui_gate_record",
+      "tag": "acetone@B3LYP/6-311+G**",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui_gate_record",
+      "tag": "CN-@B3LYP/6-311+G**",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui_gate_record",
+      "tag": "NCO-@B3LYP/6-311+G**",
+      "ok": true,
+      "detail": "recorded; the run's status is failed; the run holds [], not all four Fukui datasets"
+    },
+    {
+      "step": "fukui_gate_record",
+      "tag": "CNO-@B3LYP/6-311+G**",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui_gate_record",
+      "tag": "CO@HF/6-311+G**",
+      "ok": true,
+      "detail": "recorded; the run's status is failed; the run holds [], not all four Fukui datasets"
+    },
+    {
+      "step": "fukui_gate_record",
+      "tag": "CO2@HF/6-311+G**",
+      "ok": true,
+      "detail": "recorded; the run's status is failed; the run holds [], not all four Fukui datasets"
+    },
+    {
+      "step": "fukui_gate_record",
+      "tag": "H2CO@HF/6-311+G**",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui_gate_record",
+      "tag": "acetone@HF/6-311+G**",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui_gate_record",
+      "tag": "CN-@HF/6-311+G**",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui_gate_record",
+      "tag": "NCO-@HF/6-311+G**",
+      "ok": true,
+      "detail": "recorded; the run's status is failed; the run holds [], not all four Fukui datasets"
+    },
+    {
+      "step": "fukui_gate_record",
+      "tag": "CNO-@HF/6-311+G**",
+      "ok": true,
+      "detail": "recorded; the run's status is failed; the run holds [], not all four Fukui datasets"
+    },
+    {
+      "step": "fukui_gate_record",
+      "tag": "H2CO@B3LYP/def2-SVP",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui_gate_report",
+      "tag": "reported",
+      "ok": true,
+      "detail": "31 of 46"
+    },
+    {
+      "step": "expect_clean",
+      "tag": "",
+      "ok": true,
+      "detail": "no unexpected application errors"
+    }
+  ],
+  "measurements": {
+    "window_ready_epoch": 1792313261.397057
+  },
+  "ledger": {
+    "errors": [
+      {
+        "level": "ERROR",
+        "logger": "openchem.chemistry",
+        "exception": "OrcaOutputError",
+        "origin": "openchem/chem/orca_engine.py:895",
+        "message": "Failed to parse ORCA output for molecule e6c7afe7-01fa-4138-807a-eb161cd83a74 | The anion (N+1 electrons) state's charges sum to -0.986 but that state has charge -1; the table read is not that state's, so the difference would be about something else.",
+        "count": 7,
+        "first_seen": "2026-10-18T08:48:21+00:00",
+        "sample": "Traceback (most recent call last):\n  File \"D:\\Random Projects\\OpenChem Studio\\.claude\\worktrees\\calculator-result-selection-ff3f27\\src\\openchem\\services\\quantum_chemistry_service.py\", line 1389, in _finish_calculation_job\n    descriptors, conformer = job.provider.parse_output(output_text, job.mol, molecule_uuid, job.calc_type)\n                             ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\Random Projects\\OpenChem Studio\\.claude\\worktrees\\calculator-result-selection-ff3f27\\src\\openchem\\chem\\orca_engine.py\", line 747, in parse_output\n    self._condensed_fukui(output_text, mol)\n    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^\n  File \"D:\\Random Projects\\OpenChem Studio\\.claude\\worktrees\\calculator-result-selection-ff3f27\\src\\openchem\\chem\\orca_engine.py\", line 895, in _condensed_fukui\n    raise OrcaOutputError(result.reason)\nopenchem.chem.orca_engine.OrcaOutputError: The anion (N+1 electrons) state's charges sum to -0.986 but that state has charge -1; the table read is not that state's, so the difference would be about something else.",
+        "allowed": true
+      }
+    ],
+    "warnings": [],
+    "driver_failures": [],
+    "dropped": 0
+  }
+}

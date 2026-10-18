@@ -1496,8 +1496,9 @@ built** (on 2026-10-12 it was designed and not built; the slices merged between 
 Lewis pairing, its window and the kept answer in Results, and the preregistered BH3/CO gate, PASSED on 2026-10-13 (`docs/RECIPES_DESIGN.md`); and derived
 scores, slices 1 to 4 and their follow-ups (`docs/DERIVED_SCORES_DESIGN.md`). Still not built: a dispatch adapter for service-run (ORCA) calculators,
 so the assistant describes an ORCA job and a person starts it from its panel, and the assistant's frozen turn holds no quantum-chemistry runs
-(`domain/turn_snapshot.py` names none, checked 2026-10-16); scores over 3D numbers (decided on 2026-10-16, in the derived scores record); Phase 3 (the
-ORCA reactivity calculators) and Phase 4 (the synthesis helper). The live provider run for Phase 1 is still not done. `docs/WHATS_NEW.md` is a tour of all of it.
+(`domain/turn_snapshot.py` names none, checked 2026-10-16); scores over 3D numbers (decided on 2026-10-16, in the derived scores record); Phase 3 beyond its first calculator (Fukui functions were built on 2026-10-18 and
+failed their preregistered gate by 0.0014 on one quantity, so they are offered as experimental and not validated, `benchmarks/fukui_gate/PREREGISTRATION.md`;
+proton affinity and bond dissociation energy are not started) and Phase 4 (the synthesis helper). The live provider run for Phase 1 is still not done. `docs/WHATS_NEW.md` is a tour of all of it.
 
 ### Visualization
 
@@ -1559,6 +1560,32 @@ steric clash, whatever the radius (a fix is on its own branch). `docs/VDW_RADII_
 the subject of the deferred Sci Downloads naming round) with a `kv` lookup by DOI or hash, and add a coverage
 report of which registered sources the maintainer's library lacks, which is the list of papers to fetch before
 the next explainer family is written.
+
+### Reference programs: what to learn from, and what we might emulate (bookmarked 2026-10-18)
+
+The project began as an open replacement for MarvinSketch-class editors, and Phases 1 to 9 track that. A second program is now **bookmarked as a
+reference, and nothing here is scheduled**:
+
+**Amsterdam Modeling Suite (AMS), by SCM** (Software for Chemistry & Materials, <https://www.scm.com>; its documentation, <https://www.scm.com/doc>,
+is public and needs no installation). It offers a 30-day trial; its pricing and licence terms were **not read**, and should be before the trial is used to
+produce reference values. It came up when its Fukui tutorial turned out to hold a Hirshfeld table for carbon monoxide from a program that is not
+Gaussian or ORCA, the one independent table the Fukui work (`benchmarks/fukui_gate/PREREGISTRATION.md`) had found (C f+ 0.670 and f- 0.674, O 0.330 and 0.326, from BP86; the page states neither the basis set nor the geometry). "Emulating" a feature of it means building it
+on this project's own engines (RDKit, ORCA, Open Babel) and checking it against a published reference, and never reusing SCM's code or text.
+
+What its tutorial index lists that overlaps this project's territory, by the tutorials' own titles (read on 2026-10-18; none was tried):
+
+| AMS tutorial area | What it lists | Here today |
+|---|---|---|
+| Analysis | QTAIM (Bader), localized orbitals and conceptual DFT; Fukui functions and the dual descriptor; Interacting Quantum Atoms; Energy Decomposition Analysis; charge displacement; visualization of densities and orbital potentials | Fukui functions (experimental, not validated); Lewis acid-base pairing and LED through ORCA; surfaces coloured by a scalar field. No QTAIM, IQA or localized orbitals |
+| Vibrational spectroscopy | IR, VCD, mode refinement and tracking, vibrationally resolved electronic spectra | IR from an ORCA frequency run; none of the rest |
+| Optical properties | TDDFT UV/Vis, core ionization (XPS) | UV/Vis measured and deliberately not shipped (above); nothing for XPS |
+| NMR | a spectrum with spin-spin coupling, shifts, analysis with localized molecular orbitals | ORCA NMR with coupling, and the HOSE lookup; no orbital analysis |
+| Structure and reactivity | transition state search, nudged elastic band, automated reaction pathway discovery, a reaction network | none; reactions here are two templates |
+| COSMO-RS | fluid thermodynamics, pKa, ionic liquids, polymers | a bounded solubility screen and a pKa sidecar |
+| Building and GUI | building molecules; "10 ways to get the energy and other properties"; a GUI tour of a UV/Vis spectrum | the editor and the Properties panel |
+
+Each row that is ever built goes through this project's usual gate first (a preregistered check against a published reference, or "measured, not shipped"). The
+rows most likely to pay are the ones where a calculator already exists: conceptual DFT beyond Fukui, an energy-decomposition view, and the assignment of IR bands.
 
 ### Naming, and the annotation engine underneath it
 

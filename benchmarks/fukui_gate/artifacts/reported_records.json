@@ -1,0 +1,577 @@
+[
+ {
+  "species": "CO",
+  "level": "B3LYP/6-311+G**",
+  "label": "",
+  "attempt": 1,
+  "completed": false,
+  "run_id": "b1cafd022337435dac9cf12c080012ac",
+  "status": "failed",
+  "method_basis": "B3LYP 6-311+G**",
+  "charge": 0,
+  "multiplicity": 1,
+  "input_fingerprint": "9a7e30dbe5e3206f9c79593b6d843d37c7429183dd6f5bc773b0f7f8df5775a9",
+  "warnings": [
+   "The anion (N+1 electrons) state's charges sum to -0.986 but that state has charge -1; the table read is not that state's, so the difference would be about something else."
+  ],
+  "problems": [
+   "the run's status is failed",
+   "the run holds [], not all four Fukui datasets"
+  ]
+ },
+ {
+  "species": "CO2",
+  "level": "B3LYP/6-311+G**",
+  "label": "",
+  "attempt": 1,
+  "completed": false,
+  "run_id": "aeff01d111594debbc44a337de6d6311",
+  "status": "failed",
+  "method_basis": "B3LYP 6-311+G**",
+  "charge": 0,
+  "multiplicity": 1,
+  "input_fingerprint": "191e408742cdbc124e00a9b2bb57b0d84a737a9523a7b605b7fd6317a0a3f997",
+  "warnings": [
+   "The anion (N+1 electrons) state's charges sum to -0.927 but that state has charge -1; the table read is not that state's, so the difference would be about something else."
+  ],
+  "problems": [
+   "the run's status is failed",
+   "the run holds [], not all four Fukui datasets"
+  ]
+ },
+ {
+  "species": "H2CO",
+  "level": "B3LYP/6-311+G**",
+  "label": "",
+  "attempt": 1,
+  "completed": true,
+  "run_id": "e4a7dca4eb8d40ea9efa9f1a4054dc65",
+  "status": "completed",
+  "method_basis": "B3LYP 6-311+G**",
+  "charge": 0,
+  "multiplicity": 1,
+  "input_fingerprint": "e2e24317445d22768444cf39a5e02bc31edc7aabc52bc32715e88d3c219564af",
+  "warnings": [],
+  "symbols": [
+   "C",
+   "O",
+   "H",
+   "H"
+  ],
+  "f_plus": [
+   0.438288,
+   0.21994099999999997,
+   0.167825,
+   0.16787999999999997
+  ],
+  "f_minus": [
+   0.22865000000000002,
+   0.442236,
+   0.164585,
+   0.16456300000000001
+  ],
+  "f_zero": [
+   0.333469,
+   0.3310885,
+   0.166205,
+   0.1662215
+  ],
+  "dual": [
+   0.209638,
+   -0.22229500000000005,
+   0.003239999999999993,
+   0.003316999999999959
+  ],
+  "orca_version": "6.1.1",
+  "unbound_anion_ev": 0.8293585710593069,
+  "canonical_method": "orca_opt",
+  "canonical_fingerprint": "e2e24317445d22768444cf39a5e02bc31edc7aabc52bc32715e88d3c219564af",
+  "on_optimized_geometry": true,
+  "problems": []
+ },
+ {
+  "species": "acetone",
+  "level": "B3LYP/6-311+G**",
+  "label": "",
+  "attempt": 1,
+  "completed": true,
+  "run_id": "ae035d01b37047a786dbd1331720cd27",
+  "status": "completed",
+  "method_basis": "B3LYP 6-311+G**",
+  "charge": 0,
+  "multiplicity": 1,
+  "input_fingerprint": "bccedc93fe426f8a273a02cbcf29951b0e0aa644098ef88457e3ac72f1c683b3",
+  "warnings": [],
+  "symbols": [
+   "C",
+   "C",
+   "C",
+   "O",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "f_plus": [
+   0.10564499999999999,
+   0.02934400000000001,
+   0.10632000000000001,
+   0.05693100000000001,
+   0.136449,
+   0.135309,
+   0.07904800000000001,
+   0.13686399999999999,
+   0.136154,
+   0.07958799999999999
+  ],
+  "f_minus": [
+   0.081079,
+   0.11518499999999998,
+   0.081077,
+   0.379871,
+   0.06206400000000001,
+   0.062022999999999995,
+   0.047312999999999994,
+   0.062051,
+   0.062048,
+   0.047315
+  ],
+  "f_zero": [
+   0.093362,
+   0.0722645,
+   0.0936985,
+   0.218401,
+   0.0992565,
+   0.098666,
+   0.0631805,
+   0.09945749999999999,
+   0.099101,
+   0.0634515
+  ],
+  "dual": [
+   0.02456599999999999,
+   -0.08584099999999997,
+   0.025243000000000015,
+   -0.32294,
+   0.07438499999999998,
+   0.07328600000000002,
+   0.03173500000000001,
+   0.07481299999999999,
+   0.074106,
+   0.03227299999999999
+  ],
+  "orca_version": "6.1.1",
+  "unbound_anion_ev": 1.016422353600432,
+  "canonical_method": "orca_opt",
+  "canonical_fingerprint": "bccedc93fe426f8a273a02cbcf29951b0e0aa644098ef88457e3ac72f1c683b3",
+  "on_optimized_geometry": true,
+  "problems": []
+ },
+ {
+  "species": "CN-",
+  "level": "B3LYP/6-311+G**",
+  "label": "",
+  "attempt": 1,
+  "completed": true,
+  "run_id": "675384644c304619b09c132338f5161c",
+  "status": "completed",
+  "method_basis": "B3LYP 6-311+G**",
+  "charge": -1,
+  "multiplicity": 1,
+  "input_fingerprint": "bf362ac17dce5aaed74351a054e179e9a3f529703c4325579eb2e5d6ce5a82d5",
+  "warnings": [],
+  "symbols": [
+   "C",
+   "N"
+  ],
+  "f_plus": [
+   0.878274,
+   0.12236999999999998
+  ],
+  "f_minus": [
+   0.621116,
+   0.379097
+  ],
+  "f_zero": [
+   0.749695,
+   0.2507335
+  ],
+  "dual": [
+   0.257158,
+   -0.25672700000000004
+  ],
+  "orca_version": "6.1.1",
+  "unbound_anion_ev": 6.360419690756456,
+  "canonical_method": "orca_opt",
+  "canonical_fingerprint": "bf362ac17dce5aaed74351a054e179e9a3f529703c4325579eb2e5d6ce5a82d5",
+  "on_optimized_geometry": true,
+  "problems": []
+ },
+ {
+  "species": "NCO-",
+  "level": "B3LYP/6-311+G**",
+  "label": "",
+  "attempt": 1,
+  "completed": false,
+  "run_id": "24596315482b45ba9fce50aaf95b15c5",
+  "status": "failed",
+  "method_basis": "B3LYP 6-311+G**",
+  "charge": -1,
+  "multiplicity": 1,
+  "input_fingerprint": "a7cc9f5b687d6c77d6be80ebab464a061d3030a78abfa35cdfcc691907338659",
+  "warnings": [
+   "The anion (N+1 electrons) state's charges sum to -1.990 but that state has charge -2; the table read is not that state's, so the difference would be about something else."
+  ],
+  "problems": [
+   "the run's status is failed",
+   "the run holds [], not all four Fukui datasets"
+  ]
+ },
+ {
+  "species": "CNO-",
+  "level": "B3LYP/6-311+G**",
+  "label": "",
+  "attempt": 1,
+  "completed": true,
+  "run_id": "8687b4cd91644f9190e669b776d32af8",
+  "status": "completed",
+  "method_basis": "B3LYP 6-311+G**",
+  "charge": -1,
+  "multiplicity": 1,
+  "input_fingerprint": "41d4c1668e34e2fb25ed5f2e6b4b4c4c4d753a4353d7e85dca4d73eef03ec421",
+  "warnings": [],
+  "symbols": [
+   "C",
+   "N",
+   "O"
+  ],
+  "f_plus": [
+   0.8461210000000001,
+   0.06506,
+   0.08345199999999997
+  ],
+  "f_minus": [
+   0.434691,
+   0.140216,
+   0.425169
+  ],
+  "f_zero": [
+   0.640406,
+   0.10263800000000001,
+   0.2543105
+  ],
+  "dual": [
+   0.41143000000000013,
+   -0.075156,
+   -0.34171700000000005
+  ],
+  "orca_version": "6.1.1",
+  "unbound_anion_ev": 5.99114326753115,
+  "canonical_method": "orca_opt",
+  "canonical_fingerprint": "41d4c1668e34e2fb25ed5f2e6b4b4c4c4d753a4353d7e85dca4d73eef03ec421",
+  "on_optimized_geometry": true,
+  "problems": []
+ },
+ {
+  "species": "CO",
+  "level": "HF/6-311+G**",
+  "label": "",
+  "attempt": 1,
+  "completed": false,
+  "run_id": "5c53fc269a5f4cb29601dbf4003932dc",
+  "status": "failed",
+  "method_basis": "HF 6-311+G**",
+  "charge": 0,
+  "multiplicity": 1,
+  "input_fingerprint": "22a1d79f93d75a4a374bf4011f73681716162acadadb4145f3cb8dfd53651d28",
+  "warnings": [
+   "The anion (N+1 electrons) state's charges sum to -0.984 but that state has charge -1; the table read is not that state's, so the difference would be about something else."
+  ],
+  "problems": [
+   "the run's status is failed",
+   "the run holds [], not all four Fukui datasets"
+  ]
+ },
+ {
+  "species": "CO2",
+  "level": "HF/6-311+G**",
+  "label": "",
+  "attempt": 1,
+  "completed": false,
+  "run_id": "63bb7264df7f4e22811cf8a43a2281d8",
+  "status": "failed",
+  "method_basis": "HF 6-311+G**",
+  "charge": 0,
+  "multiplicity": 1,
+  "input_fingerprint": "9d053e3fb7373af36cf6ca00594edd75505e209db3bebd20ac4ecf03f5413827",
+  "warnings": [
+   "The anion (N+1 electrons) state's charges sum to -0.977 but that state has charge -1; the table read is not that state's, so the difference would be about something else."
+  ],
+  "problems": [
+   "the run's status is failed",
+   "the run holds [], not all four Fukui datasets"
+  ]
+ },
+ {
+  "species": "H2CO",
+  "level": "HF/6-311+G**",
+  "label": "",
+  "attempt": 1,
+  "completed": true,
+  "run_id": "71b0bbca87284478b12f6e01d1ae7e85",
+  "status": "completed",
+  "method_basis": "HF 6-311+G**",
+  "charge": 0,
+  "multiplicity": 1,
+  "input_fingerprint": "3ba4b9663c34a40d8703a3220e5bbd9e9556f2b6cdc498a752bd4597f8c08df7",
+  "warnings": [],
+  "symbols": [
+   "C",
+   "O",
+   "H",
+   "H"
+  ],
+  "f_plus": [
+   0.45160199999999995,
+   0.20583200000000001,
+   0.168155,
+   0.168209
+  ],
+  "f_minus": [
+   0.225056,
+   0.488552,
+   0.14322400000000002,
+   0.143194
+  ],
+  "f_zero": [
+   0.338329,
+   0.347192,
+   0.1556895,
+   0.1557015
+  ],
+  "dual": [
+   0.22654599999999994,
+   -0.28271999999999997,
+   0.02493099999999998,
+   0.02501500000000001
+  ],
+  "orca_version": "6.1.1",
+  "unbound_anion_ev": 1.8007836998919595,
+  "canonical_method": "orca_opt",
+  "canonical_fingerprint": "3ba4b9663c34a40d8703a3220e5bbd9e9556f2b6cdc498a752bd4597f8c08df7",
+  "on_optimized_geometry": true,
+  "problems": []
+ },
+ {
+  "species": "acetone",
+  "level": "HF/6-311+G**",
+  "label": "",
+  "attempt": 1,
+  "completed": true,
+  "run_id": "957a64043f20433fb03bfe05a14d5029",
+  "status": "completed",
+  "method_basis": "HF 6-311+G**",
+  "charge": 0,
+  "multiplicity": 1,
+  "input_fingerprint": "f0eeef70fb94f7aa046d2c8c77df9305027a3b0528047cb839e14a0fa0dbdd1d",
+  "warnings": [],
+  "symbols": [
+   "C",
+   "C",
+   "C",
+   "O",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "f_plus": [
+   0.053679,
+   0.244752,
+   0.05367000000000001,
+   0.251334,
+   0.076448,
+   0.07494400000000001,
+   0.046703999999999996,
+   0.076462,
+   0.07494500000000001,
+   0.046706
+  ],
+  "f_minus": [
+   0.064082,
+   0.12163100000000002,
+   0.064062,
+   0.449137,
+   0.056237,
+   0.056256,
+   0.038062000000000006,
+   0.05623600000000001,
+   0.056256,
+   0.038067000000000004
+  ],
+  "f_zero": [
+   0.0588805,
+   0.1831915,
+   0.058866,
+   0.35023550000000003,
+   0.0663425,
+   0.0656,
+   0.042383000000000004,
+   0.066349,
+   0.0656005,
+   0.0423865
+  ],
+  "dual": [
+   -0.010403000000000003,
+   0.12312099999999998,
+   -0.010391999999999985,
+   -0.197803,
+   0.020211,
+   0.01868800000000001,
+   0.00864199999999999,
+   0.020225999999999994,
+   0.01868900000000001,
+   0.008638999999999994
+  ],
+  "orca_version": "6.1.1",
+  "unbound_anion_ev": 2.703876370264709,
+  "canonical_method": "orca_opt",
+  "canonical_fingerprint": "f0eeef70fb94f7aa046d2c8c77df9305027a3b0528047cb839e14a0fa0dbdd1d",
+  "on_optimized_geometry": true,
+  "problems": []
+ },
+ {
+  "species": "CN-",
+  "level": "HF/6-311+G**",
+  "label": "",
+  "attempt": 1,
+  "completed": true,
+  "run_id": "36328e1a7ca7425eb3a3e5b06c5b6535",
+  "status": "completed",
+  "method_basis": "HF 6-311+G**",
+  "charge": -1,
+  "multiplicity": 1,
+  "input_fingerprint": "5f3527abeacc8e16203c82fd3dc7c30e2619e72bfc0961e1aa3e47955ae7b61d",
+  "warnings": [],
+  "symbols": [
+   "C",
+   "N"
+  ],
+  "f_plus": [
+   0.5922229999999999,
+   0.410791
+  ],
+  "f_minus": [
+   0.646754,
+   0.35336899999999993
+  ],
+  "f_zero": [
+   0.6194885,
+   0.38208
+  ],
+  "dual": [
+   -0.05453100000000011,
+   0.057422000000000084
+  ],
+  "orca_version": "6.1.1",
+  "unbound_anion_ev": 6.636893469659037,
+  "canonical_method": "orca_opt",
+  "canonical_fingerprint": "5f3527abeacc8e16203c82fd3dc7c30e2619e72bfc0961e1aa3e47955ae7b61d",
+  "on_optimized_geometry": true,
+  "problems": []
+ },
+ {
+  "species": "NCO-",
+  "level": "HF/6-311+G**",
+  "label": "",
+  "attempt": 1,
+  "completed": false,
+  "run_id": "4f64f76f167b44d1bf42591537688d43",
+  "status": "failed",
+  "method_basis": "HF 6-311+G**",
+  "charge": -1,
+  "multiplicity": 1,
+  "input_fingerprint": "ad0a9bb584c05e03fae182ad6b2c6e48a36642f223f5e0981a2eb53767f9bfc4",
+  "warnings": [
+   "The anion (N+1 electrons) state's charges sum to -1.983 but that state has charge -2; the table read is not that state's, so the difference would be about something else."
+  ],
+  "problems": [
+   "the run's status is failed",
+   "the run holds [], not all four Fukui datasets"
+  ]
+ },
+ {
+  "species": "CNO-",
+  "level": "HF/6-311+G**",
+  "label": "",
+  "attempt": 1,
+  "completed": false,
+  "run_id": "4fd005f5dce044fc862db5282206e381",
+  "status": "failed",
+  "method_basis": "HF 6-311+G**",
+  "charge": -1,
+  "multiplicity": 1,
+  "input_fingerprint": "bab43b0c6dbeff7b55efcc0f281a2d808344dabd073328260362ee8b8dad5103",
+  "warnings": [
+   "The anion (N+1 electrons) state's charges sum to -1.986 but that state has charge -2; the table read is not that state's, so the difference would be about something else."
+  ],
+  "problems": [
+   "the run's status is failed",
+   "the run holds [], not all four Fukui datasets"
+  ]
+ },
+ {
+  "species": "H2CO",
+  "level": "B3LYP/def2-SVP",
+  "label": "",
+  "attempt": 1,
+  "completed": true,
+  "run_id": "8e1dfcd475f4477b8adab7434f941283",
+  "status": "completed",
+  "method_basis": "B3LYP def2-SVP",
+  "charge": 0,
+  "multiplicity": 1,
+  "input_fingerprint": "cba34405f4d30367d09becc6218e4bc201fe96cc5456f2a915517369e6658340",
+  "warnings": [],
+  "symbols": [
+   "C",
+   "O",
+   "H",
+   "H"
+  ],
+  "f_plus": [
+   0.395296,
+   0.296056,
+   0.154325,
+   0.154321
+  ],
+  "f_minus": [
+   0.22838299999999997,
+   0.42566899999999996,
+   0.172981,
+   0.172968
+  ],
+  "f_zero": [
+   0.3118395,
+   0.3608625,
+   0.163653,
+   0.16364450000000003
+  ],
+  "dual": [
+   0.166913,
+   -0.12961299999999998,
+   -0.018656000000000006,
+   -0.018646999999999997
+  ],
+  "orca_version": "6.1.1",
+  "unbound_anion_ev": 2.016176738440142,
+  "canonical_method": "orca_opt",
+  "canonical_fingerprint": "cba34405f4d30367d09becc6218e4bc201fe96cc5456f2a915517369e6658340",
+  "on_optimized_geometry": true,
+  "problems": []
+ }
+]

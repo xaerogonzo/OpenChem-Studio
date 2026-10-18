@@ -1,0 +1,87 @@
+                         Program Version 6.1.1  -  RELEASE   -
+
+ Total Charge           Charge          ....    0
+ Multiplicity           Mult            ....    1
+ Number of Electrons    NEL             ....   10
+
+-----------------------
+MULLIKEN ATOMIC CHARGES
+-----------------------
+   0 O :   -0.366360
+   1 H :    0.183180
+   2 H :    0.183180
+Sum of atomic charges:   -0.0000000
+
+
+----------------------
+LOEWDIN ATOMIC CHARGES
+----------------------
+   0 O :   -0.253384
+   1 H :    0.126692
+   2 H :    0.126692
+
+
+
+------------------
+HIRSHFELD ANALYSIS
+------------------
+
+Total integrated alpha density =      4.999998496
+Total integrated beta density  =      4.999998496
+
+  ATOM     CHARGE      SPIN    
+   0 O   -0.311603    0.000000
+   1 H    0.155803    0.000000
+   2 H    0.155803    0.000000
+
+  TOTAL   0.000003    0.000000
+
+
+FINAL SINGLE POINT ENERGY       -74.962928183933
+
+ Total Charge           Charge          ....    1
+ Multiplicity           Mult            ....    2
+ Number of Electrons    NEL             ....    9
+Expectation value of <S**2>     :     0.755189
+Ideal value S*(S+1) for S=0.5   :     0.750000
+
+------------------
+HIRSHFELD ANALYSIS
+------------------
+
+Total integrated alpha density =      4.999998549
+Total integrated beta density  =      3.999999665
+
+  ATOM     CHARGE      SPIN    
+   0 O    0.331199    0.981716
+   1 H    0.334402    0.009141
+   2 H    0.334402    0.009141
+
+  TOTAL   1.000002    0.999999
+
+
+FINAL SINGLE POINT ENERGY       -74.655706410549
+
+ Total Charge           Charge          ....   -1
+ Multiplicity           Mult            ....    2
+ Number of Electrons    NEL             ....   11
+Expectation value of <S**2>     :     0.758372
+Ideal value S*(S+1) for S=0.5   :     0.750000
+
+------------------
+HIRSHFELD ANALYSIS
+------------------
+
+Total integrated alpha density =      5.999998678
+Total integrated beta density  =      4.999998457
+
+  ATOM     CHARGE      SPIN    
+   0 O   -0.684286    0.475077
+   1 H   -0.157855    0.262462
+   2 H   -0.157855    0.262462
+
+  TOTAL  -0.999997    1.000000
+
+
+FINAL SINGLE POINT ENERGY       -74.375666859613
+

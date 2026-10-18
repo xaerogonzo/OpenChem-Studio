@@ -99,6 +99,17 @@ _QM_CALC_TYPE_DESCRIPTIONS = {
         "vertical quantities. Slower than reading the frontier orbitals, and the "
         "one that reproduces the textbook hard/soft orderings."
     ),
+    "fukui": (
+        "Where an added or removed electron goes, atom by atom: the condensed Fukui functions f+ (attack "
+        "by a nucleophile), f- (attack by an electrophile), f0 (attack by a radical) and the dual "
+        "descriptor f+ - f-, from the Hirshfeld charges of the neutral, the cation and the anion. Three "
+        "single points in one job, all at the geometry as supplied (vertical): optimize first if the "
+        "drawn geometry is not good enough. Closed-shell species only. Hirshfeld is the one charge "
+        "scheme offered because, of the five ORCA prints, it was the only one whose values stayed within "
+        "0.023 of themselves when diffuse functions were added and never went negative, on "
+        "formaldehyde, propene and pyridine. The anion of a neutral molecule is usually unbound at an "
+        "ordinary basis set, which makes f+ the less trustworthy half; the result says so."
+    ),
     "led": (
         "Breaks a non-covalent interaction energy into electrostatics, exchange, "
         "dispersion, charge transfer and the cost of distorting each partner, via "
@@ -108,6 +119,29 @@ _QM_CALC_TYPE_DESCRIPTIONS = {
         "is not a binding energy. Expensive and steeply so: measured 15 seconds for "
         "BH3-CO but 10 minutes and 1.9 GB of scratch disk for benzene-water, and it "
         "is not usable on anything drug-sized."
+    ),
+}
+
+# The calc types that declare a stage of their own. The rest predate the declaration and are `LEGACY_UNCLASSIFIED`, a closing
+# migration, so a calc type added today earns an honest stage here instead of joining that list.
+_QM_CALC_TYPE_SUPPORT = {
+    # EXPERIMENTAL, as the tautomer distribution below is: implemented, run through the application on real ORCA and measured
+    # against published values, and not validated for default use because it did not pass its own preregistered gate
+    # (benchmarks/fukui_gate/PREREGISTRATION.md section 11). A stage describes THIS implementation, never the published method.
+    "fukui": CalculatorSupport(
+        stage=SupportStage.EXPERIMENTAL,
+        default_visibility=Visibility.HIDDEN,
+        support_reason=(
+            "Not validated: it did not pass its preregistered check against published Hirshfeld condensed Fukui "
+            "values. Fifty-two of 54 numbers were within 0.02 and all 13 documented sites were reproduced; the "
+            "carbon and oxygen f- of carbon monoxide at HF/6-31G** were 0.0214 off, and the unrestricted cation there "
+            "is heavily spin-contaminated (the published values used annihilated UHF). Offered in the Quantum "
+            "Chemistry panel, and every result says so."
+        ),
+        scope_note=(
+            "Closed-shell species, Hirshfeld charges only, ions at the neutral geometry (vertical); "
+            "needs a configured ORCA executable"
+        ),
     ),
 }
 
@@ -127,6 +161,7 @@ for _label, _calc_type in CALC_TYPE_LABELS.items():
                 panel_id="Quantum_Chemistry",
             ),
             prediction_basis="ab_initio",
+            support=_QM_CALC_TYPE_SUPPORT.get(_calc_type),
             parameters=[
                 CalculatorParameter(name="charge", label="Charge", kind="int", default=0, minimum=-10, maximum=10),
                 CalculatorParameter(

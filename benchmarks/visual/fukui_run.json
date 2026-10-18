@@ -1,0 +1,33 @@
+[
+  {"do": "smiles", "smiles": "C=O", "name": "Formaldehyde", "after_ms": 2500},
+  {"do": "select", "molecule": -1, "after_ms": 2500},
+  {"do": "conformers", "count": 3, "after_ms": 15000},
+  {"do": "qc_run", "calc_type": "Geometry Optimization", "method": "B3LYP def2-SVP", "after_ms": 1000},
+  {"do": "qc_wait", "timeout_ms": 900000},
+  {"do": "conformer_report", "tag": "optimized-geometry-is-the-canonical-one",
+   "expect": {"canonical_method": "orca_opt", "canonical_mapped": true}},
+
+  {"do": "qc_run", "calc_type": "Fukui functions (Hirshfeld)", "method": "B3LYP def2-SVP", "after_ms": 1000},
+  {"do": "qc_wait", "timeout_ms": 900000},
+  {"do": "qc_panel_report", "tag": "the-panel-says-what-the-run-found",
+   "expect": {
+     "calc_type": "Fukui functions (Hirshfeld)",
+     "run_calc_type": "fukui", "run_status": "completed", "per_atom_outputs": 4,
+     "results_contains": [
+       "SCF Energy:",
+       "Fukui functions (Hirshfeld, vertical) for 4 atoms:",
+       "Largest f+ (attack by a nucleophile): C (atom 1)",
+       "Largest f- (attack by an electrophile): O (atom 2)",
+       "Largest f0 (attack by a radical): O (atom 2)",
+       "ABOVE the neutral",
+       "Not validated: this calculation did not pass"
+     ]},
+   "shot": "C:/Users/pmpd/AppData/Local/Temp/claude/D--Random-Projects-OpenChem-Studio--claude-worktrees-calculator-result-selection-ff3f27/2ab0c6fd-b193-4829-a196-282f567a03a2/scratchpad/fukui_panel.png"},
+
+  {"do": "result_report", "calculator": "orca.fukui", "expect_refusal": ""},
+  {"do": "select_atom", "atom": 1},
+  {"do": "inspector_report", "tag": "fukui-on-the-oxygen", "expect_per_atom": {"contains": "orca.fukui", "state": "fresh"}},
+  {"do": "shot", "path": "C:/Users/pmpd/AppData/Local/Temp/claude/D--Random-Projects-OpenChem-Studio--claude-worktrees-calculator-result-selection-ff3f27/2ab0c6fd-b193-4829-a196-282f567a03a2/scratchpad/fukui_window.png"},
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

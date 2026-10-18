@@ -31,6 +31,10 @@ def test_calculator_registry_includes_docking_and_quantum_chemistry_categories(q
         # Also a compound job: the complex plus both isolated fragments,
         # because decomposing the complex alone is not a binding energy.
         "orca.led",
+        # Three single points in one compound job, differenced into per-atom
+        # Fukui functions. Offered in the panel, hidden from the launcher by
+        # default (EXPERIMENTAL: it did not pass its preregistered check).
+        "orca.fukui",
         # NOT one of the CALC_TYPE_LABELS loop's own entries above -- this
         # one dispatches N real "opt" jobs internally (one per enumerated
         # tautomer) rather than being a single ORCA calc_type itself; see
