@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: e143822d4384d07e1eaee30784d1f84b997fb3d6dd0fa57f7716d4564fd41031 -->
+<!-- SOURCE SHA256: 28f23141ada002d28bb00dfdfb01d889ce17e8e40af49be5909306ad0b1efed9 -->
 
 # Sources
 
@@ -145,6 +145,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`cwc_annex_on_chemicals`](#cwc_annex_on_chemicals) | legal | shipped | citation + claim |
 | [`dea_listed_chemicals`](#dea_listed_chemicals) | legal | shipped | citation |
 | [`delaney2004`](#delaney2004) | literature | shipped | citation + claim |
+| [`deproft2002`](#deproft2002) | literature | shipped | citation + claim |
 | [`dimorphite_dl`](#dimorphite_dl) | software | shipped | citation |
 | [`dittwald2014`](#dittwald2014) | literature | reference only | citation |
 | [`drago1965`](#drago1965) | literature | shipped | citation + claim |
@@ -276,6 +277,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`rowland1996`](#rowland1996) | literature | shipped | citation + claim |
 | [`roy1999`](#roy1999) | literature | shipped | citation + claim |
 | [`ruttkies2016`](#ruttkies2016) | literature | reference only | citation |
+| [`sablon2007`](#sablon2007) | literature | shipped | citation + claim |
 | [`schindler2021`](#schindler2021) | literature | reference only | citation |
 | [`schindler2021_correction`](#schindler2021_correction) | literature | reference only | citation |
 | [`schott1989`](#schott1989) | literature | shipped | citation + claim |
@@ -1172,6 +1174,85 @@ the paper's own numbers support it.
 Agreement with two independent sources was measured: formaldehyde at HF/6-31G**
 against `bultinck2007` (largest difference 0.0041 over six values) and at
 B3LYP/6-31G** against `thanikaivelan2002` (BLYP/dnd; largest 0.0080).
+
+### deproft2002
+
+<a id="deproft2002"></a>
+
+> F. De Proft, C. Van Alsenoy, A. Peeters, W. Langenaeker & P. Geerlings, 'Atomic Charges, Dipole Moments, and Fukui Functions Using the Hirshfeld Partitioning of the Electron Density', J. Comput. Chem. 2002, 23, 1198-1209, Tables 4-6.
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/jcc.10067](https://doi.org/10.1002/jcc.10067) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-18 |
+| Local copy | `deproft2002_hirshfeld_fukui_jcc.pdf` (not checked) |
+| Used by | `src/openchem/app/fukui_gate_2.py`, `tests/test_fukui_gate_2.py`, `benchmarks/fukui_gate_2/PREREGISTRATION.md` |
+
+THE PUBLISHED TABLES OF THE SECOND FUKUI GATE (`benchmarks/fukui_gate_2/`):
+Hirshfeld condensed Fukui functions for molecules the first gate never ran.
+Table 4, f- of CO, H2CO, HCN, N2O, SCN-, NO2- and the enolate ion (printed
+"CH2CO-"); Table 5, f- of the ring carbons of eight monosubstituted benzenes,
+phenolate and three five-membered rings, with the experimental selectivity
+column; Table 6, f+ of formaldehyde, acrolein, maleic anhydride and maleimide.
+Gaussian 98, B3LYP/6-31G* geometries and densities (6-31+G* for the anions,
+read off the page image: the text layer drops the plus), Hirshfeld populations
+with the Yang-Mortier finite differences, three decimals, hydrogens averaged
+over the hydrogens of a heavy atom. Whether the ions use the neutral geometry
+is not stated. The LUMO and HOMO density columns are not used.
+
+THE TABLES WERE CHECKED AGAINST THEMSELVES AND AGAINST A SECOND PRINTING BEFORE
+ANY NUMBER WAS TRUSTED. They were transcribed from the page images (the text
+layer scrambles them) and read again against the images on 2026-10-18. Every
+complete column sums to 1 within 0.001 (HCN 1.000, N2O 1.000, CO 1.001,
+H2CO f- 1.000 and f+ 0.999, SCN- 1.000, NO2- 1.000). Ten of the eleven rings
+and acrolein's three carbons are reprinted by `sablon2007` and every reprinted
+number agrees (phenolate is not reprinted). Carbon monoxide and formaldehyde
+agree with the first gate's `olah2002` values at B3LYP/6-31G** to 0.0023 at
+most (published against published, neighbouring levels): that gap is one of the
+two pieces of evidence the second gate's tolerance rests on.
+
+THE CAVEATS THE GATE CARRIES: it is Gaussian 98 again, as `olah2002` is, so a
+reproduction is not independent of the first gate's source in program; the
+enolate's formula is printed "CH2CO-" and is read as the enolate of acetaldehyde
+with its carbons in formula order, which is a reading; thiophene's published
+values put the largest ring value on position 3 where experiment says 2, and the
+gate's statement is about the published ordering only.
+
+### sablon2007
+
+<a id="sablon2007"></a>
+
+> N. Sablon, F. De Proft, P. W. Ayers & P. Geerlings, 'Computing Fukui functions without differentiating with respect to electron number. II. Calculation of condensed molecular Fukui functions', J. Chem. Phys. 2007, 126, 224108, Table III and Fig. 1.
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.2736698](https://doi.org/10.1063/1.2736698) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-18 |
+| Local copy | `sablon2007_condensed_fukui_II_jcp.pdf` (not checked) |
+| Used by | `src/openchem/app/fukui_gate_2.py`, `tests/test_fukui_gate_2.py`, `benchmarks/fukui_gate_2/PREREGISTRATION.md` |
+
+USED ONLY AS A SECOND PRINTING of `deproft2002`'s finite-difference values: the
+column "f_N^- (finite difference)" of its Table III (ten of De Proft's eleven
+rings; no phenolate) and the finite-difference column beside its Fig. 1
+(acrolein's three carbons), each footnoted in the paper as the Hirshfeld
+B3LYP/6-31G* values of its reference 35, which is `deproft2002`. Read from the
+page images on 2026-10-18; every number agrees with the first printing. IT IS
+THE SAME GROUP'S DATA: it guards against a misprint and a transcription error,
+not against a difference of method.
+
+The paper's own method (point-charge perturbations of the density, condensed
+without a finite difference) is not used, and its Table III columns for that
+method are not compared with anything. One statement is relevant to the
+calculator's help: that finite differences of the N+1 state are "quite
+complicated or even impossible" for the many molecules whose anion is
+metastable, and that even for a stable anion the LUMO may be unbound in a
+practical basis set, which is an independent statement of what the first gate's
+follow-up measured (the unbound anion's SCF solutions, and f+ that does not
+reproduce at a diffuse basis).
 
 ### bultinck2007
 

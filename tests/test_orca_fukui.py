@@ -88,9 +88,16 @@ def test_nothing_is_optimized_and_every_job_shares_one_geometry():
     assert blocks[0] == blocks[1] == blocks[2] and len(blocks[0]) == 3
 
 
-def test_a_charged_closed_shell_species_carries_its_charge_through():
+def test_a_cation_carries_its_charge_through_all_three_states():
+    text = _input(charge=1)
+    assert [line for line in text.splitlines() if line.startswith("* xyz")] == ["* xyz 1 1", "* xyz 2 2", "* xyz 0 2"]
+
+
+def test_an_anion_is_two_jobs_because_its_n_plus_one_state_is_a_dianion():
+    """An anion has no f+ here: the dianion is not bound by any basis set in the gas phase (`chem.fukui_plan`), so only the N and N-1 states are run."""
     text = _input(charge=-1)
-    assert [line for line in text.splitlines() if line.startswith("* xyz")] == ["* xyz -1 1", "* xyz 0 2", "* xyz -2 2"]
+    assert [line for line in text.splitlines() if line.startswith("* xyz")] == ["* xyz -1 1", "* xyz 0 2"]
+    assert text.count("$new_job") == 1
 
 
 @pytest.mark.parametrize("multiplicity", [2, 3])
@@ -104,6 +111,55 @@ def test_an_open_shell_species_is_refused_with_the_reason(multiplicity):
 def test_the_method_and_basis_come_from_the_caller():
     text = OrcaQuantumEngineProvider().build_input(_water(), 0, 1, "PBE0 def2-TZVP", "fukui")
     assert text.count("! PBE0 def2-TZVP") == 3
+
+
+def _jobs(text: str) -> list[str]:
+    return text.split("$new_job")
+
+
+def test_every_job_states_whether_it_is_restricted_and_a_singlet_is_never_left_to_inherit_it():
+    """ORCA switches the first doublet to UHF/UKS and keeps that for the later jobs of a compound input, so a closed-shell job written after it ran unrestricted
+    (measured: `HFTyp .... UHF` and <S**2> 0 on the extra starts of a closed-shell anion). Each job says what it is."""
+    jobs = _jobs(_input())
+    assert [("HFTyp RHF" in job, "HFTyp UHF" in job) for job in jobs] == [(True, False), (False, True), (False, True)]
+    for job in _jobs(OrcaQuantumEngineProvider().build_input(_water(), -1, 1, "B3LYP 6-31+G*", "fukui")):
+        singlet = "* xyz -1 1" in job
+        assert ("HFTyp RHF" in job) == singlet and ("HFTyp UHF" in job) == (not singlet)
+
+
+def test_every_job_has_the_finer_integration_grid_before_its_coordinates():
+    """Hirshfeld charges are integrals on the grid, and ORCA's default one left 0.010 to 0.073 electrons of seven diffuse anions out."""
+    for job in _jobs(_input()):
+        assert "%method\n  IntAcc 6.0\nend" in job
+        assert job.index("IntAcc 6.0") < job.index("* xyz")
+
+
+def test_a_basis_without_diffuse_functions_writes_no_guess_keyword_anywhere():
+    for charge, jobs in ((0, 3), (1, 3), (-1, 2)):
+        text = OrcaQuantumEngineProvider().build_input(_water(), charge, 1, "B3LYP 6-31G**", "fukui")
+        assert len(_jobs(text)) == jobs
+        assert "HCore" not in text and "Hueckel" not in text
+
+
+def test_a_diffuse_basis_adds_the_extra_starts_of_the_anionic_state_after_every_default_job():
+    text = OrcaQuantumEngineProvider().build_input(_water(), 0, 1, "B3LYP 6-311+G**", "fukui")
+    jobs = _jobs(text)
+    assert [line for line in text.splitlines() if line.startswith("* xyz")] == ["* xyz 0 1", "* xyz 1 2", "* xyz -1 2", "* xyz -1 2", "* xyz -1 2"]
+    assert [next(line for line in job.splitlines() if line.startswith("!")) for job in jobs] == [
+        "! B3LYP 6-311+G**", "! B3LYP 6-311+G**", "! B3LYP 6-311+G**", "! B3LYP 6-311+G** HCore", "! B3LYP 6-311+G** Hueckel"
+    ]
+
+
+def test_an_anion_at_a_diffuse_basis_has_two_states_and_two_extra_starts_of_its_own_n_state():
+    text = OrcaQuantumEngineProvider().build_input(_water(), -1, 1, "B3LYP 6-31+G*", "fukui")
+    assert [line for line in text.splitlines() if line.startswith("* xyz")] == ["* xyz -1 1", "* xyz 0 2", "* xyz -1 1", "* xyz -1 1"]
+    assert text.count("HCore") == 1 and text.count("Hueckel") == 1
+
+
+def test_the_other_calc_types_are_untouched_by_the_fukui_additions():
+    for calc_type in ("sp", "opt", "delta_scf", "nmr"):
+        text = OrcaQuantumEngineProvider().build_input(_water(), 0, 1, "B3LYP 6-31+G*", calc_type)
+        assert "IntAcc" not in text and "HFTyp" not in text and "HCore" not in text
 
 
 # --- reading the tables ----------------------------------------------------------------------------------------------
@@ -259,22 +315,46 @@ def test_parse_output_returns_only_the_neutral_energy_and_no_koopmans_numbers():
 
 
 def test_a_job_missing_an_ion_fails_loudly():
-    """Two tables means an ion did not converge. Differencing the two that did would give a number for the wrong pair."""
+    """Two tables of three means an ion did not converge. Differencing the two that did would give a number for the wrong pair, and the
+    message names the STATE that is missing (the old one could only say the totals were wrong)."""
     truncated = REAL_OUTPUT.rsplit("FINAL SINGLE POINT ENERGY", 1)[0]
     truncated = truncated.rsplit("Total Charge", 1)[0]
-    with pytest.raises(OrcaOutputError, match="three SCF energies and three Hirshfeld tables"):
+    with pytest.raises(OrcaOutputError, match=r"The N\+1 state of this Fukui calculation did not finish"):
         OrcaQuantumEngineProvider().parse_output(truncated, _water(), "mol-1", "fukui")
 
 
-def test_an_output_with_the_ions_in_the_wrong_order_is_refused():
-    """The charge each job echoes is what proves the order. Swap the cation's and anion's `Total Charge` lines and the
-    parse must not assign the tables by position."""
+def test_a_job_that_started_but_never_finished_is_named():
+    """ORCA echoes a job's charge and multiplicity as it starts it, so a job that died has a stretch of output with no energy and no table. It is
+    the N+1 state, and says so, where counting energies could only say there were two."""
+    started_not_finished = REAL_OUTPUT.rsplit("FINAL SINGLE POINT ENERGY", 1)[0].rsplit("HIRSHFELD ANALYSIS", 1)[0]
+    assert started_not_finished.count("Total Charge") == 3
+    with pytest.raises(OrcaOutputError, match=r"N\+1 state.*job 3"):
+        OrcaQuantumEngineProvider().parse_output(started_not_finished, _water(), "mol-1", "fukui")
+
+
+def test_an_output_with_the_ions_swapped_is_refused_by_the_sum_check():
+    """The charge each job echoes is what assigns a table to a state. Swap the cation's and anion's `Total Charge` lines and each table is now read as the
+    OTHER state's, so its charges sum to the wrong charge and the state is named in the refusal. (The old parse refused this by position; the echoed
+    charge is the better evidence, and the sum rule is the check on it.)"""
     cation_line = " Total Charge           Charge          ....    1\n"
     anion_line = " Total Charge           Charge          ....   -1\n"
     assert REAL_OUTPUT.count(cation_line) == 1 and REAL_OUTPUT.count(anion_line) == 1
     swapped = REAL_OUTPUT.replace(cation_line, "@@").replace(anion_line, cation_line).replace("@@", anion_line)
-    with pytest.raises(OrcaOutputError, match="neutral, cation and anion"):
+    with pytest.raises(OrcaOutputError, match=r"(cation|anion) \(N[-+]1 electrons\) state's charges sum to"):
         OrcaQuantumEngineProvider().parse_output(swapped, _water(), "mol-1", "fukui")
+
+
+def test_an_output_whose_first_job_is_not_closed_shell_is_refused():
+    open_shell = REAL_OUTPUT.replace(" Multiplicity           Mult            ....    1\n", " Multiplicity           Mult            ....    2\n", 1)
+    assert open_shell != REAL_OUTPUT
+    with pytest.raises(OrcaOutputError, match="Job 1 of this output"):
+        OrcaQuantumEngineProvider().parse_output(open_shell, _water(), "mol-1", "fukui")
+
+
+def test_an_output_with_no_job_echo_is_refused():
+    """`parse_output` fails first on the missing energy (it always has); the per-atom parse, which a stored run's re-read goes through, says why."""
+    with pytest.raises(OrcaOutputError, match="echoes no job's charge"):
+        OrcaQuantumEngineProvider().parse_per_atom_output("nothing here", _water(), "mol-1", "fukui")
 
 
 def test_an_output_of_another_molecule_is_refused():
@@ -351,8 +431,21 @@ def test_an_output_with_no_s_squared_lines_says_nothing_about_contamination():
     assert "cation_s_squared" not in parameters and not _warns_of_contamination(parameters["caveat"])
 
 
-def test_an_output_with_another_number_of_s_squared_lines_is_treated_as_unknown():
-    """Three prints (or one) cannot be assigned to the two ions by position, so none is: no value, no warning."""
+def test_the_last_energy_of_a_job_is_its_energy_as_the_last_s_squared_is_its_s_squared():
+    """A single point prints one energy, so this cannot happen in a real run; the rule (the converged print is the last) is the same as for <S**2> and is pinned here, because the unbound-anion gap
+    is a difference of two of these energies and an earlier line in a job's stretch must not be taken for it."""
+    extra = REAL_OUTPUT.replace("FINAL SINGLE POINT ENERGY", "FINAL SINGLE POINT ENERGY       -1.000000000000\nFINAL SINGLE POINT ENERGY", 1)
+    assert extra.count("FINAL SINGLE POINT ENERGY") == 4
+    parameters = _datasets(extra)["orca.fukui_plus"].provenance.parameters
+    assert parameters["unbound_anion_ev"] == pytest.approx((-74.375666859613 + 74.962928183933) * 27.211386245988)
+
+
+def test_each_s_squared_is_read_from_its_own_job_so_a_later_print_in_that_job_wins():
+    """The old parse took the two prints by POSITION and called any other count unknown. Now each is read from the stretch of output of the job it
+    belongs to, so a second print inside the anion's job (appended here after its last line) is the anion's, the cation's is untouched, and the last
+    print of a job is the one read, because it belongs to the converged density."""
     extra = REAL_OUTPUT + "\nExpectation value of <S**2>     :     0.990000\n"
     parameters = _datasets(extra)["orca.fukui_plus"].provenance.parameters
-    assert "cation_s_squared" not in parameters and not _warns_of_contamination(parameters["caveat"])
+    assert parameters["cation_s_squared"] == 0.755189 and parameters["anion_s_squared"] == 0.99
+    assert "The anion is spin-contaminated (<S^2> = 0.99" in parameters["caveat"]
+    assert "The cation is spin-contaminated" not in parameters["caveat"]

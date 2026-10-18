@@ -164,7 +164,7 @@ Read more: the **Pairing two molecules** topic of the guide; [`RECIPES_DESIGN.md
 - **Scores over the other 3D numbers** (force-field energies, the smallest radius from the centroid, Bird's index, per-ring HOMA values, torsions, the dipole's components and other charge models, ASA+ and ASA-): not offered. The ten shape descriptors, eight of Geometry Analysis's sizes, HOMA's two extremes, the dipole's magnitude and five surface numbers are (above).
 - **Reactivity calculators from ORCA** (Fukui functions, proton affinity, bond dissociation energy) and **the synthesis
   helper:** not started. The first would each sit behind a preregistered gate and may be recorded as "measured, not shipped".
-  (Update, 2026-10-18: Fukui functions, the first of the three, are built. They failed their gate by 0.0014 on one quantity and are
+  (Update, 2026-10-18: Fukui functions, the first of the three, are built. They failed two preregistered gates (the first by 0.0014 on one quantity, the second with 33 of 47 numbers within 0.02) and are
   offered as experimental and not validated; see [`CHANGELOG.md`](../CHANGELOG.md). The other two are not started.)
 - **Calculators read for scores and not offered**, each for a measured reason (a duplicate of an always-on property, a label that
   depends on the structure or an option, a unit the language cannot write, a number that changes scale with an optional

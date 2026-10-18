@@ -1,0 +1,153 @@
+{
+  "verdict": "PASS",
+  "exit_code": 0,
+  "tolerate_errors": false,
+  "run": {
+    "run_id": "6ebefed730934197bf946aab109a1fb9",
+    "pid": 35204,
+    "started": "2026-10-18T13:35:12+00:00",
+    "script": "benchmarks/visual/fukui2_gate_run.json",
+    "script_sha256": "5cd66f340225a0fbfea8c28e2bee43c4bc6e7c20ac2a0eb4993c2db9a4c3aa2c",
+    "commit": "40bf48c7960f57e620cfc6c3ff87b7a4fd6618d5",
+    "dirty": false,
+    "lockfile_sha256": "56a63e1efc21dd43e26f7e32f6817db69cd502914ae15d5a5297345bca2dd07d",
+    "ketcher_bundle": "6295fe8c0bc479c2a77e140849d9a4b30df6cb955a4e7d166b7fd521e50d4eb0",
+    "versions": {
+      "python": "3.13.7",
+      "platform": "Windows-11-10.0.26200-SP0",
+      "pyside6": "6.11.1",
+      "qt": "6.11.1",
+      "rdkit": "2025.9.6",
+      "java": ""
+    },
+    "log_start": 1398
+  },
+  "steps": {
+    "in_script": 139,
+    "run": 139
+  },
+  "log_file": {
+    "path": "D:\\Random Programs\\OpenChemStudio_Data\\logs\\drive-35204.log",
+    "start": 1398,
+    "end": 42176
+  },
+  "assertions": [
+    {
+      "step": "fukui2_begin",
+      "tag": "",
+      "ok": true,
+      "detail": "floor 0.0"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "HCN@B3LYP/6-31G*",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "N2O@B3LYP/6-31G*",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "anilinium@B3LYP/6-31G*",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "phenol@B3LYP/6-31G*",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "aniline@B3LYP/6-31G*",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "fluorobenzene@B3LYP/6-31G*",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "benzaldehyde@B3LYP/6-31G*",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "styrene@B3LYP/6-31G*",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "nitrobenzene@B3LYP/6-31G*",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "pyrrole@B3LYP/6-31G*",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "furan@B3LYP/6-31G*",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "thiophene@B3LYP/6-31G*",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "acrolein@B3LYP/6-31G*",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "SCN-@B3LYP/6-31+G*",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "NO2-@B3LYP/6-31+G*",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_judge",
+      "tag": "verdict",
+      "ok": true,
+      "detail": "fail"
+    },
+    {
+      "step": "expect_clean",
+      "tag": "",
+      "ok": true,
+      "detail": "no unexpected application errors"
+    }
+  ],
+  "measurements": {
+    "window_ready_epoch": 1792330512.1901166
+  },
+  "ledger": {
+    "errors": [],
+    "warnings": [],
+    "driver_failures": [],
+    "dropped": 0
+  }
+}

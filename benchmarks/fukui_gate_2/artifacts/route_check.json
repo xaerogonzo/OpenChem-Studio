@@ -1,0 +1,99 @@
+{
+ "scratch": "C:\\Users\\pmpd\\AppData\\Local\\Temp\\cation_states_nsj9_bra",
+ "rows": [
+  {
+   "species": "benzaldehyde",
+   "level": "B3LYP/6-31G*",
+   "jobs_with_energy": 3,
+   "tables": 3,
+   "converged": true,
+   "n_energy": -345.359880999782,
+   "n_minus_1_energy": -345.02037225766,
+   "above_probe_lowest_ev": 0.145,
+   "s2_cation": 0.757627,
+   "f_minus": [
+    0.3398,
+    0.1006,
+    0.0309,
+    0.0449,
+    0.0453,
+    0.0731,
+    0.0451,
+    0.034,
+    0.127,
+    0.0285,
+    0.0355,
+    0.0383,
+    0.0353,
+    0.0217
+   ],
+   "max_distance_to_published": 0.0011,
+   "by_label": {
+    "ortho": 0.0449,
+    "meta": 0.0453,
+    "para": 0.0731
+   }
+  },
+  {
+   "species": "anilinium",
+   "level": "B3LYP/6-31G*",
+   "jobs_with_energy": 3,
+   "tables": 3,
+   "converged": true,
+   "n_energy": -287.766119388565,
+   "n_minus_1_energy": -287.269242203571,
+   "above_probe_lowest_ev": 0.0,
+   "s2_cation": 0.766532,
+   "f_minus": [
+    0.0205,
+    0.0447,
+    0.144,
+    0.131,
+    0.0544,
+    0.1312,
+    0.1439,
+    0.0215,
+    0.0215,
+    0.0223,
+    0.0563,
+    0.0543,
+    0.0438,
+    0.0543,
+    0.0562
+   ],
+   "max_distance_to_published": 0.1206,
+   "by_label": {
+    "ortho": 0.144,
+    "meta": 0.1312,
+    "para": 0.0544
+   }
+  },
+  {
+   "species": "thiophene",
+   "level": "B3LYP/6-31G*",
+   "jobs_with_energy": 3,
+   "tables": 3,
+   "converged": true,
+   "n_energy": -552.83243218837,
+   "n_minus_1_energy": -552.516128993183,
+   "above_probe_lowest_ev": 0.0,
+   "s2_cation": 0.763772,
+   "f_minus": [
+    0.1076,
+    0.1076,
+    0.1762,
+    0.1886,
+    0.1762,
+    0.0559,
+    0.0559,
+    0.066,
+    0.066
+   ],
+   "max_distance_to_published": 0.1172,
+   "by_label": {
+    "2": 0.1762,
+    "3": 0.1076
+   }
+  }
+ ]
+}

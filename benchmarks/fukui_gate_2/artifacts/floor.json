@@ -1,0 +1,35 @@
+{
+ "floor": 0.0,
+ "limit": 0.005,
+ "usable": true,
+ "routes": {
+  "pyridine": {
+   "same_input_largest": 0.0,
+   "whole_chain_largest": 0.0,
+   "input_fingerprints": {
+    "a1": "3b82e63c53a686a34fa51b354c96d53068dcafd1e83fc31744075904cd3f0484",
+    "a2": "3b82e63c53a686a34fa51b354c96d53068dcafd1e83fc31744075904cd3f0484",
+    "b": "6f7c421eee4ae81022b3c3edf67d334b3dc6fe8e613922542126097a347f35c4"
+   },
+   "run_ids": {
+    "a1": "533b97f1b7e744d79774f94e93d3d935",
+    "a2": "36ac9ee7957549d9818c165d0886bb7a",
+    "b": "f34379ced044426ab86f978031bfcdf5"
+   }
+  },
+  "formate": {
+   "same_input_largest": 0.0,
+   "whole_chain_largest": 0.0,
+   "input_fingerprints": {
+    "a1": "6f7ba7b701b00adc7113b657e107d25bda3c640117de85fac1820598104e4a76",
+    "a2": "6f7ba7b701b00adc7113b657e107d25bda3c640117de85fac1820598104e4a76",
+    "b": "3e3f7d94c2c14aae30ee4aae1c0a905bf48a57f65e974c623962be3d97733fd9"
+   },
+   "run_ids": {
+    "a1": "d2a605d2e8c04678874df646653d8d62",
+    "a2": "072794cb09c44b91b9f857ab199c3a6a",
+    "b": "faacc6af2223435fa419e07b4c4c5242"
+   }
+  }
+ }
+}

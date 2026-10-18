@@ -229,7 +229,7 @@ def test_a_fukui_job_whose_tables_will_not_read_fails_the_run_and_publishes_noth
 
     run = landed.runs[0]
     assert run.status is RunStatus.FAILED
-    assert any("three SCF energies and three Hirshfeld tables" in warning for warning in run.warnings)
+    assert any("N+1 state of this Fukui calculation did not finish" in warning for warning in run.warnings)
     assert landed.per_atom == []
     assert not [s for s in landed.recorded if s.identity.result_id in IDS]
     assert landed.states[-1].state is CacheState.FAILED

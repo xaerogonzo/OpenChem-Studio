@@ -1,0 +1,44 @@
+{
+ "source": "artifacts/records.json (the decided arm's runs)",
+ "site_rows": [
+  {
+   "molecule": "N2O",
+   "attack": "f-",
+   "expected": "O",
+   "found": "O",
+   "published_margin": 0.02899999999999997,
+   "experimental": null,
+   "decided": false
+  },
+  {
+   "molecule": "NO2-",
+   "attack": "f-",
+   "expected": "O",
+   "found": "O",
+   "published_margin": 0.034999999999999976,
+   "experimental": null,
+   "decided": false
+  },
+  {
+   "molecule": "benzaldehyde",
+   "attack": "f-",
+   "expected": "para",
+   "found": "meta",
+   "published_margin": 0.026999999999999996,
+   "experimental": "m > o >> p",
+   "decided": false
+  },
+  {
+   "molecule": "nitrobenzene",
+   "attack": "f-",
+   "expected": "meta",
+   "found": "meta",
+   "published_margin": 0.008000000000000007,
+   "experimental": "m >> o > p",
+   "decided": false
+  }
+ ],
+ "not_computed": [],
+ "unfinished": [],
+ "conflicts": []
+}

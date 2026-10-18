@@ -104,11 +104,15 @@ _QM_CALC_TYPE_DESCRIPTIONS = {
         "by a nucleophile), f- (attack by an electrophile), f0 (attack by a radical) and the dual "
         "descriptor f+ - f-, from the Hirshfeld charges of the neutral, the cation and the anion. Three "
         "single points in one job, all at the geometry as supplied (vertical): optimize first if the "
-        "drawn geometry is not good enough. Closed-shell species only. Hirshfeld is the one charge "
+        "drawn geometry is not good enough. Closed-shell species only. A species that is itself an anion "
+        "gets f- alone, from two single points: its N+1 state would be a dianion, which no basis set binds "
+        "in the gas phase. Hirshfeld is the one charge "
         "scheme offered because, of the five ORCA prints, it was the only one whose values stayed within "
         "0.023 of themselves when diffuse functions were added and never went negative, on "
         "formaldehyde, propene and pyridine. The anion of a neutral molecule is usually unbound at an "
-        "ordinary basis set, which makes f+ the less trustworthy half; the result says so."
+        "ordinary basis set, which makes f+ the less trustworthy half; the result says so. At a basis set "
+        "with diffuse functions an anionic state is also started from two more initial guesses and the "
+        "lowest solution is read, because there it can have more than one."
     ),
     "led": (
         "Breaks a non-covalent interaction energy into electrostatics, exchange, "
@@ -132,11 +136,13 @@ _QM_CALC_TYPE_SUPPORT = {
         stage=SupportStage.EXPERIMENTAL,
         default_visibility=Visibility.HIDDEN,
         support_reason=(
-            "Not validated: it did not pass its preregistered check against published Hirshfeld condensed Fukui "
-            "values. Fifty-two of 54 numbers were within 0.02 and all 13 documented sites were reproduced; the "
-            "carbon and oxygen f- of carbon monoxide at HF/6-31G** were 0.0214 off, and the unrestricted cation there "
-            "is heavily spin-contaminated (the published values used annihilated UHF). Offered in the Quantum "
-            "Chemistry panel, and every result says so."
+            "Not validated: it failed two preregistered checks against published Hirshfeld condensed Fukui values. "
+            "The first (an earlier version) missed by 0.0014 on the f- of carbon monoxide at HF/6-31G**, whose cation "
+            "is heavily spin-contaminated. The second, of the current version, reproduced 33 of 47 numbers to within "
+            "0.02 (23 of them to 0.002); the other 14 belong to hydrogen cyanide, thiocyanate, benzaldehyde, "
+            "anilinium, pyrrole, furan and thiophene, and for benzaldehyde, anilinium and thiophene the published "
+            "values match a cation state 0.09 to 0.45 eV above the lowest one. Offered in the Quantum Chemistry "
+            "panel, and every result says so."
         ),
         scope_note=(
             "Closed-shell species, Hirshfeld charges only, ions at the neutral geometry (vertical); "

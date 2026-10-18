@@ -1,0 +1,104 @@
+{
+  "verdict": "PASS",
+  "exit_code": 0,
+  "tolerate_errors": false,
+  "run": {
+    "run_id": "2ee2f58ee234464e89595009699aa70c",
+    "pid": 45612,
+    "started": "2026-10-18T13:27:47+00:00",
+    "script": "benchmarks/visual/fukui2_gate_floor.json",
+    "script_sha256": "2ee7cf7d943abd882928fb499bb6f37a584e300f4d97f55ea3dd59bae8fc0a9a",
+    "commit": "fa8850aac569d89fa33c006e70438cd039d2917d",
+    "dirty": true,
+    "lockfile_sha256": "56a63e1efc21dd43e26f7e32f6817db69cd502914ae15d5a5297345bca2dd07d",
+    "ketcher_bundle": "6295fe8c0bc479c2a77e140849d9a4b30df6cb955a4e7d166b7fd521e50d4eb0",
+    "versions": {
+      "python": "3.13.7",
+      "platform": "Windows-11-10.0.26200-SP0",
+      "pyside6": "6.11.1",
+      "qt": "6.11.1",
+      "rdkit": "2025.9.6",
+      "java": ""
+    },
+    "log_start": 1399
+  },
+  "steps": {
+    "in_script": 45,
+    "run": 45
+  },
+  "log_file": {
+    "path": "D:\\Random Programs\\OpenChemStudio_Data\\logs\\drive-45612.log",
+    "start": 1399,
+    "end": 14111
+  },
+  "assertions": [
+    {
+      "step": "fukui2_record",
+      "tag": "pyridine@B3LYP/6-31G*",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "pyridine@B3LYP/6-31G*",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "pyridine@B3LYP/6-31G*",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "formate@B3LYP/6-31+G*",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "formate@B3LYP/6-31+G*",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_record",
+      "tag": "formate@B3LYP/6-31+G*",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui2_floor",
+      "tag": "floor",
+      "ok": true,
+      "detail": "F=0.000000"
+    },
+    {
+      "step": "expect_clean",
+      "tag": "",
+      "ok": true,
+      "detail": "no unexpected application errors"
+    }
+  ],
+  "measurements": {
+    "window_ready_epoch": 1792330067.553524
+  },
+  "ledger": {
+    "errors": [],
+    "warnings": [
+      {
+        "level": "WARNING",
+        "logger": "openchem.vendor.iupac_namer.perception.fg_detection",
+        "exception": "",
+        "origin": "openchem/vendor/iupac_namer/perception/fg_detection.py:1034",
+        "message": "Unknown FG overlap: 'carboxylic_acid' vs 'aldehyde' at atoms frozenset({0, 1}). Treating as ambiguity. Consider adding a subsumption entry.",
+        "count": 1,
+        "first_seen": "2026-10-18T13:31:23+00:00",
+        "sample": ""
+      }
+    ],
+    "driver_failures": [],
+    "dropped": 0
+  }
+}

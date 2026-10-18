@@ -338,6 +338,13 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           `floor` is the largest difference between two runs that should agree; `judge` is `app/fukui_gate.judge`
                                           and writes the outcome beside the drive's own verdict (a FAIL of the gate is a result, not a broken
                                           script); `report` writes the reported arm, which never decides
+    {"do": "fukui2_begin"}  {"do": "fukui2_record", "species": "phenol", "level": "B3LYP/6-31G*", "attempt": 1}
+    {"do": "fukui2_floor"}  {"do": "fukui2_judge"}  {"do": "fukui2_report"}
+                                          the SECOND Fukui gate (benchmarks/fukui_gate_2/PREREGISTRATION.md, arithmetic `app/fukui_gate_2.py`, scripts
+                                          from `benchmarks/fukui_gate_2/make_scripts.py`): the first gate's steps widened for what v2 needs -- an
+                                          anion's run holds ONE dataset, every record carries the provenance the judge checks (grid, functions, reference
+                                          charge, starts, the commit and whether `src/` differs from it, acrolein's dihedral), and `floor` measures two
+                                          floors (pyridine and formate) and uses the larger
     {"do": "lewis_gate_begin"}  {"do": "lewis_gate_floor", "a": -2, "b": -1}  {"do": "lewis_gate_pair", "bh3": -3, "bf3": -2, "co": -1}
                                           the Lewis pairing GATE (benchmarks/lewis_gate/PREREGISTRATION.md): `begin` ends the run before any
                                           job unless tolerance.json holds the tolerance the preregistered rule gives the recorded floor;
