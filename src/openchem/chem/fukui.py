@@ -360,13 +360,15 @@ DOUBLET_S_SQUARED = 0.75
 #: validated; the one case measured (carbon monoxide's cation at HF/6-31G**, 0.967) is far above it and most DFT doublets measured are below it.
 SPIN_CONTAMINATION_WARNING = 0.825
 
-#: What every result says about its own standing. An earlier version of the calculation failed its preregistered check by 0.0014 on one of 54 numbers
-#: (`benchmarks/fukui_gate/PREREGISTRATION.md` section 11); the current one (Fukui v2, `benchmarks/fukui_gate_2/DESIGN.md`) has not been checked against
-#: published values, and its check is `benchmarks/fukui_gate_2/PREREGISTRATION.md`. It ships as EXPERIMENTAL, which is this sentence in the results.
+#: What every result says about its own standing. The calculation (Fukui v2, `benchmarks/fukui_gate_2/DESIGN.md`) failed its second preregistered check
+#: against published Hirshfeld values: 33 of 47 numbers within 0.02, the other 14 belonging to seven molecules, and for three of them (benzaldehyde, anilinium,
+#: thiophene) the published values match a cation state 0.09 to 0.45 eV above the lowest one (`benchmarks/fukui_gate_2/PREREGISTRATION.md` section 11); an
+#: earlier version had failed a first check by 0.0014 (`benchmarks/fukui_gate/PREREGISTRATION.md` section 11). It ships as EXPERIMENTAL, which is this sentence
+#: in the results.
 NOT_VALIDATED_SENTENCE = (
-    "Not validated: an earlier version of this calculation did not pass its preregistered check against published Hirshfeld values "
-    "(52 of 54 numbers were within 0.02 and all 13 documented sites were reproduced; carbon monoxide's f- at "
-    "HF/6-31G** was 0.0214 off, and that cation is spin-contaminated, which may be why), and this version has not been checked. "
+    "Not validated: this calculation failed its second preregistered check against published Hirshfeld values (33 of 47 numbers were within 0.02; "
+    "the other 14 belong to hydrogen cyanide, thiocyanate, benzaldehyde, anilinium, pyrrole, furan and thiophene, and for benzaldehyde, anilinium and "
+    "thiophene the published values match a cation state above the lowest one), and an earlier version failed a first check by 0.0014. "
     "The calculator's help has the details."
 )
 

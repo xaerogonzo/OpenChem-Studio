@@ -346,7 +346,13 @@ def test_every_result_carries_the_not_validated_sentence_last():
 
     result = condensed_fukui(NEUTRAL, CATION, ANION)
     assert result.caveats[-1] == NOT_VALIDATED_SENTENCE
-    assert "Not validated" in NOT_VALIDATED_SENTENCE and "52 of 54" in NOT_VALIDATED_SENTENCE and "0.0214" in NOT_VALIDATED_SENTENCE
+    # what it says of the two checks it failed, by the numbers the records hold (`benchmarks/fukui_gate_2/artifacts/verdict.json`: 33 of 47 within 0.02)
+    assert NOT_VALIDATED_SENTENCE.startswith("Not validated: this calculation failed its second preregistered check")
+    assert "33 of 47" in NOT_VALIDATED_SENTENCE and "0.0014" in NOT_VALIDATED_SENTENCE
+    # all seven molecules that own a number outside 0.02 (thiocyanate's sulfur is 0.0243 off, which is outside and not a near-miss to leave unnamed)
+    for molecule in ("hydrogen cyanide", "thiocyanate", "benzaldehyde", "anilinium", "pyrrole", "furan", "thiophene"):
+        assert molecule in NOT_VALIDATED_SENTENCE
+    assert "the other 14" in NOT_VALIDATED_SENTENCE
 
 
 def test_a_contaminated_cation_is_named_with_its_value():

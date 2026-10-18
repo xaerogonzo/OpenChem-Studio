@@ -136,12 +136,13 @@ _QM_CALC_TYPE_SUPPORT = {
         stage=SupportStage.EXPERIMENTAL,
         default_visibility=Visibility.HIDDEN,
         support_reason=(
-            "Not validated: an earlier version of it did not pass its preregistered check against published Hirshfeld "
-            "condensed Fukui values (fifty-two of 54 numbers were within 0.02 and all 13 documented sites were "
-            "reproduced; the carbon and oxygen f- of carbon monoxide at HF/6-31G** were 0.0214 off, and the "
-            "unrestricted cation there is heavily spin-contaminated, the published values having used annihilated "
-            "UHF), and the current version has not been checked. Offered in the Quantum Chemistry panel, and every "
-            "result says so."
+            "Not validated: it failed two preregistered checks against published Hirshfeld condensed Fukui values. "
+            "The first (an earlier version) missed by 0.0014 on the f- of carbon monoxide at HF/6-31G**, whose cation "
+            "is heavily spin-contaminated. The second, of the current version, reproduced 33 of 47 numbers to within "
+            "0.02 (23 of them to 0.002); the other 14 belong to hydrogen cyanide, thiocyanate, benzaldehyde, "
+            "anilinium, pyrrole, furan and thiophene, and for benzaldehyde, anilinium and thiophene the published "
+            "values match a cation state 0.09 to 0.45 eV above the lowest one. Offered in the Quantum Chemistry "
+            "panel, and every result says so."
         ),
         scope_note=(
             "Closed-shell species, Hirshfeld charges only, ions at the neutral geometry (vertical); "
