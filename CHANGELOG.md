@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: nuclides on suffix carbons and ureas, and the numbering of 2-substituted naphthoquinones
+- Round 69 built a new population, a 13C or a 2H on one atom of every census molecule and of the ion populations. A nuclide on the carbon of a carboxamide, carboxylic acid, carbaldehyde or carbonitrile, or on a urea, thiourea or guanidine, was dropped (a labelled urea was a `NAMING ERROR`); it is cited before the suffix word now (`pyridine-4-(13C)carboxamide`, `benzene-1-(13C)carboxamide`, `N,N'-diethyl(13C)urea`, `N-methyl(N'-15N)urea`, D-317). A nuclide on the carbon an amide's nitrogen hangs on was cited a second time on the parent (D-318). Two wrong molecules came out of it: **plumbagin was `8-hydroxy-2-methylnaphthalene-1,4-dione`** (the curated 1,4-dihydronaphthalene numbered its benzo ring backwards, D-319), and a diester of two alkyls that differ only by a nuclide had no locants (D-320). A nuclide after a `hexadecahydro` prefix is placed where OPSIN reads it (D-321). Neutral 13C 488 -> 495 of 500 read back.
+
 ### Naming: the cation is the parent, and a chain carbanion beside another anion
 - Round 68. An acyclic iminium, hydrazinium, nitrilium or phosphonium that is no part of the suffix group outranks an alcohol, acid or amide (P-41): `[(2-hydroxyphenyl)methylidene](phenyl)azanium`, not `2-[(phenylazaniumylidene)methyl]phenol`, whose `-ol` made OPSIN read a following counter-ion word as an ester (D-316; the salts that read back rose from 14,736 to 14,768 of 14,881). A chain carbanion beside a carboxylate takes the `-id-` infix a ring carbanion took in round 67 (`1-oxido-1-oxopentan-3-id-2,4-dione`, D-315).
 
