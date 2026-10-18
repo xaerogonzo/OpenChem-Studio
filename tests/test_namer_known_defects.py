@@ -4590,6 +4590,16 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-321", "[2H]C1CC2CCC3C(CCC4CCCCC43)C2C1", "hexadecahydro(16-2H)-1H-cyclopenta[a]phenanthrene",
      "(16-2H)hexadecahydro-1H-cyclopenta[a]phenanthrene",
      "the nuclide was put in front of a hexadecahydro prefix, which OPSIN cannot read (a steroid)"),
+    # Naming round 70 (D-322 .. D-324).
+    ("D-322", "Cc1ccc(S(=O)(=[18O])N)cc1", "4-methyl(18O)benzene-1-sulfonamide",
+     "[REFUSED: no name found that keeps the isotopic labelling: 1 x 18O would be lost (the nearest name, '4-methylbenzene-1-sulfonamide', is the unlabelled compound's)]",
+     "the two oxygens of a sulfonyl, of a nitro group or of a carboxylate are ONE position, but the labelled-atom rules counted two and dropped the label"),
+    ("D-323", "COC(=O)c1ccc([15NH]C(C)=O)cc1", "methyl 4-(15N)acetamidobenzoate",
+     "[REFUSED: no name found that keeps the isotopic labelling: 1 x 15N would be lost (the nearest name, 'methyl 4-acetamidobenzoate', is the unlabelled compound's)]",
+     "an acylamino prefix had no place for its nitrogen's nuclide; the acid it is built from kept the nitrogen's isotope on the hydroxyl oxygen that replaces it (`(O-15O,15N)acetamido`)"),
+    ("D-324", "[15NH2]CC", "(15N)ethanamine",
+     "[REFUSED: no name found that keeps the isotopic labelling: 1 x 15N would be lost (the nearest name, 'ethanamine', is the unlabelled compound's)]",
+     "the nitrogen of an -amine suffix is the group's own anchor, so it mapped to no locant; every labelled aliphatic amine was refused"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",

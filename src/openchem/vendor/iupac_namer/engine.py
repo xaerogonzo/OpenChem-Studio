@@ -5362,13 +5362,38 @@ def _isotopic_group_prefix(prefix: str, group_atoms, mol) -> str | None:
     if not labelled:
         return prefix
     heavy = [a for a in atoms if a.GetAtomicNum() > 1]
+
+    def _equivalent(a, b):
+        # Terminal atoms of one element on the same neighbour with the same hydrogens are one position to a reader: the two oxygens of a nitro group (`=O`, `O-`: one resonance
+        # form), of a sulfonyl, of a carboxylate; not the `=O` and `OH` of `carboxy` (naming round 70, D-322).
+        return (
+            a.GetSymbol() == b.GetSymbol() and a.GetDegree() == 1 and b.GetDegree() == 1
+            and a.GetNeighbors()[0].GetIdx() == b.GetNeighbors()[0].GetIdx() and a.GetTotalNumHs() == b.GetTotalNumHs()
+        )
+
+    from collections import Counter as _Counter
+
+    counts: _Counter = _Counter()
+    done: set = set()
     for atom in labelled:
-        if sum(1 for other in heavy if other.GetSymbol() == atom.GetSymbol()) > 1:
-            return None
+        if atom.GetIdx() in done:
+            continue
+        same = [other for other in heavy if other.GetSymbol() == atom.GetSymbol()]
+        if len(same) > 1:
+            if not all(other.GetIdx() == atom.GetIdx() or _equivalent(atom, other) for other in same):
+                return None
+            marked = [other for other in same if other.GetIsotope() == atom.GetIsotope()]
+            done |= {other.GetIdx() for other in same}
+            counts[(atom.GetSymbol(), atom.GetIsotope())] += len(marked)
+            if any(other.GetIsotope() not in (0, atom.GetIsotope()) for other in same):
+                return None           # two different nuclides on one position: not said by a bare bracket
+        else:
+            done.add(atom.GetIdx())
+            counts[(atom.GetSymbol(), atom.GetIsotope())] += 1
     from openchem.vendor.iupac_namer.isotope import render_isotope_labels
     from openchem.vendor.iupac_namer.types import IsotopeLabel
 
-    labels = tuple(IsotopeLabel(locant=None, element=a.GetSymbol(), mass_number=a.GetIsotope(), count=1) for a in labelled)
+    labels = tuple(IsotopeLabel(locant=None, element=sym, mass_number=mass, count=n) for (sym, mass), n in sorted(counts.items()))
     return render_isotope_labels(labels) + prefix
 
 
@@ -5942,6 +5967,7 @@ def _name_single_fg_substituent(
                     from rdkit.Chem import RWMol as _RWMol
                     rw = _RWMol(mol)
                     rw.GetAtomWithIdx(attachment_idx).SetAtomicNum(8)
+                    rw.GetAtomWithIdx(attachment_idx).SetIsotope(0)       # the nitrogen's nuclide is not the new hydroxyl oxygen's (naming round 70, D-323: `(O-15O)acetate`)
                     rw.GetAtomWithIdx(attachment_idx).SetNumExplicitHs(1)
                     rw.GetAtomWithIdx(attachment_idx).SetNoImplicit(True)
                     acid_mol = rw.GetMol()
@@ -6151,6 +6177,7 @@ def _name_single_fg_substituent(
                 from rdkit.Chem import RWMol
                 rw = RWMol(mol)
                 rw.GetAtomWithIdx(attachment_idx).SetAtomicNum(8)
+                rw.GetAtomWithIdx(attachment_idx).SetIsotope(0)       # the nitrogen's nuclide is not the new hydroxyl oxygen's (naming round 70, D-323: `(O-15O)acetate`)
                 rw.GetAtomWithIdx(attachment_idx).SetNumExplicitHs(1)
                 rw.GetAtomWithIdx(attachment_idx).SetNoImplicit(True)
                 acid_mol = rw.GetMol()
@@ -6210,7 +6237,8 @@ def _name_single_fg_substituent(
                 if acid_name and "[NAMING ERROR" not in acid_name:
                     acyl_name = _acid_name_to_acyl(acid_name)
                     if acyl_name:
-                        amino_prefix = _acid_name_to_amido(acid_name) or acyl_name + "amino"
+                        amino_prefix = _amido_unless_labelled(acid_name, mol.GetAtomWithIdx(attachment_idx)) or acyl_name + "amino"
+                        amino_prefix = _isotopic_attachment_prefix(amino_prefix, mol.GetAtomWithIdx(attachment_idx), mol)   # `(15N)acetamido` (naming round 70, D-323)
                         return LeafTree(
                             output_form=output_form,
                             free_valence=free_valence,
@@ -6251,6 +6279,7 @@ def _name_single_fg_substituent(
                     rw = RWMol(mol)
                     # Replace the attachment N atom with O (hydroxyl H added later)
                     rw.GetAtomWithIdx(attachment_idx).SetAtomicNum(8)
+                    rw.GetAtomWithIdx(attachment_idx).SetIsotope(0)       # the nitrogen's nuclide is not the new hydroxyl oxygen's (naming round 70, D-323: `(O-15O)acetate`)
                     rw.GetAtomWithIdx(attachment_idx).SetNumExplicitHs(1)
                     rw.GetAtomWithIdx(attachment_idx).SetNoImplicit(True)
                     acid_mol = rw.GetMol()
@@ -6276,7 +6305,8 @@ def _name_single_fg_substituent(
                             # A compound acyl is enclosed: "2-[(methylcarbamoyl)amino]
                             # naphthalene-1-carboxylic acid (PIN)", p. 660. Plain
                             # concatenation wrote "(methylcarbamoylamino)".
-                            amino_prefix = _acid_name_to_amido(acid_name) or _compose_n_substituents([acyl_name]) + "amino"
+                            amino_prefix = _amido_unless_labelled(acid_name, mol.GetAtomWithIdx(attachment_idx)) or _compose_n_substituents([acyl_name]) + "amino"
+                            amino_prefix = _isotopic_attachment_prefix(amino_prefix, mol.GetAtomWithIdx(attachment_idx), mol)
                             return LeafTree(
                                 output_form=output_form,
                                 free_valence=free_valence,
@@ -12118,14 +12148,28 @@ def _isotope_atom_sites(plan, mol, atom_to_locant, as_substituent: bool = False)
         # "Alone of its element" is measured over EVERY atom the name owns, numbered or not: `(13C)benzonitrile` would name the nitrile carbon among seven carbons
         # (OPSIN: "Position of isotope on benzonitrile is ambiguous"), where `(15N)benzonitrile` has one nitrogen to mean.
         by_element: dict = {}
+        classes: dict = {}
         for a in owned:
-            by_element.setdefault(mol.GetAtomWithIdx(a).GetSymbol(), []).append(a)
-        return frozenset(a for atoms in by_element.values() if len(atoms) == 1 for a in atoms if a not in atom_to_locant), (frozenset() if any(sg.fg.type == "nitrile" for sg in plan.suffix_groups) else suffix_carbons), alkoxy   # OPSIN: `(13C)benzonitrile` is "ambiguous"
+            atom = mol.GetAtomWithIdx(a)
+            # the terminal atoms of one element on one neighbour with the same hydrogens are one position (the two `=O` of a sulfonyl): they count once (naming round 70, D-322)
+            key = (atom.GetSymbol(), atom.GetNeighbors()[0].GetIdx(), atom.GetTotalNumHs()) if atom.GetDegree() == 1 else (atom.GetSymbol(), a)
+            classes.setdefault(key, []).append(a)
+        for key, atoms in classes.items():
+            by_element.setdefault(key[0], []).append(atoms)
+        return frozenset(a for groups in by_element.values() if len(groups) == 1 for atoms in groups for a in atoms if a not in atom_to_locant), (frozenset() if any(sg.fg.type == "nitrile" for sg in plan.suffix_groups) else suffix_carbons), alkoxy   # OPSIN: `(13C)benzonitrile` is "ambiguous"
     if len(plan.suffix_groups) == 1:
+        # Terminal atoms of one element on the same neighbour with the same hydrogens are ONE position (the two `=O` of a sulfonyl, the two oxygens of a nitro or a carboxylate): they
+        # count once, so `S(=O)(=[18O])` is `benzene-1-(18O)sulfonamide` and not a label lost (naming round 70, D-322).
         by_element = {}
+        classes: dict = {}
         for a in suffix_atoms:
-            by_element.setdefault(mol.GetAtomWithIdx(a).GetSymbol(), []).append(a)
-        return frozenset(), frozenset(a for atoms in by_element.values() if len(atoms) == 1 for a in atoms) | suffix_carbons, alkoxy
+            atom = mol.GetAtomWithIdx(a)
+            terminal = atom.GetDegree() == 1
+            key = (atom.GetSymbol(), atom.GetNeighbors()[0].GetIdx(), atom.GetTotalNumHs()) if terminal else (atom.GetSymbol(), a)
+            classes.setdefault(key, []).append(a)
+        for key, atoms in classes.items():
+            by_element.setdefault(key[0], []).append(atoms)
+        return frozenset(), frozenset(a for groups in by_element.values() if len(groups) == 1 for atoms in groups for a in atoms) | suffix_carbons, alkoxy
     return frozenset(), suffix_carbons, alkoxy
 
 
@@ -12886,6 +12930,18 @@ def _preference_key(strategy, plan, mol):
     if _TAKES_MOL[kind]:
         return strategy.preference_key(plan, mol=mol)
     return strategy.preference_key(plan)
+
+
+def _amido_unless_labelled(acid_name: str, nitrogen) -> str | None:
+    """`_acid_name_to_amido`, except where the nitrogen carries a nuclide and the amido prefix is a compound one.
+
+    OPSIN reads `(15N)acetamido` and `(15N)benzamido` but neither `(15N)5-methylfuran-2-carboxamido` nor `5-methylfuran-2-(15N)carboxamido`; the acylamino spelling,
+    `(5-methylfuran-2-carbonyl)(15N)amino`, it reads (naming round 70, D-323). A natural-abundance nitrogen keeps the amido prefix whatever the acid.
+    """
+    amido = _acid_name_to_amido(acid_name)
+    if amido is not None and nitrogen.GetIsotope() and not re.fullmatch(r"(?:acet|benz|form)amido", amido):
+        return None
+    return amido
 
 
 def _acid_name_to_amido(acid_name: str) -> str | None:
@@ -19446,9 +19502,17 @@ class SubstitutivePath:
         # stays None and the 1177/1181 baseline is preserved.
         from openchem.vendor.iupac_namer.isotope import collect_isotope_labels as _coll_iso
         _atom_to_loc_map = plan.numbering.atom_to_locant
+        _iso_unnumbered, _iso_suffix, _iso_alkoxy = _isotope_atom_sites(plan, mol, _atom_to_loc_map, as_substituent=output_form in (OutputForm.SUBSTITUENT, OutputForm.ACYL) or depth > 0)
         _fg_anchor_map: dict = {}
         for _sg in plan.suffix_groups:
             _anchor_loc = _atom_to_loc_map.get(_sg.fg.anchor)
+            _derived = False
+            if _anchor_loc is None and mol.GetAtomWithIdx(_sg.fg.anchor).GetSymbol() != "C":
+                # a heteroatom anchor outside the numbering (the sulfur of `propane-1-sulfonamide`, the nitrogen of an amine) is addressed by the parent atom it hangs on, and only for
+                # the atoms the suffix word can cite (`propane-1-(18O)sulfonamide`); a sulfonic acid's oxygens, which are not alone, stay refused (naming round 70)
+                _hang = [n.GetIdx() for n in mol.GetAtomWithIdx(_sg.fg.anchor).GetNeighbors() if n.GetIdx() in _atom_to_loc_map]
+                if len(_hang) == 1:
+                    _anchor_loc, _derived = _atom_to_loc_map[_hang[0]], True
             if _anchor_loc is None:
                 continue
             for _fg_atom in _atoms_named_by_suffix(_sg, mol):
@@ -19456,8 +19520,9 @@ class SubstitutivePath:
                     continue
                 if mol.GetAtomWithIdx(_fg_atom).GetSymbol() == "C":
                     continue          # the carbon an amide's N hangs on belongs to the substituent (naming round 69, D-318)
+                if _derived and _fg_atom not in _iso_suffix:
+                    continue
                 _fg_anchor_map[_fg_atom] = _anchor_loc
-        _iso_unnumbered, _iso_suffix, _iso_alkoxy = _isotope_atom_sites(plan, mol, _atom_to_loc_map, as_substituent=output_form in (OutputForm.SUBSTITUENT, OutputForm.ACYL) or depth > 0)
         _iso_labels = _coll_iso(
             mol, _atom_to_loc_map, fg_anchor_map=_fg_anchor_map or None,
             unnumbered_ok=_iso_unnumbered, suffix_ok=_iso_suffix, alkoxy_ok=_iso_alkoxy,
