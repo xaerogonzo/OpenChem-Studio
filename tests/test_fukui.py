@@ -98,6 +98,40 @@ def test_each_state_is_checked(which):
     assert ("neutral", "cation", "anion")[which] in result.reason
 
 
+def _anion_short_by(amount):
+    """The invented anion with `amount` electrons of its charge missing (its first atom's charge raised by it)."""
+    return [ANION[0] + amount, *ANION[1:]]
+
+
+def test_a_small_shortfall_of_the_anion_is_named_as_the_integration_and_not_as_a_wrong_table():
+    """CO2's anion at B3LYP/6-311+G** summed to -0.927: 0.073 short, which is a diffuse electron the grid did not integrate, and not
+    another state's table (that is a whole electron away). The refusal stays, and says what happened."""
+    anion = _anion_short_by(0.073)
+    assert sum(anion) == pytest.approx(-0.927)
+    result = condensed_fukui(NEUTRAL, CATION, anion)
+    assert not result
+    assert "0.073 electrons" in result.reason and "integration" in result.reason and "diffuse" in result.reason
+    assert "not that state's" not in result.reason
+
+
+def test_a_small_shortfall_of_another_state_gets_the_integration_reason_without_the_diffuse_advice():
+    cation = [CATION[0] - 0.05, *CATION[1:]]  # sums to +0.95
+    result = condensed_fukui(NEUTRAL, cation, ANION)
+    assert not result
+    assert "cation" in result.reason and "0.050 electrons" in result.reason and "integration" in result.reason
+    assert "diffuse" not in result.reason
+
+
+def test_the_shortfall_boundaries_are_the_tolerance_and_a_tenth_of_an_electron():
+    assert condensed_fukui(NEUTRAL, CATION, _anion_short_by(0.0099))  # inside the rule: no refusal
+    just_over = condensed_fukui(NEUTRAL, CATION, _anion_short_by(0.0101))
+    assert not just_over and "integration" in just_over.reason
+    under_a_tenth = condensed_fukui(NEUTRAL, CATION, _anion_short_by(0.0999))
+    assert not under_a_tenth and "integration" in under_a_tenth.reason
+    over_a_tenth = condensed_fukui(NEUTRAL, CATION, _anion_short_by(0.1001))
+    assert not over_a_tenth and "not that state's" in over_a_tenth.reason and "integration" not in over_a_tenth.reason
+
+
 def test_an_empty_table_is_refused():
     result = condensed_fukui([], CATION, ANION)
     assert not result and "neutral" in result.reason

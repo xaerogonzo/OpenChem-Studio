@@ -55,14 +55,23 @@ diffuse functions (all six cases measured: -1.06 to -3.02 eV), so the
 N+1 state is a state the basis set merely describes, and ``f+`` is the less
 trustworthy half. It is computed anyway, with a caveat naming the energy,
 because Hirshfeld's ``f+`` moved by at most 0.023 per atom with the diffuse
-set; a refusal would remove ``f+`` from nearly every molecule.
+set on those three molecules; a refusal would remove ``f+`` from nearly every molecule.
 
-**Diffuse functions are not the cure, and the gate's reported arm measured it**
-(``benchmarks/fukui_gate/PREREGISTRATION.md`` section 11.4): at 6-311+G** the
-``f+`` differed from the published values by a median of 0.12 (B3LYP, 9 values)
-and 0.20 (HF, 6 values) per atom and ``f-`` by a median of 0.004 and 0.010, and 7
-of the 14 jobs were refused
-because the anion's Hirshfeld charges summed 0.010 to 0.073 short of its charge.
+**Diffuse functions are not the cure, and ``f+`` with them is not reproducible**
+(``benchmarks/fukui_gate/PREREGISTRATION.md`` sections 11.4 and 11.6, measured after the
+gate, deciding nothing). At 6-311+G** on the seven gate species ``f-`` agreed with the
+published values in all 17 rows (largest difference 0.012) and ``f+`` in 6 of 17 (median
+0.10 at B3LYP and 0.20 at HF, up to 0.33). Two things sit behind it. Seven of the 14 jobs
+were refused because the anion's Hirshfeld charges summed 0.010 to 0.073 short of its
+charge, which is ORCA's default integration grid missing part of a diffuse electron (on a
+finer grid every anion came within 0.005, and at 6-31G** a finer grid changed no value).
+And the unbound anion has more than one SCF solution there: of six cases probed, three had
+a solution 0.6 to 1.0 eV below ORCA's default one, with ``f+`` differing by up to 0.31
+between them, and for the fulminate and carbon dioxide anions at B3LYP/6-311+G** one
+molecule embedded three ways gave two different anions (``f+`` on carbon 0.85 against
+0.63, and 0.71 against 0.59) where ``f-`` agreed to 0.0001. At the 6-31G** levels the gate
+decided on, the default solution was the lowest found in all 14 cases and all 14
+reproduced across three embeddings to 0.0004.
 """
 
 from __future__ import annotations
@@ -75,6 +84,12 @@ from dataclasses import dataclass, field
 #: a correct Hirshfeld table is off by a few 1e-6; a table of another state
 #: is off by a whole electron. Between those two the margin is wide.
 _STATE_SUM_TOLERANCE = 0.01
+
+#: A state whose charges miss its charge by more than `_STATE_SUM_TOLERANCE` but by no more than this is the RIGHT state integrated
+#: incompletely, not another state's table: another state's table is a whole electron away. Measured: seven anions at 6-311+G** were
+#: 0.010 to 0.073 short at ORCA's default grid and 0.005 or less on a finer one (`benchmarks/fukui_gate/PREREGISTRATION.md` 11.5, 11.6),
+#: while no neutral or cation state was ever more than 0.0002 off.
+_INTEGRATION_SHORTFALL = 0.1
 
 #: One Hartree in eV (the CODATA value `conceptual_dft` uses), to say by how much an anion lies above its neutral.
 HARTREE_TO_EV = 27.211386245988
@@ -140,9 +155,9 @@ def unbound_anion_sentence(gap_ev: float) -> str:
     """The caveat for an anion above the neutral, in the words the caveat, the panel and the docs share."""
     return (
         f"The anion is {gap_ev:.2f} eV ABOVE the neutral (a negative electron affinity), so it is an unbound "
-        "state that this basis set only describes: f+ depends on the basis set more than f- does, and diffuse "
-        "functions are not a cure: measured against published values at 6-311+G**, f+ was off by up to 0.33 per "
-        "atom and some anions were refused outright. The calculator's help has the measurements."
+        "state that this basis set only describes: f+ depends on the basis set more than f- does. Diffuse "
+        "functions do not fix that: with them the anion has more than one SCF solution, and f+ changed by up to "
+        "0.31 between them in the cases measured. The calculator's help has the measurements."
     )
 
 
@@ -157,7 +172,21 @@ def _bad_table(name: str, charges, expected_charge: int) -> str:
     if any(not math.isfinite(value) for value in charges):
         return f"The {name} state has a charge that is not a finite number."
     total = sum(charges)
-    if abs(total - expected_charge) > _STATE_SUM_TOLERANCE:
+    off = abs(total - expected_charge)
+    if off > _STATE_SUM_TOLERANCE and off <= _INTEGRATION_SHORTFALL:
+        reason = (
+            f"The {name} state's charges sum to {total:+.3f}, {off:.3f} electrons from its charge of {expected_charge:+d}. "
+            "That is too small to be another state's table, so it is the numerical integration: Hirshfeld charges are integrals "
+            "on a grid, and a few hundredths of an electron were left out."
+        )
+        if name.startswith("anion"):
+            reason += (
+                " ORCA's default grid does not integrate a diffuse electron completely, which is what an unbound anion has at a basis "
+                "set with diffuse functions; in the cases measured a finer grid brought the sum within 0.005, and a basis set without "
+                "diffuse functions had no shortfall at all."
+            )
+        return reason
+    if off > _STATE_SUM_TOLERANCE:
         return (
             f"The {name} state's charges sum to {total:+.3f} but that state has charge {expected_charge:+d}; "
             "the table read is not that state's, so the difference would be about something else."
