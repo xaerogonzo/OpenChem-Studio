@@ -333,7 +333,7 @@ would refuse is still read; the comparison with the published numbers is `fukui_
   | `HF/6-311+G**`, default grid | 0.0164 | 0.0226 | 0.0062 | 0.0003 | -0.0031 | 0.0171 | 0.0141 |
   | on the finer grid | 0.0050 | 0.0028 | 0.0019 | 0.0001 | -0.0045 | 0.0012 | 0.0013 |
 
-  (The application's own sums for the seven refused jobs are in 11.4; CO2 at B3LYP was 0.073 short there and 0.0197 here, because its anion is a different SCF solution: 11.6.4.)
+  (The application's own sums for the seven refused jobs are in 11.4; CO2 at B3LYP was 0.073 short there and 0.0197 here; the anion of CO2 at `B3LYP/6-311+G**` has two solutions depending on the starting embedding (11.6.5), which is the likely reason and was not tested for that run.)
 * **It does not bring f+ to the published values.** At 6-311+G** f+ is within 0.02 for 5 of 17 rows at the default grid and 4 of 17 on the finer one at B3LYP, and 3 of 17 and 3 of 17 at HF; f- is within for 17 and 17 of 17 at B3LYP and
   15 and 15 of 17 at HF (CO's, 0.0205 from the published value). The refusals are the grid. The f+ disagreement is something else.
 
