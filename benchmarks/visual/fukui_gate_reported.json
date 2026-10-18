@@ -136,6 +136,6 @@
   {"do": "qc_wait", "timeout_ms": 900000},
   {"do": "fukui_gate_record", "species": "H2CO", "level": "B3LYP/def2-SVP", "artifact": "benchmarks/fukui_gate/artifacts/reported_records.json", "attempt": 1},
   {"do": "fukui_gate_report", "records": "benchmarks/fukui_gate/artifacts/reported_records.json", "artifact": "benchmarks/fukui_gate/artifacts/reported.json"},
-  {"do": "expect_clean"},
+  {"do": "expect_clean", "allow": ["state's charges sum to"]},
   {"do": "quit"}
 ]

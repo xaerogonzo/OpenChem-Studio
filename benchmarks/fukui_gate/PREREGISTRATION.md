@@ -231,3 +231,51 @@ The gate's number (0.6717) is the UHF one, to the digit. The unrestricted cation
 and the uncontaminated ones, as a partially annihilated density would. That is a measured cause for the one failing number, and it is a **difference of method**, not a defect in the arithmetic.
 Whether the other HF cations are contaminated was not measured: CN- at HF has the next largest difference (0.0101), and its cation is the CN radical, a doublet. A new preregistration may
 build on this; this one does not.
+
+### 11.4 The reported arm, 2026-10-18: measured twice, decides nothing
+
+`benchmarks/visual/fukui_gate_reported.json`, real ORCA 6.1.1, gas phase. Every row is marked `decided: false` and the verdict never reads them (section 10); the tolerance of 0.02 is shown beside the rows so
+they can be read, not to judge them. 46 rows from 7 species at two diffuse levels plus formaldehyde at the application's default level (`artifacts/reported.json`, `artifacts/reported_records.json`).
+
+**The arm was run twice, and the two runs agree to every stored digit.** The first run (04:30 to 04:45) ended with the drive's own `VERDICT FAIL`, and not for the numbers: seven of its 14 diffuse-level jobs
+were *refused by the application* (below), the refusal is logged as an error, and the script had not declared those errors as expected. The script (`make_scripts.py`, the reported arm only) now declares
+`state's charges sum to` as expected, with a comment saying why, and the arm was run again from scratch (04:47 to 05:01): `VERDICT PASS` (18 assertions, 0 unexpected app errors, 0 driver failures;
+`artifacts/reported.drive_report.json`). The largest difference between the two runs' measured values is **0.0**, both refuse the same seven jobs for the same sums, and both give 31 of 46 rows within 0.02.
+The first run's drive report is kept as `artifacts/reported.first_run.drive_report.json`. Nothing about the decided gate (sections 7 and 11.2) changes.
+
+**Rows within 0.02, by level and quantity:**
+
+| Level | f+ | f- | Notes |
+|---|---|---|---|
+| `B3LYP/6-311+G**` (Olah) | 2 of 9 (median \|diff\| 0.119, largest 0.327) | 8 of 9 (median 0.004, largest 0.037) | 4 of 7 species ran |
+| `HF/6-311+G**` (Olah) | 2 of 6 (median 0.202, largest 0.278) | 5 of 6 (median 0.010, largest 0.061) | 3 of 7 species ran |
+| `B3LYP/def2-SVP`, formaldehyde (Olah B3LYP/6-31G**, Thanikaivelan Table 5, Bultinck Table I) | 8 of 8 (median 0.007, largest 0.012) | 6 of 8 (median 0.005, largest 0.056) | the application's default level |
+
+**Seven of the 14 diffuse-level jobs were refused, all in the anion state**, by the rule that a state's Hirshfeld charges must sum to its charge to 0.01 (`chem/fukui.py`). The refusal is the application doing
+what it was built to do: a table that does not sum to the state's charge is not that state's partition. Between the two runs the sums did not move.
+
+| Species | Level | Anion's charge | Charges sum to | Short by |
+|---|---|---|---|---|
+| CO | `B3LYP/6-311+G**` | -1 | -0.986 | 0.014 |
+| CO2 | `B3LYP/6-311+G**` | -1 | -0.927 | 0.073 |
+| NCO- | `B3LYP/6-311+G**` | -2 | -1.990 | 0.010 |
+| CO | `HF/6-311+G**` | -1 | -0.984 | 0.016 |
+| CO2 | `HF/6-311+G**` | -1 | -0.977 | 0.023 |
+| NCO- | `HF/6-311+G**` | -2 | -1.983 | 0.017 |
+| CNO- | `HF/6-311+G**` | -2 | -1.986 | 0.014 |
+
+H2CO, acetone and CN- ran at both levels, and CNO- at `B3LYP/6-311+G**`. The sums were printed to three decimals, so 0.010 is the shortfall of a sum that was refused, not a threshold.
+
+**What this shows, and what it does not.**
+
+* With diffuse functions, **f+ is the quantity that departs from the published values** (acetone's f+ at `HF/6-311+G**` is 0.245 on carbon against 0.037 published, CN-'s at `B3LYP/6-311+G**` is 0.878 on carbon against 0.636),
+  and f- stays near them except in acetone (-0.037 and -0.061 on the carbonyl carbon at the two levels). This is the other side of what the exploration measured (`exploration.md`: Hirshfeld's own f+ moved by at most 0.023 per atom between
+  def2-SVP and def2-SVPD on three molecules), and it **retires a sentence this work had been carrying, unreleased**: the unbound-anion caveat ended "Adding diffuse functions is the check", and the explainer said to check f+ with a basis set
+  that has them. Both are replaced; diffuse functions are not a cure, and with them seven of the 14 jobs, covering four of the seven species, are refused by the rule below.
+* The cause of the disagreement was **not diagnosed**. The unbound anion's extra electron sits in the diffuse functions, far from the nuclei, and a Hirshfeld integral on a grid can miss it; the published program, its geometry
+  (the application runs the ions at the neutral geometry ORCA optimized at def2-SVP; whether a published table used another is not known here) and the spin treatment of section 11.3 are all candidates. None was tested. A cause can be put to the test by a
+  new preregistration; this section only records the measurement.
+* The refusal threshold of 0.01 was fixed before any job ran (`chem/fukui.py`, section 7) and is **not changed here**: loosening it after seeing seven refusals would choose the threshold by its result. A rule loosened to 0.02 would admit five of the seven, and the values it admitted would need the same
+  scrutiny as the f+ rows above.
+* Formaldehyde at the default level reproduces Olah's and Thanikaivelan's published values to 0.012 (all 10 rows) and Bultinck's Table I to 0.056, two rows outside 0.02 (O f- -0.056, H f- +0.027). Bultinck's column is UHF/6-31G**
+  and this is B3LYP/def2-SVP, and the same six numbers were reproduced within 0.02 at `HF/6-31G**` in the decided arm; nothing here says which level the paper's table belongs to better.
