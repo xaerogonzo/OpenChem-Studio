@@ -1,10 +1,11 @@
 # The second Fukui gate: preregistration
 
-> **DRAFT rev 2, 2026-10-18. NOTHING IS FROZEN, and no ORCA job of a gate species has been run.** The freeze will be the commit that adds the typed tables,
-> the judge, its tests and the scripts, after the three confirmations listed at the end ("To confirm before the freeze"). Until then this
-> file may change freely; from the freeze on, sections 0 to 10 are fixed and section 11 is where the outcome is written, below a rule, in later commits.
-> Rev 2 follows the answers Alex gave to the questions of rev 1: T = 0.02; the anions are decided, through a mode that does not run the N+1 state; the calculation that
-> is tested is the robust-anion version of it ("Fukui v2", `DESIGN.md`), which therefore had to be built first; a pass promotes the calculator to LIMITED and SHOWN.
+> **FROZEN, 2026-10-18, by the commit that wrote this banner.** From that commit on sections 0 to 10 are fixed, together with the calculation it tests (`chem/fukui_plan.py`, `chem/fukui.py`,
+> `chem/orca_engine.py` and what they call), the typed tables, rules and judge (`app/fukui_gate_2.py`, `tests/test_fukui_gate_2.py`) and the drive steps and scripts (`fukui2_*` in `app/debug_drive.py`,
+> `benchmarks/fukui_gate_2/make_scripts.py`, `benchmarks/visual/fukui2_gate_*.json`). Section 11 is where the outcome is written, below a rule, in later commits. **When it was frozen no ORCA job of
+> a gate species had been run**; a rehearsal and the two noise floors had, on molecules in neither gate, and their numbers were seen (section 2).
+> It follows the answers Alex gave: T = 0.02; the anions are decided, through a mode that does not run the N+1 state; the calculation tested is the robust-anion version of it ("Fukui v2", `DESIGN.md`),
+> which therefore had to be built first; a pass promotes the calculator to LIMITED and SHOWN (the decisions are recorded at the end).
 
 This is the second preregistered check of the calculator **Fukui functions (Hirshfeld)** (`orca.fukui`, `chem/fukui.py`, `chem/fukui_plan.py`, `chem/orca_engine.py`). The first,
 `benchmarks/fukui_gate/PREREGISTRATION.md`, ended in **FAIL by 0.0014 on one quantity** (CO's f- at `HF/6-31G**`), which is final and is not touched here; the calculator
@@ -27,8 +28,8 @@ It differs from the one the first gate tested in five ways: (1) **a species with
 (this is what makes it possible to test an anion at all: the first gate's reported arm showed that dianion refused or irreproducible at a diffuse basis); (2) **every job uses ORCA's `IntAcc 6.0` grid**;
 (3) **every job states `HFTyp RHF` or `UHF`**, because ORCA keeps the unrestricted setting of the first doublet for a later closed-shell job of the same input; (4) **at a basis set with diffuse functions
 (`6-31+G*` is one) each anionic state is also started from the HCore and the Hueckel guess, written after the default jobs, and the lowest solution is read** unless the default start is within 0.01 eV of it;
-(5) **each job is read from its own stretch of output**. For the neutral species and the cation at `6-31G*` (changes 2 and 4 do nothing there that was measured: a finer grid moved aspirin's f+ and f- by
-at most 0.00001 at `B3LYP/6-31G*`) the numbers are those the first calculation gave; changes 1 and 4 are about the anions. **v2 was developed on stand-in species, none of which is in this gate's tables**
+(5) **each job is read from its own stretch of output**. For the neutral species and the cation at `6-31G*` (changes 2 and 4 do nothing there that was measured: a finer grid moved the f+ and f- of aspirin, caffeine and
+ibuprofen by at most 0.00001 at `B3LYP/6-31G*`, and no diffuse function means no extra start) the numbers are those the first calculation gave; changes 1 and 4 are about the anions. **v2 was developed on stand-in species, none of which is in this gate's tables**
 (section 2).
 
 ## 1. The claim, and what a pass does not say
@@ -54,12 +55,15 @@ A pass says the calculator's wiring and arithmetic reproduce what a second group
 * **The development of v2 (`DESIGN.md`) ran real ORCA on stand-in species, none of them in `deproft2002`'s Tables 4 to 6, and their numbers were seen:** the anions azide, cyanate, formate, acetate, the acetone enolate,
   p-cresolate and methoxide at `B3LYP/6-31+G*` (grid and start sweeps, f- of each at both grids, and a real-window run of methoxide), acetone at `HF/6-311+G**` (a real-window run, for the lowest-of-starts
   choice), and aspirin, caffeine and ibuprofen at `B3LYP/6-31G*` (the cost of the grid). **p-cresolate is a substituted phenolate; phenolate itself is in Table 5 and is in the reported arm only.**
-* **No ORCA job of any other species in this document has been run, at any level.** One throwaway check was made that ORCA 6.1.1 accepts the keywords `B3LYP 6-31G*` and `B3LYP 6-31+G*`: a single point of
-  water and of hydroxide, no Fukui job, no f value read.
+* **A rehearsal of the whole path was run in the real window on two molecules that are in neither gate, and its numbers were seen:** pyridinium (a cation, `B3LYP/6-31G*`: ORCA optimization, then all
+  three states and four datasets) and azide (a linear anion, `B3LYP/6-31+G*`: the same, with f- alone and the sentence saying why). No unexpected application error; the drive's one failed assertion was a wrong
+  atom count typed into the rehearsal script.
+* **The two noise floors of section 6 were measured before the freeze** (pyridine, formate; neither is in a gate), with the freeze's code, by `benchmarks/visual/fukui2_gate_floor.json`: pyridine F = 0.000000 (the same input twice and the whole chain twice both identical to every stored digit, three jobs a run) and formate F = 0.000000 (likewise, four jobs a run), against the limit 0.005; the gate uses the larger and is NOT EVALUABLE above the limit (`artifacts/floor.json` and
+  `floor_records.json`, committed before this banner). **No ORCA job of any other species in this document has been run, at any level.** One throwaway check was made that ORCA 6.1.1 accepts the keywords
+  `B3LYP 6-31G*` and `B3LYP 6-31+G*`: a single point of water and of hydroxide, no Fukui job, no f value read.
 * `deproft2002` was read and its Tables 4 to 6 were transcribed from the page images (the text layer scrambles them), twice, the second time against the page images again on 2026-10-18; every complete column
   was summed (section 3), and the ten rings and acrolein's three values were compared with the second printing in `sablon2007` (its Table III and Fig. 1, read from the page images). The published numbers of CO and formaldehyde
   were compared with the first gate's published numbers (published against published, no ORCA): they differ by at most 0.0023.
-* The noise floors of section 6 have not been measured.
 
 ## 3. The published numbers, and the rules that decide which may be targets
 
