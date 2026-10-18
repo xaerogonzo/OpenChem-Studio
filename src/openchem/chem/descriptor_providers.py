@@ -3764,7 +3764,11 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             "one's local aromatic character. It reads real bond lengths, so it needs "
             "a 3D conformer and refuses a drawing: a 2D layout gives every bond about "
             "the same length whatever its order. A geometric index -- it says how "
-            "equalised the bonds are, not whether the ring sustains a ring current."
+            "equalised the bonds are, not whether the ring sustains a ring current. "
+            "The report ends with the highest and the lowest ring value: one ring's own "
+            "value each, never a sum or a mean, which a derived score can read from a "
+            "geometry ORCA optimised (a force-field conformer's bond lengths are the "
+            "force field's own)."
         ),
         execution=RegistryExecution(compute=compute_aromaticity),
         calculation_input=GEOMETRY,

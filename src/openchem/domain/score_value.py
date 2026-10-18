@@ -42,6 +42,7 @@ from enum import Enum
 from functools import lru_cache
 
 from openchem.domain.calculator import GEOMETRY
+from openchem.domain.conformer import QUANTUM_OPTIMIZED_METHODS
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.report import ReportResult
 from openchem.domain.score_constants import constant_values
@@ -153,12 +154,18 @@ class OutputRead:
 #: `tests/test_score_geometry.py` holds both to each other.
 _GEOMETRY_KEYS = ("input_conformer_id", "input_conformer_index", "input_conformer_energy", "input_force_field")
 
+#: What made the conformer a result was measured on (`ConformerModel.method`): `chem.calculation_input.CONFORMER_METHOD_KEY`.
+CONFORMER_METHOD_KEY = "input_conformer_method"
+
+#: The level of theory of a quantum-optimised conformer, when it was recorded: `chem.calculation_input.LEVEL_OF_THEORY_KEY`.
+LEVEL_OF_THEORY_KEY = "input_level_of_theory"
+
 
 def geometry_text(parameters: Mapping[str, object] | None) -> str:
     """The conformer a result was measured on, from the provenance a geometry run records (id, position, energy, force field), or empty when it names none.
 
-    `conformer 3 (id 1a2b3c4d, MMFF94 energy -12.35 kcal/mol)`; an ORCA-optimised conformer has no force-field energy and says only its position and id. The position is the one it had when the
-    result was made, which is the conformer's own as long as the result is current (its fingerprint is the conformer's).
+    `conformer 3 (id 1a2b3c4d, MMFF94 energy -12.35 kcal/mol)`; an ORCA-optimised conformer has no force-field energy and says its level of theory instead (`ORCA-optimised at B3LYP def2-SVP`, or only
+    `ORCA-optimised` when the level was not recorded). The position is the one it had when the result was made, which is the conformer's own as long as the result is current (its fingerprint is the conformer's).
     """
     if not parameters:
         return ""
@@ -172,6 +179,9 @@ def geometry_text(parameters: Mapping[str, object] | None) -> str:
     details = [f"id {str(conformer_id)[:8]}"]
     if isinstance(energy, (int, float)) and not isinstance(energy, bool) and math.isfinite(energy):
         details.append(f"{field + ' ' if field else 'force-field '}energy {energy:.2f} kcal/mol")
+    if parameters.get(CONFORMER_METHOD_KEY) in QUANTUM_OPTIMIZED_METHODS:
+        level = parameters.get(LEVEL_OF_THEORY_KEY)
+        details.append(f"ORCA-optimised at {level}" if isinstance(level, str) and level else "ORCA-optimised")
     return f"{where} ({', '.join(details)})"
 
 
@@ -210,6 +220,15 @@ def not_applicable_reason(output: ApprovedOutput, parameters: Mapping[str, objec
             return (
                 f"it was measured on the whole structure, which is {fragments} separate fragments (a salt, a hydrate, a complex), and where one fragment sits beside another in 3D is arbitrary, "
                 "so a shape number of it says nothing about the compound: score the parent structure"
+            )
+    if output.needs_quantum_geometry:
+        made_by = values.get(CONFORMER_METHOD_KEY)
+        if not isinstance(made_by, str):
+            return f"its record does not say what made the geometry it was measured on, so it cannot be told from a force-field conformer's: {_RERUN}"
+        if made_by not in QUANTUM_OPTIMIZED_METHODS:
+            return (
+                "it was measured on a conformer that ORCA did not optimise, whose bond lengths are the force field's own and not a measurement of the rings: "
+                f"optimise the molecule in ORCA, then {_RERUN}"
             )
     if not output.measured_as:
         return ""
@@ -277,6 +296,9 @@ def _typed_value(output_id: str, entry: ResultEntry) -> tuple[bool, object, str,
 #: What a geometry output says when the molecule has no conformer to measure.
 NEEDS_A_CONFORMER = "it needs a conformer: this molecule has none, so there is no geometry to measure (generate conformers first)"
 
+#: What an output that reads bond lengths says when the molecule has no conformer: the conformer must also be one ORCA optimised.
+NEEDS_AN_ORCA_GEOMETRY = "it needs a conformer optimised in ORCA: this molecule has no conformer yet (generate conformers, optimise one in ORCA, then run the calculator)"
+
 #: What a geometry output says when it was measured, but not on the conformer every calculation uses now.
 EARLIER_GEOMETRY = "calculated for an earlier geometry of this molecule: the conformer every calculation uses has changed since, and a number of another conformer is never read in its place"
 
@@ -294,8 +316,10 @@ def read_output(output_id: str, entries: Iterable[ResultEntry], conformers: int 
     records = _records_of(output, entries)
     if not records:
         if on_geometry and conformers == 0:
-            return OutputRead(InputState.NOT_RUN, note=NEEDS_A_CONFORMER)
+            return OutputRead(InputState.NOT_RUN, note=NEEDS_AN_ORCA_GEOMETRY if output.needs_quantum_geometry else NEEDS_A_CONFORMER)
         note = "it has not been calculated on this molecule's conformer yet" if on_geometry and conformers else "it has not been calculated for this molecule"
+        if on_geometry and conformers and output.needs_quantum_geometry:
+            note += ", and it reads only a conformer that ORCA optimised (a force-field conformer is declined)"
         return OutputRead(InputState.NOT_RUN, note=note)
     current = [entry for entry in records if entry.freshness is Freshness.CURRENT]
     if not current:

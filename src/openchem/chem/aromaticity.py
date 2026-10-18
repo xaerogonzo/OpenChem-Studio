@@ -27,6 +27,13 @@ exactly what the index is for.
 0 is the reference Kekule structure with alternating R_s and R_d. A strongly
 bond-alternating or strained ring goes NEGATIVE, and that is meaningful
 rather than an error.
+
+**TWO EXTREMES, FOR A DERIVED SCORE, NEVER A TOTAL.** The report ends with the highest and the lowest
+HOMA of any ring (`HIGHEST_RING_LABEL`, `LOWEST_RING_LABEL`), typed numbers a score may read
+(`docs/DERIVED_SCORES_DESIGN.md`, section 11). An extreme is one ring's own value, so it does not
+average the local character away the way a sum or a mean would, and the total stays declined. They
+exist only when EVERY ring has a value: dropping a ring the table has no parameters for would make
+"the highest" quietly mean something else.
 """
 
 from __future__ import annotations
@@ -222,6 +229,13 @@ def compute_homa(mol: Chem.Mol | None) -> HomaResult:
     return HomaResult(rings=tuple(ring_homa(mol, ring) for ring in rings))
 
 
+#: The label of the report's summary fact for the highest ring value. It is part of the id of an approved output (`domain/score_outputs.py`), so a rename turns the guard red and says which scores it breaks.
+HIGHEST_RING_LABEL = "Highest HOMA of any ring"
+
+#: The label of the report's summary fact for the lowest ring value, under the same rule as `HIGHEST_RING_LABEL`.
+LOWEST_RING_LABEL = "Lowest HOMA of any ring"
+
+
 def refusal_text(refusal: GeometricAromaticityRefusal | None, detail: str = "") -> str:
     if refusal is None:
         return ""
@@ -342,6 +356,8 @@ def compute_aromaticity(
             ),
         ))
 
+    facts.extend(_extremes(result.rings, places))
+
     return ReportResult(
         report_id="homa_aromaticity",
         name="Aromaticity (HOMA)",
@@ -360,6 +376,49 @@ def compute_aromaticity(
             "stabilised. Those are different questions with different answers.",
         ),
     )
+
+
+def _extremes(rings: tuple[RingHoma, ...], places: int) -> list[Fact]:
+    """The highest and the lowest ring value, as typed facts; each has no number when any ring has none.
+
+    One ring's own value each, and equal when there is one ring. Not a sum and not a mean: the report declines
+    a total (`TOTAL` above) because that would erase what differs between the rings, and an extreme keeps it.
+    """
+    values = [ring.value for ring in rings if ring.applicable]
+    complete = bool(rings) and len(values) == len(rings)
+    facts: list[Fact] = []
+    for label, pick, word in ((HIGHEST_RING_LABEL, max, "highest"), (LOWEST_RING_LABEL, min, "lowest")):
+        if not complete:
+            facts.append(Fact(
+                category=FactCategory.STRUCTURE,
+                label=label,
+                value=None,
+                display_value="not available",
+                units="",
+                source="homa_aromaticity",
+                basis=Basis.DETERMINISTIC,
+                limitations=(
+                    f"A ring above has no HOMA value, and the {word} of the others would leave it out without saying so.",
+                ),
+            ))
+            continue
+        value = pick(values)
+        ring = next(r for r in rings if r.value == value)
+        facts.append(Fact(
+            category=FactCategory.STRUCTURE,
+            label=label,
+            value=value,
+            display_value=f"{value:.{places}f}",
+            units="",
+            source="homa_aromaticity",
+            basis=Basis.DETERMINISTIC,
+            highlight=tuple(ring.atom_indices),
+            limitations=(
+                f"The {word} of the per-ring values above: one ring's own value, equal to the other when there is one ring. "
+                "Not a sum or a mean, which HOMA declines because they average the rings' local character away.",
+            ),
+        ))
+    return facts
 
 
 # ---------------------------------------------------------------------------

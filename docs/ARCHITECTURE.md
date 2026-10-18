@@ -898,7 +898,8 @@ knowing before touching it. Their design records are `docs/DERIVED_SCORES_DESIGN
   `canonical_conformer`, current only while its fingerprint is that conformer's now. A geometry run records which conformer it measured
   and how many fragments it is (`geometry_provenance`), and a project saved with a shape descriptor in an earlier unit has that copy dropped on open
   (`DescriptorService.is_obsolete_result`) and measured again. A Geometry Analysis size is declined (`score_value.not_applicable_reason`, state `not_applicable`) when the calculator measured another
-  geometry than the stored conformer or scaled its radii (its own record says), or when the structure it measured as a whole is several fragments.
+  geometry than the stored conformer or scaled its radii (its own record says), or when the structure it measured as a whole is several fragments. HOMA's two extremes read bond lengths, so `ApprovedOutput.needs_quantum_geometry` makes the reader decline a result whose conformer was not
+  optimised by a quantum calculation (`input_conformer_method`, stamped by `geometry_provenance`), and the evidence names the level of theory (`input_level_of_theory`).
 - **A recipe is a plan whose steps read each other's typed outputs, and a recipe run is its own record** (`domain/recipe.py`,
   `domain/recipe_run.py`, a `recipe_runs` block in the project file, one write path in `ResultStoreService`). Staleness is derived when it
   is read and never flagged when it is written, and evaluating a recipe starts no calculation (`services/recipe_service.py`).

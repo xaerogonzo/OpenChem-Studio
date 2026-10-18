@@ -110,6 +110,10 @@ ENDPOINTS: dict[str, str] = {
     "max_projection_radius": "the radius of the smallest circle that encloses the conformer's shadow in its largest-area view, in Å",
     "size_perpendicular_to_min_projection": "the extent of the conformer along its smallest-area viewing direction, from surface to surface (van der Waals radii included), in Å",
     "size_perpendicular_to_max_projection": "the extent of the conformer along its largest-area viewing direction, from surface to surface (van der Waals radii included), in Å",
+    # PROVISIONAL, like the eighteen above (the two HOMA extremes, 2026-10-17). Each is one ring's own HOMA (Krygowski 1993, Table I, the multi-bond form) of the structure's smallest set of rings, never a sum or a mean,
+    # and each is read only from an ORCA-optimised geometry: on a force-field conformer the bond lengths are the force field's own (`ApprovedOutput.needs_quantum_geometry`).
+    "highest_ring_homa": "the highest HOMA (Krygowski 1993) of any ring in the structure's smallest set of rings, one ring's own value, on an ORCA-optimised geometry",
+    "lowest_ring_homa": "the lowest HOMA (Krygowski 1993) of any ring in the structure's smallest set of rings, one ring's own value, on an ORCA-optimised geometry",
     # PROVISIONAL, like the eight above (eight counts, 2026-10-16; two more share the tags `ring_count` and `stereocentre_count`). The ring counts are of the rings RDKit's ring information lists, which is why a cage has
     # more rings than independent cycles.
     "bond_count": "the number of bonds between non-hydrogen atoms",
@@ -147,6 +151,10 @@ class ApprovedOutput:
     #: own, because the embedder packs the pieces together at an arbitrary offset, and a score declines it. False for the always-on shape descriptors, which are computed on the ChEMBL parent compound
     #: (`chem/components.py`) and refused by the producer when there is no single parent, so a salt is already handled where they are made.
     whole_structure: bool = False
+    #: True when the number reads BOND LENGTHS, which are a measurement only on a geometry a quantum calculation optimised: on a force-field conformer they are the force field's own (HOMA of naphthalene's rings is
+    #: 0.94 on the MMFF94 conformer and 0.74 on an ORCA B3LYP/def2-SVP geometry). A score reads such a number only from a conformer whose method is a quantum optimisation (`conformer.QUANTUM_OPTIMIZED_METHODS`),
+    #: and the evidence names the level of theory.
+    needs_quantum_geometry: bool = False
 
 
 def _entry(output_id: str, unit: str, carried_as: str, endpoint: str) -> ApprovedOutput:
@@ -163,9 +171,11 @@ AS_STORED_UNSCALED = "as_stored_unscaled"
 MEASURED_AS = frozenset({"", AS_STORED, AS_STORED_UNSCALED})
 
 
-def _geometry_entry(output_id: str, unit: str, carried_as: str, endpoint: str, measured_as: str = "", whole_structure: bool = False) -> ApprovedOutput:
+def _geometry_entry(
+    output_id: str, unit: str, carried_as: str, endpoint: str, measured_as: str = "", whole_structure: bool = False, needs_quantum_geometry: bool = False
+) -> ApprovedOutput:
     """An output measured on the conformer every calculation gets, and read from the result stored under its geometry fingerprint."""
-    return ApprovedOutput(output_id, unit, carried_as, endpoint, "2026-10-17", GEOMETRY, measured_as, whole_structure)
+    return ApprovedOutput(output_id, unit, carried_as, endpoint, "2026-10-17", GEOMETRY, measured_as, whole_structure, needs_quantum_geometry)
 
 
 #: The table. Sorted by id, so a review diff reads as additions. Every entry resolves, through the registry, to a finite number carrying
@@ -180,6 +190,8 @@ APPROVED: tuple[ApprovedOutput, ...] = (
     _geometry_entry("calculator:geometry_analysis:Min projection radius", "Å", "A", "min_projection_radius", AS_STORED_UNSCALED, True),
     _geometry_entry("calculator:geometry_analysis:Size perpendicular to the max projection", "Å", "A", "size_perpendicular_to_max_projection", AS_STORED_UNSCALED, True),
     _geometry_entry("calculator:geometry_analysis:Size perpendicular to the min projection", "Å", "A", "size_perpendicular_to_min_projection", AS_STORED_UNSCALED, True),
+    _geometry_entry("calculator:homa_aromaticity:Highest HOMA of any ring", "1", "", "highest_ring_homa", needs_quantum_geometry=True),
+    _geometry_entry("calculator:homa_aromaticity:Lowest HOMA of any ring", "1", "", "lowest_ring_homa", needs_quantum_geometry=True),
     _entry("calculator:oxygen_balance:Oxygen balance (CO basis)", "%", "%", "oxygen_balance_co"),
     _entry("calculator:oxygen_balance:Oxygen balance (CO₂ basis)", "%", "%", "oxygen_balance_co2"),
     _entry("calculator:polarizability:Molecular polarizability", "Å^3", "A^3", "molecular_polarizability"),
