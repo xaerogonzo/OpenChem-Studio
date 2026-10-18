@@ -407,4 +407,4 @@ def test_the_assistant_is_told_what_the_gate_means(services, qapp):
     _run_homa(services, qapp, model)
     item = score_envelope_of(service.values_for(model)[0])["inputs"][0]
     assert item["state"] == "not_applicable" and "ORCA did not optimise" in item["note"] and "value" not in item
-    assert "HOMA" in SCORES_NOTE and "quantum calculation optimised" in SCORES_NOTE and "level of theory" in SCORES_NOTE
+    assert "The two HOMA outputs read bond lengths, so they are read only from a conformer a quantum calculation optimised" in SCORES_NOTE and "level of theory" in SCORES_NOTE
