@@ -201,8 +201,9 @@ def _refuse(reason: str) -> CondensedFukui:
 def f_plus_not_computed_sentence(reason: str = "") -> str:
     """Why an anion's result holds f- alone, in the words the caveat, the panel and the docs share.
 
-    Without a `reason` it is the sentence the second gate's calculation carried for every anion (the dianion was not run). With one, the dianion was part of
-    the run and gave nothing usable, and the reason (a sentence of its own) is said before the assurance that f- is complete.
+    Without a `reason` it is the sentence the second gate's calculation carried for every anion (the dianion was not run), with a closing pointer to the setting
+    that switches it on: the run left the dianion out, and that is either an output written before the dianion came back or a person's choice in Settings. With
+    one, the dianion was part of the run and gave nothing usable, and the reason (a sentence of its own) is said before the assurance that f- is complete.
     """
     if reason:
         return (
@@ -212,7 +213,8 @@ def f_plus_not_computed_sentence(reason: str = "") -> str:
     return (
         "f+, f0 and the dual descriptor were not computed: they need the N+1 state, and the N+1 state of an anion is a dianion, which "
         "no basis set binds in the gas phase, so a calculation of it returns the basis set's state and not the molecule's. "
-        "f- (where an electron comes from) is the function that describes an anion."
+        "f- (where an electron comes from) is the function that describes an anion. "
+        "This run left the dianion out; Settings > Quantum chemistry can switch it on."
     )
 
 

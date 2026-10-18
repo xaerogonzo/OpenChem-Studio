@@ -107,7 +107,7 @@ _QM_CALC_TYPE_DESCRIPTIONS = {
         "drawn geometry is not good enough. Closed-shell species only. A species that is itself an anion "
         "gets its f+ from a dianion, which no basis set binds in the gas phase, so for an anion f+ is the "
         "least trustworthy number; the dianion is run last, and if it gives nothing usable the result is "
-        "f- alone and says why. Hirshfeld is the one charge "
+        "f- alone and says why (Settings > Quantum chemistry can leave it out). Hirshfeld is the one charge "
         "scheme offered because, of the five ORCA prints, it was the only one whose values stayed within "
         "0.023 of themselves when diffuse functions were added and never went negative, on "
         "formaldehyde, propene and pyridine. The anion of a neutral molecule is usually unbound at an "

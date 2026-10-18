@@ -117,13 +117,19 @@ CONFORMER_KEEP_OPTIMIZED = Preference("conformers/keep_quantum_optimized", bool,
 #: window still decides each generation; this is only where its checkbox begins.
 CONFORMER_OPTIMIZE_LOWEST = Preference("conformers/orca_optimize_lowest", bool, False)
 
+#: Whether the Fukui functions of a species that is itself an ANION include its f+, f0 and dual descriptor, which come from a
+#: dianion that no basis set binds (`chem.fukui_plan`). ON by default: the numbers were asked for, f- does not depend on them, and a
+#: dianion that fails costs only them. OFF runs the anion and its neutral radical only, which is what Fukui v2 did and what its
+#: second preregistered gate tested, and the result says the dianion was left out. Neutral species and cations are not affected.
+FUKUI_ANION_F_PLUS = Preference("quantum_chemistry/fukui_anion_f_plus", bool, True)
+
 #: Every preference, in the order the Settings window groups them. Tests
 #: iterate this, so a preference added here is covered without a new test.
 PREFERENCES = (
     RAIL_HIDES_PANELS, RECOVERY_ENABLED, RECOVERY_DELAY_SECONDS, MAX_REVISIONS_KEPT,
     SHOW_HIDDEN_CALCULATORS, RECALC_MODE, RECALC_QUIET_MS, DRAWING_BOND_KEYS,
     CONFORMER_MAX_EMBEDDINGS, DRAWING_BOND_CLICK, CONFORMER_EARLY_STOP, CONFORMER_KEEP_OPTIMIZED,
-    CONFORMER_OPTIMIZE_LOWEST,
+    CONFORMER_OPTIMIZE_LOWEST, FUKUI_ANION_F_PLUS,
 )
 
 #: Where one calculator's own visibility choice is stored: a plain

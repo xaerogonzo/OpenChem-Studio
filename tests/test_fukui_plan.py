@@ -69,6 +69,31 @@ def test_nothing_f_minus_needs_comes_after_the_n_plus_one_state(charge, diffuse)
     assert all(job.state == STATE_REDUCED for job in jobs[first_reduced:])
 
 
+@pytest.mark.parametrize("diffuse", [False, True])
+@pytest.mark.parametrize("charge", [-3, -2, -1])
+def test_an_anion_with_f_plus_switched_off_has_the_plan_fukui_v2_had(charge, diffuse):
+    """The Settings switch: no N+1 state, so no dianion and no extra start of it; what is left is N, N-1 and the extra starts of those two, in the order they had."""
+    plan = plan_fukui(charge, 1, diffuse=diffuse, anion_f_plus=False)
+    assert all(job.state != STATE_REDUCED for job in plan.jobs)
+    expected = [(STATE_N, START_DEFAULT), (STATE_OXIDISED, START_DEFAULT)]
+    if diffuse:
+        expected += [(STATE_N, start) for start in EXTRA_STARTS]
+        if charge + 1 < 0:  # the N-1 state of a species of charge -2 or less is itself an anion
+            expected += [(STATE_OXIDISED, start) for start in EXTRA_STARTS]
+    assert [(job.state, job.start) for job in plan.jobs] == expected
+
+
+@pytest.mark.parametrize("diffuse", [False, True])
+@pytest.mark.parametrize("charge", [0, 1])
+def test_the_switch_does_not_touch_a_neutral_species_or_a_cation(charge, diffuse):
+    assert plan_fukui(charge, 1, diffuse=diffuse, anion_f_plus=False) == plan_fukui(charge, 1, diffuse=diffuse)
+
+
+@pytest.mark.parametrize("charge", [-2, -1, 0, 1])
+def test_f_plus_of_an_anion_is_on_unless_asked_off(charge):
+    assert plan_fukui(charge, 1, diffuse=True) == plan_fukui(charge, 1, diffuse=True, anion_f_plus=True)
+
+
 @pytest.mark.parametrize("multiplicity", [2, 3, 4])
 def test_an_open_shell_species_has_no_plan(multiplicity):
     with pytest.raises(ValueError, match="closed-shell"):

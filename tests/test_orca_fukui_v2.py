@@ -343,9 +343,12 @@ def test_an_anion_whose_run_ended_at_an_earlier_job_says_it_never_reached_the_di
     assert parameters["start_note"] in parameters["caveat"] and parameters["f_plus_note"] in parameters["caveat"]
 
 
-def test_an_older_output_with_no_dianion_job_and_no_failed_job_keeps_the_general_sentence():
-    assert "f_plus_note" in _methoxide()["orca.fukui_minus"].provenance.parameters
-    assert _methoxide()["orca.fukui_minus"].provenance.parameters["f_plus_note"] == f_plus_not_computed_sentence()
+def test_an_output_with_no_dianion_job_and_no_failed_job_keeps_the_general_sentence_and_says_where_the_switch_is():
+    """What a run with f+ of an anion switched off in Settings prints (and what Fukui v2's builder wrote): no dianion job, and no job that failed. The sentence says the
+    run left the dianion out and points at Settings, rather than saying nothing about why it is missing."""
+    note = _methoxide()["orca.fukui_minus"].provenance.parameters["f_plus_note"]
+    assert note == f_plus_not_computed_sentence()
+    assert "no basis set binds in the gas phase" in note and note.endswith("This run left the dianion out; Settings > Quantum chemistry can switch it on.")
 
 
 def _corrupt_dianion_carbon(replacement: str) -> str:

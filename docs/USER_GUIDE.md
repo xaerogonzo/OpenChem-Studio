@@ -1620,7 +1620,7 @@ f- (attack by an electrophile), f0 (a radical) and the dual descriptor f+ - f-. 
 molecule, its cation and its anion (a species that is itself an **anion** is run the same way, its third state being a **dianion**, which no basis
 set binds: an anion's f+, f0 and dual descriptor are therefore the least trustworthy numbers here, the result says so with the energy by which the
 dianion lies above the anion, and f- does not depend on them. The dianion is run last, so if it does not converge, or its Hirshfeld table does not sum to
-its charge, you get f- alone and the result says why), all at the geometry as supplied (so the numbers are vertical; optimise first if the drawn geometry is
+its charge, you get f- alone and the result says why; **Settings ▸ Quantum chemistry** leaves the dianion out altogether), all at the geometry as supplied (so the numbers are vertical; optimise first if the drawn geometry is
 not good enough), and the per-atom results (four, or f- alone) appear in the Atom Inspector and in Properties like any other. The
 results line names the atom where each is largest, numbered from 1 as the Atom Inspector numbers them. It takes a closed-shell
 molecule (an open-shell one is refused before a job starts, since its ions have more than one spin state) and one conformer
@@ -3289,6 +3289,13 @@ kept, which asks first.
   These are the window's shortcuts only: the keys typed while drawing belong to the
   editor and are not changed here. The search box narrows the list by name or by
   shortcut.
+- **Quantum chemistry.** One choice today, about the Fukui functions: whether a species that is itself
+  an **anion** gets its f+, f0 and dual descriptor, which come from a dianion that no basis set binds (on by
+  default; see the Fukui paragraph in the quantum chemistry section). They are the least trustworthy
+  numbers the calculator gives, and the result says how far above the anion the dianion lies. f- does not
+  depend on them, because the dianion is run last: if it does not converge you get f- and a sentence saying
+  why. Untick it to run only the anion and its neutral radical; neutral molecules and cations always get all
+  four. It applies to the next Fukui run, and results already computed are not changed.
 - **File dialogs.** Each kind of file dialog opens where it was last used:
   projects, molecules, and macromolecules with crystal structures. **Forget**
   sends one back to your Documents folder.

@@ -126,6 +126,28 @@ def _make_service(tmp_path, provider) -> tuple[QuantumChemistryService, EventBus
     return service, bus
 
 
+def test_the_default_orca_provider_reads_the_fukui_anion_setting_each_time_it_writes_an_input(qapp, tmp_path):
+    """The wiring and not the helper: the service hands its own settings to the provider it builds, so ticking and unticking the Settings checkbox changes the next Fukui
+    input of an anion (three jobs with its dianion, two without) and never a neutral molecule's."""
+    from openchem.app.settings import FUKUI_ANION_F_PLUS
+    from rdkit.Chem import AllChem
+
+    bus = EventBus()
+    settings = Settings(bus)
+    provider = QuantumChemistryService(bus, settings)._providers["orca"]
+    mol = Chem.AddHs(Chem.MolFromSmiles("C[O-]"))
+    AllChem.EmbedMolecule(mol, randomSeed=7)
+
+    def jobs(charge: int) -> int:
+        return provider.build_input(mol, charge, 1, "B3LYP 6-31G*", "fukui").count("$new_job") + 1
+
+    assert settings.preference(FUKUI_ANION_F_PLUS) is True and jobs(-1) == 3
+    settings.set_preference(FUKUI_ANION_F_PLUS, False)
+    assert jobs(-1) == 2 and jobs(0) == 3
+    settings.set_preference(FUKUI_ANION_F_PLUS, True)
+    assert jobs(-1) == 3
+
+
 def test_quantum_chemistry_job_lifecycle_reaches_completed(qapp, tmp_path):
     provider = FakeQuantumEngineProvider(stdout_text="hello from fake orca")
     service, bus = _make_service(tmp_path, provider)

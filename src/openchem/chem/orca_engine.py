@@ -4,6 +4,7 @@ import os
 import re
 import shutil
 import time
+from collections.abc import Callable
 from dataclasses import replace
 from pathlib import Path
 
@@ -519,6 +520,15 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
     # one, so a fake or a future engine is never handed ORCA syntax.
     supports_parallel = True
 
+    def __init__(self, *, anion_f_plus: Callable[[], bool] | None = None) -> None:
+        """`anion_f_plus` says, each time a Fukui input is written, whether the run of a species that is itself an anion includes its dianion (so its f+).
+
+        A callable rather than a flag, so that the person's setting (`app.settings.FUKUI_ANION_F_PLUS`, which the service hands in) is read when the job is
+        built and not when the provider was; this layer does not import the application's settings. None means on, which is what a provider built without a
+        service (the command line, the benchmarks, the tests) gets.
+        """
+        self._anion_f_plus = anion_f_plus if anion_f_plus is not None else (lambda: True)
+
     def build_input(
         self, mol: Chem.Mol, charge: int, multiplicity: int, method_basis: str, calc_type: str
     ) -> str:
@@ -656,7 +666,7 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
         """
         if multiplicity != 1:
             raise ValueError(open_shell_message(multiplicity))
-        plan = plan_fukui(charge, multiplicity, diffuse=diffuse)
+        plan = plan_fukui(charge, multiplicity, diffuse=diffuse, anion_f_plus=bool(self._anion_f_plus()))
         lines: list[str] = []
         for index, job in enumerate(plan.jobs):
             if index:

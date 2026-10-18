@@ -101,6 +101,41 @@ def test_an_anion_is_three_jobs_and_its_dianion_comes_last():
     assert text.count("$new_job") == 2
 
 
+def _xyz_lines(text: str) -> list[str]:
+    return [line for line in text.splitlines() if line.startswith("* xyz")]
+
+
+def test_a_provider_built_without_a_switch_includes_the_dianion():
+    """The command line, the benchmarks and every test build a provider with no service behind it: f+ of an anion is on, as it is by default in Settings."""
+    text = OrcaQuantumEngineProvider().build_input(_water(), -1, 1, "B3LYP def2-SVP", "fukui")
+    assert _xyz_lines(text) == ["* xyz -1 1", "* xyz 0 2", "* xyz -2 2"]
+
+
+def test_with_the_switch_off_an_anion_is_the_two_job_input_fukui_v2_wrote():
+    """What the second gate tested: the anion and its neutral radical, no dianion. The Settings checkbox, through the service, is what turns this on."""
+    provider = OrcaQuantumEngineProvider(anion_f_plus=lambda: False)
+    text = provider.build_input(_water(), -1, 1, "B3LYP def2-SVP", "fukui")
+    assert _xyz_lines(text) == ["* xyz -1 1", "* xyz 0 2"] and text.count("$new_job") == 1
+    diffuse = provider.build_input(_water(), -1, 1, "B3LYP 6-31+G*", "fukui")
+    assert _xyz_lines(diffuse) == ["* xyz -1 1", "* xyz 0 2", "* xyz -1 1", "* xyz -1 1"]
+
+
+def test_with_the_switch_off_a_neutral_molecule_and_a_cation_keep_their_three_states():
+    provider = OrcaQuantumEngineProvider(anion_f_plus=lambda: False)
+    assert _xyz_lines(provider.build_input(_water(), 0, 1, "B3LYP def2-SVP", "fukui")) == ["* xyz 0 1", "* xyz 1 2", "* xyz -1 2"]
+    assert _xyz_lines(provider.build_input(_water(), 1, 1, "B3LYP def2-SVP", "fukui")) == ["* xyz 1 1", "* xyz 2 2", "* xyz 0 2"]
+
+
+def test_the_switch_is_read_each_time_an_input_is_written_not_when_the_provider_was_built():
+    state = {"on": True}
+    provider = OrcaQuantumEngineProvider(anion_f_plus=lambda: state["on"])
+    assert len(_xyz_lines(provider.build_input(_water(), -1, 1, "B3LYP def2-SVP", "fukui"))) == 3
+    state["on"] = False
+    assert len(_xyz_lines(provider.build_input(_water(), -1, 1, "B3LYP def2-SVP", "fukui"))) == 2
+    state["on"] = True
+    assert len(_xyz_lines(provider.build_input(_water(), -1, 1, "B3LYP def2-SVP", "fukui"))) == 3
+
+
 @pytest.mark.parametrize("multiplicity", [2, 3])
 def test_an_open_shell_species_is_refused_with_the_reason(multiplicity):
     """Delta-SCF takes the lower-spin ion and says so; here the cation and anion each have more than one spin state

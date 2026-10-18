@@ -110,8 +110,11 @@ def state_name(charge: int) -> str:
     return names.get(charge, f"state of charge {charge:+d}")
 
 
-def plan_fukui(charge: int, multiplicity: int, *, diffuse: bool) -> FukuiPlan:
+def plan_fukui(charge: int, multiplicity: int, *, diffuse: bool, anion_f_plus: bool = True) -> FukuiPlan:
     """The jobs for a species of this charge, or ValueError for one with unpaired electrons.
+
+    **`anion_f_plus=False` leaves the N+1 state out of a species with a negative charge** (its dianion, and the extra starts of it): the plan Fukui v2 had, which
+    its second gate tested, and the one a person who switched f+ of an anion off in Settings asks for. A neutral species or a cation always has its N+1 state.
 
     Every species gets three states: N and N-1, which f- needs, then N+1, which f+ needs. At a basis with diffuse functions each ANIONIC state (a total
     charge below zero: the N+1 state of a neutral, and the N and N-1 states of an anion or a dianion, and the N+1 state of an anion) also gets
@@ -129,7 +132,9 @@ def plan_fukui(charge: int, multiplicity: int, *, diffuse: bool) -> FukuiPlan:
     def extra_starts(state: str) -> list[FukuiJob]:
         return [job(state, start) for start in EXTRA_STARTS] if diffuse and states[state][0] < 0 else []
 
-    jobs = [job(STATE_N), job(STATE_OXIDISED), *extra_starts(STATE_N), *extra_starts(STATE_OXIDISED), job(STATE_REDUCED), *extra_starts(STATE_REDUCED)]
+    jobs = [job(STATE_N), job(STATE_OXIDISED), *extra_starts(STATE_N), *extra_starts(STATE_OXIDISED)]
+    if anion_f_plus or charge >= 0:
+        jobs += [job(STATE_REDUCED), *extra_starts(STATE_REDUCED)]
     return FukuiPlan(charge=charge, jobs=tuple(jobs))
 
 
