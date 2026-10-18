@@ -380,12 +380,14 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     "c1ccc2ccccc2c1":          {"name": "naphthalene", "substituent_form": "naphthalenyl", "alkyl_stem_ok": False,
                                  "atom_locants": {9: 1, 0: 2, 1: 3, 2: 4, 3: "4a", 4: 5, 5: 6, 6: 7, 7: 8, 8: "8a"}},
     # 1,4-dihydronaphthalene: the ring fragment extracted from 1,4-naphthoquinone derivatives.
-    # RDKit canonical 'C1=CCc2ccccc2C1': idx9=1, idx0=2, idx1=3, idx2=4, idx3=4a, idx7=5, idx6=6, idx5=7, idx4=8, idx8=8a
-    # Verified via OPSIN chloro probing: 2-Cl on idx0, 5-Cl on idx7, 6-Cl on idx6, 7-Cl on idx5, 8-Cl on idx4.
+    # RDKit canonical 'C1=CCc2ccccc2C1': idx9=1, idx0=2, idx1=3, idx2=4, idx3=4a, idx4=5, idx5=6, idx6=7, idx7=8, idx8=8a
+    # NAMING ROUND 69 (D-319): the benzo ring was MIRRORED here (idx7=5 ... idx4=8, so 5 was bonded to 8a). The parent alone is symmetric (1 and 4 are both CH2), so OPSIN
+    # chloro-probing could not tell, and `fusion_locants` had noted the entry as the one in error; with a substituent on the 2/3 side it named a DIFFERENT MOLECULE:
+    # plumbagin `CC1=CC(=O)c2c(O)cccc2C1=O` was `8-hydroxy-2-methylnaphthalene-1,4-dione` (the 5-hydroxy compound is the natural product).
     # When the two sp3 carbons (pos 1=idx9, pos 4=idx2) carry oxo groups, the compound is
     # 1,4-dihydronaphthalene-1,4-dione (= naphthalene-1,4-dione) with a methyl at pos 2.
     "C1=CCc2ccccc2C1":         {"name": "1,4-dihydronaphthalene", "substituent_form": "1,4-dihydronaphthyl", "alkyl_stem_ok": False,
-                                 "atom_locants": {9: 1, 0: 2, 1: 3, 2: 4, 3: "4a", 7: 5, 6: 6, 5: 7, 4: 8, 8: "8a"}},
+                                 "atom_locants": {9: 1, 0: 2, 1: 3, 2: 4, 3: "4a", 4: 5, 5: 6, 6: 7, 7: 8, 8: "8a"}},
     # Anthracene — 6,6,6 linearly-fused PAH with D2h symmetry.  Canonical
     # 'c1ccc2cc3ccccc3cc2c1'.  Verified via OPSIN chloro-probing of L=1
     # (→ parent idx 13), L=2 (→ idx 0), L=9 (→ idx 11); the other outer
