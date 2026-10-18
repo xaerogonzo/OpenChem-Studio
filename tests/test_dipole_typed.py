@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from pathlib import Path
 
 import numpy as np
@@ -39,6 +40,24 @@ ASKS = {
     "qeq": {"charge_model": QEQ},
     "four decimals": {"decimal_places": 4},
 }
+
+
+#: A number that prints as zero carries no sign worth comparing. Benzene's dipole is 1e-15 D of floating-point noise (the raw components are 1.6e-15, 5.3e-16 and
+#: -7.5e-17 on the machine the fixture was recorded on), so the SIGN of its "+0.00" is whatever the CPU's summation order left, and a runner that rounds the other way
+#: printed "-0.00" where the fixture says "+0.00": the same line to a person. It failed shard 3 on two unrelated branches on 2026-10-18 (`benzene | eem` and `benzene | qeq`,
+#: the two charge models that go through Open Babel's linear solve), and passed on the same code in other runs.
+_ZERO_WITH_A_SIGN = re.compile(r"(?<![\w.])[+-]?(0\.0+)(?!\d)")
+
+
+def unsigned_zeros(value):
+    """`value` with the sign taken off every number that prints as zero, through strings, lists and dicts. A number that prints as anything else keeps its sign."""
+    if isinstance(value, str):
+        return _ZERO_WITH_A_SIGN.sub(r"\1", value)
+    if isinstance(value, list):
+        return [unsigned_zeros(item) for item in value]
+    if isinstance(value, dict):
+        return {key: unsigned_zeros(item) for key, item in value.items()}
+    return value
 
 
 def observe(registry, mol, parameters: dict) -> dict:
@@ -86,9 +105,27 @@ def test_no_line_label_unit_arrow_or_cell_text_moved(registry, golden, molecules
     moved = {
         f"{name} | {ask}": seen
         for name, mol in molecules.items()
-        if (seen := observe(registry, mol, ASKS[ask])) != golden[f"{name} | {ask}"]
+        if unsigned_zeros(seen := observe(registry, mol, ASKS[ask])) != unsigned_zeros(golden[f"{name} | {ask}"])
     }
-    assert not moved, f"what a person sees moved for: {sorted(moved)}"
+    # What differs, field by field, so that a failure on a runner says what moved and not only where.
+    detail = {
+        key: {field: (value, golden[key].get(field)) for field, value in seen.items() if unsigned_zeros(value) != unsigned_zeros(golden[key].get(field))}
+        for key, seen in moved.items()
+    }
+    assert not moved, f"what a person sees moved for: {sorted(moved)}; DETAIL (seen, fixture): {detail!r}"
+
+
+def test_a_zero_has_no_sign_to_compare_and_every_other_number_keeps_its_own():
+    """The guard above ignores the sign of a number that prints as zero and of nothing else."""
+    assert unsigned_zeros("Dipole Z: -0.00 Debye") == unsigned_zeros("Dipole Z: +0.00 Debye") == "Dipole Z: 0.00 Debye"
+    assert unsigned_zeros(["-0.0000", "+0.0000", "0.0000"]) == ["0.0000"] * 3
+    assert unsigned_zeros({"x": "-0.00"}) == {"x": "0.00"}
+    # a number that prints as anything else keeps its sign, and nothing is read out of the middle of another number
+    assert unsigned_zeros("Dipole X: -0.01 Debye") != unsigned_zeros("Dipole X: +0.01 Debye")
+    assert unsigned_zeros("-0.001") == "-0.001" and unsigned_zeros("+0.001") == "+0.001"
+    assert unsigned_zeros("10.00") == "10.00" and unsigned_zeros("+10.00") == "+10.00" and unsigned_zeros("-10.00") == "-10.00"
+    assert unsigned_zeros("2.0.00") == "2.0.00"
+    assert unsigned_zeros(1.5) == 1.5 and unsigned_zeros(None) is None
 
 
 # --- the magnitude is a number, and it is the one the line rounds ----------------------------------------------------------------------------------
