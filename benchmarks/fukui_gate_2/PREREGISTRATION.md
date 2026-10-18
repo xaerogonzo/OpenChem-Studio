@@ -234,7 +234,7 @@ and the gate is not re-run: a decided outcome is final (section 9).
 `benchmarks/visual/fukui2_gate_reported.json`, real ORCA 6.1.1, at commit `7e1e140a` (the outcome commit as it stood when the arm ran; its message was amended afterwards into `4177a038`, which has the same tree, `ea61f252`), `VERDICT PASS` of the drive (22 assertions, 0 app errors, 0 driver failures;
 `artifacts/reported.drive_report.json`). 19 jobs, every one attempt 1 and completed (`artifacts/reported_records.json`), written as 60 rows, each marked `decided: false`, of which **48 are within 0.02** (`artifacts/reported.json`).
 
-| Rows | Level | Rows | Within 0.02 | Largest difference |
+| Group | Level | Rows | Within 0.02 | Largest difference |
 |---|---|---|---|---|
 | CO f- (cross-source consistency) | `B3LYP/6-31G*` | 2 | 2 | 0.0033 |
 | formaldehyde f- and f+ | `B3LYP/6-31G*` | 6 | 6 | 0.0033 |
@@ -244,7 +244,7 @@ and the gate is not re-run: a decided outcome is final (section 9).
 | maleimide f+ (a partial column) | `B3LYP/6-31G*` | 2 | 2 | 0.0005 |
 | the 13 neutral and cation species' decided numbers, at the application's default preset | `B3LYP/def2-SVP` | 42 | 30 | 0.1211 (anilinium, para) |
 
-* **At the source's own levels all 18 rows are within 0.0063**, including the three partial-column species the rules kept out of the decision and the two molecules the first gate shares with this source.
+* **At the source's own levels all 18 rows are within 0.0063**, including the four partial-column species the rules kept out of the decision and the two molecules the first gate shares with this source.
 * **The default preset reproduces the 6-31G* numbers, misses included.** Over the 42 numbers, the median difference between the `6-31G*` value and the `def2-SVP` one is 0.0006 and the largest 0.0047 (HCN, N). The 12 rows outside 0.02 at `def2-SVP` belong to the same six molecules as at `6-31G*` (HCN, anilinium, benzaldehyde, pyrrole,
   furan, thiophene; the anions SCN- and NO2- were not run there); benzaldehyde's para is the one number that changes side (0.0204 at `6-31G*`, within at `def2-SVP`). **The misses are not a matter of the basis set.** Running this arm made those `def2-SVP` numbers seen, so `def2-SVP` cannot be added to a validated scope by this gate (section 10).
 * **The four statements the rules left out** (`artifacts/reported_sites.json`; **written afterwards**: the drive step `fukui2_report` was given the reported arm's records only, and `reported_site_rows` looks each statement up under the species' gate level, so `reported.json` has an empty `site_rows`; `reported_sites.py` makes the one
