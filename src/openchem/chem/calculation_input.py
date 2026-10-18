@@ -427,9 +427,10 @@ INPUT_PREFIX = "input_"
 #: (`score_value.FRAGMENTS_KEY`, which cannot import this layer), and a test holds the two together.
 FRAGMENTS_KEY = f"{INPUT_PREFIX}fragments"
 
-#: The key that says what made the conformer a result was computed on (`ConformerModel.method`: `mmff94`, `orca_opt`...), and the one that names the level of theory of a quantum-optimized one (`"B3LYP def2-SVP"`).
-#: The domain reads them by these literals (`score_value.CONFORMER_METHOD_KEY`, `LEVEL_OF_THEORY_KEY`), and a test holds the two together.
+#: The key that says what made the conformer a result was computed on (`ConformerModel.method`: `mmff94`, `orca_opt`...). The domain reads it by this literal (`score_value.CONFORMER_METHOD_KEY`), and a test holds the two together.
 CONFORMER_METHOD_KEY = f"{INPUT_PREFIX}conformer_method"
+
+#: The key that names the level of theory of a quantum-optimized conformer (`"B3LYP def2-SVP"`); absent when it was not recorded. Read by the domain as `score_value.LEVEL_OF_THEORY_KEY`.
 LEVEL_OF_THEORY_KEY = f"{INPUT_PREFIX}level_of_theory"
 
 

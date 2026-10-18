@@ -154,8 +154,10 @@ class OutputRead:
 #: `tests/test_score_geometry.py` holds both to each other.
 _GEOMETRY_KEYS = ("input_conformer_id", "input_conformer_index", "input_conformer_energy", "input_force_field")
 
-#: What made the conformer a result was measured on (`ConformerModel.method`), and the level of theory of a quantum-optimised one: `chem.calculation_input.CONFORMER_METHOD_KEY` and `LEVEL_OF_THEORY_KEY`.
+#: What made the conformer a result was measured on (`ConformerModel.method`): `chem.calculation_input.CONFORMER_METHOD_KEY`.
 CONFORMER_METHOD_KEY = "input_conformer_method"
+
+#: The level of theory of a quantum-optimised conformer, when it was recorded: `chem.calculation_input.LEVEL_OF_THEORY_KEY`.
 LEVEL_OF_THEORY_KEY = "input_level_of_theory"
 
 

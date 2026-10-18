@@ -229,8 +229,10 @@ def compute_homa(mol: Chem.Mol | None) -> HomaResult:
     return HomaResult(rings=tuple(ring_homa(mol, ring) for ring in rings))
 
 
-#: The two summary facts of the HOMA report, whose labels are part of the id of an approved output (`domain/score_outputs.py`), so a rename turns the guard red and says which scores it breaks.
+#: The label of the report's summary fact for the highest ring value. It is part of the id of an approved output (`domain/score_outputs.py`), so a rename turns the guard red and says which scores it breaks.
 HIGHEST_RING_LABEL = "Highest HOMA of any ring"
+
+#: The label of the report's summary fact for the lowest ring value, under the same rule as `HIGHEST_RING_LABEL`.
 LOWEST_RING_LABEL = "Lowest HOMA of any ring"
 
 
