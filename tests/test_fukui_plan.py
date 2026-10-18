@@ -39,7 +39,6 @@ def test_a_neutral_species_has_three_states_in_the_order_the_parse_assigns_them(
         (STATE_OXIDISED, 1, 2, START_DEFAULT),
         (STATE_REDUCED, -1, 2, START_DEFAULT),
     ]
-    assert plan.computes_f_plus
 
 
 def test_a_cation_has_three_states_too():
@@ -51,11 +50,23 @@ def test_a_cation_has_three_states_too():
 
 
 @pytest.mark.parametrize("charge", [-1, -2, -3])
-def test_an_anion_has_no_n_plus_one_state_because_that_would_be_a_dianion(charge):
+def test_an_anion_has_an_n_plus_one_state_which_is_a_dianion_and_the_last_job(charge):
+    """Fukui v2 left the dianion out (its second gate decided f- alone for an anion); it is back, and last, because f- does not need it."""
     plan = plan_fukui(charge, 1, diffuse=False)
-    assert [job.state for job in plan.jobs] == [STATE_N, STATE_OXIDISED]
-    assert not plan.computes_f_plus
-    assert [(job.charge, job.multiplicity) for job in plan.jobs] == [(charge, 1), (charge + 1, 2)]
+    assert [job.state for job in plan.jobs] == [STATE_N, STATE_OXIDISED, STATE_REDUCED]
+    assert [(job.charge, job.multiplicity) for job in plan.jobs] == [(charge, 1), (charge + 1, 2), (charge - 1, 2)]
+
+
+@pytest.mark.parametrize("diffuse", [False, True])
+@pytest.mark.parametrize("charge", [-3, -2, -1, 0, 1])
+def test_nothing_f_minus_needs_comes_after_the_n_plus_one_state(charge, diffuse):
+    """The invariant behind the order: ORCA ends a compound input at the first job that does not converge, so every job of the N and N-1 states (their extra starts
+    included) precedes the N+1 state, and what follows the N+1 state's default job is its own extra starts and nothing else. A dianion that fails costs f+ only."""
+    jobs = plan_fukui(charge, 1, diffuse=diffuse).jobs
+    first_reduced = next(index for index, job in enumerate(jobs) if job.state == STATE_REDUCED)
+    assert jobs[first_reduced].start == START_DEFAULT
+    assert all(job.state != STATE_REDUCED for job in jobs[:first_reduced])
+    assert all(job.state == STATE_REDUCED for job in jobs[first_reduced:])
 
 
 @pytest.mark.parametrize("multiplicity", [2, 3, 4])
@@ -83,13 +94,16 @@ def test_with_diffuse_functions_the_anionic_n_plus_one_state_of_a_neutral_gets_t
     assert all(job.charge == -1 and job.multiplicity == 2 for job in plan.jobs[2:])
 
 
-def test_with_diffuse_functions_the_n_state_of_an_anion_gets_them_and_the_neutral_radical_does_not():
+def test_with_diffuse_functions_the_anion_gets_them_before_its_dianion_and_the_dianion_after_it_and_the_neutral_radical_none():
     plan = plan_fukui(-1, 1, diffuse=True)
     assert [(job.state, job.charge, job.start) for job in plan.jobs] == [
         (STATE_N, -1, START_DEFAULT),
         (STATE_OXIDISED, 0, START_DEFAULT),
         (STATE_N, -1, START_HCORE),
         (STATE_N, -1, START_HUECKEL),
+        (STATE_REDUCED, -2, START_DEFAULT),
+        (STATE_REDUCED, -2, START_HCORE),
+        (STATE_REDUCED, -2, START_HUECKEL),
     ]
 
 
@@ -97,7 +111,7 @@ def test_a_cation_has_no_anionic_state_so_diffuse_functions_add_nothing():
     assert len(plan_fukui(1, 1, diffuse=True).jobs) == 3
 
 
-def test_a_dianion_has_two_anionic_states_and_each_gets_its_extra_starts_after_the_defaults():
+def test_a_dianion_has_three_anionic_states_and_the_n_plus_one_state_with_its_extra_starts_is_last():
     plan = plan_fukui(-2, 1, diffuse=True)
     assert [(job.state, job.start) for job in plan.jobs] == [
         (STATE_N, START_DEFAULT),
@@ -106,6 +120,9 @@ def test_a_dianion_has_two_anionic_states_and_each_gets_its_extra_starts_after_t
         (STATE_N, START_HUECKEL),
         (STATE_OXIDISED, START_HCORE),
         (STATE_OXIDISED, START_HUECKEL),
+        (STATE_REDUCED, START_DEFAULT),
+        (STATE_REDUCED, START_HCORE),
+        (STATE_REDUCED, START_HUECKEL),
     ]
 
 

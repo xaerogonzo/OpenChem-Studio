@@ -1,0 +1,120 @@
+                         Program Version 6.1.1  -  RELEASE   -
+
+ Total Charge           Charge          ....   -1
+ Multiplicity           Mult            ....    1
+ Number of Electrons    NEL             ....   18
+-----------------------
+MULLIKEN ATOMIC CHARGES
+-----------------------
+   0 C :   -0.318313
+   1 O :   -0.845210
+   2 H :    0.054515
+   3 H :    0.054521
+   4 H :    0.054487
+Sum of atomic charges:   -1.0000000
+
+----------------------
+LOEWDIN ATOMIC CHARGES
+----------------------
+   0 C :   -0.350391
+   1 O :   -0.904437
+   2 H :    0.084948
+   3 H :    0.084952
+   4 H :    0.084927
+
+
+INITIAL GUESS: MODEL POTENTIAL
+
+------------------
+HIRSHFELD ANALYSIS
+------------------
+
+Total integrated alpha density =      8.999940897
+Total integrated beta density  =      8.999940897
+
+  ATOM     CHARGE      SPIN    
+   0 C   -0.101474    0.000000
+   1 O   -0.674234    0.000000
+   2 H   -0.074737    0.000000
+   3 H   -0.074723    0.000000
+   4 H   -0.074713    0.000000
+
+  TOTAL  -0.999882    0.000000
+
+FINAL SINGLE POINT ENERGY      -115.040629211585
+
+ Total Charge           Charge          ....    0
+ Multiplicity           Mult            ....    2
+ Number of Electrons    NEL             ....   17
+INITIAL GUESS: MOREAD
+Expectation value of <S**2>     :     0.754014
+Ideal value S*(S+1) for S=0.5   :     0.750000
+
+------------------
+HIRSHFELD ANALYSIS
+------------------
+
+Total integrated alpha density =      8.999992572
+Total integrated beta density  =      7.999993202
+
+  ATOM     CHARGE      SPIN    
+   0 C    0.012364    0.062911
+   1 O   -0.147240    0.798136
+   2 H    0.054973    0.061486
+   3 H    0.064560    0.075752
+   4 H    0.015357    0.001715
+
+  TOTAL   0.000014    0.999999
+
+FINAL SINGLE POINT ENERGY      -114.987196644454
+
+ Total Charge           Charge          ....   -1
+ Multiplicity           Mult            ....    1
+ Number of Electrons    NEL             ....   18
+INITIAL GUESS: HCORE
+
+------------------
+HIRSHFELD ANALYSIS
+------------------
+
+Total integrated alpha density =      8.999940907
+Total integrated beta density  =      8.999940907
+
+  ATOM     CHARGE      SPIN    
+   0 C   -0.101818    0.000000
+   1 O   -0.673984    0.000000
+   2 H   -0.074707    0.000000
+   3 H   -0.074690    0.000000
+   4 H   -0.074683    0.000000
+
+  TOTAL  -0.999882    0.000000
+
+FINAL SINGLE POINT ENERGY      -115.040725409317
+
+ Total Charge           Charge          ....   -1
+ Multiplicity           Mult            ....    1
+ Number of Electrons    NEL             ....   18
+INITIAL GUESS: MINIMAL BASIS EHT
+
+------------------
+HIRSHFELD ANALYSIS
+------------------
+
+Total integrated alpha density =      8.999940903
+Total integrated beta density  =      8.999940903
+
+  ATOM     CHARGE      SPIN    
+   0 C   -0.101896    0.000000
+   1 O   -0.673988    0.000000
+   2 H   -0.074683    0.000000
+   3 H   -0.074625    0.000000
+   4 H   -0.074690    0.000000
+
+  TOTAL  -0.999882    0.000000
+
+FINAL SINGLE POINT ENERGY      -115.040701711269
+
+ Total Charge           Charge          ....   -2
+ Multiplicity           Mult            ....    2
+ Number of Electrons    NEL             ....   19
+INITIAL GUESS: MOREAD

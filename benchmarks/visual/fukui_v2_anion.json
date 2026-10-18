@@ -9,22 +9,26 @@
 
   {"do": "qc_run", "calc_type": "Fukui functions (Hirshfeld)", "method": "B3LYP 6-31+G*", "after_ms": 1000},
   {"do": "qc_wait", "timeout_ms": 900000},
-  {"do": "qc_panel_report", "tag": "an-anion-has-f-minus-alone",
+  {"do": "qc_panel_report", "tag": "an-anion-has-all-four-from-its-dianion",
    "expect": {
      "calc_type": "Fukui functions (Hirshfeld)",
-     "run_calc_type": "fukui", "run_status": "completed", "per_atom_outputs": 1,
+     "run_calc_type": "fukui", "run_status": "completed", "per_atom_outputs": 4,
      "results_contains": [
        "SCF Energy:",
        "Fukui functions (Hirshfeld, vertical) for 5 atoms:",
+       "Largest f+ (attack by a nucleophile)",
        "Largest f- (attack by an electrophile): O (atom 2)",
-       "f+, f0 and the dual descriptor were not computed",
+       "The dianion is",
+       "ABOVE the anion",
        "Not validated: this calculation failed its second preregistered check"
-     ]},
+     ],
+     "results_excludes": ["f+, f0 and the dual descriptor were not computed"]},
    "shot": "C:/Users/pmpd/AppData/Local/Temp/claude/D--Random-Projects-OpenChem-Studio--claude-worktrees-calculator-result-selection-ff3f27/2ab0c6fd-b193-4829-a196-282f567a03a2/scratchpad/fukui_v2_anion_panel.png"},
 
   {"do": "result_report", "calculator": "orca.fukui", "expect_refusal": ""},
   {"do": "select_atom", "atom": 1},
   {"do": "inspector_report", "tag": "f-minus-on-the-oxygen", "expect_per_atom": {"contains": "orca.fukui_minus", "state": "fresh"}},
+  {"do": "inspector_report", "tag": "f-plus-is-held-too", "expect_per_atom": {"contains": "orca.fukui_plus", "state": "fresh"}},
   {"do": "expect_clean"},
   {"do": "quit"}
 ]

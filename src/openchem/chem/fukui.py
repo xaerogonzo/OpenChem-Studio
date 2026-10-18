@@ -58,9 +58,12 @@ trustworthy half. It is computed anyway, with a caveat naming the energy,
 because Hirshfeld's ``f+`` moved by at most 0.023 per atom with the diffuse
 set on those three molecules; a refusal would remove ``f+`` from nearly every molecule.
 
-**An anion has no f+.** Its N+1 state is a dianion, which no basis set binds in the gas phase, so for a species with
-a negative charge the result holds ``f-`` alone (``condensed_fukui(..., anion=None)``) and says why; the N-1 state of an
-anion is a neutral radical and is named so. See ``benchmarks/fukui_gate_2/DESIGN.md``.
+**An anion's f+ comes from a dianion.** Its N+1 state is a dianion, which no basis set binds in the gas phase, so the f+, f0 and
+dual descriptor of a species with a negative charge describe the basis set's state at least as much as the molecule's (the unbound-state
+caveat says so, with the energy). They are computed because the first gate's anions (CN-, NCO-, CNO-) reproduced the published f+ at the
+6-31G** levels, and ``f-`` does not depend on them: when the dianion gave no usable table (``condensed_fukui(..., anion=None)``, or a table that
+does not sum to its charge) the result holds ``f-`` alone and says why. The N-1 state of an anion is a neutral radical and is named so.
+The second gate decided f- alone for an anion (``benchmarks/fukui_gate_2/DESIGN.md``); the dianion came back after it.
 
 **Diffuse functions are not the cure, and ``f+`` with them is not reproducible**
 (``benchmarks/fukui_gate/PREREGISTRATION.md`` sections 11.4 and 11.6, measured after the
@@ -106,14 +109,15 @@ HARTREE_TO_EV = 27.211386245988
 
 @dataclass(frozen=True)
 class CondensedFukui:
-    """The condensed values per atom, in the atom order the charges came in: four for a species with an N+1 state, f- alone for one without.
+    """The condensed values per atom, in the atom order the charges came in: four for a species with a usable N+1 state, f- alone for one without.
 
     `refused` rather than partial numbers, following `ConceptualDFT`: a
     difference of two tables that do not describe the states it names is not a
     reduced-quality Fukui function, it is a different quantity.
     """
 
-    #: Empty for an anion (see `chem.fukui_plan`): f+, f0 and the dual descriptor all need the N+1 state.
+    #: Empty when there was no usable N+1 state (the dianion of an anion that did not finish, or whose table did not sum to its charge, or an output with no
+    #: N+1 job): f+, f0 and the dual descriptor all need it, and `f_plus_note` says why they are missing.
     f_plus: tuple[float, ...] = ()
     f_minus: tuple[float, ...] = ()
     f_zero: tuple[float, ...] = ()
@@ -131,6 +135,8 @@ class CondensedFukui:
     #: starts that did not finish, or that were lower, is said so in the caveats; a state with one start only is here and says nothing.
     solutions: tuple[Solution, ...] = ()
     has_negative: bool = False
+    #: The sentence saying why f+, f0 and the dual descriptor are missing, or "" when they are there.
+    f_plus_note: str = ""
     refused: bool = False
     reason: str = ""
     caveats: tuple[str, ...] = field(default_factory=tuple)
@@ -171,12 +177,18 @@ def conformer_average_message() -> str:
     )
 
 
-def unbound_anion_sentence(gap_ev: float) -> str:
-    """The caveat for an anion above the neutral, in the words the caveat, the panel and the docs share."""
+def unbound_anion_sentence(gap_ev: float, reference_charge: int = 0) -> str:
+    """The caveat for the N+1 state of a species when it lies above the N state, in the words the caveat, the panel and the docs share.
+
+    For a neutral species that is the anion above the neutral molecule, the case the sentence was written for and the words it has always had; for an anion
+    it is the dianion above the anion.
+    """
+    reduced = state_name(reference_charge - 1)
+    reference = "neutral" if reference_charge == 0 else state_name(reference_charge)
     return (
-        f"The anion is {gap_ev:.2f} eV ABOVE the neutral (a negative electron affinity), so it is an unbound "
+        f"The {reduced} is {gap_ev:.2f} eV ABOVE the {reference} (a negative electron affinity), so it is an unbound "
         "state that this basis set only describes: f+ depends on the basis set more than f- does. Diffuse "
-        "functions do not fix that: with them the anion can have more than one SCF solution, and f+ changed by up to "
+        f"functions do not fix that: with them the {reduced} can have more than one SCF solution, and f+ changed by up to "
         "0.31 between them in the cases measured, which is why, at a basis set with diffuse functions, the lowest of three starts is read. "
         "The calculator's help has the measurements."
     )
@@ -186,8 +198,17 @@ def _refuse(reason: str) -> CondensedFukui:
     return CondensedFukui(refused=True, reason=reason)
 
 
-def f_plus_not_computed_sentence() -> str:
-    """Why an anion's result holds f- alone, in the words the caveat, the panel and the docs share."""
+def f_plus_not_computed_sentence(reason: str = "") -> str:
+    """Why an anion's result holds f- alone, in the words the caveat, the panel and the docs share.
+
+    Without a `reason` it is the sentence the second gate's calculation carried for every anion (the dianion was not run). With one, the dianion was part of
+    the run and gave nothing usable, and the reason (a sentence of its own) is said before the assurance that f- is complete.
+    """
+    if reason:
+        return (
+            "f+, f0 and the dual descriptor were not computed: they need the N+1 state, which for an anion is a dianion. "
+            f"{reason} f- needs only the anion and the neutral radical it becomes, and is complete."
+        )
     return (
         "f+, f0 and the dual descriptor were not computed: they need the N+1 state, and the N+1 state of an anion is a dianion, which "
         "no basis set binds in the gas phase, so a calculation of it returns the basis set's state and not the molecule's. "
@@ -276,6 +297,21 @@ def _bad_table(name: str, charges, expected_charge: int) -> str:
     return ""
 
 
+def _states_problem(states: Sequence[tuple[str, Sequence[float], int]]) -> str:
+    """Why these (name, charges, expected charge) states cannot be differenced, or "" if they can: a table that is not its state's, then a different atom count."""
+    for name, charges, expected in states:
+        problem = _bad_table(name, charges, expected)
+        if problem:
+            return problem
+    sizes = [len(charges) for _name, charges, _expected in states]
+    if len(set(sizes)) != 1:
+        return (
+            f"The {'three' if len(states) == 3 else 'two'} states list different numbers of atoms "
+            f"({', '.join(str(size) for size in sizes[:-1])} and {sizes[-1]}), so their charges cannot be matched atom to atom."
+        )
+    return ""
+
+
 def condensed_fukui(
     neutral: Sequence[float],
     cation: Sequence[float],
@@ -287,28 +323,29 @@ def condensed_fukui(
     cation_s_squared: float | None = None,
     anion_s_squared: float | None = None,
     solutions: Sequence[Solution] = (),
+    anion_unavailable: str = "",
 ) -> CondensedFukui:
-    """The condensed Fukui functions from the per-atom charges of N, N-1 and N+1 electrons, or f- alone when there is no N+1 state.
+    """The condensed Fukui functions from the per-atom charges of N, N-1 and N+1 electrons, or f- alone when there is no usable N+1 state.
 
     `total_charge` is the N state's charge (0 for a neutral molecule); the N-1 state is checked against ``total_charge + 1`` and the N+1 state against
-    ``total_charge - 1``. With ``anion=None`` only f- is computed, and the result says the other three were not (`f_plus_not_computed_sentence`). The two
-    energies are optional and only decide whether the unbound-anion caveat is attached; `solutions` (from `chem.fukui_plan.choose_solutions`) only decide
-    which sentences about the SCF starts are attached.
+    ``total_charge - 1``. With ``anion=None`` only f- is computed, and the result says the other three were not (`f_plus_not_computed_sentence`, with
+    `anion_unavailable` as its reason when the caller knows one, such as a dianion job that did not finish). **The N+1 state of a species with a negative
+    charge is optional**: f- does not need a dianion, so a dianion table that cannot be differenced (it does not sum to its charge, or lists other atoms) is dropped,
+    with its reason, and f- is given alone, where for every other species such a table refuses the result as it always did. The two energies are optional
+    and only decide whether the unbound-state caveat is attached; `solutions` (from `chem.fukui_plan.choose_solutions`) only decide which sentences about
+    the SCF starts are attached.
     """
     names = _state_names(total_charge)
     states = [(names[0], neutral, total_charge), (names[1], cation, total_charge + 1)]
     if anion is not None:
         states.append((names[2], anion, total_charge - 1))
-    for name, charges, expected in states:
-        problem = _bad_table(name, charges, expected)
-        if problem:
+    problem = _states_problem(states)
+    if problem:
+        if anion is None or total_charge >= 0 or _states_problem(states[:2]):
             return _refuse(problem)
-    sizes = [len(charges) for _name, charges, _expected in states]
-    if len(set(sizes)) != 1:
-        return _refuse(
-            f"The {'three' if anion is not None else 'two'} states list different numbers of atoms "
-            f"({', '.join(str(size) for size in sizes[:-1])} and {sizes[-1]}), so their charges cannot be matched atom to atom."
-        )
+        # Nothing else of the dianion is kept either: its energy and its <S**2> belong to a table that is not used.
+        anion, anion_unavailable, states = None, problem, states[:2]
+        energy_anion_hartree = anion_s_squared = None
 
     f_minus = tuple(c - n for n, c in zip(neutral, cation))
     if anion is not None:
@@ -319,14 +356,18 @@ def condensed_fukui(
         f_plus = f_zero = dual = ()
 
     caveats = [_METHOD_CAVEAT]
+    f_plus_note = ""
     if anion is None:
-        caveats.append(f_plus_not_computed_sentence())
+        f_plus_note = f_plus_not_computed_sentence(anion_unavailable)
+        caveats.append(f_plus_note)
+        # A dianion that was dropped is not part of what the result says about SCF starts: its extra starts, if any ran, describe a state nothing here used.
+        solutions = tuple(solution for solution in solutions if solution.state != STATE_REDUCED)
     unbound = None
     if anion is not None and energy_neutral_hartree is not None and energy_anion_hartree is not None:
         gap = (energy_anion_hartree - energy_neutral_hartree) * HARTREE_TO_EV
         if gap >= 0.0:
             unbound = gap
-            caveats.append(unbound_anion_sentence(gap))
+            caveats.append(unbound_anion_sentence(gap, total_charge))
     caveats.extend(start_notes(solutions, total_charge))
     caveats.extend(
         spin_contamination_sentence(state, value)
@@ -349,6 +390,7 @@ def condensed_fukui(
         reference_charge=total_charge,
         solutions=tuple(solutions),
         has_negative=has_negative,
+        f_plus_note=f_plus_note,
         caveats=tuple(caveats) + (NOT_VALIDATED_SENTENCE,),
     )
 
@@ -433,16 +475,18 @@ def summary_lines(datasets, symbols: list[str]) -> list[str]:
     lines.extend(f"{label}: {_where_largest(dataset.values, symbols)}" for dataset, label in named)
     provenance = named[0][0].provenance
     parameters = provenance.parameters if provenance is not None else {}
+    reference = parameters.get("reference_charge")
+    charge = reference if isinstance(reference, int) and not isinstance(reference, bool) else 0
     if "orca.fukui_plus" not in by_id:
-        lines.append(f_plus_not_computed_sentence())
+        # The run's own reason when it recorded one (a dianion that gave no usable table); the sentence every anion of the second gate's calculation carried otherwise.
+        why = parameters.get("f_plus_note")
+        lines.append(why if isinstance(why, str) and why else f_plus_not_computed_sentence())
     gap = parameters.get("unbound_anion_ev")
     if isinstance(gap, (int, float)) and not isinstance(gap, bool):
-        lines.append(unbound_anion_sentence(float(gap)))
+        lines.append(unbound_anion_sentence(float(gap), charge))
     note = parameters.get("start_note")
     if isinstance(note, str) and note:
         lines.append(note)
-    reference = parameters.get("reference_charge")
-    charge = reference if isinstance(reference, int) and not isinstance(reference, bool) else 0
     lines.extend(
         spin_contamination_sentence(state, value)
         for state, value in contaminated_states(

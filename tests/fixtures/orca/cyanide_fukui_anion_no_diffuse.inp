@@ -1,0 +1,46 @@
+! B3LYP 6-31G**
+%scf
+  HFTyp RHF
+end
+%method
+  IntAcc 6.0
+end
+%output
+  Print[P_Hirshfeld] 1
+end
+* xyz -1 1
+C        0.000000      0.000000      0.000000
+N        1.183918      0.000000      0.000000
+*
+
+$new_job
+! B3LYP 6-31G**
+%scf
+  HFTyp UHF
+end
+%method
+  IntAcc 6.0
+end
+%output
+  Print[P_Hirshfeld] 1
+end
+* xyz 0 2
+C        0.000000      0.000000      0.000000
+N        1.183918      0.000000      0.000000
+*
+
+$new_job
+! B3LYP 6-31G**
+%scf
+  HFTyp UHF
+end
+%method
+  IntAcc 6.0
+end
+%output
+  Print[P_Hirshfeld] 1
+end
+* xyz -2 2
+C        0.000000      0.000000      0.000000
+N        1.183918      0.000000      0.000000
+*

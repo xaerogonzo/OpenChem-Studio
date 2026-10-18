@@ -641,9 +641,11 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
         which the Fukui function is about; a guess would produce a table of numbers that looks like an answer.
         A charged closed-shell species (a carboxylate, an ammonium) is fine: the ions are doublets.
 
-        **A species with a negative charge gets two jobs**, not three: its N+1 state is a dianion (see `chem.fukui_plan`).
-        **At a basis set with diffuse functions** each anionic state also gets `chem.fukui_plan.EXTRA_STARTS`, written AFTER every default job: ORCA ends the
-        compound input at the first job that does not converge, so the jobs the answer needs must precede any that can fail. An explicit guess keyword in a later
+        **A species with a negative charge ends with a dianion job**: its N+1 state is a dianion (see `chem.fukui_plan`), the one state here that is only the
+        basis set's, and f- does not need it, so it is written after everything f- needs.
+        **At a basis set with diffuse functions** each anionic state also gets `chem.fukui_plan.EXTRA_STARTS`, written after the default jobs of the states f- needs and,
+        for an anion, before its dianion: ORCA ends the compound input at the first job that does not converge, so the jobs the answer needs must precede any that can
+        fail, and a dianion that does not converge costs f+ and nothing else. An explicit guess keyword in a later
         job replaces the "read the previous job's orbitals" default (measured on ORCA 6.1.1: the output's INITIAL GUESS line names HCORE or MINIMAL BASIS EHT
         where an unmarked job says MOREAD).
 
@@ -954,16 +956,15 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
 
         Per job (`_fukui_job_results`), and checked where ORCA lets it be: each job echoes its own charge and multiplicity, which is how the
         tables are assigned to the N, N-1 and N+1 states and how an extra start is told from a state. The N and N-1 states must have finished, and the N+1 state
-        too for a species that has one (every species that is not an anion; for an anion the N+1 state is a dianion and is not run). Of the jobs of one state the
-        solution read is `chem.fukui_plan.choose_solutions`'s.
+        too for every species that is not an anion. **An anion's N+1 state is a dianion, which f- does not need**, so an output of an anion whose dianion job did not
+        finish (or that has none) gives f- alone and says why, where the same failure for any other species fails the run. Of the jobs of one state the solution read
+        is `chem.fukui_plan.choose_solutions`'s.
         """
         symbols = [atom.GetSymbol().upper() for atom in mol.GetAtoms()]
         results = self._fukui_job_results(output_text, symbols)
         reference = results[0].charge
         solutions = choose_solutions(results)
-        needed = [STATE_N, STATE_OXIDISED]
-        if reference >= 0 or any(result.state == STATE_REDUCED for result in results):
-            needed.append(STATE_REDUCED)
+        needed = [STATE_N, STATE_OXIDISED] + ([STATE_REDUCED] if reference >= 0 else [])
         for state in needed:
             if state not in solutions:
                 jobs = [position for position, result in enumerate(results, start=1) if result.state == state]
@@ -974,6 +975,18 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
                 )
         chosen = {state: solution.chosen for state, solution in solutions.items()}
         reduced = chosen.get(STATE_REDUCED)
+        unavailable = ""
+        if reduced is None and reference < 0:
+            dianion_jobs = [position for position, result in enumerate(results, start=1) if result.state == STATE_REDUCED]
+            unfinished = [position for position, result in enumerate(results, start=1) if not result.complete]
+            if dianion_jobs:
+                unavailable = (
+                    f"ORCA printed no SCF energy and Hirshfeld table for the dianion (job {dianion_jobs[0]}), most likely because its SCF did not converge."
+                )
+            elif unfinished:
+                # ORCA ends a compound input at the first job that does not converge, and the dianion is written after the extra starts of the anion.
+                unavailable = f"ORCA ended the run at job {unfinished[0]}, which did not converge, before it reached the dianion."
+        read = [STATE_N, STATE_OXIDISED] + ([STATE_REDUCED] if reduced is not None else [])
         result = condensed_fukui(
             chosen[STATE_N].charges,
             chosen[STATE_OXIDISED].charges,
@@ -985,7 +998,8 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
             # contamination, and nothing is guessed.
             cation_s_squared=chosen[STATE_OXIDISED].s_squared,
             anion_s_squared=reduced.s_squared if reduced is not None else None,
-            solutions=tuple(solutions[state] for state in needed),
+            solutions=tuple(solutions[state] for state in read),
+            anion_unavailable=unavailable,
         )
         if not result:
             raise OrcaOutputError(result.reason)
@@ -1003,7 +1017,7 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
     def parse_per_atom_output(
         self, output_text: str, mol: Chem.Mol, molecule_uuid: str, calc_type: str
     ) -> list[PerAtomDataset]:
-        """The per-atom Fukui datasets of a `fukui` job (four, or f- alone for an anion); nothing for any other calc type."""
+        """The per-atom Fukui datasets of a `fukui` job (four, or f- alone for an anion whose dianion gave nothing usable); nothing for any other calc type."""
         if calc_type != "fukui":
             return []
         result = self._condensed_fukui(output_text, mol)
@@ -1017,6 +1031,8 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
             "functions": "f+ f- f0 dual" if result.computes_f_plus else "f-",
             "caveat": " ".join(result.caveats),
         }
+        if result.f_plus_note:
+            parameters["f_plus_note"] = result.f_plus_note
         if result.unbound_anion_ev is not None:
             parameters["unbound_anion_ev"] = result.unbound_anion_ev
         if result.cation_s_squared is not None:
