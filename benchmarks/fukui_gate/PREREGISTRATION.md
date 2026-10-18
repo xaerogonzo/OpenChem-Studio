@@ -181,3 +181,53 @@ failures). **Water only, a molecule that is not in the gate; no gate species has
 
 Disclosed: a molecule of three atoms is the easiest case for a repeat to agree on, and a floor of exactly zero says ORCA and the application are deterministic here, not that the
 published values will be reproduced.
+
+### 11.2 The outcome: FAIL, 2026-10-18 04:14 to 04:27, commit that adds this section
+
+`benchmarks/visual/fukui_gate_run.json`, **the one attempt**, real ORCA 6.1.1, gas phase, tolerance **T = 0.02** (fixed in section 6 before this ran; the floor of section 11.1 was 0.0).
+`fukui_gate_begin` passed. `VERDICT PASS` of the drive (17 assertions, 0 app errors, 0 driver failures; `artifacts/run.drive_report.json`); **the gate's own verdict, by
+`app/fukui_gate.judge`: FAIL.** The record is `artifacts/records.json` (14 lines, one per job, all attempt 1, all completed, all on the ORCA-optimized geometry, all ORCA 6.1.1, 14 distinct
+stored runs) and `artifacts/verdict.json`.
+
+**Every rule of section 7 held except one.** Fifty-two of the 54 numbers are within T, all 13 site statements are reproduced (the anions' included), every run's own sum rule and
+identities held, and no species was left uncomputed. The two that are not within T are one quantity:
+
+| Quantity | Published (`olah2002`) | Measured | Signed difference | Within T = 0.02 |
+|---|---|---|---|---|
+| CO, carbon, f-, `HF/6-31G**` | 0.6931 | 0.6717 | **-0.0214** | **no** |
+| CO, oxygen, f-, `HF/6-31G**` | 0.3069 | 0.3283 | **+0.0214** | **no** |
+
+CO is a neutral species, so by section 7 the outcome is **FAIL** and not PARTIAL. The two rows are the same difference, because a column of f sums to one. T is not widened, the word "reproduces" is
+not used of this gate, and the gate is not re-run: a decided outcome is final (section 9).
+
+For the record, all 54 differences (published against measured, in f units): median 0.0034, mean 0.0045, 50 within 0.01 and 52 within 0.02. The largest after the two above are CN- at
+`HF/6-31G**` (+0.0101 on N, -0.0101 on C), CNO- N f- at `HF/6-31G**` (+0.0098) and CNO- N f+ (+0.0068), then CO2 C f+ at `B3LYP/6-31G**` (-0.0066). The largest difference by species and level:
+
+| Species | `B3LYP/6-31G**` | `HF/6-31G**` |
+|---|---|---|
+| CO | 0.0058 | **0.0214** |
+| CO2 | 0.0066 | 0.0060 |
+| formaldehyde | 0.0027 | 0.0042 |
+| CN- | 0.0043 | 0.0101 |
+| NCO- | 0.0054 | 0.0050 |
+| CNO- | 0.0062 | 0.0098 |
+
+**What this says, and does not.** At B3LYP/6-31G** every one of the 27 decided numbers is within 0.0066 of the published value, and at HF/6-31G** every number but CO's f- is within 0.0101. The calculator
+did not reproduce the published value of one quantity by 0.0014 more than the tolerance allowed. It does not say the calculator is wrong in general, and it does not say it is right: the verdict is
+as the rule gave it.
+
+### 11.3 After the outcome: a diagnostic, which is not the gate and cannot change it
+
+`post_gate_diagnostic.py`, standalone ORCA in fresh directories, run after section 11.2 existed, on CO at HF/6-31G**. The question was why one quantity is 0.0214 from the published value.
+The sources' ions were **single-annihilated** UHF (`olah2002`); ORCA's UHF is not annihilated.
+
+| | f- on C | f- on O | `<S^2>` of the cation |
+|---|---|---|---|
+| ORCA, UHF cation (what the application computes) | 0.6717 | 0.3283 | **0.967** (a pure doublet is 0.75) |
+| ORCA, ROHF cation (no spin contamination) | 0.7102 | 0.2898 | |
+| Published (annihilated UHF) | 0.6931 | 0.3069 | |
+
+The gate's number (0.6717) is the UHF one, to the digit. The unrestricted cation of CO at HF is heavily spin-contaminated, and the published value lies between the contaminated
+and the uncontaminated ones, as a partially annihilated density would. That is a measured cause for the one failing number, and it is a **difference of method**, not a defect in the arithmetic.
+It is also where a difference would be expected to be largest: CN- at HF, whose neutral radical is the next most contaminated, has the next largest difference (0.0101). A new preregistration may
+build on it; this one does not.
