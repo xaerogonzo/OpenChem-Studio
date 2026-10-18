@@ -279,3 +279,25 @@ H2CO, acetone and CN- ran at both levels, and CNO- at `B3LYP/6-311+G**`. The sum
   scrutiny as the f+ rows above.
 * Formaldehyde at the default level reproduces Olah's and Thanikaivelan's published values to 0.012 (all 10 rows) and Bultinck's Table I to 0.056, two rows outside 0.02 (O f- -0.056, H f- +0.027). Bultinck's column is UHF/6-31G**
   and this is B3LYP/def2-SVP, and the same six numbers were reproduced within 0.02 at `HF/6-31G**` in the decided arm; nothing here says which level the paper's table belongs to better.
+
+### 11.5 After 11.4: a probe of one candidate cause, which is not the gate and changes nothing
+
+`grid_probe.py`, standalone ORCA 6.1.1 in fresh directories, **one molecule**: the anion of CO2 (charge -1, doublet) at an idealized linear geometry (C=O 1.16 A), `6-311+G**`, the case the application refused at both
+levels. The default-grid sums land within 0.002 of the application's own (-0.9271 against -0.927 at B3LYP, -0.9785 against -0.977 at HF, which used its ORCA-optimized geometry). Section 11.4 said none of the candidate causes
+of the refusals had been tested; this tests one, the integration grid, and only on this molecule.
+
+| ORCA setting | B3LYP: charges sum to | short by | HF: charges sum to | short by |
+|---|---|---|---|---|
+| default | -0.9271 | 0.0729 | -0.9785 | 0.0215 |
+| `DefGrid3` | -0.9572 | 0.0428 | -0.9909 | 0.0091 |
+| `%method IntAcc 6.0` | -0.9793 | 0.0207 | -0.9973 | 0.0027 |
+| `%method AngularGrid 7, IntAcc 6.0` | -0.9811 | 0.0189 | -0.9978 | 0.0022 |
+
+**What it shows.** The shortfall is in large part the integration of the diffuse electron on the grid: it shrinks at every refinement, at both methods. At HF the SCF energy is unchanged by the grid to 1e-9 Eh (there the grid serves the Hirshfeld
+integral only), the sum is inside the 0.01 rule at `DefGrid3` and 0.003 short at `IntAcc 6.0`. At B3LYP the finest grid tried is still 0.019 short and the SCF energy moves by 0.0037 Eh (-188.4981 to -188.5019), so a finer grid alone does
+not close it there. That makes part of the refusals a limitation of ORCA's default grid for a diffuse unbound electron and not of the Hirshfeld arithmetic or the sum rule.
+
+**What it does not show.** That the f+ values at `6-311+G**` would then match the published ones (not run: the refusal and the f+ disagreement are different quantities, and the f+ rows of 11.4 that were computed did sum correctly);
+that the other six refused jobs behave as CO2 does (one molecule); or what the neutral and the cation states' own shortfalls are. The application does **not** use a finer grid. A different numerical setting is a different calculation from
+the one that was gated, so whether it should become the default, and at which setting, is for a new preregistration and this probe is not one. Two earlier spellings of the keyword (`Grid7 NoFinalGrid`, and `IntAcc 6` on the simple input
+line) were rejected by ORCA as unrecognized input, produced no output, and say nothing.
