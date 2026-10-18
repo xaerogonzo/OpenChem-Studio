@@ -1,0 +1,240 @@
+{
+ "scratch": "C:\\Users\\pmpd\\AppData\\Local\\Temp\\cation_states_79wd3umd",
+ "species": "benzaldehyde",
+ "cores": 8,
+ "rows": [
+  {
+   "variant": "reference",
+   "jobs_with_energy": 3,
+   "tables": 3,
+   "converged": true,
+   "n_minus_1_energy": -345.02037225766,
+   "max_distance_to_published": 0.0011,
+   "by_label": {
+    "ortho": 0.0449,
+    "meta": 0.0453,
+    "para": 0.0731
+   },
+   "matches_published": true,
+   "above_probe_lowest_ev": 0.145,
+   "group": "reference"
+  },
+  {
+   "variant": "rotation0",
+   "jobs_with_energy": 3,
+   "tables": 3,
+   "converged": true,
+   "n_minus_1_energy": -345.020329846617,
+   "max_distance_to_published": 0.0011,
+   "by_label": {
+    "ortho": 0.045,
+    "meta": 0.0452,
+    "para": 0.073
+   },
+   "matches_published": true,
+   "above_probe_lowest_ev": 0.147,
+   "group": "rotation"
+  },
+  {
+   "variant": "rotation1",
+   "jobs_with_energy": 3,
+   "tables": 3,
+   "converged": true,
+   "n_minus_1_energy": -345.025729221336,
+   "max_distance_to_published": 0.0518,
+   "by_label": {
+    "ortho": 0.0836,
+    "meta": 0.0968,
+    "para": 0.0921
+   },
+   "matches_published": false,
+   "above_probe_lowest_ev": -0.0,
+   "group": "rotation"
+  },
+  {
+   "variant": "rotation2",
+   "jobs_with_energy": 3,
+   "tables": 3,
+   "converged": true,
+   "n_minus_1_energy": -345.020379455011,
+   "max_distance_to_published": 0.0012,
+   "by_label": {
+    "ortho": 0.0449,
+    "meta": 0.0453,
+    "para": 0.0732
+   },
+   "matches_published": true,
+   "above_probe_lowest_ev": 0.145,
+   "group": "rotation"
+  },
+  {
+   "variant": "rotation3",
+   "jobs_with_energy": 3,
+   "tables": 3,
+   "converged": true,
+   "n_minus_1_energy": -345.020397118326,
+   "max_distance_to_published": 0.0013,
+   "by_label": {
+    "ortho": 0.0449,
+    "meta": 0.0453,
+    "para": 0.0733
+   },
+   "matches_published": true,
+   "above_probe_lowest_ev": 0.145,
+   "group": "rotation"
+  },
+  {
+   "variant": "noise0",
+   "jobs_with_energy": 3,
+   "tables": 3,
+   "converged": true,
+   "n_minus_1_energy": -345.025867752584,
+   "max_distance_to_published": 0.0521,
+   "by_label": {
+    "ortho": 0.0835,
+    "meta": 0.0971,
+    "para": 0.0938
+   },
+   "matches_published": false,
+   "above_probe_lowest_ev": -0.004,
+   "group": "noise",
+   "sigma": 0.001
+  },
+  {
+   "variant": "noise1",
+   "jobs_with_energy": 3,
+   "tables": 3,
+   "converged": true,
+   "n_minus_1_energy": -345.025814050674,
+   "max_distance_to_published": 0.0501,
+   "by_label": {
+    "ortho": 0.0822,
+    "meta": 0.0951,
+    "para": 0.0941
+   },
+   "matches_published": false,
+   "above_probe_lowest_ev": -0.003,
+   "group": "noise",
+   "sigma": 0.001
+  },
+  {
+   "variant": "noise2",
+   "jobs_with_energy": 3,
+   "tables": 3,
+   "converged": true,
+   "n_minus_1_energy": -345.025687486677,
+   "max_distance_to_published": 0.0511,
+   "by_label": {
+    "ortho": 0.0827,
+    "meta": 0.0961,
+    "para": 0.0933
+   },
+   "matches_published": false,
+   "above_probe_lowest_ev": 0.001,
+   "group": "noise",
+   "sigma": 0.001
+  },
+  {
+   "variant": "noise3",
+   "jobs_with_energy": 3,
+   "tables": 3,
+   "converged": true,
+   "n_minus_1_energy": -345.025717974691,
+   "max_distance_to_published": 0.0526,
+   "by_label": {
+    "ortho": 0.0845,
+    "meta": 0.0976,
+    "para": 0.0904
+   },
+   "matches_published": false,
+   "above_probe_lowest_ev": -0.0,
+   "group": "noise",
+   "sigma": 0.001
+  },
+  {
+   "variant": "embedding100",
+   "jobs_with_energy": 3,
+   "tables": 3,
+   "converged": true,
+   "n_minus_1_energy": -345.025749383202,
+   "max_distance_to_published": 0.0517,
+   "by_label": {
+    "ortho": 0.0836,
+    "meta": 0.0967,
+    "para": 0.0923
+   },
+   "matches_published": false,
+   "above_probe_lowest_ev": -0.001,
+   "group": "embedding",
+   "embedding_seed": 100
+  },
+  {
+   "variant": "embedding101",
+   "jobs_with_energy": 3,
+   "tables": 3,
+   "converged": true,
+   "n_minus_1_energy": -345.020384961079,
+   "max_distance_to_published": 0.0011,
+   "by_label": {
+    "ortho": 0.0448,
+    "meta": 0.0453,
+    "para": 0.0731
+   },
+   "matches_published": true,
+   "above_probe_lowest_ev": 0.145,
+   "group": "embedding",
+   "embedding_seed": 101
+  },
+  {
+   "variant": "embedding102",
+   "jobs_with_energy": 3,
+   "tables": 3,
+   "converged": true,
+   "n_minus_1_energy": -345.025738586301,
+   "max_distance_to_published": 0.0518,
+   "by_label": {
+    "ortho": 0.0837,
+    "meta": 0.0968,
+    "para": 0.0922
+   },
+   "matches_published": false,
+   "above_probe_lowest_ev": -0.001,
+   "group": "embedding",
+   "embedding_seed": 102
+  },
+  {
+   "variant": "embedding103",
+   "jobs_with_energy": 3,
+   "tables": 3,
+   "converged": true,
+   "n_minus_1_energy": -345.025736185746,
+   "max_distance_to_published": 0.0519,
+   "by_label": {
+    "ortho": 0.0836,
+    "meta": 0.0969,
+    "para": 0.0921
+   },
+   "matches_published": false,
+   "above_probe_lowest_ev": -0.0,
+   "group": "embedding",
+   "embedding_seed": 103
+  },
+  {
+   "variant": "embedding104",
+   "jobs_with_energy": 3,
+   "tables": 3,
+   "converged": true,
+   "n_minus_1_energy": -345.020377958199,
+   "max_distance_to_published": 0.0012,
+   "by_label": {
+    "ortho": 0.0449,
+    "meta": 0.0453,
+    "para": 0.0732
+   },
+   "matches_published": true,
+   "above_probe_lowest_ev": 0.145,
+   "group": "embedding",
+   "embedding_seed": 104
+  }
+ ]
+}

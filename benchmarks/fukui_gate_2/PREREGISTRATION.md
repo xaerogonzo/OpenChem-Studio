@@ -251,10 +251,11 @@ and the gate is not re-run: a decided outcome is final (section 9).
   call it should have made, with the same function and the gate's own records, and runs nothing). N2O f-: published O, measured O. NO2- f-: published O, measured O. Benzaldehyde: published largest ring site para, **measured meta** (the experimental order printed beside it in Table 5 is m > o >> p). Nitrobenzene: published meta,
   measured meta (experiment m >> o > p). These decide nothing, and the experimental column is not a target: the 2019 benchmark found the Fukui function the weaker descriptor of where a reaction goes [source:wang2019].
 
-### 11.4 After the outcome: two probes of one candidate cause, neither of them the gate and neither able to change it
+### 11.4 After the outcome: four probes of one candidate cause, none of them the gate and none able to change it
 
 Written after 11.2 existed, **with the published numbers in view**. They are a search and not a preregistered test: each looks for the cation state a published number belongs to, among a handful of candidates, so what they find is a candidate cause and not an established one.
-Files: `cation_states_probe.py` and `route_check.py`, standalone ORCA 6.1.1 in fresh directories (the second writes through the application's own input builder), results in `artifacts/cation_states_probe.json` and `artifacts/route_check.json`.
+Files: `cation_states_probe.py`, `route_check.py`, `core_check.py` and `landing_check.py`, standalone ORCA 6.1.1 in fresh directories (the last three write through the application's own input builder), results in `artifacts/cation_states_probe.json`,
+`route_check.json`, `core_check.json` and `landing_check.json`. The last two were written after the first two, on the same day, because the first two left open what separated the gate's benzaldehyde from probe 1's.
 
 **The candidate, as it stood when the probe was written.** The molecules that missed were thought to have cations whose lowest states lie close together (benzaldehyde, the five-membered rings, anilinium, HCN), while eight others reproduce to 0.0067. The application's N-1 job starts from the neutral's converged
 orbitals and removes the electron of the HOMO, so it reaches one state, whichever its SCF falls into; the source's program may have reached another. The probe tests that, and finds it fits three of the molecules and not the rest.
@@ -288,7 +289,27 @@ the application's compound input whose second job reads the first job's orbitals
 | thiophene | the lowest | 0.1172 |
 
 **So the application's own route reaches the state that matches the published benzaldehyde numbers on one geometry and the lowest state on another**: two ORCA-optimized geometries of one molecule at one level (the gate's and probe 1's), the same code, N-1 states 0.145 eV apart. The gate's geometry is not stored, so how the two
-differ was not measured, and nothing here says which is nearer the true minimum. For anilinium and thiophene the application's route lands on the lowest state on this geometry as it did on the gate's, so those two misses do not depend on the geometry.
+differ was not measured, and nothing here says which is nearer the true minimum (probes 3 and 4 below say what separates them). For anilinium and thiophene the application's route lands on the lowest state on this geometry as it did on the gate's, so those two misses do not depend on the geometry.
+
+**Probe 3, `core_check.py`.** The gate's run was made at 8 cores (the application's default: `orca/cores` is not set here) and probe 2 at 4. The same application input on probe 1's geometry at 8, 4, 2 and 1 cores reached the same state every time (+0.145 eV above the
+lowest, distance 0.0011), with N-1 energies identical to eleven digits (-345.02037225766 Eh). **The core count is not what separates the gate's run from probe 2.**
+
+**Probe 4, `landing_check.py`.** The application's own input at 8 cores on benzaldehyde, with three kinds of change, to see how little moves the landing: **rotations** (the same geometry rigidly rotated, which changes nothing physical but the integration grid and the integrals), **displacements** (every
+coordinate of probe 1's geometry moved by Gaussian noise of 0.001 A) and **independent optimizations** (ORCA-optimized from RDKit embeddings of five different seeds, as the gate's own geometry was from an unknown one). A run is published-like when its f- is within 0.01 of the published numbers.
+
+| Change | Runs | Reached the published-like state (+0.145 eV) | Reached the lowest state |
+|---|---|---|---|
+| none (probe 1's geometry) | 1 | 1 | 0 |
+| rigid rotation of that geometry | 4 | 3 | 1 |
+| displacement of 0.001 A | 4 | 0 | 4 |
+| independent optimization (five seeds) | 5 | 2 | 3 |
+
+The geometries differ in how planar they are (the RMS distance of all atoms from the best-fit plane, in A): the 8 runs at or below 0.00025 reached the published-like state 6 times (probe 1's geometry and three of its four rotations at 0.000248, and two of the five optimizations, at 0.000104 and 0.000101) and the lowest 2
+times (the fourth rotation, and one optimization at 0.000140); **the 6 runs above 0.00025 reached the lowest state every time** (optimizations at 0.000280 and 0.000615, and the four displaced geometries at 0.00097 to 0.00146). A reading consistent with these numbers, **not tested** (no symmetry-constrained
+calculation was run and the symmetry of the states was not computed): in a planar geometry the cation's states of different symmetry cannot mix unless numerical noise lets them, and a displacement from the plane lets the SCF relax to the lower one. It would explain a program that keeps the symmetry of the
+guess reaching the higher state for benzaldehyde; it does not explain anilinium or thiophene, whose published states are the HOMO-1 hole, and it explains nothing for HCN, pyrrole, furan or SCN-.
+**What it shows, measured: the application's f- for benzaldehyde is not a function of the structure.** The same molecule at the same level, given to the application's own input, gave one of two states, 0.145 eV apart and 0.05 apart in f-, in 6 of 14 runs and the other in 8, and what decided it was a rotation
+or a displacement of a thousandth of an angstrom or the embedding the geometry came from.
 
 ### 11.5 What this says, and what it does not
 
@@ -297,7 +318,7 @@ differ was not measured, and nothing here says which is nearer the true minimum.
 * **For three of the six molecules that missed in a neutral or a cation (anilinium, benzaldehyde, thiophene), the published numbers belong to a cation state above the lowest one this calculation finds.** That is a candidate cause found after the outcome by choosing among a few states with the published numbers in view; it is strong (three
   matches to 0.0021 or better against a tolerance of 0.02) and it is not a preregistered result.
 * **What it implies about the calculator, measured:** for a molecule whose cation has close-lying states, the application's f- is the f- of whichever state ORCA's SCF reaches from the neutral's orbitals. It does not look for a lower state or say that another one is close (it does that for the starts of an anion, not for the N-1 state), and for
-  benzaldehyde the state it reached depended on which geometry it was given.
+  benzaldehyde the state it reached changed with a rigid rotation of one geometry (1 of 4 runs), with a 0.001 A displacement (4 of 4 runs went to the lowest state) and with the embedding the geometry was optimized from (3 of 5 went to the lowest): it is not a function of the structure, so the same molecule can give two different f- tables (11.4, probe 4).
 * **HCN, pyrrole, furan and the sulfur of SCN- are not explained.** Nothing measured here accounts for them, and the cation-state candidate does not: neither alternative state lies near their published numbers.
 * **It does not say the published values are wrong or ours are.** Which state a condensed Fukui function ought to describe is not decided by anything measured here, and the order of states 0.1 eV apart in a B3LYP ΔSCF is itself uncertain. It does not say that taking the lowest of several holes would reproduce
   the published numbers: for these three molecules the lowest state is the one that does **not**. And it does not say that a small orbital gap marks a molecule that will miss (the pyrrole and phenol numbers above).

@@ -131,5 +131,5 @@ The second gate was run on 2026-10-18 on the calculation this record describes a
 
 The misses are in neutral molecules and one cation, and **none of v2's changes concerns the N-1 state of a neutral or a cation**: v2 reads the state its SCF reaches from the neutral's orbitals and does not look for a lower one or say
 that another is close. A probe made after the outcome (11.4, a candidate cause and not an established one) found that for anilinium, benzaldehyde and thiophene the published values match a cation state 0.09 to 0.45 eV above the lowest,
-and that for benzaldehyde the state the application's own input reached depended on the geometry. The standing sentence of every result now says the calculation failed its second check (`chem/fukui.py` `NOT_VALIDATED_SENTENCE`);
+and that for benzaldehyde the state the application's own input reached changed with a rotation of one geometry, a 0.001 A displacement and the embedding it was optimized from (11.4, probe 4). The standing sentence of every result now says the calculation failed its second check (`chem/fukui.py` `NOT_VALIDATED_SENTENCE`);
 the calculator stays EXPERIMENTAL and hidden.
