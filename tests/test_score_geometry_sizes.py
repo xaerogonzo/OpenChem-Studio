@@ -47,7 +47,8 @@ from openchem.domain.score_value import (
 from openchem.services.score_service import ScoreService
 from tests.test_score_value import _entries
 
-_GEOMETRY_OUTPUTS = [entry for entry in APPROVED if entry.input == GEOMETRY]
+#: The geometry outputs of the ten shape descriptors and Geometry Analysis's eight sizes. HOMA's two extremes also read a geometry and are in `tests/test_score_homa.py`: they ask what made it.
+_GEOMETRY_OUTPUTS = [entry for entry in APPROVED if entry.input == GEOMETRY and not entry.needs_quantum_geometry]
 _SIZES = [entry for entry in _GEOMETRY_OUTPUTS if entry.output_id.startswith("calculator:geometry_analysis:")]
 _BONDI = {"H": 1.20, "C": 1.70, "N": 1.55, "O": 1.52}  # Bondi's radii for the elements the molecules below hold, written out here and not read from the producer's table
 _MOLECULES = ["CCCCO", "c1ccccc1C(=O)O", "CC(C)Cc1ccc(cc1)C(C)C(=O)O"]

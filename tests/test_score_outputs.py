@@ -52,7 +52,7 @@ import sweep_score_outputs as sweep_tool  # noqa: E402
 
 #: The calculators the table draws from, plus the two controls: `joback_properties` is limited and HIDDEN by default, and
 #: `polar_surface_area` carries its number as text rounded by the decimal-places setting.
-_CALCULATORS_UNDER_TEST = ["bbb_descriptors", "geometry_analysis", "oxygen_balance", "polarizability", "solubility", "topology_analysis", "joback_properties", "polar_surface_area", "logd"]
+_CALCULATORS_UNDER_TEST = ["bbb_descriptors", "geometry_analysis", "homa_aromaticity", "oxygen_balance", "polarizability", "solubility", "topology_analysis", "joback_properties", "polar_surface_area", "logd"]
 
 
 def _entry(**changes) -> ApprovedOutput:
@@ -127,6 +127,8 @@ _UNITS = {
     "calculator:geometry_analysis:Min projection radius": "Å",
     "calculator:geometry_analysis:Size perpendicular to the max projection": "Å",
     "calculator:geometry_analysis:Size perpendicular to the min projection": "Å",
+    "calculator:homa_aromaticity:Highest HOMA of any ring": "1",
+    "calculator:homa_aromaticity:Lowest HOMA of any ring": "1",
     "calculator:oxygen_balance:Oxygen balance (CO basis)": "%",
     "calculator:oxygen_balance:Oxygen balance (CO₂ basis)": "%",
     "calculator:polarizability:Molecular polarizability": "Å^3",
@@ -166,6 +168,7 @@ _GEOMETRY_OUTPUTS = {
     "calculator:geometry_analysis:Max projection area", "calculator:geometry_analysis:Max projection radius", "calculator:geometry_analysis:Max radius (from centroid)",
     "calculator:geometry_analysis:Mean radius (from centroid)", "calculator:geometry_analysis:Min projection area", "calculator:geometry_analysis:Min projection radius",
     "calculator:geometry_analysis:Size perpendicular to the max projection", "calculator:geometry_analysis:Size perpendicular to the min projection",
+    "calculator:homa_aromaticity:Highest HOMA of any ring", "calculator:homa_aromaticity:Lowest HOMA of any ring",
 }
 
 #: Which outputs ask more than "is it a number of the stored conformer": Geometry Analysis's own settings change what it measures (`score_value.not_applicable_reason`). The two radii from the
@@ -183,10 +186,21 @@ def test_exactly_these_outputs_are_read_from_a_conformer_and_all_the_others_from
     assert all(entry.input == READ_FROM for entry in APPROVED if entry.output_id not in _GEOMETRY_OUTPUTS)
 
 
-def test_the_eighteen_geometry_outputs_are_each_their_own_quantity():
-    """Three principal moments, two ratios, a radius, a plane distance and three anisotropy measures; two radii from the centroid and six projection numbers: all different numbers, so none shares a tag, and a formula may combine them."""
+def test_the_twenty_geometry_outputs_are_each_their_own_quantity():
+    """Three principal moments, two ratios, a radius, a plane distance and three anisotropy measures; two radii from the centroid and six projection numbers; the highest and the lowest ring HOMA: all different
+    numbers, so none shares a tag, and a formula may combine them."""
     tags = [entry.endpoint for entry in APPROVED if entry.input == "geometry"]
-    assert len(tags) == len(set(tags)) == 18
+    assert len(tags) == len(set(tags)) == 20
+
+
+#: The outputs that read bond lengths and so only from a geometry a quantum calculation optimised: HOMA's two extremes.
+_NEEDS_QUANTUM = {"calculator:homa_aromaticity:Highest HOMA of any ring", "calculator:homa_aromaticity:Lowest HOMA of any ring"}
+
+
+def test_exactly_these_outputs_read_only_a_quantum_optimised_geometry():
+    assert {entry.output_id for entry in APPROVED if entry.needs_quantum_geometry} == _NEEDS_QUANTUM
+    assert all(entry.input == "geometry" for entry in APPROVED if entry.needs_quantum_geometry), "a drawing has no bond lengths to have measured"
+    assert not any(entry.whole_structure or entry.measured_as for entry in APPROVED if entry.needs_quantum_geometry), "HOMA has no options that change what it measures, and a ring's value does not depend on where the fragments sit"
 
 
 def test_exactly_these_outputs_ask_how_the_calculator_measured_them():

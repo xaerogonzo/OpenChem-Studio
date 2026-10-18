@@ -1093,3 +1093,54 @@ def test_a_salt_has_no_size_in_the_table_or_in_results_and_both_say_the_same_thi
     report = window._results_view.merged().report_for("score:user.reach")
     assert report is not None and not report.facts, "no number is offered for the salt"
     assert "2 separate fragments" in report.error and "score the parent structure" in report.error
+
+
+# --- HOMA's two extremes: read only from an ORCA-optimised geometry, by one rule in the table and in Results ----------------------------------
+
+
+_HOMA_HIGH = "calculator:homa_aromaticity:Highest HOMA of any ring"
+
+
+def _run_homa(window, qapp, model):
+    from openchem.domain.calculator import CalculationRequest
+
+    window._services.descriptor_service.run_calculator(
+        model, CalculationRequest(calculator_id="homa_aromaticity", molecule_uuid=model.uuid, parameters={"decimal_places": 3})
+    )
+    _drain(qapp)
+
+
+def test_the_homa_extremes_are_declined_for_a_force_field_conformer_and_read_for_an_orca_one_the_same_in_the_table_and_in_results(window, pair, qapp):
+    from rdkit.Chem import AllChem
+
+    from openchem.chem.aromaticity import compute_aromaticity
+    from openchem.chem.calculation_input import canonical_conformer
+    from openchem.domain.common import RUN_METHOD_BASIS, Provenance
+    from openchem.domain.conformer import ORCA_OPTIMIZED, ConformerModel
+    from openchem.domain.score_table import read_cell_output
+    from openchem.domain.score_value import InputState, read_output
+
+    aspirin, ethanol = pair
+    engine = window._services.chemistry_engine
+    _select(window, qapp, aspirin)
+    _with_a_conformer(window, qapp, aspirin)
+    _run_homa(window, qapp, aspirin)
+    event = _run_batch(window, qapp, [aspirin, ethanol], [], ["homa_aromaticity"])
+    in_results = read_output(_HOMA_HIGH, window._services.score_service._classified_results(aspirin), len(aspirin.conformers))
+    in_table = read_cell_output(_HOMA_HIGH, event.table, aspirin.uuid)
+    assert in_results.state is in_table.state is InputState.NOT_APPLICABLE
+    assert in_results.note == in_table.note and "ORCA did not optimise" in in_table.note
+
+    mol = engine.mol_from_molblock(canonical_conformer(aspirin).molblock)
+    AllChem.UFFOptimizeMolecule(mol, maxIters=2000)
+    run = Provenance(created_by="orca", method="orca", parameters={RUN_METHOD_BASIS: "B3LYP def2-SVP"})
+    orca = ConformerModel(molblock=engine.mol_to_molblock(mol), energy=None, method=ORCA_OPTIMIZED, provenance=run)
+    aspirin.conformers.append(orca)
+    _run_homa(window, qapp, aspirin)
+    event = _run_batch(window, qapp, [aspirin, ethanol], [], ["homa_aromaticity"])
+    in_results = read_output(_HOMA_HIGH, window._services.score_service._classified_results(aspirin), len(aspirin.conformers))
+    in_table = read_cell_output(_HOMA_HIGH, event.table, aspirin.uuid)
+    by_producer = next(f.value for f in compute_aromaticity(engine.mol_from_molblock(orca.molblock), "m", {}).facts if f.label == "Highest HOMA of any ring")
+    assert in_results.state is in_table.state is InputState.READ
+    assert in_table.value == pytest.approx(in_results.value, rel=1e-9) == pytest.approx(by_producer, rel=1e-9)
+    assert in_table.geometry == in_results.geometry and "ORCA-optimised at B3LYP def2-SVP" in in_table.geometry and orca.conformer_id[:8] in in_table.geometry
