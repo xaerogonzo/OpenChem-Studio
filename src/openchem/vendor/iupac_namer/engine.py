@@ -4,6 +4,7 @@ from __future__ import annotations
 import dataclasses
 import logging
 import os
+import collections
 import re
 import threading
 import tempfile
@@ -1765,7 +1766,22 @@ def _name_n_core_parent(
             reachable |= comp
     if reachable != non_core:
         return None  # some atom hangs off the central carbon or chalcogen
-    if not any(components.values()):
+    # A nuclide on the CORE (the urea carbon, its oxygen, its nitrogens) is cited before the parent word, `N,N'-diethyl(13C)urea`, `(13C)urea`, `(15N2)urea`, and one nitrogen of two
+    # by its own locant, `(N-15N)urea`, `N-methyl(N'-15N)urea` (naming round 69, D-317; it was dropped: a labelled urea had no plan at all).
+    from openchem.vendor.iupac_namer.isotope import IsotopeLabel as _IsoLabel, render_isotope_labels as _render_core_iso
+
+    # Only the parents whose labels were never cited: the hypohalous amides cite their halogen's nuclide in the parent word already (`dimethyl(81Br)hypobromous amide`).
+    _core_labelled = parent_name in ("urea", "thiourea", "guanidine")
+    core_iso = collections.Counter(
+        (mol.GetAtomWithIdx(a).GetSymbol(), mol.GetAtomWithIdx(a).GetIsotope())
+        for a in core_atoms if _core_labelled and mol.GetAtomWithIdx(a).GetIsotope() and mol.GetAtomWithIdx(a).GetSymbol() != "N"
+    )
+    n_core = [mol.GetAtomWithIdx(a) for a in list(core_atoms) + list(fixed) if mol.GetAtomWithIdx(a).GetSymbol() == "N"]
+    n_iso_atoms = {a.GetIdx(): a.GetIsotope() for a in n_core if a.GetIsotope() and _core_labelled}
+    n_all_same = bool(n_iso_atoms) and len(n_iso_atoms) == len(n_core) and len(set(n_iso_atoms.values())) == 1
+    if n_all_same:
+        core_iso[("N", next(iter(n_iso_atoms.values())))] = len(n_iso_atoms)
+    if not any(components.values()) and not core_iso and not n_iso_atoms:
         return None  # bare parent -- lookup_retained_name handles it
     if perception is not None and any(
         fg.anchor not in core_atoms
@@ -1829,8 +1845,16 @@ def _name_n_core_parent(
             sorted(derive_sort_name(x) for x in named[i]) or ["\uffff"],
         ),
     )
+    if n_iso_atoms and not n_all_same:
+        ordered = sorted(ordered, key=lambda i: 0 if i in n_iso_atoms else 1) if len({len(named[i]) for i in ordered}) == 1 and len({tuple(sorted(derive_sort_name(x) for x in named[i])) for i in ordered}) == 1 else ordered
     labels = {i: "N" + "'" * k for k, i in enumerate(ordered)}
     labels.update(fixed)
+    iso_labels = [_IsoLabel(locant=None, element=sym, mass_number=mass, count=count, at_suffix=False) for (sym, mass), count in sorted(core_iso.items())]
+    if n_iso_atoms and not n_all_same:
+        for i, mass in sorted(n_iso_atoms.items()):
+            lab = labels[i]
+            iso_labels.append(_IsoLabel(locant=(Locant.hetero("N") if lab == "N" else Locant(label=lab, is_numeric=False, _numeric_value=None, suffix="")), element="N", mass_number=mass, count=1, at_suffix=False))
+    iso_text = _render_core_iso(tuple(iso_labels))
 
     from openchem.vendor.iupac_namer.assembly import (
         _carbamic_n_subs_to_prefix,
@@ -1855,7 +1879,7 @@ def _name_n_core_parent(
             ),),
             decision_ctx=decision_ctx,
             validity_warnings=None,
-            text=f"{prefix_str}{joiner}{parent_name}",
+            text=f"{prefix_str}{joiner}{iso_text}{parent_name}",
         )
     entries: list[tuple[str, tuple[Locant, ...]]] = []
     for n_idx, subs in named.items():
@@ -1875,7 +1899,7 @@ def _name_n_core_parent(
         ),),
         decision_ctx=decision_ctx,
         validity_warnings=None,
-        text=f"{prefix_str}{parent_name}",
+        text=f"{prefix_str}{iso_text}{parent_name}",
     )
 
 
@@ -12054,7 +12078,7 @@ def _is_carboxyl_hydroxyl_oxygen(mol, atom_idx: int, anchor: int) -> bool:
     return mol.GetAtomWithIdx(atom_idx).GetSymbol() == "O" and bond is not None and bond.GetBondType() == Chem.BondType.SINGLE
 
 
-def _isotope_atom_sites(plan, mol, atom_to_locant) -> tuple[frozenset, frozenset, frozenset]:
+def _isotope_atom_sites(plan, mol, atom_to_locant, as_substituent: bool = False) -> tuple[frozenset, frozenset, frozenset]:
     """Which labelled atoms a parent cites without a locant, and which it cites before its suffix word (see `isotope.collect_isotope_labels`).
 
     A RETAINED parent name numbers only some of its atoms: `aniline` owns its nitrogen, `phenol` its oxygen, `benzonitrile` its nitrile carbon and
@@ -12067,7 +12091,13 @@ def _isotope_atom_sites(plan, mol, atom_to_locant) -> tuple[frozenset, frozenset
     `1-(aminomethyl)cyclopentan-1-(18O)ol`): the heteroatoms of ONE suffix group that are alone of their element in it.
     """
     named_parent = plan.named_parent
-    suffix_atoms = [a for sg in plan.suffix_groups for a in _atoms_named_by_suffix(sg, mol) if a not in atom_to_locant]
+    # A CARBON the suffix group lists is the one its nitrogen hangs on (`N-phenyl`: the ring carbon of `CC(=O)N[13c]1ccccc1`, which the secondary-amide pattern holds), and a nuclide on
+    # it belongs to the substituent: it was cited a second time on the parent, `N-[(1-13C)phenyl](1-13C)acetamide`, a name for two labels where the molecule has one (naming round 69,
+    # D-318). The carbon of the group itself is `suffix_carbons` below.
+    suffix_atoms = [
+        a for sg in plan.suffix_groups for a in _atoms_named_by_suffix(sg, mol)
+        if a not in atom_to_locant and mol.GetAtomWithIdx(a).GetSymbol() != "C"
+    ]
     # D-197: the two oxygens of a carboxyl group are different atoms, the carbonyl one and the hydroxyl one, and the hydroxyl one is also the oxygen of an ester
     # (the acid component is cut at the alkyl-oxygen bond and capped with hydrogen). Both used to be `(1-18O)`, which names neither and which OPSIN cannot read.
     # The hydroxyl oxygen is cited with the element as its locant, `(O-18O)`, and the carbonyl oxygen is then alone of its element in the group.
@@ -12076,6 +12106,13 @@ def _isotope_atom_sites(plan, mol, atom_to_locant) -> tuple[frozenset, frozenset
         if a in suffix_atoms and _is_carboxyl_hydroxyl_oxygen(mol, a, sg.fg.anchor)
     )
     suffix_atoms = [a for a in suffix_atoms if a not in alkoxy]
+    # The CARBON of a carbon-supplying suffix (`-carboxamide`, `-carboxylic acid`, `-carbonitrile`, a urea) is in no numbered position of the parent: a nuclide on it is cited
+    # before the suffix word with no locant, `benzene(13C)carboxamide`, `N,N'-diethyl(13C)urea` (naming round 69, D-317; it was dropped and the guard refused the name).
+    suffix_carbons = frozenset(
+        sg.fg.anchor for sg in plan.suffix_groups
+        if len(plan.suffix_groups) == 1 and sg.fg.anchor not in atom_to_locant and mol.GetAtomWithIdx(sg.fg.anchor).GetSymbol() == "C"
+        and mol.GetAtomWithIdx(sg.fg.anchor).GetIsotope() and not as_substituent       # a part of a bigger name is built from this one by rewriting its ending (`-1-(13C)carboxamido`, `-1-(13C)carbonylamino`), which OPSIN cannot read: the nuclide guard refuses it
+    )
     if named_parent.naming_method == "retained":
         owned = set(named_parent.candidate.atom_indices) | set(getattr(named_parent, "extra_atom_indices", ()) or ()) | set(suffix_atoms)
         # "Alone of its element" is measured over EVERY atom the name owns, numbered or not: `(13C)benzonitrile` would name the nitrile carbon among seven carbons
@@ -12083,13 +12120,13 @@ def _isotope_atom_sites(plan, mol, atom_to_locant) -> tuple[frozenset, frozenset
         by_element: dict = {}
         for a in owned:
             by_element.setdefault(mol.GetAtomWithIdx(a).GetSymbol(), []).append(a)
-        return frozenset(a for atoms in by_element.values() if len(atoms) == 1 for a in atoms if a not in atom_to_locant), frozenset(), alkoxy
+        return frozenset(a for atoms in by_element.values() if len(atoms) == 1 for a in atoms if a not in atom_to_locant), (frozenset() if any(sg.fg.type == "nitrile" for sg in plan.suffix_groups) else suffix_carbons), alkoxy   # OPSIN: `(13C)benzonitrile` is "ambiguous"
     if len(plan.suffix_groups) == 1:
         by_element = {}
         for a in suffix_atoms:
             by_element.setdefault(mol.GetAtomWithIdx(a).GetSymbol(), []).append(a)
-        return frozenset(), frozenset(a for atoms in by_element.values() if len(atoms) == 1 for a in atoms), alkoxy
-    return frozenset(), frozenset(), alkoxy
+        return frozenset(), frozenset(a for atoms in by_element.values() if len(atoms) == 1 for a in atoms) | suffix_carbons, alkoxy
+    return frozenset(), suffix_carbons, alkoxy
 
 
 def _bonding_number_of_prefix(prefix_tree) -> int | None:
@@ -19417,8 +19454,10 @@ class SubstitutivePath:
             for _fg_atom in _atoms_named_by_suffix(_sg, mol):
                 if _fg_atom in _atom_to_loc_map:
                     continue
+                if mol.GetAtomWithIdx(_fg_atom).GetSymbol() == "C":
+                    continue          # the carbon an amide's N hangs on belongs to the substituent (naming round 69, D-318)
                 _fg_anchor_map[_fg_atom] = _anchor_loc
-        _iso_unnumbered, _iso_suffix, _iso_alkoxy = _isotope_atom_sites(plan, mol, _atom_to_loc_map)
+        _iso_unnumbered, _iso_suffix, _iso_alkoxy = _isotope_atom_sites(plan, mol, _atom_to_loc_map, as_substituent=output_form in (OutputForm.SUBSTITUENT, OutputForm.ACYL) or depth > 0)
         _iso_labels = _coll_iso(
             mol, _atom_to_loc_map, fg_anchor_map=_fg_anchor_map or None,
             unnumbered_ok=_iso_unnumbered, suffix_ok=_iso_suffix, alkoxy_ok=_iso_alkoxy,
