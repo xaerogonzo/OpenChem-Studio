@@ -2014,6 +2014,10 @@ def _assemble_polyester(tree: FunctionalClassTree) -> str:
         )
         if actual_pairs != default_pairs:
             cite_locants = True
+        # Two alkyls that differ only by a descriptor the alphanumerical order ignores (`ethyl` and `(2-2H)ethyl`) sort as a TIE, so the unlocanted order is the order they were
+        # written in and says nothing about the positions: `(2-2H)ethyl ethyl 2-chlorobutanedioate` was read as the deuterium on C1 (naming round 69, D-320).
+        if len({derive_sort_name(n) for n in distinct_names}) < len(distinct_names):
+            cite_locants = True
     elif len(distinct_names) > 1 and not (all_have_locants and have_ranks):
         # Different alkyls but we could not recover locants/ranks: be safe and
         # do not emit an ambiguous unlocanted mixed-ester name.  Citing the raw
@@ -2623,7 +2627,7 @@ def _apply_retained_acyl_pin(result: str, tree: SubstitutiveTree) -> str:
 
 
 #: A parent stem that starts with its hydro prefixes: `3,4-dihydroquinolin`, `1,2,3,4-tetrahydronaphthalen`, `octahydro-4H-indol`, `2,3-dihydro-1H-indol`.
-_HYDRO_PREFIXED_STEM = re.compile(r"^((?:[0-9A-Za-z,]+-)?(?:(?:di|tri|tetra|penta|hexa|hepta|octa|nona|deca)a?)?(?:de)?hydro)(.+)$")
+_HYDRO_PREFIXED_STEM = re.compile(r"^((?:[0-9A-Za-z,]+-)?(?:(?:undeca|dodeca|trideca|tetradeca|pentadeca|hexadeca|heptadeca|octadeca|nonadeca|icosa|di|tri|tetra|penta|hexa|hepta|octa|nona|deca)a?)?(?:de)?hydro)(.+)$")   # up to icosahydro (naming round 69: a steroid is hexadecahydro)
 
 
 def _assemble_substitutive(tree: SubstitutiveTree) -> str:
@@ -3474,6 +3478,12 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
                 _suffix_iso = ()
             # `ethanamide`, `benzoic acid`, `methanal` are rewritten to their retained names (acetamide, ...) after assembly; a label spliced into the suffix
             # would stop that rewrite, and `(18O)acetamide` (a retained name that numbers nothing) is what OPSIN reads, so those keep the bare front label.
+            elif (tree.named_parent.name == "benzene" and not rendered_suf.startswith("-") and len(tree.suffix_groups) == 1
+                  and any(lbl.element == "C" and lbl.locant is None for lbl in _suffix_iso)):
+                # The CARBON of benzene's carbon-supplying suffix (naming round 69): `(13C)benzamide` names seven carbons (OPSIN: "Position of isotope is ambiguous"), so the
+                # label goes into the systematic suffix, `benzene-1-(13C)carboxamide`, which the retained rewrite then leaves alone.
+                rendered_suf = "-1-" + _suffix_label + rendered_suf
+                _suffix_iso = ()
             elif tree.named_parent.name not in ("benzene", "ethane", "methane") and len(_anchors) == 1 and not rendered_suf.startswith("-"):
                 rendered_suf = f"-{next(iter(_anchors))}-" + _suffix_label + rendered_suf
                 _suffix_iso = ()
