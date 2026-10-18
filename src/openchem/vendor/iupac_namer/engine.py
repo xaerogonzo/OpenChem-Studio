@@ -5,6 +5,7 @@ import dataclasses
 import logging
 import os
 import re
+import threading
 import tempfile
 from bisect import insort
 from typing import Iterator
@@ -9758,7 +9759,7 @@ def _restore_dropped_chalcogen_anion(mol, name: str) -> str:
 
 #: A word that says a name is an ANION: a suffix at the end of a word (`-ide`, not the `amide` / `imide` of a neutral class; `-ate`), or an anionic PREFIX anywhere in one (`sulfonatooxy`,
 #: `carboxylatomethyl`, `oxidosulfonyl`; not the `acetamido` / `imido` / `ureido` of a neutral group). A name with none of them for a molecule whose net charge is negative has left the charge out.
-_ANION_WORD_END = re.compile(r"(?:(?<!am)(?<!im)(?<!sulfam)ide|ate|ite)(?![a-z])|ato|(?<!am)(?<!im)(?<!ure)(?<!sulfam)(?<!pyr)ido|\(\d*-\)|\d-id-|azanidyl")   # `pyrido` is a fused ring, not an oxido (round 61)
+_ANION_WORD_END = re.compile(r"(?:(?<!am)(?<!im)(?<!sulfam)ide|ate|ite)(?![a-z])|ato|(?<!am)(?<!im)(?<!ure)(?<!sulfam)(?<!pyr)ido|\(\d*-\)|\d'*-id-|azanidyl")   # `pyrido` is a fused ring, not an oxido (round 61)
 #: A name that cites a cation: `ium` anywhere (`pyridin-1-ium`, `ammonium`, `azaniumyl`) or the `onio` prefix (`trimethylammonio`).
 _CATION_WORD = re.compile(r"ium|onio|\(\d*\+\)")
 #: A name that is an ester: one alkyl or aryl word, a space, then the acid part (`methyl 4-oxobutanoate`, `ethyl benzoate`).
@@ -9988,12 +9989,29 @@ def _restore_dropped_oxidanium(mol, name: str) -> str:
     return re.sub(r"(?<![a-z])" + _bare, f"({charged})", name)
 
 
+class _ImidoRetry(threading.local):
+    on = False
+
+
+#: Set while `_name_smiles_bound` names a molecule a second time because the first name held an error (naming round 67, D-309): an N-substituted imido of a demoted imidic acid is then
+#: cited with its substituents (`(methylimino)`). It is a RETRY and not the first choice because it would take names from plans that do not fail (`CN=C(S)NC`, D-101b).
+_IMIDO_RETRY = _ImidoRetry()
+
+
 def _name_smiles_bound(smiles: str, strategy) -> str:
     """Name a molecule from SMILES, *strategy* already bound (never None); refuse a name that loses a nuclide or a charge.
 
     Returns the final name string.
     """
     name = _name_smiles_unchecked(smiles, strategy)
+    if "NAMING ERROR" in name and not _IMIDO_RETRY.on:
+        _IMIDO_RETRY.on = True
+        try:
+            retried = _name_smiles_unchecked(smiles, strategy)
+        finally:
+            _IMIDO_RETRY.on = False
+        if "NAMING ERROR" not in retried:
+            name = retried
     mol = Chem.MolFromSmiles(smiles)
     if mol is not None:
         _check_nuclides_named(mol, name)
@@ -13776,7 +13794,9 @@ def _choose_salt_fragment_form(frag) -> "OutputForm":
         # Apply the same anion-FG gate used for net-anion fragments below:
         # only request ANION when a suffix-eligible FG of an anion-variant
         # type claims a negatively-charged atom.
-        return OutputForm.ANION if _has_anion_suffix_site(frag_mol) else OutputForm.STANDALONE
+        # ...or a CARVED acid anion (an alkoxide or thiolate the FG detectors skip), as the top-level promotion does (naming round 67, D-314: a zwitterion with an alkoxide and a
+        # carbamate beside `[Na+].[Cl-]` took the STANDALONE form and its carbamate was written `[...-9-yl]methanecarbamate`, a name with the ester word run into the alcohol).
+        return OutputForm.ANION if (_has_anion_suffix_site(frag_mol) or _carved_acid_anion_sites(frag_mol)) else OutputForm.STANDALONE
     # A NET-POSITIVE fragment that also holds a deprotonated acid site (lysine with both amines protonated, histidinium) is a
     # zwitterion-cation, and an anion outranks a cation (P-41, Table 4.1, pdf p. 360): it takes the ANION form, or its
     # carboxylate is written as a neutral 'carboxy' / '-oic acid' and the name has one charge too many (naming round 8, W3).
@@ -15131,7 +15151,17 @@ class SubstitutivePath:
             # senior to cations): the cation is a prefix there, and an aminium
             # suffix would leave the anion to be rendered as a neutral group
             # -- betaine came out "1-carboxy-...methanaminium", another molecule.
-            if pcg_type == "aminium" and any(
+            # A nitro group or an N-oxide is charge-separated and neutral overall, not an anion (naming round 67, D-311: `[NH2+]` beside a nitro
+            # group took `...azaniumyl}ethan-1-ol`, a name a salt's anion word reads as an ester).
+            # Only where a hydroxyl or acid group is there to outrank the amine (D-109u pins `[2-(4-nitrophenyl)ethyl]azanium chloride`, which has none).
+            _separated_anion_only = (
+                any(a.GetSymbol() == "O" and a.GetTotalNumHs() == 1 and a.GetFormalCharge() == 0 for a in mol.GetAtoms())
+                and not any(
+                    a.GetFormalCharge() < 0 and not any(n.GetFormalCharge() > 0 for n in a.GetNeighbors())
+                    for a in mol.GetAtoms()
+                )
+            )
+            if pcg_type == "aminium" and not _separated_anion_only and any(
                 a.GetFormalCharge() < 0 for a in mol.GetAtoms()
             ):
                 continue
@@ -18012,7 +18042,26 @@ class SubstitutivePath:
                 _sub_an = _sub_atom.GetAtomicNum()
                 _sub_bond = mol.GetBondBetweenAtoms(_anchor_idx_im, _sub_idx)
                 _sub_bo = int(_sub_bond.GetBondTypeAsDouble()) if _sub_bond else 1
-                if _sub_an == 7:
+                if _sub_an == 7 and _IMIDO_RETRY.on and any(nb.GetIdx() != _anchor_idx_im and nb.GetAtomicNum() > 1 for nb in _sub_atom.GetNeighbors()):
+                    # An N-SUBSTITUTED imido (`=N-CH3`) is cited with its substituents, `(methylimino)`, when the name came out with an error in it (the retry in `_name_smiles_bound`); `oxo_fallback` names the bare N only and left
+                    # the N-methyl unclaimed, an ErrorTree inside the name (naming round 67, D-309: `CCSC(S)=NC`).
+                    _n_branch = {_sub_idx}
+                    _n_stack = [_sub_idx]
+                    while _n_stack:
+                        for _nb in mol.GetAtomWithIdx(_n_stack.pop()).GetNeighbors():
+                            if _nb.GetIdx() != _anchor_idx_im and _nb.GetIdx() not in _n_branch and _nb.GetAtomicNum() > 1:
+                                _n_branch.add(_nb.GetIdx())
+                                _n_stack.append(_nb.GetIdx())
+                    _extra_pas.append(TerminalPrefix(
+                        fg=None,
+                        substituent_atoms=frozenset(_n_branch),
+                        attachment_bond=(_anchor_idx_im, _sub_idx),
+                        attachment_bond_order=_sub_bo,
+                        locant=_pa.locant,
+                        output_form=OutputForm.SUBSTITUENT,
+                        role="substituent",
+                    ))
+                elif _sub_an == 7:
                     # The imido =NH -> "imino" (oxo_fallback maps N -> imino).
                     _extra_pas.append(TerminalPrefix(
                         fg=None,
@@ -19297,7 +19346,8 @@ class SubstitutivePath:
         _nonaromatic_ring_anion = False
         for atom_idx in parent_atom_indices:
             atom = mol.GetAtomWithIdx(atom_idx)
-            if atom.GetSymbol() != "N":
+            # A ring CARBANION is cited the same way when another anion is the parent's suffix (naming round 67, D-312): `...-4,5-dioxopyrrolidin-3-id-2-yl]phenolate`
+            if atom.GetSymbol() not in ("N", "C"):
                 continue
             if atom.GetFormalCharge() != -1:
                 continue
@@ -19309,7 +19359,7 @@ class SubstitutivePath:
             if loc is None:
                 continue
             ring_n_minus_locants.append(loc)
-            if not atom.GetIsAromatic():
+            if not atom.GetIsAromatic() or atom.GetSymbol() == "C":
                 _nonaromatic_ring_anion = True
         # ...but ONE ring anion only: two (`...-5-carbonitrile-1',2-diide`, `...-6-one-4,5-diide`) are written with the multiplied `-ide` AFTER the suffixes, which OPSIN cannot read; the
         # lactam is then left out and the guard refuses the name, a visible failure.
@@ -19651,6 +19701,11 @@ class FunctionalClassPath:
         # so the cation is rendered transparently within the alkoxy/aryloxy
         # piece without needing CATION to propagate further.
         if output_form not in (OutputForm.STANDALONE, OutputForm.CATION):
+            return
+
+        # Two cations in an ester are not named as an ester word pair (naming round 67, D-310): the acid half or the alcohol half would have to be a cation
+        # parent beside an alkyl word, which the charge guard refuses (`X-yl Y-ium`); the substitutive route cites the ester as an acyloxy / oxo-alkoxy prefix.
+        if decomp.subtype == "ester" and sum(1 for a in mol.GetAtoms() if a.GetFormalCharge() > 0 and not any(n.GetFormalCharge() < 0 for n in a.GetNeighbors())) >= 2:
             return
 
         if decomp.subtype not in (

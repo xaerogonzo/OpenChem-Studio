@@ -1417,6 +1417,7 @@
   "tests/test_namer_round64_lactam_anion_beside_an_acid_anion.py": 3,
   "tests/test_namer_round65_cationic_acyl_on_an_amide_anion.py": 1,
   "tests/test_namer_round66_a_salt_fragment_keeps_its_charge.py": 2,
+  "tests/test_namer_round67_imido_prefix_ester_cations_ring_carbanions.py": 3,
   "tests/test_namer_salt_multiplier.py": 1,
   "tests/test_namer_stereo_cache_identity.py": 3,
   "tests/test_namer_stereo_locant_tie.py": 3,
