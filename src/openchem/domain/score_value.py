@@ -16,6 +16,10 @@ parent. And Geometry Analysis can be set to measure another geometry than the on
 measured that way is not the conformer's, so it is refused naming the setting, and a result whose record does not say is refused as unknown. Both come from the result's own provenance, so Results, the project table
 and the assistant read one rule.
 
+**AND A NUMBER IS READ ONLY AT THE SETTINGS THAT MAKE IT ONE QUANTITY** (`ApprovedOutput.run_with`). The dipole has one fact label under three charge models whose answers differ by a factor of up to five on a molecule, and a
+charged species has a dipole that depends on the origin; the accessible areas carry their probe in one label out of four, and the major microspecies is a different structure under the same labels. The result's own record
+says which was used, and a number made another way is declined, naming it, instead of being read as the default.
+
 **AN INPUT IS READ FROM THE MOLECULE'S CURRENT RESULTS ONLY.** A result computed on an earlier structure, or one the application has superseded, is not
 used, and the refusal says so. A refused, failed or absent input refuses the score, naming the input and why. **Never a zero, and never a skipped term:**
 dropping a term from a sum silently changes what the sum is. The classification is the assistant's (`turn_snapshot.classify_results`), so there is one
@@ -48,7 +52,16 @@ from openchem.domain.report import ReportResult
 from openchem.domain.score_constants import constant_values
 from openchem.domain.score_definition import ON_MISSING_DEFAULT, ScoreDefinition, check_computation
 from openchem.domain.score_formula import FormulaError, Refusal, evaluate, render
-from openchem.domain.score_outputs import AS_STORED_UNSCALED, READ_FROM, ApprovedOutput, accept_value, approved_output
+from openchem.domain.score_outputs import (
+    AS_DRAWN,
+    AS_STORED_UNSCALED,
+    DEFAULT_PROBE_AS_DRAWN,
+    GASTEIGER_NEUTRAL,
+    READ_FROM,
+    ApprovedOutput,
+    accept_value,
+    approved_output,
+)
 from openchem.domain.turn_snapshot import Freshness, Outcome, ResultEntry
 
 
@@ -188,6 +201,27 @@ def geometry_text(parameters: Mapping[str, object] | None) -> str:
 #: The provenance key `chem.calculation_input.geometry_provenance` writes (domain cannot import it): how many separate pieces the conformer a result was measured on is made of.
 FRAGMENTS_KEY = "input_fragments"
 
+#: The provenance key of the charge model that made a dipole (`chem/dipole.py`), written as the literal it is because this module reads no chemistry layer; `tests/test_score_dipole_surface.py` holds it to the producer.
+CHARGE_MODEL_KEY = "charge_model"
+
+#: The provenance key that says whether a dipole is the same wherever the origin is put, which it is only for a species with no net charge (`chem/dipole.py`).
+ORIGIN_INDEPENDENT_KEY = "origin_independent"
+
+#: The provenance key of the probe radius an accessible area was made with, in Å (`chem/surface_analysis.py`).
+SOLVENT_RADIUS_KEY = "solvent_radius"
+
+#: The provenance key the surface calculator writes only when it measured the major microspecies at a pH instead of the structure as it is (`chem/surface_analysis.py`), and the pH it names.
+MICROSPECIES_KEY = "major_microspecies"
+
+#: The provenance key of the pH a major microspecies was worked out at (`chem/surface_analysis.py`).
+PH_KEY = "pH"
+
+#: The charge model whose dipole a score reads: `chem.charge_evaluation.GASTEIGER`.
+GASTEIGER_MODEL = "gasteiger"
+
+#: The probe radius, in Å, whose accessible area a score reads: `chem.surface_analysis.DEFAULT_SOLVENT_RADIUS`, a water molecule's.
+DEFAULT_PROBE = 1.4
+
 #: What a refusal for a result whose record does not say names, so a person knows the cure.
 _RERUN = "run it again"
 
@@ -206,6 +240,8 @@ def not_applicable_reason(output: ApprovedOutput, parameters: Mapping[str, objec
     2. **Did the calculator measure the stored conformer?** Only for an output with `measured_as`: Geometry Analysis records the fingerprint of the geometry it was handed (`input_geometry`) and of the one it
        measured (`measured_geometry`), and they differ when it chose a conformer of its own or relaxed a copy.
     3. **Were the radii unscaled?** Only for `AS_STORED_UNSCALED`: the six projection numbers rescale with `radius_scale`.
+    4. **Were the calculator's settings the ones the number is read at?** Only for an output with `run_with` (`_settings_reason`): the dipole's charge model and whether the species is neutral, the accessible
+       area's probe, and whether the structure was the major microspecies.
 
     A drawing output has none of these questions.
     """
@@ -230,6 +266,10 @@ def not_applicable_reason(output: ApprovedOutput, parameters: Mapping[str, objec
                 "it was measured on a conformer that ORCA did not optimise, whose bond lengths are the force field's own and not a measurement of the rings: "
                 f"optimise the molecule in ORCA, then {_RERUN}"
             )
+    if output.run_with:
+        settings = _settings_reason(output.run_with, values)
+        if settings:
+            return settings
     if not output.measured_as:
         return ""
     measured, handed = values.get("measured_geometry"), values.get("input_geometry")
@@ -248,6 +288,33 @@ def not_applicable_reason(output: ApprovedOutput, parameters: Mapping[str, objec
             return f"its record does not say how the van der Waals radii were scaled: {_RERUN} with its default settings"
         if float(scale) != 1.0:
             return f"its projections used van der Waals radii scaled by {float(scale):g}, and a score reads only unscaled ones: {_RERUN} with its default settings"
+    return ""
+
+
+def _settings_reason(run_with: str, values: Mapping[str, object]) -> str:
+    """Why the settings a result was made with are not the ones its output is read at (`ApprovedOutput.run_with`), or `""`. Each refusal names what the result used and how to make one that is read."""
+    if run_with == GASTEIGER_NEUTRAL:
+        model = values.get(CHARGE_MODEL_KEY)
+        if not isinstance(model, str):
+            return f"its record does not say which charge model made the dipole, and the models differ by a factor of up to five on one molecule: {_RERUN} with the Gasteiger charge model"
+        if model != GASTEIGER_MODEL:
+            return f"its charges are from the {model} model, and a score reads only the Gasteiger dipole (the models differ by a factor of up to five on one molecule): {_RERUN} with the Gasteiger charge model"
+        neutral = values.get(ORIGIN_INDEPENDENT_KEY)
+        if not isinstance(neutral, bool):
+            return f"its record does not say whether the species has a net charge, whose dipole depends on where the origin is put: {_RERUN}"
+        if not neutral:
+            return "the species has a net charge, so its dipole depends on where the origin is put (it was worked out about the centre of mass) and is not a property of the molecule: a score reads the dipole of a neutral species only"
+        return ""
+    if run_with == DEFAULT_PROBE_AS_DRAWN:
+        probe = values.get(SOLVENT_RADIUS_KEY)
+        if isinstance(probe, bool) or not isinstance(probe, (int, float)):
+            return f"its record does not say which probe radius made it: {_RERUN} with the default probe"
+        if float(probe) != DEFAULT_PROBE:
+            return f"it used a probe of radius {float(probe):g} Å, and a score reads only the {DEFAULT_PROBE:g} Å probe (a water molecule's): {_RERUN} with the default probe"
+    if run_with in (DEFAULT_PROBE_AS_DRAWN, AS_DRAWN) and values.get(MICROSPECIES_KEY):
+        ph = values.get(PH_KEY)
+        at = f" at pH {float(ph):g}" if isinstance(ph, (int, float)) and not isinstance(ph, bool) else ""
+        return f"it is of the major microspecies{at}, which is not the structure as it is, and a score reads the structure as it is: {_RERUN} without that option"
     return ""
 
 

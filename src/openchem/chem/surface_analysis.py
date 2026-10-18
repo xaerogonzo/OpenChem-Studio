@@ -28,6 +28,7 @@ second definition.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any
 
 from rdkit import Chem
@@ -63,6 +64,22 @@ _MAX_SOLVENT_RADIUS = 5.0
 
 #: Declared with the other result methods in `result_store`, which must not import this layer.
 SURFACE_METHOD = _SURFACE_METHOD
+
+#: The label of the fact for the accessible area at the default probe, and the first of the five facts a derived score can read. With another probe the label carries it (`ASA (solvent accessible, 1.2 Å probe)`),
+#: so this one names the default's. The labels of the five are part of the ids of approved outputs (`domain/score_outputs.py`), so a rename turns the guard red and says which scores it breaks.
+ASA_LABEL = "ASA (solvent accessible)"
+
+#: The label of the fact for the accessible area on atoms that are not polar: the total less the polar part.
+ASA_HYDROPHOBIC_LABEL = "ASA_H (hydrophobic)"
+
+#: The label of the fact for the accessible area on N, O and F and the hydrogens bonded to them.
+ASA_POLAR_LABEL = "ASA_P (polar)"
+
+#: The label of the fact for the area of the surface of the fused van der Waals spheres, which no probe touches.
+VDW_AREA_LABEL = "van der Waals surface area"
+
+#: The label of the fact for the volume those spheres enclose, which no probe touches either.
+VDW_VOLUME_LABEL = "van der Waals volume"
 
 
 def solvent_radius_parameter() -> CalculatorParameter:
@@ -212,8 +229,8 @@ def compute_surface_analysis(
         areas = surface_areas(mol, probe)
     except NoConformerError as exc:
         return _surface_failure(molecule_uuid, str(exc))
-    asa = "ASA (solvent accessible)" if probe == DEFAULT_SOLVENT_RADIUS else f"ASA (solvent accessible, {probe:g} Å probe)"
-    return report_from_fields(
+    asa = ASA_LABEL if probe == DEFAULT_SOLVENT_RADIUS else f"ASA (solvent accessible, {probe:g} Å probe)"
+    report = report_from_fields(
         alert_id="surface_analysis",
         name="Molecular Surface Area (3D)",
         molecule_uuid=molecule_uuid,
@@ -221,15 +238,24 @@ def compute_surface_analysis(
             f"{asa}: {areas['asa']:.{places}f} Å²",
             f"ASA+ (positively charged atoms): {areas['asa_positive']:.{places}f} Å²",
             f"ASA- (negatively charged atoms): {areas['asa_negative']:.{places}f} Å²",
-            f"ASA_H (hydrophobic): {areas['asa_hydrophobic']:.{places}f} Å²",
-            f"ASA_P (polar): {areas['asa_polar']:.{places}f} Å²",
-            f"van der Waals surface area: {areas['vdw_area']:.{places}f} Å²",
-            f"van der Waals volume: {areas['vdw_volume']:.{places}f} Å³",
+            f"{ASA_HYDROPHOBIC_LABEL}: {areas['asa_hydrophobic']:.{places}f} Å²",
+            f"{ASA_POLAR_LABEL}: {areas['asa_polar']:.{places}f} Å²",
+            f"{VDW_AREA_LABEL}: {areas['vdw_area']:.{places}f} Å²",
+            f"{VDW_VOLUME_LABEL}: {areas['vdw_volume']:.{places}f} Å³",
             *notes,
         ],
         category="surface",
         provenance=Provenance(created_by="core", method="rdkit", parameters=recorded),
     )
+    # **FIVE OF THE SEVEN NUMBERS ARE NUMBERS.** Their facts' values were the text the lines show (`'361.31'`), which a derived score must not rest on: it would move with a display setting. The producer holds the
+    # numbers, so it hands them over, and the lines, the labels, the units and the cells' text do not move (`tests/test_surface_typed.py` holds them to a recording made before this change). ASA+ and ASA- stay text:
+    # they are the area of the atoms whose Gasteiger charge is above or below nothing, a sign that tiny charges decide (`docs/DERIVED_SCORES_DESIGN.md`, section 12). Whether a score may READ a number is the
+    # reader's question, answered from this result's own provenance (the probe, the microspecies): they are typed whatever the settings, and a result made with another probe is declined there, naming it.
+    typed = {
+        asa: areas["asa"], ASA_HYDROPHOBIC_LABEL: areas["asa_hydrophobic"], ASA_POLAR_LABEL: areas["asa_polar"],
+        VDW_AREA_LABEL: areas["vdw_area"], VDW_VOLUME_LABEL: areas["vdw_volume"],
+    }
+    return replace(report, facts=tuple(replace(fact, value=float(typed[fact.label])) if fact.label in typed else fact for fact in report.facts))
 
 
 def compute_sasa_dataset(

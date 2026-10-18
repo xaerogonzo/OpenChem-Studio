@@ -494,11 +494,14 @@ SCORE_NOT_A_PREDICTION = (
 #: What a model is told about reading and changing scores, sent with every read.
 SCORES_NOTE = (
     "Each score is worked out from this molecule's CURRENT results as of this turn, so its value is current or it has none. An input is read from the drawing, except the geometry outputs "
-    "(the shape descriptors and eight of Geometry Analysis's sizes; their input has `calculation_input` set to `geometry`; every other input has none), which are read from the conformer every calculation uses and named in the input's `conformer`: "
+    "(the shape descriptors, eight of Geometry Analysis's sizes, HOMA's two extremes, the dipole's magnitude and five surface numbers; their input has `calculation_input` set to `geometry`; every other input has none), which are read from the conformer every calculation uses and named in the input's `conformer`: "
     "a score over one has no value for a molecule with no conformer, or one measured on an earlier conformer than the one used now, and you must say so rather than substitute another. "
     "An input in the state `not_applicable` is a geometry output the application declines to read for this molecule (it is several fragments, such as a salt, whose 3D shape is not a property of the compound, "
-    "or Geometry Analysis measured another geometry than the conformer or scaled its radii, or, for the highest and lowest HOMA of any ring, the conformer was not one ORCA optimised): its `note` says which, and you must pass that on and never suggest a number for it. "
+    "or Geometry Analysis measured another geometry than the conformer or scaled its radii, or, for the highest and lowest HOMA of any ring, the conformer was not one ORCA optimised, or the dipole was not Gasteiger's or is of a charged species, "
+    "or an accessible area was made with another probe than 1.4 Å or on the major microspecies): its `note` says which, and you must pass that on and never suggest a number for it. "
     "The two HOMA outputs read bond lengths, so they are read only from a conformer a quantum calculation optimised, and the input's `conformer` then names its level of theory; a force-field conformer's bond lengths are the force field's own. "
+    "The dipole is read only as the magnitude from Gasteiger charges of a species with no net charge (the three charge models differ by a factor of up to five on one molecule, and a charged species has no dipole of its own), "
+    "and the accessible areas only at the 1.4 Å probe on the structure as it is; a dipole is of one conformer, and a flexible molecule's differs between its conformers. "
     "A score whose outcome is 'refused' has no value: say which input could not be read and why, and never state a value or treat it as zero. A unit of 1 means a plain number. "
     "A score whose outcome is 'computed_with_defaults' used a default its definition declares for an input nobody calculated (`defaults_used`): say so, name those inputs, "
     "and never present the number as the result of calculating them. "

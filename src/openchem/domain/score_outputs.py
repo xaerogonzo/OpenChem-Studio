@@ -114,6 +114,16 @@ ENDPOINTS: dict[str, str] = {
     # and each is read only from an ORCA-optimised geometry: on a force-field conformer the bond lengths are the force field's own (`ApprovedOutput.needs_quantum_geometry`).
     "highest_ring_homa": "the highest HOMA (Krygowski 1993) of any ring in the structure's smallest set of rings, one ring's own value, on an ORCA-optimised geometry",
     "lowest_ring_homa": "the lowest HOMA (Krygowski 1993) of any ring in the structure's smallest set of rings, one ring's own value, on an ORCA-optimised geometry",
+    # PROVISIONAL, like the geometry tags above (the dipole and five surface numbers, 2026-10-18). Each is measured on the conformer every calculation uses, hydrogens included, from Bondi's van der Waals radii (the surface
+    # numbers) or Gasteiger's partial charges (the dipole), and is read only at the settings that make it one quantity: a neutral species for the dipole, the 1.4 Å probe and the structure as it is for the
+    # accessible areas (`ApprovedOutput.run_with`). Left out by decision: the dipole's three components (the dipole in the conformer's own frame), the dipole under any other charge model (aspirin: 0.89 D from
+    # Gasteiger, 4.76 D from EEM, 3.60 D from QEq), and ASA+ and ASA- (the area of the atoms whose Gasteiger charge is above or below nothing, which tiny charges decide: `docs/DERIVED_SCORES_DESIGN.md`, section 12).
+    "dipole_magnitude": "the magnitude of the molecular dipole of the conformer, from Gasteiger (PEOE) partial charges, about the centre of mass, of a species with no net charge, in Debye",
+    "accessible_surface_area": "the area of the surface traced by the centre of a probe of radius 1.4 Å (a water molecule's) rolling over the conformer's atoms, each a sphere of its Bondi van der Waals radius, in Å^2",
+    "hydrophobic_accessible_surface_area": "the part of the conformer's accessible area (1.4 Å probe) that lies on atoms that are not polar, meaning not N, O or F nor a hydrogen bonded to one of them, in Å^2",
+    "polar_accessible_surface_area": "the part of the conformer's accessible area (1.4 Å probe) that lies on N, O and F atoms and the hydrogens bonded to them, in Å^2",
+    "van_der_waals_surface_area": "the area of the surface of the conformer's fused van der Waals spheres (Bondi's radii, no probe), in Å^2",
+    "van_der_waals_volume": "the volume enclosed by the conformer's fused van der Waals spheres (Bondi's radii), in Å^3",
     # PROVISIONAL, like the eight above (eight counts, 2026-10-16; two more share the tags `ring_count` and `stereocentre_count`). The ring counts are of the rings RDKit's ring information lists, which is why a cage has
     # more rings than independent cycles.
     "bond_count": "the number of bonds between non-hydrogen atoms",
@@ -155,6 +165,10 @@ class ApprovedOutput:
     #: 0.94 on the MMFF94 conformer and 0.74 on an ORCA B3LYP/def2-SVP geometry). A score reads such a number only from a conformer whose method is a quantum optimisation (`conformer.QUANTUM_OPTIMIZED_METHODS`),
     #: and the evidence names the level of theory.
     needs_quantum_geometry: bool = False
+    #: What must hold of the SETTINGS the calculator ran with, which its record says: `""` asks nothing, `GASTEIGER_NEUTRAL` that the dipole came from Gasteiger's charges and is of a species with no net charge,
+    #: `DEFAULT_PROBE_AS_DRAWN` that the accessible area used the default 1.4 Å probe and is of the structure as it is, and `AS_DRAWN` only the second (the van der Waals numbers touch no probe). A result made
+    #: any other way is declined, naming how (`score_value.not_applicable_reason`); it is not converted, because the numbers differ (aspirin's accessible area is 7% lower at a 1.2 Å probe).
+    run_with: str = ""
 
 
 def _entry(output_id: str, unit: str, carried_as: str, endpoint: str) -> ApprovedOutput:
@@ -171,17 +185,33 @@ AS_STORED_UNSCALED = "as_stored_unscaled"
 MEASURED_AS = frozenset({"", AS_STORED, AS_STORED_UNSCALED})
 
 
+#: `ApprovedOutput.run_with`: the dipole must come from Gasteiger's charges and be of a species with no net charge.
+GASTEIGER_NEUTRAL = "gasteiger_neutral"
+
+#: `ApprovedOutput.run_with`: the accessible area must have used the default probe and be of the structure as it is, not of the major microspecies at a pH.
+DEFAULT_PROBE_AS_DRAWN = "default_probe_as_drawn"
+
+#: `ApprovedOutput.run_with`: the number must be of the structure as it is, not of the major microspecies at a pH (the van der Waals numbers touch no probe, so any probe is fine).
+AS_DRAWN = "as_drawn"
+
+#: Every value `ApprovedOutput.run_with` may take; a guard holds each entry to it.
+RUN_WITH = frozenset({"", GASTEIGER_NEUTRAL, DEFAULT_PROBE_AS_DRAWN, AS_DRAWN})
+
+
 def _geometry_entry(
-    output_id: str, unit: str, carried_as: str, endpoint: str, measured_as: str = "", whole_structure: bool = False, needs_quantum_geometry: bool = False
+    output_id: str, unit: str, carried_as: str, endpoint: str, measured_as: str = "", whole_structure: bool = False, needs_quantum_geometry: bool = False,
+    run_with: str = "", approved: str = "2026-10-17",
 ) -> ApprovedOutput:
     """An output measured on the conformer every calculation gets, and read from the result stored under its geometry fingerprint."""
-    return ApprovedOutput(output_id, unit, carried_as, endpoint, "2026-10-17", GEOMETRY, measured_as, whole_structure, needs_quantum_geometry)
+    return ApprovedOutput(output_id, unit, carried_as, endpoint, approved, GEOMETRY, measured_as, whole_structure, needs_quantum_geometry, run_with)
 
 
 #: The table. Sorted by id, so a review diff reads as additions. Every entry resolves, through the registry, to a finite number carrying
 #: `carried_as` on the census panel (`tests/test_score_outputs.py`), and a rename of a fact label turns that red and says which scores it breaks.
 APPROVED: tuple[ApprovedOutput, ...] = (
     _entry("calculator:bbb_descriptors:Aromatic rings", "1", "", "aromatic_ring_count"),
+    # The dipole is measured on the whole structure like the sizes, so a salt is declined: where one ion sits beside the other is arbitrary (metformin hydrochloride: 0.56 to 2.58 D over ten embeddings).
+    _geometry_entry("calculator:dipole_moment:Dipole", "D", "Debye", "dipole_magnitude", whole_structure=True, run_with=GASTEIGER_NEUTRAL, approved="2026-10-18"),
     _geometry_entry("calculator:geometry_analysis:Max projection area", "Å^2", "A^2", "max_projection_area", AS_STORED_UNSCALED, True),
     _geometry_entry("calculator:geometry_analysis:Max projection radius", "Å", "A", "max_projection_radius", AS_STORED_UNSCALED, True),
     _geometry_entry("calculator:geometry_analysis:Max radius (from centroid)", "Å", "A", "max_radius_from_centroid", AS_STORED, True),
@@ -197,6 +227,12 @@ APPROVED: tuple[ApprovedOutput, ...] = (
     _entry("calculator:polarizability:Molecular polarizability", "Å^3", "A^3", "molecular_polarizability"),
     _entry("calculator:solubility:Predicted intrinsic solubility (mg/mL)", "mg/mL", "mg/mL", "aqueous_solubility_intrinsic"),
     _entry("calculator:solubility:Predicted intrinsic solubility (mol/L)", "mol/L", "mol/L", "aqueous_solubility_intrinsic"),
+    # The surface numbers are measured on the whole structure like the sizes. The three accessible areas need the default probe; the van der Waals area and volume do not touch a probe.
+    _geometry_entry("calculator:surface_analysis:ASA (solvent accessible)", "Å^2", "Å²", "accessible_surface_area", whole_structure=True, run_with=DEFAULT_PROBE_AS_DRAWN, approved="2026-10-18"),
+    _geometry_entry("calculator:surface_analysis:ASA_H (hydrophobic)", "Å^2", "Å²", "hydrophobic_accessible_surface_area", whole_structure=True, run_with=DEFAULT_PROBE_AS_DRAWN, approved="2026-10-18"),
+    _geometry_entry("calculator:surface_analysis:ASA_P (polar)", "Å^2", "Å²", "polar_accessible_surface_area", whole_structure=True, run_with=DEFAULT_PROBE_AS_DRAWN, approved="2026-10-18"),
+    _geometry_entry("calculator:surface_analysis:van der Waals surface area", "Å^2", "Å²", "van_der_waals_surface_area", whole_structure=True, run_with=AS_DRAWN, approved="2026-10-18"),
+    _geometry_entry("calculator:surface_analysis:van der Waals volume", "Å^3", "Å³", "van_der_waals_volume", whole_structure=True, run_with=AS_DRAWN, approved="2026-10-18"),
     # Shares the tag of `descriptor:num_stereocenters`: the same on every census row (`identical_pairs`), and different only where a centre is stereogenic without being asymmetric (cubane 0 against 8).
     _entry("calculator:topology_analysis:Asymmetric atom count", "1", "", "stereocentre_count"),
     _entry("calculator:topology_analysis:Balaban index", "1", "", "balaban_j_index"),

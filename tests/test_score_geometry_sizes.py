@@ -47,8 +47,9 @@ from openchem.domain.score_value import (
 from openchem.services.score_service import ScoreService
 from tests.test_score_value import _entries
 
-#: The geometry outputs of the ten shape descriptors and Geometry Analysis's eight sizes. HOMA's two extremes also read a geometry and are in `tests/test_score_homa.py`: they ask what made it.
-_GEOMETRY_OUTPUTS = [entry for entry in APPROVED if entry.input == GEOMETRY and not entry.needs_quantum_geometry]
+#: The geometry outputs of the ten shape descriptors and Geometry Analysis's eight sizes. HOMA's two extremes also read a geometry and are in `tests/test_score_homa.py`: they ask what made it. The dipole's
+#: magnitude and five surface numbers are in `tests/test_score_dipole_surface.py`: they ask which settings the calculator ran with.
+_GEOMETRY_OUTPUTS = [entry for entry in APPROVED if entry.input == GEOMETRY and not entry.needs_quantum_geometry and not entry.run_with]
 _SIZES = [entry for entry in _GEOMETRY_OUTPUTS if entry.output_id.startswith("calculator:geometry_analysis:")]
 _BONDI = {"H": 1.20, "C": 1.70, "N": 1.55, "O": 1.52}  # Bondi's radii for the elements the molecules below hold, written out here and not read from the producer's table
 _MOLECULES = ["CCCCO", "c1ccccc1C(=O)O", "CC(C)Cc1ccc(cc1)C(C)C(=O)O"]
@@ -304,7 +305,7 @@ def test_the_radii_from_the_centroid_do_not_depend_on_the_projection_scale(entry
 def test_the_two_asking_levels_are_what_the_entries_say():
     assert {entry.measured_as for entry in _SIZES} == {AS_STORED, AS_STORED_UNSCALED}
     assert [entry.measured_as for entry in _SIZES].count(AS_STORED) == 2
-    assert all(entry.whole_structure for entry in _SIZES) and not any(entry.whole_structure for entry in APPROVED if entry not in _SIZES)
+    assert all(entry.whole_structure for entry in _SIZES) and not any(entry.whole_structure for entry in APPROVED if entry not in _SIZES and not entry.run_with)
 
 
 # --- through `read_output`, with results put in the store directly --------------------------------------------------------------------------------
