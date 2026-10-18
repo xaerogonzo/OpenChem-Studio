@@ -162,3 +162,22 @@ The same machinery writes these into `reported.json`, each row marked `decided: 
 *(Empty at the freezing commit. The noise floor, the gate's outcome and the reported arm are appended below this rule, each with its commit, and nothing above it changes.)*
 
 ---
+
+### 11.1 The noise floor, measured 2026-10-18 04:11 to 04:13, commit that adds this section
+
+`benchmarks/visual/fukui_gate_floor.json`, real ORCA 6.1.1, `B3LYP 6-31G**`, gas phase, charge 0, multiplicity 1, `VERDICT PASS` of the drive (5 assertions, 0 app errors, 0 driver
+failures). **Water only, a molecule that is not in the gate; no gate species has been run.** Every value is the stored run's.
+
+| Run | Chain | Stored run | Input fingerprint | Job |
+|---|---|---|---|---|
+| `a1` | first water, embedded, ORCA-optimized | `66f97034` | `251508707de9` | Fukui |
+| `a2` | the same water, the same optimized geometry | `86734bf1` | `251508707de9` | Fukui, again |
+| `b` | a second water, embedded and ORCA-optimized independently | `27af9158` | `e45f4e2f3abb` | Fukui |
+
+* **Same input twice** (`a1` against `a2`: one input fingerprint, two different run ids, so not a cache hit): the largest difference of any atom's f+, f-, f0 or dual descriptor is **0.0**.
+* **The whole chain twice** (`a1` against `b`: a second water embedded, optimized and run independently): the largest difference is **0.0**.
+* **F = 0.0.** The three runs agree to every digit the application stores. By the rule of section 6 the gate may use T = 0.02 (F is not above 0.005), and `fukui_gate_begin` checks the artifact
+  before the gate script starts a job. `floor_records.json` and `floor.json` are committed with this section.
+
+Disclosed: a molecule of three atoms is the easiest case for a repeat to agree on, and a floor of exactly zero says ORCA and the application are deterministic here, not that the
+published values will be reproduced.
