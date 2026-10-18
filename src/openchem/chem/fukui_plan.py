@@ -81,7 +81,7 @@ class FukuiJob:
 
 @dataclass(frozen=True)
 class FukuiPlan:
-    """The jobs of one Fukui run, in the order they are written: every state's default start first, then the extra starts.
+    """The jobs of one Fukui run, in the order they are written: the N and N-1 states and their extra starts, then the N+1 state and its own (`plan_fukui`).
 
     The order is load-bearing. ORCA ends the whole compound input at the first job that does not converge, so the jobs the answer cannot do without
     come first and an extra start, or the N+1 state of an anion, that fails costs nothing but itself.

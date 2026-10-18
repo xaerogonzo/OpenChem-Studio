@@ -133,3 +133,5 @@ The misses are in neutral molecules and one cation, and **none of v2's changes c
 that another is close. A probe made after the outcome (11.4, a candidate cause and not an established one) found that for anilinium, benzaldehyde and thiophene the published values match a cation state 0.09 to 0.45 eV above the lowest,
 and that for benzaldehyde the state the application's own input reached changed with a rotation of one geometry, a 0.001 A displacement and the embedding it was optimized from (11.4, probe 4). The standing sentence of every result now says the calculation failed its second check (`chem/fukui.py` `NOT_VALIDATED_SENTENCE`);
 the calculator stays EXPERIMENTAL and hidden.
+
+**Afterwards, in a separate change** (`CHANGELOG.md`, "Fukui: f+ for an anion is back"): a species that is itself an anion gets its f+, f0 and dual descriptor again, from a dianion that is the last job of the run, so that a dianion that fails costs f+ and nothing else (`chem/fukui_plan.py`). What this record decided (f- alone for an anion, as the second gate tested it) is unchanged, and the gate is not re-run.
