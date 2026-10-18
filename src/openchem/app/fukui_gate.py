@@ -96,10 +96,17 @@ class Species:
     smiles: str
     charge: int
     atoms: tuple[str, ...]
+    #: The label a published table gives each atom position, where the element is not enough: acetone's carbons are the carbonyl
+    #: carbon ("C") and two methyl carbons ("Cm") in Olah's table. Empty means the elements are the labels.
+    labels: tuple[str, ...] = ()
 
     @property
     def neutral(self) -> bool:
         return self.charge == 0
+
+    @property
+    def site_labels(self) -> tuple[str, ...]:
+        return self.labels or self.atoms
 
 
 #: The seven species the gate runs, by name: what the application is given and what it should embed.
@@ -107,7 +114,7 @@ SPECIES = {
     "CO": Species("CO", "[C-]#[O+]", 0, ("C", "O")),
     "CO2": Species("CO2", "O=C=O", 0, ("O", "C", "O")),
     "H2CO": Species("H2CO", "C=O", 0, ("C", "O", "H", "H")),
-    "acetone": Species("acetone", "CC(C)=O", 0, ("C", "C", "C", "O") + ("H",) * 6),
+    "acetone": Species("acetone", "CC(C)=O", 0, ("C", "C", "C", "O") + ("H",) * 6, ("Cm", "C", "Cm", "O") + ("H",) * 6),
     "CN-": Species("CN-", "[C-]#N", -1, ("C", "N")),
     "NCO-": Species("NCO-", "[N-]=C=O", -1, ("N", "C", "O")),
     "CNO-": Species("CNO-", "[C-]#[N+][O-]", -1, ("C", "N", "O")),
@@ -392,8 +399,17 @@ class MeasuredRun:
     def values(self, attack: str) -> tuple[float, ...]:
         return self.f_plus if attack == "f+" else self.f_minus
 
+    def labels(self) -> tuple[str, ...]:
+        """What a published table calls each atom of this run: the species' own labels when the run has the atoms the species
+        should (acetone's carbonyl carbon is not its methyl carbons), else the elements."""
+        species = SPECIES.get(self.molecule)
+        return species.site_labels if species is not None and species.atoms == self.symbols else self.symbols
+
     def of_element(self, attack: str, element: str) -> tuple[float, ...]:
-        return tuple(v for symbol, v in zip(self.symbols, self.values(attack)) if symbol == element)
+        """The value of every atom a published table calls `element` (by label, so acetone's three carbons are two labels).
+        A first version matched the element symbol, and compared acetone's carbonyl carbon with whichever of its three carbons
+        was farthest from the published value (PREREGISTRATION.md 11.6)."""
+        return tuple(v for label, v in zip(self.labels(), self.values(attack)) if label == element)
 
 
 @dataclass(frozen=True)

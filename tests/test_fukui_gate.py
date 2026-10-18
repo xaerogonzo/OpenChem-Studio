@@ -594,3 +594,55 @@ def test_a_reported_row_outside_tolerance_does_not_change_the_verdict():
     rows = gate.reported_rows({("CO", gate.HF_A): far})
     assert any(row["within"] is False for row in rows)
     assert _judge().outcome is Outcome.PASS
+
+
+# --- which atoms a published number is of ---------------------------------------------------------------------------------------
+
+
+def test_acetones_carbons_carry_the_labels_the_table_gives_them_and_every_other_species_its_elements():
+    assert SPECIES["acetone"].site_labels == ("Cm", "C", "Cm", "O") + ("H",) * 6
+    assert all(species.site_labels == species.atoms for name, species in SPECIES.items() if name != "acetone")
+    # the atoms embedded from the SMILES: the carbonyl carbon is the SECOND heavy atom
+    mol = Chem.MolFromSmiles(SPECIES["acetone"].smiles)
+    carbonyl = next(a.GetIdx() for a in mol.GetAtoms() if a.GetSymbol() == "C" and any(b.GetBondTypeAsDouble() == 2 for b in a.GetBonds()))
+    assert SPECIES["acetone"].labels[carbonyl] == "C"
+
+
+def _acetone_run(f_plus, level=HF_B):
+    """An acetone run whose f+ is `f_plus` (carbon, carbon, carbon, oxygen, six hydrogens); the rest is as the published columns give it."""
+    base = _run("acetone", level)
+    return dataclasses.replace(base, f_plus=tuple(f_plus))
+
+
+def test_a_published_number_is_compared_with_the_atoms_it_names_and_not_every_atom_of_the_element():
+    """Acetone's carbons are three atoms of one element and two published labels. A first version compared the carbonyl carbon's published
+    value with whichever of the three carbons was farthest from it, which for a methyl carbon is another atom entirely."""
+    run = _acetone_run((0.1056, 0.0293, 0.1063, 0.0569, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1))
+    assert run.of_element("f+", "C") == (0.0293,)
+    assert run.of_element("f+", "Cm") == (0.1056, 0.1063)
+    assert run.of_element("f+", "O") == (0.0569,)
+    entry = gate.Entry("olah2002", "acetone", "C", "f+", HF_B, 0.0474)
+    (row,) = gate.compare([entry], {("acetone", HF_B): run}, gate.TOLERANCE, decided=False)
+    assert row.measured == 0.0293 and row.difference == pytest.approx(0.0293 - 0.0474) and row.within is True
+    methyl = gate.Entry("olah2002", "acetone", "Cm", "f+", HF_B, 0.1025)
+    (row,) = gate.compare([methyl], {("acetone", HF_B): run}, gate.TOLERANCE, decided=False)
+    assert row.measured == 0.1063 and row.within is True  # the farther of the two equivalent methyl carbons, as for any symmetric pair
+
+
+def test_a_run_that_does_not_have_the_species_atoms_is_labelled_by_its_elements():
+    """The labels are the species' when the run has the atoms the species should, and nothing else's."""
+    run = dataclasses.replace(_run("CO2", HF_B), molecule="acetone", symbols=("C", "C"), f_plus=(0.5, 0.5), f_minus=(0.5, 0.5), f_zero=(0.5, 0.5), dual=(0.0, 0.0))
+    assert run.labels() == ("C", "C")
+
+
+def test_every_published_number_of_a_gate_species_names_atoms_that_species_has():
+    """A comparison skips an entry whose label no atom carries, silently, so the labels of the tables are held to the species here:
+    acetone's methyl carbons ("Cm") were in the table and compared with nothing until the labels existed."""
+    for entry in (*gate.decided_entries(), *gate.reported_entries()):
+        assert entry.element in SPECIES[entry.molecule].site_labels, (entry.molecule, entry.element, entry.level)
+
+
+def test_the_reported_arm_compares_acetones_methyl_carbons_too():
+    far = dataclasses.replace(_run("acetone", HF_B), level=gate.HF_A)
+    rows = [r for r in gate.reported_rows({("acetone", gate.HF_A): far}) if r["molecule"] == "acetone"]
+    assert {(r["element"], r["attack"]) for r in rows} == {(el, at) for el in ("C", "O", "Cm") for at in gate.ATTACKS}
