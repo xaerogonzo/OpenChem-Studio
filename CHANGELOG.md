@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: nitrogen and oxygen nuclides in groups, acylamino prefixes and amines
+- Round 70 ran round 69's isotope population with one 15N and one 18O per molecule: 89 of 356 labelled nitrogens and 103 of 366 labelled oxygens were refused (none was a wrong molecule). The two oxygens of a nitro group, a sulfonyl or a carboxylate are one position and count once (`1-chloro-4-(18O)nitrobenzene`, `4-methyl(18O)benzene-1-sulfonamide`, D-322); an acylamino prefix cites its nitrogen's nuclide (`methyl 4-(15N)acetamidobenzoate`, `[3-(furan-2-yl)prop-2-enoyl(15N)amino]acetic acid`, D-323); and the nitrogen of an `-amine` suffix is addressed by the atom it hangs on (`(15N)ethanamine`, `2-phenylethan-1-(15N)amine`, D-324). 15N 267 -> 287 of 356 read back, 18O 263 -> 289 of 366.
+
 ### Naming: nuclides on suffix carbons and ureas, and the numbering of 2-substituted naphthoquinones
 - Round 69 built a new population, a 13C or a 2H on one atom of every census molecule and of the ion populations. A nuclide on the carbon of a carboxamide, carboxylic acid, carbaldehyde or carbonitrile, or on a urea, thiourea or guanidine, was dropped (a labelled urea was a `NAMING ERROR`); it is cited before the suffix word now (`pyridine-4-(13C)carboxamide`, `benzene-1-(13C)carboxamide`, `N,N'-diethyl(13C)urea`, `N-methyl(N'-15N)urea`, D-317). A nuclide on the carbon an amide's nitrogen hangs on was cited a second time on the parent (D-318). Two wrong molecules came out of it: **plumbagin was `8-hydroxy-2-methylnaphthalene-1,4-dione`** (the curated 1,4-dihydronaphthalene numbered its benzo ring backwards, D-319), and a diester of two alkyls that differ only by a nuclide had no locants (D-320). A nuclide after a `hexadecahydro` prefix is placed where OPSIN reads it (D-321). Neutral 13C 488 -> 495 of 500 read back.
 

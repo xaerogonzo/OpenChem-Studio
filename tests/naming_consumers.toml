@@ -495,6 +495,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round70_heteroatom_nuclides_in_groups_prefixes_and_amines.py"
+why = "the equivalent terminal atoms of a nitro, sulfonyl or carboxylate count once (D-322), an acylamino prefix cites its nitrogen's nuclide and a carved hydroxyl keeps none (D-323), and the nitrogen of an amine suffix is addressed by the atom it hangs on (D-324)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round69_nuclide_on_a_suffix_carbon_and_naphthoquinone_locants.py"
 why = "a nuclide on the carbon of a carbon-supplying suffix or on a urea / thiourea / guanidine core is cited, not dropped (D-317), the carbon an amide's N hangs on is not labelled twice (D-318), the curated 1,4-dihydronaphthalene numbers its benzo ring the right way round (D-319), two alkyls that differ by a nuclide get locants (D-320) and a nuclide follows a hexadecahydro prefix (D-321)"
 scope = "core"

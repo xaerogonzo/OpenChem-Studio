@@ -1421,6 +1421,7 @@
   "tests/test_namer_round67_imido_prefix_ester_cations_ring_carbanions.py": 3,
   "tests/test_namer_round68_chain_carbanions_and_cation_parents.py": 2,
   "tests/test_namer_round69_nuclide_on_a_suffix_carbon_and_naphthoquinone_locants.py": 1,
+  "tests/test_namer_round70_heteroatom_nuclides_in_groups_prefixes_and_amines.py": 0,
   "tests/test_namer_salt_multiplier.py": 1,
   "tests/test_namer_stereo_cache_identity.py": 3,
   "tests/test_namer_stereo_locant_tie.py": 3,
