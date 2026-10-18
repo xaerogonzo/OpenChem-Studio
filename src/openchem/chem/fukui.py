@@ -360,12 +360,14 @@ DOUBLET_S_SQUARED = 0.75
 #: validated; the one case measured (carbon monoxide's cation at HF/6-31G**, 0.967) is far above it and most DFT doublets measured are below it.
 SPIN_CONTAMINATION_WARNING = 0.825
 
-#: What every result says about its own standing. The calculation failed its preregistered check by 0.0014 on one of 54 numbers
-#: (`benchmarks/fukui_gate/PREREGISTRATION.md` section 11), and shipped as EXPERIMENTAL, which is this sentence in the results.
+#: What every result says about its own standing. An earlier version of the calculation failed its preregistered check by 0.0014 on one of 54 numbers
+#: (`benchmarks/fukui_gate/PREREGISTRATION.md` section 11); the current one (Fukui v2, `benchmarks/fukui_gate_2/DESIGN.md`) has not been checked against
+#: published values, and its check is `benchmarks/fukui_gate_2/PREREGISTRATION.md`. It ships as EXPERIMENTAL, which is this sentence in the results.
 NOT_VALIDATED_SENTENCE = (
-    "Not validated: this calculation did not pass its preregistered check against published Hirshfeld values "
+    "Not validated: an earlier version of this calculation did not pass its preregistered check against published Hirshfeld values "
     "(52 of 54 numbers were within 0.02 and all 13 documented sites were reproduced; carbon monoxide's f- at "
-    "HF/6-31G** was 0.0214 off, and that cation is spin-contaminated, which may be why). The calculator's help has the details."
+    "HF/6-31G** was 0.0214 off, and that cation is spin-contaminated, which may be why), and this version has not been checked. "
+    "The calculator's help has the details."
 )
 
 

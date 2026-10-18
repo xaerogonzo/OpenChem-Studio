@@ -115,3 +115,10 @@ charge..."; **VERDICT PASS**. These are the same numbers the real-ORCA fixtures 
 * **Real ORCA output, from the application's own input:** `tests/test_orca_fukui_v2.py` on `tests/fixtures/orca/{methoxide_fukui_fminus,acetone_fukui_diffuse_hf,methoxide_fukui_failed_start}.out`, whose `.inp`
   files the builder is asserted to reproduce exactly.
 * **The real window, real ORCA:** the two drive scripts of 2.5.
+* **Mutation check:** 51 single-line mutations of `chem/fukui_plan.py`, `chem/fukui.py`, `chem/orca_engine.py` and `app/fukui_gate_2.py`, each applied to the committed file with its bytes restored afterwards
+  (the margin and its sign, the choice of the lowest start, which states have an N+1 and which get extra starts, the diffuse-basis recogniser, the grid and `HFTyp` strings, the per-job reading, the
+  widths of Rules A and B, pair matching, each condition of NOT EVALUABLE and the verdict ladder): **every one is caught by a test.** The first pass left two alive: a condition that was dead code
+  (`position == 1 and state != STATE_N`, unreachable because a first job that is not a closed-shell state is refused one line earlier; removed) and the rule that a job's LAST energy line is its energy
+  (a test was added).
+* **The standing sentence:** every result's closing sentence now says an EARLIER version of the calculation failed its check and this version has not been checked, which is what is true of v2 until
+  the second gate decides (`chem/fukui.py` `NOT_VALIDATED_SENTENCE`).

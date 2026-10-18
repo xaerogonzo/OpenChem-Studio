@@ -431,6 +431,15 @@ def test_an_output_with_no_s_squared_lines_says_nothing_about_contamination():
     assert "cation_s_squared" not in parameters and not _warns_of_contamination(parameters["caveat"])
 
 
+def test_the_last_energy_of_a_job_is_its_energy_as_the_last_s_squared_is_its_s_squared():
+    """A single point prints one energy, so this cannot happen in a real run; the rule (the converged print is the last) is the same as for <S**2> and is pinned here, because the unbound-anion gap
+    is a difference of two of these energies and an earlier line in a job's stretch must not be taken for it."""
+    extra = REAL_OUTPUT.replace("FINAL SINGLE POINT ENERGY", "FINAL SINGLE POINT ENERGY       -1.000000000000\nFINAL SINGLE POINT ENERGY", 1)
+    assert extra.count("FINAL SINGLE POINT ENERGY") == 4
+    parameters = _datasets(extra)["orca.fukui_plus"].provenance.parameters
+    assert parameters["unbound_anion_ev"] == pytest.approx((-74.375666859613 + 74.962928183933) * 27.211386245988)
+
+
 def test_each_s_squared_is_read_from_its_own_job_so_a_later_print_in_that_job_wins():
     """The old parse took the two prints by POSITION and called any other count unknown. Now each is read from the stretch of output of the job it
     belongs to, so a second print inside the anion's job (appended here after its last line) is the anion's, the cation's is untouched, and the last

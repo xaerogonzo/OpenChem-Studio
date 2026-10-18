@@ -1625,9 +1625,9 @@ results line names the atom where each is largest, numbered from 1 as the Atom I
 molecule (an open-shell one is refused before a job starts, since its ions have more than one spin state) and one conformer
 (**Average over all conformers** is refused for it), and Hirshfeld charges are the only scheme offered.
 
-**This calculation is not validated, and every result says so.** It failed its preregistered check against published Hirshfeld
-values by 0.0014 on one quantity (52 of 54 numbers and all 13 documented reactive sites were reproduced), so it is marked
-experimental and kept out of the Properties launcher's default list (Settings > "Offer calculators that are hidden by default"
+**This calculation is not validated, and every result says so.** An earlier version failed its preregistered check against published
+Hirshfeld values by 0.0014 on one quantity (52 of 54 numbers and all 13 documented reactive sites were reproduced) and the current one
+has not been checked (a second preregistered check is written), so it is marked experimental and kept out of the Properties launcher's default list (Settings > "Offer calculators that are hidden by default"
 brings it back; the Quantum Chemistry panel offers it either way). Read f- before f+: the anion of a neutral molecule is usually not
 bound at an ordinary basis set (the result gives the energy by which it lies above the neutral). **Do not add diffuse functions to improve f+**: with
 them the anion has more than one SCF solution and f+ was not reproducible in the cases measured (it changed by up to 0.31 between solutions, and

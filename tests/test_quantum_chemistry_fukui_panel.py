@@ -167,7 +167,7 @@ def test_the_live_summary_follows_the_descriptor_lines(qapp):
         assert lines[4] == "Largest f0 (attack by a radical): C (atom 1): 0.400"
         assert lines[5].startswith("The anion is 2.02 eV ABOVE the neutral")
         # The last line is what the results say about their own standing, so a reader cannot take them for validated.
-        assert len(lines) == 7 and lines[6].startswith("Not validated: this calculation did not pass")
+        assert len(lines) == 7 and lines[6].startswith("Not validated: an earlier version of this calculation did not pass")
     finally:
         _dispose_panel(panel)
 

@@ -141,7 +141,7 @@ Decided by a pure, tested judge (`app/fukui_gate_2.py`). Every reason is collect
 
 **NOT EVALUABLE** (nothing is claimed either way) when any of: T is not 0.02; no floor, or a floor above 0.005; an ORCA other than 6.1.1 or none recorded; the runs were made by more than one version of `src/` or by a `src/` that differed from its commit;
 a species has no run, or fewer than three attempts failed and none completed; a run's charge or multiplicity is not its species' (+1 for anilinium, -1 for the anions, 0 for the rest, multiplicity 1); a run's method is not its species'; a run's grid is not `IntAcc 6.0`; a run's `functions` is not `f-` for an anion and `f+ f- f0 dual` for every other species,
-or its `reference_charge` is not its species' charge; a run did not complete; a run did not run on the ORCA-optimized geometry; a run's atoms are not its species'; a run's f+ (where it has one) or f- does not sum to 1 within 0.001; a run's dual descriptor is not f+ - f- or its f0 not their mean (to 1e-9);
+or its `reference_charge` is not its species' charge, or an anion's run holds an f+, f0 or dual descriptor; a run did not complete; a run did not run on the ORCA-optimized geometry; a run's atoms are not its species'; a run's f+ (where it has one) or f- does not sum to 1 within 0.001; a run's dual descriptor is not f+ - f- or its f0 not their mean (to 1e-9);
 one job has two completed attempts; or acrolein fails the input-validity check of section 4. **A start that did not converge, or a lower start that replaced the default one, is recorded and is not a reason: both are the calculation doing what it is specified to do.**
 
 **PASS:** every one of the 47 numbers within T, every one of the 11 statements reproduced, no species left uncomputed.
@@ -180,13 +180,15 @@ Every row is marked `decided: false`; the verdict never reads them. **One attemp
 
 ---
 
-## Decisions, and what is still to confirm (to be deleted at the freeze)
+## Decisions (kept as a record)
 
 Decided by Alex on 2026-10-18: **A1** T = 0.02. **A2** the anions are decided, through an f- only mode (so the calculation had to be changed first). **A4** a pass promotes to LIMITED and SHOWN, scoped to `B3LYP 6-31G*` and `B3LYP 6-31G**`. **A5** the calculation tested is the
 robust-anion one (finer grid by default, the lowest of several anion starts, flagged when they differ). Left at the recommended default, not asked: **A3** any neutral miss is a FAIL, as in the first gate; **A6** acrolein is NOT EVALUABLE and rerun from an s-trans start if its dihedral is not within 30 degrees of 180.
 
-**To confirm before the freeze:**
+**Asked of Alex on 2026-10-18, and answered:**
 
 * **C1. An anion no longer gets f+, f0 or the dual descriptor.** The first release computed them from a dianion; v2 does not (`chem/fukui_plan.py`). The three anions of the first gate (CN-, NCO-, CNO-) had f+ compared there, and that record stands; the calculator no longer produces those numbers.
-* **C2. A third method string in the promoted scope:** `B3LYP 6-31+G*`, for the f- of anions only (a pass at the two anions SCN- and NO2- is its whole evidence). Alternatively the anions are gated and reported but the scope stays at the two `6-31G` strings.
-* **C3. A charged species that does not reproduce gives PARTIAL, not FAIL** (the first gate's rule for its anions), so that a miss on one of the three charged species does not withhold the promotion of the neutral molecules.
+  *Alex leans to yes and would not object to an optional f+ for anions later.* The gate tests the default, which is f- only, so an optional switch, if one is ever added, cannot change what this gate tests.
+* **C2. A third method string in the promoted scope:** `B3LYP 6-31+G*`, for the f- of anions only (a pass at the two anions SCN- and NO2- is its whole evidence). *Alex: yes, include it.*
+* **C3. A charged species that does not reproduce gives PARTIAL, not FAIL** (the first gate's rule for its anions), so that a miss on one of the three charged species does not withhold the promotion of the neutral molecules. *Alex: PARTIAL.*
+* **C4. When to freeze.** *Alex: freeze and run once a rehearsal on molecules that are not in the gate (a cation, a linear anion, and the two noise floors) comes back clean; stop and say so if it finds anything that would change this document.*

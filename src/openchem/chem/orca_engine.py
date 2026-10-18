@@ -914,7 +914,8 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
             multiplicity_match = _MULTIPLICITY_RE.search(segment)
             multiplicity = int(multiplicity_match.group(1)) if multiplicity_match else 0
             state = state_of(reference, charge, multiplicity)
-            if state is None or (position == 1 and state != STATE_N):
+            # The first job is the N state by construction (the species' own charge is its echo, and a multiplicity other than 1 is no state at all).
+            if state is None:
                 raise OrcaOutputError(
                     f"Job {position} of this output has charge {charge:+d} and multiplicity {multiplicity}, which is not the N, N-1 or N+1 state of a "
                     f"closed-shell species of charge {reference:+d}; its table cannot be assigned to a state."
