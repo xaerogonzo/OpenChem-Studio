@@ -42,6 +42,8 @@ FINAL SINGLE POINT ENERGY       -74.962928183933
  Total Charge           Charge          ....    1
  Multiplicity           Mult            ....    2
  Number of Electrons    NEL             ....    9
+Expectation value of <S**2>     :     0.755189
+Ideal value S*(S+1) for S=0.5   :     0.750000
 
 ------------------
 HIRSHFELD ANALYSIS
@@ -63,6 +65,8 @@ FINAL SINGLE POINT ENERGY       -74.655706410549
  Total Charge           Charge          ....   -1
  Multiplicity           Mult            ....    2
  Number of Electrons    NEL             ....   11
+Expectation value of <S**2>     :     0.758372
+Ideal value S*(S+1) for S=0.5   :     0.750000
 
 ------------------
 HIRSHFELD ANALYSIS

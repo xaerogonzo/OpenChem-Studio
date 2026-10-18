@@ -219,10 +219,14 @@ def test_the_summary_names_where_each_value_is_largest():
 
     lines = summary_lines(_water_like(), ["O", "H", "H"])
     assert lines[0] == "Fukui functions (Hirshfeld, vertical) for 3 atoms:"
+    from openchem.chem.fukui import NOT_VALIDATED_SENTENCE
+
+    # Every summary ends on the sentence about the calculation's standing, so a reader of the results cannot miss it.
     assert lines[1:] == [
         "Largest f+ (attack by a nucleophile): O (atom 1): 0.373",
         "Largest f- (attack by an electrophile): O (atom 1): 0.643",
         "Largest f0 (attack by a radical): O (atom 1): 0.508",
+        NOT_VALIDATED_SENTENCE,
     ]
 
 
@@ -240,12 +244,12 @@ def test_atoms_tied_to_the_printed_digits_are_named_together_not_picked_by_index
 def test_the_unbound_anion_warning_is_added_only_when_the_run_recorded_one():
     from openchem.chem.fukui import summary_lines, unbound_anion_sentence
 
-    assert summary_lines(_water_like(), ["O", "H", "H"])[-1].startswith("Largest f0")
+    assert summary_lines(_water_like(), ["O", "H", "H"])[-2].startswith("Largest f0")
     with_gap = summary_lines(_water_like(unbound_ev=15.98), ["O", "H", "H"])
-    assert with_gap[-1] == unbound_anion_sentence(15.98)
-    assert "15.98 eV ABOVE" in with_gap[-1]
+    assert with_gap[-2] == unbound_anion_sentence(15.98)
+    assert "15.98 eV ABOVE" in with_gap[-2]
     # a flag that happens to be True is not an energy
-    assert summary_lines(_water_like(unbound_ev=True), ["O", "H", "H"])[-1].startswith("Largest f0")
+    assert summary_lines(_water_like(unbound_ev=True), ["O", "H", "H"])[-2].startswith("Largest f0")
 
 
 def test_the_caveat_and_the_panel_say_the_same_thing_about_the_anion():
@@ -298,3 +302,72 @@ def test_atoms_that_tie_to_the_printed_digits_are_one_site_and_atoms_a_digit_apa
     apart = [_dataset("orca.fukui_plus", [0.1, 0.450002, 0.4500000])]
     line = summary_lines(apart, ["O", "H", "H"])[1]
     assert "H (atom 2)" in line and "H (atom 3)" not in line
+
+
+# --- spin contamination, and the sentence every result carries about its standing ------------------------------------------------
+
+
+def test_every_result_carries_the_not_validated_sentence_last():
+    from openchem.chem.fukui import NOT_VALIDATED_SENTENCE
+
+    result = condensed_fukui(NEUTRAL, CATION, ANION)
+    assert result.caveats[-1] == NOT_VALIDATED_SENTENCE
+    assert "Not validated" in NOT_VALIDATED_SENTENCE and "52 of 54" in NOT_VALIDATED_SENTENCE and "0.0214" in NOT_VALIDATED_SENTENCE
+
+
+def test_a_contaminated_cation_is_named_with_its_value():
+    from openchem.chem.fukui import spin_contamination_sentence
+
+    result = condensed_fukui(NEUTRAL, CATION, ANION, cation_s_squared=0.967155, anion_s_squared=0.756572)
+    sentence = spin_contamination_sentence("cation", 0.967155)
+    assert sentence in result.caveats and "0.97" in sentence and "0.75" in sentence
+    assert not any("anion is spin-contaminated" in caveat for caveat in result.caveats)
+    assert (result.cation_s_squared, result.anion_s_squared) == (0.967155, 0.756572)
+
+
+def _spin_sentences(texts):
+    """The per-ion warnings among `texts`. NOT_VALIDATED_SENTENCE also says "spin-contaminated" (it names the case that failed the
+    gate), so a test looking for a warning on THIS run must match the sentence that begins with the ion, not the word."""
+    return [text for text in texts if text.startswith(("The cation is spin-contaminated", "The anion is spin-contaminated"))]
+
+
+def test_both_ions_are_named_when_both_are_contaminated_cation_first():
+    result = condensed_fukui(NEUTRAL, CATION, ANION, cation_s_squared=0.9, anion_s_squared=0.88)
+    spin = _spin_sentences(result.caveats)
+    assert [s.split(" is ")[0] for s in spin] == ["The cation", "The anion"]
+
+
+def test_the_threshold_edge_is_exclusive_and_a_clean_doublet_says_nothing():
+    from openchem.chem.fukui import SPIN_CONTAMINATION_WARNING
+
+    at = condensed_fukui(NEUTRAL, CATION, ANION, cation_s_squared=SPIN_CONTAMINATION_WARNING, anion_s_squared=0.7552)
+    assert _spin_sentences(at.caveats) == []
+    over = condensed_fukui(NEUTRAL, CATION, ANION, cation_s_squared=SPIN_CONTAMINATION_WARNING + 1e-6)
+    assert len(_spin_sentences(over.caveats)) == 1
+
+
+@pytest.mark.parametrize("unknown", [None, True, float("nan"), float("inf"), "0.97"])
+def test_an_unknown_spin_expectation_is_not_a_warning(unknown):
+    """A restricted ion prints none, and nothing is guessed from its absence; a flag or a string is not a number."""
+    result = condensed_fukui(NEUTRAL, CATION, ANION, cation_s_squared=unknown, anion_s_squared=unknown)
+    assert _spin_sentences(result.caveats) == []
+
+
+def test_the_summary_repeats_the_spin_warning_and_ends_on_the_not_validated_sentence():
+    from openchem.chem.fukui import NOT_VALIDATED_SENTENCE, spin_contamination_sentence, summary_lines
+
+    datasets = _water_like()
+    parameters = {"cation_s_squared": 0.967, "anion_s_squared": 0.756}
+    from openchem.domain.common import Provenance
+
+    first = dataclasses_replace(datasets[0], provenance=Provenance(created_by="core", method="orca", parameters=parameters))
+    lines = summary_lines([first, *datasets[1:]], ["O", "H", "H"])
+    assert lines[-2] == spin_contamination_sentence("cation", 0.967)
+    assert lines[-1] == NOT_VALIDATED_SENTENCE
+    assert not any("anion is spin-contaminated" in line for line in lines)
+
+
+def dataclasses_replace(obj, **changes):
+    import dataclasses
+
+    return dataclasses.replace(obj, **changes)

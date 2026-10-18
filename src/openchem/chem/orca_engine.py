@@ -286,6 +286,8 @@ _TOTAL_CHARGE_RE = re.compile(r"Total Charge\s+Charge\s+\.\.\.\.\s+(-?\d+)")
 _MULTIPLICITY_RE = re.compile(r"Multiplicity\s+Mult\s+\.\.\.\.\s+(\d+)")
 #: The title line of ORCA's Hirshfeld block, which starts a table (`parse_hirshfeld_tables`).
 _HIRSHFELD_HEADER = "HIRSHFELD ANALYSIS"
+#: ORCA prints this once per UNRESTRICTED job, so a compound Fukui output holds two, the cation's then the anion's (the neutral closed shell prints none).
+_S_SQUARED_RE = re.compile(r"Expectation value of <S\*\*2>\s*:\s*(-?\d+\.\d+)")
 #: A row of the Hirshfeld table: index, element, charge, spin. Four columns exactly, so the MBIS table (which has
 #: a population column as well) and the valence-shell table cannot match it.
 _HIRSHFELD_ROW_RE = re.compile(r"^\s*(\d+)\s+([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$")
@@ -857,6 +859,7 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
         charges = [int(value) for value in _TOTAL_CHARGE_RE.findall(output_text)]
         multiplicities = [int(value) for value in _MULTIPLICITY_RE.findall(output_text)]
         tables = parse_hirshfeld_tables(output_text)
+        squares = [float(value) for value in _S_SQUARED_RE.findall(output_text)]
         if len(energies) != 3 or len(tables) != 3 or len(charges) != 3:
             raise OrcaOutputError(
                 "A Fukui job must produce three SCF energies and three Hirshfeld tables (neutral, cation, anion); "
@@ -883,6 +886,10 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
             total_charge=charges[0],
             energy_neutral_hartree=energies[0],
             energy_anion_hartree=energies[2],
+            # Two values, the cation's then the anion's, or unknown: a restricted ion (or an output that printed another count)
+            # says nothing about its contamination, and nothing is guessed.
+            cation_s_squared=squares[0] if len(squares) == 2 else None,
+            anion_s_squared=squares[1] if len(squares) == 2 else None,
         )
         if not result:
             raise OrcaOutputError(result.reason)
@@ -913,6 +920,9 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
         }
         if result.unbound_anion_ev is not None:
             parameters["unbound_anion_ev"] = result.unbound_anion_ev
+        if result.cation_s_squared is not None:
+            parameters["cation_s_squared"] = result.cation_s_squared
+            parameters["anion_s_squared"] = result.anion_s_squared
         provenance = Provenance(
             created_by="core", method=self.provider_id, parameters=parameters, timestamp=time.time()
         )

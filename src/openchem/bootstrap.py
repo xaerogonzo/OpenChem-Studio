@@ -122,6 +122,29 @@ _QM_CALC_TYPE_DESCRIPTIONS = {
     ),
 }
 
+# The calc types that declare a stage of their own. The rest predate the declaration and are `LEGACY_UNCLASSIFIED`, a closing
+# migration, so a calc type added today earns an honest stage here instead of joining that list.
+_QM_CALC_TYPE_SUPPORT = {
+    # EXPERIMENTAL, as the tautomer distribution below is: implemented, run through the application on real ORCA and measured
+    # against published values, and not validated for default use because it did not pass its own preregistered gate
+    # (benchmarks/fukui_gate/PREREGISTRATION.md section 11). A stage describes THIS implementation, never the published method.
+    "fukui": CalculatorSupport(
+        stage=SupportStage.EXPERIMENTAL,
+        default_visibility=Visibility.HIDDEN,
+        support_reason=(
+            "Not validated: it did not pass its preregistered check against published Hirshfeld condensed Fukui "
+            "values. Fifty-two of 54 numbers were within 0.02 and all 13 documented sites were reproduced; the "
+            "carbon and oxygen f- of carbon monoxide at HF/6-31G** were 0.0214 off, and the unrestricted cation there "
+            "is heavily spin-contaminated (the published values used annihilated UHF). Offered in the Quantum "
+            "Chemistry panel, and every result says so."
+        ),
+        scope_note=(
+            "Closed-shell species, Hirshfeld charges only, ions at the neutral geometry (vertical); "
+            "needs a configured ORCA executable"
+        ),
+    ),
+}
+
 for _label, _calc_type in CALC_TYPE_LABELS.items():
     _EXTERNAL_CALCULATOR_DEFINITIONS.append(
         CalculatorDefinition(
@@ -138,6 +161,7 @@ for _label, _calc_type in CALC_TYPE_LABELS.items():
                 panel_id="Quantum_Chemistry",
             ),
             prediction_basis="ab_initio",
+            support=_QM_CALC_TYPE_SUPPORT.get(_calc_type),
             parameters=[
                 CalculatorParameter(name="charge", label="Charge", kind="int", default=0, minimum=-10, maximum=10),
                 CalculatorParameter(

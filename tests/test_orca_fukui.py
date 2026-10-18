@@ -310,3 +310,49 @@ def test_fukui_is_offered_in_the_panel_and_described():
     assert CALC_TYPE_LABELS["Fukui functions (Hirshfeld)"] == "fukui"
     assert set(_QM_CALC_TYPE_DESCRIPTIONS) == set(CALC_TYPE_LABELS.values())
     assert "Closed-shell" in _QM_CALC_TYPE_DESCRIPTIONS["fukui"]
+
+
+# --- <S**2> of the ions ----------------------------------------------------------------------------------------------------------------
+
+
+def test_the_expectation_of_s_squared_of_each_ion_is_recorded_from_the_real_output():
+    """ORCA prints it once per unrestricted job: 0.755189 for the water cation and 0.758372 for the anion, verbatim in the fixture."""
+    parameters = _datasets()["orca.fukui_plus"].provenance.parameters
+    assert parameters["cation_s_squared"] == 0.755189 and parameters["anion_s_squared"] == 0.758372
+
+
+def _warns_of_contamination(caveat: str) -> bool:
+    """Whether the caveat carries a per-ion spin warning. The "Not validated" sentence also contains the word (it names the case that
+    failed the gate), so the match is on the sentence that begins with the ion."""
+    return "The cation is spin-contaminated" in caveat or "The anion is spin-contaminated" in caveat
+
+
+def test_clean_doublets_carry_no_spin_warning_but_every_result_says_it_is_not_validated():
+    caveat = _datasets()["orca.fukui_plus"].provenance.parameters["caveat"]
+    assert not _warns_of_contamination(caveat) and "Not validated" in caveat
+
+
+def test_a_contaminated_cation_in_the_output_reaches_the_caveat():
+    """Carbon monoxide's cation at HF/6-31G** read 0.967; put that number where ORCA printed the cation's."""
+    contaminated = REAL_OUTPUT.replace("0.755189", "0.967155")
+    assert contaminated != REAL_OUTPUT
+    parameters = _datasets(contaminated)["orca.fukui_plus"].provenance.parameters
+    assert parameters["cation_s_squared"] == 0.967155
+    assert "The cation is spin-contaminated (<S^2> = 0.97" in parameters["caveat"]
+    assert "anion is spin-contaminated" not in parameters["caveat"]
+
+
+def test_an_output_with_no_s_squared_lines_says_nothing_about_contamination():
+    stripped = "\n".join(
+        line for line in REAL_OUTPUT.splitlines() if not line.startswith(("Expectation value of <S**2>", "Ideal value S*(S+1)"))
+    )
+    assert stripped != REAL_OUTPUT
+    parameters = _datasets(stripped)["orca.fukui_plus"].provenance.parameters
+    assert "cation_s_squared" not in parameters and not _warns_of_contamination(parameters["caveat"])
+
+
+def test_an_output_with_another_number_of_s_squared_lines_is_treated_as_unknown():
+    """Three prints (or one) cannot be assigned to the two ions by position, so none is: no value, no warning."""
+    extra = REAL_OUTPUT + "\nExpectation value of <S**2>     :     0.990000\n"
+    parameters = _datasets(extra)["orca.fukui_plus"].provenance.parameters
+    assert "cation_s_squared" not in parameters and not _warns_of_contamination(parameters["caveat"])

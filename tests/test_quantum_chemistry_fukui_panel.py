@@ -27,8 +27,9 @@ from test_quantum_chemistry_panel import (
 FUKUI = "Fukui functions (Hirshfeld)"
 
 
-def _dataset(property_id, values, *, molecule_uuid, unbound_ev=None):
+def _dataset(property_id, values, *, molecule_uuid, unbound_ev=None, spin=None):
     parameters = {} if unbound_ev is None else {"unbound_anion_ev": unbound_ev}
+    parameters.update(spin or {})
     return PerAtomDataset(
         property_id=property_id, name=property_id, units="", method="orca", molecule_uuid=molecule_uuid,
         values=dict(enumerate(values)),
@@ -36,10 +37,10 @@ def _dataset(property_id, values, *, molecule_uuid, unbound_ev=None):
     )
 
 
-def _run(molecule_uuid, *, molblock="", unbound_ev=2.02):
+def _run(molecule_uuid, *, molblock="", unbound_ev=2.02, spin=None):
     plus = [0.30, 0.45, 0.25]
     datasets = [
-        _dataset("orca.fukui_plus", plus, molecule_uuid=molecule_uuid, unbound_ev=unbound_ev),
+        _dataset("orca.fukui_plus", plus, molecule_uuid=molecule_uuid, unbound_ev=unbound_ev, spin=spin),
         _dataset("orca.fukui_minus", [0.50, 0.20, 0.30], molecule_uuid=molecule_uuid),
         _dataset("orca.fukui_zero", [0.40, 0.325, 0.275], molecule_uuid=molecule_uuid),
         _dataset("orca.fukui_dual", [-0.20, 0.25, -0.05], molecule_uuid=molecule_uuid),
@@ -165,6 +166,40 @@ def test_the_live_summary_follows_the_descriptor_lines(qapp):
         assert lines[3] == "Largest f- (attack by an electrophile): C (atom 1): 0.500"
         assert lines[4] == "Largest f0 (attack by a radical): C (atom 1): 0.400"
         assert lines[5].startswith("The anion is 2.02 eV ABOVE the neutral")
+        # The last line is what the results say about their own standing, so a reader cannot take them for validated.
+        assert len(lines) == 7 and lines[6].startswith("Not validated: this calculation did not pass")
+    finally:
+        _dispose_panel(panel)
+
+
+def test_a_contaminated_ion_is_named_between_the_unbound_warning_and_the_standing(qapp):
+    """The order a reader meets them: where the values are largest, what is physically off about the ion, then the standing."""
+    from openchem.chem.fukui import NOT_VALIDATED_SENTENCE, spin_contamination_sentence, unbound_anion_sentence
+
+    panel, service, molecule = _panel_with_conformers(1)
+    try:
+        panel._on_run_clicked()
+        panel._results_label.setText("")
+        spin = {"cation_s_squared": 0.967155, "anion_s_squared": 0.7566}
+        service._event_bus.publish(QuantumChemistryRunCompleted(run=_run(molecule.uuid, spin=spin)))
+        lines = panel._results_label.text().splitlines()
+        assert lines[4] == unbound_anion_sentence(2.02)
+        assert lines[5] == spin_contamination_sentence("cation", 0.967155)
+        assert lines[6] == NOT_VALIDATED_SENTENCE and len(lines) == 7
+    finally:
+        _dispose_panel(panel)
+
+
+def test_a_clean_run_says_nothing_about_spin_and_still_says_it_is_not_validated(qapp):
+    panel, service, molecule = _panel_with_conformers(1)
+    try:
+        panel._on_run_clicked()
+        spin = {"cation_s_squared": 0.7552, "anion_s_squared": 0.7566}
+        panel._results_label.setText("")
+        service._event_bus.publish(QuantumChemistryRunCompleted(run=_run(molecule.uuid, unbound_ev=None, spin=spin)))
+        lines = panel._results_label.text().splitlines()
+        assert not any(line.startswith(("The cation is spin", "The anion is spin")) for line in lines)
+        assert lines[-1].startswith("Not validated:")
     finally:
         _dispose_panel(panel)
 

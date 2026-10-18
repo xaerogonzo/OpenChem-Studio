@@ -180,6 +180,12 @@ def _provenance_parameters(result: object) -> dict[str, Any]:
 #: from flooding a reply. A real calculator has a handful.
 MAX_SETTINGS = 32
 
+#: Longest a caveat a PRODUCER recorded in its provenance is sent whole. It is not halved with the caps: what a number
+#: is not, or that its method did not pass its own check, is part of what it MEANS, and the Fukui caveat is five sentences
+#: (1320 characters measured with every warning on) whose last, the standing of the calculation, was cut away by the 400 a
+#: header caveat gets. Producers write fixed sentences, so this only stops a runaway string from a project saved by something else.
+RECORDED_CAVEAT_LIMIT = 2000
+
 
 def _setting_value(value: Any, caps: Caps, nested: bool = False) -> Any:
     """One recorded setting, bounded. A number stays exact (it is a setting, not a measurement), except a
@@ -415,7 +421,7 @@ def _caveats(result: object, entry: ResultEntry, caps: Caps) -> list[str]:
     # carry it. It is not a setting (`_settings_of` leaves it out on purpose), so it belongs here.
     recorded = _provenance_parameters(result).get("caveat")
     if isinstance(recorded, str) and recorded.strip():
-        caveats.append(_t(recorded, caps.text))
+        caveats.append(_t(recorded, max(caps.text, RECORDED_CAVEAT_LIMIT)))
     return caveats
 
 

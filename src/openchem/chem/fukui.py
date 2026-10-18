@@ -56,6 +56,13 @@ N+1 state is a state the basis set merely describes, and ``f+`` is the less
 trustworthy half. It is computed anyway, with a caveat naming the energy,
 because Hirshfeld's ``f+`` moved by at most 0.023 per atom with the diffuse
 set; a refusal would remove ``f+`` from nearly every molecule.
+
+**Diffuse functions are not the cure, and the gate's reported arm measured it**
+(``benchmarks/fukui_gate/PREREGISTRATION.md`` section 11.4): at 6-311+G** the
+``f+`` differed from the published values by a median of 0.12 (B3LYP, 9 values)
+and 0.20 (HF, 6 values) per atom and ``f-`` by a median of 0.004 and 0.010, and 7
+of the 14 jobs were refused
+because the anion's Hirshfeld charges summed 0.010 to 0.073 short of its charge.
 """
 
 from __future__ import annotations
@@ -89,6 +96,9 @@ class CondensedFukui:
     #: E(N+1) - E(N) in eV when both energies were given and the anion is not
     #: lower than the neutral (it is unbound), else None.
     unbound_anion_ev: float | None = None
+    #: <S**2> of the cation and of the anion as ORCA printed them, or None when it printed none (a restricted job prints none).
+    cation_s_squared: float | None = None
+    anion_s_squared: float | None = None
     has_negative: bool = False
     refused: bool = False
     reason: str = ""
@@ -130,8 +140,9 @@ def unbound_anion_sentence(gap_ev: float) -> str:
     """The caveat for an anion above the neutral, in the words the caveat, the panel and the docs share."""
     return (
         f"The anion is {gap_ev:.2f} eV ABOVE the neutral (a negative electron affinity), so it is an unbound "
-        "state that this basis set only describes: f+ depends on the basis set more than f- does. "
-        "Adding diffuse functions is the check."
+        "state that this basis set only describes: f+ depends on the basis set more than f- does, and diffuse "
+        "functions are not a cure: measured against published values at 6-311+G**, f+ was off by up to 0.33 per "
+        "atom and some anions were refused outright. The calculator's help has the measurements."
     )
 
 
@@ -162,6 +173,8 @@ def condensed_fukui(
     total_charge: int = 0,
     energy_neutral_hartree: float | None = None,
     energy_anion_hartree: float | None = None,
+    cation_s_squared: float | None = None,
+    anion_s_squared: float | None = None,
 ) -> CondensedFukui:
     """The condensed Fukui functions from the per-atom charges of N, N-1 and N+1 electrons.
 
@@ -196,6 +209,7 @@ def condensed_fukui(
         if gap >= 0.0:
             unbound = gap
             caveats.append(unbound_anion_sentence(gap))
+    caveats.extend(spin_contamination_sentence(state, value) for state, value in contaminated_states(cation_s_squared, anion_s_squared))
     has_negative = any(value < 0.0 for value in (*f_plus, *f_minus))
     if has_negative:
         caveats.append(
@@ -208,9 +222,45 @@ def condensed_fukui(
         f_zero=f_zero,
         dual=dual,
         unbound_anion_ev=unbound,
+        cation_s_squared=cation_s_squared,
+        anion_s_squared=anion_s_squared,
         has_negative=has_negative,
-        caveats=tuple(caveats),
+        caveats=tuple(caveats) + (NOT_VALIDATED_SENTENCE,),
     )
+
+
+#: <S**2> of a pure doublet, S(S+1) at S = 1/2. The ions of a closed-shell molecule are doublets, so this is what an uncontaminated one reads.
+DOUBLET_S_SQUARED = 0.75
+
+#: A state counts as spin-contaminated here above this <S**2>: about 10% over the doublet's 0.75. A threshold chosen for this calculation, not
+#: validated; the one case measured (carbon monoxide's cation at HF/6-31G**, 0.967) is far above it and most DFT doublets measured are below it.
+SPIN_CONTAMINATION_WARNING = 0.825
+
+#: What every result says about its own standing. The calculation failed its preregistered check by 0.0014 on one of 54 numbers
+#: (`benchmarks/fukui_gate/PREREGISTRATION.md` section 11), and shipped as EXPERIMENTAL, which is this sentence in the results.
+NOT_VALIDATED_SENTENCE = (
+    "Not validated: this calculation did not pass its preregistered check against published Hirshfeld values "
+    "(52 of 54 numbers were within 0.02 and all 13 documented sites were reproduced; carbon monoxide's f- at "
+    "HF/6-31G** was 0.0214 off, and that cation is spin-contaminated). The calculator's help has the details."
+)
+
+
+def spin_contamination_sentence(state: str, s_squared: float) -> str:
+    """The caveat for an ion whose unrestricted density carries visible quartet character, in words the caveat and the panel share."""
+    return (
+        f"The {state} is spin-contaminated (<S^2> = {s_squared:.2f} where a pure doublet is {DOUBLET_S_SQUARED:.2f}): its unrestricted "
+        "density carries some higher-spin character, which spin annihilation, as the published calculations used, would "
+        "remove. In the one case measured (carbon monoxide's cation at HF/6-31G**) it moved a value by 0.02."
+    )
+
+
+def contaminated_states(cation: float | None, anion: float | None) -> list[tuple[str, float]]:
+    """The ions (named) whose <S**2> is above `SPIN_CONTAMINATION_WARNING`, cation first. An unknown value is not a warning."""
+    return [
+        (state, value)
+        for state, value in (("cation", cation), ("anion", anion))
+        if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) and value > SPIN_CONTAMINATION_WARNING
+    ]
 
 
 #: Two atoms with the same value to the six decimals ORCA prints are the same atom for this purpose (the two
@@ -249,7 +299,13 @@ def summary_lines(datasets, symbols: list[str]) -> list[str]:
     lines = [f"Fukui functions (Hirshfeld, vertical) for {len(named[0][0].values)} atoms:"]
     lines.extend(f"{label}: {_where_largest(dataset.values, symbols)}" for dataset, label in named)
     provenance = named[0][0].provenance
-    gap = (provenance.parameters if provenance is not None else {}).get("unbound_anion_ev")
+    parameters = provenance.parameters if provenance is not None else {}
+    gap = parameters.get("unbound_anion_ev")
     if isinstance(gap, (int, float)) and not isinstance(gap, bool):
         lines.append(unbound_anion_sentence(float(gap)))
+    lines.extend(
+        spin_contamination_sentence(state, value)
+        for state, value in contaminated_states(parameters.get("cation_s_squared"), parameters.get("anion_s_squared"))
+    )
+    lines.append(NOT_VALIDATED_SENTENCE)
     return lines

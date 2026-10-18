@@ -469,14 +469,23 @@ def test_only_a_non_empty_string_is_taken_for_a_caveat(recorded):
     assert env.envelope_of(_entry(_qc_descriptor({"caveat": recorded})))["caveats"] == []
 
 
-def test_a_recorded_caveat_comes_after_the_freshness_note_and_is_cut_like_any_caveat():
+def test_a_recorded_caveat_comes_after_the_freshness_note_and_a_runaway_one_is_cut():
     long_caveat = "diffuse " * 400
     envelope = env.envelope_of(_entry(_qc_descriptor({"caveat": long_caveat}), fresh=False))
     assert len(envelope["caveats"]) == 2
     assert envelope["caveats"][0] == envelope["freshness_note"] != ""
-    assert len(envelope["caveats"][1]) == env.FULL.text and envelope["caveats"][1].endswith("…")
+    assert len(envelope["caveats"][1]) == env.RECORDED_CAVEAT_LIMIT and envelope["caveats"][1].endswith("…")
     smallest = env.envelope_of(_entry(_qc_descriptor({"caveat": long_caveat})), env.CAP_STEPS[-1])["caveats"]
-    assert len(smallest[0]) == env.CAP_STEPS[-1].text
+    assert len(smallest[0]) == env.RECORDED_CAVEAT_LIMIT
+
+
+def test_a_producers_caveat_longer_than_a_header_caveat_arrives_whole_at_every_cap():
+    """The Fukui caveat is 492 characters with no warning on and 1320 with all of them, and its last sentence says the calculation is not
+    validated. Cut at the 400 a header caveat gets, that sentence never reached a model; the caps shrink rows, not what a number means."""
+    recorded = " ".join(f"Sentence {n} says something a reader needs about the number, in about as many words as a real caveat does." for n in range(11))
+    assert env.FULL.text < len(recorded) < env.RECORDED_CAVEAT_LIMIT
+    for caps in env.CAP_STEPS:
+        assert env.envelope_of(_entry(_qc_descriptor({"caveat": recorded})), caps)["caveats"] == [recorded]
 
 
 def test_a_registry_dialogs_dict_wins_over_a_run_setting_of_the_same_name():

@@ -189,6 +189,18 @@ def test_a_model_reading_the_stored_dataset_is_told_the_anion_is_unbound(qapp):
     assert any("ABOVE" in caveat and "unbound" in caveat for caveat in envelope["caveats"])
 
 
+def test_a_model_reading_the_stored_dataset_is_told_it_is_not_validated(qapp):
+    """The sentence rides the same provenance caveat as the unbound warning, so it reaches the assistant without a path of its own."""
+    from openchem.chem.fukui import NOT_VALIDATED_SENTENCE
+
+    landed = _Landed(qapp, _Transcript(TRANSCRIPT))
+    landed.run(_water())
+
+    for stored in (s for s in landed.recorded if s.identity.result_id.startswith("orca.fukui_")):
+        envelope = _read(stored)
+        assert any(NOT_VALIDATED_SENTENCE in caveat for caveat in envelope["caveats"]), stored.identity.result_id
+
+
 # --- what does NOT change ---------------------------------------------------------------------------------------------
 
 
