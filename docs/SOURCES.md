@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 4482a5e294c00c9119d2a0f1efc6df96746eec01b8fa7947439490792aa53cb5 -->
+<!-- SOURCE SHA256: e440d0a9f3614ebc152d4ddcedcaf39c6efd58a28f5cffeaad0a4ca743b42c04 -->
 
 # Sources
 
@@ -125,6 +125,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`brown2006`](#brown2006) | literature | **not shipped** | citation |
 | [`bultinck2002a`](#bultinck2002a) | literature | shipped | citation + claim |
 | [`bultinck2002b`](#bultinck2002b) | literature | reference only | citation + claim |
+| [`bultinck2007`](#bultinck2007) | literature | shipped | citation + claim |
 | [`cao2004`](#cao2004) | literature | shipped | citation + claim |
 | [`catalan1996`](#catalan1996) | literature | reference only | citation + claim |
 | [`chelli1999`](#chelli1999) | literature | reference only | citation |
@@ -242,6 +243,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`npscorer2015`](#npscorer2015) | software | shipped | citation |
 | [`nubase2020`](#nubase2020) | dataset | shipped | citation + claim |
 | [`oda2003`](#oda2003) | literature | reference only | citation |
+| [`olah2002`](#olah2002) | literature | shipped | citation + claim |
 | [`ongari2018`](#ongari2018) | literature | reference only | citation + claim |
 | [`ons_solubility`](#ons_solubility) | dataset | shipped | citation |
 | [`openbabel`](#openbabel) | software | shipped | citation |
@@ -272,6 +274,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`rdkit_bertz`](#rdkit_bertz) | software | shipped | citation + claim |
 | [`rendell1993`](#rendell1993) | literature | reference only | unverified |
 | [`rowland1996`](#rowland1996) | literature | shipped | citation + claim |
+| [`roy1999`](#roy1999) | literature | shipped | citation + claim |
 | [`ruttkies2016`](#ruttkies2016) | literature | reference only | citation |
 | [`schindler2021`](#schindler2021) | literature | reference only | citation |
 | [`schindler2021_correction`](#schindler2021_correction) | literature | reference only | citation |
@@ -288,6 +291,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`swope1982`](#swope1982) | literature | shipped | citation + claim |
 | [`tdc_admet`](#tdc_admet) | dataset | reference only | citation |
 | [`tenbrink2009`](#tenbrink2009) | literature | shipped | citation + claim |
+| [`thanikaivelan2002`](#thanikaivelan2002) | literature | shipped | citation + claim |
 | [`thompson2002`](#thompson2002) | literature | reference only | citation |
 | [`threedmol`](#threedmol) | software | shipped | citation |
 | [`tolman1977`](#tolman1977) | literature | shipped | citation |
@@ -1127,6 +1131,124 @@ PAPER and asserted in `tests/test_conceptual_dft.py`, so the accuracy
 claims resting on it are checked rather than described. Its rows round to
 +-0.1 -- H2S's (I-A)/2 gives 6.3 against a printed eta of 6.2 -- so a
 transcription self-check needs a tolerance of 0.15, not 0.05.
+
+### olah2002
+
+<a id="olah2002"></a>
+
+> J. Oláh, C. Van Alsenoy & A. B. Sannigrahi, 'Condensed Fukui Functions Derived from Stockholder Charges: Assessment of Their Performance as Local Reactivity Descriptors', J. Phys. Chem. A 2002, 106, 3885-3890, Tables 1-3.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jp014039h](https://doi.org/10.1021/jp014039h) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-18 |
+| Local copy | `10.1021@jp014039h.pdf` (not checked) |
+| Used by | `src/openchem/chem/fukui.py`, `docs/explainers/reactivity.md`, `benchmarks/fukui_gate/PREREGISTRATION.md` |
+
+THE LARGEST PUBLISHED TABLE OF HIRSHFELD (STOCKHOLDER) CONDENSED FUKUI
+FUNCTIONS THIS PROJECT HAS: f+ and f- of CO, CO2, H2CO, acetone, CN-, NCO-,
+CNO-, the boranes, anilines and four more, at B3LYP and HF with 6-311+G** and
+6-31G**, four decimals, Gaussian 98, geometries optimized at each level, the
+ions as single-annihilated UHF, f+ = Q(N+1) - Q(N) and f- = Q(N) - Q(N-1)
+(its eq 3). The local-softness columns are not used.
+
+**THE TABLES WERE CHECKED AGAINST THEMSELVES BEFORE ANY NUMBER WAS TRUSTED.**
+A column of f values over ALL the atoms of a molecule must sum to 1. Of the 40
+such columns (CO, CO2, CN-, NCO-, CNO-; two attacks; four models) 37 do, to
+within 0.001, and three do not: CO2 f- at B3LYP/6-31G** (sums to 1.0119),
+CNO- f+ at B3LYP/6-31G** (1.0241; its oxygen value 0.2501 is also the one
+NCO- prints at the same place) and NCO- f- at HF/6-31G** (0.9960). Those
+three are a misprint in the source, not a result about the method, and are not
+used as targets. Columns that list only some atoms (formaldehyde, acetone, the
+boranes, the anilines) cannot be summed and are used only where a second
+source agrees. The text also reads against its own tables in places read from
+the text layer (acetone's f+ at B3LYP/6-31G** prints the oxygen above the
+carbon where the text says the carbon), so a site statement is used only where
+the paper's own numbers support it.
+
+Agreement with two independent sources was measured: formaldehyde at HF/6-31G**
+against `bultinck2007` (largest difference 0.0041 over six values) and at
+B3LYP/6-31G** against `thanikaivelan2002` (BLYP/dnd; largest 0.0080).
+
+### bultinck2007
+
+<a id="bultinck2007"></a>
+
+> P. Bultinck, S. Fias, C. Van Alsenoy, P. W. Ayers & R. Carbó-Dorca, 'Critical thoughts on computing atom condensed Fukui functions', J. Chem. Phys. 2007, 127, 034102, Table I.
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.2749518](https://doi.org/10.1063/1.2749518) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-18 |
+| Local copy | `bultinck2007.pdf` (not checked) |
+| Used by | `src/openchem/chem/fukui.py`, `docs/explainers/reactivity.md`, `benchmarks/fukui_gate/PREREGISTRATION.md` |
+
+TWO THINGS ARE TAKEN FROM IT. (1) Table I, formaldehyde at RHF/6-31G**
+(geometry) and UHF/6-31G** (ions), plain Hirshfeld: f- C 0.226, H 0.146 (each),
+O 0.482; f+ C 0.402, H 0.146, O 0.306. Each column sums to 1.000 with two
+hydrogens. (2) The statement the calculator's help rests on: in the classical
+Hirshfeld scheme the promolecular density, and so the weight function, is the
+same whatever the number of electrons (its eqs 15-16), so the population
+difference IS the fragment-of-molecular-response value; the table prints
+identical Hirshfeld FMR and RMF rows. Where the weights depend on the number of
+electrons (Hirshfeld-I, Bader) the two differ, and the paper reports about 20%
+of the Hirshfeld-I RMF values negative against about 2% for FMR. Its conclusion
+that the choices behind an atom-condensed value are arbitrary is quoted in the
+help, not argued with.
+
+### thanikaivelan2002
+
+<a id="thanikaivelan2002"></a>
+
+> P. Thanikaivelan, J. Padmanabhan, V. Subramanian & T. Ramasami, 'Chemical reactivity and selectivity using Fukui functions: basis set and population scheme dependence in the framework of B3LYP theory', Theor. Chem. Acc. 2002, 107, 326-335, Table 5.
+
+| | |
+| --- | --- |
+| Identifier | [10.1007/s00214-002-0352-z](https://doi.org/10.1007/s00214-002-0352-z) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-18 |
+| Local copy | `thanikaivelan2002.pdf` (not checked) |
+| Used by | `src/openchem/chem/fukui.py`, `docs/explainers/reactivity.md`, `benchmarks/fukui_gate/PREREGISTRATION.md` |
+
+Table 5 is used: formaldehyde, Hirshfeld, DMol3 with BLYP/dnd (a numerical
+basis the paper calls comparable to 6-31G*): C f+ 0.395, f- 0.236; O 0.303,
+0.426; H (each) 0.150, 0.169. Its columns sum to 0.998 (f+) and 1.000 (f-).
+The paper defines f+ = q(N+1) - q(N) in gross electronic populations, f0 as
+[q(N+1) - q(N-1)]/2 (its eqs 9-11), the same definitions as `fukui.py` with
+the sign of a charge difference.
+
+**TABLES 7 AND 9 (acetaldehyde, acetone) ARE NOT USED.** Table 7's f+ column
+sums to 0.971, and Table 9 gives the two equivalent methyl carbons of acetone
+different values (0.068 and 0.236); neither can be a target. The paper itself
+says its Hirshfeld values fail to pick the carbonyl carbon there.
+
+### roy1999
+
+<a id="roy1999"></a>
+
+> R. K. Roy, S. Pal & K. Hirao, 'On non-negativity of Fukui function indices', J. Chem. Phys. 1999, 110, 8236-8245.
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.478792](https://doi.org/10.1063/1.478792) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-18 |
+| Local copy | `roy1999.pdf` (not checked) |
+| Used by | `src/openchem/chem/fukui.py`, `docs/explainers/reactivity.md` |
+
+The claim taken: Hirshfeld's stockholder charge partitioning produces
+non-negative condensed Fukui values, which other partitionings (Mulliken,
+Loewdin, electrostatic-potential-derived, natural) turn negative in some cases
+(its abstract). It is evidence for the choice of scheme, and is not a numeric
+target: the tables report local softness s+ and s- in atomic units for the
+protonation-site atoms of anilines only, which need the global softness to
+become f.
 
 ### avdeef2007
 

@@ -2834,6 +2834,61 @@ class _Driver(QObject):
     # `benchmarks/lewis_gate/PREREGISTRATION.md` fixes what these assert before any number exists; the arithmetic is
     # `app/lewis_gate.py` and is pure. The steps read the stored runs and write what they read.
 
+    def _do_qc_panel_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "qc_panel_report", "tag": "fukui", "expect": {...}}` -- what the Quantum Chemistry panel SHOWS
+        after a job, asserted.
+
+        `expect` takes `results_contains` / `results_excludes` (lists of text the results line must / must not
+        hold), `status_contains` (the status line), `calc_type` (the panel's current Calculation entry),
+        `run_calc_type` (the newest stored run's calculation type), `run_status` (its status value) and
+        `per_atom_outputs` (how many per-atom datasets that run kept). Read off the widget and the stored run,
+        never off what the service published: a result the service sent and the panel did not draw reads as
+        "computed" in one place and "nothing" in the other.
+        """
+        panel = getattr(self._window, "_quantum_chemistry_panel", None)
+        if panel is None:
+            logger.error("OPENCHEM_DRIVE: qc_panel_report -- no Quantum Chemistry panel on this window")
+            return
+        tag = str(step.get("tag", ""))
+        molecule = panel._current_molecule()
+        runs = (
+            panel._result_store_service.qc_runs.runs_for(molecule.uuid)
+            if molecule is not None and panel._result_store_service is not None
+            else []
+        )
+        newest = runs[0] if runs else None
+        report = {
+            "calc_type": panel._calc_type_combo.currentText(),
+            "results": panel._results_label.text(),
+            "status": panel._status_label.text(),
+            "run_calc_type": None if newest is None else newest.calc_type,
+            "run_status": None if newest is None else newest.status.value,
+            "per_atom_outputs": 0 if newest is None else len(newest.results.get("per_atom") or []),
+            "runs": len(runs),
+        }
+        logger.warning("OPENCHEM_DRIVE: qc_panel_report[%s] %s", tag, json.dumps(report, default=str))
+        expect = step.get("expect") or {}
+        problems: list[str] = []
+        for text in expect.get("results_contains") or []:
+            if text not in report["results"]:
+                problems.append(f"results line lacks {text!r}")
+        for text in expect.get("results_excludes") or []:
+            if text in report["results"]:
+                problems.append(f"results line holds {text!r}")
+        for text in expect.get("status_contains") or []:
+            if text not in report["status"]:
+                problems.append(f"status line lacks {text!r}")
+        for key in ("calc_type", "run_calc_type", "run_status", "per_atom_outputs"):
+            if key in expect and report[key] != expect[key]:
+                problems.append(f"{key} is {report[key]!r}, wanted {expect[key]!r}")
+        if step.get("shot"):
+            panel.grab().save(str(step["shot"]))
+            logger.warning("OPENCHEM_DRIVE: wrote %s", step["shot"])
+        if self._record_assertion("qc_panel_report", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT qc panel ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT qc panel FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
     def _do_qc_wait(self, step: dict[str, Any]) -> None:
         """`{"do": "qc_wait", "timeout_ms": 600000, "quiet_ms": 1500, "after_ms": 500}` -- hold the script until the
         Quantum Chemistry service has no job running, steadily for `quiet_ms`.

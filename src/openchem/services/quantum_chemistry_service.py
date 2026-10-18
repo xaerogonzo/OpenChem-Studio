@@ -20,6 +20,7 @@ from openchem.chem.boltzmann import (
     boltzmann_average_spectrum,
     boltzmann_weights,
 )
+from openchem.chem.fukui import conformer_average_message
 from openchem.chem.nmr_reference import (
     SPECTRUM_TYPE_BY_ELEMENT,
     average_reference_shielding,
@@ -69,6 +70,7 @@ from openchem.events.base import EventBus
 from openchem.events.events import (
     NmrReferenceCalibrated,
     NmrScalingCalibrated,
+    PerAtomDataComputed,
     QuantumChemistryJobStateChanged,
     QuantumChemistryResultReady,
     QuantumChemistryRunCompleted,
@@ -94,6 +96,9 @@ _JOB_KEY_PROPERTY = "_openchem_job_key"
 # their own "OpenChemStudio" app-data locations.
 _APP_NAME = "OpenChemStudio"
 _JOB_KIND = "quantum_chemistry"
+#: Calc types whose output is not averaged over conformers. The Boltzmann path publishes the averaged spectrum and
+#: the lowest conformer's descriptors and nothing per-atom, so these would run every conformer and keep nothing.
+_SINGLE_CONFORMER_ONLY = frozenset({"fukui"})
 _REFERENCE_JOB_KIND = "quantum_chemistry_reference"
 _SCALING_JOB_KIND = "quantum_chemistry_scaling"
 
@@ -632,6 +637,9 @@ class QuantumChemistryService(QObject):
         (`chem.calculation_input.resolve_ensemble`), frozen here and stamped
         on the average -- see `_BoltzmannRun.input_fingerprint`.
         """
+        if calc_type in _SINGLE_CONFORMER_ONLY:
+            self._publish_state(molecule_uuid, CacheState.FAILED, conformer_average_message())
+            return
         if not mols:
             self._publish_state(molecule_uuid, CacheState.FAILED, "No conformers to average over.")
             return
@@ -1413,6 +1421,33 @@ class QuantumChemistryService(QObject):
             # that ends up in `MoleculeModel.conformers`.
             if conformer is not None:
                 run.output_conformer_id = conformer.conformer_id
+        # Per-atom datasets (condensed Fukui functions): their own parse and their own events, like the spectra
+        # below, and the same contract -- a failure here is a warning on a run whose core output (the
+        # descriptors, parsed above, and for a calc type that is ABOUT the per-atom values the provider's
+        # `parse_output` too) was fine. No `NOT_PRODUCED` entry for a calc type with none: that would add a key
+        # to every other run's saved record.
+        try:
+            per_atom = job.provider.parse_per_atom_output(output_text, job.mol, molecule_uuid, job.calc_type)
+        except Exception as exc:  # noqa: BLE001 - report failure, never crash
+            logger.exception("Failed to parse per-atom output for molecule %s", molecule_uuid)
+            if run is not None:
+                run.output_status["per_atom"] = OutputStatus.FAILED
+                run.warnings.append(f"Per-atom output could not be parsed: {exc}")
+        else:
+            if per_atom:
+                # The same stamp the descriptors got (method, basis, charge, multiplicity, run id), so a stored
+                # dataset can say which job made it however the panel's controls have moved since.
+                per_atom = _with_run_settings(per_atom, job)
+                for dataset in per_atom:
+                    self._event_bus.publish(PerAtomDataComputed(
+                        dataset=dataset,
+                        input_fingerprint=job.input_fingerprint,
+                        calculation_input=job.calculation_input,
+                    ))
+                self._record_descriptors(per_atom, job)
+                if run is not None:
+                    run.results["per_atom"] = list(per_atom)
+                    run.output_status["per_atom"] = OutputStatus.AVAILABLE
         try:
             spectrum = job.provider.parse_spectrum_output(output_text, job.mol, molecule_uuid, job.calc_type)
         except Exception as exc:  # noqa: BLE001 - a spectrum is an enhancement, must not fail an otherwise-successful job
@@ -2095,7 +2130,8 @@ class QuantumChemistryService(QObject):
         self._event_bus.publish(QuantumChemistryRunCompleted(run=run))
 
     def _record_descriptors(self, descriptors: list, job: _ActiveJob) -> None:
-        """Wrap each descriptor into the generic revision-cache store too
+        """Wrap each descriptor (or per-atom dataset, which has no `provider` and is produced by the job's
+        engine) into the generic revision-cache store too
         (`ResultRecorded`, the same envelope `descriptor_service._record`
         publishes for every other calculator) -- SEPARATELY from
         `QuantumChemistryRunCompleted`/`qc_runs`, and for a different
@@ -2127,7 +2163,7 @@ class QuantumChemistryService(QObject):
                         result=descriptor,
                         calculation_input=job.calculation_input,
                         input_fingerprint=job.input_fingerprint,
-                        producer=descriptor.provider,
+                        producer=getattr(descriptor, "provider", None) or job.provider.provider_id,
                     ),
                     result=descriptor,
                     application_version=application_version(),

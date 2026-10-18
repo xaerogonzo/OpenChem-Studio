@@ -409,6 +409,13 @@ def _caveats(result: object, entry: ResultEntry, caps: Caps) -> list[str]:
         caveats.append(entry.note)
     for attribute in ("assumptions", "limitations"):
         caveats.extend(_t(item, caps.text) for item in (getattr(result, attribute, ()) or ()))
+    # A caveat a PRODUCER recorded in its provenance (`caveat`): the Koopmans hardness that inverts ammonia and
+    # phosphine, a Fukui f+ taken on an unbound anion. It travels with the number in the Atom Inspector, and was
+    # not sent to a model at all, because a descriptor and a per-atom dataset have no `assumptions` field to
+    # carry it. It is not a setting (`_settings_of` leaves it out on purpose), so it belongs here.
+    recorded = _provenance_parameters(result).get("caveat")
+    if isinstance(recorded, str) and recorded.strip():
+        caveats.append(_t(recorded, caps.text))
     return caveats
 
 

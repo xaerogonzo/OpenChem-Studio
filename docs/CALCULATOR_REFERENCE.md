@@ -1353,6 +1353,54 @@ Predicts shifts by looking up each atom's environment in assigned experimental s
 
 ## Quantum Chemistry
 
+<!-- help:calc-orca-fukui -->
+### Fukui functions (Hirshfeld)
+
+Where an added or removed electron goes, atom by atom: the condensed Fukui functions f+ (attack by a nucleophile), f- (attack by an electrophile), f0 (attack by a radical) and the dual descriptor f+ - f-, from the Hirshfeld charges of the neutral, the cation and the anion. Three single points in one job, all at the geometry as supplied (vertical): optimize first if the drawn geometry is not good enough. Closed-shell species only. Hirshfeld is the one charge scheme offered because, of the five ORCA prints, it was the only one whose values stayed within 0.023 of themselves when diffuse functions were added and never went negative, on formaldehyde, propene and pyridine. The anion of a neutral molecule is usually unbound at an ordinary basis set, which makes f+ the less trustworthy half; the result says so. Needs an ORCA executable and a 3D conformer; run from the Quantum Chemistry panel.
+
+- Runs from the **Quantum Chemistry panel** panel rather than from a Properties button.
+- Runs on the 2D drawing, so no conformer is needed.
+- Basis: ab initio (computed from theory rather than fitted).
+- Options:
+  - `charge` -- Charge default `0` range -10 to 10
+  - `multiplicity` -- Multiplicity default `1` range 1 to 10
+  - `method_basis` -- Method/basis (B3LYP def2-SVP, PBE0 def2-TZVP, M062X def2-TZVP, B3LYP 6-31G(d), B3LYP pcSseg-1, B3LYP pcSseg-2) default `B3LYP def2-SVP`
+
+#### What it does
+
+Says, atom by atom, where a molecule's electrons come from and go to when one is taken away or added, and so which atoms an attacking electrophile, nucleophile or radical is likely to meet. Four numbers per atom: **f+** (an electron added, the nucleophilic-attack function), **f-** (an electron removed, the electrophilic-attack function), **f0** (their mean, the radical-attack function) and the **dual descriptor** f+ - f-. It runs ORCA once, as three single points in one job (the neutral molecule, its cation and its anion), and compares an atom's charge in each.
+
+#### How it works
+
+A condensed Fukui function is a finite difference of atomic populations between two states of the molecule at one geometry: f+ is an atom's population in the N+1-electron state minus its population in the N-electron state, f- is its population in the N-electron state minus the N-1 state, and f0 is half the N+1 minus the N-1 [1] [2]. Written with atomic charges, which are the nuclear charge minus the population, each sign flips: this application's f+ is q(N) - q(N+1). All three are populations of the same atom in different states, so each of f+ and f- sums to 1 over the atoms.
+
+Shipped: three single points in one ORCA input, in the order neutral, cation, anion, **all at the geometry as supplied** (the ions are not relaxed, so the numbers are vertical; optimize first if the drawn geometry is not good enough). The method and basis are the panel's. The species must be a closed shell (multiplicity 1): the cation and anion of an open-shell molecule each have more than one spin state, and nothing in the structure says which was meant, so it is refused. A charged closed-shell species is allowed; its ions are doublets. Each job echoes its own charge and multiplicity, and the parser accepts the three tables only in that order and only for the molecule's own atoms; a state whose atomic charges do not sum to its charge is refused, because that is the signature of one state's table read as another's.
+
+**The charge scheme is Hirshfeld's, and only Hirshfeld's.** In it the electron density at every point is divided among the atoms in proportion to the densities of the free neutral atoms there. Those weights come from neutral atoms whatever the electron count of the molecule, so the population difference is exactly the response of the atom's share of the density, not a mixture of two different partitions [3]. Where the weights themselves move with the electron count (Hirshfeld-I, Bader) the two forms differ, and that paper reports about 20% of the Hirshfeld-I population-difference values negative against about 2% for the other form [3]. Measured here, ORCA prints five schemes for the same job and changing only the basis from def2-SVP to def2-SVPD moved the largest per-atom f+ by 0.011 to 0.023 for Hirshfeld, 0.067 to 0.107 for Loewdin, 0.107 to 0.222 for Mulliken, 0.051 to 0.210 for MBIS and 0.043 to 0.279 for CHELPG; Mulliken put 0.23 on each hydrogen of formaldehyde and about as much on the oxygen as on the carbon, where Hirshfeld puts 0.38 to 0.40 on the carbon; MBIS and CHELPG gave the carbon a negative f-. That Hirshfeld partitioning gives non-negative values where other schemes do not was reported before [4].
+
+#### What the result means
+
+One dimensionless number per atom for each function. They are descriptors of a particular partition of a particular calculation, not observables: the paper that compares the definitions concludes that different procedures give different values and that the choices an atom-condensed value needs in practice (which partition, which definition) are somewhat arbitrary [3]. Compare atoms within one molecule at one method; do not compare numbers across schemes or levels of theory.
+
+**f+ is the less trustworthy half.** A neutral closed-shell molecule has a negative electron affinity in a basis set without diffuse functions (all six cases measured here, from -1.06 to -3.02 eV), so its anion is a state the basis set only describes. The result says so, with the energy by which the anion lies above the neutral, whenever it is the case. Hirshfeld's f+ moved by at most 0.023 per atom when diffuse functions were added to the three molecules measured here, and its f- by at most 0.009, so the unbound anion is reported and not refused. The authors of the largest published table of Hirshfeld values say the same of f- against f+: generally steadier across basis sets and levels of theory [1].
+
+A negative value is the partition compensating, not an atom that loses density on gaining an electron; it is reported as it came out and flagged. No Hirshfeld f+ or f- was negative in any of the six runs measured here (three molecules, two basis sets).
+
+#### When to use it, when not
+
+Use it to rank the atoms of one molecule as sites for a nucleophile, an electrophile or a radical, and to see how a substituent moves that ranking at one method. Check f+ with a basis set that has diffuse functions before leaning on it. Do not treat the largest value as a prediction of where a reaction goes: the authors of the largest published table of Hirshfeld values report that the atom with the largest value matched the experimentally known site in every case they tested, while noting that their own anion results were not predicted satisfactorily [1], and the same scheme failed to pick the carbonyl carbon of acetaldehyde and acetone in another study [2]. Do not average it over conformers (it is computed for one geometry, and the conformer-averaging option is refused for it). An open-shell species is refused.
+
+#### Search for
+
+Fukui function, dual descriptor, reactive site, Hirshfeld charges
+
+#### Sources
+
+- [1] J. Oláh, C. Van Alsenoy & A. B. Sannigrahi, 'Condensed Fukui Functions Derived from Stockholder Charges: Assessment of Their Performance as Local Reactivity Descriptors', J. Phys. Chem. A 2002, 106, 3885-3890, Tables 1-3. DOI 10.1021/jp014039h. Supports: the finite-difference definitions in populations, the four-decimal Hirshfeld tables used as reference, and the stability of f- against f+
+- [2] P. Thanikaivelan, J. Padmanabhan, V. Subramanian & T. Ramasami, 'Chemical reactivity and selectivity using Fukui functions: basis set and population scheme dependence in the framework of B3LYP theory', Theor. Chem. Acc. 2002, 107, 326-335, Table 5. DOI 10.1007/s00214-002-0352-z. Supports: the same definitions, the Hirshfeld formaldehyde table, and the acetaldehyde and acetone failure
+- [3] P. Bultinck, S. Fias, C. Van Alsenoy, P. W. Ayers & R. Carbó-Dorca, 'Critical thoughts on computing atom condensed Fukui functions', J. Chem. Phys. 2007, 127, 034102, Table I. DOI 10.1063/1.2749518. Supports: why the Hirshfeld population difference is the fragment response, and the negative-value rates of Hirshfeld-I
+- [4] R. K. Roy, S. Pal & K. Hirao, 'On non-negativity of Fukui function indices', J. Chem. Phys. 1999, 110, 8236-8245. DOI 10.1063/1.478792. Supports: non-negative values from Hirshfeld partitioning
+
 <!-- help:calc-orca-opt -->
 ### Geometry Optimization
 
