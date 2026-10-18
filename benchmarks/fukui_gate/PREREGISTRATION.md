@@ -212,7 +212,7 @@ For the record, all 54 differences (published against measured, in f units): med
 | NCO- | 0.0054 | 0.0050 |
 | CNO- | 0.0062 | 0.0098 |
 
-**What this says, and does not.** At B3LYP/6-31G** every one of the 27 decided numbers is within 0.0066 of the published value, and at HF/6-31G** every number but CO's f- is within 0.0101. The calculator
+**What this says, and does not.** At `B3LYP/6-31G**` every one of the 23 decided numbers is within 0.0066 of the published value, and at `HF/6-31G**` 29 of the 31 are within 0.0101 (the other two are CO's f-). The calculator
 did not reproduce the published value of one quantity by 0.0014 more than the tolerance allowed. It does not say the calculator is wrong in general, and it does not say it is right: the verdict is
 as the rule gave it.
 
@@ -229,5 +229,5 @@ The sources' ions were **single-annihilated** UHF (`olah2002`); ORCA's UHF is no
 
 The gate's number (0.6717) is the UHF one, to the digit. The unrestricted cation of CO at HF is heavily spin-contaminated, and the published value lies between the contaminated
 and the uncontaminated ones, as a partially annihilated density would. That is a measured cause for the one failing number, and it is a **difference of method**, not a defect in the arithmetic.
-It is also where a difference would be expected to be largest: CN- at HF, whose neutral radical is the next most contaminated, has the next largest difference (0.0101). A new preregistration may
-build on it; this one does not.
+Whether the other HF cations are contaminated was not measured: CN- at HF has the next largest difference (0.0101), and its cation is the CN radical, a doublet. A new preregistration may
+build on this; this one does not.
