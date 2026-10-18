@@ -495,6 +495,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round68_chain_carbanions_and_cation_parents.py"
+why = "a chain carbanion beside another anion takes the -id- infix (D-315) and an acyclic onium cation that is no part of the suffix group is the parent, not a prefix before an -ol (D-316)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round67_imido_prefix_ester_cations_ring_carbanions.py"
 why = "an N-substituted imido of a demoted imidic acid is cited with its substituents when the name would hold an error (D-309), two cations in an ester are named by the substitutive route (D-310), a cation is the aminium parent beside a nitro group and a hydroxyl (D-311), a ring carbanion beside another anion takes the -id- infix (D-312, D-313) and a zwitterion with a carved alkoxide in a salt takes the anion form (D-314)"
 scope = "core"
