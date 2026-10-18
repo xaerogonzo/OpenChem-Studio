@@ -1,0 +1,75 @@
+{
+  "verdict": "PASS",
+  "exit_code": 0,
+  "tolerate_errors": false,
+  "run": {
+    "run_id": "f51170549fbc4dc8a6cab39e6363c293",
+    "pid": 47352,
+    "started": "2026-10-18T08:11:47+00:00",
+    "script": "benchmarks/visual/fukui_gate_floor.json",
+    "script_sha256": "37931419b222e08928130a83d3707df25a2937fe418043b38b366646fc62ed85",
+    "commit": "41e9c1b57b78f24f977108272342d4270a84a34c",
+    "dirty": true,
+    "lockfile_sha256": "56a63e1efc21dd43e26f7e32f6817db69cd502914ae15d5a5297345bca2dd07d",
+    "ketcher_bundle": "6295fe8c0bc479c2a77e140849d9a4b30df6cb955a4e7d166b7fd521e50d4eb0",
+    "versions": {
+      "python": "3.13.7",
+      "platform": "Windows-11-10.0.26200-SP0",
+      "pyside6": "6.11.1",
+      "qt": "6.11.1",
+      "rdkit": "2025.9.6",
+      "java": ""
+    },
+    "log_start": 1398
+  },
+  "steps": {
+    "in_script": 24,
+    "run": 24
+  },
+  "log_file": {
+    "path": "D:\\Random Programs\\OpenChemStudio_Data\\logs\\drive-47352.log",
+    "start": 1398,
+    "end": 7993
+  },
+  "assertions": [
+    {
+      "step": "fukui_gate_record",
+      "tag": "water@B3LYP/6-31G**",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui_gate_record",
+      "tag": "water@B3LYP/6-31G**",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui_gate_record",
+      "tag": "water@B3LYP/6-31G**",
+      "ok": true,
+      "detail": "recorded; completed"
+    },
+    {
+      "step": "fukui_gate_floor",
+      "tag": "floor",
+      "ok": true,
+      "detail": "F=0.000000"
+    },
+    {
+      "step": "expect_clean",
+      "tag": "",
+      "ok": true,
+      "detail": "no unexpected application errors"
+    }
+  ],
+  "measurements": {
+    "window_ready_epoch": 1792311107.320376
+  },
+  "ledger": {
+    "errors": [],
+    "warnings": [],
+    "driver_failures": [],
+    "dropped": 0
+  }
+}

@@ -1,0 +1,17 @@
+{
+ "floor": 0.0,
+ "limit": 0.005,
+ "usable": true,
+ "same_input_largest": 0.0,
+ "whole_chain_largest": 0.0,
+ "input_fingerprints": {
+  "a1": "251508707de90fbd68cd93bc9cabfe3a2869d43dce67f7a4d72e91f9e4bed2b2",
+  "a2": "251508707de90fbd68cd93bc9cabfe3a2869d43dce67f7a4d72e91f9e4bed2b2",
+  "b": "e45f4e2f3abbe7442afae8cbbbd3f6f5a95acc11d8cb17ba3bc4abf3818aedf9"
+ },
+ "run_ids": {
+  "a1": "66f97034ffdb4d0797685ea2071ebefd",
+  "a2": "86734bf1e7dd4589a931aeb0db3d0951",
+  "b": "27af9158f0f943ec979643fbe2b019b9"
+ }
+}

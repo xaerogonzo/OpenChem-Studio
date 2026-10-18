@@ -462,6 +462,21 @@ class QuantumEngineProvider(ABC):
         """
         return None
 
+    def parse_per_atom_output(
+        self, output_text: str, mol: Chem.Mol, molecule_uuid: str, calc_type: str
+    ) -> list[PerAtomDataset]:
+        """Optional: per-atom datasets (condensed Fukui functions today) this engine's output yields for
+        `calc_type`, each keyed by the atom index of `mol`.
+
+        SEPARATE from `parse_output` because a value per atom is not a `DescriptorValue`'s one scalar, and from
+        `parse_spectrum_output` because the number is not a spectrum. Default empty: most calc types describe
+        the molecule as a whole, and "no per-atom data" is not an error.
+
+        Unlike the spectrum hooks this one may FAIL a run: a calc type whose whole point is the per-atom values
+        reads them in `parse_output` too and raises there, so the run is recorded as failed rather than
+        completed with nothing in it."""
+        return []
+
     def parse_spin_spin_coupling(
         self, output_text: str, calc_type: str
     ) -> dict[tuple[int, int], float] | None:

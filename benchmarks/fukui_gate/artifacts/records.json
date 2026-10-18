@@ -1,0 +1,692 @@
+[
+ {
+  "species": "CO",
+  "level": "B3LYP/6-31G**",
+  "label": "",
+  "attempt": 1,
+  "completed": true,
+  "run_id": "dd0b271ca57248b0888f4b228c39e13d",
+  "status": "completed",
+  "method_basis": "B3LYP 6-31G**",
+  "charge": 0,
+  "multiplicity": 1,
+  "input_fingerprint": "466fc14046d25562437432f3160a41dfa174f2a29e17f91b8a2ed986240e659c",
+  "warnings": [],
+  "symbols": [
+   "C",
+   "O"
+  ],
+  "f_plus": [
+   0.664701,
+   0.335296
+  ],
+  "f_minus": [
+   0.6836909999999999,
+   0.316307
+  ],
+  "f_zero": [
+   0.674196,
+   0.32580149999999997
+  ],
+  "dual": [
+   -0.01898999999999995,
+   0.018988999999999978
+  ],
+  "orca_version": "6.1.1",
+  "unbound_anion_ev": 3.1718261526254694,
+  "canonical_method": "orca_opt",
+  "canonical_fingerprint": "466fc14046d25562437432f3160a41dfa174f2a29e17f91b8a2ed986240e659c",
+  "on_optimized_geometry": true,
+  "problems": []
+ },
+ {
+  "species": "CO2",
+  "level": "B3LYP/6-31G**",
+  "label": "",
+  "attempt": 1,
+  "completed": true,
+  "run_id": "78a92a41ae1f4b66b85ffe6183fd0c8d",
+  "status": "completed",
+  "method_basis": "B3LYP 6-31G**",
+  "charge": 0,
+  "multiplicity": 1,
+  "input_fingerprint": "d6b4255fc4973cc8384eec439cbf015142d211904300240a110a758db8f2dc8b",
+  "warnings": [],
+  "symbols": [
+   "O",
+   "C",
+   "O"
+  ],
+  "f_plus": [
+   0.30113,
+   0.39773600000000003,
+   0.30113
+  ],
+  "f_minus": [
+   0.392188,
+   0.21562399999999998,
+   0.392188
+  ],
+  "f_zero": [
+   0.346659,
+   0.30668,
+   0.346659
+  ],
+  "dual": [
+   -0.09105799999999997,
+   0.18211200000000005,
+   -0.09105799999999997
+  ],
+  "orca_version": "6.1.1",
+  "unbound_anion_ev": 4.4305024211809405,
+  "canonical_method": "orca_opt",
+  "canonical_fingerprint": "d6b4255fc4973cc8384eec439cbf015142d211904300240a110a758db8f2dc8b",
+  "on_optimized_geometry": true,
+  "problems": []
+ },
+ {
+  "species": "H2CO",
+  "level": "B3LYP/6-31G**",
+  "label": "",
+  "attempt": 1,
+  "completed": true,
+  "run_id": "4619f10e96bf4868ad20fcd59a9c0d05",
+  "status": "completed",
+  "method_basis": "B3LYP 6-31G**",
+  "charge": 0,
+  "multiplicity": 1,
+  "input_fingerprint": "02c3d3381e94c18ec096c9ccb7aeea77a47a3a2dbc2b503df160d37f3b137a63",
+  "warnings": [],
+  "symbols": [
+   "C",
+   "O",
+   "H",
+   "H"
+  ],
+  "f_plus": [
+   0.39557600000000004,
+   0.310528,
+   0.146939,
+   0.146956
+  ],
+  "f_minus": [
+   0.229144,
+   0.43329799999999996,
+   0.168769,
+   0.168788
+  ],
+  "f_zero": [
+   0.31236,
+   0.371913,
+   0.157854,
+   0.157872
+  ],
+  "dual": [
+   0.16643200000000005,
+   -0.12276999999999993,
+   -0.021830000000000016,
+   -0.02183199999999999
+  ],
+  "orca_version": "6.1.1",
+  "unbound_anion_ev": 2.2116775450850676,
+  "canonical_method": "orca_opt",
+  "canonical_fingerprint": "02c3d3381e94c18ec096c9ccb7aeea77a47a3a2dbc2b503df160d37f3b137a63",
+  "on_optimized_geometry": true,
+  "problems": []
+ },
+ {
+  "species": "acetone",
+  "level": "B3LYP/6-31G**",
+  "label": "",
+  "attempt": 1,
+  "completed": true,
+  "run_id": "4aaca0fcaf83480e9c688add8ca5540b",
+  "status": "completed",
+  "method_basis": "B3LYP 6-31G**",
+  "charge": 0,
+  "multiplicity": 1,
+  "input_fingerprint": "787ad27452b9038c970c28caa4fa17ee2a214d4ccafb730f46285b1f44b38859",
+  "warnings": [],
+  "symbols": [
+   "C",
+   "C",
+   "C",
+   "O",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "f_plus": [
+   0.05799899999999998,
+   0.237741,
+   0.057990000000000014,
+   0.24891599999999997,
+   0.076346,
+   0.075988,
+   0.046322,
+   0.076408,
+   0.07597,
+   0.046326000000000006
+  ],
+  "f_minus": [
+   0.08142,
+   0.11839399999999997,
+   0.081396,
+   0.37370400000000004,
+   0.06295500000000001,
+   0.06298000000000001,
+   0.046602000000000005,
+   0.06295200000000001,
+   0.062994,
+   0.046603
+  ],
+  "f_zero": [
+   0.0697095,
+   0.1780675,
+   0.069693,
+   0.31131,
+   0.0696505,
+   0.069484,
+   0.046462,
+   0.06968,
+   0.06948199999999999,
+   0.046464500000000006
+  ],
+  "dual": [
+   -0.023421000000000025,
+   0.11934700000000004,
+   -0.023405999999999982,
+   -0.12478800000000007,
+   0.013390999999999986,
+   0.013007999999999992,
+   -0.00028000000000000247,
+   0.013455999999999996,
+   0.012976000000000001,
+   -0.00027699999999999253
+  ],
+  "orca_version": "6.1.1",
+  "unbound_anion_ev": 2.452897572345057,
+  "canonical_method": "orca_opt",
+  "canonical_fingerprint": "787ad27452b9038c970c28caa4fa17ee2a214d4ccafb730f46285b1f44b38859",
+  "on_optimized_geometry": true,
+  "problems": []
+ },
+ {
+  "species": "CN-",
+  "level": "B3LYP/6-31G**",
+  "label": "",
+  "attempt": 1,
+  "completed": true,
+  "run_id": "34c9887d28b64f59a407c8c6c834f854",
+  "status": "completed",
+  "method_basis": "B3LYP 6-31G**",
+  "charge": -1,
+  "multiplicity": 1,
+  "input_fingerprint": "e539f17048ce55227fc0a46aa97e78ffda17e56a08c91e8264fe7baa352c4181",
+  "warnings": [],
+  "symbols": [
+   "C",
+   "N"
+  ],
+  "f_plus": [
+   0.5950469999999999,
+   0.4049539999999999
+  ],
+  "f_minus": [
+   0.599511,
+   0.40048900000000004
+  ],
+  "f_zero": [
+   0.5972789999999999,
+   0.40272149999999995
+  ],
+  "dual": [
+   -0.0044640000000001345,
+   0.004464999999999886
+  ],
+  "orca_version": "6.1.1",
+  "unbound_anion_ev": 13.032039248692822,
+  "canonical_method": "orca_opt",
+  "canonical_fingerprint": "e539f17048ce55227fc0a46aa97e78ffda17e56a08c91e8264fe7baa352c4181",
+  "on_optimized_geometry": true,
+  "problems": []
+ },
+ {
+  "species": "NCO-",
+  "level": "B3LYP/6-31G**",
+  "label": "",
+  "attempt": 1,
+  "completed": true,
+  "run_id": "24512dcf85214177b1763307b69ed792",
+  "status": "completed",
+  "method_basis": "B3LYP 6-31G**",
+  "charge": -1,
+  "multiplicity": 1,
+  "input_fingerprint": "a2132fa75a92949dc49a78704a76f068b24746d5795f42f9245af878223c0f3f",
+  "warnings": [],
+  "symbols": [
+   "N",
+   "C",
+   "O"
+  ],
+  "f_plus": [
+   0.387502,
+   0.358978,
+   0.25351900000000005
+  ],
+  "f_minus": [
+   0.42742800000000003,
+   0.222073,
+   0.350499
+  ],
+  "f_zero": [
+   0.407465,
+   0.2905255,
+   0.302009
+  ],
+  "dual": [
+   -0.03992600000000002,
+   0.13690500000000003,
+   -0.09697999999999996
+  ],
+  "orca_version": "6.1.1",
+  "unbound_anion_ev": 13.371108973256515,
+  "canonical_method": "orca_opt",
+  "canonical_fingerprint": "a2132fa75a92949dc49a78704a76f068b24746d5795f42f9245af878223c0f3f",
+  "on_optimized_geometry": true,
+  "problems": []
+ },
+ {
+  "species": "CNO-",
+  "level": "B3LYP/6-31G**",
+  "label": "",
+  "attempt": 1,
+  "completed": true,
+  "run_id": "04ad0e73e33b49758f7c18c260ff3df1",
+  "status": "completed",
+  "method_basis": "B3LYP 6-31G**",
+  "charge": -1,
+  "multiplicity": 1,
+  "input_fingerprint": "3472b9db35b8c27a007e8c2c14d3690c76dd9639e2a5af2be31bdaecd9dfb720",
+  "warnings": [],
+  "symbols": [
+   "C",
+   "N",
+   "O"
+  ],
+  "f_plus": [
+   0.544495,
+   0.229889,
+   0.22561600000000004
+  ],
+  "f_minus": [
+   0.429364,
+   0.151448,
+   0.41918900000000003
+  ],
+  "f_zero": [
+   0.4869295,
+   0.19066850000000002,
+   0.32240250000000004
+  ],
+  "dual": [
+   0.11513099999999993,
+   0.07844100000000001,
+   -0.193573
+  ],
+  "orca_version": "6.1.1",
+  "unbound_anion_ev": 11.915229179494025,
+  "canonical_method": "orca_opt",
+  "canonical_fingerprint": "3472b9db35b8c27a007e8c2c14d3690c76dd9639e2a5af2be31bdaecd9dfb720",
+  "on_optimized_geometry": true,
+  "problems": []
+ },
+ {
+  "species": "CO",
+  "level": "HF/6-31G**",
+  "label": "",
+  "attempt": 1,
+  "completed": true,
+  "run_id": "2c8a454688a6482796bf2f342d4899f8",
+  "status": "completed",
+  "method_basis": "HF 6-31G**",
+  "charge": 0,
+  "multiplicity": 1,
+  "input_fingerprint": "a376eaf0604b47357a743d74b1c3b74e8727ea934ab910613701ee5d9d2b08c2",
+  "warnings": [],
+  "symbols": [
+   "C",
+   "O"
+  ],
+  "f_plus": [
+   0.674377,
+   0.325619
+  ],
+  "f_minus": [
+   0.671724,
+   0.328275
+  ],
+  "f_zero": [
+   0.6730505,
+   0.326947
+  ],
+  "dual": [
+   0.0026530000000000165,
+   -0.0026559999999999917
+  ],
+  "orca_version": "6.1.1",
+  "unbound_anion_ev": 3.7495796080638915,
+  "canonical_method": "orca_opt",
+  "canonical_fingerprint": "a376eaf0604b47357a743d74b1c3b74e8727ea934ab910613701ee5d9d2b08c2",
+  "on_optimized_geometry": true,
+  "problems": []
+ },
+ {
+  "species": "CO2",
+  "level": "HF/6-31G**",
+  "label": "",
+  "attempt": 1,
+  "completed": true,
+  "run_id": "8b5511ead58248a6a772be248b169c1c",
+  "status": "completed",
+  "method_basis": "HF 6-31G**",
+  "charge": 0,
+  "multiplicity": 1,
+  "input_fingerprint": "3a8383728dc175d7e5ca34d0aefe4697a38b9791781631ae0b3937f4344d7333",
+  "warnings": [],
+  "symbols": [
+   "O",
+   "C",
+   "O"
+  ],
+  "f_plus": [
+   0.292421,
+   0.415155,
+   0.292421
+  ],
+  "f_minus": [
+   0.420543,
+   0.15891299999999997,
+   0.420543
+  ],
+  "f_zero": [
+   0.35648199999999997,
+   0.287034,
+   0.35648199999999997
+  ],
+  "dual": [
+   -0.128122,
+   0.256242,
+   -0.128122
+  ],
+  "orca_version": "6.1.1",
+  "unbound_anion_ev": 5.288867749042558,
+  "canonical_method": "orca_opt",
+  "canonical_fingerprint": "3a8383728dc175d7e5ca34d0aefe4697a38b9791781631ae0b3937f4344d7333",
+  "on_optimized_geometry": true,
+  "problems": []
+ },
+ {
+  "species": "H2CO",
+  "level": "HF/6-31G**",
+  "label": "",
+  "attempt": 1,
+  "completed": true,
+  "run_id": "a04cf4144981460ab448acca2f63c9ef",
+  "status": "completed",
+  "method_basis": "HF 6-31G**",
+  "charge": 0,
+  "multiplicity": 1,
+  "input_fingerprint": "a11fb85f7d825befcd695d6aeab56578af65a0f08bc502f9e71ae03e0c7d0ee9",
+  "warnings": [],
+  "symbols": [
+   "C",
+   "O",
+   "H",
+   "H"
+  ],
+  "f_plus": [
+   0.404887,
+   0.30788200000000004,
+   0.143621,
+   0.14360799999999999
+  ],
+  "f_minus": [
+   0.22627399999999998,
+   0.482076,
+   0.145838,
+   0.145813
+  ],
+  "f_zero": [
+   0.3155805,
+   0.394979,
+   0.1447295,
+   0.1447105
+  ],
+  "dual": [
+   0.17861300000000002,
+   -0.17419399999999996,
+   -0.0022169999999999968,
+   -0.0022050000000000125
+  ],
+  "orca_version": "6.1.1",
+  "unbound_anion_ev": 2.79749855517365,
+  "canonical_method": "orca_opt",
+  "canonical_fingerprint": "a11fb85f7d825befcd695d6aeab56578af65a0f08bc502f9e71ae03e0c7d0ee9",
+  "on_optimized_geometry": true,
+  "problems": []
+ },
+ {
+  "species": "acetone",
+  "level": "HF/6-31G**",
+  "label": "",
+  "attempt": 1,
+  "completed": true,
+  "run_id": "4591cac90abc460e906c6be305017d6d",
+  "status": "completed",
+  "method_basis": "HF 6-31G**",
+  "charge": 0,
+  "multiplicity": 1,
+  "input_fingerprint": "20342d6709baea68b3285c877b62429a8b6df1167f4ae31aa6629cb08194305e",
+  "warnings": [],
+  "symbols": [
+   "C",
+   "C",
+   "C",
+   "O",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "f_plus": [
+   0.051986,
+   0.27421300000000004,
+   0.051986000000000004,
+   0.263487,
+   0.06809,
+   0.0679,
+   0.043197,
+   0.068081,
+   0.06787299999999999,
+   0.043192999999999995
+  ],
+  "f_minus": [
+   0.063697,
+   0.12385399999999999,
+   0.06372699999999999,
+   0.444758,
+   0.05725,
+   0.05728300000000001,
+   0.037445,
+   0.05725899999999999,
+   0.05728400000000001,
+   0.037445
+  ],
+  "f_zero": [
+   0.057841500000000004,
+   0.19903350000000003,
+   0.0578565,
+   0.3541225,
+   0.06267,
+   0.06259150000000001,
+   0.040320999999999996,
+   0.06267,
+   0.0625785,
+   0.040318999999999994
+  ],
+  "dual": [
+   -0.011711000000000006,
+   0.15035900000000005,
+   -0.011740999999999988,
+   -0.18127099999999996,
+   0.010839999999999995,
+   0.010616999999999994,
+   0.005752,
+   0.010822000000000012,
+   0.01058899999999998,
+   0.005747999999999996
+  ],
+  "orca_version": "6.1.1",
+  "unbound_anion_ev": 3.2250907136059084,
+  "canonical_method": "orca_opt",
+  "canonical_fingerprint": "20342d6709baea68b3285c877b62429a8b6df1167f4ae31aa6629cb08194305e",
+  "on_optimized_geometry": true,
+  "problems": []
+ },
+ {
+  "species": "CN-",
+  "level": "HF/6-31G**",
+  "label": "",
+  "attempt": 1,
+  "completed": true,
+  "run_id": "ea852ce114494a30be471ed9170d232f",
+  "status": "completed",
+  "method_basis": "HF 6-31G**",
+  "charge": -1,
+  "multiplicity": 1,
+  "input_fingerprint": "8df724a880b5f01407742e15f90f401495ad00ea6e651d3a005b38913e6bf9ae",
+  "warnings": [],
+  "symbols": [
+   "C",
+   "N"
+  ],
+  "f_plus": [
+   0.5996079999999999,
+   0.400393
+  ],
+  "f_minus": [
+   0.627461,
+   0.37253899999999995
+  ],
+  "f_zero": [
+   0.6135345,
+   0.386466
+  ],
+  "dual": [
+   -0.027853000000000128,
+   0.027854000000000045
+  ],
+  "orca_version": "6.1.1",
+  "unbound_anion_ev": 13.601082708734168,
+  "canonical_method": "orca_opt",
+  "canonical_fingerprint": "8df724a880b5f01407742e15f90f401495ad00ea6e651d3a005b38913e6bf9ae",
+  "on_optimized_geometry": true,
+  "problems": []
+ },
+ {
+  "species": "NCO-",
+  "level": "HF/6-31G**",
+  "label": "",
+  "attempt": 1,
+  "completed": true,
+  "run_id": "d9d5050de95e485b964a5eb283d94f85",
+  "status": "completed",
+  "method_basis": "HF 6-31G**",
+  "charge": -1,
+  "multiplicity": 1,
+  "input_fingerprint": "e3cc599620ec627aac6d031aca4febdf0e48bb1780a8410cc772a727f9339bc6",
+  "warnings": [],
+  "symbols": [
+   "N",
+   "C",
+   "O"
+  ],
+  "f_plus": [
+   0.390065,
+   0.37267000000000006,
+   0.237263
+  ],
+  "f_minus": [
+   0.421409,
+   0.17142100000000002,
+   0.407169
+  ],
+  "f_zero": [
+   0.405737,
+   0.27204550000000005,
+   0.322216
+  ],
+  "dual": [
+   -0.03134399999999998,
+   0.20124900000000004,
+   -0.169906
+  ],
+  "orca_version": "6.1.1",
+  "unbound_anion_ev": 14.225581116658564,
+  "canonical_method": "orca_opt",
+  "canonical_fingerprint": "e3cc599620ec627aac6d031aca4febdf0e48bb1780a8410cc772a727f9339bc6",
+  "on_optimized_geometry": true,
+  "problems": []
+ },
+ {
+  "species": "CNO-",
+  "level": "HF/6-31G**",
+  "label": "",
+  "attempt": 1,
+  "completed": true,
+  "run_id": "541802572c50411eba4d88148d633b9e",
+  "status": "completed",
+  "method_basis": "HF 6-31G**",
+  "charge": -1,
+  "multiplicity": 1,
+  "input_fingerprint": "c490700f4f80908174d525baaf535a722348e4cce378a906a98f57d441d4f450",
+  "warnings": [],
+  "symbols": [
+   "C",
+   "N",
+   "O"
+  ],
+  "f_plus": [
+   0.568801,
+   0.235661,
+   0.19553900000000002
+  ],
+  "f_minus": [
+   0.38123599999999996,
+   0.082594,
+   0.536169
+  ],
+  "f_zero": [
+   0.4750185,
+   0.1591275,
+   0.365854
+  ],
+  "dual": [
+   0.18756500000000004,
+   0.153067,
+   -0.34063
+  ],
+  "orca_version": "6.1.1",
+  "unbound_anion_ev": 12.42347769460193,
+  "canonical_method": "orca_opt",
+  "canonical_fingerprint": "c490700f4f80908174d525baaf535a722348e4cce378a906a98f57d441d4f450",
+  "on_optimized_geometry": true,
+  "problems": []
+ }
+]

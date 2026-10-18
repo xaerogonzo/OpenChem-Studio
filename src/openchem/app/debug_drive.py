@@ -2834,6 +2834,251 @@ class _Driver(QObject):
     # `benchmarks/lewis_gate/PREREGISTRATION.md` fixes what these assert before any number exists; the arithmetic is
     # `app/lewis_gate.py` and is pure. The steps read the stored runs and write what they read.
 
+    def _do_qc_panel_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "qc_panel_report", "tag": "fukui", "expect": {...}}` -- what the Quantum Chemistry panel SHOWS
+        after a job, asserted.
+
+        `expect` takes `results_contains` / `results_excludes` (lists of text the results line must / must not
+        hold), `status_contains` (the status line), `calc_type` (the panel's current Calculation entry),
+        `run_calc_type` (the newest stored run's calculation type), `run_status` (its status value) and
+        `per_atom_outputs` (how many per-atom datasets that run kept). Read off the widget and the stored run,
+        never off what the service published: a result the service sent and the panel did not draw reads as
+        "computed" in one place and "nothing" in the other.
+        """
+        panel = getattr(self._window, "_quantum_chemistry_panel", None)
+        if panel is None:
+            logger.error("OPENCHEM_DRIVE: qc_panel_report -- no Quantum Chemistry panel on this window")
+            return
+        tag = str(step.get("tag", ""))
+        molecule = panel._current_molecule()
+        runs = (
+            panel._result_store_service.qc_runs.runs_for(molecule.uuid)
+            if molecule is not None and panel._result_store_service is not None
+            else []
+        )
+        newest = runs[0] if runs else None
+        report = {
+            "calc_type": panel._calc_type_combo.currentText(),
+            "results": panel._results_label.text(),
+            "status": panel._status_label.text(),
+            "run_calc_type": None if newest is None else newest.calc_type,
+            "run_status": None if newest is None else newest.status.value,
+            "per_atom_outputs": 0 if newest is None else len(newest.results.get("per_atom") or []),
+            "runs": len(runs),
+        }
+        logger.warning("OPENCHEM_DRIVE: qc_panel_report[%s] %s", tag, json.dumps(report, default=str))
+        expect = step.get("expect") or {}
+        problems: list[str] = []
+        for text in expect.get("results_contains") or []:
+            if text not in report["results"]:
+                problems.append(f"results line lacks {text!r}")
+        for text in expect.get("results_excludes") or []:
+            if text in report["results"]:
+                problems.append(f"results line holds {text!r}")
+        for text in expect.get("status_contains") or []:
+            if text not in report["status"]:
+                problems.append(f"status line lacks {text!r}")
+        for key in ("calc_type", "run_calc_type", "run_status", "per_atom_outputs"):
+            if key in expect and report[key] != expect[key]:
+                problems.append(f"{key} is {report[key]!r}, wanted {expect[key]!r}")
+        if step.get("shot"):
+            panel.grab().save(str(step["shot"]))
+            logger.warning("OPENCHEM_DRIVE: wrote %s", step["shot"])
+        if self._record_assertion("qc_panel_report", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT qc panel ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT qc panel FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
+    def _do_fukui_gate_record(self, step: dict[str, Any]) -> None:
+        """`{"do": "fukui_gate_record", "species": "CO", "level": "HF/6-31G**", "attempt": 1,
+        "artifact": "benchmarks/fukui_gate/artifacts/records.json"}` -- append what the newest stored Fukui run of the selected
+        molecule says to a records file (the Fukui gate, `benchmarks/fukui_gate/PREREGISTRATION.md`).
+
+        Read off the STORED RUN (`qc_runs`), never off what a panel shows: its per-atom datasets, the elements of the molblock
+        it ran on, its charge and multiplicity, the ORCA version it recorded, its method and basis, and whether its input
+        fingerprint is that of the molecule's ORCA-optimized conformer (`on_optimized_geometry`). A run that is missing, failed,
+        or at another method than the level names is recorded as NOT completed, with why. An attempt is one line; nothing is
+        replaced, so a repeat is a second line and the rule for repeats (`fukui_gate.settle_attempts`) reads them all.
+        """
+        from openchem.app import fukui_gate
+        from openchem.chem.calculation_input import canonical_conformer, geometry_fingerprint
+        from openchem.domain.quantum_chemistry_run import RunStatus
+
+        panel = getattr(self._window, "_quantum_chemistry_panel", None)
+        molecule = self._window._current_molecule()
+        if panel is None or molecule is None or panel._result_store_service is None:
+            logger.error("OPENCHEM_DRIVE: fukui_gate_record -- no panel, molecule or result store")
+            return
+        species, level = str(step["species"]), str(step["level"])
+        runs = [r for r in panel._result_store_service.qc_runs.runs_for(molecule.uuid) if r.calc_type == "fukui"]
+        problems: list[str] = []
+        record: dict[str, Any] = {
+            "species": species, "level": level, "label": step.get("label", ""), "attempt": int(step.get("attempt", 1)),
+            "completed": False,
+        }
+        if not runs:
+            problems.append("no stored Fukui run for the selected molecule")
+        else:
+            run = runs[0]
+            datasets = {d.property_id: d for d in (run.results.get("per_atom") or [])}
+            record.update({
+                "run_id": run.run_id, "status": run.status.value, "method_basis": run.method_basis,
+                "charge": run.charge, "multiplicity": run.multiplicity, "input_fingerprint": run.input_fingerprint,
+                "warnings": list(run.warnings),
+            })
+            if run.status not in (RunStatus.COMPLETED, RunStatus.COMPLETED_WITH_WARNINGS):
+                problems.append(f"the run's status is {run.status.value}")
+            expected_method = fukui_gate.METHOD_BASIS.get(level, step.get("method_basis", ""))
+            if run.method_basis != expected_method:
+                problems.append(f"the run used {run.method_basis!r}, the level names {expected_method!r}")
+            names = ("orca.fukui_plus", "orca.fukui_minus", "orca.fukui_zero", "orca.fukui_dual")
+            if not all(name in datasets for name in names):
+                problems.append(f"the run holds {sorted(datasets)}, not all four Fukui datasets")
+            if not problems:
+                mol = panel._chemistry_engine.mol_from_molblock(run.input_molblock)
+                size = mol.GetNumAtoms()
+                ordered = {name: [datasets[name].values[i] for i in range(size)] for name in names}
+                parameters = datasets["orca.fukui_plus"].provenance.parameters
+                canonical = canonical_conformer(molecule)
+                record.update({
+                    "symbols": [atom.GetSymbol() for atom in mol.GetAtoms()],
+                    "f_plus": ordered["orca.fukui_plus"], "f_minus": ordered["orca.fukui_minus"],
+                    "f_zero": ordered["orca.fukui_zero"], "dual": ordered["orca.fukui_dual"],
+                    "orca_version": parameters.get("orca_version", ""),
+                    "unbound_anion_ev": parameters.get("unbound_anion_ev"),
+                    "canonical_method": None if canonical is None else canonical.method,
+                    "canonical_fingerprint": "" if canonical is None else geometry_fingerprint(canonical),
+                })
+                record["on_optimized_geometry"] = bool(
+                    canonical is not None and canonical.method == "orca_opt"
+                    and run.calculation_input == "geometry" and run.input_fingerprint == record["canonical_fingerprint"]
+                )
+                record["completed"] = True
+        record["problems"] = problems
+        path = Path(str(step["artifact"]))
+        existing = json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
+        existing.append(record)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(existing, indent=1, default=str), encoding="utf-8")
+        logger.warning(
+            "OPENCHEM_DRIVE: fukui_gate_record %s at %s attempt %s -- completed=%s on_optimized=%s problems=%s -> %s",
+            species, level, record["attempt"], record["completed"], record.get("on_optimized_geometry"), problems, path,
+        )
+        self._record_assertion("fukui_gate_record", f"{species}@{level}", True, "recorded; " + ("; ".join(problems) or "completed"))
+
+    def _do_fukui_gate_floor(self, step: dict[str, Any]) -> None:
+        """`{"do": "fukui_gate_floor", "records": "...floor_records.json", "artifact": "...floor.json"}` -- the noise floor from
+        three recorded runs of one molecule: `a1` and `a2` (the same input twice) and `b` (the whole chain a second time).
+
+        The two repeats of the preregistration: the largest difference of any atom's f+, f-, f0 and dual descriptor. The same-input
+        pair must carry ONE input fingerprint and two different run ids, or the floor is not recorded (a cache hit is not a
+        repeat). Written with the limit it is judged against."""
+        from openchem.app import fukui_gate
+
+        records = json.loads(Path(str(step["records"])).read_text(encoding="utf-8"))
+        by_label = {r.get("label"): r for r in records if r.get("completed")}
+        missing = [label for label in ("a1", "a2", "b") if label not in by_label]
+        if missing:
+            logger.error("OPENCHEM_DRIVE: fukui_gate_floor -- no completed record labelled %s", missing)
+            return
+        a1, a2, b = (fukui_gate.measured_from_record(by_label[label]) for label in ("a1", "a2", "b"))
+        same_input = by_label["a1"]["input_fingerprint"] == by_label["a2"]["input_fingerprint"]
+        distinct = by_label["a1"]["run_id"] != by_label["a2"]["run_id"]
+        if not (same_input and distinct):
+            logger.error(
+                "OPENCHEM_DRIVE: fukui_gate_floor -- the repeat is not a repeat (same input: %s, distinct runs: %s)", same_input, distinct
+            )
+            return
+        same = fukui_gate.repeat_differences(a1, a2)
+        chain = fukui_gate.repeat_differences(a1, b)
+        floor = fukui_gate.noise_floor(same, chain)
+        result = {
+            "floor": floor, "limit": fukui_gate.FLOOR_LIMIT, "usable": floor <= fukui_gate.FLOOR_LIMIT + 1e-9,
+            "same_input_largest": max(same.values()), "whole_chain_largest": max(chain.values()),
+            "input_fingerprints": {k: by_label[k]["input_fingerprint"] for k in ("a1", "a2", "b")},
+            "run_ids": {k: by_label[k]["run_id"] for k in ("a1", "a2", "b")},
+        }
+        path = Path(str(step["artifact"]))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(result, indent=1), encoding="utf-8")
+        logger.warning("OPENCHEM_DRIVE: fukui_gate_floor F=%.6f limit=%s usable=%s -> %s", floor, fukui_gate.FLOOR_LIMIT, result["usable"], path)
+        self._record_assertion("fukui_gate_floor", "floor", True, f"F={floor:.6f}")
+
+    def _do_fukui_gate_begin(self, step: dict[str, Any]) -> None:
+        """`{"do": "fukui_gate_begin", "floor": "benchmarks/fukui_gate/artifacts/floor.json"}` -- REFUSE TO GO ON UNTIL THE NOISE
+        FLOOR IS MEASURED AND USABLE, which is the preregistered order.
+
+        The first step of the gate script: the floor artifact must exist, say it is usable, and be at or below the limit the
+        preregistration fixes. With none the run ends here, before one ORCA job of a gate species has started.
+        """
+        from openchem.app import fukui_gate
+
+        path = Path(str(step.get("floor", "benchmarks/fukui_gate/artifacts/floor.json")))
+        problem = ""
+        try:
+            floor = json.loads(path.read_text(encoding="utf-8"))
+            value = float(floor["floor"])
+            if value > fukui_gate.FLOOR_LIMIT + 1e-9 or not floor.get("usable"):
+                problem = f"the noise floor {value} is above the limit {fukui_gate.FLOOR_LIMIT}"
+        except (OSError, ValueError, KeyError) as exc:
+            problem = f"{path} cannot be used: {exc}"
+        if problem:
+            logger.error("OPENCHEM_DRIVE: fukui_gate_begin REFUSED -- %s", problem)
+            self._record_assertion("fukui_gate_begin", "", False, problem)
+            self._hold_chain = True
+            self._do_quit({})
+            return
+        logger.warning("OPENCHEM_DRIVE: fukui_gate_begin T=%s, noise floor %.6f <= %s", fukui_gate.TOLERANCE, value, fukui_gate.FLOOR_LIMIT)
+        self._record_assertion("fukui_gate_begin", "", True, f"floor {value}")
+
+    def _do_fukui_gate_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "fukui_gate_report", "records": "...reported_records.json", "artifact": "...reported.json"}` -- the REPORTED arm:
+        each published number of the diffuse-basis columns, and of formaldehyde at the application's default level, beside the
+        value a stored run measured. Written, never judged: `fukui_gate.reported_rows` marks every row `decided: false`, and the
+        verdict is `fukui_gate_judge`'s alone."""
+        from openchem.app import fukui_gate
+
+        records = json.loads(Path(str(step["records"])).read_text(encoding="utf-8"))
+        chosen, never, unfinished, conflicts = fukui_gate.settle_attempts(records)
+        runs = {pair: fukui_gate.measured_from_record(record) for pair, record in chosen.items()}
+        rows = fukui_gate.reported_rows(runs)
+        out = {
+            "rows": rows, "not_computed": sorted(f"{m} at {level}" for m, level in never),
+            "unfinished": unfinished, "conflicts": conflicts, "tolerance": fukui_gate.TOLERANCE,
+            "within": sum(1 for row in rows if row["within"]), "total": len(rows),
+        }
+        path = Path(str(step["artifact"]))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(out, indent=1), encoding="utf-8")
+        logger.warning("OPENCHEM_DRIVE: fukui_gate_report %d of %d reported rows within %s (not decided on) -> %s",
+                       out["within"], out["total"], fukui_gate.TOLERANCE, path)
+        self._record_assertion("fukui_gate_report", "reported", True, f"{out['within']} of {out['total']}")
+
+    def _do_fukui_gate_judge(self, step: dict[str, Any]) -> None:
+        """`{"do": "fukui_gate_judge", "records": "...records.json", "floor": "...floor.json", "artifact": "...verdict.json"}` --
+        the gate's verdict, by `fukui_gate.judge_records`, which is pure and tested. The drive's own VERDICT says whether the step
+        ran; the gate's outcome is logged and written beside it, and is not the drive's to fail."""
+        import dataclasses
+
+        from openchem.app import fukui_gate
+
+        records = json.loads(Path(str(step["records"])).read_text(encoding="utf-8"))
+        floor_path = Path(str(step["floor"]))
+        floor = json.loads(floor_path.read_text(encoding="utf-8"))["floor"] if floor_path.exists() else None
+        verdict = fukui_gate.judge_records(records, floor=floor)
+        out = {
+            "outcome": verdict.outcome.value, "reasons": list(verdict.reasons), "anions_outside": list(verdict.anions_outside),
+            "floor": floor, "tolerance": fukui_gate.TOLERANCE,
+            "rows": [dataclasses.asdict(row) for row in verdict.rows],
+            "site_rows": [dataclasses.asdict(row) for row in verdict.site_rows],
+        }
+        path = Path(str(step["artifact"]))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(out, indent=1), encoding="utf-8")
+        logger.warning("OPENCHEM_DRIVE: FUKUI GATE %s -- %d decided rows, %d site rows, reasons=%s -> %s",
+                       verdict.outcome.value.upper(), len(verdict.rows), len(verdict.site_rows), list(verdict.reasons), path)
+        self._record_assertion("fukui_gate_judge", "verdict", True, verdict.outcome.value)
+
     def _do_qc_wait(self, step: dict[str, Any]) -> None:
         """`{"do": "qc_wait", "timeout_ms": 600000, "quiet_ms": 1500, "after_ms": 500}` -- hold the script until the
         Quantum Chemistry service has no job running, steadily for `quiet_ms`.

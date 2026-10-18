@@ -15,10 +15,12 @@ from openchem.domain.conformer import ORCA_OPTIMIZED, ConformerModel
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.quantum_methods import METHOD_BASIS_PRESETS, SOLVENTS  # noqa: F401  (moved to domain/; re-exported)
 from openchem.chem.conceptual_dft import from_delta_scf, from_frontier_energies
+from openchem.chem.fukui import CondensedFukui, condensed_fukui, open_shell_message
 from openchem.chem.orca_led import build_led_input, parse_led
 from openchem.chem.vibrational_modes import classify_mode
 from openchem.domain.scientific_result import (
     NMRSpectrumResult,
+    PerAtomDataset,
     VibrationalMode,
     VibrationalSpectrumResult,
 )
@@ -247,6 +249,9 @@ _CALC_TYPE_KEYWORDS = {
     # Three single points, no Opt: see `_build_delta_scf_input` for why
     # optimizing here would silently make the answer something else.
     "delta_scf": "",
+    # The same three single points as delta-SCF, with Hirshfeld populations printed for each: see
+    # `_build_fukui_input`.
+    "fukui": "",
     # The whole keyword line comes from `chem/orca_led.py` -- LED is
     # defined on DLPNO-CCSD(T) with two auxiliary bases, so the caller's
     # method/basis choice does not apply.
@@ -273,6 +278,49 @@ _VERSION_RE = re.compile(r"Program Version\s+(\S+)\s*-\s*(\w+)")
 _ORBITAL_ROW_RE = re.compile(
     r"^\s*(\d+)\s+(\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$", re.MULTILINE
 )
+
+#: The charge and multiplicity ORCA echoes in each job's input summary. A compound input prints one pair per
+#: job, which is how a Fukui parse knows the three tables are the neutral's, the cation's and the anion's.
+_TOTAL_CHARGE_RE = re.compile(r"Total Charge\s+Charge\s+\.\.\.\.\s+(-?\d+)")
+#: Its companion: the multiplicity each job echoes, so a Fukui parse can insist the neutral is a singlet.
+_MULTIPLICITY_RE = re.compile(r"Multiplicity\s+Mult\s+\.\.\.\.\s+(\d+)")
+#: The title line of ORCA's Hirshfeld block, which starts a table (`parse_hirshfeld_tables`).
+_HIRSHFELD_HEADER = "HIRSHFELD ANALYSIS"
+#: ORCA prints this once per UNRESTRICTED job, so a compound Fukui output holds two, the cation's then the anion's (the neutral closed shell prints none).
+_S_SQUARED_RE = re.compile(r"Expectation value of <S\*\*2>\s*:\s*(-?\d+\.\d+)")
+#: A row of the Hirshfeld table: index, element, charge, spin. Four columns exactly, so the MBIS table (which has
+#: a population column as well) and the valence-shell table cannot match it.
+_HIRSHFELD_ROW_RE = re.compile(r"^\s*(\d+)\s+([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$")
+
+
+def parse_hirshfeld_tables(output_text: str) -> list[list[tuple[str, float]]]:
+    """Every Hirshfeld table in `output_text`, in file order, each a list of (element, charge) in atom order.
+
+    Printed by a job run with ``Print[P_Hirshfeld] 1``; a compound input prints one per job. A table is the rows
+    of four columns under ``ATOM CHARGE SPIN`` and ends at the first line that is not one (the ``TOTAL`` row), so
+    nothing after it can be read as an atom.
+    """
+    lines = output_text.splitlines()
+    tables: list[list[tuple[str, float]]] = []
+    index = 0
+    while index < len(lines):
+        if lines[index].strip() != _HIRSHFELD_HEADER:
+            index += 1
+            continue
+        index += 1
+        while index < len(lines) and not (lines[index].split()[:3] == ["ATOM", "CHARGE", "SPIN"]):
+            index += 1
+        index += 1
+        rows: list[tuple[str, float]] = []
+        while index < len(lines):
+            match = _HIRSHFELD_ROW_RE.match(lines[index])
+            if match is None:
+                break
+            rows.append((match.group(2), float(match.group(3))))
+            index += 1
+        tables.append(rows)
+    return tables
+
 
 # Confirmed live against a real ORCA 6.1.1 `! NMR` run (HF/STO-3G, water):
 #
@@ -363,7 +411,7 @@ _NORMAL_MODES_HEADER = "NORMAL MODES"
 
 HARTREE_TO_KCAL_MOL = 627.5094740631
 
-_CALC_TYPES = ("sp", "opt", "opt_freq", "nmr", "nmr_coupling", "delta_scf", "led")
+_CALC_TYPES = ("sp", "opt", "opt_freq", "nmr", "nmr_coupling", "delta_scf", "fukui", "led")
 
 # Public, chemistry-layer source of truth for calc_type display names and
 # real method/basis presets -- both used to live UI-panel-private in
@@ -380,6 +428,7 @@ CALC_TYPE_LABELS = {
     "NMR (raw shielding)": "nmr",
     "NMR + Spin-Spin Coupling": "nmr_coupling",
     "Hardness / Softness (delta-SCF)": "delta_scf",
+    "Fukui functions (Hirshfeld)": "fukui",
     # Named for what it answers rather than for the method, like every
     # other entry here. The method/basis combo is IGNORED for this one --
     # LED is defined on DLPNO-CCSD(T) and picking B3LYP would produce a
@@ -472,6 +521,9 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
         if calc_type == "delta_scf":
             return self._build_delta_scf_input(header, coordinates, charge, multiplicity)
 
+        if calc_type == "fukui":
+            return self._build_fukui_input(header, coordinates, charge, multiplicity)
+
         if calc_type == "led":
             return self._build_led_input(mol, charge, multiplicity)
 
@@ -543,6 +595,34 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
             if index:
                 lines.extend(["", "$new_job"])
             lines.extend([header, f"* xyz {job_charge} {job_multiplicity}", *coordinates, "*"])
+        return "\n".join(lines) + "\n"
+
+    def _build_fukui_input(
+        self, header: str, coordinates: list[str], charge: int, multiplicity: int
+    ) -> str:
+        """Neutral, cation (N-1 electrons) and anion (N+1) in ONE input, Hirshfeld populations printed for each.
+
+        The delta-SCF input with ``%output Print[P_Hirshfeld] 1`` in every job, and for the same reasons: ORCA
+        runs the three and prints three tables in order, nothing is optimized (the Fukui function is the
+        response at FIXED nuclei, so the ions stay at the neutral geometry), and one job means one output for
+        the service to read. The block sits BEFORE the coordinates, like every ORCA block except ``%eprnmr``.
+
+        **A species with unpaired electrons is refused**, where delta-SCF takes the lower-spin ion and says so.
+        Its cation and anion each have more than one reachable spin state and nothing in the structure says
+        which the Fukui function is about; a guess would produce a table of numbers that looks like an answer.
+        A charged closed-shell species (a carboxylate, an ammonium) is fine: the ions are doublets.
+        """
+        if multiplicity != 1:
+            raise ValueError(open_shell_message(multiplicity))
+        blocks = [(charge, 1), (charge + 1, 2), (charge - 1, 2)]
+        lines: list[str] = []
+        for index, (job_charge, job_multiplicity) in enumerate(blocks):
+            if index:
+                lines.extend(["", "$new_job"])
+            lines.extend(
+                [header, "%output", "  Print[P_Hirshfeld] 1", "end", f"* xyz {job_charge} {job_multiplicity}",
+                 *coordinates, "*"]
+            )
         return "\n".join(lines) + "\n"
 
     def _build_led_input(self, mol: Chem.Mol, charge: int, multiplicity: int) -> str:
@@ -660,10 +740,15 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
             descriptors.extend(self._parse_delta_scf(output_text, molecule_uuid, provenance))
         elif calc_type == "led":
             descriptors.extend(self._parse_led(output_text, molecule_uuid, provenance))
+        elif calc_type == "fukui":
+            # The per-atom datasets are `parse_per_atom_output`'s. Read here too, and the result thrown away,
+            # because this call is the one whose failure fails the RUN: a Fukui job whose three tables will not
+            # read has produced nothing, and "completed" with no numbers would say otherwise.
+            self._condensed_fukui(output_text, mol)
         else:
-            # NOT for delta_scf, and NOT for led. Both write COMPOUND inputs,
+            # NOT for delta_scf, NOT for fukui, and NOT for led. All write COMPOUND inputs,
             # so their output holds three orbital tables and the frontier
-            # parsers take the LAST one -- the ANION's for delta-SCF, the
+            # parsers take the LAST one -- the ANION's for delta-SCF and Fukui, the
             # second FRAGMENT's for LED. Koopmans numbers computed from
             # either would be silently about a different species, and would
             # look entirely reasonable. Every other calc type has one table.
@@ -762,6 +847,99 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
             for term in decomposition.terms
         )
         return descriptors
+
+    def _condensed_fukui(self, output_text: str, mol: Chem.Mol) -> CondensedFukui:
+        """The condensed Fukui functions of a `fukui` job's output, or `OrcaOutputError` saying what is wrong.
+
+        Positional, as delta-SCF is, and checked where ORCA lets it be: each job echoes its own charge and
+        multiplicity, so the three tables are accepted only as neutral, then N-1 electrons, then N+1; and each
+        table lists the elements of `mol` in order, so a table of another molecule cannot be differenced with it.
+        """
+        energies = [float(value) for value in _SCF_ENERGY_RE.findall(output_text)]
+        charges = [int(value) for value in _TOTAL_CHARGE_RE.findall(output_text)]
+        multiplicities = [int(value) for value in _MULTIPLICITY_RE.findall(output_text)]
+        tables = parse_hirshfeld_tables(output_text)
+        squares = [float(value) for value in _S_SQUARED_RE.findall(output_text)]
+        if len(energies) != 3 or len(tables) != 3 or len(charges) != 3:
+            raise OrcaOutputError(
+                "A Fukui job must produce three SCF energies and three Hirshfeld tables (neutral, cation, anion); "
+                f"this output has {len(energies)} energies, {len(tables)} tables and {len(charges)} charge lines. "
+                "One of the ion calculations most likely failed to converge."
+            )
+        if charges[1] != charges[0] + 1 or charges[2] != charges[0] - 1 or multiplicities[:1] != [1]:
+            raise OrcaOutputError(
+                f"The three jobs of this output have charges {charges} and multiplicities {multiplicities}, "
+                "not neutral, cation and anion of a closed-shell molecule in that order; the tables cannot be "
+                "assigned to states."
+            )
+        symbols = [atom.GetSymbol().upper() for atom in mol.GetAtoms()]
+        for state, table in zip(("neutral", "cation", "anion"), tables):
+            if [element.upper() for element, _charge in table] != symbols:
+                raise OrcaOutputError(
+                    f"The {state} state's Hirshfeld table lists {len(table)} atoms that are not this molecule's "
+                    f"{len(symbols)} in order, so its charges cannot be matched to the structure."
+                )
+        result = condensed_fukui(
+            [charge for _element, charge in tables[0]],
+            [charge for _element, charge in tables[1]],
+            [charge for _element, charge in tables[2]],
+            total_charge=charges[0],
+            energy_neutral_hartree=energies[0],
+            energy_anion_hartree=energies[2],
+            # Two values, the cation's then the anion's, or unknown: a restricted ion (or an output that printed another count)
+            # says nothing about its contamination, and nothing is guessed.
+            cation_s_squared=squares[0] if len(squares) == 2 else None,
+            anion_s_squared=squares[1] if len(squares) == 2 else None,
+        )
+        if not result:
+            raise OrcaOutputError(result.reason)
+        return result
+
+    #: (property id suffix, display name, attribute on CondensedFukui). The scheme is in every name so a later
+    #: scheme is a new dataset beside these and not a reinterpretation of them.
+    _FUKUI_DATASETS = (
+        ("fukui_plus", "Fukui f+ (Hirshfeld)", "f_plus"),
+        ("fukui_minus", "Fukui f- (Hirshfeld)", "f_minus"),
+        ("fukui_zero", "Fukui f0 (Hirshfeld)", "f_zero"),
+        ("fukui_dual", "Dual descriptor f+ - f- (Hirshfeld)", "dual"),
+    )
+
+    def parse_per_atom_output(
+        self, output_text: str, mol: Chem.Mol, molecule_uuid: str, calc_type: str
+    ) -> list[PerAtomDataset]:
+        """The four per-atom Fukui datasets of a `fukui` job; nothing for any other calc type."""
+        if calc_type != "fukui":
+            return []
+        result = self._condensed_fukui(output_text, mol)
+        version_match = _VERSION_RE.search(output_text)
+        parameters: dict[str, object] = {
+            "orca_version": version_match.group(1) if version_match else "unknown",
+            "charge_scheme": "hirshfeld",
+            "states": "vertical",
+            "caveat": " ".join(result.caveats),
+        }
+        if result.unbound_anion_ev is not None:
+            parameters["unbound_anion_ev"] = result.unbound_anion_ev
+        if result.cation_s_squared is not None:
+            parameters["cation_s_squared"] = result.cation_s_squared
+            parameters["anion_s_squared"] = result.anion_s_squared
+        provenance = Provenance(
+            created_by="core", method=self.provider_id, parameters=parameters, timestamp=time.time()
+        )
+        return [
+            PerAtomDataset(
+                property_id=f"orca.{suffix}",
+                name=name,
+                units="",
+                method=self.provider_id,
+                molecule_uuid=molecule_uuid,
+                values={index: float(value) for index, value in enumerate(getattr(result, attribute))},
+                category="quantum_chemistry",
+                provenance=provenance,
+                timestamp=provenance.timestamp,
+            )
+            for suffix, name, attribute in self._FUKUI_DATASETS
+        ]
 
     def _parse_delta_scf(
         self, output_text: str, molecule_uuid: str, provenance: Provenance

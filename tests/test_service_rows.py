@@ -50,7 +50,7 @@ def panel(qapp, registry):
 def test_every_service_calculator_declares_a_panel_that_exists(registry):
     """A guard, not a convenience: a row whose panel id is a typo is a button that opens nothing."""
     definitions = _service_definitions(registry)
-    assert len(definitions) == 10, "the ten calculators run from another panel"
+    assert len(definitions) == 11, "the eleven calculators run from another panel"
     for definition in definitions:
         assert definition.execution.panel_id in HELP_TOPIC_BY_DOCK, (
             f"{definition.calculator_id} names panel {definition.execution.panel_id!r}, "
