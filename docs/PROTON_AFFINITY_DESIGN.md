@@ -84,3 +84,18 @@ The **numeric thresholds of the gate are fixed from these sources and that paper
 3. **Benchmark first**, no application code until the gate has run.
 
 **Still open:** the 2024 paper could not be obtained, so the thresholds are fixed from Moser et al. (DFT and multilevel errors against NIST), from the references' own stated uncertainty (about 1.9 kcal/mol) and from the DLPNO papers, unless an alternative DFT benchmark arrives; the preregistration states exactly what each number rests on.
+
+## To run: the primary-arm ORCA benchmark (recorded 2026-10-19; NOT run, deferred by Alex, who would rather run it overnight)
+
+The runner is written, tested on real water and H3O+ output and committed (`benchmarks/proton_affinity/run_pa.py`, `tests/test_proton_affinity_runner.py`); **no benchmark job has been run**, so the preregistration's "before any job" still holds. It builds 74 structures (28 bases and 46 conjugate-acid starts over every rule-enumerated site; `structures` prints the count) of M062X/def2-TZVPD `Opt Freq`, each a few minutes to some tens of minutes at 4 cores (the duration of the whole run is **unmeasured**; the water smoke job took minutes).
+
+From the repository root, on the commit the preregistration froze (no edit to `src/` between the first job and the report, or the report is refused), with nothing else using the cores:
+
+```bash
+uv run --no-sync python benchmarks/proton_affinity/run_pa.py structures
+uv run --no-sync python benchmarks/proton_affinity/run_pa.py run --workers 3 --cores 4     # resumable: run it again after an interruption
+uv run --no-sync python benchmarks/proton_affinity/run_pa.py status
+uv run --no-sync python benchmarks/proton_affinity/run_pa.py report                        # report.txt, verdict.json
+```
+
+Rules that go with it: one stage at a time; never edit a threshold or a rule after the report is seen (an amendment section, disclosed); **the secondary DLPNO arm is a later stage, written and run only if the primary arm passes** (stage order, not a rule change); a failed or partial verdict is the deliverable, as the preregistration says. Machine capacity: `--workers 3 --cores 4` assumes 12 free cores and about 9 GB of RAM (`%maxcore 3000`).

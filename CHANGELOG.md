@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Proton affinity: the benchmark's primary-arm runner (benchmark tooling; nothing in the application changes)
+- `benchmarks/proton_affinity/run_pa.py` builds the starting structures (28 bases, every rule-enumerated protonation site), runs the preregistered M062X/def2-TZVPD `Opt Freq` jobs resumably, reads ORCA's enthalpy and Gibbs energy, overrides its symmetry number and writes the PA and GB verdicts through the tested judge. It is tested on real water and H3O+ output and has not been run; the overnight run is recorded in `docs/PROTON_AFFINITY_DESIGN.md`.
+
 ### Psi4 as a second quantum-chemistry engine (stage 1: single points and optimizations; you install it, the app does not)
 - **A new External Tools tab, Psi4, that is locate-only**: install Psi4 yourself (the project's installer or its conda package; native Windows, no WSL) and point the app at the folder, as for ORCA. Locate runs each candidate with `--version` before accepting it, and Test runs a real two-atom calculation and checks the energy. About **2 GB on disk** (1.87 GB measured; the conda download is about 330 MB).
 - **An Engine box on the Quantum Chemistry panel, shown only when more than one engine is set up** (a machine with ORCA alone sees the form it always had). Psi4 runs **single points and geometry optimizations** at B3LYP, PBE0, M062X and HF; the Calculation list greys out what it does not run, and the solvent and conformer-average controls (ORCA's) are disabled. An optimized geometry lands as a conformer labelled "Psi4 optimized", with the canonical-conformer and keep-on-regenerate rules applying as for ORCA's.
