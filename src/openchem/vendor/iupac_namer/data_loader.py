@@ -1981,10 +1981,12 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     "c1nnc[nH]1":      {"name": "4H-1,2,4-triazole",  "substituent_form": "4H-1,2,4-triazol-4-yl",  "alkyl_stem_ok": False,
                         "atom_locants": {0: 5, 1: 1, 2: 2, 3: 3, 4: 4}},
     # S,N,N
-    "c1nncs1":         {"name": "1,3,4-thiadiazole",   "substituent_form": "1,3,4-thiadiazolyl", "alkyl_stem_ok": False},
+    "c1nncs1":         {"name": "1,3,4-thiadiazole",   "substituent_form": "1,3,4-thiadiazolyl", "alkyl_stem_ok": False,
+                        "atom_locants": {4: 1, 3: 2, 2: 3, 1: 4, 0: 5}},
     "c1ncsn1":         {"name": "1,2,4-thiadiazole",   "substituent_form": "1,2,4-thiadiazolyl", "alkyl_stem_ok": False},
     # O,N,N
-    "c1nnco1":         {"name": "1,3,4-oxadiazole",    "substituent_form": "1,3,4-oxadiazolyl",  "alkyl_stem_ok": False},
+    "c1nnco1":         {"name": "1,3,4-oxadiazole",    "substituent_form": "1,3,4-oxadiazolyl",  "alkyl_stem_ok": False,
+                        "atom_locants": {4: 1, 3: 2, 2: 3, 1: 4, 0: 5}},
     "c1ncon1":         {"name": "1,2,4-oxadiazole",    "substituent_form": "1,2,4-oxadiazolyl",  "alkyl_stem_ok": False},
     # The key WAS `c1conn1`, which is 1,2,3-oxadiazole: the row named 1,2,3-oxadiazole "1,2,5-oxadiazole" (and "furazan-5-yl") and real furazan reached
     # a different route. Corrected in naming round 13 (found by the ring-locant sweep: every attachment on this ring read back wrong). The Blue Book

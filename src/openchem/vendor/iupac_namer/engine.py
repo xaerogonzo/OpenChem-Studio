@@ -18194,7 +18194,11 @@ class SubstitutivePath:
                 _sub_atom = mol.GetAtomWithIdx(_sub_idx)
                 _sub_an = _sub_atom.GetAtomicNum()
                 _sub_bond = mol.GetBondBetweenAtoms(_anchor_idx_im, _sub_idx)
-                _sub_bo = int(_sub_bond.GetBondTypeAsDouble()) if _sub_bond else 1
+                if _sub_bond is None:
+                    # Only the atoms on the anchor itself are the group's `=N` and `-OH`. The loop reached the N-substituent's own atoms as well, and an ether oxygen in it (`=N-C6H4-OMe`)
+                    # was cut as a second `hydroxy` of the anchor, a carve of two atoms with no bond between them: the name carried an ErrorTree (naming round 73)
+                    continue
+                _sub_bo = int(_sub_bond.GetBondTypeAsDouble())
                 if _sub_an == 7 and _IMIDO_RETRY.on and any(nb.GetIdx() != _anchor_idx_im and nb.GetAtomicNum() > 1 for nb in _sub_atom.GetNeighbors()):
                     # An N-SUBSTITUTED imido (`=N-CH3`) is cited with its substituents, `(methylimino)`, when the name came out with an error in it (the retry in `_name_smiles_bound`); `oxo_fallback` names the bare N only and left
                     # the N-methyl unclaimed, an ErrorTree inside the name (naming round 67, D-309: `CCSC(S)=NC`).

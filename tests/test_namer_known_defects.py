@@ -4629,6 +4629,16 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-333", "CC[N-]C(=[18O])CC(SC)SC", "[3,3-bis(methylsulfanyl)(18O)propanoyl](ethyl)azanide",
      "[3,3-bis(methylsulfanyl)propan-1-(18O)oyl](ethyl)azanide",
      "the acyl on an amide anion is the acid's name with its ending rewritten, so its oxygen kept a located citation OPSIN cannot read in an acyl; a chain takes it bare before the stem"),
+    # Naming round 73 (D-334 .. D-336).
+    ("D-334", "C=C1C=CC(=C(N)N)C=C1", "(4-methylidenebenzen-1-ylidene)methanediamine",
+     "(4-methylidenephenyl)methanediamine",
+     "`phenyl` is joined by a single bond; a benzene ring joined by a DOUBLE bond is a quinoid ring, and the name read back as a different compound with two more hydrogens"),
+    ("D-335", "CN=c1[nH]nc(C)s1", "5-methyl-2-(methylimino)-3H-1,3,4-thiadiazole",
+     "2-methyl-5-(methylimino)-1,3,4-thiadiazole",
+     "1,3,4-thiadiazole and 1,3,4-oxadiazole were curated without `atom_locants`, so the ring nitrogen's hydrogen could not be placed and was read back on the carbon"),
+    ("D-336", "OC(=O)CN(C)C(O)=Nc1ccccc1OC", "{[hydroxy(2-methoxyphenylimino)methyl](methyl)amino}acetic acid",
+     "(methyl{[NAMING ERROR: Substitutive plan for parent 'methane' leaves heavy atoms [0, 3, 4, 5, 6, 9, 10] unclaimed]}amino)acetic acid",
+     "the split of a demoted imidic acid into `imino` and `hydroxy` visited every atom of the group, took an ether oxygen on the imine for a second hydroxy and cut a substituent with no bond to the anchor"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",
