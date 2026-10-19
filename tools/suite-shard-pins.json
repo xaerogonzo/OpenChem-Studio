@@ -1260,6 +1260,7 @@
   "tests/test_fukui_gate.py": 2,
   "tests/test_fukui_gate_2.py": 3,
   "tests/test_fukui_gate_3.py": 3,
+  "tests/test_fukui_gate_4.py": 1,
   "tests/test_fukui_plan.py": 1,
   "tests/test_fukui_states.py": 0,
   "tests/test_functional_group_features.py": 1,

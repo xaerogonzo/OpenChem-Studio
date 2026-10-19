@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 28f23141ada002d28bb00dfdfb01d889ce17e8e40af49be5909306ad0b1efed9 -->
+<!-- SOURCE SHA256: 8df430f474ac78a81e44ac07599be9499dab352744c6d8b0cb04090f616d5a03 -->
 
 # Sources
 
@@ -141,6 +141,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`clavier2010`](#clavier2010) | literature | shipped | citation |
 | [`cod`](#cod) | dataset | shipped | citation |
 | [`coppens2006`](#coppens2006) | literature | **not shipped** | citation |
+| [`cradock1973`](#cradock1973) | literature | shipped | citation + claim |
 | [`crc_handbook`](#crc_handbook) | reference_table | shipped | citation + claim |
 | [`cwc_annex_on_chemicals`](#cwc_annex_on_chemicals) | legal | shipped | citation + claim |
 | [`dea_listed_chemicals`](#dea_listed_chemicals) | legal | shipped | citation |
@@ -166,6 +167,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`gavezzotti1983`](#gavezzotti1983) | literature | reference only | citation + claim |
 | [`geidl2015`](#geidl2015) | literature | reference only | citation |
 | [`glasser1995`](#glasser1995) | literature | shipped | citation |
+| [`gleiter1972`](#gleiter1972) | literature | shipped | citation + claim |
 | [`goller2022`](#goller2022) | literature | shipped | citation + claim |
 | [`guo2006`](#guo2006) | literature | reference only | citation + claim |
 | [`gutmann1976`](#gutmann1976) | literature | shipped | citation + claim |
@@ -184,6 +186,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`harmony1979`](#harmony1979) | literature | reference only | citation + claim |
 | [`hejazi2016`](#hejazi2016) | literature | reference only | citation |
 | [`hlb`](#hlb) | reference_table | reference only | citation |
+| [`holland2013`](#holland2013) | literature | shipped | citation + claim |
 | [`hopfinger2009`](#hopfinger2009) | dataset | shipped | citation |
 | [`huber1979`](#huber1979) | literature | reference only | citation + claim |
 | [`ich_m9`](#ich_m9) | standard | shipped | citation + claim |
@@ -204,6 +207,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`kendall2008`](#kendall2008) | literature | shipped | citation |
 | [`ketcher`](#ketcher) | software | shipped | citation |
 | [`klapotke2017`](#klapotke2017) | literature | shipped | citation + claim |
+| [`kobayashi1982`](#kobayashi1982) | literature | shipped | citation + claim |
 | [`koes2013`](#koes2013) | literature | **not shipped** | citation |
 | [`kruszewski1972`](#kruszewski1972) | literature | shipped | citation |
 | [`krygowski1993`](#krygowski1993) | literature | shipped | citation + claim |
@@ -253,11 +257,13 @@ next run of `tools/build_lewis_parameters.py`.
 | [`orca`](#orca) | software | shipped | citation |
 | [`osha_1910_1000`](#osha_1910_1000) | legal | shipped | citation + claim |
 | [`parr_pearson1983`](#parr_pearson1983) | literature | shipped | citation |
+| [`patanen2021`](#patanen2021) | literature | shipped | citation + claim |
 | [`pdg2024`](#pdg2024) | literature | shipped | citation + claim |
 | [`pearson1963`](#pearson1963) | literature | reference only | citation |
 | [`pearson1968`](#pearson1968) | literature | reference only | citation |
 | [`pearson1988`](#pearson1988) | literature | shipped | citation + claim |
 | [`perry2025`](#perry2025) | literature | reference only | citation |
+| [`piancastelli1983`](#piancastelli1983) | literature | shipped | citation + claim |
 | [`pkasolver`](#pkasolver) | software | shipped | citation |
 | [`platts1999`](#platts1999) | literature | **not shipped** | citation + claim |
 | [`plenio1997`](#plenio1997) | literature | shipped | citation + claim |
@@ -278,16 +284,19 @@ next run of `tools/build_lewis_parameters.py`.
 | [`roy1999`](#roy1999) | literature | shipped | citation + claim |
 | [`ruttkies2016`](#ruttkies2016) | literature | reference only | citation |
 | [`sablon2007`](#sablon2007) | literature | shipped | citation + claim |
+| [`schafer1973`](#schafer1973) | literature | shipped | citation + claim |
 | [`schindler2021`](#schindler2021) | literature | reference only | citation |
 | [`schindler2021_correction`](#schindler2021_correction) | literature | reference only | citation |
 | [`schott1989`](#schott1989) | literature | shipped | citation + claim |
 | [`sci_downloads_note`](#sci_downloads_note) | reference_table | reference only | citation |
 | [`sefcik2002`](#sefcik2002) | literature | reference only | citation + claim |
 | [`shannon1976`](#shannon1976) | literature | shipped | citation + claim |
+| [`shojaei2010`](#shojaei2010) | literature | shipped | citation + claim |
 | [`shrake1973`](#shrake1973) | literature | shipped | citation |
 | [`snider2007`](#snider2007) | literature | reference only | citation |
 | [`souvignier2016`](#souvignier2016) | literature | shipped | citation |
 | [`stefanis2008`](#stefanis2008) | literature | shipped | citation + claim |
+| [`stener2011`](#stener2011) | literature | shipped | citation + claim |
 | [`stovall2015`](#stovall2015) | literature | shipped | citation + claim |
 | [`su2019`](#su2019) | literature | shipped | citation + claim |
 | [`swope1982`](#swope1982) | literature | shipped | citation + claim |
@@ -299,6 +308,8 @@ next run of `tools/build_lewis_parameters.py`.
 | [`tolman1977`](#tolman1977) | literature | shipped | citation |
 | [`tosco2011`](#tosco2011) | literature | shipped | citation + claim |
 | [`tosco2014`](#tosco2014) | literature | reference only | citation |
+| [`trofimov2008`](#trofimov2008) | literature | shipped | citation + claim |
+| [`trofimov2017`](#trofimov2017) | literature | shipped | citation + claim |
 | [`trott_olson2010`](#trott_olson2010) | literature | shipped | citation + claim |
 | [`trygubenko2002`](#trygubenko2002) | literature | shipped | citation + claim |
 | [`tsei`](#tsei) | reference_table | reference only | citation |
@@ -1219,6 +1230,220 @@ enolate's formula is printed "CH2CO-" and is read as the enolate of acetaldehyde
 with its carbons in formula order, which is a reading; thiophene's published
 values put the largest ring value on position 3 where experiment says 2, and the
 gate's statement is about the published ordering only.
+
+### gleiter1972
+
+<a id="gleiter1972"></a>
+
+> R. Gleiter, E. Heilbronner & V. Hornung, 'Photoelectron Spectra of Azabenzenes and Azanaphthalenes: I. Pyridine, diazines, s-triazine and s-tetrazine', Helv. Chim. Acta 1972, 55, 255-274, Table 2.
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/hlca.19720550130](https://doi.org/10.1002/hlca.19720550130) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-18 |
+| Local copy | `gleiter1972.pdf` (not checked) |
+| Used by | `src/openchem/app/fukui_gate_4.py`, `tests/test_fukui_gate_4.py`, `benchmarks/fukui_gate_4/PREREGISTRATION.md` |
+
+THE ASSIGNED VERTICAL IONIZATION POTENTIALS OF THE THREE DIAZINES, the reference of the fourth Fukui gate (`benchmarks/fukui_gate_4/`). Table 2 (page 265) lists, for
+pyridazine, pyrimidine and pyrazine, each observed vertical IP beside its orbital: pyridazine 9.31 (b2, sigma n-), 10.61 (a2, pi), 11.3 and 11.3, 13.9; pyrimidine 9.73 (b2,
+sigma n-), 10.41 (b1, pi), 11.23 (a1, sigma n+), 11.39 (a2, pi), 13.9; pyrazine 9.63 (ag, sigma n+), 10.18 (b2g, pi), 11.35 (b2u, sigma n-), 11.77 (b1g, pi), 13.9. The gate
+uses the first two of each. THE NUMBERS WERE READ OFF THE PAGE IMAGE, not the text layer, whose columns run into the calculated orbital energies. The file's first page opens on the
+tail of the preceding article (its bibliography), as the repository's research README warns can happen; the paper begins on the same page.
+
+### piancastelli1983
+
+<a id="piancastelli1983"></a>
+
+> M. N. Piancastelli, P. R. Keller, J. W. Taylor, F. A. Grimm & T. A. Carlson, 'Angular distribution parameter as a function of photon energy for some mono- and diazabenzenes and its use for orbital assignment', J. Am. Chem. Soc. 1983, 105, 4235-4239.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ja00351a019](https://doi.org/10.1021/ja00351a019) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-18 |
+| Local copy | `piancastelli1983.pdf` (not checked) |
+| Used by | `src/openchem/app/fukui_gate_4.py`, `tests/test_fukui_gate_4.py`, `benchmarks/fukui_gate_4/PREREGISTRATION.md` |
+
+THE EXPERIMENTAL CONFIRMATION OF THE n, pi, n, pi ORDER of pyrazine (bands at 9.63, 10.18, 11.35, 11.77 eV) and pyrimidine (9.73, 10.41, 11.23, 11.39), from the photon-energy
+dependence of the angular distribution parameter beta: flat for the n bands, rising for the pi bands, even where two bands overlap (pyrimidine's third and fourth). The band
+energies are the ones Gleiter 1972 printed, so this paper confirms the CHARACTER of the states and is not a second measurement of their energies. The gate uses it for the
+characters only.
+
+### shojaei2010
+
+<a id="shojaei2010"></a>
+
+> S. H. R. Shojaei, B. Hajgato & M. S. Deleuze, 'Electron Momentum Spectroscopy of pyrimidine at the benchmark ADC(3) level', Chem. Phys. Lett. 2010, 498, 45-51, Table 1.
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/j.cplett.2010.08.055](https://doi.org/10.1016/j.cplett.2010.08.055) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-18 |
+| Local copy | `shojaei2010.pdf` (not checked) |
+| Used by | `src/openchem/app/fukui_gate_4.py`, `tests/test_fukui_gate_4.py`, `benchmarks/fukui_gate_4/PREREGISTRATION.md` |
+
+PYRIMIDINE'S IONIZATION SPECTRUM AT THE BENCHMARK LEVEL. Table 1 (page 47): ADC(3)/cc-pVDZ++ 9.991 (7b2, n), 10.473 (2b1, pi), 11.364 (1a2, pi), 11.471 (11a1, n); OVGF/aug-cc-pVTZ
+9.880, 10.482, 11.282, 11.406; the photoelectron spectrum 9.8, 10.5, 11.2, 11.5 and the electron-momentum spectrum 9.8, 10.5, 11.3 (a column of the table). The gate takes the
+gap between the first two bands from the largest basis of each method (0.48 and 0.60 eV) and from the PES column (0.70 eV). Read off the page image.
+
+### holland2013
+
+<a id="holland2013"></a>
+
+> D. M. P. Holland, D. A. Shaw, S. Coriani, M. Stener & P. Decleva, 'A study of the valence shell electronic states of pyridazine by photoabsorption spectroscopy and time-dependent density functional theory calculations', J. Phys. B 2013, 46, 175103, Table 1.
+
+| | |
+| --- | --- |
+| Identifier | [10.1088/0953-4075/46/17/175103](https://doi.org/10.1088/0953-4075/46/17/175103) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-18 |
+| Local copy | `holland2013.pdf` (not checked) |
+| Used by | `src/openchem/app/fukui_gate_4.py`, `tests/test_fukui_gate_4.py`, `benchmarks/fukui_gate_4/PREREGISTRATION.md` |
+
+PYRIDAZINE'S OUTER-VALENCE VERTICAL IONIZATION ENERGIES, CAS-SCF and NEVPT2 at cc-pVTZ with the experiment. Table 1 (page 4): 8b2 (nN) 8.260 (CAS), 9.182 (SC-NEVPT2), 9.141 (PC-NEVPT2),
+experiment 9.27; 1a2 (pi) 9.692, 10.683, 10.659, 10.61; 2b1 (pi) 10.059, 11.092, 11.079, 11.2; 10a1 (nN) 10.512, 11.264, 11.232, 11.3. The sequence is n, pi, pi, n. The gate takes the
+gap between the first two states from the experiment (1.34 eV) and the two NEVPT2 columns (1.50 and 1.52 eV), never from the CAS-SCF column, which has no dynamic correlation.
+
+### stener2011
+
+<a id="stener2011"></a>
+
+> M. Stener, P. Decleva, D. M. P. Holland & D. A. Shaw, 'A study of the valence shell electronic states of pyrimidine and pyrazine by photoabsorption spectroscopy and time-dependent density functional theory calculations', J. Phys. B 2011, 44, 075203, Table 1.
+
+| | |
+| --- | --- |
+| Identifier | [10.1088/0953-4075/44/7/075203](https://doi.org/10.1088/0953-4075/44/7/075203) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-18 |
+| Local copy | `stener2011.pdf` (not checked) |
+| Used by | `src/openchem/app/fukui_gate_4.py`, `tests/test_fukui_gate_4.py`, `benchmarks/fukui_gate_4/PREREGISTRATION.md` |
+
+THE SECOND EXPERIMENTAL TABLE OF THE DIAZINES' LOWEST BANDS, taken from Asbrink et al. for pyrimidine and Fridh et al. for pyrazine. Table 1 (page 3), the Experiment columns: pyrimidine 9.7 (7b2, nN), 10.5 (2b1, pi), 11.2 (11a1, nN), 11.5 (1a2, pi); pyrazine 9.4 (6ag, nN), 10.2 (1b1g, pi), 11.4 (5b1u, nN), 11.7 (1b2g, pi). Their
+Theory column is LB94 orbital eigenvalues and is not used. The gap between the first two bands is 0.8 eV in both, where Gleiter's is 0.68 and 0.55: the spread between sources
+of one gap that the gate's tolerance has to cover. The two Asbrink et al. papers themselves are held (`asbrink1972_pyrimidine.pdf`, `asbrink1972_pyridazine.pdf`) but were not read for the gate.
+
+### patanen2021
+
+<a id="patanen2021"></a>
+
+> M. Patanen, A. R. Abid, S. T. Pratt, A. Kivimaki, A. B. Trofimov, A. D. Skitnevskaya, E. K. Grigoricheva, E. V. Gromov, I. Powis & D. M. P. Holland, 'Valence shell photoelectron angular distributions and vibrationally resolved spectra of imidazole: A combined experimental-theoretical study', J. Chem. Phys. 2021, 155, 054304, Table II.
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/5.0058983](https://doi.org/10.1063/5.0058983) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-18 |
+| Local copy | `patanen2021.pdf` (not checked) |
+| Used by | `src/openchem/app/fukui_gate_4.py`, `tests/test_fukui_gate_4.py`, `benchmarks/fukui_gate_4/PREREGISTRATION.md` |
+
+IMIDAZOLE'S OUTER-VALENCE STATES AT SEVEN LEVELS OF THEORY. Table II (page 5), vertical ionization energies at cc-pVTZ: X 2A'' (3a'', pi) HF 8.63, OVGF 8.82, IP-ADC(3) 8.85, Dyson ADC(3) 8.89, CCSD 8.91, CC3 8.85, best
+theoretical estimate 9.02, experiment 9.1; A 2A' (15a', n sigma) 11.85, 10.27, 10.47, 10.56, 10.15, 10.08, 10.30, 10.4; B 2A'' (2a'', pi) 10.85, 10.25, 10.34, 10.40, 10.32, 10.30, 10.51, 10.4. The
+lowest state is the pi hole and the lowest sigma state lies 1.2 to 1.7 eV above it. The Koopmans (HF) column is not used. Read off the page image. The licence is exclusive
+(AIP Publishing), so only the numbers the gate uses are transcribed.
+
+### cradock1973
+
+<a id="cradock1973"></a>
+
+> S. Cradock, R. H. Findlay & M. H. Palmer, 'The molecular energy levels of the azoles: a study by photoelectron spectroscopy and ab initio molecular orbital calculations', Tetrahedron 1973, 29, 2173-2181, Table 1.
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/0040-4020(73)80161-9](https://doi.org/10.1016/0040-4020(73)80161-9) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-18 |
+| Local copy | `cradock1973.pdf` (not checked) |
+| Used by | `src/openchem/app/fukui_gate_4.py`, `tests/test_fukui_gate_4.py`, `benchmarks/fukui_gate_4/PREREGISTRATION.md` |
+
+THE ONLY SOURCE IN HAND FOR PYRAZOLE'S ASSIGNED BANDS. Table 1 (page 2177), vertical ionization potentials and assigned levels: pyrazole 9.15 (3a'', pi), 9.88 (2a'', pi), 10.7 (15a', n sigma), then 11.1 and 13.6. An older (1973) He I
+assignment supported by ab initio eigenvalues, with a single value per band: the gate uses the gap from the lowest pi state to the lowest sigma state (1.55 eV) and is therefore
+only as good as one old table. Read off the page image (the text layer is a poor OCR).
+
+### kobayashi1982
+
+<a id="kobayashi1982"></a>
+
+> T. Kobayashi, T. Kubota, K. Ezumi & C. Utsunomiya, 'Photoelectron Angular Distribution Study of Some Isoxazoles Combined with Perturbation Theoretic Approach', Bull. Chem. Soc. Jpn. 1982, 55, 3915-3919, Table 1.
+
+| | |
+| --- | --- |
+| Identifier | [10.1246/bcsj.55.3915](https://doi.org/10.1246/bcsj.55.3915) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-18 |
+| Local copy | `kobayashi1982.pdf` (not checked) |
+| Used by | `src/openchem/app/fukui_gate_4.py`, `tests/test_fukui_gate_4.py`, `benchmarks/fukui_gate_4/PREREGISTRATION.md` |
+
+OXAZOLE'S FIRST THREE BANDS, SECOND-HAND. Table 1 (page 3917) gives oxazole's observed vertical ionization energies 9.83, 11.19 and 11.80 eV, marked "taken from Ref. 2", which is Palmer, Findlay and Egdell (1977, not
+held). The paper's own contribution is the ASSIGNMENT: a perturbation-theoretic reading against furan agrees with Palmer's ab initio assignment of the first and third bands to pi and the second to n sigma, and the band shapes agree. The gate
+uses the order and the gap from the first band to the second (1.36 eV). The file is a scan with no text layer; the table was read from the page image.
+
+### trofimov2008
+
+<a id="trofimov2008"></a>
+
+> A. B. Trofimov, I. L. Zaitseva, T. E. Moskovskaya & N. M. Vitkovskaya, 'Theoretical investigation of photoelectron spectra of furan, pyrrole, thiophene, and selenole [sic]', Chem. Heterocycl. Compd. 2008, 44, 1101, Table 2.
+
+| | |
+| --- | --- |
+| Identifier | [10.1007/s10593-008-0159-5](https://doi.org/10.1007/s10593-008-0159-5) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-18 |
+| Local copy | `trofimov2008.pdf` (not checked) |
+| Used by | `src/openchem/app/fukui_gate_4.py`, `tests/test_fukui_gate_4.py`, `benchmarks/fukui_gate_4/PREREGISTRATION.md` |
+
+THE FIVE-MEMBERED RINGS' OUTER PI BANDS AT THE ADC(3) LEVEL, with the experiment. Table 2 (page 1104): 1a2 (pi3) and 2b1 (pi2) energies, ADC(3)/6-311G* and experiment: furan 8.7 and 10.2, 9.0 and 10.4;
+pyrrole 8.1 and 8.8, 8.3 and 9.3; thiophene 8.7 and 9.0, 9.0 and 9.5; selenophene 2b1 8.7 and 1a2 8.7 (OVGF 8.7 and 8.6), experiment 9.0 and 9.1. THE TITLE IS PRINTED "SELENOLE" and the abstract says selenophene.
+Table 1 gives each orbital's population on each atom: 1a2 has none on the heteroatom (selenophene's 0.01) and 2b1 much (0.56). Used for the gate's calibration (thiophene, pyrrole, furan) and for selenophene's reference.
+
+### trofimov2017
+
+<a id="trofimov2017"></a>
+
+> A. B. Trofimov, D. M. P. Holland, I. Powis, R. C. Menzies, A. W. Potts, L. Karlsson, E. V. Gromov, I. L. Badsyuk & J. Schirmer, 'Ionization of pyridine: Interplay of orbital relaxation and electron correlation', J. Chem. Phys. 2017, 146, 244307, Table V.
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.4986405](https://doi.org/10.1063/1.4986405) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-18 |
+| Local copy | `trofimov2017.pdf` (not checked) |
+| Used by | `src/openchem/app/fukui_gate_4.py`, `tests/test_fukui_gate_4.py`, `benchmarks/fukui_gate_4/PREREGISTRATION.md` |
+
+PYRIDINE'S FOUR LOWEST CATION STATES AT THE HIGHEST LEVEL, the calibration of the fourth Fukui gate. Table V (page 9), vertical ionization energies at cc-pVTZ for 7a1 (sigma N lone pair), 1a2 (pi), 2b1 (pi), 5b2 (sigma): RHF/delta-SCF 8.64, 8.59, 9.46, 13.24; UHF/delta-SCF 8.34, 8.17, 8.83, 12.89;
+ADC(3) 10.06, 9.65, 10.39, 13.06; EOM-IP-CCSD 9.69, 9.72, 10.43, 12.87; EOM-IP-CCSDT 9.57, 9.72, 10.42, 12.74. THE LOWEST STATE DEPENDS ON THE METHOD: delta-SCF and ADC(3) put the pi state lowest, EOM-IP-CCSD(T) and CASPT2
+the sigma state, by 0.15 eV at the highest level, so the gate does not decide pyridine's order and uses its ladder only to check the reading. The supplement (`trofimov2017_si.pdf`) is figures only (the relaxation, correlation and
+combined effect of each state on the density).
+
+### schafer1973
+
+<a id="schafer1973"></a>
+
+> W. Schafer, A. Schweig, S. Gronowitz, A. Taticchi & F. Fringuelli, 'Reversal in the Sequence of Two Highest Occupied Molecular Orbitals in the Series Thiophen, Selenophen, and Tellurophen', J. Chem. Soc., Chem. Commun. 1973, 541-542.
+
+| | |
+| --- | --- |
+| Identifier | [10.1039/c39730000541](https://doi.org/10.1039/c39730000541) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-18 |
+| Local copy | `schafer1973_chalcogenophene_reversal.pdf` (not checked) |
+| Used by | `src/openchem/app/fukui_gate_4.py`, `tests/test_fukui_gate_4.py`, `benchmarks/fukui_gate_4/PREREGISTRATION.md` |
+
+THE QUALITATIVE REFERENCE FOR SELENOPHENE: the two highest pi orbitals reverse from thiophene (1a2 above 2b1) through selenophene, where "both MOs are nearly degenerate", to tellurophene (2b1 above 1a2). The 1a2 orbital has a node at the heteroatom and so
+is little affected by it; the 2b1 orbital is about 80 % on sulphur in thiophene (a CNDO/2 value) and its band is narrow. The gate takes from it the CHARACTER of the two selenophene states (a2: no spin on the heteroatom; b1: much) and that they are
+near-degenerate; the numbers are Trofimov 2008's. It prints no energies.
 
 ### sablon2007
 
