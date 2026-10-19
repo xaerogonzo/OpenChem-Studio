@@ -86,9 +86,9 @@ def test_a_balanced_set_exactly_at_the_limits_passes_and_just_beyond_each_does_n
     assert judge.judge(_records(at), "primary")["verdict"] == judge.PASS
     assert judge.judge(_records([2.51, -2.51, 2.51, -2.51]), "primary")["verdict"] == judge.PARTIAL  # MAE just above 2.5
 
-    five = [5.0, -5.0, 0.0, 0.0]  # max error exactly 5.0, MAE 2.5
+    five = [5.0, -5.0, 0.0, 0.0, 0.0, 0.0]  # max error exactly 5.0, MAE 1.67: only the maximum can fail it
     assert judge.judge(_records(five), "primary")["verdict"] == judge.PASS
-    assert judge.judge(_records([5.01, -5.01, 0.0, 0.0]), "primary")["verdict"] == judge.PARTIAL  # one error above 5
+    assert judge.judge(_records([5.01, -5.01, 0.0, 0.0, 0.0, 0.0]), "primary")["verdict"] == judge.PARTIAL  # one error above 5
 
     bias = [1.5, 1.5, 1.5, 1.5]  # MSE exactly 1.5
     assert judge.judge(_records(bias), "primary")["verdict"] == judge.PASS
@@ -98,6 +98,13 @@ def test_a_balanced_set_exactly_at_the_limits_passes_and_just_beyond_each_does_n
 def test_partial_ends_at_a_mean_absolute_error_of_three_and_a_half():
     assert judge.judge(_records([3.5, -3.5]), "primary")["verdict"] == judge.PARTIAL
     assert judge.judge(_records([3.51, -3.51]), "primary")["verdict"] == judge.FAIL
+
+
+def test_the_error_is_computed_minus_reference_so_an_overestimate_is_positive():
+    result = judge.stats(_records([3.0, 1.0]))
+
+    assert (result.mse, result.mae, result.max_abs) == (2.0, 2.0, 3.0)
+    assert judge.stats(_records([-3.0, -1.0])).mse == -2.0
 
 
 def test_the_secondary_arm_passes_only_at_two():
