@@ -5333,13 +5333,14 @@ def _sulfonyl_sulfinyl_has_single_substituent(mol, attachment_idx, att_atom_s) -
     return non_oxo == 1
 
 
-def _isotopic_attachment_prefix(prefix: str, atom, fragment) -> str:
+def _isotopic_attachment_prefix(prefix: str, atom, fragment, within=None) -> str:
     """`isotopic_prefix` for the atom a heteroatom-rooted prefix hangs on, when it is the only atom of its element in the fragment.
 
     `[(18O)4-methoxyphenoxy]` would not say which of the two oxygens is the 18O, and OPSIN reads it as the other one: a name for another molecule, which is worse
     than no name. Where the symbol would not say, the prefix is left unlabelled and the nuclide guard refuses the name.
     """
-    if sum(1 for a in fragment.GetAtoms() if a.GetSymbol() == atom.GetSymbol()) != 1:
+    # `within`: the atoms of `fragment` the prefix owns, when `fragment` is the whole molecule the prefix hangs in
+    if sum(1 for a in fragment.GetAtoms() if a.GetSymbol() == atom.GetSymbol() and (within is None or a.GetIdx() in within)) != 1:
         return prefix
     if atom.GetSymbol() == "N" and prefix.endswith("amino") and prefix != "amino":
         # `methyl(N-2H)amino`, `benzoyl(N-2H)amino`: the label goes before the `amino` it modifies, after the groups on the nitrogen. OPSIN reads that and
@@ -5865,11 +5866,15 @@ def _name_single_fg_substituent(
                         r_name = assemble(r_tree)
                         if r_name and "[NAMING ERROR" not in r_name:
                             suffix = "sulfonyl" if oxo_count == 2 else "sulfinyl"
+                            # The group's own nuclides sit in front of the `sulfonyl` they modify, after the R they hang on: `methyl(34S)sulfonyl`, `phenyl(18O)sulfonyl`
+                            # (OPSIN reads that and not `(34S)methylsulfonyl`; the two `=O` are one position, naming round 70). More than one such atom: left unlabelled and refused.
+                            suffix = _isotopic_group_prefix(suffix, s_and_oxo, mol) or suffix
                             sulfonyl_prefix = r_name + suffix
                             # A ring bonded through its NITROGEN takes the sulfonic acid's prefix, 'piperidine-1-sulfonyl' (P-65.3.2.3, the way
                             # '(propane-1-sulfonyl)benzene' is written, pdf p. 614), not 'piperidin-1-ylsulfonyl' (naming round 14, D-151).
                             _r_att = mol.GetAtomWithIdx(r_att_atom_idx)
-                            if _r_att.GetAtomicNum() == 7 and _r_att.IsInRing() and _r_att.GetFormalCharge() == 0:
+                            # (a labelled group keeps `piperidin-1-yl(34S)sulfonyl`: OPSIN reads no label between the locant and `sulfonyl` of `piperidine-1-sulfonyl`)
+                            if _r_att.GetAtomicNum() == 7 and _r_att.IsInRing() and _r_att.GetFormalCharge() == 0 and suffix in ("sulfonyl", "sulfinyl"):
                                 _m_ring = re.fullmatch(r"(.+?)([a-z]*[a-z])-(\d+)-yl", r_name)
                                 if _m_ring is not None and not _m_ring.group(2).endswith("e"):
                                     sulfonyl_prefix = f"{_m_ring.group(1)}{_m_ring.group(2)}e-{_m_ring.group(3)}-{suffix}"
@@ -6239,6 +6244,7 @@ def _name_single_fg_substituent(
                     if acyl_name:
                         amino_prefix = _amido_unless_labelled(acid_name, mol.GetAtomWithIdx(attachment_idx)) or acyl_name + "amino"
                         amino_prefix = _isotopic_attachment_prefix(amino_prefix, mol.GetAtomWithIdx(attachment_idx), mol)   # `(15N)acetamido` (naming round 70, D-323)
+                        amino_prefix = _bare_acyl_oxygen_label(amino_prefix)
                         return LeafTree(
                             output_form=output_form,
                             free_valence=free_valence,
@@ -12143,6 +12149,20 @@ def _isotope_atom_sites(plan, mol, atom_to_locant, as_substituent: bool = False)
         if len(plan.suffix_groups) == 1 and sg.fg.anchor not in atom_to_locant and mol.GetAtomWithIdx(sg.fg.anchor).GetSymbol() == "C"
         and mol.GetAtomWithIdx(sg.fg.anchor).GetIsotope() and not as_substituent       # a part of a bigger name is built from this one by rewriting its ending (`-1-(13C)carboxamido`, `-1-(13C)carbonylamino`), which OPSIN cannot read: the nuclide guard refuses it
     )
+    def _alone_in_suffix_group() -> frozenset:
+        # Terminal atoms of one element on the same neighbour with the same hydrogens are ONE position (the two `=O` of a sulfonyl, the two oxygens of a nitro or a carboxylate): they
+        # count once, so `S(=O)(=[18O])` is `benzene-1-(18O)sulfonamide` and not a label lost (naming round 70, D-322).
+        by_element_s: dict = {}
+        classes_s: dict = {}
+        for a in suffix_atoms:
+            atom = mol.GetAtomWithIdx(a)
+            terminal = atom.GetDegree() == 1
+            key = (atom.GetSymbol(), atom.GetNeighbors()[0].GetIdx(), atom.GetTotalNumHs()) if terminal else (atom.GetSymbol(), a)
+            classes_s.setdefault(key, []).append(a)
+        for key, atoms in classes_s.items():
+            by_element_s.setdefault(key[0], []).append(atoms)
+        return frozenset(a for groups in by_element_s.values() if len(groups) == 1 for atoms in groups for a in atoms)
+
     if named_parent.naming_method == "retained":
         owned = set(named_parent.candidate.atom_indices) | set(getattr(named_parent, "extra_atom_indices", ()) or ()) | set(suffix_atoms)
         # "Alone of its element" is measured over EVERY atom the name owns, numbered or not: `(13C)benzonitrile` would name the nitrile carbon among seven carbons
@@ -12156,20 +12176,13 @@ def _isotope_atom_sites(plan, mol, atom_to_locant, as_substituent: bool = False)
             classes.setdefault(key, []).append(a)
         for key, atoms in classes.items():
             by_element.setdefault(key[0], []).append(atoms)
-        return frozenset(a for groups in by_element.values() if len(groups) == 1 for atoms in groups for a in atoms if a not in atom_to_locant), (frozenset() if any(sg.fg.type == "nitrile" for sg in plan.suffix_groups) else suffix_carbons), alkoxy   # OPSIN: `(13C)benzonitrile` is "ambiguous"
+        unnumbered_sites = frozenset(a for groups in by_element.values() if len(groups) == 1 for atoms in groups for a in atoms if a not in atom_to_locant)
+        # A suffix atom whose element the retained RING also has (`pyridine-2-carboxamide`: the amide nitrogen and the ring's) cannot be cited bare, `(15N)pyridine-2-carboxamide`
+        # reads as the ring's: it is cited before its suffix word with the parent atom's locant, `pyridine-2-(15N)carboxamide`, as a systematic parent's would be (naming round 71)
+        suffix_sites = (_alone_in_suffix_group() - unnumbered_sites) if len(plan.suffix_groups) == 1 else frozenset()
+        return unnumbered_sites, (frozenset() if any(sg.fg.type == "nitrile" for sg in plan.suffix_groups) else suffix_carbons | suffix_sites), alkoxy   # OPSIN: `(13C)benzonitrile` is "ambiguous"
     if len(plan.suffix_groups) == 1:
-        # Terminal atoms of one element on the same neighbour with the same hydrogens are ONE position (the two `=O` of a sulfonyl, the two oxygens of a nitro or a carboxylate): they
-        # count once, so `S(=O)(=[18O])` is `benzene-1-(18O)sulfonamide` and not a label lost (naming round 70, D-322).
-        by_element = {}
-        classes: dict = {}
-        for a in suffix_atoms:
-            atom = mol.GetAtomWithIdx(a)
-            terminal = atom.GetDegree() == 1
-            key = (atom.GetSymbol(), atom.GetNeighbors()[0].GetIdx(), atom.GetTotalNumHs()) if terminal else (atom.GetSymbol(), a)
-            classes.setdefault(key, []).append(a)
-        for key, atoms in classes.items():
-            by_element.setdefault(key[0], []).append(atoms)
-        return frozenset(), frozenset(a for groups in by_element.values() if len(groups) == 1 for atoms in groups for a in atoms) | suffix_carbons, alkoxy
+        return frozenset(), _alone_in_suffix_group() | suffix_carbons, alkoxy
     return frozenset(), suffix_carbons, alkoxy
 
 
@@ -12942,6 +12955,33 @@ def _amido_unless_labelled(acid_name: str, nitrogen) -> str | None:
     if amido is not None and nitrogen.GetIsotope() and not re.fullmatch(r"(?:acet|benz|form)amido", amido):
         return None
     return amido
+
+
+def _bare_acyl_oxygen_label(amido: str) -> str:
+    """`hexadecan-1-(18O)amido` -> `(18O)hexadecanamido`, for a plain chain.
+
+    The amido prefix is the acid's name with its ending rewritten, and the acid cites its oxygen at the suffix with a locant, which OPSIN cannot read in an amido
+    (`4-[propan-1-(18O)amido]benzoic acid` answers nothing). `(18O)propanamido` it reads, and means the one oxygen there is. Only a bare alkane stem qualifies: with a ring or
+    a substituent in the prefix there can be a second oxygen, and OPSIN then takes the wrong one (`(18O)furan-2-carboxamido` is the RING's), so those keep the located
+    spelling and the nuclide guard decides (naming round 72).
+    """
+    match = re.fullmatch(r"([a-z]+)-1-\((\d+O)\)amido", amido)
+    return amido if match is None else f"({match.group(2)}){match.group(1)}amido"
+
+
+_ALKANE_STEM = r"(?:meth|eth|prop|but|pent|hex|hept|oct|non|dec|undec|dodec|tridec|tetradec|pentadec|hexadec|heptadec|octadec|nonadec|icos)an"
+
+
+def _bare_acyl_label(acyl: str) -> str:
+    """`3,3-bis(methylsulfanyl)propan-1-(18O)oyl` -> `3,3-bis(methylsulfanyl)(18O)propanoyl`, for a chain.
+
+    The acyl name is the acid's with its ending rewritten, and the acid cites its carbonyl oxygen at the suffix with a locant, which OPSIN cannot read in an acyl
+    (`[propan-1-(18O)oyl]azanide` answers nothing). Before the stem, after the substituents, it reads (`2-methyl(18O)pentanamido` is the same place), and means the stem's
+    own oxygen: the bracket belongs to the component that follows it, so an oxygen in a substituent (`3-methoxy(18O)propanoyl`) is not mistaken for it. A RING is not a chain:
+    `(18O)furan-2-carboxamido` is read as the furan's oxygen, so those keep the located spelling and the nuclide guard decides (naming round 72).
+    """
+    match = re.fullmatch(rf"(.*?)({_ALKANE_STEM})-1-\((\d+O)\)oyl", acyl)
+    return acyl if match is None else f"{match.group(1)}({match.group(3)}){match.group(2)}oyl"
 
 
 def _acid_name_to_amido(acid_name: str) -> str | None:
@@ -18154,7 +18194,11 @@ class SubstitutivePath:
                 _sub_atom = mol.GetAtomWithIdx(_sub_idx)
                 _sub_an = _sub_atom.GetAtomicNum()
                 _sub_bond = mol.GetBondBetweenAtoms(_anchor_idx_im, _sub_idx)
-                _sub_bo = int(_sub_bond.GetBondTypeAsDouble()) if _sub_bond else 1
+                if _sub_bond is None:
+                    # Only the atoms on the anchor itself are the group's `=N` and `-OH`. The loop reached the N-substituent's own atoms as well, and an ether oxygen in it (`=N-C6H4-OMe`)
+                    # was cut as a second `hydroxy` of the anchor, a carve of two atoms with no bond between them: the name carried an ErrorTree (naming round 73)
+                    continue
+                _sub_bo = int(_sub_bond.GetBondTypeAsDouble())
                 if _sub_an == 7 and _IMIDO_RETRY.on and any(nb.GetIdx() != _anchor_idx_im and nb.GetAtomicNum() > 1 for nb in _sub_atom.GetNeighbors()):
                     # An N-SUBSTITUTED imido (`=N-CH3`) is cited with its substituents, `(methylimino)`, when the name came out with an error in it (the retry in `_name_smiles_bound`); `oxo_fallback` names the bare N only and left
                     # the N-methyl unclaimed, an ErrorTree inside the name (naming round 67, D-309: `CCSC(S)=NC`).
@@ -18388,6 +18432,8 @@ class SubstitutivePath:
                                     # "(methylamino)", "methyl(phenyl)amino", ...
                                     n_prefix_str = _compose_n_substituents(n_sub_names)
                                     compound_prefix = n_prefix_str + "amino"
+                                    # the nitrogen's own nuclide, before the `amino` it modifies: `methyl(15N)amino`, `4-methyl(15N)anilino` (naming round 71)
+                                    compound_prefix = _isotopic_attachment_prefix(compound_prefix, n_atom_prefix, mol, within=pa.substituent_atoms)
                                     if _aminooxy_idx is not None:
                                         compound_prefix = f"({compound_prefix})oxy"
                                     sub_tree = LeafTree(
@@ -18586,7 +18632,10 @@ class SubstitutivePath:
                                             # "diX" / "triX" prefix without adjusting
                                             # the count we need for locants).
                                             # Build "N-methylsulfamoyl" / "N,N-dimethylsulfamoyl" / "N-cyclohexyl-N-methylsulfamoyl" style prefix
-                                            compound_sf_prefix = n_prefix_sf + "sulfamoyl"
+                                            # The sulfur's and the sulfonyl oxygens' nuclides sit in front of the `sulfamoyl` they modify, after the N-groups: `N,N-dimethyl(34S)sulfamoyl`
+                                            # (OPSIN reads that; the N-groups carry their own labels). A nitrogen label is not cited here and the nuclide guard refuses the name.
+                                            _sf_atoms = {anchor_idx} | {nb.GetIdx() for nb in mol.GetAtomWithIdx(anchor_idx).GetNeighbors() if nb.GetAtomicNum() == 8}
+                                            compound_sf_prefix = n_prefix_sf + (_isotopic_group_prefix("sulfamoyl", _sf_atoms, mol) or "sulfamoyl")
                                             sub_tree_sf = LeafTree(
                                                 output_form=OutputForm.SUBSTITUENT,
                                                 free_valence=None,
@@ -18660,7 +18709,10 @@ class SubstitutivePath:
                         # that atom is, in front of it: `(81Br)bromo`, `(18O)hydroxy` (P-82.2.1). Keyed on the NAME so that `cyano` and `carboxy`, whose
                         # atom count is not their atom's, are not labelled on a guess.
                         lone = mol.GetAtomWithIdx(next(iter(pa.substituent_atoms)))
-                        if _SINGLE_ATOM_SUBSTITUENT.get((lone.GetSymbol(), lone.GetFormalCharge(), pa.attachment_bond_order)) == prefix_name:
+                        if _SINGLE_ATOM_SUBSTITUENT.get((lone.GetSymbol(), lone.GetFormalCharge(), pa.attachment_bond_order)) == prefix_name or (
+                            # `sulfanylidene` is the thione's own prefix and `thioxo` the table's: the same one atom (`2-(34S)sulfanylidene-1,3-thiazolidin-4-one`)
+                            prefix_name == "sulfanylidene" and lone.GetSymbol() == "S" and lone.GetFormalCharge() == 0 and pa.attachment_bond_order == 2
+                        ):
                             prefix_name = isotopic_prefix(prefix_name, lone)
                     elif prefix_name:
                         # A group of several atoms (`bromocarbonyl`, `cyano`): the nuclide of one atom, cited by the bare symbol when that element is alone in the
@@ -18723,6 +18775,8 @@ class SubstitutivePath:
                         prefix_name = "oxidaniumylidene" if atom_oxo.GetAtomicNum() == 8 else "sulfaniumylidene"
                     elif atom_oxo.GetFormalCharge() == 1 and atom_oxo.GetTotalNumHs() == 2 and atom_oxo.GetAtomicNum() == 7:
                         prefix_name = "azaniumylidene"      # an amidinium's =[NH2+] is no neutral `imino` (naming round 63)
+                    # The prefix IS the one atom, so the label in front of it is unambiguous: `2-(34S)thioxo-1H-pyridine`, `(18O)oxo`, `(15N)imino`.
+                    prefix_name = isotopic_prefix(prefix_name, atom_oxo)
                     sub_tree = LeafTree(
                         output_form=OutputForm.SUBSTITUENT,
                         free_valence=None,
@@ -19052,8 +19106,12 @@ class SubstitutivePath:
                                 if sum(1 for i in pa.substituent_atoms if mol.GetAtomWithIdx(i).GetSymbol() == ether_atom.GetSymbol()) == 1:
                                     _labelled = isotopic_prefix("", ether_atom)
                                     from openchem.vendor.iupac_namer.isotope import _LEADING_ISOTOPE_BRACKET
+                                    if _labelled and ether_suffix.endswith("sulfanyl") and ether_prefix_name.endswith(ether_suffix):
+                                        # `ethyl(34S)sulfanyl`: `sulfanyl` is not contracted with its alkyl as `oxy` is (`ethoxy`), so `(34S)ethylsulfanyl` has no atom for
+                                        # OPSIN to put the label on (an empty answer, or inside a longer name the label dropped), and `(34S)` before the `sulfanyl` it modifies reads.
+                                        ether_prefix_name = ether_prefix_name[:-len(ether_suffix)] + _labelled + ether_suffix
                                     # a stem that carries a nuclide bracket of its own (`(1-13C)methyl`) is still a bare stem: the two brackets merge, `(1-13C,18O)methoxy`
-                                    if _labelled and not re.fullmatch(r"(meth|eth|prop|but|pent|hex|hept|oct|non|dec)yl|phenyl", _LEADING_ISOTOPE_BRACKET.sub("", alkyl_name)):
+                                    elif _labelled and not re.fullmatch(r"(meth|eth|prop|but|pent|hex|hept|oct|non|dec)yl|phenyl", _LEADING_ISOTOPE_BRACKET.sub("", alkyl_name)):
                                         # A contracted alkoxy with anything on its alkyl (`phenylmethoxy`, `2-methylpropoxy`, `4-chlorophenoxy`) takes the label
                                         # before its `oxy` on the UNcontracted form, `(phenylmethyl)(18O)oxy`; OPSIN reads that and not `(18O)phenylmethoxy`.
                                         ether_prefix_name = "(" + alkyl_name + ")" + _labelled + ether_suffix
@@ -19209,6 +19267,8 @@ class SubstitutivePath:
                             # acid" (pdf p. 653), not "(methylpropanoylamino)".
                             _n_prefix_str = _compose_n_substituents(_amide_n_names)
                             _compound_amino = _n_prefix_str + "amino"
+                            # the amide nitrogen's nuclide, before the `amino` it modifies (naming round 71)
+                            _compound_amino = _isotopic_attachment_prefix(_compound_amino, _amide_n_atom, mol, within=pa.substituent_atoms)
                             _sub_tree = LeafTree(
                                 output_form=OutputForm.SUBSTITUENT,
                                 free_valence=None,
@@ -19236,7 +19296,7 @@ class SubstitutivePath:
                             ),),
                             decision_ctx=None,
                             validity_warnings=None,
-                            text="amino",
+                            text=isotopic_prefix("amino", _amide_n_atom),
                         )
                         prefixes.append(PrefixEntry(
                             tree=_sub_tree,
@@ -19504,12 +19564,16 @@ class SubstitutivePath:
         _atom_to_loc_map = plan.numbering.atom_to_locant
         _iso_unnumbered, _iso_suffix, _iso_alkoxy = _isotope_atom_sites(plan, mol, _atom_to_loc_map, as_substituent=output_form in (OutputForm.SUBSTITUENT, OutputForm.ACYL) or depth > 0)
         _fg_anchor_map: dict = {}
+        _iso_as_substituent = output_form in (OutputForm.SUBSTITUENT, OutputForm.ACYL) or depth > 0
         for _sg in plan.suffix_groups:
             _anchor_loc = _atom_to_loc_map.get(_sg.fg.anchor)
             _derived = False
-            if _anchor_loc is None and mol.GetAtomWithIdx(_sg.fg.anchor).GetSymbol() != "C":
-                # a heteroatom anchor outside the numbering (the sulfur of `propane-1-sulfonamide`, the nitrogen of an amine) is addressed by the parent atom it hangs on, and only for
-                # the atoms the suffix word can cite (`propane-1-(18O)sulfonamide`); a sulfonic acid's oxygens, which are not alone, stay refused (naming round 70)
+            # (not in a part of a bigger name: that is built from this one by rewriting its ending, `5-methylfuran-2-(18O)carboxamido`, which OPSIN cannot read; a label with
+            # no locant is dropped and the nuclide guard refuses the name)
+            if _anchor_loc is None and not (_iso_as_substituent and mol.GetAtomWithIdx(_sg.fg.anchor).GetSymbol() == "C"):
+                # an anchor outside the numbering (the sulfur of `propane-1-sulfonamide`, the nitrogen of an amine, the added carbon of `pyridine-2-carboxamide`) is addressed by the parent atom it
+                # hangs on, and only for the atoms the suffix word can cite (`propane-1-(18O)sulfonamide`, `N-methylpyridine-2-(15N)carboxamide`); a sulfonic acid's oxygens, which are
+                # not alone, stay refused (naming round 70; the carbon anchors, round 71)
                 _hang = [n.GetIdx() for n in mol.GetAtomWithIdx(_sg.fg.anchor).GetNeighbors() if n.GetIdx() in _atom_to_loc_map]
                 if len(_hang) == 1:
                     _anchor_loc, _derived = _atom_to_loc_map[_hang[0]], True
@@ -19523,6 +19587,10 @@ class SubstitutivePath:
                 if _derived and _fg_atom not in _iso_suffix:
                     continue
                 _fg_anchor_map[_fg_atom] = _anchor_loc
+                if _sg.fg.type == "hydrazide" and mol.GetAtomWithIdx(_fg_atom).GetSymbol() == "N":
+                    # a hydrazide's two nitrogens are told apart by the italic locants the book gives its N-substituents, `(N-15N)acetohydrazide` for the amide nitrogen and
+                    # `(N'-15N)` for the terminal one. Both were `(1-15N)`, one name for two molecules, and OPSIN reads neither (naming round 72)
+                    _fg_anchor_map[_fg_atom] = Locant.hetero("N") if mol.GetBondBetweenAtoms(_fg_atom, _sg.fg.anchor) is not None else Locant.hetero("N", "'")
         _iso_labels = _coll_iso(
             mol, _atom_to_loc_map, fg_anchor_map=_fg_anchor_map or None,
             unnumbered_ok=_iso_unnumbered, suffix_ok=_iso_suffix, alkoxy_ok=_iso_alkoxy,
