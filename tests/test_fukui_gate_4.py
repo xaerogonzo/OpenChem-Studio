@@ -58,6 +58,21 @@ def test_a_pi_hole_is_one_and_a_sigma_hole_is_zero_in_the_real_output():
     assert sigma == pytest.approx(0.0, abs=0.02)
 
 
+SELENOPHENE_FIXTURE = Path(__file__).parent / "fixtures" / "orca" / "selenophene_cation_spin_block.txt"
+
+
+def test_a_two_letter_element_is_read_though_orca_prints_no_space_before_its_shell():
+    """The first run of the fourth gate stopped at selenophene: ORCA prints "3 Ses" for selenium where a one-letter element has "0 C s", and the pattern needed the space. This is that output, whole."""
+    text = SELENOPHENE_FIXTURE.read_text(encoding="utf-8")
+    assert re.search(r"^\s*3 Ses\s", text, flags=re.MULTILINE)
+    spins = gate.parse_lowdin_spin(text, 9)
+    assert spins is not None and len(spins) == 9
+    assert all({"s", "pz", "px", "py"} <= set(atom) for atom in spins[:5])  # the four carbons and the selenium have p and d functions
+    assert all(set(atom) == {"s"} for atom in spins[5:])  # the hydrogens only an s function
+    assert sum(sum(atom.values()) for atom in spins) == pytest.approx(1.0, abs=0.02)  # one unpaired electron, whichever state it is
+    assert gate.out_of_plane_fraction(spins) == pytest.approx(gate.out_of_plane_fraction(spins))  # computable (not NaN, no division by zero)
+
+
 def test_a_block_of_the_wrong_molecule_is_refused_not_read_short():
     with pytest.raises(ValueError, match="atoms"):
         gate.parse_lowdin_spin(_fixture_jobs()[4], PYRIDINE_ATOMS + 1)

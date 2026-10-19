@@ -66,8 +66,9 @@ PLANARITY_LIMIT_ANGSTROM = 0.05
 
 #: The heading of the block of ORCA's output that holds the spin population of every function (an open-shell job prints it by default).
 _SPIN_BLOCK = "LOEWDIN REDUCED ORBITAL CHARGES AND SPIN POPULATIONS"
-#: The first line of an atom's entry in that block: its index, its element and its s population (``  3 N s       :    -0.002386  s :    -0.002386``).
-_ATOM_LINE = re.compile(r"^\s*(\d+)\s+([A-Z][a-z]?)\s+s\s*:\s*(-?\d+\.\d+)\s+s\s*:\s*-?\d+\.\d+\s*$")
+#: The first line of an atom's entry in that block: its index, its element and its s population (``  3 N s       :    -0.002386  s :    -0.002386``). A two-letter element is printed with
+#: NO space before the shell (``  3 Ses       :     0.000021  s :     0.000021`` for selenium): the first run of the gate stopped on that, and the pattern allows it.
+_ATOM_LINE = re.compile(r"^\s*(\d+)\s+([A-Z][a-z]?)\s*s\s*:\s*(-?\d+\.\d+)\s+s\s*:\s*-?\d+\.\d+\s*$")
 #: A later line of an atom's entry: one function (``pz``, ``dxz`` ...) and its population, with the shell's sum after the first function of a shell.
 _SHELL_LINE = re.compile(r"^\s+(pz|px|py|dz2|dxz|dyz|dx2y2|dxy)\s*:\s*(-?\d+\.\d+)(?:\s+[pd]\s*:\s*-?\d+\.\d+)?\s*$")
 #: The functions whose axis is the z of the input's frame: `pz`, and the two d functions with a z in them. Their spin is out of the molecular plane when the plane is the xy plane.
