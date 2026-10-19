@@ -45,6 +45,7 @@ from openchem.app.settings import (
     CONFORMER_MAX_EMBEDDINGS,
     DRAWING_BOND_CLICK,
     DRAWING_BOND_KEYS,
+    FUKUI_ANION_F_PLUS,
     MAX_REVISIONS_KEPT,
     RAIL_HIDES_PANELS,
     RECALC_MODE,
@@ -85,6 +86,9 @@ DRAWING = "drawing"
 #: Section id of the 3D conformer search.
 CONFORMERS = "conformers"
 
+#: Section id of the quantum chemistry calculations' own choices (today: whether an anion's Fukui functions include its f+).
+QUANTUM_CHEMISTRY = "quantum_chemistry"
+
 #: Section id of the remembered file-dialog folders.
 FILE_DIALOGS = "file_dialogs"
 
@@ -101,6 +105,7 @@ SECTIONS = (
     (KEYBOARD, "Keyboard"),
     (DRAWING, "Drawing"),
     (CONFORMERS, "Conformers"),
+    (QUANTUM_CHEMISTRY, "Quantum chemistry"),
     (FILE_DIALOGS, "File dialogs"),
     (EXTERNAL_TOOLS, "External tools"),
 )
@@ -284,6 +289,23 @@ _HELP = {
         topic="settings",
         help_anchor="settings",
     ),
+    "fukui_anion_f_plus": HelpTooltip(
+        text=(
+            "On (the default): the Fukui functions of a species that is itself an anion include f+, f0 and the dual "
+            "descriptor, from its dianion. No basis set binds a dianion, so these are the least trustworthy numbers the "
+            "calculator gives, and the result says by how many eV the dianion lies above the anion.\n\n"
+            "The dianion is run last, so f- (where an electron comes from, the function that describes an anion) is the "
+            "same either way, and a dianion that does not converge costs only f+ and what is made from it: you get f- "
+            "and a sentence saying why.\n\n"
+            "Off: only the anion and its neutral radical are run, which is what the second preregistered check tested, "
+            "and the result says the dianion was left out. Neutral molecules and cations are not affected.\n\n"
+            "Applies to the next Fukui run; results already computed are not changed."
+        ),
+        tier=2,
+        help_id="settings.fukui_anion_f_plus",
+        topic="settings",
+        help_anchor="settings",
+    ),
     "bond_click": HelpTooltip(
         text=(
             "Off (the default): a click on a bond selects it, as it always has.\n\n"
@@ -381,6 +403,7 @@ class SettingsDialog(QDialog):
             KEYBOARD: self._build_keyboard_page,
             DRAWING: self._build_drawing_page,
             CONFORMERS: self._build_conformers_page,
+            QUANTUM_CHEMISTRY: self._build_quantum_chemistry_page,
             FILE_DIALOGS: self._build_file_dialogs_page,
         }
         for section_id, label in SECTIONS:
@@ -711,6 +734,35 @@ class SettingsDialog(QDialog):
 
     def _on_conformer_optimize_lowest_toggled(self, checked: bool) -> None:
         self._store(CONFORMER_OPTIMIZE_LOWEST, checked)
+
+    # --- Quantum chemistry ---------------------------------------------------------
+
+    def _build_quantum_chemistry_page(self) -> QWidget:
+        page = QWidget(self)
+        self._fukui_anion_f_plus = QCheckBox(
+            "Include f+, f0 and the dual descriptor for an anion (from its dianion, which no basis set binds)", page
+        )
+        self._fukui_anion_f_plus.setObjectName("fukuiAnionFPlus")
+        self._fukui_anion_f_plus.setChecked(bool(self._settings.preference(FUKUI_ANION_F_PLUS)))
+        apply_help_tooltip(self._fukui_anion_f_plus, _HELP["fukui_anion_f_plus"])
+        self._fukui_anion_f_plus.toggled.connect(self._on_fukui_anion_f_plus_toggled)
+
+        layout = QVBoxLayout(page)
+        layout.addWidget(_heading("Quantum chemistry", page))
+        layout.addWidget(_heading("Fukui functions", page))
+        layout.addWidget(self._fukui_anion_f_plus)
+        layout.addWidget(_note(
+            "An anion's f+ describes a state no basis set binds, so it is the least trustworthy number the calculator gives, "
+            "and the result says how far above the anion the dianion lies. f- does not depend on it: the dianion is run "
+            "last, and if it does not converge you get f- and a sentence saying why. Untick to run only the anion and its "
+            "neutral radical. Neutral molecules and cations always get all four. Applies to the next run.",
+            page,
+        ))
+        layout.addStretch(1)
+        return page
+
+    def _on_fukui_anion_f_plus_toggled(self, checked: bool) -> None:
+        self._store(FUKUI_ANION_F_PLUS, checked)
 
     # --- Results -----------------------------------------------------------------
 

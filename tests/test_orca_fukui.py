@@ -93,11 +93,47 @@ def test_a_cation_carries_its_charge_through_all_three_states():
     assert [line for line in text.splitlines() if line.startswith("* xyz")] == ["* xyz 1 1", "* xyz 2 2", "* xyz 0 2"]
 
 
-def test_an_anion_is_two_jobs_because_its_n_plus_one_state_is_a_dianion():
-    """An anion has no f+ here: the dianion is not bound by any basis set in the gas phase (`chem.fukui_plan`), so only the N and N-1 states are run."""
+def test_an_anion_is_three_jobs_and_its_dianion_comes_last():
+    """An anion's N+1 state is a dianion, which no basis set binds in the gas phase (`chem.fukui_plan`). f- does not need it, so it is written AFTER the N and N-1
+    states: ORCA ends a compound input at the first job that does not converge, and a dianion that does not must cost f+ and nothing else."""
     text = _input(charge=-1)
-    assert [line for line in text.splitlines() if line.startswith("* xyz")] == ["* xyz -1 1", "* xyz 0 2"]
-    assert text.count("$new_job") == 1
+    assert [line for line in text.splitlines() if line.startswith("* xyz")] == ["* xyz -1 1", "* xyz 0 2", "* xyz -2 2"]
+    assert text.count("$new_job") == 2
+
+
+def _xyz_lines(text: str) -> list[str]:
+    return [line for line in text.splitlines() if line.startswith("* xyz")]
+
+
+def test_a_provider_built_without_a_switch_includes_the_dianion():
+    """The command line, the benchmarks and every test build a provider with no service behind it: f+ of an anion is on, as it is by default in Settings."""
+    text = OrcaQuantumEngineProvider().build_input(_water(), -1, 1, "B3LYP def2-SVP", "fukui")
+    assert _xyz_lines(text) == ["* xyz -1 1", "* xyz 0 2", "* xyz -2 2"]
+
+
+def test_with_the_switch_off_an_anion_is_the_two_job_input_fukui_v2_wrote():
+    """What the second gate tested: the anion and its neutral radical, no dianion. The Settings checkbox, through the service, is what turns this on."""
+    provider = OrcaQuantumEngineProvider(anion_f_plus=lambda: False)
+    text = provider.build_input(_water(), -1, 1, "B3LYP def2-SVP", "fukui")
+    assert _xyz_lines(text) == ["* xyz -1 1", "* xyz 0 2"] and text.count("$new_job") == 1
+    diffuse = provider.build_input(_water(), -1, 1, "B3LYP 6-31+G*", "fukui")
+    assert _xyz_lines(diffuse) == ["* xyz -1 1", "* xyz 0 2", "* xyz -1 1", "* xyz -1 1"]
+
+
+def test_with_the_switch_off_a_neutral_molecule_and_a_cation_keep_their_three_states():
+    provider = OrcaQuantumEngineProvider(anion_f_plus=lambda: False)
+    assert _xyz_lines(provider.build_input(_water(), 0, 1, "B3LYP def2-SVP", "fukui")) == ["* xyz 0 1", "* xyz 1 2", "* xyz -1 2"]
+    assert _xyz_lines(provider.build_input(_water(), 1, 1, "B3LYP def2-SVP", "fukui")) == ["* xyz 1 1", "* xyz 2 2", "* xyz 0 2"]
+
+
+def test_the_switch_is_read_each_time_an_input_is_written_not_when_the_provider_was_built():
+    state = {"on": True}
+    provider = OrcaQuantumEngineProvider(anion_f_plus=lambda: state["on"])
+    assert len(_xyz_lines(provider.build_input(_water(), -1, 1, "B3LYP def2-SVP", "fukui"))) == 3
+    state["on"] = False
+    assert len(_xyz_lines(provider.build_input(_water(), -1, 1, "B3LYP def2-SVP", "fukui"))) == 2
+    state["on"] = True
+    assert len(_xyz_lines(provider.build_input(_water(), -1, 1, "B3LYP def2-SVP", "fukui"))) == 3
 
 
 @pytest.mark.parametrize("multiplicity", [2, 3])
@@ -135,7 +171,7 @@ def test_every_job_has_the_finer_integration_grid_before_its_coordinates():
 
 
 def test_a_basis_without_diffuse_functions_writes_no_guess_keyword_anywhere():
-    for charge, jobs in ((0, 3), (1, 3), (-1, 2)):
+    for charge, jobs in ((0, 3), (1, 3), (-1, 3)):
         text = OrcaQuantumEngineProvider().build_input(_water(), charge, 1, "B3LYP 6-31G**", "fukui")
         assert len(_jobs(text)) == jobs
         assert "HCore" not in text and "Hueckel" not in text
@@ -150,10 +186,17 @@ def test_a_diffuse_basis_adds_the_extra_starts_of_the_anionic_state_after_every_
     ]
 
 
-def test_an_anion_at_a_diffuse_basis_has_two_states_and_two_extra_starts_of_its_own_n_state():
+def test_an_anion_at_a_diffuse_basis_has_extra_starts_for_its_own_state_before_its_dianion_and_for_the_dianion_after_it():
+    """The anion's own extra starts protect f- and so precede the dianion; the dianion's extra starts follow it, because they are only worth running if it ran."""
     text = OrcaQuantumEngineProvider().build_input(_water(), -1, 1, "B3LYP 6-31+G*", "fukui")
-    assert [line for line in text.splitlines() if line.startswith("* xyz")] == ["* xyz -1 1", "* xyz 0 2", "* xyz -1 1", "* xyz -1 1"]
-    assert text.count("HCore") == 1 and text.count("Hueckel") == 1
+    jobs = _jobs(text)
+    assert [line for line in text.splitlines() if line.startswith("* xyz")] == [
+        "* xyz -1 1", "* xyz 0 2", "* xyz -1 1", "* xyz -1 1", "* xyz -2 2", "* xyz -2 2", "* xyz -2 2"
+    ]
+    assert [next(line for line in job.splitlines() if line.startswith("!")) for job in jobs] == [
+        "! B3LYP 6-31+G*", "! B3LYP 6-31+G*", "! B3LYP 6-31+G* HCore", "! B3LYP 6-31+G* Hueckel",
+        "! B3LYP 6-31+G*", "! B3LYP 6-31+G* HCore", "! B3LYP 6-31+G* Hueckel",
+    ]
 
 
 def test_the_other_calc_types_are_untouched_by_the_fukui_additions():

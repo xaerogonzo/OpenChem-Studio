@@ -5,11 +5,13 @@ points at one geometry, each a state of the species (`STATE_N`, `STATE_OXIDISED`
 `plan_fukui` says which jobs to write, and `choose_solutions` says which finished ones to read. Both rules come from measurements, listed where
 each is used (`benchmarks/fukui_gate/PREREGISTRATION.md` 11.5, 11.6 and `benchmarks/fukui_gate_2/DESIGN.md`).
 
-**An anion has no f+ here.** Its N+1 state is a dianion, which no basis set binds in the gas phase: the state a calculation reaches is the
-basis set's, not the molecule's. The three anions the first gate decided on were computed against such a state, and at a diffuse basis it is
-the state whose Hirshfeld charges fell 0.010 to 0.073 short of the dianion's charge and whose f+ changed by up to 0.31 between two SCF solutions. So for
-a species with a negative charge the plan holds two states and the result holds f- only, where f- is the answer to the question one asks of an
-anion (where an electron comes from), and the other three numbers are said not to have been computed.
+**An anion's f+ comes from a dianion, and is the least trustworthy number here.** Its N+1 state is a dianion, which no basis set binds in the gas
+phase: the state a calculation reaches is the basis set's, not the molecule's. The three anions the first gate decided on were computed against such a
+state (and their f+ reproduced the published values to 0.0101 at the 6-31G** levels), and at a diffuse basis it is the state whose Hirshfeld charges fell
+0.010 to 0.073 short of the dianion's charge at ORCA's default grid and whose f+ changed by up to 0.31 between two SCF solutions. Fukui v2 left it out (its
+second gate decided f- alone for an anion); it is back at Alex's request, as the LAST job of the plan, because f- (where an electron comes from, the function
+that describes an anion) needs only the anion and the neutral radical it becomes: a dianion that does not converge, or whose Hirshfeld table does not sum to
+its charge, then costs f+, f0 and the dual descriptor and nothing else (`chem.fukui.condensed_fukui` gives f- alone and says why).
 
 **Extra starts, for a basis set with diffuse functions.** An anionic state at such a basis can have more than one SCF solution, and ORCA's default
 start, inside a compound input, is the previous job's orbitals, so the solution it reaches depends on the path to it. Of six cases probed at 6-311+G**
@@ -28,7 +30,7 @@ from dataclasses import dataclass
 STATE_N = "N"
 #: One electron fewer (a doublet): where f- comes from.
 STATE_OXIDISED = "N-1"
-#: One electron more (a doublet): where f+ comes from, and the state an anion does not have.
+#: One electron more (a doublet): where f+ comes from. For an anion it is a dianion, which no basis set binds (see the module docstring).
 STATE_REDUCED = "N+1"
 
 #: ORCA's own initial guess, which inside a compound input reads the previous job's orbitals for every job but the first.
@@ -79,18 +81,14 @@ class FukuiJob:
 
 @dataclass(frozen=True)
 class FukuiPlan:
-    """The jobs of one Fukui run, in the order they are written: every state's default start first, then the extra starts.
+    """The jobs of one Fukui run, in the order they are written: the N and N-1 states and their extra starts, then the N+1 state and its own (`plan_fukui`).
 
     The order is load-bearing. ORCA ends the whole compound input at the first job that does not converge, so the jobs the answer cannot do without
-    come first and an extra start that fails costs nothing but itself.
+    come first and an extra start, or the N+1 state of an anion, that fails costs nothing but itself.
     """
 
     charge: int
     jobs: tuple[FukuiJob, ...]
-
-    @property
-    def computes_f_plus(self) -> bool:
-        return any(job.state == STATE_REDUCED for job in self.jobs)
 
 
 def state_charges(charge: int) -> dict[str, tuple[int, int]]:
@@ -112,22 +110,31 @@ def state_name(charge: int) -> str:
     return names.get(charge, f"state of charge {charge:+d}")
 
 
-def plan_fukui(charge: int, multiplicity: int, *, diffuse: bool) -> FukuiPlan:
+def plan_fukui(charge: int, multiplicity: int, *, diffuse: bool, anion_f_plus: bool = True) -> FukuiPlan:
     """The jobs for a species of this charge, or ValueError for one with unpaired electrons.
 
-    A species with a negative charge gets two states (see the module docstring); every other gets three. At a basis with diffuse functions each ANIONIC
-    state (a total charge below zero: the N+1 state of a neutral or cation, and the N state of an anion) also gets `EXTRA_STARTS`, after all the default ones.
+    **`anion_f_plus=False` leaves the N+1 state out of a species with a negative charge** (its dianion, and the extra starts of it): the plan Fukui v2 had, which
+    its second gate tested, and the one a person who switched f+ of an anion off in Settings asks for. A neutral species or a cation always has its N+1 state.
+
+    Every species gets three states: N and N-1, which f- needs, then N+1, which f+ needs. At a basis with diffuse functions each ANIONIC state (a total
+    charge below zero: the N+1 state of a neutral, and the N and N-1 states of an anion or a dianion, and the N+1 state of an anion) also gets
+    `EXTRA_STARTS` after its default job. The order is N, N-1, the extra starts of those two, N+1, the extra starts of N+1: for a neutral species or a
+    cation that is the three default jobs and then the extra starts there are, as it was before an anion had an N+1 state, and for an anion it puts the dianion,
+    the one job here that is a state the basis set merely describes, after everything f- needs.
     """
     if multiplicity != 1:
         raise ValueError(f"A Fukui plan needs a closed-shell species (multiplicity 1); this has multiplicity {multiplicity}.")
     states = state_charges(charge)
-    wanted = [STATE_N, STATE_OXIDISED] + ([STATE_REDUCED] if charge >= 0 else [])
-    jobs = [FukuiJob(state, *states[state]) for state in wanted]
-    if diffuse:
-        for state in wanted:
-            state_charge, state_multiplicity = states[state]
-            if state_charge < 0:
-                jobs.extend(FukuiJob(state, state_charge, state_multiplicity, start) for start in EXTRA_STARTS)
+
+    def job(state: str, start: str = START_DEFAULT) -> FukuiJob:
+        return FukuiJob(state, *states[state], start)
+
+    def extra_starts(state: str) -> list[FukuiJob]:
+        return [job(state, start) for start in EXTRA_STARTS] if diffuse and states[state][0] < 0 else []
+
+    jobs = [job(STATE_N), job(STATE_OXIDISED), *extra_starts(STATE_N), *extra_starts(STATE_OXIDISED)]
+    if anion_f_plus or charge >= 0:
+        jobs += [job(STATE_REDUCED), *extra_starts(STATE_REDUCED)]
     return FukuiPlan(charge=charge, jobs=tuple(jobs))
 
 
