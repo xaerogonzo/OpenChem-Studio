@@ -2525,6 +2525,17 @@ what can be verified.
   `tests/test_namer_known_defects.py`. Three earlier tests pinned refusals this round turned into names and now pin the cases still refused: a carboxylate beside two neutral acids
   (`test_namer_round43_*`, `test_namer_round45_*`) and a pyrazolone anion (`test_namer_round46_*`).
 
+## 2026-10-18 -- naming round 71: sulfur, oxygen and nitrogen nuclides in prefixes OPSIN can read (D-325 .. D-328)
+
+Round 70's isotope population (`iso.py`, scratch) with the kinds `s34`, `cl37`, `br81` and `f18` (37Cl 95, 81Br 28 and 18F 48 census rows: every one read back), then `n15` and `o18` again. 34S: 104 ok, 7 charge-changed (a reader dropped the label), 27 refused of 138.
+
+* **D-325.** `(34S)ethylsulfanyl`: OPSIN answers nothing alone and, inside a longer name, reads the unlabelled molecule (the worst case: it parses to another compound). `sulfanyl` is not contracted with its alkyl as `oxy` is, so the ether-prefix path's label goes before the `sulfanyl`: `ethyl(34S)sulfanyl`.
+* **D-326.** The FG-prefix path labelled a one-atom prefix only when its name was the table's (`thioxo`), and the thione's own prefix is `sulfanylidene`; `oxo_fallback` never labelled. A `sulfonyl` / `sulfinyl` prefix takes the group's nuclides before the word (`methyl(34S)sulfonyl`; the two `=O` are one position), but a ring bonded through its nitrogen keeps `piperidin-1-yl(34S)sulfonyl` since OPSIN reads no label in `piperidine-1-(34S)sulfonyl`; the compound `sulfamoyl` likewise (`N,N-dimethyl(34S)sulfamoyl`).
+* **D-327.** The compound amino prefix of a secondary or tertiary amine FG and of a demoted amide (`amide_n_sub`, bare and compound) never cited its nitrogen. It goes before the `amino`, after the groups on it: `methyl(15N)amino`. `_isotopic_attachment_prefix` takes `within=` so a nitrogen elsewhere in the molecule does not make the symbol ambiguous.
+* **D-328.** A retained RING that has the element of a suffix atom (`pyridine-2-carboxamide`) made the bare `(15N)` ambiguous and the label was refused; it now takes the systematic parent's form with the locant of the ring atom the group hangs on, `pyridine-2-(15N)carboxamide` (the anchor of such a group, an unnumbered carbon, is addressed by its numbered neighbour). Not inside a bigger name: that is built by rewriting the ending (`5-methylfuran-2-(18O)carboxamido`), which OPSIN cannot read, and stays refused.
+* **Measured.** 15N 287 -> 323 of 356 read back, 18O 289 -> 315 of 366 (the 27 `(2-18O)...dione` names stay unreadable, see KNOWN_LIMITATIONS), 34S 104 -> 134 of 138; 13C and 2H 397 of 400 each, unchanged. Vendored suite 5937 passed, app namer tests 5049 passed; 12 of 12 mutants killed (two survivors were dead code and are gone, and one gate was redundant with another).
+* New `tests/test_namer_round71_chalcogen_and_amino_prefix_nuclides_and_suffix_locants.py`.
+
 ## 2026-10-18 -- naming round 70: nitrogen and oxygen nuclides in groups, acylamino prefixes and amines (D-322 .. D-324)
 
 The isotope population of round 69 (`iso.py`, a scratch script) with `n15` and `o18` kinds: one labelled N or O per census molecule. 89 of 356 and 103 of 366 were refused, every one a visible refusal.

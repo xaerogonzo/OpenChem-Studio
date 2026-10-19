@@ -60,7 +60,6 @@ KEPT = [
 ]
 
 REFUSED = [
-    ("an oxygen of a methylsulfonyl prefix is not yet named", "CS(=O)(=[18O])c1ccc(Cl)cc1"),
     ("a sulfonic acid's oxygens are not alone (=O, =O, OH): the name `(1-18O)propane-1-sulfonic acid` is unreadable", "CCCS(=O)(=[18O])O"),
 ]
 
