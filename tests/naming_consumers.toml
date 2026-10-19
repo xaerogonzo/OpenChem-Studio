@@ -495,6 +495,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round71_chalcogen_and_amino_prefix_nuclides_and_suffix_locants.py"
+why = "a sulfur nuclide in a sulfanyl, thione, sulfonyl or sulfamoyl prefix OPSIN can read (D-325, D-326), the nitrogen of a methylamino or demoted-amide prefix (D-327), and an amide nitrogen on a ring with a nitrogen of its own (D-328)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round70_heteroatom_nuclides_in_groups_prefixes_and_amines.py"
 why = "the equivalent terminal atoms of a nitro, sulfonyl or carboxylate count once (D-322), an acylamino prefix cites its nitrogen's nuclide and a carved hydroxyl keeps none (D-323), and the nitrogen of an amine suffix is addressed by the atom it hangs on (D-324)"
 scope = "core"

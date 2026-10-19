@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: sulfur, oxygen and nitrogen nuclides in prefixes OPSIN can read
+- Round 71 ran round 70's isotope population with 34S, 37Cl, 81Br and 18F: 37Cl, 81Br and 18F read back in every case (171 of 171), but `[(34S)ethylsulfanyl]` is a name OPSIN cannot assign (alone it answers nothing, inside a longer name it dropped the label and read the unlabelled molecule, six of seven), so the label now sits before the `sulfanyl` (`4-[ethyl(34S)sulfanyl]benzonitrile`, D-325). The `sulfanylidene`, `thioxo` and `oxo` prefixes, the `sulfonyl` / `sulfinyl` prefix and the compound `sulfamoyl` take their atom's label (`2-(34S)sulfanylidene-1,3-thiazolidin-4-one`, `4-[methyl(34S)sulfonyl]benzamide`, `4-[N,N-dimethyl(18O)sulfamoyl]benzamide`, D-326); the nitrogen of `methylamino`, `phenylamino` and a demoted amide is cited (`3-[methyl(15N)amino]-3-oxopropanoic acid`, D-327); and an amide nitrogen on a ring with a nitrogen of its own takes the ring atom's locant (`N-methylpyridine-2-(15N)carboxamide`, D-328). 15N 287 -> 323 of 356 read back, 18O 289 -> 315 of 366, 34S 104 -> 134 of 138.
+
 ### Naming: nitrogen and oxygen nuclides in groups, acylamino prefixes and amines
 - Round 70 ran round 69's isotope population with one 15N and one 18O per molecule: 89 of 356 labelled nitrogens and 103 of 366 labelled oxygens were refused (none was a wrong molecule). The two oxygens of a nitro group, a sulfonyl or a carboxylate are one position and count once (`1-chloro-4-(18O)nitrobenzene`, `4-methyl(18O)benzene-1-sulfonamide`, D-322); an acylamino prefix cites its nitrogen's nuclide (`methyl 4-(15N)acetamidobenzoate`, `[3-(furan-2-yl)prop-2-enoyl(15N)amino]acetic acid`, D-323); and the nitrogen of an `-amine` suffix is addressed by the atom it hangs on (`(15N)ethanamine`, `2-phenylethan-1-(15N)amine`, D-324). 15N 267 -> 287 of 356 read back, 18O 263 -> 289 of 366.
 
