@@ -135,16 +135,26 @@ def test_a_product_atom_left_unmapped_makes_the_mapping_partial_and_conservation
     assert result.mapping == v.PARTIAL and result.conservation == v.NOT_ASSESSABLE and not result.fully_validated
 
 
-def test_a_mapped_atom_whose_element_changes_across_the_step_fails_conservation(aspirin_route):
+def test_a_mapped_atom_whose_element_changes_across_the_step_fails_conservation_with_the_sides_still_the_nodes(aspirin_route):
     reaction = _reaction(aspirin_route)
-    smiles = reaction["metadata"]["mapped_reaction_smiles"]
-    left, right = smiles.split(">>")
-    reaction["metadata"]["mapped_reaction_smiles"] = left + ">>" + right.replace("[CH3:1]", "[NH2:1]", 1)  # a carbon on the left becomes nitrogen on the right
+    left, right = reaction["metadata"]["mapped_reaction_smiles"].split(">>")
+    # swap the numbers of a carbon and an oxygen on the right: the molecules are unchanged (so the sides are still the nodes) but map 1 now pairs a carbon with an oxygen
+    swapped = right.replace("[CH3:1]", "[CH3:@]", 1).replace("[O:3]", "[O:1]", 1).replace("[CH3:@]", "[CH3:3]", 1)
+    reaction["metadata"]["mapped_reaction_smiles"] = left + ">>" + swapped
 
     result = v.validate_route(aspirin_route)
 
-    assert result.mapping == v.COMPLETE and result.conservation == v.FAIL
+    assert result.reactions == v.PASS and result.mapping == v.COMPLETE and result.conservation == v.FAIL
     assert any("changes element" in d for d in result.diagnostics) and not result.fully_validated
+
+
+def test_a_stereocentre_flipped_on_one_side_is_not_the_node_it_claims_to_connect():
+    route = copy.deepcopy(_fixture("s_ibuprofen")["routes"][0])
+    reaction = _reaction(route)
+    left, right = reaction["metadata"]["mapped_reaction_smiles"].split(">>")
+    reaction["metadata"]["mapped_reaction_smiles"] = left.replace("[C@H:9]", "[C@@H:9]") + ">>" + right
+
+    assert v.validate_route(route).reactions == v.FAIL
 
 
 def test_a_mapped_product_atom_with_no_partner_on_the_right_fails_conservation(aspirin_route):

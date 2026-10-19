@@ -99,8 +99,8 @@ def _step_conservation(left: list[Chem.Mol], right: list[Chem.Mol]) -> tuple[boo
                 continue
             left_numbers.add(number)
             partners = right_by_number.get(number, [])
-            if len(partners) != 1:
-                reasons.append(f"map {number} ({a.GetSymbol()}) has {len(partners)} partners on the right")
+            if not partners:  # a repeated number on the right is caught earlier, as a partial mapping
+                reasons.append(f"map {number} ({a.GetSymbol()}) has 0 partners on the right")
             elif partners[0] != a.GetAtomicNum():
                 reasons.append(f"map {number} changes element ({a.GetSymbol()} to atomic number {partners[0]})")
     extras = sum(1 for n in right_by_number if n not in left_numbers) + sum(1 for m in right for a in m.GetAtoms() if a.GetAtomMapNum() == 0 and a.GetAtomicNum() > 1)
