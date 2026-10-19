@@ -340,3 +340,27 @@ def test_the_report_says_how_often_orcas_symmetry_number_was_overridden():
 
     assert "differs from the one used in 1 of" in text
     assert "ORCA 1, used 3" in text
+
+
+def test_a_proton_on_a_carbonyl_oxygen_is_bent_not_collinear_and_in_the_molecular_plane():
+    mol, xyz = _embedded("formaldehyde")
+    oxygen = next(a.GetIdx() for a in mol.GetAtoms() if a.GetSymbol() == "O")
+    carbon = next(a.GetIdx() for a in mol.GetAtoms() if a.GetSymbol() == "C")
+    _, ion = run.add_proton(mol, xyz, {"atom": oxygen, "kind": "lone_pair"})
+    co, oh = xyz[oxygen] - xyz[carbon], ion[-1] - xyz[oxygen]
+    angle = np.degrees(np.arccos(np.dot(co, oh) / np.linalg.norm(co) / np.linalg.norm(oh)))
+
+    assert angle == pytest.approx(60.0, abs=1e-6)  # 120 degrees at O
+    assert np.linalg.norm(oh) == pytest.approx(0.97, abs=1e-6)
+    hydrogen = next(a.GetIdx() for a in mol.GetAtoms() if a.GetSymbol() == "H")
+    assert abs(np.dot(np.cross(co, xyz[hydrogen] - xyz[carbon]), oh)) < 1e-6  # in the plane of the formaldehyde
+
+
+def test_a_nitrile_nitrogens_proton_stays_collinear():
+    mol, xyz = _embedded("acetonitrile")
+    nitrogen = next(a.GetIdx() for a in mol.GetAtoms() if a.GetSymbol() == "N")
+    carbon = next(n.GetIdx() for n in mol.GetAtomWithIdx(nitrogen).GetNeighbors())
+    _, ion = run.add_proton(mol, xyz, {"atom": nitrogen, "kind": "lone_pair"})
+    axis = (xyz[nitrogen] - xyz[carbon]) / np.linalg.norm(xyz[nitrogen] - xyz[carbon])
+
+    assert (ion[-1] - xyz[nitrogen]) / np.linalg.norm(ion[-1] - xyz[nitrogen]) == pytest.approx(axis, abs=1e-6)  # HCNH+ is linear

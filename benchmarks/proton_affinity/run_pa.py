@@ -121,6 +121,25 @@ def conformers_of(mol: Chem.Mol) -> list[np.ndarray]:
     return [np.array(work.GetConformer(cid).GetPositions()) for cid in kept]
 
 
+def _bent(direction: np.ndarray, bond: np.ndarray, atom: Chem.Atom, mol: Chem.Mol, coordinates: np.ndarray) -> np.ndarray:
+    """A carbonyl-type oxygen's proton, tilted 60 degrees off the C=O axis (in the plane of the carbon's other neighbours, else any plane containing the axis).
+
+    Exactly on the axis the start has C-infinity-like symmetry and an optimizer can stay on a saddle whose bend is imaginary; the real ion is bent (about 120 degrees at O)."""
+    neighbor = atom.GetNeighbors()[0]
+    others = [coordinates[n.GetIdx()] - coordinates[neighbor.GetIdx()] for n in neighbor.GetNeighbors() if n.GetIdx() != atom.GetIdx()]
+    perpendicular = None
+    if others:
+        n = np.cross(bond, others[0])
+        if np.linalg.norm(n) > 1e-6:
+            perpendicular = np.cross(n, direction)
+    if perpendicular is None or np.linalg.norm(perpendicular) < 1e-6:
+        trial = np.array([1.0, 0.0, 0.0]) if abs(direction[0]) < 0.9 else np.array([0.0, 1.0, 0.0])
+        perpendicular = np.cross(direction, trial)
+    perpendicular /= np.linalg.norm(perpendicular)
+    angle = np.radians(60.0)
+    return np.cos(angle) * direction + np.sin(angle) * perpendicular
+
+
 def add_proton(mol: Chem.Mol, coordinates: np.ndarray, site: dict) -> tuple[list[str], np.ndarray]:
     """A conjugate acid's starting geometry: the base's atoms and one more hydrogen on the site.
 
@@ -146,6 +165,8 @@ def add_proton(mol: Chem.Mol, coordinates: np.ndarray, site: dict) -> tuple[list
         direction = normal
     else:
         raise ValueError(f"no direction for the proton on atom {site['atom']}")
+    if len(vectors) == 1 and atom.GetBonds()[0].GetBondType() == Chem.BondType.DOUBLE:
+        direction = _bent(direction, vectors[0], atom, mol, coordinates)
     distance = XH_DISTANCE.get(atom.GetAtomicNum(), 1.1)
     symbols = [a.GetSymbol() for a in mol.GetAtoms()] + ["H"]
     return symbols, np.vstack([coordinates, origin + distance * direction])
