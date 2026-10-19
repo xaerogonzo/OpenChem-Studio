@@ -1694,6 +1694,8 @@
   "tests/test_suite_timings.py": 0,
   "tests/test_surface_options.py": 3,
   "tests/test_surface_typed.py": 3,
+  "tests/test_synthesis_benchmark.py": 2,
+  "tests/test_synthesis_route_validator.py": 1,
   "tests/test_table_export.py": 0,
   "tests/test_task_groups.py": 1,
   "tests/test_tautomer_conformers.py": 2,

@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 327b225539f7d5105b315bbb154c8b729fe269ddabe95acd96205e6316189c6f -->
+<!-- SOURCE SHA256: a7e767a3c3c8480b58f45ea92c6b5e9c5891e57fc9e0f1dd53a9b0339f060451 -->
 
 # Sources
 
@@ -168,6 +168,8 @@ next run of `tools/build_lewis_parameters.py`.
 | [`gasteiger1985`](#gasteiger1985) | literature | **not shipped** | citation |
 | [`gavezzotti1983`](#gavezzotti1983) | literature | reference only | citation + claim |
 | [`geidl2015`](#geidl2015) | literature | reference only | citation |
+| [`genheden2020aizynthfinder`](#genheden2020aizynthfinder) | literature | reference only | citation + claim |
+| [`genheden2022paroutes`](#genheden2022paroutes) | literature | reference only | citation + claim |
 | [`glasser1995`](#glasser1995) | literature | shipped | citation |
 | [`gleiter1972`](#gleiter1972) | literature | shipped | citation + claim |
 | [`goerigk2017`](#goerigk2017) | literature | reference only | citation + claim |
@@ -344,6 +346,8 @@ next run of `tools/build_lewis_parameters.py`.
 | [`wilmer2012`](#wilmer2012) | literature | shipped | citation + claim |
 | [`wilmer2012_correction`](#wilmer2012_correction) | literature | reference only | citation |
 | [`yalkowsky_banerjee1992`](#yalkowsky_banerjee1992) | dataset | shipped | citation |
+| [`zenodo7341155`](#zenodo7341155) | dataset | reference only | citation + claim |
+| [`zenodo7797465`](#zenodo7797465) | dataset | reference only | citation + claim |
 | [`zhang2009`](#zhang2009) | literature | reference only | citation |
 | [`zhao2003`](#zhao2003) | literature | reference only | citation + claim |
 | [`zhao2008`](#zhao2008) | literature | reference only | citation + claim |
@@ -6893,6 +6897,39 @@ outputs); the paper itself was NOT read, so this entry makes no claim about a nu
 
 **Why it is reference only.** PER-SET ERRORS OF 200 FUNCTIONALS (the SI file MADValues.csv, against CCSD(T)/CBS-type references): M06-2X MAD 1.83 kcal/mol on BDE99nonMR and 2.50 on HAT707nonMR, 6.32 and 5.08 on the multireference sets BDE99MR and HAT707MR; B3LYP 3.19 and 3.08 on the non-multireference sets.
 
+### genheden2022paroutes
+
+<a id="genheden2022paroutes"></a>
+
+> S. Genheden & E. Bjerrum, 'PaRoutes: towards a framework for benchmarking retrosynthesis route predictions', Digital Discovery 2022, 1, 527-539.
+
+| | |
+| --- | --- |
+| Identifier | [10.1039/D2DD00015F](https://doi.org/10.1039/D2DD00015F) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-19 |
+| Local copy | `genheden2022_paroutes.pdf` (not checked) |
+| Used by | `docs/SYNTHESIS_HELPER_DESIGN.md`, `benchmarks/synthesis/PREREGISTRATION.md` |
+
+**Why it is reference only.** THE ROUTE-PREDICTION BENCHMARK THE SYNTHESIS SPIKE'S QUALITY PROTOCOL IS BUILT ON: two sets of 10,000 USPTO reference routes (set-n1, set-n5; at most 10 reactions; no route's leaf is another's intermediate) with the reference routes' leaves as the stock; AiZynthFinder MCTS with the benchmark's own one-step model (reference reactions excluded), 500 iterations, no time limit: set-n1 9,714 of 10,000 targets solved, top-1 / top-5 / top-10 route accuracy 0.20 / 0.55 / 0.61 by tree edit distance, set-n5 9,676 solved and 0.09 / 0.34 / 0.42; about 45% of targets have a shorter top-1 route than the reference and the leaf overlap is 0.63 to 0.68. States that a one-step model trained on the whole USPTO set, reference reactions included, is biased ("literature-lookup"). Numbers read from the text layer of Tables 1 and 2; the page images were not checked.
+
+### genheden2020aizynthfinder
+
+<a id="genheden2020aizynthfinder"></a>
+
+> S. Genheden, A. Thakkar, V. Chadimova, J.-L. Reymond, O. Engkvist & E. Bjerrum, 'AiZynthFinder: a fast, robust and flexible open-source software for retrosynthetic planning', J. Cheminform. 2020, 12, 70.
+
+| | |
+| --- | --- |
+| Identifier | [10.1186/s13321-020-00472-1](https://doi.org/10.1186/s13321-020-00472-1) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-19 |
+| Used by | `docs/SYNTHESIS_HELPER_DESIGN.md` |
+
+**Why it is reference only.** THE PLANNER'S OWN PUBLISHED RESULT AND ITS WARNINGS (read from the open-access full text, PMC7672904): on 100 random ChEMBL compounds with the ZINC-subset stock and the then USPTO policy, AiZynthFinder found a route for 55 and ASKCOS for 62 (47 in common, 30 neither), average search 38.7 s and first solution 7.1 s; the stock, the template library and the target's complexity decide whether a route is found; the route score 'was designed to support the tree search and is rather indiscriminate with regard to the quality of the route'. No reference-route comparison, no feasibility check of the 55 routes and no random seed are reported. The training data it cites is Lowe's USPTO extraction. Author list from the PMC record.
+
 ## Datasets
 
 ### bradley2014
@@ -7416,6 +7453,40 @@ HBA, HBD, PSA, RTB, the rule-of-three and rule-of-five, aromatic rings, heavy
 atoms, QED and NP-likeness on the parent, and FULL_MWT and FULL_MOLFORMULA on
 the full salt. That is the split `RDKitDescriptorProvider.compute` makes, and
 the one rule every calculator's `CalculatorScope` follows.
+
+### zenodo7797465
+
+<a id="zenodo7797465"></a>
+
+> L. Saigiridharan, 'USPTO-based ONNX models', Zenodo 2023.
+
+| | |
+| --- | --- |
+| Identifier | [10.5281/zenodo.7797465](https://doi.org/10.5281/zenodo.7797465) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-19 |
+| Licence | CC BY 4.0 |
+| Used by | `docs/SYNTHESIS_HELPER_DESIGN.md`, `benchmarks/synthesis/PREREGISTRATION.md` |
+
+**Why it is reference only.** THE ONNX POLICY AND FILTER MODELS aizynthfinder's download_public_data installs (uspto_model.onnx 91,518,243 bytes, uspto_filter_model.onnx 16,788,859, uspto_ringbreaker_model.onnx 15,036,094; sizes confirmed by the download). The record's licence field is CC-BY-4.0; its description is only 'the USPTO models converted as ONNX', so what they were trained on, and whether the PaRoutes reference reactions were excluded, is NOT stated.
+
+### zenodo7341155
+
+<a id="zenodo7341155"></a>
+
+> S. Genheden, 'PaRoutes 2.0 and USPTO-based models', Zenodo 2022.
+
+| | |
+| --- | --- |
+| Identifier | [10.5281/zenodo.7341155](https://doi.org/10.5281/zenodo.7341155) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-19 |
+| Licence | CC BY 4.0 |
+| Used by | `docs/SYNTHESIS_HELPER_DESIGN.md`, `benchmarks/synthesis/PREREGISTRATION.md` |
+
+**Why it is reference only.** THE PaRoutes ROUTE SETS, STOCKS, TEMPLATE LIBRARIES AND A KERAS MODEL: ref_routes_n1.json (64 MB), ref_routes_n5.json (82 MB), targets_n1.txt and targets_n5.txt, stock_n1.txt and stock_n5.txt, uspto_unique_templates.csv.gz (3.3 MB, confirmed by the download), uspto_keras_model.hdf5 (275 MB). Licence field CC-BY-4.0 as the record states; the licence of the underlying USPTO extraction is not restated on this record.
 
 ## Legal texts
 
