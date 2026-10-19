@@ -1,0 +1,4 @@
+pyridine, IP-EOM-CCSD/cc-pVTZ, geometry of Ranasinghe 2019's CGB set (SI file 43_Pyridine.xyz, dummy atoms dropped), plane as xy
+ours (ORCA 6.1.1):  first IP 9.615 eV; +0.258 pi, +0.683 pi, +3.232 sigma, +3.997 pi
+theirs (SI Table S3, IP-EOM-CCSD/cc-pVTZ): 9.627 (11a1), 9.887 (1a2), 10.311 (2b1), 12.862 (7b2) = +0.260, +0.684, +3.235
+ours at gate 4's B3LYP/6-31G* geometry: first IP 9.675; +0.025 pi, +0.746 pi, +3.192 sigma

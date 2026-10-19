@@ -78,3 +78,21 @@ So the verdict is B3LYP nearer by the preregistered rule, with a margin (0.11 to
 Also: two molecules, one reference method, B3LYP geometries, the gap only; the azoles, where the sigma state is the higher one, were not run. wB97X-D3's gaps moved with the basis (def2-TZVP against 6-31G*: pyrimidine -0.04, pyrazine -0.07, pyridine -0.01 eV) by about as much as B3LYP's (-0.03, -0.05, 0.00), and the same direction as the EOM gaps' fall.
 
 **Left open.** A larger EOM basis for the diazines is not available on this machine (aug-cc-pVTZ is about 640 functions for pyrimidine); a cc-pVQZ or a basis-set extrapolation of canonical EOM with a smaller frozen-virtual space, or a DLPNO-EOM, would remove the first uncertainty, and EOM-IP-CCSDT on pyrimidine or pyrazine (published for pyridine only) the second.
+
+## After the outcome: a published cross-check, and a correction (2026-10-19)
+
+`ranasinghe2019` (Ranasinghe, Margraf, Perera and Bartlett; its supplement `ranasinghe2019_si/`, Tables S3 and S4) was obtained after the run. It holds **IP-EOM-CCSD/cc-pVTZ for pyrimidine and pyrazine (NIST set, MP2/def2-TZVP geometries) and for pyridine (CGB set), and no CCSDT for any of the three**: IP-EOM-CCSDT/cc-pVTZ was run for 41 molecules, mostly of the CGB set, and neither diazine is in Table S3.
+
+| | theirs, above the lowest (eV) | ours at cc-pVTZ, above the lowest (eV) |
+|---|---|---|
+| pyrimidine | 0.807, 1.450, 1.648 | 0.800, 1.472, 1.647 |
+| pyrazine | 0.476, 1.734, 2.048, 4.021 | 0.506, 1.748, 2.099, 4.101 |
+| pyridine, their geometry | 0.260, 0.684, 3.235 | **0.258, 0.683, 3.232** (ORCA at their geometry, `geometry_check.py`) |
+| pyridine, gate 4's geometry | | 0.025, 0.746, 3.192 |
+
+(The states are matched by energy order; their irrep labels were not mapped to ours.)
+* **Our pipeline reproduces an independent code**: pyridine at their geometry agrees to 0.003 eV on all three gaps, the diazines to 0.01 to 0.08 eV at geometries that differ (MP2/def2-TZVP against B3LYP/6-31G\*), and the gap that decides the rule to 0.007 (pyrimidine) and 0.03 eV (pyrazine).
+* **The geometry matters for pyridine and hardly for the diazines**: pyridine's first pi gap is 0.258 eV at their (CCSD(T)/aug-cc-pVTZ) geometry and 0.025 at gate 4's, a shift of 0.23 eV, where the two diazine geometries agree to 0.01 to 0.03 eV in the gap.
+* **Correction to the second caveat of the Outcome.** It said EOM-IP-CCSD's own error on pyridine is 0.125 eV in the direction of a smaller gap, which would favor B3LYP. That 0.125 was measured at the B3LYP geometry and mixes the method with the geometry. At a correlated geometry the EOM-IP-CCSD gap is 0.258 against EOM-IP-CCSDT's 0.15 (the geometry of that CCSDT calculation was not checked), a difference of +0.11 in the OTHER direction. **The size of EOM-IP-CCSD's own error is about 0.1 eV; its sign is not established**, and the caveat no longer points toward B3LYP.
+* **A counter-observation the rule did not include.** Pyridine was the calibration, outside the rule. At the same geometry and cc-pVTZ-class basis, G(EOM) is 0.025; B3LYP/def2-TZVP gives 0.120 (0.095 above) and **wB97X-D3/def2-TZVP gives 0.032 (0.007 above): wB97X-D3 is the nearer one for pyridine**, B3LYP for the two diazines. B3LYP's gap is larger than the EOM gap by 0.10, 0.08 and 0.13 eV in the three molecules (same direction, its sigma state too low), and wB97X-D3's is 0.01 above in pyridine and 0.21 and 0.23 below in the diazines.
+The preregistered outcome (B3LYP NEARER, for the two molecules of the rule) is unchanged; what it supports is narrower than "B3LYP's gap is the nearer one".

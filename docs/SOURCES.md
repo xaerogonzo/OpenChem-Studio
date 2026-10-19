@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 30f7062721a7bb71e3e923db5a105d4ac359d059f69699c033a02a34205134f7 -->
+<!-- SOURCE SHA256: c7fcbe890147982df313dc1b6d2b655973d4e8e762100e425d015a618346a218 -->
 
 # Sources
 
@@ -275,6 +275,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`quiroga2016`](#quiroga2016) | literature | shipped | citation + claim |
 | [`ramachandran1996`](#ramachandran1996) | literature | **not shipped** | citation + claim |
 | [`ran2002`](#ran2002) | literature | reference only | citation |
+| [`ranasinghe2019`](#ranasinghe2019) | literature | shipped | citation + claim |
 | [`rappe1991`](#rappe1991) | literature | shipped | citation + claim |
 | [`rappe1992`](#rappe1992) | literature | **not shipped** | citation |
 | [`rcsb_pdb`](#rcsb_pdb) | dataset | shipped | citation |
@@ -6658,6 +6659,23 @@ own opening states that HSAB "has remained qualitative and largely intuitive"
 and that attempts at a general hardness-softness measure "have so far not
 been successful". A citation saying the field is qualitative cannot back a
 quantitative claim.
+
+### ranasinghe2019
+
+<a id="ranasinghe2019"></a>
+
+> D. S. Ranasinghe, J. T. Margraf, A. Perera & R. J. Bartlett, 'Vertical valence ionization potential benchmarks from equation-of-motion coupled cluster theory and QTP functionals', J. Chem. Phys. 2019, 150, 074108.
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.5084728](https://doi.org/10.1063/1.5084728) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-19 |
+| Local copy | `ranasinghe2019.pdf` (not checked) |
+| Used by | `docs/explainers/reactivity.md`, `benchmarks/fukui_gate_4/PREREGISTRATION.md` |
+
+WHAT IS CITED, from the supplementary workbook (`ranasinghe2019_si/`, Table S4): IP-EOM-CCSD/cc-pVTZ vertical ionization energies of pyrimidine (9.724, 10.530, 11.174, 11.372 eV) and pyrazine (9.709, 10.185, 11.443, 11.757, 13.730 eV) at MP2/def2-TZVP geometries, and Table S3's pyridine at the CGB set's geometry (9.627, 9.887, 10.311, 12.862 eV). It is NOT a CCSDT reference for the diazines: IP-EOM-CCSDT/cc-pVTZ was run for 41 molecules, mostly of the CGB set (Table S3), and neither diazine is in Table S3; the diazines are in the NIST set (Table S4), which has IP-EOM-CCSD only.
 
 ## Datasets
 
