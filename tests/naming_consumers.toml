@@ -495,6 +495,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round74_double_bond_and_sulfoxide_stereo_in_prefixes_and_azo_parents.py"
+why = "the E/Z of a C=N or N=N bond reaches the name when it is an ylidene, diazenyl or diazene (D-337, D-338), and the R/S of a sulfoxide, sulfinamide or other S/P centre outside the parent reaches it too (D-339)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round73_tautomers_quinoid_rings_thiadiazole_hydrogen_and_imidic_acid_groups.py"
 why = "a ring joined by a double bond is not a phenyl (D-334), a 1,3,4-thiadiazole or oxadiazole places its hydrogen (D-335), and an imidic acid whose imine carries an oxygen or nitrogen of its own is named inside a bigger name (D-336)"
 scope = "core"

@@ -903,6 +903,8 @@ def _name_heteroatom_fv_substituent(
                     ),
                     _session=session, _depth=depth + 1,
                 )
+                # the geometry of the C=N bond the ylidene hangs from (naming round 74)
+                sub_tree = _with_ylidene_bond_descriptor(sub_tree, mol, (attachment_idx, nb_idx), frozenset(), att_idx_sub)
                 sub_name = _assemble(sub_tree)
                 if not sub_name or "[NAMING ERROR" in sub_name:
                     return None
@@ -2349,12 +2351,20 @@ def _name_single_centre_parent(
                 and (parent_name != "diazene" or fg.suffix_eligible)
                 for fg in perception.fgs.detected_fgs):
             return None
-        return _name_n_core_parent(
+        _n_core_tree = _name_n_core_parent(
             mol, core, free_ns=free, fixed={}, parent_name=parent_name,
             output_form=output_form, decision_ctx=decision_ctx,
             strategy=strategy, session=session, depth=depth,
             perception=None, cite_locants=False,
         )
+        if parent_name == "diazene" and isinstance(_n_core_tree, LeafTree) and _n_core_tree.text:
+            # naming round 74: the geometry of the N=N bond, which `diphenyldiazene` gave to both isomers
+            _azo_ez = _double_bond_descriptor(mol, free[0].GetIdx(), free[1].GetIdx())
+            if _azo_ez:
+                from dataclasses import replace
+
+                _n_core_tree = replace(_n_core_tree, text=f"({_azo_ez})-{_n_core_tree.text}")
+        return _n_core_tree
     return None
 
 
@@ -5557,6 +5567,10 @@ def _name_single_fg_substituent(
                         r_name = assemble(r_tree)
                         if r_name and "[NAMING ERROR" not in r_name:
                             diazenyl_prefix = r_name + "diazenyl"
+                            _azo_ez = _double_bond_descriptor(mol, attachment_idx, inner_n.GetIdx())
+                            if _azo_ez:
+                                # the N=N geometry lives on a bond this carve dropped (naming round 74): `(E)-phenyldiazenyl`
+                                diazenyl_prefix = f"({_azo_ez})-{diazenyl_prefix}"
                             return LeafTree(
                                 output_form=output_form,
                                 free_valence=free_valence,
@@ -5878,6 +5892,12 @@ def _name_single_fg_substituent(
                                 _m_ring = re.fullmatch(r"(.+?)([a-z]*[a-z])-(\d+)-yl", r_name)
                                 if _m_ring is not None and not _m_ring.group(2).endswith("e"):
                                     sulfonyl_prefix = f"{_m_ring.group(1)}{_m_ring.group(2)}e-{_m_ring.group(3)}-{suffix}"
+                            if oxo_count == 1:
+                                # a sulfoxide sulfur with three different groups (the lone pair is the fourth) is a stereocentre, and the prefix
+                                # carved it away from its tag (naming round 74): `[(S)-propane-1-sulfinyl]`
+                                _s_cip = _atom_cip_descriptor(mol, attachment_idx)
+                                if _s_cip:
+                                    sulfonyl_prefix = f"({_s_cip})-{sulfonyl_prefix}"
                             return LeafTree(
                                 output_form=output_form,
                                 free_valence=free_valence,
@@ -6467,12 +6487,77 @@ def register_path(decomp_type: str):
 _SPIRO_NAMING_METHODS = frozenset({"spiro_systematic", "spiro_polycyclic", "polyspiro_articulation", "polyspiro_multicomponent", "polyspiro_von_baeyer"})
 
 
+def _atom_cip_descriptor(mol, idx: int) -> str | None:
+    """The R/S code of an atom: the one it inherited from the molecule it was carved from, else its own."""
+    atom = mol.GetAtomWithIdx(idx)
+    props = atom.GetPropsAsDict()
+    code = props.get("_ParentCIPCode") or props.get("_CIPCode")
+    return code if code in ("R", "S") else None
+
+
+def _double_bond_descriptor(mol, a: int, b: int) -> str | None:
+    """The E/Z descriptor of the double bond a=b: its CIP code, else the geometric flag; None for a bond with neither.
+
+    ``StereoPerception._detect_double_bond`` reads an inherited ``_ParentCIPCode`` first, because carving swaps the cut side for H. That case does not
+    arise here (the cut side of these bonds is the N or the S, whose lone pair always ranks last), and no population or probe tells the two apart.
+    """
+    bond = mol.GetBondBetweenAtoms(a, b)
+    if bond is None or bond.GetBondTypeAsDouble() != 2.0:
+        return None
+    props = bond.GetPropsAsDict()
+    if "_CIPCode" in props:
+        ez = props["_CIPCode"]
+    elif bond.GetStereo() == Chem.BondStereo.STEREOE:
+        ez = "E"
+    elif bond.GetStereo() == Chem.BondStereo.STEREOZ:
+        ez = "Z"
+    else:
+        return None
+    return ez if ez in ("E", "Z") else None
+
+
+def _with_ylidene_bond_descriptor(sub_tree, mol, attachment_bond, parent_atoms, fragment_attachment=None):
+    """Cite the E/Z of the double bond that joins an ylidene substituent to the rest of the molecule (naming round 74).
+
+    ``=CH-Ph`` on the N' of a hydrazide, on an amino nitrogen or on an azo nitrogen is carved away from the bond it hangs from, so its geometry
+    reached no name (`N'-benzylideneacetohydrazide` for both isomers). A parent atom's locant carries the descriptor when the OTHER end is in the
+    parent (`_collect_stereo_descriptors`), so only a bond whose far end is somewhere else (a suffix group, another substituent) is cited here, in
+    front of the ylidene: `N'-[(E)-benzylidene]acetohydrazide`, which OPSIN reads. When the ylidene has descriptors of its own the new one
+    takes the locant of the attachment atom (`(1E,2Z)-3-phenylprop-2-en-1-ylidene`), because an unlocated one would read as either bond.
+    """
+    from dataclasses import replace
+
+    from openchem.vendor.iupac_namer.types import LeafTree, StereoDescriptor, SubstitutiveTree
+
+    outer, inner = attachment_bond
+    if outer in parent_atoms:
+        return sub_tree
+    ez = _double_bond_descriptor(mol, outer, inner)
+    if ez is None:
+        return sub_tree
+    if isinstance(sub_tree, LeafTree) and sub_tree.text:
+        return replace(sub_tree, text=f"({ez})-{sub_tree.text}")
+    if not isinstance(sub_tree, SubstitutiveTree):
+        return sub_tree
+    if not sub_tree.stereo_descriptors:
+        return replace(sub_tree, stereo_descriptors=(StereoDescriptor(locant=None, descriptor=ez, stereo_center=None),))
+    loc = sub_tree.numbering.atom_to_locant.get(fragment_attachment) if fragment_attachment is not None else None
+    if loc is None or not getattr(loc, "is_numeric", False) or getattr(loc, "suffix", ""):
+        return sub_tree
+    own = tuple(sub_tree.stereo_descriptors)
+    if any(sd.locant is None for sd in own):
+        return sub_tree
+    cited = tuple(sorted(own + (StereoDescriptor(locant=loc, descriptor=ez, stereo_center=None),), key=lambda sd: sd.locant._numeric_value))
+    return replace(sub_tree, stereo_descriptors=cited)
+
+
 def _collect_stereo_descriptors(
     mol,
     perception,
     numbering,
     parent_atoms: frozenset[int],
     named_parent=None,
+    suffix_stereo_atoms: frozenset[int] = frozenset(),
 ):
     """Collect R/S/E/Z stereo descriptors for parent atoms with assigned locants.
 
@@ -6484,6 +6569,8 @@ def _collect_stereo_descriptors(
       substituent stereo is emitted by the substituent's recursive naming.
     - Tetrahedral centers must have a CIP descriptor (R/S) assigned; unspecified
       chiral tags are silently skipped.
+    - A S, Se, P or As centre in a SUFFIX group (``suffix_stereo_atoms``: the sulfur of ``2-methylpropane-2-sulfinamide``) has no locant of its own and is
+      cited unlocated, after the located ones, ``(S)-2-methylpropane-2-sulfinamide`` / ``(2S,S)-butane-2-sulfinamide`` (naming round 74).
     - Double-bond E/Z centers take the LOWER of the two endpoint locants.
     - Skipped entirely when the parent uses a fused/bridged/spiro ring system
       or a retained ring name: locant conventions for those systems (e.g.
@@ -6579,6 +6666,7 @@ def _collect_stereo_descriptors(
 
     atom_to_locant = numbering.atom_to_locant
     descriptors: list = []
+    suffix_centres: list = []
 
     for sc in stereo_centers:
         desc = sc.descriptor
@@ -6594,6 +6682,12 @@ def _collect_stereo_descriptors(
 
         if sc.type == "tetrahedral":
             if sc.atom_idx not in parent_atoms:
+                if (
+                    sc.atom_idx in suffix_stereo_atoms
+                    and desc in ("R", "S")
+                    and mol.GetAtomWithIdx(sc.atom_idx).GetSymbol() in ("S", "Se", "P", "As")
+                ):
+                    suffix_centres.append(StereoDescriptor(locant=None, descriptor=desc, stereo_center=sc))
                 continue
             loc = atom_to_locant.get(sc.atom_idx)
             if loc is None:
@@ -6717,12 +6811,15 @@ def _collect_stereo_descriptors(
                 StereoDescriptor(locant=loc, descriptor=desc, stereo_center=sc)
             )
 
-    if not descriptors:
+    if not descriptors and not suffix_centres:
         return None
 
     # Sort: numeric locants ascending; stable for ties.
     descriptors.sort(key=lambda sd: (sd.locant, sd.descriptor))
-    return tuple(descriptors)
+    # ONE unlocated descriptor reads as that centre, last in the list (OPSIN reads `(2S,S)-butane-2-sulfinamide`); two of them would read as neither.
+    if len(suffix_centres) == 1:
+        descriptors.extend(suffix_centres)
+    return tuple(descriptors) if descriptors else None
 
 
 # ---------------------------------------------------------------------------
@@ -7565,6 +7662,8 @@ def _name_ring_imino_amide(mol, strategy=None) -> str | None:
             ),
             _session=sub_session, _depth=0,
         )
+        # the geometry of the ring C=N bond the ylidene hangs from (naming round 74)
+        sub_tree = _with_ylidene_bond_descriptor(sub_tree, mol, (exo_n, ring_c), frozenset(), att_idx)
         sub_name = assemble(sub_tree)
         if not sub_name or "NAMING ERROR" in sub_name:
             return None
@@ -11856,6 +11955,8 @@ def _stereo_locant_key(carrier) -> tuple | None:
     None when a descriptor cannot be ranked.
     """
     descriptors = getattr(carrier, "stereo_descriptors", None)
+    # an unlocated descriptor (a sulfinamide's sulfur) does not depend on the numbering, so it cannot decide between two of them
+    descriptors = [sd for sd in descriptors if sd.locant is not None] if descriptors else descriptors
     if not descriptors:
         return (frozenset(), (), ())
     rows = []
@@ -15724,6 +15825,7 @@ class SubstitutivePath:
                             mol, perception, numbering,
                             frozenset(parent_atom_set),
                             named_parent=effective_named_parent,
+                            suffix_stereo_atoms=frozenset(a for sg in suffix_groups for a in sg.fg.atoms),
                         )
                         # For PCG-seniority scoring (band 4), always expose the
                         # FULL pcg_instances list, even when some FG instances
@@ -18718,6 +18820,11 @@ class SubstitutivePath:
                         # A group of several atoms (`bromocarbonyl`, `cyano`): the nuclide of one atom, cited by the bare symbol when that element is alone in the
                         # group. None (the symbol would not say which atom) leaves the prefix unlabelled and the nuclide guard refuses the name.
                         prefix_name = _isotopic_group_prefix(prefix_name, pa.substituent_atoms, mol) or prefix_name
+                    if prefix_name and pa.fg.anchor in pa.substituent_atoms and mol.GetAtomWithIdx(pa.fg.anchor).GetSymbol() in ("S", "Se", "P", "As"):
+                        # the group's own centre (`(aminosulfinyl)acetic acid` for a sulfinamide) carries a tag the prefix was written without (naming round 74)
+                        _group_cip = _atom_cip_descriptor(mol, pa.fg.anchor)
+                        if _group_cip:
+                            prefix_name = f"({_group_cip})-{prefix_name}"
                     if prefix_name:
                         sub_tree = LeafTree(
                             output_form=OutputForm.SUBSTITUENT,
@@ -19333,6 +19440,10 @@ class SubstitutivePath:
                         _session=session,
                         _depth=depth + 1,
                     )
+                    if bond_order == 2:
+                        sub_tree = _with_ylidene_bond_descriptor(
+                            sub_tree, mol, pa.attachment_bond, plan.named_parent.candidate.atom_indices, attachment_idx,
+                        )
                     prefixes.append(PrefixEntry(
                         tree=sub_tree,
                         locants=(pa.locant,) if pa.locant is not None else (),

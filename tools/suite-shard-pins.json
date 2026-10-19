@@ -1430,6 +1430,7 @@
   "tests/test_namer_round71_chalcogen_and_amino_prefix_nuclides_and_suffix_locants.py": 3,
   "tests/test_namer_round72_hydrazide_nitrogens_added_hydrogen_ketones_and_acyl_oxygens.py": 0,
   "tests/test_namer_round73_tautomers_quinoid_rings_thiadiazole_hydrogen_and_imidic_acid_groups.py": 3,
+  "tests/test_namer_round74_double_bond_and_sulfoxide_stereo_in_prefixes_and_azo_parents.py": 1,
   "tests/test_namer_salt_multiplier.py": 1,
   "tests/test_namer_stereo_cache_identity.py": 3,
   "tests/test_namer_stereo_locant_tie.py": 3,
