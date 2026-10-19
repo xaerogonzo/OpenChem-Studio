@@ -89,7 +89,8 @@ import math
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 
-from openchem.chem.fukui_plan import STATE_N, STATE_OXIDISED, STATE_REDUCED, Solution, state_name
+from openchem.chem.fukui_plan import STATE_N, STATE_OXIDISED, STATE_REDUCED, Solution, hole_start, state_name
+from openchem.chem.fukui_states import CHARGE_TOLERANCE, LEVEL_MARGIN_EV, ORBITAL_SLACK_EV, WINDOW_EV, CationReading
 
 #: How far the charges of a state may sit from the state's total charge, in
 #: electrons. ORCA prints six decimals but integrates a density on a grid, so
@@ -134,6 +135,11 @@ class CondensedFukui:
     #: The solution read for each state (`chem.fukui_plan.choose_solutions`), the default start's job where no extra start was lower. A state with extra
     #: starts that did not finish, or that were lower, is said so in the caveats; a state with one start only is here and says nothing.
     solutions: tuple[Solution, ...] = ()
+    #: What the N-1 jobs said about the cation when the run carried hole starts (`chem.fukui_states.read_cation`): the states found, and which f- was read from. None for a
+    #: run with no search, whose N-1 state is in `solutions` like the others'.
+    cation_reading: CationReading | None = None
+    #: The sentences about the search (a competing state, an average over a degenerate level, jobs that did not finish, a search that was not run), joined, or "".
+    cation_note: str = ""
     has_negative: bool = False
     #: The sentence saying why f+, f0 and the dual descriptor are missing, or "" when they are there.
     f_plus_note: str = ""
@@ -260,6 +266,66 @@ def start_notes(solutions: Sequence[Solution], reference_charge: int) -> list[st
     return notes
 
 
+def _atom_name(index: int, symbols: Sequence[str]) -> str:
+    """"O (atom 2)": an atom named from 1 as the Atom Inspector names it, or just "atom 2" when the elements are not known."""
+    return f"{symbols[index]} (atom {index + 1})" if 0 <= index < len(symbols) else f"atom {index + 1}"
+
+
+def _hole_list(offsets: Sequence[int]) -> str:
+    """"the HOMO-1, HOMO-2 and HOMO-3": the orbitals a search put a hole in."""
+    names = [hole_start(offset) for offset in offsets]
+    return "the " + (names[0] if len(names) == 1 else f"{', '.join(names[:-1])} and {names[-1]}")
+
+
+def no_search_sentence(reference_charge: int, reason: str) -> str:
+    """What a result says when it carried no hole starts, so its N-1 state is whichever one ORCA's SCF reached from the neutral's orbitals."""
+    return (
+        f"No search for other states of the {state_name(reference_charge + 1)} was run ({reason}), so f- is read from the one state ORCA's SCF reached from the neutral's "
+        "orbitals. For a molecule whose cation has close-lying states, a different orientation of the same structure can reach another: benzaldehyde did, 6 of 14 runs "
+        "one state and 8 the other, 0.05 apart in f-."
+    )
+
+
+def cation_state_sentences(
+    reading: CationReading, reference_charge: int, symbols: Sequence[str] = (), untried_orbital_gap_ev: float | None = None
+) -> list[str]:
+    """The sentences a run that searched for other cation states owes its reader, in the words the caveat and the panel share: a degenerate level that was averaged, the
+    states that compete with the one f- is read from, a search that did not finish, and a search that stopped short of orbitals close to the HOMO.
+
+    Nothing for a run that searched, finished, and found one state: the provenance records that, and a sentence saying everything is as it was is noise."""
+    cation = state_name(reference_charge + 1)
+    notes: list[str] = []
+    if reading.degenerate:
+        spread = max(max(values) - min(values) for values in zip(*(state.charges for state in reading.averaged)))
+        notes.append(
+            f"The {cation} has {len(reading.averaged)} states within {LEVEL_MARGIN_EV:g} eV of each other (a degenerate level), and f- is read from the average of their Hirshfeld charges "
+            f"because which of them an SCF reaches is arbitrary; they differ by up to {spread:.3f} electrons in one atom's charge."
+        )
+    competing = [state for state in reading.competing if state.max_difference > CHARGE_TOLERANCE]
+    if competing:
+        shown = competing[:3]
+        clauses = [f"{state.above_ev:.2f} eV (its f- differs by up to {state.max_difference:.3f}, at {_atom_name(state.atom, symbols)})" for state in shown]
+        joined = clauses[0] if len(clauses) == 1 else f"{', '.join(clauses[:-1])} and {clauses[-1]}"
+        more = f", and {len(competing) - len(shown)} more" if len(competing) > len(shown) else ""
+        notes.append(
+            f"{'Another state' if len(competing) == 1 else 'Other states'} of the {cation} lie{'s' if len(competing) == 1 else ''} {joined}{more} above the one f- is read from, "
+            "which is the lowest found. f- depends on which state is meant."
+        )
+    if reading.failed or reading.unreached:
+        names = [*reading.failed, *(hole_start(offset) for offset in reading.unreached)]
+        listed = names[0] if len(names) == 1 else f"{', '.join(names[:-1])} and {names[-1]}"
+        notes.append(
+            f"The {listed} {'start' if len(names) == 1 else 'starts'} of the search for other states of the {cation} did not run to the end "
+            f"(ORCA ended the run at a job that did not converge), so the search covered fewer holes than it was written with."
+        )
+    if reading.searched and untried_orbital_gap_ev is not None and untried_orbital_gap_ev <= WINDOW_EV + ORBITAL_SLACK_EV:
+        notes.append(
+            f"The search put the hole in {_hole_list(reading.holes_planned)}, but the occupied orbital below them lies only {untried_orbital_gap_ev:.2f} eV under the HOMO, "
+            "so a state with the hole there may exist and was not looked for."
+        )
+    return notes
+
+
 def _state_names(total_charge: int) -> tuple[str, str, str]:
     """(N, N-1, N+1) as a sentence calls them. A neutral species keeps the words the first release used ("neutral", "cation", "anion")."""
     first = "neutral" if total_charge == 0 else f"{state_name(total_charge)} (as given)"
@@ -326,6 +392,10 @@ def condensed_fukui(
     anion_s_squared: float | None = None,
     solutions: Sequence[Solution] = (),
     anion_unavailable: str = "",
+    cation_reading: CationReading | None = None,
+    cation_unsearched: str = "",
+    untried_orbital_gap_ev: float | None = None,
+    symbols: Sequence[str] = (),
 ) -> CondensedFukui:
     """The condensed Fukui functions from the per-atom charges of N, N-1 and N+1 electrons, or f- alone when there is no usable N+1 state.
 
@@ -336,6 +406,11 @@ def condensed_fukui(
     with its reason, and f- is given alone, where for every other species such a table refuses the result as it always did. The two energies are optional
     and only decide whether the unbound-state caveat is attached; `solutions` (from `chem.fukui_plan.choose_solutions`) only decide which sentences about
     the SCF starts are attached.
+
+    **The cation's own state.** When the run searched for other states of the cation, `cation` is the charges it read (`cation_reading.charges`, the lowest state's or a
+    degenerate level's average) and `cation_reading` carries what the search found, said by `cation_state_sentences` (with `symbols` naming the atoms, and
+    `untried_orbital_gap_ev` how far below the HOMO the first orbital that was not tried lies). When it did not, `cation_unsearched` is the reason, said by
+    `no_search_sentence`; with neither the result says nothing about the cation's state, as the results of Fukui v2 did not.
     """
     names = _state_names(total_charge)
     states = [(names[0], neutral, total_charge), (names[1], cation, total_charge + 1)]
@@ -371,6 +446,11 @@ def condensed_fukui(
             unbound = gap
             caveats.append(unbound_anion_sentence(gap, total_charge))
     caveats.extend(start_notes(solutions, total_charge))
+    if cation_reading is not None:
+        cation_notes = cation_state_sentences(cation_reading, total_charge, symbols, untried_orbital_gap_ev)
+    else:
+        cation_notes = [no_search_sentence(total_charge, cation_unsearched)] if cation_unsearched else []
+    caveats.extend(cation_notes)
     caveats.extend(
         spin_contamination_sentence(state, value)
         for state, value in contaminated_states(cation_s_squared, anion_s_squared, names=(state_name(total_charge + 1), state_name(total_charge - 1)))
@@ -391,6 +471,8 @@ def condensed_fukui(
         anion_s_squared=anion_s_squared,
         reference_charge=total_charge,
         solutions=tuple(solutions),
+        cation_reading=cation_reading,
+        cation_note=" ".join(cation_notes),
         has_negative=has_negative,
         f_plus_note=f_plus_note,
         caveats=tuple(caveats) + (NOT_VALIDATED_SENTENCE,),
@@ -489,6 +571,9 @@ def summary_lines(datasets, symbols: list[str]) -> list[str]:
     note = parameters.get("start_note")
     if isinstance(note, str) and note:
         lines.append(note)
+    cation_note = parameters.get("cation_note")
+    if isinstance(cation_note, str) and cation_note:
+        lines.append(cation_note)
     lines.extend(
         spin_contamination_sentence(state, value)
         for state, value in contaminated_states(

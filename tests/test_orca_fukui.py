@@ -58,8 +58,14 @@ def _datasets(output: str = REAL_OUTPUT, mol=None) -> dict:
 # --- the input -------------------------------------------------------------------------------------------------------
 
 
+def _without_search(**switches) -> OrcaQuantumEngineProvider:
+    """A provider that writes the plan Fukui v2 and the anion's f+ had, with no hole starts: what these tests are about. The default provider searches for other states
+    of the cation (Fukui v3, `chem.fukui_states`), and its plan is tested in `tests/test_fukui_v3_input.py`."""
+    return OrcaQuantumEngineProvider(cation_search=lambda: False, **switches)
+
+
 def _input(charge: int = 0, multiplicity: int = 1) -> str:
-    return OrcaQuantumEngineProvider().build_input(_water(), charge, multiplicity, "B3LYP def2-SVP", "fukui")
+    return _without_search().build_input(_water(), charge, multiplicity, "B3LYP def2-SVP", "fukui")
 
 
 def test_the_input_is_three_jobs_neutral_then_cation_then_anion():
@@ -107,13 +113,13 @@ def _xyz_lines(text: str) -> list[str]:
 
 def test_a_provider_built_without_a_switch_includes_the_dianion():
     """The command line, the benchmarks and every test build a provider with no service behind it: f+ of an anion is on, as it is by default in Settings."""
-    text = OrcaQuantumEngineProvider().build_input(_water(), -1, 1, "B3LYP def2-SVP", "fukui")
+    text = _without_search().build_input(_water(), -1, 1, "B3LYP def2-SVP", "fukui")
     assert _xyz_lines(text) == ["* xyz -1 1", "* xyz 0 2", "* xyz -2 2"]
 
 
 def test_with_the_switch_off_an_anion_is_the_two_job_input_fukui_v2_wrote():
     """What the second gate tested: the anion and its neutral radical, no dianion. The Settings checkbox, through the service, is what turns this on."""
-    provider = OrcaQuantumEngineProvider(anion_f_plus=lambda: False)
+    provider = _without_search(anion_f_plus=lambda: False)
     text = provider.build_input(_water(), -1, 1, "B3LYP def2-SVP", "fukui")
     assert _xyz_lines(text) == ["* xyz -1 1", "* xyz 0 2"] and text.count("$new_job") == 1
     diffuse = provider.build_input(_water(), -1, 1, "B3LYP 6-31+G*", "fukui")
@@ -121,7 +127,7 @@ def test_with_the_switch_off_an_anion_is_the_two_job_input_fukui_v2_wrote():
 
 
 def test_with_the_switch_off_a_neutral_molecule_and_a_cation_keep_their_three_states():
-    provider = OrcaQuantumEngineProvider(anion_f_plus=lambda: False)
+    provider = _without_search(anion_f_plus=lambda: False)
     assert _xyz_lines(provider.build_input(_water(), 0, 1, "B3LYP def2-SVP", "fukui")) == ["* xyz 0 1", "* xyz 1 2", "* xyz -1 2"]
     assert _xyz_lines(provider.build_input(_water(), 1, 1, "B3LYP def2-SVP", "fukui")) == ["* xyz 1 1", "* xyz 2 2", "* xyz 0 2"]
 
@@ -145,7 +151,7 @@ def test_an_open_shell_species_is_refused_with_the_reason(multiplicity):
 
 
 def test_the_method_and_basis_come_from_the_caller():
-    text = OrcaQuantumEngineProvider().build_input(_water(), 0, 1, "PBE0 def2-TZVP", "fukui")
+    text = _without_search().build_input(_water(), 0, 1, "PBE0 def2-TZVP", "fukui")
     assert text.count("! PBE0 def2-TZVP") == 3
 
 
@@ -172,13 +178,13 @@ def test_every_job_has_the_finer_integration_grid_before_its_coordinates():
 
 def test_a_basis_without_diffuse_functions_writes_no_guess_keyword_anywhere():
     for charge, jobs in ((0, 3), (1, 3), (-1, 3)):
-        text = OrcaQuantumEngineProvider().build_input(_water(), charge, 1, "B3LYP 6-31G**", "fukui")
+        text = _without_search().build_input(_water(), charge, 1, "B3LYP 6-31G**", "fukui")
         assert len(_jobs(text)) == jobs
         assert "HCore" not in text and "Hueckel" not in text
 
 
 def test_a_diffuse_basis_adds_the_extra_starts_of_the_anionic_state_after_every_default_job():
-    text = OrcaQuantumEngineProvider().build_input(_water(), 0, 1, "B3LYP 6-311+G**", "fukui")
+    text = _without_search().build_input(_water(), 0, 1, "B3LYP 6-311+G**", "fukui")
     jobs = _jobs(text)
     assert [line for line in text.splitlines() if line.startswith("* xyz")] == ["* xyz 0 1", "* xyz 1 2", "* xyz -1 2", "* xyz -1 2", "* xyz -1 2"]
     assert [next(line for line in job.splitlines() if line.startswith("!")) for job in jobs] == [

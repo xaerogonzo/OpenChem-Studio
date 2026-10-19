@@ -1631,8 +1631,12 @@ Hirshfeld values: an earlier version by 0.0014 on one quantity (52 of 54 numbers
 current one with 33 of 47 numbers of 15 molecules within 0.02 and 9 of 11 reactive sites reproduced (eight molecules in every number: phenol, aniline,
 fluorobenzene, styrene, nitrobenzene, acrolein, nitrous oxide and the nitrite ion; not hydrogen cyanide, the sulfur of thiocyanate, anilinium, benzaldehyde,
 pyrrole, furan or thiophene). For anilinium, benzaldehyde and thiophene the published values match a cation state a little above the lowest one this calculation
-finds: where a molecule's cation has two states that close, the f- you get is that of whichever one ORCA reaches, and the calculation does not look for the other
-or say it is there. So it is marked experimental and kept out of the Properties launcher's default list (Settings > "Offer calculators that are hidden by default"
+finds: where a molecule's cation has two states that close, one cation job reaches whichever ORCA's SCF falls into (for benzaldehyde 6 of 14 runs one state and 8 the other), so
+the calculation now **looks for other states of the cation** (three more jobs; **Settings ▸ Quantum chemistry** turns it off), reads f- from the lowest it finds, and says when
+another lies within 0.5 eV and how far its f- is. That makes f- a function of the structure (in a pilot on benzaldehyde, the worst difference over rotations and displacements fell from 0.13 to 0.002);
+it does not make the numbers match the published ones, which describe a higher state, and **a note about a competing state appears only when some start ended in it, so no note is not evidence that there is none**.
+A third preregistered check of the search failed on one run of 114 (f- of 12 molecules reproducible to 0.0057 under rotations and displacements; anilinium re-embedded in another NH3+ rotamer differed by 0.0133 against a limit of 0.01, which is a different geometry and not a different state), and it also found that for acetophenone the single cation job
+had been a draw as it was for benzaldehyde. **The search takes about 2.5 times as long as a run without it** (three more unrestricted cation jobs). So it is marked experimental and kept out of the Properties launcher's default list (Settings > "Offer calculators that are hidden by default"
 brings it back; the Quantum Chemistry panel offers it either way). Read f- before f+: the anion of a neutral molecule is usually not
 bound at an ordinary basis set (the result gives the energy by which it lies above the neutral). **Do not add diffuse functions to improve f+**: with
 them the anion has more than one SCF solution and f+ was not reproducible in the cases measured (it changed by up to 0.31 between solutions, and
@@ -3289,13 +3293,18 @@ kept, which asks first.
   These are the window's shortcuts only: the keys typed while drawing belong to the
   editor and are not changed here. The search box narrows the list by name or by
   shortcut.
-- **Quantum chemistry.** One choice today, about the Fukui functions: whether a species that is itself
-  an **anion** gets its f+, f0 and dual descriptor, which come from a dianion that no basis set binds (on by
-  default; see the Fukui paragraph in the quantum chemistry section). They are the least trustworthy
-  numbers the calculator gives, and the result says how far above the anion the dianion lies. f- does not
-  depend on them, because the dianion is run last: if it does not converge you get f- and a sentence saying
-  why. Untick it to run only the anion and its neutral radical; neutral molecules and cations always get all
-  four. It applies to the next Fukui run, and results already computed are not changed.
+- **Quantum chemistry.** Two choices, both about the Fukui functions (see the Fukui paragraph in the
+  quantum chemistry section); each applies to the next Fukui run, and results already computed are not changed.
+  **Include f+, f0 and the dual descriptor for an anion** (on by default): a species that is itself an
+  **anion** gets them from a dianion that no basis set binds. They are the least trustworthy numbers the
+  calculator gives, and the result says how far above the anion the dianion lies. f- does not depend on
+  them, because the dianion is run last: if it does not converge you get f- and a sentence saying why.
+  Untick it to run only the anion and its neutral radical; neutral molecules and cations always get all four.
+  **Look for other states of the cation** (on by default): three more ORCA jobs start the cation from the
+  neutral's orbitals with the electron taken from the HOMO-1, HOMO-2 and HOMO-3, f- is read from the lowest
+  state found, and the result says when another state lies within 0.5 eV and how far its f- is. Untick it to
+  run the one cation job as before, which reaches whichever state ORCA's SCF falls into; the result then
+  says no search was run.
 - **File dialogs.** Each kind of file dialog opens where it was last used:
   projects, molecules, and macromolecules with crystal structures. **Forget**
   sends one back to your Documents folder.

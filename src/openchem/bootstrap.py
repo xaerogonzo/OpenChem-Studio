@@ -113,7 +113,12 @@ _QM_CALC_TYPE_DESCRIPTIONS = {
         "formaldehyde, propene and pyridine. The anion of a neutral molecule is usually unbound at an "
         "ordinary basis set, which makes f+ the less trustworthy half; the result says so. At a basis set "
         "with diffuse functions an anionic state is also started from two more initial guesses and the "
-        "lowest solution is read, because there it can have more than one."
+        "lowest solution is read, because there it can have more than one. The cation can have several "
+        "states a few tenths of an eV apart, and one cation job reaches whichever ORCA's SCF falls into "
+        "(for benzaldehyde, not a function of the structure), so three more cation jobs start from the "
+        "neutral's orbitals with the electron taken from the HOMO-1, HOMO-2 and HOMO-3, f- is read from "
+        "the lowest state found, and the result says when another lies within 0.5 eV and how far its f- is "
+        "(about 2.5 times the time of a run without it; Settings > Quantum chemistry can switch it off)."
     ),
     "led": (
         "Breaks a non-covalent interaction energy into electrostatics, exchange, "

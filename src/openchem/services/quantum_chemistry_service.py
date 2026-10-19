@@ -14,7 +14,7 @@ from PySide6.QtCore import QObject, QProcess, QProcessEnvironment
 from rdkit import Chem
 
 from openchem import paths as app_paths
-from openchem.app.settings import FUKUI_ANION_F_PLUS, Settings
+from openchem.app.settings import FUKUI_ANION_F_PLUS, FUKUI_CATION_SEARCH, Settings
 from openchem.chem.boltzmann import (
     STANDARD_TEMPERATURE_K,
     boltzmann_average_spectrum,
@@ -500,9 +500,12 @@ class QuantumChemistryService(QObject):
         super().__init__()
         self._event_bus = event_bus
         self._settings = settings
-        # The person's choice about an anion's f+ is read each time a Fukui input is written, not once: Settings applies as it changes. It closes over
-        # the settings and not over `self`, so the provider (which this service holds) does not hold the service back.
-        default_provider = OrcaQuantumEngineProvider(anion_f_plus=lambda: bool(settings.preference(FUKUI_ANION_F_PLUS)))
+        # The person's choices about an anion's f+ and about the search for other cation states are read each time a Fukui input is written, not once: Settings applies
+        # as it changes. They close over the settings and not over `self`, so the provider (which this service holds) does not hold the service back.
+        default_provider = OrcaQuantumEngineProvider(
+            anion_f_plus=lambda: bool(settings.preference(FUKUI_ANION_F_PLUS)),
+            cation_search=lambda: bool(settings.preference(FUKUI_CATION_SEARCH)),
+        )
         self._providers: dict[str, QuantumEngineProvider] = (
             providers if providers is not None else {default_provider.provider_id: default_provider}
         )

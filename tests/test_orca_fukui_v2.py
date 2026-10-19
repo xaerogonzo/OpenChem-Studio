@@ -99,7 +99,7 @@ def test_the_builder_writes_exactly_the_input_the_real_run_was_given(smiles, cha
     changes what ORCA is asked fails here until the fixtures are regenerated and the outputs looked at again."""
     expected = _text(f"{name}.inp")
     mol = _mol_from_input(smiles, expected)
-    assert OrcaQuantumEngineProvider().build_input(mol, charge, 1, method_basis, "fukui") == expected
+    assert OrcaQuantumEngineProvider(cation_search=lambda: False).build_input(mol, charge, 1, method_basis, "fukui") == expected
 
 
 def test_the_failed_dianion_input_is_the_methoxide_input_with_two_scf_iterations_given_to_the_fifth_job():
@@ -109,7 +109,7 @@ def test_the_failed_dianion_input_is_the_methoxide_input_with_two_scf_iterations
     jobs = failing.split("$new_job")
     assert "  MaxIter 2\n" in jobs[4] and "* xyz -2 2" in jobs[4]
     mol = _mol_from_input("C[O-]", failing)
-    assert OrcaQuantumEngineProvider().build_input(mol, -1, 1, "B3LYP 6-31+G*", "fukui") == failing.replace("  MaxIter 2\n", "")
+    assert OrcaQuantumEngineProvider(cation_search=lambda: False).build_input(mol, -1, 1, "B3LYP 6-31+G*", "fukui") == failing.replace("  MaxIter 2\n", "")
 
 
 # --- an anion WITHOUT a dianion job (what Fukui v2's builder wrote): f- alone, from a four-job output -----------------------------
