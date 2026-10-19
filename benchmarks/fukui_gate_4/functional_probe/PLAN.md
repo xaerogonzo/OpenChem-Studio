@@ -46,3 +46,32 @@ For each molecule, from the distinct states (jobs within 0.01 eV are one state):
 ## Records
 
 `artifacts/wb97xd3/runs.jsonl` (one JSON line per attempt, with the commit, the dirty flag, the ORCA version and the input hash), `report.txt` and `summary.json` from `report_functional.py`, and the outcome written below, after the run and after nothing else.
+
+## Outcome
+
+Run on 2026-10-19 at the commit that holds this plan (`ba476185`, tree clean; `artifacts/wb97xd3/`, seven molecules, every job completed at the first attempt, ORCA 6.1.1, four cores, 4 to 6 minutes each; `report.txt`, `summary.json`). **READING RULE: MOVED.**
+
+The sigma-pi gap G (positive when the sigma state is lower) and the shift S = G(B3LYP) - G(wB97X-D3) (positive when the functional moves the sigma state UP relative to the pi state, the direction of the sources):
+
+| molecule | G, B3LYP | G, wB97X-D3 | **S** | printed range of \|G\| | distance of \|G\| from it, B3LYP -> wB97X-D3 |
+|---|---|---|---|---|---|
+| pyrimidine | +0.909 | +0.633 | **+0.276** | 0.48 to 0.80 | 0.109 -> 0 (inside) |
+| pyrazine | +0.683 | +0.337 | **+0.346** | 0.55 to 0.80 | 0 (inside) -> **0.213 (below it)** |
+| pyridazine | +1.564 | +1.451 | **+0.112** | 1.30 to 1.52 | 0.044 -> 0 (inside) |
+| imidazole | -1.174 | -1.213 | **+0.039** | 1.23 to 1.67 | 0.056 -> 0.017 |
+| pyrazole | -1.157 | -1.288 | **+0.131** | 1.55 (contested) | 0.393 -> 0.262 |
+| oxazole | -1.252 | -1.302 | **+0.049** | 1.36 (second-hand) | 0.108 -> 0.058 |
+| pyridine | +0.123 | +0.046 | **+0.077** | (EOM-IP-CCSDT +0.15) | |
+
+* **Why MOVED.** Two of the four gaps that were outside their range are inside it now (pyrimidine and pyridazine), where the rule needed three, **and pyrazine's, inside at B3LYP, is now 0.213 eV below its range**, so SUPPORTED fails on both counts. |S| is below 0.05 eV in two of the six (imidazole 0.039 and oxazole 0.049), not four, so NOT SUPPORTED fails. S is at least +0.05 in four (pyrimidine, pyrazine, pyridazine, pyrazole) and at most -0.05 in none.
+* **Every S is positive**: the functional moves the sigma state up relative to the pi state in all six, by 0.04 to 0.35 eV, **a spread that reaches well past the bias itself (0.04 to 0.11 eV) and is larger than the larger basis's shift for the same molecule in all six (1.6 to 9 times: pyrimidine 0.276 against 0.032, pyrazine 0.346 against 0.051, pyridazine 0.112 against 0.049, imidazole 0.039 against 0.005, pyrazole 0.131 against 0.082, oxazole 0.049 against 0.017)**.
+* **No lowest state changed kind, and the ladder of kinds is the same in all seven molecules**: every molecule lists the same number of states, in the same order of sigma and pi, at both functionals (for example pyrazine: sigma, pi, sigma, pi, sigma, pi, sigma at both; pyridazine: sigma, pi, pi, sigma at both). The functional moves the energies and not the kinds or their order. By gate 4's own 0.25 eV distance tolerance, applied by hand (the judge was not run on this functional), the same one of the six would miss, pyrazole at 0.262 (pyrazine's 0.213 is inside it).
+* **Neither functional is closer to the sources everywhere.** wB97X-D3 is nearer the printed range for five of the six (pyrimidine, pyridazine, imidazole, oxazole and pyrazole's contested one) and farther for pyrazine. In the pyridine calibration its sigma 5b2 state is nearer the EOM-IP-CCSDT value (3.242 against 3.17, 0.07 high; B3LYP's 2.973 is 0.20 low) while its two pi states are farther (1a2 at 0.046 against 0.15, and 2b1 at 0.777 against 0.85; B3LYP's are 0.123 and 0.803).
+
+**What it says.** The sigma-pi gaps of these molecules **depend on the functional by 0.04 to 0.35 eV**, and the "sigma too low" bias of gate 4 is one point on that dependence and not a fixed error of the calculation: the other functional moves every gap toward the sources, by more than the bias in four molecules, which puts two of the four out-of-range gaps inside their ranges, leaves the other two
+nearer, and takes pyrazine's gap, inside at B3LYP, out of its range. That spread is **larger than gate 4's 0.25 eV tolerance in two molecules (pyrimidine 0.28, pyrazine 0.35) and smaller than the 0.5 eV window of the note about competing states**, so the printed ranges do not choose between the two functionals (each is nearer for some molecules), and what is the same at both is the **kind and the order** of the states, which is what gate 4's claims were about.
+
+**What it does not say.** That wB97X-D3 is the better functional for these holes (it is nearer for five of the six and farther for pyrazine, and in pyridine nearer for one of three states and farther for two), that B3LYP is, or what a correlated calculation gives. The geometries are B3LYP's, one other functional, one basis, seven molecules. The weak references (pyrazole's, oxazole's) count in full as the rule says, and **neither decided the outcome**: without them pyrazine is still
+outside its range and imidazole outside its own (SUPPORTED still fails), and three shifts of 0.11 or more remain (NOT SUPPORTED still fails). The application's functional is unchanged.
+
+**Left open.** The check that needs no functional: the same states at EOM-IP-CCSD on pyrimidine and pyrazine (the two molecules where the functionals differ most), which would say which of the two moved toward the right answer; and, separately, the geometry (the diazines re-optimized with each functional).
