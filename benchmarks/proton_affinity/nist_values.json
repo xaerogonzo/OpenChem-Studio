@@ -1,0 +1,258 @@
+{
+ "fetched": "2026-10-19",
+ "source": "NIST Chemistry WebBook, NIST Standard Reference Database 69, gas phase ion energetics (Mask=20), values 'Proton affinity (review)' and 'Gas basicity' of Hunter and Lias 1998",
+ "bases": [
+  {
+   "name": "ammonia",
+   "cas": "7664-41-7",
+   "page_title": "Ammonia",
+   "pa_kj": 853.6,
+   "gb_kj": 819.0,
+   "pa_reference": "Hunter and Lias, 1998",
+   "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C7664417&Units=SI&Mask=20"
+  },
+  {
+   "name": "methylamine",
+   "cas": "74-89-5",
+   "page_title": "Methylamine",
+   "pa_kj": 899.0,
+   "gb_kj": 864.5,
+   "pa_reference": "Hunter and Lias, 1998",
+   "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C74895&Units=SI&Mask=20"
+  },
+  {
+   "name": "dimethylamine",
+   "cas": "124-40-3",
+   "page_title": "Dimethylamine",
+   "pa_kj": 929.5,
+   "gb_kj": 896.5,
+   "pa_reference": "Hunter and Lias, 1998",
+   "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C124403&Units=SI&Mask=20"
+  },
+  {
+   "name": "trimethylamine",
+   "cas": "75-50-3",
+   "page_title": "Methylamine, N,N-dimethyl-",
+   "pa_kj": 948.9,
+   "gb_kj": 918.1,
+   "pa_reference": "Hunter and Lias, 1998",
+   "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C75503&Units=SI&Mask=20"
+  },
+  {
+   "name": "pyridine",
+   "cas": "110-86-1",
+   "page_title": "Pyridine",
+   "pa_kj": 930.0,
+   "gb_kj": 898.1,
+   "pa_reference": "Hunter and Lias, 1998",
+   "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C110861&Units=SI&Mask=20"
+  },
+  {
+   "name": "pyrrolidine",
+   "cas": "123-75-1",
+   "page_title": "Pyrrolidine",
+   "pa_kj": 948.3,
+   "gb_kj": 915.3,
+   "pa_reference": "Hunter and Lias, 1998",
+   "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C123751&Units=SI&Mask=20"
+  },
+  {
+   "name": "imidazole",
+   "cas": "288-32-4",
+   "page_title": "1H-Imidazole",
+   "pa_kj": 942.8,
+   "gb_kj": 909.2,
+   "pa_reference": "Hunter and Lias, 1998",
+   "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C288324&Units=SI&Mask=20"
+  },
+  {
+   "name": "pyrimidine",
+   "cas": "289-95-2",
+   "page_title": "1,3-Diazine",
+   "pa_kj": 885.8,
+   "gb_kj": 855.7,
+   "pa_reference": "Hunter and Lias, 1998",
+   "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C289952&Units=SI&Mask=20"
+  },
+  {
+   "name": "aniline",
+   "cas": "62-53-3",
+   "page_title": "Aniline",
+   "pa_kj": 882.5,
+   "gb_kj": 850.6,
+   "pa_reference": "Hunter and Lias, 1998",
+   "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C62533&Units=SI&Mask=20"
+  },
+  {
+   "name": "acetonitrile",
+   "cas": "75-05-8",
+   "page_title": "Acetonitrile",
+   "pa_kj": 779.2,
+   "gb_kj": 748.0,
+   "pa_reference": "Hunter and Lias, 1998",
+   "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C75058&Units=SI&Mask=20"
+  },
+  {
+   "name": "hydrogen cyanide",
+   "cas": "74-90-8",
+   "page_title": "Hydrogen cyanide",
+   "pa_kj": 712.9,
+   "gb_kj": 681.6,
+   "pa_reference": "Hunter and Lias, 1998",
+   "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C74908&Units=SI&Mask=20"
+  },
+  {
+   "name": "water",
+   "cas": "7732-18-5",
+   "page_title": "Water",
+   "pa_kj": 691.0,
+   "gb_kj": 660.0,
+   "pa_reference": "Hunter and Lias, 1998",
+   "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C7732185&Units=SI&Mask=20"
+  },
+  {
+   "name": "methanol",
+   "cas": "67-56-1",
+   "page_title": "Methyl Alcohol",
+   "pa_kj": 754.3,
+   "gb_kj": 724.5,
+   "pa_reference": "Hunter and Lias, 1998",
+   "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C67561&Units=SI&Mask=20"
+  },
+  {
+   "name": "dimethyl ether",
+   "cas": "115-10-6",
+   "page_title": "Dimethyl ether",
+   "pa_kj": 792.0,
+   "gb_kj": 764.5,
+   "pa_reference": "Hunter and Lias, 1998",
+   "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C115106&Units=SI&Mask=20"
+  },
+  {
+   "name": "tetrahydrofuran",
+   "cas": "109-99-9",
+   "page_title": "Tetrahydrofuran",
+   "pa_kj": 822.1,
+   "gb_kj": 794.7,
+   "pa_reference": "Hunter and Lias, 1998",
+   "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C109999&Units=SI&Mask=20"
+  },
+  {
+   "name": "formaldehyde",
+   "cas": "50-00-0",
+   "page_title": "Formaldehyde",
+   "pa_kj": 712.9,
+   "gb_kj": 683.3,
+   "pa_reference": "Hunter and Lias, 1998",
+   "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C50000&Units=SI&Mask=20"
+  },
+  {
+   "name": "acetaldehyde",
+   "cas": "75-07-0",
+   "page_title": "Acetaldehyde",
+   "pa_kj": 768.5,
+   "gb_kj": 736.5,
+   "pa_reference": "Hunter and Lias, 1998",
+   "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C75070&Units=SI&Mask=20"
+  },
+  {
+   "name": "acetone",
+   "cas": "67-64-1",
+   "page_title": "Acetone",
+   "pa_kj": 812.0,
+   "gb_kj": 782.1,
+   "pa_reference": "Hunter and Lias, 1998",
+   "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C67641&Units=SI&Mask=20"
+  },
+  {
+   "name": "formamide",
+   "cas": "75-12-7",
+   "page_title": "Formamide",
+   "pa_kj": 822.2,
+   "gb_kj": 791.2,
+   "pa_reference": "Hunter and Lias, 1998",
+   "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C75127&Units=SI&Mask=20"
+  },
+  {
+   "name": "acetic acid",
+   "cas": "64-19-7",
+   "page_title": "Acetic acid",
+   "pa_kj": 783.7,
+   "gb_kj": 752.8,
+   "pa_reference": "Hunter and Lias, 1998",
+   "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C64197&Units=SI&Mask=20"
+  },
+  {
+   "name": "hydrogen sulfide",
+   "cas": "7783-06-4",
+   "page_title": "Hydrogen sulfide",
+   "pa_kj": 705.0,
+   "gb_kj": 673.8,
+   "pa_reference": "Hunter and Lias, 1998",
+   "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C7783064&Units=SI&Mask=20"
+  },
+  {
+   "name": "methanethiol",
+   "cas": "74-93-1",
+   "page_title": "Methanethiol",
+   "pa_kj": 773.4,
+   "gb_kj": 742.0,
+   "pa_reference": "Hunter and Lias, 1998",
+   "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C74931&Units=SI&Mask=20"
+  },
+  {
+   "name": "dimethyl sulfide",
+   "cas": "75-18-3",
+   "page_title": "Dimethyl sulfide",
+   "pa_kj": 830.9,
+   "gb_kj": 801.2,
+   "pa_reference": "Hunter and Lias, 1998",
+   "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C75183&Units=SI&Mask=20"
+  },
+  {
+   "name": "phosphine",
+   "cas": "7803-51-2",
+   "page_title": "Phosphine",
+   "pa_kj": 785.0,
+   "gb_kj": 750.9,
+   "pa_reference": "Hunter and Lias, 1998",
+   "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C7803512&Units=SI&Mask=20"
+  },
+  {
+   "name": "trimethylphosphine",
+   "cas": "594-09-2",
+   "page_title": "Trimethylphosphine",
+   "pa_kj": 958.8,
+   "gb_kj": 926.3,
+   "pa_reference": "Hunter and Lias, 1998",
+   "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C594092&Units=SI&Mask=20"
+  },
+  {
+   "name": "benzene",
+   "cas": "71-43-2",
+   "page_title": "Benzene",
+   "pa_kj": 750.4,
+   "gb_kj": 725.4,
+   "pa_reference": "Hunter and Lias, 1998",
+   "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C71432&Units=SI&Mask=20"
+  },
+  {
+   "name": "ethene",
+   "cas": "74-85-1",
+   "page_title": "Ethylene",
+   "pa_kj": 680.5,
+   "gb_kj": 651.5,
+   "pa_reference": "Hunter and Lias, 1998",
+   "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C74851&Units=SI&Mask=20"
+  },
+  {
+   "name": "carbon monoxide",
+   "cas": "630-08-0",
+   "page_title": "Carbon monoxide",
+   "pa_kj": 594.0,
+   "gb_kj": 562.8,
+   "pa_reference": "Hunter and Lias, 1998 at C;",
+   "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C630080&Units=SI&Mask=20"
+  }
+ ]
+}
