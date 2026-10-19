@@ -19,6 +19,10 @@ RESOLUTION_MEH = 0.01
 RESOLUTION_ANGSTROM = 0.001
 #: A tolerance above this (mEh, 0.31 kcal/mol) makes the check NOT EVALUABLE.
 CEILING_MEH = 0.5
+#: A combination whose MEDIAN difference exceeds this (mEh) has a systematic offset: a definitional difference between the engines. Fixed and not derived from a floor (amendment of 2026-10-19, `PLAN.md`):
+#: two programs' implementations of one functional differ by a steady 0.1 to 0.2 mEh (constants, default grids) that no within-engine floor sees, while the two real definitional errors found in this
+#: project were 1.8 mEh (cartesian against spherical d functions) and 37 mEh (VWN1RPA against VWN5).
+SYSTEMATIC_MEH = 0.5
 #: The share of cells that may be missing before the check is NOT EVALUABLE.
 MISSING_LIMIT = 0.05
 #: The share of cells that must be within tolerance for a PASS.
@@ -86,7 +90,8 @@ class Part:
 
 
 def judge_single_points(records: list[dict], tol: Tolerances) -> Part:
-    """PLAN.md rule 2. Per class (HF, DFT): FAIL on a systematic offset (the median d of a combination above T) or on any |d| above 5 T; else PASS at 95% within T; else PARTIAL."""
+    """PLAN.md rule 2 (as amended). Per class (HF, DFT): FAIL on a systematic offset (the median d of a combination above SYSTEMATIC_MEH) or on any cell more than 5 T from its combination's median;
+    else PASS at 95% of cells within T of their combination's median; else PARTIAL."""
     why: list[str] = []
     verdicts: list[str] = []
     for label, is_hf in (("HF", True), ("DFT", False)):
@@ -99,9 +104,12 @@ def judge_single_points(records: list[dict], tol: Tolerances) -> Part:
         by_combination: dict[tuple[str, str], list[float]] = {}
         for r, d in present:
             by_combination.setdefault((r["functional"], r["basis"]), []).append(d)
-        offsets = sorted(f"{f} {b} (median {median(ds):+.3f} mEh)" for (f, b), ds in by_combination.items() if abs(median(ds)) > limit)
-        gross = sorted(f"{r['molecule']} {r['functional']} {r['basis']} ({d:+.3f} mEh)" for r, d in present if abs(d) > GROSS * limit)
-        within = sum(1 for _r, d in present if abs(d) <= limit) / max(len(present), 1)
+        medians = {key: median(ds) for key, ds in by_combination.items()}
+        offsets = sorted(f"{f} {b} (median {m:+.3f} mEh)" for (f, b), m in medians.items() if abs(m) > SYSTEMATIC_MEH)
+        # a cell is judged against its OWN combination's median: the steady cross-engine difference is the offset's business, the scatter around it is the tolerance's
+        scatter = [(r, d - medians[(r["functional"], r["basis"])]) for r, d in present]
+        gross = sorted(f"{r['molecule']} {r['functional']} {r['basis']} ({s:+.3f} mEh from the median)" for r, s in scatter if abs(s) > GROSS * limit)
+        within = sum(1 for _r, s in scatter if abs(s) <= limit) / max(len(present), 1)
         if offsets or gross:
             verdict = FAIL
         elif within >= WITHIN_NEEDED:
@@ -109,7 +117,7 @@ def judge_single_points(records: list[dict], tol: Tolerances) -> Part:
         else:
             verdict = PARTIAL
         verdicts.append(verdict)
-        why.append(f"{label}: {verdict}; T = {limit:.3f} mEh; {within:.1%} of {len(present)} cells within; systematic offsets: {offsets or 'none'}; beyond 5 T: {gross or 'none'}")
+        why.append(f"{label}: {verdict}; T = {limit:.3f} mEh; {within:.1%} of {len(present)} cells within T of their combination's median; systematic offsets (median above {SYSTEMATIC_MEH} mEh): {offsets or 'none'}; beyond 5 T from the median: {gross or 'none'}")
     return Part(_worst(verdicts) if verdicts else NOT_EVALUABLE, tuple(why))
 
 

@@ -37,14 +37,21 @@ A tolerance fixed by guess would be a tolerance fitted to nothing. The floor is 
 ## The reading rule, fixed now (the first line that holds decides)
 
 1. **NOT EVALUABLE** if a floor gives a tolerance above the ceiling, or more than 5% of the grid's cells are missing (in either arm), and the report says which.
-2. **Single points**, per class (HF and DFT), over the combinations of that class. A combination has a **systematic offset** if the MEDIAN of d over the molecules has absolute value above the class's T (a definitional difference, the signature of the VWN trap).
-   * **FAIL** if any combination has a systematic offset, or any single d exceeds 5 x T.
-   * else **PASS** if at least 95% of the class's cells have |d| within T.
+2. **Single points**, per class (HF and DFT), over the combinations of that class. A combination has a **systematic offset** if the MEDIAN of d over the molecules has absolute value **above 0.5 mEh** (a definitional difference, the signature of the VWN trap; fixed, see the amendment below). A cell's **scatter** is its d minus the median d of its own combination.
+   * **FAIL** if any combination has a systematic offset, or any cell's scatter exceeds 5 x T.
+   * else **PASS** if at least 95% of the class's cells have |scatter| within T.
    * else **PARTIAL**.
    The single-point verdict is the worst of the two classes.
 3. **Relative energies:** **FAIL** if any |d_rel| exceeds 5 x T_rel; else **PASS** if at least 95% of the (pair, combination) cells are within T_rel; else **PARTIAL**.
 4. **Optimization:** a molecule is within if its final energies differ by at most T_Eopt and its RMSD is at most T_geom. **FAIL** if any energy difference exceeds 5 x T_Eopt or any RMSD exceeds 5 x T_geom (a different structure); else **PASS** if all 16 are within; else **PARTIAL**.
 5. **The overall verdict is the worst of the three** (PASS, then PARTIAL, then FAIL).
+
+## Amendment of 2026-10-19, before any real job was run (decided by Alex)
+
+The runner was smoke-tested on two molecules (water and the hydroxyl radical, 32 single points per engine, in a scratch folder, **not a record**). **That smoke run was seen when this amendment was decided, and the amendment is a response to it.** It showed ORCA and Psi4 differing by a steady +0.11 to +0.17 mEh for
+B3LYP, PBE0 and M062X on both molecules, and by 0.05 mEh for HF at def2-SVP (density fitting, which the floor combinations underestimated: 0.014 mEh at 6-31G(d)), against a DFT tolerance from the within-engine floor of about 0.07 mEh. The plan as first frozen would have called those engines a FAIL for a difference that is two programs' implementations of one functional, not a mapping error.
+**The change:** the systematic-offset test (rule 2) uses a fixed threshold of **0.5 mEh** on the median d of a combination, and the per-cell test uses each cell's scatter around its combination's median against T. The two real definitional errors found in this project were 1.8 mEh (cartesian against spherical d functions) and 37 mEh (VWN1RPA against VWN5), well above 0.5 mEh. **What this costs:** a definitional difference between 0.07 and 0.5 mEh is no longer
+detected (it is reported in the signed medians). The relative-energy and optimization rules, the floors, the tolerances and the ceiling are unchanged. This amendment is the last change before the run; any later one needs a new plan.
 
 ## What each verdict does (decided now)
 
@@ -57,7 +64,7 @@ A tolerance fixed by guess would be a tolerance fitted to nothing. The floor is 
 ## Reported, and in no rule
 
 * For every cell outside T: the same Psi4 run with `scf_type pk`, so that density fitting can be named or excluded as the cause.
-* The signed median d per combination (the sign of a definitional difference), the largest |d| per molecule, and each engine's seconds per job.
+* The signed median d per combination (the sign of a definitional difference, and the differences the amendment no longer judges), the largest |d| per molecule, and each engine's seconds per job.
 * The numbers of the spot check made while building the engine (water, 0.1 to 0.16 mEh) against this grid's water cells.
 
 ## What it cannot say

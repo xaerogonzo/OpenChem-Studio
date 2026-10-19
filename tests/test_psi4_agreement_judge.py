@@ -69,14 +69,28 @@ def test_every_cell_within_tolerance_passes():
     assert part.verdict == judge.PASS
 
 
-def test_a_systematic_offset_in_one_combination_fails_even_when_every_cell_is_small():
-    """THE VWN TRAP'S SIGNATURE: every molecule off by the same amount, each under 5 T, the median above T."""
-    records = _grid(lambda i: 0.0) + [_sp(0.3, molecule=f"x{i}", functional="PBE0", basis="def2-SVP") for i in range(10)]
+def test_a_systematic_offset_above_the_fixed_threshold_fails_even_when_every_cell_agrees_with_the_others():
+    """THE VWN TRAP'S SIGNATURE (amended rule): every molecule off by the same large amount, so no cell scatters from its combination's median, but the median is above 0.5 mEh."""
+    records = _grid(lambda i: 0.0) + [_sp(0.8, molecule=f"x{i}", functional="PBE0", basis="def2-SVP") for i in range(10)]
 
     part = judge.judge_single_points(records, TOL)
 
     assert part.verdict == judge.FAIL
     assert "PBE0 def2-SVP" in part.why[0]
+
+
+def test_a_steady_cross_engine_difference_below_the_threshold_is_reported_and_not_judged():
+    """THE AMENDMENT'S POINT: two programs' B3LYP differ by a steady 0.1 to 0.3 mEh. It is not a FAIL (it was 0.11 to 0.17 in the smoke run), and the scatter around it is still judged."""
+    records = [_sp(0.3 + (0.02 if i % 2 else -0.02), molecule=f"m{i}") for i in range(20)]
+
+    assert judge.judge_single_points(records, TOL).verdict == judge.PASS
+    assert judge.SYSTEMATIC_MEH == 0.5  # the literal of PLAN.md's amendment
+
+
+def test_scatter_around_a_steady_offset_is_still_judged_against_t():
+    records = [_sp(0.3 + (0.3 if i % 2 else -0.3), molecule=f"m{i}") for i in range(20)]  # +-0.3 around a 0.3 median: 3 T, not 5
+
+    assert judge.judge_single_points(records, TOL).verdict == judge.PARTIAL
 
 
 def test_a_single_gross_outlier_fails():
@@ -92,13 +106,11 @@ def test_a_few_cells_between_t_and_five_t_without_an_offset_is_partial_below_nin
     assert judge.judge_single_points(records, TOL).verdict == judge.PARTIAL
 
 
-def test_the_hf_class_uses_its_own_tighter_tolerance():
-    hf = [_sp(0.05, molecule=f"m{i}", functional="HF") for i in range(10)]  # 0.05 mEh: fine for DFT (T 0.10), five times T_HF (0.01)
+def test_the_hf_class_judges_its_scatter_against_its_own_tighter_tolerance():
+    pattern = [0.06 if i % 2 else -0.06 for i in range(10)]  # +-0.06 mEh around a zero median: 6 x T_HF (0.01), 0.6 x T_DFT (0.10)
 
-    part = judge.judge_single_points(hf, TOL)
-
-    assert part.verdict == judge.FAIL or part.verdict == judge.PARTIAL
-    assert judge.judge_single_points([_sp(0.05, molecule=f"m{i}") for i in range(10)], TOL).verdict == judge.PASS
+    assert judge.judge_single_points([_sp(d, molecule=f"m{i}", functional="HF") for i, d in enumerate(pattern)], TOL).verdict == judge.FAIL
+    assert judge.judge_single_points([_sp(d, molecule=f"m{i}") for i, d in enumerate(pattern)], TOL).verdict == judge.PASS
 
 
 # --- relative energies -----------------------------------------------------------------------------------------------------
