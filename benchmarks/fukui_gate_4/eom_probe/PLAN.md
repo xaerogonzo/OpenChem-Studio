@@ -49,3 +49,32 @@ Reported and in no rule: each root's singles character (a root below 85% is a st
 ## Records
 
 `artifacts/<tag>/runs.jsonl` (one JSON line per attempt, with the commit, the dirty flag, the ORCA version and the input hash, each root's energy, dominant orbital, amplitude, singles character, kind and orbital share) and `<molecule>.eom.txt` (ORCA's results block), `report.txt` and `summary.json` from `report_eom.py`, and the outcome written below, after the run and after nothing else.
+
+## Outcome
+
+Run on 2026-10-19 at the commit that holds this plan (`0461d70b`, tree clean; `artifacts/ccpvdz`, `augccpvdz`, `ccpvtz`, and `../functional_probe/artifacts/wb97xd3_def2tzvp`; `report.txt`, `summary.json`). Every job completed at the first attempt except **pyridine at cc-pVTZ, whose first attempt exited with an error (code -3, no roots) when three EOM jobs ran at once** and which was repeated unchanged, alone (the plan allows three attempts); the repeat completed. **READING RULE: B3LYP NEARER.**
+
+The sigma-pi gap G (positive when the sigma root is lower), in eV:
+
+| molecule | EOM cc-pVDZ | EOM aug-cc-pVDZ | **EOM cc-pVTZ** | B3LYP def2-TZVP (error) | wB97X-D3 def2-TZVP (error) | winner |
+|---|---|---|---|---|---|---|
+| pyrimidine | +0.924 | +0.847 | **+0.800** | +0.877 (0.077) | +0.592 (0.208) | B3LYP |
+| pyrazine | +0.652 | +0.563 | **+0.506** | +0.632 (0.126) | +0.272 (0.234) | B3LYP |
+| pyridine | +0.140 | +0.075 | **+0.025** | +0.120 | +0.032 | (calibration) |
+
+* **Validation passed.** At cc-pVTZ pyridine's lowest four roots are sigma, pi, pi, sigma, and the three gaps are 0.025, 0.746 and 3.192 eV against EOM-IP-CCSDT's 0.15, 0.85 and 3.17: errors 0.125, 0.104 and 0.022 eV (tolerance 0.25).
+* **Convergence, by the rule's own test, passed**: G moves by -0.047 (pyrimidine) and -0.057 eV (pyrazine) from aug-cc-pVDZ to cc-pVTZ, under the 0.10 limit, so the outcome is not labelled provisional.
+* **The reference puts both functionals on opposite sides.** B3LYP's gap is 0.08 (pyrimidine) and 0.13 eV (pyrazine) **larger** than the EOM gap, that is, its sigma state is too low relative to pi, the direction of gate 4's bias; wB97X-D3's is 0.21 and 0.23 eV **smaller**, its sigma state too high. Each molecule is won by B3LYP by more than the 0.05 tie width (0.13 and 0.11 eV).
+* **The EOM gaps against gate 4's printed ranges**: pyrimidine 0.800 is at the top edge of 0.48 to 0.80, pyrazine 0.506 is 0.044 below 0.55 to 0.80 (reported, in no rule).
+* **Every kind and the order of the lowest four roots** are the same as the DFT ladders' in both molecules (sigma, pi, sigma, pi for pyrimidine; sigma, pi, sigma, pi for pyrazine). The lowest four roots have singles character of 90% or more, so none is a strongly relaxed or satellite-mixed one.
+
+**What it says.** Against a calculation that uses no functional, **B3LYP's sigma-pi gap is nearer than wB97X-D3's in both molecules**, and its error is the one gate 4 described (sigma 0.08 to 0.13 eV too low relative to pi), where the range-separated hybrid overshoots by two to three times as much the other way. So the second-functional probe's "nearer the printed ranges" for wB97X-D3 in five molecules was not evidence that it is the better functional for these gaps. The application's functional stays B3LYP, and nothing about gate 4's outcome changes.
+
+**What it does not say, and two things that point in opposite directions, each about as large as the margin.**
+* **The reference is still moving with the basis**: G(EOM) fell by 0.077 and 0.047 (pyrimidine) and by 0.089 and 0.057 eV (pyrazine) over the two steps, and pyridine's first pi state kept falling (0.140, 0.075, 0.025). The rule's test (0.10) was met, but if the remaining change at the complete-basis limit were of the size of the last step, it would take G(EOM) down by about another 0.05 to 0.1 eV, which would bring the two functionals' errors to similar sizes in both molecules (and put wB97X-D3 ahead in pyrazine at the upper end of that range). **This is an illustration, not an extrapolation, and not a result**; the plan fixed the cc-pVTZ comparison.
+* **EOM-IP-CCSD has its own error**, and pyridine measures it: 0.125 eV on the first pi state against CCSDT, **in the direction of a smaller G**. If that error carried over to the diazines (not tested), their true G would be about 0.1 eV larger than the EOM values, which would favor B3LYP further.
+So the verdict is B3LYP nearer by the preregistered rule, with a margin (0.11 to 0.13 eV) that is no larger than either of these two uncertainties.
+
+Also: two molecules, one reference method, B3LYP geometries, the gap only; the azoles, where the sigma state is the higher one, were not run. wB97X-D3's gaps moved with the basis (def2-TZVP against 6-31G*: pyrimidine -0.04, pyrazine -0.07, pyridine -0.01 eV) by about as much as B3LYP's (-0.03, -0.05, 0.00), and the same direction as the EOM gaps' fall.
+
+**Left open.** A larger EOM basis for the diazines is not available on this machine (aug-cc-pVTZ is about 640 functions for pyrimidine); a cc-pVQZ or a basis-set extrapolation of canonical EOM with a smaller frozen-virtual space, or a DLPNO-EOM, would remove the first uncertainty, and EOM-IP-CCSDT on pyrimidine or pyrazine (published for pyridine only) the second.
