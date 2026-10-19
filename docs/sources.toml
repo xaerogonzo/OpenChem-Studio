@@ -1253,6 +1253,26 @@ combined effect of each state on the density).
 """
 
 [[source]]
+key = "holland2017"
+kind = "literature"
+citation = "D. M. P. Holland, I. Powis, A. B. Trofimov, R. C. Menzies, A. W. Potts, L. Karlsson, I. L. Badsyuk, T. E. Moskovskaya, E. V. Gromov & J. Schirmer, 'An experimental and theoretical study of the valence shell photoelectron spectra of 2-chloropyridine and 3-chloropyridine', J. Chem. Phys. 2017, 147, 164307."
+identifier_type = "doi"
+identifier = "10.1063/1.4999433"
+status = "shipped"
+used_by = [
+    "docs/explainers/reactivity.md",
+    "benchmarks/fukui_gate_4/PREREGISTRATION.md",
+]
+local = "holland2017.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-18
+note = """
+THE STATEMENT THE DOCUMENTATION CITES, not a number: on page 164307-8, explaining why the relaxation of two chlorine lone-pair orbitals was estimated with second-order perturbation theory and not with
+delta-SCF, the paper says that only the lowest state of each symmetry can be treated within the delta-SCF framework. It is the literature's statement of the limit the fourth Fukui gate found (a hole start cannot hold two
+states of one symmetry). The paper also gives EOM-IP-CCSD and CC3 vertical ionization energies of 2- and 3-chloropyridine with symmetry labels, not used here; the supplement is `holland2017_si.pdf`.
+"""
+
+[[source]]
 key = "schafer1973"
 kind = "literature"
 citation = "W. Schafer, A. Schweig, S. Gronowitz, A. Taticchi & F. Fringuelli, 'Reversal in the Sequence of Two Highest Occupied Molecular Orbitals in the Series Thiophen, Selenophen, and Tellurophen', J. Chem. Soc., Chem. Commun. 1973, 541-542."

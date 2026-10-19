@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 8df430f474ac78a81e44ac07599be9499dab352744c6d8b0cb04090f616d5a03 -->
+<!-- SOURCE SHA256: 30f7062721a7bb71e3e923db5a105d4ac359d059f69699c033a02a34205134f7 -->
 
 # Sources
 
@@ -187,6 +187,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`hejazi2016`](#hejazi2016) | literature | reference only | citation |
 | [`hlb`](#hlb) | reference_table | reference only | citation |
 | [`holland2013`](#holland2013) | literature | shipped | citation + claim |
+| [`holland2017`](#holland2017) | literature | shipped | citation + claim |
 | [`hopfinger2009`](#hopfinger2009) | dataset | shipped | citation |
 | [`huber1979`](#huber1979) | literature | reference only | citation + claim |
 | [`ich_m9`](#ich_m9) | standard | shipped | citation + claim |
@@ -1425,6 +1426,25 @@ PYRIDINE'S FOUR LOWEST CATION STATES AT THE HIGHEST LEVEL, the calibration of th
 ADC(3) 10.06, 9.65, 10.39, 13.06; EOM-IP-CCSD 9.69, 9.72, 10.43, 12.87; EOM-IP-CCSDT 9.57, 9.72, 10.42, 12.74. THE LOWEST STATE DEPENDS ON THE METHOD: delta-SCF and ADC(3) put the pi state lowest, EOM-IP-CCSD(T) and CASPT2
 the sigma state, by 0.15 eV at the highest level, so the gate does not decide pyridine's order and uses its ladder only to check the reading. The supplement (`trofimov2017_si.pdf`) is figures only (the relaxation, correlation and
 combined effect of each state on the density).
+
+### holland2017
+
+<a id="holland2017"></a>
+
+> D. M. P. Holland, I. Powis, A. B. Trofimov, R. C. Menzies, A. W. Potts, L. Karlsson, I. L. Badsyuk, T. E. Moskovskaya, E. V. Gromov & J. Schirmer, 'An experimental and theoretical study of the valence shell photoelectron spectra of 2-chloropyridine and 3-chloropyridine', J. Chem. Phys. 2017, 147, 164307.
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.4999433](https://doi.org/10.1063/1.4999433) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-18 |
+| Local copy | `holland2017.pdf` (not checked) |
+| Used by | `docs/explainers/reactivity.md`, `benchmarks/fukui_gate_4/PREREGISTRATION.md` |
+
+THE STATEMENT THE DOCUMENTATION CITES, not a number: on page 164307-8, explaining why the relaxation of two chlorine lone-pair orbitals was estimated with second-order perturbation theory and not with
+delta-SCF, the paper says that only the lowest state of each symmetry can be treated within the delta-SCF framework. It is the literature's statement of the limit the fourth Fukui gate found (a hole start cannot hold two
+states of one symmetry). The paper also gives EOM-IP-CCSD and CC3 vertical ionization energies of 2- and 3-chloropyridine with symmetry labels, not used here; the supplement is `holland2017_si.pdf`.
 
 ### schafer1973
 
