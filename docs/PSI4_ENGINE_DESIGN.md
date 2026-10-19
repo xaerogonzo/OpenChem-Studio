@@ -87,6 +87,22 @@ HF 0.0000 mEh; PBE0 +0.10; M062X +0.09; B3LYP (Psi4 `b3lyp5`) +0.10 at def2-SVP,
 
 **Left for later:** a Settings control for Psi4's memory (a job is given 2 GB in its input) and threads (it uses the ORCA cores setting), the stage-2 agreement check, calculation types beyond `sp` and `opt`, and text on the panel that still says ORCA (most tooltips and the Configure button) which is true of the panel's ORCA features and not wrong for Psi4 but is not Psi4-aware.
 
+## Deferred 2026-10-19: where it stands and what is left (Alex: not a priority, somewhat redundant beside ORCA; do it in its own session)
+
+**Built and pushed (branch `claude/fukui-gate-4`, PR #381, commits `67ddd11f` stage 1, `3869a514` and `052dfd35` and `334780dc` stage 2 plan, judge and runner):** the provider, the locate-only tab, the Engine box, `psi4_opt` conformers and labels, the real-window drive `benchmarks/visual/psi4_engine.json`, and the stage-2 preregistration with its judge (`benchmarks/psi4_agreement/`).
+**Nothing in it is merged**, and #381 carries a lot besides Psi4 (the Fukui gate 4 work and its probes, the EOM cross-check): when it is merged is Alex's call. If Psi4 should wait for a later merge, the Psi4 commits are the four above and are separable from the Fukui ones.
+
+**To do, in order:**
+1. **Run the stage-2 agreement check** (`benchmarks/psi4_agreement/PLAN.md`, frozen after its one amendment). Needs the Psi4 environment (`conda create -p D:\_scratch\psi4-spike -c conda-forge psi4 python=3.12`, 1.87 GB, 2.5 minutes; the runner reads `OPENCHEM_PSI4_EXE`, default `D:\_scratch\psi4-spike\Scripts\psi4.exe`) and ORCA at `D:\ORCA\orca.exe`. Commands, run from the folder, ORCA and Psi4 one after the other so they do not fight over cores
+   (`--workers 3 --cores 4`; expect a few hours; every stage resumes): `run_agreement.py floor --engine orca`, `floor --engine psi4`, `floor-report`, `grid --engine orca`, `grid --engine psi4`, `optimize --engine orca`, `optimize --engine psi4`, `attribute`, `report`. **Commit the tree first and do not edit `src/` while it runs** (the report refuses a dirty `src/` or two commits). Then write the outcome into the plan's last section,
+   in `docs/PSI4_ENGINE_DESIGN.md` and the CHANGELOG, and act on the verdict as the plan says (a FAIL removes the functional from `PSI4_METHODS`).
+2. **Settings for Psi4's memory and threads** (a job is given a fixed 2 GB in its input; threads reuse the ORCA cores setting).
+3. **Panel text that still says ORCA** (most tooltips, "Configure ORCA...", "Full ORCA conformers"): true for ORCA's features, not Psi4-aware.
+4. **Calculation types beyond `sp` and `opt`** (frequencies, dipole) only after 1, each behind its own decision; none are planned.
+5. **A pinned download** only if Alex reverses "locate-only" (a pinned source URL and checksum, the size in the confirmation: about 330 MB download, 1.87 GB installed).
+
+**Traps already paid for (do not re-learn):** Psi4's `b3lyp` is not ORCA's `B3LYP` (37 mEh; `b3lyp5` is); Pople bases are cartesian in Psi4 (`puream true` always); a failed Psi4 run exits 1 and ends "Psi4 encountered an error" and does NOT print the success banner (an earlier note here said it did: wrong, corrected); an empty registry key is left by the drive's `tool_path` step and is harmless; the 1.87 GB spike environment at `D:\_scratch\psi4-spike` and the folders `run1`, `orca_w`, `with space`, `pscr`, `fx` beside it are scratch and can be deleted.
+
 ## How it is validated before it is offered (the project standard: claims are measured)
 
 1. **The parser is written against real output**, saved as fixtures (`tests/fixtures/psi4/`), never against what the manual says it prints; a mutation check on it, as for every parser here.
