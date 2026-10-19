@@ -166,6 +166,7 @@ def _tools(settings: object | None) -> dict[str, str]:
 
     found["Vina"] = configured(VINA_SETTING)
     found["ORCA"] = configured("orca/executable_path")
+    found["Psi4"] = configured("psi4/executable_path")
     found["pkasolver"] = configured(PKASOLVER_PYTHON_SETTING)
     found["ADMET"] = configured(ADMET_PYTHON_SETTING)
 

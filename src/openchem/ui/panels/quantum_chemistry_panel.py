@@ -188,6 +188,20 @@ _HELP: dict[str, HelpTooltip] = {
         topic="quantum-chemistry",
         help_anchor="quantum-chemistry",
     ),
+    "engine": HelpTooltip(
+        text=(
+            "Which program runs the calculation. ORCA is the default and runs every calculation this panel offers. "
+            "Psi4 (when it is set up under Tools > External Tools) runs single points and geometry optimizations at the "
+            "functionals B3LYP, PBE0, M062X and HF only; the Calculation list greys out what the chosen engine does not run.\n\n"
+            "This box appears only when more than one engine is set up. A result says which engine and level made it, and "
+            "the two engines' numbers are never mixed under one label: even the name \"B3LYP\" is a different functional "
+            "in the two programs, which the Psi4 engine translates."
+        ),
+        tier=2,
+        help_id="quantum.engine",
+        topic="quantum-chemistry",
+        help_anchor="quantum-chemistry",
+    ),
     "calculation_type": HelpTooltip(
         text=(
             "What ORCA is asked to do. This decides which result tabs fill in: an NMR "
@@ -867,6 +881,13 @@ class QuantumChemistryPanel(QWidget):
         self._molecule_combo.currentIndexChanged.connect(self._on_molecule_changed)
         self._scroll_safe_guards.append(make_scroll_safe(self._molecule_combo))
 
+        # The engine. Filled by `_refresh_engines` and SHOWN only when more than one engine is set up, so a machine with ORCA alone sees
+        # exactly the form it always had.
+        self._engine_combo = QComboBox(self)
+        apply_help_tooltip(self._engine_combo, _HELP["engine"])
+        self._engine_combo.currentIndexChanged.connect(self._on_engine_changed)
+        self._scroll_safe_guards.append(make_scroll_safe(self._engine_combo))
+
         self._calc_type_combo = QComboBox(self)
         apply_help_tooltip(self._calc_type_combo, _HELP["calculation_type"])
         self._calc_type_combo.addItems(list(CALC_TYPE_LABELS.keys()))
@@ -1329,7 +1350,9 @@ class QuantumChemistryPanel(QWidget):
         calculation_heading.setStyleSheet("font-weight: bold;")
 
         form = QFormLayout()
+        self._run_form = form
         form.addRow("Molecule:", self._molecule_combo)
+        form.addRow("Engine:", self._engine_combo)
         form.addRow("Calculation:", self._calc_type_combo)
         form.addRow("Conformer:", self._conformer_combo)
         form.addRow("Charge:", self._charge_spin)
@@ -1387,6 +1410,7 @@ class QuantumChemistryPanel(QWidget):
         layout = QVBoxLayout(self)
         layout.addWidget(calculation_heading)
         layout.addLayout(form)
+        self._refresh_engines()
         layout.addWidget(run_row)
         layout.addWidget(viewing_heading)
         layout.addWidget(runs_row)
@@ -1962,6 +1986,8 @@ class QuantumChemistryPanel(QWidget):
     def _on_configure_clicked(self) -> None:
         dialog = SettingsDialog(self._settings, self, section=EXTERNAL_TOOLS, tool="orca")
         dialog.exec()
+        # A tool may have been set up or removed in there.
+        self._refresh_engines()
 
     def _on_tab_help_clicked(self) -> None:
         topic = self._tab_help_topics.get(self._correlation_tabs.currentIndex(), "quantum-chemistry")
@@ -2087,6 +2113,7 @@ class QuantumChemistryPanel(QWidget):
                 charge=self._charge_spin.value(),
                 multiplicity=self._multiplicity_spin.value(),
                 method_basis=method_basis,
+                provider_id=self._selected_engine_id(),
                 input_fingerprint=ensemble.fingerprint,
                 calculation_input=ENSEMBLE,
                 structure_identity=molecule.canonical_smiles or "",
@@ -2100,6 +2127,7 @@ class QuantumChemistryPanel(QWidget):
             charge=self._charge_spin.value(),
             multiplicity=self._multiplicity_spin.value(),
             method_basis=method_basis,
+            provider_id=self._selected_engine_id(),
             input_fingerprint=resolved.fingerprint,
             calculation_input=GEOMETRY,
             # What the molecule IS now: the window compares it with what it is when the job lands, because
@@ -2638,6 +2666,63 @@ class QuantumChemistryPanel(QWidget):
 
     def _on_cores_changed(self, value: int) -> None:
         self._settings.set("orca/cores", value)
+
+    def _selected_engine_id(self) -> str:
+        """The engine the Run button uses: the Engine box's choice, ORCA when there is none (nothing set up: the service then says so)."""
+        data = self._engine_combo.currentData()
+        return str(data) if data else "orca"
+
+    def _refresh_engines(self) -> None:
+        """Fill the Engine box with the engines that could start a job now, and show it only when there is a choice.
+
+        Called when the panel is built and after the External Tools dialog closes. With ORCA alone (every machine without Psi4) the row is
+        hidden and the form is what it always was. A service stub without engines (tests) is treated as ORCA alone.
+        """
+        try:
+            engines = list(self._quantum_chemistry_service.available_engines())
+        except AttributeError:
+            engines = []
+        previous = self._selected_engine_id()
+        self._engine_combo.blockSignals(True)
+        self._engine_combo.clear()
+        for provider in engines:
+            self._engine_combo.addItem(provider.engine_name(), provider.provider_id)
+        index = self._engine_combo.findData(previous)
+        self._engine_combo.setCurrentIndex(index if index >= 0 else 0)
+        self._engine_combo.blockSignals(False)
+        self._run_form.setRowVisible(self._engine_combo, len(engines) > 1)
+        self._on_engine_changed()
+
+    def _on_engine_changed(self, _index: int = 0) -> None:
+        """Grey out the calculations the chosen engine does not run, and the ORCA-only controls, and name the log tab for the engine."""
+        provider_id = self._selected_engine_id()
+        try:
+            provider = next(p for p in self._quantum_chemistry_service.engines() if p.provider_id == provider_id)
+        except (AttributeError, StopIteration):
+            provider = None
+        model = self._calc_type_combo.model()
+        first_enabled = -1
+        for row in range(self._calc_type_combo.count()):
+            supported = provider is None or provider.supports(CALC_TYPE_LABELS[self._calc_type_combo.itemText(row)])
+            item = model.item(row)
+            if item is not None:
+                item.setEnabled(supported)
+            if supported and first_enabled < 0:
+                first_enabled = row
+        current = model.item(self._calc_type_combo.currentIndex())
+        if current is not None and not current.isEnabled() and first_enabled >= 0:
+            self._calc_type_combo.setCurrentIndex(first_enabled)
+        # CPCM solvents, the Boltzmann NMR average and the TMS calibrations are ORCA's: an engine that runs a subset has none of them.
+        orca_like = provider is None or provider.supported_calc_types is None
+        self._solvent_combo.setEnabled(orca_like)
+        if not orca_like:
+            self._solvent_combo.setCurrentIndex(0)
+            self._boltzmann_check.setChecked(False)
+        self._boltzmann_check.setEnabled(orca_like)
+        name = "ORCA" if provider is None else provider.engine_name()
+        log_index = self._correlation_tabs.indexOf(self._output_log)
+        if log_index >= 0:
+            self._correlation_tabs.setTabText(log_index, f"{name} Log")
 
     def _on_calc_type_changed(self, label: str) -> None:
         """Steers NMR runs onto an NMR-appropriate basis.

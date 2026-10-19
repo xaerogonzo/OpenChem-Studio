@@ -10,7 +10,7 @@ from openchem.chem.identifiers import identifier_for_molblock
 from openchem.commands.crystal_commands import DeleteCrystalCommand, RenameCrystalCommand
 from openchem.commands.formulation_commands import DeleteFormulationCommand
 from openchem.commands.molecule_commands import DeleteMoleculeCommand, RenameMoleculeCommand
-from openchem.domain.conformer import quantum_optimized_note
+from openchem.domain.conformer import quantum_engine_of, quantum_optimized_note
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
 from openchem.events.base import EventBus
@@ -42,10 +42,11 @@ _CRYSTAL_SUFFIX = "  [crystal]"
 #: -- which is what the editor dialog already does, with every other
 #: field in front of the user rather than one of them alone.
 _FORMULATION_SUFFIX = "  [formulation]"
-#: Chrome on a MOLECULE row that holds an ORCA-optimized geometry, the same shape as the two above: it says at a
-#: glance, in the one list every project has, which molecules have a quantum geometry. Never part of the name; the
-#: tooltip says at what level of theory.
-_ORCA_SUFFIX = "  [ORCA-optimized]"
+#: Chrome on a MOLECULE row that holds a quantum-optimized geometry, the same shape as the two above: it says at a
+#: glance, in the one list every project has, which molecules have a quantum geometry, and which engine made it
+#: ("ORCA", "Psi4", or "quantum" when both did). Never part of the name; the tooltip says at what level of theory.
+#: Every suffix a row may carry is listed so a rename strips whichever one the row shows.
+_QUANTUM_SUFFIXES = ("  [ORCA-optimized]", "  [Psi4-optimized]", "  [quantum-optimized]")
 
 
 class ProjectExplorerPanel(QWidget):
@@ -172,7 +173,7 @@ class ProjectExplorerPanel(QWidget):
     def _show_geometry_badge(item: QListWidgetItem, molecule: MoleculeModel) -> None:
         """Put (or take away) the ORCA badge on one molecule's row. The stored name is never touched."""
         note = quantum_optimized_note(molecule.conformers)
-        item.setText(f"{molecule.display_name}{_ORCA_SUFFIX}" if note else molecule.display_name)
+        item.setText(f"{molecule.display_name}  [{quantum_engine_of(molecule.conformers)}-optimized]" if note else molecule.display_name)
         item.setToolTip(note)
 
     def _on_conformers_changed(self, event: ConformersChanged) -> None:
@@ -379,7 +380,10 @@ class ProjectExplorerPanel(QWidget):
         if molecule is None:
             return
         # The ORCA badge is chrome, handed back by editing the row exactly as the crystal suffix is.
-        new_name = item.text().removesuffix(_ORCA_SUFFIX).strip()
+        new_name = item.text()
+        for suffix in _QUANTUM_SUFFIXES:
+            new_name = new_name.removesuffix(suffix)
+        new_name = new_name.strip()
         if not new_name or new_name == molecule.display_name:
             # Empty/unchanged edit -- restore the displayed text instead of
             # pushing a no-op (or blank-name) rename command.

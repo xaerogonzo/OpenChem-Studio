@@ -1,0 +1,12 @@
+optimized pyridine
+optimized thiophene
+optimized pyrrole
+optimized furan
+E furan        completed=True 150.6 s
+E pyrrole      completed=True 177.1 s
+E thiophene    completed=True 198.5 s
+A furan        completed=True 76.8 s
+E pyridine     completed=True 231.6 s
+A pyrrole      completed=True 83.7 s
+A thiophene    completed=True 78.4 s
+A pyridine     completed=True 56.4 s

@@ -1038,6 +1038,262 @@ gate's statement is about the published ordering only.
 """
 
 [[source]]
+key = "gleiter1972"
+kind = "literature"
+citation = "R. Gleiter, E. Heilbronner & V. Hornung, 'Photoelectron Spectra of Azabenzenes and Azanaphthalenes: I. Pyridine, diazines, s-triazine and s-tetrazine', Helv. Chim. Acta 1972, 55, 255-274, Table 2."
+identifier_type = "doi"
+identifier = "10.1002/hlca.19720550130"
+status = "shipped"
+used_by = [
+    "src/openchem/app/fukui_gate_4.py",
+    "tests/test_fukui_gate_4.py",
+    "benchmarks/fukui_gate_4/PREREGISTRATION.md",
+]
+local = "gleiter1972.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-18
+note = """
+THE ASSIGNED VERTICAL IONIZATION POTENTIALS OF THE THREE DIAZINES, the reference of the fourth Fukui gate (`benchmarks/fukui_gate_4/`). Table 2 (page 265) lists, for
+pyridazine, pyrimidine and pyrazine, each observed vertical IP beside its orbital: pyridazine 9.31 (b2, sigma n-), 10.61 (a2, pi), 11.3 and 11.3, 13.9; pyrimidine 9.73 (b2,
+sigma n-), 10.41 (b1, pi), 11.23 (a1, sigma n+), 11.39 (a2, pi), 13.9; pyrazine 9.63 (ag, sigma n+), 10.18 (b2g, pi), 11.35 (b2u, sigma n-), 11.77 (b1g, pi), 13.9. The gate
+uses the first two of each. THE NUMBERS WERE READ OFF THE PAGE IMAGE, not the text layer, whose columns run into the calculated orbital energies. The file's first page opens on the
+tail of the preceding article (its bibliography), as the repository's research README warns can happen; the paper begins on the same page.
+"""
+
+[[source]]
+key = "piancastelli1983"
+kind = "literature"
+citation = "M. N. Piancastelli, P. R. Keller, J. W. Taylor, F. A. Grimm & T. A. Carlson, 'Angular distribution parameter as a function of photon energy for some mono- and diazabenzenes and its use for orbital assignment', J. Am. Chem. Soc. 1983, 105, 4235-4239."
+identifier_type = "doi"
+identifier = "10.1021/ja00351a019"
+status = "shipped"
+used_by = [
+    "src/openchem/app/fukui_gate_4.py",
+    "tests/test_fukui_gate_4.py",
+    "benchmarks/fukui_gate_4/PREREGISTRATION.md",
+]
+local = "piancastelli1983.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-18
+note = """
+THE EXPERIMENTAL CONFIRMATION OF THE n, pi, n, pi ORDER of pyrazine (bands at 9.63, 10.18, 11.35, 11.77 eV) and pyrimidine (9.73, 10.41, 11.23, 11.39), from the photon-energy
+dependence of the angular distribution parameter beta: flat for the n bands, rising for the pi bands, even where two bands overlap (pyrimidine's third and fourth). The band
+energies are the ones Gleiter 1972 printed, so this paper confirms the CHARACTER of the states and is not a second measurement of their energies. The gate uses it for the
+characters only.
+"""
+
+[[source]]
+key = "shojaei2010"
+kind = "literature"
+citation = "S. H. R. Shojaei, B. Hajgato & M. S. Deleuze, 'Electron Momentum Spectroscopy of pyrimidine at the benchmark ADC(3) level', Chem. Phys. Lett. 2010, 498, 45-51, Table 1."
+identifier_type = "doi"
+identifier = "10.1016/j.cplett.2010.08.055"
+status = "shipped"
+used_by = [
+    "src/openchem/app/fukui_gate_4.py",
+    "tests/test_fukui_gate_4.py",
+    "benchmarks/fukui_gate_4/PREREGISTRATION.md",
+]
+local = "shojaei2010.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-18
+note = """
+PYRIMIDINE'S IONIZATION SPECTRUM AT THE BENCHMARK LEVEL. Table 1 (page 47): ADC(3)/cc-pVDZ++ 9.991 (7b2, n), 10.473 (2b1, pi), 11.364 (1a2, pi), 11.471 (11a1, n); OVGF/aug-cc-pVTZ
+9.880, 10.482, 11.282, 11.406; the photoelectron spectrum 9.8, 10.5, 11.2, 11.5 and the electron-momentum spectrum 9.8, 10.5, 11.3 (a column of the table). The gate takes the
+gap between the first two bands from the largest basis of each method (0.48 and 0.60 eV) and from the PES column (0.70 eV). Read off the page image.
+"""
+
+[[source]]
+key = "holland2013"
+kind = "literature"
+citation = "D. M. P. Holland, D. A. Shaw, S. Coriani, M. Stener & P. Decleva, 'A study of the valence shell electronic states of pyridazine by photoabsorption spectroscopy and time-dependent density functional theory calculations', J. Phys. B 2013, 46, 175103, Table 1."
+identifier_type = "doi"
+identifier = "10.1088/0953-4075/46/17/175103"
+status = "shipped"
+used_by = [
+    "src/openchem/app/fukui_gate_4.py",
+    "tests/test_fukui_gate_4.py",
+    "benchmarks/fukui_gate_4/PREREGISTRATION.md",
+]
+local = "holland2013.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-18
+note = """
+PYRIDAZINE'S OUTER-VALENCE VERTICAL IONIZATION ENERGIES, CAS-SCF and NEVPT2 at cc-pVTZ with the experiment. Table 1 (page 4): 8b2 (nN) 8.260 (CAS), 9.182 (SC-NEVPT2), 9.141 (PC-NEVPT2),
+experiment 9.27; 1a2 (pi) 9.692, 10.683, 10.659, 10.61; 2b1 (pi) 10.059, 11.092, 11.079, 11.2; 10a1 (nN) 10.512, 11.264, 11.232, 11.3. The sequence is n, pi, pi, n. The gate takes the
+gap between the first two states from the experiment (1.34 eV) and the two NEVPT2 columns (1.50 and 1.52 eV), never from the CAS-SCF column, which has no dynamic correlation.
+"""
+
+[[source]]
+key = "stener2011"
+kind = "literature"
+citation = "M. Stener, P. Decleva, D. M. P. Holland & D. A. Shaw, 'A study of the valence shell electronic states of pyrimidine and pyrazine by photoabsorption spectroscopy and time-dependent density functional theory calculations', J. Phys. B 2011, 44, 075203, Table 1."
+identifier_type = "doi"
+identifier = "10.1088/0953-4075/44/7/075203"
+status = "shipped"
+used_by = [
+    "src/openchem/app/fukui_gate_4.py",
+    "tests/test_fukui_gate_4.py",
+    "benchmarks/fukui_gate_4/PREREGISTRATION.md",
+]
+local = "stener2011.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-18
+note = """
+THE SECOND EXPERIMENTAL TABLE OF THE DIAZINES' LOWEST BANDS, taken from Asbrink et al. for pyrimidine and Fridh et al. for pyrazine. Table 1 (page 3), the Experiment columns: pyrimidine 9.7 (7b2, nN), 10.5 (2b1, pi), 11.2 (11a1, nN), 11.5 (1a2, pi); pyrazine 9.4 (6ag, nN), 10.2 (1b1g, pi), 11.4 (5b1u, nN), 11.7 (1b2g, pi). Their
+Theory column is LB94 orbital eigenvalues and is not used. The gap between the first two bands is 0.8 eV in both, where Gleiter's is 0.68 and 0.55: the spread between sources
+of one gap that the gate's tolerance has to cover. The two Asbrink et al. papers themselves are held (`asbrink1972_pyrimidine.pdf`, `asbrink1972_pyridazine.pdf`) but were not read for the gate.
+"""
+
+[[source]]
+key = "patanen2021"
+kind = "literature"
+citation = "M. Patanen, A. R. Abid, S. T. Pratt, A. Kivimaki, A. B. Trofimov, A. D. Skitnevskaya, E. K. Grigoricheva, E. V. Gromov, I. Powis & D. M. P. Holland, 'Valence shell photoelectron angular distributions and vibrationally resolved spectra of imidazole: A combined experimental-theoretical study', J. Chem. Phys. 2021, 155, 054304, Table II."
+identifier_type = "doi"
+identifier = "10.1063/5.0058983"
+status = "shipped"
+used_by = [
+    "src/openchem/app/fukui_gate_4.py",
+    "tests/test_fukui_gate_4.py",
+    "benchmarks/fukui_gate_4/PREREGISTRATION.md",
+]
+local = "patanen2021.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-18
+note = """
+IMIDAZOLE'S OUTER-VALENCE STATES AT SEVEN LEVELS OF THEORY. Table II (page 5), vertical ionization energies at cc-pVTZ: X 2A'' (3a'', pi) HF 8.63, OVGF 8.82, IP-ADC(3) 8.85, Dyson ADC(3) 8.89, CCSD 8.91, CC3 8.85, best
+theoretical estimate 9.02, experiment 9.1; A 2A' (15a', n sigma) 11.85, 10.27, 10.47, 10.56, 10.15, 10.08, 10.30, 10.4; B 2A'' (2a'', pi) 10.85, 10.25, 10.34, 10.40, 10.32, 10.30, 10.51, 10.4. The
+lowest state is the pi hole and the lowest sigma state lies 1.2 to 1.7 eV above it. The Koopmans (HF) column is not used. Read off the page image. The licence is exclusive
+(AIP Publishing), so only the numbers the gate uses are transcribed.
+"""
+
+[[source]]
+key = "cradock1973"
+kind = "literature"
+citation = "S. Cradock, R. H. Findlay & M. H. Palmer, 'The molecular energy levels of the azoles: a study by photoelectron spectroscopy and ab initio molecular orbital calculations', Tetrahedron 1973, 29, 2173-2181, Table 1."
+identifier_type = "doi"
+identifier = "10.1016/0040-4020(73)80161-9"
+status = "shipped"
+used_by = [
+    "src/openchem/app/fukui_gate_4.py",
+    "tests/test_fukui_gate_4.py",
+    "benchmarks/fukui_gate_4/PREREGISTRATION.md",
+]
+local = "cradock1973.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-18
+note = """
+THE ONLY SOURCE IN HAND FOR PYRAZOLE'S ASSIGNED BANDS. Table 1 (page 2177), vertical ionization potentials and assigned levels: pyrazole 9.15 (3a'', pi), 9.88 (2a'', pi), 10.7 (15a', n sigma), then 11.1 and 13.6. An older (1973) He I
+assignment supported by ab initio eigenvalues, with a single value per band: the gate uses the gap from the lowest pi state to the lowest sigma state (1.55 eV) and is therefore
+only as good as one old table. Read off the page image (the text layer is a poor OCR).
+"""
+
+[[source]]
+key = "kobayashi1982"
+kind = "literature"
+citation = "T. Kobayashi, T. Kubota, K. Ezumi & C. Utsunomiya, 'Photoelectron Angular Distribution Study of Some Isoxazoles Combined with Perturbation Theoretic Approach', Bull. Chem. Soc. Jpn. 1982, 55, 3915-3919, Table 1."
+identifier_type = "doi"
+identifier = "10.1246/bcsj.55.3915"
+status = "shipped"
+used_by = [
+    "src/openchem/app/fukui_gate_4.py",
+    "tests/test_fukui_gate_4.py",
+    "benchmarks/fukui_gate_4/PREREGISTRATION.md",
+]
+local = "kobayashi1982.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-18
+note = """
+OXAZOLE'S FIRST THREE BANDS, SECOND-HAND. Table 1 (page 3917) gives oxazole's observed vertical ionization energies 9.83, 11.19 and 11.80 eV, marked "taken from Ref. 2", which is Palmer, Findlay and Egdell (1977, not
+held). The paper's own contribution is the ASSIGNMENT: a perturbation-theoretic reading against furan agrees with Palmer's ab initio assignment of the first and third bands to pi and the second to n sigma, and the band shapes agree. The gate
+uses the order and the gap from the first band to the second (1.36 eV). The file is a scan with no text layer; the table was read from the page image.
+"""
+
+[[source]]
+key = "trofimov2008"
+kind = "literature"
+citation = "A. B. Trofimov, I. L. Zaitseva, T. E. Moskovskaya & N. M. Vitkovskaya, 'Theoretical investigation of photoelectron spectra of furan, pyrrole, thiophene, and selenole [sic]', Chem. Heterocycl. Compd. 2008, 44, 1101, Table 2."
+identifier_type = "doi"
+identifier = "10.1007/s10593-008-0159-5"
+status = "shipped"
+used_by = [
+    "src/openchem/app/fukui_gate_4.py",
+    "tests/test_fukui_gate_4.py",
+    "benchmarks/fukui_gate_4/PREREGISTRATION.md",
+]
+local = "trofimov2008.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-18
+note = """
+THE FIVE-MEMBERED RINGS' OUTER PI BANDS AT THE ADC(3) LEVEL, with the experiment. Table 2 (page 1104): 1a2 (pi3) and 2b1 (pi2) energies, ADC(3)/6-311G* and experiment: furan 8.7 and 10.2, 9.0 and 10.4;
+pyrrole 8.1 and 8.8, 8.3 and 9.3; thiophene 8.7 and 9.0, 9.0 and 9.5; selenophene 2b1 8.7 and 1a2 8.7 (OVGF 8.7 and 8.6), experiment 9.0 and 9.1. THE TITLE IS PRINTED "SELENOLE" and the abstract says selenophene.
+Table 1 gives each orbital's population on each atom: 1a2 has none on the heteroatom (selenophene's 0.01) and 2b1 much (0.56). Used for the gate's calibration (thiophene, pyrrole, furan) and for selenophene's reference.
+"""
+
+[[source]]
+key = "trofimov2017"
+kind = "literature"
+citation = "A. B. Trofimov, D. M. P. Holland, I. Powis, R. C. Menzies, A. W. Potts, L. Karlsson, E. V. Gromov, I. L. Badsyuk & J. Schirmer, 'Ionization of pyridine: Interplay of orbital relaxation and electron correlation', J. Chem. Phys. 2017, 146, 244307, Table V."
+identifier_type = "doi"
+identifier = "10.1063/1.4986405"
+status = "shipped"
+used_by = [
+    "src/openchem/app/fukui_gate_4.py",
+    "tests/test_fukui_gate_4.py",
+    "benchmarks/fukui_gate_4/PREREGISTRATION.md",
+]
+local = "trofimov2017.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-18
+note = """
+PYRIDINE'S FOUR LOWEST CATION STATES AT THE HIGHEST LEVEL, the calibration of the fourth Fukui gate. Table V (page 9), vertical ionization energies at cc-pVTZ for 7a1 (sigma N lone pair), 1a2 (pi), 2b1 (pi), 5b2 (sigma): RHF/delta-SCF 8.64, 8.59, 9.46, 13.24; UHF/delta-SCF 8.34, 8.17, 8.83, 12.89;
+ADC(3) 10.06, 9.65, 10.39, 13.06; EOM-IP-CCSD 9.69, 9.72, 10.43, 12.87; EOM-IP-CCSDT 9.57, 9.72, 10.42, 12.74. THE LOWEST STATE DEPENDS ON THE METHOD: delta-SCF and ADC(3) put the pi state lowest, EOM-IP-CCSD(T) and CASPT2
+the sigma state, by 0.15 eV at the highest level, so the gate does not decide pyridine's order and uses its ladder only to check the reading. The supplement (`trofimov2017_si.pdf`) is figures only (the relaxation, correlation and
+combined effect of each state on the density).
+"""
+
+[[source]]
+key = "holland2017"
+kind = "literature"
+citation = "D. M. P. Holland, I. Powis, A. B. Trofimov, R. C. Menzies, A. W. Potts, L. Karlsson, I. L. Badsyuk, T. E. Moskovskaya, E. V. Gromov & J. Schirmer, 'An experimental and theoretical study of the valence shell photoelectron spectra of 2-chloropyridine and 3-chloropyridine', J. Chem. Phys. 2017, 147, 164307."
+identifier_type = "doi"
+identifier = "10.1063/1.4999433"
+status = "shipped"
+used_by = [
+    "docs/explainers/reactivity.md",
+    "benchmarks/fukui_gate_4/PREREGISTRATION.md",
+]
+local = "holland2017.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-18
+note = """
+THE STATEMENT THE DOCUMENTATION CITES, not a number: on page 164307-8, explaining why the relaxation of two chlorine lone-pair orbitals was estimated with second-order perturbation theory and not with
+delta-SCF, the paper says that only the lowest state of each symmetry can be treated within the delta-SCF framework. It is the literature's statement of the limit the fourth Fukui gate found (a hole start cannot hold two
+states of one symmetry). The paper also gives EOM-IP-CCSD and CC3 vertical ionization energies of 2- and 3-chloropyridine with symmetry labels, not used here; the supplement is `holland2017_si.pdf`.
+"""
+
+[[source]]
+key = "schafer1973"
+kind = "literature"
+citation = "W. Schafer, A. Schweig, S. Gronowitz, A. Taticchi & F. Fringuelli, 'Reversal in the Sequence of Two Highest Occupied Molecular Orbitals in the Series Thiophen, Selenophen, and Tellurophen', J. Chem. Soc., Chem. Commun. 1973, 541-542."
+identifier_type = "doi"
+identifier = "10.1039/c39730000541"
+status = "shipped"
+used_by = [
+    "src/openchem/app/fukui_gate_4.py",
+    "tests/test_fukui_gate_4.py",
+    "benchmarks/fukui_gate_4/PREREGISTRATION.md",
+]
+local = "schafer1973_chalcogenophene_reversal.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-18
+note = """
+THE QUALITATIVE REFERENCE FOR SELENOPHENE: the two highest pi orbitals reverse from thiophene (1a2 above 2b1) through selenophene, where "both MOs are nearly degenerate", to tellurophene (2b1 above 1a2). The 1a2 orbital has a node at the heteroatom and so
+is little affected by it; the 2b1 orbital is about 80 % on sulphur in thiophene (a CNDO/2 value) and its band is narrow. The gate takes from it the CHARACTER of the two selenophene states (a2: no spin on the heteroatom; b1: much) and that they are
+near-degenerate; the numbers are Trofimov 2008's. It prints no energies.
+"""
+
+[[source]]
 key = "sablon2007"
 kind = "literature"
 citation = "N. Sablon, F. De Proft, P. W. Ayers & P. Geerlings, 'Computing Fukui functions without differentiating with respect to electron number. II. Calculation of condensed molecular Fukui functions', J. Chem. Phys. 2007, 126, 224108, Table III and Fig. 1."
@@ -7853,4 +8109,241 @@ own opening states that HSAB "has remained qualitative and largely intuitive"
 and that attempts at a general hardness-softness measure "have so far not
 been successful". A citation saying the field is qualitative cannot back a
 quantitative claim.
+"""
+
+[[source]]
+key = "ranasinghe2019"
+kind = "literature"
+citation = "D. S. Ranasinghe, J. T. Margraf, A. Perera & R. J. Bartlett, 'Vertical valence ionization potential benchmarks from equation-of-motion coupled cluster theory and QTP functionals', J. Chem. Phys. 2019, 150, 074108."
+identifier_type = "doi"
+identifier = "10.1063/1.5084728"
+status = "shipped"
+used_by = [
+    "docs/explainers/reactivity.md",
+    "benchmarks/fukui_gate_4/PREREGISTRATION.md",
+]
+local = "ranasinghe2019.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-19
+note = """
+WHAT IS CITED, from the supplementary workbook (`ranasinghe2019_si/`, Table S4): IP-EOM-CCSD/cc-pVTZ vertical ionization energies of pyrimidine (9.724, 10.530, 11.174, 11.372 eV) and pyrazine (9.709, 10.185, 11.443, 11.757, 13.730 eV) at MP2/def2-TZVP geometries, and Table S3's pyridine at the CGB set's geometry (9.627, 9.887, 10.311, 12.862 eV). It is NOT a CCSDT reference for the diazines: IP-EOM-CCSDT/cc-pVTZ was run for 41 molecules, mostly of the CGB set (Table S3), and neither diazine is in Table S3; the diazines are in the NIST set (Table S4), which has IP-EOM-CCSD only.
+"""
+
+[[source]]
+key = "psi42020"
+kind = "literature"
+citation = "D. G. A. Smith, L. A. Burns, A. C. Simmonett, R. M. Parrish, M. C. Schieber, R. Galvelis, P. Kraus, H. Kruse, R. Di Remigio, A. Alenaizan, A. M. James, S. Lehtola, J. P. Misiewicz, M. Scheurer, R. A. Shaw, J. B. Schriber, Y. Xie, Z. L. Glick, D. A. Sirianni, J. S. O'Brien, J. M. Waldrop, A. Kumar, E. G. Hohenstein, B. P. Pritchard, B. R. Brooks, H. F. Schaefer III, A. Yu. Sokolov, K. Patkowski, A. E. DePrince III, U. Bozkaya, R. A. King, F. A. Evangelista, J. M. Turney, T. D. Crawford & C. D. Sherrill, 'PSI4 1.4: Open-source software for high-throughput quantum chemistry', J. Chem. Phys. 2020, 152, 184108."
+identifier_type = "doi"
+identifier = "10.1063/5.0006002"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/psi4_engine.py",
+]
+verification = "citation"
+verified_date = 2026-10-19
+note = """
+THE ENGINE THE PSI4 PROVIDER RUNS: a program this app calls, not a method it reimplements. The reference is the one Psi4 1.11 prints in the banner of every output (checked against the fixtures in `tests/fixtures/psi4/`, which are real
+outputs); the paper itself was NOT read, so this entry makes no claim about a number. The functional definitions the engine relies on (B3LYP with VWN5 as `b3lyp5`, and so on) were checked against ORCA by running both, not taken from this paper
+(`docs/PSI4_ENGINE_DESIGN.md`, `chem/psi4_engine.py`).
+"""
+
+[[source]]
+key = "hunter1998"
+kind = "literature"
+citation = "E. P. L. Hunter & S. G. Lias, 'Evaluated Gas Phase Basicities and Proton Affinities of Molecules: An Update', J. Phys. Chem. Ref. Data 1998, 27, 413-656."
+identifier_type = "doi"
+identifier = "10.1063/1.556018"
+status = "reference_only"
+used_by = [
+    "docs/PROTON_AFFINITY_DESIGN.md",
+    "benchmarks/proton_affinity/PREREGISTRATION.md",
+]
+local = "hunter1998_pa_gb.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-19
+reason = """
+THE REFERENCE VALUES OF THE PROTON-AFFINITY BENCHMARK: the evaluation behind every NIST WebBook 'Proton affinity (review)' and 'Gas basicity' value. Read for three statements the benchmark's rule rests on: the uncertainty assigned to most molecules is about 8 kJ/mol (their Sec. 5.4), the scale is 'not yet well established' below propene (PA 751.6 kJ/mol; Sec. 5.5), and several protonation sites are tabulated separately (CO at C and at O). The DOI is the Crossref match; the PDF carries no printed DOI.
+"""
+
+[[source]]
+key = "moser2010"
+kind = "literature"
+citation = "A. Moser, K. Range & D. M. York, 'Accurate Proton Affinity and Gas-Phase Basicity Values for Molecules Important in Biocatalysis', J. Phys. Chem. B 2010, 114, 13911-13921."
+identifier_type = "doi"
+identifier = "10.1021/jp107450n"
+status = "reference_only"
+used_by = [
+    "docs/PROTON_AFFINITY_DESIGN.md",
+    "benchmarks/proton_affinity/PREREGISTRATION.md",
+]
+verification = "citation_and_claim"
+verified_date = 2026-10-19
+reason = """
+THE PROTON'S THERMOCHEMISTRY AND A BENCHMARK AGAINST NIST: standard state 298.15 K and 1 atm, H(H+) = 5/2 RT = 1.48 kcal/mol, S(H+) = 26.02 cal/(mol K) from Sackur-Tetrode, G(H+) = -6.28 kcal/mol (their eqs 2 and 3), which the benchmark's `pa_core.proton_terms` reproduces independently (1.4812, 26.012, -6.274); their Table 1 errors for model chemistries against NIST for protonated amines and imidazoles (the PAs of the corresponding bases). Read from an open copy of the PDF, not held in the library folder.
+"""
+
+[[source]]
+key = "riplinger2013dlpno"
+kind = "literature"
+citation = "C. Riplinger & F. Neese, 'An efficient and near linear scaling pair natural orbital based local coupled cluster method', J. Chem. Phys. 2013, 138, 034106."
+identifier_type = "doi"
+identifier = "10.1063/1.4773581"
+status = "reference_only"
+used_by = [
+    "docs/PROTON_AFFINITY_DESIGN.md",
+    "benchmarks/proton_affinity/PREREGISTRATION.md",
+    "benchmarks/bde/PREREGISTRATION.md",
+]
+local = "riplinger2013_dlpno.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-19
+reason = """
+THE DLPNO-CCSD METHOD of the benchmark's secondary arm: default thresholds (TCutPNO 3.33e-7, TCutPairs 1e-4, TCutMKN 1e-3), more than 99.9% of the correlation energy recovered, and a mean absolute deviation of about 0.5 kcal/mol from canonical on a test set of medium-sized organic molecules.
+"""
+
+[[source]]
+key = "riplinger2013triples"
+kind = "literature"
+citation = "C. Riplinger, B. Sandhoefer, A. Hansen & F. Neese, 'Natural triple excitations in local coupled cluster calculations with pair natural orbitals', J. Chem. Phys. 2013, 139, 134101."
+identifier_type = "doi"
+identifier = "10.1063/1.4821834"
+status = "reference_only"
+used_by = [
+    "docs/PROTON_AFFINITY_DESIGN.md",
+    "benchmarks/proton_affinity/PREREGISTRATION.md",
+    "benchmarks/bde/PREREGISTRATION.md",
+]
+local = "riplinger2013_triples.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-19
+reason = """
+THE DLPNO-(T) TRIPLES of the secondary arm: the default TCutTNO 1e-7, the statement that the triples correction can reach 4 kcal/mol, and the accuracy of the approximation against canonical (about 0.5 kcal/mol).
+"""
+
+[[source]]
+key = "goerigk2017"
+kind = "literature"
+citation = "L. Goerigk, A. Hansen, C. Bauer, S. Ehrlich, A. Najibi & S. Grimme, 'A look at the density functional theory zoo with the advanced GMTKN55 database for general main group thermochemistry, kinetics and noncovalent interactions', Phys. Chem. Chem. Phys. 2017, 19, 32184-32215."
+identifier_type = "doi"
+identifier = "10.1039/c7cp04913g"
+status = "reference_only"
+used_by = [
+    "docs/PROTON_AFFINITY_DESIGN.md",
+    "benchmarks/proton_affinity/PREREGISTRATION.md",
+]
+local = "goerigk2017.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-19
+reason = """
+THE PA26 SET AND THE PER-FUNCTIONAL ERRORS FOR PROTON AFFINITIES (the SI, held as goerigk2017_si.pdf): 26 adiabatic proton affinities against W2-F12, W1-F12 and CCSD(T)/CBS references, zero-point-exclusive, def2-QZVP. M06-2X(-D3(0)) MAD 1.23 kcal/mol (checked against the page image of Table S89), B3LYP 2.28, PBE0 2.56, the double hybrids about 1. The SI's plain text layer interleaves neighbouring rows; the values used were read by word coordinates.
+"""
+
+[[source]]
+key = "zhao2008"
+kind = "literature"
+citation = "Y. Zhao & D. G. Truhlar, 'The M06 suite of density functionals for main group thermochemistry, thermochemical kinetics, noncovalent interactions, excited states, and transition elements: two new functionals and systematic testing of four M06-class functionals and 12 other functionals', Theor. Chem. Acc. 2008, 120, 215-241."
+identifier_type = "doi"
+identifier = "10.1007/s00214-007-0310-x"
+status = "reference_only"
+used_by = [
+    "docs/PROTON_AFFINITY_DESIGN.md",
+    "benchmarks/proton_affinity/PREREGISTRATION.md",
+    "docs/BDE_DESIGN.md",
+    "benchmarks/bde/PREREGISTRATION.md",
+]
+local = "zhao2007.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-19
+reason = """
+THE PA8 DATABASE ERRORS AGAINST EXPERIMENT (Table 4, read from the page image): eight small-molecule proton affinities, zero-point-exclusive; M06-2X MSE -0.19 and MUE 1.75 kcal/mol, B3LYP 0.18 and 1.02, PBE 0.04 and 1.35, HF 2.75 and 3.19. ALSO TABLE 5, THE ABDE4 DATABASE (read from the page image): four alkyl bond energies (R-CH3, R-OCH3; R = methyl, isopropyl), De not an enthalpy, 6-311+G(3df,2p) on B3LYP/6-31G(d) geometries; M06-2X MSE +0.27 and MUE 0.74 kcal/mol, M05-2X -0.18 and 0.61, B3LYP -8.62 and 8.62.
+"""
+
+[[source]]
+key = "curtiss2005"
+kind = "literature"
+citation = "L. A. Curtiss, P. C. Redfern & K. Raghavachari, 'Assessment of Gaussian-3 and density-functional theories on the G3/05 test set of experimental energies', J. Chem. Phys. 2005, 123, 124107."
+identifier_type = "doi"
+identifier = "10.1063/1.2039080"
+status = "reference_only"
+used_by = [
+    "docs/PROTON_AFFINITY_DESIGN.md",
+    "benchmarks/proton_affinity/PREREGISTRATION.md",
+]
+local = "curtiss2005.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-19
+reason = """
+THE G3/05 PROTON-AFFINITY ERRORS AGAINST EXPERIMENT (Table IV, read from the page image): ten proton affinities, mean absolute deviation G3 1.14, G3X 1.04 and B3LYP 1.39 kcal/mol (B3LYP single points 6-311+G(3df,2p) at MP2/6-31G* geometries with scaled HF zero-point energies).
+"""
+
+[[source]]
+key = "blanksby2003"
+kind = "literature"
+citation = "S. J. Blanksby & G. B. Ellison, 'Bond Dissociation Energies of Organic Molecules', Acc. Chem. Res. 2003, 36, 255-263."
+identifier_type = "doi"
+identifier = "10.1021/ar020230d"
+status = "reference_only"
+used_by = [
+    "docs/BDE_DESIGN.md",
+    "benchmarks/bde/PREREGISTRATION.md",
+]
+local = "blanksby2003.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-19
+reason = """
+THE REFERENCE VALUES OF THE BOND-DISSOCIATION BENCHMARK: Table 1 gives the experimental bond enthalpy DH298 (kcal/mol) of RH -> R + H with its stated uncertainty for 33 bonds the benchmark uses (read from the page image; the text layer agrees). Also states that DH298 and D0 differ by about 1.5 kcal/mol for R-H (the heat-content integral of the hydrogen atom, 1.48 kcal/mol at 298 K), which is why the benchmark computes an enthalpy and not an electronic energy.
+"""
+
+[[source]]
+key = "vo2022"
+kind = "literature"
+citation = "N. Q. Trung, A. Mechler, N. T. Hoa & Q. V. Vo, 'Calculating bond dissociation energies of X-H (X = C, N, O, S) bonds of aromatic systems via density functional theory: a detailed comparison of methods', R. Soc. Open Sci. 2022, 9, 220177."
+identifier_type = "doi"
+identifier = "10.1098/rsos.220177"
+status = "reference_only"
+used_by = [
+    "docs/BDE_DESIGN.md",
+    "benchmarks/bde/PREREGISTRATION.md",
+]
+local = "vo2022_xh_bde.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-19
+reason = """
+M06-2X'S ERROR ON X-H BOND DISSOCIATION ENTHALPIES AGAINST EXPERIMENT (text of Sec. 3 and Table 5): aromatic X-H, 6-311+G(3df,2p) on B3LYP/6-31G(d) geometries; M06-2X MUE 1.3 (C-H, max 3.2), 1.2 (N-H, max 2.9), 1.2 to 1.4 (O-H, max 3.2 to 3.4), 1.1 (S-H, max 5.4); average MUE 1.2 and MaxAE 3.7 kcal/mol.
+"""
+
+[[source]]
+key = "stjohn2020"
+kind = "literature"
+citation = "P. C. St. John, Y. Guan, Y. Kim, S. Kim & R. S. Paton, 'Prediction of organic homolytic bond dissociation enthalpies at near chemical accuracy with sub-second computational cost', Nat. Commun. 2020, 11, 2328."
+identifier_type = "doi"
+identifier = "10.1038/s41467-020-16201-z"
+status = "reference_only"
+used_by = [
+    "docs/BDE_DESIGN.md",
+    "benchmarks/bde/PREREGISTRATION.md",
+]
+local = "stjohn2020_bde_db.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-19
+reason = """
+THE CLOSEST PUBLISHED MATCH TO THE BDE BENCHMARK'S PROTOCOL: gas-phase enthalpies at 298 K and 1 atm with unscaled ZPE and thermal corrections after a conformer search; against 368 experimental iBond bond enthalpies M06-2X/def2-TZVP has an MAE of about 2.1 kcal/mol (Fig. 1a, text layer), equal to DLPNO-CCSD(T)/cc-pVTZ and better than B3LYP-D3 and wB97X-D; about 2.5 kcal/mol for large molecules outside the training set.
+"""
+
+[[source]]
+key = "mardirossian2017"
+kind = "literature"
+citation = "N. Mardirossian & M. Head-Gordon, 'Thirty years of density functional theory in computational chemistry: an overview and extensive assessment of 200 density functionals', Mol. Phys. 2017, 115, 2315-2372."
+identifier_type = "doi"
+identifier = "10.1080/00268976.2017.1333644"
+status = "reference_only"
+used_by = [
+    "docs/BDE_DESIGN.md",
+    "benchmarks/bde/PREREGISTRATION.md",
+]
+local = "mardirossian2017_mgcdb84.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-19
+reason = """
+PER-SET ERRORS OF 200 FUNCTIONALS (the SI file MADValues.csv, against CCSD(T)/CBS-type references): M06-2X MAD 1.83 kcal/mol on BDE99nonMR and 2.50 on HAT707nonMR, 6.32 and 5.08 on the multireference sets BDE99MR and HAT707MR; B3LYP 3.19 and 3.08 on the non-multireference sets.
 """

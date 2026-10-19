@@ -1,0 +1,45 @@
+
+pyrimidine  (printed range of the gap 0.48 to 0.80 eV)
+  B3LYP 6-31G*       0.000 (sigma), 0.909 (pi), 1.356 (sigma), 1.735 (pi)   | sigma-pi gap G = +0.909   [276 s]
+  wB97X-D3 6-31G*    0.000 (sigma), 0.633 (pi), 1.435 (sigma), 1.534 (pi)   | sigma-pi gap G = +0.633   [350 s]
+  S = +0.276 eV; distance of |G| from the printed range 0.109 -> 0.000
+
+pyrazine  (printed range of the gap 0.55 to 0.80 eV)
+  B3LYP 6-31G*       0.000 (sigma), 0.683 (pi), 1.735 (sigma), 2.173 (pi), 3.871 (sigma), 4.832 (pi), 5.219 (sigma)   | sigma-pi gap G = +0.683   [203 s]
+  wB97X-D3 6-31G*    0.000 (sigma), 0.337 (pi), 1.897 (sigma), 1.953 (pi), 3.943 (sigma), 5.051 (pi), 5.369 (sigma)   | sigma-pi gap G = +0.337   [249 s]
+  S = +0.346 eV; distance of |G| from the printed range 0.000 -> 0.213
+
+pyridazine  (printed range of the gap 1.30 to 1.52 eV)
+  B3LYP 6-31G*       0.000 (sigma), 1.564 (pi), 1.962 (pi), 2.001 (sigma)   | sigma-pi gap G = +1.564   [273 s]
+  wB97X-D3 6-31G*    0.000 (sigma), 1.451 (pi), 1.882 (pi), 2.113 (sigma)   | sigma-pi gap G = +1.451   [332 s]
+  S = +0.112 eV; distance of |G| from the printed range 0.044 -> 0.000
+
+imidazole  (printed range of the gap 1.23 to 1.67 eV)
+  B3LYP 6-31G*       0.000 (pi), 1.174 (sigma)   | sigma-pi gap G = -1.174   [308 s]
+  wB97X-D3 6-31G*    0.000 (pi), 1.213 (sigma)   | sigma-pi gap G = -1.213   [331 s]
+  S = +0.039 eV; distance of |G| from the printed range 0.056 -> 0.017
+
+pyrazole  (printed range of the gap 1.55 to 1.55 eV)
+  B3LYP 6-31G*       0.000 (pi), 1.157 (sigma)   | sigma-pi gap G = -1.157   [320 s]
+  wB97X-D3 6-31G*    0.000 (pi), 1.288 (sigma)   | sigma-pi gap G = -1.288   [349 s]
+  S = +0.131 eV; distance of |G| from the printed range 0.393 -> 0.262
+
+oxazole  (printed range of the gap 1.36 to 1.36 eV)
+  B3LYP 6-31G*       0.000 (pi), 1.252 (sigma)   | sigma-pi gap G = -1.252   [308 s]
+  wB97X-D3 6-31G*    0.000 (pi), 1.302 (sigma)   | sigma-pi gap G = -1.302   [325 s]
+  S = +0.049 eV; distance of |G| from the printed range 0.108 -> 0.058
+
+pyridine  (calibration)
+  B3LYP 6-31G*       0.000 (sigma), 0.123 (pi), 0.803 (pi), 2.973 (sigma)   | sigma-pi gap G = +0.123   [232 s]
+  wB97X-D3 6-31G*    0.000 (sigma), 0.046 (pi), 0.777 (pi), 3.242 (sigma)   | sigma-pi gap G = +0.046   [372 s]
+  S = +0.077 eV
+
+pyridine against EOM-IP-CCSDT (+0.15, +0.85, +3.17 for the 1a2, 2b1 and 5b2 states above the 7a1):
+  B3LYP 6-31G*       0.000, 0.123, 0.803, 2.973   (EOM-IP-CCSDT 0.00, 0.15, 0.85, 3.17)
+  wB97X-D3 6-31G*    0.000, 0.046, 0.777, 3.242   (EOM-IP-CCSDT 0.00, 0.15, 0.85, 3.17)
+
+a change of the lowest state's kind: none
+of the four outside their range at B3LYP, inside it now: 2 (pyrimidine, pyridazine); pyrazine inside: False
+|S| below 0.05 eV in 2 of 6 (imidazole, oxazole); S at least +0.05: 4 (pyrimidine, pyrazine, pyridazine, pyrazole); at most -0.05: 0 (none)
+
+READING RULE OF PLAN.md: MOVED

@@ -1,0 +1,22 @@
+
+pyridine: seen before the gate
+  the application's lowest state is +0.0007 eV from the exhaustive search's; its note: Another state of the cation lies 0.12 eV (its f- differs by up to 0.230, at N (atom 4)) above the one f- is read from, which is the lowest found. f- depends on which state is meant.
+  + 0.000 eV  sigma      out of plane  0.000  5 job(s)
+  + 0.123 eV  pi         out of plane  1.000  1 job(s)
+  + 0.803 eV  pi         out of plane  1.000  1 job(s)
+  + 2.973 eV  sigma      out of plane -0.000  1 job(s)
+
+thiophene: seen before the gate
+  the application's lowest state is +0.0000 eV from the exhaustive search's; its note: Another state of the cation lies 0.45 eV (its f- differs by up to 0.195, at S (atom 4)) above the one f- is read from, which is the lowest found. f- depends on which state is meant.
+  + 0.000 eV  pi         out of plane  1.000  5 job(s)  spin on S -0.071 (a2)
+  + 0.449 eV  pi         out of plane  1.000  3 job(s)  spin on S +0.580 (b1)
+
+pyrrole: seen before the gate
+  the application's lowest state is +0.0000 eV from the exhaustive search's; its note: (none)
+  + 0.000 eV  pi         out of plane  1.000  5 job(s)  spin on N -0.056 (a2)
+  + 0.836 eV  pi         out of plane  1.000  3 job(s)  spin on N +0.399 (b1)
+
+furan: seen before the gate
+  the application's lowest state is +0.0000 eV from the exhaustive search's; its note: (none)
+  + 0.000 eV  pi         out of plane  1.000  6 job(s)  spin on O -0.033 (a2)
+  + 1.370 eV  pi         out of plane  1.000  2 job(s)  spin on O +0.322 (b1)

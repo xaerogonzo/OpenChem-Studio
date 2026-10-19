@@ -1,0 +1,6 @@
+search OFF: reference vs embedding101 differ by 0.0133
+search ON : reference vs embedding101 differ by 0.0133
+  reference     search OFF 28 s  No search for other states of the dication was run (it was switched off in Settings > Quantum chemistry), so f- is read from the one state O
+  reference     search ON  83 s  Another state of the dication lies 0.09 eV (its f- differs by up to 0.120, at C (atom 5)) above the one f- is read from, which is the lowest
+  embedding101  search OFF 34 s  No search for other states of the dication was run (it was switched off in Settings > Quantum chemistry), so f- is read from the one state O
+  embedding101  search ON  66 s  Another state of the dication lies 0.10 eV (its f- differs by up to 0.117, at C (atom 5)) above the one f- is read from, which is the lowest

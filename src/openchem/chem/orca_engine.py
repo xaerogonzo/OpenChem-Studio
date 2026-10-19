@@ -16,7 +16,7 @@ from openchem.domain.conformer import ORCA_OPTIMIZED, ConformerModel
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.quantum_methods import METHOD_BASIS_PRESETS, SOLVENTS  # noqa: F401  (moved to domain/; re-exported)
 from openchem.chem.conceptual_dft import from_delta_scf, from_frontier_energies
-from openchem.chem.fukui import CondensedFukui, condensed_fukui, open_shell_message, start_notes
+from openchem.chem.fukui import HARTREE_TO_EV, CondensedFukui, condensed_fukui, open_shell_message, start_notes
 from openchem.chem.fukui_plan import (
     START_DEFAULT,
     START_HCORE,
@@ -27,9 +27,13 @@ from openchem.chem.fukui_plan import (
     JobResult,
     choose_solutions,
     has_diffuse_functions,
+    hole_of_start,
+    hole_start,
     plan_fukui,
+    searchable_holes,
     state_of,
 )
+from openchem.chem.fukui_states import CHARGE_TOLERANCE, read_cation
 from openchem.chem.orca_led import build_led_input, parse_led
 from openchem.chem.vibrational_modes import classify_mode
 from openchem.domain.scientific_result import (
@@ -307,6 +311,12 @@ _START_OF_GUESS = {"HCORE": START_HCORE, "MINIMAL BASIS EHT": START_HUECKEL}
 _HIRSHFELD_HEADER = "HIRSHFELD ANALYSIS"
 #: ORCA prints this once per UNRESTRICTED job, so a compound Fukui output holds two, the cation's then the anion's (the neutral closed shell prints none).
 _S_SQUARED_RE = re.compile(r"Expectation value of <S\*\*2>\s*:\s*(-?\d+\.\d+)")
+#: A line of ORCA's echo of the input file, at the top of its output once for the whole compound input: ``|  12> * xyz 0 1``.
+_INPUT_ECHO_LINE = re.compile(r"^\|\s*\d+>[ \t]?(.*)$")
+#: The orbital swap that puts a hole start's hole in the HOMO-k: ``Rotate {a, b, 90, 1, 1} end``, with b the HOMO's number and a the orbital the hole goes to.
+_ROTATE_RE = re.compile(r"Rotate\s*\{\s*(\d+)\s*,\s*(\d+)\s*,")
+#: The line that ends ORCA's echo of the input file at the top of its output.
+_END_OF_INPUT = "****END OF INPUT****"
 #: A row of the Hirshfeld table: index, element, charge, spin. Four columns exactly, so the MBIS table (which has
 #: a population column as well) and the valence-shell table cannot match it.
 _HIRSHFELD_ROW_RE = re.compile(r"^\s*(\d+)\s+([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$")
@@ -520,14 +530,16 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
     # one, so a fake or a future engine is never handed ORCA syntax.
     supports_parallel = True
 
-    def __init__(self, *, anion_f_plus: Callable[[], bool] | None = None) -> None:
+    def __init__(self, *, anion_f_plus: Callable[[], bool] | None = None, cation_search: Callable[[], bool] | None = None) -> None:
         """`anion_f_plus` says, each time a Fukui input is written, whether the run of a species that is itself an anion includes its dianion (so its f+).
+        `cation_search` says whether it carries the hole starts that look for other states of the cation (`chem.fukui_states`).
 
-        A callable rather than a flag, so that the person's setting (`app.settings.FUKUI_ANION_F_PLUS`, which the service hands in) is read when the job is
-        built and not when the provider was; this layer does not import the application's settings. None means on, which is what a provider built without a
-        service (the command line, the benchmarks, the tests) gets.
+        Callables rather than flags, so that the person's settings (`app.settings.FUKUI_ANION_F_PLUS` and `FUKUI_CATION_SEARCH`, which the service hands in) are read
+        when the job is built and not when the provider was; this layer does not import the application's settings. None means on, which is what a provider built
+        without a service (the command line, the benchmarks, the tests) gets.
         """
         self._anion_f_plus = anion_f_plus if anion_f_plus is not None else (lambda: True)
+        self._cation_search = cation_search if cation_search is not None else (lambda: True)
 
     def build_input(
         self, mol: Chem.Mol, charge: int, multiplicity: int, method_basis: str, calc_type: str
@@ -550,8 +562,11 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
             return self._build_delta_scf_input(header, coordinates, charge, multiplicity)
 
         if calc_type == "fukui":
+            # The hole starts need the HOMO's number, which comes from the electron count; a person's choice to leave them out, and a species that has no search, both give none.
+            search = searchable_holes([atom.GetAtomicNum() for atom in mol.GetAtoms()], charge) if self._cation_search() else None
             return self._build_fukui_input(
-                header, coordinates, charge, multiplicity, diffuse=has_diffuse_functions(method_basis)
+                header, coordinates, charge, multiplicity, diffuse=has_diffuse_functions(method_basis),
+                holes=search.offsets if search else (), homo=search.homo if search else -1,
             )
 
         if calc_type == "led":
@@ -636,8 +651,13 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
     #: How the grid is named in a result's provenance.
     _FUKUI_GRID_NAME = "IntAcc 6.0"
 
+    #: The file a hole start reads the NEUTRAL's orbitals from: the first job of a compound input writes `<input name>.gbw`, and the service names its input `job.inp`
+    #: (`QuantumChemistryService`, which also looks for `job.gbw` for surfaces), so the first job's orbitals are `job.gbw` and the later ones' `job_job2.gbw` ...
+    #: (measured on ORCA 6.1.1: the later job's echo said MOREAD from `job_job2.gbw`).
+    _NEUTRAL_ORBITALS = "job.gbw"
+
     def _build_fukui_input(
-        self, header: str, coordinates: list[str], charge: int, multiplicity: int, *, diffuse: bool = False
+        self, header: str, coordinates: list[str], charge: int, multiplicity: int, *, diffuse: bool = False, holes: tuple[int, ...] = (), homo: int = -1
     ) -> str:
         """The states of a Fukui run in ONE input, Hirshfeld populations printed for each (`chem.fukui_plan.plan_fukui` says which).
 
@@ -663,17 +683,28 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
         job written AFTER an open-shell one ran UNRESTRICTED: ORCA switches the first doublet to UHF/UKS and keeps the setting for the later jobs of a compound input
         (measured: the extra starts of a closed-shell anion printed ``HFTyp .... UHF`` and an <S**2> of 0). A singlet that is free to break spin symmetry is not
         the closed-shell state the N state means, and a lower broken-symmetry solution found by an extra start would have been read as a better solution of it.
+
+        **`holes` are the hole starts of the N-1 state** (offsets below the HOMO, with `homo` the HOMO's orbital number, both from `chem.fukui_plan.searchable_holes`): each is
+        a doublet job that reads the NEUTRAL's orbitals (`MORead` from the first job's `.gbw`, not the previous job's, which is what a later job reads without being told) and
+        swaps the beta orbital `homo - offset` with the HOMO's before the SCF (`%scf Rotate {a, b, 90, 1, 1} end`), so that the electron the cation lacks is the one that was in
+        the lower orbital. It is the procedure of the probe that found the cation-state problem (`benchmarks/fukui_gate_2/cation_states_probe.py`), written into the compound input.
         """
         if multiplicity != 1:
             raise ValueError(open_shell_message(multiplicity))
-        plan = plan_fukui(charge, multiplicity, diffuse=diffuse, anion_f_plus=bool(self._anion_f_plus()))
+        if holes and homo < 0:
+            raise ValueError("Hole starts need the HOMO's orbital number.")
+        plan = plan_fukui(charge, multiplicity, diffuse=diffuse, anion_f_plus=bool(self._anion_f_plus()), holes=holes)
         lines: list[str] = []
         for index, job in enumerate(plan.jobs):
             if index:
                 lines.extend(["", "$new_job"])
-            job_header = header if job.start == START_DEFAULT else f"{header} {job.start}"
+            if job.hole:
+                job_header, orbitals = f"{header} MORead", [f'%moinp "{self._NEUTRAL_ORBITALS}"']
+                rotation = [f"  Rotate {{{homo - job.hole}, {homo}, 90, 1, 1}} end"]
+            else:
+                job_header, orbitals, rotation = (header if job.start == START_DEFAULT else f"{header} {job.start}"), [], []
             lines.extend(
-                [job_header, "%scf", f"  HFTyp {'RHF' if job.multiplicity == 1 else 'UHF'}", "end", *self._FUKUI_GRID,
+                [job_header, *orbitals, "%scf", f"  HFTyp {'RHF' if job.multiplicity == 1 else 'UHF'}", *rotation, "end", *self._FUKUI_GRID,
                  "%output", "  Print[P_Hirshfeld] 1", "end", f"* xyz {job.charge} {job.multiplicity}", *coordinates, "*"]
             )
         return "\n".join(lines) + "\n"
@@ -902,6 +933,60 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
         return descriptors
 
     @staticmethod
+    def _echoed_holes(output_text: str) -> list[int]:
+        """One entry per job of the input ORCA echoed at the top of its output: how far below the HOMO that job's hole is, 0 for a job with none. Empty if there is no echo.
+
+        ORCA prints the whole compound input once, as ``|  12> ...`` lines between ``INPUT FILE`` and ``****END OF INPUT****`` (measured on ORCA 6.1.1, with every
+        ``$new_job`` block of it), so the plan a run was written with can be read back from its own output: a hole start is the job whose ``%scf`` carries the
+        ``Rotate`` that swaps the HOMO with the orbital the hole goes to. An output without the echo (a trimmed one) names no hole start, and its later N-1 jobs are read as
+        any other start (`_fukui_job_results`).
+        """
+        begin = output_text.find("INPUT FILE")
+        end = output_text.find(_END_OF_INPUT, begin) if begin != -1 else -1
+        if begin == -1 or end == -1:
+            return []
+        holes = [0]
+        for raw in output_text[begin:end].splitlines():
+            match = _INPUT_ECHO_LINE.match(raw.rstrip("\r"))
+            if match is None:
+                continue
+            text = match.group(1).strip()
+            if text.lower() == "$new_job":
+                holes.append(0)
+                continue
+            rotation = _ROTATE_RE.search(text)
+            if rotation:
+                holes[-1] = int(rotation.group(2)) - int(rotation.group(1))
+        return holes
+
+    @staticmethod
+    def _occupied_orbital_energies(segment: str) -> list[float]:
+        """The energies in eV of the occupied orbitals (occupation 2.0000) of a restricted job's ORBITAL ENERGIES table, lowest first: the last is the HOMO's. Empty if none."""
+        begin = segment.find("ORBITAL ENERGIES")
+        if begin == -1:
+            return []
+        energies: list[float] = []
+        for match in _ORBITAL_ROW_RE.finditer(segment, begin):
+            index, occupation, _hartree, electron_volts = match.groups()
+            if int(index) != len(energies) or float(occupation) != 2.0:
+                break
+            energies.append(float(electron_volts))
+        return energies
+
+    @classmethod
+    def _untried_orbital_gap_ev(cls, output_text: str, atomic_numbers: list[int], charge: int, deepest_hole: int) -> float | None:
+        """How far below the HOMO the first occupied valence orbital that no hole start tried lies, in eV, from the first job's orbital table; None if there is none to ask about.
+
+        The orbital below the deepest hole (`deepest_hole + 1` under the HOMO) stands in, before its state is computed, for a state the search did not look for: the probe's
+        energy gaps between cation states followed the neutral's orbital-energy gaps to within 0.062 eV (`chem.fukui_states.ORBITAL_SLACK_EV`).
+        """
+        beyond = deepest_hole + 1
+        if not searchable_holes(atomic_numbers, charge, offsets=(beyond,)).offsets:
+            return None
+        energies = cls._occupied_orbital_energies(output_text)
+        return energies[-1] - energies[-1 - beyond] if len(energies) > beyond else None
+
+    @staticmethod
     def _fukui_job_results(output_text: str, symbols: list[str]) -> list[JobResult]:
         """One `JobResult` per job of a `fukui` output, in the order ORCA ran them, or `OrcaOutputError` saying what is wrong.
 
@@ -919,6 +1004,7 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
             )
         segments = [output_text[begin:end] for begin, end in zip(starts, [*starts[1:], len(output_text)])]
         reference = int(_TOTAL_CHARGE_RE.match(segments[0]).group(1))
+        planned_holes = OrcaQuantumEngineProvider._echoed_holes(output_text)
         results: list[JobResult] = []
         seen: set[str] = set()
         for position, segment in enumerate(segments, start=1):
@@ -932,7 +1018,11 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
                     f"Job {position} of this output has charge {charge:+d} and multiplicity {multiplicity}, which is not the N, N-1 or N+1 state of a "
                     f"closed-shell species of charge {reference:+d}; its table cannot be assigned to a state."
                 )
-            if state in seen:
+            hole = planned_holes[position - 1] if position <= len(planned_holes) else 0
+            if hole:
+                # The echo of the input says which job this is: the guess line of a hole start says MOREAD, as a default job's does.
+                start = hole_start(hole)
+            elif state in seen:
                 guess = _GUESS_RE.search(segment)
                 guess_name = guess.group(1).strip() if guess else ""
                 start = _START_OF_GUESS.get(guess_name, guess_name.title() or f"start {position}")
@@ -984,6 +1074,18 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
                     "That calculation most likely failed to converge."
                 )
         chosen = {state: solution.chosen for state, solution in solutions.items()}
+        atomic_numbers = [atom.GetAtomicNum() for atom in mol.GetAtoms()]
+        # A run written with hole starts reads its N-1 state from ALL of that state's jobs (`chem.fukui_states`): the lowest state, a degenerate level's average, and
+        # what else lies close. One written without says why (`chem.fukui.no_search_sentence`), and its N-1 state is the default start's as it always was.
+        planned_holes = tuple(sorted({offset for offset in self._echoed_holes(output_text) if offset}))
+        reading = read_cation(results, planned_holes) if planned_holes or any(hole_of_start(result.start) for result in results) else None
+        unsearched = ""
+        untried_gap: float | None = None
+        if reading is None:
+            unsearched = searchable_holes(atomic_numbers, reference).reason or "it was switched off in Settings > Quantum chemistry"
+        else:
+            chosen[STATE_OXIDISED] = replace(chosen[STATE_OXIDISED], energy_hartree=reading.energy_hartree, charges=reading.charges, s_squared=reading.s_squared)
+            untried_gap = self._untried_orbital_gap_ev(output_text, atomic_numbers, reference, max(reading.holes_planned))
         reduced = chosen.get(STATE_REDUCED)
         unavailable = ""
         if reduced is None:  # only an anion can be here: the N+1 state of every other species was required above
@@ -996,7 +1098,8 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
             elif unfinished:
                 # ORCA ends a compound input at the first job that does not converge, and the dianion is written after the extra starts of the anion.
                 unavailable = f"ORCA ended the run at job {unfinished[0]}, which did not converge, before it reached the dianion."
-        read = [STATE_N, STATE_OXIDISED] + ([STATE_REDUCED] if reduced is not None else [])
+        # With a reading the N-1 state's own sentences are the reading's, so its solution is not told again as an SCF-start note (its jobs are counted in the provenance).
+        read = [STATE_N] + ([STATE_OXIDISED] if reading is None else []) + ([STATE_REDUCED] if reduced is not None else [])
         result = condensed_fukui(
             chosen[STATE_N].charges,
             chosen[STATE_OXIDISED].charges,
@@ -1010,6 +1113,10 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
             anion_s_squared=reduced.s_squared if reduced is not None else None,
             solutions=tuple(solutions[state] for state in read),
             anion_unavailable=unavailable,
+            cation_reading=reading,
+            cation_unsearched=unsearched,
+            untried_orbital_gap_ev=untried_gap,
+            symbols=[atom.GetSymbol() for atom in mol.GetAtoms()],
         )
         if not result:
             raise OrcaOutputError(result.reason)
@@ -1051,12 +1158,32 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
             parameters["anion_s_squared"] = result.anion_s_squared
         # How many jobs the choice among SCF solutions saw, how many did not finish, and the largest amount an extra start was below the default
         # one; recorded for every run, so a run with one start per state says so with 1, 0 and 0.0 where a missing key would say nothing.
-        parameters["starts_run"] = sum(solution.finished + len(solution.failed) for solution in result.solutions)
-        parameters["starts_failed"] = sum(len(solution.failed) for solution in result.solutions)
-        parameters["start_gain_ev"] = max((solution.gain_ev for solution in result.solutions), default=0.0)
+        starts_run = sum(solution.finished + len(solution.failed) for solution in result.solutions)
+        starts_failed = sum(len(solution.failed) for solution in result.solutions)
+        start_gain = max((solution.gain_ev for solution in result.solutions), default=0.0)
+        reading = result.cation_reading
+        if reading is None:
+            parameters["cation_search"] = "not run"
+        else:
+            # The N-1 state's jobs are the reading's: counted here, and the amount the search found below the default start's state is a start gain like the others.
+            starts_run += reading.finished + len(reading.failed)
+            starts_failed += len(reading.failed)
+            start_gain = max(start_gain, (reading.default.energy_hartree - reading.energy_hartree) * HARTREE_TO_EV)
+            parameters["cation_search"] = "holes " + ", ".join(hole_start(offset) for offset in reading.holes_planned)
+            parameters["cation_states_found"] = len(reading.averaged) + len(reading.competing) + reading.farther
+            if reading.degenerate:
+                parameters["cation_degenerate_states"] = len(reading.averaged)
+            distinct = [state.above_ev for state in reading.competing if state.max_difference > CHARGE_TOLERANCE]
+            if distinct:
+                parameters["cation_competing_ev"] = min(distinct)
+        parameters["starts_run"] = starts_run
+        parameters["starts_failed"] = starts_failed
+        parameters["start_gain_ev"] = start_gain
         note = " ".join(start_notes(result.solutions, result.reference_charge))
         if note:
             parameters["start_note"] = note
+        if result.cation_note:
+            parameters["cation_note"] = result.cation_note
         provenance = Provenance(
             created_by="core", method=self.provider_id, parameters=parameters, timestamp=time.time()
         )
