@@ -47,4 +47,35 @@ For each molecule and basis, from the distinct states (jobs within 0.01 eV are o
 
 ## Outcome
 
-(written after the run)
+Run on 2026-10-19 at the commit that holds this plan (`artifacts/631pG/` and `artifacts/def2tzvp/`, seven molecules each, every job completed at the first attempt, ORCA 6.1.1, four cores, 6 to 7 minutes at 6-31+G* and 9 to 11 at def2-TZVP;
+`report.txt`, `summary.json`). **READING RULE: NOT SUPPORTED.**
+
+The sigma-pi gap G (positive when the sigma state is lower) and the sigma shift S = G(6-31G*) - G(basis) (positive when the larger basis moves the sigma state UP relative to the pi state):
+
+| molecule | G at 6-31G* | 6-31+G* | def2-TZVP | S at 6-31+G* | **S at def2-TZVP** | the printed range of |G| | distance of |G| from it, 6-31G* -> def2-TZVP |
+|---|---|---|---|---|---|---|---|
+| pyrimidine | +0.909 | +0.807 | +0.877 | +0.102 | **+0.032** | 0.48 to 0.80 | 0.109 -> 0.077 |
+| pyrazine | +0.683 | +0.654 | +0.632 | +0.029 | **+0.051** | 0.55 to 0.80 | inside -> inside |
+| pyridazine | +1.564 | +1.532 | +1.515 | +0.032 | **+0.049** | 1.30 to 1.52 | 0.044 -> 0.000 (inside) |
+| imidazole | -1.174 | -1.196 | -1.179 | +0.022 | **+0.005** | 1.23 to 1.67 | 0.056 -> 0.051 |
+| pyrazole | -1.157 | -1.246 | -1.239 | +0.089 | **+0.082** | 1.55 (contested) | 0.393 -> 0.311 |
+| oxazole | -1.252 | -1.277 | -1.269 | +0.024 | **+0.017** | 1.36 (second-hand) | 0.108 -> 0.091 |
+| pyridine | +0.123 | +0.116 | +0.120 | +0.007 | **+0.003** | (EOM-IP-CCSDT +0.15) | |
+
+* **S(def2-TZVP) is at least +0.10 eV in none of the six and below +0.05 in four of them** (pyrimidine, pyridazine, imidazole, oxazole), which is the rule's NOT SUPPORTED. The four that were outside their range were each nearer it at def2-TZVP, and none farther; that was
+  not enough on its own.
+* **No lowest state changed kind** in any molecule at either basis (sigma lowest in the diazines and pyridine, pi lowest in the azoles).
+* **Every S is positive**: the larger basis moves the sigma state up relative to the pi state, in the direction of the sources, but by 0.0 to 0.1 eV, a fraction of the +0.56 eV the ADC(3) table shows for the same change.
+* **Pyridine's ladder is the same at the three bases**: sigma 0, pi 0.123 / 0.116 / 0.120, pi 0.803 / 0.799 / 0.806, sigma 2.973 / 2.945 / 2.906 against EOM-IP-CCSDT's 0.15, 0.85 and 3.17. The one number that moves is the in-plane sigma 5b2, away from the reference (0.20 to 0.26 low).
+* **Pyrimidine at 6-31+G* has two pi states 0.08 eV apart** (0.807 and 0.887) where the other two bases have one (0.909 and 0.877). G is read from the lowest pi, as the plan says, so its +0.102 at 6-31+G*, **the only S of 0.10 or more anywhere in the probe**, is the lowest pi state of a ladder that has an extra state in it, and not a trend in the basis (def2-TZVP, the larger basis, gives +0.032). Why the extra state appears there was not examined.
+* The four "nearer" are not equal improvements: pyridazine moves from 0.044 outside to inside its range, pyrimidine from 0.109 to 0.077, oxazole from 0.108 to 0.091, imidazole from 0.056 to 0.051 (0.005 eV, which is nothing).
+* Pyrazole's distance falls from 0.393 to 0.311 eV, but its range is the contested one (gate 4's section 11.4), so nothing is read from it.
+
+**What it says.** The "sigma too low" bias of gate 4 is **not mainly the small basis of B3LYP/6-31G***: going from 6-31G* to a triple-zeta basis with f polarization moves the sigma-pi gaps by 0.00 to 0.08 eV, always toward the sources, and
+pyridine's whole ladder is stable to the basis. That is a fraction of the +0.56 eV the same change does to the sigma holes in the pyrimidine ADC(3) table (`shojaei2010` Table 1), so that sensitivity does not carry over to this delta-SCF calculation. Why it does not was not
+tested; one candidate is that a delta-SCF relaxes the hole orbital variationally at any basis while the ADC(3) numbers recover that relaxation through the basis, but that is a candidate and not a finding. What is left of the bias, 0.04 to 0.11 eV, could be the functional's, the geometry's
+(the 6-31G* optimum), the reference's (vertical against adiabatic, or the assignment) or the method's (delta-SCF against a correlated state), and this probe separates none of them.
+
+**What it does not say.** The geometries are the 6-31G* optima (not re-optimized at the larger basis), one functional, seven molecules, and the ranges are gate 4's (one contested, one second-hand). It does not touch gate 4's outcome.
+
+**Left open.** A second functional (a range-separated hybrid or a meta-GGA), or the same states at EOM-IP-CCSD on pyrimidine, would say whether the residual is B3LYP's.

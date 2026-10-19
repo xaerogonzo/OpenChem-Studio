@@ -248,6 +248,11 @@ Section 8 for PARTIAL: wording only, and the calculator stays experimental, hidd
 * pyrazole's order, which two sources assign differently (a calculation that holds both pi states, or a correlated one, would settle it);
 * proton affinity and bond dissociation energies, each with its own preregistration.
 
+### 11.7 The larger-basis probe (2026-10-19; written after the outcome, decides nothing)
+
+The first question under 11.6's second bullet was whether the sigma-state bias is the small basis. It was put to the same seven molecules (plus pyridine) at 6-31+G* and def2-TZVP on gate 4's own geometries, with its plan and reading rule committed before any job (`basis_probe/PLAN.md`, records in `basis_probe/artifacts/`, `report.txt`). **Reading rule: NOT SUPPORTED.** Going to def2-TZVP moves the sigma-pi gap by +0.00 to +0.08 eV in the direction of the sources (at least +0.10 in none of six, below +0.05 in four), no lowest state changes kind,
+and pyridine's whole ladder is stable to the basis (sigma 0, pi 0.123 / 0.116 / 0.120, pi 0.803 / 0.799 / 0.806, sigma 2.973 / 2.945 / 2.906 eV at the three bases, against EOM-IP-CCSDT's 0.15, 0.85 and 3.17). So the bias of 11.4 is **not mainly the basis**; the geometry (not re-optimized), the functional and the references are all still candidates, and the probe separates none of them. The second-functional or EOM-IP-CCSD check of 11.6's second bullet remains open.
+
 ## Decisions (kept as a record)
 
 * **2026-10-18, Alex:** "Yeah, do the pre-registered gate on the new species." The book (Kimura 1981) he could not obtain and would not pay for; the papers in section 4 are the ones he fetched. A wanted-list for the others is in
