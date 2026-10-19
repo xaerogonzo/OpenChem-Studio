@@ -3495,6 +3495,7 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
         retained_sub = _RETAINED_RING_SUBSTITUENT.get(tree.named_parent.name)
         if (retained_sub is not None
                 and fv.is_monovalent
+                and tuple(fv.bond_orders) == (1,)       # `phenyl` is joined by a SINGLE bond; a ring joined by a double bond is a quinoid one, not a phenyl (naming round 73)
                 and not tree.suffix_groups
                 and not tree.unsaturation):
             # Replace entire stem with the retained substituent form

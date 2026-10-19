@@ -4645,6 +4645,14 @@ def _name_branch_as_prefix(
         for nb in mol.GetAtomWithIdx(cur).GetNeighbors():
             if nb.GetIdx() not in core:
                 stack.append(nb.GetIdx())
+    # The branch is named as an ordinary single-bonded substituent. One joined to the core by a DOUBLE bond (`N=C(O)NHAr` on a guanidinium nitrogen) would lose the bond and
+    # gain a hydrogen, `1-[anilino(hydroxy)methyl]guanidinium`, a name for another molecule; declined, the caller refuses the ion instead (naming round 73).
+    if any(
+        mol.GetBondBetweenAtoms(root, nb.GetIdx()).GetBondTypeAsDouble() != 1.0
+        for nb in mol.GetAtomWithIdx(root).GetNeighbors()
+        if nb.GetIdx() in core
+    ):
+        return None
 
     drop = sorted(
         (a.GetIdx() for a in mol.GetAtoms() if a.GetIdx() not in branch),
