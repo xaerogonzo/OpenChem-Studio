@@ -10,6 +10,7 @@ For a neutral base B and its conjugate acid BH+ (gas phase):
 * **Proton affinity, PA(B)** = -DeltaH of B + H+ -> BH+ at 298.15 K and 1 atm: `PA = H(B) + H(H+) - H(BH+)`. An **enthalpy**.
 * **Gas-phase basicity, GB(B)** = -DeltaG of the same reaction: `GB = G(B) + G(H+) - G(BH+)`. A **Gibbs energy**, which carries the entropy of the proton and of both species and is the more convention-sensitive number.
 * **The proton** has no electrons and no electronic energy, so only its translational terms enter, from the ideal-gas expressions: `H(H+) = (5/2)RT = 1.48 kcal/mol` (6.20 kJ/mol), `S(H+) = 26.02 cal/(mol K)` (108.9 J/(mol K), Sackur-Tetrode for a proton of mass m_p at the standard state), so `G(H+) = H - TS = -6.28 kcal/mol`.
+  **Derived independently here** from the Sackur-Tetrode equation with CODATA constants and the proton mass (298.15 K, 101325 Pa): H(H+) = 6.1974 kJ/mol = 1.4812 kcal/mol, S(H+) = 108.836 J/(mol K) = 26.012 cal/(mol K), G(H+) = -6.274 kcal/mol (-26.25 kJ/mol); Moser's 1.48, 26.02 and -6.28 agree to 0.01 cal/(mol K) and 0.006 kcal/mol, which is below anything this check can see.
   These are the values and the standard state (298.15 K, 1 atm) that Moser et al. use against the same NIST data (*J. Phys. Chem. B* 114, 13911 (2010), their eqs 2 and 3 and the text after them), which is the reference implementation to check ours against.
 * **PA and GB are separate outputs with separate names and conventions on each**, never one number: an electronic-energy difference between BH+ and B is **never labelled either**. A result states the temperature, the standard state, the proton terms used, the level of theory, the protonation site and the conformers behind it, and says it is a *microscopic* value for that site (see below).
 
@@ -47,8 +48,11 @@ the anions' values (their case) while those with them underestimate slightly. (I
 **Not yet read:** the 2024 benchmark of PA and GB values (*Proton affinity Revisited: Benchmarking computational approaches for accurate predictions*, a ScienceDirect article found by search and **not obtained**: Alex has the paywalled papers), which reportedly found B3LYP, BP86, PBEPBE and M062X very good with a slight advantage for M062X.
 The **numeric thresholds of the gate are fixed from these sources and that paper**, after they are read and before any calculation.
 
-## Decisions that are Alex's
+## Decisions (Alex, 2026-10-19)
 
-1. **The first deliverable:** PA alone (enthalpy, the better-conditioned number), or PA and GB as two separate outputs. Recommended: **both from the start**, since both come from the same two jobs, with GB reported and gated separately and allowed to fail without taking PA with it.
-2. **The level of theory** for the benchmark (one, stated in the preregistration): **M062X/def2-TZVPD** (diffuse functions matter for cations' neighbours and the 2024 paper reportedly favours M062X; needs the paper read to confirm), **B3LYP/def2-TZVPD** (cheaper; Moser's B3LYP underestimates systematically), or a two-level protocol with a DLPNO-CCSD(T) single point on the DFT geometry. Recommended: M062X/def2-TZVPD after the 2024 paper is read.
-3. **Benchmark first or calculator first:** the recommended order above builds nothing until the gate has run (the Fukui calculator was built first and failed its gates afterwards; this inverts that).
+1. **PA and GB as two separate outputs**, each its own gate result, so GB can fail without taking PA with it.
+2. **The level of theory: the benchmark's primary arm is M062X/def2-TZVPD** (optimization and frequencies at one level), and **a secondary arm, preregistered with its own gate, is a DLPNO-CCSD(T) single point on those same geometries** (the geometries and frequencies already exist, so the arm costs only the single points). Why both: the benchmark validates **the protocol the calculator will then run**, not a method in the abstract. A calculator that offers a two-level "high accuracy" mode needs that mode benchmarked, and
+   one benchmarked at one level cannot vouch for another. So the cheap protocol is the calculator's default if it passes, and the two-level mode is offered only if its own arm passes. Which basis and PNO settings the DLPNO arm uses, and every numeric threshold, are fixed in the preregistration **after the 2024 benchmark paper (and a source for DLPNO-CCSD(T)'s own accuracy on proton affinities) have been read.**
+3. **Benchmark first**, no application code until the gate has run.
+
+**Needed from Alex:** the 2024 paper (*Proton affinity Revisited: Benchmarking computational approaches for accurate predictions*, ScienceDirect, article S2210271X24000161) so the thresholds can be fixed from it; with its DOI so the filename can be proposed (`feedback`: propose distinct filenames).
