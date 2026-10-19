@@ -57,7 +57,7 @@ ASPIRIN = _tree("CC(=O)Oc1ccccc1C(=O)O", _step(_mol("CC(=O)OC(C)=O"), _mol("O=C(
 
 
 def test_a_route_matches_itself_whatever_the_order_of_its_precursors_the_atom_maps_or_the_way_the_smiles_is_written():
-    shuffled = _tree("OC(=O)c1ccccc1OC(C)=O", _step(_mol("[CH3:1]C(=O)O[C:2](C)=O"), _mol("Oc1ccccc1C(=O)O")))
+    shuffled = _tree("OC(=O)c1ccccc1OC(C)=O", _step(_mol("Oc1ccccc1C(=O)O"), _mol("[CH3:1]C(=O)O[C:2](C)=O")))  # the precursors in the other order
 
     assert match.matches(shuffled, ASPIRIN) and match.matches(ASPIRIN, shuffled)
 
@@ -96,6 +96,8 @@ def test_leaf_overlap_and_shorter_are_reported_measures():
     chloride = _tree("CC(=O)Oc1ccccc1C(=O)O", _step(_mol("CC(=O)Cl"), _mol("O=C(O)c1ccccc1O")))
 
     assert match.leaf_overlap(ASPIRIN, ASPIRIN) == 1.0
+    three_leaves = _tree("CC(=O)Oc1ccccc1C(=O)O", _step(_mol("CC(=O)OC(C)=O"), _mol("O=C(O)c1ccccc1O", [_step(_mol("O=C(O)c1ccccc1[O-]"), _mol("CCO"))])))
+    assert match.leaf_overlap(three_leaves, ASPIRIN) == pytest.approx(1 / 3)  # shared leaves over the LARGER set (anhydride only), not the smaller
     assert match.leaf_overlap(chloride, ASPIRIN) == pytest.approx(1 / 2)  # one of two leaves shared
     longer = _tree("CC(=O)Oc1ccccc1C(=O)O", _step(_mol("CC(=O)OC(C)=O"), _mol("O=C(O)c1ccccc1O", [_step(_mol("O=C(O)c1ccccc1[O-]"))])))
     assert match.is_shorter(ASPIRIN, longer) and not match.is_shorter(longer, ASPIRIN) and not match.is_shorter(ASPIRIN, ASPIRIN)
@@ -161,6 +163,9 @@ def test_a_run_with_too_many_failed_targets_or_no_stability_or_no_valid_base_is_
     assert judge.judge([], _stable())["overall"] == judge.NOT_EVALUABLE
     no_reaction = [dict(r, top1_has_reaction=False) for r in _rows()]
     assert judge.judge(no_reaction, _stable())["overall"] == judge.NOT_EVALUABLE
+    few = [dict(r, top1_has_reaction=i < 99) for i, r in enumerate(_rows())]  # 99 targets with a first route that has a reaction: too few for a validity claim
+    assert judge.judge(few, _stable())["overall"] == judge.NOT_EVALUABLE
+    assert judge.judge([dict(r, top1_has_reaction=i < 100) for i, r in enumerate(_rows())], _stable())["overall"] == judge.GO
 
 
 def test_a_failed_target_counts_as_a_miss_not_a_solve():
@@ -211,6 +216,16 @@ def test_a_target_row_reads_solved_recovery_validity_and_the_reported_measures_f
 
     assert (row["failed"], row["solved"], row["recovered_at_1"], row["recovered_at_10"]) == (False, True, True, True)
     assert row["top1_has_reaction"] and row["top1_valid"] and row["leaf_overlap"] == 1.0 and row["top1_shorter"] is False
+
+
+def test_a_first_route_that_does_not_validate_is_a_row_with_a_reaction_and_not_valid():
+    reference = _fixture("aspirin")["routes"][0]
+    broken = copy.deepcopy(reference)
+    broken["children"][0]["children"][0]["smiles"] = "CCO"  # the tree no longer agrees with its own reaction
+
+    row = run.target_row(reference, _record(5, [broken]))
+
+    assert row["top1_has_reaction"] and not row["top1_valid"]
 
 
 def test_a_failed_target_and_an_unsolved_one_are_rows_that_cannot_score():

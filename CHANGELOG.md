@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Synthesis helper: the spike (benchmark tooling and a design note; nothing in the application changes)
+- `docs/SYNTHESIS_HELPER_DESIGN.md` and `benchmarks/synthesis/` record Stage 0 of the synthesis helper: AiZynthFinder 4.4.1 installed and measured on Windows (a fresh install needs `pyarrow<21`; 1.7 GB on disk; 5.3 GB peak memory with the ZINC stock, about 0.9 GB with the benchmark's), real route fixtures, a route validator whose outcomes are separate (atom conservation only where the mapping is complete), and a preregistered quality benchmark on PaRoutes set-n1 (300 seeded targets, set stock, 500 iterations; solved, reference route in the first 10, first route valid, solved flag stable) with a tested judge, matching rule and runner that have not been run. The public models are probably contaminated on that benchmark, which the preregistration states.
+
 ### Bond dissociation enthalpy: preregistered benchmark and its runner (benchmark tooling; nothing in the application changes)
 - `benchmarks/bde/` holds the preregistration for X-H bond dissociation enthalpies (33 bonds from Blanksby and Ellison, 25 deciding; M062X/def2-TZVPD; thresholds approved after reading Trung 2022, St. John 2020 and Mardirossian 2017), the tested arithmetic and judge, and a resumable runner that is tested on real ORCA output and has not been run. A radical that rearranges is a failed structure, not a low-energy one. Design: `docs/BDE_DESIGN.md`.
 

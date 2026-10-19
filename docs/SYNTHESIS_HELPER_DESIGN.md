@@ -87,7 +87,7 @@ Read from the PaRoutes paper (Genheden and Bjerrum, Digital Discovery 2022, 1, 5
 * **The contamination finding.** The paper states that a one-step model "trained on the entirety of the USPTO dataset ... was trained on reactions found in the reference routes, making it biased", and using it is "a mix of neural network recommendations and what amounts to literature-lookup". **The public ONNX models AiZynthFinder installs are described only as the USPTO models, and no record says the reference reactions were excluded**, so on PaRoutes targets they are probably in the contaminated class. Consequences, all for the preregistration: (1) a high recovery rate with the public model **is not evidence that the planner generalises**; it is evidence it reproduces patent chemistry it was trained on; (2) a rate **below** the published 0.61 would be a red flag; (3) the claim that can be made is "returns routes that include known patent routes at a literature-consistent rate", never "proposes feasible routes for new targets"; (4) a clean measurement needs either the PaRoutes-excluded model (`uspto_keras_model.hdf5` in Zenodo 7341155, 275 MB, **Keras, so TensorFlow and the NumPy conflict**, and whether it excludes the reference reactions is not stated on the record) or a reference set that is not USPTO.
 * **Search budget and noise.** The paper's budget is 500 iterations with no time limit; the spike's searches at 100 iterations took 2 to 16 s, so **500 iterations is affordable** (an hour or two for a few hundred targets in one warm process). Run-to-run variation is real in tree size and route count and absent in the solved flag and top score on the targets tried.
 
-**Proposed protocol and thresholds, for Alex's approval before anything is frozen** (the same pattern as proton affinity and bond dissociation):
+**Proposed protocol and thresholds (approved by Alex 2026-10-19; frozen in `benchmarks/synthesis/PREREGISTRATION.md`)** (the same pattern as proton affinity and bond dissociation):
 
 * **Targets:** a fixed random draw (seed written in the preregistration) of **300 targets from set-n1**; **stock: the set-n1 stock (the reference leaves)**, loaded as a text stock; **500 iterations, `time_limit` 1,800 s as a safety net only**, `max_transforms` 6, the USPTO policy with the filter, the public ONNX models; one warm process per run.
 * **Claim 1, a route was returned (solved with the set stock):** PASS at **at least 0.90** of targets, PARTIAL 0.80 to 0.90, NO-GO below 0.80. (Published 0.971 with the benchmark's own model.)
@@ -97,11 +97,36 @@ Read from the PaRoutes paper (Genheden and Bjerrum, Digital Discovery 2022, 1, 5
 * **Claim 3, feasibility:** not measured, never reported.
 * **Verdict:** GO needs all four PASS; any NO-GO is a NO-GO; otherwise PARTIAL with what works named and Alex's decision. **Resources are reported, not graded** (peak memory 5.3 GB, 1.7 GB on disk, about 16 s to start) but they are part of what a user is told before installing.
 * **Why these numbers:** 0.90 sits below the published 0.971 by the margin a different model, a text stock and a Windows build might cost; 0.50 sits 0.11 below the published 0.61 for the stricter match; the validity and stability bars are set at what the fixtures already show (60 of 60 routes valid and a stable solved flag).
-* **Not run until Alex says so:** 300 targets at 500 iterations is hours of CPU. It also needs the set-n1 route file, targets and stock from Zenodo 7341155 (about 65 MB), **which has not been downloaded**.
+* **Not run until Alex says so:** 300 targets at 500 iterations is hours of CPU. The set-n1 route file, targets and stock (about 65 MB) were downloaded on 2026-10-19 with his go and checked against the record's MD5s.
+
+### 0e, preregistered (2026-10-19): `benchmarks/synthesis/PREREGISTRATION.md`
+
+Alex approved the thresholds as proposed above and the PaRoutes download; the preregistration freezes them with the runner. **Four things the downloaded data changed from the proposal** (each is in the preregistration, with the reason):
+
+* **The file is ordered by the paper's greedy most-diverse selection**, so its head is the most atypical set: the first three targets have reference routes 8, 8 and 9 reactions deep (median 3, only 1% deeper than 6). The 300 targets are therefore a **seeded random draw** (seed 20261019), not the first 300, and the three the spike searched are excluded from it.
+* **`max_transforms` 10, not 6**: the reference routes go up to 10 deep, and the default of 6 makes 1% of them unreachable by construction.
+* **No filter policy**: the published numbers describe a search without one, and the three seen targets were identical with and without it.
+* **The stock is a text file of InChI keys the planner computes**, not SMILES: 13,432 SMILES become 13,414 distinct keys (the paper says 13,633 leaves; the file holds 13,432, and equals the set of the reference routes' leaves exactly). With this stock the planner's peak memory is **about 0.8 to 0.9 GB**, against 5.3 GB with the ZINC stock: **the 5.3 GB is the stock's size, not the planner's**, which a user choosing a catalogue should be told.
+
+On the three benchmark targets seen (indices 0 to 2) at 500 iterations the planner solved one of three, in 22 to 32 s of search each (about 30 s per process including start-up).
+
+## To run: the quality benchmark (recorded 2026-10-19; NOT run, to be started by Alex)
+
+The runner is written, tested and committed with the preregistration; no benchmark target beyond the three disclosed has been searched. It needs the planner environment and data of 0b (kept at `D:\_scratch\aizynth\`: `env\Scripts\python.exe`, `data\`) and the PaRoutes files (`D:\_scratch\aizynth\paroutes\`, MD5 checked). From the repository root, with nothing else using the machine:
+
+```bash
+uv run --no-sync python benchmarks/synthesis/run_quality.py draw   --paroutes "D:/_scratch/aizynth/paroutes"
+uv run --no-sync python benchmarks/synthesis/run_quality.py stock  --paroutes "D:/_scratch/aizynth/paroutes" --planner-python "D:/_scratch/aizynth/env/Scripts/python.exe"
+uv run --no-sync python benchmarks/synthesis/run_quality.py run    --paroutes "D:/_scratch/aizynth/paroutes" --planner-python "D:/_scratch/aizynth/env/Scripts/python.exe" --planner-data "D:/_scratch/aizynth/data"
+uv run --no-sync python benchmarks/synthesis/run_quality.py status
+uv run --no-sync python benchmarks/synthesis/run_quality.py report --paroutes "D:/_scratch/aizynth/paroutes"
+```
+
+`run` resumes after an interruption and prints one line per target. Expect about three hours. Same rules as the proton-affinity and bond-dissociation runs: no edit to `src/` between the first search and the report, nothing changed after the report is seen, and the verdict stands. The result is its own PR.
 
 ## Where the spike stands
 
-0a to 0d are done and 0e is a proposal. **No verdict yet**: the quality run has not been written or run. What the spike has established so far: the install route is reproducible only with a pin the README does not carry; the planner needs about 5 GB of memory to start; its routes are internally consistent and carry real atom maps; it gives no reason for stopping and no conditions; and the public models are probably contaminated on the standard benchmark.
+0a to 0e are done: the install, the fixtures, the validator, and the preregistration with its tested judge, matching rule and runner. **No verdict yet**: the quality run has not been run (it is recorded above as Alex's to start). What the spike has established so far: the install route is reproducible only with a pin the README does not carry; the planner needs about 5 GB of memory to start; its routes are internally consistent and carry real atom maps; it gives no reason for stopping and no conditions; and the public models are probably contaminated on the standard benchmark.
 
 ## Stage 1 (only on a GO)
 

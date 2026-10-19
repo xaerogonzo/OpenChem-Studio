@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: fda79ce4a860cc3a1b609edbf1fae6b1ac5ef16689e13674122c1d380afee317 -->
+<!-- SOURCE SHA256: a7e767a3c3c8480b58f45ea92c6b5e9c5891e57fc9e0f1dd53a9b0339f060451 -->
 
 # Sources
 
@@ -6910,7 +6910,7 @@ outputs); the paper itself was NOT read, so this entry makes no claim about a nu
 | Verification | citation + claim |
 | Verified | 2026-10-19 |
 | Local copy | `genheden2022_paroutes.pdf` (not checked) |
-| Used by | `docs/SYNTHESIS_HELPER_DESIGN.md` |
+| Used by | `docs/SYNTHESIS_HELPER_DESIGN.md`, `benchmarks/synthesis/PREREGISTRATION.md` |
 
 **Why it is reference only.** THE ROUTE-PREDICTION BENCHMARK THE SYNTHESIS SPIKE'S QUALITY PROTOCOL IS BUILT ON: two sets of 10,000 USPTO reference routes (set-n1, set-n5; at most 10 reactions; no route's leaf is another's intermediate) with the reference routes' leaves as the stock; AiZynthFinder MCTS with the benchmark's own one-step model (reference reactions excluded), 500 iterations, no time limit: set-n1 9,714 of 10,000 targets solved, top-1 / top-5 / top-10 route accuracy 0.20 / 0.55 / 0.61 by tree edit distance, set-n5 9,676 solved and 0.09 / 0.34 / 0.42; about 45% of targets have a shorter top-1 route than the reference and the leaf overlap is 0.63 to 0.68. States that a one-step model trained on the whole USPTO set, reference reactions included, is biased ("literature-lookup"). Numbers read from the text layer of Tables 1 and 2; the page images were not checked.
 
@@ -7467,7 +7467,7 @@ the one rule every calculator's `CalculatorScope` follows.
 | Verification | citation + claim |
 | Verified | 2026-10-19 |
 | Licence | CC BY 4.0 |
-| Used by | `docs/SYNTHESIS_HELPER_DESIGN.md` |
+| Used by | `docs/SYNTHESIS_HELPER_DESIGN.md`, `benchmarks/synthesis/PREREGISTRATION.md` |
 
 **Why it is reference only.** THE ONNX POLICY AND FILTER MODELS aizynthfinder's download_public_data installs (uspto_model.onnx 91,518,243 bytes, uspto_filter_model.onnx 16,788,859, uspto_ringbreaker_model.onnx 15,036,094; sizes confirmed by the download). The record's licence field is CC-BY-4.0; its description is only 'the USPTO models converted as ONNX', so what they were trained on, and whether the PaRoutes reference reactions were excluded, is NOT stated.
 
@@ -7484,7 +7484,7 @@ the one rule every calculator's `CalculatorScope` follows.
 | Verification | citation + claim |
 | Verified | 2026-10-19 |
 | Licence | CC BY 4.0 |
-| Used by | `docs/SYNTHESIS_HELPER_DESIGN.md` |
+| Used by | `docs/SYNTHESIS_HELPER_DESIGN.md`, `benchmarks/synthesis/PREREGISTRATION.md` |
 
 **Why it is reference only.** THE PaRoutes ROUTE SETS, STOCKS, TEMPLATE LIBRARIES AND A KERAS MODEL: ref_routes_n1.json (64 MB), ref_routes_n5.json (82 MB), targets_n1.txt and targets_n5.txt, stock_n1.txt and stock_n5.txt, uspto_unique_templates.csv.gz (3.3 MB, confirmed by the download), uspto_keras_model.hdf5 (275 MB). Licence field CC-BY-4.0 as the record states; the licence of the underlying USPTO extraction is not restated on this record.
 

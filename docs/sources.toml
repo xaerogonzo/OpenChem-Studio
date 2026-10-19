@@ -8357,6 +8357,7 @@ identifier = "10.1039/D2DD00015F"
 status = "reference_only"
 used_by = [
     "docs/SYNTHESIS_HELPER_DESIGN.md",
+    "benchmarks/synthesis/PREREGISTRATION.md",
 ]
 local = "genheden2022_paroutes.pdf"
 verification = "citation_and_claim"
@@ -8391,6 +8392,7 @@ status = "reference_only"
 license = "CC BY 4.0"
 used_by = [
     "docs/SYNTHESIS_HELPER_DESIGN.md",
+    "benchmarks/synthesis/PREREGISTRATION.md",
 ]
 verification = "citation_and_claim"
 verified_date = 2026-10-19
@@ -8408,6 +8410,7 @@ status = "reference_only"
 license = "CC BY 4.0"
 used_by = [
     "docs/SYNTHESIS_HELPER_DESIGN.md",
+    "benchmarks/synthesis/PREREGISTRATION.md",
 ]
 verification = "citation_and_claim"
 verified_date = 2026-10-19
