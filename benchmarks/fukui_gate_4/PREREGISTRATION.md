@@ -171,7 +171,82 @@ The calculator is **experimental, hidden and not validated whatever the outcome*
 
 ## 11. Outcome
 
-(written after the run)
+### 11.1 The run
+
+The runner was started on 2026-10-18 at the frozen commit `43ce522c` (a clean `src/`), seven species at once, four cores each. **It stopped on selenophene**: ORCA prints a two-letter element's line of the spin block with no space
+before the shell (`3 Ses`) where a one-letter element has one (`0 C s`), so the parser read the nine-atom block as eight and raised, in the first selenophene job, before any record of it was written. The six other species
+had completed. **No decided result had been read** (the log showed `completed=True` and the seconds). To find the cause the first selenophene job's spin block was read: its charge half for selenium and the s-shell spin of every atom. **That is
+all that was seen of a decided state before the fix**; it was not used for anything and nothing was changed on account of it.
+
+The fix is commit `c6c3bb3c`: the pattern of `_ATOM_LINE` now allows the missing space, and a test reads the real block that exposed the fault (it fails with the old pattern). Nothing else of the judge, the rules or the runner
+changed. The judge refuses records from more than one commit, so **all seven species were run again at `c6c3bb3c`** (section 9: an instrument fault may be repeated after its cause is fixed, the first records kept):
+`artifacts/runs_first_attempt.jsonl` holds the first run's six species and `artifacts/runs.jsonl` the second's fourteen records, from one commit, ORCA 6.1.1, a clean `src/`. Every job completed at the first attempt.
+(After the outcome, section 11.4 compares the two: the six species' records are identical.)
+
+### 11.2 The outcome: PARTIAL
+
+`artifacts/verdict.json`. **Every claim about the kind of state held; one distance missed.**
+
+| claim | holds | what was found |
+|---|---|---|
+| **C1**, the lowest state's kind | **6 of 6** | pyrimidine, pyrazine, pyridazine: sigma (out-of-plane fraction 0.000); imidazole, pyrazole, oxazole: pi (1.000) |
+| **C2**, the second state of a diazine is pi | **3 of 3** | pyrimidine +0.909 eV, pyrazine +0.683, pyridazine +1.564, all 1.000 out of plane |
+| **C3**, the gap to the lowest state of the other kind | **5 of 6** | pyrimidine 0.909 (range 0.48 to 0.80, allowed 0.23 to 1.05); pyrazine 0.683 (0.55 to 0.80); pyridazine 1.564 (1.30 to 1.52, allowed 1.05 to 1.77); imidazole 1.174 (1.23 to 1.67, allowed 0.98 to 1.92); oxazole 1.252 (1.36, allowed 1.11 to 1.61); **pyrazole 1.157 against 1.55, allowed 1.30 to 1.80: MISSED, 0.143 eV below the allowed range** |
+| **S**, selenophene | **3 of 3** | S1: two pi states, the spin on Se -0.079 (a2) in the lower and +0.682 (b1) in the upper; S2: 0.182 eV apart (allowed up to 0.35); S3: the application's note reads "Another state of the cation lies 0.18 eV (its f- differs by up to 0.226, at Se (atom 4))" |
+| **C5**, the application's own search | **7 of 7** | the lowest state found to within 0.0037 eV of the exhaustive search's in every species (0.0009, 0.0000, 0.0037, 0.0000, 0.0001, 0.0015, 0.0000) |
+
+Under the rules of section 7 a kind failure is FAIL and a missed distance with every kind right is **PARTIAL**. **The outcome is final.**
+
+### 11.3 The reported arm (`artifacts/report.txt`; decides nothing)
+
+**The full ladders**, in eV above the lowest state (kind), against the further bands the sources print, measured the same way:
+
+| molecule | ours | the sources print |
+|---|---|---|
+| pyrimidine | 0 (sigma), 0.909 (pi), 1.356 (sigma), 1.735 (pi) | n 0, pi 0.68, n 1.50, pi 1.66 ([source:gleiter1972]); ADC(3): n 0, pi 0.48, pi 1.37, n 1.48 ([source:shojaei2010]): the third and fourth bands are in the other order there, and ours follows the experimental one |
+| pyrazine | 0, 0.683 (pi), 1.735 (sigma), 2.173 (pi), then sigma 3.871, pi 4.832, sigma 5.219 | n 0, pi 0.55, n 1.72, pi 2.14 ([source:gleiter1972]): the third and fourth within 0.015 and 0.033 eV |
+| pyridazine | 0, 1.564 (pi), 1.962 (pi), 2.001 (sigma) | experiment 0, 1.34, 1.93, 2.03; NEVPT2 0, 1.52, 1.94, 2.09 ([source:holland2013]): the third and fourth within 0.03 and 0.09 eV |
+| imidazole | 0 (pi), 1.174 (sigma) | the sigma state 1.28 (best estimate), 1.3 (experiment); a second pi state at 1.49 ([source:patanen2021]) was **not found** |
+| pyrazole | 0 (pi), 1.157 (sigma) | the sigma state 1.55; a second pi state at 0.73 ([source:cradock1973]) was **not found** |
+| oxazole | 0 (pi), 1.252 (sigma) | the sigma state 1.36; a third band, pi, at 1.97 ([source:kobayashi1982]) was **not found** |
+| selenophene | 0 (a2), 0.182 (b1) | the gap 0.0 to 0.1, either order ([source:trofimov2008]) |
+
+**How many jobs reached each state** (of the eight N-1 jobs: the default and the seven holes): pyrimidine 5, 1, 1, 1; pyrazine 1, 1, 2, 1, 1, 1, 1; pyridazine 5, 1, 1, 1; imidazole, pyrazole and oxazole **7 and 1**; selenophene 5 and 3.
+**The application's note appeared in selenophene only**, where a second state lies 0.18 eV above (inside its 0.5 eV window); in every other species the second state lies above the window (0.68 to 1.56 eV).
+**Time**: the exhaustive search 203 to 383 s per molecule and the application's own run 86 to 107 s (four cores, seven molecules at once).
+**The four calibration molecules** are in `artifacts/calibration/` (section 3).
+
+### 11.4 After the outcome (written with the result in view; decides nothing)
+
+* **The first run and the second are the same.** For the six species both runs completed, every N-1 job's energy and out-of-plane fraction is identical (a difference of 0 eV) and every input has the same sha256: the fix changed the parse of a two-letter element and nothing else.
+* **Pyrazole's reference is the weakest of the seven, and the other source in hand puts the same gap lower.** The range was one old table's single pair (9.15 and 10.7, [source:cradock1973]). Two papers of 1970 held in the library but not read for the gate give
+  pyrazole's three lowest bands as 9.5, 10.1 and 10.8 (Baker, Betteridge, Kemp and Kirby, *Chem. Commun.* 1970, 286) and, vertical, 9.39, 10.00 and 10.73 (their *Anal. Chem.* 42, 1064 table), a sigma gap of **1.3 to 1.34 eV**, and the first band alone
+  moves between 9.15 and 9.5 eV with the paper. With that range the calculation's 1.157 would have been within the tolerance. **This does not change the outcome** (the range was fixed before the run, from the one source then in hand), and it is why the miss is read as a weak reference and not as a failure of the calculation; the gate has no way to separate the two.
+* **A signed pattern in the sigma-pi gaps.** Of the six decided gaps compared with a printed range, five lie outside it, and every one of the five on the side where the sigma state is too low relative to the pi states: the diazines' second
+  state (pi, above a sigma state) lies above the range by 0.109 (pyrimidine) and 0.044 eV (pyridazine), and the azoles' sigma state (above a pi state) below it by 0.056 (imidazole), 0.108 (oxazole) and 0.393 eV (pyrazole, or about 0.14 to 0.18
+  against Baker's values); the sixth, pyrazine's, is inside. Pyridine in the calibration (a point value, 0.123 against 0.15) is the one comparison the other way, by 0.03 eV. That is the direction a delta-SCF that relaxes a sigma hole more than the
+  sources' calculations do would give. **It is an observation about the size and direction of the error, six numbers, none more than 0.39 eV from its range, and not a finding with a test behind it**; it is also a reason the tolerance of section 3 was not smaller.
+* **The search cannot hold two states of the same symmetry.** In the three Cs azoles seven of the eight N-1 jobs relaxed into the lowest pi state: a second pi state (A'' like the first) is not a state a ground-state SCF started from a hole will stay in. Those states were **not found**: imidazole's second pi at 1.49 eV, pyrazole's at 0.61 to 0.73 and oxazole's third band at 1.97 (section 11.3). Where
+  the two pi states are of different symmetry (selenophene's a2 and b1, both reached, the pyridine and diazine pairs) they were. The consequence is for the note about competing states: **it cannot report a second state of the lowest state's own symmetry**, so for a Cs molecule with a close pi-pi pair (pyrazole's gap
+  of 0.6 to 0.7 eV is just outside the 0.5 eV window) the absence of a note is no evidence that there is none. That limit was not known to the third gate, which found its competing states by the same search.
+
+### 11.5 What this says, and what it does not
+
+* It says that for seven planar molecules from three families never run before, the search reads f- from **the same kind of state the literature assigns as lowest** in all six where the sources fix it, finds the second diazine state to be the pi hole the sources assign in all three, and for selenophene finds the two near-degenerate pi
+  states with the node and the weight on the heteroatom in the right places; that the gap to the other kind is within 0.25 eV of the printed range in six of seven; and that the application's own search finds the lowest state in all of them. Together with the calibration (pyridine's four lowest states in the order and, to 0.2 eV, the gaps of the highest-level calculation), the
+  states the search finds are, in kind and order and to within a few tenths of an eV, **the states the experiments assign**.
+* It does not say that f- is right, that a B3LYP energy difference orders states less than 0.25 eV apart, anything about a molecule outside these three families, or that the sigma-state bias of section 11.4 is zero.
+* The thiophene reading of the second gate (the published f- belongs to the b1 state 0.45 eV above the lowest, and "read the lowest" is the experimentally right ground state) is now supported by an independent reference and not only by our calculation: thiophene's a2 state is lowest and the b1 0.449 eV above matches the 0.3 and 0.5 eV the sources print ([source:trofimov2008]).
+
+### 11.6 The consequence, and what was left open
+
+Section 8 for PARTIAL: wording only, and the calculator stays experimental, hidden and not validated. The explainer and the changelog say what 11.2 found and name pyrazole's distance and the reference it rests on. Nothing under `src/openchem/chem/` changed.
+
+**Left open** (each a decision for Alex, none made here):
+* a way to hold a second state of the lowest state's symmetry (a maximum-overlap SCF or an occupation constraint by symmetry), which would let the note see a close pi-pi pair in a Cs molecule; the third gate's completeness arm would need repeating;
+* the sigma-state bias of 11.4: a second functional, or the same states at EOM-IP-CCSD, on the molecules of this gate, to see whether it is B3LYP's;
+* pyrazole's range from more than one source (the two Baker papers are held; Asbrink et al.'s two papers on pyrimidine and pyridazine, also held, were not read for the gate), as a note on this outcome and not as a new gate;
+* proton affinity and bond dissociation energies, each with its own preregistration.
 
 ## Decisions (kept as a record)
 

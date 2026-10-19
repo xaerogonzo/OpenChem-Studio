@@ -1,0 +1,53 @@
+[22:23:05] UFFTYPER: Unrecognized atom type: Se2+2 (3)
+optimized imidazole
+optimized pyrazole
+optimized oxazole
+optimized pyrimidine
+optimized pyrazine
+optimized pyridazine
+optimized selenophene
+[22:26:41] UFFTYPER: Unrecognized atom type: Se2+2 (3)
+E pyrazine     completed=True 164.6 s
+E pyridazine   completed=True 222.8 s
+E pyrimidine   completed=True 236.1 s
+E imidazole    completed=True 270.0 s
+E oxazole      completed=True 268.5 s
+E pyrazole     completed=True 278.8 s
+A pyrazine     completed=True 91.4 s
+A pyridazine   completed=True 93.8 s
+A pyrimidine   completed=True 88.2 s
+A oxazole      completed=True 99.4 s
+A imidazole    completed=True 110.3 s
+A pyrazole     completed=True 111.3 s
+Traceback (most recent call last):
+  File "D:\Random Projects\OpenChem Studio\.claude\worktrees\calculator-result-selection-ff3f27\benchmarks\fukui_gate_4\run_gate.py", line 311, in <module>
+    main()
+    ~~~~^^
+  File "D:\Random Projects\OpenChem Studio\.claude\worktrees\calculator-result-selection-ff3f27\benchmarks\fukui_gate_4\run_gate.py", line 300, in main
+    list(pool.map(lambda s: run_species(ctx, s), chosen))
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pmpd\AppData\Roaming\uv\python\cpython-3.13-windows-x86_64-none\Lib\concurrent\futures\_base.py", line 619, in result_iterator
+    yield _result_or_cancel(fs.pop())
+          ~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\pmpd\AppData\Roaming\uv\python\cpython-3.13-windows-x86_64-none\Lib\concurrent\futures\_base.py", line 317, in _result_or_cancel
+    return fut.result(timeout)
+           ~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\pmpd\AppData\Roaming\uv\python\cpython-3.13-windows-x86_64-none\Lib\concurrent\futures\_base.py", line 456, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\pmpd\AppData\Roaming\uv\python\cpython-3.13-windows-x86_64-none\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\pmpd\AppData\Roaming\uv\python\cpython-3.13-windows-x86_64-none\Lib\concurrent\futures\thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "D:\Random Projects\OpenChem Studio\.claude\worktrees\calculator-result-selection-ff3f27\benchmarks\fukui_gate_4\run_gate.py", line 300, in <lambda>
+    list(pool.map(lambda s: run_species(ctx, s), chosen))
+                            ~~~~~~~~~~~^^^^^^^^
+  File "D:\Random Projects\OpenChem Studio\.claude\worktrees\calculator-result-selection-ff3f27\benchmarks\fukui_gate_4\run_gate.py", line 245, in run_species
+    record = with_attempts(exhaustive_run, ctx, species, mol)
+  File "D:\Random Projects\OpenChem Studio\.claude\worktrees\calculator-result-selection-ff3f27\benchmarks\fukui_gate_4\run_gate.py", line 235, in with_attempts
+    record = function(*args)
+  File "D:\Random Projects\OpenChem Studio\.claude\worktrees\calculator-result-selection-ff3f27\benchmarks\fukui_gate_4\run_gate.py", line 192, in exhaustive_run
+    spins = gate.parse_lowdin_spin(segments[index], len(symbols))
+  File "D:\Random Projects\OpenChem Studio\.claude\worktrees\calculator-result-selection-ff3f27\src\openchem\app\fukui_gate_4.py", line 105, in parse_lowdin_spin
+    raise ValueError(f"the spin block lists {len(atoms)} atoms, not the molecule's {atom_count}")
+ValueError: the spin block lists 8 atoms, not the molecule's 9
