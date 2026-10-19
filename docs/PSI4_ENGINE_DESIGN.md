@@ -1,6 +1,6 @@
 # Psi4 as a second quantum-chemistry engine: design
 
-**Status: proposal, 2026-10-19; stage 0 (the spike) was run the same day and its result is in "Stage 0 result" below; nothing in the application is built.** Decided by Alex 2026-10-19: spike only first, **locate-only** (no download button), no calculation types beyond `sp` and `opt` in version 1.
+**Status: proposal, 2026-10-19; stage 0 (the spike) was run the same day and its result is in "Stage 0 result" below; stage 1 (the provider, the External Tools tab, the Engine box) was built the same day and is described in "Stage 1 result" below; the ORCA agreement check (stage 2) is not done.** Decided by Alex 2026-10-19: spike only first, **locate-only** (no download button), no calculation types beyond `sp` and `opt` in version 1.
 Statements marked *read* come from Psi4's documentation or a package index; the rest of the note is superseded where "Stage 0 result" measured it.
 
 ## Why
@@ -61,7 +61,7 @@ For comparison, the pKa sidecar and the Java runtime are the other things the ap
 | a job | `psi4 -n 4 input.dat output.dat`: water B3LYP/def2-SVP 2.3 s; water optimization 3.4 s |
 | output | **both work**: the output file, and `-o stdout` (one `Final Energy` line captured from stdout), so `parse_output` can keep being handed captured stdout |
 | a path with a space | works (`D:\_scratch\with space\`), unlike ORCA; forward-slash `PSI_SCRATCH` also works |
-| failure | a bad input exits **1**, **but the output file still ends "Psi4 exiting successfully"**: a parser must use the exit code and the line "Psi4 encountered an error", never the closing banner |
+| failure | a bad input exits **1** and the output ends "Psi4 encountered an error" (with the failing statement boxed in `!` lines above it); a good run ends "Psi4 exiting successfully". **Corrected 2026-10-19: an earlier version of this row said a failed run still prints the success banner, which was a misreading of two outputs read together.** The service reads no exit code, so the parser keys on the error marker |
 | cancel | killing the `psi4.exe` launcher (what `QProcess.kill` does) **also ended its python child** (benzene optimization, 2.5 GB resident at the time): no worker left behind, as measured for the pKa sidecar |
 | memory | `memory 4 GB` in the input is honoured (the job held 2.5 GB); threads are `-n` on the command line, not an input block |
 | optimized geometry | printed as "Final optimized geometry and variables" with element symbols and Angstrom coordinates, the shape the existing conformer landing needs |
@@ -70,7 +70,22 @@ For comparison, the pKa sidecar and the Java runtime are the other things the ap
 **So an engine provider must map a functional's NAME to the engine's own keyword by a table checked against ORCA, never pass the label through**, and a result carries the exact keyword and `scf_type` it ran with. This is the first entry of the agreement check's expected findings, and is why stage 2 compares energies rather than assuming them.
 
 **Not measured:** whether a console window flashes when `QProcess` starts it (needs the application; check in stage 1), Windows Defender or SmartScreen behaviour on a first run, and a path with non-ASCII characters. The standalone installer route (the install page's other option) was not tried; conda was, because it was the one with a size we could read first.
-The spike environment (1.87 GB) is left at `D:\_scratch\psi4-spike` for stage 1; remove it with `conda env remove -p D:\_scratch\psi4-spike` and delete `D:\_scratchun1`, `orca_w`, `with space`, `pscr`.
+The spike environment (1.87 GB) is left at `D:\_scratch\psi4-spike` for stage 1; remove it with `conda env remove -p D:\_scratch\psi4-spike` and delete `D:\_scratch
+un1`, `orca_w`, `with space`, `pscr`.
+
+## Stage 1 result (2026-10-19)
+
+Built: `chem/psi4_engine.py` (`Psi4QuantumEngineProvider`: `sp` and `opt`, the functional table `PSI4_METHODS`, `puream true`, density fitting recorded in the provenance, the final geometry as a `psi4_opt` conformer), the interface's `display_name` / `supported_calc_types` / `supports()` /
+`executable_setting()` / `executable_names()` (defaults keep every existing provider on ORCA's executable), the service's per-engine executable resolution (`available_engines()`; ORCA's refusal text is unchanged), the locate-only tab (`catalog.psi4()`, `verify_psi4`, `responds_as_psi4`), and the panel's
+Engine box (shown only with more than one engine; greys out unsupported calculations and ORCA's solvent and conformer-average controls). Tests: `tests/test_psi4_engine.py` (20, parsed from real outputs, one running a real Psi4 when `OPENCHEM_PSI4_EXE` is set) and `tests/test_psi4_tool.py`;
+11 mutations of the new code were all caught.
+
+**What the comparison with ORCA found while building the table** (water, B3LYP/def2-SVP unless stated, exact integrals, energies in Eh; the difference is Psi4 minus ORCA):
+HF 0.0000 mEh; PBE0 +0.10; M062X +0.09; B3LYP (Psi4 `b3lyp5`) +0.10 at def2-SVP, +0.14 at def2-TZVP, +0.14 and +0.16 at pcSseg-1 and pcSseg-2; **6-31G(d) -1.84 with Psi4's default cartesian d functions and +0.08 with `puream true`**. The 0.1 mEh is the two programs' default integration grids. This is a spot check of the table on one molecule, **not the preregistered agreement check of stage 2**, which compares more molecules and geometries.
+
+**Corrected in this stage:** the spike's table said a failed Psi4 run still prints "Psi4 exiting successfully". It does not: a failed run exits 1 and ends "Psi4 encountered an error" (re-measured on a bad functional and a bad basis); the earlier row was a misreading of two outputs read together. The parser keys on the error marker, which is right either way.
+
+**Left for later:** a Settings control for Psi4's memory (a job is given 2 GB in its input) and threads (it uses the ORCA cores setting), the stage-2 agreement check, calculation types beyond `sp` and `opt`, and text on the panel that still says ORCA (most tooltips and the Configure button) which is true of the panel's ORCA features and not wrong for Psi4 but is not Psi4-aware.
 
 ## How it is validated before it is offered (the project standard: claims are measured)
 

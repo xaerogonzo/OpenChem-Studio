@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.domain.common import CacheState
-from openchem.domain.conformer import is_quantum_optimized, quantum_level_of_theory
+from openchem.domain.conformer import is_quantum_optimized, quantum_engine_name, quantum_level_of_theory
 from openchem.domain.report import ArrowAnnotation
 from openchem.services.spatial_overlay_service import SINGLE_VIEW_CELL
 from openchem.ui.widgets.flow_layout import flow_row
@@ -1203,7 +1203,7 @@ class MoleculeViewer3DWidget(QWidget):
         # its geometry came from ORCA. Never a force-field-relative energy: it has none, and a "+0.00" would
         # claim a comparison nothing made.
         if is_quantum_optimized(conformer):
-            return f"{index + 1} - ORCA"
+            return f"{index + 1} - {quantum_engine_name(conformer)}"
         energies = [c.energy for c in self._molecule.conformers if c.energy is not None]
         if conformer.energy is None or not energies:
             return f"{index + 1}"
@@ -1487,7 +1487,7 @@ class MoleculeViewer3DWidget(QWidget):
         if is_quantum_optimized(conformer):
             level = quantum_level_of_theory(conformer)
             return (
-                f"Optimized with ORCA{f' at {level}' if level else ''}, so it has no force-field energy to "
+                f"Optimized with {quantum_engine_name(conformer)}{f' at {level}' if level else ''}, so it has no force-field energy to "
                 "compare with the others. It replaced the conformer it was optimized from; Details says which."
             )
         if conformer.energy is not None:
@@ -1513,7 +1513,7 @@ class MoleculeViewer3DWidget(QWidget):
         if is_quantum_optimized(conformer):
             # Marked wherever you step, so an ORCA geometry is never mistaken for a force-field one.
             level = quantum_level_of_theory(conformer)
-            return f"{position} - ORCA optimized{f' ({level})' if level else ''}{overlay}"
+            return f"{position} - {quantum_engine_name(conformer)} optimized{f' ({level})' if level else ''}{overlay}"
         energies = [c.energy for c in self._molecule.conformers if c.energy is not None]
         if conformer.energy is None or not energies:
             return f"{position} - energy n/a{overlay}"

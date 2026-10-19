@@ -396,6 +396,28 @@ class QuantumEngineProvider(ABC):
 
     provider_id: str
 
+    #: What a person calls the engine ("Psi4"); empty falls back to the upper-cased `provider_id` (so ORCA, which
+    #: predates this, needs nothing).
+    display_name: str = ""
+    #: The calculation types this engine runs, or `None` for "all of them" (ORCA's default). An engine that runs
+    #: fewer is not OFFERED the others, rather than offered and refused: `docs/PSI4_ENGINE_DESIGN.md`.
+    supported_calc_types: frozenset[str] | None = None
+
+    def engine_name(self) -> str:
+        return self.display_name or self.provider_id.upper()
+
+    def executable_setting(self) -> str:
+        """The settings key holding this engine's executable path. DEFAULTS TO ORCA's (`orca/executable_path`): before engines had
+        their own, every provider ran the one configured executable, and a provider that does not say otherwise still does. Psi4 says otherwise."""
+        return "orca/executable_path"
+
+    def executable_names(self) -> tuple[str, ...]:
+        """The names to look for on PATH when no path is configured (`shutil.which` adds the platform suffix). Defaults to ORCA's, for the reason above."""
+        return ("orca",)
+
+    def supports(self, calc_type: str) -> bool:
+        return self.supported_calc_types is None or calc_type in self.supported_calc_types
+
     @abstractmethod
     def build_input(
         self, mol: Chem.Mol, charge: int, multiplicity: int, method_basis: str, calc_type: str

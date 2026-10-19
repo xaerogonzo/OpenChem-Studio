@@ -82,6 +82,10 @@ The script is a JSON list of steps, run in order:
                                  "method": "HF-3c"}   the REAL Run button,
                                                       and the identity the
                                                       SERVICE was handed
+      {"do": "qc_run",           "engine": "psi4", "calc_type": "Geometry Optimization",
+                                 "method": "B3LYP def2-SVP"}   pick the Engine box's entry first
+      {"do": "tool_path",        "tool": "psi4", "path": "D:/.../psi4.exe"}   set up a tool for
+                                                      THIS run; the real value is put back at `quit`
       {"do": "qc_setup",         "method": "HF STO-3G"}   set the panel,
                                                       press nothing
       {"do": "inspector_report", "expect_spectrum": "stale"}   asserts it
@@ -594,6 +598,45 @@ class _Driver(QObject):
         combo.setCurrentIndex(index)
         logger.warning("OPENCHEM_DRIVE: dock_receptor -> %r", combo.currentText())
 
+    #: The tool settings a script may set for its own run, and no others.
+    _TOOL_PATH_KEYS = {"psi4": "psi4/executable_path"}
+
+    def _do_tool_path(self, step: dict[str, Any]) -> None:
+        """Point a tool at an executable for THIS run: `{"do": "tool_path", "tool": "psi4", "path": "D:/.../psi4.exe"}`.
+
+        The setting is the application's real one (the registry), so the first value of each key is remembered and `quit` puts it BACK (or removes the key if it
+        was unset), whatever else the script did: a diagnostic run must not leave a machine configured differently from how it found it. The Quantum Chemistry
+        panel is asked to refresh its Engine box, as the External Tools dialog does when it closes.
+        """
+        tool = str(step.get("tool", ""))
+        key = self._TOOL_PATH_KEYS.get(tool)
+        path = step.get("path")
+        if key is None or not path or not Path(str(path)).is_file():
+            logger.error("OPENCHEM_DRIVE: tool_path -- unknown tool %r or no file at %r", tool, path)
+            return
+        settings = self._window._settings
+        if not hasattr(self, "_tool_path_originals"):
+            self._tool_path_originals: dict[str, Any] = {}
+        if key not in self._tool_path_originals:
+            self._tool_path_originals[key] = settings.get(key, None)
+        settings.set(key, str(Path(str(path))))
+        panel = getattr(self._window, "_quantum_chemistry_panel", None)
+        if panel is not None:
+            panel._refresh_engines()
+        logger.warning("OPENCHEM_DRIVE: tool_path -- %s set for this run (the original is put back at quit)", key)
+
+    def _restore_tool_paths(self) -> None:
+        originals = getattr(self, "_tool_path_originals", {})
+        if not originals:
+            return  # no script step touched a tool setting: nothing to put back, and a bare test window has no settings
+        settings = self._window._settings
+        for key, original in originals.items():
+            if original is None:
+                settings.remove(key)
+            else:
+                settings.set(key, original)
+            logger.warning("OPENCHEM_DRIVE: %s put back", key)
+
     def _do_qc_run(self, step: dict[str, Any]) -> None:
         """Press the Quantum Chemistry panel's Run button, for real, and log the
         identity the SERVICE was handed.
@@ -631,16 +674,24 @@ class _Driver(QObject):
         if not select(panel._molecule_combo, molecule_uuid):
             logger.error("OPENCHEM_DRIVE: qc_run -- the selected molecule is not in the panel's combo")
             return
+        if step.get("engine") is not None:
+            # The Engine box, as a person would use it. An engine that is not set up has no entry: an ERROR, never a run on another engine.
+            engine_index = panel._engine_combo.findData(str(step["engine"]))
+            if engine_index < 0:
+                logger.error("OPENCHEM_DRIVE: qc_run -- engine %r is not in the Engine box (set up? %s)", step["engine"],
+                             [panel._engine_combo.itemData(i) for i in range(panel._engine_combo.count())])
+                return
+            panel._engine_combo.setCurrentIndex(engine_index)
         calc_type = step.get("calc_type")
         if calc_type is not None:
             index = panel._calc_type_combo.findText(str(calc_type))
-            if index < 0:
-                logger.error("OPENCHEM_DRIVE: qc_run -- calc_type %r matches no item", calc_type)
+            if index < 0 or not panel._calc_type_combo.model().item(index).isEnabled():
+                logger.error("OPENCHEM_DRIVE: qc_run -- calc_type %r matches no ENABLED item for this engine", calc_type)
                 return
             panel._calc_type_combo.setCurrentIndex(index)
         if step.get("method") is not None:
             panel._method_combo.setCurrentText(str(step["method"]))
-        panel._boltzmann_check.setChecked(bool(step.get("boltzmann", False)))
+        panel._boltzmann_check.setChecked(bool(step.get("boltzmann", False)) and panel._boltzmann_check.isEnabled())
         if step.get("conformer") == "automatic":
             panel._conformer_combo.setCurrentIndex(0)
         elif step.get("conformer") is not None:
@@ -9491,6 +9542,7 @@ class _Driver(QObject):
         from PySide6.QtWidgets import QApplication
 
         logger.warning("OPENCHEM_DRIVE: quitting")
+        self._restore_tool_paths()
         # The verdict FIRST, while the window and its panels are still there to
         # be asked, and before anything below can log.
         self._allow.extend(str(a) for a in step.get("allow") or [])

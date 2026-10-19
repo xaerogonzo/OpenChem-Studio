@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: c7fcbe890147982df313dc1b6d2b655973d4e8e762100e425d015a618346a218 -->
+<!-- SOURCE SHA256: 984014d0d2874997486bc1ebe1baffd1176aff3df27739eb7283784d939558e8 -->
 
 # Sources
 
@@ -271,6 +271,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`plenio2004`](#plenio2004) | literature | shipped | citation + claim |
 | [`plip2015`](#plip2015) | literature | reference only | citation |
 | [`poater2009`](#poater2009) | literature | shipped | citation |
+| [`psi42020`](#psi42020) | literature | shipped | citation |
 | [`pyside6`](#pyside6) | software | shipped | citation |
 | [`quiroga2016`](#quiroga2016) | literature | shipped | citation + claim |
 | [`ramachandran1996`](#ramachandran1996) | literature | **not shipped** | citation + claim |
@@ -6676,6 +6677,24 @@ quantitative claim.
 | Used by | `docs/explainers/reactivity.md`, `benchmarks/fukui_gate_4/PREREGISTRATION.md` |
 
 WHAT IS CITED, from the supplementary workbook (`ranasinghe2019_si/`, Table S4): IP-EOM-CCSD/cc-pVTZ vertical ionization energies of pyrimidine (9.724, 10.530, 11.174, 11.372 eV) and pyrazine (9.709, 10.185, 11.443, 11.757, 13.730 eV) at MP2/def2-TZVP geometries, and Table S3's pyridine at the CGB set's geometry (9.627, 9.887, 10.311, 12.862 eV). It is NOT a CCSDT reference for the diazines: IP-EOM-CCSDT/cc-pVTZ was run for 41 molecules, mostly of the CGB set (Table S3), and neither diazine is in Table S3; the diazines are in the NIST set (Table S4), which has IP-EOM-CCSD only.
+
+### psi42020
+
+<a id="psi42020"></a>
+
+> D. G. A. Smith, L. A. Burns, A. C. Simmonett, R. M. Parrish, M. C. Schieber, R. Galvelis, P. Kraus, H. Kruse, R. Di Remigio, A. Alenaizan, A. M. James, S. Lehtola, J. P. Misiewicz, M. Scheurer, R. A. Shaw, J. B. Schriber, Y. Xie, Z. L. Glick, D. A. Sirianni, J. S. O'Brien, J. M. Waldrop, A. Kumar, E. G. Hohenstein, B. P. Pritchard, B. R. Brooks, H. F. Schaefer III, A. Yu. Sokolov, K. Patkowski, A. E. DePrince III, U. Bozkaya, R. A. King, F. A. Evangelista, J. M. Turney, T. D. Crawford & C. D. Sherrill, 'PSI4 1.4: Open-source software for high-throughput quantum chemistry', J. Chem. Phys. 2020, 152, 184108.
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/5.0006002](https://doi.org/10.1063/5.0006002) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-10-19 |
+| Used by | `src/openchem/chem/psi4_engine.py` |
+
+THE ENGINE THE PSI4 PROVIDER RUNS: a program this app calls, not a method it reimplements. The reference is the one Psi4 1.11 prints in the banner of every output (checked against the fixtures in `tests/fixtures/psi4/`, which are real
+outputs); the paper itself was NOT read, so this entry makes no claim about a number. The functional definitions the engine relies on (B3LYP with VWN5 as `b3lyp5`, and so on) were checked against ORCA by running both, not taken from this paper
+(`docs/PSI4_ENGINE_DESIGN.md`, `chem/psi4_engine.py`).
 
 ## Datasets
 

@@ -33,6 +33,7 @@ from openchem.chem.orca_engine import (
     find_mpi_bin,
     parse_frontier_orbitals,
 )
+from openchem.chem.psi4_engine import Psi4QuantumEngineProvider
 from openchem.chem.tautomer_distribution import (
     FAILURE_ENERGY_UNPARSEABLE,
     FAILURE_OPTIMIZATION_NOT_CONVERGED,
@@ -155,6 +156,11 @@ def _reference_job_key(method_basis: str) -> str:
 
 def _scaling_job_key(method_basis: str) -> str:
     return f"__nmr_scaling__::{method_basis}"
+
+
+def _no_executable_message(provider: QuantumEngineProvider) -> str:
+    """The refusal when an engine has no executable: its own name and settings key (ORCA's text is unchanged)."""
+    return f"No {provider.engine_name()} executable configured or found on PATH — set {provider.executable_setting()} in Settings."
 
 
 def _job_manager_kind(kind: str) -> str:
@@ -506,8 +512,12 @@ class QuantumChemistryService(QObject):
             anion_f_plus=lambda: bool(settings.preference(FUKUI_ANION_F_PLUS)),
             cation_search=lambda: bool(settings.preference(FUKUI_CATION_SEARCH)),
         )
+        # ORCA first (it is the default engine everywhere), then Psi4: registered always, USED only when its executable is configured
+        # (`available_engines`), so a machine without Psi4 sees no change.
+        psi4_provider = Psi4QuantumEngineProvider(threads=self._effective_cores_or_default)
         self._providers: dict[str, QuantumEngineProvider] = (
-            providers if providers is not None else {default_provider.provider_id: default_provider}
+            providers if providers is not None
+            else {default_provider.provider_id: default_provider, psi4_provider.provider_id: psi4_provider}
         )
         self._active_jobs: dict[str, _ActiveJob] = {}
         # Keyed by molecule_uuid, same as _active_jobs: a Boltzmann run owns
@@ -558,12 +568,12 @@ class QuantumChemistryService(QObject):
         if provider is None:
             self._publish_state(molecule_uuid, CacheState.FAILED, f"Unknown quantum engine: {provider_id}")
             return
-        executable_path = self._resolve_executable_path()
+        executable_path = self._resolve_executable_path(provider)
         if executable_path is None:
             self._publish_state(
                 molecule_uuid,
                 CacheState.FAILED,
-                "No ORCA executable configured or found on PATH — set orca/executable_path in Settings.",
+                _no_executable_message(provider),
             )
             return
         # Guards the real bug this used to have: request_calculation had no
@@ -652,12 +662,12 @@ class QuantumChemistryService(QObject):
         if provider is None:
             self._publish_state(molecule_uuid, CacheState.FAILED, f"Unknown quantum engine: {provider_id}")
             return
-        executable_path = self._resolve_executable_path()
+        executable_path = self._resolve_executable_path(provider)
         if executable_path is None:
             self._publish_state(
                 molecule_uuid,
                 CacheState.FAILED,
-                "No ORCA executable configured or found on PATH — set orca/executable_path in Settings.",
+                _no_executable_message(provider),
             )
             return
         # Takes the molecule's single job slot for the WHOLE sequence, not
@@ -761,12 +771,12 @@ class QuantumChemistryService(QObject):
         if provider is None:
             self._publish_state(molecule_uuid, CacheState.FAILED, f"Unknown quantum engine: {provider_id}")
             return
-        executable_path = self._resolve_executable_path()
+        executable_path = self._resolve_executable_path(provider)
         if executable_path is None:
             self._publish_state(
                 molecule_uuid,
                 CacheState.FAILED,
-                "No ORCA executable configured or found on PATH — set orca/executable_path in Settings.",
+                _no_executable_message(provider),
             )
             return
         # Takes the molecule's single job slot for the WHOLE sequence, not
@@ -859,12 +869,12 @@ class QuantumChemistryService(QObject):
         if provider is None:
             self._publish_state(molecule_uuid, CacheState.FAILED, f"Unknown quantum engine: {provider_id}")
             return
-        executable_path = self._resolve_executable_path()
+        executable_path = self._resolve_executable_path(provider)
         if executable_path is None:
             self._publish_state(
                 molecule_uuid,
                 CacheState.FAILED,
-                "No ORCA executable configured or found on PATH — set orca/executable_path in Settings.",
+                _no_executable_message(provider),
             )
             return
         if not self._job_manager.try_start(
@@ -951,14 +961,14 @@ class QuantumChemistryService(QObject):
                 )
             )
             return
-        executable_path = self._resolve_executable_path()
+        executable_path = self._resolve_executable_path(provider)
         if executable_path is None:
             self._event_bus.publish(
                 NmrReferenceCalibrated(
                     method_basis=method_basis,
                     provider_id=provider_id,
                     values={},
-                    error="No ORCA executable configured or found on PATH — set orca/executable_path in Settings.",
+                    error=_no_executable_message(provider),
                 )
             )
             return
@@ -1007,12 +1017,12 @@ class QuantumChemistryService(QObject):
         if provider is None:
             self._fail_scaling(method_basis, provider_id, f"Unknown quantum engine: {provider_id}")
             return
-        executable_path = self._resolve_executable_path()
+        executable_path = self._resolve_executable_path(provider)
         if executable_path is None:
             self._fail_scaling(
                 method_basis,
                 provider_id,
-                "No ORCA executable configured or found on PATH — set orca/executable_path in Settings.",
+                _no_executable_message(provider),
             )
             return
 
@@ -2643,6 +2653,15 @@ class QuantumChemistryService(QObject):
             QuantumChemistryJobStateChanged(molecule_uuid=molecule_uuid, state=state, message=message)
         )
 
+    def _effective_cores_or_default(self) -> int:
+        """Threads for an engine that takes them on its command line: the `orca/cores` setting when it is set (one core-count setting for
+        every engine until there is a reason for two), else the automatic choice. Unlike ORCA's there is no MPI to be missing."""
+        try:
+            configured = int(self._settings.get("orca/cores", 0))
+        except (TypeError, ValueError):
+            configured = 0
+        return configured if configured >= 1 else default_cores()
+
     def _effective_cores(self) -> int:
         """How many cores an ORCA job asks for: the `orca/cores` setting, or the
         automatic choice. ALWAYS 1 when no MPI is installed, because a parallel
@@ -2662,10 +2681,18 @@ class QuantumChemistryService(QObject):
         Public and read-only, so a caller that only needs to know whether a run COULD start (the
         assistant's preview of one) does not reach into a private resolver or start anything.
         """
-        return self._resolve_executable_path()
+        return self._resolve_executable_path(self._providers.get("orca"))
 
-    def _resolve_executable_path(self) -> str | None:
-        """The ORCA executable, in NATIVE separator form.
+    def engines(self) -> list[QuantumEngineProvider]:
+        """Every registered engine, in registration order (ORCA first)."""
+        return list(self._providers.values())
+
+    def available_engines(self) -> list[QuantumEngineProvider]:
+        """The engines whose executable is configured or on PATH: the ones a run could start on. Read-only."""
+        return [p for p in self._providers.values() if self._resolve_executable_path(p) is not None]
+
+    def _resolve_executable_path(self, provider: QuantumEngineProvider | None = None) -> str | None:
+        """The engine's executable (ORCA's when no provider is given), in NATIVE separator form.
 
         `str(Path(...))` is not tidiness. ORCA derives the directory of its
         own helper binaries (`orca_startup` and friends) from the path it
@@ -2691,7 +2718,13 @@ class QuantumChemistryService(QObject):
         `shutil.which` already returns a native path, so only the
         configured branch needs it.
         """
-        configured = self._settings.get("orca/executable_path", "")
+        key = provider.executable_setting() if provider is not None else "orca/executable_path"
+        names = provider.executable_names() if provider is not None else ("orca",)
+        configured = self._settings.get(key, "")
         if configured and Path(configured).is_file():
             return str(Path(configured))
-        return shutil.which("orca") or shutil.which("orca.exe")
+        for name in names:
+            found = shutil.which(name)
+            if found:
+                return found
+        return None
