@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 984014d0d2874997486bc1ebe1baffd1176aff3df27739eb7283784d939558e8 -->
+<!-- SOURCE SHA256: c64c104ec955d72a31885c03ff4e523bd4be7b1188b6067afe314a2b1f99736d -->
 
 # Sources
 
@@ -143,6 +143,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`coppens2006`](#coppens2006) | literature | **not shipped** | citation |
 | [`cradock1973`](#cradock1973) | literature | shipped | citation + claim |
 | [`crc_handbook`](#crc_handbook) | reference_table | shipped | citation + claim |
+| [`curtiss2005`](#curtiss2005) | literature | reference only | citation + claim |
 | [`cwc_annex_on_chemicals`](#cwc_annex_on_chemicals) | legal | shipped | citation + claim |
 | [`dea_listed_chemicals`](#dea_listed_chemicals) | legal | shipped | citation |
 | [`delaney2004`](#delaney2004) | literature | shipped | citation + claim |
@@ -168,6 +169,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`geidl2015`](#geidl2015) | literature | reference only | citation |
 | [`glasser1995`](#glasser1995) | literature | shipped | citation |
 | [`gleiter1972`](#gleiter1972) | literature | shipped | citation + claim |
+| [`goerigk2017`](#goerigk2017) | literature | reference only | citation + claim |
 | [`goller2022`](#goller2022) | literature | shipped | citation + claim |
 | [`guo2006`](#guo2006) | literature | reference only | citation + claim |
 | [`gutmann1976`](#gutmann1976) | literature | shipped | citation + claim |
@@ -190,6 +192,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`holland2017`](#holland2017) | literature | shipped | citation + claim |
 | [`hopfinger2009`](#hopfinger2009) | dataset | shipped | citation |
 | [`huber1979`](#huber1979) | literature | reference only | citation + claim |
+| [`hunter1998`](#hunter1998) | literature | reference only | citation + claim |
 | [`ich_m9`](#ich_m9) | standard | shipped | citation + claim |
 | [`ielo2019`](#ielo2019) | literature | reference only | citation + claim |
 | [`ionescu2013`](#ionescu2013) | literature | shipped | citation + claim |
@@ -238,6 +241,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`moore1970`](#moore1970) | literature | shipped | citation + claim |
 | [`moreland1974`](#moreland1974) | literature | shipped | citation |
 | [`mortier1986`](#mortier1986) | literature | reference only | citation |
+| [`moser2010`](#moser2010) | literature | reference only | citation + claim |
 | [`moss1995`](#moss1995) | literature | reference only | citation |
 | [`murrayrust1983`](#murrayrust1983) | literature | shipped | citation + claim |
 | [`muser2012`](#muser2012) | literature | reference only | citation + claim |
@@ -283,6 +287,8 @@ next run of `tools/build_lewis_parameters.py`.
 | [`rdkit`](#rdkit) | software | shipped | citation |
 | [`rdkit_bertz`](#rdkit_bertz) | software | shipped | citation + claim |
 | [`rendell1993`](#rendell1993) | literature | reference only | unverified |
+| [`riplinger2013dlpno`](#riplinger2013dlpno) | literature | reference only | citation + claim |
+| [`riplinger2013triples`](#riplinger2013triples) | literature | reference only | citation + claim |
 | [`rowland1996`](#rowland1996) | literature | shipped | citation + claim |
 | [`roy1999`](#roy1999) | literature | shipped | citation + claim |
 | [`ruttkies2016`](#ruttkies2016) | literature | reference only | citation |
@@ -336,6 +342,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`yalkowsky_banerjee1992`](#yalkowsky_banerjee1992) | dataset | shipped | citation |
 | [`zhang2009`](#zhang2009) | literature | reference only | citation |
 | [`zhao2003`](#zhao2003) | literature | reference only | citation + claim |
+| [`zhao2008`](#zhao2008) | literature | reference only | citation + claim |
 | [`zheng2017`](#zheng2017) | literature | shipped | citation + claim |
 | [`zhu2023`](#zhu2023) | literature | reference only | citation |
 | [`zhuang2022`](#zhuang2022) | literature | shipped | citation + claim |
@@ -6695,6 +6702,124 @@ WHAT IS CITED, from the supplementary workbook (`ranasinghe2019_si/`, Table S4):
 THE ENGINE THE PSI4 PROVIDER RUNS: a program this app calls, not a method it reimplements. The reference is the one Psi4 1.11 prints in the banner of every output (checked against the fixtures in `tests/fixtures/psi4/`, which are real
 outputs); the paper itself was NOT read, so this entry makes no claim about a number. The functional definitions the engine relies on (B3LYP with VWN5 as `b3lyp5`, and so on) were checked against ORCA by running both, not taken from this paper
 (`docs/PSI4_ENGINE_DESIGN.md`, `chem/psi4_engine.py`).
+
+### hunter1998
+
+<a id="hunter1998"></a>
+
+> E. P. L. Hunter & S. G. Lias, 'Evaluated Gas Phase Basicities and Proton Affinities of Molecules: An Update', J. Phys. Chem. Ref. Data 1998, 27, 413-656.
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.556018](https://doi.org/10.1063/1.556018) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-19 |
+| Local copy | `hunter1998_pa_gb.pdf` (not checked) |
+| Used by | `docs/PROTON_AFFINITY_DESIGN.md`, `benchmarks/proton_affinity/PREREGISTRATION.md` |
+
+**Why it is reference only.** THE REFERENCE VALUES OF THE PROTON-AFFINITY BENCHMARK: the evaluation behind every NIST WebBook 'Proton affinity (review)' and 'Gas basicity' value. Read for three statements the benchmark's rule rests on: the uncertainty assigned to most molecules is about 8 kJ/mol (their Sec. 5.4), the scale is 'not yet well established' below propene (PA 751.6 kJ/mol; Sec. 5.5), and several protonation sites are tabulated separately (CO at C and at O). The DOI is the Crossref match; the PDF carries no printed DOI.
+
+### moser2010
+
+<a id="moser2010"></a>
+
+> A. Moser, K. Range & D. M. York, 'Accurate Proton Affinity and Gas-Phase Basicity Values for Molecules Important in Biocatalysis', J. Phys. Chem. B 2010, 114, 13911-13921.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jp107450n](https://doi.org/10.1021/jp107450n) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-19 |
+| Used by | `docs/PROTON_AFFINITY_DESIGN.md`, `benchmarks/proton_affinity/PREREGISTRATION.md` |
+
+**Why it is reference only.** THE PROTON'S THERMOCHEMISTRY AND A BENCHMARK AGAINST NIST: standard state 298.15 K and 1 atm, H(H+) = 5/2 RT = 1.48 kcal/mol, S(H+) = 26.02 cal/(mol K) from Sackur-Tetrode, G(H+) = -6.28 kcal/mol (their eqs 2 and 3), which the benchmark's `pa_core.proton_terms` reproduces independently (1.4812, 26.012, -6.274); their Table 1 errors for model chemistries against NIST for protonated amines and imidazoles (the PAs of the corresponding bases). Read from an open copy of the PDF, not held in the library folder.
+
+### riplinger2013dlpno
+
+<a id="riplinger2013dlpno"></a>
+
+> C. Riplinger & F. Neese, 'An efficient and near linear scaling pair natural orbital based local coupled cluster method', J. Chem. Phys. 2013, 138, 034106.
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.4773581](https://doi.org/10.1063/1.4773581) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-19 |
+| Local copy | `riplinger2013_dlpno.pdf` (not checked) |
+| Used by | `docs/PROTON_AFFINITY_DESIGN.md`, `benchmarks/proton_affinity/PREREGISTRATION.md` |
+
+**Why it is reference only.** THE DLPNO-CCSD METHOD of the benchmark's secondary arm: default thresholds (TCutPNO 3.33e-7, TCutPairs 1e-4, TCutMKN 1e-3), more than 99.9% of the correlation energy recovered, and a mean absolute deviation of about 0.5 kcal/mol from canonical on a test set of medium-sized organic molecules.
+
+### riplinger2013triples
+
+<a id="riplinger2013triples"></a>
+
+> C. Riplinger, B. Sandhoefer, A. Hansen & F. Neese, 'Natural triple excitations in local coupled cluster calculations with pair natural orbitals', J. Chem. Phys. 2013, 139, 134101.
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.4821834](https://doi.org/10.1063/1.4821834) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-19 |
+| Local copy | `riplinger2013_triples.pdf` (not checked) |
+| Used by | `docs/PROTON_AFFINITY_DESIGN.md`, `benchmarks/proton_affinity/PREREGISTRATION.md` |
+
+**Why it is reference only.** THE DLPNO-(T) TRIPLES of the secondary arm: the default TCutTNO 1e-7, the statement that the triples correction can reach 4 kcal/mol, and the accuracy of the approximation against canonical (about 0.5 kcal/mol).
+
+### goerigk2017
+
+<a id="goerigk2017"></a>
+
+> L. Goerigk, A. Hansen, C. Bauer, S. Ehrlich, A. Najibi & S. Grimme, 'A look at the density functional theory zoo with the advanced GMTKN55 database for general main group thermochemistry, kinetics and noncovalent interactions', Phys. Chem. Chem. Phys. 2017, 19, 32184-32215.
+
+| | |
+| --- | --- |
+| Identifier | [10.1039/c7cp04913g](https://doi.org/10.1039/c7cp04913g) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-19 |
+| Local copy | `goerigk2017.pdf` (not checked) |
+| Used by | `docs/PROTON_AFFINITY_DESIGN.md`, `benchmarks/proton_affinity/PREREGISTRATION.md` |
+
+**Why it is reference only.** THE PA26 SET AND THE PER-FUNCTIONAL ERRORS FOR PROTON AFFINITIES (the SI, held as goerigk2017_si.pdf): 26 adiabatic proton affinities against W2-F12, W1-F12 and CCSD(T)/CBS references, zero-point-exclusive, def2-QZVP. M06-2X(-D3(0)) MAD 1.23 kcal/mol (checked against the page image of Table S89), B3LYP 2.28, PBE0 2.56, the double hybrids about 1. The SI's plain text layer interleaves neighbouring rows; the values used were read by word coordinates.
+
+### zhao2008
+
+<a id="zhao2008"></a>
+
+> Y. Zhao & D. G. Truhlar, 'The M06 suite of density functionals for main group thermochemistry, thermochemical kinetics, noncovalent interactions, excited states, and transition elements: two new functionals and systematic testing of four M06-class functionals and 12 other functionals', Theor. Chem. Acc. 2008, 120, 215-241.
+
+| | |
+| --- | --- |
+| Identifier | [10.1007/s00214-007-0310-x](https://doi.org/10.1007/s00214-007-0310-x) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-19 |
+| Local copy | `zhao2007.pdf` (not checked) |
+| Used by | `docs/PROTON_AFFINITY_DESIGN.md`, `benchmarks/proton_affinity/PREREGISTRATION.md` |
+
+**Why it is reference only.** THE PA8 DATABASE ERRORS AGAINST EXPERIMENT (Table 4, read from the page image): eight small-molecule proton affinities, zero-point-exclusive; M06-2X MSE -0.19 and MUE 1.75 kcal/mol, B3LYP 0.18 and 1.02, PBE 0.04 and 1.35, HF 2.75 and 3.19.
+
+### curtiss2005
+
+<a id="curtiss2005"></a>
+
+> L. A. Curtiss, P. C. Redfern & K. Raghavachari, 'Assessment of Gaussian-3 and density-functional theories on the G3/05 test set of experimental energies', J. Chem. Phys. 2005, 123, 124107.
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.2039080](https://doi.org/10.1063/1.2039080) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-19 |
+| Local copy | `curtiss2005.pdf` (not checked) |
+| Used by | `docs/PROTON_AFFINITY_DESIGN.md`, `benchmarks/proton_affinity/PREREGISTRATION.md` |
+
+**Why it is reference only.** THE G3/05 PROTON-AFFINITY ERRORS AGAINST EXPERIMENT (Table IV, read from the page image): ten proton affinities, mean absolute deviation G3 1.14, G3X 1.04 and B3LYP 1.39 kcal/mol (B3LYP single points 6-311+G(3df,2p) at MP2/6-31G* geometries with scaled HF zero-point energies).
 
 ## Datasets
 
