@@ -3992,6 +3992,10 @@ def _acyl_prefix_via_acid(mol, n_idx: int, acyl_idx: int, strategy, session, dep
             return f"{before.rstrip('-')}{rest}-{locant}-carbonyl"
         return None
     acyl = _acid_name_to_acyl(text)
+    if acyl:
+        from openchem.vendor.iupac_namer.engine import _bare_acyl_label
+
+        acyl = _bare_acyl_label(acyl)
     # `sulfamic acid` becomes `sulfamyl`; the book's group is `sulfamoyl` (OPSIN reads both).
     return re.sub(r"sulfamyl$", "sulfamoyl", acyl) if acyl else acyl
 
@@ -4031,6 +4035,11 @@ def _azanide_text(mol, n_idx: int, strategy, session, depth: int, ending: str, s
     The same groups name the anion as a PARENT (`acetyl(methyl)azanide`, two groups) and as a PREFIX on another anion (`4-(acetylazanidyl)benzen-1-olate`, one group: the other bond of
     the nitrogen is the attachment). OPSIN reads `azanidyl`; measured before it was written."""
     prefixes: list[str] = []
+    # The nitrogen's own nuclide is cited before the `azanide` it modifies, after the groups on it: `acetyl(phenyl)(15N)azanide`. `azanide` is one nitrogen, so the bracket is unambiguous
+    # whatever other nitrogens the groups hold (naming round 72); in front of the whole name OPSIN reads nothing.
+    from openchem.vendor.iupac_namer.isotope import isotopic_prefix
+
+    ending = isotopic_prefix(ending, mol.GetAtomWithIdx(n_idx))
     for nb in mol.GetAtomWithIdx(n_idx).GetNeighbors():
         if nb.GetIdx() in skip:  # the attachment atom of an acyl-type prefix: `(carbamoylazanidyl)sulfonyl` names the nitrogen's OTHER group
             continue

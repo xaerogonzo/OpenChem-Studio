@@ -2525,6 +2525,18 @@ what can be verified.
   `tests/test_namer_known_defects.py`. Three earlier tests pinned refusals this round turned into names and now pin the cases still refused: a carboxylate beside two neutral acids
   (`test_namer_round43_*`, `test_namer_round45_*`) and a pyrazolone anion (`test_namer_round46_*`).
 
+## 2026-10-19 -- naming round 72: two labels, hydrazide nitrogens, added-hydrogen ketones, amide anions (D-329 .. D-333)
+
+`iso2.py` (scratch) labels one atom of EACH of two elements per census molecule (c13+n15, c13+o18, o18+s34, d+c13; 300 each), and `iso.py` was run over the ion populations (`r70a`: anion, cation, quaternary, zwitterion, dianion, dication, betaine, quat_dication, trianion, trication; 40 each). The two-label rows failed the way the single-label ones did (no new kind of defect), plus five that were cheap:
+
+* **D-329.** `_located`, the match for "a locant, then the suffix word", did not allow an added hydrogen, `-1(2H)-one`, so the suffix label fell back to the front of the name with the carbon's locant: `(1-18O)pyrrolo[1,2-c]pyrimidin-1(2H)-one`, which OPSIN cannot read. It is now `pyrrolo[1,2-c]pyrimidin-1(2H)-(18O)one`.
+* **D-330.** A hydrazide's two nitrogens were both mapped to the anchor carbon's locant 1, so `CC(=O)[15NH]N` and `CC(=O)N[15NH2]` were BOTH `(1-15N)acetohydrazide`: one name for two molecules, and OPSIN reads neither. The book tells N-substituents apart as `N` and `N'`; OPSIN reads `(N-15N)acetohydrazide` and `(N'-15N)acetohydrazide`.
+* **D-331.** `_bare_acyl_oxygen_label`: an acylamino prefix is the acid's name with `oic acid` rewritten to `amido`, so the acyl oxygen kept the acid's `-1-(18O)` citation, which OPSIN cannot read in an amido. For a plain chain the bare symbol before the stem is read and means the stem's oxygen. A ring keeps the located spelling (OPSIN reads `(18O)furan-2-carboxamido` as the FURAN's oxygen, a wrong molecule, and the nuclide guard refuses it).
+* **D-332.** `_azanide_text` never cited the nitrogen it names: every labelled amide anion was refused. The label goes before the `azanide` (or `azanidyl`), after the groups on it; `azanide` is one nitrogen, so the bracket is unambiguous whatever nitrogens the groups hold.
+* **D-333.** `_bare_acyl_label`: the acyl on an amide anion is built from the acid the same way as D-331, and a chain takes the oxygen bare before the stem, after its substituents (`[3-chloro(18O)propanoyl](ethyl)azanide`); the bracket belongs to the component that follows it, so an oxygen in a substituent is not mistaken for it.
+* **Measured.** Ion populations 15N 302 -> 343 of 373 and 18O 325 -> 329 of 379; census 15N 323 -> 325 of 356 and 18O 315 -> 320 of 366; 13C and 2H 397 of 400 each, unchanged; two labels 13C+15N 270 -> 273 and 13C+18O 264 -> 266 of 300. Vendored suite 5945 passed, app namer tests 5174 passed; 7 of 7 mutants killed (two dead call sites and a dead condition were found by mutants and removed).
+* New `tests/test_namer_round72_hydrazide_nitrogens_added_hydrogen_ketones_and_acyl_oxygens.py`.
+
 ## 2026-10-18 -- naming round 71: sulfur, oxygen and nitrogen nuclides in prefixes OPSIN can read (D-325 .. D-328)
 
 Round 70's isotope population (`iso.py`, scratch) with the kinds `s34`, `cl37`, `br81` and `f18` (37Cl 95, 81Br 28 and 18F 48 census rows: every one read back), then `n15` and `o18` again. 34S: 104 ok, 7 charge-changed (a reader dropped the label), 27 refused of 138.
