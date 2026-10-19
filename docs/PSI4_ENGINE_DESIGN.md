@@ -1,6 +1,6 @@
 # Psi4 as a second quantum-chemistry engine: design
 
-**Status: proposal, 2026-10-19; stage 0 (the spike) was run the same day and its result is in "Stage 0 result" below; stage 1 (the provider, the External Tools tab, the Engine box) was built the same day and is described in "Stage 1 result" below; the ORCA agreement check (stage 2) is preregistered in `benchmarks/psi4_agreement/PLAN.md` (2026-10-19) and has not been run.** Decided by Alex 2026-10-19: spike only first, **locate-only** (no download button), no calculation types beyond `sp` and `opt` in version 1.
+**Status: proposal, 2026-10-19; stage 0 (the spike) was run the same day and its result is in "Stage 0 result" below; stage 1 (the provider, the External Tools tab, the Engine box) was built the same day and is described in "Stage 1 result" below; the ORCA agreement check (stage 2) is preregistered in `benchmarks/psi4_agreement/PLAN.md` (2026-10-19) was run 2026-10-19 with the verdict NOT EVALUABLE (see "Stage 2 result").** Decided by Alex 2026-10-19: spike only first, **locate-only** (no download button), no calculation types beyond `sp` and `opt` in version 1.
 Statements marked *read* come from Psi4's documentation or a package index; the rest of the note is superseded where "Stage 0 result" measured it.
 
 ## Why
@@ -102,6 +102,12 @@ HF 0.0000 mEh; PBE0 +0.10; M062X +0.09; B3LYP (Psi4 `b3lyp5`) +0.10 at def2-SVP,
 5. **A pinned download** only if Alex reverses "locate-only" (a pinned source URL and checksum, the size in the confirmation: about 330 MB download, 1.87 GB installed).
 
 **Traps already paid for (do not re-learn):** Psi4's `b3lyp` is not ORCA's `B3LYP` (37 mEh; `b3lyp5` is); Pople bases are cartesian in Psi4 (`puream true` always); a failed Psi4 run exits 1 and ends "Psi4 encountered an error" and does NOT print the success banner (an earlier note here said it did: wrong, corrected); an empty registry key is left by the drive's `tool_path` step and is harmless; the 1.87 GB spike environment at `D:\_scratch\psi4-spike` and the folders `run1`, `orca_w`, `with space`, `pscr`, `fx` beside it are scratch and can be deleted.
+
+## Stage 2 result (2026-10-19): NOT EVALUABLE
+
+Run exactly as `benchmarks/psi4_agreement/PLAN.md` froze it (commit `7bc3d20c`, clean `src/`, about 70 minutes with 3 workers x 4 cores). **Verdict NOT EVALUABLE:** the HF floor, Psi4 `scf_type pk` against its default density fitting at 6-31G(d) (0.37 to 0.45 mEh on pyridine, DMSO, benzene and acetic acid), gives T_HF = 0.90 mEh, above the plan's 0.5 mEh ceiling. The DFT floor was small (0.065 mEh, T_DFT 0.13 mEh). So **no agreement is claimed and no failure either**, and `PSI4_METHODS` is unchanged.
+For the record only (not judged): the median Psi4 minus ORCA is +0.09 to +0.49 mEh in every one of the 15 combinations (M062X the largest), always positive, with no trace of the 37 mEh or 1.8 mEh errors found earlier; the largest single difference is 0.75 mEh. Density fitting does not explain the offset (the `pk` reruns moved cells by tens of microhartree). One Psi4 `gau_tight` pyridine optimization did not converge in 50 iterations.
+**Next, if wanted:** a new plan that settles the Psi4 default for Pople bases (density fitting against `pk`) and the HF floor's variants before any run. Not started. The stage-2 item in "Deferred" above is done; items 2 to 5 remain deferred.
 
 ## How it is validated before it is offered (the project standard: claims are measured)
 
