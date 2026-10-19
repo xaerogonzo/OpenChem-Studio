@@ -2525,6 +2525,16 @@ what can be verified.
   `tests/test_namer_known_defects.py`. Three earlier tests pinned refusals this round turned into names and now pin the cases still refused: a carboxylate beside two neutral acids
   (`test_namer_round43_*`, `test_namer_round45_*`) and a pyrazolone anion (`test_namer_round46_*`).
 
+## 2026-10-18 -- naming round 70: nitrogen and oxygen nuclides in groups, acylamino prefixes and amines (D-322 .. D-324)
+
+The isotope population of round 69 (`iso.py`, a scratch script) with `n15` and `o18` kinds: one labelled N or O per census molecule. 89 of 356 and 103 of 366 were refused, every one a visible refusal.
+
+* **D-322.** Terminal atoms of one element on one neighbour with the same hydrogens (the two oxygens of a nitro group, a sulfonyl, a carboxylate; the nitro's `=O` and `O-` are one resonance form) are one position to a reader, but `_isotopic_group_prefix`, `_isotope_atom_sites` (the systematic suffix branch and the retained branch) counted two. They count once: `(18O)nitro`, `(18O2)nitro` for both, `propane-1-(18O)sulfonamide`, `4-methyl(18O)benzene-1-sulfonamide`. OPSIN calls `(18O)nitrobenzene` ambiguous but reads it, and the two resonance forms are one molecule; the pinned refusal became a name. A sulfonic acid's oxygens (`=O`, `=O`, `OH`) are not alone and stay refused: the first version emitted `(1-18O)propane-1-sulfonic acid`, which OPSIN cannot read.
+* **D-323.** The two acylamino returns of `_name_single_fg_substituent` never cited the attachment nitrogen's nuclide (`_isotopic_attachment_prefix` exists for the plain amino prefix). A simple acyl is `(15N)acetamido` / `(15N)benzamido`; a compound acyl is the acylamino spelling `[3-(furan-2-yl)prop-2-enoyl(15N)amino]`, because OPSIN reads neither `(15N)5-methylfuran-2-carboxamido` nor `5-methylfuran-2-(15N)carboxamido` (`_amido_unless_labelled`). The acid the prefix is built from is the amide with its nitrogen turned into the hydroxyl oxygen (`SetAtomicNum(8)`, three places), which kept the nitrogen's isotope: `4-[(O-15O,15N)acetamido]benzoic acid`. Cleared.
+* **D-324.** The nitrogen of an `-amine` suffix is the group's anchor, so no locant mapped to it (and a heteroatom anchor outside the numbering, the sulfur of `propane-1-sulfonamide`, likewise). It is addressed by the parent atom it hangs on, and only for atoms the suffix word can cite: `(15N)ethanamine`, `N-ethyl(15N)ethanamine`, `2-phenylethan-1-(15N)amine`, `phenyl(15N)methanamine`.
+* **Measured.** 15N 267 -> 287 of 356 read back, 18O 263 -> 289 of 366; 13C 397 and 2H 397 of 400. Ion populations, census (1994 of 2000): no ion that was named became unnamed.
+* New `tests/test_namer_round70_heteroatom_nuclides_in_groups_prefixes_and_amines.py`.
+
 ## 2026-10-18 -- naming round 69: nuclides on suffix carbons and ureas, and a mirrored benzo ring (D-317 .. D-321)
 
 A new population: `iso.py` (a scratch script, not committed) puts a 13C on one carbon, or a 2H on one C-H, of 500 census molecules and of 40 ions per mode, names them and reads them back through OPSIN with the isotopic InChI key.
