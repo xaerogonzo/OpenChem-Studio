@@ -1,0 +1,237 @@
+{
+ "source": "Blanksby and Ellison 2003, Acc. Chem. Res. 36, 255-263, Table 1 (RH -> R + H), DH298 in kcal/mol with the stated uncertainty",
+ "read": "2026-10-19, from the page image of Table 1 (the text layer agrees)",
+ "bonds": [
+  {
+   "name": "methane C-H",
+   "smiles": "C",
+   "atom": 0,
+   "dh298": 104.99,
+   "uncertainty": 0.03
+  },
+  {
+   "name": "ethane C-H",
+   "smiles": "CC",
+   "atom": 0,
+   "dh298": 101.1,
+   "uncertainty": 0.4
+  },
+  {
+   "name": "propane secondary C-H",
+   "smiles": "CCC",
+   "atom": 1,
+   "dh298": 98.6,
+   "uncertainty": 0.4
+  },
+  {
+   "name": "butane secondary C-H",
+   "smiles": "CCCC",
+   "atom": 1,
+   "dh298": 98.2,
+   "uncertainty": 0.5
+  },
+  {
+   "name": "isobutane tertiary C-H",
+   "smiles": "CC(C)C",
+   "atom": 1,
+   "dh298": 96.5,
+   "uncertainty": 0.4
+  },
+  {
+   "name": "ethene C-H",
+   "smiles": "C=C",
+   "atom": 0,
+   "dh298": 110.7,
+   "uncertainty": 0.6
+  },
+  {
+   "name": "ethyne C-H",
+   "smiles": "C#C",
+   "atom": 0,
+   "dh298": 133.32,
+   "uncertainty": 0.07
+  },
+  {
+   "name": "benzene C-H",
+   "smiles": "c1ccccc1",
+   "atom": 0,
+   "dh298": 112.9,
+   "uncertainty": 0.5
+  },
+  {
+   "name": "propene allylic C-H",
+   "smiles": "C=CC",
+   "atom": 2,
+   "dh298": 88.8,
+   "uncertainty": 0.4
+  },
+  {
+   "name": "toluene benzylic C-H",
+   "smiles": "Cc1ccccc1",
+   "atom": 0,
+   "dh298": 89.8,
+   "uncertainty": 0.6
+  },
+  {
+   "name": "methanol C-H",
+   "smiles": "CO",
+   "atom": 0,
+   "dh298": 96.1,
+   "uncertainty": 0.2
+  },
+  {
+   "name": "methanol O-H",
+   "smiles": "CO",
+   "atom": 1,
+   "dh298": 104.6,
+   "uncertainty": 0.7
+  },
+  {
+   "name": "ethanol O-H",
+   "smiles": "CCO",
+   "atom": 2,
+   "dh298": 104.7,
+   "uncertainty": 0.8
+  },
+  {
+   "name": "2-propanol O-H",
+   "smiles": "CC(C)O",
+   "atom": 3,
+   "dh298": 105.7,
+   "uncertainty": 0.7
+  },
+  {
+   "name": "tert-butanol O-H",
+   "smiles": "CC(C)(C)O",
+   "atom": 4,
+   "dh298": 106.3,
+   "uncertainty": 0.7
+  },
+  {
+   "name": "methanethiol S-H",
+   "smiles": "CS",
+   "atom": 1,
+   "dh298": 87.4,
+   "uncertainty": 0.5
+  },
+  {
+   "name": "hydrogen sulfide S-H",
+   "smiles": "S",
+   "atom": 0,
+   "dh298": 91.2,
+   "uncertainty": 0.1
+  },
+  {
+   "name": "ammonia N-H",
+   "smiles": "N",
+   "atom": 0,
+   "dh298": 107.6,
+   "uncertainty": 0.1
+  },
+  {
+   "name": "water O-H",
+   "smiles": "O",
+   "atom": 0,
+   "dh298": 118.82,
+   "uncertainty": 0.07
+  },
+  {
+   "name": "hydrogen peroxide O-H",
+   "smiles": "OO",
+   "atom": 0,
+   "dh298": 87.8,
+   "uncertainty": 0.5
+  },
+  {
+   "name": "methyl hydroperoxide O-H",
+   "smiles": "COO",
+   "atom": 2,
+   "dh298": 88.0,
+   "uncertainty": 1.0
+  },
+  {
+   "name": "formaldehyde C-H",
+   "smiles": "C=O",
+   "atom": 0,
+   "dh298": 88.144,
+   "uncertainty": 0.008
+  },
+  {
+   "name": "acetaldehyde formyl C-H",
+   "smiles": "CC=O",
+   "atom": 2,
+   "dh298": 89.4,
+   "uncertainty": 0.3
+  },
+  {
+   "name": "hydrogen cyanide C-H",
+   "smiles": "C#N",
+   "atom": 0,
+   "dh298": 126.3,
+   "uncertainty": 0.2
+  },
+  {
+   "name": "silane Si-H",
+   "smiles": "[SiH4]",
+   "atom": 0,
+   "dh298": 91.7,
+   "uncertainty": 0.5
+  },
+  {
+   "name": "acetaldehyde methyl C-H",
+   "smiles": "CC=O",
+   "atom": 0,
+   "dh298": 94.0,
+   "uncertainty": 2.0
+  },
+  {
+   "name": "phenol O-H",
+   "smiles": "Oc1ccccc1",
+   "atom": 0,
+   "dh298": 90.0,
+   "uncertainty": 3.0
+  },
+  {
+   "name": "ethyl hydroperoxide O-H",
+   "smiles": "CCOO",
+   "atom": 3,
+   "dh298": 85.0,
+   "uncertainty": 2.0
+  },
+  {
+   "name": "tert-butyl hydroperoxide O-H",
+   "smiles": "CC(C)(C)OO",
+   "atom": 5,
+   "dh298": 84.0,
+   "uncertainty": 2.0
+  },
+  {
+   "name": "formic acid O-H",
+   "smiles": "OC=O",
+   "atom": 0,
+   "dh298": 112.0,
+   "uncertainty": 3.0
+  },
+  {
+   "name": "acetic acid O-H",
+   "smiles": "CC(=O)O",
+   "atom": 3,
+   "dh298": 112.0,
+   "uncertainty": 3.0
+  },
+  {
+   "name": "benzoic acid O-H",
+   "smiles": "OC(=O)c1ccccc1",
+   "atom": 0,
+   "dh298": 111.0,
+   "uncertainty": 4.0
+  },
+  {
+   "name": "methanethiol C-H",
+   "smiles": "CS",
+   "atom": 0,
+   "dh298": 94.0,
+   "uncertainty": 2.0
+  }
+ ]
+}

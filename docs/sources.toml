@@ -8246,12 +8246,13 @@ status = "reference_only"
 used_by = [
     "docs/PROTON_AFFINITY_DESIGN.md",
     "benchmarks/proton_affinity/PREREGISTRATION.md",
+    "docs/BDE_DESIGN.md",
 ]
 local = "zhao2007.pdf"
 verification = "citation_and_claim"
 verified_date = 2026-10-19
 reason = """
-THE PA8 DATABASE ERRORS AGAINST EXPERIMENT (Table 4, read from the page image): eight small-molecule proton affinities, zero-point-exclusive; M06-2X MSE -0.19 and MUE 1.75 kcal/mol, B3LYP 0.18 and 1.02, PBE 0.04 and 1.35, HF 2.75 and 3.19.
+THE PA8 DATABASE ERRORS AGAINST EXPERIMENT (Table 4, read from the page image): eight small-molecule proton affinities, zero-point-exclusive; M06-2X MSE -0.19 and MUE 1.75 kcal/mol, B3LYP 0.18 and 1.02, PBE 0.04 and 1.35, HF 2.75 and 3.19. ALSO TABLE 5, THE ABDE4 DATABASE (read from the page image): four alkyl bond energies (R-CH3, R-OCH3; R = methyl, isopropyl), De not an enthalpy, 6-311+G(3df,2p) on B3LYP/6-31G(d) geometries; M06-2X MSE +0.27 and MUE 0.74 kcal/mol, M05-2X -0.18 and 0.61, B3LYP -8.62 and 8.62.
 """
 
 [[source]]
@@ -8270,4 +8271,21 @@ verification = "citation_and_claim"
 verified_date = 2026-10-19
 reason = """
 THE G3/05 PROTON-AFFINITY ERRORS AGAINST EXPERIMENT (Table IV, read from the page image): ten proton affinities, mean absolute deviation G3 1.14, G3X 1.04 and B3LYP 1.39 kcal/mol (B3LYP single points 6-311+G(3df,2p) at MP2/6-31G* geometries with scaled HF zero-point energies).
+"""
+
+[[source]]
+key = "blanksby2003"
+kind = "literature"
+citation = "S. J. Blanksby & G. B. Ellison, 'Bond Dissociation Energies of Organic Molecules', Acc. Chem. Res. 2003, 36, 255-263."
+identifier_type = "doi"
+identifier = "10.1021/ar020230d"
+status = "reference_only"
+used_by = [
+    "docs/BDE_DESIGN.md",
+]
+local = "blanksby2003.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-19
+reason = """
+THE REFERENCE VALUES OF THE BOND-DISSOCIATION BENCHMARK: Table 1 gives the experimental bond enthalpy DH298 (kcal/mol) of RH -> R + H with its stated uncertainty for 33 bonds the benchmark uses (read from the page image; the text layer agrees). Also states that DH298 and D0 differ by about 1.5 kcal/mol for R-H (the heat-content integral of the hydrogen atom, 1.48 kcal/mol at 298 K), which is why the benchmark computes an enthalpy and not an electronic energy.
 """

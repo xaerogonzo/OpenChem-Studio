@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: c64c104ec955d72a31885c03ff4e523bd4be7b1188b6067afe314a2b1f99736d -->
+<!-- SOURCE SHA256: 58789d7688df400607c2e89995791aeb379d53808dc3e1cdd56bed8226144f8b -->
 
 # Sources
 
@@ -114,6 +114,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`bickerton2012`](#bickerton2012) | literature | shipped | citation |
 | [`bilbrey2013`](#bilbrey2013) | literature | shipped | citation |
 | [`bird1985`](#bird1985) | literature | shipped | citation |
+| [`blanksby2003`](#blanksby2003) | literature | reference only | citation + claim |
 | [`bolovinos1984`](#bolovinos1984) | literature | shipped | citation + claim |
 | [`bondi1964`](#bondi1964) | literature | shipped | citation + claim |
 | [`bradley2014`](#bradley2014) | dataset | shipped | citation + claim |
@@ -6800,9 +6801,9 @@ outputs); the paper itself was NOT read, so this entry makes no claim about a nu
 | Verification | citation + claim |
 | Verified | 2026-10-19 |
 | Local copy | `zhao2007.pdf` (not checked) |
-| Used by | `docs/PROTON_AFFINITY_DESIGN.md`, `benchmarks/proton_affinity/PREREGISTRATION.md` |
+| Used by | `docs/PROTON_AFFINITY_DESIGN.md`, `benchmarks/proton_affinity/PREREGISTRATION.md`, `docs/BDE_DESIGN.md` |
 
-**Why it is reference only.** THE PA8 DATABASE ERRORS AGAINST EXPERIMENT (Table 4, read from the page image): eight small-molecule proton affinities, zero-point-exclusive; M06-2X MSE -0.19 and MUE 1.75 kcal/mol, B3LYP 0.18 and 1.02, PBE 0.04 and 1.35, HF 2.75 and 3.19.
+**Why it is reference only.** THE PA8 DATABASE ERRORS AGAINST EXPERIMENT (Table 4, read from the page image): eight small-molecule proton affinities, zero-point-exclusive; M06-2X MSE -0.19 and MUE 1.75 kcal/mol, B3LYP 0.18 and 1.02, PBE 0.04 and 1.35, HF 2.75 and 3.19. ALSO TABLE 5, THE ABDE4 DATABASE (read from the page image): four alkyl bond energies (R-CH3, R-OCH3; R = methyl, isopropyl), De not an enthalpy, 6-311+G(3df,2p) on B3LYP/6-31G(d) geometries; M06-2X MSE +0.27 and MUE 0.74 kcal/mol, M05-2X -0.18 and 0.61, B3LYP -8.62 and 8.62.
 
 ### curtiss2005
 
@@ -6820,6 +6821,23 @@ outputs); the paper itself was NOT read, so this entry makes no claim about a nu
 | Used by | `docs/PROTON_AFFINITY_DESIGN.md`, `benchmarks/proton_affinity/PREREGISTRATION.md` |
 
 **Why it is reference only.** THE G3/05 PROTON-AFFINITY ERRORS AGAINST EXPERIMENT (Table IV, read from the page image): ten proton affinities, mean absolute deviation G3 1.14, G3X 1.04 and B3LYP 1.39 kcal/mol (B3LYP single points 6-311+G(3df,2p) at MP2/6-31G* geometries with scaled HF zero-point energies).
+
+### blanksby2003
+
+<a id="blanksby2003"></a>
+
+> S. J. Blanksby & G. B. Ellison, 'Bond Dissociation Energies of Organic Molecules', Acc. Chem. Res. 2003, 36, 255-263.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ar020230d](https://doi.org/10.1021/ar020230d) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-19 |
+| Local copy | `blanksby2003.pdf` (not checked) |
+| Used by | `docs/BDE_DESIGN.md` |
+
+**Why it is reference only.** THE REFERENCE VALUES OF THE BOND-DISSOCIATION BENCHMARK: Table 1 gives the experimental bond enthalpy DH298 (kcal/mol) of RH -> R + H with its stated uncertainty for 33 bonds the benchmark uses (read from the page image; the text layer agrees). Also states that DH298 and D0 differ by about 1.5 kcal/mol for R-H (the heat-content integral of the hydrogen atom, 1.48 kcal/mol at 298 K), which is why the benchmark computes an enthalpy and not an electronic energy.
 
 ## Datasets
 
