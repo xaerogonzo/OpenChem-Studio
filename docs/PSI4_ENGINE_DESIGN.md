@@ -1,7 +1,7 @@
 # Psi4 as a second quantum-chemistry engine: design
 
-**Status: proposal, 2026-10-19. Nothing is built, and nothing in it has been run on this machine.** Every statement about Psi4 below is marked as *read* (from its documentation or a package index, not yet tried) or *to measure* (the spike
-in stage 0 decides it). The decisions that are Alex's are listed at the end.
+**Status: proposal, 2026-10-19; stage 0 (the spike) was run the same day and its result is in "Stage 0 result" below; nothing in the application is built.** Decided by Alex 2026-10-19: spike only first, **locate-only** (no download button), no calculation types beyond `sp` and `opt` in version 1.
+Statements marked *read* come from Psi4's documentation or a package index; the rest of the note is superseded where "Stage 0 result" measured it.
 
 ## Why
 
@@ -46,8 +46,31 @@ A user who already has Psi4 (a conda environment, WSL is not an option for the a
 conda-forge publishes a native **win-64** Psi4 1.11 (builds for Python 3.11 to 3.15, uploaded 2026-10-12), so the Windows route exists today without WSL.
 * **The Psi4 package itself: 78 MB compressed** (the one measured build, py312: 78.3 MB), **about 480 MB extracted** (an extracted Psi4 1.11 build already sits in this machine's conda cache).
 * **A full environment** (Psi4, its own Python 3.12, numpy, scipy, libint, libxc, pydantic and the rest, 74 packages) needs **222 MB of downloads** by the dry run, **plus the MKL math library (about 100 MB compressed), which this machine already had cached and the dry run therefore did not count**: about **320 to 340 MB to download** on a clean machine.
-* **On disk, installed: not measured**, and certainly more than the 480 MB of Psi4 alone, because MKL and Python extract larger than they download. The spike measures it on a clean prefix; the confirmation dialog would show that number, not an estimate.
+* **On disk, installed: 1.87 GB** (measured by the spike on a clean prefix: `Library` 1.24 GB, of which `Library/bin` is 641 MB mostly MKL; `Lib` 584 MB, of which Psi4 391 MB). **Not under a gigabyte**, so a tab that describes Psi4 says about 2 GB on disk.
 For comparison, the pKa sidecar and the Java runtime are the other things the app fetches; the spike should put their sizes beside this one in the same units.
+
+## Stage 0 result (2026-10-19, this machine, Windows 11, conda 26.1.1; prefix `D:\_scratch\psi4-spike`)
+
+**Go for locate-only.** Native Windows works with no WSL and no admin rights; a user installs Psi4 and points the app at the folder, as for ORCA. Measured:
+
+| question | result |
+|---|---|
+| install | `conda create -p <prefix> -c conda-forge psi4 python=3.12`: 2 min 30 s here, 222 MB fetched, **1.87 GB installed** |
+| executable | `<prefix>\Scripts\psi4.exe` (also `psi4.bat`). **The app's existing finder (`find_program`) returns it unchanged** from the environment folder, from `Scripts` and from a parent folder, so no new locating code is needed |
+| version | `psi4 --version` prints `1.11`, exit 0, 0.2 s of start-up |
+| a job | `psi4 -n 4 input.dat output.dat`: water B3LYP/def2-SVP 2.3 s; water optimization 3.4 s |
+| output | **both work**: the output file, and `-o stdout` (one `Final Energy` line captured from stdout), so `parse_output` can keep being handed captured stdout |
+| a path with a space | works (`D:\_scratch\with space\`), unlike ORCA; forward-slash `PSI_SCRATCH` also works |
+| failure | a bad input exits **1**, **but the output file still ends "Psi4 exiting successfully"**: a parser must use the exit code and the line "Psi4 encountered an error", never the closing banner |
+| cancel | killing the `psi4.exe` launcher (what `QProcess.kill` does) **also ended its python child** (benzene optimization, 2.5 GB resident at the time): no worker left behind, as measured for the pKa sidecar |
+| memory | `memory 4 GB` in the input is honoured (the job held 2.5 GB); threads are `-n` on the command line, not an input block |
+| optimized geometry | printed as "Final optimized geometry and variables" with element symbols and Angstrom coordinates, the shape the existing conformer landing needs |
+
+**The trap, found by comparing with ORCA on the same molecule, geometry and basis (water, def2-SVP):** Psi4's `b3lyp` gives -76.35814 Eh (exact `scf_type pk`) and ORCA's `B3LYP` -76.32109 Eh, **37 mEh (23 kcal/mol) apart, because the two programs' B3LYP use different VWN forms**. Matched by name they are not the same functional: Psi4's `b3lyp5` gives -76.32099 against ORCA's `B3LYP` (0.10 mEh), and Psi4's `b3lyp` -76.35814 against ORCA's `B3LYP/G` -76.35824 (0.10 mEh). Psi4's default density fitting is a further difference (the default `scf_type` is `df`; -76.35815 against pk's -76.35814 here).
+**So an engine provider must map a functional's NAME to the engine's own keyword by a table checked against ORCA, never pass the label through**, and a result carries the exact keyword and `scf_type` it ran with. This is the first entry of the agreement check's expected findings, and is why stage 2 compares energies rather than assuming them.
+
+**Not measured:** whether a console window flashes when `QProcess` starts it (needs the application; check in stage 1), Windows Defender or SmartScreen behaviour on a first run, and a path with non-ASCII characters. The standalone installer route (the install page's other option) was not tried; conda was, because it was the one with a size we could read first.
+The spike environment (1.87 GB) is left at `D:\_scratch\psi4-spike` for stage 1; remove it with `conda env remove -p D:\_scratch\psi4-spike` and delete `D:\_scratchun1`, `orca_w`, `with space`, `pscr`.
 
 ## How it is validated before it is offered (the project standard: claims are measured)
 
@@ -69,8 +92,8 @@ For comparison, the pKa sidecar and the Java runtime are the other things the ap
 * A download is a trust decision. A pinned source and checksum, a size shown before the yes, nothing run as an installer, and no system setting changed, or the button does not ship.
 * A tool a user obtains "for free" will be assumed to be validated. It is offered as a second engine at stated methods and nothing more, with the same stage and visibility vocabulary as the calculators (`docs/CALCULATOR_MATURITY.md`).
 
-## Decisions that are Alex's
+## Decisions (Alex, 2026-10-19)
 
-1. **Is the first deliverable just the spike?** Recommended: yes. Everything after it depends on a Windows install that has not been tried, and the spike costs no application code.
-2. **Should a successful spike lead to an automatic download, or to Locate only?** Locate-only is the smaller commitment (no pinned download to maintain); the download is what makes it a tool other users can obtain without a guide.
-3. **Which calculation types, if any, beyond `sp` and `opt`?** The note proposes none in version 1.
+1. **The first deliverable is the spike:** done (above).
+2. **Locate-only for now**, no download button; the confirmation-and-pinned-source work in stage 3 is deferred indefinitely.
+3. **No calculation types beyond `sp` and `opt`** in version 1.
