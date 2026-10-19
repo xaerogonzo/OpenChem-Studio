@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 58789d7688df400607c2e89995791aeb379d53808dc3e1cdd56bed8226144f8b -->
+<!-- SOURCE SHA256: d638992219de85f2383bf80acd36c83b280e519483f84f1ad58f00be440727d9 -->
 
 # Sources
 
@@ -229,6 +229,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`lovering2009`](#lovering2009) | literature | shipped | citation |
 | [`mann1947`](#mann1947) | literature | shipped | citation + claim |
 | [`mantina2009`](#mantina2009) | literature | shipped | citation + claim |
+| [`mardirossian2017`](#mardirossian2017) | literature | reference only | citation + claim |
 | [`marsili1980`](#marsili1980) | literature | shipped | citation + claim |
 | [`mathieu2007`](#mathieu2007) | literature | reference only | citation + claim |
 | [`maverick2002`](#maverick2002) | literature | reference only | citation + claim |
@@ -307,6 +308,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`souvignier2016`](#souvignier2016) | literature | shipped | citation |
 | [`stefanis2008`](#stefanis2008) | literature | shipped | citation + claim |
 | [`stener2011`](#stener2011) | literature | shipped | citation + claim |
+| [`stjohn2020`](#stjohn2020) | literature | reference only | citation + claim |
 | [`stovall2015`](#stovall2015) | literature | shipped | citation + claim |
 | [`su2019`](#su2019) | literature | shipped | citation + claim |
 | [`swope1982`](#swope1982) | literature | shipped | citation + claim |
@@ -327,6 +329,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`verstraelen2009`](#verstraelen2009) | literature | reference only | citation + claim |
 | [`verstraelen2011`](#verstraelen2011) | literature | reference only | citation + claim |
 | [`verstraelen2013`](#verstraelen2013) | literature | reference only | citation + claim |
+| [`vo2022`](#vo2022) | literature | reference only | citation + claim |
 | [`vogel_drago1996`](#vogel_drago1996) | literature | shipped | citation + claim |
 | [`vogt2019`](#vogt2019) | literature | **not shipped** | citation |
 | [`waasmaier1995`](#waasmaier1995) | literature | shipped | citation + claim |
@@ -6838,6 +6841,57 @@ outputs); the paper itself was NOT read, so this entry makes no claim about a nu
 | Used by | `docs/BDE_DESIGN.md` |
 
 **Why it is reference only.** THE REFERENCE VALUES OF THE BOND-DISSOCIATION BENCHMARK: Table 1 gives the experimental bond enthalpy DH298 (kcal/mol) of RH -> R + H with its stated uncertainty for 33 bonds the benchmark uses (read from the page image; the text layer agrees). Also states that DH298 and D0 differ by about 1.5 kcal/mol for R-H (the heat-content integral of the hydrogen atom, 1.48 kcal/mol at 298 K), which is why the benchmark computes an enthalpy and not an electronic energy.
+
+### vo2022
+
+<a id="vo2022"></a>
+
+> N. Q. Trung, A. Mechler, N. T. Hoa & Q. V. Vo, 'Calculating bond dissociation energies of X-H (X = C, N, O, S) bonds of aromatic systems via density functional theory: a detailed comparison of methods', R. Soc. Open Sci. 2022, 9, 220177.
+
+| | |
+| --- | --- |
+| Identifier | [10.1098/rsos.220177](https://doi.org/10.1098/rsos.220177) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-19 |
+| Local copy | `vo2022_xh_bde.pdf` (not checked) |
+| Used by | `docs/BDE_DESIGN.md` |
+
+**Why it is reference only.** M06-2X'S ERROR ON X-H BOND DISSOCIATION ENTHALPIES AGAINST EXPERIMENT (text of Sec. 3 and Table 5): aromatic X-H, 6-311+G(3df,2p) on B3LYP/6-31G(d) geometries; M06-2X MUE 1.3 (C-H, max 3.2), 1.2 (N-H, max 2.9), 1.2 to 1.4 (O-H, max 3.2 to 3.4), 1.1 (S-H, max 5.4); average MUE 1.2 and MaxAE 3.7 kcal/mol.
+
+### stjohn2020
+
+<a id="stjohn2020"></a>
+
+> P. C. St. John, Y. Guan, Y. Kim, S. Kim & R. S. Paton, 'Prediction of organic homolytic bond dissociation enthalpies at near chemical accuracy with sub-second computational cost', Nat. Commun. 2020, 11, 2328.
+
+| | |
+| --- | --- |
+| Identifier | [10.1038/s41467-020-16201-z](https://doi.org/10.1038/s41467-020-16201-z) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-19 |
+| Local copy | `stjohn2020_bde_db.pdf` (not checked) |
+| Used by | `docs/BDE_DESIGN.md` |
+
+**Why it is reference only.** THE CLOSEST PUBLISHED MATCH TO THE BDE BENCHMARK'S PROTOCOL: gas-phase enthalpies at 298 K and 1 atm with unscaled ZPE and thermal corrections after a conformer search; against 368 experimental iBond bond enthalpies M06-2X/def2-TZVP has an MAE of about 2.1 kcal/mol (Fig. 1a, text layer), equal to DLPNO-CCSD(T)/cc-pVTZ and better than B3LYP-D3 and wB97X-D; about 2.5 kcal/mol for large molecules outside the training set.
+
+### mardirossian2017
+
+<a id="mardirossian2017"></a>
+
+> N. Mardirossian & M. Head-Gordon, 'Thirty years of density functional theory in computational chemistry: an overview and extensive assessment of 200 density functionals', Mol. Phys. 2017, 115, 2315-2372.
+
+| | |
+| --- | --- |
+| Identifier | [10.1080/00268976.2017.1333644](https://doi.org/10.1080/00268976.2017.1333644) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-19 |
+| Local copy | `mardirossian2017_mgcdb84.pdf` (not checked) |
+| Used by | `docs/BDE_DESIGN.md` |
+
+**Why it is reference only.** PER-SET ERRORS OF 200 FUNCTIONALS (the SI file MADValues.csv, against CCSD(T)/CBS-type references): M06-2X MAD 1.83 kcal/mol on BDE99nonMR and 2.50 on HAT707nonMR, 6.32 and 5.08 on the multireference sets BDE99MR and HAT707MR; B3LYP 3.19 and 3.08 on the non-multireference sets.
 
 ## Datasets
 
