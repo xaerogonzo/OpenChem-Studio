@@ -2,6 +2,7 @@
 
     python run_probe.py --basis "6-31+G*" --tag 631pG      [--workers 7] [--cores 4] [--species NAME]
     python run_probe.py --basis "def2-TZVP" --tag def2tzvp
+    python run_probe.py --method "wB97X-D3" --basis "6-31G*" --tag wb97xd3 --out ../functional_probe/artifacts   (the functional probe: another functional, the basis of gate 4)
 
 Everything but the basis is gate 4's: the B3LYP/6-31G* optimised geometries (read from `../artifacts/`, not re-optimised), oriented with the plane as xy, the application's compound input with holes in the HOMO-1 to the
 HOMO-7, and the reading of every N-1 state's kind from the Loewdin spin populations (`openchem.app.fukui_gate_4`). **One difference, and why**: the N+1 job is removed from the input. At a basis the neutral's
@@ -101,12 +102,14 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--basis", required=True, help='the basis set keyword ORCA reads, e.g. "6-31+G*" or "def2-TZVP"')
     parser.add_argument("--tag", required=True, help="the folder under artifacts/ the records go to")
+    parser.add_argument("--method", default="B3LYP", help="the functional ORCA reads (default B3LYP, the one every earlier run used)")
+    parser.add_argument("--out", help="the folder the tag folder goes in (default: artifacts/ beside this file)")
     parser.add_argument("--workers", type=int, default=7)
     parser.add_argument("--cores", type=int, default=4)
     parser.add_argument("--species")
     args = parser.parse_args()
 
-    out = HERE / "artifacts" / args.tag
+    out = (Path(args.out).resolve() if args.out else HERE / "artifacts") / args.tag
     ctx = rg.Context(out, args.cores, args.workers)
     geometries = json.loads((GATE_ARTIFACTS / "geometries.json").read_text())
     geometries.update({k: v for k, v in json.loads((GATE_ARTIFACTS / "calibration" / "geometries.json").read_text()).items() if k == "pyridine_reference"})
@@ -118,7 +121,7 @@ def main() -> None:
             ctx.store_geometry(key, geometries[key])
 
     def work(base: gate.GateSpecies) -> None:
-        species = Species(base, f"B3LYP {args.basis}")
+        species = Species(base, f"{args.method} {args.basis}")
         mol = rg.with_coordinates(rg.embed(base.smiles, rg.SEED), rg.oriented(ctx.geometry(f"{base.name}_reference")))
         record = rg.with_attempts(probe_run, ctx, species, mol)
         print(f"{args.tag} {base.name:11s} completed={record['completed']} {record['seconds']} s", flush=True)
