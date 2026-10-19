@@ -1561,6 +1561,27 @@ the subject of the deferred Sci Downloads naming round) with a `kv` lookup by DO
 report of which registered sources the maintainer's library lacks, which is the list of papers to fetch before
 the next explainer family is written.
 
+### The paper library: move it off D:, and make its location one setting (recorded 2026-10-19)
+
+**Decided (Alex, 2026-10-19):** the whole `Sci Downloads` folder moves to `E:\My Area\Documents` (so it becomes `E:\My Area\Documents\Sci Downloads`), on the 8 TB drive, because the library keeps growing. **Not today**; this records the plan and what it touches, so that
+it is not rediscovered.
+
+**What was measured (2026-10-19).** The library is 2.41 GB in 1,965 files in 53 folders (838 PDFs make 2.03 GB; the rest is text, structure files and spreadsheets), plus `Sci Downloads.index.sqlite`, 334 MB, beside it (the full-text index of
+`tools/library_index.py`). E: has 5.3 TB free and the target folder does not exist yet. **So the copy is minutes; the cost is the path references.** No environment variable and no OpenChem setting names the library today (checked in the user and machine
+environment and in the application's registry settings). The PDF tools (`tools/library_index.py`, `tools/index_literature.py`, `tools/index_pdf_library.py`) already read `OPENCHEM_PDF_LIBRARY` before falling back to a hard-coded default, so they
+need only the variable set. What does not read any variable: `tools/build_hansen_tables.py`, five benchmark scripts that read a supplement folder or a PDF there (`ionescu2013_benchmark.py`, `ionescu_eem_check.py`, `eqeq_check.py`, `nistor_extract.py`,
+`mathieu_eem_check.py`) and `tests/test_periodic_charges.py` (seven places); the Schindler check reads a variable of its own name, `OPENCHEM_SCI_DOWNLOADS`; and fourteen `local =` entries in `docs/sources.toml` hold an absolute path although the field
+is documented as a filename. The Vina executable, ORCA and the `.ocsproj` project files live elsewhere and are not part of this move.
+
+**Order of work.**
+1. **Make the location one setting, before moving anything.** `OPENCHEM_PDF_LIBRARY` is the name the tools already use: the seven places above read it (falling back to today's path), the Schindler check accepts it as well as its own name, and the fourteen
+   absolute `local =` paths become filenames. That can be done today without moving a file, and makes the move a one-line environment change.
+2. **The move.** Close whatever holds the folder (Claude sessions, a PDF reader). Copy with `robocopy /E /COPY:DAT /DCOPY:DAT`, compare the file count and a sha256 manifest (`OPENCHEM_PDF_LIBRARY=<new folder> python tools/index_literature.py --check` already verifies every held
+   file against its hash), copy the index beside it (or rebuild it with `tools/library_index.py update` if it keys files by path), set `OPENCHEM_PDF_LIBRARY` at user scope, rename the old
+   folder `Sci Downloads.OLD`, and delete it only after a week of normal use.
+3. **Point the assistant's sessions at the new folder.** The additional working directory is agent-control configuration, so it gets its own show-the-diff-and-approve step.
+4. **Keep a second copy.** One big disk is one failure. The library is small enough to mirror (`robocopy /MIR`) to another drive after the move; the sha256 manifest of step 2 is what makes a restore checkable.
+
 ### Reference programs: what to learn from, and what we might emulate (bookmarked 2026-10-18)
 
 The project began as an open replacement for MarvinSketch-class editors, and Phases 1 to 9 track that. A second program is now **bookmarked as a
