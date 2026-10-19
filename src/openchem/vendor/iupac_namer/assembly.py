@@ -3469,7 +3469,8 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
             import dataclasses as _dc_iso
             from openchem.vendor.iupac_namer.isotope import render_isotope_labels as _render_iso_suffix
             _suffix_label = _render_iso_suffix(tuple(_dc_iso.replace(lbl, locant=None) if lbl.locant is not None and lbl.locant.is_numeric else lbl for lbl in _suffix_iso))
-            _located = re.match(r"^(-[0-9A-Za-z,']+-)(.+)$", rendered_suf)
+            # (the locant may carry its added hydrogen, `-1(2H)-one`: `pyrrolo[1,2-c]pyrimidin-1(2H)-(18O)one`, which OPSIN reads where the front-of-name `(1-18O)` it does not)
+            _located = re.match(r"^(-[0-9A-Za-z,']+(?:\([0-9A-Za-z,']+\))?-)(.+)$", rendered_suf)
             _anchors = {str(lbl.locant) for lbl in _suffix_iso if lbl.locant is not None and lbl.locant.is_numeric}
             if not _anchors and len(tree.suffix_groups) == 1 and tree.suffix_groups[0].locants:      # an alkoxy oxygen's label carries the element, not the anchor
                 _anchors = {str(tree.suffix_groups[0].locants[0])}

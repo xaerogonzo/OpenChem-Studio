@@ -6244,6 +6244,7 @@ def _name_single_fg_substituent(
                     if acyl_name:
                         amino_prefix = _amido_unless_labelled(acid_name, mol.GetAtomWithIdx(attachment_idx)) or acyl_name + "amino"
                         amino_prefix = _isotopic_attachment_prefix(amino_prefix, mol.GetAtomWithIdx(attachment_idx), mol)   # `(15N)acetamido` (naming round 70, D-323)
+                        amino_prefix = _bare_acyl_oxygen_label(amino_prefix)
                         return LeafTree(
                             output_form=output_form,
                             free_valence=free_valence,
@@ -12956,6 +12957,33 @@ def _amido_unless_labelled(acid_name: str, nitrogen) -> str | None:
     return amido
 
 
+def _bare_acyl_oxygen_label(amido: str) -> str:
+    """`hexadecan-1-(18O)amido` -> `(18O)hexadecanamido`, for a plain chain.
+
+    The amido prefix is the acid's name with its ending rewritten, and the acid cites its oxygen at the suffix with a locant, which OPSIN cannot read in an amido
+    (`4-[propan-1-(18O)amido]benzoic acid` answers nothing). `(18O)propanamido` it reads, and means the one oxygen there is. Only a bare alkane stem qualifies: with a ring or
+    a substituent in the prefix there can be a second oxygen, and OPSIN then takes the wrong one (`(18O)furan-2-carboxamido` is the RING's), so those keep the located
+    spelling and the nuclide guard decides (naming round 72).
+    """
+    match = re.fullmatch(r"([a-z]+)-1-\((\d+O)\)amido", amido)
+    return amido if match is None else f"({match.group(2)}){match.group(1)}amido"
+
+
+_ALKANE_STEM = r"(?:meth|eth|prop|but|pent|hex|hept|oct|non|dec|undec|dodec|tridec|tetradec|pentadec|hexadec|heptadec|octadec|nonadec|icos)an"
+
+
+def _bare_acyl_label(acyl: str) -> str:
+    """`3,3-bis(methylsulfanyl)propan-1-(18O)oyl` -> `3,3-bis(methylsulfanyl)(18O)propanoyl`, for a chain.
+
+    The acyl name is the acid's with its ending rewritten, and the acid cites its carbonyl oxygen at the suffix with a locant, which OPSIN cannot read in an acyl
+    (`[propan-1-(18O)oyl]azanide` answers nothing). Before the stem, after the substituents, it reads (`2-methyl(18O)pentanamido` is the same place), and means the stem's
+    own oxygen: the bracket belongs to the component that follows it, so an oxygen in a substituent (`3-methoxy(18O)propanoyl`) is not mistaken for it. A RING is not a chain:
+    `(18O)furan-2-carboxamido` is read as the furan's oxygen, so those keep the located spelling and the nuclide guard decides (naming round 72).
+    """
+    match = re.fullmatch(rf"(.*?)({_ALKANE_STEM})-1-\((\d+O)\)oyl", acyl)
+    return acyl if match is None else f"{match.group(1)}({match.group(3)}){match.group(2)}oyl"
+
+
 def _acid_name_to_amido(acid_name: str) -> str | None:
     """The amide prefix for R-CO-NH-, by P-66.1.1.4.3 method (1), or None.
 
@@ -19555,6 +19583,10 @@ class SubstitutivePath:
                 if _derived and _fg_atom not in _iso_suffix:
                     continue
                 _fg_anchor_map[_fg_atom] = _anchor_loc
+                if _sg.fg.type == "hydrazide" and mol.GetAtomWithIdx(_fg_atom).GetSymbol() == "N":
+                    # a hydrazide's two nitrogens are told apart by the italic locants the book gives its N-substituents, `(N-15N)acetohydrazide` for the amide nitrogen and
+                    # `(N'-15N)` for the terminal one. Both were `(1-15N)`, one name for two molecules, and OPSIN reads neither (naming round 72)
+                    _fg_anchor_map[_fg_atom] = Locant.hetero("N") if mol.GetBondBetweenAtoms(_fg_atom, _sg.fg.anchor) is not None else Locant.hetero("N", "'")
         _iso_labels = _coll_iso(
             mol, _atom_to_loc_map, fg_anchor_map=_fg_anchor_map or None,
             unnumbered_ok=_iso_unnumbered, suffix_ok=_iso_suffix, alkoxy_ok=_iso_alkoxy,
