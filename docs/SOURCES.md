@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: d638992219de85f2383bf80acd36c83b280e519483f84f1ad58f00be440727d9 -->
+<!-- SOURCE SHA256: 327b225539f7d5105b315bbb154c8b729fe269ddabe95acd96205e6316189c6f -->
 
 # Sources
 
@@ -6753,7 +6753,7 @@ outputs); the paper itself was NOT read, so this entry makes no claim about a nu
 | Verification | citation + claim |
 | Verified | 2026-10-19 |
 | Local copy | `riplinger2013_dlpno.pdf` (not checked) |
-| Used by | `docs/PROTON_AFFINITY_DESIGN.md`, `benchmarks/proton_affinity/PREREGISTRATION.md` |
+| Used by | `docs/PROTON_AFFINITY_DESIGN.md`, `benchmarks/proton_affinity/PREREGISTRATION.md`, `benchmarks/bde/PREREGISTRATION.md` |
 
 **Why it is reference only.** THE DLPNO-CCSD METHOD of the benchmark's secondary arm: default thresholds (TCutPNO 3.33e-7, TCutPairs 1e-4, TCutMKN 1e-3), more than 99.9% of the correlation energy recovered, and a mean absolute deviation of about 0.5 kcal/mol from canonical on a test set of medium-sized organic molecules.
 
@@ -6770,7 +6770,7 @@ outputs); the paper itself was NOT read, so this entry makes no claim about a nu
 | Verification | citation + claim |
 | Verified | 2026-10-19 |
 | Local copy | `riplinger2013_triples.pdf` (not checked) |
-| Used by | `docs/PROTON_AFFINITY_DESIGN.md`, `benchmarks/proton_affinity/PREREGISTRATION.md` |
+| Used by | `docs/PROTON_AFFINITY_DESIGN.md`, `benchmarks/proton_affinity/PREREGISTRATION.md`, `benchmarks/bde/PREREGISTRATION.md` |
 
 **Why it is reference only.** THE DLPNO-(T) TRIPLES of the secondary arm: the default TCutTNO 1e-7, the statement that the triples correction can reach 4 kcal/mol, and the accuracy of the approximation against canonical (about 0.5 kcal/mol).
 
@@ -6804,7 +6804,7 @@ outputs); the paper itself was NOT read, so this entry makes no claim about a nu
 | Verification | citation + claim |
 | Verified | 2026-10-19 |
 | Local copy | `zhao2007.pdf` (not checked) |
-| Used by | `docs/PROTON_AFFINITY_DESIGN.md`, `benchmarks/proton_affinity/PREREGISTRATION.md`, `docs/BDE_DESIGN.md` |
+| Used by | `docs/PROTON_AFFINITY_DESIGN.md`, `benchmarks/proton_affinity/PREREGISTRATION.md`, `docs/BDE_DESIGN.md`, `benchmarks/bde/PREREGISTRATION.md` |
 
 **Why it is reference only.** THE PA8 DATABASE ERRORS AGAINST EXPERIMENT (Table 4, read from the page image): eight small-molecule proton affinities, zero-point-exclusive; M06-2X MSE -0.19 and MUE 1.75 kcal/mol, B3LYP 0.18 and 1.02, PBE 0.04 and 1.35, HF 2.75 and 3.19. ALSO TABLE 5, THE ABDE4 DATABASE (read from the page image): four alkyl bond energies (R-CH3, R-OCH3; R = methyl, isopropyl), De not an enthalpy, 6-311+G(3df,2p) on B3LYP/6-31G(d) geometries; M06-2X MSE +0.27 and MUE 0.74 kcal/mol, M05-2X -0.18 and 0.61, B3LYP -8.62 and 8.62.
 
@@ -6838,7 +6838,7 @@ outputs); the paper itself was NOT read, so this entry makes no claim about a nu
 | Verification | citation + claim |
 | Verified | 2026-10-19 |
 | Local copy | `blanksby2003.pdf` (not checked) |
-| Used by | `docs/BDE_DESIGN.md` |
+| Used by | `docs/BDE_DESIGN.md`, `benchmarks/bde/PREREGISTRATION.md` |
 
 **Why it is reference only.** THE REFERENCE VALUES OF THE BOND-DISSOCIATION BENCHMARK: Table 1 gives the experimental bond enthalpy DH298 (kcal/mol) of RH -> R + H with its stated uncertainty for 33 bonds the benchmark uses (read from the page image; the text layer agrees). Also states that DH298 and D0 differ by about 1.5 kcal/mol for R-H (the heat-content integral of the hydrogen atom, 1.48 kcal/mol at 298 K), which is why the benchmark computes an enthalpy and not an electronic energy.
 
@@ -6855,7 +6855,7 @@ outputs); the paper itself was NOT read, so this entry makes no claim about a nu
 | Verification | citation + claim |
 | Verified | 2026-10-19 |
 | Local copy | `vo2022_xh_bde.pdf` (not checked) |
-| Used by | `docs/BDE_DESIGN.md` |
+| Used by | `docs/BDE_DESIGN.md`, `benchmarks/bde/PREREGISTRATION.md` |
 
 **Why it is reference only.** M06-2X'S ERROR ON X-H BOND DISSOCIATION ENTHALPIES AGAINST EXPERIMENT (text of Sec. 3 and Table 5): aromatic X-H, 6-311+G(3df,2p) on B3LYP/6-31G(d) geometries; M06-2X MUE 1.3 (C-H, max 3.2), 1.2 (N-H, max 2.9), 1.2 to 1.4 (O-H, max 3.2 to 3.4), 1.1 (S-H, max 5.4); average MUE 1.2 and MaxAE 3.7 kcal/mol.
 
@@ -6872,7 +6872,7 @@ outputs); the paper itself was NOT read, so this entry makes no claim about a nu
 | Verification | citation + claim |
 | Verified | 2026-10-19 |
 | Local copy | `stjohn2020_bde_db.pdf` (not checked) |
-| Used by | `docs/BDE_DESIGN.md` |
+| Used by | `docs/BDE_DESIGN.md`, `benchmarks/bde/PREREGISTRATION.md` |
 
 **Why it is reference only.** THE CLOSEST PUBLISHED MATCH TO THE BDE BENCHMARK'S PROTOCOL: gas-phase enthalpies at 298 K and 1 atm with unscaled ZPE and thermal corrections after a conformer search; against 368 experimental iBond bond enthalpies M06-2X/def2-TZVP has an MAE of about 2.1 kcal/mol (Fig. 1a, text layer), equal to DLPNO-CCSD(T)/cc-pVTZ and better than B3LYP-D3 and wB97X-D; about 2.5 kcal/mol for large molecules outside the training set.
 
@@ -6889,7 +6889,7 @@ outputs); the paper itself was NOT read, so this entry makes no claim about a nu
 | Verification | citation + claim |
 | Verified | 2026-10-19 |
 | Local copy | `mardirossian2017_mgcdb84.pdf` (not checked) |
-| Used by | `docs/BDE_DESIGN.md` |
+| Used by | `docs/BDE_DESIGN.md`, `benchmarks/bde/PREREGISTRATION.md` |
 
 **Why it is reference only.** PER-SET ERRORS OF 200 FUNCTIONALS (the SI file MADValues.csv, against CCSD(T)/CBS-type references): M06-2X MAD 1.83 kcal/mol on BDE99nonMR and 2.50 on HAT707nonMR, 6.32 and 5.08 on the multireference sets BDE99MR and HAT707MR; B3LYP 3.19 and 3.08 on the non-multireference sets.
 

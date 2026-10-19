@@ -8192,6 +8192,7 @@ status = "reference_only"
 used_by = [
     "docs/PROTON_AFFINITY_DESIGN.md",
     "benchmarks/proton_affinity/PREREGISTRATION.md",
+    "benchmarks/bde/PREREGISTRATION.md",
 ]
 local = "riplinger2013_dlpno.pdf"
 verification = "citation_and_claim"
@@ -8210,6 +8211,7 @@ status = "reference_only"
 used_by = [
     "docs/PROTON_AFFINITY_DESIGN.md",
     "benchmarks/proton_affinity/PREREGISTRATION.md",
+    "benchmarks/bde/PREREGISTRATION.md",
 ]
 local = "riplinger2013_triples.pdf"
 verification = "citation_and_claim"
@@ -8247,6 +8249,7 @@ used_by = [
     "docs/PROTON_AFFINITY_DESIGN.md",
     "benchmarks/proton_affinity/PREREGISTRATION.md",
     "docs/BDE_DESIGN.md",
+    "benchmarks/bde/PREREGISTRATION.md",
 ]
 local = "zhao2007.pdf"
 verification = "citation_and_claim"
@@ -8282,6 +8285,7 @@ identifier = "10.1021/ar020230d"
 status = "reference_only"
 used_by = [
     "docs/BDE_DESIGN.md",
+    "benchmarks/bde/PREREGISTRATION.md",
 ]
 local = "blanksby2003.pdf"
 verification = "citation_and_claim"
@@ -8299,6 +8303,7 @@ identifier = "10.1098/rsos.220177"
 status = "reference_only"
 used_by = [
     "docs/BDE_DESIGN.md",
+    "benchmarks/bde/PREREGISTRATION.md",
 ]
 local = "vo2022_xh_bde.pdf"
 verification = "citation_and_claim"
@@ -8316,6 +8321,7 @@ identifier = "10.1038/s41467-020-16201-z"
 status = "reference_only"
 used_by = [
     "docs/BDE_DESIGN.md",
+    "benchmarks/bde/PREREGISTRATION.md",
 ]
 local = "stjohn2020_bde_db.pdf"
 verification = "citation_and_claim"
@@ -8333,6 +8339,7 @@ identifier = "10.1080/00268976.2017.1333644"
 status = "reference_only"
 used_by = [
     "docs/BDE_DESIGN.md",
+    "benchmarks/bde/PREREGISTRATION.md",
 ]
 local = "mardirossian2017_mgcdb84.pdf"
 verification = "citation_and_claim"

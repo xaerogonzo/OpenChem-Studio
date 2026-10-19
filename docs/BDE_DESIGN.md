@@ -1,6 +1,6 @@
 # Homolytic bond dissociation enthalpy from ORCA: design (2026-10-19)
 
-Status: **design and proposed thresholds only; nothing is run and nothing is frozen.** The third reactivity calculator of Phase 3 (after Fukui and proton affinity), behind a preregistered gate; "measured, not shipped" is an accepted outcome. This note records what was decided with Alex, what the one reference source says, and the thresholds proposed for approval. The preregistration is written after the thresholds are approved, as it was for proton affinity.
+Status: **thresholds approved by Alex 2026-10-19; preregistered in `benchmarks/bde/PREREGISTRATION.md` (frozen when its runner is committed); nothing is run.** The third reactivity calculator of Phase 3 (after Fukui and proton affinity), behind a preregistered gate; "measured, not shipped" is an accepted outcome. This note records what was decided with Alex, what the one reference source says, and the thresholds proposed for approval. The preregistration is written after the thresholds are approved, as it was for proton affinity.
 
 ## What is computed, and what is never claimed
 
@@ -16,7 +16,7 @@ Experimental `DH298` with the stated uncertainty, in `benchmarks/bde/reference_v
 ## Protocol, primary arm (same as proton affinity)
 
 M062X/def2-TZVPD, `TightSCF TightOpt DefGrid3 Opt Freq`, ORCA 6.1.1, radicals as `* xyz 0 2` (UKS), the parent as 0/1. Each species: ETKDG seed 7 (30 conformers), MMFF94, dedupe by all-atom RMSD 0.5 Angstrom, the lowest three within 5 kcal/mol optimized; **a radical's starts are the parent's kept conformers with the hydrogen deleted**, so the radical is not embedded as a closed-shell guess. The lowest-H structure of each species, independently; no Boltzmann average. A frequency below -20 cm-1 is not accepted (one retry with an initial Hessian). The hydrogen atom: one UKS single point of the same method.
-**Reported for every radical, deciding nothing:** the `<S**2>` (0.75 is a clean doublet) and the largest unpaired-spin leakage onto an atom far from the site, as a flag for a contaminated result.
+**Reported for every radical, deciding nothing:** the `<S**2>` (0.75 is a clean doublet), flagged above 0.80. (A per-atom spin-leakage flag was considered and dropped from the preregistration: it needs a population analysis this benchmark does not otherwise run.)
 No symmetry-number issue: the quantity is an enthalpy.
 The secondary arm (DLPNO-CCSD(T)/def2-QZVPPD single points on the same geometries with the DFT thermal corrections) is the same one as for proton affinity and is only run if the primary arm passes.
 
@@ -29,7 +29,7 @@ The secondary arm (DLPNO-CCSD(T)/def2-QZVPPD single points on the same geometrie
 * **Mardirossian and Head-Gordon 2017** (MGCDB84, per-set MAD in their SI, against **CCSD(T)/CBS-type references**, not experiment): **M06-2X MAD 1.83 kcal/mol on BDE99nonMR** (99 bond dissociation energies of non-multireference species), 2.50 on HAT707nonMR (hydrogen-atom transfer); against 6.32 and 5.08 on the multireference sets BDE99MR and HAT707MR, where M06-2X is unreliable. B3LYP 3.19 and 3.08 on the non-multireference sets. [source:mardirossian2017] **This is why the deciding set is closed-shell parents with ordinary radicals** and why the preregistration will say that a multireference-looking species (here possibly HCN's radical, H2O2, HOO.) may behave worse.
 * **Not found:** GMTKN55 (`goerigk2017_si.pdf`) carries no organic R-H set; its two bond sets (ALKBDE10, YBDE18) are different bonds.
 
-## Proposed thresholds (revised after reading these three; for approval; the same shape as proton affinity's rule)
+## Thresholds (revised after reading these three; approved 2026-10-19; the same shape as proton affinity's rule)
 
 On the **25 deciding bonds**, error = calculated - experimental in kcal/mol:
 
