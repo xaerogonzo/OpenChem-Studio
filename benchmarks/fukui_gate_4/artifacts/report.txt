@@ -1,0 +1,44 @@
+
+pyrimidine: the sources print a gap of 0.48 to 0.80 eV; lowest sigma, second pi
+  the application's lowest state is +0.0009 eV from the exhaustive search's; its note: (none)
+  + 0.000 eV  sigma      out of plane -0.000  5 job(s)
+  + 0.909 eV  pi         out of plane  1.000  1 job(s)
+  + 1.356 eV  sigma      out of plane  0.000  1 job(s)
+  + 1.735 eV  pi         out of plane  1.000  1 job(s)
+
+pyrazine: the sources print a gap of 0.55 to 0.80 eV; lowest sigma, second pi
+  the application's lowest state is +0.0000 eV from the exhaustive search's; its note: (none)
+  + 0.000 eV  sigma      out of plane  0.000  1 job(s)
+  + 0.683 eV  pi         out of plane  1.000  1 job(s)
+  + 1.735 eV  sigma      out of plane  0.000  2 job(s)
+  + 2.173 eV  pi         out of plane  1.000  1 job(s)
+  + 3.871 eV  sigma      out of plane -0.000  1 job(s)
+  + 4.832 eV  pi         out of plane  1.000  1 job(s)
+  + 5.219 eV  sigma      out of plane -0.000  1 job(s)
+
+pyridazine: the sources print a gap of 1.30 to 1.52 eV; lowest sigma, second pi
+  the application's lowest state is +0.0037 eV from the exhaustive search's; its note: (none)
+  + 0.000 eV  sigma      out of plane -0.000  5 job(s)
+  + 1.564 eV  pi         out of plane  1.000  1 job(s)
+  + 1.962 eV  pi         out of plane  1.000  1 job(s)
+  + 2.001 eV  sigma      out of plane  0.000  1 job(s)
+
+imidazole: the sources print a gap of 1.23 to 1.67 eV; lowest pi, second None
+  the application's lowest state is +0.0000 eV from the exhaustive search's; its note: (none)
+  + 0.000 eV  pi         out of plane  1.000  7 job(s)
+  + 1.174 eV  sigma      out of plane  0.000  1 job(s)
+
+pyrazole: the sources print a gap of 1.55 to 1.55 eV; lowest pi, second None
+  the application's lowest state is +0.0001 eV from the exhaustive search's; its note: (none)
+  + 0.000 eV  pi         out of plane  1.000  7 job(s)
+  + 1.157 eV  sigma      out of plane  0.037  1 job(s)
+
+oxazole: the sources print a gap of 1.36 to 1.36 eV; lowest pi, second None
+  the application's lowest state is +0.0015 eV from the exhaustive search's; its note: (none)
+  + 0.000 eV  pi         out of plane  1.000  7 job(s)
+  + 1.252 eV  sigma      out of plane  0.000  1 job(s)
+
+selenophene: the sources print a gap of 0.00 to 0.10 eV; lowest None, second None
+  the application's lowest state is +0.0000 eV from the exhaustive search's; its note: Another state of the cation lies 0.18 eV (its f- differs by up to 0.226, at Se (atom 4)) above the one f- is read from, which is the lowest found. f- depends on which state is meant.
+  + 0.000 eV  pi         out of plane  1.000  5 job(s)  spin on Se -0.079 (a2)
+  + 0.182 eV  pi         out of plane  1.000  3 job(s)  spin on Se +0.682 (b1)

@@ -13,9 +13,17 @@ from openchem.domain.common import RUN_METHOD_BASIS, Provenance
 #: optimized one": `chem.calculation_input.canonical_conformer` prefers it to every force-field conformer.
 ORCA_OPTIMIZED = "orca_opt"
 
-#: Every `method` that marks a quantum-optimized geometry. A set because a second engine would add its own
-#: label here and nothing else would change.
-QUANTUM_OPTIMIZED_METHODS = frozenset({ORCA_OPTIMIZED})
+#: The same, from Psi4 (`chem/psi4_engine.py`): the final geometry of an `optimize()` job. Never relabelled as ORCA's,
+#: because a geometry says which program and level made it.
+PSI4_OPTIMIZED = "psi4_opt"
+
+#: Every `method` that marks a quantum-optimized geometry. A set because a second engine adds its own
+#: label here and nothing else changes: the canonical-conformer rule, the keep-on-regenerate rule and the scores'
+#: geometry rule all read this set.
+QUANTUM_OPTIMIZED_METHODS = frozenset({ORCA_OPTIMIZED, PSI4_OPTIMIZED})
+
+#: How a person names the engine behind each quantum-optimized `method`, for labels ("4 - Psi4 optimized (...)").
+QUANTUM_ENGINE_NAMES = {ORCA_OPTIMIZED: "ORCA", PSI4_OPTIMIZED: "Psi4"}
 
 #: Provenance parameter naming the `conformer_id` of the conformer a quantum optimization started from. The id
 #: is the identity; the slot below is for a reader who counts conformers 1..N.
@@ -94,6 +102,19 @@ def is_quantum_optimized(conformer: ConformerModel) -> bool:
     return conformer.method in QUANTUM_OPTIMIZED_METHODS
 
 
+def quantum_engine_name(conformer: ConformerModel) -> str:
+    """The engine behind a quantum-optimized conformer ("ORCA", "Psi4"), or "quantum" for a method this build does not name."""
+    return QUANTUM_ENGINE_NAMES.get(conformer.method, "quantum")
+
+
+def quantum_engine_of(conformers: Sequence[ConformerModel]) -> str:
+    """The one engine every quantum-optimized conformer here came from, "quantum" when two engines made them, and "" when there are none."""
+    engines = {quantum_engine_name(c) for c in conformers if is_quantum_optimized(c)}
+    if not engines:
+        return ""
+    return engines.pop() if len(engines) == 1 else "quantum"
+
+
 def quantum_level_of_theory(conformer: ConformerModel) -> str:
     """The level of theory a quantum-optimized conformer was run at, as submitted ("B3LYP def2-SVP"), or "".
 
@@ -118,7 +139,8 @@ def conformer_choice_text(conformers: Sequence[ConformerModel], index: int) -> s
     position = index + 1
     if is_quantum_optimized(conformer):
         level = quantum_level_of_theory(conformer)
-        return f"{position} - ORCA optimized ({level})" if level else f"{position} - ORCA optimized"
+        engine = quantum_engine_name(conformer)
+        return f"{position} - {engine} optimized ({level})" if level else f"{position} - {engine} optimized"
     energies = [c.energy for c in conformers if c.energy is not None]
     if conformer.energy is None or not energies:
         return f"{position} - no energy"
@@ -140,8 +162,11 @@ def quantum_optimized_note(conformers: Sequence[ConformerModel]) -> str:
         return ""
     newest = max(optimized, key=lambda c: c.timestamp)
     level = quantum_level_of_theory(newest)
+    # One engine's name when every geometry is from it; "quantum" when two engines made them, rather than
+    # naming the newest's engine for all of them.
+    engine = quantum_engine_of(optimized)
     if len(optimized) == 1:
-        return f"ORCA-optimized geometry ({level})" if level else "ORCA-optimized geometry"
+        return f"{engine}-optimized geometry ({level})" if level else f"{engine}-optimized geometry"
     suffix = f" (newest: {level})" if level else ""
-    return f"{len(optimized)} ORCA-optimized conformers{suffix}"
+    return f"{len(optimized)} {engine}-optimized conformers{suffix}"
 

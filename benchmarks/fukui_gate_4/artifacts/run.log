@@ -1,0 +1,22 @@
+optimized pyrimidine
+optimized pyrazine
+optimized pyridazine
+optimized imidazole
+optimized pyrazole
+optimized oxazole
+optimized selenophene
+[22:35:25] UFFTYPER: Unrecognized atom type: Se2+2 (3)
+E pyrazine     completed=True 203.4 s
+E pyridazine   completed=True 272.8 s
+E pyrimidine   completed=True 275.7 s
+A pyrazine     completed=True 91.9 s
+E oxazole      completed=True 307.6 s
+E imidazole    completed=True 307.9 s
+E pyrazole     completed=True 319.7 s
+A pyrimidine   completed=True 90.6 s
+A pyridazine   completed=True 94.6 s
+E selenophene  completed=True 383.1 s
+A oxazole      completed=True 95.5 s
+A imidazole    completed=True 106.8 s
+A pyrazole     completed=True 106.8 s
+A selenophene  completed=True 85.8 s

@@ -1,0 +1,308 @@
+EOM-CCSD RESULTS (RHS)
+----------------------
+
+IROOT=  1:  0.356475 au     9.700 eV   78237.3 cm**-1
+  Amplitude    Excitation
+   0.697083    20 -> x
+Percentage singles character=     94.52
+
+IROOT=  2:  0.382958 au    10.421 eV   84049.6 cm**-1
+  Amplitude    Excitation
+   0.695244    19 -> x
+Percentage singles character=     93.57
+
+IROOT=  3:  0.355560 au     9.675 eV   78036.5 cm**-1
+  Amplitude    Excitation
+   0.688739    18 -> x
+Percentage singles character=     91.76
+
+IROOT=  4:  0.472849 au    12.867 eV  103778.3 cm**-1
+  Amplitude    Excitation
+   0.693594    17 -> x
+Percentage singles character=     92.90
+
+IROOT=  5:  0.499468 au    13.591 eV  109620.5 cm**-1
+  Amplitude    Excitation
+   0.687752    16 -> x
+Percentage singles character=     89.76
+
+IROOT=  6:  0.514277 au    13.994 eV  112870.8 cm**-1
+  Amplitude    Excitation
+   0.686763    15 -> x
+Percentage singles character=     91.69
+
+IROOT=  7:  0.541728 au    14.741 eV  118895.6 cm**-1
+  Amplitude    Excitation
+   0.691417    14 -> x
+Percentage singles character=     91.81
+
+IROOT=  8:  0.593515 au    16.150 eV  130261.4 cm**-1
+  Amplitude    Excitation
+   0.689042    13 -> x
+Percentage singles character=     90.65
+
+
+
+
+--------------------------------------------------------------------------------
+                                    TIMINGS
+--------------------------------------------------------------------------------
+
+
+Total execution time                   ...      585.556 sec
+
+Fock Matrix Formation                  ...        2.365 sec (  0.4%)
+Initial Guess                          ...        0.335 sec (  0.1%)
+DIIS Solver                            ...      303.844 sec ( 51.9%)
+State Vector Update                    ...        0.378 sec (  0.1%)
+Sigma-vector construction              ...      139.576 sec ( 23.8%)
+  <0|H|D>                              ...        0.100 sec (  0.1% of sigma)
+  <D|H|D>(0-ext)                       ...        2.797 sec (  2.0% of sigma)
+  <D|H|D>(2-ext Fock)                  ...        0.220 sec (  0.2% of sigma)
+  <D|H|D>(2-ext)                       ...       11.395 sec (  8.2% of sigma)
+  <D|H|D>(4-ext)                       ...       33.934 sec ( 24.3% of sigma)
+  <D|H|D>(4-ext-corr)                  ...       23.044 sec ( 16.5% of sigma)
+  <S|H|0>                              ...        0.081 sec (  0.1% of sigma)
+  <S|H|S>                              ...        0.175 sec (  0.1% of sigma)
+  <S|H|D>(1-ext)                       ...        0.723 sec (  0.5% of sigma)
+  <D|H|S>(1-ext)                       ...        2.306 sec (  1.7% of sigma)
+  <S|H|D>(3-ext)                       ...       13.340 sec (  9.6% of sigma)
+  Fock-dressing                        ...       21.383 sec ( 15.3% of sigma)
+  (ik|jl)-dressing                     ...        3.912 sec (  2.8% of sigma)
+  (ij|ab),(ia|jb)-dressing             ...       24.228 sec ( 17.4% of sigma)
+  Pair energies                        ...        0.109 sec (  0.1% of sigma)
+Total Time for computing EOM-CCSD      ...       33.616 sec (  5.7% of ALL)
+  Dressing integrals                   ...       19.204 sec ( 57.1% of (EOM))
+  EOM Singles                          ...        0.131 sec (  0.4% of (EOM))
+  EOM Doubles                          ...       11.465 sec ( 34.1% of (EOM))
+  Build Hamiltonian                    ...        0.037 sec (  0.1% of (EOM))
+  Diagonalize Hamiltonian              ...        0.248 sec (  0.7% of (EOM))
+  Ritz vectors                         ...        0.212 sec (  0.6% of (EOM))
+  Residual vectors                     ...        0.216 sec (  0.6% of (EOM))
+  Orthogonalization                    ...        0.493 sec (  1.5% of (EOM))
+One-particle density matrix            ...        0.248 sec (  0.0%)
+
+
+Maximum memory used throughout the entire MDCI-calculation: 3061.0 MB
+
+-------------------------   --------------------
+FINAL SINGLE POINT ENERGY      -247.421270507389
+-------------------------   --------------------
+
+
+
+           ************************************************************
+           *        Program running with 8 parallel MPI-processes     *
+           *              working on a common directory               *
+           ************************************************************
+
+------------------------------------------------------------------------------
+                              ORCA PROPERTY CALCULATIONS
+------------------------------------------------------------------------------
+
+GBWName                                 ... job.gbw
+Number of atoms                         ...     11
+Number of basis functions               ...    286
+Max core memory                         ...   3000 MB
+
+Electric properties:
+Dipole moment                           ... YES
+Quadrupole moment                       ...  NO
+Static polarizability (Dipole/Dipole)   ...  NO
+Static polarizability (Dipole/Quad.)    ...  NO
+Static polarizability (Quad./Quad.)     ...  NO
+Static polarizability (Velocity)        ...  NO
+Static hyperpolarizability              ...  NO
+
+Atomic electric properties:
+Dipole moment                           ...  NO
+Quadrupole moment                       ...  NO
+Static polarizability                   ...  NO
+
+Choice of electric origin               ... Center of mass
+Position of electric origin             ...    -0.000010    -0.411081    -0.000008
+
+General magnetic properties:
+Magnetizability                         ...  NO
+
+EPR properties:
+g-Tensor (aka g-matrix)                 ...  NO
+Zero-Field splitting spin-orbit         ...  NO
+Zero-field splitting spin-spin          ...  NO
+Hyperfine couplings                     ...  NO (   0 nuclei)
+Quadrupole couplings                    ...  NO (   0 nuclei)
+Contact density                         ...  NO (   0 nuclei)
+
+NMR properties:
+Chemical shifts                         ...  NO (   0 nuclei)
+Spin-rotation constants                 ...  NO (   0 nuclei)
+Spin-spin couplings                     ...  NO (   0 nuclei,    0 pairs)
+
+Choice of magnetic origin               ... GIAO
+Position of magnetic origin             ...     0.000000     0.000000     0.000000
+
+Properties with geometric perturbations:
+SCF Hessian                             ...  NO
+IR spectrum                             ...  NO
+VCD spectrum                            ...  NO
+X-ray spectroscopy properties:
+SCF XES/XAS/RIXS spectra                ...  NO
+
+SCF SOC stabilization energy            ...  NO
+Diagonal Born-Oppenheimer correction    ...  NO
+
+-------------
+DIPOLE MOMENT
+-------------
+
+Method             : SCF
+Type of density    : Electron Density
+Multiplicity       :   1
+Irrep              :   0
+Energy             :  -246.7754766539226807 Eh
+Basis              : AO
+                                X                 Y                 Z
+Electronic contribution:     -0.000060348      -1.313242211      -0.000025036
+Nuclear contribution   :      0.000061770       2.205845943       0.000042985
+                        -----------------------------------------
+Total Dipole Moment    :      0.000001422       0.892603733       0.000017949
+                        -----------------------------------------
+Magnitude (a.u.)       :      0.892603733
+Magnitude (Debye)      :      2.268818384
+
+
+
+--------------------
+Rotational spectrum 
+--------------------
+ 
+Rotational constants in cm-1:             0.200994             0.193396             0.098561 
+Rotational constants in MHz :          6025.662970          5797.868198          2954.785606 
+
+Dipole components along the rotational axes: 
+x,y,z [a.u.] :     0.892604    -0.000060     0.000013 
+x,y,z [Debye]:     2.268818    -0.000152     0.000034 
+
+ 
+
+-------------
+DIPOLE MOMENT
+-------------
+
+Method             : MDCI(SD)
+Type of density    : Electron Density
+Multiplicity       :   1
+Level              : Linearized density
+Irrep              :   0
+Energy             :     0.0000000000000000 Eh
+Basis              : AO
+                                X                 Y                 Z
+Electronic contribution:     -0.000057718      -1.359569205      -0.000026470
+Nuclear contribution   :      0.000061770       2.205845943       0.000042985
+                        -----------------------------------------
+Total Dipole Moment    :      0.000004052       0.846276739       0.000016515
+                        -----------------------------------------
+Magnitude (a.u.)       :      0.846276739
+Magnitude (Debye)      :      2.151064523
+
+
+
+--------------------
+Rotational spectrum 
+--------------------
+ 
+Rotational constants in cm-1:             0.200994             0.193396             0.098561 
+Rotational constants in MHz :          6025.662970          5797.868198          2954.785606 
+
+Dipole components along the rotational axes: 
+x,y,z [a.u.] :     0.846277    -0.000054     0.000012 
+x,y,z [Debye]:     2.151065    -0.000137     0.000031 
+
+ 
+
+Dipole moment calculation done in   0.3 sec 
+
+Maximum memory used throughout the entire PROP-calculation: 11.5 MB
+
+--------------------------------
+SUGGESTED CITATIONS FOR THIS RUN
+--------------------------------
+
+Below you find a list of papers that are relevant to this ORCA run
+We neither can nor want to force you to cite these papers, but we appreciate if you do
+You receive ORCA, which is the product of decades of hard work by many enthusiastic individuals, for free
+The only thing we kindly ask in return is that you cite our papers,
+We deeply appreciate it, if you show your appreciation for ORCA by not just citing the generic ORCA reference.
+
+Please note that relegating all ORCA citations to the supporting information does *not* help us.
+SI sections are not indexed - citations you put there will not count into any citation statistics
+But we need these citations in order to attract the funding resources that allow us to do what we are doing
+
+Therefore, if you are a happy ORCA user, please consider citing a few of the papers listed below in the main body of your paper
+
+In addition to the list printed below, the program has created the file job.bibtex that contains the list in bibtex format
+You can import this file easily into all common literature databanks and citation aid programs
+
+It goes without saying that in many instances, there are alternative algorithms to achieve similar
+results as the ones you have gotten from ORCA. It is, of course, also the case that in some instances
+ORCA just re-implements algorithms worked out by others. We are fully aware of that and we are also
+fully appreciative of our colleagues work. Hence this citation list should not be read as indicating
+that the listed papers, which are focused on our own work, are the only ones worth citing. It simply
+meant to make it easier for users to cite ORCA specific papers. It is not a substitute for doing your
+own literature research and citing the relevant literature in a scientifically appropriate manner.
+
+List of essential papers. We consider these as the minimum necessary citations
+
+  1. Neese, F.
+     Software update: the ORCA program system, version 6.0
+     WIRES Comput. Molec. Sci. 2025 15(1), e70019
+     doi.org/10.1002/wcms.70019
+
+List of papers to cite with high priority. The work reported in these papers was absolutely
+necessary for this run to complete.
+Our perspective: the developers of density functionals and basis sets usually get cited in chemistry papers
+Good! But without the algorithms to do something with them, the functionals or basis sets would not do anything.
+Hence, in our opinion, the algorithm design and method developments papers are equally worthy of getting cited
+
+  1. Neese, F.
+     The SHARK Integral Generation and Digestion System
+     J. Comp. Chem. 2022 44(3), 381
+     doi.org/10.1002/jcc.26942
+
+List of suggested additional citations. These are papers that are important in the 'surrounding' of 
+of this run, or papers that preceded the highly important papers. If you like your results we are grateful for a citation.
+
+  1. Neese, F.
+     The ORCA program system
+     WIRES Comput. Molec. Sci. 2012 2(1), 73-78
+     doi.org/10.1002/wcms.81
+  2. Neese, F.
+     Software update: the ORCA program system, version 4.0
+     WIRES Comput. Molec. Sci. 2018 8(1), 1-6
+     doi.org/10.1002/wcms.1327
+  3. Neese, F.; Wennmohs, F.; Becker, U.; Riplinger, C.
+     The ORCA quantum chemistry program package
+     J. Chem. Phys. 2020 152(22), 224108
+     doi.org/10.1063/5.0004608
+  4. Neese, F.
+     Software update: The ORCA program systemâ€”Version 5.0
+     WIRES Comput. Molec. Sci. 2022 12(1), e1606
+     doi.org/10.1002/wcms.1606
+
+List of optional additional citations
+
+  1. Neese, F.
+     Approximate second-order SCF convergence for spin unrestricted wavefunctions
+     Chem. Phys. Lett. 2000 325(1-3), 93-98
+     doi.org/10.1016/s0009-2614(00)00662-x
+
+Timings for individual modules:
+
+Sum of individual times          ...      617.633 sec (=  10.294 min)
+Startup calculation              ...        2.956 sec (=   0.049 min)   0.5 %
+SCF iterations                   ...       21.619 sec (=   0.360 min)   3.5 %
+Property integrals               ...        0.650 sec (=   0.011 min)   0.1 %
+Property calculations            ...        4.439 sec (=   0.074 min)   0.7 %
+MDCI module                      ...      587.969 sec (=   9.799 min)  95.2 %
+                             ****ORCA TERMINATED NORMALLY****
+TOTAL RUN TIME: 0 days 0 hours 10 minutes 22 seconds 89 msec
