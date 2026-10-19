@@ -159,7 +159,7 @@
   {
    "name": "acetaldehyde formyl C-H",
    "smiles": "CC=O",
-   "atom": 2,
+   "atom": 1,
    "dh298": 89.4,
    "uncertainty": 0.3
   },
