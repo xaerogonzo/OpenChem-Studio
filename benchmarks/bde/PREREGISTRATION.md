@@ -56,7 +56,7 @@ The 8 loose-reference bonds and all 33 together are **reported** in the same sta
 
 ## What was seen first (disclosure)
 
-**No job of this benchmark, and no ORCA calculation of a bond dissociation, has been run.** What was read before this file: Blanksby and Ellison's Table 1 (the reference), the four literature accuracy sources above, and, from the proton-affinity work, ORCA's frequency-block format and the thermochemistry output of a water and an H3O+ calculation (a different molecule set; nothing in them is a BDE).
+**No job of this benchmark, and no ORCA calculation of any bond dissociation, has been run.** One **format smoke** was run while the runner was written, to see what ORCA prints for an unrestricted doublet and for an atom, and nothing in it is a benchmark species: the hydrogen atom at the benchmark's method (E = -0.498135898315 Eh, `<S**2>` 0.750) and the CN radical (a radical of none of the 33 bonds; M062X/def2-TZVPD `Opt Freq`, H = -92.70350529 Eh, `<S**2>` 0.7649, frequencies 5 zero modes and 2248.18 cm-1). Both are kept as test fixtures. What else was read before this file: Blanksby and Ellison's Table 1 (the reference), the four literature accuracy sources above, and, from the proton-affinity work, ORCA's frequency-block format and the thermochemistry output of a water and an H3O+ calculation (a different molecule set; nothing in them is a BDE).
 
 ## What it cannot say
 

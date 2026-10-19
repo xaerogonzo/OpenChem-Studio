@@ -137,7 +137,7 @@ def test_a_radical_with_the_parents_skeleton_minus_one_hydrogen_is_kept():
     assert run.same_skeleton(structure, _methanol_radical_result()) is True
 
 
-@pytest.mark.parametrize("break_it", ["moved_hydrogen", "lost_hydrogen", "wrong_atom_lost"])
+@pytest.mark.parametrize("break_it", ["moved_hydrogen", "lost_hydrogen", "wrong_atom_lost", "heavy_bond_broken"])
 def test_a_rearranged_or_wrong_radical_is_not_kept(break_it):
     structure = {"role": "radical", "smiles": "CO", "atom": 0}
     result = _methanol_radical_result()
@@ -145,6 +145,9 @@ def test_a_rearranged_or_wrong_radical_is_not_kept(break_it):
         result = _methanol_radical_result(shift_h=True)
     elif break_it == "lost_hydrogen":
         result["coordinates"][3] = [9.0, 9.0, 9.0]  # a hydrogen far away: the bond is gone
+    elif break_it == "heavy_bond_broken":
+        result["coordinates"][1] = [4.0, 0.0, 0.0]  # the C-O bond is gone but every hydrogen count is as it should be
+        result["coordinates"][4] = [4.39, 0.88, 0.0]
     else:
         structure = {"role": "radical", "smiles": "CO", "atom": 1}  # the hydrogen came off the carbon, but the bond asked about is the O-H
     assert run.same_skeleton(structure, result) is False

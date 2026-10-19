@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Bond dissociation enthalpy: preregistered benchmark and its runner (benchmark tooling; nothing in the application changes)
+- `benchmarks/bde/` holds the preregistration for X-H bond dissociation enthalpies (33 bonds from Blanksby and Ellison, 25 deciding; M062X/def2-TZVPD; thresholds approved after reading Trung 2022, St. John 2020 and Mardirossian 2017), the tested arithmetic and judge, and a resumable runner that is tested on real ORCA output and has not been run. A radical that rearranges is a failed structure, not a low-energy one. Design: `docs/BDE_DESIGN.md`.
+
 ### Proton affinity: the benchmark's primary-arm runner (benchmark tooling; nothing in the application changes)
 - `benchmarks/proton_affinity/run_pa.py` builds the starting structures (28 bases, every rule-enumerated protonation site), runs the preregistered M062X/def2-TZVPD `Opt Freq` jobs resumably, reads ORCA's enthalpy and Gibbs energy, overrides its symmetry number and writes the PA and GB verdicts through the tested judge. It is tested on real water and H3O+ output and has not been run; the overnight run is recorded in `docs/PROTON_AFFINITY_DESIGN.md`.
 

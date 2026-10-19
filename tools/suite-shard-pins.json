@@ -1111,6 +1111,7 @@
   "tests/test_bbb_descriptors_typed.py": 1,
   "tests/test_bbb_stereo.py": 2,
   "tests/test_bde_benchmark.py": 1,
+  "tests/test_bde_runner.py": 2,
   "tests/test_binarycif.py": 1,
   "tests/test_binding_site.py": 3,
   "tests/test_bird.py": 3,

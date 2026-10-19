@@ -52,3 +52,16 @@ PASS: the calculator is built (a service-level sequence, experimental, needing a
 3. The runner (the proton-affinity runner's structure, radical starts from the parent), tested on real output, committed, **not run** until Alex says so.
 4. The overnight run, then the report.
 5. Only then, on a PASS, the calculator in the application.
+
+## To run: the primary-arm ORCA benchmark (recorded 2026-10-19; NOT run)
+
+The runner is written, tested on real CN-radical and H-atom output and committed (`benchmarks/bde/run_bde.py`, `tests/test_bde_runner.py`); no benchmark job has been run, so the preregistration is frozen as of the runner's commit. It builds 68 structures (32 parents, 35 radical starts, the hydrogen atom); the run time is **unmeasured**. Run it after the proton-affinity run, never beside it (both want the cores):
+
+```bash
+uv run --no-sync python benchmarks/bde/run_bde.py structures
+uv run --no-sync python benchmarks/bde/run_bde.py run --workers 3 --cores 4     # resumable
+uv run --no-sync python benchmarks/bde/run_bde.py status
+uv run --no-sync python benchmarks/bde/run_bde.py report                        # report.txt, verdict.json
+```
+
+Same rules as the proton-affinity run: no edit to `src/` between the first job and the report, one stage at a time, no threshold changed after the report is seen, the DLPNO arm only if the primary arm passes.
