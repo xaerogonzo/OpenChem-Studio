@@ -1550,6 +1550,7 @@
   "tests/test_protonation_geometry.py": 0,
   "tests/test_protonation_microspecies.py": 0,
   "tests/test_psi4_agreement_judge.py": 1,
+  "tests/test_psi4_agreement_runner.py": 2,
   "tests/test_psi4_engine.py": 2,
   "tests/test_psi4_tool.py": 3,
   "tests/test_qm_surfaces.py": 2,

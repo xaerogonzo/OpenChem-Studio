@@ -69,4 +69,4 @@ A tolerance fixed by guess would be a tolerance fitted to nothing. The floor is 
 
 ## Records
 
-`artifacts/<engine>/runs.jsonl` (one line per job: molecule, combination, the input's sha256, the energy, the engine's version, the commit and whether `src/` was dirty, the seconds), `floor.json`, `report.txt`, `verdict.json`, and the outcome written below, after the run and after nothing else.
+**A report is refused (NOT EVALUABLE) for records from more than one commit or made with a dirty `src/`** (the guard the Fukui gates have). `artifacts/<stage>/<engine>.jsonl` (one line per job: molecule, combination, the input's sha256, the energy, the engine's version, the commit and whether `src/` was dirty, the seconds), `floor.json`, `report.txt`, `verdict.json`, and the outcome written below, after the run and after nothing else.
