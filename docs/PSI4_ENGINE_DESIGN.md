@@ -1,6 +1,6 @@
 # Psi4 as a second quantum-chemistry engine: design
 
-**Status: proposal, 2026-10-19; stage 0 (the spike) was run the same day and its result is in "Stage 0 result" below; stage 1 (the provider, the External Tools tab, the Engine box) was built the same day and is described in "Stage 1 result" below; the ORCA agreement check (stage 2) is not done.** Decided by Alex 2026-10-19: spike only first, **locate-only** (no download button), no calculation types beyond `sp` and `opt` in version 1.
+**Status: proposal, 2026-10-19; stage 0 (the spike) was run the same day and its result is in "Stage 0 result" below; stage 1 (the provider, the External Tools tab, the Engine box) was built the same day and is described in "Stage 1 result" below; the ORCA agreement check (stage 2) is preregistered in `benchmarks/psi4_agreement/PLAN.md` (2026-10-19) and has not been run.** Decided by Alex 2026-10-19: spike only first, **locate-only** (no download button), no calculation types beyond `sp` and `opt` in version 1.
 Statements marked *read* come from Psi4's documentation or a package index; the rest of the note is superseded where "Stage 0 result" measured it.
 
 ## Why
