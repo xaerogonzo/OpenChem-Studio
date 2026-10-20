@@ -18,9 +18,10 @@ def test_the_probe_names_a_molecule_and_reports_no_failed_plan_for_a_clean_one()
 
 
 def test_the_probe_shows_a_plan_that_failed_to_execute_and_the_engine_silently_left():
-    """D-088b (open): the carbamate plan for a carbazate is TRIED, fails ('leaves heavy atoms unclaimed'), and the engine names the next plan. The probe is how that was seen. If the
-    carbazate is fixed this test's molecule must change, not be deleted: the point is that a failed top plan is visible."""
-    name, failures = probe._name_with_failures("CCOC(=O)NN")
+    """D-088b: the carbamate plan for a carbazate was TRIED, failed ('leaves heavy atoms unclaimed'), and the engine named the next plan. The probe is how that was seen. Naming round 76
+    stopped trying a carbamate as a substitutive principal group (it is an ester), so the carbazate no longer fails; the molecule is now an isothiourea whose carboximidothioic-acid plan
+    fails the same way. The point is unchanged: a failed top plan is visible."""
+    name, failures = probe._name_with_failures("CCSC(S)=Nc1ccccc1")
     assert name
     assert any("unclaimed" in f or "owned by no node" in f for f in failures), failures
 
@@ -50,9 +51,9 @@ def test_a_clean_name_reports_its_plan_counters():
 
 
 def test_a_top_plan_that_died_and_still_produced_a_name_is_a_fallback():
-    """D-088b (open): the carbamate plan for a carbazate is tried, fails, and the engine names the next plan. That silent fall-back is the
+    """D-088b: a plan is tried, fails, and the engine names the next plan (a carbazate until naming round 76, now an isothiourea). That silent fall-back is the
     number round 8 found most of its defects in, so it has its own status and not a place under 'clean'."""
-    record = probe.probe_structure("CCOC(=O)NN")
+    record = probe.probe_structure("CCSC(S)=Nc1ccccc1")
     assert record["status"] == "fallback", record
     assert record["errored"] >= 1 and record["name"] and not str(record["name"]).startswith("NAMING ERROR")
 
