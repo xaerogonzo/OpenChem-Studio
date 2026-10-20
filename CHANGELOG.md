@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming: stereo the name used to drop
+- Round 74 added a population: a random OTHER stereoisomer of each census molecule that has stereo, named and read back through OPSIN on the full InChIKey. 73 of the first 600 read back as another stereoisomer, now 20. Three families: the E/Z of a C=N bond named as an ylidene PREFIX (`N'-benzylideneacetohydrazide`, `2-[(benzylidene)amino]aniline`) was carved away and both isomers had one name, now `N'-[(E)-phenylmethylidene]acetohydrazide` (D-337); the same for N=N, `(E)-diphenyldiazene` and `4-[(Z)-phenyldiazenyl]phenol` (D-338); and a sulfoxide's sulfur is a stereocentre the sulfinyl prefix never cited, so omeprazole and esomeprazole had one name, now `5-methoxy-2-[(S)-(4-methoxy-3,5-dimethylpyridin-2-yl)methanesulfinyl]-1H-benzimidazole`; a sulfinamide's or phosphorus group's centre has no locant and is cited unlocated, `(S)-2-methylpropane-2-sulfinamide` (D-339).
+
+
 ### Synthesis helper: the spike (benchmark tooling and a design note; nothing in the application changes)
 - `docs/SYNTHESIS_HELPER_DESIGN.md` and `benchmarks/synthesis/` record Stage 0 of the synthesis helper: AiZynthFinder 4.4.1 installed and measured on Windows (a fresh install needs `pyarrow<21`; 1.7 GB on disk; 5.3 GB peak memory with the ZINC stock, about 0.9 GB with the benchmark's), real route fixtures, a route validator whose outcomes are separate (atom conservation only where the mapping is complete), and a preregistered quality benchmark on PaRoutes set-n1 (300 seeded targets, set stock, 500 iterations; solved, reference route in the first 10, first route valid, solved flag stable) with a tested judge, matching rule and runner that have not been run. The public models are probably contaminated on that benchmark, which the preregistration states.
 

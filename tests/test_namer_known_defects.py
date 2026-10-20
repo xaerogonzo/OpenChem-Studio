@@ -4639,6 +4639,16 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-336", "OC(=O)CN(C)C(O)=Nc1ccccc1OC", "{[hydroxy(2-methoxyphenylimino)methyl](methyl)amino}acetic acid",
      "(methyl{[NAMING ERROR: Substitutive plan for parent 'methane' leaves heavy atoms [0, 3, 4, 5, 6, 9, 10] unclaimed]}amino)acetic acid",
      "the split of a demoted imidic acid into `imino` and `hydroxy` visited every atom of the group, took an ether oxygen on the imine for a second hydroxy and cut a substituent with no bond to the anchor"),
+    # Naming round 74 (D-337 .. D-339).
+    ("D-337", "CC(=O)N/N=C\\c1ccccc1", "N'-[(Z)-phenylmethylidene]acetohydrazide",
+     "N'-benzylideneacetohydrazide",
+     "an ylidene prefix (hydrazone, Schiff base, ketimine) is carved away from the C=N bond it hangs from, so the bond's geometry reached no name and both isomers had one"),
+    ("D-338", "Oc1ccc(/N=N\\c2ccccc2)cc1", "4-[(Z)-phenyldiazenyl]phenol",
+     "4-(phenyldiazenyl)phenol",
+     "the N=N of a diazenyl prefix or a diazene parent was never read for E/Z, so azobenzene and its cis isomer had one name"),
+    ("D-339", "C[S@](=O)c1ccccc1", "[(S)-methylsulfinyl]benzene",
+     "(methanesulfinyl)benzene",
+     "a sulfoxide sulfur with three different groups is a stereocentre; its sulfinyl prefix was carved away from the chiral tag, so omeprazole and esomeprazole had one name"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",
