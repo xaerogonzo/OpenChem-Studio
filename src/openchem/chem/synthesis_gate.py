@@ -32,6 +32,11 @@ from openchem.domain.synthesis_gate import (
 
 logger = logging.getLogger("openchem.chemistry")
 
+#: What the reachability guard accepts for a module nothing in the application imports YET. The gate is built first and on its own (Stage 1 slice 2); the synthesis planning service (slice 4) is its first importer, and the guard then fails this declaration, which is the reminder to delete it.
+REACHED_BY = (
+    "tooling: imported only by tests/test_synthesis_gate.py until the synthesis planning service (Stage 1 slice 4 of docs/SYNTHESIS_HELPER_DESIGN.md) imports it; the feature is not yet reachable from the window"
+)
+
 #: The file the gate's ruleset is read from; a loader problem naming it means the ruleset did not load.
 GATE_RULESET_FILE = "cwc_schedule_1.json"
 
