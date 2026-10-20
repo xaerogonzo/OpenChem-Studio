@@ -62,8 +62,8 @@ NO_FILTER_LABEL = "No filter"
 _PLAN_HELP = HelpTooltip(
     text=(
         "Ask the synthesis planner (AiZynthFinder, in the environment you set up under External tools) for routes to the selected molecule.\n\n"
-        "A search takes minutes and about 3 to 5 GB of memory, and runs in a program of its own. The target is checked against the chemical-weapons "
-        "schedule first, and a match is refused before anything starts. What comes back are proposals from a program trained on patent reactions: "
+        "A search takes minutes and about 3 to 5 GB of memory, and runs in a program of its own. The target is checked against the shipped "
+        "cwc-schedule-1 ruleset first, and a match is refused before anything starts. What comes back are proposals from a program trained on patent reactions: "
         "no conditions, no yields, nothing tested."
     ),
     tier=2,

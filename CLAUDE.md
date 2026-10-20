@@ -214,6 +214,13 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           to do and that NOTHING started; Run is a separate `qc_run` step
     {"do": "jobs_report", "tag": "running"}   rows AND whether it is POLLING
     {"do": "jobs_cancel", "row": 0}           the real button in a real row
+    {"do": "synthesis_panel", "tag": "x", "press": "plan", "route": 1, "step": 0, "scroll": "end",
+     "expect": {"routes_at_least": 1, "picture": true, "status_contains": "routes found"}}
+                                          the Synthesis panel's REAL buttons and lists, and what it SHOWS (status, routes,
+                                          whether a step's picture is drawn, the limitations); press and report in SEPARATE
+                                          steps, since Plan waits for the configuration to be read off the GUI thread
+    {"do": "synthesis_setup", "python": "...", "config": "..."}  the planner's settings for THIS run ("" = not set up);
+                                          writes the real registry, so `quit` or `{"restore": true}` puts them back
     {"do": "conformers_finish", "expect": {"enabled": true, "readout_contains": ["found"]}}
                                           the REAL Finish now in the 3D viewer, asserted
                                           before it is pressed; "press": false only looks

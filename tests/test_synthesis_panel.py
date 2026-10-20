@@ -449,6 +449,41 @@ def test_a_step_that_cannot_be_drawn_says_so_in_words_and_not_in_a_picture(loade
     assert not panel._picture.isHidden() and panel._picture_message.isHidden()
 
 
+def test_a_notice_stays_until_a_plan_arrives_or_another_molecule_is_selected(loaded):
+    host = FakeHost()
+    host.outcome = RequestOutcome.REJECTED
+    world = loaded(host)
+    panel = shown(world)
+    panel._plan_button.click()
+    assert "nothing to plan" in panel._status.text()
+    world.services.event_bus.publish(SynthesisRouteReady(molecule_uuid=UUID, route_set=route_set(RouteStatus.NO_ROUTE)))
+    with_result(host, route_set(RouteStatus.NO_ROUTE))
+    assert pump(lambda: "nothing to plan" not in panel._status.text())  # a plan arrived: its own message replaces the notice
+
+    host.outcome = RequestOutcome.ALREADY_RUNNING
+    panel._plan_button.click()
+    assert "already being planned" in panel._status.text()
+    world.services.event_bus.publish(MoleculeSelected(molecule_uuid=UUID))
+    assert pump(lambda: "already being planned" not in panel._status.text())  # a new selection starts without the old notice
+
+
+def test_a_queued_search_shows_its_own_waiting_message(loaded):
+    host = FakeHost()
+    world = loaded(host)
+    panel = shown(world)
+    host.planning.add(UUID)
+    world.services.event_bus.publish(SynthesisJobStateChanged(molecule_uuid=UUID, state=CacheState.QUEUED, message="Waiting to plan Aspirin (requested by the user)"))
+    assert pump(lambda: panel._status.text() == "Waiting to plan Aspirin (requested by the user)")
+
+
+def test_a_host_that_cannot_draw_is_a_sentence_and_not_an_error(loaded):
+    host = FakeHost()
+    host.depict_error = LookupError("the application did not provide drawing to this plugin")
+    with_result(host, route_set())
+    panel = loaded(host).panel
+    assert panel._picture.isHidden() and "This step cannot be drawn: the application did not provide drawing" in panel._picture_message.text()
+
+
 # --- events ----------------------------------------------------------------------------------------------------------------------------------
 
 
