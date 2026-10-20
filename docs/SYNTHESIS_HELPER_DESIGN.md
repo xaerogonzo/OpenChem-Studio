@@ -124,9 +124,27 @@ uv run --no-sync python benchmarks/synthesis/run_quality.py report --paroutes "D
 
 `run` resumes after an interruption and prints one line per target. Expect about three hours. Same rules as the proton-affinity and bond-dissociation runs: no edit to `src/` between the first search and the report, nothing changed after the report is seen, and the verdict stands. The result is its own PR.
 
+## The quality benchmark result (run 2026-10-19 to 2026-10-20): PARTIAL
+
+Full record in `benchmarks/synthesis/RESULT.md`. From the frozen commit, 300 seeded set-n1 targets, no failures:
+
+| Claim | Result | Verdict |
+|---|---|---|
+| A route was returned (solved with the set stock) | 0.967 (bar 0.90) | PASS |
+| The reference route is among the first 10 returned | **0.373** (PASS 0.50, PARTIAL 0.35) | **PARTIAL** |
+| The first route is fully validated | 0.993 (bar 0.95) | PASS |
+| The solved flag is identical across three runs | 20 of 20 (bar 19) | PASS |
+
+* **Why the third claim falls short, from the diagnostics (which decide nothing):** recovery depends on how deep the reference is (0.81 at depth 2, 0.29 at depth 3, 0.02 at depth 4) while the solved fraction stays 0.92 to 1.00 at every depth; the median first solution is at iteration 1 and **48% of first routes are shorter than the reference**, so the planner finds routes, often shorter ones, that are not the patent's. In 53% of targets one of the first 10 routes has exactly the reference's starting materials. It also returns few routes (median 11, 42% of targets under 10).
+* **The preregistered caveat cuts both ways and the verdict stands:** the public models are probably trained on these reference reactions (so 0.373 is not a generalisation figure, and a rate below the published 0.61 is the red flag the preregistration named), while the exact-reaction-set rule is harsher than the paper's tree-edit-distance credit.
+* **Cost, corrected:** 5.3 h of wall time for 340 searches (the preregistration said about three), a median 54 s of search per target, **peak 2.75 GB** with the set stock (the preregistration said under 1 GB; withdrawn).
+* **Not deterministic in its tree:** the solved flag and the recovery outcome were identical on all 20 repeated targets, but the node count differed on all 20 and the route count on 3.
+
+**Decision left to Alex** (no option taken): stop and name the next candidate; continue to Stage 1 with the claim narrowed to what passed (valid, repeatable routes that often differ from the patent route, with 0.373 and the depth dependence stated beside any route); or re-measure on a cleaner footing under a new preregistration (the PaRoutes-excluded Keras model, which needs TensorFlow and the NumPy conflict, or a non-USPTO reference set).
+
 ## Where the spike stands
 
-0a to 0e are done: the install, the fixtures, the validator, and the preregistration with its tested judge, matching rule and runner. **No verdict yet**: the quality run has not been run (it is recorded above as Alex's to start). What the spike has established so far: the install route is reproducible only with a pin the README does not carry; the planner needs about 5 GB of memory to start; its routes are internally consistent and carry real atom maps; it gives no reason for stopping and no conditions; and the public models are probably contaminated on the standard benchmark.
+Stage 0 is complete and the verdict is **PARTIAL** (above). Stage 1 is not authorized: the preregistration reserves the decision to continue, narrow the claim or re-measure to Alex. What the spike has established so far: the install route is reproducible only with a pin the README does not carry; the planner needs about 5 GB of memory to start; its routes are internally consistent and carry real atom maps; it gives no reason for stopping and no conditions; and the public models are probably contaminated on the standard benchmark.
 
 ## Stage 1 (only on a GO)
 
