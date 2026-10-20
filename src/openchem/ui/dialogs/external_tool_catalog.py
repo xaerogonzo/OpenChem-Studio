@@ -24,6 +24,7 @@ from openchem.ui.dialogs.external_tool_tabs import (
     CAUTION,
     MUTED,
     Blocked,
+    ExtraPath,
     InterpreterSidecar,
     ManagedAsset,
     ManagedExecutable,
@@ -544,6 +545,93 @@ def psi4() -> ManagedExecutable:
             Note(
                 "After installing, use Locate Installed or Browse to point at the folder it was installed in; the app finds "
                 '"psi4.exe" inside it (with conda, in the Scripts folder of the environment). Unlike ORCA, a path with spaces is fine.',
+                MUTED,
+            ),
+        ),
+    )
+
+
+#: Why the AiZynthFinder tab has no Set Up button (locate-only: Alex, 2026-10-19). Stated once so the refusal, the dialog title and the failure status cannot drift apart.
+_AIZYNTH_NO_AUTOMATION = (
+    "OpenChem Studio does not download or install the synthesis planner. Install AiZynthFinder in an environment of your own, "
+    "run its download_public_data command, then point this tab at that environment's Python and the configuration file it wrote."
+)
+
+
+def aizynthfinder() -> ManagedExecutable:
+    """AiZynthFinder: the synthesis planner, a Python environment the user installs and points at (`docs/SYNTHESIS_HELPER_DESIGN.md`).
+
+    **Locate-only, deliberately** (Alex, 2026-10-19), and **two paths rather than one**: the environment's Python and the configuration file `download_public_data` wrote, because
+    the planner is a Python package with its own interpreter requirements (3.10 to 3.12, `numpy<2`) that OpenChem's interpreter does not share. The status line only reads the two paths;
+    the Test button runs a real trivial search, stopping at the first thing it can name (a missing Python, a Python without the planner, a model, a template file or the stock that is not where
+    the configuration says). Nothing here starts a download or removes a file.
+    """
+    import openchem.services.synthesis_planner_setup as planner
+
+    return ManagedExecutable(
+        key="aizynthfinder",
+        title="AiZynthFinder",
+        setting_key=planner.PYTHON_KEY,
+        browse_title="Select the folder of the Python environment AiZynthFinder is installed in",
+        finder=planner.find_python,
+        path_description="Python of the AiZynthFinder environment",
+        form_label="Python:",
+        extra_paths=(
+            ExtraPath(
+                setting_key=planner.CONFIG_KEY,
+                label="Configuration:",
+                browse_title="Select the folder holding AiZynthFinder's config.yml",
+                finder=planner.find_config,
+                description="AiZynthFinder configuration file (config.yml)",
+            ),
+        ),
+        describe_status=planner.describe_status,
+        locate=planner.locate,
+        locate_hint=(
+            "Look for an AiZynthFinder environment already on this machine: `aizynthcli` on the PATH, and the Python beside it. "
+            "The Python found is RUN to confirm that it has AiZynthFinder before it is accepted."
+        ),
+        test_label="Test (plans a trivial target)...",
+        testing_status="Running a trivial search (this starts the planner: allow up to a minute)...",
+        describe_test=planner.verify,
+        test_with_settings=True,
+        test_errors=planner.ToolVerificationError,
+        obtainable=False,
+        removable=False,
+        vendor_links=(
+            ("Get AiZynthFinder...", planner.PROJECT_PAGE),
+            ("AiZynthFinder Documentation...", planner.DOCS_PAGE),
+        ),
+        # Unused by a tab that cannot obtain, but `_ToolBase` requires them (the ORCA tab's reason).
+        action_label="Set Up Automatically...",
+        remove_label="AiZynthFinder",
+        confirm_title="AiZynthFinder is not downloaded by this app",
+        confirm_body=lambda: _AIZYNTH_NO_AUTOMATION,
+        run=lambda _on_progress: (_ for _ in ()).throw(RuntimeError(_AIZYNTH_NO_AUTOMATION)),
+        errors=RuntimeError,
+        finished_status=lambda _result: "",
+        success_title="",
+        success_message=lambda _result: "",
+        failure_title="AiZynthFinder is not downloaded by this app",
+        failure_status_prefix="Not available",
+        notes=(
+            Note(
+                "AiZynthFinder is an open-source retrosynthesis planner (MIT licence): it proposes routes from the molecule you draw to compounds in a stock. "
+                "It runs here as a separate program in an environment of its own, never inside OpenChem Studio, because it needs Python 3.10 to 3.12 and "
+                "numpy below version 2. A route it returns is a hypothesis from a program trained on patent reactions: it gives no conditions or yields, "
+                "and nobody has run it."
+            ),
+            Note(
+                "Installing it is about 1 GB for the environment and about 750 MB for the models and stock that its download_public_data command fetches, "
+                "and a search needs about 2.75 GB of memory with a small stock and up to 5 GB with the ZINC stock. A fresh install needs the extra pin "
+                "pyarrow below version 21 (pip install \"pyarrow<21\") or it will not import. The models and the stock it fetches are published under "
+                "their own licences; read them before using them.",
+            ),
+            Note(
+                "After installing, point the first row at the environment's Python (Browse takes the environment's folder and finds the Python in it) and the second at the "
+                "config.yml that download_public_data wrote. The Test button runs a real search of aspirin for a few iterations: the start-up alone takes about "
+                "20 seconds. Which expansion policy, stock and filter to use is read from that file: by default the uspto policy, the zinc stock "
+                "(or the first the file lists) and no filter, the configuration the project's benchmark ran.",
                 MUTED,
             ),
         ),

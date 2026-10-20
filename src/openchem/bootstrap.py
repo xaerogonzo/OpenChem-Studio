@@ -23,6 +23,7 @@ from openchem.domain.calculator_support import (
 )
 from openchem.events.base import EventBus
 from openchem.services.alignment_service import AlignmentService
+from openchem.services.synthesis_planner_setup import SetupProvider
 from openchem.services.synthesis_planning_service import SynthesisPlanningService
 from openchem.services.atom_fact_service import AtomFactService
 from openchem.services.batch_service import BatchService
@@ -461,11 +462,11 @@ def build_service_container() -> ServiceContainer:
         project_service=ProjectService(event_bus),
         conformer_service=ConformerService(event_bus, engine, job_manager=job_manager),
         alignment_service=AlignmentService(event_bus, engine, job_manager=job_manager),
-        # The planner's own Python and models are set up on the External Tools tab (a later slice of the synthesis helper), so until then
-        # the setting provider answers "not set up" and every request is `unavailable`, after the regulatory gate has had its say.
+        # The planner's Python and configuration come from the External Tools tab's settings: until both are set and the environment answers,
+        # the provider returns None and every request is `unavailable`, after the regulatory gate has had its say.
         synthesis_planning_service=SynthesisPlanningService(
             event_bus,
-            setup_provider=lambda: None,
+            setup_provider=SetupProvider(settings),
             job_manager=job_manager,
             structure_version_of=structure_check_service.current_version,
         ),

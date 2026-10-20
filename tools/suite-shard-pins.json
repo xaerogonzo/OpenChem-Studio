@@ -1699,6 +1699,7 @@
   "tests/test_synthesis_benchmark.py": 2,
   "tests/test_synthesis_gate.py": 2,
   "tests/test_synthesis_planner.py": 0,
+  "tests/test_synthesis_planner_setup.py": 1,
   "tests/test_synthesis_planning_service.py": 3,
   "tests/test_synthesis_protocol2.py": 2,
   "tests/test_synthesis_route.py": 2,
