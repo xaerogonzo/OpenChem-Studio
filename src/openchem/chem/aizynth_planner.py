@@ -40,11 +40,6 @@ from openchem.domain.synthesis_route import (
     read_termination,
 )
 
-#: What the reachability guard accepts for a module nothing in the application imports YET. This is the host half of the runner (Stage 1 slice 3); the planning service (slice 4) is its first importer, and the guard then fails this declaration, which is the reminder to delete it.
-REACHED_BY = (
-    "tooling: imported only by tests/test_synthesis_planner.py until the synthesis planning service (Stage 1 slice 4 of docs/SYNTHESIS_HELPER_DESIGN.md) imports it; the feature is not yet reachable from the window"
-)
-
 #: The request the runner reads (`chem/aizynth_runner.py` keeps its own copy; a test holds the two equal).
 REQUEST_SCHEMA = "aizynth-request-1"
 #: The response the runner writes.
@@ -110,6 +105,29 @@ class PlanRequest:
 
     def selection(self) -> tuple[tuple[str, str], ...]:
         """The names of what was selected, which is what an identity carries instead of paths."""
+        return (("expansion", self.expansion), ("filter", self.filter or "none"), ("stock", self.stock))
+
+
+@dataclass(frozen=True, kw_only=True)
+class PlannerSetup:
+    """Everything about HOW the planner is run that does not depend on the target: the user's planner Python, its configuration, what to select from it and the limits.
+
+    Captured by the caller BEFORE a search starts and carried with it, so a change to the setting while a search runs cannot reroute
+    it. Where it comes from (the External Tools tab) is a later slice; this is only its shape.
+    """
+
+    python: str
+    config: dict = field(compare=False)
+    stock: str
+    expansion: str
+    limits: SearchLimits
+    filter: str | None = None
+    all_routes: bool = False
+
+    def request_for(self, target_smiles: str) -> PlanRequest:
+        return PlanRequest(target_smiles=target_smiles, config=self.config, stock=self.stock, expansion=self.expansion, limits=self.limits, filter=self.filter, all_routes=self.all_routes)
+
+    def selection(self) -> tuple[tuple[str, str], ...]:
         return (("expansion", self.expansion), ("filter", self.filter or "none"), ("stock", self.stock))
 
 
@@ -441,4 +459,4 @@ def run_planner(
     return _interpret(b"".join(out_chunks), tail, proc.returncode if proc.returncode is not None else -1, request, target)
 
 
-__all__ = ["PLANNER_NAME", "PlanRequest", "RUN_SCHEMA", "REQUEST_SCHEMA", "RUNNER_PATH", "parse_document", "route_from_tree", "run_planner"]
+__all__ = ["PLANNER_NAME", "PlanRequest", "PlannerSetup", "RUN_SCHEMA", "REQUEST_SCHEMA", "RUNNER_PATH", "parse_document", "route_from_tree", "run_planner"]
