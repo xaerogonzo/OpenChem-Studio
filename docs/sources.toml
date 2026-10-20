@@ -8417,3 +8417,144 @@ verified_date = 2026-10-19
 reason = """
 THE PaRoutes ROUTE SETS, STOCKS, TEMPLATE LIBRARIES AND A KERAS MODEL: ref_routes_n1.json (64 MB), ref_routes_n5.json (82 MB), targets_n1.txt and targets_n5.txt, stock_n1.txt and stock_n5.txt, uspto_unique_templates.csv.gz (3.3 MB, confirmed by the download), uspto_keras_model.hdf5 (275 MB). Licence field CC-BY-4.0 as the record states; the licence of the underlying USPTO extraction is not restated on this record.
 """
+
+[[source]]
+key = "torrenperaire2024"
+kind = "literature"
+citation = "P. Torren-Peraire, A. K. Hassen, S. Genheden, J. Verhoeven, D.-A. Clevert, M. Preuss & I. V. Tetko, 'Models Matter: the impact of single-step retrosynthesis on synthesis planning', Digital Discovery 2024, 3, 558-572."
+identifier_type = "doi"
+identifier = "10.1039/D3DD00252G"
+status = "reference_only"
+license = "CC BY 3.0"
+used_by = [
+    "docs/SYNTHESIS_HELPER_DESIGN.md",
+    "benchmarks/synthesis/RESULT.md",
+]
+local = "torrenperaire2024_models_matter.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-20
+reason = """
+THE ONLY PUBLISHED NUMBER FOR AiZynthFinder ON PaRoutes SET-N1 WITH A MODEL THAT EXCLUDES THE REFERENCE ROUTES: AiZynthFinder (template model trained on USPTO-PaRoutes-1M) recovers the gold-standard route for 23.7% of targets at top-1 and 60.7% at top-10 (61.8% at top-50), checked in the main text and in the supporting information Table S7 (top-3 48.5, top-5 56.5), with 200 iterations, the top 50 reactions added at every iteration and an 8-hour limit; the same paper reports success rates of at least 91% for every model and no relationship between success rate and route accuracy. The supporting information (torrenperaire2024_models_matter_si.pdf) was read for Table S7 only. The authors, journal, volume, pages and DOI were checked against the paper's own first page and Crossref. Only the open-access full text and its supporting information were read; the paper's own definition of 'route accuracy' is the PaRoutes one (the reference found among the first n routes), not restated.
+"""
+
+[[source]]
+key = "maziarz2025syntheseus"
+kind = "literature"
+citation = "K. Maziarz, A. Tripp, G. Liu et al., 'Re-evaluating retrosynthesis algorithms with Syntheseus', Faraday Discussions 2025, 256."
+identifier_type = "doi"
+identifier = "10.1039/D4FD00093E"
+status = "reference_only"
+used_by = [
+    "docs/SYNTHESIS_HELPER_DESIGN.md",
+]
+local = "maziarz2025_syntheseus.pdf"
+verification = "citation"
+verified_date = 2026-10-20
+reason = """
+THE NEXT CANDIDATE PLANNER AND EVALUATION FRAMEWORK, NOT USED: a benchmarking library for single-step models and multi-step planners that argues inconsistent comparisons have hidden weaknesses. Read for its best-practice list (the leakage pitfall S5 on atom mapping and the dataset-selection pitfall S6, which warns against unrealistic assumptions on pre-training data) and its abstract; the experiments were not read in full. The arXiv version (2310.19796) is the same text with the supporting information inside.
+"""
+
+[[source]]
+key = "saigiridharan2024aizynthfinder4"
+kind = "literature"
+citation = "L. Saigiridharan, A. K. Hassen, H. Lai, P. Torren-Peraire, O. Engkvist & S. Genheden, 'AiZynthFinder 4.0: developments based on learnings from 3 years of industrial application', J. Cheminform. 2024, 16, 57."
+identifier_type = "doi"
+identifier = "10.1186/s13321-024-00860-x"
+status = "reference_only"
+license = "CC BY 4.0"
+used_by = [
+    "docs/SYNTHESIS_HELPER_DESIGN.md",
+]
+local = "saigiridharan2024_aizynthfinder4.pdf"
+verification = "citation"
+verified_date = 2026-10-20
+reason = """
+THE VERSION OF THE PLANNER THE SPIKE INSTALLED (4.4.1 is the later release): the paper describes the filter policy, support for any one-step model, the scoring framework (the default scorer rests on tree depth and the fraction of starting material in stock; Badowski's route cost is one alternative) and a large-scale analysis in which the number of routes found is above 100 for every target set while solved routes are fewer than 100. The authors, journal, volume and article number were checked against the paper's own first page. The run-time defaults the benchmark depends on (routes returned: at least 5 and at most 25 unless all solved routes are requested) were read from the installed package's source, not from this paper. The supporting information (saigiridharan2024_aizynthfinder4_si.docx) was not opened.
+"""
+
+[[source]]
+key = "li2024retrobleu"
+kind = "literature"
+citation = "J. Li, L. Fang & J.-G. Lou, 'Retro-BLEU: quantifying chemical plausibility of retrosynthesis routes through reaction template sequence analysis', Digital Discovery 2024, 3, 482-490."
+identifier_type = "doi"
+identifier = "10.1039/D3DD00219E"
+status = "reference_only"
+license = "CC BY 3.0"
+used_by = [
+    "docs/SYNTHESIS_HELPER_DESIGN.md",
+]
+local = "li2024_retro_bleu.pdf"
+verification = "citation"
+verified_date = 2026-10-20
+reason = """
+A POSSIBLE SOFTER ROUTE-AGREEMENT MEASURE, NOT USED: adapts BLEU to a route's sequence of reaction templates, evaluated on routes from PaRoutes made with AiZynthFinder and Retro*. Only the abstract and the evaluation set-up were read. The authors, journal, volume and pages were checked against the paper's own first page; the DOI is the one the publisher's page carries.
+"""
+
+[[source]]
+key = "genheden2021ted"
+kind = "literature"
+citation = "S. Genheden, O. Engkvist & E. Bjerrum, 'Clustering of synthetic routes using tree edit distance', J. Chem. Inf. Model. 2021, 61, 3899-3907."
+identifier_type = "doi"
+identifier = "10.1021/acs.jcim.1c00232"
+status = "reference_only"
+used_by = [
+    "docs/SYNTHESIS_HELPER_DESIGN.md",
+    "benchmarks/synthesis/RESULT.md",
+]
+local = "genheden2021_ted_clustering.pdf"
+verification = "citation"
+verified_date = 2026-10-20
+reason = """
+THE ROUTE-SIMILARITY MEASURE PaRoutes SCORES WITH: a tree edit distance between two routes using molecule and reaction fingerprint similarity. The DOI was confirmed through the registered supporting-information record (10.1021/acs.jcim.1c00232.s002) and the ChemRxiv preprint; the authors, volume and pages were checked against the paper's own first page. That the PaRoutes top-n scripts count a reference as found only when this distance is below 1e-6 is from the PaRoutes repository's analysis/route_quality.py (read 2026-10-20), not from this paper.
+"""
+
+[[source]]
+key = "morgunov2025retrocast"
+kind = "literature"
+citation = "A. Morgunov & V. S. Batista, 'Procrustean Bed for AI-Driven Retrosynthesis: A Unified Framework for Reproducible Evaluation', arXiv:2512.07079 (2025), preprint."
+identifier_type = "doi"
+identifier = "10.48550/arXiv.2512.07079"
+status = "reference_only"
+used_by = [
+    "docs/SYNTHESIS_HELPER_DESIGN.md",
+]
+local = "morgunov2025_retrocast.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-20
+reason = """
+A PREPRINT (not peer reviewed). Two statements were checked against its text: that PaRoutes showed models with over 97% stock-termination rate reproducing the ground-truth route with only 35 to 50% top-10 accuracy (the range our measured 0.373 falls in, though the figure is the authors' summary of other work and its sources were not traced), and that rank-dependent metrics such as top-K depend on which population of outputs is ranked (they filter for structure and stock before ranking). It also proposes that the whole PaRoutes n1 and n5 sets be excluded from any training corpus. The 'complexity cliff' claim was read in the abstract only.
+"""
+
+[[source]]
+key = "guo2026routeevaluation"
+kind = "literature"
+citation = "Y. Guo, M. Kabeshov, T. H. D. Le, S. Genheden, M. V. Mijangos, V. Voinarvoska, G. Bergonzini, O. Engkvist & S. Kaski, 'Bridging Chemists and AI: An Expert-Augmented Framework for Interpretable Route Evaluation', arXiv:2605.29108 (2026), preprint."
+identifier_type = "doi"
+identifier = "10.48550/arXiv.2605.29108"
+status = "reference_only"
+used_by = [
+    "docs/SYNTHESIS_HELPER_DESIGN.md",
+]
+local = "guo2026_route_evaluation.pdf"
+verification = "citation"
+verified_date = 2026-10-20
+reason = """
+A PREPRINT (not peer reviewed). Argues data-driven route evaluators lean on patent routes as proxies for expert-validated routes, and trains a route scorer on tree edit distances fine-tuned with expert chemists' ratings. Only the abstract and introduction were read; its numbers were not checked.
+"""
+
+[[source]]
+key = "armstrong2026synthex"
+kind = "literature"
+citation = "D. Armstrong, X.-V. Nguyen, O. Susanu et al., 'Strategy-first synthesis planning for complex natural products', arXiv:2608.07454 (2026), preprint."
+identifier_type = "doi"
+identifier = "10.48550/arXiv.2608.07454"
+status = "reference_only"
+used_by = [
+    "docs/SYNTHESIS_HELPER_DESIGN.md",
+]
+local = "armstrong2026_synthex.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-20
+reason = """
+A PREPRINT (not peer reviewed). Its own statement about AiZynthFinder as a baseline was checked in the text: on 1,098 natural products from the authors' NP set, with a depth limit of 25 and 30 minutes per target, AiZynthFinder solved 13.8% (151 of 1,098), and 80% of structurally undemanding targets. It also says that patent-derived benchmarks (USPTO-190, PaRoutes, Pistachio-Hard) are close to saturated. These are the authors' claims about their own comparison and were not reproduced; the rest was not read in full. Relevant to the limits of what a USPTO-trained planner can say about complex targets, not to the PaRoutes result.
+"""

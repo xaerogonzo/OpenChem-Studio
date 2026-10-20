@@ -45,6 +45,7 @@ def main() -> int:
     parser.add_argument("--stock", required=True)
     parser.add_argument("--expansion", default="uspto")
     parser.add_argument("--filter", default="none", help="a filter policy key, or 'none'")
+    parser.add_argument("--all-routes", action="store_true", help="protocol 2: return every solved route (post_processing.all_routes) instead of the default 5 to 25; off by default so protocol 1 runs as it did")
     args = parser.parse_args()
 
     warnings.simplefilter("ignore")
@@ -77,6 +78,9 @@ def main() -> int:
     finder.config.search.time_limit = args.time_limit
     finder.config.search.max_transforms = args.max_transforms
     limits = {"iteration_limit": args.iteration_limit, "time_limit": args.time_limit, "max_transforms": args.max_transforms}
+    if args.all_routes:
+        finder.config.post_processing.all_routes = True
+        limits["all_routes"] = True  # only when set, so a protocol 1 record keeps the shape it had
     identity = _identity(args.config, {"stock": args.stock, "expansion": args.expansion, "filter": args.filter})
     startup = round(time.perf_counter() - began, 2)
 
