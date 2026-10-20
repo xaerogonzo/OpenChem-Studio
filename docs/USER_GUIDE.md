@@ -2319,7 +2319,7 @@ with it, and *Style* keeps working from the panel.
 
 ---
 
-<!-- help:jobs -->
+<!-- help:synthesis -->
 ## Synthesis
 
 The **Synthesis** panel (the rail's Extensions group, or **Plugins ▸ Plan Synthesis**) asks a synthesis planner for routes to the selected molecule. It is a front end for **AiZynthFinder**, a program you install yourself and point the application at under **Edit ▸ Settings ▸ External tools ▸ AiZynthFinder** (the application never downloads or installs it). Until that is done the panel says what is missing and where to set it up, and **Plan synthesis** answers that the planner is not available.
@@ -2336,6 +2336,7 @@ The **Synthesis** panel (the rail's Extensions group, or **Plugins ▸ Plan Synt
 
 **Who may ask.** Only a person pressing **Plan synthesis**; there is no other way to start a search from the window yet.
 
+<!-- help:jobs -->
 ## Jobs and the console
 
 Anything that takes real time — ORCA calculations, docking runs, conformer
