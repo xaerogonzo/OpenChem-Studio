@@ -148,6 +148,7 @@ datas += [(str(PKG / "chem" / "data" / "tautomer_validation_record_v2.json"), "o
 datas += [
     (str(PKG / "chem" / "pka_runner.py"), "openchem/chem"),
     (str(PKG / "chem" / "admet_runner.py"), "openchem/chem"),
+    (str(PKG / "chem" / "aizynth_runner.py"), "openchem/chem"),  # handed to the USER'S planner interpreter as a path (chem/aizynth_planner.py)
 ]
 
 # RDKit's own data: the atomic-properties table, ring templates and the
