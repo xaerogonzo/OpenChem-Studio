@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Synthesis quality benchmark: literature read after the result
+- Eight papers (Syntheseus, Models Matter, AiZynthFinder 4.0, Retro-BLEU, TED clustering, RetroCast, two 2026 preprints) registered in `docs/sources.toml`. Reading them found that the run's route pool and ranking differ from the PaRoutes paper's (5 to 25 routes by the default state score, median 11, against all solved routes, median 273, by route cost), and that PaRoutes' own script counts a reference as found only at tree edit distance below 1e-6, so the preregistration's "stricter than the paper" sentence is wrong for top-n. Ignoring stereochemistry does not move 0.373. The verdict is unchanged; option 3 is reframed as a configuration-only re-measure on the existing install (`docs/SYNTHESIS_HELPER_DESIGN.md`, "After the result").
+
 ### Naming: thio and seleno acid groups the name had no prefix for
 - Round 75 added a population: ONE heavy atom of each census molecule swapped for its congener (O to S or Se, S to O or Se, N to P or As, C to Si or Ge), named and read back through OPSIN. The chalcogen swaps alone gave 59 NAMING ERRORs in 1,600: a sulfonothioyl or sulfonoselenoyl group (`S(=O)(=S)`) had no prefix and its FG matched only NH2. `R-S(=O)(=X)-` is `sulfonothioyl`, `sulfonoselenoyl`, `sulfinothioyl`, `sulfonodithioyl` now (D-340), a selenium or tellurium centre takes the same shape (`[(benzeneselenonyl)amino]benzene`, where `selenonamidobenzene` was a name OPSIN cannot read, D-341), `C([O-])=[Se]` is a `carboselenoate` (D-342), and the organyl of an `S-` or `O-` ester is enclosed where OPSIN cannot read it bare (`S-(3,5-dimethylcyclohexyl) ethanethioate`, D-343). The chalcogen swaps: NAMING ERRORs 59 -> 2, unparsable names 10 -> 1, wrong molecules 8 -> 6 of 1,600.
 

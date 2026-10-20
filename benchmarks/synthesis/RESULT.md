@@ -41,3 +41,7 @@ PARTIAL means the planner passes validity, stability and solving and is **below 
 ## Files
 
 `artifacts/report.txt` and `verdict.json` (the verdict), `draw.json` (the draw), `provenance.jsonl`, `planner_config.json`, `targets_r{1,2,3}.json`, and the raw per-target records as `results_r{1,2,3}.jsonl.gz` (gunzip them to rerun `run_quality.py report` or `diagnostics.py`). The 420 MB planner log is not kept.
+
+## Added after the result (2026-10-20)
+
+Reading the literature afterwards found that this run's route pool and ranking differ from the PaRoutes paper's (at most 25 routes ranked by the default state score, median 11 returned, against all solved routes, median 273, ranked by route cost), that PaRoutes' own script counts a reference as found only at tree edit distance below 1e-6 (so the preregistration's "stricter than the paper" sentence is wrong for top-n), and that ignoring stereochemistry does not move the result. The verdict is unchanged. Details and the reframed option 3 are in `docs/SYNTHESIS_HELPER_DESIGN.md`, section "After the result".
