@@ -160,9 +160,29 @@ Alex supplied eight papers after the result was written (all registered in `docs
 * **3b. The reference-excluding Keras model** (TensorFlow in the planner environment and the NumPy pin it may clash with; no record read says its training set excludes these exact reactions beyond the paper's statement).
 * **3c. A non-USPTO reference set** (literature routes Alex would supply).
 
-**3a is drafted as `benchmarks/synthesis/PREREGISTRATION_2.md` (status DRAFT: seven choices wait for Alex's approval, nothing is built or run).** Reading PaRoutes' scripts also showed that its "top-10" counts every route in the first 10 score *levels* (equal scores share a rank), so it is not a count of 10 routes; the draft therefore measures both that (M1, which decides, because the bars were set against it) and the first 10 routes (M2, which any product wording must quote).
+**3a is `benchmarks/synthesis/PREREGISTRATION_2.md`: all seven choices approved by Alex on 2026-10-20, built, tested and frozen with its runner; NOT run (see "To run: protocol 2" below).** Reading PaRoutes' scripts also showed that its "top-10" counts every route in the first 10 score *levels* (equal scores share a rank), so it is not a count of 10 routes; the draft therefore measures both that (M1, which decides, because the bars were set against it) and the first 10 routes (M2, which any product wording must quote).
 
 Stage 1 does not wait on any of them: the route domain and the regulatory gate do not depend on how many routes a search returns. The decision the product does depend on, how many routes to ask the planner for and how to rank them, is made in slice 3 (the runner) and is better made after 3a.
+
+## To run: protocol 2 of the quality benchmark (recorded 2026-10-20; NOT run, to be started by Alex)
+
+Option 3a, approved in full on 2026-10-20 (`benchmarks/synthesis/PREREGISTRATION_2.md`, frozen on the commit that adds its runner). It needs the same planner environment and data as protocol 1 (`D:\_scratch\aizynth\`: `env\Scripts\python.exe`, `data\`; PaRoutes files in `D:\_scratch\aizynth\paroutes\`, MD5 checked) and **protocol 1's `artifacts/` folder** (its `draw.json`, `verdict.json`, committed records and, if still on disk, its InChI-key stock). From the repository root, with nothing else using the machine; **not at the same time as the proton-affinity or bond-dissociation ORCA runs** (one long job at a time):
+
+```bash
+uv run --no-sync python benchmarks/synthesis/run_quality_2.py draw   --paroutes "D:/_scratch/aizynth/paroutes"
+uv run --no-sync python benchmarks/synthesis/run_quality_2.py stock  --paroutes "D:/_scratch/aizynth/paroutes" --planner-python "D:/_scratch/aizynth/env/Scripts/python.exe"
+uv run --no-sync python benchmarks/synthesis/run_quality_2.py run    --paroutes "D:/_scratch/aizynth/paroutes" --planner-python "D:/_scratch/aizynth/env/Scripts/python.exe" --planner-data "D:/_scratch/aizynth/data"
+uv run --no-sync python benchmarks/synthesis/run_quality_2.py status
+uv run --no-sync python benchmarks/synthesis/run_quality_2.py report --paroutes "D:/_scratch/aizynth/paroutes"
+```
+
+Then, optionally and deciding nothing, the official-metric check in its own environment (the planner's must not be used for it):
+
+```bash
+"D:/_scratch/route_distances_env/Scripts/python.exe" -I benchmarks/synthesis/official_check.py --paroutes "D:/_scratch/aizynth/paroutes"
+```
+
+`draw` copies protocol 1's draw and stops if it does not reproduce from the seed; `stock` says whether the stock is identical to protocol 1's; `run` resumes after an interruption. **Expect about 5.5 hours** (340 searches, as protocol 1 measured 5.3 h; extraction of every solved route takes a fraction of a second) and a peak of about 2.75 GB. **The raw records are large**: every solved route is kept (about 12 KB each as JSON), so expect up to about 1 GB uncompressed (one target with 341 routes was 4.1 MB) in `benchmarks/synthesis/artifacts_protocol2/`; gzip them before committing and commit the raw files only if they are small. The report writes `report.txt`, `verdict.json` and `table.json`; the figure that decides is M1 at 10 and the one any product wording must quote is M2. Same rules as for protocol 1: no edit to `src/` between the first search and the report, nothing changed after the report is seen, the verdict stands, and no further variant is run to chase a better number. The result is its own PR.
 
 ## Where the spike stands
 

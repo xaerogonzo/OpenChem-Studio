@@ -1,6 +1,6 @@
 # Synthesis planner quality benchmark, protocol 2 (option 3a): preregistration
 
-Written 2026-10-20. **Status: DRAFT. Not frozen, nothing of it has been run, and nothing is built until Alex approves the choices in "For Alex to approve" below.** It freezes on the commit that also holds its tested runner, as `PREREGISTRATION.md` did; after that it changes only by a dated amendment that says what and why. Background: `benchmarks/synthesis/RESULT.md` (protocol 1, verdict PARTIAL) and `docs/SYNTHESIS_HELPER_DESIGN.md`, section "After the result".
+Written 2026-10-20. **Status: APPROVED by Alex on 2026-10-20 (all seven choices, as proposed); FROZEN on the commit that adds its tested runner, before the first search. Nothing has been run.** After that it changes only by a dated amendment that says what and why. Drafted earlier the same day; the changes made between the draft and the freeze are listed under "At the freeze" and none touches a threshold or a reading. Background: `benchmarks/synthesis/RESULT.md` (protocol 1, verdict PARTIAL) and `docs/SYNTHESIS_HELPER_DESIGN.md`, section "After the result".
 
 ## The question
 
@@ -19,7 +19,7 @@ This is a re-measurement of seen targets with a protocol chosen **after** seeing
 | | Protocol 1 | Protocol 2 |
 |---|---|---|
 | Targets | the seeded draw: 300, the first 20 of them repeated twice more | **the same 300 and the same 20** (`draw.json` of protocol 1, copied unchanged); a paired comparison, not a fresh sample |
-| Planner, models, stock | AiZynthFinder 4.4.1, public ONNX USPTO policy, no filter, the set's own stock (13,414 InChI keys) | **identical**; the report is refused if the packages, the model files' checksums or the stock file differ from protocol 1's records |
+| Planner, models, stock | AiZynthFinder 4.4.1, public ONNX USPTO policy, no filter, the set's own stock (13,414 InChI keys) | **identical**; the report is refused if the packages, Python or selection differ from protocol 1's records, if the checksums of `targets_n1.txt` and `stock_n1.txt` differ, if the InChI-key stock differs from protocol 1's file, or if the two model files differ in size (protocol 1 recorded no checksum of them; their MD5s are recorded now) |
 | Search | MCTS, 500 iterations, 1,800 s safety net, `max_transforms` 10, `return_first` false | **identical** |
 | Routes returned | `build_routes()` defaults (5 to 25) | **`post_processing.all_routes` true**: every solved route when the target is solved (verified 2026-10-20 on a seen target: 49 returned, 14 by default); an unsolved target returns the default 5 to 25 as before |
 | Ranking | the planner's state score | **offline, by the PaRoutes route score** (below), never inside the planner (a list of scorers makes the planner switch to a Pareto selection, so none is passed) |
@@ -31,7 +31,7 @@ This is a re-measurement of seen targets with a protocol chosen **after** seeing
 **The route score** replicates `route_distances.utils.routes.route_score` as read 2026-10-20 (MIT licensed, `MolecularAI/route-distances`): a terminal molecule costs 1 if the planner marks it `in_stock` and 10 if not; a molecule with a reaction below it costs `1.0 + sum(child cost / 0.8)` over the reaction's precursors; lower is better. (The paper's text says a fixed reaction cost of 10 and a yield of 1; the executable default is 1.0 and 0.8, and **the code is what the scripts ran**; the choice is recorded here because it changes the cost values, not which routes tie, since only the shape and stock flags enter.) **The rank** is dense: routes sorted by score ascending (stable in the planner's order); a route's rank is its predecessor's if the scores differ by less than 1e-8, otherwise one more.
 
 * **M1, the PaRoutes top-k:** the reference is recovered at k if any route with rank at most k matches it by the exact rule. **This is the measure the thresholds were set against.**
-* **M2, the user-facing top-10:** the routes ordered by (route score ascending, then state score descending, then the planner's order), and the reference is recovered if one of the **first 10 routes** matches. This is what a person shown 10 routes sees. **It is reported beside every M1 number and any product wording must quote M2, not M1.**
+* **M2, the user-facing top-10:** the routes ordered by (dense rank by route score ascending, then state score descending, then the planner's order), and the reference is recovered if one of the **first 10 routes** matches. This is what a person shown 10 routes sees. **It is reported beside every M1 number and any product wording must quote M2, not M1.**
 * **M3, the planner's own order over the full pool:** the first 10 routes in the order the planner returns them with `all_routes` on. It should reproduce protocol 1's 0.373 (the pool for the top 10 is the same; only the ties at the boundary and the search's own noise differ). It is the **consistency check** and the dividing line between the pool and the ranking.
 * **Pool recall:** any returned route matches the reference. The ceiling for any ranking.
 * **Solved, valid, stable:** as protocol 1. **Valid** is judged on the first route of **M2's order**; **stable** on the same 20 targets run three times.
@@ -57,6 +57,7 @@ None of these changes Stage 1's authorization, which was decided on the narrowed
 * **Protocol 1 in full:** all 300 targets and their results, including which references were recovered; the diagnostics (by depth, leaf overlap, route counts); and the re-scoring of its records with stereo ignored.
 * **The literature** (eight papers, `docs/sources.toml`) and the PaRoutes and route-distances source files named above.
 * **A format check on spike-seen targets (indices 1 and 2) at 30 to 60 iterations** with `all_routes` on and off, to confirm the mechanics: 49 routes against 14 on target 2; the first 11 state scores identical; the same unsolved result on target 1; extraction took 0.03 to 0.23 s. These are targets the protocol-1 draw excluded and the spike already searched.
+* **An end-to-end smoke test of the runner on the same two spike-seen targets (indices 1 and 2) at the full 500 iterations,** in a scratch folder outside the benchmark records (r1 on both, r2 and r3 on target 2), to catch wiring faults before a five-hour run. It took 5.5 minutes; target 2 returned 341 routes (4.1 MB) with 128 score levels, 35 routes inside its PaRoutes top-10; the stock matched protocol 1's file byte for byte; the report ran and refused the 2-target run, as it must, because M3 was 0.000 against 0.373. Its records are discarded.
 * **No other search has been run for protocol 2.**
 
 ## What it cannot say
@@ -70,15 +71,24 @@ None of these changes Stage 1's authorization, which was decided on the narrowed
 
 ## Expected cost and records
 
-About 340 searches as in protocol 1 (300 plus 40 repeats), so **roughly the 5.3 hours measured for protocol 1** (extraction is a fraction of a second) and about the same peak memory (2.75 GB). **Raw records are larger:** every solved route is kept, about 12 KB each as JSON, so a target with 270 routes is about 3 MB; the raw files are expected at several hundred MB uncompressed and tens of MB gzipped, **kept locally and not committed unless the gzipped size is small**; the committed artifacts are the per-target table, the report, the verdict, the draw, the configuration and the provenance. It is run alone: **not at the same time as the proton-affinity or bond-dissociation ORCA runs** (one long job at a time), and not until Alex says so.
+About 340 searches as in protocol 1 (300 plus 40 repeats), so **roughly the 5.3 hours measured for protocol 1** (extraction is a fraction of a second) and about the same peak memory (2.75 GB). **Raw records are larger:** every solved route is kept, about 12 KB each as JSON, so a target with 270 routes is about 3 MB; a smoke test (below) returned 341 routes for one target in 4.1 MB, so the raw files are expected at up to about 1 GB uncompressed and around 100 MB gzipped, **kept locally and not committed unless the gzipped size is small**; the committed artifacts are the per-target table, the report, the verdict, the draw, the configuration and the provenance. It is run alone: **not at the same time as the proton-affinity or bond-dissociation ORCA runs** (one long job at a time), and not until Alex says so.
 
 ## What gets built after approval (not before)
 
 `route_rank.py` (the score, the dense ranks, M1, M2 and M3 as pure functions), `plan_batch.py` gaining `--all-routes` (default off, so protocol 1's runner behaves as it did), `run_quality_2.py` (reads protocol 1's `draw.json`, writes `artifacts_protocol2/`, reports with the unchanged `judge.py`, refuses as above and states protocol 1's identity it compared with), tests on synthetic routes with hand-computed scores and ties, a mutation check, and the runner committed with this file **before the first search**. The run commands will be recorded in the design note as "To run", as for protocol 1.
 
-**Optional, needs Alex's permission first:** installing the official `route-distances` package into the planner environment (a small pure-Python download) to recompute M1 with the official tree edit distance as a secondary figure. It would decide nothing.
+**The optional official-metric check was approved and is built as a secondary figure that decides nothing** (`official_check.py`): M1, M2 and M3 recomputed with the official tree edit distance (`route_distances.ted.reactiontree.ReactionTreeWrapper`, a route found when the distance is below 1e-6, as `route_quality.py` does) in place of the exact rule. **It runs in a separate environment (`D:\_scratch\route_distances_env`, 234 MB: route-distances 1.2.4 installed without its dependencies, plus numpy 1.26.4, scipy, apted 1.0.3, rdkit 2023.9.6 and pydantic), never in the planner's**: installing the package normally would pull in torch and about twenty other packages and change the planner's recorded identity. Checked on 2026-10-20: a route's distance to itself is 0.0 for the planner's routes and for a PaRoutes reference route.
 
-## For Alex to approve (everything else above is derived)
+## At the freeze (2026-10-20)
+
+Alex approved all seven choices below as proposed. Changes between the draft and the freeze, none to a threshold or a reading:
+
+* **M2's order is by dense rank, then state score descending, then the planner's order** (the draft said "route score"); a route's rank, not its raw score, so two routes of one shape that differ in the last float digit still tie.
+* **Protocol 1's model checksums do not exist,** so the "model files differ" refusal compares file sizes (91,518,243 and 3,313,598 bytes) and the MD5s are recorded for the future.
+* **The official-metric check runs in its own environment** (above), not the planner's.
+* **The runner reads protocol 1's gzipped committed records** when the raw files are absent, and takes the 0.373 for M3's consistency check from protocol 1's `verdict.json`, not from a constant.
+
+## Approved on 2026-10-20 (all seven, as proposed)
 
 1. **M1 (the PaRoutes count) decides the verdict; M2 (first 10 routes) is reported beside it and is what any product wording must quote.** Reason: the 0.50 and 0.35 bars were set against a published M1-type figure. The alternative is to let M2 decide, which keeps the strict count but makes the bars harder to meet than the approved ones were meant to be.
 2. **The thresholds stay exactly protocol 1's** (0.50 and 0.35 for recovery).
