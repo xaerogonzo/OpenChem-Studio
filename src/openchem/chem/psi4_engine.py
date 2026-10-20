@@ -64,8 +64,9 @@ _ENERGY_RE = re.compile(r"^\s+Total Energy =\s+(-?\d+\.\d+)\s*$", re.MULTILINE)
 _ERROR_MARKER = "Psi4 encountered an error"
 #: The heading of the converged geometry an optimization prints last.
 _FINAL_GEOMETRY = "Final optimized geometry and variables:"
-#: One atom of that geometry: element, then x, y, z in Angstrom.
-_GEOMETRY_ROW = re.compile(r"^\s+([A-Z][a-z]?)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$")
+#: One atom of that geometry: element, then x, y, z in Angstrom. Psi4 prints a two-letter element in CAPITALS (`CL`, measured on chloromethane; the agreement check's optimization
+#: arm lost a molecule to `Cl` being the only spelling accepted), so the symbol is matched in any case and normalised by the caller.
+_GEOMETRY_ROW = re.compile(r"^\s+([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$")
 
 
 class Psi4OutputError(RuntimeError):
@@ -181,7 +182,8 @@ class Psi4QuantumEngineProvider(QuantumEngineProvider):
         for line in output_text[start:].splitlines()[1:]:
             match = _GEOMETRY_ROW.match(line)
             if match:
-                rows.append(match.groups())
+                symbol, x, y, z = match.groups()
+                rows.append((symbol.capitalize(), x, y, z))
             elif rows:
                 break
         atoms = list(mol.GetAtoms())
