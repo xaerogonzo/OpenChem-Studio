@@ -148,6 +148,9 @@ SUFFIX_VARIANT_TABLE: dict[tuple[str, OutputForm], str] = {
     ("carbothioic O-acid", OutputForm.STANDALONE):  "carbothioic O-acid",
     ("carbothioic O-acid", OutputForm.ACID_STEM):   "carbothioate",
     ("carbothioic O-acid", OutputForm.ANION):       "carbothioate",
+    ("carboselenoic O-acid", OutputForm.STANDALONE):  "carboselenoic O-acid",
+    ("carboselenoic O-acid", OutputForm.ACID_STEM):   "carboselenoate",
+    ("carboselenoic O-acid", OutputForm.ANION):       "carboselenoate",
     ("carbothioic S-acid", OutputForm.STANDALONE):  "carbothioic S-acid",
     ("carbothioic S-acid", OutputForm.ACID_STEM):   "carbothioate",
     ("carbothioic S-acid", OutputForm.ANION):       "carbothioate",
@@ -2103,6 +2106,18 @@ def _assemble_polyol_ester(tree: FunctionalClassTree) -> str:
     return f"{organyl} {multiplied}"
 
 
+def _enclosed_after_bridge_locant(alkyl: str) -> str:
+    """The organyl of an `S-` / `O-` ester, in marks when OPSIN cannot tell where its locants begin (naming round 75).
+
+    `S-2-methylcyclohexyl ethanethioate` reads, `S-3,5-dimethylcyclohexyl ethanethioate` and `S-(isoquinolin-1-yl)(phenyl)methyl ...` do not: a locant LIST
+    right after the italic locant, or two enclosed prefixes side by side, ends the word early. `S-(3,5-dimethylcyclohexyl) ethanethioate` reads.
+    """
+    if re.match(r"\d+,\d", alkyl) or re.search(r"[)\]}][(\[{]", alkyl):
+        open_b, close_b = _choose_brackets(alkyl)
+        return f"{open_b}{alkyl}{close_b}"
+    return alkyl
+
+
 def _assemble_fc(tree: FunctionalClassTree) -> str:
     """Assemble functional class names."""
     if tree.subtype == "polyol_ester":
@@ -2143,11 +2158,11 @@ def _assemble_fc(tree: FunctionalClassTree) -> str:
             # The "S-" locant prefix on the alkyl disambiguates the acid-stem
             # from its thionoester counterpart (for thioate) and signals that
             # the chalcogen link is through sulfur.
-            return f"S-{filled['alcohol']} {filled['acid']}"
+            return f"S-{_enclosed_after_bridge_locant(filled['alcohol'])} {filled['acid']}"
 
         case "thionoester":
             # P-65.6.3: R-C(=S)-O-R' -> "O-R' R-thioate"
-            return f"O-{filled['alcohol']} {filled['acid']}"
+            return f"O-{_enclosed_after_bridge_locant(filled['alcohol'])} {filled['acid']}"
 
         case "carbamate":
             # "butyl N-phenylcarbamate" / "ethyl carbamate" (no N-sub)
@@ -2188,9 +2203,9 @@ def _assemble_fc(tree: FunctionalClassTree) -> str:
                 bridge_locant = "S"
                 stem = "carbamodithioate"
             if n_prefix:
-                return f"{bridge_locant}-{alcohol_name} {n_prefix}{stem}"
+                return f"{bridge_locant}-{_enclosed_after_bridge_locant(alcohol_name)} {n_prefix}{stem}"
             else:
-                return f"{bridge_locant}-{alcohol_name} {stem}"
+                return f"{bridge_locant}-{_enclosed_after_bridge_locant(alcohol_name)} {stem}"
 
         case "anhydride":
             adj1, _ = _acid_to_adjective(filled["acid1"])

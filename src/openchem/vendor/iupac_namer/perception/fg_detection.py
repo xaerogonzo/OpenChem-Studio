@@ -223,6 +223,8 @@ SUBSUMPTION_TABLE: dict[tuple[str, str], bool] = {
     ("carboxylic_acid", "alcohol"): True,
     ("carboxylic_acid", "ketone"): True,
     # Thio-acids subsume their component patterns
+    ("carboselenoic_O_acid", "alcohol"): True,
+    ("carboselenoic_O_acid", "phenol"): True,
     ("carbothioic_O_acid", "alcohol"): True,
     ("carbothioic_O_acid", "phenol"): True,
     ("carbothioic_O_acid", "thione"): True,
