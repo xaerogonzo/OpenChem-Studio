@@ -217,6 +217,7 @@ class ExternalToolsPages(QWidget):
         self._add_executable_tab(catalog.vina(), _VinaTab)
         self._add_executable_tab(catalog.orca(), ManagedExecutableTab)
         self._add_executable_tab(catalog.psi4(), ManagedExecutableTab)
+        self._add_executable_tab(catalog.aizynthfinder(), ManagedExecutableTab)
         self._add_sidecar_tab(catalog.pkasolver(), InterpreterSidecarTab)
         # Grouped with pkasolver rather than with the executables above:
         # both are "a Python interpreter, not an executable", and making
@@ -295,6 +296,7 @@ class ExternalToolsPages(QWidget):
         "vina": "_vina",
         "orca": "_orca",
         "psi4": "_psi4",
+        "aizynthfinder": "_aizynthfinder",
         "knowledge_vista": "_knowledge_vista",
     }
 
@@ -306,6 +308,9 @@ class ExternalToolsPages(QWidget):
         if isinstance(tab, (InterpreterSidecarTab, ManagedExecutableTab)):
             setattr(self, f"{prefix}_path_edit", tab.path_row.edit)
             setattr(self, f"{prefix}_locate_button", tab.locate_button)
+            # A tool with a second path (AiZynthFinder's configuration file) gets its own alias.
+            for index, extra in enumerate(getattr(tab, "extra_rows", ())):
+                setattr(self, f"{prefix}_extra{index + 1}_path_edit", extra.edit)
 
     def _tab_for(self, key: str) -> ToolTab:
         for tab in self._tool_tabs:

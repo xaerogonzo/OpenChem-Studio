@@ -781,8 +781,15 @@ def test_cancelling_the_real_planner_leaves_no_process_that_is_running_the_runne
         pytest.skip("this machine cannot list processes by command line")
     cancel = threading.Event()
     midway: set[int] = set()
-    threading.Timer(3.0, lambda: midway.update(runner_processes() or set())).start()
-    threading.Timer(4.0, cancel.set).start()
+
+    def cancel_once_the_child_has_been_seen() -> None:
+        # Cancel only after the listing has actually shown the running child (a fixed delay raced a slow PowerShell under load), and never later than 60 s.
+        deadline = time.monotonic() + 60
+        while time.monotonic() < deadline and not midway:
+            midway.update((runner_processes() or set()) - before)
+        cancel.set()
+
+    threading.Thread(target=cancel_once_the_child_has_been_seen, daemon=True).start()
     began = time.monotonic()
 
     result = host.run_planner(_real_request(iterations=100000), TARGET, python=_PLANNER_PYTHON, cancel=cancel)
