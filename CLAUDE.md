@@ -435,6 +435,79 @@ Three things that cost a run each:
   caller's session; here it broke the harness's own exit-code handling
   and read as a failure of a capture that had just succeeded.
 
+## The regulatory rulesets -- work on them by rule id
+
+`src/openchem/chem/regulatory/` screens a drawn structure against published
+regulations and reports which one lists a matching substance and what
+obligations may follow. It is a **detector**: the data holds recognition
+patterns, each regulation's verbatim wording with a citation URL, and a
+`legitimate_uses` field whose whole job is to stop the screen over-flagging
+ordinary laboratory reagents. There is no synthesis, route, procedure or
+yield information anywhere in it. The five rulesets under
+`src/openchem/chem/data/regulatory/sources/` are hand-reviewed; everything
+under `generated/` is machine-owned and must never be hand-edited.
+
+**Reading these files is fine. Repeating their contents into a conversation
+is what stops a session** -- a safety classifier fires on the vocabulary, and
+it has stopped mid-sentence explanations of rules more than once. So:
+
+- Refer to a rule by its `rule_id` (`cwc-1-a-1`, `dea-i-4`, `osha-z1-...`).
+  Never by substance name, and never by quoting its expression or its
+  `legal.quote`.
+- Do not paste ruleset JSON into a message, a commit message, a PR body or a
+  plan file. Point at `file:line` instead.
+- To check the data is sound, run the four `tests/test_regulatory_*.py` files
+  and the build's `--check`. Neither needs a JSON opened -- but **`--check`
+  is not quiet**: measured 2026-10-20, a bare run prints 382 lines and most
+  of them carry substance display names (OPSIN's parse warnings on stderr,
+  and one `UNRESOLVED`/`skipped` line per unresolved entry on stdout). Run it
+  filtered, which leaves the ruleset ids, the counts and the verdict:
+
+  ```bash
+  uv run --no-sync python tools/build_regulatory_rulesets.py --check \
+      2>/dev/null | grep -vE 'UNRESOLVED|skipped'
+  ```
+
+  The verdict to look for is `matches its source, hash intact` on all five,
+  and exit 0. Both halves matter: a hand-edited file still agrees with its
+  source-document hash, and a stale file still hashes correctly to its own
+  older content. pytest is quiet on its own (`186 passed`, no names).
+- Open a data file only when a rule is genuinely being added or corrected,
+  and then say what changed by id, not by content.
+
+The graph is told to stop volunteering the contents, in
+`.tokensave/queryignore` -- the data only, never the Python or the tests.
+**`.tokensave/` is gitignored**, so a clone, a fresh worktree or another
+machine has no such file until it is recreated there with these three lines:
+
+```
+src/openchem/chem/data/regulatory/generated/
+src/openchem/chem/data/regulatory/sources/*.json
+src/openchem/chem/data/regulatory/sources/*.xml
+```
+
+**The guard was measured, and `init` alone hides the data by accident.**
+A/B'd on 2026-10-20 with a literal search for `ruleset_sha256`, re-indexing
+in each state: 0 hits with the file, 5 without it, 0 with it restored. But
+`tokensave init` does not index artifact-extension files at all, so straight
+after an `init` the data looks safe whether or not the guard exists -- the
+first `sync -f` is what indexes it, and only then does the guard do the work.
+Do not read a fresh worktree's 0 as the guard working.
+
+**The main checkout needs its own copy, and does not have one.** The MCP
+server resolves its root upward and serves `D:\Random Projects\OpenChem
+Studio`, whose index does return these files' contents on an ordinary search
+(measured the same day). `.tokensave/` being gitignored, no branch can carry
+the fix there:
+
+```bash
+cp .tokensave/queryignore "D:/Random Projects/OpenChem Studio/.tokensave/queryignore"
+"D:/Claude Co worker/Token Save/tokensave.exe" sync -f --project "D:/Random Projects/OpenChem Studio"
+```
+
+Permissions were deliberately left alone: a `deny` rule would also block
+legitimate rule maintenance.
+
 ## Lessons (moved out of this file)
 
 These were appended here after individual investigations. They live
