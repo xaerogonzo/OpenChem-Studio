@@ -21648,7 +21648,9 @@ this is the engineering record.
   session twice. Same conversation, same material, different channel.
 * **That flood was a measurement correction of its own: the build tool's
   `--check` is NOT quiet.** A bare run prints 382 lines, most carrying substance
-  display names. An earlier plan asserted the opposite and was wrong. The
+  display names -- counted from an actual unfiltered run in a real session, so
+  it is a reproducible measurement rather than an anecdote. An earlier plan
+  asserted the opposite and was wrong. The
   filtered invocation, which leaves the ruleset ids, the counts and the verdict,
   is in `CLAUDE.md`'s regulatory section.
 * **The classifier and the model are separate systems, which is why the sessions
@@ -21669,7 +21671,14 @@ this is the engineering record.
   `matches its source, hash intact`.
 * **The cost is the measurable part.** Three earlier sessions on this topic
   (worktrees `delete-regulatory-panel-16589b`, `cwc-schedule-1-narrow-4ddd7f`,
-  `frosty-jang-07b7f6`) produced zero commits between them.
+  `frosty-jang-07b7f6`) produced zero commits between them -- measured
+  2026-10-20, and the measurement is `git rev-list --count origin/master..<branch>`
+  per branch with each working tree clean, not the worktree's listed head. That
+  distinction matters, because re-reading it hours later by head alone got it
+  wrong in both directions: one branch had moved to a new head that was
+  master's own tip (brought up to date, nothing committed), and the other two
+  showed one commit each that was a shared `chore(instructions)` commit carried
+  by several branches rather than work of their own.
 
 ### WHAT THE PROTOCOL DOES NOT COVER
 
@@ -21693,3 +21702,9 @@ later message was flagged anyway.
   arrived as tool output; the stop came on a generated message. So the rule of
   thumb holds: keep the generated prose clean, let scripts print a `rule_id`
   plus a verdict or a boolean, and never narrate the source wording.
+* **It reproduced on 2026-10-20 in the session REVIEWING this entry**, with
+  several assistant messages stopped mid-sentence. The common factor across all
+  of them, here as everywhere above, was a long message combining the domain
+  vocabulary with extended discussion of the safety behaviour itself -- never a
+  file read. Length on this topic is itself the risk, which is why this bullet
+  is short.
