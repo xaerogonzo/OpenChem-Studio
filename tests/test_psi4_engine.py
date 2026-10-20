@@ -155,6 +155,22 @@ def test_an_optimization_returns_the_final_geometry_as_a_psi4_conformer_and_the_
     assert positions[2][2] == pytest.approx(-0.474212699675, abs=1e-4)
 
 
+def test_a_two_letter_element_is_printed_in_capitals_and_still_maps_to_its_atom(provider):
+    """Psi4 prints chlorine as `CL` in the final geometry. The agreement check's optimization arm lost chloromethane to a parser that accepted only `Cl` (a real output, exit 0)."""
+    mol = Chem.AddHs(Chem.MolFromSmiles("CCl"))
+    AllChem.EmbedMolecule(mol, randomSeed=7)
+    text = _fixture("chloromethane_b3lyp5_def2svp_opt.out")
+    assert "\n    CL " in text  # the fixture really has the capitalised spelling
+
+    _descriptors, conformer = provider.parse_output(text, mol, "u-1", "opt")
+
+    optimized = Chem.MolFromMolBlock(conformer.molblock, removeHs=False)
+    assert [a.GetSymbol() for a in optimized.GetAtoms()] == ["C", "Cl", "H", "H", "H"]
+    # the C-Cl distance of the converged geometry in the fixture: C (-0.1451, -0.0075, -0.0034), CL (1.6472, 0.0851, 0.0389) -> 1.795 A
+    positions = optimized.GetConformer().GetPositions()
+    assert float(((positions[0] - positions[1]) ** 2).sum() ** 0.5) == pytest.approx(1.795, abs=2e-3)
+
+
 def test_a_geometry_that_does_not_fit_the_input_atoms_is_never_applied(provider):
     methane = Chem.AddHs(Chem.MolFromSmiles("C"))
     AllChem.EmbedMolecule(methane, randomSeed=7)
