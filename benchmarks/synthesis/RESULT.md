@@ -34,7 +34,9 @@ The preregistration estimated "roughly three hours" and "under 1 GB of memory" f
 
 ## The decision this leaves to Alex
 
-PARTIAL means the planner passes validity, stability and solving and is **below the approved bar on agreeing with known patent routes**. The options the preregistration anticipated: (a) **stop** (NO-GO's route: name the next candidate), (b) **continue to Stage 1 with the claim narrowed to what passed**, with the 0.373 and its depth dependence stated beside any route (the product would say "valid, repeatable routes that often differ from the patent route", never "known routes"), or (c) **re-measure on a cleaner footing** (the PaRoutes-excluded Keras model, which needs TensorFlow and a NumPy conflict, or a reference set that is not USPTO) under a new preregistration. No option is taken here.
+PARTIAL means the planner passes validity, stability and solving and is **below the approved bar on agreeing with known patent routes**. The options the preregistration anticipated: (a) **stop** (NO-GO's route: name the next candidate), (b) **continue to Stage 1 with the claim narrowed to what passed**, with the 0.373 and its depth dependence stated beside any route (the product would say "valid, repeatable routes that often differ from the patent route", never "known routes"), or (c) **re-measure on a cleaner footing** (the PaRoutes-excluded Keras model, which needs TensorFlow and a NumPy conflict, or a reference set that is not USPTO) under a new preregistration. No option is taken in the result itself.
+
+**Decided afterwards (Alex, 2026-10-20):** option (b), continue to Stage 1 with the narrowed claim. Option (c), the re-measurement, is deferred as a recorded to-do, not dropped; the frozen result above is unchanged.
 
 ## Files
 
