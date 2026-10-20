@@ -5337,10 +5337,39 @@ def _sulfonyl_sulfinyl_has_single_substituent(mol, attachment_idx, att_atom_s) -
     non_oxo = 0
     for nb in att_atom_s.GetNeighbors():
         bond = mol.GetBondBetweenAtoms(attachment_idx, nb.GetIdx())
-        if nb.GetAtomicNum() == 8 and bond is not None and bond.GetBondTypeAsDouble() >= 2.0:
+        if nb.GetAtomicNum() in (8, 16, 34) and bond is not None and bond.GetBondTypeAsDouble() >= 2.0 and nb.GetDegree() == 1 and nb.GetFormalCharge() == 0:
             continue
         non_oxo += 1
     return non_oxo == 1
+
+
+_SULFUR_GROUP_INFIX = {8: "", 16: "thio", 34: "seleno"}
+# the centre's stem for one and for two terminal chalcogens: sulfinyl / sulfonyl, seleninyl / selenonyl, tellurinyl / telluronyl
+_CHALCOGEN_ACID_STEM = {16: ("sulfin", "sulfon"), 34: ("selenin", "selenon"), 52: ("tellurin", "telluron")}
+
+
+def _sulfur_group_suffix(mol, s_atom) -> tuple[str, list] | None:
+    """The `-yl` suffix of an R-S(=X)n- group and its terminal chalcogens, or None when it is not one this builds.
+
+    `=O` is `sulfinyl` / `sulfonyl`; a `=S` or `=Se` in place of an oxo adds the infix of P-65.3.1: `sulfonothioyl`, `sulfonoselenoyl`, `sulfinothioyl`,
+    `sulfonodithioyl`. A mixed pair of replacements (`thioseleno`) is not built (naming round 75).
+    """
+    terminals = [
+        nb for nb in s_atom.GetNeighbors()
+        if nb.GetAtomicNum() in _SULFUR_GROUP_INFIX and nb.GetDegree() == 1 and nb.GetFormalCharge() == 0
+        and mol.GetBondBetweenAtoms(s_atom.GetIdx(), nb.GetIdx()).GetBondTypeAsDouble() == 2.0
+    ]
+    if len(terminals) not in (1, 2) or s_atom.GetAtomicNum() not in _CHALCOGEN_ACID_STEM:
+        return None
+    replaced = [nb.GetAtomicNum() for nb in terminals if nb.GetAtomicNum() != 8]
+    if len(set(replaced)) > 1:
+        return None
+    stem = _CHALCOGEN_ACID_STEM[s_atom.GetAtomicNum()][len(terminals) - 1]
+    if not replaced:
+        return stem + "yl", terminals
+    infix = _SULFUR_GROUP_INFIX[replaced[0]]
+    multiplier = "di" if len(replaced) == 2 else ""
+    return f"{stem}o{multiplier}{infix}yl", terminals
 
 
 def _isotopic_attachment_prefix(prefix: str, atom, fragment, within=None) -> str:
@@ -5824,24 +5853,13 @@ def _name_single_fg_substituent(
     # Fragment pattern: R-S(=O)(=O)- or R-S(=O)- with free valence at S.
     # Name as: {name_of_R}sulfonyl or {name_of_R}sulfinyl.
     att_atom_s = mol.GetAtomWithIdx(attachment_idx)
-    if att_atom_s.GetAtomicNum() == 16 and strategy is not None and session is not None:
-        # Count =O on the attachment S
-        oxo_count = sum(
-            1 for nb in att_atom_s.GetNeighbors()
-            if nb.GetAtomicNum() == 8
-            and mol.GetBondBetweenAtoms(attachment_idx, nb.GetIdx()) is not None
-            and mol.GetBondBetweenAtoms(attachment_idx, nb.GetIdx()).GetBondTypeAsDouble() >= 2.0
-        )
+    if att_atom_s.GetAtomicNum() in _CHALCOGEN_ACID_STEM and strategy is not None and session is not None:
+        # The =O (and, naming round 75, =S / =Se) terminals on the attachment S
+        _group_suffix = _sulfur_group_suffix(mol, att_atom_s)
+        oxo_count = len(_group_suffix[1]) if _group_suffix else 0
         if oxo_count in (1, 2) and _sulfonyl_sulfinyl_has_single_substituent(mol, attachment_idx, att_atom_s):
             # Build the R fragment: all atoms except S and its =O oxygens
-            s_and_oxo = frozenset(
-                [attachment_idx] + [
-                    nb.GetIdx() for nb in att_atom_s.GetNeighbors()
-                    if nb.GetAtomicNum() == 8
-                    and mol.GetBondBetweenAtoms(attachment_idx, nb.GetIdx()) is not None
-                    and mol.GetBondBetweenAtoms(attachment_idx, nb.GetIdx()).GetBondTypeAsDouble() >= 2.0
-                ]
-            )
+            s_and_oxo = frozenset([attachment_idx] + [nb.GetIdx() for nb in _group_suffix[1]])
             r_atoms = frozenset(
                 a.GetIdx() for a in mol.GetAtoms()
                 if a.GetAtomicNum() > 1 and a.GetIdx() not in s_and_oxo
@@ -5879,7 +5897,7 @@ def _name_single_fg_substituent(
                         from openchem.vendor.iupac_namer.assembly import assemble
                         r_name = assemble(r_tree)
                         if r_name and "[NAMING ERROR" not in r_name:
-                            suffix = "sulfonyl" if oxo_count == 2 else "sulfinyl"
+                            suffix = _group_suffix[0]
                             # The group's own nuclides sit in front of the `sulfonyl` they modify, after the R they hang on: `methyl(34S)sulfonyl`, `phenyl(18O)sulfonyl`
                             # (OPSIN reads that and not `(34S)methylsulfonyl`; the two `=O` are one position, naming round 70). More than one such atom: left unlabelled and refused.
                             suffix = _isotopic_group_prefix(suffix, s_and_oxo, mol) or suffix
@@ -13893,7 +13911,7 @@ _FG_TYPES_WITH_ANION_VARIANT: frozenset[str] = frozenset({
     "phosphonic_acid", "boronic_acid",
     "sulfonamide",
     # thio-acid family (table keys use uppercase O/S; FG names mirror them)
-    "carbothioic_O_acid", "carbothioic_S_acid", "carbodithioic_acid",
+    "carbothioic_O_acid", "carbothioic_S_acid", "carbodithioic_acid", "carboselenoic_O_acid",
 })
 
 # FG types whose suffix base_form has an OutputForm.CATION variant in
@@ -14198,7 +14216,7 @@ _SALT_CATION_DEMOTABLE_ACID_TYPES: frozenset[str] = frozenset({
     "sulfonic_acid", "sulfinic_acid",
     "selenonic_acid", "seleninic_acid",
     "phosphonic_acid", "phosphinic_acid", "boronic_acid",
-    "carbothioic_O_acid", "carbothioic_S_acid", "carbodithioic_acid",
+    "carbothioic_O_acid", "carbothioic_S_acid", "carbodithioic_acid", "carboselenoic_O_acid",
 })
 
 
