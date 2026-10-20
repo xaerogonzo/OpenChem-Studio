@@ -160,6 +160,8 @@ Alex supplied eight papers after the result was written (all registered in `docs
 * **3b. The reference-excluding Keras model** (TensorFlow in the planner environment and the NumPy pin it may clash with; no record read says its training set excludes these exact reactions beyond the paper's statement).
 * **3c. A non-USPTO reference set** (literature routes Alex would supply).
 
+**3a is drafted as `benchmarks/synthesis/PREREGISTRATION_2.md` (status DRAFT: seven choices wait for Alex's approval, nothing is built or run).** Reading PaRoutes' scripts also showed that its "top-10" counts every route in the first 10 score *levels* (equal scores share a rank), so it is not a count of 10 routes; the draft therefore measures both that (M1, which decides, because the bars were set against it) and the first 10 routes (M2, which any product wording must quote).
+
 Stage 1 does not wait on any of them: the route domain and the regulatory gate do not depend on how many routes a search returns. The decision the product does depend on, how many routes to ask the planner for and how to rank them, is made in slice 3 (the runner) and is better made after 3a.
 
 ## Where the spike stands

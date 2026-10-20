@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Synthesis quality benchmark: literature read after the result
+- Option 3a drafted as `benchmarks/synthesis/PREREGISTRATION_2.md` (protocol 2: the same 300 targets, planner and stock, all solved routes returned, ranked offline by the PaRoutes route score; decides on the PaRoutes top-10, which counts tied score levels and so is not 10 routes, and reports the first-10-routes count beside it). DRAFT, nothing built or run; the choices for Alex are listed in it.
 - Eight papers (Syntheseus, Models Matter, AiZynthFinder 4.0, Retro-BLEU, TED clustering, RetroCast, two 2026 preprints) registered in `docs/sources.toml`. Reading them found that the run's route pool and ranking differ from the PaRoutes paper's (5 to 25 routes by the default state score, median 11, against all solved routes, median 273, by route cost), and that PaRoutes' own script counts a reference as found only at tree edit distance below 1e-6, so the preregistration's "stricter than the paper" sentence is wrong for top-n. Ignoring stereochemistry does not move 0.373. The verdict is unchanged; option 3 is reframed as a configuration-only re-measure on the existing install (`docs/SYNTHESIS_HELPER_DESIGN.md`, "After the result").
 
 ### Naming: thio and seleno acid groups the name had no prefix for
